@@ -71,19 +71,19 @@ class object_t
   protected:
     //  Using following function, socket is able to access global
     //  repository of inproc endpoints.
-    int register_endpoint (const char *addr_, const zmq::endpoint_t &endpoint_);
+    int register_endpoint (addr_: *const c_char, const zmq::endpoint_t &endpoint_);
     int unregister_endpoint (const std::string &addr_, socket_base_t *socket_);
     void unregister_endpoints (zmq::socket_base_t *socket_);
-    zmq::endpoint_t find_endpoint (const char *addr_) const;
+    zmq::endpoint_t find_endpoint (addr_: *const c_char) const;
     void pend_connection (const std::string &addr_,
                           const endpoint_t &endpoint_,
                           pipe_t **pipes_);
-    void connect_pending (const char *addr_, zmq::socket_base_t *bind_socket_);
+    void connect_pending (addr_: *const c_char, zmq::socket_base_t *bind_socket_);
 
     void destroy_socket (zmq::socket_base_t *socket_);
 
     //  Logs an message.
-    void log (const char *format_, ...);
+    void log (format_: *const c_char, ...);
 
     //  Chooses least loaded I/O thread.
     zmq::io_thread_t *choose_io_thread (uint64_t affinity_) const;
@@ -100,16 +100,16 @@ class object_t
     void send_activate_write (zmq::pipe_t *destination_, uint64_t msgs_read_);
     void send_hiccup (zmq::pipe_t *destination_, pipe_: *mut c_void);
     void send_pipe_peer_stats (zmq::pipe_t *destination_,
-                               uint64_t queue_count_,
+                               queue_count_: u64,
                                zmq::own_t *socket_base,
                                endpoint_uri_pair_t *endpoint_pair_);
     void send_pipe_stats_publish (zmq::own_t *destination_,
-                                  uint64_t outbound_queue_count_,
-                                  uint64_t inbound_queue_count_,
+                                  outbound_queue_count_: u64,
+                                  inbound_queue_count_: u64,
                                   endpoint_uri_pair_t *endpoint_pair_);
     void send_pipe_term (zmq::pipe_t *destination_);
     void send_pipe_term_ack (zmq::pipe_t *destination_);
-    void send_pipe_hwm (zmq::pipe_t *destination_, int inhwm_, outhwm_: i32);
+    void send_pipe_hwm (zmq::pipe_t *destination_, inhwm_: i32, outhwm_: i32);
     void send_term_req (zmq::own_t *destination_, zmq::own_t *object_);
     void send_term (zmq::own_t *destination_, linger_: i32);
     void send_term_ack (zmq::own_t *destination_);
@@ -130,16 +130,16 @@ class object_t
     virtual void process_activate_read ();
     virtual void process_activate_write (uint64_t msgs_read_);
     virtual void process_hiccup (pipe_: *mut c_void);
-    virtual void process_pipe_peer_stats (uint64_t queue_count_,
+    virtual void process_pipe_peer_stats (queue_count_: u64,
                                           zmq::own_t *socket_base_,
                                           endpoint_uri_pair_t *endpoint_pair_);
     virtual void
-    process_pipe_stats_publish (uint64_t outbound_queue_count_,
-                                uint64_t inbound_queue_count_,
+    process_pipe_stats_publish (outbound_queue_count_: u64,
+                                inbound_queue_count_: u64,
                                 endpoint_uri_pair_t *endpoint_pair_);
     virtual void process_pipe_term ();
     virtual void process_pipe_term_ack ();
-    virtual void process_pipe_hwm (int inhwm_, outhwm_: i32);
+    virtual void process_pipe_hwm (inhwm_: i32, outhwm_: i32);
     virtual void process_term_req (zmq::own_t *object_);
     virtual void process_term (linger_: i32);
     virtual void process_term_ack ();

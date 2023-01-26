@@ -142,7 +142,7 @@ void zmq::plain_client_t::produce_hello (msg_t *msg_) const
 }
 
 int zmq::plain_client_t::process_welcome (const unsigned char *cmd_data_,
-                                          size_t data_size_)
+                                          data_size_: usize)
 {
     LIBZMQ_UNUSED (cmd_data_);
 
@@ -170,7 +170,7 @@ void zmq::plain_client_t::produce_initiate (msg_t *msg_) const
 }
 
 int zmq::plain_client_t::process_ready (const unsigned char *cmd_data_,
-                                        size_t data_size_)
+                                        data_size_: usize)
 {
     if (_state != waiting_for_ready) {
         session->get_socket ()->event_handshake_failed_protocol (
@@ -190,7 +190,7 @@ int zmq::plain_client_t::process_ready (const unsigned char *cmd_data_,
 }
 
 int zmq::plain_client_t::process_error (const unsigned char *cmd_data_,
-                                        size_t data_size_)
+                                        data_size_: usize)
 {
     if (_state != waiting_for_welcome && _state != waiting_for_ready) {
         session->get_socket ()->event_handshake_failed_protocol (

@@ -58,7 +58,7 @@ template <typename T> class generic_mtrie_t
 
     //  Add key to the trie. Returns true iff no entry with the same prefix_
     //  and size_ existed before.
-    bool add (prefix_t prefix_, size_t size_, value_t *value_);
+    bool add (prefix_t prefix_, size_: usize, value_t *value_);
 
     //  Remove all entries with a specific value from the trie.
     //  The call_on_uniq_ flag controls if the callback is invoked
@@ -67,20 +67,20 @@ template <typename T> class generic_mtrie_t
     //  through to the callback function.
     template <typename Arg>
     void rm (value_t *value_,
-             void (*func_) (const unsigned char *data_, size_t size_, Arg arg_),
+             void (*func_) (const unsigned char *data_, size_: usize, Arg arg_),
              Arg arg_,
              bool call_on_uniq_);
 
     //  Removes a specific entry from the trie.
     //  Returns the result of the operation.
-    rm_result rm (prefix_t prefix_, size_t size_, value_t *value_);
+    rm_result rm (prefix_t prefix_, size_: usize, value_t *value_);
 
     //  Calls a callback function for all matching entries, i.e. any node
     //  corresponding to data_ or a prefix of it. The arg_ argument
     //  is passed through to the callback function.
     template <typename Arg>
     void match (prefix_t data_,
-                size_t size_,
+                size_: usize,
                 void (*func_) (value_t *value_, Arg arg_),
                 Arg arg_);
 

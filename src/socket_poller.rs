@@ -110,7 +110,7 @@ int zmq::socket_poller_t::signaler_fd (fd_t *fd_) const
 }
 
 int zmq::socket_poller_t::add (socket_base_t *socket_,
-                               void *user_data_,
+                               user_data_: *mut c_void,
                                short events_)
 {
     if (find_if2 (_items.begin (), _items.end (), socket_, &is_socket)
@@ -159,7 +159,7 @@ int zmq::socket_poller_t::add (socket_base_t *socket_,
     return 0;
 }
 
-int zmq::socket_poller_t::add_fd (fd_t fd_, void *user_data_, short events_)
+int zmq::socket_poller_t::add_fd (fd_t fd_, user_data_: *mut c_void, short events_)
 {
     if (find_if2 (_items.begin (), _items.end (), fd_, &is_fd)
         != _items.end ()) {
@@ -399,7 +399,7 @@ int zmq::socket_poller_t::rebuild ()
 }
 
 void zmq::socket_poller_t::zero_trail_events (
-  zmq::socket_poller_t::event_t *events_, int n_events_, found_: i32)
+  zmq::socket_poller_t::event_t *events_, n_events_: i32, found_: i32)
 {
     for (int i = found_; i < n_events_; ++i) {
         events_[i].socket = NULL;
@@ -414,7 +414,7 @@ int zmq::socket_poller_t::check_events (zmq::socket_poller_t::event_t *events_,
                                         n_events_: i32)
 #elif defined ZMQ_POLL_BASED_ON_SELECT
 int zmq::socket_poller_t::check_events (zmq::socket_poller_t::event_t *events_,
-                                        int n_events_,
+                                        n_events_: i32,
                                         fd_set &inset_,
                                         fd_set &outset_,
                                         fd_set &errset_)
@@ -522,7 +522,7 @@ int zmq::socket_poller_t::adjust_timeout (zmq::clock_t &clock_,
 }
 
 int zmq::socket_poller_t::wait (zmq::socket_poller_t::event_t *events_,
-                                int n_events_,
+                                n_events_: i32,
                                 long timeout_)
 {
     if (_items.empty () && timeout_ < 0) {

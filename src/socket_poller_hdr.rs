@@ -62,17 +62,17 @@ class socket_poller_t
 
     typedef zmq_poller_event_t event_t;
 
-    int add (socket_base_t *socket_, void *user_data_, short events_);
+    int add (socket_base_t *socket_, user_data_: *mut c_void, short events_);
     int modify (const socket_base_t *socket_, short events_);
     int remove (socket_base_t *socket_);
 
-    int add_fd (fd_t fd_, void *user_data_, short events_);
+    int add_fd (fd_t fd_, user_data_: *mut c_void, short events_);
     int modify_fd (fd_t fd_, short events_);
     int remove_fd (fd_t fd_);
     // Returns the signaler's fd if there is one, otherwise errors.
     int signaler_fd (fd_t *fd_) const;
 
-    int wait (event_t *events_, int n_events_, long timeout_);
+    int wait (event_t *events_, n_events_: i32, long timeout_);
 
     int size () const { return static_cast<int> (_items.size ()); };
 
@@ -92,13 +92,13 @@ class socket_poller_t
     } item_t;
 
     static void zero_trail_events (zmq::socket_poller_t::event_t *events_,
-                                   int n_events_,
+                                   n_events_: i32,
                                    found_: i32);
 // #if defined ZMQ_POLL_BASED_ON_POLL
     int check_events (zmq::socket_poller_t::event_t *events_, n_events_: i32);
 #elif defined ZMQ_POLL_BASED_ON_SELECT
     int check_events (zmq::socket_poller_t::event_t *events_,
-                      int n_events_,
+                      n_events_: i32,
                       fd_set &inset_,
                       fd_set &outset_,
                       fd_set &errset_);

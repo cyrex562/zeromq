@@ -131,13 +131,13 @@ class pipe_t ZMQ_FINAL : public object_t,
     void terminate (bool delay_);
 
     //  Set the high water marks.
-    void set_hwms (int inhwm_, outhwm_: i32);
+    void set_hwms (inhwm_: i32, outhwm_: i32);
 
     //  Set the boost to high water marks, used by inproc sockets so total hwm are sum of connect and bind sockets watermarks
-    void set_hwms_boost (int inhwmboost_, outhwmboost_: i32);
+    void set_hwms_boost (inhwmboost_: i32, outhwmboost_: i32);
 
     // send command to peer for notify the change of hwm
-    void send_hwms_to_peer (int inhwm_, outhwm_: i32);
+    void send_hwms_to_peer (inhwm_: i32, outhwm_: i32);
 
     //  Returns true if HWM is not reached
     bool check_hwm () const;
@@ -161,12 +161,12 @@ class pipe_t ZMQ_FINAL : public object_t,
     void process_activate_write (uint64_t msgs_read_) ZMQ_OVERRIDE;
     void process_hiccup (pipe_: *mut c_void) ZMQ_OVERRIDE;
     void
-    process_pipe_peer_stats (uint64_t queue_count_,
+    process_pipe_peer_stats (queue_count_: u64,
                              own_t *socket_base_,
                              endpoint_uri_pair_t *endpoint_pair_) ZMQ_OVERRIDE;
     void process_pipe_term () ZMQ_OVERRIDE;
     void process_pipe_term_ack () ZMQ_OVERRIDE;
-    void process_pipe_hwm (int inhwm_, outhwm_: i32) ZMQ_OVERRIDE;
+    void process_pipe_hwm (inhwm_: i32, outhwm_: i32) ZMQ_OVERRIDE;
 
     //  Handler for delimiter read from the pipe.
     void process_delimiter ();
@@ -176,8 +176,8 @@ class pipe_t ZMQ_FINAL : public object_t,
     pipe_t (object_t *parent_,
             upipe_t *inpipe_,
             upipe_t *outpipe_,
-            int inhwm_,
-            int outhwm_,
+            inhwm_: i32,
+            outhwm_: i32,
             bool conflate_);
 
     //  Pipepair uses this function to let us know about

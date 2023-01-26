@@ -65,8 +65,8 @@ int zmq::do_getsockopt (void *const optval_,
 
 int zmq::do_getsockopt (void *const optval_,
                         size_t *const optvallen_,
-                        const void *value_,
-                        const size_t value_len_)
+                        const value_: *mut c_void,
+                        const value_len_: usize)
 {
     // TODO behaviour is inconsistent with options_t::getsockopt; there, an
     // *exact* length match is required except for string-like (but not the
@@ -103,7 +103,7 @@ static int do_getsockopt_curve_key (void *const optval_,
 
 template <typename T>
 static int do_setsockopt (const void *const optval_,
-                          const size_t optvallen_,
+                          const optvallen_: usize,
                           T *const out_value_)
 {
     if (optvallen_ == sizeof (T)) {
@@ -114,7 +114,7 @@ static int do_setsockopt (const void *const optval_,
 }
 
 int zmq::do_setsockopt_int_as_bool_strict (const void *const optval_,
-                                           const size_t optvallen_,
+                                           const optvallen_: usize,
                                            bool *const out_value_)
 {
     // TODO handling of values other than 0 or 1 is not consistent,
@@ -131,7 +131,7 @@ int zmq::do_setsockopt_int_as_bool_strict (const void *const optval_,
 }
 
 int zmq::do_setsockopt_int_as_bool_relaxed (const void *const optval_,
-                                            const size_t optvallen_,
+                                            const optvallen_: usize,
                                             bool *const out_value_)
 {
     int value = -1;
@@ -143,9 +143,9 @@ int zmq::do_setsockopt_int_as_bool_relaxed (const void *const optval_,
 
 static int
 do_setsockopt_string_allow_empty_strict (const void *const optval_,
-                                         const size_t optvallen_,
+                                         const optvallen_: usize,
                                          std::string *const out_value_,
-                                         const size_t max_len_)
+                                         const max_len_: usize)
 {
     // TODO why is optval_ != NULL not allowed in case of optvallen_== 0?
     // TODO why are empty strings allowed for some socket options, but not for others?
@@ -162,9 +162,9 @@ do_setsockopt_string_allow_empty_strict (const void *const optval_,
 
 static int
 do_setsockopt_string_allow_empty_relaxed (const void *const optval_,
-                                          const size_t optvallen_,
+                                          const optvallen_: usize,
                                           std::string *const out_value_,
-                                          const size_t max_len_)
+                                          const max_len_: usize)
 {
     // TODO use either do_setsockopt_string_allow_empty_relaxed or
     // do_setsockopt_string_allow_empty_strict everywhere
@@ -177,7 +177,7 @@ do_setsockopt_string_allow_empty_relaxed (const void *const optval_,
 
 template <typename T>
 static int do_setsockopt_set (const void *const optval_,
-                              const size_t optvallen_,
+                              const optvallen_: usize,
                               std::set<T> *const set_)
 {
     if (optvallen_ == 0 && optval_ == NULL) {
@@ -271,8 +271,8 @@ zmq::options_t::options_t () :
 }
 
 int zmq::options_t::set_curve_key (uint8_t *destination_,
-                                   const void *optval_,
-                                   size_t optvallen_)
+                                   const optval_: *mut c_void,
+                                   optvallen_: usize)
 {
     switch (optvallen_) {
         case CURVE_KEYSIZE:
@@ -310,9 +310,9 @@ int zmq::options_t::set_curve_key (uint8_t *destination_,
 
 const int deciseconds_per_millisecond = 100;
 
-int zmq::options_t::setsockopt (int option_,
-                                const void *optval_,
-                                size_t optvallen_)
+int zmq::options_t::setsockopt (option_: i32,
+                                const optval_: *mut c_void,
+                                optvallen_: usize)
 {
     const bool is_int = (optvallen_ == sizeof (int));
     int value = 0;
@@ -902,9 +902,9 @@ int zmq::options_t::setsockopt (int option_,
     return -1;
 }
 
-int zmq::options_t::getsockopt (int option_,
-                                void *optval_,
-                                size_t *optvallen_) const
+int zmq::options_t::getsockopt (option_: i32,
+                                optval_: *mut c_void,
+                                optvallen_: *mut usize) const
 {
     const bool is_int = (*optvallen_ == sizeof (int));
     int *value = static_cast<int *> (optval_);

@@ -58,10 +58,10 @@ class pgm_socket_t
     ~pgm_socket_t ();
 
     //  Initialize PGM network structures (GSI, GSRs).
-    int init (bool udp_encapsulation_, const char *network_);
+    int init (bool udp_encapsulation_, network_: *const c_char);
 
     //  Resolve PGM socket address.
-    static int init_address (const char *network_,
+    static int init_address (network_: *const c_char,
                              struct pgm_addrinfo_t **addr,
                              uint16_t *port_number);
 
@@ -76,7 +76,7 @@ class pgm_socket_t
                          fd_t *pending_notify_fd_);
 
     //  Send data as one APDU, transmit window owned memory.
-    size_t send (unsigned char *data_, size_t data_len_);
+    size_t send (unsigned char *data_, data_len_: usize);
 
     //  Returns max tsdu size without fragmentation.
     size_t get_max_tsdu_size ();
@@ -98,7 +98,7 @@ class pgm_socket_t
     //  OpenPGM transport.
     pgm_sock_t *sock;
 
-    int last_rx_status, last_tx_status;
+    last_rx_status: i32, last_tx_status;
 
     //  Associated socket options.
     options_t options;

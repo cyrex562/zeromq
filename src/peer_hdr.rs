@@ -55,7 +55,7 @@ class peer_t ZMQ_FINAL : public server_t
                        bool subscribe_to_all_,
                        bool locally_initiated_);
 
-    uint32_t connect_peer (const char *endpoint_uri_);
+    uint32_t connect_peer (endpoint_uri_: *const c_char);
 
   // private:
     uint32_t _peer_last_routing_id;

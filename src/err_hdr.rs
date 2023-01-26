@@ -58,14 +58,14 @@ namespace zmq
 const char *errno_to_string (errno_: i32);
 // #if defined __clang__
 #if __has_feature(attribute_analyzer_noreturn)
-void zmq_abort (const char *errmsg_) __attribute__ ((analyzer_noreturn));
+void zmq_abort (errmsg_: *const c_char) __attribute__ ((analyzer_noreturn));
 // #else
-void zmq_abort (const char *errmsg_);
+void zmq_abort (errmsg_: *const c_char);
 // #endif
 #elif defined __MSCVER__
-__declspec(noreturn) void zmq_abort (const char *errmsg_);
+__declspec(noreturn) void zmq_abort (errmsg_: *const c_char);
 // #else
-void zmq_abort (const char *errmsg_);
+void zmq_abort (errmsg_: *const c_char);
 // #endif
 void print_backtrace ();
 }
@@ -76,9 +76,9 @@ namespace zmq
 {
 const char *wsa_error ();
 const char *
-wsa_error_no (int no_,
+wsa_error_no (no_: i32,
               const char *wsae_wouldblock_string_ = "Operation would block");
-void win_error (char *buffer_, size_t buffer_size_);
+void win_error (char *buffer_, buffer_size_: usize);
 int wsa_error_to_errno (errcode_: i32);
 }
 

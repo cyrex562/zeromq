@@ -56,7 +56,7 @@ zmq::udp_address_t::~udp_address_t ()
 {
 }
 
-int zmq::udp_address_t::resolve (const char *name_, bool bind_, bool ipv6_)
+int zmq::udp_address_t::resolve (name_: *const c_char, bool bind_, bool ipv6_)
 {
     //  No IPv6 support yet
     bool has_interface = false;

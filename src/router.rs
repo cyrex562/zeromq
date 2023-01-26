@@ -99,9 +99,9 @@ void zmq::router_t::xattach_pipe (pipe_t *pipe_,
         _anonymous_pipes.insert (pipe_);
 }
 
-int zmq::router_t::xsetsockopt (int option_,
-                                const void *optval_,
-                                size_t optvallen_)
+int zmq::router_t::xsetsockopt (option_: i32,
+                                const optval_: *mut c_void,
+                                optvallen_: usize)
 {
     const bool is_int = (optvallen_ == sizeof (int));
     int value = 0;
@@ -428,8 +428,8 @@ bool zmq::router_t::xhas_out ()
     return any_of_out_pipes (check_pipe_hwm);
 }
 
-int zmq::router_t::get_peer_state (const void *routing_id_,
-                                   size_t routing_id_size_) const
+int zmq::router_t::get_peer_state (const routing_id_: *mut c_void,
+                                   routing_id_size_: usize) const
 {
     int res = 0;
 

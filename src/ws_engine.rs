@@ -82,7 +82,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #endif
 
 static int
-encode_base64 (const unsigned char *in_, int in_len_, char *out_, out_len_: i32);
+encode_base64 (const unsigned char *in_, in_len_: i32, char *out_, out_len_: i32);
 
 static void compute_accept_key (char *key_,
                                 unsigned char hash_[SHA_DIGEST_LENGTH]);
@@ -207,7 +207,7 @@ int zmq::ws_engine_t::process_routing_id_msg (msg_t *msg_)
     return 0;
 }
 
-bool zmq::ws_engine_t::select_protocol (const char *protocol_)
+bool zmq::ws_engine_t::select_protocol (protocol_: *const c_char)
 {
     if (_options.mechanism == ZMQ_NULL && (strcmp ("ZWS2.0", protocol_) == 0)) {
         _next_msg = static_cast<int (stream_engine_base_t::*) (msg_t *)> (
@@ -1014,7 +1014,7 @@ int zmq::ws_engine_t::process_command_message (msg_t *msg_)
 }
 
 static int
-encode_base64 (const unsigned char *in_, int in_len_, char *out_, out_len_: i32)
+encode_base64 (const unsigned char *in_, in_len_: i32, char *out_, out_len_: i32)
 {
     static const unsigned char base64enc_tab[65] =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

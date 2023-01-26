@@ -37,7 +37,7 @@
 
 //  General, i.e. non-security specific, monitor utilities
 
-int get_monitor_event_with_timeout (void *monitor_,
+int get_monitor_event_with_timeout (monitor_: *mut c_void,
                                     value_: *mut i32,
                                     char **address_,
                                     timeout_: i32);
@@ -45,13 +45,13 @@ int get_monitor_event_with_timeout (void *monitor_,
 //  Read one event off the monitor socket; return value and address
 //  by reference, if not null, and event number by value. Returns -1
 //  in case of error.
-int get_monitor_event (void *monitor_, value_: *mut i32, char **address_);
+int get_monitor_event (monitor_: *mut c_void, value_: *mut i32, char **address_);
 
-void expect_monitor_event (void *monitor_, expected_event_: i32);
+void expect_monitor_event (monitor_: *mut c_void, expected_event_: i32);
 
-void print_unexpected_event_stderr (int event_,
-                                    int err_,
-                                    int expected_event_,
+void print_unexpected_event_stderr (event_: i32,
+                                    err_: i32,
+                                    expected_event_: i32,
                                     expected_err_: i32);
 
 //  expects that one or more occurrences of the expected event are received
@@ -61,23 +61,23 @@ void print_unexpected_event_stderr (int event_,
 //  or ECONNABORTED occurs; in this case, 0 is returned
 //  this should be investigated further, see
 //  https://github.com/zeromq/libzmq/issues/2644
-int expect_monitor_event_multiple (void *server_mon_,
-                                   int expected_event_,
+int expect_monitor_event_multiple (server_mon_: *mut c_void,
+                                   expected_event_: i32,
                                    int expected_err_ = -1,
                                    bool optional_ = false);
 
-int64_t get_monitor_event_v2 (void *monitor_,
+int64_t get_monitor_event_v2 (monitor_: *mut c_void,
                               uint64_t **value_,
                               char **local_address_,
                               char **remote_address_);
 
-void expect_monitor_event_v2 (void *monitor_,
+void expect_monitor_event_v2 (monitor_: *mut c_void,
                               int64_t expected_event_,
                               const char *expected_local_address_ = NULL,
                               const char *expected_remote_address_ = NULL);
 
 
 const char *get_zmqEventName (uint64_t event);
-void print_events (void *socket, int timeout, limit: i32);
+void print_events (socket: *mut c_void, timeout: i32, limit: i32);
 
 // #endif

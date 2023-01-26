@@ -63,7 +63,7 @@ zmq::pgm_sender_t::pgm_sender_t (io_thread_t *parent_,
     errno_assert (rc == 0);
 }
 
-int zmq::pgm_sender_t::init (bool udp_encapsulation_, const char *network_)
+int zmq::pgm_sender_t::init (bool udp_encapsulation_, network_: *const c_char)
 {
     int rc = pgm_socket.init (udp_encapsulation_, network_);
     if (rc != 0)

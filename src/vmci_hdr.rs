@@ -48,8 +48,8 @@ namespace zmq
 {
 void tune_vmci_buffer_size (ctx_t *context_,
                             fd_t sockfd_,
-                            uint64_t default_size_,
-                            uint64_t min_size_,
+                            default_size_: u64,
+                            min_size_: u64,
                             uint64_t max_size_);
 
 // #if defined ZMQ_HAVE_WINDOWS
@@ -60,7 +60,7 @@ void tune_vmci_connect_timeout (ctx_t *context_,
                                 struct timeval timeout_);
 // #endif
 
-fd_t vmci_open_socket (const char *address_,
+fd_t vmci_open_socket (address_: *const c_char,
                        const options_t &options_,
                        vmci_address_t *out_vmci_addr_);
 }

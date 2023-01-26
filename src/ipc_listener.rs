@@ -105,7 +105,7 @@ zmq::ipc_listener_t::get_socket_name (zmq::fd_t fd_,
     return zmq::get_socket_name<ipc_address_t> (fd_, socket_end_);
 }
 
-int zmq::ipc_listener_t::set_local_address (const char *addr_)
+int zmq::ipc_listener_t::set_local_address (addr_: *const c_char)
 {
     //  Create addr on stack for auto-cleanup
     std::string addr (addr_);

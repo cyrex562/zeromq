@@ -62,9 +62,9 @@ class null_mechanism_t ZMQ_FINAL : public zap_client_t
     bool _zap_reply_received;
 
     int process_ready_command (const unsigned char *cmd_data_,
-                               size_t data_size_);
+                               data_size_: usize);
     int process_error_command (const unsigned char *cmd_data_,
-                               size_t data_size_);
+                               data_size_: usize);
 
     void send_zap_request ();
 };

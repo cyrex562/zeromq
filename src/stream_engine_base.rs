@@ -774,7 +774,7 @@ void zmq::stream_engine_base_t::timer_event (id_: i32)
         assert (false);
 }
 
-int zmq::stream_engine_base_t::read (void *data_, size_t size_)
+int zmq::stream_engine_base_t::read (data_: *mut c_void, size_: usize)
 {
     const int rc = zmq::tcp_read (_s, data_, size_);
 
@@ -787,7 +787,7 @@ int zmq::stream_engine_base_t::read (void *data_, size_t size_)
     return rc;
 }
 
-int zmq::stream_engine_base_t::write (const void *data_, size_t size_)
+int zmq::stream_engine_base_t::write (const data_: *mut c_void, size_: usize)
 {
     return zmq::tcp_write (_s, data_, size_);
 }

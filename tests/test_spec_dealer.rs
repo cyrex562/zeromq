@@ -34,7 +34,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 // SHALL route outgoing messages to available peers using a round-robin
 // strategy.
-void test_round_robin_out (const char *bind_address_)
+void test_round_robin_out (bind_address_: *const c_char)
 {
     void *dealer = test_context_socket (ZMQ_DEALER);
 
@@ -74,7 +74,7 @@ void test_round_robin_out (const char *bind_address_)
 
 // SHALL receive incoming messages from its peers using a fair-queuing
 // strategy.
-void test_fair_queue_in (const char *bind_address_)
+void test_fair_queue_in (bind_address_: *const c_char)
 {
     void *receiver = test_context_socket (ZMQ_DEALER);
 
@@ -122,7 +122,7 @@ void test_fair_queue_in (const char *bind_address_)
 // SHALL create a double queue when a peer connects to it. If this peer
 // disconnects, the DEALER socket SHALL destroy its double queue and SHALL
 // discard any messages it contains.
-void test_destroy_queue_on_disconnect (const char *bind_address_)
+void test_destroy_queue_on_disconnect (bind_address_: *const c_char)
 {
     void *a = test_context_socket (ZMQ_DEALER);
 
@@ -166,7 +166,7 @@ void test_destroy_queue_on_disconnect (const char *bind_address_)
 }
 
 // SHALL block on sending, or return a suitable error, when it has no connected peers.
-void test_block_on_send_no_peers (const char *bind_address_)
+void test_block_on_send_no_peers (bind_address_: *const c_char)
 {
     void *sc = test_context_socket (ZMQ_DEALER);
 

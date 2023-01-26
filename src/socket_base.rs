@@ -107,7 +107,7 @@
 // #include "peer.hpp"
 // #include "channel.hpp"
 
-void zmq::socket_base_t::inprocs_t::emplace (const char *endpoint_uri_,
+void zmq::socket_base_t::inprocs_t::emplace (endpoint_uri_: *const c_char,
                                              pipe_t *pipe_)
 {
     _inprocs.ZMQ_MAP_INSERT_OR_EMPLACE (std::string (endpoint_uri_), pipe_);
@@ -151,7 +151,7 @@ bool zmq::socket_base_t::is_thread_safe () const
     return _thread_safe;
 }
 
-zmq::socket_base_t *zmq::socket_base_t::create (int type_,
+zmq::socket_base_t *zmq::socket_base_t::create (type_: i32,
                                                 class ctx_t *parent_,
                                                 uint32_t tid_,
                                                 sid_: i32)
@@ -239,7 +239,7 @@ zmq::socket_base_t *zmq::socket_base_t::create (int type_,
 
 zmq::socket_base_t::socket_base_t (ctx_t *parent_,
                                    uint32_t tid_,
-                                   int sid_,
+                                   sid_: i32,
                                    bool thread_safe_) :
     own_t (parent_, tid_),
     _sync (),
@@ -278,8 +278,8 @@ zmq::socket_base_t::socket_base_t (ctx_t *parent_,
     }
 }
 
-int zmq::socket_base_t::get_peer_state (const void *routing_id_,
-                                        size_t routing_id_size_) const
+int zmq::socket_base_t::get_peer_state (const routing_id_: *mut c_void,
+                                        routing_id_size_: usize) const
 {
     LIBZMQ_UNUSED (routing_id_);
     LIBZMQ_UNUSED (routing_id_size_);
@@ -319,7 +319,7 @@ void zmq::socket_base_t::stop ()
 
 // TODO consider renaming protocol_ to scheme_ in conformance with RFC 3986
 // terminology, but this requires extensive changes to be consistent
-int zmq::socket_base_t::parse_uri (const char *uri_,
+int zmq::socket_base_t::parse_uri (uri_: *const c_char,
                                    std::string &protocol_,
                                    std::string &path_)
 {
@@ -424,9 +424,9 @@ void zmq::socket_base_t::attach_pipe (pipe_t *pipe_,
     }
 }
 
-int zmq::socket_base_t::setsockopt (int option_,
-                                    const void *optval_,
-                                    size_t optvallen_)
+int zmq::socket_base_t::setsockopt (option_: i32,
+                                    const optval_: *mut c_void,
+                                    optvallen_: usize)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
@@ -449,9 +449,9 @@ int zmq::socket_base_t::setsockopt (int option_,
     return rc;
 }
 
-int zmq::socket_base_t::getsockopt (int option_,
-                                    void *optval_,
-                                    size_t *optvallen_)
+int zmq::socket_base_t::getsockopt (option_: i32,
+                                    optval_: *mut c_void,
+                                    optvallen_: *mut usize)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
@@ -505,14 +505,14 @@ int zmq::socket_base_t::getsockopt (int option_,
     return options.getsockopt (option_, optval_, optvallen_);
 }
 
-int zmq::socket_base_t::join (const char *group_)
+int zmq::socket_base_t::join (group_: *const c_char)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
     return xjoin (group_);
 }
 
-int zmq::socket_base_t::leave (const char *group_)
+int zmq::socket_base_t::leave (group_: *const c_char)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
@@ -535,7 +535,7 @@ void zmq::socket_base_t::remove_signaler (signaler_t *s_)
     (static_cast<mailbox_safe_t *> (_mailbox))->remove_signaler (s_);
 }
 
-int zmq::socket_base_t::bind (const char *endpoint_uri_)
+int zmq::socket_base_t::bind (endpoint_uri_: *const c_char)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
@@ -773,13 +773,13 @@ int zmq::socket_base_t::bind (const char *endpoint_uri_)
     return -1;
 }
 
-int zmq::socket_base_t::connect (const char *endpoint_uri_)
+int zmq::socket_base_t::connect (endpoint_uri_: *const c_char)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
     return connect_internal (endpoint_uri_);
 }
 
-int zmq::socket_base_t::connect_internal (const char *endpoint_uri_)
+int zmq::socket_base_t::connect_internal (endpoint_uri_: *const c_char)
 {
     if (unlikely (_ctx_terminated)) {
         errno = ETERM;
@@ -1122,7 +1122,7 @@ int zmq::socket_base_t::connect_internal (const char *endpoint_uri_)
 
 std::string
 zmq::socket_base_t::resolve_tcp_addr (std::string endpoint_uri_pair_,
-                                      const char *tcp_address_)
+                                      tcp_address_: *const c_char)
 {
     // The resolved last_endpoint is used as a key in the endpoints map.
     // The address passed by the user might not match in the TCP case due to
@@ -1160,7 +1160,7 @@ void zmq::socket_base_t::add_endpoint (
         pipe_->set_endpoint_pair (endpoint_pair_);
 }
 
-int zmq::socket_base_t::term_endpoint (const char *endpoint_uri_)
+int zmq::socket_base_t::term_endpoint (endpoint_uri_: *const c_char)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
@@ -1475,7 +1475,7 @@ void zmq::socket_base_t::start_reaping (poller_t *poller_)
     check_destroy ();
 }
 
-int zmq::socket_base_t::process_commands (int timeout_, bool throttle_)
+int zmq::socket_base_t::process_commands (timeout_: i32, bool throttle_)
 {
     if (timeout_ == 0) {
         //  If we are asked not to wait, check whether we haven't processed
@@ -1568,8 +1568,8 @@ void zmq::socket_base_t::process_term_endpoint (std::string *endpoint_)
 }
 
 void zmq::socket_base_t::process_pipe_stats_publish (
-  uint64_t outbound_queue_count_,
-  uint64_t inbound_queue_count_,
+  outbound_queue_count_: u64,
+  inbound_queue_count_: u64,
   endpoint_uri_pair_t *endpoint_pair_)
 {
     uint64_t values[2] = {outbound_queue_count_, inbound_queue_count_};
@@ -1649,14 +1649,14 @@ bool zmq::socket_base_t::xhas_in ()
     return false;
 }
 
-int zmq::socket_base_t::xjoin (const char *group_)
+int zmq::socket_base_t::xjoin (group_: *const c_char)
 {
     LIBZMQ_UNUSED (group_);
     errno = ENOTSUP;
     return -1;
 }
 
-int zmq::socket_base_t::xleave (const char *group_)
+int zmq::socket_base_t::xleave (group_: *const c_char)
 {
     LIBZMQ_UNUSED (group_);
     errno = ENOTSUP;
@@ -1788,9 +1788,9 @@ void zmq::socket_base_t::extract_flags (const msg_t *msg_)
     _rcvmore = (msg_->flags () & msg_t::more) != 0;
 }
 
-int zmq::socket_base_t::monitor (const char *endpoint_,
-                                 uint64_t events_,
-                                 int event_version_,
+int zmq::socket_base_t::monitor (endpoint_: *const c_char,
+                                 events_: u64,
+                                 event_version_: i32,
                                  type_: i32)
 {
     scoped_lock_t lock (_monitor_sync);
@@ -1964,7 +1964,7 @@ void zmq::socket_base_t::event_handshake_succeeded (
 
 void zmq::socket_base_t::event (const endpoint_uri_pair_t &endpoint_uri_pair_,
                                 uint64_t values_[],
-                                uint64_t values_count_,
+                                values_count_: u64,
                                 uint64_t type_)
 {
     scoped_lock_t lock (_monitor_sync);
@@ -1975,9 +1975,9 @@ void zmq::socket_base_t::event (const endpoint_uri_pair_t &endpoint_uri_pair_,
 
 //  Send a monitor event
 void zmq::socket_base_t::monitor_event (
-  uint64_t event_,
+  event_: u64,
   const uint64_t values_[],
-  uint64_t values_count_,
+  values_count_: u64,
   const endpoint_uri_pair_t &endpoint_uri_pair_) const
 {
     // this is a private method which is only called from
@@ -2085,9 +2085,9 @@ zmq::routing_socket_base_t::~routing_socket_base_t ()
     zmq_assert (_out_pipes.empty ());
 }
 
-int zmq::routing_socket_base_t::xsetsockopt (int option_,
-                                             const void *optval_,
-                                             size_t optvallen_)
+int zmq::routing_socket_base_t::xsetsockopt (option_: i32,
+                                             const optval_: *mut c_void,
+                                             optvallen_: usize)
 {
     switch (option_) {
         case ZMQ_CONNECT_ROUTING_ID:

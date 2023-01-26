@@ -192,7 +192,7 @@ static void subscriber_thread_main (pvoid_: *mut c_void)
     zmq_close (subsocket);
 }
 
-bool recv_stat (void *sock_, bool last_, uint64_t *res_)
+bool recv_stat (sock_: *mut c_void, bool last_, uint64_t *res_)
 {
     zmq_msg_t stats_msg;
 

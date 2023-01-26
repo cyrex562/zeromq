@@ -220,8 +220,8 @@ int zmq::gssapi_mechanism_base_t::decode_message (msg_t *msg_)
 }
 
 int zmq::gssapi_mechanism_base_t::produce_initiate (msg_t *msg_,
-                                                    void *token_value_,
-                                                    size_t token_length_)
+                                                    token_value_: *mut c_void,
+                                                    token_length_: usize)
 {
     zmq_assert (token_value_);
     zmq_assert (token_length_ <= 0xFFFFFFFFUL);

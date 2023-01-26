@@ -85,7 +85,7 @@ zmq::tipc_listener_t::get_socket_name (zmq::fd_t fd_,
     return zmq::get_socket_name<tipc_address_t> (fd_, socket_end_);
 }
 
-int zmq::tipc_listener_t::set_local_address (const char *addr_)
+int zmq::tipc_listener_t::set_local_address (addr_: *const c_char)
 {
     // Convert str to address struct
     int rc = _address.resolve (addr_);

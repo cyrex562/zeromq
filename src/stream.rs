@@ -162,9 +162,9 @@ int zmq::stream_t::xsend (msg_t *msg_)
     return 0;
 }
 
-int zmq::stream_t::xsetsockopt (int option_,
-                                const void *optval_,
-                                size_t optvallen_)
+int zmq::stream_t::xsetsockopt (option_: i32,
+                                const optval_: *mut c_void,
+                                optvallen_: usize)
 {
     switch (option_) {
         case ZMQ_STREAM_NOTIFY:

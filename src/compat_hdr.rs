@@ -42,7 +42,7 @@
 // #include <bsd/string.h>
 // #else
 static inline size_t
-strlcpy (char *dest_, const char *src_, const size_t dest_size_)
+strlcpy (char *dest_, src_: *const c_char, const dest_size_: usize)
 {
     size_t remain = dest_size_;
     for (; remain && *src_; --remain, ++src_, ++dest_) {
@@ -61,7 +61,7 @@ static inline int strcpy_s (char (&dest_)[size], const char *const src_)
 // #endif
 
 // #ifndef HAVE_STRNLEN
-static inline size_t strnlen (const char *s, size_t len)
+static inline size_t strnlen (s: *const c_char, len: usize)
 {
     for (size_t i = 0; i < len; i++) {
         if (s[i] == '\0')

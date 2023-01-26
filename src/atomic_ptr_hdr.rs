@@ -116,7 +116,7 @@ inline void *atomic_xchg_ptr (void **ptr_,
 }
 
 inline void *atomic_cas (void *volatile *ptr_,
-                         void *cmp_,
+                         cmp_: *mut c_void,
                          void *val_
 // #if defined ZMQ_ATOMIC_PTR_MUTEX
                          ,

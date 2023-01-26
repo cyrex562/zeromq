@@ -90,7 +90,7 @@ typedef struct
 // Utility functions
 
 static int
-capture (class zmq::socket_base_t *capture_, zmq::msg_t *msg_, int more_ = 0)
+capture (class capture_: *mut socket_base_t, zmq::msg_t *msg_, int more_ = 0)
 {
     //  Copy message to capture socket if any
     if (capture_) {
@@ -108,11 +108,11 @@ capture (class zmq::socket_base_t *capture_, zmq::msg_t *msg_, int more_ = 0)
     return 0;
 }
 
-static int forward (class zmq::socket_base_t *from_,
+static int forward (class from_: *mut socket_base_t,
                     zmq_socket_stats_t *from_stats_,
-                    class zmq::socket_base_t *to_,
+                    class to_: *mut socket_base_t,
                     zmq_socket_stats_t *to_stats_,
-                    class zmq::socket_base_t *capture_,
+                    class capture_: *mut socket_base_t,
                     zmq::msg_t *msg_)
 {
     // Forward a burst of messages
@@ -161,8 +161,8 @@ static int forward (class zmq::socket_base_t *from_,
     return 0;
 }
 
-static int loop_and_send_multipart_stat (zmq::socket_base_t *control_,
-                                         uint64_t stat_,
+static int loop_and_send_multipart_stat (control_: *mut socket_base_t,
+                                         stat_: u64,
                                          bool first_,
                                          bool more_)
 {
@@ -183,7 +183,7 @@ static int loop_and_send_multipart_stat (zmq::socket_base_t *control_,
     return rc;
 }
 
-static int reply_stats (zmq::socket_base_t *control_,
+static int reply_stats (control_: *mut socket_base_t,
                         const zmq_socket_stats_t *frontend_stats_,
                         const zmq_socket_stats_t *backend_stats_)
 {

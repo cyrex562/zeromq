@@ -39,7 +39,7 @@
 // #include "wire.hpp"
 // #include "err.hpp"
 
-zmq::v1_decoder_t::v1_decoder_t (size_t bufsize_, int64_t maxmsgsize_) :
+zmq::v1_decoder_t::v1_decoder_t (bufsize_: usize, int64_t maxmsgsize_) :
     decoder_base_t<v1_decoder_t> (bufsize_), _max_msg_size (maxmsgsize_)
 {
     int rc = _in_progress.init ();

@@ -57,7 +57,7 @@ template <typename T, typename A = c_single_allocator>
 class decoder_base_t : public i_decoder
 {
 // public:
-    explicit decoder_base_t (const size_t buf_size_) :
+    explicit decoder_base_t (const buf_size_: usize) :
         _next (NULL), _read_pos (NULL), _to_read (0), _allocator (buf_size_)
     {
         _buf = _allocator.allocate ();
@@ -66,7 +66,7 @@ class decoder_base_t : public i_decoder
     ~decoder_base_t () ZMQ_OVERRIDE { _allocator.deallocate (); }
 
     //  Returns a buffer to be filled with binary data.
-    void get_buffer (unsigned char **data_, std::size_t *size_) ZMQ_FINAL
+    void get_buffer (unsigned char **data_, std::size_: *mut usize) ZMQ_FINAL
     {
         _buf = _allocator.allocate ();
 
@@ -95,7 +95,7 @@ class decoder_base_t : public i_decoder
     //  On error, -1 is returned and errno set accordingly.
     //  Number of bytes processed is returned in bytes_used_.
     int decode (const unsigned char *data_,
-                std::size_t size_,
+                std::size_: usize,
                 std::size_t &bytes_used_) ZMQ_FINAL
     {
         bytes_used_ = 0;
@@ -144,7 +144,7 @@ class decoder_base_t : public i_decoder
         return 0;
     }
 
-    void resize_buffer (std::size_t new_size_) ZMQ_FINAL
+    void resize_buffer (std::new_size_: usize) ZMQ_FINAL
     {
         _allocator.resize (new_size_);
     }
@@ -156,7 +156,7 @@ class decoder_base_t : public i_decoder
 
     //  This function should be called from derived class to read data
     //  from the buffer and schedule next state machine action.
-    void next_step (void *read_pos_, std::size_t to_read_, step_t next_)
+    void next_step (read_pos_: *mut c_void, std::to_read_: usize, step_t next_)
     {
         _read_pos = static_cast<unsigned char *> (read_pos_);
         _to_read = to_read_;

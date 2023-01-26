@@ -51,7 +51,7 @@ void zmq::poller_base_t::adjust_load (amount_: i32)
         _load.sub (-amount_);
 }
 
-void zmq::poller_base_t::add_timer (int timeout_, i_poll_events *sink_, id_: i32)
+void zmq::poller_base_t::add_timer (timeout_: i32, i_poll_events *sink_, id_: i32)
 {
     uint64_t expiration = _clock.now_ms () + timeout_;
     timer_info_t info = {sink_, id_};
@@ -128,7 +128,7 @@ void zmq::worker_poller_base_t::stop_worker ()
     _worker.stop ();
 }
 
-void zmq::worker_poller_base_t::start (const char *name_)
+void zmq::worker_poller_base_t::start (name_: *const c_char)
 {
     zmq_assert (get_load () > 0);
     _ctx.start_thread (_worker, worker_routine, this, name_);

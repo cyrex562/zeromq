@@ -56,8 +56,8 @@ class test_ip_resolver_t ZMQ_FINAL : public zmq::ip_resolver_t
         const char *ipv6;
     };
 
-    int do_getaddrinfo (const char *node_,
-                        const char *service_,
+    int do_getaddrinfo (node_: *const c_char,
+                        service_: *const c_char,
                         const struct addrinfo *hints_,
                         struct addrinfo **res_) ZMQ_FINAL
     {
@@ -106,7 +106,7 @@ class test_ip_resolver_t ZMQ_FINAL : public zmq::ip_resolver_t
         return zmq::ip_resolver_t::do_getaddrinfo (ip, NULL, &ai, res_);
     }
 
-    unsigned int do_if_nametoindex (const char *ifname_) ZMQ_FINAL
+    unsigned int do_if_nametoindex (ifname_: *const c_char) ZMQ_FINAL
     {
         static const char *dummy_interfaces[] = {
           "lo0",
@@ -136,8 +136,8 @@ class test_ip_resolver_t ZMQ_FINAL : public zmq::ip_resolver_t
 //  we're in this situation then we compare to 'expected_addr_v4_failover_'
 //  instead.
 static void test_resolve (zmq::ip_resolver_options_t opts_,
-                          const char *name_,
-                          const char *expected_addr_,
+                          name_: *const c_char,
+                          expected_addr_: *const c_char,
                           uint16_t expected_port_ = 0,
                           uint16_t expected_zone_ = 0,
                           const char *expected_addr_v4_failover_ = NULL)
@@ -799,7 +799,7 @@ void test_dns_ipv6_scope_port_brackets ()
                   "fdf5:d058:d656::1", 4444, 1);
 }
 
-static void test_addr (int family_, const char *addr_, bool multicast_)
+static void test_addr (family_: i32, addr_: *const c_char, bool multicast_)
 {
     if (family_ == AF_INET6 && !is_ipv6_available ()) {
         TEST_IGNORE_MESSAGE ("ipv6 is not available");

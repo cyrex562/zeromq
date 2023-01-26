@@ -70,7 +70,7 @@ zmq::tcp_address_t::tcp_address_t (const sockaddr *sa_, socklen_t sa_len_) :
         memcpy (&_address.ipv6, sa_, sizeof (_address.ipv6));
 }
 
-int zmq::tcp_address_t::resolve (const char *name_, bool local_, bool ipv6_)
+int zmq::tcp_address_t::resolve (name_: *const c_char, bool local_, bool ipv6_)
 {
     // Test the ';' to know if we have a source address in name_
     const char *src_delimiter = strrchr (name_, ';');
@@ -112,8 +112,8 @@ int zmq::tcp_address_t::resolve (const char *name_, bool local_, bool ipv6_)
     return resolver.resolve (&_address, name_);
 }
 
-template <size_t N1, size_t N2>
-static std::string make_address_string (const char *hbuf_,
+template <N1: usize, size_t N2>
+static std::string make_address_string (hbuf_: *const c_char,
                                         uint16_t port_,
                                         const char (&ipv6_prefix_)[N1],
                                         const char (&ipv6_suffix_)[N2])
@@ -203,7 +203,7 @@ zmq::tcp_address_mask_t::tcp_address_mask_t () : _address_mask (-1)
     memset (&_network_address, 0, sizeof (_network_address));
 }
 
-int zmq::tcp_address_mask_t::resolve (const char *name_, bool ipv6_)
+int zmq::tcp_address_mask_t::resolve (name_: *const c_char, bool ipv6_)
 {
     // Find '/' at the end that separates address from the cidr mask number.
     // Allow empty mask clause and treat it like '/32' for ipv4 or '/128' for ipv6.

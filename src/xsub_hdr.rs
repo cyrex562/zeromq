@@ -57,10 +57,10 @@ class xsub_t : public socket_base_t
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_) ZMQ_FINAL;
-    int xsetsockopt (int option_,
-                     const void *optval_,
-                     size_t optvallen_) ZMQ_OVERRIDE;
-    int xgetsockopt (int option_, void *optval_, size_t *optvallen_) ZMQ_FINAL;
+    int xsetsockopt (option_: i32,
+                     const optval_: *mut c_void,
+                     optvallen_: usize) ZMQ_OVERRIDE;
+    int xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize) ZMQ_FINAL;
     int xsend (zmq::msg_t *msg_) ZMQ_OVERRIDE;
     bool xhas_out () ZMQ_OVERRIDE;
     int xrecv (zmq::msg_t *msg_) ZMQ_FINAL;
@@ -77,7 +77,7 @@ class xsub_t : public socket_base_t
     //  Function to be applied to the trie to send all the subsciptions
     //  upstream.
     static void
-    send_subscription (unsigned char *data_, size_t size_, arg_: *mut c_void);
+    send_subscription (unsigned char *data_, size_: usize, arg_: *mut c_void);
 
     //  Fair queueing object for inbound pipes.
     fq_t _fq;

@@ -164,7 +164,7 @@ int zmq::null_mechanism_t::process_handshake_command (msg_t *msg_)
 }
 
 int zmq::null_mechanism_t::process_ready_command (
-  const unsigned char *cmd_data_, size_t data_size_)
+  const unsigned char *cmd_data_, data_size_: usize)
 {
     _ready_command_received = true;
     return parse_metadata (cmd_data_ + ready_command_name_len,
@@ -172,7 +172,7 @@ int zmq::null_mechanism_t::process_ready_command (
 }
 
 int zmq::null_mechanism_t::process_error_command (
-  const unsigned char *cmd_data_, size_t data_size_)
+  const unsigned char *cmd_data_, data_size_: usize)
 {
     const size_t fixed_prefix_size =
       error_command_name_len + error_reason_len_size;

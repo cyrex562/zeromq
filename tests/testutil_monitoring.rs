@@ -33,7 +33,7 @@
 // #include <string.h>
 
 static int
-receive_monitor_address (void *monitor_, char **address_, bool expect_more_)
+receive_monitor_address (monitor_: *mut c_void, char **address_, bool expect_more_)
 {
     zmq_msg_t msg;
 
@@ -58,7 +58,7 @@ receive_monitor_address (void *monitor_, char **address_, bool expect_more_)
 //  Read one event off the monitor socket; return value and address
 //  by reference, if not null, and event number by value. Returns -1
 //  in case of error.
-static int get_monitor_event_internal (void *monitor_,
+static int get_monitor_event_internal (monitor_: *mut c_void,
                                        value_: *mut i32,
                                        char **address_,
                                        recv_flag_: i32)
@@ -84,7 +84,7 @@ static int get_monitor_event_internal (void *monitor_,
     return event;
 }
 
-int get_monitor_event_with_timeout (void *monitor_,
+int get_monitor_event_with_timeout (monitor_: *mut c_void,
                                     value_: *mut i32,
                                     char **address_,
                                     timeout_: i32)
@@ -115,22 +115,22 @@ int get_monitor_event_with_timeout (void *monitor_,
     return res;
 }
 
-int get_monitor_event (void *monitor_, value_: *mut i32, char **address_)
+int get_monitor_event (monitor_: *mut c_void, value_: *mut i32, char **address_)
 {
     return get_monitor_event_with_timeout (monitor_, value_, address_, -1);
 }
 
-void expect_monitor_event (void *monitor_, expected_event_: i32)
+void expect_monitor_event (monitor_: *mut c_void, expected_event_: i32)
 {
     TEST_ASSERT_EQUAL_HEX (expected_event_,
                            get_monitor_event (monitor_, NULL, NULL));
 }
 
 static void print_unexpected_event (char *buf_,
-                                    size_t buf_size_,
-                                    int event_,
-                                    int err_,
-                                    int expected_event_,
+                                    buf_size_: usize,
+                                    event_: i32,
+                                    err_: i32,
+                                    expected_event_: i32,
                                     expected_err_: i32)
 {
     snprintf (buf_, buf_size_,
@@ -140,9 +140,9 @@ static void print_unexpected_event (char *buf_,
               expected_err_);
 }
 
-void print_unexpected_event_stderr (int event_,
-                                    int err_,
-                                    int expected_event_,
+void print_unexpected_event_stderr (event_: i32,
+                                    err_: i32,
+                                    expected_event_: i32,
                                     expected_err_: i32)
 {
     char buf[256];
@@ -151,9 +151,9 @@ void print_unexpected_event_stderr (int event_,
     fputs (buf, stderr);
 }
 
-int expect_monitor_event_multiple (void *server_mon_,
-                                   int expected_event_,
-                                   int expected_err_,
+int expect_monitor_event_multiple (server_mon_: *mut c_void,
+                                   expected_event_: i32,
+                                   expected_err_: i32,
                                    bool optional_)
 {
     int count_of_expected_events = 0;
@@ -206,7 +206,7 @@ int expect_monitor_event_multiple (void *server_mon_,
     return count_of_expected_events;
 }
 
-static int64_t get_monitor_event_internal_v2 (void *monitor_,
+static int64_t get_monitor_event_internal_v2 (monitor_: *mut c_void,
                                               uint64_t **value_,
                                               char **local_address_,
                                               char **remote_address_,
@@ -271,7 +271,7 @@ static int64_t get_monitor_event_internal_v2 (void *monitor_,
     return event;
 }
 
-static int64_t get_monitor_event_with_timeout_v2 (void *monitor_,
+static int64_t get_monitor_event_with_timeout_v2 (monitor_: *mut c_void,
                                                   uint64_t **value_,
                                                   char **local_address_,
                                                   char **remote_address_,
@@ -304,7 +304,7 @@ static int64_t get_monitor_event_with_timeout_v2 (void *monitor_,
     return res;
 }
 
-int64_t get_monitor_event_v2 (void *monitor_,
+int64_t get_monitor_event_v2 (monitor_: *mut c_void,
                               uint64_t **value_,
                               char **local_address_,
                               char **remote_address_)
@@ -313,10 +313,10 @@ int64_t get_monitor_event_v2 (void *monitor_,
                                               remote_address_, -1);
 }
 
-void expect_monitor_event_v2 (void *monitor_,
+void expect_monitor_event_v2 (monitor_: *mut c_void,
                               int64_t expected_event_,
-                              const char *expected_local_address_,
-                              const char *expected_remote_address_)
+                              expected_local_address_: *const c_char,
+                              expected_remote_address_: *const c_char)
 {
     char *local_address = NULL;
     char *remote_address = NULL;
@@ -389,7 +389,7 @@ const char *get_zmqEventName (uint64_t event)
     }
 }
 
-void print_events (void *socket, int timeout, limit: i32)
+void print_events (socket: *mut c_void, timeout: i32, limit: i32)
 {
     // print events received
     value: i32;

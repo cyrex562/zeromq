@@ -64,9 +64,9 @@ class plain_client_t ZMQ_FINAL : public mechanism_base_t
     void produce_hello (msg_t *msg_) const;
     void produce_initiate (msg_t *msg_) const;
 
-    int process_welcome (const unsigned char *cmd_data_, size_t data_size_);
-    int process_ready (const unsigned char *cmd_data_, size_t data_size_);
-    int process_error (const unsigned char *cmd_data_, size_t data_size_);
+    int process_welcome (const unsigned char *cmd_data_, data_size_: usize);
+    int process_ready (const unsigned char *cmd_data_, data_size_: usize);
+    int process_error (const unsigned char *cmd_data_, data_size_: usize);
 };
 }
 

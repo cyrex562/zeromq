@@ -37,7 +37,7 @@
 // #include "testutil_unity.hpp"
 
 // Test that zmq_connect can handle malformed strings
-extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
 {
     setup_test_context ();
     std::string my_endpoint (reinterpret_cast<const char *> (data), size);
@@ -71,7 +71,7 @@ void test_connect_fuzzer ()
     free (len);
 }
 
-int main (int argc, char **argv)
+int main (argc: i32, char **argv)
 {
     setup_test_environment ();
 

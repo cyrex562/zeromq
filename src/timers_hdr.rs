@@ -38,7 +38,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace zmq
 {
-typedef void (timers_timer_fn) (int timer_id_, arg_: *mut c_void);
+typedef void (timers_timer_fn) (timer_id_: i32, arg_: *mut c_void);
 
 class timers_t
 {
@@ -49,12 +49,12 @@ class timers_t
     //  Add timer to the set, timer repeats forever, or until cancel is called.
     //  Returns a timer_id that is used to cancel the timer.
     //  Returns -1 if there was an error.
-    int add (size_t interval_, timers_timer_fn handler_, arg_: *mut c_void);
+    int add (interval_: usize, timers_timer_fn handler_, arg_: *mut c_void);
 
     //  Set the interval of the timer.
     //  This method is slow, cancelling exsting and adding a new timer yield better performance.
     //  Returns 0 on success and -1 on error.
-    int set_interval (int timer_id_, size_t interval_);
+    int set_interval (timer_id_: i32, interval_: usize);
 
     //  Reset the timer.
     //  This method is slow, cancelling exsting and adding a new timer yield better performance.

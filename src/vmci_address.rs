@@ -61,7 +61,7 @@ zmq::vmci_address_t::vmci_address_t (const sockaddr *sa,
         memcpy (&address, sa, sa_len);
 }
 
-int zmq::vmci_address_t::resolve (const char *path_)
+int zmq::vmci_address_t::resolve (path_: *const c_char)
 {
     //  Find the ':' at end that separates address from the port number.
     const char *delimiter = strrchr (path_, ':');

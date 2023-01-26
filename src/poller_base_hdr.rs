@@ -55,7 +55,7 @@ struct i_poll_events;
 //   Add a timeout to expire in timeout_ milliseconds. After the
 //   expiration, timer_event on sink_ object will be called with
 //   argument set to id_.
-// void add_timer(int timeout_, zmq::i_poll_events *sink_, id_: i32);
+// void add_timer(timeout_: i32, zmq::i_poll_events *sink_, id_: i32);
 //
 //   Cancel the timer created by sink_ object with ID equal to id_.
 // void cancel_timer(zmq::i_poll_events *sink_, id_: i32);
@@ -127,7 +127,7 @@ class poller_base_t
 
     // Methods from the poller concept.
     int get_load () const;
-    void add_timer (int timeout_, zmq::i_poll_events *sink_, id_: i32);
+    void add_timer (timeout_: i32, zmq::i_poll_events *sink_, id_: i32);
     void cancel_timer (zmq::i_poll_events *sink_, id_: i32);
 
   protected:

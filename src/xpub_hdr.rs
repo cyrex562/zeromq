@@ -61,15 +61,15 @@ class xpub_t : public socket_base_t
     void xread_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
     void xwrite_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
     int
-    xsetsockopt (int option_, const void *optval_, size_t optvallen_) ZMQ_FINAL;
-    int xgetsockopt (int option_, void *optval_, size_t *optvallen_) ZMQ_FINAL;
+    xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize) ZMQ_FINAL;
+    int xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize) ZMQ_FINAL;
     void xpipe_terminated (zmq::pipe_t *pipe_) ZMQ_FINAL;
 
   // private:
     //  Function to be applied to the trie to send all the subscriptions
     //  upstream.
     static void send_unsubscription (zmq::mtrie_t::prefix_t data_,
-                                     size_t size_,
+                                     size_: usize,
                                      xpub_t *self_);
 
     //  Function to be applied to each matching pipes.

@@ -389,7 +389,7 @@ void zmq::udp_engine_t::sockaddr_to_msg (zmq::msg_t *msg_,
     *address = 0;
 }
 
-int zmq::udp_engine_t::resolve_raw_address (const char *name_, size_t length_)
+int zmq::udp_engine_t::resolve_raw_address (name_: *const c_char, length_: usize)
 {
     memset (&_raw_address, 0, sizeof _raw_address);
 

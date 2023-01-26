@@ -46,25 +46,25 @@ class trie_t
 
     //  Add key to the trie. Returns true if this is a new item in the trie
     //  rather than a duplicate.
-    bool add (unsigned char *prefix_, size_t size_);
+    bool add (unsigned char *prefix_, size_: usize);
 
     //  Remove key from the trie. Returns true if the item is actually
     //  removed from the trie.
-    bool rm (unsigned char *prefix_, size_t size_);
+    bool rm (unsigned char *prefix_, size_: usize);
 
     //  Check whether particular key is in the trie.
-    bool check (const unsigned char *data_, size_t size_) const;
+    bool check (const unsigned char *data_, size_: usize) const;
 
     //  Apply the function supplied to each subscription in the trie.
-    void apply (void (*func_) (unsigned char *data_, size_t size_, arg_: *mut c_void),
+    void apply (void (*func_) (unsigned char *data_, size_: usize, arg_: *mut c_void),
                 arg_: *mut c_void);
 
   // private:
     void apply_helper (unsigned char **buff_,
-                       size_t buffsize_,
-                       size_t maxbuffsize_,
+                       buffsize_: usize,
+                       maxbuffsize_: usize,
                        void (*func_) (unsigned char *data_,
-                                      size_t size_,
+                                      size_: usize,
                                       arg_: *mut c_void),
                        arg_: *mut c_void) const;
     bool is_redundant () const;
@@ -90,7 +90,7 @@ class trie_with_size_t
     trie_with_size_t () {}
     ~trie_with_size_t () {}
 
-    bool add (unsigned char *prefix_, size_t size_)
+    bool add (unsigned char *prefix_, size_: usize)
     {
         if (_trie.add (prefix_, size_)) {
             _num_prefixes.add (1);
@@ -99,7 +99,7 @@ class trie_with_size_t
             return false;
     }
 
-    bool rm (unsigned char *prefix_, size_t size_)
+    bool rm (unsigned char *prefix_, size_: usize)
     {
         if (_trie.rm (prefix_, size_)) {
             _num_prefixes.sub (1);
@@ -108,12 +108,12 @@ class trie_with_size_t
             return false;
     }
 
-    bool check (const unsigned char *data_, size_t size_) const
+    bool check (const unsigned char *data_, size_: usize) const
     {
         return _trie.check (data_, size_);
     }
 
-    void apply (void (*func_) (unsigned char *data_, size_t size_, arg_: *mut c_void),
+    void apply (void (*func_) (unsigned char *data_, size_: usize, arg_: *mut c_void),
                 arg_: *mut c_void)
     {
         _trie.apply (func_, arg_);

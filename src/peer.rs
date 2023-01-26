@@ -45,7 +45,7 @@ zmq::peer_t::peer_t (class ctx_t *parent_, uint32_t tid_, sid_: i32) :
     options.can_recv_hiccup_msg = true;
 }
 
-uint32_t zmq::peer_t::connect_peer (const char *endpoint_uri_)
+uint32_t zmq::peer_t::connect_peer (endpoint_uri_: *const c_char)
 {
     scoped_optional_lock_t sync_lock (&_sync);
 

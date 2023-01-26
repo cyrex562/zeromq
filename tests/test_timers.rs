@@ -39,7 +39,7 @@ void tearDown ()
 {
 }
 
-void handler (int timer_id_, arg_: *mut c_void)
+void handler (timer_id_: i32, arg_: *mut c_void)
 {
     (void) timer_id_; //  Stop 'unused' compiler warnings
     *(static_cast<bool *> (arg_)) = true;

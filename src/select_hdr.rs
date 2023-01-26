@@ -115,7 +115,7 @@ class select_t ZMQ_FINAL : public worker_poller_base_t
     };
 
     void select_family_entry (family_entry_t &family_entry_,
-                              int max_fd_,
+                              max_fd_: i32,
                               bool use_timeout_,
                               struct timeval &tv_);
 

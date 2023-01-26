@@ -63,8 +63,8 @@ class dish_t ZMQ_FINAL : public socket_base_t
     void xwrite_activated (zmq::pipe_t *pipe_);
     void xhiccuped (pipe_t *pipe_);
     void xpipe_terminated (zmq::pipe_t *pipe_);
-    int xjoin (const char *group_);
-    int xleave (const char *group_);
+    int xjoin (group_: *const c_char);
+    int xleave (group_: *const c_char);
 
   // private:
     int xxrecv (zmq::msg_t *msg_);
@@ -95,7 +95,7 @@ class dish_session_t ZMQ_FINAL : public session_base_t
 // public:
     dish_session_t (zmq::io_thread_t *io_thread_,
                     bool connect_,
-                    zmq::socket_base_t *socket_,
+                    socket_: *mut socket_base_t,
                     const options_t &options_,
                     address_t *addr_);
     ~dish_session_t ();

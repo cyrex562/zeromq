@@ -94,7 +94,7 @@ static int sleep_ms (unsigned ms_: i32)
 // If EAGAIN is received, will sleep briefly (1-100ms) then try again, until
 // the overall timeout is reached.
 //
-static int close_wait_ms (int fd_, unsigned int max_ms_ = 2000)
+static int close_wait_ms (fd_: i32, unsigned int max_ms_ = 2000)
 {
     unsigned int ms_so_far = 0;
     const unsigned int min_step_ms = 1;

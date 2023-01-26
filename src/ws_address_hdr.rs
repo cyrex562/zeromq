@@ -49,7 +49,7 @@ class ws_address_t
     //  structure. If 'local' is true, names are resolved as local interface
     //  names. If it is false, names are resolved as remote hostnames.
     //  If 'ipv6' is true, the name may resolve to IPv6 address.
-    int resolve (const char *name_, bool local_, bool ipv6_);
+    int resolve (name_: *const c_char, bool local_, bool ipv6_);
 
     //  The opposite to resolve()
     int to_string (std::string &addr_) const;

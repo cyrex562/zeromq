@@ -191,7 +191,7 @@ void client(num: i32)
 
 //*******************************************************************
 int main (void) {
-	int v1, v2, v3; zmq_version(&v1, &v2, &v3);
+	v1: i32, v2, v3; zmq_version(&v1, &v2, &v3);
 	printf("ZMQ version %d.%d.%d. Compile %s %s\n", v1, v2, v3, __DATE__, __TIME__);
 
 	std::thread ct[CLIENT_COUNT];

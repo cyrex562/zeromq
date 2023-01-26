@@ -74,7 +74,7 @@ const char *zmq::errno_to_string (errno_: i32)
     }
 }
 
-void zmq::zmq_abort (const char *errmsg_)
+void zmq::zmq_abort (errmsg_: *const c_char)
 {
 // #if defined ZMQ_HAVE_WINDOWS
 
@@ -96,7 +96,7 @@ const char *zmq::wsa_error ()
     return wsa_error_no (WSAGetLastError (), NULL);
 }
 
-const char *zmq::wsa_error_no (int no_, const char *wsae_wouldblock_string_)
+const char *zmq::wsa_error_no (no_: i32, wsae_wouldblock_string_: *const c_char)
 {
     //  TODO:  It seems that list of Windows socket errors is longer than this.
     //         Investigate whether there's a way to convert it into the string
@@ -209,7 +209,7 @@ const char *zmq::wsa_error_no (int no_, const char *wsae_wouldblock_string_)
     }
 }
 
-void zmq::win_error (char *buffer_, size_t buffer_size_)
+void zmq::win_error (char *buffer_, buffer_size_: usize)
 {
     const DWORD errcode = GetLastError ();
 // #if defined _WIN32_WCE

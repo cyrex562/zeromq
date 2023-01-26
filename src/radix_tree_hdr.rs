@@ -73,31 +73,31 @@ struct node_t
     uint32_t edgecount ();
     unsigned char *prefix ();
     unsigned char *first_bytes ();
-    unsigned char first_byte_at (size_t index_);
+    unsigned char first_byte_at (index_: usize);
     unsigned char *node_pointers ();
-    node_t node_at (size_t index_);
+    node_t node_at (index_: usize);
     void set_refcount (uint32_t value_);
     void set_prefix_length (uint32_t value_);
     void set_edgecount (uint32_t value_);
     void set_prefix (const unsigned char *bytes_);
     void set_first_bytes (const unsigned char *bytes_);
-    void set_first_byte_at (size_t index_, unsigned char byte_);
+    void set_first_byte_at (index_: usize, unsigned char byte_);
     void set_node_pointers (const unsigned char *pointers_);
-    void set_node_at (size_t index_, node_t node_);
-    void set_edge_at (size_t index_, unsigned char first_byte_, node_t node_);
-    void resize (size_t prefix_length_, size_t edgecount_);
+    void set_node_at (index_: usize, node_t node_);
+    void set_edge_at (index_: usize, unsigned char first_byte_, node_t node_);
+    void resize (prefix_length_: usize, edgecount_: usize);
 
     unsigned char *_data;
 };
 
-node_t make_node (size_t refcount_, size_t prefix_length_, size_t edgecount_);
+node_t make_node (refcount_: usize, prefix_length_: usize, edgecount_: usize);
 
 struct match_result_t
 {
-    match_result_t (size_t key_bytes_matched_,
-                    size_t prefix_bytes_matched_,
-                    size_t edge_index_,
-                    size_t parent_edge_index_,
+    match_result_t (key_bytes_matched_: usize,
+                    prefix_bytes_matched_: usize,
+                    edge_index_: usize,
+                    parent_edge_index_: usize,
                     node_t current_,
                     node_t parent_,
                     node_t grandparent);
@@ -121,17 +121,17 @@ class radix_tree_t
 
     //  Add key to the tree. Returns true if this was a new key rather
     //  than a duplicate.
-    bool add (const unsigned char *key_, size_t key_size_);
+    bool add (const unsigned char *key_, key_size_: usize);
 
     //  Remove key from the tree. Returns true if the item is actually
     //  removed from the tree.
-    bool rm (const unsigned char *key_, size_t key_size_);
+    bool rm (const unsigned char *key_, key_size_: usize);
 
     //  Check whether particular key is in the tree.
-    bool check (const unsigned char *key_, size_t key_size_);
+    bool check (const unsigned char *key_, key_size_: usize);
 
     //  Apply the function supplied to each key in the tree.
-    void apply (void (*func_) (unsigned char *data, size_t size, arg: *mut c_void),
+    void apply (void (*func_) (unsigned char *data, size: usize, arg: *mut c_void),
                 arg_: *mut c_void);
 
     //  Retrieve size of the radix tree. Note this is a multithread safe function.
@@ -139,7 +139,7 @@ class radix_tree_t
 
   // private:
     match_result_t
-    match (const unsigned char *key_, size_t key_size_, bool is_lookup_) const;
+    match (const unsigned char *key_, key_size_: usize, bool is_lookup_) const;
 
     node_t _root;
     atomic_counter_t _size;

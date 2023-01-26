@@ -52,7 +52,7 @@ class tipc_address_t
     tipc_address_t (const sockaddr *sa, socklen_t sa_len);
 
     //  This function sets up the address "{type, lower, upper}" for TIPC transport
-    int resolve (const char *name);
+    int resolve (name: *const c_char);
 
     //  The opposite to resolve()
     int to_string (std::string &addr_) const;

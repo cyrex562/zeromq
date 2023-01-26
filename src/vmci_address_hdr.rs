@@ -48,7 +48,7 @@ class vmci_address_t
     vmci_address_t (const sockaddr *sa, socklen_t sa_len, ctx_t *parent_);
 
     //  This function sets up the address for VMCI transport.
-    int resolve (const char *path_);
+    int resolve (path_: *const c_char);
 
     //  The opposite to resolve()
     int to_string (std::string &addr_) const;

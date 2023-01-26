@@ -44,7 +44,7 @@ void test_app_meta_reqrep ()
 {
     ctx: *mut c_void;
     zmq_msg_t msg;
-    void *rep_sock, *req_sock;
+    rep_sock: *mut c_void, *req_sock;
     char connect_address[MAX_SOCKET_STRING];
     const char *req_hello = "X-hello:hello";
     const char *req_connection = "X-connection:primary";

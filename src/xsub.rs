@@ -98,9 +98,9 @@ void zmq::xsub_t::xhiccuped (pipe_t *pipe_)
     pipe_->flush ();
 }
 
-int zmq::xsub_t::xsetsockopt (int option_,
-                              const void *optval_,
-                              size_t optvallen_)
+int zmq::xsub_t::xsetsockopt (option_: i32,
+                              const optval_: *mut c_void,
+                              optvallen_: usize)
 {
     if (option_ == ZMQ_ONLY_FIRST_SUBSCRIBE) {
         if (optvallen_ != sizeof (int)
@@ -121,7 +121,7 @@ int zmq::xsub_t::xsetsockopt (int option_,
     return -1;
 }
 
-int zmq::xsub_t::xgetsockopt (int option_, void *optval_, size_t *optvallen_)
+int zmq::xsub_t::xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize)
 {
     if (option_ == ZMQ_TOPICS_COUNT) {
         // make sure to use a multi-thread safe function to avoid race conditions with I/O threads
@@ -287,7 +287,7 @@ bool zmq::xsub_t::match (msg_t *msg_)
 }
 
 void zmq::xsub_t::send_subscription (unsigned char *data_,
-                                     size_t size_,
+                                     size_: usize,
                                      arg_: *mut c_void)
 {
     pipe_t *pipe = static_cast<pipe_t *> (arg_);

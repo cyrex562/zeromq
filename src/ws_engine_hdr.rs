@@ -150,7 +150,7 @@ class ws_engine_t : public stream_engine_base_t
     int produce_no_msg_after_close (msg_t *msg_);
     int close_connection_after_close (msg_t *msg_);
 
-    bool select_protocol (const char *protocol);
+    bool select_protocol (protocol: *const c_char);
 
     bool client_handshake ();
     bool server_handshake ();

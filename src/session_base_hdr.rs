@@ -51,7 +51,7 @@ class session_base_t : public own_t, public io_object_t, public i_pipe_events
     //  Create a session of the particular type.
     static session_base_t *create (zmq::io_thread_t *io_thread_,
                                    bool active_,
-                                   zmq::socket_base_t *socket_,
+                                   socket_: *mut socket_base_t,
                                    const options_t &options_,
                                    address_t *addr_);
 
@@ -99,7 +99,7 @@ class session_base_t : public own_t, public io_object_t, public i_pipe_events
   protected:
     session_base_t (zmq::io_thread_t *io_thread_,
                     bool active_,
-                    zmq::socket_base_t *socket_,
+                    socket_: *mut socket_base_t,
                     const options_t &options_,
                     address_t *addr_);
     ~session_base_t () ZMQ_OVERRIDE;
@@ -179,7 +179,7 @@ class hello_msg_session_t ZMQ_FINAL : public session_base_t
 // public:
     hello_msg_session_t (zmq::io_thread_t *io_thread_,
                          bool connect_,
-                         zmq::socket_base_t *socket_,
+                         socket_: *mut socket_base_t,
                          const options_t &options_,
                          address_t *addr_);
     ~hello_msg_session_t ();

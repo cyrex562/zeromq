@@ -97,13 +97,13 @@ void node_t::set_first_bytes (const unsigned char *bytes_)
     memcpy (first_bytes (), bytes_, edgecount ());
 }
 
-unsigned char node_t::first_byte_at (size_t index_)
+unsigned char node_t::first_byte_at (index_: usize)
 {
     zmq_assert (index_ < edgecount ());
     return first_bytes ()[index_];
 }
 
-void node_t::set_first_byte_at (size_t index_, unsigned char byte_)
+void node_t::set_first_byte_at (index_: usize, unsigned char byte_)
 {
     zmq_assert (index_ < edgecount ());
     first_bytes ()[index_] = byte_;
@@ -119,7 +119,7 @@ void node_t::set_node_pointers (const unsigned char *pointers_)
     memcpy (node_pointers (), pointers_, edgecount () * sizeof (void *));
 }
 
-node_t node_t::node_at (size_t index_)
+node_t node_t::node_at (index_: usize)
 {
     zmq_assert (index_ < edgecount ());
 
@@ -128,14 +128,14 @@ node_t node_t::node_at (size_t index_)
     return node_t (data);
 }
 
-void node_t::set_node_at (size_t index_, node_t node_)
+void node_t::set_node_at (index_: usize, node_t node_)
 {
     zmq_assert (index_ < edgecount ());
     memcpy (node_pointers () + index_ * sizeof (void *), &node_._data,
             sizeof (node_._data));
 }
 
-void node_t::set_edge_at (size_t index_,
+void node_t::set_edge_at (index_: usize,
                           unsigned char first_byte_,
                           node_t node_)
 {
@@ -153,7 +153,7 @@ bool node_t::operator!= (node_t other_) const
     return !(*this == other_);
 }
 
-void node_t::resize (size_t prefix_length_, size_t edgecount_)
+void node_t::resize (prefix_length_: usize, edgecount_: usize)
 {
     const size_t node_size = 3 * sizeof (uint32_t) + prefix_length_
                              + edgecount_ * (1 + sizeof (void *));
@@ -165,7 +165,7 @@ void node_t::resize (size_t prefix_length_, size_t edgecount_)
     set_edgecount (static_cast<uint32_t> (edgecount_));
 }
 
-node_t make_node (size_t refcount_, size_t prefix_length_, size_t edgecount_)
+node_t make_node (refcount_: usize, prefix_length_: usize, edgecount_: usize)
 {
     const size_t node_size = 3 * sizeof (uint32_t) + prefix_length_
                              + edgecount_ * (1 + sizeof (void *));
@@ -198,10 +198,10 @@ zmq::radix_tree_t::~radix_tree_t ()
     free_nodes (_root);
 }
 
-match_result_t::match_result_t (size_t key_bytes_matched_,
-                                size_t prefix_bytes_matched_,
-                                size_t edge_index_,
-                                size_t parent_edge_index_,
+match_result_t::match_result_t (key_bytes_matched_: usize,
+                                prefix_bytes_matched_: usize,
+                                edge_index_: usize,
+                                parent_edge_index_: usize,
                                 node_t current_,
                                 node_t parent_,
                                 node_t grandparent_) :
@@ -216,7 +216,7 @@ match_result_t::match_result_t (size_t key_bytes_matched_,
 }
 
 match_result_t zmq::radix_tree_t::match (const unsigned char *key_,
-                                         size_t key_size_,
+                                         key_size_: usize,
                                          bool is_lookup_ = false) const
 {
     zmq_assert (key_);
@@ -283,7 +283,7 @@ match_result_t zmq::radix_tree_t::match (const unsigned char *key_,
                            grandparent_node);
 }
 
-bool zmq::radix_tree_t::add (const unsigned char *key_, size_t key_size_)
+bool zmq::radix_tree_t::add (const unsigned char *key_, key_size_: usize)
 {
     const match_result_t match_result = match (key_, key_size_);
     const size_t key_bytes_matched = match_result._key_bytes_matched;
@@ -407,7 +407,7 @@ bool zmq::radix_tree_t::add (const unsigned char *key_, size_t key_size_)
     return current_node.refcount () == 1;
 }
 
-bool zmq::radix_tree_t::rm (const unsigned char *key_, size_t key_size_)
+bool zmq::radix_tree_t::rm (const unsigned char *key_, key_size_: usize)
 {
     const match_result_t match_result = match (key_, key_size_);
     const size_t key_bytes_matched = match_result._key_bytes_matched;
@@ -527,7 +527,7 @@ bool zmq::radix_tree_t::rm (const unsigned char *key_, size_t key_size_)
     return true;
 }
 
-bool zmq::radix_tree_t::check (const unsigned char *key_, size_t key_size_)
+bool zmq::radix_tree_t::check (const unsigned char *key_, key_size_: usize)
 {
     if (_root.refcount () > 0)
         return true;
@@ -542,7 +542,7 @@ bool zmq::radix_tree_t::check (const unsigned char *key_, size_t key_size_)
 static void
 visit_keys (node_t node_,
             std::vector<unsigned char> &buffer_,
-            void (*func_) (unsigned char *data_, size_t size_, arg_: *mut c_void),
+            void (*func_) (unsigned char *data_, size_: usize, arg_: *mut c_void),
             arg_: *mut c_void)
 {
     const size_t prefix_length = node_.prefix_length ();
@@ -562,7 +562,7 @@ visit_keys (node_t node_,
 }
 
 void zmq::radix_tree_t::apply (
-  void (*func_) (unsigned char *data_, size_t size_, arg_: *mut c_void), arg_: *mut c_void)
+  void (*func_) (unsigned char *data_, size_: usize, arg_: *mut c_void), arg_: *mut c_void)
 {
     if (_root.refcount () > 0)
         func_ (NULL, 0, arg_); // Root node is always empty.

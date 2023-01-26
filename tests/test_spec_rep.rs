@@ -36,7 +36,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 char connect_address[MAX_SOCKET_STRING];
 
-void test_fair_queue_in (const char *bind_address_)
+void test_fair_queue_in (bind_address_: *const c_char)
 {
     void *rep = test_context_socket (ZMQ_REP);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (rep, bind_address_));
@@ -91,7 +91,7 @@ void test_fair_queue_in (const char *bind_address_)
         test_context_socket_close_zero_linger (reqs[peer]);
 }
 
-void test_envelope (const char *bind_address_)
+void test_envelope (bind_address_: *const c_char)
 {
     void *rep = test_context_socket (ZMQ_REP);
 

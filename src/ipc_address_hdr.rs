@@ -53,7 +53,7 @@ class ipc_address_t
     ~ipc_address_t ();
 
     //  This function sets up the address for UNIX domain transport.
-    int resolve (const char *path_);
+    int resolve (path_: *const c_char);
 
     //  The opposite to resolve()
     int to_string (std::string &addr_) const;

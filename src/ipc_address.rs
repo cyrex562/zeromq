@@ -56,7 +56,7 @@ zmq::ipc_address_t::~ipc_address_t ()
 {
 }
 
-int zmq::ipc_address_t::resolve (const char *path_)
+int zmq::ipc_address_t::resolve (path_: *const c_char)
 {
     const size_t path_len = strlen (path_);
     if (path_len >= sizeof _address.sun_path) {

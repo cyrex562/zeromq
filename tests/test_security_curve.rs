@@ -89,11 +89,11 @@ static void zap_handler_large_routing_id (void * /*unused_*/)
     zap_handler_generic (zap_ok, large_routing_id);
 }
 
-void expect_new_client_curve_bounce_fail (const char *server_public_,
-                                          const char *client_public_,
-                                          const char *client_secret_,
+void expect_new_client_curve_bounce_fail (server_public_: *const c_char,
+                                          client_public_: *const c_char,
+                                          client_secret_: *const c_char,
                                           char *my_endpoint_,
-                                          void *server_,
+                                          server_: *mut c_void,
                                           void **client_mon_ = NULL,
                                           int expected_client_event_ = 0,
                                           int expected_client_value_ = 0)
@@ -105,8 +105,8 @@ void expect_new_client_curve_bounce_fail (const char *server_public_,
       client_mon_, expected_client_event_, expected_client_value_);
 }
 
-void test_null_key (void *server_,
-                    void *server_mon_,
+void test_null_key (server_: *mut c_void,
+                    server_mon_: *mut c_void,
                     char *my_endpoint_,
                     char *server_public_,
                     char *client_public_,
@@ -177,9 +177,9 @@ void test_curve_security_with_bogus_client_credentials ()
                  || 1 <= zmq_atomic_counter_value (zap_requests_handled));
 }
 
-void expect_zmtp_mechanism_mismatch (void *client_,
+void expect_zmtp_mechanism_mismatch (client_: *mut c_void,
                                      char *my_endpoint_,
-                                     void *server_,
+                                     server_: *mut c_void,
                                      server_mon_: *mut c_void)
 {
     //  This must be caught by the curve_server class, not passed to ZAP
@@ -227,7 +227,7 @@ void test_curve_security_unauthenticated_message ()
     close (s);
 }
 
-void send_all (fd_t fd_, const char *data_, socket_size_t size_)
+void send_all (fd_t fd_, data_: *const c_char, socket_size_: usize)
 {
     while (size_ > 0) {
         int res = send (fd_, data_, size_, 0);
@@ -367,7 +367,7 @@ void flush_read (fd_t fd_)
     TEST_ASSERT_NOT_EQUAL (-1, res);
 }
 
-void recv_all (fd_t fd_, uint8_t *data_, socket_size_t len_)
+void recv_all (fd_t fd_, uint8_t *data_, socket_len_: usize)
 {
     socket_size_t received = 0;
     while (received < len_) {
@@ -425,8 +425,8 @@ void test_curve_security_invalid_initiate_wrong_length ()
 
 fd_t connect_exchange_greeting_and_hello_welcome (
   char *my_endpoint_,
-  void *server_mon_,
-  int timeout_,
+  server_mon_: *mut c_void,
+  timeout_: i32,
   zmq::curve_client_tools_t &tools_)
 {
     fd_t s = connect_exchange_greeting_and_send_hello (my_endpoint_, tools_);

@@ -61,7 +61,7 @@ static unsigned int __stdcall thread_routine (arg_: *mut c_void)
 }
 }
 
-void zmq::thread_t::start (thread_fn *tfn_, void *arg_, const char *name_)
+void zmq::thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char)
 {
     _tfn = tfn_;
     _arg = arg_;
@@ -101,7 +101,7 @@ void zmq::thread_t::stop ()
 }
 
 void zmq::thread_t::setSchedulingParameters (
-  int priority_, int scheduling_policy_, const std::set<int> &affinity_cpus_)
+  priority_: i32, scheduling_policy_: i32, const std::set<int> &affinity_cpus_)
 {
     // not implemented
     LIBZMQ_UNUSED (priority_);
@@ -181,7 +181,7 @@ static void *thread_routine (arg_: *mut c_void)
 }
 }
 
-void zmq::thread_t::start (thread_fn *tfn_, void *arg_, const char *name_)
+void zmq::thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char)
 {
     LIBZMQ_UNUSED (name_);
     _tfn = tfn_;
@@ -207,7 +207,7 @@ bool zmq::thread_t::is_current_thread () const
 }
 
 void zmq::thread_t::setSchedulingParameters (
-  int priority_, int schedulingPolicy_, const std::set<int> &affinity_cpus_)
+  priority_: i32, schedulingPolicy_: i32, const std::set<int> &affinity_cpus_)
 {
     _thread_priority = priority_;
     _thread_sched_policy = schedulingPolicy_;
@@ -258,7 +258,7 @@ static void *thread_routine (arg_: *mut c_void)
 }
 }
 
-void zmq::thread_t::start (thread_fn *tfn_, void *arg_, const char *name_)
+void zmq::thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char)
 {
     _tfn = tfn_;
     _arg = arg_;
@@ -283,7 +283,7 @@ bool zmq::thread_t::is_current_thread () const
 }
 
 void zmq::thread_t::setSchedulingParameters (
-  int priority_, int scheduling_policy_, const std::set<int> &affinity_cpus_)
+  priority_: i32, scheduling_policy_: i32, const std::set<int> &affinity_cpus_)
 {
     _thread_priority = priority_;
     _thread_sched_policy = scheduling_policy_;

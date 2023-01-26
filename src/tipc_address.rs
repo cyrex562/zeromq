@@ -70,7 +70,7 @@ bool zmq::tipc_address_t::is_service () const
 
     return true;
 }
-int zmq::tipc_address_t::resolve (const char *name_)
+int zmq::tipc_address_t::resolve (name_: *const c_char)
 {
     unsigned int type = 0;
     unsigned int lower = 0;

@@ -32,7 +32,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-void test_reconnect_ivl_against_pair_socket (const char *my_endpoint_,
+void test_reconnect_ivl_against_pair_socket (my_endpoint_: *const c_char,
                                              sb_: *mut c_void)
 {
     void *sc = test_context_socket (ZMQ_PAIR);

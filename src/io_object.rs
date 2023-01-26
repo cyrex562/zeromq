@@ -90,7 +90,7 @@ void zmq::io_object_t::reset_pollout (handle_t handle_)
     _poller->reset_pollout (handle_);
 }
 
-void zmq::io_object_t::add_timer (int timeout_, id_: i32)
+void zmq::io_object_t::add_timer (timeout_: i32, id_: i32)
 {
     _poller->add_timer (timeout_, this, id_);
 }

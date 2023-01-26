@@ -211,7 +211,7 @@ pub const ZMQ_VERSION_PATCH: u32 = 5;
 
 /*  Context options                                                           */
 // #define ZMQ_IO_THREADS 1
-pub const ZMQ_IO_THREADS: u8 = 1;
+pub const ZMQ_IO_THREADS: i32 = 1;
 // #define ZMQ_MAX_SOCKETS 2
 pub const ZMQ_MAX_SOCKETS: u8 = 2;
 // #define ZMQ_SOCKET_LIMIT 3
@@ -240,8 +240,8 @@ pub const ZMQ_THREAD_NAME_PREFIX: u8 = 9;
 // ZMQ_EXPORT void *zmq_ctx_new (void);
 // ZMQ_EXPORT int zmq_ctx_term (context_: *mut c_void);
 // ZMQ_EXPORT int zmq_ctx_shutdown (context_: *mut c_void);
-// ZMQ_EXPORT int zmq_ctx_set (void *context_, int option_, optval_: i32);
-// ZMQ_EXPORT int zmq_ctx_get (void *context_, option_: i32);
+// ZMQ_EXPORT int zmq_ctx_set (context_: *mut c_void, option_: i32, optval_: i32);
+// ZMQ_EXPORT int zmq_ctx_get (context_: *mut c_void, option_: i32);
 
 /*  Old (legacy) API                                                          */
 // ZMQ_EXPORT void *zmq_init (io_threads_: i32);
@@ -258,6 +258,7 @@ pub const ZMQ_THREAD_NAME_PREFIX: u8 = 9;
  * zmq_msg_t on addresses aligned on a pointer-size boundary to avoid this issue.
  */
 // typedef struct zmq_msg_t
+#[derive(Default,Debug,Clone)]
 pub struct zmq_msg_t {
     // #if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_ARM64))
 //     __declspec(align (8)) unsigned char _[64];
@@ -275,7 +276,7 @@ pub struct zmq_msg_t {
 }
 // zmq_msg_t;
 
-// typedef void (zmq_free_fn) (void *data_, hint_: *mut c_void);
+// typedef void (zmq_free_fn) (data_: *mut c_void, hint_: *mut c_void);
 pub type zmq_free_fn = fn(data_: *mut c_void, hint_: *mut c_void);
 
 
@@ -285,7 +286,7 @@ pub type zmq_free_fn = fn(data_: *mut c_void, hint_: *mut c_void);
 
 /*  Socket types.                                                             */
 // #define ZMQ_PAIR 0
-pub const ZMQ_PAIR: u8 = 0;
+pub const ZMQ_PAIR: i32 = 0;
 // #define ZMQ_PUB 1
 pub const ZMQ_PUB: u8 = 1;
 // #define ZMQ_SUB 2
@@ -552,18 +553,18 @@ pub const ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED: u32 = 0x30000000;
 // ZMQ_EXPORT void *zmq_socket (void *, type_: i32);
 // ZMQ_EXPORT int zmq_close (s_: *mut c_void);
 // ZMQ_EXPORT int
-// zmq_setsockopt (void *s_, int option_, const void *optval_, size_t optvallen_);
+// zmq_setsockopt (s_: *mut c_void, option_: i32, const optval_: *mut c_void, optvallen_: usize);
 // ZMQ_EXPORT int
-// zmq_getsockopt (void *s_, int option_, void *optval_, size_t *optvallen_);
-// ZMQ_EXPORT int zmq_bind (void *s_, const char *addr_);
-// ZMQ_EXPORT int zmq_connect (void *s_, const char *addr_);
-// ZMQ_EXPORT int zmq_unbind (void *s_, const char *addr_);
-// ZMQ_EXPORT int zmq_disconnect (void *s_, const char *addr_);
-// ZMQ_EXPORT int zmq_send (void *s_, const void *buf_, size_t len_, flags_: i32);
+// zmq_getsockopt (s_: *mut c_void, option_: i32, optval_: *mut c_void, optvallen_: *mut usize);
+// ZMQ_EXPORT int zmq_bind (s_: *mut c_void, addr_: *const c_char);
+// ZMQ_EXPORT int zmq_connect (s_: *mut c_void, addr_: *const c_char);
+// ZMQ_EXPORT int zmq_unbind (s_: *mut c_void, addr_: *const c_char);
+// ZMQ_EXPORT int zmq_disconnect (s_: *mut c_void, addr_: *const c_char);
+// ZMQ_EXPORT int zmq_send (s_: *mut c_void, const buf_: *mut c_void, len_: usize, flags_: i32);
 // ZMQ_EXPORT int
-// zmq_send_const (void *s_, const void *buf_, size_t len_, flags_: i32);
-// ZMQ_EXPORT int zmq_recv (void *s_, void *buf_, size_t len_, flags_: i32);
-// ZMQ_EXPORT int zmq_socket_monitor (void *s_, const char *addr_, events_: i32);
+// zmq_send_const (s_: *mut c_void, const buf_: *mut c_void, len_: usize, flags_: i32);
+// ZMQ_EXPORT int zmq_recv (s_: *mut c_void, buf_: *mut c_void, len_: usize, flags_: i32);
+// ZMQ_EXPORT int zmq_socket_monitor (s_: *mut c_void, addr_: *const c_char, events_: i32);
 
 /******************************************************************************/
 /*  Hide socket fd type; this was before zmq_poller_event_t typedef below     */
@@ -616,16 +617,16 @@ pub struct zmq_pollitem_t {
 // #define ZMQ_POLLITEMS_DFLT 16
 pub const ZMQ_POLLITEMS_DFLT: usize = 16;
 
-// ZMQ_EXPORT int zmq_poll (zmq_pollitem_t *items_, int nitems_, long timeout_);
+// ZMQ_EXPORT int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_);
 
 /******************************************************************************/
 /*  Message proxying                                                          */
 /******************************************************************************/
 
-// ZMQ_EXPORT int zmq_proxy (void *frontend_, void *backend_, capture_: *mut c_void);
-// ZMQ_EXPORT int zmq_proxy_steerable (void *frontend_,
-//                                     void *backend_,
-//                                     void *capture_,
+// ZMQ_EXPORT int zmq_proxy (frontend_: *mut c_void, backend_: *mut c_void, capture_: *mut c_void);
+// ZMQ_EXPORT int zmq_proxy_steerable (frontend_: *mut c_void,
+//                                     backend_: *mut c_void,
+//                                     capture_: *mut c_void,
 //                                     control_: *mut c_void);
 
 /******************************************************************************/
@@ -633,7 +634,7 @@ pub const ZMQ_POLLITEMS_DFLT: usize = 16;
 /******************************************************************************/
 
 // #define ZMQ_HAS_CAPABILITIES 1
-// ZMQ_EXPORT int zmq_has (const char *capability_);
+// ZMQ_EXPORT int zmq_has (capability_: *const c_char);
 
 /*  Deprecated aliases */
 // #define ZMQ_STREAMER 1
@@ -644,14 +645,14 @@ pub const ZMQ_FORWARDER: u8 = 2;
 pub const ZMQ_QUEUE: u8 = 3;
 
 /*  Deprecated methods */
-// ZMQ_EXPORT int zmq_device (int type_, void *frontend_, backend_: *mut c_void);
-// ZMQ_EXPORT int zmq_sendmsg (void *s_, zmq_msg_t *msg_, flags_: i32);
-// ZMQ_EXPORT int zmq_recvmsg (void *s_, zmq_msg_t *msg_, flags_: i32);
+// ZMQ_EXPORT int zmq_device (type_: i32, frontend_: *mut c_void, backend_: *mut c_void);
+// ZMQ_EXPORT int zmq_sendmsg (s_: *mut c_void, msg_: *mut zmq_msg_t, flags_: i32);
+// ZMQ_EXPORT int zmq_recvmsg (s_: *mut c_void, msg_: *mut zmq_msg_t, flags_: i32);
 // struct iovec;
 // ZMQ_EXPORT int
-// zmq_sendiov (void *s_, struct iovec *iov_, size_t count_, flags_: i32);
+// zmq_sendiov (s_: *mut c_void, struct iovec *iov_, count_: usize, flags_: i32);
 // ZMQ_EXPORT int
-// zmq_recviov (void *s_, struct iovec *iov_, size_t *count_, flags_: i32);
+// zmq_recviov (s_: *mut c_void, struct iovec *iov_, size_t *count_, flags_: i32);
 
 /******************************************************************************/
 /*  Encryption functions                                                      */
@@ -659,10 +660,10 @@ pub const ZMQ_QUEUE: u8 = 3;
 
 /*  Encode data with Z85 encoding. Returns encoded data                       */
 // ZMQ_EXPORT char *
-// zmq_z85_encode (char *dest_, const uint8_t *data_, size_t size_);
+// zmq_z85_encode (char *dest_, const uint8_t *data_, size_: usize);
 
 /*  Decode data with Z85 encoding. Returns decoded data                       */
-// ZMQ_EXPORT uint8_t *zmq_z85_decode (uint8_t *dest_, const char *string_);
+// ZMQ_EXPORT uint8_t *zmq_z85_decode (uint8_t *dest_, string_: *const c_char);
 
 /*  Generate z85-encoded public and private keypair with tweetnacl/libsodium. */
 /*  Returns 0 on success.                                                     */
@@ -671,14 +672,14 @@ pub const ZMQ_QUEUE: u8 = 3;
 /*  Derive the z85-encoded public key from the z85-encoded secret key.        */
 /*  Returns 0 on success.                                                     */
 // ZMQ_EXPORT int zmq_curve_public (char *z85_public_key_,
-//                                  const char *z85_secret_key_);
+//                                  z85_secret_key_: *const c_char);
 
 /******************************************************************************/
 /*  Atomic utility methods                                                    */
 /******************************************************************************/
 
 // ZMQ_EXPORT void *zmq_atomic_counter_new (void);
-// ZMQ_EXPORT void zmq_atomic_counter_set (void *counter_, value_: i32);
+// ZMQ_EXPORT void zmq_atomic_counter_set (counter_: *mut c_void, value_: i32);
 // ZMQ_EXPORT int zmq_atomic_counter_inc (counter_: *mut c_void);
 // ZMQ_EXPORT int zmq_atomic_counter_dec (counter_: *mut c_void);
 // ZMQ_EXPORT int zmq_atomic_counter_value (counter_: *mut c_void);
@@ -690,16 +691,16 @@ pub const ZMQ_QUEUE: u8 = 3;
 
 // #define ZMQ_HAVE_TIMERS
 
-// typedef void (zmq_timer_fn) (int timer_id, arg: *mut c_void);
+// typedef void (zmq_timer_fn) (timer_id: i32, arg: *mut c_void);
 
 // ZMQ_EXPORT void *zmq_timers_new (void);
 // ZMQ_EXPORT int zmq_timers_destroy (void **timers_p);
 // ZMQ_EXPORT int
-// zmq_timers_add (void *timers, size_t interval, zmq_timer_fn handler, arg: *mut c_void);
-// ZMQ_EXPORT int zmq_timers_cancel (void *timers, timer_id: i32);
+// zmq_timers_add (timers: *mut c_void, interval: usize, zmq_timer_fn handler, arg: *mut c_void);
+// ZMQ_EXPORT int zmq_timers_cancel (timers: *mut c_void, timer_id: i32);
 // ZMQ_EXPORT int
-// zmq_timers_set_interval (void *timers, int timer_id, size_t interval);
-// ZMQ_EXPORT int zmq_timers_reset (void *timers, timer_id: i32);
+// zmq_timers_set_interval (timers: *mut c_void, timer_id: i32, interval: usize);
+// ZMQ_EXPORT int zmq_timers_reset (timers: *mut c_void, timer_id: i32);
 // ZMQ_EXPORT long zmq_timers_timeout (timers: *mut c_void);
 // ZMQ_EXPORT int zmq_timers_execute (timers: *mut c_void);
 
@@ -760,7 +761,7 @@ pub const ZMQ_SCATTER: u8 = 17;
 // #define ZMQ_DGRAM 18
 pub const ZQM_DGRAM: u8 = 18;
 // #define ZMQ_PEER 19
-pub const ZMQ_PEER: u8 = 19;
+pub const ZMQ_PEER: i32 = 19;
 // #define ZMQ_CHANNEL 20
 pub const ZMQ_CHANNEL: u8 = 20;
 
@@ -826,27 +827,27 @@ pub const ZMQ_RECONNECT_STOP_AFTER_DISCONNECT: u8 = 0x4;
 // #define ZMQ_ZERO_COPY_RECV 10
 
 /*  DRAFT Context methods.                                                    */
-// ZMQ_EXPORT int zmq_ctx_set_ext (void *context_,
-//                                 int option_,
-//                                 const void *optval_,
-//                                 size_t optvallen_);
-// ZMQ_EXPORT int zmq_ctx_get_ext (void *context_,
-//                                 int option_,
-//                                 void *optval_,
-//                                 size_t *optvallen_);
+// ZMQ_EXPORT int zmq_ctx_set_ext (context_: *mut c_void,
+//                                 option_: i32,
+//                                 const optval_: *mut c_void,
+//                                 optvallen_: usize);
+// ZMQ_EXPORT int zmq_ctx_get_ext (context_: *mut c_void,
+//                                 option_: i32,
+//                                 optval_: *mut c_void,
+//                                 optvallen_: *mut usize);
 
 /*  DRAFT Socket methods.                                                     */
-// ZMQ_EXPORT int zmq_join (void *s, const char *group);
-// ZMQ_EXPORT int zmq_leave (void *s, const char *group);
-// ZMQ_EXPORT uint32_t zmq_connect_peer (void *s_, const char *addr_);
+// ZMQ_EXPORT int zmq_join (s: *mut c_void, group: *const c_char);
+// ZMQ_EXPORT int zmq_leave (s: *mut c_void, group: *const c_char);
+// ZMQ_EXPORT uint32_t zmq_connect_peer (s_: *mut c_void, addr_: *const c_char);
 
 /*  DRAFT Msg methods.                                                        */
-// ZMQ_EXPORT int zmq_msg_set_routing_id (zmq_msg_t *msg, uint32_t routing_id);
+// ZMQ_EXPORT int zmq_msg_set_routing_id (msg: *mut zmq_msg_t, uint32_t routing_id);
 // ZMQ_EXPORT uint32_t zmq_msg_routing_id (zmq_msg_t *msg);
-// ZMQ_EXPORT int zmq_msg_set_group (zmq_msg_t *msg, const char *group);
+// ZMQ_EXPORT int zmq_msg_set_group (msg: *mut zmq_msg_t, group: *const c_char);
 // ZMQ_EXPORT const char *zmq_msg_group (zmq_msg_t *msg);
 // ZMQ_EXPORT int
-// zmq_msg_init_buffer (zmq_msg_t *msg_, const void *buf_, size_t size_);
+// zmq_msg_init_buffer (msg_: *mut zmq_msg_t, const buf_: *mut c_void, size_: usize);
 
 /*  DRAFT Msg property names.                                                 */
 // #define ZMQ_MSG_PROPERTY_ROUTING_ID "Routing-Id"
@@ -881,25 +882,25 @@ pub struct zmq_poller_event_t {
 // ZMQ_EXPORT int zmq_poller_destroy (void **poller_p);
 // ZMQ_EXPORT int zmq_poller_size (poller: *mut c_void);
 // ZMQ_EXPORT int
-// zmq_poller_add (void *poller, void *socket, void *user_data, short events);
-// ZMQ_EXPORT int zmq_poller_modify (void *poller, void *socket, short events);
-// ZMQ_EXPORT int zmq_poller_remove (void *poller, socket: *mut c_void);
+// zmq_poller_add (poller: *mut c_void, socket: *mut c_void, user_data: *mut c_void, short events);
+// ZMQ_EXPORT int zmq_poller_modify (poller: *mut c_void, socket: *mut c_void, short events);
+// ZMQ_EXPORT int zmq_poller_remove (poller: *mut c_void, socket: *mut c_void);
 // ZMQ_EXPORT int
-// zmq_poller_wait (void *poller, zmq_poller_event_t *event, long timeout);
-// ZMQ_EXPORT int zmq_poller_wait_all (void *poller,
+// zmq_poller_wait (poller: *mut c_void, zmq_poller_event_t *event, long timeout);
+// ZMQ_EXPORT int zmq_poller_wait_all (poller: *mut c_void,
 //                                     zmq_poller_event_t *events,
-//                                     int n_events,
+//                                     n_events: i32,
 //                                     long timeout);
-// ZMQ_EXPORT int zmq_poller_fd (void *poller, zmq_fd_t *fd);
+// ZMQ_EXPORT int zmq_poller_fd (poller: *mut c_void, zmq_fd_t *fd);
 //
 // ZMQ_EXPORT int
-// zmq_poller_add_fd (void *poller, zmq_fd_t fd, void *user_data, short events);
-// ZMQ_EXPORT int zmq_poller_modify_fd (void *poller, zmq_fd_t fd, short events);
-// ZMQ_EXPORT int zmq_poller_remove_fd (void *poller, zmq_fd_t fd);
+// zmq_poller_add_fd (poller: *mut c_void, zmq_fd_t fd, user_data: *mut c_void, short events);
+// ZMQ_EXPORT int zmq_poller_modify_fd (poller: *mut c_void, zmq_fd_t fd, short events);
+// ZMQ_EXPORT int zmq_poller_remove_fd (poller: *mut c_void, zmq_fd_t fd);
 //
-// ZMQ_EXPORT int zmq_socket_get_peer_state (void *socket,
-//                                           const void *routing_id,
-//                                           size_t routing_id_size);
+// ZMQ_EXPORT int zmq_socket_get_peer_state (socket: *mut c_void,
+//                                           const routing_id: *mut c_void,
+//                                           routing_id_size: usize);
 
 /*  DRAFT Socket monitoring events                                            */
 // #define ZMQ_EVENT_PIPES_STATS 0x10000
@@ -911,18 +912,18 @@ pub struct zmq_poller_event_t {
 // #define ZMQ_EVENT_ALL_V2 ZMQ_EVENT_ALL_V1 | ZMQ_EVENT_PIPES_STATS
 
 // ZMQ_EXPORT int zmq_socket_monitor_versioned (
-//   void *s_, const char *addr_, uint64_t events_, int event_version_, type_: i32);
+//   s_: *mut c_void, addr_: *const c_char, events_: u64, event_version_: i32, type_: i32);
 // ZMQ_EXPORT int zmq_socket_monitor_pipes_stats (s: *mut c_void);
 
 // #if !defined _WIN32
 // ZMQ_EXPORT int zmq_ppoll (zmq_pollitem_t *items_,
-//                           int nitems_,
+//                           nitems_: i32,
 //                           long timeout_,
 //                           const sigset_t *sigmask_);
 // #else
 // Windows has no sigset_t
 // ZMQ_EXPORT int zmq_ppoll (zmq_pollitem_t *items_,
-//                           int nitems_,
+//                           nitems_: i32,
 //                           long timeout_,
 //                           const sigmask_: *mut c_void);
 // #endif

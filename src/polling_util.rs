@@ -36,7 +36,7 @@
 
 zmq::timeout_t zmq::compute_timeout (const bool first_pass_,
                                      const long timeout_,
-                                     const uint64_t now_,
+                                     const now_: u64,
                                      const uint64_t end_)
 {
     if (first_pass_)

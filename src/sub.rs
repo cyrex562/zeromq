@@ -45,9 +45,9 @@ zmq::sub_t::~sub_t ()
 {
 }
 
-int zmq::sub_t::xsetsockopt (int option_,
-                             const void *optval_,
-                             size_t optvallen_)
+int zmq::sub_t::xsetsockopt (option_: i32,
+                             const optval_: *mut c_void,
+                             optvallen_: usize)
 {
     if (option_ != ZMQ_SUBSCRIBE && option_ != ZMQ_UNSUBSCRIBE) {
         errno = EINVAL;

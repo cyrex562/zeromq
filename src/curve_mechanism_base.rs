@@ -48,8 +48,8 @@
 zmq::curve_mechanism_base_t::curve_mechanism_base_t (
   session_base_t *session_,
   const options_t &options_,
-  const char *encode_nonce_prefix_,
-  const char *decode_nonce_prefix_,
+  encode_nonce_prefix_: *const c_char,
+  decode_nonce_prefix_: *const c_char,
   const bool downgrade_sub_) :
     mechanism_base_t (session_, options_),
     curve_encoding_t (
@@ -78,8 +78,8 @@ int zmq::curve_mechanism_base_t::decode (msg_t *msg_)
     return rc;
 }
 
-zmq::curve_encoding_t::curve_encoding_t (const char *encode_nonce_prefix_,
-                                         const char *decode_nonce_prefix_,
+zmq::curve_encoding_t::curve_encoding_t (encode_nonce_prefix_: *const c_char,
+                                         decode_nonce_prefix_: *const c_char,
                                          const bool downgrade_sub_) :
     _encode_nonce_prefix (encode_nonce_prefix_),
     _decode_nonce_prefix (decode_nonce_prefix_),

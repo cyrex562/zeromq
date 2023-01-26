@@ -96,9 +96,9 @@ int zmq::set_tcp_receive_buffer (fd_t sockfd_, bufsize_: i32)
 }
 
 int zmq::tune_tcp_keepalives (fd_t s_,
-                              int keepalive_,
-                              int keepalive_cnt_,
-                              int keepalive_idle_,
+                              keepalive_: i32,
+                              keepalive_cnt_: i32,
+                              keepalive_idle_: i32,
                               keepalive_intvl_: i32)
 {
     // These options are used only under certain // #ifdefs below.
@@ -210,7 +210,7 @@ int zmq::tune_tcp_maxrt (fd_t sockfd_, timeout_: i32)
 // #endif
 }
 
-int zmq::tcp_write (fd_t s_, const void *data_, size_t size_)
+int zmq::tcp_write (fd_t s_, const data_: *mut c_void, size_: usize)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
 
@@ -269,7 +269,7 @@ int zmq::tcp_write (fd_t s_, const void *data_, size_t size_)
 // #endif
 }
 
-int zmq::tcp_read (fd_t s_, void *data_, size_t size_)
+int zmq::tcp_read (fd_t s_, data_: *mut c_void, size_: usize)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
 
@@ -356,7 +356,7 @@ void zmq::tune_tcp_busy_poll (fd_t socket_, busy_poll_: i32)
 // #endif
 }
 
-zmq::fd_t zmq::tcp_open_socket (const char *address_,
+zmq::fd_t zmq::tcp_open_socket (address_: *const c_char,
                                 const zmq::options_t &options_,
                                 bool local_,
                                 bool fallback_to_ipv4_,

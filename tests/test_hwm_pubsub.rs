@@ -38,7 +38,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-int test_defaults (int send_hwm_, int msg_cnt_, const char *endpoint_)
+int test_defaults (send_hwm_: i32, msg_cnt_: i32, endpoint_: *const c_char)
 {
     char pub_endpoint[SOCKET_STRING_LEN];
 
@@ -86,7 +86,7 @@ int test_defaults (int send_hwm_, int msg_cnt_, const char *endpoint_)
     return recv_count;
 }
 
-int receive (void *socket_, is_termination_: *mut i32)
+int receive (socket_: *mut c_void, is_termination_: *mut i32)
 {
     int recv_count = 0;
     *is_termination_ = 0;
@@ -106,7 +106,7 @@ int receive (void *socket_, is_termination_: *mut i32)
     return recv_count;
 }
 
-int test_blocking (int send_hwm_, int msg_cnt_, const char *endpoint_)
+int test_blocking (send_hwm_: i32, msg_cnt_: i32, endpoint_: *const c_char)
 {
     char pub_endpoint[SOCKET_STRING_LEN];
 
@@ -244,19 +244,19 @@ void test_reset_hwm ()
     test_context_socket_close (pub_socket);
 }
 
-void test_defaults_large (const char *bind_endpoint_)
+void test_defaults_large (bind_endpoint_: *const c_char)
 {
     // send 1000 msg on hwm 1000, receive 1000
     TEST_ASSERT_EQUAL_INT (1000, test_defaults (1000, 1000, bind_endpoint_));
 }
 
-void test_defaults_small (const char *bind_endpoint_)
+void test_defaults_small (bind_endpoint_: *const c_char)
 {
     // send 1000 msg on hwm 100, receive 100
     TEST_ASSERT_EQUAL_INT (100, test_defaults (100, 100, bind_endpoint_));
 }
 
-void test_blocking (const char *bind_endpoint_)
+void test_blocking (bind_endpoint_: *const c_char)
 {
     // send 6000 msg on hwm 2000, drops above hwm, only receive hwm:
     TEST_ASSERT_EQUAL_INT (6000, test_blocking (2000, 6000, bind_endpoint_));

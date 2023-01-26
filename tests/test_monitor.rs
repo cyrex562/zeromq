@@ -145,7 +145,7 @@ void test_monitor_versioned_invalid_socket_type ()
 }
 
 void test_monitor_versioned_basic (bind_function_t bind_function_,
-                                   const char *expected_prefix_,
+                                   expected_prefix_: *const c_char,
                                    type_: i32)
 {
     char server_endpoint[MAX_SOCKET_STRING];
@@ -310,7 +310,7 @@ void test_monitor_versioned_basic_tipc ()
 
 // #ifdef ZMQ_EVENT_PIPES_STATS
 void test_monitor_versioned_stats (bind_function_t bind_function_,
-                                   const char *expected_prefix_)
+                                   expected_prefix_: *const c_char)
 {
     char server_endpoint[MAX_SOCKET_STRING];
     const int pulls_count = 4;

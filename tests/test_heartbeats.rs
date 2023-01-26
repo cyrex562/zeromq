@@ -140,7 +140,7 @@ static void mock_handshake (raw_socket fd_, mock_ping_: i32)
     }
 }
 
-static void setup_curve (void *socket_, is_server_: i32)
+static void setup_curve (socket_: *mut c_void, is_server_: i32)
 {
     const char *secret_key;
     const char *public_key;
@@ -168,12 +168,12 @@ static void setup_curve (void *socket_, is_server_: i32)
                         strlen (server_key));
 }
 
-static void prep_server_socket (int set_heartbeats_,
-                                int is_curve_,
+static void prep_server_socket (set_heartbeats_: i32,
+                                is_curve_: i32,
                                 void **server_out_,
                                 void **mon_out_,
                                 char *endpoint_,
-                                size_t ep_length_,
+                                ep_length_: usize,
                                 socket_type_: i32)
 {
     //  We'll be using this socket in raw mode
@@ -212,12 +212,12 @@ static void prep_server_socket (int set_heartbeats_,
 // This checks for a broken TCP connection (or, in this case a stuck one
 // where the peer never responds to PINGS). There should be an accepted event
 // then a disconnect event.
-static void test_heartbeat_timeout (int server_type_, mock_ping_: i32)
+static void test_heartbeat_timeout (server_type_: i32, mock_ping_: i32)
 {
     rc: i32;
     char my_endpoint[MAX_SOCKET_STRING];
 
-    void *server, *server_mon;
+    server: *mut c_void, *server_mon;
     prep_server_socket (!mock_ping_, 0, &server, &server_mon, my_endpoint,
                         MAX_SOCKET_STRING, server_type_);
 
@@ -247,12 +247,12 @@ static void test_heartbeat_timeout (int server_type_, mock_ping_: i32)
 // to a server that is not doing any heartbeating. Then we sleep,
 // if the server disconnects the client, then we know the TTL did
 // its thing correctly.
-static void test_heartbeat_ttl (int client_type_, server_type_: i32)
+static void test_heartbeat_ttl (client_type_: i32, server_type_: i32)
 {
-    int rc, value;
+    rc: i32, value;
     char my_endpoint[MAX_SOCKET_STRING];
 
-    void *server, *server_mon, *client;
+    server: *mut c_void, *server_mon, *client;
     prep_server_socket (0, 0, &server, &server_mon, my_endpoint,
                         MAX_SOCKET_STRING, server_type_);
 
@@ -290,12 +290,12 @@ static void test_heartbeat_ttl (int client_type_, server_type_: i32)
 // exchanged normally. There should be an accepted event on the server,
 // and then no event afterwards.
 static void
-test_heartbeat_notimeout (int is_curve_, int client_type_, server_type_: i32)
+test_heartbeat_notimeout (is_curve_: i32, client_type_: i32, server_type_: i32)
 {
     rc: i32;
     char my_endpoint[MAX_SOCKET_STRING];
 
-    void *server, *server_mon;
+    server: *mut c_void, *server_mon;
     prep_server_socket (1, is_curve_, &server, &server_mon, my_endpoint,
                         MAX_SOCKET_STRING, server_type_);
 

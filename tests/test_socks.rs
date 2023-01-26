@@ -48,7 +48,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-void recvall (int sock_fd, char *buffer, len: i32)
+void recvall (sock_fd: i32, char *buffer, len: i32)
 {
     res: i32;
     int total = 0;
@@ -64,7 +64,7 @@ void recvall (int sock_fd, char *buffer, len: i32)
     TEST_ASSERT (total == len);
 }
 
-int recvonce (int sock_fd, char *buffer, len: i32)
+int recvonce (sock_fd: i32, char *buffer, len: i32)
 {
     res: i32;
     res = recv (sock_fd, buffer, len, 0);
@@ -75,7 +75,7 @@ int recvonce (int sock_fd, char *buffer, len: i32)
     return res;
 }
 
-void sendall (int sock_fd, char *buffer, len: i32)
+void sendall (sock_fd: i32, char *buffer, len: i32)
 {
     res: i32;
     int total = 0;
@@ -90,7 +90,7 @@ void sendall (int sock_fd, char *buffer, len: i32)
     }
 }
 
-int remote_connect (int socket, uint32_t addr, uint16_t port)
+int remote_connect (socket: i32, uint32_t addr, uint16_t port)
 {
     res: i32;
     struct sockaddr_in ip4addr;
@@ -114,9 +114,9 @@ void *setup_socks_server (char *socks_server_address,
     return (void *) (intptr_t) server_fd;
 }
 
-void socks_server_task (void *socks_server,
-                        const char *username,
-                        const char *password,
+void socks_server_task (socks_server: *mut c_void,
+                        username: *const c_char,
+                        password: *const c_char,
                         max_client_connect: i32)
 {
     int server_fd = (int) (intptr_t) socks_server;
@@ -337,7 +337,7 @@ void socks_server_task (void *socks_server,
                         continue;
                     fprintf (stderr, "socks_server: ready to read from fd %d\n",
                              items[i].fd);
-                    int write_fd, read_fd = items[i].fd;
+                    write_fd: i32, read_fd = items[i].fd;
                     if (read_fd == client) {
                         write_fd = remote;
                     } else {
@@ -424,7 +424,7 @@ void *setup_push_server (char *connect_address, connect_address_size: i32)
     return push;
 }
 
-void *setup_pull_client (const char *connect_address, const char *socks_proxy)
+void *setup_pull_client (connect_address: *const c_char, socks_proxy: *const c_char)
 {
     res: i32;
     void *pull = test_context_socket (ZMQ_PULL);
@@ -442,10 +442,10 @@ void *setup_pull_client (const char *connect_address, const char *socks_proxy)
 }
 
 // #ifdef ZMQ_BUILD_DRAFT_API
-void *setup_pull_client_with_auth (const char *connect_address,
-                                   const char *socks_proxy,
-                                   const char *username,
-                                   const char *password)
+void *setup_pull_client_with_auth (connect_address: *const c_char,
+                                   socks_proxy: *const c_char,
+                                   username: *const c_char,
+                                   password: *const c_char)
 {
     res: i32;
     void *pull = test_context_socket (ZMQ_PULL);
@@ -473,7 +473,7 @@ void *setup_pull_client_with_auth (const char *connect_address,
 }
 // #endif
 
-void communicate (void *push, pull: *mut c_void)
+void communicate (push: *mut c_void, pull: *mut c_void)
 {
     fprintf (stderr, "push_server: sending 2 messages\n");
     s_send_seq (push, "ABC", SEQ_END);
@@ -781,7 +781,7 @@ void test_socks_basic_auth_null_pass (void)
 }
 
 
-void test_string_opt_ok (const char *msg, int opt, const char *value)
+void test_string_opt_ok (msg: *const c_char, opt: i32, value: *const c_char)
 {
     res: i32;
     void *sub = test_context_socket (ZMQ_SUB);
@@ -797,12 +797,12 @@ void test_string_opt_ok (const char *msg, int opt, const char *value)
     test_context_socket_close_zero_linger (sub);
 }
 
-void test_opt_ok (const char *msg,
-                  int opt,
-                  const char *value,
-                  size_t len,
-                  const char *expected_value,
-                  size_t expected_len)
+void test_opt_ok (msg: *const c_char,
+                  opt: i32,
+                  value: *const c_char,
+                  len: usize,
+                  expected_value: *const c_char,
+                  expected_len: usize)
 {
     res: i32;
     void *sub = test_context_socket (ZMQ_SUB);
@@ -819,7 +819,7 @@ void test_opt_ok (const char *msg,
     test_context_socket_close_zero_linger (sub);
 }
 
-void test_opt_invalid (const char *msg, int opt, const char *value, len: i32)
+void test_opt_invalid (msg: *const c_char, opt: i32, value: *const c_char, len: i32)
 {
     res: i32;
     void *sub = test_context_socket (ZMQ_SUB);

@@ -38,14 +38,14 @@
 typedef void (socket_config_fn) (void *, void *);
 
 //  NULL specific functions
-void socket_config_null_client (void *server_, server_secret_: *mut c_void);
+void socket_config_null_client (server_: *mut c_void, server_secret_: *mut c_void);
 
-void socket_config_null_server (void *server_, server_secret_: *mut c_void);
+void socket_config_null_server (server_: *mut c_void, server_secret_: *mut c_void);
 
 //  PLAIN specific functions
-void socket_config_plain_client (void *server_, server_secret_: *mut c_void);
+void socket_config_plain_client (server_: *mut c_void, server_secret_: *mut c_void);
 
-void socket_config_plain_server (void *server_, server_secret_: *mut c_void);
+void socket_config_plain_server (server_: *mut c_void, server_secret_: *mut c_void);
 
 //  CURVE specific functions
 
@@ -57,7 +57,7 @@ extern char valid_server_secret[41];
 
 void setup_testutil_security_curve ();
 
-void socket_config_curve_server (void *server_, server_secret_: *mut c_void);
+void socket_config_curve_server (server_: *mut c_void, server_secret_: *mut c_void);
 
 struct curve_client_data_t
 {
@@ -66,7 +66,7 @@ struct curve_client_data_t
     const char *client_secret;
 };
 
-void socket_config_curve_client (void *client_, data_: *mut c_void);
+void socket_config_curve_client (client_: *mut c_void, data_: *mut c_void);
 
 //  --------------------------------------------------------------------------
 //  This methods receives and validates ZAP requests (allowing or denying
@@ -102,7 +102,7 @@ void zap_handler (void * /*unused_*/);
 // #define assert_no_more_monitor_events_with_timeout(monitor, timeout)                  \
     {                                                                                 \
         int event_count = 0;                                                          \
-        int event, err;                                                               \
+        event: i32, err;                                                               \
         while ((event = get_monitor_event_with_timeout ((monitor), &err, NULL,        \
                                                         (timeout)))                   \
                != -1) {                                                               \
@@ -133,21 +133,21 @@ void setup_context_and_server_side (
   void *socket_config_data_ = valid_server_secret,
   const char *routing_id_ = "IDENT");
 
-void shutdown_context_and_server_side (void *zap_thread_,
-                                       void *server_,
-                                       void *server_mon_,
-                                       void *zap_control_,
+void shutdown_context_and_server_side (zap_thread_: *mut c_void,
+                                       server_: *mut c_void,
+                                       server_mon_: *mut c_void,
+                                       zap_control_: *mut c_void,
                                        bool zap_handler_stopped_ = false);
 
 void *create_and_connect_client (char *my_endpoint_,
                                  socket_config_fn socket_config_,
-                                 void *socket_config_data_,
+                                 socket_config_data_: *mut c_void,
                                  void **client_mon_ = NULL);
 
 void expect_new_client_bounce_fail (char *my_endpoint_,
-                                    void *server_,
+                                    server_: *mut c_void,
                                     socket_config_fn socket_config_,
-                                    void *socket_config_data_,
+                                    socket_config_data_: *mut c_void,
                                     void **client_mon_ = NULL,
                                     int expected_client_event_ = 0,
                                     int expected_client_value_ = 0);

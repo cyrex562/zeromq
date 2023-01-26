@@ -73,9 +73,9 @@ void zmq::dealer_t::xattach_pipe (pipe_t *pipe_,
     _lb.attach (pipe_);
 }
 
-int zmq::dealer_t::xsetsockopt (int option_,
-                                const void *optval_,
-                                size_t optvallen_)
+int zmq::dealer_t::xsetsockopt (option_: i32,
+                                const optval_: *mut c_void,
+                                optvallen_: usize)
 {
     const bool is_int = (optvallen_ == sizeof (int));
     int value = 0;

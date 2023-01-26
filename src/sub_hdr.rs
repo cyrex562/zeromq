@@ -46,7 +46,7 @@ class sub_t ZMQ_FINAL : public xsub_t
     ~sub_t ();
 
   protected:
-    int xsetsockopt (int option_, const void *optval_, size_t optvallen_);
+    int xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
     int xsend (zmq::msg_t *msg_);
     bool xhas_out ();
 

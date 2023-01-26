@@ -158,7 +158,7 @@ int zmq::curve_client_t::produce_hello (msg_t *msg_)
 }
 
 int zmq::curve_client_t::process_welcome (const uint8_t *msg_data_,
-                                          size_t msg_size_)
+                                          msg_size_: usize)
 {
     const int rc = _tools.process_welcome (msg_data_, msg_size_,
                                            get_writable_precom_buffer ());
@@ -204,7 +204,7 @@ int zmq::curve_client_t::produce_initiate (msg_t *msg_)
 }
 
 int zmq::curve_client_t::process_ready (const uint8_t *msg_data_,
-                                        size_t msg_size_)
+                                        msg_size_: usize)
 {
     if (msg_size_ < 30) {
         session->get_socket ()->event_handshake_failed_protocol (
@@ -255,7 +255,7 @@ int zmq::curve_client_t::process_ready (const uint8_t *msg_data_,
 }
 
 int zmq::curve_client_t::process_error (const uint8_t *msg_data_,
-                                        size_t msg_size_)
+                                        msg_size_: usize)
 {
     if (_state != expect_welcome && _state != expect_ready) {
         session->get_socket ()->event_handshake_failed_protocol (

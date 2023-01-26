@@ -40,7 +40,7 @@ namespace zmq
 class v3_1_encoder_t ZMQ_FINAL : public encoder_base_t<v3_1_encoder_t>
 {
 // public:
-    v3_1_encoder_t (size_t bufsize_);
+    v3_1_encoder_t (bufsize_: usize);
     ~v3_1_encoder_t () ZMQ_FINAL;
 
   // private:

@@ -90,7 +90,7 @@ zmq::ws_address_t::ws_address_t (const sockaddr *sa_, socklen_t sa_len_)
     _host = os.str ();
 }
 
-int zmq::ws_address_t::resolve (const char *name_, bool local_, bool ipv6_)
+int zmq::ws_address_t::resolve (name_: *const c_char, bool local_, bool ipv6_)
 {
     //  find the host part, It's important to use str*r*chr to only get
     //  the latest colon since IPv6 addresses use colons as delemiters.

@@ -102,9 +102,9 @@ void zmq::radio_t::xwrite_activated (pipe_t *pipe_)
 {
     _dist.activated (pipe_);
 }
-int zmq::radio_t::xsetsockopt (int option_,
-                               const void *optval_,
-                               size_t optvallen_)
+int zmq::radio_t::xsetsockopt (option_: i32,
+                               const optval_: *mut c_void,
+                               optvallen_: usize)
 {
     if (optvallen_ != sizeof (int) || *static_cast<const int *> (optval_) < 0) {
         errno = EINVAL;

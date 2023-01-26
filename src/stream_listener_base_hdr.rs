@@ -47,7 +47,7 @@ class stream_listener_base_t : public own_t, public io_object_t
 {
 // public:
     stream_listener_base_t (zmq::io_thread_t *io_thread_,
-                            zmq::socket_base_t *socket_,
+                            socket_: *mut socket_base_t,
                             const options_t &options_);
     ~stream_listener_base_t () ZMQ_OVERRIDE;
 

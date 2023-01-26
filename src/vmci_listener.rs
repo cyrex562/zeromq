@@ -105,7 +105,7 @@ zmq::vmci_listener_t::get_socket_name (zmq::fd_t fd_,
     return address_string;
 }
 
-int zmq::vmci_listener_t::set_local_address (const char *addr_)
+int zmq::vmci_listener_t::set_local_address (addr_: *const c_char)
 {
     //  Create addr on stack for auto-cleanup
     std::string addr (addr_);

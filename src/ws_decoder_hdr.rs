@@ -43,7 +43,7 @@ class ws_decoder_t ZMQ_FINAL
     : public decoder_base_t<ws_decoder_t, shared_message_memory_allocator>
 {
 // public:
-    ws_decoder_t (size_t bufsize_,
+    ws_decoder_t (bufsize_: usize,
                   int64_t maxmsgsize_,
                   bool zero_copy_,
                   bool must_mask_);

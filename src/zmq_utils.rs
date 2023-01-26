@@ -127,7 +127,7 @@ static uint8_t decoder[96] = {
 //  dest. Size must be a multiple of 4.
 //  Returns NULL and sets errno = EINVAL for invalid input.
 
-char *zmq_z85_encode (char *dest_, const uint8_t *data_, size_t size_)
+char *zmq_z85_encode (char *dest_, const uint8_t *data_, size_: usize)
 {
     if (size_ % 4 != 0) {
         errno = EINVAL;
@@ -161,7 +161,7 @@ char *zmq_z85_encode (char *dest_, const uint8_t *data_, size_t size_)
 //  must be a multiple of 5.
 //  Returns NULL and sets errno = EINVAL for invalid input.
 
-uint8_t *zmq_z85_decode (uint8_t *dest_, const char *string_)
+uint8_t *zmq_z85_decode (uint8_t *dest_, string_: *const c_char)
 {
     unsigned int byte_nbr = 0;
     unsigned int char_nbr = 0;
@@ -248,7 +248,7 @@ int zmq_curve_keypair (char *z85_public_key_, char *z85_secret_key_)
 //  Returns 0 on success, -1 on failure, setting errno.
 //  Sets errno = ENOTSUP in the absence of a CURVE library.
 
-int zmq_curve_public (char *z85_public_key_, const char *z85_secret_key_)
+int zmq_curve_public (char *z85_public_key_, z85_secret_key_: *const c_char)
 {
 // #if defined(ZMQ_HAVE_CURVE)
 #if crypto_box_PUBLICKEYBYTES != 32 || crypto_box_SECRETKEYBYTES != 32
@@ -290,7 +290,7 @@ void *zmq_atomic_counter_new (void)
 
 //  Se the value of the atomic counter
 
-void zmq_atomic_counter_set (void *counter_, value_: i32)
+void zmq_atomic_counter_set (counter_: *mut c_void, value_: i32)
 {
     (static_cast<zmq::atomic_counter_t *> (counter_))->set (value_);
 }

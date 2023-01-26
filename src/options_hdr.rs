@@ -63,11 +63,11 @@ struct options_t
     options_t ();
 
     int set_curve_key (uint8_t *destination_,
-                       const void *optval_,
-                       size_t optvallen_);
+                       const optval_: *mut c_void,
+                       optvallen_: usize);
 
-    int setsockopt (int option_, const void *optval_, size_t optvallen_);
-    int getsockopt (int option_, void *optval_, size_t *optvallen_) const;
+    int setsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
+    int getsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize) const;
 
     //  High-water marks for message pipes.
     sndhwm: i32;
@@ -326,10 +326,10 @@ inline bool get_effective_conflate_option (const options_t &options)
                || options.type == ZMQ_SUB);
 }
 
-int do_getsockopt (void *optval_,
+int do_getsockopt (optval_: *mut c_void,
                    size_t *optvallen_,
-                   const void *value_,
-                   size_t value_len_);
+                   const value_: *mut c_void,
+                   value_len_: usize);
 
 template <typename T>
 int do_getsockopt (void *const optval_, size_t *const optvallen_, T value_)
@@ -341,16 +341,16 @@ int do_getsockopt (void *const optval_, size_t *const optvallen_, T value_)
     return do_getsockopt (optval_, optvallen_, &value_, sizeof (T));
 }
 
-int do_getsockopt (void *optval_,
+int do_getsockopt (optval_: *mut c_void,
                    size_t *optvallen_,
                    const std::string &value_);
 
-int do_setsockopt_int_as_bool_strict (const void *optval_,
-                                      size_t optvallen_,
+int do_setsockopt_int_as_bool_strict (const optval_: *mut c_void,
+                                      optvallen_: usize,
                                       bool *out_value_);
 
-int do_setsockopt_int_as_bool_relaxed (const void *optval_,
-                                       size_t optvallen_,
+int do_setsockopt_int_as_bool_relaxed (const optval_: *mut c_void,
+                                       optvallen_: usize,
                                        bool *out_value_);
 }
 

@@ -41,16 +41,16 @@ class zap_client_t : public virtual mechanism_base_t
                   const std::string &peer_address_,
                   const options_t &options_);
 
-    void send_zap_request (const char *mechanism_,
-                           size_t mechanism_length_,
+    void send_zap_request (mechanism_: *const c_char,
+                           mechanism_length_: usize,
                            const uint8_t *credentials_,
-                           size_t credentials_size_);
+                           credentials_size_: usize);
 
-    void send_zap_request (const char *mechanism_,
-                           size_t mechanism_length_,
+    void send_zap_request (mechanism_: *const c_char,
+                           mechanism_length_: usize,
                            const uint8_t **credentials_,
                            size_t *credentials_sizes_,
-                           size_t credentials_count_);
+                           credentials_count_: usize);
 
     virtual int receive_and_process_zap_reply ();
     virtual void handle_zap_status_code ();

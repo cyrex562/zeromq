@@ -222,7 +222,7 @@ void test_size ()
     TEST_ASSERT_TRUE (tree.size () == 0);
 }
 
-void return_key (unsigned char *data_, size_t size_, arg_: *mut c_void)
+void return_key (unsigned char *data_, size_: usize, arg_: *mut c_void)
 {
     std::vector<std::string> *vec =
       reinterpret_cast<std::vector<std::string> *> (arg_);

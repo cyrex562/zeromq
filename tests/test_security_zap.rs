@@ -79,13 +79,13 @@ static void zap_handler_do_not_send (void * /*unused_*/)
 
 int expect_new_client_bounce_fail_and_count_monitor_events (
   char *my_endpoint_,
-  void *server_,
+  server_: *mut c_void,
   socket_config_fn socket_config_,
-  void *socket_config_data_,
+  socket_config_data_: *mut c_void,
   void **client_mon_,
-  void *server_mon_,
-  int expected_server_event_,
-  int expected_server_value_,
+  server_mon_: *mut c_void,
+  expected_server_event_: i32,
+  expected_server_value_: i32,
   int expected_client_event_ = 0,
   int expected_client_value_ = 0)
 {
@@ -101,12 +101,12 @@ int expect_new_client_bounce_fail_and_count_monitor_events (
 }
 
 void test_zap_unsuccessful (char *my_endpoint_,
-                            void *server_,
-                            void *server_mon_,
-                            int expected_server_event_,
-                            int expected_server_value_,
+                            server_: *mut c_void,
+                            server_mon_: *mut c_void,
+                            expected_server_event_: i32,
+                            expected_server_value_: i32,
                             socket_config_fn socket_config_,
-                            void *socket_config_data_,
+                            socket_config_data_: *mut c_void,
                             void **client_mon_ = NULL,
                             int expected_client_event_ = 0,
                             int expected_client_value_ = 0)
@@ -124,12 +124,12 @@ void test_zap_unsuccessful (char *my_endpoint_,
 }
 
 void test_zap_unsuccessful_no_handler (char *my_endpoint_,
-                                       void *server_,
-                                       void *server_mon_,
-                                       int expected_event_,
-                                       int expected_err_,
+                                       server_: *mut c_void,
+                                       server_mon_: *mut c_void,
+                                       expected_event_: i32,
+                                       expected_err_: i32,
                                        socket_config_fn socket_config_,
-                                       void *socket_config_data_,
+                                       socket_config_data_: *mut c_void,
                                        void **client_mon_ = NULL)
 {
     const int events_received =
@@ -143,10 +143,10 @@ void test_zap_unsuccessful_no_handler (char *my_endpoint_,
 }
 
 void test_zap_protocol_error (char *my_endpoint_,
-                              void *server_,
-                              void *server_mon_,
+                              server_: *mut c_void,
+                              server_mon_: *mut c_void,
                               socket_config_fn socket_config_,
-                              void *socket_config_data_,
+                              socket_config_data_: *mut c_void,
                               expected_error_: i32)
 {
     test_zap_unsuccessful (my_endpoint_, server_, server_mon_,
@@ -155,8 +155,8 @@ void test_zap_protocol_error (char *my_endpoint_,
 }
 
 void test_zap_unsuccessful_status_300 (char *my_endpoint_,
-                                       void *server_,
-                                       void *server_mon_,
+                                       server_: *mut c_void,
+                                       server_mon_: *mut c_void,
                                        socket_config_fn client_socket_config_,
                                        client_socket_config_data_: *mut c_void)
 {
@@ -172,8 +172,8 @@ void test_zap_unsuccessful_status_300 (char *my_endpoint_,
 }
 
 void test_zap_unsuccessful_status_500 (char *my_endpoint_,
-                                       void *server_,
-                                       void *server_mon_,
+                                       server_: *mut c_void,
+                                       server_mon_: *mut c_void,
                                        socket_config_fn client_socket_config_,
                                        client_socket_config_data_: *mut c_void)
 {
@@ -186,12 +186,12 @@ void test_zap_unsuccessful_status_500 (char *my_endpoint_,
 static void
 test_zap_protocol_error_closure (socket_config_fn server_socket_config_,
                                  socket_config_fn client_socket_config_,
-                                 void *client_socket_config_data_,
-                                 void *server_socket_config_data_,
+                                 client_socket_config_data_: *mut c_void,
+                                 server_socket_config_data_: *mut c_void,
                                  zmq_thread_fn zap_handler_,
                                  expected_failure_: i32)
 {
-    void *handler, *zap_thread, *server, *server_mon;
+    handler: *mut c_void, *zap_thread, *server, *server_mon;
     char my_endpoint[MAX_SOCKET_STRING];
 
     setup_context_and_server_side (
@@ -206,7 +206,7 @@ test_zap_protocol_error_closure (socket_config_fn server_socket_config_,
 static void
 test_zap_protocol_error_wrong_version (socket_config_fn server_socket_config_,
                                        socket_config_fn client_socket_config_,
-                                       void *client_socket_config_data_,
+                                       client_socket_config_data_: *mut c_void,
                                        server_socket_config_data_: *mut c_void)
 {
     test_zap_protocol_error_closure (
@@ -218,7 +218,7 @@ test_zap_protocol_error_wrong_version (socket_config_fn server_socket_config_,
 static void test_zap_protocol_error_wrong_request_id (
   socket_config_fn server_socket_config_,
   socket_config_fn client_socket_config_,
-  void *client_socket_config_data_,
+  client_socket_config_data_: *mut c_void,
   server_socket_config_data_: *mut c_void)
 {
     test_zap_protocol_error_closure (
@@ -230,7 +230,7 @@ static void test_zap_protocol_error_wrong_request_id (
 static void test_zap_protocol_error_wrong_status_invalid (
   socket_config_fn server_socket_config_,
   socket_config_fn client_socket_config_,
-  void *client_socket_config_data_,
+  client_socket_config_data_: *mut c_void,
   server_socket_config_data_: *mut c_void)
 {
     test_zap_protocol_error_closure (
@@ -242,7 +242,7 @@ static void test_zap_protocol_error_wrong_status_invalid (
 static void
 test_zap_protocol_error_too_many_parts (socket_config_fn server_socket_config_,
                                         socket_config_fn client_socket_config_,
-                                        void *client_socket_config_data_,
+                                        client_socket_config_data_: *mut c_void,
                                         server_socket_config_data_: *mut c_void)
 {
     test_zap_protocol_error_closure (
@@ -257,10 +257,10 @@ test_zap_protocol_error_too_many_parts (socket_config_fn server_socket_config_,
 static void
 test_zap_wrong_status_temporary_failure (socket_config_fn server_socket_config_,
                                          socket_config_fn client_socket_config_,
-                                         void *client_socket_config_data_,
+                                         client_socket_config_data_: *mut c_void,
                                          server_socket_config_data_: *mut c_void)
 {
-    void *handler, *zap_thread, *server, *server_mon;
+    handler: *mut c_void, *zap_thread, *server, *server_mon;
     char my_endpoint[MAX_SOCKET_STRING];
     setup_context_and_server_side (
       &handler, &zap_thread, &server, &server_mon, my_endpoint,
@@ -277,7 +277,7 @@ test_zap_wrong_status_internal_error (socket_config_fn server_socket_config_,
                                       socket_config_fn client_socket_config_,
                                       client_socket_config_data_: *mut c_void)
 {
-    void *handler, *zap_thread, *server, *server_mon;
+    handler: *mut c_void, *zap_thread, *server, *server_mon;
     char my_endpoint[MAX_SOCKET_STRING];
     setup_context_and_server_side (
       &handler, &zap_thread, &server, &server_mon, my_endpoint,
@@ -291,11 +291,11 @@ test_zap_wrong_status_internal_error (socket_config_fn server_socket_config_,
 static void
 test_zap_unsuccesful_no_handler_started (socket_config_fn server_socket_config_,
                                          socket_config_fn client_socket_config_,
-                                         void *client_socket_config_data_,
+                                         client_socket_config_data_: *mut c_void,
                                          server_socket_config_data_: *mut c_void)
 {
 // #ifdef ZMQ_ZAP_ENFORCE_DOMAIN
-    void *handler, *zap_thread, *server, *server_mon;
+    handler: *mut c_void, *zap_thread, *server, *server_mon;
     char my_endpoint[MAX_SOCKET_STRING];
     // TODO this looks wrong, where will the enforce value be used?
 
@@ -315,11 +315,11 @@ test_zap_unsuccesful_no_handler_started (socket_config_fn server_socket_config_,
 static void
 test_zap_unsuccesful_no_handler_closure (socket_config_fn server_socket_config_,
                                          socket_config_fn client_socket_config_,
-                                         void *client_socket_config_data_,
+                                         client_socket_config_data_: *mut c_void,
                                          zmq_thread_fn zap_handler_func_,
                                          bool zap_handler_disconnected_ = false)
 {
-    void *handler, *zap_thread, *server, *server_mon;
+    handler: *mut c_void, *zap_thread, *server, *server_mon;
     char my_endpoint[MAX_SOCKET_STRING];
     setup_context_and_server_side (&handler, &zap_thread, &server, &server_mon,
                                    my_endpoint, zap_handler_func_,

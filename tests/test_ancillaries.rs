@@ -47,7 +47,7 @@ void tearDown ()
 
 void test_version ()
 {
-    int major, minor, patch;
+    major: i32, minor, patch;
 
     zmq_version (&major, &minor, &patch);
     TEST_ASSERT_EQUAL_INT (ZMQ_VERSION_MAJOR, major);

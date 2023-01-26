@@ -61,7 +61,7 @@ class radio_t ZMQ_FINAL : public socket_base_t
     bool xhas_in ();
     void xread_activated (zmq::pipe_t *pipe_);
     void xwrite_activated (zmq::pipe_t *pipe_);
-    int xsetsockopt (int option_, const void *optval_, size_t optvallen_);
+    int xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
     void xpipe_terminated (zmq::pipe_t *pipe_);
 
   // private:
@@ -87,7 +87,7 @@ class radio_session_t ZMQ_FINAL : public session_base_t
 // public:
     radio_session_t (zmq::io_thread_t *io_thread_,
                      bool connect_,
-                     zmq::socket_base_t *socket_,
+                     socket_: *mut socket_base_t,
                      const options_t &options_,
                      address_t *addr_);
     ~radio_session_t ();

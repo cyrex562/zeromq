@@ -184,7 +184,7 @@ zmq::ip_resolver_t::ip_resolver_t (ip_resolver_options_t opts_) :
 {
 }
 
-int zmq::ip_resolver_t::resolve (ip_addr_t *ip_addr_, const char *name_)
+int zmq::ip_resolver_t::resolve (ip_addr_t *ip_addr_, name_: *const c_char)
 {
     std::string addr;
     uint16_t port;
@@ -314,7 +314,7 @@ int zmq::ip_resolver_t::resolve (ip_addr_t *ip_addr_, const char *name_)
 }
 
 int zmq::ip_resolver_t::resolve_getaddrinfo (ip_addr_t *ip_addr_,
-                                             const char *addr_)
+                                             addr_: *const c_char)
 {
 // #if defined ZMQ_HAVE_OPENVMS && defined __ia64
     __addrinfo64 *res = NULL;
@@ -405,7 +405,7 @@ int zmq::ip_resolver_t::resolve_getaddrinfo (ip_addr_t *ip_addr_,
 // #include <sys/sockio.h>
 
 //  On Solaris platform, network interface name can be queried by ioctl.
-int zmq::ip_resolver_t::resolve_nic_name (ip_addr_t *ip_addr_, const char *nic_)
+int zmq::ip_resolver_t::resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char)
 {
     //  Create a socket.
     const int fd = open_socket (AF_INET, SOCK_DGRAM, 0);
@@ -465,7 +465,7 @@ int zmq::ip_resolver_t::resolve_nic_name (ip_addr_t *ip_addr_, const char *nic_)
 // #include <ioLib.h>
 // #endif
 
-int zmq::ip_resolver_t::resolve_nic_name (ip_addr_t *ip_addr_, const char *nic_)
+int zmq::ip_resolver_t::resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char)
 {
 // #if defined ZMQ_HAVE_AIX || defined ZMQ_HAVE_HPUX
     // IPv6 support not implemented for AIX or HP/UX.
@@ -520,7 +520,7 @@ int zmq::ip_resolver_t::resolve_nic_name (ip_addr_t *ip_addr_, const char *nic_)
 
 //  On these platforms, network interface name can be queried
 //  using getifaddrs function.
-int zmq::ip_resolver_t::resolve_nic_name (ip_addr_t *ip_addr_, const char *nic_)
+int zmq::ip_resolver_t::resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char)
 {
     //  Get the addresses.
     ifaddrs *ifa = NULL;
@@ -619,7 +619,7 @@ int zmq::ip_resolver_t::wchar_to_utf8 (const WCHAR *src_, char **dest_) const
     return 0;
 }
 
-int zmq::ip_resolver_t::resolve_nic_name (ip_addr_t *ip_addr_, const char *nic_)
+int zmq::ip_resolver_t::resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char)
 {
     rc: i32;
     bool found = false;
@@ -702,7 +702,7 @@ int zmq::ip_resolver_t::resolve_nic_name (ip_addr_t *ip_addr_, const char *nic_)
 // #else
 
 //  On other platforms we assume there are no sane interface names.
-int zmq::ip_resolver_t::resolve_nic_name (ip_addr_t *ip_addr_, const char *nic_)
+int zmq::ip_resolver_t::resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char)
 {
     LIBZMQ_UNUSED (ip_addr_);
     LIBZMQ_UNUSED (nic_);
@@ -713,8 +713,8 @@ int zmq::ip_resolver_t::resolve_nic_name (ip_addr_t *ip_addr_, const char *nic_)
 
 // #endif
 
-int zmq::ip_resolver_t::do_getaddrinfo (const char *node_,
-                                        const char *service_,
+int zmq::ip_resolver_t::do_getaddrinfo (node_: *const c_char,
+                                        service_: *const c_char,
                                         const struct addrinfo *hints_,
                                         struct addrinfo **res_)
 {
@@ -727,7 +727,7 @@ void zmq::ip_resolver_t::do_freeaddrinfo (struct addrinfo *res_)
 }
 
 
-unsigned int zmq::ip_resolver_t::do_if_nametoindex (const char *ifname_)
+unsigned int zmq::ip_resolver_t::do_if_nametoindex (ifname_: *const c_char)
 {
 // #ifdef HAVE_IF_NAMETOINDEX
     return if_nametoindex (ifname_);

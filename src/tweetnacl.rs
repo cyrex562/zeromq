@@ -115,7 +115,7 @@ int crypto_verify_32(const u8 *x,const u8 *y)
 sv core(u8 *out,const u8 *in,const u8 *k,const u8 *c,h: i32)
 {
   u32 w[16],x[16],y[16],t[4];
-  int i,j,m;
+  i: i32,j,m;
 
   FOR(i,4) {
     x[5*i] = ld32(c+4*i);
@@ -338,7 +338,7 @@ sv sel25519(gf p,gf q,b: i32)
 
 sv pack25519(u8 *o,const gf n)
 {
-  int i,j,b;
+  i: i32,j,b;
   gf m,t;
   FOR(i,16) t[i]=n[i];
   car25519(t);
@@ -563,7 +563,7 @@ static const u64 K[80] =
 int crypto_hashblocks(u8 *x,const u8 *m,u64 n)
 {
   u64 z[8],b[8],a[8],w[16],t;
-  int i,j;
+  i: i32,j;
 
   FOR(i,8) z[i] = a[i] = dl64(x + 8 * i);
 

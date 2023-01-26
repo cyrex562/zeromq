@@ -34,7 +34,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-void ffn (void *data_, hint_: *mut c_void)
+void ffn (data_: *mut c_void, hint_: *mut c_void)
 {
     // Signal that ffn has been called by writing "freed" to hint
     (void) data_; //  Suppress 'unused' warnings at compile time

@@ -48,7 +48,7 @@ bool zmq::timers_t::check_tag () const
     return _tag == 0xCAFEDADA;
 }
 
-int zmq::timers_t::add (size_t interval_, timers_timer_fn handler_, arg_: *mut c_void)
+int zmq::timers_t::add (interval_: usize, timers_timer_fn handler_, arg_: *mut c_void)
 {
     if (handler_ == NULL) {
         errno = EFAULT;
@@ -96,7 +96,7 @@ int zmq::timers_t::cancel (timer_id_: i32)
     return 0;
 }
 
-int zmq::timers_t::set_interval (int timer_id_, size_t interval_)
+int zmq::timers_t::set_interval (timer_id_: i32, interval_: usize)
 {
     const timersmap_t::iterator end = _timers.end ();
     const timersmap_t::iterator it =

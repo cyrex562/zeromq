@@ -49,7 +49,7 @@ namespace zmq
 template <typename T, size_t S> class fast_vector_t
 {
 // public:
-    explicit fast_vector_t (const size_t nitems_)
+    explicit fast_vector_t (const nitems_: usize)
     {
         if (nitems_ > S) {
             _buf = new (std::nothrow) T[nitems_];
@@ -60,7 +60,7 @@ template <typename T, size_t S> class fast_vector_t
         }
     }
 
-    T &operator[] (const size_t i) { return _buf[i]; }
+    T &operator[] (const i: usize) { return _buf[i]; }
 
     ~fast_vector_t ()
     {
@@ -80,7 +80,7 @@ template <typename T, size_t S> class resizable_fast_vector_t
 // public:
     resizable_fast_vector_t () : _dynamic_buf (NULL) {}
 
-    void resize (const size_t nitems_)
+    void resize (const nitems_: usize)
     {
         if (_dynamic_buf) {
             _dynamic_buf->resize (nitems_);
@@ -98,7 +98,7 @@ template <typename T, size_t S> class resizable_fast_vector_t
         return _dynamic_buf ? &(*_dynamic_buf)[0] : _static_buf;
     }
 
-    T &operator[] (const size_t i) { return get_buf ()[i]; }
+    T &operator[] (const i: usize) { return get_buf ()[i]; }
 
     ~resizable_fast_vector_t () { delete _dynamic_buf; }
 
@@ -113,7 +113,7 @@ template <typename T, size_t S> class resizable_fast_vector_t
 typedef int timeout_t;
 
 timeout_t
-compute_timeout (bool first_pass_, long timeout_, uint64_t now_, uint64_t end_);
+compute_timeout (bool first_pass_, long timeout_, now_: u64, uint64_t end_);
 // #endif
 #if (!defined ZMQ_POLL_BASED_ON_POLL && defined ZMQ_POLL_BASED_ON_SELECT)      \
   || defined ZMQ_HAVE_PPOLL
@@ -146,7 +146,7 @@ inline size_t valid_pollset_bytes (const fd_set & /*pollset_*/)
 class optimized_fd_set_t
 {
 // public:
-    explicit optimized_fd_set_t (size_t nevents_) : _fd_set (1 + nevents_) {}
+    explicit optimized_fd_set_t (nevents_: usize) : _fd_set (1 + nevents_) {}
 
     fd_set *get () { return reinterpret_cast<fd_set *> (&_fd_set[0]); }
 
@@ -157,7 +157,7 @@ class optimized_fd_set_t
 class resizable_optimized_fd_set_t
 {
 // public:
-    void resize (size_t nevents_) { _fd_set.resize (1 + nevents_); }
+    void resize (nevents_: usize) { _fd_set.resize (1 + nevents_); }
 
     fd_set *get () { return reinterpret_cast<fd_set *> (&_fd_set[0]); }
 

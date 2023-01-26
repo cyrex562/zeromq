@@ -37,9 +37,9 @@
 // #include <unistd.h>
 // #endif
 
-int test_assert_success_message_errno_helper (int rc_,
-                                              const char *msg_,
-                                              const char *expr_,
+int test_assert_success_message_errno_helper (rc_: i32,
+                                              msg_: *const c_char,
+                                              expr_: *const c_char,
                                               line_: i32)
 {
     if (rc_ == -1) {
@@ -56,7 +56,7 @@ int test_assert_success_message_errno_helper (int rc_,
 }
 
 int test_assert_success_message_raw_errno_helper (
-  int rc_, const char *msg_, const char *expr_, int line_, bool zero)
+  rc_: i32, msg_: *const c_char, expr_: *const c_char, line_: i32, bool zero)
 {
     if (rc_ == -1 || (zero && rc_ != 0)) {
 // #if defined ZMQ_HAVE_WINDOWS
@@ -77,9 +77,9 @@ int test_assert_success_message_raw_errno_helper (
     return rc_;
 }
 
-int test_assert_success_message_raw_zero_errno_helper (int rc_,
-                                                       const char *msg_,
-                                                       const char *expr_,
+int test_assert_success_message_raw_zero_errno_helper (rc_: i32,
+                                                       msg_: *const c_char,
+                                                       expr_: *const c_char,
                                                        line_: i32)
 {
     return test_assert_success_message_raw_errno_helper (rc_, msg_, expr_,
@@ -87,7 +87,7 @@ int test_assert_success_message_raw_zero_errno_helper (int rc_,
 }
 
 int test_assert_failure_message_raw_errno_helper (
-  int rc_, int expected_errno_, const char *msg_, const char *expr_, line_: i32)
+  rc_: i32, expected_errno_: i32, msg_: *const c_char, expr_: *const c_char, line_: i32)
 {
     char buffer[512];
     buffer[sizeof (buffer) - 1] =
@@ -118,14 +118,14 @@ int test_assert_failure_message_raw_errno_helper (
     return rc_;
 }
 
-void send_string_expect_success (void *socket_, const char *str_, flags_: i32)
+void send_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags_: i32)
 {
     const size_t len = str_ ? strlen (str_) : 0;
     const int rc = zmq_send (socket_, str_, len, flags_);
     TEST_ASSERT_EQUAL_INT ((int) len, rc);
 }
 
-void recv_string_expect_success (void *socket_, const char *str_, flags_: i32)
+void recv_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags_: i32)
 {
     const size_t len = str_ ? strlen (str_) : 0;
     char buffer[255];
@@ -158,7 +158,7 @@ static void *internal_manage_test_context (bool init_, bool clear_)
     return test_context;
 }
 
-static void internal_manage_test_sockets (void *socket_, bool add_)
+static void internal_manage_test_sockets (socket_: *mut c_void, bool add_)
 {
     static void *test_sockets[MAX_TEST_SOCKETS];
     static size_t test_socket_count = 0;
@@ -247,17 +247,17 @@ void *test_context_socket_close_zero_linger (socket_: *mut c_void)
     return test_context_socket_close (socket_);
 }
 
-void test_bind (void *socket_,
-                const char *bind_address_,
+void test_bind (socket_: *mut c_void,
+                bind_address_: *const c_char,
                 char *my_endpoint_,
-                size_t len_)
+                len_: usize)
 {
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (socket_, bind_address_));
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (socket_, ZMQ_LAST_ENDPOINT, my_endpoint_, &len_));
 }
 
-void bind_loopback (void *socket_, int ipv6_, char *my_endpoint_, size_t len_)
+void bind_loopback (socket_: *mut c_void, ipv6_: i32, char *my_endpoint_, len_: usize)
 {
     if (ipv6_ && !is_ipv6_available ()) {
         TEST_IGNORE_MESSAGE ("ipv6 is not available");
@@ -270,17 +270,17 @@ void bind_loopback (void *socket_, int ipv6_, char *my_endpoint_, size_t len_)
                my_endpoint_, len_);
 }
 
-void bind_loopback_ipv4 (void *socket_, char *my_endpoint_, size_t len_)
+void bind_loopback_ipv4 (socket_: *mut c_void, char *my_endpoint_, len_: usize)
 {
     bind_loopback (socket_, false, my_endpoint_, len_);
 }
 
-void bind_loopback_ipv6 (void *socket_, char *my_endpoint_, size_t len_)
+void bind_loopback_ipv6 (socket_: *mut c_void, char *my_endpoint_, len_: usize)
 {
     bind_loopback (socket_, true, my_endpoint_, len_);
 }
 
-void bind_loopback_ipc (void *socket_, char *my_endpoint_, size_t len_)
+void bind_loopback_ipc (socket_: *mut c_void, char *my_endpoint_, len_: usize)
 {
     if (!zmq_has ("ipc")) {
         TEST_IGNORE_MESSAGE ("ipc is not available");
@@ -289,7 +289,7 @@ void bind_loopback_ipc (void *socket_, char *my_endpoint_, size_t len_)
     test_bind (socket_, "ipc://*", my_endpoint_, len_);
 }
 
-void bind_loopback_tipc (void *socket_, char *my_endpoint_, size_t len_)
+void bind_loopback_tipc (socket_: *mut c_void, char *my_endpoint_, len_: usize)
 {
     if (!is_tipc_available ()) {
         TEST_IGNORE_MESSAGE ("tipc is not available");

@@ -54,7 +54,7 @@ zmq::trie_t::~trie_t ()
     }
 }
 
-bool zmq::trie_t::add (unsigned char *prefix_, size_t size_)
+bool zmq::trie_t::add (unsigned char *prefix_, size_: usize)
 {
     //  We are at the node corresponding to the prefix. We are done.
     if (!size_) {
@@ -124,7 +124,7 @@ bool zmq::trie_t::add (unsigned char *prefix_, size_t size_)
     return _next.table[c - _min]->add (prefix_ + 1, size_ - 1);
 }
 
-bool zmq::trie_t::rm (unsigned char *prefix_, size_t size_)
+bool zmq::trie_t::rm (unsigned char *prefix_, size_: usize)
 {
     //  TODO: Shouldn't an error be reported if the key does not exist?
     if (!size_) {
@@ -236,7 +236,7 @@ bool zmq::trie_t::rm (unsigned char *prefix_, size_t size_)
     return ret;
 }
 
-bool zmq::trie_t::check (const unsigned char *data_, size_t size_) const
+bool zmq::trie_t::check (const unsigned char *data_, size_: usize) const
 {
     //  This function is on critical path. It deliberately doesn't use
     //  recursion to get a bit better performance.
@@ -270,7 +270,7 @@ bool zmq::trie_t::check (const unsigned char *data_, size_t size_) const
 }
 
 void zmq::trie_t::apply (
-  void (*func_) (unsigned char *data_, size_t size_, arg_: *mut c_void), arg_: *mut c_void)
+  void (*func_) (unsigned char *data_, size_: usize, arg_: *mut c_void), arg_: *mut c_void)
 {
     unsigned char *buff = NULL;
     apply_helper (&buff, 0, 0, func_, arg_);
@@ -278,10 +278,10 @@ void zmq::trie_t::apply (
 }
 
 void zmq::trie_t::apply_helper (unsigned char **buff_,
-                                size_t buffsize_,
-                                size_t maxbuffsize_,
+                                buffsize_: usize,
+                                maxbuffsize_: usize,
                                 void (*func_) (unsigned char *data_,
-                                               size_t size_,
+                                               size_: usize,
                                                arg_: *mut c_void),
                                 arg_: *mut c_void) const
 {

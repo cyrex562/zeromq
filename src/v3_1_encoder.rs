@@ -36,7 +36,7 @@
 
 // #include <limits.h>
 
-zmq::v3_1_encoder_t::v3_1_encoder_t (size_t bufsize_) :
+zmq::v3_1_encoder_t::v3_1_encoder_t (bufsize_: usize) :
     encoder_base_t<v3_1_encoder_t> (bufsize_)
 {
     //  Write 0 bytes to the batch and go to message_ready state.

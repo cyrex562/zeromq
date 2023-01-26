@@ -100,7 +100,7 @@ void create_xpub_with_2_subs (void **pub_, void **sub0_, void **sub1_)
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (*sub1_, test_endpoint));
 }
 
-void create_duplicate_subscription (void *pub_, void *sub0_, sub1_: *mut c_void)
+void create_duplicate_subscription (pub_: *mut c_void, sub0_: *mut c_void, sub1_: *mut c_void)
 {
     //  Subscribe for A
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -119,7 +119,7 @@ void create_duplicate_subscription (void *pub_, void *sub0_, sub1_: *mut c_void)
 
 void test_xpub_verbose_two_subs ()
 {
-    void *pub, *sub0, *sub1;
+    pub: *mut c_void, *sub0, *sub1;
     create_xpub_with_2_subs (&pub, &sub0, &sub1);
     create_duplicate_subscription (pub, sub0, sub1);
 
@@ -244,7 +244,7 @@ void test_xpub_verboser_one_sub ()
 
 void test_xpub_verboser_two_subs ()
 {
-    void *pub, *sub0, *sub1;
+    pub: *mut c_void, *sub0, *sub1;
     create_xpub_with_2_subs (&pub, &sub0, &sub1);
     create_duplicate_subscription (pub, sub0, sub1);
 

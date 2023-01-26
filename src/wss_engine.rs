@@ -57,7 +57,7 @@ zmq::wss_engine_t::wss_engine_t (fd_t fd_,
                                  const endpoint_uri_pair_t &endpoint_uri_pair_,
                                  ws_address_t &address_,
                                  bool client_,
-                                 void *tls_server_cred_,
+                                 tls_server_cred_: *mut c_void,
                                  const std::string &hostname_) :
     ws_engine_t (fd_, options_, endpoint_uri_pair_, address_, client_),
     _established (false),
@@ -174,7 +174,7 @@ bool zmq::wss_engine_t::handshake ()
     return ws_engine_t::handshake ();
 }
 
-int zmq::wss_engine_t::read (void *data_, size_t size_)
+int zmq::wss_engine_t::read (data_: *mut c_void, size_: usize)
 {
     ssize_t rc = gnutls_record_recv (_tls_session, data_, size_);
 
@@ -208,7 +208,7 @@ int zmq::wss_engine_t::read (void *data_, size_t size_)
     return rc;
 }
 
-int zmq::wss_engine_t::write (const void *data_, size_t size_)
+int zmq::wss_engine_t::write (const data_: *mut c_void, size_: usize)
 {
     ssize_t rc = gnutls_record_send (_tls_session, data_, size_);
 

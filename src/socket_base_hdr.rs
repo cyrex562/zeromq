@@ -46,7 +46,7 @@
 // #include "endpoint.hpp"
 
 extern "C" {
-void zmq_free_event (void *data_, hint_: *mut c_void);
+void zmq_free_event (data_: *mut c_void, hint_: *mut c_void);
 }
 
 namespace zmq
@@ -71,7 +71,7 @@ class socket_base_t : public own_t,
 
     //  Create a socket of a specified type.
     static socket_base_t *
-    create (int type_, zmq::ctx_t *parent_, uint32_t tid_, sid_: i32);
+    create (type_: i32, zmq::ctx_t *parent_, uint32_t tid_, sid_: i32);
 
     //  Returns the mailbox associated with this socket.
     i_mailbox *get_mailbox () const;
@@ -81,11 +81,11 @@ class socket_base_t : public own_t,
     void stop ();
 
     //  Interface for communication with the API layer.
-    int setsockopt (int option_, const void *optval_, size_t optvallen_);
-    int getsockopt (int option_, void *optval_, size_t *optvallen_);
-    int bind (const char *endpoint_uri_);
-    int connect (const char *endpoint_uri_);
-    int term_endpoint (const char *endpoint_uri_);
+    int setsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
+    int getsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize);
+    int bind (endpoint_uri_: *const c_char);
+    int connect (endpoint_uri_: *const c_char);
+    int term_endpoint (endpoint_uri_: *const c_char);
     int send (zmq::msg_t *msg_, flags_: i32);
     int recv (zmq::msg_t *msg_, flags_: i32);
     void add_signaler (signaler_t *s_);
@@ -98,8 +98,8 @@ class socket_base_t : public own_t,
     bool has_out ();
 
     //  Joining and leaving groups
-    int join (const char *group_);
-    int leave (const char *group_);
+    int join (group_: *const c_char);
+    int leave (group_: *const c_char);
 
     //  Using this function reaper thread ask the socket to register with
     //  its poller.
@@ -119,9 +119,9 @@ class socket_base_t : public own_t,
     void lock ();
     void unlock ();
 
-    int monitor (const char *endpoint_,
-                 uint64_t events_,
-                 int event_version_,
+    int monitor (endpoint_: *const c_char,
+                 events_: u64,
+                 event_version_: i32,
                  type_: i32);
 
     void event_connected (const endpoint_uri_pair_t &endpoint_uri_pair_,
@@ -157,8 +157,8 @@ class socket_base_t : public own_t,
 
     //  Query the state of a specific peer. The default implementation
     //  always returns an ENOTSUP error.
-    virtual int get_peer_state (const void *routing_id_,
-                                size_t routing_id_size_) const;
+    virtual int get_peer_state (const routing_id_: *mut c_void,
+                                routing_id_size_: usize) const;
 
     //  Request for pipes statistics - will generate a ZMQ_EVENT_PIPES_STATS
     //  after gathering the data asynchronously. Requires event monitoring to
@@ -170,7 +170,7 @@ class socket_base_t : public own_t,
   protected:
     socket_base_t (zmq::ctx_t *parent_,
                    uint32_t tid_,
-                   int sid_,
+                   sid_: i32,
                    bool thread_safe_ = false);
     ~socket_base_t () ZMQ_OVERRIDE;
 
@@ -184,12 +184,12 @@ class socket_base_t : public own_t,
     //  options for the particular socket type. If not so, ZMQ_FINAL this
     //  method.
     virtual int
-    xsetsockopt (int option_, const void *optval_, size_t optvallen_);
+    xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
 
     //  The default implementation assumes there are no specific socket
     //  options for the particular socket type. If not so, ZMQ_FINAL this
     //  method.
-    virtual int xgetsockopt (int option_, void *optval_, size_t *optvallen_);
+    virtual int xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize);
 
     //  The default implementation assumes that send is not supported.
     virtual bool xhas_out ();
@@ -206,13 +206,13 @@ class socket_base_t : public own_t,
     virtual void xpipe_terminated (pipe_t *pipe_) = 0;
 
     //  the default implementation assumes that joub and leave are not supported.
-    virtual int xjoin (const char *group_);
-    virtual int xleave (const char *group_);
+    virtual int xjoin (group_: *const c_char);
+    virtual int xleave (group_: *const c_char);
 
     //  Delay actual destruction of the socket.
     void process_destroy () ZMQ_FINAL;
 
-    int connect_internal (const char *endpoint_uri_);
+    int connect_internal (endpoint_uri_: *const c_char);
 
     // Mutex for synchronize access to the socket in thread safe mode
     mutex_t _sync;
@@ -221,13 +221,13 @@ class socket_base_t : public own_t,
     // test if event should be sent and then dispatch it
     void event (const endpoint_uri_pair_t &endpoint_uri_pair_,
                 uint64_t values_[],
-                uint64_t values_count_,
+                values_count_: u64,
                 uint64_t type_);
 
     // Socket event data dispatch
-    void monitor_event (uint64_t event_,
+    void monitor_event (event_: u64,
                         const uint64_t values_[],
-                        uint64_t values_count_,
+                        values_count_: u64,
                         const endpoint_uri_pair_t &endpoint_uri_pair_) const;
 
     // Monitor socket cleanup
@@ -247,7 +247,7 @@ class socket_base_t : public own_t,
     class inprocs_t
     {
 ^      // public:
-        void emplace (const char *endpoint_uri_, pipe_t *pipe_);
+        void emplace (endpoint_uri_: *const c_char, pipe_t *pipe_);
         int erase_pipes (const std::string &endpoint_uri_str_);
         void erase_pipe (const pipe_t *pipe_);
 
@@ -278,7 +278,7 @@ class socket_base_t : public own_t,
 
     //  Parse URI string.
     static int
-    parse_uri (const char *uri_, std::string &protocol_, std::string &path_);
+    parse_uri (uri_: *const c_char, std::string &protocol_, std::string &path_);
 
     //  Check whether transport protocol, as specified in connect or
     //  bind, is available and compatible with the socket type.
@@ -293,14 +293,14 @@ class socket_base_t : public own_t,
     //  returns only after at least one command was processed.
     //  If throttle argument is true, commands are processed at most once
     //  in a predefined time period.
-    int process_commands (int timeout_, bool throttle_);
+    int process_commands (timeout_: i32, bool throttle_);
 
     //  Handlers for incoming commands.
     void process_stop () ZMQ_FINAL;
     void process_bind (zmq::pipe_t *pipe_) ZMQ_FINAL;
     void
-    process_pipe_stats_publish (uint64_t outbound_queue_count_,
-                                uint64_t inbound_queue_count_,
+    process_pipe_stats_publish (outbound_queue_count_: u64,
+                                inbound_queue_count_: u64,
                                 endpoint_uri_pair_t *endpoint_pair_) ZMQ_FINAL;
     void process_term (linger_: i32) ZMQ_FINAL;
     void process_term_endpoint (std::string *endpoint_) ZMQ_FINAL;
@@ -308,7 +308,7 @@ class socket_base_t : public own_t,
     void update_pipe_options (option_: i32);
 
     std::string resolve_tcp_addr (std::string endpoint_uri_,
-                                  const char *tcp_address_);
+                                  tcp_address_: *const c_char);
 
     //  Socket's mailbox object.
     i_mailbox *_mailbox;
@@ -364,9 +364,9 @@ class routing_socket_base_t : public socket_base_t
     ~routing_socket_base_t () ZMQ_OVERRIDE;
 
     // methods from socket_base_t
-    int xsetsockopt (int option_,
-                     const void *optval_,
-                     size_t optvallen_) ZMQ_OVERRIDE;
+    int xsetsockopt (option_: i32,
+                     const optval_: *mut c_void,
+                     optvallen_: usize) ZMQ_OVERRIDE;
     void xwrite_activated (pipe_t *pipe_) ZMQ_FINAL;
 
     // own methods

@@ -35,11 +35,11 @@ void tearDown ()
 //  Test an UDP address resolution. If 'dest_addr_' is NULL assume the
 //  resolution is supposed to fail.
 static void test_resolve (bool bind_,
-                          int family_,
-                          const char *name_,
-                          const char *target_addr_,
+                          family_: i32,
+                          name_: *const c_char,
+                          target_addr_: *const c_char,
                           uint16_t expected_port_,
-                          const char *bind_addr_,
+                          bind_addr_: *const c_char,
                           bool multicast_)
 {
     if (family_ == AF_INET6 && !is_ipv6_available ()) {
@@ -74,9 +74,9 @@ static void test_resolve (bool bind_,
     validate_address (family_, addr.bind_addr (), bind_addr_, expected_port_);
 }
 
-static void test_resolve_bind (int family_,
-                               const char *name_,
-                               const char *dest_addr_,
+static void test_resolve_bind (family_: i32,
+                               name_: *const c_char,
+                               dest_addr_: *const c_char,
                                uint16_t expected_port_ = 0,
                                const char *bind_addr_ = NULL,
                                bool multicast_ = false)
@@ -85,9 +85,9 @@ static void test_resolve_bind (int family_,
                   multicast_);
 }
 
-static void test_resolve_connect (int family_,
-                                  const char *name_,
-                                  const char *dest_addr_,
+static void test_resolve_connect (family_: i32,
+                                  name_: *const c_char,
+                                  dest_addr_: *const c_char,
                                   uint16_t expected_port_ = 0,
                                   const char *bind_addr_ = NULL,
                                   bool multicast_ = false)

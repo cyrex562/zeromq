@@ -39,7 +39,7 @@ char connect_address[MAX_SOCKET_STRING];
 
 // PUSH: SHALL route outgoing messages to connected peers using a
 // round-robin strategy.
-void test_push_round_robin_out (const char *bind_address_)
+void test_push_round_robin_out (bind_address_: *const c_char)
 {
     void *push = test_context_socket (ZMQ_PUSH);
 
@@ -79,7 +79,7 @@ void test_push_round_robin_out (const char *bind_address_)
 
 // PULL: SHALL receive incoming messages from its peers using a fair-queuing
 // strategy.
-void test_pull_fair_queue_in (const char *bind_address_)
+void test_pull_fair_queue_in (bind_address_: *const c_char)
 {
     void *pull = test_context_socket (ZMQ_PULL);
 
@@ -151,7 +151,7 @@ void test_pull_fair_queue_in (const char *bind_address_)
 
 // PUSH: SHALL block on sending, or return a suitable error, when it has no
 // available peers.
-void test_push_block_on_send_no_peers (const char *bind_address_)
+void test_push_block_on_send_no_peers (bind_address_: *const c_char)
 {
     void *sc = test_context_socket (ZMQ_PUSH);
 
@@ -168,7 +168,7 @@ void test_push_block_on_send_no_peers (const char *bind_address_)
 // PUSH and PULL: SHALL create this queue when a peer connects to it. If
 // this peer disconnects, the socket SHALL destroy its queue and SHALL
 // discard any messages it contains.
-void test_destroy_queue_on_disconnect (const char *bind_address_)
+void test_destroy_queue_on_disconnect (bind_address_: *const c_char)
 {
     void *a = test_context_socket (ZMQ_PUSH);
 
@@ -233,7 +233,7 @@ void test_destroy_queue_on_disconnect (const char *bind_address_)
 }
 
 // PUSH and PULL: SHALL either receive or drop multipart messages atomically.
-void test_push_multipart_atomic_drop (const char *bind_address_,
+void test_push_multipart_atomic_drop (bind_address_: *const c_char,
                                       const bool block_)
 {
     int linger = 0;

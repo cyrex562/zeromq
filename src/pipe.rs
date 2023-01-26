@@ -102,8 +102,8 @@ void zmq::send_hello_msg (pipe_t *pipe_, const options_t &options_)
 zmq::pipe_t::pipe_t (object_t *parent_,
                      upipe_t *inpipe_,
                      upipe_t *outpipe_,
-                     int inhwm_,
-                     int outhwm_,
+                     inhwm_: i32,
+                     outhwm_: i32,
                      bool conflate_) :
     object_t (parent_),
     _in_pipe (inpipe_),
@@ -401,7 +401,7 @@ void zmq::pipe_t::process_pipe_term_ack ()
     delete this;
 }
 
-void zmq::pipe_t::process_pipe_hwm (int inhwm_, outhwm_: i32)
+void zmq::pipe_t::process_pipe_hwm (inhwm_: i32, outhwm_: i32)
 {
     set_hwms (inhwm_, outhwm_);
 }
@@ -535,7 +535,7 @@ void zmq::pipe_t::hiccup ()
     send_hiccup (_peer, _in_pipe);
 }
 
-void zmq::pipe_t::set_hwms (int inhwm_, outhwm_: i32)
+void zmq::pipe_t::set_hwms (inhwm_: i32, outhwm_: i32)
 {
     int in = inhwm_ + std::max (_in_hwm_boost, 0);
     int out = outhwm_ + std::max (_out_hwm_boost, 0);
@@ -551,7 +551,7 @@ void zmq::pipe_t::set_hwms (int inhwm_, outhwm_: i32)
     _hwm = out;
 }
 
-void zmq::pipe_t::set_hwms_boost (int inhwmboost_, outhwmboost_: i32)
+void zmq::pipe_t::set_hwms_boost (inhwmboost_: i32, outhwmboost_: i32)
 {
     _in_hwm_boost = inhwmboost_;
     _out_hwm_boost = outhwmboost_;
@@ -564,7 +564,7 @@ bool zmq::pipe_t::check_hwm () const
     return !full;
 }
 
-void zmq::pipe_t::send_hwms_to_peer (int inhwm_, outhwm_: i32)
+void zmq::pipe_t::send_hwms_to_peer (inhwm_: i32, outhwm_: i32)
 {
     send_pipe_hwm (_peer, inhwm_, outhwm_);
 }
@@ -587,7 +587,7 @@ void zmq::pipe_t::send_stats_to_peer (own_t *socket_base_)
                           ep);
 }
 
-void zmq::pipe_t::process_pipe_peer_stats (uint64_t queue_count_,
+void zmq::pipe_t::process_pipe_peer_stats (queue_count_: u64,
                                            own_t *socket_base_,
                                            endpoint_uri_pair_t *endpoint_pair_)
 {

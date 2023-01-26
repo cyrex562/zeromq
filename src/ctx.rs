@@ -164,7 +164,7 @@ int zmq::ctx_t::terminate ()
     pending_connections_t copy = _pending_connections;
     for (pending_connections_t::iterator p = copy.begin (), end = copy.end ();
          p != end; ++p) {
-        zmq::socket_base_t *s = create_socket (ZMQ_PAIR);
+        let mut s: *mut socket_base_t =  create_socket (ZMQ_PAIR);
         // create_socket might fail eg: out of memory/sockets limit reached
         zmq_assert (s);
         s->bind (p->first.c_str ());
@@ -255,7 +255,7 @@ int zmq::ctx_t::shutdown ()
     return 0;
 }
 
-int zmq::ctx_t::set (int option_, const void *optval_, size_t optvallen_)
+int zmq::ctx_t::set (option_: i32, const optval_: *mut c_void, optvallen_: usize)
 {
     const bool is_int = (optvallen_ == sizeof (int));
     int value = 0;
@@ -320,7 +320,7 @@ int zmq::ctx_t::set (int option_, const void *optval_, size_t optvallen_)
     return -1;
 }
 
-int zmq::ctx_t::get (int option_, void *optval_, const size_t *optvallen_)
+int zmq::ctx_t::get (option_: i32, optval_: *mut c_void, const optvallen_: *mut usize)
 {
     const bool is_int = (*optvallen_ == sizeof (int));
     int *value = static_cast<int *> (optval_);
@@ -554,8 +554,8 @@ zmq::thread_ctx_t::thread_ctx_t () :
 
 void zmq::thread_ctx_t::start_thread (thread_t &thread_,
                                       thread_fn *tfn_,
-                                      void *arg_,
-                                      const char *name_) const
+                                      arg_: *mut c_void,
+                                      name_: *const c_char) const
 {
     thread_.setSchedulingParameters (_thread_priority, _thread_sched_policy,
                                      _thread_affinity_cpus);
@@ -568,7 +568,7 @@ void zmq::thread_ctx_t::start_thread (thread_t &thread_,
     thread_.start (tfn_, arg_, namebuf);
 }
 
-int zmq::thread_ctx_t::set (int option_, const void *optval_, size_t optvallen_)
+int zmq::thread_ctx_t::set (option_: i32, const optval_: *mut c_void, optvallen_: usize)
 {
     const bool is_int = (optvallen_ == sizeof (int));
     int value = 0;
@@ -632,9 +632,9 @@ int zmq::thread_ctx_t::set (int option_, const void *optval_, size_t optvallen_)
     return -1;
 }
 
-int zmq::thread_ctx_t::get (int option_,
-                            void *optval_,
-                            const size_t *optvallen_)
+int zmq::thread_ctx_t::get (option_: i32,
+                            optval_: *mut c_void,
+                            const optvallen_: *mut usize)
 {
     const bool is_int = (*optvallen_ == sizeof (int));
     int *value = static_cast<int *> (optval_);
@@ -692,7 +692,7 @@ zmq::io_thread_t *zmq::ctx_t::choose_io_thread (uint64_t affinity_)
     return selected_io_thread;
 }
 
-int zmq::ctx_t::register_endpoint (const char *addr_,
+int zmq::ctx_t::register_endpoint (addr_: *const c_char,
                                    const endpoint_t &endpoint_)
 {
     scoped_lock_t locker (_endpoints_sync);
@@ -742,7 +742,7 @@ void zmq::ctx_t::unregister_endpoints (const socket_base_t *const socket_)
     }
 }
 
-zmq::endpoint_t zmq::ctx_t::find_endpoint (const char *addr_)
+zmq::endpoint_t zmq::ctx_t::find_endpoint (addr_: *const c_char)
 {
     scoped_lock_t locker (_endpoints_sync);
 
@@ -785,7 +785,7 @@ void zmq::ctx_t::pend_connection (const std::string &addr_,
     }
 }
 
-void zmq::ctx_t::connect_pending (const char *addr_,
+void zmq::ctx_t::connect_pending (addr_: *const c_char,
                                   zmq::socket_base_t *bind_socket_)
 {
     scoped_lock_t locker (_endpoints_sync);
@@ -802,7 +802,7 @@ void zmq::ctx_t::connect_pending (const char *addr_,
 }
 
 void zmq::ctx_t::connect_inproc_sockets (
-  zmq::socket_base_t *bind_socket_,
+  bind_socket_: *mut socket_base_t,
   const options_t &bind_options_,
   const pending_connection_t &pending_connection_,
   side side_)

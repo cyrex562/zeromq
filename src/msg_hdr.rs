@@ -45,17 +45,17 @@
 //  Signature for free function to deallocate the message content.
 //  Note that it has to be declared as "C" so that it is the same as
 //  zmq_free_fn defined in zmq.h.
-extern "C" {
-typedef void (msg_free_fn) (void *data_, hint_: *mut c_void);
-}
+// extern "C" {
+// typedef void (msg_free_fn) (data_: *mut c_void, hint_: *mut c_void);
+// }
 
-namespace zmq
-{
+// namespace zmq
+// {
 //  Note that this structure needs to be explicitly constructed
 //  (init functions) and destructed (close function).
 
-pub const cancel_cmd_name: String = String::from("\6CANCEL");
-pub const sub_cmd_name: String = String::from("\x9SUBSCRIBE");
+pub const cancel_cmd_name: String = String::from("\0x6CANCEL");
+pub const sub_cmd_name: String = String::from("\0x9SUBSCRIBE");
 
 class msg_t
 {
@@ -96,25 +96,25 @@ class msg_t
     bool check () const;
     int init ();
 
-    int init (void *data_,
-              size_t size_,
+    int init (data_: *mut c_void,
+              size_: usize,
               msg_free_fn *ffn_,
-              void *hint_,
+              hint_: *mut c_void,
               content_t *content_ = NULL);
 
-    int init_size (size_t size_);
-    int init_buffer (const void *buf_, size_t size_);
-    int init_data (void *data_, size_t size_, msg_free_fn *ffn_, hint_: *mut c_void);
+    int init_size (size_: usize);
+    int init_buffer (const buf_: *mut c_void, size_: usize);
+    int init_data (data_: *mut c_void, size_: usize, msg_free_fn *ffn_, hint_: *mut c_void);
     int init_external_storage (content_t *content_,
-                               void *data_,
-                               size_t size_,
+                               data_: *mut c_void,
+                               size_: usize,
                                msg_free_fn *ffn_,
                                hint_: *mut c_void);
     int init_delimiter ();
     int init_join ();
     int init_leave ();
-    int init_subscribe (const size_t size_, const unsigned char *topic);
-    int init_cancel (const size_t size_, const unsigned char *topic);
+    int init_subscribe (const size_: usize, const unsigned char *topic);
+    int init_cancel (const size_: usize, const unsigned char *topic);
     int close ();
     int move (msg_t &src_);
     int copy (msg_t &src_);
@@ -157,8 +157,8 @@ class msg_t
     int set_routing_id (uint32_t routing_id_);
     int reset_routing_id ();
     const char *group () const;
-    int set_group (const char *group_);
-    int set_group (const char *, size_t length_);
+    int set_group (group_: *const c_char);
+    int set_group (const char *, length_: usize);
 
     //  After calling this function you can copy the message in POD-style
     //  refs_ times. No need to call copy.
@@ -168,7 +168,7 @@ class msg_t
     //  references drops to 0, the message is closed and false is returned.
     bool rm_refs (refs_: i32);
 
-    void shrink (size_t new_size_);
+    void shrink (new_size_: usize);
 
     //  Size in bytes of the largest message that is still copied around
     //  rather than being reference-counted.
@@ -334,7 +334,7 @@ inline int close_and_return (zmq::msg_t *msg_, echo_: i32)
     return echo_;
 }
 
-inline int close_and_return (zmq::msg_t msg_[], int count_, echo_: i32)
+inline int close_and_return (zmq::msg_t msg_[], count_: i32, echo_: i32)
 {
     for (int i = 0; i < count_; i++)
         close_and_return (&msg_[i], 0);

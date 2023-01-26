@@ -30,7 +30,7 @@ class norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     ~norm_engine_t () ZMQ_FINAL;
 
     // create NORM instance, session, etc
-    int init (const char *network_, bool send, bool recv);
+    int init (network_: *const c_char, bool send, bool recv);
     void shutdown ();
 
     bool has_handshake_stage () ZMQ_FINAL { return false; };
@@ -96,7 +96,7 @@ class norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
         // and its underlying "msg" buffer
         char *AccessBuffer () { return (char *) (buffer_ptr + buffer_count); }
         size_t GetBytesNeeded () const { return buffer_size - buffer_count; }
-        void IncrementBufferCount (size_t count) { buffer_count += count; }
+        void IncrementBufferCount (count: usize) { buffer_count += count; }
         msg_t *AccessMsg () { return zmq_decoder->msg (); }
         // This invokes the decoder "decode" method
         // returning 0 if more data is needed,

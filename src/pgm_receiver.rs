@@ -59,7 +59,7 @@ zmq::pgm_receiver_t::~pgm_receiver_t ()
     zmq_assert (peers.empty ());
 }
 
-int zmq::pgm_receiver_t::init (bool udp_encapsulation_, const char *network_)
+int zmq::pgm_receiver_t::init (bool udp_encapsulation_, network_: *const c_char)
 {
     return pgm_socket.init (udp_encapsulation_, network_);
 }

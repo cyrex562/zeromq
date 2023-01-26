@@ -73,7 +73,7 @@ void test_defaults ()
     TEST_ASSERT_EQUAL_INT (2000, send_count);
 }
 
-int count_msg (int send_hwm_, int recv_hwm_, TestType test_type_)
+int count_msg (send_hwm_: i32, recv_hwm_: i32, TestType test_type_)
 {
     bind_socket: *mut c_void;
     connect_socket: *mut c_void;
@@ -133,17 +133,17 @@ int count_msg (int send_hwm_, int recv_hwm_, TestType test_type_)
     return send_count;
 }
 
-int test_inproc_bind_first (int send_hwm_, recv_hwm_: i32)
+int test_inproc_bind_first (send_hwm_: i32, recv_hwm_: i32)
 {
     return count_msg (send_hwm_, recv_hwm_, BIND_FIRST);
 }
 
-int test_inproc_connect_first (int send_hwm_, recv_hwm_: i32)
+int test_inproc_connect_first (send_hwm_: i32, recv_hwm_: i32)
 {
     return count_msg (send_hwm_, recv_hwm_, CONNECT_FIRST);
 }
 
-int test_inproc_connect_and_close_first (int send_hwm_, recv_hwm_: i32)
+int test_inproc_connect_and_close_first (send_hwm_: i32, recv_hwm_: i32)
 {
     // Set up connect socket
     void *connect_socket = test_context_socket (ZMQ_PUSH);
@@ -179,7 +179,7 @@ int test_inproc_connect_and_close_first (int send_hwm_, recv_hwm_: i32)
     return send_count;
 }
 
-int test_inproc_bind_and_close_first (int send_hwm_, int /* recv_hwm */)
+int test_inproc_bind_and_close_first (send_hwm_: i32, int /* recv_hwm */)
 {
     // Set up bind socket
     void *bind_socket = test_context_socket (ZMQ_PUSH);

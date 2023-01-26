@@ -88,11 +88,11 @@ impl thread_ctx_t {
     //  Start a new thread with proper scheduling parameters.
     // void start_thread (thread_t &thread_,
     //                    thread_fn *tfn_,
-    //                    void *arg_,
+    //                    arg_: *mut c_void,
     //                    const char *name_ = NULL) const;
 
-    // int set (int option_, const void *optval_, size_t optvallen_);
-    // int get (int option_, void *optval_, const size_t *optvallen_);
+    // int set (option_: i32, const optval_: *mut c_void, optvallen_: usize);
+    // int get (option_: i32, optval_: *mut c_void, const optvallen_: *mut usize);
 
 }
 
@@ -265,8 +265,8 @@ impl ctx_t {
     // int shutdown ();
 
     //  Set and get context properties.
-    // int set (int option_, const void *optval_, size_t optvallen_);
-    // int get (int option_, void *optval_, const size_t *optvallen_);
+    // int set (option_: i32, const optval_: *mut c_void, optvallen_: usize);
+    // int get (option_: i32, optval_: *mut c_void, const optvallen_: *mut usize);
     // int get (option_: i32);
 
     //  Create and destroy a socket.
@@ -285,15 +285,15 @@ impl ctx_t {
     // zmq::object_t *get_reaper () const;
 
     //  Management of inproc endpoints.
-    // int register_endpoint (const char *addr_, const endpoint_t &endpoint_);
+    // int register_endpoint (addr_: *const c_char, const endpoint_t &endpoint_);
     // int unregister_endpoint (const std::string &addr_,
     //                          const socket_base_t *socket_);
     // void unregister_endpoints (const zmq::socket_base_t *socket_);
-    // endpoint_t find_endpoint (const char *addr_);
+    // endpoint_t find_endpoint (addr_: *const c_char);
     // void pend_connection (const std::string &addr_,
     //                       const endpoint_t &endpoint_,
     //                       pipe_t **pipes_);
-    // void connect_pending (const char *addr_, zmq::socket_base_t *bind_socket_);
+    // void connect_pending (addr_: *const c_char, zmq::socket_base_t *bind_socket_);
 
 // #ifdef ZMQ_HAVE_VMCI
     // Return family for the VMCI socket or -1 if it's not available.
@@ -307,7 +307,7 @@ impl ctx_t {
     // bool start ();
 
     // static void
-    //     connect_inproc_sockets (zmq::socket_base_t *bind_socket_,
+    //     connect_inproc_sockets (bind_socket_: *mut socket_base_t,
     //                             const options_t &bind_options_,
     //                             const pending_connection_t &pending_connection_,
     //                             side side_);

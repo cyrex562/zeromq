@@ -48,7 +48,7 @@ class udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     const endpoint_uri_pair_t &get_endpoint () const;
 
   // private:
-    int resolve_raw_address (const char *name_, size_t length_);
+    int resolve_raw_address (name_: *const c_char, length_: usize);
     static void sockaddr_to_msg (zmq::msg_t *msg_, const sockaddr_in *addr_);
 
     static int set_udp_reuse_address (fd_t s_, bool on_);

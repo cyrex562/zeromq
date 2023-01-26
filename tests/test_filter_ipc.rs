@@ -35,7 +35,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-static void bounce_fail (void *server_, client_: *mut c_void)
+static void bounce_fail (server_: *mut c_void, client_: *mut c_void)
 {
     const char *content = "12345678ABCDEFGH12345678abcdefgh";
     char buffer[32];
@@ -59,7 +59,7 @@ static void bounce_fail (void *server_, client_: *mut c_void)
 
 template <class T>
 static void
-run_test (int opt_, T optval_, int expected_error_, bounce_test_: i32)
+run_test (opt_: i32, T optval_, expected_error_: i32, bounce_test_: i32)
 {
     void *sb = test_context_socket (ZMQ_DEALER);
 

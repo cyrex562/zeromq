@@ -115,7 +115,7 @@ int send_until_wouldblock (socket_: *mut c_void)
     return send_count;
 }
 
-int test_fill_up_to_hwm (void *socket_, sndhwm_: i32)
+int test_fill_up_to_hwm (socket_: *mut c_void, sndhwm_: i32)
 {
     int send_count = send_until_wouldblock (socket_);
     fprintf (stderr, "sndhwm==%i, send_count==%i\n", sndhwm_, send_count);

@@ -43,7 +43,7 @@ namespace zmq
 class c_single_allocator
 {
 // public:
-    explicit c_single_allocator (std::size_t bufsize_) :
+    explicit c_single_allocator (std::bufsize_: usize) :
         _buf_size (bufsize_),
         _buf (static_cast<unsigned char *> (std::malloc (_buf_size)))
     {
@@ -59,7 +59,7 @@ class c_single_allocator
     std::size_t size () const { return _buf_size; }
 
     //  This buffer is fixed, size must not be changed
-    void resize (std::size_t new_size_) { LIBZMQ_UNUSED (new_size_); }
+    void resize (std::new_size_: usize) { LIBZMQ_UNUSED (new_size_); }
 
   // private:
     std::size_t _buf_size;
@@ -80,11 +80,11 @@ class c_single_allocator
 class shared_message_memory_allocator
 {
 // public:
-    explicit shared_message_memory_allocator (std::size_t bufsize_);
+    explicit shared_message_memory_allocator (std::bufsize_: usize);
 
     // Create an allocator for a maximum number of messages
-    shared_message_memory_allocator (std::size_t bufsize_,
-                                     std::size_t max_messages_);
+    shared_message_memory_allocator (std::bufsize_: usize,
+                                     std::max_messages_: usize);
 
     ~shared_message_memory_allocator ();
 
@@ -113,7 +113,7 @@ class shared_message_memory_allocator
     // Return pointer to the first byte of the buffer.
     unsigned char *buffer () { return _buf; }
 
-    void resize (std::size_t new_size_) { _buf_size = new_size_; }
+    void resize (std::new_size_: usize) { _buf_size = new_size_; }
 
     zmq::msg_t::content_t *provide_content () { return _msg_content; }
 

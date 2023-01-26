@@ -92,24 +92,24 @@ class ip_resolver_t
     ip_resolver_t (ip_resolver_options_t opts_);
     virtual ~ip_resolver_t (){};
 
-    int resolve (ip_addr_t *ip_addr_, const char *name_);
+    int resolve (ip_addr_t *ip_addr_, name_: *const c_char);
 
   protected:
     //  Virtual functions that are overridden in tests
-    virtual int do_getaddrinfo (const char *node_,
-                                const char *service_,
+    virtual int do_getaddrinfo (node_: *const c_char,
+                                service_: *const c_char,
                                 const struct addrinfo *hints_,
                                 struct addrinfo **res_);
 
     virtual void do_freeaddrinfo (struct addrinfo *res_);
 
-    virtual unsigned int do_if_nametoindex (const char *ifname_);
+    virtual unsigned int do_if_nametoindex (ifname_: *const c_char);
 
   // private:
     ip_resolver_options_t _options;
 
-    int resolve_nic_name (ip_addr_t *ip_addr_, const char *nic_);
-    int resolve_getaddrinfo (ip_addr_t *ip_addr_, const char *addr_);
+    int resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char);
+    int resolve_getaddrinfo (ip_addr_t *ip_addr_, addr_: *const c_char);
 
 // #if defined ZMQ_HAVE_WINDOWS
     int get_interface_name (unsigned long index_, char **dest_) const;

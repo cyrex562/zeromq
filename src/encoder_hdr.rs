@@ -54,7 +54,7 @@ namespace zmq
 template <typename T> class encoder_base_t : public i_encoder
 {
 // public:
-    explicit encoder_base_t (size_t bufsize_) :
+    explicit encoder_base_t (bufsize_: usize) :
         _write_pos (0),
         _to_write (0),
         _next (NULL),
@@ -71,7 +71,7 @@ template <typename T> class encoder_base_t : public i_encoder
     //  The function returns a batch of binary data. The data
     //  are filled to a supplied buffer. If no buffer is supplied (data_
     //  points to NULL) decoder object will provide buffer of its own.
-    size_t encode (unsigned char **data_, size_t size_) ZMQ_FINAL
+    size_t encode (unsigned char **data_, size_: usize) ZMQ_FINAL
     {
         unsigned char *buffer = !*data_ ? _buf : *data_;
         const size_t buffersize = !*data_ ? _buf_size : size_;
@@ -139,8 +139,8 @@ template <typename T> class encoder_base_t : public i_encoder
 
     //  This function should be called from derived class to write the data
     //  to the buffer and schedule next state machine action.
-    void next_step (void *write_pos_,
-                    size_t to_write_,
+    void next_step (write_pos_: *mut c_void,
+                    to_write_: usize,
                     step_t next_,
                     bool new_msg_flag_)
     {

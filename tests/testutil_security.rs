@@ -33,13 +33,13 @@
 
 const char *test_zap_domain = "ZAPTEST";
 
-void socket_config_null_client (void *server_, server_secret_: *mut c_void)
+void socket_config_null_client (server_: *mut c_void, server_secret_: *mut c_void)
 {
     LIBZMQ_UNUSED (server_);
     LIBZMQ_UNUSED (server_secret_);
 }
 
-void socket_config_null_server (void *server_, server_secret_: *mut c_void)
+void socket_config_null_server (server_: *mut c_void, server_secret_: *mut c_void)
 {
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
       server_, ZMQ_ZAP_DOMAIN, test_zap_domain, strlen (test_zap_domain)));
@@ -55,7 +55,7 @@ void socket_config_null_server (void *server_, server_secret_: *mut c_void)
 pub const test_plain_username: String = String::from("testuser");
 pub const test_plain_password: String = String::from("testpass");
 
-void socket_config_plain_client (void *server_, server_secret_: *mut c_void)
+void socket_config_plain_client (server_: *mut c_void, server_secret_: *mut c_void)
 {
     LIBZMQ_UNUSED (server_secret_);
 
@@ -65,7 +65,7 @@ void socket_config_plain_client (void *server_, server_secret_: *mut c_void)
       zmq_setsockopt (server_, ZMQ_PLAIN_USERNAME, test_plain_username, 8));
 }
 
-void socket_config_plain_server (void *server_, server_secret_: *mut c_void)
+void socket_config_plain_server (server_: *mut c_void, server_secret_: *mut c_void)
 {
     LIBZMQ_UNUSED (server_secret_);
 
@@ -90,7 +90,7 @@ void setup_testutil_security_curve ()
       zmq_curve_keypair (valid_server_public, valid_server_secret));
 }
 
-void socket_config_curve_server (void *server_, server_secret_: *mut c_void)
+void socket_config_curve_server (server_: *mut c_void, server_secret_: *mut c_void)
 {
     int as_server = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -107,7 +107,7 @@ void socket_config_curve_server (void *server_, server_secret_: *mut c_void)
 // #endif
 }
 
-void socket_config_curve_client (void *client_, data_: *mut c_void)
+void socket_config_curve_client (client_: *mut c_void, data_: *mut c_void)
 {
     const curve_client_data_t *const curve_client_data =
       static_cast<const curve_client_data_t *> (data_);
@@ -123,7 +123,7 @@ void socket_config_curve_client (void *client_, data_: *mut c_void)
 void *zap_requests_handled;
 
 void zap_handler_generic (zap_protocol_t zap_protocol_,
-                          const char *expected_routing_id_)
+                          expected_routing_id_: *const c_char)
 {
     void *control = zmq_socket (get_test_context (), ZMQ_REQ);
     TEST_ASSERT_NOT_NULL (control);
@@ -267,9 +267,9 @@ void zap_handler (void *)
     zap_handler_generic (zap_ok);
 }
 
-static void setup_handshake_socket_monitor (void *server_,
+static void setup_handshake_socket_monitor (server_: *mut c_void,
                                             void **server_mon_,
-                                            const char *monitor_endpoint_)
+                                            monitor_endpoint_: *const c_char)
 {
     //  Monitor handshake events on the server
     TEST_ASSERT_SUCCESS_ERRNO (zmq_socket_monitor (
@@ -295,8 +295,8 @@ void setup_context_and_server_side (void **zap_control_,
                                     char *my_endpoint_,
                                     zmq_thread_fn zap_handler_,
                                     socket_config_fn socket_config_,
-                                    void *socket_config_data_,
-                                    const char *routing_id_)
+                                    socket_config_data_: *mut c_void,
+                                    routing_id_: *const c_char)
 {
     //  Spawn ZAP handler
     zap_requests_handled = zmq_atomic_counter_new ();
@@ -338,10 +338,10 @@ void setup_context_and_server_side (void **zap_control_,
                                     server_monitor_endpoint);
 }
 
-void shutdown_context_and_server_side (void *zap_thread_,
-                                       void *server_,
-                                       void *server_mon_,
-                                       void *zap_control_,
+void shutdown_context_and_server_side (zap_thread_: *mut c_void,
+                                       server_: *mut c_void,
+                                       server_mon_: *mut c_void,
+                                       zap_control_: *mut c_void,
                                        bool zap_handler_stopped_)
 {
     if (zap_thread_ && !zap_handler_stopped_) {
@@ -364,7 +364,7 @@ void shutdown_context_and_server_side (void *zap_thread_,
 
 void *create_and_connect_client (char *my_endpoint_,
                                  socket_config_fn socket_config_,
-                                 void *socket_config_data_,
+                                 socket_config_data_: *mut c_void,
                                  void **client_mon_)
 {
     void *client = test_context_socket (ZMQ_DEALER);
@@ -387,11 +387,11 @@ void *create_and_connect_client (char *my_endpoint_,
 }
 
 void expect_new_client_bounce_fail (char *my_endpoint_,
-                                    void *server_,
+                                    server_: *mut c_void,
                                     socket_config_fn socket_config_,
-                                    void *socket_config_data_,
+                                    socket_config_data_: *mut c_void,
                                     void **client_mon_,
-                                    int expected_client_event_,
+                                    expected_client_event_: i32,
                                     expected_client_value_: i32)
 {
     void *my_client_mon = NULL;

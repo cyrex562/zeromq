@@ -56,15 +56,15 @@ class router_t : public routing_socket_base_t
                        bool subscribe_to_all_,
                        bool locally_initiated_) ZMQ_FINAL;
     int
-    xsetsockopt (int option_, const void *optval_, size_t optvallen_) ZMQ_FINAL;
+    xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize) ZMQ_FINAL;
     int xsend (zmq::msg_t *msg_) ZMQ_OVERRIDE;
     int xrecv (zmq::msg_t *msg_) ZMQ_OVERRIDE;
     bool xhas_in () ZMQ_OVERRIDE;
     bool xhas_out () ZMQ_OVERRIDE;
     void xread_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
     void xpipe_terminated (zmq::pipe_t *pipe_) ZMQ_FINAL;
-    int get_peer_state (const void *routing_id_,
-                        size_t routing_id_size_) const ZMQ_FINAL;
+    int get_peer_state (const routing_id_: *mut c_void,
+                        routing_id_size_: usize) const ZMQ_FINAL;
 
   protected:
     //  Rollback any message parts that were sent but not yet flushed.

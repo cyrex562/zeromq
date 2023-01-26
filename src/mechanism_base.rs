@@ -51,8 +51,8 @@ int zmq::mechanism_base_t::check_basic_command_structure (msg_t *msg_) const
     return 0;
 }
 
-void zmq::mechanism_base_t::handle_error_reason (const char *error_reason_,
-                                                 size_t error_reason_len_)
+void zmq::mechanism_base_t::handle_error_reason (error_reason_: *const c_char,
+                                                 error_reason_len_: usize)
 {
     const size_t status_code_len = 3;
     const char zero_digit = '0';

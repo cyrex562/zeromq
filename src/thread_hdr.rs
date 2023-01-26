@@ -76,7 +76,7 @@ class thread_t
     //  'arg' as an argument.
     //  Name is 16 characters max including terminating NUL. Thread naming is
     //  implemented only for pthread, and windows when a debugger is attached.
-    void start (thread_fn *tfn_, void *arg_, const char *name_);
+    void start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char);
 
     //  Returns whether the thread was started, i.e. start was called.
     bool get_started () const;
@@ -90,8 +90,8 @@ class thread_t
 
     // Sets the thread scheduling parameters. Only implemented for
     // pthread. Has no effect on other platforms.
-    void setSchedulingParameters (int priority_,
-                                  int scheduling_policy_,
+    void setSchedulingParameters (priority_: i32,
+                                  scheduling_policy_: i32,
                                   const std::set<int> &affinity_cpus_);
 
     //  These are internal members. They should be private, however then

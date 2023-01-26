@@ -55,7 +55,7 @@ void test__zmq_z85_encode__valid__success ()
 }
 
 // Buffer length must be evenly divisible by 4 or must fail with EINVAL.
-void test__zmq_z85_encode__invalid__failure (size_t size_)
+void test__zmq_z85_encode__invalid__failure (size_: usize)
 {
     errno = 0;
     TEST_ASSERT_NULL (zmq_z85_encode (NULL, NULL, size_));

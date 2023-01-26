@@ -56,7 +56,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-void msg_send_expect_success (void *s_, const char *group_, const char *body_)
+void msg_send_expect_success (s_: *mut c_void, group_: *const c_char, body_: *const c_char)
 {
     zmq_msg_t msg;
     const size_t len = strlen (body_);
@@ -73,7 +73,7 @@ void msg_send_expect_success (void *s_, const char *group_, const char *body_)
     zmq_msg_close (&msg);
 }
 
-void msg_recv_cmp (void *s_, const char *group_, const char *body_)
+void msg_recv_cmp (s_: *mut c_void, group_: *const c_char, body_: *const c_char)
 {
     zmq_msg_t msg;
     const size_t len = strlen (body_);

@@ -101,7 +101,7 @@ zmq::tcp_listener_t::get_socket_name (zmq::fd_t fd_,
     return zmq::get_socket_name<tcp_address_t> (fd_, socket_end_);
 }
 
-int zmq::tcp_listener_t::create_socket (const char *addr_)
+int zmq::tcp_listener_t::create_socket (addr_: *const c_char)
 {
     _s = tcp_open_socket (addr_, options, true, true, &_address);
     if (_s == retired_fd) {
@@ -169,7 +169,7 @@ error:
     return -1;
 }
 
-int zmq::tcp_listener_t::set_local_address (const char *addr_)
+int zmq::tcp_listener_t::set_local_address (addr_: *const c_char)
 {
     if (options.use_fd != -1) {
         //  in this case, the addr_ passed is not used and ignored, since the

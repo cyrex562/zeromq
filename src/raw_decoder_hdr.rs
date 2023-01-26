@@ -42,14 +42,14 @@ namespace zmq
 class raw_decoder_t ZMQ_FINAL : public i_decoder
 {
 // public:
-    raw_decoder_t (size_t bufsize_);
+    raw_decoder_t (bufsize_: usize);
     ~raw_decoder_t ();
 
     //  i_decoder interface.
 
-    void get_buffer (unsigned char **data_, size_t *size_);
+    void get_buffer (unsigned char **data_, size_: *mut usize);
 
-    int decode (const unsigned char *data_, size_t size_, size_t &bytes_used_);
+    int decode (const unsigned char *data_, size_: usize, size_t &bytes_used_);
 
     msg_t *msg () { return &_in_progress; }
 

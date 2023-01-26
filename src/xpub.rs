@@ -201,9 +201,9 @@ void zmq::xpub_t::xwrite_activated (pipe_t *pipe_)
     _dist.activated (pipe_);
 }
 
-int zmq::xpub_t::xsetsockopt (int option_,
-                              const void *optval_,
-                              size_t optvallen_)
+int zmq::xpub_t::xsetsockopt (option_: i32,
+                              const optval_: *mut c_void,
+                              optvallen_: usize)
 {
     if (option_ == ZMQ_XPUB_VERBOSE || option_ == ZMQ_XPUB_VERBOSER
         || option_ == ZMQ_XPUB_MANUAL_LAST_VALUE || option_ == ZMQ_XPUB_NODROP
@@ -255,7 +255,7 @@ int zmq::xpub_t::xsetsockopt (int option_,
     return 0;
 }
 
-int zmq::xpub_t::xgetsockopt (int option_, void *optval_, size_t *optvallen_)
+int zmq::xpub_t::xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize)
 {
     if (option_ == ZMQ_TOPICS_COUNT) {
         // make sure to use a multi-thread safe function to avoid race conditions with I/O threads
@@ -270,7 +270,7 @@ int zmq::xpub_t::xgetsockopt (int option_, void *optval_, size_t *optvallen_)
     return -1;
 }
 
-static void stub (zmq::mtrie_t::prefix_t data_, size_t size_, arg_: *mut c_void)
+static void stub (zmq::mtrie_t::prefix_t data_, size_: usize, arg_: *mut c_void)
 {
     LIBZMQ_UNUSED (data_);
     LIBZMQ_UNUSED (size_);
@@ -404,7 +404,7 @@ bool zmq::xpub_t::xhas_in ()
 }
 
 void zmq::xpub_t::send_unsubscription (zmq::mtrie_t::prefix_t data_,
-                                       size_t size_,
+                                       size_: usize,
                                        xpub_t *self_)
 {
     if (self_->options.type != ZMQ_PUB) {

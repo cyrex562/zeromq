@@ -38,7 +38,7 @@
 // #include "wire.hpp"
 // #include "err.hpp"
 
-zmq::v2_decoder_t::v2_decoder_t (size_t bufsize_,
+zmq::v2_decoder_t::v2_decoder_t (bufsize_: usize,
                                  int64_t maxmsgsize_,
                                  bool zero_copy_) :
     decoder_base_t<v2_decoder_t, shared_message_memory_allocator> (bufsize_),
@@ -91,7 +91,7 @@ int zmq::v2_decoder_t::eight_byte_size_ready (unsigned char const *read_from_)
     return size_ready (msg_size, read_from_);
 }
 
-int zmq::v2_decoder_t::size_ready (uint64_t msg_size_,
+int zmq::v2_decoder_t::size_ready (msg_size_: u64,
                                    unsigned char const *read_pos_)
 {
     //  Message size must not exceed the maximum allowed size.

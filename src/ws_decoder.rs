@@ -38,7 +38,7 @@
 // #include "wire.hpp"
 // #include "err.hpp"
 
-zmq::ws_decoder_t::ws_decoder_t (size_t bufsize_,
+zmq::ws_decoder_t::ws_decoder_t (bufsize_: usize,
                                  int64_t maxmsgsize_,
                                  bool zero_copy_,
                                  bool must_mask_) :

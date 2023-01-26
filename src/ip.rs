@@ -92,7 +92,7 @@ static const char *tmp_env_vars[] = {
 };
 // #endif
 
-zmq::fd_t zmq::open_socket (int domain_, int type_, protocol_: i32)
+zmq::fd_t zmq::open_socket (domain_: i32, type_: i32, protocol_: i32)
 {
     rc: i32;
 
@@ -884,7 +884,7 @@ void zmq::assert_success_or_recoverable (zmq::fd_t s_, rc_: i32)
 // #if defined ZMQ_HAVE_WINDOWS
 char *widechar_to_utf8 (const wchar_t *widestring)
 {
-    int nch, n;
+    nch: i32, n;
     char *utf8 = 0;
     nch = WideCharToMultiByte (CP_UTF8, 0, widestring, -1, 0, 0, NULL, NULL);
     if (nch > 0) {

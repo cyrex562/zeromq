@@ -51,7 +51,7 @@ class pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
     pgm_sender_t (zmq::io_thread_t *parent_, const options_t &options_);
     ~pgm_sender_t ();
 
-    int init (bool udp_encapsulation_, const char *network_);
+    int init (bool udp_encapsulation_, network_: *const c_char);
 
     //  i_engine interface implementation.
     bool has_handshake_stage () { return false; };

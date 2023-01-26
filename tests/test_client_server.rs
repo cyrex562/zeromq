@@ -52,7 +52,7 @@ void send_sndmore_expect_failure (socket_: *mut c_void)
 
 void test_client_sndmore_fails ()
 {
-    void *server, *client;
+    server: *mut c_void, *client;
     create_inproc_client_server_pair (&server, &client);
 
     send_sndmore_expect_failure (client);
@@ -63,7 +63,7 @@ void test_client_sndmore_fails ()
 
 void test_server_sndmore_fails ()
 {
-    void *server, *client;
+    server: *mut c_void, *client;
     create_inproc_client_server_pair (&server, &client);
 
     send_sndmore_expect_failure (server);
@@ -74,7 +74,7 @@ void test_server_sndmore_fails ()
 
 void test_routing_id ()
 {
-    void *server, *client;
+    server: *mut c_void, *client;
     create_inproc_client_server_pair (&server, &client);
 
     send_string_expect_success (client, "X", 0);

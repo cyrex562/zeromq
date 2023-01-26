@@ -51,7 +51,7 @@ static void test_stream_handshake_timeout_accept ()
     void *dealer = test_context_socket (ZMQ_DEALER);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (dealer, ZMQ_LINGER, &zero, sizeof (zero)));
-    int val, tenth = 100;
+    val: i32, tenth = 100;
     size_t vsize = sizeof (val);
 
     // check for the expected default handshake timeout value - 30 sec
@@ -113,7 +113,7 @@ static void test_stream_handshake_timeout_connect ()
     void *dealer = test_context_socket (ZMQ_DEALER);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (dealer, ZMQ_LINGER, &zero, sizeof (zero)));
-    int val, tenth = 100;
+    val: i32, tenth = 100;
     size_t vsize = sizeof (val);
 
     // check for the expected default handshake timeout value - 30 sec

@@ -53,10 +53,10 @@ bool zmq::msg_t::check () const
     return _u.base.type >= type_min && _u.base.type <= type_max;
 }
 
-int zmq::msg_t::init (void *data_,
-                      size_t size_,
+int zmq::msg_t::init (data_: *mut c_void,
+                      size_: usize,
                       msg_free_fn *ffn_,
-                      void *hint_,
+                      hint_: *mut c_void,
                       content_t *content_)
 {
     if (size_ < max_vsm_size) {
@@ -86,7 +86,7 @@ int zmq::msg_t::init ()
     return 0;
 }
 
-int zmq::msg_t::init_size (size_t size_)
+int zmq::msg_t::init_size (size_: usize)
 {
     if (size_ <= max_vsm_size) {
         _u.vsm.metadata = NULL;
@@ -121,7 +121,7 @@ int zmq::msg_t::init_size (size_t size_)
     return 0;
 }
 
-int zmq::msg_t::init_buffer (const void *buf_, size_t size_)
+int zmq::msg_t::init_buffer (const buf_: *mut c_void, size_: usize)
 {
     const int rc = init_size (size_);
     if (unlikely (rc < 0)) {
@@ -136,8 +136,8 @@ int zmq::msg_t::init_buffer (const void *buf_, size_t size_)
 }
 
 int zmq::msg_t::init_external_storage (content_t *content_,
-                                       void *data_,
-                                       size_t size_,
+                                       data_: *mut c_void,
+                                       size_: usize,
                                        msg_free_fn *ffn_,
                                        hint_: *mut c_void)
 {
@@ -161,8 +161,8 @@ int zmq::msg_t::init_external_storage (content_t *content_,
     return 0;
 }
 
-int zmq::msg_t::init_data (void *data_,
-                           size_t size_,
+int zmq::msg_t::init_data (data_: *mut c_void,
+                           size_: usize,
                            msg_free_fn *ffn_,
                            hint_: *mut c_void)
 {
@@ -236,7 +236,7 @@ int zmq::msg_t::init_leave ()
     return 0;
 }
 
-int zmq::msg_t::init_subscribe (const size_t size_, const unsigned char *topic_)
+int zmq::msg_t::init_subscribe (const size_: usize, const unsigned char *topic_)
 {
     int rc = init_size (size_);
     if (rc == 0) {
@@ -251,7 +251,7 @@ int zmq::msg_t::init_subscribe (const size_t size_, const unsigned char *topic_)
     return rc;
 }
 
-int zmq::msg_t::init_cancel (const size_t size_, const unsigned char *topic_)
+int zmq::msg_t::init_cancel (const size_: usize, const unsigned char *topic_)
 {
     int rc = init_size (size_);
     if (rc == 0) {
@@ -428,7 +428,7 @@ size_t zmq::msg_t::size () const
     }
 }
 
-void zmq::msg_t::shrink (size_t new_size_)
+void zmq::msg_t::shrink (new_size_: usize)
 {
     //  Check the validity of the message.
     zmq_assert (check ());
@@ -680,14 +680,14 @@ const char *zmq::msg_t::group () const
     return _u.base.group.sgroup.group;
 }
 
-int zmq::msg_t::set_group (const char *group_)
+int zmq::msg_t::set_group (group_: *const c_char)
 {
     size_t length = strnlen (group_, ZMQ_GROUP_MAX_LENGTH);
 
     return set_group (group_, length);
 }
 
-int zmq::msg_t::set_group (const char *group_, size_t length_)
+int zmq::msg_t::set_group (group_: *const c_char, length_: usize)
 {
     if (length_ > ZMQ_GROUP_MAX_LENGTH) {
         errno = EINVAL;

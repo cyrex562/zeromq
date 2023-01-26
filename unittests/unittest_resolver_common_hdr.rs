@@ -28,9 +28,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //  On windows we can receive an IPv4 address even when an IPv6 is requested, if
 //  we're in this situation then we compare to 'expected_addr_v4_failover_'
 //  instead.
-void validate_address (int family,
+void validate_address (family: i32,
                        const zmq::ip_addr_t *addr_,
-                       const char *expected_addr_,
+                       expected_addr_: *const c_char,
                        uint16_t expected_port_ = 0,
                        uint16_t expected_zone_ = 0,
                        const char *expected_addr_v4_failover_ = NULL)

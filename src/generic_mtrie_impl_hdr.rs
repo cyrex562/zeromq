@@ -65,7 +65,7 @@ template <typename T> generic_mtrie_t<T>::~generic_mtrie_t ()
 }
 
 template <typename T>
-bool generic_mtrie_t<T>::add (prefix_t prefix_, size_t size_, value_t *pipe_)
+bool generic_mtrie_t<T>::add (prefix_t prefix_, size_: usize, value_t *pipe_)
 {
     generic_mtrie_t<value_t> *it = this;
 
@@ -156,7 +156,7 @@ template <typename T>
 template <typename Arg>
 void generic_mtrie_t<T>::rm (value_t *pipe_,
                              void (*func_) (prefix_t data_,
-                                            size_t size_,
+                                            size_: usize,
                                             Arg arg_),
                              Arg arg_,
                              bool call_on_uniq_)
@@ -401,7 +401,7 @@ void generic_mtrie_t<T>::rm (value_t *pipe_,
 
 template <typename T>
 typename generic_mtrie_t<T>::rm_result
-generic_mtrie_t<T>::rm (prefix_t prefix_, size_t size_, value_t *pipe_)
+generic_mtrie_t<T>::rm (prefix_t prefix_, size_: usize, value_t *pipe_)
 {
     //  This used to be implemented as a non-tail recursive traversal of the trie,
     //  which means remote clients controlled the depth of the recursion and the
@@ -548,7 +548,7 @@ generic_mtrie_t<T>::rm (prefix_t prefix_, size_t size_, value_t *pipe_)
 template <typename T>
 template <typename Arg>
 void generic_mtrie_t<T>::match (prefix_t data_,
-                                size_t size_,
+                                size_: usize,
                                 void (*func_) (value_t *pipe_, Arg arg_),
                                 Arg arg_)
 {

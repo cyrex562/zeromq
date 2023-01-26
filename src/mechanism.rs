@@ -46,8 +46,8 @@ zmq::mechanism_t::~mechanism_t ()
 {
 }
 
-void zmq::mechanism_t::set_peer_routing_id (const void *id_ptr_,
-                                            size_t id_size_)
+void zmq::mechanism_t::set_peer_routing_id (const id_ptr_: *mut c_void,
+                                            id_size_: usize)
 {
     _routing_id.set (static_cast<const unsigned char *> (id_ptr_), id_size_);
 }
@@ -60,7 +60,7 @@ void zmq::mechanism_t::peer_routing_id (msg_t *msg_)
     msg_->set_flags (msg_t::routing_id);
 }
 
-void zmq::mechanism_t::set_user_id (const void *user_id_, size_t size_)
+void zmq::mechanism_t::set_user_id (const user_id_: *mut c_void, size_: usize)
 {
     _user_id.set (static_cast<const unsigned char *> (user_id_), size_);
     _zap_properties.ZMQ_MAP_INSERT_OR_EMPLACE (
@@ -123,12 +123,12 @@ const char *zmq::mechanism_t::socket_type_string (socket_type_: i32)
 const size_t name_len_size = sizeof (unsigned char);
 const size_t value_len_size = sizeof (uint32_t);
 
-static size_t property_len (size_t name_len_, size_t value_len_)
+static size_t property_len (name_len_: usize, value_len_: usize)
 {
     return name_len_size + name_len_ + value_len_size + value_len_;
 }
 
-static size_t name_len (const char *name_)
+static size_t name_len (name_: *const c_char)
 {
     const size_t name_len = strlen (name_);
     zmq_assert (name_len <= UCHAR_MAX);
@@ -136,10 +136,10 @@ static size_t name_len (const char *name_)
 }
 
 size_t zmq::mechanism_t::add_property (unsigned char *ptr_,
-                                       size_t ptr_capacity_,
-                                       const char *name_,
-                                       const void *value_,
-                                       size_t value_len_)
+                                       ptr_capacity_: usize,
+                                       name_: *const c_char,
+                                       const value_: *mut c_void,
+                                       value_len_: usize)
 {
     const size_t name_len = ::name_len (name_);
     const size_t total_len = ::property_len (name_len, value_len_);
@@ -157,7 +157,7 @@ size_t zmq::mechanism_t::add_property (unsigned char *ptr_,
     return total_len;
 }
 
-size_t zmq::mechanism_t::property_len (const char *name_, size_t value_len_)
+size_t zmq::mechanism_t::property_len (name_: *const c_char, value_len_: usize)
 {
     return ::property_len (name_len (name_), value_len_);
 }
@@ -166,7 +166,7 @@ size_t zmq::mechanism_t::property_len (const char *name_, size_t value_len_)
 // #define ZMTP_PROPERTY_IDENTITY "Identity"
 
 size_t zmq::mechanism_t::add_basic_properties (unsigned char *ptr_,
-                                               size_t ptr_capacity_) const
+                                               ptr_capacity_: usize) const
 {
     unsigned char *ptr = ptr_;
 
@@ -218,7 +218,7 @@ size_t zmq::mechanism_t::basic_properties_len () const
 }
 
 void zmq::mechanism_t::make_command_with_basic_properties (
-  msg_t *msg_, const char *prefix_, size_t prefix_len_) const
+  msg_t *msg_, prefix_: *const c_char, prefix_len_: usize) const
 {
     const size_t command_size = prefix_len_ + basic_properties_len ();
     const int rc = msg_->init_size (command_size);
@@ -235,7 +235,7 @@ void zmq::mechanism_t::make_command_with_basic_properties (
 }
 
 int zmq::mechanism_t::parse_metadata (const unsigned char *ptr_,
-                                      size_t length_,
+                                      length_: usize,
                                       bool zap_flag_)
 {
     size_t bytes_left = length_;
@@ -299,16 +299,16 @@ int zmq::mechanism_t::property (const std::string & /* name_ */,
 }
 
 template <size_t N>
-static bool strequals (const char *actual_type_,
-                       const size_t actual_len_,
+static bool strequals (actual_type_: *const c_char,
+                       const actual_len_: usize,
                        const char (&expected_type_)[N])
 {
     return actual_len_ == N - 1
            && memcmp (actual_type_, expected_type_, N - 1) == 0;
 }
 
-bool zmq::mechanism_t::check_socket_type (const char *type_,
-                                          const size_t len_) const
+bool zmq::mechanism_t::check_socket_type (type_: *const c_char,
+                                          const len_: usize) const
 {
     switch (options.type) {
         case ZMQ_REQ:

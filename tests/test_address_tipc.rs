@@ -50,7 +50,7 @@ void test_tipc_port_name_and_domain ()
 void test_tipc_port_identity ()
 {
     char endpoint[256];
-    unsigned int z, c, n, ref;
+    unsigned z: i32, c, n, ref;
 
     void *sb = test_context_socket (ZMQ_REP);
     void *sc = test_context_socket (ZMQ_REQ);

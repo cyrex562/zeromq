@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 libc="0.2"
 
-
 [lib]
 name = "zmqrs"
 path = "src/lib.rs"

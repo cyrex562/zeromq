@@ -135,7 +135,7 @@ std::string zmq::ws_listener_t::get_socket_name (zmq::fd_t fd_,
     return socket_name + _address.path ();
 }
 
-int zmq::ws_listener_t::create_socket (const char *addr_)
+int zmq::ws_listener_t::create_socket (addr_: *const c_char)
 {
     tcp_address_t address;
     _s = tcp_open_socket (addr_, options, true, true, &address);
@@ -204,7 +204,7 @@ error:
     return -1;
 }
 
-int zmq::ws_listener_t::set_local_address (const char *addr_)
+int zmq::ws_listener_t::set_local_address (addr_: *const c_char)
 {
     if (options.use_fd != -1) {
         //  in this case, the addr_ passed is not used and ignored, since the

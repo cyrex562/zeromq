@@ -73,11 +73,11 @@ class mechanism_t
     //  Returns the status of this mechanism.
     virtual status_t status () const = 0;
 
-    void set_peer_routing_id (const void *id_ptr_, size_t id_size_);
+    void set_peer_routing_id (const id_ptr_: *mut c_void, id_size_: usize);
 
     void peer_routing_id (msg_t *msg_);
 
-    void set_user_id (const void *user_id_, size_t size_);
+    void set_user_id (const user_id_: *mut c_void, size_: usize);
 
     const blob_t &get_user_id () const;
 
@@ -97,26 +97,26 @@ class mechanism_t
     static const char *socket_type_string (socket_type_: i32);
 
     static size_t add_property (unsigned char *ptr_,
-                                size_t ptr_capacity_,
-                                const char *name_,
-                                const void *value_,
-                                size_t value_len_);
-    static size_t property_len (const char *name_, size_t value_len_);
+                                ptr_capacity_: usize,
+                                name_: *const c_char,
+                                const value_: *mut c_void,
+                                value_len_: usize);
+    static size_t property_len (name_: *const c_char, value_len_: usize);
 
     size_t add_basic_properties (unsigned char *ptr_,
-                                 size_t ptr_capacity_) const;
+                                 ptr_capacity_: usize) const;
     size_t basic_properties_len () const;
 
     void make_command_with_basic_properties (msg_t *msg_,
-                                             const char *prefix_,
-                                             size_t prefix_len_) const;
+                                             prefix_: *const c_char,
+                                             prefix_len_: usize) const;
 
     //  Parses a metadata.
     //  Metadata consists of a list of properties consisting of
     //  name and value as size-specified strings.
     //  Returns 0 on success and -1 on error, in which case errno is set.
     int parse_metadata (const unsigned char *ptr_,
-                        size_t length_,
+                        length_: usize,
                         bool zap_flag_ = false);
 
     //  This is called by parse_property method whenever it
@@ -127,7 +127,7 @@ class mechanism_t
     //  Derived classes are supposed to override this
     //  method to handle custom processing.
     virtual int
-    property (const std::string &name_, const void *value_, size_t length_);
+    property (const std::string &name_, const value_: *mut c_void, length_: usize);
 
     const options_t options;
 
@@ -144,7 +144,7 @@ class mechanism_t
 
     //  Returns true iff socket associated with the mechanism
     //  is compatible with a given socket type 'type_'.
-    bool check_socket_type (const char *type_, size_t len_) const;
+    bool check_socket_type (type_: *const c_char, len_: usize) const;
 };
 }
 

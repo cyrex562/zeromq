@@ -32,7 +32,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-static void do_bind_and_verify (void *s_, const char *endpoint_)
+static void do_bind_and_verify (s_: *mut c_void, endpoint_: *const c_char)
 {
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (s_, endpoint_));
     char reported[255];

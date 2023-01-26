@@ -44,8 +44,8 @@ void handle_sigterm (int /*signum*/)
     sigterm_received = true;
 }
 
-void recv_string_expect_success_or_eagain (void *socket_,
-                                           const char *str_,
+void recv_string_expect_success_or_eagain (socket_: *mut c_void,
+                                           str_: *const c_char,
                                            flags_: i32)
 {
     const size_t len = str_ ? strlen (str_) : 0;

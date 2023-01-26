@@ -32,7 +32,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-void test (const char *address)
+void test (address: *const c_char)
 {
     //  Create a server
     void *server = test_context_socket (ZMQ_SERVER);

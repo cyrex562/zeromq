@@ -111,7 +111,7 @@ void test_add_single_entry_twice_match_exact ()
 
 void test_add_two_entries_with_same_name_match_exact ()
 {
-    int pipe_1, pipe_2;
+    pipe_1: i32, pipe_2;
 
     zmq::generic_mtrie_t<int> mtrie;
     const zmq::generic_mtrie_t<int>::prefix_t test_name =
@@ -132,7 +132,7 @@ void test_add_two_entries_with_same_name_match_exact ()
 
 void test_add_two_entries_match_prefix_and_exact ()
 {
-    int pipe_1, pipe_2;
+    pipe_1: i32, pipe_2;
 
     zmq::generic_mtrie_t<int> mtrie;
     const zmq::generic_mtrie_t<int>::prefix_t test_name_prefix =
@@ -199,9 +199,9 @@ void test_rm_nonexistent_empty ()
     TEST_ASSERT_EQUAL_INT (0, count);
 }
 
-void test_add_and_rm_other (const char *add_name_, const char *rm_name_)
+void test_add_and_rm_other (add_name_: *const c_char, rm_name_: *const c_char)
 {
-    int addpipe, rmpipe;
+    addpipe: i32, rmpipe;
     zmq::generic_mtrie_t<int> mtrie;
     const zmq::generic_mtrie_t<int>::prefix_t add_name_data =
       reinterpret_cast<zmq::generic_mtrie_t<int>::prefix_t> (add_name_);
@@ -257,7 +257,7 @@ void test_rm_nonexistent_nonempty_prefixed ()
 void add_indexed_expect_unique (zmq::generic_mtrie_t<int> &mtrie_,
                                 pipes_: *mut i32,
                                 const char **names_,
-                                size_t i_)
+                                i_: usize)
 {
     const zmq::generic_mtrie_t<int>::prefix_t name_data =
       reinterpret_cast<zmq::generic_mtrie_t<int>::prefix_t> (names_[i_]);
@@ -366,8 +366,8 @@ void test_rm_multiple_reverse_order ()
 }
 
 void check_name (zmq::generic_mtrie_t<int>::prefix_t data_,
-                 size_t len_,
-                 const char *name_)
+                 len_: usize,
+                 name_: *const c_char)
 {
     TEST_ASSERT_EQUAL_UINT (strlen (name_), len_);
     TEST_ASSERT_EQUAL_STRING_LEN (name_, data_, len_);
@@ -399,7 +399,7 @@ void test_rm_with_callback_multiple_reverse_order ()
 }
 
 void check_count (zmq::generic_mtrie_t<int>::prefix_t data_,
-                  size_t len_,
+                  len_: usize,
                   count_: *mut i32)
 {
     --(*count_);

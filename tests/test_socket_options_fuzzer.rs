@@ -40,7 +40,7 @@
 // #define LAST_OPTION ZMQ_BINDTODEVICE
 // #endif
 
-extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
 {
     option: i32;
     void *ctx = zmq_ctx_new ();
@@ -86,7 +86,7 @@ void test_socket_options_fuzzer ()
     free (len);
 }
 
-int main (int argc, char **argv)
+int main (argc: i32, char **argv)
 {
     setup_test_environment ();
 

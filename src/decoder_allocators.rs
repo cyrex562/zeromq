@@ -33,7 +33,7 @@
 // #include "msg.hpp"
 
 zmq::shared_message_memory_allocator::shared_message_memory_allocator (
-  std::size_t bufsize_) :
+  std::bufsize_: usize) :
     _buf (NULL),
     _buf_size (0),
     _max_size (bufsize_),
@@ -43,7 +43,7 @@ zmq::shared_message_memory_allocator::shared_message_memory_allocator (
 }
 
 zmq::shared_message_memory_allocator::shared_message_memory_allocator (
-  std::size_t bufsize_, std::size_t max_messages_) :
+  std::bufsize_: usize, std::max_messages_: usize) :
     _buf (NULL),
     _buf_size (0),
     _max_size (bufsize_),

@@ -46,11 +46,11 @@ class vmci_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
     vmci_listener_t (zmq::io_thread_t *io_thread_,
-                     zmq::socket_base_t *socket_,
+                     socket_: *mut socket_base_t,
                      const options_t &options_);
 
     //  Set address to listen on.
-    int set_local_address (const char *addr_);
+    int set_local_address (addr_: *const c_char);
 
   protected:
     std::string get_socket_name (fd_t fd_, socket_end_t socket_end_) const;
@@ -64,7 +64,7 @@ class vmci_listener_t ZMQ_FINAL : public stream_listener_base_t
     //  if the connection was dropped while waiting in the listen backlog.
     fd_t accept ();
 
-    int create_socket (const char *addr_);
+    int create_socket (addr_: *const c_char);
 
     //  Address to listen on.
     vmci_address_t _address;

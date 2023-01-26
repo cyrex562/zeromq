@@ -100,9 +100,9 @@ typedef struct
 } proxy_hwm_cfg_t;
 
 
-int test_assert_success_message_errno_helper (int rc_,
-                                              const char *msg_,
-                                              const char *expr_)
+int test_assert_success_message_errno_helper (rc_: i32,
+                                              msg_: *const c_char,
+                                              expr_: *const c_char)
 {
     if (rc_ == -1) {
         char buffer[512];
@@ -322,7 +322,7 @@ void terminate_proxy (const proxy_hwm_cfg_t *cfg)
 //  The main thread simply starts some publishers, a proxy,
 //  and a subscriber. Finish when all packets are received.
 
-int main (int argc, char *argv[])
+int main (argc: i32, char *argv[])
 {
     if (argc != 3) {
         printf ("usage: proxy_thr <message-size> <message-count>\n");

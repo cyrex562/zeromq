@@ -31,7 +31,7 @@
 // #include <stdio.h>
 // #include <stdlib.h>
 
-int main (int argc, char *argv[])
+int main (argc: i32, char *argv[])
 {
     const char *bind_to;
     roundtrip_count: i32;

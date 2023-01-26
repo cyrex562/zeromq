@@ -156,19 +156,19 @@ enum
 
 //  Bounce a message from client to server and back
 //  For REQ/REP or DEALER/DEALER pairs only
-void bounce (void *server_, client_: *mut c_void);
+void bounce (server_: *mut c_void, client_: *mut c_void);
 
 //  Same as bounce, but expect messages to never arrive
 //  for security or subscriber reasons.
-void expect_bounce_fail (void *server_, client_: *mut c_void);
+void expect_bounce_fail (server_: *mut c_void, client_: *mut c_void);
 
 //  Receive 0MQ string from socket and convert into C string
 //  Caller must free returned string. Returns NULL if the context
 //  is being terminated.
 char *s_recv (socket_: *mut c_void);
 
-bool streq (const char *lhs, const char *rhs);
-bool strneq (const char *lhs, const char *rhs);
+bool streq (lhs: *const c_char, rhs: *const c_char);
+bool strneq (lhs: *const c_char, rhs: *const c_char);
 
 extern const char *SEQ_END;
 
@@ -176,14 +176,14 @@ extern const char *SEQ_END;
 //  The list must be terminated by SEQ_END.
 //  Example: s_send_seq (req, "ABC", 0, "DEF", SEQ_END);
 
-void s_send_seq (void *socket_, ...);
+void s_send_seq (socket_: *mut c_void, ...);
 
 //  Receives message a number of frames long and checks that the frames have
 //  the given data which can be either C strings or 0 for a null frame.
 //  The list must be terminated by SEQ_END.
 //  Example: s_recv_seq (rep, "ABC", 0, "DEF", SEQ_END);
 
-void s_recv_seq (void *socket_, ...);
+void s_recv_seq (socket_: *mut c_void, ...);
 
 
 //  Sets a zero linger period on a socket and closes it.
@@ -212,7 +212,7 @@ int is_tipc_available (void);
 
 //  Wrapper around 'inet_pton' for systems that don't support it (e.g. Windows
 //  XP)
-int test_inet_pton (int af_, const char *src_, dst_: *mut c_void);
+int test_inet_pton (af_: i32, src_: *const c_char, dst_: *mut c_void);
 
 //  Binds an ipv4 BSD socket to an ephemeral port, returns the compiled sockaddr
 struct sockaddr_in bind_bsd_socket (socket: i32);
@@ -222,7 +222,7 @@ struct sockaddr_in bind_bsd_socket (socket: i32);
 // #define IPPROTO_WSS 10001
 
 //  Connects a BSD socket to the ZMQ endpoint. Works with ipv4/ipv6/unix.
-fd_t connect_socket (const char *endpoint_,
+fd_t connect_socket (endpoint_: *const c_char,
                      const int af_ = AF_INET,
                      const int protocol_ = IPPROTO_TCP);
 
@@ -231,15 +231,15 @@ fd_t connect_socket (const char *endpoint_,
 //  prefix, so ensure it is writable and of appropriate size.
 //  Works with ipv4/ipv6/unix. With unix sockets address_/port_ can be empty and
 //  my_endpoint_ will contain a random path.
-fd_t bind_socket_resolve_port (const char *address_,
-                               const char *port_,
+fd_t bind_socket_resolve_port (address_: *const c_char,
+                               port_: *const c_char,
                                char *my_endpoint_,
                                const int af_ = AF_INET,
                                const int protocol_ = IPPROTO_TCP);
 
-int fuzzer_corpus_encode (const char *filename,
+int fuzzer_corpus_encode (filename: *const c_char,
                           uint8_t ***data,
                           size_t **len,
-                          size_t *num_cases);
+                          num_cases: *mut usize);
 
 // #endif

@@ -55,7 +55,7 @@ zmq::norm_engine_t::~norm_engine_t ()
 }
 
 
-int zmq::norm_engine_t::init (const char *network_, bool send, bool recv)
+int zmq::norm_engine_t::init (network_: *const c_char, bool send, bool recv)
 {
     // Parse the "network_" address int "iface", "addr", and "port"
     // norm endpoint format: [id,][<iface>;]<addr>:<port>

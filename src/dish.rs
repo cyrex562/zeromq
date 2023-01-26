@@ -90,7 +90,7 @@ void zmq::dish_t::xhiccuped (pipe_t *pipe_)
     send_subscriptions (pipe_);
 }
 
-int zmq::dish_t::xjoin (const char *group_)
+int zmq::dish_t::xjoin (group_: *const c_char)
 {
     const std::string group = std::string (group_);
 
@@ -123,7 +123,7 @@ int zmq::dish_t::xjoin (const char *group_)
     return rc;
 }
 
-int zmq::dish_t::xleave (const char *group_)
+int zmq::dish_t::xleave (group_: *const c_char)
 {
     const std::string group = std::string (group_);
 

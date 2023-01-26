@@ -54,9 +54,9 @@ class dealer_t : public socket_base_t
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_) ZMQ_FINAL;
-    int xsetsockopt (int option_,
-                     const void *optval_,
-                     size_t optvallen_) ZMQ_OVERRIDE;
+    int xsetsockopt (option_: i32,
+                     const optval_: *mut c_void,
+                     optvallen_: usize) ZMQ_OVERRIDE;
     int xsend (zmq::msg_t *msg_) ZMQ_OVERRIDE;
     int xrecv (zmq::msg_t *msg_) ZMQ_OVERRIDE;
     bool xhas_in () ZMQ_OVERRIDE;

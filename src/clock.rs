@@ -60,7 +60,7 @@
 // #endif
 
 // #if defined ZMQ_HAVE_OSX
-int alt_clock_gettime (int clock_id, timespec *ts)
+int alt_clock_gettime (clock_id: i32, timespec *ts)
 {
     clock_serv_t cclock;
     mach_timespec_t mts;

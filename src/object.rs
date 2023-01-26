@@ -170,7 +170,7 @@ void zmq::object_t::process_command (const command_t &cmd_)
     }
 }
 
-int zmq::object_t::register_endpoint (const char *addr_,
+int zmq::object_t::register_endpoint (addr_: *const c_char,
                                       const endpoint_t &endpoint_)
 {
     return _ctx->register_endpoint (addr_, endpoint_);
@@ -187,7 +187,7 @@ void zmq::object_t::unregister_endpoints (socket_base_t *socket_)
     return _ctx->unregister_endpoints (socket_);
 }
 
-zmq::endpoint_t zmq::object_t::find_endpoint (const char *addr_) const
+zmq::endpoint_t zmq::object_t::find_endpoint (addr_: *const c_char) const
 {
     return _ctx->find_endpoint (addr_);
 }
@@ -199,7 +199,7 @@ void zmq::object_t::pend_connection (const std::string &addr_,
     _ctx->pend_connection (addr_, endpoint_, pipes_);
 }
 
-void zmq::object_t::connect_pending (const char *addr_,
+void zmq::object_t::connect_pending (addr_: *const c_char,
                                      zmq::socket_base_t *bind_socket_)
 {
     return _ctx->connect_pending (addr_, bind_socket_);
@@ -310,7 +310,7 @@ void zmq::object_t::send_hiccup (pipe_t *destination_, pipe_: *mut c_void)
 }
 
 void zmq::object_t::send_pipe_peer_stats (pipe_t *destination_,
-                                          uint64_t queue_count_,
+                                          queue_count_: u64,
                                           own_t *socket_base_,
                                           endpoint_uri_pair_t *endpoint_pair_)
 {
@@ -325,8 +325,8 @@ void zmq::object_t::send_pipe_peer_stats (pipe_t *destination_,
 
 void zmq::object_t::send_pipe_stats_publish (
   own_t *destination_,
-  uint64_t outbound_queue_count_,
-  uint64_t inbound_queue_count_,
+  outbound_queue_count_: u64,
+  inbound_queue_count_: u64,
   endpoint_uri_pair_t *endpoint_pair_)
 {
     command_t cmd;
@@ -355,7 +355,7 @@ void zmq::object_t::send_pipe_term_ack (pipe_t *destination_)
 }
 
 void zmq::object_t::send_pipe_hwm (pipe_t *destination_,
-                                   int inhwm_,
+                                   inhwm_: i32,
                                    outhwm_: i32)
 {
     command_t cmd;

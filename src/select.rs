@@ -420,7 +420,7 @@ void zmq::select_t::loop ()
 }
 
 void zmq::select_t::select_family_entry (family_entry_t &family_entry_,
-                                         const int max_fd_,
+                                         const max_fd_: i32,
                                          const bool use_timeout_,
                                          struct timeval &tv_)
 {

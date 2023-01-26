@@ -304,7 +304,7 @@ static void server_worker (void * /*unused_*/)
 
             // Send 0..4 replies back
             if (keep_sending) {
-                int reply, replies = rand () % 5;
+                reply: i32, replies = rand () % 5;
                 for (reply = 0; reply < replies; reply++) {
                     // Sleep for some fraction of a second
                     msleep (rand () % 10 + 1);
@@ -328,7 +328,7 @@ static void server_worker (void * /*unused_*/)
     TEST_ASSERT_SUCCESS_ERRNO (zmq_close (control));
 }
 
-uint64_t recv_stat (void *sock_, bool last_)
+uint64_t recv_stat (sock_: *mut c_void, bool last_)
 {
     uint64_t res;
     zmq_msg_t stats_msg;

@@ -75,7 +75,7 @@ void test__zmq_curve_public__valid__success ()
 }
 
 // The key length must be evenly divisible by 5 or must fail with EINVAL.
-void test__zmq_curve_public__invalid__failure (const char *secret_)
+void test__zmq_curve_public__invalid__failure (secret_: *const c_char)
 {
     errno = 0;
     char out_public[41] = {0};

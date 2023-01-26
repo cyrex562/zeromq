@@ -39,8 +39,8 @@
 
 void zmq::tune_vmci_buffer_size (ctx_t *context_,
                                  fd_t sockfd_,
-                                 uint64_t default_size_,
-                                 uint64_t min_size_,
+                                 default_size_: u64,
+                                 min_size_: u64,
                                  uint64_t max_size_)
 {
     int family = context_->get_vmci_socket_family ();
@@ -99,7 +99,7 @@ void zmq::tune_vmci_connect_timeout (ctx_t *context_,
 // #endif
 }
 
-zmq::fd_t zmq::vmci_open_socket (const char *address_,
+zmq::fd_t zmq::vmci_open_socket (address_: *const c_char,
                                  const zmq::options_t &options_,
                                  zmq::vmci_address_t *out_vmci_addr_)
 {

@@ -105,7 +105,7 @@ static void mock_handshake (fd_t fd_, bool sub_command, bool mock_pub)
 static void prep_server_socket (void **server_out_,
                                 void **mon_out_,
                                 char *endpoint_,
-                                size_t ep_length_,
+                                ep_length_: usize,
                                 socket_type: i32)
 {
     //  We'll be using this socket in raw mode
@@ -137,7 +137,7 @@ static void test_mock_pub_sub (bool sub_command_, bool mock_pub_)
     rc: i32;
     char my_endpoint[MAX_SOCKET_STRING];
 
-    void *server, *server_mon;
+    server: *mut c_void, *server_mon;
     prep_server_socket (&server, &server_mon, my_endpoint, MAX_SOCKET_STRING,
                         mock_pub_ ? ZMQ_SUB : ZMQ_XPUB);
 

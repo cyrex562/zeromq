@@ -36,7 +36,7 @@
 namespace zmq
 {
 //  Same as socket(2), but allows for transparent tweaking the options.
-fd_t open_socket (int domain_, int type_, protocol_: i32);
+fd_t open_socket (domain_: i32, type_: i32, protocol_: i32);
 
 //  Sets the socket into non-blocking mode.
 void unblock_socket (fd_t s_);

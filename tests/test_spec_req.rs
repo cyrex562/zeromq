@@ -34,7 +34,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 char connect_address[MAX_SOCKET_STRING];
 
-void test_round_robin_out (const char *bind_address_)
+void test_round_robin_out (bind_address_: *const c_char)
 {
     void *req = test_context_socket (ZMQ_REQ);
 
@@ -68,7 +68,7 @@ void test_round_robin_out (const char *bind_address_)
         test_context_socket_close_zero_linger (rep[peer]);
 }
 
-void test_req_only_listens_to_current_peer (const char *bind_address_)
+void test_req_only_listens_to_current_peer (bind_address_: *const c_char)
 {
     void *req = test_context_socket (ZMQ_REQ);
 
@@ -123,7 +123,7 @@ void test_req_only_listens_to_current_peer (const char *bind_address_)
         test_context_socket_close_zero_linger (router[i]);
 }
 
-void test_req_message_format (const char *bind_address_)
+void test_req_message_format (bind_address_: *const c_char)
 {
     void *req = test_context_socket (ZMQ_REQ);
     void *router = test_context_socket (ZMQ_ROUTER);

@@ -54,9 +54,9 @@ namespace zmq
 {
 struct curve_client_tools_t
 {
-    static int produce_hello (void *data_,
+    static int produce_hello (data_: *mut c_void,
                               const uint8_t *server_key_,
-                              const uint64_t cn_nonce_,
+                              const cn_nonce_: u64,
                               const uint8_t *cn_public_,
                               const uint8_t *cn_secret_)
     {
@@ -94,7 +94,7 @@ struct curve_client_tools_t
     }
 
     static int process_welcome (const uint8_t *msg_data_,
-                                size_t msg_size_,
+                                msg_size_: usize,
                                 const uint8_t *server_key_,
                                 const uint8_t *cn_secret_,
                                 uint8_t *cn_server_,
@@ -137,9 +137,9 @@ struct curve_client_tools_t
         return 0;
     }
 
-    static int produce_initiate (void *data_,
-                                 size_t size_,
-                                 const uint64_t cn_nonce_,
+    static int produce_initiate (data_: *mut c_void,
+                                 size_: usize,
+                                 const cn_nonce_: u64,
                                  const uint8_t *server_key_,
                                  const uint8_t *public_key_,
                                  const uint8_t *secret_key_,
@@ -148,7 +148,7 @@ struct curve_client_tools_t
                                  const uint8_t *cn_server_,
                                  const uint8_t *cn_cookie_,
                                  const uint8_t *metadata_plaintext_,
-                                 const size_t metadata_length_)
+                                 const metadata_length_: usize)
     {
         uint8_t vouch_nonce[crypto_box_NONCEBYTES];
         std::vector<uint8_t, secure_allocator_t<uint8_t> > vouch_plaintext (
@@ -228,19 +228,19 @@ struct curve_client_tools_t
     }
 
     static bool is_handshake_command_welcome (const uint8_t *msg_data_,
-                                              const size_t msg_size_)
+                                              const msg_size_: usize)
     {
         return is_handshake_command (msg_data_, msg_size_, "\7WELCOME");
     }
 
     static bool is_handshake_command_ready (const uint8_t *msg_data_,
-                                            const size_t msg_size_)
+                                            const msg_size_: usize)
     {
         return is_handshake_command (msg_data_, msg_size_, "\5READY");
     }
 
     static bool is_handshake_command_error (const uint8_t *msg_data_,
-                                            const size_t msg_size_)
+                                            const msg_size_: usize)
     {
         return is_handshake_command (msg_data_, msg_size_, "\5ERROR");
     }
@@ -263,25 +263,25 @@ struct curve_client_tools_t
         zmq_assert (rc == 0);
     }
 
-    int produce_hello (void *data_, const uint64_t cn_nonce_) const
+    int produce_hello (data_: *mut c_void, const uint64_t cn_nonce_) const
     {
         return produce_hello (data_, server_key, cn_nonce_, cn_public,
                               cn_secret);
     }
 
     int process_welcome (const uint8_t *msg_data_,
-                         size_t msg_size_,
+                         msg_size_: usize,
                          uint8_t *cn_precom_)
     {
         return process_welcome (msg_data_, msg_size_, server_key, cn_secret,
                                 cn_server, cn_cookie, cn_precom_);
     }
 
-    int produce_initiate (void *data_,
-                          size_t size_,
-                          const uint64_t cn_nonce_,
+    int produce_initiate (data_: *mut c_void,
+                          size_: usize,
+                          const cn_nonce_: u64,
                           const uint8_t *metadata_plaintext_,
-                          const size_t metadata_length_) const
+                          const metadata_length_: usize) const
     {
         return produce_initiate (data_, size_, cn_nonce_, server_key,
                                  public_key, secret_key, cn_public, cn_secret,
@@ -313,7 +313,7 @@ struct curve_client_tools_t
   // private:
     template <size_t N>
     static bool is_handshake_command (const uint8_t *msg_data_,
-                                      const size_t msg_size_,
+                                      const msg_size_: usize,
                                       const char (&prefix_)[N])
     {
         return msg_size_ >= (N - 1) && !memcmp (msg_data_, prefix_, N - 1);

@@ -45,7 +45,7 @@ class wss_engine_t : public ws_engine_t
                   const endpoint_uri_pair_t &endpoint_uri_pair_,
                   ws_address_t &address_,
                   bool client_,
-                  void *tls_server_cred_,
+                  tls_server_cred_: *mut c_void,
                   const std::string &hostname_);
     ~wss_engine_t ();
 
@@ -54,8 +54,8 @@ class wss_engine_t : public ws_engine_t
   protected:
     bool handshake ();
     void plug_internal ();
-    int read (void *data, size_t size_);
-    int write (const void *data_, size_t size_);
+    int read (data: *mut c_void, size_: usize);
+    int write (const data_: *mut c_void, size_: usize);
 
   // private:
     bool do_handshake ();

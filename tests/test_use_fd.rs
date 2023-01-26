@@ -38,7 +38,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 // #if !defined(ZMQ_HAVE_WINDOWS)
 
-void pre_allocate_sock_tcp (void *socket_, char *my_endpoint_)
+void pre_allocate_sock_tcp (socket_: *mut c_void, char *my_endpoint_)
 {
     fd_t s = bind_socket_resolve_port ("127.0.0.1", "0", my_endpoint_);
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -48,8 +48,8 @@ void pre_allocate_sock_tcp (void *socket_, char *my_endpoint_)
 typedef void (*pre_allocate_sock_fun_t) (void *, char *);
 
 void setup_socket_pair (pre_allocate_sock_fun_t pre_allocate_sock_fun_,
-                        int bind_socket_type_,
-                        int connect_socket_type_,
+                        bind_socket_type_: i32,
+                        connect_socket_type_: i32,
                         void **out_sb_,
                         void **out_sc_)
 {
@@ -65,10 +65,10 @@ void setup_socket_pair (pre_allocate_sock_fun_t pre_allocate_sock_fun_,
 }
 
 void test_socket_pair (pre_allocate_sock_fun_t pre_allocate_sock_fun_,
-                       int bind_socket_type_,
+                       bind_socket_type_: i32,
                        connect_socket_type_: i32)
 {
-    void *sb, *sc;
+    sb: *mut c_void, *sc;
     setup_socket_pair (pre_allocate_sock_fun_, bind_socket_type_,
                        connect_socket_type_, &sb, &sc);
 
@@ -91,7 +91,7 @@ void test_pair (pre_allocate_sock_fun_t pre_allocate_sock_fun_)
 void test_client_server (pre_allocate_sock_fun_t pre_allocate_sock_fun_)
 {
 // #if defined(ZMQ_SERVER) && defined(ZMQ_CLIENT)
-    void *sb, *sc;
+    sb: *mut c_void, *sc;
     setup_socket_pair (pre_allocate_sock_fun_, ZMQ_SERVER, ZMQ_CLIENT, &sb,
                        &sc);
 
@@ -164,7 +164,7 @@ void test_client_server_tcp ()
 
 char ipc_endpoint[MAX_SOCKET_STRING] = "";
 
-void pre_allocate_sock_ipc (void *sb_, char *my_endpoint_)
+void pre_allocate_sock_ipc (sb_: *mut c_void, char *my_endpoint_)
 {
     fd_t s = bind_socket_resolve_port ("", "", my_endpoint_, AF_UNIX, 0);
     TEST_ASSERT_SUCCESS_ERRNO (

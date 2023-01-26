@@ -37,7 +37,7 @@
 // #include "testutil.hpp"
 // #include "testutil_unity.hpp"
 
-extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
 {
     uint8_t *secret_key;
 
@@ -78,7 +78,7 @@ void test_z85_decode_fuzzer ()
     free (len);
 }
 
-int main (int argc, char **argv)
+int main (argc: i32, char **argv)
 {
     setup_test_environment ();
 

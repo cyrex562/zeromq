@@ -42,7 +42,7 @@ class v2_decoder_t ZMQ_FINAL
     : public decoder_base_t<v2_decoder_t, shared_message_memory_allocator>
 {
 // public:
-    v2_decoder_t (size_t bufsize_, int64_t maxmsgsize_, bool zero_copy_);
+    v2_decoder_t (bufsize_: usize, int64_t maxmsgsize_, bool zero_copy_);
     ~v2_decoder_t ();
 
     //  i_decoder interface.
@@ -54,7 +54,7 @@ class v2_decoder_t ZMQ_FINAL
     int eight_byte_size_ready (unsigned char const *);
     int message_ready (unsigned char const *);
 
-    int size_ready (uint64_t size_, unsigned char const *);
+    int size_ready (size_: u64, unsigned char const *);
 
     unsigned char _tmpbuf[8];
     unsigned char _msg_flags;

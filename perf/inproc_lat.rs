@@ -106,7 +106,7 @@ static void *worker (ctx_: *mut c_void)
 // #endif
 }
 
-int main (int argc, char *argv[])
+int main (argc: i32, char *argv[])
 {
 // #if defined ZMQ_HAVE_WINDOWS
     HANDLE local_thread;

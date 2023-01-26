@@ -78,8 +78,8 @@ pub struct curve_encoding_t
 }
 
 pub impl curve_encoding_t {
-    curve_encoding_t (const char *encode_nonce_prefix_,
-        const char *decode_nonce_prefix_,
+    curve_encoding_t (encode_nonce_prefix_: *const c_char,
+        decode_nonce_prefix_: *const c_char,
         const bool downgrade_sub_);
 
 int encode (msg_t *msg_);
@@ -99,8 +99,8 @@ class curve_mechanism_base_t : public virtual mechanism_base_t,
   // public:
     curve_mechanism_base_t (session_base_t *session_,
                             const options_t &options_,
-                            const char *encode_nonce_prefix_,
-                            const char *decode_nonce_prefix_,
+                            encode_nonce_prefix_: *const c_char,
+                            decode_nonce_prefix_: *const c_char,
                             const bool downgrade_sub_);
 
     // mechanism implementation

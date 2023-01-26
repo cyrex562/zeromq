@@ -58,7 +58,7 @@ class gssapi_mechanism_base_t : public virtual mechanism_base_t
   protected:
     //  Produce a context-level GSSAPI token (INITIATE command)
     //  during security context initialization.
-    int produce_initiate (msg_t *msg_, void *data_, size_t data_len_);
+    int produce_initiate (msg_t *msg_, data_: *mut c_void, data_len_: usize);
 
     //  Process a context-level GSSAPI token (INITIATE command)
     //  during security context initialization.

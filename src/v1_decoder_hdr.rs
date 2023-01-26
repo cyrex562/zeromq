@@ -39,7 +39,7 @@ namespace zmq
 class v1_decoder_t ZMQ_FINAL : public decoder_base_t<v1_decoder_t>
 {
 // public:
-    v1_decoder_t (size_t bufsize_, int64_t maxmsgsize_);
+    v1_decoder_t (bufsize_: usize, int64_t maxmsgsize_);
     ~v1_decoder_t ();
 
     msg_t *msg () { return &_in_progress; }

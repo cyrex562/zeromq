@@ -67,7 +67,7 @@ zmq::pgm_socket_t::pgm_socket_t (bool receiver_, const options_t &options_) :
 //  e.g. eth0;239.192.0.1:7500
 //       link-local;224.250.0.1,224.250.0.2;224.250.0.3:8000
 //       ;[fe80::1%en0]:7500
-int zmq::pgm_socket_t::init_address (const char *network_,
+int zmq::pgm_socket_t::init_address (network_: *const c_char,
                                      struct pgm_addrinfo_t **res,
                                      uint16_t *port_number)
 {
@@ -114,7 +114,7 @@ int zmq::pgm_socket_t::init_address (const char *network_,
 }
 
 //  Create, bind and connect PGM socket.
-int zmq::pgm_socket_t::init (bool udp_encapsulation_, const char *network_)
+int zmq::pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
 {
     //  Can not open transport before destroying old one.
     zmq_assert (sock == NULL);
@@ -452,7 +452,7 @@ void zmq::pgm_socket_t::get_sender_fds (fd_t *send_fd_,
 
 //  Send one APDU, transmit window owned memory.
 //  data_len_ must be less than one TPDU.
-size_t zmq::pgm_socket_t::send (unsigned char *data_, size_t data_len_)
+size_t zmq::pgm_socket_t::send (unsigned char *data_, data_len_: usize)
 {
     size_t nbytes = 0;
 

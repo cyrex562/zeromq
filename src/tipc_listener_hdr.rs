@@ -46,11 +46,11 @@ class tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
     tipc_listener_t (zmq::io_thread_t *io_thread_,
-                     zmq::socket_base_t *socket_,
+                     socket_: *mut socket_base_t,
                      const options_t &options_);
 
     //  Set address to listen on.
-    int set_local_address (const char *addr_);
+    int set_local_address (addr_: *const c_char);
 
   protected:
     std::string get_socket_name (fd_t fd_,

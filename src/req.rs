@@ -206,9 +206,9 @@ bool zmq::req_t::xhas_out ()
     return dealer_t::xhas_out ();
 }
 
-int zmq::req_t::xsetsockopt (int option_,
-                             const void *optval_,
-                             size_t optvallen_)
+int zmq::req_t::xsetsockopt (option_: i32,
+                             const optval_: *mut c_void,
+                             optvallen_: usize)
 {
     const bool is_int = (optvallen_ == sizeof (int));
     int value = 0;

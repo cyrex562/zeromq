@@ -42,7 +42,7 @@
 
 zmq::stream_listener_base_t::stream_listener_base_t (
   zmq::io_thread_t *io_thread_,
-  zmq::socket_base_t *socket_,
+  socket_: *mut socket_base_t,
   const zmq::options_t &options_) :
     own_t (io_thread_, options_),
     io_object_t (io_thread_),

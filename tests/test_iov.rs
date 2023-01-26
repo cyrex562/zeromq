@@ -46,7 +46,7 @@ struct iovec
 };
 // #endif
 
-static void do_check (void *sb_, void *sc_, size_t msg_size_)
+static void do_check (sb_: *mut c_void, sc_: *mut c_void, msg_size_: usize)
 {
     TEST_ASSERT_NOT_NULL (sb_);
     TEST_ASSERT_NOT_NULL (sc_);
@@ -54,7 +54,7 @@ static void do_check (void *sb_, void *sc_, size_t msg_size_)
 
     const char msg_val = '1';
     const int num_messages = 10;
-    size_t send_count, recv_count;
+    send_count: usize, recv_count;
 
     send_count = recv_count = num_messages;
 

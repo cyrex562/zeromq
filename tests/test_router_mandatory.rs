@@ -35,7 +35,7 @@
 SETUP_TEARDOWN_TESTCONTEXT
 
 // #ifdef ZMQ_BUILD_DRAFT_API
-bool send_msg_to_peer_if_ready (void *router_, const char *peer_routing_id_)
+bool send_msg_to_peer_if_ready (router_: *mut c_void, peer_routing_id_: *const c_char)
 {
     int rc = TEST_ASSERT_SUCCESS_MESSAGE_ERRNO (
       zmq_socket_get_peer_state (router_, peer_routing_id_, 1),

@@ -76,7 +76,7 @@ struct blob_t
     blob_t () : _data (0), _size (0), _owned (true) {}
 
     //  Creates a blob_t of a given size, with uninitialized content.
-    explicit blob_t (const size_t size_) :
+    explicit blob_t (const size_: usize) :
         _data (static_cast<unsigned char *> (malloc (size_))),
         _size (size_),
         _owned (true)
@@ -86,7 +86,7 @@ struct blob_t
 
     //  Creates a blob_t of a given size, an initializes content by copying
     // from another buffer.
-    blob_t (const unsigned char *const data_, const size_t size_) :
+    blob_t (const unsigned char *const data_, const size_: usize) :
         _data (static_cast<unsigned char *> (malloc (size_))),
         _size (size_),
         _owned (true)
@@ -99,7 +99,7 @@ struct blob_t
     //  pre-allocated block of data.
     //  Use with caution and ensure that the blob_t will not outlive
     //  the referenced data.
-    blob_t (unsigned char *const data_, const size_t size_, reference_tag_t) :
+    blob_t (unsigned char *const data_, const size_: usize, reference_tag_t) :
         _data (data_), _size (size_), _owned (false)
     {
     }
@@ -133,7 +133,7 @@ struct blob_t
     }
 
     //  Sets a blob_t to a copy of a given buffer.
-    void set (const unsigned char *const data_, const size_t size_)
+    void set (const unsigned char *const data_, const size_: usize)
     {
         clear ();
         _data = static_cast<unsigned char *> (malloc (size_));

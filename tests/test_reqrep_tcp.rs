@@ -62,9 +62,9 @@ void test_single_connect (ipv6_: i32)
 }
 
 void make_connect_address (char *connect_address_,
-                           const int ipv6_,
-                           const int port_,
-                           const char *bind_address_)
+                           const ipv6_: i32,
+                           const port_: i32,
+                           bind_address_: *const c_char)
 {
     sprintf (connect_address_, "tcp://%s:%i;%s", ipv6_ ? "[::1]" : "127.0.0.1",
              port_, strrchr (bind_address_, '/') + 1);

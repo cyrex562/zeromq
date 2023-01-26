@@ -95,7 +95,7 @@ static void recv_bounce_msg (socket_: *mut c_void)
     TEST_ASSERT_FALSE (rcvmore);
 }
 
-void bounce (void *server_, client_: *mut c_void)
+void bounce (server_: *mut c_void, client_: *mut c_void)
 {
     //  Send message from client to server
     send_bounce_msg (client_);
@@ -131,7 +131,7 @@ static void recv_bounce_msg_fail (socket_: *mut c_void)
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (socket_, buffer, 32, 0));
 }
 
-void expect_bounce_fail (void *server_, client_: *mut c_void)
+void expect_bounce_fail (server_: *mut c_void, client_: *mut c_void)
 {
     //  Send message from client to server
     send_bounce_msg_may_fail (client_);
@@ -159,7 +159,7 @@ char *s_recv (socket_: *mut c_void)
     return strdup (buffer);
 }
 
-void s_send_seq (void *socket_, ...)
+void s_send_seq (socket_: *mut c_void, ...)
 {
     va_list ap;
     va_start (ap, socket_);
@@ -182,7 +182,7 @@ void s_send_seq (void *socket_, ...)
     va_end (ap);
 }
 
-void s_recv_seq (void *socket_, ...)
+void s_recv_seq (socket_: *mut c_void, ...)
 {
     zmq_msg_t msg;
     zmq_msg_init (&msg);
@@ -265,7 +265,7 @@ int is_ipv6_available ()
 // #if defined(ZMQ_HAVE_WINDOWS) && (_WIN32_WINNT < 0x0600)
     return 0;
 // #else
-    int rc, ipv6 = 1;
+    rc: i32, ipv6 = 1;
     struct sockaddr_in6 test_addr;
 
     memset (&test_addr, 0, sizeof (test_addr));
@@ -327,7 +327,7 @@ int is_tipc_available ()
 // #endif // ZMQ_HAVE_TIPC
 }
 
-int test_inet_pton (int af_, const char *src_, dst_: *mut c_void)
+int test_inet_pton (af_: i32, src_: *const c_char, dst_: *mut c_void)
 {
 // #if defined(ZMQ_HAVE_WINDOWS) && (_WIN32_WINNT < 0x0600)
     if (af_ == AF_INET) {
@@ -377,7 +377,7 @@ sockaddr_in bind_bsd_socket (socket_: i32)
     return saddr;
 }
 
-fd_t connect_socket (const char *endpoint_, const int af_, const protocol_: i32)
+fd_t connect_socket (endpoint_: *const c_char, const af_: i32, const protocol_: i32)
 {
     struct sockaddr_storage addr;
     //  OSX is very opinionated and wants the size to match the AF family type
@@ -434,10 +434,10 @@ fd_t connect_socket (const char *endpoint_, const int af_, const protocol_: i32)
     return s_pre;
 }
 
-fd_t bind_socket_resolve_port (const char *address_,
-                               const char *port_,
+fd_t bind_socket_resolve_port (address_: *const c_char,
+                               port_: *const c_char,
                                char *my_endpoint_,
-                               const int af_,
+                               const af_: i32,
                                const protocol_: i32)
 {
     struct sockaddr_storage addr;
@@ -532,21 +532,21 @@ fd_t bind_socket_resolve_port (const char *address_,
     return s_pre;
 }
 
-bool streq (const char *lhs_, const char *rhs_)
+bool streq (lhs_: *const c_char, rhs_: *const c_char)
 {
     return strcmp (lhs_, rhs_) == 0;
 }
 
-bool strneq (const char *lhs_, const char *rhs_)
+bool strneq (lhs_: *const c_char, rhs_: *const c_char)
 {
     return strcmp (lhs_, rhs_) != 0;
 }
 
 // #if defined _WIN32
-int fuzzer_corpus_encode (const char *dirname,
+int fuzzer_corpus_encode (dirname: *const c_char,
                           uint8_t ***data,
                           size_t **len,
-                          size_t *num_cases)
+                          num_cases: *mut usize)
 {
     (void) dirname;
     (void) data;
@@ -558,10 +558,10 @@ int fuzzer_corpus_encode (const char *dirname,
 
 // #else
 
-int fuzzer_corpus_encode (const char *dirname,
+int fuzzer_corpus_encode (dirname: *const c_char,
                           uint8_t ***data,
                           size_t **len,
-                          size_t *num_cases)
+                          num_cases: *mut usize)
 {
     TEST_ASSERT_NOT_NULL (dirname);
     TEST_ASSERT_NOT_NULL (data);
