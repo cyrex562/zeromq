@@ -41,14 +41,14 @@
 
 namespace zmq
 {
-class ctx_t;
+class ZmqContext;
 class pipe_t;
 
 //  TODO: This class uses O(n) scheduling. Rewrite it to use O(1) algorithm.
 class router_t : public routing_socket_base_t
 {
 // public:
-    router_t (zmq::ctx_t *parent_, uint32_t tid_, sid_: i32);
+    router_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~router_t () ZMQ_OVERRIDE;
 
     //  Overrides of functions from socket_base_t.

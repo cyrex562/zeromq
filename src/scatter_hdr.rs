@@ -36,7 +36,7 @@
 
 namespace zmq
 {
-class ctx_t;
+class ZmqContext;
 class pipe_t;
 class msg_t;
 class io_thread_t;
@@ -44,7 +44,7 @@ class io_thread_t;
 class scatter_t ZMQ_FINAL : public socket_base_t
 {
 // public:
-    scatter_t (zmq::ctx_t *parent_, uint32_t tid_, sid_: i32);
+    scatter_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~scatter_t ();
 
   protected:

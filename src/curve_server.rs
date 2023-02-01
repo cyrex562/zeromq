@@ -39,6 +39,47 @@
 // #include "wire.hpp"
 // #include "secure_allocator.hpp"
 
+class curve_server_t ZMQ_FINAL : public zap_client_common_handshake_t,
+                                 public curve_mechanism_base_t
+{
+// public:
+    curve_server_t (session_base_t *session_,
+                    const std::string &peer_address_,
+                    const options_t &options_,
+                    const bool downgrade_sub_);
+    ~curve_server_t ();
+
+    // mechanism implementation
+    int next_handshake_command (msg_t *msg_);
+    int process_handshake_command (msg_t *msg_);
+    int encode (msg_t *msg_);
+    int decode (msg_t *msg_);
+
+  // private:
+    //  Our secret key (s)
+    uint8_t _secret_key[crypto_box_SECRETKEYBYTES];
+
+    //  Our short-term public key (S')
+    uint8_t _cn_public[crypto_box_PUBLICKEYBYTES];
+
+    //  Our short-term secret key (s')
+    uint8_t _cn_secret[crypto_box_SECRETKEYBYTES];
+
+    //  Client's short-term public key (C')
+    uint8_t _cn_client[crypto_box_PUBLICKEYBYTES];
+
+    //  Key used to produce cookie
+    uint8_t _cookie_key[crypto_secretbox_KEYBYTES];
+
+    int process_hello (msg_t *msg_);
+    int produce_welcome (msg_t *msg_);
+    int process_initiate (msg_t *msg_);
+    int produce_ready (msg_t *msg_);
+    int produce_error (msg_t *msg_) const;
+
+    void send_zap_request (const uint8_t *key_);
+};
+
 zmq::curve_server_t::curve_server_t (session_base_t *session_,
                                      const std::string &peer_address_,
                                      const options_t &options_,

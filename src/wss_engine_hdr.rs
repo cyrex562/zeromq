@@ -43,7 +43,7 @@ class wss_engine_t : public ws_engine_t
     wss_engine_t (fd_t fd_,
                   const options_t &options_,
                   const endpoint_uri_pair_t &endpoint_uri_pair_,
-                  ws_address_t &address_,
+                  WsAddress &address_,
                   bool client_,
                   tls_server_cred_: *mut c_void,
                   const std::string &hostname_);

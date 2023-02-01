@@ -152,7 +152,7 @@ bool zmq::socket_base_t::is_thread_safe () const
 }
 
 zmq::socket_base_t *zmq::socket_base_t::create (type_: i32,
-                                                class ctx_t *parent_,
+                                                class ZmqContext *parent_,
                                                 uint32_t tid_,
                                                 sid_: i32)
 {
@@ -237,7 +237,7 @@ zmq::socket_base_t *zmq::socket_base_t::create (type_: i32,
     return s;
 }
 
-zmq::socket_base_t::socket_base_t (ctx_t *parent_,
+zmq::socket_base_t::socket_base_t (ZmqContext *parent_,
                                    uint32_t tid_,
                                    sid_: i32,
                                    bool thread_safe_) :
@@ -600,11 +600,11 @@ int zmq::socket_base_t::bind (endpoint_uri_: *const c_char)
             return -1;
         }
 
-        address_t *paddr =
-          new (std::nothrow) address_t (protocol, address, this->get_ctx ());
+        Address *paddr =
+          new (std::nothrow) Address (protocol, address, this->get_ctx ());
         alloc_assert (paddr);
 
-        paddr->resolved.udp_addr = new (std::nothrow) udp_address_t ();
+        paddr->resolved.udp_addr = new (std::nothrow) UdpAddress ();
         alloc_assert (paddr->resolved.udp_addr);
         rc = paddr->resolved.udp_addr->resolve (address.c_str (), true,
                                                 options.ipv6);
@@ -917,8 +917,8 @@ int zmq::socket_base_t::connect_internal (endpoint_uri_: *const c_char)
         return -1;
     }
 
-    address_t *paddr =
-      new (std::nothrow) address_t (protocol, address, this->get_ctx ());
+    Address *paddr =
+      new (std::nothrow) Address (protocol, address, this->get_ctx ());
     alloc_assert (paddr);
 
     //  Resolve address (if needed by the protocol)
@@ -968,7 +968,7 @@ int zmq::socket_base_t::connect_internal (endpoint_uri_: *const c_char)
 // #ifdef ZMQ_HAVE_WSS
     else if (protocol == protocol_name::ws || protocol == protocol_name::wss) {
         if (protocol == protocol_name::wss) {
-            paddr->resolved.wss_addr = new (std::nothrow) wss_address_t ();
+            paddr->resolved.wss_addr = new (std::nothrow) WssAddress ();
             alloc_assert (paddr->resolved.wss_addr);
             rc = paddr->resolved.wss_addr->resolve (address.c_str (), false,
                                                     options.ipv6);
@@ -977,7 +977,7 @@ int zmq::socket_base_t::connect_internal (endpoint_uri_: *const c_char)
     else if (protocol == protocol_name::ws) {
 // #endif
         {
-            paddr->resolved.ws_addr = new (std::nothrow) ws_address_t ();
+            paddr->resolved.ws_addr = new (std::nothrow) WsAddress ();
             alloc_assert (paddr->resolved.ws_addr);
             rc = paddr->resolved.ws_addr->resolve (address.c_str (), false,
                                                    options.ipv6);
@@ -992,7 +992,7 @@ int zmq::socket_base_t::connect_internal (endpoint_uri_: *const c_char)
 
 // #if defined ZMQ_HAVE_IPC
     else if (protocol == protocol_name::ipc) {
-        paddr->resolved.ipc_addr = new (std::nothrow) ipc_address_t ();
+        paddr->resolved.ipc_addr = new (std::nothrow) IpcAddress ();
         alloc_assert (paddr->resolved.ipc_addr);
         int rc = paddr->resolved.ipc_addr->resolve (address.c_str ());
         if (rc != 0) {
@@ -1009,7 +1009,7 @@ int zmq::socket_base_t::connect_internal (endpoint_uri_: *const c_char)
             return -1;
         }
 
-        paddr->resolved.udp_addr = new (std::nothrow) udp_address_t ();
+        paddr->resolved.udp_addr = new (std::nothrow) UdpAddress ();
         alloc_assert (paddr->resolved.udp_addr);
         rc = paddr->resolved.udp_addr->resolve (address.c_str (), false,
                                                 options.ipv6);
@@ -1036,7 +1036,7 @@ int zmq::socket_base_t::connect_internal (endpoint_uri_: *const c_char)
 // #endif
 // #if defined ZMQ_HAVE_TIPC
     else if (protocol == protocol_name::tipc) {
-        paddr->resolved.tipc_addr = new (std::nothrow) tipc_address_t ();
+        paddr->resolved.tipc_addr = new (std::nothrow) TipcAddress ();
         alloc_assert (paddr->resolved.tipc_addr);
         int rc = paddr->resolved.tipc_addr->resolve (address.c_str ());
         if (rc != 0) {
@@ -1058,7 +1058,7 @@ int zmq::socket_base_t::connect_internal (endpoint_uri_: *const c_char)
 // #if defined ZMQ_HAVE_VMCI
     else if (protocol == protocol_name::vmci) {
         paddr->resolved.vmci_addr =
-          new (std::nothrow) vmci_address_t (this->get_ctx ());
+          new (std::nothrow) VmciAddress (this->get_ctx ());
         alloc_assert (paddr->resolved.vmci_addr);
         int rc = paddr->resolved.vmci_addr->resolve (address.c_str ());
         if (rc != 0) {
@@ -1130,7 +1130,7 @@ zmq::socket_base_t::resolve_tcp_addr (std::string endpoint_uri_pair_,
     // resolve before giving up. Given at this stage we don't know whether a
     // socket is connected or bound, try with both.
     if (_endpoints.find (endpoint_uri_pair_) == _endpoints.end ()) {
-        tcp_address_t *tcp_addr = new (std::nothrow) tcp_address_t ();
+        TcpAddress *tcp_addr = new (std::nothrow) TcpAddress ();
         alloc_assert (tcp_addr);
         int rc = tcp_addr->resolve (tcp_address_, false, options.ipv6);
 
@@ -2073,7 +2073,7 @@ bool zmq::socket_base_t::is_disconnected () const
     return _disconnected;
 }
 
-zmq::routing_socket_base_t::routing_socket_base_t (class ctx_t *parent_,
+zmq::routing_socket_base_t::routing_socket_base_t (class ZmqContext *parent_,
                                                    uint32_t tid_,
                                                    sid_: i32) :
     socket_base_t (parent_, tid_, sid_)

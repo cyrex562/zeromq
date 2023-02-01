@@ -48,7 +48,7 @@
 zmq::vmci_connecter_t::vmci_connecter_t (class io_thread_t *io_thread_,
                                          class session_base_t *session_,
                                          const options_t &options_,
-                                         address_t *addr_,
+                                         Address *addr_,
                                          bool delayed_start_) :
     stream_connecter_base_t (
       io_thread_, session_, options_, addr_, delayed_start_),
@@ -125,20 +125,20 @@ void zmq::vmci_connecter_t::out_event ()
     }
 
     create_engine (
-      fd, zmq::vmci_connecter_t::get_socket_name (fd, socket_end_local));
+      fd, zmq::vmci_connecter_t::get_socket_name (fd, SocketEndLocal));
 }
 
 std::string
 zmq::vmci_connecter_t::get_socket_name (zmq::fd_t fd_,
-                                        socket_end_t socket_end_) const
+                                        SocketEnd socket_end_) const
 {
     struct sockaddr_storage ss;
-    const zmq_socklen_t sl = get_socket_address (fd_, socket_end_, &ss);
+    const ZmqSocklen sl = get_socket_address (fd_, socket_end_, &ss);
     if (sl == 0) {
         return std::string ();
     }
 
-    const vmci_address_t addr (reinterpret_cast<struct sockaddr *> (&ss), sl,
+    const VmciAddress addr (reinterpret_cast<struct sockaddr *> (&ss), sl,
                                this->get_ctx ());
     std::string address_string;
     addr.to_string (address_string);
@@ -204,7 +204,7 @@ int zmq::vmci_connecter_t::open ()
     }
 
     _addr->resolved.vmci_addr =
-      new (std::nothrow) vmci_address_t (this->get_ctx ());
+      new (std::nothrow) VmciAddress (this->get_ctx ());
     alloc_assert (_addr->resolved.vmci_addr);
     _s = vmci_open_socket (_addr->address.c_str (), options,
                            _addr->resolved.vmci_addr);
@@ -219,7 +219,7 @@ int zmq::vmci_connecter_t::open ()
     // Set the socket to non-blocking mode so that we get async connect().
     unblock_socket (_s);
 
-    const vmci_address_t *const vmci_addr = _addr->resolved.vmci_addr;
+    const VmciAddress *const vmci_addr = _addr->resolved.vmci_addr;
 
     rc: i32;
 

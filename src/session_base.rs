@@ -55,7 +55,7 @@ zmq::session_base_t *zmq::session_base_t::create (class io_thread_t *io_thread_,
                                                   bool active_,
                                                   class socket_base_t *socket_,
                                                   const options_t &options_,
-                                                  address_t *addr_)
+                                                  Address *addr_)
 {
     session_base_t *s = NULL;
     switch (options_.type) {
@@ -116,7 +116,7 @@ zmq::session_base_t::session_base_t (class io_thread_t *io_thread_,
                                      bool active_,
                                      class socket_base_t *socket_,
                                      const options_t &options_,
-                                     address_t *addr_) :
+                                     Address *addr_) :
     own_t (io_thread_, options_),
     io_object_t (io_thread_),
     _active (active_),
@@ -621,8 +621,8 @@ void zmq::session_base_t::start_connecting (bool wait_)
     own_t *connecter = NULL;
     if (_addr->protocol == protocol_name::tcp) {
         if (!options.socks_proxy_address.empty ()) {
-            address_t *proxy_address = new (std::nothrow)
-              address_t (protocol_name::tcp, options.socks_proxy_address,
+            Address *proxy_address = new (std::nothrow)
+              Address (protocol_name::tcp, options.socks_proxy_address,
                          this->get_ctx ());
             alloc_assert (proxy_address);
             connecter = new (std::nothrow) socks_connecter_t (
@@ -782,7 +782,7 @@ zmq::hello_msg_session_t::hello_msg_session_t (io_thread_t *io_thread_,
                                                bool connect_,
                                                socket_base_t *socket_,
                                                const options_t &options_,
-                                               address_t *addr_) :
+                                               Address *addr_) :
     session_base_t (io_thread_, connect_, socket_, options_, addr_),
     _new_pipe (true)
 {

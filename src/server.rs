@@ -36,7 +36,7 @@
 // #include "likely.hpp"
 // #include "err.hpp"
 
-zmq::server_t::server_t (class ctx_t *parent_, uint32_t tid_, sid_: i32) :
+zmq::server_t::server_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     socket_base_t (parent_, tid_, sid_, true),
     _next_routing_id (generate_random ())
 {

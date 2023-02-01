@@ -40,7 +40,7 @@
 
 namespace zmq
 {
-class ctx_t;
+class ZmqContext;
 class msg_t;
 class pipe_t;
 
@@ -48,7 +48,7 @@ class pipe_t;
 class server_t : public socket_base_t
 {
 // public:
-    server_t (zmq::ctx_t *parent_, uint32_t tid_, sid_: i32);
+    server_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~server_t ();
 
     //  Overrides of functions from socket_base_t.

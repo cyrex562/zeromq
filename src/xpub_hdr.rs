@@ -39,7 +39,7 @@
 
 namespace zmq
 {
-class ctx_t;
+class ZmqContext;
 class msg_t;
 class pipe_t;
 class io_thread_t;
@@ -47,7 +47,7 @@ class io_thread_t;
 class xpub_t : public socket_base_t
 {
 // public:
-    xpub_t (zmq::ctx_t *parent_, uint32_t tid_, sid_: i32);
+    xpub_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~xpub_t () ZMQ_OVERRIDE;
 
     //  Implementations of virtual functions from socket_base_t.

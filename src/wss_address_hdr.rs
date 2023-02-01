@@ -34,11 +34,11 @@
 
 namespace zmq
 {
-class wss_address_t : public ws_address_t
+class WssAddress : public WsAddress
 {
 // public:
-    wss_address_t ();
-    wss_address_t (const sockaddr *sa_, socklen_t sa_len_);
+    WssAddress ();
+    WssAddress (const sockaddr *sa_, socklen_t sa_len_);
     //  The opposite to resolve()
     int to_string (std::string &addr_) const;
 };

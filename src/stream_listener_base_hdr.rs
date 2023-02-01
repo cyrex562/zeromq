@@ -56,7 +56,7 @@ class stream_listener_base_t : public own_t, public io_object_t
 
   protected:
     virtual std::string get_socket_name (fd_t fd_,
-                                         socket_end_t socket_end_) const = 0;
+                                         SocketEnd socket_end_) const = 0;
 
   // private:
     //  Handlers for incoming commands.

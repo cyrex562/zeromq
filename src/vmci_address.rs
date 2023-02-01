@@ -39,19 +39,19 @@
 
 // #include "err.hpp"
 
-zmq::vmci_address_t::vmci_address_t ()
+zmq::VmciAddress::VmciAddress ()
 {
     memset (&address, 0, sizeof address);
 }
 
-zmq::vmci_address_t::vmci_address_t (ctx_t *parent_) : parent (parent_)
+zmq::VmciAddress::VmciAddress (ZmqContext *parent_) : parent (parent_)
 {
     memset (&address, 0, sizeof address);
 }
 
-zmq::vmci_address_t::vmci_address_t (const sockaddr *sa,
+zmq::VmciAddress::VmciAddress (const sockaddr *sa,
                                      socklen_t sa_len,
-                                     ctx_t *parent_) :
+                                     ZmqContext *parent_) :
     parent (parent_)
 {
     zmq_assert (sa && sa_len > 0);
@@ -61,7 +61,7 @@ zmq::vmci_address_t::vmci_address_t (const sockaddr *sa,
         memcpy (&address, sa, sa_len);
 }
 
-int zmq::vmci_address_t::resolve (path_: *const c_char)
+int zmq::VmciAddress::resolve (path_: *const c_char)
 {
     //  Find the ':' at end that separates address from the port number.
     const char *delimiter = strrchr (path_, ':');
@@ -126,7 +126,7 @@ int zmq::vmci_address_t::resolve (path_: *const c_char)
     return 0;
 }
 
-int zmq::vmci_address_t::to_string (std::string &addr_) const
+int zmq::VmciAddress::to_string (std::string &addr_) const
 {
     if (address.svm_family != parent->get_vmci_socket_family ()) {
         addr_.clear ();
@@ -155,20 +155,20 @@ int zmq::vmci_address_t::to_string (std::string &addr_) const
     return 0;
 }
 
-const sockaddr *zmq::vmci_address_t::addr () const
+const sockaddr *zmq::VmciAddress::addr () const
 {
     return reinterpret_cast<const sockaddr *> (&address);
 }
 
-socklen_t zmq::vmci_address_t::addrlen () const
+socklen_t zmq::VmciAddress::addrlen () const
 {
     return static_cast<socklen_t> (sizeof address);
 }
 
 // #if defined ZMQ_HAVE_WINDOWS
-unsigned short zmq::vmci_address_t::family () const
+unsigned short zmq::VmciAddress::family () const
 // #else
-sa_family_t zmq::vmci_address_t::family () const
+sa_family_t zmq::VmciAddress::family () const
 // #endif
 {
     return parent->get_vmci_socket_family ();

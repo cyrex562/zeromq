@@ -43,7 +43,7 @@ void tearDown ()
 class test_ip_resolver_t ZMQ_FINAL : public zmq::ip_resolver_t
 {
 // public:
-    test_ip_resolver_t (zmq::ip_resolver_options_t opts_) :
+    test_ip_resolver_t (zmq::IpResolverOptions opts_) :
         ip_resolver_t (opts_)
     {
     }
@@ -135,7 +135,7 @@ class test_ip_resolver_t ZMQ_FINAL : public zmq::ip_resolver_t
 //  On windows we can receive an IPv4 address even when an IPv6 is requested, if
 //  we're in this situation then we compare to 'expected_addr_v4_failover_'
 //  instead.
-static void test_resolve (zmq::ip_resolver_options_t opts_,
+static void test_resolve (zmq::IpResolverOptions opts_,
                           name_: *const c_char,
                           expected_addr_: *const c_char,
                           uint16_t expected_port_ = 0,
@@ -177,7 +177,7 @@ static void test_resolve (zmq::ip_resolver_options_t opts_,
 
 static void test_bind_any (bool ipv6_)
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.bindable (true).expect_port (true).ipv6 (ipv6_);
 
@@ -188,7 +188,7 @@ MAKE_TEST_V4V6 (test_bind_any)
 
 static void test_bind_any_port0 (bool ipv6_)
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.bindable (true).expect_port (true).ipv6 (ipv6_);
 
@@ -200,7 +200,7 @@ MAKE_TEST_V4V6 (test_bind_any_port0)
 
 static void test_nobind_any (bool ipv6_)
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true).ipv6 (ipv6_);
 
@@ -212,7 +212,7 @@ MAKE_TEST_V4V6 (test_nobind_any)
 
 static void test_nobind_any_port (bool ipv6_)
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true).ipv6 (ipv6_);
 
@@ -224,7 +224,7 @@ MAKE_TEST_V4V6 (test_nobind_any_port)
 
 static void test_nobind_addr_anyport (bool ipv6_)
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true).ipv6 (ipv6_);
 
@@ -235,7 +235,7 @@ MAKE_TEST_V4V6 (test_nobind_addr_anyport)
 
 static void test_nobind_addr_port0 (bool ipv6_)
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true).ipv6 (ipv6_);
 
@@ -249,28 +249,28 @@ MAKE_TEST_V4V6 (test_nobind_addr_port0)
 
 static void test_parse_ipv4_simple ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     test_resolve (resolver_opts, "1.2.128.129", "1.2.128.129");
 }
 
 static void test_parse_ipv4_zero ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     test_resolve (resolver_opts, "0.0.0.0", "0.0.0.0");
 }
 
 static void test_parse_ipv4_max ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     test_resolve (resolver_opts, "255.255.255.255", "255.255.255.255");
 }
 
 static void test_parse_ipv4_brackets ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     //  Not particularly useful, but valid
     test_resolve (resolver_opts, "[1.2.128.129]", "1.2.128.129");
@@ -278,28 +278,28 @@ static void test_parse_ipv4_brackets ()
 
 static void test_parse_ipv4_brackets_missingl ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     test_resolve (resolver_opts, "1.2.128.129]", NULL);
 }
 
 static void test_parse_ipv4_brackets_missingr ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     test_resolve (resolver_opts, "[1.2.128.129", NULL);
 }
 
 static void test_parse_ipv4_brackets_bad ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     test_resolve (resolver_opts, "[1.2.128].129", NULL);
 }
 
 static void test_parse_ipv4_reject_port ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     //  No port expected, should be rejected
     test_resolve (resolver_opts, "1.2.128.129:123", NULL);
@@ -307,7 +307,7 @@ static void test_parse_ipv4_reject_port ()
 
 static void test_parse_ipv4_reject_any ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     //  No port expected, should be rejected
     test_resolve (resolver_opts, "1.2.128.129:*", NULL);
@@ -315,7 +315,7 @@ static void test_parse_ipv4_reject_any ()
 
 static void test_parse_ipv4_reject_ipv6 ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     //  No port expected, should be rejected
     test_resolve (resolver_opts, "::1", NULL);
@@ -323,7 +323,7 @@ static void test_parse_ipv4_reject_ipv6 ()
 
 static void test_parse_ipv4_port ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true);
 
@@ -332,7 +332,7 @@ static void test_parse_ipv4_port ()
 
 static void test_parse_ipv4_port0 ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true);
 
@@ -342,7 +342,7 @@ static void test_parse_ipv4_port0 ()
 
 static void test_parse_ipv4_port_garbage ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true);
 
@@ -352,7 +352,7 @@ static void test_parse_ipv4_port_garbage ()
 
 static void test_parse_ipv4_port_missing ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true);
 
@@ -361,7 +361,7 @@ static void test_parse_ipv4_port_missing ()
 
 static void test_parse_ipv4_port_bad ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true);
 
@@ -370,7 +370,7 @@ static void test_parse_ipv4_port_bad ()
 
 static void test_parse_ipv4_port_brackets ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true);
 
@@ -379,7 +379,7 @@ static void test_parse_ipv4_port_brackets ()
 
 static void test_parse_ipv4_port_brackets_bad ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true);
 
@@ -388,7 +388,7 @@ static void test_parse_ipv4_port_brackets_bad ()
 
 static void test_parse_ipv4_port_brackets_bad2 ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true);
 
@@ -397,7 +397,7 @@ static void test_parse_ipv4_port_brackets_bad2 ()
 
 static void test_parse_ipv4_wild_brackets_bad ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true);
 
@@ -406,7 +406,7 @@ static void test_parse_ipv4_wild_brackets_bad ()
 
 static void test_parse_ipv4_port_ipv6_reject ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true);
 
@@ -415,7 +415,7 @@ static void test_parse_ipv4_port_ipv6_reject ()
 
 static void test_parse_ipv6_simple ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true);
 
@@ -424,7 +424,7 @@ static void test_parse_ipv6_simple ()
 
 static void test_parse_ipv6_simple2 ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true);
 
@@ -433,7 +433,7 @@ static void test_parse_ipv6_simple2 ()
 
 static void test_parse_ipv6_zero ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true);
 
@@ -442,7 +442,7 @@ static void test_parse_ipv6_zero ()
 
 static void test_parse_ipv6_max ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true);
 
@@ -452,7 +452,7 @@ static void test_parse_ipv6_max ()
 
 static void test_parse_ipv6_brackets ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true);
 
@@ -461,7 +461,7 @@ static void test_parse_ipv6_brackets ()
 
 static void test_parse_ipv6_brackets_missingl ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true);
 
@@ -470,7 +470,7 @@ static void test_parse_ipv6_brackets_missingl ()
 
 static void test_parse_ipv6_brackets_missingr ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true);
 
@@ -479,7 +479,7 @@ static void test_parse_ipv6_brackets_missingr ()
 
 static void test_parse_ipv6_brackets_bad ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true);
 
@@ -488,7 +488,7 @@ static void test_parse_ipv6_brackets_bad ()
 
 static void test_parse_ipv6_port ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true).expect_port (true);
 
@@ -497,7 +497,7 @@ static void test_parse_ipv6_port ()
 
 static void test_parse_ipv6_port_any ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true).expect_port (true).bindable (true);
 
@@ -506,7 +506,7 @@ static void test_parse_ipv6_port_any ()
 
 static void test_parse_ipv6_port_nobrackets ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true).expect_port (true);
 
@@ -517,7 +517,7 @@ static void test_parse_ipv6_port_nobrackets ()
 
 static void test_parse_ipv4_in_ipv6 ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true);
 
@@ -530,7 +530,7 @@ static void test_parse_ipv4_in_ipv6 ()
 
 static void test_parse_ipv4_in_ipv6_port ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true).expect_port (true);
 
@@ -540,7 +540,7 @@ static void test_parse_ipv4_in_ipv6_port ()
 
 static void test_parse_ipv6_scope_int ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true);
 
@@ -549,7 +549,7 @@ static void test_parse_ipv6_scope_int ()
 
 static void test_parse_ipv6_scope_zero ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true);
 
@@ -558,7 +558,7 @@ static void test_parse_ipv6_scope_zero ()
 
 static void test_parse_ipv6_scope_int_port ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true).ipv6 (true);
 
@@ -568,7 +568,7 @@ static void test_parse_ipv6_scope_int_port ()
 
 static void test_parse_ipv6_scope_if ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true);
 
@@ -578,7 +578,7 @@ static void test_parse_ipv6_scope_if ()
 
 static void test_parse_ipv6_scope_if_port ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true).ipv6 (true);
 
@@ -588,7 +588,7 @@ static void test_parse_ipv6_scope_if_port ()
 
 static void test_parse_ipv6_scope_if_port_brackets ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true).ipv6 (true);
 
@@ -598,7 +598,7 @@ static void test_parse_ipv6_scope_if_port_brackets ()
 
 static void test_parse_ipv6_scope_badif ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true);
 
@@ -607,7 +607,7 @@ static void test_parse_ipv6_scope_badif ()
 
 static void test_dns_ipv4_simple ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.allow_dns (true);
 
@@ -616,7 +616,7 @@ static void test_dns_ipv4_simple ()
 
 static void test_dns_ipv4_only ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.allow_dns (true);
 
@@ -625,7 +625,7 @@ static void test_dns_ipv4_only ()
 
 static void test_dns_ipv4_invalid ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.allow_dns (true);
 
@@ -634,7 +634,7 @@ static void test_dns_ipv4_invalid ()
 
 static void test_dns_ipv4_ipv6 ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.allow_dns (true);
 
@@ -643,7 +643,7 @@ static void test_dns_ipv4_ipv6 ()
 
 static void test_dns_ipv4_numeric ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.allow_dns (true);
 
@@ -653,7 +653,7 @@ static void test_dns_ipv4_numeric ()
 
 static void test_dns_ipv4_port ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true).allow_dns (true);
 
@@ -662,7 +662,7 @@ static void test_dns_ipv4_port ()
 
 static void test_dns_ipv6_simple ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true).allow_dns (true);
 
@@ -671,7 +671,7 @@ static void test_dns_ipv6_simple ()
 
 static void test_dns_ipv6_only ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true).allow_dns (true);
 
@@ -680,7 +680,7 @@ static void test_dns_ipv6_only ()
 
 static void test_dns_ipv6_invalid ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true).allow_dns (true);
 
@@ -689,7 +689,7 @@ static void test_dns_ipv6_invalid ()
 
 static void test_dns_ipv6_ipv4 ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true).allow_dns (true);
 
@@ -700,7 +700,7 @@ static void test_dns_ipv6_ipv4 ()
 
 static void test_dns_ipv6_numeric ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true).allow_dns (true);
 
@@ -710,7 +710,7 @@ static void test_dns_ipv6_numeric ()
 
 static void test_dns_ipv6_port ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (true).expect_port (true).allow_dns (true);
 
@@ -720,7 +720,7 @@ static void test_dns_ipv6_port ()
 
 void test_dns_brackets ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.allow_dns (true);
 
@@ -729,7 +729,7 @@ void test_dns_brackets ()
 
 void test_dns_brackets_bad ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.allow_dns (true);
 
@@ -738,7 +738,7 @@ void test_dns_brackets_bad ()
 
 void test_dns_brackets_port ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.allow_dns (true);
 
@@ -747,7 +747,7 @@ void test_dns_brackets_port ()
 
 void test_dns_brackets_port_bad ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.allow_dns (true);
 
@@ -756,7 +756,7 @@ void test_dns_brackets_port_bad ()
 
 void test_dns_deny (bool ipv6_)
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.allow_dns (false).ipv6 (ipv6_);
 
@@ -767,7 +767,7 @@ MAKE_TEST_V4V6 (test_dns_deny)
 
 void test_dns_ipv6_scope ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.allow_dns (true).ipv6 (true);
 
@@ -779,7 +779,7 @@ void test_dns_ipv6_scope ()
 
 void test_dns_ipv6_scope_port ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.allow_dns (true).expect_port (true).ipv6 (true);
 
@@ -791,7 +791,7 @@ void test_dns_ipv6_scope_port ()
 
 void test_dns_ipv6_scope_port_brackets ()
 {
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.allow_dns (true).expect_port (true).ipv6 (true);
 
@@ -805,7 +805,7 @@ static void test_addr (family_: i32, addr_: *const c_char, bool multicast_)
         TEST_IGNORE_MESSAGE ("ipv6 is not available");
     }
 
-    zmq::ip_resolver_options_t resolver_opts;
+    zmq::IpResolverOptions resolver_opts;
 
     resolver_opts.ipv6 (family_ == AF_INET6);
 

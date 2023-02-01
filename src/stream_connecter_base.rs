@@ -47,7 +47,7 @@ zmq::stream_connecter_base_t::stream_connecter_base_t (
   zmq::io_thread_t *io_thread_,
   zmq::session_base_t *session_,
   const zmq::options_t &options_,
-  zmq::address_t *addr_,
+  zmq::Address *addr_,
   bool delayed_start_) :
     own_t (io_thread_, options_),
     io_object_t (io_thread_),

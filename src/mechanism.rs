@@ -38,6 +38,111 @@
 // #include "wire.hpp"
 // #include "session_base.hpp"
 
+
+class mechanism_t
+{
+// public:
+    enum status_t
+    {
+        handshaking,
+        ready,
+        error
+    };
+
+    mechanism_t (const options_t &options_);
+
+    virtual ~mechanism_t ();
+
+    //  Prepare next handshake command that is to be sent to the peer.
+    virtual int next_handshake_command (msg_t *msg_) = 0;
+
+    //  Process the handshake command received from the peer.
+    virtual int process_handshake_command (msg_t *msg_) = 0;
+
+    virtual int encode (msg_t *) { return 0; }
+
+    virtual int decode (msg_t *) { return 0; }
+
+    //  Notifies mechanism about availability of ZAP message.
+    virtual int zap_msg_available () { return 0; }
+
+    //  Returns the status of this mechanism.
+    virtual status_t status () const = 0;
+
+    void set_peer_routing_id (const id_ptr_: *mut c_void, id_size_: usize);
+
+    void peer_routing_id (msg_t *msg_);
+
+    void set_user_id (const user_id_: *mut c_void, size_: usize);
+
+    const blob_t &get_user_id () const;
+
+    const metadata_t::dict_t &get_zmtp_properties () const
+    {
+        return _zmtp_properties;
+    }
+
+    const metadata_t::dict_t &get_zap_properties () const
+    {
+        return _zap_properties;
+    }
+
+  protected:
+    //  Only used to identify the socket for the Socket-Type
+    //  property in the wire protocol.
+    static const char *socket_type_string (socket_type_: i32);
+
+    static size_t add_property (unsigned char *ptr_,
+                                ptr_capacity_: usize,
+                                name_: *const c_char,
+                                const value_: *mut c_void,
+                                value_len_: usize);
+    static size_t property_len (name_: *const c_char, value_len_: usize);
+
+    size_t add_basic_properties (unsigned char *ptr_,
+                                 ptr_capacity_: usize) const;
+    size_t basic_properties_len () const;
+
+    void make_command_with_basic_properties (msg_t *msg_,
+                                             prefix_: *const c_char,
+                                             prefix_len_: usize) const;
+
+    //  Parses a metadata.
+    //  Metadata consists of a list of properties consisting of
+    //  name and value as size-specified strings.
+    //  Returns 0 on success and -1 on error, in which case errno is set.
+    int parse_metadata (const unsigned char *ptr_,
+                        length_: usize,
+                        bool zap_flag_ = false);
+
+    //  This is called by parse_property method whenever it
+    //  parses a new property. The function should return 0
+    //  on success and -1 on error, in which case it should
+    //  set errno. Signaling error prevents parser from
+    //  parsing remaining data.
+    //  Derived classes are supposed to override this
+    //  method to handle custom processing.
+    virtual int
+    property (const std::string &name_, const value_: *mut c_void, length_: usize);
+
+    const options_t options;
+
+  // private:
+    //  Properties received from ZMTP peer.
+    metadata_t::dict_t _zmtp_properties;
+
+    //  Properties received from ZAP server.
+    metadata_t::dict_t _zap_properties;
+
+    blob_t _routing_id;
+
+    blob_t _user_id;
+
+    //  Returns true iff socket associated with the mechanism
+    //  is compatible with a given socket type 'type_'.
+    bool check_socket_type (type_: *const c_char, len_: usize) const;
+};
+
 zmq::mechanism_t::mechanism_t (const options_t &options_) : options (options_)
 {
 }

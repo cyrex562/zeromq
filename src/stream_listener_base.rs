@@ -60,7 +60,7 @@ zmq::stream_listener_base_t::~stream_listener_base_t ()
 
 int zmq::stream_listener_base_t::get_local_address (std::string &addr_) const
 {
-    addr_ = get_socket_name (_s, socket_end_local);
+    addr_ = get_socket_name (_s, SocketEndLocal);
     return addr_.empty () ? -1 : 0;
 }
 
@@ -100,8 +100,8 @@ int zmq::stream_listener_base_t::close ()
 void zmq::stream_listener_base_t::create_engine (fd_t fd_)
 {
     const endpoint_uri_pair_t endpoint_pair (
-      get_socket_name (fd_, socket_end_local),
-      get_socket_name (fd_, socket_end_remote), endpoint_type_bind);
+      get_socket_name (fd_, SocketEndLocal),
+      get_socket_name (fd_, SocketEndRemote), endpoint_type_bind);
 
     i_engine *engine;
     if (options.raw_socket)

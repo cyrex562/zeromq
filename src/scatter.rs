@@ -34,7 +34,7 @@
 // #include "err.hpp"
 // #include "msg.hpp"
 
-zmq::scatter_t::scatter_t (class ctx_t *parent_, uint32_t tid_, sid_: i32) :
+zmq::scatter_t::scatter_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     socket_base_t (parent_, tid_, sid_, true)
 {
     options.type = ZMQ_SCATTER;

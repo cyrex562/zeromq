@@ -130,7 +130,7 @@ class ws_engine_t : public stream_engine_base_t
     ws_engine_t (fd_t fd_,
                  const options_t &options_,
                  const endpoint_uri_pair_t &endpoint_uri_pair_,
-                 const ws_address_t &address_,
+                 const WsAddress &address_,
                  bool client_);
     ~ws_engine_t ();
 
@@ -156,7 +156,7 @@ class ws_engine_t : public stream_engine_base_t
     bool server_handshake ();
 
     bool _client;
-    ws_address_t _address;
+    WsAddress _address;
 
     ws_client_handshake_state_t _client_handshake_state;
     ws_server_handshake_state_t _server_handshake_state;

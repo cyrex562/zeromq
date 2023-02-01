@@ -39,7 +39,122 @@
 // #include "session_base.hpp"
 // #include "socket_base.hpp"
 
-zmq::object_t::object_t (ctx_t *ctx_, uint32_t tid_) : _ctx (ctx_), _tid (tid_)
+
+class object_t
+{
+// public:
+    object_t (zmq::ZmqContext *ctx_, uint32_t tid_);
+    object_t (object_t *parent_);
+    virtual ~object_t ();
+
+    uint32_t get_tid () const;
+    void set_tid (uint32_t id_);
+    ZmqContext *get_ctx () const;
+    void process_command (const zmq::command_t &cmd_);
+    void send_inproc_connected (zmq::socket_base_t *socket_);
+    void send_bind (zmq::own_t *destination_,
+                    zmq::pipe_t *pipe_,
+                    bool inc_seqnum_ = true);
+
+  protected:
+    //  Using following function, socket is able to access global
+    //  repository of inproc endpoints.
+    int register_endpoint (addr_: *const c_char, const zmq::endpoint_t &endpoint_);
+    int unregister_endpoint (const std::string &addr_, socket_base_t *socket_);
+    void unregister_endpoints (zmq::socket_base_t *socket_);
+    zmq::endpoint_t find_endpoint (addr_: *const c_char) const;
+    void pend_connection (const std::string &addr_,
+                          const endpoint_t &endpoint_,
+                          pipe_t **pipes_);
+    void connect_pending (addr_: *const c_char, zmq::socket_base_t *bind_socket_);
+
+    void destroy_socket (zmq::socket_base_t *socket_);
+
+    //  Logs an message.
+    void log (format_: *const c_char, ...);
+
+    //  Chooses least loaded I/O thread.
+    zmq::io_thread_t *choose_io_thread (uint64_t affinity_) const;
+
+    //  Derived object can use these functions to send commands
+    //  to other objects.
+    void send_stop ();
+    void send_plug (zmq::own_t *destination_, bool inc_seqnum_ = true);
+    void send_own (zmq::own_t *destination_, zmq::own_t *object_);
+    void send_attach (zmq::session_base_t *destination_,
+                      zmq::i_engine *engine_,
+                      bool inc_seqnum_ = true);
+    void send_activate_read (zmq::pipe_t *destination_);
+    void send_activate_write (zmq::pipe_t *destination_, uint64_t msgs_read_);
+    void send_hiccup (zmq::pipe_t *destination_, pipe_: *mut c_void);
+    void send_pipe_peer_stats (zmq::pipe_t *destination_,
+                               queue_count_: u64,
+                               zmq::own_t *socket_base,
+                               endpoint_uri_pair_t *endpoint_pair_);
+    void send_pipe_stats_publish (zmq::own_t *destination_,
+                                  outbound_queue_count_: u64,
+                                  inbound_queue_count_: u64,
+                                  endpoint_uri_pair_t *endpoint_pair_);
+    void send_pipe_term (zmq::pipe_t *destination_);
+    void send_pipe_term_ack (zmq::pipe_t *destination_);
+    void send_pipe_hwm (zmq::pipe_t *destination_, inhwm_: i32, outhwm_: i32);
+    void send_term_req (zmq::own_t *destination_, zmq::own_t *object_);
+    void send_term (zmq::own_t *destination_, linger_: i32);
+    void send_term_ack (zmq::own_t *destination_);
+    void send_term_endpoint (own_t *destination_, std::string *endpoint_);
+    void send_reap (zmq::socket_base_t *socket_);
+    void send_reaped ();
+    void send_done ();
+    void send_conn_failed (zmq::session_base_t *destination_);
+
+
+    //  These handlers can be overridden by the derived objects. They are
+    //  called when command arrives from another thread.
+    virtual void process_stop ();
+    virtual void process_plug ();
+    virtual void process_own (zmq::own_t *object_);
+    virtual void process_attach (zmq::i_engine *engine_);
+    virtual void process_bind (zmq::pipe_t *pipe_);
+    virtual void process_activate_read ();
+    virtual void process_activate_write (uint64_t msgs_read_);
+    virtual void process_hiccup (pipe_: *mut c_void);
+    virtual void process_pipe_peer_stats (queue_count_: u64,
+                                          zmq::own_t *socket_base_,
+                                          endpoint_uri_pair_t *endpoint_pair_);
+    virtual void
+    process_pipe_stats_publish (outbound_queue_count_: u64,
+                                inbound_queue_count_: u64,
+                                endpoint_uri_pair_t *endpoint_pair_);
+    virtual void process_pipe_term ();
+    virtual void process_pipe_term_ack ();
+    virtual void process_pipe_hwm (inhwm_: i32, outhwm_: i32);
+    virtual void process_term_req (zmq::own_t *object_);
+    virtual void process_term (linger_: i32);
+    virtual void process_term_ack ();
+    virtual void process_term_endpoint (std::string *endpoint_);
+    virtual void process_reap (zmq::socket_base_t *socket_);
+    virtual void process_reaped ();
+    virtual void process_conn_failed ();
+
+
+    //  Special handler called after a command that requires a seqnum
+    //  was processed. The implementation should catch up with its counter
+    //  of processed commands here.
+    virtual void process_seqnum ();
+
+  // private:
+    //  Context provides access to the global state.
+    zmq::ZmqContext *const _ctx;
+
+    //  Thread ID of the thread the object belongs to.
+    uint32_t _tid;
+
+    void send_command (const command_t &cmd_);
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (object_t)
+};
+
+zmq::object_t::object_t (ZmqContext *ctx_, uint32_t tid_) : _ctx (ctx_), _tid (tid_)
 {
 }
 
@@ -62,7 +177,7 @@ void zmq::object_t::set_tid (uint32_t id_)
     _tid = id_;
 }
 
-zmq::ctx_t *zmq::object_t::get_ctx () const
+zmq::ZmqContext *zmq::object_t::get_ctx () const
 {
     return _ctx;
 }
@@ -432,7 +547,7 @@ void zmq::object_t::send_done ()
     command_t cmd;
     cmd.destination = NULL;
     cmd.type = command_t::done;
-    _ctx->send_command (ctx_t::term_tid, cmd);
+    _ctx->send_command (ZmqContext::term_tid, cmd);
 }
 
 void zmq::object_t::process_stop ()

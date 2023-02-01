@@ -51,7 +51,7 @@ void zmq_free_event (data_: *mut c_void, hint_: *mut c_void);
 
 namespace zmq
 {
-class ctx_t;
+class ZmqContext;
 class msg_t;
 class pipe_t;
 
@@ -71,7 +71,7 @@ class socket_base_t : public own_t,
 
     //  Create a socket of a specified type.
     static socket_base_t *
-    create (type_: i32, zmq::ctx_t *parent_, uint32_t tid_, sid_: i32);
+    create (type_: i32, zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
 
     //  Returns the mailbox associated with this socket.
     i_mailbox *get_mailbox () const;
@@ -168,7 +168,7 @@ class socket_base_t : public own_t,
     bool is_disconnected () const;
 
   protected:
-    socket_base_t (zmq::ctx_t *parent_,
+    socket_base_t (zmq::ZmqContext *parent_,
                    uint32_t tid_,
                    sid_: i32,
                    bool thread_safe_ = false);
@@ -360,7 +360,7 @@ class socket_base_t : public own_t,
 class routing_socket_base_t : public socket_base_t
 {
   protected:
-    routing_socket_base_t (class ctx_t *parent_, uint32_t tid_, sid_: i32);
+    routing_socket_base_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~routing_socket_base_t () ZMQ_OVERRIDE;
 
     // methods from socket_base_t

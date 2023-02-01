@@ -50,12 +50,12 @@
 
 // #include <limits.h>
 
-zmq::ws_address_t::ws_address_t ()
+zmq::WsAddress::WsAddress ()
 {
     memset (&_address, 0, sizeof (_address));
 }
 
-zmq::ws_address_t::ws_address_t (const sockaddr *sa_, socklen_t sa_len_)
+zmq::WsAddress::WsAddress (const sockaddr *sa_, socklen_t sa_len_)
 {
     zmq_assert (sa_ && sa_len_ > 0);
 
@@ -90,7 +90,7 @@ zmq::ws_address_t::ws_address_t (const sockaddr *sa_, socklen_t sa_len_)
     _host = os.str ();
 }
 
-int zmq::ws_address_t::resolve (name_: *const c_char, bool local_, bool ipv6_)
+int zmq::WsAddress::resolve (name_: *const c_char, bool local_, bool ipv6_)
 {
     //  find the host part, It's important to use str*r*chr to only get
     //  the latest colon since IPv6 addresses use colons as delemiters.
@@ -113,7 +113,7 @@ int zmq::ws_address_t::resolve (name_: *const c_char, bool local_, bool ipv6_)
         host_name = name_;
     }
 
-    ip_resolver_options_t resolver_opts;
+    IpResolverOptions resolver_opts;
     resolver_opts.bindable (local_)
       .allow_dns (!local_)
       .allow_nic_name (local_)
@@ -126,7 +126,7 @@ int zmq::ws_address_t::resolve (name_: *const c_char, bool local_, bool ipv6_)
     return resolver.resolve (&_address, host_name.c_str ());
 }
 
-int zmq::ws_address_t::to_string (std::string &addr_) const
+int zmq::WsAddress::to_string (std::string &addr_) const
 {
     std::ostringstream os;
     os << std::string ("ws://") << host () << std::string (":")
@@ -136,30 +136,30 @@ int zmq::ws_address_t::to_string (std::string &addr_) const
     return 0;
 }
 
-const sockaddr *zmq::ws_address_t::addr () const
+const sockaddr *zmq::WsAddress::addr () const
 {
     return _address.as_sockaddr ();
 }
 
-socklen_t zmq::ws_address_t::addrlen () const
+socklen_t zmq::WsAddress::addrlen () const
 {
     return _address.sockaddr_len ();
 }
 
-const char *zmq::ws_address_t::host () const
+const char *zmq::WsAddress::host () const
 {
     return _host.c_str ();
 }
 
-const char *zmq::ws_address_t::path () const
+const char *zmq::WsAddress::path () const
 {
     return _path.c_str ();
 }
 
 // #if defined ZMQ_HAVE_WINDOWS
-unsigned short zmq::ws_address_t::family () const
+unsigned short zmq::WsAddress::family () const
 // #else
-sa_family_t zmq::ws_address_t::family () const
+sa_family_t zmq::WsAddress::family () const
 // #endif
 {
     return _address.family ();

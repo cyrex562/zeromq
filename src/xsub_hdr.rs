@@ -42,14 +42,14 @@
 
 namespace zmq
 {
-class ctx_t;
+class ZmqContext;
 class pipe_t;
 class io_thread_t;
 
 class xsub_t : public socket_base_t
 {
 // public:
-    xsub_t (zmq::ctx_t *parent_, uint32_t tid_, sid_: i32);
+    xsub_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~xsub_t () ZMQ_OVERRIDE;
 
   protected:

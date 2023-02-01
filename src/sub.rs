@@ -31,7 +31,7 @@
 // #include "sub.hpp"
 // #include "msg.hpp"
 
-zmq::sub_t::sub_t (class ctx_t *parent_, uint32_t tid_, sid_: i32) :
+zmq::sub_t::sub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     xsub_t (parent_, tid_, sid_)
 {
     options.type = ZMQ_SUB;

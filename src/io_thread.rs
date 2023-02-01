@@ -36,7 +36,53 @@
 // #include "err.hpp"
 // #include "ctx.hpp"
 
-zmq::io_thread_t::io_thread_t (ctx_t *ctx_, uint32_t tid_) :
+
+class io_thread_t ZMQ_FINAL : public object_t, public i_poll_events
+{
+// public:
+    io_thread_t (zmq::ZmqContext *ctx_, uint32_t tid_);
+
+    //  Clean-up. If the thread was started, it's necessary to call 'stop'
+    //  before invoking destructor. Otherwise the destructor would hang up.
+    ~io_thread_t ();
+
+    //  Launch the physical thread.
+    void start ();
+
+    //  Ask underlying thread to stop.
+    void stop ();
+
+    //  Returns mailbox associated with this I/O thread.
+    mailbox_t *get_mailbox ();
+
+    //  i_poll_events implementation.
+    void in_event ();
+    void out_event ();
+    void timer_event (id_: i32);
+
+    //  Used by io_objects to retrieve the associated poller object.
+    poller_t *get_poller () const;
+
+    //  Command handlers.
+    void process_stop ();
+
+    //  Returns load experienced by the I/O thread.
+    int get_load () const;
+
+  // private:
+    //  I/O thread accesses incoming commands via this mailbox.
+    mailbox_t _mailbox;
+
+    //  Handle associated with mailbox' file descriptor.
+    poller_t::handle_t _mailbox_handle;
+
+    //  I/O multiplexing is performed using a poller object.
+    poller_t *_poller;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (io_thread_t)
+};
+
+zmq::io_thread_t::io_thread_t (ZmqContext *ctx_, uint32_t tid_) :
     object_t (ctx_, tid_),
     _mailbox_handle (static_cast<poller_t::handle_t> (NULL))
 {
@@ -58,7 +104,7 @@ void zmq::io_thread_t::start ()
 {
     char name[16] = "";
     snprintf (name, sizeof (name), "IO/%u",
-              get_tid () - zmq::ctx_t::reaper_tid - 1);
+              get_tid () - zmq::ZmqContext::reaper_tid - 1);
     //  Start the underlying I/O thread.
     _poller->start (name);
 }

@@ -52,10 +52,40 @@
 // #include <sys/un.h>
 // #endif
 
+class ipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
+{
+// public:
+    //  If 'delayed_start' is true connecter first waits for a while,
+    //  then starts connection process.
+    ipc_connecter_t (zmq::io_thread_t *io_thread_,
+                     zmq::session_base_t *session_,
+                     const options_t &options_,
+                     Address *addr_,
+                     bool delayed_start_);
+
+  // private:
+    //  Handlers for I/O events.
+    void out_event ();
+
+    //  Internal function to start the actual connection establishment.
+    void start_connecting ();
+
+    //  Open IPC connecting socket. Returns -1 in case of error,
+    //  0 if connect was successful immediately. Returns -1 with
+    //  EAGAIN errno if async connect was launched.
+    int open ();
+
+    //  Get the file descriptor of newly created connection. Returns
+    //  retired_fd if the connection was unsuccessful.
+    fd_t connect ();
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (ipc_connecter_t)
+};
+
 zmq::ipc_connecter_t::ipc_connecter_t (class io_thread_t *io_thread_,
                                        class session_base_t *session_,
                                        const options_t &options_,
-                                       address_t *addr_,
+                                       Address *addr_,
                                        bool delayed_start_) :
     stream_connecter_base_t (
       io_thread_, session_, options_, addr_, delayed_start_)
@@ -75,7 +105,7 @@ void zmq::ipc_connecter_t::out_event ()
         return;
     }
 
-    create_engine (fd, get_socket_name<ipc_address_t> (fd, socket_end_local));
+    create_engine (fd, get_socket_name<IpcAddress> (fd, SocketEndLocal));
 }
 
 void zmq::ipc_connecter_t::start_connecting ()
@@ -159,7 +189,7 @@ zmq::fd_t zmq::ipc_connecter_t::connect ()
     //  Following code should handle both Berkeley-derived socket
     //  implementations and Solaris.
     int err = 0;
-    zmq_socklen_t len = static_cast<zmq_socklen_t> (sizeof (err));
+    ZmqSocklen len = static_cast<ZmqSocklen> (sizeof (err));
     const int rc = getsockopt (_s, SOL_SOCKET, SO_ERROR,
                                reinterpret_cast<char *> (&err), &len);
     if (rc == -1) {

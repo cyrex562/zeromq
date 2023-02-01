@@ -37,12 +37,35 @@
 
 // #include <string>
 
-zmq::ipc_address_t::ipc_address_t ()
+class IpcAddress
+{
+// public:
+    IpcAddress ();
+    IpcAddress (const sockaddr *sa_, socklen_t sa_len_);
+    ~IpcAddress ();
+
+    //  This function sets up the address for UNIX domain transport.
+    int resolve (path_: *const c_char);
+
+    //  The opposite to resolve()
+    int to_string (std::string &addr_) const;
+
+    const sockaddr *addr () const;
+    socklen_t addrlen () const;
+
+  // private:
+    struct sockaddr_un _address;
+    socklen_t _addrlen;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (IpcAddress)
+};
+
+zmq::IpcAddress::IpcAddress ()
 {
     memset (&_address, 0, sizeof _address);
 }
 
-zmq::ipc_address_t::ipc_address_t (const sockaddr *sa_, socklen_t sa_len_) :
+zmq::IpcAddress::IpcAddress (const sockaddr *sa_, socklen_t sa_len_) :
     _addrlen (sa_len_)
 {
     zmq_assert (sa_ && sa_len_ > 0);
@@ -52,11 +75,11 @@ zmq::ipc_address_t::ipc_address_t (const sockaddr *sa_, socklen_t sa_len_) :
         memcpy (&_address, sa_, sa_len_);
 }
 
-zmq::ipc_address_t::~ipc_address_t ()
+zmq::IpcAddress::~IpcAddress ()
 {
 }
 
-int zmq::ipc_address_t::resolve (path_: *const c_char)
+int zmq::IpcAddress::resolve (path_: *const c_char)
 {
     const size_t path_len = strlen (path_);
     if (path_len >= sizeof _address.sun_path) {
@@ -79,7 +102,7 @@ int zmq::ipc_address_t::resolve (path_: *const c_char)
     return 0;
 }
 
-int zmq::ipc_address_t::to_string (std::string &addr_) const
+int zmq::IpcAddress::to_string (std::string &addr_) const
 {
     if (_address.sun_family != AF_UNIX) {
         addr_.clear ();
@@ -107,12 +130,12 @@ int zmq::ipc_address_t::to_string (std::string &addr_) const
     return 0;
 }
 
-const sockaddr *zmq::ipc_address_t::addr () const
+const sockaddr *zmq::IpcAddress::addr () const
 {
     return reinterpret_cast<const sockaddr *> (&_address);
 }
 
-socklen_t zmq::ipc_address_t::addrlen () const
+socklen_t zmq::IpcAddress::addrlen () const
 {
     return _addrlen;
 }

@@ -38,6 +38,37 @@
 // #include "session_base.hpp"
 // #include "null_mechanism.hpp"
 
+
+class null_mechanism_t ZMQ_FINAL : public zap_client_t
+{
+// public:
+    null_mechanism_t (session_base_t *session_,
+                      const std::string &peer_address_,
+                      const options_t &options_);
+    ~null_mechanism_t ();
+
+    // mechanism implementation
+    int next_handshake_command (msg_t *msg_);
+    int process_handshake_command (msg_t *msg_);
+    int zap_msg_available ();
+    status_t status () const;
+
+  // private:
+    bool _ready_command_sent;
+    bool _error_command_sent;
+    bool _ready_command_received;
+    bool _error_command_received;
+    bool _zap_request_sent;
+    bool _zap_reply_received;
+
+    int process_ready_command (const unsigned char *cmd_data_,
+                               data_size_: usize);
+    int process_error_command (const unsigned char *cmd_data_,
+                               data_size_: usize);
+
+    void send_zap_request ();
+};
+
 const char error_command_name[] = "\5ERROR";
 const size_t error_command_name_len = sizeof (error_command_name) - 1;
 const size_t error_reason_len_size = 1;

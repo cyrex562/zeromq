@@ -44,7 +44,7 @@ namespace zmq
 {
 class io_thread_t;
 class session_base_t;
-struct address_t;
+struct Address;
 
 class vmci_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 {
@@ -54,12 +54,12 @@ class vmci_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     vmci_connecter_t (zmq::io_thread_t *io_thread_,
                       zmq::session_base_t *session_,
                       const options_t &options_,
-                      address_t *addr_,
+                      Address *addr_,
                       bool delayed_start_);
     ~vmci_connecter_t ();
 
   protected:
-    std::string get_socket_name (fd_t fd_, socket_end_t socket_end_) const;
+    std::string get_socket_name (fd_t fd_, SocketEnd socket_end_) const;
 
   // private:
     //  ID of the timer used to check the connect timeout, must be different from stream_connecter_base_t::reconnect_timer_id.

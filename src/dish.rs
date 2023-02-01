@@ -34,7 +34,81 @@
 // #include "dish.hpp"
 // #include "err.hpp"
 
-zmq::dish_t::dish_t (class ctx_t *parent_, uint32_t tid_, sid_: i32) :
+
+class dish_t ZMQ_FINAL : public socket_base_t
+{
+// public:
+    dish_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    ~dish_t ();
+
+  protected:
+    //  Overrides of functions from socket_base_t.
+    void xattach_pipe (zmq::pipe_t *pipe_,
+                       bool subscribe_to_all_,
+                       bool locally_initiated_);
+    int xsend (zmq::msg_t *msg_);
+    bool xhas_out ();
+    int xrecv (zmq::msg_t *msg_);
+    bool xhas_in ();
+    void xread_activated (zmq::pipe_t *pipe_);
+    void xwrite_activated (zmq::pipe_t *pipe_);
+    void xhiccuped (pipe_t *pipe_);
+    void xpipe_terminated (zmq::pipe_t *pipe_);
+    int xjoin (group_: *const c_char);
+    int xleave (group_: *const c_char);
+
+  // private:
+    int xxrecv (zmq::msg_t *msg_);
+
+    //  Send subscriptions to a pipe
+    void send_subscriptions (pipe_t *pipe_);
+
+    //  Fair queueing object for inbound pipes.
+    fq_t _fq;
+
+    //  Object for distributing the subscriptions upstream.
+    dist_t _dist;
+
+    //  The repository of subscriptions.
+    typedef std::set<std::string> subscriptions_t;
+    subscriptions_t _subscriptions;
+
+    //  If true, 'message' contains a matching message to return on the
+    //  next recv call.
+    bool _has_message;
+    msg_t _message;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (dish_t)
+};
+
+class dish_session_t ZMQ_FINAL : public session_base_t
+{
+// public:
+    dish_session_t (zmq::io_thread_t *io_thread_,
+                    bool connect_,
+                    socket_: *mut socket_base_t,
+                    const options_t &options_,
+                    Address *addr_);
+    ~dish_session_t ();
+
+    //  Overrides of the functions from session_base_t.
+    int push_msg (msg_t *msg_);
+    int pull_msg (msg_t *msg_);
+    void reset ();
+
+  // private:
+    enum
+    {
+        group,
+        body
+    } _state;
+
+    msg_t _group_msg;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (dish_session_t)
+};
+
+zmq::dish_t::dish_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     socket_base_t (parent_, tid_, sid_, true), _has_message (false)
 {
     options.type = ZMQ_DISH;
@@ -241,7 +315,7 @@ zmq::dish_session_t::dish_session_t (io_thread_t *io_thread_,
                                      bool connect_,
                                      socket_base_t *socket_,
                                      const options_t &options_,
-                                     address_t *addr_) :
+                                     Address *addr_) :
     session_base_t (io_thread_, connect_, socket_, options_, addr_),
     _state (group)
 {

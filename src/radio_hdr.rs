@@ -41,14 +41,14 @@
 
 namespace zmq
 {
-class ctx_t;
+class ZmqContext;
 class pipe_t;
 class io_thread_t;
 
 class radio_t ZMQ_FINAL : public socket_base_t
 {
 // public:
-    radio_t (zmq::ctx_t *parent_, uint32_t tid_, sid_: i32);
+    radio_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~radio_t ();
 
     //  Implementations of virtual functions from socket_base_t.
@@ -89,7 +89,7 @@ class radio_session_t ZMQ_FINAL : public session_base_t
                      bool connect_,
                      socket_: *mut socket_base_t,
                      const options_t &options_,
-                     address_t *addr_);
+                     Address *addr_);
     ~radio_session_t ();
 
     //  Overrides of the functions from session_base_t.

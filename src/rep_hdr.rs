@@ -34,7 +34,7 @@
 
 namespace zmq
 {
-class ctx_t;
+class ZmqContext;
 class msg_t;
 class io_thread_t;
 class socket_base_t;
@@ -42,7 +42,7 @@ class socket_base_t;
 class rep_t ZMQ_FINAL : public router_t
 {
 // public:
-    rep_t (zmq::ctx_t *parent_, uint32_t tid_, sid_: i32);
+    rep_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~rep_t ();
 
     //  Overrides of functions from socket_base_t.

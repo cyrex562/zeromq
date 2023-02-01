@@ -40,6 +40,54 @@
 // #include "gssapi_client.hpp"
 // #include "wire.hpp"
 
+
+class gssapi_client_t ZMQ_FINAL : public gssapi_mechanism_base_t
+{
+// public:
+    gssapi_client_t (session_base_t *session_, const options_t &options_);
+    ~gssapi_client_t () ZMQ_FINAL;
+
+    // mechanism implementation
+    int next_handshake_command (msg_t *msg_) ZMQ_FINAL;
+    int process_handshake_command (msg_t *msg_) ZMQ_FINAL;
+    int encode (msg_t *msg_) ZMQ_FINAL;
+    int decode (msg_t *msg_) ZMQ_FINAL;
+    status_t status () const ZMQ_FINAL;
+
+  // private:
+    enum state_t
+    {
+        call_next_init,
+        send_next_token,
+        recv_next_token,
+        send_ready,
+        recv_ready,
+        connected
+    };
+
+    //  Human-readable principal name of the service we are connecting to
+    char *service_name;
+
+    gss_OID service_name_type;
+
+    //  Current FSM state
+    state_t state;
+
+    //  Points to either send_tok or recv_tok
+    //  during context initialization
+    gss_buffer_desc *token_ptr;
+
+    //  The desired underlying mechanism
+    gss_OID_set_desc mechs;
+
+    //  True iff client considers the server authenticated
+    bool security_context_established;
+
+    int initialize_context ();
+    int produce_next_token (msg_t *msg_);
+    int process_next_token (msg_t *msg_);
+};
+
 zmq::gssapi_client_t::gssapi_client_t (session_base_t *session_,
                                        const options_t &options_) :
     mechanism_base_t (session_, options_),

@@ -34,7 +34,32 @@
 // #include "pipe.hpp"
 // #include "msg.hpp"
 
-zmq::pair_t::pair_t (class ctx_t *parent_, uint32_t tid_, sid_: i32) :
+
+class pair_t ZMQ_FINAL : public socket_base_t
+{
+// public:
+    pair_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    ~pair_t ();
+
+    //  Overrides of functions from socket_base_t.
+    void xattach_pipe (zmq::pipe_t *pipe_,
+                       bool subscribe_to_all_,
+                       bool locally_initiated_);
+    int xsend (zmq::msg_t *msg_);
+    int xrecv (zmq::msg_t *msg_);
+    bool xhas_in ();
+    bool xhas_out ();
+    void xread_activated (zmq::pipe_t *pipe_);
+    void xwrite_activated (zmq::pipe_t *pipe_);
+    void xpipe_terminated (zmq::pipe_t *pipe_);
+
+  // private:
+    zmq::pipe_t *_pipe;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (pair_t)
+};
+
+zmq::pair_t::pair_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     socket_base_t (parent_, tid_, sid_), _pipe (NULL)
 {
     options.type = ZMQ_PAIR;

@@ -54,7 +54,7 @@ class ws_listener_t ZMQ_FINAL : public stream_listener_base_t
     int set_local_address (addr_: *const c_char);
 
   protected:
-    std::string get_socket_name (fd_t fd_, socket_end_t socket_end_) const;
+    std::string get_socket_name (fd_t fd_, SocketEnd socket_end_) const;
     void create_engine (fd_t fd);
 
   // private:
@@ -70,7 +70,7 @@ class ws_listener_t ZMQ_FINAL : public stream_listener_base_t
     int create_socket (addr_: *const c_char);
 
     //  Address to listen on.
-    ws_address_t _address;
+    WsAddress _address;
 
     bool _wss;
 // #ifdef ZMQ_HAVE_WSS

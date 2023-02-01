@@ -83,7 +83,7 @@ zmq::udp_engine_t::~udp_engine_t ()
     }
 }
 
-int zmq::udp_engine_t::init (address_t *address_, bool send_, bool recv_)
+int zmq::udp_engine_t::init (Address *address_, bool send_, bool recv_)
 {
     zmq_assert (address_);
     zmq_assert (send_ || recv_);
@@ -114,7 +114,7 @@ void zmq::udp_engine_t::plug (io_thread_t *io_thread_, session_base_t *session_)
     io_object_t::plug (io_thread_);
     _handle = add_fd (_fd);
 
-    const udp_address_t *const udp_addr = _address->resolved.udp_addr;
+    const UdpAddress *const udp_addr = _address->resolved.udp_addr;
 
     int rc = 0;
 
@@ -152,7 +152,7 @@ void zmq::udp_engine_t::plug (io_thread_t *io_thread_, session_base_t *session_)
             /// XXX fixme ?
             _out_address = reinterpret_cast<sockaddr *> (&_raw_address);
             _out_address_len =
-              static_cast<zmq_socklen_t> (sizeof (sockaddr_in));
+              static_cast<ZmqSocklen> (sizeof (sockaddr_in));
         }
     }
 
@@ -261,7 +261,7 @@ int zmq::udp_engine_t::set_udp_multicast_ttl (fd_t s_, bool is_ipv6_, hops_: i32
 
 int zmq::udp_engine_t::set_udp_multicast_iface (fd_t s_,
                                                 bool is_ipv6_,
-                                                const udp_address_t *addr_)
+                                                const UdpAddress *addr_)
 {
     int rc = 0;
 
@@ -311,7 +311,7 @@ int zmq::udp_engine_t::set_udp_reuse_port (fd_t s_, bool on_)
 // #endif
 }
 
-int zmq::udp_engine_t::add_membership (fd_t s_, const udp_address_t *addr_)
+int zmq::udp_engine_t::add_membership (fd_t s_, const UdpAddress *addr_)
 {
     const ip_addr_t *mcast_addr = addr_->target_addr ();
     int rc = 0;
@@ -531,8 +531,8 @@ void zmq::udp_engine_t::restart_output ()
 void zmq::udp_engine_t::in_event ()
 {
     sockaddr_storage in_address;
-    zmq_socklen_t in_addrlen =
-      static_cast<zmq_socklen_t> (sizeof (sockaddr_storage));
+    ZmqSocklen in_addrlen =
+      static_cast<ZmqSocklen> (sizeof (sockaddr_storage));
 
     const int nbytes =
       recvfrom (_fd, _in_buffer, MAX_UDP_MSG, 0,

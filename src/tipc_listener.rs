@@ -80,9 +80,9 @@ void zmq::tipc_listener_t::in_event ()
 
 std::string
 zmq::tipc_listener_t::get_socket_name (zmq::fd_t fd_,
-                                       socket_end_t socket_end_) const
+                                       SocketEnd socket_end_) const
 {
-    return zmq::get_socket_name<tipc_address_t> (fd_, socket_end_);
+    return zmq::get_socket_name<TipcAddress> (fd_, socket_end_);
 }
 
 int zmq::tipc_listener_t::set_local_address (addr_: *const c_char)
@@ -108,12 +108,12 @@ int zmq::tipc_listener_t::set_local_address (addr_: *const c_char)
     // If random Port Identity, update address object to reflect the assigned address
     if (_address.is_random ()) {
         struct sockaddr_storage ss;
-        const zmq_socklen_t sl = get_socket_address (_s, socket_end_local, &ss);
+        const ZmqSocklen sl = get_socket_address (_s, SocketEndLocal, &ss);
         if (sl == 0)
             goto error;
 
         _address =
-          tipc_address_t (reinterpret_cast<struct sockaddr *> (&ss), sl);
+          TipcAddress (reinterpret_cast<struct sockaddr *> (&ss), sl);
     }
 
 

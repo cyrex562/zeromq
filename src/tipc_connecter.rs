@@ -55,7 +55,7 @@
 zmq::tipc_connecter_t::tipc_connecter_t (class io_thread_t *io_thread_,
                                          class session_base_t *session_,
                                          const options_t &options_,
-                                         address_t *addr_,
+                                         Address *addr_,
                                          bool delayed_start_) :
     stream_connecter_base_t (
       io_thread_, session_, options_, addr_, delayed_start_)
@@ -75,7 +75,7 @@ void zmq::tipc_connecter_t::out_event ()
         return;
     }
 
-    create_engine (fd, get_socket_name<tipc_address_t> (fd, socket_end_local));
+    create_engine (fd, get_socket_name<TipcAddress> (fd, SocketEndLocal));
 }
 
 void zmq::tipc_connecter_t::start_connecting ()

@@ -32,6 +32,22 @@
 // #include "mechanism_base.hpp"
 // #include "session_base.hpp"
 
+
+class mechanism_base_t : public mechanism_t
+{
+  protected:
+    mechanism_base_t (session_base_t *session_, const options_t &options_);
+
+    session_base_t *const session;
+
+    int check_basic_command_structure (msg_t *msg_) const;
+
+    void handle_error_reason (error_reason_: *const c_char,
+                              error_reason_len_: usize);
+
+    bool zap_required () const;
+};
+
 zmq::mechanism_base_t::mechanism_base_t (session_base_t *const session_,
                                          const options_t &options_) :
     mechanism_t (options_), session (session_)

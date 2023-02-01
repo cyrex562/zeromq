@@ -40,12 +40,12 @@
 
 namespace zmq
 {
-class vmci_address_t
+class VmciAddress
 {
 // public:
-    vmci_address_t ();
-    vmci_address_t (ctx_t *parent_);
-    vmci_address_t (const sockaddr *sa, socklen_t sa_len, ctx_t *parent_);
+    VmciAddress ();
+    VmciAddress (ZmqContext *parent_);
+    VmciAddress (const sockaddr *sa, socklen_t sa_len, ZmqContext *parent_);
 
     //  This function sets up the address for VMCI transport.
     int resolve (path_: *const c_char);
@@ -63,9 +63,9 @@ class vmci_address_t
 
   // private:
     struct sockaddr_vm address;
-    ctx_t *parent;
+    ZmqContext *parent;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (vmci_address_t)
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (VmciAddress)
 };
 }
 

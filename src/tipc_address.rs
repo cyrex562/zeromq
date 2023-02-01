@@ -38,13 +38,13 @@
 // #include <string>
 // #include <sstream>
 
-zmq::tipc_address_t::tipc_address_t ()
+zmq::TipcAddress::TipcAddress ()
 {
     memset (&address, 0, sizeof address);
     _random = false;
 }
 
-zmq::tipc_address_t::tipc_address_t (const sockaddr *sa_, socklen_t sa_len_)
+zmq::TipcAddress::TipcAddress (const sockaddr *sa_, socklen_t sa_len_)
 {
     zmq_assert (sa_ && sa_len_ > 0);
 
@@ -55,22 +55,22 @@ zmq::tipc_address_t::tipc_address_t (const sockaddr *sa_, socklen_t sa_len_)
     _random = false;
 }
 
-void zmq::tipc_address_t::set_random ()
+void zmq::TipcAddress::set_random ()
 {
     _random = true;
 }
-bool zmq::tipc_address_t::is_random () const
+bool zmq::TipcAddress::is_random () const
 {
     return _random;
 }
-bool zmq::tipc_address_t::is_service () const
+bool zmq::TipcAddress::is_service () const
 {
     if (address.addrtype == TIPC_ADDR_ID)
         return false;
 
     return true;
 }
-int zmq::tipc_address_t::resolve (name_: *const c_char)
+int zmq::TipcAddress::resolve (name_: *const c_char)
 {
     unsigned int type = 0;
     unsigned int lower = 0;
@@ -131,7 +131,7 @@ int zmq::tipc_address_t::resolve (name_: *const c_char)
     return EINVAL;
 }
 
-int zmq::tipc_address_t::to_string (std::string &addr_) const
+int zmq::TipcAddress::to_string (std::string &addr_) const
 {
     if (address.family != AF_TIPC) {
         addr_.clear ();
@@ -159,12 +159,12 @@ int zmq::tipc_address_t::to_string (std::string &addr_) const
     return 0;
 }
 
-const sockaddr *zmq::tipc_address_t::addr () const
+const sockaddr *zmq::TipcAddress::addr () const
 {
     return (sockaddr *) &address;
 }
 
-socklen_t zmq::tipc_address_t::addrlen () const
+socklen_t zmq::TipcAddress::addrlen () const
 {
     return static_cast<socklen_t> (sizeof address);
 }

@@ -49,57 +49,115 @@
 
 // #include <limits.h>
 
-zmq::tcp_address_t::tcp_address_t () : _has_src_addr (false)
-{
-    memset (&_address, 0, sizeof (_address));
-    memset (&_source_address, 0, sizeof (_source_address));
+use std::net::SocketAddr;
+use crate::address_family::{AF_INET, AF_INET6};
+
+#[derive(Default, Debug, Clone)]
+pub struct TcpAddress {
+// public:
+
+
+    // #if defined ZMQ_HAVE_WINDOWS
+//     unsigned short family () const;
+    pub family: u16,
+    // #else
+//     sa_family_t family () const;
+// #endif
+//     const sockaddr *addr () const;
+    pub addr: SocketAddr,
+    // socklen_t addrlen () const;
+
+    // const sockaddr *src_addr () const;
+    pub src_addr: Option<SocketAddr>,
+    // socklen_t src_addrlen () const;
+    // bool has_src_addr () const;
+    pub has_src_addr: bool,
+
+    // private:
+    //   ip_addr_t _address;
+    //   ip_addr_t _source_address;
+    //   bool _has_src_addr;
 }
 
-zmq::tcp_address_t::tcp_address_t (const sockaddr *sa_, socklen_t sa_len_) :
-    _has_src_addr (false)
-{
-    zmq_assert (sa_ && sa_len_ > 0);
+impl TcpAddress {
+    // TcpAddress ();
 
-    memset (&_address, 0, sizeof (_address));
-    memset (&_source_address, 0, sizeof (_source_address));
-    if (sa_->sa_family == AF_INET
-        && sa_len_ >= static_cast<socklen_t> (sizeof (_address.ipv4)))
-        memcpy (&_address.ipv4, sa_, sizeof (_address.ipv4));
-    else if (sa_->sa_family == AF_INET6
-             && sa_len_ >= static_cast<socklen_t> (sizeof (_address.ipv6)))
-        memcpy (&_address.ipv6, sa_, sizeof (_address.ipv6));
-}
+    // TcpAddress (const sockaddr *sa_, socklen_t sa_len_);
+    pub fn new(sa_: &SocketAddr) -> Self {
+        Self {
+            family: if sa_.is_ipv4() { AF_INET } else { AF_INET6 },
+            addr: sa.clone(),
+            src_addr: None,
+            has_src_addr: false,
+        }
+    }
 
-int zmq::tcp_address_t::resolve (name_: *const c_char, bool local_, bool ipv6_)
-{
-    // Test the ';' to know if we have a source address in name_
-    const char *src_delimiter = strrchr (name_, ';');
-    if (src_delimiter) {
-        const std::string src_name (name_, src_delimiter - name_);
+    //  This function translates textual TCP address into an address
+    //  structure. If 'local' is true, names are resolved as local interface
+    //  names. If it is false, names are resolved as remote hostnames.
+    //  If 'ipv6' is true, the name may resolve to IPv6 address.
+    // int resolve (name_: *const c_char, bool local_, bool ipv6_);
 
-        ip_resolver_options_t src_resolver_opts;
+    //  The opposite to resolve()
+    // int to_string (std::string &addr_) const;
+    // TcpAddress () : _has_src_addr (false)
+    // {
+    //     memset (&_address, 0, sizeof (_address));
+    //     memset (&_source_address, 0, sizeof (_source_address));
+    // }
+    
+    // TcpAddress (const sockaddr *sa_, socklen_t sa_len_) :
+    // _has_src_addr (false)
+    // {
+    //     zmq_assert (sa_ && sa_len_ > 0);
+    // 
+    //     memset (&_address, 0, sizeof (_address));
+    //     memset (&_source_address, 0, sizeof (_source_address));
+    //     if (sa_->sa_family == AF_INET
+    //         && sa_len_ >= static_cast<socklen_t> (sizeof (_address.ipv4)))
+    //         memcpy (&_address.ipv4, sa_, sizeof (_address.ipv4));
+    //     else if (sa_->sa_family == AF_INET6
+    //              && sa_len_ >= static_cast<socklen_t> (sizeof (_address.ipv6)))
+    //         memcpy (&_address.ipv6, sa_, sizeof (_address.ipv6));
+    // }
+    
+    fn resolve(name_: &str, local_: bool, ipv6_: bool) -> i32 {
+        // Test the ';' to know if we have a source address in name_
+        // const char *src_delimiter = strrchr (name_, ';');
+        let src_delimeter = name_.find(';');
+        if src_delimiter.is_some() {
+            let src_name = name[..src_delimeter.unwrap()];
+        // const std::string src_name (name_, src_delimiter - name_);
 
-        src_resolver_opts
-          .bindable (true)
-          //  Restrict hostname/service to literals to avoid any DNS
-          //  lookups or service-name irregularity due to
-          //  indeterminate socktype.
-          .allow_dns (false)
-          .allow_nic_name (true)
-          .ipv6 (ipv6_)
-          .expect_port (true);
+        let mut src_resolver_opts = IpResolverOptions {
+            bindable: true,
+            allow_dns: true,
+            allow_nic_name: true,
+            ipv6: ipv6_,
+            expect_port: true
+        };
+
+        // src_resolver_opts
+        //   .bindable (true)
+        //   //  Restrict hostname/service to literals to avoid any DNS
+        //   //  lookups or service-name irregularity due to
+        //   //  indeterminate socktype.
+        //   .allow_dns (false)
+        //   .allow_nic_name (true)
+        //   .ipv6 (ipv6_)
+        //   .expect_port (true);
 
         ip_resolver_t src_resolver (src_resolver_opts);
 
-        const int rc =
-          src_resolver.resolve (&_source_address, src_name.c_str ());
-        if (rc != 0)
+        let rc =  src_resolver.resolve (&_source_address, src_name.c_str ());
+        if (rc != 0) {
             return -1;
+        }
         name_ = src_delimiter + 1;
         _has_src_addr = true;
     }
 
-    ip_resolver_options_t resolver_opts;
+    IpResolverOptions resolver_opts;
 
     resolver_opts.bindable (local_)
       .allow_dns (!local_)
@@ -111,6 +169,14 @@ int zmq::tcp_address_t::resolve (name_: *const c_char, bool local_, bool ipv6_)
 
     return resolver.resolve (&_address, name_);
 }
+}
+
+
+
+
+
+
+
 
 template <N1: usize, size_t N2>
 static std::string make_address_string (hbuf_: *const c_char,
@@ -133,7 +199,7 @@ static std::string make_address_string (hbuf_: *const c_char,
     return std::string (buf, pos - buf);
 }
 
-int zmq::tcp_address_t::to_string (std::string &addr_) const
+int to_string (std::string &addr_) const
 {
     if (_address.family () != AF_INET && _address.family () != AF_INET6) {
         addr_.clear ();
@@ -164,46 +230,46 @@ int zmq::tcp_address_t::to_string (std::string &addr_) const
     return 0;
 }
 
-const sockaddr *zmq::tcp_address_t::addr () const
+const sockaddr *addr () const
 {
     return _address.as_sockaddr ();
 }
 
-socklen_t zmq::tcp_address_t::addrlen () const
+socklen_t addrlen () const
 {
     return _address.sockaddr_len ();
 }
 
-const sockaddr *zmq::tcp_address_t::src_addr () const
+const sockaddr *src_addr () const
 {
     return _source_address.as_sockaddr ();
 }
 
-socklen_t zmq::tcp_address_t::src_addrlen () const
+socklen_t src_addrlen () const
 {
     return _source_address.sockaddr_len ();
 }
 
-bool zmq::tcp_address_t::has_src_addr () const
+bool has_src_addr () const
 {
     return _has_src_addr;
 }
 
 // #if defined ZMQ_HAVE_WINDOWS
-unsigned short zmq::tcp_address_t::family () const
+unsigned short family () const
 // #else
-sa_family_t zmq::tcp_address_t::family () const
+sa_family_t family () const
 // #endif
 {
     return _address.family ();
 }
 
-zmq::tcp_address_mask_t::tcp_address_mask_t () : _address_mask (-1)
+tcp_address_mask_t::tcp_address_mask_t () : _address_mask (-1)
 {
     memset (&_network_address, 0, sizeof (_network_address));
 }
 
-int zmq::tcp_address_mask_t::resolve (name_: *const c_char, bool ipv6_)
+int tcp_address_mask_t::resolve (name_: *const c_char, bool ipv6_)
 {
     // Find '/' at the end that separates address from the cidr mask number.
     // Allow empty mask clause and treat it like '/32' for ipv4 or '/128' for ipv6.
@@ -220,7 +286,7 @@ int zmq::tcp_address_mask_t::resolve (name_: *const c_char, bool ipv6_)
         addr_str.assign (name_);
 
     // Parse address part using standard routines.
-    ip_resolver_options_t resolver_opts;
+    IpResolverOptions resolver_opts;
 
     resolver_opts.bindable (false)
       .allow_dns (false)
@@ -259,7 +325,7 @@ int zmq::tcp_address_mask_t::resolve (name_: *const c_char, bool ipv6_)
     return 0;
 }
 
-bool zmq::tcp_address_mask_t::match_address (const struct sockaddr *ss_,
+bool tcp_address_mask_t::match_address (const struct sockaddr *ss_,
                                              const socklen_t ss_len_) const
 {
     zmq_assert (_address_mask != -1 && ss_ != NULL

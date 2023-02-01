@@ -65,7 +65,7 @@
 zmq::tcp_connecter_t::tcp_connecter_t (class io_thread_t *io_thread_,
                                        class session_base_t *session_,
                                        const options_t &options_,
-                                       address_t *addr_,
+                                       Address *addr_,
                                        bool delayed_start_) :
     stream_connecter_base_t (
       io_thread_, session_, options_, addr_, delayed_start_),
@@ -119,7 +119,7 @@ void zmq::tcp_connecter_t::out_event ()
         return;
     }
 
-    create_engine (fd, get_socket_name<tcp_address_t> (fd, socket_end_local));
+    create_engine (fd, get_socket_name<TcpAddress> (fd, SocketEndLocal));
 }
 
 void zmq::tcp_connecter_t::timer_event (id_: i32)
@@ -180,7 +180,7 @@ int zmq::tcp_connecter_t::open ()
         LIBZMQ_DELETE (_addr->resolved.tcp_addr);
     }
 
-    _addr->resolved.tcp_addr = new (std::nothrow) tcp_address_t ();
+    _addr->resolved.tcp_addr = new (std::nothrow) TcpAddress ();
     alloc_assert (_addr->resolved.tcp_addr);
     _s = tcp_open_socket (_addr->address.c_str (), options, false, true,
                           _addr->resolved.tcp_addr);
@@ -195,7 +195,7 @@ int zmq::tcp_connecter_t::open ()
     // Set the socket to non-blocking mode so that we get async connect().
     unblock_socket (_s);
 
-    const tcp_address_t *const tcp_addr = _addr->resolved.tcp_addr;
+    const TcpAddress *const tcp_addr = _addr->resolved.tcp_addr;
 
     rc: i32;
 

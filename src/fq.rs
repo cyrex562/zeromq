@@ -33,6 +33,40 @@
 // #include "err.hpp"
 // #include "msg.hpp"
 
+
+class fq_t
+{
+// public:
+    fq_t ();
+    ~fq_t ();
+
+    void attach (pipe_t *pipe_);
+    void activated (pipe_t *pipe_);
+    void pipe_terminated (pipe_t *pipe_);
+
+    int recv (msg_t *msg_);
+    int recvpipe (msg_t *msg_, pipe_t **pipe_);
+    bool has_in ();
+
+  // private:
+    //  Inbound pipes.
+    typedef array_t<pipe_t, 1> pipes_t;
+    pipes_t _pipes;
+
+    //  Number of active pipes. All the active pipes are located at the
+    //  beginning of the pipes array.
+    pipes_t::size_type _active;
+
+    //  Index of the next bound pipe to read a message from.
+    pipes_t::size_type _current;
+
+    //  If true, part of a multipart message was already received, but
+    //  there are following parts still waiting in the current pipe.
+    bool _more;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (fq_t)
+};
+
 zmq::fq_t::fq_t () : _active (0), _current (0), _more (false)
 {
 }

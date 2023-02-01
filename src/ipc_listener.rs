@@ -44,6 +44,49 @@
 // #include "socket_base.hpp"
 // #include "address.hpp"
 
+class ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
+{
+// public:
+    ipc_listener_t (zmq::io_thread_t *io_thread_,
+                    socket_: *mut socket_base_t,
+                    const options_t &options_);
+
+    //  Set address to listen on.
+    int set_local_address (addr_: *const c_char);
+
+  protected:
+    std::string get_socket_name (fd_t fd_, SocketEnd socket_end_) const;
+
+  // private:
+    //  Handlers for I/O events.
+    void in_event ();
+
+    //  Filter new connections if the OS provides a mechanism to get
+    //  the credentials of the peer process.  Called from accept().
+// #if defined ZMQ_HAVE_SO_PEERCRED || defined ZMQ_HAVE_LOCAL_PEERCRED
+    bool filter (fd_t sock_);
+// #endif
+
+    int close ();
+
+    //  Accept the new connection. Returns the file descriptor of the
+    //  newly created connection. The function may return retired_fd
+    //  if the connection was dropped while waiting in the listen backlog.
+    fd_t accept ();
+
+    //  True, if the underlying file for UNIX domain socket exists.
+    bool _has_file;
+
+    //  Name of the temporary directory (if any) that has the
+    //  UNIX domain socket
+    std::string _tmp_socket_dirname;
+
+    //  Name of the file associated with the UNIX domain address.
+    std::string _filename;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (ipc_listener_t)
+};
+
 // #ifdef _MSC_VER
 // #ifdef ZMQ_IOTHREAD_POLLER_USE_SELECT
 #error On Windows, IPC does not work with POLLER=select, use POLLER=epoll instead, or disable IPC transport
@@ -100,9 +143,9 @@ void zmq::ipc_listener_t::in_event ()
 
 std::string
 zmq::ipc_listener_t::get_socket_name (zmq::fd_t fd_,
-                                      socket_end_t socket_end_) const
+                                      SocketEnd socket_end_) const
 {
-    return zmq::get_socket_name<ipc_address_t> (fd_, socket_end_);
+    return zmq::get_socket_name<IpcAddress> (fd_, socket_end_);
 }
 
 int zmq::ipc_listener_t::set_local_address (addr_: *const c_char)
@@ -128,7 +171,7 @@ int zmq::ipc_listener_t::set_local_address (addr_: *const c_char)
     _filename.clear ();
 
     //  Initialise the address structure.
-    ipc_address_t address;
+    IpcAddress address;
     int rc = address.resolve (addr.c_str ());
     if (rc != 0) {
         if (!_tmp_socket_dirname.empty ()) {

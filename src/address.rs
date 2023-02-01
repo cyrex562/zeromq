@@ -1,95 +1,73 @@
-/*
-    Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
+use std::ptr::null_mut;
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+pub const inproc: String = String::from("inproc");
+pub const tcp: String = String::from("tcp");
+pub const udp: String = String::from("udp");
+pub const pgm: String = String::from("pgm");
+pub const epgm: String = String::from("epgm");
+pub const norm: String = String::from("norm");
+pub const ws: String = String::from("ws");
+pub const wss: String = String::from("wss");
+pub const ipc: String = String::from("ipc");
+pub const tipc: String = String::from("tipc");
+pub const vmci: String = String::from("vmci");
 
-    libzmq is free software; you can redistribute it and/or modify it under
-    the terms of the GNU Lesser General Public License (LGPL) as published
-    by the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
+type ZmqSocklen = usize;
 
-    As a special exception, the Contributors give you permission to link
-    this library with independent modules to produce an executable,
-    regardless of the license terms of these independent modules, and to
-    copy and distribute the resulting executable under terms of your choice,
-    provided that you also meet, for each linked independent module, the
-    terms and conditions of the license of that module. An independent
-    module is a module which is not derived from or based on this library.
-    If you modify this library, you must extend this exception to your
-    version of the library.
-
-    libzmq is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-    License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-// #include "precompiled.hpp"
-// #include "macros.hpp"
-// #include "address.hpp"
-// #include "ctx.hpp"
-// #include "err.hpp"
-// #include "tcp_address.hpp"
-// #include "udp_address.hpp"
-// #include "ipc_address.hpp"
-// #include "tipc_address.hpp"
-// #include "ws_address.hpp"
-
-// #if defined ZMQ_HAVE_VMCI
-// #include "vmci_address.hpp"
-// #endif
-
-// #include <string>
-// #include <sstream>
-
-zmq::address_t::address_t (const std::string &protocol_,
-                           const std::string &address_,
-                           ctx_t *parent_) :
-    protocol (protocol_), address (address_), parent (parent_)
+pub enum SocketEnd
 {
-    resolved.dummy = NULL;
+    SocketEndLocal,
+    SocketEndRemote
 }
 
-zmq::address_t::~address_t ()
-{
-    if (protocol == protocol_name::tcp) {
-        LIBZMQ_DELETE (resolved.tcp_addr);
-    } else if (protocol == protocol_name::udp) {
-        LIBZMQ_DELETE (resolved.udp_addr);
-    }
-// #ifdef ZMQ_HAVE_WS
-    else if (protocol == protocol_name::ws) {
-        LIBZMQ_DELETE (resolved.ws_addr);
-    }
-// #endif
-
-// #ifdef ZMQ_HAVE_WSS
-    else if (protocol == protocol_name::wss) {
-        LIBZMQ_DELETE (resolved.ws_addr);
-    }
-// #endif
-
-// #if defined ZMQ_HAVE_IPC
-    else if (protocol == protocol_name::ipc) {
-        LIBZMQ_DELETE (resolved.ipc_addr);
-    }
-// #endif
-// #if defined ZMQ_HAVE_TIPC
-    else if (protocol == protocol_name::tipc) {
-        LIBZMQ_DELETE (resolved.tipc_addr);
-    }
-// #endif
-// #if defined ZMQ_HAVE_VMCI
-    else if (protocol == protocol_name::vmci) {
-        LIBZMQ_DELETE (resolved.vmci_addr);
-    }
-// #endif
+pub union AddressTResolved {
+    pub dummy: *mut libc::c_void,
+    pub tcp_addr: *mut TcpAddress,
+    pub udp_addr: *mut UdpAddress,
+    pub ws_addr: *mut WsAddress,
+    pub wss_addr: *mut WssAddress,
+    pub ipc_addr: *mut IpcAddress,
+    pub tipc_addr: *mut TipcAddress,
+    pub vmci_addr: *mut VmciAddress,
 }
 
-int zmq::address_t::to_string (std::string &addr_) const
+#[derive(Default,Debug,Clone)]
+pub struct Address
+{
+    // const std::string protocol;
+    pub protocol: String,
+    // const std::string address;
+    pub address: String,
+    // ctx_t *const parent;
+    pub parent: *mut ZmqContext,
+    //  Protocol specific resolved address
+    //  All members must be pointers to allow for consistent initialization
+    pub resolved: AddressTResolved,
+}
+
+impl Address {
+    // address_t (const std::string &protocol_,
+    //     const std::string &address_,
+    //     ctx_t *parent_);
+    pub fn new(protocol_: &str, address: &str, parent: *mut ZmqContext) -> Self {
+        Self {
+            protocol: String::from(protocol_),
+            address: String::from(address),
+            parent,
+            resolved: AddressTResolved{dummy: null_mut()}
+        }
+    }
+
+    // ~address_t ();
+
+    // int to_string (std::string &addr_) const;
+    pub fn to_string(&self, addr_: &str) -> i32 {
+
+    }
+}
+
+
+int Address::to_string (std::string &addr_) const
 {
     if (protocol == protocol_name::tcp && resolved.tcp_addr)
         return resolved.tcp_addr->to_string (addr_);
@@ -126,16 +104,33 @@ int zmq::address_t::to_string (std::string &addr_) const
     return -1;
 }
 
-zmq::zmq_socklen_t zmq::get_socket_address (fd_t fd_,
-                                            socket_end_t socket_end_,
+ZmqSocklen get_socket_address (fd_t fd_,
+                                            SocketEnd socket_end_,
                                             sockaddr_storage *ss_)
 {
-    zmq_socklen_t sl = static_cast<zmq_socklen_t> (sizeof (*ss_));
+    ZmqSocklen sl = static_cast<ZmqSocklen> (sizeof (*ss_));
 
     const int rc =
-      socket_end_ == socket_end_local
+      socket_end_ == SocketEndLocal
         ? getsockname (fd_, reinterpret_cast<struct sockaddr *> (ss_), &sl)
         : getpeername (fd_, reinterpret_cast<struct sockaddr *> (ss_), &sl);
 
     return rc != 0 ? 0 : sl;
+}
+
+pub fn get_socket_name<T>(fd_: fd_t, socket_end_: SocketEnd) -> String
+{
+    // struct sockaddr_storage ss;
+    let mut ss: sockaddr_storage = sockaddr_storage{};
+    let mut sl: ZmqSocklen = get_socket_address (fd_, socket_end_, &ss);
+    if (sl == 0) {
+        return String::empty();
+    }
+
+    // const T addr (reinterpret_cast<struct sockaddr *> (&ss), sl);
+    let mut addr = Address::new();
+    // std::string address_string;
+    let mut address_string: String = String::new();
+    addr.to_string(address_string);
+    return address_string;
 }

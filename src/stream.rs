@@ -36,7 +36,7 @@
 // #include "likely.hpp"
 // #include "err.hpp"
 
-zmq::stream_t::stream_t (class ctx_t *parent_, uint32_t tid_, sid_: i32) :
+zmq::stream_t::stream_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     routing_socket_base_t (parent_, tid_, sid_),
     _prefetched (false),
     _routing_id_sent (false),

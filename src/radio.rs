@@ -36,7 +36,7 @@
 // #include "err.hpp"
 // #include "msg.hpp"
 
-zmq::radio_t::radio_t (class ctx_t *parent_, uint32_t tid_, sid_: i32) :
+zmq::radio_t::radio_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     socket_base_t (parent_, tid_, sid_, true), _lossy (true)
 {
     options.type = ZMQ_RADIO;
@@ -200,7 +200,7 @@ zmq::radio_session_t::radio_session_t (io_thread_t *io_thread_,
                                        bool connect_,
                                        socket_base_t *socket_,
                                        const options_t &options_,
-                                       address_t *addr_) :
+                                       Address *addr_) :
     session_base_t (io_thread_, connect_, socket_, options_, addr_),
     _state (group)
 {

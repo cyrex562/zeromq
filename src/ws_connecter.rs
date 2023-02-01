@@ -71,7 +71,7 @@
 zmq::ws_connecter_t::ws_connecter_t (class io_thread_t *io_thread_,
                                      class session_base_t *session_,
                                      const options_t &options_,
-                                     address_t *addr_,
+                                     Address *addr_,
                                      bool delayed_start_,
                                      bool wss_,
                                      const std::string &tls_hostname_) :
@@ -122,13 +122,13 @@ void zmq::ws_connecter_t::out_event ()
     if (_wss)
 // #ifdef ZMQ_HAVE_WSS
         create_engine (fd,
-                       get_socket_name<wss_address_t> (fd, socket_end_local));
+                       get_socket_name<WssAddress> (fd, SocketEndLocal));
 // #else
         assert (false);
 // #endif
     else
         create_engine (fd,
-                       get_socket_name<ws_address_t> (fd, socket_end_local));
+                       get_socket_name<WsAddress> (fd, SocketEndLocal));
 }
 
 void zmq::ws_connecter_t::timer_event (id_: i32)
@@ -184,7 +184,7 @@ int zmq::ws_connecter_t::open ()
 {
     zmq_assert (_s == retired_fd);
 
-    tcp_address_t tcp_addr;
+    TcpAddress tcp_addr;
     _s = tcp_open_socket (_addr->address.c_str (), options, false, true,
                           &tcp_addr);
     if (_s == retired_fd)

@@ -35,8 +35,7 @@
 
 // #include "macros.hpp"
 
-namespace zmq
-{
+
 //  Implementation of fast arrays with O(1) access, insertion and
 //  removal. The array stores pointers rather than objects.
 //  O(1) is achieved by making items inheriting from
@@ -135,6 +134,6 @@ template <typename T, int ID = 0> class array_t
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (array_t)
 };
-}
+
 
 // #endif

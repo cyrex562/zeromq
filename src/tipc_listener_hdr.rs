@@ -54,7 +54,7 @@ class tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
 
   protected:
     std::string get_socket_name (fd_t fd_,
-                                 socket_end_t socket_end_) const ZMQ_FINAL;
+                                 SocketEnd socket_end_) const ZMQ_FINAL;
 
   // private:
     //  Handlers for I/O events.
@@ -66,7 +66,7 @@ class tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
     fd_t accept ();
 
     // Address to listen on
-    tipc_address_t _address;
+    TipcAddress _address;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (tipc_listener_t)
 };

@@ -54,8 +54,8 @@
 zmq::socks_connecter_t::socks_connecter_t (class io_thread_t *io_thread_,
                                            class session_base_t *session_,
                                            const options_t &options_,
-                                           address_t *addr_,
-                                           address_t *proxy_addr_,
+                                           Address *addr_,
+                                           Address *proxy_addr_,
                                            bool delayed_start_) :
     stream_connecter_base_t (
       io_thread_, session_, options_, addr_, delayed_start_),
@@ -134,7 +134,7 @@ void zmq::socks_connecter_t::in_event ()
             else {
                 rm_handle ();
                 create_engine (
-                  _s, get_socket_name<tcp_address_t> (_s, socket_end_local));
+                  _s, get_socket_name<TcpAddress> (_s, SocketEndLocal));
                 _s = -1;
                 _status = unplugged;
             }
@@ -282,7 +282,7 @@ int zmq::socks_connecter_t::connect_to_proxy ()
         LIBZMQ_DELETE (_proxy_addr->resolved.tcp_addr);
     }
 
-    _proxy_addr->resolved.tcp_addr = new (std::nothrow) tcp_address_t ();
+    _proxy_addr->resolved.tcp_addr = new (std::nothrow) TcpAddress ();
     alloc_assert (_proxy_addr->resolved.tcp_addr);
     //  Automatic fallback to ipv4 is disabled here since this was the existing
     //  behaviour, however I don't see a real reason for this. Maybe this can
@@ -299,7 +299,7 @@ int zmq::socks_connecter_t::connect_to_proxy ()
     // Set the socket to non-blocking mode so that we get async connect().
     unblock_socket (_s);
 
-    const tcp_address_t *const tcp_addr = _proxy_addr->resolved.tcp_addr;
+    const TcpAddress *const tcp_addr = _proxy_addr->resolved.tcp_addr;
 
     rc: i32;
 

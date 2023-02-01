@@ -46,7 +46,7 @@ static void test_resolve (bool bind_,
         TEST_IGNORE_MESSAGE ("ipv6 is not available");
     }
 
-    zmq::udp_address_t addr;
+    zmq::UdpAddress addr;
 
     int rc = addr.resolve (name_, bind_, family_ == AF_INET6);
 
@@ -216,7 +216,7 @@ static void test_resolve_ipv6_mcast_src_bind ()
         TEST_IGNORE_MESSAGE ("ipv6 is not available");
     }
 
-    zmq::udp_address_t addr;
+    zmq::UdpAddress addr;
     int rc = addr.resolve ("[::1];[ffab::4]:5555", true, true);
 
     //  For the time being this fails because we only support binding multicast
@@ -248,7 +248,7 @@ static void test_resolve_ipv6_mcast_src_connect ()
         TEST_IGNORE_MESSAGE ("ipv6 is not available");
     }
 
-    zmq::udp_address_t addr;
+    zmq::UdpAddress addr;
     int rc = addr.resolve ("[1:2:3::4];[ff01::1]:5555", false, true);
 
     //  For the time being this fails because we only support binding multicast

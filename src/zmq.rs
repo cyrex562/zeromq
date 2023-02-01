@@ -69,7 +69,7 @@ use std::intrinsics::unlikely;
 use std::mem;
 use std::ptr::null_mut;
 use libc::{c_char, c_void, EFAULT, EINTR, EINVAL, ENOMEM, ENOTSOCK, ENOTSUP, INT_MAX};
-use crate::ctx_hdr::ctx_t;
+use crate::ctx_hdr::ZmqContext;
 use crate::zmq_hdr::{zmq_free_fn, ZMQ_IO_THREADS, zmq_msg_t, ZMQ_PAIR, ZMQ_PEER, ZMQ_SNDMORE, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH};
 
 // XSI vector I/O
@@ -149,7 +149,7 @@ pub fn zmq_ctx_new () -> *mut c_void
     }
 
     //  Create 0MQ context.
-    let mut ctx: *mut ctx_t = ctx_t::new();
+    let mut ctx: *mut ZmqContext = ZmqContext::new();
     if ctx {
         if !ctx.valid () {
             // delete ctx;
@@ -161,12 +161,12 @@ pub fn zmq_ctx_new () -> *mut c_void
 
 pub fn zmq_ctx_term (ctx_: *mut c_void) -> i32
 {
-    if ctx_.is_null() == false || !(ctx_ as *mut ctx_t).check_tag() {
+    if ctx_.is_null() == false || !(ctx_ as *mut ZmqContext).check_tag() {
         errno = EFAULT;
         return -1;
     }
 
-    let rc = (ctx_ as *mut ctx_t).terminate();
+    let rc = (ctx_ as *mut ZmqContext).terminate();
     let en = errno;
 
     //  Shut down only if termination was not interrupted by a signal.
@@ -180,11 +180,11 @@ pub fn zmq_ctx_term (ctx_: *mut c_void) -> i32
 
 pub fn zmq_ctx_shutdown (ctx_: *mut c_void) -> i32
 {
-    if (!ctx_ || !(ctx_ as *mut ctx_t).check_tag ()) {
+    if (!ctx_ || !(ctx_ as *mut ZmqContext).check_tag ()) {
         errno = EFAULT;
         return -1;
     }
-    return (ctx_ as *mut ctx_t).shutdown ();
+    return (ctx_ as *mut ZmqContext).shutdown ();
 }
 
 pub fn zmq_ctx_set (ctx_: *mut c_void, option_: i32, mut optval_: i32) -> i32
@@ -197,29 +197,29 @@ pub fn zmq_ctx_set_ext (ctx_: *mut c_void,
                      optval_: *mut c_void,
                      optvallen_: usize) -> i32
 {
-    if !ctx_ || !(ctx_ as *mut ctx_t).check_tag () {
+    if !ctx_ || !(ctx_ as *mut ZmqContext).check_tag () {
         errno = EFAULT;
         return -1;
     }
-    return (ctx_ as *mut ctx_t).set(option_, optval_, optvallen_);
+    return (ctx_ as *mut ZmqContext).set(option_, optval_, optvallen_);
 }
 
 pub fn zmq_ctx_get (ctx_: *mut c_void, option_: i32) -> i32
 {
-    if !ctx_ || !(ctx_ as *mut ctx_t).check_tag () {
+    if !ctx_ || !(ctx_ as *mut ZmqContext).check_tag () {
         errno = EFAULT;
         return -1;
     }
-    return (ctx_ as *mut ctx_t).get (option_);
+    return (ctx_ as *mut ZmqContext).get (option_);
 }
 
 pub fn zmq_ctx_get_ext (ctx_: *mut c_void, option_: i32, optval_: *mut c_void, optvallen_: *mut usize) -> i32
 {
-    if !ctx_ || !(ctx_ as *mut ctx_t).check_tag () {
+    if !ctx_ || !(ctx_ as *mut ZmqContext).check_tag () {
         errno = EFAULT;
         return -1;
     }
-    return (ctx_ as *mut ctx_t).get(option_, optval_, optvallen_);
+    return (ctx_ as *mut ZmqContext).get(option_, optval_, optvallen_);
 }
 
 
@@ -261,11 +261,11 @@ pub fn as_socket_base_t (s_: *mut c_void) -> *mut socket_base_t
 }
 
 pub fn zmq_socket(ctx_: *mut c_void, type_: i32) -> *mut c_void {
-    if !ctx_ || !(ctx_ as *mut ctx_t).check_tag() {
+    if !ctx_ || !(ctx_ as *mut ZmqContext).check_tag() {
         errno = EFAULT;
         return null_mut();
     }
-    let mut ctx: *mut ctx_t = ctx_ as *mut ctx_t;
+    let mut ctx: *mut ZmqContext = ctx_ as *mut ZmqContext;
     let mut s: *mut socket_base_t = ctx.create_socket(type_);
     return s as *mut c_void;
 }

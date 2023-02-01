@@ -33,5 +33,8 @@
 
 namespace zmq
 {
+
+typedef generic_mtrie_t<pipe_t> mtrie_t;
+
 template class generic_mtrie_t<pipe_t>;
 }

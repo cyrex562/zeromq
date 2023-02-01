@@ -121,23 +121,23 @@ void zmq::ws_listener_t::in_event ()
 }
 
 std::string zmq::ws_listener_t::get_socket_name (zmq::fd_t fd_,
-                                                 socket_end_t socket_end_) const
+                                                 SocketEnd socket_end_) const
 {
     std::string socket_name;
 
 // #ifdef ZMQ_HAVE_WSS
     if (_wss)
-        socket_name = zmq::get_socket_name<wss_address_t> (fd_, socket_end_);
+        socket_name = zmq::get_socket_name<WssAddress> (fd_, socket_end_);
     else
 // #endif
-        socket_name = zmq::get_socket_name<ws_address_t> (fd_, socket_end_);
+        socket_name = zmq::get_socket_name<WsAddress> (fd_, socket_end_);
 
     return socket_name + _address.path ();
 }
 
 int zmq::ws_listener_t::create_socket (addr_: *const c_char)
 {
-    tcp_address_t address;
+    TcpAddress address;
     _s = tcp_open_socket (addr_, options, true, true, &address);
     if (_s == retired_fd) {
         return -1;
@@ -228,7 +228,7 @@ int zmq::ws_listener_t::set_local_address (addr_: *const c_char)
             return -1;
     }
 
-    _endpoint = get_socket_name (_s, socket_end_local);
+    _endpoint = get_socket_name (_s, SocketEndLocal);
 
     _socket->event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
                               _s);
@@ -303,8 +303,8 @@ zmq::fd_t zmq::ws_listener_t::accept ()
 void zmq::ws_listener_t::create_engine (fd_t fd_)
 {
     const endpoint_uri_pair_t endpoint_pair (
-      get_socket_name (fd_, socket_end_local),
-      get_socket_name (fd_, socket_end_remote), endpoint_type_bind);
+      get_socket_name (fd_, SocketEndLocal),
+      get_socket_name (fd_, SocketEndRemote), endpoint_type_bind);
 
     i_engine *engine = NULL;
     if (_wss)

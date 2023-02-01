@@ -90,7 +90,7 @@ static void compute_accept_key (char *key_,
 zmq::ws_engine_t::ws_engine_t (fd_t fd_,
                                const options_t &options_,
                                const endpoint_uri_pair_t &endpoint_uri_pair_,
-                               const ws_address_t &address_,
+                               const WsAddress &address_,
                                bool client_) :
     stream_engine_base_t (fd_, options_, endpoint_uri_pair_, true),
     _client (client_),

@@ -45,18 +45,18 @@
 // #include <ctype.h>
 // #endif
 
-zmq::udp_address_t::udp_address_t () :
+zmq::UdpAddress::UdpAddress () :
     _bind_interface (-1), _is_multicast (false)
 {
     _bind_address = ip_addr_t::any (AF_INET);
     _target_address = ip_addr_t::any (AF_INET);
 }
 
-zmq::udp_address_t::~udp_address_t ()
+zmq::UdpAddress::~UdpAddress ()
 {
 }
 
-int zmq::udp_address_t::resolve (name_: *const c_char, bool bind_, bool ipv6_)
+int zmq::UdpAddress::resolve (name_: *const c_char, bool bind_, bool ipv6_)
 {
     //  No IPv6 support yet
     bool has_interface = false;
@@ -69,7 +69,7 @@ int zmq::udp_address_t::resolve (name_: *const c_char, bool bind_, bool ipv6_)
     if (src_delimiter) {
         const std::string src_name (name_, src_delimiter - name_);
 
-        ip_resolver_options_t src_resolver_opts;
+        IpResolverOptions src_resolver_opts;
 
         src_resolver_opts
           .bindable (true)
@@ -116,7 +116,7 @@ int zmq::udp_address_t::resolve (name_: *const c_char, bool bind_, bool ipv6_)
         name_ = src_delimiter + 1;
     }
 
-    ip_resolver_options_t resolver_opts;
+    IpResolverOptions resolver_opts;
 
     resolver_opts.bindable (bind_)
       .allow_dns (!bind_)
@@ -176,32 +176,32 @@ int zmq::udp_address_t::resolve (name_: *const c_char, bool bind_, bool ipv6_)
     return 0;
 }
 
-int zmq::udp_address_t::family () const
+int zmq::UdpAddress::family () const
 {
     return _bind_address.family ();
 }
 
-bool zmq::udp_address_t::is_mcast () const
+bool zmq::UdpAddress::is_mcast () const
 {
     return _is_multicast;
 }
 
-const zmq::ip_addr_t *zmq::udp_address_t::bind_addr () const
+const zmq::ip_addr_t *zmq::UdpAddress::bind_addr () const
 {
     return &_bind_address;
 }
 
-int zmq::udp_address_t::bind_if () const
+int zmq::UdpAddress::bind_if () const
 {
     return _bind_interface;
 }
 
-const zmq::ip_addr_t *zmq::udp_address_t::target_addr () const
+const zmq::ip_addr_t *zmq::UdpAddress::target_addr () const
 {
     return &_target_address;
 }
 
-int zmq::udp_address_t::to_string (std::string &addr_)
+int zmq::UdpAddress::to_string (std::string &addr_)
 {
     // XXX what do (factor TCP code?)
     addr_ = _address;

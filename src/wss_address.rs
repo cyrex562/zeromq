@@ -33,16 +33,16 @@
 
 // #include "wss_address.hpp"
 
-zmq::wss_address_t::wss_address_t () : ws_address_t ()
+zmq::WssAddress::WssAddress () : WsAddress ()
 {
 }
 
-zmq::wss_address_t::wss_address_t (const sockaddr *sa_, socklen_t sa_len_) :
-    ws_address_t (sa_, sa_len_)
+zmq::WssAddress::WssAddress (const sockaddr *sa_, socklen_t sa_len_) :
+    WsAddress (sa_, sa_len_)
 {
 }
 
-int zmq::wss_address_t::to_string (std::string &addr_) const
+int zmq::WssAddress::to_string (std::string &addr_) const
 {
     std::ostringstream os;
     os << std::string ("wss://") << host () << std::string (":")

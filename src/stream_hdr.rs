@@ -36,13 +36,13 @@
 
 namespace zmq
 {
-class ctx_t;
+class ZmqContext;
 class pipe_t;
 
 class stream_t ZMQ_FINAL : public routing_socket_base_t
 {
 // public:
-    stream_t (zmq::ctx_t *parent_, uint32_t tid_, sid_: i32);
+    stream_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~stream_t ();
 
     //  Overrides of functions from socket_base_t.

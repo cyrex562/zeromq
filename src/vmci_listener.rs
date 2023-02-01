@@ -90,15 +90,15 @@ void zmq::vmci_listener_t::in_event ()
 
 std::string
 zmq::vmci_listener_t::get_socket_name (zmq::fd_t fd_,
-                                       socket_end_t socket_end_) const
+                                       SocketEnd socket_end_) const
 {
     struct sockaddr_storage ss;
-    const zmq_socklen_t sl = get_socket_address (fd_, socket_end_, &ss);
+    const ZmqSocklen sl = get_socket_address (fd_, socket_end_, &ss);
     if (sl == 0) {
         return std::string ();
     }
 
-    const vmci_address_t addr (reinterpret_cast<struct sockaddr *> (&ss), sl,
+    const VmciAddress addr (reinterpret_cast<struct sockaddr *> (&ss), sl,
                                this->get_ctx ());
     std::string address_string;
     addr.to_string (address_string);
@@ -111,7 +111,7 @@ int zmq::vmci_listener_t::set_local_address (addr_: *const c_char)
     std::string addr (addr_);
 
     //  Initialise the address structure.
-    vmci_address_t address (this->get_ctx ());
+    VmciAddress address (this->get_ctx ());
     int rc = address.resolve (addr.c_str ());
     if (rc != 0)
         return -1;

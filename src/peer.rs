@@ -36,7 +36,25 @@
 // #include "likely.hpp"
 // #include "err.hpp"
 
-zmq::peer_t::peer_t (class ctx_t *parent_, uint32_t tid_, sid_: i32) :
+class peer_t ZMQ_FINAL : public server_t
+{
+// public:
+    peer_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+
+    //  Overrides of functions from socket_base_t.
+    void xattach_pipe (zmq::pipe_t *pipe_,
+                       bool subscribe_to_all_,
+                       bool locally_initiated_);
+
+    uint32_t connect_peer (endpoint_uri_: *const c_char);
+
+  // private:
+    uint32_t _peer_last_routing_id;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (peer_t)
+};
+
+zmq::peer_t::peer_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     server_t (parent_, tid_, sid_)
 {
     options.type = ZMQ_PEER;

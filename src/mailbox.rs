@@ -31,6 +31,49 @@
 // #include "mailbox.hpp"
 // #include "err.hpp"
 
+class mailbox_t ZMQ_FINAL : public i_mailbox
+{
+// public:
+    mailbox_t ();
+    ~mailbox_t ();
+
+    fd_t get_fd () const;
+    void send (const command_t &cmd_);
+    int recv (command_t *cmd_, timeout_: i32);
+
+    bool valid () const;
+
+// #ifdef HAVE_FORK
+    // close the file descriptors in the signaller. This is used in a forked
+    // child process to close the file descriptors so that they do not interfere
+    // with the context in the parent process.
+    void forked () ZMQ_FINAL
+    {
+        _signaler.forked ();
+    }
+// #endif
+
+  // private:
+    //  The pipe to store actual commands.
+    typedef ypipe_t<command_t, command_pipe_granularity> cpipe_t;
+    cpipe_t _cpipe;
+
+    //  Signaler to pass signals from writer thread to reader thread.
+    signaler_t _signaler;
+
+    //  There's only one thread receiving from the mailbox, but there
+    //  is arbitrary number of threads sending. Given that ypipe requires
+    //  synchronised access on both of its endpoints, we have to synchronise
+    //  the sending side.
+    mutex_t _sync;
+
+    //  True if the underlying pipe is active, ie. when we are allowed to
+    //  read commands from it.
+    bool _active;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_t)
+};
+
 zmq::mailbox_t::mailbox_t ()
 {
     //  Get the pipe into passive state. That way, if the users starts by

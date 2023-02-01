@@ -34,7 +34,31 @@
 // #include "msg.hpp"
 // #include "pipe.hpp"
 
-zmq::gather_t::gather_t (class ctx_t *parent_, uint32_t tid_, sid_: i32) :
+
+class gather_t ZMQ_FINAL : public socket_base_t
+{
+// public:
+    gather_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    ~gather_t ();
+
+  protected:
+    //  Overrides of functions from socket_base_t.
+    void xattach_pipe (zmq::pipe_t *pipe_,
+                       bool subscribe_to_all_,
+                       bool locally_initiated_);
+    int xrecv (zmq::msg_t *msg_);
+    bool xhas_in ();
+    void xread_activated (zmq::pipe_t *pipe_);
+    void xpipe_terminated (zmq::pipe_t *pipe_);
+
+  // private:
+    //  Fair queueing object for inbound pipes.
+    fq_t _fq;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (gather_t)
+};
+
+zmq::gather_t::gather_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     socket_base_t (parent_, tid_, sid_, true)
 {
     options.type = ZMQ_GATHER;

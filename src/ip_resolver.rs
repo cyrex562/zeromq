@@ -20,6 +20,84 @@
 
 // #include "ip_resolver.hpp"
 
+union ip_addr_t
+{
+    sockaddr generic;
+    sockaddr_in ipv4;
+    sockaddr_in6 ipv6;
+
+    int family () const;
+    bool is_multicast () const;
+    uint16_t port () const;
+
+    const struct sockaddr *as_sockaddr () const;
+    ZmqSocklen sockaddr_len () const;
+
+    void set_port (uint16_t);
+
+    static ip_addr_t any (family_: i32);
+};
+
+
+class IpResolverOptions
+{
+// public:
+    IpResolverOptions ();
+
+    IpResolverOptions &bindable (bool bindable_);
+    IpResolverOptions &allow_nic_name (bool allow_);
+    IpResolverOptions &ipv6 (bool ipv6_);
+    IpResolverOptions &expect_port (bool expect_);
+    IpResolverOptions &allow_dns (bool allow_);
+    IpResolverOptions &allow_path (bool allow_);
+
+    bool bindable ();
+    bool allow_nic_name ();
+    bool ipv6 ();
+    bool expect_port ();
+    bool allow_dns ();
+    bool allow_path ();
+
+  // private:
+    bool _bindable_wanted;
+    bool _nic_name_allowed;
+    bool _ipv6_wanted;
+    bool _port_expected;
+    bool _dns_allowed;
+    bool _path_allowed;
+};
+
+class ip_resolver_t
+{
+// public:
+    ip_resolver_t (IpResolverOptions opts_);
+    virtual ~ip_resolver_t (){};
+
+    int resolve (ip_addr_t *ip_addr_, name_: *const c_char);
+
+  protected:
+    //  Virtual functions that are overridden in tests
+    virtual int do_getaddrinfo (node_: *const c_char,
+                                service_: *const c_char,
+                                const struct addrinfo *hints_,
+                                struct addrinfo **res_);
+
+    virtual void do_freeaddrinfo (struct addrinfo *res_);
+
+    virtual unsigned int do_if_nametoindex (ifname_: *const c_char);
+
+  // private:
+    IpResolverOptions _options;
+
+    int resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char);
+    int resolve_getaddrinfo (ip_addr_t *ip_addr_, addr_: *const c_char);
+
+// #if defined ZMQ_HAVE_WINDOWS
+    int get_interface_name (unsigned long index_, char **dest_) const;
+    int wchar_to_utf8 (const WCHAR *src_, char **dest_) const;
+// #endif
+};
+
 int zmq::ip_addr_t::family () const
 {
     return generic.sa_family;
@@ -49,9 +127,9 @@ const struct sockaddr *zmq::ip_addr_t::as_sockaddr () const
     return &generic;
 }
 
-zmq::zmq_socklen_t zmq::ip_addr_t::sockaddr_len () const
+zmq::ZmqSocklen zmq::ip_addr_t::sockaddr_len () const
 {
-    return static_cast<zmq_socklen_t> (family () == AF_INET6 ? sizeof (ipv6)
+    return static_cast<ZmqSocklen> (family () == AF_INET6 ? sizeof (ipv6)
                                                              : sizeof (ipv4));
 }
 
@@ -92,7 +170,7 @@ zmq::ip_addr_t zmq::ip_addr_t::any (family_: i32)
     return addr;
 }
 
-zmq::ip_resolver_options_t::ip_resolver_options_t () :
+zmq::IpResolverOptions::IpResolverOptions () :
     _bindable_wanted (false),
     _nic_name_allowed (false),
     _ipv6_wanted (false),
@@ -102,23 +180,23 @@ zmq::ip_resolver_options_t::ip_resolver_options_t () :
 {
 }
 
-zmq::ip_resolver_options_t &
-zmq::ip_resolver_options_t::bindable (bool bindable_)
+zmq::IpResolverOptions &
+zmq::IpResolverOptions::bindable (bool bindable_)
 {
     _bindable_wanted = bindable_;
 
     return *this;
 }
 
-zmq::ip_resolver_options_t &
-zmq::ip_resolver_options_t::allow_nic_name (bool allow_)
+zmq::IpResolverOptions &
+zmq::IpResolverOptions::allow_nic_name (bool allow_)
 {
     _nic_name_allowed = allow_;
 
     return *this;
 }
 
-zmq::ip_resolver_options_t &zmq::ip_resolver_options_t::ipv6 (bool ipv6_)
+zmq::IpResolverOptions &zmq::IpResolverOptions::ipv6 (bool ipv6_)
 {
     _ipv6_wanted = ipv6_;
 
@@ -127,59 +205,59 @@ zmq::ip_resolver_options_t &zmq::ip_resolver_options_t::ipv6 (bool ipv6_)
 
 //  If true we expect that the host will be followed by a colon and a port
 //  number or service name
-zmq::ip_resolver_options_t &
-zmq::ip_resolver_options_t::expect_port (bool expect_)
+zmq::IpResolverOptions &
+zmq::IpResolverOptions::expect_port (bool expect_)
 {
     _port_expected = expect_;
 
     return *this;
 }
 
-zmq::ip_resolver_options_t &zmq::ip_resolver_options_t::allow_dns (bool allow_)
+zmq::IpResolverOptions &zmq::IpResolverOptions::allow_dns (bool allow_)
 {
     _dns_allowed = allow_;
 
     return *this;
 }
 
-zmq::ip_resolver_options_t &zmq::ip_resolver_options_t::allow_path (bool allow_)
+zmq::IpResolverOptions &zmq::IpResolverOptions::allow_path (bool allow_)
 {
     _path_allowed = allow_;
 
     return *this;
 }
 
-bool zmq::ip_resolver_options_t::bindable ()
+bool zmq::IpResolverOptions::bindable ()
 {
     return _bindable_wanted;
 }
 
-bool zmq::ip_resolver_options_t::allow_nic_name ()
+bool zmq::IpResolverOptions::allow_nic_name ()
 {
     return _nic_name_allowed;
 }
 
-bool zmq::ip_resolver_options_t::ipv6 ()
+bool zmq::IpResolverOptions::ipv6 ()
 {
     return _ipv6_wanted;
 }
 
-bool zmq::ip_resolver_options_t::expect_port ()
+bool zmq::IpResolverOptions::expect_port ()
 {
     return _port_expected;
 }
 
-bool zmq::ip_resolver_options_t::allow_dns ()
+bool zmq::IpResolverOptions::allow_dns ()
 {
     return _dns_allowed;
 }
 
-bool zmq::ip_resolver_options_t::allow_path ()
+bool zmq::IpResolverOptions::allow_path ()
 {
     return _path_allowed;
 }
 
-zmq::ip_resolver_t::ip_resolver_t (ip_resolver_options_t opts_) :
+zmq::ip_resolver_t::ip_resolver_t (IpResolverOptions opts_) :
     _options (opts_)
 {
 }

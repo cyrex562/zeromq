@@ -38,7 +38,7 @@ namespace zmq
 {
 class io_thread_t;
 class session_base_t;
-struct address_t;
+struct Address;
 
 class stream_connecter_base_t : public own_t, public io_object_t
 {
@@ -48,7 +48,7 @@ class stream_connecter_base_t : public own_t, public io_object_t
     stream_connecter_base_t (zmq::io_thread_t *io_thread_,
                              zmq::session_base_t *session_,
                              const options_t &options_,
-                             address_t *addr_,
+                             Address *addr_,
                              bool delayed_start_);
 
     ~stream_connecter_base_t () ZMQ_OVERRIDE;
@@ -76,7 +76,7 @@ class stream_connecter_base_t : public own_t, public io_object_t
 
     //  Address to connect to. Owned by session_base_t.
     //  It is non-const since some parts may change during opening.
-    address_t *const _addr;
+    Address *const _addr;
 
     //  Underlying socket.
     fd_t _s;

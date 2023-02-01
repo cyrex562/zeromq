@@ -43,7 +43,7 @@ namespace zmq
 {
 class io_thread_t;
 struct i_engine;
-struct address_t;
+struct Address;
 
 class session_base_t : public own_t, public io_object_t, public i_pipe_events
 {
@@ -53,7 +53,7 @@ class session_base_t : public own_t, public io_object_t, public i_pipe_events
                                    bool active_,
                                    socket_: *mut socket_base_t,
                                    const options_t &options_,
-                                   address_t *addr_);
+                                   Address *addr_);
 
     //  To be used once only, when creating the session.
     void attach_pipe (zmq::pipe_t *pipe_);
@@ -101,7 +101,7 @@ class session_base_t : public own_t, public io_object_t, public i_pipe_events
                     bool active_,
                     socket_: *mut socket_base_t,
                     const options_t &options_,
-                    address_t *addr_);
+                    Address *addr_);
     ~session_base_t () ZMQ_OVERRIDE;
 
   // private:
@@ -163,7 +163,7 @@ class session_base_t : public own_t, public io_object_t, public i_pipe_events
     bool _has_linger_timer;
 
     //  Protocol and address to use when connecting.
-    address_t *_addr;
+    Address *_addr;
 
 // #ifdef ZMQ_HAVE_WSS
     //  TLS handshake, we need to take a copy when the session is created,
@@ -181,7 +181,7 @@ class hello_msg_session_t ZMQ_FINAL : public session_base_t
                          bool connect_,
                          socket_: *mut socket_base_t,
                          const options_t &options_,
-                         address_t *addr_);
+                         Address *addr_);
     ~hello_msg_session_t ();
 
     //  Overrides of the functions from session_base_t.

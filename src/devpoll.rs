@@ -46,6 +46,55 @@
 // #include "config.hpp"
 // #include "i_poll_events.hpp"
 
+
+class devpoll_t ZMQ_FINAL : public worker_poller_base_t
+{
+// public:
+    typedef fd_t handle_t;
+
+    devpoll_t (const thread_ctx_t &ctx_);
+    ~devpoll_t () ZMQ_FINAL;
+
+    //  "poller" concept.
+    handle_t add_fd (fd_t fd_, zmq::i_poll_events *events_);
+    void rm_fd (handle_t handle_);
+    void set_pollin (handle_t handle_);
+    void reset_pollin (handle_t handle_);
+    void set_pollout (handle_t handle_);
+    void reset_pollout (handle_t handle_);
+    void stop ();
+
+    static int max_fds ();
+
+  // private:
+    //  Main event loop.
+    void loop () ZMQ_FINAL;
+
+    //  File descriptor referring to "/dev/poll" pseudo-device.
+    fd_t devpoll_fd;
+
+    struct fd_entry_t
+    {
+        short events;
+        zmq::i_poll_events *reactor;
+        bool valid;
+        bool accepted;
+    };
+
+    typedef std::vector<fd_entry_t> fd_table_t;
+    fd_table_t fd_table;
+
+    typedef std::vector<fd_t> pending_list_t;
+    pending_list_t pending_list;
+
+    //  Pollset manipulation function.
+    void devpoll_ctl (fd_t fd_, short events_);
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (devpoll_t)
+};
+
+typedef devpoll_t poller_t;
+
 zmq::devpoll_t::devpoll_t (const zmq::thread_ctx_t &ctx_) :
     worker_poller_base_t (ctx_)
 {

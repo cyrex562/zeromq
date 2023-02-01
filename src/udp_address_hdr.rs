@@ -41,11 +41,11 @@
 
 namespace zmq
 {
-class udp_address_t
+class UdpAddress
 {
 // public:
-    udp_address_t ();
-    virtual ~udp_address_t ();
+    UdpAddress ();
+    virtual ~UdpAddress ();
 
     int resolve (name_: *const c_char, bool bind_, bool ipv6_);
 

@@ -45,6 +45,62 @@
 // #endif
 // #endif
 
+pub struct curve_encoding_t
+{
+  // public:
+
+
+    typedef uint64_t nonce_t;
+
+
+//   private:
+
+
+    const char *_encode_nonce_prefix;
+    const char *_decode_nonce_prefix;
+
+    nonce_t _cn_nonce;
+    nonce_t _cn_peer_nonce;
+
+    //  Intermediary buffer used to speed up boxing and unboxing.
+    uint8_t _cn_precom[crypto_box_BEFORENMBYTES];
+
+    const bool _downgrade_sub;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (curve_encoding_t)
+}
+
+pub impl curve_encoding_t {
+    curve_encoding_t (encode_nonce_prefix_: *const c_char,
+        decode_nonce_prefix_: *const c_char,
+        const bool downgrade_sub_);
+
+int encode (msg_t *msg_);
+int decode (msg_t *msg_, error_event_code_: *mut i32);
+
+uint8_t *get_writable_precom_buffer () { return _cn_precom; }
+const uint8_t *get_precom_buffer () const { return _cn_precom; }
+
+nonce_t get_and_inc_nonce () { return _cn_nonce++; }
+void set_peer_nonce (nonce_t peer_nonce_) { _cn_peer_nonce = peer_nonce_; }
+    int check_validity (msg_t *msg_, error_event_code_: *mut i32);
+} // pub impl curve_encoding_t
+
+class curve_mechanism_base_t : public virtual mechanism_base_t,
+                               public curve_encoding_t
+{
+  // public:
+    curve_mechanism_base_t (session_base_t *session_,
+                            const options_t &options_,
+                            encode_nonce_prefix_: *const c_char,
+                            decode_nonce_prefix_: *const c_char,
+                            const bool downgrade_sub_);
+
+    // mechanism implementation
+    int encode (msg_t *msg_) ZMQ_OVERRIDE;
+    int decode (msg_t *msg_) ZMQ_OVERRIDE;
+};
+
 zmq::curve_mechanism_base_t::curve_mechanism_base_t (
   session_base_t *session_,
   const options_t &options_,

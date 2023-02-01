@@ -34,7 +34,7 @@
 // #include "xsub.hpp"
 // #include "err.hpp"
 
-zmq::xsub_t::xsub_t (class ctx_t *parent_, uint32_t tid_, sid_: i32) :
+zmq::xsub_t::xsub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     socket_base_t (parent_, tid_, sid_),
     _verbose_unsubs (false),
     _has_message (false),

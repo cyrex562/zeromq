@@ -47,7 +47,7 @@ class tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
     int set_local_address (addr_: *const c_char);
 
   protected:
-    std::string get_socket_name (fd_t fd_, socket_end_t socket_end_) const;
+    std::string get_socket_name (fd_t fd_, SocketEnd socket_end_) const;
 
   // private:
     //  Handlers for I/O events.
@@ -62,7 +62,7 @@ class tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
     int create_socket (addr_: *const c_char);
 
     //  Address to listen on.
-    tcp_address_t _address;
+    TcpAddress _address;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (tcp_listener_t)
 };

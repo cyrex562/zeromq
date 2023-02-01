@@ -33,7 +33,46 @@
 // #include "err.hpp"
 // #include "msg.hpp"
 
-zmq::dealer_t::dealer_t (class ctx_t *parent_, uint32_t tid_, sid_: i32) :
+
+class dealer_t : public socket_base_t
+{
+// public:
+    dealer_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    ~dealer_t () ZMQ_OVERRIDE;
+
+  protected:
+    //  Overrides of functions from socket_base_t.
+    void xattach_pipe (zmq::pipe_t *pipe_,
+                       bool subscribe_to_all_,
+                       bool locally_initiated_) ZMQ_FINAL;
+    int xsetsockopt (option_: i32,
+                     const optval_: *mut c_void,
+                     optvallen_: usize) ZMQ_OVERRIDE;
+    int xsend (zmq::msg_t *msg_) ZMQ_OVERRIDE;
+    int xrecv (zmq::msg_t *msg_) ZMQ_OVERRIDE;
+    bool xhas_in () ZMQ_OVERRIDE;
+    bool xhas_out () ZMQ_OVERRIDE;
+    void xread_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
+    void xwrite_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
+    void xpipe_terminated (zmq::pipe_t *pipe_) ZMQ_OVERRIDE;
+
+    //  Send and recv - knowing which pipe was used.
+    int sendpipe (zmq::msg_t *msg_, zmq::pipe_t **pipe_);
+    int recvpipe (zmq::msg_t *msg_, zmq::pipe_t **pipe_);
+
+  // private:
+    //  Messages are fair-queued from inbound pipes. And load-balanced to
+    //  the outbound pipes.
+    fq_t _fq;
+    lb_t _lb;
+
+    // if true, send an empty message to every connected router peer
+    bool _probe_router;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (dealer_t)
+};
+
+zmq::dealer_t::dealer_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     socket_base_t (parent_, tid_, sid_), _probe_router (false)
 {
     options.type = ZMQ_DEALER;

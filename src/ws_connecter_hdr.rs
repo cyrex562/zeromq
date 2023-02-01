@@ -44,7 +44,7 @@ class ws_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     ws_connecter_t (zmq::io_thread_t *io_thread_,
                     zmq::session_base_t *session_,
                     const options_t &options_,
-                    address_t *addr_,
+                    Address *addr_,
                     bool delayed_start_,
                     bool wss_,
                     const std::string &tls_hostname_);

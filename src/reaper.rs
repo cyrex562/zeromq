@@ -33,7 +33,7 @@
 // #include "socket_base.hpp"
 // #include "err.hpp"
 
-zmq::reaper_t::reaper_t (class ctx_t *ctx_, uint32_t tid_) :
+zmq::reaper_t::reaper_t (class ZmqContext *ctx_, uint32_t tid_) :
     object_t (ctx_, tid_),
     _mailbox_handle (static_cast<poller_t::handle_t> (NULL)),
     _poller (NULL),

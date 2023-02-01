@@ -20,7 +20,7 @@ class udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     udp_engine_t (const options_t &options_);
     ~udp_engine_t ();
 
-    int init (address_t *address_, bool send_, bool recv_);
+    int init (Address *address_, bool send_, bool recv_);
 
     bool has_handshake_stage () ZMQ_FINAL { return false; };
 
@@ -60,9 +60,9 @@ class udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     // Set multicast address/interface
     int set_udp_multicast_iface (fd_t s_,
                                  bool is_ipv6_,
-                                 const udp_address_t *addr_);
+                                 const UdpAddress *addr_);
     // Join a multicast group
-    int add_membership (fd_t s_, const udp_address_t *addr_);
+    int add_membership (fd_t s_, const UdpAddress *addr_);
 
     //  Function to handle network issues.
     void error (error_reason_t reason_);
@@ -74,13 +74,13 @@ class udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     fd_t _fd;
     session_base_t *_session;
     handle_t _handle;
-    address_t *_address;
+    Address *_address;
 
     options_t _options;
 
     sockaddr_in _raw_address;
     const struct sockaddr *_out_address;
-    zmq_socklen_t _out_address_len;
+    ZmqSocklen _out_address_len;
 
     char _out_buffer[MAX_UDP_MSG];
     char _in_buffer[MAX_UDP_MSG];

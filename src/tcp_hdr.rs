@@ -34,7 +34,7 @@
 
 namespace zmq
 {
-class tcp_address_t;
+class TcpAddress;
 struct options_t;
 
 //  Tunes the supplied TCP socket for the best latency.
@@ -79,7 +79,7 @@ fd_t tcp_open_socket (address_: *const c_char,
                       const options_t &options_,
                       bool local_,
                       bool fallback_to_ipv4_,
-                      tcp_address_t *out_tcp_addr_);
+                      TcpAddress *out_tcp_addr_);
 }
 
 // #endif

@@ -360,7 +360,7 @@ zmq::fd_t zmq::tcp_open_socket (address_: *const c_char,
                                 const zmq::options_t &options_,
                                 bool local_,
                                 bool fallback_to_ipv4_,
-                                zmq::tcp_address_t *out_tcp_addr_)
+                                zmq::TcpAddress *out_tcp_addr_)
 {
     //  Convert the textual address into address structure.
     int rc = out_tcp_addr_->resolve (address_, local_, options_.ipv6);

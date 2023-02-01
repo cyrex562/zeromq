@@ -36,7 +36,7 @@
 // #include "random.hpp"
 // #include "likely.hpp"
 
-zmq::req_t::req_t (class ctx_t *parent_, uint32_t tid_, sid_: i32) :
+zmq::req_t::req_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     dealer_t (parent_, tid_, sid_),
     _receiving_reply (false),
     _message_begins (true),
@@ -260,7 +260,7 @@ zmq::req_session_t::req_session_t (io_thread_t *io_thread_,
                                    bool connect_,
                                    socket_base_t *socket_,
                                    const options_t &options_,
-                                   address_t *addr_) :
+                                   Address *addr_) :
     session_base_t (io_thread_, connect_, socket_, options_, addr_),
     _state (bottom)
 {

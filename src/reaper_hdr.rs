@@ -37,13 +37,13 @@
 
 namespace zmq
 {
-class ctx_t;
+class ZmqContext;
 class socket_base_t;
 
 class reaper_t ZMQ_FINAL : public object_t, public i_poll_events
 {
 // public:
-    reaper_t (zmq::ctx_t *ctx_, uint32_t tid_);
+    reaper_t (zmq::ZmqContext *ctx_, uint32_t tid_);
     ~reaper_t ();
 
     mailbox_t *get_mailbox ();

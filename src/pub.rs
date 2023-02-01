@@ -33,7 +33,7 @@
 // #include "err.hpp"
 // #include "msg.hpp"
 
-zmq::pub_t::pub_t (class ctx_t *parent_, uint32_t tid_, sid_: i32) :
+zmq::pub_t::pub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     xpub_t (parent_, tid_, sid_)
 {
     options.type = ZMQ_PUB;

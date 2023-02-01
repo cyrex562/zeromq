@@ -96,9 +96,9 @@ void zmq::tcp_listener_t::in_event ()
 
 std::string
 zmq::tcp_listener_t::get_socket_name (zmq::fd_t fd_,
-                                      socket_end_t socket_end_) const
+                                      SocketEnd socket_end_) const
 {
-    return zmq::get_socket_name<tcp_address_t> (fd_, socket_end_);
+    return zmq::get_socket_name<TcpAddress> (fd_, socket_end_);
 }
 
 int zmq::tcp_listener_t::create_socket (addr_: *const c_char)
@@ -180,7 +180,7 @@ int zmq::tcp_listener_t::set_local_address (addr_: *const c_char)
             return -1;
     }
 
-    _endpoint = get_socket_name (_s, socket_end_local);
+    _endpoint = get_socket_name (_s, SocketEndLocal);
 
     _socket->event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
                               _s);
