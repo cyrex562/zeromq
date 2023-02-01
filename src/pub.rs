@@ -33,6 +33,23 @@
 // #include "err.hpp"
 // #include "msg.hpp"
 
+
+class pub_t ZMQ_FINAL : public xpub_t
+{
+// public:
+    pub_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    ~pub_t ();
+
+    //  Implementations of virtual functions from socket_base_t.
+    void xattach_pipe (zmq::pipe_t *pipe_,
+                       bool subscribe_to_all_ = false,
+                       bool locally_initiated_ = false);
+    int xrecv (zmq::msg_t *msg_);
+    bool xhas_in ();
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (pub_t)
+};
+
 zmq::pub_t::pub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     xpub_t (parent_, tid_, sid_)
 {

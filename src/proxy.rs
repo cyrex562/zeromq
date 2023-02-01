@@ -49,6 +49,12 @@
 
 // #include "socket_poller.hpp"
 
+int proxy (class socket_base_t *frontend_,
+           class socket_base_t *backend_,
+           class socket_base_t *capture_,
+           class socket_base_t *control_ =
+             NULL); // backward compatibility without this argument
+
 //  Macros for repetitive code.
 
 //  PROXY_CLEANUP() must not be used before these variables are initialized.

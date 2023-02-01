@@ -74,3 +74,28 @@ bool zmq::pull_t::xhas_in ()
 {
     return _fq.has_in ();
 }
+
+
+
+class pull_t ZMQ_FINAL : public socket_base_t
+{
+// public:
+    pull_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    ~pull_t ();
+
+  protected:
+    //  Overrides of functions from socket_base_t.
+    void xattach_pipe (zmq::pipe_t *pipe_,
+                       bool subscribe_to_all_,
+                       bool locally_initiated_);
+    int xrecv (zmq::msg_t *msg_);
+    bool xhas_in ();
+    void xread_activated (zmq::pipe_t *pipe_);
+    void xpipe_terminated (zmq::pipe_t *pipe_);
+
+  // private:
+    //  Fair queueing object for inbound pipes.
+    fq_t _fq;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (pull_t)
+};

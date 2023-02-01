@@ -39,6 +39,39 @@
 // #include "session_base.hpp"
 // #include "plain_common.hpp"
 
+
+class plain_client_t ZMQ_FINAL : public mechanism_base_t
+{
+// public:
+    plain_client_t (session_base_t *session_, const options_t &options_);
+    ~plain_client_t ();
+
+    // mechanism implementation
+    int next_handshake_command (msg_t *msg_);
+    int process_handshake_command (msg_t *msg_);
+    status_t status () const;
+
+  // private:
+    enum state_t
+    {
+        sending_hello,
+        waiting_for_welcome,
+        sending_initiate,
+        waiting_for_ready,
+        error_command_received,
+        ready
+    };
+
+    state_t _state;
+
+    void produce_hello (msg_t *msg_) const;
+    void produce_initiate (msg_t *msg_) const;
+
+    int process_welcome (const unsigned char *cmd_data_, data_size_: usize);
+    int process_ready (const unsigned char *cmd_data_, data_size_: usize);
+    int process_error (const unsigned char *cmd_data_, data_size_: usize);
+};
+
 zmq::plain_client_t::plain_client_t (session_base_t *const session_,
                                      const options_t &options_) :
     mechanism_base_t (session_, options_), _state (sending_hello)
