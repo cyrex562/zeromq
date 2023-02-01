@@ -38,9 +38,7 @@
 // #include "plain_client.hpp"
 // #include "session_base.hpp"
 // #include "plain_common.hpp"
-
-
-class plain_client_t ZMQ_FINAL : public mechanism_base_t
+pub struct plain_client_t ZMQ_FINAL : public mechanism_base_t
 {
 // public:
     plain_client_t (session_base_t *session_, const options_t &options_);

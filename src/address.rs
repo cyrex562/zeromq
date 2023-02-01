@@ -1,4 +1,5 @@
 use std::ptr::null_mut;
+use crate::tcp_address::TcpAddress;
 
 pub const inproc: String = String::from("inproc");
 pub const tcp: String = String::from("tcp");

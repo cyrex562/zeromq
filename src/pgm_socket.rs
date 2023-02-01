@@ -49,8 +49,7 @@
 // #ifndef MSG_ERRQUEUE
 // #define MSG_ERRQUEUE 0x2000
 // #endif
-
-class pgm_socket_t
+pub struct pgm_socket_t
 {
 // public:
     //  If receiver_ is true PGM transport is not generating SPM packets.

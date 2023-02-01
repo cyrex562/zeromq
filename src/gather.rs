@@ -33,9 +33,7 @@
 // #include "err.hpp"
 // #include "msg.hpp"
 // #include "pipe.hpp"
-
-
-class gather_t ZMQ_FINAL : public socket_base_t
+pub struct gather_t ZMQ_FINAL : public socket_base_t
 {
 // public:
     gather_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);

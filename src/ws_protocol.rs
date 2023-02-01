@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
+    Copyright (c) 2007-2019 Contributors as noted in the AUTHORS file
 
     This file is part of libzmq, the ZeroMQ core engine in C++.
 
@@ -27,51 +27,32 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// #ifndef __ZMQ_TIPC_LISTENER_HPP_INCLUDED__
-// #define __ZMQ_TIPC_LISTENER_HPP_INCLUDED__
-
-// #include "platform.hpp"
-
-// #if defined ZMQ_HAVE_TIPC
-
-// #include <string>
-
-// #include "fd.hpp"
-// #include "stream_listener_base.hpp"
-// #include "tipc_address.hpp"
+// #ifndef __ZMQ_WS_PROTOCOL_HPP_INCLUDED__
+// #define __ZMQ_WS_PROTOCOL_HPP_INCLUDED__
 
 namespace zmq
 {
-class tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
+//  Definition of constants for WS transport protocol.
+pub struct ws_protocol_t
 {
 // public:
-    tipc_listener_t (zmq::io_thread_t *io_thread_,
-                     socket_: *mut socket_base_t,
-                     const options_t &options_);
+    //  Message flags.
+    enum opcode_t
+    {
+        opcode_continuation = 0,
+        opcode_text = 0x01,
+        opcode_binary = 0x02,
+        opcode_close = 0x08,
+        opcode_ping = 0x09,
+        opcode_pong = 0xA
+    };
 
-    //  Set address to listen on.
-    int set_local_address (addr_: *const c_char);
-
-  protected:
-    std::string get_socket_name (fd_t fd_,
-                                 SocketEnd socket_end_) const ZMQ_FINAL;
-
-  // private:
-    //  Handlers for I/O events.
-    void in_event () ZMQ_FINAL;
-
-    //  Accept the new connection. Returns the file descriptor of the
-    //  newly created connection. The function may return retired_fd
-    //  if the connection was dropped while waiting in the listen backlog.
-    fd_t accept ();
-
-    // Address to listen on
-    TipcAddress _address;
-
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (tipc_listener_t)
+    enum
+    {
+        more_flag = 1,
+        command_flag = 2
+    };
 };
 }
-
-// #endif
 
 // #endif

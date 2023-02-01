@@ -36,8 +36,7 @@
 // #include "err.hpp"
 
 // #include <string>
-
-class IpcAddress
+pub struct IpcAddress
 {
 // public:
     IpcAddress ();

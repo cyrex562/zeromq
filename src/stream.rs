@@ -289,3 +289,53 @@ void zmq::stream_t::identify_peer (pipe_t *pipe_, bool locally_initiated_)
     pipe_->set_router_socket_routing_id (routing_id);
     add_out_pipe (ZMQ_MOVE (routing_id), pipe_);
 }
+pub struct stream_t ZMQ_FINAL : public routing_socket_base_t
+{
+// public:
+    stream_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    ~stream_t ();
+
+    //  Overrides of functions from socket_base_t.
+    void xattach_pipe (zmq::pipe_t *pipe_,
+                       bool subscribe_to_all_,
+                       bool locally_initiated_);
+    int xsend (zmq::msg_t *msg_);
+    int xrecv (zmq::msg_t *msg_);
+    bool xhas_in ();
+    bool xhas_out ();
+    void xread_activated (zmq::pipe_t *pipe_);
+    void xpipe_terminated (zmq::pipe_t *pipe_);
+    int xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
+
+  // private:
+    //  Generate peer's id and update lookup map
+    void identify_peer (pipe_t *pipe_, bool locally_initiated_);
+
+    //  Fair queueing object for inbound pipes.
+    fq_t _fq;
+
+    //  True iff there is a message held in the pre-fetch buffer.
+    bool _prefetched;
+
+    //  If true, the receiver got the message part with
+    //  the peer's identity.
+    bool _routing_id_sent;
+
+    //  Holds the prefetched identity.
+    msg_t _prefetched_routing_id;
+
+    //  Holds the prefetched message.
+    msg_t _prefetched_msg;
+
+    //  The pipe we are currently writing to.
+    zmq::pipe_t *_current_out;
+
+    //  If true, more outgoing message parts are expected.
+    bool _more_out;
+
+    //  Routing IDs are generated. It's a simple increment and wrap-over
+    //  algorithm. This value is the next ID to use (if not used already).
+    uint32_t _next_integral_routing_id;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_t)
+};

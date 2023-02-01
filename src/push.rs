@@ -33,6 +33,28 @@
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
+pub struct push_t ZMQ_FINAL : public socket_base_t
+{
+// public:
+    push_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    ~push_t ();
+
+  protected:
+    //  Overrides of functions from socket_base_t.
+    void xattach_pipe (zmq::pipe_t *pipe_,
+                       bool subscribe_to_all_,
+                       bool locally_initiated_);
+    int xsend (zmq::msg_t *msg_);
+    bool xhas_out ();
+    void xwrite_activated (zmq::pipe_t *pipe_);
+    void xpipe_terminated (zmq::pipe_t *pipe_);
+
+  // private:
+    //  Load balancer managing the outbound pipes.
+    lb_t _lb;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (push_t)
+};
 
 zmq::push_t::push_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     socket_base_t (parent_, tid_, sid_)

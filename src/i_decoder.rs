@@ -35,11 +35,10 @@
 
 namespace zmq
 {
-class msg_t;
+pub struct msg_t;
 
 //  Interface to be implemented by message decoder.
-
-class i_decoder
+pub struct i_decoder
 {
 // public:
     virtual ~i_decoder () ZMQ_DEFAULT;

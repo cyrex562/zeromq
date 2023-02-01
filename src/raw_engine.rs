@@ -62,6 +62,24 @@
 // #include "tcp.hpp"
 // #include "likely.hpp"
 // #include "wire.hpp"
+pub struct raw_engine_t ZMQ_FINAL : public stream_engine_base_t
+{
+// public:
+    raw_engine_t (fd_t fd_,
+                  const options_t &options_,
+                  const endpoint_uri_pair_t &endpoint_uri_pair_);
+    ~raw_engine_t ();
+
+  protected:
+    void error (error_reason_t reason_);
+    void plug_internal ();
+    bool handshake ();
+
+  // private:
+    int push_raw_msg_to_session (msg_t *msg_);
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (raw_engine_t)
+};
 
 zmq::raw_engine_t::raw_engine_t (
   fd_t fd_,

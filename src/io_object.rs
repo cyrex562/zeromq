@@ -31,9 +31,7 @@
 // #include "io_object.hpp"
 // #include "io_thread.hpp"
 // #include "err.hpp"
-
-
-class io_object_t : public i_poll_events
+pub struct io_object_t : public i_poll_events
 {
 // public:
     io_object_t (zmq::io_thread_t *io_thread_ = NULL);

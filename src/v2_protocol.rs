@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2007-2019 Contributors as noted in the AUTHORS file
+    Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
     This file is part of libzmq, the ZeroMQ core engine in C++.
 
@@ -27,30 +27,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// #ifndef __ZMQ_WS_PROTOCOL_HPP_INCLUDED__
-// #define __ZMQ_WS_PROTOCOL_HPP_INCLUDED__
+// #ifndef __ZMQ_V2_PROTOCOL_HPP_INCLUDED__
+// #define __ZMQ_V2_PROTOCOL_HPP_INCLUDED__
 
 namespace zmq
 {
-//  Definition of constants for WS transport protocol.
-class ws_protocol_t
+//  Definition of constants for ZMTP/2.0 transport protocol.
+pub struct v2_protocol_t
 {
 // public:
     //  Message flags.
-    enum opcode_t
-    {
-        opcode_continuation = 0,
-        opcode_text = 0x01,
-        opcode_binary = 0x02,
-        opcode_close = 0x08,
-        opcode_ping = 0x09,
-        opcode_pong = 0xA
-    };
-
     enum
     {
         more_flag = 1,
-        command_flag = 2
+        large_flag = 2,
+        command_flag = 4
     };
 };
 }

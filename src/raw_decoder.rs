@@ -72,3 +72,26 @@ int zmq::raw_decoder_t::decode (const uint8_t *data_,
     bytes_used_ = size_;
     return 1;
 }
+pub struct raw_decoder_t ZMQ_FINAL : public i_decoder
+{
+// public:
+    raw_decoder_t (bufsize_: usize);
+    ~raw_decoder_t ();
+
+    //  i_decoder interface.
+
+    void get_buffer (unsigned char **data_, size_: *mut usize);
+
+    int decode (const unsigned char *data_, size_: usize, size_t &bytes_used_);
+
+    msg_t *msg () { return &_in_progress; }
+
+    void resize_buffer (size_t) {}
+
+  // private:
+    msg_t _in_progress;
+
+    shared_message_memory_allocator _allocator;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (raw_decoder_t)
+};

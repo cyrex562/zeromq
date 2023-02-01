@@ -50,9 +50,9 @@
 // #include "socket_poller.hpp"
 
 int proxy (class socket_base_t *frontend_,
-           class socket_base_t *backend_,
-           class socket_base_t *capture_,
-           class socket_base_t *control_ =
+pub struct socket_base_t *backend_,
+pub struct socket_base_t *capture_,
+pub struct socket_base_t *control_ =
              NULL); // backward compatibility without this argument
 
 //  Macros for repetitive code.
@@ -116,9 +116,9 @@ capture (class capture_: *mut socket_base_t, zmq::msg_t *msg_, int more_ = 0)
 
 static int forward (class from_: *mut socket_base_t,
                     zmq_socket_stats_t *from_stats_,
-                    class to_: *mut socket_base_t,
+pub struct to_: *mut socket_base_t,
                     zmq_socket_stats_t *to_stats_,
-                    class capture_: *mut socket_base_t,
+pub struct capture_: *mut socket_base_t,
                     zmq::msg_t *msg_)
 {
     // Forward a burst of messages
@@ -223,9 +223,9 @@ static int reply_stats (control_: *mut socket_base_t,
 // #ifdef ZMQ_HAVE_POLLER
 
 int zmq::proxy (class socket_base_t *frontend_,
-                class socket_base_t *backend_,
-                class socket_base_t *capture_,
-                class socket_base_t *control_)
+pub struct socket_base_t *backend_,
+pub struct socket_base_t *capture_,
+pub struct socket_base_t *control_)
 {
     msg_t msg;
     int rc = msg.init ();
@@ -540,9 +540,9 @@ int zmq::proxy (class socket_base_t *frontend_,
 // #else //  ZMQ_HAVE_POLLER
 
 int zmq::proxy (class socket_base_t *frontend_,
-                class socket_base_t *backend_,
-                class socket_base_t *capture_,
-                class socket_base_t *control_)
+pub struct socket_base_t *backend_,
+pub struct socket_base_t *capture_,
+pub struct socket_base_t *control_)
 {
     msg_t msg;
     int rc = msg.init ();

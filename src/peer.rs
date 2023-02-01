@@ -35,8 +35,7 @@
 // #include "random.hpp"
 // #include "likely.hpp"
 // #include "err.hpp"
-
-class peer_t ZMQ_FINAL : public server_t
+pub struct peer_t ZMQ_FINAL : public server_t
 {
 // public:
     peer_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);

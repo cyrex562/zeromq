@@ -40,9 +40,7 @@
 // #include "wire.hpp"
 // #include "stdint.hpp"
 // #include "macros.hpp"
-
-
-class pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
+pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
 {
 // public:
     pgm_sender_t (zmq::io_thread_t *parent_, const options_t &options_);

@@ -32,6 +32,69 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #include "err.hpp"
 
 // #include <algorithm>
+pub struct timers_t
+{
+// public:
+    timers_t ();
+    ~timers_t ();
+
+    //  Add timer to the set, timer repeats forever, or until cancel is called.
+    //  Returns a timer_id that is used to cancel the timer.
+    //  Returns -1 if there was an error.
+    int add (interval_: usize, timers_timer_fn handler_, arg_: *mut c_void);
+
+    //  Set the interval of the timer.
+    //  This method is slow, cancelling exsting and adding a new timer yield better performance.
+    //  Returns 0 on success and -1 on error.
+    int set_interval (timer_id_: i32, interval_: usize);
+
+    //  Reset the timer.
+    //  This method is slow, cancelling exsting and adding a new timer yield better performance.
+    //  Returns 0 on success and -1 on error.
+    int reset (timer_id_: i32);
+
+    //  Cancel a timer.
+    //  Returns 0 on success and -1 on error.
+    int cancel (timer_id_: i32);
+
+    //  Returns the time in millisecond until the next timer.
+    //  Returns -1 if no timer is due.
+    long timeout ();
+
+    //  Execute timers.
+    //  Return 0 if all succeed and -1 if error.
+    int execute ();
+
+    //  Return false if object is not a timers class.
+    bool check_tag () const;
+
+  // private:
+    //  Used to check whether the object is a timers class.
+    uint32_t _tag;
+
+    _next_timer_id: i32;
+
+    //  Clock instance.
+    clock_t _clock;
+
+    typedef struct timer_t
+    {
+        timer_id: i32;
+        interval: usize;
+        timers_timer_fn *handler;
+        arg: *mut c_void;
+    } timer_t;
+
+    typedef std::multimap<uint64_t, timer_t> timersmap_t;
+    timersmap_t _timers;
+
+    typedef std::set<int> cancelled_timers_t;
+    cancelled_timers_t _cancelled_timers;
+
+    struct match_by_id;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (timers_t)
+};
 
 zmq::timers_t::timers_t () : _tag (0xCAFEDADA), _next_timer_id (0)
 {

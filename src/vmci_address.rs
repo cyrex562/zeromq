@@ -38,6 +38,33 @@
 // #include <sstream>
 
 // #include "err.hpp"
+pub struct VmciAddress
+{
+// public:
+    VmciAddress ();
+    VmciAddress (ZmqContext *parent_);
+    VmciAddress (const sockaddr *sa, socklen_t sa_len, ZmqContext *parent_);
+
+    //  This function sets up the address for VMCI transport.
+    int resolve (path_: *const c_char);
+
+    //  The opposite to resolve()
+    int to_string (std::string &addr_) const;
+
+// #if defined ZMQ_HAVE_WINDOWS
+    unsigned short family () const;
+// #else
+    sa_family_t family () const;
+// #endif
+    const sockaddr *addr () const;
+    socklen_t addrlen () const;
+
+  // private:
+    struct sockaddr_vm address;
+    ZmqContext *parent;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (VmciAddress)
+};
 
 zmq::VmciAddress::VmciAddress ()
 {

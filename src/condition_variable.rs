@@ -39,7 +39,7 @@
 
 namespace zmq
 {
-class condition_variable_t
+pub struct condition_variable_t
 {
 // public:
     inline condition_variable_t () { zmq_assert (false); }
@@ -62,7 +62,7 @@ class condition_variable_t
 
 namespace zmq
 {
-class condition_variable_t
+pub struct condition_variable_t
 {
 // public:
     inline condition_variable_t () { InitializeConditionVariable (&_cv); }
@@ -98,7 +98,7 @@ class condition_variable_t
 
 namespace zmq
 {
-class condition_variable_t
+pub struct condition_variable_t
 {
 // public:
     condition_variable_t () ZMQ_DEFAULT;
@@ -138,7 +138,7 @@ class condition_variable_t
 
 namespace zmq
 {
-class condition_variable_t
+pub struct condition_variable_t
 {
 // public:
     inline condition_variable_t () ZMQ_DEFAULT;
@@ -228,7 +228,7 @@ extern "C" int pthread_cond_timedwait_monotonic_np (pthread_cond_t *,
 
 namespace zmq
 {
-class condition_variable_t
+pub struct condition_variable_t
 {
 // public:
     inline condition_variable_t ()

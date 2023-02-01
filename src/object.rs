@@ -38,9 +38,7 @@
 // #include "io_thread.hpp"
 // #include "session_base.hpp"
 // #include "socket_base.hpp"
-
-
-class object_t
+pub struct object_t
 {
 // public:
     object_t (zmq::ZmqContext *ctx_, uint32_t tid_);

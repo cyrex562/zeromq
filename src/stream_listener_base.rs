@@ -39,6 +39,46 @@
 // #else
 // #include <winsock2.h>
 // #endif
+pub struct stream_listener_base_t : public own_t, public io_object_t
+{
+// public:
+    stream_listener_base_t (zmq::io_thread_t *io_thread_,
+                            socket_: *mut socket_base_t,
+                            const options_t &options_);
+    ~stream_listener_base_t () ZMQ_OVERRIDE;
+
+    // Get the bound address for use with wildcards
+    int get_local_address (std::string &addr_) const;
+
+  protected:
+    virtual std::string get_socket_name (fd_t fd_,
+                                         SocketEnd socket_end_) const = 0;
+
+  // private:
+    //  Handlers for incoming commands.
+    void process_plug () ZMQ_FINAL;
+    void process_term (linger_: i32) ZMQ_FINAL;
+
+  protected:
+    //  Close the listening socket.
+    virtual int close ();
+
+    virtual void create_engine (fd_t fd);
+
+    //  Underlying socket.
+    fd_t _s;
+
+    //  Handle corresponding to the listening socket.
+    handle_t _handle;
+
+    //  Socket the listener belongs to.
+    zmq::socket_base_t *_socket;
+
+    // String representation of endpoint to bind to
+    std::string _endpoint;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_listener_base_t)
+};
 
 zmq::stream_listener_base_t::stream_listener_base_t (
   zmq::io_thread_t *io_thread_,

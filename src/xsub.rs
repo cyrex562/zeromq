@@ -33,6 +33,80 @@
 // #include "macros.hpp"
 // #include "xsub.hpp"
 // #include "err.hpp"
+pub struct xsub_t : public socket_base_t
+{
+// public:
+    xsub_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    ~xsub_t () ZMQ_OVERRIDE;
+
+  protected:
+    //  Overrides of functions from socket_base_t.
+    void xattach_pipe (zmq::pipe_t *pipe_,
+                       bool subscribe_to_all_,
+                       bool locally_initiated_) ZMQ_FINAL;
+    int xsetsockopt (option_: i32,
+                     const optval_: *mut c_void,
+                     optvallen_: usize) ZMQ_OVERRIDE;
+    int xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize) ZMQ_FINAL;
+    int xsend (zmq::msg_t *msg_) ZMQ_OVERRIDE;
+    bool xhas_out () ZMQ_OVERRIDE;
+    int xrecv (zmq::msg_t *msg_) ZMQ_FINAL;
+    bool xhas_in () ZMQ_FINAL;
+    void xread_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
+    void xwrite_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
+    void xhiccuped (pipe_t *pipe_) ZMQ_FINAL;
+    void xpipe_terminated (zmq::pipe_t *pipe_) ZMQ_FINAL;
+
+  // private:
+    //  Check whether the message matches at least one subscription.
+    bool match (zmq::msg_t *msg_);
+
+    //  Function to be applied to the trie to send all the subsciptions
+    //  upstream.
+    static void
+    send_subscription (unsigned char *data_, size_: usize, arg_: *mut c_void);
+
+    //  Fair queueing object for inbound pipes.
+    fq_t _fq;
+
+    //  Object for distributing the subscriptions upstream.
+    dist_t _dist;
+
+    //  The repository of subscriptions.
+// #ifdef ZMQ_USE_RADIX_TREE
+    radix_tree_t _subscriptions;
+// #else
+    trie_with_size_t _subscriptions;
+// #endif
+
+    // If true, send all unsubscription messages upstream, not just
+    // unique ones
+    bool _verbose_unsubs;
+
+    //  If true, 'message' contains a matching message to return on the
+    //  next recv call.
+    bool _has_message;
+    msg_t _message;
+
+    //  If true, part of a multipart message was already sent, but
+    //  there are following parts still waiting.
+    bool _more_send;
+
+    //  If true, part of a multipart message was already received, but
+    //  there are following parts still waiting.
+    bool _more_recv;
+
+    //  If true, subscribe and cancel messages are processed for the rest
+    //  of multipart message.
+    bool _process_subscribe;
+
+    //  This option is enabled with ZMQ_ONLY_FIRST_SUBSCRIBE.
+    //  If true, messages following subscribe/unsubscribe in a multipart
+    //  message are treated as user data regardless of the first byte.
+    bool _only_first_subscribe;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (xsub_t)
+};
 
 zmq::xsub_t::xsub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     socket_base_t (parent_, tid_, sid_),

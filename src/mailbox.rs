@@ -30,8 +30,7 @@
 // #include "precompiled.hpp"
 // #include "mailbox.hpp"
 // #include "err.hpp"
-
-class mailbox_t ZMQ_FINAL : public i_mailbox
+pub struct mailbox_t ZMQ_FINAL : public i_mailbox
 {
 // public:
     mailbox_t ();

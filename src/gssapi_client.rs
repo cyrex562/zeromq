@@ -39,9 +39,7 @@
 // #include "err.hpp"
 // #include "gssapi_client.hpp"
 // #include "wire.hpp"
-
-
-class gssapi_client_t ZMQ_FINAL : public gssapi_mechanism_base_t
+pub struct gssapi_client_t ZMQ_FINAL : public gssapi_mechanism_base_t
 {
 // public:
     gssapi_client_t (session_base_t *session_, const options_t &options_);

@@ -74,10 +74,7 @@ bool zmq::pull_t::xhas_in ()
 {
     return _fq.has_in ();
 }
-
-
-
-class pull_t ZMQ_FINAL : public socket_base_t
+pub struct pull_t ZMQ_FINAL : public socket_base_t
 {
 // public:
     pull_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);

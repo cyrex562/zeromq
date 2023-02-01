@@ -131,3 +131,26 @@ bool zmq::rep_t::xhas_out ()
 
     return router_t::xhas_out ();
 }
+pub struct rep_t ZMQ_FINAL : public router_t
+{
+// public:
+    rep_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    ~rep_t ();
+
+    //  Overrides of functions from socket_base_t.
+    int xsend (zmq::msg_t *msg_);
+    int xrecv (zmq::msg_t *msg_);
+    bool xhas_in ();
+    bool xhas_out ();
+
+  // private:
+    //  If true, we are in process of sending the reply. If false we are
+    //  in process of receiving a request.
+    bool _sending_reply;
+
+    //  If true, we are starting to receive a request. The beginning
+    //  of the request is the backtrace stack.
+    bool _request_begins;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (rep_t)
+};

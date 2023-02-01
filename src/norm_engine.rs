@@ -15,9 +15,7 @@
 
 
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
-
-
-class norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
+pub struct norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
 {
 // public:
     norm_engine_t (zmq::io_thread_t *parent_, const options_t &options_);
@@ -32,7 +30,7 @@ class norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     //  i_engine interface implementation.
     //  Plug the engine to the session.
     void plug (zmq::io_thread_t *io_thread_,
-               class session_base_t *session_) ZMQ_FINAL;
+pub struct session_base_t *session_) ZMQ_FINAL;
 
     //  Terminate and deallocate the engine. Note that 'detached'
     //  events are not fired on termination.
@@ -67,7 +65,7 @@ class norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     };
 
     // Used to keep track of streams from multiple senders
-    class NormRxStreamState
+pub struct NormRxStreamState
     {
 ^      // public:
         NormRxStreamState (NormObjectHandle normStream,
@@ -98,8 +96,7 @@ class norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
         // occurs the 'sync' is dropped and the
         // decoder re-initialized
         int Decode ();
-
-        class List
+pub struct List
         {
 ^          // public:
             List ();
@@ -111,8 +108,7 @@ class norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
             bool IsEmpty () const { return NULL == head; }
 
             void Destroy ();
-
-            class Iterator
+pub struct Iterator
             {
 ^              // public:
                 Iterator (const List &list);

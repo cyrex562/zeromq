@@ -47,8 +47,7 @@
 
 pub const cancel_cmd_name: String = String::from("\0x6CANCEL");
 pub const sub_cmd_name: String = String::from("\0x9SUBSCRIBE");
-
-class msg_t
+pub struct msg_t
 {
 // public:
     //  Shared message buffer. Message data are either allocated in one

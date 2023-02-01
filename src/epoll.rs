@@ -45,9 +45,7 @@
 // #include "err.hpp"
 // #include "config.hpp"
 // #include "i_poll_events.hpp"
-
-
-class epoll_t ZMQ_FINAL : public worker_poller_base_t
+pub struct epoll_t ZMQ_FINAL : public worker_poller_base_t
 {
 // public:
     typedef void *handle_t;

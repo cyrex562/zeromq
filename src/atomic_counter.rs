@@ -81,11 +81,11 @@ namespace zmq
 //  mutexes).
 
 // #if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_ARM64))
-class __declspec(align (8)) atomic_counter_t
+pub struct __declspec(align (8)) atomic_counter_t
 #elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_ARM_ARMV7VE))
-class __declspec(align (4)) atomic_counter_t
+pub struct __declspec(align (4)) atomic_counter_t
 // #else
-class atomic_counter_t
+pub struct atomic_counter_t
 // #endif
 {
 // public:

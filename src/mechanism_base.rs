@@ -31,9 +31,7 @@
 
 // #include "mechanism_base.hpp"
 // #include "session_base.hpp"
-
-
-class mechanism_base_t : public mechanism_t
+pub struct mechanism_base_t : public mechanism_t
 {
   protected:
     mechanism_base_t (session_base_t *session_, const options_t &options_);

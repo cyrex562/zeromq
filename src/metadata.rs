@@ -29,8 +29,7 @@
 
 // #include "precompiled.hpp"
 // #include "metadata.hpp"
-
-class metadata_t
+pub struct metadata_t
 {
 // public:
     typedef std::map<std::string, std::string> dict_t;

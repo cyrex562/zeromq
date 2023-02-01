@@ -32,9 +32,7 @@
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-
-
-class pub_t ZMQ_FINAL : public xpub_t
+pub struct pub_t ZMQ_FINAL : public xpub_t
 {
 // public:
     pub_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);

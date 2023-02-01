@@ -29,6 +29,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // #include "precompiled.hpp"
 // #include "wss_engine.hpp"
+pub struct wss_engine_t : public ws_engine_t
+{
+// public:
+    wss_engine_t (fd_t fd_,
+                  const options_t &options_,
+                  const endpoint_uri_pair_t &endpoint_uri_pair_,
+                  WsAddress &address_,
+                  bool client_,
+                  tls_server_cred_: *mut c_void,
+                  const std::string &hostname_);
+    ~wss_engine_t ();
+
+    void out_event ();
+
+  protected:
+    bool handshake ();
+    void plug_internal ();
+    int read (data: *mut c_void, size_: usize);
+    int write (const data_: *mut c_void, size_: usize);
+
+  // private:
+    bool do_handshake ();
+
+    bool _established;
+    gnutls_certificate_credentials_t _tls_client_cred;
+    gnutls_session_t _tls_session;
+};
 
 static int verify_certificate_callback (gnutls_session_t session)
 {

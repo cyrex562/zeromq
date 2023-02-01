@@ -1,6 +1,4 @@
-
-
-class channel_t ZMQ_FINAL : public socket_base_t
+pub struct channel_t ZMQ_FINAL : public socket_base_t
 {
 // public:
     channel_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);

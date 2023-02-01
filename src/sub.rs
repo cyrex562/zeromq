@@ -30,6 +30,19 @@
 // #include "precompiled.hpp"
 // #include "sub.hpp"
 // #include "msg.hpp"
+pub struct sub_t ZMQ_FINAL : public xsub_t
+{
+// public:
+    sub_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    ~sub_t ();
+
+  protected:
+    int xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
+    int xsend (zmq::msg_t *msg_);
+    bool xhas_out ();
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (sub_t)
+};
 
 zmq::sub_t::sub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     xsub_t (parent_, tid_, sid_)

@@ -51,9 +51,38 @@
 // #ifdef ZMQ_HAVE_VXWORKS
 // #include <sockLib.h>
 // #endif
+pub struct tipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
+{
+// public:
+    //  If 'delayed_start' is true connecter first waits for a while,
+    //  then starts connection process.
+    tipc_connecter_t (zmq::io_thread_t *io_thread_,
+                      zmq::session_base_t *session_,
+                      const options_t &options_,
+                      Address *addr_,
+                      bool delayed_start_);
+
+  // private:
+    //  Handlers for I/O events.
+    void out_event () ZMQ_FINAL;
+
+    //  Internal function to start the actual connection establishment.
+    void start_connecting () ZMQ_FINAL;
+
+    //  Get the file descriptor of newly created connection. Returns
+    //  retired_fd if the connection was unsuccessful.
+    fd_t connect ();
+
+    //  Open IPC connecting socket. Returns -1 in case of error,
+    //  0 if connect was successful immediately. Returns -1 with
+    //  EAGAIN errno if async connect was launched.
+    int open ();
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (tipc_connecter_t)
+};
 
 zmq::tipc_connecter_t::tipc_connecter_t (class io_thread_t *io_thread_,
-                                         class session_base_t *session_,
+pub struct session_base_t *session_,
                                          const options_t &options_,
                                          Address *addr_,
                                          bool delayed_start_) :

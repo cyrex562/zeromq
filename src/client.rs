@@ -32,9 +32,7 @@
 // #include "client.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-
-
-class client_t ZMQ_FINAL : public socket_base_t
+pub struct client_t ZMQ_FINAL : public socket_base_t
 {
 // public:
     client_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);

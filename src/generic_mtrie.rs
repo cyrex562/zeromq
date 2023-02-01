@@ -651,8 +651,8 @@ template <typename T> class generic_mtrie_t
     unsigned short _live_nodes;
     union _next_t
     {
-        class generic_mtrie_t<value_t> *node;
-        class generic_mtrie_t<value_t> **table;
+pub struct generic_mtrie_t<value_t> *node;
+pub struct generic_mtrie_t<value_t> **table;
     } _next;
 
     struct iter

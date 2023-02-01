@@ -51,6 +51,7 @@
 
 use std::net::SocketAddr;
 use crate::address_family::{AF_INET, AF_INET6};
+use crate::ip_resolver::{IpResolver, IpResolverOptions};
 
 #[derive(Default, Debug, Clone)]
 pub struct TcpAddress {
@@ -121,54 +122,60 @@ impl TcpAddress {
     //         memcpy (&_address.ipv6, sa_, sizeof (_address.ipv6));
     // }
     
-    fn resolve(name_: &str, local_: bool, ipv6_: bool) -> i32 {
+    fn resolve(&mut self, name: &mut str, local: bool, ipv6: bool) -> i32 {
         // Test the ';' to know if we have a source address in name_
         // const char *src_delimiter = strrchr (name_, ';');
-        let src_delimeter = name_.find(';');
+        let src_delimeter = name.find(';');
         if src_delimiter.is_some() {
-            let src_name = name[..src_delimeter.unwrap()];
-        // const std::string src_name (name_, src_delimiter - name_);
+            let src_name = &name[..src_delimeter.unwrap()];
+            // const std::string src_name (name_, src_delimiter - name_);
 
-        let mut src_resolver_opts = IpResolverOptions {
-            bindable: true,
-            allow_dns: true,
-            allow_nic_name: true,
-            ipv6: ipv6_,
+            let mut src_resolver_opts = IpResolverOptions {
+                bindable: true,
+                allow_dns: true,
+                allow_nic_name: true,
+                ipv6,
+                expect_port: true,
+                allow_path: false,
+            };
+
+            // src_resolver_opts
+            //   .bindable (true)
+            //   //  Restrict hostname/service to literals to avoid any DNS
+            //   //  lookups or service-name irregularity due to
+            //   //  indeterminate socktype.
+            //   .allow_dns (false)
+            //   .allow_nic_name (true)
+            //   .ipv6 (ipv6_)
+            //   .expect_port (true);
+            let mut src_resolver = IpResolver::new(src_resolver_opts);
+            let rc =  src_resolver.resolve (&_source_address, src_name.c_str ());
+            if rc != 0 {
+                return -1;
+            }
+            name = src_delimiter + 1;
+            self.has_src_addr = true;
+        }
+
+        // IpResolverOptions resolver_opts;
+        // resolver_opts.bindable (local_)
+        //           .allow_dns (!local_)
+        //           .allow_nic_name (local_)
+        //           .ipv6 (ipv6_)
+        //           .expect_port (true);
+        let resolver_opts = IpResolverOpts {
+            allow_dns: !local,
+            allow_nic_name: local,
+            ipv6,
             expect_port: true
         };
 
-        // src_resolver_opts
-        //   .bindable (true)
-        //   //  Restrict hostname/service to literals to avoid any DNS
-        //   //  lookups or service-name irregularity due to
-        //   //  indeterminate socktype.
-        //   .allow_dns (false)
-        //   .allow_nic_name (true)
-        //   .ipv6 (ipv6_)
-        //   .expect_port (true);
+        // ip_resolver_t resolver (resolver_opts);
+        let resolver = IpResolver::new(resolver_opts);
 
-        ip_resolver_t src_resolver (src_resolver_opts);
-
-        let rc =  src_resolver.resolve (&_source_address, src_name.c_str ());
-        if (rc != 0) {
-            return -1;
-        }
-        name_ = src_delimiter + 1;
-        _has_src_addr = true;
+        // return resolver.resolve (&_address, name_);
+        return resolver.resolve(&_address, name);
     }
-
-    IpResolverOptions resolver_opts;
-
-    resolver_opts.bindable (local_)
-      .allow_dns (!local_)
-      .allow_nic_name (local_)
-      .ipv6 (ipv6_)
-      .expect_port (true);
-
-    ip_resolver_t resolver (resolver_opts);
-
-    return resolver.resolve (&_address, name_);
-}
 }
 
 
@@ -294,7 +301,7 @@ int tcp_address_mask_t::resolve (name_: *const c_char, bool ipv6_)
       .ipv6 (ipv6_)
       .expect_port (false);
 
-    ip_resolver_t resolver (resolver_opts);
+    IpResolver resolver (resolver_opts);
 
     const int rc = resolver.resolve (&_network_address, addr_str.c_str ());
     if (rc != 0)

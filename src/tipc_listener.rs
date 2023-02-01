@@ -54,6 +54,34 @@
 // #else
 // #include <linux/tipc.h>
 // #endif
+pub struct tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
+{
+// public:
+    tipc_listener_t (zmq::io_thread_t *io_thread_,
+                     socket_: *mut socket_base_t,
+                     const options_t &options_);
+
+    //  Set address to listen on.
+    int set_local_address (addr_: *const c_char);
+
+  protected:
+    std::string get_socket_name (fd_t fd_,
+                                 SocketEnd socket_end_) const ZMQ_FINAL;
+
+  // private:
+    //  Handlers for I/O events.
+    void in_event () ZMQ_FINAL;
+
+    //  Accept the new connection. Returns the file descriptor of the
+    //  newly created connection. The function may return retired_fd
+    //  if the connection was dropped while waiting in the listen backlog.
+    fd_t accept ();
+
+    // Address to listen on
+    TipcAddress _address;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (tipc_listener_t)
+};
 
 zmq::tipc_listener_t::tipc_listener_t (io_thread_t *io_thread_,
                                        socket_base_t *socket_,

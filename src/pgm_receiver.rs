@@ -310,9 +310,7 @@ void zmq::pgm_receiver_t::drop_subscriptions ()
     while (session->pull_msg (&msg) == 0)
         msg.close ();
 }
-
-
-class pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine
+pub struct pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine
 {
 // public:
     pgm_receiver_t (zmq::io_thread_t *parent_, const options_t &options_);

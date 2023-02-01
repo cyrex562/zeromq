@@ -58,8 +58,7 @@
 // #if defined ZMQ_HAVE_VXWORKS
 // #include "timers.h"
 // #endif
-
-class clock_t
+pub struct clock_t
 {
 // public:
     clock_t ();

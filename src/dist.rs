@@ -37,7 +37,7 @@
 
 //  Class manages a set of outbound pipes. It sends each messages to
 //  each of them.
-class dist_t
+pub struct dist_t
 {
 // public:
     dist_t ();

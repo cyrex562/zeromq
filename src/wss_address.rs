@@ -32,6 +32,14 @@
 // #include <sstream>
 
 // #include "wss_address.hpp"
+pub struct WssAddress : public WsAddress
+{
+// public:
+    WssAddress ();
+    WssAddress (const sockaddr *sa_, socklen_t sa_len_);
+    //  The opposite to resolve()
+    int to_string (std::string &addr_) const;
+};
 
 zmq::WssAddress::WssAddress () : WsAddress ()
 {

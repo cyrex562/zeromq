@@ -36,8 +36,7 @@
 
 //  This class manages a set of outbound pipes. On send it load balances
 //  messages fairly among the pipes.
-
-class lb_t
+pub struct lb_t
 {
 // public:
     lb_t ();

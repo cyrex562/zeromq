@@ -49,6 +49,39 @@
 // #endif
 
 // #include <limits.h>
+pub struct WsAddress
+{
+// public:
+    WsAddress ();
+    WsAddress (const sockaddr *sa_, socklen_t sa_len_);
+
+    //  This function translates textual WS address into an address
+    //  structure. If 'local' is true, names are resolved as local interface
+    //  names. If it is false, names are resolved as remote hostnames.
+    //  If 'ipv6' is true, the name may resolve to IPv6 address.
+    int resolve (name_: *const c_char, bool local_, bool ipv6_);
+
+    //  The opposite to resolve()
+    int to_string (std::string &addr_) const;
+
+// #if defined ZMQ_HAVE_WINDOWS
+    unsigned short family () const;
+// #else
+    sa_family_t family () const;
+// #endif
+    const sockaddr *addr () const;
+    socklen_t addrlen () const;
+
+    const char *host () const;
+    const char *path () const;
+
+  protected:
+    ip_addr_t _address;
+
+  // private:
+    std::string _host;
+    std::string _path;
+};
 
 zmq::WsAddress::WsAddress ()
 {
@@ -121,7 +154,7 @@ int zmq::WsAddress::resolve (name_: *const c_char, bool local_, bool ipv6_)
       .allow_path (true)
       .expect_port (true);
 
-    ip_resolver_t resolver (resolver_opts);
+    IpResolver resolver (resolver_opts);
 
     return resolver.resolve (&_address, host_name.c_str ());
 }

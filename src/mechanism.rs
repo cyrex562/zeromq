@@ -37,9 +37,7 @@
 // #include "err.hpp"
 // #include "wire.hpp"
 // #include "session_base.hpp"
-
-
-class mechanism_t
+pub struct mechanism_t
 {
 // public:
     enum status_t

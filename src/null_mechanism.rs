@@ -37,9 +37,7 @@
 // #include "msg.hpp"
 // #include "session_base.hpp"
 // #include "null_mechanism.hpp"
-
-
-class null_mechanism_t ZMQ_FINAL : public zap_client_t
+pub struct null_mechanism_t ZMQ_FINAL : public zap_client_t
 {
 // public:
     null_mechanism_t (session_base_t *session_,

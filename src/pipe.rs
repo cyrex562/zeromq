@@ -65,8 +65,7 @@ struct i_pipe_events
 //  Note that pipe can be stored in three different arrays.
 //  The array of inbound pipes (1), the array of outbound pipes (2) and
 //  the generic array of pipes to be deallocated (3).
-
-class pipe_t ZMQ_FINAL : public object_t,
+pub struct pipe_t ZMQ_FINAL : public object_t,
                          public array_item_t<1>,
                          public array_item_t<2>,
                          public array_item_t<3>

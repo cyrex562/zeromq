@@ -44,6 +44,33 @@
 // #include <net/if.h>
 // #include <ctype.h>
 // #endif
+pub struct UdpAddress
+{
+// public:
+    UdpAddress ();
+    virtual ~UdpAddress ();
+
+    int resolve (name_: *const c_char, bool bind_, bool ipv6_);
+
+    //  The opposite to resolve()
+    virtual int to_string (std::string &addr_);
+
+
+    int family () const;
+
+    bool is_mcast () const;
+
+    const ip_addr_t *bind_addr () const;
+    int bind_if () const;
+    const ip_addr_t *target_addr () const;
+
+  // private:
+    ip_addr_t _bind_address;
+    _bind_interface: i32;
+    ip_addr_t _target_address;
+    bool _is_multicast;
+    std::string _address;
+};
 
 zmq::UdpAddress::UdpAddress () :
     _bind_interface (-1), _is_multicast (false)
@@ -81,7 +108,7 @@ int zmq::UdpAddress::resolve (name_: *const c_char, bool bind_, bool ipv6_)
           .ipv6 (ipv6_)
           .expect_port (false);
 
-        ip_resolver_t src_resolver (src_resolver_opts);
+        IpResolver src_resolver (src_resolver_opts);
 
         const int rc = src_resolver.resolve (&_bind_address, src_name.c_str ());
 
@@ -124,7 +151,7 @@ int zmq::UdpAddress::resolve (name_: *const c_char, bool bind_, bool ipv6_)
       .expect_port (true)
       .ipv6 (ipv6_);
 
-    ip_resolver_t resolver (resolver_opts);
+    IpResolver resolver (resolver_opts);
 
     const int rc = resolver.resolve (&_target_address, name_);
     if (rc != 0) {

@@ -32,9 +32,7 @@
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-
-
-class fq_t
+pub struct fq_t
 {
 // public:
     fq_t ();

@@ -31,8 +31,7 @@
 // #include "decoder_allocators.hpp"
 
 // #include "msg.hpp"
-
-class c_single_allocator
+pub struct c_single_allocator
 {
 // public:
     explicit c_single_allocator (std::bufsize_: usize) :
@@ -69,7 +68,7 @@ class c_single_allocator
 // from zero to one, gets passed to the user application, processed in the user thread and deleted
 // which would then deallocate the buffer. The drawback is that the buffer may be allocated longer
 // than necessary because it is only deleted when allocate is called the next time.
-class shared_message_memory_allocator
+pub struct shared_message_memory_allocator
 {
 // public:
     explicit shared_message_memory_allocator (std::bufsize_: usize);

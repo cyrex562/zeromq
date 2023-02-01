@@ -38,6 +38,37 @@
 // #include "wire.hpp"
 // #include "err.hpp"
 
+//  Decoder for ZMTP/2.x framing protocol. Converts data stream into messages.
+//  The class has to inherit from shared_message_memory_allocator because
+//  the base class calls allocate in its constructor.
+pub struct v2_decoder_t ZMQ_FINAL
+    : public decoder_base_t<v2_decoder_t, shared_message_memory_allocator>
+{
+// public:
+    v2_decoder_t (bufsize_: usize, int64_t maxmsgsize_, bool zero_copy_);
+    ~v2_decoder_t ();
+
+    //  i_decoder interface.
+    msg_t *msg () { return &_in_progress; }
+
+  // private:
+    int flags_ready (unsigned char const *);
+    int one_byte_size_ready (unsigned char const *);
+    int eight_byte_size_ready (unsigned char const *);
+    int message_ready (unsigned char const *);
+
+    int size_ready (size_: u64, unsigned char const *);
+
+    unsigned char _tmpbuf[8];
+    unsigned char _msg_flags;
+    msg_t _in_progress;
+
+    const bool _zero_copy;
+    const int64_t _max_msg_size;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (v2_decoder_t)
+};
+
 zmq::v2_decoder_t::v2_decoder_t (bufsize_: usize,
                                  int64_t maxmsgsize_,
                                  bool zero_copy_) :

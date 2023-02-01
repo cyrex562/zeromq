@@ -35,9 +35,7 @@
 // #include "random.hpp"
 // #include "likely.hpp"
 // #include "err.hpp"
-
-
-class dgram_t ZMQ_FINAL : public socket_base_t
+pub struct dgram_t ZMQ_FINAL : public socket_base_t
 {
 // public:
     dgram_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);

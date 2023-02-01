@@ -38,8 +38,7 @@
 // #include "curve_server.hpp"
 // #include "wire.hpp"
 // #include "secure_allocator.hpp"
-
-class curve_server_t ZMQ_FINAL : public zap_client_common_handshake_t,
+pub struct curve_server_t ZMQ_FINAL : public zap_client_common_handshake_t,
                                  public curve_mechanism_base_t
 {
 // public:

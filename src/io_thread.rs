@@ -35,9 +35,7 @@
 // #include "io_thread.hpp"
 // #include "err.hpp"
 // #include "ctx.hpp"
-
-
-class io_thread_t ZMQ_FINAL : public object_t, public i_poll_events
+pub struct io_thread_t ZMQ_FINAL : public object_t, public i_poll_events
 {
 // public:
     io_thread_t (zmq::ZmqContext *ctx_, uint32_t tid_);

@@ -35,6 +35,68 @@
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
+pub struct radio_t ZMQ_FINAL : public socket_base_t
+{
+// public:
+    radio_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    ~radio_t ();
+
+    //  Implementations of virtual functions from socket_base_t.
+    void xattach_pipe (zmq::pipe_t *pipe_,
+                       bool subscribe_to_all_ = false,
+                       bool locally_initiated_ = false);
+    int xsend (zmq::msg_t *msg_);
+    bool xhas_out ();
+    int xrecv (zmq::msg_t *msg_);
+    bool xhas_in ();
+    void xread_activated (zmq::pipe_t *pipe_);
+    void xwrite_activated (zmq::pipe_t *pipe_);
+    int xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
+    void xpipe_terminated (zmq::pipe_t *pipe_);
+
+  // private:
+    //  List of all subscriptions mapped to corresponding pipes.
+    typedef std::multimap<std::string, pipe_t *> subscriptions_t;
+    subscriptions_t _subscriptions;
+
+    //  List of udp pipes
+    typedef std::vector<pipe_t *> udp_pipes_t;
+    udp_pipes_t _udp_pipes;
+
+    //  Distributor of messages holding the list of outbound pipes.
+    dist_t _dist;
+
+    //  Drop messages if HWM reached, otherwise return with EAGAIN
+    bool _lossy;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (radio_t)
+};
+pub struct radio_session_t ZMQ_FINAL : public session_base_t
+{
+// public:
+    radio_session_t (zmq::io_thread_t *io_thread_,
+                     bool connect_,
+                     socket_: *mut socket_base_t,
+                     const options_t &options_,
+                     Address *addr_);
+    ~radio_session_t ();
+
+    //  Overrides of the functions from session_base_t.
+    int push_msg (msg_t *msg_);
+    int pull_msg (msg_t *msg_);
+    void reset ();
+
+  // private:
+    enum
+    {
+        group,
+        body
+    } _state;
+
+    msg_t _pending_msg;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (radio_session_t)
+};
 
 zmq::radio_t::radio_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     socket_base_t (parent_, tid_, sid_, true), _lossy (true)

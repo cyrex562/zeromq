@@ -58,6 +58,36 @@
 // #ifdef ZMQ_HAVE_OPENVMS
 // #include <ioctl.h>
 // #endif
+pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
+{
+// public:
+    tcp_listener_t (zmq::io_thread_t *io_thread_,
+                    socket_: *mut socket_base_t,
+                    const options_t &options_);
+
+    //  Set address to listen on.
+    int set_local_address (addr_: *const c_char);
+
+  protected:
+    std::string get_socket_name (fd_t fd_, SocketEnd socket_end_) const;
+
+  // private:
+    //  Handlers for I/O events.
+    void in_event ();
+
+    //  Accept the new connection. Returns the file descriptor of the
+    //  newly created connection. The function may return retired_fd
+    //  if the connection was dropped while waiting in the listen backlog
+    //  or was denied because of accept filters.
+    fd_t accept ();
+
+    int create_socket (addr_: *const c_char);
+
+    //  Address to listen on.
+    TcpAddress _address;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (tcp_listener_t)
+};
 
 zmq::tcp_listener_t::tcp_listener_t (io_thread_t *io_thread_,
                                      socket_base_t *socket_,

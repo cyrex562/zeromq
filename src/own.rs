@@ -31,9 +31,7 @@
 // #include "own.hpp"
 // #include "err.hpp"
 // #include "io_thread.hpp"
-
-
-class own_t : public object_t
+pub struct own_t : public object_t
 {
 // public:
     //  Note that the owner is unspecified in the constructor.

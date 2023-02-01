@@ -131,7 +131,7 @@ inline size_t valid_pollset_bytes (const fd_set & /*pollset_*/)
 // };
 // NOTE: offsetof(fd_set, fd_array)==sizeof(SOCKET) on both x86 and x64
 //       due to alignment bytes for the latter.
-class optimized_fd_set_t
+pub struct optimized_fd_set_t
 {
 // public:
     explicit optimized_fd_set_t (nevents_: usize) : _fd_set (1 + nevents_) {}
@@ -141,8 +141,7 @@ class optimized_fd_set_t
   // private:
     fast_vector_t<SOCKET, 1 + ZMQ_POLLITEMS_DFLT> _fd_set;
 };
-
-class resizable_optimized_fd_set_t
+pub struct resizable_optimized_fd_set_t
 {
 // public:
     void resize (nevents_: usize) { _fd_set.resize (1 + nevents_); }
@@ -153,7 +152,7 @@ class resizable_optimized_fd_set_t
     resizable_fast_vector_t<SOCKET, 1 + ZMQ_POLLITEMS_DFLT> _fd_set;
 };
 // #else
-class optimized_fd_set_t
+pub struct optimized_fd_set_t
 {
 // public:
     explicit optimized_fd_set_t (size_t /*nevents_*/) {}
@@ -163,8 +162,7 @@ class optimized_fd_set_t
   // private:
     fd_set _fd_set;
 };
-
-class resizable_optimized_fd_set_t : public optimized_fd_set_t
+pub struct resizable_optimized_fd_set_t : public optimized_fd_set_t
 {
 // public:
     resizable_optimized_fd_set_t () : optimized_fd_set_t (0) {}

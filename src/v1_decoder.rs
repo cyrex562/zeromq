@@ -38,6 +38,27 @@
 // #include "likely.hpp"
 // #include "wire.hpp"
 // #include "err.hpp"
+pub struct v1_decoder_t ZMQ_FINAL : public decoder_base_t<v1_decoder_t>
+{
+// public:
+    v1_decoder_t (bufsize_: usize, int64_t maxmsgsize_);
+    ~v1_decoder_t ();
+
+    msg_t *msg () { return &_in_progress; }
+
+  // private:
+    int one_byte_size_ready (unsigned char const *);
+    int eight_byte_size_ready (unsigned char const *);
+    int flags_ready (unsigned char const *);
+    int message_ready (unsigned char const *);
+
+    unsigned char _tmpbuf[8];
+    msg_t _in_progress;
+
+    const int64_t _max_msg_size;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (v1_decoder_t)
+};
 
 zmq::v1_decoder_t::v1_decoder_t (bufsize_: usize, int64_t maxmsgsize_) :
     decoder_base_t<v1_decoder_t> (bufsize_), _max_msg_size (maxmsgsize_)

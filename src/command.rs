@@ -37,11 +37,11 @@
 
 namespace zmq
 {
-class object_t;
-class own_t;
+pub struct object_t;
+pub struct own_t;
 struct i_engine;
-class pipe_t;
-class socket_base_t;
+pub struct pipe_t;
+pub struct socket_base_t;
 
 //  This structure defines the commands that can be sent between threads.
 

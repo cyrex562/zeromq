@@ -40,6 +40,96 @@
 // #include "pthread.h"
 // #endif
 
+typedef void (thread_fn) (void *);
+
+//  Class encapsulating OS thread. Thread initiation/termination is done
+//  using special functions rather than in constructor/destructor so that
+//  thread isn't created during object construction by accident, causing
+//  newly created thread to access half-initialised object. Same applies
+//  to the destruction process: Thread should be terminated before object
+//  destruction begins, otherwise it can access half-destructed object.
+pub struct thread_t
+{
+// public:
+    thread_t () :
+        _tfn (NULL),
+        _arg (NULL),
+        _started (false),
+        _thread_priority (ZMQ_THREAD_PRIORITY_DFLT),
+        _thread_sched_policy (ZMQ_THREAD_SCHED_POLICY_DFLT)
+    {
+        memset (_name, 0, sizeof (_name));
+    }
+
+// #ifdef ZMQ_HAVE_VXWORKS
+    ~thread_t ()
+    {
+        if (descriptor != NULL || descriptor > 0) {
+            taskDelete (descriptor);
+        }
+    }
+// #endif
+
+    //  Creates OS thread. 'tfn' is main thread function. It'll be passed
+    //  'arg' as an argument.
+    //  Name is 16 characters max including terminating NUL. Thread naming is
+    //  implemented only for pthread, and windows when a debugger is attached.
+    void start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char);
+
+    //  Returns whether the thread was started, i.e. start was called.
+    bool get_started () const;
+
+    //  Returns whether the executing thread is the thread represented by the
+    //  thread object.
+    bool is_current_thread () const;
+
+    //  Waits for thread termination.
+    void stop ();
+
+    // Sets the thread scheduling parameters. Only implemented for
+    // pthread. Has no effect on other platforms.
+    void setSchedulingParameters (priority_: i32,
+                                  scheduling_policy_: i32,
+                                  const std::set<int> &affinity_cpus_);
+
+    //  These are internal members. They should be private, however then
+    //  they would not be accessible from the main C routine of the thread.
+    void applySchedulingParameters ();
+    void applyThreadName ();
+    thread_fn *_tfn;
+    _arg: *mut c_void;
+    char _name[16];
+
+  // private:
+    bool _started;
+
+// #ifdef ZMQ_HAVE_WINDOWS
+    HANDLE _descriptor;
+// #if defined _WIN32_WCE
+    DWORD _thread_id;
+// #else
+    unsigned int _thread_id;
+// #endif
+#elif defined ZMQ_HAVE_VXWORKS
+    _descriptor: i32;
+    enum
+    {
+        DEFAULT_PRIORITY = 100,
+        DEFAULT_OPTIONS = 0,
+        DEFAULT_STACK_SIZE = 4000
+    };
+// #else
+    pthread_t _descriptor;
+// #endif
+
+    //  Thread scheduling parameters.
+    _thread_priority: i32;
+    _thread_sched_policy: i32;
+    std::set<int> _thread_affinity_cpus;
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (thread_t)
+};
+
 bool zmq::thread_t::get_started () const
 {
     return _started;

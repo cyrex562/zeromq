@@ -85,8 +85,7 @@ nonce_t get_and_inc_nonce () { return _cn_nonce++; }
 void set_peer_nonce (nonce_t peer_nonce_) { _cn_peer_nonce = peer_nonce_; }
     int check_validity (msg_t *msg_, error_event_code_: *mut i32);
 } // pub impl curve_encoding_t
-
-class curve_mechanism_base_t : public virtual mechanism_base_t,
+pub struct curve_mechanism_base_t : public virtual mechanism_base_t,
                                public curve_encoding_t
 {
   // public:

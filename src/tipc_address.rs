@@ -37,6 +37,30 @@
 
 // #include <string>
 // #include <sstream>
+pub struct TipcAddress
+{
+// public:
+    TipcAddress ();
+    TipcAddress (const sockaddr *sa, socklen_t sa_len);
+
+    //  This function sets up the address "{type, lower, upper}" for TIPC transport
+    int resolve (name: *const c_char);
+
+    //  The opposite to resolve()
+    int to_string (std::string &addr_) const;
+
+    // Handling different TIPC address types
+    bool is_service () const;
+    bool is_random () const;
+    void set_random ();
+
+    const sockaddr *addr () const;
+    socklen_t addrlen () const;
+
+  // private:
+    bool _random;
+    struct sockaddr_tipc address;
+};
 
 zmq::TipcAddress::TipcAddress ()
 {

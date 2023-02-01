@@ -41,9 +41,7 @@
 // #include "wire.hpp"
 
 // #include <gssapi/gssapi.h>
-
-
-class gssapi_server_t ZMQ_FINAL : public gssapi_mechanism_base_t,
+pub struct gssapi_server_t ZMQ_FINAL : public gssapi_mechanism_base_t,
                                   public zap_client_t
 {
 // public:

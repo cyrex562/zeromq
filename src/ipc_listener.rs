@@ -43,8 +43,7 @@
 // #include "ip.hpp"
 // #include "socket_base.hpp"
 // #include "address.hpp"
-
-class ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
+pub struct ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
     ipc_listener_t (zmq::io_thread_t *io_thread_,

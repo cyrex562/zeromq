@@ -36,8 +36,7 @@
 namespace zmq
 {
 //  Interface to be implemented by mailbox.
-
-class i_mailbox
+pub struct i_mailbox
 {
 // public:
     virtual ~i_mailbox () ZMQ_DEFAULT;

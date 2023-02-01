@@ -31,8 +31,7 @@
 // #include "poller_base.hpp"
 // #include "i_poll_events.hpp"
 // #include "err.hpp"
-
-class poller_base_t
+pub struct poller_base_t
 {
 // public:
     poller_base_t () ZMQ_DEFAULT;
@@ -72,7 +71,7 @@ class poller_base_t
 };
 
 //  Base class for a poller with a single worker thread.
-class worker_poller_base_t : public poller_base_t
+pub struct worker_poller_base_t : public poller_base_t
 {
 // public:
     worker_poller_base_t (const thread_ctx_t &ctx_);

@@ -54,7 +54,7 @@ namespace zmq
 //
 //  Buffer management is done by an allocator policy.
 template <typename T, typename A = c_single_allocator>
-class decoder_base_t : public i_decoder
+pub struct decoder_base_t : public i_decoder
 {
 // public:
     explicit decoder_base_t (const buf_size_: usize) :

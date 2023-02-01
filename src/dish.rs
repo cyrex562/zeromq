@@ -33,9 +33,7 @@
 // #include "macros.hpp"
 // #include "dish.hpp"
 // #include "err.hpp"
-
-
-class dish_t ZMQ_FINAL : public socket_base_t
+pub struct dish_t ZMQ_FINAL : public socket_base_t
 {
 // public:
     dish_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
@@ -80,8 +78,7 @@ class dish_t ZMQ_FINAL : public socket_base_t
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dish_t)
 };
-
-class dish_session_t ZMQ_FINAL : public session_base_t
+pub struct dish_session_t ZMQ_FINAL : public session_base_t
 {
 // public:
     dish_session_t (zmq::io_thread_t *io_thread_,

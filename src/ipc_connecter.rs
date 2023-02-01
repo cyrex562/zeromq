@@ -51,8 +51,7 @@
 // #include <sys/socket.h>
 // #include <sys/un.h>
 // #endif
-
-class ipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
+pub struct ipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 {
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
@@ -83,7 +82,7 @@ class ipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 };
 
 zmq::ipc_connecter_t::ipc_connecter_t (class io_thread_t *io_thread_,
-                                       class session_base_t *session_,
+pub struct session_base_t *session_,
                                        const options_t &options_,
                                        Address *addr_,
                                        bool delayed_start_) :

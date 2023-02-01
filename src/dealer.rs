@@ -32,9 +32,7 @@
 // #include "dealer.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-
-
-class dealer_t : public socket_base_t
+pub struct dealer_t : public socket_base_t
 {
 // public:
     dealer_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);

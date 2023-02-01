@@ -45,7 +45,7 @@
 /// For example, clients and servers both need to produce and
 /// process context-level GSSAPI tokens (via INITIATE commands)
 /// and per-message GSSAPI tokens (via MESSAGE commands).
-class gssapi_mechanism_base_t : public virtual mechanism_base_t
+pub struct gssapi_mechanism_base_t : public virtual mechanism_base_t
 {
 // public:
     gssapi_mechanism_base_t (session_base_t *session_,

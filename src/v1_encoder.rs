@@ -34,6 +34,20 @@
 // #include "wire.hpp"
 
 // #include <limits.h>
+pub struct v1_encoder_t ZMQ_FINAL : public encoder_base_t<v1_encoder_t>
+{
+// public:
+    v1_encoder_t (bufsize_: usize);
+    ~v1_encoder_t ();
+
+  // private:
+    void size_ready ();
+    void message_ready ();
+
+    unsigned char _tmpbuf[11];
+
+    ZMQ_NON_COPYABLE_NOR_MOVABLE (v1_encoder_t)
+};
 
 zmq::v1_encoder_t::v1_encoder_t (bufsize_: usize) :
     encoder_base_t<v1_encoder_t> (bufsize_)

@@ -39,12 +39,11 @@ void setUp ()
 void tearDown ()
 {
 }
-
-class test_ip_resolver_t ZMQ_FINAL : public zmq::ip_resolver_t
+pub struct test_ip_resolver_t ZMQ_FINAL : public zmq::IpResolver
 {
 // public:
     test_ip_resolver_t (zmq::IpResolverOptions opts_) :
-        ip_resolver_t (opts_)
+        IpResolver (opts_)
     {
     }
 
@@ -103,7 +102,7 @@ class test_ip_resolver_t ZMQ_FINAL : public zmq::ip_resolver_t
         ai = *hints_;
         ai.ai_flags |= AI_NUMERICHOST;
 
-        return zmq::ip_resolver_t::do_getaddrinfo (ip, NULL, &ai, res_);
+        return zmq::IpResolver::do_getaddrinfo (ip, NULL, &ai, res_);
     }
 
     unsigned int do_if_nametoindex (ifname_: *const c_char) ZMQ_FINAL

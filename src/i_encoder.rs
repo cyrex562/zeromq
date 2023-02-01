@@ -36,7 +36,7 @@
 namespace zmq
 {
 //  Forward declaration
-class msg_t;
+pub struct msg_t;
 
 //  Interface to be implemented by message encoder.
 
