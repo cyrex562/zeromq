@@ -38,7 +38,7 @@ static void test_resolve (bool bind_,
                           family_: i32,
                           name_: *const c_char,
                           target_addr_: *const c_char,
-                          uint16_t expected_port_,
+                          expected_port_: u16,
                           bind_addr_: *const c_char,
                           bool multicast_)
 {
