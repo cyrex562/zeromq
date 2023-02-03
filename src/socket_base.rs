@@ -683,7 +683,7 @@ int zmq::socket_base_t::parse_uri (uri_: *const c_char,
     protocol_ = uri.substr (0, pos);
     path_ = uri.substr (pos + 3);
 
-    if (protocol_.empty () || path_.empty ()) {
+    if (protocol_.is_empty() || path_.empty ()) {
         errno = EINVAL;
         return -1;
     }
@@ -955,7 +955,7 @@ int zmq::socket_base_t::bind (endpoint_uri_: *const c_char)
 
         paddr->resolved.udp_addr = new (std::nothrow) UdpAddress ();
         alloc_assert (paddr->resolved.udp_addr);
-        rc = paddr->resolved.udp_addr->resolve (address.c_str (), true,
+        rc = paddr->resolved.udp_addr->resolve (address, true,
                                                 options.ipv6);
         if (rc != 0) {
             LIBZMQ_DELETE (paddr);
@@ -1282,7 +1282,7 @@ int zmq::socket_base_t::connect_internal (endpoint_uri_: *const c_char)
         //  - Address may contain two parts separated by ':'
         //  Following code is quick and dirty check to catch obvious errors,
         //  without trying to be fully accurate.
-        const char *check = address.c_str ();
+        const char *check = address;
         if (isalnum (*check) || isxdigit (*check) || *check == '['
             || *check == ':') {
             check++;
@@ -1298,7 +1298,7 @@ int zmq::socket_base_t::connect_internal (endpoint_uri_: *const c_char)
         //  Did we reach the end of the address safely?
         if (*check == 0) {
             //  Do we have a valid port string? (cannot be '*' in connect
-            check = strrchr (address.c_str (), ':');
+            check = strrchr (address, ':');
             if (check) {
                 check++;
                 if (*check && (isdigit (*check)))
@@ -1319,7 +1319,7 @@ int zmq::socket_base_t::connect_internal (endpoint_uri_: *const c_char)
         if (protocol == protocol_name::wss) {
             paddr->resolved.wss_addr = new (std::nothrow) WssAddress ();
             alloc_assert (paddr->resolved.wss_addr);
-            rc = paddr->resolved.wss_addr->resolve (address.c_str (), false,
+            rc = paddr->resolved.wss_addr->resolve (address, false,
                                                     options.ipv6);
         } else
 // #else
@@ -1328,7 +1328,7 @@ int zmq::socket_base_t::connect_internal (endpoint_uri_: *const c_char)
         {
             paddr->resolved.ws_addr = new (std::nothrow) WsAddress ();
             alloc_assert (paddr->resolved.ws_addr);
-            rc = paddr->resolved.ws_addr->resolve (address.c_str (), false,
+            rc = paddr->resolved.ws_addr->resolve (address, false,
                                                    options.ipv6);
         }
 
@@ -1360,7 +1360,7 @@ int zmq::socket_base_t::connect_internal (endpoint_uri_: *const c_char)
 
         paddr->resolved.udp_addr = new (std::nothrow) UdpAddress ();
         alloc_assert (paddr->resolved.udp_addr);
-        rc = paddr->resolved.udp_addr->resolve (address.c_str (), false,
+        rc = paddr->resolved.udp_addr->resolve (address, false,
                                                 options.ipv6);
         if (rc != 0) {
             LIBZMQ_DELETE (paddr);
@@ -1375,7 +1375,7 @@ int zmq::socket_base_t::connect_internal (endpoint_uri_: *const c_char)
         struct pgm_addrinfo_t *res = NULL;
         uint16_t port_number = 0;
         int rc =
-          pgm_socket_t::init_address (address.c_str (), &res, &port_number);
+          pgm_socket_t::init_address (address, &res, &port_number);
         if (res != NULL)
             pgm_freeaddrinfo (res);
         if (rc != 0 || port_number == 0) {
@@ -2359,7 +2359,7 @@ void zmq::socket_base_t::monitor_event (
 
                 //  Send address in second frame
                 zmq_msg_init_size (&msg, endpoint_uri.size ());
-                memcpy (zmq_msg_data (&msg), endpoint_uri.c_str (),
+                memcpy (zmq_msg_data (&msg), endpoint_uri,
                         endpoint_uri.size ());
                 zmq_msg_send (&msg, _monitor_socket, 0);
             } break;
@@ -2385,13 +2385,13 @@ void zmq::socket_base_t::monitor_event (
 
                 //  Send local endpoint URI in second-to-last frame (string)
                 zmq_msg_init_size (&msg, endpoint_uri_pair_.local.size ());
-                memcpy (zmq_msg_data (&msg), endpoint_uri_pair_.local.c_str (),
+                memcpy (zmq_msg_data (&msg), endpoint_uri_pair_.local,
                         endpoint_uri_pair_.local.size ());
                 zmq_msg_send (&msg, _monitor_socket, ZMQ_SNDMORE);
 
                 //  Send remote endpoint URI in last frame (string)
                 zmq_msg_init_size (&msg, endpoint_uri_pair_.remote.size ());
-                memcpy (zmq_msg_data (&msg), endpoint_uri_pair_.remote.c_str (),
+                memcpy (zmq_msg_data (&msg), endpoint_uri_pair_.remote,
                         endpoint_uri_pair_.remote.size ());
                 zmq_msg_send (&msg, _monitor_socket, 0);
             } break;
@@ -2475,7 +2475,7 @@ std::string zmq::routing_socket_base_t::extract_connect_routing_id ()
 
 bool zmq::routing_socket_base_t::connect_routing_id_is_set () const
 {
-    return !_connect_routing_id.empty ();
+    return !_connect_routing_id.is_empty();
 }
 
 void zmq::routing_socket_base_t::add_out_pipe (blob_t routing_id_,

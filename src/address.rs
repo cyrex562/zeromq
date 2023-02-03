@@ -95,7 +95,7 @@ int Address::to_string (std::string &addr_) const
         return resolved.vmci_addr->to_string (addr_);
 // #endif
 
-    if (!protocol.empty () && !address.empty ()) {
+    if (!protocol.is_empty() && !address.empty ()) {
         std::stringstream s;
         s << protocol << "://" << address;
         addr_ = s.str ();

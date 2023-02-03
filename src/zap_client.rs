@@ -156,7 +156,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     //  Domain frame
     rc = msg.init_size (options.zap_domain.length ());
     errno_assert (rc == 0);
-    memcpy (msg.data (), options.zap_domain.c_str (),
+    memcpy (msg.data (), options.zap_domain,
             options.zap_domain.length ());
     msg.set_flags (msg_t::more);
     rc = session->write_zap_msg (&msg);
@@ -165,7 +165,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     //  Address frame
     rc = msg.init_size (peer_address.length ());
     errno_assert (rc == 0);
-    memcpy (msg.data (), peer_address.c_str (), peer_address.length ());
+    memcpy (msg.data (), peer_address, peer_address.length ());
     msg.set_flags (msg_t::more);
     rc = session->write_zap_msg (&msg);
     errno_assert (rc == 0);

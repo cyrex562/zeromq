@@ -271,8 +271,8 @@ int zmq::ipc_listener_t::close ()
 
 bool zmq::ipc_listener_t::filter (fd_t sock_)
 {
-    if (options.ipc_uid_accept_filters.empty ()
-        && options.ipc_pid_accept_filters.empty ()
+    if (options.ipc_uid_accept_filters.is_empty()
+        && options.ipc_pid_accept_filters.is_empty()
         && options.ipc_gid_accept_filters.empty ())
         return true;
 
@@ -312,7 +312,7 @@ bool zmq::ipc_listener_t::filter (fd_t sock_)
 
 bool zmq::ipc_listener_t::filter (fd_t sock_)
 {
-    if (options.ipc_uid_accept_filters.empty ()
+    if (options.ipc_uid_accept_filters.is_empty()
         && options.ipc_gid_accept_filters.empty ())
         return true;
 

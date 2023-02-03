@@ -101,7 +101,7 @@ zmq::stream_listener_base_t::~stream_listener_base_t ()
 int zmq::stream_listener_base_t::get_local_address (std::string &addr_) const
 {
     addr_ = get_socket_name (_s, SocketEndLocal);
-    return addr_.empty () ? -1 : 0;
+    return addr_.is_empty() ? -1 : 0;
 }
 
 void zmq::stream_listener_base_t::process_plug ()

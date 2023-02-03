@@ -533,7 +533,7 @@ int zmq::curve_server_t::produce_error (msg_t *msg_) const
     char *msg_data = static_cast<char *> (msg_->data ());
     memcpy (msg_data, "\5ERROR", 6);
     msg_data[6] = expected_status_code_length;
-    memcpy (msg_data + 7, status_code.c_str (), expected_status_code_length);
+    memcpy (msg_data + 7, status_code, expected_status_code_length);
     return 0;
 }
 

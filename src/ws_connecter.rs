@@ -242,7 +242,7 @@ int zmq::ws_connecter_t::open ()
     zmq_assert (_s == retired_fd);
 
     TcpAddress tcp_addr;
-    _s = tcp_open_socket (_addr->address.c_str (), options, false, true,
+    _s = tcp_open_socket (_addr->address, options, false, true,
                           &tcp_addr);
     if (_s == retired_fd)
         return -1;

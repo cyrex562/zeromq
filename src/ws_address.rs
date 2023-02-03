@@ -181,12 +181,12 @@ socklen_t zmq::WsAddress::addrlen () const
 
 const char *zmq::WsAddress::host () const
 {
-    return _host.c_str ();
+    return _host;
 }
 
 const char *zmq::WsAddress::path () const
 {
-    return _path.c_str ();
+    return _path;
 }
 
 // #if defined ZMQ_HAVE_WINDOWS

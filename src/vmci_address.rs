@@ -115,7 +115,7 @@ int zmq::VmciAddress::resolve (path_: *const c_char)
             return -1;
         }
     } else if (addr_str != "*" && addr_str != "-1") {
-        const char *begin = addr_str.c_str ();
+        const char *begin = addr_str;
         char *end = NULL;
         unsigned long l = strtoul (begin, &end, 10);
 
@@ -132,7 +132,7 @@ int zmq::VmciAddress::resolve (path_: *const c_char)
         errno = EINVAL;
         return -1;
     } else if (port_str != "*" && port_str != "-1") {
-        const char *begin = port_str.c_str ();
+        const char *begin = port_str;
         char *end = NULL;
         unsigned long l = strtoul (begin, &end, 10);
 

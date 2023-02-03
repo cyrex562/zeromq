@@ -1,7 +1,9 @@
 use std::net::SocketAddr;
+use std::ptr::null_mut;
 use crate::address_family::{AF_INET, AF_INET6};
 use crate::ip_resolver::{IpResolver, IpResolverOptions};
 use libc;
+use libc::EINVAL;
 
 pub const ipv4_prefix: &'static str = "tcp://";
 pub const ipv4_suffix: &'static str = ":";
@@ -114,8 +116,7 @@ impl TcpAddress {
         return resolver.resolve(&mut self.addr, name);
     }
 
-    pub fn as_string(&mut self, addr_: &mut String) -> i32
-    {
+    pub fn as_string(&mut self, addr_: &mut String) -> i32 {
         if self.addr.ip().is_ipv4() == false && self.addr.ip().is_ipv6() == false {
             // self.addr.clear();
             return -1;
@@ -136,16 +137,161 @@ impl TcpAddress {
 
 
         if self.addr.ip().is_ipv6() {
-            addr_ = make_address_string (hbuf, _address.ipv6.sin6_port, ipv6_prefix,
+            *addr_ = make_address_string(&hbuf, self.addr.port, ipv6_prefix,
                                          ipv6_suffix);
         } else {
-            addr_ = make_address_string (hbuf, _address.ipv4.sin_port, ipv4_prefix,
+            *addr_ = make_address_string(&hbuf, self.addr.port, ipv4_prefix,
                                          ipv4_suffix);
         }
         return 0;
     }
 }
 
+#[derive(Default,Debug,Clone)]
+pub struct TcpAddressMask
+{
+  // public:
+  //   tcp_address_mask_t ();
+  // private:
+  //   ip_addr_t _network_address;
+  pub network_address: SocketAddr,
+    // int _address_mask;
+    pub address_mask: i32,
+}
+
+impl TcpAddressMask {
+    // This function enhances tcp_address_t::resolve() with ability to parse
+    // additional cidr-like(/xx) mask value at the end of the name string.
+    // Works only with remote hostnames.
+    // int resolve (const char *name_, bool ipv6_);
+    pub fn resolve(&mut self, name_: &str, ipv6_: bool) -> i32 {
+        // Find '/' at the end that separates address from the cidr mask number.
+        // Allow empty mask clause and treat it like '/32' for ipv4 or '/128' for ipv6.
+        // std::string addr_str, mask_str;
+        let mut addr_str: &str = "";
+        let mut mask_str: &str = "";
+
+        // const char *delimiter = strrchr (name_, '/');
+        let mut delimiter = name_.find('/');
+        if delimiter.is_some() {
+            addr_str = &name_[..delimiter.unwrap()];
+            mask_str = &name_[delimiter.unwrap()+1..];
+            if mask_str.is_empty () {
+                errno = EINVAL;
+                return -1;
+            }
+        } else {
+            addr_str = name_;
+        }
+
+        // Parse address part using standard routines.
+        // IpResolverOptions resolver_opts;
+        // resolver_opts.bindable (false)
+        //   .allow_dns (false)
+        //   .allow_nic_name (false)
+        //   .ipv6 (ipv6_)
+        //   .expect_port (false);
+        let mut resolver_opts = IpResolverOptions {
+            bindable: false,
+            allow_dns: false,
+            allow_nic_name: false,
+            ipv6: ipv6_,
+            expect_port: false,
+            allow_path: false,
+        };
+        // IpResolver resolver (resolver_opts);
+        let mut resolver = IpResolver::new(&resolver_opts);
+
+        let rc = resolver.resolve (&mut self.network_address, addr_str);
+        if (rc != 0) {
+            return rc;
+        }
+
+        // Parse the cidr mask number.
+        let full_mask_ipv4 = 32;
+          // sizeof (_network_address.ipv4.sin_addr) * CHAR_BIT;
+        let full_mask_ipv6 = 128;
+        if (mask_str.empty ()) {
+            // _address_mask = _network_address.family () == AF_INET6 ? full_mask_ipv6
+            //                                                        : full_mask_ipv4;
+            self.address_mask = if self.network_address.is_ipv4() {
+                full_mask_ipv4
+            } else {
+                full_mask_ipv6
+            };
+        } else if mask_str == "0" {
+            self.address_mask = 0;
+        }
+        else {
+            let mask = i32::from(mask_str);
+            if (mask < 1)
+                || (self.network_address.family () == AF_INET6 && mask > full_mask_ipv6)
+                || (self.network_address.family () != AF_INET6
+                    && mask > full_mask_ipv4) {
+                errno = EINVAL;
+                return -1;
+            }
+            self.address_mask = mask;
+        }
+
+        return 0;
+    }
+
+    // bool match_address (const struct sockaddr *ss_, socklen_t ss_len_) const;
+    pub fn match_address (&mut self, ss: &SocketAddr) -> bool
+{
+    // zmq_assert (self.address_mask != -1 && ss_ != NULL
+    //             && ss_len_
+    //                  >= static_cast<socklen_t> (sizeof (struct sockaddr)));
+
+    if ss.is_ipv4() != self.network_address.is_ipv4() {
+        return false;
+    }
+
+    if self.address_mask > 0 {
+        let mut mask = 0i32;
+        // const uint8_t *our_bytes, *their_bytes;
+        let their_bytes: *mut u8 = null_mut();
+        let out_butes: *mut u8 = null_mut();
+        if ss.is_ipv6() {
+            // zmq_assert (ss_len_ == sizeof (struct sockaddr_in6));
+            ss.ip().
+            their_bytes = reinterpret_cast<const uint8_t *> (
+              &((reinterpret_cast<const struct sockaddr_in6 *> (ss.))
+                  ->sin6_addr));
+            our_bytes = reinterpret_cast<const uint8_t *> (
+              &self.network_address.ipv6.sin6_addr);
+            mask = sizeof (struct in6_addr) * 8;
+        } else {
+            zmq_assert (ss_len_ == sizeof (struct sockaddr_in));
+            their_bytes = reinterpret_cast<const uint8_t *> (&(
+              (reinterpret_cast<const struct sockaddr_in *> (ss.))->sin_addr));
+            our_bytes = reinterpret_cast<const uint8_t *> (
+              &self.network_address.ipv4.sin_addr);
+            mask = sizeof (struct in_addr) * 8;
+        }
+        if (self.address_mask < mask) {
+            mask = self.address_mask;
+        }
+
+        let full_bytes = mask / 8;
+        if (memcmp (our_bytes, their_bytes, full_bytes) != 0) {
+            return false;
+        }
+
+        let last_byte_bits = 0xffU << (8 - mask % 8);
+        if (last_byte_bits) {
+            if ((their_bytes[full_bytes] & last_byte_bits)
+                != (our_bytes[full_bytes] & last_byte_bits)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+}
 
 pub fn make_address_string(hbuf_: &str, port_: u16,ipv6_prefix: &str, ipv6_suffix: &str) -> String
 {
@@ -173,148 +319,4 @@ pub fn make_address_string(hbuf_: &str, port_: u16,ipv6_prefix: &str, ipv6_suffi
     hbuf += port_.to_be().to_string();
     // return std::string (buf, pos - buf);
     hbuf
-}
-
-
-
-const sockaddr *addr () const
-{
-    return _address.as_sockaddr ();
-}
-
-socklen_t addrlen () const
-{
-    return _address.sockaddr_len ();
-}
-
-const sockaddr *src_addr () const
-{
-    return _source_address.as_sockaddr ();
-}
-
-socklen_t src_addrlen () const
-{
-    return _source_address.sockaddr_len ();
-}
-
-bool has_src_addr () const
-{
-    return _has_src_addr;
-}
-
-// #if defined ZMQ_HAVE_WINDOWS
-unsigned short family () const
-// #else
-sa_family_t family () const
-// #endif
-{
-    return _address.family ();
-}
-
-tcp_address_mask_t::tcp_address_mask_t () : _address_mask (-1)
-{
-    memset (&_network_address, 0, sizeof (_network_address));
-}
-
-int tcp_address_mask_t::resolve (name_: *const c_char, bool ipv6_)
-{
-    // Find '/' at the end that separates address from the cidr mask number.
-    // Allow empty mask clause and treat it like '/32' for ipv4 or '/128' for ipv6.
-    std::string addr_str, mask_str;
-    const char *delimiter = strrchr (name_, '/');
-    if (delimiter != NULL) {
-        addr_str.assign (name_, delimiter - name_);
-        mask_str.assign (delimiter + 1);
-        if (mask_str.empty ()) {
-            errno = EINVAL;
-            return -1;
-        }
-    } else
-        addr_str.assign (name_);
-
-    // Parse address part using standard routines.
-    IpResolverOptions resolver_opts;
-
-    resolver_opts.bindable (false)
-      .allow_dns (false)
-      .allow_nic_name (false)
-      .ipv6 (ipv6_)
-      .expect_port (false);
-
-    IpResolver resolver (resolver_opts);
-
-    const int rc = resolver.resolve (&_network_address, addr_str.c_str ());
-    if (rc != 0)
-        return rc;
-
-    // Parse the cidr mask number.
-    const int full_mask_ipv4 =
-      sizeof (_network_address.ipv4.sin_addr) * CHAR_BIT;
-    const int full_mask_ipv6 =
-      sizeof (_network_address.ipv6.sin6_addr) * CHAR_BIT;
-    if (mask_str.empty ()) {
-        _address_mask = _network_address.family () == AF_INET6 ? full_mask_ipv6
-                                                               : full_mask_ipv4;
-    } else if (mask_str == "0")
-        _address_mask = 0;
-    else {
-        const long mask = strtol (mask_str.c_str (), NULL, 10);
-        if ((mask < 1)
-            || (_network_address.family () == AF_INET6 && mask > full_mask_ipv6)
-            || (_network_address.family () != AF_INET6
-                && mask > full_mask_ipv4)) {
-            errno = EINVAL;
-            return -1;
-        }
-        _address_mask = static_cast<int> (mask);
-    }
-
-    return 0;
-}
-
-bool tcp_address_mask_t::match_address (const struct sockaddr *ss_,
-                                             const socklen_t ss_len_) const
-{
-    zmq_assert (_address_mask != -1 && ss_ != NULL
-                && ss_len_
-                     >= static_cast<socklen_t> (sizeof (struct sockaddr)));
-
-    if (ss_->sa_family != _network_address.generic.sa_family)
-        return false;
-
-    if (_address_mask > 0) {
-        mask: i32;
-        const uint8_t *our_bytes, *their_bytes;
-        if (ss_->sa_family == AF_INET6) {
-            zmq_assert (ss_len_ == sizeof (struct sockaddr_in6));
-            their_bytes = reinterpret_cast<const uint8_t *> (
-              &((reinterpret_cast<const struct sockaddr_in6 *> (ss_))
-                  ->sin6_addr));
-            our_bytes = reinterpret_cast<const uint8_t *> (
-              &_network_address.ipv6.sin6_addr);
-            mask = sizeof (struct in6_addr) * 8;
-        } else {
-            zmq_assert (ss_len_ == sizeof (struct sockaddr_in));
-            their_bytes = reinterpret_cast<const uint8_t *> (&(
-              (reinterpret_cast<const struct sockaddr_in *> (ss_))->sin_addr));
-            our_bytes = reinterpret_cast<const uint8_t *> (
-              &_network_address.ipv4.sin_addr);
-            mask = sizeof (struct in_addr) * 8;
-        }
-        if (_address_mask < mask)
-            mask = _address_mask;
-
-        const size_t full_bytes = mask / 8;
-        if (memcmp (our_bytes, their_bytes, full_bytes) != 0)
-            return false;
-
-        const uint8_t last_byte_bits = 0xffU << (8 - mask % 8);
-        if (last_byte_bits) {
-            if ((their_bytes[full_bytes] & last_byte_bits)
-                != (our_bytes[full_bytes] & last_byte_bits))
-                return false;
-        }
-    }
-
-    return true;
 }

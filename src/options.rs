@@ -168,7 +168,7 @@ struct options_t
     tcp_keepalive_intvl: i32;
 
     // TCP accept() filters
-    typedef std::vector<tcp_address_mask_t> tcp_accept_filters_t;
+    typedef std::vector<TcpAddressMask> tcp_accept_filters_t;
     tcp_accept_filters_t tcp_accept_filters;
 
     // IPC accept() filters
@@ -355,7 +355,7 @@ int zmq::do_getsockopt (void *const optval_,
                         size_t *const optvallen_,
                         const std::string &value_)
 {
-    return do_getsockopt (optval_, optvallen_, value_.c_str (),
+    return do_getsockopt (optval_, optvallen_, value_,
                           value_.size () + 1);
 }
 
@@ -841,8 +841,8 @@ int zmq::options_t::setsockopt (option_: i32,
                 if (filter_str.empty ()) {
                     tcp_accept_filters.clear ();
                 } else {
-                    tcp_address_mask_t mask;
-                    rc = mask.resolve (filter_str.c_str (), ipv6);
+                    TcpAddressMask mask;
+                    rc = mask.resolve (filter_str, ipv6);
                     if (rc == 0) {
                         tcp_accept_filters.push_back (mask);
                     }

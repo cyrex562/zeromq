@@ -91,5 +91,5 @@ void zmq::mechanism_base_t::handle_error_reason (error_reason_: *const c_char,
 
 bool zmq::mechanism_base_t::zap_required () const
 {
-    return !options.zap_domain.empty ();
+    return !options.zap_domain.is_empty();
 }

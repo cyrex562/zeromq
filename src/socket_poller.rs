@@ -620,7 +620,7 @@ int zmq::socket_poller_t::wait (zmq::socket_poller_t::event_t *events_,
                                 n_events_: i32,
                                 long timeout_)
 {
-    if (_items.empty () && timeout_ < 0) {
+    if (_items.is_empty() && timeout_ < 0) {
         errno = EFAULT;
         return -1;
     }

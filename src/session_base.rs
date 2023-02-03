@@ -902,7 +902,7 @@ void zmq::session_base_t::start_connecting (bool wait_)
               new (std::nothrow) norm_engine_t (io_thread, options);
             alloc_assert (norm_sender);
 
-            int rc = norm_sender->init (_addr->address.c_str (), true, false);
+            int rc = norm_sender->init (_addr->address, true, false);
             errno_assert (rc == 0);
 
             send_attach (this, norm_sender);
@@ -913,7 +913,7 @@ void zmq::session_base_t::start_connecting (bool wait_)
               new (std::nothrow) norm_engine_t (io_thread, options);
             alloc_assert (norm_receiver);
 
-            int rc = norm_receiver->init (_addr->address.c_str (), false, true);
+            int rc = norm_receiver->init (_addr->address, false, true);
             errno_assert (rc == 0);
 
             send_attach (this, norm_receiver);

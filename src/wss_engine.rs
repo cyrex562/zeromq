@@ -102,7 +102,7 @@ zmq::wss_engine_t::wss_engine_t (fd_t fd_,
 
         if (options_.wss_trust_pem.length () > 0) {
             gnutls_datum_t trust = {
-              (unsigned char *) options_.wss_trust_pem.c_str (),
+              (unsigned char *) options_.wss_trust_pem,
               (unsigned int) options_.wss_trust_pem.length ()};
             rc = gnutls_certificate_set_x509_trust_mem (
               _tls_client_cred, &trust, GNUTLS_X509_FMT_PEM);
@@ -117,11 +117,11 @@ zmq::wss_engine_t::wss_engine_t (fd_t fd_,
 
         if (!hostname_.empty ())
             gnutls_server_name_set (_tls_session, GNUTLS_NAME_DNS,
-                                    hostname_.c_str (), hostname_.size ());
+                                    hostname_, hostname_.size ());
 
         gnutls_session_set_ptr (
           _tls_session,
-          hostname_.empty () ? NULL : const_cast<char *> (hostname_.c_str ()));
+          hostname_.is_empty() ? NULL : const_cast<char *> (hostname_.c_str ()));
 
         rc = gnutls_credentials_set (_tls_session, GNUTLS_CRD_CERTIFICATE,
                                      _tls_client_cred);

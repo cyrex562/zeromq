@@ -261,7 +261,7 @@ int zmq::vmci_connecter_t::open ()
     _addr->resolved.vmci_addr =
       new (std::nothrow) VmciAddress (this->get_ctx ());
     alloc_assert (_addr->resolved.vmci_addr);
-    _s = vmci_open_socket (_addr->address.c_str (), options,
+    _s = vmci_open_socket (_addr->address, options,
                            _addr->resolved.vmci_addr);
     if (_s == retired_fd) {
         //  TODO we should emit some event in this case!

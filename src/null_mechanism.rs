@@ -141,7 +141,7 @@ int zmq::null_mechanism_t::next_handshake_command (msg_t *msg_)
             msg_data += error_command_name_len;
             *msg_data = status_code_len;
             msg_data += error_reason_len_size;
-            memcpy (msg_data, status_code.c_str (), status_code_len);
+            memcpy (msg_data, status_code, status_code_len);
             return 0;
         }
         errno = EAGAIN;

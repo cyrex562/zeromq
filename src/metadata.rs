@@ -70,7 +70,7 @@ const char *zmq::metadata_t::get (const std::string &property_) const
 
         return NULL;
     }
-    return it->second.c_str ();
+    return it->second;
 }
 
 void zmq::metadata_t::add_ref ()

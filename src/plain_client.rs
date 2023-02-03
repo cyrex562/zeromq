@@ -165,11 +165,11 @@ void zmq::plain_client_t::produce_hello (msg_t *msg_) const
     ptr += hello_prefix_len;
 
     *ptr++ = static_cast<unsigned char> (username.length ());
-    memcpy (ptr, username.c_str (), username.length ());
+    memcpy (ptr, username, username.length ());
     ptr += username.length ();
 
     *ptr++ = static_cast<unsigned char> (password.length ());
-    memcpy (ptr, password.c_str (), password.length ());
+    memcpy (ptr, password, password.length ());
 }
 
 int zmq::plain_client_t::process_welcome (const unsigned char *cmd_data_,

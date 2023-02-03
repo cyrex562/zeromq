@@ -231,7 +231,7 @@ int zmq::tcp_connecter_t::open ()
 
     _addr->resolved.tcp_addr = new (std::nothrow) TcpAddress ();
     alloc_assert (_addr->resolved.tcp_addr);
-    _s = tcp_open_socket (_addr->address.c_str (), options, false, true,
+    _s = tcp_open_socket (_addr->address, options, false, true,
                           _addr->resolved.tcp_addr);
     if (_s == retired_fd) {
         //  TODO we should emit some event in this case!

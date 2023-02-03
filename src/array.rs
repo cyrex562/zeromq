@@ -81,7 +81,7 @@ template <typename T, int ID = 0> class array_t
 
     size_type size () { return _items.size (); }
 
-    bool empty () { return _items.empty (); }
+    bool empty () { return _items.is_empty(); }
 
     T *&operator[] (size_type index_) { return _items[index_]; }
 

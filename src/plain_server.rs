@@ -257,7 +257,7 @@ void zmq::plain_server_t::produce_error (msg_t *msg_) const
     memcpy (msg_data, error_prefix, error_prefix_len);
     msg_data[error_prefix_len] = expected_status_code_len;
     memcpy (msg_data + error_prefix_len + status_code_len_size,
-            status_code.c_str (), status_code.length ());
+            status_code, status_code.length ());
 }
 
 void zmq::plain_server_t::send_zap_request (const std::string &username_,

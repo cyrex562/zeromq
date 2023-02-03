@@ -625,7 +625,7 @@ bool zmq::select_t::cleanup_retired (family_entry_t &family_entry_)
                           family_entry_.fd_entries.end (), is_retired_fd),
           family_entry_.fd_entries.end ());
     }
-    return family_entry_.fd_entries.empty ();
+    return family_entry_.fd_entries.is_empty();
 }
 
 void zmq::select_t::cleanup_retired ()

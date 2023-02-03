@@ -280,10 +280,10 @@ void zmq::socks_basic_auth_request_encoder_t::encode (
     unsigned char *ptr = _buf;
     *ptr++ = 0x01;
     *ptr++ = static_cast<unsigned char> (req_.username.size ());
-    memcpy (ptr, req_.username.c_str (), req_.username.size ());
+    memcpy (ptr, req_.username, req_.username.size ());
     ptr += req_.username.size ();
     *ptr++ = static_cast<unsigned char> (req_.password.size ());
-    memcpy (ptr, req_.password.c_str (), req_.password.size ());
+    memcpy (ptr, req_.password, req_.password.size ());
     ptr += req_.password.size ();
 
     _bytes_encoded = ptr - _buf;
@@ -382,7 +382,7 @@ void zmq::socks_request_encoder_t::encode (const socks_request_t &req_)
     //  Suppress potential DNS lookups.
     hints.ai_flags = AI_NUMERICHOST;
 
-    const int rc = getaddrinfo (req_.hostname.c_str (), NULL, &hints, &res);
+    const int rc = getaddrinfo (req_.hostname, NULL, &hints, &res);
     if (rc == 0 && res->ai_family == AF_INET) {
         const struct sockaddr_in *sockaddr_in =
           reinterpret_cast<const struct sockaddr_in *> (res->ai_addr);
@@ -398,7 +398,7 @@ void zmq::socks_request_encoder_t::encode (const socks_request_t &req_)
     } else {
         *ptr++ = 0x03;
         *ptr++ = static_cast<unsigned char> (req_.hostname.size ());
-        memcpy (ptr, req_.hostname.c_str (), req_.hostname.size ());
+        memcpy (ptr, req_.hostname, req_.hostname.size ());
         ptr += req_.hostname.size ();
     }
 

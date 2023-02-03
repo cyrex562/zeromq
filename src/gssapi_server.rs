@@ -105,7 +105,7 @@ zmq::gssapi_server_t::gssapi_server_t (session_base_t *session_,
           options_.gss_principal.size ();
         principal_name = static_cast<char *> (malloc (principal_size + 1));
         assert (principal_name);
-        memcpy (principal_name, options_.gss_principal.c_str (),
+        memcpy (principal_name, options_.gss_principal,
                 principal_size + 1);
         gss_OID name_type = convert_nametype (options_.gss_principal_nt);
         if (acquire_credentials (principal_name, &cred, name_type) != 0)

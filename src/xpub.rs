@@ -492,7 +492,7 @@ int zmq::xpub_t::xrecv (msg_t *msg_)
 
 bool zmq::xpub_t::xhas_in ()
 {
-    return !_pending_data.empty ();
+    return !_pending_data.is_empty();
 }
 
 void zmq::xpub_t::send_unsubscription (zmq::mtrie_t::prefix_t data_,

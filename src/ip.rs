@@ -312,7 +312,7 @@ int zmq::bind_to_device (fd_t s_, const std::string &bound_device_)
 {
 // #ifdef ZMQ_HAVE_SO_BINDTODEVICE
     int rc = setsockopt (s_, SOL_SOCKET, SO_BINDTODEVICE,
-                         bound_device_.c_str (), bound_device_.length ());
+                         bound_device_, bound_device_.length ());
     if (rc != 0) {
         assert_success_or_recoverable (s_, rc);
         return -1;
@@ -976,7 +976,7 @@ int zmq::create_ipc_wildcard_address (std::string &path_, std::string &file_)
     // If TMPDIR, TEMPDIR, or TMP are available and are directories, create
     // the socket directory there.
     const char **tmp_env = tmp_env_vars;
-    while (tmp_path.empty () && *tmp_env != 0) {
+    while (tmp_path.is_empty() && *tmp_env != 0) {
         const char *const tmpdir = getenv (*tmp_env);
         struct stat statbuf;
 
@@ -998,7 +998,7 @@ int zmq::create_ipc_wildcard_address (std::string &path_, std::string &file_)
 
     // We need room for tmp_path + trailing NUL
     std::vector<char> buffer (tmp_path.length () + 1);
-    memcpy (&buffer[0], tmp_path.c_str (), tmp_path.length () + 1);
+    memcpy (&buffer[0], tmp_path, tmp_path.length () + 1);
 
 // #if defined HAVE_MKDTEMP
     // Create the directory.  POSIX requires that mkdtemp() creates the

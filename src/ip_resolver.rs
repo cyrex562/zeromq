@@ -1,47 +1,10 @@
-// #include "precompiled.hpp"
-// #include <string>
-// #include <cstring>
-
-// #include "macros.hpp"
-// #include "stdint.hpp"
-// #include "err.hpp"
-// #include "ip.hpp"
-
-// #ifndef ZMQ_HAVE_WINDOWS
-// #include <sys/types.h>
-// #include <arpa/inet.h>
-// #include <netinet/tcp.h>
-// #include <net/if.h>
-// #include <netdb.h>
-// #include <ctype.h>
-// #include <unistd.h>
-// #include <stdlib.h>
-// #endif
-
-// #include "ip_resolver.hpp"
-
-// union ip_addr_t
-// {
-//     pub net::SocketAddr generic;
-//     sockaddr_in ipv4;
-//     sockaddr_in6 ipv6;
-//
-//     int family () const;
-//     bool is_multicast () const;
-//     uint16_t port () const;
-//
-//     const struct sockaddr *as_sockaddr () const;
-//     ZmqSocklen sockaddr_len () const;
-//
-//     void set_port (uint16_t);
-//
-//     static ip_addr_t any (family_: i32);
-// };
-
-
-use std::net::SocketAddr;
+use std::ffi::{CStr, CString};
+use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::str::FromStr;
-use libc::EINVAL;
+use libc::{AI_NUMERICHOST, AI_PASSIVE, AI_V4MAPPED, c_uint, EAI_BADFLAGS, EINVAL, ENODEV, ENOMEM, if_nametoindex, SOCK_STREAM};
+use crate::address_family::{AF_INET, AF_INET6};
+use crate::network_address::{NetworkAddress, NetworkAddressFamily};
+use crate::unix_sockaddr::{addrinfo};
 
 pub struct IpResolverOptions
 {
@@ -123,14 +86,14 @@ impl IpResolver {
     // }
     pub fn new(opts: &IpResolverOptions) -> Self {
         Self {
-            options: opts.clone(),
+            options: (*opts).clone(),
         }
     }
     
-    pub fn resolve (&mut self, ip_addr: &mut SocketAddr, name: &str) -> i32
+    pub fn resolve (&mut self, in_addr: &mut NetworkAddress, name: &str) -> i32
     {
         // let mut addr = String::new();
-        let mut addr: &str = "";
+        let mut addr_str: &str = "";
         let mut port = 0u16;
 
         if self.options.expect_port {
@@ -170,15 +133,15 @@ impl IpResolver {
                 }
             }
         } else {
-            addr = name;
+            addr_str = name;
             port = 0;
         }
     
         // Check if path is allowed in ip address, if allowed it must be truncated
         if self.options.allow_path {
-            let pos = addr.find ('/');
+            let pos = addr_str.find ('/');
             if pos.is_some() {
-                addr = &addr[..pos.unwrap()];
+                addr_str = &addr_str[..pos.unwrap()];
             }
         }
     
@@ -188,23 +151,23 @@ impl IpResolver {
         //  TODO Should we validate that the brackets are present if
         //  'addr' contains ':' ?
         let mut brackets_length: usize = 2;
-        if addr.len() >= brackets_length && addr[0] == '['
-            && addr[addr.len() - 1] == ']' {
-            addr = &addr[1..addr.len()-brackets_length];
+        if addr_str.len() >= brackets_length && addr_str[0] == '['
+            && addr_str[addr_str.len() - 1] == ']' {
+            addr_str = &addr_str[1..addr_str.len()-brackets_length];
         }
     
         //  Look for an interface name / zone_id in the address
         //  Reference: https://tools.ietf.org/html/rfc4007
-        let mut pos = addr.rfind ('%');
+        let mut pos = addr_str.rfind ('%');
         let mut zone_id = 0u32;
     
         if pos.is_some() {
-            let mut if_str = &addr[pos.unwrap() + 1..];
+            let mut if_str = &addr_str[pos.unwrap() + 1..];
             if if_str.is_empty() {
                 errno = EINVAL;
                 return -1;
             }
-            addr = &addr[0..pos.unwrap()];
+            addr_str = &addr_str[0..pos.unwrap()];
             if if_str[0].is_alphabetic {
                 zone_id = do_if_nametoindex (if_str);
             } else {
@@ -218,30 +181,33 @@ impl IpResolver {
         }
     
         let mut resolved = false;
-        let mut addr_str = addr;
+        let mut addr_str = addr_str;
     
-        if self.options.bindable && addr == "*" {
+        if self.options.bindable && addr_str == "*" {
             //  Return an ANY address
             // *ip_addr = ip_addr_t::any (_options.ipv6 () ? AF_INET6 : AF_INET);
-            Ipv4Addr
-            resolved = true;
+
+            if self.options.ipv6 {
+                *in_addr = NetworkAddress::from(Ipv6Addr::UNSPECIFIED)
+            } else {
+                *in_addr = NetworkAddress::from(Ipv4Addr::UNSPECIFIED);
+            }
         }
     
-        if (!resolved && _options.allow_nic_name ()) {
+        if !resolved && self.options.allow_nic_name () {
             //  Try to resolve the string as a NIC name.
-            const int rc = resolve_nic_name (ip_addr, addr_str);
-    
-            if (rc == 0) {
+            let rc = resolve_nic_name (in_addr, addr_str);
+            if rc == 0 {
                 resolved = true;
-            } else if (errno != ENODEV) {
+            } else if errno != ENODEV {
                 return rc;
             }
         }
     
-        if (!resolved) {
-            const int rc = resolve_getaddrinfo (ip_addr, addr_str);
+        if !resolved {
+            let rc = resolve_getaddrinfo (in_addr, addr_str);
     
-            if (rc != 0) {
+            if rc != 0 {
                 return rc;
             }
             resolved = true;
@@ -251,32 +217,38 @@ impl IpResolver {
         //  for us but since we don't resolve service names it's a bit overkill and
         //  we'd still have to do it manually when the address is resolved by
         //  'resolve_nic_name'
-        ip_addr ->set_port (port);
-    
-        if (ip_addr ->family () == AF_INET6) {
-        ip_addr ->ipv6.sin6_scope_id = zone_id;
+        // in_addr. ->set_port (port);
+        in_addr.port = port;
+
+        // if (in_addr ->family () == AF_INET6)
+        if in_addr.family() == NetworkAddressFamily::Inet6
+        {
+        // in_addr ->ipv6.sin6_scope_id = zone_id;
+        in_addr.scope_id = zone_id;
+
         }
     
-        assert (resolved == true);
+        // assert (resolved == true);
         return 0;
     }
     
-    int resolve_getaddrinfo (ip_addr_t *ip_addr_,
-                                                 addr_: *const c_char)
+    pub fn resolve_getaddrinfo (&mut self, ip_addr: &mut NetworkAddress,
+                                                 addr_: &str) -> i32
     {
     // #if defined ZMQ_HAVE_OPENVMS && defined __ia64
-        __addrinfo64 *res = NULL;
-        __addrinfo64 req;
+    //     __addrinfo64 *res = NULL;
+    //     __addrinfo64 req;
     // #else
-        addrinfo *res = NULL;
-        addrinfo req;
+    //     addrinfo *res = NULL;
+    //     addrinfo req;
     // #endif
     
-        memset (&req, 0, sizeof (req));
+        // memset (&req, 0, sizeof (req));
     
         //  Choose IPv4 or IPv6 protocol family. Note that IPv6 allows for
         //  IPv4-in-IPv6 addresses.
-        req.ai_family = _options.ipv6 () ? AF_INET6 : AF_INET;
+        let mut req = addrinfo::default();
+        req.ai_family = if self.options.ipv6 { AF_INET6 } else { AF_INET };
     
         //  Arbitrary, not used in the output, but avoids duplicate results.
         req.ai_socktype = SOCK_STREAM;
@@ -287,7 +259,7 @@ impl IpResolver {
             req.ai_flags |= AI_PASSIVE;
         }
     
-        if (!_options.allow_dns ()) {
+        if !_options.allow_dns () {
             req.ai_flags |= AI_NUMERICHOST;
         }
     
@@ -295,20 +267,20 @@ impl IpResolver {
         //  In this API we only require IPv4-mapped addresses when
         //  no native IPv6 interfaces are available (~AI_ALL).
         //  This saves an additional DNS roundtrip for IPv4 addresses.
-        if (req.ai_family == AF_INET6) {
+        if req.ai_family == AF_INET6 {
             req.ai_flags |= AI_V4MAPPED;
         }
     // #endif
     
         //  Resolve the literal address. Some of the error info is lost in case
         //  of error, however, there's no way to report EAI errors via errno.
-        int rc = do_getaddrinfo (addr_, NULL, &req, &res);
+        let rc = do_getaddrinfo (addr_, NULL, &req, &res);
     
     // #if defined AI_V4MAPPED
         // Some OS do have AI_V4MAPPED defined but it is not supported in getaddrinfo()
         // returning EAI_BADFLAGS. Detect this and retry
-        if (rc == EAI_BADFLAGS && (req.ai_flags & AI_V4MAPPED)) {
-            req.ai_flags &= ~AI_V4MAPPED;
+        if rc == EAI_BADFLAGS && (req.ai_flags & AI_V4MAPPED) {
+            req.ai_flags &= !AI_V4MAPPED;
             rc = do_getaddrinfo (addr_, NULL, &req, &res);
         }
     // #endif
@@ -316,33 +288,33 @@ impl IpResolver {
     // #if defined ZMQ_HAVE_WINDOWS
         //  Resolve specific case on Windows platform when using IPv4 address
         //  with ZMQ_IPv6 socket option.
-        if ((req.ai_family == AF_INET6) && (rc == WSAHOST_NOT_FOUND)) {
+        if (req.ai_family == AF_INET6) && (rc == WSAHOST_NOT_FOUND) {
             req.ai_family = AF_INET;
             rc = do_getaddrinfo (addr_, NULL, &req, &res);
         }
     // #endif
     
-        if (rc) {
-            switch (rc) {
-                case EAI_MEMORY:
-                    errno = ENOMEM;
-                    break;
-                default:
-                    if (_options.bindable ()) {
+        if rc {
+            match rc {
+                EAI_MEMORY =>
+                    errno = ENOMEM,
+                _ => {
+                    if self.options.bindable {
                         errno = ENODEV;
                     } else {
                         errno = EINVAL;
                     }
-                    break;
+                }
             }
             return -1;
         }
     
         //  Use the first result.
-        zmq_assert (res != NULL);
-        zmq_assert (static_cast<size_t> (res->ai_addrlen) <= sizeof (*ip_addr_));
-        memcpy (ip_addr_, res->ai_addr, res->ai_addrlen);
-    
+        // zmq_assert (res != NULL);
+        // zmq_assert (static_cast<size_t> (res->ai_addrlen) <= sizeof (*ip_addr_));
+        // memcpy (ip_addr_, res->ai_addr, res->ai_addrlen);
+        // TODO:
+
         //  Cleanup getaddrinfo after copying the possibly referenced result.
         do_freeaddrinfo (res);
     
@@ -675,67 +647,10 @@ impl IpResolver {
     }
     
     
-    unsigned int do_if_nametoindex (ifname_: *const c_char)
-    {
-    // #ifdef HAVE_IF_NAMETOINDEX
-        return if_nametoindex (ifname_);
-    // #else
-        LIBZMQ_UNUSED (ifname_);
-        // The function 'if_nametoindex' is not supported on Windows XP.
-        // If we are targeting XP using a vxxx_xp toolset then fail.
-        // This is brutal as this code could be run on later windows clients
-        // meaning the IPv6 zone_id cannot have an interface name.
-        // This could be fixed with a runtime check.
-        return 0;
-    // #endif
-    }
+
 
     
 }
-
-// int zmq::ip_addr_t::family () const
-// {
-//     return generic.sa_family;
-// }
-
-// bool zmq::ip_addr_t::is_multicast () const
-// {
-//     if (family () == AF_INET) {
-//         //  IPv4 Multicast: address MSBs are 1110
-//         //  Range: 224.0.0.0 - 239.255.255.255
-//         return IN_MULTICAST (ntohl (ipv4.sin_addr.s_addr));
-//     }
-//     //  IPv6 Multicast: ff00::/8
-//     return IN6_IS_ADDR_MULTICAST (&ipv6.sin6_addr) != 0;
-// }
-
-// uint16_t zmq::ip_addr_t::port () const
-// {
-//     if (family () == AF_INET6) {
-//         return ntohs (ipv6.sin6_port);
-//     }
-//     return ntohs (ipv4.sin_port);
-// }
-
-// const struct sockaddr *zmq::ip_addr_t::as_sockaddr () const
-// {
-//     return &generic;
-// }
-
-// zmq::ZmqSocklen zmq::ip_addr_t::sockaddr_len () const
-// {
-//     return static_cast<ZmqSocklen> (family () == AF_INET6 ? sizeof (ipv6)
-//                                                              : sizeof (ipv4));
-// }
-
-// void zmq::ip_addr_t::set_port (uint16_t port_)
-// {
-//     if (family () == AF_INET6) {
-//         ipv6.sin6_port = htons (port_);
-//     } else {
-//         ipv4.sin_port = htons (port_);
-//     }
-// }
 
 //  Construct an "ANY" address for the given family
 // zmq::ip_addr_t zmq::ip_addr_t::any (family_: i32)
@@ -765,89 +680,10 @@ impl IpResolver {
 //     return addr;
 // }
 
-// zmq::IpResolverOptions::IpResolverOptions () :
-//     _bindable_wanted (false),
-//     _nic_name_allowed (false),
-//     _ipv6_wanted (false),
-//     _port_expected (false),
-//     _dns_allowed (false),
-//     _path_allowed (false)
-// {
-// }
+pub fn do_if_nametoindex(ifname_: &str) -> u32 {
+    let arg_str = CString::new(ifname_).unwrap();
+    let mut out = 0u32;
+    unsafe { out = if_nametoindex(arg_str.as_ptr()); };
 
-// zmq::IpResolverOptions &
-// zmq::IpResolverOptions::bindable (bool bindable_)
-// {
-//     _bindable_wanted = bindable_;
-//
-//     return *this;
-// }
-
-// zmq::IpResolverOptions &
-// zmq::IpResolverOptions::allow_nic_name (bool allow_)
-// {
-//     _nic_name_allowed = allow_;
-//
-//     return *this;
-// }
-
-// zmq::IpResolverOptions &zmq::IpResolverOptions::ipv6 (bool ipv6_)
-// {
-//     _ipv6_wanted = ipv6_;
-//
-//     return *this;
-// }
-
-//  If true we expect that the host will be followed by a colon and a port
-//  number or service name
-// zmq::IpResolverOptions &
-// zmq::IpResolverOptions::expect_port (bool expect_)
-// {
-//     _port_expected = expect_;
-//
-//     return *this;
-// }
-
-// zmq::IpResolverOptions &zmq::IpResolverOptions::allow_dns (bool allow_)
-// {
-//     _dns_allowed = allow_;
-//
-//     return *this;
-// }
-
-// zmq::IpResolverOptions &zmq::IpResolverOptions::allow_path (bool allow_)
-// {
-//     _path_allowed = allow_;
-//
-//     return *this;
-// }
-
-// bool zmq::IpResolverOptions::bindable ()
-// {
-//     return _bindable_wanted;
-// }
-
-// bool zmq::IpResolverOptions::allow_nic_name ()
-// {
-//     return _nic_name_allowed;
-// }
-
-// bool zmq::IpResolverOptions::ipv6 ()
-// {
-//     return _ipv6_wanted;
-// }
-
-// bool zmq::IpResolverOptions::expect_port ()
-// {
-//     return _port_expected;
-// }
-
-// bool zmq::IpResolverOptions::allow_dns ()
-// {
-//     return _dns_allowed;
-// }
-
-// bool zmq::IpResolverOptions::allow_path ()
-// {
-//     return _path_allowed;
-// }
+    out
+}
