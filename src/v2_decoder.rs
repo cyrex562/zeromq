@@ -117,7 +117,7 @@ int zmq::v2_decoder_t::eight_byte_size_ready (unsigned char const *read_from_)
 {
     //  The payload size is encoded as 64-bit unsigned integer.
     //  The most significant byte comes first.
-    const uint64_t msg_size = get_uint64 (_tmpbuf);
+    const u64 msg_size = get_uint64 (_tmpbuf);
 
     return size_ready (msg_size, read_from_);
 }
@@ -127,7 +127,7 @@ int zmq::v2_decoder_t::size_ready (msg_size_: u64,
 {
     //  Message size must not exceed the maximum allowed size.
     if (_max_msg_size >= 0)
-        if (unlikely (msg_size_ > static_cast<uint64_t> (_max_msg_size))) {
+        if (unlikely (msg_size_ > static_cast<u64> (_max_msg_size))) {
             errno = EMSGSIZE;
             return -1;
         }

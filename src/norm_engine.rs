@@ -46,7 +46,7 @@ pub struct session_base_t *session_) ZMQ_FINAL;
 
     void zap_msg_available () ZMQ_FINAL {}
 
-    const endpoint_uri_pair_t &get_endpoint () const ZMQ_FINAL;
+    const EndpointUriPair &get_endpoint () const ZMQ_FINAL;
 
     // i_poll_events interface implementation.
     // (we only need in_event() for NormEvent notification)
@@ -149,7 +149,7 @@ pub struct Iterator
 
     }; // end class zmq::norm_engine_t::NormRxStreamState
 
-    const endpoint_uri_pair_t _empty_endpoint;
+    const EndpointUriPair _empty_endpoint;
 
     session_base_t *zmq_session;
     options_t options;
@@ -934,7 +934,7 @@ zmq::norm_engine_t::NormRxStreamState::List::Iterator::GetNextItem ()
     return nextItem;
 } // end zmq::norm_engine_t::NormRxStreamState::List::Iterator::GetNextItem()
 
-const zmq::endpoint_uri_pair_t &zmq::norm_engine_t::get_endpoint () const
+const zmq::EndpointUriPair &zmq::norm_engine_t::get_endpoint () const
 {
     return _empty_endpoint;
 }

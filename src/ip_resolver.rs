@@ -248,7 +248,7 @@ impl IpResolver {
         //  Choose IPv4 or IPv6 protocol family. Note that IPv6 allows for
         //  IPv4-in-IPv6 addresses.
         let mut req = addrinfo::default();
-        req.ai_family = if self.options.ipv6 { AF_INET6 } else { AF_INET };
+        req.ai_family = if self.options.ipv6 { AF_INET6 } else { AF_INET } as i32;
     
         //  Arbitrary, not used in the output, but avoids duplicate results.
         req.ai_socktype = SOCK_STREAM;
@@ -275,24 +275,21 @@ impl IpResolver {
         //  Resolve the literal address. Some of the error info is lost in case
         //  of error, however, there's no way to report EAI errors via errno.
         let rc = do_getaddrinfo (addr_, NULL, &req, &res);
-    
-    // #if defined AI_V4MAPPED
+
         // Some OS do have AI_V4MAPPED defined but it is not supported in getaddrinfo()
         // returning EAI_BADFLAGS. Detect this and retry
-        if rc == EAI_BADFLAGS && (req.ai_flags & AI_V4MAPPED) {
+        if rc == EAI_BADFLAGS && (req.ai_flags & AI_V4MAPPED) != 0 {
             req.ai_flags &= !AI_V4MAPPED;
             rc = do_getaddrinfo (addr_, NULL, &req, &res);
         }
-    // #endif
-    
-    // #if defined ZMQ_HAVE_WINDOWS
+
         //  Resolve specific case on Windows platform when using IPv4 address
         //  with ZMQ_IPv6 socket option.
+        #[cfg(target_os = "windows")]
         if (req.ai_family == AF_INET6) && (rc == WSAHOST_NOT_FOUND) {
-            req.ai_family = AF_INET;
+            req.ai_family = AF_INET as i32;
             rc = do_getaddrinfo (addr_, NULL, &req, &res);
         }
-    // #endif
     
         if rc {
             match rc {
@@ -316,7 +313,7 @@ impl IpResolver {
         // TODO:
 
         //  Cleanup getaddrinfo after copying the possibly referenced result.
-        do_freeaddrinfo (res);
+        // do_freeaddrinfo (res);
     
         return 0;
     }
@@ -325,7 +322,7 @@ impl IpResolver {
     // #include <sys/sockio.h>
     
     //  On Solaris platform, network interface name can be queried by ioctl.
-    int resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char)
+    pub fn resolve_nic_name (ip_addr_: &mut NetworkAddress, nic_: &str) -> i32
     {
         //  Create a socket.
         const int fd = open_socket (AF_INET, SOCK_DGRAM, 0);
@@ -378,168 +375,168 @@ impl IpResolver {
         return 0;
     }
     
-    #elif defined ZMQ_HAVE_AIX || defined ZMQ_HAVE_HPUX                            \
-      || defined ZMQ_HAVE_ANDROID || defined ZMQ_HAVE_VXWORKS
+    // #elif defined ZMQ_HAVE_AIX || defined ZMQ_HAVE_HPUX                            \
+    //   || defined ZMQ_HAVE_ANDROID || defined ZMQ_HAVE_VXWORKS
     // #include <sys/ioctl.h>
     // #ifdef ZMQ_HAVE_VXWORKS
     // #include <ioLib.h>
     // #endif
     
-    int resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char)
-    {
-    // #if defined ZMQ_HAVE_AIX || defined ZMQ_HAVE_HPUX
-        // IPv6 support not implemented for AIX or HP/UX.
-        if (_options.ipv6 ()) {
-            errno = ENODEV;
-            return -1;
-        }
-    // #endif
+    // int resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char)
+    // {
+    // // #if defined ZMQ_HAVE_AIX || defined ZMQ_HAVE_HPUX
+    //     // IPv6 support not implemented for AIX or HP/UX.
+    //     if (_options.ipv6 ()) {
+    //         errno = ENODEV;
+    //         return -1;
+    //     }
+    // // #endif
+    //
+    //     //  Create a socket.
+    //     const int sd =
+    //       open_socket (_options.ipv6 () ? AF_INET6 : AF_INET, SOCK_DGRAM, 0);
+    //     errno_assert (sd != -1);
+    //
+    //     struct ifreq ifr;
+    //
+    //     //  Copy interface name for ioctl get.
+    //     strncpy (ifr.ifr_name, nic_, sizeof (ifr.ifr_name));
+    //
+    //     //  Fetch interface address.
+    //     const int rc = ioctl (sd, SIOCGIFADDR, (caddr_t) &ifr, sizeof (ifr));
+    //
+    //     //  Clean up.
+    //     close (sd);
+    //
+    //     if (rc == -1) {
+    //         errno = ENODEV;
+    //         return -1;
+    //     }
+    //
+    //     const int family = ifr.ifr_addr.sa_family;
+    //     if (family == (_options.ipv6 () ? AF_INET6 : AF_INET)
+    //         && !strcmp (nic_, ifr.ifr_name)) {
+    //         memcpy (ip_addr_, &ifr.ifr_addr,
+    //                 (family == AF_INET) ? sizeof (struct sockaddr_in)
+    //                                     : sizeof (struct sockaddr_in6));
+    //     } else {
+    //         errno = ENODEV;
+    //         return -1;
+    //     }
+    //
+    //     return 0;
+    // }
     
-        //  Create a socket.
-        const int sd =
-          open_socket (_options.ipv6 () ? AF_INET6 : AF_INET, SOCK_DGRAM, 0);
-        errno_assert (sd != -1);
+    // #elif ((defined ZMQ_HAVE_LINUX || defined ZMQ_HAVE_FREEBSD                     \
+    //         || defined ZMQ_HAVE_OSX || defined ZMQ_HAVE_OPENBSD                    \
+    //         || defined ZMQ_HAVE_QNXNTO || defined ZMQ_HAVE_NETBSD                  \
+    //         || defined ZMQ_HAVE_DRAGONFLY || defined ZMQ_HAVE_GNU)                 \
+    //        && defined ZMQ_HAVE_IFADDRS)
+    //
+    // // #include <ifaddrs.h>
+    //
+    // //  On these platforms, network interface name can be queried
+    // //  using getifaddrs function.
+    // int resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char)
+    // {
+    //     //  Get the addresses.
+    //     ifaddrs *ifa = NULL;
+    //     int rc = 0;
+    //     const int max_attempts = 10;
+    //     const int backoff_msec = 1;
+    //     for (int i = 0; i < max_attempts; i++) {
+    //         rc = getifaddrs (&ifa);
+    //         if (rc == 0 || (rc < 0 && errno != ECONNREFUSED))
+    //             break;
+    //         usleep ((backoff_msec << i) * 1000);
+    //     }
+    //
+    //     if (rc != 0 && ((errno == EINVAL) || (errno == EOPNOTSUPP))) {
+    //         // Windows Subsystem for Linux compatibility
+    //         errno = ENODEV;
+    //         return -1;
+    //     }
+    //     errno_assert (rc == 0);
+    //     zmq_assert (ifa != NULL);
+    //
+    //     //  Find the corresponding network interface.
+    //     bool found = false;
+    //     for (const ifaddrs *ifp = ifa; ifp != NULL; ifp = ifp->ifa_next) {
+    //         if (ifp->ifa_addr == NULL)
+    //             continue;
+    //
+    //         const int family = ifp->ifa_addr->sa_family;
+    //         if (family == (_options.ipv6 () ? AF_INET6 : AF_INET)
+    //             && !strcmp (nic_, ifp->ifa_name)) {
+    //             memcpy (ip_addr_, ifp->ifa_addr,
+    //                     (family == AF_INET) ? sizeof (struct sockaddr_in)
+    //                                         : sizeof (struct sockaddr_in6));
+    //             found = true;
+    //             break;
+    //         }
+    //     }
+    //
+    //     //  Clean-up;
+    //     freeifaddrs (ifa);
+    //
+    //     if (!found) {
+    //         errno = ENODEV;
+    //         return -1;
+    //     }
+    //     return 0;
+    // }
     
-        struct ifreq ifr;
+    // #elif (defined ZMQ_HAVE_WINDOWS)
+    //
+    // // #include <netioapi.h>
+    //
+    // int get_interface_name (unsigned long index_,
+    //                                             char **dest_) const
+    // {
+    // // #ifdef ZMQ_HAVE_WINDOWS_UWP
+    //     char *buffer = (char *) malloc (1024);
+    // // #else
+    //     char *buffer = static_cast<char *> (malloc (IF_MAX_STRING_SIZE));
+    // // #endif
+    //     alloc_assert (buffer);
+    //
+    //     char *if_name_result = NULL;
+    //
+    // #if _WIN32_WINNT > _WIN32_WINNT_WINXP && !defined ZMQ_HAVE_WINDOWS_UWP
+    //     if_name_result = if_indextoname (index_, buffer);
+    // // #endif
+    //
+    //     if (if_name_result == NULL) {
+    //         free (buffer);
+    //         return -1;
+    //     }
+    //
+    //     *dest_ = buffer;
+    //     return 0;
+    // }
     
-        //  Copy interface name for ioctl get.
-        strncpy (ifr.ifr_name, nic_, sizeof (ifr.ifr_name));
+    // int wchar_to_utf8 (const WCHAR *src_, char **dest_) const
+    // {
+    //     rc: i32;
+    //     const int buffer_len =
+    //       WideCharToMultiByte (CP_UTF8, 0, src_, -1, NULL, 0, NULL, 0);
+    //
+    //     char *buffer = static_cast<char *> (malloc (buffer_len));
+    //     alloc_assert (buffer);
+    //
+    //     rc =
+    //       WideCharToMultiByte (CP_UTF8, 0, src_, -1, buffer, buffer_len, NULL, 0);
+    //
+    //     if (rc == 0) {
+    //         free (buffer);
+    //         return -1;
+    //     }
+    //
+    //     *dest_ = buffer;
+    //     return 0;
+    // }
     
-        //  Fetch interface address.
-        const int rc = ioctl (sd, SIOCGIFADDR, (caddr_t) &ifr, sizeof (ifr));
-    
-        //  Clean up.
-        close (sd);
-    
-        if (rc == -1) {
-            errno = ENODEV;
-            return -1;
-        }
-    
-        const int family = ifr.ifr_addr.sa_family;
-        if (family == (_options.ipv6 () ? AF_INET6 : AF_INET)
-            && !strcmp (nic_, ifr.ifr_name)) {
-            memcpy (ip_addr_, &ifr.ifr_addr,
-                    (family == AF_INET) ? sizeof (struct sockaddr_in)
-                                        : sizeof (struct sockaddr_in6));
-        } else {
-            errno = ENODEV;
-            return -1;
-        }
-    
-        return 0;
-    }
-    
-    #elif ((defined ZMQ_HAVE_LINUX || defined ZMQ_HAVE_FREEBSD                     \
-            || defined ZMQ_HAVE_OSX || defined ZMQ_HAVE_OPENBSD                    \
-            || defined ZMQ_HAVE_QNXNTO || defined ZMQ_HAVE_NETBSD                  \
-            || defined ZMQ_HAVE_DRAGONFLY || defined ZMQ_HAVE_GNU)                 \
-           && defined ZMQ_HAVE_IFADDRS)
-    
-    // #include <ifaddrs.h>
-    
-    //  On these platforms, network interface name can be queried
-    //  using getifaddrs function.
-    int resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char)
-    {
-        //  Get the addresses.
-        ifaddrs *ifa = NULL;
-        int rc = 0;
-        const int max_attempts = 10;
-        const int backoff_msec = 1;
-        for (int i = 0; i < max_attempts; i++) {
-            rc = getifaddrs (&ifa);
-            if (rc == 0 || (rc < 0 && errno != ECONNREFUSED))
-                break;
-            usleep ((backoff_msec << i) * 1000);
-        }
-    
-        if (rc != 0 && ((errno == EINVAL) || (errno == EOPNOTSUPP))) {
-            // Windows Subsystem for Linux compatibility
-            errno = ENODEV;
-            return -1;
-        }
-        errno_assert (rc == 0);
-        zmq_assert (ifa != NULL);
-    
-        //  Find the corresponding network interface.
-        bool found = false;
-        for (const ifaddrs *ifp = ifa; ifp != NULL; ifp = ifp->ifa_next) {
-            if (ifp->ifa_addr == NULL)
-                continue;
-    
-            const int family = ifp->ifa_addr->sa_family;
-            if (family == (_options.ipv6 () ? AF_INET6 : AF_INET)
-                && !strcmp (nic_, ifp->ifa_name)) {
-                memcpy (ip_addr_, ifp->ifa_addr,
-                        (family == AF_INET) ? sizeof (struct sockaddr_in)
-                                            : sizeof (struct sockaddr_in6));
-                found = true;
-                break;
-            }
-        }
-    
-        //  Clean-up;
-        freeifaddrs (ifa);
-    
-        if (!found) {
-            errno = ENODEV;
-            return -1;
-        }
-        return 0;
-    }
-    
-    #elif (defined ZMQ_HAVE_WINDOWS)
-    
-    // #include <netioapi.h>
-    
-    int get_interface_name (unsigned long index_,
-                                                char **dest_) const
-    {
-    // #ifdef ZMQ_HAVE_WINDOWS_UWP
-        char *buffer = (char *) malloc (1024);
-    // #else
-        char *buffer = static_cast<char *> (malloc (IF_MAX_STRING_SIZE));
-    // #endif
-        alloc_assert (buffer);
-    
-        char *if_name_result = NULL;
-    
-    #if _WIN32_WINNT > _WIN32_WINNT_WINXP && !defined ZMQ_HAVE_WINDOWS_UWP
-        if_name_result = if_indextoname (index_, buffer);
-    // #endif
-    
-        if (if_name_result == NULL) {
-            free (buffer);
-            return -1;
-        }
-    
-        *dest_ = buffer;
-        return 0;
-    }
-    
-    int wchar_to_utf8 (const WCHAR *src_, char **dest_) const
-    {
-        rc: i32;
-        const int buffer_len =
-          WideCharToMultiByte (CP_UTF8, 0, src_, -1, NULL, 0, NULL, 0);
-    
-        char *buffer = static_cast<char *> (malloc (buffer_len));
-        alloc_assert (buffer);
-    
-        rc =
-          WideCharToMultiByte (CP_UTF8, 0, src_, -1, buffer, buffer_len, NULL, 0);
-    
-        if (rc == 0) {
-            free (buffer);
-            return -1;
-        }
-    
-        *dest_ = buffer;
-        return 0;
-    }
-    
-    int resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char)
+    pub fn resolve_nic_name (ip_addr_: &NetworkAddress, nic_: &str)
     {
         rc: i32;
         bool found = false;
@@ -622,7 +619,7 @@ impl IpResolver {
     // #else
     
     //  On other platforms we assume there are no sane interface names.
-    int resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char)
+    pub fn resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char) -> i32
     {
         LIBZMQ_UNUSED (ip_addr_);
         LIBZMQ_UNUSED (nic_);
@@ -633,15 +630,15 @@ impl IpResolver {
     
     // #endif
     
-    int do_getaddrinfo (node_: *const c_char,
+    pub fn do_getaddrinfo (node_: *const c_char,
                                             service_: *const c_char,
                                             const struct addrinfo *hints_,
-                                            struct addrinfo **res_)
+                                            struct addrinfo **res_) -> i32
     {
         return getaddrinfo (node_, service_, hints_, res_);
     }
     
-    void do_freeaddrinfo (struct addrinfo *res_)
+    pub fn do_freeaddrinfo (struct addrinfo *res_)
     {
         freeaddrinfo (res_);
     }

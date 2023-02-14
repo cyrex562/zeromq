@@ -140,7 +140,7 @@ void create_nonblocking_fdpair (zmq::fd_t *r_, zmq::fd_t *w_)
 void send_signal (zmq::fd_t w_)
 {
 // #if defined ZMQ_HAVE_EVENTFD
-    const uint64_t inc = 1;
+    const u64 inc = 1;
     ssize_t sz = write (w_, &inc, sizeof (inc));
     assert (sz == sizeof (inc));
 // #else

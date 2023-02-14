@@ -86,10 +86,10 @@ pub struct socket_base_t *control_ =
 
 typedef struct
 {
-    uint64_t msg_in;
-    uint64_t bytes_in;
-    uint64_t msg_out;
-    uint64_t bytes_out;
+    u64 msg_in;
+    u64 bytes_in;
+    u64 msg_out;
+    u64 bytes_out;
 } zmq_socket_stats_t;
 
 
@@ -176,8 +176,8 @@ static int loop_and_send_multipart_stat (control_: *mut socket_base_t,
     zmq::msg_t msg;
 
     //  VSM of 8 bytes can't fail to init
-    msg.init_size (sizeof (uint64_t));
-    memcpy (msg.data (), &stat_, sizeof (uint64_t));
+    msg.init_size (sizeof (u64));
+    memcpy (msg.data (), &stat_, sizeof (u64));
 
     //  if the first message is handed to the pipe successfully then the HWM
     //  is not full, which means failures are due to interrupts (on Windows pipes

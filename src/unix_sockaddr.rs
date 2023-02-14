@@ -66,12 +66,12 @@ pub struct sockaddr_in6 {
 #[allow(non_camel_case_types)]
 #[derive(Default,Debug,Clone)]
 pub struct addrinfo {
-    ai_flags: i32, // flags including AI_PASSIVE, AI_CANNONAME, AI_NUMERICHOST, found in netdb.h
-    ai_family: i32, // protocol family including PF_UNSPEC and PF_INET found in sys/socket.h
-    ai_socktype: i32, // socket type, including SOCK_STREAM, and SOCK_DGRAM found in sys/socket.h
-    ai_protocol: i32, // protocol, including IPPROTO_TCP and IPPROTO_UDP, found in netinet/in.h
-    ai_addrlen: size_t, // the length of the addr member
-    ai_canonname: *mut c_char, // the canonical name for nodename
-    ai_addr: *mut sockaddr, // binary socket address
-    ai_next: *mut c_void, // pointer to the next addrinfo struct
+    pub ai_flags: i32, // flags including AI_PASSIVE, AI_CANNONAME, AI_NUMERICHOST, found in netdb.h
+    pub ai_family: i32, // protocol family including PF_UNSPEC and PF_INET found in sys/socket.h
+    pub ai_socktype: i32, // socket type, including SOCK_STREAM, and SOCK_DGRAM found in sys/socket.h
+    pub ai_protocol: i32, // protocol, including IPPROTO_TCP and IPPROTO_UDP, found in netinet/in.h
+    pub ai_addrlen: size_t, // the length of the addr member
+    pub ai_canonname: *mut c_char, // the canonical name for nodename
+    pub ai_addr: *mut sockaddr, // binary socket address
+    pub ai_next: *mut c_void, // pointer to the next addrinfo struct
 }

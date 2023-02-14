@@ -65,18 +65,8 @@
 
 
 use std::collections::HashSet;
-
-//  Information associated with inproc endpoint. Note that endpoint options
-//  are registered as well so that the peer can access them without a need
-//  for synchronisation, handshaking or similar.
-#[derive(Default,Debug,Clone)]
-pub struct endpoint_t
-{
-    // socket_base_t *socket;
-    pub socket: *mut socket_base_t,
-    // options_t options;
-    pub options: options_t,
-}
+use crate::endpoint::ZmqEndpoint;
+use crate::socket_base::socket_base_t;
 
 pub struct thread_ctx_t {
     // protected:
@@ -113,7 +103,7 @@ impl thread_ctx_t {
 
 struct pending_connection_t
     {
-        endpoint_t endpoint;
+        ZmqEndpoint endpoint;
         pipe_t *connect_pipe;
         pipe_t *bind_pipe;
     };
@@ -140,7 +130,7 @@ pub type empty_slots_s = Vec<u32>;
 pub type io_threads_t = Vec<io_thread_t>;
 
 // typedef std::map<std::string, endpoint_t> endpoints_t;
-pub type endpoints_t = HashMap<String,endpoint_t>;
+pub type endpoints_t = HashMap<String,ZmqEndpoint>;
 
 // typedef std::multimap<std::string, pending_connection_t>
 //       pending_connections_t;
@@ -467,12 +457,12 @@ int zmq::ZmqContext::terminate ()
         _slot_sync.unlock ();
 
         //  Wait till reaper thread closes all the sockets.
-        command_t cmd;
+        ZmqCommand cmd;
         const int rc = _term_mailbox.recv (&cmd, -1);
         if (rc == -1 && errno == EINTR)
             return -1;
         errno_assert (rc == 0);
-        zmq_assert (cmd.type == command_t::done);
+        zmq_assert (cmd.type == ZmqCommand::done);
         _slot_sync.lock ();
         zmq_assert (_sockets.empty ());
     }
@@ -928,12 +918,12 @@ int zmq::thread_ctx_t::get (option_: i32,
     return -1;
 }
 
-void zmq::ZmqContext::send_command (uint32_t tid_, const command_t &command_)
+void zmq::ZmqContext::send_command (uint32_t tid_, const ZmqCommand &command_)
 {
     _slots[tid_]->send (command_);
 }
 
-zmq::io_thread_t *zmq::ZmqContext::choose_io_thread (uint64_t affinity_)
+zmq::io_thread_t *zmq::ZmqContext::choose_io_thread (u64 affinity_)
 {
     if (_io_threads.empty ())
         return NULL;
@@ -943,7 +933,7 @@ zmq::io_thread_t *zmq::ZmqContext::choose_io_thread (uint64_t affinity_)
     io_thread_t *selected_io_thread = NULL;
     for (io_threads_t::size_type i = 0, size = _io_threads.size (); i != size;
          i++) {
-        if (!affinity_ || (affinity_ & (uint64_t (1) << i))) {
+        if (!affinity_ || (affinity_ & (u64 (1) << i))) {
             const int load = _io_threads[i]->get_load ();
             if (selected_io_thread == NULL || load < min_load) {
                 min_load = load;
@@ -955,7 +945,7 @@ zmq::io_thread_t *zmq::ZmqContext::choose_io_thread (uint64_t affinity_)
 }
 
 int zmq::ZmqContext::register_endpoint (addr_: *const c_char,
-                                   const endpoint_t &endpoint_)
+                                   const ZmqEndpoint &endpoint_)
 {
     scoped_lock_t locker (_endpoints_sync);
 
@@ -1004,17 +994,17 @@ void zmq::ZmqContext::unregister_endpoints (const socket_base_t *const socket_)
     }
 }
 
-zmq::endpoint_t zmq::ZmqContext::find_endpoint (addr_: *const c_char)
+zmq::ZmqEndpoint zmq::ZmqContext::find_endpoint (addr_: *const c_char)
 {
     scoped_lock_t locker (_endpoints_sync);
 
     endpoints_t::iterator it = _endpoints.find (addr_);
     if (it == _endpoints.end ()) {
         errno = ECONNREFUSED;
-        endpoint_t empty = {NULL, options_t ()};
+        ZmqEndpoint empty = {NULL, options_t ()};
         return empty;
     }
-    endpoint_t endpoint = it->second;
+    ZmqEndpoint endpoint = it->second;
 
     //  Increment the command sequence number of the peer so that it won't
     //  get deallocated until "bind" command is issued by the caller.
@@ -1026,7 +1016,7 @@ zmq::endpoint_t zmq::ZmqContext::find_endpoint (addr_: *const c_char)
 }
 
 void zmq::ZmqContext::pend_connection (const std::string &addr_,
-                                  const endpoint_t &endpoint_,
+                                  const ZmqEndpoint &endpoint_,
                                   pipe_t **pipes_)
 {
     scoped_lock_t locker (_endpoints_sync);
@@ -1105,8 +1095,8 @@ void zmq::ZmqContext::connect_inproc_sockets (
 // #endif
 
     if (side_ == bind_side) {
-        command_t cmd;
-        cmd.type = command_t::bind;
+        ZmqCommand cmd;
+        cmd.type = ZmqCommand::bind;
         cmd.args.bind.pipe = pending_connection_.bind_pipe;
         bind_socket_->process_command (cmd);
         bind_socket_->send_inproc_connected (

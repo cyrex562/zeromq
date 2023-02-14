@@ -73,7 +73,7 @@ pub struct mechanism_t
 
     void set_user_id (const user_id_: *mut c_void, size_: usize);
 
-    const blob_t &get_user_id () const;
+    const Blob &get_user_id () const;
 
     const metadata_t::dict_t &get_zmtp_properties () const
     {
@@ -132,9 +132,9 @@ pub struct mechanism_t
     //  Properties received from ZAP server.
     metadata_t::dict_t _zap_properties;
 
-    blob_t _routing_id;
+    Blob _routing_id;
 
-    blob_t _user_id;
+    Blob _user_id;
 
     //  Returns true iff socket associated with the mechanism
     //  is compatible with a given socket type 'type_'.
@@ -171,7 +171,7 @@ void zmq::mechanism_t::set_user_id (const user_id_: *mut c_void, size_: usize)
       std::string (reinterpret_cast<const char *> (user_id_), size_));
 }
 
-const zmq::blob_t &zmq::mechanism_t::get_user_id () const
+const zmq::Blob &zmq::mechanism_t::get_user_id () const
 {
     return _user_id;
 }

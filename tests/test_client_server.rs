@@ -32,7 +32,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-void create_inproc_client_server_pair (void **server_, void **client_)
+void create_inproc_client_server_pair (server_: *mut *mut c_void void **client_)
 {
     *server_ = test_context_socket (ZMQ_SERVER);
     *client_ = test_context_socket (ZMQ_CLIENT);

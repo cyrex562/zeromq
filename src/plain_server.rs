@@ -56,7 +56,7 @@
     int process_initiate (msg_t *msg_);
 
     void send_zap_request (const std::string &username_,
-                           const std::string &password_);
+                           password_: &str);
 };
 
 zmq::plain_server_t::plain_server_t (session_base_t *session_,
@@ -261,7 +261,7 @@ void zmq::plain_server_t::produce_error (msg_t *msg_) const
 }
 
 void zmq::plain_server_t::send_zap_request (const std::string &username_,
-                                            const std::string &password_)
+                                            password_: &str)
 {
     const uint8_t *credentials[] = {
       reinterpret_cast<const uint8_t *> (username_.c_str ()),

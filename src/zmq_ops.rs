@@ -920,8 +920,8 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
     }
 
     zmq::clock_t clock;
-    uint64_t now = 0;
-    uint64_t end = 0;
+    u64 now = 0;
+    u64 end = 0;
 // #if defined ZMQ_POLL_BASED_ON_POLL
     zmq::fast_vector_t<pollfd, ZMQ_POLLITEMS_DFLT> pollfds (nitems_);
 
@@ -1361,8 +1361,8 @@ bool zmq_poll_must_break_loop_ (long timeout_,
                                 nevents: i32,
                                 bool &first_pass,
                                 zmq::clock_t &clock,
-                                uint64_t &now,
-                                uint64_t &end)
+                                u64 &now,
+                                u64 &end)
 {
     //  If timeout is zero, exit immediately whether there are events or not.
     if (timeout_ == 0)
@@ -1423,8 +1423,8 @@ int zmq_ppoll (zmq_pollitem_t *items_,
     }
 
     zmq::clock_t clock;
-    uint64_t now = 0;
-    uint64_t end = 0;
+    u64 now = 0;
+    u64 end = 0;
     zmq_poll_select_fds_t_ fds =
       zmq_poll_build_select_fds_ (items_, nitems_, rc);
     if (rc == -1) {
@@ -1523,7 +1523,7 @@ static int check_events (const short events_)
     return 0;
 }
 
-static int check_poller_registration_args (void *const poller_, void *const s_)
+static int check_poller_registration_args (poller_: *const c_void, void *const s_)
 {
     if (-1 == check_poller (poller_))
         return -1;
@@ -1536,7 +1536,7 @@ static int check_poller_registration_args (void *const poller_, void *const s_)
     return 0;
 }
 
-static int check_poller_fd_registration_args (void *const poller_,
+static int check_poller_fd_registration_args (poller_: *const c_void,
                                               const zmq::fd_t fd_)
 {
     if (-1 == check_poller (poller_))

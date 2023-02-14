@@ -123,10 +123,10 @@ void zap_handler (void * /*unused_*/);
     }
 
 void setup_context_and_server_side (
-  void **zap_control_,
-  void **zap_thread_,
-  void **server_,
-  void **server_mon_,
+  zap_control_: *mut *mut c_void
+  zap_thread_: *mut *mut c_void
+  server_: *mut *mut c_void
+  server_mon_: *mut *mut c_void
   char *my_endpoint_,
   zmq_thread_fn zap_handler_ = &zap_handler,
   socket_config_fn socket_config_ = &socket_config_curve_server,

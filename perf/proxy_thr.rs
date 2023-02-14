@@ -86,7 +86,7 @@
 // #endif
 
 
-static uint64_t message_count = 0;
+static u64 message_count = 0;
 static size_t message_size = 0;
 
 
@@ -170,7 +170,7 @@ static void publisher_thread_main (pvoid: *mut c_void)
     assert (rc == 0);
     memset (zmq_msg_data (&msg_orig), 'A', zmq_msg_size (&msg_orig));
 
-    uint64_t send_count = 0;
+    u64 send_count = 0;
     while (send_count < message_count) {
         zmq_msg_t msg;
         zmq_msg_init (&msg);
@@ -206,7 +206,7 @@ static void subscriber_thread_main (pvoid: *mut c_void)
       zmq_connect (subsocket, cfg->backend_endpoint[idx]));
 
     //  Receive message_count messages
-    uint64_t rxsuccess = 0;
+    u64 rxsuccess = 0;
     bool success = true;
     while (success) {
         zmq_msg_t msg;

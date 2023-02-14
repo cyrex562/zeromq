@@ -85,8 +85,8 @@ pub struct socket_poller_t
 // #endif
     static int adjust_timeout (zmq::clock_t &clock_,
                                long timeout_,
-                               uint64_t &now_,
-                               uint64_t &end_,
+                               u64 &now_,
+                               u64 &end_,
                                bool &first_pass_);
     static bool is_socket (const item_t &item, const socket_base_t *socket_)
     {
@@ -581,8 +581,8 @@ int zmq::socket_poller_t::check_events (zmq::socket_poller_t::event_t *events_,
 //Return 0 if timeout is expired otherwise 1
 int zmq::socket_poller_t::adjust_timeout (zmq::clock_t &clock_,
                                           long timeout_,
-                                          uint64_t &now_,
-                                          uint64_t &end_,
+                                          u64 &now_,
+                                          u64 &end_,
                                           bool &first_pass_)
 {
     //  If socket_poller_t::timeout is zero, exit immediately whether there
@@ -668,8 +668,8 @@ int zmq::socket_poller_t::wait (zmq::socket_poller_t::event_t *events_,
 
 // #if defined ZMQ_POLL_BASED_ON_POLL
     zmq::clock_t clock;
-    uint64_t now = 0;
-    uint64_t end = 0;
+    u64 now = 0;
+    u64 end = 0;
 
     bool first_pass = true;
 
@@ -682,7 +682,7 @@ int zmq::socket_poller_t::wait (zmq::socket_poller_t::event_t *events_,
             timeout = -1;
         else
             timeout =
-              static_cast<int> (std::min<uint64_t> (end - now, INT_MAX));
+              static_cast<int> (std::min<u64> (end - now, INT_MAX));
 
         //  Wait for events.
         const int rc = poll (_pollfds, _pollset_size, timeout);
@@ -713,8 +713,8 @@ int zmq::socket_poller_t::wait (zmq::socket_poller_t::event_t *events_,
 #elif defined ZMQ_POLL_BASED_ON_SELECT
 
     zmq::clock_t clock;
-    uint64_t now = 0;
-    uint64_t end = 0;
+    u64 now = 0;
+    u64 end = 0;
 
     bool first_pass = true;
 

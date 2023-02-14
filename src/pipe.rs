@@ -85,8 +85,8 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
     uint32_t get_server_socket_routing_id () const;
 
     //  Pipe endpoint can store an opaque ID to be used by its clients.
-    void set_router_socket_routing_id (const blob_t &router_socket_routing_id_);
-    const blob_t &get_routing_id () const;
+    void set_router_socket_routing_id (const Blob &router_socket_routing_id_);
+    const Blob &get_routing_id () const;
 
     //  Returns true if there is at least one message to read in the pipe.
     bool check_read ();
@@ -136,8 +136,8 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
     //  Returns true if HWM is not reached
     bool check_hwm () const;
 
-    void set_endpoint_pair (endpoint_uri_pair_t endpoint_pair_);
-    const endpoint_uri_pair_t &get_endpoint_pair () const;
+    void set_endpoint_pair (EndpointUriPair endpoint_pair_);
+    const EndpointUriPair &get_endpoint_pair () const;
 
     void send_stats_to_peer (own_t *socket_base_);
 
@@ -152,12 +152,12 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
 
     //  Command handlers.
     void process_activate_read () ZMQ_OVERRIDE;
-    void process_activate_write (uint64_t msgs_read_) ZMQ_OVERRIDE;
+    void process_activate_write (u64 msgs_read_) ZMQ_OVERRIDE;
     void process_hiccup (pipe_: *mut c_void) ZMQ_OVERRIDE;
     void
     process_pipe_peer_stats (queue_count_: u64,
                              own_t *socket_base_,
-                             endpoint_uri_pair_t *endpoint_pair_) ZMQ_OVERRIDE;
+                             EndpointUriPair *endpoint_pair_) ZMQ_OVERRIDE;
     void process_pipe_term () ZMQ_OVERRIDE;
     void process_pipe_term_ack () ZMQ_OVERRIDE;
     void process_pipe_hwm (inhwm_: i32, outhwm_: i32) ZMQ_OVERRIDE;
@@ -200,12 +200,12 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
     _out_hwm_boost: i32;
 
     //  Number of messages read and written so far.
-    uint64_t _msgs_read;
-    uint64_t _msgs_written;
+    u64 _msgs_read;
+    u64 _msgs_written;
 
     //  Last received peer's msgs_read. The actual number in the peer
     //  can be higher at the moment.
-    uint64_t _peers_msgs_read;
+    u64 _peers_msgs_read;
 
     //  The pipe object on the other side of the pipepair.
     pipe_t *_peer;
@@ -240,7 +240,7 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
     bool _delay;
 
     //  Routing id of the writer. Used uniquely by the reader side.
-    blob_t _router_socket_routing_id;
+    Blob _router_socket_routing_id;
 
     //  Routing id of the writer. Used uniquely by the reader side.
     _server_socket_routing_id: i32;
@@ -254,7 +254,7 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
     const bool _conflate;
 
     // The endpoints of this pipe.
-    endpoint_uri_pair_t _endpoint_pair;
+    EndpointUriPair _endpoint_pair;
 
     // Disconnect msg
     msg_t _disconnect_msg;
@@ -386,12 +386,12 @@ uint32_t zmq::pipe_t::get_server_socket_routing_id () const
 }
 
 void zmq::pipe_t::set_router_socket_routing_id (
-  const blob_t &router_socket_routing_id_)
+  const Blob &router_socket_routing_id_)
 {
     _router_socket_routing_id.set_deep_copy (router_socket_routing_id_);
 }
 
-const zmq::blob_t &zmq::pipe_t::get_routing_id () const
+const zmq::Blob &zmq::pipe_t::get_routing_id () const
 {
     return _router_socket_routing_id;
 }
@@ -519,7 +519,7 @@ void zmq::pipe_t::process_activate_read ()
     }
 }
 
-void zmq::pipe_t::process_activate_write (uint64_t msgs_read_)
+void zmq::pipe_t::process_activate_write (u64 msgs_read_)
 {
     //  Remember the peer's message sequence number.
     _peers_msgs_read = msgs_read_;
@@ -788,7 +788,7 @@ void zmq::pipe_t::set_hwms_boost (inhwmboost_: i32, outhwmboost_: i32)
 bool zmq::pipe_t::check_hwm () const
 {
     const bool full =
-      _hwm > 0 && _msgs_written - _peers_msgs_read >= uint64_t (_hwm);
+      _hwm > 0 && _msgs_written - _peers_msgs_read >= u64 (_hwm);
     return !full;
 }
 
@@ -797,27 +797,27 @@ void zmq::pipe_t::send_hwms_to_peer (inhwm_: i32, outhwm_: i32)
     send_pipe_hwm (_peer, inhwm_, outhwm_);
 }
 
-void zmq::pipe_t::set_endpoint_pair (zmq::endpoint_uri_pair_t endpoint_pair_)
+void zmq::pipe_t::set_endpoint_pair (zmq::EndpointUriPair endpoint_pair_)
 {
     _endpoint_pair = ZMQ_MOVE (endpoint_pair_);
 }
 
-const zmq::endpoint_uri_pair_t &zmq::pipe_t::get_endpoint_pair () const
+const zmq::EndpointUriPair &zmq::pipe_t::get_endpoint_pair () const
 {
     return _endpoint_pair;
 }
 
 void zmq::pipe_t::send_stats_to_peer (own_t *socket_base_)
 {
-    endpoint_uri_pair_t *ep =
-      new (std::nothrow) endpoint_uri_pair_t (_endpoint_pair);
+    EndpointUriPair *ep =
+      new (std::nothrow) EndpointUriPair (_endpoint_pair);
     send_pipe_peer_stats (_peer, _msgs_written - _peers_msgs_read, socket_base_,
                           ep);
 }
 
 void zmq::pipe_t::process_pipe_peer_stats (queue_count_: u64,
                                            own_t *socket_base_,
-                                           endpoint_uri_pair_t *endpoint_pair_)
+                                           EndpointUriPair *endpoint_pair_)
 {
     send_pipe_stats_publish (socket_base_, queue_count_,
                              _msgs_written - _peers_msgs_read, endpoint_pair_);

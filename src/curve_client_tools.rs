@@ -263,7 +263,7 @@ struct curve_client_tools_t
         zmq_assert (rc == 0);
     }
 
-    int produce_hello (data_: *mut c_void, const uint64_t cn_nonce_) const
+    int produce_hello (data_: *mut c_void, const u64 cn_nonce_) const
     {
         return produce_hello (data_, server_key, cn_nonce_, cn_public,
                               cn_secret);

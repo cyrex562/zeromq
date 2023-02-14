@@ -35,19 +35,19 @@ void tearDown ()
 {
 }
 
-bool tree_add (zmq::radix_tree_t &tree_, const std::string &key_)
+bool tree_add (zmq::radix_tree_t &tree_, key_: &str)
 {
     return tree_.add (reinterpret_cast<const unsigned char *> (key_.data ()),
                       key_.size ());
 }
 
-bool tree_rm (zmq::radix_tree_t &tree_, const std::string &key_)
+bool tree_rm (zmq::radix_tree_t &tree_, key_: &str)
 {
     return tree_.rm (reinterpret_cast<const unsigned char *> (key_.data ()),
                      key_.size ());
 }
 
-bool tree_check (zmq::radix_tree_t &tree_, const std::string &key_)
+bool tree_check (zmq::radix_tree_t &tree_, key_: &str)
 {
     return tree_.check (reinterpret_cast<const unsigned char *> (key_.data ()),
                         key_.size ());

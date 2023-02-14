@@ -102,8 +102,8 @@ static void mock_handshake (fd_t fd_, bool sub_command, bool mock_pub)
                               : sizeof (zmtp_ready_xpub));
 }
 
-static void prep_server_socket (void **server_out_,
-                                void **mon_out_,
+static void prep_server_socket (server_out_: *mut *mut c_void
+                                mon_out_: *mut *mut c_void
                                 char *endpoint_,
                                 ep_length_: usize,
                                 socket_type: i32)

@@ -39,8 +39,8 @@ pub struct mailbox_safe_t ZMQ_FINAL : public i_mailbox
     mailbox_safe_t (mutex_t *sync_);
     ~mailbox_safe_t ();
 
-    void send (const command_t &cmd_);
-    int recv (command_t *cmd_, timeout_: i32);
+    void send (const ZmqCommand &cmd_);
+    int recv (ZmqCommand *cmd_, timeout_: i32);
 
     // Add signaler to mailbox which will be called when a message is ready
     void add_signaler (signaler_t *signaler_);
@@ -59,7 +59,7 @@ pub struct mailbox_safe_t ZMQ_FINAL : public i_mailbox
 
   // private:
     //  The pipe to store actual commands.
-    typedef ypipe_t<command_t, command_pipe_granularity> cpipe_t;
+    typedef ypipe_t<ZmqCommand, command_pipe_granularity> cpipe_t;
     cpipe_t _cpipe;
 
     //  Condition variable to pass signals from writer thread to reader thread.
@@ -113,7 +113,7 @@ void zmq::mailbox_safe_t::clear_signalers ()
     _signalers.clear ();
 }
 
-void zmq::mailbox_safe_t::send (const command_t &cmd_)
+void zmq::mailbox_safe_t::send (const ZmqCommand &cmd_)
 {
     _sync->lock ();
     _cpipe.write (cmd_, false);
@@ -132,7 +132,7 @@ void zmq::mailbox_safe_t::send (const command_t &cmd_)
     _sync->unlock ();
 }
 
-int zmq::mailbox_safe_t::recv (command_t *cmd_, timeout_: i32)
+int zmq::mailbox_safe_t::recv (ZmqCommand *cmd_, timeout_: i32)
 {
     //  Try to get the command straight away.
     if (_cpipe.read (cmd_))

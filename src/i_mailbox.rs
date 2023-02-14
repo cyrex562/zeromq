@@ -41,8 +41,8 @@ pub struct i_mailbox
 // public:
     virtual ~i_mailbox () ZMQ_DEFAULT;
 
-    virtual void send (const command_t &cmd_) = 0;
-    virtual int recv (command_t *cmd_, timeout_: i32) = 0;
+    virtual void send (const ZmqCommand &cmd_) = 0;
+    virtual int recv (ZmqCommand *cmd_, timeout_: i32) = 0;
 
 
 // #ifdef HAVE_FORK

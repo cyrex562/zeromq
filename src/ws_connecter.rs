@@ -78,11 +78,11 @@ pub struct ws_connecter_t ZMQ_FINAL : public stream_connecter_base_t
                     Address *addr_,
                     bool delayed_start_,
                     bool wss_,
-                    const std::string &tls_hostname_);
+                    tls_hostname_: &str);
     ~ws_connecter_t ();
 
   protected:
-    void create_engine (fd_t fd, const std::string &local_address_);
+    void create_engine (fd_t fd, local_address_: &str);
 
   // private:
     //  ID of the timer used to check the connect timeout, must be different from stream_connecter_base_t::reconnect_timer_id.
@@ -131,7 +131,7 @@ pub struct session_base_t *session_,
                                      Address *addr_,
                                      bool delayed_start_,
                                      bool wss_,
-                                     const std::string &tls_hostname_) :
+                                     tls_hostname_: &str) :
     stream_connecter_base_t (
       io_thread_, session_, options_, addr_, delayed_start_),
     _connect_timer_started (false),
@@ -332,7 +332,7 @@ bool zmq::ws_connecter_t::tune_socket (const fd_t fd_)
 }
 
 void zmq::ws_connecter_t::create_engine (fd_t fd_,
-                                         const std::string &local_address_)
+                                         local_address_: &str)
 {
     const endpoint_uri_pair_t endpoint_pair (local_address_, _endpoint,
                                              endpoint_type_connect);

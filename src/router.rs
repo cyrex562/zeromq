@@ -287,8 +287,8 @@ int zmq::router_t::xsend (msg_t *msg_)
             //  If there's no such pipe just silently ignore the message, unless
             //  router_mandatory is set.
             out_pipe_t *out_pipe = lookup_out_pipe (
-              blob_t (static_cast<unsigned char *> (msg_->data ()),
-                      msg_->size (), zmq::reference_tag_t ()));
+              Blob (static_cast<unsigned char *> (msg_->data ()),
+                      msg_->size (), zmq::ReferenceTag ()));
 
             if (out_pipe) {
                 _current_out = out_pipe->pipe;
@@ -430,7 +430,7 @@ int zmq::router_t::xrecv (msg_t *msg_)
         _prefetched = true;
         _current_in = pipe;
 
-        const blob_t &routing_id = pipe->get_routing_id ();
+        const Blob &routing_id = pipe->get_routing_id ();
         rc = msg_->init_size (routing_id.size ());
         errno_assert (rc == 0);
         memcpy (msg_->data (), routing_id.data (), routing_id.size ());
@@ -481,7 +481,7 @@ bool zmq::router_t::xhas_in ()
 
     zmq_assert (pipe != NULL);
 
-    const blob_t &routing_id = pipe->get_routing_id ();
+    const Blob &routing_id = pipe->get_routing_id ();
     rc = _prefetched_id.init_size (routing_id.size ());
     errno_assert (rc == 0);
     memcpy (_prefetched_id.data (), routing_id.data (), routing_id.size ());
@@ -519,9 +519,9 @@ int zmq::router_t::get_peer_state (const routing_id_: *mut c_void,
     int res = 0;
 
     // TODO remove the const_cast, see comment in lookup_out_pipe
-    const blob_t routing_id_blob (
+    const Blob routing_id_blob (
       static_cast<unsigned char *> (const_cast<void *> (routing_id_)),
-      routing_id_size_, reference_tag_t ());
+      routing_id_size_, ReferenceTag ());
     const out_pipe_t *out_pipe = lookup_out_pipe (routing_id_blob);
     if (!out_pipe) {
         errno = EHOSTUNREACH;
@@ -539,7 +539,7 @@ int zmq::router_t::get_peer_state (const routing_id_: *mut c_void,
 bool zmq::router_t::identify_peer (pipe_t *pipe_, bool locally_initiated_)
 {
     msg_t msg;
-    blob_t routing_id;
+    Blob routing_id;
 
     if (locally_initiated_ && connect_routing_id_is_set ()) {
         const std::string connect_routing_id = extract_connect_routing_id ();
@@ -590,7 +590,7 @@ bool zmq::router_t::identify_peer (pipe_t *pipe_, bool locally_initiated_)
                 unsigned char buf[5];
                 buf[0] = 0;
                 put_uint32 (buf + 1, _next_integral_routing_id++);
-                blob_t new_routing_id (buf, sizeof buf);
+                Blob new_routing_id (buf, sizeof buf);
 
                 pipe_t *const old_pipe = existing_outpipe->pipe;
 

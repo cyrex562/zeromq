@@ -112,7 +112,7 @@ pub struct own_t : public object_t
     atomic_counter_t _sent_seqnum;
 
     //  Sequence number of the last command processed by this object.
-    uint64_t _processed_seqnum;
+    u64 _processed_seqnum;
 
     //  Socket owning this object. It's responsible for shutting down
     //  this object.
@@ -128,6 +128,10 @@ pub struct own_t : public object_t
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (own_t)
 };
+
+impl own_t {
+
+}
 
 zmq::own_t::own_t (class ZmqContext *parent_, uint32_t tid_) :
     object_t (parent_, tid_),

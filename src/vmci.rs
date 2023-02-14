@@ -41,7 +41,7 @@ void zmq::tune_vmci_buffer_size (ZmqContext *context_,
                                  fd_t sockfd_,
                                  default_size_: u64,
                                  min_size_: u64,
-                                 uint64_t max_size_)
+                                 u64 max_size_)
 {
     int family = context_->get_vmci_socket_family ();
     assert (family != -1);

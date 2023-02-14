@@ -268,7 +268,7 @@ void zap_handler (void *)
 }
 
 static void setup_handshake_socket_monitor (server_: *mut c_void,
-                                            void **server_mon_,
+                                            server_mon_: *mut *mut c_void
                                             monitor_endpoint_: *const c_char)
 {
     //  Monitor handshake events on the server
@@ -288,10 +288,10 @@ static void setup_handshake_socket_monitor (server_: *mut c_void,
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (*server_mon_, monitor_endpoint_));
 }
 
-void setup_context_and_server_side (void **zap_control_,
-                                    void **zap_thread_,
-                                    void **server_,
-                                    void **server_mon_,
+void setup_context_and_server_side (zap_control_: *mut *mut c_void
+                                    zap_thread_: *mut *mut c_void
+                                    server_: *mut *mut c_void
+                                    server_mon_: *mut *mut c_void
                                     char *my_endpoint_,
                                     zmq_thread_fn zap_handler_,
                                     socket_config_fn socket_config_,
@@ -390,7 +390,7 @@ void expect_new_client_bounce_fail (char *my_endpoint_,
                                     server_: *mut c_void,
                                     socket_config_fn socket_config_,
                                     socket_config_data_: *mut c_void,
-                                    void **client_mon_,
+                                    client_mon_: *mut *mut c_void
                                     expected_client_event_: i32,
                                     expected_client_value_: i32)
 {

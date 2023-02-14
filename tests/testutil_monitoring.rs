@@ -207,7 +207,7 @@ int expect_monitor_event_multiple (server_mon_: *mut c_void,
 }
 
 static int64_t get_monitor_event_internal_v2 (monitor_: *mut c_void,
-                                              uint64_t **value_,
+                                              u64 **value_,
                                               char **local_address_,
                                               char **remote_address_,
                                               recv_flag_: i32)
@@ -220,9 +220,9 @@ static int64_t get_monitor_event_internal_v2 (monitor_: *mut c_void,
         return -1; //  timed out or no message available
     }
     TEST_ASSERT_TRUE (zmq_msg_more (&msg));
-    TEST_ASSERT_EQUAL_UINT (sizeof (uint64_t), zmq_msg_size (&msg));
+    TEST_ASSERT_EQUAL_UINT (sizeof (u64), zmq_msg_size (&msg));
 
-    uint64_t event;
+    u64 event;
     memcpy (&event, zmq_msg_data (&msg), sizeof (event));
     zmq_msg_close (&msg);
 
@@ -233,19 +233,19 @@ static int64_t get_monitor_event_internal_v2 (monitor_: *mut c_void,
         return -1; //  timed out or no message available
     }
     TEST_ASSERT_TRUE (zmq_msg_more (&msg));
-    TEST_ASSERT_EQUAL_UINT (sizeof (uint64_t), zmq_msg_size (&msg));
+    TEST_ASSERT_EQUAL_UINT (sizeof (u64), zmq_msg_size (&msg));
 
-    uint64_t value_count;
+    u64 value_count;
     memcpy (&value_count, zmq_msg_data (&msg), sizeof (value_count));
     zmq_msg_close (&msg);
 
     if (value_) {
         *value_ =
-          (uint64_t *) malloc ((size_t) value_count * sizeof (uint64_t));
+          (u64 *) malloc ((size_t) value_count * sizeof (u64));
         TEST_ASSERT_NOT_NULL (*value_);
     }
 
-    for (uint64_t i = 0; i < value_count; ++i) {
+    for (u64 i = 0; i < value_count; ++i) {
         //  Subsequent frames in message contain event values
         zmq_msg_init (&msg);
         if (zmq_msg_recv (&msg, monitor_, recv_flag_) == -1) {
@@ -253,10 +253,10 @@ static int64_t get_monitor_event_internal_v2 (monitor_: *mut c_void,
             return -1; //  timed out or no message available
         }
         TEST_ASSERT_TRUE (zmq_msg_more (&msg));
-        TEST_ASSERT_EQUAL_UINT (sizeof (uint64_t), zmq_msg_size (&msg));
+        TEST_ASSERT_EQUAL_UINT (sizeof (u64), zmq_msg_size (&msg));
 
         if (value_ && *value_)
-            memcpy (&(*value_)[i], zmq_msg_data (&msg), sizeof (uint64_t));
+            memcpy (&(*value_)[i], zmq_msg_data (&msg), sizeof (u64));
         zmq_msg_close (&msg);
     }
 
@@ -272,7 +272,7 @@ static int64_t get_monitor_event_internal_v2 (monitor_: *mut c_void,
 }
 
 static int64_t get_monitor_event_with_timeout_v2 (monitor_: *mut c_void,
-                                                  uint64_t **value_,
+                                                  u64 **value_,
                                                   char **local_address_,
                                                   char **remote_address_,
                                                   timeout_: i32)
@@ -305,7 +305,7 @@ static int64_t get_monitor_event_with_timeout_v2 (monitor_: *mut c_void,
 }
 
 int64_t get_monitor_event_v2 (monitor_: *mut c_void,
-                              uint64_t **value_,
+                              u64 **value_,
                               char **local_address_,
                               char **remote_address_)
 {
@@ -351,7 +351,7 @@ void expect_monitor_event_v2 (monitor_: *mut c_void,
 }
 
 
-const char *get_zmqEventName (uint64_t event)
+const char *get_zmqEventName (u64 event)
 {
     switch (event) {
         case ZMQ_EVENT_CONNECTED:

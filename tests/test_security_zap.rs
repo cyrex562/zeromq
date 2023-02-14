@@ -82,7 +82,7 @@ int expect_new_client_bounce_fail_and_count_monitor_events (
   server_: *mut c_void,
   socket_config_fn socket_config_,
   socket_config_data_: *mut c_void,
-  void **client_mon_,
+  client_mon_: *mut *mut c_void
   server_mon_: *mut c_void,
   expected_server_event_: i32,
   expected_server_value_: i32,

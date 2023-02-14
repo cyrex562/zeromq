@@ -50,7 +50,7 @@ pub struct curve_encoding_t
   // public:
 
 
-    typedef uint64_t nonce_t;
+    typedef u64 nonce_t;
 
 
 //   private:
@@ -178,7 +178,7 @@ int zmq::curve_encoding_t::check_validity (msg_t *msg_, error_event_code_: *mut 
     }
 
     {
-        const uint64_t nonce = get_uint64 (message + message_command_len);
+        const u64 nonce = get_uint64 (message + message_command_len);
         if (nonce <= _cn_peer_nonce) {
             *error_event_code_ = ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_SEQUENCE;
             errno = EPROTO;

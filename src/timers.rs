@@ -85,7 +85,7 @@ pub struct timers_t
         arg: *mut c_void;
     } timer_t;
 
-    typedef std::multimap<uint64_t, timer_t> timersmap_t;
+    typedef std::multimap<u64, timer_t> timersmap_t;
     timersmap_t _timers;
 
     typedef std::set<int> cancelled_timers_t;
@@ -118,7 +118,7 @@ int zmq::timers_t::add (interval_: usize, timers_timer_fn handler_, arg_: *mut c
         return -1;
     }
 
-    uint64_t when = _clock.now_ms () + interval_;
+    u64 when = _clock.now_ms () + interval_;
     timer_t timer = {++_next_timer_id, interval_, handler_, arg_};
     _timers.insert (timersmap_t::value_type (when, timer));
 
@@ -167,7 +167,7 @@ int zmq::timers_t::set_interval (timer_id_: i32, interval_: usize)
     if (it != end) {
         timer_t timer = it->second;
         timer.interval = interval_;
-        uint64_t when = _clock.now_ms () + interval_;
+        u64 when = _clock.now_ms () + interval_;
         _timers.erase (it);
         _timers.insert (timersmap_t::value_type (when, timer));
 
@@ -185,7 +185,7 @@ int zmq::timers_t::reset (timer_id_: i32)
       std::find_if (_timers.begin (), end, match_by_id (timer_id_));
     if (it != end) {
         timer_t timer = it->second;
-        uint64_t when = _clock.now_ms () + timer.interval;
+        u64 when = _clock.now_ms () + timer.interval;
         _timers.erase (it);
         _timers.insert (timersmap_t::value_type (when, timer));
 
@@ -198,7 +198,7 @@ int zmq::timers_t::reset (timer_id_: i32)
 
 long zmq::timers_t::timeout ()
 {
-    const uint64_t now = _clock.now_ms ();
+    const u64 now = _clock.now_ms ();
     long res = -1;
 
     const timersmap_t::iterator begin = _timers.begin ();
@@ -220,7 +220,7 @@ long zmq::timers_t::timeout ()
 
 int zmq::timers_t::execute ()
 {
-    const uint64_t now = _clock.now_ms ();
+    const u64 now = _clock.now_ms ();
 
     const timersmap_t::iterator begin = _timers.begin ();
     const timersmap_t::iterator end = _timers.end ();

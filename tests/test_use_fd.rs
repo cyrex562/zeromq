@@ -50,7 +50,7 @@ typedef void (*pre_allocate_sock_fun_t) (void *, char *);
 void setup_socket_pair (pre_allocate_sock_fun_t pre_allocate_sock_fun_,
                         bind_socket_type_: i32,
                         connect_socket_type_: i32,
-                        void **out_sb_,
+                        out_sb_: *mut *mut c_void
                         void **out_sc_)
 {
     *out_sb_ = test_context_socket (bind_socket_type_);

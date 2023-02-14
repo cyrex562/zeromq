@@ -99,8 +99,8 @@ int zmq::stream_t::xsend (msg_t *msg_)
             //  If there's no such pipe return an error
 
             out_pipe_t *out_pipe = lookup_out_pipe (
-              blob_t (static_cast<unsigned char *> (msg_->data ()),
-                      msg_->size (), reference_tag_t ()));
+              Blob (static_cast<unsigned char *> (msg_->data ()),
+                      msg_->size (), ReferenceTag ()));
 
             if (out_pipe) {
                 _current_out = out_pipe->pipe;
@@ -203,7 +203,7 @@ int zmq::stream_t::xrecv (msg_t *msg_)
     //  We have received a frame with TCP data.
     //  Rather than sending this frame, we keep it in prefetched
     //  buffer and send a frame with peer's ID.
-    const blob_t &routing_id = pipe->get_routing_id ();
+    const Blob &routing_id = pipe->get_routing_id ();
     rc = msg_->close ();
     errno_assert (rc == 0);
     rc = msg_->init_size (routing_id.size ());
@@ -239,7 +239,7 @@ bool zmq::stream_t::xhas_in ()
     zmq_assert (pipe != NULL);
     zmq_assert ((_prefetched_msg.flags () & msg_t::more) == 0);
 
-    const blob_t &routing_id = pipe->get_routing_id ();
+    const Blob &routing_id = pipe->get_routing_id ();
     rc = _prefetched_routing_id.init_size (routing_id.size ());
     errno_assert (rc == 0);
 
@@ -271,7 +271,7 @@ void zmq::stream_t::identify_peer (pipe_t *pipe_, bool locally_initiated_)
     //  Always assign routing id for raw-socket
     unsigned char buffer[5];
     buffer[0] = 0;
-    blob_t routing_id;
+    Blob routing_id;
     if (locally_initiated_ && connect_routing_id_is_set ()) {
         const std::string connect_routing_id = extract_connect_routing_id ();
         routing_id.set (

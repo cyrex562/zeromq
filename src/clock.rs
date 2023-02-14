@@ -64,21 +64,21 @@ pub struct clock_t
     clock_t ();
 
     //  CPU's timestamp counter. Returns 0 if it's not available.
-    static uint64_t rdtsc ();
+    static u64 rdtsc ();
 
     //  High precision timestamp.
-    static uint64_t now_us ();
+    static u64 now_us ();
 
     //  Low precision timestamp. In tight loops generating it can be
     //  10 to 100 times faster than the high precision timestamp.
-    uint64_t now_ms ();
+    u64 now_ms ();
 
   // private:
     //  TSC timestamp of when last time measurement was made.
-    uint64_t _last_tsc;
+    u64 _last_tsc;
 
     //  Physical time corresponding to the TSC above (in milliseconds).
-    uint64_t _last_time;
+    u64 _last_time;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (clock_t)
 };
@@ -151,22 +151,22 @@ static f_compatible_get_tick_count64 my_get_tick_count64 =
 // #endif
 
 // #ifndef ZMQ_HAVE_WINDOWS
-const uint64_t usecs_per_msec = 1000;
-const uint64_t nsecs_per_usec = 1000;
+const u64 usecs_per_msec = 1000;
+const u64 nsecs_per_usec = 1000;
 // #endif
-const uint64_t usecs_per_sec = 1000000;
+const u64 usecs_per_sec = 1000000;
 
 zmq::clock_t::clock_t () :
     _last_tsc (rdtsc ()),
 // #ifdef ZMQ_HAVE_WINDOWS
-    _last_time (static_cast<uint64_t> ((*my_get_tick_count64) ()))
+    _last_time (static_cast<u64> ((*my_get_tick_count64) ()))
 // #else
     _last_time (now_us () / usecs_per_msec)
 // #endif
 {
 }
 
-uint64_t zmq::clock_t::now_us ()
+u64 zmq::clock_t::now_us ()
 {
 // #if defined ZMQ_HAVE_WINDOWS
 
@@ -185,7 +185,7 @@ uint64_t zmq::clock_t::now_us ()
     //  since the system was started.
     const double ticks_div =
       static_cast<double> (ticks_per_second.QuadPart) / usecs_per_sec;
-    return static_cast<uint64_t> (tick.QuadPart / ticks_div);
+    return static_cast<u64> (tick.QuadPart / ticks_div);
 
 #elif defined HAVE_CLOCK_GETTIME                                               \
   && (defined CLOCK_MONOTONIC || defined ZMQ_HAVE_VXWORKS)
@@ -229,9 +229,9 @@ uint64_t zmq::clock_t::now_us ()
 // #endif
 }
 
-uint64_t zmq::clock_t::now_ms ()
+u64 zmq::clock_t::now_ms ()
 {
-    const uint64_t tsc = rdtsc ();
+    const u64 tsc = rdtsc ();
 
     //  If TSC is not supported, get precise time and chop off the microseconds.
     if (!tsc) {
@@ -240,7 +240,7 @@ uint64_t zmq::clock_t::now_ms ()
         // does not guarantee that it will use a hardware that offers a monotonic timer.
         // So, lets use GetTickCount when GetTickCount64 is not available with an workaround
         // to its 32 bit limitation.
-        return static_cast<uint64_t> ((*my_get_tick_count64) ());
+        return static_cast<u64> ((*my_get_tick_count64) ());
 // #else
         return now_us () / usecs_per_msec;
 // #endif
@@ -254,14 +254,14 @@ uint64_t zmq::clock_t::now_ms ()
 
     _last_tsc = tsc;
 // #ifdef ZMQ_HAVE_WINDOWS
-    _last_time = static_cast<uint64_t> ((*my_get_tick_count64) ());
+    _last_time = static_cast<u64> ((*my_get_tick_count64) ());
 // #else
     _last_time = now_us () / usecs_per_msec;
 // #endif
     return _last_time;
 }
 
-uint64_t zmq::clock_t::rdtsc ()
+u64 zmq::clock_t::rdtsc ()
 {
 #if (defined _MSC_VER && (defined _M_IX86 || defined _M_X64))
     return __rdtsc ();
@@ -277,18 +277,18 @@ uint64_t zmq::clock_t::rdtsc ()
 #elif (defined __GNUC__ && (defined __i386__ || defined __x86_64__))
     uint32_t low, high;
     __asm__ volatile("rdtsc" : "=a"(low), "=d"(high));
-    return static_cast<uint64_t> (high) << 32 | low;
+    return static_cast<u64> (high) << 32 | low;
 #elif (defined __SUNPRO_CC && (__SUNPRO_CC >= 0x5100)                          \
        && (defined __i386 || defined __amd64 || defined __x86_64))
     union
     {
-        uint64_t u64val;
+        u64 u64val;
         uint32_t u32val[2];
     } tsc;
     asm("rdtsc" : "=a"(tsc.u32val[0]), "=d"(tsc.u32val[1]));
     return tsc.u64val;
 #elif defined(__s390__)
-    uint64_t tsc;
+    u64 tsc;
     asm("\tstck\t%0\n" : "=Q"(tsc) : : "cc");
     return tsc;
 // #else
@@ -299,7 +299,7 @@ uint64_t zmq::clock_t::rdtsc ()
 // #else
     clock_gettime (CLOCK_MONOTONIC, &ts);
 // #endif
-    return static_cast<uint64_t> (ts.tv_sec) * nsecs_per_usec * usecs_per_sec
+    return static_cast<u64> (ts.tv_sec) * nsecs_per_usec * usecs_per_sec
            + ts.tv_nsec;
 // #endif
 }

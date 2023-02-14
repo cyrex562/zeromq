@@ -75,7 +75,7 @@ pub struct session_base_t *session_) = 0;
 
     virtual void zap_msg_available () = 0;
 
-    virtual const endpoint_uri_pair_t &get_endpoint () const = 0;
+    virtual const EndpointUriPair &get_endpoint () const = 0;
 };
 }
 

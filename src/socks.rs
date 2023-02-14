@@ -88,7 +88,7 @@ pub struct socks_choice_decoder_t
 struct socks_basic_auth_request_t
 {
     socks_basic_auth_request_t (const std::string &username_,
-                                const std::string &password_);
+                                password_: &str);
 
     const std::string username;
     const std::string password;
@@ -261,7 +261,7 @@ void zmq::socks_choice_decoder_t::reset ()
 
 
 zmq::socks_basic_auth_request_t::socks_basic_auth_request_t (
-  const std::string &username_, const std::string &password_) :
+  const std::string &username_, password_: &str) :
     username (username_), password (password_)
 {
     zmq_assert (username_.size () <= UINT8_MAX);

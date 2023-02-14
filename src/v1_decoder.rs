@@ -116,7 +116,7 @@ int zmq::v1_decoder_t::eight_byte_size_ready (unsigned char const *)
 {
     //  8-byte payload length is read. Allocate the buffer
     //  for message body and read the message data into it.
-    const uint64_t payload_length = get_uint64 (_tmpbuf);
+    const u64 payload_length = get_uint64 (_tmpbuf);
 
     //  There has to be at least one byte (the flags) in the message).
     if (payload_length == 0) {
@@ -126,7 +126,7 @@ int zmq::v1_decoder_t::eight_byte_size_ready (unsigned char const *)
 
     //  Message size must not exceed the maximum allowed size.
     if (_max_msg_size >= 0
-        && payload_length - 1 > static_cast<uint64_t> (_max_msg_size)) {
+        && payload_length - 1 > static_cast<u64> (_max_msg_size)) {
         errno = EMSGSIZE;
         return -1;
     }

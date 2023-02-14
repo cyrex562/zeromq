@@ -218,7 +218,7 @@ void zmq::signaler_t::send ()
     }
 // #endif
 // #if defined ZMQ_HAVE_EVENTFD
-    const uint64_t inc = 1;
+    const u64 inc = 1;
     ssize_t sz = write (_w, &inc, sizeof (inc));
     errno_assert (sz == sizeof (inc));
 #elif defined ZMQ_HAVE_WINDOWS
@@ -342,14 +342,14 @@ void zmq::signaler_t::recv ()
 {
 //  Attempt to read a signal.
 // #if defined ZMQ_HAVE_EVENTFD
-    uint64_t dummy;
+    u64 dummy;
     ssize_t sz = read (_r, &dummy, sizeof (dummy));
     errno_assert (sz == sizeof (dummy));
 
     //  If we accidentally grabbed the next signal(s) along with the current
     //  one, return it back to the eventfd object.
     if (unlikely (dummy > 1)) {
-        const uint64_t inc = dummy - 1;
+        const u64 inc = dummy - 1;
         ssize_t sz2 = write (_w, &inc, sizeof (inc));
         errno_assert (sz2 == sizeof (inc));
         return;
@@ -378,7 +378,7 @@ int zmq::signaler_t::recv_failable ()
 {
 //  Attempt to read a signal.
 // #if defined ZMQ_HAVE_EVENTFD
-    uint64_t dummy;
+    u64 dummy;
     ssize_t sz = read (_r, &dummy, sizeof (dummy));
     if (sz == -1) {
         errno_assert (errno == EAGAIN);
@@ -389,7 +389,7 @@ int zmq::signaler_t::recv_failable ()
     //  If we accidentally grabbed the next signal(s) along with the current
     //  one, return it back to the eventfd object.
     if (unlikely (dummy > 1)) {
-        const uint64_t inc = dummy - 1;
+        const u64 inc = dummy - 1;
         ssize_t sz2 = write (_w, &inc, sizeof (inc));
         errno_assert (sz2 == sizeof (inc));
         return 0;

@@ -107,7 +107,7 @@ void set_socket_priority (fd_t s_, priority_: i32);
 int set_nosigpipe (fd_t s_);
 
 // Binds the underlying socket to the given device, eg. VRF or interface
-int bind_to_device (fd_t s_, const std::string &bound_device_);
+int bind_to_device (fd_t s_, bound_device_: &str);
 
 // Initialize network subsystem. May be called multiple times. Each call must be matched by a call to shutdown_network.
 bool initialize_network ();
@@ -308,7 +308,7 @@ int zmq::set_nosigpipe (fd_t s_)
     return 0;
 }
 
-int zmq::bind_to_device (fd_t s_, const std::string &bound_device_)
+int zmq::bind_to_device (fd_t s_, bound_device_: &str)
 {
 // #ifdef ZMQ_HAVE_SO_BINDTODEVICE
     int rc = setsockopt (s_, SOL_SOCKET, SO_BINDTODEVICE,

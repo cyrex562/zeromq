@@ -72,7 +72,7 @@ pub struct ws_decoder_t ZMQ_FINAL
     const bool _zero_copy;
     const int64_t _max_msg_size;
     const bool _must_mask;
-    uint64_t _size;
+    u64 _size;
     zmq::ws_protocol_t::opcode_t _opcode;
     unsigned char _mask[4];
 
@@ -142,7 +142,7 @@ int zmq::ws_decoder_t::size_first_byte_ready (unsigned char const *read_from_)
     if (is_masked != _must_mask) // wrong mask value
         return -1;
 
-    _size = static_cast<uint64_t> (_tmpbuf[0] & 0x7F);
+    _size = static_cast<u64> (_tmpbuf[0] & 0x7F);
 
     if (_size < 126) {
         if (_must_mask)
@@ -235,7 +235,7 @@ int zmq::ws_decoder_t::size_ready (unsigned char const *read_pos_)
 {
     //  Message size must not exceed the maximum allowed size.
     if (_max_msg_size >= 0)
-        if (unlikely (_size > static_cast<uint64_t> (_max_msg_size))) {
+        if (unlikely (_size > static_cast<u64> (_max_msg_size))) {
             errno = EMSGSIZE;
             return -1;
         }

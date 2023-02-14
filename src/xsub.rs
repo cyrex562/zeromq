@@ -201,9 +201,9 @@ int zmq::xsub_t::xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *m
         // make sure to use a multi-thread safe function to avoid race conditions with I/O threads
         // where subscriptions are processed:
 // #ifdef ZMQ_USE_RADIX_TREE
-        uint64_t num_subscriptions = _subscriptions.size ();
+        u64 num_subscriptions = _subscriptions.size ();
 // #else
-        uint64_t num_subscriptions = _subscriptions.num_prefixes ();
+        u64 num_subscriptions = _subscriptions.num_prefixes ();
 // #endif
 
         return do_getsockopt<int> (optval_, optvallen_,

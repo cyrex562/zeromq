@@ -67,7 +67,7 @@ int expect_monitor_event_multiple (server_mon_: *mut c_void,
                                    bool optional_ = false);
 
 int64_t get_monitor_event_v2 (monitor_: *mut c_void,
-                              uint64_t **value_,
+                              u64 **value_,
                               char **local_address_,
                               char **remote_address_);
 
@@ -77,7 +77,7 @@ void expect_monitor_event_v2 (monitor_: *mut c_void,
                               const char *expected_remote_address_ = NULL);
 
 
-const char *get_zmqEventName (uint64_t event);
+const char *get_zmqEventName (u64 event);
 void print_events (socket: *mut c_void, timeout: i32, limit: i32);
 
 // #endif

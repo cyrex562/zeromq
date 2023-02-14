@@ -102,7 +102,7 @@ static void publisher_thread_main (pvoid_: *mut c_void)
     const char subscription_to_all_topics[] = {1, 0};
     recv_string_expect_success (pubsocket, subscription_to_all_topics, 0);
 
-    uint64_t send_count = 0;
+    u64 send_count = 0;
     while (true) {
         zmq_msg_t msg;
         int rc = zmq_msg_init_size (&msg, NUM_BYTES_PER_MSG);
@@ -153,7 +153,7 @@ static void subscriber_thread_main (pvoid_: *mut c_void)
 
 
     // receive all sent messages
-    uint64_t rxsuccess = 0;
+    u64 rxsuccess = 0;
     bool success = true;
     while (success) {
         zmq_msg_t msg;
@@ -192,7 +192,7 @@ static void subscriber_thread_main (pvoid_: *mut c_void)
     zmq_close (subsocket);
 }
 
-bool recv_stat (sock_: *mut c_void, bool last_, uint64_t *res_)
+bool recv_stat (sock_: *mut c_void, bool last_, u64 *res_)
 {
     zmq_msg_t stats_msg;
 
@@ -206,7 +206,7 @@ bool recv_stat (sock_: *mut c_void, bool last_, uint64_t *res_)
         return false; // cannot retrieve the stat
     }
 
-    assert (rc == sizeof (uint64_t));
+    assert (rc == sizeof (u64));
     memcpy (res_, zmq_msg_data (&stats_msg), zmq_msg_size (&stats_msg));
 
     rc = zmq_msg_close (&stats_msg);
@@ -225,10 +225,10 @@ bool recv_stat (sock_: *mut c_void, bool last_, uint64_t *res_)
 
 typedef struct
 {
-    uint64_t msg_in;
-    uint64_t bytes_in;
-    uint64_t msg_out;
-    uint64_t bytes_out;
+    u64 msg_in;
+    u64 bytes_in;
+    u64 msg_out;
+    u64 bytes_out;
 } zmq_socket_stats_t;
 
 typedef struct

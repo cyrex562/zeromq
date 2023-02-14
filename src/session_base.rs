@@ -99,7 +99,7 @@ pub struct session_base_t : public own_t, public io_object_t, public i_pipe_even
     int write_zap_msg (msg_t *msg_);
 
     socket_base_t *get_socket () const;
-    const endpoint_uri_pair_t &get_endpoint () const;
+    const EndpointUriPair &get_endpoint () const;
 
   protected:
     session_base_t (zmq::io_thread_t *io_thread_,
@@ -283,7 +283,7 @@ pub struct socket_base_t *socket_,
 {
 }
 
-const zmq::endpoint_uri_pair_t &zmq::session_base_t::get_endpoint () const
+const zmq::EndpointUriPair &zmq::session_base_t::get_endpoint () const
 {
     return _engine->get_endpoint ();
 }
@@ -509,7 +509,7 @@ int zmq::session_base_t::zap_connect ()
     if (_zap_pipe != NULL)
         return 0;
 
-    endpoint_t peer = find_endpoint ("inproc://zeromq.zap.01");
+    ZmqEndpoint peer = find_endpoint ("inproc://zeromq.zap.01");
     if (peer.socket == NULL) {
         errno = ECONNREFUSED;
         return -1;

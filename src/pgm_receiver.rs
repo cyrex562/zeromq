@@ -156,7 +156,7 @@ bool zmq::pgm_receiver_t::restart_input ()
     return true;
 }
 
-const zmq::endpoint_uri_pair_t &zmq::pgm_receiver_t::get_endpoint () const
+const zmq::EndpointUriPair &zmq::pgm_receiver_t::get_endpoint () const
 {
     return _empty_endpoint;
 }
@@ -325,7 +325,7 @@ pub struct pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine
     bool restart_input ();
     void restart_output ();
     void zap_msg_available () {}
-    const endpoint_uri_pair_t &get_endpoint () const;
+    const EndpointUriPair &get_endpoint () const;
 
     //  i_poll_events interface implementation.
     void in_event ();
@@ -349,7 +349,7 @@ pub struct pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine
         rx_timer_id = 0xa1
     };
 
-    const endpoint_uri_pair_t _empty_endpoint;
+    const EndpointUriPair _empty_endpoint;
 
     //  RX timer is running.
     bool has_rx_timer;

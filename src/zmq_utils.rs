@@ -60,7 +60,7 @@ void zmq_sleep (seconds_: i32)
 
 void *zmq_stopwatch_start ()
 {
-    uint64_t *watch = static_cast<uint64_t *> (malloc (sizeof (uint64_t)));
+    u64 *watch = static_cast<u64 *> (malloc (sizeof (u64)));
     alloc_assert (watch);
     *watch = zmq::clock_t::now_us ();
     return static_cast<void *> (watch);
@@ -68,8 +68,8 @@ void *zmq_stopwatch_start ()
 
 unsigned long zmq_stopwatch_intermediate (watch_: *mut c_void)
 {
-    const uint64_t end = zmq::clock_t::now_us ();
-    const uint64_t start = *static_cast<uint64_t *> (watch_);
+    const u64 end = zmq::clock_t::now_us ();
+    const u64 start = *static_cast<u64 *> (watch_);
     return static_cast<unsigned long> (end - start);
 }
 

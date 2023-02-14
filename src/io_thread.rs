@@ -127,7 +127,7 @@ void zmq::io_thread_t::in_event ()
     //  TODO: Do we want to limit number of commands I/O thread can
     //  process in a single go?
 
-    command_t cmd;
+    ZmqCommand cmd;
     int rc = _mailbox.recv (&cmd, 0);
 
     while (rc == 0 || errno == EINTR) {

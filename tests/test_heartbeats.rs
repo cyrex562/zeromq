@@ -170,8 +170,8 @@ static void setup_curve (socket_: *mut c_void, is_server_: i32)
 
 static void prep_server_socket (set_heartbeats_: i32,
                                 is_curve_: i32,
-                                void **server_out_,
-                                void **mon_out_,
+                                server_out_: *mut *mut c_void
+                                mon_out_: *mut *mut c_void
                                 char *endpoint_,
                                 ep_length_: usize,
                                 socket_type_: i32)

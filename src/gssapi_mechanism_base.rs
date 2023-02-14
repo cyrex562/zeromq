@@ -59,7 +59,7 @@ pub struct gssapi_mechanism_base_t : public virtual mechanism_base_t
 
     //  Process a context-level GSSAPI token (INITIATE command)
     //  during security context initialization.
-    int process_initiate (msg_t *msg_, void **data_, size_t &data_len_);
+    int process_initiate (msg_t *msg_, data_: *mut *mut c_void size_t &data_len_);
 
     // Produce a metadata ready msg (READY) to conclude handshake
     int produce_ready (msg_t *msg_);
@@ -332,7 +332,7 @@ int zmq::gssapi_mechanism_base_t::produce_initiate (msg_t *msg_,
 }
 
 int zmq::gssapi_mechanism_base_t::process_initiate (msg_t *msg_,
-                                                    void **token_value_,
+                                                    token_value_: *mut *mut c_void
                                                     size_t &token_length_)
 {
     zmq_assert (token_value_);

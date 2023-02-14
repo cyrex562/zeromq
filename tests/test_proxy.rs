@@ -50,10 +50,10 @@ struct thread_data
 
 typedef struct
 {
-    uint64_t msg_in;
-    uint64_t bytes_in;
-    uint64_t msg_out;
-    uint64_t bytes_out;
+    u64 msg_in;
+    u64 bytes_in;
+    u64 msg_out;
+    u64 bytes_out;
 } zmq_socket_stats_t;
 
 typedef struct
@@ -328,13 +328,13 @@ static void server_worker (void * /*unused_*/)
     TEST_ASSERT_SUCCESS_ERRNO (zmq_close (control));
 }
 
-uint64_t recv_stat (sock_: *mut c_void, bool last_)
+u64 recv_stat (sock_: *mut c_void, bool last_)
 {
-    uint64_t res;
+    u64 res;
     zmq_msg_t stats_msg;
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&stats_msg));
-    TEST_ASSERT_EQUAL_INT (sizeof (uint64_t),
+    TEST_ASSERT_EQUAL_INT (sizeof (u64),
                            zmq_recvmsg (sock_, &stats_msg, 0));
     memcpy (&res, zmq_msg_data (&stats_msg), zmq_msg_size (&stats_msg));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&stats_msg));

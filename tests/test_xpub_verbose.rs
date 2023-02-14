@@ -88,7 +88,7 @@ void test_xpub_verbose_one_sub ()
     test_context_socket_close (sub);
 }
 
-void create_xpub_with_2_subs (void **pub_, void **sub0_, void **sub1_)
+void create_xpub_with_2_subs (pub_: *mut *mut c_void sub0_: *mut *mut c_void void **sub1_)
 {
     *pub_ = test_context_socket (ZMQ_XPUB);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (*pub_, test_endpoint));

@@ -37,8 +37,8 @@ pub struct mailbox_t ZMQ_FINAL : public i_mailbox
     ~mailbox_t ();
 
     fd_t get_fd () const;
-    void send (const command_t &cmd_);
-    int recv (command_t *cmd_, timeout_: i32);
+    void send (const ZmqCommand &cmd_);
+    int recv (ZmqCommand *cmd_, timeout_: i32);
 
     bool valid () const;
 
@@ -54,7 +54,7 @@ pub struct mailbox_t ZMQ_FINAL : public i_mailbox
 
   // private:
     //  The pipe to store actual commands.
-    typedef ypipe_t<command_t, command_pipe_granularity> cpipe_t;
+    typedef ypipe_t<ZmqCommand, command_pipe_granularity> cpipe_t;
     cpipe_t _cpipe;
 
     //  Signaler to pass signals from writer thread to reader thread.
@@ -98,7 +98,7 @@ zmq::fd_t zmq::mailbox_t::get_fd () const
     return _signaler.get_fd ();
 }
 
-void zmq::mailbox_t::send (const command_t &cmd_)
+void zmq::mailbox_t::send (const ZmqCommand &cmd_)
 {
     _sync.lock ();
     _cpipe.write (cmd_, false);
@@ -108,7 +108,7 @@ void zmq::mailbox_t::send (const command_t &cmd_)
         _signaler.send ();
 }
 
-int zmq::mailbox_t::recv (command_t *cmd_, timeout_: i32)
+int zmq::mailbox_t::recv (ZmqCommand *cmd_, timeout_: i32)
 {
     //  Try to get the command straight away.
     if (_active) {

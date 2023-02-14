@@ -396,7 +396,7 @@ void test_monitor_versioned_stats (bind_function_t bind_function_,
     for (int i = 0; i < pulls_count; ++i) {
         char *push_local_address = NULL;
         char *push_remote_address = NULL;
-        uint64_t *queue_stat = NULL;
+        u64 *queue_stat = NULL;
         int64_t event = get_monitor_event_v2 (
           push_mon, &queue_stat, &push_local_address, &push_remote_address);
         TEST_ASSERT_EQUAL_STRING (server_endpoint, push_local_address);

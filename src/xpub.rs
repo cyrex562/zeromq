@@ -122,7 +122,7 @@ pub struct xpub_t : public socket_base_t
 
     //  List of pending (un)subscriptions, ie. those that were already
     //  applied to the trie, but not yet received by the user.
-    std::deque<blob_t> _pending_data;
+    std::deque<Blob> _pending_data;
     std::deque<metadata_t *> _pending_metadata;
     std::deque<unsigned char> _pending_flags;
 
@@ -260,7 +260,7 @@ void zmq::xpub_t::xread_activated (pipe_t *pipe_)
                 //  the message, so this optimization is not possible.
                 //  The pushback makes a copy of the data array anyway, so the
                 //  number of buffer copies does not change.
-                blob_t notification (size + 1);
+                Blob notification (size + 1);
                 if (subscribe)
                     *notification.data () = 1;
                 else
@@ -277,7 +277,7 @@ void zmq::xpub_t::xread_activated (pipe_t *pipe_)
             //  Process user message coming upstream from xsub socket,
             //  but not if the type is PUB, which never processes user
             //  messages
-            _pending_data.push_back (blob_t (msg_data, msg.size ()));
+            _pending_data.push_back (Blob (msg_data, msg.size ()));
             if (metadata)
                 metadata->add_ref ();
             _pending_metadata.push_back (metadata);
@@ -502,7 +502,7 @@ void zmq::xpub_t::send_unsubscription (zmq::mtrie_t::prefix_t data_,
     if (self_->options.type != ZMQ_PUB) {
         //  Place the unsubscription to the queue of pending (un)subscriptions
         //  to be retrieved by the user later on.
-        blob_t unsub (size_ + 1);
+        Blob unsub (size_ + 1);
         *unsub.data () = 0;
         if (size_ > 0)
             memcpy (unsub.data () + 1, data_, size_);

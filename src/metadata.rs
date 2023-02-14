@@ -38,7 +38,7 @@ pub struct metadata_t
 
     //  Returns pointer to property value or NULL if
     //  property is not found.
-    const char *get (const std::string &property_) const;
+    const char *get (property_: &str) const;
 
     void add_ref ();
 
@@ -60,7 +60,7 @@ zmq::metadata_t::metadata_t (const dict_t &dict_) : _ref_cnt (1), _dict (dict_)
 {
 }
 
-const char *zmq::metadata_t::get (const std::string &property_) const
+const char *zmq::metadata_t::get (property_: &str) const
 {
     const dict_t::const_iterator it = _dict.find (property_);
     if (it == _dict.end ()) {

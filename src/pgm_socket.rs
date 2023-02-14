@@ -83,7 +83,7 @@ pub struct pgm_socket_t
     size_t get_max_tsdu_size ();
 
     //  Receive data from pgm socket.
-    ssize_t receive (void **data_, const pgm_tsi_t **tsi_);
+    ssize_t receive (data_: *mut *mut c_void const pgm_tsi_t **tsi_);
 
     long get_rx_timeout ();
     long get_tx_timeout ();
@@ -602,7 +602,7 @@ size_t zmq::pgm_socket_t::get_max_tsdu_size ()
 
 //  pgm_recvmsgv is called to fill the pgm_msgv array up to  pgm_msgv_len.
 //  In subsequent calls data from pgm_msgv structure are returned.
-ssize_t zmq::pgm_socket_t::receive (void **raw_data_, const pgm_tsi_t **tsi_)
+ssize_t zmq::pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t **tsi_)
 {
     size_t raw_data_len = 0;
 
@@ -743,13 +743,13 @@ void zmq::pgm_socket_t::process_upstream ()
 int zmq::pgm_socket_t::compute_sqns (tpdu_: i32)
 {
     //  Convert rate into B/ms.
-    uint64_t rate = uint64_t (options.rate) / 8;
+    u64 rate = u64 (options.rate) / 8;
 
     //  Compute the size of the buffer in bytes.
-    uint64_t size = uint64_t (options.recovery_ivl) * rate;
+    u64 size = u64 (options.recovery_ivl) * rate;
 
     //  Translate the size into number of packets.
-    uint64_t sqns = size / tpdu_;
+    u64 sqns = size / tpdu_;
 
     //  Buffer should be able to hold at least one packet.
     if (sqns == 0)

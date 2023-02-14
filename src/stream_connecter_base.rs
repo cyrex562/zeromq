@@ -169,7 +169,7 @@ void zmq::stream_connecter_base_t::in_event ()
 }
 
 void zmq::stream_connecter_base_t::create_engine (
-  fd_t fd_, const std::string &local_address_)
+  fd_t fd_, local_address_: &str)
 {
     const endpoint_uri_pair_t endpoint_pair (local_address_, _endpoint,
                                              endpoint_type_connect);
@@ -220,7 +220,7 @@ pub struct stream_connecter_base_t : public own_t, public io_object_t
     void timer_event (id_: i32) ZMQ_OVERRIDE;
 
     //  Internal function to create the engine after connection was established.
-    virtual void create_engine (fd_t fd, const std::string &local_address_);
+    virtual void create_engine (fd_t fd, local_address_: &str);
 
     //  Internal function to add a reconnect timer
     void add_reconnect_timer ();

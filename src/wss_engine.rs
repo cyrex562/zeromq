@@ -38,7 +38,7 @@ pub struct wss_engine_t : public ws_engine_t
                   WsAddress &address_,
                   bool client_,
                   tls_server_cred_: *mut c_void,
-                  const std::string &hostname_);
+                  hostname_: &str);
     ~wss_engine_t ();
 
     void out_event ();
@@ -85,7 +85,7 @@ zmq::wss_engine_t::wss_engine_t (fd_t fd_,
                                  WsAddress &address_,
                                  bool client_,
                                  tls_server_cred_: *mut c_void,
-                                 const std::string &hostname_) :
+                                 hostname_: &str) :
     ws_engine_t (fd_, options_, endpoint_uri_pair_, address_, client_),
     _established (false),
     _tls_client_cred (NULL)

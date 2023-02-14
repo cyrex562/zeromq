@@ -48,7 +48,7 @@ pub struct poller_base_t
 
     //  Executes any timers that are due. Returns number of milliseconds
     //  to wait to match the next timer or 0 meaning "no timers".
-    uint64_t execute_timers ();
+    u64 execute_timers ();
 
   // private:
     //  Clock instance private to this I/O thread.
@@ -60,7 +60,7 @@ pub struct poller_base_t
         zmq::i_poll_events *sink;
         id: i32;
     };
-    typedef std::multimap<uint64_t, timer_info_t> timers_t;
+    typedef std::multimap<u64, timer_info_t> timers_t;
     timers_t _timers;
 
     //  Load of the poller. Currently the number of file descriptors
@@ -124,7 +124,7 @@ void zmq::poller_base_t::adjust_load (amount_: i32)
 
 void zmq::poller_base_t::add_timer (timeout_: i32, i_poll_events *sink_, id_: i32)
 {
-    uint64_t expiration = _clock.now_ms () + timeout_;
+    u64 expiration = _clock.now_ms () + timeout_;
     timer_info_t info = {sink_, id_};
     _timers.insert (timers_t::value_type (expiration, info));
 }
@@ -149,17 +149,17 @@ void zmq::poller_base_t::cancel_timer (i_poll_events *sink_, id_: i32)
     //  As soon as that is resolved an 'assert (false)' should be put here.
 }
 
-uint64_t zmq::poller_base_t::execute_timers ()
+u64 zmq::poller_base_t::execute_timers ()
 {
     //  Fast track.
     if (_timers.empty ())
         return 0;
 
     //  Get the current time.
-    const uint64_t current = _clock.now_ms ();
+    const u64 current = _clock.now_ms ();
 
     //  Execute the timers that are already due.
-    uint64_t res = 0;
+    u64 res = 0;
     timer_info_t timer_temp;
     timers_t::iterator it;
 

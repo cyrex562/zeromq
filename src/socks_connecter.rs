@@ -64,7 +64,7 @@ pub struct socks_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     ~socks_connecter_t ();
 
     void set_auth_method_basic (const std::string &username,
-                                const std::string &password);
+                                password: &str);
     void set_auth_method_none ();
 
 
@@ -169,7 +169,7 @@ void zmq::socks_connecter_t::set_auth_method_none ()
 }
 
 void zmq::socks_connecter_t::set_auth_method_basic (
-  const std::string &username_, const std::string &password_)
+  const std::string &username_, password_: &str)
 {
     _auth_method = socks_basic_auth;
     _auth_username = username_;
