@@ -46,7 +46,7 @@
 zmq::stream_connecter_base_t::stream_connecter_base_t (
   zmq::io_thread_t *io_thread_,
   zmq::session_base_t *session_,
-  const zmq::options_t &options_,
+  const zmq::ZmqOptions &options_,
   zmq::Address *addr_,
   bool delayed_start_) :
     own_t (io_thread_, options_),
@@ -204,7 +204,7 @@ pub struct stream_connecter_base_t : public own_t, public io_object_t
     //  then starts connection process.
     stream_connecter_base_t (zmq::io_thread_t *io_thread_,
                              zmq::session_base_t *session_,
-                             const options_t &options_,
+                             const ZmqOptions &options_,
                              Address *addr_,
                              bool delayed_start_);
 
@@ -246,7 +246,7 @@ pub struct stream_connecter_base_t : public own_t, public io_object_t
     std::string _endpoint;
 
     // Socket
-    zmq::socket_base_t *const _socket;
+    zmq::ZmqSocketBase *const _socket;
 
   // private:
     //  ID of the timer used to delay the reconnection.

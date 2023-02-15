@@ -48,8 +48,8 @@ void test_issue_566 ()
     void *router = zmq_socket (ctx1, ZMQ_ROUTER);
     int on = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (router, ZMQ_ROUTER_MANDATORY, &on, sizeof (on)));
-    bind_loopback_ipv4 (router, my_endpoint, sizeof (my_endpoint));
+      zmq_setsockopt (router, ZMQ_ROUTER_MANDATORY, &on, mem::size_of::<on>()));
+    bind_loopback_ipv4 (router, my_endpoint, mem::size_of::<my_endpoint>());
 
     //  Repeat often enough to be sure this works as it should
     for (int cycle = 0; cycle < 100; cycle++) {
@@ -63,7 +63,7 @@ void test_issue_566 ()
           zmq_setsockopt (dealer, ZMQ_ROUTING_ID, routing_id, 10));
         int rcvtimeo = 1000;
         TEST_ASSERT_SUCCESS_ERRNO (
-          zmq_setsockopt (dealer, ZMQ_RCVTIMEO, &rcvtimeo, sizeof (int)));
+          zmq_setsockopt (dealer, ZMQ_RCVTIMEO, &rcvtimeo, mem::size_of::<int>()));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (dealer, my_endpoint));
 
         //  Router will try to send to dealer, at short intervals.

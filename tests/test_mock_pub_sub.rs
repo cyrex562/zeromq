@@ -73,8 +73,8 @@ static void recv_with_retry (fd_t fd_, char *buffer_, bytes_: i32)
 static void mock_handshake (fd_t fd_, bool sub_command, bool mock_pub)
 {
     char buffer[128];
-    memset (buffer, 0, sizeof (buffer));
-    memcpy (buffer, zmtp_greeting_null, sizeof (zmtp_greeting_null));
+    memset (buffer, 0, mem::size_of::<buffer>());
+    memcpy (buffer, zmtp_greeting_null, mem::size_of::<zmtp_greeting_null>());
 
     //  Mock ZMTP 3.1 which uses commands
     if (sub_command) {
@@ -87,19 +87,19 @@ static void mock_handshake (fd_t fd_, bool sub_command, bool mock_pub)
 
     if (!mock_pub) {
         rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (send (
-          fd_, (const char *) zmtp_ready_sub, sizeof (zmtp_ready_sub), 0));
-        TEST_ASSERT_EQUAL_INT (sizeof (zmtp_ready_sub), rc);
+          fd_, (const char *) zmtp_ready_sub, mem::size_of::<zmtp_ready_sub>(), 0));
+        TEST_ASSERT_EQUAL_INT (mem::size_of::<zmtp_ready_sub>(), rc);
     } else {
         rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (send (
-          fd_, (const char *) zmtp_ready_xpub, sizeof (zmtp_ready_xpub), 0));
-        TEST_ASSERT_EQUAL_INT (sizeof (zmtp_ready_xpub), rc);
+          fd_, (const char *) zmtp_ready_xpub, mem::size_of::<zmtp_ready_xpub>(), 0));
+        TEST_ASSERT_EQUAL_INT (mem::size_of::<zmtp_ready_xpub>(), rc);
     }
 
     //  greeting - XPUB has one extra byte
-    memset (buffer, 0, sizeof (buffer));
+    memset (buffer, 0, mem::size_of::<buffer>());
     recv_with_retry (fd_, buffer,
-                     mock_pub ? sizeof (zmtp_ready_sub)
-                              : sizeof (zmtp_ready_xpub));
+                     mock_pub ? mem::size_of::<zmtp_ready_sub>()
+                              : mem::size_of::<zmtp_ready_xpub>());
 }
 
 static void prep_server_socket (server_out_: *mut *mut c_void
@@ -113,7 +113,7 @@ static void prep_server_socket (server_out_: *mut *mut c_void
 
     int value = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (server, ZMQ_LINGER, &value, sizeof (value)));
+      zmq_setsockopt (server, ZMQ_LINGER, &value, mem::size_of::<value>()));
 
     bind_loopback_ipv4 (server, endpoint_, ep_length_);
 
@@ -151,7 +151,7 @@ static void test_mock_pub_sub (bool sub_command_, bool mock_pub_)
     TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_ACCEPTED, rc);
 
     char buffer[32];
-    memset (buffer, 0, sizeof (buffer));
+    memset (buffer, 0, mem::size_of::<buffer>());
 
     if (mock_pub_) {
         rc = zmq_setsockopt (server, ZMQ_SUBSCRIBE, "A", 1);
@@ -174,7 +174,7 @@ static void test_mock_pub_sub (bool sub_command_, bool mock_pub_)
         rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (send (s, buffer, 6, 0));
         TEST_ASSERT_EQUAL_INT (6, rc);
 
-        memset (buffer, 0, sizeof (buffer));
+        memset (buffer, 0, mem::size_of::<buffer>());
         rc = zmq_recv (server, buffer, 4, 0);
         TEST_ASSERT_EQUAL_INT (4, rc);
         TEST_ASSERT_EQUAL_INT (0, memcmp (buffer, "ALOL", 4));
@@ -198,7 +198,7 @@ static void test_mock_pub_sub (bool sub_command_, bool mock_pub_)
         rc = zmq_send (server, "ALOL", 4, 0);
         TEST_ASSERT_EQUAL_INT (4, rc);
 
-        memset (buffer, 0, sizeof (buffer));
+        memset (buffer, 0, mem::size_of::<buffer>());
         recv_with_retry (s, buffer, 6);
         TEST_ASSERT_EQUAL_INT (0, memcmp (buffer, "\0\4ALOL", 6));
     }

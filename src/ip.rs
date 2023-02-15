@@ -205,7 +205,7 @@ void zmq::enable_ipv4_mapping (fd_t s_)
     int flag = 0;
 // #endif
     const int rc = setsockopt (s_, IPPROTO_IPV6, IPV6_V6ONLY,
-                               reinterpret_cast<char *> (&flag), sizeof (flag));
+                               reinterpret_cast<char *> (&flag), mem::size_of::<flag>());
 // #ifdef ZMQ_HAVE_WINDOWS
     wsa_assert (rc != SOCKET_ERROR);
 // #else
@@ -257,7 +257,7 @@ int zmq::get_peer_ip_address (fd_t sockfd_, std::string &ip_addr_)
 void zmq::set_ip_type_of_service (fd_t s_, iptos_: i32)
 {
     int rc = setsockopt (s_, IPPROTO_IP, IP_TOS,
-                         reinterpret_cast<char *> (&iptos_), sizeof (iptos_));
+                         reinterpret_cast<char *> (&iptos_), mem::size_of::<iptos_>());
 
 // #ifdef ZMQ_HAVE_WINDOWS
     wsa_assert (rc != SOCKET_ERROR);
@@ -268,7 +268,7 @@ void zmq::set_ip_type_of_service (fd_t s_, iptos_: i32)
     //  Windows and Hurd do not support IPV6_TCLASS
 // #if !defined(ZMQ_HAVE_WINDOWS) && defined(IPV6_TCLASS)
     rc = setsockopt (s_, IPPROTO_IPV6, IPV6_TCLASS,
-                     reinterpret_cast<char *> (&iptos_), sizeof (iptos_));
+                     reinterpret_cast<char *> (&iptos_), mem::size_of::<iptos_>());
 
     //  If IPv6 is not enabled ENOPROTOOPT will be returned on Linux and
     //  EINVAL on OSX
@@ -283,7 +283,7 @@ void zmq::set_socket_priority (fd_t s_, priority_: i32)
 // #ifdef ZMQ_HAVE_SO_PRIORITY
     int rc =
       setsockopt (s_, SOL_SOCKET, SO_PRIORITY,
-                  reinterpret_cast<char *> (&priority_), sizeof (priority_));
+                  reinterpret_cast<char *> (&priority_), mem::size_of::<priority_>());
     errno_assert (rc == 0);
 // #endif
 }
@@ -297,7 +297,7 @@ int zmq::set_nosigpipe (fd_t s_)
     //  the connection has been reset by the peer. Return an error so that the
     //  socket can be closed and the connection retried if necessary.
     int set = 1;
-    int rc = setsockopt (s_, SOL_SOCKET, SO_NOSIGPIPE, &set, sizeof (int));
+    int rc = setsockopt (s_, SOL_SOCKET, SO_NOSIGPIPE, &set, mem::size_of::<int>());
     if (rc != 0 && errno == EINVAL)
         return -1;
     errno_assert (rc == 0);
@@ -408,7 +408,7 @@ static int make_fdpair_tcpip (zmq::fd_t *r_, zmq::fd_t *w_)
     InitializeSecurityDescriptor (&sd, SECURITY_DESCRIPTOR_REVISION);
     SetSecurityDescriptorDacl (&sd, TRUE, 0, FALSE);
 
-    sa.nLength = sizeof (SECURITY_ATTRIBUTES);
+    sa.nLength = mem::size_of::<SECURITY_ATTRIBUTES>();
     sa.lpSecurityDescriptor = &sd;
 // #endif
 
@@ -936,7 +936,7 @@ char *widechar_to_utf8 (const wchar_t *widestring)
     char *utf8 = 0;
     nch = WideCharToMultiByte (CP_UTF8, 0, widestring, -1, 0, 0, NULL, NULL);
     if (nch > 0) {
-        utf8 = (char *) malloc ((nch + 1) * sizeof (char));
+        utf8 = (char *) malloc ((nch + 1) * mem::size_of::<char>());
         n = WideCharToMultiByte (CP_UTF8, 0, widestring, -1, utf8, nch, NULL,
                                  NULL);
         utf8[nch] = 0;

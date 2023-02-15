@@ -36,12 +36,12 @@ void test_diffserv ()
 {
     int tos = 0x28;
     o_tos: i32;
-    size_t tos_size = sizeof (tos);
+    size_t tos_size = mem::size_of::<tos>();
     char my_endpoint[MAX_SOCKET_STRING];
 
     void *sb = test_context_socket (ZMQ_PAIR);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (sb, ZMQ_TOS, &tos, tos_size));
-    bind_loopback_ipv4 (sb, my_endpoint, sizeof (my_endpoint));
+    bind_loopback_ipv4 (sb, my_endpoint, mem::size_of::<my_endpoint>());
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_getsockopt (sb, ZMQ_TOS, &o_tos, &tos_size));
     TEST_ASSERT_EQUAL (tos, o_tos);

@@ -47,12 +47,12 @@ static void bounce_fail (server_: *mut c_void, client_: *mut c_void)
     //  Receive message at server side (should not succeed)
     int timeout = SETTLE_TIME;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (server_, ZMQ_RCVTIMEO, &timeout, sizeof (int)));
+      zmq_setsockopt (server_, ZMQ_RCVTIMEO, &timeout, mem::size_of::<int>()));
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (server_, buffer, 32, 0));
 
     //  Send message from server to client to test other direction
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (server_, ZMQ_SNDTIMEO, &timeout, sizeof (int)));
+      zmq_setsockopt (server_, ZMQ_SNDTIMEO, &timeout, mem::size_of::<int>()));
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN,
                                zmq_send (server_, content, 32, ZMQ_SNDMORE));
 }
@@ -64,7 +64,7 @@ run_test (opt_: i32, T optval_, expected_error_: i32, bounce_test_: i32)
     void *sb = test_context_socket (ZMQ_DEALER);
 
     if (opt_) {
-        const int rc = zmq_setsockopt (sb, opt_, &optval_, sizeof (optval_));
+        const int rc = zmq_setsockopt (sb, opt_, &optval_, mem::size_of::<optval_>());
         if (expected_error_) {
             TEST_ASSERT_FAILURE_ERRNO (expected_error_, rc);
         } else {
@@ -77,16 +77,16 @@ run_test (opt_: i32, T optval_, expected_error_: i32, bounce_test_: i32)
     // If a test fails, don't hang for too long
     int timeout = 2500;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sb, ZMQ_RCVTIMEO, &timeout, sizeof (int)));
+      zmq_setsockopt (sb, ZMQ_RCVTIMEO, &timeout, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sb, ZMQ_SNDTIMEO, &timeout, sizeof (int)));
+      zmq_setsockopt (sb, ZMQ_SNDTIMEO, &timeout, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_RCVTIMEO, &timeout, sizeof (int)));
+      zmq_setsockopt (sc, ZMQ_RCVTIMEO, &timeout, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_SNDTIMEO, &timeout, sizeof (int)));
+      zmq_setsockopt (sc, ZMQ_SNDTIMEO, &timeout, mem::size_of::<int>()));
     int interval = -1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_RECONNECT_IVL, &interval, sizeof (int)));
+      zmq_setsockopt (sc, ZMQ_RECONNECT_IVL, &interval, mem::size_of::<int>()));
 
     if (bounce_test_) {
         const char *endpoint = "ipc://test_filter_ipc.sock";

@@ -184,11 +184,11 @@ template <typename T, int N> class yqueue_t
     {
 // #if defined HAVE_POSIX_MEMALIGN
         pv: *mut c_void;
-        if (posix_memalign (&pv, ALIGN, sizeof (chunk_t)) == 0)
+        if (posix_memalign (&pv, ALIGN, mem::size_of::<chunk_t>()) == 0)
             return (chunk_t *) pv;
         return NULL;
 // #else
-        return static_cast<chunk_t *> (malloc (sizeof (chunk_t)));
+        return static_cast<chunk_t *> (malloc (mem::size_of::<chunk_t>()));
 // #endif
     }
 

@@ -42,15 +42,15 @@ void test_change_before_connected ()
     void *connect_socket = test_context_socket (ZMQ_PULL);
 
     int val = 2;
-    rc = zmq_setsockopt (connect_socket, ZMQ_RCVHWM, &val, sizeof (val));
+    rc = zmq_setsockopt (connect_socket, ZMQ_RCVHWM, &val, mem::size_of::<val>());
     TEST_ASSERT_EQUAL_INT (0, rc);
-    rc = zmq_setsockopt (bind_socket, ZMQ_SNDHWM, &val, sizeof (val));
+    rc = zmq_setsockopt (bind_socket, ZMQ_SNDHWM, &val, mem::size_of::<val>());
     TEST_ASSERT_EQUAL_INT (0, rc);
 
     zmq_connect (connect_socket, "inproc://a");
     zmq_bind (bind_socket, "inproc://a");
 
-    size_t placeholder = sizeof (val);
+    size_t placeholder = mem::size_of::<val>();
     val = 0;
     rc = zmq_getsockopt (bind_socket, ZMQ_SNDHWM, &val, &placeholder);
     TEST_ASSERT_EQUAL_INT (0, rc);
@@ -75,19 +75,19 @@ void test_change_after_connected ()
     void *connect_socket = test_context_socket (ZMQ_PULL);
 
     int val = 1;
-    rc = zmq_setsockopt (connect_socket, ZMQ_RCVHWM, &val, sizeof (val));
+    rc = zmq_setsockopt (connect_socket, ZMQ_RCVHWM, &val, mem::size_of::<val>());
     TEST_ASSERT_EQUAL_INT (0, rc);
-    rc = zmq_setsockopt (bind_socket, ZMQ_SNDHWM, &val, sizeof (val));
+    rc = zmq_setsockopt (bind_socket, ZMQ_SNDHWM, &val, mem::size_of::<val>());
     TEST_ASSERT_EQUAL_INT (0, rc);
 
     zmq_connect (connect_socket, "inproc://a");
     zmq_bind (bind_socket, "inproc://a");
 
     val = 5;
-    rc = zmq_setsockopt (bind_socket, ZMQ_SNDHWM, &val, sizeof (val));
+    rc = zmq_setsockopt (bind_socket, ZMQ_SNDHWM, &val, mem::size_of::<val>());
     TEST_ASSERT_EQUAL_INT (0, rc);
 
-    size_t placeholder = sizeof (val);
+    size_t placeholder = mem::size_of::<val>();
     val = 0;
     rc = zmq_getsockopt (bind_socket, ZMQ_SNDHWM, &val, &placeholder);
     TEST_ASSERT_EQUAL_INT (0, rc);
@@ -108,8 +108,8 @@ int send_until_wouldblock (socket_: *mut c_void)
 {
     int send_count = 0;
     while (send_count < MAX_SENDS
-           && zmq_send (socket_, &send_count, sizeof (send_count), ZMQ_DONTWAIT)
-                == sizeof (send_count)) {
+           && zmq_send (socket_, &send_count, mem::size_of::<send_count>(), ZMQ_DONTWAIT)
+                == mem::size_of::<send_count>()) {
         ++send_count;
     }
     return send_count;
@@ -132,11 +132,11 @@ void test_decrease_when_full ()
     void *connect_socket = test_context_socket (ZMQ_PULL);
 
     int val = 1;
-    rc = zmq_setsockopt (connect_socket, ZMQ_RCVHWM, &val, sizeof (val));
+    rc = zmq_setsockopt (connect_socket, ZMQ_RCVHWM, &val, mem::size_of::<val>());
     TEST_ASSERT_EQUAL_INT (0, rc);
 
     int sndhwm = 100;
-    rc = zmq_setsockopt (bind_socket, ZMQ_SNDHWM, &sndhwm, sizeof (sndhwm));
+    rc = zmq_setsockopt (bind_socket, ZMQ_SNDHWM, &sndhwm, mem::size_of::<sndhwm>());
     TEST_ASSERT_EQUAL_INT (0, rc);
 
     zmq_bind (bind_socket, "inproc://a");
@@ -151,11 +151,11 @@ void test_decrease_when_full ()
 
     // Decrease snd hwm
     sndhwm = 70;
-    rc = zmq_setsockopt (bind_socket, ZMQ_SNDHWM, &sndhwm, sizeof (sndhwm));
+    rc = zmq_setsockopt (bind_socket, ZMQ_SNDHWM, &sndhwm, mem::size_of::<sndhwm>());
     TEST_ASSERT_EQUAL_INT (0, rc);
 
     int sndhwm_read = 0;
-    size_t sndhwm_read_size = sizeof (sndhwm_read);
+    size_t sndhwm_read_size = mem::size_of::<sndhwm_read>();
     rc =
       zmq_getsockopt (bind_socket, ZMQ_SNDHWM, &sndhwm_read, &sndhwm_read_size);
     TEST_ASSERT_EQUAL_INT (0, rc);
@@ -168,8 +168,8 @@ void test_decrease_when_full ()
     int read_data = 0;
     while (
       read_count < MAX_SENDS
-      && zmq_recv (connect_socket, &read_data, sizeof (read_data), ZMQ_DONTWAIT)
-           == sizeof (read_data)) {
+      && zmq_recv (connect_socket, &read_data, mem::size_of::<read_data>(), ZMQ_DONTWAIT)
+           == mem::size_of::<read_data>()) {
         TEST_ASSERT_EQUAL_INT (read_data, read_count);
         ++read_count;
     }

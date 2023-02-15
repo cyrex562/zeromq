@@ -46,7 +46,7 @@ pub struct ws_decoder_t ZMQ_FINAL
 {
 // public:
     ws_decoder_t (bufsize_: usize,
-                  int64_t maxmsgsize_,
+                  i64 maxmsgsize_,
                   bool zero_copy_,
                   bool must_mask_);
     ~ws_decoder_t ();
@@ -70,7 +70,7 @@ pub struct ws_decoder_t ZMQ_FINAL
     msg_t _in_progress;
 
     const bool _zero_copy;
-    const int64_t _max_msg_size;
+    const i64 _max_msg_size;
     const bool _must_mask;
     u64 _size;
     zmq::ws_protocol_t::opcode_t _opcode;
@@ -80,7 +80,7 @@ pub struct ws_decoder_t ZMQ_FINAL
 };
 
 zmq::ws_decoder_t::ws_decoder_t (bufsize_: usize,
-                                 int64_t maxmsgsize_,
+                                 i64 maxmsgsize_,
                                  bool zero_copy_,
                                  bool must_mask_) :
     decoder_base_t<ws_decoder_t, shared_message_memory_allocator> (bufsize_),
@@ -90,7 +90,7 @@ zmq::ws_decoder_t::ws_decoder_t (bufsize_: usize,
     _must_mask (must_mask_),
     _size (0)
 {
-    memset (_tmpbuf, 0, sizeof (_tmpbuf));
+    memset (_tmpbuf, 0, mem::size_of::<_tmpbuf>());
     int rc = _in_progress.init ();
     errno_assert (rc == 0);
 

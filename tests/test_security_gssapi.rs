@@ -132,12 +132,12 @@ void setUp ()
     server = test_context_socket (ZMQ_DEALER);
     int as_server = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (server, ZMQ_GSSAPI_SERVER, &as_server, sizeof (int)));
+      zmq_setsockopt (server, ZMQ_GSSAPI_SERVER, &as_server, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (server, ZMQ_GSSAPI_PRINCIPAL, name, strlen (name) + 1));
     int name_type = ZMQ_GSSAPI_NT_HOSTBASED;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      server, ZMQ_GSSAPI_PRINCIPAL_NAMETYPE, &name_type, sizeof (name_type)));
+      server, ZMQ_GSSAPI_PRINCIPAL_NAMETYPE, &name_type, mem::size_of::<name_type>()));
     bind_loopback_ipv4 (server, my_endpoint, sizeof my_endpoint);
 
     //  Monitor handshake events on the server
@@ -177,7 +177,7 @@ void test_valid_creds ()
       zmq_setsockopt (client, ZMQ_GSSAPI_PRINCIPAL, name, strlen (name) + 1));
     int name_type = ZMQ_GSSAPI_NT_HOSTBASED;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      client, ZMQ_GSSAPI_PRINCIPAL_NAMETYPE, &name_type, sizeof (name_type)));
+      client, ZMQ_GSSAPI_PRINCIPAL_NAMETYPE, &name_type, mem::size_of::<name_type>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
     bounce (server, client);
@@ -199,7 +199,7 @@ void test_unauth_creds ()
       zmq_setsockopt (client, ZMQ_GSSAPI_PRINCIPAL, name, strlen (name) + 1));
     int name_type = ZMQ_GSSAPI_NT_HOSTBASED;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      client, ZMQ_GSSAPI_PRINCIPAL_NAMETYPE, &name_type, sizeof (name_type)));
+      client, ZMQ_GSSAPI_PRINCIPAL_NAMETYPE, &name_type, mem::size_of::<name_type>()));
     zap_deny_all = 1;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
@@ -248,7 +248,7 @@ void test_vanilla_socket ()
     // send sneaky message that shouldn't be received
     send (s, "\x08\x00sneaky\0", 9, 0);
     int timeout = 250;
-    zmq_setsockopt (server, ZMQ_RCVTIMEO, &timeout, sizeof (timeout));
+    zmq_setsockopt (server, ZMQ_RCVTIMEO, &timeout, mem::size_of::<timeout>());
     char *buf = s_recv (server);
     if (buf != NULL) {
         printf ("Received unauthenticated message: %s\n", buf);

@@ -49,12 +49,12 @@ const test_message_t dialog[] = {
   {SERVER, "y u no disonnect?"},
   {CLIENT, ""},
 };
-const int steps = sizeof (dialog) / sizeof (dialog[0]);
+const int steps = mem::size_of::<dialog>() / sizeof (dialog[0]);
 
 bool has_more (socket_: *mut c_void)
 {
     int more = 0;
-    size_t more_size = sizeof (more);
+    size_t more_size = mem::size_of::<more>();
     int rc = zmq_getsockopt (socket_, ZMQ_RCVMORE, &more, &more_size);
     if (rc != 0)
         return false;
@@ -71,7 +71,7 @@ void test_stream_disconnect ()
     sockets[SERVER] = test_context_socket (ZMQ_STREAM);
     int enabled = 1;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      sockets[SERVER], ZMQ_STREAM_NOTIFY, &enabled, sizeof (enabled)));
+      sockets[SERVER], ZMQ_STREAM_NOTIFY, &enabled, mem::size_of::<enabled>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sockets[SERVER], "tcp://0.0.0.0:*"));
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (sockets[SERVER], ZMQ_LAST_ENDPOINT, bind_endpoint, &len));
@@ -86,7 +86,7 @@ void test_stream_disconnect ()
 
     sockets[CLIENT] = test_context_socket (ZMQ_STREAM);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      sockets[CLIENT], ZMQ_STREAM_NOTIFY, &enabled, sizeof (enabled)));
+      sockets[CLIENT], ZMQ_STREAM_NOTIFY, &enabled, mem::size_of::<enabled>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sockets[CLIENT], connect_endpoint));
 
     // wait for connect notification
@@ -120,7 +120,7 @@ void test_stream_disconnect ()
 
     // Send initial message.
     char blob_data[256];
-    size_t blob_size = sizeof (blob_data);
+    size_t blob_size = mem::size_of::<blob_data>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (sockets[CLIENT], ZMQ_ROUTING_ID, blob_data, &blob_size));
     TEST_ASSERT_GREATER_THAN (0, blob_size);

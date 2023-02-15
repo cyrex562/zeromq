@@ -40,7 +40,7 @@ void test_sockopt_router_notify ()
     opt_notify: i32;
 
     opt_notify_read: i32;
-    size_t opt_notify_read_size = sizeof (opt_notify_read);
+    size_t opt_notify_read_size = mem::size_of::<opt_notify_read>();
 
 
     // default value is off when socket is constructed
@@ -53,7 +53,7 @@ void test_sockopt_router_notify ()
     // valid value - Connect
     opt_notify = ZMQ_NOTIFY_CONNECT;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      router, ZMQ_ROUTER_NOTIFY, &opt_notify, sizeof (opt_notify)));
+      router, ZMQ_ROUTER_NOTIFY, &opt_notify, mem::size_of::<opt_notify>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_getsockopt (
       router, ZMQ_ROUTER_NOTIFY, &opt_notify_read, &opt_notify_read_size));
@@ -64,7 +64,7 @@ void test_sockopt_router_notify ()
     // valid value - Disconnect
     opt_notify = ZMQ_NOTIFY_DISCONNECT;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      router, ZMQ_ROUTER_NOTIFY, &opt_notify, sizeof (opt_notify)));
+      router, ZMQ_ROUTER_NOTIFY, &opt_notify, mem::size_of::<opt_notify>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_getsockopt (
       router, ZMQ_ROUTER_NOTIFY, &opt_notify_read, &opt_notify_read_size));
@@ -75,7 +75,7 @@ void test_sockopt_router_notify ()
     // valid value - Off
     opt_notify = 0;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      router, ZMQ_ROUTER_NOTIFY, &opt_notify, sizeof (opt_notify)));
+      router, ZMQ_ROUTER_NOTIFY, &opt_notify, mem::size_of::<opt_notify>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_getsockopt (
       router, ZMQ_ROUTER_NOTIFY, &opt_notify_read, &opt_notify_read_size));
@@ -86,7 +86,7 @@ void test_sockopt_router_notify ()
     // valid value - Both
     opt_notify = ZMQ_NOTIFY_CONNECT | ZMQ_NOTIFY_DISCONNECT;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      router, ZMQ_ROUTER_NOTIFY, &opt_notify, sizeof (opt_notify)));
+      router, ZMQ_ROUTER_NOTIFY, &opt_notify, mem::size_of::<opt_notify>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_getsockopt (
       router, ZMQ_ROUTER_NOTIFY, &opt_notify_read, &opt_notify_read_size));
@@ -98,12 +98,12 @@ void test_sockopt_router_notify ()
     opt_notify = -1;
     TEST_ASSERT_FAILURE_ERRNO (
       EINVAL, zmq_setsockopt (router, ZMQ_ROUTER_NOTIFY, &opt_notify,
-                              sizeof (opt_notify)));
+                              mem::size_of::<opt_notify>()));
 
     opt_notify = (ZMQ_NOTIFY_CONNECT | ZMQ_NOTIFY_DISCONNECT) + 1;
     TEST_ASSERT_FAILURE_ERRNO (
       EINVAL, zmq_setsockopt (router, ZMQ_ROUTER_NOTIFY, &opt_notify,
-                              sizeof (opt_notify)));
+                              mem::size_of::<opt_notify>()));
 
     // failures don't update the value
     TEST_ASSERT_SUCCESS_ERRNO (zmq_getsockopt (
@@ -123,7 +123,7 @@ void test_sockopt_router_notify ()
     opt_notify = ZMQ_NOTIFY_CONNECT;
     TEST_ASSERT_FAILURE_ERRNO (
       EINVAL, zmq_setsockopt (dealer, ZMQ_ROUTER_NOTIFY, &opt_notify,
-                              sizeof (opt_notify)));
+                              mem::size_of::<opt_notify>()));
 
     // getsockopts returns off for any non-router socket
     TEST_ASSERT_SUCCESS_ERRNO (zmq_getsockopt (
@@ -140,15 +140,15 @@ void test_router_notify_helper (opt_notify_: i32)
 {
     void *router = test_context_socket (ZMQ_ROUTER);
     opt_more: i32;
-    size_t opt_more_length = sizeof (opt_more);
+    size_t opt_more_length = mem::size_of::<opt_more>();
     opt_events: i32;
-    size_t opt_events_length = sizeof (opt_events);
+    size_t opt_events_length = mem::size_of::<opt_events>();
     char connect_address[MAX_SOCKET_STRING];
 
 
     // valid values
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      router, ZMQ_ROUTER_NOTIFY, &opt_notify_, sizeof (opt_notify_)));
+      router, ZMQ_ROUTER_NOTIFY, &opt_notify_, mem::size_of::<opt_notify_>()));
 
     bind_loopback_ipv4 (router, connect_address, sizeof connect_address);
 
@@ -231,10 +231,10 @@ void test_handshake_fail ()
 
     // valid values
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      router, ZMQ_ROUTER_NOTIFY, &opt_notify, sizeof (opt_notify)));
+      router, ZMQ_ROUTER_NOTIFY, &opt_notify, mem::size_of::<opt_notify>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      router, ZMQ_RCVTIMEO, &opt_timeout, sizeof (opt_timeout)));
+      router, ZMQ_RCVTIMEO, &opt_timeout, mem::size_of::<opt_timeout>()));
 
     bind_loopback_ipv4 (router, connect_address, sizeof connect_address);
 
@@ -250,7 +250,7 @@ void test_handshake_fail ()
     // no notification delivered
     char buffer[255];
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN,
-                               zmq_recv (router, buffer, sizeof (buffer), 0));
+                               zmq_recv (router, buffer, mem::size_of::<buffer>(), 0));
 
     test_context_socket_close (router);
 }
@@ -267,18 +267,18 @@ void test_error_during_multipart ()
 
     char connect_address[MAX_SOCKET_STRING];
     char long_str[128] = {0};
-    memset (long_str, '*', sizeof (long_str) - 1);
+    memset (long_str, '*', mem::size_of::<long_str>() - 1);
 
     // setup router
     void *router = test_context_socket (ZMQ_ROUTER);
 
     int opt_notify = ZMQ_NOTIFY_DISCONNECT;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      router, ZMQ_ROUTER_NOTIFY, &opt_notify, sizeof (opt_notify)));
+      router, ZMQ_ROUTER_NOTIFY, &opt_notify, mem::size_of::<opt_notify>()));
 
-    int64_t opt_maxmsgsize = 64; // the handshake fails if this is too small
+    i64 opt_maxmsgsize = 64; // the handshake fails if this is too small
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      router, ZMQ_MAXMSGSIZE, &opt_maxmsgsize, sizeof (opt_maxmsgsize)));
+      router, ZMQ_MAXMSGSIZE, &opt_maxmsgsize, mem::size_of::<opt_maxmsgsize>()));
 
     bind_loopback_ipv4 (router, connect_address, sizeof connect_address);
 

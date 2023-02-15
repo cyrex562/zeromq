@@ -37,7 +37,7 @@ void test_roundtrip ()
 {
     char bind_address[MAX_SOCKET_STRING];
     char connect_address[MAX_SOCKET_STRING];
-    size_t addr_length = sizeof (connect_address);
+    size_t addr_length = mem::size_of::<connect_address>();
 
     void *sb = test_context_socket (ZMQ_REP);
     void *sc = test_context_socket (ZMQ_REQ);
@@ -63,7 +63,7 @@ void test_roundtrip ()
 void test_roundtrip_without_path ()
 {
     char connect_address[MAX_SOCKET_STRING];
-    size_t addr_length = sizeof (connect_address);
+    size_t addr_length = mem::size_of::<connect_address>();
     void *sb = test_context_socket (ZMQ_REP);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sb, "ws://127.0.0.1:*"));
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -82,7 +82,7 @@ void test_roundtrip_without_path ()
 void test_heartbeat ()
 {
     char connect_address[MAX_SOCKET_STRING];
-    size_t addr_length = sizeof (connect_address);
+    size_t addr_length = mem::size_of::<connect_address>();
     void *sb = test_context_socket (ZMQ_REP);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sb, "ws://127.0.0.1:*/heartbeat"));
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -93,12 +93,12 @@ void test_heartbeat ()
     // Setting heartbeat settings
     int ivl = 10;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_HEARTBEAT_IVL, &ivl, sizeof (ivl)));
+      zmq_setsockopt (sc, ZMQ_HEARTBEAT_IVL, &ivl, mem::size_of::<ivl>()));
 
     // Disable reconnect, to make sure the ping-pong actually work
     ivl = -1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_RECONNECT_IVL, &ivl, sizeof (ivl)));
+      zmq_setsockopt (sc, ZMQ_RECONNECT_IVL, &ivl, mem::size_of::<ivl>()));
 
     // Connect to server
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc, connect_address));
@@ -115,7 +115,7 @@ void test_heartbeat ()
 void test_short_message ()
 {
     char connect_address[MAX_SOCKET_STRING];
-    size_t addr_length = sizeof (connect_address);
+    size_t addr_length = mem::size_of::<connect_address>();
     void *sb = test_context_socket (ZMQ_REP);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sb, "ws://127.0.0.1:*/short"));
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -148,7 +148,7 @@ void test_short_message ()
 void test_large_message ()
 {
     char connect_address[MAX_SOCKET_STRING];
-    size_t addr_length = sizeof (connect_address);
+    size_t addr_length = mem::size_of::<connect_address>();
     void *sb = test_context_socket (ZMQ_REP);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sb, "ws://127.0.0.1:*/large"));
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -182,7 +182,7 @@ void test_large_message ()
 void test_curve ()
 {
     char connect_address[MAX_SOCKET_STRING];
-    size_t addr_length = sizeof (connect_address);
+    size_t addr_length = mem::size_of::<connect_address>();
     char client_public[41];
     char client_secret[41];
     char server_public[41];
@@ -196,7 +196,7 @@ void test_curve ()
     void *server = test_context_socket (ZMQ_REP);
     int as_server = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (server, ZMQ_CURVE_SERVER, &as_server, sizeof (int)));
+      zmq_setsockopt (server, ZMQ_CURVE_SERVER, &as_server, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (server, ZMQ_CURVE_SECRETKEY, server_secret, 41));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (server, "ws://127.0.0.1:*/roundtrip"));
@@ -222,7 +222,7 @@ void test_curve ()
 void test_mask_shared_msg ()
 {
     char connect_address[MAX_SOCKET_STRING];
-    size_t addr_length = sizeof (connect_address);
+    size_t addr_length = mem::size_of::<connect_address>();
     void *sb = test_context_socket (ZMQ_DEALER);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sb, "ws://127.0.0.1:*/mask-shared"));
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -274,7 +274,7 @@ void test_mask_shared_msg ()
 void test_pub_sub ()
 {
     char connect_address[MAX_SOCKET_STRING];
-    size_t addr_length = sizeof (connect_address);
+    size_t addr_length = mem::size_of::<connect_address>();
     void *sb = test_context_socket (ZMQ_XPUB);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sb, "ws://127.0.0.1:*"));
     TEST_ASSERT_SUCCESS_ERRNO (

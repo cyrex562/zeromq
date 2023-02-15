@@ -78,13 +78,13 @@ int main (argc: i32, char *argv[])
     //  For example ZMQ_RATE, ZMQ_RECOVERY_IVL and ZMQ_MCAST_LOOP for PGM.
     if (curve) {
         rc = zmq_setsockopt (s, ZMQ_CURVE_SECRETKEY, server_prvkey,
-                             sizeof (server_prvkey));
+                             mem::size_of::<server_prvkey>());
         if (rc != 0) {
             printf ("error in zmq_setsockoopt: %s\n", zmq_strerror (errno));
             return -1;
         }
         int server = 1;
-        rc = zmq_setsockopt (s, ZMQ_CURVE_SERVER, &server, sizeof (int));
+        rc = zmq_setsockopt (s, ZMQ_CURVE_SERVER, &server, mem::size_of::<int>());
         if (rc != 0) {
             printf ("error in zmq_setsockoopt: %s\n", zmq_strerror (errno));
             return -1;

@@ -123,7 +123,7 @@ void test_ctx_thread_opts ()
     // (e.g., 5 to use CPU index 5) and use "top -H" or "taskset -pc" to see the result
 
     int cpus_add[] = {0, 1};
-    for (unsigned int idx = 0; idx < sizeof (cpus_add) / sizeof (cpus_add[0]);
+    for (unsigned int idx = 0; idx < mem::size_of::<cpus_add>() / sizeof (cpus_add[0]);
          idx++) {
         TEST_ASSERT_SUCCESS_ERRNO (zmq_ctx_set (
           get_test_context (), ZMQ_THREAD_AFFINITY_CPU_ADD, cpus_add[idx]));
@@ -132,7 +132,7 @@ void test_ctx_thread_opts ()
     // you can also remove CPUs from list of affinities:
     int cpus_remove[] = {1};
     for (unsigned int idx = 0;
-         idx < sizeof (cpus_remove) / sizeof (cpus_remove[0]); idx++) {
+         idx < mem::size_of::<cpus_remove>() / sizeof (cpus_remove[0]); idx++) {
         TEST_ASSERT_SUCCESS_ERRNO (zmq_ctx_set (get_test_context (),
                                                 ZMQ_THREAD_AFFINITY_CPU_REMOVE,
                                                 cpus_remove[idx]));
@@ -153,10 +153,10 @@ void test_ctx_thread_opts ()
 
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_ctx_set_ext (get_test_context (), ZMQ_THREAD_NAME_PREFIX, prefix,
-                       sizeof (prefix) / sizeof (char)));
+                       mem::size_of::<prefix>() / mem::size_of::<char>()));
 
     char buf[16];
-    size_t buflen = sizeof (buf) / sizeof (char);
+    size_t buflen = mem::size_of::<buf>() / mem::size_of::<char>();
     zmq_ctx_get_ext (get_test_context (), ZMQ_THREAD_NAME_PREFIX, buf, &buflen);
     TEST_ASSERT_EQUAL_STRING (prefix, buf);
 // #endif
@@ -235,7 +235,7 @@ void test_ctx_option_ipv6 ()
 void test_ctx_option_msg_t_size ()
 {
 // #if defined(ZMQ_MSG_T_SIZE)
-    TEST_ASSERT_EQUAL_INT (sizeof (zmq_msg_t),
+    TEST_ASSERT_EQUAL_INT (mem::size_of::<zmq_msg_t>(),
                            zmq_ctx_get (get_test_context (), ZMQ_MSG_T_SIZE));
 // #endif
 }
@@ -254,7 +254,7 @@ void test_ctx_option_blocky ()
 
     void *router = test_context_socket (ZMQ_ROUTER);
     value: i32;
-    size_t optsize = sizeof (int);
+    size_t optsize = mem::size_of::<int>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (router, ZMQ_IPV6, &value, &optsize));
     TEST_ASSERT_EQUAL_INT (1, value);

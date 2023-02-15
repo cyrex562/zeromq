@@ -32,14 +32,14 @@
 // #include "client.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-pub struct client_t ZMQ_FINAL : public socket_base_t
+pub struct client_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
     client_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~client_t ();
 
   protected:
-    //  Overrides of functions from socket_base_t.
+    //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
@@ -61,7 +61,7 @@ pub struct client_t ZMQ_FINAL : public socket_base_t
 };
 
 zmq::client_t::client_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
-    socket_base_t (parent_, tid_, sid_, true)
+    ZmqSocketBase (parent_, tid_, sid_, true)
 {
     options.type = ZMQ_CLIENT;
     options.can_send_hello_msg = true;

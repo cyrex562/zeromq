@@ -33,14 +33,14 @@
 // #include "macros.hpp"
 // #include "xsub.hpp"
 // #include "err.hpp"
-pub struct xsub_t : public socket_base_t
+pub struct xsub_t : public ZmqSocketBase
 {
 // public:
     xsub_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~xsub_t () ZMQ_OVERRIDE;
 
   protected:
-    //  Overrides of functions from socket_base_t.
+    //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_) ZMQ_FINAL;
@@ -109,7 +109,7 @@ pub struct xsub_t : public socket_base_t
 };
 
 zmq::xsub_t::xsub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
-    socket_base_t (parent_, tid_, sid_),
+    ZmqSocketBase (parent_, tid_, sid_),
     _verbose_unsubs (false),
     _has_message (false),
     _more_send (false),
@@ -177,7 +177,7 @@ int zmq::xsub_t::xsetsockopt (option_: i32,
                               optvallen_: usize)
 {
     if (option_ == ZMQ_ONLY_FIRST_SUBSCRIBE) {
-        if (optvallen_ != sizeof (int)
+        if (optvallen_ != mem::size_of::<int>()
             || *static_cast<const int *> (optval_) < 0) {
             errno = EINVAL;
             return -1;

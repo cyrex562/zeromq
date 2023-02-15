@@ -112,7 +112,7 @@ static void setup_server ()
       zmq_setsockopt (server, ZMQ_ZAP_DOMAIN, domain, strlen (domain)));
     const int as_server = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (server, ZMQ_PLAIN_SERVER, &as_server, sizeof (int)));
+      zmq_setsockopt (server, ZMQ_PLAIN_SERVER, &as_server, mem::size_of::<int>()));
     bind_loopback_ipv4 (server, my_endpoint, sizeof my_endpoint);
 }
 
@@ -159,7 +159,7 @@ void test_plain_client_as_server_fails ()
       zmq_setsockopt (client, ZMQ_ZAP_DOMAIN, domain, strlen (domain)));
     const int as_server = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (client, ZMQ_PLAIN_SERVER, &as_server, sizeof (int)));
+      zmq_setsockopt (client, ZMQ_PLAIN_SERVER, &as_server, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
     expect_bounce_fail (server, client);
     test_context_socket_close_zero_linger (client);
@@ -189,7 +189,7 @@ void test_plain_vanilla_socket ()
     // send sneaky message that shouldn't be received
     send (s, "\x08\x00sneaky\0", 9, 0);
     int timeout = 250;
-    zmq_setsockopt (server, ZMQ_RCVTIMEO, &timeout, sizeof (timeout));
+    zmq_setsockopt (server, ZMQ_RCVTIMEO, &timeout, mem::size_of::<timeout>());
     char *buf = s_recv (server);
     if (buf != NULL) {
         printf ("Received unauthenticated message: %s\n", buf);

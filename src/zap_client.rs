@@ -37,7 +37,7 @@ pub struct zap_client_t : public virtual mechanism_base_t
 // public:
     zap_client_t (session_base_t *session_,
                   const std::string &peer_address_,
-                  const options_t &options_);
+                  const ZmqOptions &options_);
 
     void send_zap_request (mechanism_: *const c_char,
                            mechanism_length_: usize,
@@ -76,7 +76,7 @@ pub struct zap_client_common_handshake_t : public zap_client_t
 
     zap_client_common_handshake_t (session_base_t *session_,
                                    const std::string &peer_address_,
-                                   const options_t &options_,
+                                   const ZmqOptions &options_,
                                    state_t zap_reply_ok_state_);
 
     //  methods from mechanism_t
@@ -97,14 +97,14 @@ pub struct zap_client_common_handshake_t : public zap_client_t
 namespace zmq
 {
 const char zap_version[] = "1.0";
-const size_t zap_version_len = sizeof (zap_version) - 1;
+const size_t zap_version_len = mem::size_of::<zap_version>() - 1;
 
 const char id[] = "1";
-const size_t id_len = sizeof (id) - 1;
+const size_t id_len = mem::size_of::<id>() - 1;
 
 zap_client_t::zap_client_t (session_base_t *const session_,
                             const std::string &peer_address_,
-                            const options_t &options_) :
+                            const ZmqOptions &options_) :
     mechanism_base_t (session_, options_), peer_address (peer_address_)
 {
 }
@@ -319,7 +319,7 @@ void zap_client_t::handle_zap_status_code ()
 zap_client_common_handshake_t::zap_client_common_handshake_t (
   session_base_t *const session_,
   const std::string &peer_address_,
-  const options_t &options_,
+  const ZmqOptions &options_,
   state_t zap_reply_ok_state_) :
     mechanism_base_t (session_, options_),
     zap_client_t (session_, peer_address_, options_),

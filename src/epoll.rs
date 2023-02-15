@@ -50,7 +50,7 @@ pub struct epoll_t ZMQ_FINAL : public worker_poller_base_t
 // public:
     typedef void *handle_t;
 
-    epoll_t (const thread_ctx_t &ctx_);
+    epoll_t (const ThreadCtx &ctx_);
     ~epoll_t () ZMQ_OVERRIDE;
 
     //  "poller" concept.
@@ -103,7 +103,7 @@ const zmq::epoll_t::epoll_fd_t zmq::epoll_t::epoll_retired_fd =
   INVALID_HANDLE_VALUE;
 // #endif
 
-zmq::epoll_t::epoll_t (const zmq::thread_ctx_t &ctx_) :
+zmq::epoll_t::epoll_t (const zmq::ThreadCtx &ctx_) :
     worker_poller_base_t (ctx_)
 {
 // #ifdef ZMQ_IOTHREAD_POLLER_USE_EPOLL_CLOEXEC
@@ -141,7 +141,7 @@ zmq::epoll_t::handle_t zmq::epoll_t::add_fd (fd_t fd_, i_poll_events *events_)
 
     //  The memset is not actually needed. It's here to prevent debugging
     //  tools to complain about using uninitialised memory.
-    memset (pe, 0, sizeof (poll_entry_t));
+    memset (pe, 0, mem::size_of::<poll_entry_t>());
 
     pe->fd = fd_;
     pe->ev.events = 0;

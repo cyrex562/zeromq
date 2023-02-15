@@ -31,8 +31,8 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 void test_getsockopt_memset ()
 {
-    int64_t more;
-    size_t more_size = sizeof (more);
+    i64 more;
+    size_t more_size = mem::size_of::<more>();
 
     void *sb = test_context_socket (ZMQ_PUB);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sb, "inproc://a"));
@@ -40,10 +40,10 @@ void test_getsockopt_memset ()
     void *sc = test_context_socket (ZMQ_SUB);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc, "inproc://a"));
 
-    memset (&more, 0xFF, sizeof (int64_t));
+    memset (&more, 0xFF, mem::size_of::<i64>());
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (sc, ZMQ_RCVMORE, &more, &more_size));
-    TEST_ASSERT_EQUAL_INT (sizeof (int), more_size);
+    TEST_ASSERT_EQUAL_INT (mem::size_of::<int>(), more_size);
     TEST_ASSERT_EQUAL_INT (0, more);
 
     // Cleanup

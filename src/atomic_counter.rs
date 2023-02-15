@@ -1,10 +1,10 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
-pub struct atomic_counter_t {
+pub struct AtomicCounter {
     _value: AtomicU32,
 }
 
-impl atomic_counter_t {
+impl AtomicCounter {
     pub fn new() -> Self {
         Self {
             _value: AtomicU32::new(0)

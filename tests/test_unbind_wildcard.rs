@@ -34,7 +34,7 @@ void test_address_wildcard_ipv4 ()
 
     char bind_endpoint[256];
     char connect_endpoint[256];
-    size_t endpoint_len = sizeof (bind_endpoint);
+    size_t endpoint_len = mem::size_of::<bind_endpoint>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (sb, ZMQ_LAST_ENDPOINT, bind_endpoint, &endpoint_len));
 
@@ -66,15 +66,15 @@ void test_address_wildcard_ipv6 ()
     void *sc = test_context_socket (ZMQ_REQ);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sb, ZMQ_IPV6, &ipv6, sizeof (int)));
+      zmq_setsockopt (sb, ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_IPV6, &ipv6, sizeof (int)));
+      zmq_setsockopt (sc, ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sb, "tcp://*:*"));
 
     char bind_endpoint[256];
     char connect_endpoint[256];
-    size_t endpoint_len = sizeof (bind_endpoint);
+    size_t endpoint_len = mem::size_of::<bind_endpoint>();
     memset (bind_endpoint, 0, endpoint_len);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (sb, ZMQ_LAST_ENDPOINT, bind_endpoint, &endpoint_len));
@@ -110,7 +110,7 @@ void test_port_wildcard_ipv4_address ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sb, "tcp://127.0.0.1:*"));
 
     char endpoint[256];
-    size_t endpoint_len = sizeof (endpoint);
+    size_t endpoint_len = mem::size_of::<endpoint>();
     memset (endpoint, 0, endpoint_len);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (sb, ZMQ_LAST_ENDPOINT, endpoint, &endpoint_len));
@@ -134,14 +134,14 @@ void test_port_wildcard_ipv4_address_ipv6 ()
 
     const int ipv6 = is_ipv6_available ();
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sb, ZMQ_IPV6, &ipv6, sizeof (int)));
+      zmq_setsockopt (sb, ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_IPV6, &ipv6, sizeof (int)));
+      zmq_setsockopt (sc, ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sb, "tcp://127.0.0.1:*"));
 
     char endpoint[256];
-    size_t endpoint_len = sizeof (endpoint);
+    size_t endpoint_len = mem::size_of::<endpoint>();
     memset (endpoint, 0, endpoint_len);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (sb, ZMQ_LAST_ENDPOINT, endpoint, &endpoint_len));
@@ -168,14 +168,14 @@ void test_port_wildcard_ipv6_address ()
     void *sc = test_context_socket (ZMQ_REQ);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sb, ZMQ_IPV6, &ipv6, sizeof (int)));
+      zmq_setsockopt (sb, ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_IPV6, &ipv6, sizeof (int)));
+      zmq_setsockopt (sc, ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sb, "tcp://[::1]:*"));
 
     char endpoint[256];
-    size_t endpoint_len = sizeof (endpoint);
+    size_t endpoint_len = mem::size_of::<endpoint>();
     memset (endpoint, 0, endpoint_len);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (sb, ZMQ_LAST_ENDPOINT, endpoint, &endpoint_len));

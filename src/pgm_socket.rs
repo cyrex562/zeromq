@@ -53,7 +53,7 @@ pub struct pgm_socket_t
 {
 // public:
     //  If receiver_ is true PGM transport is not generating SPM packets.
-    pgm_socket_t (bool receiver_, const options_t &options_);
+    pgm_socket_t (bool receiver_, const ZmqOptions &options_);
 
     //  Closes the transport.
     ~pgm_socket_t ();
@@ -102,7 +102,7 @@ pub struct pgm_socket_t
     last_rx_status: i32, last_tx_status;
 
     //  Associated socket options.
-    options_t options;
+    ZmqOptions options;
 
     //  true when pgm_socket should create receiving side.
     bool receiver;
@@ -124,7 +124,7 @@ pub struct pgm_socket_t
     pgm_msgv_processed: usize;
 };
 
-zmq::pgm_socket_t::pgm_socket_t (bool receiver_, const options_t &options_) :
+zmq::pgm_socket_t::pgm_socket_t (bool receiver_, const ZmqOptions &options_) :
     sock (NULL),
     options (options_),
     receiver (receiver_),
@@ -155,17 +155,17 @@ int zmq::pgm_socket_t::init_address (network_: *const c_char,
     *port_number = atoi (port_delim + 1);
 
     char network[256];
-    if (port_delim - network_ >= (int) sizeof (network) - 1) {
+    if (port_delim - network_ >= (int) mem::size_of::<network>() - 1) {
         errno = EINVAL;
         return -1;
     }
-    memset (network, '\0', sizeof (network));
+    memset (network, '\0', mem::size_of::<network>());
     memcpy (network, network_, port_delim - network_);
 
     pgm_error_t *pgm_error = NULL;
     struct pgm_addrinfo_t hints;
 
-    memset (&hints, 0, sizeof (hints));
+    memset (&hints, 0, mem::size_of::<hints>());
     hints.ai_family = AF_UNSPEC;
     if (!pgm_getaddrinfo (network, NULL, res, &pgm_error)) {
         //  Invalid parameters don't set pgm_error_t.
@@ -236,10 +236,10 @@ int zmq::pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
         //  All options are of data type int
         const int encapsulation_port = port_number;
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_UDP_ENCAP_UCAST_PORT,
-                             &encapsulation_port, sizeof (encapsulation_port)))
+                             &encapsulation_port, mem::size_of::<encapsulation_port>()))
             goto err_abort;
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_UDP_ENCAP_MCAST_PORT,
-                             &encapsulation_port, sizeof (encapsulation_port)))
+                             &encapsulation_port, mem::size_of::<encapsulation_port>()))
             goto err_abort;
     } else {
         if (!pgm_socket (&sock, sa_family, SOCK_SEQPACKET, IPPROTO_PGM,
@@ -264,20 +264,20 @@ int zmq::pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
         const int rcvbuf = (int) options.rcvbuf;
         if (rcvbuf >= 0) {
             if (!pgm_setsockopt (sock, SOL_SOCKET, SO_RCVBUF, &rcvbuf,
-                                 sizeof (rcvbuf)))
+                                 mem::size_of::<rcvbuf>()))
                 goto err_abort;
         }
 
         const int sndbuf = (int) options.sndbuf;
         if (sndbuf >= 0) {
             if (!pgm_setsockopt (sock, SOL_SOCKET, SO_SNDBUF, &sndbuf,
-                                 sizeof (sndbuf)))
+                                 mem::size_of::<sndbuf>()))
                 goto err_abort;
         }
 
         const int max_tpdu = (int) options.multicast_maxtpdu;
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_MTU, &max_tpdu,
-                             sizeof (max_tpdu)))
+                             mem::size_of::<max_tpdu>()))
             goto err_abort;
     }
 
@@ -290,23 +290,23 @@ int zmq::pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
                   nak_ncf_retries = 50;
 
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_RECV_ONLY, &recv_only,
-                             sizeof (recv_only))
+                             mem::size_of::<recv_only>())
             || !pgm_setsockopt (sock, IPPROTO_PGM, PGM_RXW_SQNS, &rxw_sqns,
-                                sizeof (rxw_sqns))
+                                mem::size_of::<rxw_sqns>())
             || !pgm_setsockopt (sock, IPPROTO_PGM, PGM_PEER_EXPIRY,
-                                &peer_expiry, sizeof (peer_expiry))
+                                &peer_expiry, mem::size_of::<peer_expiry>())
             || !pgm_setsockopt (sock, IPPROTO_PGM, PGM_SPMR_EXPIRY,
-                                &spmr_expiry, sizeof (spmr_expiry))
+                                &spmr_expiry, mem::size_of::<spmr_expiry>())
             || !pgm_setsockopt (sock, IPPROTO_PGM, PGM_NAK_BO_IVL, &nak_bo_ivl,
-                                sizeof (nak_bo_ivl))
+                                mem::size_of::<nak_bo_ivl>())
             || !pgm_setsockopt (sock, IPPROTO_PGM, PGM_NAK_RPT_IVL,
-                                &nak_rpt_ivl, sizeof (nak_rpt_ivl))
+                                &nak_rpt_ivl, mem::size_of::<nak_rpt_ivl>())
             || !pgm_setsockopt (sock, IPPROTO_PGM, PGM_NAK_RDATA_IVL,
-                                &nak_rdata_ivl, sizeof (nak_rdata_ivl))
+                                &nak_rdata_ivl, mem::size_of::<nak_rdata_ivl>())
             || !pgm_setsockopt (sock, IPPROTO_PGM, PGM_NAK_DATA_RETRIES,
-                                &nak_data_retries, sizeof (nak_data_retries))
+                                &nak_data_retries, mem::size_of::<nak_data_retries>())
             || !pgm_setsockopt (sock, IPPROTO_PGM, PGM_NAK_NCF_RETRIES,
-                                &nak_ncf_retries, sizeof (nak_ncf_retries)))
+                                &nak_ncf_retries, mem::size_of::<nak_ncf_retries>()))
             goto err_abort;
     } else {
         const int send_only = 1, max_rte = (int) ((options.rate * 1000) / 8),
@@ -319,22 +319,22 @@ int zmq::pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
                     pgm_secs (16),   pgm_secs (25),    pgm_secs (30)};
 
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_SEND_ONLY, &send_only,
-                             sizeof (send_only))
+                             mem::size_of::<send_only>())
             || !pgm_setsockopt (sock, IPPROTO_PGM, PGM_ODATA_MAX_RTE, &max_rte,
-                                sizeof (max_rte))
+                                mem::size_of::<max_rte>())
             || !pgm_setsockopt (sock, IPPROTO_PGM, PGM_TXW_SQNS, &txw_sqns,
-                                sizeof (txw_sqns))
+                                mem::size_of::<txw_sqns>())
             || !pgm_setsockopt (sock, IPPROTO_PGM, PGM_AMBIENT_SPM,
-                                &ambient_spm, sizeof (ambient_spm))
+                                &ambient_spm, mem::size_of::<ambient_spm>())
             || !pgm_setsockopt (sock, IPPROTO_PGM, PGM_HEARTBEAT_SPM,
-                                &heartbeat_spm, sizeof (heartbeat_spm)))
+                                &heartbeat_spm, mem::size_of::<heartbeat_spm>()))
             goto err_abort;
     }
 
     //  PGM transport GSI.
     struct pgm_sockaddr_t addr;
 
-    memset (&addr, 0, sizeof (addr));
+    memset (&addr, 0, mem::size_of::<addr>());
     addr.sa_port = port_number;
     addr.sa_addr.sport = DEFAULT_DATA_SOURCE_PORT;
 
@@ -348,16 +348,16 @@ int zmq::pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
 
     //  Bind a transport to the specified network devices.
     struct pgm_interface_req_t if_req;
-    memset (&if_req, 0, sizeof (if_req));
+    memset (&if_req, 0, mem::size_of::<if_req>());
     if_req.ir_interface = res->ai_recv_addrs[0].gsr_interface;
     if_req.ir_scope_id = 0;
     if (AF_INET6 == sa_family) {
         struct sockaddr_in6 sa6;
-        memcpy (&sa6, &res->ai_recv_addrs[0].gsr_group, sizeof (sa6));
+        memcpy (&sa6, &res->ai_recv_addrs[0].gsr_group, mem::size_of::<sa6>());
         if_req.ir_scope_id = sa6.sin6_scope_id;
     }
-    if (!pgm_bind3 (sock, &addr, sizeof (addr), &if_req, sizeof (if_req),
-                    &if_req, sizeof (if_req), &pgm_error)) {
+    if (!pgm_bind3 (sock, &addr, mem::size_of::<addr>(), &if_req, mem::size_of::<if_req>(),
+                    &if_req, mem::size_of::<if_req>(), &pgm_error)) {
         //  Invalid parameters don't set pgm_error_t.
         zmq_assert (pgm_error != NULL);
         if ((pgm_error->domain == PGM_ERROR_DOMAIN_SOCKET
@@ -391,23 +391,23 @@ int zmq::pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
         // Multicast loopback disabled by default
         const int multicast_loop = 0;
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_MULTICAST_LOOP,
-                             &multicast_loop, sizeof (multicast_loop)))
+                             &multicast_loop, mem::size_of::<multicast_loop>()))
             goto err_abort;
 
         const int multicast_hops = options.multicast_hops;
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_MULTICAST_HOPS,
-                             &multicast_hops, sizeof (multicast_hops)))
+                             &multicast_hops, mem::size_of::<multicast_hops>()))
             goto err_abort;
 
         //  Expedited Forwarding PHB for network elements, no ECN.
         //  Ignore return value due to varied runtime support.
         const int dscp = 0x2e << 2;
         if (AF_INET6 != sa_family)
-            pgm_setsockopt (sock, IPPROTO_PGM, PGM_TOS, &dscp, sizeof (dscp));
+            pgm_setsockopt (sock, IPPROTO_PGM, PGM_TOS, &dscp, mem::size_of::<dscp>());
 
         const int nonblocking = 1;
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_NOBLOCK, &nonblocking,
-                             sizeof (nonblocking)))
+                             mem::size_of::<nonblocking>()))
             goto err_abort;
     }
 
@@ -427,7 +427,7 @@ int zmq::pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
             pgm_msgv_len++;
         zmq_assert (pgm_msgv_len);
 
-        pgm_msgv = (pgm_msgv_t *) malloc (sizeof (pgm_msgv_t) * pgm_msgv_len);
+        pgm_msgv = (pgm_msgv_t *) malloc (mem::size_of::<pgm_msgv_t>() * pgm_msgv_len);
         alloc_assert (pgm_msgv);
     }
 
@@ -559,7 +559,7 @@ long zmq::pgm_socket_t::get_rx_timeout ()
         return -1;
 
     struct timeval tv;
-    socklen_t optlen = sizeof (tv);
+    socklen_t optlen = mem::size_of::<tv>();
     const bool rc = pgm_getsockopt (sock, IPPROTO_PGM,
                                     last_rx_status == PGM_IO_STATUS_RATE_LIMITED
                                       ? PGM_RATE_REMAIN
@@ -578,7 +578,7 @@ long zmq::pgm_socket_t::get_tx_timeout ()
         return -1;
 
     struct timeval tv;
-    socklen_t optlen = sizeof (tv);
+    socklen_t optlen = mem::size_of::<tv>();
     const bool rc =
       pgm_getsockopt (sock, IPPROTO_PGM, PGM_RATE_REMAIN, &tv, &optlen);
     zmq_assert (rc);
@@ -592,11 +592,11 @@ long zmq::pgm_socket_t::get_tx_timeout ()
 size_t zmq::pgm_socket_t::get_max_tsdu_size ()
 {
     int max_tsdu = 0;
-    socklen_t optlen = sizeof (max_tsdu);
+    socklen_t optlen = mem::size_of::<max_tsdu>();
 
     bool rc = pgm_getsockopt (sock, IPPROTO_PGM, PGM_MSS, &max_tsdu, &optlen);
     zmq_assert (rc);
-    zmq_assert (optlen == sizeof (max_tsdu));
+    zmq_assert (optlen == mem::size_of::<max_tsdu>());
     return (size_t) max_tsdu;
 }
 

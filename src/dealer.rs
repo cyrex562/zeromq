@@ -32,14 +32,14 @@
 // #include "dealer.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-pub struct dealer_t : public socket_base_t
+pub struct dealer_t : public ZmqSocketBase
 {
 // public:
     dealer_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~dealer_t () ZMQ_OVERRIDE;
 
   protected:
-    //  Overrides of functions from socket_base_t.
+    //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_) ZMQ_FINAL;
@@ -71,7 +71,7 @@ pub struct dealer_t : public socket_base_t
 };
 
 zmq::dealer_t::dealer_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
-    socket_base_t (parent_, tid_, sid_), _probe_router (false)
+    ZmqSocketBase (parent_, tid_, sid_), _probe_router (false)
 {
     options.type = ZMQ_DEALER;
     options.can_send_hello_msg = true;
@@ -114,10 +114,10 @@ int zmq::dealer_t::xsetsockopt (option_: i32,
                                 const optval_: *mut c_void,
                                 optvallen_: usize)
 {
-    const bool is_int = (optvallen_ == sizeof (int));
+    const bool is_int = (optvallen_ == mem::size_of::<int>());
     int value = 0;
     if (is_int)
-        memcpy (&value, optval_, sizeof (int));
+        memcpy (&value, optval_, mem::size_of::<int>());
 
     switch (option_) {
         case ZMQ_PROBE_ROUTER:

@@ -41,7 +41,7 @@ pub struct req_t ZMQ_FINAL : public dealer_t
     req_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~req_t ();
 
-    //  Overrides of functions from socket_base_t.
+    //  Overrides of functions from ZmqSocketBase.
     int xsend (zmq::msg_t *msg_);
     int xrecv (zmq::msg_t *msg_);
     bool xhas_in ();
@@ -85,8 +85,8 @@ pub struct req_session_t ZMQ_FINAL : public session_base_t
 // public:
     req_session_t (zmq::io_thread_t *io_thread_,
                    bool connect_,
-                   socket_: *mut socket_base_t,
-                   const options_t &options_,
+                   socket_: *mut ZmqSocketBase,
+                   const ZmqOptions &options_,
                    Address *addr_);
     ~req_session_t ();
 
@@ -143,8 +143,8 @@ int zmq::req_t::xsend (msg_t *msg_)
             _request_id++;
 
             msg_t id;
-            int rc = id.init_size (sizeof (uint32_t));
-            memcpy (id.data (), &_request_id, sizeof (uint32_t));
+            int rc = id.init_size (mem::size_of::<uint32_t>());
+            memcpy (id.data (), &_request_id, mem::size_of::<uint32_t>());
             errno_assert (rc == 0);
             id.set_flags (msg_t::more);
 
@@ -214,7 +214,7 @@ int zmq::req_t::xrecv (msg_t *msg_)
                 return rc;
 
             if (unlikely (!(msg_->flags () & msg_t::more)
-                          || msg_->size () != sizeof (_request_id)
+                          || msg_->size () != mem::size_of::<_request_id>()
                           || *static_cast<uint32_t *> (msg_->data ())
                                != _request_id)) {
                 //  Skip the remaining frames and try the next message
@@ -279,10 +279,10 @@ int zmq::req_t::xsetsockopt (option_: i32,
                              const optval_: *mut c_void,
                              optvallen_: usize)
 {
-    const bool is_int = (optvallen_ == sizeof (int));
+    const bool is_int = (optvallen_ == mem::size_of::<int>());
     int value = 0;
     if (is_int)
-        memcpy (&value, optval_, sizeof (int));
+        memcpy (&value, optval_, mem::size_of::<int>());
 
     switch (option_) {
         case ZMQ_REQ_CORRELATE:
@@ -327,8 +327,8 @@ int zmq::req_t::recv_reply_pipe (msg_t *msg_)
 
 zmq::req_session_t::req_session_t (io_thread_t *io_thread_,
                                    bool connect_,
-                                   socket_base_t *socket_,
-                                   const options_t &options_,
+                                   ZmqSocketBase *socket_,
+                                   const ZmqOptions &options_,
                                    Address *addr_) :
     session_base_t (io_thread_, connect_, socket_, options_, addr_),
     _state (bottom)
@@ -352,7 +352,7 @@ int zmq::req_session_t::push_msg (msg_t *msg_)
                 //  In case option ZMQ_CORRELATE is on, allow request_id to be
                 //  transferred as first frame (would be too cumbersome to check
                 //  whether the option is actually on or not).
-                if (msg_->size () == sizeof (uint32_t)) {
+                if (msg_->size () == mem::size_of::<uint32_t>()) {
                     _state = request_id;
                     return session_base_t::push_msg (msg_);
                 }

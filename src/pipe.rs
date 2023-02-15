@@ -262,9 +262,9 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
     ZMQ_NON_COPYABLE_NOR_MOVABLE (pipe_t)
 };
 
-void send_routing_id (pipe_t *pipe_, const options_t &options_);
+void send_routing_id (pipe_t *pipe_, const ZmqOptions &options_);
 
-void send_hello_msg (pipe_t *pipe_, const options_t &options_);
+void send_hello_msg (pipe_t *pipe_, const ZmqOptions &options_);
 
 int zmq::pipepair (object_t *parents_[2],
                    pipe_t *pipes_[2],
@@ -304,7 +304,7 @@ int zmq::pipepair (object_t *parents_[2],
     return 0;
 }
 
-void zmq::send_routing_id (pipe_t *pipe_, const options_t &options_)
+void zmq::send_routing_id (pipe_t *pipe_, const ZmqOptions &options_)
 {
     zmq::msg_t id;
     const int rc = id.init_size (options_.routing_id_size);
@@ -316,7 +316,7 @@ void zmq::send_routing_id (pipe_t *pipe_, const options_t &options_)
     pipe_->flush ();
 }
 
-void zmq::send_hello_msg (pipe_t *pipe_, const options_t &options_)
+void zmq::send_hello_msg (pipe_t *pipe_, const ZmqOptions &options_)
 {
     zmq::msg_t hello;
     const int rc =

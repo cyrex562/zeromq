@@ -59,7 +59,7 @@ void test_roundtrip ()
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, router, 0));
         rcvmore: i32;
-        size_t sz = sizeof (rcvmore);
+        size_t sz = mem::size_of::<rcvmore>();
         TEST_ASSERT_SUCCESS_ERRNO (
           zmq_getsockopt (router, ZMQ_RCVMORE, &rcvmore, &sz));
         TEST_ASSERT_SUCCESS_ERRNO (
@@ -69,7 +69,7 @@ void test_roundtrip ()
     //  Receive the request.
     recv_string_expect_success (rep, "ABC", 0);
     rcvmore: i32;
-    size_t sz = sizeof (rcvmore);
+    size_t sz = mem::size_of::<rcvmore>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (rep, ZMQ_RCVMORE, &rcvmore, &sz));
     TEST_ASSERT_TRUE (rcvmore);
@@ -88,7 +88,7 @@ void test_roundtrip ()
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, dealer, 0));
         rcvmore: i32;
-        size_t sz = sizeof (rcvmore);
+        size_t sz = mem::size_of::<rcvmore>();
         TEST_ASSERT_SUCCESS_ERRNO (
           zmq_getsockopt (dealer, ZMQ_RCVMORE, &rcvmore, &sz));
         TEST_ASSERT_SUCCESS_ERRNO (

@@ -43,7 +43,7 @@ void test_roundtrip ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sb, test_endpoint));
 
     char endpoint[MAX_SOCKET_STRING];
-    size_t size = sizeof (endpoint);
+    size_t size = mem::size_of::<endpoint>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (sb, ZMQ_LAST_ENDPOINT, endpoint, &size));
     TEST_ASSERT_EQUAL_INT (0, strncmp (endpoint, test_endpoint, size));

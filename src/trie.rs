@@ -122,7 +122,7 @@ pub struct trie_with_size_t
     uint32_t num_prefixes () const { return _num_prefixes.get (); }
 
   // private:
-    atomic_counter_t _num_prefixes;
+    AtomicCounter _num_prefixes;
     trie_t _trie;
 };
 

@@ -75,10 +75,10 @@ static void lower_hwm (skt_: *mut c_void)
 {
     int send_hwm = HWM;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (skt_, ZMQ_SNDHWM, &send_hwm, sizeof (send_hwm)));
+      zmq_setsockopt (skt_, ZMQ_SNDHWM, &send_hwm, mem::size_of::<send_hwm>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (skt_, ZMQ_RCVHWM, &send_hwm, sizeof (send_hwm)));
+      zmq_setsockopt (skt_, ZMQ_RCVHWM, &send_hwm, mem::size_of::<send_hwm>()));
 }
 
 static void publisher_thread_main (pvoid_: *mut c_void)
@@ -95,7 +95,7 @@ static void publisher_thread_main (pvoid_: *mut c_void)
 
     int optval = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pubsocket, ZMQ_XPUB_NODROP, &optval, sizeof (optval)));
+      zmq_setsockopt (pubsocket, ZMQ_XPUB_NODROP, &optval, mem::size_of::<optval>()));
 
     // Wait before starting TX operations till 1 subscriber has subscribed
     // (in this test there's 1 subscriber only)
@@ -168,7 +168,7 @@ static void subscriber_thread_main (pvoid_: *mut c_void)
             // after receiving 1st message, set a finite timeout (default is infinite)
             int timeout_ms = 100;
             TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-              subsocket, ZMQ_RCVTIMEO, &timeout_ms, sizeof (timeout_ms)));
+              subsocket, ZMQ_RCVTIMEO, &timeout_ms, mem::size_of::<timeout_ms>()));
         } else {
             break;
         }
@@ -206,7 +206,7 @@ bool recv_stat (sock_: *mut c_void, bool last_, u64 *res_)
         return false; // cannot retrieve the stat
     }
 
-    assert (rc == sizeof (u64));
+    assert (rc == mem::size_of::<u64>());
     memcpy (res_, zmq_msg_data (&stats_msg), zmq_msg_size (&stats_msg));
 
     rc = zmq_msg_close (&stats_msg);
@@ -287,18 +287,18 @@ static void proxy_stats_asker_thread_main (pvoid_: *mut c_void)
     //            itself blocked in a zmq_msg_send() on its XPUB socket having ZMQ_XPUB_NODROP=1!
 
     int optval = 10;
-    rc = zmq_setsockopt (control_req, ZMQ_SNDTIMEO, &optval, sizeof (optval));
+    rc = zmq_setsockopt (control_req, ZMQ_SNDTIMEO, &optval, mem::size_of::<optval>());
     assert (rc == 0);
-    rc = zmq_setsockopt (control_req, ZMQ_RCVTIMEO, &optval, sizeof (optval));
+    rc = zmq_setsockopt (control_req, ZMQ_RCVTIMEO, &optval, mem::size_of::<optval>());
     assert (rc == 0);
 
     optval = 10;
     rc =
-      zmq_setsockopt (control_req, ZMQ_REQ_CORRELATE, &optval, sizeof (optval));
+      zmq_setsockopt (control_req, ZMQ_REQ_CORRELATE, &optval, mem::size_of::<optval>());
     assert (rc == 0);
 
     rc =
-      zmq_setsockopt (control_req, ZMQ_REQ_RELAXED, &optval, sizeof (optval));
+      zmq_setsockopt (control_req, ZMQ_REQ_RELAXED, &optval, mem::size_of::<optval>());
     assert (rc == 0);
 
 
@@ -347,7 +347,7 @@ static void proxy_thread_main (pvoid_: *mut c_void)
 
     int optval = 1;
     rc =
-      zmq_setsockopt (backend_xpub, ZMQ_XPUB_NODROP, &optval, sizeof (optval));
+      zmq_setsockopt (backend_xpub, ZMQ_XPUB_NODROP, &optval, mem::size_of::<optval>());
     assert (rc == 0);
 
     lower_hwm (backend_xpub);

@@ -44,7 +44,7 @@ pub struct router_t : public routing_socket_base_t
     router_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~router_t () ZMQ_OVERRIDE;
 
-    //  Overrides of functions from socket_base_t.
+    //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_) ZMQ_FINAL;
@@ -188,10 +188,10 @@ int zmq::router_t::xsetsockopt (option_: i32,
                                 const optval_: *mut c_void,
                                 optvallen_: usize)
 {
-    const bool is_int = (optvallen_ == sizeof (int));
+    const bool is_int = (optvallen_ == mem::size_of::<int>());
     int value = 0;
     if (is_int)
-        memcpy (&value, optval_, sizeof (int));
+        memcpy (&value, optval_, mem::size_of::<int>());
 
     switch (option_) {
         case ZMQ_ROUTER_RAW:

@@ -38,7 +38,7 @@ void set_sockopt_bind_to_device (socket: *mut c_void)
 {
     const char device[] = "lo";
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (socket, ZMQ_BINDTODEVICE, &device, sizeof (device) - 1));
+      zmq_setsockopt (socket, ZMQ_BINDTODEVICE, &device, mem::size_of::<device>() - 1));
 }
 
 //  TODO this is duplicated from test_pair_tcp

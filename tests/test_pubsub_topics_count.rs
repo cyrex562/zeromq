@@ -39,7 +39,7 @@ void settle_subscriptions (skt: *mut c_void)
     //  To kick the application thread, do a dummy getsockopt - users here
     //  should use the monitor and the other sockets in a poll.
     unsigned long int dummy;
-    size_t dummy_size = sizeof (dummy);
+    size_t dummy_size = mem::size_of::<dummy>();
     msleep (SETTLE_TIME);
     zmq_getsockopt (skt, ZMQ_EVENTS, &dummy, &dummy_size);
 }
@@ -47,7 +47,7 @@ void settle_subscriptions (skt: *mut c_void)
 int get_subscription_count (skt: *mut c_void)
 {
     int num_subs = 0;
-    size_t num_subs_len = sizeof (num_subs);
+    size_t num_subs_len = mem::size_of::<num_subs>();
 
     settle_subscriptions (skt);
     TEST_ASSERT_SUCCESS_ERRNO (

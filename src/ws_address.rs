@@ -85,14 +85,14 @@ pub struct WsAddress
 
 zmq::WsAddress::WsAddress ()
 {
-    memset (&_address, 0, sizeof (_address));
+    memset (&_address, 0, mem::size_of::<_address>());
 }
 
 zmq::WsAddress::WsAddress (const sockaddr *sa_, socklen_t sa_len_)
 {
     zmq_assert (sa_ && sa_len_ > 0);
 
-    memset (&_address, 0, sizeof (_address));
+    memset (&_address, 0, mem::size_of::<_address>());
     if (sa_->sa_family == AF_INET
         && sa_len_ >= static_cast<socklen_t> (sizeof (_address.ipv4)))
         memcpy (&_address.ipv4, sa_, sizeof (_address.ipv4));
@@ -103,7 +103,7 @@ zmq::WsAddress::WsAddress (const sockaddr *sa_, socklen_t sa_len_)
     _path = std::string ("");
 
     char hbuf[NI_MAXHOST];
-    const int rc = getnameinfo (addr (), addrlen (), hbuf, sizeof (hbuf), NULL,
+    const int rc = getnameinfo (addr (), addrlen (), hbuf, mem::size_of::<hbuf>(), NULL,
                                 0, NI_NUMERICHOST);
     if (rc != 0) {
         _host = std::string ("localhost");

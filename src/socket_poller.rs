@@ -42,9 +42,9 @@ pub struct socket_poller_t
 
     typedef zmq_poller_event_t event_t;
 
-    int add (socket_base_t *socket_, user_data_: *mut c_void, short events_);
-    int modify (const socket_base_t *socket_, short events_);
-    int remove (socket_base_t *socket_);
+    int add (ZmqSocketBase *socket_, user_data_: *mut c_void, short events_);
+    int modify (const ZmqSocketBase *socket_, short events_);
+    int remove (ZmqSocketBase *socket_);
 
     int add_fd (fd_t fd_, user_data_: *mut c_void, short events_);
     int modify_fd (fd_t fd_, short events_);
@@ -62,7 +62,7 @@ pub struct socket_poller_t
   // private:
     typedef struct item_t
     {
-        socket_base_t *socket;
+        ZmqSocketBase *socket;
         fd_t fd;
         user_data: *mut c_void;
         short events;
@@ -88,7 +88,7 @@ pub struct socket_poller_t
                                u64 &now_,
                                u64 &end_,
                                bool &first_pass_);
-    static bool is_socket (const item_t &item, const socket_base_t *socket_)
+    static bool is_socket (const item_t &item, const ZmqSocketBase *socket_)
     {
         return item.socket == socket_;
     }
@@ -130,7 +130,7 @@ pub struct socket_poller_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (socket_poller_t)
 };
 
-static bool is_thread_safe (const zmq::socket_base_t &socket_)
+static bool is_thread_safe (const zmq::ZmqSocketBase &socket_)
 {
     // do not use getsockopt here, since that would fail during context termination
     return socket_.is_thread_safe ();
@@ -204,7 +204,7 @@ int zmq::socket_poller_t::signaler_fd (fd_t *fd_) const
     return -1;
 }
 
-int zmq::socket_poller_t::add (socket_base_t *socket_,
+int zmq::socket_poller_t::add (ZmqSocketBase *socket_,
                                user_data_: *mut c_void,
                                short events_)
 {
@@ -284,7 +284,7 @@ int zmq::socket_poller_t::add_fd (fd_t fd_, user_data_: *mut c_void, short event
     return 0;
 }
 
-int zmq::socket_poller_t::modify (const socket_base_t *socket_, short events_)
+int zmq::socket_poller_t::modify (const ZmqSocketBase *socket_, short events_)
 {
     const items_t::iterator it =
       find_if2 (_items.begin (), _items.end (), socket_, &is_socket);
@@ -318,7 +318,7 @@ int zmq::socket_poller_t::modify_fd (fd_t fd_, short events_)
 }
 
 
-int zmq::socket_poller_t::remove (socket_base_t *socket_)
+int zmq::socket_poller_t::remove (ZmqSocketBase *socket_)
 {
     const items_t::iterator it =
       find_if2 (_items.begin (), _items.end (), socket_, &is_socket);
@@ -383,7 +383,7 @@ int zmq::socket_poller_t::rebuild ()
     if (_pollset_size == 0)
         return 0;
 
-    _pollfds = static_cast<pollfd *> (malloc (_pollset_size * sizeof (pollfd)));
+    _pollfds = static_cast<pollfd *> (malloc (_pollset_size * mem::size_of::<pollfd>()));
 
     if (!_pollfds) {
         errno = ENOMEM;
@@ -521,7 +521,7 @@ int zmq::socket_poller_t::check_events (zmq::socket_poller_t::event_t *events_,
         //  The poll item is a 0MQ socket. Retrieve pending events
         //  using the ZMQ_EVENTS socket option.
         if (it->socket) {
-            size_t events_size = sizeof (uint32_t);
+            size_t events_size = mem::size_of::<uint32_t>();
             uint32_t events;
             if (it->socket->getsockopt (ZMQ_EVENTS, &events, &events_size)
                 == -1) {

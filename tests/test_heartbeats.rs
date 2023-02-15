@@ -92,23 +92,23 @@ static void recv_with_retry (raw_socket fd_, char *buffer_, bytes_: i32)
 static void mock_handshake (raw_socket fd_, mock_ping_: i32)
 {
     char buffer[128];
-    memset (buffer, 0, sizeof (buffer));
-    memcpy (buffer, zmtp_greeting_null, sizeof (zmtp_greeting_null));
+    memset (buffer, 0, mem::size_of::<buffer>());
+    memcpy (buffer, zmtp_greeting_null, mem::size_of::<zmtp_greeting_null>());
 
     int rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (
-      send (fd_, buffer, sizeof (zmtp_greeting_null), 0));
-    TEST_ASSERT_EQUAL_INT (sizeof (zmtp_greeting_null), rc);
+      send (fd_, buffer, mem::size_of::<zmtp_greeting_null>(), 0));
+    TEST_ASSERT_EQUAL_INT (mem::size_of::<zmtp_greeting_null>(), rc);
 
-    recv_with_retry (fd_, buffer, sizeof (zmtp_greeting_null));
+    recv_with_retry (fd_, buffer, mem::size_of::<zmtp_greeting_null>());
 
-    memset (buffer, 0, sizeof (buffer));
-    memcpy (buffer, zmtp_ready_dealer, sizeof (zmtp_ready_dealer));
+    memset (buffer, 0, mem::size_of::<buffer>());
+    memcpy (buffer, zmtp_ready_dealer, mem::size_of::<zmtp_ready_dealer>());
     rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (
-      send (fd_, buffer, sizeof (zmtp_ready_dealer), 0));
-    TEST_ASSERT_EQUAL_INT (sizeof (zmtp_ready_dealer), rc);
+      send (fd_, buffer, mem::size_of::<zmtp_ready_dealer>(), 0));
+    TEST_ASSERT_EQUAL_INT (mem::size_of::<zmtp_ready_dealer>(), rc);
 
     //  greeting
-    recv_with_retry (fd_, buffer, sizeof (zmtp_ready_dealer));
+    recv_with_retry (fd_, buffer, mem::size_of::<zmtp_ready_dealer>());
 
     if (mock_ping_) {
         //  test PING context - should be replicated in the PONG
@@ -116,14 +116,14 @@ static void mock_handshake (raw_socket fd_, mock_ping_: i32)
         const uint8_t zmtp_ping[12] = {4,   10, 4, 'P', 'I', 'N',
                                        'G', 0,  0, 'L', 'O', 'L'};
         uint8_t zmtp_pong[10] = {4, 8, 4, 'P', 'O', 'N', 'G', 'L', 'O', 'L'};
-        memset (buffer, 0, sizeof (buffer));
+        memset (buffer, 0, mem::size_of::<buffer>());
         memcpy (buffer, zmtp_ping, 12);
         rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (send (fd_, buffer, 12, 0));
         TEST_ASSERT_EQUAL_INT (12, rc);
 
         //  test a larger body that won't fit in a small message and should get
         //  truncated
-        memset (buffer, 'z', sizeof (buffer));
+        memset (buffer, 'z', mem::size_of::<buffer>());
         memcpy (buffer, zmtp_ping, 12);
         buffer[1] = 65;
         rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (send (fd_, buffer, 67, 0));
@@ -162,7 +162,7 @@ static void setup_curve (socket_: *mut c_void, is_server_: i32)
                     strlen (public_key));
     if (is_server_)
         zmq_setsockopt (socket_, ZMQ_CURVE_SERVER, &is_server_,
-                        sizeof (is_server_));
+                        mem::size_of::<is_server_>());
     else
         zmq_setsockopt (socket_, ZMQ_CURVE_SERVERKEY, server_key,
                         strlen (server_key));
@@ -181,12 +181,12 @@ static void prep_server_socket (set_heartbeats_: i32,
 
     int value = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (server, ZMQ_LINGER, &value, sizeof (value)));
+      zmq_setsockopt (server, ZMQ_LINGER, &value, mem::size_of::<value>()));
 
     if (set_heartbeats_) {
         value = 50;
         TEST_ASSERT_SUCCESS_ERRNO (
-          zmq_setsockopt (server, ZMQ_HEARTBEAT_IVL, &value, sizeof (value)));
+          zmq_setsockopt (server, ZMQ_HEARTBEAT_IVL, &value, mem::size_of::<value>()));
     }
 
     if (is_curve_)
@@ -261,13 +261,13 @@ static void test_heartbeat_ttl (client_type_: i32, server_type_: i32)
     // Set the heartbeat TTL to 0.1 seconds
     value = 100;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (client, ZMQ_HEARTBEAT_TTL, &value, sizeof (value)));
+      zmq_setsockopt (client, ZMQ_HEARTBEAT_TTL, &value, mem::size_of::<value>()));
 
     // Set the heartbeat interval to much longer than the TTL so that
     // the socket times out oon the remote side.
     value = 250;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (client, ZMQ_HEARTBEAT_IVL, &value, sizeof (value)));
+      zmq_setsockopt (client, ZMQ_HEARTBEAT_IVL, &value, mem::size_of::<value>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
@@ -367,10 +367,10 @@ void test_setsockopt_heartbeat_success (const value_: i32)
 {
     void *const socket = test_context_socket (ZMQ_PAIR);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (socket, ZMQ_HEARTBEAT_TTL, &value_, sizeof (value_)));
+      zmq_setsockopt (socket, ZMQ_HEARTBEAT_TTL, &value_, mem::size_of::<value_>()));
 
     value_read: i32;
-    size_t value_read_size = sizeof (value_read);
+    size_t value_read_size = mem::size_of::<value_read>();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_getsockopt (socket, ZMQ_HEARTBEAT_TTL,
                                                &value_read, &value_read_size));
 
@@ -391,7 +391,7 @@ void test_setsockopt_heartbeat_ttl_more_than_max_fails ()
     const int value = heartbeat_ttl_max + 1;
     TEST_ASSERT_FAILURE_ERRNO (
       EINVAL,
-      zmq_setsockopt (socket, ZMQ_HEARTBEAT_TTL, &value, sizeof (value)));
+      zmq_setsockopt (socket, ZMQ_HEARTBEAT_TTL, &value, mem::size_of::<value>()));
 
     test_context_socket_close (socket);
 }

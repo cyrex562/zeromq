@@ -277,7 +277,7 @@ void socks_server_task (socks_server: *mut c_void,
                     err = 0x5; /* Connection refused */
                 } else {
                     struct sockaddr_in ip4addr;
-                    socklen_t len = sizeof (ip4addr);
+                    socklen_t len = mem::size_of::<ip4addr>();
                     res =
                       getsockname (remote, (struct sockaddr *) &ip4addr, &len);
                     TEST_ASSERT_SUCCESS_RAW_ERRNO (res);

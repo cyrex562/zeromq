@@ -51,7 +51,7 @@ pub struct reaper_t ZMQ_FINAL : public object_t, public i_poll_events
   // private:
     //  Command handlers.
     void process_stop ();
-    void process_reap (zmq::socket_base_t *socket_);
+    void process_reap (zmq::ZmqSocketBase *socket_);
     void process_reaped ();
 
     //  Reaper thread accesses incoming commands via this mailbox.
@@ -171,7 +171,7 @@ void zmq::reaper_t::process_stop ()
     }
 }
 
-void zmq::reaper_t::process_reap (socket_base_t *socket_)
+void zmq::reaper_t::process_reap (ZmqSocketBase *socket_)
 {
     //  Add the socket to the poller.
     socket_->start_reaping (_poller);

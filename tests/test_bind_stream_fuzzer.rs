@@ -43,10 +43,10 @@ extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
     void *server = test_context_socket (ZMQ_STREAM);
     //  As per API by default there's no limit to the size of a message,
     //  but the sanitizer allocator will barf over a gig or so
-    int64_t max_msg_size = 64 * 1024 * 1024;
+    i64 max_msg_size = 64 * 1024 * 1024;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (server, ZMQ_MAXMSGSIZE, &max_msg_size, sizeof (int64_t)));
-    bind_loopback_ipv4 (server, my_endpoint, sizeof (my_endpoint));
+      zmq_setsockopt (server, ZMQ_MAXMSGSIZE, &max_msg_size, mem::size_of::<i64>()));
+    bind_loopback_ipv4 (server, my_endpoint, mem::size_of::<my_endpoint>());
     fd_t client = connect_socket (my_endpoint);
 
     //  If there is not enough data for a full greeting, just send what we can

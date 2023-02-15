@@ -56,8 +56,8 @@ pub struct session_base_t : public own_t, public io_object_t, public i_pipe_even
     //  Create a session of the particular type.
     static session_base_t *create (zmq::io_thread_t *io_thread_,
                                    bool active_,
-                                   socket_: *mut socket_base_t,
-                                   const options_t &options_,
+                                   socket_: *mut ZmqSocketBase,
+                                   const ZmqOptions &options_,
                                    Address *addr_);
 
     //  To be used once only, when creating the session.
@@ -98,14 +98,14 @@ pub struct session_base_t : public own_t, public io_object_t, public i_pipe_even
     //  The function takes ownership of the message.
     int write_zap_msg (msg_t *msg_);
 
-    socket_base_t *get_socket () const;
+    ZmqSocketBase *get_socket () const;
     const EndpointUriPair &get_endpoint () const;
 
   protected:
     session_base_t (zmq::io_thread_t *io_thread_,
                     bool active_,
-                    socket_: *mut socket_base_t,
-                    const options_t &options_,
+                    socket_: *mut ZmqSocketBase,
+                    const ZmqOptions &options_,
                     Address *addr_);
     ~session_base_t () ZMQ_OVERRIDE;
 
@@ -152,7 +152,7 @@ pub struct session_base_t : public own_t, public io_object_t, public i_pipe_even
     zmq::i_engine *_engine;
 
     //  The socket the session belongs to.
-    zmq::socket_base_t *_socket;
+    zmq::ZmqSocketBase *_socket;
 
     //  I/O thread the session is living in. It will be used to plug in
     //  the engines into the same thread.
@@ -183,8 +183,8 @@ pub struct hello_msg_session_t ZMQ_FINAL : public session_base_t
 // public:
     hello_msg_session_t (zmq::io_thread_t *io_thread_,
                          bool connect_,
-                         socket_: *mut socket_base_t,
-                         const options_t &options_,
+                         socket_: *mut ZmqSocketBase,
+                         const ZmqOptions &options_,
                          Address *addr_);
     ~hello_msg_session_t ();
 
@@ -200,8 +200,8 @@ pub struct hello_msg_session_t ZMQ_FINAL : public session_base_t
 
 zmq::session_base_t *zmq::session_base_t::create (class io_thread_t *io_thread_,
                                                   bool active_,
-pub struct socket_base_t *socket_,
-                                                  const options_t &options_,
+pub struct ZmqSocketBase *socket_,
+                                                  const ZmqOptions &options_,
                                                   Address *addr_)
 {
     session_base_t *s = NULL;
@@ -261,8 +261,8 @@ pub struct socket_base_t *socket_,
 
 zmq::session_base_t::session_base_t (class io_thread_t *io_thread_,
                                      bool active_,
-pub struct socket_base_t *socket_,
-                                     const options_t &options_,
+pub struct ZmqSocketBase *socket_,
+                                     const ZmqOptions &options_,
                                      Address *addr_) :
     own_t (io_thread_, options_),
     io_object_t (io_thread_),
@@ -487,7 +487,7 @@ void zmq::session_base_t::hiccuped (pipe_t *)
     zmq_assert (false);
 }
 
-zmq::socket_base_t *zmq::session_base_t::get_socket () const
+zmq::ZmqSocketBase *zmq::session_base_t::get_socket () const
 {
     return _socket;
 }
@@ -927,8 +927,8 @@ void zmq::session_base_t::start_connecting (bool wait_)
 
 zmq::hello_msg_session_t::hello_msg_session_t (io_thread_t *io_thread_,
                                                bool connect_,
-                                               socket_base_t *socket_,
-                                               const options_t &options_,
+                                               ZmqSocketBase *socket_,
+                                               const ZmqOptions &options_,
                                                Address *addr_) :
     session_base_t (io_thread_, connect_, socket_, options_, addr_),
     _new_pipe (true)

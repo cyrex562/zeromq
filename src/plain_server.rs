@@ -40,7 +40,7 @@
 
     plain_server_t (session_base_t *session_,
                     const std::string &peer_address_,
-                    const options_t &options_);
+                    const ZmqOptions &options_);
     ~plain_server_t ();
 
     // mechanism implementation
@@ -61,7 +61,7 @@
 
 zmq::plain_server_t::plain_server_t (session_base_t *session_,
                                      const std::string &peer_address_,
-                                     const options_t &options_) :
+                                     const ZmqOptions &options_) :
     mechanism_base_t (session_, options_),
     zap_client_common_handshake_t (
       session_, peer_address_, options_, sending_welcome)
@@ -159,7 +159,7 @@ int zmq::plain_server_t::process_hello (msg_t *msg_)
         return -1;
     }
     const uint8_t username_length = *ptr++;
-    bytes_left -= sizeof (username_length);
+    bytes_left -= mem::size_of::<username_length>();
 
     if (bytes_left < username_length) {
         //  PLAIN I: invalid PLAIN client, sent malformed username
@@ -182,7 +182,7 @@ int zmq::plain_server_t::process_hello (msg_t *msg_)
     }
 
     const uint8_t password_length = *ptr++;
-    bytes_left -= sizeof (password_length);
+    bytes_left -= mem::size_of::<password_length>();
     if (bytes_left != password_length) {
         //  PLAIN I: invalid PLAIN client, sent malformed password or
         //  extraneous data
@@ -249,7 +249,7 @@ void zmq::plain_server_t::produce_error (msg_t *msg_) const
     const char expected_status_code_len = 3;
     zmq_assert (status_code.length ()
                 == static_cast<size_t> (expected_status_code_len));
-    const size_t status_code_len_size = sizeof (expected_status_code_len);
+    const size_t status_code_len_size = mem::size_of::<expected_status_code_len>();
     const int rc = msg_->init_size (error_prefix_len + status_code_len_size
                                     + expected_status_code_len);
     zmq_assert (rc == 0);
@@ -269,6 +269,6 @@ void zmq::plain_server_t::send_zap_request (const std::string &username_,
     size_t credentials_sizes[] = {username_.size (), password_.size ()};
     const char plain_mechanism_name[] = "PLAIN";
     zap_client_t::send_zap_request (
-      plain_mechanism_name, sizeof (plain_mechanism_name) - 1, credentials,
-      credentials_sizes, sizeof (credentials) / sizeof (credentials[0]));
+      plain_mechanism_name, mem::size_of::<plain_mechanism_name>() - 1, credentials,
+      credentials_sizes, mem::size_of::<credentials>() / sizeof (credentials[0]));
 }

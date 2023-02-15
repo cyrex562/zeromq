@@ -42,7 +42,7 @@ void pre_allocate_sock_tcp (socket_: *mut c_void, char *my_endpoint_)
 {
     fd_t s = bind_socket_resolve_port ("127.0.0.1", "0", my_endpoint_);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (socket_, ZMQ_USE_FD, &s, sizeof (s)));
+      zmq_setsockopt (socket_, ZMQ_USE_FD, &s, mem::size_of::<s>()));
 }
 
 typedef void (*pre_allocate_sock_fun_t) (void *, char *);
@@ -168,7 +168,7 @@ void pre_allocate_sock_ipc (sb_: *mut c_void, char *my_endpoint_)
 {
     fd_t s = bind_socket_resolve_port ("", "", my_endpoint_, AF_UNIX, 0);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sb_, ZMQ_USE_FD, &s, sizeof (s)));
+      zmq_setsockopt (sb_, ZMQ_USE_FD, &s, mem::size_of::<s>()));
     strcpy (ipc_endpoint, strchr (my_endpoint_, '/') + 2);
 }
 

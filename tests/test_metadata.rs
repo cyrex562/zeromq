@@ -67,7 +67,7 @@ static void zap_handler (handler_: *mut c_void)
             send_string_expect_success (handler_, "200", ZMQ_SNDMORE);
             send_string_expect_success (handler_, "OK", ZMQ_SNDMORE);
             send_string_expect_success (handler_, "anonymous", ZMQ_SNDMORE);
-            zmq_send (handler_, metadata, sizeof (metadata), 0);
+            zmq_send (handler_, metadata, mem::size_of::<metadata>(), 0);
         } else {
             send_string_expect_success (handler_, "400", ZMQ_SNDMORE);
             send_string_expect_success (handler_, "BAD DOMAIN", ZMQ_SNDMORE);
@@ -101,7 +101,7 @@ void test_metadata ()
     void *client = test_context_socket (ZMQ_DEALER);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (server, ZMQ_ZAP_DOMAIN, "DOMAIN", 6));
-    bind_loopback_ipv4 (server, my_endpoint, sizeof (my_endpoint));
+    bind_loopback_ipv4 (server, my_endpoint, mem::size_of::<my_endpoint>());
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
     send_string_expect_success (client, "This is a message", 0);
@@ -144,7 +144,7 @@ void test_router_prefetch_metadata ()
     void *client = test_context_socket (ZMQ_REQ);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (server, ZMQ_ZAP_DOMAIN, "DOMAIN", 6));
-    bind_loopback_ipv4 (server, my_endpoint, sizeof (my_endpoint));
+    bind_loopback_ipv4 (server, my_endpoint, mem::size_of::<my_endpoint>());
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
     send_string_expect_success (client, "This is a message", 0);
@@ -153,7 +153,7 @@ void test_router_prefetch_metadata ()
 
     // Check for messages in the ROUTER socket which will trigger a prefetch
     unsigned long int dummy;
-    size_t dummy_size = sizeof (dummy);
+    size_t dummy_size = mem::size_of::<dummy>();
     zmq_getsockopt (server, ZMQ_EVENTS, &dummy, &dummy_size);
 
     zmq_msg_t msg;

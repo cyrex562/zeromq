@@ -38,7 +38,7 @@ pub struct pub_t ZMQ_FINAL : public xpub_t
     pub_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~pub_t ();
 
-    //  Implementations of virtual functions from socket_base_t.
+    //  Implementations of virtual functions from ZmqSocketBase.
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false);

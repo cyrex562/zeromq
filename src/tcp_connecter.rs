@@ -68,7 +68,7 @@ pub struct tcp_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     //  then starts connection process.
     tcp_connecter_t (zmq::io_thread_t *io_thread_,
                      zmq::session_base_t *session_,
-                     const options_t &options_,
+                     const ZmqOptions &options_,
                      Address *addr_,
                      bool delayed_start_);
     ~tcp_connecter_t ();
@@ -113,7 +113,7 @@ pub struct tcp_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 
 zmq::tcp_connecter_t::tcp_connecter_t (class io_thread_t *io_thread_,
 pub struct session_base_t *session_,
-                                       const options_t &options_,
+                                       const ZmqOptions &options_,
                                        Address *addr_,
                                        bool delayed_start_) :
     stream_connecter_base_t (
@@ -255,14 +255,14 @@ int zmq::tcp_connecter_t::open ()
         int flag = 1;
 // #ifdef ZMQ_HAVE_WINDOWS
         rc = setsockopt (_s, SOL_SOCKET, SO_REUSEADDR,
-                         reinterpret_cast<const char *> (&flag), sizeof (int));
+                         reinterpret_cast<const char *> (&flag), mem::size_of::<int>());
         wsa_assert (rc != SOCKET_ERROR);
 #elif defined ZMQ_HAVE_VXWORKS
         rc = setsockopt (_s, SOL_SOCKET, SO_REUSEADDR, (char *) &flag,
-                         sizeof (int));
+                         mem::size_of::<int>());
         errno_assert (rc == 0);
 // #else
-        rc = setsockopt (_s, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof (int));
+        rc = setsockopt (_s, SOL_SOCKET, SO_REUSEADDR, &flag, mem::size_of::<int>());
         errno_assert (rc == 0);
 // #endif
 

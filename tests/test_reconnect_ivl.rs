@@ -38,7 +38,7 @@ void test_reconnect_ivl_against_pair_socket (my_endpoint_: *const c_char,
     void *sc = test_context_socket (ZMQ_PAIR);
     int interval = -1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_RECONNECT_IVL, &interval, sizeof (int)));
+      zmq_setsockopt (sc, ZMQ_RECONNECT_IVL, &interval, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc, my_endpoint_));
 
     bounce (sb_, sc);

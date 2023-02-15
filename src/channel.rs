@@ -1,15 +1,15 @@
 use libc::socket;
 use crate::pipe::pipe_t;
-use crate::socket_base::{socket_base_t, ZmqContext};
+use crate::socket_base::{ZmqSocketBase, ZmqContext};
 
 #[derive!(Default,Debug,Clone)]
-pub struct channel_t //: public socket_base_t
+pub struct channel_t //: public ZmqSocketBase
 {
 // public:
 //     channel_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
 //     ~channel_t ();
 //
-//     //  Overrides of functions from socket_base_t.
+//     //  Overrides of functions from ZmqSocketBase.
 //     void xattach_pipe (zmq::pipe_t *pipe_,
 //                        bool subscribe_to_all_,
 //                        bool locally_initiated_);
@@ -26,14 +26,14 @@ pub struct channel_t //: public socket_base_t
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (channel_t)
     pipe: pipe_t,
-    base: socket_base_t,
+    base: ZmqSocketBase,
 }
 
 impl channel_t {
     pub fn new(parent: *mut ZmqContext, tid: u32, sid: i32) -> Self {
         Self {
             pipe: Default::default(),
-            base: socket_base_t {
+            base: ZmqSocketBase {
                 parent,
                 tid,
                 sid,
@@ -46,7 +46,7 @@ impl channel_t {
 
 
 zmq::channel_t::channel_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
-    socket_base_t (parent_, tid_, sid_, true), _pipe (NULL)
+    ZmqSocketBase (parent_, tid_, sid_, true), _pipe (NULL)
 {
     options.type = ZMQ_CHANNEL;
 }

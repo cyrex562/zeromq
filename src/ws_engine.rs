@@ -164,7 +164,7 @@ pub struct ws_engine_t : public stream_engine_base_t
 {
 // public:
     ws_engine_t (fd_t fd_,
-                 const options_t &options_,
+                 const ZmqOptions &options_,
                  const endpoint_uri_pair_t &endpoint_uri_pair_,
                  const WsAddress &address_,
                  bool client_);
@@ -221,7 +221,7 @@ static void compute_accept_key (char *key_,
                                 unsigned char hash_[SHA_DIGEST_LENGTH]);
 
 zmq::ws_engine_t::ws_engine_t (fd_t fd_,
-                               const options_t &options_,
+                               const ZmqOptions &options_,
                                const endpoint_uri_pair_t &endpoint_uri_pair_,
                                const WsAddress &address_,
                                bool client_) :

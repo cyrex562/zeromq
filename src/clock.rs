@@ -268,7 +268,7 @@ u64 zmq::clock_t::rdtsc ()
 #elif defined(_MSC_VER) && defined(_M_ARM)   // NC => added for windows ARM
     return __rdpmccntr64 ();
 #elif defined(_MSC_VER) && defined(_M_ARM64) // NC => added for windows ARM64
-    const int64_t pmccntr_el0 = (((3 & 1) << 14) |  // op0
+    const i64 pmccntr_el0 = (((3 & 1) << 14) |  // op0
                                  ((3 & 7) << 11) |  // op1
                                  ((9 & 15) << 7) |  // crn
                                  ((13 & 15) << 3) | // crm

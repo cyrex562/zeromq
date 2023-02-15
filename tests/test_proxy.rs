@@ -86,7 +86,7 @@ static void client_task (db_: *mut c_void)
     TEST_ASSERT_NOT_NULL (endpoint);
     int linger = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (endpoint, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (endpoint, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     char endpoint_source[256];
     sprintf (endpoint_source, "inproc://endpoint%d", databag->id);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (endpoint, endpoint_source));
@@ -101,7 +101,7 @@ static void client_task (db_: *mut c_void)
     TEST_ASSERT_NOT_NULL (control);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (control, ZMQ_SUBSCRIBE, "", 0));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (control, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (control, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (control, "inproc://control"));
 
     char content[CONTENT_SIZE_MAX] = {};
@@ -113,7 +113,7 @@ static void client_task (db_: *mut c_void)
       ROUTING_ID_SIZE)); // includes '\0' as an helper for printf
     linger = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (client, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (client, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
     zmq_pollitem_t items[] = {{client, 0, ZMQ_POLLIN, 0},
@@ -128,7 +128,7 @@ static void client_task (db_: *mut c_void)
             zmq_poll (items, 2, 10);
             if (items[0].revents & ZMQ_POLLIN) {
                 rcvmore: i32;
-                size_t sz = sizeof (rcvmore);
+                size_t sz = mem::size_of::<rcvmore>();
                 int rc = TEST_ASSERT_SUCCESS_ERRNO (
                   zmq_recv (client, content, CONTENT_SIZE_MAX, 0));
                 TEST_ASSERT_EQUAL_INT (CONTENT_SIZE, rc);
@@ -197,21 +197,21 @@ void server_task (void * /*unused_*/)
     TEST_ASSERT_NOT_NULL (frontend);
     int linger = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (frontend, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (frontend, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     bind_loopback_ipv4 (frontend, my_endpoint, sizeof my_endpoint);
 
     // Backend socket talks to workers over inproc
     void *backend = zmq_socket (get_test_context (), ZMQ_DEALER);
     TEST_ASSERT_NOT_NULL (backend);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (backend, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (backend, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (backend, "inproc://backend"));
 
     // Control socket receives terminate command from main over inproc
     void *control = zmq_socket (get_test_context (), ZMQ_REP);
     TEST_ASSERT_NOT_NULL (control);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (control, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (control, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (control, "inproc://control_proxy"));
 
     // Launch pool of worker threads, precise number is not critical
@@ -227,7 +227,7 @@ void server_task (void * /*unused_*/)
         endpoint_receivers[i] = zmq_socket (get_test_context (), ZMQ_PAIR);
         TEST_ASSERT_NOT_NULL (endpoint_receivers[i]);
         TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-          endpoint_receivers[i], ZMQ_LINGER, &linger, sizeof (linger)));
+          endpoint_receivers[i], ZMQ_LINGER, &linger, mem::size_of::<linger>()));
         sprintf (endpoint_source, "inproc://endpoint%d", i);
         TEST_ASSERT_SUCCESS_ERRNO (
           zmq_bind (endpoint_receivers[i], endpoint_source));
@@ -262,7 +262,7 @@ static void server_worker (void * /*unused_*/)
     TEST_ASSERT_NOT_NULL (worker);
     int linger = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (worker, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (worker, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (worker, "inproc://backend"));
 
     // Control socket receives terminate command from main over inproc
@@ -270,7 +270,7 @@ static void server_worker (void * /*unused_*/)
     TEST_ASSERT_NOT_NULL (control);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (control, ZMQ_SUBSCRIBE, "", 0));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (control, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (control, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (control, "inproc://control"));
 
     char content[CONTENT_SIZE_MAX] =
@@ -334,7 +334,7 @@ u64 recv_stat (sock_: *mut c_void, bool last_)
     zmq_msg_t stats_msg;
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&stats_msg));
-    TEST_ASSERT_EQUAL_INT (sizeof (u64),
+    TEST_ASSERT_EQUAL_INT (mem::size_of::<u64>(),
                            zmq_recvmsg (sock_, &stats_msg, 0));
     memcpy (&res, zmq_msg_data (&stats_msg), zmq_msg_size (&stats_msg));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&stats_msg));
@@ -416,13 +416,13 @@ void test_proxy ()
     void *control = test_context_socket (ZMQ_PUB);
     int linger = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (control, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (control, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (control, "inproc://control"));
 
     // Control socket receives terminate command from main over inproc
     void *control_proxy = test_context_socket (ZMQ_REQ);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (control_proxy, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (control_proxy, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_bind (control_proxy, "inproc://control_proxy"));
 

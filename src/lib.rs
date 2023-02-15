@@ -1,3 +1,5 @@
+extern crate core;
+
 pub mod zmq_ops;
 pub mod curve_mechanism_base;
 mod address;
@@ -152,3 +154,5 @@ mod zmq_draft_hdr;
 mod zmq_hdr;
 mod zmq_utils;
 mod zmtp_engine;
+mod thread_ctx;
+mod pending_connection;

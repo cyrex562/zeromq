@@ -58,7 +58,7 @@ pub struct thread_t
         _thread_priority (ZMQ_THREAD_PRIORITY_DFLT),
         _thread_sched_policy (ZMQ_THREAD_SCHED_POLICY_DFLT)
     {
-        memset (_name, 0, sizeof (_name));
+        memset (_name, 0, mem::size_of::<_name>());
     }
 
 // #ifdef ZMQ_HAVE_VXWORKS
@@ -156,7 +156,7 @@ void zmq::thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_c
     _tfn = tfn_;
     _arg = arg_;
     if (name_)
-        strncpy (_name, name_, sizeof (_name) - 1);
+        strncpy (_name, name_, mem::size_of::<_name>() - 1);
 
     // set default stack size to 4MB to avoid std::map stack overflow on x64
     unsigned int stack = 0;
@@ -239,7 +239,7 @@ void zmq::thread_t::
     __try {
         const DWORD MS_VC_EXCEPTION = 0x406D1388;
         RaiseException (MS_VC_EXCEPTION, 0,
-                        sizeof (thread_info) / sizeof (ULONG_PTR),
+                        mem::size_of::<thread_info>() / mem::size_of::<ULONG_PTR>(),
                         (ULONG_PTR *) &thread_info);
     }
     __except (EXCEPTION_CONTINUE_EXECUTION) {
@@ -353,7 +353,7 @@ void zmq::thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_c
     _tfn = tfn_;
     _arg = arg_;
     if (name_)
-        strncpy (_name, name_, sizeof (_name) - 1);
+        strncpy (_name, name_, mem::size_of::<_name>() - 1);
     int rc = pthread_create (&_descriptor, NULL, thread_routine, this);
     posix_assert (rc);
     _started = true;
@@ -457,7 +457,7 @@ void zmq::thread_t::
             CPU_SET ((int) (*it), &cpuset);
         }
         rc =
-          pthread_setaffinity_np (pthread_self (), sizeof (cpu_set_t), &cpuset);
+          pthread_setaffinity_np (pthread_self (), mem::size_of::<cpu_set_t>(), &cpuset);
         posix_assert (rc);
     }
 // #endif

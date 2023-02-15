@@ -47,7 +47,7 @@ void test_timeo ()
     const int timeout = 250;
     const int jitter = 50;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (frontend, ZMQ_RCVTIMEO, &timeout, sizeof (int)));
+      zmq_setsockopt (frontend, ZMQ_RCVTIMEO, &timeout, mem::size_of::<int>()));
 
     void *stopwatch = zmq_stopwatch_start ();
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (frontend, buffer, 32, 0));
@@ -65,7 +65,7 @@ void test_timeo ()
     void *backend = test_context_socket (ZMQ_DEALER);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (backend, "inproc://timeout_test"));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (backend, ZMQ_SNDTIMEO, &timeout, sizeof (int)));
+      zmq_setsockopt (backend, ZMQ_SNDTIMEO, &timeout, mem::size_of::<int>()));
 
     send_string_expect_success (backend, "Hello", 0);
     recv_string_expect_success (frontend, "Hello", 0);

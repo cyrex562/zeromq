@@ -59,7 +59,7 @@ pub struct select_t ZMQ_FINAL : public worker_poller_base_t
 // public:
     typedef fd_t handle_t;
 
-    select_t (const thread_ctx_t &ctx_);
+    select_t (const ThreadCtx &ctx_);
     ~select_t () ZMQ_FINAL;
 
     //  "poller" concept.
@@ -162,7 +162,7 @@ pub struct select_t ZMQ_FINAL : public worker_poller_base_t
 
 typedef select_t poller_t;
 
-zmq::select_t::select_t (const zmq::thread_ctx_t &ctx_) :
+zmq::select_t::select_t (const zmq::ThreadCtx &ctx_) :
     worker_poller_base_t (ctx_),
 // #if defined ZMQ_HAVE_WINDOWS
     //  Fine as long as map is not cleared.
@@ -688,7 +688,7 @@ u_short zmq::select_t::determine_fd_family (fd_t fd_)
     int addr_size = sizeof addr;
 
     type: i32;
-    int type_length = sizeof (int);
+    int type_length = mem::size_of::<int>();
 
     int rc = getsockopt (fd_, SOL_SOCKET, SO_TYPE,
                          reinterpret_cast<char *> (&type), &type_length);

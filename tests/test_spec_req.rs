@@ -87,7 +87,7 @@ void test_req_only_listens_to_current_peer (bind_address_: *const c_char)
 
         int enabled = 1;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-          router[i], ZMQ_ROUTER_MANDATORY, &enabled, sizeof (enabled)));
+          router[i], ZMQ_ROUTER_MANDATORY, &enabled, mem::size_of::<enabled>()));
 
         TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (router[i], connect_address));
     }
@@ -149,7 +149,7 @@ void test_req_message_format (bind_address_: *const c_char)
     zmq_msg_copy (&peer_id_msg, &msg);
 
     int more = 0;
-    size_t more_size = sizeof (more);
+    size_t more_size = mem::size_of::<more>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (router, ZMQ_RCVMORE, &more, &more_size));
     TEST_ASSERT_TRUE (more);
@@ -178,7 +178,7 @@ void test_block_on_send_no_peers ()
 
     int timeout = 250;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_SNDTIMEO, &timeout, sizeof (timeout)));
+      zmq_setsockopt (sc, ZMQ_SNDTIMEO, &timeout, mem::size_of::<timeout>()));
 
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_send (sc, 0, 0, ZMQ_DONTWAIT));
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_send (sc, 0, 0, 0));

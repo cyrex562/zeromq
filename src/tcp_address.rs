@@ -40,8 +40,8 @@ impl TcpAddress {
     // int to_string (std::string &addr_) const;
     // TcpAddress () : _has_src_addr (false)
     // {
-    //     memset (&_address, 0, sizeof (_address));
-    //     memset (&_source_address, 0, sizeof (_source_address));
+    //     memset (&_address, 0, mem::size_of::<_address>());
+    //     memset (&_source_address, 0, mem::size_of::<_source_address>());
     // }
     
     // TcpAddress (const sockaddr *sa_, socklen_t sa_len_) :
@@ -49,8 +49,8 @@ impl TcpAddress {
     // {
     //     zmq_assert (sa_ && sa_len_ > 0);
     // 
-    //     memset (&_address, 0, sizeof (_address));
-    //     memset (&_source_address, 0, sizeof (_source_address));
+    //     memset (&_address, 0, mem::size_of::<_address>());
+    //     memset (&_source_address, 0, mem::size_of::<_source_address>());
     //     if (sa_->sa_family == AF_INET
     //         && sa_len_ >= static_cast<socklen_t> (sizeof (_address.ipv4)))
     //         memcpy (&_address.ipv4, sa_, sizeof (_address.ipv4));
@@ -126,7 +126,7 @@ impl TcpAddress {
         //  https://github.com/zeromq/libzmq/commit/1824574f9b5a8ce786853320e3ea09fe1f822bc4
         // char hbuf[NI_MAXHOST];
         // let mut hbuf = String::new();
-        // let mut rc = libc::getnameinfo(addr (), addrlen (), hbuf, sizeof (hbuf), NULL,
+        // let mut rc = libc::getnameinfo(addr (), addrlen (), hbuf, mem::size_of::<hbuf>(), NULL,
         //                             0, NI_NUMERICHOST);
         // dns_lookup::getnameinfo()
         // if (rc != 0) {

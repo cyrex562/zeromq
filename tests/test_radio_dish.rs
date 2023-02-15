@@ -165,7 +165,7 @@ void test_radio_dish_tcp_poll (ipv6_: i32)
     void *dish = test_context_socket (ZMQ_DISH);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (dish, ZMQ_IPV6, &ipv6_, sizeof (int)));
+      zmq_setsockopt (dish, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
 
     // Joining
     TEST_ASSERT_SUCCESS_ERRNO (zmq_join (dish, "Movies"));
@@ -228,7 +228,7 @@ void test_dish_connect_fails (ipv6_: i32)
     void *dish = test_context_socket (ZMQ_DISH);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (dish, ZMQ_IPV6, &ipv6_, sizeof (int)));
+      zmq_setsockopt (dish, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
 
     const char *url = ipv6_ ? "udp://[::1]:5556" : "udp://127.0.0.1:5556";
 
@@ -244,7 +244,7 @@ void test_radio_bind_fails (ipv6_: i32)
     void *radio = test_context_socket (ZMQ_RADIO);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (radio, ZMQ_IPV6, &ipv6_, sizeof (int)));
+      zmq_setsockopt (radio, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
 
     //  Connecting dish should fail
     //  Bind radio should fail
@@ -261,9 +261,9 @@ void test_radio_dish_udp (ipv6_: i32)
     void *dish = test_context_socket (ZMQ_DISH);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (radio, ZMQ_IPV6, &ipv6_, sizeof (int)));
+      zmq_setsockopt (radio, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (dish, ZMQ_IPV6, &ipv6_, sizeof (int)));
+      zmq_setsockopt (dish, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
 
     const char *radio_url = ipv6_ ? "udp://[::1]:5556" : "udp://127.0.0.1:5556";
 
@@ -388,14 +388,14 @@ static bool is_multicast_available (ipv6_: i32)
         mreq.ipv6mr_interface = 0;
 
         rc = setsockopt (bind_sock, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP,
-                         as_setsockopt_opt_t (&mreq), sizeof (mreq));
+                         as_setsockopt_opt_t (&mreq), mem::size_of::<mreq>());
         if (rc < 0) {
             goto out;
         }
 
         int loop = 1;
         rc = setsockopt (send_sock, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
-                         as_setsockopt_opt_t (&loop), sizeof (loop));
+                         as_setsockopt_opt_t (&loop), mem::size_of::<loop>());
         if (rc < 0) {
             goto out;
         }
@@ -407,14 +407,14 @@ static bool is_multicast_available (ipv6_: i32)
         mreq.imr_interface.s_addr = htonl (INADDR_ANY);
 
         rc = setsockopt (bind_sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-                         as_setsockopt_opt_t (&mreq), sizeof (mreq));
+                         as_setsockopt_opt_t (&mreq), mem::size_of::<mreq>());
         if (rc < 0) {
             goto out;
         }
 
         int loop = 1;
         rc = setsockopt (send_sock, IPPROTO_IP, IP_MULTICAST_LOOP,
-                         as_setsockopt_opt_t (&loop), sizeof (loop));
+                         as_setsockopt_opt_t (&loop), mem::size_of::<loop>());
         if (rc < 0) {
             goto out;
         }
@@ -430,7 +430,7 @@ static bool is_multicast_available (ipv6_: i32)
 
     msleep (SETTLE_TIME);
 
-    rc = recvfrom (bind_sock, buf, sizeof (buf) - 1, 0, NULL, 0);
+    rc = recvfrom (bind_sock, buf, mem::size_of::<buf>() - 1, 0, NULL, 0);
     if (rc < 0) {
         goto out;
     }
@@ -467,9 +467,9 @@ static void test_radio_dish_mcast (ipv6_: i32)
     void *dish = test_context_socket (ZMQ_DISH);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (radio, ZMQ_IPV6, &ipv6_, sizeof (int)));
+      zmq_setsockopt (radio, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (dish, ZMQ_IPV6, &ipv6_, sizeof (int)));
+      zmq_setsockopt (dish, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
 
     const char *url = mcast_url (ipv6_);
 
@@ -500,14 +500,14 @@ static void test_radio_dish_no_loop (ipv6_: i32)
     void *dish = test_context_socket (ZMQ_DISH);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (radio, ZMQ_IPV6, &ipv6_, sizeof (int)));
+      zmq_setsockopt (radio, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (dish, ZMQ_IPV6, &ipv6_, sizeof (int)));
+      zmq_setsockopt (dish, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
 
     //  Disable multicast loop for radio
     int loop = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (radio, ZMQ_MULTICAST_LOOP, &loop, sizeof (int)));
+      zmq_setsockopt (radio, ZMQ_MULTICAST_LOOP, &loop, mem::size_of::<int>()));
 
     const char *url = mcast_url (ipv6_);
 

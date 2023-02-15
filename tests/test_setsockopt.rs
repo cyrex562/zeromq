@@ -39,7 +39,7 @@ void test_setsockopt_tcp_recv_buffer ()
     void *socket = test_context_socket (ZMQ_PUSH);
 
     int val = 0;
-    size_t placeholder = sizeof (val);
+    size_t placeholder = mem::size_of::<val>();
 
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (socket, ZMQ_RCVBUF, &val, &placeholder));
@@ -48,7 +48,7 @@ void test_setsockopt_tcp_recv_buffer ()
     val = 16384;
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (socket, ZMQ_RCVBUF, &val, sizeof (val)));
+      zmq_setsockopt (socket, ZMQ_RCVBUF, &val, mem::size_of::<val>()));
     TEST_ASSERT_EQUAL_INT (16384, val);
 
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -63,7 +63,7 @@ void test_setsockopt_tcp_send_buffer ()
     void *socket = test_context_socket (ZMQ_PUSH);
 
     int val = 0;
-    size_t placeholder = sizeof (val);
+    size_t placeholder = mem::size_of::<val>();
 
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (socket, ZMQ_SNDBUF, &val, &placeholder));
@@ -72,7 +72,7 @@ void test_setsockopt_tcp_send_buffer ()
     val = 16384;
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (socket, ZMQ_SNDBUF, &val, sizeof (val)));
+      zmq_setsockopt (socket, ZMQ_SNDBUF, &val, mem::size_of::<val>()));
     TEST_ASSERT_EQUAL_INT (16384, val);
 
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -87,7 +87,7 @@ void test_setsockopt_use_fd ()
     void *socket = test_context_socket (ZMQ_PUSH);
 
     int val = 0;
-    size_t placeholder = sizeof (val);
+    size_t placeholder = mem::size_of::<val>();
 
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (socket, ZMQ_USE_FD, &val, &placeholder));
@@ -96,7 +96,7 @@ void test_setsockopt_use_fd ()
     val = 3;
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (socket, ZMQ_USE_FD, &val, sizeof (val)));
+      zmq_setsockopt (socket, ZMQ_USE_FD, &val, mem::size_of::<val>()));
     TEST_ASSERT_EQUAL_INT (3, val);
 
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -144,7 +144,7 @@ void test_setsockopt_priority ()
     void *socket = test_context_socket (ZMQ_PUSH);
 
     int val = 5;
-    size_t placeholder = sizeof (val);
+    size_t placeholder = mem::size_of::<val>();
 
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (socket, ZMQ_PRIORITY, &val, &placeholder));
@@ -153,7 +153,7 @@ void test_setsockopt_priority ()
     val = 3;
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (socket, ZMQ_PRIORITY, &val, sizeof (val)));
+      zmq_setsockopt (socket, ZMQ_PRIORITY, &val, mem::size_of::<val>()));
     TEST_ASSERT_EQUAL_INT (3, val);
 
     TEST_ASSERT_SUCCESS_ERRNO (

@@ -1,4 +1,5 @@
-use crate::socket_base::socket_base_t;
+use crate::socket_base::ZmqSocketBase;
+use crate::options::ZmqOptions;
 
 pub enum EndpointType {
     endpoint_type_none,
@@ -68,11 +69,10 @@ pub fn make_unconnected_bind_endpoint_pair(endpoint: &str) -> EndpointUriPair {
 //  Information associated with inproc endpoint. Note that endpoint options
 //  are registered as well so that the peer can access them without a need
 //  for synchronisation, handshaking or similar.
-#[derive(Default,Debug,Clone)]
-pub struct ZmqEndpoint
-{
-    // socket_base_t *socket;
-    pub socket: *mut socket_base_t,
-    // options_t options;
-    pub options: options_t,
+#[derive(Default, Debug, Clone)]
+pub struct ZmqEndpoint {
+    // ZmqSocketBase *socket;
+    pub socket: *mut ZmqSocketBase,
+    // ZmqOptions options;
+    pub options: ZmqOptions,
 }

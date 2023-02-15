@@ -39,10 +39,10 @@ void test_roundtrip ()
 
     //  Create a req/rep device.
     void *dealer = test_context_socket (ZMQ_DEALER);
-    bind_loopback_ipv4 (dealer, endpoint1, sizeof (endpoint1));
+    bind_loopback_ipv4 (dealer, endpoint1, mem::size_of::<endpoint1>());
 
     void *router = test_context_socket (ZMQ_ROUTER);
-    bind_loopback_ipv4 (router, endpoint2, sizeof (endpoint2));
+    bind_loopback_ipv4 (router, endpoint2, mem::size_of::<endpoint2>());
 
     //  Create a worker.
     void *rep = test_context_socket (ZMQ_REP);
@@ -62,7 +62,7 @@ void test_roundtrip ()
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, router, 0));
         rcvmore: i32;
-        size_t sz = sizeof (rcvmore);
+        size_t sz = mem::size_of::<rcvmore>();
         TEST_ASSERT_SUCCESS_ERRNO (
           zmq_getsockopt (router, ZMQ_RCVMORE, &rcvmore, &sz));
         TEST_ASSERT_SUCCESS_ERRNO (
@@ -72,7 +72,7 @@ void test_roundtrip ()
     //  Receive the request.
     recv_string_expect_success (rep, "ABC", 0);
     rcvmore: i32;
-    size_t sz = sizeof (rcvmore);
+    size_t sz = mem::size_of::<rcvmore>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (rep, ZMQ_RCVMORE, &rcvmore, &sz));
     TEST_ASSERT_TRUE (rcvmore);
@@ -91,7 +91,7 @@ void test_roundtrip ()
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, dealer, 0));
         rcvmore: i32;
-        size_t sz = sizeof (rcvmore);
+        size_t sz = mem::size_of::<rcvmore>();
         TEST_ASSERT_SUCCESS_ERRNO (
           zmq_getsockopt (dealer, ZMQ_RCVMORE, &rcvmore, &sz));
         TEST_ASSERT_SUCCESS_ERRNO (

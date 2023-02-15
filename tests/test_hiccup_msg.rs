@@ -35,7 +35,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 void test ()
 {
     char address[MAX_SOCKET_STRING];
-    size_t addr_length = sizeof (address);
+    size_t addr_length = mem::size_of::<address>();
 
     //  Create a server
     void *server = test_context_socket (ZMQ_SERVER);

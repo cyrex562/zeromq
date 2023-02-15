@@ -32,37 +32,37 @@ send random size message to each socket and check server answer
 
 void message_fill(zmq_msg_t* msg, val: i32) {
 	assert(val > 0);
-	int size = sizeof(int) * 2 + val;
+	int size = mem::size_of::<int>() * 2 + val;
 	int rc = zmq_msg_init_size(msg, size); assert(rc == 0);
 	uint8_t* data = (uint8_t*)zmq_msg_data(msg);
-	memcpy(data, &val, sizeof(int));
-	data += sizeof(int);
+	memcpy(data, &val, mem::size_of::<int>());
+	data += mem::size_of::<int>();
 	memset(data, val & 0xFF, val);
 	int check_sum = val + (val & 0xFF) * val;
 	data += val;
-	memcpy(data, &check_sum, sizeof(int));
+	memcpy(data, &check_sum, mem::size_of::<int>());
 }
 
 int message_check(zmq_msg_t* msg) {
 	uint8_t* data = (uint8_t*)zmq_msg_data(msg);
 	int size = zmq_msg_size(msg);
-	assert(size > sizeof(int) * 2);
+	assert(size > mem::size_of::<int>() * 2);
 	// check size
 	val: i32;
-	memcpy(&val, data, sizeof(int));
-	if(size != sizeof(int) * 2 + val) {
+	memcpy(&val, data, mem::size_of::<int>());
+	if(size != mem::size_of::<int>() * 2 + val) {
 		fprintf(stderr, "wrong message: val = %d size = %d\n", val, size);
 		return -1;
 	}
 	// check sum
-	data += sizeof(int);
+	data += mem::size_of::<int>();
 	int cs = val;
 	for(int i = 0; i < val; i++) {
 		cs += data[i];
 	}
 	data += val;
 	check_sum: i32;
-	memcpy(&check_sum, data, sizeof(int));
+	memcpy(&check_sum, data, mem::size_of::<int>());
 	if(check_sum != cs) {
 		fprintf(stderr, "wrong message: cs = %d check_sum = %d\n", cs, check_sum);
 		return -1;

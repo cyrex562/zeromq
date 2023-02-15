@@ -62,8 +62,8 @@ pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
     tcp_listener_t (zmq::io_thread_t *io_thread_,
-                    socket_: *mut socket_base_t,
-                    const options_t &options_);
+                    socket_: *mut ZmqSocketBase,
+                    const ZmqOptions &options_);
 
     //  Set address to listen on.
     int set_local_address (addr_: *const c_char);
@@ -90,8 +90,8 @@ pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
 };
 
 zmq::tcp_listener_t::tcp_listener_t (io_thread_t *io_thread_,
-                                     socket_base_t *socket_,
-                                     const options_t &options_) :
+                                     ZmqSocketBase *socket_,
+                                     const ZmqOptions &options_) :
     stream_listener_base_t (io_thread_, socket_, options_)
 {
 }
@@ -151,14 +151,14 @@ int zmq::tcp_listener_t::create_socket (addr_: *const c_char)
     //  different between listener and connecter with a src address.
     //  is this intentional?
     rc = setsockopt (_s, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
-                     reinterpret_cast<const char *> (&flag), sizeof (int));
+                     reinterpret_cast<const char *> (&flag), mem::size_of::<int>());
     wsa_assert (rc != SOCKET_ERROR);
 #elif defined ZMQ_HAVE_VXWORKS
     rc =
-      setsockopt (_s, SOL_SOCKET, SO_REUSEADDR, (char *) &flag, sizeof (int));
+      setsockopt (_s, SOL_SOCKET, SO_REUSEADDR, (char *) &flag, mem::size_of::<int>());
     errno_assert (rc == 0);
 // #else
-    rc = setsockopt (_s, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof (int));
+    rc = setsockopt (_s, SOL_SOCKET, SO_REUSEADDR, &flag, mem::size_of::<int>());
     errno_assert (rc == 0);
 // #endif
 
@@ -225,11 +225,11 @@ zmq::fd_t zmq::tcp_listener_t::accept ()
     zmq_assert (_s != retired_fd);
 
     struct sockaddr_storage ss;
-    memset (&ss, 0, sizeof (ss));
+    memset (&ss, 0, mem::size_of::<ss>());
 // #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
-    int ss_len = sizeof (ss);
+    int ss_len = mem::size_of::<ss>();
 // #else
-    socklen_t ss_len = sizeof (ss);
+    socklen_t ss_len = mem::size_of::<ss>();
 // #endif
 // #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
     fd_t sock = ::accept4 (_s, reinterpret_cast<struct sockaddr *> (&ss),
@@ -262,7 +262,7 @@ zmq::fd_t zmq::tcp_listener_t::accept ()
 
     if (!options.tcp_accept_filters.empty ()) {
         bool matched = false;
-        for (options_t::tcp_accept_filters_t::size_type
+        for (ZmqOptions::tcp_accept_filters_t::size_type
                i = 0,
                size = options.tcp_accept_filters.size ();
              i != size; ++i) {

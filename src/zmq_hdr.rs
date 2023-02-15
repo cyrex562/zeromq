@@ -350,9 +350,9 @@ pub const ZMQ_BACKLOG: u8 = 19;
 // #define ZMQ_RECONNECT_IVL_MAX 21
 pub const ZMQ_RECONNECT_IVL_MAX: u8 = 21;
 // #define ZMQ_MAXMSGSIZE 22
-pub const ZMQ_MAXMSGZIE: u8 = 22;
+pub const ZMQ_MAXMSGSIZE: u8 = 22;
 // #define ZMQ_SNDHWM 23
-pub const ZMQ_SNDHWM: u8 = 23;
+pub const ZMQ_SNDHWM: i32 = 23;
 // #define ZMQ_RCVHWM 24
 pub const ZMQ_RCVHWM: u8 = 24;
 pub const ZMQ_MULTICAST_HOPS: u8 = 25;
@@ -389,6 +389,7 @@ pub const ZMQ_GSSAPI_PRINCIPAL: u8 = 63;
 pub const ZMQ_GSSAPI_SERVICE_PRINCIPAL: u8 = 64;
 pub const ZMQ_GSSAPI_PLAINTEXT: u8 = 65;
 pub const ZMQ_HANDSHAKE_IVL: u8 = 66;
+pub const ZMQ_SOCKS_USERNAME: i32 = 67;
 pub const ZMQ_SOCKS_PROXY: u8 = 68;
 pub const ZMQ_XPUB_NODROP: u8 = 69;
 pub const ZMQ_BLOCKY: u8 = 70;
@@ -795,7 +796,7 @@ pub const ZMQ_WSS_TRUST_PEM: u8 = 105;
 // #define ZMQ_WSS_HOSTNAME 106
 pub const ZMQ_WSS_HOSTNAME: u8 = 106;
 // #define ZMQ_WSS_TRUST_SYSTEM 107
-pub const ZMQ_WSS_TRUST_SYSTESM: u8 = 107;
+pub const ZMQ_WSS_TRUST_SYSTEM: u8 = 107;
 // #define ZMQ_ONLY_FIRST_SUBSCRIBE 108
 pub const ZMQ_ONLY_FIRST_SUBSCRIBE: u8 = 108;
 // #define ZMQ_RECONNECT_STOP 109
@@ -825,6 +826,7 @@ pub const ZMQ_RECONNECT_STOP_AFTER_DISCONNECT: u8 = 0x4;
 
 /*  DRAFT Context options                                                     */
 // #define ZMQ_ZERO_COPY_RECV 10
+pub const ZMQ_ZERO_COPY_RECV: i32 = 10;
 
 /*  DRAFT Context methods.                                                    */
 // ZMQ_EXPORT int zmq_ctx_set_ext (context_: *mut c_void,

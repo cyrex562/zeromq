@@ -50,12 +50,12 @@ void recv_string_expect_success_or_eagain (socket_: *mut c_void,
 {
     const size_t len = str_ ? strlen (str_) : 0;
     char buffer[255];
-    TEST_ASSERT_LESS_OR_EQUAL_MESSAGE (sizeof (buffer), len,
+    TEST_ASSERT_LESS_OR_EQUAL_MESSAGE (mem::size_of::<buffer>(), len,
                                        "recv_string_expect_success cannot be "
                                        "used for strings longer than 255 "
                                        "characters");
 
-    const int rc = zmq_recv (socket_, buffer, sizeof (buffer), flags_);
+    const int rc = zmq_recv (socket_, buffer, mem::size_of::<buffer>(), flags_);
     if (rc < 0) {
         if (errno == EAGAIN) {
             printf ("got EAGAIN\n");
@@ -94,7 +94,7 @@ void test_ppoll_signals ()
         // to make sure we don't hang when the child has already exited at the end, we set a receive timeout of five seconds
         int recv_timeout = 5000;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-          socket, ZMQ_RCVTIMEO, &recv_timeout, sizeof (recv_timeout)));
+          socket, ZMQ_RCVTIMEO, &recv_timeout, mem::size_of::<recv_timeout>()));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (socket, my_endpoint));
         // bind is on the master process to avoid zombie children to hold on to binds
 
@@ -145,7 +145,7 @@ void test_ppoll_signals ()
         sigaddset (&sigmask, SIGTERM);
         sigprocmask (SIG_BLOCK, &sigmask, &sigmask_without_sigterm);
         struct sigaction sa;
-        memset (&sa, '\0', sizeof (sa));
+        memset (&sa, '\0', mem::size_of::<sa>());
         sa.sa_handler = handle_sigterm;
         TEST_ASSERT_SUCCESS_ERRNO (sigaction (SIGTERM, &sa, NULL));
 

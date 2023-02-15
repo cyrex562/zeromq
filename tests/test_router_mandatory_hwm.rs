@@ -49,13 +49,13 @@ void test_router_mandatory_hwm ()
     // Configure router socket to mandatory routing and set HWM and linger
     int mandatory = 1;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (router, ZMQ_ROUTER_MANDATORY,
-                                               &mandatory, sizeof (mandatory)));
+                                               &mandatory, mem::size_of::<mandatory>()));
     int sndhwm = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (router, ZMQ_SNDHWM, &sndhwm, sizeof (sndhwm)));
+      zmq_setsockopt (router, ZMQ_SNDHWM, &sndhwm, mem::size_of::<sndhwm>()));
     int linger = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (router, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (router, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
 
     bind_loopback_ipv4 (router, my_endpoint, sizeof my_endpoint);
 
@@ -64,7 +64,7 @@ void test_router_mandatory_hwm ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (dealer, ZMQ_ROUTING_ID, "X", 1));
     int rcvhwm = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (dealer, ZMQ_RCVHWM, &rcvhwm, sizeof (rcvhwm)));
+      zmq_setsockopt (dealer, ZMQ_RCVHWM, &rcvhwm, mem::size_of::<rcvhwm>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (dealer, my_endpoint));
 

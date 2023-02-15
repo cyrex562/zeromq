@@ -85,7 +85,7 @@ static void recv_bounce_msg (socket_: *mut c_void)
 {
     recv_string_expect_success (socket_, bounce_content, 0);
     rcvmore: i32;
-    size_t sz = sizeof (rcvmore);
+    size_t sz = mem::size_of::<rcvmore>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (socket_, ZMQ_RCVMORE, &rcvmore, &sz));
     TEST_ASSERT_TRUE (rcvmore);
@@ -115,7 +115,7 @@ static void send_bounce_msg_may_fail (socket_: *mut c_void)
 {
     int timeout = 250;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (socket_, ZMQ_SNDTIMEO, &timeout, sizeof (int)));
+      zmq_setsockopt (socket_, ZMQ_SNDTIMEO, &timeout, mem::size_of::<int>()));
     int rc = zmq_send (socket_, bounce_content, 32, ZMQ_SNDMORE);
     TEST_ASSERT_TRUE ((rc == 32) || ((rc == -1) && (errno == EAGAIN)));
     rc = zmq_send (socket_, bounce_content, 32, 0);
@@ -127,7 +127,7 @@ static void recv_bounce_msg_fail (socket_: *mut c_void)
     int timeout = 250;
     char buffer[32];
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (socket_, ZMQ_RCVTIMEO, &timeout, sizeof (int)));
+      zmq_setsockopt (socket_, ZMQ_RCVTIMEO, &timeout, mem::size_of::<int>()));
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (socket_, buffer, 32, 0));
 }
 
@@ -188,7 +188,7 @@ void s_recv_seq (socket_: *mut c_void, ...)
     zmq_msg_init (&msg);
 
     more: i32;
-    size_t more_size = sizeof (more);
+    size_t more_size = mem::size_of::<more>();
 
     va_list ap;
     va_start (ap, socket_);
@@ -220,7 +220,7 @@ void s_recv_seq (socket_: *mut c_void, ...)
 void close_zero_linger (socket_: *mut c_void)
 {
     int linger = 0;
-    int rc = zmq_setsockopt (socket_, ZMQ_LINGER, &linger, sizeof (linger));
+    int rc = zmq_setsockopt (socket_, ZMQ_LINGER, &linger, mem::size_of::<linger>());
     TEST_ASSERT_TRUE (rc == 0 || errno == ETERM);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_close (socket_));
 }
@@ -268,7 +268,7 @@ int is_ipv6_available ()
     rc: i32, ipv6 = 1;
     struct sockaddr_in6 test_addr;
 
-    memset (&test_addr, 0, sizeof (test_addr));
+    memset (&test_addr, 0, mem::size_of::<test_addr>());
     test_addr.sin6_family = AF_INET6;
     inet_pton (AF_INET6, "::1", &(test_addr.sin6_addr));
 
@@ -278,24 +278,24 @@ int is_ipv6_available ()
     else {
 // #ifdef ZMQ_HAVE_WINDOWS
         setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, (const char *) &ipv6,
-                    sizeof (int));
+                    mem::size_of::<int>());
         rc = setsockopt (fd, IPPROTO_IPV6, IPV6_V6ONLY, (const char *) &ipv6,
-                         sizeof (int));
+                         mem::size_of::<int>());
         if (rc == SOCKET_ERROR)
             ipv6 = 0;
         else {
-            rc = bind (fd, (struct sockaddr *) &test_addr, sizeof (test_addr));
+            rc = bind (fd, (struct sockaddr *) &test_addr, mem::size_of::<test_addr>());
             if (rc == SOCKET_ERROR)
                 ipv6 = 0;
         }
 // #else
-        setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, &ipv6, sizeof (int));
-        rc = setsockopt (fd, IPPROTO_IPV6, IPV6_V6ONLY, &ipv6, sizeof (int));
+        setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, &ipv6, mem::size_of::<int>());
+        rc = setsockopt (fd, IPPROTO_IPV6, IPV6_V6ONLY, &ipv6, mem::size_of::<int>());
         if (rc != 0)
             ipv6 = 0;
         else {
             rc = bind (fd, reinterpret_cast<struct sockaddr *> (&test_addr),
-                       sizeof (test_addr));
+                       mem::size_of::<test_addr>());
             if (rc != 0)
                 ipv6 = 0;
         }
@@ -356,7 +356,7 @@ int test_inet_pton (af_: i32, src_: *const c_char, dst_: *mut c_void)
 sockaddr_in bind_bsd_socket (socket_: i32)
 {
     struct sockaddr_in saddr;
-    memset (&saddr, 0, sizeof (saddr));
+    memset (&saddr, 0, mem::size_of::<saddr>());
     saddr.sin_family = AF_INET;
     saddr.sin_addr.s_addr = INADDR_ANY;
 // #if !defined(_WIN32_WINNT) || (_WIN32_WINNT >= 0x0600)
@@ -366,10 +366,10 @@ sockaddr_in bind_bsd_socket (socket_: i32)
 // #endif
 
     TEST_ASSERT_SUCCESS_RAW_ERRNO (
-      bind (socket_, (struct sockaddr *) &saddr, sizeof (saddr)));
+      bind (socket_, (struct sockaddr *) &saddr, mem::size_of::<saddr>()));
 
 // #if !defined(_WIN32_WINNT) || (_WIN32_WINNT >= 0x0600)
-    socklen_t saddr_len = sizeof (saddr);
+    socklen_t saddr_len = mem::size_of::<saddr>();
     TEST_ASSERT_SUCCESS_RAW_ERRNO (
       getsockname (socket_, (struct sockaddr *) &saddr, &saddr_len));
 // #endif
@@ -469,7 +469,7 @@ fd_t bind_socket_resolve_port (address_: *const c_char,
         hint.ai_protocol = protocol_ == IPPROTO_UDP ? IPPROTO_UDP : IPPROTO_TCP;
 
         TEST_ASSERT_SUCCESS_RAW_ERRNO (
-          setsockopt (s_pre, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof (int)));
+          setsockopt (s_pre, SOL_SOCKET, SO_REUSEADDR, &flag, mem::size_of::<int>()));
         TEST_ASSERT_SUCCESS_RAW_ZERO_ERRNO (
           getaddrinfo (address_, port_, &hint, &in));
         TEST_ASSERT_NOT_NULL (in);
@@ -599,14 +599,14 @@ int fuzzer_corpus_encode (dirname: *const c_char,
             continue;
         }
 
-        *len = (size_t *) realloc (*len, (*num_cases + 1) * sizeof (size_t));
+        *len = (size_t *) realloc (*len, (*num_cases + 1) * mem::size_of::<size_t>());
         TEST_ASSERT_NOT_NULL (*len);
         *(*len + *num_cases) = file_len;
         *data =
           (uint8_t **) realloc (*data, (*num_cases + 1) * sizeof (uint8_t *));
         TEST_ASSERT_NOT_NULL (*data);
         *(*data + *num_cases) =
-          (uint8_t *) malloc (file_len * sizeof (uint8_t));
+          (uint8_t *) malloc (file_len * mem::size_of::<uint8_t>());
         TEST_ASSERT_NOT_NULL (*(*data + *num_cases));
         size_t read_bytes = 0;
         read_bytes = fread (*(*data + *num_cases), 1, file_len, f);

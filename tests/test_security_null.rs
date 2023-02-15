@@ -176,7 +176,7 @@ void test_vanilla_socket ()
     // send sneaky message that shouldn't be received
     send (s, "\x08\x00sneaky\0", 9, 0);
     int timeout = 250;
-    zmq_setsockopt (server, ZMQ_RCVTIMEO, &timeout, sizeof (timeout));
+    zmq_setsockopt (server, ZMQ_RCVTIMEO, &timeout, mem::size_of::<timeout>());
     char *buf = s_recv (server);
     if (buf != NULL) {
         printf ("Received unauthenticated message: %s\n", buf);

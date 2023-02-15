@@ -38,14 +38,14 @@ void test_probe_router_router ()
     void *server = test_context_socket (ZMQ_ROUTER);
 
     char my_endpoint[MAX_SOCKET_STRING];
-    bind_loopback_ipv4 (server, my_endpoint, sizeof (my_endpoint));
+    bind_loopback_ipv4 (server, my_endpoint, mem::size_of::<my_endpoint>());
 
     //  Create client and connect to server, doing a probe
     void *client = test_context_socket (ZMQ_ROUTER);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (client, ZMQ_ROUTING_ID, "X", 1));
     int probe = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (client, ZMQ_PROBE_ROUTER, &probe, sizeof (probe)));
+      zmq_setsockopt (client, ZMQ_PROBE_ROUTER, &probe, mem::size_of::<probe>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
     //  We expect a routing id=X + empty message from client
@@ -75,14 +75,14 @@ void test_probe_router_dealer ()
     void *server = test_context_socket (ZMQ_ROUTER);
 
     char my_endpoint[MAX_SOCKET_STRING];
-    bind_loopback_ipv4 (server, my_endpoint, sizeof (my_endpoint));
+    bind_loopback_ipv4 (server, my_endpoint, mem::size_of::<my_endpoint>());
 
     //  Create client and connect to server, doing a probe
     void *client = test_context_socket (ZMQ_DEALER);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (client, ZMQ_ROUTING_ID, "X", 1));
     int probe = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (client, ZMQ_PROBE_ROUTER, &probe, sizeof (probe)));
+      zmq_setsockopt (client, ZMQ_PROBE_ROUTER, &probe, mem::size_of::<probe>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
     //  We expect a routing id=X + empty message from client

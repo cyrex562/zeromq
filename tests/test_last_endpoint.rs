@@ -47,7 +47,7 @@ void test_last_endpoint ()
     void *sb = test_context_socket (ZMQ_ROUTER);
     int val = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sb, ZMQ_LINGER, &val, sizeof (val)));
+      zmq_setsockopt (sb, ZMQ_LINGER, &val, mem::size_of::<val>()));
 
     do_bind_and_verify (sb, ENDPOINT_1);
     do_bind_and_verify (sb, ENDPOINT_2);

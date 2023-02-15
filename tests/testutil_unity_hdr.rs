@@ -177,13 +177,13 @@ void recv_array_expect_success (socket_: *mut c_void,
                                 flags_: i32)
 {
     char buffer[255];
-    TEST_ASSERT_LESS_OR_EQUAL_MESSAGE (sizeof (buffer), SIZE,
+    TEST_ASSERT_LESS_OR_EQUAL_MESSAGE (mem::size_of::<buffer>(), SIZE,
                                        "recv_string_expect_success cannot be "
                                        "used for strings longer than 255 "
                                        "characters");
 
     const int rc = TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_recv (socket_, buffer, sizeof (buffer), flags_));
+      zmq_recv (socket_, buffer, mem::size_of::<buffer>(), flags_));
     TEST_ASSERT_EQUAL_INT (static_cast<int> (SIZE), rc);
     TEST_ASSERT_EQUAL_UINT8_ARRAY (array_, buffer, SIZE);
 }

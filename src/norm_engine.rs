@@ -18,7 +18,7 @@
 pub struct norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
 {
 // public:
-    norm_engine_t (zmq::io_thread_t *parent_, const options_t &options_);
+    norm_engine_t (zmq::io_thread_t *parent_, const ZmqOptions &options_);
     ~norm_engine_t () ZMQ_FINAL;
 
     // create NORM instance, session, etc
@@ -69,7 +69,7 @@ pub struct NormRxStreamState
     {
 ^      // public:
         NormRxStreamState (NormObjectHandle normStream,
-                           int64_t maxMsgSize,
+                           i64 maxMsgSize,
                            bool zeroCopy,
                            inBatchSize: i32);
         ~NormRxStreamState ();
@@ -132,7 +132,7 @@ pub struct Iterator
 
       // private:
         NormObjectHandle norm_stream;
-        int64_t max_msg_size;
+        i64 max_msg_size;
         bool zero_copy;
         in_batch_size: i32;
         bool in_sync;
@@ -152,7 +152,7 @@ pub struct Iterator
     const EndpointUriPair _empty_endpoint;
 
     session_base_t *zmq_session;
-    options_t options;
+    ZmqOptions options;
     NormInstanceHandle norm_instance;
     handle_t norm_descriptor_handle;
     NormSessionHandle norm_session;
@@ -201,7 +201,7 @@ DWORD WINAPI normWrapperThread (LPVOID lpParam);
 // #endif
 
 zmq::norm_engine_t::norm_engine_t (io_thread_t *parent_,
-                                   const options_t &options_) :
+                                   const ZmqOptions &options_) :
     io_object_t (parent_),
     zmq_session (NULL),
     options (options_),
@@ -546,8 +546,8 @@ void zmq::norm_engine_t::in_event ()
     NormEvent event;
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
     int rc = recv (wrapper_read_fd, reinterpret_cast<char *> (&event),
-                   sizeof (event), 0);
-    errno_assert (rc == sizeof (event));
+                   mem::size_of::<event>(), 0);
+    errno_assert (rc == mem::size_of::<event>());
 // #else
     if (!NormGetNextEvent (norm_instance, &event)) {
         // NORM has died before we unplugged?!
@@ -771,7 +771,7 @@ void zmq::norm_engine_t::recv_data (NormObjectHandle object)
 
 zmq::norm_engine_t::NormRxStreamState::NormRxStreamState (
   NormObjectHandle normStream,
-  int64_t maxMsgSize,
+  i64 maxMsgSize,
   bool zeroCopy,
   inBatchSize: i32) :
     norm_stream (normStream),
@@ -967,7 +967,7 @@ DWORD WINAPI normWrapperThread (LPVOID lpParam)
             }
             rc =
               send (norm_wrapper_thread_args->wrapper_write_fd,
-                    reinterpret_cast<char *> (&message), sizeof (message), 0);
+                    reinterpret_cast<char *> (&message), mem::size_of::<message>(), 0);
             errno_assert (rc != -1);
             // Check if message
         } else if (waitRc == WAIT_OBJECT_0 + 1) {

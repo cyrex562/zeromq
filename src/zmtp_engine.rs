@@ -80,7 +80,7 @@ pub struct zmtp_engine_t ZMQ_FINAL : public stream_engine_base_t
 {
 // public:
     zmtp_engine_t (fd_t fd_,
-                   const options_t &options_,
+                   const ZmqOptions &options_,
                    const endpoint_uri_pair_t &endpoint_uri_pair_);
     ~zmtp_engine_t ();
 
@@ -150,7 +150,7 @@ pub struct zmtp_engine_t ZMQ_FINAL : public stream_engine_base_t
 
 zmq::zmtp_engine_t::zmtp_engine_t (
   fd_t fd_,
-  const options_t &options_,
+  const ZmqOptions &options_,
   const endpoint_uri_pair_t &endpoint_uri_pair_) :
     stream_engine_base_t (fd_, options_, endpoint_uri_pair_, true),
     _greeting_size (v2_greeting_size),
@@ -567,7 +567,7 @@ int zmq::zmtp_engine_t::produce_ping_message (msg_t *msg_)
 
     uint16_t ttl_val = htons (_options.heartbeat_ttl);
     memcpy (static_cast<uint8_t *> (msg_->data ()) + msg_t::ping_cmd_name_size,
-            &ttl_val, sizeof (ttl_val));
+            &ttl_val, mem::size_of::<ttl_val>());
 
     rc = _mechanism->encode (msg_);
     _next_msg = &zmtp_engine_t::pull_and_encode;
@@ -647,7 +647,7 @@ int zmq::zmtp_engine_t::process_command_message (msg_t *msg_)
     const size_t sub_name_size = msg_t::sub_cmd_name_size - 1;
     const size_t cancel_name_size = msg_t::cancel_cmd_name_size - 1;
     //  Malformed command
-    if (unlikely (msg_->size () < cmd_name_size + sizeof (cmd_name_size)))
+    if (unlikely (msg_->size () < cmd_name_size + mem::size_of::<cmd_name_size>()))
         return -1;
 
     const uint8_t *const cmd_name =

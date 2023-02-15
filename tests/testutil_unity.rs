@@ -44,9 +44,9 @@ int test_assert_success_message_errno_helper (rc_: i32,
 {
     if (rc_ == -1) {
         char buffer[512];
-        buffer[sizeof (buffer) - 1] =
+        buffer[mem::size_of::<buffer>() - 1] =
           0; // to ensure defined behavior with VC++ <= 2013
-        snprintf (buffer, sizeof (buffer) - 1,
+        snprintf (buffer, mem::size_of::<buffer>() - 1,
                   "%s failed%s%s%s, errno = %i (%s)", expr_,
                   msg_ ? " (additional info: " : "", msg_ ? msg_ : "",
                   msg_ ? ")" : "", zmq_errno (), zmq_strerror (zmq_errno ()));
@@ -66,10 +66,10 @@ int test_assert_success_message_raw_errno_helper (
 // #endif
 
         char buffer[512];
-        buffer[sizeof (buffer) - 1] =
+        buffer[mem::size_of::<buffer>() - 1] =
           0; // to ensure defined behavior with VC++ <= 2013
         snprintf (
-          buffer, sizeof (buffer) - 1, "%s failed%s%s%s with %d, errno = %i/%s",
+          buffer, mem::size_of::<buffer>() - 1, "%s failed%s%s%s with %d, errno = %i/%s",
           expr_, msg_ ? " (additional info: " : "", msg_ ? msg_ : "",
           msg_ ? ")" : "", rc_, current_errno, strerror (current_errno));
         UNITY_TEST_FAIL (line_, buffer);
@@ -90,10 +90,10 @@ int test_assert_failure_message_raw_errno_helper (
   rc_: i32, expected_errno_: i32, msg_: *const c_char, expr_: *const c_char, line_: i32)
 {
     char buffer[512];
-    buffer[sizeof (buffer) - 1] =
+    buffer[mem::size_of::<buffer>() - 1] =
       0; // to ensure defined behavior with VC++ <= 2013
     if (rc_ != -1) {
-        snprintf (buffer, sizeof (buffer) - 1,
+        snprintf (buffer, mem::size_of::<buffer>() - 1,
                   "%s was unexpectedly successful%s%s%s, expected "
                   "errno = %i, actual return value = %i",
                   expr_, msg_ ? " (additional info: " : "", msg_ ? msg_ : "",
@@ -106,7 +106,7 @@ int test_assert_failure_message_raw_errno_helper (
         int current_errno = errno;
 // #endif
         if (current_errno != expected_errno_) {
-            snprintf (buffer, sizeof (buffer) - 1,
+            snprintf (buffer, mem::size_of::<buffer>() - 1,
                       "%s failed with an unexpected error%s%s%s, expected "
                       "errno = %i, actual errno = %i",
                       expr_, msg_ ? " (additional info: " : "",
@@ -129,13 +129,13 @@ void recv_string_expect_success (socket_: *mut c_void, str_: *const c_char, flag
 {
     const size_t len = str_ ? strlen (str_) : 0;
     char buffer[255];
-    TEST_ASSERT_LESS_OR_EQUAL_MESSAGE (sizeof (buffer), len,
+    TEST_ASSERT_LESS_OR_EQUAL_MESSAGE (mem::size_of::<buffer>(), len,
                                        "recv_string_expect_success cannot be "
                                        "used for strings longer than 255 "
                                        "characters");
 
     const int rc = TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_recv (socket_, buffer, sizeof (buffer), flags_));
+      zmq_recv (socket_, buffer, mem::size_of::<buffer>(), flags_));
     TEST_ASSERT_EQUAL_INT ((int) len, rc);
     if (str_)
         TEST_ASSERT_EQUAL_STRING_LEN (str_, buffer, len);
@@ -242,7 +242,7 @@ void *test_context_socket_close (socket_: *mut c_void)
 void *test_context_socket_close_zero_linger (socket_: *mut c_void)
 {
     const int linger = 0;
-    int rc = zmq_setsockopt (socket_, ZMQ_LINGER, &linger, sizeof (linger));
+    int rc = zmq_setsockopt (socket_, ZMQ_LINGER, &linger, mem::size_of::<linger>());
     TEST_ASSERT_TRUE (rc == 0 || zmq_errno () == ETERM);
     return test_context_socket_close (socket_);
 }
@@ -264,7 +264,7 @@ void bind_loopback (socket_: *mut c_void, ipv6_: i32, char *my_endpoint_, len_: 
     }
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (socket_, ZMQ_IPV6, &ipv6_, sizeof (int)));
+      zmq_setsockopt (socket_, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
 
     test_bind (socket_, ipv6_ ? "tcp://[::1]:*" : "tcp://127.0.0.1:*",
                my_endpoint_, len_);

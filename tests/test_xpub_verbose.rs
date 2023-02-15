@@ -68,7 +68,7 @@ void test_xpub_verbose_one_sub ()
 
     int verbose = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pub, ZMQ_XPUB_VERBOSE, &verbose, sizeof (int)));
+      zmq_setsockopt (pub, ZMQ_XPUB_VERBOSE, &verbose, mem::size_of::<int>()));
 
     // Subscribe socket for A again
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (sub, ZMQ_SUBSCRIBE, topic_a, 1));
@@ -132,7 +132,7 @@ void test_xpub_verbose_two_subs ()
 
     int verbose = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pub, ZMQ_XPUB_VERBOSE, &verbose, sizeof (int)));
+      zmq_setsockopt (pub, ZMQ_XPUB_VERBOSE, &verbose, mem::size_of::<int>()));
 
     // Subscribe socket for A again
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -209,7 +209,7 @@ void test_xpub_verboser_one_sub ()
 
     int verbose = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pub, ZMQ_XPUB_VERBOSER, &verbose, sizeof (int)));
+      zmq_setsockopt (pub, ZMQ_XPUB_VERBOSER, &verbose, mem::size_of::<int>()));
 
     // Subscribe socket for A again
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (sub, ZMQ_SUBSCRIBE, topic_a, 1));
@@ -267,7 +267,7 @@ void test_xpub_verboser_two_subs ()
 
     int verbose = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pub, ZMQ_XPUB_VERBOSER, &verbose, sizeof (int)));
+      zmq_setsockopt (pub, ZMQ_XPUB_VERBOSER, &verbose, mem::size_of::<int>()));
 
     // Subscribe socket for A again
     TEST_ASSERT_SUCCESS_ERRNO (

@@ -1,6 +1,5 @@
 use crate::command::{CommandType, ZmqCommand};
 use crate::ctx::ZmqContext;
-use crate::socket_base::ZmqContext;
 
 #[derive(Default,Debug,Clone)]
 pub struct object_t {
@@ -87,9 +86,9 @@ impl object_t {
     // int register_endpoint (addr_: *const c_char, const zmq::endpoint_t &endpoint_);
     pub fn register_endpoint(&mut self, addr: &str, )
 
-    // int unregister_endpoint (const std::string &addr_, socket_base_t *socket_);
+    // int unregister_endpoint (const std::string &addr_, ZmqSocketBase *socket_);
 
-    // void unregister_endpoints (zmq::socket_base_t *socket_);
+    // void unregister_endpoints (zmq::ZmqSocketBase *socket_);
 
     // zmq::endpoint_t find_endpoint (addr_: *const c_char) const;
 
@@ -97,14 +96,14 @@ impl object_t {
     //                       const endpoint_t &endpoint_,
     //                       pipe_t **pipes_);
 
-    // void connect_pending (addr_: *const c_char, zmq::socket_base_t *bind_socket_);
+    // void connect_pending (addr_: *const c_char, zmq::ZmqSocketBase *bind_socket_);
 
-    // void destroy_socket (zmq::socket_base_t *socket_);
+    // void destroy_socket (zmq::ZmqSocketBase *socket_);
 
     //  Logs an message.
     // void log (format_: *const c_char, ...);
 
-    // void send_inproc_connected (zmq::socket_base_t *socket_);
+    // void send_inproc_connected (zmq::ZmqSocketBase *socket_);
 
     // void send_bind (zmq::own_t *destination_,
     //                 zmq::pipe_t *pipe_,
@@ -155,7 +154,7 @@ impl object_t {
 
     // void send_term_endpoint (own_t *destination_, std::string *endpoint_);
 
-    // void send_reap (zmq::socket_base_t *socket_);
+    // void send_reap (zmq::ZmqSocketBase *socket_);
 
     // void send_reaped ();
 
@@ -205,7 +204,7 @@ impl object_t {
 
     // virtual void process_term_endpoint (std::string *endpoint_);
 
-    // virtual void process_reap (zmq::socket_base_t *socket_);
+    // virtual void process_reap (zmq::ZmqSocketBase *socket_);
 
     // virtual void process_reaped ();
 
@@ -330,12 +329,12 @@ int zmq::object_t::register_endpoint (addr_: *const c_char,
 }
 
 int zmq::object_t::unregister_endpoint (const std::string &addr_,
-                                        socket_base_t *socket_)
+                                        ZmqSocketBase *socket_)
 {
     return _ctx->unregister_endpoint (addr_, socket_);
 }
 
-void zmq::object_t::unregister_endpoints (socket_base_t *socket_)
+void zmq::object_t::unregister_endpoints (ZmqSocketBase *socket_)
 {
     return _ctx->unregister_endpoints (socket_);
 }
@@ -353,12 +352,12 @@ void zmq::object_t::pend_connection (const std::string &addr_,
 }
 
 void zmq::object_t::connect_pending (addr_: *const c_char,
-                                     zmq::socket_base_t *bind_socket_)
+                                     zmq::ZmqSocketBase *bind_socket_)
 {
     return _ctx->connect_pending (addr_, bind_socket_);
 }
 
-void zmq::object_t::destroy_socket (socket_base_t *socket_)
+void zmq::object_t::destroy_socket (ZmqSocketBase *socket_)
 {
     _ctx->destroy_socket (socket_);
 }
@@ -555,7 +554,7 @@ void zmq::object_t::send_term_endpoint (own_t *destination_,
     send_command (cmd);
 }
 
-void zmq::object_t::send_reap (class socket_base_t *socket_)
+void zmq::object_t::send_reap (class ZmqSocketBase *socket_)
 {
     ZmqCommand cmd;
     cmd.destination = _ctx->get_reaper ();
@@ -572,7 +571,7 @@ void zmq::object_t::send_reaped ()
     send_command (cmd);
 }
 
-void zmq::object_t::send_inproc_connected (zmq::socket_base_t *socket_)
+void zmq::object_t::send_inproc_connected (zmq::ZmqSocketBase *socket_)
 {
     ZmqCommand cmd;
     cmd.destination = socket_;
@@ -677,7 +676,7 @@ void zmq::object_t::process_term_endpoint (std::string *)
     zmq_assert (false);
 }
 
-void zmq::object_t::process_reap (class socket_base_t *)
+void zmq::object_t::process_reap (class ZmqSocketBase *)
 {
     zmq_assert (false);
 }

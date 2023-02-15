@@ -58,7 +58,7 @@ void test_get_peer_state ()
 
     int mandatory = 1;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (router, ZMQ_ROUTER_MANDATORY,
-                                               &mandatory, sizeof (mandatory)));
+                                               &mandatory, mem::size_of::<mandatory>()));
 
     const char *my_endpoint = "inproc://test_get_peer_state";
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (router, my_endpoint));
@@ -69,11 +69,11 @@ void test_get_peer_state ()
     //  Lower HWMs to allow doing the test with fewer messages
     const int hwm = 100;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (router, ZMQ_SNDHWM, &hwm, sizeof (int)));
+      zmq_setsockopt (router, ZMQ_SNDHWM, &hwm, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (dealer1, ZMQ_RCVHWM, &hwm, sizeof (int)));
+      zmq_setsockopt (dealer1, ZMQ_RCVHWM, &hwm, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (dealer2, ZMQ_RCVHWM, &hwm, sizeof (int)));
+      zmq_setsockopt (dealer2, ZMQ_RCVHWM, &hwm, mem::size_of::<int>()));
 
     const char *dealer1_routing_id = "X";
     const char *dealer2_routing_id = "Y";
@@ -130,7 +130,7 @@ void test_get_peer_state ()
                 && current_event.events & ZMQ_POLLIN) {
                 recv_string_expect_success (dealer1, "Hello", ZMQ_DONTWAIT);
                 more: i32;
-                size_t more_size = sizeof (more);
+                size_t more_size = mem::size_of::<more>();
                 TEST_ASSERT_SUCCESS_ERRNO (
                   zmq_getsockopt (dealer1, ZMQ_RCVMORE, &more, &more_size));
                 TEST_ASSERT_FALSE (more);
@@ -197,7 +197,7 @@ void test_basic ()
     //  This will fail
     int mandatory = 1;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (router, ZMQ_ROUTER_MANDATORY,
-                                               &mandatory, sizeof (mandatory)));
+                                               &mandatory, mem::size_of::<mandatory>()));
     int rc = zmq_send (router, "UNKNOWN", 7, ZMQ_SNDMORE);
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (EHOSTUNREACH, errno);

@@ -42,7 +42,7 @@
 // #include "err.hpp"
 
 zmq::pgm_receiver_t::pgm_receiver_t (class io_thread_t *parent_,
-                                     const options_t &options_) :
+                                     const ZmqOptions &options_) :
     io_object_t (parent_),
     has_rx_timer (false),
     pgm_socket (true, options_),
@@ -221,10 +221,10 @@ void zmq::pgm_receiver_t::in_event ()
         inpos = (unsigned char *) tmp;
 
         //  Read the offset of the fist message in the current packet.
-        zmq_assert (insize >= sizeof (uint16_t));
+        zmq_assert (insize >= mem::size_of::<uint16_t>());
         uint16_t offset = get_uint16 (inpos);
-        inpos += sizeof (uint16_t);
-        insize -= sizeof (uint16_t);
+        inpos += mem::size_of::<uint16_t>();
+        insize -= mem::size_of::<uint16_t>();
 
         //  Join the stream if needed.
         if (!it->second.joined) {
@@ -313,7 +313,7 @@ void zmq::pgm_receiver_t::drop_subscriptions ()
 pub struct pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine
 {
 // public:
-    pgm_receiver_t (zmq::io_thread_t *parent_, const options_t &options_);
+    pgm_receiver_t (zmq::io_thread_t *parent_, const ZmqOptions &options_);
     ~pgm_receiver_t ();
 
     int init (bool udp_encapsulation_, network_: *const c_char);
@@ -368,8 +368,8 @@ pub struct pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine
         bool operator() (const pgm_tsi_t &ltsi, const pgm_tsi_t &rtsi) const
         {
             uint32_t ll[2], rl[2];
-            memcpy (ll, &ltsi, sizeof (ll));
-            memcpy (rl, &rtsi, sizeof (rl));
+            memcpy (ll, &ltsi, mem::size_of::<ll>());
+            memcpy (rl, &rtsi, mem::size_of::<rl>());
             return (ll[0] < rl[0]) || (ll[0] == rl[0] && ll[1] < rl[1]);
         }
     };
@@ -381,7 +381,7 @@ pub struct pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine
     pgm_socket_t pgm_socket;
 
     //  Socket options.
-    options_t options;
+    ZmqOptions options;
 
     //  Associated session.
     zmq::session_base_t *session;

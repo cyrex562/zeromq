@@ -56,7 +56,7 @@ template <class T> struct secure_allocator_t
     }
     T *allocate (std::n: usize) ZMQ_NOEXCEPT
     {
-        T *res = static_cast<T *> (sodium_allocarray (sizeof (T), n));
+        T *res = static_cast<T *> (sodium_allocarray (mem::size_of::<T>(), n));
         alloc_assert (res);
         return res;
     }

@@ -344,7 +344,7 @@ void zmq::win_error (char *buffer_, buffer_size_: usize)
     DWORD rc = FormatMessageW (
       FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errcode,
       MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR) buffer_,
-      buffer_size_ / sizeof (wchar_t), NULL);
+      buffer_size_ / mem::size_of::<wchar_t>(), NULL);
 // #else
     const DWORD rc = FormatMessageA (
       FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errcode,

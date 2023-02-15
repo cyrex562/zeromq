@@ -35,13 +35,13 @@
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-pub struct radio_t ZMQ_FINAL : public socket_base_t
+pub struct radio_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
     radio_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~radio_t ();
 
-    //  Implementations of virtual functions from socket_base_t.
+    //  Implementations of virtual functions from ZmqSocketBase.
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false);
@@ -76,8 +76,8 @@ pub struct radio_session_t ZMQ_FINAL : public session_base_t
 // public:
     radio_session_t (zmq::io_thread_t *io_thread_,
                      bool connect_,
-                     socket_: *mut socket_base_t,
-                     const options_t &options_,
+                     socket_: *mut ZmqSocketBase,
+                     const ZmqOptions &options_,
                      Address *addr_);
     ~radio_session_t ();
 
@@ -99,7 +99,7 @@ pub struct radio_session_t ZMQ_FINAL : public session_base_t
 };
 
 zmq::radio_t::radio_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
-    socket_base_t (parent_, tid_, sid_, true), _lossy (true)
+    ZmqSocketBase (parent_, tid_, sid_, true), _lossy (true)
 {
     options.type = ZMQ_RADIO;
 }
@@ -168,7 +168,7 @@ int zmq::radio_t::xsetsockopt (option_: i32,
                                const optval_: *mut c_void,
                                optvallen_: usize)
 {
-    if (optvallen_ != sizeof (int) || *static_cast<const int *> (optval_) < 0) {
+    if (optvallen_ != mem::size_of::<int>() || *static_cast<const int *> (optval_) < 0) {
         errno = EINVAL;
         return -1;
     }
@@ -260,8 +260,8 @@ bool zmq::radio_t::xhas_in ()
 
 zmq::radio_session_t::radio_session_t (io_thread_t *io_thread_,
                                        bool connect_,
-                                       socket_base_t *socket_,
-                                       const options_t &options_,
+                                       ZmqSocketBase *socket_,
+                                       const ZmqOptions &options_,
                                        Address *addr_) :
     session_base_t (io_thread_, connect_, socket_, options_, addr_),
     _state (group)

@@ -114,7 +114,7 @@ void test_destroy_queue_on_disconnect (bind_address_: *const c_char)
 
     int enabled = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (a, ZMQ_ROUTER_MANDATORY, &enabled, sizeof (enabled)));
+      zmq_setsockopt (a, ZMQ_ROUTER_MANDATORY, &enabled, mem::size_of::<enabled>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (a, bind_address_));
     size_t len = MAX_SOCKET_STRING;

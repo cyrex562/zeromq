@@ -145,7 +145,7 @@ pub struct radix_tree_t
     match (const unsigned char *key_, key_size_: usize, bool is_lookup_) const;
 
     node_t _root;
-    atomic_counter_t _size;
+    AtomicCounter _size;
 };
 
 node_t::node_t (unsigned char *data_) : _data (data_)
@@ -155,42 +155,42 @@ node_t::node_t (unsigned char *data_) : _data (data_)
 uint32_t node_t::refcount ()
 {
     uint32_t u32;
-    memcpy (&u32, _data, sizeof (u32));
+    memcpy (&u32, _data, mem::size_of::<u32>());
     return u32;
 }
 
 void node_t::set_refcount (uint32_t value_)
 {
-    memcpy (_data, &value_, sizeof (value_));
+    memcpy (_data, &value_, mem::size_of::<value_>());
 }
 
 uint32_t node_t::prefix_length ()
 {
     uint32_t u32;
-    memcpy (&u32, _data + sizeof (uint32_t), sizeof (u32));
+    memcpy (&u32, _data + mem::size_of::<uint32_t>(), mem::size_of::<u32>());
     return u32;
 }
 
 void node_t::set_prefix_length (uint32_t value_)
 {
-    memcpy (_data + sizeof (value_), &value_, sizeof (value_));
+    memcpy (_data + mem::size_of::<value_>(), &value_, mem::size_of::<value_>());
 }
 
 uint32_t node_t::edgecount ()
 {
     uint32_t u32;
-    memcpy (&u32, _data + 2 * sizeof (uint32_t), sizeof (u32));
+    memcpy (&u32, _data + 2 * mem::size_of::<uint32_t>(), mem::size_of::<u32>());
     return u32;
 }
 
 void node_t::set_edgecount (uint32_t value_)
 {
-    memcpy (_data + 2 * sizeof (value_), &value_, sizeof (value_));
+    memcpy (_data + 2 * mem::size_of::<value_>(), &value_, mem::size_of::<value_>());
 }
 
 unsigned char *node_t::prefix ()
 {
-    return _data + 3 * sizeof (uint32_t);
+    return _data + 3 * mem::size_of::<uint32_t>();
 }
 
 void node_t::set_prefix (const unsigned char *bytes_)
@@ -235,7 +235,7 @@ node_t node_t::node_at (index_: usize)
     zmq_assert (index_ < edgecount ());
 
     unsigned char *data;
-    memcpy (&data, node_pointers () + index_ * sizeof (void *), sizeof (data));
+    memcpy (&data, node_pointers () + index_ * sizeof (void *), mem::size_of::<data>());
     return node_t (data);
 }
 
@@ -266,7 +266,7 @@ bool node_t::operator!= (node_t other_) const
 
 void node_t::resize (prefix_length_: usize, edgecount_: usize)
 {
-    const size_t node_size = 3 * sizeof (uint32_t) + prefix_length_
+    const size_t node_size = 3 * mem::size_of::<uint32_t>() + prefix_length_
                              + edgecount_ * (1 + sizeof (void *));
     unsigned char *new_data =
       static_cast<unsigned char *> (realloc (_data, node_size));
@@ -278,7 +278,7 @@ void node_t::resize (prefix_length_: usize, edgecount_: usize)
 
 node_t make_node (refcount_: usize, prefix_length_: usize, edgecount_: usize)
 {
-    const size_t node_size = 3 * sizeof (uint32_t) + prefix_length_
+    const size_t node_size = 3 * mem::size_of::<uint32_t>() + prefix_length_
                              + edgecount_ * (1 + sizeof (void *));
 
     unsigned char *data = static_cast<unsigned char *> (malloc (node_size));

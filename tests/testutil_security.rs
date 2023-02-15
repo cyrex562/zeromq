@@ -46,7 +46,7 @@ void socket_config_null_server (server_: *mut c_void, server_secret_: *mut c_voi
 // #ifdef ZMQ_ZAP_ENFORCE_DOMAIN
     int required = server_secret_ ? *static_cast<int *> (server_secret_) : 0;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (server_, ZMQ_ZAP_ENFORCE_DOMAIN,
-                                               &required, sizeof (int)));
+                                               &required, mem::size_of::<int>()));
 // #else
     LIBZMQ_UNUSED (server_secret_);
 // #endif
@@ -71,7 +71,7 @@ void socket_config_plain_server (server_: *mut c_void, server_secret_: *mut c_vo
 
     int as_server = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (server_, ZMQ_PLAIN_SERVER, &as_server, sizeof (int)));
+      zmq_setsockopt (server_, ZMQ_PLAIN_SERVER, &as_server, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
       server_, ZMQ_ZAP_DOMAIN, test_zap_domain, strlen (test_zap_domain)));
 }
@@ -94,7 +94,7 @@ void socket_config_curve_server (server_: *mut c_void, server_secret_: *mut c_vo
 {
     int as_server = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (server_, ZMQ_CURVE_SERVER, &as_server, sizeof (int)));
+      zmq_setsockopt (server_, ZMQ_CURVE_SERVER, &as_server, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (server_, ZMQ_CURVE_SECRETKEY, server_secret_, 41));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
@@ -103,7 +103,7 @@ void socket_config_curve_server (server_: *mut c_void, server_secret_: *mut c_vo
 // #ifdef ZMQ_ZAP_ENFORCE_DOMAIN
     int required = 1;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (server_, ZMQ_ZAP_ENFORCE_DOMAIN,
-                                               &required, sizeof (int)));
+                                               &required, mem::size_of::<int>()));
 // #endif
 }
 
@@ -282,7 +282,7 @@ static void setup_handshake_socket_monitor (server_: *mut c_void,
     *server_mon_ = test_context_socket (ZMQ_PAIR);
     int linger = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (*server_mon_, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (*server_mon_, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
 
     //  Connect it to the inproc endpoints so they'll get events
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (*server_mon_, monitor_endpoint_));
@@ -307,7 +307,7 @@ void setup_context_and_server_side (zap_control_: *mut *mut c_void
       zmq_bind (*zap_control_, "inproc://handler-control"));
     int linger = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (*zap_control_, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (*zap_control_, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
 
     if (zap_handler_ != NULL) {
         *zap_thread_ = zmq_threadstart (zap_handler_, NULL);
@@ -319,12 +319,12 @@ void setup_context_and_server_side (zap_control_: *mut *mut c_void
     //  Server socket will accept connections
     *server_ = test_context_socket (ZMQ_DEALER);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (*server_, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (*server_, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     //  As per API by default there's no limit to the size of a message,
     //  but the sanitizer allocator will barf over a gig or so
-    int64_t max_msg_size = 64 * 1024 * 1024;
+    i64 max_msg_size = 64 * 1024 * 1024;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      *server_, ZMQ_MAXMSGSIZE, &max_msg_size, sizeof (int64_t)));
+      *server_, ZMQ_MAXMSGSIZE, &max_msg_size, mem::size_of::<i64>()));
 
     socket_config_ (*server_, socket_config_data_);
 
@@ -370,9 +370,9 @@ void *create_and_connect_client (char *my_endpoint_,
     void *client = test_context_socket (ZMQ_DEALER);
     //  As per API by default there's no limit to the size of a message,
     //  but the sanitizer allocator will barf over a gig or so
-    int64_t max_msg_size = 64 * 1024 * 1024;
+    i64 max_msg_size = 64 * 1024 * 1024;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (client, ZMQ_MAXMSGSIZE, &max_msg_size, sizeof (int64_t)));
+      zmq_setsockopt (client, ZMQ_MAXMSGSIZE, &max_msg_size, mem::size_of::<i64>()));
 
     socket_config_ (client, socket_config_data_);
 

@@ -72,7 +72,7 @@ void test_thread_safe ()
 void test_getsockopt_thread_safe (void *const socket_)
 {
     thread_safe: i32;
-    size_t size = sizeof (int);
+    size_t size = mem::size_of::<int>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (socket_, ZMQ_THREAD_SAFE, &thread_safe, &size));
     TEST_ASSERT_EQUAL_INT (1, thread_safe);

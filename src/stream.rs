@@ -295,7 +295,7 @@ pub struct stream_t ZMQ_FINAL : public routing_socket_base_t
     stream_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~stream_t ();
 
-    //  Overrides of functions from socket_base_t.
+    //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);

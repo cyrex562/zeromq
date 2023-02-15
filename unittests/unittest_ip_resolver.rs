@@ -65,7 +65,7 @@ pub struct test_ip_resolver_t ZMQ_FINAL : public zmq::IpResolver
           {"ipv4only.zeromq.org", "10.100.0.2", "::ffff:10.100.0.2"},
           {"ipv6only.zeromq.org", NULL, "fdf5:d058:d656::2"},
         };
-        unsigned lut_len = sizeof (dns_lut) / sizeof (dns_lut[0]);
+        unsigned lut_len = mem::size_of::<dns_lut>() / sizeof (dns_lut[0]);
         struct addrinfo ai;
 
         TEST_ASSERT_NULL (service_);
@@ -113,7 +113,7 @@ pub struct test_ip_resolver_t ZMQ_FINAL : public zmq::IpResolver
           "eth1",
         };
         unsigned lut_len =
-          sizeof (dummy_interfaces) / sizeof (dummy_interfaces[0]);
+          mem::size_of::<dummy_interfaces>() / sizeof (dummy_interfaces[0]);
 
         for (unsigned i = 0; i < lut_len; i++) {
             if (strcmp (dummy_interfaces[i], ifname_) == 0) {
@@ -150,7 +150,7 @@ static void test_resolve (zmq::IpResolverOptions opts_,
 
     //  Generate an invalid but well-defined 'ip_addr_t'. Avoids testing
     //  uninitialized values if the code is buggy.
-    memset (&addr, 0xba, sizeof (addr));
+    memset (&addr, 0xba, mem::size_of::<addr>());
 
     test_ip_resolver_t resolver (opts_);
 

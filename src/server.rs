@@ -38,13 +38,13 @@
 
 
 //  TODO: This class uses O(n) scheduling. Rewrite it to use O(1) algorithm.
-pub struct server_t : public socket_base_t
+pub struct server_t : public ZmqSocketBase
 {
 // public:
     server_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~server_t ();
 
-    //  Overrides of functions from socket_base_t.
+    //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
@@ -78,7 +78,7 @@ pub struct server_t : public socket_base_t
 };
 
 zmq::server_t::server_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
-    socket_base_t (parent_, tid_, sid_, true),
+    ZmqSocketBase (parent_, tid_, sid_, true),
     _next_routing_id (generate_random ())
 {
     options.type = ZMQ_SERVER;

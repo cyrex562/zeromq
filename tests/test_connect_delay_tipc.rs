@@ -46,12 +46,12 @@ void test_send_one_connected_one_unconnected ()
     void *to = test_context_socket (ZMQ_PULL);
     int timeout = 5000;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (to, ZMQ_LINGER, &timeout, sizeof (timeout)));
+      zmq_setsockopt (to, ZMQ_LINGER, &timeout, mem::size_of::<timeout>()));
 
     // Bind the one valid receiver
     val = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (to, ZMQ_LINGER, &val, sizeof (val)));
+      zmq_setsockopt (to, ZMQ_LINGER, &val, mem::size_of::<val>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (to, "tipc://{6555,0,0}"));
 
     // Create a socket pushing to two endpoints - only 1 message should arrive.
@@ -59,9 +59,9 @@ void test_send_one_connected_one_unconnected ()
 
     val = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (from, ZMQ_LINGER, &val, sizeof (val)));
+      zmq_setsockopt (from, ZMQ_LINGER, &val, mem::size_of::<val>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (from, ZMQ_LINGER, &timeout, sizeof (timeout)));
+      zmq_setsockopt (from, ZMQ_LINGER, &timeout, mem::size_of::<timeout>()));
     // This pipe will not connect
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (from, "tipc://{5556,0}@0.0.0"));
     // This pipe will
@@ -78,12 +78,12 @@ void test_send_one_connected_one_unconnected ()
     // - we should see just 5
     timeout = SETTLE_TIME;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (to, ZMQ_RCVTIMEO, &timeout, sizeof (int)));
+      zmq_setsockopt (to, ZMQ_RCVTIMEO, &timeout, mem::size_of::<int>()));
 
     int seen = 0;
     while (true) {
         char buffer[16];
-        int rc = zmq_recv (to, &buffer, sizeof (buffer), 0);
+        int rc = zmq_recv (to, &buffer, mem::size_of::<buffer>(), 0);
         if (rc == -1) {
             TEST_ASSERT_EQUAL_INT (EAGAIN, zmq_errno ());
             break; //  Break when we didn't get a message
@@ -113,25 +113,25 @@ void test_send_one_connected_one_unconnected_with_delay ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (to, "tipc://{5560,0,0}"));
     int timeout = 5000;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (to, ZMQ_LINGER, &timeout, sizeof (timeout)));
+      zmq_setsockopt (to, ZMQ_LINGER, &timeout, mem::size_of::<timeout>()));
 
     val = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (to, ZMQ_LINGER, &val, sizeof (val)));
+      zmq_setsockopt (to, ZMQ_LINGER, &val, mem::size_of::<val>()));
 
     // Create a socket pushing to two endpoints - all messages should arrive.
     void *from = test_context_socket (ZMQ_PUSH);
 
     val = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (from, ZMQ_LINGER, &val, sizeof (val)));
+      zmq_setsockopt (from, ZMQ_LINGER, &val, mem::size_of::<val>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (from, ZMQ_LINGER, &timeout, sizeof (timeout)));
+      zmq_setsockopt (from, ZMQ_LINGER, &timeout, mem::size_of::<timeout>()));
 
     // Set the key flag
     val = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (from, ZMQ_DELAY_ATTACH_ON_CONNECT, &val, sizeof (val)));
+      zmq_setsockopt (from, ZMQ_DELAY_ATTACH_ON_CONNECT, &val, mem::size_of::<val>()));
 
     // Connect to the invalid socket
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (from, "tipc://{5561,0}@0.0.0"));
@@ -145,12 +145,12 @@ void test_send_one_connected_one_unconnected_with_delay ()
     }
     timeout = SETTLE_TIME;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (to, ZMQ_RCVTIMEO, &timeout, sizeof (int)));
+      zmq_setsockopt (to, ZMQ_RCVTIMEO, &timeout, mem::size_of::<int>()));
 
     int seen = 0;
     while (true) {
         char buffer[16];
-        int rc = zmq_recv (to, &buffer, sizeof (buffer), 0);
+        int rc = zmq_recv (to, &buffer, mem::size_of::<buffer>(), 0);
         if (rc == -1) {
             TEST_ASSERT_EQUAL_INT (EAGAIN, zmq_errno ());
             break; //  Break when we didn't get a message
@@ -176,21 +176,21 @@ void test_send_disconnected_with_delay ()
     rc: i32;
     int zero = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (backend, ZMQ_LINGER, &zero, sizeof (zero)));
+      zmq_setsockopt (backend, ZMQ_LINGER, &zero, mem::size_of::<zero>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (frontend, ZMQ_LINGER, &zero, sizeof (zero)));
+      zmq_setsockopt (frontend, ZMQ_LINGER, &zero, mem::size_of::<zero>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_socket_monitor (frontend, "inproc://monitor",
                                                    ZMQ_EVENT_DISCONNECTED));
     int timeout = 5000;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (backend, ZMQ_LINGER, &timeout, sizeof (timeout)));
+      zmq_setsockopt (backend, ZMQ_LINGER, &timeout, mem::size_of::<timeout>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (frontend, ZMQ_LINGER, &timeout, sizeof (timeout)));
+      zmq_setsockopt (frontend, ZMQ_LINGER, &timeout, mem::size_of::<timeout>()));
 
     //  Frontend connects to backend using DELAY_ATTACH_ON_CONNECT
     int on = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (frontend, ZMQ_DELAY_ATTACH_ON_CONNECT, &on, sizeof (on)));
+      zmq_setsockopt (frontend, ZMQ_DELAY_ATTACH_ON_CONNECT, &on, mem::size_of::<on>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (backend, "tipc://{5560,0,0}"));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (monitor, "inproc://monitor"));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (frontend, "tipc://{5560,0}@0.0.0"));
@@ -216,7 +216,7 @@ void test_send_disconnected_with_delay ()
     //  Recreate backend socket
     backend = test_context_socket (ZMQ_DEALER);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (backend, ZMQ_LINGER, &zero, sizeof (zero)));
+      zmq_setsockopt (backend, ZMQ_LINGER, &zero, mem::size_of::<zero>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (backend, "tipc://{5560,0,0}"));
 
     //  Ping backend to frontend so we know when the connection is up

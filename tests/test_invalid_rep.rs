@@ -40,9 +40,9 @@ void test_invalid_rep ()
 
     int linger = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (router_socket, ZMQ_LINGER, &linger, sizeof (int)));
+      zmq_setsockopt (router_socket, ZMQ_LINGER, &linger, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (req_socket, ZMQ_LINGER, &linger, sizeof (int)));
+      zmq_setsockopt (req_socket, ZMQ_LINGER, &linger, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (router_socket, "inproc://hi"));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (req_socket, "inproc://hi"));
 
@@ -55,11 +55,11 @@ void test_invalid_rep ()
     char bottom[1];
     char body[1];
     TEST_ASSERT_SUCCESS_ERRNO (
-      addr_size = zmq_recv (router_socket, addr, sizeof (addr), 0));
+      addr_size = zmq_recv (router_socket, addr, mem::size_of::<addr>(), 0));
     TEST_ASSERT_EQUAL_INT (0, TEST_ASSERT_SUCCESS_ERRNO (zmq_recv (
-                                router_socket, bottom, sizeof (bottom), 0)));
+                                router_socket, bottom, mem::size_of::<bottom>(), 0)));
     TEST_ASSERT_EQUAL_INT (1, TEST_ASSERT_SUCCESS_ERRNO (zmq_recv (
-                                router_socket, body, sizeof (body), 0)));
+                                router_socket, body, mem::size_of::<body>(), 0)));
 
     //  Send invalid reply.
     TEST_ASSERT_EQUAL_INT (addr_size, TEST_ASSERT_SUCCESS_ERRNO (zmq_send (

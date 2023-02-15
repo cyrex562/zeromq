@@ -221,7 +221,7 @@ void test_curve_security_unauthenticated_message ()
     // send sneaky message that shouldn't be received
     send (s, "\x08\x00sneaky\0", 9, 0);
 
-    zmq_setsockopt (server, ZMQ_RCVTIMEO, &timeout, sizeof (timeout));
+    zmq_setsockopt (server, ZMQ_RCVTIMEO, &timeout, mem::size_of::<timeout>());
     char *buf = s_recv (server);
     TEST_ASSERT_NULL_MESSAGE (buf, "Received unauthenticated message");
     close (s);

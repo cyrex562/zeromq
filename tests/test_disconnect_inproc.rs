@@ -54,7 +54,7 @@ void test_disconnect_inproc ()
       zmq_bind (pub_socket, "inproc://someInProcDescriptor"));
 
     more: i32;
-    size_t more_size = sizeof (more);
+    size_t more_size = mem::size_of::<more>();
 
     for (int iteration = 0;; ++iteration) {
         zmq_pollitem_t items[] = {

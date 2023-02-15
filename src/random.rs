@@ -61,7 +61,7 @@ uint32_t zmq::generate_random ()
     //  Compensate for the fact that rand() returns signed integer.
     const uint32_t low = static_cast<uint32_t> (rand ());
     uint32_t high = static_cast<uint32_t> (rand ());
-    high <<= (sizeof (int) * 8 - 1);
+    high <<= (mem::size_of::<int>() * 8 - 1);
     return high | low;
 }
 

@@ -80,7 +80,7 @@ void test ()
         if (recv_count == 1) {
             const int sub_rcvtimeo = 250;
             TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-              sub, ZMQ_RCVTIMEO, &sub_rcvtimeo, sizeof (sub_rcvtimeo)));
+              sub, ZMQ_RCVTIMEO, &sub_rcvtimeo, mem::size_of::<sub_rcvtimeo>()));
         }
 
     } while (true);

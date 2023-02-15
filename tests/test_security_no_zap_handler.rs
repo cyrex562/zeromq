@@ -58,7 +58,7 @@ void test_no_zap_handler_enforce_domain ()
     void *client = test_context_socket (ZMQ_DEALER);
     int required = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (server, ZMQ_ZAP_ENFORCE_DOMAIN, &required, sizeof (int)));
+      zmq_setsockopt (server, ZMQ_ZAP_ENFORCE_DOMAIN, &required, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (server, ZMQ_ZAP_DOMAIN, "TEST", 5));
     char my_endpoint[MAX_SOCKET_STRING];

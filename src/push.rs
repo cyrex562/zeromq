@@ -33,14 +33,14 @@
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-pub struct push_t ZMQ_FINAL : public socket_base_t
+pub struct push_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
     push_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~push_t ();
 
   protected:
-    //  Overrides of functions from socket_base_t.
+    //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
@@ -57,7 +57,7 @@ pub struct push_t ZMQ_FINAL : public socket_base_t
 };
 
 zmq::push_t::push_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
-    socket_base_t (parent_, tid_, sid_)
+    ZmqSocketBase (parent_, tid_, sid_)
 {
     options.type = ZMQ_PUSH;
 }

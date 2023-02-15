@@ -203,11 +203,11 @@ void test_monitor_versioned_basic (bind_function_t bind_function_,
     bind_function_ (server, server_endpoint, sizeof server_endpoint);
 
     ipv6: i32;
-    size_t ipv6_size = sizeof (ipv6);
+    size_t ipv6_size = mem::size_of::<ipv6>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (server, ZMQ_IPV6, &ipv6, &ipv6_size));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (client, ZMQ_IPV6, &ipv6, sizeof (int)));
+      zmq_setsockopt (client, ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, server_endpoint));
     bounce (server, client);
 
@@ -220,7 +220,7 @@ void test_monitor_versioned_basic (bind_function_t bind_function_,
     char *client_remote_address = NULL;
 
     //  Now collect and check events from both sockets
-    int64_t event = get_monitor_event_v2 (
+    i64 event = get_monitor_event_v2 (
       client_mon, NULL, &client_local_address, &client_remote_address);
     if (event == ZMQ_EVENT_CONNECT_DELAYED) {
         free (client_local_address);
@@ -332,28 +332,28 @@ void test_monitor_versioned_stats (bind_function_t bind_function_,
     //  Set lower HWM - queues will be filled so we should see it in the stats
     int send_hwm = 500;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (push, ZMQ_SNDHWM, &send_hwm, sizeof (send_hwm)));
+      zmq_setsockopt (push, ZMQ_SNDHWM, &send_hwm, mem::size_of::<send_hwm>()));
     //  Set very low TCP buffers so that messages cannot be stored in-flight
     const int tcp_buffer_size = 4096;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      push, ZMQ_SNDBUF, &tcp_buffer_size, sizeof (tcp_buffer_size)));
-    bind_function_ (push, server_endpoint, sizeof (server_endpoint));
+      push, ZMQ_SNDBUF, &tcp_buffer_size, mem::size_of::<tcp_buffer_size>()));
+    bind_function_ (push, server_endpoint, mem::size_of::<server_endpoint>());
 
     ipv6: i32;
-    size_t ipv6_size = sizeof (ipv6);
+    size_t ipv6_size = mem::size_of::<ipv6>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (push, ZMQ_IPV6, &ipv6, &ipv6_size));
     for (int i = 0; i < pulls_count; ++i) {
         pulls[i] = test_context_socket (ZMQ_PULL);
         TEST_ASSERT_SUCCESS_ERRNO (
-          zmq_setsockopt (pulls[i], ZMQ_IPV6, &ipv6, sizeof (int)));
+          zmq_setsockopt (pulls[i], ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
         int timeout_ms = 10;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-          pulls[i], ZMQ_RCVTIMEO, &timeout_ms, sizeof (timeout_ms)));
+          pulls[i], ZMQ_RCVTIMEO, &timeout_ms, mem::size_of::<timeout_ms>()));
         TEST_ASSERT_SUCCESS_ERRNO (
-          zmq_setsockopt (pulls[i], ZMQ_RCVHWM, &send_hwm, sizeof (send_hwm)));
+          zmq_setsockopt (pulls[i], ZMQ_RCVHWM, &send_hwm, mem::size_of::<send_hwm>()));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-          pulls[i], ZMQ_RCVBUF, &tcp_buffer_size, sizeof (tcp_buffer_size)));
+          pulls[i], ZMQ_RCVBUF, &tcp_buffer_size, mem::size_of::<tcp_buffer_size>()));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (pulls[i], server_endpoint));
     }
 
@@ -361,25 +361,25 @@ void test_monitor_versioned_stats (bind_function_t bind_function_,
     int send_count = 0;
     //  Saturate the TCP buffers too
     char data[tcp_buffer_size * 2];
-    memset (data, 0, sizeof (data));
+    memset (data, 0, mem::size_of::<data>());
     //  Saturate all pipes - send + receive - on all connections
     while (send_count < send_hwm * 2 * pulls_count) {
-        TEST_ASSERT_EQUAL_INT (sizeof (data),
-                               zmq_send (push, data, sizeof (data), 0));
+        TEST_ASSERT_EQUAL_INT (mem::size_of::<data>(),
+                               zmq_send (push, data, mem::size_of::<data>(), 0));
         ++send_count;
     }
 
     //  Drain one of the pulls - doesn't matter how many messages, at least one
     send_count = send_count / 4;
     do {
-        zmq_recv (pulls[0], data, sizeof (data), 0);
+        zmq_recv (pulls[0], data, mem::size_of::<data>(), 0);
         --send_count;
     } while (send_count > 0);
 
     //  To kick the application thread, do a dummy getsockopt - users here
     //  should use the monitor and the other sockets in a poll.
     unsigned long int dummy;
-    size_t dummy_size = sizeof (dummy);
+    size_t dummy_size = mem::size_of::<dummy>();
     msleep (SETTLE_TIME);
     //  Note that the pipe stats on the sender will not get updated until the
     //  receiver has processed at least lwm ((hwm + 1) / 2) messages AND until
@@ -397,7 +397,7 @@ void test_monitor_versioned_stats (bind_function_t bind_function_,
         char *push_local_address = NULL;
         char *push_remote_address = NULL;
         u64 *queue_stat = NULL;
-        int64_t event = get_monitor_event_v2 (
+        i64 event = get_monitor_event_v2 (
           push_mon, &queue_stat, &push_local_address, &push_remote_address);
         TEST_ASSERT_EQUAL_STRING (server_endpoint, push_local_address);
         TEST_ASSERT_EQUAL_STRING_LEN (expected_prefix_, push_remote_address,

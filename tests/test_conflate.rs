@@ -42,7 +42,7 @@ void test_conflate ()
 
     int conflate = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (s_in, ZMQ_CONFLATE, &conflate, sizeof (conflate)));
+      zmq_setsockopt (s_in, ZMQ_CONFLATE, &conflate, mem::size_of::<conflate>()));
     bind_loopback_ipv4 (s_in, my_endpoint, sizeof my_endpoint);
 
     void *s_out = test_context_socket (ZMQ_PUSH);
@@ -52,13 +52,13 @@ void test_conflate ()
     int message_count = 20;
     for (int j = 0; j < message_count; ++j) {
         TEST_ASSERT_SUCCESS_ERRNO (
-          zmq_send (s_out, (void *) &j, sizeof (int), 0));
+          zmq_send (s_out, (void *) &j, mem::size_of::<int>(), 0));
     }
     msleep (SETTLE_TIME);
 
     int payload_recved = 0;
     rc = TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_recv (s_in, (void *) &payload_recved, sizeof (int), 0));
+      zmq_recv (s_in, (void *) &payload_recved, mem::size_of::<int>(), 0));
     TEST_ASSERT_GREATER_THAN_INT (0, rc);
     TEST_ASSERT_EQUAL_INT (message_count - 1, payload_recved);
 

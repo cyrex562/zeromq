@@ -1,14 +1,14 @@
 use std::collections::{HashMap, HashSet};
 use std::ffi::{CStr, CString};
 use std::mem;
+use std::sync::atomic::{AtomicU64, Ordering};
 use libc::{gid_t, pid_t, uid_t, c_void, EINVAL, memcpy};
 use crate::tcp_address::TcpAddressMask;
-use crate::zmq_hdr::{ZMQ_CURVE, ZMQ_DEALER, ZMQ_GSSAPI, ZMQ_GSSAPI_NT_HOSTBASED, ZMQ_GSSAPI_NT_KRB5_PRINCIPAL, ZMQ_GSSAPI_NT_USER_NAME, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_SUB};
+use crate::zmq_hdr::{ZMQ_CURVE, ZMQ_DEALER, ZMQ_GSSAPI, ZMQ_GSSAPI_NT_HOSTBASED, ZMQ_GSSAPI_NT_KRB5_PRINCIPAL, ZMQ_GSSAPI_NT_USER_NAME, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_SUB, ZMQ_SNDHWM, ZMQ_RCVHWM, ZMQ_AFFINITY, ZMQ_ROUTING_ID, ZMQ_RATE, ZMQ_RECOVERY_IVL, ZMQ_SNDBUF, ZMQ_RCVBUF, ZMQ_TOS, ZMQ_LINGER, ZMQ_CONNECT_TIMEOUT, ZMQ_TCP_MAXRT, ZMQ_RECONNECT_STOP, ZMQ_RECONNECT_IVL, ZMQ_RECONNECT_IVL_MAX, ZMQ_BACKLOG, ZMQ_MAXMSGSIZE, ZMQ_MULTICAST_HOPS, ZMQ_MULTICAST_MAXTPDU, ZMQ_RCVTIMEO, ZMQ_SNDTIMEO, ZMQ_IPV4ONLY, ZMQ_IPV6, ZMQ_SOCKS_PROXY, ZMQ_SOCKS_USERNAME, ZMQ_SOCKS_PASSWORD, ZMQ_TCP_KEEPALIVE, ZMQ_TCP_KEEPALIVE_CNT, ZMQ_TCP_KEEPALIVE_IDLE, ZMQ_TCP_KEEPALIVE_INTVL, ZMQ_TCP_ACCEPT_FILTER, ZMQ_IPC_FILTER_UID, ZMQ_IPC_FILTER_GID, ZMQ_IPC_FILTER_PID, ZMQ_PLAIN_SERVER, ZMQ_PLAIN_USERNAME, ZMQ_PLAIN_PASSWORD, ZMQ_ZAP_DOMAIN, ZMQ_CURVE_SERVER, ZMQ_CURVE_PUBLICKEY, ZMQ_CURVE_SECRETKEY, ZMQ_CURVE_SERVERKEY, ZMQ_CONFLATE, ZMQ_GSSAPI_SERVER, ZMQ_GSSAPI_PRINCIPAL, ZMQ_GSSAPI_SERVICE_PRINCIPAL, ZMQ_GSSAPI_PLAINTEXT, ZMQ_GSSAPI_PRINCIPAL_NAMETYPE, ZMQ_GSSAPI_SERVICE_PRINCIPAL_NAMETYPE, ZMQ_HANDSHAKE_IVL, ZMQ_INVERT_MATCHING, ZMQ_HEARTBEAT_IVL, ZMQ_HEARTBEAT_TTL, ZMQ_HEARTBEAT_TIMEOUT, ZMQ_VMCI_BUFFER_SIZE, ZMQ_VMCI_BUFFER_MIN_SIZE, ZMQ_VMCI_BUFFER_MAX_SIZE, ZMQ_VMCI_CONNECT_TIMEOUT, ZMQ_USE_FD, ZMQ_BINDTODEVICE, ZMQ_ZAP_ENFORCE_DOMAIN, ZMQ_LOOPBACK_FASTPATH, ZMQ_METADATA, ZMQ_MULTICAST_LOOP, ZMQ_IN_BATCH_SIZE, ZMQ_OUT_BATCH_SIZE, ZMQ_BUSY_POLL, ZMQ_WSS_KEY_PEM, ZMQ_WSS_CERT_PEM, ZMQ_WSS_TRUST_PEM, ZMQ_WSS_HOSTNAME, ZMQ_WSS_TRUST_SYSTEM, ZMQ_HELLO_MSG, ZMQ_DISCONNECT_MSG, ZMQ_PRIORITY, ZMQ_HICCUP_MSG, ZMQ_IMMEDIATE, ZMQ_TYPE, ZMQ_MECHANISM, ZMQ_ROUTER_NOTIFY};
+use crate::zmq_utils::zmq_z85_encode;
 
 #[derive(Default, Debug, Clone)]
-struct options_t
-{
-    
+pub struct ZmqOptions {
     //  High-water marks for message pipes.
     pub sndhwm: i32,
     pub rcvhwm: i32,
@@ -19,7 +19,7 @@ struct options_t
     //  Socket routing id.
     // unsigned char routing_id_size,
     pub routing_id_size: usize,
-    pub routing_id: [u8;256],
+    pub routing_id: [u8; 256],
 
     //  Maximum transfer rate [kb/s]. Default 100kb/s.
     pub rate: i32,
@@ -48,7 +48,7 @@ struct options_t
     pub type_: u8,
 
     //  Linger time, in milliseconds.
-    pub linger: atomic_value_t,
+    pub linger: AtomicU64,
 
     //  Maximum interval in milliseconds beyond which userspace will
     //  timeout connect().
@@ -134,7 +134,7 @@ struct options_t
     // typedef std::set<gid_t> ipc_gid_accept_filters_t,
     // ipc_gid_accept_filters_t ipc_gid_accept_filters,
     pub ipc_gid_accept_filters: HashSet<gid_t>,
-// #endif
+    // #endif
 // #if defined ZMQ_HAVE_SO_PEERCRED
 //     typedef std::set<pid_t> ipc_pid_accept_filters_t,
 //     ipc_pid_accept_filters_t ipc_pid_accept_filters,
@@ -155,9 +155,9 @@ struct options_t
     pub plain_password: String,
 
     //  Security credentials for CURVE mechanism
-    pub curve_public_key: [u8;CURVE_KEYSIZE],
-    pub curve_secret_key: [u8;CURVE_KEYSIZE],
-    pub curve_server_key: [u8;CURVE_KEYSIZE],
+    pub curve_public_key: [u8; CURVE_KEYSIZE],
+    pub curve_secret_key: [u8; CURVE_KEYSIZE],
+    pub curve_server_key: [u8; CURVE_KEYSIZE],
 
     //  Principals for GSSAPI mechanism
     pub gss_principal: String,
@@ -193,7 +193,7 @@ struct options_t
     //  Time in milliseconds to wait for a PING response before disconnecting
     pub heartbeat_timeout: i32,
 
-// #if defined ZMQ_HAVE_VMCI
+    // #if defined ZMQ_HAVE_VMCI
     pub vmci_buffer_size: u64,
     pub vmci_buffer_min_size: u64,
     pub vmci_buffer_max_size: u64,
@@ -235,7 +235,7 @@ struct options_t
     pub router_notify: i32,
 
     // Application metadata
-    pub app_metadata: HashMap<String,String>,
+    pub app_metadata: HashMap<String, String>,
 
     // Version of monitor events to emit
     pub monitor_event_version: i32,
@@ -263,15 +263,15 @@ struct options_t
     pub busy_poll: i32,
 }
 
-impl options_t {
-    // options_t ();
+impl ZmqOptions {
+    // ZmqOptions ();
     pub fn new() -> Self {
         Self {
-            sndhwm: default_hwm as i32,
-            rcvhwm: default_hwm as i32,
+            sndhwm: DEFAULT_HWM as i32,
+            rcvhwm: DEFAULT_HWM as i32,
             affinity: 0,
             routing_id_size: 0,
-            routing_id: [0;256],
+            routing_id: [0; 256],
             rate: 0,
             recovery_ivl: 0,
             multicast_hops: 0,
@@ -281,7 +281,7 @@ impl options_t {
             tos: 0,
             priority: 0,
             type_: -1,
-            linger: -1,
+            linger: AtomicU64::from(0),
             connect_timeout: 0,
             tcp_maxrt: 0,
             reconnect_stop: 0,
@@ -314,9 +314,9 @@ impl options_t {
             zap_domain: "".to_string(),
             plain_username: "".to_string(),
             plain_password: "".to_string(),
-            curve_public_key: [0;128],
-            curve_secret_key: [0;128],
-            curve_server_key: [0;128],
+            curve_public_key: [0; 128],
+            curve_secret_key: [0; 128],
+            curve_server_key: [0; 128],
             gss_principal: "".to_string(),
             gss_service_principal: "".to_string(),
             gss_principal_nt: ZMQ_GSSAPI_NT_HOSTBASED as i32,
@@ -362,727 +362,680 @@ impl options_t {
     // int set_curve_key (uint8_t *destination_,
     //                    const opt_val: *mut c_void,
     //                    opt_val_len: usize);
-    pub fn set_curve_key (&mut self, destination_: *mut u8,
-                                   opt_val: *mut c_void,
-                                   opt_val_len: usize) -> i32
-{
-    unsafe {
-        match opt_val_len {
-            CURVE_KEYSIZE => {
-                unsafe { memcpy(destination_ as *mut c_void, opt_val, opt_val_len); }
-                self.mechanism = ZMQ_CURVE as i32;
-                return 0;
-            }
-            CURVE_KEYSIZE_Z85_P1 => {
-                // const std::string s (static_cast<const char *> (opt_val),
-                //                      opt_val_len);
-                let mut s = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1);
-
-                if zmq_z85_decode(destination_, s.c_str()) {
+    pub fn set_curve_key(&mut self, destination_: &mut [u8],
+                         opt_val: &mut [u8],
+                         opt_val_len: usize) -> i32 {
+        unsafe {
+            match opt_val_len {
+                CURVE_KEYSIZE => {
+                    // unsafe { memcpy(destination_ as *mut c_void, opt_val, opt_val_len); }
+                    destination_.clone_from_slice(opt_val);
                     self.mechanism = ZMQ_CURVE as i32;
                     return 0;
                 }
-            }
+                CURVE_KEYSIZE_Z85_P1 => {
+                    // const std::string s (static_cast<const char *> (opt_val),
+                    //                      opt_val_len);
+                    let mut s = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1);
 
-            CURVE_KEYSIZE_Z85 => {
-                let mut z85_key: [u8; CURVE_KEYSIZE_Z85_P1] = [0; CURVE_KEYSIZE_Z85_P1];
-                memcpy(z85_key as *mut c_void, opt_val, opt_val_len);
-                z85_key[CURVE_KEYSIZE_Z85] = 0;
-                if zmq_z85_decode(destination_, z85_key) {
-                    self.mechanism = ZMQ_CURVE as i32;
-                    return 0;
+                    if zmq_z85_decode(destination_, s.c_str()) {
+                        self.mechanism = ZMQ_CURVE as i32;
+                        return 0;
+                    }
                 }
+
+                CURVE_KEYSIZE_Z85 => {
+                    let mut z85_key: [u8; CURVE_KEYSIZE_Z85_P1] = [0; CURVE_KEYSIZE_Z85_P1];
+                    // memcpy(z85_key as *mut c_void, opt_val, opt_val_len);
+                    z85_key.clone_from_slice(opt_val);
+                    z85_key[CURVE_KEYSIZE_Z85] = 0;
+                    if zmq_z85_decode(destination_, z85_key) {
+                        self.mechanism = ZMQ_CURVE as i32;
+                        return 0;
+                    }
+                }
+                _ => {}
             }
-            _ =>{}
         }
+        return -1;
     }
-    return -1;
-}
 
 
     // int setsockopt (option_: i32, const opt_val: *mut c_void, opt_val_len: usize);
 
-pub fn setsockopt (&mut self, option_: i32, opt_val: *mut c_void, opt_val_len: usize) -> i32
-{
-    let mut i32_size = mem::size_of::<i32>();
-    let is_int = opt_val_len == i32_size;
-    let mut value = 0i32;
-    if is_int {
-        unsafe { memcpy(&mut value as *mut c_void, opt_val, i32_size); }
-    }
+    pub fn setsockopt(&mut self, opt: i32, opt_val: &mut [u8], opt_val_len: usize) -> i32 {
+        let mut i32_size = mem::size_of::<i32>();
+        let is_int = opt_val_len == i32_size;
+        let mut value = 0i32;
+        if is_int {
+            // unsafe { memcpy(&mut value as *mut c_void, opt_val, i32_size); }
+            let val_bytes: [u8; 4] = [0; 4];
+            val_bytes.clone_from_slice(opt_val);
+            value = i32::from_le_bytes(val_bytes);
+        }
 // #if defined(ZMQ_ACT_MILITANT)
-    let mut malformed = true; //  Did caller pass a bad option value?
+//     let mut malformed = true; //  Did caller pass a bad option value?
 // #endif
 
-    match option_ {
-         ZMQ_SNDHWM=> {
-             if is_int && value >= 0 {
-                 self.sndhwm = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_RCVHWM=> {
-             if is_int && value >= 0 {
-                 self.rcvhwm = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_AFFINITY=> {
-             return do_setsockopt(opt_val, opt_val_len, &mut self.affinity);
-         }
-
-         ZMQ_ROUTING_ID=> unsafe {
-             //  Routing id is any binary string from 1 to 255 octets
-             if opt_val_len > 0 && opt_val_len <= UCHAR_MAX {
-                 self.routing_id_size = opt_val_len;
-                 memcpy(&mut self.routing_id as *mut c_void, opt_val, self.routing_id_size);
-                 return 0;
-             }
-         }
-
-
-        ZMQ_RATE=> {
-            if is_int && value > 0 {
-                self.rate = value;
-                return 0;
-            }
-
-        }
-
-         ZMQ_RECOVERY_IVL=> {
-             if (is_int && value >= 0) {
-                 self.recovery_ivl = value;
-                 return 0;
-             }
-
-         }
-
-         ZMQ_SNDBUF=> {
-             if (is_int && value >= -1) {
-                 self.sndbuf = value;
-                 return 0;
-             }
-
-         }
-
-         ZMQ_RCVBUF=> {
-             if (is_int && value >= -1) {
-                 rcvbuf = value;
-                 return 0;
-             }
-
-         }
-
-         ZMQ_TOS=> {
-             if (is_int && value >= 0) {
-                 self.tos = value;
-                 return 0;
-             }
-
-         }
-
-         ZMQ_LINGER=> {
-             if is_int && value >= -1 {
-                 self.linger.store(value);
-                 return 0;
-             }
-
-         }
-
-         ZMQ_CONNECT_TIMEOUT=> {
-             if (is_int && value >= 0) {
-                 self.connect_timeout = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_TCP_MAXRT=> {
-             if (is_int && value >= 0) {
-                 self.tcp_maxrt = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_RECONNECT_STOP=> {
-             if (is_int) {
-                 self.reconnect_stop = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_RECONNECT_IVL=> {
-             if (is_int && value >= -1) {
-                 self.reconnect_ivl = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_RECONNECT_IVL_MAX => {
-             if (is_int && value >= 0) {
-                 self.reconnect_ivl_max = value;
-                 return 0;
-             }
-         }
-
-
-        ZMQ_BACKLOG=> {
-            if (is_int && value >= 0) {
-                self.backlog = value;
-                return 0;
-            }
-        }
-
-
-         ZMQ_MAXMSGSIZE=> {
-             return do_setsockopt(opt_val, opt_val_len, &mut self.maxmsgsize);
-         }
-
-         ZMQ_MULTICAST_HOPS=> {
-             if (is_int && value > 0) {
-                 self.multicast_hops = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_MULTICAST_MAXTPDU=> {
-             if (is_int && value > 0) {
-                 self.multicast_maxtpdu = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_RCVTIMEO=> {
-             if (is_int && value >= -1) {
-                 self.rcvtimeo = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_SNDTIMEO=> {
-             if (is_int && value >= -1) {
-                 self.sndtimeo = value;
-                 return 0;
-             }
-         }
-
-
-        /*  Deprecated in favor of ZMQ_IPV6  */
-         ZMQ_IPV4ONLY=> {
-            let mut value = false;
-            let rc =
-              do_setsockopt_int_as_bool_strict (opt_val, opt_val_len, &mut value);
-            if (rc == 0) {
-                self.ipv6 = !value;
-            }
-            return rc;
-        }
-
-        /*  To replace the somewhat surprising IPV4ONLY */
-         ZMQ_IPV6=> {
-             return do_setsockopt_int_as_bool_strict(opt_val, opt_val_len,
-                                                     &mut self.ipv6);
-         }
-
-         ZMQ_SOCKS_PROXY=> {
-             return do_setsockopt_string_allow_empty_strict(
-                 opt_val, opt_val_len, &mut self.socks_proxy_address, SIZE_MAX);
-         }
-
-         ZMQ_SOCKS_USERNAME=> {
-             /* Make empty string or NULL equivalent. */
-             return if opt_val == NULL || opt_val_len == 0 {
-                 self.socks_proxy_username.clear();
-                 0
-             } else {
-                 do_setsockopt_string_allow_empty_strict(
-                     opt_val, opt_val_len, &mut self.socks_proxy_username, 255)
-             }
-         }
-         ZMQ_SOCKS_PASSWORD=> {
-             /* Make empty string or NULL equivalent. */
-             return if opt_val == NULL || opt_val_len == 0 {
-                 self.socks_proxy_password.clear();
-                 0
-             } else {
-                 do_setsockopt_string_allow_empty_strict(
-                     opt_val, opt_val_len, &mut self.socks_proxy_password, 255)
-             }
-         }
-         ZMQ_TCP_KEEPALIVE=> {
-             if is_int && (value == -1 || value == 0 || value == 1) {
-                 self.tcp_keepalive = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_TCP_KEEPALIVE_CNT=> {
-             if is_int && (value == -1 || value >= 0) {
-                 self.tcp_keepalive_cnt = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_TCP_KEEPALIVE_IDLE => {
-            if is_int && (value == - 1 || value >= 0) {
-                self.tcp_keepalive_idle = value; return 0;
-            }
-         }
-
-
-         ZMQ_TCP_KEEPALIVE_INTVL => {
-             if is_int && (value == -1 || value >= 0) {
-                 self.tcp_keepalive_intvl = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_IMMEDIATE => {
-             // TODO why is immediate not bool (and called non_immediate, as its meaning appears to be reversed)
-             if (is_int && (value == 0 || value == 1)) {
-                 self.immediate = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_TCP_ACCEPT_FILTER => {
-            let mut filter_str = String::new();
-            let mut rc = do_setsockopt_string_allow_empty_strict (
-                opt_val, opt_val_len, &mut filter_str, UCHAR_MAX);
-            if rc == 0 {
-                if filter_str.empty () {
-                    self.tcp_accept_filters.clear ();
-                } else {
-                    let mut mask = TcpAddressMask::default();
-                    rc = mask.resolve (&filter_str, ipv6);
-                    if rc == 0 {
-                        self.tcp_accept_filters.push_back (mask);
-                    }
+        match opt {
+            ZMQ_SNDHWM => {
+                if is_int && value >= 0 {
+                    self.sndhwm = value;
+                    return 0;
                 }
             }
-            return rc;
-        }
+            ZMQ_RCVHWM => {
+                if is_int && value >= 0 {
+                    self.rcvhwm = value;
+                    return 0;
+                }
+            }
+            ZMQ_AFFINITY => {
+                return do_setsockopt(opt_val, opt_val_len, &mut self.affinity);
+            }
+            ZMQ_ROUTING_ID => unsafe {
+                //  Routing id is any binary string from 1 to 255 octets
+                if opt_val_len > 0 && opt_val_len <= UCHAR_MAX {
+                    self.routing_id_size = opt_val_len;
+                    // memcpy(&mut self.routing_id as *mut c_void, opt_val, self.routing_id_size);
+                    self.routing_id.clone_from_slice(opt_val);
+                    return 0;
+                }
+            },
+            ZMQ_RATE => {
+                if is_int && value > 0 {
+                    self.rate = value;
+                    return 0;
+                }
+            }
+            ZMQ_RECOVERY_IVL => {
+                if is_int && value >= 0 {
+                    self.recovery_ivl = value;
+                    return 0;
+                }
+            }
+            ZMQ_SNDBUF => {
+                if is_int && value >= -1 {
+                    self.sndbuf = value;
+                    return 0;
+                }
+            }
+            ZMQ_RCVBUF => {
+                if (is_int && value >= -1) {
+                    rcvbuf = value;
+                    return 0;
+                }
+            }
+            ZMQ_TOS => {
+                if (is_int && value >= 0) {
+                    self.tos = value;
+                    return 0;
+                }
+            }
+            ZMQ_LINGER => {
+                if is_int && value >= -1 {
+                    self.linger.store(value as u64, Ordering::Relaxed);
+                    return 0;
+                }
+            }
+
+            ZMQ_CONNECT_TIMEOUT => {
+                if is_int && value >= 0 {
+                    self.connect_timeout = value;
+                    return 0;
+                }
+            }
+
+            ZMQ_TCP_MAXRT => {
+                if is_int && value >= 0 {
+                    self.tcp_maxrt = value;
+                    return 0;
+                }
+            }
+
+            ZMQ_RECONNECT_STOP => {
+                if (is_int) {
+                    self.reconnect_stop = value;
+                    return 0;
+                }
+            }
+
+            ZMQ_RECONNECT_IVL => {
+                if is_int && value >= -1 {
+                    self.reconnect_ivl = value;
+                    return 0;
+                }
+            }
+
+            ZMQ_RECONNECT_IVL_MAX => {
+                if is_int && value >= 0 {
+                    self.reconnect_ivl_max = value;
+                    return 0;
+                }
+            }
+
+            ZMQ_BACKLOG => {
+                if is_int && value >= 0 {
+                    self.backlog = value;
+                    return 0;
+                }
+            }
+
+            ZMQ_MAXMSGSIZE => {
+                return do_setsockopt(opt_val, opt_val_len, &mut self.maxmsgsize);
+            }
+
+            ZMQ_MULTICAST_HOPS => {
+                if is_int && value > 0 {
+                    self.multicast_hops = value;
+                    return 0;
+                }
+            }
+
+            ZMQ_MULTICAST_MAXTPDU => {
+                if is_int && value > 0 {
+                    self.multicast_maxtpdu = value;
+                    return 0;
+                }
+            }
+
+            ZMQ_RCVTIMEO => {
+                if is_int && value >= -1 {
+                    self.rcvtimeo = value;
+                    return 0;
+                }
+            }
+
+            ZMQ_SNDTIMEO => {
+                if is_int && value >= -1 {
+                    self.sndtimeo = value;
+                    return 0;
+                }
+            }
+
+
+            /*  Deprecated in favor of ZMQ_IPV6  */
+            ZMQ_IPV4ONLY => {
+                let mut value = false;
+                let rc = do_setsockopt_int_as_bool_strict(opt_val, opt_val_len, &mut value);
+                if (rc == 0) {
+                    self.ipv6 = !value;
+                }
+                return rc;
+            }
+
+            /*  To replace the somewhat surprising IPV4ONLY */
+            ZMQ_IPV6 => {
+                return do_setsockopt_int_as_bool_strict(opt_val, opt_val_len,
+                                                        &mut self.ipv6);
+            }
+
+            ZMQ_SOCKS_PROXY => {
+                return do_setsockopt_string_allow_empty_strict(
+                    opt_val, opt_val_len, &mut self.socks_proxy_address, SIZE_MAX);
+            }
+
+            ZMQ_SOCKS_USERNAME => {
+                /* Make empty string or NULL equivalent. */
+                return if opt_val == NULL || opt_val_len == 0 {
+                    self.socks_proxy_username.clear();
+                    0
+                } else {
+                    do_setsockopt_string_allow_empty_strict(
+                        opt_val, opt_val_len, &mut self.socks_proxy_username, 255)
+                };
+            }
+            ZMQ_SOCKS_PASSWORD => {
+                /* Make empty string or NULL equivalent. */
+                return if opt_val == NULL || opt_val_len == 0 {
+                    self.socks_proxy_password.clear();
+                    0
+                } else {
+                    do_setsockopt_string_allow_empty_strict(
+                        opt_val, opt_val_len, &mut self.socks_proxy_password, 255)
+                };
+            }
+            ZMQ_TCP_KEEPALIVE => {
+                if is_int && (value == -1 || value == 0 || value == 1) {
+                    self.tcp_keepalive = value;
+                    return 0;
+                }
+            }
+
+            ZMQ_TCP_KEEPALIVE_CNT => {
+                if is_int && (value == -1 || value >= 0) {
+                    self.tcp_keepalive_cnt = value;
+                    return 0;
+                }
+            }
+
+            ZMQ_TCP_KEEPALIVE_IDLE => {
+                if is_int && (value == -1 || value >= 0) {
+                    self.tcp_keepalive_idle = value;
+                    return 0;
+                }
+            }
+
+            ZMQ_TCP_KEEPALIVE_INTVL => {
+                if is_int && (value == -1 || value >= 0) {
+                    self.tcp_keepalive_intvl = value;
+                    return 0;
+                }
+            }
+
+            ZMQ_IMMEDIATE => {
+                // TODO why is immediate not bool (and called non_immediate, as its meaning appears to be reversed)
+                if (is_int && (value == 0 || value == 1)) {
+                    self.immediate = value;
+                    return 0;
+                }
+            }
+
+            ZMQ_TCP_ACCEPT_FILTER => {
+                let mut filter_str = String::new();
+                let mut rc = do_setsockopt_string_allow_empty_strict(
+                    opt_val, opt_val_len, &mut filter_str, UCHAR_MAX);
+                if rc == 0 {
+                    if filter_str.empty() {
+                        self.tcp_accept_filters.clear();
+                    } else {
+                        let mut mask = TcpAddressMask::default();
+                        rc = mask.resolve(&filter_str, ipv6);
+                        if rc == 0 {
+                            self.tcp_accept_filters.push_back(mask);
+                        }
+                    }
+                }
+                return rc;
+            }
 
 // #if defined ZMQ_HAVE_SO_PEERCRED || defined ZMQ_HAVE_LOCAL_PEERCRED
-         ZMQ_IPC_FILTER_UID=> {
-             return do_setsockopt_set(opt_val, opt_val_len,
-                                      &mut self.ipc_uid_accept_filters);
-         }
+            ZMQ_IPC_FILTER_UID => {
+                return do_setsockopt_set(opt_val, opt_val_len,
+                                         &mut self.ipc_uid_accept_filters);
+            }
 
-
-         ZMQ_IPC_FILTER_GID=> {
-             return do_setsockopt_set(opt_val, opt_val_len,
-                                      &mut self.ipc_gid_accept_filters);
-         }
+            ZMQ_IPC_FILTER_GID => {
+                return do_setsockopt_set(opt_val, opt_val_len,
+                                         &mut self.ipc_gid_accept_filters);
+            }
 // #endif
 
 // #if defined ZMQ_HAVE_SO_PEERCRED
-         ZMQ_IPC_FILTER_PID => {
-             return do_setsockopt_set(opt_val, opt_val_len,
-                                      &mut self.ipc_pid_accept_filters);
-         }
+            ZMQ_IPC_FILTER_PID => {
+                return do_setsockopt_set(opt_val, opt_val_len,
+                                         &mut self.ipc_pid_accept_filters);
+            }
 // #endif
 
-         ZMQ_PLAIN_SERVER=> {
-             if is_int && (value == 0 || value == 1) {
-                 self.as_server = value;
-                 self.mechanism = if value {
-                     ZMQ_PLAIN
-                 } else { ZMQ_NULL } as i32;
-                 return 0;
-             }
-         }
+            ZMQ_PLAIN_SERVER => {
+                if is_int && (value == 0 || value == 1) {
+                    self.as_server = value;
+                    self.mechanism = if value {
+                        ZMQ_PLAIN
+                    } else { ZMQ_NULL } as i32;
+                    return 0;
+                }
+            }
 
+            ZMQ_PLAIN_USERNAME => {
+                if opt_val_len == 0 && opt_val.is_null() {
+                    self.mechanism = ZMQ_NULL as i32;
+                    return 0;
+                } else if opt_val_len > 0 && opt_val_len <= UCHAR_MAX && opt_val.is_null() == false {
+                    // self.plain_username.assign(static_cast <const char
+                    // * > (opt_val),
+                    // opt_val_len);
+                    unsafe { self.plain_username = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
+                    self.as_server = 0;
+                    self.mechanism = ZMQ_PLAIN as i32;
+                    return 0;
+                }
+            }
 
-         ZMQ_PLAIN_USERNAME=> {
-             if opt_val_len == 0 && opt_val.is_null() {
-                 self.mechanism = ZMQ_NULL as i32;
-                 return 0;
-             } else if opt_val_len > 0 && opt_val_len <= UCHAR_MAX && opt_val.is_null() == false {
-                 // self.plain_username.assign(static_cast <const char
-                 // * > (opt_val),
-                 // opt_val_len);
-                 unsafe { self.plain_username = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
-                 self.as_server = 0;
-                 self.mechanism = ZMQ_PLAIN as i32;
-                 return 0;
-             }
-         }
+            ZMQ_PLAIN_PASSWORD => {
+                if opt_val_len == 0 && opt_val.is_null() {
+                    self.mechanism = ZMQ_NULL as i32;
+                    return 0;
+                } else if (opt_val_len > 0 && opt_val_len <= UCHAR_MAX && opt_val.is_null() == false) {
+                    // plain_password.assign(static_cast <const char
+                    // * > (opt_val),
+                    // opt_val_len);
+                    unsafe { self.plain_password = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
+                    self.as_server = 0;
+                    self.mechanism = ZMQ_PLAIN as i32;
+                    return 0;
+                }
+            }
 
-
-         ZMQ_PLAIN_PASSWORD=> {
-             if opt_val_len == 0 && opt_val.is_null() {
-                 self.mechanism = ZMQ_NULL as i32;
-                 return 0;
-             } else if (opt_val_len > 0 && opt_val_len <= UCHAR_MAX && opt_val.is_null() == false) {
-                 // plain_password.assign(static_cast <const char
-                 // * > (opt_val),
-                 // opt_val_len);
-                 unsafe { self.plain_password = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
-                 self.as_server = 0;
-                 self.mechanism = ZMQ_PLAIN as i32;
-                 return 0;
-             }
-         }
-
-
-        ZMQ_ZAP_DOMAIN=> {
-            return do_setsockopt_string_allow_empty_relaxed(
-                opt_val, opt_val_len, &mut self.zap_domain, UCHAR_MAX);
-        }
+            ZMQ_ZAP_DOMAIN => {
+                return do_setsockopt_string_allow_empty_relaxed(
+                    opt_val, opt_val_len, &mut self.zap_domain, UCHAR_MAX);
+            }
 
             //  If curve encryption isn't built, these options provoke EINVAL
 // #ifdef ZMQ_HAVE_CURVE
-         ZMQ_CURVE_SERVER=> {
-             if is_int && (value == 0 || value == 1) {
-                 self.as_server = value;
-                 self.mechanism = if value {
-                     ZMQ_CURVE
-                 } else { ZMQ_NULL } as i32;
-                 return 0;
-             }
-         }
+            ZMQ_CURVE_SERVER => {
+                if is_int && (value == 0 || value == 1) {
+                    self.as_server = value;
+                    self.mechanism = if value {
+                        ZMQ_CURVE
+                    } else { ZMQ_NULL } as i32;
+                    return 0;
+                }
+            }
 
+            ZMQ_CURVE_PUBLICKEY => {
+                if 0 == self.set_curve_key(&mut self.curve_public_key, opt_val, opt_val_len) {
+                    return 0;
+                }
+            }
 
-         ZMQ_CURVE_PUBLICKEY=> {
-             if 0 == self.set_curve_key(self.curve_public_key.as_mut_ptr(), opt_val, opt_val_len) {
-                 return 0;
-             }
-         }
+            ZMQ_CURVE_SECRETKEY => {
+                if 0 == self.set_curve_key(&mut self.curve_secret_key, opt_val, opt_val_len) {
+                    return 0;
+                }
+            }
 
-
-         ZMQ_CURVE_SECRETKEY=> {
-             if 0 == self.set_curve_key(self.curve_secret_key.as_mut_ptr(), opt_val, opt_val_len) {
-                 return 0;
-             }
-         }
-
-
-         ZMQ_CURVE_SERVERKEY=> {
-             if 0 == self.set_curve_key(self.curve_server_key.as_mut_ptr(), opt_val, opt_val_len) {
-                 self.as_server = 0;
-                 return 0;
-             }
-         }
+            ZMQ_CURVE_SERVERKEY => {
+                if 0 == self.set_curve_key(&mut self.curve_server_key, opt_val, opt_val_len) {
+                    self.as_server = 0;
+                    return 0;
+                }
+            }
 
 // #endif
 
-         ZMQ_CONFLATE=> {
-             return do_setsockopt_int_as_bool_strict(opt_val, opt_val_len,
-                                                     &mut self.conflate);
-         }
+            ZMQ_CONFLATE => {
+                return do_setsockopt_int_as_bool_strict(opt_val, opt_val_len,
+                                                        &mut self.conflate);
+            }
 
             //  If libgssapi isn't installed, these options provoke EINVAL
 // #ifdef HAVE_LIBGSSAPI_KRB5
-         ZMQ_GSSAPI_SERVER=> {
-             if is_int && (value == 0 || value == 1) {
-                 self.as_server = value;
-                 self.mechanism = ZMQ_GSSAPI as i32;
-                 return 0;
-             }
-         }
+            ZMQ_GSSAPI_SERVER => {
+                if is_int && (value == 0 || value == 1) {
+                    self.as_server = value;
+                    self.mechanism = ZMQ_GSSAPI as i32;
+                    return 0;
+                }
+            }
 
+            ZMQ_GSSAPI_PRINCIPAL => {
+                if opt_val_len > 0 && opt_val_len <= UCHAR_MAX && opt_val != NULL {
+                    // self.gss_principal.assign((const char
+                    // *) opt_val, opt_val_len);
+                    unsafe { self.gss_principal = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
+                    self.mechanism = ZMQ_GSSAPI as i32;
+                    return 0;
+                }
+            }
 
-         ZMQ_GSSAPI_PRINCIPAL=> {
-             if opt_val_len > 0 && opt_val_len <= UCHAR_MAX && opt_val != NULL {
-                 // self.gss_principal.assign((const char
-                 // *) opt_val, opt_val_len);
-                 unsafe { self.gss_principal = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
-                 self.mechanism = ZMQ_GSSAPI as i32;
-                 return 0;
-             }
-         }
+            ZMQ_GSSAPI_SERVICE_PRINCIPAL => {
+                if opt_val_len > 0 && opt_val_len <= UCHAR_MAX && opt_val != NULL {
+                    // gss_service_principal.assign((const char
+                    // *) opt_val,
+                    // opt_val_len);
+                    unsafe { self.gss_service_principal = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
+                    self.mechanism = ZMQ_GSSAPI as i32;
+                    self.as_server = 0;
+                    return 0;
+                }
+            }
 
+            ZMQ_GSSAPI_PLAINTEXT => {
+                return do_setsockopt_int_as_bool_strict(opt_val, opt_val_len,
+                                                        &mut self.gss_plaintext);
+            }
 
-         ZMQ_GSSAPI_SERVICE_PRINCIPAL=> {
-             if opt_val_len > 0 && opt_val_len <= UCHAR_MAX && opt_val != NULL {
-                 // gss_service_principal.assign((const char
-                 // *) opt_val,
-                 // opt_val_len);
-                 unsafe { self.gss_service_principal = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
-                 self.mechanism = ZMQ_GSSAPI as i32;
-                 self.as_server = 0;
-                 return 0;
-             }
-         }
+            ZMQ_GSSAPI_PRINCIPAL_NAMETYPE => {
+                if is_int && (value == ZMQ_GSSAPI_NT_HOSTBASED || value == ZMQ_GSSAPI_NT_USER_NAME || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL) {
+                    self.gss_principal_nt = value;
+                    return 0;
+                }
+            }
 
-
-         ZMQ_GSSAPI_PLAINTEXT=> {
-             return do_setsockopt_int_as_bool_strict(opt_val, opt_val_len,
-                                                     &mut self.gss_plaintext);
-         }
-
-         ZMQ_GSSAPI_PRINCIPAL_NAMETYPE=> {
-             if is_int && (value == ZMQ_GSSAPI_NT_HOSTBASED || value == ZMQ_GSSAPI_NT_USER_NAME || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL) {
-                 self.gss_principal_nt = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_GSSAPI_SERVICE_PRINCIPAL_NAMETYPE=> {
-             if is_int && (value == ZMQ_GSSAPI_NT_HOSTBASED || value == ZMQ_GSSAPI_NT_USER_NAME || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL) {
-                 self.gss_service_principal_nt = value;
-                 return 0;
-             }
-         }
+            ZMQ_GSSAPI_SERVICE_PRINCIPAL_NAMETYPE => {
+                if is_int && (value == ZMQ_GSSAPI_NT_HOSTBASED || value == ZMQ_GSSAPI_NT_USER_NAME || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL) {
+                    self.gss_service_principal_nt = value;
+                    return 0;
+                }
+            }
 
 // #endif
 
-         ZMQ_HANDSHAKE_IVL=> {
-             if is_int && value >= 0 {
-                 self.handshake_ivl = value;
-                 return 0;
-             }
-         }
+            ZMQ_HANDSHAKE_IVL => {
+                if is_int && value >= 0 {
+                    self.handshake_ivl = value;
+                    return 0;
+                }
+            }
 
+            ZMQ_INVERT_MATCHING => {
+                return do_setsockopt_int_as_bool_relaxed(opt_val, opt_val_len,
+                                                         &mut self.invert_matching);
+            }
 
-         ZMQ_INVERT_MATCHING=> {
-             return do_setsockopt_int_as_bool_relaxed(opt_val, opt_val_len,
-                                                      &mut self.invert_matching);
-         }
+            ZMQ_HEARTBEAT_IVL => {
+                if is_int && value >= 0 {
+                    self.heartbeat_interval = value;
+                    return 0;
+                }
+            }
 
-         ZMQ_HEARTBEAT_IVL=> {
-             if is_int && value >= 0 {
-                 self.heartbeat_interval = value;
-                 return 0;
-             }
-         }
+            ZMQ_HEARTBEAT_TTL => {
+                // Convert this to deciseconds from milliseconds
+                value = value / DECISECONDS_PER_MILLISECOND;
+                if is_int && value >= 0 && value <= UINT16_MAX {
+                    self.heartbeat_ttl = value as u16;
+                    return 0;
+                }
+            }
 
-
-         ZMQ_HEARTBEAT_TTL=> {
-             // Convert this to deciseconds from milliseconds
-             value = value / deciseconds_per_millisecond;
-             if is_int && value >= 0 && value <= UINT16_MAX {
-                 self.heartbeat_ttl = value as u16;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_HEARTBEAT_TIMEOUT=> {
-             if is_int && value >= 0 {
-                 self.heartbeat_timeout = value;
-                 return 0;
-             }
-         }
+            ZMQ_HEARTBEAT_TIMEOUT => {
+                if is_int && value >= 0 {
+                    self.heartbeat_timeout = value;
+                    return 0;
+                }
+            }
 
 
 // #ifdef ZMQ_HAVE_VMCI
-         ZMQ_VMCI_BUFFER_SIZE=> {
-             return do_setsockopt(opt_val, opt_val_len, &mut vmci_buffer_size);
-         }
+            ZMQ_VMCI_BUFFER_SIZE => {
+                return do_setsockopt(opt_val, opt_val_len, &mut vmci_buffer_size);
+            }
 
-         ZMQ_VMCI_BUFFER_MIN_SIZE=> {
-             return do_setsockopt(opt_val, opt_val_len, &mut vmci_buffer_min_size);
-         }
+            ZMQ_VMCI_BUFFER_MIN_SIZE => {
+                return do_setsockopt(opt_val, opt_val_len, &mut vmci_buffer_min_size);
+            }
 
-         ZMQ_VMCI_BUFFER_MAX_SIZE=> {
-             return do_setsockopt(opt_val, opt_val_len, &mut vmci_buffer_max_size);
-         }
+            ZMQ_VMCI_BUFFER_MAX_SIZE => {
+                return do_setsockopt(opt_val, opt_val_len, &mut vmci_buffer_max_size);
+            }
 
-         ZMQ_VMCI_CONNECT_TIMEOUT=> {
-             return do_setsockopt(opt_val, opt_val_len, &mut vmci_connect_timeout);
-         }
+            ZMQ_VMCI_CONNECT_TIMEOUT => {
+                return do_setsockopt(opt_val, opt_val_len, &mut vmci_connect_timeout);
+            }
 // #endif
 
-         ZMQ_USE_FD=> {
-             if (is_int && value >= -1) {
-                 self.use_fd = value;
-                 return 0;
-             }
-         }
+            ZMQ_USE_FD => {
+                if (is_int && value >= -1) {
+                    self.use_fd = value;
+                    return 0;
+                }
+            }
 
+            ZMQ_BINDTODEVICE => {
+                return do_setsockopt_string_allow_empty_strict(
+                    opt_val, opt_val_len, &mut self.bound_device, BINDDEVSIZ);
+            }
 
-         ZMQ_BINDTODEVICE=> {
-             return do_setsockopt_string_allow_empty_strict(
-                 opt_val, opt_val_len, &mut self.bound_device, BINDDEVSIZ);
-         }
+            ZMQ_ZAP_ENFORCE_DOMAIN => {
+                return do_setsockopt_int_as_bool_relaxed(opt_val, opt_val_len,
+                                                         &mut self.zap_enforce_domain);
+            }
 
-         ZMQ_ZAP_ENFORCE_DOMAIN=> {
-             return do_setsockopt_int_as_bool_relaxed(opt_val, opt_val_len,
-                                                      &mut self.zap_enforce_domain);
-         }
+            ZMQ_LOOPBACK_FASTPATH => {
+                return do_setsockopt_int_as_bool_relaxed(opt_val, opt_val_len,
+                                                         &mut self.loopback_fastpath);
+            }
 
-         ZMQ_LOOPBACK_FASTPATH=> {
-             return do_setsockopt_int_as_bool_relaxed(opt_val, opt_val_len,
-                                                      &mut self.loopback_fastpath);
-         }
+            ZMQ_METADATA => {
+                unsafe {
+                    if opt_val_len > 0 && !is_int {
+                        // const std
+                        // ::string
+                        // s(static_cast <const char
+                        // * > (opt_val),
+                        // opt_val_len);
+                        let mut s = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1);
+                        // const size_t
+                        // pos = s.find(':');
+                        let mut pos = s.find(':');
+                        if pos.is_some() && pos.unwrap() != 0 && pos.unwrap() != s.length() - 1 {
+                            let mut key = &s[0..pos.unwrap()];
+                            if key[0..2] == "X-" && key.len() <= UCHAR_MAX {
+                                let val = &s[pos.unwrap() + 1..s.len()];
+                                self.app_metadata.insert(String::from(key), String::from(val));
+                                return 0;
+                            }
+                        }
+                    }
+                }
+                errno = EINVAL;
+                return -1;
+            }
 
-         ZMQ_METADATA=> {
-             unsafe {
-                 if opt_val_len > 0 && !is_int {
-                     // const std
-                     // ::string
-                     // s(static_cast <const char
-                     // * > (opt_val),
-                     // opt_val_len);
-                     let mut s = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1);
-                     // const size_t
-                     // pos = s.find(':');
-                     let mut pos = s.find(':');
-                     if pos.is_some() && pos.unwrap() != 0 && pos.unwrap() != s.length() - 1 {
-                         let mut key = &s[0 .. pos.unwrap()];
-                         if key[0..2] == "X-" && key.len() <= UCHAR_MAX {
-                             let val = &s[pos.unwrap() + 1 .. s.len()];
-                             self.app_metadata.insert(String::from(key), String::from(val));
-                             return 0;
-                         }
-                     }
-                 }
-             }
-             errno = EINVAL;
-             return -1;
-         }
-
-         ZMQ_MULTICAST_LOOP => {
-             return do_setsockopt_int_as_bool_relaxed(opt_val, opt_val_len,
-                                                      &mut self.multicast_loop);
-         }
+            ZMQ_MULTICAST_LOOP => {
+                return do_setsockopt_int_as_bool_relaxed(opt_val, opt_val_len,
+                                                         &mut self.multicast_loop);
+            }
 
 // #ifdef ZMQ_BUILD_DRAFT_API
-         ZMQ_IN_BATCH_SIZE=> {
-             if (is_int && value > 0) {
-                 self.in_batch_size = value;
-                 return 0;
-             }
-         }
+            ZMQ_IN_BATCH_SIZE => {
+                if (is_int && value > 0) {
+                    self.in_batch_size = value;
+                    return 0;
+                }
+            }
 
+            ZMQ_OUT_BATCH_SIZE => {
+                if (is_int && value > 0) {
+                    self.out_batch_size = value;
+                    return 0;
+                }
+            }
 
-         ZMQ_OUT_BATCH_SIZE=> {
-             if (is_int && value > 0) {
-                 self.out_batch_size = value;
-                 return 0;
-             }
-         }
-
-
-         ZMQ_BUSY_POLL=> {
-             if (is_int) {
-                 self.busy_poll = value;
-                 return 0;
-             }
-         }
+            ZMQ_BUSY_POLL => {
+                if (is_int) {
+                    self.busy_poll = value;
+                    return 0;
+                }
+            }
 
 // #ifdef ZMQ_HAVE_WSS
-         ZMQ_WSS_KEY_PEM=> {
-             // TODO: check if valid certificate
-             // wss_key_pem = std::string((char *) opt_val, opt_val_len);
-             unsafe { self.wss_key_pem = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
-             return 0;
-         }
-         ZMQ_WSS_CERT_PEM=> {
-             // TODO: check if valid certificate
-             unsafe { self.wss_cert_pem = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
-             return 0;
-         }
-         ZMQ_WSS_TRUST_PEM=> {
-             // TODO: check if valid certificate
-             unsafe { self.wss_trust_pem = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
-             ;
-             return 0;
-         }
-         ZMQ_WSS_HOSTNAME=> {
-             unsafe { self.wss_hostname = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
-             return 0;
-         }
-         ZMQ_WSS_TRUST_SYSTEM=> {
-             return do_setsockopt_int_as_bool_strict(opt_val, opt_val_len,
-                                                     &mut self.wss_trust_system);
-         }
+            ZMQ_WSS_KEY_PEM => {
+                // TODO: check if valid certificate
+                // wss_key_pem = std::string((char *) opt_val, opt_val_len);
+                unsafe { self.wss_key_pem = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
+                return 0;
+            }
+            ZMQ_WSS_CERT_PEM => {
+                // TODO: check if valid certificate
+                unsafe { self.wss_cert_pem = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
+                return 0;
+            }
+            ZMQ_WSS_TRUST_PEM => {
+                // TODO: check if valid certificate
+                unsafe { self.wss_trust_pem = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); };
+                return 0;
+            }
+            ZMQ_WSS_HOSTNAME => {
+                unsafe { self.wss_hostname = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
+                return 0;
+            }
+            ZMQ_WSS_TRUST_SYSTEM => {
+                return do_setsockopt_int_as_bool_strict(opt_val, opt_val_len,
+                                                        &mut self.wss_trust_system);
+            }
 // #endif
 
-         ZMQ_HELLO_MSG=> {
-             unsafe {
-                 if opt_val_len > 0 {
-                     // unsigned
-                     // char * bytes = (unsigned
-                     // char *) opt_val;
-                     // hello_msg = std::vector < unsigned
-                     // char > (bytes, bytes + opt_val_len);
-                     let bytes: Vec<u8> = Vec::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1);
-                     self.hello_msg = bytes;
-                 } else {
-                     self.hello_msg.clear();
-                 }
-             }
+            ZMQ_HELLO_MSG => {
+                unsafe {
+                    if opt_val_len > 0 {
+                        // unsigned
+                        // char * bytes = (unsigned
+                        // char *) opt_val;
+                        // hello_msg = std::vector < unsigned
+                        // char > (bytes, bytes + opt_val_len);
+                        let bytes: Vec<u8> = Vec::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1);
+                        self.hello_msg = bytes;
+                    } else {
+                        self.hello_msg.clear();
+                    }
+                }
 
-             return 0;
-         }
+                return 0;
+            }
 
-         ZMQ_DISCONNECT_MSG=> unsafe {
-             if opt_val_len > 0 {
-                 // unsigned
-                 // char * bytes = (unsigned
-                 // char *) opt_val;
-                 // disconnect_msg = std::vector < unsigned
-                 // char > (bytes, bytes + opt_val_len);
-                 let bytes: Vec<u8> = Vec::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1);
-                 self.disconnect_msg = bytes;
-             } else {
-                 self.hello_msg.clear();
-             }
+            ZMQ_DISCONNECT_MSG => unsafe {
+                if opt_val_len > 0 {
+                    // unsigned
+                    // char * bytes = (unsigned
+                    // char *) opt_val;
+                    // disconnect_msg = std::vector < unsigned
+                    // char > (bytes, bytes + opt_val_len);
+                    let bytes: Vec<u8> = Vec::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1);
+                    self.disconnect_msg = bytes;
+                } else {
+                    self.hello_msg.clear();
+                }
 
-             return 0;
-         }
+                return 0;
+            },
 
-         ZMQ_PRIORITY=> {
-             if is_int && value >= 0 {
-                 priority = value;
-                 return 0;
-             }
-         }
+            ZMQ_PRIORITY => {
+                if is_int && value >= 0 {
+                    priority = value;
+                    return 0;
+                }
+            }
 
+            ZMQ_HICCUP_MSG => {
+                unsafe {
+                    if opt_val_len > 0 {
+                        // unsigned
+                        // char * bytes = (unsigned
+                        // char *) opt_val;
+                        // hiccup_msg = std::vector < unsigned
+                        // char > (bytes, bytes + opt_val_len);
+                        let bytes: Vec<u8> = Vec::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1);
+                        self.hiccup_msg = bytes;
+                    } else {
+                        // hiccup_msg = std::vector < unsigned
+                        // char > ();
+                        self.hiccup_msg.clear();
+                    }
+                }
 
-         ZMQ_HICCUP_MSG=> {
-             unsafe {
-                 if opt_val_len > 0 {
-                     // unsigned
-                     // char * bytes = (unsigned
-                     // char *) opt_val;
-                     // hiccup_msg = std::vector < unsigned
-                     // char > (bytes, bytes + opt_val_len);
-                     let bytes: Vec<u8> = Vec::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1);
-                     self.hiccup_msg = bytes;
-                 } else {
-                     // hiccup_msg = std::vector < unsigned
-                     // char > ();
-                     self.hiccup_msg.clear();
-                 }
-             }
-
-             return 0;
-         }
+                return 0;
+            }
 
 
 // #endif
 
-        // default:
-        _ => {
+            // default:
+            _ => {
 // #if defined(ZMQ_ACT_MILITANT)
-            //  There are valid scenarios for probing with unknown socket option
-            //  values, e.g. to check if security is enabled or not. This will not
-            //  provoke a militant assert. However, passing bad values to a valid
-            //  socket option will, if ZMQ_ACT_MILITANT is defined.
-            self.malformed = false;
+                //  There are valid scenarios for probing with unknown socket option
+                //  values, e.g. to check if security is enabled or not. This will not
+                //  provoke a militant assert. However, passing bad values to a valid
+                //  socket option will, if ZMQ_ACT_MILITANT is defined.
+                self.malformed = false;
 // #endif
 //             
+            }
         }
-    }
 
         // TODO mechanism should either be set explicitly, or determined when
         // connecting. currently, it depends on the order of setsockopt calls
@@ -1090,517 +1043,524 @@ pub fn setsockopt (&mut self, option_: i32, opt_val: *mut c_void, opt_val_len: u
         // the assumed or set mechanism should be queryable (as a socket option)
 
 // #if defined(ZMQ_ACT_MILITANT)
-    //  There is no valid use case for passing an error back to the application
-    //  when it sent malformed arguments to a socket option. Use ./configure
-    //  --with-militant to enable this checking.
-    if (self.malformed) {
-        zmq_assert(false);
-    }
+        //  There is no valid use case for passing an error back to the application
+        //  when it sent malformed arguments to a socket option. Use ./configure
+        //  --with-militant to enable this checking.
+        if self.malformed {
+            zmq_assert(false);
+        }
 // #endif
-    errno = EINVAL;
-    return -1;
-}
+        errno = EINVAL;
+        return -1;
+    }
 
     // int getsockopt (option_: i32, opt_val: *mut c_void, opt_val_len: *mut usize) const;
-    
-    pub fn getsockopt (&mut self, opt: i32, opt_val: *mut c_void, opt_val_len: &mut usize) -> i32
-{
-    let is_int = *opt_val_len == sizeof (int));
-    int *value = opt_val;
+    pub fn getsockopt(&mut self, opt: i32, opt_val: &mut [u8], opt_val_len: &mut usize) -> i32 {
+        let is_int = *opt_val_len == mem::size_of::<i32>();
+        let mut value = opt_val;
 // #if defined(ZMQ_ACT_MILITANT)
-    bool malformed = true; //  Did caller pass a bad option value?
+        let mut malformed = true; //  Did caller pass a bad option value?
 // #endif
 
-    match opt {
-        ZMQ_SNDHWM => {
-            if is_int {
-                *value = self.sndhwm;
-                return 0;
+        match opt {
+            ZMQ_SNDHWM => {
+                if is_int {
+                    value.clone_from_slice(self.sndhwm.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-          
 
-        ZMQ_RCVHWM => {
-            if (is_int) {
-                *value = self.rcvhwm;
-                return 0;
+            ZMQ_RCVHWM => {
+                if (is_int) {
+                    // *value = self.rcvhwm;
+                    value.clone_from_slice(self.rcvhwm.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-        
 
-        ZMQ_AFFINITY => {
-            if (*opt_val_len == sizeof(u64)) {
-                *opt_val = self.affinity;
-                return 0;
+            ZMQ_AFFINITY => {
+                if *opt_val_len == mem::size_of::<u64>() {
+                    // *opt_val = self.affinity;
+                    opt_val.clone_from_slice(self.affinity.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_ROUTING_ID => {
-            return do_getsockopt(opt_val, opt_val_len, routing_id,
-                                 self.routing_id_size);
-        }
-
-        ZMQ_RATE => {
-            if (is_int) {
-                *value = self.rate;
-                return 0;
+            ZMQ_ROUTING_ID => {
+                return do_getsockopt2(opt_val, opt_val_len, routing_id,
+                                      self.routing_id_size);
             }
-        }
-            
 
-        ZMQ_RECOVERY_IVL => {
-            if (is_int) {
-                *value = self.recovery_ivl;
-                return 0;
+            ZMQ_RATE => {
+                if is_int {
+                    // *value = self.rate;
+                    value.clone_from_slice(self.rate.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_SNDBUF => {
-            if (is_int) {
-                *value = self.sndbuf;
-                return 0;
+            ZMQ_RECOVERY_IVL => {
+                if (is_int) {
+                    // *value = self.recovery_ivl;
+                    value.clone_from_slice(self.recovery_ivl.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_RCVBUF => {
-            if (is_int) {
-                *value = self.rcvbuf;
-                return 0;
+            ZMQ_SNDBUF => {
+                if (is_int) {
+                    // *value = self.sndbuf;
+                    value.clone_from_slice(self.sndbuf.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
 
-        ZMQ_TOS => {
-            if (is_int) {
-                *value = self.tos;
-                return 0;
+            ZMQ_RCVBUF => {
+                if (is_int) {
+                    // *value = self.rcvbuf;
+                    value.clone_from_slice(self.rcvbuf.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_TYPE => {
-            if (is_int) {
-                *value = self.type_ ;
-                return 0;
+            ZMQ_TOS => {
+                if (is_int) {
+                    // *value = self.tos;
+                    value.clone_from_slice(self.tos.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_LINGER => {
-            if (is_int) {
-                *value = self.linger.load();
-                return 0;
+            ZMQ_TYPE => {
+                if (is_int) {
+                    // *value = self.type_ ;
+                    value[0] = self.type_;
+                    return 0;
+                }
             }
-        }
 
-        ZMQ_CONNECT_TIMEOUT => {
-            if (is_int) {
-                *value = self.connect_timeout;
-                return 0;
+            ZMQ_LINGER => {
+                if (is_int) {
+                    // *value = self.linger.load();
+                    value.clone_frome_slice(self.linger.load(Ordering::Relaxed).to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_TCP_MAXRT => {
-            if (is_int) {
-                *value = self.tcp_maxrt;
-                return 0;
+            ZMQ_CONNECT_TIMEOUT => {
+                if (is_int) {
+                    // *value = self.connect_timeout;
+                    value.clone_from_slice(self.connect_timeout.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_RECONNECT_STOP => {
-            if (is_int) {
-                *value = self.reconnect_stop;
-                return 0;
+            ZMQ_TCP_MAXRT => {
+                if (is_int) {
+                    // *value = self.tcp_maxrt;
+                    value.clone_from_slice(self.tcp_maxrt.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_RECONNECT_IVL => {
-            if (is_int) {
-                *value = self.reconnect_ivl;
-                return 0;
+            ZMQ_RECONNECT_STOP => {
+                if (is_int) {
+                    // *value = self.reconnect_stop;
+                    value.clone_from_slice(self.reconnect_stop.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_RECONNECT_IVL_MAX => {
-            if (is_int) {
-                *value = self.reconnect_ivl_max;
-                return 0;
+            ZMQ_RECONNECT_IVL => {
+                if (is_int) {
+                    // *value = self.reconnect_ivl;
+                    value.clone_from_slice(self.reconnect_ivl.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_BACKLOG => {
-            if (is_int) {
-                *value = self.backlog;
-                return 0;
+            ZMQ_RECONNECT_IVL_MAX => {
+                if (is_int) {
+                    // *value = self.reconnect_ivl_max;
+                    value.clone_from_slice(self.reconnect_ivl_max.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_MAXMSGSIZE => {
-            if (*opt_val_len == sizeof(int64_t)) {
-                *opt_val = self.maxmsgsize;
-                *opt_val_len = sizeof(int64_t);
-                return 0;
+            ZMQ_BACKLOG => {
+                if (is_int) {
+                    // *value = self.backlog;
+                    value.clone_from_slice(self.backlog.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_MULTICAST_HOPS => {
-            if (is_int) {
-                *value = self.multicast_hops;
-                return 0;
+            ZMQ_MAXMSGSIZE => {
+                if (*opt_val_len == mem::size_of::<i64>()) {
+                    // *opt_val = self.maxmsgsize;
+                    value.clone_from_slice(self.maxmsgsize.to_le_bytes().as_slice());
+                    *opt_val_len = mem::size_of::<i64>();
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_MULTICAST_MAXTPDU => {
-            if (is_int) {
-                *value = self.multicast_maxtpdu;
-                return 0;
+            ZMQ_MULTICAST_HOPS => {
+                if (is_int) {
+                    // *value = self.multicast_hops;
+                    value.clone_from_slice(self.multicast_hops.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_RCVTIMEO => {
-            if (is_int) {
-                *value = self.rcvtimeo;
-                return 0;
+            ZMQ_MULTICAST_MAXTPDU => {
+                if (is_int) {
+                    // *value = self.multicast_maxtpdu;
+                    value.clone_from_slice(self.multicast_maxtpdu.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_SNDTIMEO => {
-            if (is_int) {
-                *value = self.sndtimeo;
-                return 0;
+            ZMQ_RCVTIMEO => {
+                if (is_int) {
+                    // *value = self.rcvtimeo;
+                    value.clone_from_slice(self.rcvtimeo.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_IPV4ONLY => {
-            if (is_int) {
-                *value = 1 - self.ipv6;
-                return 0;
+            ZMQ_SNDTIMEO => {
+                if (is_int) {
+                    // *value = self.sndtimeo;
+                    value.clone_from_slice(self.sndtimeo.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_IPV6 => {
-            if (is_int) {
-                *value = self.ipv6;
-                return 0;
+            ZMQ_IPV4ONLY => {
+                if (is_int) {
+                    // *value = 1 - self.ipv6;
+                    let x: u8 = self.ipv6.into();
+                    value[0] = x;
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_IMMEDIATE => {
-            if (is_int) {
-                *value = self.immediate;
-                return 0;
+            ZMQ_IPV6 => {
+                if (is_int) {
+                    // *value = self.ipv6;
+                    let x: u8 = self.ipv6.into();
+                    value[0] = x;
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_SOCKS_PROXY => {
-            return do_getsockopt(opt_val, opt_val_len, self.socks_proxy_address);
-        }
-
-        ZMQ_SOCKS_USERNAME => {
-            return do_getsockopt(opt_val, opt_val_len, self.socks_proxy_username);
-        }
-
-        ZMQ_SOCKS_PASSWORD => {
-            return do_getsockopt(opt_val, opt_val_len, self.socks_proxy_password);
-        }
-
-        ZMQ_TCP_KEEPALIVE => {
-            if (is_int) {
-                *value = self.tcp_keepalive;
-                return 0;
+            ZMQ_IMMEDIATE => {
+                if (is_int) {
+                    // *value = self.immediate;
+                    value.clone_from_slice(self.immediate.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_TCP_KEEPALIVE_CNT => {
-            if (is_int) {
-                *value = self.tcp_keepalive_cnt;
-                return 0;
+            ZMQ_SOCKS_PROXY => {
+                return do_getsockopt(opt_val, opt_val_len, &self.socks_proxy_address);
             }
-        }
-            
 
-        ZMQ_TCP_KEEPALIVE_IDLE => {
-            if (is_int) {
-                *value = self.tcp_keepalive_idle;
-                return 0;
+            ZMQ_SOCKS_USERNAME => {
+                return do_getsockopt(opt_val, opt_val_len, &self.socks_proxy_username);
             }
-        }
-            
 
-        ZMQ_TCP_KEEPALIVE_INTVL => {
-            if (is_int) {
-                *value = self.tcp_keepalive_intvl;
-                return 0;
+            ZMQ_SOCKS_PASSWORD => {
+                return do_getsockopt(opt_val, opt_val_len, &self.socks_proxy_password);
             }
-        }
-            
 
-        ZMQ_MECHANISM => {
-            if (is_int) {
-                *value = self.mechanism;
-                return 0;
+            ZMQ_TCP_KEEPALIVE => {
+                if (is_int) {
+                    // *value = self.tcp_keepalive;
+                    value.clone_from_slice(self.tcp_keepalive.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_PLAIN_SERVER => {
-            if (is_int) {
-                *value = self.as_server && self.mechanism == ZMQ_PLAIN;
-                return 0;
+            ZMQ_TCP_KEEPALIVE_CNT => {
+                if (is_int) {
+                    // *value = self.tcp_keepalive_cnt;
+                    value.clone_from_slice(self.tcp_keepalive_cnt.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_PLAIN_USERNAME => {
-            return do_getsockopt(opt_val, opt_val_len, self.plain_username);
-        }
+            ZMQ_TCP_KEEPALIVE_IDLE => {
+                if (is_int) {
+                    // *value = self.tcp_keepalive_idle;
+                    value.clone_from_slice(self.tcp_keepalive_idle.to_le_bytes().as_slice());
+                    return 0;
+                }
+            }
 
-        ZMQ_PLAIN_PASSWORD => {
-            return do_getsockopt(opt_val, opt_val_len, self.plain_password);
-        }
+            ZMQ_TCP_KEEPALIVE_INTVL => {
+                if (is_int) {
+                    // *value = self.tcp_keepalive_intvl;
+                    value.clone_from_slice(self.tcp_keepalive_intvl.to_le_bytes().as_slice());
+                    return 0;
+                }
+            }
 
-        ZMQ_ZAP_DOMAIN => {
-            return do_getsockopt(opt_val, opt_val_len, self.zap_domain);
-        }
+            ZMQ_MECHANISM => {
+                if (is_int) {
+                    // *value = self.mechanism;
+                    value.clone_from_slice(self.mechanism.to_le_bytes().as_slice());
+                    return 0;
+                }
+            }
+
+            ZMQ_PLAIN_SERVER => {
+                if (is_int) {
+                    // *value = self.as_server && self.mechanism == ZMQ_PLAIN;
+                    let x = self.as_server != 0 && self.mechanism == ZMQ_PLAIN;
+                    value[0] = x.into();
+                    return 0;
+                }
+            }
+
+            ZMQ_PLAIN_USERNAME => {
+                return do_getsockopt(opt_val, opt_val_len, &self.plain_username);
+            }
+
+            ZMQ_PLAIN_PASSWORD => {
+                return do_getsockopt(opt_val, opt_val_len, &self.plain_password);
+            }
+
+            ZMQ_ZAP_DOMAIN => {
+                return do_getsockopt(opt_val, opt_val_len, &self.zap_domain);
+            }
 
             //  If curve encryption isn't built, these options provoke EINVAL
 // #ifdef ZMQ_HAVE_CURVE
-        ZMQ_CURVE_SERVER => {
-            if (is_int) {
-                *value = self.as_server && self.mechanism == ZMQ_CURVE;
-                return 0;
+            ZMQ_CURVE_SERVER => {
+                if (is_int) {
+                    // *value = self.as_server && self.mechanism == ZMQ_CURVE;
+                    let x = self.as_server != 0 && self.mechanism == ZMQ_CURVE;
+                    value[0] = x.into();
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_CURVE_PUBLICKEY => {
-            return do_getsockopt_curve_key(opt_val, opt_val_len,
-                                           self.curve_public_key);
-        }
+            ZMQ_CURVE_PUBLICKEY => {
+                return do_getsockopt_curve_key(opt_val, opt_val_len,
+                                               self.curve_public_key);
+            }
 
-        ZMQ_CURVE_SECRETKEY => {
-            return do_getsockopt_curve_key(opt_val, opt_val_len,
-                                           self.curve_secret_key);
-        }
+            ZMQ_CURVE_SECRETKEY => {
+                return do_getsockopt_curve_key(opt_val, opt_val_len,
+                                               self.curve_secret_key);
+            }
 
-        ZMQ_CURVE_SERVERKEY => {
-            return do_getsockopt_curve_key(opt_val, opt_val_len,
-                                           self.curve_server_key);
-        }
+            ZMQ_CURVE_SERVERKEY => {
+                return do_getsockopt_curve_key(opt_val, opt_val_len,
+                                               self.curve_server_key);
+            }
 // #endif
 
-        ZMQ_CONFLATE => {
-            if (is_int) {
-                *value = self.conflate;
-                return 0;
+            ZMQ_CONFLATE => {
+                if (is_int) {
+                    // *value = self.conflate;
+                    let x = self.conflate;
+                    value[0] = x.into();
+                    return 0;
+                }
             }
-        }
-            
+
 
             //  If libgssapi isn't installed, these options provoke EINVAL
 // #ifdef HAVE_LIBGSSAPI_KRB5
-        ZMQ_GSSAPI_SERVER => {
-            if (is_int) {
-                *value = self.as_server && self.mechanism == ZMQ_GSSAPI;
-                return 0;
+            ZMQ_GSSAPI_SERVER => {
+                if (is_int) {
+                    // *value = self.as_server && self.mechanism == ZMQ_GSSAPI;
+                    let x = self.as_server != 0 && self.mechanism == ZMQ_GSSAPI;
+                    value[0] = x.into();
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_GSSAPI_PRINCIPAL => {
-            return do_getsockopt(opt_val, opt_val_len, self.gss_principal);
-        }
+            ZMQ_GSSAPI_PRINCIPAL => {
+                return do_getsockopt(opt_val, opt_val_len, &self.gss_principal);
+            }
 
-        ZMQ_GSSAPI_SERVICE_PRINCIPAL => {
-            return do_getsockopt(opt_val, opt_val_len, self.gss_service_principal);
-        }
-        ZMQ_GSSAPI_PLAINTEXT => {
-            if (is_int) {
-                *value = self.gss_plaintext;
-                return 0;
+            ZMQ_GSSAPI_SERVICE_PRINCIPAL => {
+                return do_getsockopt(opt_val, opt_val_len, &self.gss_service_principal);
             }
-        }
-            
+            ZMQ_GSSAPI_PLAINTEXT => {
+                if (is_int) {
+                    // *value = self.gss_plaintext;
+                    value[0] = self.gss_plaintext.into();
+                    return 0;
+                }
+            }
 
-        ZMQ_GSSAPI_PRINCIPAL_NAMETYPE => {
-            if (is_int) {
-                *value = self.gss_principal_nt;
-                return 0;
+            ZMQ_GSSAPI_PRINCIPAL_NAMETYPE => {
+                if (is_int) {
+                    // *value = self.gss_principal_nt;
+                    value.clone_from_slice(self.gss_principal_nt.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
-        ZMQ_GSSAPI_SERVICE_PRINCIPAL_NAMETYPE => {
-            if (is_int) {
-                *value = self.gss_service_principal_nt;
-                return 0;
+
+            ZMQ_GSSAPI_SERVICE_PRINCIPAL_NAMETYPE => {
+                if (is_int) {
+                    // *value = self.gss_service_principal_nt;
+                    value.clone_from_slice(self.gss_service_principal_nt.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
+
 // #endif
 
-        ZMQ_HANDSHAKE_IVL => {
-            if (is_int) {
-                *value = self.handshake_ivl;
-                return 0;
+            ZMQ_HANDSHAKE_IVL => {
+                if (is_int) {
+                    // *value = self.handshake_ivl;
+                    value.clone_from_slice(self.handshake_ivl.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_INVERT_MATCHING => {
-            if (is_int) {
-                *value = self.invert_matching;
-                return 0;
+            ZMQ_INVERT_MATCHING => {
+                if (is_int) {
+                    // *value = self.invert_matching;
+                    value[0] = self.invert_matching.into();
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_HEARTBEAT_IVL => {
-            if (is_int) {
-                *value = self.heartbeat_interval;
-                return 0;
+            ZMQ_HEARTBEAT_IVL => {
+                if (is_int) {
+                    // *value = self.heartbeat_interval;
+                    value.clone_from_slice(self.heartbeat_interval.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_HEARTBEAT_TTL => {
-            if (is_int) {
-                // Convert the internal deciseconds value to milliseconds
-                *value = self.heartbeat_ttl * 100;
-                return 0;
+            ZMQ_HEARTBEAT_TTL => {
+                if (is_int) {
+                    // Convert the internal deciseconds value to milliseconds
+                    // *value = self.heartbeat_ttl * 100;
+                    let x = self.heartbeat_ttl * 100;
+                    value.clone_from_slice(x.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_HEARTBEAT_TIMEOUT => {
-            if (is_int) {
-                *value = self.heartbeat_timeout;
-                return 0;
+            ZMQ_HEARTBEAT_TIMEOUT => {
+                if (is_int) {
+                    // *value = self.heartbeat_timeout;
+                    value.clone_from_slice(self.heartbeat_timeout.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_USE_FD => {
-            if (is_int) {
-                *value = self.use_fd;
-                return 0;
+            ZMQ_USE_FD => {
+                if (is_int) {
+                    // *value = self.use_fd;
+                    value.clone_from_slice(self.use_fd.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
 
-        ZMQ_BINDTODEVICE => {
-            return do_getsockopt(opt_val, opt_val_len, self.bound_device);
-        }
-
-        ZMQ_ZAP_ENFORCE_DOMAIN => {
-            if (is_int) {
-                *value = self.zap_enforce_domain;
-                return 0;
+            ZMQ_BINDTODEVICE => {
+                return do_getsockopt(opt_val, opt_val_len, &self.bound_device);
             }
-        }
-            
 
-        ZMQ_LOOPBACK_FASTPATH => {
-            if (is_int) {
-                *value = self.loopback_fastpath;
-                return 0;
+            ZMQ_ZAP_ENFORCE_DOMAIN => {
+                if (is_int) {
+                    // *value = self.zap_enforce_domain;
+                    value[0] = self.zap_enforce_domain.into();
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_MULTICAST_LOOP => {
-            if (is_int) {
-                *value = self.multicast_loop;
-                return 0;
+            ZMQ_LOOPBACK_FASTPATH => {
+                if (is_int) {
+                    // *value = self.loopback_fastpath;
+                    value[0] = self.loopback_fastpath.into();
+                    return 0;
+                }
             }
-        }
-            
+
+            ZMQ_MULTICAST_LOOP => {
+                if (is_int) {
+                    // *value = self.multicast_loop;
+                    value[0] = self.multicast_loop.into();
+                    return 0;
+                }
+            }
+
 
 // #ifdef ZMQ_BUILD_DRAFT_API
-        ZMQ_ROUTER_NOTIFY => {
-            if (is_int) {
-                *value = self.router_notify;
-                return 0;
+            ZMQ_ROUTER_NOTIFY => {
+                if (is_int) {
+                    // *value = self.router_notify;
+                    value.clone_from_slice(self.router_notify.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_IN_BATCH_SIZE => {
-            if (is_int) {
-                *value = self.in_batch_size;
-                return 0;
+            ZMQ_IN_BATCH_SIZE => {
+                if (is_int) {
+                    // *value = self.in_batch_size;
+                    value.clone_from_slice(self.in_batch_size.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_OUT_BATCH_SIZE => {
-            if (is_int) {
-                *value = self.out_batch_size;
-                return 0;
+            ZMQ_OUT_BATCH_SIZE => {
+                if (is_int) {
+                    // *value = self.out_batch_size;
+                    value.clone_from_slice(self.out_batch_size.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_PRIORITY => {
-            if (is_int) {
-                *value = self.priority;
-                return 0;
+            ZMQ_PRIORITY => {
+                if (is_int) {
+                    // *value = self.priority;
+                    value.clone_from_slice(self.priority.to_le_bytes().as_slice());
+                    return 0;
+                }
             }
-        }
-            
 
-        ZMQ_BUSY_POLL => {
-            if (is_int) {
-                *value = self.busy_poll;
+            ZMQ_BUSY_POLL => {
+                if (is_int) {
+                    // *value = self.busy_poll;
+                    value.clone_from_slice(self.priority.to_le_bytes().as_slice());
+                }
             }
-        }
-            
+
 // #endif
 
 
-        _ => {
+            _ => {
 // #if defined(ZMQ_ACT_MILITANT)
-            malformed = false;
+                malformed = false;
+            }
+// #endif
+        }
+// #if defined(ZMQ_ACT_MILITANT)
+        if self.malformed {
+            zmq_assert(false);
         }
 // #endif
-            
+        errno = EINVAL;
+        return -1;
     }
-// #if defined(ZMQ_ACT_MILITANT)
-    if (self.malformed) {
-        zmq_assert(false);
-    }
-// #endif
-    errno = EINVAL;
-    return -1;
-}
 }
 
 pub const CURVE_KEYSIZE: usize = 128;
 pub const CURVE_KEYSIZE_Z85: usize = 256;
 pub const CURVE_KEYSIZE_Z85_P1: usize = CURVE_KEYSIZE_Z85 + 1;
 
-pub fn get_effective_conflate_option (options: &options_t) -> bool
-{
+pub fn get_effective_conflate_option(options: &ZmqOptions) -> bool {
     // conflate is only effective for some socket types
-    return options.conflate
-           && (options.type_ == ZMQ_DEALER || options.type_ == ZMQ_PULL
-               || options.type_ == ZMQ_PUSH || options.type_ == ZMQ_PUB
-               || options.type_ == ZMQ_SUB);
+    return options.conflate && (options.type_ == ZMQ_DEALER || options.type_ == ZMQ_PULL || options.type_ == ZMQ_PUSH || options.type_ == ZMQ_PUB || options.type_ == ZMQ_SUB);
 }
 
 // int do_getsockopt (opt_val: *mut c_void,
@@ -1615,7 +1575,7 @@ pub fn get_effective_conflate_option (options: &options_t) -> bool
 //     static_assert (std::is_trivially_copyable<T>::value,
 //                    "invalid use of do_getsockopt");
 // // #endif
-//     return do_getsockopt (opt_val, opt_val_len, &value_, sizeof (T));
+//     return do_getsockopt (opt_val, opt_val_len, &value_, mem::size_of::<T>());
 // }
 
 // int do_getsockopt (opt_val: *mut c_void,
@@ -1639,49 +1599,48 @@ pub fn sockopt_invalid() -> i32 {
     return -1;
 }
 
-pub fn do_getsockopt (opt_val: *mut c_void,
-                        opt_val_len: &mut usize,
-                        value_: &str) -> i32
-{
-    let mut str_ptr = CString::from(value_);
-    return do_getsockopt2 (opt_val, opt_val_len, str_ptr.as_ptr() as *mut c_void,
-                          value_.len() + 1);
+pub fn do_getsockopt(opt_val: &mut [u8],
+                     opt_val_len: &mut usize,
+                     val_in: &str) -> i32 {
+    // let mut str_ptr = CString::from(val_in);
+    return do_getsockopt2(opt_val, opt_val_len, val_in.as_bytes(),
+                          val_in.len());
 }
 
-pub fn do_getsockopt2 (opt_val: *mut c_void,
-                        opt_val_len: &mut usize,
-                        value_: *mut c_void,
-                        value_len_: usize) -> i32
-{
-    // TODO behaviour is inconsistent with options_t::getsockopt; there, an
+pub fn do_getsockopt2(opt_val: &mut [u8],
+                      opt_val_len: &mut usize,
+                      val_in: &[u8],
+                      val_in_len: usize) -> i32 {
+    // TODO behaviour is inconsistent with ZmqOptions::getsockopt; there, an
     // *exact* length match is required except for string-like (but not the
     // CURVE keys!) (and therefore null-ing remaining memory is a no-op, see
     // comment below)
-    if *opt_val_len < value_len_ {
-        return sockopt_invalid ();
+    if *opt_val_len < val_in_len {
+        return sockopt_invalid();
     }
-    unsafe { libc::memcpy(opt_val, value_, value_len_); }
+    // unsafe { libc::memcpy(opt_val, value_, value_len_); }
+    opt_val.clone_from_slice(&val_in[0..val_in_len]);
     // TODO why is the remaining memory null-ed?
     // libc::memset (static_cast<char *> (opt_val) + value_len_, 0,
     //         *opt_val_len - value_len_);
-    *opt_val_len = value_len_;
+    *opt_val_len = val_in_len;
     return 0;
 }
 
 // #ifdef ZMQ_HAVE_CURVE
-pub fn do_getsockopt_curve_key (opt_val: *mut c_void,
-                                    opt_val_len: &mut usize,
-                                    curve_key_:[u8;CURVE_KEYSIZE]) -> i32
-{
+pub fn do_getsockopt_curve_key(opt_val: &mut [u8],
+                               opt_val_len: &mut usize,
+                               curve_key_: [u8; CURVE_KEYSIZE]) -> i32 {
     if *opt_val_len == CURVE_KEYSIZE {
-        unsafe { libc::memcpy(opt_val, curve_key_.as_ptr() as *const c_void, CURVE_KEYSIZE); }
+        // unsafe { libc::memcpy(opt_val, curve_key_.as_ptr() as *const c_void, CURVE_KEYSIZE); }
+        opt_val.clone_from_slice(&curve_key_[0..CURVE_KEYSIZE]);
         return 0;
     }
     if *opt_val_len == CURVE_KEYSIZE_Z85 + 1 {
-        zmq_z85_encode (opt_val, curve_key_, CURVE_KEYSIZE);
+        zmq_z85_encode(opt_val, &curve_key_, CURVE_KEYSIZE);
         return 0;
     }
-    return sockopt_invalid ();
+    return sockopt_invalid();
 }
 // #endif
 
@@ -1689,84 +1648,79 @@ pub fn do_getsockopt_curve_key (opt_val: *mut c_void,
 // static int do_setsockopt (const opt_val: *const c_void,
 //                           const opt_val_len: usize,
 //                           T *const out_value_)
-pub fn do_setsockopt<T>(optval: *mut c_void, optvallen: usize, out_value: *mut T) -> i32 {
-    if optvallen == mem::size_of::<T>() {
-        unsafe { memcpy(out_value as *mut c_void, optval, mem::size_of::<T>()); }
+pub fn do_setsockopt<T>(opt_val: &mut [u8], opt_val_len: usize, out_value: &mut T) -> i32 {
+    if opt_val_len == mem::size_of::<T>() {
+        // unsafe { memcpy(out_value as *mut c_void, optval, mem::size_of::<T>()); }
+        *out_value = T::from(opt_val);
         return 0;
     }
-    return sockopt_invalid ();
+    return sockopt_invalid();
 }
 
-pub fn do_setsockopt_int_as_bool_strict (optval: *mut c_void,
-                                         optvallen: usize,
-                                         out_value: &mut bool) -> i32
-{
+pub fn do_setsockopt_int_as_bool_strict(opt_val: &mut [u8],
+                                        opt_val_len: usize,
+                                        out_value: &mut bool) -> i32 {
     // TODO handling of values other than 0 or 1 is not consistent,
     // here it is disallowed, but for other options such as
     // ZMQ_ROUTER_RAW any positive value is accepted
     let mut value = -1;
-    if do_setsockopt (optval, optvallen, &mut value) == -1 {
+    if do_setsockopt(opt_val, opt_val_len, &mut value) == -1 {
         return -1;
     }
     if value == 0 || value == 1 {
         *out_value = (value != 0);
         return 0;
     }
-    return sockopt_invalid ();
+    return sockopt_invalid();
 }
 
-pub fn do_setsockopt_int_as_bool_relaxed (opt_val: *mut c_void,
-                                            opt_val_len: usize,
-                                            out_value_: &mut bool) -> i32
-{
+pub fn do_setsockopt_int_as_bool_relaxed(opt_val: &mut [u8],
+                                         opt_val_len: usize,
+                                         out_value_: &mut bool) -> i32 {
     let mut value = -1;
-    if do_setsockopt (opt_val, opt_val_len, &mut value) == -1 {
+    if do_setsockopt(opt_val, opt_val_len, &mut value) == -1 {
         return -1;
     }
     *out_value_ = (value != 0);
     return 0;
 }
 
-pub fn do_setsockopt_string_allow_empty_strict (opt_val: *const c_void,
-                                         opt_val_len: usize,
-                                         out_value_: &mut String,
-                                         max_len_: usize) -> i32
-{
+pub fn do_setsockopt_string_allow_empty_strict(opt_val: &mut [u8],
+                                               opt_val_len: usize,
+                                               out_value_: &mut String,
+                                               max_len_: usize) -> i32 {
     // TODO why is opt_val != NULL not allowed in case of opt_val_len== 0?
     // TODO why are empty strings allowed for some socket options, but not for others?
     if opt_val.is_null() && opt_val_len == 0 {
-       out_value_.clear();
+        out_value_.clear();
         return 0;
     }
     if opt_val.is_null() == false && opt_val_len > 0 && opt_val_len <= max_len_ {
         unsafe { *out_value_ = String::from_raw_parts(opt_value_ as *mut u8, opt_val_len, max_len_); }
         return 0;
     }
-    return sockopt_invalid ();
+    return sockopt_invalid();
 }
 
-pub fn do_setsockopt_string_allow_empty_relaxed (opt_val: *const c_void,
-                                                 opt_val_len: usize,
-                                                 out_value_: &mut String,
-                                                 max_len_: usize) -> i32
-{
+pub fn do_setsockopt_string_allow_empty_relaxed(opt_val: &mut [u8],
+                                                opt_val_len: usize,
+                                                out_value: &mut String,
+                                                max_len: usize) -> i32 {
     // TODO use either do_setsockopt_string_allow_empty_relaxed or
     // do_setsockopt_string_allow_empty_strict everywhere
-    if opt_val_len > 0 && opt_val_len <= max_len_ {
+    if opt_val_len > 0 && opt_val_len <= max_len {
         // out_value_->assign (static_cast<const char *> (opt_val), opt_val_len);
-        unsafe { *out_value = String::from_raw_parts(opt_val as *mut u8, opt_val_len, max_len_); }
-        ;
+        unsafe { *out_value = String::from_raw_parts(opt_val as *mut u8, opt_val_len, max_len); };
         return 0;
     }
-    return sockopt_invalid ();
+    return sockopt_invalid();
 }
 
-pub fn do_setsockopt_set<T>(opt_val: *const c_void,
-                              opt_val_len: usize,
-                              set_: &mut HashSet<T>) -> i32
-{
+pub fn do_setsockopt_set<T>(opt_val: &mut [u8],
+                            opt_val_len: usize,
+                            set_: &mut HashSet<T>) -> i32 {
     if opt_val_len == 0 && opt_val == NULL {
-        set_.clear ();
+        set_.clear();
         return 0;
     }
     if (opt_val_len == mem::size_of::<T>()) && (opt_val.is_null() == false) {
@@ -1774,13 +1728,13 @@ pub fn do_setsockopt_set<T>(opt_val: *const c_void,
         unsafe { set_.insert(opt_val as *mut T) }
         return 0;
     }
-    return sockopt_invalid ();
+    return sockopt_invalid();
 }
 
 // TODO why is 1000 a sensible default?
-pub const default_hwm: u32 = 1000;
+pub const DEFAULT_HWM: u32 = 1000;
 //
-// zmq::options_t::options_t () :
+// zmq::ZmqOptions::ZmqOptions () :
 //     sndhwm (default_hwm),
 //     rcvhwm (default_hwm),
 //     affinity (0),
@@ -1857,5 +1811,4 @@ pub const default_hwm: u32 = 1000;
 // }
 
 
-
-pub const deciseconds_per_millisecond: u32 = 100;
+pub const DECISECONDS_PER_MILLISECOND: u32 = 100;

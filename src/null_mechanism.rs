@@ -42,7 +42,7 @@ pub struct null_mechanism_t ZMQ_FINAL : public zap_client_t
 // public:
     null_mechanism_t (session_base_t *session_,
                       const std::string &peer_address_,
-                      const options_t &options_);
+                      const ZmqOptions &options_);
     ~null_mechanism_t ();
 
     // mechanism implementation
@@ -68,15 +68,15 @@ pub struct null_mechanism_t ZMQ_FINAL : public zap_client_t
 };
 
 const char error_command_name[] = "\5ERROR";
-const size_t error_command_name_len = sizeof (error_command_name) - 1;
+const size_t error_command_name_len = mem::size_of::<error_command_name>() - 1;
 const size_t error_reason_len_size = 1;
 
 const char ready_command_name[] = "\5READY";
-const size_t ready_command_name_len = sizeof (ready_command_name) - 1;
+const size_t ready_command_name_len = mem::size_of::<ready_command_name>() - 1;
 
 zmq::null_mechanism_t::null_mechanism_t (session_base_t *session_,
                                          const std::string &peer_address_,
-                                         const options_t &options_) :
+                                         const ZmqOptions &options_) :
     mechanism_base_t (session_, options_),
     zap_client_t (session_, peer_address_, options_),
     _ready_command_sent (false),

@@ -53,7 +53,7 @@ void test_router_mandatory_tipc ()
 
     // Set mandatory routing on socket
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (sa, ZMQ_ROUTER_MANDATORY,
-                                               &mandatory, sizeof (mandatory)));
+                                               &mandatory, mem::size_of::<mandatory>()));
 
     // Send a message and check that it fails
     TEST_ASSERT_FAILURE_ERRNO (

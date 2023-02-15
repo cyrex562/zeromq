@@ -48,7 +48,7 @@ pub struct metadata_t
 
   // private:
     //  Reference counter.
-    atomic_counter_t _ref_cnt;
+    AtomicCounter _ref_cnt;
 
     //  Dictionary holding metadata.
     const dict_t _dict;

@@ -75,7 +75,7 @@ static int get_monitor_event_internal (monitor_: *mut c_void,
     uint8_t *data = static_cast<uint8_t *> (zmq_msg_data (&msg));
     uint16_t event = *reinterpret_cast<uint16_t *> (data);
     if (value_)
-        memcpy (value_, data + 2, sizeof (uint32_t));
+        memcpy (value_, data + 2, mem::size_of::<uint32_t>());
 
     //  Second frame in message contains event address
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -97,7 +97,7 @@ int get_monitor_event_with_timeout (monitor_: *mut c_void,
         int timeout_step = 250;
         int wait_time = 0;
         zmq_setsockopt (monitor_, ZMQ_RCVTIMEO, &timeout_step,
-                        sizeof (timeout_step));
+                        mem::size_of::<timeout_step>());
         while (
           (res = get_monitor_event_internal (monitor_, value_, address_, 0))
           == -1) {
@@ -106,12 +106,12 @@ int get_monitor_event_with_timeout (monitor_: *mut c_void,
                      wait_time);
         }
     } else {
-        zmq_setsockopt (monitor_, ZMQ_RCVTIMEO, &timeout_, sizeof (timeout_));
+        zmq_setsockopt (monitor_, ZMQ_RCVTIMEO, &timeout_, mem::size_of::<timeout_>());
         res = get_monitor_event_internal (monitor_, value_, address_, 0);
     }
     int timeout_infinite = -1;
     zmq_setsockopt (monitor_, ZMQ_RCVTIMEO, &timeout_infinite,
-                    sizeof (timeout_infinite));
+                    mem::size_of::<timeout_infinite>());
     return res;
 }
 
@@ -206,7 +206,7 @@ int expect_monitor_event_multiple (server_mon_: *mut c_void,
     return count_of_expected_events;
 }
 
-static int64_t get_monitor_event_internal_v2 (monitor_: *mut c_void,
+static i64 get_monitor_event_internal_v2 (monitor_: *mut c_void,
                                               u64 **value_,
                                               char **local_address_,
                                               char **remote_address_,
@@ -220,10 +220,10 @@ static int64_t get_monitor_event_internal_v2 (monitor_: *mut c_void,
         return -1; //  timed out or no message available
     }
     TEST_ASSERT_TRUE (zmq_msg_more (&msg));
-    TEST_ASSERT_EQUAL_UINT (sizeof (u64), zmq_msg_size (&msg));
+    TEST_ASSERT_EQUAL_UINT (mem::size_of::<u64>(), zmq_msg_size (&msg));
 
     u64 event;
-    memcpy (&event, zmq_msg_data (&msg), sizeof (event));
+    memcpy (&event, zmq_msg_data (&msg), mem::size_of::<event>());
     zmq_msg_close (&msg);
 
     //  Second frame in message contains the number of values
@@ -233,15 +233,15 @@ static int64_t get_monitor_event_internal_v2 (monitor_: *mut c_void,
         return -1; //  timed out or no message available
     }
     TEST_ASSERT_TRUE (zmq_msg_more (&msg));
-    TEST_ASSERT_EQUAL_UINT (sizeof (u64), zmq_msg_size (&msg));
+    TEST_ASSERT_EQUAL_UINT (mem::size_of::<u64>(), zmq_msg_size (&msg));
 
     u64 value_count;
-    memcpy (&value_count, zmq_msg_data (&msg), sizeof (value_count));
+    memcpy (&value_count, zmq_msg_data (&msg), mem::size_of::<value_count>());
     zmq_msg_close (&msg);
 
     if (value_) {
         *value_ =
-          (u64 *) malloc ((size_t) value_count * sizeof (u64));
+          (u64 *) malloc ((size_t) value_count * mem::size_of::<u64>());
         TEST_ASSERT_NOT_NULL (*value_);
     }
 
@@ -253,10 +253,10 @@ static int64_t get_monitor_event_internal_v2 (monitor_: *mut c_void,
             return -1; //  timed out or no message available
         }
         TEST_ASSERT_TRUE (zmq_msg_more (&msg));
-        TEST_ASSERT_EQUAL_UINT (sizeof (u64), zmq_msg_size (&msg));
+        TEST_ASSERT_EQUAL_UINT (mem::size_of::<u64>(), zmq_msg_size (&msg));
 
         if (value_ && *value_)
-            memcpy (&(*value_)[i], zmq_msg_data (&msg), sizeof (u64));
+            memcpy (&(*value_)[i], zmq_msg_data (&msg), mem::size_of::<u64>());
         zmq_msg_close (&msg);
     }
 
@@ -271,13 +271,13 @@ static int64_t get_monitor_event_internal_v2 (monitor_: *mut c_void,
     return event;
 }
 
-static int64_t get_monitor_event_with_timeout_v2 (monitor_: *mut c_void,
+static i64 get_monitor_event_with_timeout_v2 (monitor_: *mut c_void,
                                                   u64 **value_,
                                                   char **local_address_,
                                                   char **remote_address_,
                                                   timeout_: i32)
 {
-    int64_t res;
+    i64 res;
     if (timeout_ == -1) {
         // process infinite timeout in small steps to allow the user
         // to see some information on the console
@@ -285,7 +285,7 @@ static int64_t get_monitor_event_with_timeout_v2 (monitor_: *mut c_void,
         int timeout_step = 250;
         int wait_time = 0;
         zmq_setsockopt (monitor_, ZMQ_RCVTIMEO, &timeout_step,
-                        sizeof (timeout_step));
+                        mem::size_of::<timeout_step>());
         while ((res = get_monitor_event_internal_v2 (
                   monitor_, value_, local_address_, remote_address_, 0))
                == -1) {
@@ -294,17 +294,17 @@ static int64_t get_monitor_event_with_timeout_v2 (monitor_: *mut c_void,
                      wait_time);
         }
     } else {
-        zmq_setsockopt (monitor_, ZMQ_RCVTIMEO, &timeout_, sizeof (timeout_));
+        zmq_setsockopt (monitor_, ZMQ_RCVTIMEO, &timeout_, mem::size_of::<timeout_>());
         res = get_monitor_event_internal_v2 (monitor_, value_, local_address_,
                                              remote_address_, 0);
     }
     int timeout_infinite = -1;
     zmq_setsockopt (monitor_, ZMQ_RCVTIMEO, &timeout_infinite,
-                    sizeof (timeout_infinite));
+                    mem::size_of::<timeout_infinite>());
     return res;
 }
 
-int64_t get_monitor_event_v2 (monitor_: *mut c_void,
+i64 get_monitor_event_v2 (monitor_: *mut c_void,
                               u64 **value_,
                               char **local_address_,
                               char **remote_address_)
@@ -314,13 +314,13 @@ int64_t get_monitor_event_v2 (monitor_: *mut c_void,
 }
 
 void expect_monitor_event_v2 (monitor_: *mut c_void,
-                              int64_t expected_event_,
+                              i64 expected_event_,
                               expected_local_address_: *const c_char,
                               expected_remote_address_: *const c_char)
 {
     char *local_address = NULL;
     char *remote_address = NULL;
-    int64_t event = get_monitor_event_v2 (
+    i64 event = get_monitor_event_v2 (
       monitor_, NULL, expected_local_address_ ? &local_address : NULL,
       expected_remote_address_ ? &remote_address : NULL);
     bool failed = false;

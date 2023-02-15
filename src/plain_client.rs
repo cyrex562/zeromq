@@ -41,7 +41,7 @@
 pub struct plain_client_t ZMQ_FINAL : public mechanism_base_t
 {
 // public:
-    plain_client_t (session_base_t *session_, const options_t &options_);
+    plain_client_t (session_base_t *session_, const ZmqOptions &options_);
     ~plain_client_t ();
 
     // mechanism implementation
@@ -71,7 +71,7 @@ pub struct plain_client_t ZMQ_FINAL : public mechanism_base_t
 };
 
 zmq::plain_client_t::plain_client_t (session_base_t *const session_,
-                                     const options_t &options_) :
+                                     const ZmqOptions &options_) :
     mechanism_base_t (session_, options_), _state (sending_hello)
 {
 }

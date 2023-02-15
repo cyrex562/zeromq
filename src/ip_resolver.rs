@@ -243,7 +243,7 @@ impl IpResolver {
     //     addrinfo req;
     // #endif
     
-        // memset (&req, 0, sizeof (req));
+        // memset (&req, 0, mem::size_of::<req>());
     
         //  Choose IPv4 or IPv6 protocol family. Note that IPv6 allows for
         //  IPv4-in-IPv6 addresses.
@@ -352,7 +352,7 @@ impl IpResolver {
         //  Find the interface with the specified name and AF_INET family.
         bool found = false;
         lifreq *ifrp = ifc.lifc_req;
-        for (int n = 0; n < (int) (ifc.lifc_len / sizeof (lifreq)); n++, ifrp++) {
+        for (int n = 0; n < (int) (ifc.lifc_len / mem::size_of::<lifreq>()); n++, ifrp++) {
             if (!strcmp (nic_, ifrp->lifr_name)) {
                 rc = ioctl (fd, SIOCGLIFADDR, (char *) ifrp);
                 errno_assert (rc != -1);
@@ -403,7 +403,7 @@ impl IpResolver {
     //     strncpy (ifr.ifr_name, nic_, sizeof (ifr.ifr_name));
     //
     //     //  Fetch interface address.
-    //     const int rc = ioctl (sd, SIOCGIFADDR, (caddr_t) &ifr, sizeof (ifr));
+    //     const int rc = ioctl (sd, SIOCGIFADDR, (caddr_t) &ifr, mem::size_of::<ifr>());
     //
     //     //  Clean up.
     //     close (sd);
@@ -544,7 +544,7 @@ impl IpResolver {
     
         int iterations = 0;
         IP_ADAPTER_ADDRESSES *addresses;
-        unsigned long out_buf_len = sizeof (IP_ADAPTER_ADDRESSES);
+        unsigned long out_buf_len = mem::size_of::<IP_ADAPTER_ADDRESSES>();
     
         do {
             addresses = static_cast<IP_ADAPTER_ADDRESSES *> (malloc (out_buf_len));
@@ -666,9 +666,9 @@ impl IpResolver {
 //         ip6_addr->sin6_family = AF_INET6;
 // // #ifdef ZMQ_HAVE_VXWORKS
 //         struct in6_addr newaddr = IN6ADDR_ANY_INIT;
-//         memcpy (&ip6_addr->sin6_addr, &newaddr, sizeof (in6_addr));
+//         memcpy (&ip6_addr->sin6_addr, &newaddr, mem::size_of::<in6_addr>());
 // // #else
-//         memcpy (&ip6_addr->sin6_addr, &in6addr_any, sizeof (in6addr_any));
+//         memcpy (&ip6_addr->sin6_addr, &in6addr_any, mem::size_of::<in6addr_any>());
 // // #endif
 //     } else {
 //         assert (0 == "unsupported address family");

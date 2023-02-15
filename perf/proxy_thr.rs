@@ -68,7 +68,7 @@
 // #define HWM 10000
 
 // #ifndef ARRAY_SIZE
-// #define ARRAY_SIZE(x) (sizeof (x) / sizeof (*x))
+// #define ARRAY_SIZE(x) (mem::size_of::<x>() / sizeof (*x))
 // #endif
 
 // #define TEST_ASSERT_SUCCESS_ERRNO(expr)                                        \
@@ -79,7 +79,7 @@
 // #ifdef NDEBUG
 // #define ASSERT_EXPR_SAFE(x)                                                    \
     do {                                                                       \
-        (void) sizeof (x);                                                     \
+        (void) mem::size_of::<x>();                                                     \
     } while (0)
 // #else
 // #define ASSERT_EXPR_SAFE(x) assert (x)
@@ -106,7 +106,7 @@ int test_assert_success_message_errno_helper (rc_: i32,
 {
     if (rc_ == -1) {
         char buffer[512];
-        buffer[sizeof (buffer) - 1] =
+        buffer[mem::size_of::<buffer>() - 1] =
           0; //  to ensure defined behavior with VC++ <= 2013
         printf ("%s failed%s%s%s, errno = %i (%s)", expr_,
                 msg_ ? " (additional info: " : "", msg_ ? msg_ : "",
@@ -121,10 +121,10 @@ static void set_hwm (skt: *mut c_void)
     int hwm = HWM;
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (skt, ZMQ_SNDHWM, &hwm, sizeof (hwm)));
+      zmq_setsockopt (skt, ZMQ_SNDHWM, &hwm, mem::size_of::<hwm>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (skt, ZMQ_RCVHWM, &hwm, sizeof (hwm)));
+      zmq_setsockopt (skt, ZMQ_RCVHWM, &hwm, mem::size_of::<hwm>()));
 }
 
 static void publisher_thread_main (pvoid: *mut c_void)
@@ -141,11 +141,11 @@ static void publisher_thread_main (pvoid: *mut c_void)
 
     optval = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pubsocket, ZMQ_XPUB_NODROP, &optval, sizeof (optval)));
+      zmq_setsockopt (pubsocket, ZMQ_XPUB_NODROP, &optval, mem::size_of::<optval>()));
 
     optval = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pubsocket, ZMQ_SNDTIMEO, &optval, sizeof (optval)));
+      zmq_setsockopt (pubsocket, ZMQ_SNDTIMEO, &optval, mem::size_of::<optval>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_connect (pubsocket, cfg->frontend_endpoint[idx]));
@@ -154,7 +154,7 @@ static void publisher_thread_main (pvoid: *mut c_void)
     //  (in this test there's 1 subscriber only)
     char buffer[32] = {};
     rc = TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_recv (pubsocket, buffer, sizeof (buffer), 0));
+      zmq_recv (pubsocket, buffer, mem::size_of::<buffer>(), 0));
     if (rc != 1) {
         printf ("invalid response length: expected 1, received %d", rc);
         exit (1);
@@ -262,7 +262,7 @@ static void proxy_thread_main (pvoid: *mut c_void)
 
     int optval = 1;
     rc =
-      zmq_setsockopt (backend_xpub, ZMQ_XPUB_NODROP, &optval, sizeof (optval));
+      zmq_setsockopt (backend_xpub, ZMQ_XPUB_NODROP, &optval, mem::size_of::<optval>());
     ASSERT_EXPR_SAFE (rc == 0);
 
     set_hwm (backend_xpub);

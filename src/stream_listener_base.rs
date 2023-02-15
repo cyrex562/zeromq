@@ -43,8 +43,8 @@ pub struct stream_listener_base_t : public own_t, public io_object_t
 {
 // public:
     stream_listener_base_t (zmq::io_thread_t *io_thread_,
-                            socket_: *mut socket_base_t,
-                            const options_t &options_);
+                            socket_: *mut ZmqSocketBase,
+                            const ZmqOptions &options_);
     ~stream_listener_base_t () ZMQ_OVERRIDE;
 
     // Get the bound address for use with wildcards
@@ -72,7 +72,7 @@ pub struct stream_listener_base_t : public own_t, public io_object_t
     handle_t _handle;
 
     //  Socket the listener belongs to.
-    zmq::socket_base_t *_socket;
+    zmq::ZmqSocketBase *_socket;
 
     // String representation of endpoint to bind to
     std::string _endpoint;
@@ -82,8 +82,8 @@ pub struct stream_listener_base_t : public own_t, public io_object_t
 
 zmq::stream_listener_base_t::stream_listener_base_t (
   zmq::io_thread_t *io_thread_,
-  socket_: *mut socket_base_t,
-  const zmq::options_t &options_) :
+  socket_: *mut ZmqSocketBase,
+  const zmq::ZmqOptions &options_) :
     own_t (io_thread_, options_),
     io_object_t (io_thread_),
     _s (retired_fd),

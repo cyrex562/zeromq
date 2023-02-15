@@ -60,7 +60,7 @@ void zmq_sleep (seconds_: i32)
 
 void *zmq_stopwatch_start ()
 {
-    u64 *watch = static_cast<u64 *> (malloc (sizeof (u64)));
+    u64 *watch = static_cast<u64 *> (malloc (mem::size_of::<u64>()));
     alloc_assert (watch);
     *watch = zmq::clock_t::now_us ();
     return static_cast<void *> (watch);
@@ -97,21 +97,15 @@ void zmq_threadclose (thread_: *mut c_void)
 
 //  Z85 codec, taken from 0MQ RFC project, implements RFC32 Z85 encoding
 
+use libc::EINVAL;
+
 //  Maps base 256 to base 85
-static char encoder[85 + 1] = {"0123456789"
-                               "abcdefghij"
-                               "klmnopqrst"
-                               "uvwxyzABCD"
-                               "EFGHIJKLMN"
-                               "OPQRSTUVWX"
-                               "YZ.-:+=^!/"
-                               "*?&<>()[]{"
-                               "}@%$#"};
+pub const encoder: &'static str  = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#";
 
 //  Maps base 85 to base 256
 //  We chop off lower 32 and higher 128 ranges
 //  0xFF denotes invalid characters within this range
-static uint8_t decoder[96] = {
+pub const decoder: [u8;96] = [
   0xFF, 0x44, 0xFF, 0x54, 0x53, 0x52, 0x48, 0xFF, 0x4B, 0x4C, 0x46, 0x41,
   0xFF, 0x3F, 0x3E, 0x45, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
   0x08, 0x09, 0x40, 0xFF, 0x49, 0x42, 0x4A, 0x47, 0x51, 0x24, 0x25, 0x26,
@@ -119,7 +113,7 @@ static uint8_t decoder[96] = {
   0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x4D,
   0xFF, 0x4E, 0x43, 0xFF, 0xFF, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
   0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C,
-  0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x4F, 0xFF, 0x50, 0xFF, 0xFF};
+  0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x4F, 0xFF, 0x50, 0xFF, 0xFF];
 
 //  --------------------------------------------------------------------------
 //  Encode a binary frame as a string; destination string MUST be at least
@@ -127,23 +121,23 @@ static uint8_t decoder[96] = {
 //  dest. Size must be a multiple of 4.
 //  Returns NULL and sets errno = EINVAL for invalid input.
 
-char *zmq_z85_encode (char *dest_, const uint8_t *data_, size_: usize)
+pub fn zmq_z85_encode (dest_: &mut [u8], data_: &[u8], size_: usize) -> Option<String>
 {
-    if (size_ % 4 != 0) {
+    if size_ % 4 != 0 {
         errno = EINVAL;
-        return NULL;
+        return None;
     }
-    unsigned int char_nbr = 0;
-    unsigned int byte_nbr = 0;
-    uint32_t value = 0;
-    while (byte_nbr < size_) {
+    let mut char_nbr = 0;
+    let mut byte_nbr = 0;
+    let mut value = 0;
+    while byte_nbr < size_ {
         //  Accumulate value in base 256 (binary)
-        value = value * 256 + data_[byte_nbr++];
-        if (byte_nbr % 4 == 0) {
+        value = value * 256 + data_[byte_nbr += 1];
+        if byte_nbr % 4 == 0 {
             //  Output value in base 85
-            unsigned int divisor = 85 * 85 * 85 * 85;
+            let mut divisor = 85 * 85 * 85 * 85;
             while (divisor) {
-                dest_[char_nbr++] = encoder[value / divisor % 85];
+                dest_[char_nbr += 1] = encoder[value / divisor % 85];
                 divisor /= 85;
             }
             value = 0;
@@ -151,7 +145,7 @@ char *zmq_z85_encode (char *dest_, const uint8_t *data_, size_: usize)
     }
     assert (char_nbr == size_ * 5 / 4);
     dest_[char_nbr] = 0;
-    return dest_;
+    return Some(String::from_utf8_lossy(dest_).into());
 }
 
 
@@ -179,7 +173,7 @@ uint8_t *zmq_z85_decode (uint8_t *dest_, string_: *const c_char)
         }
         value *= 85;
         const uint8_t index = string_[char_nbr++] - 32;
-        if (index >= sizeof (decoder)) {
+        if (index >= mem::size_of::<decoder>()) {
             //  Invalid z85 encoding, character outside range
             goto error_inval;
         }
@@ -283,7 +277,7 @@ int zmq_curve_public (char *z85_public_key_, z85_secret_key_: *const c_char)
 
 void *zmq_atomic_counter_new (void)
 {
-    zmq::atomic_counter_t *counter = new (std::nothrow) zmq::atomic_counter_t;
+    zmq::AtomicCounter *counter = new (std::nothrow) zmq::AtomicCounter;
     alloc_assert (counter);
     return counter;
 }
@@ -292,14 +286,14 @@ void *zmq_atomic_counter_new (void)
 
 void zmq_atomic_counter_set (counter_: *mut c_void, value_: i32)
 {
-    (static_cast<zmq::atomic_counter_t *> (counter_))->set (value_);
+    (static_cast<zmq::AtomicCounter *> (counter_))->set (value_);
 }
 
 //  Increment the atomic counter, and return the old value
 
 int zmq_atomic_counter_inc (counter_: *mut c_void)
 {
-    return (static_cast<zmq::atomic_counter_t *> (counter_))->add (1);
+    return (static_cast<zmq::AtomicCounter *> (counter_))->add (1);
 }
 
 //  Decrement the atomic counter and return 1 (if counter >= 1), or
@@ -307,20 +301,20 @@ int zmq_atomic_counter_inc (counter_: *mut c_void)
 
 int zmq_atomic_counter_dec (counter_: *mut c_void)
 {
-    return (static_cast<zmq::atomic_counter_t *> (counter_))->sub (1) ? 1 : 0;
+    return (static_cast<zmq::AtomicCounter *> (counter_))->sub (1) ? 1 : 0;
 }
 
 //  Return actual value of atomic counter
 
 int zmq_atomic_counter_value (counter_: *mut c_void)
 {
-    return (static_cast<zmq::atomic_counter_t *> (counter_))->get ();
+    return (static_cast<zmq::AtomicCounter *> (counter_))->get ();
 }
 
 //  Destroy atomic counter, and set reference to NULL
 
 void zmq_atomic_counter_destroy (void **counter_p_)
 {
-    delete (static_cast<zmq::atomic_counter_t *> (*counter_p_));
+    delete (static_cast<zmq::AtomicCounter *> (*counter_p_));
     *counter_p_ = NULL;
 }

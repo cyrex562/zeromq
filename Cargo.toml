@@ -11,6 +11,7 @@ ipnet="2"
 dns-lookup = "1"
 gethostname = "0.4"
 macaddr = "1"
+anyhow = "1"
 
 [lib]
 name = "zmqrs"

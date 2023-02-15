@@ -50,7 +50,7 @@ void test_stream_2_stream ()
     //  Set up listener STREAM.
     void *rbind = test_context_socket (ZMQ_STREAM);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (rbind, ZMQ_STREAM_NOTIFY, &disabled, sizeof (disabled)));
+      zmq_setsockopt (rbind, ZMQ_STREAM_NOTIFY, &disabled, mem::size_of::<disabled>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (rbind, ZMQ_LINGER, &zero, sizeof zero));
@@ -98,13 +98,13 @@ void test_router_2_router (bool named_)
     //  Create bind socket.
     void *rbind = test_context_socket (ZMQ_ROUTER);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (rbind, ZMQ_LINGER, &zero, sizeof (zero)));
+      zmq_setsockopt (rbind, ZMQ_LINGER, &zero, mem::size_of::<zero>()));
     bind_loopback_ipv4 (rbind, my_endpoint, sizeof my_endpoint);
 
     //  Create connection socket.
     void *rconn1 = test_context_socket (ZMQ_ROUTER);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (rconn1, ZMQ_LINGER, &zero, sizeof (zero)));
+      zmq_setsockopt (rconn1, ZMQ_LINGER, &zero, mem::size_of::<zero>()));
 
     //  If we're in named mode, set some identities.
     if (named_) {
@@ -166,19 +166,19 @@ void test_router_2_router_while_receiving ()
     //  Create xbind socket.
     void *xbind = test_context_socket (ZMQ_ROUTER);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (xbind, ZMQ_LINGER, &zero, sizeof (zero)));
+      zmq_setsockopt (xbind, ZMQ_LINGER, &zero, mem::size_of::<zero>()));
     bind_loopback_ipv4 (xbind, x_endpoint, sizeof x_endpoint);
 
     //  Create zbind socket.
     void *zbind = test_context_socket (ZMQ_ROUTER);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (zbind, ZMQ_LINGER, &zero, sizeof (zero)));
+      zmq_setsockopt (zbind, ZMQ_LINGER, &zero, mem::size_of::<zero>()));
     bind_loopback_ipv4 (zbind, z_endpoint, sizeof z_endpoint);
 
     //  Create connection socket.
     void *yconn = test_context_socket (ZMQ_ROUTER);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (yconn, ZMQ_LINGER, &zero, sizeof (zero)));
+      zmq_setsockopt (yconn, ZMQ_LINGER, &zero, mem::size_of::<zero>()));
 
     // set identities for each socket
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (

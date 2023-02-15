@@ -54,7 +54,7 @@ void reconnect_default ()
     // set reconnect interval so only a single reconnect is tried
     int interval = 60 * 1000;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sub, ZMQ_RECONNECT_IVL, &interval, sizeof (interval)));
+      zmq_setsockopt (sub, ZMQ_RECONNECT_IVL, &interval, mem::size_of::<interval>()));
     // connect to pub
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sub, ENDPOINT_0));
 
@@ -107,7 +107,7 @@ void reconnect_success ()
     // set reconnect interval so only a single reconnect is tried
     int interval = 1 * 1000;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sub, ZMQ_RECONNECT_IVL, &interval, sizeof (interval)));
+      zmq_setsockopt (sub, ZMQ_RECONNECT_IVL, &interval, mem::size_of::<interval>()));
     // connect to pub
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sub, ENDPOINT_0));
 
@@ -178,7 +178,7 @@ void reconnect_stop_on_refused ()
     int stopReconnectOnError = ZMQ_RECONNECT_STOP_CONN_REFUSED;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (sub, ZMQ_RECONNECT_STOP,
                                                &stopReconnectOnError,
-                                               sizeof (stopReconnectOnError)));
+                                               mem::size_of::<stopReconnectOnError>()));
     // connect to pub
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sub, ENDPOINT_0));
 
@@ -223,7 +223,7 @@ void reconnect_stop_on_refused ()
 void reconnect_stop_on_handshake_failed ()
 {
     char bind_address[MAX_SOCKET_STRING];
-    size_t addr_length = sizeof (bind_address);
+    size_t addr_length = mem::size_of::<bind_address>();
     void *dummy = test_context_socket (ZMQ_STREAM);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (dummy, "tcp://127.0.0.1:0"));
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -241,12 +241,12 @@ void reconnect_stop_on_handshake_failed ()
     // set handshake interval (i.e., timeout) to a more reasonable value
     int handshakeInterval = 1000;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      sub, ZMQ_HANDSHAKE_IVL, &handshakeInterval, sizeof (handshakeInterval)));
+      sub, ZMQ_HANDSHAKE_IVL, &handshakeInterval, mem::size_of::<handshakeInterval>()));
     // set option to stop reconnecting on failed handshake
     int stopReconnectOnError = ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (sub, ZMQ_RECONNECT_STOP,
                                                &stopReconnectOnError,
-                                               sizeof (stopReconnectOnError)));
+                                               mem::size_of::<stopReconnectOnError>()));
     // connect to dummy stream socket above
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sub, bind_address));
 

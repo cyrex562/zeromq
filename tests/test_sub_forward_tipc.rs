@@ -56,7 +56,7 @@ void test ()
     //  Pass the subscription upstream through the device
     char buff[32];
     size: i32;
-    TEST_ASSERT_SUCCESS_ERRNO (size = zmq_recv (xpub, buff, sizeof (buff), 0));
+    TEST_ASSERT_SUCCESS_ERRNO (size = zmq_recv (xpub, buff, mem::size_of::<buff>(), 0));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_send (xsub, buff, size, 0));
 
     //  Wait a bit till the subscription gets to the publisher
@@ -66,7 +66,7 @@ void test ()
     send_string_expect_success (pub, "", 0);
 
     //  Pass the message downstream through the device
-    TEST_ASSERT_SUCCESS_ERRNO (size = zmq_recv (xsub, buff, sizeof (buff), 0));
+    TEST_ASSERT_SUCCESS_ERRNO (size = zmq_recv (xsub, buff, mem::size_of::<buff>(), 0));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_send (xpub, buff, size, 0));
 
     //  Receive the message in the subscriber

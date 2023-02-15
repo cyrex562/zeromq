@@ -33,14 +33,14 @@
 // #include "macros.hpp"
 // #include "dish.hpp"
 // #include "err.hpp"
-pub struct dish_t ZMQ_FINAL : public socket_base_t
+pub struct dish_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
     dish_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~dish_t ();
 
   protected:
-    //  Overrides of functions from socket_base_t.
+    //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
@@ -83,8 +83,8 @@ pub struct dish_session_t ZMQ_FINAL : public session_base_t
 // public:
     dish_session_t (zmq::io_thread_t *io_thread_,
                     bool connect_,
-                    socket_: *mut socket_base_t,
-                    const options_t &options_,
+                    socket_: *mut ZmqSocketBase,
+                    const ZmqOptions &options_,
                     Address *addr_);
     ~dish_session_t ();
 
@@ -106,7 +106,7 @@ pub struct dish_session_t ZMQ_FINAL : public session_base_t
 };
 
 zmq::dish_t::dish_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
-    socket_base_t (parent_, tid_, sid_, true), _has_message (false)
+    ZmqSocketBase (parent_, tid_, sid_, true), _has_message (false)
 {
     options.type = ZMQ_DISH;
 
@@ -310,8 +310,8 @@ void zmq::dish_t::send_subscriptions (pipe_t *pipe_)
 
 zmq::dish_session_t::dish_session_t (io_thread_t *io_thread_,
                                      bool connect_,
-                                     socket_base_t *socket_,
-                                     const options_t &options_,
+                                     ZmqSocketBase *socket_,
+                                     const ZmqOptions &options_,
                                      Address *addr_) :
     session_base_t (io_thread_, connect_, socket_, options_, addr_),
     _state (group)

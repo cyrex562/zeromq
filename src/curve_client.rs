@@ -43,7 +43,7 @@ pub struct curve_client_t ZMQ_FINAL : public curve_mechanism_base_t
 {
 // public:
     curve_client_t (session_base_t *session_,
-                    const options_t &options_,
+                    const ZmqOptions &options_,
                     const bool downgrade_sub_);
     ~curve_client_t () ZMQ_FINAL;
 
@@ -79,7 +79,7 @@ pub struct curve_client_t ZMQ_FINAL : public curve_mechanism_base_t
 };
 
 zmq::curve_client_t::curve_client_t (session_base_t *session_,
-                                     const options_t &options_,
+                                     const ZmqOptions &options_,
                                      const bool downgrade_sub_) :
     mechanism_base_t (session_, options_),
     curve_mechanism_base_t (session_,

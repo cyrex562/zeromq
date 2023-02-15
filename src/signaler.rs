@@ -219,22 +219,22 @@ void zmq::signaler_t::send ()
 // #endif
 // #if defined ZMQ_HAVE_EVENTFD
     const u64 inc = 1;
-    ssize_t sz = write (_w, &inc, sizeof (inc));
-    errno_assert (sz == sizeof (inc));
+    ssize_t sz = write (_w, &inc, mem::size_of::<inc>());
+    errno_assert (sz == mem::size_of::<inc>());
 #elif defined ZMQ_HAVE_WINDOWS
     const char dummy = 0;
     nbytes: i32;
     do {
-        nbytes = ::send (_w, &dummy, sizeof (dummy), 0);
+        nbytes = ::send (_w, &dummy, mem::size_of::<dummy>(), 0);
         wsa_assert (nbytes != SOCKET_ERROR);
         // wsa_assert does not abort on WSAEWOULDBLOCK. If we get this, we retry.
     } while (nbytes == SOCKET_ERROR);
     // Given the small size of dummy (should be 1) expect that send was able to send everything.
-    zmq_assert (nbytes == sizeof (dummy));
+    zmq_assert (nbytes == mem::size_of::<dummy>());
 #elif defined ZMQ_HAVE_VXWORKS
     unsigned char dummy = 0;
     while (true) {
-        ssize_t nbytes = ::send (_w, (char *) &dummy, sizeof (dummy), 0);
+        ssize_t nbytes = ::send (_w, (char *) &dummy, mem::size_of::<dummy>(), 0);
         if (unlikely (nbytes == -1 && errno == EINTR))
             continue;
 // #if defined(HAVE_FORK)
@@ -250,7 +250,7 @@ void zmq::signaler_t::send ()
 // #else
     unsigned char dummy = 0;
     while (true) {
-        ssize_t nbytes = ::send (_w, &dummy, sizeof (dummy), 0);
+        ssize_t nbytes = ::send (_w, &dummy, mem::size_of::<dummy>(), 0);
         if (unlikely (nbytes == -1 && errno == EINTR))
             continue;
 // #if defined(HAVE_FORK)
@@ -343,15 +343,15 @@ void zmq::signaler_t::recv ()
 //  Attempt to read a signal.
 // #if defined ZMQ_HAVE_EVENTFD
     u64 dummy;
-    ssize_t sz = read (_r, &dummy, sizeof (dummy));
-    errno_assert (sz == sizeof (dummy));
+    ssize_t sz = read (_r, &dummy, mem::size_of::<dummy>());
+    errno_assert (sz == mem::size_of::<dummy>());
 
     //  If we accidentally grabbed the next signal(s) along with the current
     //  one, return it back to the eventfd object.
     if (unlikely (dummy > 1)) {
         const u64 inc = dummy - 1;
-        ssize_t sz2 = write (_w, &inc, sizeof (inc));
-        errno_assert (sz2 == sizeof (inc));
+        ssize_t sz2 = write (_w, &inc, mem::size_of::<inc>());
+        errno_assert (sz2 == mem::size_of::<inc>());
         return;
     }
 
@@ -360,16 +360,16 @@ void zmq::signaler_t::recv ()
     unsigned char dummy;
 // #if defined ZMQ_HAVE_WINDOWS
     const int nbytes =
-      ::recv (_r, reinterpret_cast<char *> (&dummy), sizeof (dummy), 0);
+      ::recv (_r, reinterpret_cast<char *> (&dummy), mem::size_of::<dummy>(), 0);
     wsa_assert (nbytes != SOCKET_ERROR);
 #elif defined ZMQ_HAVE_VXWORKS
-    ssize_t nbytes = ::recv (_r, (char *) &dummy, sizeof (dummy), 0);
+    ssize_t nbytes = ::recv (_r, (char *) &dummy, mem::size_of::<dummy>(), 0);
     errno_assert (nbytes >= 0);
 // #else
-    ssize_t nbytes = ::recv (_r, &dummy, sizeof (dummy), 0);
+    ssize_t nbytes = ::recv (_r, &dummy, mem::size_of::<dummy>(), 0);
     errno_assert (nbytes >= 0);
 // #endif
-    zmq_assert (nbytes == sizeof (dummy));
+    zmq_assert (nbytes == mem::size_of::<dummy>());
     zmq_assert (dummy == 0);
 // #endif
 }
@@ -379,19 +379,19 @@ int zmq::signaler_t::recv_failable ()
 //  Attempt to read a signal.
 // #if defined ZMQ_HAVE_EVENTFD
     u64 dummy;
-    ssize_t sz = read (_r, &dummy, sizeof (dummy));
+    ssize_t sz = read (_r, &dummy, mem::size_of::<dummy>());
     if (sz == -1) {
         errno_assert (errno == EAGAIN);
         return -1;
     }
-    errno_assert (sz == sizeof (dummy));
+    errno_assert (sz == mem::size_of::<dummy>());
 
     //  If we accidentally grabbed the next signal(s) along with the current
     //  one, return it back to the eventfd object.
     if (unlikely (dummy > 1)) {
         const u64 inc = dummy - 1;
-        ssize_t sz2 = write (_w, &inc, sizeof (inc));
-        errno_assert (sz2 == sizeof (inc));
+        ssize_t sz2 = write (_w, &inc, mem::size_of::<inc>());
+        errno_assert (sz2 == mem::size_of::<inc>());
         return 0;
     }
 
@@ -401,7 +401,7 @@ int zmq::signaler_t::recv_failable ()
     unsigned char dummy;
 // #if defined ZMQ_HAVE_WINDOWS
     const int nbytes =
-      ::recv (_r, reinterpret_cast<char *> (&dummy), sizeof (dummy), 0);
+      ::recv (_r, reinterpret_cast<char *> (&dummy), mem::size_of::<dummy>(), 0);
     if (nbytes == SOCKET_ERROR) {
         const int last_error = WSAGetLastError ();
         if (last_error == WSAEWOULDBLOCK) {
@@ -411,7 +411,7 @@ int zmq::signaler_t::recv_failable ()
         wsa_assert (last_error == WSAEWOULDBLOCK);
     }
 #elif defined ZMQ_HAVE_VXWORKS
-    ssize_t nbytes = ::recv (_r, (char *) &dummy, sizeof (dummy), 0);
+    ssize_t nbytes = ::recv (_r, (char *) &dummy, mem::size_of::<dummy>(), 0);
     if (nbytes == -1) {
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
             errno = EAGAIN;
@@ -421,7 +421,7 @@ int zmq::signaler_t::recv_failable ()
                       || errno == EINTR);
     }
 // #else
-    ssize_t nbytes = ::recv (_r, &dummy, sizeof (dummy), 0);
+    ssize_t nbytes = ::recv (_r, &dummy, mem::size_of::<dummy>(), 0);
     if (nbytes == -1) {
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
             errno = EAGAIN;
@@ -431,7 +431,7 @@ int zmq::signaler_t::recv_failable ()
                       || errno == EINTR);
     }
 // #endif
-    zmq_assert (nbytes == sizeof (dummy));
+    zmq_assert (nbytes == mem::size_of::<dummy>());
     zmq_assert (dummy == 0);
 // #endif
     return 0;

@@ -44,7 +44,7 @@ pub struct curve_server_t ZMQ_FINAL : public zap_client_common_handshake_t,
 // public:
     curve_server_t (session_base_t *session_,
                     const std::string &peer_address_,
-                    const options_t &options_,
+                    const ZmqOptions &options_,
                     const bool downgrade_sub_);
     ~curve_server_t ();
 
@@ -81,7 +81,7 @@ pub struct curve_server_t ZMQ_FINAL : public zap_client_common_handshake_t,
 
 zmq::curve_server_t::curve_server_t (session_base_t *session_,
                                      const std::string &peer_address_,
-                                     const options_t &options_,
+                                     const ZmqOptions &options_,
                                      const bool downgrade_sub_) :
     mechanism_base_t (session_, options_),
     zap_client_common_handshake_t (

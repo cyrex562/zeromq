@@ -117,7 +117,7 @@ pub struct iovec
 
 //  Compile time check whether msg_t fits into zmq_msg_t.
 // typedef char
-//   check_msg_t_size[sizeof (zmq::msg_t) == sizeof (zmq_msg_t) ? 1 : -1];
+//   check_msg_t_size[sizeof (zmq::msg_t) == mem::size_of::<zmq_msg_t>() ? 1 : -1];
 
 
 pub fn zmq_version (major_: *mut u32, minor_: *mut u32, patch_: *mut u32)
@@ -249,10 +249,10 @@ pub fn zmq_ctx_destroy (ctx_: *mut c_void) -> i32
 
 // Sockets
 
-pub fn as_socket_base_t (s_: *mut c_void) -> *mut socket_base_t
+pub fn as_socket_base_t (s_: *mut c_void) -> *mut ZmqSocketBase
 {
-    // zmq::socket_base_t *s = static_cast<zmq::socket_base_t *> (s_);
-    let mut s: *mut socket_base_t = s_ as *mut socket_base_t;
+    // zmq::ZmqSocketBase *s = static_cast<zmq::ZmqSocketBase *> (s_);
+    let mut s: *mut ZmqSocketBase = s_ as *mut ZmqSocketBase;
     if s_.is_null() || !s.check_tag () {
         errno = ENOTSOCK;
         return null_mut();
@@ -266,12 +266,12 @@ pub fn zmq_socket(ctx_: *mut c_void, type_: i32) -> *mut c_void {
         return null_mut();
     }
     let mut ctx: *mut ZmqContext = ctx_ as *mut ZmqContext;
-    let mut s: *mut socket_base_t = ctx.create_socket(type_);
+    let mut s: *mut ZmqSocketBase = ctx.create_socket(type_);
     return s as *mut c_void;
 }
 
 pub fn zmq_close(s_: *mut c_void) -> i32 {
-    let mut s: *mut socket_base_t = as_socket_base_t(s_);
+    let mut s: *mut ZmqSocketBase = as_socket_base_t(s_);
     if (!s) {
         return -1;
     }
@@ -283,7 +283,7 @@ pub fn zmq_setsockopt(s_: *mut c_void,
                       option_: i32,
                       optval_: *mut c_void,
                       optvallen_: usize) -> i32 {
-    let mut s: *mut socket_base_t = as_socket_base_t(s_);
+    let mut s: *mut ZmqSocketBase = as_socket_base_t(s_);
     if (!s) {
         return -1;
     }
@@ -292,7 +292,7 @@ pub fn zmq_setsockopt(s_: *mut c_void,
 
 pub fn zmq_getsockopt (s_: *mut c_void, option_: i32, optval_: *mut c_void, optvallen_: *mut usize) -> i32
 {
-    let mut s: *mut socket_base_t = as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase = as_socket_base_t (s_);
     if (!s) {
         return -1;
     }
@@ -302,7 +302,7 @@ pub fn zmq_getsockopt (s_: *mut c_void, option_: i32, optval_: *mut c_void, optv
 pub fn zmq_socket_monitor_versioned(
   s_: *mut c_void, addr_: *const c_char, events_: u64, event_version_: i32, type_: i32) -> i32
 {
-    let mut s: *mut socket_base_t = as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase = as_socket_base_t (s_);
     if !s {
         return -1;
     }
@@ -316,7 +316,7 @@ pub fn zmq_socket_monitor (s_: *mut c_void, addr_: *const c_char, events_: u64) 
 
 pub fn zmq_join (s_: *mut c_void, group_: *const c_char) -> i32
 {
-    let mut s: *mut socket_base_t = as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase = as_socket_base_t (s_);
     if !s {
         return -1;
     }
@@ -325,7 +325,7 @@ pub fn zmq_join (s_: *mut c_void, group_: *const c_char) -> i32
 
 pub fn zmq_leave (s_: *mut c_void, group_: *const c_char) -> i32
 {
-    let mut s: *mut socket_base_t =  as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if !s {
         return -1;
     }
@@ -334,7 +334,7 @@ pub fn zmq_leave (s_: *mut c_void, group_: *const c_char) -> i32
 
 pub fn zmq_bind (s_: *mut c_void, addr_: *const c_char) -> i32
 {
-    let mut s: *mut socket_base_t =  as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s) {
         return -1;
     }
@@ -343,7 +343,7 @@ pub fn zmq_bind (s_: *mut c_void, addr_: *const c_char) -> i32
 
 pub fn zmq_connect (s_: *mut c_void, addr_: *const c_char) -> i32
 {
-    let mut s: *mut socket_base_t =  as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s){
 return - 1;}
     return s.connect (addr_);
@@ -374,7 +374,7 @@ pub fn zmq_connect_peer (s_: *mut c_void, addr_: *const c_char) -> u32
 
 pub fn zmq_unbind (s_: *mut c_void, addr_: *const c_char) -> i32
 {
-    let mut s: *mut socket_base_t =  as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s) {
         return -1;
     }
@@ -383,7 +383,7 @@ pub fn zmq_unbind (s_: *mut c_void, addr_: *const c_char) -> i32
 
 pub fn zmq_disconnect (s_: *mut c_void, addr_: *const c_char) -> i32
 {
-    let mut s: *mut socket_base_t =  as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if !s {
         return -1;
     }
@@ -392,7 +392,7 @@ pub fn zmq_disconnect (s_: *mut c_void, addr_: *const c_char) -> i32
 
 // Sending functions.
 
-pub fn s_sendmsg(s_: *mut socket_base_t, msg_: *mut zmq_msg_t, flags_: i32) -> i32 {
+pub fn s_sendmsg(s_: *mut ZmqSocketBase, msg_: *mut zmq_msg_t, flags_: i32) -> i32 {
     let mut sz: usize = zmq_msg_size(msg_);
     let rc = s_.send(msg_ as *mut msg_t, flags_);
     if unlikely(rc < 0) {
@@ -415,7 +415,7 @@ pub fn zmq_sendmsg (s_: *mut c_void, msg_: *mut zmq_msg_t, flags_: i32) -> i32
 
 pub fn zmq_send (s_: *mut c_void, buf_: *mut c_void, len_: usize, flags_: i32) -> i32
 {
-    let mut s: *mut socket_base_t =  as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s) {
         return -1;
     }
@@ -439,7 +439,7 @@ pub fn zmq_send (s_: *mut c_void, buf_: *mut c_void, len_: usize, flags_: i32) -
 }
 
 pub fn zmq_send_const(s_: *mut c_void, buf_: *mut c_void, len_: usize, flags_: i32) -> i32 {
-    let mut s: *mut socket_base_t = as_socket_base_t(s_);
+    let mut s: *mut ZmqSocketBase = as_socket_base_t(s_);
     if (!s) {
         return -1;
     }
@@ -472,7 +472,7 @@ pub fn zmq_send_const(s_: *mut c_void, buf_: *mut c_void, len_: usize, flags_: i
 //
 pub fn zmq_sendiov (s_: *mut c_void, a_: *mut iovec, count_: usize, mut flags_: i32) -> i32
 {
-    let mut s: *mut socket_base_t =  as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if !s {
         return -1;
     }
@@ -511,7 +511,7 @@ pub fn zmq_sendiov (s_: *mut c_void, a_: *mut iovec, count_: usize, mut flags_: 
 
 // Receiving functions.
 
-pub fn s_recvmsg (s_: *mut socket_base_t, msg_: *mut zmq_msg_t, flags_: i32) -> i32
+pub fn s_recvmsg (s_: *mut ZmqSocketBase, msg_: *mut zmq_msg_t, flags_: i32) -> i32
 {
     let rc = s_.recv (msg_ as *mut msg_t, flags_);
     if unlikely (rc < 0) {
@@ -532,7 +532,7 @@ pub fn zmq_recvmsg (s_: *mut c_void, msg_: *mut zmq_msg_t, flags_: i32) -> i32
 
 pub fn zmq_recv (s_: *mut c_void, buf_: *mut c_void, len_: usize, flags_: i32) -> i32
 {
-    let mut s: *mut socket_base_t =  as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s) {
         return -1;
     }
@@ -581,7 +581,7 @@ pub fn zmq_recv (s_: *mut c_void, buf_: *mut c_void, len_: usize, flags_: i32) -
 //
 pub fn zmq_recviov (s_: *mut c_void, a_: *mut iovec, count: *mut usize, flags_: i32) -> i32
 {
-    let mut s: *mut socket_base_t =  as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if !s {
         return -1;
     }
@@ -659,7 +659,7 @@ pub fn zmq_msg_init_data (
 
 pub fn zmq_msg_send (msg_: *mut zmq_msg_t, s_: *mut c_void, flags_: i32) -> i32
 {
-    let mut s: *mut socket_base_t =  as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s) {
         return -1;
     }
@@ -668,7 +668,7 @@ pub fn zmq_msg_send (msg_: *mut zmq_msg_t, s_: *mut c_void, flags_: i32) -> i32
 
 pub fn zmq_msg_recv (msg_: *mut zmq_msg_t, s_: *mut c_void, flags_: i32) -> i32
 {
-    let mut s: *mut socket_base_t =  as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s) {
         return -1;
     }
@@ -883,7 +883,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
     // otherwise fall back to the previous implementation as it's faster.
     for (int i = 0; i != nitems_; i++) {
         if (items_[i].socket) {
-            let mut s: *mut socket_base_t =  as_socket_base_t (items_[i].socket);
+            let mut s: *mut ZmqSocketBase =  as_socket_base_t (items_[i].socket);
             if (s) {
                 if (s.is_thread_safe ())
                     return zmq_poller_poll (items_, nitems_, timeout_);
@@ -1024,7 +1024,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
             //  The poll item is a 0MQ socket. Retrieve pending events
             //  using the ZMQ_EVENTS socket option.
             if (items_[i].socket) {
-                size_t zmq_events_size = sizeof (uint32_t);
+                size_t zmq_events_size = mem::size_of::<uint32_t>();
                 uint32_t zmq_events;
                 if (zmq_getsockopt (items_[i].socket, ZMQ_EVENTS, &zmq_events,
                                     &zmq_events_size)
@@ -1106,7 +1106,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
             //  The poll item is a 0MQ socket. Retrieve pending events
             //  using the ZMQ_EVENTS socket option.
             if (items_[i].socket) {
-                size_t zmq_events_size = sizeof (uint32_t);
+                size_t zmq_events_size = mem::size_of::<uint32_t>();
                 uint32_t zmq_events;
                 if (zmq_getsockopt (items_[i].socket, ZMQ_EVENTS, &zmq_events,
                                     &zmq_events_size)
@@ -1328,7 +1328,7 @@ int zmq_poll_select_check_events_ (zmq_pollitem_t *items_,
         //  The poll item is a 0MQ socket. Retrieve pending events
         //  using the ZMQ_EVENTS socket option.
         if (items_[i].socket) {
-            size_t zmq_events_size = sizeof (uint32_t);
+            size_t zmq_events_size = mem::size_of::<uint32_t>();
             uint32_t zmq_events;
             if (zmq_getsockopt (items_[i].socket, ZMQ_EVENTS, &zmq_events,
                                 &zmq_events_size)
@@ -1528,7 +1528,7 @@ static int check_poller_registration_args (poller_: *const c_void, void *const s
     if (-1 == check_poller (poller_))
         return -1;
 
-    if (!s_ || !(static_cast<zmq::socket_base_t *> (s_))->check_tag ()) {
+    if (!s_ || !(static_cast<zmq::ZmqSocketBase *> (s_))->check_tag ()) {
         errno = ENOTSOCK;
         return -1;
     }
@@ -1564,7 +1564,7 @@ int zmq_poller_add (poller_: *mut c_void, s_: *mut c_void, user_data_: *mut c_vo
         || -1 == check_events (events_))
         return -1;
 
-    let mut socket: *mut socket_base_t =  static_cast<zmq::socket_base_t *> (s_);
+    let mut socket: *mut ZmqSocketBase =  static_cast<zmq::ZmqSocketBase *> (s_);
 
     return (static_cast<zmq::socket_poller_t *> (poller_))
       ->add (socket, user_data_, events_);
@@ -1590,8 +1590,8 @@ int zmq_poller_modify (poller_: *mut c_void, s_: *mut c_void, short events_)
         || -1 == check_events (events_))
         return -1;
 
-    const zmq::socket_base_t *const socket =
-      static_cast<const zmq::socket_base_t *> (s_);
+    const zmq::ZmqSocketBase *const socket =
+      static_cast<const zmq::ZmqSocketBase *> (s_);
 
     return (static_cast<zmq::socket_poller_t *> (poller_))
       ->modify (socket, events_);
@@ -1612,7 +1612,7 @@ int zmq_poller_remove (poller_: *mut c_void, s_: *mut c_void)
     if (-1 == check_poller_registration_args (poller_, s_))
         return -1;
 
-    let mut socket: *mut socket_base_t =  static_cast<zmq::socket_base_t *> (s_);
+    let mut socket: *mut ZmqSocketBase =  static_cast<zmq::ZmqSocketBase *> (s_);
 
     return (static_cast<zmq::socket_poller_t *> (poller_))->remove (socket);
 }
@@ -1680,7 +1680,7 @@ int zmq_socket_get_peer_state (s_: *mut c_void,
                                const routing_id_: *mut c_void,
                                routing_id_size_: usize)
 {
-    const zmq::socket_base_t *const s = as_socket_base_t (s_);
+    const zmq::ZmqSocketBase *const s = as_socket_base_t (s_);
     if (!s)
         return -1;
 
@@ -1781,9 +1781,9 @@ int zmq_proxy (frontend_: *mut c_void, backend_: *mut c_void, capture_: *mut c_v
         errno = EFAULT;
         return -1;
     }
-    return zmq::proxy (static_cast<zmq::socket_base_t *> (frontend_),
-                       static_cast<zmq::socket_base_t *> (backend_),
-                       static_cast<zmq::socket_base_t *> (capture_));
+    return zmq::proxy (static_cast<zmq::ZmqSocketBase *> (frontend_),
+                       static_cast<zmq::ZmqSocketBase *> (backend_),
+                       static_cast<zmq::ZmqSocketBase *> (capture_));
 }
 
 int zmq_proxy_steerable (frontend_: *mut c_void,
@@ -1795,18 +1795,18 @@ int zmq_proxy_steerable (frontend_: *mut c_void,
         errno = EFAULT;
         return -1;
     }
-    return zmq::proxy (static_cast<zmq::socket_base_t *> (frontend_),
-                       static_cast<zmq::socket_base_t *> (backend_),
-                       static_cast<zmq::socket_base_t *> (capture_),
-                       static_cast<zmq::socket_base_t *> (control_));
+    return zmq::proxy (static_cast<zmq::ZmqSocketBase *> (frontend_),
+                       static_cast<zmq::ZmqSocketBase *> (backend_),
+                       static_cast<zmq::ZmqSocketBase *> (capture_),
+                       static_cast<zmq::ZmqSocketBase *> (control_));
 }
 
 //  The deprecated device functionality
 
 int zmq_device (int /* type */, frontend_: *mut c_void, backend_: *mut c_void)
 {
-    return zmq::proxy (static_cast<zmq::socket_base_t *> (frontend_),
-                       static_cast<zmq::socket_base_t *> (backend_), null_mut());
+    return zmq::proxy (static_cast<zmq::ZmqSocketBase *> (frontend_),
+                       static_cast<zmq::ZmqSocketBase *> (backend_), null_mut());
 }
 
 //  Probe library capabilities; for now, reports on transport and security
@@ -1859,7 +1859,7 @@ int zmq_has (capability_: *const c_char)
 
 int zmq_socket_monitor_pipes_stats (s_: *mut c_void)
 {
-    let mut s: *mut socket_base_t =  as_socket_base_t (s_);
+    let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s)
         return -1;
     return s.query_pipes_stats ();

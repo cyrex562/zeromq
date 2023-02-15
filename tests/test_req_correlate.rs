@@ -39,7 +39,7 @@ void test_req_correlate ()
 
     int enabled = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (req, ZMQ_REQ_CORRELATE, &enabled, sizeof (int)));
+      zmq_setsockopt (req, ZMQ_REQ_CORRELATE, &enabled, mem::size_of::<int>()));
 
     char my_endpoint[MAX_SOCKET_STRING];
     bind_loopback_ipv4 (router, my_endpoint, sizeof my_endpoint);
@@ -60,21 +60,21 @@ void test_req_correlate ()
     zmq_msg_copy (&peer_id_msg, &msg);
 
     int more = 0;
-    size_t more_size = sizeof (more);
+    size_t more_size = mem::size_of::<more>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (router, ZMQ_RCVMORE, &more, &more_size));
     TEST_ASSERT_TRUE (more);
 
     // Receive request id 1
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, router, 0));
-    TEST_ASSERT_EQUAL_UINT (sizeof (uint32_t), zmq_msg_size (&msg));
+    TEST_ASSERT_EQUAL_UINT (mem::size_of::<uint32_t>(), zmq_msg_size (&msg));
     const uint32_t req_id = *static_cast<uint32_t *> (zmq_msg_data (&msg));
     zmq_msg_t req_id_msg;
     zmq_msg_init (&req_id_msg);
     zmq_msg_copy (&req_id_msg, &msg);
 
     more = 0;
-    more_size = sizeof (more);
+    more_size = mem::size_of::<more>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (router, ZMQ_RCVMORE, &more, &more_size));
     TEST_ASSERT_TRUE (more);
@@ -87,7 +87,7 @@ void test_req_correlate ()
     // Send back a bad reply: wrong req id, 0, data
     zmq_msg_copy (&msg, &peer_id_msg);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_send (&msg, router, ZMQ_SNDMORE));
-    zmq_msg_init_data (&msg, &bad_req_id, sizeof (uint32_t), NULL, NULL);
+    zmq_msg_init_data (&msg, &bad_req_id, mem::size_of::<uint32_t>(), NULL, NULL);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_send (&msg, router, ZMQ_SNDMORE));
     s_send_seq (router, 0, "DATA", SEQ_END);
 

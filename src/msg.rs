@@ -44,29 +44,44 @@
 //  Check whether the sizes of public representation of the message (zmq_msg_t)
 //  and private representation of the message (zmq::msg_t) match.
 
+use std::mem;
+use crate::atomic_counter::AtomicCounter;
+use crate::metadata::metadata_t;
 
-pub const cancel_cmd_name: String = String::from("\0x6CANCEL");
-pub const sub_cmd_name: String = String::from("\0x9SUBSCRIBE");
-pub struct msg_t
-{
-// public:
-    //  Shared message buffer. Message data are either allocated in one
-    //  continuous block along with this structure - thus avoiding one
-    //  malloc/free pair or they are stored in user-supplied memory.
-    //  In the latter case, ffn member stores pointer to the function to be
-    //  used to deallocate the data. If the buffer is actually shared (there
-    //  are at least 2 references to it) refcount member contains number of
-    //  references.
-    struct content_t
-    {
-        data: *mut c_void;
-        size: usize;
-        msg_free_fn *ffn;
-        hint: *mut c_void;
-        zmq::atomic_counter_t refcnt;
-    };
+#[derive(Default, Debug, Clone)]
+pub struct content_t {
+    data: Vec<u8>,
+    size: usize,
+    // msg_free_fn: *ffn;
+    hint: Vec<u8>,
+    refcnt: AtomicCounter,
+}
 
-    //  Message flags.
+// enum
+//     {
+//         msg_t_size = 64
+//     }
+pub const msg_t_size: usize = 64;
+
+// enum
+//     {
+//         max_vsm_size =
+//           msg_t_size - (sizeof (metadata_t *) + 3 + 16 + mem::size_of::<uint32_t>())
+//     }
+pub const max_vsm_size: usize = msg_t_size - mem::size_of::<*mut metadata_t> + 3 + 16 + mem::size_of::<u32>();
+
+// enum
+//     {
+//         ping_cmd_name_size = 5,   // 4PING
+//         cancel_cmd_name_size = 7, // 6CANCEL
+//         sub_cmd_name_size = 10    // 9SUBSCRIBE
+//     }
+pub const ping_cmd_name_size: usize = 5;   // 4PING
+
+pub const cancel_cmd_name_size: usize = 7; // 6CANCEL
+
+pub const sub_cmd_name_size: usize = 10;    // 9SUBSCRIBE
+
     enum
     {
         more = 1,    //  Followed by more parts
@@ -81,107 +96,12 @@ pub struct msg_t
         credential = 32,
         routing_id = 64,
         shared = 128
-    };
-
-    bool check () const;
-    int init ();
-
-    int init (data_: *mut c_void,
-              size_: usize,
-              msg_free_fn *ffn_,
-              hint_: *mut c_void,
-              content_t *content_ = NULL);
-
-    int init_size (size_: usize);
-    int init_buffer (const buf_: *mut c_void, size_: usize);
-    int init_data (data_: *mut c_void, size_: usize, msg_free_fn *ffn_, hint_: *mut c_void);
-    int init_external_storage (content_t *content_,
-                               data_: *mut c_void,
-                               size_: usize,
-                               msg_free_fn *ffn_,
-                               hint_: *mut c_void);
-    int init_delimiter ();
-    int init_join ();
-    int init_leave ();
-    int init_subscribe (const size_: usize, const unsigned char *topic);
-    int init_cancel (const size_: usize, const unsigned char *topic);
-    int close ();
-    int move (msg_t &src_);
-    int copy (msg_t &src_);
-    void *data ();
-    size_t size () const;
-    unsigned char flags () const;
-    void set_flags (unsigned char flags_);
-    void reset_flags (unsigned char flags_);
-    metadata_t *metadata () const;
-    void set_metadata (metadata_t *metadata_);
-    void reset_metadata ();
-    bool is_routing_id () const;
-    bool is_credential () const;
-    bool is_delimiter () const;
-    bool is_join () const;
-    bool is_leave () const;
-    bool is_ping () const;
-    bool is_pong () const;
-    bool is_close_cmd () const;
-
-    //  These are called on each message received by the session_base class,
-    //  so get them inlined to avoid the overhead of 2 function calls per msg
-    bool is_subscribe () const
-    {
-        return (_u.base.flags & CMD_TYPE_MASK) == subscribe;
     }
 
-    bool is_cancel () const
-    {
-        return (_u.base.flags & CMD_TYPE_MASK) == cancel;
-    }
 
-    size_t command_body_size () const;
-    void *command_body ();
-    bool is_vsm () const;
-    bool is_cmsg () const;
-    bool is_lmsg () const;
-    bool is_zcmsg () const;
-    uint32_t get_routing_id () const;
-    int set_routing_id (uint32_t routing_id_);
-    int reset_routing_id ();
-    const char *group () const;
-    int set_group (group_: *const c_char);
-    int set_group (const char *, length_: usize);
 
-    //  After calling this function you can copy the message in POD-style
-    //  refs_ times. No need to call copy.
-    void add_refs (refs_: i32);
 
-    //  Removes references previously added by add_refs. If the number of
-    //  references drops to 0, the message is closed and false is returned.
-    bool rm_refs (refs_: i32);
 
-    void shrink (new_size_: usize);
-
-    //  Size in bytes of the largest message that is still copied around
-    //  rather than being reference-counted.
-    enum
-    {
-        msg_t_size = 64
-    };
-    enum
-    {
-        max_vsm_size =
-          msg_t_size - (sizeof (metadata_t *) + 3 + 16 + sizeof (uint32_t))
-    };
-    enum
-    {
-        ping_cmd_name_size = 5,   // 4PING
-        cancel_cmd_name_size = 7, // 6CANCEL
-        sub_cmd_name_size = 10    // 9SUBSCRIBE
-    };
-
-  // private:
-    zmq::atomic_counter_t *refcnt ();
-
-    //  Different message types.
     enum type_t
     {
         type_min = 101,
@@ -204,19 +124,19 @@ pub struct msg_t
         type_leave = 107,
 
         type_max = 107
-    };
+    }
 
     enum group_type_t
     {
         group_type_short,
         group_type_long
-    };
+    }
 
     struct long_group_t
     {
         char group[ZMQ_GROUP_MAX_LENGTH + 1];
-        atomic_counter_t refcnt;
-    };
+        AtomicCounter refcnt;
+    }
 
     union group_t
     {
@@ -231,26 +151,22 @@ pub struct msg_t
             unsigned char type;
             long_group_t *content;
         } lgroup;
-    };
+    }
 
-    //  Note that fields shared between different message types are not
-    //  moved to the parent class (msg_t). This way we get tighter packing
-    //  of the data. Shared fields can be accessed via 'base' member of
-    //  the union.
-    union
-    {
-        struct
+    pub struct MsgUnionBase
         {
             metadata_t *metadata;
             unsigned char unused[msg_t_size
                                  - (sizeof (metadata_t *) + 2
-                                    + sizeof (uint32_t) + sizeof (group_t))];
+                                    + mem::size_of::<uint32_t>() + mem::size_of::<group_t>())];
             unsigned char type;
             unsigned char flags;
             uint32_t routing_id;
             group_t group;
         } base;
-        struct
+
+
+    pub struct MsgUnionVsm
         {
             metadata_t *metadata;
             unsigned char data[max_vsm_size];
@@ -259,60 +175,179 @@ pub struct msg_t
             unsigned char flags;
             uint32_t routing_id;
             group_t group;
-        } vsm;
-        struct
+        }
+
+    pub struct MsgUnionLmsg
         {
             metadata_t *metadata;
             content_t *content;
             unsigned char
               unused[msg_t_size
                      - (sizeof (metadata_t *) + sizeof (content_t *) + 2
-                        + sizeof (uint32_t) + sizeof (group_t))];
+                        + mem::size_of::<uint32_t>() + mem::size_of::<group_t>())];
             unsigned char type;
             unsigned char flags;
             uint32_t routing_id;
             group_t group;
-        } lmsg;
-        struct
+        }
+
+    pub struct MsgUnionZclmsg
         {
             metadata_t *metadata;
             content_t *content;
             unsigned char
               unused[msg_t_size
                      - (sizeof (metadata_t *) + sizeof (content_t *) + 2
-                        + sizeof (uint32_t) + sizeof (group_t))];
+                        + mem::size_of::<uint32_t>() + mem::size_of::<group_t>())];
             unsigned char type;
             unsigned char flags;
             uint32_t routing_id;
             group_t group;
-        } zclmsg;
-        struct
+        }
+
+    pub struct MsgUnionCmsg
         {
             metadata_t *metadata;
             data: *mut c_void;
             size: usize;
             unsigned char unused[msg_t_size
                                  - (sizeof (metadata_t *) + sizeof (void *)
-                                    + sizeof (size_t) + 2 + sizeof (uint32_t)
-                                    + sizeof (group_t))];
+                                    + mem::size_of::<size_t>() + 2 + mem::size_of::<uint32_t>()
+                                    + mem::size_of::<group_t>())];
             unsigned char type;
             unsigned char flags;
             uint32_t routing_id;
             group_t group;
-        } cmsg;
-        struct
-        {
+        }
+
+    pub struct MsgUnionDelimiter{
             metadata_t *metadata;
             unsigned char unused[msg_t_size
                                  - (sizeof (metadata_t *) + 2
-                                    + sizeof (uint32_t) + sizeof (group_t))];
+                                    + mem::size_of::<uint32_t>() + mem::size_of::<group_t>())];
             unsigned char type;
             unsigned char flags;
             uint32_t routing_id;
             group_t group;
-        } delimiter;
-    } _u;
-};
+        }
+
+    //  Note that fields shared between different message types are not
+    //  moved to the parent class (msg_t). This way we get tighter packing
+    //  of the data. Shared fields can be accessed via 'base' member of
+    //  the union.
+    pub union MsgUnion
+    {
+        pub base: MsgUnionBase,
+
+        pub vsm: MsgUnionVsm,
+        pub lmsg: MsgUnionLmsg,
+
+        pub zclmsg: MsgUnionZclmsg,
+
+        pub cmsg: MsgUnionCmsg,
+        pub delimiter: MsgUnionDelimiter
+    }
+
+
+pub const cancel_cmd_name: String = String::from("\0x6CANCEL");
+pub const sub_cmd_name: String = String::from("\0x9SUBSCRIBE");
+pub struct msg_t
+{
+// public:
+    //  Shared message buffer. Message data are either allocated in one
+    //  continuous block along with this structure - thus avoiding one
+    //  malloc/free pair or they are stored in user-supplied memory.
+    //  In the latter case, ffn member stores pointer to the function to be
+    //  used to deallocate the data. If the buffer is actually shared (there
+    //  are at least 2 references to it) refcount member contains number of
+    //  references.
+    //  Message flags.
+    //  Size in bytes of the largest message that is still copied around
+    //  rather than being reference-counted.
+  // private:
+    refcnt: AtomicCounter,
+    //  Different message types.
+    _u: MsgUnion,
+}
+
+impl msg_t {
+    // bool check () const;
+    // int init ();
+    //
+    // int init (data_: *mut c_void,
+    //           size_: usize,
+    //           msg_free_fn *ffn_,
+    //           hint_: *mut c_void,
+    //           content_t *content_ = NULL);
+    //
+    // int init_size (size_: usize);
+    // int init_buffer (const buf_: *mut c_void, size_: usize);
+    // int init_data (data_: *mut c_void, size_: usize, msg_free_fn *ffn_, hint_: *mut c_void);
+    // int init_external_storage (content_t *content_,
+    //                            data_: *mut c_void,
+    //                            size_: usize,
+    //                            msg_free_fn *ffn_,
+    //                            hint_: *mut c_void);
+    // int init_delimiter ();
+    // int init_join ();
+    // int init_leave ();
+    // int init_subscribe (const size_: usize, const unsigned char *topic);
+    // int init_cancel (const size_: usize, const unsigned char *topic);
+    // int close ();
+    // int move (msg_t &src_);
+    // int copy (msg_t &src_);
+    // void *data ();
+    // size_t size () const;
+    // unsigned char flags () const;
+    // void set_flags (unsigned char flags_);
+    // void reset_flags (unsigned char flags_);
+    // metadata_t *metadata () const;
+    // void set_metadata (metadata_t *metadata_);
+    // void reset_metadata ();
+    // bool is_routing_id () const;
+    // bool is_credential () const;
+    // bool is_delimiter () const;
+    // bool is_join () const;
+    // bool is_leave () const;
+    // bool is_ping () const;
+    // bool is_pong () const;
+    // bool is_close_cmd () const;
+    //
+    // //  These are called on each message received by the session_base class,
+    // //  so get them inlined to avoid the overhead of 2 function calls per msg
+    // bool is_subscribe () const
+    // {
+    //     return (_u.base.flags & CMD_TYPE_MASK) == subscribe;
+    // }
+    //
+    // bool is_cancel () const
+    // {
+    //     return (_u.base.flags & CMD_TYPE_MASK) == cancel;
+    // }
+    //
+    // size_t command_body_size () const;
+    // void *command_body ();
+    // bool is_vsm () const;
+    // bool is_cmsg () const;
+    // bool is_lmsg () const;
+    // bool is_zcmsg () const;
+    // uint32_t get_routing_id () const;
+    // int set_routing_id (uint32_t routing_id_);
+    // int reset_routing_id ();
+    // const char *group () const;
+    // int set_group (group_: *const c_char);
+    // int set_group (const char *, length_: usize);
+    //
+    // //  After calling this function you can copy the message in POD-style
+    // //  refs_ times. No need to call copy.
+    // void add_refs (refs_: i32);
+    //
+    // //  Removes references previously added by add_refs. If the number of
+    // //  references drops to 0, the message is closed and false is returned.
+    // bool rm_refs (refs_: i32);
+    //
+    // void shrink (new_size_: usize);
+}
 
 inline int close_and_return (zmq::msg_t *msg_, echo_: i32)
 {
@@ -332,7 +367,7 @@ inline int close_and_return (zmq::msg_t msg_[], count_: i32, echo_: i32)
 }
 
 typedef char
-  zmq_msg_size_check[2 * ((sizeof (zmq::msg_t) == sizeof (zmq_msg_t)) != 0)
+  zmq_msg_size_check[2 * ((sizeof (zmq::msg_t) == mem::size_of::<zmq_msg_t>()) != 0)
                      - 1];
 
 bool zmq::msg_t::check () const
@@ -391,9 +426,9 @@ int zmq::msg_t::init_size (size_: usize)
         _u.lmsg.group.type = group_type_short;
         _u.lmsg.routing_id = 0;
         _u.lmsg.content = NULL;
-        if (sizeof (content_t) + size_ > size_)
+        if (mem::size_of::<content_t>() + size_ > size_)
             _u.lmsg.content =
-              static_cast<content_t *> (malloc (sizeof (content_t) + size_));
+              static_cast<content_t *> (malloc (mem::size_of::<content_t>() + size_));
         if (unlikely (!_u.lmsg.content)) {
             errno = ENOMEM;
             return -1;
@@ -403,7 +438,7 @@ int zmq::msg_t::init_size (size_: usize)
         _u.lmsg.content->size = size_;
         _u.lmsg.content->ffn = NULL;
         _u.lmsg.content->hint = NULL;
-        new (&_u.lmsg.content->refcnt) zmq::atomic_counter_t ();
+        new (&_u.lmsg.content->refcnt) zmq::AtomicCounter ();
     }
     return 0;
 }
@@ -443,7 +478,7 @@ int zmq::msg_t::init_external_storage (content_t *content_,
     _u.zclmsg.content->size = size_;
     _u.zclmsg.content->ffn = ffn_;
     _u.zclmsg.content->hint = hint_;
-    new (&_u.zclmsg.content->refcnt) zmq::atomic_counter_t ();
+    new (&_u.zclmsg.content->refcnt) zmq::AtomicCounter ();
 
     return 0;
 }
@@ -475,7 +510,7 @@ int zmq::msg_t::init_data (data_: *mut c_void,
         _u.lmsg.group.type = group_type_short;
         _u.lmsg.routing_id = 0;
         _u.lmsg.content =
-          static_cast<content_t *> (malloc (sizeof (content_t)));
+          static_cast<content_t *> (malloc (mem::size_of::<content_t>()));
         if (!_u.lmsg.content) {
             errno = ENOMEM;
             return -1;
@@ -485,7 +520,7 @@ int zmq::msg_t::init_data (data_: *mut c_void,
         _u.lmsg.content->size = size_;
         _u.lmsg.content->ffn = ffn_;
         _u.lmsg.content->hint = hint_;
-        new (&_u.lmsg.content->refcnt) zmq::atomic_counter_t ();
+        new (&_u.lmsg.content->refcnt) zmq::AtomicCounter ();
     }
     return 0;
 }
@@ -568,7 +603,7 @@ int zmq::msg_t::close ()
             || !_u.lmsg.content->refcnt.sub (1)) {
             //  We used "placement new" operator to initialize the reference
             //  counter so we call the destructor explicitly now.
-            _u.lmsg.content->refcnt.~atomic_counter_t ();
+            _u.lmsg.content->refcnt.~AtomicCounter ();
 
             if (_u.lmsg.content->ffn)
                 _u.lmsg.content->ffn (_u.lmsg.content->data,
@@ -586,7 +621,7 @@ int zmq::msg_t::close ()
             || !_u.zclmsg.content->refcnt.sub (1)) {
             //  We used "placement new" operator to initialize the reference
             //  counter so we call the destructor explicitly now.
-            _u.zclmsg.content->refcnt.~atomic_counter_t ();
+            _u.zclmsg.content->refcnt.~AtomicCounter ();
 
             _u.zclmsg.content->ffn (_u.zclmsg.content->data,
                                     _u.zclmsg.content->hint);
@@ -604,7 +639,7 @@ int zmq::msg_t::close ()
         if (!_u.base.group.lgroup.content->refcnt.sub (1)) {
             //  We used "placement new" operator to initialize the reference
             //  counter so we call the destructor explicitly now.
-            _u.base.group.lgroup.content->refcnt.~atomic_counter_t ();
+            _u.base.group.lgroup.content->refcnt.~AtomicCounter ();
 
             free (_u.base.group.lgroup.content);
         }
@@ -651,7 +686,7 @@ int zmq::msg_t::copy (msg_t &src_)
 
     // The initial reference count, when a non-shared message is initially
     // shared (between the original and the copy we create here).
-    const atomic_counter_t::integer_t initial_shared_refcnt = 2;
+    const AtomicCounter::integer_t initial_shared_refcnt = 2;
 
     if (src_.is_lmsg () || src_.is_zcmsg ()) {
         //  One reference is added to shared messages. Non-shared messages
@@ -917,7 +952,7 @@ bool zmq::msg_t::rm_refs (refs_: i32)
     if (_u.base.type == type_lmsg && !_u.lmsg.content->refcnt.sub (refs_)) {
         //  We used "placement new" operator to initialize the reference
         //  counter so we call the destructor explicitly now.
-        _u.lmsg.content->refcnt.~atomic_counter_t ();
+        _u.lmsg.content->refcnt.~AtomicCounter ();
 
         if (_u.lmsg.content->ffn)
             _u.lmsg.content->ffn (_u.lmsg.content->data, _u.lmsg.content->hint);
@@ -984,9 +1019,9 @@ int zmq::msg_t::set_group (group_: *const c_char, length_: usize)
     if (length_ > 14) {
         _u.base.group.lgroup.type = group_type_long;
         _u.base.group.lgroup.content =
-          (long_group_t *) malloc (sizeof (long_group_t));
+          (long_group_t *) malloc (mem::size_of::<long_group_t>());
         assert (_u.base.group.lgroup.content);
-        new (&_u.base.group.lgroup.content->refcnt) zmq::atomic_counter_t ();
+        new (&_u.base.group.lgroup.content->refcnt) zmq::AtomicCounter ();
         _u.base.group.lgroup.content->refcnt.set (1);
         strncpy (_u.base.group.lgroup.content->group, group_, length_);
         _u.base.group.lgroup.content->group[length_] = '\0';
@@ -998,7 +1033,7 @@ int zmq::msg_t::set_group (group_: *const c_char, length_: usize)
     return 0;
 }
 
-zmq::atomic_counter_t *zmq::msg_t::refcnt ()
+zmq::AtomicCounter *zmq::msg_t::refcnt ()
 {
     switch (_u.base.type) {
         case type_lmsg:

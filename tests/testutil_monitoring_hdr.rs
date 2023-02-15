@@ -66,13 +66,13 @@ int expect_monitor_event_multiple (server_mon_: *mut c_void,
                                    int expected_err_ = -1,
                                    bool optional_ = false);
 
-int64_t get_monitor_event_v2 (monitor_: *mut c_void,
+i64 get_monitor_event_v2 (monitor_: *mut c_void,
                               u64 **value_,
                               char **local_address_,
                               char **remote_address_);
 
 void expect_monitor_event_v2 (monitor_: *mut c_void,
-                              int64_t expected_event_,
+                              i64 expected_event_,
                               const char *expected_local_address_ = NULL,
                               const char *expected_remote_address_ = NULL);
 

@@ -40,7 +40,7 @@ pub struct peer_t ZMQ_FINAL : public server_t
 // public:
     peer_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
 
-    //  Overrides of functions from socket_base_t.
+    //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
@@ -72,7 +72,7 @@ uint32_t zmq::peer_t::connect_peer (endpoint_uri_: *const c_char)
         return 0;
     }
 
-    int rc = socket_base_t::connect_internal (endpoint_uri_);
+    int rc = ZmqSocketBase::connect_internal (endpoint_uri_);
     if (rc != 0)
         return 0;
 

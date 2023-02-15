@@ -306,7 +306,7 @@ void test_add_multiple ()
     zmq::generic_mtrie_t<int> mtrie;
     add_entries (mtrie, pipes, names);
 
-    for (size_t i = 0; i < sizeof (names) / sizeof (names[0]); ++i) {
+    for (size_t i = 0; i < mem::size_of::<names>() / sizeof (names[0]); ++i) {
         const zmq::generic_mtrie_t<int>::prefix_t name_data =
           reinterpret_cast<zmq::generic_mtrie_t<int>::prefix_t> (names[i]);
         int count = 0;

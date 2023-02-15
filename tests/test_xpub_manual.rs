@@ -75,7 +75,7 @@ void test_unsubscribe_manual ()
     //  set pub socket options
     int manual = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pub, ZMQ_XPUB_MANUAL, &manual, sizeof (manual)));
+      zmq_setsockopt (pub, ZMQ_XPUB_MANUAL, &manual, mem::size_of::<manual>()));
 
     //  Create a subscriber
     void *sub = test_context_socket (ZMQ_XSUB);
@@ -469,14 +469,14 @@ void test_user_message_multi ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (pub, "inproc://soname"));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (pub, ZMQ_ONLY_FIRST_SUBSCRIBE,
                                                &only_first_subscribe,
-                                               sizeof (only_first_subscribe)));
+                                               mem::size_of::<only_first_subscribe>()));
 
     //  Create a subscriber
     void *sub = test_context_socket (ZMQ_XSUB);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sub, "inproc://soname"));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (sub, ZMQ_ONLY_FIRST_SUBSCRIBE,
                                                &only_first_subscribe,
-                                               sizeof (only_first_subscribe)));
+                                               mem::size_of::<only_first_subscribe>()));
 
     //  Send some data that is neither sub nor unsub
     const uint8_t msg_common[] = {'A', 'B', 'C'};

@@ -57,7 +57,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
 {
 // public:
-    udp_engine_t (const options_t &options_);
+    udp_engine_t (const ZmqOptions &options_);
     ~udp_engine_t ();
 
     int init (Address *address_, bool send_, bool recv_);
@@ -116,7 +116,7 @@ pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     handle_t _handle;
     Address *_address;
 
-    options_t _options;
+    ZmqOptions _options;
 
     sockaddr_in _raw_address;
     const struct sockaddr *_out_address;
@@ -128,7 +128,7 @@ pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     bool _recv_enabled;
 };
 
-zmq::udp_engine_t::udp_engine_t (const options_t &options_) :
+zmq::udp_engine_t::udp_engine_t (const ZmqOptions &options_) :
     _plugged (false),
     _fd (-1),
     _session (NULL),
@@ -225,7 +225,7 @@ void zmq::udp_engine_t::plug (io_thread_t *io_thread_, session_base_t *session_)
             /// XXX fixme ?
             _out_address = reinterpret_cast<sockaddr *> (&_raw_address);
             _out_address_len =
-              static_cast<ZmqSocklen> (sizeof (sockaddr_in));
+              static_cast<ZmqSocklen> (mem::size_of::<sockaddr_in>());
         }
     }
 
@@ -310,7 +310,7 @@ int zmq::udp_engine_t::set_udp_multicast_loop (fd_t s_,
 
     int loop = loop_ ? 1 : 0;
     const int rc = setsockopt (s_, level, optname,
-                               reinterpret_cast<char *> (&loop), sizeof (loop));
+                               reinterpret_cast<char *> (&loop), mem::size_of::<loop>());
     assert_success_or_recoverable (s_, rc);
     return rc;
 }
@@ -327,7 +327,7 @@ int zmq::udp_engine_t::set_udp_multicast_ttl (fd_t s_, bool is_ipv6_, hops_: i32
 
     const int rc =
       setsockopt (s_, level, IP_MULTICAST_TTL,
-                  reinterpret_cast<char *> (&hops_), sizeof (hops_));
+                  reinterpret_cast<char *> (&hops_), mem::size_of::<hops_>());
     assert_success_or_recoverable (s_, rc);
     return rc;
 }
@@ -346,7 +346,7 @@ int zmq::udp_engine_t::set_udp_multicast_iface (fd_t s_,
             //  kernel to use it to send multicast packets
             rc = setsockopt (s_, IPPROTO_IPV6, IPV6_MULTICAST_IF,
                              reinterpret_cast<char *> (&bind_if),
-                             sizeof (bind_if));
+                             mem::size_of::<bind_if>());
         }
     } else {
         struct in_addr bind_addr = addr_->bind_addr ()->ipv4.sin_addr;
@@ -354,7 +354,7 @@ int zmq::udp_engine_t::set_udp_multicast_iface (fd_t s_,
         if (bind_addr.s_addr != INADDR_ANY) {
             rc = setsockopt (s_, IPPROTO_IP, IP_MULTICAST_IF,
                              reinterpret_cast<char *> (&bind_addr),
-                             sizeof (bind_addr));
+                             mem::size_of::<bind_addr>());
         }
     }
 
@@ -366,7 +366,7 @@ int zmq::udp_engine_t::set_udp_reuse_address (fd_t s_, bool on_)
 {
     int on = on_ ? 1 : 0;
     const int rc = setsockopt (s_, SOL_SOCKET, SO_REUSEADDR,
-                               reinterpret_cast<char *> (&on), sizeof (on));
+                               reinterpret_cast<char *> (&on), mem::size_of::<on>());
     assert_success_or_recoverable (s_, rc);
     return rc;
 }
@@ -378,7 +378,7 @@ int zmq::udp_engine_t::set_udp_reuse_port (fd_t s_, bool on_)
 // #else
     int on = on_ ? 1 : 0;
     int rc = setsockopt (s_, SOL_SOCKET, SO_REUSEPORT,
-                         reinterpret_cast<char *> (&on), sizeof (on));
+                         reinterpret_cast<char *> (&on), mem::size_of::<on>());
     assert_success_or_recoverable (s_, rc);
     return rc;
 // #endif
@@ -395,7 +395,7 @@ int zmq::udp_engine_t::add_membership (fd_t s_, const UdpAddress *addr_)
         mreq.imr_interface = addr_->bind_addr ()->ipv4.sin_addr;
 
         rc = setsockopt (s_, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-                         reinterpret_cast<char *> (&mreq), sizeof (mreq));
+                         reinterpret_cast<char *> (&mreq), mem::size_of::<mreq>());
 
     } else if (mcast_addr->family () == AF_INET6) {
         struct ipv6_mreq mreq;
@@ -407,7 +407,7 @@ int zmq::udp_engine_t::add_membership (fd_t s_, const UdpAddress *addr_)
         mreq.ipv6mr_interface = iface;
 
         rc = setsockopt (s_, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP,
-                         reinterpret_cast<char *> (&mreq), sizeof (mreq));
+                         reinterpret_cast<char *> (&mreq), mem::size_of::<mreq>());
     }
 
     assert_success_or_recoverable (s_, rc);
@@ -605,7 +605,7 @@ void zmq::udp_engine_t::in_event ()
 {
     sockaddr_storage in_address;
     ZmqSocklen in_addrlen =
-      static_cast<ZmqSocklen> (sizeof (sockaddr_storage));
+      static_cast<ZmqSocklen> (mem::size_of::<sockaddr_storage>());
 
     const int nbytes =
       recvfrom (_fd, _in_buffer, MAX_UDP_MSG, 0,

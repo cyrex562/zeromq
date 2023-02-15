@@ -54,7 +54,7 @@ void test_srcfd ()
     void *rep = test_context_socket (ZMQ_REP);
     void *req = test_context_socket (ZMQ_REQ);
 
-    bind_loopback_ipv4 (rep, my_endpoint, sizeof (my_endpoint));
+    bind_loopback_ipv4 (rep, my_endpoint, mem::size_of::<my_endpoint>());
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (req, my_endpoint));
 

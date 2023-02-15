@@ -78,13 +78,13 @@ void test ()
     //  Now invert the matching
     int invert = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pub, ZMQ_INVERT_MATCHING, &invert, sizeof (invert)));
+      zmq_setsockopt (pub, ZMQ_INVERT_MATCHING, &invert, mem::size_of::<invert>()));
 
     //  ... on both sides, otherwise the SUB socket will filter the messages out
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sub1, ZMQ_INVERT_MATCHING, &invert, sizeof (invert)));
+      zmq_setsockopt (sub1, ZMQ_INVERT_MATCHING, &invert, mem::size_of::<invert>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sub2, ZMQ_INVERT_MATCHING, &invert, sizeof (invert)));
+      zmq_setsockopt (sub2, ZMQ_INVERT_MATCHING, &invert, mem::size_of::<invert>()));
 
     //  Send a message with the first prefix
     send_string_expect_success (pub, prefi_x1, 0);

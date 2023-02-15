@@ -40,7 +40,7 @@ void test_reconnect_ivl_against_pair_socket (my_endpoint_: *const c_char,
     void *sc = test_context_socket (ZMQ_PAIR);
     int interval = -1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_RECONNECT_IVL, &interval, sizeof (int)));
+      zmq_setsockopt (sc, ZMQ_RECONNECT_IVL, &interval, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc, my_endpoint_));
 
     bounce (sb_, sc);
@@ -110,7 +110,7 @@ void test_clear ()
 // #endif
 
     char endpoint[MAX_SOCKET_STRING];
-    bind_loopback_ipv4 (bind_socket, endpoint, sizeof (endpoint));
+    bind_loopback_ipv4 (bind_socket, endpoint, mem::size_of::<endpoint>());
 
     void *connect_socket = test_context_socket (ZMQ_PAIR);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (connect_socket, endpoint));
@@ -135,7 +135,7 @@ void test_set_non_matching_and_clear ()
       zmq_setsockopt (bind_socket, ZMQ_TCP_ACCEPT_FILTER, NULL, 0));
 
     char endpoint[MAX_SOCKET_STRING];
-    bind_loopback_ipv4 (bind_socket, endpoint, sizeof (endpoint));
+    bind_loopback_ipv4 (bind_socket, endpoint, mem::size_of::<endpoint>());
 
     void *connect_socket = test_context_socket (ZMQ_PAIR);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (connect_socket, endpoint));
@@ -154,7 +154,7 @@ void test_set_matching (const char *const filter_)
       bind_socket, ZMQ_TCP_ACCEPT_FILTER, filter_, strlen (filter_)));
 
     char endpoint[MAX_SOCKET_STRING];
-    bind_loopback_ipv4 (bind_socket, endpoint, sizeof (endpoint));
+    bind_loopback_ipv4 (bind_socket, endpoint, mem::size_of::<endpoint>());
 
     void *connect_socket = test_context_socket (ZMQ_PAIR);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (connect_socket, endpoint));
@@ -184,7 +184,7 @@ void test_set_non_matching ()
                       strlen (non_matching_filter)));
 
     char endpoint[MAX_SOCKET_STRING];
-    bind_loopback_ipv4 (bind_socket, endpoint, sizeof (endpoint));
+    bind_loopback_ipv4 (bind_socket, endpoint, mem::size_of::<endpoint>());
 
     void *connect_socket = test_context_socket (ZMQ_PAIR);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (connect_socket, endpoint));

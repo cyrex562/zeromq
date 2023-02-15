@@ -119,7 +119,7 @@ inline size_t valid_pollset_bytes (const fd_set &pollset_)
 // #else
 inline size_t valid_pollset_bytes (const fd_set & /*pollset_*/)
 {
-    return sizeof (fd_set);
+    return mem::size_of::<fd_set>();
 }
 // #endif
 
@@ -129,7 +129,7 @@ inline size_t valid_pollset_bytes (const fd_set & /*pollset_*/)
 //  u_int   fd_count;
 //  SOCKET  fd_array[1];
 // };
-// NOTE: offsetof(fd_set, fd_array)==sizeof(SOCKET) on both x86 and x64
+// NOTE: offsetof(fd_set, fd_array)==mem::size_of::<SOCKET>() on both x86 and x64
 //       due to alignment bytes for the latter.
 pub struct optimized_fd_set_t
 {

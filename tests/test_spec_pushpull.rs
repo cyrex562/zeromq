@@ -157,7 +157,7 @@ void test_push_block_on_send_no_peers (bind_address_: *const c_char)
 
     int timeout = 250;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_SNDTIMEO, &timeout, sizeof (timeout)));
+      zmq_setsockopt (sc, ZMQ_SNDTIMEO, &timeout, mem::size_of::<timeout>()));
 
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_send (sc, 0, 0, ZMQ_DONTWAIT));
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_send (sc, 0, 0, 0));
@@ -174,7 +174,7 @@ void test_destroy_queue_on_disconnect (bind_address_: *const c_char)
 
     int hwm = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (a, ZMQ_SNDHWM, &hwm, sizeof (hwm)));
+      zmq_setsockopt (a, ZMQ_SNDHWM, &hwm, mem::size_of::<hwm>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (a, bind_address_));
     size_t len = MAX_SOCKET_STRING;
@@ -184,7 +184,7 @@ void test_destroy_queue_on_disconnect (bind_address_: *const c_char)
     void *b = test_context_socket (ZMQ_PULL);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (b, ZMQ_RCVHWM, &hwm, sizeof (hwm)));
+      zmq_setsockopt (b, ZMQ_RCVHWM, &hwm, mem::size_of::<hwm>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (b, connect_address));
 
@@ -241,9 +241,9 @@ void test_push_multipart_atomic_drop (bind_address_: *const c_char,
 
     void *push = test_context_socket (ZMQ_PUSH);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (push, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (push, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (push, ZMQ_SNDHWM, &hwm, sizeof (hwm)));
+      zmq_setsockopt (push, ZMQ_SNDHWM, &hwm, mem::size_of::<hwm>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (push, bind_address_));
     size_t addr_len = MAX_SOCKET_STRING;
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -251,9 +251,9 @@ void test_push_multipart_atomic_drop (bind_address_: *const c_char,
 
     void *pull = test_context_socket (ZMQ_PULL);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pull, ZMQ_LINGER, &linger, sizeof (linger)));
+      zmq_setsockopt (pull, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pull, ZMQ_RCVHWM, &hwm, sizeof (hwm)));
+      zmq_setsockopt (pull, ZMQ_RCVHWM, &hwm, mem::size_of::<hwm>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (pull, connect_address));
 
     // Wait for connections.
@@ -263,7 +263,7 @@ void test_push_multipart_atomic_drop (bind_address_: *const c_char,
     zmq_msg_t msg_data;
     // A large message is needed to overrun the TCP buffers
     const size_t len = 16 * 1024 * 1024;
-    size_t zmq_events_size = sizeof (int);
+    size_t zmq_events_size = mem::size_of::<int>();
     zmq_events: i32;
 
     // Normal case - exercise the queues
@@ -346,7 +346,7 @@ void test_push_multipart_atomic_drop (bind_address_: *const c_char,
     // frame of "3".
     char buffer[2];
     rc =
-      TEST_ASSERT_SUCCESS_ERRNO (zmq_recv (pull, buffer, sizeof (buffer), 0));
+      TEST_ASSERT_SUCCESS_ERRNO (zmq_recv (pull, buffer, mem::size_of::<buffer>(), 0));
     TEST_ASSERT_EQUAL_INT (1, rc);
     TEST_ASSERT_TRUE (buffer[0] == '3' || buffer[0] == '5');
     if (buffer[0] == '3') {

@@ -47,7 +47,7 @@ pub struct mechanism_t
         error
     };
 
-    mechanism_t (const options_t &options_);
+    mechanism_t (const ZmqOptions &options_);
 
     virtual ~mechanism_t ();
 
@@ -123,7 +123,7 @@ pub struct mechanism_t
     virtual int
     property (const std::string &name_, const value_: *mut c_void, length_: usize);
 
-    const options_t options;
+    const ZmqOptions options;
 
   // private:
     //  Properties received from ZMTP peer.
@@ -141,7 +141,7 @@ pub struct mechanism_t
     bool check_socket_type (type_: *const c_char, len_: usize) const;
 };
 
-zmq::mechanism_t::mechanism_t (const options_t &options_) : options (options_)
+zmq::mechanism_t::mechanism_t (const ZmqOptions &options_) : options (options_)
 {
 }
 
@@ -217,14 +217,14 @@ const char *zmq::mechanism_t::socket_type_string (socket_type_: i32)
                                   socket_type_channel
 // #endif
     };
-    static const size_t names_count = sizeof (names) / sizeof (names[0]);
+    static const size_t names_count = mem::size_of::<names>() / sizeof (names[0]);
     zmq_assert (socket_type_ >= 0
                 && socket_type_ < static_cast<int> (names_count));
     return names[socket_type_];
 }
 
 const size_t name_len_size = sizeof (unsigned char);
-const size_t value_len_size = sizeof (uint32_t);
+const size_t value_len_size = mem::size_of::<uint32_t>();
 
 static size_t property_len (name_len_: usize, value_len_: usize)
 {

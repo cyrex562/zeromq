@@ -81,13 +81,13 @@ int count_msg (send_hwm_: i32, recv_hwm_: i32, TestType test_type_)
         // Set up bind socket
         bind_socket = test_context_socket (ZMQ_PULL);
         TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-          bind_socket, ZMQ_RCVHWM, &recv_hwm_, sizeof (recv_hwm_)));
+          bind_socket, ZMQ_RCVHWM, &recv_hwm_, mem::size_of::<recv_hwm_>()));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (bind_socket, "inproc://a"));
 
         // Set up connect socket
         connect_socket = test_context_socket (ZMQ_PUSH);
         TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-          connect_socket, ZMQ_SNDHWM, &send_hwm_, sizeof (send_hwm_)));
+          connect_socket, ZMQ_SNDHWM, &send_hwm_, mem::size_of::<send_hwm_>()));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (connect_socket, "inproc://a"));
 
         //  we must wait for the connect to succeed here, unfortunately we don't
@@ -97,13 +97,13 @@ int count_msg (send_hwm_: i32, recv_hwm_: i32, TestType test_type_)
         // Set up connect socket
         connect_socket = test_context_socket (ZMQ_PUSH);
         TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-          connect_socket, ZMQ_SNDHWM, &send_hwm_, sizeof (send_hwm_)));
+          connect_socket, ZMQ_SNDHWM, &send_hwm_, mem::size_of::<send_hwm_>()));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (connect_socket, "inproc://a"));
 
         // Set up bind socket
         bind_socket = test_context_socket (ZMQ_PULL);
         TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-          bind_socket, ZMQ_RCVHWM, &recv_hwm_, sizeof (recv_hwm_)));
+          bind_socket, ZMQ_RCVHWM, &recv_hwm_, mem::size_of::<recv_hwm_>()));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (bind_socket, "inproc://a"));
     }
 
@@ -148,7 +148,7 @@ int test_inproc_connect_and_close_first (send_hwm_: i32, recv_hwm_: i32)
     // Set up connect socket
     void *connect_socket = test_context_socket (ZMQ_PUSH);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (connect_socket, ZMQ_SNDHWM,
-                                               &send_hwm_, sizeof (send_hwm_)));
+                                               &send_hwm_, mem::size_of::<send_hwm_>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (connect_socket, "inproc://a"));
 
     // Send until we block
@@ -163,7 +163,7 @@ int test_inproc_connect_and_close_first (send_hwm_: i32, recv_hwm_: i32)
     // Set up bind socket
     void *bind_socket = test_context_socket (ZMQ_PULL);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (bind_socket, ZMQ_RCVHWM, &recv_hwm_, sizeof (recv_hwm_)));
+      zmq_setsockopt (bind_socket, ZMQ_RCVHWM, &recv_hwm_, mem::size_of::<recv_hwm_>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (bind_socket, "inproc://a"));
 
     // Now receive all sent messages
@@ -184,7 +184,7 @@ int test_inproc_bind_and_close_first (send_hwm_: i32, int /* recv_hwm */)
     // Set up bind socket
     void *bind_socket = test_context_socket (ZMQ_PUSH);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (bind_socket, ZMQ_SNDHWM, &send_hwm_, sizeof (send_hwm_)));
+      zmq_setsockopt (bind_socket, ZMQ_SNDHWM, &send_hwm_, mem::size_of::<send_hwm_>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (bind_socket, "inproc://a"));
 
     // Send until we block
@@ -199,7 +199,7 @@ int test_inproc_bind_and_close_first (send_hwm_: i32, int /* recv_hwm */)
     /* TODO Can't currently do connect without then wiring up a bind as things hang, this needs top be fixed.
     // Set up connect socket
     void *connect_socket = test_context_socket (ZMQ_PULL);
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (connect_socket, ZMQ_RCVHWM, &recv_hwm, sizeof (recv_hwm)));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (connect_socket, ZMQ_RCVHWM, &recv_hwm, mem::size_of::<recv_hwm>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (connect_socket, "inproc://a"));
 
     // Now receive all sent messages

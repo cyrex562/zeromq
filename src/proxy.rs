@@ -49,10 +49,10 @@
 
 // #include "socket_poller.hpp"
 
-int proxy (class socket_base_t *frontend_,
-pub struct socket_base_t *backend_,
-pub struct socket_base_t *capture_,
-pub struct socket_base_t *control_ =
+int proxy (class ZmqSocketBase *frontend_,
+pub struct ZmqSocketBase *backend_,
+pub struct ZmqSocketBase *capture_,
+pub struct ZmqSocketBase *control_ =
              NULL); // backward compatibility without this argument
 
 //  Macros for repetitive code.
@@ -96,7 +96,7 @@ typedef struct
 // Utility functions
 
 static int
-capture (class capture_: *mut socket_base_t, zmq::msg_t *msg_, int more_ = 0)
+capture (class capture_: *mut ZmqSocketBase, zmq::msg_t *msg_, int more_ = 0)
 {
     //  Copy message to capture socket if any
     if (capture_) {
@@ -114,11 +114,11 @@ capture (class capture_: *mut socket_base_t, zmq::msg_t *msg_, int more_ = 0)
     return 0;
 }
 
-static int forward (class from_: *mut socket_base_t,
+static int forward (class from_: *mut ZmqSocketBase,
                     zmq_socket_stats_t *from_stats_,
-pub struct to_: *mut socket_base_t,
+pub struct to_: *mut ZmqSocketBase,
                     zmq_socket_stats_t *to_stats_,
-pub struct capture_: *mut socket_base_t,
+pub struct capture_: *mut ZmqSocketBase,
                     zmq::msg_t *msg_)
 {
     // Forward a burst of messages
@@ -167,7 +167,7 @@ pub struct capture_: *mut socket_base_t,
     return 0;
 }
 
-static int loop_and_send_multipart_stat (control_: *mut socket_base_t,
+static int loop_and_send_multipart_stat (control_: *mut ZmqSocketBase,
                                          stat_: u64,
                                          bool first_,
                                          bool more_)
@@ -176,8 +176,8 @@ static int loop_and_send_multipart_stat (control_: *mut socket_base_t,
     zmq::msg_t msg;
 
     //  VSM of 8 bytes can't fail to init
-    msg.init_size (sizeof (u64));
-    memcpy (msg.data (), &stat_, sizeof (u64));
+    msg.init_size (mem::size_of::<u64>());
+    memcpy (msg.data (), &stat_, mem::size_of::<u64>());
 
     //  if the first message is handed to the pipe successfully then the HWM
     //  is not full, which means failures are due to interrupts (on Windows pipes
@@ -189,7 +189,7 @@ static int loop_and_send_multipart_stat (control_: *mut socket_base_t,
     return rc;
 }
 
-static int reply_stats (control_: *mut socket_base_t,
+static int reply_stats (control_: *mut ZmqSocketBase,
                         const zmq_socket_stats_t *frontend_stats_,
                         const zmq_socket_stats_t *backend_stats_)
 {
@@ -222,10 +222,10 @@ static int reply_stats (control_: *mut socket_base_t,
 
 // #ifdef ZMQ_HAVE_POLLER
 
-int zmq::proxy (class socket_base_t *frontend_,
-pub struct socket_base_t *backend_,
-pub struct socket_base_t *capture_,
-pub struct socket_base_t *control_)
+int zmq::proxy (class ZmqSocketBase *frontend_,
+pub struct ZmqSocketBase *backend_,
+pub struct ZmqSocketBase *capture_,
+pub struct ZmqSocketBase *control_)
 {
     msg_t msg;
     int rc = msg.init ();
@@ -236,7 +236,7 @@ pub struct socket_base_t *control_)
     //  under full load to be 1:1.
 
     more: i32;
-    size_t moresz = sizeof (more);
+    size_t moresz = mem::size_of::<more>();
 
     //  Proxy can be in these three states
     enum
@@ -255,8 +255,8 @@ pub struct socket_base_t *control_)
     zmq::socket_poller_t::event_t events[3];
     zmq_socket_stats_t frontend_stats;
     zmq_socket_stats_t backend_stats;
-    memset (&frontend_stats, 0, sizeof (frontend_stats));
-    memset (&backend_stats, 0, sizeof (backend_stats));
+    memset (&frontend_stats, 0, mem::size_of::<frontend_stats>());
+    memset (&backend_stats, 0, mem::size_of::<backend_stats>());
 
     //  Don't allocate these pollers from stack because they will take more than 900 kB of stack!
     //  On Windows this blows up default stack of 1 MB and aborts the program.
@@ -539,10 +539,10 @@ pub struct socket_base_t *control_)
 
 // #else //  ZMQ_HAVE_POLLER
 
-int zmq::proxy (class socket_base_t *frontend_,
-pub struct socket_base_t *backend_,
-pub struct socket_base_t *capture_,
-pub struct socket_base_t *control_)
+int zmq::proxy (class ZmqSocketBase *frontend_,
+pub struct ZmqSocketBase *backend_,
+pub struct ZmqSocketBase *capture_,
+pub struct ZmqSocketBase *control_)
 {
     msg_t msg;
     int rc = msg.init ();
@@ -562,9 +562,9 @@ pub struct socket_base_t *control_)
                                  {backend_, 0, ZMQ_POLLOUT, 0}};
 
     zmq_socket_stats_t frontend_stats;
-    memset (&frontend_stats, 0, sizeof (frontend_stats));
+    memset (&frontend_stats, 0, mem::size_of::<frontend_stats>());
     zmq_socket_stats_t backend_stats;
-    memset (&backend_stats, 0, sizeof (backend_stats));
+    memset (&backend_stats, 0, mem::size_of::<backend_stats>());
 
     //  Proxy can be in these three states
     enum

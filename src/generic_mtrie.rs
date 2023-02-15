@@ -644,7 +644,7 @@ template <typename T> class generic_mtrie_t
     typedef std::set<value_t *> pipes_t;
     pipes_t *_pipes;
 
-    atomic_counter_t _num_prefixes;
+    AtomicCounter _num_prefixes;
 
     unsigned char _min;
     unsigned short _count;

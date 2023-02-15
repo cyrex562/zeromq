@@ -75,7 +75,7 @@ void test_unsubscribe_manual ()
     //  set pub socket options
     int manual = 1;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (pub, ZMQ_XPUB_MANUAL_LAST_VALUE,
-                                               &manual, sizeof (manual)));
+                                               &manual, mem::size_of::<manual>()));
 
     //  Create a subscriber
     void *sub = test_context_socket (ZMQ_XSUB);
@@ -490,7 +490,7 @@ void test_manual_last_value ()
     char buffer[255];
     //  sub won't get a message because the last subscription pipe is sub2.
     TEST_ASSERT_FAILURE_ERRNO (
-      EAGAIN, zmq_recv (sub, buffer, sizeof (buffer), ZMQ_DONTWAIT));
+      EAGAIN, zmq_recv (sub, buffer, mem::size_of::<buffer>(), ZMQ_DONTWAIT));
 
     //  Clean up.
     test_context_socket_close (pub);

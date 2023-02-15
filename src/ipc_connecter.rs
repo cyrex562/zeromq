@@ -58,7 +58,7 @@ pub struct ipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     //  then starts connection process.
     ipc_connecter_t (zmq::io_thread_t *io_thread_,
                      zmq::session_base_t *session_,
-                     const options_t &options_,
+                     const ZmqOptions &options_,
                      Address *addr_,
                      bool delayed_start_);
 
@@ -83,7 +83,7 @@ pub struct ipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 
 zmq::ipc_connecter_t::ipc_connecter_t (class io_thread_t *io_thread_,
 pub struct session_base_t *session_,
-                                       const options_t &options_,
+                                       const ZmqOptions &options_,
                                        Address *addr_,
                                        bool delayed_start_) :
     stream_connecter_base_t (
@@ -188,7 +188,7 @@ zmq::fd_t zmq::ipc_connecter_t::connect ()
     //  Following code should handle both Berkeley-derived socket
     //  implementations and Solaris.
     int err = 0;
-    ZmqSocklen len = static_cast<ZmqSocklen> (sizeof (err));
+    ZmqSocklen len = static_cast<ZmqSocklen> (mem::size_of::<err>());
     const int rc = getsockopt (_s, SOL_SOCKET, SO_ERROR,
                                reinterpret_cast<char *> (&err), &len);
     if (rc == -1) {

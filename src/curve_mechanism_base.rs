@@ -90,7 +90,7 @@ pub struct curve_mechanism_base_t : public virtual mechanism_base_t,
 {
   // public:
     curve_mechanism_base_t (session_base_t *session_,
-                            const options_t &options_,
+                            const ZmqOptions &options_,
                             encode_nonce_prefix_: *const c_char,
                             decode_nonce_prefix_: *const c_char,
                             const bool downgrade_sub_);
@@ -102,7 +102,7 @@ pub struct curve_mechanism_base_t : public virtual mechanism_base_t,
 
 zmq::curve_mechanism_base_t::curve_mechanism_base_t (
   session_base_t *session_,
-  const options_t &options_,
+  const ZmqOptions &options_,
   encode_nonce_prefix_: *const c_char,
   decode_nonce_prefix_: *const c_char,
   const bool downgrade_sub_) :
@@ -151,7 +151,7 @@ static const uint8_t flag_mask = zmq::msg_t::more | zmq::msg_t::command;
 static const size_t flags_len = 1;
 static const size_t nonce_prefix_len = 16;
 pub const message_command: String = String::from("\x07MESSAGE");
-static const size_t message_command_len = sizeof (message_command) - 1;
+static const size_t message_command_len = mem::size_of::<message_command>() - 1;
 static const size_t message_header_len =
   message_command_len + sizeof (zmq::curve_encoding_t::nonce_t);
 
@@ -281,7 +281,7 @@ int zmq::curve_encoding_t::encode (msg_t *msg_)
 
     memcpy (message, message_command, message_command_len);
     memcpy (message + message_command_len, message_nonce + nonce_prefix_len,
-            sizeof (nonce_t));
+            mem::size_of::<nonce_t>());
 
     return 0;
 }
@@ -298,7 +298,7 @@ int zmq::curve_encoding_t::decode (msg_t *msg_, error_event_code_: *mut i32)
     uint8_t message_nonce[crypto_box_NONCEBYTES];
     memcpy (message_nonce, _decode_nonce_prefix, nonce_prefix_len);
     memcpy (message_nonce + nonce_prefix_len, message + message_command_len,
-            sizeof (nonce_t));
+            mem::size_of::<nonce_t>());
 
 // #ifdef ZMQ_HAVE_CRYPTO_BOX_EASY_FNS
     const size_t clen = msg_->size () - message_header_len;

@@ -43,7 +43,7 @@
 pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
 {
 // public:
-    pgm_sender_t (zmq::io_thread_t *parent_, const options_t &options_);
+    pgm_sender_t (zmq::io_thread_t *parent_, const ZmqOptions &options_);
     ~pgm_sender_t ();
 
     int init (bool udp_encapsulation_, network_: *const c_char);
@@ -93,7 +93,7 @@ pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
     pgm_socket_t pgm_socket;
 
     //  Socket options.
-    options_t options;
+    ZmqOptions options;
 
     //  Poll handle associated with PGM socket.
     handle_t handle;
@@ -115,7 +115,7 @@ pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
 };
 
 zmq::pgm_sender_t::pgm_sender_t (io_thread_t *parent_,
-                                 const options_t &options_) :
+                                 const ZmqOptions &options_) :
     io_object_t (parent_),
     has_tx_timer (false),
     has_rx_timer (false),
@@ -256,8 +256,8 @@ void zmq::pgm_sender_t::out_event ()
         //  First two bytes (sizeof uint16_t) are used to store message
         //  offset in following steps. Note that by passing our buffer to
         //  the get data function we prevent it from returning its own buffer.
-        unsigned char *bf = out_buffer + sizeof (uint16_t);
-        size_t bfsz = out_buffer_size - sizeof (uint16_t);
+        unsigned char *bf = out_buffer + mem::size_of::<uint16_t>();
+        size_t bfsz = out_buffer_size - mem::size_of::<uint16_t>();
         uint16_t offset = 0xffff;
 
         size_t bytes = encoder.encode (&bf, bfsz);
@@ -269,7 +269,7 @@ void zmq::pgm_sender_t::out_event ()
                 break;
             more_flag = msg.flags () & msg_t::more;
             encoder.load_msg (&msg);
-            bf = out_buffer + sizeof (uint16_t) + bytes;
+            bf = out_buffer + mem::size_of::<uint16_t>() + bytes;
             bytes += encoder.encode (&bf, bfsz - bytes);
         }
 
@@ -279,7 +279,7 @@ void zmq::pgm_sender_t::out_event ()
             return;
         }
 
-        write_size = sizeof (uint16_t) + bytes;
+        write_size = mem::size_of::<uint16_t>() + bytes;
 
         //  Put offset information in the buffer.
         put_uint16 (out_buffer, offset);

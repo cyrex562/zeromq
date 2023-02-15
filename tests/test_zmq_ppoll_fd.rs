@@ -47,7 +47,7 @@ void test_ppoll_fd ()
 
     int flag = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      setsockopt (recv_socket, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof (int)));
+      setsockopt (recv_socket, SOL_SOCKET, SO_REUSEADDR, &flag, mem::size_of::<int>()));
 
     struct sockaddr_in saddr = bind_bsd_socket (recv_socket);
 
@@ -67,7 +67,7 @@ void test_ppoll_fd ()
     memset (buf, 1, 10);
 
     TEST_ASSERT_SUCCESS_ERRNO (sendto (
-      send_socket, buf, 10, 0, (struct sockaddr *) &saddr, sizeof (saddr)));
+      send_socket, buf, 10, 0, (struct sockaddr *) &saddr, mem::size_of::<saddr>()));
 
     TEST_ASSERT_EQUAL (1, zmq_ppoll (pollitems, 2, 1, NULL));
     TEST_ASSERT_BITS_LOW (ZMQ_POLLIN, pollitems[0].revents);

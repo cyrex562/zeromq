@@ -51,7 +51,7 @@ void test_immediate_1 ()
     // Bind the one valid receiver
     val = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (to, ZMQ_LINGER, &val, sizeof (val)));
+      zmq_setsockopt (to, ZMQ_LINGER, &val, mem::size_of::<val>()));
     bind_loopback_ipv4 (to, my_endpoint, len);
 
     // Create a socket pushing to two endpoints - only 1 message should arrive.
@@ -59,7 +59,7 @@ void test_immediate_1 ()
 
     val = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (from, ZMQ_LINGER, &val, sizeof (val)));
+      zmq_setsockopt (from, ZMQ_LINGER, &val, mem::size_of::<val>()));
     // This pipe will not connect (provided the ephemeral port is not 5556)
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (from, "tcp://localhost:5556"));
     // This pipe will
@@ -77,11 +77,11 @@ void test_immediate_1 ()
     // - we should see just 5
     int timeout = 250;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (to, ZMQ_RCVTIMEO, &timeout, sizeof (int)));
+      zmq_setsockopt (to, ZMQ_RCVTIMEO, &timeout, mem::size_of::<int>()));
 
     int seen = 0;
     while (true) {
-        rc = zmq_recv (to, &buffer, sizeof (buffer), 0);
+        rc = zmq_recv (to, &buffer, mem::size_of::<buffer>(), 0);
         if (rc == -1)
             break; //  Break when we didn't get a message
         seen++;
@@ -114,19 +114,19 @@ void test_immediate_2 ()
 
     int val = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (to, ZMQ_LINGER, &val, sizeof (val)));
+      zmq_setsockopt (to, ZMQ_LINGER, &val, mem::size_of::<val>()));
 
     // Create a socket pushing to two endpoints - all messages should arrive.
     void *from = test_context_socket (ZMQ_PUSH);
 
     val = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (from, ZMQ_LINGER, &val, sizeof (val)));
+      zmq_setsockopt (from, ZMQ_LINGER, &val, mem::size_of::<val>()));
 
     // Set the key flag
     val = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (from, ZMQ_IMMEDIATE, &val, sizeof (val)));
+      zmq_setsockopt (from, ZMQ_IMMEDIATE, &val, mem::size_of::<val>()));
 
     // Connect to the invalid socket
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (from, "tcp://localhost:5561"));
@@ -139,12 +139,12 @@ void test_immediate_2 ()
     }
     int timeout = 250;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (to, ZMQ_RCVTIMEO, &timeout, sizeof (int)));
+      zmq_setsockopt (to, ZMQ_RCVTIMEO, &timeout, mem::size_of::<int>()));
 
     int seen = 0;
     while (true) {
         char buffer[16];
-        int rc = zmq_recv (to, &buffer, sizeof (buffer), 0);
+        int rc = zmq_recv (to, &buffer, mem::size_of::<buffer>(), 0);
         if (rc == -1)
             break; //  Break when we didn't get a message
         seen++;
@@ -166,14 +166,14 @@ void test_immediate_3 ()
 
     int zero = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (backend, ZMQ_LINGER, &zero, sizeof (zero)));
+      zmq_setsockopt (backend, ZMQ_LINGER, &zero, mem::size_of::<zero>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (frontend, ZMQ_LINGER, &zero, sizeof (zero)));
+      zmq_setsockopt (frontend, ZMQ_LINGER, &zero, mem::size_of::<zero>()));
 
     //  Frontend connects to backend using IMMEDIATE
     int on = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (frontend, ZMQ_IMMEDIATE, &on, sizeof (on)));
+      zmq_setsockopt (frontend, ZMQ_IMMEDIATE, &on, mem::size_of::<on>()));
 
     size_t len = MAX_SOCKET_STRING;
     char my_endpoint[MAX_SOCKET_STRING];
@@ -200,7 +200,7 @@ void test_immediate_3 ()
     //  Recreate backend socket
     backend = test_context_socket (ZMQ_DEALER);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (backend, ZMQ_LINGER, &zero, sizeof (zero)));
+      zmq_setsockopt (backend, ZMQ_LINGER, &zero, mem::size_of::<zero>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (backend, my_endpoint));
 
     //  Ping backend to frontend so we know when the connection is up

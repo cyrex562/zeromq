@@ -47,8 +47,8 @@ pub struct ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
     ipc_listener_t (zmq::io_thread_t *io_thread_,
-                    socket_: *mut socket_base_t,
-                    const options_t &options_);
+                    socket_: *mut ZmqSocketBase,
+                    const ZmqOptions &options_);
 
     //  Set address to listen on.
     int set_local_address (addr_: *const c_char);
@@ -118,8 +118,8 @@ pub struct ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
 // #endif
 
 zmq::ipc_listener_t::ipc_listener_t (io_thread_t *io_thread_,
-                                     socket_base_t *socket_,
-                                     const options_t &options_) :
+                                     ZmqSocketBase *socket_,
+                                     const ZmqOptions &options_) :
     stream_listener_base_t (io_thread_, socket_, options_), _has_file (false)
 {
 }
@@ -277,7 +277,7 @@ bool zmq::ipc_listener_t::filter (fd_t sock_)
         return true;
 
     struct ucred cred;
-    socklen_t size = sizeof (cred);
+    socklen_t size = mem::size_of::<cred>();
 
     if (getsockopt (sock_, SOL_SOCKET, SO_PEERCRED, &cred, &size))
         return false;
@@ -294,7 +294,7 @@ bool zmq::ipc_listener_t::filter (fd_t sock_)
 
     if (!(pw = getpwuid (cred.uid)))
         return false;
-    for (options_t::ipc_gid_accept_filters_t::const_iterator
+    for (ZmqOptions::ipc_gid_accept_filters_t::const_iterator
            it = options.ipc_gid_accept_filters.begin (),
            end = options.ipc_gid_accept_filters.end ();
          it != end; it++) {
@@ -317,7 +317,7 @@ bool zmq::ipc_listener_t::filter (fd_t sock_)
         return true;
 
     struct xucred cred;
-    socklen_t size = sizeof (cred);
+    socklen_t size = mem::size_of::<cred>();
 
     if (getsockopt (sock_, 0, LOCAL_PEERCRED, &cred, &size))
         return false;
@@ -347,11 +347,11 @@ zmq::fd_t zmq::ipc_listener_t::accept ()
     fd_t sock = ::accept4 (_s, NULL, NULL, SOCK_CLOEXEC);
 // #else
     struct sockaddr_storage ss;
-    memset (&ss, 0, sizeof (ss));
+    memset (&ss, 0, mem::size_of::<ss>());
 // #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
-    int ss_len = sizeof (ss);
+    int ss_len = mem::size_of::<ss>();
 // #else
-    socklen_t ss_len = sizeof (ss);
+    socklen_t ss_len = mem::size_of::<ss>();
 // #endif
 
     const fd_t sock =

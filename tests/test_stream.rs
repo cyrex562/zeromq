@@ -64,16 +64,16 @@ static void test_stream_to_dealer ()
 
     int zero = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (stream, ZMQ_LINGER, &zero, sizeof (zero)));
+      zmq_setsockopt (stream, ZMQ_LINGER, &zero, mem::size_of::<zero>()));
     int enabled = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (stream, ZMQ_STREAM_NOTIFY, &enabled, sizeof (enabled)));
+      zmq_setsockopt (stream, ZMQ_STREAM_NOTIFY, &enabled, mem::size_of::<enabled>()));
     bind_loopback_ipv4 (stream, my_endpoint, sizeof my_endpoint);
 
     //  We'll be using this socket as the other peer
     void *dealer = test_context_socket (ZMQ_DEALER);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (dealer, ZMQ_LINGER, &zero, sizeof (zero)));
+      zmq_setsockopt (dealer, ZMQ_LINGER, &zero, mem::size_of::<zero>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (dealer, my_endpoint));
 
     //  Send a message on the dealer socket
@@ -117,8 +117,8 @@ static void test_stream_to_dealer ()
     //  Send our own protocol greeting
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_send (&routing_id, stream, ZMQ_SNDMORE));
     TEST_ASSERT_EQUAL_INT (
-      sizeof (greeting), TEST_ASSERT_SUCCESS_ERRNO (
-                           zmq_send (stream, &greeting, sizeof (greeting), 0)));
+      mem::size_of::<greeting>(), TEST_ASSERT_SUCCESS_ERRNO (
+                           zmq_send (stream, &greeting, mem::size_of::<greeting>(), 0)));
 
     //  Now we expect the data from the DEALER socket
     //  We want the rest of greeting along with the Ready command
@@ -177,8 +177,8 @@ static void test_stream_to_dealer ()
                                        &routing_id, stream, ZMQ_SNDMORE)));
     byte world[] = {0, 5, 'W', 'o', 'r', 'l', 'd'};
     TEST_ASSERT_EQUAL_INT (
-      sizeof (world),
-      TEST_ASSERT_SUCCESS_ERRNO (zmq_send (stream, world, sizeof (world), 0)));
+      mem::size_of::<world>(),
+      TEST_ASSERT_SUCCESS_ERRNO (zmq_send (stream, world, mem::size_of::<world>(), 0)));
 
     //  Expect response on DEALER socket
     recv_string_expect_success (dealer, "World", 0);
@@ -219,12 +219,12 @@ static void test_stream_to_stream ()
     void *server = test_context_socket (ZMQ_STREAM);
     int enabled = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (server, ZMQ_STREAM_NOTIFY, &enabled, sizeof (enabled)));
+      zmq_setsockopt (server, ZMQ_STREAM_NOTIFY, &enabled, mem::size_of::<enabled>()));
     bind_loopback_ipv4 (server, my_endpoint, sizeof my_endpoint);
 
     void *client = test_context_socket (ZMQ_STREAM);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (client, ZMQ_STREAM_NOTIFY, &enabled, sizeof (enabled)));
+      zmq_setsockopt (client, ZMQ_STREAM_NOTIFY, &enabled, mem::size_of::<enabled>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
     uint8_t id[256];
     uint8_t buffer[256];
@@ -266,7 +266,7 @@ static void test_stream_to_stream ()
                            "Hello, World!";
     TEST_ASSERT_SUCCESS_ERRNO (zmq_send (server, id, id_size, ZMQ_SNDMORE));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_send (server, http_response, sizeof (http_response), ZMQ_SNDMORE));
+      zmq_send (server, http_response, mem::size_of::<http_response>(), ZMQ_SNDMORE));
 
     //  Send zero to close connection to client
     TEST_ASSERT_SUCCESS_ERRNO (zmq_send (server, id, id_size, ZMQ_SNDMORE));
@@ -279,7 +279,7 @@ static void test_stream_to_stream ()
       sizeof http_response,
       TEST_ASSERT_SUCCESS_ERRNO (zmq_recv (client, buffer, 256, 0)));
     TEST_ASSERT_EQUAL_INT8_ARRAY (buffer, http_response,
-                                  sizeof (http_response));
+                                  mem::size_of::<http_response>());
 
     // //  Get disconnection notification
     // FIXME: why does this block? Bug in STREAM disconnect notification?

@@ -36,13 +36,13 @@
 // #include "msg.hpp"
 // #include "macros.hpp"
 // #include "generic_mtrie_impl.hpp"
-pub struct xpub_t : public socket_base_t
+pub struct xpub_t : public ZmqSocketBase
 {
 // public:
     xpub_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~xpub_t () ZMQ_OVERRIDE;
 
-    //  Implementations of virtual functions from socket_base_t.
+    //  Implementations of virtual functions from ZmqSocketBase.
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false) ZMQ_OVERRIDE;
@@ -130,7 +130,7 @@ pub struct xpub_t : public socket_base_t
 };
 
 zmq::xpub_t::xpub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
-    socket_base_t (parent_, tid_, sid_),
+    ZmqSocketBase (parent_, tid_, sid_),
     _verbose_subs (false),
     _verbose_unsubs (false),
     _more_send (false),
@@ -300,7 +300,7 @@ int zmq::xpub_t::xsetsockopt (option_: i32,
     if (option_ == ZMQ_XPUB_VERBOSE || option_ == ZMQ_XPUB_VERBOSER
         || option_ == ZMQ_XPUB_MANUAL_LAST_VALUE || option_ == ZMQ_XPUB_NODROP
         || option_ == ZMQ_XPUB_MANUAL || option_ == ZMQ_ONLY_FIRST_SUBSCRIBE) {
-        if (optvallen_ != sizeof (int)
+        if (optvallen_ != mem::size_of::<int>()
             || *static_cast<const int *> (optval_) < 0) {
             errno = EINVAL;
             return -1;

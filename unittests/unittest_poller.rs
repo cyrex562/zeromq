@@ -39,7 +39,7 @@ void tearDown ()
 
 void test_create ()
 {
-    zmq::thread_ctx_t thread_ctx;
+    zmq::ThreadCtx thread_ctx;
     zmq::poller_t poller (thread_ctx);
 }
 
@@ -47,7 +47,7 @@ void test_create ()
 // TODO this triggers an assertion. should it be a valid use case?
 void test_start_empty ()
 {
-    zmq::thread_ctx_t thread_ctx;
+    zmq::ThreadCtx thread_ctx;
     zmq::poller_t poller (thread_ctx);
     poller.start ();
     msleep (SETTLE_TIME);
@@ -91,7 +91,7 @@ struct test_events_t : zmq::i_poll_events
 
     void set_handle (zmq::poller_t::handle_t handle_) { _handle = handle_; }
 
-    zmq::atomic_counter_t in_events, timer_events;
+    zmq::AtomicCounter in_events, timer_events;
 
   // private:
     zmq::fd_t _fd;
@@ -141,13 +141,13 @@ void send_signal (zmq::fd_t w_)
 {
 // #if defined ZMQ_HAVE_EVENTFD
     const u64 inc = 1;
-    ssize_t sz = write (w_, &inc, sizeof (inc));
-    assert (sz == sizeof (inc));
+    ssize_t sz = write (w_, &inc, mem::size_of::<inc>());
+    assert (sz == mem::size_of::<inc>());
 // #else
     {
         char msg[] = "test";
-        int rc = send (w_, msg, sizeof (msg), 0);
-        assert (rc == sizeof (msg));
+        int rc = send (w_, msg, mem::size_of::<msg>(), 0);
+        assert (rc == mem::size_of::<msg>());
     }
 // #endif
 }
@@ -166,7 +166,7 @@ void close_fdpair (zmq::fd_t w_, zmq::fd_t r_)
 
 void test_add_fd_and_start_and_receive_data ()
 {
-    zmq::thread_ctx_t thread_ctx;
+    zmq::ThreadCtx thread_ctx;
     zmq::poller_t poller (thread_ctx);
 
     zmq::fd_t r, w;
@@ -192,7 +192,7 @@ void test_add_fd_and_remove_by_timer ()
     zmq::fd_t r, w;
     create_nonblocking_fdpair (&r, &w);
 
-    zmq::thread_ctx_t thread_ctx;
+    zmq::ThreadCtx thread_ctx;
     zmq::poller_t poller (thread_ctx);
 
     test_events_t events (r, poller);
@@ -212,7 +212,7 @@ void test_add_fd_and_remove_by_timer ()
 // #ifdef _WIN32
 void test_add_fd_with_pending_failing_connect ()
 {
-    zmq::thread_ctx_t thread_ctx;
+    zmq::ThreadCtx thread_ctx;
     zmq::poller_t poller (thread_ctx);
 
     zmq::fd_t bind_socket = socket (AF_INET, SOCK_STREAM, 0);
@@ -222,9 +222,9 @@ void test_add_fd_with_pending_failing_connect ()
     addr.sin_port = 0;
     TEST_ASSERT_EQUAL_INT (0, bind (bind_socket,
                                     reinterpret_cast<const sockaddr *> (&addr),
-                                    sizeof (addr)));
+                                    mem::size_of::<addr>()));
 
-    int addr_len = static_cast<int> (sizeof (addr));
+    int addr_len = static_cast<int> (mem::size_of::<addr>());
     TEST_ASSERT_EQUAL_INT (0, getsockname (bind_socket,
                                            reinterpret_cast<sockaddr *> (&addr),
                                            &addr_len));
@@ -234,7 +234,7 @@ void test_add_fd_with_pending_failing_connect ()
 
     TEST_ASSERT_EQUAL_INT (
       -1, connect (connect_socket, reinterpret_cast<const sockaddr *> (&addr),
-                   sizeof (addr)));
+                   mem::size_of::<addr>()));
     TEST_ASSERT_EQUAL_INT (WSAEWOULDBLOCK, WSAGetLastError ());
 
     test_events_t events (connect_socket, poller);
@@ -247,7 +247,7 @@ void test_add_fd_with_pending_failing_connect ()
     wait_in_events (events);
 
     value: i32;
-    int value_len = sizeof (value);
+    int value_len = mem::size_of::<value>();
     TEST_ASSERT_EQUAL_INT (0, getsockopt (connect_socket, SOL_SOCKET, SO_ERROR,
                                           reinterpret_cast<char *> (&value),
                                           &value_len));

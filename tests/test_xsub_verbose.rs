@@ -48,7 +48,7 @@ void test_xsub_verbose_unsubscribe ()
     // set option ZMQ_XPUB_VERBOSER to get all messages
     int xbup_verboser = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pub, ZMQ_XPUB_VERBOSER, &xbup_verboser, sizeof (int)));
+      zmq_setsockopt (pub, ZMQ_XPUB_VERBOSER, &xbup_verboser, mem::size_of::<int>()));
 
     // unsubscribe from topic A, does not exist yet
     send_array_expect_success (sub, unsubscribe_a_msg, 0);
@@ -83,7 +83,7 @@ void test_xsub_verbose_unsubscribe ()
     // set option ZMQ_XSUB_VERBOSE_UNSUBSCRIBE to get duplicate unsubscribes
     int xsub_verbose = 1;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      sub, ZMQ_XSUB_VERBOSE_UNSUBSCRIBE, &xsub_verbose, sizeof (int)));
+      sub, ZMQ_XSUB_VERBOSE_UNSUBSCRIBE, &xsub_verbose, mem::size_of::<int>()));
 
     // unsubscribe from topic A, does not exist yet
     send_array_expect_success (sub, unsubscribe_a_msg, 0);

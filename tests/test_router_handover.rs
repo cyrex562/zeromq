@@ -41,7 +41,7 @@ void test_with_handover ()
     // Enable the handover flag
     int handover = 1;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (router, ZMQ_ROUTER_HANDOVER,
-                                               &handover, sizeof (handover)));
+                                               &handover, mem::size_of::<handover>()));
 
     //  Create dealer called "X" and connect it to our router
     void *dealer_one = test_context_socket (ZMQ_DEALER);

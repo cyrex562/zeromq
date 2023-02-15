@@ -34,7 +34,7 @@
 pub struct mechanism_base_t : public mechanism_t
 {
   protected:
-    mechanism_base_t (session_base_t *session_, const options_t &options_);
+    mechanism_base_t (session_base_t *session_, const ZmqOptions &options_);
 
     session_base_t *const session;
 
@@ -47,7 +47,7 @@ pub struct mechanism_base_t : public mechanism_t
 };
 
 zmq::mechanism_base_t::mechanism_base_t (session_base_t *const session_,
-                                         const options_t &options_) :
+                                         const ZmqOptions &options_) :
     mechanism_t (options_), session (session_)
 {
 }

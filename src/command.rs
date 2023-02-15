@@ -3,7 +3,7 @@ use crate::own::own_t;
 use crate::pipe::pipe_t;
 use libc::c_void;
 use crate::endpoint::EndpointUriPair;
-use crate::socket_base::socket_base_t;
+use crate::socket_base::ZmqSocketBase;
 
 pub enum CommandType {
     stop,
@@ -96,7 +96,7 @@ pub struct TermEndpointCommandArgs {
 
 #[derive(Default,Debug,Clone)]
 pub struct ReapCommandArgs {
-    pub socket: *mut socket_base_t
+    pub socket: *mut ZmqSocketBase
 }
 
 pub struct PipePeerStatsCommandArgs {

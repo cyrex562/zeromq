@@ -41,7 +41,7 @@
 pub struct v1_decoder_t ZMQ_FINAL : public decoder_base_t<v1_decoder_t>
 {
 // public:
-    v1_decoder_t (bufsize_: usize, int64_t maxmsgsize_);
+    v1_decoder_t (bufsize_: usize, i64 maxmsgsize_);
     ~v1_decoder_t ();
 
     msg_t *msg () { return &_in_progress; }
@@ -55,12 +55,12 @@ pub struct v1_decoder_t ZMQ_FINAL : public decoder_base_t<v1_decoder_t>
     unsigned char _tmpbuf[8];
     msg_t _in_progress;
 
-    const int64_t _max_msg_size;
+    const i64 _max_msg_size;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (v1_decoder_t)
 };
 
-zmq::v1_decoder_t::v1_decoder_t (bufsize_: usize, int64_t maxmsgsize_) :
+zmq::v1_decoder_t::v1_decoder_t (bufsize_: usize, i64 maxmsgsize_) :
     decoder_base_t<v1_decoder_t> (bufsize_), _max_msg_size (maxmsgsize_)
 {
     int rc = _in_progress.init ();
@@ -91,7 +91,7 @@ int zmq::v1_decoder_t::one_byte_size_ready (unsigned char const *)
         }
 
         if (_max_msg_size >= 0
-            && static_cast<int64_t> (*_tmpbuf - 1) > _max_msg_size) {
+            && static_cast<i64> (*_tmpbuf - 1) > _max_msg_size) {
             errno = EMSGSIZE;
             return -1;
         }

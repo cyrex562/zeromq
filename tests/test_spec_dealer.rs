@@ -40,7 +40,7 @@ void test_round_robin_out (bind_address_: *const c_char)
 
     char connect_address[MAX_SOCKET_STRING];
     test_bind (dealer, bind_address_, connect_address,
-               sizeof (connect_address));
+               mem::size_of::<connect_address>());
 
     const size_t services = 5;
     void *rep[services];
@@ -80,7 +80,7 @@ void test_fair_queue_in (bind_address_: *const c_char)
 
     char connect_address[MAX_SOCKET_STRING];
     test_bind (receiver, bind_address_, connect_address,
-               sizeof (connect_address));
+               mem::size_of::<connect_address>());
 
     const size_t services = 5;
     void *senders[services];
@@ -127,7 +127,7 @@ void test_destroy_queue_on_disconnect (bind_address_: *const c_char)
     void *a = test_context_socket (ZMQ_DEALER);
 
     char connect_address[MAX_SOCKET_STRING];
-    test_bind (a, bind_address_, connect_address, sizeof (connect_address));
+    test_bind (a, bind_address_, connect_address, mem::size_of::<connect_address>());
 
     void *b = test_context_socket (ZMQ_DEALER);
 
@@ -172,7 +172,7 @@ void test_block_on_send_no_peers (bind_address_: *const c_char)
 
     int timeout = 250;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_SNDTIMEO, &timeout, sizeof (timeout)));
+      zmq_setsockopt (sc, ZMQ_SNDTIMEO, &timeout, mem::size_of::<timeout>()));
 
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_send (sc, 0, 0, ZMQ_DONTWAIT));
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_send (sc, 0, 0, 0));

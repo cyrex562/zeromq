@@ -49,7 +49,7 @@ pub struct gssapi_mechanism_base_t : public virtual mechanism_base_t
 {
 // public:
     gssapi_mechanism_base_t (session_base_t *session_,
-                             const options_t &options_);
+                             const ZmqOptions &options_);
     ~gssapi_mechanism_base_t () ZMQ_OVERRIDE = 0;
 
   protected:
@@ -124,7 +124,7 @@ pub struct gssapi_mechanism_base_t : public virtual mechanism_base_t
 };
 
 zmq::gssapi_mechanism_base_t::gssapi_mechanism_base_t (
-  session_base_t *session_, const options_t &options_) :
+  session_base_t *session_, const ZmqOptions &options_) :
     mechanism_base_t (session_, options_),
     send_tok (),
     recv_tok (),

@@ -74,7 +74,7 @@ void test_app_meta_reqrep ()
     TEST_ASSERT_EQUAL_INT (0, rc);
 
     int l = 0;
-    rc = zmq_setsockopt (rep_sock, ZMQ_LINGER, &l, sizeof (l));
+    rc = zmq_setsockopt (rep_sock, ZMQ_LINGER, &l, mem::size_of::<l>());
     TEST_ASSERT_EQUAL_INT (0, rc);
 
     rc = zmq_setsockopt (rep_sock, ZMQ_METADATA, rep_connection,
@@ -90,7 +90,7 @@ void test_app_meta_reqrep ()
     bind_loopback_ipv4 (rep_sock, connect_address, sizeof connect_address);
 
     l = 0;
-    rc = zmq_setsockopt (req_sock, ZMQ_LINGER, &l, sizeof (l));
+    rc = zmq_setsockopt (req_sock, ZMQ_LINGER, &l, mem::size_of::<l>());
     TEST_ASSERT_EQUAL_INT (0, rc);
 
     rc = zmq_setsockopt (req_sock, ZMQ_METADATA, req_hello, strlen (req_hello));

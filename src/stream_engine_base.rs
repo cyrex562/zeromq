@@ -66,7 +66,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
 {
 // public:
     stream_engine_base_t (fd_t fd_,
-                          const options_t &options_,
+                          const ZmqOptions &options_,
                           const endpoint_uri_pair_t &endpoint_uri_pair_,
                           bool has_handshake_stage_);
     ~stream_engine_base_t () ZMQ_OVERRIDE;
@@ -136,9 +136,9 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     void set_pollout () { io_object_t::set_pollout (_handle); }
     void set_pollin () { io_object_t::set_pollin (_handle); }
     session_base_t *session () { return _session; }
-    socket_base_t *socket () { return _socket; }
+    ZmqSocketBase *socket () { return _socket; }
 
-    const options_t _options;
+    const ZmqOptions _options;
 
     unsigned char *_inpos;
     _insize: usize;
@@ -218,7 +218,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     zmq::session_base_t *_session;
 
     //  Socket
-    zmq::socket_base_t *_socket;
+    zmq::ZmqSocketBase *_socket;
 
     //  Indicate if engine has an handshake stage, if it does, engine must call session.engine_ready
     //  when handshake is completed.
@@ -237,7 +237,7 @@ static std::string get_peer_address (zmq::fd_t s_)
 // #if defined ZMQ_HAVE_SO_PEERCRED
     else if (family == PF_UNIX) {
         struct ucred cred;
-        socklen_t size = sizeof (cred);
+        socklen_t size = mem::size_of::<cred>();
         if (!getsockopt (s_, SOL_SOCKET, SO_PEERCRED, &cred, &size)) {
             std::ostringstream buf;
             buf << ":" << cred.uid << ":" << cred.gid << ":" << cred.pid;
@@ -247,7 +247,7 @@ static std::string get_peer_address (zmq::fd_t s_)
 #elif defined ZMQ_HAVE_LOCAL_PEERCRED
     else if (family == PF_UNIX) {
         struct xucred cred;
-        socklen_t size = sizeof (cred);
+        socklen_t size = mem::size_of::<cred>();
         if (!getsockopt (s_, 0, LOCAL_PEERCRED, &cred, &size)
             && cred.cr_version == XUCRED_VERSION) {
             std::ostringstream buf;
@@ -265,7 +265,7 @@ static std::string get_peer_address (zmq::fd_t s_)
 
 zmq::stream_engine_base_t::stream_engine_base_t (
   fd_t fd_,
-  const options_t &options_,
+  const ZmqOptions &options_,
   const endpoint_uri_pair_t &endpoint_uri_pair_,
   bool has_handshake_stage_) :
     _options (options_),

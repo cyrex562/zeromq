@@ -42,7 +42,7 @@ pub struct own_t : public object_t
     own_t (zmq::ZmqContext *parent_, uint32_t tid_);
 
     //  The object is living within I/O thread.
-    own_t (zmq::io_thread_t *io_thread_, const options_t &options_);
+    own_t (zmq::io_thread_t *io_thread_, const ZmqOptions &options_);
 
     //  When another owned object wants to send command to this object
     //  it calls this function to let it know it should not shut down
@@ -88,7 +88,7 @@ pub struct own_t : public object_t
     virtual void process_destroy ();
 
     //  Socket options associated with this object.
-    options_t options;
+    ZmqOptions options;
 
   // private:
     //  Set owner of the object
@@ -109,7 +109,7 @@ pub struct own_t : public object_t
     bool _terminating;
 
     //  Sequence number of the last command sent to this object.
-    atomic_counter_t _sent_seqnum;
+    AtomicCounter _sent_seqnum;
 
     //  Sequence number of the last command processed by this object.
     u64 _processed_seqnum;
@@ -143,7 +143,7 @@ zmq::own_t::own_t (class ZmqContext *parent_, uint32_t tid_) :
 {
 }
 
-zmq::own_t::own_t (io_thread_t *io_thread_, const options_t &options_) :
+zmq::own_t::own_t (io_thread_t *io_thread_, const ZmqOptions &options_) :
     object_t (io_thread_),
     options (options_),
     _terminating (false),

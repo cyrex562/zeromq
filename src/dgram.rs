@@ -35,13 +35,13 @@
 // #include "random.hpp"
 // #include "likely.hpp"
 // #include "err.hpp"
-pub struct dgram_t ZMQ_FINAL : public socket_base_t
+pub struct dgram_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
     dgram_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~dgram_t ();
 
-    //  Overrides of functions from socket_base_t.
+    //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
@@ -62,7 +62,7 @@ pub struct dgram_t ZMQ_FINAL : public socket_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dgram_t)
 };
 zmq::dgram_t::dgram_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
-    socket_base_t (parent_, tid_, sid_), _pipe (NULL), _more_out (false)
+    ZmqSocketBase (parent_, tid_, sid_), _pipe (NULL), _more_out (false)
 {
     options.type = ZMQ_DGRAM;
     options.raw_socket = true;

@@ -52,7 +52,7 @@ int test_defaults (send_hwm_: i32, msg_cnt_: i32, endpoint_: *const c_char)
 
     //set a hwm on publisher
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pub_socket, ZMQ_SNDHWM, &send_hwm_, sizeof (send_hwm_)));
+      zmq_setsockopt (pub_socket, ZMQ_SNDHWM, &send_hwm_, mem::size_of::<send_hwm_>()));
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (sub_socket, ZMQ_SUBSCRIBE, 0, 0));
 
@@ -94,7 +94,7 @@ int receive (socket_: *mut c_void, is_termination_: *mut i32)
     // Now receive all sent messages
     char buffer[255];
     len: i32;
-    while ((len = zmq_recv (socket_, buffer, sizeof (buffer), 0)) >= 0) {
+    while ((len = zmq_recv (socket_, buffer, mem::size_of::<buffer>(), 0)) >= 0) {
         ++recv_count;
 
         if (len == 3 && strncmp (buffer, "end", len) == 0) {
@@ -120,13 +120,13 @@ int test_blocking (send_hwm_: i32, msg_cnt_: i32, endpoint_: *const c_char)
 
     //set a hwm on publisher
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pub_socket, ZMQ_SNDHWM, &send_hwm_, sizeof (send_hwm_)));
+      zmq_setsockopt (pub_socket, ZMQ_SNDHWM, &send_hwm_, mem::size_of::<send_hwm_>()));
     int wait = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pub_socket, ZMQ_XPUB_NODROP, &wait, sizeof (wait)));
+      zmq_setsockopt (pub_socket, ZMQ_XPUB_NODROP, &wait, mem::size_of::<wait>()));
     int timeout_ms = 10;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      sub_socket, ZMQ_RCVTIMEO, &timeout_ms, sizeof (timeout_ms)));
+      sub_socket, ZMQ_RCVTIMEO, &timeout_ms, mem::size_of::<timeout_ms>()));
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (sub_socket, ZMQ_SUBSCRIBE, 0, 0));
 
@@ -192,13 +192,13 @@ void test_reset_hwm ()
     // Set up bind socket
     void *pub_socket = test_context_socket (ZMQ_PUB);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (pub_socket, ZMQ_SNDHWM, &hwm, sizeof (hwm)));
+      zmq_setsockopt (pub_socket, ZMQ_SNDHWM, &hwm, mem::size_of::<hwm>()));
     bind_loopback_ipv4 (pub_socket, my_endpoint, MAX_SOCKET_STRING);
 
     // Set up connect socket
     void *sub_socket = test_context_socket (ZMQ_SUB);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sub_socket, ZMQ_RCVHWM, &hwm, sizeof (hwm)));
+      zmq_setsockopt (sub_socket, ZMQ_RCVHWM, &hwm, mem::size_of::<hwm>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sub_socket, my_endpoint));
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (sub_socket, ZMQ_SUBSCRIBE, 0, 0));

@@ -35,7 +35,7 @@
 // #include "pipe.hpp"
 
 zmq::pull_t::pull_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
-    socket_base_t (parent_, tid_, sid_)
+    ZmqSocketBase (parent_, tid_, sid_)
 {
     options.type = ZMQ_PULL;
 }
@@ -74,14 +74,14 @@ bool zmq::pull_t::xhas_in ()
 {
     return _fq.has_in ();
 }
-pub struct pull_t ZMQ_FINAL : public socket_base_t
+pub struct pull_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
     pull_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~pull_t ();
 
   protected:
-    //  Overrides of functions from socket_base_t.
+    //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);

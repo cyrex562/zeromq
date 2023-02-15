@@ -46,12 +46,12 @@ void setUp ()
 
     int enabled = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (req, ZMQ_REQ_RELAXED, &enabled, sizeof (int)));
+      zmq_setsockopt (req, ZMQ_REQ_RELAXED, &enabled, mem::size_of::<int>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (req, ZMQ_REQ_CORRELATE, &enabled, sizeof (int)));
+      zmq_setsockopt (req, ZMQ_REQ_CORRELATE, &enabled, mem::size_of::<int>()));
 
-    bind_loopback_ipv4 (req, my_endpoint, sizeof (my_endpoint));
+    bind_loopback_ipv4 (req, my_endpoint, mem::size_of::<my_endpoint>());
 
     for (size_t peer = 0; peer < services; peer++) {
         rep[peer] = test_context_socket (ZMQ_REP);
@@ -77,7 +77,7 @@ void tearDown ()
 static void bounce (socket_: *mut c_void)
 {
     more: i32;
-    size_t more_size = sizeof (more);
+    size_t more_size = mem::size_of::<more>();
     do {
         zmq_msg_t recv_part, sent_part;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&recv_part));
@@ -100,7 +100,7 @@ static void bounce (socket_: *mut c_void)
 static int get_events (socket_: *mut c_void)
 {
     events: i32;
-    size_t events_size = sizeof (events);
+    size_t events_size = mem::size_of::<events>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (socket_, ZMQ_EVENTS, &events, &events_size));
     return events;
@@ -192,9 +192,9 @@ void test_case_4 ()
 
     int enabled = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (req, ZMQ_REQ_RELAXED, &enabled, sizeof (int)));
+      zmq_setsockopt (req, ZMQ_REQ_RELAXED, &enabled, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (req, ZMQ_REQ_CORRELATE, &enabled, sizeof (int)));
+      zmq_setsockopt (req, ZMQ_REQ_CORRELATE, &enabled, mem::size_of::<int>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (req, ENDPOINT_0));
 

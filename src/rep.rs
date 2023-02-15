@@ -137,7 +137,7 @@ pub struct rep_t ZMQ_FINAL : public router_t
     rep_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~rep_t ();
 
-    //  Overrides of functions from socket_base_t.
+    //  Overrides of functions from ZmqSocketBase.
     int xsend (zmq::msg_t *msg_);
     int xrecv (zmq::msg_t *msg_);
     bool xhas_in ();

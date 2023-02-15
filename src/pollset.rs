@@ -46,7 +46,7 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
 // public:
     typedef void *handle_t;
 
-    pollset_t (const thread_ctx_t &ctx_);
+    pollset_t (const ThreadCtx &ctx_);
     ~pollset_t () ZMQ_FINAL;
 
     //  "poller" concept.
@@ -69,7 +69,7 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
     void loop () ZMQ_FINAL;
 
     // Reference to ZMQ context.
-    const thread_ctx_t &ctx;
+    const ThreadCtx &ctx;
 
     //  Main pollset file descriptor
     ::pollset_t pollset_fd;
@@ -99,7 +99,7 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (pollset_t)
 };
 
-zmq::pollset_t::pollset_t (const zmq::thread_ctx_t &ctx_) :
+zmq::pollset_t::pollset_t (const zmq::ThreadCtx &ctx_) :
     ctx (ctx_), stopping (false)
 {
     pollset_fd = pollset_create (-1);

@@ -128,13 +128,13 @@ void test_unbind_via_last_endpoint ()
     (void) buf_size;
 
 // #if !defined ZMQ_HAVE_WINDOWS && !defined ZMQ_HAVE_OPENVMS
-    buf_size = sizeof (my_endpoint);
+    buf_size = mem::size_of::<my_endpoint>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (pull, ZMQ_LAST_ENDPOINT, my_endpoint, &buf_size));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_unbind (pull, my_endpoint));
 // #endif
 // #if defined ZMQ_HAVE_VMCI
-    buf_size = sizeof (my_endpoint);
+    buf_size = mem::size_of::<my_endpoint>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (req, ZMQ_LAST_ENDPOINT, my_endpoint, &buf_size));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_unbind (req, my_endpoint));
