@@ -429,7 +429,7 @@ pub const ZMQ_CURVE: u8 = 2;
 pub const ZMQ_GSSAPI: u8 = 3;
 
 /*  RADIO-DISH protocol                                                       */
-pub const ZMQ_GROUP_MAX_LENGTH: u8 = 255;
+pub const ZMQ_GROUP_MAX_LENGTH: usize = 255;
 
 /*  Deprecated options and aliases                                            */
 // #define ZMQ_IDENTITY ZMQ_ROUTING_ID

@@ -1,52 +1,11 @@
-/*
-    Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
-
-    This file is part of libzmq, the ZeroMQ core engine in C++.
-
-    libzmq is free software; you can redistribute it and/or modify it under
-    the terms of the GNU Lesser General Public License (LGPL) as published
-    by the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    As a special exception, the Contributors give you permission to link
-    this library with independent modules to produce an executable,
-    regardless of the license terms of these independent modules, and to
-    copy and distribute the resulting executable under terms of your choice,
-    provided that you also meet, for each linked independent module, the
-    terms and conditions of the license of that module. An independent
-    module is a module which is not derived from or based on this library.
-    If you modify this library, you must extend this exception to your
-    version of the library.
-
-    libzmq is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-    License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-// #include "precompiled.hpp"
-// #include "compat.hpp"
-// #include "macros.hpp"
-// #include "msg.hpp"
-
-// #include <string.h>
-// #include <stdlib.h>
-// #include <new>
-
-// #include "stdint.hpp"
-// #include "likely.hpp"
-// #include "metadata.hpp"
-// #include "err.hpp"
-
 //  Check whether the sizes of public representation of the message (zmq_msg_t)
 //  and private representation of the message (zmq::msg_t) match.
 
-use std::mem;
+use std::mem::size_of;
+use libc::c_long;
 use crate::atomic_counter::AtomicCounter;
 use crate::metadata::metadata_t;
+use crate::zmq_hdr::ZMQ_GROUP_MAX_LENGTH;
 
 #[derive(Default, Debug, Clone)]
 pub struct content_t {
@@ -68,7 +27,7 @@ pub const msg_t_size: usize = 64;
 //         max_vsm_size =
 //           msg_t_size - (sizeof (metadata_t *) + 3 + 16 + mem::size_of::<uint32_t>())
 //     }
-pub const max_vsm_size: usize = msg_t_size - mem::size_of::<*mut metadata_t> + 3 + 16 + mem::size_of::<u32>();
+pub const max_vsm_size: usize = msg_t_size - size_of::<*mut metadata_t> + 3 + 16 + size_of::<u32>();
 
 // enum
 //     {
@@ -82,175 +41,169 @@ pub const cancel_cmd_name_size: usize = 7; // 6CANCEL
 
 pub const sub_cmd_name_size: usize = 10;    // 9SUBSCRIBE
 
-    enum
-    {
-        more = 1,    //  Followed by more parts
-        command = 2, //  Command frame (see ZMTP spec)
-        //  Command types, use only bits 2-5 and compare with ==, not bitwise,
-        //  a command can never be of more that one type at the same time
-        ping = 4,
-        pong = 8,
-        subscribe = 12,
-        cancel = 16,
-        close_cmd = 20,
-        credential = 32,
-        routing_id = 64,
-        shared = 128
-    }
+enum {
+    more = 1,
+    //  Followed by more parts
+    command = 2,
+    //  Command frame (see ZMTP spec)
+    //  Command types, use only bits 2-5 and compare with ==, not bitwise,
+    //  a command can never be of more that one type at the same time
+    ping = 4,
+    pong = 8,
+    subscribe = 12,
+    cancel = 16,
+    close_cmd = 20,
+    credential = 32,
+    routing_id = 64,
+    shared = 128,
+}
 
+enum ZmqMessageType {
+    type_min = 101,
+    //  VSM messages store the content in the message itself
+    type_vsm = 101,
+    //  LMSG messages store the content in malloc-ed memory
+    type_lmsg = 102,
+    //  Delimiter messages are used in envelopes
+    type_delimiter = 103,
+    //  CMSG messages point to constant data
+    type_cmsg = 104,
 
+    // zero-copy LMSG message for v2_decoder
+    type_zclmsg = 105,
 
+    //  Join message for radio_dish
+    type_join = 106,
 
+    //  Leave message for radio_dish
+    type_leave = 107,
 
-    enum type_t
-    {
-        type_min = 101,
-        //  VSM messages store the content in the message itself
-        type_vsm = 101,
-        //  LMSG messages store the content in malloc-ed memory
-        type_lmsg = 102,
-        //  Delimiter messages are used in envelopes
-        type_delimiter = 103,
-        //  CMSG messages point to constant data
-        type_cmsg = 104,
+    type_max = 107,
+}
 
-        // zero-copy LMSG message for v2_decoder
-        type_zclmsg = 105,
+enum GroupType {
+    group_type_short,
+    group_type_long,
+}
 
-        //  Join message for radio_dish
-        type_join = 106,
+#[derive(Default, Debug, Clone)]
+pub struct LongGroup {
+    pub group: [u8; ZMQ_GROUP_MAX_LENGTH + 1],
+    pub refcnt: AtomicCounter,
+}
 
-        //  Leave message for radio_dish
-        type_leave = 107,
+#[derive(Default,Debug,Clone)]
+pub struct GroupSgroup {
+    pub type_: u8,
+    pub group: [u8; 15],
+}
 
-        type_max = 107
-    }
+#[derive(Default,Debug,Clone)]
+pub struct GroupLgroup {
+    pub type_: u8,
+    pub content: *mut c_long,
+}
 
-    enum group_type_t
-    {
-        group_type_short,
-        group_type_long
-    }
+#[derive(Default, Debug, Clone)]
+pub union ZmqMsgGrp {
+    pub type_: u8,
+    pub sgroup: GroupSgroup,
+    pub lgroup: GroupLgroup,
+}
 
-    struct long_group_t
-    {
-        char group[ZMQ_GROUP_MAX_LENGTH + 1];
-        AtomicCounter refcnt;
-    }
+#[derive(Default, Debug, Clone)]
+pub struct MsgUnionBase {
+    pub metadata: metadata_t,
+    pub unused: [u8; msg_t_size - size_of::<*mut metadata_t>() + 2 + size_of::<u32>() + size_of::<ZmqMsgGrp>()],
+    pub type_: u8,
+    pub flags: u8,
+    pub routing_id: u32,
+    pub group: ZmqMsgGrp,
+}
 
-    union group_t
-    {
-        unsigned char type;
-        struct
-        {
-            unsigned char type;
-            char group[15];
-        } sgroup;
-        struct
-        {
-            unsigned char type;
-            long_group_t *content;
-        } lgroup;
-    }
+#[derive(Default,Debug,Clone)]
+pub struct MsgUnionVsm {
+    pub metadata: metadata_t,
+    pub data: [u8; max_vsm_size],
+    pub size: u8,
+    pub type_: u8,
+    pub flags: u8,
+    pub routing_id: u32,
+    pub group: ZmqMsgGrp,
+}
 
-    pub struct MsgUnionBase
-        {
-            metadata_t *metadata;
-            unsigned char unused[msg_t_size
-                                 - (sizeof (metadata_t *) + 2
-                                    + mem::size_of::<uint32_t>() + mem::size_of::<group_t>())];
-            unsigned char type;
-            unsigned char flags;
-            uint32_t routing_id;
-            group_t group;
-        } base;
+#[derive(Default,Debug,Clone)]
+pub struct MsgUnionLmsg
+{
+    pub metadata: metadata_t,
+    pub content: content_t,
+    pub unused: [u8;size_of::<*mut metadata_t>() + size_of::<*mut content_t>() + 2 + size_of::<u32>() + size_of::<ZmqMsgGrp>()],
+    pub type_: u8,
+    pub flags: u8,
+    pub routing_id: u32,
+    pub group: ZmqMsgGrp
+}
 
+#[derive(Default,Debug,Clone)]
+pub struct MsgUnionZclmsg
+{
+    pub metadata: metadata_t,
+    pub content: content_t,
+    pub unused: [u8;size_of::<*mut metadata_t>() + size_of::<*mut content_t>() + 2 + size_of::<u32>() + size_of::<ZmqMsgGrp>()],
+    pub type_: u8,
+    pub flags: u8,
+    pub routing_id: u32,
+    pub group: ZmqMsgGrp,
+}
 
-    pub struct MsgUnionVsm
-        {
-            metadata_t *metadata;
-            unsigned char data[max_vsm_size];
-            unsigned char size;
-            unsigned char type;
-            unsigned char flags;
-            uint32_t routing_id;
-            group_t group;
-        }
+#[derive(Default,Debug,Clone)]
+pub struct MsgUnionCmsg
+{
+    pub metadata: metadata_t,
+    pub content: content_t,
+    pub data: Vec<u8>,
+    pub size: usize,
+    pub unused: [u8;size_of::<*mut metadata_t>() + size_of::<*mut content_t>() + 2 + size_of::<u32>() + size_of::<ZmqMsgGrp>()],
+    pub type_: u8,
+    pub flags: u8,
+    pub routing_id: u32,
+    pub group: ZmqMsgGrp,
+}
 
-    pub struct MsgUnionLmsg
-        {
-            metadata_t *metadata;
-            content_t *content;
-            unsigned char
-              unused[msg_t_size
-                     - (sizeof (metadata_t *) + sizeof (content_t *) + 2
-                        + mem::size_of::<uint32_t>() + mem::size_of::<group_t>())];
-            unsigned char type;
-            unsigned char flags;
-            uint32_t routing_id;
-            group_t group;
-        }
+#[derive(Default,Debug,Clone)]
+pub struct MsgUnionDelimiter
+{
+    pub metadata: metadata_t,
+    pub unused: [u8;size_of::<*mut metadata_t>() + size_of::<*mut content_t>() + 2 + size_of::<u32>() + size_of::<ZmqMsgGrp>()],
+    pub type_: u8,
+    pub flags: u8,
+    pub routing_id: u32,
+    pub group: ZmqMsgGrp
+}
 
-    pub struct MsgUnionZclmsg
-        {
-            metadata_t *metadata;
-            content_t *content;
-            unsigned char
-              unused[msg_t_size
-                     - (sizeof (metadata_t *) + sizeof (content_t *) + 2
-                        + mem::size_of::<uint32_t>() + mem::size_of::<group_t>())];
-            unsigned char type;
-            unsigned char flags;
-            uint32_t routing_id;
-            group_t group;
-        }
+//  Note that fields shared between different message types are not
+//  moved to the parent class (msg_t). This way we get tighter packing
+//  of the data. Shared fields can be accessed via 'base' member of
+//  the union.
+#[derive(Default,Debug,Clone)]
+pub union MsgUnion
+{
+    pub base: MsgUnionBase,
 
-    pub struct MsgUnionCmsg
-        {
-            metadata_t *metadata;
-            data: *mut c_void;
-            size: usize;
-            unsigned char unused[msg_t_size
-                                 - (sizeof (metadata_t *) + sizeof (void *)
-                                    + mem::size_of::<size_t>() + 2 + mem::size_of::<uint32_t>()
-                                    + mem::size_of::<group_t>())];
-            unsigned char type;
-            unsigned char flags;
-            uint32_t routing_id;
-            group_t group;
-        }
+    pub vsm: MsgUnionVsm,
+    pub lmsg: MsgUnionLmsg,
 
-    pub struct MsgUnionDelimiter{
-            metadata_t *metadata;
-            unsigned char unused[msg_t_size
-                                 - (sizeof (metadata_t *) + 2
-                                    + mem::size_of::<uint32_t>() + mem::size_of::<group_t>())];
-            unsigned char type;
-            unsigned char flags;
-            uint32_t routing_id;
-            group_t group;
-        }
+    pub zclmsg: MsgUnionZclmsg,
 
-    //  Note that fields shared between different message types are not
-    //  moved to the parent class (msg_t). This way we get tighter packing
-    //  of the data. Shared fields can be accessed via 'base' member of
-    //  the union.
-    pub union MsgUnion
-    {
-        pub base: MsgUnionBase,
-
-        pub vsm: MsgUnionVsm,
-        pub lmsg: MsgUnionLmsg,
-
-        pub zclmsg: MsgUnionZclmsg,
-
-        pub cmsg: MsgUnionCmsg,
-        pub delimiter: MsgUnionDelimiter
-    }
+    pub cmsg: MsgUnionCmsg,
+    pub delimiter: MsgUnionDelimiter
+}
 
 
 pub const cancel_cmd_name: String = String::from("\0x6CANCEL");
 pub const sub_cmd_name: String = String::from("\0x9SUBSCRIBE");
+
+#[derive(Default,Debug,Clone)]
 pub struct msg_t
 {
 // public:
