@@ -19,10 +19,10 @@ use anyhow;
 use crate::command::ZmqCommand;
 use crate::ctx::side::{bind_side, connect_side};
 use crate::ctx::tid_type::{reaper_tid, term_tid};
-use crate::msg::msg_t;
+use crate::msg::ZmqMessage;
 use crate::object::object_t;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
-use crate::zmq_hdr::{ZMQ_PAIR, ZMQ_MAX_SOCKETS, ZMQ_IO_THREADS, ZMQ_IPV6, ZMQ_BLOCKY, ZMQ_MAX_MSGSZ, ZMQ_ZERO_COPY_RECV, ZMQ_SOCKET_LIMIT, zmq_free_fn, zmq_msg_t, ZMQ_MSG_T_SIZE};
+use crate::zmq_hdr::{ZMQ_PAIR, ZMQ_MAX_SOCKETS, ZMQ_IO_THREADS, ZMQ_IPV6, ZMQ_BLOCKY, ZMQ_MAX_MSGSZ, ZMQ_ZERO_COPY_RECV, ZMQ_SOCKET_LIMIT, zmq_free_fn, zmq_ZmqMessage, ZMQ_ZmqMessage_SIZE};
 
 //  Context object encapsulates all the global state associated with
 //  the library.
@@ -473,10 +473,10 @@ pub fn new() -> Self {
                 return 0;
             }
 
-            ZMQ_MSG_T_SIZE => if (is_int) {
+            ZMQ_ZmqMessage_SIZE => if (is_int) {
                 // scoped_lock_t locker (_opt_sync);
-                // *value = sizeof (zmq_msg_t);
-                let x = size_of::<zmq_msg_t>();
+                // *value = sizeof (zmq_ZmqMessage);
+                let x = size_of::<zmq_ZmqMessage>();
                 opt_val.clone_from_slice(x.to_le_bytes().as_slice());
                 return 0;
             }
@@ -867,8 +867,8 @@ pub fn new() -> Self {
         pending_connection_.bind_pipe.set_tid (bind_socket_.get_tid ());
 
         if (!bind_options_.recv_routing_id) {
-            // msg_t msg;
-            let msg = msg_t{
+            // ZmqMessage msg;
+            let msg = ZmqMessage{
                 data: (),
                 size: 0,
                 hint: ()

@@ -110,7 +110,7 @@ void zmq::ipc_connecter_t::out_event ()
 void zmq::ipc_connecter_t::start_connecting ()
 {
     //  Open the connecting socket.
-    const int rc = open ();
+    let rc: i32 = open ();
 
     //  Connect may succeed in synchronous manner.
     if (rc == 0) {
@@ -158,7 +158,7 @@ int zmq::ipc_connecter_t::open ()
     unblock_socket (_s);
 
     //  Connect to the remote peer.
-    const int rc = ::connect (_s, _addr->resolved.ipc_addr->addr (),
+    let rc: i32 = ::connect (_s, _addr->resolved.ipc_addr->addr (),
                               _addr->resolved.ipc_addr->addrlen ());
 
     //  Connect was successful immediately.
@@ -168,7 +168,7 @@ int zmq::ipc_connecter_t::open ()
         //  Translate other error codes indicating asynchronous connect has been
         //  launched to a uniform EINPROGRESS.
 // #ifdef ZMQ_HAVE_WINDOWS
-    const int last_error = WSAGetLastError ();
+    let last_error: i32 = WSAGetLastError ();
     if (last_error == WSAEINPROGRESS || last_error == WSAEWOULDBLOCK)
         errno = EINPROGRESS;
     else
@@ -189,7 +189,7 @@ zmq::fd_t zmq::ipc_connecter_t::connect ()
     //  implementations and Solaris.
     int err = 0;
     ZmqSocklen len = static_cast<ZmqSocklen> (mem::size_of::<err>());
-    const int rc = getsockopt (_s, SOL_SOCKET, SO_ERROR,
+    let rc: i32 = getsockopt (_s, SOL_SOCKET, SO_ERROR,
                                reinterpret_cast<char *> (&err), &len);
     if (rc == -1) {
         if (errno == ENOPROTOOPT)

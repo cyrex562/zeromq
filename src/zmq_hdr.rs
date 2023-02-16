@@ -222,8 +222,8 @@ pub const ZMQ_THREAD_PRIORITY: u8 = 3;
 pub const ZMQ_THREAD_SCHED_POLICY: u8 = 4;
 // #define ZMQ_MAX_MSGSZ 5
 pub const ZMQ_MAX_MSGSZ: u8 = 5;
-// #define ZMQ_MSG_T_SIZE 6
-pub const ZMQ_MSG_T_SIZE: u8 = 6;
+// #define ZMQ_ZmqMessage_SIZE 6
+pub const ZMQ_ZmqMessage_SIZE: u8 = 6;
 // #define ZMQ_THREAD_AFFINITY_CPU_ADD 7
 pub const ZMQ_THREAD_AFFINITY_CPU_ADD: u8 = 7;
 // #define ZMQ_THREAD_AFFINITY_CPU_REMOVE 8
@@ -255,11 +255,11 @@ pub const ZMQ_THREAD_NAME_PREFIX: u8 = 9;
 
 /* Some architectures, like sparc64 and some variants of aarch64, enforce pointer
  * alignment and raise sigbus on violations. Make sure applications allocate
- * zmq_msg_t on addresses aligned on a pointer-size boundary to avoid this issue.
+ * zmq_ZmqMessage on addresses aligned on a pointer-size boundary to avoid this issue.
  */
-// typedef struct zmq_msg_t
+// typedef struct zmq_ZmqMessage
 #[derive(Default,Debug,Clone)]
-pub struct zmq_msg_t {
+pub struct zmq_ZmqMessage {
     // #if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_ARM64))
 //     __declspec(align (8)) unsigned char _[64];
 // #elif defined(_MSC_VER)                                                        \
@@ -274,10 +274,10 @@ pub struct zmq_msg_t {
 // #endif
     pub _x: [u8; 64],
 }
-// zmq_msg_t;
+// zmq_ZmqMessage;
 
-// typedef void (zmq_free_fn) (data_: *mut c_void, hint_: *mut c_void);
-pub type zmq_free_fn = fn(data_: *mut c_void, hint_: *mut c_void);
+// typedef void (zmq_free_fn) (data: *mut c_void, hint: *mut c_void);
+pub type zmq_free_fn = fn(data: *mut c_void, hint: *mut c_void);
 
 
 /******************************************************************************/
@@ -561,10 +561,10 @@ pub const ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED: u32 = 0x30000000;
 // ZMQ_EXPORT int zmq_connect (s_: *mut c_void, addr_: *const c_char);
 // ZMQ_EXPORT int zmq_unbind (s_: *mut c_void, addr_: *const c_char);
 // ZMQ_EXPORT int zmq_disconnect (s_: *mut c_void, addr_: *const c_char);
-// ZMQ_EXPORT int zmq_send (s_: *mut c_void, const buf_: *mut c_void, len_: usize, flags_: i32);
+// ZMQ_EXPORT int zmq_send (s_: *mut c_void, const buf: *mut c_void, len_: usize, flags_: i32);
 // ZMQ_EXPORT int
-// zmq_send_const (s_: *mut c_void, const buf_: *mut c_void, len_: usize, flags_: i32);
-// ZMQ_EXPORT int zmq_recv (s_: *mut c_void, buf_: *mut c_void, len_: usize, flags_: i32);
+// zmq_send_const (s_: *mut c_void, const buf: *mut c_void, len_: usize, flags_: i32);
+// ZMQ_EXPORT int zmq_recv (s_: *mut c_void, buf: *mut c_void, len_: usize, flags_: i32);
 // ZMQ_EXPORT int zmq_socket_monitor (s_: *mut c_void, addr_: *const c_char, events_: i32);
 
 /******************************************************************************/
@@ -647,13 +647,13 @@ pub const ZMQ_QUEUE: u8 = 3;
 
 /*  Deprecated methods */
 // ZMQ_EXPORT int zmq_device (type_: i32, frontend_: *mut c_void, backend_: *mut c_void);
-// ZMQ_EXPORT int zmq_sendmsg (s_: *mut c_void, msg_: *mut zmq_msg_t, flags_: i32);
-// ZMQ_EXPORT int zmq_recvmsg (s_: *mut c_void, msg_: *mut zmq_msg_t, flags_: i32);
+// ZMQ_EXPORT int zmq_sendmsg (s_: *mut c_void, msg: *mut zmq_ZmqMessage, flags_: i32);
+// ZMQ_EXPORT int zmq_recvmsg (s_: *mut c_void, msg: *mut zmq_ZmqMessage, flags_: i32);
 // struct iovec;
 // ZMQ_EXPORT int
-// zmq_sendiov (s_: *mut c_void, struct iovec *iov_, count_: usize, flags_: i32);
+// zmq_sendiov (s_: *mut c_void, struct iovec *iov_, count: usize, flags_: i32);
 // ZMQ_EXPORT int
-// zmq_recviov (s_: *mut c_void, struct iovec *iov_, size_t *count_, flags_: i32);
+// zmq_recviov (s_: *mut c_void, struct iovec *iov_, size_t *count, flags_: i32);
 
 /******************************************************************************/
 /*  Encryption functions                                                      */
@@ -661,7 +661,7 @@ pub const ZMQ_QUEUE: u8 = 3;
 
 /*  Encode data with Z85 encoding. Returns encoded data                       */
 // ZMQ_EXPORT char *
-// zmq_z85_encode (char *dest_, const uint8_t *data_, size_: usize);
+// zmq_z85_encode (char *dest_, const uint8_t *data, size: usize);
 
 /*  Decode data with Z85 encoding. Returns decoded data                       */
 // ZMQ_EXPORT uint8_t *zmq_z85_decode (uint8_t *dest_, string_: *const c_char);
@@ -844,12 +844,12 @@ pub const ZMQ_ZERO_COPY_RECV: i32 = 10;
 // ZMQ_EXPORT uint32_t zmq_connect_peer (s_: *mut c_void, addr_: *const c_char);
 
 /*  DRAFT Msg methods.                                                        */
-// ZMQ_EXPORT int zmq_msg_set_routing_id (msg: *mut zmq_msg_t, uint32_t routing_id);
-// ZMQ_EXPORT uint32_t zmq_msg_routing_id (zmq_msg_t *msg);
-// ZMQ_EXPORT int zmq_msg_set_group (msg: *mut zmq_msg_t, group: *const c_char);
-// ZMQ_EXPORT const char *zmq_msg_group (zmq_msg_t *msg);
+// ZMQ_EXPORT int zmq_msg_set_routing_id (msg: *mut zmq_ZmqMessage, uint32_t routing_id);
+// ZMQ_EXPORT uint32_t zmq_msg_routing_id (zmq_ZmqMessage *msg);
+// ZMQ_EXPORT int zmq_msg_set_group (msg: *mut zmq_ZmqMessage, group: *const c_char);
+// ZMQ_EXPORT const char *zmq_msg_group (zmq_ZmqMessage *msg);
 // ZMQ_EXPORT int
-// zmq_msg_init_buffer (msg_: *mut zmq_msg_t, const buf_: *mut c_void, size_: usize);
+// zmq_msg_init_buffer (msg: *mut zmq_ZmqMessage, const buf: *mut c_void, size: usize);
 
 /*  DRAFT Msg property names.                                                 */
 // #define ZMQ_MSG_PROPERTY_ROUTING_ID "Routing-Id"

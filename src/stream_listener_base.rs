@@ -125,10 +125,10 @@ int zmq::stream_listener_base_t::close ()
 
     zmq_assert (_s != retired_fd);
 // #ifdef ZMQ_HAVE_WINDOWS
-    const int rc = closesocket (_s);
+    let rc: i32 = closesocket (_s);
     wsa_assert (rc != SOCKET_ERROR);
 // #else
-    const int rc = ::close (_s);
+    let rc: i32 = ::close (_s);
     errno_assert (rc == 0);
 // #endif
     _socket->event_closed (make_unconnected_bind_endpoint_pair (_endpoint), _s);

@@ -105,7 +105,7 @@ void test_metadata ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
     send_string_expect_success (client, "This is a message", 0);
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     zmq_msg_init (&msg);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, server, 0));
     TEST_ASSERT_EQUAL_STRING ("World", zmq_msg_gets (&msg, "Hello"));
@@ -156,7 +156,7 @@ void test_router_prefetch_metadata ()
     size_t dummy_size = mem::size_of::<dummy>();
     zmq_getsockopt (server, ZMQ_EVENTS, &dummy, &dummy_size);
 
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
 
     // Ensure all frames in the message contain metadata
     for (int i = 0; i < 3; i++) {

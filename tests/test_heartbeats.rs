@@ -52,7 +52,7 @@ static int get_monitor_event (monitor_: *mut c_void)
 {
     for (int i = 0; i < 10; i++) {
         //  First frame in message contains event number and value
-        zmq_msg_t msg;
+        zmq_ZmqMessage msg;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
         if (zmq_msg_recv (&msg, monitor_, ZMQ_DONTWAIT) == -1) {
             msleep (SETTLE_TIME);
@@ -359,7 +359,7 @@ DEFINE_TESTS (gather, scatter, ZMQ_GATHER, ZMQ_SCATTER)
 DEFINE_TESTS (client, server, ZMQ_CLIENT, ZMQ_SERVER)
 // #endif
 
-const int deciseconds_per_millisecond = 100;
+let deciseconds_per_millisecond: i32 = 100;
 const int heartbeat_ttl_max =
   (UINT16_MAX + 1) * deciseconds_per_millisecond - 1;
 
@@ -388,7 +388,7 @@ void test_setsockopt_heartbeat_ttl_max ()
 void test_setsockopt_heartbeat_ttl_more_than_max_fails ()
 {
     void *const socket = test_context_socket (ZMQ_PAIR);
-    const int value = heartbeat_ttl_max + 1;
+    let value: i32 = heartbeat_ttl_max + 1;
     TEST_ASSERT_FAILURE_ERRNO (
       EINVAL,
       zmq_setsockopt (socket, ZMQ_HEARTBEAT_TTL, &value, mem::size_of::<value>()));

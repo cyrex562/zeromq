@@ -54,7 +54,7 @@ static void *worker (ctx_: *mut c_void)
     s: *mut c_void;
     rc: i32;
     i: i32;
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
 
     s = zmq_socket (ctx_, ZMQ_REP);
     if (!s) {
@@ -117,7 +117,7 @@ int main (argc: i32, char *argv[])
     s: *mut c_void;
     rc: i32;
     i: i32;
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     watch: *mut c_void;
     unsigned long elapsed;
     double latency;

@@ -46,8 +46,8 @@ pub struct dealer_t : public ZmqSocketBase
     int xsetsockopt (option_: i32,
                      const optval_: *mut c_void,
                      optvallen_: usize) ZMQ_OVERRIDE;
-    int xsend (zmq::msg_t *msg_) ZMQ_OVERRIDE;
-    int xrecv (zmq::msg_t *msg_) ZMQ_OVERRIDE;
+    int xsend (ZmqMessage *msg) ZMQ_OVERRIDE;
+    int xrecv (ZmqMessage *msg) ZMQ_OVERRIDE;
     bool xhas_in () ZMQ_OVERRIDE;
     bool xhas_out () ZMQ_OVERRIDE;
     void xread_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
@@ -55,8 +55,8 @@ pub struct dealer_t : public ZmqSocketBase
     void xpipe_terminated (zmq::pipe_t *pipe_) ZMQ_OVERRIDE;
 
     //  Send and recv - knowing which pipe was used.
-    int sendpipe (zmq::msg_t *msg_, zmq::pipe_t **pipe_);
-    int recvpipe (zmq::msg_t *msg_, zmq::pipe_t **pipe_);
+    int sendpipe (msg: &mut ZmqMessage zmq::pipe_t **pipe_);
+    int recvpipe (msg: &mut ZmqMessage zmq::pipe_t **pipe_);
 
   // private:
     //  Messages are fair-queued from inbound pipes. And load-balanced to
@@ -92,7 +92,7 @@ void zmq::dealer_t::xattach_pipe (pipe_t *pipe_,
     zmq_assert (pipe_);
 
     if (_probe_router) {
-        msg_t probe_msg;
+        ZmqMessage probe_msg;
         int rc = probe_msg.init ();
         errno_assert (rc == 0);
 
@@ -135,14 +135,14 @@ int zmq::dealer_t::xsetsockopt (option_: i32,
     return -1;
 }
 
-int zmq::dealer_t::xsend (msg_t *msg_)
+int zmq::dealer_t::xsend (ZmqMessage *msg)
 {
-    return sendpipe (msg_, NULL);
+    return sendpipe (msg, NULL);
 }
 
-int zmq::dealer_t::xrecv (msg_t *msg_)
+int zmq::dealer_t::xrecv (ZmqMessage *msg)
 {
-    return recvpipe (msg_, NULL);
+    return recvpipe (msg, NULL);
 }
 
 bool zmq::dealer_t::xhas_in ()
@@ -171,12 +171,12 @@ void zmq::dealer_t::xpipe_terminated (pipe_t *pipe_)
     _lb.pipe_terminated (pipe_);
 }
 
-int zmq::dealer_t::sendpipe (msg_t *msg_, pipe_t **pipe_)
+int zmq::dealer_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe_)
 {
-    return _lb.sendpipe (msg_, pipe_);
+    return _lb.sendpipe (msg, pipe_);
 }
 
-int zmq::dealer_t::recvpipe (msg_t *msg_, pipe_t **pipe_)
+int zmq::dealer_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe_)
 {
-    return _fq.recvpipe (msg_, pipe_);
+    return _fq.recvpipe (msg, pipe_);
 }

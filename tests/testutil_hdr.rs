@@ -148,8 +148,8 @@ enum
 //  In MSVC prior to v14, snprintf is not available
 //  The closest implementation is the _snprintf_s function
 // #if defined _MSC_VER && _MSC_VER < 1900
-// #define snprintf(buffer_, count_, format_, ...)                                \
-    _snprintf_s (buffer_, count_, _TRUNCATE, format_, __VA_ARGS__)
+// #define snprintf(buffer_, count, format_, ...)                                \
+    _snprintf_s (buffer_, count, _TRUNCATE, format_, __VA_ARGS__)
 // #endif
 
 // #define LIBZMQ_UNUSED(object) (void) object
@@ -223,8 +223,8 @@ struct sockaddr_in bind_bsd_socket (socket: i32);
 
 //  Connects a BSD socket to the ZMQ endpoint. Works with ipv4/ipv6/unix.
 fd_t connect_socket (endpoint_: *const c_char,
-                     const int af_ = AF_INET,
-                     const int protocol_ = IPPROTO_TCP);
+                     let af_: i32 = AF_INET,
+                     let protocol_: i32 = IPPROTO_TCP);
 
 //  Binds a BSD socket to an ephemeral port, returns the file descriptor.
 //  The resulting ZMQ endpoint will be stored in my_endpoint, including the protocol
@@ -234,8 +234,8 @@ fd_t connect_socket (endpoint_: *const c_char,
 fd_t bind_socket_resolve_port (address_: *const c_char,
                                port_: *const c_char,
                                char *my_endpoint_,
-                               const int af_ = AF_INET,
-                               const int protocol_ = IPPROTO_TCP);
+                               let af_: i32 = AF_INET,
+                               let protocol_: i32 = IPPROTO_TCP);
 
 int fuzzer_corpus_encode (filename: *const c_char,
                           uint8_t ***data,

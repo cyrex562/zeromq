@@ -13,8 +13,8 @@ pub struct channel_t //: public ZmqSocketBase
 //     void xattach_pipe (zmq::pipe_t *pipe_,
 //                        bool subscribe_to_all_,
 //                        bool locally_initiated_);
-//     int xsend (zmq::msg_t *msg_);
-//     int xrecv (zmq::msg_t *msg_);
+//     int xsend (ZmqMessage *msg);
+//     int xrecv (ZmqMessage *msg);
 //     bool xhas_in ();
 //     bool xhas_out ();
 //     void xread_activated (zmq::pipe_t *pipe_);
@@ -91,15 +91,15 @@ void zmq::channel_t::xwrite_activated (pipe_t *)
     //  There's nothing to do here.
 }
 
-int zmq::channel_t::xsend (msg_t *msg_)
+int zmq::channel_t::xsend (ZmqMessage *msg)
 {
     //  CHANNEL sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg_->flags () & msg_t::more) {
+    if (msg->flags () & ZmqMessage::more) {
         errno = EINVAL;
         return -1;
     }
 
-    if (!_pipe || !_pipe->write (msg_)) {
+    if (!_pipe || !_pipe->write (msg)) {
         errno = EAGAIN;
         return -1;
     }
@@ -107,21 +107,21 @@ int zmq::channel_t::xsend (msg_t *msg_)
     _pipe->flush ();
 
     //  Detach the original message from the data buffer.
-    const int rc = msg_->init ();
+    let rc: i32 = msg->init ();
     errno_assert (rc == 0);
 
     return 0;
 }
 
-int zmq::channel_t::xrecv (msg_t *msg_)
+int zmq::channel_t::xrecv (ZmqMessage *msg)
 {
     //  Deallocate old content of the message.
-    int rc = msg_->close ();
+    int rc = msg->close ();
     errno_assert (rc == 0);
 
     if (!_pipe) {
         //  Initialise the output parameter to be a 0-byte message.
-        rc = msg_->init ();
+        rc = msg->init ();
         errno_assert (rc == 0);
 
         errno = EAGAIN;
@@ -129,21 +129,21 @@ int zmq::channel_t::xrecv (msg_t *msg_)
     }
 
     // Drop any messages with more flag
-    bool read = _pipe->read (msg_);
-    while (read && msg_->flags () & msg_t::more) {
+    bool read = _pipe->read (msg);
+    while (read && msg->flags () & ZmqMessage::more) {
         // drop all frames of the current multi-frame message
-        read = _pipe->read (msg_);
-        while (read && msg_->flags () & msg_t::more)
-            read = _pipe->read (msg_);
+        read = _pipe->read (msg);
+        while (read && msg->flags () & ZmqMessage::more)
+            read = _pipe->read (msg);
 
         // get the new message
         if (read)
-            read = _pipe->read (msg_);
+            read = _pipe->read (msg);
     }
 
     if (!read) {
         //  Initialise the output parameter to be a 0-byte message.
-        rc = msg_->init ();
+        rc = msg->init ();
         errno_assert (rc == 0);
 
         errno = EAGAIN;

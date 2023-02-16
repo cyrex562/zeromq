@@ -51,7 +51,7 @@ void test_read_empty ()
 
 void test_write_complete_and_check_read_and_read ()
 {
-    const int value = 42;
+    let value: i32 = 42;
     zmq::ypipe_t<int, 1> ypipe;
     ypipe.write (value, false);
     TEST_ASSERT_FALSE (ypipe.check_read ());
@@ -62,7 +62,7 @@ void test_write_complete_and_check_read_and_read ()
 
 void test_write_complete_and_flush_and_check_read_and_read ()
 {
-    const int value = 42;
+    let value: i32 = 42;
     zmq::ypipe_t<int, 1> ypipe;
     ypipe.write (value, false);
     ypipe.flush ();

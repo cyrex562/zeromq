@@ -32,7 +32,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-const int MAX_SENDS = 10000;
+let MAX_SENDS: i32 = 10000;
 
 void test_change_before_connected ()
 {

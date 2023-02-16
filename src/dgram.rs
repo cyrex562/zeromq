@@ -45,8 +45,8 @@ pub struct dgram_t ZMQ_FINAL : public ZmqSocketBase
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
-    int xsend (zmq::msg_t *msg_);
-    int xrecv (zmq::msg_t *msg_);
+    int xsend (ZmqMessage *msg);
+    int xrecv (ZmqMessage *msg);
     bool xhas_in ();
     bool xhas_out ();
     void xread_activated (zmq::pipe_t *pipe_);
@@ -109,11 +109,11 @@ void zmq::dgram_t::xwrite_activated (pipe_t *)
     //  There's nothing to do here.
 }
 
-int zmq::dgram_t::xsend (msg_t *msg_)
+int zmq::dgram_t::xsend (ZmqMessage *msg)
 {
     // If there's no out pipe, just drop it.
     if (!_pipe) {
-        const int rc = msg_->close ();
+        let rc: i32 = msg->close ();
         errno_assert (rc == 0);
         return -1;
     }
@@ -121,46 +121,46 @@ int zmq::dgram_t::xsend (msg_t *msg_)
     //  If this is the first part of the message it's the ID of the
     //  peer to send the message to.
     if (!_more_out) {
-        if (!(msg_->flags () & msg_t::more)) {
+        if (!(msg->flags () & ZmqMessage::more)) {
             errno = EINVAL;
             return -1;
         }
     } else {
         //  dgram messages are two part only, reject part if more is set
-        if (msg_->flags () & msg_t::more) {
+        if (msg->flags () & ZmqMessage::more) {
             errno = EINVAL;
             return -1;
         }
     }
 
     // Push the message into the pipe.
-    if (!_pipe->write (msg_)) {
+    if (!_pipe->write (msg)) {
         errno = EAGAIN;
         return -1;
     }
 
-    if (!(msg_->flags () & msg_t::more))
+    if (!(msg->flags () & ZmqMessage::more))
         _pipe->flush ();
 
     // flip the more flag
     _more_out = !_more_out;
 
     //  Detach the message from the data buffer.
-    const int rc = msg_->init ();
+    let rc: i32 = msg->init ();
     errno_assert (rc == 0);
 
     return 0;
 }
 
-int zmq::dgram_t::xrecv (msg_t *msg_)
+int zmq::dgram_t::xrecv (ZmqMessage *msg)
 {
     //  Deallocate old content of the message.
-    int rc = msg_->close ();
+    int rc = msg->close ();
     errno_assert (rc == 0);
 
-    if (!_pipe || !_pipe->read (msg_)) {
+    if (!_pipe || !_pipe->read (msg)) {
         //  Initialise the output parameter to be a 0-byte message.
-        rc = msg_->init ();
+        rc = msg->init ();
         errno_assert (rc == 0);
 
         errno = EAGAIN;

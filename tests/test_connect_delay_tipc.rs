@@ -69,7 +69,7 @@ void test_send_one_connected_one_unconnected ()
 
     // We send 10 messages, 5 should just get stuck in the queue
     // for the not-yet-connected pipe
-    const int send_count = 10;
+    let send_count: i32 = 10;
     for (int i = 0; i < send_count; ++i) {
         send_string_expect_success (from, "Hello", 0);
     }
@@ -139,7 +139,7 @@ void test_send_one_connected_one_unconnected_with_delay ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (from, "tipc://{5560,0}@0.0.0"));
 
     // Send 10 messages, all should be routed to the connected pipe
-    const int send_count = 10;
+    let send_count: i32 = 10;
     for (int i = 0; i < send_count; ++i) {
         send_string_expect_success (from, "Hello", 0);
     }

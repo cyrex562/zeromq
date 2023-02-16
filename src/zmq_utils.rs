@@ -121,18 +121,18 @@ pub const decoder: [u8;96] = [
 //  dest. Size must be a multiple of 4.
 //  Returns NULL and sets errno = EINVAL for invalid input.
 
-pub fn zmq_z85_encode (dest_: &mut [u8], data_: &[u8], size_: usize) -> Option<String>
+pub fn zmq_z85_encode (dest_: &mut [u8], data: &[u8], size: usize) -> Option<String>
 {
-    if size_ % 4 != 0 {
+    if size % 4 != 0 {
         errno = EINVAL;
         return None;
     }
     let mut char_nbr = 0;
     let mut byte_nbr = 0;
     let mut value = 0;
-    while byte_nbr < size_ {
+    while byte_nbr < size {
         //  Accumulate value in base 256 (binary)
-        value = value * 256 + data_[byte_nbr += 1];
+        value = value * 256 + data[byte_nbr += 1];
         if byte_nbr % 4 == 0 {
             //  Output value in base 85
             let mut divisor = 85 * 85 * 85 * 85;
@@ -143,7 +143,7 @@ pub fn zmq_z85_encode (dest_: &mut [u8], data_: &[u8], size_: usize) -> Option<S
             value = 0;
         }
     }
-    assert (char_nbr == size_ * 5 / 4);
+    assert (char_nbr == size * 5 / 4);
     dest_[char_nbr] = 0;
     return Some(String::from_utf8_lossy(dest_).into());
 }
@@ -222,7 +222,7 @@ int zmq_curve_keypair (char *z85_public_key_, char *z85_secret_key_)
 
     zmq::random_open ();
 
-    const int res = crypto_box_keypair (public_key, secret_key);
+    let res: i32 = crypto_box_keypair (public_key, secret_key);
     zmq_z85_encode (z85_public_key_, public_key, 32);
     zmq_z85_encode (z85_secret_key_, secret_key, 32);
 

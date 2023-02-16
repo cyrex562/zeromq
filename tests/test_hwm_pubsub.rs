@@ -141,7 +141,7 @@ int test_blocking (send_hwm_: i32, msg_cnt_: i32, endpoint_: *const c_char)
     int blocked_count = 0;
     int is_termination = 0;
     while (send_count < msg_cnt_) {
-        const int rc = zmq_send (pub_socket, NULL, 0, ZMQ_DONTWAIT);
+        let rc: i32 = zmq_send (pub_socket, NULL, 0, ZMQ_DONTWAIT);
         if (rc == 0) {
             ++send_count;
         } else if (-1 == rc) {
@@ -184,8 +184,8 @@ int test_blocking (send_hwm_: i32, msg_cnt_: i32, endpoint_: *const c_char)
 // with hwm 11024: send 9999 msg, receive 9999, send 1100, receive 1100
 void test_reset_hwm ()
 {
-    const int first_count = 9999;
-    const int second_count = 1100;
+    let first_count: i32 = 9999;
+    let second_count: i32 = 1100;
     int hwm = 11024;
     char my_endpoint[SOCKET_STRING_LEN];
 

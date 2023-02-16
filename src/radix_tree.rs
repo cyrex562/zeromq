@@ -66,7 +66,7 @@
 // of the chunk of first bytes and node pointers respectively.
 struct node_t
 {
-    explicit node_t (unsigned char *data_);
+    explicit node_t (unsigned char *data);
 
     bool operator== (node_t other_) const;
     bool operator!= (node_t other_) const;
@@ -148,7 +148,7 @@ pub struct radix_tree_t
     AtomicCounter _size;
 };
 
-node_t::node_t (unsigned char *data_) : _data (data_)
+node_t::node_t (unsigned char *data) : _data (data)
 {
 }
 
@@ -653,7 +653,7 @@ bool zmq::radix_tree_t::check (const unsigned char *key_, key_size_: usize)
 static void
 visit_keys (node_t node_,
             std::vector<unsigned char> &buffer_,
-            void (*func_) (unsigned char *data_, size_: usize, arg_: *mut c_void),
+            void (*func_) (unsigned char *data, size: usize, arg_: *mut c_void),
             arg_: *mut c_void)
 {
     const size_t prefix_length = node_.prefix_length ();
@@ -673,7 +673,7 @@ visit_keys (node_t node_,
 }
 
 void zmq::radix_tree_t::apply (
-  void (*func_) (unsigned char *data_, size_: usize, arg_: *mut c_void), arg_: *mut c_void)
+  void (*func_) (unsigned char *data, size: usize, arg_: *mut c_void), arg_: *mut c_void)
 {
     if (_root.refcount () > 0)
         func_ (NULL, 0, arg_); // Root node is always empty.

@@ -49,13 +49,13 @@ void test_req_correlate ()
     // Send a multi-part request.
     s_send_seq (req, "ABC", "DEF", SEQ_END);
 
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     zmq_msg_init (&msg);
 
     // Receive peer routing id
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, router, 0));
     TEST_ASSERT_GREATER_THAN_INT (0, zmq_msg_size (&msg));
-    zmq_msg_t peer_id_msg;
+    zmq_ZmqMessage peer_id_msg;
     zmq_msg_init (&peer_id_msg);
     zmq_msg_copy (&peer_id_msg, &msg);
 
@@ -69,7 +69,7 @@ void test_req_correlate ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, router, 0));
     TEST_ASSERT_EQUAL_UINT (mem::size_of::<uint32_t>(), zmq_msg_size (&msg));
     const uint32_t req_id = *static_cast<uint32_t *> (zmq_msg_data (&msg));
-    zmq_msg_t req_id_msg;
+    zmq_ZmqMessage req_id_msg;
     zmq_msg_init (&req_id_msg);
     zmq_msg_copy (&req_id_msg, &msg);
 

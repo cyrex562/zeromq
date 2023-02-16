@@ -65,9 +65,9 @@ void zmq::pull_t::xpipe_terminated (pipe_t *pipe_)
     _fq.pipe_terminated (pipe_);
 }
 
-int zmq::pull_t::xrecv (msg_t *msg_)
+int zmq::pull_t::xrecv (ZmqMessage *msg)
 {
-    return _fq.recv (msg_);
+    return _fq.recv (msg);
 }
 
 bool zmq::pull_t::xhas_in ()
@@ -85,7 +85,7 @@ pub struct pull_t ZMQ_FINAL : public ZmqSocketBase
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
-    int xrecv (zmq::msg_t *msg_);
+    int xrecv (ZmqMessage *msg);
     bool xhas_in ();
     void xread_activated (zmq::pipe_t *pipe_);
     void xpipe_terminated (zmq::pipe_t *pipe_);

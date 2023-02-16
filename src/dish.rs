@@ -44,9 +44,9 @@ pub struct dish_t ZMQ_FINAL : public ZmqSocketBase
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
-    int xsend (zmq::msg_t *msg_);
+    int xsend (ZmqMessage *msg);
     bool xhas_out ();
-    int xrecv (zmq::msg_t *msg_);
+    int xrecv (ZmqMessage *msg);
     bool xhas_in ();
     void xread_activated (zmq::pipe_t *pipe_);
     void xwrite_activated (zmq::pipe_t *pipe_);
@@ -56,7 +56,7 @@ pub struct dish_t ZMQ_FINAL : public ZmqSocketBase
     int xleave (group_: *const c_char);
 
   // private:
-    int xxrecv (zmq::msg_t *msg_);
+    int xxrecv (ZmqMessage *msg);
 
     //  Send subscriptions to a pipe
     void send_subscriptions (pipe_t *pipe_);
@@ -74,7 +74,7 @@ pub struct dish_t ZMQ_FINAL : public ZmqSocketBase
     //  If true, 'message' contains a matching message to return on the
     //  next recv call.
     bool _has_message;
-    msg_t _message;
+    ZmqMessage _message;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dish_t)
 };
@@ -89,8 +89,8 @@ pub struct dish_session_t ZMQ_FINAL : public session_base_t
     ~dish_session_t ();
 
     //  Overrides of the functions from session_base_t.
-    int push_msg (msg_t *msg_);
-    int pull_msg (msg_t *msg_);
+    int push_msg (ZmqMessage *msg);
+    int pull_msg (ZmqMessage *msg);
     void reset ();
 
   // private:
@@ -100,7 +100,7 @@ pub struct dish_session_t ZMQ_FINAL : public session_base_t
         body
     } _state;
 
-    msg_t _group_msg;
+    ZmqMessage _group_msg;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dish_session_t)
 };
@@ -114,13 +114,13 @@ zmq::dish_t::dish_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     //  subscription commands are sent to the wire.
     options.linger.store (0);
 
-    const int rc = _message.init ();
+    let rc: i32 = _message.init ();
     errno_assert (rc == 0);
 }
 
 zmq::dish_t::~dish_t ()
 {
-    const int rc = _message.close ();
+    let rc: i32 = _message.close ();
     errno_assert (rc == 0);
 }
 
@@ -176,7 +176,7 @@ int zmq::dish_t::xjoin (group_: *const c_char)
         return -1;
     }
 
-    msg_t msg;
+    ZmqMessage msg;
     int rc = msg.init_join ();
     errno_assert (rc == 0);
 
@@ -187,7 +187,7 @@ int zmq::dish_t::xjoin (group_: *const c_char)
     rc = _dist.send_to_all (&msg);
     if (rc != 0)
         err = errno;
-    const int rc2 = msg.close ();
+    let rc2: i32 = msg.close ();
     errno_assert (rc2 == 0);
     if (rc != 0)
         errno = err;
@@ -208,7 +208,7 @@ int zmq::dish_t::xleave (group_: *const c_char)
         return -1;
     }
 
-    msg_t msg;
+    ZmqMessage msg;
     int rc = msg.init_leave ();
     errno_assert (rc == 0);
 
@@ -219,16 +219,16 @@ int zmq::dish_t::xleave (group_: *const c_char)
     rc = _dist.send_to_all (&msg);
     if (rc != 0)
         err = errno;
-    const int rc2 = msg.close ();
+    let rc2: i32 = msg.close ();
     errno_assert (rc2 == 0);
     if (rc != 0)
         errno = err;
     return rc;
 }
 
-int zmq::dish_t::xsend (msg_t *msg_)
+int zmq::dish_t::xsend (ZmqMessage *msg)
 {
-    LIBZMQ_UNUSED (msg_);
+    LIBZMQ_UNUSED (msg);
     errno = ENOTSUP;
     return -1;
 }
@@ -239,25 +239,25 @@ bool zmq::dish_t::xhas_out ()
     return true;
 }
 
-int zmq::dish_t::xrecv (msg_t *msg_)
+int zmq::dish_t::xrecv (ZmqMessage *msg)
 {
     //  If there's already a message prepared by a previous call to zmq_poll,
     //  return it straight ahead.
     if (_has_message) {
-        const int rc = msg_->move (_message);
+        let rc: i32 = msg->move (_message);
         errno_assert (rc == 0);
         _has_message = false;
         return 0;
     }
 
-    return xxrecv (msg_);
+    return xxrecv (msg);
 }
 
-int zmq::dish_t::xxrecv (msg_t *msg_)
+int zmq::dish_t::xxrecv (ZmqMessage *msg)
 {
     do {
         //  Get a message using fair queueing algorithm.
-        const int rc = _fq.recv (msg_);
+        let rc: i32 = _fq.recv (msg);
 
         //  If there's no message available, return immediately.
         //  The same when error occurs.
@@ -265,7 +265,7 @@ int zmq::dish_t::xxrecv (msg_t *msg_)
             return -1;
 
         //  Skip non matching messages
-    } while (0 == _subscriptions.count (std::string (msg_->group ())));
+    } while (0 == _subscriptions.count (std::string (msg->group ())));
 
     //  Found a matching message
     return 0;
@@ -278,7 +278,7 @@ bool zmq::dish_t::xhas_in ()
     if (_has_message)
         return true;
 
-    const int rc = xxrecv (&_message);
+    let rc: i32 = xxrecv (&_message);
     if (rc != 0) {
         errno_assert (errno == EAGAIN);
         return false;
@@ -294,7 +294,7 @@ void zmq::dish_t::send_subscriptions (pipe_t *pipe_)
     for (subscriptions_t::iterator it = _subscriptions.begin (),
                                    end = _subscriptions.end ();
          it != end; ++it) {
-        msg_t msg;
+        ZmqMessage msg;
         int rc = msg.init_join ();
         errno_assert (rc == 0);
 
@@ -322,33 +322,33 @@ zmq::dish_session_t::~dish_session_t ()
 {
 }
 
-int zmq::dish_session_t::push_msg (msg_t *msg_)
+int zmq::dish_session_t::push_msg (ZmqMessage *msg)
 {
     if (_state == group) {
-        if ((msg_->flags () & msg_t::more) != msg_t::more) {
+        if ((msg->flags () & ZmqMessage::more) != ZmqMessage::more) {
             errno = EFAULT;
             return -1;
         }
 
-        if (msg_->size () > ZMQ_GROUP_MAX_LENGTH) {
+        if (msg->size () > ZMQ_GROUP_MAX_LENGTH) {
             errno = EFAULT;
             return -1;
         }
 
-        _group_msg = *msg_;
+        _group_msg = *msg;
         _state = body;
 
-        const int rc = msg_->init ();
+        let rc: i32 = msg->init ();
         errno_assert (rc == 0);
         return 0;
     }
-    const char *group_setting = msg_->group ();
+    const char *group_setting = msg->group ();
     rc: i32;
     if (group_setting[0] != 0)
         goto has_group;
 
     //  Set the message group
-    rc = msg_->set_group (static_cast<char *> (_group_msg.data ()),
+    rc = msg->set_group (static_cast<char *> (_group_msg.data ()),
                           _group_msg.size ());
     errno_assert (rc == 0);
 
@@ -357,13 +357,13 @@ int zmq::dish_session_t::push_msg (msg_t *msg_)
     errno_assert (rc == 0);
 has_group:
     //  Thread safe socket doesn't support multipart messages
-    if ((msg_->flags () & msg_t::more) == msg_t::more) {
+    if ((msg->flags () & ZmqMessage::more) == ZmqMessage::more) {
         errno = EFAULT;
         return -1;
     }
 
     //  Push message to dish socket
-    rc = session_base_t::push_msg (msg_);
+    rc = session_base_t::push_msg (msg);
 
     if (rc == 0)
         _state = group;
@@ -371,22 +371,22 @@ has_group:
     return rc;
 }
 
-int zmq::dish_session_t::pull_msg (msg_t *msg_)
+int zmq::dish_session_t::pull_msg (ZmqMessage *msg)
 {
-    int rc = session_base_t::pull_msg (msg_);
+    int rc = session_base_t::pull_msg (msg);
 
     if (rc != 0)
         return rc;
 
-    if (!msg_->is_join () && !msg_->is_leave ())
+    if (!msg->is_join () && !msg->is_leave ())
         return rc;
 
-    const int group_length = static_cast<int> (strlen (msg_->group ()));
+    let group_length: i32 = static_cast<int> (strlen (msg->group ()));
 
-    msg_t command;
+    ZmqMessage command;
     offset: i32;
 
-    if (msg_->is_join ()) {
+    if (msg->is_join ()) {
         rc = command.init_size (group_length + 5);
         errno_assert (rc == 0);
         offset = 5;
@@ -398,17 +398,17 @@ int zmq::dish_session_t::pull_msg (msg_t *msg_)
         memcpy (command.data (), "\5LEAVE", 6);
     }
 
-    command.set_flags (msg_t::command);
+    command.set_flags (ZmqMessage::command);
     char *command_data = static_cast<char *> (command.data ());
 
     //  Copy the group
-    memcpy (command_data + offset, msg_->group (), group_length);
+    memcpy (command_data + offset, msg->group (), group_length);
 
     //  Close the join message
-    rc = msg_->close ();
+    rc = msg->close ();
     errno_assert (rc == 0);
 
-    *msg_ = command;
+    *msg = command;
 
     return 0;
 }

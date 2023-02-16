@@ -44,7 +44,7 @@ pub struct scatter_t ZMQ_FINAL : public ZmqSocketBase
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
-    int xsend (zmq::msg_t *msg_);
+    int xsend (ZmqMessage *msg);
     bool xhas_out ();
     void xwrite_activated (zmq::pipe_t *pipe_);
     void xpipe_terminated (zmq::pipe_t *pipe_);
@@ -91,15 +91,15 @@ void zmq::scatter_t::xpipe_terminated (pipe_t *pipe_)
     _lb.pipe_terminated (pipe_);
 }
 
-int zmq::scatter_t::xsend (msg_t *msg_)
+int zmq::scatter_t::xsend (ZmqMessage *msg)
 {
     //  SCATTER sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg_->flags () & msg_t::more) {
+    if (msg->flags () & ZmqMessage::more) {
         errno = EINVAL;
         return -1;
     }
 
-    return _lb.send (msg_);
+    return _lb.send (msg);
 }
 
 bool zmq::scatter_t::xhas_out ()

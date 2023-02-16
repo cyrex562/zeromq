@@ -93,44 +93,44 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     //  Function to handle network disconnections.
     virtual void error (error_reason_t reason_);
 
-    int next_handshake_command (msg_t *msg_);
-    int process_handshake_command (msg_t *msg_);
+    int next_handshake_command (ZmqMessage *msg);
+    int process_handshake_command (ZmqMessage *msg);
 
-    int pull_msg_from_session (msg_t *msg_);
-    int push_msg_to_session (msg_t *msg_);
+    int pull_msg_from_session (ZmqMessage *msg);
+    int push_ZmqMessageo_session (ZmqMessage *msg);
 
-    int pull_and_encode (msg_t *msg_);
-    virtual int decode_and_push (msg_t *msg_);
-    int push_one_then_decode_and_push (msg_t *msg_);
+    int pull_and_encode (ZmqMessage *msg);
+    virtual int decode_and_push (ZmqMessage *msg);
+    int push_one_then_decode_and_push (ZmqMessage *msg);
 
     void set_handshake_timer ();
 
     virtual bool handshake () { return true; };
     virtual void plug_internal (){};
 
-    virtual int process_command_message (msg_t *msg_)
+    virtual int process_command_message (ZmqMessage *msg)
     {
-        LIBZMQ_UNUSED (msg_);
+        LIBZMQ_UNUSED (msg);
         return -1;
     };
-    virtual int produce_ping_message (msg_t *msg_)
+    virtual int produce_ping_message (ZmqMessage *msg)
     {
-        LIBZMQ_UNUSED (msg_);
+        LIBZMQ_UNUSED (msg);
         return -1;
     };
-    virtual int process_heartbeat_message (msg_t *msg_)
+    virtual int process_heartbeat_message (ZmqMessage *msg)
     {
-        LIBZMQ_UNUSED (msg_);
+        LIBZMQ_UNUSED (msg);
         return -1;
     };
-    virtual int produce_pong_message (msg_t *msg_)
+    virtual int produce_pong_message (ZmqMessage *msg)
     {
-        LIBZMQ_UNUSED (msg_);
+        LIBZMQ_UNUSED (msg);
         return -1;
     };
 
-    virtual int read (data: *mut c_void, size_: usize);
-    virtual int write (const data_: *mut c_void, size_: usize);
+    virtual int read (data: *mut c_void, size: usize);
+    virtual int write (const data: *mut c_void, size: usize);
 
     void reset_pollout () { io_object_t::reset_pollout (_handle); }
     void set_pollout () { io_object_t::set_pollout (_handle); }
@@ -150,8 +150,8 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
 
     mechanism_t *_mechanism;
 
-    int (stream_engine_base_t::*_next_msg) (msg_t *msg_);
-    int (stream_engine_base_t::*_process_msg) (msg_t *msg_);
+    int (stream_engine_base_t::*_next_msg) (ZmqMessage *msg);
+    int (stream_engine_base_t::*_process_msg) (ZmqMessage *msg);
 
     //  Metadata to be attached to received messages. May be NULL.
     metadata_t *_metadata;
@@ -194,7 +194,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     //  Unplug the engine from the session.
     void unplug ();
 
-    int write_credential (msg_t *msg_);
+    int write_credential (ZmqMessage *msg);
 
     void mechanism_ready ();
 
@@ -210,7 +210,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     //  version.  When false, normal message flow has started.
     bool _handshaking;
 
-    msg_t _tx_msg;
+    ZmqMessage _tx_msg;
 
     bool _io_error;
 
@@ -231,7 +231,7 @@ static std::string get_peer_address (zmq::fd_t s_)
 {
     std::string peer_address;
 
-    const int family = zmq::get_peer_ip_address (s_, peer_address);
+    let family: i32 = zmq::get_peer_ip_address (s_, peer_address);
     if (family == 0)
         peer_address.clear ();
 // #if defined ZMQ_HAVE_SO_PEERCRED
@@ -296,7 +296,7 @@ zmq::stream_engine_base_t::stream_engine_base_t (
     _socket (NULL),
     _has_handshake_stage (has_handshake_stage_)
 {
-    const int rc = _tx_msg.init ();
+    let rc: i32 = _tx_msg.init ();
     errno_assert (rc == 0);
 
     //  Put the socket into non-blocking mode.
@@ -309,7 +309,7 @@ zmq::stream_engine_base_t::~stream_engine_base_t ()
 
     if (_s != retired_fd) {
 // #ifdef ZMQ_HAVE_WINDOWS
-        const int rc = closesocket (_s);
+        let rc: i32 = closesocket (_s);
         wsa_assert (rc != SOCKET_ERROR);
 // #else
         int rc = close (_s);
@@ -324,7 +324,7 @@ zmq::stream_engine_base_t::~stream_engine_base_t ()
         _s = retired_fd;
     }
 
-    const int rc = _tx_msg.close ();
+    let rc: i32 = _tx_msg.close ();
     errno_assert (rc == 0);
 
     //  Drop reference to metadata and destroy it if we are
@@ -450,7 +450,7 @@ bool zmq::stream_engine_base_t::in_event_internal ()
         size_t bufsize = 0;
         _decoder->get_buffer (&_inpos, &bufsize);
 
-        const int rc = read (_inpos, bufsize);
+        let rc: i32 = read (_inpos, bufsize);
 
         if (rc == -1) {
             if (errno != EAGAIN) {
@@ -545,7 +545,7 @@ void zmq::stream_engine_base_t::out_event ()
     //  arbitrarily large. However, we assume that underlying TCP layer has
     //  limited transmission buffer and thus the actual number of bytes
     //  written should be reasonably modest.
-    const int nbytes = write (_outpos, _outsize);
+    let nbytes: i32 = write (_outpos, _outsize);
 
     //  IO error has occurred. We stop waiting for output events.
     //  The engine is not terminated until we detect input error;
@@ -635,30 +635,30 @@ bool zmq::stream_engine_base_t::restart_input ()
     return true;
 }
 
-int zmq::stream_engine_base_t::next_handshake_command (msg_t *msg_)
+int zmq::stream_engine_base_t::next_handshake_command (ZmqMessage *msg)
 {
     zmq_assert (_mechanism != NULL);
 
     if (_mechanism->status () == mechanism_t::ready) {
         mechanism_ready ();
-        return pull_and_encode (msg_);
+        return pull_and_encode (msg);
     }
     if (_mechanism->status () == mechanism_t::error) {
         errno = EPROTO;
         return -1;
     }
-    const int rc = _mechanism->next_handshake_command (msg_);
+    let rc: i32 = _mechanism->next_handshake_command (msg);
 
     if (rc == 0)
-        msg_->set_flags (msg_t::command);
+        msg->set_flags (ZmqMessage::command);
 
     return rc;
 }
 
-int zmq::stream_engine_base_t::process_handshake_command (msg_t *msg_)
+int zmq::stream_engine_base_t::process_handshake_command (ZmqMessage *msg)
 {
     zmq_assert (_mechanism != NULL);
-    const int rc = _mechanism->process_handshake_command (msg_);
+    let rc: i32 = _mechanism->process_handshake_command (msg);
     if (rc == 0) {
         if (_mechanism->status () == mechanism_t::ready)
             mechanism_ready ();
@@ -677,7 +677,7 @@ void zmq::stream_engine_base_t::zap_msg_available ()
 {
     zmq_assert (_mechanism != NULL);
 
-    const int rc = _mechanism->zap_msg_available ();
+    let rc: i32 = _mechanism->zap_msg_available ();
     if (rc == -1) {
         error (protocol_error);
         return;
@@ -707,9 +707,9 @@ void zmq::stream_engine_base_t::mechanism_ready ()
     bool flush_session = false;
 
     if (_options.recv_routing_id) {
-        msg_t routing_id;
+        ZmqMessage routing_id;
         _mechanism->peer_routing_id (&routing_id);
-        const int rc = _session->push_msg (&routing_id);
+        let rc: i32 = _session->push_msg (&routing_id);
         if (rc == -1 && errno == EAGAIN) {
             // If the write is failing at this stage with
             // an EAGAIN the pipe must be being shut down,
@@ -721,9 +721,9 @@ void zmq::stream_engine_base_t::mechanism_ready ()
     }
 
     if (_options.router_notify & ZMQ_NOTIFY_CONNECT) {
-        msg_t connect_notification;
+        ZmqMessage connect_notification;
         connect_notification.init ();
-        const int rc = _session->push_msg (&connect_notification);
+        let rc: i32 = _session->push_msg (&connect_notification);
         if (rc == -1 && errno == EAGAIN) {
             // If the write is failing at this stage with
             // an EAGAIN the pipe must be being shut down,
@@ -766,18 +766,18 @@ void zmq::stream_engine_base_t::mechanism_ready ()
     _socket->event_handshake_succeeded (_endpoint_uri_pair, 0);
 }
 
-int zmq::stream_engine_base_t::write_credential (msg_t *msg_)
+int zmq::stream_engine_base_t::write_credential (ZmqMessage *msg)
 {
     zmq_assert (_mechanism != NULL);
     zmq_assert (_session != NULL);
 
     const Blob &credential = _mechanism->get_user_id ();
     if (credential.size () > 0) {
-        msg_t msg;
+        ZmqMessage msg;
         int rc = msg.init_size (credential.size ());
         zmq_assert (rc == 0);
         memcpy (msg.data (), credential.data (), credential.size ());
-        msg.set_flags (msg_t::credential);
+        msg.set_flags (ZmqMessage::credential);
         rc = _session->push_msg (&msg);
         if (rc == -1) {
             rc = msg.close ();
@@ -786,25 +786,25 @@ int zmq::stream_engine_base_t::write_credential (msg_t *msg_)
         }
     }
     _process_msg = &stream_engine_base_t::decode_and_push;
-    return decode_and_push (msg_);
+    return decode_and_push (msg);
 }
 
-int zmq::stream_engine_base_t::pull_and_encode (msg_t *msg_)
+int zmq::stream_engine_base_t::pull_and_encode (ZmqMessage *msg)
 {
     zmq_assert (_mechanism != NULL);
 
-    if (_session->pull_msg (msg_) == -1)
+    if (_session->pull_msg (msg) == -1)
         return -1;
-    if (_mechanism->encode (msg_) == -1)
+    if (_mechanism->encode (msg) == -1)
         return -1;
     return 0;
 }
 
-int zmq::stream_engine_base_t::decode_and_push (msg_t *msg_)
+int zmq::stream_engine_base_t::decode_and_push (ZmqMessage *msg)
 {
     zmq_assert (_mechanism != NULL);
 
-    if (_mechanism->decode (msg_) == -1)
+    if (_mechanism->decode (msg) == -1)
         return -1;
 
     if (_has_timeout_timer) {
@@ -817,13 +817,13 @@ int zmq::stream_engine_base_t::decode_and_push (msg_t *msg_)
         cancel_timer (heartbeat_ttl_timer_id);
     }
 
-    if (msg_->flags () & msg_t::command) {
-        process_command_message (msg_);
+    if (msg->flags () & ZmqMessage::command) {
+        process_command_message (msg);
     }
 
     if (_metadata)
-        msg_->set_metadata (_metadata);
-    if (_session->push_msg (msg_) == -1) {
+        msg->set_metadata (_metadata);
+    if (_session->push_msg (msg) == -1) {
         if (errno == EAGAIN)
             _process_msg = &stream_engine_base_t::push_one_then_decode_and_push;
         return -1;
@@ -831,22 +831,22 @@ int zmq::stream_engine_base_t::decode_and_push (msg_t *msg_)
     return 0;
 }
 
-int zmq::stream_engine_base_t::push_one_then_decode_and_push (msg_t *msg_)
+int zmq::stream_engine_base_t::push_one_then_decode_and_push (ZmqMessage *msg)
 {
-    const int rc = _session->push_msg (msg_);
+    let rc: i32 = _session->push_msg (msg);
     if (rc == 0)
         _process_msg = &stream_engine_base_t::decode_and_push;
     return rc;
 }
 
-int zmq::stream_engine_base_t::pull_msg_from_session (msg_t *msg_)
+int zmq::stream_engine_base_t::pull_msg_from_session (ZmqMessage *msg)
 {
-    return _session->pull_msg (msg_);
+    return _session->pull_msg (msg);
 }
 
-int zmq::stream_engine_base_t::push_msg_to_session (msg_t *msg_)
+int zmq::stream_engine_base_t::push_ZmqMessageo_session (ZmqMessage *msg)
 {
-    return _session->push_msg (msg_);
+    return _session->push_msg (msg);
 }
 
 void zmq::stream_engine_base_t::error (error_reason_t reason_)
@@ -859,7 +859,7 @@ void zmq::stream_engine_base_t::error (error_reason_t reason_)
         // notification message.
         _session->rollback ();
 
-        msg_t disconnect_notification;
+        ZmqMessage disconnect_notification;
         disconnect_notification.init ();
         _session->push_msg (&disconnect_notification);
     }
@@ -868,7 +868,7 @@ void zmq::stream_engine_base_t::error (error_reason_t reason_)
     if (reason_ != protocol_error
         && (_mechanism == NULL
             || _mechanism->status () == mechanism_t::handshaking)) {
-        const int err = errno;
+        let err: i32 = errno;
         _socket->event_handshake_failed_no_detail (_endpoint_uri_pair, err);
         // special case: connecting to non-ZMTP process which immediately drops connection,
         // or which never responds with greeting, should be treated as a protocol error
@@ -938,9 +938,9 @@ void zmq::stream_engine_base_t::timer_event (id_: i32)
         assert (false);
 }
 
-int zmq::stream_engine_base_t::read (data_: *mut c_void, size_: usize)
+int zmq::stream_engine_base_t::read (data: *mut c_void, size: usize)
 {
-    const int rc = zmq::tcp_read (_s, data_, size_);
+    let rc: i32 = zmq::tcp_read (_s, data, size);
 
     if (rc == 0) {
         // connection closed by peer
@@ -951,7 +951,7 @@ int zmq::stream_engine_base_t::read (data_: *mut c_void, size_: usize)
     return rc;
 }
 
-int zmq::stream_engine_base_t::write (const data_: *mut c_void, size_: usize)
+int zmq::stream_engine_base_t::write (const data: *mut c_void, size: usize)
 {
-    return zmq::tcp_write (_s, data_, size_);
+    return zmq::tcp_write (_s, data, size);
 }

@@ -124,7 +124,7 @@ void test_short_message ()
     void *sc = test_context_socket (ZMQ_REQ);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc, connect_address));
 
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 255));
 
     for (unsigned char i = 0; i < 255; ++i)
@@ -157,7 +157,7 @@ void test_large_message ()
     void *sc = test_context_socket (ZMQ_REQ);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc, connect_address));
 
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 65536));
 
     for (int i = 0; i < 65536; ++i)
@@ -231,7 +231,7 @@ void test_mask_shared_msg ()
     void *sc = test_context_socket (ZMQ_DEALER);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc, connect_address));
 
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     zmq_msg_init_size (
       &msg, 255); // Message have to be long enough so it won't fit inside msg
     unsigned char *data = (unsigned char *) zmq_msg_data (&msg);
@@ -239,7 +239,7 @@ void test_mask_shared_msg ()
         data[i] = i;
 
     //  Taking a copy to make the msg shared
-    zmq_msg_t copy;
+    zmq_ZmqMessage copy;
     zmq_msg_init (&copy);
     zmq_msg_copy (&copy, &msg);
 

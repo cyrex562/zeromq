@@ -11,7 +11,7 @@ SYNOPSIS
 --------
 *typedef void (zmq_free_fn) (void '*data', void '*hint');*
 
-*int zmq_msg_init_data (zmq_msg_t '*msg', void '*data', size_t 'size', zmq_free_fn '*ffn', void '*hint');*
+*int zmq_msg_init_data (zmq_ZmqMessage '*msg', void '*data', size_t 'size', zmq_free_fn '*ffn', void '*hint');*
 
 
 DESCRIPTION
@@ -25,7 +25,7 @@ If provided, the deallocation function 'ffn' shall be called once the data
 buffer is no longer required by 0MQ, with the 'data' and 'hint' arguments
 supplied to _zmq_msg_init_data()_.
 
-CAUTION: Never access 'zmq_msg_t' members directly, instead always use the
+CAUTION: Never access 'zmq_ZmqMessage' members directly, instead always use the
 _zmq_msg_ family of functions.
 
 CAUTION: The deallocation function 'ffn' needs to be thread-safe, since it
@@ -37,7 +37,7 @@ will not be freed, and this may cause a memory leak.
 
 CAUTION: The functions _zmq_msg_init()_, _zmq_msg_init_data()_,
 _zmq_msg_init_size()_ and _zmq_msg_init_buffer()_ are mutually exclusive.
-Never initialise the same 'zmq_msg_t' twice.
+Never initialise the same 'zmq_ZmqMessage' twice.
 
 
 RETURN VALUE
@@ -67,7 +67,7 @@ void my_free (void *data, hint: *mut c_void)
 void *data = malloc (6);
 assert (data);
 memcpy (data, "ABCDEF", 6);
-zmq_msg_t msg;
+zmq_ZmqMessage msg;
 rc = zmq_msg_init_data (&msg, data, 6, my_free, NULL);
 assert (rc == 0);
 ----

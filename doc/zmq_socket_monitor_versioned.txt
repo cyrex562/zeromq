@@ -247,7 +247,7 @@ static uint64_t
 get_monitor_event (void *monitor, uint64_t **value, char **local_address, char **remote_address)
 {
     //  First frame in message contains event number
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     zmq_msg_init (&msg);
     if (zmq_msg_recv (&msg, monitor, 0) == -1)
         return -1;              //  Interrupted, presumably

@@ -101,7 +101,7 @@ typedef struct
 
 
 int test_assert_success_message_errno_helper (rc_: i32,
-                                              msg_: *const c_char,
+                                              msg: *const c_char,
                                               expr_: *const c_char)
 {
     if (rc_ == -1) {
@@ -109,8 +109,8 @@ int test_assert_success_message_errno_helper (rc_: i32,
         buffer[mem::size_of::<buffer>() - 1] =
           0; //  to ensure defined behavior with VC++ <= 2013
         printf ("%s failed%s%s%s, errno = %i (%s)", expr_,
-                msg_ ? " (additional info: " : "", msg_ ? msg_ : "",
-                msg_ ? ")" : "", zmq_errno (), zmq_strerror (zmq_errno ()));
+                msg ? " (additional info: " : "", msg ? msg : "",
+                msg ? ")" : "", zmq_errno (), zmq_strerror (zmq_errno ()));
         exit (1);
     }
     return rc_;
@@ -130,7 +130,7 @@ static void set_hwm (skt: *mut c_void)
 static void publisher_thread_main (pvoid: *mut c_void)
 {
     const proxy_hwm_cfg_t *cfg = (proxy_hwm_cfg_t *) pvoid;
-    const int idx = cfg->thread_idx;
+    let idx: i32 = cfg->thread_idx;
     optval: i32;
     rc: i32;
 
@@ -165,14 +165,14 @@ static void publisher_thread_main (pvoid: *mut c_void)
         exit (1);
     }
 
-    zmq_msg_t msg_orig;
+    zmq_ZmqMessage msg_orig;
     rc = zmq_msg_init_size (&msg_orig, message_size);
     assert (rc == 0);
     memset (zmq_msg_data (&msg_orig), 'A', zmq_msg_size (&msg_orig));
 
     u64 send_count = 0;
     while (send_count < message_count) {
-        zmq_msg_t msg;
+        zmq_ZmqMessage msg;
         zmq_msg_init (&msg);
         rc = zmq_msg_copy (&msg, &msg_orig);
         assert (rc == 0);
@@ -193,7 +193,7 @@ static void publisher_thread_main (pvoid: *mut c_void)
 static void subscriber_thread_main (pvoid: *mut c_void)
 {
     const proxy_hwm_cfg_t *cfg = (proxy_hwm_cfg_t *) pvoid;
-    const int idx = cfg->thread_idx;
+    let idx: i32 = cfg->thread_idx;
 
     void *subsocket = zmq_socket (cfg->context, ZMQ_SUB);
     assert (subsocket);
@@ -209,7 +209,7 @@ static void subscriber_thread_main (pvoid: *mut c_void)
     u64 rxsuccess = 0;
     bool success = true;
     while (success) {
-        zmq_msg_t msg;
+        zmq_ZmqMessage msg;
         int rc = zmq_msg_init (&msg);
         assert (rc == 0);
 

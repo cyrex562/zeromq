@@ -44,7 +44,7 @@ pub struct v1_decoder_t ZMQ_FINAL : public decoder_base_t<v1_decoder_t>
     v1_decoder_t (bufsize_: usize, i64 maxmsgsize_);
     ~v1_decoder_t ();
 
-    msg_t *msg () { return &_in_progress; }
+    ZmqMessage *msg () { return &_in_progress; }
 
   // private:
     int one_byte_size_ready (unsigned char const *);
@@ -53,7 +53,7 @@ pub struct v1_decoder_t ZMQ_FINAL : public decoder_base_t<v1_decoder_t>
     int message_ready (unsigned char const *);
 
     unsigned char _tmpbuf[8];
-    msg_t _in_progress;
+    ZmqMessage _in_progress;
 
     const i64 _max_msg_size;
 
@@ -72,7 +72,7 @@ zmq::v1_decoder_t::v1_decoder_t (bufsize_: usize, i64 maxmsgsize_) :
 
 zmq::v1_decoder_t::~v1_decoder_t ()
 {
-    const int rc = _in_progress.close ();
+    let rc: i32 = _in_progress.close ();
     errno_assert (rc == 0);
 }
 
@@ -159,7 +159,7 @@ int zmq::v1_decoder_t::eight_byte_size_ready (unsigned char const *)
 int zmq::v1_decoder_t::flags_ready (unsigned char const *)
 {
     //  Store the flags from the wire into the message structure.
-    _in_progress.set_flags (_tmpbuf[0] & msg_t::more);
+    _in_progress.set_flags (_tmpbuf[0] & ZmqMessage::more);
 
     next_step (_in_progress.data (), _in_progress.size (),
                &v1_decoder_t::message_ready);

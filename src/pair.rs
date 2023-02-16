@@ -43,8 +43,8 @@ pub struct pair_t ZMQ_FINAL : public ZmqSocketBase
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
-    int xsend (zmq::msg_t *msg_);
-    int xrecv (zmq::msg_t *msg_);
+    int xsend (ZmqMessage *msg);
+    int xrecv (ZmqMessage *msg);
     bool xhas_in ();
     bool xhas_out ();
     void xread_activated (zmq::pipe_t *pipe_);
@@ -104,32 +104,32 @@ void zmq::pair_t::xwrite_activated (pipe_t *)
     //  There's nothing to do here.
 }
 
-int zmq::pair_t::xsend (msg_t *msg_)
+int zmq::pair_t::xsend (ZmqMessage *msg)
 {
-    if (!_pipe || !_pipe->write (msg_)) {
+    if (!_pipe || !_pipe->write (msg)) {
         errno = EAGAIN;
         return -1;
     }
 
-    if (!(msg_->flags () & msg_t::more))
+    if (!(msg->flags () & ZmqMessage::more))
         _pipe->flush ();
 
     //  Detach the original message from the data buffer.
-    const int rc = msg_->init ();
+    let rc: i32 = msg->init ();
     errno_assert (rc == 0);
 
     return 0;
 }
 
-int zmq::pair_t::xrecv (msg_t *msg_)
+int zmq::pair_t::xrecv (ZmqMessage *msg)
 {
     //  Deallocate old content of the message.
-    int rc = msg_->close ();
+    int rc = msg->close ();
     errno_assert (rc == 0);
 
-    if (!_pipe || !_pipe->read (msg_)) {
+    if (!_pipe || !_pipe->read (msg)) {
         //  Initialise the output parameter to be a 0-byte message.
-        rc = msg_->init ();
+        rc = msg->init ();
         errno_assert (rc == 0);
 
         errno = EAGAIN;

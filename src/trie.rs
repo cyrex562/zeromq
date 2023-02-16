@@ -44,25 +44,25 @@ pub struct trie_t
 
     //  Add key to the trie. Returns true if this is a new item in the trie
     //  rather than a duplicate.
-    bool add (unsigned char *prefix_, size_: usize);
+    bool add (unsigned char *prefix_, size: usize);
 
     //  Remove key from the trie. Returns true if the item is actually
     //  removed from the trie.
-    bool rm (unsigned char *prefix_, size_: usize);
+    bool rm (unsigned char *prefix_, size: usize);
 
     //  Check whether particular key is in the trie.
-    bool check (const unsigned char *data_, size_: usize) const;
+    bool check (const unsigned char *data, size: usize) const;
 
     //  Apply the function supplied to each subscription in the trie.
-    void apply (void (*func_) (unsigned char *data_, size_: usize, arg_: *mut c_void),
+    void apply (void (*func_) (unsigned char *data, size: usize, arg_: *mut c_void),
                 arg_: *mut c_void);
 
   // private:
     void apply_helper (unsigned char **buff_,
                        buffsize_: usize,
                        maxbuffsize_: usize,
-                       void (*func_) (unsigned char *data_,
-                                      size_: usize,
+                       void (*func_) (unsigned char *data,
+                                      size: usize,
                                       arg_: *mut c_void),
                        arg_: *mut c_void) const;
     bool is_redundant () const;
@@ -88,30 +88,30 @@ pub struct trie_with_size_t
     trie_with_size_t () {}
     ~trie_with_size_t () {}
 
-    bool add (unsigned char *prefix_, size_: usize)
+    bool add (unsigned char *prefix_, size: usize)
     {
-        if (_trie.add (prefix_, size_)) {
+        if (_trie.add (prefix_, size)) {
             _num_prefixes.add (1);
             return true;
         } else
             return false;
     }
 
-    bool rm (unsigned char *prefix_, size_: usize)
+    bool rm (unsigned char *prefix_, size: usize)
     {
-        if (_trie.rm (prefix_, size_)) {
+        if (_trie.rm (prefix_, size)) {
             _num_prefixes.sub (1);
             return true;
         } else
             return false;
     }
 
-    bool check (const unsigned char *data_, size_: usize) const
+    bool check (const unsigned char *data, size: usize) const
     {
-        return _trie.check (data_, size_);
+        return _trie.check (data, size);
     }
 
-    void apply (void (*func_) (unsigned char *data_, size_: usize, arg_: *mut c_void),
+    void apply (void (*func_) (unsigned char *data, size: usize, arg_: *mut c_void),
                 arg_: *mut c_void)
     {
         _trie.apply (func_, arg_);
@@ -143,10 +143,10 @@ zmq::trie_t::~trie_t ()
     }
 }
 
-bool zmq::trie_t::add (unsigned char *prefix_, size_: usize)
+bool zmq::trie_t::add (unsigned char *prefix_, size: usize)
 {
     //  We are at the node corresponding to the prefix. We are done.
-    if (!size_) {
+    if (!size) {
         ++_refcnt;
         return _refcnt == 1;
     }
@@ -202,7 +202,7 @@ bool zmq::trie_t::add (unsigned char *prefix_, size_: usize)
             ++_live_nodes;
             zmq_assert (_live_nodes == 1);
         }
-        return _next.node->add (prefix_ + 1, size_ - 1);
+        return _next.node->add (prefix_ + 1, size - 1);
     }
     if (!_next.table[c - _min]) {
         _next.table[c - _min] = new (std::nothrow) trie_t;
@@ -210,13 +210,13 @@ bool zmq::trie_t::add (unsigned char *prefix_, size_: usize)
         ++_live_nodes;
         zmq_assert (_live_nodes > 1);
     }
-    return _next.table[c - _min]->add (prefix_ + 1, size_ - 1);
+    return _next.table[c - _min]->add (prefix_ + 1, size - 1);
 }
 
-bool zmq::trie_t::rm (unsigned char *prefix_, size_: usize)
+bool zmq::trie_t::rm (unsigned char *prefix_, size: usize)
 {
     //  TODO: Shouldn't an error be reported if the key does not exist?
-    if (!size_) {
+    if (!size) {
         if (!_refcnt)
             return false;
         _refcnt--;
@@ -231,7 +231,7 @@ bool zmq::trie_t::rm (unsigned char *prefix_, size_: usize)
     if (!next_node)
         return false;
 
-    const bool ret = next_node->rm (prefix_ + 1, size_ - 1);
+    const bool ret = next_node->rm (prefix_ + 1, size - 1);
 
     //  Prune redundant nodes
     if (next_node->is_redundant ()) {
@@ -325,7 +325,7 @@ bool zmq::trie_t::rm (unsigned char *prefix_, size_: usize)
     return ret;
 }
 
-bool zmq::trie_t::check (const unsigned char *data_, size_: usize) const
+bool zmq::trie_t::check (const unsigned char *data, size: usize) const
 {
     //  This function is on critical path. It deliberately doesn't use
     //  recursion to get a bit better performance.
@@ -336,12 +336,12 @@ bool zmq::trie_t::check (const unsigned char *data_, size_: usize) const
             return true;
 
         //  We've checked all the data and haven't found matching subscription.
-        if (!size_)
+        if (!size)
             return false;
 
         //  If there's no corresponding slot for the first character
         //  of the prefix, the message does not match.
-        const unsigned char c = *data_;
+        const unsigned char c = *data;
         if (c < current->_min || c >= current->_min + current->_count)
             return false;
 
@@ -353,13 +353,13 @@ bool zmq::trie_t::check (const unsigned char *data_, size_: usize) const
             if (!current)
                 return false;
         }
-        data_++;
-        size_--;
+        data++;
+        size--;
     }
 }
 
 void zmq::trie_t::apply (
-  void (*func_) (unsigned char *data_, size_: usize, arg_: *mut c_void), arg_: *mut c_void)
+  void (*func_) (unsigned char *data, size: usize, arg_: *mut c_void), arg_: *mut c_void)
 {
     unsigned char *buff = NULL;
     apply_helper (&buff, 0, 0, func_, arg_);
@@ -369,8 +369,8 @@ void zmq::trie_t::apply (
 void zmq::trie_t::apply_helper (unsigned char **buff_,
                                 buffsize_: usize,
                                 maxbuffsize_: usize,
-                                void (*func_) (unsigned char *data_,
-                                               size_: usize,
+                                void (*func_) (unsigned char *data,
+                                               size: usize,
                                                arg_: *mut c_void),
                                 arg_: *mut c_void) const
 {

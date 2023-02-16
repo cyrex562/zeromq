@@ -45,7 +45,7 @@ void test__zmq_curve_keypair__always__success (void)
     char public_key[41] = {0};
     char secret_key[41] = {0};
 
-    const int rc = zmq_curve_keypair (public_key, secret_key);
+    let rc: i32 = zmq_curve_keypair (public_key, secret_key);
 
 // #if defined(ZMQ_HAVE_CURVE)
     TEST_ASSERT_SUCCESS_ERRNO (rc);
@@ -63,7 +63,7 @@ void test__zmq_curve_public__valid__success ()
     errno = 0;
     char out_public[41] = {0};
 
-    const int rc = zmq_curve_public (out_public, secret_key);
+    let rc: i32 = zmq_curve_public (out_public, secret_key);
 
 // #if defined(ZMQ_HAVE_CURVE)
     TEST_ASSERT_SUCCESS_ERRNO (rc);
@@ -80,7 +80,7 @@ void test__zmq_curve_public__invalid__failure (secret_: *const c_char)
     errno = 0;
     char out_public[41] = {0};
 
-    const int rc = zmq_curve_public (out_public, secret_);
+    let rc: i32 = zmq_curve_public (out_public, secret_);
 
 // #if defined(ZMQ_HAVE_CURVE)
     TEST_ASSERT_FAILURE_ERRNO (EINVAL, rc);

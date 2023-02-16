@@ -48,8 +48,8 @@ pub struct server_t : public ZmqSocketBase
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
-    int xsend (zmq::msg_t *msg_);
-    int xrecv (zmq::msg_t *msg_);
+    int xsend (ZmqMessage *msg);
+    int xrecv (ZmqMessage *msg);
     bool xhas_in ();
     bool xhas_out ();
     void xread_activated (zmq::pipe_t *pipe_);
@@ -141,15 +141,15 @@ void zmq::server_t::xwrite_activated (pipe_t *pipe_)
     it->second.active = true;
 }
 
-int zmq::server_t::xsend (msg_t *msg_)
+int zmq::server_t::xsend (ZmqMessage *msg)
 {
     //  SERVER sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg_->flags () & msg_t::more) {
+    if (msg->flags () & ZmqMessage::more) {
         errno = EINVAL;
         return -1;
     }
     //  Find the pipe associated with the routing stored in the message.
-    const uint32_t routing_id = msg_->get_routing_id ();
+    const uint32_t routing_id = msg->get_routing_id ();
     out_pipes_t::iterator it = _out_pipes.find (routing_id);
 
     if (it != _out_pipes.end ()) {
@@ -164,40 +164,40 @@ int zmq::server_t::xsend (msg_t *msg_)
     }
 
     //  Message might be delivered over inproc, so we reset routing id
-    int rc = msg_->reset_routing_id ();
+    int rc = msg->reset_routing_id ();
     errno_assert (rc == 0);
 
-    const bool ok = it->second.pipe->write (msg_);
+    const bool ok = it->second.pipe->write (msg);
     if (unlikely (!ok)) {
         // Message failed to send - we must close it ourselves.
-        rc = msg_->close ();
+        rc = msg->close ();
         errno_assert (rc == 0);
     } else
         it->second.pipe->flush ();
 
     //  Detach the message from the data buffer.
-    rc = msg_->init ();
+    rc = msg->init ();
     errno_assert (rc == 0);
 
     return 0;
 }
 
-int zmq::server_t::xrecv (msg_t *msg_)
+int zmq::server_t::xrecv (ZmqMessage *msg)
 {
     pipe_t *pipe = NULL;
-    int rc = _fq.recvpipe (msg_, &pipe);
+    int rc = _fq.recvpipe (msg, &pipe);
 
     // Drop any messages with more flag
-    while (rc == 0 && msg_->flags () & msg_t::more) {
+    while (rc == 0 && msg->flags () & ZmqMessage::more) {
         // drop all frames of the current multi-frame message
-        rc = _fq.recvpipe (msg_, NULL);
+        rc = _fq.recvpipe (msg, NULL);
 
-        while (rc == 0 && msg_->flags () & msg_t::more)
-            rc = _fq.recvpipe (msg_, NULL);
+        while (rc == 0 && msg->flags () & ZmqMessage::more)
+            rc = _fq.recvpipe (msg, NULL);
 
         // get the new message
         if (rc == 0)
-            rc = _fq.recvpipe (msg_, &pipe);
+            rc = _fq.recvpipe (msg, &pipe);
     }
 
     if (rc != 0)
@@ -206,7 +206,7 @@ int zmq::server_t::xrecv (msg_t *msg_)
     zmq_assert (pipe != NULL);
 
     const uint32_t routing_id = pipe->get_server_socket_routing_id ();
-    msg_->set_routing_id (routing_id);
+    msg->set_routing_id (routing_id);
 
     return 0;
 }

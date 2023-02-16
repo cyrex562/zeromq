@@ -96,15 +96,15 @@ typedef struct
 // Utility functions
 
 static int
-capture (class capture_: *mut ZmqSocketBase, zmq::msg_t *msg_, int more_ = 0)
+capture (class capture_: *mut ZmqSocketBase, msg: &mut ZmqMessage int more_ = 0)
 {
     //  Copy message to capture socket if any
     if (capture_) {
-        zmq::msg_t ctrl;
+        ZmqMessage ctrl;
         int rc = ctrl.init ();
         if (unlikely (rc < 0))
             return -1;
-        rc = ctrl.copy (*msg_);
+        rc = ctrl.copy (*msg);
         if (unlikely (rc < 0))
             return -1;
         rc = capture_->send (&ctrl, more_ ? ZMQ_SNDMORE : 0);
@@ -119,7 +119,7 @@ static int forward (class from_: *mut ZmqSocketBase,
 pub struct to_: *mut ZmqSocketBase,
                     zmq_socket_stats_t *to_stats_,
 pub struct capture_: *mut ZmqSocketBase,
-                    zmq::msg_t *msg_)
+                    ZmqMessage *msg)
 {
     // Forward a burst of messages
     for (unsigned int i = 0; i < zmq::proxy_burst_size; i++) {
@@ -129,7 +129,7 @@ pub struct capture_: *mut ZmqSocketBase,
 
         // Forward all the parts of one message
         while (true) {
-            int rc = from_->recv (msg_, ZMQ_DONTWAIT);
+            int rc = from_->recv (msg, ZMQ_DONTWAIT);
             if (rc < 0) {
                 if (likely (errno == EAGAIN && i > 0))
                     return 0; // End of burst
@@ -137,7 +137,7 @@ pub struct capture_: *mut ZmqSocketBase,
                 return -1;
             }
 
-            complete_msg_size += msg_->size ();
+            complete_msg_size += msg->size ();
 
             moresz = sizeof more;
             rc = from_->getsockopt (ZMQ_RCVMORE, &more, &moresz);
@@ -145,11 +145,11 @@ pub struct capture_: *mut ZmqSocketBase,
                 return -1;
 
             //  Copy message to capture socket if any
-            rc = capture (capture_, msg_, more);
+            rc = capture (capture_, msg, more);
             if (unlikely (rc < 0))
                 return -1;
 
-            rc = to_->send (msg_, more ? ZMQ_SNDMORE : 0);
+            rc = to_->send (msg, more ? ZMQ_SNDMORE : 0);
             if (unlikely (rc < 0))
                 return -1;
 
@@ -173,7 +173,7 @@ static int loop_and_send_multipart_stat (control_: *mut ZmqSocketBase,
                                          bool more_)
 {
     rc: i32;
-    zmq::msg_t msg;
+    ZmqMessage msg;
 
     //  VSM of 8 bytes can't fail to init
     msg.init_size (mem::size_of::<u64>());
@@ -227,7 +227,7 @@ pub struct ZmqSocketBase *backend_,
 pub struct ZmqSocketBase *capture_,
 pub struct ZmqSocketBase *control_)
 {
-    msg_t msg;
+    ZmqMessage msg;
     int rc = msg.init ();
     if (rc != 0)
         return -1;
@@ -544,7 +544,7 @@ pub struct ZmqSocketBase *backend_,
 pub struct ZmqSocketBase *capture_,
 pub struct ZmqSocketBase *control_)
 {
-    msg_t msg;
+    ZmqMessage msg;
     int rc = msg.init ();
     if (rc != 0)
         return -1;

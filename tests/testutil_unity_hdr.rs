@@ -39,20 +39,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // tests. They must be declared in the header since they are used by macros.
 
 int test_assert_success_message_errno_helper (rc_: i32,
-                                              msg_: *const c_char,
+                                              msg: *const c_char,
                                               expr_: *const c_char,
                                               line: i32);
 
 int test_assert_success_message_raw_errno_helper (
-  rc_: i32, msg_: *const c_char, expr_: *const c_char, line: i32, bool zero_ = false);
+  rc_: i32, msg: *const c_char, expr_: *const c_char, line: i32, bool zero_ = false);
 
 int test_assert_success_message_raw_zero_errno_helper (rc_: i32,
-                                                       msg_: *const c_char,
+                                                       msg: *const c_char,
                                                        expr_: *const c_char,
                                                        line: i32);
 
 int test_assert_failure_message_raw_errno_helper (
-  rc_: i32, expected_errno_: i32, msg_: *const c_char, expr_: *const c_char, line: i32);
+  rc_: i32, expected_errno_: i32, msg: *const c_char, expr_: *const c_char, line: i32);
 
 /////////////////////////////////////////////////////////////////////////////
 // Macros extending Unity's TEST_ASSERT_* macros in a similar fashion.
@@ -160,7 +160,7 @@ void send_array_expect_success (socket_: *mut c_void,
                                 const uint8_t (&array_)[SIZE],
                                 flags_: i32)
 {
-    const int rc = zmq_send (socket_, array_, SIZE, flags_);
+    let rc: i32 = zmq_send (socket_, array_, SIZE, flags_);
     TEST_ASSERT_EQUAL_INT (static_cast<int> (SIZE), rc);
 }
 
@@ -182,7 +182,7 @@ void recv_array_expect_success (socket_: *mut c_void,
                                        "used for strings longer than 255 "
                                        "characters");
 
-    const int rc = TEST_ASSERT_SUCCESS_ERRNO (
+    let rc: i32 = TEST_ASSERT_SUCCESS_ERRNO (
       zmq_recv (socket_, buffer, mem::size_of::<buffer>(), flags_));
     TEST_ASSERT_EQUAL_INT (static_cast<int> (SIZE), rc);
     TEST_ASSERT_EQUAL_UINT8_ARRAY (array_, buffer, SIZE);

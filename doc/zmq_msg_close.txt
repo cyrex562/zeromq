@@ -9,7 +9,7 @@ zmq_msg_close - release 0MQ message
 
 SYNOPSIS
 --------
-*int zmq_msg_close (zmq_msg_t '*msg');*
+*int zmq_msg_close (zmq_ZmqMessage '*msg');*
 
 
 DESCRIPTION
@@ -24,7 +24,7 @@ Applications should ensure that _zmq_msg_close()_ is called once a message is
 no longer required, otherwise memory leaks may occur. Note that this is NOT
 necessary after a successful _zmq_msg_send()_.
 
-CAUTION: Never access 'zmq_msg_t' members directly, instead always use the
+CAUTION: Never access 'zmq_ZmqMessage' members directly, instead always use the
 _zmq_msg_ family of functions.
 
 

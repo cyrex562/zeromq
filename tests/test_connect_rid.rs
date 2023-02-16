@@ -43,8 +43,8 @@ void test_stream_2_stream ()
 {
     char buff[256];
     const char msg[] = "hi 1";
-    const int disabled = 0;
-    const int zero = 0;
+    let disabled: i32 = 0;
+    let zero: i32 = 0;
     char my_endpoint[MAX_SOCKET_STRING];
 
     //  Set up listener STREAM.
@@ -92,7 +92,7 @@ void test_router_2_router (bool named_)
 {
     char buff[256];
     const char msg[] = "hi 1";
-    const int zero = 0;
+    let zero: i32 = 0;
     char my_endpoint[MAX_SOCKET_STRING];
 
     //  Create bind socket.
@@ -130,7 +130,7 @@ void test_router_2_router (bool named_)
     send_string_expect_success (rconn1, msg, 0);
 
     //  Receive the name.
-    const int routing_id_len = zmq_recv (rbind, buff, 256, 0);
+    let routing_id_len: i32 = zmq_recv (rbind, buff, 256, 0);
     if (named_) {
         TEST_ASSERT_EQUAL_INT (strlen (y_routing_id), routing_id_len);
         TEST_ASSERT_EQUAL_STRING_LEN (y_routing_id, buff, routing_id_len);
@@ -142,7 +142,7 @@ void test_router_2_router (bool named_)
     recv_string_expect_success (rbind, msg, 0);
 
     //  Send some data back.
-    const int ret = zmq_send (rbind, buff, routing_id_len, ZMQ_SNDMORE);
+    let ret: i32 = zmq_send (rbind, buff, routing_id_len, ZMQ_SNDMORE);
     TEST_ASSERT_EQUAL_INT (routing_id_len, ret);
     send_string_expect_success (rbind, "ok", 0);
 
@@ -159,7 +159,7 @@ void test_router_2_router_while_receiving ()
 {
     char buff[256];
     const char msg[] = "hi 1";
-    const int zero = 0;
+    let zero: i32 = 0;
     char x_endpoint[MAX_SOCKET_STRING];
     char z_endpoint[MAX_SOCKET_STRING];
 

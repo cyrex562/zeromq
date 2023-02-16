@@ -9,7 +9,7 @@ zmq_msg_data - retrieve pointer to message content
 
 SYNOPSIS
 --------
-*void *zmq_msg_data (zmq_msg_t '*msg');*
+*void *zmq_msg_data (zmq_ZmqMessage '*msg');*
 
 
 DESCRIPTION
@@ -17,7 +17,7 @@ DESCRIPTION
 The _zmq_msg_data()_ function shall return a pointer to the message content of
 the message object referenced by 'msg'.
 
-CAUTION: Never access 'zmq_msg_t' members directly, instead always use the
+CAUTION: Never access 'zmq_ZmqMessage' members directly, instead always use the
 _zmq_msg_ family of functions.
 
 

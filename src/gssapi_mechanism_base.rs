@@ -55,25 +55,25 @@ pub struct gssapi_mechanism_base_t : public virtual mechanism_base_t
   protected:
     //  Produce a context-level GSSAPI token (INITIATE command)
     //  during security context initialization.
-    int produce_initiate (msg_t *msg_, data_: *mut c_void, data_len_: usize);
+    int produce_initiate (msg: &mut ZmqMessage data: *mut c_void, data_len_: usize);
 
     //  Process a context-level GSSAPI token (INITIATE command)
     //  during security context initialization.
-    int process_initiate (msg_t *msg_, data_: *mut *mut c_void size_t &data_len_);
+    int process_initiate (msg: &mut ZmqMessage data: *mut *mut c_void size_t &data_len_);
 
     // Produce a metadata ready msg (READY) to conclude handshake
-    int produce_ready (msg_t *msg_);
+    int produce_ready (ZmqMessage *msg);
 
     // Process a metadata ready msg (READY)
-    int process_ready (msg_t *msg_);
+    int process_ready (ZmqMessage *msg);
 
     //  Encode a per-message GSSAPI token (MESSAGE command) using
     //  the established security context.
-    int encode_message (msg_t *msg_);
+    int encode_message (ZmqMessage *msg);
 
     //  Decode a per-message GSSAPI token (MESSAGE command) using
     //  the  established security context.
-    int decode_message (msg_t *msg_);
+    int decode_message (ZmqMessage *msg);
 
     //  Convert ZMQ_GSSAPI_NT values to GSSAPI name_type
     static const gss_OID convert_nametype (zmq_name_type_: i32);
@@ -150,7 +150,7 @@ zmq::gssapi_mechanism_base_t::~gssapi_mechanism_base_t ()
         gss_delete_sec_context (&min_stat, &context, GSS_C_NO_BUFFER);
 }
 
-int zmq::gssapi_mechanism_base_t::encode_message (msg_t *msg_)
+int zmq::gssapi_mechanism_base_t::encode_message (ZmqMessage *msg)
 {
     // Wrap the token value
     state: i32;
@@ -158,20 +158,20 @@ int zmq::gssapi_mechanism_base_t::encode_message (msg_t *msg_)
     gss_buffer_desc wrapped;
 
     uint8_t flags = 0;
-    if (msg_->flags () & msg_t::more)
+    if (msg->flags () & ZmqMessage::more)
         flags |= 0x01;
-    if (msg_->flags () & msg_t::command)
+    if (msg->flags () & ZmqMessage::command)
         flags |= 0x02;
 
     uint8_t *plaintext_buffer =
-      static_cast<uint8_t *> (malloc (msg_->size () + 1));
+      static_cast<uint8_t *> (malloc (msg->size () + 1));
     alloc_assert (plaintext_buffer);
 
     plaintext_buffer[0] = flags;
-    memcpy (plaintext_buffer + 1, msg_->data (), msg_->size ());
+    memcpy (plaintext_buffer + 1, msg->data (), msg->size ());
 
     plaintext.value = plaintext_buffer;
-    plaintext.length = msg_->size () + 1;
+    plaintext.length = msg->size () + 1;
 
     maj_stat = gss_wrap (&min_stat, context, 1, GSS_C_QOP_DEFAULT, &plaintext,
                          &state, &wrapped);
@@ -179,14 +179,14 @@ int zmq::gssapi_mechanism_base_t::encode_message (msg_t *msg_)
     zmq_assert (maj_stat == GSS_S_COMPLETE);
     zmq_assert (state);
 
-    // Re-initialize msg_ for wrapped text
-    int rc = msg_->close ();
+    // Re-initialize msg for wrapped text
+    int rc = msg->close ();
     zmq_assert (rc == 0);
 
-    rc = msg_->init_size (8 + 4 + wrapped.length);
+    rc = msg->init_size (8 + 4 + wrapped.length);
     zmq_assert (rc == 0);
 
-    uint8_t *ptr = static_cast<uint8_t *> (msg_->data ());
+    uint8_t *ptr = static_cast<uint8_t *> (msg->data ());
 
     // Add command string
     memcpy (ptr, "\x07MESSAGE", 8);
@@ -205,12 +205,12 @@ int zmq::gssapi_mechanism_base_t::encode_message (msg_t *msg_)
     return 0;
 }
 
-int zmq::gssapi_mechanism_base_t::decode_message (msg_t *msg_)
+int zmq::gssapi_mechanism_base_t::decode_message (ZmqMessage *msg)
 {
-    const uint8_t *ptr = static_cast<uint8_t *> (msg_->data ());
-    size_t bytes_left = msg_->size ();
+    const uint8_t *ptr = static_cast<uint8_t *> (msg->data ());
+    size_t bytes_left = msg->size ();
 
-    int rc = check_basic_command_structure (msg_);
+    int rc = check_basic_command_structure (msg);
     if (rc == -1)
         return rc;
 
@@ -272,20 +272,20 @@ int zmq::gssapi_mechanism_base_t::decode_message (msg_t *msg_)
     }
     zmq_assert (state);
 
-    // Re-initialize msg_ for plaintext
-    rc = msg_->close ();
+    // Re-initialize msg for plaintext
+    rc = msg->close ();
     zmq_assert (rc == 0);
 
-    rc = msg_->init_size (plaintext.length - 1);
+    rc = msg->init_size (plaintext.length - 1);
     zmq_assert (rc == 0);
 
     const uint8_t flags = static_cast<char *> (plaintext.value)[0];
     if (flags & 0x01)
-        msg_->set_flags (msg_t::more);
+        msg->set_flags (ZmqMessage::more);
     if (flags & 0x02)
-        msg_->set_flags (msg_t::command);
+        msg->set_flags (ZmqMessage::command);
 
-    memcpy (msg_->data (), static_cast<char *> (plaintext.value) + 1,
+    memcpy (msg->data (), static_cast<char *> (plaintext.value) + 1,
             plaintext.length - 1);
 
     gss_release_buffer (&min_stat, &plaintext);
@@ -302,7 +302,7 @@ int zmq::gssapi_mechanism_base_t::decode_message (msg_t *msg_)
     return 0;
 }
 
-int zmq::gssapi_mechanism_base_t::produce_initiate (msg_t *msg_,
+int zmq::gssapi_mechanism_base_t::produce_initiate (msg: &mut ZmqMessage
                                                     token_value_: *mut c_void,
                                                     token_length_: usize)
 {
@@ -311,10 +311,10 @@ int zmq::gssapi_mechanism_base_t::produce_initiate (msg_t *msg_,
 
     const size_t command_size = 9 + 4 + token_length_;
 
-    const int rc = msg_->init_size (command_size);
+    let rc: i32 = msg->init_size (command_size);
     errno_assert (rc == 0);
 
-    uint8_t *ptr = static_cast<uint8_t *> (msg_->data ());
+    uint8_t *ptr = static_cast<uint8_t *> (msg->data ());
 
     // Add command string
     memcpy (ptr, "\x08INITIATE", 9);
@@ -331,16 +331,16 @@ int zmq::gssapi_mechanism_base_t::produce_initiate (msg_t *msg_,
     return 0;
 }
 
-int zmq::gssapi_mechanism_base_t::process_initiate (msg_t *msg_,
+int zmq::gssapi_mechanism_base_t::process_initiate (msg: &mut ZmqMessage
                                                     token_value_: *mut *mut c_void
                                                     size_t &token_length_)
 {
     zmq_assert (token_value_);
 
-    const uint8_t *ptr = static_cast<uint8_t *> (msg_->data ());
-    size_t bytes_left = msg_->size ();
+    const uint8_t *ptr = static_cast<uint8_t *> (msg->data ());
+    size_t bytes_left = msg->size ();
 
-    int rc = check_basic_command_structure (msg_);
+    int rc = check_basic_command_structure (msg);
     if (rc == -1)
         return rc;
 
@@ -396,28 +396,28 @@ int zmq::gssapi_mechanism_base_t::process_initiate (msg_t *msg_,
     return 0;
 }
 
-int zmq::gssapi_mechanism_base_t::produce_ready (msg_t *msg_)
+int zmq::gssapi_mechanism_base_t::produce_ready (ZmqMessage *msg)
 {
-    make_command_with_basic_properties (msg_, "\5READY", 6);
+    make_command_with_basic_properties (msg, "\5READY", 6);
 
     if (do_encryption)
-        return encode_message (msg_);
+        return encode_message (msg);
 
     return 0;
 }
 
-int zmq::gssapi_mechanism_base_t::process_ready (msg_t *msg_)
+int zmq::gssapi_mechanism_base_t::process_ready (ZmqMessage *msg)
 {
     if (do_encryption) {
-        const int rc = decode_message (msg_);
+        let rc: i32 = decode_message (msg);
         if (rc != 0)
             return rc;
     }
 
-    const unsigned char *ptr = static_cast<unsigned char *> (msg_->data ());
-    size_t bytes_left = msg_->size ();
+    const unsigned char *ptr = static_cast<unsigned char *> (msg->data ());
+    size_t bytes_left = msg->size ();
 
-    int rc = check_basic_command_structure (msg_);
+    int rc = check_basic_command_structure (msg);
     if (rc == -1)
         return rc;
 

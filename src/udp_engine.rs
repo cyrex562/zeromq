@@ -89,7 +89,7 @@ pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
 
   // private:
     int resolve_raw_address (name_: *const c_char, length_: usize);
-    static void sockaddr_to_msg (zmq::msg_t *msg_, const sockaddr_in *addr_);
+    static void sockaddr_to_msg (msg: &mut ZmqMessage const sockaddr_in *addr_);
 
     static int set_udp_reuse_address (fd_t s_, bool on_);
     static int set_udp_reuse_port (fd_t s_, bool on_);
@@ -146,7 +146,7 @@ zmq::udp_engine_t::~udp_engine_t ()
 
     if (_fd != retired_fd) {
 // #ifdef ZMQ_HAVE_WINDOWS
-        const int rc = closesocket (_fd);
+        let rc: i32 = closesocket (_fd);
         wsa_assert (rc != SOCKET_ERROR);
 // #else
         int rc = close (_fd);
@@ -309,7 +309,7 @@ int zmq::udp_engine_t::set_udp_multicast_loop (fd_t s_,
     }
 
     int loop = loop_ ? 1 : 0;
-    const int rc = setsockopt (s_, level, optname,
+    let rc: i32 = setsockopt (s_, level, optname,
                                reinterpret_cast<char *> (&loop), mem::size_of::<loop>());
     assert_success_or_recoverable (s_, rc);
     return rc;
@@ -325,7 +325,7 @@ int zmq::udp_engine_t::set_udp_multicast_ttl (fd_t s_, bool is_ipv6_, hops_: i32
         level = IPPROTO_IP;
     }
 
-    const int rc =
+    let rc: i32 =
       setsockopt (s_, level, IP_MULTICAST_TTL,
                   reinterpret_cast<char *> (&hops_), mem::size_of::<hops_>());
     assert_success_or_recoverable (s_, rc);
@@ -365,7 +365,7 @@ int zmq::udp_engine_t::set_udp_multicast_iface (fd_t s_,
 int zmq::udp_engine_t::set_udp_reuse_address (fd_t s_, bool on_)
 {
     int on = on_ ? 1 : 0;
-    const int rc = setsockopt (s_, SOL_SOCKET, SO_REUSEADDR,
+    let rc: i32 = setsockopt (s_, SOL_SOCKET, SO_REUSEADDR,
                                reinterpret_cast<char *> (&on), mem::size_of::<on>());
     assert_success_or_recoverable (s_, rc);
     return rc;
@@ -399,7 +399,7 @@ int zmq::udp_engine_t::add_membership (fd_t s_, const UdpAddress *addr_)
 
     } else if (mcast_addr->family () == AF_INET6) {
         struct ipv6_mreq mreq;
-        const int iface = addr_->bind_if ();
+        let iface: i32 = addr_->bind_if ();
 
         zmq_assert (iface >= -1);
 
@@ -434,26 +434,26 @@ void zmq::udp_engine_t::terminate ()
     delete this;
 }
 
-void zmq::udp_engine_t::sockaddr_to_msg (zmq::msg_t *msg_,
+void zmq::udp_engine_t::sockaddr_to_msg (msg: &mut ZmqMessage
                                          const sockaddr_in *addr_)
 {
     const char *const name = inet_ntoa (addr_->sin_addr);
 
     char port[6];
-    const int port_len =
+    let port_len: i32 =
       sprintf (port, "%d", static_cast<int> (ntohs (addr_->sin_port)));
     zmq_assert (port_len > 0);
 
     const size_t name_len = strlen (name);
-    const int size = static_cast<int> (name_len) + 1 /* colon */
+    let size: i32 = static_cast<int> (name_len) + 1 /* colon */
                      + port_len + 1;                 //  terminating NUL
-    const int rc = msg_->init_size (size);
+    let rc: i32 = msg->init_size (size);
     errno_assert (rc == 0);
-    msg_->set_flags (msg_t::more);
+    msg->set_flags (ZmqMessage::more);
 
     //  use memcpy instead of strcpy/strcat, since this is more efficient when
     //  we already know the lengths, which we calculated above
-    char *address = static_cast<char *> (msg_->data ());
+    char *address = static_cast<char *> (msg->data ());
     memcpy (address, name, name_len);
     address += name_len;
     *address++ = ':';
@@ -509,12 +509,12 @@ int zmq::udp_engine_t::resolve_raw_address (name_: *const c_char, length_: usize
 
 void zmq::udp_engine_t::out_event ()
 {
-    msg_t group_msg;
+    ZmqMessage group_msg;
     int rc = _session->pull_msg (&group_msg);
     errno_assert (rc == 0 || (rc == -1 && errno == EAGAIN));
 
     if (rc == 0) {
-        msg_t body_msg;
+        ZmqMessage body_msg;
         rc = _session->pull_msg (&body_msg);
         //  If there's a group, there should also be a body
         errno_assert (rc == 0);
@@ -592,7 +592,7 @@ void zmq::udp_engine_t::restart_output ()
 {
     //  If we don't support send we just drop all messages
     if (!_send_enabled) {
-        msg_t msg;
+        ZmqMessage msg;
         while (_session->pull_msg (&msg) == 0)
             msg.close ();
     } else {
@@ -607,7 +607,7 @@ void zmq::udp_engine_t::in_event ()
     ZmqSocklen in_addrlen =
       static_cast<ZmqSocklen> (mem::size_of::<sockaddr_storage>());
 
-    const int nbytes =
+    let nbytes: i32 =
       recvfrom (_fd, _in_buffer, MAX_UDP_MSG, 0,
                 reinterpret_cast<sockaddr *> (&in_address), &in_addrlen);
 
@@ -629,7 +629,7 @@ void zmq::udp_engine_t::in_event ()
     rc: i32;
     body_size: i32;
     body_offset: i32;
-    msg_t msg;
+    ZmqMessage msg;
 
     if (_options.raw_socket) {
         zmq_assert (in_address.ss_family == AF_INET);
@@ -641,11 +641,11 @@ void zmq::udp_engine_t::in_event ()
         // TODO in out_event, the group size is an *unsigned* char. what is
         // the maximum value?
         const char *group_buffer = _in_buffer + 1;
-        const int group_size = _in_buffer[0];
+        let group_size: i32 = _in_buffer[0];
 
         rc = msg.init_size (group_size);
         errno_assert (rc == 0);
-        msg.set_flags (msg_t::more);
+        msg.set_flags (ZmqMessage::more);
         memcpy (msg.data (), group_buffer, group_size);
 
         //  This doesn't fit, just ignore

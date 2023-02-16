@@ -110,7 +110,7 @@ int zmq::UdpAddress::resolve (name_: *const c_char, bool bind_, bool ipv6_)
 
         IpResolver src_resolver (src_resolver_opts);
 
-        const int rc = src_resolver.resolve (&_bind_address, src_name.c_str ());
+        let rc: i32 = src_resolver.resolve (&_bind_address, src_name.c_str ());
 
         if (rc != 0) {
             return -1;
@@ -153,7 +153,7 @@ int zmq::UdpAddress::resolve (name_: *const c_char, bool bind_, bool ipv6_)
 
     IpResolver resolver (resolver_opts);
 
-    const int rc = resolver.resolve (&_target_address, name_);
+    let rc: i32 = resolver.resolve (&_target_address, name_);
     if (rc != 0) {
         return -1;
     }

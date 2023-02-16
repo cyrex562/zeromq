@@ -128,12 +128,12 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     // but on the ZAP socket, the HWM is disabled.
 
     rc: i32;
-    msg_t msg;
+    ZmqMessage msg;
 
     //  Address delimiter frame
     rc = msg.init ();
     errno_assert (rc == 0);
-    msg.set_flags (msg_t::more);
+    msg.set_flags (ZmqMessage::more);
     rc = session->write_zap_msg (&msg);
     errno_assert (rc == 0);
 
@@ -141,7 +141,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     rc = msg.init_size (zap_version_len);
     errno_assert (rc == 0);
     memcpy (msg.data (), zap_version, zap_version_len);
-    msg.set_flags (msg_t::more);
+    msg.set_flags (ZmqMessage::more);
     rc = session->write_zap_msg (&msg);
     errno_assert (rc == 0);
 
@@ -149,7 +149,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     rc = msg.init_size (id_len);
     errno_assert (rc == 0);
     memcpy (msg.data (), id, id_len);
-    msg.set_flags (msg_t::more);
+    msg.set_flags (ZmqMessage::more);
     rc = session->write_zap_msg (&msg);
     errno_assert (rc == 0);
 
@@ -158,7 +158,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     errno_assert (rc == 0);
     memcpy (msg.data (), options.zap_domain,
             options.zap_domain.length ());
-    msg.set_flags (msg_t::more);
+    msg.set_flags (ZmqMessage::more);
     rc = session->write_zap_msg (&msg);
     errno_assert (rc == 0);
 
@@ -166,7 +166,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     rc = msg.init_size (peer_address.length ());
     errno_assert (rc == 0);
     memcpy (msg.data (), peer_address, peer_address.length ());
-    msg.set_flags (msg_t::more);
+    msg.set_flags (ZmqMessage::more);
     rc = session->write_zap_msg (&msg);
     errno_assert (rc == 0);
 
@@ -174,7 +174,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     rc = msg.init_size (options.routing_id_size);
     errno_assert (rc == 0);
     memcpy (msg.data (), options.routing_id, options.routing_id_size);
-    msg.set_flags (msg_t::more);
+    msg.set_flags (ZmqMessage::more);
     rc = session->write_zap_msg (&msg);
     errno_assert (rc == 0);
 
@@ -183,7 +183,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     errno_assert (rc == 0);
     memcpy (msg.data (), mechanism_, mechanism_length_);
     if (credentials_count_)
-        msg.set_flags (msg_t::more);
+        msg.set_flags (ZmqMessage::more);
     rc = session->write_zap_msg (&msg);
     errno_assert (rc == 0);
 
@@ -192,7 +192,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
         rc = msg.init_size (credentials_sizes_[i]);
         errno_assert (rc == 0);
         if (i < credentials_count_ - 1)
-            msg.set_flags (msg_t::more);
+            msg.set_flags (ZmqMessage::more);
         memcpy (msg.data (), credentials_[i], credentials_sizes_[i]);
         rc = session->write_zap_msg (&msg);
         errno_assert (rc == 0);
@@ -203,7 +203,7 @@ int zap_client_t::receive_and_process_zap_reply ()
 {
     int rc = 0;
     const size_t zap_reply_frame_count = 7;
-    msg_t msg[zap_reply_frame_count];
+    ZmqMessage msg[zap_reply_frame_count];
 
     //  Initialize all reply frames
     for (size_t i = 0; i < zap_reply_frame_count; i++) {
@@ -219,8 +219,8 @@ int zap_client_t::receive_and_process_zap_reply ()
             }
             return close_and_return (msg, -1);
         }
-        if ((msg[i].flags () & msg_t::more)
-            == (i < zap_reply_frame_count - 1 ? 0 : msg_t::more)) {
+        if ((msg[i].flags () & ZmqMessage::more)
+            == (i < zap_reply_frame_count - 1 ? 0 : ZmqMessage::more)) {
             session->get_socket ()->event_handshake_failed_protocol (
               session->get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_MALFORMED_REPLY);
             errno = EPROTO;
@@ -284,7 +284,7 @@ int zap_client_t::receive_and_process_zap_reply ()
 
     //  Close all reply frames
     for (size_t i = 0; i < zap_reply_frame_count; i++) {
-        const int rc2 = msg[i].close ();
+        let rc2: i32 = msg[i].close ();
         errno_assert (rc2 == 0);
     }
 

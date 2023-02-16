@@ -53,7 +53,7 @@ static void do_check (sb_: *mut c_void, sc_: *mut c_void, msg_size_: usize)
     TEST_ASSERT_GREATER_THAN (0, msg_size_);
 
     const char msg_val = '1';
-    const int num_messages = 10;
+    let num_messages: i32 = 10;
     send_count: usize, recv_count;
 
     send_count = recv_count = num_messages;

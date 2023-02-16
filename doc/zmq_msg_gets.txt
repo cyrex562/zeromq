@@ -9,7 +9,7 @@ zmq_msg_gets - get message metadata property
 
 SYNOPSIS
 --------
-*const char *zmq_msg_gets (zmq_msg_t '*message', const char *'property');*
+*const char *zmq_msg_gets (zmq_ZmqMessage '*message', const char *'property');*
 
 
 DESCRIPTION
@@ -63,7 +63,7 @@ EXAMPLE
 -------
 .Getting the ZAP authenticated user id for a message:
 ----
-zmq_msg_t msg;
+zmq_ZmqMessage msg;
 zmq_msg_init (&msg);
 rc = zmq_msg_recv (&msg, dealer, 0);
 assert (rc != -1);

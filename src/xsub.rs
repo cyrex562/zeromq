@@ -48,9 +48,9 @@ pub struct xsub_t : public ZmqSocketBase
                      const optval_: *mut c_void,
                      optvallen_: usize) ZMQ_OVERRIDE;
     int xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize) ZMQ_FINAL;
-    int xsend (zmq::msg_t *msg_) ZMQ_OVERRIDE;
+    int xsend (ZmqMessage *msg) ZMQ_OVERRIDE;
     bool xhas_out () ZMQ_OVERRIDE;
-    int xrecv (zmq::msg_t *msg_) ZMQ_FINAL;
+    int xrecv (ZmqMessage *msg) ZMQ_FINAL;
     bool xhas_in () ZMQ_FINAL;
     void xread_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
     void xwrite_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
@@ -59,12 +59,12 @@ pub struct xsub_t : public ZmqSocketBase
 
   // private:
     //  Check whether the message matches at least one subscription.
-    bool match (zmq::msg_t *msg_);
+    bool match (ZmqMessage *msg);
 
     //  Function to be applied to the trie to send all the subsciptions
     //  upstream.
     static void
-    send_subscription (unsigned char *data_, size_: usize, arg_: *mut c_void);
+    send_subscription (unsigned char *data, size: usize, arg_: *mut c_void);
 
     //  Fair queueing object for inbound pipes.
     fq_t _fq;
@@ -86,7 +86,7 @@ pub struct xsub_t : public ZmqSocketBase
     //  If true, 'message' contains a matching message to return on the
     //  next recv call.
     bool _has_message;
-    msg_t _message;
+    ZmqMessage _message;
 
     //  If true, part of a multipart message was already sent, but
     //  there are following parts still waiting.
@@ -123,13 +123,13 @@ zmq::xsub_t::xsub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     //  subscription commands are sent to the wire.
     options.linger.store (0);
 
-    const int rc = _message.init ();
+    let rc: i32 = _message.init ();
     errno_assert (rc == 0);
 }
 
 zmq::xsub_t::~xsub_t ()
 {
-    const int rc = _message.close ();
+    let rc: i32 = _message.close ();
     errno_assert (rc == 0);
 }
 
@@ -216,52 +216,52 @@ int zmq::xsub_t::xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *m
     return -1;
 }
 
-int zmq::xsub_t::xsend (msg_t *msg_)
+int zmq::xsub_t::xsend (ZmqMessage *msg)
 {
-    size_t size = msg_->size ();
-    unsigned char *data = static_cast<unsigned char *> (msg_->data ());
+    size_t size = msg->size ();
+    unsigned char *data = static_cast<unsigned char *> (msg->data ());
 
     const bool first_part = !_more_send;
-    _more_send = (msg_->flags () & msg_t::more) != 0;
+    _more_send = (msg->flags () & ZmqMessage::more) != 0;
 
     if (first_part) {
         _process_subscribe = !_only_first_subscribe;
     } else if (!_process_subscribe) {
         //  User message sent upstream to XPUB socket
-        return _dist.send_to_all (msg_);
+        return _dist.send_to_all (msg);
     }
 
-    if (msg_->is_subscribe () || (size > 0 && *data == 1)) {
+    if (msg->is_subscribe () || (size > 0 && *data == 1)) {
         //  Process subscribe message
         //  This used to filter out duplicate subscriptions,
         //  however this is already done on the XPUB side and
         //  doing it here as well breaks ZMQ_XPUB_VERBOSE
         //  when there are forwarding devices involved.
-        if (!msg_->is_subscribe ()) {
+        if (!msg->is_subscribe ()) {
             data = data + 1;
             size = size - 1;
         }
         _subscriptions.add (data, size);
         _process_subscribe = true;
-        return _dist.send_to_all (msg_);
+        return _dist.send_to_all (msg);
     }
-    if (msg_->is_cancel () || (size > 0 && *data == 0)) {
+    if (msg->is_cancel () || (size > 0 && *data == 0)) {
         //  Process unsubscribe message
-        if (!msg_->is_cancel ()) {
+        if (!msg->is_cancel ()) {
             data = data + 1;
             size = size - 1;
         }
         _process_subscribe = true;
         const bool rm_result = _subscriptions.rm (data, size);
         if (rm_result || _verbose_unsubs)
-            return _dist.send_to_all (msg_);
+            return _dist.send_to_all (msg);
     } else
         //  User message sent upstream to XPUB socket
-        return _dist.send_to_all (msg_);
+        return _dist.send_to_all (msg);
 
-    int rc = msg_->close ();
+    int rc = msg->close ();
     errno_assert (rc == 0);
-    rc = msg_->init ();
+    rc = msg->init ();
     errno_assert (rc == 0);
 
     return 0;
@@ -273,15 +273,15 @@ bool zmq::xsub_t::xhas_out ()
     return true;
 }
 
-int zmq::xsub_t::xrecv (msg_t *msg_)
+int zmq::xsub_t::xrecv (ZmqMessage *msg)
 {
     //  If there's already a message prepared by a previous call to zmq_poll,
     //  return it straight ahead.
     if (_has_message) {
-        const int rc = msg_->move (_message);
+        let rc: i32 = msg->move (_message);
         errno_assert (rc == 0);
         _has_message = false;
-        _more_recv = (msg_->flags () & msg_t::more) != 0;
+        _more_recv = (msg->flags () & ZmqMessage::more) != 0;
         return 0;
     }
 
@@ -290,7 +290,7 @@ int zmq::xsub_t::xrecv (msg_t *msg_)
     //  semantics.
     while (true) {
         //  Get a message using fair queueing algorithm.
-        int rc = _fq.recv (msg_);
+        int rc = _fq.recv (msg);
 
         //  If there's no message available, return immediately.
         //  The same when error occurs.
@@ -299,15 +299,15 @@ int zmq::xsub_t::xrecv (msg_t *msg_)
 
         //  Check whether the message matches at least one subscription.
         //  Non-initial parts of the message are passed
-        if (_more_recv || !options.filter || match (msg_)) {
-            _more_recv = (msg_->flags () & msg_t::more) != 0;
+        if (_more_recv || !options.filter || match (msg)) {
+            _more_recv = (msg->flags () & ZmqMessage::more) != 0;
             return 0;
         }
 
         //  Message doesn't match. Pop any remaining parts of the message
         //  from the pipe.
-        while (msg_->flags () & msg_t::more) {
-            rc = _fq.recv (msg_);
+        while (msg->flags () & ZmqMessage::more) {
+            rc = _fq.recv (msg);
             errno_assert (rc == 0);
         }
     }
@@ -345,30 +345,30 @@ bool zmq::xsub_t::xhas_in ()
 
         //  Message doesn't match. Pop any remaining parts of the message
         //  from the pipe.
-        while (_message.flags () & msg_t::more) {
+        while (_message.flags () & ZmqMessage::more) {
             rc = _fq.recv (&_message);
             errno_assert (rc == 0);
         }
     }
 }
 
-bool zmq::xsub_t::match (msg_t *msg_)
+bool zmq::xsub_t::match (ZmqMessage *msg)
 {
     const bool matching = _subscriptions.check (
-      static_cast<unsigned char *> (msg_->data ()), msg_->size ());
+      static_cast<unsigned char *> (msg->data ()), msg->size ());
 
     return matching ^ options.invert_matching;
 }
 
-void zmq::xsub_t::send_subscription (unsigned char *data_,
-                                     size_: usize,
+void zmq::xsub_t::send_subscription (unsigned char *data,
+                                     size: usize,
                                      arg_: *mut c_void)
 {
     pipe_t *pipe = static_cast<pipe_t *> (arg_);
 
     //  Create the subscription message.
-    msg_t msg;
-    const int rc = msg.init_subscribe (size_, data_);
+    ZmqMessage msg;
+    let rc: i32 = msg.init_subscribe (size, data);
     errno_assert (rc == 0);
 
     //  Send it to the pipe.

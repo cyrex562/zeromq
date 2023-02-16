@@ -36,7 +36,7 @@
 namespace zmq
 {
 //  Forward declaration
-pub struct msg_t;
+pub struct ZmqMessage;
 
 //  Interface to be implemented by message encoder.
 
@@ -45,13 +45,13 @@ struct i_encoder
     virtual ~i_encoder () ZMQ_DEFAULT;
 
     //  The function returns a batch of binary data. The data
-    //  are filled to a supplied buffer. If no buffer is supplied (data_
+    //  are filled to a supplied buffer. If no buffer is supplied (data
     //  is NULL) encoder will provide buffer of its own.
     //  Function returns 0 when a new message is required.
-    virtual size_t encode (unsigned char **data_, size_: usize) = 0;
+    virtual size_t encode (unsigned char **data, size: usize) = 0;
 
     //  Load a new message into encoder.
-    virtual void load_msg (msg_t *msg_) = 0;
+    virtual void load_msg (ZmqMessage *msg) = 0;
 };
 }
 

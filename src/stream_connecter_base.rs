@@ -102,7 +102,7 @@ void zmq::stream_connecter_base_t::process_term (linger_: i32)
 void zmq::stream_connecter_base_t::add_reconnect_timer ()
 {
     if (options.reconnect_ivl > 0) {
-        const int interval = get_new_reconnect_ivl ();
+        let interval: i32 = get_new_reconnect_ivl ();
         add_timer (interval, reconnect_timer_id);
         _socket->event_connect_retried (
           make_unconnected_connect_endpoint_pair (_endpoint), interval);
@@ -117,8 +117,8 @@ int zmq::stream_connecter_base_t::get_new_reconnect_ivl ()
     //  _current_reconnect_ivl?
 
     //  The new interval is the current interval + random value.
-    const int random_jitter = generate_random () % options.reconnect_ivl;
-    const int interval =
+    let random_jitter: i32 = generate_random () % options.reconnect_ivl;
+    let interval: i32 =
       _current_reconnect_ivl < std::numeric_limits<int>::max () - random_jitter
         ? _current_reconnect_ivl + random_jitter
         : std::numeric_limits<int>::max ();
@@ -148,10 +148,10 @@ void zmq::stream_connecter_base_t::close ()
     // TODO before, this was an assertion for _s != retired_fd, but this does not match usage of close
     if (_s != retired_fd) {
 // #ifdef ZMQ_HAVE_WINDOWS
-        const int rc = closesocket (_s);
+        let rc: i32 = closesocket (_s);
         wsa_assert (rc != SOCKET_ERROR);
 // #else
-        const int rc = ::close (_s);
+        let rc: i32 = ::close (_s);
         errno_assert (rc == 0);
 // #endif
         _socket->event_closed (

@@ -69,12 +69,12 @@ template <typename T> class encoder_base_t : public i_encoder
     ~encoder_base_t () ZMQ_OVERRIDE { free (_buf); }
 
     //  The function returns a batch of binary data. The data
-    //  are filled to a supplied buffer. If no buffer is supplied (data_
+    //  are filled to a supplied buffer. If no buffer is supplied (data
     //  points to NULL) decoder object will provide buffer of its own.
-    size_t encode (unsigned char **data_, size_: usize) ZMQ_FINAL
+    size_t encode (unsigned char **data, size: usize) ZMQ_FINAL
     {
-        unsigned char *buffer = !*data_ ? _buf : *data_;
-        const size_t buffersize = !*data_ ? _buf_size : size_;
+        unsigned char *buffer = !*data ? _buf : *data;
+        const size_t buffersize = !*data ? _buf_size : size;
 
         if (in_progress () == NULL)
             return 0;
@@ -106,8 +106,8 @@ template <typename T> class encoder_base_t : public i_encoder
             //  As a consequence, large messages being sent won't block
             //  other engines running in the same I/O thread for excessive
             //  amounts of time.
-            if (!pos && !*data_ && _to_write >= buffersize) {
-                *data_ = _write_pos;
+            if (!pos && !*data && _to_write >= buffersize) {
+                *data = _write_pos;
                 pos = _to_write;
                 _write_pos = NULL;
                 _to_write = 0;
@@ -122,14 +122,14 @@ template <typename T> class encoder_base_t : public i_encoder
             _to_write -= to_copy;
         }
 
-        *data_ = buffer;
+        *data = buffer;
         return pos;
     }
 
-    void load_msg (msg_t *msg_) ZMQ_FINAL
+    void load_msg (ZmqMessage *msg) ZMQ_FINAL
     {
         zmq_assert (in_progress () == NULL);
-        _in_progress = msg_;
+        _in_progress = msg;
         (static_cast<T *> (this)->*_next) ();
     }
 
@@ -150,7 +150,7 @@ template <typename T> class encoder_base_t : public i_encoder
         _new_msg_flag = new_msg_flag_;
     }
 
-    msg_t *in_progress () { return _in_progress; }
+    ZmqMessage *in_progress () { return _in_progress; }
 
   // private:
     //  Where to get the data to write from.
@@ -169,7 +169,7 @@ template <typename T> class encoder_base_t : public i_encoder
     const size_t _buf_size;
     unsigned char *const _buf;
 
-    msg_t *_in_progress;
+    ZmqMessage *_in_progress;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (encoder_base_t)
 };

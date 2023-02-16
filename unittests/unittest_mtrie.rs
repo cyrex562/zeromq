@@ -34,9 +34,9 @@ void tearDown ()
 {
 }
 
-int getlen (const zmq::generic_mtrie_t<int>::prefix_t &data_)
+int getlen (const zmq::generic_mtrie_t<int>::prefix_t &data)
 {
-    return static_cast<int> (strlen (reinterpret_cast<const char *> (data_)));
+    return static_cast<int> (strlen (reinterpret_cast<const char *> (data)));
 }
 
 void test_create ()
@@ -44,10 +44,10 @@ void test_create ()
     zmq::generic_mtrie_t<int> mtrie;
 }
 
-void mtrie_count (pipe_: *mut i32, count_: *mut i32)
+void mtrie_count (pipe_: *mut i32, count: *mut i32)
 {
     LIBZMQ_UNUSED (pipe_);
-    ++*count_;
+    ++*count;
 }
 
 void test_check_empty_match_nonempty_data ()
@@ -365,12 +365,12 @@ void test_rm_multiple_reverse_order ()
     add_and_rm_entries (names);
 }
 
-void check_name (zmq::generic_mtrie_t<int>::prefix_t data_,
+void check_name (zmq::generic_mtrie_t<int>::prefix_t data,
                  len_: usize,
                  name_: *const c_char)
 {
     TEST_ASSERT_EQUAL_UINT (strlen (name_), len_);
-    TEST_ASSERT_EQUAL_STRING_LEN (name_, data_, len_);
+    TEST_ASSERT_EQUAL_STRING_LEN (name_, data, len_);
 }
 
 template <size_t N> void add_entries_rm_pipes_unique (const char *(&names_)[N])
@@ -398,12 +398,12 @@ void test_rm_with_callback_multiple_reverse_order ()
     add_entries_rm_pipes_unique (names);
 }
 
-void check_count (zmq::generic_mtrie_t<int>::prefix_t data_,
+void check_count (zmq::generic_mtrie_t<int>::prefix_t data,
                   len_: usize,
-                  count_: *mut i32)
+                  count: *mut i32)
 {
-    --(*count_);
-    TEST_ASSERT_GREATER_OR_EQUAL (0, *count_);
+    --(*count);
+    TEST_ASSERT_GREATER_OR_EQUAL (0, *count);
 }
 
 void add_duplicate_entry (zmq::generic_mtrie_t<int> &mtrie_, int (&pipes_)[2])

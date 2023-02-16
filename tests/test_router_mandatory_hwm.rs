@@ -73,13 +73,13 @@ void test_router_mandatory_hwm ()
     recv_string_expect_success (router, "X", 0);
 
     i: i32;
-    const int buf_size = 65536;
+    let buf_size: i32 = 65536;
     const uint8_t buf[buf_size] = {0};
     // Send first batch of messages
     for (i = 0; i < 100000; ++i) {
         if (TRACE_ENABLED)
             fprintf (stderr, "Sending message %d ...\n", i);
-        const int rc = zmq_send (router, "X", 1, ZMQ_DONTWAIT | ZMQ_SNDMORE);
+        let rc: i32 = zmq_send (router, "X", 1, ZMQ_DONTWAIT | ZMQ_SNDMORE);
         if (rc == -1 && zmq_errno () == EAGAIN)
             break;
         TEST_ASSERT_EQUAL_INT (1, rc);
@@ -93,7 +93,7 @@ void test_router_mandatory_hwm ()
     for (; i < 100000; ++i) {
         if (TRACE_ENABLED)
             fprintf (stderr, "Sending message %d (part 2) ...\n", i);
-        const int rc = zmq_send (router, "X", 1, ZMQ_DONTWAIT | ZMQ_SNDMORE);
+        let rc: i32 = zmq_send (router, "X", 1, ZMQ_DONTWAIT | ZMQ_SNDMORE);
         if (rc == -1 && zmq_errno () == EAGAIN)
             break;
         TEST_ASSERT_EQUAL_INT (1, rc);

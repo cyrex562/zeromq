@@ -44,7 +44,7 @@ pub struct gather_t ZMQ_FINAL : public ZmqSocketBase
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
-    int xrecv (zmq::msg_t *msg_);
+    int xrecv (ZmqMessage *msg);
     bool xhas_in ();
     void xread_activated (zmq::pipe_t *pipe_);
     void xpipe_terminated (zmq::pipe_t *pipe_);
@@ -87,21 +87,21 @@ void zmq::gather_t::xpipe_terminated (pipe_t *pipe_)
     _fq.pipe_terminated (pipe_);
 }
 
-int zmq::gather_t::xrecv (msg_t *msg_)
+int zmq::gather_t::xrecv (ZmqMessage *msg)
 {
-    int rc = _fq.recvpipe (msg_, NULL);
+    int rc = _fq.recvpipe (msg, NULL);
 
     // Drop any messages with more flag
-    while (rc == 0 && msg_->flags () & msg_t::more) {
+    while (rc == 0 && msg->flags () & ZmqMessage::more) {
         // drop all frames of the current multi-frame message
-        rc = _fq.recvpipe (msg_, NULL);
+        rc = _fq.recvpipe (msg, NULL);
 
-        while (rc == 0 && msg_->flags () & msg_t::more)
-            rc = _fq.recvpipe (msg_, NULL);
+        while (rc == 0 && msg->flags () & ZmqMessage::more)
+            rc = _fq.recvpipe (msg, NULL);
 
         // get the new message
         if (rc == 0)
-            rc = _fq.recvpipe (msg_, NULL);
+            rc = _fq.recvpipe (msg, NULL);
     }
 
     return rc;

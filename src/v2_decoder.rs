@@ -49,7 +49,7 @@ pub struct v2_decoder_t ZMQ_FINAL
     ~v2_decoder_t ();
 
     //  i_decoder interface.
-    msg_t *msg () { return &_in_progress; }
+    ZmqMessage *msg () { return &_in_progress; }
 
   // private:
     int flags_ready (unsigned char const *);
@@ -57,11 +57,11 @@ pub struct v2_decoder_t ZMQ_FINAL
     int eight_byte_size_ready (unsigned char const *);
     int message_ready (unsigned char const *);
 
-    int size_ready (size_: u64, unsigned char const *);
+    int size_ready (size: u64, unsigned char const *);
 
     unsigned char _tmpbuf[8];
     unsigned char _msg_flags;
-    msg_t _in_progress;
+    ZmqMessage _in_progress;
 
     const bool _zero_copy;
     const i64 _max_msg_size;
@@ -86,7 +86,7 @@ zmq::v2_decoder_t::v2_decoder_t (bufsize_: usize,
 
 zmq::v2_decoder_t::~v2_decoder_t ()
 {
-    const int rc = _in_progress.close ();
+    let rc: i32 = _in_progress.close ();
     errno_assert (rc == 0);
 }
 
@@ -94,9 +94,9 @@ int zmq::v2_decoder_t::flags_ready (unsigned char const *)
 {
     _msg_flags = 0;
     if (_tmpbuf[0] & v2_protocol_t::more_flag)
-        _msg_flags |= msg_t::more;
+        _msg_flags |= ZmqMessage::more;
     if (_tmpbuf[0] & v2_protocol_t::command_flag)
-        _msg_flags |= msg_t::command;
+        _msg_flags |= ZmqMessage::command;
 
     //  The payload length is either one or eight bytes,
     //  depending on whether the 'large' bit is set.

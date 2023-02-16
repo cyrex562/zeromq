@@ -81,7 +81,7 @@ static void test_stream_to_dealer ()
 
     //  Connecting sends a zero message
     //  First frame is routing id
-    zmq_msg_t routing_id;
+    zmq_ZmqMessage routing_id;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&routing_id));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&routing_id, stream, 0));
     TEST_ASSERT_TRUE (zmq_msg_more (&routing_id));

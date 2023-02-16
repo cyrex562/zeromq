@@ -70,7 +70,7 @@ void test_null_timer_pointers ()
 // #endif
 
     const size_t dummy_interval = 100;
-    const int dummy_timer_id = 1;
+    let dummy_timer_id: i32 = 1;
 
     TEST_ASSERT_FAILURE_ERRNO (
       EFAULT, zmq_timers_add (timers, dummy_interval, &handler, NULL));
@@ -106,7 +106,7 @@ void test_corner_cases ()
     TEST_ASSERT_NOT_NULL (timers);
 
     const size_t dummy_interval = SIZE_MAX;
-    const int dummy_timer_id = 1;
+    let dummy_timer_id: i32 = 1;
 
     //  attempt to cancel non-existent timer
     TEST_ASSERT_FAILURE_ERRNO (EINVAL,
@@ -124,7 +124,7 @@ void test_corner_cases ()
     TEST_ASSERT_FAILURE_ERRNO (
       EFAULT, zmq_timers_add (timers, dummy_interval, NULL, NULL));
 
-    const int timer_id = TEST_ASSERT_SUCCESS_ERRNO (
+    let timer_id: i32 = TEST_ASSERT_SUCCESS_ERRNO (
       zmq_timers_add (timers, dummy_interval, handler, NULL));
 
     //  attempt to cancel timer twice
@@ -150,7 +150,7 @@ void test_timers ()
     const unsigned long full_timeout = 100;
     void *const stopwatch = zmq_stopwatch_start ();
 
-    const int timer_id = TEST_ASSERT_SUCCESS_ERRNO (
+    let timer_id: i32 = TEST_ASSERT_SUCCESS_ERRNO (
       zmq_timers_add (timers, full_timeout, handler, &timer_invoked));
 
     //  Timer should not have been invoked yet

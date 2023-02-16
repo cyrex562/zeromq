@@ -132,7 +132,7 @@ void test_zap_unsuccessful_no_handler (char *my_endpoint_,
                                        socket_config_data_: *mut c_void,
                                        void **client_mon_ = NULL)
 {
-    const int events_received =
+    let events_received: i32 =
       expect_new_client_bounce_fail_and_count_monitor_events (
         my_endpoint_, server_, socket_config_, socket_config_data_, client_mon_,
         server_mon_, expected_event_, expected_err_);

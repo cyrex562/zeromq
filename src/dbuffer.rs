@@ -55,7 +55,7 @@ namespace zmq
 
 template <typename T> class dbuffer_t;
 
-template <> class dbuffer_t<msg_t>
+template <> class dbuffer_t<ZmqMessage>
 {
 // public:
     dbuffer_t () : _back (&_storage[0]), _front (&_storage[1]), _has_msg (false)
@@ -70,7 +70,7 @@ template <> class dbuffer_t<msg_t>
         _front->close ();
     }
 
-    void write (const msg_t &value_)
+    void write (const ZmqMessage &value_)
     {
         zmq_assert (value_.check ());
         *_back = value_;
@@ -85,7 +85,7 @@ template <> class dbuffer_t<msg_t>
         }
     }
 
-    bool read (msg_t *value_)
+    bool read (ZmqMessage *value_)
     {
         if (!value_)
             return false;
@@ -113,7 +113,7 @@ template <> class dbuffer_t<msg_t>
         return _has_msg;
     }
 
-    bool probe (bool (*fn_) (const msg_t &))
+    bool probe (bool (*fn_) (const ZmqMessage &))
     {
         scoped_lock_t lock (_sync);
         return (*fn_) (*_front);
@@ -121,8 +121,8 @@ template <> class dbuffer_t<msg_t>
 
 
   // private:
-    msg_t _storage[2];
-    msg_t *_back, *_front;
+    ZmqMessage _storage[2];
+    _back: &mut ZmqMessage *_front;
 
     mutex_t _sync;
     bool _has_msg;

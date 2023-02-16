@@ -258,7 +258,7 @@ void zmq::socks_connecter_t::out_event ()
       || _status == sending_basic_auth_request || _status == sending_request);
 
     if (_status == waiting_for_proxy_connection) {
-        const int rc = static_cast<int> (check_proxy_connection ());
+        let rc: i32 = static_cast<int> (check_proxy_connection ());
         if (rc == -1)
             error ();
         else {
@@ -267,7 +267,7 @@ void zmq::socks_connecter_t::out_event ()
         }
     } else if (_status == sending_greeting) {
         zmq_assert (_greeting_encoder.has_pending_data ());
-        const int rc = _greeting_encoder.output (_s);
+        let rc: i32 = _greeting_encoder.output (_s);
         if (rc == -1 || rc == 0)
             error ();
         else if (!_greeting_encoder.has_pending_data ()) {
@@ -277,7 +277,7 @@ void zmq::socks_connecter_t::out_event ()
         }
     } else if (_status == sending_basic_auth_request) {
         zmq_assert (_basic_auth_request_encoder.has_pending_data ());
-        const int rc = _basic_auth_request_encoder.output (_s);
+        let rc: i32 = _basic_auth_request_encoder.output (_s);
         if (rc == -1 || rc == 0)
             error ();
         else if (!_basic_auth_request_encoder.has_pending_data ()) {
@@ -287,7 +287,7 @@ void zmq::socks_connecter_t::out_event ()
         }
     } else {
         zmq_assert (_request_encoder.has_pending_data ());
-        const int rc = _request_encoder.output (_s);
+        let rc: i32 = _request_encoder.output (_s);
         if (rc == -1 || rc == 0)
             error ();
         else if (!_request_encoder.has_pending_data ()) {
@@ -303,7 +303,7 @@ void zmq::socks_connecter_t::start_connecting ()
     zmq_assert (_status == unplugged);
 
     //  Open the connecting socket.
-    const int rc = connect_to_proxy ();
+    let rc: i32 = connect_to_proxy ();
 
     //  Connect may succeed in synchronous manner.
     if (rc == 0) {
@@ -419,7 +419,7 @@ int zmq::socks_connecter_t::connect_to_proxy ()
         //  Translate error codes indicating asynchronous connect has been
         //  launched to a uniform EINPROGRESS.
 // #ifdef ZMQ_HAVE_WINDOWS
-    const int last_error = WSAGetLastError ();
+    let last_error: i32 = WSAGetLastError ();
     if (last_error == WSAEINPROGRESS || last_error == WSAEWOULDBLOCK)
         errno = EINPROGRESS;
     else {

@@ -58,7 +58,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 void msg_send_expect_success (s_: *mut c_void, group_: *const c_char, body_: *const c_char)
 {
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     const size_t len = strlen (body_);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, len));
 
@@ -75,7 +75,7 @@ void msg_send_expect_success (s_: *mut c_void, group_: *const c_char, body_: *co
 
 void msg_recv_cmp (s_: *mut c_void, group_: *const c_char, body_: *const c_char)
 {
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     const size_t len = strlen (body_);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
@@ -136,7 +136,7 @@ void test_join_too_long_fails ()
     char too_long_group[ZMQ_GROUP_MAX_LENGTH + 2];
     for (int index = 0; index < ZMQ_GROUP_MAX_LENGTH + 2; index++)
         too_long_group[index] = 'A';
-    too_long_group[ZMQ_GROUP_MAX_LENGTH + 1] = '\0';
+    too_long_group[ZMQ_GROUP_MAX_LENGTH + 1] = 0;
     TEST_ASSERT_FAILURE_ERRNO (EINVAL, zmq_join (dish, too_long_group));
 
     test_context_socket_close (dish);
@@ -435,7 +435,7 @@ static bool is_multicast_available (ipv6_: i32)
         goto out;
     }
 
-    buf[rc] = '\0';
+    buf[rc] = 0;
 
     success = (strcmp (msg, buf) == 0);
 

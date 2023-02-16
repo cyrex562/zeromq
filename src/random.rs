@@ -49,7 +49,7 @@
 void zmq::seed_random ()
 {
 // #if defined ZMQ_HAVE_WINDOWS
-    const int pid = static_cast<int> (GetCurrentProcessId ());
+    let pid: i32 = static_cast<int> (GetCurrentProcessId ());
 // #else
     int pid = static_cast<int> (getpid ());
 // #endif

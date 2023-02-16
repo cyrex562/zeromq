@@ -282,7 +282,7 @@ int zmq::signaler_t::wait (timeout_: i32) const
     struct pollfd pfd;
     pfd.fd = _r;
     pfd.events = POLLIN;
-    const int rc = poll (&pfd, 1, timeout_);
+    let rc: i32 = poll (&pfd, 1, timeout_);
     if (unlikely (rc < 0)) {
         errno_assert (errno == EINTR);
         return -1;
@@ -359,7 +359,7 @@ void zmq::signaler_t::recv ()
 // #else
     unsigned char dummy;
 // #if defined ZMQ_HAVE_WINDOWS
-    const int nbytes =
+    let nbytes: i32 =
       ::recv (_r, reinterpret_cast<char *> (&dummy), mem::size_of::<dummy>(), 0);
     wsa_assert (nbytes != SOCKET_ERROR);
 #elif defined ZMQ_HAVE_VXWORKS
@@ -400,10 +400,10 @@ int zmq::signaler_t::recv_failable ()
 // #else
     unsigned char dummy;
 // #if defined ZMQ_HAVE_WINDOWS
-    const int nbytes =
+    let nbytes: i32 =
       ::recv (_r, reinterpret_cast<char *> (&dummy), mem::size_of::<dummy>(), 0);
     if (nbytes == SOCKET_ERROR) {
-        const int last_error = WSAGetLastError ();
+        let last_error: i32 = WSAGetLastError ();
         if (last_error == WSAEWOULDBLOCK) {
             errno = EAGAIN;
             return -1;

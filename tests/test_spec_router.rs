@@ -63,7 +63,7 @@ void test_fair_queue_in (bind_address_: *const c_char)
 
     msleep (SETTLE_TIME);
 
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
     s_send_seq (senders[0], "M", SEQ_END);
@@ -143,7 +143,7 @@ void test_destroy_queue_on_disconnect (bind_address_: *const c_char)
     TEST_ASSERT_SUCCESS_ERRNO (zmq_poll (poller, 2, 100));
 
     // No messages should be available, sending should fail.
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     zmq_msg_init (&msg);
 
     TEST_ASSERT_FAILURE_ERRNO (

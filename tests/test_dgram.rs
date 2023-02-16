@@ -35,19 +35,19 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-void str_send_to (s_: *mut c_void, content_: *const c_char, address_: *const c_char)
+void str_send_to (s_: *mut c_void, content: *const c_char, address_: *const c_char)
 {
     send_string_expect_success (s_, address_, ZMQ_SNDMORE);
-    send_string_expect_success (s_, content_, 0);
+    send_string_expect_success (s_, content, 0);
 }
 
-void str_recv_from (s_: *mut c_void, char **ptr_content_, char **ptr_address_)
+void str_recv_from (s_: *mut c_void, char **ptr_content, char **ptr_address_)
 {
     *ptr_address_ = s_recv (s_);
     TEST_ASSERT_NOT_NULL (ptr_address_);
 
-    *ptr_content_ = s_recv (s_);
-    TEST_ASSERT_NOT_NULL (ptr_content_);
+    *ptr_content = s_recv (s_);
+    TEST_ASSERT_NOT_NULL (ptr_content);
 }
 
 pub const test_question: String = String::from("Is someone there ?");

@@ -51,7 +51,7 @@ extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
     TEST_ASSERT_SUCCESS_ERRNO (zmq_getsockopt (server, ZMQ_LAST_ENDPOINT,
                                                my_endpoint, &my_endpoint_size));
     //  Remove trailing /
-    my_endpoint[my_endpoint_size - 2] = '\0';
+    my_endpoint[my_endpoint_size - 2] = 0;
     fd_t client = connect_socket (my_endpoint, AF_INET, IPPROTO_WS);
 
     void *client_good = test_context_socket (ZMQ_DEALER);
@@ -74,7 +74,7 @@ extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
     msleep (250);
     recv (client, buf, 256, MSG_DONTWAIT);
 
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     zmq_msg_init (&msg);
     while (-1 != zmq_msg_recv (&msg, server, ZMQ_DONTWAIT)) {
         zmq_msg_close (&msg);

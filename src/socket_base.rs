@@ -41,8 +41,8 @@ pub struct socket_base_t_ : public own_t,
     int bind (endpoint_uri_: *const c_char);
     int connect (endpoint_uri_: *const c_char);
     int term_endpoint (endpoint_uri_: *const c_char);
-    int send (zmq::msg_t *msg_, flags_: i32);
-    int recv (zmq::msg_t *msg_, flags_: i32);
+    int send (msg: &mut ZmqMessage flags_: i32);
+    int recv (msg: &mut ZmqMessage flags_: i32);
     void add_signaler (signaler_t *s_);
     void remove_signaler (signaler_t *s_);
     int close ();
@@ -148,11 +148,11 @@ pub struct socket_base_t_ : public own_t,
 
     //  The default implementation assumes that send is not supported.
     virtual bool xhas_out ();
-    virtual int xsend (zmq::msg_t *msg_);
+    virtual int xsend (ZmqMessage *msg);
 
     //  The default implementation assumes that recv in not supported.
     virtual bool xhas_in ();
-    virtual int xrecv (zmq::msg_t *msg_);
+    virtual int xrecv (ZmqMessage *msg);
 
     //  i_pipe_events will be forwarded to these functions.
     virtual void xread_activated (pipe_t *pipe_);
@@ -218,7 +218,7 @@ pub struct inprocs_t
 
     //  Moves the flags from the message to local variables,
     //  to be later retrieved by getsockopt.
-    void extract_flags (const msg_t *msg_);
+    void extract_flags (const ZmqMessage *msg);
 
     //  Used to check whether the object is a socket.
     uint32_t _tag;
@@ -736,7 +736,7 @@ int zmq::ZmqSocketBase::getsockopt (option_: i32,
     }
 
     if (option_ == ZMQ_EVENTS) {
-        const int rc = process_commands (0, false);
+        let rc: i32 = process_commands (0, false);
         if (rc != 0 && (errno == EINTR || errno == ETERM)) {
             return -1;
         }
@@ -1063,11 +1063,11 @@ int zmq::ZmqSocketBase::connect_internal (endpoint_uri_: *const c_char)
 
         // The total HWM for an inproc connection should be the sum of
         // the binder's HWM and the connector's HWM.
-        const int sndhwm = peer.socket == NULL ? options.sndhwm
+        let sndhwm: i32 = peer.socket == NULL ? options.sndhwm
                            : options.sndhwm != 0 && peer.options.rcvhwm != 0
                              ? options.sndhwm + peer.options.rcvhwm
                              : 0;
-        const int rcvhwm = peer.socket == NULL ? options.rcvhwm
+        let rcvhwm: i32 = peer.socket == NULL ? options.rcvhwm
                            : options.rcvhwm != 0 && peer.options.sndhwm != 0
                              ? options.rcvhwm + peer.options.sndhwm
                              : 0;
@@ -1431,7 +1431,7 @@ int zmq::ZmqSocketBase::term_endpoint (endpoint_uri_: *const c_char)
 
     //  Process pending commands, if any, since there could be pending unprocessed process_own()'s
     //  (from launch_child() for example) we're asked to terminate now.
-    const int rc = process_commands (0, false);
+    let rc: i32 = process_commands (0, false);
     if (unlikely (rc != 0)) {
         return -1;
     }
@@ -1481,7 +1481,7 @@ int zmq::ZmqSocketBase::term_endpoint (endpoint_uri_: *const c_char)
     return 0;
 }
 
-int zmq::ZmqSocketBase::send (msg_t *msg_, flags_: i32)
+int zmq::ZmqSocketBase::send (msg: &mut ZmqMessage flags_: i32)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
@@ -1492,7 +1492,7 @@ int zmq::ZmqSocketBase::send (msg_t *msg_, flags_: i32)
     }
 
     //  Check whether message passed to the function is valid.
-    if (unlikely (!msg_ || !msg_->check ())) {
+    if (unlikely (!msg || !msg->check ())) {
         errno = EFAULT;
         return -1;
     }
@@ -1504,16 +1504,16 @@ int zmq::ZmqSocketBase::send (msg_t *msg_, flags_: i32)
     }
 
     //  Clear any user-visible flags that are set on the message.
-    msg_->reset_flags (msg_t::more);
+    msg->reset_flags (ZmqMessage::more);
 
     //  At this point we impose the flags on the message.
     if (flags_ & ZMQ_SNDMORE)
-        msg_->set_flags (msg_t::more);
+        msg->set_flags (ZmqMessage::more);
 
-    msg_->reset_metadata ();
+    msg->reset_metadata ();
 
     //  Try to send the message using method in each socket class
-    rc = xsend (msg_);
+    rc = xsend (msg);
     if (rc == 0) {
         return 0;
     }
@@ -1522,9 +1522,9 @@ int zmq::ZmqSocketBase::send (msg_t *msg_, flags_: i32)
     //  silently when in blocking mode to keep backward compatibility.
     if (unlikely (rc == -2)) {
         if (!((flags_ & ZMQ_DONTWAIT) || options.sndtimeo == 0)) {
-            rc = msg_->close ();
+            rc = msg->close ();
             errno_assert (rc == 0);
-            rc = msg_->init ();
+            rc = msg->init ();
             errno_assert (rc == 0);
             return 0;
         }
@@ -1551,7 +1551,7 @@ int zmq::ZmqSocketBase::send (msg_t *msg_, flags_: i32)
         if (unlikely (process_commands (timeout, false) != 0)) {
             return -1;
         }
-        rc = xsend (msg_);
+        rc = xsend (msg);
         if (rc == 0)
             break;
         if (unlikely (errno != EAGAIN)) {
@@ -1569,7 +1569,7 @@ int zmq::ZmqSocketBase::send (msg_t *msg_, flags_: i32)
     return 0;
 }
 
-int zmq::ZmqSocketBase::recv (msg_t *msg_, flags_: i32)
+int zmq::ZmqSocketBase::recv (msg: &mut ZmqMessage flags_: i32)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
@@ -1580,7 +1580,7 @@ int zmq::ZmqSocketBase::recv (msg_t *msg_, flags_: i32)
     }
 
     //  Check whether message passed to the function is valid.
-    if (unlikely (!msg_ || !msg_->check ())) {
+    if (unlikely (!msg || !msg->check ())) {
         errno = EFAULT;
         return -1;
     }
@@ -1601,14 +1601,14 @@ int zmq::ZmqSocketBase::recv (msg_t *msg_, flags_: i32)
     }
 
     //  Get the message.
-    int rc = xrecv (msg_);
+    int rc = xrecv (msg);
     if (unlikely (rc != 0 && errno != EAGAIN)) {
         return -1;
     }
 
     //  If we have the message, return immediately.
     if (rc == 0) {
-        extract_flags (msg_);
+        extract_flags (msg);
         return 0;
     }
 
@@ -1622,11 +1622,11 @@ int zmq::ZmqSocketBase::recv (msg_t *msg_, flags_: i32)
         }
         _ticks = 0;
 
-        rc = xrecv (msg_);
+        rc = xrecv (msg);
         if (rc < 0) {
             return rc;
         }
-        extract_flags (msg_);
+        extract_flags (msg);
 
         return 0;
     }
@@ -1643,7 +1643,7 @@ int zmq::ZmqSocketBase::recv (msg_t *msg_, flags_: i32)
         if (unlikely (process_commands (block ? timeout : 0, false) != 0)) {
             return -1;
         }
-        rc = xrecv (msg_);
+        rc = xrecv (msg);
         if (rc == 0) {
             _ticks = 0;
             break;
@@ -1661,7 +1661,7 @@ int zmq::ZmqSocketBase::recv (msg_t *msg_, flags_: i32)
         }
     }
 
-    extract_flags (msg_);
+    extract_flags (msg);
     return 0;
 }
 
@@ -1891,7 +1891,7 @@ bool zmq::ZmqSocketBase::xhas_out ()
     return false;
 }
 
-int zmq::ZmqSocketBase::xsend (msg_t *)
+int zmq::ZmqSocketBase::xsend (ZmqMessage *)
 {
     errno = ENOTSUP;
     return -1;
@@ -1916,7 +1916,7 @@ int zmq::ZmqSocketBase::xleave (group_: *const c_char)
     return -1;
 }
 
-int zmq::ZmqSocketBase::xrecv (msg_t *)
+int zmq::ZmqSocketBase::xrecv (ZmqMessage *)
 {
     errno = ENOTSUP;
     return -1;
@@ -2031,14 +2031,14 @@ void zmq::ZmqSocketBase::pipe_terminated (pipe_t *pipe_)
         unregister_term_ack ();
 }
 
-void zmq::ZmqSocketBase::extract_flags (const msg_t *msg_)
+void zmq::ZmqSocketBase::extract_flags (const ZmqMessage *msg)
 {
     //  Test whether routing_id flag is valid for this socket type.
-    if (unlikely (msg_->flags () & msg_t::routing_id))
+    if (unlikely (msg->flags () & ZmqMessage::routing_id))
         zmq_assert (options.recv_routing_id);
 
     //  Remove MORE flag.
-    _rcvmore = (msg_->flags () & msg_t::more) != 0;
+    _rcvmore = (msg->flags () & ZmqMessage::more) != 0;
 }
 
 int zmq::ZmqSocketBase::monitor (endpoint_: *const c_char,
@@ -2237,7 +2237,7 @@ void zmq::ZmqSocketBase::monitor_event (
     // contexts where the _monitor_sync mutex has been locked before
 
     if (_monitor_socket) {
-        zmq_msg_t msg;
+        zmq_ZmqMessage msg;
 
         switch (options.monitor_event_version) {
             case 1: {

@@ -137,7 +137,7 @@ void zmq::reaper_t::in_event ()
 
         //  Get the next command. If there is none, exit.
         ZmqCommand cmd;
-        const int rc = _mailbox.recv (&cmd, 0);
+        let rc: i32 = _mailbox.recv (&cmd, 0);
         if (rc != 0 && errno == EINTR)
             continue;
         if (rc != 0 && errno == EAGAIN)

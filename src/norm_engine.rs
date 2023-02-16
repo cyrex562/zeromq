@@ -89,7 +89,7 @@ pub struct NormRxStreamState
         char *AccessBuffer () { return (char *) (buffer_ptr + buffer_count); }
         size_t GetBytesNeeded () const { return buffer_size - buffer_count; }
         void IncrementBufferCount (count: usize) { buffer_count += count; }
-        msg_t *AccessMsg () { return zmq_decoder->msg (); }
+        ZmqMessage *AccessMsg () { return zmq_decoder->msg (); }
         // This invokes the decoder "decode" method
         // returning 0 if more data is needed,
         // 1 if the message is complete, If an error
@@ -159,7 +159,7 @@ pub struct Iterator
     bool is_sender;
     bool is_receiver;
     // Sender state
-    msg_t tx_msg;
+    ZmqMessage tx_msg;
     v2_encoder_t zmq_encoder; // for tx messages (we use v2 for now)
     NormObjectHandle norm_tx_stream;
     bool tx_first_msg;
@@ -243,7 +243,7 @@ int zmq::norm_engine_t::init (network_: *const c_char, bool send, bool recv)
             idLen = 31;
         char idText[32];
         strncpy (idText, network_, idLen);
-        idText[idLen] = '\0';
+        idText[idLen] = 0;
         localId = (NormNodeId) atoi (idText);
         ifacePtr++;
     } else {
@@ -258,7 +258,7 @@ int zmq::norm_engine_t::init (network_: *const c_char, bool send, bool recv)
         if (ifaceLen > 255)
             ifaceLen = 255; // return error instead?
         strncpy (ifaceName, ifacePtr, ifaceLen);
-        ifaceName[ifaceLen] = '\0';
+        ifaceName[ifaceLen] = 0;
         ifacePtr = ifaceName;
         addrPtr++;
     } else {
@@ -278,7 +278,7 @@ int zmq::norm_engine_t::init (network_: *const c_char, bool send, bool recv)
     if (addrLen > 255)
         addrLen = 255;
     strncpy (addr, addrPtr, addrLen);
-    addr[addrLen] = '\0';
+    addr[addrLen] = 0;
     portPtr++;
     unsigned short portNumber = atoi (portPtr);
 
@@ -517,7 +517,7 @@ void zmq::norm_engine_t::send_data ()
                       (char) 0xff; // this is not first frame of message
                 else
                     tx_buffer[0] = 0x00; // this is first frame of message
-                tx_more_bit = (0 != (tx_msg.flags () & msg_t::more));
+                tx_more_bit = (0 != (tx_msg.flags () & ZmqMessage::more));
                 // Go ahead an get a first chunk of the message
                 bufPtr++;
                 space--;
@@ -739,7 +739,7 @@ void zmq::norm_engine_t::recv_data (NormObjectHandle object)
             NormRxStreamState::List::Iterator iterator (msg_ready_list);
             NormRxStreamState *rxState;
             while (NULL != (rxState = iterator.GetNextItem ())) {
-                msg_t *msg = rxState->AccessMsg ();
+                ZmqMessage *msg = rxState->AccessMsg ();
                 int rc = zmq_session->push_msg (msg);
                 if (-1 == rc) {
                     if (EAGAIN == errno) {

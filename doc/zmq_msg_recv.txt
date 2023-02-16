@@ -9,7 +9,7 @@ zmq_msg_recv - receive a message part from a socket
 
 SYNOPSIS
 --------
-*int zmq_msg_recv (zmq_msg_t '*msg', void '*socket', int 'flags');*
+*int zmq_msg_recv (zmq_ZmqMessage '*msg', void '*socket', int 'flags');*
 
 
 DESCRIPTION
@@ -34,7 +34,7 @@ function shall fail with 'errno' set to EAGAIN.
 Multi-part messages
 ~~~~~~~~~~~~~~~~~~~
 A 0MQ message is composed of 1 or more message parts. Each message
-part is an independent 'zmq_msg_t' in its own right. 0MQ ensures atomic
+part is an independent 'zmq_ZmqMessage' in its own right. 0MQ ensures atomic
 delivery of messages: peers shall receive either all _message parts_ of a
 message or none at all. The total number of message parts is unlimited except
 by available memory.
@@ -81,7 +81,7 @@ EXAMPLE
 .Receiving a message from a socket
 ----
 /* Create an empty 0MQ message */
-zmq_msg_t msg;
+zmq_ZmqMessage msg;
 int rc = zmq_msg_init (&msg);
 assert (rc == 0);
 /* Block until a message is available to be received from socket */
@@ -97,7 +97,7 @@ int more;
 size_t more_size = sizeof (more);
 do {
     /* Create an empty 0MQ message to hold the message part */
-    zmq_msg_t part;
+    zmq_ZmqMessage part;
     int rc = zmq_msg_init (&part);
     assert (rc == 0);
     /* Block until a message is available to be received from socket */

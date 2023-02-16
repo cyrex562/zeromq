@@ -92,7 +92,7 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
     bool check_read ();
 
     //  Reads a message to the underlying pipe.
-    bool read (msg_t *msg_);
+    bool read (ZmqMessage *msg);
 
     //  Checks whether messages can be written to the pipe. If the pipe is
     //  closed or if writing the message would cause high watermark the
@@ -102,7 +102,7 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
     //  Writes a message to the underlying pipe. Returns false if the
     //  message does not pass check_write. If false, the message object
     //  retains ownership of its message buffer.
-    bool write (const msg_t *msg_);
+    bool write (const ZmqMessage *msg);
 
     //  Remove unfinished parts of the outbound message from the pipe.
     void rollback () const;
@@ -148,7 +148,7 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
 
   // private:
     //  Type of the underlying lock-free pipe.
-    typedef ypipe_base_t<msg_t> upipe_t;
+    typedef ypipe_base_t<ZmqMessage> upipe_t;
 
     //  Command handlers.
     void process_activate_read () ZMQ_OVERRIDE;
@@ -246,7 +246,7 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
     _server_socket_routing_id: i32;
 
     //  Returns true if the message is delimiter; false otherwise.
-    static bool is_delimiter (const msg_t &msg_);
+    static bool is_delimiter (const ZmqMessage &msg);
 
     //  Computes appropriate low watermark from the given high watermark.
     static int compute_lwm (hwm_: i32);
@@ -257,7 +257,7 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
     EndpointUriPair _endpoint_pair;
 
     // Disconnect msg
-    msg_t _disconnect_msg;
+    ZmqMessage _disconnect_msg;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (pipe_t)
 };
@@ -274,8 +274,8 @@ int zmq::pipepair (object_t *parents_[2],
     //   Creates two pipe objects. These objects are connected by two ypipes,
     //   each to pass messages in one direction.
 
-    typedef ypipe_t<msg_t, message_pipe_granularity> upipe_normal_t;
-    typedef ypipe_conflate_t<msg_t> upipe_conflate_t;
+    typedef ypipe_t<ZmqMessage, message_pipe_granularity> upipe_normal_t;
+    typedef ypipe_conflate_t<ZmqMessage> upipe_conflate_t;
 
     pipe_t::upipe_t *upipe1;
     if (conflate_[0])
@@ -306,11 +306,11 @@ int zmq::pipepair (object_t *parents_[2],
 
 void zmq::send_routing_id (pipe_t *pipe_, const ZmqOptions &options_)
 {
-    zmq::msg_t id;
-    const int rc = id.init_size (options_.routing_id_size);
+    ZmqMessage id;
+    let rc: i32 = id.init_size (options_.routing_id_size);
     errno_assert (rc == 0);
     memcpy (id.data (), options_.routing_id, options_.routing_id_size);
-    id.set_flags (zmq::msg_t::routing_id);
+    id.set_flags (ZmqMessage::routing_id);
     const bool written = pipe_->write (&id);
     zmq_assert (written);
     pipe_->flush ();
@@ -318,8 +318,8 @@ void zmq::send_routing_id (pipe_t *pipe_, const ZmqOptions &options_)
 
 void zmq::send_hello_msg (pipe_t *pipe_, const ZmqOptions &options_)
 {
-    zmq::msg_t hello;
-    const int rc =
+    ZmqMessage hello;
+    let rc: i32 =
       hello.init_buffer (&options_.hello_msg[0], options_.hello_msg.size ());
     errno_assert (rc == 0);
     const bool written = pipe_->write (&hello);
@@ -412,7 +412,7 @@ bool zmq::pipe_t::check_read ()
     //  If the next item in the pipe is message delimiter,
     //  initiate termination process.
     if (_in_pipe->probe (is_delimiter)) {
-        msg_t msg;
+        ZmqMessage msg;
         const bool ok = _in_pipe->read (&msg);
         zmq_assert (ok);
         process_delimiter ();
@@ -422,7 +422,7 @@ bool zmq::pipe_t::check_read ()
     return true;
 }
 
-bool zmq::pipe_t::read (msg_t *msg_)
+bool zmq::pipe_t::read (ZmqMessage *msg)
 {
     if (unlikely (!_in_active))
         return false;
@@ -430,14 +430,14 @@ bool zmq::pipe_t::read (msg_t *msg_)
         return false;
 
     while (true) {
-        if (!_in_pipe->read (msg_)) {
+        if (!_in_pipe->read (msg)) {
             _in_active = false;
             return false;
         }
 
         //  If this is a credential, ignore it and receive next message.
-        if (unlikely (msg_->is_credential ())) {
-            const int rc = msg_->close ();
+        if (unlikely (msg->is_credential ())) {
+            let rc: i32 = msg->close ();
             zmq_assert (rc == 0);
         } else {
             break;
@@ -445,12 +445,12 @@ bool zmq::pipe_t::read (msg_t *msg_)
     }
 
     //  If delimiter was read, start termination process of the pipe.
-    if (msg_->is_delimiter ()) {
+    if (msg->is_delimiter ()) {
         process_delimiter ();
         return false;
     }
 
-    if (!(msg_->flags () & msg_t::more) && !msg_->is_routing_id ())
+    if (!(msg->flags () & ZmqMessage::more) && !msg->is_routing_id ())
         _msgs_read++;
 
     if (_lwm > 0 && _msgs_read % _lwm == 0)
@@ -474,14 +474,14 @@ bool zmq::pipe_t::check_write ()
     return true;
 }
 
-bool zmq::pipe_t::write (const msg_t *msg_)
+bool zmq::pipe_t::write (const ZmqMessage *msg)
 {
     if (unlikely (!check_write ()))
         return false;
 
-    const bool more = (msg_->flags () & msg_t::more) != 0;
-    const bool is_routing_id = msg_->is_routing_id ();
-    _out_pipe->write (*msg_, more);
+    const bool more = (msg->flags () & ZmqMessage::more) != 0;
+    const bool is_routing_id = msg->is_routing_id ();
+    _out_pipe->write (*msg, more);
     if (!more && !is_routing_id)
         _msgs_written++;
 
@@ -491,11 +491,11 @@ bool zmq::pipe_t::write (const msg_t *msg_)
 void zmq::pipe_t::rollback () const
 {
     //  Remove incomplete message from the outbound pipe.
-    msg_t msg;
+    ZmqMessage msg;
     if (_out_pipe) {
         while (_out_pipe->unwrite (&msg)) {
-            zmq_assert (msg.flags () & msg_t::more);
-            const int rc = msg.close ();
+            zmq_assert (msg.flags () & ZmqMessage::more);
+            let rc: i32 = msg.close ();
             errno_assert (rc == 0);
         }
     }
@@ -536,11 +536,11 @@ void zmq::pipe_t::process_hiccup (pipe_: *mut c_void)
     //  migrated to this thread.
     zmq_assert (_out_pipe);
     _out_pipe->flush ();
-    msg_t msg;
+    ZmqMessage msg;
     while (_out_pipe->read (&msg)) {
-        if (!(msg.flags () & msg_t::more))
+        if (!(msg.flags () & ZmqMessage::more))
             _msgs_written--;
-        const int rc = msg.close ();
+        let rc: i32 = msg.close ();
         errno_assert (rc == 0);
     }
     LIBZMQ_DELETE (_out_pipe);
@@ -612,13 +612,13 @@ void zmq::pipe_t::process_pipe_term_ack ()
     //  We'll deallocate the inbound pipe, the peer will deallocate the outbound
     //  pipe (which is an inbound pipe from its point of view).
     //  First, delete all the unread messages in the pipe. We have to do it by
-    //  hand because msg_t doesn't have automatic destructor. Then deallocate
+    //  hand because ZmqMessage doesn't have automatic destructor. Then deallocate
     //  the ypipe itself.
 
     if (!_conflate) {
-        msg_t msg;
+        ZmqMessage msg;
         while (_in_pipe->read (&msg)) {
-            const int rc = msg.close ();
+            let rc: i32 = msg.close ();
             errno_assert (rc == 0);
         }
     }
@@ -692,16 +692,16 @@ void zmq::pipe_t::terminate (bool delay_)
 
         //  Write the delimiter into the pipe. Note that watermarks are not
         //  checked; thus the delimiter can be written even when the pipe is full.
-        msg_t msg;
+        ZmqMessage msg;
         msg.init_delimiter ();
         _out_pipe->write (msg, false);
         flush ();
     }
 }
 
-bool zmq::pipe_t::is_delimiter (const msg_t &msg_)
+bool zmq::pipe_t::is_delimiter (const ZmqMessage &msg)
 {
-    return msg_.is_delimiter ();
+    return msg.is_delimiter ();
 }
 
 int zmq::pipe_t::compute_lwm (hwm_: i32)
@@ -722,7 +722,7 @@ int zmq::pipe_t::compute_lwm (hwm_: i32)
     //  Given the 3. it would be good to keep HWM and LWM as far apart as
     //  possible to reduce the thread switching overhead to almost zero.
     //  Let's make LWM 1/2 of HWM.
-    const int result = (hwm_ + 1) / 2;
+    let result: i32 = (hwm_ + 1) / 2;
 
     return result;
 }
@@ -753,8 +753,8 @@ void zmq::pipe_t::hiccup ()
     //  Create new inpipe.
     _in_pipe =
       _conflate
-        ? static_cast<upipe_t *> (new (std::nothrow) ypipe_conflate_t<msg_t> ())
-        : new (std::nothrow) ypipe_t<msg_t, message_pipe_granularity> ();
+        ? static_cast<upipe_t *> (new (std::nothrow) ypipe_conflate_t<ZmqMessage> ())
+        : new (std::nothrow) ypipe_t<ZmqMessage, message_pipe_granularity> ();
 
     alloc_assert (_in_pipe);
     _in_active = true;
@@ -839,7 +839,7 @@ void zmq::pipe_t::set_disconnect_msg (
   const std::vector<unsigned char> &disconnect_)
 {
     _disconnect_msg.close ();
-    const int rc =
+    let rc: i32 =
       _disconnect_msg.init_buffer (&disconnect_[0], disconnect_.size ());
     errno_assert (rc == 0);
 }
@@ -847,8 +847,8 @@ void zmq::pipe_t::set_disconnect_msg (
 void zmq::pipe_t::send_hiccup_msg (const std::vector<unsigned char> &hiccup_)
 {
     if (!hiccup_.is_empty() && _out_pipe) {
-        msg_t msg;
-        const int rc = msg.init_buffer (&hiccup_[0], hiccup_.size ());
+        ZmqMessage msg;
+        let rc: i32 = msg.init_buffer (&hiccup_[0], hiccup_.size ());
         errno_assert (rc == 0);
 
         _out_pipe->write (msg, false);

@@ -74,7 +74,7 @@ void tearDown ()
     teardown_test_context ();
 }
 
-const int timeout = 250;
+let timeout: i32 = 250;
 
 const char large_routing_id[] = "0123456789012345678901234567890123456789"
                                 "0123456789012345678901234567890123456789"
@@ -227,24 +227,24 @@ void test_curve_security_unauthenticated_message ()
     close (s);
 }
 
-void send_all (fd_t fd_, data_: *const c_char, socket_size_: usize)
+void send_all (fd_t fd_, data: *const c_char, socket_size_: usize)
 {
-    while (size_ > 0) {
-        int res = send (fd_, data_, size_, 0);
+    while (size > 0) {
+        int res = send (fd_, data, size, 0);
         TEST_ASSERT_GREATER_THAN_INT (0, res);
-        size_ -= res;
-        data_ += res;
+        size -= res;
+        data += res;
     }
 }
 
-template <size_t N> void send (fd_t fd_, const char (&data_)[N])
+template <size_t N> void send (fd_t fd_, const char (&data)[N])
 {
-    send_all (fd_, data_, N - 1);
+    send_all (fd_, data, N - 1);
 }
 
-template <size_t N> void send (fd_t fd_, const uint8_t (&data_)[N])
+template <size_t N> void send (fd_t fd_, const uint8_t (&data)[N])
 {
-    send_all (fd_, reinterpret_cast<const char *> (&data_), N);
+    send_all (fd_, reinterpret_cast<const char *> (&data), N);
 }
 
 void test_curve_security_invalid_hello_wrong_length ()
@@ -367,14 +367,14 @@ void flush_read (fd_t fd_)
     TEST_ASSERT_NOT_EQUAL (-1, res);
 }
 
-void recv_all (fd_t fd_, uint8_t *data_, socket_len_: usize)
+void recv_all (fd_t fd_, uint8_t *data, socket_len_: usize)
 {
     socket_size_t received = 0;
     while (received < len_) {
-        int res = recv (fd_, reinterpret_cast<char *> (data_), len_, 0);
+        int res = recv (fd_, reinterpret_cast<char *> (data), len_, 0);
         TEST_ASSERT_GREATER_THAN_INT (0, res);
 
-        data_ += res;
+        data += res;
         received += res;
     }
 }
@@ -439,7 +439,7 @@ fd_t connect_exchange_greeting_and_hello_welcome (
     TEST_ASSERT_SUCCESS_ERRNO (
       tools_.process_welcome (welcome + 2, welcome_length, cn_precom));
 
-    const int res =
+    let res: i32 =
       get_monitor_event_with_timeout (server_mon_, NULL, NULL, timeout_);
     TEST_ASSERT_EQUAL_INT (-1, res);
 

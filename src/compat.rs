@@ -64,7 +64,7 @@ static inline int strcpy_s (char (&dest_)[size], const char *const src_)
 static inline size_t strnlen (s: *const c_char, len: usize)
 {
     for (size_t i = 0; i < len; i++) {
-        if (s[i] == '\0')
+        if (s[i] == 0)
             return i + 1;
     }
 

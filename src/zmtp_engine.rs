@@ -90,10 +90,10 @@ pub struct zmtp_engine_t ZMQ_FINAL : public stream_engine_base_t
 
     void plug_internal ();
 
-    int process_command_message (msg_t *msg_);
-    int produce_ping_message (msg_t *msg_);
-    int process_heartbeat_message (msg_t *msg_);
-    int produce_pong_message (msg_t *msg_);
+    int process_command_message (ZmqMessage *msg);
+    int produce_ping_message (ZmqMessage *msg);
+    int process_heartbeat_message (ZmqMessage *msg);
+    int produce_pong_message (ZmqMessage *msg);
 
   // private:
     //  Receive the greeting from the peer.
@@ -112,13 +112,13 @@ pub struct zmtp_engine_t ZMQ_FINAL : public stream_engine_base_t
     bool handshake_v3_0 ();
     bool handshake_v3_1 ();
 
-    int routing_id_msg (msg_t *msg_);
-    int process_routing_id_msg (msg_t *msg_);
+    int routing_id_msg (ZmqMessage *msg);
+    int process_routing_id_msg (ZmqMessage *msg);
 
-    msg_t _routing_id_msg;
+    ZmqMessage _routing_id_msg;
 
     //  Need to store PING payload for PONG
-    msg_t _pong_msg;
+    ZmqMessage _pong_msg;
 
     static const size_t signature_size = 10;
 
@@ -158,9 +158,9 @@ zmq::zmtp_engine_t::zmtp_engine_t (
     _subscription_required (false),
     _heartbeat_timeout (0)
 {
-    _next_msg = static_cast<int (stream_engine_base_t::*) (msg_t *)> (
+    _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
       &zmtp_engine_t::routing_id_msg);
-    _process_msg = static_cast<int (stream_engine_base_t::*) (msg_t *)> (
+    _process_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
       &zmtp_engine_t::process_routing_id_msg);
 
     int rc = _pong_msg.init ();
@@ -178,7 +178,7 @@ zmq::zmtp_engine_t::zmtp_engine_t (
 
 zmq::zmtp_engine_t::~zmtp_engine_t ()
 {
-    const int rc = _routing_id_msg.close ();
+    let rc: i32 = _routing_id_msg.close ();
     errno_assert (rc == 0);
 }
 
@@ -209,7 +209,7 @@ bool zmq::zmtp_engine_t::handshake ()
 {
     zmq_assert (_greeting_bytes_read < _greeting_size);
     //  Receive the greeting.
-    const int rc = receive_greeting ();
+    let rc: i32 = receive_greeting ();
     if (rc == -1)
         return false;
     const bool unversioned = rc != 0;
@@ -230,7 +230,7 @@ int zmq::zmtp_engine_t::receive_greeting ()
 {
     bool unversioned = false;
     while (_greeting_bytes_read < _greeting_size) {
-        const int n = read (_greeting_recv + _greeting_bytes_read,
+        let n: i32 = read (_greeting_recv + _greeting_bytes_read,
                             _greeting_size - _greeting_bytes_read);
         if (n == -1) {
             if (errno != EAGAIN)
@@ -385,7 +385,7 @@ bool zmq::zmtp_engine_t::handshake_v1_0_unversioned ()
     _next_msg = &zmtp_engine_t::pull_msg_from_session;
 
     //  We are expecting routing id message.
-    _process_msg = static_cast<int (stream_engine_base_t::*) (msg_t *)> (
+    _process_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
       &zmtp_engine_t::process_routing_id_msg);
 
     return true;
@@ -513,31 +513,31 @@ bool zmq::zmtp_engine_t::handshake_v3_1 ()
     return zmq::zmtp_engine_t::handshake_v3_x (false);
 }
 
-int zmq::zmtp_engine_t::routing_id_msg (msg_t *msg_)
+int zmq::zmtp_engine_t::routing_id_msg (ZmqMessage *msg)
 {
-    const int rc = msg_->init_size (_options.routing_id_size);
+    let rc: i32 = msg->init_size (_options.routing_id_size);
     errno_assert (rc == 0);
     if (_options.routing_id_size > 0)
-        memcpy (msg_->data (), _options.routing_id, _options.routing_id_size);
+        memcpy (msg->data (), _options.routing_id, _options.routing_id_size);
     _next_msg = &zmtp_engine_t::pull_msg_from_session;
     return 0;
 }
 
-int zmq::zmtp_engine_t::process_routing_id_msg (msg_t *msg_)
+int zmq::zmtp_engine_t::process_routing_id_msg (ZmqMessage *msg)
 {
     if (_options.recv_routing_id) {
-        msg_->set_flags (msg_t::routing_id);
-        const int rc = session ()->push_msg (msg_);
+        msg->set_flags (ZmqMessage::routing_id);
+        let rc: i32 = session ()->push_msg (msg);
         errno_assert (rc == 0);
     } else {
-        int rc = msg_->close ();
+        int rc = msg->close ();
         errno_assert (rc == 0);
-        rc = msg_->init ();
+        rc = msg->init ();
         errno_assert (rc == 0);
     }
 
     if (_subscription_required) {
-        msg_t subscription;
+        ZmqMessage subscription;
 
         //  Inject the subscription message, so that also
         //  ZMQ 2.x peers receive published messages.
@@ -548,28 +548,28 @@ int zmq::zmtp_engine_t::process_routing_id_msg (msg_t *msg_)
         errno_assert (rc == 0);
     }
 
-    _process_msg = &zmtp_engine_t::push_msg_to_session;
+    _process_msg = &zmtp_engine_t::push_ZmqMessageo_session;
 
     return 0;
 }
 
-int zmq::zmtp_engine_t::produce_ping_message (msg_t *msg_)
+int zmq::zmtp_engine_t::produce_ping_message (ZmqMessage *msg)
 {
     // 16-bit TTL + \4PING == 7
-    const size_t ping_ttl_len = msg_t::ping_cmd_name_size + 2;
+    const size_t ping_ttl_len = ZmqMessage::ping_cmd_name_size + 2;
     zmq_assert (_mechanism != NULL);
 
-    int rc = msg_->init_size (ping_ttl_len);
+    int rc = msg->init_size (ping_ttl_len);
     errno_assert (rc == 0);
-    msg_->set_flags (msg_t::command);
+    msg->set_flags (ZmqMessage::command);
     // Copy in the command message
-    memcpy (msg_->data (), "\4PING", msg_t::ping_cmd_name_size);
+    memcpy (msg->data (), "\4PING", ZmqMessage::ping_cmd_name_size);
 
     uint16_t ttl_val = htons (_options.heartbeat_ttl);
-    memcpy (static_cast<uint8_t *> (msg_->data ()) + msg_t::ping_cmd_name_size,
+    memcpy (static_cast<uint8_t *> (msg->data ()) + ZmqMessage::ping_cmd_name_size,
             &ttl_val, mem::size_of::<ttl_val>());
 
-    rc = _mechanism->encode (msg_);
+    rc = _mechanism->encode (msg);
     _next_msg = &zmtp_engine_t::pull_and_encode;
     if (!_has_timeout_timer && _heartbeat_timeout > 0) {
         add_timer (_heartbeat_timeout, heartbeat_timeout_timer_id);
@@ -578,31 +578,31 @@ int zmq::zmtp_engine_t::produce_ping_message (msg_t *msg_)
     return rc;
 }
 
-int zmq::zmtp_engine_t::produce_pong_message (msg_t *msg_)
+int zmq::zmtp_engine_t::produce_pong_message (ZmqMessage *msg)
 {
     zmq_assert (_mechanism != NULL);
 
-    int rc = msg_->move (_pong_msg);
+    int rc = msg->move (_pong_msg);
     errno_assert (rc == 0);
 
-    rc = _mechanism->encode (msg_);
+    rc = _mechanism->encode (msg);
     _next_msg = &zmtp_engine_t::pull_and_encode;
     return rc;
 }
 
-int zmq::zmtp_engine_t::process_heartbeat_message (msg_t *msg_)
+int zmq::zmtp_engine_t::process_heartbeat_message (ZmqMessage *msg)
 {
-    if (msg_->is_ping ()) {
+    if (msg->is_ping ()) {
         // 16-bit TTL + \4PING == 7
-        const size_t ping_ttl_len = msg_t::ping_cmd_name_size + 2;
+        const size_t ping_ttl_len = ZmqMessage::ping_cmd_name_size + 2;
         const size_t ping_max_ctx_len = 16;
         uint16_t remote_heartbeat_ttl;
 
         // Get the remote heartbeat TTL to setup the timer
         memcpy (&remote_heartbeat_ttl,
-                static_cast<uint8_t *> (msg_->data ())
-                  + msg_t::ping_cmd_name_size,
-                ping_ttl_len - msg_t::ping_cmd_name_size);
+                static_cast<uint8_t *> (msg->data ())
+                  + ZmqMessage::ping_cmd_name_size,
+                ping_ttl_len - ZmqMessage::ping_cmd_name_size);
         remote_heartbeat_ttl = ntohs (remote_heartbeat_ttl);
         // The remote heartbeat is in 10ths of a second
         // so we multiply it by 100 to get the timer interval in ms.
@@ -619,19 +619,19 @@ int zmq::zmtp_engine_t::process_heartbeat_message (msg_t *msg_)
         //  Given the engine goes straight to out_event, sequential PINGs will
         //  not be a problem.
         const size_t context_len =
-          std::min (msg_->size () - ping_ttl_len, ping_max_ctx_len);
-        const int rc =
-          _pong_msg.init_size (msg_t::ping_cmd_name_size + context_len);
+          std::min (msg->size () - ping_ttl_len, ping_max_ctx_len);
+        let rc: i32 =
+          _pong_msg.init_size (ZmqMessage::ping_cmd_name_size + context_len);
         errno_assert (rc == 0);
-        _pong_msg.set_flags (msg_t::command);
-        memcpy (_pong_msg.data (), "\4PONG", msg_t::ping_cmd_name_size);
+        _pong_msg.set_flags (ZmqMessage::command);
+        memcpy (_pong_msg.data (), "\4PONG", ZmqMessage::ping_cmd_name_size);
         if (context_len > 0)
             memcpy (static_cast<uint8_t *> (_pong_msg.data ())
-                      + msg_t::ping_cmd_name_size,
-                    static_cast<uint8_t *> (msg_->data ()) + ping_ttl_len,
+                      + ZmqMessage::ping_cmd_name_size,
+                    static_cast<uint8_t *> (msg->data ()) + ping_ttl_len,
                     context_len);
 
-        _next_msg = static_cast<int (stream_engine_base_t::*) (msg_t *)> (
+        _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
           &zmtp_engine_t::produce_pong_message);
         out_event ();
     }
@@ -639,34 +639,34 @@ int zmq::zmtp_engine_t::process_heartbeat_message (msg_t *msg_)
     return 0;
 }
 
-int zmq::zmtp_engine_t::process_command_message (msg_t *msg_)
+int zmq::zmtp_engine_t::process_command_message (ZmqMessage *msg)
 {
     const uint8_t cmd_name_size =
-      *(static_cast<const uint8_t *> (msg_->data ()));
-    const size_t ping_name_size = msg_t::ping_cmd_name_size - 1;
-    const size_t sub_name_size = msg_t::sub_cmd_name_size - 1;
-    const size_t cancel_name_size = msg_t::cancel_cmd_name_size - 1;
+      *(static_cast<const uint8_t *> (msg->data ()));
+    const size_t ping_name_size = ZmqMessage::ping_cmd_name_size - 1;
+    const size_t sub_name_size = ZmqMessage::sub_cmd_name_size - 1;
+    const size_t cancel_name_size = ZmqMessage::cancel_cmd_name_size - 1;
     //  Malformed command
-    if (unlikely (msg_->size () < cmd_name_size + mem::size_of::<cmd_name_size>()))
+    if (unlikely (msg->size () < cmd_name_size + mem::size_of::<cmd_name_size>()))
         return -1;
 
     const uint8_t *const cmd_name =
-      static_cast<const uint8_t *> (msg_->data ()) + 1;
+      static_cast<const uint8_t *> (msg->data ()) + 1;
     if (cmd_name_size == ping_name_size
         && memcmp (cmd_name, "PING", cmd_name_size) == 0)
-        msg_->set_flags (zmq::msg_t::ping);
+        msg->set_flags (ZmqMessage::ping);
     if (cmd_name_size == ping_name_size
         && memcmp (cmd_name, "PONG", cmd_name_size) == 0)
-        msg_->set_flags (zmq::msg_t::pong);
+        msg->set_flags (ZmqMessage::pong);
     if (cmd_name_size == sub_name_size
         && memcmp (cmd_name, "SUBSCRIBE", cmd_name_size) == 0)
-        msg_->set_flags (zmq::msg_t::subscribe);
+        msg->set_flags (ZmqMessage::subscribe);
     if (cmd_name_size == cancel_name_size
         && memcmp (cmd_name, "CANCEL", cmd_name_size) == 0)
-        msg_->set_flags (zmq::msg_t::cancel);
+        msg->set_flags (ZmqMessage::cancel);
 
-    if (msg_->is_ping () || msg_->is_pong ())
-        return process_heartbeat_message (msg_);
+    if (msg->is_ping () || msg->is_pong ())
+        return process_heartbeat_message (msg);
 
     return 0;
 }

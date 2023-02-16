@@ -84,7 +84,7 @@ pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
     //  Message encoder.
     v1_encoder_t encoder;
 
-    msg_t msg;
+    ZmqMessage msg;
 
     //  Keeps track of message boundaries.
     bool more_flag;
@@ -267,7 +267,7 @@ void zmq::pgm_sender_t::out_event ()
             int rc = session->pull_msg (&msg);
             if (rc == -1)
                 break;
-            more_flag = msg.flags () & msg_t::more;
+            more_flag = msg.flags () & ZmqMessage::more;
             encoder.load_msg (&msg);
             bf = out_buffer + mem::size_of::<uint16_t>() + bytes;
             bytes += encoder.encode (&bf, bfsz - bytes);

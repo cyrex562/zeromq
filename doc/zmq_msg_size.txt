@@ -9,7 +9,7 @@ zmq_msg_size - retrieve message content size in bytes
 
 SYNOPSIS
 --------
-*size_t zmq_msg_size (zmq_msg_t '*msg');*
+*size_t zmq_msg_size (zmq_ZmqMessage '*msg');*
 
 
 DESCRIPTION
@@ -17,7 +17,7 @@ DESCRIPTION
 The _zmq_msg_size()_ function shall return the size in bytes of the content of
 the message object referenced by 'msg'.
 
-CAUTION: Never access 'zmq_msg_t' members directly, instead always use the
+CAUTION: Never access 'zmq_ZmqMessage' members directly, instead always use the
 _zmq_msg_ family of functions.
 
 

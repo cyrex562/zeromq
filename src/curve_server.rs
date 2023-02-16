@@ -49,10 +49,10 @@ pub struct curve_server_t ZMQ_FINAL : public zap_client_common_handshake_t,
     ~curve_server_t ();
 
     // mechanism implementation
-    int next_handshake_command (msg_t *msg_);
-    int process_handshake_command (msg_t *msg_);
-    int encode (msg_t *msg_);
-    int decode (msg_t *msg_);
+    int next_handshake_command (ZmqMessage *msg);
+    int process_handshake_command (ZmqMessage *msg);
+    int encode (ZmqMessage *msg);
+    int decode (ZmqMessage *msg);
 
   // private:
     //  Our secret key (s)
@@ -70,11 +70,11 @@ pub struct curve_server_t ZMQ_FINAL : public zap_client_common_handshake_t,
     //  Key used to produce cookie
     uint8_t _cookie_key[crypto_secretbox_KEYBYTES];
 
-    int process_hello (msg_t *msg_);
-    int produce_welcome (msg_t *msg_);
-    int process_initiate (msg_t *msg_);
-    int produce_ready (msg_t *msg_);
-    int produce_error (msg_t *msg_) const;
+    int process_hello (ZmqMessage *msg);
+    int produce_welcome (ZmqMessage *msg);
+    int process_initiate (ZmqMessage *msg);
+    int produce_ready (ZmqMessage *msg);
+    int produce_error (ZmqMessage *msg) const;
 
     void send_zap_request (const uint8_t *key_);
 };
@@ -107,23 +107,23 @@ zmq::curve_server_t::~curve_server_t ()
 {
 }
 
-int zmq::curve_server_t::next_handshake_command (msg_t *msg_)
+int zmq::curve_server_t::next_handshake_command (ZmqMessage *msg)
 {
     int rc = 0;
 
     switch (state) {
         case sending_welcome:
-            rc = produce_welcome (msg_);
+            rc = produce_welcome (msg);
             if (rc == 0)
                 state = waiting_for_initiate;
             break;
         case sending_ready:
-            rc = produce_ready (msg_);
+            rc = produce_ready (msg);
             if (rc == 0)
                 state = ready;
             break;
         case sending_error:
-            rc = produce_error (msg_);
+            rc = produce_error (msg);
             if (rc == 0)
                 state = error_sent;
             break;
@@ -135,16 +135,16 @@ int zmq::curve_server_t::next_handshake_command (msg_t *msg_)
     return rc;
 }
 
-int zmq::curve_server_t::process_handshake_command (msg_t *msg_)
+int zmq::curve_server_t::process_handshake_command (ZmqMessage *msg)
 {
     int rc = 0;
 
     switch (state) {
         case waiting_for_hello:
-            rc = process_hello (msg_);
+            rc = process_hello (msg);
             break;
         case waiting_for_initiate:
-            rc = process_initiate (msg_);
+            rc = process_initiate (msg);
             break;
         default:
             // TODO I think this is not a case reachable with a misbehaving
@@ -161,34 +161,34 @@ int zmq::curve_server_t::process_handshake_command (msg_t *msg_)
             break;
     }
     if (rc == 0) {
-        rc = msg_->close ();
+        rc = msg->close ();
         errno_assert (rc == 0);
-        rc = msg_->init ();
+        rc = msg->init ();
         errno_assert (rc == 0);
     }
     return rc;
 }
 
-int zmq::curve_server_t::encode (msg_t *msg_)
+int zmq::curve_server_t::encode (ZmqMessage *msg)
 {
     zmq_assert (state == ready);
-    return curve_mechanism_base_t::encode (msg_);
+    return curve_mechanism_base_t::encode (msg);
 }
 
-int zmq::curve_server_t::decode (msg_t *msg_)
+int zmq::curve_server_t::decode (ZmqMessage *msg)
 {
     zmq_assert (state == ready);
-    return curve_mechanism_base_t::decode (msg_);
+    return curve_mechanism_base_t::decode (msg);
 }
 
-int zmq::curve_server_t::process_hello (msg_t *msg_)
+int zmq::curve_server_t::process_hello (ZmqMessage *msg)
 {
-    int rc = check_basic_command_structure (msg_);
+    int rc = check_basic_command_structure (msg);
     if (rc == -1)
         return -1;
 
-    const size_t size = msg_->size ();
-    const uint8_t *const hello = static_cast<uint8_t *> (msg_->data ());
+    const size_t size = msg->size ();
+    const uint8_t *const hello = static_cast<uint8_t *> (msg->data ());
 
     if (size < 6 || memcmp (hello, "\x05HELLO", 6)) {
         session->get_socket ()->event_handshake_failed_protocol (
@@ -247,7 +247,7 @@ int zmq::curve_server_t::process_hello (msg_t *msg_)
     return rc;
 }
 
-int zmq::curve_server_t::produce_welcome (msg_t *msg_)
+int zmq::curve_server_t::produce_welcome (ZmqMessage *msg)
 {
     uint8_t cookie_nonce[crypto_secretbox_NONCEBYTES];
     std::vector<uint8_t, secure_allocator_t<uint8_t> > cookie_plaintext (
@@ -309,10 +309,10 @@ int zmq::curve_server_t::produce_welcome (msg_t *msg_)
     if (rc == -1)
         return -1;
 
-    rc = msg_->init_size (168);
+    rc = msg->init_size (168);
     errno_assert (rc == 0);
 
-    uint8_t *const welcome = static_cast<uint8_t *> (msg_->data ());
+    uint8_t *const welcome = static_cast<uint8_t *> (msg->data ());
     memcpy (welcome, "\x07WELCOME", 8);
     memcpy (welcome + 8, welcome_nonce + 8, 16);
     memcpy (welcome + 24, welcome_ciphertext + crypto_box_BOXZEROBYTES, 144);
@@ -320,14 +320,14 @@ int zmq::curve_server_t::produce_welcome (msg_t *msg_)
     return 0;
 }
 
-int zmq::curve_server_t::process_initiate (msg_t *msg_)
+int zmq::curve_server_t::process_initiate (ZmqMessage *msg)
 {
-    int rc = check_basic_command_structure (msg_);
+    int rc = check_basic_command_structure (msg);
     if (rc == -1)
         return -1;
 
-    const size_t size = msg_->size ();
-    const uint8_t *initiate = static_cast<uint8_t *> (msg_->data ());
+    const size_t size = msg->size ();
+    const uint8_t *initiate = static_cast<uint8_t *> (msg->data ());
 
     if (size < 9 || memcmp (initiate, "\x08INITIATE", 9)) {
         session->get_socket ()->event_handshake_failed_protocol (
@@ -483,7 +483,7 @@ int zmq::curve_server_t::process_initiate (msg_t *msg_)
                            clen - crypto_box_ZEROBYTES - 128);
 }
 
-int zmq::curve_server_t::produce_ready (msg_t *msg_)
+int zmq::curve_server_t::produce_ready (ZmqMessage *msg)
 {
     const size_t metadata_length = basic_properties_len ();
     uint8_t ready_nonce[crypto_box_NONCEBYTES];
@@ -509,10 +509,10 @@ int zmq::curve_server_t::produce_ready (msg_t *msg_)
                                  ready_nonce, get_precom_buffer ());
     zmq_assert (rc == 0);
 
-    rc = msg_->init_size (14 + mlen - crypto_box_BOXZEROBYTES);
+    rc = msg->init_size (14 + mlen - crypto_box_BOXZEROBYTES);
     errno_assert (rc == 0);
 
-    uint8_t *ready = static_cast<uint8_t *> (msg_->data ());
+    uint8_t *ready = static_cast<uint8_t *> (msg->data ());
 
     memcpy (ready, "\x05READY", 6);
     //  Short nonce, prefixed by "CurveZMQREADY---"
@@ -524,13 +524,13 @@ int zmq::curve_server_t::produce_ready (msg_t *msg_)
     return 0;
 }
 
-int zmq::curve_server_t::produce_error (msg_t *msg_) const
+int zmq::curve_server_t::produce_error (ZmqMessage *msg) const
 {
     const size_t expected_status_code_length = 3;
     zmq_assert (status_code.length () == 3);
-    const int rc = msg_->init_size (6 + 1 + expected_status_code_length);
+    let rc: i32 = msg->init_size (6 + 1 + expected_status_code_length);
     zmq_assert (rc == 0);
-    char *msg_data = static_cast<char *> (msg_->data ());
+    char *msg_data = static_cast<char *> (msg->data ());
     memcpy (msg_data, "\5ERROR", 6);
     msg_data[6] = expected_status_code_length;
     memcpy (msg_data + 7, status_code, expected_status_code_length);

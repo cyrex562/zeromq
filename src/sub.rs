@@ -38,7 +38,7 @@ pub struct sub_t ZMQ_FINAL : public xsub_t
 
   protected:
     int xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
-    int xsend (zmq::msg_t *msg_);
+    int xsend (ZmqMessage *msg);
     bool xhas_out ();
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (sub_t)
@@ -68,7 +68,7 @@ int zmq::sub_t::xsetsockopt (option_: i32,
     }
 
     //  Create the subscription message.
-    msg_t msg;
+    ZmqMessage msg;
     rc: i32;
     const unsigned char *data = static_cast<const unsigned char *> (optval_);
     if (option_ == ZMQ_SUBSCRIBE) {
@@ -83,7 +83,7 @@ int zmq::sub_t::xsetsockopt (option_: i32,
     return close_and_return (&msg, rc);
 }
 
-int zmq::sub_t::xsend (msg_t *)
+int zmq::sub_t::xsend (ZmqMessage *)
 {
     //  Override the XSUB's send.
     errno = ENOTSUP;

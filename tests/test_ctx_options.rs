@@ -232,11 +232,11 @@ void test_ctx_option_ipv6 ()
     TEST_ASSERT_EQUAL_INT (0, zmq_ctx_get (get_test_context (), ZMQ_IPV6));
 }
 
-void test_ctx_option_msg_t_size ()
+void test_ctx_option_ZmqMessage_size ()
 {
-// #if defined(ZMQ_MSG_T_SIZE)
-    TEST_ASSERT_EQUAL_INT (mem::size_of::<zmq_msg_t>(),
-                           zmq_ctx_get (get_test_context (), ZMQ_MSG_T_SIZE));
+// #if defined(ZMQ_ZmqMessage_SIZE)
+    TEST_ASSERT_EQUAL_INT (mem::size_of::<zmq_ZmqMessage>(),
+                           zmq_ctx_get (get_test_context (), ZMQ_ZmqMessage_SIZE));
 // #endif
 }
 
@@ -300,7 +300,7 @@ int main (void)
     RUN_TEST (test_ctx_option_socket_limit);
     RUN_TEST (test_ctx_option_io_threads);
     RUN_TEST (test_ctx_option_ipv6);
-    RUN_TEST (test_ctx_option_msg_t_size);
+    RUN_TEST (test_ctx_option_ZmqMessage_size);
     RUN_TEST (test_ctx_option_ipv6_set);
     RUN_TEST (test_ctx_thread_opts);
     RUN_TEST (test_ctx_zero_copy);

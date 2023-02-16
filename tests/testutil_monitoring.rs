@@ -35,7 +35,7 @@
 static int
 receive_monitor_address (monitor_: *mut c_void, char **address_, bool expect_more_)
 {
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
 
     zmq_msg_init (&msg);
     if (zmq_msg_recv (&msg, monitor_, 0) == -1)
@@ -64,7 +64,7 @@ static int get_monitor_event_internal (monitor_: *mut c_void,
                                        recv_flag_: i32)
 {
     //  First frame in message contains event number and value
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     zmq_msg_init (&msg);
     if (zmq_msg_recv (&msg, monitor_, recv_flag_) == -1) {
         TEST_ASSERT_FAILURE_ERRNO (EAGAIN, -1);
@@ -126,14 +126,14 @@ void expect_monitor_event (monitor_: *mut c_void, expected_event_: i32)
                            get_monitor_event (monitor_, NULL, NULL));
 }
 
-static void print_unexpected_event (char *buf_,
+static void print_unexpected_event (char *buf,
                                     buf_size_: usize,
                                     event_: i32,
                                     err_: i32,
                                     expected_event_: i32,
                                     expected_err_: i32)
 {
-    snprintf (buf_, buf_size_,
+    snprintf (buf, buf_size_,
               "Unexpected event: 0x%x, value = %i/0x%x (expected: 0x%x, value "
               "= %i/0x%x)\n",
               event_, err_, err_, expected_event_, expected_err_,
@@ -213,7 +213,7 @@ static i64 get_monitor_event_internal_v2 (monitor_: *mut c_void,
                                               recv_flag_: i32)
 {
     //  First frame in message contains event number
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     zmq_msg_init (&msg);
     if (zmq_msg_recv (&msg, monitor_, recv_flag_) == -1) {
         TEST_ASSERT_FAILURE_ERRNO (EAGAIN, -1);

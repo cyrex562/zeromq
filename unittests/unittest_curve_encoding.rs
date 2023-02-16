@@ -40,12 +40,12 @@ void tearDown ()
 {
 }
 
-void test_roundtrip (zmq::msg_t *msg_)
+void test_roundtrip (ZmqMessage *msg)
 {
 // #ifdef ZMQ_HAVE_CURVE
-    const std::vector<uint8_t> original (static_cast<uint8_t *> (msg_->data ()),
-                                         static_cast<uint8_t *> (msg_->data ())
-                                           + msg_->size ());
+    const std::vector<uint8_t> original (static_cast<uint8_t *> (msg->data ()),
+                                         static_cast<uint8_t *> (msg->data ())
+                                           + msg->size ());
 
     zmq::curve_encoding_t encoding_client ("CurveZMQMESSAGEC",
                                            "CurveZMQMESSAGES",
@@ -71,17 +71,17 @@ void test_roundtrip (zmq::msg_t *msg_)
       crypto_box_beforenm (encoding_server.get_writable_precom_buffer (),
                            client_public, server_secret));
 
-    TEST_ASSERT_SUCCESS_ERRNO (encoding_client.encode (msg_));
+    TEST_ASSERT_SUCCESS_ERRNO (encoding_client.encode (msg));
 
     // TODO: This is hacky...
     encoding_server.set_peer_nonce (0);
     error_event_code: i32;
     TEST_ASSERT_SUCCESS_ERRNO (
-      encoding_server.decode (msg_, &error_event_code));
+      encoding_server.decode (msg, &error_event_code));
 
-    TEST_ASSERT_EQUAL_INT (original.size (), msg_->size ());
+    TEST_ASSERT_EQUAL_INT (original.size (), msg->size ());
     if (!original.empty ()) {
-        TEST_ASSERT_EQUAL_UINT8_ARRAY (&original[0], msg_->data (),
+        TEST_ASSERT_EQUAL_UINT8_ARRAY (&original[0], msg->data (),
                                        original.size ());
     }
 // #else
@@ -91,7 +91,7 @@ void test_roundtrip (zmq::msg_t *msg_)
 
 void test_roundtrip_empty ()
 {
-    zmq::msg_t msg;
+    ZmqMessage msg;
     msg.init ();
 
     test_roundtrip (&msg);
@@ -101,7 +101,7 @@ void test_roundtrip_empty ()
 
 void test_roundtrip_small ()
 {
-    zmq::msg_t msg;
+    ZmqMessage msg;
     msg.init_size (32);
     memcpy (msg.data (), "0123456789ABCDEF0123456789ABCDEF", 32);
 
@@ -112,7 +112,7 @@ void test_roundtrip_small ()
 
 void test_roundtrip_large ()
 {
-    zmq::msg_t msg;
+    ZmqMessage msg;
     msg.init_size (2048);
     for (size_t pos = 0; pos < 2048; pos += 32) {
         memcpy (static_cast<char *> (msg.data ()) + pos,
@@ -126,12 +126,12 @@ void test_roundtrip_large ()
 
 void test_roundtrip_empty_more ()
 {
-    zmq::msg_t msg;
+    ZmqMessage msg;
     msg.init ();
-    msg.set_flags (zmq::msg_t::more);
+    msg.set_flags (ZmqMessage::more);
 
     test_roundtrip (&msg);
-    TEST_ASSERT_TRUE (msg.flags () & zmq::msg_t::more);
+    TEST_ASSERT_TRUE (msg.flags () & ZmqMessage::more);
 
     msg.close ();
 }

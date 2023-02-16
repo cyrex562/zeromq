@@ -46,8 +46,8 @@ pub struct null_mechanism_t ZMQ_FINAL : public zap_client_t
     ~null_mechanism_t ();
 
     // mechanism implementation
-    int next_handshake_command (msg_t *msg_);
-    int process_handshake_command (msg_t *msg_);
+    int next_handshake_command (ZmqMessage *msg);
+    int process_handshake_command (ZmqMessage *msg);
     int zap_msg_available ();
     status_t status () const;
 
@@ -92,7 +92,7 @@ zmq::null_mechanism_t::~null_mechanism_t ()
 {
 }
 
-int zmq::null_mechanism_t::next_handshake_command (msg_t *msg_)
+int zmq::null_mechanism_t::next_handshake_command (ZmqMessage *msg)
 {
     if (_ready_command_sent || _error_command_sent) {
         errno = EAGAIN;
@@ -132,11 +132,11 @@ int zmq::null_mechanism_t::next_handshake_command (msg_t *msg_)
         _error_command_sent = true;
         if (status_code != "300") {
             const size_t status_code_len = 3;
-            const int rc = msg_->init_size (
+            let rc: i32 = msg->init_size (
               error_command_name_len + error_reason_len_size + status_code_len);
             zmq_assert (rc == 0);
             unsigned char *msg_data =
-              static_cast<unsigned char *> (msg_->data ());
+              static_cast<unsigned char *> (msg->data ());
             memcpy (msg_data, error_command_name, error_command_name_len);
             msg_data += error_command_name_len;
             *msg_data = status_code_len;
@@ -148,7 +148,7 @@ int zmq::null_mechanism_t::next_handshake_command (msg_t *msg_)
         return -1;
     }
 
-    make_command_with_basic_properties (msg_, ready_command_name,
+    make_command_with_basic_properties (msg, ready_command_name,
                                         ready_command_name_len);
 
     _ready_command_sent = true;
@@ -156,7 +156,7 @@ int zmq::null_mechanism_t::next_handshake_command (msg_t *msg_)
     return 0;
 }
 
-int zmq::null_mechanism_t::process_handshake_command (msg_t *msg_)
+int zmq::null_mechanism_t::process_handshake_command (ZmqMessage *msg)
 {
     if (_ready_command_received || _error_command_received) {
         session->get_socket ()->event_handshake_failed_protocol (
@@ -166,8 +166,8 @@ int zmq::null_mechanism_t::process_handshake_command (msg_t *msg_)
     }
 
     const unsigned char *cmd_data =
-      static_cast<unsigned char *> (msg_->data ());
-    const size_t data_size = msg_->size ();
+      static_cast<unsigned char *> (msg->data ());
+    const size_t data_size = msg->size ();
 
     int rc = 0;
     if (data_size >= ready_command_name_len
@@ -184,9 +184,9 @@ int zmq::null_mechanism_t::process_handshake_command (msg_t *msg_)
     }
 
     if (rc == 0) {
-        rc = msg_->close ();
+        rc = msg->close ();
         errno_assert (rc == 0);
-        rc = msg_->init ();
+        rc = msg->init ();
         errno_assert (rc == 0);
     }
     return rc;
@@ -236,7 +236,7 @@ int zmq::null_mechanism_t::zap_msg_available ()
         errno = EFSM;
         return -1;
     }
-    const int rc = receive_and_process_zap_reply ();
+    let rc: i32 = receive_and_process_zap_reply ();
     if (rc == 0)
         _zap_reply_received = true;
     return rc == -1 ? -1 : 0;

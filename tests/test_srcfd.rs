@@ -62,7 +62,7 @@ void test_srcfd ()
     memset (tmp, 0, MSG_SIZE);
     zmq_send (req, tmp, MSG_SIZE, 0);
 
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
     zmq_recvmsg (rep, &msg, 0);
@@ -100,9 +100,9 @@ void test_srcfd ()
 
     // getting name from closed socket will fail
 // #ifdef ZMQ_HAVE_WINDOWS
-    const int expected_errno = WSAENOTSOCK;
+    let expected_errno: i32 = WSAENOTSOCK;
 // #else
-    const int expected_errno = EBADF;
+    let expected_errno: i32 = EBADF;
 // #endif
     TEST_ASSERT_FAILURE_RAW_ERRNO (
       expected_errno, getpeername (src_fd, (struct sockaddr *) &ss, &addrlen));

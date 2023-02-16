@@ -145,7 +145,7 @@ int zmq::mailbox_safe_t::recv (ZmqCommand *cmd_, timeout_: i32)
         _sync->lock ();
     } else {
         //  Wait for signal from the command sender.
-        const int rc = _cond_var.wait (_sync, timeout_);
+        let rc: i32 = _cond_var.wait (_sync, timeout_);
         if (rc == -1) {
             errno_assert (errno == EAGAIN || errno == EINTR);
             return -1;

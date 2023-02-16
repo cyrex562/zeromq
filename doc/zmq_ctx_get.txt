@@ -76,9 +76,9 @@ The 'ZMQ_THREAD_NAME_PREFIX' argument gets the numeric prefix of each thread
 created for the internal context's thread pool.
 
 
-ZMQ_MSG_T_SIZE: Get the zmq_msg_t size at runtime
+ZMQ_ZmqMessage_SIZE: Get the zmq_ZmqMessage size at runtime
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The 'ZMQ_MSG_T_SIZE' argument returns the size of the zmq_msg_t structure at
+The 'ZMQ_ZmqMessage_SIZE' argument returns the size of the zmq_ZmqMessage structure at
 runtime, as defined in the include/zmq.h public header.
 This is useful for example for FFI bindings that can't simply do a sizeof().
 

@@ -38,7 +38,7 @@
 // #endif
 
 int test_assert_success_message_errno_helper (rc_: i32,
-                                              msg_: *const c_char,
+                                              msg: *const c_char,
                                               expr_: *const c_char,
                                               line_: i32)
 {
@@ -48,15 +48,15 @@ int test_assert_success_message_errno_helper (rc_: i32,
           0; // to ensure defined behavior with VC++ <= 2013
         snprintf (buffer, mem::size_of::<buffer>() - 1,
                   "%s failed%s%s%s, errno = %i (%s)", expr_,
-                  msg_ ? " (additional info: " : "", msg_ ? msg_ : "",
-                  msg_ ? ")" : "", zmq_errno (), zmq_strerror (zmq_errno ()));
+                  msg ? " (additional info: " : "", msg ? msg : "",
+                  msg ? ")" : "", zmq_errno (), zmq_strerror (zmq_errno ()));
         UNITY_TEST_FAIL (line_, buffer);
     }
     return rc_;
 }
 
 int test_assert_success_message_raw_errno_helper (
-  rc_: i32, msg_: *const c_char, expr_: *const c_char, line_: i32, bool zero)
+  rc_: i32, msg: *const c_char, expr_: *const c_char, line_: i32, bool zero)
 {
     if (rc_ == -1 || (zero && rc_ != 0)) {
 // #if defined ZMQ_HAVE_WINDOWS
@@ -70,24 +70,24 @@ int test_assert_success_message_raw_errno_helper (
           0; // to ensure defined behavior with VC++ <= 2013
         snprintf (
           buffer, mem::size_of::<buffer>() - 1, "%s failed%s%s%s with %d, errno = %i/%s",
-          expr_, msg_ ? " (additional info: " : "", msg_ ? msg_ : "",
-          msg_ ? ")" : "", rc_, current_errno, strerror (current_errno));
+          expr_, msg ? " (additional info: " : "", msg ? msg : "",
+          msg ? ")" : "", rc_, current_errno, strerror (current_errno));
         UNITY_TEST_FAIL (line_, buffer);
     }
     return rc_;
 }
 
 int test_assert_success_message_raw_zero_errno_helper (rc_: i32,
-                                                       msg_: *const c_char,
+                                                       msg: *const c_char,
                                                        expr_: *const c_char,
                                                        line_: i32)
 {
-    return test_assert_success_message_raw_errno_helper (rc_, msg_, expr_,
+    return test_assert_success_message_raw_errno_helper (rc_, msg, expr_,
                                                          line_, true);
 }
 
 int test_assert_failure_message_raw_errno_helper (
-  rc_: i32, expected_errno_: i32, msg_: *const c_char, expr_: *const c_char, line_: i32)
+  rc_: i32, expected_errno_: i32, msg: *const c_char, expr_: *const c_char, line_: i32)
 {
     char buffer[512];
     buffer[mem::size_of::<buffer>() - 1] =
@@ -96,8 +96,8 @@ int test_assert_failure_message_raw_errno_helper (
         snprintf (buffer, mem::size_of::<buffer>() - 1,
                   "%s was unexpectedly successful%s%s%s, expected "
                   "errno = %i, actual return value = %i",
-                  expr_, msg_ ? " (additional info: " : "", msg_ ? msg_ : "",
-                  msg_ ? ")" : "", expected_errno_, rc_);
+                  expr_, msg ? " (additional info: " : "", msg ? msg : "",
+                  msg ? ")" : "", expected_errno_, rc_);
         UNITY_TEST_FAIL (line_, buffer);
     } else {
 // #if defined ZMQ_HAVE_WINDOWS
@@ -109,8 +109,8 @@ int test_assert_failure_message_raw_errno_helper (
             snprintf (buffer, mem::size_of::<buffer>() - 1,
                       "%s failed with an unexpected error%s%s%s, expected "
                       "errno = %i, actual errno = %i",
-                      expr_, msg_ ? " (additional info: " : "",
-                      msg_ ? msg_ : "", msg_ ? ")" : "", expected_errno_,
+                      expr_, msg ? " (additional info: " : "",
+                      msg ? msg : "", msg ? ")" : "", expected_errno_,
                       current_errno);
             UNITY_TEST_FAIL (line_, buffer);
         }
@@ -121,7 +121,7 @@ int test_assert_failure_message_raw_errno_helper (
 void send_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags_: i32)
 {
     const size_t len = str_ ? strlen (str_) : 0;
-    const int rc = zmq_send (socket_, str_, len, flags_);
+    let rc: i32 = zmq_send (socket_, str_, len, flags_);
     TEST_ASSERT_EQUAL_INT ((int) len, rc);
 }
 
@@ -134,7 +134,7 @@ void recv_string_expect_success (socket_: *mut c_void, str_: *const c_char, flag
                                        "used for strings longer than 255 "
                                        "characters");
 
-    const int rc = TEST_ASSERT_SUCCESS_ERRNO (
+    let rc: i32 = TEST_ASSERT_SUCCESS_ERRNO (
       zmq_recv (socket_, buffer, mem::size_of::<buffer>(), flags_));
     TEST_ASSERT_EQUAL_INT ((int) len, rc);
     if (str_)
@@ -241,7 +241,7 @@ void *test_context_socket_close (socket_: *mut c_void)
 
 void *test_context_socket_close_zero_linger (socket_: *mut c_void)
 {
-    const int linger = 0;
+    let linger: i32 = 0;
     int rc = zmq_setsockopt (socket_, ZMQ_LINGER, &linger, mem::size_of::<linger>());
     TEST_ASSERT_TRUE (rc == 0 || zmq_errno () == ETERM);
     return test_context_socket_close (socket_);
@@ -310,7 +310,7 @@ void make_random_ipc_endpoint (char *out_endpoint_)
     }
 
     // TODO or use CreateDirectoryA and specify permissions?
-    const int rc = _mkdir (random_file);
+    let rc: i32 = _mkdir (random_file);
     TEST_ASSERT_EQUAL (0, rc);
 
     strcat (random_file, "/ipc");

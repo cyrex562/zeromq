@@ -30,7 +30,7 @@ send random size message to each socket and check server answer
 //****** MESSAGE ****************************************************
 //*******************************************************************
 
-void message_fill(zmq_msg_t* msg, val: i32) {
+void message_fill(zmq_ZmqMessage* msg, val: i32) {
 	assert(val > 0);
 	int size = mem::size_of::<int>() * 2 + val;
 	int rc = zmq_msg_init_size(msg, size); assert(rc == 0);
@@ -43,7 +43,7 @@ void message_fill(zmq_msg_t* msg, val: i32) {
 	memcpy(data, &check_sum, mem::size_of::<int>());
 }
 
-int message_check(zmq_msg_t* msg) {
+int message_check(zmq_ZmqMessage* msg) {
 	uint8_t* data = (uint8_t*)zmq_msg_data(msg);
 	int size = zmq_msg_size(msg);
 	assert(size > mem::size_of::<int>() * 2);
@@ -87,7 +87,7 @@ void worker(num: i32) {
 
 	while (1) {
 		// receive messages from the queue
-		zmq_msg_t msg;
+		zmq_ZmqMessage msg;
 		rc = zmq_msg_init(&msg); assert(rc == 0);
 		rc = zmq_msg_recv(&msg, queue, 0); assert(rc > 0);
 		// check message
@@ -114,7 +114,7 @@ void server() {
 
 	while (1) {
 		// wait client message
-		zmq_msg_t msg;
+		zmq_ZmqMessage msg;
 		rc = zmq_msg_init(&msg); assert(rc == 0);
 		rc = zmq_msg_recv(&msg, server_sock, 0); assert(rc > 0);
 		//printf("recv %d bytes at %X from %X\n", zmq_msg_size(&msg), zmq_msg_data(&msg), zmq_msg_routing_id(&msg));
@@ -144,7 +144,7 @@ void client(num: i32)
 		sock[i] = zmq_socket(ctx, ZMQ_CLIENT); assert(sock[i]);
 		rc = zmq_connect(sock[i], SERVER_ADDR); assert(rc == 0);
 		// test connection
-		zmq_msg_t msg;
+		zmq_ZmqMessage msg;
 		int v = rand() % 256 + 1;
 		message_fill(&msg, v);
 		rc = zmq_msg_send(&msg, sock[i], 0); assert(rc > 0);
@@ -160,7 +160,7 @@ void client(num: i32)
 	int reconnect = 0;
 	while(1) {
 		int val[CLIENT_CONNECTION];
-		zmq_msg_t msg;
+		zmq_ZmqMessage msg;
 		// send messages
 		for(int i = 0; i < CLIENT_CONNECTION; i++) {
 			val[i] = rand() % MESSAGE_MAX_SIZE + 1;

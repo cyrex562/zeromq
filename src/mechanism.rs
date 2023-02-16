@@ -52,14 +52,14 @@ pub struct mechanism_t
     virtual ~mechanism_t ();
 
     //  Prepare next handshake command that is to be sent to the peer.
-    virtual int next_handshake_command (msg_t *msg_) = 0;
+    virtual int next_handshake_command (ZmqMessage *msg) = 0;
 
     //  Process the handshake command received from the peer.
-    virtual int process_handshake_command (msg_t *msg_) = 0;
+    virtual int process_handshake_command (ZmqMessage *msg) = 0;
 
-    virtual int encode (msg_t *) { return 0; }
+    virtual int encode (ZmqMessage *) { return 0; }
 
-    virtual int decode (msg_t *) { return 0; }
+    virtual int decode (ZmqMessage *) { return 0; }
 
     //  Notifies mechanism about availability of ZAP message.
     virtual int zap_msg_available () { return 0; }
@@ -69,9 +69,9 @@ pub struct mechanism_t
 
     void set_peer_routing_id (const id_ptr_: *mut c_void, id_size_: usize);
 
-    void peer_routing_id (msg_t *msg_);
+    void peer_routing_id (ZmqMessage *msg);
 
-    void set_user_id (const user_id_: *mut c_void, size_: usize);
+    void set_user_id (const user_id_: *mut c_void, size: usize);
 
     const Blob &get_user_id () const;
 
@@ -101,7 +101,7 @@ pub struct mechanism_t
                                  ptr_capacity_: usize) const;
     size_t basic_properties_len () const;
 
-    void make_command_with_basic_properties (msg_t *msg_,
+    void make_command_with_basic_properties (msg: &mut ZmqMessage
                                              prefix_: *const c_char,
                                              prefix_len_: usize) const;
 
@@ -155,20 +155,20 @@ void zmq::mechanism_t::set_peer_routing_id (const id_ptr_: *mut c_void,
     _routing_id.set (static_cast<const unsigned char *> (id_ptr_), id_size_);
 }
 
-void zmq::mechanism_t::peer_routing_id (msg_t *msg_)
+void zmq::mechanism_t::peer_routing_id (ZmqMessage *msg)
 {
-    const int rc = msg_->init_size (_routing_id.size ());
+    let rc: i32 = msg->init_size (_routing_id.size ());
     errno_assert (rc == 0);
-    memcpy (msg_->data (), _routing_id.data (), _routing_id.size ());
-    msg_->set_flags (msg_t::routing_id);
+    memcpy (msg->data (), _routing_id.data (), _routing_id.size ());
+    msg->set_flags (ZmqMessage::routing_id);
 }
 
-void zmq::mechanism_t::set_user_id (const user_id_: *mut c_void, size_: usize)
+void zmq::mechanism_t::set_user_id (const user_id_: *mut c_void, size: usize)
 {
-    _user_id.set (static_cast<const unsigned char *> (user_id_), size_);
+    _user_id.set (static_cast<const unsigned char *> (user_id_), size);
     _zap_properties.ZMQ_MAP_INSERT_OR_EMPLACE (
       std::string (ZMQ_MSG_PROPERTY_USER_ID),
-      std::string (reinterpret_cast<const char *> (user_id_), size_));
+      std::string (reinterpret_cast<const char *> (user_id_), size));
 }
 
 const zmq::Blob &zmq::mechanism_t::get_user_id () const
@@ -321,20 +321,20 @@ size_t zmq::mechanism_t::basic_properties_len () const
 }
 
 void zmq::mechanism_t::make_command_with_basic_properties (
-  msg_t *msg_, prefix_: *const c_char, prefix_len_: usize) const
+  msg: &mut ZmqMessage prefix_: *const c_char, prefix_len_: usize) const
 {
     const size_t command_size = prefix_len_ + basic_properties_len ();
-    const int rc = msg_->init_size (command_size);
+    let rc: i32 = msg->init_size (command_size);
     errno_assert (rc == 0);
 
-    unsigned char *ptr = static_cast<unsigned char *> (msg_->data ());
+    unsigned char *ptr = static_cast<unsigned char *> (msg->data ());
 
     //  Add prefix
     memcpy (ptr, prefix_, prefix_len_);
     ptr += prefix_len_;
 
     add_basic_properties (
-      ptr, command_size - (ptr - static_cast<unsigned char *> (msg_->data ())));
+      ptr, command_size - (ptr - static_cast<unsigned char *> (msg->data ())));
 }
 
 int zmq::mechanism_t::parse_metadata (const unsigned char *ptr_,
@@ -376,7 +376,7 @@ int zmq::mechanism_t::parse_metadata (const unsigned char *ptr_,
                 return -1;
             }
         } else {
-            const int rc = property (name, value, value_length);
+            let rc: i32 = property (name, value, value_length);
             if (rc == -1)
                 return -1;
         }

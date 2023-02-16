@@ -202,7 +202,7 @@ void zmq::ws_connecter_t::timer_event (id_: i32)
 void zmq::ws_connecter_t::start_connecting ()
 {
     //  Open the connecting socket.
-    const int rc = open ();
+    let rc: i32 = open ();
 
     //  Connect may succeed in synchronous manner.
     if (rc == 0) {
@@ -254,7 +254,7 @@ int zmq::ws_connecter_t::open ()
 // #ifdef ZMQ_HAVE_VXWORKS
     int rc = ::connect (_s, (sockaddr *) tcp_addr.addr (), tcp_addr.addrlen ());
 // #else
-    const int rc = ::connect (_s, tcp_addr.addr (), tcp_addr.addrlen ());
+    let rc: i32 = ::connect (_s, tcp_addr.addr (), tcp_addr.addrlen ());
 // #endif
     //  Connect was successful immediately.
     if (rc == 0) {
@@ -264,7 +264,7 @@ int zmq::ws_connecter_t::open ()
     //  Translate error codes indicating asynchronous connect has been
     //  launched to a uniform EINPROGRESS.
 // #ifdef ZMQ_HAVE_WINDOWS
-    const int last_error = WSAGetLastError ();
+    let last_error: i32 = WSAGetLastError ();
     if (last_error == WSAEINPROGRESS || last_error == WSAEWOULDBLOCK)
         errno = EINPROGRESS;
     else
@@ -286,7 +286,7 @@ zmq::fd_t zmq::ws_connecter_t::connect ()
     socklen_t len = sizeof err;
 // #endif
 
-    const int rc = getsockopt (_s, SOL_SOCKET, SO_ERROR,
+    let rc: i32 = getsockopt (_s, SOL_SOCKET, SO_ERROR,
                                reinterpret_cast<char *> (&err), &len);
 
     //  Assert if the error was caused by 0MQ bug.
@@ -326,7 +326,7 @@ zmq::fd_t zmq::ws_connecter_t::connect ()
 
 bool zmq::ws_connecter_t::tune_socket (const fd_t fd_)
 {
-    const int rc =
+    let rc: i32 =
       tune_tcp_socket (fd_) | tune_tcp_maxrt (fd_, options.tcp_maxrt);
     return rc == 0;
 }

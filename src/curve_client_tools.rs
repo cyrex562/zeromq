@@ -54,7 +54,7 @@ namespace zmq
 {
 struct curve_client_tools_t
 {
-    static int produce_hello (data_: *mut c_void,
+    static int produce_hello (data: *mut c_void,
                               const uint8_t *server_key_,
                               const cn_nonce_: u64,
                               const uint8_t *cn_public_,
@@ -70,13 +70,13 @@ struct curve_client_tools_t
         put_uint64 (hello_nonce + 16, cn_nonce_);
 
         //  Create Box [64 * %x0](C'->S)
-        const int rc =
+        let rc: i32 =
           crypto_box (hello_box, &hello_plaintext[0], hello_plaintext.size (),
                       hello_nonce, server_key_, cn_secret_);
         if (rc == -1)
             return -1;
 
-        uint8_t *hello = static_cast<uint8_t *> (data_);
+        uint8_t *hello = static_cast<uint8_t *> (data);
 
         memcpy (hello, "\x05HELLO", 6);
         //  CurveZMQ major and minor version numbers
@@ -137,8 +137,8 @@ struct curve_client_tools_t
         return 0;
     }
 
-    static int produce_initiate (data_: *mut c_void,
-                                 size_: usize,
+    static int produce_initiate (data: *mut c_void,
+                                 size: usize,
                                  const cn_nonce_: u64,
                                  const uint8_t *server_key_,
                                  const uint8_t *public_key_,
@@ -210,9 +210,9 @@ struct curve_client_tools_t
         if (rc == -1)
             return -1;
 
-        uint8_t *initiate = static_cast<uint8_t *> (data_);
+        uint8_t *initiate = static_cast<uint8_t *> (data);
 
-        zmq_assert (size_
+        zmq_assert (size
                     == 113 + 128 + crypto_box_BOXZEROBYTES + metadata_length_);
 
         memcpy (initiate, "\x08INITIATE", 9);
@@ -263,9 +263,9 @@ struct curve_client_tools_t
         zmq_assert (rc == 0);
     }
 
-    int produce_hello (data_: *mut c_void, const u64 cn_nonce_) const
+    int produce_hello (data: *mut c_void, const u64 cn_nonce_) const
     {
-        return produce_hello (data_, server_key, cn_nonce_, cn_public,
+        return produce_hello (data, server_key, cn_nonce_, cn_public,
                               cn_secret);
     }
 
@@ -277,13 +277,13 @@ struct curve_client_tools_t
                                 cn_server, cn_cookie, cn_precom_);
     }
 
-    int produce_initiate (data_: *mut c_void,
-                          size_: usize,
+    int produce_initiate (data: *mut c_void,
+                          size: usize,
                           const cn_nonce_: u64,
                           const uint8_t *metadata_plaintext_,
                           const metadata_length_: usize) const
     {
-        return produce_initiate (data_, size_, cn_nonce_, server_key,
+        return produce_initiate (data, size, cn_nonce_, server_key,
                                  public_key, secret_key, cn_public, cn_secret,
                                  cn_server, cn_cookie, metadata_plaintext_,
                                  metadata_length_);

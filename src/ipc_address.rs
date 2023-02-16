@@ -92,9 +92,9 @@ int zmq::IpcAddress::resolve (path_: *const c_char)
 
     _address.sun_family = AF_UNIX;
     memcpy (_address.sun_path, path_, path_len + 1);
-    /* Abstract sockets start with '\0' */
+    /* Abstract sockets start with 0 */
     if (path_[0] == '@')
-        *_address.sun_path = '\0';
+        *_address.sun_path = 0;
 
     _addrlen =
       static_cast<socklen_t> (offsetof (sockaddr_un, sun_path) + path_len);

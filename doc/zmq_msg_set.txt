@@ -10,7 +10,7 @@ zmq_msg_set - set message property
 
 SYNOPSIS
 --------
-*int zmq_msg_set (zmq_msg_t '*message', int 'property', int 'value');*
+*int zmq_msg_set (zmq_ZmqMessage '*message', int 'property', int 'value');*
 
 
 DESCRIPTION

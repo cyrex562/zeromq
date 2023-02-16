@@ -325,7 +325,7 @@ impl IpResolver {
     pub fn resolve_nic_name (ip_addr_: &mut NetworkAddress, nic_: &str) -> i32
     {
         //  Create a socket.
-        const int fd = open_socket (AF_INET, SOCK_DGRAM, 0);
+        let fd: i32 = open_socket (AF_INET, SOCK_DGRAM, 0);
         errno_assert (fd != -1);
     
         //  Retrieve number of interfaces.
@@ -540,7 +540,7 @@ impl IpResolver {
     {
         rc: i32;
         bool found = false;
-        const int max_attempts = 10;
+        let max_attempts: i32 = 10;
     
         int iterations = 0;
         IP_ADAPTER_ADDRESSES *addresses;
@@ -570,9 +570,9 @@ impl IpResolver {
                 char *if_name = NULL;
                 char *if_friendly_name = NULL;
     
-                const int str_rc1 =
+                let str_rc1: i32 =
                   get_interface_name (current_addresses->IfIndex, &if_name);
-                const int str_rc2 = wchar_to_utf8 (current_addresses->FriendlyName,
+                let str_rc2: i32 = wchar_to_utf8 (current_addresses->FriendlyName,
                                                    &if_friendly_name);
     
                 //  Find a network adapter by its "name" or "friendly name"

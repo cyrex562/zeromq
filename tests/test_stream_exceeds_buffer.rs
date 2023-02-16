@@ -36,7 +36,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 void test_stream_exceeds_buffer ()
 {
-    const int msgsize = 8193;
+    let msgsize: i32 = 8193;
     char sndbuf[msgsize] = "\xde\xad\xbe\xef";
     unsigned char rcvbuf[msgsize];
     char my_endpoint[MAX_SOCKET_STRING];
@@ -53,7 +53,7 @@ void test_stream_exceeds_buffer ()
 
     TEST_ASSERT_EQUAL_INT (msgsize, send (client_sock, sndbuf, msgsize, 0));
 
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     zmq_msg_init (&msg);
 
     int rcvbytes = 0;

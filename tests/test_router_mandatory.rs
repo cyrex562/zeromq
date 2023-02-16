@@ -35,7 +35,7 @@
 SETUP_TEARDOWN_TESTCONTEXT
 
 // #ifdef ZMQ_BUILD_DRAFT_API
-bool send_msg_to_peer_if_ready (router_: *mut c_void, peer_routing_id_: *const c_char)
+bool send_ZmqMessageo_peer_if_ready (router_: *mut c_void, peer_routing_id_: *const c_char)
 {
     int rc = TEST_ASSERT_SUCCESS_MESSAGE_ERRNO (
       zmq_socket_get_peer_state (router_, peer_routing_id_, 1),
@@ -67,7 +67,7 @@ void test_get_peer_state ()
     void *dealer2 = test_context_socket (ZMQ_DEALER);
 
     //  Lower HWMs to allow doing the test with fewer messages
-    const int hwm = 100;
+    let hwm: i32 = 100;
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (router, ZMQ_SNDHWM, &hwm, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -118,10 +118,10 @@ void test_get_peer_state ()
             const zmq_poller_event_t &current_event = events[event_no];
             if (current_event.socket == router
                 && current_event.events & ZMQ_POLLOUT) {
-                if (send_msg_to_peer_if_ready (router, dealer1_routing_id))
+                if (send_ZmqMessageo_peer_if_ready (router, dealer1_routing_id))
                     ++dealer1_sent;
 
-                if (send_msg_to_peer_if_ready (router, dealer2_routing_id))
+                if (send_ZmqMessageo_peer_if_ready (router, dealer2_routing_id))
                     ++dealer2_sent;
                 else
                     dealer2_blocked = true;

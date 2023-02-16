@@ -33,7 +33,7 @@ static int get_monitor_event (monitor_: *mut c_void)
 {
     for (int i = 0; i < 2; i++) {
         //  First frame in message contains event number and value
-        zmq_msg_t msg;
+        zmq_ZmqMessage msg;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
         if (zmq_msg_recv (&msg, monitor_, ZMQ_DONTWAIT) == -1) {
             msleep (SETTLE_TIME);

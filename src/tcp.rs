@@ -60,7 +60,7 @@ int zmq::tune_tcp_socket (fd_t s_)
     //  so using Nagle wouldn't improve throughput in anyway, but it would
     //  hurt latency.
     int nodelay = 1;
-    const int rc =
+    let rc: i32 =
       setsockopt (s_, IPPROTO_TCP, TCP_NODELAY,
                   reinterpret_cast<char *> (&nodelay), mem::size_of::<int>());
     assert_success_or_recoverable (s_, rc);
@@ -79,7 +79,7 @@ int zmq::tune_tcp_socket (fd_t s_)
 
 int zmq::set_tcp_send_buffer (fd_t sockfd_, bufsize_: i32)
 {
-    const int rc =
+    let rc: i32 =
       setsockopt (sockfd_, SOL_SOCKET, SO_SNDBUF,
                   reinterpret_cast<char *> (&bufsize_), sizeof bufsize_);
     assert_success_or_recoverable (sockfd_, rc);
@@ -88,7 +88,7 @@ int zmq::set_tcp_send_buffer (fd_t sockfd_, bufsize_: i32)
 
 int zmq::set_tcp_receive_buffer (fd_t sockfd_, bufsize_: i32)
 {
-    const int rc =
+    let rc: i32 =
       setsockopt (sockfd_, SOL_SOCKET, SO_RCVBUF,
                   reinterpret_cast<char *> (&bufsize_), sizeof bufsize_);
     assert_success_or_recoverable (sockfd_, rc);
@@ -121,7 +121,7 @@ int zmq::tune_tcp_keepalives (fd_t s_,
         keepalive_opts.keepaliveinterval =
           keepalive_intvl_ != -1 ? keepalive_intvl_ * 1000 : 1000;
         DWORD num_bytes_returned;
-        const int rc = WSAIoctl (s_, SIO_KEEPALIVE_VALS, &keepalive_opts,
+        let rc: i32 = WSAIoctl (s_, SIO_KEEPALIVE_VALS, &keepalive_opts,
                                  mem::size_of::<keepalive_opts>(), NULL, 0,
                                  &num_bytes_returned, NULL, NULL);
         assert_success_or_recoverable (s_, rc);
@@ -194,7 +194,7 @@ int zmq::tune_tcp_maxrt (fd_t sockfd_, timeout_: i32)
 // #if defined(ZMQ_HAVE_WINDOWS) && defined(TCP_MAXRT)
     // msdn says it's supported in >= Vista, >= Windows Server 2003
     timeout_ /= 1000; // in seconds
-    const int rc =
+    let rc: i32 =
       setsockopt (sockfd_, IPPROTO_TCP, TCP_MAXRT,
                   reinterpret_cast<char *> (&timeout_), mem::size_of::<timeout_>());
     assert_success_or_recoverable (sockfd_, rc);
@@ -210,15 +210,15 @@ int zmq::tune_tcp_maxrt (fd_t sockfd_, timeout_: i32)
 // #endif
 }
 
-int zmq::tcp_write (fd_t s_, const data_: *mut c_void, size_: usize)
+int zmq::tcp_write (fd_t s_, const data: *mut c_void, size: usize)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
 
-    const int nbytes = send (s_, (char *) data_, static_cast<int> (size_), 0);
+    let nbytes: i32 = send (s_, (char *) data, static_cast<int> (size), 0);
 
     //  If not a single byte can be written to the socket in non-blocking mode
     //  we'll get an error (this may happen during the speculative write).
-    const int last_error = WSAGetLastError ();
+    let last_error: i32 = WSAGetLastError ();
     if (nbytes == SOCKET_ERROR && last_error == WSAEWOULDBLOCK)
         return 0;
 
@@ -239,7 +239,7 @@ int zmq::tcp_write (fd_t s_, const data_: *mut c_void, size_: usize)
     return nbytes;
 
 // #else
-    ssize_t nbytes = send (s_, static_cast<const char *> (data_), size_, 0);
+    ssize_t nbytes = send (s_, static_cast<const char *> (data), size, 0);
 
     //  Several errors are OK. When speculative write is being done we may not
     //  be able to write a single byte from the socket. Also, SIGSTOP issued
@@ -269,17 +269,17 @@ int zmq::tcp_write (fd_t s_, const data_: *mut c_void, size_: usize)
 // #endif
 }
 
-int zmq::tcp_read (fd_t s_, data_: *mut c_void, size_: usize)
+int zmq::tcp_read (fd_t s_, data: *mut c_void, size: usize)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
 
-    const int rc =
-      recv (s_, static_cast<char *> (data_), static_cast<int> (size_), 0);
+    let rc: i32 =
+      recv (s_, static_cast<char *> (data), static_cast<int> (size), 0);
 
     //  If not a single byte can be read from the socket in non-blocking mode
     //  we'll get an error (this may happen during the speculative read).
     if (rc == SOCKET_ERROR) {
-        const int last_error = WSAGetLastError ();
+        let last_error: i32 = WSAGetLastError ();
         if (last_error == WSAEWOULDBLOCK) {
             errno = EAGAIN;
         } else {
@@ -296,7 +296,7 @@ int zmq::tcp_read (fd_t s_, data_: *mut c_void, size_: usize)
 
 // #else
 
-    const ssize_t rc = recv (s_, static_cast<char *> (data_), size_, 0);
+    const ssize_t rc = recv (s_, static_cast<char *> (data), size, 0);
 
     //  Several errors are OK. When speculative read is being done we may not
     //  be able to read a single byte from the socket. Also, SIGSTOP issued
@@ -323,7 +323,7 @@ void zmq::tcp_tune_loopback_fast_path (const fd_t socket_)
     int sio_loopback_fastpath = 1;
     DWORD number_of_bytes_returned = 0;
 
-    const int rc = WSAIoctl (
+    let rc: i32 = WSAIoctl (
       socket_, SIO_LOOPBACK_FAST_PATH, &sio_loopback_fastpath,
       sizeof sio_loopback_fastpath, NULL, 0, &number_of_bytes_returned, 0, 0);
 
@@ -345,7 +345,7 @@ void zmq::tune_tcp_busy_poll (fd_t socket_, busy_poll_: i32)
 {
 // #if defined(ZMQ_HAVE_BUSY_POLL)
     if (busy_poll_ > 0) {
-        const int rc =
+        let rc: i32 =
           setsockopt (socket_, SOL_SOCKET, SO_BUSY_POLL,
                       reinterpret_cast<char *> (&busy_poll_), mem::size_of::<int>());
         assert_success_or_recoverable (socket_, rc);

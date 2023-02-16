@@ -117,7 +117,7 @@ void test_setsockopt_bindtodevice ()
 
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (socket, ZMQ_BINDTODEVICE, devname, &buflen));
-    TEST_ASSERT_EQUAL_INT8 ('\0', devname[0]);
+    TEST_ASSERT_EQUAL_INT8 (0, devname[0]);
     TEST_ASSERT_EQUAL_UINT (1, buflen);
 
     sprintf (devname, "testdev");

@@ -38,7 +38,7 @@ pub struct mechanism_base_t : public mechanism_t
 
     session_base_t *const session;
 
-    int check_basic_command_structure (msg_t *msg_) const;
+    int check_basic_command_structure (ZmqMessage *msg) const;
 
     void handle_error_reason (error_reason_: *const c_char,
                               error_reason_len_: usize);
@@ -52,10 +52,10 @@ zmq::mechanism_base_t::mechanism_base_t (session_base_t *const session_,
 {
 }
 
-int zmq::mechanism_base_t::check_basic_command_structure (msg_t *msg_) const
+int zmq::mechanism_base_t::check_basic_command_structure (ZmqMessage *msg) const
 {
-    if (msg_->size () <= 1
-        || msg_->size () <= (static_cast<uint8_t *> (msg_->data ()))[0]) {
+    if (msg->size () <= 1
+        || msg->size () <= (static_cast<uint8_t *> (msg->data ()))[0]) {
         session->get_socket ()->event_handshake_failed_protocol (
           session->get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED);
@@ -73,7 +73,7 @@ void zmq::mechanism_base_t::handle_error_reason (error_reason_: *const c_char,
     const size_t significant_digit_index = 0;
     const size_t first_zero_digit_index = 1;
     const size_t second_zero_digit_index = 2;
-    const int factor = 100;
+    let factor: i32 = 100;
     if (error_reason_len_ == status_code_len
         && error_reason_[first_zero_digit_index] == zero_digit
         && error_reason_[second_zero_digit_index] == zero_digit

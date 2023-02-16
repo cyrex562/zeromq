@@ -127,7 +127,7 @@ void socks_server_task (socks_server: *mut c_void,
     TEST_ASSERT_SUCCESS_RAW_ERRNO (res);
 
     auth_method: i32;
-    if (username == NULL || username[0] == '\0') {
+    if (username == NULL || username[0] == 0) {
         auth_method = 0x0; /* No auth */
     } else {
         auth_method = 0x2; /* Basic auth */
@@ -180,7 +180,7 @@ void socks_server_task (socks_server: *mut c_void,
                     recvall (client, buffer, 1);
                     len = (unsigned char) buffer[0];
                     recvall (client, buffer, len);
-                    buffer[len] = '\0';
+                    buffer[len] = 0;
                     if (strcmp (username, buffer) != 0) {
                         fprintf (stderr,
                                  "socks_server: error on username check: '%s', "
@@ -191,7 +191,7 @@ void socks_server_task (socks_server: *mut c_void,
                     recvall (client, buffer, 1);
                     len = (unsigned char) buffer[0];
                     recvall (client, buffer, len);
-                    buffer[len] = '\0';
+                    buffer[len] = 0;
                     if (strcmp (password, buffer) != 0) {
                         fprintf (stderr,
                                  "socks_server: error on password check: '%s', "
@@ -236,7 +236,7 @@ void socks_server_task (socks_server: *mut c_void,
                 recvall (client, buffer, 1);
                 len = (unsigned char) buffer[0];
                 recvall (client, buffer, len);
-                buffer[len] = '\0';
+                buffer[len] = 0;
                 fprintf (stderr,
                          "socks_server: received domainname (hostname: %s)\n",
                          buffer);

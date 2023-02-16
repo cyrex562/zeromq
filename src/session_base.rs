@@ -78,7 +78,7 @@ pub struct session_base_t : public own_t, public io_object_t, public i_pipe_even
 
     //  Delivers a message. Returns 0 if successful; -1 otherwise.
     //  The function takes ownership of the message.
-    virtual int push_msg (msg_t *msg_);
+    virtual int push_msg (ZmqMessage *msg);
 
     int zap_connect ();
     bool zap_enabled () const;
@@ -86,17 +86,17 @@ pub struct session_base_t : public own_t, public io_object_t, public i_pipe_even
     //  Fetches a message. Returns 0 if successful; -1 otherwise.
     //  The caller is responsible for freeing the message when no
     //  longer used.
-    virtual int pull_msg (msg_t *msg_);
+    virtual int pull_msg (ZmqMessage *msg);
 
     //  Receives message from ZAP socket.
     //  Returns 0 on success; -1 otherwise.
     //  The caller is responsible for freeing the message.
-    int read_zap_msg (msg_t *msg_);
+    int read_zap_msg (ZmqMessage *msg);
 
     //  Sends message to ZAP socket.
     //  Returns 0 on success; -1 otherwise.
     //  The function takes ownership of the message.
-    int write_zap_msg (msg_t *msg_);
+    int write_zap_msg (ZmqMessage *msg);
 
     ZmqSocketBase *get_socket () const;
     const EndpointUriPair &get_endpoint () const;
@@ -189,7 +189,7 @@ pub struct hello_msg_session_t ZMQ_FINAL : public session_base_t
     ~hello_msg_session_t ();
 
     //  Overrides of the functions from session_base_t.
-    int pull_msg (msg_t *msg_);
+    int pull_msg (ZmqMessage *msg);
     void reset ();
 
   // private:
@@ -315,26 +315,26 @@ void zmq::session_base_t::attach_pipe (pipe_t *pipe_)
     _pipe->set_event_sink (this);
 }
 
-int zmq::session_base_t::pull_msg (msg_t *msg_)
+int zmq::session_base_t::pull_msg (ZmqMessage *msg)
 {
-    if (!_pipe || !_pipe->read (msg_)) {
+    if (!_pipe || !_pipe->read (msg)) {
         errno = EAGAIN;
         return -1;
     }
 
-    _incomplete_in = (msg_->flags () & msg_t::more) != 0;
+    _incomplete_in = (msg->flags () & ZmqMessage::more) != 0;
 
     return 0;
 }
 
-int zmq::session_base_t::push_msg (msg_t *msg_)
+int zmq::session_base_t::push_msg (ZmqMessage *msg)
 {
     //  pass subscribe/cancel to the sockets
-    if ((msg_->flags () & msg_t::command) && !msg_->is_subscribe ()
-        && !msg_->is_cancel ())
+    if ((msg->flags () & ZmqMessage::command) && !msg->is_subscribe ()
+        && !msg->is_cancel ())
         return 0;
-    if (_pipe && _pipe->write (msg_)) {
-        const int rc = msg_->init ();
+    if (_pipe && _pipe->write (msg)) {
+        let rc: i32 = msg->init ();
         errno_assert (rc == 0);
         return 0;
     }
@@ -343,14 +343,14 @@ int zmq::session_base_t::push_msg (msg_t *msg_)
     return -1;
 }
 
-int zmq::session_base_t::read_zap_msg (msg_t *msg_)
+int zmq::session_base_t::read_zap_msg (ZmqMessage *msg)
 {
     if (_zap_pipe == NULL) {
         errno = ENOTCONN;
         return -1;
     }
 
-    if (!_zap_pipe->read (msg_)) {
+    if (!_zap_pipe->read (msg)) {
         errno = EAGAIN;
         return -1;
     }
@@ -358,17 +358,17 @@ int zmq::session_base_t::read_zap_msg (msg_t *msg_)
     return 0;
 }
 
-int zmq::session_base_t::write_zap_msg (msg_t *msg_)
+int zmq::session_base_t::write_zap_msg (ZmqMessage *msg)
 {
-    if (_zap_pipe == NULL || !_zap_pipe->write (msg_)) {
+    if (_zap_pipe == NULL || !_zap_pipe->write (msg)) {
         errno = ENOTCONN;
         return -1;
     }
 
-    if ((msg_->flags () & msg_t::more) == 0)
+    if ((msg->flags () & ZmqMessage::more) == 0)
         _zap_pipe->flush ();
 
-    const int rc = msg_->init ();
+    let rc: i32 = msg->init ();
     errno_assert (rc == 0);
     return 0;
 }
@@ -400,7 +400,7 @@ void zmq::session_base_t::clean_pipes ()
 
     //  Remove any half-read message from the in pipe.
     while (_incomplete_in) {
-        msg_t msg;
+        ZmqMessage msg;
         int rc = msg.init ();
         errno_assert (rc == 0);
         rc = pull_msg (&msg);
@@ -535,10 +535,10 @@ int zmq::session_base_t::zap_connect ()
 
     //  Send empty routing id if required by the peer.
     if (peer.options.recv_routing_id) {
-        msg_t id;
+        ZmqMessage id;
         rc = id.init ();
         errno_assert (rc == 0);
-        id.set_flags (msg_t::routing_id);
+        id.set_flags (ZmqMessage::routing_id);
         bool ok = _zap_pipe->write (&id);
         zmq_assert (ok);
         _zap_pipe->flush ();
@@ -577,7 +577,7 @@ void zmq::session_base_t::engine_ready ()
         int hwms[2] = {conflate ? -1 : options.rcvhwm,
                        conflate ? -1 : options.sndhwm};
         bool conflates[2] = {conflate, conflate};
-        const int rc = pipepair (parents, pipes, hwms, conflates);
+        let rc: i32 = pipepair (parents, pipes, hwms, conflates);
         errno_assert (rc == 0);
 
         //  Plug the local end of the pipe.
@@ -940,19 +940,19 @@ zmq::hello_msg_session_t::~hello_msg_session_t ()
 }
 
 
-int zmq::hello_msg_session_t::pull_msg (msg_t *msg_)
+int zmq::hello_msg_session_t::pull_msg (ZmqMessage *msg)
 {
     if (_new_pipe) {
         _new_pipe = false;
 
-        const int rc =
-          msg_->init_buffer (&options.hello_msg[0], options.hello_msg.size ());
+        let rc: i32 =
+          msg->init_buffer (&options.hello_msg[0], options.hello_msg.size ());
         errno_assert (rc == 0);
 
         return 0;
     }
 
-    return session_base_t::pull_msg (msg_);
+    return session_base_t::pull_msg (msg);
 }
 
 void zmq::hello_msg_session_t::reset ()

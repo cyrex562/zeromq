@@ -107,10 +107,10 @@ void socket_config_curve_server (server_: *mut c_void, server_secret_: *mut c_vo
 // #endif
 }
 
-void socket_config_curve_client (client_: *mut c_void, data_: *mut c_void)
+void socket_config_curve_client (client_: *mut c_void, data: *mut c_void)
 {
     const curve_client_data_t *const curve_client_data =
-      static_cast<const curve_client_data_t *> (data_);
+      static_cast<const curve_client_data_t *> (data);
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
       client_, ZMQ_CURVE_SERVERKEY, curve_client_data->server_public, 41));
@@ -143,7 +143,7 @@ void zap_handler_generic (zap_protocol_t zap_protocol_,
     };
 
     // if ordered not to receive the request, ignore the second poll item
-    const int numitems = (zap_protocol_ == zap_do_not_recv) ? 1 : 2;
+    let numitems: i32 = (zap_protocol_ == zap_do_not_recv) ? 1 : 2;
 
     //  Process ZAP requests forever
     while (zmq_poll (items, numitems, -1) >= 0) {

@@ -42,8 +42,8 @@ pub struct fq_t
     void activated (pipe_t *pipe_);
     void pipe_terminated (pipe_t *pipe_);
 
-    int recv (msg_t *msg_);
-    int recvpipe (msg_t *msg_, pipe_t **pipe_);
+    int recv (ZmqMessage *msg);
+    int recvpipe (msg: &mut ZmqMessage pipe_t **pipe_);
     bool has_in ();
 
   // private:
@@ -103,22 +103,22 @@ void zmq::fq_t::activated (pipe_t *pipe_)
     _active++;
 }
 
-int zmq::fq_t::recv (msg_t *msg_)
+int zmq::fq_t::recv (ZmqMessage *msg)
 {
-    return recvpipe (msg_, NULL);
+    return recvpipe (msg, NULL);
 }
 
-int zmq::fq_t::recvpipe (msg_t *msg_, pipe_t **pipe_)
+int zmq::fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe_)
 {
     //  Deallocate old content of the message.
-    int rc = msg_->close ();
+    int rc = msg->close ();
     errno_assert (rc == 0);
 
     //  Round-robin over the pipes to get the next message.
     while (_active > 0) {
         //  Try to fetch new message. If we've already read part of the message
         //  subsequent part should be immediately available.
-        const bool fetched = _pipes[_current]->read (msg_);
+        const bool fetched = _pipes[_current]->read (msg);
 
         //  Note that when message is not fetched, current pipe is deactivated
         //  and replaced by another active pipe. Thus we don't have to increase
@@ -126,7 +126,7 @@ int zmq::fq_t::recvpipe (msg_t *msg_, pipe_t **pipe_)
         if (fetched) {
             if (pipe_)
                 *pipe_ = _pipes[_current];
-            _more = (msg_->flags () & msg_t::more) != 0;
+            _more = (msg->flags () & ZmqMessage::more) != 0;
             if (!_more) {
                 _current = (_current + 1) % _active;
             }
@@ -146,7 +146,7 @@ int zmq::fq_t::recvpipe (msg_t *msg_, pipe_t **pipe_)
 
     //  No message is available. Initialise the output parameter
     //  to be a 0-byte message.
-    rc = msg_->init ();
+    rc = msg->init ();
     errno_assert (rc == 0);
     errno = EAGAIN;
     return -1;

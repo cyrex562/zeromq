@@ -62,11 +62,11 @@ template <typename T> generic_mtrie_t<T>::~generic_mtrie_t ()
 }
 
 template <typename T>
-bool generic_mtrie_t<T>::add (prefix_t prefix_, size_: usize, value_t *pipe_)
+bool generic_mtrie_t<T>::add (prefix_t prefix_, size: usize, value_t *pipe_)
 {
     generic_mtrie_t<value_t> *it = this;
 
-    while (size_) {
+    while (size) {
         const unsigned char c = *prefix_;
 
         if (c < it->_min || c >= it->_min + it->_count) {
@@ -120,7 +120,7 @@ bool generic_mtrie_t<T>::add (prefix_t prefix_, size_: usize, value_t *pipe_)
             }
 
             ++prefix_;
-            --size_;
+            --size;
             it = it->_next.node;
         } else {
             if (!it->_next.table[c - it->_min]) {
@@ -131,7 +131,7 @@ bool generic_mtrie_t<T>::add (prefix_t prefix_, size_: usize, value_t *pipe_)
             }
 
             ++prefix_;
-            --size_;
+            --size;
             it = it->_next.table[c - it->_min];
         }
     }
@@ -152,8 +152,8 @@ bool generic_mtrie_t<T>::add (prefix_t prefix_, size_: usize, value_t *pipe_)
 template <typename T>
 template <typename Arg>
 void generic_mtrie_t<T>::rm (value_t *pipe_,
-                             void (*func_) (prefix_t data_,
-                                            size_: usize,
+                             void (*func_) (prefix_t data,
+                                            size: usize,
                                             Arg arg_),
                              Arg arg_,
                              bool call_on_uniq_)
@@ -398,7 +398,7 @@ void generic_mtrie_t<T>::rm (value_t *pipe_,
 
 template <typename T>
 typename generic_mtrie_t<T>::rm_result
-generic_mtrie_t<T>::rm (prefix_t prefix_, size_: usize, value_t *pipe_)
+generic_mtrie_t<T>::rm (prefix_t prefix_, size: usize, value_t *pipe_)
 {
     //  This used to be implemented as a non-tail recursive traversal of the trie,
     //  which means remote clients controlled the depth of the recursion and the
@@ -410,7 +410,7 @@ generic_mtrie_t<T>::rm (prefix_t prefix_, size_: usize, value_t *pipe_)
     //  determine if the pre- or post- children visit actions have to be taken.
     rm_result ret = not_found;
     std::list<struct iter> stack;
-    struct iter it = {this, NULL, prefix_, size_, 0, 0, 0, false};
+    struct iter it = {this, NULL, prefix_, size, 0, 0, 0, false};
     stack.push_back (it);
 
     while (!stack.empty ()) {
@@ -544,12 +544,12 @@ generic_mtrie_t<T>::rm (prefix_t prefix_, size_: usize, value_t *pipe_)
 
 template <typename T>
 template <typename Arg>
-void generic_mtrie_t<T>::match (prefix_t data_,
-                                size_: usize,
+void generic_mtrie_t<T>::match (prefix_t data,
+                                size: usize,
                                 void (*func_) (value_t *pipe_, Arg arg_),
                                 Arg arg_)
 {
-    for (generic_mtrie_t *current = this; current; data_++, size_--) {
+    for (generic_mtrie_t *current = this; current; data++, size--) {
         //  Signal the pipes attached to this node.
         if (current->_pipes) {
             for (typename pipes_t::iterator it = current->_pipes->begin (),
@@ -560,7 +560,7 @@ void generic_mtrie_t<T>::match (prefix_t data_,
         }
 
         //  If we are at the end of the message, there's nothing more to match.
-        if (!size_)
+        if (!size)
             break;
 
         //  If there are no subnodes in the trie, return.
@@ -569,17 +569,17 @@ void generic_mtrie_t<T>::match (prefix_t data_,
 
         if (current->_count == 1) {
             //  If there's one subnode (optimisation).
-            if (data_[0] != current->_min) {
+            if (data[0] != current->_min) {
                 break;
             }
             current = current->_next.node;
         } else {
             //  If there are multiple subnodes.
-            if (data_[0] < current->_min
-                || data_[0] >= current->_min + current->_count) {
+            if (data[0] < current->_min
+                || data[0] >= current->_min + current->_count) {
                 break;
             }
-            current = current->_next.table[data_[0] - current->_min];
+            current = current->_next.table[data[0] - current->_min];
         }
     }
 }
@@ -607,8 +607,8 @@ template <typename T> class generic_mtrie_t
     ~generic_mtrie_t ();
 
     //  Add key to the trie. Returns true iff no entry with the same prefix_
-    //  and size_ existed before.
-    bool add (prefix_t prefix_, size_: usize, value_t *value_);
+    //  and size existed before.
+    bool add (prefix_t prefix_, size: usize, value_t *value_);
 
     //  Remove all entries with a specific value from the trie.
     //  The call_on_uniq_ flag controls if the callback is invoked
@@ -617,20 +617,20 @@ template <typename T> class generic_mtrie_t
     //  through to the callback function.
     template <typename Arg>
     void rm (value_t *value_,
-             void (*func_) (const unsigned char *data_, size_: usize, Arg arg_),
+             void (*func_) (const unsigned char *data, size: usize, Arg arg_),
              Arg arg_,
              bool call_on_uniq_);
 
     //  Removes a specific entry from the trie.
     //  Returns the result of the operation.
-    rm_result rm (prefix_t prefix_, size_: usize, value_t *value_);
+    rm_result rm (prefix_t prefix_, size: usize, value_t *value_);
 
     //  Calls a callback function for all matching entries, i.e. any node
-    //  corresponding to data_ or a prefix of it. The arg_ argument
+    //  corresponding to data or a prefix of it. The arg_ argument
     //  is passed through to the callback function.
     template <typename Arg>
-    void match (prefix_t data_,
-                size_: usize,
+    void match (prefix_t data,
+                size: usize,
                 void (*func_) (value_t *value_, Arg arg_),
                 Arg arg_);
 

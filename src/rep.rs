@@ -44,7 +44,7 @@ zmq::rep_t::~rep_t ()
 {
 }
 
-int zmq::rep_t::xsend (msg_t *msg_)
+int zmq::rep_t::xsend (ZmqMessage *msg)
 {
     //  If we are in the middle of receiving a request, we cannot send reply.
     if (!_sending_reply) {
@@ -52,10 +52,10 @@ int zmq::rep_t::xsend (msg_t *msg_)
         return -1;
     }
 
-    const bool more = (msg_->flags () & msg_t::more) != 0;
+    const bool more = (msg->flags () & ZmqMessage::more) != 0;
 
     //  Push message to the reply pipe.
-    const int rc = router_t::xsend (msg_);
+    let rc: i32 = router_t::xsend (msg);
     if (rc != 0)
         return rc;
 
@@ -66,7 +66,7 @@ int zmq::rep_t::xsend (msg_t *msg_)
     return 0;
 }
 
-int zmq::rep_t::xrecv (msg_t *msg_)
+int zmq::rep_t::xrecv (ZmqMessage *msg)
 {
     //  If we are in middle of sending a reply, we cannot receive next request.
     if (_sending_reply) {
@@ -78,16 +78,16 @@ int zmq::rep_t::xrecv (msg_t *msg_)
     //  to the reply pipe.
     if (_request_begins) {
         while (true) {
-            int rc = router_t::xrecv (msg_);
+            int rc = router_t::xrecv (msg);
             if (rc != 0)
                 return rc;
 
-            if ((msg_->flags () & msg_t::more)) {
+            if ((msg->flags () & ZmqMessage::more)) {
                 //  Empty message part delimits the traceback stack.
-                const bool bottom = (msg_->size () == 0);
+                const bool bottom = (msg->size () == 0);
 
                 //  Push it to the reply pipe.
-                rc = router_t::xsend (msg_);
+                rc = router_t::xsend (msg);
                 errno_assert (rc == 0);
 
                 if (bottom)
@@ -103,12 +103,12 @@ int zmq::rep_t::xrecv (msg_t *msg_)
     }
 
     //  Get next message part to return to the user.
-    const int rc = router_t::xrecv (msg_);
+    let rc: i32 = router_t::xrecv (msg);
     if (rc != 0)
         return rc;
 
     //  If whole request is read, flip the FSM to reply-sending state.
-    if (!(msg_->flags () & msg_t::more)) {
+    if (!(msg->flags () & ZmqMessage::more)) {
         _sending_reply = true;
         _request_begins = true;
     }
@@ -138,8 +138,8 @@ pub struct rep_t ZMQ_FINAL : public router_t
     ~rep_t ();
 
     //  Overrides of functions from ZmqSocketBase.
-    int xsend (zmq::msg_t *msg_);
-    int xrecv (zmq::msg_t *msg_);
+    int xsend (ZmqMessage *msg);
+    int xrecv (ZmqMessage *msg);
     bool xhas_in ();
     bool xhas_out ();
 

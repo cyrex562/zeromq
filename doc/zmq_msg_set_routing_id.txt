@@ -10,7 +10,7 @@ zmq_msg_set_routing_id - set routing ID property on message
 
 SYNOPSIS
 --------
-*int zmq_msg_set_routing_id (zmq_msg_t '*message', uint32_t 'routing_id');*
+*int zmq_msg_set_routing_id (zmq_ZmqMessage '*message', uint32_t 'routing_id');*
 
 
 DESCRIPTION

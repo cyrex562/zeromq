@@ -97,11 +97,11 @@ int zmq_join (s_: *mut c_void, group_: *const c_char);
 int zmq_leave (s_: *mut c_void, group_: *const c_char);
 
 /*  DRAFT Msg methods.                                                        */
-int zmq_msg_set_routing_id (msg_: *mut zmq_msg_t, uint32_t routing_id_);
-uint32_t zmq_msg_routing_id (zmq_msg_t *msg_);
-int zmq_msg_set_group (msg_: *mut zmq_msg_t, group_: *const c_char);
-const char *zmq_msg_group (zmq_msg_t *msg_);
-int zmq_msg_init_buffer (msg_: *mut zmq_msg_t, const buf_: *mut c_void, size_: usize);
+int zmq_msg_set_routing_id (msg: *mut zmq_ZmqMessage, uint32_t routing_id_);
+uint32_t zmq_msg_routing_id (zmq_ZmqMessage *msg);
+int zmq_msg_set_group (msg: *mut zmq_ZmqMessage, group_: *const c_char);
+const char *zmq_msg_group (zmq_ZmqMessage *msg);
+int zmq_msg_init_buffer (msg: *mut zmq_ZmqMessage, const buf: *mut c_void, size: usize);
 
 /*  DRAFT Msg property names.                                                 */
 // #define ZMQ_MSG_PROPERTY_ROUTING_ID "Routing-Id"

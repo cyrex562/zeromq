@@ -77,13 +77,13 @@ pub struct pgm_socket_t
                          fd_t *pending_notify_fd_);
 
     //  Send data as one APDU, transmit window owned memory.
-    size_t send (unsigned char *data_, data_len_: usize);
+    size_t send (unsigned char *data, data_len_: usize);
 
     //  Returns max tsdu size without fragmentation.
     size_t get_max_tsdu_size ();
 
     //  Receive data from pgm socket.
-    ssize_t receive (data_: *mut *mut c_void const pgm_tsi_t **tsi_);
+    ssize_t receive (data: *mut *mut c_void const pgm_tsi_t **tsi_);
 
     long get_rx_timeout ();
     long get_tx_timeout ();
@@ -159,7 +159,7 @@ int zmq::pgm_socket_t::init_address (network_: *const c_char,
         errno = EINVAL;
         return -1;
     }
-    memset (network, '\0', mem::size_of::<network>());
+    memset (network, 0, mem::size_of::<network>());
     memcpy (network, network_, port_delim - network_);
 
     pgm_error_t *pgm_error = NULL;
@@ -234,7 +234,7 @@ int zmq::pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
         }
 
         //  All options are of data type int
-        const int encapsulation_port = port_number;
+        let encapsulation_port: i32 = port_number;
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_UDP_ENCAP_UCAST_PORT,
                              &encapsulation_port, mem::size_of::<encapsulation_port>()))
             goto err_abort;
@@ -261,28 +261,28 @@ int zmq::pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
     }
 
     {
-        const int rcvbuf = (int) options.rcvbuf;
+        let rcvbuf: i32 = (int) options.rcvbuf;
         if (rcvbuf >= 0) {
             if (!pgm_setsockopt (sock, SOL_SOCKET, SO_RCVBUF, &rcvbuf,
                                  mem::size_of::<rcvbuf>()))
                 goto err_abort;
         }
 
-        const int sndbuf = (int) options.sndbuf;
+        let sndbuf: i32 = (int) options.sndbuf;
         if (sndbuf >= 0) {
             if (!pgm_setsockopt (sock, SOL_SOCKET, SO_SNDBUF, &sndbuf,
                                  mem::size_of::<sndbuf>()))
                 goto err_abort;
         }
 
-        const int max_tpdu = (int) options.multicast_maxtpdu;
+        let max_tpdu: i32 = (int) options.multicast_maxtpdu;
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_MTU, &max_tpdu,
                              mem::size_of::<max_tpdu>()))
             goto err_abort;
     }
 
     if (receiver) {
-        const int recv_only = 1, rxw_max_tpdu = (int) options.multicast_maxtpdu,
+        let recv_only: i32 = 1, rxw_max_tpdu = (int) options.multicast_maxtpdu,
                   rxw_sqns = compute_sqns (rxw_max_tpdu),
                   peer_expiry = pgm_secs (300), spmr_expiry = pgm_msecs (25),
                   nak_bo_ivl = pgm_msecs (50), nak_rpt_ivl = pgm_msecs (200),
@@ -309,7 +309,7 @@ int zmq::pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
                                 &nak_ncf_retries, mem::size_of::<nak_ncf_retries>()))
             goto err_abort;
     } else {
-        const int send_only = 1, max_rte = (int) ((options.rate * 1000) / 8),
+        let send_only: i32 = 1, max_rte = (int) ((options.rate * 1000) / 8),
                   txw_max_tpdu = (int) options.multicast_maxtpdu,
                   txw_sqns = compute_sqns (txw_max_tpdu),
                   ambient_spm = pgm_secs (30),
@@ -389,23 +389,23 @@ int zmq::pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
     //  Set IP level parameters.
     {
         // Multicast loopback disabled by default
-        const int multicast_loop = 0;
+        let multicast_loop: i32 = 0;
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_MULTICAST_LOOP,
                              &multicast_loop, mem::size_of::<multicast_loop>()))
             goto err_abort;
 
-        const int multicast_hops = options.multicast_hops;
+        let multicast_hops: i32 = options.multicast_hops;
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_MULTICAST_HOPS,
                              &multicast_hops, mem::size_of::<multicast_hops>()))
             goto err_abort;
 
         //  Expedited Forwarding PHB for network elements, no ECN.
         //  Ignore return value due to varied runtime support.
-        const int dscp = 0x2e << 2;
+        let dscp: i32 = 0x2e << 2;
         if (AF_INET6 != sa_family)
             pgm_setsockopt (sock, IPPROTO_PGM, PGM_TOS, &dscp, mem::size_of::<dscp>());
 
-        const int nonblocking = 1;
+        let nonblocking: i32 = 1;
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_NOBLOCK, &nonblocking,
                              mem::size_of::<nonblocking>()))
             goto err_abort;
@@ -526,11 +526,11 @@ void zmq::pgm_socket_t::get_sender_fds (fd_t *send_fd_,
 
 //  Send one APDU, transmit window owned memory.
 //  data_len_ must be less than one TPDU.
-size_t zmq::pgm_socket_t::send (unsigned char *data_, data_len_: usize)
+size_t zmq::pgm_socket_t::send (unsigned char *data, data_len_: usize)
 {
     size_t nbytes = 0;
 
-    const int status = pgm_send (sock, data_, data_len_, &nbytes);
+    let status: i32 = pgm_send (sock, data, data_len_, &nbytes);
 
     //  We have to write all data as one packet.
     if (nbytes > 0) {
@@ -629,7 +629,7 @@ ssize_t zmq::pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t 
         //  from the transport.
         pgm_error_t *pgm_error = NULL;
 
-        const int status = pgm_recvmsgv (sock, pgm_msgv, pgm_msgv_len,
+        let status: i32 = pgm_recvmsgv (sock, pgm_msgv, pgm_msgv_len,
                                          MSG_ERRQUEUE, &nbytes_rec, &pgm_error);
 
         //  Invalid parameters.
@@ -718,7 +718,7 @@ void zmq::pgm_socket_t::process_upstream ()
     size_t dummy_bytes = 0;
     pgm_error_t *pgm_error = NULL;
 
-    const int status = pgm_recvmsgv (sock, &dummy_msg, 1, MSG_ERRQUEUE,
+    let status: i32 = pgm_recvmsgv (sock, &dummy_msg, 1, MSG_ERRQUEUE,
                                      &dummy_bytes, &pgm_error);
 
     //  Invalid parameters.

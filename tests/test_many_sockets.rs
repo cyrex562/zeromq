@@ -39,7 +39,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 void test_system_max ()
 {
     // Keep allocating sockets until we run out of system resources
-    const int no_of_sockets = 2 * 65536;
+    let no_of_sockets: i32 = 2 * 65536;
     zmq_ctx_set (get_test_context (), ZMQ_MAX_SOCKETS, no_of_sockets);
     std::vector<void *> sockets;
 

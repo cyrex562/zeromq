@@ -305,7 +305,7 @@ void zmq::pgm_receiver_t::timer_event (token: i32)
 
 void zmq::pgm_receiver_t::drop_subscriptions ()
 {
-    msg_t msg;
+    ZmqMessage msg;
     msg.init ();
     while (session->pull_msg (&msg) == 0)
         msg.close ();

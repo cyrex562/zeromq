@@ -64,7 +64,7 @@ run_test (opt_: i32, T optval_, expected_error_: i32, bounce_test_: i32)
     void *sb = test_context_socket (ZMQ_DEALER);
 
     if (opt_) {
-        const int rc = zmq_setsockopt (sb, opt_, &optval_, mem::size_of::<optval_>());
+        let rc: i32 = zmq_setsockopt (sb, opt_, &optval_, mem::size_of::<optval_>());
         if (expected_error_) {
             TEST_ASSERT_FAILURE_ERRNO (expected_error_, rc);
         } else {

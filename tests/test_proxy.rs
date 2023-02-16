@@ -110,7 +110,7 @@ static void client_task (db_: *mut c_void)
     sprintf (routing_id, "%04X-%04X", rand () % 0xFFFF, rand () % 0xFFFF);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
       client, ZMQ_ROUTING_ID, routing_id,
-      ROUTING_ID_SIZE)); // includes '\0' as an helper for printf
+      ROUTING_ID_SIZE)); // includes 0 as an helper for printf
     linger = 0;
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (client, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
@@ -331,7 +331,7 @@ static void server_worker (void * /*unused_*/)
 u64 recv_stat (sock_: *mut c_void, bool last_)
 {
     u64 res;
-    zmq_msg_t stats_msg;
+    zmq_ZmqMessage stats_msg;
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&stats_msg));
     TEST_ASSERT_EQUAL_INT (mem::size_of::<u64>(),

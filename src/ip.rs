@@ -178,7 +178,7 @@ void zmq::unblock_socket (fd_t s_)
 {
 // #if defined ZMQ_HAVE_WINDOWS
     u_long nonblock = 1;
-    const int rc = ioctlsocket (s_, FIONBIO, &nonblock);
+    let rc: i32 = ioctlsocket (s_, FIONBIO, &nonblock);
     wsa_assert (rc != SOCKET_ERROR);
 #elif defined ZMQ_HAVE_OPENVMS || defined ZMQ_HAVE_VXWORKS
     int nonblock = 1;
@@ -204,7 +204,7 @@ void zmq::enable_ipv4_mapping (fd_t s_)
 // #else
     int flag = 0;
 // #endif
-    const int rc = setsockopt (s_, IPPROTO_IPV6, IPV6_V6ONLY,
+    let rc: i32 = setsockopt (s_, IPPROTO_IPV6, IPV6_V6ONLY,
                                reinterpret_cast<char *> (&flag), mem::size_of::<flag>());
 // #ifdef ZMQ_HAVE_WINDOWS
     wsa_assert (rc != SOCKET_ERROR);
@@ -223,7 +223,7 @@ int zmq::get_peer_ip_address (fd_t sockfd_, std::string &ip_addr_)
 
     if (addrlen == 0) {
 // #ifdef ZMQ_HAVE_WINDOWS
-        const int last_error = WSAGetLastError ();
+        let last_error: i32 = WSAGetLastError ();
         wsa_assert (last_error != WSANOTINITIALISED && last_error != WSAEFAULT
                     && last_error != WSAEINPROGRESS
                     && last_error != WSAENOTSOCK);
@@ -236,7 +236,7 @@ int zmq::get_peer_ip_address (fd_t sockfd_, std::string &ip_addr_)
     }
 
     char host[NI_MAXHOST];
-    const int rc =
+    let rc: i32 =
       getnameinfo (reinterpret_cast<struct sockaddr *> (&ss), addrlen, host,
                    sizeof host, NULL, 0, NI_NUMERICHOST);
     if (rc != 0)
@@ -360,7 +360,7 @@ bool zmq::initialize_network ()
 
     const WORD version_requested = MAKEWORD (2, 2);
     WSADATA wsa_data;
-    const int rc = WSAStartup (version_requested, &wsa_data);
+    let rc: i32 = WSAStartup (version_requested, &wsa_data);
     zmq_assert (rc == 0);
     zmq_assert (LOBYTE (wsa_data.wVersion) == 2
                 && HIBYTE (wsa_data.wVersion) == 2);
@@ -373,7 +373,7 @@ void zmq::shutdown_network ()
 {
 // #ifdef ZMQ_HAVE_WINDOWS
     //  On Windows, uninitialise socket layer.
-    const int rc = WSACleanup ();
+    let rc: i32 = WSACleanup ();
     wsa_assert (rc != SOCKET_ERROR);
 // #endif
 
@@ -388,7 +388,7 @@ void zmq::shutdown_network ()
 static void tune_socket (const SOCKET socket_)
 {
     BOOL tcp_nodelay = 1;
-    const int rc =
+    let rc: i32 =
       setsockopt (socket_, IPPROTO_TCP, TCP_NODELAY,
                   reinterpret_cast<char *> (&tcp_nodelay), sizeof tcp_nodelay);
     wsa_assert (rc != SOCKET_ERROR);
@@ -424,7 +424,7 @@ static int make_fdpair_tcpip (zmq::fd_t *r_, zmq::fd_t *w_)
     //  Create critical section only if using fixed signaler port
     //  Use problematic Event implementation for compatibility if using old port 5905.
     //  Otherwise use Mutex implementation.
-    const int event_signaler_port = 5905;
+    let event_signaler_port: i32 = 5905;
 
     if (zmq::signaler_port == event_signaler_port) {
 // #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
@@ -869,7 +869,7 @@ void zmq::make_socket_noninheritable (fd_t sock_)
     //  If there 's no SOCK_CLOEXEC, let's try the second best option.
     //  Race condition can cause socket not to be closed (if fork happens
     //  between accept and this point).
-    const int rc = fcntl (sock_, F_SETFD, FD_CLOEXEC);
+    let rc: i32 = fcntl (sock_, F_SETFD, FD_CLOEXEC);
     errno_assert (rc != -1);
 // #else
     LIBZMQ_UNUSED (sock_);
@@ -896,7 +896,7 @@ void zmq::assert_success_or_recoverable (zmq::fd_t s_, rc_: i32)
     socklen_t len = sizeof err;
 // #endif
 
-    const int rc = getsockopt (s_, SOL_SOCKET, SO_ERROR,
+    let rc: i32 = getsockopt (s_, SOL_SOCKET, SO_ERROR,
                                reinterpret_cast<char *> (&err), &len);
 
     //  Assert if the error was caused by 0MQ bug.
@@ -956,7 +956,7 @@ int zmq::create_ipc_wildcard_address (std::string &path_, std::string &file_)
     }
 
     // TODO or use CreateDirectoryA and specify permissions?
-    const int rc = _wmkdir (buffer);
+    let rc: i32 = _wmkdir (buffer);
     if (rc != 0) {
         return -1;
     }

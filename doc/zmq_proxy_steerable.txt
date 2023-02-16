@@ -96,7 +96,7 @@ assert (zmq_send (control, "TERMINATE", 9, 0) == 0);
 
 // check statistics
 assert (zmq_send (control, "STATISTICS", 10, 0) == 0);
-zmq_msg_t stats_msg;
+zmq_ZmqMessage stats_msg;
 
 while (1) {
     assert (zmq_msg_init (&stats_msg) == 0);

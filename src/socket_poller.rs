@@ -405,7 +405,7 @@ int zmq::socket_poller_t::rebuild ()
             if (it->socket) {
                 if (!is_thread_safe (*it->socket)) {
                     size_t fd_size = sizeof (zmq::fd_t);
-                    const int rc = it->socket->getsockopt (
+                    let rc: i32 = it->socket->getsockopt (
                       ZMQ_FD, &_pollfds[item_nbr].fd, &fd_size);
                     zmq_assert (rc == 0);
 
@@ -626,7 +626,7 @@ int zmq::socket_poller_t::wait (zmq::socket_poller_t::event_t *events_,
     }
 
     if (_need_rebuild) {
-        const int rc = rebuild ();
+        let rc: i32 = rebuild ();
         if (rc == -1)
             return -1;
     }
@@ -685,7 +685,7 @@ int zmq::socket_poller_t::wait (zmq::socket_poller_t::event_t *events_,
               static_cast<int> (std::min<u64> (end - now, INT_MAX));
 
         //  Wait for events.
-        const int rc = poll (_pollfds, _pollset_size, timeout);
+        let rc: i32 = poll (_pollfds, _pollset_size, timeout);
         if (rc == -1 && errno == EINTR) {
             return -1;
         }
@@ -696,7 +696,7 @@ int zmq::socket_poller_t::wait (zmq::socket_poller_t::event_t *events_,
             _signaler->recv ();
 
         //  Check for the events.
-        const int found = check_events (events_, n_events_);
+        let found: i32 = check_events (events_, n_events_);
         if (found) {
             if (found > 0)
                 zero_trail_events (events_, n_events_, found);
@@ -745,7 +745,7 @@ int zmq::socket_poller_t::wait (zmq::socket_poller_t::event_t *events_,
                 valid_pollset_bytes (*_pollset_out.get ()));
         memcpy (errset.get (), _pollset_err.get (),
                 valid_pollset_bytes (*_pollset_err.get ()));
-        const int rc = select (static_cast<int> (_max_fd + 1), inset.get (),
+        let rc: i32 = select (static_cast<int> (_max_fd + 1), inset.get (),
                                outset.get (), errset.get (), ptimeout);
 // #if defined ZMQ_HAVE_WINDOWS
         if (unlikely (rc == SOCKET_ERROR)) {
@@ -764,7 +764,7 @@ int zmq::socket_poller_t::wait (zmq::socket_poller_t::event_t *events_,
             _signaler->recv ();
 
         //  Check for the events.
-        const int found = check_events (events_, n_events_, *inset.get (),
+        let found: i32 = check_events (events_, n_events_, *inset.get (),
                                         *outset.get (), *errset.get ());
         if (found) {
             if (found > 0)

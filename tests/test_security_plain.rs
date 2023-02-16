@@ -110,7 +110,7 @@ static void setup_server ()
       zmq_setsockopt (server, ZMQ_ROUTING_ID, "IDENT", 6));
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (server, ZMQ_ZAP_DOMAIN, domain, strlen (domain)));
-    const int as_server = 1;
+    let as_server: i32 = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (server, ZMQ_PLAIN_SERVER, &as_server, mem::size_of::<int>()));
     bind_loopback_ipv4 (server, my_endpoint, sizeof my_endpoint);
@@ -157,7 +157,7 @@ void test_plain_client_as_server_fails ()
     void *client = test_context_socket (ZMQ_DEALER);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (client, ZMQ_ZAP_DOMAIN, domain, strlen (domain)));
-    const int as_server = 1;
+    let as_server: i32 = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (client, ZMQ_PLAIN_SERVER, &as_server, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));

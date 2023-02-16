@@ -52,7 +52,7 @@ pub struct ws_decoder_t ZMQ_FINAL
     ~ws_decoder_t ();
 
     //  i_decoder interface.
-    msg_t *msg () { return &_in_progress; }
+    ZmqMessage *msg () { return &_in_progress; }
 
   // private:
     int opcode_ready (unsigned char const *);
@@ -67,7 +67,7 @@ pub struct ws_decoder_t ZMQ_FINAL
 
     unsigned char _tmpbuf[8];
     unsigned char _msg_flags;
-    msg_t _in_progress;
+    ZmqMessage _in_progress;
 
     const bool _zero_copy;
     const i64 _max_msg_size;
@@ -100,7 +100,7 @@ zmq::ws_decoder_t::ws_decoder_t (bufsize_: usize,
 
 zmq::ws_decoder_t::~ws_decoder_t ()
 {
-    const int rc = _in_progress.close ();
+    let rc: i32 = _in_progress.close ();
     errno_assert (rc == 0);
 }
 
@@ -118,13 +118,13 @@ int zmq::ws_decoder_t::opcode_ready (unsigned char const *)
         case zmq::ws_protocol_t::opcode_binary:
             break;
         case zmq::ws_protocol_t::opcode_close:
-            _msg_flags = msg_t::command | msg_t::close_cmd;
+            _msg_flags = ZmqMessage::command | ZmqMessage::close_cmd;
             break;
         case zmq::ws_protocol_t::opcode_ping:
-            _msg_flags = msg_t::ping | msg_t::command;
+            _msg_flags = ZmqMessage::ping | ZmqMessage::command;
             break;
         case zmq::ws_protocol_t::opcode_pong:
-            _msg_flags = msg_t::pong | msg_t::command;
+            _msg_flags = ZmqMessage::pong | ZmqMessage::command;
             break;
         default:
             return -1;
@@ -221,9 +221,9 @@ int zmq::ws_decoder_t::flags_ready (unsigned char const *read_from_)
         flags = _tmpbuf[0];
 
     if (flags & ws_protocol_t::more_flag)
-        _msg_flags |= msg_t::more;
+        _msg_flags |= ZmqMessage::more;
     if (flags & ws_protocol_t::command_flag)
-        _msg_flags |= msg_t::command;
+        _msg_flags |= ZmqMessage::command;
 
     _size--;
 

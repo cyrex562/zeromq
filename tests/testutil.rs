@@ -184,7 +184,7 @@ void s_send_seq (socket_: *mut c_void, ...)
 
 void s_recv_seq (socket_: *mut c_void, ...)
 {
-    zmq_msg_t msg;
+    zmq_ZmqMessage msg;
     zmq_msg_init (&msg);
 
     more: i32;
@@ -398,10 +398,10 @@ fd_t connect_socket (endpoint_: *const c_char, const af_: i32, const protocol_: 
         // getaddrinfo does not like [x:y::z]
         if (*strchr (endpoint_, '/') + 2 == '[') {
             strcpy (address, strchr (endpoint_, '[') + 1);
-            address[strlen (address) - strlen (port) - 2] = '\0';
+            address[strlen (address) - strlen (port) - 2] = 0;
         } else {
             strcpy (address, strchr (endpoint_, '/') + 2);
-            address[strlen (address) - strlen (port) - 1] = '\0';
+            address[strlen (address) - strlen (port) - 1] = 0;
         }
 
         struct addrinfo *in, hint;

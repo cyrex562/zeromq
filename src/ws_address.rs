@@ -103,7 +103,7 @@ zmq::WsAddress::WsAddress (const sockaddr *sa_, socklen_t sa_len_)
     _path = std::string ("");
 
     char hbuf[NI_MAXHOST];
-    const int rc = getnameinfo (addr (), addrlen (), hbuf, mem::size_of::<hbuf>(), NULL,
+    let rc: i32 = getnameinfo (addr (), addrlen (), hbuf, mem::size_of::<hbuf>(), NULL,
                                 0, NI_NUMERICHOST);
     if (rc != 0) {
         _host = std::string ("localhost");

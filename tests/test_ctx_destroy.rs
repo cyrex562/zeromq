@@ -160,10 +160,10 @@ struct poller_test_data_t
     counter: *mut c_void;
 };
 
-void run_poller (data_: *mut c_void)
+void run_poller (data: *mut c_void)
 {
     const poller_test_data_t *const poller_test_data =
-      static_cast<const poller_test_data_t *> (data_);
+      static_cast<const poller_test_data_t *> (data);
 
     void *socket =
       zmq_socket (poller_test_data->ctx, poller_test_data->socket_type);

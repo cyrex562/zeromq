@@ -462,7 +462,7 @@ void test_user_message ()
 // #ifdef ZMQ_ONLY_FIRST_SUBSCRIBE
 void test_user_message_multi ()
 {
-    const int only_first_subscribe = 1;
+    let only_first_subscribe: i32 = 1;
 
     //  Create a publisher
     void *pub = test_context_socket (ZMQ_XPUB);

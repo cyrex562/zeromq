@@ -105,7 +105,7 @@ sigemptyset(&sigmask);
 sigaddset(&sigmask, SIGTERM);
 sigprocmask(SIG_BLOCK, &sigmask, &sigmask_without_sigterm);
 struct sigaction sa;
-memset(&sa, '\0', sizeof(sa));
+memset(&sa, 0, sizeof(sa));
 sa.sa_handler = handle_sigterm;
 
 // poll

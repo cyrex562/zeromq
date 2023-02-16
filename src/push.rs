@@ -44,7 +44,7 @@ pub struct push_t ZMQ_FINAL : public ZmqSocketBase
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
-    int xsend (zmq::msg_t *msg_);
+    int xsend (ZmqMessage *msg);
     bool xhas_out ();
     void xwrite_activated (zmq::pipe_t *pipe_);
     void xpipe_terminated (zmq::pipe_t *pipe_);
@@ -91,9 +91,9 @@ void zmq::push_t::xpipe_terminated (pipe_t *pipe_)
     _lb.pipe_terminated (pipe_);
 }
 
-int zmq::push_t::xsend (msg_t *msg_)
+int zmq::push_t::xsend (ZmqMessage *msg)
 {
-    return _lb.send (msg_);
+    return _lb.send (msg);
 }
 
 bool zmq::push_t::xhas_out ()

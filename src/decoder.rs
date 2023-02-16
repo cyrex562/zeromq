@@ -66,7 +66,7 @@ pub struct decoder_base_t : public i_decoder
     ~decoder_base_t () ZMQ_OVERRIDE { _allocator.deallocate (); }
 
     //  Returns a buffer to be filled with binary data.
-    void get_buffer (unsigned char **data_, std::size_: *mut usize) ZMQ_FINAL
+    void get_buffer (unsigned char **data, std::size: *mut usize) ZMQ_FINAL
     {
         _buf = _allocator.allocate ();
 
@@ -79,23 +79,23 @@ pub struct decoder_base_t : public i_decoder
         //  other engines running in the same I/O thread for excessive
         //  amounts of time.
         if (_to_read >= _allocator.size ()) {
-            *data_ = _read_pos;
-            *size_ = _to_read;
+            *data = _read_pos;
+            *size = _to_read;
             return;
         }
 
-        *data_ = _buf;
-        *size_ = _allocator.size ();
+        *data = _buf;
+        *size = _allocator.size ();
     }
 
     //  Processes the data in the buffer previously allocated using
-    //  get_buffer function. size_ argument specifies number of bytes
+    //  get_buffer function. size argument specifies number of bytes
     //  actually filled into the buffer. Function returns 1 when the
     //  whole message was decoded or 0 when more data is required.
     //  On error, -1 is returned and errno set accordingly.
     //  Number of bytes processed is returned in bytes_used_.
-    int decode (const unsigned char *data_,
-                std::size_: usize,
+    int decode (const unsigned char *data,
+                std::size: usize,
                 std::size_t &bytes_used_) ZMQ_FINAL
     {
         bytes_used_ = 0;
@@ -103,28 +103,28 @@ pub struct decoder_base_t : public i_decoder
         //  In case of zero-copy simply adjust the pointers, no copying
         //  is required. Also, run the state machine in case all the data
         //  were processed.
-        if (data_ == _read_pos) {
-            zmq_assert (size_ <= _to_read);
-            _read_pos += size_;
-            _to_read -= size_;
-            bytes_used_ = size_;
+        if (data == _read_pos) {
+            zmq_assert (size <= _to_read);
+            _read_pos += size;
+            _to_read -= size;
+            bytes_used_ = size;
 
             while (!_to_read) {
-                const int rc =
-                  (static_cast<T *> (this)->*_next) (data_ + bytes_used_);
+                let rc: i32 =
+                  (static_cast<T *> (this)->*_next) (data + bytes_used_);
                 if (rc != 0)
                     return rc;
             }
             return 0;
         }
 
-        while (bytes_used_ < size_) {
+        while (bytes_used_ < size) {
             //  Copy the data from buffer to the message.
-            const size_t to_copy = std::min (_to_read, size_ - bytes_used_);
+            const size_t to_copy = std::min (_to_read, size - bytes_used_);
             // Only copy when destination address is different from the
             // current address in the buffer.
-            if (_read_pos != data_ + bytes_used_) {
-                memcpy (_read_pos, data_ + bytes_used_, to_copy);
+            if (_read_pos != data + bytes_used_) {
+                memcpy (_read_pos, data + bytes_used_, to_copy);
             }
 
             _read_pos += to_copy;
@@ -134,8 +134,8 @@ pub struct decoder_base_t : public i_decoder
             //  If none is available, return.
             while (_to_read == 0) {
                 // pass current address in the buffer
-                const int rc =
-                  (static_cast<T *> (this)->*_next) (data_ + bytes_used_);
+                let rc: i32 =
+                  (static_cast<T *> (this)->*_next) (data + bytes_used_);
                 if (rc != 0)
                     return rc;
             }

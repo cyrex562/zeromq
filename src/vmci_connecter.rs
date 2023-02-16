@@ -214,7 +214,7 @@ void zmq::vmci_connecter_t::timer_event (id_: i32)
 void zmq::vmci_connecter_t::start_connecting ()
 {
     //  Open the connecting socket.
-    const int rc = open ();
+    let rc: i32 = open ();
 
     //  Connect may succeed in synchronous manner.
     if (rc == 0) {
@@ -292,7 +292,7 @@ int zmq::vmci_connecter_t::open ()
     //  Translate error codes indicating asynchronous connect has been
     //  launched to a uniform EINPROGRESS.
 // #ifdef ZMQ_HAVE_WINDOWS
-    const int last_error = WSAGetLastError ();
+    let last_error: i32 = WSAGetLastError ();
     if (last_error == WSAEINPROGRESS || last_error == WSAEWOULDBLOCK)
         errno = EINPROGRESS;
     else
@@ -314,7 +314,7 @@ zmq::fd_t zmq::vmci_connecter_t::connect ()
     socklen_t len = sizeof err;
 // #endif
 
-    const int rc = getsockopt (_s, SOL_SOCKET, SO_ERROR,
+    let rc: i32 = getsockopt (_s, SOL_SOCKET, SO_ERROR,
                                reinterpret_cast<char *> (&err), &len);
 
     //  Assert if the error was caused by 0MQ bug.

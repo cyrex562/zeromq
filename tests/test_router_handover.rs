@@ -75,7 +75,7 @@ void test_with_handover ()
 
     //  Ensure that the first dealer doesn't receive the message
     //  but the second one does
-    const int timeout = SETTLE_TIME;
+    let timeout: i32 = SETTLE_TIME;
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (dealer_one, ZMQ_RCVTIMEO, &timeout, sizeof timeout));
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (dealer_one, buffer, 255, 0));
@@ -121,7 +121,7 @@ void test_without_handover ()
     send_string_expect_success (dealer_two, "Hello", 0);
 
     //  This should be ignored by the router
-    const int timeout = SETTLE_TIME;
+    let timeout: i32 = SETTLE_TIME;
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (router, ZMQ_RCVTIMEO, &timeout, sizeof timeout));
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (router, buffer, 255, 0));

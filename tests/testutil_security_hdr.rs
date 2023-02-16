@@ -66,7 +66,7 @@ struct curve_client_data_t
     const char *client_secret;
 };
 
-void socket_config_curve_client (client_: *mut c_void, data_: *mut c_void);
+void socket_config_curve_client (client_: *mut c_void, data: *mut c_void);
 
 //  --------------------------------------------------------------------------
 //  This methods receives and validates ZAP requests (allowing or denying

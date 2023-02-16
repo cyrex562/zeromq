@@ -173,7 +173,7 @@ void zmq::pollset_t::set_pollin (handle_t handle_)
         pc.cmd = PS_MOD;
         pc.events = POLLIN;
 
-        const int rc = pollset_ctl (pollset_fd, &pc, 1);
+        let rc: i32 = pollset_ctl (pollset_fd, &pc, 1);
         errno_assert (rc != -1);
 
         pe->flag_pollin = true;
@@ -213,7 +213,7 @@ void zmq::pollset_t::set_pollout (handle_t handle_)
         pc.cmd = PS_MOD;
         pc.events = POLLOUT;
 
-        const int rc = pollset_ctl (pollset_fd, &pc, 1);
+        let rc: i32 = pollset_ctl (pollset_fd, &pc, 1);
         errno_assert (rc != -1);
 
         pe->flag_pollout = true;

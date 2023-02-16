@@ -132,7 +132,7 @@ void test_port_wildcard_ipv4_address_ipv6 ()
     void *sb = test_context_socket (ZMQ_REP);
     void *sc = test_context_socket (ZMQ_REQ);
 
-    const int ipv6 = is_ipv6_available ();
+    let ipv6: i32 = is_ipv6_available ();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (sb, ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -159,7 +159,7 @@ void test_port_wildcard_ipv4_address_ipv6 ()
 
 void test_port_wildcard_ipv6_address ()
 {
-    const int ipv6 = is_ipv6_available ();
+    let ipv6: i32 = is_ipv6_available ();
     if (!ipv6)
         TEST_IGNORE_MESSAGE ("ipv6 is not available");
 

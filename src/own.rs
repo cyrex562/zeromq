@@ -54,7 +54,7 @@ pub struct own_t : public object_t
     //  register_tem_acks functions. When event occurs, call
     //  remove_term_ack. When number of pending acks reaches zero
     //  object will be deallocated.
-    void register_term_acks (count_: i32);
+    void register_term_acks (count: i32);
     void unregister_term_ack ();
 
   protected:
@@ -271,9 +271,9 @@ void zmq::own_t::process_term (linger_: i32)
     check_term_acks ();
 }
 
-void zmq::own_t::register_term_acks (count_: i32)
+void zmq::own_t::register_term_acks (count: i32)
 {
-    _term_acks += count_;
+    _term_acks += count;
 }
 
 void zmq::own_t::unregister_term_ack ()

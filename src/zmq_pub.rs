@@ -42,7 +42,7 @@ pub struct pub_t ZMQ_FINAL : public xpub_t
     void xattach_pipe (zmq::pipe_t *pipe_,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false);
-    int xrecv (zmq::msg_t *msg_);
+    int xrecv (ZmqMessage *msg);
     bool xhas_in ();
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (pub_t)
@@ -71,7 +71,7 @@ void zmq::pub_t::xattach_pipe (pipe_t *pipe_,
     xpub_t::xattach_pipe (pipe_, subscribe_to_all_, locally_initiated_);
 }
 
-int zmq::pub_t::xrecv (class msg_t *)
+int zmq::pub_t::xrecv (class ZmqMessage *)
 {
     //  Messages cannot be received from PUB socket.
     errno = ENOTSUP;

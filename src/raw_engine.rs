@@ -76,7 +76,7 @@ pub struct raw_engine_t ZMQ_FINAL : public stream_engine_base_t
     bool handshake ();
 
   // private:
-    int push_raw_msg_to_session (msg_t *msg_);
+    int push_raw_ZmqMessageo_session (ZmqMessage *msg);
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (raw_engine_t)
 };
@@ -103,8 +103,8 @@ void zmq::raw_engine_t::plug_internal ()
     alloc_assert (_decoder);
 
     _next_msg = &raw_engine_t::pull_msg_from_session;
-    _process_msg = static_cast<int (stream_engine_base_t::*) (msg_t *)> (
-      &raw_engine_t::push_raw_msg_to_session);
+    _process_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
+      &raw_engine_t::push_raw_ZmqMessageo_session);
 
     properties_t properties;
     if (init_properties (properties)) {
@@ -117,9 +117,9 @@ void zmq::raw_engine_t::plug_internal ()
     if (_options.raw_notify) {
         //  For raw sockets, send an initial 0-length message to the
         // application so that it knows a peer has connected.
-        msg_t connector;
+        ZmqMessage connector;
         connector.init ();
-        push_raw_msg_to_session (&connector);
+        push_raw_ZmqMessageo_session (&connector);
         connector.close ();
         session ()->flush ();
     }
@@ -140,17 +140,17 @@ void zmq::raw_engine_t::error (error_reason_t reason_)
     if (_options.raw_socket && _options.raw_notify) {
         //  For raw sockets, send a final 0-length message to the application
         //  so that it knows the peer has been disconnected.
-        msg_t terminator;
+        ZmqMessage terminator;
         terminator.init ();
-        push_raw_msg_to_session (&terminator);
+        push_raw_ZmqMessageo_session (&terminator);
         terminator.close ();
     }
     stream_engine_base_t::error (reason_);
 }
 
-int zmq::raw_engine_t::push_raw_msg_to_session (msg_t *msg_)
+int zmq::raw_engine_t::push_raw_ZmqMessageo_session (ZmqMessage *msg)
 {
-    if (_metadata && _metadata != msg_->metadata ())
-        msg_->set_metadata (_metadata);
-    return push_msg_to_session (msg_);
+    if (_metadata && _metadata != msg->metadata ())
+        msg->set_metadata (_metadata);
+    return push_ZmqMessageo_session (msg);
 }

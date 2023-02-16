@@ -175,7 +175,7 @@ int zmq::ipc_listener_t::set_local_address (addr_: *const c_char)
     if (rc != 0) {
         if (!_tmp_socket_dirname.empty ()) {
             // We need to preserve errno to return to the user
-            const int tmp_errno = errno;
+            let tmp_errno: i32 = errno;
             ::rmdir (_tmp_socket_dirname.c_str ());
             _tmp_socket_dirname.clear ();
             errno = tmp_errno;
@@ -193,7 +193,7 @@ int zmq::ipc_listener_t::set_local_address (addr_: *const c_char)
         if (_s == retired_fd) {
             if (!_tmp_socket_dirname.empty ()) {
                 // We need to preserve errno to return to the user
-                const int tmp_errno = errno;
+                let tmp_errno: i32 = errno;
                 ::rmdir (_tmp_socket_dirname.c_str ());
                 _tmp_socket_dirname.clear ();
                 errno = tmp_errno;
@@ -221,7 +221,7 @@ int zmq::ipc_listener_t::set_local_address (addr_: *const c_char)
     return 0;
 
 error:
-    const int err = errno;
+    let err: i32 = errno;
     close ();
     errno = err;
     return -1;
@@ -359,7 +359,7 @@ zmq::fd_t zmq::ipc_listener_t::accept ()
 // #endif
     if (sock == retired_fd) {
 // #if defined ZMQ_HAVE_WINDOWS
-        const int last_error = WSAGetLastError ();
+        let last_error: i32 = WSAGetLastError ();
         wsa_assert (last_error == WSAEWOULDBLOCK || last_error == WSAECONNRESET
                     || last_error == WSAEMFILE || last_error == WSAENOBUFS);
 // #else
@@ -383,7 +383,7 @@ zmq::fd_t zmq::ipc_listener_t::accept ()
 
     if (zmq::set_nosigpipe (sock)) {
 // #ifdef ZMQ_HAVE_WINDOWS
-        const int rc = closesocket (sock);
+        let rc: i32 = closesocket (sock);
         wsa_assert (rc != SOCKET_ERROR);
 // #else
         int rc = ::close (sock);

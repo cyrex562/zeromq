@@ -49,7 +49,7 @@ pub struct ws_encoder_t ZMQ_FINAL : public encoder_base_t<ws_encoder_t>
     unsigned char _tmp_buf[16];
     bool _must_mask;
     unsigned char _mask[4];
-    msg_t _masked_msg;
+    ZmqMessage _masked_msg;
     bool _is_binary;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_encoder_t)
@@ -117,9 +117,9 @@ void zmq::ws_encoder_t::message_ready ()
     if (_is_binary) {
         //  Encode flags.
         unsigned char protocol_flags = 0;
-        if (in_progress ()->flags () & msg_t::more)
+        if (in_progress ()->flags () & ZmqMessage::more)
             protocol_flags |= ws_protocol_t::more_flag;
-        if (in_progress ()->flags () & msg_t::command)
+        if (in_progress ()->flags () & ZmqMessage::command)
             protocol_flags |= ws_protocol_t::command_flag;
 
         _tmp_buf[offset++] =
@@ -147,7 +147,7 @@ void zmq::ws_encoder_t::size_ready ()
         unsigned char *dest = src;
 
         //  If msg is shared or data is constant we cannot mask in-place, allocate a new msg for it
-        if (in_progress ()->flags () & msg_t::shared
+        if (in_progress ()->flags () & ZmqMessage::shared
             || in_progress ()->is_cmsg ()) {
             _masked_msg.close ();
             _masked_msg.init_size (size);

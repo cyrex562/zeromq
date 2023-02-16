@@ -35,7 +35,7 @@
 
 namespace zmq
 {
-pub struct msg_t;
+pub struct ZmqMessage;
 
 //  Interface to be implemented by message decoder.
 pub struct i_decoder
@@ -43,17 +43,17 @@ pub struct i_decoder
 // public:
     virtual ~i_decoder () ZMQ_DEFAULT;
 
-    virtual void get_buffer (unsigned char **data_, size_: *mut usize) = 0;
+    virtual void get_buffer (unsigned char **data, size: *mut usize) = 0;
 
     virtual void resize_buffer (size_t) = 0;
-    //  Decodes data pointed to by data_.
+    //  Decodes data pointed to by data.
     //  When a message is decoded, 1 is returned.
     //  When the decoder needs more data, 0 is returned.
     //  On error, -1 is returned and errno is set accordingly.
     virtual int
-    decode (const unsigned char *data_, size_: usize, size_t &processed_) = 0;
+    decode (const unsigned char *data, size: usize, size_t &processed_) = 0;
 
-    virtual msg_t *msg () = 0;
+    virtual ZmqMessage *msg () = 0;
 };
 }
 

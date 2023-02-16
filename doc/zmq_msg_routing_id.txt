@@ -9,7 +9,7 @@ zmq_msg_routing_id - return routing ID for message, if any
 
 SYNOPSIS
 --------
-*uint32_t zmq_msg_routing_id (zmq_msg_t '*message');*
+*uint32_t zmq_msg_routing_id (zmq_ZmqMessage '*message');*
 
 
 DESCRIPTION
@@ -38,7 +38,7 @@ assert (server);
 int rc = zmq_bind (server, "tcp://127.0.0.1:8080");
 assert (rc == 0);
 
-zmq_msg_t message;
+zmq_ZmqMessage message;
 rc = zmq_msg_init (&message);
 assert (rc == 0);
 

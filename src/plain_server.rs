@@ -44,16 +44,16 @@
     ~plain_server_t ();
 
     // mechanism implementation
-    int next_handshake_command (msg_t *msg_);
-    int process_handshake_command (msg_t *msg_);
+    int next_handshake_command (ZmqMessage *msg);
+    int process_handshake_command (ZmqMessage *msg);
 
   // private:
-    static void produce_welcome (msg_t *msg_);
-    void produce_ready (msg_t *msg_) const;
-    void produce_error (msg_t *msg_) const;
+    static void produce_welcome (ZmqMessage *msg);
+    void produce_ready (ZmqMessage *msg) const;
+    void produce_error (ZmqMessage *msg) const;
 
-    int process_hello (msg_t *msg_);
-    int process_initiate (msg_t *msg_);
+    int process_hello (ZmqMessage *msg);
+    int process_initiate (ZmqMessage *msg);
 
     void send_zap_request (const std::string &username_,
                            password_: &str);
@@ -79,21 +79,21 @@ zmq::plain_server_t::~plain_server_t ()
 {
 }
 
-int zmq::plain_server_t::next_handshake_command (msg_t *msg_)
+int zmq::plain_server_t::next_handshake_command (ZmqMessage *msg)
 {
     int rc = 0;
 
     switch (state) {
         case sending_welcome:
-            produce_welcome (msg_);
+            produce_welcome (msg);
             state = waiting_for_initiate;
             break;
         case sending_ready:
-            produce_ready (msg_);
+            produce_ready (msg);
             state = ready;
             break;
         case sending_error:
-            produce_error (msg_);
+            produce_error (msg);
             state = error_sent;
             break;
         default:
@@ -103,16 +103,16 @@ int zmq::plain_server_t::next_handshake_command (msg_t *msg_)
     return rc;
 }
 
-int zmq::plain_server_t::process_handshake_command (msg_t *msg_)
+int zmq::plain_server_t::process_handshake_command (ZmqMessage *msg)
 {
     int rc = 0;
 
     switch (state) {
         case waiting_for_hello:
-            rc = process_hello (msg_);
+            rc = process_hello (msg);
             break;
         case waiting_for_initiate:
-            rc = process_initiate (msg_);
+            rc = process_initiate (msg);
             break;
         default:
             //  TODO see comment in curve_server_t::process_handshake_command
@@ -123,22 +123,22 @@ int zmq::plain_server_t::process_handshake_command (msg_t *msg_)
             break;
     }
     if (rc == 0) {
-        rc = msg_->close ();
+        rc = msg->close ();
         errno_assert (rc == 0);
-        rc = msg_->init ();
+        rc = msg->init ();
         errno_assert (rc == 0);
     }
     return rc;
 }
 
-int zmq::plain_server_t::process_hello (msg_t *msg_)
+int zmq::plain_server_t::process_hello (ZmqMessage *msg)
 {
-    int rc = check_basic_command_structure (msg_);
+    int rc = check_basic_command_structure (msg);
     if (rc == -1)
         return -1;
 
-    const char *ptr = static_cast<char *> (msg_->data ());
-    size_t bytes_left = msg_->size ();
+    const char *ptr = static_cast<char *> (msg->data ());
+    size_t bytes_left = msg->size ();
 
     if (bytes_left < hello_prefix_len
         || memcmp (ptr, hello_prefix, hello_prefix_len) != 0) {
@@ -213,17 +213,17 @@ int zmq::plain_server_t::process_hello (msg_t *msg_)
     return receive_and_process_zap_reply () == -1 ? -1 : 0;
 }
 
-void zmq::plain_server_t::produce_welcome (msg_t *msg_)
+void zmq::plain_server_t::produce_welcome (ZmqMessage *msg)
 {
-    const int rc = msg_->init_size (welcome_prefix_len);
+    let rc: i32 = msg->init_size (welcome_prefix_len);
     errno_assert (rc == 0);
-    memcpy (msg_->data (), welcome_prefix, welcome_prefix_len);
+    memcpy (msg->data (), welcome_prefix, welcome_prefix_len);
 }
 
-int zmq::plain_server_t::process_initiate (msg_t *msg_)
+int zmq::plain_server_t::process_initiate (ZmqMessage *msg)
 {
-    const unsigned char *ptr = static_cast<unsigned char *> (msg_->data ());
-    const size_t bytes_left = msg_->size ();
+    const unsigned char *ptr = static_cast<unsigned char *> (msg->data ());
+    const size_t bytes_left = msg->size ();
 
     if (bytes_left < initiate_prefix_len
         || memcmp (ptr, initiate_prefix, initiate_prefix_len) != 0) {
@@ -232,28 +232,28 @@ int zmq::plain_server_t::process_initiate (msg_t *msg_)
         errno = EPROTO;
         return -1;
     }
-    const int rc = parse_metadata (ptr + initiate_prefix_len,
+    let rc: i32 = parse_metadata (ptr + initiate_prefix_len,
                                    bytes_left - initiate_prefix_len);
     if (rc == 0)
         state = sending_ready;
     return rc;
 }
 
-void zmq::plain_server_t::produce_ready (msg_t *msg_) const
+void zmq::plain_server_t::produce_ready (ZmqMessage *msg) const
 {
-    make_command_with_basic_properties (msg_, ready_prefix, ready_prefix_len);
+    make_command_with_basic_properties (msg, ready_prefix, ready_prefix_len);
 }
 
-void zmq::plain_server_t::produce_error (msg_t *msg_) const
+void zmq::plain_server_t::produce_error (ZmqMessage *msg) const
 {
     const char expected_status_code_len = 3;
     zmq_assert (status_code.length ()
                 == static_cast<size_t> (expected_status_code_len));
     const size_t status_code_len_size = mem::size_of::<expected_status_code_len>();
-    const int rc = msg_->init_size (error_prefix_len + status_code_len_size
+    let rc: i32 = msg->init_size (error_prefix_len + status_code_len_size
                                     + expected_status_code_len);
     zmq_assert (rc == 0);
-    char *msg_data = static_cast<char *> (msg_->data ());
+    char *msg_data = static_cast<char *> (msg->data ());
     memcpy (msg_data, error_prefix, error_prefix_len);
     msg_data[error_prefix_len] = expected_status_code_len;
     memcpy (msg_data + error_prefix_len + status_code_len_size,

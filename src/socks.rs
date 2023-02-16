@@ -206,7 +206,7 @@ void zmq::socks_greeting_encoder_t::encode (const socks_greeting_t &greeting_)
 
 int zmq::socks_greeting_encoder_t::output (fd_t fd_)
 {
-    const int rc =
+    let rc: i32 =
       tcp_write (fd_, _buf + _bytes_written, _bytes_encoded - _bytes_written);
     if (rc > 0)
         _bytes_written += static_cast<size_t> (rc);
@@ -234,7 +234,7 @@ zmq::socks_choice_decoder_t::socks_choice_decoder_t () : _bytes_read (0)
 int zmq::socks_choice_decoder_t::input (fd_t fd_)
 {
     zmq_assert (_bytes_read < 2);
-    const int rc = tcp_read (fd_, _buf + _bytes_read, 2 - _bytes_read);
+    let rc: i32 = tcp_read (fd_, _buf + _bytes_read, 2 - _bytes_read);
     if (rc > 0) {
         _bytes_read += static_cast<size_t> (rc);
         if (_buf[0] != 0x05)
@@ -292,7 +292,7 @@ void zmq::socks_basic_auth_request_encoder_t::encode (
 
 int zmq::socks_basic_auth_request_encoder_t::output (fd_t fd_)
 {
-    const int rc =
+    let rc: i32 =
       tcp_write (fd_, _buf + _bytes_written, _bytes_encoded - _bytes_written);
     if (rc > 0)
         _bytes_written += static_cast<size_t> (rc);
@@ -323,7 +323,7 @@ zmq::socks_auth_response_decoder_t::socks_auth_response_decoder_t () :
 int zmq::socks_auth_response_decoder_t::input (fd_t fd_)
 {
     zmq_assert (_bytes_read < 2);
-    const int rc = tcp_read (fd_, _buf + _bytes_read, 2 - _bytes_read);
+    let rc: i32 = tcp_read (fd_, _buf + _bytes_read, 2 - _bytes_read);
     if (rc > 0) {
         _bytes_read += static_cast<size_t> (rc);
         if (_buf[0] != 0x01)
@@ -382,7 +382,7 @@ void zmq::socks_request_encoder_t::encode (const socks_request_t &req_)
     //  Suppress potential DNS lookups.
     hints.ai_flags = AI_NUMERICHOST;
 
-    const int rc = getaddrinfo (req_.hostname, NULL, &hints, &res);
+    let rc: i32 = getaddrinfo (req_.hostname, NULL, &hints, &res);
     if (rc == 0 && res->ai_family == AF_INET) {
         const struct sockaddr_in *sockaddr_in =
           reinterpret_cast<const struct sockaddr_in *> (res->ai_addr);
@@ -414,7 +414,7 @@ void zmq::socks_request_encoder_t::encode (const socks_request_t &req_)
 
 int zmq::socks_request_encoder_t::output (fd_t fd_)
 {
-    const int rc =
+    let rc: i32 =
       tcp_write (fd_, _buf + _bytes_written, _bytes_encoded - _bytes_written);
     if (rc > 0)
         _bytes_written += static_cast<size_t> (rc);
@@ -458,7 +458,7 @@ int zmq::socks_response_decoder_t::input (fd_t fd_)
         else if (atyp == 0x04)
             n = 15 + 2;
     }
-    const int rc = tcp_read (fd_, _buf + _bytes_read, n);
+    let rc: i32 = tcp_read (fd_, _buf + _bytes_read, n);
     if (rc > 0) {
         _bytes_read += static_cast<size_t> (rc);
         if (_buf[0] != 0x05)

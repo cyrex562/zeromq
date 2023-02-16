@@ -111,7 +111,7 @@ ZmqSocklen get_socket_address (fd_t fd_,
 {
     ZmqSocklen sl = static_cast<ZmqSocklen> (sizeof (*ss_));
 
-    const int rc =
+    let rc: i32 =
       socket_end_ == SocketEndLocal
         ? getsockname (fd_, reinterpret_cast<struct sockaddr *> (ss_), &sl)
         : getpeername (fd_, reinterpret_cast<struct sockaddr *> (ss_), &sl);

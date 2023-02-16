@@ -66,10 +66,10 @@ pub struct dist_t
     void pipe_terminated (zmq::pipe_t *pipe_);
 
     //  Send the message to the matching outbound pipes.
-    int send_to_matching (zmq::msg_t *msg_);
+    int send_to_matching (ZmqMessage *msg);
 
     //  Send the message to all the outbound pipes.
-    int send_to_all (zmq::msg_t *msg_);
+    int send_to_all (ZmqMessage *msg);
 
     static bool has_out ();
 
@@ -79,10 +79,10 @@ pub struct dist_t
   // private:
     //  Write the message to the pipe. Make the pipe inactive if writing
     //  fails. In such a case false is returned.
-    bool write (zmq::pipe_t *pipe_, zmq::msg_t *msg_);
+    bool write (zmq::pipe_t *pipe_, ZmqMessage *msg);
 
     //  Put the message to all active pipes.
-    void distribute (zmq::msg_t *msg_);
+    void distribute (ZmqMessage *msg);
 
     //  List of outbound pipes.
     typedef array_t<zmq::pipe_t, 2> pipes_t;
@@ -220,19 +220,19 @@ void zmq::dist_t::activated (pipe_t *pipe_)
     }
 }
 
-int zmq::dist_t::send_to_all (msg_t *msg_)
+int zmq::dist_t::send_to_all (ZmqMessage *msg)
 {
     _matching = _active;
-    return send_to_matching (msg_);
+    return send_to_matching (msg);
 }
 
-int zmq::dist_t::send_to_matching (msg_t *msg_)
+int zmq::dist_t::send_to_matching (ZmqMessage *msg)
 {
     //  Is this end of a multipart message?
-    const bool msg_more = (msg_->flags () & msg_t::more) != 0;
+    const bool msg_more = (msg->flags () & ZmqMessage::more) != 0;
 
     //  Push the message to matching pipes.
-    distribute (msg_);
+    distribute (msg);
 
     //  If multipart message is fully sent, activate all the eligible pipes.
     if (!msg_more)
@@ -243,38 +243,38 @@ int zmq::dist_t::send_to_matching (msg_t *msg_)
     return 0;
 }
 
-void zmq::dist_t::distribute (msg_t *msg_)
+void zmq::dist_t::distribute (ZmqMessage *msg)
 {
     //  If there are no matching pipes available, simply drop the message.
     if (_matching == 0) {
-        int rc = msg_->close ();
+        int rc = msg->close ();
         errno_assert (rc == 0);
-        rc = msg_->init ();
+        rc = msg->init ();
         errno_assert (rc == 0);
         return;
     }
 
-    if (msg_->is_vsm ()) {
+    if (msg->is_vsm ()) {
         for (pipes_t::size_type i = 0; i < _matching;) {
-            if (!write (_pipes[i], msg_)) {
+            if (!write (_pipes[i], msg)) {
                 //  Use same index again because entry will have been removed.
             } else {
                 ++i;
             }
         }
-        int rc = msg_->init ();
+        int rc = msg->init ();
         errno_assert (rc == 0);
         return;
     }
 
     //  Add matching-1 references to the message. We already hold one reference,
     //  that's why -1.
-    msg_->add_refs (static_cast<int> (_matching) - 1);
+    msg->add_refs (static_cast<int> (_matching) - 1);
 
     //  Push copy of the message to each matching pipe.
     int failed = 0;
     for (pipes_t::size_type i = 0; i < _matching;) {
-        if (!write (_pipes[i], msg_)) {
+        if (!write (_pipes[i], msg)) {
             ++failed;
             //  Use same index again because entry will have been removed.
         } else {
@@ -282,11 +282,11 @@ void zmq::dist_t::distribute (msg_t *msg_)
         }
     }
     if (unlikely (failed))
-        msg_->rm_refs (failed);
+        msg->rm_refs (failed);
 
     //  Detach the original message from the data buffer. Note that we don't
     //  close the message. That's because we've already used all the references.
-    const int rc = msg_->init ();
+    let rc: i32 = msg->init ();
     errno_assert (rc == 0);
 }
 
@@ -295,9 +295,9 @@ bool zmq::dist_t::has_out ()
     return true;
 }
 
-bool zmq::dist_t::write (pipe_t *pipe_, msg_t *msg_)
+bool zmq::dist_t::write (pipe_t *pipe_, ZmqMessage *msg)
 {
-    if (!pipe_->write (msg_)) {
+    if (!pipe_->write (msg)) {
         _pipes.swap (_pipes.index (pipe_), _matching - 1);
         _matching--;
         _pipes.swap (_pipes.index (pipe_), _active - 1);
@@ -306,7 +306,7 @@ bool zmq::dist_t::write (pipe_t *pipe_, msg_t *msg_)
         _eligible--;
         return false;
     }
-    if (!(msg_->flags () & msg_t::more))
+    if (!(msg->flags () & ZmqMessage::more))
         pipe_->flush ();
     return true;
 }

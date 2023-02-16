@@ -171,20 +171,20 @@ pub struct ws_engine_t : public stream_engine_base_t
     ~ws_engine_t ();
 
   protected:
-    int decode_and_push (msg_t *msg_);
-    int process_command_message (msg_t *msg_);
-    int produce_pong_message (msg_t *msg_);
-    int produce_ping_message (msg_t *msg_);
+    int decode_and_push (ZmqMessage *msg);
+    int process_command_message (ZmqMessage *msg);
+    int produce_pong_message (ZmqMessage *msg);
+    int produce_ping_message (ZmqMessage *msg);
     bool handshake ();
     void plug_internal ();
     void start_ws_handshake ();
 
   // private:
-    int routing_id_msg (msg_t *msg_);
-    int process_routing_id_msg (msg_t *msg_);
-    int produce_close_message (msg_t *msg_);
-    int produce_no_msg_after_close (msg_t *msg_);
-    int close_connection_after_close (msg_t *msg_);
+    int routing_id_msg (ZmqMessage *msg);
+    int process_routing_id_msg (ZmqMessage *msg);
+    int produce_close_message (ZmqMessage *msg);
+    int produce_no_msg_after_close (ZmqMessage *msg);
+    int close_connection_after_close (ZmqMessage *msg);
 
     bool select_protocol (protocol: *const c_char);
 
@@ -211,7 +211,7 @@ pub struct ws_engine_t : public stream_engine_base_t
     char _websocket_accept[MAX_HEADER_VALUE_LENGTH + 1];
 
     _heartbeat_timeout: i32;
-    msg_t _close_msg;
+    ZmqMessage _close_msg;
 };
 
 static int
@@ -311,31 +311,31 @@ void zmq::ws_engine_t::plug_internal ()
     in_event ();
 }
 
-int zmq::ws_engine_t::routing_id_msg (msg_t *msg_)
+int zmq::ws_engine_t::routing_id_msg (ZmqMessage *msg)
 {
-    const int rc = msg_->init_size (_options.routing_id_size);
+    let rc: i32 = msg->init_size (_options.routing_id_size);
     errno_assert (rc == 0);
     if (_options.routing_id_size > 0)
-        memcpy (msg_->data (), _options.routing_id, _options.routing_id_size);
+        memcpy (msg->data (), _options.routing_id, _options.routing_id_size);
     _next_msg = &ws_engine_t::pull_msg_from_session;
 
     return 0;
 }
 
-int zmq::ws_engine_t::process_routing_id_msg (msg_t *msg_)
+int zmq::ws_engine_t::process_routing_id_msg (ZmqMessage *msg)
 {
     if (_options.recv_routing_id) {
-        msg_->set_flags (msg_t::routing_id);
-        const int rc = session ()->push_msg (msg_);
+        msg->set_flags (ZmqMessage::routing_id);
+        let rc: i32 = session ()->push_msg (msg);
         errno_assert (rc == 0);
     } else {
-        int rc = msg_->close ();
+        int rc = msg->close ();
         errno_assert (rc == 0);
-        rc = msg_->init ();
+        rc = msg->init ();
         errno_assert (rc == 0);
     }
 
-    _process_msg = &ws_engine_t::push_msg_to_session;
+    _process_msg = &ws_engine_t::push_ZmqMessageo_session;
 
     return 0;
 }
@@ -343,9 +343,9 @@ int zmq::ws_engine_t::process_routing_id_msg (msg_t *msg_)
 bool zmq::ws_engine_t::select_protocol (protocol_: *const c_char)
 {
     if (_options.mechanism == ZMQ_NULL && (strcmp ("ZWS2.0", protocol_) == 0)) {
-        _next_msg = static_cast<int (stream_engine_base_t::*) (msg_t *)> (
+        _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
           &ws_engine_t::routing_id_msg);
-        _process_msg = static_cast<int (stream_engine_base_t::*) (msg_t *)> (
+        _process_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
           &ws_engine_t::process_routing_id_msg);
 
         // No mechanism in place, enabling heartbeat
@@ -419,7 +419,7 @@ bool zmq::ws_engine_t::handshake ()
 
 bool zmq::ws_engine_t::server_handshake ()
 {
-    const int nbytes = read (_read_buffer, WS_BUFFER_SIZE);
+    let nbytes: i32 = read (_read_buffer, WS_BUFFER_SIZE);
     if (nbytes == -1) {
         if (errno != EAGAIN)
             error (zmq::i_engine::connection_error);
@@ -553,7 +553,7 @@ bool zmq::ws_engine_t::server_handshake ()
                 if (c == '\r' || c == '\n')
                     _server_handshake_state = handshake_error;
                 else if (c == ':') {
-                    _header_name[_header_name_position] = '\0';
+                    _header_name[_header_name_position] = 0;
                     _server_handshake_state = header_field_colon;
                 } else if (_header_name_position + 1 > MAX_HEADER_NAME_LENGTH)
                     _server_handshake_state = handshake_error;
@@ -581,7 +581,7 @@ bool zmq::ws_engine_t::server_handshake ()
                 if (c == '\n')
                     _server_handshake_state = handshake_error;
                 else if (c == '\r') {
-                    _header_value[_header_value_position] = '\0';
+                    _header_value[_header_value_position] = 0;
 
                     if (strcasecmp ("upgrade", _header_name) == 0)
                         _header_upgrade_websocket =
@@ -606,7 +606,7 @@ bool zmq::ws_engine_t::server_handshake ()
                         // Currently only the ZWS2.0 is supported
                         // Sec-WebSocket-Protocol can appear multiple times or be a comma separated list
                         // if _websocket_protocol is already set we skip the check
-                        if (_websocket_protocol[0] == '\0') {
+                        if (_websocket_protocol[0] == 0) {
                             char *rest = NULL;
                             char *p = strtok_r (_header_value, ",", &rest);
                             while (p != NULL) {
@@ -641,20 +641,20 @@ bool zmq::ws_engine_t::server_handshake ()
             case handshake_end_line_cr:
                 if (c == '\n') {
                     if (_header_connection_upgrade && _header_upgrade_websocket
-                        && _websocket_protocol[0] != '\0'
-                        && _websocket_key[0] != '\0') {
+                        && _websocket_protocol[0] != 0
+                        && _websocket_key[0] != 0) {
                         _server_handshake_state = handshake_complete;
 
                         unsigned char hash[SHA_DIGEST_LENGTH];
                         compute_accept_key (_websocket_key, hash);
 
-                        const int accept_key_len = encode_base64 (
+                        let accept_key_len: i32 = encode_base64 (
                           hash, SHA_DIGEST_LENGTH, _websocket_accept,
                           MAX_HEADER_VALUE_LENGTH);
                         assert (accept_key_len > 0);
-                        _websocket_accept[accept_key_len] = '\0';
+                        _websocket_accept[accept_key_len] = 0;
 
-                        const int written =
+                        let written: i32 =
                           snprintf (reinterpret_cast<char *> (_write_buffer),
                                     WS_BUFFER_SIZE,
                                     "HTTP/1.1 101 Switching Protocols\r\n"
@@ -699,7 +699,7 @@ bool zmq::ws_engine_t::server_handshake ()
 
 bool zmq::ws_engine_t::client_handshake ()
 {
-    const int nbytes = read (_read_buffer, WS_BUFFER_SIZE);
+    let nbytes: i32 = read (_read_buffer, WS_BUFFER_SIZE);
     if (nbytes == -1) {
         if (errno != EAGAIN)
             error (zmq::i_engine::connection_error);
@@ -942,7 +942,7 @@ bool zmq::ws_engine_t::client_handshake ()
                 if (c == '\r' || c == '\n')
                     _client_handshake_state = client_handshake_error;
                 else if (c == ':') {
-                    _header_name[_header_name_position] = '\0';
+                    _header_name[_header_name_position] = 0;
                     _client_handshake_state = client_header_field_colon;
                 } else if (_header_name_position + 1 > MAX_HEADER_NAME_LENGTH)
                     _client_handshake_state = client_handshake_error;
@@ -971,7 +971,7 @@ bool zmq::ws_engine_t::client_handshake ()
                 if (c == '\n')
                     _client_handshake_state = client_handshake_error;
                 else if (c == '\r') {
-                    _header_value[_header_value_position] = '\0';
+                    _header_value[_header_value_position] = 0;
 
                     if (strcasecmp ("upgrade", _header_name) == 0)
                         _header_upgrade_websocket =
@@ -1009,8 +1009,8 @@ bool zmq::ws_engine_t::client_handshake ()
             case client_handshake_end_line_cr:
                 if (c == '\n') {
                     if (_header_connection_upgrade && _header_upgrade_websocket
-                        && _websocket_protocol[0] != '\0'
-                        && _websocket_accept[0] != '\0') {
+                        && _websocket_protocol[0] != 0
+                        && _websocket_accept[0] != 0) {
                         _client_handshake_state = client_handshake_complete;
 
                         // TODO: validate accept key
@@ -1043,15 +1043,15 @@ bool zmq::ws_engine_t::client_handshake ()
     return false;
 }
 
-int zmq::ws_engine_t::decode_and_push (msg_t *msg_)
+int zmq::ws_engine_t::decode_and_push (ZmqMessage *msg)
 {
     zmq_assert (_mechanism != NULL);
 
     //  with WS engine, ping and pong commands are control messages and should not go through any mechanism
-    if (msg_->is_ping () || msg_->is_pong () || msg_->is_close_cmd ()) {
-        if (process_command_message (msg_) == -1)
+    if (msg->is_ping () || msg->is_pong () || msg->is_close_cmd ()) {
+        if (process_command_message (msg) == -1)
             return -1;
-    } else if (_mechanism->decode (msg_) == -1)
+    } else if (_mechanism->decode (msg) == -1)
         return -1;
 
     if (_has_timeout_timer) {
@@ -1059,13 +1059,13 @@ int zmq::ws_engine_t::decode_and_push (msg_t *msg_)
         cancel_timer (heartbeat_timeout_timer_id);
     }
 
-    if (msg_->flags () & msg_t::command && !msg_->is_ping ()
-        && !msg_->is_pong () && !msg_->is_close_cmd ())
-        process_command_message (msg_);
+    if (msg->flags () & ZmqMessage::command && !msg->is_ping ()
+        && !msg->is_pong () && !msg->is_close_cmd ())
+        process_command_message (msg);
 
     if (_metadata)
-        msg_->set_metadata (_metadata);
-    if (session ()->push_msg (msg_) == -1) {
+        msg->set_metadata (_metadata);
+    if (session ()->push_msg (msg) == -1) {
         if (errno == EAGAIN)
             _process_msg = &ws_engine_t::push_one_then_decode_and_push;
         return -1;
@@ -1073,40 +1073,40 @@ int zmq::ws_engine_t::decode_and_push (msg_t *msg_)
     return 0;
 }
 
-int zmq::ws_engine_t::produce_close_message (msg_t *msg_)
+int zmq::ws_engine_t::produce_close_message (ZmqMessage *msg)
 {
-    int rc = msg_->move (_close_msg);
+    int rc = msg->move (_close_msg);
     errno_assert (rc == 0);
 
-    _next_msg = static_cast<int (stream_engine_base_t::*) (msg_t *)> (
+    _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
       &ws_engine_t::produce_no_msg_after_close);
 
     return rc;
 }
 
-int zmq::ws_engine_t::produce_no_msg_after_close (msg_t *msg_)
+int zmq::ws_engine_t::produce_no_msg_after_close (ZmqMessage *msg)
 {
-    LIBZMQ_UNUSED (msg_);
-    _next_msg = static_cast<int (stream_engine_base_t::*) (msg_t *)> (
+    LIBZMQ_UNUSED (msg);
+    _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
       &ws_engine_t::close_connection_after_close);
 
     errno = EAGAIN;
     return -1;
 }
 
-int zmq::ws_engine_t::close_connection_after_close (msg_t *msg_)
+int zmq::ws_engine_t::close_connection_after_close (ZmqMessage *msg)
 {
-    LIBZMQ_UNUSED (msg_);
+    LIBZMQ_UNUSED (msg);
     error (connection_error);
     errno = ECONNRESET;
     return -1;
 }
 
-int zmq::ws_engine_t::produce_ping_message (msg_t *msg_)
+int zmq::ws_engine_t::produce_ping_message (ZmqMessage *msg)
 {
-    int rc = msg_->init ();
+    int rc = msg->init ();
     errno_assert (rc == 0);
-    msg_->set_flags (msg_t::command | msg_t::ping);
+    msg->set_flags (ZmqMessage::command | ZmqMessage::ping);
 
     _next_msg = &ws_engine_t::pull_and_encode;
     if (!_has_timeout_timer && _heartbeat_timeout > 0) {
@@ -1118,27 +1118,27 @@ int zmq::ws_engine_t::produce_ping_message (msg_t *msg_)
 }
 
 
-int zmq::ws_engine_t::produce_pong_message (msg_t *msg_)
+int zmq::ws_engine_t::produce_pong_message (ZmqMessage *msg)
 {
-    int rc = msg_->init ();
+    int rc = msg->init ();
     errno_assert (rc == 0);
-    msg_->set_flags (msg_t::command | msg_t::pong);
+    msg->set_flags (ZmqMessage::command | ZmqMessage::pong);
 
     _next_msg = &ws_engine_t::pull_and_encode;
     return rc;
 }
 
 
-int zmq::ws_engine_t::process_command_message (msg_t *msg_)
+int zmq::ws_engine_t::process_command_message (ZmqMessage *msg)
 {
-    if (msg_->is_ping ()) {
-        _next_msg = static_cast<int (stream_engine_base_t::*) (msg_t *)> (
+    if (msg->is_ping ()) {
+        _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
           &ws_engine_t::produce_pong_message);
         out_event ();
-    } else if (msg_->is_close_cmd ()) {
-        int rc = _close_msg.copy (*msg_);
+    } else if (msg->is_close_cmd ()) {
+        int rc = _close_msg.copy (*msg);
         errno_assert (rc == 0);
-        _next_msg = static_cast<int (stream_engine_base_t::*) (msg_t *)> (
+        _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
           &ws_engine_t::produce_close_message);
         out_event ();
     }

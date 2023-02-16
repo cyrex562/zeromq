@@ -48,10 +48,10 @@ pub struct curve_client_t ZMQ_FINAL : public curve_mechanism_base_t
     ~curve_client_t () ZMQ_FINAL;
 
     // mechanism implementation
-    int next_handshake_command (msg_t *msg_) ZMQ_FINAL;
-    int process_handshake_command (msg_t *msg_) ZMQ_FINAL;
-    int encode (msg_t *msg_) ZMQ_FINAL;
-    int decode (msg_t *msg_) ZMQ_FINAL;
+    int next_handshake_command (ZmqMessage *msg) ZMQ_FINAL;
+    int process_handshake_command (ZmqMessage *msg) ZMQ_FINAL;
+    int encode (ZmqMessage *msg) ZMQ_FINAL;
+    int decode (ZmqMessage *msg) ZMQ_FINAL;
     status_t status () const ZMQ_FINAL;
 
   // private:
@@ -71,9 +71,9 @@ pub struct curve_client_t ZMQ_FINAL : public curve_mechanism_base_t
     //  CURVE protocol tools
     curve_client_tools_t _tools;
 
-    int produce_hello (msg_t *msg_);
+    int produce_hello (ZmqMessage *msg);
     int process_welcome (const uint8_t *msg_data_, msg_size_: usize);
-    int produce_initiate (msg_t *msg_);
+    int produce_initiate (ZmqMessage *msg);
     int process_ready (const uint8_t *msg_data_, msg_size_: usize);
     int process_error (const uint8_t *msg_data_, msg_size_: usize);
 };
@@ -98,18 +98,18 @@ zmq::curve_client_t::~curve_client_t ()
 {
 }
 
-int zmq::curve_client_t::next_handshake_command (msg_t *msg_)
+int zmq::curve_client_t::next_handshake_command (ZmqMessage *msg)
 {
     int rc = 0;
 
     switch (_state) {
         case send_hello:
-            rc = produce_hello (msg_);
+            rc = produce_hello (msg);
             if (rc == 0)
                 _state = expect_welcome;
             break;
         case send_initiate:
-            rc = produce_initiate (msg_);
+            rc = produce_initiate (msg);
             if (rc == 0)
                 _state = expect_ready;
             break;
@@ -120,11 +120,11 @@ int zmq::curve_client_t::next_handshake_command (msg_t *msg_)
     return rc;
 }
 
-int zmq::curve_client_t::process_handshake_command (msg_t *msg_)
+int zmq::curve_client_t::process_handshake_command (ZmqMessage *msg)
 {
     const unsigned char *msg_data =
-      static_cast<unsigned char *> (msg_->data ());
-    const size_t msg_size = msg_->size ();
+      static_cast<unsigned char *> (msg->data ());
+    const size_t msg_size = msg->size ();
 
     int rc = 0;
     if (curve_client_tools_t::is_handshake_command_welcome (msg_data, msg_size))
@@ -143,25 +143,25 @@ int zmq::curve_client_t::process_handshake_command (msg_t *msg_)
     }
 
     if (rc == 0) {
-        rc = msg_->close ();
+        rc = msg->close ();
         errno_assert (rc == 0);
-        rc = msg_->init ();
+        rc = msg->init ();
         errno_assert (rc == 0);
     }
 
     return rc;
 }
 
-int zmq::curve_client_t::encode (msg_t *msg_)
+int zmq::curve_client_t::encode (ZmqMessage *msg)
 {
     zmq_assert (_state == connected);
-    return curve_mechanism_base_t::encode (msg_);
+    return curve_mechanism_base_t::encode (msg);
 }
 
-int zmq::curve_client_t::decode (msg_t *msg_)
+int zmq::curve_client_t::decode (ZmqMessage *msg)
 {
     zmq_assert (_state == connected);
-    return curve_mechanism_base_t::decode (msg_);
+    return curve_mechanism_base_t::decode (msg);
 }
 
 zmq::mechanism_t::status_t zmq::curve_client_t::status () const
@@ -174,21 +174,21 @@ zmq::mechanism_t::status_t zmq::curve_client_t::status () const
     return mechanism_t::handshaking;
 }
 
-int zmq::curve_client_t::produce_hello (msg_t *msg_)
+int zmq::curve_client_t::produce_hello (ZmqMessage *msg)
 {
-    int rc = msg_->init_size (200);
+    int rc = msg->init_size (200);
     errno_assert (rc == 0);
 
-    rc = _tools.produce_hello (msg_->data (), get_and_inc_nonce ());
+    rc = _tools.produce_hello (msg->data (), get_and_inc_nonce ());
     if (rc == -1) {
         session->get_socket ()->event_handshake_failed_protocol (
           session->get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
 
         // TODO this is somewhat inconsistent: we call init_size, but we may
-        // not close msg_; i.e. we assume that msg_ is initialized but empty
+        // not close msg; i.e. we assume that msg is initialized but empty
         // (if it were non-empty, calling init_size might cause a leak!)
 
-        // msg_->close ();
+        // msg->close ();
         return -1;
     }
 
@@ -198,7 +198,7 @@ int zmq::curve_client_t::produce_hello (msg_t *msg_)
 int zmq::curve_client_t::process_welcome (const uint8_t *msg_data_,
                                           msg_size_: usize)
 {
-    const int rc = _tools.process_welcome (msg_data_, msg_size_,
+    let rc: i32 = _tools.process_welcome (msg_data_, msg_size_,
                                            get_writable_precom_buffer ());
 
     if (rc == -1) {
@@ -214,7 +214,7 @@ int zmq::curve_client_t::process_welcome (const uint8_t *msg_data_,
     return 0;
 }
 
-int zmq::curve_client_t::produce_initiate (msg_t *msg_)
+int zmq::curve_client_t::produce_initiate (ZmqMessage *msg)
 {
     const size_t metadata_length = basic_properties_len ();
     std::vector<unsigned char, secure_allocator_t<unsigned char> >
@@ -224,10 +224,10 @@ int zmq::curve_client_t::produce_initiate (msg_t *msg_)
 
     const size_t msg_size =
       113 + 128 + crypto_box_BOXZEROBYTES + metadata_length;
-    int rc = msg_->init_size (msg_size);
+    int rc = msg->init_size (msg_size);
     errno_assert (rc == 0);
 
-    rc = _tools.produce_initiate (msg_->data (), msg_size, get_and_inc_nonce (),
+    rc = _tools.produce_initiate (msg->data (), msg_size, get_and_inc_nonce (),
                                   &metadata_plaintext[0], metadata_length);
 
     if (-1 == rc) {

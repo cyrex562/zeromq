@@ -55,7 +55,7 @@ void recv_string_expect_success_or_eagain (socket_: *mut c_void,
                                        "used for strings longer than 255 "
                                        "characters");
 
-    const int rc = zmq_recv (socket_, buffer, mem::size_of::<buffer>(), flags_);
+    let rc: i32 = zmq_recv (socket_, buffer, mem::size_of::<buffer>(), flags_);
     if (rc < 0) {
         if (errno == EAGAIN) {
             printf ("got EAGAIN\n");
@@ -145,7 +145,7 @@ void test_ppoll_signals ()
         sigaddset (&sigmask, SIGTERM);
         sigprocmask (SIG_BLOCK, &sigmask, &sigmask_without_sigterm);
         struct sigaction sa;
-        memset (&sa, '\0', mem::size_of::<sa>());
+        memset (&sa, 0, mem::size_of::<sa>());
         sa.sa_handler = handle_sigterm;
         TEST_ASSERT_SUCCESS_ERRNO (sigaction (SIGTERM, &sa, NULL));
 

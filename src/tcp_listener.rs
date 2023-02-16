@@ -193,7 +193,7 @@ int zmq::tcp_listener_t::create_socket (addr_: *const c_char)
     return 0;
 
 error:
-    const int err = errno;
+    let err: i32 = errno;
     close ();
     errno = err;
     return -1;
@@ -241,7 +241,7 @@ zmq::fd_t zmq::tcp_listener_t::accept ()
 
     if (sock == retired_fd) {
 // #if defined ZMQ_HAVE_WINDOWS
-        const int last_error = WSAGetLastError ();
+        let last_error: i32 = WSAGetLastError ();
         wsa_assert (last_error == WSAEWOULDBLOCK || last_error == WSAECONNRESET
                     || last_error == WSAEMFILE || last_error == WSAENOBUFS);
 #elif defined ZMQ_HAVE_ANDROID
@@ -274,7 +274,7 @@ zmq::fd_t zmq::tcp_listener_t::accept ()
         }
         if (!matched) {
 // #ifdef ZMQ_HAVE_WINDOWS
-            const int rc = closesocket (sock);
+            let rc: i32 = closesocket (sock);
             wsa_assert (rc != SOCKET_ERROR);
 // #else
             int rc = ::close (sock);
@@ -286,7 +286,7 @@ zmq::fd_t zmq::tcp_listener_t::accept ()
 
     if (zmq::set_nosigpipe (sock)) {
 // #ifdef ZMQ_HAVE_WINDOWS
-        const int rc = closesocket (sock);
+        let rc: i32 = closesocket (sock);
         wsa_assert (rc != SOCKET_ERROR);
 // #else
         int rc = ::close (sock);

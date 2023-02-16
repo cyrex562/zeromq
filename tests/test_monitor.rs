@@ -313,7 +313,7 @@ void test_monitor_versioned_stats (bind_function_t bind_function_,
                                    expected_prefix_: *const c_char)
 {
     char server_endpoint[MAX_SOCKET_STRING];
-    const int pulls_count = 4;
+    let pulls_count: i32 = 4;
     void *pulls[pulls_count];
 
     //  We'll monitor these two sockets
@@ -334,7 +334,7 @@ void test_monitor_versioned_stats (bind_function_t bind_function_,
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (push, ZMQ_SNDHWM, &send_hwm, mem::size_of::<send_hwm>()));
     //  Set very low TCP buffers so that messages cannot be stored in-flight
-    const int tcp_buffer_size = 4096;
+    let tcp_buffer_size: i32 = 4096;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
       push, ZMQ_SNDBUF, &tcp_buffer_size, mem::size_of::<tcp_buffer_size>()));
     bind_function_ (push, server_endpoint, mem::size_of::<server_endpoint>());

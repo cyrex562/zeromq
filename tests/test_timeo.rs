@@ -44,8 +44,8 @@ void test_timeo ()
 
 
     //  Check whether receive timeout is honored
-    const int timeout = 250;
-    const int jitter = 50;
+    let timeout: i32 = 250;
+    let jitter: i32 = 50;
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (frontend, ZMQ_RCVTIMEO, &timeout, mem::size_of::<int>()));
 

@@ -36,28 +36,28 @@
 
 zmq::raw_decoder_t::raw_decoder_t (bufsize_: usize) : _allocator (bufsize_, 1)
 {
-    const int rc = _in_progress.init ();
+    let rc: i32 = _in_progress.init ();
     errno_assert (rc == 0);
 }
 
 zmq::raw_decoder_t::~raw_decoder_t ()
 {
-    const int rc = _in_progress.close ();
+    let rc: i32 = _in_progress.close ();
     errno_assert (rc == 0);
 }
 
-void zmq::raw_decoder_t::get_buffer (unsigned char **data_, size_: *mut usize)
+void zmq::raw_decoder_t::get_buffer (unsigned char **data, size: *mut usize)
 {
-    *data_ = _allocator.allocate ();
-    *size_ = _allocator.size ();
+    *data = _allocator.allocate ();
+    *size = _allocator.size ();
 }
 
-int zmq::raw_decoder_t::decode (const uint8_t *data_,
-                                size_: usize,
+int zmq::raw_decoder_t::decode (const uint8_t *data,
+                                size: usize,
                                 size_t &bytes_used_)
 {
-    const int rc =
-      _in_progress.init (const_cast<unsigned char *> (data_), size_,
+    let rc: i32 =
+      _in_progress.init (const_cast<unsigned char *> (data), size,
                          shared_message_memory_allocator::call_dec_ref,
                          _allocator.buffer (), _allocator.provide_content ());
 
@@ -69,7 +69,7 @@ int zmq::raw_decoder_t::decode (const uint8_t *data_,
     }
 
     errno_assert (rc != -1);
-    bytes_used_ = size_;
+    bytes_used_ = size;
     return 1;
 }
 pub struct raw_decoder_t ZMQ_FINAL : public i_decoder
@@ -80,16 +80,16 @@ pub struct raw_decoder_t ZMQ_FINAL : public i_decoder
 
     //  i_decoder interface.
 
-    void get_buffer (unsigned char **data_, size_: *mut usize);
+    void get_buffer (unsigned char **data, size: *mut usize);
 
-    int decode (const unsigned char *data_, size_: usize, size_t &bytes_used_);
+    int decode (const unsigned char *data, size: usize, size_t &bytes_used_);
 
-    msg_t *msg () { return &_in_progress; }
+    ZmqMessage *msg () { return &_in_progress; }
 
     void resize_buffer (size_t) {}
 
   // private:
-    msg_t _in_progress;
+    ZmqMessage _in_progress;
 
     shared_message_memory_allocator _allocator;
 

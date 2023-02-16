@@ -46,8 +46,8 @@ pub struct wss_engine_t : public ws_engine_t
   protected:
     bool handshake ();
     void plug_internal ();
-    int read (data: *mut c_void, size_: usize);
-    int write (const data_: *mut c_void, size_: usize);
+    int read (data: *mut c_void, size: usize);
+    int write (const data: *mut c_void, size: usize);
 
   // private:
     bool do_handshake ();
@@ -201,9 +201,9 @@ bool zmq::wss_engine_t::handshake ()
     return ws_engine_t::handshake ();
 }
 
-int zmq::wss_engine_t::read (data_: *mut c_void, size_: usize)
+int zmq::wss_engine_t::read (data: *mut c_void, size: usize)
 {
-    ssize_t rc = gnutls_record_recv (_tls_session, data_, size_);
+    ssize_t rc = gnutls_record_recv (_tls_session, data, size);
 
     if (rc == GNUTLS_E_REHANDSHAKE) {
         gnutls_alert_send (_tls_session, GNUTLS_AL_WARNING,
@@ -235,9 +235,9 @@ int zmq::wss_engine_t::read (data_: *mut c_void, size_: usize)
     return rc;
 }
 
-int zmq::wss_engine_t::write (const data_: *mut c_void, size_: usize)
+int zmq::wss_engine_t::write (const data: *mut c_void, size: usize)
 {
-    ssize_t rc = gnutls_record_send (_tls_session, data_, size_);
+    ssize_t rc = gnutls_record_send (_tls_session, data, size);
 
     if (rc == GNUTLS_E_INTERRUPTED || rc == GNUTLS_E_AGAIN) {
         return 0;
