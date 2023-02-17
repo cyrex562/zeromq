@@ -66,17 +66,17 @@ pub struct VmciAddress
     ZMQ_NON_COPYABLE_NOR_MOVABLE (VmciAddress)
 };
 
-zmq::VmciAddress::VmciAddress ()
+VmciAddress::VmciAddress ()
 {
     memset (&address, 0, sizeof address);
 }
 
-zmq::VmciAddress::VmciAddress (ZmqContext *parent_) : parent (parent_)
+VmciAddress::VmciAddress (ZmqContext *parent_) : parent (parent_)
 {
     memset (&address, 0, sizeof address);
 }
 
-zmq::VmciAddress::VmciAddress (const sockaddr *sa,
+VmciAddress::VmciAddress (const sockaddr *sa,
                                      socklen_t sa_len,
                                      ZmqContext *parent_) :
     parent (parent_)
@@ -88,7 +88,7 @@ zmq::VmciAddress::VmciAddress (const sockaddr *sa,
         memcpy (&address, sa, sa_len);
 }
 
-int zmq::VmciAddress::resolve (path_: *const c_char)
+int VmciAddress::resolve (path_: *const c_char)
 {
     //  Find the ':' at end that separates address from the port number.
     const char *delimiter = strrchr (path_, ':');
@@ -153,7 +153,7 @@ int zmq::VmciAddress::resolve (path_: *const c_char)
     return 0;
 }
 
-int zmq::VmciAddress::to_string (std::string &addr_) const
+int VmciAddress::to_string (std::string &addr_) const
 {
     if (address.svm_family != parent->get_vmci_socket_family ()) {
         addr_.clear ();
@@ -182,20 +182,20 @@ int zmq::VmciAddress::to_string (std::string &addr_) const
     return 0;
 }
 
-const sockaddr *zmq::VmciAddress::addr () const
+const sockaddr *VmciAddress::addr () const
 {
     return reinterpret_cast<const sockaddr *> (&address);
 }
 
-socklen_t zmq::VmciAddress::addrlen () const
+socklen_t VmciAddress::addrlen () const
 {
     return static_cast<socklen_t> (sizeof address);
 }
 
 // #if defined ZMQ_HAVE_WINDOWS
-unsigned short zmq::VmciAddress::family () const
+unsigned short VmciAddress::family () const
 // #else
-sa_family_t zmq::VmciAddress::family () const
+sa_family_t VmciAddress::family () const
 // #endif
 {
     return parent->get_vmci_socket_family ();

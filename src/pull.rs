@@ -34,17 +34,17 @@
 // #include "msg.hpp"
 // #include "pipe.hpp"
 
-zmq::pull_t::pull_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+pull_t::pull_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_)
 {
     options.type = ZMQ_PULL;
 }
 
-zmq::pull_t::~pull_t ()
+pull_t::~pull_t ()
 {
 }
 
-void zmq::pull_t::xattach_pipe (pipe_t *pipe_,
+void pull_t::xattach_pipe (pipe_t *pipe_,
                                 bool subscribe_to_all_,
                                 bool locally_initiated_)
 {
@@ -55,40 +55,40 @@ void zmq::pull_t::xattach_pipe (pipe_t *pipe_,
     _fq.attach (pipe_);
 }
 
-void zmq::pull_t::xread_activated (pipe_t *pipe_)
+void pull_t::xread_activated (pipe_t *pipe_)
 {
     _fq.activated (pipe_);
 }
 
-void zmq::pull_t::xpipe_terminated (pipe_t *pipe_)
+void pull_t::xpipe_terminated (pipe_t *pipe_)
 {
     _fq.pipe_terminated (pipe_);
 }
 
-int zmq::pull_t::xrecv (ZmqMessage *msg)
+int pull_t::xrecv (ZmqMessage *msg)
 {
     return _fq.recv (msg);
 }
 
-bool zmq::pull_t::xhas_in ()
+bool pull_t::xhas_in ()
 {
     return _fq.has_in ();
 }
 pub struct pull_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
-    pull_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    pull_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~pull_t ();
 
   protected:
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (zmq::pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
     int xrecv (ZmqMessage *msg);
     bool xhas_in ();
-    void xread_activated (zmq::pipe_t *pipe_);
-    void xpipe_terminated (zmq::pipe_t *pipe_);
+    void xread_activated (pipe_t *pipe_);
+    void xpipe_terminated (pipe_t *pipe_);
 
   // private:
     //  Fair queueing object for inbound pipes.

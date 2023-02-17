@@ -41,16 +41,16 @@ pub struct WssAddress : public WsAddress
     int to_string (std::string &addr_) const;
 };
 
-zmq::WssAddress::WssAddress () : WsAddress ()
+WssAddress::WssAddress () : WsAddress ()
 {
 }
 
-zmq::WssAddress::WssAddress (const sockaddr *sa_, socklen_t sa_len_) :
+WssAddress::WssAddress (const sockaddr *sa_, socklen_t sa_len_) :
     WsAddress (sa_, sa_len_)
 {
 }
 
-int zmq::WssAddress::to_string (std::string &addr_) const
+int WssAddress::to_string (std::string &addr_) const
 {
     std::ostringstream os;
     os << std::string ("wss://") << host () << std::string (":")

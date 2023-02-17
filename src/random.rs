@@ -46,7 +46,7 @@
 // #include "sodium.h"
 // #endif
 
-void zmq::seed_random ()
+void seed_random ()
 {
 // #if defined ZMQ_HAVE_WINDOWS
     let pid: i32 = static_cast<int> (GetCurrentProcessId ());
@@ -56,7 +56,7 @@ void zmq::seed_random ()
     srand (static_cast<unsigned int> (clock_t::now_us () + pid));
 }
 
-uint32_t zmq::generate_random ()
+uint32_t generate_random ()
 {
     //  Compensate for the fact that rand() returns signed integer.
     const uint32_t low = static_cast<uint32_t> (rand ());
@@ -116,7 +116,7 @@ uint32_t zmq::generate_random ()
   && (defined(ZMQ_USE_TWEETNACL) && !defined(ZMQ_HAVE_WINDOWS)                 \
       && !defined(ZMQ_HAVE_GETRANDOM))
 static unsigned int random_refcount = 0;
-static zmq::mutex_t random_sync;
+static mutex_t random_sync;
 // #endif
 
 static void manage_random (bool init_)
@@ -126,11 +126,11 @@ static void manage_random (bool init_)
 
 #if ZMQ_HAVE_THREADSAFE_STATIC_LOCAL_INIT
     static int random_refcount = 0;
-    static zmq::mutex_t random_sync;
+    static mutex_t random_sync;
 // #endif
 
     if (init_) {
-        zmq::scoped_lock_t locker (random_sync);
+        scoped_lock_t locker (random_sync);
 
         if (random_refcount == 0) {
             int rc = sodium_init ();
@@ -139,7 +139,7 @@ static void manage_random (bool init_)
 
         ++random_refcount;
     } else {
-        zmq::scoped_lock_t locker (random_sync);
+        scoped_lock_t locker (random_sync);
         --random_refcount;
 
         if (random_refcount == 0) {
@@ -164,12 +164,12 @@ static void manage_random (bool init_)
 // #endif
 }
 
-void zmq::random_open ()
+void random_open ()
 {
     manage_random (true);
 }
 
-void zmq::random_close ()
+void random_close ()
 {
     manage_random (false);
 }

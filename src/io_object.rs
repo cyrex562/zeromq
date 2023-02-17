@@ -34,12 +34,12 @@
 pub struct io_object_t : public i_poll_events
 {
 // public:
-    io_object_t (zmq::io_thread_t *io_thread_ = NULL);
+    io_object_t (io_thread_t *io_thread_ = NULL);
     ~io_object_t () ZMQ_OVERRIDE;
 
     //  When migrating an object from one I/O thread to another, first
     //  unplug it, then migrate it, then plug it to the new thread.
-    void plug (zmq::io_thread_t *io_thread_);
+    void plug (io_thread_t *io_thread_);
     void unplug ();
 
   protected:
@@ -66,17 +66,17 @@ pub struct io_object_t : public i_poll_events
     ZMQ_NON_COPYABLE_NOR_MOVABLE (io_object_t)
 };
 
-zmq::io_object_t::io_object_t (io_thread_t *io_thread_) : _poller (NULL)
+io_object_t::io_object_t (io_thread_t *io_thread_) : _poller (NULL)
 {
     if (io_thread_)
         plug (io_thread_);
 }
 
-zmq::io_object_t::~io_object_t ()
+io_object_t::~io_object_t ()
 {
 }
 
-void zmq::io_object_t::plug (io_thread_t *io_thread_)
+void io_object_t::plug (io_thread_t *io_thread_)
 {
     zmq_assert (io_thread_);
     zmq_assert (!_poller);
@@ -85,7 +85,7 @@ void zmq::io_object_t::plug (io_thread_t *io_thread_)
     _poller = io_thread_->get_poller ();
 }
 
-void zmq::io_object_t::unplug ()
+void io_object_t::unplug ()
 {
     zmq_assert (_poller);
 
@@ -94,57 +94,57 @@ void zmq::io_object_t::unplug ()
     _poller = NULL;
 }
 
-zmq::io_object_t::handle_t zmq::io_object_t::add_fd (fd_t fd_)
+io_object_t::handle_t io_object_t::add_fd (fd_t fd_)
 {
     return _poller->add_fd (fd_, this);
 }
 
-void zmq::io_object_t::rm_fd (handle_t handle_)
+void io_object_t::rm_fd (handle_t handle_)
 {
     _poller->rm_fd (handle_);
 }
 
-void zmq::io_object_t::set_pollin (handle_t handle_)
+void io_object_t::set_pollin (handle_t handle_)
 {
     _poller->set_pollin (handle_);
 }
 
-void zmq::io_object_t::reset_pollin (handle_t handle_)
+void io_object_t::reset_pollin (handle_t handle_)
 {
     _poller->reset_pollin (handle_);
 }
 
-void zmq::io_object_t::set_pollout (handle_t handle_)
+void io_object_t::set_pollout (handle_t handle_)
 {
     _poller->set_pollout (handle_);
 }
 
-void zmq::io_object_t::reset_pollout (handle_t handle_)
+void io_object_t::reset_pollout (handle_t handle_)
 {
     _poller->reset_pollout (handle_);
 }
 
-void zmq::io_object_t::add_timer (timeout_: i32, id_: i32)
+void io_object_t::add_timer (timeout_: i32, id_: i32)
 {
     _poller->add_timer (timeout_, this, id_);
 }
 
-void zmq::io_object_t::cancel_timer (id_: i32)
+void io_object_t::cancel_timer (id_: i32)
 {
     _poller->cancel_timer (this, id_);
 }
 
-void zmq::io_object_t::in_event ()
+void io_object_t::in_event ()
 {
     zmq_assert (false);
 }
 
-void zmq::io_object_t::out_event ()
+void io_object_t::out_event ()
 {
     zmq_assert (false);
 }
 
-void zmq::io_object_t::timer_event (int)
+void io_object_t::timer_event (int)
 {
     zmq_assert (false);
 }

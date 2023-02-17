@@ -43,11 +43,11 @@
 
 // #include <limits>
 
-zmq::stream_connecter_base_t::stream_connecter_base_t (
-  zmq::io_thread_t *io_thread_,
-  zmq::session_base_t *session_,
-  const zmq::ZmqOptions &options_,
-  zmq::Address *addr_,
+stream_connecter_base_t::stream_connecter_base_t (
+  io_thread_t *io_thread_,
+  session_base_t *session_,
+  const ZmqOptions &options_,
+  Address *addr_,
   bool delayed_start_) :
     own_t (io_thread_, options_),
     io_object_t (io_thread_),
@@ -67,14 +67,14 @@ zmq::stream_connecter_base_t::stream_connecter_base_t (
     // initializer, and make endpoint const
 }
 
-zmq::stream_connecter_base_t::~stream_connecter_base_t ()
+stream_connecter_base_t::~stream_connecter_base_t ()
 {
     zmq_assert (!_reconnect_timer_started);
     zmq_assert (!_handle);
     zmq_assert (_s == retired_fd);
 }
 
-void zmq::stream_connecter_base_t::process_plug ()
+void stream_connecter_base_t::process_plug ()
 {
     if (_delayed_start)
         add_reconnect_timer ();
@@ -82,7 +82,7 @@ void zmq::stream_connecter_base_t::process_plug ()
         start_connecting ();
 }
 
-void zmq::stream_connecter_base_t::process_term (linger_: i32)
+void stream_connecter_base_t::process_term (linger_: i32)
 {
     if (_reconnect_timer_started) {
         cancel_timer (reconnect_timer_id);
@@ -99,7 +99,7 @@ void zmq::stream_connecter_base_t::process_term (linger_: i32)
     own_t::process_term (linger_);
 }
 
-void zmq::stream_connecter_base_t::add_reconnect_timer ()
+void stream_connecter_base_t::add_reconnect_timer ()
 {
     if (options.reconnect_ivl > 0) {
         let interval: i32 = get_new_reconnect_ivl ();
@@ -110,7 +110,7 @@ void zmq::stream_connecter_base_t::add_reconnect_timer ()
     }
 }
 
-int zmq::stream_connecter_base_t::get_new_reconnect_ivl ()
+int stream_connecter_base_t::get_new_reconnect_ivl ()
 {
     //  TODO should the random jitter be really based on the configured initial
     //  reconnect interval options.reconnect_ivl, or better on the
@@ -137,13 +137,13 @@ int zmq::stream_connecter_base_t::get_new_reconnect_ivl ()
     return interval;
 }
 
-void zmq::stream_connecter_base_t::rm_handle ()
+void stream_connecter_base_t::rm_handle ()
 {
     rm_fd (_handle);
     _handle = static_cast<handle_t> (NULL);
 }
 
-void zmq::stream_connecter_base_t::close ()
+void stream_connecter_base_t::close ()
 {
     // TODO before, this was an assertion for _s != retired_fd, but this does not match usage of close
     if (_s != retired_fd) {
@@ -160,7 +160,7 @@ void zmq::stream_connecter_base_t::close ()
     }
 }
 
-void zmq::stream_connecter_base_t::in_event ()
+void stream_connecter_base_t::in_event ()
 {
     //  We are not polling for incoming data, so we are actually called
     //  because of error here. However, we can get error on out event as well
@@ -168,7 +168,7 @@ void zmq::stream_connecter_base_t::in_event ()
     out_event ();
 }
 
-void zmq::stream_connecter_base_t::create_engine (
+void stream_connecter_base_t::create_engine (
   fd_t fd_, local_address_: &str)
 {
     const endpoint_uri_pair_t endpoint_pair (local_address_, _endpoint,
@@ -191,7 +191,7 @@ void zmq::stream_connecter_base_t::create_engine (
     _socket->event_connected (endpoint_pair, fd_);
 }
 
-void zmq::stream_connecter_base_t::timer_event (id_: i32)
+void stream_connecter_base_t::timer_event (id_: i32)
 {
     zmq_assert (id_ == reconnect_timer_id);
     _reconnect_timer_started = false;
@@ -202,8 +202,8 @@ pub struct stream_connecter_base_t : public own_t, public io_object_t
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
-    stream_connecter_base_t (zmq::io_thread_t *io_thread_,
-                             zmq::session_base_t *session_,
+    stream_connecter_base_t (io_thread_t *io_thread_,
+                             session_base_t *session_,
                              const ZmqOptions &options_,
                              Address *addr_,
                              bool delayed_start_);
@@ -246,7 +246,7 @@ pub struct stream_connecter_base_t : public own_t, public io_object_t
     std::string _endpoint;
 
     // Socket
-    zmq::ZmqSocketBase *const _socket;
+    ZmqSocketBase *const _socket;
 
   // private:
     //  ID of the timer used to delay the reconnection.
@@ -275,5 +275,5 @@ pub struct stream_connecter_base_t : public own_t, public io_object_t
 
   protected:
     //  Reference to the session we belong to.
-    zmq::session_base_t *const _session;
+    session_base_t *const _session;
 };

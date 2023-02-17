@@ -81,7 +81,7 @@ pub struct raw_engine_t ZMQ_FINAL : public stream_engine_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (raw_engine_t)
 };
 
-zmq::raw_engine_t::raw_engine_t (
+raw_engine_t::raw_engine_t (
   fd_t fd_,
   const ZmqOptions &options_,
   const EndpointUriPair &endpoint_uri_pair_) :
@@ -89,11 +89,11 @@ zmq::raw_engine_t::raw_engine_t (
 {
 }
 
-zmq::raw_engine_t::~raw_engine_t ()
+raw_engine_t::~raw_engine_t ()
 {
 }
 
-void zmq::raw_engine_t::plug_internal ()
+void raw_engine_t::plug_internal ()
 {
     // no handshaking for raw sock, instantiate raw encoder and decoders
     _encoder = new (std::nothrow) raw_encoder_t (_options.out_batch_size);
@@ -110,7 +110,7 @@ void zmq::raw_engine_t::plug_internal ()
     if (init_properties (properties)) {
         //  Compile metadata.
         zmq_assert (_metadata == NULL);
-        _metadata = new (std::nothrow) metadata_t (properties);
+        _metadata = new (std::nothrow) ZmqMetadata (properties);
         alloc_assert (_metadata);
     }
 
@@ -130,12 +130,12 @@ void zmq::raw_engine_t::plug_internal ()
     in_event ();
 }
 
-bool zmq::raw_engine_t::handshake ()
+bool raw_engine_t::handshake ()
 {
     return true;
 }
 
-void zmq::raw_engine_t::error (error_reason_t reason_)
+void raw_engine_t::error (error_reason_t reason_)
 {
     if (_options.raw_socket && _options.raw_notify) {
         //  For raw sockets, send a final 0-length message to the application
@@ -148,7 +148,7 @@ void zmq::raw_engine_t::error (error_reason_t reason_)
     stream_engine_base_t::error (reason_);
 }
 
-int zmq::raw_engine_t::push_raw_ZmqMessageo_session (ZmqMessage *msg)
+int raw_engine_t::push_raw_ZmqMessageo_session (ZmqMessage *msg)
 {
     if (_metadata && _metadata != msg->metadata ())
         msg->set_metadata (_metadata);

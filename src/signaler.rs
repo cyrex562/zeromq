@@ -154,7 +154,7 @@ static int close_wait_ms (fd_: i32, unsigned int max_ms_ = 2000)
 }
 // #endif
 
-zmq::signaler_t::signaler_t ()
+signaler_t::signaler_t ()
 {
     //  Create the socketpair for signaling.
     if (make_fdpair (&_r, &_w) == 0) {
@@ -168,7 +168,7 @@ zmq::signaler_t::signaler_t ()
 
 // This might get run after some part of construction failed, leaving one or
 // both of _r and _w retired_fd.
-zmq::signaler_t::~signaler_t ()
+signaler_t::~signaler_t ()
 {
 // #if defined ZMQ_HAVE_EVENTFD
     if (_r == retired_fd)
@@ -204,12 +204,12 @@ zmq::signaler_t::~signaler_t ()
 // #endif
 }
 
-zmq::fd_t zmq::signaler_t::get_fd () const
+fd_t signaler_t::get_fd () const
 {
     return _r;
 }
 
-void zmq::signaler_t::send ()
+void signaler_t::send ()
 {
 // #if defined HAVE_FORK
     if (unlikely (pid != getpid ())) {
@@ -266,7 +266,7 @@ void zmq::signaler_t::send ()
 // #endif
 }
 
-int zmq::signaler_t::wait (timeout_: i32) const
+int signaler_t::wait (timeout_: i32) const
 {
 // #ifdef HAVE_FORK
     if (unlikely (pid != getpid ())) {
@@ -338,7 +338,7 @@ int zmq::signaler_t::wait (timeout_: i32) const
 // #endif
 }
 
-void zmq::signaler_t::recv ()
+void signaler_t::recv ()
 {
 //  Attempt to read a signal.
 // #if defined ZMQ_HAVE_EVENTFD
@@ -374,7 +374,7 @@ void zmq::signaler_t::recv ()
 // #endif
 }
 
-int zmq::signaler_t::recv_failable ()
+int signaler_t::recv_failable ()
 {
 //  Attempt to read a signal.
 // #if defined ZMQ_HAVE_EVENTFD
@@ -437,13 +437,13 @@ int zmq::signaler_t::recv_failable ()
     return 0;
 }
 
-bool zmq::signaler_t::valid () const
+bool signaler_t::valid () const
 {
     return _w != retired_fd;
 }
 
 // #ifdef HAVE_FORK
-void zmq::signaler_t::forked ()
+void signaler_t::forked ()
 {
     //  Close file descriptors created in the parent and create new pair
     close (_r);

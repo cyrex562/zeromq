@@ -59,7 +59,7 @@
                            password_: &str);
 };
 
-zmq::plain_server_t::plain_server_t (session_base_t *session_,
+plain_server_t::plain_server_t (session_base_t *session_,
                                      const std::string &peer_address_,
                                      const ZmqOptions &options_) :
     mechanism_base_t (session_, options_),
@@ -75,11 +75,11 @@ zmq::plain_server_t::plain_server_t (session_base_t *session_,
         zmq_assert (zap_required ());
 }
 
-zmq::plain_server_t::~plain_server_t ()
+plain_server_t::~plain_server_t ()
 {
 }
 
-int zmq::plain_server_t::next_handshake_command (ZmqMessage *msg)
+int plain_server_t::next_handshake_command (ZmqMessage *msg)
 {
     int rc = 0;
 
@@ -103,7 +103,7 @@ int zmq::plain_server_t::next_handshake_command (ZmqMessage *msg)
     return rc;
 }
 
-int zmq::plain_server_t::process_handshake_command (ZmqMessage *msg)
+int plain_server_t::process_handshake_command (ZmqMessage *msg)
 {
     int rc = 0;
 
@@ -131,7 +131,7 @@ int zmq::plain_server_t::process_handshake_command (ZmqMessage *msg)
     return rc;
 }
 
-int zmq::plain_server_t::process_hello (ZmqMessage *msg)
+int plain_server_t::process_hello (ZmqMessage *msg)
 {
     int rc = check_basic_command_structure (msg);
     if (rc == -1)
@@ -213,14 +213,14 @@ int zmq::plain_server_t::process_hello (ZmqMessage *msg)
     return receive_and_process_zap_reply () == -1 ? -1 : 0;
 }
 
-void zmq::plain_server_t::produce_welcome (ZmqMessage *msg)
+void plain_server_t::produce_welcome (ZmqMessage *msg)
 {
     let rc: i32 = msg->init_size (welcome_prefix_len);
     errno_assert (rc == 0);
     memcpy (msg->data (), welcome_prefix, welcome_prefix_len);
 }
 
-int zmq::plain_server_t::process_initiate (ZmqMessage *msg)
+int plain_server_t::process_initiate (ZmqMessage *msg)
 {
     const unsigned char *ptr = static_cast<unsigned char *> (msg->data ());
     const size_t bytes_left = msg->size ();
@@ -239,12 +239,12 @@ int zmq::plain_server_t::process_initiate (ZmqMessage *msg)
     return rc;
 }
 
-void zmq::plain_server_t::produce_ready (ZmqMessage *msg) const
+void plain_server_t::produce_ready (ZmqMessage *msg) const
 {
     make_command_with_basic_properties (msg, ready_prefix, ready_prefix_len);
 }
 
-void zmq::plain_server_t::produce_error (ZmqMessage *msg) const
+void plain_server_t::produce_error (ZmqMessage *msg) const
 {
     const char expected_status_code_len = 3;
     zmq_assert (status_code.length ()
@@ -260,7 +260,7 @@ void zmq::plain_server_t::produce_error (ZmqMessage *msg) const
             status_code, status_code.length ());
 }
 
-void zmq::plain_server_t::send_zap_request (const std::string &username_,
+void plain_server_t::send_zap_request (const std::string &username_,
                                             password_: &str)
 {
     const uint8_t *credentials[] = {

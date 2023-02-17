@@ -50,7 +50,7 @@ pub struct poll_t ZMQ_FINAL : public worker_poller_base_t
 
     //  "poller" concept.
     //  These methods may only be called from an event callback; add_fd may also be called before start.
-    handle_t add_fd (fd_t fd_, zmq::i_poll_events *events_);
+    handle_t add_fd (fd_t fd_, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -69,7 +69,7 @@ pub struct poll_t ZMQ_FINAL : public worker_poller_base_t
     struct fd_entry_t
     {
         fd_t index;
-        zmq::i_poll_events *events;
+        i_poll_events *events;
     };
 
     //  This table stores data for registered descriptors.
@@ -88,17 +88,17 @@ pub struct poll_t ZMQ_FINAL : public worker_poller_base_t
 
 typedef poll_t poller_t;
 
-zmq::poll_t::poll_t (const zmq::ThreadCtx &ctx_) :
+poll_t::poll_t (const ThreadCtx &ctx_) :
     worker_poller_base_t (ctx_), retired (false)
 {
 }
 
-zmq::poll_t::~poll_t ()
+poll_t::~poll_t ()
 {
     stop_worker ();
 }
 
-zmq::poll_t::handle_t zmq::poll_t::add_fd (fd_t fd_, i_poll_events *events_)
+poll_t::handle_t poll_t::add_fd (fd_t fd_, i_poll_events *events_)
 {
     check_thread ();
     zmq_assert (fd_ != retired_fd);
@@ -126,7 +126,7 @@ zmq::poll_t::handle_t zmq::poll_t::add_fd (fd_t fd_, i_poll_events *events_)
     return fd_;
 }
 
-void zmq::poll_t::rm_fd (handle_t handle_)
+void poll_t::rm_fd (handle_t handle_)
 {
     check_thread ();
     fd_t index = fd_table[handle_].index;
@@ -141,46 +141,46 @@ void zmq::poll_t::rm_fd (handle_t handle_)
     adjust_load (-1);
 }
 
-void zmq::poll_t::set_pollin (handle_t handle_)
+void poll_t::set_pollin (handle_t handle_)
 {
     check_thread ();
     fd_t index = fd_table[handle_].index;
     pollset[index].events |= POLLIN;
 }
 
-void zmq::poll_t::reset_pollin (handle_t handle_)
+void poll_t::reset_pollin (handle_t handle_)
 {
     check_thread ();
     fd_t index = fd_table[handle_].index;
     pollset[index].events &= ~((short) POLLIN);
 }
 
-void zmq::poll_t::set_pollout (handle_t handle_)
+void poll_t::set_pollout (handle_t handle_)
 {
     check_thread ();
     fd_t index = fd_table[handle_].index;
     pollset[index].events |= POLLOUT;
 }
 
-void zmq::poll_t::reset_pollout (handle_t handle_)
+void poll_t::reset_pollout (handle_t handle_)
 {
     check_thread ();
     fd_t index = fd_table[handle_].index;
     pollset[index].events &= ~((short) POLLOUT);
 }
 
-void zmq::poll_t::stop ()
+void poll_t::stop ()
 {
     check_thread ();
     //  no-op... thread is stopped when no more fds or timers are registered
 }
 
-int zmq::poll_t::max_fds ()
+int poll_t::max_fds ()
 {
     return -1;
 }
 
-void zmq::poll_t::loop ()
+void poll_t::loop ()
 {
     while (true) {
         //  Execute any due timers.
@@ -229,7 +229,7 @@ void zmq::poll_t::loop ()
     }
 }
 
-void zmq::poll_t::cleanup_retired ()
+void poll_t::cleanup_retired ()
 {
     //  Clean up the pollset and update the fd_table accordingly.
     if (retired) {

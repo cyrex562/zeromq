@@ -328,7 +328,7 @@ zap_client_common_handshake_t::zap_client_common_handshake_t (
 {
 }
 
-zmq::mechanism_t::status_t zap_client_common_handshake_t::status () const
+mechanism_t::status_t zap_client_common_handshake_t::status () const
 {
     if (state == ready)
         return mechanism_t::ready;

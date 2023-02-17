@@ -67,7 +67,7 @@ pub struct kqueue_t ZMQ_FINAL : public worker_poller_base_t
     ~kqueue_t () ZMQ_FINAL;
 
     //  "poller" concept.
-    handle_t add_fd (fd_t fd_, zmq::i_poll_events *events_);
+    handle_t add_fd (fd_t fd_, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -95,7 +95,7 @@ pub struct kqueue_t ZMQ_FINAL : public worker_poller_base_t
         fd_t fd;
         bool flag_pollin;
         bool flag_pollout;
-        zmq::i_poll_events *reactor;
+        i_poll_events *reactor;
     };
 
     //  List of retired event sources.
@@ -112,7 +112,7 @@ pub struct kqueue_t ZMQ_FINAL : public worker_poller_base_t
 
 typedef kqueue_t poller_t;
 
-zmq::kqueue_t::kqueue_t (const zmq::ThreadCtx &ctx_) :
+kqueue_t::kqueue_t (const ThreadCtx &ctx_) :
     worker_poller_base_t (ctx_)
 {
     //  Create event queue
@@ -123,13 +123,13 @@ zmq::kqueue_t::kqueue_t (const zmq::ThreadCtx &ctx_) :
 // #endif
 }
 
-zmq::kqueue_t::~kqueue_t ()
+kqueue_t::~kqueue_t ()
 {
     stop_worker ();
     close (kqueue_fd);
 }
 
-void zmq::kqueue_t::kevent_add (fd_t fd_, short filter_, udata_: *mut c_void)
+void kqueue_t::kevent_add (fd_t fd_, short filter_, udata_: *mut c_void)
 {
     check_thread ();
     struct kevent ev;
@@ -139,7 +139,7 @@ void zmq::kqueue_t::kevent_add (fd_t fd_, short filter_, udata_: *mut c_void)
     errno_assert (rc != -1);
 }
 
-void zmq::kqueue_t::kevent_delete (fd_t fd_, short filter_)
+void kqueue_t::kevent_delete (fd_t fd_, short filter_)
 {
     struct kevent ev;
 
@@ -148,7 +148,7 @@ void zmq::kqueue_t::kevent_delete (fd_t fd_, short filter_)
     errno_assert (rc != -1);
 }
 
-zmq::kqueue_t::handle_t zmq::kqueue_t::add_fd (fd_t fd_,
+kqueue_t::handle_t kqueue_t::add_fd (fd_t fd_,
                                                i_poll_events *reactor_)
 {
     check_thread ();
@@ -165,7 +165,7 @@ zmq::kqueue_t::handle_t zmq::kqueue_t::add_fd (fd_t fd_,
     return pe;
 }
 
-void zmq::kqueue_t::rm_fd (handle_t handle_)
+void kqueue_t::rm_fd (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = (poll_entry_t *) handle_;
@@ -179,7 +179,7 @@ void zmq::kqueue_t::rm_fd (handle_t handle_)
     adjust_load (-1);
 }
 
-void zmq::kqueue_t::set_pollin (handle_t handle_)
+void kqueue_t::set_pollin (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = (poll_entry_t *) handle_;
@@ -189,7 +189,7 @@ void zmq::kqueue_t::set_pollin (handle_t handle_)
     }
 }
 
-void zmq::kqueue_t::reset_pollin (handle_t handle_)
+void kqueue_t::reset_pollin (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = (poll_entry_t *) handle_;
@@ -199,7 +199,7 @@ void zmq::kqueue_t::reset_pollin (handle_t handle_)
     }
 }
 
-void zmq::kqueue_t::set_pollout (handle_t handle_)
+void kqueue_t::set_pollout (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = (poll_entry_t *) handle_;
@@ -209,7 +209,7 @@ void zmq::kqueue_t::set_pollout (handle_t handle_)
     }
 }
 
-void zmq::kqueue_t::reset_pollout (handle_t handle_)
+void kqueue_t::reset_pollout (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = (poll_entry_t *) handle_;
@@ -219,16 +219,16 @@ void zmq::kqueue_t::reset_pollout (handle_t handle_)
     }
 }
 
-void zmq::kqueue_t::stop ()
+void kqueue_t::stop ()
 {
 }
 
-int zmq::kqueue_t::max_fds ()
+int kqueue_t::max_fds ()
 {
     return -1;
 }
 
-void zmq::kqueue_t::loop ()
+void kqueue_t::loop ()
 {
     while (true) {
         //  Execute any due timers.
@@ -249,7 +249,7 @@ void zmq::kqueue_t::loop ()
                         timeout ? &ts : NULL);
 // #ifdef HAVE_FORK
         if (unlikely (pid != getpid ())) {
-            //printf("zmq::kqueue_t::loop aborting on forked child %d\n", (int)getpid());
+            //printf("kqueue_t::loop aborting on forked child %d\n", (int)getpid());
             // simply exit the loop in a forked process.
             return;
         }

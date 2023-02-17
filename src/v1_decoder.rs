@@ -60,7 +60,7 @@ pub struct v1_decoder_t ZMQ_FINAL : public decoder_base_t<v1_decoder_t>
     ZMQ_NON_COPYABLE_NOR_MOVABLE (v1_decoder_t)
 };
 
-zmq::v1_decoder_t::v1_decoder_t (bufsize_: usize, i64 maxmsgsize_) :
+v1_decoder_t::v1_decoder_t (bufsize_: usize, i64 maxmsgsize_) :
     decoder_base_t<v1_decoder_t> (bufsize_), _max_msg_size (maxmsgsize_)
 {
     int rc = _in_progress.init ();
@@ -70,13 +70,13 @@ zmq::v1_decoder_t::v1_decoder_t (bufsize_: usize, i64 maxmsgsize_) :
     next_step (_tmpbuf, 1, &v1_decoder_t::one_byte_size_ready);
 }
 
-zmq::v1_decoder_t::~v1_decoder_t ()
+v1_decoder_t::~v1_decoder_t ()
 {
     let rc: i32 = _in_progress.close ();
     errno_assert (rc == 0);
 }
 
-int zmq::v1_decoder_t::one_byte_size_ready (unsigned char const *)
+int v1_decoder_t::one_byte_size_ready (unsigned char const *)
 {
     //  First byte of size is read. If it is UCHAR_MAX (0xff) read 8-byte size.
     //  Otherwise allocate the buffer for message data and read the
@@ -112,7 +112,7 @@ int zmq::v1_decoder_t::one_byte_size_ready (unsigned char const *)
     return 0;
 }
 
-int zmq::v1_decoder_t::eight_byte_size_ready (unsigned char const *)
+int v1_decoder_t::eight_byte_size_ready (unsigned char const *)
 {
     //  8-byte payload length is read. Allocate the buffer
     //  for message body and read the message data into it.
@@ -156,7 +156,7 @@ int zmq::v1_decoder_t::eight_byte_size_ready (unsigned char const *)
     return 0;
 }
 
-int zmq::v1_decoder_t::flags_ready (unsigned char const *)
+int v1_decoder_t::flags_ready (unsigned char const *)
 {
     //  Store the flags from the wire into the message structure.
     _in_progress.set_flags (_tmpbuf[0] & ZmqMessage::more);
@@ -167,7 +167,7 @@ int zmq::v1_decoder_t::flags_ready (unsigned char const *)
     return 0;
 }
 
-int zmq::v1_decoder_t::message_ready (unsigned char const *)
+int v1_decoder_t::message_ready (unsigned char const *)
 {
     //  Message is completely read. Push it further and start reading
     //  new message. (in_progress is a 0-byte message after this point.)

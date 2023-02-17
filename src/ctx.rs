@@ -50,7 +50,7 @@ pub const ZMQ_CTX_TAG_VALUE_BAD: u32 = 0xdeadbeef;
 // // typedef std::vector<uint32_t> empty_slots_t;
 // pub type empty_slots_s = Vec<u32>;
 //
-// // typedef std::vector<zmq::io_thread_t *> io_threads_t;
+// // typedef std::vector<io_thread_t *> io_threads_t;
 // pub type io_threads_t = Vec<io_thread_t>;
 //
 // // typedef std::map<std::string, endpoint_t> endpoints_t;
@@ -98,7 +98,7 @@ pub _starting: bool,
 pub _slot_sync: Mutex<u8>,
 
     //  The reaper thread.
-    // zmq::reaper_t *_reaper;
+    // reaper_t *_reaper;
 pub _reaper: Option<reaper_t>,
 
     //  I/O threads.
@@ -173,7 +173,7 @@ impl ZmqContext {
     //  Create the context object.
     // ctx_t ();
 
-// zmq::ZmqContext::ZmqContext () :
+// ZmqContext::ZmqContext () :
 //     _tag (ZMQ_CTX_TAG_VALUE_GOOD),
 //     _starting (true),
 //     _terminating (false),
@@ -194,7 +194,7 @@ impl ZmqContext {
 // // #endif
 //
 //     //  Initialise crypto library, if needed.
-//     zmq::random_open ();
+//     random_open ();
 //
 // // #ifdef ZMQ_USE_NSS
 //     NSS_NoDB_Init (NULL);
@@ -234,18 +234,18 @@ pub fn new() -> Self {
         }
     }
 
-    // bool zmq::ZmqContext::check_tag () const
+    // bool ZmqContext::check_tag () const
     pub fn check_tag(&self) -> bool {
         self._tag == ZMQ_CTX_TAG_VALUE_GOOD
     }
 
-    // bool zmq::ZmqContext::valid () const
+    // bool ZmqContext::valid () const
     pub fn valid(&self) -> bool {
         self._term_mailbox.valid()
     }
 
 
-    // int zmq::ZmqContext::terminate ()
+    // int ZmqContext::terminate ()
     pub fn terminate(&mut self) -> anyhow::Result<i32> {
         let _guard = self._slot_sync.lock()?;
 
@@ -329,7 +329,7 @@ pub fn new() -> Self {
         return 0;
     }
 
-    // int zmq::ZmqContext::shutdown ()
+    // int ZmqContext::shutdown ()
     pub fn shutdown(&mut self) -> i32 {
         // scoped_lock_t locker (_slot_sync);
         let locker = &self._slot_sync;
@@ -415,7 +415,7 @@ pub fn new() -> Self {
         return -1;
     }
 
-    // int zmq::ZmqContext::get (option_: i32, optval_: *mut c_void, const optvallen_: *mut usize)
+    // int ZmqContext::get (option_: i32, optval_: *mut c_void, const optvallen_: *mut usize)
     pub fn get(&mut self, option: i32, opt_val: &mut [u8], opt_val_len: &mut usize) -> i32 {
         // const bool is_int = (*optvallen_ == sizeof (int));
         let is_int = *opt_val_len == size_of::<i32>();
@@ -497,7 +497,7 @@ pub fn new() -> Self {
         return -1;
     }
 
-    // int zmq::ZmqContext::get (option_: i32)
+    // int ZmqContext::get (option_: i32)
     pub fn get2(&mut self, option_: i32) -> i32 {
         // int optval = 0;
         let mut optval: i32 = 0;
@@ -595,7 +595,7 @@ pub fn new() -> Self {
         return false;
     }
 
-    // zmq::ZmqSocketBase *zmq::ZmqContext::create_socket (type_: i32)
+    // ZmqSocketBase *ZmqContext::create_socket (type_: i32)
     pub fn create_socket(&mut self, type_: i32) -> Option<ZmqSocketBase> {
         // scoped_lock_t locker (_slot_sync);
 
@@ -639,7 +639,7 @@ pub fn new() -> Self {
         return Some(s);
     }
 
-    // void zmq::ZmqContext::destroy_socket (class ZmqSocketBase *socket_)
+    // void ZmqContext::destroy_socket (class ZmqSocketBase *socket_)
     pub fn destroy_socket(&mut self, socket_: &mut ZmqSocketBase) {
         // scoped_lock_t locker (_slot_sync);
 
@@ -658,17 +658,17 @@ pub fn new() -> Self {
         }
     }
 
-    // zmq::object_t *zmq::ZmqContext::get_reaper () const
+    // object_t *ZmqContext::get_reaper () const
     pub fn get_reaper(&mut self) -> Option<reaper_t> {
         return self._reaper.clone();
     }
 
-    // void zmq::ZmqContext::send_command (uint32_t tid_, const ZmqCommand &command_)
+    // void ZmqContext::send_command (uint32_t tid_, const ZmqCommand &command_)
     pub fn send_command(&mut self, tid_: u32, command_: &mut ZmqCommand) {
         self._slots[tid_].send(command_);
     }
 
-    // zmq::io_thread_t *zmq::ZmqContext::choose_io_thread (u64 affinity_)
+    // io_thread_t *ZmqContext::choose_io_thread (u64 affinity_)
     pub fn choose_io_thread(&mut self, affinity_: u64) -> Option<io_thread_t> {
         if self._io_threads.empty() {
             return None;
@@ -692,7 +692,7 @@ pub fn new() -> Self {
         return selected_io_thread;
     }
 
-    // int zmq::ZmqContext::register_endpoint (addr_: *const c_char,
+    // int ZmqContext::register_endpoint (addr_: *const c_char,
     //                                    const ZmqEndpoint &endpoint_)
     pub fn register_endpoint(&mut self, addr_: &str, endpoint: &mut ZmqEndpoint) -> i32 {
         // scoped_lock_t locker (_endpoints_sync);
@@ -705,7 +705,7 @@ pub fn new() -> Self {
         return 0;
     }
 
-// int zmq::ZmqContext::unregister_endpoint (const std::string &addr_,
+// int ZmqContext::unregister_endpoint (const std::string &addr_,
 //                                      const ZmqSocketBase *const socket_)
     pub fn unregister_endpoint(&mut self, addr_: &mut str, socket_: &mut ZmqSocketBase) -> i32 {
         // scoped_lock_t locker (_endpoints_sync);
@@ -741,7 +741,7 @@ pub fn new() -> Self {
         // return 0;
     }
 
-    // void zmq::ZmqContext::unregister_endpoints (const ZmqSocketBase *const socket_)
+    // void ZmqContext::unregister_endpoints (const ZmqSocketBase *const socket_)
     pub fn unregister_endpoints(&mut self, socket_: &mut ZmqSocketBase)
     {
         // scoped_lock_t locker (_endpoints_sync);
@@ -772,7 +772,7 @@ pub fn new() -> Self {
         }
     }
 
-// zmq::ZmqEndpoint zmq::ZmqContext::find_endpoint (addr_: *const c_char)
+// ZmqEndpoint ZmqContext::find_endpoint (addr_: *const c_char)
     pub fn find_endpoint(&mut self, addr_: &str) -> Option<ZmqEndpoint> {
         // scoped_lock_t locker (_endpoints_sync);
 
@@ -795,7 +795,7 @@ pub fn new() -> Self {
         return Some(x);
     }
 
-    // void zmq::ZmqContext::pend_connection (const std::string &addr_,
+    // void ZmqContext::pend_connection (const std::string &addr_,
     //                                   const ZmqEndpoint &endpoint_,
     //                                   pipe_t **pipes_)
     pub fn pend_connection(&mut self, addr_: &mut str, endpoint_: &mut ZmqEndpoint, pipes_: &mut [pipe_t])
@@ -826,8 +826,8 @@ pub fn new() -> Self {
         }
     }
 
-    // void zmq::ZmqContext::connect_pending (addr_: *const c_char,
-    //                                   zmq::ZmqSocketBase *bind_socket_)
+    // void ZmqContext::connect_pending (addr_: *const c_char,
+    //                                   ZmqSocketBase *bind_socket_)
     pub fn connect_pending(&mut self, addr_: &str, bind_socket_: &mut ZmqSocketBase)
     {
         // scoped_lock_t locker (_endpoints_sync);
@@ -851,7 +851,7 @@ pub fn new() -> Self {
         self._pending_connections.remove(addr_);
     }
 
-    // void zmq::ZmqContext::connect_inproc_sockets (
+    // void ZmqContext::connect_inproc_sockets (
     //   bind_socket_: *mut ZmqSocketBase,
     //   const ZmqOptions &bind_options_,
     //   const PendingConnection &pending_connection_,
@@ -935,9 +935,9 @@ pub fn new() -> Self {
 
 // #ifdef ZMQ_HAVE_VMCI
 
-    int zmq::ZmqContext::get_vmci_socket_family ()
+    int ZmqContext::get_vmci_socket_family ()
     {
-        zmq::scoped_lock_t locker (_vmci_sync);
+        scoped_lock_t locker (_vmci_sync);
 
         if (_vmci_fd == -1) {
             _vmci_family = VMCISock_GetAFValueFd (&_vmci_fd);
@@ -958,10 +958,10 @@ pub fn new() -> Self {
     //  The last used socket ID, or 0 if no socket was used so far. Note that this
     //  is a global variable. Thus, even sockets created in different contexts have
     //  unique IDs.
-    zmq::AtomicCounter zmq::ZmqContext::max_socket_id;
+    AtomicCounter ZmqContext::max_socket_id;
 
 
-//     zmq::ZmqContext::~ZmqContext ()
+//     ZmqContext::~ZmqContext ()
 // {
 //     //  Check that there are no remaining _sockets.
 //     zmq_assert (_sockets.empty ());
@@ -985,7 +985,7 @@ pub fn new() -> Self {
 //     //  corresponding io_thread/socket objects.
 //
 //     //  De-initialise crypto library, if needed.
-//     zmq::random_close ();
+//     random_close ();
 //
 // // #ifdef ZMQ_USE_NSS
 //     NSS_Shutdown ();
@@ -1024,8 +1024,8 @@ pub fn new() -> Self {
     // int get (option_: i32);
 
     //  Create and destroy a socket.
-    // zmq::ZmqSocketBase *create_socket (type_: i32);
-    // void destroy_socket (zmq::ZmqSocketBase *socket_);
+    // ZmqSocketBase *create_socket (type_: i32);
+    // void destroy_socket (ZmqSocketBase *socket_);
 
     //  Send command to the destination thread.
     // void send_command (uint32_t tid_, const command_t &command_);
@@ -1033,21 +1033,21 @@ pub fn new() -> Self {
     //  Returns the I/O thread that is the least busy at the moment.
     //  Affinity specifies which I/O threads are eligible (0 = all).
     //  Returns NULL if no I/O thread is available.
-    // zmq::io_thread_t *choose_io_thread (uint64_t affinity_);
+    // io_thread_t *choose_io_thread (uint64_t affinity_);
 
     //  Returns reaper thread object.
-    // zmq::object_t *get_reaper () const;
+    // object_t *get_reaper () const;
 
     //  Management of inproc endpoints.
     // int register_endpoint (addr_: *const c_char, const endpoint_t &endpoint_);
     // int unregister_endpoint (const std::string &addr_,
     //                          const ZmqSocketBase *socket_);
-    // void unregister_endpoints (const zmq::ZmqSocketBase *socket_);
+    // void unregister_endpoints (const ZmqSocketBase *socket_);
     // endpoint_t find_endpoint (addr_: *const c_char);
     // void pend_connection (const std::string &addr_,
     //                       const endpoint_t &endpoint_,
     //                       pipe_t **pipes_);
-    // void connect_pending (addr_: *const c_char, zmq::ZmqSocketBase *bind_socket_);
+    // void connect_pending (addr_: *const c_char, ZmqSocketBase *bind_socket_);
 
 // #ifdef ZMQ_HAVE_VMCI
     // Return family for the VMCI socket or -1 if it's not available.

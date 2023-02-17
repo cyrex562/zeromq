@@ -44,17 +44,17 @@ pub struct dist_t
     ~dist_t ();
 
     //  Adds the pipe to the distributor object.
-    void attach (zmq::pipe_t *pipe_);
+    void attach (pipe_t *pipe_);
 
     //  Checks if this pipe is present in the distributor.
-    bool has_pipe (zmq::pipe_t *pipe_);
+    bool has_pipe (pipe_t *pipe_);
 
     //  Activates pipe that have previously reached high watermark.
-    void activated (zmq::pipe_t *pipe_);
+    void activated (pipe_t *pipe_);
 
     //  Mark the pipe as matching. Subsequent call to send_to_matching
     //  will send message also to this pipe.
-    void match (zmq::pipe_t *pipe_);
+    void match (pipe_t *pipe_);
 
     //  Marks all pipes that are not matched as matched and vice-versa.
     void reverse_match ();
@@ -63,7 +63,7 @@ pub struct dist_t
     void unmatch ();
 
     //  Removes the pipe from the distributor object.
-    void pipe_terminated (zmq::pipe_t *pipe_);
+    void pipe_terminated (pipe_t *pipe_);
 
     //  Send the message to the matching outbound pipes.
     int send_to_matching (ZmqMessage *msg);
@@ -79,13 +79,13 @@ pub struct dist_t
   // private:
     //  Write the message to the pipe. Make the pipe inactive if writing
     //  fails. In such a case false is returned.
-    bool write (zmq::pipe_t *pipe_, ZmqMessage *msg);
+    bool write (pipe_t *pipe_, ZmqMessage *msg);
 
     //  Put the message to all active pipes.
     void distribute (ZmqMessage *msg);
 
     //  List of outbound pipes.
-    typedef array_t<zmq::pipe_t, 2> pipes_t;
+    typedef array_t<pipe_t, 2> pipes_t;
     pipes_t _pipes;
 
     //  Number of all the pipes to send the next message to.
@@ -109,17 +109,17 @@ pub struct dist_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dist_t)
 };
 
-zmq::dist_t::dist_t () :
+dist_t::dist_t () :
     _matching (0), _active (0), _eligible (0), _more (false)
 {
 }
 
-zmq::dist_t::~dist_t ()
+dist_t::~dist_t ()
 {
     zmq_assert (_pipes.empty ());
 }
 
-void zmq::dist_t::attach (pipe_t *pipe_)
+void dist_t::attach (pipe_t *pipe_)
 {
     //  If we are in the middle of sending a message, we'll add new pipe
     //  into the list of eligible pipes. Otherwise we add it to the list
@@ -136,7 +136,7 @@ void zmq::dist_t::attach (pipe_t *pipe_)
     }
 }
 
-bool zmq::dist_t::has_pipe (pipe_t *pipe_)
+bool dist_t::has_pipe (pipe_t *pipe_)
 {
     std::size_t claimed_index = _pipes.index (pipe_);
 
@@ -148,7 +148,7 @@ bool zmq::dist_t::has_pipe (pipe_t *pipe_)
     return _pipes[claimed_index] == pipe_;
 }
 
-void zmq::dist_t::match (pipe_t *pipe_)
+void dist_t::match (pipe_t *pipe_)
 {
     //  If pipe is already matching do nothing.
     if (_pipes.index (pipe_) < _matching)
@@ -163,7 +163,7 @@ void zmq::dist_t::match (pipe_t *pipe_)
     _matching++;
 }
 
-void zmq::dist_t::reverse_match ()
+void dist_t::reverse_match ()
 {
     const pipes_t::size_type prev_matching = _matching;
 
@@ -179,12 +179,12 @@ void zmq::dist_t::reverse_match ()
     }
 }
 
-void zmq::dist_t::unmatch ()
+void dist_t::unmatch ()
 {
     _matching = 0;
 }
 
-void zmq::dist_t::pipe_terminated (pipe_t *pipe_)
+void dist_t::pipe_terminated (pipe_t *pipe_)
 {
     //  Remove the pipe from the list; adjust number of matching, active and/or
     //  eligible pipes accordingly.
@@ -204,7 +204,7 @@ void zmq::dist_t::pipe_terminated (pipe_t *pipe_)
     _pipes.erase (pipe_);
 }
 
-void zmq::dist_t::activated (pipe_t *pipe_)
+void dist_t::activated (pipe_t *pipe_)
 {
     //  Move the pipe from passive to eligible state.
     if (_eligible < _pipes.size ()) {
@@ -220,13 +220,13 @@ void zmq::dist_t::activated (pipe_t *pipe_)
     }
 }
 
-int zmq::dist_t::send_to_all (ZmqMessage *msg)
+int dist_t::send_to_all (ZmqMessage *msg)
 {
     _matching = _active;
     return send_to_matching (msg);
 }
 
-int zmq::dist_t::send_to_matching (ZmqMessage *msg)
+int dist_t::send_to_matching (ZmqMessage *msg)
 {
     //  Is this end of a multipart message?
     const bool msg_more = (msg->flags () & ZmqMessage::more) != 0;
@@ -243,7 +243,7 @@ int zmq::dist_t::send_to_matching (ZmqMessage *msg)
     return 0;
 }
 
-void zmq::dist_t::distribute (ZmqMessage *msg)
+void dist_t::distribute (ZmqMessage *msg)
 {
     //  If there are no matching pipes available, simply drop the message.
     if (_matching == 0) {
@@ -290,12 +290,12 @@ void zmq::dist_t::distribute (ZmqMessage *msg)
     errno_assert (rc == 0);
 }
 
-bool zmq::dist_t::has_out ()
+bool dist_t::has_out ()
 {
     return true;
 }
 
-bool zmq::dist_t::write (pipe_t *pipe_, ZmqMessage *msg)
+bool dist_t::write (pipe_t *pipe_, ZmqMessage *msg)
 {
     if (!pipe_->write (msg)) {
         _pipes.swap (_pipes.index (pipe_), _matching - 1);
@@ -311,7 +311,7 @@ bool zmq::dist_t::write (pipe_t *pipe_, ZmqMessage *msg)
     return true;
 }
 
-bool zmq::dist_t::check_hwm ()
+bool dist_t::check_hwm ()
 {
     for (pipes_t::size_type i = 0; i < _matching; ++i)
         if (!_pipes[i]->check_hwm ())

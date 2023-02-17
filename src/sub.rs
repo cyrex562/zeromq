@@ -33,7 +33,7 @@
 pub struct sub_t ZMQ_FINAL : public xsub_t
 {
 // public:
-    sub_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    sub_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~sub_t ();
 
   protected:
@@ -44,7 +44,7 @@ pub struct sub_t ZMQ_FINAL : public xsub_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (sub_t)
 };
 
-zmq::sub_t::sub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+sub_t::sub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     xsub_t (parent_, tid_, sid_)
 {
     options.type = ZMQ_SUB;
@@ -54,11 +54,11 @@ zmq::sub_t::sub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     options.filter = true;
 }
 
-zmq::sub_t::~sub_t ()
+sub_t::~sub_t ()
 {
 }
 
-int zmq::sub_t::xsetsockopt (option_: i32,
+int sub_t::xsetsockopt (option_: i32,
                              const optval_: *mut c_void,
                              optvallen_: usize)
 {
@@ -83,14 +83,14 @@ int zmq::sub_t::xsetsockopt (option_: i32,
     return close_and_return (&msg, rc);
 }
 
-int zmq::sub_t::xsend (ZmqMessage *)
+int sub_t::xsend (ZmqMessage *)
 {
     //  Override the XSUB's send.
     errno = ENOTSUP;
     return -1;
 }
 
-bool zmq::sub_t::xhas_out ()
+bool sub_t::xhas_out ()
 {
     //  Override the XSUB's send.
     return false;

@@ -55,8 +55,8 @@ pub struct socks_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
-    socks_connecter_t (zmq::io_thread_t *io_thread_,
-                       zmq::session_base_t *session_,
+    socks_connecter_t (io_thread_t *io_thread_,
+                       session_base_t *session_,
                        const ZmqOptions &options_,
                        Address *addr_,
                        Address *proxy_addr_,
@@ -116,7 +116,7 @@ pub struct socks_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 
     //  Get the file descriptor of newly created connection. Returns
     //  retired_fd if the connection was unsuccessful.
-    zmq::fd_t check_proxy_connection () const;
+    fd_t check_proxy_connection () const;
 
     socks_greeting_encoder_t _greeting_encoder;
     socks_choice_decoder_t _choice_decoder;
@@ -140,7 +140,7 @@ pub struct socks_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (socks_connecter_t)
 };
 
-zmq::socks_connecter_t::socks_connecter_t (class io_thread_t *io_thread_,
+socks_connecter_t::socks_connecter_t (class io_thread_t *io_thread_,
 pub struct session_base_t *session_,
                                            const ZmqOptions &options_,
                                            Address *addr_,
@@ -156,19 +156,19 @@ pub struct session_base_t *session_,
     _proxy_addr->to_string (_endpoint);
 }
 
-zmq::socks_connecter_t::~socks_connecter_t ()
+socks_connecter_t::~socks_connecter_t ()
 {
     LIBZMQ_DELETE (_proxy_addr);
 }
 
-void zmq::socks_connecter_t::set_auth_method_none ()
+void socks_connecter_t::set_auth_method_none ()
 {
     _auth_method = socks_no_auth_required;
     _auth_username.clear ();
     _auth_password.clear ();
 }
 
-void zmq::socks_connecter_t::set_auth_method_basic (
+void socks_connecter_t::set_auth_method_basic (
   const std::string &username_, password_: &str)
 {
     _auth_method = socks_basic_auth;
@@ -176,7 +176,7 @@ void zmq::socks_connecter_t::set_auth_method_basic (
     _auth_password = password_;
 }
 
-void zmq::socks_connecter_t::in_event ()
+void socks_connecter_t::in_event ()
 {
     int expected_status = -1;
     zmq_assert (_status != unplugged);
@@ -251,7 +251,7 @@ void zmq::socks_connecter_t::in_event ()
     }
 }
 
-void zmq::socks_connecter_t::out_event ()
+void socks_connecter_t::out_event ()
 {
     zmq_assert (
       _status == waiting_for_proxy_connection || _status == sending_greeting
@@ -298,7 +298,7 @@ void zmq::socks_connecter_t::out_event ()
     }
 }
 
-void zmq::socks_connecter_t::start_connecting ()
+void socks_connecter_t::start_connecting ()
 {
     zmq_assert (_status == unplugged);
 
@@ -327,7 +327,7 @@ void zmq::socks_connecter_t::start_connecting ()
     }
 }
 
-int zmq::socks_connecter_t::process_server_response (
+int socks_connecter_t::process_server_response (
   const socks_choice_t &response_)
 {
     return response_.method == socks_no_auth_required
@@ -336,19 +336,19 @@ int zmq::socks_connecter_t::process_server_response (
              : -1;
 }
 
-int zmq::socks_connecter_t::process_server_response (
+int socks_connecter_t::process_server_response (
   const socks_response_t &response_)
 {
     return response_.response_code == 0 ? 0 : -1;
 }
 
-int zmq::socks_connecter_t::process_server_response (
+int socks_connecter_t::process_server_response (
   const socks_auth_response_t &response_)
 {
     return response_.response_code == 0 ? 0 : -1;
 }
 
-void zmq::socks_connecter_t::error ()
+void socks_connecter_t::error ()
 {
     rm_fd (_handle);
     close ();
@@ -362,7 +362,7 @@ void zmq::socks_connecter_t::error ()
     add_reconnect_timer ();
 }
 
-int zmq::socks_connecter_t::connect_to_proxy ()
+int socks_connecter_t::connect_to_proxy ()
 {
     zmq_assert (_s == retired_fd);
 
@@ -433,7 +433,7 @@ int zmq::socks_connecter_t::connect_to_proxy ()
     return -1;
 }
 
-zmq::fd_t zmq::socks_connecter_t::check_proxy_connection () const
+fd_t socks_connecter_t::check_proxy_connection () const
 {
     //  Async connect has finished. Check whether an error occurred
     int err = 0;
@@ -484,7 +484,7 @@ zmq::fd_t zmq::socks_connecter_t::check_proxy_connection () const
     return 0;
 }
 
-int zmq::socks_connecter_t::parse_address (const std::string &address_,
+int socks_connecter_t::parse_address (const std::string &address_,
                                            std::string &hostname_,
                                            uint16_t &port_)
 {

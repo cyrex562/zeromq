@@ -49,8 +49,8 @@ impl EndpointUriPair {
 
 // endpoint_uri_pair_t
 // make_unconnected_connect_endpoint_pair (const std::string &endpoint_);
-// zmq::endpoint_uri_pair_t
-// zmq::make_unconnected_connect_endpoint_pair (const std::string &endpoint_)
+// endpoint_uri_pair_t
+// make_unconnected_connect_endpoint_pair (const std::string &endpoint_)
 pub fn make_unconnected_connected_endpoint_pair(endpoint: &str) -> EndpointUriPair {
     // return endpoint_uri_pair_t (std::string (), endpoint_,
     //                             endpoint_type_connect);
@@ -59,8 +59,8 @@ pub fn make_unconnected_connected_endpoint_pair(endpoint: &str) -> EndpointUriPa
 
 // endpoint_uri_pair_t
 // make_unconnected_bind_endpoint_pair (const std::string &endpoint_);
-// zmq::endpoint_uri_pair_t
-// zmq::make_unconnected_bind_endpoint_pair (const std::string &endpoint_)
+// endpoint_uri_pair_t
+// make_unconnected_bind_endpoint_pair (const std::string &endpoint_)
 pub fn make_unconnected_bind_endpoint_pair(endpoint: &str) -> EndpointUriPair {
     // return endpoint_uri_pair_t (endpoint_, std::string (), endpoint_type_bind);
     EndpointUriPair::new(endpoint, "", EndpointType::endpoint_type_bind)

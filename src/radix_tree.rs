@@ -293,7 +293,7 @@ node_t make_node (refcount_: usize, prefix_length_: usize, edgecount_: usize)
 
 // ----------------------------------------------------------------------
 
-zmq::radix_tree_t::radix_tree_t () : _root (make_node (0, 0, 0)), _size (0)
+radix_tree_t::radix_tree_t () : _root (make_node (0, 0, 0)), _size (0)
 {
 }
 
@@ -304,7 +304,7 @@ static void free_nodes (node_t node_)
     free (node_._data);
 }
 
-zmq::radix_tree_t::~radix_tree_t ()
+radix_tree_t::~radix_tree_t ()
 {
     free_nodes (_root);
 }
@@ -326,7 +326,7 @@ match_result_t::match_result_t (key_bytes_matched_: usize,
 {
 }
 
-match_result_t zmq::radix_tree_t::match (const unsigned char *key_,
+match_result_t radix_tree_t::match (const unsigned char *key_,
                                          key_size_: usize,
                                          bool is_lookup_ = false) const
 {
@@ -394,7 +394,7 @@ match_result_t zmq::radix_tree_t::match (const unsigned char *key_,
                            grandparent_node);
 }
 
-bool zmq::radix_tree_t::add (const unsigned char *key_, key_size_: usize)
+bool radix_tree_t::add (const unsigned char *key_, key_size_: usize)
 {
     const match_result_t match_result = match (key_, key_size_);
     const size_t key_bytes_matched = match_result._key_bytes_matched;
@@ -518,7 +518,7 @@ bool zmq::radix_tree_t::add (const unsigned char *key_, key_size_: usize)
     return current_node.refcount () == 1;
 }
 
-bool zmq::radix_tree_t::rm (const unsigned char *key_, key_size_: usize)
+bool radix_tree_t::rm (const unsigned char *key_, key_size_: usize)
 {
     const match_result_t match_result = match (key_, key_size_);
     const size_t key_bytes_matched = match_result._key_bytes_matched;
@@ -638,7 +638,7 @@ bool zmq::radix_tree_t::rm (const unsigned char *key_, key_size_: usize)
     return true;
 }
 
-bool zmq::radix_tree_t::check (const unsigned char *key_, key_size_: usize)
+bool radix_tree_t::check (const unsigned char *key_, key_size_: usize)
 {
     if (_root.refcount () > 0)
         return true;
@@ -672,7 +672,7 @@ visit_keys (node_t node_,
     buffer_.resize (static_cast<uint32_t> (buffer_.size () - prefix_length));
 }
 
-void zmq::radix_tree_t::apply (
+void radix_tree_t::apply (
   void (*func_) (unsigned char *data, size: usize, arg_: *mut c_void), arg_: *mut c_void)
 {
     if (_root.refcount () > 0)
@@ -683,7 +683,7 @@ void zmq::radix_tree_t::apply (
         visit_keys (_root.node_at (i), buffer, func_, arg_);
 }
 
-size_t zmq::radix_tree_t::size () const
+size_t radix_tree_t::size () const
 {
     return _size.get ();
 }

@@ -144,9 +144,9 @@ pub struct decoder_base_t : public i_decoder
         return 0;
     }
 
-    void resize_buffer (std::new_size_: usize) ZMQ_FINAL
+    void resize_buffer (std::new_size: usize) ZMQ_FINAL
     {
-        _allocator.resize (new_size_);
+        _allocator.resize (new_size);
     }
 
   protected:

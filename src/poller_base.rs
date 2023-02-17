@@ -39,8 +39,8 @@ pub struct poller_base_t
 
     // Methods from the poller concept.
     int get_load () const;
-    void add_timer (timeout_: i32, zmq::i_poll_events *sink_, id_: i32);
-    void cancel_timer (zmq::i_poll_events *sink_, id_: i32);
+    void add_timer (timeout_: i32, i_poll_events *sink_, id_: i32);
+    void cancel_timer (i_poll_events *sink_, id_: i32);
 
   protected:
     //  Called by individual poller implementations to manage the load.
@@ -57,7 +57,7 @@ pub struct poller_base_t
     //  List of active timers.
     struct timer_info_t
     {
-        zmq::i_poll_events *sink;
+        i_poll_events *sink;
         id: i32;
     };
     typedef std::multimap<u64, timer_info_t> timers_t;
@@ -103,18 +103,18 @@ pub struct worker_poller_base_t : public poller_base_t
     thread_t _worker;
 };
 
-zmq::poller_base_t::~poller_base_t ()
+poller_base_t::~poller_base_t ()
 {
     //  Make sure there is no more load on the shutdown.
     zmq_assert (get_load () == 0);
 }
 
-int zmq::poller_base_t::get_load () const
+int poller_base_t::get_load () const
 {
     return _load.get ();
 }
 
-void zmq::poller_base_t::adjust_load (amount_: i32)
+void poller_base_t::adjust_load (amount_: i32)
 {
     if (amount_ > 0)
         _load.add (amount_);
@@ -122,14 +122,14 @@ void zmq::poller_base_t::adjust_load (amount_: i32)
         _load.sub (-amount_);
 }
 
-void zmq::poller_base_t::add_timer (timeout_: i32, i_poll_events *sink_, id_: i32)
+void poller_base_t::add_timer (timeout_: i32, i_poll_events *sink_, id_: i32)
 {
     u64 expiration = _clock.now_ms () + timeout_;
     timer_info_t info = {sink_, id_};
     _timers.insert (timers_t::value_type (expiration, info));
 }
 
-void zmq::poller_base_t::cancel_timer (i_poll_events *sink_, id_: i32)
+void poller_base_t::cancel_timer (i_poll_events *sink_, id_: i32)
 {
     //  Complexity of this operation is O(n). We assume it is rarely used.
     for (timers_t::iterator it = _timers.begin (), end = _timers.end ();
@@ -149,7 +149,7 @@ void zmq::poller_base_t::cancel_timer (i_poll_events *sink_, id_: i32)
     //  As soon as that is resolved an 'assert (false)' should be put here.
 }
 
-u64 zmq::poller_base_t::execute_timers ()
+u64 poller_base_t::execute_timers ()
 {
     //  Fast track.
     if (_timers.empty ())
@@ -189,30 +189,30 @@ u64 zmq::poller_base_t::execute_timers ()
     return res;
 }
 
-zmq::worker_poller_base_t::worker_poller_base_t (const ThreadCtx &ctx_) :
+worker_poller_base_t::worker_poller_base_t (const ThreadCtx &ctx_) :
     _ctx (ctx_)
 {
 }
 
-void zmq::worker_poller_base_t::stop_worker ()
+void worker_poller_base_t::stop_worker ()
 {
     _worker.stop ();
 }
 
-void zmq::worker_poller_base_t::start (name_: *const c_char)
+void worker_poller_base_t::start (name_: *const c_char)
 {
     zmq_assert (get_load () > 0);
     _ctx.start_thread (_worker, worker_routine, this, name_);
 }
 
-void zmq::worker_poller_base_t::check_thread () const
+void worker_poller_base_t::check_thread () const
 {
 // #ifndef NDEBUG
     zmq_assert (!_worker.get_started () || _worker.is_current_thread ());
 // #endif
 }
 
-void zmq::worker_poller_base_t::worker_routine (arg_: *mut c_void)
+void worker_poller_base_t::worker_routine (arg_: *mut c_void)
 {
     (static_cast<worker_poller_base_t *> (arg_))->loop ();
 }

@@ -47,10 +47,10 @@ void test_roundtrip (ZmqMessage *msg)
                                          static_cast<uint8_t *> (msg->data ())
                                            + msg->size ());
 
-    zmq::curve_encoding_t encoding_client ("CurveZMQMESSAGEC",
+    curve_encoding_t encoding_client ("CurveZMQMESSAGEC",
                                            "CurveZMQMESSAGES",
                                            false);
-    zmq::curve_encoding_t encoding_server ("CurveZMQMESSAGES",
+    curve_encoding_t encoding_server ("CurveZMQMESSAGES",
                                            "CurveZMQMESSAGEC",
                                            false);
 
@@ -139,7 +139,7 @@ void test_roundtrip_empty_more ()
 int main ()
 {
     setup_test_environment ();
-    zmq::random_open ();
+    random_open ();
 
     UNITY_BEGIN ();
 
@@ -149,7 +149,7 @@ int main ()
 
     RUN_TEST (test_roundtrip_empty_more);
 
-    zmq::random_close ();
+    random_close ();
 
     return UNITY_END ();
 }

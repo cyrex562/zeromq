@@ -43,14 +43,14 @@
 pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
 {
 // public:
-    pgm_sender_t (zmq::io_thread_t *parent_, const ZmqOptions &options_);
+    pgm_sender_t (io_thread_t *parent_, const ZmqOptions &options_);
     ~pgm_sender_t ();
 
     int init (bool udp_encapsulation_, network_: *const c_char);
 
     //  i_engine interface implementation.
     bool has_handshake_stage () { return false; };
-    void plug (zmq::io_thread_t *io_thread_, zmq::session_base_t *session_);
+    void plug (io_thread_t *io_thread_, session_base_t *session_);
     void terminate ();
     bool restart_input ();
     void restart_output ();
@@ -114,7 +114,7 @@ pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
     ZMQ_NON_COPYABLE_NOR_MOVABLE (pgm_sender_t)
 };
 
-zmq::pgm_sender_t::pgm_sender_t (io_thread_t *parent_,
+pgm_sender_t::pgm_sender_t (io_thread_t *parent_,
                                  const ZmqOptions &options_) :
     io_object_t (parent_),
     has_tx_timer (false),
@@ -136,7 +136,7 @@ zmq::pgm_sender_t::pgm_sender_t (io_thread_t *parent_,
     errno_assert (rc == 0);
 }
 
-int zmq::pgm_sender_t::init (bool udp_encapsulation_, network_: *const c_char)
+int pgm_sender_t::init (bool udp_encapsulation_, network_: *const c_char)
 {
     int rc = pgm_socket.init (udp_encapsulation_, network_);
     if (rc != 0)
@@ -149,7 +149,7 @@ int zmq::pgm_sender_t::init (bool udp_encapsulation_, network_: *const c_char)
     return rc;
 }
 
-void zmq::pgm_sender_t::plug (io_thread_t *io_thread_, session_base_t *session_)
+void pgm_sender_t::plug (io_thread_t *io_thread_, session_base_t *session_)
 {
     LIBZMQ_UNUSED (io_thread_);
     //  Allocate 2 fds for PGM socket.
@@ -179,7 +179,7 @@ void zmq::pgm_sender_t::plug (io_thread_t *io_thread_, session_base_t *session_)
     set_pollout (handle);
 }
 
-void zmq::pgm_sender_t::unplug ()
+void pgm_sender_t::unplug ()
 {
     if (has_rx_timer) {
         cancel_timer (rx_timer_id);
@@ -198,30 +198,30 @@ void zmq::pgm_sender_t::unplug ()
     session = NULL;
 }
 
-void zmq::pgm_sender_t::terminate ()
+void pgm_sender_t::terminate ()
 {
     unplug ();
     delete this;
 }
 
-void zmq::pgm_sender_t::restart_output ()
+void pgm_sender_t::restart_output ()
 {
     set_pollout (handle);
     out_event ();
 }
 
-bool zmq::pgm_sender_t::restart_input ()
+bool pgm_sender_t::restart_input ()
 {
     zmq_assert (false);
     return true;
 }
 
-const zmq::EndpointUriPair &zmq::pgm_sender_t::get_endpoint () const
+const EndpointUriPair &pgm_sender_t::get_endpoint () const
 {
     return _empty_endpoint;
 }
 
-zmq::pgm_sender_t::~pgm_sender_t ()
+pgm_sender_t::~pgm_sender_t ()
 {
     int rc = msg.close ();
     errno_assert (rc == 0);
@@ -232,7 +232,7 @@ zmq::pgm_sender_t::~pgm_sender_t ()
     }
 }
 
-void zmq::pgm_sender_t::in_event ()
+void pgm_sender_t::in_event ()
 {
     if (has_rx_timer) {
         cancel_timer (rx_timer_id);
@@ -248,7 +248,7 @@ void zmq::pgm_sender_t::in_event ()
     }
 }
 
-void zmq::pgm_sender_t::out_event ()
+void pgm_sender_t::out_event ()
 {
     //  POLLOUT event from send socket. If write buffer is empty,
     //  try to read new data from the encoder.
@@ -311,7 +311,7 @@ void zmq::pgm_sender_t::out_event ()
     }
 }
 
-void zmq::pgm_sender_t::timer_event (token: i32)
+void pgm_sender_t::timer_event (token: i32)
 {
     //  Timer cancels on return by poller_base.
     if (token == rx_timer_id) {

@@ -74,7 +74,7 @@ const size_t error_reason_len_size = 1;
 const char ready_command_name[] = "\5READY";
 const size_t ready_command_name_len = mem::size_of::<ready_command_name>() - 1;
 
-zmq::null_mechanism_t::null_mechanism_t (session_base_t *session_,
+null_mechanism_t::null_mechanism_t (session_base_t *session_,
                                          const std::string &peer_address_,
                                          const ZmqOptions &options_) :
     mechanism_base_t (session_, options_),
@@ -88,11 +88,11 @@ zmq::null_mechanism_t::null_mechanism_t (session_base_t *session_,
 {
 }
 
-zmq::null_mechanism_t::~null_mechanism_t ()
+null_mechanism_t::~null_mechanism_t ()
 {
 }
 
-int zmq::null_mechanism_t::next_handshake_command (ZmqMessage *msg)
+int null_mechanism_t::next_handshake_command (ZmqMessage *msg)
 {
     if (_ready_command_sent || _error_command_sent) {
         errno = EAGAIN;
@@ -156,7 +156,7 @@ int zmq::null_mechanism_t::next_handshake_command (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::null_mechanism_t::process_handshake_command (ZmqMessage *msg)
+int null_mechanism_t::process_handshake_command (ZmqMessage *msg)
 {
     if (_ready_command_received || _error_command_received) {
         session->get_socket ()->event_handshake_failed_protocol (
@@ -192,7 +192,7 @@ int zmq::null_mechanism_t::process_handshake_command (ZmqMessage *msg)
     return rc;
 }
 
-int zmq::null_mechanism_t::process_ready_command (
+int null_mechanism_t::process_ready_command (
   const unsigned char *cmd_data_, data_size_: usize)
 {
     _ready_command_received = true;
@@ -200,7 +200,7 @@ int zmq::null_mechanism_t::process_ready_command (
                            data_size_ - ready_command_name_len);
 }
 
-int zmq::null_mechanism_t::process_error_command (
+int null_mechanism_t::process_error_command (
   const unsigned char *cmd_data_, data_size_: usize)
 {
     const size_t fixed_prefix_size =
@@ -230,7 +230,7 @@ int zmq::null_mechanism_t::process_error_command (
     return 0;
 }
 
-int zmq::null_mechanism_t::zap_msg_available ()
+int null_mechanism_t::zap_msg_available ()
 {
     if (_zap_reply_received) {
         errno = EFSM;
@@ -242,7 +242,7 @@ int zmq::null_mechanism_t::zap_msg_available ()
     return rc == -1 ? -1 : 0;
 }
 
-zmq::mechanism_t::status_t zmq::null_mechanism_t::status () const
+mechanism_t::status_t null_mechanism_t::status () const
 {
     if (_ready_command_sent && _ready_command_received)
         return ready;
@@ -253,7 +253,7 @@ zmq::mechanism_t::status_t zmq::null_mechanism_t::status () const
     return command_sent && command_received ? error : handshaking;
 }
 
-void zmq::null_mechanism_t::send_zap_request ()
+void null_mechanism_t::send_zap_request ()
 {
     zap_client_t::send_zap_request ("NULL", 4, NULL, NULL, 0);
 }

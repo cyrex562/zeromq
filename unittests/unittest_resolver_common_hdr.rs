@@ -29,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //  we're in this situation then we compare to 'expected_addr_v4_failover_'
 //  instead.
 void validate_address (family: i32,
-                       const zmq::ip_addr_t *addr_,
+                       const ip_addr_t *addr_,
                        expected_addr_: *const c_char,
                        uint16_t expected_port_ = 0,
                        uint16_t expected_zone_ = 0,

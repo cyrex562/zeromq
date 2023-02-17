@@ -6,23 +6,23 @@ use crate::socket_base::{ZmqSocketBase, ZmqContext};
 pub struct channel_t //: public ZmqSocketBase
 {
 // public:
-//     channel_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+//     channel_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
 //     ~channel_t ();
 //
 //     //  Overrides of functions from ZmqSocketBase.
-//     void xattach_pipe (zmq::pipe_t *pipe_,
+//     void xattach_pipe (pipe_t *pipe_,
 //                        bool subscribe_to_all_,
 //                        bool locally_initiated_);
 //     int xsend (ZmqMessage *msg);
 //     int xrecv (ZmqMessage *msg);
 //     bool xhas_in ();
 //     bool xhas_out ();
-//     void xread_activated (zmq::pipe_t *pipe_);
-//     void xwrite_activated (zmq::pipe_t *pipe_);
-//     void xpipe_terminated (zmq::pipe_t *pipe_);
+//     void xread_activated (pipe_t *pipe_);
+//     void xwrite_activated (pipe_t *pipe_);
+//     void xpipe_terminated (pipe_t *pipe_);
 
   // private:
-  //   zmq::pipe_t *_pipe;
+  //   pipe_t *_pipe;
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (channel_t)
     pipe: pipe_t,
@@ -45,18 +45,18 @@ impl channel_t {
 }
 
 
-zmq::channel_t::channel_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+channel_t::channel_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_, true), _pipe (NULL)
 {
     options.type = ZMQ_CHANNEL;
 }
 
-zmq::channel_t::~channel_t ()
+channel_t::~channel_t ()
 {
     zmq_assert (!_pipe);
 }
 
-void zmq::channel_t::xattach_pipe (pipe_t *pipe_,
+void channel_t::xattach_pipe (pipe_t *pipe_,
                                    bool subscribe_to_all_,
                                    bool locally_initiated_)
 {
@@ -73,25 +73,25 @@ void zmq::channel_t::xattach_pipe (pipe_t *pipe_,
         pipe_->terminate (false);
 }
 
-void zmq::channel_t::xpipe_terminated (pipe_t *pipe_)
+void channel_t::xpipe_terminated (pipe_t *pipe_)
 {
     if (pipe_ == _pipe)
         _pipe = NULL;
 }
 
-void zmq::channel_t::xread_activated (pipe_t *)
+void channel_t::xread_activated (pipe_t *)
 {
     //  There's just one pipe. No lists of active and inactive pipes.
     //  There's nothing to do here.
 }
 
-void zmq::channel_t::xwrite_activated (pipe_t *)
+void channel_t::xwrite_activated (pipe_t *)
 {
     //  There's just one pipe. No lists of active and inactive pipes.
     //  There's nothing to do here.
 }
 
-int zmq::channel_t::xsend (ZmqMessage *msg)
+int channel_t::xsend (ZmqMessage *msg)
 {
     //  CHANNEL sockets do not allow multipart data (ZMQ_SNDMORE)
     if (msg->flags () & ZmqMessage::more) {
@@ -113,7 +113,7 @@ int zmq::channel_t::xsend (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::channel_t::xrecv (ZmqMessage *msg)
+int channel_t::xrecv (ZmqMessage *msg)
 {
     //  Deallocate old content of the message.
     int rc = msg->close ();
@@ -153,7 +153,7 @@ int zmq::channel_t::xrecv (ZmqMessage *msg)
     return 0;
 }
 
-bool zmq::channel_t::xhas_in ()
+bool channel_t::xhas_in ()
 {
     if (!_pipe)
         return false;
@@ -161,7 +161,7 @@ bool zmq::channel_t::xhas_in ()
     return _pipe->check_read ();
 }
 
-bool zmq::channel_t::xhas_out ()
+bool channel_t::xhas_out ()
 {
     if (!_pipe)
         return false;

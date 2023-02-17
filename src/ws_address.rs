@@ -83,12 +83,12 @@ pub struct WsAddress
     std::string _path;
 };
 
-zmq::WsAddress::WsAddress ()
+WsAddress::WsAddress ()
 {
     memset (&_address, 0, mem::size_of::<_address>());
 }
 
-zmq::WsAddress::WsAddress (const sockaddr *sa_, socklen_t sa_len_)
+WsAddress::WsAddress (const sockaddr *sa_, socklen_t sa_len_)
 {
     zmq_assert (sa_ && sa_len_ > 0);
 
@@ -123,7 +123,7 @@ zmq::WsAddress::WsAddress (const sockaddr *sa_, socklen_t sa_len_)
     _host = os.str ();
 }
 
-int zmq::WsAddress::resolve (name_: *const c_char, bool local_, bool ipv6_)
+int WsAddress::resolve (name_: *const c_char, bool local_, bool ipv6_)
 {
     //  find the host part, It's important to use str*r*chr to only get
     //  the latest colon since IPv6 addresses use colons as delemiters.
@@ -159,7 +159,7 @@ int zmq::WsAddress::resolve (name_: *const c_char, bool local_, bool ipv6_)
     return resolver.resolve (&_address, host_name.c_str ());
 }
 
-int zmq::WsAddress::to_string (std::string &addr_) const
+int WsAddress::to_string (std::string &addr_) const
 {
     std::ostringstream os;
     os << std::string ("ws://") << host () << std::string (":")
@@ -169,30 +169,30 @@ int zmq::WsAddress::to_string (std::string &addr_) const
     return 0;
 }
 
-const sockaddr *zmq::WsAddress::addr () const
+const sockaddr *WsAddress::addr () const
 {
     return _address.as_sockaddr ();
 }
 
-socklen_t zmq::WsAddress::addrlen () const
+socklen_t WsAddress::addrlen () const
 {
     return _address.sockaddr_len ();
 }
 
-const char *zmq::WsAddress::host () const
+const char *WsAddress::host () const
 {
     return _host;
 }
 
-const char *zmq::WsAddress::path () const
+const char *WsAddress::path () const
 {
     return _path;
 }
 
 // #if defined ZMQ_HAVE_WINDOWS
-unsigned short zmq::WsAddress::family () const
+unsigned short WsAddress::family () const
 // #else
-sa_family_t zmq::WsAddress::family () const
+sa_family_t WsAddress::family () const
 // #endif
 {
     return _address.family ();

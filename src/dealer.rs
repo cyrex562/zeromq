@@ -35,12 +35,12 @@
 pub struct dealer_t : public ZmqSocketBase
 {
 // public:
-    dealer_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    dealer_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~dealer_t () ZMQ_OVERRIDE;
 
   protected:
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (zmq::pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_) ZMQ_FINAL;
     int xsetsockopt (option_: i32,
@@ -50,13 +50,13 @@ pub struct dealer_t : public ZmqSocketBase
     int xrecv (ZmqMessage *msg) ZMQ_OVERRIDE;
     bool xhas_in () ZMQ_OVERRIDE;
     bool xhas_out () ZMQ_OVERRIDE;
-    void xread_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
-    void xwrite_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
-    void xpipe_terminated (zmq::pipe_t *pipe_) ZMQ_OVERRIDE;
+    void xread_activated (pipe_t *pipe_) ZMQ_FINAL;
+    void xwrite_activated (pipe_t *pipe_) ZMQ_FINAL;
+    void xpipe_terminated (pipe_t *pipe_) ZMQ_OVERRIDE;
 
     //  Send and recv - knowing which pipe was used.
-    int sendpipe (msg: &mut ZmqMessage zmq::pipe_t **pipe_);
-    int recvpipe (msg: &mut ZmqMessage zmq::pipe_t **pipe_);
+    int sendpipe (msg: &mut ZmqMessage pipe_t **pipe_);
+    int recvpipe (msg: &mut ZmqMessage pipe_t **pipe_);
 
   // private:
     //  Messages are fair-queued from inbound pipes. And load-balanced to
@@ -70,7 +70,7 @@ pub struct dealer_t : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dealer_t)
 };
 
-zmq::dealer_t::dealer_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+dealer_t::dealer_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_), _probe_router (false)
 {
     options.type = ZMQ_DEALER;
@@ -78,11 +78,11 @@ zmq::dealer_t::dealer_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     options.can_recv_hiccup_msg = true;
 }
 
-zmq::dealer_t::~dealer_t ()
+dealer_t::~dealer_t ()
 {
 }
 
-void zmq::dealer_t::xattach_pipe (pipe_t *pipe_,
+void dealer_t::xattach_pipe (pipe_t *pipe_,
                                   bool subscribe_to_all_,
                                   bool locally_initiated_)
 {
@@ -110,7 +110,7 @@ void zmq::dealer_t::xattach_pipe (pipe_t *pipe_,
     _lb.attach (pipe_);
 }
 
-int zmq::dealer_t::xsetsockopt (option_: i32,
+int dealer_t::xsetsockopt (option_: i32,
                                 const optval_: *mut c_void,
                                 optvallen_: usize)
 {
@@ -135,48 +135,48 @@ int zmq::dealer_t::xsetsockopt (option_: i32,
     return -1;
 }
 
-int zmq::dealer_t::xsend (ZmqMessage *msg)
+int dealer_t::xsend (ZmqMessage *msg)
 {
     return sendpipe (msg, NULL);
 }
 
-int zmq::dealer_t::xrecv (ZmqMessage *msg)
+int dealer_t::xrecv (ZmqMessage *msg)
 {
     return recvpipe (msg, NULL);
 }
 
-bool zmq::dealer_t::xhas_in ()
+bool dealer_t::xhas_in ()
 {
     return _fq.has_in ();
 }
 
-bool zmq::dealer_t::xhas_out ()
+bool dealer_t::xhas_out ()
 {
     return _lb.has_out ();
 }
 
-void zmq::dealer_t::xread_activated (pipe_t *pipe_)
+void dealer_t::xread_activated (pipe_t *pipe_)
 {
     _fq.activated (pipe_);
 }
 
-void zmq::dealer_t::xwrite_activated (pipe_t *pipe_)
+void dealer_t::xwrite_activated (pipe_t *pipe_)
 {
     _lb.activated (pipe_);
 }
 
-void zmq::dealer_t::xpipe_terminated (pipe_t *pipe_)
+void dealer_t::xpipe_terminated (pipe_t *pipe_)
 {
     _fq.pipe_terminated (pipe_);
     _lb.pipe_terminated (pipe_);
 }
 
-int zmq::dealer_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe_)
+int dealer_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe_)
 {
     return _lb.sendpipe (msg, pipe_);
 }
 
-int zmq::dealer_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe_)
+int dealer_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe_)
 {
     return _fq.recvpipe (msg, pipe_);
 }

@@ -61,7 +61,7 @@
 pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
-    tcp_listener_t (zmq::io_thread_t *io_thread_,
+    tcp_listener_t (io_thread_t *io_thread_,
                     socket_: *mut ZmqSocketBase,
                     const ZmqOptions &options_);
 
@@ -89,14 +89,14 @@ pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (tcp_listener_t)
 };
 
-zmq::tcp_listener_t::tcp_listener_t (io_thread_t *io_thread_,
+tcp_listener_t::tcp_listener_t (io_thread_t *io_thread_,
                                      ZmqSocketBase *socket_,
                                      const ZmqOptions &options_) :
     stream_listener_base_t (io_thread_, socket_, options_)
 {
 }
 
-void zmq::tcp_listener_t::in_event ()
+void tcp_listener_t::in_event ()
 {
     const fd_t fd = accept ();
 
@@ -125,13 +125,13 @@ void zmq::tcp_listener_t::in_event ()
 }
 
 std::string
-zmq::tcp_listener_t::get_socket_name (zmq::fd_t fd_,
+tcp_listener_t::get_socket_name (fd_t fd_,
                                       SocketEnd socket_end_) const
 {
-    return zmq::get_socket_name<TcpAddress> (fd_, socket_end_);
+    return get_socket_name<TcpAddress> (fd_, socket_end_);
 }
 
-int zmq::tcp_listener_t::create_socket (addr_: *const c_char)
+int tcp_listener_t::create_socket (addr_: *const c_char)
 {
     _s = tcp_open_socket (addr_, options, true, true, &_address);
     if (_s == retired_fd) {
@@ -199,7 +199,7 @@ error:
     return -1;
 }
 
-int zmq::tcp_listener_t::set_local_address (addr_: *const c_char)
+int tcp_listener_t::set_local_address (addr_: *const c_char)
 {
     if (options.use_fd != -1) {
         //  in this case, the addr_ passed is not used and ignored, since the
@@ -217,7 +217,7 @@ int zmq::tcp_listener_t::set_local_address (addr_: *const c_char)
     return 0;
 }
 
-zmq::fd_t zmq::tcp_listener_t::accept ()
+fd_t tcp_listener_t::accept ()
 {
     //  The situation where connection cannot be accepted due to insufficient
     //  resources is considered valid and treated by ignoring the connection.
@@ -284,7 +284,7 @@ zmq::fd_t zmq::tcp_listener_t::accept ()
         }
     }
 
-    if (zmq::set_nosigpipe (sock)) {
+    if (set_nosigpipe (sock)) {
 // #ifdef ZMQ_HAVE_WINDOWS
         let rc: i32 = closesocket (sock);
         wsa_assert (rc != SOCKET_ERROR);

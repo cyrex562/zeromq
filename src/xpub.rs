@@ -39,33 +39,33 @@
 pub struct xpub_t : public ZmqSocketBase
 {
 // public:
-    xpub_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    xpub_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~xpub_t () ZMQ_OVERRIDE;
 
     //  Implementations of virtual functions from ZmqSocketBase.
-    void xattach_pipe (zmq::pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false) ZMQ_OVERRIDE;
     int xsend (ZmqMessage *msg) ZMQ_FINAL;
     bool xhas_out () ZMQ_FINAL;
     int xrecv (ZmqMessage *msg) ZMQ_OVERRIDE;
     bool xhas_in () ZMQ_OVERRIDE;
-    void xread_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
-    void xwrite_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
+    void xread_activated (pipe_t *pipe_) ZMQ_FINAL;
+    void xwrite_activated (pipe_t *pipe_) ZMQ_FINAL;
     int
     xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize) ZMQ_FINAL;
     int xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize) ZMQ_FINAL;
-    void xpipe_terminated (zmq::pipe_t *pipe_) ZMQ_FINAL;
+    void xpipe_terminated (pipe_t *pipe_) ZMQ_FINAL;
 
   // private:
     //  Function to be applied to the trie to send all the subscriptions
     //  upstream.
-    static void send_unsubscription (zmq::mtrie_t::prefix_t data,
+    static void send_unsubscription (mtrie_t::prefix_t data,
                                      size: usize,
                                      xpub_t *self_);
 
     //  Function to be applied to each matching pipes.
-    static void mark_as_matching (zmq::pipe_t *pipe_, xpub_t *self_);
+    static void mark_as_matching (pipe_t *pipe_, xpub_t *self_);
 
     //  List of all subscriptions mapped to corresponding pipes.
     mtrie_t _subscriptions;
@@ -109,7 +109,7 @@ pub struct xpub_t : public ZmqSocketBase
     bool _send_last_pipe;
 
     //  Function to be applied to match the last pipe.
-    static void mark_last_pipe_as_matching (zmq::pipe_t *pipe_, xpub_t *self_);
+    static void mark_last_pipe_as_matching (pipe_t *pipe_, xpub_t *self_);
 
     //  Last pipe that sent subscription message, only used if xpub is on manual
     pipe_t *_last_pipe;
@@ -123,13 +123,13 @@ pub struct xpub_t : public ZmqSocketBase
     //  List of pending (un)subscriptions, ie. those that were already
     //  applied to the trie, but not yet received by the user.
     std::deque<Blob> _pending_data;
-    std::deque<metadata_t *> _pending_metadata;
+    std::deque<ZmqMetadata *> _pending_metadata;
     std::deque<unsigned char> _pending_flags;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (xpub_t)
 };
 
-zmq::xpub_t::xpub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+xpub_t::xpub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_),
     _verbose_subs (false),
     _verbose_unsubs (false),
@@ -148,17 +148,17 @@ zmq::xpub_t::xpub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     _welcome_msg.init ();
 }
 
-zmq::xpub_t::~xpub_t ()
+xpub_t::~xpub_t ()
 {
     _welcome_msg.close ();
-    for (std::deque<metadata_t *>::iterator it = _pending_metadata.begin (),
+    for (std::deque<ZmqMetadata *>::iterator it = _pending_metadata.begin (),
                                             end = _pending_metadata.end ();
          it != end; ++it)
         if (*it && (*it)->drop_ref ())
             LIBZMQ_DELETE (*it);
 }
 
-void zmq::xpub_t::xattach_pipe (pipe_t *pipe_,
+void xpub_t::xattach_pipe (pipe_t *pipe_,
                                 bool subscribe_to_all_,
                                 bool locally_initiated_)
 {
@@ -188,12 +188,12 @@ void zmq::xpub_t::xattach_pipe (pipe_t *pipe_,
     xread_activated (pipe_);
 }
 
-void zmq::xpub_t::xread_activated (pipe_t *pipe_)
+void xpub_t::xread_activated (pipe_t *pipe_)
 {
     //  There are some subscriptions waiting. Let's process them.
     ZmqMessage msg;
     while (pipe_->read (&msg)) {
-        metadata_t *metadata = msg.metadata ();
+        ZmqMetadata *metadata = msg.metadata ();
         unsigned char *msg_data = static_cast<unsigned char *> (msg.data ()),
                       *data = NULL;
         size_t size = 0;
@@ -288,12 +288,12 @@ void zmq::xpub_t::xread_activated (pipe_t *pipe_)
     }
 }
 
-void zmq::xpub_t::xwrite_activated (pipe_t *pipe_)
+void xpub_t::xwrite_activated (pipe_t *pipe_)
 {
     _dist.activated (pipe_);
 }
 
-int zmq::xpub_t::xsetsockopt (option_: i32,
+int xpub_t::xsetsockopt (option_: i32,
                               const optval_: *mut c_void,
                               optvallen_: usize)
 {
@@ -347,7 +347,7 @@ int zmq::xpub_t::xsetsockopt (option_: i32,
     return 0;
 }
 
-int zmq::xpub_t::xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize)
+int xpub_t::xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize)
 {
     if (option_ == ZMQ_TOPICS_COUNT) {
         // make sure to use a multi-thread safe function to avoid race conditions with I/O threads
@@ -362,14 +362,14 @@ int zmq::xpub_t::xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *m
     return -1;
 }
 
-static void stub (zmq::mtrie_t::prefix_t data, size: usize, arg_: *mut c_void)
+static void stub (mtrie_t::prefix_t data, size: usize, arg_: *mut c_void)
 {
     LIBZMQ_UNUSED (data);
     LIBZMQ_UNUSED (size);
     LIBZMQ_UNUSED (arg_);
 }
 
-void zmq::xpub_t::xpipe_terminated (pipe_t *pipe_)
+void xpub_t::xpipe_terminated (pipe_t *pipe_)
 {
     if (_manual) {
         //  Remove the pipe from the trie and send corresponding manual
@@ -395,18 +395,18 @@ void zmq::xpub_t::xpipe_terminated (pipe_t *pipe_)
     _dist.pipe_terminated (pipe_);
 }
 
-void zmq::xpub_t::mark_as_matching (pipe_t *pipe_, xpub_t *self_)
+void xpub_t::mark_as_matching (pipe_t *pipe_, xpub_t *self_)
 {
     self_->_dist.match (pipe_);
 }
 
-void zmq::xpub_t::mark_last_pipe_as_matching (pipe_t *pipe_, xpub_t *self_)
+void xpub_t::mark_last_pipe_as_matching (pipe_t *pipe_, xpub_t *self_)
 {
     if (self_->_last_pipe == pipe_)
         self_->_dist.match (pipe_);
 }
 
-int zmq::xpub_t::xsend (ZmqMessage *msg)
+int xpub_t::xsend (ZmqMessage *msg)
 {
     const bool msg_more = (msg->flags () & ZmqMessage::more) != 0;
 
@@ -444,12 +444,12 @@ int zmq::xpub_t::xsend (ZmqMessage *msg)
     return rc;
 }
 
-bool zmq::xpub_t::xhas_out ()
+bool xpub_t::xhas_out ()
 {
     return _dist.has_out ();
 }
 
-int zmq::xpub_t::xrecv (ZmqMessage *msg)
+int xpub_t::xrecv (ZmqMessage *msg)
 {
     //  If there is at least one
     if (_pending_data.empty ()) {
@@ -477,7 +477,7 @@ int zmq::xpub_t::xrecv (ZmqMessage *msg)
             _pending_data.front ().size ());
 
     // set metadata only if there is some
-    if (metadata_t *metadata = _pending_metadata.front ()) {
+    if (ZmqMetadata *metadata = _pending_metadata.front ()) {
         msg->set_metadata (metadata);
         // Remove ref corresponding to vector placement
         metadata->drop_ref ();
@@ -490,12 +490,12 @@ int zmq::xpub_t::xrecv (ZmqMessage *msg)
     return 0;
 }
 
-bool zmq::xpub_t::xhas_in ()
+bool xpub_t::xhas_in ()
 {
     return !_pending_data.is_empty();
 }
 
-void zmq::xpub_t::send_unsubscription (zmq::mtrie_t::prefix_t data,
+void xpub_t::send_unsubscription (mtrie_t::prefix_t data,
                                        size: usize,
                                        xpub_t *self_)
 {

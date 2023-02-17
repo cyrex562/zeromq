@@ -34,25 +34,25 @@
 // #include "raw_decoder.hpp"
 // #include "err.hpp"
 
-zmq::raw_decoder_t::raw_decoder_t (bufsize_: usize) : _allocator (bufsize_, 1)
+raw_decoder_t::raw_decoder_t (bufsize_: usize) : _allocator (bufsize_, 1)
 {
     let rc: i32 = _in_progress.init ();
     errno_assert (rc == 0);
 }
 
-zmq::raw_decoder_t::~raw_decoder_t ()
+raw_decoder_t::~raw_decoder_t ()
 {
     let rc: i32 = _in_progress.close ();
     errno_assert (rc == 0);
 }
 
-void zmq::raw_decoder_t::get_buffer (unsigned char **data, size: *mut usize)
+void raw_decoder_t::get_buffer (unsigned char **data, size: *mut usize)
 {
     *data = _allocator.allocate ();
     *size = _allocator.size ();
 }
 
-int zmq::raw_decoder_t::decode (const uint8_t *data,
+int raw_decoder_t::decode (const uint8_t *data,
                                 size: usize,
                                 size_t &bytes_used_)
 {

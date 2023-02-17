@@ -86,7 +86,7 @@ pub struct gssapi_client_t ZMQ_FINAL : public gssapi_mechanism_base_t
     int process_next_token (ZmqMessage *msg);
 };
 
-zmq::gssapi_client_t::gssapi_client_t (session_base_t *session_,
+gssapi_client_t::gssapi_client_t (session_base_t *session_,
                                        const ZmqOptions &options_) :
     mechanism_base_t (session_, options_),
     gssapi_mechanism_base_t (session_, options_),
@@ -121,7 +121,7 @@ zmq::gssapi_client_t::gssapi_client_t (session_base_t *session_,
     mechs.count = 0;
 }
 
-zmq::gssapi_client_t::~gssapi_client_t ()
+gssapi_client_t::~gssapi_client_t ()
 {
     if (service_name)
         free (service_name);
@@ -129,7 +129,7 @@ zmq::gssapi_client_t::~gssapi_client_t ()
         gss_release_cred (&min_stat, &cred);
 }
 
-int zmq::gssapi_client_t::next_handshake_command (ZmqMessage *msg)
+int gssapi_client_t::next_handshake_command (ZmqMessage *msg)
 {
     if (state == send_ready) {
         int rc = produce_ready (msg);
@@ -162,7 +162,7 @@ int zmq::gssapi_client_t::next_handshake_command (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::gssapi_client_t::process_handshake_command (ZmqMessage *msg)
+int gssapi_client_t::process_handshake_command (ZmqMessage *msg)
 {
     if (state == recv_ready) {
         int rc = process_ready (msg);
@@ -193,7 +193,7 @@ int zmq::gssapi_client_t::process_handshake_command (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::gssapi_client_t::encode (ZmqMessage *msg)
+int gssapi_client_t::encode (ZmqMessage *msg)
 {
     zmq_assert (state == connected);
 
@@ -203,7 +203,7 @@ int zmq::gssapi_client_t::encode (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::gssapi_client_t::decode (ZmqMessage *msg)
+int gssapi_client_t::decode (ZmqMessage *msg)
 {
     zmq_assert (state == connected);
 
@@ -213,12 +213,12 @@ int zmq::gssapi_client_t::decode (ZmqMessage *msg)
     return 0;
 }
 
-zmq::mechanism_t::status_t zmq::gssapi_client_t::status () const
+mechanism_t::status_t gssapi_client_t::status () const
 {
     return state == connected ? mechanism_t::ready : mechanism_t::handshaking;
 }
 
-int zmq::gssapi_client_t::initialize_context ()
+int gssapi_client_t::initialize_context ()
 {
     // principal was specified but credentials could not be acquired
     if (principal_name != NULL && cred == NULL)
@@ -245,7 +245,7 @@ int zmq::gssapi_client_t::initialize_context ()
     return 0;
 }
 
-int zmq::gssapi_client_t::produce_next_token (ZmqMessage *msg)
+int gssapi_client_t::produce_next_token (ZmqMessage *msg)
 {
     if (send_tok.length != 0) { // Server expects another token
         if (produce_initiate (msg, send_tok.value, send_tok.length) < 0) {
@@ -266,7 +266,7 @@ int zmq::gssapi_client_t::produce_next_token (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::gssapi_client_t::process_next_token (ZmqMessage *msg)
+int gssapi_client_t::process_next_token (ZmqMessage *msg)
 {
     if (maj_stat == GSS_S_CONTINUE_NEEDED) {
         if (process_initiate (msg, &recv_tok.value, recv_tok.length) < 0) {

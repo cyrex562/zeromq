@@ -54,7 +54,7 @@ pub struct epoll_t ZMQ_FINAL : public worker_poller_base_t
     ~epoll_t () ZMQ_OVERRIDE;
 
     //  "poller" concept.
-    handle_t add_fd (fd_t fd_, zmq::i_poll_events *events_);
+    handle_t add_fd (fd_t fd_, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -86,7 +86,7 @@ pub struct epoll_t ZMQ_FINAL : public worker_poller_base_t
     {
         fd_t fd;
         epoll_event ev;
-        zmq::i_poll_events *events;
+        i_poll_events *events;
     };
 
     //  List of retired event sources.
@@ -99,11 +99,11 @@ pub struct epoll_t ZMQ_FINAL : public worker_poller_base_t
 typedef epoll_t poller_t;
 
 // #ifdef ZMQ_HAVE_WINDOWS
-const zmq::epoll_t::epoll_fd_t zmq::epoll_t::epoll_retired_fd =
+const epoll_t::epoll_fd_t epoll_t::epoll_retired_fd =
   INVALID_HANDLE_VALUE;
 // #endif
 
-zmq::epoll_t::epoll_t (const zmq::ThreadCtx &ctx_) :
+epoll_t::epoll_t (const ThreadCtx &ctx_) :
     worker_poller_base_t (ctx_)
 {
 // #ifdef ZMQ_IOTHREAD_POLLER_USE_EPOLL_CLOEXEC
@@ -117,7 +117,7 @@ zmq::epoll_t::epoll_t (const zmq::ThreadCtx &ctx_) :
     errno_assert (_epoll_fd != epoll_retired_fd);
 }
 
-zmq::epoll_t::~epoll_t ()
+epoll_t::~epoll_t ()
 {
     //  Wait till the worker thread exits.
     stop_worker ();
@@ -133,7 +133,7 @@ zmq::epoll_t::~epoll_t ()
     }
 }
 
-zmq::epoll_t::handle_t zmq::epoll_t::add_fd (fd_t fd_, i_poll_events *events_)
+epoll_t::handle_t epoll_t::add_fd (fd_t fd_, i_poll_events *events_)
 {
     check_thread ();
     poll_entry_t *pe = new (std::nothrow) poll_entry_t;
@@ -157,7 +157,7 @@ zmq::epoll_t::handle_t zmq::epoll_t::add_fd (fd_t fd_, i_poll_events *events_)
     return pe;
 }
 
-void zmq::epoll_t::rm_fd (handle_t handle_)
+void epoll_t::rm_fd (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = static_cast<poll_entry_t *> (handle_);
@@ -170,7 +170,7 @@ void zmq::epoll_t::rm_fd (handle_t handle_)
     adjust_load (-1);
 }
 
-void zmq::epoll_t::set_pollin (handle_t handle_)
+void epoll_t::set_pollin (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = static_cast<poll_entry_t *> (handle_);
@@ -179,7 +179,7 @@ void zmq::epoll_t::set_pollin (handle_t handle_)
     errno_assert (rc != -1);
 }
 
-void zmq::epoll_t::reset_pollin (handle_t handle_)
+void epoll_t::reset_pollin (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = static_cast<poll_entry_t *> (handle_);
@@ -188,7 +188,7 @@ void zmq::epoll_t::reset_pollin (handle_t handle_)
     errno_assert (rc != -1);
 }
 
-void zmq::epoll_t::set_pollout (handle_t handle_)
+void epoll_t::set_pollout (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = static_cast<poll_entry_t *> (handle_);
@@ -197,7 +197,7 @@ void zmq::epoll_t::set_pollout (handle_t handle_)
     errno_assert (rc != -1);
 }
 
-void zmq::epoll_t::reset_pollout (handle_t handle_)
+void epoll_t::reset_pollout (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = static_cast<poll_entry_t *> (handle_);
@@ -206,17 +206,17 @@ void zmq::epoll_t::reset_pollout (handle_t handle_)
     errno_assert (rc != -1);
 }
 
-void zmq::epoll_t::stop ()
+void epoll_t::stop ()
 {
     check_thread ();
 }
 
-int zmq::epoll_t::max_fds ()
+int epoll_t::max_fds ()
 {
     return -1;
 }
 
-void zmq::epoll_t::loop ()
+void epoll_t::loop ()
 {
     epoll_event ev_buf[max_io_events];
 

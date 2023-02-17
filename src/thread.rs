@@ -130,7 +130,7 @@ pub struct thread_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (thread_t)
 };
 
-bool zmq::thread_t::get_started () const
+bool thread_t::get_started () const
 {
     return _started;
 }
@@ -144,14 +144,14 @@ static DWORD thread_routine (LPVOID arg_)
 static unsigned int __stdcall thread_routine (arg_: *mut c_void)
 // #endif
 {
-    zmq::thread_t *self = static_cast<zmq::thread_t *> (arg_);
+    thread_t *self = static_cast<thread_t *> (arg_);
     self->applyThreadName ();
     self->_tfn (self->_arg);
     return 0;
 }
 }
 
-void zmq::thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char)
+void thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char)
 {
     _tfn = tfn_;
     _arg = arg_;
@@ -175,12 +175,12 @@ void zmq::thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_c
     _started = true;
 }
 
-bool zmq::thread_t::is_current_thread () const
+bool thread_t::is_current_thread () const
 {
     return GetCurrentThreadId () == _thread_id;
 }
 
-void zmq::thread_t::stop ()
+void thread_t::stop ()
 {
     if (_started) {
         const DWORD rc = WaitForSingleObject (_descriptor, INFINITE);
@@ -190,7 +190,7 @@ void zmq::thread_t::stop ()
     }
 }
 
-void zmq::thread_t::setSchedulingParameters (
+void thread_t::setSchedulingParameters (
   priority_: i32, scheduling_policy_: i32, const std::set<int> &affinity_cpus_)
 {
     // not implemented
@@ -199,7 +199,7 @@ void zmq::thread_t::setSchedulingParameters (
     LIBZMQ_UNUSED (affinity_cpus_);
 }
 
-void zmq::thread_t::
+void thread_t::
   applySchedulingParameters () // to be called in secondary thread context
 {
     // not implemented
@@ -222,7 +222,7 @@ struct thread_info_t
 
 // #endif
 
-void zmq::thread_t::
+void thread_t::
   applyThreadName () // to be called in secondary thread context
 {
     if (!_name[0] || !IsDebuggerPresent ())
@@ -264,14 +264,14 @@ void zmq::thread_t::
 extern "C" {
 static void *thread_routine (arg_: *mut c_void)
 {
-    zmq::thread_t *self = (zmq::thread_t *) arg_;
+    thread_t *self = (thread_t *) arg_;
     self->applySchedulingParameters ();
     self->_tfn (self->_arg);
     return NULL;
 }
 }
 
-void zmq::thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char)
+void thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char)
 {
     LIBZMQ_UNUSED (name_);
     _tfn = tfn_;
@@ -283,7 +283,7 @@ void zmq::thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_c
         _started = true;
 }
 
-void zmq::thread_t::stop ()
+void thread_t::stop ()
 {
     if (_started)
         while ((_descriptor != NULL || _descriptor > 0)
@@ -291,12 +291,12 @@ void zmq::thread_t::stop ()
         }
 }
 
-bool zmq::thread_t::is_current_thread () const
+bool thread_t::is_current_thread () const
 {
     return taskIdSelf () == _descriptor;
 }
 
-void zmq::thread_t::setSchedulingParameters (
+void thread_t::setSchedulingParameters (
   priority_: i32, schedulingPolicy_: i32, const std::set<int> &affinity_cpus_)
 {
     _thread_priority = priority_;
@@ -304,7 +304,7 @@ void zmq::thread_t::setSchedulingParameters (
     _thread_affinity_cpus = affinity_cpus_;
 }
 
-void zmq::thread_t::
+void thread_t::
   applySchedulingParameters () // to be called in secondary thread context
 {
     int priority =
@@ -315,7 +315,7 @@ void zmq::thread_t::
     }
 }
 
-void zmq::thread_t::
+void thread_t::
   applyThreadName () // to be called in secondary thread context
 {
     // not implemented
@@ -340,7 +340,7 @@ static void *thread_routine (arg_: *mut c_void)
     rc = pthread_sigmask (SIG_BLOCK, &signal_set, NULL);
     posix_assert (rc);
 // #endif
-    zmq::thread_t *self = (zmq::thread_t *) arg_;
+    thread_t *self = (thread_t *) arg_;
     self->applySchedulingParameters ();
     self->applyThreadName ();
     self->_tfn (self->_arg);
@@ -348,7 +348,7 @@ static void *thread_routine (arg_: *mut c_void)
 }
 }
 
-void zmq::thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char)
+void thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char)
 {
     _tfn = tfn_;
     _arg = arg_;
@@ -359,7 +359,7 @@ void zmq::thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_c
     _started = true;
 }
 
-void zmq::thread_t::stop ()
+void thread_t::stop ()
 {
     if (_started) {
         int rc = pthread_join (_descriptor, NULL);
@@ -367,12 +367,12 @@ void zmq::thread_t::stop ()
     }
 }
 
-bool zmq::thread_t::is_current_thread () const
+bool thread_t::is_current_thread () const
 {
     return bool (pthread_equal (pthread_self (), _descriptor));
 }
 
-void zmq::thread_t::setSchedulingParameters (
+void thread_t::setSchedulingParameters (
   priority_: i32, scheduling_policy_: i32, const std::set<int> &affinity_cpus_)
 {
     _thread_priority = priority_;
@@ -380,7 +380,7 @@ void zmq::thread_t::setSchedulingParameters (
     _thread_affinity_cpus = affinity_cpus_;
 }
 
-void zmq::thread_t::
+void thread_t::
   applySchedulingParameters () // to be called in secondary thread context
 {
 // #if defined _POSIX_THREAD_PRIORITY_SCHEDULING                                  \
@@ -464,7 +464,7 @@ void zmq::thread_t::
 // #endif
 }
 
-void zmq::thread_t::
+void thread_t::
   applyThreadName () // to be called in secondary thread context
 {
     /* The thread name is a cosmetic string, added to ease debugging of

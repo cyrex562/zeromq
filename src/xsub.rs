@@ -36,12 +36,12 @@
 pub struct xsub_t : public ZmqSocketBase
 {
 // public:
-    xsub_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    xsub_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~xsub_t () ZMQ_OVERRIDE;
 
   protected:
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (zmq::pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_) ZMQ_FINAL;
     int xsetsockopt (option_: i32,
@@ -52,10 +52,10 @@ pub struct xsub_t : public ZmqSocketBase
     bool xhas_out () ZMQ_OVERRIDE;
     int xrecv (ZmqMessage *msg) ZMQ_FINAL;
     bool xhas_in () ZMQ_FINAL;
-    void xread_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
-    void xwrite_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
+    void xread_activated (pipe_t *pipe_) ZMQ_FINAL;
+    void xwrite_activated (pipe_t *pipe_) ZMQ_FINAL;
     void xhiccuped (pipe_t *pipe_) ZMQ_FINAL;
-    void xpipe_terminated (zmq::pipe_t *pipe_) ZMQ_FINAL;
+    void xpipe_terminated (pipe_t *pipe_) ZMQ_FINAL;
 
   // private:
     //  Check whether the message matches at least one subscription.
@@ -108,7 +108,7 @@ pub struct xsub_t : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (xsub_t)
 };
 
-zmq::xsub_t::xsub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+xsub_t::xsub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_),
     _verbose_unsubs (false),
     _has_message (false),
@@ -127,13 +127,13 @@ zmq::xsub_t::xsub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     errno_assert (rc == 0);
 }
 
-zmq::xsub_t::~xsub_t ()
+xsub_t::~xsub_t ()
 {
     let rc: i32 = _message.close ();
     errno_assert (rc == 0);
 }
 
-void zmq::xsub_t::xattach_pipe (pipe_t *pipe_,
+void xsub_t::xattach_pipe (pipe_t *pipe_,
                                 bool subscribe_to_all_,
                                 bool locally_initiated_)
 {
@@ -149,30 +149,30 @@ void zmq::xsub_t::xattach_pipe (pipe_t *pipe_,
     pipe_->flush ();
 }
 
-void zmq::xsub_t::xread_activated (pipe_t *pipe_)
+void xsub_t::xread_activated (pipe_t *pipe_)
 {
     _fq.activated (pipe_);
 }
 
-void zmq::xsub_t::xwrite_activated (pipe_t *pipe_)
+void xsub_t::xwrite_activated (pipe_t *pipe_)
 {
     _dist.activated (pipe_);
 }
 
-void zmq::xsub_t::xpipe_terminated (pipe_t *pipe_)
+void xsub_t::xpipe_terminated (pipe_t *pipe_)
 {
     _fq.pipe_terminated (pipe_);
     _dist.pipe_terminated (pipe_);
 }
 
-void zmq::xsub_t::xhiccuped (pipe_t *pipe_)
+void xsub_t::xhiccuped (pipe_t *pipe_)
 {
     //  Send all the cached subscriptions to the hiccuped pipe.
     _subscriptions.apply (send_subscription, pipe_);
     pipe_->flush ();
 }
 
-int zmq::xsub_t::xsetsockopt (option_: i32,
+int xsub_t::xsetsockopt (option_: i32,
                               const optval_: *mut c_void,
                               optvallen_: usize)
 {
@@ -195,7 +195,7 @@ int zmq::xsub_t::xsetsockopt (option_: i32,
     return -1;
 }
 
-int zmq::xsub_t::xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize)
+int xsub_t::xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize)
 {
     if (option_ == ZMQ_TOPICS_COUNT) {
         // make sure to use a multi-thread safe function to avoid race conditions with I/O threads
@@ -216,7 +216,7 @@ int zmq::xsub_t::xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *m
     return -1;
 }
 
-int zmq::xsub_t::xsend (ZmqMessage *msg)
+int xsub_t::xsend (ZmqMessage *msg)
 {
     size_t size = msg->size ();
     unsigned char *data = static_cast<unsigned char *> (msg->data ());
@@ -267,13 +267,13 @@ int zmq::xsub_t::xsend (ZmqMessage *msg)
     return 0;
 }
 
-bool zmq::xsub_t::xhas_out ()
+bool xsub_t::xhas_out ()
 {
     //  Subscription can be added/removed anytime.
     return true;
 }
 
-int zmq::xsub_t::xrecv (ZmqMessage *msg)
+int xsub_t::xrecv (ZmqMessage *msg)
 {
     //  If there's already a message prepared by a previous call to zmq_poll,
     //  return it straight ahead.
@@ -313,7 +313,7 @@ int zmq::xsub_t::xrecv (ZmqMessage *msg)
     }
 }
 
-bool zmq::xsub_t::xhas_in ()
+bool xsub_t::xhas_in ()
 {
     //  There are subsequent parts of the partly-read message available.
     if (_more_recv)
@@ -352,7 +352,7 @@ bool zmq::xsub_t::xhas_in ()
     }
 }
 
-bool zmq::xsub_t::match (ZmqMessage *msg)
+bool xsub_t::match (ZmqMessage *msg)
 {
     const bool matching = _subscriptions.check (
       static_cast<unsigned char *> (msg->data ()), msg->size ());
@@ -360,7 +360,7 @@ bool zmq::xsub_t::match (ZmqMessage *msg)
     return matching ^ options.invert_matching;
 }
 
-void zmq::xsub_t::send_subscription (unsigned char *data,
+void xsub_t::send_subscription (unsigned char *data,
                                      size: usize,
                                      arg_: *mut c_void)
 {

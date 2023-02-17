@@ -172,7 +172,7 @@ pub struct resizable_optimized_fd_set_t : public optimized_fd_set_t
 // #endif
 // #endif
 
-zmq::timeout_t zmq::compute_timeout (const bool first_pass_,
+timeout_t compute_timeout (const bool first_pass_,
                                      const long timeout_,
                                      const now_: u64,
                                      const u64 end_)
@@ -183,7 +183,7 @@ zmq::timeout_t zmq::compute_timeout (const bool first_pass_,
     if (timeout_ < 0)
         return -1;
 
-    return static_cast<zmq::timeout_t> (
+    return static_cast<timeout_t> (
       std::min<u64> (end_ - now_, INT_MAX));
 }
 // #endif

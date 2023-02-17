@@ -70,17 +70,17 @@ pub struct plain_client_t ZMQ_FINAL : public mechanism_base_t
     int process_error (const unsigned char *cmd_data_, data_size_: usize);
 };
 
-zmq::plain_client_t::plain_client_t (session_base_t *const session_,
+plain_client_t::plain_client_t (session_base_t *const session_,
                                      const ZmqOptions &options_) :
     mechanism_base_t (session_, options_), _state (sending_hello)
 {
 }
 
-zmq::plain_client_t::~plain_client_t ()
+plain_client_t::~plain_client_t ()
 {
 }
 
-int zmq::plain_client_t::next_handshake_command (ZmqMessage *msg)
+int plain_client_t::next_handshake_command (ZmqMessage *msg)
 {
     int rc = 0;
 
@@ -100,7 +100,7 @@ int zmq::plain_client_t::next_handshake_command (ZmqMessage *msg)
     return rc;
 }
 
-int zmq::plain_client_t::process_handshake_command (ZmqMessage *msg)
+int plain_client_t::process_handshake_command (ZmqMessage *msg)
 {
     const unsigned char *cmd_data =
       static_cast<unsigned char *> (msg->data ());
@@ -133,7 +133,7 @@ int zmq::plain_client_t::process_handshake_command (ZmqMessage *msg)
     return rc;
 }
 
-zmq::mechanism_t::status_t zmq::plain_client_t::status () const
+mechanism_t::status_t plain_client_t::status () const
 {
     switch (_state) {
         case ready:
@@ -145,7 +145,7 @@ zmq::mechanism_t::status_t zmq::plain_client_t::status () const
     }
 }
 
-void zmq::plain_client_t::produce_hello (ZmqMessage *msg) const
+void plain_client_t::produce_hello (ZmqMessage *msg) const
 {
     const std::string username = options.plain_username;
     zmq_assert (username.length () <= UCHAR_MAX);
@@ -172,7 +172,7 @@ void zmq::plain_client_t::produce_hello (ZmqMessage *msg) const
     memcpy (ptr, password, password.length ());
 }
 
-int zmq::plain_client_t::process_welcome (const unsigned char *cmd_data_,
+int plain_client_t::process_welcome (const unsigned char *cmd_data_,
                                           data_size_: usize)
 {
     LIBZMQ_UNUSED (cmd_data_);
@@ -194,13 +194,13 @@ int zmq::plain_client_t::process_welcome (const unsigned char *cmd_data_,
     return 0;
 }
 
-void zmq::plain_client_t::produce_initiate (ZmqMessage *msg) const
+void plain_client_t::produce_initiate (ZmqMessage *msg) const
 {
     make_command_with_basic_properties (msg, initiate_prefix,
                                         initiate_prefix_len);
 }
 
-int zmq::plain_client_t::process_ready (const unsigned char *cmd_data_,
+int plain_client_t::process_ready (const unsigned char *cmd_data_,
                                         data_size_: usize)
 {
     if (_state != waiting_for_ready) {
@@ -220,7 +220,7 @@ int zmq::plain_client_t::process_ready (const unsigned char *cmd_data_,
     return rc;
 }
 
-int zmq::plain_client_t::process_error (const unsigned char *cmd_data_,
+int plain_client_t::process_error (const unsigned char *cmd_data_,
                                         data_size_: usize)
 {
     if (_state != waiting_for_welcome && _state != waiting_for_ready) {

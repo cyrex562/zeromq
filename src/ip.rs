@@ -140,7 +140,7 @@ static const char *tmp_env_vars[] = {
 };
 // #endif
 
-zmq::fd_t zmq::open_socket (domain_: i32, type_: i32, protocol_: i32)
+fd_t open_socket (domain_: i32, type_: i32, protocol_: i32)
 {
     rc: i32;
 
@@ -168,13 +168,13 @@ zmq::fd_t zmq::open_socket (domain_: i32, type_: i32, protocol_: i32)
     make_socket_noninheritable (s);
 
     //  Socket is not yet connected so EINVAL is not a valid networking error
-    rc = zmq::set_nosigpipe (s);
+    rc = set_nosigpipe (s);
     errno_assert (rc == 0);
 
     return s;
 }
 
-void zmq::unblock_socket (fd_t s_)
+void unblock_socket (fd_t s_)
 {
 // #if defined ZMQ_HAVE_WINDOWS
     u_long nonblock = 1;
@@ -193,7 +193,7 @@ void zmq::unblock_socket (fd_t s_)
 // #endif
 }
 
-void zmq::enable_ipv4_mapping (fd_t s_)
+void enable_ipv4_mapping (fd_t s_)
 {
     LIBZMQ_UNUSED (s_);
 
@@ -214,7 +214,7 @@ void zmq::enable_ipv4_mapping (fd_t s_)
 // #endif
 }
 
-int zmq::get_peer_ip_address (fd_t sockfd_, std::string &ip_addr_)
+int get_peer_ip_address (fd_t sockfd_, std::string &ip_addr_)
 {
     struct sockaddr_storage ss;
 
@@ -254,7 +254,7 @@ int zmq::get_peer_ip_address (fd_t sockfd_, std::string &ip_addr_)
     return static_cast<int> (u.sa.sa_family);
 }
 
-void zmq::set_ip_type_of_service (fd_t s_, iptos_: i32)
+void set_ip_type_of_service (fd_t s_, iptos_: i32)
 {
     int rc = setsockopt (s_, IPPROTO_IP, IP_TOS,
                          reinterpret_cast<char *> (&iptos_), mem::size_of::<iptos_>());
@@ -278,7 +278,7 @@ void zmq::set_ip_type_of_service (fd_t s_, iptos_: i32)
 // #endif
 }
 
-void zmq::set_socket_priority (fd_t s_, priority_: i32)
+void set_socket_priority (fd_t s_, priority_: i32)
 {
 // #ifdef ZMQ_HAVE_SO_PRIORITY
     int rc =
@@ -288,7 +288,7 @@ void zmq::set_socket_priority (fd_t s_, priority_: i32)
 // #endif
 }
 
-int zmq::set_nosigpipe (fd_t s_)
+int set_nosigpipe (fd_t s_)
 {
 // #ifdef SO_NOSIGPIPE
     //  Make sure that SIGPIPE signal is not generated when writing to a
@@ -308,7 +308,7 @@ int zmq::set_nosigpipe (fd_t s_)
     return 0;
 }
 
-int zmq::bind_to_device (fd_t s_, bound_device_: &str)
+int bind_to_device (fd_t s_, bound_device_: &str)
 {
 // #ifdef ZMQ_HAVE_SO_BINDTODEVICE
     int rc = setsockopt (s_, SOL_SOCKET, SO_BINDTODEVICE,
@@ -328,7 +328,7 @@ int zmq::bind_to_device (fd_t s_, bound_device_: &str)
 // #endif
 }
 
-bool zmq::initialize_network ()
+bool initialize_network ()
 {
 // #if defined ZMQ_HAVE_OPENPGM
 
@@ -369,7 +369,7 @@ bool zmq::initialize_network ()
     return true;
 }
 
-void zmq::shutdown_network ()
+void shutdown_network ()
 {
 // #ifdef ZMQ_HAVE_WINDOWS
     //  On Windows, uninitialise socket layer.
@@ -393,10 +393,10 @@ static void tune_socket (const SOCKET socket_)
                   reinterpret_cast<char *> (&tcp_nodelay), sizeof tcp_nodelay);
     wsa_assert (rc != SOCKET_ERROR);
 
-    zmq::tcp_tune_loopback_fast_path (socket_);
+    tcp_tune_loopback_fast_path (socket_);
 }
 
-static int make_fdpair_tcpip (zmq::fd_t *r_, zmq::fd_t *w_)
+static int make_fdpair_tcpip (fd_t *r_, fd_t *w_)
 {
 // #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
     //  Windows CE does not manage security attributes
@@ -426,7 +426,7 @@ static int make_fdpair_tcpip (zmq::fd_t *r_, zmq::fd_t *w_)
     //  Otherwise use Mutex implementation.
     let event_signaler_port: i32 = 5905;
 
-    if (zmq::signaler_port == event_signaler_port) {
+    if (signaler_port == event_signaler_port) {
 // #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
         sync =
           CreateEventW (&sa, FALSE, TRUE, L"Global\\zmq-signaler-port-sync");
@@ -439,14 +439,14 @@ static int make_fdpair_tcpip (zmq::fd_t *r_, zmq::fd_t *w_)
                                L"Global\\zmq-signaler-port-sync");
 
         win_assert (sync != NULL);
-    } else if (zmq::signaler_port != 0) {
+    } else if (signaler_port != 0) {
         wchar_t mutex_name[MAX_PATH];
 // #ifdef __MINGW32__
         _snwprintf (mutex_name, MAX_PATH, L"Global\\zmq-signaler-port-%d",
-                    zmq::signaler_port);
+                    signaler_port);
 // #else
         swprintf (mutex_name, MAX_PATH, L"Global\\zmq-signaler-port-%d",
-                  zmq::signaler_port);
+                  signaler_port);
 // #endif
 
 // #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
@@ -467,7 +467,7 @@ static int make_fdpair_tcpip (zmq::fd_t *r_, zmq::fd_t *w_)
 
     //  Create listening socket.
     SOCKET listener;
-    listener = zmq::open_socket (AF_INET, SOCK_STREAM, 0);
+    listener = open_socket (AF_INET, SOCK_STREAM, 0);
     wsa_assert (listener != INVALID_SOCKET);
 
     //  Set SO_REUSEADDR and TCP_NODELAY on listening socket.
@@ -484,10 +484,10 @@ static int make_fdpair_tcpip (zmq::fd_t *r_, zmq::fd_t *w_)
     memset (&addr, 0, sizeof addr);
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
-    addr.sin_port = htons (zmq::signaler_port);
+    addr.sin_port = htons (signaler_port);
 
     //  Create the writer socket.
-    *w_ = zmq::open_socket (AF_INET, SOCK_STREAM, 0);
+    *w_ = open_socket (AF_INET, SOCK_STREAM, 0);
     wsa_assert (*w_ != INVALID_SOCKET);
 
     if (sync != NULL) {
@@ -500,7 +500,7 @@ static int make_fdpair_tcpip (zmq::fd_t *r_, zmq::fd_t *w_)
     rc = bind (listener, reinterpret_cast<const struct sockaddr *> (&addr),
                sizeof addr);
 
-    if (rc != SOCKET_ERROR && zmq::signaler_port == 0) {
+    if (rc != SOCKET_ERROR && signaler_port == 0) {
         //  Retrieve ephemeral port number
         int addrlen = sizeof addr;
         rc = getsockname (listener, reinterpret_cast<struct sockaddr *> (&addr),
@@ -569,7 +569,7 @@ static int make_fdpair_tcpip (zmq::fd_t *r_, zmq::fd_t *w_)
     if (sync != NULL) {
         //  Exit the critical section.
         BOOL brc;
-        if (zmq::signaler_port == event_signaler_port)
+        if (signaler_port == event_signaler_port)
             brc = SetEvent (sync);
         else
             brc = ReleaseMutex (sync);
@@ -581,7 +581,7 @@ static int make_fdpair_tcpip (zmq::fd_t *r_, zmq::fd_t *w_)
     }
 
     if (*r_ != INVALID_SOCKET) {
-        zmq::make_socket_noninheritable (*r_);
+        make_socket_noninheritable (*r_);
         return 0;
     }
     //  Cleanup writer if connection failed
@@ -591,12 +591,12 @@ static int make_fdpair_tcpip (zmq::fd_t *r_, zmq::fd_t *w_)
         *w_ = INVALID_SOCKET;
     }
     //  Set errno from saved value
-    errno = zmq::wsa_error_to_errno (saved_errno);
+    errno = wsa_error_to_errno (saved_errno);
     return -1;
 }
 // #endif
 
-int zmq::make_fdpair (fd_t *r_, fd_t *w_)
+int make_fdpair (fd_t *r_, fd_t *w_)
 {
 // #if defined ZMQ_HAVE_EVENTFD
     int flags = 0;
@@ -856,7 +856,7 @@ try_tcpip:
 // #endif
 }
 
-void zmq::make_socket_noninheritable (fd_t sock_)
+void make_socket_noninheritable (fd_t sock_)
 {
 // #if defined ZMQ_HAVE_WINDOWS && !defined _WIN32_WCE                            \
   && !defined ZMQ_HAVE_WINDOWS_UWP
@@ -876,7 +876,7 @@ void zmq::make_socket_noninheritable (fd_t sock_)
 // #endif
 }
 
-void zmq::assert_success_or_recoverable (zmq::fd_t s_, rc_: i32)
+void assert_success_or_recoverable (fd_t s_, rc_: i32)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
     if (rc_ != SOCKET_ERROR) {
@@ -945,7 +945,7 @@ char *widechar_to_utf8 (const wchar_t *widestring)
 }
 // #endif
 
-int zmq::create_ipc_wildcard_address (std::string &path_, std::string &file_)
+int create_ipc_wildcard_address (std::string &path_, std::string &file_)
 {
 // #if defined ZMQ_HAVE_WINDOWS
     wchar_t buffer[MAX_PATH];

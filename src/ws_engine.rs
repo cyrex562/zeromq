@@ -220,7 +220,7 @@ encode_base64 (const unsigned char *in_, in_len_: i32, char *out_, out_len_: i32
 static void compute_accept_key (char *key_,
                                 unsigned char hash_[SHA_DIGEST_LENGTH]);
 
-zmq::ws_engine_t::ws_engine_t (fd_t fd_,
+ws_engine_t::ws_engine_t (fd_t fd_,
                                const ZmqOptions &options_,
                                const endpoint_uri_pair_t &endpoint_uri_pair_,
                                const WsAddress &address_,
@@ -251,12 +251,12 @@ zmq::ws_engine_t::ws_engine_t (fd_t fd_,
     }
 }
 
-zmq::ws_engine_t::~ws_engine_t ()
+ws_engine_t::~ws_engine_t ()
 {
     _close_msg.close ();
 }
 
-void zmq::ws_engine_t::start_ws_handshake ()
+void ws_engine_t::start_ws_handshake ()
 {
     if (_client) {
         const char *protocol;
@@ -278,10 +278,10 @@ void zmq::ws_engine_t::start_ws_handshake ()
         int *p = reinterpret_cast<int *> (nonce);
 
         // The nonce doesn't have to be secure one, it is just use to avoid proxy cache
-        *p = zmq::generate_random ();
-        *(p + 1) = zmq::generate_random ();
-        *(p + 2) = zmq::generate_random ();
-        *(p + 3) = zmq::generate_random ();
+        *p = generate_random ();
+        *(p + 1) = generate_random ();
+        *(p + 2) = generate_random ();
+        *(p + 3) = generate_random ();
 
         int size =
           encode_base64 (nonce, 16, _websocket_key, MAX_HEADER_VALUE_LENGTH);
@@ -304,14 +304,14 @@ void zmq::ws_engine_t::start_ws_handshake ()
     }
 }
 
-void zmq::ws_engine_t::plug_internal ()
+void ws_engine_t::plug_internal ()
 {
     start_ws_handshake ();
     set_pollin ();
     in_event ();
 }
 
-int zmq::ws_engine_t::routing_id_msg (ZmqMessage *msg)
+int ws_engine_t::routing_id_msg (ZmqMessage *msg)
 {
     let rc: i32 = msg->init_size (_options.routing_id_size);
     errno_assert (rc == 0);
@@ -322,7 +322,7 @@ int zmq::ws_engine_t::routing_id_msg (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::ws_engine_t::process_routing_id_msg (ZmqMessage *msg)
+int ws_engine_t::process_routing_id_msg (ZmqMessage *msg)
 {
     if (_options.recv_routing_id) {
         msg->set_flags (ZmqMessage::routing_id);
@@ -340,7 +340,7 @@ int zmq::ws_engine_t::process_routing_id_msg (ZmqMessage *msg)
     return 0;
 }
 
-bool zmq::ws_engine_t::select_protocol (protocol_: *const c_char)
+bool ws_engine_t::select_protocol (protocol_: *const c_char)
 {
     if (_options.mechanism == ZMQ_NULL && (strcmp ("ZWS2.0", protocol_) == 0)) {
         _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
@@ -390,7 +390,7 @@ bool zmq::ws_engine_t::select_protocol (protocol_: *const c_char)
     return false;
 }
 
-bool zmq::ws_engine_t::handshake ()
+bool ws_engine_t::handshake ()
 {
     bool complete;
 
@@ -417,12 +417,12 @@ bool zmq::ws_engine_t::handshake ()
     return complete;
 }
 
-bool zmq::ws_engine_t::server_handshake ()
+bool ws_engine_t::server_handshake ()
 {
     let nbytes: i32 = read (_read_buffer, WS_BUFFER_SIZE);
     if (nbytes == -1) {
         if (errno != EAGAIN)
-            error (zmq::i_engine::connection_error);
+            error (i_engine::connection_error);
         return false;
     }
 
@@ -690,19 +690,19 @@ bool zmq::ws_engine_t::server_handshake ()
             socket ()->event_handshake_failed_protocol (
               _endpoint_uri_pair, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED);
 
-            error (zmq::i_engine::protocol_error);
+            error (i_engine::protocol_error);
             return false;
         }
     }
     return false;
 }
 
-bool zmq::ws_engine_t::client_handshake ()
+bool ws_engine_t::client_handshake ()
 {
     let nbytes: i32 = read (_read_buffer, WS_BUFFER_SIZE);
     if (nbytes == -1) {
         if (errno != EAGAIN)
-            error (zmq::i_engine::connection_error);
+            error (i_engine::connection_error);
         return false;
     }
 
@@ -1035,7 +1035,7 @@ bool zmq::ws_engine_t::client_handshake ()
             socket ()->event_handshake_failed_protocol (
               _endpoint_uri_pair, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED);
 
-            error (zmq::i_engine::protocol_error);
+            error (i_engine::protocol_error);
             return false;
         }
     }
@@ -1043,7 +1043,7 @@ bool zmq::ws_engine_t::client_handshake ()
     return false;
 }
 
-int zmq::ws_engine_t::decode_and_push (ZmqMessage *msg)
+int ws_engine_t::decode_and_push (ZmqMessage *msg)
 {
     zmq_assert (_mechanism != NULL);
 
@@ -1073,7 +1073,7 @@ int zmq::ws_engine_t::decode_and_push (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::ws_engine_t::produce_close_message (ZmqMessage *msg)
+int ws_engine_t::produce_close_message (ZmqMessage *msg)
 {
     int rc = msg->move (_close_msg);
     errno_assert (rc == 0);
@@ -1084,7 +1084,7 @@ int zmq::ws_engine_t::produce_close_message (ZmqMessage *msg)
     return rc;
 }
 
-int zmq::ws_engine_t::produce_no_msg_after_close (ZmqMessage *msg)
+int ws_engine_t::produce_no_msg_after_close (ZmqMessage *msg)
 {
     LIBZMQ_UNUSED (msg);
     _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
@@ -1094,7 +1094,7 @@ int zmq::ws_engine_t::produce_no_msg_after_close (ZmqMessage *msg)
     return -1;
 }
 
-int zmq::ws_engine_t::close_connection_after_close (ZmqMessage *msg)
+int ws_engine_t::close_connection_after_close (ZmqMessage *msg)
 {
     LIBZMQ_UNUSED (msg);
     error (connection_error);
@@ -1102,7 +1102,7 @@ int zmq::ws_engine_t::close_connection_after_close (ZmqMessage *msg)
     return -1;
 }
 
-int zmq::ws_engine_t::produce_ping_message (ZmqMessage *msg)
+int ws_engine_t::produce_ping_message (ZmqMessage *msg)
 {
     int rc = msg->init ();
     errno_assert (rc == 0);
@@ -1118,7 +1118,7 @@ int zmq::ws_engine_t::produce_ping_message (ZmqMessage *msg)
 }
 
 
-int zmq::ws_engine_t::produce_pong_message (ZmqMessage *msg)
+int ws_engine_t::produce_pong_message (ZmqMessage *msg)
 {
     int rc = msg->init ();
     errno_assert (rc == 0);
@@ -1129,7 +1129,7 @@ int zmq::ws_engine_t::produce_pong_message (ZmqMessage *msg)
 }
 
 
-int zmq::ws_engine_t::process_command_message (ZmqMessage *msg)
+int ws_engine_t::process_command_message (ZmqMessage *msg)
 {
     if (msg->is_ping ()) {
         _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (

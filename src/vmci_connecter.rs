@@ -49,8 +49,8 @@ pub struct vmci_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
-    vmci_connecter_t (zmq::io_thread_t *io_thread_,
-                      zmq::session_base_t *session_,
+    vmci_connecter_t (io_thread_t *io_thread_,
+                      session_base_t *session_,
                       const ZmqOptions &options_,
                       Address *addr_,
                       bool delayed_start_);
@@ -100,7 +100,7 @@ pub struct vmci_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (vmci_connecter_t)
 };
 
-zmq::vmci_connecter_t::vmci_connecter_t (class io_thread_t *io_thread_,
+vmci_connecter_t::vmci_connecter_t (class io_thread_t *io_thread_,
 pub struct session_base_t *session_,
                                          const ZmqOptions &options_,
                                          Address *addr_,
@@ -112,12 +112,12 @@ pub struct session_base_t *session_,
     zmq_assert (_addr->protocol == protocol_name::vmci);
 }
 
-zmq::vmci_connecter_t::~vmci_connecter_t ()
+vmci_connecter_t::~vmci_connecter_t ()
 {
     zmq_assert (!_connect_timer_started);
 }
 
-void zmq::vmci_connecter_t::process_term (linger_: i32)
+void vmci_connecter_t::process_term (linger_: i32)
 {
     if (_connect_timer_started) {
         cancel_timer (connect_timer_id);
@@ -127,7 +127,7 @@ void zmq::vmci_connecter_t::process_term (linger_: i32)
     stream_connecter_base_t::process_term (linger_);
 }
 
-void zmq::vmci_connecter_t::in_event ()
+void vmci_connecter_t::in_event ()
 {
     //  We are not polling for incoming data, so we are actually called
     //  because of error here. However, we can get error on out event as well
@@ -135,7 +135,7 @@ void zmq::vmci_connecter_t::in_event ()
     out_event ();
 }
 
-void zmq::vmci_connecter_t::out_event ()
+void vmci_connecter_t::out_event ()
 {
     if (_connect_timer_started) {
         cancel_timer (connect_timer_id);
@@ -180,11 +180,11 @@ void zmq::vmci_connecter_t::out_event ()
     }
 
     create_engine (
-      fd, zmq::vmci_connecter_t::get_socket_name (fd, SocketEndLocal));
+      fd, vmci_connecter_t::get_socket_name (fd, SocketEndLocal));
 }
 
 std::string
-zmq::vmci_connecter_t::get_socket_name (zmq::fd_t fd_,
+vmci_connecter_t::get_socket_name (fd_t fd_,
                                         SocketEnd socket_end_) const
 {
     struct sockaddr_storage ss;
@@ -200,7 +200,7 @@ zmq::vmci_connecter_t::get_socket_name (zmq::fd_t fd_,
     return address_string;
 }
 
-void zmq::vmci_connecter_t::timer_event (id_: i32)
+void vmci_connecter_t::timer_event (id_: i32)
 {
     if (id_ == connect_timer_id) {
         _connect_timer_started = false;
@@ -211,7 +211,7 @@ void zmq::vmci_connecter_t::timer_event (id_: i32)
         stream_connecter_base_t::timer_event (id_);
 }
 
-void zmq::vmci_connecter_t::start_connecting ()
+void vmci_connecter_t::start_connecting ()
 {
     //  Open the connecting socket.
     let rc: i32 = open ();
@@ -241,7 +241,7 @@ void zmq::vmci_connecter_t::start_connecting ()
     }
 }
 
-void zmq::vmci_connecter_t::add_connect_timer ()
+void vmci_connecter_t::add_connect_timer ()
 {
     if (options.connect_timeout > 0) {
         add_timer (options.connect_timeout, connect_timer_id);
@@ -249,7 +249,7 @@ void zmq::vmci_connecter_t::add_connect_timer ()
     }
 }
 
-int zmq::vmci_connecter_t::open ()
+int vmci_connecter_t::open ()
 {
     zmq_assert (_s == retired_fd);
 
@@ -304,7 +304,7 @@ int zmq::vmci_connecter_t::open ()
     return -1;
 }
 
-zmq::fd_t zmq::vmci_connecter_t::connect ()
+fd_t vmci_connecter_t::connect ()
 {
     //  Async connect has finished. Check whether an error occurred
     int err = 0;

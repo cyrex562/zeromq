@@ -266,7 +266,7 @@ void test_curve_security_invalid_hello_wrong_length ()
 const size_t hello_length = 200;
 const size_t welcome_length = 168;
 
-zmq::curve_client_tools_t make_curve_client_tools ()
+curve_client_tools_t make_curve_client_tools ()
 {
     uint8_t valid_client_secret_decoded[32];
     uint8_t valid_client_public_decoded[32];
@@ -277,7 +277,7 @@ zmq::curve_client_tools_t make_curve_client_tools ()
     uint8_t valid_server_public_decoded[32];
     zmq_z85_decode (valid_server_public_decoded, valid_server_public);
 
-    return zmq::curve_client_tools_t (valid_client_public_decoded,
+    return curve_client_tools_t (valid_client_public_decoded,
                                       valid_client_secret_decoded,
                                       valid_server_public_decoded);
 }
@@ -319,7 +319,7 @@ void test_curve_security_invalid_hello_command_name ()
 
     send (s, zmtp_greeting_curve);
 
-    zmq::curve_client_tools_t tools = make_curve_client_tools ();
+    curve_client_tools_t tools = make_curve_client_tools ();
 
     // send CURVE HELLO with a misspelled command name (but otherwise correct)
     char hello[hello_length];
@@ -341,7 +341,7 @@ void test_curve_security_invalid_hello_version ()
 
     send (s, zmtp_greeting_curve);
 
-    zmq::curve_client_tools_t tools = make_curve_client_tools ();
+    curve_client_tools_t tools = make_curve_client_tools ();
 
     // send CURVE HELLO with a wrong version number (but otherwise correct)
     char hello[hello_length];
@@ -387,7 +387,7 @@ void recv_greeting (fd_t fd_)
 }
 
 fd_t connect_exchange_greeting_and_send_hello (
-  char *my_endpoint_, zmq::curve_client_tools_t &tools_)
+  char *my_endpoint_, curve_client_tools_t &tools_)
 {
     fd_t s = connect_socket (my_endpoint_);
 
@@ -404,7 +404,7 @@ fd_t connect_exchange_greeting_and_send_hello (
 
 void test_curve_security_invalid_initiate_wrong_length ()
 {
-    zmq::curve_client_tools_t tools = make_curve_client_tools ();
+    curve_client_tools_t tools = make_curve_client_tools ();
 
     fd_t s = connect_exchange_greeting_and_send_hello (my_endpoint, tools);
 
@@ -427,7 +427,7 @@ fd_t connect_exchange_greeting_and_hello_welcome (
   char *my_endpoint_,
   server_mon_: *mut c_void,
   timeout_: i32,
-  zmq::curve_client_tools_t &tools_)
+  curve_client_tools_t &tools_)
 {
     fd_t s = connect_exchange_greeting_and_send_hello (my_endpoint_, tools_);
 
@@ -448,7 +448,7 @@ fd_t connect_exchange_greeting_and_hello_welcome (
 
 void test_curve_security_invalid_initiate_command_name ()
 {
-    zmq::curve_client_tools_t tools = make_curve_client_tools ();
+    curve_client_tools_t tools = make_curve_client_tools ();
     fd_t s = connect_exchange_greeting_and_hello_welcome (
       my_endpoint, server_mon, timeout, tools);
 
@@ -468,7 +468,7 @@ void test_curve_security_invalid_initiate_command_name ()
 
 void test_curve_security_invalid_initiate_command_encrypted_cookie ()
 {
-    zmq::curve_client_tools_t tools = make_curve_client_tools ();
+    curve_client_tools_t tools = make_curve_client_tools ();
     fd_t s = connect_exchange_greeting_and_hello_welcome (
       my_endpoint, server_mon, timeout, tools);
 
@@ -488,7 +488,7 @@ void test_curve_security_invalid_initiate_command_encrypted_cookie ()
 
 void test_curve_security_invalid_initiate_command_encrypted_content ()
 {
-    zmq::curve_client_tools_t tools = make_curve_client_tools ();
+    curve_client_tools_t tools = make_curve_client_tools ();
     fd_t s = connect_exchange_greeting_and_hello_welcome (
       my_endpoint, server_mon, timeout, tools);
 
@@ -559,7 +559,7 @@ int main (void)
         return 0;
     }
 
-    zmq::random_open ();
+    random_open ();
 
     setup_testutil_security_curve ();
 
@@ -602,7 +602,7 @@ int main (void)
     test_curve_security_invalid_keysize (ctx);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_ctx_term (ctx));
 
-    zmq::random_close ();
+    random_close ();
 
     return UNITY_END ();
 }

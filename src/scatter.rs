@@ -36,18 +36,18 @@
 pub struct scatter_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
-    scatter_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    scatter_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~scatter_t ();
 
   protected:
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (zmq::pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
     int xsend (ZmqMessage *msg);
     bool xhas_out ();
-    void xwrite_activated (zmq::pipe_t *pipe_);
-    void xpipe_terminated (zmq::pipe_t *pipe_);
+    void xwrite_activated (pipe_t *pipe_);
+    void xpipe_terminated (pipe_t *pipe_);
 
   // private:
     //  Load balancer managing the outbound pipes.
@@ -56,17 +56,17 @@ pub struct scatter_t ZMQ_FINAL : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (scatter_t)
 };
 
-zmq::scatter_t::scatter_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+scatter_t::scatter_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_, true)
 {
     options.type = ZMQ_SCATTER;
 }
 
-zmq::scatter_t::~scatter_t ()
+scatter_t::~scatter_t ()
 {
 }
 
-void zmq::scatter_t::xattach_pipe (pipe_t *pipe_,
+void scatter_t::xattach_pipe (pipe_t *pipe_,
                                    bool subscribe_to_all_,
                                    bool locally_initiated_)
 {
@@ -81,17 +81,17 @@ void zmq::scatter_t::xattach_pipe (pipe_t *pipe_,
     _lb.attach (pipe_);
 }
 
-void zmq::scatter_t::xwrite_activated (pipe_t *pipe_)
+void scatter_t::xwrite_activated (pipe_t *pipe_)
 {
     _lb.activated (pipe_);
 }
 
-void zmq::scatter_t::xpipe_terminated (pipe_t *pipe_)
+void scatter_t::xpipe_terminated (pipe_t *pipe_)
 {
     _lb.pipe_terminated (pipe_);
 }
 
-int zmq::scatter_t::xsend (ZmqMessage *msg)
+int scatter_t::xsend (ZmqMessage *msg)
 {
     //  SCATTER sockets do not allow multipart data (ZMQ_SNDMORE)
     if (msg->flags () & ZmqMessage::more) {
@@ -102,7 +102,7 @@ int zmq::scatter_t::xsend (ZmqMessage *msg)
     return _lb.send (msg);
 }
 
-bool zmq::scatter_t::xhas_out ()
+bool scatter_t::xhas_out ()
 {
     return _lb.has_out ();
 }

@@ -37,7 +37,7 @@
 // #include <cassert>
 // #include <vmci_sockets.h>
 
-void zmq::tune_vmci_buffer_size (ZmqContext *context_,
+void tune_vmci_buffer_size (ZmqContext *context_,
                                  fd_t sockfd_,
                                  default_size_: u64,
                                  min_size_: u64,
@@ -78,11 +78,11 @@ void zmq::tune_vmci_buffer_size (ZmqContext *context_,
 }
 
 // #if defined ZMQ_HAVE_WINDOWS
-void zmq::tune_vmci_connect_timeout (ZmqContext *context_,
+void tune_vmci_connect_timeout (ZmqContext *context_,
                                      fd_t sockfd_,
                                      DWORD timeout_)
 // #else
-void zmq::tune_vmci_connect_timeout (ZmqContext *context_,
+void tune_vmci_connect_timeout (ZmqContext *context_,
                                      fd_t sockfd_,
                                      struct timeval timeout_)
 // #endif
@@ -99,9 +99,9 @@ void zmq::tune_vmci_connect_timeout (ZmqContext *context_,
 // #endif
 }
 
-zmq::fd_t zmq::vmci_open_socket (address_: *const c_char,
-                                 const zmq::ZmqOptions &options_,
-                                 zmq::VmciAddress *out_vmci_addr_)
+fd_t vmci_open_socket (address_: *const c_char,
+                                 const ZmqOptions &options_,
+                                 VmciAddress *out_vmci_addr_)
 {
     //  Convert the textual address into address structure.
     int rc = out_vmci_addr_->resolve (address_);

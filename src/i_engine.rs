@@ -55,7 +55,7 @@ struct i_engine
     virtual bool has_handshake_stage () = 0;
 
     //  Plug the engine to the session.
-    virtual void plug (zmq::io_thread_t *io_thread_,
+    virtual void plug (io_thread_t *io_thread_,
 pub struct session_base_t *session_) = 0;
 
     //  Terminate and deallocate the engine. Note that 'detached'

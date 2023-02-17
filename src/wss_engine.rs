@@ -79,7 +79,7 @@ static int verify_certificate_callback (gnutls_session_t session)
 }
 
 
-zmq::wss_engine_t::wss_engine_t (fd_t fd_,
+wss_engine_t::wss_engine_t (fd_t fd_,
                                  const ZmqOptions &options_,
                                  const endpoint_uri_pair_t &endpoint_uri_pair_,
                                  WsAddress &address_,
@@ -141,7 +141,7 @@ zmq::wss_engine_t::wss_engine_t (fd_t fd_,
     gnutls_transport_set_int (_tls_session, fd_);
 }
 
-zmq::wss_engine_t::~wss_engine_t ()
+wss_engine_t::~wss_engine_t ()
 {
     gnutls_deinit (_tls_session);
 
@@ -149,13 +149,13 @@ zmq::wss_engine_t::~wss_engine_t ()
         gnutls_certificate_free_credentials (_tls_client_cred);
 }
 
-void zmq::wss_engine_t::plug_internal ()
+void wss_engine_t::plug_internal ()
 {
     set_pollin ();
     in_event ();
 }
 
-void zmq::wss_engine_t::out_event ()
+void wss_engine_t::out_event ()
 {
     if (_established)
         return ws_engine_t::out_event ();
@@ -163,7 +163,7 @@ void zmq::wss_engine_t::out_event ()
     do_handshake ();
 }
 
-bool zmq::wss_engine_t::do_handshake ()
+bool wss_engine_t::do_handshake ()
 {
     int rc = gnutls_handshake (_tls_session);
 
@@ -183,14 +183,14 @@ bool zmq::wss_engine_t::do_handshake ()
                || rc == GNUTLS_E_WARNING_ALERT_RECEIVED) {
         return false;
     } else {
-        error (zmq::i_engine::connection_error);
+        error (i_engine::connection_error);
         return false;
     }
 
     return true;
 }
 
-bool zmq::wss_engine_t::handshake ()
+bool wss_engine_t::handshake ()
 {
     if (!_established) {
         if (!do_handshake ()) {
@@ -201,7 +201,7 @@ bool zmq::wss_engine_t::handshake ()
     return ws_engine_t::handshake ();
 }
 
-int zmq::wss_engine_t::read (data: *mut c_void, size: usize)
+int wss_engine_t::read (data: *mut c_void, size: usize)
 {
     ssize_t rc = gnutls_record_recv (_tls_session, data, size);
 
@@ -235,7 +235,7 @@ int zmq::wss_engine_t::read (data: *mut c_void, size: usize)
     return rc;
 }
 
-int zmq::wss_engine_t::write (const data: *mut c_void, size: usize)
+int wss_engine_t::write (const data: *mut c_void, size: usize)
 {
     ssize_t rc = gnutls_record_send (_tls_session, data, size);
 

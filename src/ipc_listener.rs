@@ -46,7 +46,7 @@
 pub struct ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
-    ipc_listener_t (zmq::io_thread_t *io_thread_,
+    ipc_listener_t (io_thread_t *io_thread_,
                     socket_: *mut ZmqSocketBase,
                     const ZmqOptions &options_);
 
@@ -117,14 +117,14 @@ pub struct ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
 // #endif
 // #endif
 
-zmq::ipc_listener_t::ipc_listener_t (io_thread_t *io_thread_,
+ipc_listener_t::ipc_listener_t (io_thread_t *io_thread_,
                                      ZmqSocketBase *socket_,
                                      const ZmqOptions &options_) :
     stream_listener_base_t (io_thread_, socket_, options_), _has_file (false)
 {
 }
 
-void zmq::ipc_listener_t::in_event ()
+void ipc_listener_t::in_event ()
 {
     const fd_t fd = accept ();
 
@@ -141,13 +141,13 @@ void zmq::ipc_listener_t::in_event ()
 }
 
 std::string
-zmq::ipc_listener_t::get_socket_name (zmq::fd_t fd_,
+ipc_listener_t::get_socket_name (fd_t fd_,
                                       SocketEnd socket_end_) const
 {
-    return zmq::get_socket_name<IpcAddress> (fd_, socket_end_);
+    return get_socket_name<IpcAddress> (fd_, socket_end_);
 }
 
-int zmq::ipc_listener_t::set_local_address (addr_: *const c_char)
+int ipc_listener_t::set_local_address (addr_: *const c_char)
 {
     //  Create addr on stack for auto-cleanup
     std::string addr (addr_);
@@ -227,7 +227,7 @@ error:
     return -1;
 }
 
-int zmq::ipc_listener_t::close ()
+int ipc_listener_t::close ()
 {
     zmq_assert (_s != retired_fd);
     const fd_t fd_for_event = _s;
@@ -269,7 +269,7 @@ int zmq::ipc_listener_t::close ()
 
 // #if defined ZMQ_HAVE_SO_PEERCRED
 
-bool zmq::ipc_listener_t::filter (fd_t sock_)
+bool ipc_listener_t::filter (fd_t sock_)
 {
     if (options.ipc_uid_accept_filters.is_empty()
         && options.ipc_pid_accept_filters.is_empty()
@@ -310,7 +310,7 @@ bool zmq::ipc_listener_t::filter (fd_t sock_)
 
 #elif defined ZMQ_HAVE_LOCAL_PEERCRED
 
-bool zmq::ipc_listener_t::filter (fd_t sock_)
+bool ipc_listener_t::filter (fd_t sock_)
 {
     if (options.ipc_uid_accept_filters.is_empty()
         && options.ipc_gid_accept_filters.empty ())
@@ -337,7 +337,7 @@ bool zmq::ipc_listener_t::filter (fd_t sock_)
 
 // #endif
 
-zmq::fd_t zmq::ipc_listener_t::accept ()
+fd_t ipc_listener_t::accept ()
 {
     //  Accept one connection and deal with different failure modes.
     //  The situation where connection cannot be accepted due to insufficient
@@ -381,7 +381,7 @@ zmq::fd_t zmq::ipc_listener_t::accept ()
     }
 // #endif
 
-    if (zmq::set_nosigpipe (sock)) {
+    if (set_nosigpipe (sock)) {
 // #ifdef ZMQ_HAVE_WINDOWS
         let rc: i32 = closesocket (sock);
         wsa_assert (rc != SOCKET_ERROR);

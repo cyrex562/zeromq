@@ -650,7 +650,7 @@ impl IpResolver {
 }
 
 //  Construct an "ANY" address for the given family
-// zmq::ip_addr_t zmq::ip_addr_t::any (family_: i32)
+// ip_addr_t ip_addr_t::any (family_: i32)
 // {
 //     ip_addr_t addr;
 //

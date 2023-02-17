@@ -40,7 +40,7 @@ pub struct socket_poller_t
     socket_poller_t ();
     ~socket_poller_t ();
 
-    typedef zmq_poller_event_t event_t;
+    typedef ZmqPollerEvent event_t;
 
     int add (ZmqSocketBase *socket_, user_data_: *mut c_void, short events_);
     int modify (const ZmqSocketBase *socket_, short events_);
@@ -71,19 +71,19 @@ pub struct socket_poller_t
 // #endif
     } item_t;
 
-    static void zero_trail_events (zmq::socket_poller_t::event_t *events_,
+    static void zero_trail_events (socket_poller_t::event_t *events_,
                                    n_events_: i32,
                                    found_: i32);
 // #if defined ZMQ_POLL_BASED_ON_POLL
-    int check_events (zmq::socket_poller_t::event_t *events_, n_events_: i32);
+    int check_events (socket_poller_t::event_t *events_, n_events_: i32);
 #elif defined ZMQ_POLL_BASED_ON_SELECT
-    int check_events (zmq::socket_poller_t::event_t *events_,
+    int check_events (socket_poller_t::event_t *events_,
                       n_events_: i32,
                       fd_set &inset_,
                       fd_set &outset_,
                       fd_set &errset_);
 // #endif
-    static int adjust_timeout (zmq::clock_t &clock_,
+    static int adjust_timeout (clock_t &clock_,
                                long timeout_,
                                u64 &now_,
                                u64 &end_,
@@ -124,13 +124,13 @@ pub struct socket_poller_t
     resizable_optimized_fd_set_t _pollset_in;
     resizable_optimized_fd_set_t _pollset_out;
     resizable_optimized_fd_set_t _pollset_err;
-    zmq::fd_t _max_fd;
+    fd_t _max_fd;
 // #endif
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (socket_poller_t)
 };
 
-static bool is_thread_safe (const zmq::ZmqSocketBase &socket_)
+static bool is_thread_safe (const ZmqSocketBase &socket_)
 {
     // do not use getsockopt here, since that would fail during context termination
     return socket_.is_thread_safe ();
@@ -148,7 +148,7 @@ static It find_if2 (It b_, It e_, const T &value, Pred pred)
     return b_;
 }
 
-zmq::socket_poller_t::socket_poller_t () :
+socket_poller_t::socket_poller_t () :
     _tag (0xCAFEBABE),
     _signaler (NULL)
 // #if defined ZMQ_POLL_BASED_ON_POLL
@@ -162,7 +162,7 @@ zmq::socket_poller_t::socket_poller_t () :
     rebuild ();
 }
 
-zmq::socket_poller_t::~socket_poller_t ()
+socket_poller_t::~socket_poller_t ()
 {
     //  Mark the socket_poller as dead
     _tag = 0xdeadbeef;
@@ -188,12 +188,12 @@ zmq::socket_poller_t::~socket_poller_t ()
 // #endif
 }
 
-bool zmq::socket_poller_t::check_tag () const
+bool socket_poller_t::check_tag () const
 {
     return _tag == 0xCAFEBABE;
 }
 
-int zmq::socket_poller_t::signaler_fd (fd_t *fd_) const
+int socket_poller_t::signaler_fd (fd_t *fd_) const
 {
     if (_signaler) {
         *fd_ = _signaler->get_fd ();
@@ -204,7 +204,7 @@ int zmq::socket_poller_t::signaler_fd (fd_t *fd_) const
     return -1;
 }
 
-int zmq::socket_poller_t::add (ZmqSocketBase *socket_,
+int socket_poller_t::add (ZmqSocketBase *socket_,
                                user_data_: *mut c_void,
                                short events_)
 {
@@ -254,7 +254,7 @@ int zmq::socket_poller_t::add (ZmqSocketBase *socket_,
     return 0;
 }
 
-int zmq::socket_poller_t::add_fd (fd_t fd_, user_data_: *mut c_void, short events_)
+int socket_poller_t::add_fd (fd_t fd_, user_data_: *mut c_void, short events_)
 {
     if (find_if2 (_items.begin (), _items.end (), fd_, &is_fd)
         != _items.end ()) {
@@ -284,7 +284,7 @@ int zmq::socket_poller_t::add_fd (fd_t fd_, user_data_: *mut c_void, short event
     return 0;
 }
 
-int zmq::socket_poller_t::modify (const ZmqSocketBase *socket_, short events_)
+int socket_poller_t::modify (const ZmqSocketBase *socket_, short events_)
 {
     const items_t::iterator it =
       find_if2 (_items.begin (), _items.end (), socket_, &is_socket);
@@ -301,7 +301,7 @@ int zmq::socket_poller_t::modify (const ZmqSocketBase *socket_, short events_)
 }
 
 
-int zmq::socket_poller_t::modify_fd (fd_t fd_, short events_)
+int socket_poller_t::modify_fd (fd_t fd_, short events_)
 {
     const items_t::iterator it =
       find_if2 (_items.begin (), _items.end (), fd_, &is_fd);
@@ -318,7 +318,7 @@ int zmq::socket_poller_t::modify_fd (fd_t fd_, short events_)
 }
 
 
-int zmq::socket_poller_t::remove (ZmqSocketBase *socket_)
+int socket_poller_t::remove (ZmqSocketBase *socket_)
 {
     const items_t::iterator it =
       find_if2 (_items.begin (), _items.end (), socket_, &is_socket);
@@ -338,7 +338,7 @@ int zmq::socket_poller_t::remove (ZmqSocketBase *socket_)
     return 0;
 }
 
-int zmq::socket_poller_t::remove_fd (fd_t fd_)
+int socket_poller_t::remove_fd (fd_t fd_)
 {
     const items_t::iterator it =
       find_if2 (_items.begin (), _items.end (), fd_, &is_fd);
@@ -354,7 +354,7 @@ int zmq::socket_poller_t::remove_fd (fd_t fd_)
     return 0;
 }
 
-int zmq::socket_poller_t::rebuild ()
+int socket_poller_t::rebuild ()
 {
     _use_signaler = false;
     _pollset_size = 0;
@@ -404,7 +404,7 @@ int zmq::socket_poller_t::rebuild ()
         if (it->events) {
             if (it->socket) {
                 if (!is_thread_safe (*it->socket)) {
-                    size_t fd_size = sizeof (zmq::fd_t);
+                    size_t fd_size = sizeof (fd_t);
                     let rc: i32 = it->socket->getsockopt (
                       ZMQ_FD, &_pollfds[item_nbr].fd, &fd_size);
                     zmq_assert (rc == 0);
@@ -458,8 +458,8 @@ int zmq::socket_poller_t::rebuild ()
             //  notification file descriptor retrieved by the ZMQ_FD socket option.
             if (it->socket) {
                 if (!is_thread_safe (*it->socket)) {
-                    zmq::fd_t notify_fd;
-                    size_t fd_size = sizeof (zmq::fd_t);
+                    fd_t notify_fd;
+                    size_t fd_size = sizeof (fd_t);
                     int rc =
                       it->socket->getsockopt (ZMQ_FD, &notify_fd, &fd_size);
                     zmq_assert (rc == 0);
@@ -493,22 +493,22 @@ int zmq::socket_poller_t::rebuild ()
     return 0;
 }
 
-void zmq::socket_poller_t::zero_trail_events (
-  zmq::socket_poller_t::event_t *events_, n_events_: i32, found_: i32)
+void socket_poller_t::zero_trail_events (
+  socket_poller_t::event_t *events_, n_events_: i32, found_: i32)
 {
     for (int i = found_; i < n_events_; ++i) {
         events_[i].socket = NULL;
-        events_[i].fd = zmq::retired_fd;
+        events_[i].fd = retired_fd;
         events_[i].user_data = NULL;
         events_[i].events = 0;
     }
 }
 
 // #if defined ZMQ_POLL_BASED_ON_POLL
-int zmq::socket_poller_t::check_events (zmq::socket_poller_t::event_t *events_,
+int socket_poller_t::check_events (socket_poller_t::event_t *events_,
                                         n_events_: i32)
 #elif defined ZMQ_POLL_BASED_ON_SELECT
-int zmq::socket_poller_t::check_events (zmq::socket_poller_t::event_t *events_,
+int socket_poller_t::check_events (socket_poller_t::event_t *events_,
                                         n_events_: i32,
                                         fd_set &inset_,
                                         fd_set &outset_,
@@ -530,7 +530,7 @@ int zmq::socket_poller_t::check_events (zmq::socket_poller_t::event_t *events_,
 
             if (it->events & events) {
                 events_[found].socket = it->socket;
-                events_[found].fd = zmq::retired_fd;
+                events_[found].fd = retired_fd;
                 events_[found].user_data = it->user_data;
                 events_[found].events = it->events & events;
                 ++found;
@@ -579,7 +579,7 @@ int zmq::socket_poller_t::check_events (zmq::socket_poller_t::event_t *events_,
 }
 
 //Return 0 if timeout is expired otherwise 1
-int zmq::socket_poller_t::adjust_timeout (zmq::clock_t &clock_,
+int socket_poller_t::adjust_timeout (clock_t &clock_,
                                           long timeout_,
                                           u64 &now_,
                                           u64 &end_,
@@ -616,7 +616,7 @@ int zmq::socket_poller_t::adjust_timeout (zmq::clock_t &clock_,
     return 1;
 }
 
-int zmq::socket_poller_t::wait (zmq::socket_poller_t::event_t *events_,
+int socket_poller_t::wait (socket_poller_t::event_t *events_,
                                 n_events_: i32,
                                 long timeout_)
 {
@@ -667,7 +667,7 @@ int zmq::socket_poller_t::wait (zmq::socket_poller_t::event_t *events_,
     }
 
 // #if defined ZMQ_POLL_BASED_ON_POLL
-    zmq::clock_t clock;
+    clock_t clock;
     u64 now = 0;
     u64 end = 0;
 
@@ -712,7 +712,7 @@ int zmq::socket_poller_t::wait (zmq::socket_poller_t::event_t *events_,
 
 #elif defined ZMQ_POLL_BASED_ON_SELECT
 
-    zmq::clock_t clock;
+    clock_t clock;
     u64 now = 0;
     u64 end = 0;
 

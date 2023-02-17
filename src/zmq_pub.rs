@@ -35,11 +35,11 @@
 pub struct pub_t ZMQ_FINAL : public xpub_t
 {
 // public:
-    pub_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    pub_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~pub_t ();
 
     //  Implementations of virtual functions from ZmqSocketBase.
-    void xattach_pipe (zmq::pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false);
     int xrecv (ZmqMessage *msg);
@@ -48,17 +48,17 @@ pub struct pub_t ZMQ_FINAL : public xpub_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (pub_t)
 };
 
-zmq::pub_t::pub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+pub_t::pub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     xpub_t (parent_, tid_, sid_)
 {
     options.type = ZMQ_PUB;
 }
 
-zmq::pub_t::~pub_t ()
+pub_t::~pub_t ()
 {
 }
 
-void zmq::pub_t::xattach_pipe (pipe_t *pipe_,
+void pub_t::xattach_pipe (pipe_t *pipe_,
                                bool subscribe_to_all_,
                                bool locally_initiated_)
 {
@@ -71,14 +71,14 @@ void zmq::pub_t::xattach_pipe (pipe_t *pipe_,
     xpub_t::xattach_pipe (pipe_, subscribe_to_all_, locally_initiated_);
 }
 
-int zmq::pub_t::xrecv (class ZmqMessage *)
+int pub_t::xrecv (class ZmqMessage *)
 {
     //  Messages cannot be received from PUB socket.
     errno = ENOTSUP;
     return -1;
 }
 
-bool zmq::pub_t::xhas_in ()
+bool pub_t::xhas_in ()
 {
     return false;
 }

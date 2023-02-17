@@ -42,7 +42,7 @@
 pub struct stream_listener_base_t : public own_t, public io_object_t
 {
 // public:
-    stream_listener_base_t (zmq::io_thread_t *io_thread_,
+    stream_listener_base_t (io_thread_t *io_thread_,
                             socket_: *mut ZmqSocketBase,
                             const ZmqOptions &options_);
     ~stream_listener_base_t () ZMQ_OVERRIDE;
@@ -72,7 +72,7 @@ pub struct stream_listener_base_t : public own_t, public io_object_t
     handle_t _handle;
 
     //  Socket the listener belongs to.
-    zmq::ZmqSocketBase *_socket;
+    ZmqSocketBase *_socket;
 
     // String representation of endpoint to bind to
     std::string _endpoint;
@@ -80,10 +80,10 @@ pub struct stream_listener_base_t : public own_t, public io_object_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_listener_base_t)
 };
 
-zmq::stream_listener_base_t::stream_listener_base_t (
-  zmq::io_thread_t *io_thread_,
+stream_listener_base_t::stream_listener_base_t (
+  io_thread_t *io_thread_,
   socket_: *mut ZmqSocketBase,
-  const zmq::ZmqOptions &options_) :
+  const ZmqOptions &options_) :
     own_t (io_thread_, options_),
     io_object_t (io_thread_),
     _s (retired_fd),
@@ -92,26 +92,26 @@ zmq::stream_listener_base_t::stream_listener_base_t (
 {
 }
 
-zmq::stream_listener_base_t::~stream_listener_base_t ()
+stream_listener_base_t::~stream_listener_base_t ()
 {
     zmq_assert (_s == retired_fd);
     zmq_assert (!_handle);
 }
 
-int zmq::stream_listener_base_t::get_local_address (std::string &addr_) const
+int stream_listener_base_t::get_local_address (std::string &addr_) const
 {
     addr_ = get_socket_name (_s, SocketEndLocal);
     return addr_.is_empty() ? -1 : 0;
 }
 
-void zmq::stream_listener_base_t::process_plug ()
+void stream_listener_base_t::process_plug ()
 {
     //  Start polling for incoming connections.
     _handle = add_fd (_s);
     set_pollin (_handle);
 }
 
-void zmq::stream_listener_base_t::process_term (linger_: i32)
+void stream_listener_base_t::process_term (linger_: i32)
 {
     rm_fd (_handle);
     _handle = static_cast<handle_t> (NULL);
@@ -119,7 +119,7 @@ void zmq::stream_listener_base_t::process_term (linger_: i32)
     own_t::process_term (linger_);
 }
 
-int zmq::stream_listener_base_t::close ()
+int stream_listener_base_t::close ()
 {
     // TODO this is identical to stream_connector_base_t::close
 
@@ -137,7 +137,7 @@ int zmq::stream_listener_base_t::close ()
     return 0;
 }
 
-void zmq::stream_listener_base_t::create_engine (fd_t fd_)
+void stream_listener_base_t::create_engine (fd_t fd_)
 {
     const endpoint_uri_pair_t endpoint_pair (
       get_socket_name (fd_, SocketEndLocal),

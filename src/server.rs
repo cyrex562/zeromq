@@ -41,20 +41,20 @@
 pub struct server_t : public ZmqSocketBase
 {
 // public:
-    server_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    server_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~server_t ();
 
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (zmq::pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
     int xsend (ZmqMessage *msg);
     int xrecv (ZmqMessage *msg);
     bool xhas_in ();
     bool xhas_out ();
-    void xread_activated (zmq::pipe_t *pipe_);
-    void xwrite_activated (zmq::pipe_t *pipe_);
-    void xpipe_terminated (zmq::pipe_t *pipe_);
+    void xread_activated (pipe_t *pipe_);
+    void xwrite_activated (pipe_t *pipe_);
+    void xpipe_terminated (pipe_t *pipe_);
 
   // private:
     //  Fair queueing object for inbound pipes.
@@ -62,7 +62,7 @@ pub struct server_t : public ZmqSocketBase
 
     struct outpipe_t
     {
-        zmq::pipe_t *pipe;
+        pipe_t *pipe;
         bool active;
     };
 
@@ -77,7 +77,7 @@ pub struct server_t : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (server_t)
 };
 
-zmq::server_t::server_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+server_t::server_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_, true),
     _next_routing_id (generate_random ())
 {
@@ -86,12 +86,12 @@ zmq::server_t::server_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     options.can_recv_disconnect_msg = true;
 }
 
-zmq::server_t::~server_t ()
+server_t::~server_t ()
 {
     zmq_assert (_out_pipes.empty ());
 }
 
-void zmq::server_t::xattach_pipe (pipe_t *pipe_,
+void server_t::xattach_pipe (pipe_t *pipe_,
                                   bool subscribe_to_all_,
                                   bool locally_initiated_)
 {
@@ -114,7 +114,7 @@ void zmq::server_t::xattach_pipe (pipe_t *pipe_,
     _fq.attach (pipe_);
 }
 
-void zmq::server_t::xpipe_terminated (pipe_t *pipe_)
+void server_t::xpipe_terminated (pipe_t *pipe_)
 {
     const out_pipes_t::iterator it =
       _out_pipes.find (pipe_->get_server_socket_routing_id ());
@@ -123,12 +123,12 @@ void zmq::server_t::xpipe_terminated (pipe_t *pipe_)
     _fq.pipe_terminated (pipe_);
 }
 
-void zmq::server_t::xread_activated (pipe_t *pipe_)
+void server_t::xread_activated (pipe_t *pipe_)
 {
     _fq.activated (pipe_);
 }
 
-void zmq::server_t::xwrite_activated (pipe_t *pipe_)
+void server_t::xwrite_activated (pipe_t *pipe_)
 {
     const out_pipes_t::iterator end = _out_pipes.end ();
     out_pipes_t::iterator it;
@@ -141,7 +141,7 @@ void zmq::server_t::xwrite_activated (pipe_t *pipe_)
     it->second.active = true;
 }
 
-int zmq::server_t::xsend (ZmqMessage *msg)
+int server_t::xsend (ZmqMessage *msg)
 {
     //  SERVER sockets do not allow multipart data (ZMQ_SNDMORE)
     if (msg->flags () & ZmqMessage::more) {
@@ -182,7 +182,7 @@ int zmq::server_t::xsend (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::server_t::xrecv (ZmqMessage *msg)
+int server_t::xrecv (ZmqMessage *msg)
 {
     pipe_t *pipe = NULL;
     int rc = _fq.recvpipe (msg, &pipe);
@@ -211,12 +211,12 @@ int zmq::server_t::xrecv (ZmqMessage *msg)
     return 0;
 }
 
-bool zmq::server_t::xhas_in ()
+bool server_t::xhas_in ()
 {
     return _fq.has_in ();
 }
 
-bool zmq::server_t::xhas_out ()
+bool server_t::xhas_out ()
 {
     //  In theory, SERVER socket is always ready for writing. Whether actual
     //  attempt to write succeeds depends on which pipe the message is going

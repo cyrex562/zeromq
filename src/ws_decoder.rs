@@ -73,13 +73,13 @@ pub struct ws_decoder_t ZMQ_FINAL
     const i64 _max_msg_size;
     const bool _must_mask;
     u64 _size;
-    zmq::ws_protocol_t::opcode_t _opcode;
+    ws_protocol_t::opcode_t _opcode;
     unsigned char _mask[4];
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_decoder_t)
 };
 
-zmq::ws_decoder_t::ws_decoder_t (bufsize_: usize,
+ws_decoder_t::ws_decoder_t (bufsize_: usize,
                                  i64 maxmsgsize_,
                                  bool zero_copy_,
                                  bool must_mask_) :
@@ -98,32 +98,32 @@ zmq::ws_decoder_t::ws_decoder_t (bufsize_: usize,
     next_step (_tmpbuf, 1, &ws_decoder_t::opcode_ready);
 }
 
-zmq::ws_decoder_t::~ws_decoder_t ()
+ws_decoder_t::~ws_decoder_t ()
 {
     let rc: i32 = _in_progress.close ();
     errno_assert (rc == 0);
 }
 
-int zmq::ws_decoder_t::opcode_ready (unsigned char const *)
+int ws_decoder_t::opcode_ready (unsigned char const *)
 {
     const bool final = (_tmpbuf[0] & 0x80) != 0; // final bit
     if (!final)
         return -1; // non final messages are not supported
 
-    _opcode = static_cast<zmq::ws_protocol_t::opcode_t> (_tmpbuf[0] & 0xF);
+    _opcode = static_cast<ws_protocol_t::opcode_t> (_tmpbuf[0] & 0xF);
 
     _msg_flags = 0;
 
     switch (_opcode) {
-        case zmq::ws_protocol_t::opcode_binary:
+        case ws_protocol_t::opcode_binary:
             break;
-        case zmq::ws_protocol_t::opcode_close:
+        case ws_protocol_t::opcode_close:
             _msg_flags = ZmqMessage::command | ZmqMessage::close_cmd;
             break;
-        case zmq::ws_protocol_t::opcode_ping:
+        case ws_protocol_t::opcode_ping:
             _msg_flags = ZmqMessage::ping | ZmqMessage::command;
             break;
-        case zmq::ws_protocol_t::opcode_pong:
+        case ws_protocol_t::opcode_pong:
             _msg_flags = ZmqMessage::pong | ZmqMessage::command;
             break;
         default:
@@ -135,7 +135,7 @@ int zmq::ws_decoder_t::opcode_ready (unsigned char const *)
     return 0;
 }
 
-int zmq::ws_decoder_t::size_first_byte_ready (unsigned char const *read_from_)
+int ws_decoder_t::size_first_byte_ready (unsigned char const *read_from_)
 {
     const bool is_masked = (_tmpbuf[0] & 0x80) != 0;
 
@@ -162,7 +162,7 @@ int zmq::ws_decoder_t::size_first_byte_ready (unsigned char const *read_from_)
 }
 
 
-int zmq::ws_decoder_t::short_size_ready (unsigned char const *read_from_)
+int ws_decoder_t::short_size_ready (unsigned char const *read_from_)
 {
     _size = (_tmpbuf[0] << 8) | _tmpbuf[1];
 
@@ -178,7 +178,7 @@ int zmq::ws_decoder_t::short_size_ready (unsigned char const *read_from_)
     return 0;
 }
 
-int zmq::ws_decoder_t::long_size_ready (unsigned char const *read_from_)
+int ws_decoder_t::long_size_ready (unsigned char const *read_from_)
 {
     //  The payload size is encoded as 64-bit unsigned integer.
     //  The most significant byte comes first.
@@ -196,7 +196,7 @@ int zmq::ws_decoder_t::long_size_ready (unsigned char const *read_from_)
     return 0;
 }
 
-int zmq::ws_decoder_t::mask_ready (unsigned char const *read_from_)
+int ws_decoder_t::mask_ready (unsigned char const *read_from_)
 {
     memcpy (_mask, _tmpbuf, 4);
 
@@ -211,7 +211,7 @@ int zmq::ws_decoder_t::mask_ready (unsigned char const *read_from_)
     return 0;
 }
 
-int zmq::ws_decoder_t::flags_ready (unsigned char const *read_from_)
+int ws_decoder_t::flags_ready (unsigned char const *read_from_)
 {
     unsigned char flags;
 
@@ -231,7 +231,7 @@ int zmq::ws_decoder_t::flags_ready (unsigned char const *read_from_)
 }
 
 
-int zmq::ws_decoder_t::size_ready (unsigned char const *read_pos_)
+int ws_decoder_t::size_ready (unsigned char const *read_pos_)
 {
     //  Message size must not exceed the maximum allowed size.
     if (_max_msg_size >= 0)
@@ -299,7 +299,7 @@ int zmq::ws_decoder_t::size_ready (unsigned char const *read_pos_)
     return 0;
 }
 
-int zmq::ws_decoder_t::message_ready (unsigned char const *)
+int ws_decoder_t::message_ready (unsigned char const *)
 {
     if (_must_mask) {
         int mask_index = _opcode == ws_protocol_t::opcode_binary ? 1 : 0;

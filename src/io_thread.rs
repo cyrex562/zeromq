@@ -38,7 +38,7 @@
 pub struct io_thread_t ZMQ_FINAL : public object_t, public i_poll_events
 {
 // public:
-    io_thread_t (zmq::ZmqContext *ctx_, uint32_t tid_);
+    io_thread_t (ZmqContext *ctx_, uint32_t tid_);
 
     //  Clean-up. If the thread was started, it's necessary to call 'stop'
     //  before invoking destructor. Otherwise the destructor would hang up.
@@ -80,7 +80,7 @@ pub struct io_thread_t ZMQ_FINAL : public object_t, public i_poll_events
     ZMQ_NON_COPYABLE_NOR_MOVABLE (io_thread_t)
 };
 
-zmq::io_thread_t::io_thread_t (ZmqContext *ctx_, uint32_t tid_) :
+io_thread_t::io_thread_t (ZmqContext *ctx_, uint32_t tid_) :
     object_t (ctx_, tid_),
     _mailbox_handle (static_cast<poller_t::handle_t> (NULL))
 {
@@ -93,36 +93,36 @@ zmq::io_thread_t::io_thread_t (ZmqContext *ctx_, uint32_t tid_) :
     }
 }
 
-zmq::io_thread_t::~io_thread_t ()
+io_thread_t::~io_thread_t ()
 {
     LIBZMQ_DELETE (_poller);
 }
 
-void zmq::io_thread_t::start ()
+void io_thread_t::start ()
 {
     char name[16] = "";
     snprintf (name, mem::size_of::<name>(), "IO/%u",
-              get_tid () - zmq::ZmqContext::reaper_tid - 1);
+              get_tid () - ZmqContext::reaper_tid - 1);
     //  Start the underlying I/O thread.
     _poller->start (name);
 }
 
-void zmq::io_thread_t::stop ()
+void io_thread_t::stop ()
 {
     send_stop ();
 }
 
-zmq::mailbox_t *zmq::io_thread_t::get_mailbox ()
+mailbox_t *io_thread_t::get_mailbox ()
 {
     return &_mailbox;
 }
 
-int zmq::io_thread_t::get_load () const
+int io_thread_t::get_load () const
 {
     return _poller->get_load ();
 }
 
-void zmq::io_thread_t::in_event ()
+void io_thread_t::in_event ()
 {
     //  TODO: Do we want to limit number of commands I/O thread can
     //  process in a single go?
@@ -139,25 +139,25 @@ void zmq::io_thread_t::in_event ()
     errno_assert (rc != 0 && errno == EAGAIN);
 }
 
-void zmq::io_thread_t::out_event ()
+void io_thread_t::out_event ()
 {
     //  We are never polling for POLLOUT here. This function is never called.
     zmq_assert (false);
 }
 
-void zmq::io_thread_t::timer_event (int)
+void io_thread_t::timer_event (int)
 {
     //  No timers here. This function is never called.
     zmq_assert (false);
 }
 
-zmq::poller_t *zmq::io_thread_t::get_poller () const
+poller_t *io_thread_t::get_poller () const
 {
     zmq_assert (_poller);
     return _poller;
 }
 
-void zmq::io_thread_t::process_stop ()
+void io_thread_t::process_stop ()
 {
     zmq_assert (_mailbox_handle);
     _poller->rm_fd (_mailbox_handle);

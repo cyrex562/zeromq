@@ -100,7 +100,7 @@ pub struct curve_mechanism_base_t : public virtual mechanism_base_t,
     int decode (ZmqMessage *msg) ZMQ_OVERRIDE;
 };
 
-zmq::curve_mechanism_base_t::curve_mechanism_base_t (
+curve_mechanism_base_t::curve_mechanism_base_t (
   session_base_t *session_,
   const ZmqOptions &options_,
   encode_nonce_prefix_: *const c_char,
@@ -112,12 +112,12 @@ zmq::curve_mechanism_base_t::curve_mechanism_base_t (
 {
 }
 
-int zmq::curve_mechanism_base_t::encode (ZmqMessage *msg)
+int curve_mechanism_base_t::encode (ZmqMessage *msg)
 {
     return curve_encoding_t::encode (msg);
 }
 
-int zmq::curve_mechanism_base_t::decode (ZmqMessage *msg)
+int curve_mechanism_base_t::decode (ZmqMessage *msg)
 {
     int rc = check_basic_command_structure (msg);
     if (rc == -1)
@@ -133,7 +133,7 @@ int zmq::curve_mechanism_base_t::decode (ZmqMessage *msg)
     return rc;
 }
 
-zmq::curve_encoding_t::curve_encoding_t (encode_nonce_prefix_: *const c_char,
+curve_encoding_t::curve_encoding_t (encode_nonce_prefix_: *const c_char,
                                          decode_nonce_prefix_: *const c_char,
                                          const bool downgrade_sub_) :
     _encode_nonce_prefix (encode_nonce_prefix_),
@@ -153,13 +153,13 @@ static const size_t nonce_prefix_len = 16;
 pub const message_command: String = String::from("\x07MESSAGE");
 static const size_t message_command_len = mem::size_of::<message_command>() - 1;
 static const size_t message_header_len =
-  message_command_len + sizeof (zmq::curve_encoding_t::nonce_t);
+  message_command_len + sizeof (curve_encoding_t::nonce_t);
 
 // #ifndef ZMQ_USE_LIBSODIUM
 static const size_t crypto_box_MACBYTES = 16;
 // #endif
 
-int zmq::curve_encoding_t::check_validity (msg: &mut ZmqMessage error_event_code_: *mut i32)
+int curve_encoding_t::check_validity (msg: &mut ZmqMessage error_event_code_: *mut i32)
 {
     const size_t size = msg->size ();
     const uint8_t *const message = static_cast<uint8_t *> (msg->data ());
@@ -190,7 +190,7 @@ int zmq::curve_encoding_t::check_validity (msg: &mut ZmqMessage error_event_code
     return 0;
 }
 
-int zmq::curve_encoding_t::encode (ZmqMessage *msg)
+int curve_encoding_t::encode (ZmqMessage *msg)
 {
     size_t sub_cancel_len = 0;
     uint8_t message_nonce[crypto_box_NONCEBYTES];
@@ -231,11 +231,11 @@ int zmq::curve_encoding_t::encode (ZmqMessage *msg)
         message_plaintext[flags_len] = msg->is_subscribe () ? 1 : 0;
     else if (sub_cancel_len == ZmqMessage::sub_cmd_name_size) {
         message_plaintext[0] |= ZmqMessage::command;
-        memcpy (&message_plaintext[flags_len], zmq::sub_cmd_name,
+        memcpy (&message_plaintext[flags_len], sub_cmd_name,
                 ZmqMessage::sub_cmd_name_size);
     } else if (sub_cancel_len == ZmqMessage::cancel_cmd_name_size) {
         message_plaintext[0] |= ZmqMessage::command;
-        memcpy (&message_plaintext[flags_len], zmq::cancel_cmd_name,
+        memcpy (&message_plaintext[flags_len], cancel_cmd_name,
                 ZmqMessage::cancel_cmd_name_size);
     }
 
@@ -286,7 +286,7 @@ int zmq::curve_encoding_t::encode (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::curve_encoding_t::decode (msg: &mut ZmqMessage error_event_code_: *mut i32)
+int curve_encoding_t::decode (msg: &mut ZmqMessage error_event_code_: *mut i32)
 {
     int rc = check_validity (msg, error_event_code_);
     if (0 != rc) {

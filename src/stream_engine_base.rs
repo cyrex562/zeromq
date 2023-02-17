@@ -73,8 +73,8 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
 
     //  i_engine interface implementation.
     bool has_handshake_stage () ZMQ_FINAL { return _has_handshake_stage; };
-    void plug (zmq::io_thread_t *io_thread_,
-               zmq::session_base_t *session_) ZMQ_FINAL;
+    void plug (io_thread_t *io_thread_,
+               session_base_t *session_) ZMQ_FINAL;
     void terminate () ZMQ_FINAL;
     bool restart_input () ZMQ_FINAL;
     void restart_output () ZMQ_FINAL;
@@ -87,7 +87,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     void timer_event (id_: i32) ZMQ_FINAL;
 
   protected:
-    typedef metadata_t::dict_t properties_t;
+    typedef ZmqMetadata::dict_t properties_t;
     bool init_properties (properties_t &properties_);
 
     //  Function to handle network disconnections.
@@ -154,7 +154,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     int (stream_engine_base_t::*_process_msg) (ZmqMessage *msg);
 
     //  Metadata to be attached to received messages. May be NULL.
-    metadata_t *_metadata;
+    ZmqMetadata *_metadata;
 
     //  True iff the engine couldn't consume the last decoded message.
     bool _input_stopped;
@@ -215,10 +215,10 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     bool _io_error;
 
     //  The session this engine is attached to.
-    zmq::session_base_t *_session;
+    session_base_t *_session;
 
     //  Socket
-    zmq::ZmqSocketBase *_socket;
+    ZmqSocketBase *_socket;
 
     //  Indicate if engine has an handshake stage, if it does, engine must call session.engine_ready
     //  when handshake is completed.
@@ -227,11 +227,11 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_engine_base_t)
 };
 
-static std::string get_peer_address (zmq::fd_t s_)
+static std::string get_peer_address (fd_t s_)
 {
     std::string peer_address;
 
-    let family: i32 = zmq::get_peer_ip_address (s_, peer_address);
+    let family: i32 = get_peer_ip_address (s_, peer_address);
     if (family == 0)
         peer_address.clear ();
 // #if defined ZMQ_HAVE_SO_PEERCRED
@@ -263,7 +263,7 @@ static std::string get_peer_address (zmq::fd_t s_)
     return peer_address;
 }
 
-zmq::stream_engine_base_t::stream_engine_base_t (
+stream_engine_base_t::stream_engine_base_t (
   fd_t fd_,
   const ZmqOptions &options_,
   const endpoint_uri_pair_t &endpoint_uri_pair_,
@@ -303,7 +303,7 @@ zmq::stream_engine_base_t::stream_engine_base_t (
     unblock_socket (_s);
 }
 
-zmq::stream_engine_base_t::~stream_engine_base_t ()
+stream_engine_base_t::~stream_engine_base_t ()
 {
     zmq_assert (!_plugged);
 
@@ -340,7 +340,7 @@ zmq::stream_engine_base_t::~stream_engine_base_t ()
     LIBZMQ_DELETE (_mechanism);
 }
 
-void zmq::stream_engine_base_t::plug (io_thread_t *io_thread_,
+void stream_engine_base_t::plug (io_thread_t *io_thread_,
                                       session_base_t *session_)
 {
     zmq_assert (!_plugged);
@@ -360,7 +360,7 @@ void zmq::stream_engine_base_t::plug (io_thread_t *io_thread_,
     plug_internal ();
 }
 
-void zmq::stream_engine_base_t::unplug ()
+void stream_engine_base_t::unplug ()
 {
     zmq_assert (_plugged);
     _plugged = false;
@@ -395,20 +395,20 @@ void zmq::stream_engine_base_t::unplug ()
     _session = NULL;
 }
 
-void zmq::stream_engine_base_t::terminate ()
+void stream_engine_base_t::terminate ()
 {
     unplug ();
     delete this;
 }
 
-void zmq::stream_engine_base_t::in_event ()
+void stream_engine_base_t::in_event ()
 {
     // ignore errors
     const bool res = in_event_internal ();
     LIBZMQ_UNUSED (res);
 }
 
-bool zmq::stream_engine_base_t::in_event_internal ()
+bool stream_engine_base_t::in_event_internal ()
 {
     zmq_assert (!_io_error);
 
@@ -496,7 +496,7 @@ bool zmq::stream_engine_base_t::in_event_internal ()
     return true;
 }
 
-void zmq::stream_engine_base_t::out_event ()
+void stream_engine_base_t::out_event ()
 {
     zmq_assert (!_io_error);
 
@@ -565,7 +565,7 @@ void zmq::stream_engine_base_t::out_event ()
             reset_pollout ();
 }
 
-void zmq::stream_engine_base_t::restart_output ()
+void stream_engine_base_t::restart_output ()
 {
     if (unlikely (_io_error))
         return;
@@ -582,7 +582,7 @@ void zmq::stream_engine_base_t::restart_output ()
     out_event ();
 }
 
-bool zmq::stream_engine_base_t::restart_input ()
+bool stream_engine_base_t::restart_input ()
 {
     zmq_assert (_input_stopped);
     zmq_assert (_session != NULL);
@@ -635,7 +635,7 @@ bool zmq::stream_engine_base_t::restart_input ()
     return true;
 }
 
-int zmq::stream_engine_base_t::next_handshake_command (ZmqMessage *msg)
+int stream_engine_base_t::next_handshake_command (ZmqMessage *msg)
 {
     zmq_assert (_mechanism != NULL);
 
@@ -655,7 +655,7 @@ int zmq::stream_engine_base_t::next_handshake_command (ZmqMessage *msg)
     return rc;
 }
 
-int zmq::stream_engine_base_t::process_handshake_command (ZmqMessage *msg)
+int stream_engine_base_t::process_handshake_command (ZmqMessage *msg)
 {
     zmq_assert (_mechanism != NULL);
     let rc: i32 = _mechanism->process_handshake_command (msg);
@@ -673,7 +673,7 @@ int zmq::stream_engine_base_t::process_handshake_command (ZmqMessage *msg)
     return rc;
 }
 
-void zmq::stream_engine_base_t::zap_msg_available ()
+void stream_engine_base_t::zap_msg_available ()
 {
     zmq_assert (_mechanism != NULL);
 
@@ -689,12 +689,12 @@ void zmq::stream_engine_base_t::zap_msg_available ()
         restart_output ();
 }
 
-const zmq::endpoint_uri_pair_t &zmq::stream_engine_base_t::get_endpoint () const
+const endpoint_uri_pair_t &stream_engine_base_t::get_endpoint () const
 {
     return _endpoint_uri_pair;
 }
 
-void zmq::stream_engine_base_t::mechanism_ready ()
+void stream_engine_base_t::mechanism_ready ()
 {
     if (_options.heartbeat_interval > 0 && !_has_heartbeat_timer) {
         add_timer (_options.heartbeat_interval, heartbeat_ivl_timer_id);
@@ -754,7 +754,7 @@ void zmq::stream_engine_base_t::mechanism_ready ()
 
     zmq_assert (_metadata == NULL);
     if (!properties.empty ()) {
-        _metadata = new (std::nothrow) metadata_t (properties);
+        _metadata = new (std::nothrow) ZmqMetadata (properties);
         alloc_assert (_metadata);
     }
 
@@ -766,7 +766,7 @@ void zmq::stream_engine_base_t::mechanism_ready ()
     _socket->event_handshake_succeeded (_endpoint_uri_pair, 0);
 }
 
-int zmq::stream_engine_base_t::write_credential (ZmqMessage *msg)
+int stream_engine_base_t::write_credential (ZmqMessage *msg)
 {
     zmq_assert (_mechanism != NULL);
     zmq_assert (_session != NULL);
@@ -789,7 +789,7 @@ int zmq::stream_engine_base_t::write_credential (ZmqMessage *msg)
     return decode_and_push (msg);
 }
 
-int zmq::stream_engine_base_t::pull_and_encode (ZmqMessage *msg)
+int stream_engine_base_t::pull_and_encode (ZmqMessage *msg)
 {
     zmq_assert (_mechanism != NULL);
 
@@ -800,7 +800,7 @@ int zmq::stream_engine_base_t::pull_and_encode (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::stream_engine_base_t::decode_and_push (ZmqMessage *msg)
+int stream_engine_base_t::decode_and_push (ZmqMessage *msg)
 {
     zmq_assert (_mechanism != NULL);
 
@@ -831,7 +831,7 @@ int zmq::stream_engine_base_t::decode_and_push (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::stream_engine_base_t::push_one_then_decode_and_push (ZmqMessage *msg)
+int stream_engine_base_t::push_one_then_decode_and_push (ZmqMessage *msg)
 {
     let rc: i32 = _session->push_msg (msg);
     if (rc == 0)
@@ -839,17 +839,17 @@ int zmq::stream_engine_base_t::push_one_then_decode_and_push (ZmqMessage *msg)
     return rc;
 }
 
-int zmq::stream_engine_base_t::pull_msg_from_session (ZmqMessage *msg)
+int stream_engine_base_t::pull_msg_from_session (ZmqMessage *msg)
 {
     return _session->pull_msg (msg);
 }
 
-int zmq::stream_engine_base_t::push_ZmqMessageo_session (ZmqMessage *msg)
+int stream_engine_base_t::push_ZmqMessageo_session (ZmqMessage *msg)
 {
     return _session->push_msg (msg);
 }
 
-void zmq::stream_engine_base_t::error (error_reason_t reason_)
+void stream_engine_base_t::error (error_reason_t reason_)
 {
     zmq_assert (_session);
 
@@ -891,7 +891,7 @@ void zmq::stream_engine_base_t::error (error_reason_t reason_)
     delete this;
 }
 
-void zmq::stream_engine_base_t::set_handshake_timer ()
+void stream_engine_base_t::set_handshake_timer ()
 {
     zmq_assert (!_has_handshake_timer);
 
@@ -901,7 +901,7 @@ void zmq::stream_engine_base_t::set_handshake_timer ()
     }
 }
 
-bool zmq::stream_engine_base_t::init_properties (properties_t &properties_)
+bool stream_engine_base_t::init_properties (properties_t &properties_)
 {
     if (_peer_address.empty ())
         return false;
@@ -917,7 +917,7 @@ bool zmq::stream_engine_base_t::init_properties (properties_t &properties_)
     return true;
 }
 
-void zmq::stream_engine_base_t::timer_event (id_: i32)
+void stream_engine_base_t::timer_event (id_: i32)
 {
     if (id_ == handshake_timer_id) {
         _has_handshake_timer = false;
@@ -938,9 +938,9 @@ void zmq::stream_engine_base_t::timer_event (id_: i32)
         assert (false);
 }
 
-int zmq::stream_engine_base_t::read (data: *mut c_void, size: usize)
+int stream_engine_base_t::read (data: *mut c_void, size: usize)
 {
-    let rc: i32 = zmq::tcp_read (_s, data, size);
+    let rc: i32 = tcp_read (_s, data, size);
 
     if (rc == 0) {
         // connection closed by peer
@@ -951,7 +951,7 @@ int zmq::stream_engine_base_t::read (data: *mut c_void, size: usize)
     return rc;
 }
 
-int zmq::stream_engine_base_t::write (const data: *mut c_void, size: usize)
+int stream_engine_base_t::write (const data: *mut c_void, size: usize)
 {
-    return zmq::tcp_write (_s, data, size);
+    return tcp_write (_s, data, size);
 }

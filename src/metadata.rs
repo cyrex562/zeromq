@@ -1,84 +1,64 @@
-/*
-    Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
+use std::collections::HashMap;
+use crate::atomic_counter::AtomicCounter;
+use crate::zmq_draft_hdr::ZMQ_MSG_PROPERTY_ROUTING_ID;
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
-
-    libzmq is free software; you can redistribute it and/or modify it under
-    the terms of the GNU Lesser General Public License (LGPL) as published
-    by the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    As a special exception, the Contributors give you permission to link
-    this library with independent modules to produce an executable,
-    regardless of the license terms of these independent modules, and to
-    copy and distribute the resulting executable under terms of your choice,
-    provided that you also meet, for each linked independent module, the
-    terms and conditions of the license of that module. An independent
-    module is a module which is not derived from or based on this library.
-    If you modify this library, you must extend this exception to your
-    version of the library.
-
-    libzmq is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-    License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+// public:
+//     typedef std::map<std::string, std::string> dict_t;
 
 // #include "precompiled.hpp"
 // #include "metadata.hpp"
-pub struct metadata_t
-{
-// public:
-    typedef std::map<std::string, std::string> dict_t;
+pub struct ZmqMetadata {
+    pub _dict: HashMap<String, String>,
+    pub _ref_cnt: AtomicCounter,
+    // // private:
+    //   //  Reference counter.
+    //   AtomicCounter _ref_cnt;
+    //
+    //   //  Dictionary holding metadata.
+    //   const dict_t _dict;
+    //
+    //   ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqMetadata)
+}
 
-    metadata_t (const dict_t &dict_);
+impl ZmqMetadata {
+    // ZmqMetadata (const dict_t &dict_);
+    // ZmqMetadata::ZmqMetadata (const dict_t &dict_) : _ref_cnt (1), _dict (dict_)
+    pub fn new(dict_: &mut HashMap<String, String>) -> Self {
+        Self {
+            _ref_cnt: AtomicCounter::new(),
+            _dict: dict_.clone(),
+        }
+    }
+
 
     //  Returns pointer to property value or NULL if
     //  property is not found.
-    const char *get (property_: &str) const;
+    // const char *get (property_: &str) const;
+    // const char *ZmqMetadata::get (property_: &str) const
+    pub fn get(&mut self, property_: &str) -> Option<String> {
+        // const dict_t::const_iterator it = _dict.find (property_);
+        let it = self._dict.get(property_);
+        if it.is_none() {
+            /** \todo remove this when support for the deprecated name "Identity" is dropped */
+            if property_ == "Identity" {
+                return self.get(ZMQ_MSG_PROPERTY_ROUTING_ID);
+            }
 
-    void add_ref ();
+            return None;
+        }
+        let x = it.unwrap().clone();
+        return Some(x);
+    }
+
+    // void add_ref ();
+    pub fn add_ref(&mut self) {
+        self._ref_cnt.add(1);
+    }
 
     //  Drop reference. Returns true iff the reference
     //  counter drops to zero.
-    bool drop_ref ();
-
-  // private:
-    //  Reference counter.
-    AtomicCounter _ref_cnt;
-
-    //  Dictionary holding metadata.
-    const dict_t _dict;
-
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (metadata_t)
-};
-
-zmq::metadata_t::metadata_t (const dict_t &dict_) : _ref_cnt (1), _dict (dict_)
-{
-}
-
-const char *zmq::metadata_t::get (property_: &str) const
-{
-    const dict_t::const_iterator it = _dict.find (property_);
-    if (it == _dict.end ()) {
-        /** \todo remove this when support for the deprecated name "Identity" is dropped */
-        if (property_ == "Identity")
-            return get (ZMQ_MSG_PROPERTY_ROUTING_ID);
-
-        return NULL;
+    // bool drop_ref ();
+    pub fn drop_ref(&mut self) -> bool {
+        !self._ref_cnt.sub(1)
     }
-    return it->second;
-}
-
-void zmq::metadata_t::add_ref ()
-{
-    _ref_cnt.add (1);
-}
-
-bool zmq::metadata_t::drop_ref ()
-{
-    return !_ref_cnt.sub (1);
 }

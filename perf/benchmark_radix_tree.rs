@@ -100,8 +100,8 @@ int main ()
     //
     // Keeping initialization out of the benchmarking function helps
     // heaptrack detect peak memory consumption of the radix tree.
-    zmq::trie_t trie;
-    zmq::radix_tree_t radix_tree;
+    trie_t trie;
+    radix_tree_t radix_tree;
     for (auto &key : input_set) {
         trie.add (key, key_length);
         radix_tree.add (key, key_length);

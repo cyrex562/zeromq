@@ -77,22 +77,22 @@ pub struct lb_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (lb_t)
 };
 
-zmq::lb_t::lb_t () : _active (0), _current (0), _more (false), _dropping (false)
+lb_t::lb_t () : _active (0), _current (0), _more (false), _dropping (false)
 {
 }
 
-zmq::lb_t::~lb_t ()
+lb_t::~lb_t ()
 {
     zmq_assert (_pipes.empty ());
 }
 
-void zmq::lb_t::attach (pipe_t *pipe_)
+void lb_t::attach (pipe_t *pipe_)
 {
     _pipes.push_back (pipe_);
     activated (pipe_);
 }
 
-void zmq::lb_t::pipe_terminated (pipe_t *pipe_)
+void lb_t::pipe_terminated (pipe_t *pipe_)
 {
     const pipes_t::size_type index = _pipes.index (pipe_);
 
@@ -112,19 +112,19 @@ void zmq::lb_t::pipe_terminated (pipe_t *pipe_)
     _pipes.erase (pipe_);
 }
 
-void zmq::lb_t::activated (pipe_t *pipe_)
+void lb_t::activated (pipe_t *pipe_)
 {
     //  Move the pipe to the list of active pipes.
     _pipes.swap (_pipes.index (pipe_), _active);
     _active++;
 }
 
-int zmq::lb_t::send (ZmqMessage *msg)
+int lb_t::send (ZmqMessage *msg)
 {
     return sendpipe (msg, NULL);
 }
 
-int zmq::lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe_)
+int lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe_)
 {
     //  Drop the message if required. If we are at the end of the message
     //  switch back to non-dropping mode.
@@ -201,7 +201,7 @@ int zmq::lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe_)
     return 0;
 }
 
-bool zmq::lb_t::has_out ()
+bool lb_t::has_out ()
 {
     //  If one part of the message was already written we can definitely
     //  write the rest of the message.

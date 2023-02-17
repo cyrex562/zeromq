@@ -118,14 +118,14 @@ int test_assert_failure_message_raw_errno_helper (
     return rc_;
 }
 
-void send_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags_: i32)
+void send_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags: i32)
 {
     const size_t len = str_ ? strlen (str_) : 0;
-    let rc: i32 = zmq_send (socket_, str_, len, flags_);
+    let rc: i32 = zmq_send (socket_, str_, len, flags);
     TEST_ASSERT_EQUAL_INT ((int) len, rc);
 }
 
-void recv_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags_: i32)
+void recv_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags: i32)
 {
     const size_t len = str_ ? strlen (str_) : 0;
     char buffer[255];
@@ -135,7 +135,7 @@ void recv_string_expect_success (socket_: *mut c_void, str_: *const c_char, flag
                                        "characters");
 
     let rc: i32 = TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_recv (socket_, buffer, mem::size_of::<buffer>(), flags_));
+      zmq_recv (socket_, buffer, mem::size_of::<buffer>(), flags));
     TEST_ASSERT_EQUAL_INT ((int) len, rc);
     if (str_)
         TEST_ASSERT_EQUAL_STRING_LEN (str_, buffer, len);

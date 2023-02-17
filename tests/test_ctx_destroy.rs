@@ -177,7 +177,7 @@ void run_poller (data: *mut c_void)
 
     zmq_atomic_counter_set (poller_test_data->counter, 1);
 
-    zmq_poller_event_t event;
+    ZmqPollerEvent event;
     TEST_ASSERT_FAILURE_ERRNO (ETERM, zmq_poller_wait (poller, &event, -1));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_destroy (&poller));

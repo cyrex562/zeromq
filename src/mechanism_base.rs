@@ -46,13 +46,13 @@ pub struct mechanism_base_t : public mechanism_t
     bool zap_required () const;
 };
 
-zmq::mechanism_base_t::mechanism_base_t (session_base_t *const session_,
+mechanism_base_t::mechanism_base_t (session_base_t *const session_,
                                          const ZmqOptions &options_) :
     mechanism_t (options_), session (session_)
 {
 }
 
-int zmq::mechanism_base_t::check_basic_command_structure (ZmqMessage *msg) const
+int mechanism_base_t::check_basic_command_structure (ZmqMessage *msg) const
 {
     if (msg->size () <= 1
         || msg->size () <= (static_cast<uint8_t *> (msg->data ()))[0]) {
@@ -65,7 +65,7 @@ int zmq::mechanism_base_t::check_basic_command_structure (ZmqMessage *msg) const
     return 0;
 }
 
-void zmq::mechanism_base_t::handle_error_reason (error_reason_: *const c_char,
+void mechanism_base_t::handle_error_reason (error_reason_: *const c_char,
                                                  error_reason_len_: usize)
 {
     const size_t status_code_len = 3;
@@ -89,7 +89,7 @@ void zmq::mechanism_base_t::handle_error_reason (error_reason_: *const c_char,
     }
 }
 
-bool zmq::mechanism_base_t::zap_required () const
+bool mechanism_base_t::zap_required () const
 {
     return !options.zap_domain.is_empty();
 }

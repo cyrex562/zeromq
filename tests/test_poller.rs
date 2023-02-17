@@ -179,13 +179,13 @@ void test_null_poller_pointers_remove_fd_indirect ()
 
 void test_null_poller_pointers_wait_direct ()
 {
-    zmq_poller_event_t event;
+    ZmqPollerEvent event;
     TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_wait (NULL, &event, 0));
 }
 
 void test_null_poller_pointers_wait_indirect ()
 {
-    zmq_poller_event_t event;
+    ZmqPollerEvent event;
     void *null_poller = NULL;
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
                                zmq_poller_wait (&null_poller, &event, 0));
@@ -193,14 +193,14 @@ void test_null_poller_pointers_wait_indirect ()
 
 void test_null_poller_pointers_wait_all_direct ()
 {
-    zmq_poller_event_t event;
+    ZmqPollerEvent event;
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
                                zmq_poller_wait_all (NULL, &event, 1, 0));
 }
 
 void test_null_poller_pointers_wait_all_indirect ()
 {
-    zmq_poller_event_t event;
+    ZmqPollerEvent event;
     void *null_poller = NULL;
     TEST_ASSERT_FAILURE_ERRNO (
       EFAULT, zmq_poller_wait_all (&null_poller, &event, 1, 0));
@@ -525,7 +525,7 @@ TEST_CASE_FUNC_PARAM (call_poller_modify_fd_invalid_events_fails,
 void call_poller_wait_empty_with_timeout_fails (poller_: *mut c_void,
                                                 void * /*socket*/)
 {
-    zmq_poller_event_t event;
+    ZmqPollerEvent event;
     // waiting on poller with no registered sockets should report error
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_poller_wait (poller_, &event, 0));
 }
@@ -533,7 +533,7 @@ void call_poller_wait_empty_with_timeout_fails (poller_: *mut c_void,
 void call_poller_wait_empty_without_timeout_fails (poller_: *mut c_void,
                                                    void * /*socket*/)
 {
-    zmq_poller_event_t event;
+    ZmqPollerEvent event;
     //  this would never be able to return since no socket was registered, and should yield an error
     TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_wait (poller_, &event, -1));
 }
@@ -541,7 +541,7 @@ void call_poller_wait_empty_without_timeout_fails (poller_: *mut c_void,
 void call_poller_wait_all_empty_negative_count_fails (poller_: *mut c_void,
                                                       void * /*socket*/)
 {
-    zmq_poller_event_t event;
+    ZmqPollerEvent event;
     TEST_ASSERT_FAILURE_ERRNO (EINVAL,
                                zmq_poller_wait_all (poller_, &event, -1, 0));
 }
@@ -549,7 +549,7 @@ void call_poller_wait_all_empty_negative_count_fails (poller_: *mut c_void,
 void call_poller_wait_all_empty_without_timeout_fails (poller_: *mut c_void,
                                                        void * /*socket*/)
 {
-    zmq_poller_event_t event;
+    ZmqPollerEvent event;
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN,
                                zmq_poller_wait_all (poller_, &event, 0, 0));
 }
@@ -557,7 +557,7 @@ void call_poller_wait_all_empty_without_timeout_fails (poller_: *mut c_void,
 void call_poller_wait_all_empty_with_timeout_fails (poller_: *mut c_void,
                                                     void * /*socket*/)
 {
-    zmq_poller_event_t event;
+    ZmqPollerEvent event;
     //  this would never be able to return since no socket was registered, and should yield an error
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
                                zmq_poller_wait_all (poller_, &event, 0, -1));
@@ -567,7 +567,7 @@ void call_poller_wait_all_inf_disabled_fails (poller_: *mut c_void, socket_: *mu
 {
     TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_add (poller_, socket_, NULL, 0));
 
-    zmq_poller_event_t events[1];
+    ZmqPollerEvent events[1];
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN,
                                zmq_poller_wait_all (poller_, events, 1, 0));
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
@@ -610,7 +610,7 @@ void test_poll_basic ()
     send_string_expect_success (vent, vent_sink_msg, 0);
 
     //  We expect a message only on the sink
-    zmq_poller_event_t event;
+    ZmqPollerEvent event;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_wait (poller, &event, -1));
     TEST_ASSERT_EQUAL_PTR (sink, event.socket);
     TEST_ASSERT_EQUAL_PTR (sink, event.user_data);
@@ -648,7 +648,7 @@ void test_poll_fd ()
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_poller_add_fd (poller, fd, bowl, ZMQ_POLLIN));
 
-    zmq_poller_event_t event;
+    ZmqPollerEvent event;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_wait (poller, &event, 500));
     TEST_ASSERT_NULL (event.socket);
     TEST_ASSERT_EQUAL (fd, event.fd);
@@ -685,7 +685,7 @@ void test_poll_client_server ()
     const char *client_server_msg = "I";
     send_string_expect_success (client, client_server_msg, 0);
 
-    zmq_poller_event_t event;
+    ZmqPollerEvent event;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_wait (poller, &event, 500));
     TEST_ASSERT_EQUAL_PTR (server, event.socket);
     TEST_ASSERT_NULL (event.user_data);

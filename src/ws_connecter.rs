@@ -72,8 +72,8 @@ pub struct ws_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
-    ws_connecter_t (zmq::io_thread_t *io_thread_,
-                    zmq::session_base_t *session_,
+    ws_connecter_t (io_thread_t *io_thread_,
+                    session_base_t *session_,
                     const ZmqOptions &options_,
                     Address *addr_,
                     bool delayed_start_,
@@ -125,7 +125,7 @@ pub struct ws_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_connecter_t)
 };
 
-zmq::ws_connecter_t::ws_connecter_t (class io_thread_t *io_thread_,
+ws_connecter_t::ws_connecter_t (class io_thread_t *io_thread_,
 pub struct session_base_t *session_,
                                      const ZmqOptions &options_,
                                      Address *addr_,
@@ -140,12 +140,12 @@ pub struct session_base_t *session_,
 {
 }
 
-zmq::ws_connecter_t::~ws_connecter_t ()
+ws_connecter_t::~ws_connecter_t ()
 {
     zmq_assert (!_connect_timer_started);
 }
 
-void zmq::ws_connecter_t::process_term (linger_: i32)
+void ws_connecter_t::process_term (linger_: i32)
 {
     if (_connect_timer_started) {
         cancel_timer (connect_timer_id);
@@ -155,7 +155,7 @@ void zmq::ws_connecter_t::process_term (linger_: i32)
     stream_connecter_base_t::process_term (linger_);
 }
 
-void zmq::ws_connecter_t::out_event ()
+void ws_connecter_t::out_event ()
 {
     if (_connect_timer_started) {
         cancel_timer (connect_timer_id);
@@ -188,7 +188,7 @@ void zmq::ws_connecter_t::out_event ()
                        get_socket_name<WsAddress> (fd, SocketEndLocal));
 }
 
-void zmq::ws_connecter_t::timer_event (id_: i32)
+void ws_connecter_t::timer_event (id_: i32)
 {
     if (id_ == connect_timer_id) {
         _connect_timer_started = false;
@@ -199,7 +199,7 @@ void zmq::ws_connecter_t::timer_event (id_: i32)
         stream_connecter_base_t::timer_event (id_);
 }
 
-void zmq::ws_connecter_t::start_connecting ()
+void ws_connecter_t::start_connecting ()
 {
     //  Open the connecting socket.
     let rc: i32 = open ();
@@ -229,7 +229,7 @@ void zmq::ws_connecter_t::start_connecting ()
     }
 }
 
-void zmq::ws_connecter_t::add_connect_timer ()
+void ws_connecter_t::add_connect_timer ()
 {
     if (options.connect_timeout > 0) {
         add_timer (options.connect_timeout, connect_timer_id);
@@ -237,7 +237,7 @@ void zmq::ws_connecter_t::add_connect_timer ()
     }
 }
 
-int zmq::ws_connecter_t::open ()
+int ws_connecter_t::open ()
 {
     zmq_assert (_s == retired_fd);
 
@@ -276,7 +276,7 @@ int zmq::ws_connecter_t::open ()
     return -1;
 }
 
-zmq::fd_t zmq::ws_connecter_t::connect ()
+fd_t ws_connecter_t::connect ()
 {
     //  Async connect has finished. Check whether an error occurred
     int err = 0;
@@ -324,14 +324,14 @@ zmq::fd_t zmq::ws_connecter_t::connect ()
     return result;
 }
 
-bool zmq::ws_connecter_t::tune_socket (const fd_t fd_)
+bool ws_connecter_t::tune_socket (const fd_t fd_)
 {
     let rc: i32 =
       tune_tcp_socket (fd_) | tune_tcp_maxrt (fd_, options.tcp_maxrt);
     return rc == 0;
 }
 
-void zmq::ws_connecter_t::create_engine (fd_t fd_,
+void ws_connecter_t::create_engine (fd_t fd_,
                                          local_address_: &str)
 {
     const endpoint_uri_pair_t endpoint_pair (local_address_, _endpoint,

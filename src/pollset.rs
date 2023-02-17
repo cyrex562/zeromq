@@ -50,7 +50,7 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
     ~pollset_t () ZMQ_FINAL;
 
     //  "poller" concept.
-    handle_t add_fd (fd_t fd_, zmq::i_poll_events *events_);
+    handle_t add_fd (fd_t fd_, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -79,7 +79,7 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
         fd_t fd;
         bool flag_pollin;
         bool flag_pollout;
-        zmq::i_poll_events *events;
+        i_poll_events *events;
     };
 
     //  List of retired event sources.
@@ -99,14 +99,14 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (pollset_t)
 };
 
-zmq::pollset_t::pollset_t (const zmq::ThreadCtx &ctx_) :
+pollset_t::pollset_t (const ThreadCtx &ctx_) :
     ctx (ctx_), stopping (false)
 {
     pollset_fd = pollset_create (-1);
     errno_assert (pollset_fd != -1);
 }
 
-zmq::pollset_t::~pollset_t ()
+pollset_t::~pollset_t ()
 {
     //  Wait till the worker thread exits.
     worker.stop ();
@@ -116,7 +116,7 @@ zmq::pollset_t::~pollset_t ()
         LIBZMQ_DELETE (*it);
 }
 
-zmq::pollset_t::handle_t zmq::pollset_t::add_fd (fd_t fd_,
+pollset_t::handle_t pollset_t::add_fd (fd_t fd_,
                                                  i_poll_events *events_)
 {
     poll_entry_t *pe = new (std::nothrow) poll_entry_t;
@@ -145,7 +145,7 @@ zmq::pollset_t::handle_t zmq::pollset_t::add_fd (fd_t fd_,
     return pe;
 }
 
-void zmq::pollset_t::rm_fd (handle_t handle_)
+void pollset_t::rm_fd (handle_t handle_)
 {
     poll_entry_t *pe = (poll_entry_t *) handle_;
 
@@ -164,7 +164,7 @@ void zmq::pollset_t::rm_fd (handle_t handle_)
     adjust_load (-1);
 }
 
-void zmq::pollset_t::set_pollin (handle_t handle_)
+void pollset_t::set_pollin (handle_t handle_)
 {
     poll_entry_t *pe = (poll_entry_t *) handle_;
     if (likely (!pe->flag_pollin)) {
@@ -180,7 +180,7 @@ void zmq::pollset_t::set_pollin (handle_t handle_)
     }
 }
 
-void zmq::pollset_t::reset_pollin (handle_t handle_)
+void pollset_t::reset_pollin (handle_t handle_)
 {
     poll_entry_t *pe = (poll_entry_t *) handle_;
     if (unlikely (!pe->flag_pollin)) {
@@ -204,7 +204,7 @@ void zmq::pollset_t::reset_pollin (handle_t handle_)
     pe->flag_pollin = false;
 }
 
-void zmq::pollset_t::set_pollout (handle_t handle_)
+void pollset_t::set_pollout (handle_t handle_)
 {
     poll_entry_t *pe = (poll_entry_t *) handle_;
     if (likely (!pe->flag_pollout)) {
@@ -220,7 +220,7 @@ void zmq::pollset_t::set_pollout (handle_t handle_)
     }
 }
 
-void zmq::pollset_t::reset_pollout (handle_t handle_)
+void pollset_t::reset_pollout (handle_t handle_)
 {
     poll_entry_t *pe = (poll_entry_t *) handle_;
     if (unlikely (!pe->flag_pollout)) {
@@ -244,22 +244,22 @@ void zmq::pollset_t::reset_pollout (handle_t handle_)
     pe->flag_pollout = false;
 }
 
-void zmq::pollset_t::start ()
+void pollset_t::start ()
 {
     ctx.start_thread (worker, worker_routine, this);
 }
 
-void zmq::pollset_t::stop ()
+void pollset_t::stop ()
 {
     stopping = true;
 }
 
-int zmq::pollset_t::max_fds ()
+int pollset_t::max_fds ()
 {
     return -1;
 }
 
-void zmq::pollset_t::loop ()
+void pollset_t::loop ()
 {
     struct pollfd polldata_array[max_io_events];
 
@@ -302,7 +302,7 @@ void zmq::pollset_t::loop ()
     }
 }
 
-void zmq::pollset_t::worker_routine (arg_: *mut c_void)
+void pollset_t::worker_routine (arg_: *mut c_void)
 {
     ((pollset_t *) arg_)->loop ();
 }

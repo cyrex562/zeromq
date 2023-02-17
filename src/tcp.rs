@@ -54,7 +54,7 @@
 // #include <TargetConditionals.h>
 // #endif
 
-int zmq::tune_tcp_socket (fd_t s_)
+int tune_tcp_socket (fd_t s_)
 {
     //  Disable Nagle's algorithm. We are doing data batching on 0MQ level,
     //  so using Nagle wouldn't improve throughput in anyway, but it would
@@ -77,7 +77,7 @@ int zmq::tune_tcp_socket (fd_t s_)
     return rc;
 }
 
-int zmq::set_tcp_send_buffer (fd_t sockfd_, bufsize_: i32)
+int set_tcp_send_buffer (fd_t sockfd_, bufsize_: i32)
 {
     let rc: i32 =
       setsockopt (sockfd_, SOL_SOCKET, SO_SNDBUF,
@@ -86,7 +86,7 @@ int zmq::set_tcp_send_buffer (fd_t sockfd_, bufsize_: i32)
     return rc;
 }
 
-int zmq::set_tcp_receive_buffer (fd_t sockfd_, bufsize_: i32)
+int set_tcp_receive_buffer (fd_t sockfd_, bufsize_: i32)
 {
     let rc: i32 =
       setsockopt (sockfd_, SOL_SOCKET, SO_RCVBUF,
@@ -95,7 +95,7 @@ int zmq::set_tcp_receive_buffer (fd_t sockfd_, bufsize_: i32)
     return rc;
 }
 
-int zmq::tune_tcp_keepalives (fd_t s_,
+int tune_tcp_keepalives (fd_t s_,
                               keepalive_: i32,
                               keepalive_cnt_: i32,
                               keepalive_idle_: i32,
@@ -184,7 +184,7 @@ int zmq::tune_tcp_keepalives (fd_t s_,
     return 0;
 }
 
-int zmq::tune_tcp_maxrt (fd_t sockfd_, timeout_: i32)
+int tune_tcp_maxrt (fd_t sockfd_, timeout_: i32)
 {
     if (timeout_ <= 0)
         return 0;
@@ -210,7 +210,7 @@ int zmq::tune_tcp_maxrt (fd_t sockfd_, timeout_: i32)
 // #endif
 }
 
-int zmq::tcp_write (fd_t s_, const data: *mut c_void, size: usize)
+int tcp_write (fd_t s_, const data: *mut c_void, size: usize)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
 
@@ -269,7 +269,7 @@ int zmq::tcp_write (fd_t s_, const data: *mut c_void, size: usize)
 // #endif
 }
 
-int zmq::tcp_read (fd_t s_, data: *mut c_void, size: usize)
+int tcp_read (fd_t s_, data: *mut c_void, size: usize)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
 
@@ -317,7 +317,7 @@ int zmq::tcp_read (fd_t s_, data: *mut c_void, size: usize)
 // #endif
 }
 
-void zmq::tcp_tune_loopback_fast_path (const fd_t socket_)
+void tcp_tune_loopback_fast_path (const fd_t socket_)
 {
 // #if defined ZMQ_HAVE_WINDOWS && defined SIO_LOOPBACK_FAST_PATH
     int sio_loopback_fastpath = 1;
@@ -341,7 +341,7 @@ void zmq::tcp_tune_loopback_fast_path (const fd_t socket_)
 // #endif
 }
 
-void zmq::tune_tcp_busy_poll (fd_t socket_, busy_poll_: i32)
+void tune_tcp_busy_poll (fd_t socket_, busy_poll_: i32)
 {
 // #if defined(ZMQ_HAVE_BUSY_POLL)
     if (busy_poll_ > 0) {
@@ -356,11 +356,11 @@ void zmq::tune_tcp_busy_poll (fd_t socket_, busy_poll_: i32)
 // #endif
 }
 
-zmq::fd_t zmq::tcp_open_socket (address_: *const c_char,
-                                const zmq::ZmqOptions &options_,
+fd_t tcp_open_socket (address_: *const c_char,
+                                const ZmqOptions &options_,
                                 bool local_,
                                 bool fallback_to_ipv4_,
-                                zmq::TcpAddress *out_tcp_addr_)
+                                TcpAddress *out_tcp_addr_)
 {
     //  Convert the textual address into address structure.
     int rc = out_tcp_addr_->resolve (address_, local_, options_.ipv6);

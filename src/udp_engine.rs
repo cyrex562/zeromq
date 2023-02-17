@@ -66,7 +66,7 @@ pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
 
     //  i_engine interface implementation.
     //  Plug the engine to the session.
-    void plug (zmq::io_thread_t *io_thread_, class session_base_t *session_);
+    void plug (io_thread_t *io_thread_, class session_base_t *session_);
 
     //  Terminate and deallocate the engine. Note that 'detached'
     //  events are not fired on termination.
@@ -128,7 +128,7 @@ pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     bool _recv_enabled;
 };
 
-zmq::udp_engine_t::udp_engine_t (const ZmqOptions &options_) :
+udp_engine_t::udp_engine_t (const ZmqOptions &options_) :
     _plugged (false),
     _fd (-1),
     _session (NULL),
@@ -140,7 +140,7 @@ zmq::udp_engine_t::udp_engine_t (const ZmqOptions &options_) :
 {
 }
 
-zmq::udp_engine_t::~udp_engine_t ()
+udp_engine_t::~udp_engine_t ()
 {
     zmq_assert (!_plugged);
 
@@ -156,7 +156,7 @@ zmq::udp_engine_t::~udp_engine_t ()
     }
 }
 
-int zmq::udp_engine_t::init (Address *address_, bool send_, bool recv_)
+int udp_engine_t::init (Address *address_, bool send_, bool recv_)
 {
     zmq_assert (address_);
     zmq_assert (send_ || recv_);
@@ -174,7 +174,7 @@ int zmq::udp_engine_t::init (Address *address_, bool send_, bool recv_)
     return 0;
 }
 
-void zmq::udp_engine_t::plug (io_thread_t *io_thread_, session_base_t *session_)
+void udp_engine_t::plug (io_thread_t *io_thread_, session_base_t *session_)
 {
     zmq_assert (!_plugged);
     _plugged = true;
@@ -293,7 +293,7 @@ void zmq::udp_engine_t::plug (io_thread_t *io_thread_, session_base_t *session_)
     }
 }
 
-int zmq::udp_engine_t::set_udp_multicast_loop (fd_t s_,
+int udp_engine_t::set_udp_multicast_loop (fd_t s_,
                                                bool is_ipv6_,
                                                bool loop_)
 {
@@ -315,7 +315,7 @@ int zmq::udp_engine_t::set_udp_multicast_loop (fd_t s_,
     return rc;
 }
 
-int zmq::udp_engine_t::set_udp_multicast_ttl (fd_t s_, bool is_ipv6_, hops_: i32)
+int udp_engine_t::set_udp_multicast_ttl (fd_t s_, bool is_ipv6_, hops_: i32)
 {
     level: i32;
 
@@ -332,7 +332,7 @@ int zmq::udp_engine_t::set_udp_multicast_ttl (fd_t s_, bool is_ipv6_, hops_: i32
     return rc;
 }
 
-int zmq::udp_engine_t::set_udp_multicast_iface (fd_t s_,
+int udp_engine_t::set_udp_multicast_iface (fd_t s_,
                                                 bool is_ipv6_,
                                                 const UdpAddress *addr_)
 {
@@ -362,7 +362,7 @@ int zmq::udp_engine_t::set_udp_multicast_iface (fd_t s_,
     return rc;
 }
 
-int zmq::udp_engine_t::set_udp_reuse_address (fd_t s_, bool on_)
+int udp_engine_t::set_udp_reuse_address (fd_t s_, bool on_)
 {
     int on = on_ ? 1 : 0;
     let rc: i32 = setsockopt (s_, SOL_SOCKET, SO_REUSEADDR,
@@ -371,7 +371,7 @@ int zmq::udp_engine_t::set_udp_reuse_address (fd_t s_, bool on_)
     return rc;
 }
 
-int zmq::udp_engine_t::set_udp_reuse_port (fd_t s_, bool on_)
+int udp_engine_t::set_udp_reuse_port (fd_t s_, bool on_)
 {
 // #ifndef SO_REUSEPORT
     return 0;
@@ -384,7 +384,7 @@ int zmq::udp_engine_t::set_udp_reuse_port (fd_t s_, bool on_)
 // #endif
 }
 
-int zmq::udp_engine_t::add_membership (fd_t s_, const UdpAddress *addr_)
+int udp_engine_t::add_membership (fd_t s_, const UdpAddress *addr_)
 {
     const ip_addr_t *mcast_addr = addr_->target_addr ();
     int rc = 0;
@@ -414,14 +414,14 @@ int zmq::udp_engine_t::add_membership (fd_t s_, const UdpAddress *addr_)
     return rc;
 }
 
-void zmq::udp_engine_t::error (error_reason_t reason_)
+void udp_engine_t::error (error_reason_t reason_)
 {
     zmq_assert (_session);
     _session->engine_error (false, reason_);
     terminate ();
 }
 
-void zmq::udp_engine_t::terminate ()
+void udp_engine_t::terminate ()
 {
     zmq_assert (_plugged);
     _plugged = false;
@@ -434,7 +434,7 @@ void zmq::udp_engine_t::terminate ()
     delete this;
 }
 
-void zmq::udp_engine_t::sockaddr_to_msg (msg: &mut ZmqMessage
+void udp_engine_t::sockaddr_to_msg (msg: &mut ZmqMessage
                                          const sockaddr_in *addr_)
 {
     const char *const name = inet_ntoa (addr_->sin_addr);
@@ -462,7 +462,7 @@ void zmq::udp_engine_t::sockaddr_to_msg (msg: &mut ZmqMessage
     *address = 0;
 }
 
-int zmq::udp_engine_t::resolve_raw_address (name_: *const c_char, length_: usize)
+int udp_engine_t::resolve_raw_address (name_: *const c_char, length_: usize)
 {
     memset (&_raw_address, 0, sizeof _raw_address);
 
@@ -507,7 +507,7 @@ int zmq::udp_engine_t::resolve_raw_address (name_: *const c_char, length_: usize
     return 0;
 }
 
-void zmq::udp_engine_t::out_event ()
+void udp_engine_t::out_event ()
 {
     ZmqMessage group_msg;
     int rc = _session->pull_msg (&group_msg);
@@ -583,12 +583,12 @@ void zmq::udp_engine_t::out_event ()
     }
 }
 
-const zmq::endpoint_uri_pair_t &zmq::udp_engine_t::get_endpoint () const
+const endpoint_uri_pair_t &udp_engine_t::get_endpoint () const
 {
     return _empty_endpoint;
 }
 
-void zmq::udp_engine_t::restart_output ()
+void udp_engine_t::restart_output ()
 {
     //  If we don't support send we just drop all messages
     if (!_send_enabled) {
@@ -601,7 +601,7 @@ void zmq::udp_engine_t::restart_output ()
     }
 }
 
-void zmq::udp_engine_t::in_event ()
+void udp_engine_t::in_event ()
 {
     sockaddr_storage in_address;
     ZmqSocklen in_addrlen =
@@ -691,7 +691,7 @@ void zmq::udp_engine_t::in_event ()
     _session->flush ();
 }
 
-bool zmq::udp_engine_t::restart_input ()
+bool udp_engine_t::restart_input ()
 {
     if (_recv_enabled) {
         set_pollin (_handle);

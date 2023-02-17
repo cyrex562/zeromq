@@ -73,7 +73,7 @@ pub struct mailbox_t ZMQ_FINAL : public i_mailbox
     ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_t)
 };
 
-zmq::mailbox_t::mailbox_t ()
+mailbox_t::mailbox_t ()
 {
     //  Get the pipe into passive state. That way, if the users starts by
     //  polling on the associated file descriptor it will get woken up when
@@ -83,7 +83,7 @@ zmq::mailbox_t::mailbox_t ()
     _active = false;
 }
 
-zmq::mailbox_t::~mailbox_t ()
+mailbox_t::~mailbox_t ()
 {
     //  TODO: Retrieve and deallocate commands inside the _cpipe.
 
@@ -93,12 +93,12 @@ zmq::mailbox_t::~mailbox_t ()
     _sync.unlock ();
 }
 
-zmq::fd_t zmq::mailbox_t::get_fd () const
+fd_t mailbox_t::get_fd () const
 {
     return _signaler.get_fd ();
 }
 
-void zmq::mailbox_t::send (const ZmqCommand &cmd_)
+void mailbox_t::send (const ZmqCommand &cmd_)
 {
     _sync.lock ();
     _cpipe.write (cmd_, false);
@@ -108,7 +108,7 @@ void zmq::mailbox_t::send (const ZmqCommand &cmd_)
         _signaler.send ();
 }
 
-int zmq::mailbox_t::recv (ZmqCommand *cmd_, timeout_: i32)
+int mailbox_t::recv (ZmqCommand *cmd_, timeout_: i32)
 {
     //  Try to get the command straight away.
     if (_active) {
@@ -142,7 +142,7 @@ int zmq::mailbox_t::recv (ZmqCommand *cmd_, timeout_: i32)
     return 0;
 }
 
-bool zmq::mailbox_t::valid () const
+bool mailbox_t::valid () const
 {
     return _signaler.valid ();
 }

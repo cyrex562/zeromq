@@ -56,8 +56,8 @@ pub struct tipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
-    tipc_connecter_t (zmq::io_thread_t *io_thread_,
-                      zmq::session_base_t *session_,
+    tipc_connecter_t (io_thread_t *io_thread_,
+                      session_base_t *session_,
                       const ZmqOptions &options_,
                       Address *addr_,
                       bool delayed_start_);
@@ -81,7 +81,7 @@ pub struct tipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (tipc_connecter_t)
 };
 
-zmq::tipc_connecter_t::tipc_connecter_t (class io_thread_t *io_thread_,
+tipc_connecter_t::tipc_connecter_t (class io_thread_t *io_thread_,
 pub struct session_base_t *session_,
                                          const ZmqOptions &options_,
                                          Address *addr_,
@@ -92,7 +92,7 @@ pub struct session_base_t *session_,
     zmq_assert (_addr->protocol == "tipc");
 }
 
-void zmq::tipc_connecter_t::out_event ()
+void tipc_connecter_t::out_event ()
 {
     fd_t fd = connect ();
     rm_handle ();
@@ -107,7 +107,7 @@ void zmq::tipc_connecter_t::out_event ()
     create_engine (fd, get_socket_name<TipcAddress> (fd, SocketEndLocal));
 }
 
-void zmq::tipc_connecter_t::start_connecting ()
+void tipc_connecter_t::start_connecting ()
 {
     //  Open the connecting socket.
     int rc = open ();
@@ -134,7 +134,7 @@ void zmq::tipc_connecter_t::start_connecting ()
     }
 }
 
-int zmq::tipc_connecter_t::open ()
+int tipc_connecter_t::open ()
 {
     zmq_assert (_s == retired_fd);
 
@@ -172,7 +172,7 @@ int zmq::tipc_connecter_t::open ()
     return -1;
 }
 
-zmq::fd_t zmq::tipc_connecter_t::connect ()
+fd_t tipc_connecter_t::connect ()
 {
     //  Following code should handle both Berkeley-derived socket
     //  implementations and Solaris.

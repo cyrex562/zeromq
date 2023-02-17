@@ -156,3 +156,6 @@ mod zmq_utils;
 mod zmtp_engine;
 mod thread_ctx;
 mod pending_connection;
+mod zmq_content;
+mod zmq_poller_event;
+mod zmq_poll_item;

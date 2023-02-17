@@ -54,7 +54,7 @@
 pub struct vmci_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
-    vmci_listener_t (zmq::io_thread_t *io_thread_,
+    vmci_listener_t (io_thread_t *io_thread_,
                      socket_: *mut ZmqSocketBase,
                      const ZmqOptions &options_);
 
@@ -81,14 +81,14 @@ pub struct vmci_listener_t ZMQ_FINAL : public stream_listener_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (vmci_listener_t)
 };
 
-zmq::vmci_listener_t::vmci_listener_t (io_thread_t *io_thread_,
+vmci_listener_t::vmci_listener_t (io_thread_t *io_thread_,
                                        ZmqSocketBase *socket_,
                                        const ZmqOptions &options_) :
     stream_listener_base_t (io_thread_, socket_, options_)
 {
 }
 
-void zmq::vmci_listener_t::in_event ()
+void vmci_listener_t::in_event ()
 {
     fd_t fd = accept ();
 
@@ -118,7 +118,7 @@ void zmq::vmci_listener_t::in_event ()
 }
 
 std::string
-zmq::vmci_listener_t::get_socket_name (zmq::fd_t fd_,
+vmci_listener_t::get_socket_name (fd_t fd_,
                                        SocketEnd socket_end_) const
 {
     struct sockaddr_storage ss;
@@ -134,7 +134,7 @@ zmq::vmci_listener_t::get_socket_name (zmq::fd_t fd_,
     return address_string;
 }
 
-int zmq::vmci_listener_t::set_local_address (addr_: *const c_char)
+int vmci_listener_t::set_local_address (addr_: *const c_char)
 {
     //  Create addr on stack for auto-cleanup
     std::string addr (addr_);
@@ -200,7 +200,7 @@ error:
     return -1;
 }
 
-zmq::fd_t zmq::vmci_listener_t::accept ()
+fd_t vmci_listener_t::accept ()
 {
     //  Accept one connection and deal with different failure modes.
     //  The situation where connection cannot be accepted due to insufficient

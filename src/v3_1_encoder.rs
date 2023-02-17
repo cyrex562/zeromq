@@ -50,18 +50,18 @@ pub struct v3_1_encoder_t ZMQ_FINAL : public encoder_base_t<v3_1_encoder_t>
     ZMQ_NON_COPYABLE_NOR_MOVABLE (v3_1_encoder_t)
 };
 
-zmq::v3_1_encoder_t::v3_1_encoder_t (bufsize_: usize) :
+v3_1_encoder_t::v3_1_encoder_t (bufsize_: usize) :
     encoder_base_t<v3_1_encoder_t> (bufsize_)
 {
     //  Write 0 bytes to the batch and go to message_ready state.
     next_step (NULL, 0, &v3_1_encoder_t::message_ready, true);
 }
 
-zmq::v3_1_encoder_t::~v3_1_encoder_t ()
+v3_1_encoder_t::~v3_1_encoder_t ()
 {
 }
 
-void zmq::v3_1_encoder_t::message_ready ()
+void v3_1_encoder_t::message_ready ()
 {
     //  Encode flags.
     size_t size = in_progress ()->size ();
@@ -99,11 +99,11 @@ void zmq::v3_1_encoder_t::message_ready ()
     //  be avoided. This processing can be moved to xsub once support for
     //  ZMTP < 3.1 is dropped.
     if (in_progress ()->is_subscribe ()) {
-        memcpy (_tmp_buf + header_size, zmq::sub_cmd_name,
+        memcpy (_tmp_buf + header_size, sub_cmd_name,
                 ZmqMessage::sub_cmd_name_size);
         header_size += ZmqMessage::sub_cmd_name_size;
     } else if (in_progress ()->is_cancel ()) {
-        memcpy (_tmp_buf + header_size, zmq::cancel_cmd_name,
+        memcpy (_tmp_buf + header_size, cancel_cmd_name,
                 ZmqMessage::cancel_cmd_name_size);
         header_size += ZmqMessage::cancel_cmd_name_size;
     }
@@ -111,7 +111,7 @@ void zmq::v3_1_encoder_t::message_ready ()
     next_step (_tmp_buf, header_size, &v3_1_encoder_t::size_ready, false);
 }
 
-void zmq::v3_1_encoder_t::size_ready ()
+void v3_1_encoder_t::size_ready ()
 {
     //  Write message body into the buffer.
     next_step (in_progress ()->data (), in_progress ()->size (),

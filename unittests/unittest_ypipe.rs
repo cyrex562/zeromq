@@ -32,18 +32,18 @@ void tearDown ()
 
 void test_create ()
 {
-    zmq::ypipe_t<int, 1> ypipe;
+    ypipe_t<int, 1> ypipe;
 }
 
 void test_check_read_empty ()
 {
-    zmq::ypipe_t<int, 1> ypipe;
+    ypipe_t<int, 1> ypipe;
     TEST_ASSERT_FALSE (ypipe.check_read ());
 }
 
 void test_read_empty ()
 {
-    zmq::ypipe_t<int, 1> ypipe;
+    ypipe_t<int, 1> ypipe;
     int read_value = -1;
     TEST_ASSERT_FALSE (ypipe.read (&read_value));
     TEST_ASSERT_EQUAL (-1, read_value);
@@ -52,7 +52,7 @@ void test_read_empty ()
 void test_write_complete_and_check_read_and_read ()
 {
     let value: i32 = 42;
-    zmq::ypipe_t<int, 1> ypipe;
+    ypipe_t<int, 1> ypipe;
     ypipe.write (value, false);
     TEST_ASSERT_FALSE (ypipe.check_read ());
     int read_value = -1;
@@ -63,7 +63,7 @@ void test_write_complete_and_check_read_and_read ()
 void test_write_complete_and_flush_and_check_read_and_read ()
 {
     let value: i32 = 42;
-    zmq::ypipe_t<int, 1> ypipe;
+    ypipe_t<int, 1> ypipe;
     ypipe.write (value, false);
     ypipe.flush ();
     TEST_ASSERT_TRUE (ypipe.check_read ());

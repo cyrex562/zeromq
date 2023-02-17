@@ -41,11 +41,11 @@
 pub struct router_t : public routing_socket_base_t
 {
 // public:
-    router_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    router_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~router_t () ZMQ_OVERRIDE;
 
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (zmq::pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_) ZMQ_FINAL;
     int
@@ -54,8 +54,8 @@ pub struct router_t : public routing_socket_base_t
     int xrecv (ZmqMessage *msg) ZMQ_OVERRIDE;
     bool xhas_in () ZMQ_OVERRIDE;
     bool xhas_out () ZMQ_OVERRIDE;
-    void xread_activated (zmq::pipe_t *pipe_) ZMQ_FINAL;
-    void xpipe_terminated (zmq::pipe_t *pipe_) ZMQ_FINAL;
+    void xread_activated (pipe_t *pipe_) ZMQ_FINAL;
+    void xpipe_terminated (pipe_t *pipe_) ZMQ_FINAL;
     int get_peer_state (const routing_id_: *mut c_void,
                         routing_id_size_: usize) const ZMQ_FINAL;
 
@@ -84,7 +84,7 @@ pub struct router_t : public routing_socket_base_t
     ZmqMessage _prefetched_msg;
 
     //  The pipe we are currently reading from
-    zmq::pipe_t *_current_in;
+    pipe_t *_current_in;
 
     //  Should current_in should be terminate after all parts received?
     bool _terminate_current_in;
@@ -96,7 +96,7 @@ pub struct router_t : public routing_socket_base_t
     std::set<pipe_t *> _anonymous_pipes;
 
     //  The pipe we are currently writing to.
-    zmq::pipe_t *_current_out;
+    pipe_t *_current_out;
 
     //  If true, more outgoing message parts are expected.
     bool _more_out;
@@ -121,7 +121,7 @@ pub struct router_t : public routing_socket_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (router_t)
 };
 
-zmq::router_t::router_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+router_t::router_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     routing_socket_base_t (parent_, tid_, sid_),
     _prefetched (false),
     _routing_id_sent (false),
@@ -147,14 +147,14 @@ zmq::router_t::router_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     _prefetched_msg.init ();
 }
 
-zmq::router_t::~router_t ()
+router_t::~router_t ()
 {
     zmq_assert (_anonymous_pipes.empty ());
     _prefetched_id.close ();
     _prefetched_msg.close ();
 }
 
-void zmq::router_t::xattach_pipe (pipe_t *pipe_,
+void router_t::xattach_pipe (pipe_t *pipe_,
                                   bool subscribe_to_all_,
                                   bool locally_initiated_)
 {
@@ -184,7 +184,7 @@ void zmq::router_t::xattach_pipe (pipe_t *pipe_,
         _anonymous_pipes.insert (pipe_);
 }
 
-int zmq::router_t::xsetsockopt (option_: i32,
+int router_t::xsetsockopt (option_: i32,
                                 const optval_: *mut c_void,
                                 optvallen_: usize)
 {
@@ -245,7 +245,7 @@ int zmq::router_t::xsetsockopt (option_: i32,
 }
 
 
-void zmq::router_t::xpipe_terminated (pipe_t *pipe_)
+void router_t::xpipe_terminated (pipe_t *pipe_)
 {
     if (0 == _anonymous_pipes.erase (pipe_)) {
         erase_out_pipe (pipe_);
@@ -256,7 +256,7 @@ void zmq::router_t::xpipe_terminated (pipe_t *pipe_)
     }
 }
 
-void zmq::router_t::xread_activated (pipe_t *pipe_)
+void router_t::xread_activated (pipe_t *pipe_)
 {
     const std::set<pipe_t *>::iterator it = _anonymous_pipes.find (pipe_);
     if (it == _anonymous_pipes.end ())
@@ -270,7 +270,7 @@ void zmq::router_t::xread_activated (pipe_t *pipe_)
     }
 }
 
-int zmq::router_t::xsend (ZmqMessage *msg)
+int router_t::xsend (ZmqMessage *msg)
 {
     //  If this is the first part of the message it's the ID of the
     //  peer to send the message to.
@@ -288,7 +288,7 @@ int zmq::router_t::xsend (ZmqMessage *msg)
             //  router_mandatory is set.
             out_pipe_t *out_pipe = lookup_out_pipe (
               Blob (static_cast<unsigned char *> (msg->data ()),
-                      msg->size (), zmq::ReferenceTag ()));
+                      msg->size (), ReferenceTag ()));
 
             if (out_pipe) {
                 _current_out = out_pipe->pipe;
@@ -372,7 +372,7 @@ int zmq::router_t::xsend (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::router_t::xrecv (ZmqMessage *msg)
+int router_t::xrecv (ZmqMessage *msg)
 {
     if (_prefetched) {
         if (!_routing_id_sent) {
@@ -443,7 +443,7 @@ int zmq::router_t::xrecv (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::router_t::rollback ()
+int router_t::rollback ()
 {
     if (_current_out) {
         _current_out->rollback ();
@@ -453,7 +453,7 @@ int zmq::router_t::rollback ()
     return 0;
 }
 
-bool zmq::router_t::xhas_in ()
+bool router_t::xhas_in ()
 {
     //  If we are in the middle of reading the messages, there are
     //  definitely more parts available.
@@ -496,12 +496,12 @@ bool zmq::router_t::xhas_in ()
     return true;
 }
 
-static bool check_pipe_hwm (const zmq::pipe_t &pipe_)
+static bool check_pipe_hwm (const pipe_t &pipe_)
 {
     return pipe_.check_hwm ();
 }
 
-bool zmq::router_t::xhas_out ()
+bool router_t::xhas_out ()
 {
     //  In theory, ROUTER socket is always ready for writing (except when
     //  MANDATORY is set). Whether actual attempt to write succeeds depends
@@ -513,7 +513,7 @@ bool zmq::router_t::xhas_out ()
     return any_of_out_pipes (check_pipe_hwm);
 }
 
-int zmq::router_t::get_peer_state (const routing_id_: *mut c_void,
+int router_t::get_peer_state (const routing_id_: *mut c_void,
                                    routing_id_size_: usize) const
 {
     int res = 0;
@@ -536,7 +536,7 @@ int zmq::router_t::get_peer_state (const routing_id_: *mut c_void,
     return res;
 }
 
-bool zmq::router_t::identify_peer (pipe_t *pipe_, bool locally_initiated_)
+bool router_t::identify_peer (pipe_t *pipe_, bool locally_initiated_)
 {
     ZmqMessage msg;
     Blob routing_id;

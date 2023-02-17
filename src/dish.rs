@@ -36,22 +36,22 @@
 pub struct dish_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
-    dish_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    dish_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~dish_t ();
 
   protected:
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (zmq::pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
     int xsend (ZmqMessage *msg);
     bool xhas_out ();
     int xrecv (ZmqMessage *msg);
     bool xhas_in ();
-    void xread_activated (zmq::pipe_t *pipe_);
-    void xwrite_activated (zmq::pipe_t *pipe_);
+    void xread_activated (pipe_t *pipe_);
+    void xwrite_activated (pipe_t *pipe_);
     void xhiccuped (pipe_t *pipe_);
-    void xpipe_terminated (zmq::pipe_t *pipe_);
+    void xpipe_terminated (pipe_t *pipe_);
     int xjoin (group_: *const c_char);
     int xleave (group_: *const c_char);
 
@@ -81,7 +81,7 @@ pub struct dish_t ZMQ_FINAL : public ZmqSocketBase
 pub struct dish_session_t ZMQ_FINAL : public session_base_t
 {
 // public:
-    dish_session_t (zmq::io_thread_t *io_thread_,
+    dish_session_t (io_thread_t *io_thread_,
                     bool connect_,
                     socket_: *mut ZmqSocketBase,
                     const ZmqOptions &options_,
@@ -105,7 +105,7 @@ pub struct dish_session_t ZMQ_FINAL : public session_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dish_session_t)
 };
 
-zmq::dish_t::dish_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+dish_t::dish_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_, true), _has_message (false)
 {
     options.type = ZMQ_DISH;
@@ -118,13 +118,13 @@ zmq::dish_t::dish_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     errno_assert (rc == 0);
 }
 
-zmq::dish_t::~dish_t ()
+dish_t::~dish_t ()
 {
     let rc: i32 = _message.close ();
     errno_assert (rc == 0);
 }
 
-void zmq::dish_t::xattach_pipe (pipe_t *pipe_,
+void dish_t::xattach_pipe (pipe_t *pipe_,
                                 bool subscribe_to_all_,
                                 bool locally_initiated_)
 {
@@ -139,29 +139,29 @@ void zmq::dish_t::xattach_pipe (pipe_t *pipe_,
     send_subscriptions (pipe_);
 }
 
-void zmq::dish_t::xread_activated (pipe_t *pipe_)
+void dish_t::xread_activated (pipe_t *pipe_)
 {
     _fq.activated (pipe_);
 }
 
-void zmq::dish_t::xwrite_activated (pipe_t *pipe_)
+void dish_t::xwrite_activated (pipe_t *pipe_)
 {
     _dist.activated (pipe_);
 }
 
-void zmq::dish_t::xpipe_terminated (pipe_t *pipe_)
+void dish_t::xpipe_terminated (pipe_t *pipe_)
 {
     _fq.pipe_terminated (pipe_);
     _dist.pipe_terminated (pipe_);
 }
 
-void zmq::dish_t::xhiccuped (pipe_t *pipe_)
+void dish_t::xhiccuped (pipe_t *pipe_)
 {
     //  Send all the cached subscriptions to the hiccuped pipe.
     send_subscriptions (pipe_);
 }
 
-int zmq::dish_t::xjoin (group_: *const c_char)
+int dish_t::xjoin (group_: *const c_char)
 {
     const std::string group = std::string (group_);
 
@@ -194,7 +194,7 @@ int zmq::dish_t::xjoin (group_: *const c_char)
     return rc;
 }
 
-int zmq::dish_t::xleave (group_: *const c_char)
+int dish_t::xleave (group_: *const c_char)
 {
     const std::string group = std::string (group_);
 
@@ -226,20 +226,20 @@ int zmq::dish_t::xleave (group_: *const c_char)
     return rc;
 }
 
-int zmq::dish_t::xsend (ZmqMessage *msg)
+int dish_t::xsend (ZmqMessage *msg)
 {
     LIBZMQ_UNUSED (msg);
     errno = ENOTSUP;
     return -1;
 }
 
-bool zmq::dish_t::xhas_out ()
+bool dish_t::xhas_out ()
 {
     //  Subscription can be added/removed anytime.
     return true;
 }
 
-int zmq::dish_t::xrecv (ZmqMessage *msg)
+int dish_t::xrecv (ZmqMessage *msg)
 {
     //  If there's already a message prepared by a previous call to zmq_poll,
     //  return it straight ahead.
@@ -253,7 +253,7 @@ int zmq::dish_t::xrecv (ZmqMessage *msg)
     return xxrecv (msg);
 }
 
-int zmq::dish_t::xxrecv (ZmqMessage *msg)
+int dish_t::xxrecv (ZmqMessage *msg)
 {
     do {
         //  Get a message using fair queueing algorithm.
@@ -271,7 +271,7 @@ int zmq::dish_t::xxrecv (ZmqMessage *msg)
     return 0;
 }
 
-bool zmq::dish_t::xhas_in ()
+bool dish_t::xhas_in ()
 {
     //  If there's already a message prepared by a previous call to zmq_poll,
     //  return straight ahead.
@@ -289,7 +289,7 @@ bool zmq::dish_t::xhas_in ()
     return true;
 }
 
-void zmq::dish_t::send_subscriptions (pipe_t *pipe_)
+void dish_t::send_subscriptions (pipe_t *pipe_)
 {
     for (subscriptions_t::iterator it = _subscriptions.begin (),
                                    end = _subscriptions.end ();
@@ -308,7 +308,7 @@ void zmq::dish_t::send_subscriptions (pipe_t *pipe_)
     pipe_->flush ();
 }
 
-zmq::dish_session_t::dish_session_t (io_thread_t *io_thread_,
+dish_session_t::dish_session_t (io_thread_t *io_thread_,
                                      bool connect_,
                                      ZmqSocketBase *socket_,
                                      const ZmqOptions &options_,
@@ -318,11 +318,11 @@ zmq::dish_session_t::dish_session_t (io_thread_t *io_thread_,
 {
 }
 
-zmq::dish_session_t::~dish_session_t ()
+dish_session_t::~dish_session_t ()
 {
 }
 
-int zmq::dish_session_t::push_msg (ZmqMessage *msg)
+int dish_session_t::push_msg (ZmqMessage *msg)
 {
     if (_state == group) {
         if ((msg->flags () & ZmqMessage::more) != ZmqMessage::more) {
@@ -371,7 +371,7 @@ has_group:
     return rc;
 }
 
-int zmq::dish_session_t::pull_msg (ZmqMessage *msg)
+int dish_session_t::pull_msg (ZmqMessage *msg)
 {
     int rc = session_base_t::pull_msg (msg);
 
@@ -413,7 +413,7 @@ int zmq::dish_session_t::pull_msg (ZmqMessage *msg)
     return 0;
 }
 
-void zmq::dish_session_t::reset ()
+void dish_session_t::reset ()
 {
     session_base_t::reset ();
     _state = group;

@@ -29,11 +29,11 @@ SYNOPSIS
 *int zmq_poller_remove_fd (void '*poller', int 'fd');*
 
 *int zmq_poller_wait (void '*poller',
-                          zmq_poller_event_t '*event',
+                          ZmqPollerEvent '*event',
                           long 'timeout');*
 
 *int zmq_poller_wait_all (void '*poller',
-                          zmq_poller_event_t '*events',
+                          ZmqPollerEvent '*events',
                           int 'n_events',
                           long 'timeout');*
 
@@ -98,7 +98,7 @@ WinSock sockets.
 In the following, 0MQ sockets added with _zmq_poller_add_ and file descriptors
 added with _zmq_poller_add_fd_ are referred to as 'registered objects'.
 
-The *zmq_poller_event_t* structure is defined as follows:
+The *ZmqPollerEvent* structure is defined as follows:
 
 ["literal", subs="quotes"]
 typedef struct
@@ -107,7 +107,7 @@ typedef struct
     zmq_fd_t fd;
     user_data: *mut c_void;
     short events;
-} zmq_poller_event_t;
+} ZmqPollerEvent;
 
 For each registered object, _zmq_poller_wait_all()_ shall examine the
 registered objects for the event(s) currently registered.
@@ -157,7 +157,7 @@ EVENT TYPES
 -----------
 
 The 'events' parameter of _zmq_poller_add_ and _zmq_poller_modify_, and the
-'events' member of the zmq_poller_event_t structure are bit masks constructed
+'events' member of the ZmqPollerEvent structure are bit masks constructed
 by OR'ing a combination of the following event flags:
 
 *ZMQ_POLLIN*::
@@ -175,7 +175,7 @@ written to 'fd' without blocking.
 *ZMQ_POLLERR*::
 For 0MQ sockets this flag has no effect on the _zmq_poller_add_ and
 _zmq_poller_modify_ functions, and is never set in the
-'events' member of the zmq_poller_event_t structure.
+'events' member of the ZmqPollerEvent structure.
 For standard sockets, this flag is passed through _zmq_poller_wait_all_ to the
 underlying _poll()_ system call and generally means that some sort of error
 condition is present on the socket specified by 'fd'.
@@ -183,7 +183,7 @@ condition is present on the socket specified by 'fd'.
 *ZMQ_POLLPRI*::
 For 0MQ sockets this flag has no effect on the _zmq_poller_add_ and
 _zmq_poller_modify_ functions, and is never set in the
-'events' member of the zmq_poller_event_t structure.
+'events' member of the ZmqPollerEvent structure.
 For standard sockets this means there
 is urgent data to read. Refer to the POLLPRI flag for more information.
 For a file descriptor, refer to your OS documentation: as an example, GPIO
@@ -304,7 +304,7 @@ zmq_poller_add (poller, socket, NULL, ZMQ_POLLIN);
 /* Second item refers to standard socket 'fd' */
 zmq_poller_add_fd (poller, fd, NULL, ZMQ_POLLIN);
 
-zmq_poller_event_t events [2];
+ZmqPollerEvent events [2];
 /* Poll for events indefinitely */
 int rc = zmq_poller_wait_all (poller, events, 2, -1);
 assert (rc >= 0);

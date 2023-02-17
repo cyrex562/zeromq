@@ -39,24 +39,24 @@ void tearDown ()
 
 void test_create ()
 {
-    zmq::ThreadCtx thread_ctx;
-    zmq::poller_t poller (thread_ctx);
+    ThreadCtx thread_ctx;
+    poller_t poller (thread_ctx);
 }
 
 #if 0
 // TODO this triggers an assertion. should it be a valid use case?
 void test_start_empty ()
 {
-    zmq::ThreadCtx thread_ctx;
-    zmq::poller_t poller (thread_ctx);
+    ThreadCtx thread_ctx;
+    poller_t poller (thread_ctx);
     poller.start ();
     msleep (SETTLE_TIME);
 }
 // #endif
 
-struct test_events_t : zmq::i_poll_events
+struct test_events_t : i_poll_events
 {
-    test_events_t (zmq::fd_t fd_, zmq::poller_t &poller_) :
+    test_events_t (fd_t fd_, poller_t &poller_) :
         _fd (fd_),
         _poller (poller_)
     {
@@ -66,7 +66,7 @@ struct test_events_t : zmq::i_poll_events
     void in_event () ZMQ_OVERRIDE
     {
         _poller.rm_fd (_handle);
-        _handle = (zmq::poller_t::handle_t) NULL;
+        _handle = (poller_t::handle_t) NULL;
 
         // this must only be incremented after rm_fd
         in_events.add (1);
@@ -83,20 +83,20 @@ struct test_events_t : zmq::i_poll_events
     {
         LIBZMQ_UNUSED (id_);
         _poller.rm_fd (_handle);
-        _handle = (zmq::poller_t::handle_t) NULL;
+        _handle = (poller_t::handle_t) NULL;
 
         // this must only be incremented after rm_fd
         timer_events.add (1);
     }
 
-    void set_handle (zmq::poller_t::handle_t handle_) { _handle = handle_; }
+    void set_handle (poller_t::handle_t handle_) { _handle = handle_; }
 
-    zmq::AtomicCounter in_events, timer_events;
+    AtomicCounter in_events, timer_events;
 
   // private:
-    zmq::fd_t _fd;
-    zmq::poller_t &_poller;
-    zmq::poller_t::handle_t _handle;
+    fd_t _fd;
+    poller_t &_poller;
+    poller_t::handle_t _handle;
 };
 
 void wait_in_events (test_events_t &events_)
@@ -127,17 +127,17 @@ void wait_timer_events (test_events_t &events_)
     zmq_stopwatch_stop (watch);
 }
 
-void create_nonblocking_fdpair (zmq::fd_t *r_, zmq::fd_t *w_)
+void create_nonblocking_fdpair (fd_t *r_, fd_t *w_)
 {
-    int rc = zmq::make_fdpair (r_, w_);
+    int rc = make_fdpair (r_, w_);
     TEST_ASSERT_EQUAL_INT (0, rc);
-    TEST_ASSERT_NOT_EQUAL (zmq::retired_fd, *r_);
-    TEST_ASSERT_NOT_EQUAL (zmq::retired_fd, *w_);
-    zmq::unblock_socket (*r_);
-    zmq::unblock_socket (*w_);
+    TEST_ASSERT_NOT_EQUAL (retired_fd, *r_);
+    TEST_ASSERT_NOT_EQUAL (retired_fd, *w_);
+    unblock_socket (*r_);
+    unblock_socket (*w_);
 }
 
-void send_signal (zmq::fd_t w_)
+void send_signal (fd_t w_)
 {
 // #if defined ZMQ_HAVE_EVENTFD
     const u64 inc = 1;
@@ -152,7 +152,7 @@ void send_signal (zmq::fd_t w_)
 // #endif
 }
 
-void close_fdpair (zmq::fd_t w_, zmq::fd_t r_)
+void close_fdpair (fd_t w_, fd_t r_)
 {
     int rc = closesocket (w_);
     TEST_ASSERT_EQUAL_INT (0, rc);
@@ -166,15 +166,15 @@ void close_fdpair (zmq::fd_t w_, zmq::fd_t r_)
 
 void test_add_fd_and_start_and_receive_data ()
 {
-    zmq::ThreadCtx thread_ctx;
-    zmq::poller_t poller (thread_ctx);
+    ThreadCtx thread_ctx;
+    poller_t poller (thread_ctx);
 
-    zmq::fd_t r, w;
+    fd_t r, w;
     create_nonblocking_fdpair (&r, &w);
 
     test_events_t events (r, poller);
 
-    zmq::poller_t::handle_t handle = poller.add_fd (r, &events);
+    poller_t::handle_t handle = poller.add_fd (r, &events);
     events.set_handle (handle);
     poller.set_pollin (handle);
     poller.start ();
@@ -189,15 +189,15 @@ void test_add_fd_and_start_and_receive_data ()
 
 void test_add_fd_and_remove_by_timer ()
 {
-    zmq::fd_t r, w;
+    fd_t r, w;
     create_nonblocking_fdpair (&r, &w);
 
-    zmq::ThreadCtx thread_ctx;
-    zmq::poller_t poller (thread_ctx);
+    ThreadCtx thread_ctx;
+    poller_t poller (thread_ctx);
 
     test_events_t events (r, poller);
 
-    zmq::poller_t::handle_t handle = poller.add_fd (r, &events);
+    poller_t::handle_t handle = poller.add_fd (r, &events);
     events.set_handle (handle);
 
     poller.add_timer (50, &events, 0);
@@ -212,10 +212,10 @@ void test_add_fd_and_remove_by_timer ()
 // #ifdef _WIN32
 void test_add_fd_with_pending_failing_connect ()
 {
-    zmq::ThreadCtx thread_ctx;
-    zmq::poller_t poller (thread_ctx);
+    ThreadCtx thread_ctx;
+    poller_t poller (thread_ctx);
 
-    zmq::fd_t bind_socket = socket (AF_INET, SOCK_STREAM, 0);
+    fd_t bind_socket = socket (AF_INET, SOCK_STREAM, 0);
     sockaddr_in addr = {0};
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
@@ -229,8 +229,8 @@ void test_add_fd_with_pending_failing_connect ()
                                            reinterpret_cast<sockaddr *> (&addr),
                                            &addr_len));
 
-    zmq::fd_t connect_socket = socket (AF_INET, SOCK_STREAM, 0);
-    zmq::unblock_socket (connect_socket);
+    fd_t connect_socket = socket (AF_INET, SOCK_STREAM, 0);
+    unblock_socket (connect_socket);
 
     TEST_ASSERT_EQUAL_INT (
       -1, connect (connect_socket, reinterpret_cast<const sockaddr *> (&addr),
@@ -239,7 +239,7 @@ void test_add_fd_with_pending_failing_connect ()
 
     test_events_t events (connect_socket, poller);
 
-    zmq::poller_t::handle_t handle = poller.add_fd (connect_socket, &events);
+    poller_t::handle_t handle = poller.add_fd (connect_socket, &events);
     events.set_handle (handle);
     poller.set_pollin (handle);
     poller.start ();
@@ -263,7 +263,7 @@ int main (void)
 {
     UNITY_BEGIN ();
 
-    zmq::initialize_network ();
+    initialize_network ();
     setup_test_environment ();
 
     RUN_TEST (test_create);
@@ -274,7 +274,7 @@ int main (void)
     RUN_TEST (test_add_fd_with_pending_failing_connect);
 // #endif
 
-    zmq::shutdown_network ();
+    shutdown_network ();
 
     return UNITY_END ();
 }

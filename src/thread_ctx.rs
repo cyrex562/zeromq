@@ -1,5 +1,6 @@
 use std::sync::Mutex;
 use std::collections::HashSet;
+use crate::zmq_hdr::{ZMQ_THREAD_PRIORITY_DFLT, ZMQ_THREAD_SCHED_POLICY_DFLT};
 
 #[derive(Default,Debug,Clone)]
 pub struct ThreadCtx {
@@ -29,16 +30,22 @@ impl ThreadCtx {
     // int set (option_: i32, const optval_: *mut c_void, optvallen_: usize);
     // int get (option_: i32, optval_: *mut c_void, const optvallen_: *mut usize);
 
-zmq::ThreadCtx::ThreadCtx () :
-    _thread_priority (ZMQ_THREAD_PRIORITY_DFLT),
-    _thread_sched_policy (ZMQ_THREAD_SCHED_POLICY_DFLT)
-{
+pub fn new()-> Self {
+    Self {
+        _opt_sync: Mutex::new(0),
+        _thread_priority: ZMQ_THREAD_PRIORITY_DFLT,
+        _thread_sched_policy: ZMQ_THREAD_SCHED_POLICY_DFLT,
+        _thread_affinity_cpus: Default::default(),
+        _thread_name_prefix: "".to_string(),
+    }
+
 }
 
-void zmq::ThreadCtx::start_thread (thread_t &thread_,
-                                      thread_fn *tfn_,
-                                      arg_: *mut c_void,
-                                      name_: *const c_char) const
+
+pub fn start_thread (thread: &mut thread_t,
+                                      tfn: thread_fn,
+                                      arg_: &mut [u8],
+                                      name_: &str) const
 {
     thread_.setSchedulingParameters (_thread_priority, _thread_sched_policy,
                                      _thread_affinity_cpus);
@@ -51,7 +58,7 @@ void zmq::ThreadCtx::start_thread (thread_t &thread_,
     thread_.start (tfn_, arg_, namebuf);
 }
 
-int zmq::ThreadCtx::set (option_: i32, const opt_val: *mut c_void, optvallen_: usize)
+int set (option_: i32, const opt_val: *mut c_void, optvallen_: usize)
 {
     const bool is_int = (optvallen_ == sizeof (int));
     int value = 0;
@@ -115,7 +122,7 @@ int zmq::ThreadCtx::set (option_: i32, const opt_val: *mut c_void, optvallen_: u
     return -1;
 }
 
-int zmq::ThreadCtx::get (option_: i32,
+int get (option_: i32,
                             optval_: *mut c_void,
                             const optvallen_: *mut usize)
 {

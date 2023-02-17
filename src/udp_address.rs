@@ -72,18 +72,18 @@ pub struct UdpAddress
     std::string _address;
 };
 
-zmq::UdpAddress::UdpAddress () :
+UdpAddress::UdpAddress () :
     _bind_interface (-1), _is_multicast (false)
 {
     _bind_address = ip_addr_t::any (AF_INET);
     _target_address = ip_addr_t::any (AF_INET);
 }
 
-zmq::UdpAddress::~UdpAddress ()
+UdpAddress::~UdpAddress ()
 {
 }
 
-int zmq::UdpAddress::resolve (name_: *const c_char, bool bind_, bool ipv6_)
+int UdpAddress::resolve (name_: *const c_char, bool bind_, bool ipv6_)
 {
     //  No IPv6 support yet
     bool has_interface = false;
@@ -203,32 +203,32 @@ int zmq::UdpAddress::resolve (name_: *const c_char, bool bind_, bool ipv6_)
     return 0;
 }
 
-int zmq::UdpAddress::family () const
+int UdpAddress::family () const
 {
     return _bind_address.family ();
 }
 
-bool zmq::UdpAddress::is_mcast () const
+bool UdpAddress::is_mcast () const
 {
     return _is_multicast;
 }
 
-const zmq::ip_addr_t *zmq::UdpAddress::bind_addr () const
+const ip_addr_t *UdpAddress::bind_addr () const
 {
     return &_bind_address;
 }
 
-int zmq::UdpAddress::bind_if () const
+int UdpAddress::bind_if () const
 {
     return _bind_interface;
 }
 
-const zmq::ip_addr_t *zmq::UdpAddress::target_addr () const
+const ip_addr_t *UdpAddress::target_addr () const
 {
     return &_target_address;
 }
 
-int zmq::UdpAddress::to_string (std::string &addr_)
+int UdpAddress::to_string (std::string &addr_)
 {
     // XXX what do (factor TCP code?)
     addr_ = _address;

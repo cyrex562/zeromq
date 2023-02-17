@@ -69,7 +69,7 @@ pub struct v2_decoder_t ZMQ_FINAL
     ZMQ_NON_COPYABLE_NOR_MOVABLE (v2_decoder_t)
 };
 
-zmq::v2_decoder_t::v2_decoder_t (bufsize_: usize,
+v2_decoder_t::v2_decoder_t (bufsize_: usize,
                                  i64 maxmsgsize_,
                                  bool zero_copy_) :
     decoder_base_t<v2_decoder_t, shared_message_memory_allocator> (bufsize_),
@@ -84,13 +84,13 @@ zmq::v2_decoder_t::v2_decoder_t (bufsize_: usize,
     next_step (_tmpbuf, 1, &v2_decoder_t::flags_ready);
 }
 
-zmq::v2_decoder_t::~v2_decoder_t ()
+v2_decoder_t::~v2_decoder_t ()
 {
     let rc: i32 = _in_progress.close ();
     errno_assert (rc == 0);
 }
 
-int zmq::v2_decoder_t::flags_ready (unsigned char const *)
+int v2_decoder_t::flags_ready (unsigned char const *)
 {
     _msg_flags = 0;
     if (_tmpbuf[0] & v2_protocol_t::more_flag)
@@ -108,12 +108,12 @@ int zmq::v2_decoder_t::flags_ready (unsigned char const *)
     return 0;
 }
 
-int zmq::v2_decoder_t::one_byte_size_ready (unsigned char const *read_from_)
+int v2_decoder_t::one_byte_size_ready (unsigned char const *read_from_)
 {
     return size_ready (_tmpbuf[0], read_from_);
 }
 
-int zmq::v2_decoder_t::eight_byte_size_ready (unsigned char const *read_from_)
+int v2_decoder_t::eight_byte_size_ready (unsigned char const *read_from_)
 {
     //  The payload size is encoded as 64-bit unsigned integer.
     //  The most significant byte comes first.
@@ -122,7 +122,7 @@ int zmq::v2_decoder_t::eight_byte_size_ready (unsigned char const *read_from_)
     return size_ready (msg_size, read_from_);
 }
 
-int zmq::v2_decoder_t::size_ready (msg_size_: u64,
+int v2_decoder_t::size_ready (msg_size_: u64,
                                    unsigned char const *read_pos_)
 {
     //  Message size must not exceed the maximum allowed size.
@@ -189,7 +189,7 @@ int zmq::v2_decoder_t::size_ready (msg_size_: u64,
     return 0;
 }
 
-int zmq::v2_decoder_t::message_ready (unsigned char const *)
+int v2_decoder_t::message_ready (unsigned char const *)
 {
     //  Message is completely read. Signal this to the caller
     //  and prepare to decode next message.

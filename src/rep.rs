@@ -32,7 +32,7 @@
 // #include "err.hpp"
 // #include "msg.hpp"
 
-zmq::rep_t::rep_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+rep_t::rep_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     router_t (parent_, tid_, sid_),
     _sending_reply (false),
     _request_begins (true)
@@ -40,11 +40,11 @@ zmq::rep_t::rep_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     options.type = ZMQ_REP;
 }
 
-zmq::rep_t::~rep_t ()
+rep_t::~rep_t ()
 {
 }
 
-int zmq::rep_t::xsend (ZmqMessage *msg)
+int rep_t::xsend (ZmqMessage *msg)
 {
     //  If we are in the middle of receiving a request, we cannot send reply.
     if (!_sending_reply) {
@@ -66,7 +66,7 @@ int zmq::rep_t::xsend (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::rep_t::xrecv (ZmqMessage *msg)
+int rep_t::xrecv (ZmqMessage *msg)
 {
     //  If we are in middle of sending a reply, we cannot receive next request.
     if (_sending_reply) {
@@ -116,7 +116,7 @@ int zmq::rep_t::xrecv (ZmqMessage *msg)
     return 0;
 }
 
-bool zmq::rep_t::xhas_in ()
+bool rep_t::xhas_in ()
 {
     if (_sending_reply)
         return false;
@@ -124,7 +124,7 @@ bool zmq::rep_t::xhas_in ()
     return router_t::xhas_in ();
 }
 
-bool zmq::rep_t::xhas_out ()
+bool rep_t::xhas_out ()
 {
     if (!_sending_reply)
         return false;
@@ -134,7 +134,7 @@ bool zmq::rep_t::xhas_out ()
 pub struct rep_t ZMQ_FINAL : public router_t
 {
 // public:
-    rep_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    rep_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~rep_t ();
 
     //  Overrides of functions from ZmqSocketBase.

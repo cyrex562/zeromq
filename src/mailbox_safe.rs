@@ -68,12 +68,12 @@ pub struct mailbox_safe_t ZMQ_FINAL : public i_mailbox
     //  Synchronize access to the mailbox from receivers and senders
     mutex_t *const _sync;
 
-    std::vector<zmq::signaler_t *> _signalers;
+    std::vector<signaler_t *> _signalers;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_safe_t)
 };
 
-zmq::mailbox_safe_t::mailbox_safe_t (mutex_t *sync_) : _sync (sync_)
+mailbox_safe_t::mailbox_safe_t (mutex_t *sync_) : _sync (sync_)
 {
     //  Get the pipe into passive state. That way, if the users starts by
     //  polling on the associated file descriptor it will get woken up when
@@ -82,7 +82,7 @@ zmq::mailbox_safe_t::mailbox_safe_t (mutex_t *sync_) : _sync (sync_)
     zmq_assert (!ok);
 }
 
-zmq::mailbox_safe_t::~mailbox_safe_t ()
+mailbox_safe_t::~mailbox_safe_t ()
 {
     //  TODO: Retrieve and deallocate commands inside the cpipe.
 
@@ -92,15 +92,15 @@ zmq::mailbox_safe_t::~mailbox_safe_t ()
     _sync->unlock ();
 }
 
-void zmq::mailbox_safe_t::add_signaler (signaler_t *signaler_)
+void mailbox_safe_t::add_signaler (signaler_t *signaler_)
 {
     _signalers.push_back (signaler_);
 }
 
-void zmq::mailbox_safe_t::remove_signaler (signaler_t *signaler_)
+void mailbox_safe_t::remove_signaler (signaler_t *signaler_)
 {
     // TODO: make a copy of array and signal outside the lock
-    const std::vector<zmq::signaler_t *>::iterator end = _signalers.end ();
+    const std::vector<signaler_t *>::iterator end = _signalers.end ();
     const std::vector<signaler_t *>::iterator it =
       std::find (_signalers.begin (), end, signaler_);
 
@@ -108,12 +108,12 @@ void zmq::mailbox_safe_t::remove_signaler (signaler_t *signaler_)
         _signalers.erase (it);
 }
 
-void zmq::mailbox_safe_t::clear_signalers ()
+void mailbox_safe_t::clear_signalers ()
 {
     _signalers.clear ();
 }
 
-void zmq::mailbox_safe_t::send (const ZmqCommand &cmd_)
+void mailbox_safe_t::send (const ZmqCommand &cmd_)
 {
     _sync->lock ();
     _cpipe.write (cmd_, false);
@@ -132,7 +132,7 @@ void zmq::mailbox_safe_t::send (const ZmqCommand &cmd_)
     _sync->unlock ();
 }
 
-int zmq::mailbox_safe_t::recv (ZmqCommand *cmd_, timeout_: i32)
+int mailbox_safe_t::recv (ZmqCommand *cmd_, timeout_: i32)
 {
     //  Try to get the command straight away.
     if (_cpipe.read (cmd_))

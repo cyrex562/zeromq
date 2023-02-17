@@ -68,7 +68,7 @@
 pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
-    ws_listener_t (zmq::io_thread_t *io_thread_,
+    ws_listener_t (io_thread_t *io_thread_,
                    socket_: *mut ZmqSocketBase,
                    const ZmqOptions &options_,
                    bool wss_);
@@ -105,7 +105,7 @@ pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_listener_t)
 };
 
-zmq::ws_listener_t::ws_listener_t (io_thread_t *io_thread_,
+ws_listener_t::ws_listener_t (io_thread_t *io_thread_,
                                    ZmqSocketBase *socket_,
                                    const ZmqOptions &options_,
                                    bool wss_) :
@@ -127,7 +127,7 @@ zmq::ws_listener_t::ws_listener_t (io_thread_t *io_thread_,
 // #endif
 }
 
-zmq::ws_listener_t::~ws_listener_t ()
+ws_listener_t::~ws_listener_t ()
 {
 // #ifdef ZMQ_HAVE_WSS
     if (_wss)
@@ -135,7 +135,7 @@ zmq::ws_listener_t::~ws_listener_t ()
 // #endif
 }
 
-void zmq::ws_listener_t::in_event ()
+void ws_listener_t::in_event ()
 {
     const fd_t fd = accept ();
 
@@ -159,22 +159,22 @@ void zmq::ws_listener_t::in_event ()
     create_engine (fd);
 }
 
-std::string zmq::ws_listener_t::get_socket_name (zmq::fd_t fd_,
+std::string ws_listener_t::get_socket_name (fd_t fd_,
                                                  SocketEnd socket_end_) const
 {
     std::string socket_name;
 
 // #ifdef ZMQ_HAVE_WSS
     if (_wss)
-        socket_name = zmq::get_socket_name<WssAddress> (fd_, socket_end_);
+        socket_name = get_socket_name<WssAddress> (fd_, socket_end_);
     else
 // #endif
-        socket_name = zmq::get_socket_name<WsAddress> (fd_, socket_end_);
+        socket_name = get_socket_name<WsAddress> (fd_, socket_end_);
 
     return socket_name + _address.path ();
 }
 
-int zmq::ws_listener_t::create_socket (addr_: *const c_char)
+int ws_listener_t::create_socket (addr_: *const c_char)
 {
     TcpAddress address;
     _s = tcp_open_socket (addr_, options, true, true, &address);
@@ -243,7 +243,7 @@ error:
     return -1;
 }
 
-int zmq::ws_listener_t::set_local_address (addr_: *const c_char)
+int ws_listener_t::set_local_address (addr_: *const c_char)
 {
     if (options.use_fd != -1) {
         //  in this case, the addr_ passed is not used and ignored, since the
@@ -274,7 +274,7 @@ int zmq::ws_listener_t::set_local_address (addr_: *const c_char)
     return 0;
 }
 
-zmq::fd_t zmq::ws_listener_t::accept ()
+fd_t ws_listener_t::accept ()
 {
     //  The situation where connection cannot be accepted due to insufficient
     //  resources is considered valid and treated by ignoring the connection.
@@ -317,7 +317,7 @@ zmq::fd_t zmq::ws_listener_t::accept ()
 
     make_socket_noninheritable (sock);
 
-    if (zmq::set_nosigpipe (sock)) {
+    if (set_nosigpipe (sock)) {
 // #ifdef ZMQ_HAVE_WINDOWS
         let rc: i32 = closesocket (sock);
         wsa_assert (rc != SOCKET_ERROR);
@@ -339,7 +339,7 @@ zmq::fd_t zmq::ws_listener_t::accept ()
     return sock;
 }
 
-void zmq::ws_listener_t::create_engine (fd_t fd_)
+void ws_listener_t::create_engine (fd_t fd_)
 {
     const endpoint_uri_pair_t endpoint_pair (
       get_socket_name (fd_, SocketEndLocal),

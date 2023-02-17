@@ -104,10 +104,13 @@ const char *zmq_msg_group (zmq_ZmqMessage *msg);
 int zmq_msg_init_buffer (msg: *mut zmq_ZmqMessage, const buf: *mut c_void, size: usize);
 
 /*  DRAFT Msg property names.                                                 */
-// #define ZMQ_MSG_PROPERTY_ROUTING_ID "Routing-Id"
+pub const ZMQ_MSG_PROPERTY_ROUTING_ID: &'static str = "Routing-Id";
 // #define ZMQ_MSG_PROPERTY_SOCKET_TYPE "Socket-Type"
+pub const ZMQ_MSG_PROPERTY_SOCKET_TYPE: &'static str = "Socket-Type";
 // #define ZMQ_MSG_PROPERTY_USER_ID "User-Id"
+pub const ZMQ_MSG_PROPERTY_USER_ID: &'static str = "User-Id";
 // #define ZMQ_MSG_PROPERTY_PEER_ADDRESS "Peer-Address"
+pub const ZMQ_MSG_PROPERTY_PEER_ADDRESS: &'static str = "Peer-Address";
 
 /*  Router notify options                                                     */
 // #define ZMQ_NOTIFY_CONNECT 1
@@ -118,45 +121,37 @@ int zmq_msg_init_buffer (msg: *mut zmq_ZmqMessage, const buf: *mut c_void, size:
 /******************************************************************************/
 
 // #if defined _WIN32
-typedef SOCKET zmq_fd_t;
+// typedef SOCKET zmq_fd_t;
 // #else
-typedef int zmq_fd_t;
+// typedef int zmq_fd_t;
 // #endif
 
-typedef struct zmq_poller_event_t
-{
-    socket: *mut c_void;
-    zmq_fd_t fd;
-    user_data: *mut c_void;
-    short events;
-} zmq_poller_event_t;
-
-void *zmq_poller_new (void);
-int zmq_poller_destroy (void **poller_p_);
-int zmq_poller_size (poller_: *mut c_void);
-int zmq_poller_add (poller_: *mut c_void,
-                    socket_: *mut c_void,
-                    user_data_: *mut c_void,
-                    short events_);
-int zmq_poller_modify (poller_: *mut c_void, socket_: *mut c_void, short events_);
-int zmq_poller_remove (poller_: *mut c_void, socket_: *mut c_void);
-int zmq_poller_wait (poller_: *mut c_void, zmq_poller_event_t *event_, long timeout_);
-int zmq_poller_wait_all (poller_: *mut c_void,
-                         zmq_poller_event_t *events_,
-                         n_events_: i32,
-                         long timeout_);
-zmq_fd_t zmq_poller_fd (poller_: *mut c_void);
-
-int zmq_poller_add_fd (poller_: *mut c_void,
-                       zmq_fd_t fd_,
-                       user_data_: *mut c_void,
-                       short events_);
-int zmq_poller_modify_fd (poller_: *mut c_void, zmq_fd_t fd_, short events_);
-int zmq_poller_remove_fd (poller_: *mut c_void, zmq_fd_t fd_);
-
-int zmq_socket_get_peer_state (socket_: *mut c_void,
-                               const routing_id_: *mut c_void,
-                               routing_id_size_: usize);
+// void *zmq_poller_new (void);
+// int zmq_poller_destroy (void **poller_p_);
+// int zmq_poller_size (poller_: *mut c_void);
+// int zmq_poller_add (poller_: *mut c_void,
+//                     socket_: *mut c_void,
+//                     user_data_: *mut c_void,
+//                     short events_);
+// int zmq_poller_modify (poller_: *mut c_void, socket_: *mut c_void, short events_);
+// int zmq_poller_remove (poller_: *mut c_void, socket_: *mut c_void);
+// int zmq_poller_wait (poller_: *mut c_void, ZmqPollerEvent *event_, long timeout_);
+// int zmq_poller_wait_all (poller_: *mut c_void,
+//                          ZmqPollerEvent *events_,
+//                          n_events_: i32,
+//                          long timeout_);
+// zmq_fd_t zmq_poller_fd (poller_: *mut c_void);
+//
+// int zmq_poller_add_fd (poller_: *mut c_void,
+//                        zmq_fd_t fd_,
+//                        user_data_: *mut c_void,
+//                        short events_);
+// int zmq_poller_modify_fd (poller_: *mut c_void, zmq_fd_t fd_, short events_);
+// int zmq_poller_remove_fd (poller_: *mut c_void, zmq_fd_t fd_);
+//
+// int zmq_socket_get_peer_state (socket_: *mut c_void,
+//                                const routing_id_: *mut c_void,
+//                                routing_id_size_: usize);
 
 /*  DRAFT Socket monitoring events                                            */
 // #define ZMQ_EVENT_PIPES_STATS 0x10000
@@ -167,21 +162,21 @@ int zmq_socket_get_peer_state (socket_: *mut c_void,
 // #define ZMQ_EVENT_ALL_V1 ZMQ_EVENT_ALL
 // #define ZMQ_EVENT_ALL_V2 ZMQ_EVENT_ALL_V1 | ZMQ_EVENT_PIPES_STATS
 
-int zmq_socket_monitor_versioned (
-  s_: *mut c_void, addr_: *const c_char, events_: u64, event_version_: i32, type_: i32);
-int zmq_socket_monitor_pipes_stats (s_: *mut c_void);
+// int zmq_socket_monitor_versioned (
+//   s_: *mut c_void, addr_: *const c_char, events_: u64, event_version_: i32, type_: i32);
+// int zmq_socket_monitor_pipes_stats (s_: *mut c_void);
 
 // #if !defined _WIN32
-int zmq_ppoll (zmq_pollitem_t *items_,
-               nitems_: i32,
-               long timeout_,
-               const sigset_t *sigmask_);
+// int zmq_ppoll (zmq_pollitem_t *items_,
+//                nitems_: i32,
+//                long timeout_,
+//                const sigset_t *sigmask_);
 // #else
 // Windows has no sigset_t
-int zmq_ppoll (zmq_pollitem_t *items_,
-               nitems_: i32,
-               long timeout_,
-               const sigmask_: *mut c_void);
+// int zmq_ppoll (zmq_pollitem_t *items_,
+//                nitems_: i32,
+//                long timeout_,
+//                const sigmask_: *mut c_void);
 // #endif
 
 // #endif // ZMQ_BUILD_DRAFT_API

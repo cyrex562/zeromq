@@ -36,18 +36,18 @@
 pub struct gather_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
-    gather_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    gather_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~gather_t ();
 
   protected:
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (zmq::pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
     int xrecv (ZmqMessage *msg);
     bool xhas_in ();
-    void xread_activated (zmq::pipe_t *pipe_);
-    void xpipe_terminated (zmq::pipe_t *pipe_);
+    void xread_activated (pipe_t *pipe_);
+    void xpipe_terminated (pipe_t *pipe_);
 
   // private:
     //  Fair queueing object for inbound pipes.
@@ -56,17 +56,17 @@ pub struct gather_t ZMQ_FINAL : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (gather_t)
 };
 
-zmq::gather_t::gather_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+gather_t::gather_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_, true)
 {
     options.type = ZMQ_GATHER;
 }
 
-zmq::gather_t::~gather_t ()
+gather_t::~gather_t ()
 {
 }
 
-void zmq::gather_t::xattach_pipe (pipe_t *pipe_,
+void gather_t::xattach_pipe (pipe_t *pipe_,
                                   bool subscribe_to_all_,
                                   bool locally_initiated_)
 {
@@ -77,17 +77,17 @@ void zmq::gather_t::xattach_pipe (pipe_t *pipe_,
     _fq.attach (pipe_);
 }
 
-void zmq::gather_t::xread_activated (pipe_t *pipe_)
+void gather_t::xread_activated (pipe_t *pipe_)
 {
     _fq.activated (pipe_);
 }
 
-void zmq::gather_t::xpipe_terminated (pipe_t *pipe_)
+void gather_t::xpipe_terminated (pipe_t *pipe_)
 {
     _fq.pipe_terminated (pipe_);
 }
 
-int zmq::gather_t::xrecv (ZmqMessage *msg)
+int gather_t::xrecv (ZmqMessage *msg)
 {
     int rc = _fq.recvpipe (msg, NULL);
 
@@ -107,7 +107,7 @@ int zmq::gather_t::xrecv (ZmqMessage *msg)
     return rc;
 }
 
-bool zmq::gather_t::xhas_in ()
+bool gather_t::xhas_in ()
 {
     return _fq.has_in ();
 }

@@ -126,11 +126,11 @@ pub struct trie_with_size_t
     trie_t _trie;
 };
 
-zmq::trie_t::trie_t () : _refcnt (0), _min (0), _count (0), _live_nodes (0)
+trie_t::trie_t () : _refcnt (0), _min (0), _count (0), _live_nodes (0)
 {
 }
 
-zmq::trie_t::~trie_t ()
+trie_t::~trie_t ()
 {
     if (_count == 1) {
         zmq_assert (_next.node);
@@ -143,7 +143,7 @@ zmq::trie_t::~trie_t ()
     }
 }
 
-bool zmq::trie_t::add (unsigned char *prefix_, size: usize)
+bool trie_t::add (unsigned char *prefix_, size: usize)
 {
     //  We are at the node corresponding to the prefix. We are done.
     if (!size) {
@@ -213,7 +213,7 @@ bool zmq::trie_t::add (unsigned char *prefix_, size: usize)
     return _next.table[c - _min]->add (prefix_ + 1, size - 1);
 }
 
-bool zmq::trie_t::rm (unsigned char *prefix_, size: usize)
+bool trie_t::rm (unsigned char *prefix_, size: usize)
 {
     //  TODO: Shouldn't an error be reported if the key does not exist?
     if (!size) {
@@ -325,7 +325,7 @@ bool zmq::trie_t::rm (unsigned char *prefix_, size: usize)
     return ret;
 }
 
-bool zmq::trie_t::check (const unsigned char *data, size: usize) const
+bool trie_t::check (const unsigned char *data, size: usize) const
 {
     //  This function is on critical path. It deliberately doesn't use
     //  recursion to get a bit better performance.
@@ -358,7 +358,7 @@ bool zmq::trie_t::check (const unsigned char *data, size: usize) const
     }
 }
 
-void zmq::trie_t::apply (
+void trie_t::apply (
   void (*func_) (unsigned char *data, size: usize, arg_: *mut c_void), arg_: *mut c_void)
 {
     unsigned char *buff = NULL;
@@ -366,7 +366,7 @@ void zmq::trie_t::apply (
     free (buff);
 }
 
-void zmq::trie_t::apply_helper (unsigned char **buff_,
+void trie_t::apply_helper (unsigned char **buff_,
                                 buffsize_: usize,
                                 maxbuffsize_: usize,
                                 void (*func_) (unsigned char *data,
@@ -406,7 +406,7 @@ void zmq::trie_t::apply_helper (unsigned char **buff_,
     }
 }
 
-bool zmq::trie_t::is_redundant () const
+bool trie_t::is_redundant () const
 {
     return _refcnt == 0 && _live_nodes == 0;
 }

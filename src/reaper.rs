@@ -35,7 +35,7 @@
 pub struct reaper_t ZMQ_FINAL : public object_t, public i_poll_events
 {
 // public:
-    reaper_t (zmq::ZmqContext *ctx_, uint32_t tid_);
+    reaper_t (ZmqContext *ctx_, uint32_t tid_);
     ~reaper_t ();
 
     mailbox_t *get_mailbox ();
@@ -51,7 +51,7 @@ pub struct reaper_t ZMQ_FINAL : public object_t, public i_poll_events
   // private:
     //  Command handlers.
     void process_stop ();
-    void process_reap (zmq::ZmqSocketBase *socket_);
+    void process_reap (ZmqSocketBase *socket_);
     void process_reaped ();
 
     //  Reaper thread accesses incoming commands via this mailbox.
@@ -77,7 +77,7 @@ pub struct reaper_t ZMQ_FINAL : public object_t, public i_poll_events
     ZMQ_NON_COPYABLE_NOR_MOVABLE (reaper_t)
 };
 
-zmq::reaper_t::reaper_t (class ZmqContext *ctx_, uint32_t tid_) :
+reaper_t::reaper_t (class ZmqContext *ctx_, uint32_t tid_) :
     object_t (ctx_, tid_),
     _mailbox_handle (static_cast<poller_t::handle_t> (NULL)),
     _poller (NULL),
@@ -100,17 +100,17 @@ zmq::reaper_t::reaper_t (class ZmqContext *ctx_, uint32_t tid_) :
 // #endif
 }
 
-zmq::reaper_t::~reaper_t ()
+reaper_t::~reaper_t ()
 {
     LIBZMQ_DELETE (_poller);
 }
 
-zmq::mailbox_t *zmq::reaper_t::get_mailbox ()
+mailbox_t *reaper_t::get_mailbox ()
 {
     return &_mailbox;
 }
 
-void zmq::reaper_t::start ()
+void reaper_t::start ()
 {
     zmq_assert (_mailbox.valid ());
 
@@ -118,19 +118,19 @@ void zmq::reaper_t::start ()
     _poller->start ("Reaper");
 }
 
-void zmq::reaper_t::stop ()
+void reaper_t::stop ()
 {
     if (get_mailbox ()->valid ()) {
         send_stop ();
     }
 }
 
-void zmq::reaper_t::in_event ()
+void reaper_t::in_event ()
 {
     while (true) {
 // #ifdef HAVE_FORK
         if (unlikely (_pid != getpid ())) {
-            //printf("zmq::reaper_t::in_event return in child process %d\n", (int)getpid());
+            //printf("reaper_t::in_event return in child process %d\n", (int)getpid());
             return;
         }
 // #endif
@@ -149,17 +149,17 @@ void zmq::reaper_t::in_event ()
     }
 }
 
-void zmq::reaper_t::out_event ()
+void reaper_t::out_event ()
 {
     zmq_assert (false);
 }
 
-void zmq::reaper_t::timer_event (int)
+void reaper_t::timer_event (int)
 {
     zmq_assert (false);
 }
 
-void zmq::reaper_t::process_stop ()
+void reaper_t::process_stop ()
 {
     _terminating = true;
 
@@ -171,7 +171,7 @@ void zmq::reaper_t::process_stop ()
     }
 }
 
-void zmq::reaper_t::process_reap (ZmqSocketBase *socket_)
+void reaper_t::process_reap (ZmqSocketBase *socket_)
 {
     //  Add the socket to the poller.
     socket_->start_reaping (_poller);
@@ -179,7 +179,7 @@ void zmq::reaper_t::process_reap (ZmqSocketBase *socket_)
     ++_sockets;
 }
 
-void zmq::reaper_t::process_reaped ()
+void reaper_t::process_reaped ()
 {
     --_sockets;
 

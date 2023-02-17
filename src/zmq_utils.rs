@@ -62,13 +62,13 @@ void *zmq_stopwatch_start ()
 {
     u64 *watch = static_cast<u64 *> (malloc (mem::size_of::<u64>()));
     alloc_assert (watch);
-    *watch = zmq::clock_t::now_us ();
+    *watch = clock_t::now_us ();
     return static_cast<void *> (watch);
 }
 
 unsigned long zmq_stopwatch_intermediate (watch_: *mut c_void)
 {
-    const u64 end = zmq::clock_t::now_us ();
+    const u64 end = clock_t::now_us ();
     const u64 start = *static_cast<u64 *> (watch_);
     return static_cast<unsigned long> (end - start);
 }
@@ -82,7 +82,7 @@ unsigned long zmq_stopwatch_stop (watch_: *mut c_void)
 
 void *zmq_threadstart (zmq_thread_fn *func_, arg_: *mut c_void)
 {
-    zmq::thread_t *thread = new (std::nothrow) zmq::thread_t;
+    thread_t *thread = new (std::nothrow) thread_t;
     alloc_assert (thread);
     thread->start (func_, arg_, "ZMQapp");
     return thread;
@@ -90,7 +90,7 @@ void *zmq_threadstart (zmq_thread_fn *func_, arg_: *mut c_void)
 
 void zmq_threadclose (thread_: *mut c_void)
 {
-    zmq::thread_t *p_thread = static_cast<zmq::thread_t *> (thread_);
+    thread_t *p_thread = static_cast<thread_t *> (thread_);
     p_thread->stop ();
     LIBZMQ_DELETE (p_thread);
 }
@@ -220,13 +220,13 @@ int zmq_curve_keypair (char *z85_public_key_, char *z85_secret_key_)
     uint8_t public_key[32];
     uint8_t secret_key[32];
 
-    zmq::random_open ();
+    random_open ();
 
     let res: i32 = crypto_box_keypair (public_key, secret_key);
     zmq_z85_encode (z85_public_key_, public_key, 32);
     zmq_z85_encode (z85_secret_key_, secret_key, 32);
 
-    zmq::random_close ();
+    random_close ();
 
     return res;
 // #else
@@ -252,7 +252,7 @@ int zmq_curve_public (char *z85_public_key_, z85_secret_key_: *const c_char)
     uint8_t public_key[32];
     uint8_t secret_key[32];
 
-    zmq::random_open ();
+    random_open ();
 
     if (zmq_z85_decode (secret_key, z85_secret_key_) == NULL)
         return -1;
@@ -261,7 +261,7 @@ int zmq_curve_public (char *z85_public_key_, z85_secret_key_: *const c_char)
     crypto_scalarmult_base (public_key, secret_key);
     zmq_z85_encode (z85_public_key_, public_key, 32);
 
-    zmq::random_close ();
+    random_close ();
 
     return 0;
 // #else
@@ -277,7 +277,7 @@ int zmq_curve_public (char *z85_public_key_, z85_secret_key_: *const c_char)
 
 void *zmq_atomic_counter_new (void)
 {
-    zmq::AtomicCounter *counter = new (std::nothrow) zmq::AtomicCounter;
+    AtomicCounter *counter = new (std::nothrow) AtomicCounter;
     alloc_assert (counter);
     return counter;
 }
@@ -286,14 +286,14 @@ void *zmq_atomic_counter_new (void)
 
 void zmq_atomic_counter_set (counter_: *mut c_void, value_: i32)
 {
-    (static_cast<zmq::AtomicCounter *> (counter_))->set (value_);
+    (static_cast<AtomicCounter *> (counter_))->set (value_);
 }
 
 //  Increment the atomic counter, and return the old value
 
 int zmq_atomic_counter_inc (counter_: *mut c_void)
 {
-    return (static_cast<zmq::AtomicCounter *> (counter_))->add (1);
+    return (static_cast<AtomicCounter *> (counter_))->add (1);
 }
 
 //  Decrement the atomic counter and return 1 (if counter >= 1), or
@@ -301,20 +301,20 @@ int zmq_atomic_counter_inc (counter_: *mut c_void)
 
 int zmq_atomic_counter_dec (counter_: *mut c_void)
 {
-    return (static_cast<zmq::AtomicCounter *> (counter_))->sub (1) ? 1 : 0;
+    return (static_cast<AtomicCounter *> (counter_))->sub (1) ? 1 : 0;
 }
 
 //  Return actual value of atomic counter
 
 int zmq_atomic_counter_value (counter_: *mut c_void)
 {
-    return (static_cast<zmq::AtomicCounter *> (counter_))->get ();
+    return (static_cast<AtomicCounter *> (counter_))->get ();
 }
 
 //  Destroy atomic counter, and set reference to NULL
 
 void zmq_atomic_counter_destroy (void **counter_p_)
 {
-    delete (static_cast<zmq::AtomicCounter *> (*counter_p_));
+    delete (static_cast<AtomicCounter *> (*counter_p_));
     *counter_p_ = NULL;
 }

@@ -148,7 +148,7 @@ pub struct zmtp_engine_t ZMQ_FINAL : public stream_engine_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (zmtp_engine_t)
 };
 
-zmq::zmtp_engine_t::zmtp_engine_t (
+zmtp_engine_t::zmtp_engine_t (
   fd_t fd_,
   const ZmqOptions &options_,
   const endpoint_uri_pair_t &endpoint_uri_pair_) :
@@ -176,13 +176,13 @@ zmq::zmtp_engine_t::zmtp_engine_t (
     }
 }
 
-zmq::zmtp_engine_t::~zmtp_engine_t ()
+zmtp_engine_t::~zmtp_engine_t ()
 {
     let rc: i32 = _routing_id_msg.close ();
     errno_assert (rc == 0);
 }
 
-void zmq::zmtp_engine_t::plug_internal ()
+void zmtp_engine_t::plug_internal ()
 {
     // start optional timer, to prevent handshake hanging on no input
     set_handshake_timer ();
@@ -205,7 +205,7 @@ void zmq::zmtp_engine_t::plug_internal ()
 const size_t revision_pos = 10;
 const size_t minor_pos = 11;
 
-bool zmq::zmtp_engine_t::handshake ()
+bool zmtp_engine_t::handshake ()
 {
     zmq_assert (_greeting_bytes_read < _greeting_size);
     //  Receive the greeting.
@@ -226,7 +226,7 @@ bool zmq::zmtp_engine_t::handshake ()
     return true;
 }
 
-int zmq::zmtp_engine_t::receive_greeting ()
+int zmtp_engine_t::receive_greeting ()
 {
     bool unversioned = false;
     while (_greeting_bytes_read < _greeting_size) {
@@ -266,7 +266,7 @@ int zmq::zmtp_engine_t::receive_greeting ()
     return unversioned ? 1 : 0;
 }
 
-void zmq::zmtp_engine_t::receive_greeting_versioned ()
+void zmtp_engine_t::receive_greeting_versioned ()
 {
     //  Send the major version number.
     if (_outpos + _outsize == _greeting_send + signature_size) {
@@ -310,7 +310,7 @@ void zmq::zmtp_engine_t::receive_greeting_versioned ()
     }
 }
 
-zmq::zmtp_engine_t::handshake_fun_t zmq::zmtp_engine_t::select_handshake_fun (
+zmtp_engine_t::handshake_fun_t zmtp_engine_t::select_handshake_fun (
   bool unversioned_, unsigned char revision_, unsigned char minor_)
 {
     //  Is the peer using ZMTP/1.0 with no revision number?
@@ -334,7 +334,7 @@ zmq::zmtp_engine_t::handshake_fun_t zmq::zmtp_engine_t::select_handshake_fun (
     }
 }
 
-bool zmq::zmtp_engine_t::handshake_v1_0_unversioned ()
+bool zmtp_engine_t::handshake_v1_0_unversioned ()
 {
     //  We send and receive rest of routing id message
     if (session ()->zap_enabled ()) {
@@ -391,7 +391,7 @@ bool zmq::zmtp_engine_t::handshake_v1_0_unversioned ()
     return true;
 }
 
-bool zmq::zmtp_engine_t::handshake_v1_0 ()
+bool zmtp_engine_t::handshake_v1_0 ()
 {
     if (session ()->zap_enabled ()) {
         // reject ZMTP 1.0 connections if ZAP is enabled
@@ -409,7 +409,7 @@ bool zmq::zmtp_engine_t::handshake_v1_0 ()
     return true;
 }
 
-bool zmq::zmtp_engine_t::handshake_v2_0 ()
+bool zmtp_engine_t::handshake_v2_0 ()
 {
     if (session ()->zap_enabled ()) {
         // reject ZMTP 2.0 connections if ZAP is enabled
@@ -427,7 +427,7 @@ bool zmq::zmtp_engine_t::handshake_v2_0 ()
     return true;
 }
 
-bool zmq::zmtp_engine_t::handshake_v3_x (const bool downgrade_sub_)
+bool zmtp_engine_t::handshake_v3_x (const bool downgrade_sub_)
 {
     if (_options.mechanism == ZMQ_NULL
         && memcmp (_greeting_recv + 12, "NULL\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
@@ -489,7 +489,7 @@ bool zmq::zmtp_engine_t::handshake_v3_x (const bool downgrade_sub_)
     return true;
 }
 
-bool zmq::zmtp_engine_t::handshake_v3_0 ()
+bool zmtp_engine_t::handshake_v3_0 ()
 {
     _encoder = new (std::nothrow) v2_encoder_t (_options.out_batch_size);
     alloc_assert (_encoder);
@@ -498,10 +498,10 @@ bool zmq::zmtp_engine_t::handshake_v3_0 ()
       _options.in_batch_size, _options.maxmsgsize, _options.zero_copy);
     alloc_assert (_decoder);
 
-    return zmq::zmtp_engine_t::handshake_v3_x (true);
+    return zmtp_engine_t::handshake_v3_x (true);
 }
 
-bool zmq::zmtp_engine_t::handshake_v3_1 ()
+bool zmtp_engine_t::handshake_v3_1 ()
 {
     _encoder = new (std::nothrow) v3_1_encoder_t (_options.out_batch_size);
     alloc_assert (_encoder);
@@ -510,10 +510,10 @@ bool zmq::zmtp_engine_t::handshake_v3_1 ()
       _options.in_batch_size, _options.maxmsgsize, _options.zero_copy);
     alloc_assert (_decoder);
 
-    return zmq::zmtp_engine_t::handshake_v3_x (false);
+    return zmtp_engine_t::handshake_v3_x (false);
 }
 
-int zmq::zmtp_engine_t::routing_id_msg (ZmqMessage *msg)
+int zmtp_engine_t::routing_id_msg (ZmqMessage *msg)
 {
     let rc: i32 = msg->init_size (_options.routing_id_size);
     errno_assert (rc == 0);
@@ -523,7 +523,7 @@ int zmq::zmtp_engine_t::routing_id_msg (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::zmtp_engine_t::process_routing_id_msg (ZmqMessage *msg)
+int zmtp_engine_t::process_routing_id_msg (ZmqMessage *msg)
 {
     if (_options.recv_routing_id) {
         msg->set_flags (ZmqMessage::routing_id);
@@ -553,7 +553,7 @@ int zmq::zmtp_engine_t::process_routing_id_msg (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::zmtp_engine_t::produce_ping_message (ZmqMessage *msg)
+int zmtp_engine_t::produce_ping_message (ZmqMessage *msg)
 {
     // 16-bit TTL + \4PING == 7
     const size_t ping_ttl_len = ZmqMessage::ping_cmd_name_size + 2;
@@ -578,7 +578,7 @@ int zmq::zmtp_engine_t::produce_ping_message (ZmqMessage *msg)
     return rc;
 }
 
-int zmq::zmtp_engine_t::produce_pong_message (ZmqMessage *msg)
+int zmtp_engine_t::produce_pong_message (ZmqMessage *msg)
 {
     zmq_assert (_mechanism != NULL);
 
@@ -590,7 +590,7 @@ int zmq::zmtp_engine_t::produce_pong_message (ZmqMessage *msg)
     return rc;
 }
 
-int zmq::zmtp_engine_t::process_heartbeat_message (ZmqMessage *msg)
+int zmtp_engine_t::process_heartbeat_message (ZmqMessage *msg)
 {
     if (msg->is_ping ()) {
         // 16-bit TTL + \4PING == 7
@@ -639,7 +639,7 @@ int zmq::zmtp_engine_t::process_heartbeat_message (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::zmtp_engine_t::process_command_message (ZmqMessage *msg)
+int zmtp_engine_t::process_command_message (ZmqMessage *msg)
 {
     const uint8_t cmd_name_size =
       *(static_cast<const uint8_t *> (msg->data ()));

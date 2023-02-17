@@ -62,12 +62,12 @@ int wsa_error_to_errno (errcode_: i32);
 // #define wsa_assert(x)                                                          \
     do {                                                                       \
         if (unlikely (!(x))) {                                                 \
-            const char *errstr = zmq::wsa_error ();                            \
+            const char *errstr = wsa_error ();                            \
             if (errstr != NULL) {                                              \
                 fprintf (stderr, "Assertion failed: %s [%i] (%s:%d)\n",        \
                          errstr, WSAGetLastError (), __FILE__, __LINE__);      \
                 fflush (stderr);                                               \
-                zmq::zmq_abort (errstr);                                       \
+                zmq_abort (errstr);                                       \
             }                                                                  \
         }                                                                      \
     } while (false)
@@ -75,12 +75,12 @@ int wsa_error_to_errno (errcode_: i32);
 //  Provides convenient way to assert on WSA-style errors on Windows.
 // #define wsa_assert_no(no)                                                      \
     do {                                                                       \
-        const char *errstr = zmq::wsa_error_no (no);                           \
+        const char *errstr = wsa_error_no (no);                           \
         if (errstr != NULL) {                                                  \
             fprintf (stderr, "Assertion failed: %s (%s:%d)\n", errstr,         \
                      __FILE__, __LINE__);                                      \
             fflush (stderr);                                                   \
-            zmq::zmq_abort (errstr);                                           \
+            zmq_abort (errstr);                                           \
         }                                                                      \
     } while (false)
 
@@ -89,11 +89,11 @@ int wsa_error_to_errno (errcode_: i32);
     do {                                                                       \
         if (unlikely (!(x))) {                                                 \
             char errstr[256];                                                  \
-            zmq::win_error (errstr, 256);                                      \
+            win_error (errstr, 256);                                      \
             fprintf (stderr, "Assertion failed: %s (%s:%d)\n", errstr,         \
                      __FILE__, __LINE__);                                      \
             fflush (stderr);                                                   \
-            zmq::zmq_abort (errstr);                                           \
+            zmq_abort (errstr);                                           \
         }                                                                      \
     } while (false)
 
@@ -108,7 +108,7 @@ int wsa_error_to_errno (errcode_: i32);
             fprintf (stderr, "Assertion failed: %s (%s:%d)\n", #x, __FILE__,   \
                      __LINE__);                                                \
             fflush (stderr);                                                   \
-            zmq::zmq_abort (#x);                                               \
+            zmq_abort (#x);                                               \
         }                                                                      \
     } while (false)
 
@@ -119,7 +119,7 @@ int wsa_error_to_errno (errcode_: i32);
             const char *errstr = strerror (errno);                             \
             fprintf (stderr, "%s (%s:%d)\n", errstr, __FILE__, __LINE__);      \
             fflush (stderr);                                                   \
-            zmq::zmq_abort (errstr);                                           \
+            zmq_abort (errstr);                                           \
         }                                                                      \
     } while (false)
 
@@ -130,7 +130,7 @@ int wsa_error_to_errno (errcode_: i32);
             const char *errstr = strerror (x);                                 \
             fprintf (stderr, "%s (%s:%d)\n", errstr, __FILE__, __LINE__);      \
             fflush (stderr);                                                   \
-            zmq::zmq_abort (errstr);                                           \
+            zmq_abort (errstr);                                           \
         }                                                                      \
     } while (false)
 
@@ -141,7 +141,7 @@ int wsa_error_to_errno (errcode_: i32);
             const char *errstr = gai_strerror (x);                             \
             fprintf (stderr, "%s (%s:%d)\n", errstr, __FILE__, __LINE__);      \
             fflush (stderr);                                                   \
-            zmq::zmq_abort (errstr);                                           \
+            zmq_abort (errstr);                                           \
         }                                                                      \
     } while (false)
 
@@ -152,14 +152,14 @@ int wsa_error_to_errno (errcode_: i32);
             fprintf (stderr, "FATAL ERROR: OUT OF MEMORY (%s:%d)\n", __FILE__, \
                      __LINE__);                                                \
             fflush (stderr);                                                   \
-            zmq::zmq_abort ("FATAL ERROR: OUT OF MEMORY");                     \
+            zmq_abort ("FATAL ERROR: OUT OF MEMORY");                     \
         }                                                                      \
     } while (false)
 
 // #endif
 
 
-const char *zmq::errno_to_string (errno_: i32)
+const char *errno_to_string (errno_: i32)
 {
     switch (errno_) {
 // #if defined ZMQ_HAVE_WINDOWS
@@ -202,7 +202,7 @@ const char *zmq::errno_to_string (errno_: i32)
     }
 }
 
-void zmq::zmq_abort (errmsg_: *const c_char)
+void zmq_abort (errmsg_: *const c_char)
 {
 // #if defined ZMQ_HAVE_WINDOWS
 
@@ -219,12 +219,12 @@ void zmq::zmq_abort (errmsg_: *const c_char)
 
 // #ifdef ZMQ_HAVE_WINDOWS
 
-const char *zmq::wsa_error ()
+const char *wsa_error ()
 {
     return wsa_error_no (WSAGetLastError (), NULL);
 }
 
-const char *zmq::wsa_error_no (no_: i32, wsae_wouldblock_string_: *const c_char)
+const char *wsa_error_no (no_: i32, wsae_wouldblock_string_: *const c_char)
 {
     //  TODO:  It seems that list of Windows socket errors is longer than this.
     //         Investigate whether there's a way to convert it into the string
@@ -337,7 +337,7 @@ const char *zmq::wsa_error_no (no_: i32, wsae_wouldblock_string_: *const c_char)
     }
 }
 
-void zmq::win_error (char *buffer_, buffer_size_: usize)
+void win_error (char *buffer_, buffer_size_: usize)
 {
     const DWORD errcode = GetLastError ();
 // #if defined _WIN32_WCE
@@ -354,7 +354,7 @@ void zmq::win_error (char *buffer_, buffer_size_: usize)
     zmq_assert (rc);
 }
 
-int zmq::wsa_error_to_errno (errcode_: i32)
+int wsa_error_to_errno (errcode_: i32)
 {
     switch (errcode_) {
             //  10004 - Interrupted system call.
@@ -524,9 +524,9 @@ int zmq::wsa_error_to_errno (errcode_: i32)
 // #include <cxxabi.h>
 // #include "mutex.hpp"
 
-void zmq::print_backtrace (void)
+void print_backtrace (void)
 {
-    static zmq::mutex_t mtx;
+    static mutex_t mtx;
     mtx.lock ();
     Dl_info dl_info;
     unw_cursor_t cursor;
@@ -574,7 +574,7 @@ void zmq::print_backtrace (void)
 
 // #else
 
-void zmq::print_backtrace ()
+void print_backtrace ()
 {
 }
 

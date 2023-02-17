@@ -136,16 +136,16 @@ int test_assert_failure_message_raw_errno_helper (
 // assertion is triggered.
 // 'socket_' must be the libzmq socket to use for sending.
 // 'str_' must be a 0-terminated string.
-// 'flags_' are as documented by the zmq_send function.
-void send_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags_: i32);
+// 'flags' are as documented by the zmq_send function.
+void send_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags: i32);
 
 // Receives a message via a libzmq socket, and expects the operation to be
 // successful, and the message to be a given string. Otherwise, a Unity test
 // assertion is triggered.
 // 'socket_' must be the libzmq socket to use for receiving.
 // 'str_' must be a 0-terminated string.
-// 'flags_' are as documented by the zmq_recv function.
-void recv_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags_: i32);
+// 'flags' are as documented by the zmq_recv function.
+void recv_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags: i32);
 
 // Sends a byte array via a libzmq socket, and expects the operation to be
 // successful (the meaning of which depends on the socket type and configured
@@ -154,13 +154,13 @@ void recv_string_expect_success (socket_: *mut c_void, str_: *const c_char, flag
 // 'socket_' must be the libzmq socket to use for sending.
 // 'array_' must be a C uint8_t array. The array size is automatically
 // determined via template argument deduction.
-// 'flags_' are as documented by the zmq_send function.
+// 'flags' are as documented by the zmq_send function.
 template <size_t SIZE>
 void send_array_expect_success (socket_: *mut c_void,
                                 const uint8_t (&array_)[SIZE],
-                                flags_: i32)
+                                flags: i32)
 {
-    let rc: i32 = zmq_send (socket_, array_, SIZE, flags_);
+    let rc: i32 = zmq_send (socket_, array_, SIZE, flags);
     TEST_ASSERT_EQUAL_INT (static_cast<int> (SIZE), rc);
 }
 
@@ -170,11 +170,11 @@ void send_array_expect_success (socket_: *mut c_void,
 // 'socket_' must be the libzmq socket to use for receiving.
 // 'array_' must be a C uint8_t array. The array size is automatically
 // determined via template argument deduction.
-// 'flags_' are as documented by the zmq_recv function.
+// 'flags' are as documented by the zmq_recv function.
 template <size_t SIZE>
 void recv_array_expect_success (socket_: *mut c_void,
                                 const uint8_t (&array_)[SIZE],
-                                flags_: i32)
+                                flags: i32)
 {
     char buffer[255];
     TEST_ASSERT_LESS_OR_EQUAL_MESSAGE (mem::size_of::<buffer>(), SIZE,
@@ -183,7 +183,7 @@ void recv_array_expect_success (socket_: *mut c_void,
                                        "characters");
 
     let rc: i32 = TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_recv (socket_, buffer, mem::size_of::<buffer>(), flags_));
+      zmq_recv (socket_, buffer, mem::size_of::<buffer>(), flags));
     TEST_ASSERT_EQUAL_INT (static_cast<int> (SIZE), rc);
     TEST_ASSERT_EQUAL_UINT8_ARRAY (array_, buffer, SIZE);
 }

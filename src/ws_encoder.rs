@@ -55,7 +55,7 @@ pub struct ws_encoder_t ZMQ_FINAL : public encoder_base_t<ws_encoder_t>
     ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_encoder_t)
 };
 
-zmq::ws_encoder_t::ws_encoder_t (bufsize_: usize, bool must_mask_) :
+ws_encoder_t::ws_encoder_t (bufsize_: usize, bool must_mask_) :
     encoder_base_t<ws_encoder_t> (bufsize_), _must_mask (must_mask_)
 {
     //  Write 0 bytes to the batch and go to message_ready state.
@@ -63,23 +63,23 @@ zmq::ws_encoder_t::ws_encoder_t (bufsize_: usize, bool must_mask_) :
     _masked_msg.init ();
 }
 
-zmq::ws_encoder_t::~ws_encoder_t ()
+ws_encoder_t::~ws_encoder_t ()
 {
     _masked_msg.close ();
 }
 
-void zmq::ws_encoder_t::message_ready ()
+void ws_encoder_t::message_ready ()
 {
     int offset = 0;
 
     _is_binary = false;
 
     if (in_progress ()->is_ping ())
-        _tmp_buf[offset++] = 0x80 | zmq::ws_protocol_t::opcode_ping;
+        _tmp_buf[offset++] = 0x80 | ws_protocol_t::opcode_ping;
     else if (in_progress ()->is_pong ())
-        _tmp_buf[offset++] = 0x80 | zmq::ws_protocol_t::opcode_pong;
+        _tmp_buf[offset++] = 0x80 | ws_protocol_t::opcode_pong;
     else if (in_progress ()->is_close_cmd ())
-        _tmp_buf[offset++] = 0x80 | zmq::ws_protocol_t::opcode_close;
+        _tmp_buf[offset++] = 0x80 | ws_protocol_t::opcode_close;
     else {
         _tmp_buf[offset++] = 0x82; // Final | binary
         _is_binary = true;
@@ -136,7 +136,7 @@ void zmq::ws_encoder_t::message_ready ()
     next_step (_tmp_buf, offset, &ws_encoder_t::size_ready, false);
 }
 
-void zmq::ws_encoder_t::size_ready ()
+void ws_encoder_t::size_ready ()
 {
     if (_must_mask) {
         assert (in_progress () != &_masked_msg);

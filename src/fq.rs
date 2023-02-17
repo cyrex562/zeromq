@@ -65,23 +65,23 @@ pub struct fq_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (fq_t)
 };
 
-zmq::fq_t::fq_t () : _active (0), _current (0), _more (false)
+fq_t::fq_t () : _active (0), _current (0), _more (false)
 {
 }
 
-zmq::fq_t::~fq_t ()
+fq_t::~fq_t ()
 {
     zmq_assert (_pipes.empty ());
 }
 
-void zmq::fq_t::attach (pipe_t *pipe_)
+void fq_t::attach (pipe_t *pipe_)
 {
     _pipes.push_back (pipe_);
     _pipes.swap (_active, _pipes.size () - 1);
     _active++;
 }
 
-void zmq::fq_t::pipe_terminated (pipe_t *pipe_)
+void fq_t::pipe_terminated (pipe_t *pipe_)
 {
     const pipes_t::size_type index = _pipes.index (pipe_);
 
@@ -96,19 +96,19 @@ void zmq::fq_t::pipe_terminated (pipe_t *pipe_)
     _pipes.erase (pipe_);
 }
 
-void zmq::fq_t::activated (pipe_t *pipe_)
+void fq_t::activated (pipe_t *pipe_)
 {
     //  Move the pipe to the list of active pipes.
     _pipes.swap (_pipes.index (pipe_), _active);
     _active++;
 }
 
-int zmq::fq_t::recv (ZmqMessage *msg)
+int fq_t::recv (ZmqMessage *msg)
 {
     return recvpipe (msg, NULL);
 }
 
-int zmq::fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe_)
+int fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe_)
 {
     //  Deallocate old content of the message.
     int rc = msg->close ();
@@ -152,7 +152,7 @@ int zmq::fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe_)
     return -1;
 }
 
-bool zmq::fq_t::has_in ()
+bool fq_t::has_in ()
 {
     //  There are subsequent parts of the partly-read message available.
     if (_more)

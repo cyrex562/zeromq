@@ -180,7 +180,7 @@ pub struct ZmqCommand
 {
     pub type_: CommandType,
     //  Object to process the command.
-    // zmq::object_t *destination;
+    // object_t *destination;
     pub destination: *mut object_t,
     //
     pub args: ArgsUnion,

@@ -79,7 +79,7 @@ pub struct curve_server_t ZMQ_FINAL : public zap_client_common_handshake_t,
     void send_zap_request (const uint8_t *key_);
 };
 
-zmq::curve_server_t::curve_server_t (session_base_t *session_,
+curve_server_t::curve_server_t (session_base_t *session_,
                                      const std::string &peer_address_,
                                      const ZmqOptions &options_,
                                      const bool downgrade_sub_) :
@@ -103,11 +103,11 @@ zmq::curve_server_t::curve_server_t (session_base_t *session_,
     zmq_assert (rc == 0);
 }
 
-zmq::curve_server_t::~curve_server_t ()
+curve_server_t::~curve_server_t ()
 {
 }
 
-int zmq::curve_server_t::next_handshake_command (ZmqMessage *msg)
+int curve_server_t::next_handshake_command (ZmqMessage *msg)
 {
     int rc = 0;
 
@@ -135,7 +135,7 @@ int zmq::curve_server_t::next_handshake_command (ZmqMessage *msg)
     return rc;
 }
 
-int zmq::curve_server_t::process_handshake_command (ZmqMessage *msg)
+int curve_server_t::process_handshake_command (ZmqMessage *msg)
 {
     int rc = 0;
 
@@ -169,19 +169,19 @@ int zmq::curve_server_t::process_handshake_command (ZmqMessage *msg)
     return rc;
 }
 
-int zmq::curve_server_t::encode (ZmqMessage *msg)
+int curve_server_t::encode (ZmqMessage *msg)
 {
     zmq_assert (state == ready);
     return curve_mechanism_base_t::encode (msg);
 }
 
-int zmq::curve_server_t::decode (ZmqMessage *msg)
+int curve_server_t::decode (ZmqMessage *msg)
 {
     zmq_assert (state == ready);
     return curve_mechanism_base_t::decode (msg);
 }
 
-int zmq::curve_server_t::process_hello (ZmqMessage *msg)
+int curve_server_t::process_hello (ZmqMessage *msg)
 {
     int rc = check_basic_command_structure (msg);
     if (rc == -1)
@@ -247,7 +247,7 @@ int zmq::curve_server_t::process_hello (ZmqMessage *msg)
     return rc;
 }
 
-int zmq::curve_server_t::produce_welcome (ZmqMessage *msg)
+int curve_server_t::produce_welcome (ZmqMessage *msg)
 {
     uint8_t cookie_nonce[crypto_secretbox_NONCEBYTES];
     std::vector<uint8_t, secure_allocator_t<uint8_t> > cookie_plaintext (
@@ -320,7 +320,7 @@ int zmq::curve_server_t::produce_welcome (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::curve_server_t::process_initiate (ZmqMessage *msg)
+int curve_server_t::process_initiate (ZmqMessage *msg)
 {
     int rc = check_basic_command_structure (msg);
     if (rc == -1)
@@ -483,7 +483,7 @@ int zmq::curve_server_t::process_initiate (ZmqMessage *msg)
                            clen - crypto_box_ZEROBYTES - 128);
 }
 
-int zmq::curve_server_t::produce_ready (ZmqMessage *msg)
+int curve_server_t::produce_ready (ZmqMessage *msg)
 {
     const size_t metadata_length = basic_properties_len ();
     uint8_t ready_nonce[crypto_box_NONCEBYTES];
@@ -524,7 +524,7 @@ int zmq::curve_server_t::produce_ready (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::curve_server_t::produce_error (ZmqMessage *msg) const
+int curve_server_t::produce_error (ZmqMessage *msg) const
 {
     const size_t expected_status_code_length = 3;
     zmq_assert (status_code.length () == 3);
@@ -537,7 +537,7 @@ int zmq::curve_server_t::produce_error (ZmqMessage *msg) const
     return 0;
 }
 
-void zmq::curve_server_t::send_zap_request (const uint8_t *key_)
+void curve_server_t::send_zap_request (const uint8_t *key_)
 {
     zap_client_t::send_zap_request ("CURVE", 5, key_,
                                     crypto_box_PUBLICKEYBYTES);

@@ -26,7 +26,7 @@ pub struct socket_base_t_ : public own_t,
 
     //  Create a socket of a specified type.
     static ZmqSocketBase *
-    create (type_: i32, zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    create (type_: i32, ZmqContext *parent_, uint32_t tid_, sid_: i32);
 
     //  Returns the mailbox associated with this socket.
     i_mailbox *get_mailbox () const;
@@ -41,8 +41,8 @@ pub struct socket_base_t_ : public own_t,
     int bind (endpoint_uri_: *const c_char);
     int connect (endpoint_uri_: *const c_char);
     int term_endpoint (endpoint_uri_: *const c_char);
-    int send (msg: &mut ZmqMessage flags_: i32);
-    int recv (msg: &mut ZmqMessage flags_: i32);
+    int send (msg: &mut ZmqMessage flags: i32);
+    int recv (msg: &mut ZmqMessage flags: i32);
     void add_signaler (signaler_t *s_);
     void remove_signaler (signaler_t *s_);
     int close ();
@@ -80,25 +80,25 @@ pub struct socket_base_t_ : public own_t,
                  type_: i32);
 
     void event_connected (const EndpointUriPair &endpoint_uri_pair_,
-                          zmq::fd_t fd_);
+                          fd_t fd_);
     void event_connect_delayed (const EndpointUriPair &endpoint_uri_pair_,
                                 err_: i32);
     void event_connect_retried (const EndpointUriPair &endpoint_uri_pair_,
                                 interval_: i32);
     void event_listening (const EndpointUriPair &endpoint_uri_pair_,
-                          zmq::fd_t fd_);
+                          fd_t fd_);
     void event_bind_failed (const EndpointUriPair &endpoint_uri_pair_,
                             err_: i32);
     void event_accepted (const EndpointUriPair &endpoint_uri_pair_,
-                         zmq::fd_t fd_);
+                         fd_t fd_);
     void event_accept_failed (const EndpointUriPair &endpoint_uri_pair_,
                               err_: i32);
     void event_closed (const EndpointUriPair &endpoint_uri_pair_,
-                       zmq::fd_t fd_);
+                       fd_t fd_);
     void event_close_failed (const EndpointUriPair &endpoint_uri_pair_,
                              err_: i32);
     void event_disconnected (const EndpointUriPair &endpoint_uri_pair_,
-                             zmq::fd_t fd_);
+                             fd_t fd_);
     void event_handshake_failed_no_detail (
       const EndpointUriPair &endpoint_uri_pair_, err_: i32);
     void event_handshake_failed_protocol (
@@ -123,7 +123,7 @@ pub struct socket_base_t_ : public own_t,
     bool is_disconnected () const;
 
   protected:
-    ZmqSocketBase (zmq::ZmqContext *parent_,
+    ZmqSocketBase (ZmqContext *parent_,
                    uint32_t tid_,
                    sid_: i32,
                    bool thread_safe_ = false);
@@ -131,7 +131,7 @@ pub struct socket_base_t_ : public own_t,
 
     //  Concrete algorithms for the x- methods are to be defined by
     //  individual socket types.
-    virtual void xattach_pipe (zmq::pipe_t *pipe_,
+    virtual void xattach_pipe (pipe_t *pipe_,
                                bool subscribe_to_all_ = false,
                                bool locally_initiated_ = false) = 0;
 
@@ -240,7 +240,7 @@ pub struct inprocs_t
     int check_protocol (protocol_: &str) const;
 
     //  Register the pipe with this socket.
-    void attach_pipe (zmq::pipe_t *pipe_,
+    void attach_pipe (pipe_t *pipe_,
                       bool subscribe_to_all_ = false,
                       bool locally_initiated_ = false);
 
@@ -252,7 +252,7 @@ pub struct inprocs_t
 
     //  Handlers for incoming commands.
     void process_stop () ZMQ_FINAL;
-    void process_bind (zmq::pipe_t *pipe_) ZMQ_FINAL;
+    void process_bind (pipe_t *pipe_) ZMQ_FINAL;
     void
     process_pipe_stats_publish (outbound_queue_count_: u64,
                                 inbound_queue_count_: u64,
@@ -360,13 +360,13 @@ pub struct routing_socket_base_t : public ZmqSocketBase
     std::string _connect_routing_id;
 };
 
-void zmq::ZmqSocketBase::inprocs_t::emplace (endpoint_uri_: *const c_char,
+void ZmqSocketBase::inprocs_t::emplace (endpoint_uri_: *const c_char,
                                              pipe_t *pipe_)
 {
     _inprocs.ZMQ_MAP_INSERT_OR_EMPLACE (std::string (endpoint_uri_), pipe_);
 }
 
-int zmq::ZmqSocketBase::inprocs_t::erase_pipes (
+int ZmqSocketBase::inprocs_t::erase_pipes (
   endpoint_uri_str_: &str)
 {
     const std::pair<map_t::iterator, map_t::iterator> range =
@@ -384,7 +384,7 @@ int zmq::ZmqSocketBase::inprocs_t::erase_pipes (
     return 0;
 }
 
-void zmq::ZmqSocketBase::inprocs_t::erase_pipe (const pipe_t *pipe_)
+void ZmqSocketBase::inprocs_t::erase_pipe (const pipe_t *pipe_)
 {
     for (map_t::iterator it = _inprocs.begin (), end = _inprocs.end ();
          it != end; ++it)
@@ -394,17 +394,17 @@ void zmq::ZmqSocketBase::inprocs_t::erase_pipe (const pipe_t *pipe_)
         }
 }
 
-bool zmq::ZmqSocketBase::check_tag () const
+bool ZmqSocketBase::check_tag () const
 {
     return _tag == 0xbaddecaf;
 }
 
-bool zmq::ZmqSocketBase::is_thread_safe () const
+bool ZmqSocketBase::is_thread_safe () const
 {
     return _thread_safe;
 }
 
-zmq::ZmqSocketBase *zmq::ZmqSocketBase::create (type_: i32,
+ZmqSocketBase *ZmqSocketBase::create (type_: i32,
 pub struct ZmqContext *parent_,
                                                 uint32_t tid_,
                                                 sid_: i32)
@@ -490,7 +490,7 @@ pub struct ZmqContext *parent_,
     return s;
 }
 
-zmq::ZmqSocketBase::ZmqSocketBase (ZmqContext *parent_,
+ZmqSocketBase::ZmqSocketBase (ZmqContext *parent_,
                                    uint32_t tid_,
                                    sid_: i32,
                                    bool thread_safe_) :
@@ -531,7 +531,7 @@ zmq::ZmqSocketBase::ZmqSocketBase (ZmqContext *parent_,
     }
 }
 
-int zmq::ZmqSocketBase::get_peer_state (const routing_id_: *mut c_void,
+int ZmqSocketBase::get_peer_state (const routing_id_: *mut c_void,
                                         routing_id_size_: usize) const
 {
     LIBZMQ_UNUSED (routing_id_);
@@ -542,7 +542,7 @@ int zmq::ZmqSocketBase::get_peer_state (const routing_id_: *mut c_void,
     return -1;
 }
 
-zmq::ZmqSocketBase::~ZmqSocketBase ()
+ZmqSocketBase::~ZmqSocketBase ()
 {
     if (_mailbox)
         LIBZMQ_DELETE (_mailbox);
@@ -556,12 +556,12 @@ zmq::ZmqSocketBase::~ZmqSocketBase ()
     zmq_assert (_destroyed);
 }
 
-zmq::i_mailbox *zmq::ZmqSocketBase::get_mailbox () const
+i_mailbox *ZmqSocketBase::get_mailbox () const
 {
     return _mailbox;
 }
 
-void zmq::ZmqSocketBase::stop ()
+void ZmqSocketBase::stop ()
 {
     //  Called by ctx when it is terminated (zmq_ctx_term).
     //  'stop' command is sent from the threads that called zmq_ctx_term to
@@ -572,7 +572,7 @@ void zmq::ZmqSocketBase::stop ()
 
 // TODO consider renaming protocol_ to scheme_ in conformance with RFC 3986
 // terminology, but this requires extensive changes to be consistent
-int zmq::ZmqSocketBase::parse_uri (uri_: *const c_char,
+int ZmqSocketBase::parse_uri (uri_: *const c_char,
                                    std::string &protocol_,
                                    std::string &path_)
 {
@@ -594,7 +594,7 @@ int zmq::ZmqSocketBase::parse_uri (uri_: *const c_char,
     return 0;
 }
 
-int zmq::ZmqSocketBase::check_protocol (protocol_: &str) const
+int ZmqSocketBase::check_protocol (protocol_: &str) const
 {
     //  First check out whether the protocol is something we are aware of.
     if (protocol_ != protocol_name::inproc
@@ -658,7 +658,7 @@ int zmq::ZmqSocketBase::check_protocol (protocol_: &str) const
     return 0;
 }
 
-void zmq::ZmqSocketBase::attach_pipe (pipe_t *pipe_,
+void ZmqSocketBase::attach_pipe (pipe_t *pipe_,
                                       bool subscribe_to_all_,
                                       bool locally_initiated_)
 {
@@ -677,7 +677,7 @@ void zmq::ZmqSocketBase::attach_pipe (pipe_t *pipe_,
     }
 }
 
-int zmq::ZmqSocketBase::setsockopt (option_: i32,
+int ZmqSocketBase::setsockopt (option_: i32,
                                     const optval_: *mut c_void,
                                     optvallen_: usize)
 {
@@ -702,7 +702,7 @@ int zmq::ZmqSocketBase::setsockopt (option_: i32,
     return rc;
 }
 
-int zmq::ZmqSocketBase::getsockopt (option_: i32,
+int ZmqSocketBase::getsockopt (option_: i32,
                                     optval_: *mut c_void,
                                     optvallen_: *mut usize)
 {
@@ -758,21 +758,21 @@ int zmq::ZmqSocketBase::getsockopt (option_: i32,
     return options.getsockopt (option_, optval_, optvallen_);
 }
 
-int zmq::ZmqSocketBase::join (group_: *const c_char)
+int ZmqSocketBase::join (group_: *const c_char)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
     return xjoin (group_);
 }
 
-int zmq::ZmqSocketBase::leave (group_: *const c_char)
+int ZmqSocketBase::leave (group_: *const c_char)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
     return xleave (group_);
 }
 
-void zmq::ZmqSocketBase::add_signaler (signaler_t *s_)
+void ZmqSocketBase::add_signaler (signaler_t *s_)
 {
     zmq_assert (_thread_safe);
 
@@ -780,7 +780,7 @@ void zmq::ZmqSocketBase::add_signaler (signaler_t *s_)
     (static_cast<mailbox_safe_t *> (_mailbox))->add_signaler (s_);
 }
 
-void zmq::ZmqSocketBase::remove_signaler (signaler_t *s_)
+void ZmqSocketBase::remove_signaler (signaler_t *s_)
 {
     zmq_assert (_thread_safe);
 
@@ -788,7 +788,7 @@ void zmq::ZmqSocketBase::remove_signaler (signaler_t *s_)
     (static_cast<mailbox_safe_t *> (_mailbox))->remove_signaler (s_);
 }
 
-int zmq::ZmqSocketBase::bind (endpoint_uri_: *const c_char)
+int ZmqSocketBase::bind (endpoint_uri_: *const c_char)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
@@ -1026,13 +1026,13 @@ int zmq::ZmqSocketBase::bind (endpoint_uri_: *const c_char)
     return -1;
 }
 
-int zmq::ZmqSocketBase::connect (endpoint_uri_: *const c_char)
+int ZmqSocketBase::connect (endpoint_uri_: *const c_char)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
     return connect_internal (endpoint_uri_);
 }
 
-int zmq::ZmqSocketBase::connect_internal (endpoint_uri_: *const c_char)
+int ZmqSocketBase::connect_internal (endpoint_uri_: *const c_char)
 {
     if (unlikely (_ctx_terminated)) {
         errno = ETERM;
@@ -1374,7 +1374,7 @@ int zmq::ZmqSocketBase::connect_internal (endpoint_uri_: *const c_char)
 }
 
 std::string
-zmq::ZmqSocketBase::resolve_tcp_addr (std::string endpoint_uri_pair_,
+ZmqSocketBase::resolve_tcp_addr (std::string endpoint_uri_pair_,
                                       tcp_address_: *const c_char)
 {
     // The resolved last_endpoint is used as a key in the endpoints map.
@@ -1401,7 +1401,7 @@ zmq::ZmqSocketBase::resolve_tcp_addr (std::string endpoint_uri_pair_,
     return endpoint_uri_pair_;
 }
 
-void zmq::ZmqSocketBase::add_endpoint (
+void ZmqSocketBase::add_endpoint (
   const EndpointUriPair &endpoint_pair_, own_t *endpoint_, pipe_t *pipe_)
 {
     //  Activate the session. Make it a child of this socket.
@@ -1413,7 +1413,7 @@ void zmq::ZmqSocketBase::add_endpoint (
         pipe_->set_endpoint_pair (endpoint_pair_);
 }
 
-int zmq::ZmqSocketBase::term_endpoint (endpoint_uri_: *const c_char)
+int ZmqSocketBase::term_endpoint (endpoint_uri_: *const c_char)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
@@ -1481,7 +1481,7 @@ int zmq::ZmqSocketBase::term_endpoint (endpoint_uri_: *const c_char)
     return 0;
 }
 
-int zmq::ZmqSocketBase::send (msg: &mut ZmqMessage flags_: i32)
+int ZmqSocketBase::send (msg: &mut ZmqMessage flags: i32)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
@@ -1507,7 +1507,7 @@ int zmq::ZmqSocketBase::send (msg: &mut ZmqMessage flags_: i32)
     msg->reset_flags (ZmqMessage::more);
 
     //  At this point we impose the flags on the message.
-    if (flags_ & ZMQ_SNDMORE)
+    if (flags & ZMQ_SNDMORE)
         msg->set_flags (ZmqMessage::more);
 
     msg->reset_metadata ();
@@ -1521,7 +1521,7 @@ int zmq::ZmqSocketBase::send (msg: &mut ZmqMessage flags_: i32)
     //  multi-part send is in progress and can't be recovered, so drop
     //  silently when in blocking mode to keep backward compatibility.
     if (unlikely (rc == -2)) {
-        if (!((flags_ & ZMQ_DONTWAIT) || options.sndtimeo == 0)) {
+        if (!((flags & ZMQ_DONTWAIT) || options.sndtimeo == 0)) {
             rc = msg->close ();
             errno_assert (rc == 0);
             rc = msg->init ();
@@ -1535,7 +1535,7 @@ int zmq::ZmqSocketBase::send (msg: &mut ZmqMessage flags_: i32)
 
     //  In case of non-blocking send we'll simply propagate
     //  the error - including EAGAIN - up the stack.
-    if ((flags_ & ZMQ_DONTWAIT) || options.sndtimeo == 0) {
+    if ((flags & ZMQ_DONTWAIT) || options.sndtimeo == 0) {
         return -1;
     }
 
@@ -1569,7 +1569,7 @@ int zmq::ZmqSocketBase::send (msg: &mut ZmqMessage flags_: i32)
     return 0;
 }
 
-int zmq::ZmqSocketBase::recv (msg: &mut ZmqMessage flags_: i32)
+int ZmqSocketBase::recv (msg: &mut ZmqMessage flags: i32)
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
@@ -1616,7 +1616,7 @@ int zmq::ZmqSocketBase::recv (msg: &mut ZmqMessage flags_: i32)
     //  For non-blocking recv, commands are processed in case there's an
     //  activate_reader command already waiting in a command pipe.
     //  If it's not, return EAGAIN.
-    if ((flags_ & ZMQ_DONTWAIT) || options.rcvtimeo == 0) {
+    if ((flags & ZMQ_DONTWAIT) || options.rcvtimeo == 0) {
         if (unlikely (process_commands (0, false) != 0)) {
             return -1;
         }
@@ -1665,7 +1665,7 @@ int zmq::ZmqSocketBase::recv (msg: &mut ZmqMessage flags_: i32)
     return 0;
 }
 
-int zmq::ZmqSocketBase::close ()
+int ZmqSocketBase::close ()
 {
     scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
@@ -1685,17 +1685,17 @@ int zmq::ZmqSocketBase::close ()
     return 0;
 }
 
-bool zmq::ZmqSocketBase::has_in ()
+bool ZmqSocketBase::has_in ()
 {
     return xhas_in ();
 }
 
-bool zmq::ZmqSocketBase::has_out ()
+bool ZmqSocketBase::has_out ()
 {
     return xhas_out ();
 }
 
-void zmq::ZmqSocketBase::start_reaping (poller_t *poller_)
+void ZmqSocketBase::start_reaping (poller_t *poller_)
 {
     //  Plug the socket to the reaper thread.
     _poller = poller_;
@@ -1728,14 +1728,14 @@ void zmq::ZmqSocketBase::start_reaping (poller_t *poller_)
     check_destroy ();
 }
 
-int zmq::ZmqSocketBase::process_commands (timeout_: i32, bool throttle_)
+int ZmqSocketBase::process_commands (timeout_: i32, bool throttle_)
 {
     if (timeout_ == 0) {
         //  If we are asked not to wait, check whether we haven't processed
         //  commands recently, so that we can throttle the new commands.
 
         //  Get the CPU's tick counter. If 0, the counter is not available.
-        const u64 tsc = zmq::clock_t::rdtsc ();
+        const u64 tsc = clock_t::rdtsc ();
 
         //  Optimised version of command processing - it doesn't have to check
         //  for incoming commands each time. It does so only if certain time
@@ -1778,7 +1778,7 @@ int zmq::ZmqSocketBase::process_commands (timeout_: i32, bool throttle_)
     return 0;
 }
 
-void zmq::ZmqSocketBase::process_stop ()
+void ZmqSocketBase::process_stop ()
 {
     //  Here, someone have called zmq_ctx_term while the socket was still alive.
     //  We'll remember the fact so that any blocking call is interrupted and any
@@ -1790,12 +1790,12 @@ void zmq::ZmqSocketBase::process_stop ()
     _ctx_terminated = true;
 }
 
-void zmq::ZmqSocketBase::process_bind (pipe_t *pipe_)
+void ZmqSocketBase::process_bind (pipe_t *pipe_)
 {
     attach_pipe (pipe_);
 }
 
-void zmq::ZmqSocketBase::process_term (linger_: i32)
+void ZmqSocketBase::process_term (linger_: i32)
 {
     //  Unregister all inproc endpoints associated with this socket.
     //  Doing this we make sure that no new pipes from other sockets (inproc)
@@ -1814,13 +1814,13 @@ void zmq::ZmqSocketBase::process_term (linger_: i32)
     own_t::process_term (linger_);
 }
 
-void zmq::ZmqSocketBase::process_term_endpoint (std::string *endpoint_)
+void ZmqSocketBase::process_term_endpoint (std::string *endpoint_)
 {
     term_endpoint (endpoint_->c_str ());
     delete endpoint_;
 }
 
-void zmq::ZmqSocketBase::process_pipe_stats_publish (
+void ZmqSocketBase::process_pipe_stats_publish (
   outbound_queue_count_: u64,
   inbound_queue_count_: u64,
   EndpointUriPair *endpoint_pair_)
@@ -1839,7 +1839,7 @@ void zmq::ZmqSocketBase::process_pipe_stats_publish (
  * and write back a message to the socket object (pipe_stats_publish) which
  * will raise an event with the data.
  */
-int zmq::ZmqSocketBase::query_pipes_stats ()
+int ZmqSocketBase::query_pipes_stats ()
 {
     {
         scoped_lock_t lock (_monitor_sync);
@@ -1859,7 +1859,7 @@ int zmq::ZmqSocketBase::query_pipes_stats ()
     return 0;
 }
 
-void zmq::ZmqSocketBase::update_pipe_options (option_: i32)
+void ZmqSocketBase::update_pipe_options (option_: i32)
 {
     if (option_ == ZMQ_SNDHWM || option_ == ZMQ_RCVHWM) {
         for (pipes_t::size_type i = 0, size = _pipes.size (); i != size; ++i) {
@@ -1869,74 +1869,74 @@ void zmq::ZmqSocketBase::update_pipe_options (option_: i32)
     }
 }
 
-void zmq::ZmqSocketBase::process_destroy ()
+void ZmqSocketBase::process_destroy ()
 {
     _destroyed = true;
 }
 
-int zmq::ZmqSocketBase::xsetsockopt (int, const void *, size_t)
+int ZmqSocketBase::xsetsockopt (int, const void *, size_t)
 {
     errno = EINVAL;
     return -1;
 }
 
-int zmq::ZmqSocketBase::xgetsockopt (int, void *, size_t *)
+int ZmqSocketBase::xgetsockopt (int, void *, size_t *)
 {
     errno = EINVAL;
     return -1;
 }
 
-bool zmq::ZmqSocketBase::xhas_out ()
+bool ZmqSocketBase::xhas_out ()
 {
     return false;
 }
 
-int zmq::ZmqSocketBase::xsend (ZmqMessage *)
+int ZmqSocketBase::xsend (ZmqMessage *)
 {
     errno = ENOTSUP;
     return -1;
 }
 
-bool zmq::ZmqSocketBase::xhas_in ()
+bool ZmqSocketBase::xhas_in ()
 {
     return false;
 }
 
-int zmq::ZmqSocketBase::xjoin (group_: *const c_char)
+int ZmqSocketBase::xjoin (group_: *const c_char)
 {
     LIBZMQ_UNUSED (group_);
     errno = ENOTSUP;
     return -1;
 }
 
-int zmq::ZmqSocketBase::xleave (group_: *const c_char)
+int ZmqSocketBase::xleave (group_: *const c_char)
 {
     LIBZMQ_UNUSED (group_);
     errno = ENOTSUP;
     return -1;
 }
 
-int zmq::ZmqSocketBase::xrecv (ZmqMessage *)
+int ZmqSocketBase::xrecv (ZmqMessage *)
 {
     errno = ENOTSUP;
     return -1;
 }
 
-void zmq::ZmqSocketBase::xread_activated (pipe_t *)
+void ZmqSocketBase::xread_activated (pipe_t *)
 {
     zmq_assert (false);
 }
-void zmq::ZmqSocketBase::xwrite_activated (pipe_t *)
-{
-    zmq_assert (false);
-}
-
-void zmq::ZmqSocketBase::xhiccuped (pipe_t *)
+void ZmqSocketBase::xwrite_activated (pipe_t *)
 {
     zmq_assert (false);
 }
 
-void zmq::ZmqSocketBase::in_event ()
+void ZmqSocketBase::xhiccuped (pipe_t *)
+{
+    zmq_assert (false);
+}
+
+void ZmqSocketBase::in_event ()
 {
     //  This function is invoked only once the socket is running in the context
     //  of the reaper thread. Process any commands from other threads/sockets
@@ -1954,17 +1954,17 @@ void zmq::ZmqSocketBase::in_event ()
     check_destroy ();
 }
 
-void zmq::ZmqSocketBase::out_event ()
+void ZmqSocketBase::out_event ()
 {
     zmq_assert (false);
 }
 
-void zmq::ZmqSocketBase::timer_event (int)
+void ZmqSocketBase::timer_event (int)
 {
     zmq_assert (false);
 }
 
-void zmq::ZmqSocketBase::check_destroy ()
+void ZmqSocketBase::check_destroy ()
 {
     //  If the object was already marked as destroyed, finish the deallocation.
     if (_destroyed) {
@@ -1982,17 +1982,17 @@ void zmq::ZmqSocketBase::check_destroy ()
     }
 }
 
-void zmq::ZmqSocketBase::read_activated (pipe_t *pipe_)
+void ZmqSocketBase::read_activated (pipe_t *pipe_)
 {
     xread_activated (pipe_);
 }
 
-void zmq::ZmqSocketBase::write_activated (pipe_t *pipe_)
+void ZmqSocketBase::write_activated (pipe_t *pipe_)
 {
     xwrite_activated (pipe_);
 }
 
-void zmq::ZmqSocketBase::hiccuped (pipe_t *pipe_)
+void ZmqSocketBase::hiccuped (pipe_t *pipe_)
 {
     if (options.immediate == 1)
         pipe_->terminate (false);
@@ -2001,7 +2001,7 @@ void zmq::ZmqSocketBase::hiccuped (pipe_t *pipe_)
         xhiccuped (pipe_);
 }
 
-void zmq::ZmqSocketBase::pipe_terminated (pipe_t *pipe_)
+void ZmqSocketBase::pipe_terminated (pipe_t *pipe_)
 {
     //  Notify the specific socket type about the pipe termination.
     xpipe_terminated (pipe_);
@@ -2031,7 +2031,7 @@ void zmq::ZmqSocketBase::pipe_terminated (pipe_t *pipe_)
         unregister_term_ack ();
 }
 
-void zmq::ZmqSocketBase::extract_flags (const ZmqMessage *msg)
+void ZmqSocketBase::extract_flags (const ZmqMessage *msg)
 {
     //  Test whether routing_id flag is valid for this socket type.
     if (unlikely (msg->flags () & ZmqMessage::routing_id))
@@ -2041,7 +2041,7 @@ void zmq::ZmqSocketBase::extract_flags (const ZmqMessage *msg)
     _rcvmore = (msg->flags () & ZmqMessage::more) != 0;
 }
 
-int zmq::ZmqSocketBase::monitor (endpoint_: *const c_char,
+int ZmqSocketBase::monitor (endpoint_: *const c_char,
                                  events_: u64,
                                  event_version_: i32,
                                  type_: i32)
@@ -2117,105 +2117,105 @@ int zmq::ZmqSocketBase::monitor (endpoint_: *const c_char,
     return rc;
 }
 
-void zmq::ZmqSocketBase::event_connected (
-  const EndpointUriPair &endpoint_uri_pair_, zmq::fd_t fd_)
+void ZmqSocketBase::event_connected (
+  const EndpointUriPair &endpoint_uri_pair_, fd_t fd_)
 {
     u64 values[1] = {static_cast<u64> (fd_)};
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_CONNECTED);
 }
 
-void zmq::ZmqSocketBase::event_connect_delayed (
+void ZmqSocketBase::event_connect_delayed (
   const EndpointUriPair &endpoint_uri_pair_, err_: i32)
 {
     u64 values[1] = {static_cast<u64> (err_)};
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_CONNECT_DELAYED);
 }
 
-void zmq::ZmqSocketBase::event_connect_retried (
+void ZmqSocketBase::event_connect_retried (
   const EndpointUriPair &endpoint_uri_pair_, interval_: i32)
 {
     u64 values[1] = {static_cast<u64> (interval_)};
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_CONNECT_RETRIED);
 }
 
-void zmq::ZmqSocketBase::event_listening (
-  const EndpointUriPair &endpoint_uri_pair_, zmq::fd_t fd_)
+void ZmqSocketBase::event_listening (
+  const EndpointUriPair &endpoint_uri_pair_, fd_t fd_)
 {
     u64 values[1] = {static_cast<u64> (fd_)};
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_LISTENING);
 }
 
-void zmq::ZmqSocketBase::event_bind_failed (
+void ZmqSocketBase::event_bind_failed (
   const EndpointUriPair &endpoint_uri_pair_, err_: i32)
 {
     u64 values[1] = {static_cast<u64> (err_)};
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_BIND_FAILED);
 }
 
-void zmq::ZmqSocketBase::event_accepted (
-  const EndpointUriPair &endpoint_uri_pair_, zmq::fd_t fd_)
+void ZmqSocketBase::event_accepted (
+  const EndpointUriPair &endpoint_uri_pair_, fd_t fd_)
 {
     u64 values[1] = {static_cast<u64> (fd_)};
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_ACCEPTED);
 }
 
-void zmq::ZmqSocketBase::event_accept_failed (
+void ZmqSocketBase::event_accept_failed (
   const EndpointUriPair &endpoint_uri_pair_, err_: i32)
 {
     u64 values[1] = {static_cast<u64> (err_)};
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_ACCEPT_FAILED);
 }
 
-void zmq::ZmqSocketBase::event_closed (
-  const EndpointUriPair &endpoint_uri_pair_, zmq::fd_t fd_)
+void ZmqSocketBase::event_closed (
+  const EndpointUriPair &endpoint_uri_pair_, fd_t fd_)
 {
     u64 values[1] = {static_cast<u64> (fd_)};
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_CLOSED);
 }
 
-void zmq::ZmqSocketBase::event_close_failed (
+void ZmqSocketBase::event_close_failed (
   const EndpointUriPair &endpoint_uri_pair_, err_: i32)
 {
     u64 values[1] = {static_cast<u64> (err_)};
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_CLOSE_FAILED);
 }
 
-void zmq::ZmqSocketBase::event_disconnected (
-  const EndpointUriPair &endpoint_uri_pair_, zmq::fd_t fd_)
+void ZmqSocketBase::event_disconnected (
+  const EndpointUriPair &endpoint_uri_pair_, fd_t fd_)
 {
     u64 values[1] = {static_cast<u64> (fd_)};
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_DISCONNECTED);
 }
 
-void zmq::ZmqSocketBase::event_handshake_failed_no_detail (
+void ZmqSocketBase::event_handshake_failed_no_detail (
   const endpoint_uri_pair_t &endpoint_uri_pair_, err_: i32)
 {
     u64 values[1] = {static_cast<u64> (err_)};
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL);
 }
 
-void zmq::ZmqSocketBase::event_handshake_failed_protocol (
+void ZmqSocketBase::event_handshake_failed_protocol (
   const endpoint_uri_pair_t &endpoint_uri_pair_, err_: i32)
 {
     u64 values[1] = {static_cast<u64> (err_)};
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL);
 }
 
-void zmq::ZmqSocketBase::event_handshake_failed_auth (
+void ZmqSocketBase::event_handshake_failed_auth (
   const endpoint_uri_pair_t &endpoint_uri_pair_, err_: i32)
 {
     u64 values[1] = {static_cast<u64> (err_)};
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH);
 }
 
-void zmq::ZmqSocketBase::event_handshake_succeeded (
+void ZmqSocketBase::event_handshake_succeeded (
   const endpoint_uri_pair_t &endpoint_uri_pair_, err_: i32)
 {
     u64 values[1] = {static_cast<u64> (err_)};
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_HANDSHAKE_SUCCEEDED);
 }
 
-void zmq::ZmqSocketBase::event (const endpoint_uri_pair_t &endpoint_uri_pair_,
+void ZmqSocketBase::event (const endpoint_uri_pair_t &endpoint_uri_pair_,
                                 u64 values_[],
                                 values_count_: u64,
                                 u64 type_)
@@ -2227,7 +2227,7 @@ void zmq::ZmqSocketBase::event (const endpoint_uri_pair_t &endpoint_uri_pair_,
 }
 
 //  Send a monitor event
-void zmq::ZmqSocketBase::monitor_event (
+void ZmqSocketBase::monitor_event (
   event_: u64,
   const u64 values_[],
   values_count_: u64,
@@ -2303,7 +2303,7 @@ void zmq::ZmqSocketBase::monitor_event (
     }
 }
 
-void zmq::ZmqSocketBase::stop_monitor (bool send_monitor_stopped_event_)
+void ZmqSocketBase::stop_monitor (bool send_monitor_stopped_event_)
 {
     // this is a private method which is only called from
     // contexts where the _monitor_sync mutex has been locked before
@@ -2321,24 +2321,24 @@ void zmq::ZmqSocketBase::stop_monitor (bool send_monitor_stopped_event_)
     }
 }
 
-bool zmq::ZmqSocketBase::is_disconnected () const
+bool ZmqSocketBase::is_disconnected () const
 {
     return _disconnected;
 }
 
-zmq::routing_socket_base_t::routing_socket_base_t (class ZmqContext *parent_,
+routing_socket_base_t::routing_socket_base_t (class ZmqContext *parent_,
                                                    uint32_t tid_,
                                                    sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_)
 {
 }
 
-zmq::routing_socket_base_t::~routing_socket_base_t ()
+routing_socket_base_t::~routing_socket_base_t ()
 {
     zmq_assert (_out_pipes.empty ());
 }
 
-int zmq::routing_socket_base_t::xsetsockopt (option_: i32,
+int routing_socket_base_t::xsetsockopt (option_: i32,
                                              const optval_: *mut c_void,
                                              optvallen_: usize)
 {
@@ -2357,7 +2357,7 @@ int zmq::routing_socket_base_t::xsetsockopt (option_: i32,
     return -1;
 }
 
-void zmq::routing_socket_base_t::xwrite_activated (pipe_t *pipe_)
+void routing_socket_base_t::xwrite_activated (pipe_t *pipe_)
 {
     const out_pipes_t::iterator end = _out_pipes.end ();
     out_pipes_t::iterator it;
@@ -2370,19 +2370,19 @@ void zmq::routing_socket_base_t::xwrite_activated (pipe_t *pipe_)
     it->second.active = true;
 }
 
-std::string zmq::routing_socket_base_t::extract_connect_routing_id ()
+std::string routing_socket_base_t::extract_connect_routing_id ()
 {
     std::string res = ZMQ_MOVE (_connect_routing_id);
     _connect_routing_id.clear ();
     return res;
 }
 
-bool zmq::routing_socket_base_t::connect_routing_id_is_set () const
+bool routing_socket_base_t::connect_routing_id_is_set () const
 {
     return !_connect_routing_id.is_empty();
 }
 
-void zmq::routing_socket_base_t::add_out_pipe (Blob routing_id_,
+void routing_socket_base_t::add_out_pipe (Blob routing_id_,
                                                pipe_t *pipe_)
 {
     //  Add the record into output pipes lookup table
@@ -2393,35 +2393,35 @@ void zmq::routing_socket_base_t::add_out_pipe (Blob routing_id_,
     zmq_assert (ok);
 }
 
-bool zmq::routing_socket_base_t::has_out_pipe (const Blob &routing_id_) const
+bool routing_socket_base_t::has_out_pipe (const Blob &routing_id_) const
 {
     return 0 != _out_pipes.count (routing_id_);
 }
 
-zmq::routing_socket_base_t::out_pipe_t *
-zmq::routing_socket_base_t::lookup_out_pipe (const Blob &routing_id_)
+routing_socket_base_t::out_pipe_t *
+routing_socket_base_t::lookup_out_pipe (const Blob &routing_id_)
 {
     // TODO we could probably avoid constructor a temporary Blob to call this function
     out_pipes_t::iterator it = _out_pipes.find (routing_id_);
     return it == _out_pipes.end () ? NULL : &it->second;
 }
 
-const zmq::routing_socket_base_t::out_pipe_t *
-zmq::routing_socket_base_t::lookup_out_pipe (const Blob &routing_id_) const
+const routing_socket_base_t::out_pipe_t *
+routing_socket_base_t::lookup_out_pipe (const Blob &routing_id_) const
 {
     // TODO we could probably avoid constructor a temporary Blob to call this function
     const out_pipes_t::const_iterator it = _out_pipes.find (routing_id_);
     return it == _out_pipes.end () ? NULL : &it->second;
 }
 
-void zmq::routing_socket_base_t::erase_out_pipe (const pipe_t *pipe_)
+void routing_socket_base_t::erase_out_pipe (const pipe_t *pipe_)
 {
     const size_t erased = _out_pipes.erase (pipe_->get_routing_id ());
     zmq_assert (erased);
 }
 
-zmq::routing_socket_base_t::out_pipe_t
-zmq::routing_socket_base_t::try_erase_out_pipe (const Blob &routing_id_)
+routing_socket_base_t::out_pipe_t
+routing_socket_base_t::try_erase_out_pipe (const Blob &routing_id_)
 {
     const out_pipes_t::iterator it = _out_pipes.find (routing_id_);
     out_pipe_t res = {NULL, false};

@@ -38,7 +38,7 @@
 pub struct req_t ZMQ_FINAL : public dealer_t
 {
 // public:
-    req_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    req_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~req_t ();
 
     //  Overrides of functions from ZmqSocketBase.
@@ -47,7 +47,7 @@ pub struct req_t ZMQ_FINAL : public dealer_t
     bool xhas_in ();
     bool xhas_out ();
     int xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
-    void xpipe_terminated (zmq::pipe_t *pipe_);
+    void xpipe_terminated (pipe_t *pipe_);
 
   protected:
     //  Receive only from the pipe the request was sent to, discarding
@@ -64,7 +64,7 @@ pub struct req_t ZMQ_FINAL : public dealer_t
     bool _message_begins;
 
     //  The pipe the request was sent to and where the reply is expected.
-    zmq::pipe_t *_reply_pipe;
+    pipe_t *_reply_pipe;
 
     //  Whether request id frames shall be sent and expected.
     bool _request_id_frames_enabled;
@@ -83,7 +83,7 @@ pub struct req_t ZMQ_FINAL : public dealer_t
 pub struct req_session_t ZMQ_FINAL : public session_base_t
 {
 // public:
-    req_session_t (zmq::io_thread_t *io_thread_,
+    req_session_t (io_thread_t *io_thread_,
                    bool connect_,
                    socket_: *mut ZmqSocketBase,
                    const ZmqOptions &options_,
@@ -105,7 +105,7 @@ pub struct req_session_t ZMQ_FINAL : public session_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (req_session_t)
 };
 
-zmq::req_t::req_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+req_t::req_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     dealer_t (parent_, tid_, sid_),
     _receiving_reply (false),
     _message_begins (true),
@@ -117,11 +117,11 @@ zmq::req_t::req_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     options.type = ZMQ_REQ;
 }
 
-zmq::req_t::~req_t ()
+req_t::~req_t ()
 {
 }
 
-int zmq::req_t::xsend (ZmqMessage *msg)
+int req_t::xsend (ZmqMessage *msg)
 {
     //  If we've sent a request and we still haven't got the reply,
     //  we can't send another request unless the strict option is disabled.
@@ -197,7 +197,7 @@ int zmq::req_t::xsend (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::req_t::xrecv (ZmqMessage *msg)
+int req_t::xrecv (ZmqMessage *msg)
 {
     //  If request wasn't send, we can't wait for reply.
     if (!_receiving_reply) {
@@ -257,7 +257,7 @@ int zmq::req_t::xrecv (ZmqMessage *msg)
     return 0;
 }
 
-bool zmq::req_t::xhas_in ()
+bool req_t::xhas_in ()
 {
     //  TODO: Duplicates should be removed here.
 
@@ -267,7 +267,7 @@ bool zmq::req_t::xhas_in ()
     return dealer_t::xhas_in ();
 }
 
-bool zmq::req_t::xhas_out ()
+bool req_t::xhas_out ()
 {
     if (_receiving_reply && _strict)
         return false;
@@ -275,7 +275,7 @@ bool zmq::req_t::xhas_out ()
     return dealer_t::xhas_out ();
 }
 
-int zmq::req_t::xsetsockopt (option_: i32,
+int req_t::xsetsockopt (option_: i32,
                              const optval_: *mut c_void,
                              optvallen_: usize)
 {
@@ -306,14 +306,14 @@ int zmq::req_t::xsetsockopt (option_: i32,
     return dealer_t::xsetsockopt (option_, optval_, optvallen_);
 }
 
-void zmq::req_t::xpipe_terminated (pipe_t *pipe_)
+void req_t::xpipe_terminated (pipe_t *pipe_)
 {
     if (_reply_pipe == pipe_)
         _reply_pipe = NULL;
     dealer_t::xpipe_terminated (pipe_);
 }
 
-int zmq::req_t::recv_reply_pipe (ZmqMessage *msg)
+int req_t::recv_reply_pipe (ZmqMessage *msg)
 {
     while (true) {
         pipe_t *pipe = NULL;
@@ -325,7 +325,7 @@ int zmq::req_t::recv_reply_pipe (ZmqMessage *msg)
     }
 }
 
-zmq::req_session_t::req_session_t (io_thread_t *io_thread_,
+req_session_t::req_session_t (io_thread_t *io_thread_,
                                    bool connect_,
                                    ZmqSocketBase *socket_,
                                    const ZmqOptions &options_,
@@ -335,11 +335,11 @@ zmq::req_session_t::req_session_t (io_thread_t *io_thread_,
 {
 }
 
-zmq::req_session_t::~req_session_t ()
+req_session_t::~req_session_t ()
 {
 }
 
-int zmq::req_session_t::push_msg (ZmqMessage *msg)
+int req_session_t::push_msg (ZmqMessage *msg)
 {
     //  Ignore commands, they are processed by the engine and should not
     //  affect the state machine.
@@ -381,7 +381,7 @@ int zmq::req_session_t::push_msg (ZmqMessage *msg)
     return -1;
 }
 
-void zmq::req_session_t::reset ()
+void req_session_t::reset ()
 {
     session_base_t::reset ();
     _state = bottom;

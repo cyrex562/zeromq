@@ -100,7 +100,7 @@ int alt_clock_gettime (clock_id: i32, timespec *ts)
 // #ifdef ZMQ_HAVE_WINDOWS
 typedef ULONGLONG (*f_compatible_get_tick_count64) ();
 
-static zmq::mutex_t compatible_get_tick_count64_mutex;
+static mutex_t compatible_get_tick_count64_mutex;
 
 ULONGLONG compatible_get_tick_count64 ()
 {
@@ -108,7 +108,7 @@ ULONGLONG compatible_get_tick_count64 ()
     const ULONGLONG result = ::GetTickCount64 ();
     return result;
 // #else
-    zmq::scoped_lock_t locker (compatible_get_tick_count64_mutex);
+    scoped_lock_t locker (compatible_get_tick_count64_mutex);
 
     static DWORD s_wrap = 0;
     static DWORD s_last_tick = 0;
@@ -156,7 +156,7 @@ const u64 nsecs_per_usec = 1000;
 // #endif
 const u64 usecs_per_sec = 1000000;
 
-zmq::clock_t::clock_t () :
+clock_t::clock_t () :
     _last_tsc (rdtsc ()),
 // #ifdef ZMQ_HAVE_WINDOWS
     _last_time (static_cast<u64> ((*my_get_tick_count64) ()))
@@ -166,7 +166,7 @@ zmq::clock_t::clock_t () :
 {
 }
 
-u64 zmq::clock_t::now_us ()
+u64 clock_t::now_us ()
 {
 // #if defined ZMQ_HAVE_WINDOWS
 
@@ -229,7 +229,7 @@ u64 zmq::clock_t::now_us ()
 // #endif
 }
 
-u64 zmq::clock_t::now_ms ()
+u64 clock_t::now_ms ()
 {
     const u64 tsc = rdtsc ();
 
@@ -261,7 +261,7 @@ u64 zmq::clock_t::now_ms ()
     return _last_time;
 }
 
-u64 zmq::clock_t::rdtsc ()
+u64 clock_t::rdtsc ()
 {
 #if (defined _MSC_VER && (defined _M_IX86 || defined _M_X64))
     return __rdtsc ();

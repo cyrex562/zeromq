@@ -51,18 +51,18 @@ pub struct v2_encoder_t ZMQ_FINAL : public encoder_base_t<v2_encoder_t>
     ZMQ_NON_COPYABLE_NOR_MOVABLE (v2_encoder_t)
 };
 
-zmq::v2_encoder_t::v2_encoder_t (bufsize_: usize) :
+v2_encoder_t::v2_encoder_t (bufsize_: usize) :
     encoder_base_t<v2_encoder_t> (bufsize_)
 {
     //  Write 0 bytes to the batch and go to message_ready state.
     next_step (NULL, 0, &v2_encoder_t::message_ready, true);
 }
 
-zmq::v2_encoder_t::~v2_encoder_t ()
+v2_encoder_t::~v2_encoder_t ()
 {
 }
 
-void zmq::v2_encoder_t::message_ready ()
+void v2_encoder_t::message_ready ()
 {
     //  Encode flags.
     size_t size = in_progress ()->size ();
@@ -103,7 +103,7 @@ void zmq::v2_encoder_t::message_ready ()
     next_step (_tmp_buf, header_size, &v2_encoder_t::size_ready, false);
 }
 
-void zmq::v2_encoder_t::size_ready ()
+void v2_encoder_t::size_ready ()
 {
     //  Write message body into the buffer.
     next_step (in_progress ()->data (), in_progress ()->size (),

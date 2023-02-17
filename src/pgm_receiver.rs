@@ -41,7 +41,7 @@
 // #include "wire.hpp"
 // #include "err.hpp"
 
-zmq::pgm_receiver_t::pgm_receiver_t (class io_thread_t *parent_,
+pgm_receiver_t::pgm_receiver_t (class io_thread_t *parent_,
                                      const ZmqOptions &options_) :
     io_object_t (parent_),
     has_rx_timer (false),
@@ -53,18 +53,18 @@ zmq::pgm_receiver_t::pgm_receiver_t (class io_thread_t *parent_,
 {
 }
 
-zmq::pgm_receiver_t::~pgm_receiver_t ()
+pgm_receiver_t::~pgm_receiver_t ()
 {
     //  Destructor should not be called before unplug.
     zmq_assert (peers.empty ());
 }
 
-int zmq::pgm_receiver_t::init (bool udp_encapsulation_, network_: *const c_char)
+int pgm_receiver_t::init (bool udp_encapsulation_, network_: *const c_char)
 {
     return pgm_socket.init (udp_encapsulation_, network_);
 }
 
-void zmq::pgm_receiver_t::plug (io_thread_t *io_thread_,
+void pgm_receiver_t::plug (io_thread_t *io_thread_,
                                 session_base_t *session_)
 {
     LIBZMQ_UNUSED (io_thread_);
@@ -83,7 +83,7 @@ void zmq::pgm_receiver_t::plug (io_thread_t *io_thread_,
     drop_subscriptions ();
 }
 
-void zmq::pgm_receiver_t::unplug ()
+void pgm_receiver_t::unplug ()
 {
     //  Delete decoders.
     for (peers_t::iterator it = peers.begin (), end = peers.end (); it != end;
@@ -106,18 +106,18 @@ void zmq::pgm_receiver_t::unplug ()
     session = NULL;
 }
 
-void zmq::pgm_receiver_t::terminate ()
+void pgm_receiver_t::terminate ()
 {
     unplug ();
     delete this;
 }
 
-void zmq::pgm_receiver_t::restart_output ()
+void pgm_receiver_t::restart_output ()
 {
     drop_subscriptions ();
 }
 
-bool zmq::pgm_receiver_t::restart_input ()
+bool pgm_receiver_t::restart_input ()
 {
     zmq_assert (session != NULL);
     zmq_assert (active_tsi != NULL);
@@ -156,12 +156,12 @@ bool zmq::pgm_receiver_t::restart_input ()
     return true;
 }
 
-const zmq::EndpointUriPair &zmq::pgm_receiver_t::get_endpoint () const
+const EndpointUriPair &pgm_receiver_t::get_endpoint () const
 {
     return _empty_endpoint;
 }
 
-void zmq::pgm_receiver_t::in_event ()
+void pgm_receiver_t::in_event ()
 {
     // If active_tsi is not null, there is a pending restart_input.
     // Keep the internal state as is so that restart_input would process the right data
@@ -271,7 +271,7 @@ void zmq::pgm_receiver_t::in_event ()
     session->flush ();
 }
 
-int zmq::pgm_receiver_t::process_input (v1_decoder_t *decoder)
+int pgm_receiver_t::process_input (v1_decoder_t *decoder)
 {
     zmq_assert (session != NULL);
 
@@ -294,7 +294,7 @@ int zmq::pgm_receiver_t::process_input (v1_decoder_t *decoder)
 }
 
 
-void zmq::pgm_receiver_t::timer_event (token: i32)
+void pgm_receiver_t::timer_event (token: i32)
 {
     zmq_assert (token == rx_timer_id);
 
@@ -303,7 +303,7 @@ void zmq::pgm_receiver_t::timer_event (token: i32)
     in_event ();
 }
 
-void zmq::pgm_receiver_t::drop_subscriptions ()
+void pgm_receiver_t::drop_subscriptions ()
 {
     ZmqMessage msg;
     msg.init ();
@@ -313,14 +313,14 @@ void zmq::pgm_receiver_t::drop_subscriptions ()
 pub struct pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine
 {
 // public:
-    pgm_receiver_t (zmq::io_thread_t *parent_, const ZmqOptions &options_);
+    pgm_receiver_t (io_thread_t *parent_, const ZmqOptions &options_);
     ~pgm_receiver_t ();
 
     int init (bool udp_encapsulation_, network_: *const c_char);
 
     //  i_engine interface implementation.
     bool has_handshake_stage () { return false; };
-    void plug (zmq::io_thread_t *io_thread_, zmq::session_base_t *session_);
+    void plug (io_thread_t *io_thread_, session_base_t *session_);
     void terminate ();
     bool restart_input ();
     void restart_output ();
@@ -384,7 +384,7 @@ pub struct pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine
     ZmqOptions options;
 
     //  Associated session.
-    zmq::session_base_t *session;
+    session_base_t *session;
 
     const pgm_tsi_t *active_tsi;
 

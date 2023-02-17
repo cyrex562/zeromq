@@ -124,7 +124,7 @@ pub struct pgm_socket_t
     pgm_msgv_processed: usize;
 };
 
-zmq::pgm_socket_t::pgm_socket_t (bool receiver_, const ZmqOptions &options_) :
+pgm_socket_t::pgm_socket_t (bool receiver_, const ZmqOptions &options_) :
     sock (NULL),
     options (options_),
     receiver (receiver_),
@@ -141,7 +141,7 @@ zmq::pgm_socket_t::pgm_socket_t (bool receiver_, const ZmqOptions &options_) :
 //  e.g. eth0;239.192.0.1:7500
 //       link-local;224.250.0.1,224.250.0.2;224.250.0.3:8000
 //       ;[fe80::1%en0]:7500
-int zmq::pgm_socket_t::init_address (network_: *const c_char,
+int pgm_socket_t::init_address (network_: *const c_char,
                                      struct pgm_addrinfo_t **res,
                                      uint16_t *port_number)
 {
@@ -188,7 +188,7 @@ int zmq::pgm_socket_t::init_address (network_: *const c_char,
 }
 
 //  Create, bind and connect PGM socket.
-int zmq::pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
+int pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
 {
     //  Can not open transport before destroying old one.
     zmq_assert (sock == NULL);
@@ -450,7 +450,7 @@ err_abort:
     return -1;
 }
 
-zmq::pgm_socket_t::~pgm_socket_t ()
+pgm_socket_t::~pgm_socket_t ()
 {
     if (pgm_msgv)
         free (pgm_msgv);
@@ -460,7 +460,7 @@ zmq::pgm_socket_t::~pgm_socket_t ()
 
 //  Get receiver fds. receive_fd_ is signaled for incoming packets,
 //  waiting_pipe_fd_ is signaled for state driven events and data.
-void zmq::pgm_socket_t::get_receiver_fds (fd_t *receive_fd_,
+void pgm_socket_t::get_receiver_fds (fd_t *receive_fd_,
                                           fd_t *waiting_pipe_fd_)
 {
     socklen_t socklen;
@@ -487,7 +487,7 @@ void zmq::pgm_socket_t::get_receiver_fds (fd_t *receive_fd_,
 //  receive_fd_ is for incoming back-channel protocol packets.
 //  rdata_notify_fd_ is raised for waiting repair transmissions.
 //  pending_notify_fd_ is for state driven events.
-void zmq::pgm_socket_t::get_sender_fds (fd_t *send_fd_,
+void pgm_socket_t::get_sender_fds (fd_t *send_fd_,
                                         fd_t *receive_fd_,
                                         fd_t *rdata_notify_fd_,
                                         fd_t *pending_notify_fd_)
@@ -526,7 +526,7 @@ void zmq::pgm_socket_t::get_sender_fds (fd_t *send_fd_,
 
 //  Send one APDU, transmit window owned memory.
 //  data_len_ must be less than one TPDU.
-size_t zmq::pgm_socket_t::send (unsigned char *data, data_len_: usize)
+size_t pgm_socket_t::send (unsigned char *data, data_len_: usize)
 {
     size_t nbytes = 0;
 
@@ -552,7 +552,7 @@ size_t zmq::pgm_socket_t::send (unsigned char *data, data_len_: usize)
     return nbytes;
 }
 
-long zmq::pgm_socket_t::get_rx_timeout ()
+long pgm_socket_t::get_rx_timeout ()
 {
     if (last_rx_status != PGM_IO_STATUS_RATE_LIMITED
         && last_rx_status != PGM_IO_STATUS_TIMER_PENDING)
@@ -572,7 +572,7 @@ long zmq::pgm_socket_t::get_rx_timeout ()
     return timeout;
 }
 
-long zmq::pgm_socket_t::get_tx_timeout ()
+long pgm_socket_t::get_tx_timeout ()
 {
     if (last_tx_status != PGM_IO_STATUS_RATE_LIMITED)
         return -1;
@@ -589,7 +589,7 @@ long zmq::pgm_socket_t::get_tx_timeout ()
 }
 
 //  Return max TSDU size without fragmentation from current PGM transport.
-size_t zmq::pgm_socket_t::get_max_tsdu_size ()
+size_t pgm_socket_t::get_max_tsdu_size ()
 {
     int max_tsdu = 0;
     socklen_t optlen = mem::size_of::<max_tsdu>();
@@ -602,7 +602,7 @@ size_t zmq::pgm_socket_t::get_max_tsdu_size ()
 
 //  pgm_recvmsgv is called to fill the pgm_msgv array up to  pgm_msgv_len.
 //  In subsequent calls data from pgm_msgv structure are returned.
-ssize_t zmq::pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t **tsi_)
+ssize_t pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t **tsi_)
 {
     size_t raw_data_len = 0;
 
@@ -711,7 +711,7 @@ ssize_t zmq::pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t 
     return raw_data_len;
 }
 
-void zmq::pgm_socket_t::process_upstream ()
+void pgm_socket_t::process_upstream ()
 {
     pgm_msgv_t dummy_msg;
 
@@ -740,7 +740,7 @@ void zmq::pgm_socket_t::process_upstream ()
         errno = EAGAIN;
 }
 
-int zmq::pgm_socket_t::compute_sqns (tpdu_: i32)
+int pgm_socket_t::compute_sqns (tpdu_: i32)
 {
     //  Convert rate into B/ms.
     u64 rate = u64 (options.rate) / 8;

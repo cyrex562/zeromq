@@ -35,21 +35,21 @@
 pub struct client_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
-    client_t (zmq::ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    client_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
     ~client_t ();
 
   protected:
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (zmq::pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
     int xsend (ZmqMessage *msg);
     int xrecv (ZmqMessage *msg);
     bool xhas_in ();
     bool xhas_out ();
-    void xread_activated (zmq::pipe_t *pipe_);
-    void xwrite_activated (zmq::pipe_t *pipe_);
-    void xpipe_terminated (zmq::pipe_t *pipe_);
+    void xread_activated (pipe_t *pipe_);
+    void xwrite_activated (pipe_t *pipe_);
+    void xpipe_terminated (pipe_t *pipe_);
 
   // private:
     //  Messages are fair-queued from inbound pipes. And load-balanced to
@@ -60,7 +60,7 @@ pub struct client_t ZMQ_FINAL : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (client_t)
 };
 
-zmq::client_t::client_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+client_t::client_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_, true)
 {
     options.type = ZMQ_CLIENT;
@@ -68,11 +68,11 @@ zmq::client_t::client_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     options.can_recv_hiccup_msg = true;
 }
 
-zmq::client_t::~client_t ()
+client_t::~client_t ()
 {
 }
 
-void zmq::client_t::xattach_pipe (pipe_t *pipe_,
+void client_t::xattach_pipe (pipe_t *pipe_,
                                   bool subscribe_to_all_,
                                   bool locally_initiated_)
 {
@@ -85,7 +85,7 @@ void zmq::client_t::xattach_pipe (pipe_t *pipe_,
     _lb.attach (pipe_);
 }
 
-int zmq::client_t::xsend (ZmqMessage *msg)
+int client_t::xsend (ZmqMessage *msg)
 {
     //  CLIENT sockets do not allow multipart data (ZMQ_SNDMORE)
     if (msg->flags () & ZmqMessage::more) {
@@ -95,7 +95,7 @@ int zmq::client_t::xsend (ZmqMessage *msg)
     return _lb.sendpipe (msg, NULL);
 }
 
-int zmq::client_t::xrecv (ZmqMessage *msg)
+int client_t::xrecv (ZmqMessage *msg)
 {
     int rc = _fq.recvpipe (msg, NULL);
 
@@ -115,27 +115,27 @@ int zmq::client_t::xrecv (ZmqMessage *msg)
     return rc;
 }
 
-bool zmq::client_t::xhas_in ()
+bool client_t::xhas_in ()
 {
     return _fq.has_in ();
 }
 
-bool zmq::client_t::xhas_out ()
+bool client_t::xhas_out ()
 {
     return _lb.has_out ();
 }
 
-void zmq::client_t::xread_activated (pipe_t *pipe_)
+void client_t::xread_activated (pipe_t *pipe_)
 {
     _fq.activated (pipe_);
 }
 
-void zmq::client_t::xwrite_activated (pipe_t *pipe_)
+void client_t::xwrite_activated (pipe_t *pipe_)
 {
     _lb.activated (pipe_);
 }
 
-void zmq::client_t::xpipe_terminated (pipe_t *pipe_)
+void client_t::xpipe_terminated (pipe_t *pipe_)
 {
     _fq.pipe_terminated (pipe_);
     _lb.pipe_terminated (pipe_);

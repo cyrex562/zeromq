@@ -1734,7 +1734,7 @@ pub fn do_setsockopt_set<T>(opt_val: &mut [u8],
 // TODO why is 1000 a sensible default?
 pub const DEFAULT_HWM: u32 = 1000;
 //
-// zmq::ZmqOptions::ZmqOptions () :
+// ZmqOptions::ZmqOptions () :
 //     sndhwm (default_hwm),
 //     rcvhwm (default_hwm),
 //     affinity (0),

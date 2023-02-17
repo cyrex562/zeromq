@@ -59,12 +59,12 @@ pub struct IpcAddress
     ZMQ_NON_COPYABLE_NOR_MOVABLE (IpcAddress)
 };
 
-zmq::IpcAddress::IpcAddress ()
+IpcAddress::IpcAddress ()
 {
     memset (&_address, 0, sizeof _address);
 }
 
-zmq::IpcAddress::IpcAddress (const sockaddr *sa_, socklen_t sa_len_) :
+IpcAddress::IpcAddress (const sockaddr *sa_, socklen_t sa_len_) :
     _addrlen (sa_len_)
 {
     zmq_assert (sa_ && sa_len_ > 0);
@@ -74,11 +74,11 @@ zmq::IpcAddress::IpcAddress (const sockaddr *sa_, socklen_t sa_len_) :
         memcpy (&_address, sa_, sa_len_);
 }
 
-zmq::IpcAddress::~IpcAddress ()
+IpcAddress::~IpcAddress ()
 {
 }
 
-int zmq::IpcAddress::resolve (path_: *const c_char)
+int IpcAddress::resolve (path_: *const c_char)
 {
     const size_t path_len = strlen (path_);
     if (path_len >= sizeof _address.sun_path) {
@@ -101,7 +101,7 @@ int zmq::IpcAddress::resolve (path_: *const c_char)
     return 0;
 }
 
-int zmq::IpcAddress::to_string (std::string &addr_) const
+int IpcAddress::to_string (std::string &addr_) const
 {
     if (_address.sun_family != AF_UNIX) {
         addr_.clear ();
@@ -129,12 +129,12 @@ int zmq::IpcAddress::to_string (std::string &addr_) const
     return 0;
 }
 
-const sockaddr *zmq::IpcAddress::addr () const
+const sockaddr *IpcAddress::addr () const
 {
     return reinterpret_cast<const sockaddr *> (&_address);
 }
 
-socklen_t zmq::IpcAddress::addrlen () const
+socklen_t IpcAddress::addrlen () const
 {
     return _addrlen;
 }

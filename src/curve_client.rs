@@ -78,7 +78,7 @@ pub struct curve_client_t ZMQ_FINAL : public curve_mechanism_base_t
     int process_error (const uint8_t *msg_data_, msg_size_: usize);
 };
 
-zmq::curve_client_t::curve_client_t (session_base_t *session_,
+curve_client_t::curve_client_t (session_base_t *session_,
                                      const ZmqOptions &options_,
                                      const bool downgrade_sub_) :
     mechanism_base_t (session_, options_),
@@ -94,11 +94,11 @@ zmq::curve_client_t::curve_client_t (session_base_t *session_,
 {
 }
 
-zmq::curve_client_t::~curve_client_t ()
+curve_client_t::~curve_client_t ()
 {
 }
 
-int zmq::curve_client_t::next_handshake_command (ZmqMessage *msg)
+int curve_client_t::next_handshake_command (ZmqMessage *msg)
 {
     int rc = 0;
 
@@ -120,7 +120,7 @@ int zmq::curve_client_t::next_handshake_command (ZmqMessage *msg)
     return rc;
 }
 
-int zmq::curve_client_t::process_handshake_command (ZmqMessage *msg)
+int curve_client_t::process_handshake_command (ZmqMessage *msg)
 {
     const unsigned char *msg_data =
       static_cast<unsigned char *> (msg->data ());
@@ -152,19 +152,19 @@ int zmq::curve_client_t::process_handshake_command (ZmqMessage *msg)
     return rc;
 }
 
-int zmq::curve_client_t::encode (ZmqMessage *msg)
+int curve_client_t::encode (ZmqMessage *msg)
 {
     zmq_assert (_state == connected);
     return curve_mechanism_base_t::encode (msg);
 }
 
-int zmq::curve_client_t::decode (ZmqMessage *msg)
+int curve_client_t::decode (ZmqMessage *msg)
 {
     zmq_assert (_state == connected);
     return curve_mechanism_base_t::decode (msg);
 }
 
-zmq::mechanism_t::status_t zmq::curve_client_t::status () const
+mechanism_t::status_t curve_client_t::status () const
 {
     if (_state == connected)
         return mechanism_t::ready;
@@ -174,7 +174,7 @@ zmq::mechanism_t::status_t zmq::curve_client_t::status () const
     return mechanism_t::handshaking;
 }
 
-int zmq::curve_client_t::produce_hello (ZmqMessage *msg)
+int curve_client_t::produce_hello (ZmqMessage *msg)
 {
     int rc = msg->init_size (200);
     errno_assert (rc == 0);
@@ -195,7 +195,7 @@ int zmq::curve_client_t::produce_hello (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::curve_client_t::process_welcome (const uint8_t *msg_data_,
+int curve_client_t::process_welcome (const uint8_t *msg_data_,
                                           msg_size_: usize)
 {
     let rc: i32 = _tools.process_welcome (msg_data_, msg_size_,
@@ -214,7 +214,7 @@ int zmq::curve_client_t::process_welcome (const uint8_t *msg_data_,
     return 0;
 }
 
-int zmq::curve_client_t::produce_initiate (ZmqMessage *msg)
+int curve_client_t::produce_initiate (ZmqMessage *msg)
 {
     const size_t metadata_length = basic_properties_len ();
     std::vector<unsigned char, secure_allocator_t<unsigned char> >
@@ -241,7 +241,7 @@ int zmq::curve_client_t::produce_initiate (ZmqMessage *msg)
     return 0;
 }
 
-int zmq::curve_client_t::process_ready (const uint8_t *msg_data_,
+int curve_client_t::process_ready (const uint8_t *msg_data_,
                                         msg_size_: usize)
 {
     if (msg_size_ < 30) {
@@ -292,7 +292,7 @@ int zmq::curve_client_t::process_ready (const uint8_t *msg_data_,
     return rc;
 }
 
-int zmq::curve_client_t::process_error (const uint8_t *msg_data_,
+int curve_client_t::process_error (const uint8_t *msg_data_,
                                         msg_size_: usize)
 {
     if (_state != expect_welcome && _state != expect_ready) {

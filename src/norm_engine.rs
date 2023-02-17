@@ -18,7 +18,7 @@
 pub struct norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
 {
 // public:
-    norm_engine_t (zmq::io_thread_t *parent_, const ZmqOptions &options_);
+    norm_engine_t (io_thread_t *parent_, const ZmqOptions &options_);
     ~norm_engine_t () ZMQ_FINAL;
 
     // create NORM instance, session, etc
@@ -29,7 +29,7 @@ pub struct norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
 
     //  i_engine interface implementation.
     //  Plug the engine to the session.
-    void plug (zmq::io_thread_t *io_thread_,
+    void plug (io_thread_t *io_thread_,
 pub struct session_base_t *session_) ZMQ_FINAL;
 
     //  Terminate and deallocate the engine. Note that 'detached'
@@ -123,7 +123,7 @@ pub struct Iterator
             NormRxStreamState *head;
             NormRxStreamState *tail;
 
-        }; // end class zmq::norm_engine_t::NormRxStreamState::List
+        }; // end class norm_engine_t::NormRxStreamState::List
 
         friend class List;
 
@@ -147,7 +147,7 @@ pub struct Iterator
         NormRxStreamState *next;
         NormRxStreamState::List *list;
 
-    }; // end class zmq::norm_engine_t::NormRxStreamState
+    }; // end class norm_engine_t::NormRxStreamState
 
     const EndpointUriPair _empty_endpoint;
 
@@ -200,7 +200,7 @@ struct norm_wrapper_thread_args_t
 DWORD WINAPI normWrapperThread (LPVOID lpParam);
 // #endif
 
-zmq::norm_engine_t::norm_engine_t (io_thread_t *parent_,
+norm_engine_t::norm_engine_t (io_thread_t *parent_,
                                    const ZmqOptions &options_) :
     io_object_t (parent_),
     zmq_session (NULL),
@@ -223,13 +223,13 @@ zmq::norm_engine_t::norm_engine_t (io_thread_t *parent_,
     errno_assert (0 == rc);
 }
 
-zmq::norm_engine_t::~norm_engine_t ()
+norm_engine_t::~norm_engine_t ()
 {
     shutdown (); // in case it was not already called
 }
 
 
-int zmq::norm_engine_t::init (network_: *const c_char, bool send, bool recv)
+int norm_engine_t::init (network_: *const c_char, bool send, bool recv)
 {
     // Parse the "network_" address int "iface", "addr", and "port"
     // norm endpoint format: [id,][<iface>;]<addr>:<port>
@@ -377,9 +377,9 @@ int zmq::norm_engine_t::init (network_: *const c_char, bool send, bool recv)
     //NormOpenDebugLog(norm_instance, "normLog.txt");
 
     return 0; // no error
-} // end zmq::norm_engine_t::init()
+} // end norm_engine_t::init()
 
-void zmq::norm_engine_t::shutdown ()
+void norm_engine_t::shutdown ()
 {
     // TBD - implement a more graceful shutdown option
     if (is_receiver) {
@@ -405,9 +405,9 @@ void zmq::norm_engine_t::shutdown ()
         NormDestroyInstance (norm_instance);
         norm_instance = NORM_INSTANCE_INVALID;
     }
-} // end zmq::norm_engine_t::shutdown()
+} // end norm_engine_t::shutdown()
 
-void zmq::norm_engine_t::plug (io_thread_t *io_thread_,
+void norm_engine_t::plug (io_thread_t *io_thread_,
                                session_base_t *session_)
 {
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
@@ -440,9 +440,9 @@ void zmq::norm_engine_t::plug (io_thread_t *io_thread_,
                                           threadArgs, 0, &wrapper_thread_id);
 // #endif
 
-} // end zmq::norm_engine_t::init()
+} // end norm_engine_t::init()
 
-void zmq::norm_engine_t::unplug ()
+void norm_engine_t::unplug ()
 {
     rm_fd (norm_descriptor_handle);
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
@@ -456,25 +456,25 @@ void zmq::norm_engine_t::unplug ()
     errno_assert (rc != -1);
 // #endif
     zmq_session = NULL;
-} // end zmq::norm_engine_t::unplug()
+} // end norm_engine_t::unplug()
 
-void zmq::norm_engine_t::terminate ()
+void norm_engine_t::terminate ()
 {
     unplug ();
     shutdown ();
     delete this;
 }
 
-void zmq::norm_engine_t::restart_output ()
+void norm_engine_t::restart_output ()
 {
     // There's new message data available from the session
     zmq_output_ready = true;
     if (norm_tx_ready)
         send_data ();
 
-} // end zmq::norm_engine_t::restart_output()
+} // end norm_engine_t::restart_output()
 
-void zmq::norm_engine_t::send_data ()
+void norm_engine_t::send_data ()
 {
     // Here we write as much as is available or we can
     while (zmq_output_ready && norm_tx_ready) {
@@ -538,9 +538,9 @@ void zmq::norm_engine_t::send_data ()
             tx_len = 0; // all buffered data was written
         }
     } // end while (zmq_output_ready && norm_tx_ready)
-} // end zmq::norm_engine_t::send_data()
+} // end norm_engine_t::send_data()
 
-void zmq::norm_engine_t::in_event ()
+void norm_engine_t::in_event ()
 {
     // This means a NormEvent is pending, so call NormGetNextEvent() and handle
     NormEvent event;
@@ -601,9 +601,9 @@ void zmq::norm_engine_t::in_event ()
             // We ignore some NORM events
             break;
     }
-} // zmq::norm_engine_t::in_event()
+} // norm_engine_t::in_event()
 
-bool zmq::norm_engine_t::restart_input ()
+bool norm_engine_t::restart_input ()
 {
     // TBD - should we check/assert that zmq_input_ready was false???
     zmq_input_ready = true;
@@ -612,9 +612,9 @@ bool zmq::norm_engine_t::restart_input ()
         recv_data (NORM_OBJECT_INVALID);
 
     return true;
-} // end zmq::norm_engine_t::restart_input()
+} // end norm_engine_t::restart_input()
 
-void zmq::norm_engine_t::recv_data (NormObjectHandle object)
+void norm_engine_t::recv_data (NormObjectHandle object)
 {
     if (NORM_OBJECT_INVALID != object) {
         // Call result of NORM_RX_OBJECT_UPDATED notification
@@ -767,9 +767,9 @@ void zmq::norm_engine_t::recv_data (NormObjectHandle object)
     // Alert zmq of the messages we have pushed up
     zmq_session->flush ();
 
-} // end zmq::norm_engine_t::recv_data()
+} // end norm_engine_t::recv_data()
 
-zmq::norm_engine_t::NormRxStreamState::NormRxStreamState (
+norm_engine_t::NormRxStreamState::NormRxStreamState (
   NormObjectHandle normStream,
   i64 maxMsgSize,
   bool zeroCopy,
@@ -791,7 +791,7 @@ zmq::norm_engine_t::NormRxStreamState::NormRxStreamState (
 {
 }
 
-zmq::norm_engine_t::NormRxStreamState::~NormRxStreamState ()
+norm_engine_t::NormRxStreamState::~NormRxStreamState ()
 {
     if (NULL != zmq_decoder) {
         delete zmq_decoder;
@@ -803,7 +803,7 @@ zmq::norm_engine_t::NormRxStreamState::~NormRxStreamState ()
     }
 }
 
-bool zmq::norm_engine_t::NormRxStreamState::Init ()
+bool norm_engine_t::NormRxStreamState::Init ()
 {
     in_sync = false;
     skip_norm_sync = false;
@@ -820,11 +820,11 @@ bool zmq::norm_engine_t::NormRxStreamState::Init ()
     } else {
         return false;
     }
-} // end zmq::norm_engine_t::NormRxStreamState::Init()
+} // end norm_engine_t::NormRxStreamState::Init()
 
 // This decodes any pending data sitting in our stream decoder buffer
 // It returns 1 upon message completion, -1 on error, 1 on msg completion
-int zmq::norm_engine_t::NormRxStreamState::Decode ()
+int norm_engine_t::NormRxStreamState::Decode ()
 {
     // If we have pending bytes to decode, process those first
     while (buffer_count > 0) {
@@ -870,18 +870,18 @@ int zmq::norm_engine_t::NormRxStreamState::Decode ()
     zmq_decoder->get_buffer (&buffer_ptr, &buffer_size);
     return 0; //  need more data
 
-} // end zmq::norm_engine_t::NormRxStreamState::Decode()
+} // end norm_engine_t::NormRxStreamState::Decode()
 
-zmq::norm_engine_t::NormRxStreamState::List::List () : head (NULL), tail (NULL)
+norm_engine_t::NormRxStreamState::List::List () : head (NULL), tail (NULL)
 {
 }
 
-zmq::norm_engine_t::NormRxStreamState::List::~List ()
+norm_engine_t::NormRxStreamState::List::~List ()
 {
     Destroy ();
 }
 
-void zmq::norm_engine_t::NormRxStreamState::List::Destroy ()
+void norm_engine_t::NormRxStreamState::List::Destroy ()
 {
     NormRxStreamState *item = head;
     while (NULL != item) {
@@ -889,9 +889,9 @@ void zmq::norm_engine_t::NormRxStreamState::List::Destroy ()
         delete item;
         item = head;
     }
-} // end zmq::norm_engine_t::NormRxStreamState::List::Destroy()
+} // end norm_engine_t::NormRxStreamState::List::Destroy()
 
-void zmq::norm_engine_t::NormRxStreamState::List::Append (
+void norm_engine_t::NormRxStreamState::List::Append (
   NormRxStreamState &item)
 {
     item.prev = tail;
@@ -902,9 +902,9 @@ void zmq::norm_engine_t::NormRxStreamState::List::Append (
     item.next = NULL;
     tail = &item;
     item.list = this;
-} // end zmq::norm_engine_t::NormRxStreamState::List::Append()
+} // end norm_engine_t::NormRxStreamState::List::Append()
 
-void zmq::norm_engine_t::NormRxStreamState::List::Remove (
+void norm_engine_t::NormRxStreamState::List::Remove (
   NormRxStreamState &item)
 {
     if (NULL != item.prev)
@@ -917,24 +917,24 @@ void zmq::norm_engine_t::NormRxStreamState::List::Remove (
         tail = item.prev;
     item.prev = item.next = NULL;
     item.list = NULL;
-} // end zmq::norm_engine_t::NormRxStreamState::List::Remove()
+} // end norm_engine_t::NormRxStreamState::List::Remove()
 
-zmq::norm_engine_t::NormRxStreamState::List::Iterator::Iterator (
+norm_engine_t::NormRxStreamState::List::Iterator::Iterator (
   const List &list) :
     next_item (list.head)
 {
 }
 
-zmq::norm_engine_t::NormRxStreamState *
-zmq::norm_engine_t::NormRxStreamState::List::Iterator::GetNextItem ()
+norm_engine_t::NormRxStreamState *
+norm_engine_t::NormRxStreamState::List::Iterator::GetNextItem ()
 {
     NormRxStreamState *nextItem = next_item;
     if (NULL != nextItem)
         next_item = nextItem->next;
     return nextItem;
-} // end zmq::norm_engine_t::NormRxStreamState::List::Iterator::GetNextItem()
+} // end norm_engine_t::NormRxStreamState::List::Iterator::GetNextItem()
 
-const zmq::EndpointUriPair &zmq::norm_engine_t::get_endpoint () const
+const EndpointUriPair &norm_engine_t::get_endpoint () const
 {
     return _empty_endpoint;
 }

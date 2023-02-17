@@ -110,12 +110,12 @@ void test_get_peer_state ()
     const unsigned int event_size = 2;
     bool dealer2_blocked = false;
     unsigned int dealer1_sent = 0, dealer2_sent = 0, dealer1_received = 0;
-    zmq_poller_event_t events[event_size];
+    ZmqPollerEvent events[event_size];
     for (unsigned int iteration = 0; iteration < count; ++iteration) {
         TEST_ASSERT_SUCCESS_ERRNO (
           zmq_poller_wait_all (poller, events, event_size, -1));
         for (unsigned int event_no = 0; event_no < event_size; ++event_no) {
-            const zmq_poller_event_t &current_event = events[event_no];
+            const ZmqPollerEvent &current_event = events[event_no];
             if (current_event.socket == router
                 && current_event.events & ZMQ_POLLOUT) {
                 if (send_ZmqMessageo_peer_if_ready (router, dealer1_routing_id))

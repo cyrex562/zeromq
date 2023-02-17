@@ -122,7 +122,7 @@ pub struct capture_: *mut ZmqSocketBase,
                     ZmqMessage *msg)
 {
     // Forward a burst of messages
-    for (unsigned int i = 0; i < zmq::proxy_burst_size; i++) {
+    for (unsigned int i = 0; i < proxy_burst_size; i++) {
         more: i32;
         moresz: usize;
         size_t complete_msg_size = 0;
@@ -222,7 +222,7 @@ static int reply_stats (control_: *mut ZmqSocketBase,
 
 // #ifdef ZMQ_HAVE_POLLER
 
-int zmq::proxy (class ZmqSocketBase *frontend_,
+int proxy (class ZmqSocketBase *frontend_,
 pub struct ZmqSocketBase *backend_,
 pub struct ZmqSocketBase *capture_,
 pub struct ZmqSocketBase *control_)
@@ -252,7 +252,7 @@ pub struct ZmqSocketBase *control_)
     bool backend_in = false;
     bool backend_out = false;
     bool control_in = false;
-    zmq::socket_poller_t::event_t events[3];
+    socket_poller_t::event_t events[3];
     zmq_socket_stats_t frontend_stats;
     zmq_socket_stats_t backend_stats;
     memset (&frontend_stats, 0, mem::size_of::<frontend_stats>());
@@ -261,36 +261,36 @@ pub struct ZmqSocketBase *control_)
     //  Don't allocate these pollers from stack because they will take more than 900 kB of stack!
     //  On Windows this blows up default stack of 1 MB and aborts the program.
     //  I wanted to use std::shared_ptr here as the best solution but that requires C++11...
-    zmq::socket_poller_t *poller_all =
-      new (std::nothrow) zmq::socket_poller_t; //  Poll for everything.
-    zmq::socket_poller_t *poller_in = new (std::nothrow) zmq::
+    socket_poller_t *poller_all =
+      new (std::nothrow) socket_poller_t; //  Poll for everything.
+    socket_poller_t *poller_in = new (std::nothrow)
       socket_poller_t; //  Poll only 'ZMQ_POLLIN' on all sockets. Initial blocking poll in loop.
-    zmq::socket_poller_t *poller_control = new (std::nothrow) zmq::
+    socket_poller_t *poller_control = new (std::nothrow)
       socket_poller_t; //  Poll only for 'ZMQ_POLLIN' on 'control_', when proxy is paused.
-    zmq::socket_poller_t *poller_receive_blocked = new (std::nothrow)
-      zmq::socket_poller_t; //  All except 'ZMQ_POLLIN' on 'frontend_'.
+    socket_poller_t *poller_receive_blocked = new (std::nothrow)
+      socket_poller_t; //  All except 'ZMQ_POLLIN' on 'frontend_'.
 
     //  If frontend_==backend_ 'poller_send_blocked' and 'poller_receive_blocked' are the same, 'ZMQ_POLLIN' is ignored.
     //  In that case 'poller_send_blocked' is not used. We need only 'poller_receive_blocked'.
     //  We also don't need 'poller_both_blocked', 'poller_backend_only' nor 'poller_frontend_only' no need to initialize it.
     //  We save some RAM and time for initialization.
-    zmq::socket_poller_t *poller_send_blocked =
+    socket_poller_t *poller_send_blocked =
       NULL; //  All except 'ZMQ_POLLIN' on 'backend_'.
-    zmq::socket_poller_t *poller_both_blocked =
+    socket_poller_t *poller_both_blocked =
       NULL; //  All except 'ZMQ_POLLIN' on both 'frontend_' and 'backend_'.
-    zmq::socket_poller_t *poller_frontend_only =
+    socket_poller_t *poller_frontend_only =
       NULL; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'frontend_'.
-    zmq::socket_poller_t *poller_backend_only =
+    socket_poller_t *poller_backend_only =
       NULL; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'backend_'.
 
     if (frontend_ != backend_) {
         poller_send_blocked = new (std::nothrow)
-          zmq::socket_poller_t; //  All except 'ZMQ_POLLIN' on 'backend_'.
-        poller_both_blocked = new (std::nothrow) zmq::
+          socket_poller_t; //  All except 'ZMQ_POLLIN' on 'backend_'.
+        poller_both_blocked = new (std::nothrow)
           socket_poller_t; //  All except 'ZMQ_POLLIN' on both 'frontend_' and 'backend_'.
-        poller_frontend_only = new (std::nothrow) zmq::
+        poller_frontend_only = new (std::nothrow)
           socket_poller_t; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'frontend_'.
-        poller_backend_only = new (std::nothrow) zmq::
+        poller_backend_only = new (std::nothrow)
           socket_poller_t; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'backend_'.
         frontend_equal_to_backend = false;
     } else
@@ -304,7 +304,7 @@ pub struct ZmqSocketBase *control_)
         return close_and_return (&msg, -1);
     }
 
-    zmq::socket_poller_t *poller_wait =
+    socket_poller_t *poller_wait =
       poller_in; //  Poller for blocking wait, initially all 'ZMQ_POLLIN'.
 
     //  Register 'frontend_' and 'backend_' with pollers.
@@ -539,7 +539,7 @@ pub struct ZmqSocketBase *control_)
 
 // #else //  ZMQ_HAVE_POLLER
 
-int zmq::proxy (class ZmqSocketBase *frontend_,
+int proxy (class ZmqSocketBase *frontend_,
 pub struct ZmqSocketBase *backend_,
 pub struct ZmqSocketBase *capture_,
 pub struct ZmqSocketBase *control_)

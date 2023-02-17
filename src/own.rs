@@ -39,10 +39,10 @@ pub struct own_t : public object_t
 
     //  The object is not living within an I/O thread. It has it's own
     //  thread outside of 0MQ infrastructure.
-    own_t (zmq::ZmqContext *parent_, uint32_t tid_);
+    own_t (ZmqContext *parent_, uint32_t tid_);
 
     //  The object is living within I/O thread.
-    own_t (zmq::io_thread_t *io_thread_, const ZmqOptions &options_);
+    own_t (io_thread_t *io_thread_, const ZmqOptions &options_);
 
     //  When another owned object wants to send command to this object
     //  it calls this function to let it know it should not shut down
@@ -133,7 +133,7 @@ impl own_t {
 
 }
 
-zmq::own_t::own_t (class ZmqContext *parent_, uint32_t tid_) :
+own_t::own_t (class ZmqContext *parent_, uint32_t tid_) :
     object_t (parent_, tid_),
     _terminating (false),
     _sent_seqnum (0),
@@ -143,7 +143,7 @@ zmq::own_t::own_t (class ZmqContext *parent_, uint32_t tid_) :
 {
 }
 
-zmq::own_t::own_t (io_thread_t *io_thread_, const ZmqOptions &options_) :
+own_t::own_t (io_thread_t *io_thread_, const ZmqOptions &options_) :
     object_t (io_thread_),
     options (options_),
     _terminating (false),
@@ -154,23 +154,23 @@ zmq::own_t::own_t (io_thread_t *io_thread_, const ZmqOptions &options_) :
 {
 }
 
-zmq::own_t::~own_t ()
+own_t::~own_t ()
 {
 }
 
-void zmq::own_t::set_owner (own_t *owner_)
+void own_t::set_owner (own_t *owner_)
 {
     zmq_assert (!_owner);
     _owner = owner_;
 }
 
-void zmq::own_t::inc_seqnum ()
+void own_t::inc_seqnum ()
 {
     //  This function may be called from a different thread!
     _sent_seqnum.add (1);
 }
 
-void zmq::own_t::process_seqnum ()
+void own_t::process_seqnum ()
 {
     //  Catch up with counter of processed commands.
     _processed_seqnum++;
@@ -179,7 +179,7 @@ void zmq::own_t::process_seqnum ()
     check_term_acks ();
 }
 
-void zmq::own_t::launch_child (own_t *object_)
+void own_t::launch_child (own_t *object_)
 {
     //  Specify the owner of the object.
     object_->set_owner (this);
@@ -191,12 +191,12 @@ void zmq::own_t::launch_child (own_t *object_)
     send_own (this, object_);
 }
 
-void zmq::own_t::term_child (own_t *object_)
+void own_t::term_child (own_t *object_)
 {
     process_term_req (object_);
 }
 
-void zmq::own_t::process_term_req (own_t *object_)
+void own_t::process_term_req (own_t *object_)
 {
     //  When shutting down we can ignore termination requests from owned
     //  objects. The termination request was already sent to the object.
@@ -216,7 +216,7 @@ void zmq::own_t::process_term_req (own_t *object_)
     send_term (object_, options.linger.load ());
 }
 
-void zmq::own_t::process_own (own_t *object_)
+void own_t::process_own (own_t *object_)
 {
     //  If the object is already being shut down, new owned objects are
     //  immediately asked to terminate. Note that linger is set to zero.
@@ -230,7 +230,7 @@ void zmq::own_t::process_own (own_t *object_)
     _owned.insert (object_);
 }
 
-void zmq::own_t::terminate ()
+void own_t::terminate ()
 {
     //  If termination is already underway, there's no point
     //  in starting it anew.
@@ -248,12 +248,12 @@ void zmq::own_t::terminate ()
     send_term_req (_owner, this);
 }
 
-bool zmq::own_t::is_terminating () const
+bool own_t::is_terminating () const
 {
     return _terminating;
 }
 
-void zmq::own_t::process_term (linger_: i32)
+void own_t::process_term (linger_: i32)
 {
     //  Double termination should never happen.
     zmq_assert (!_terminating);
@@ -271,12 +271,12 @@ void zmq::own_t::process_term (linger_: i32)
     check_term_acks ();
 }
 
-void zmq::own_t::register_term_acks (count: i32)
+void own_t::register_term_acks (count: i32)
 {
     _term_acks += count;
 }
 
-void zmq::own_t::unregister_term_ack ()
+void own_t::unregister_term_ack ()
 {
     zmq_assert (_term_acks > 0);
     _term_acks--;
@@ -285,12 +285,12 @@ void zmq::own_t::unregister_term_ack ()
     check_term_acks ();
 }
 
-void zmq::own_t::process_term_ack ()
+void own_t::process_term_ack ()
 {
     unregister_term_ack ();
 }
 
-void zmq::own_t::check_term_acks ()
+void own_t::check_term_acks ()
 {
     if (_terminating && _processed_seqnum == _sent_seqnum.get ()
         && _term_acks == 0) {
@@ -307,7 +307,7 @@ void zmq::own_t::check_term_acks ()
     }
 }
 
-void zmq::own_t::process_destroy ()
+void own_t::process_destroy ()
 {
     delete this;
 }
