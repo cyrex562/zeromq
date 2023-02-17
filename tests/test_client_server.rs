@@ -79,9 +79,9 @@ void test_routing_id ()
 
     send_string_expect_success (client, "X", 0);
 
-    uint32_t routing_id;
+    u32 routing_id;
     {
-        zmq_ZmqMessage msg;
+        ZmqRawMessage msg;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
         int rc = TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, server, 0));
@@ -94,7 +94,7 @@ void test_routing_id ()
     }
 
     {
-        zmq_ZmqMessage msg;
+        ZmqRawMessage msg;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 1));
 
         char *data = static_cast<char *> (zmq_msg_data (&msg));
@@ -107,7 +107,7 @@ void test_routing_id ()
     }
 
     {
-        zmq_ZmqMessage msg;
+        ZmqRawMessage msg;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
         int rc = zmq_msg_recv (&msg, client, 0);

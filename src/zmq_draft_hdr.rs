@@ -30,14 +30,14 @@
 // #ifndef __ZMQ_DRAFT_H_INCLUDED__
 // #define __ZMQ_DRAFT_H_INCLUDED__
 
-/******************************************************************************/
-/*  These functions are DRAFT and disabled in stable releases, and subject to */
-/*  change at ANY time until declared stable.                                 */
-/******************************************************************************/
+// ****************************************************************************
+//   These functions are DRAFT and disabled in stable releases, and subject to
+//   change at ANY time until declared stable.
+// ****************************************************************************
 
 // #ifndef ZMQ_BUILD_DRAFT_API
 
-/*  DRAFT Socket types.                                                       */
+//   DRAFT Socket types.
 // #define ZMQ_SERVER 12
 // #define ZMQ_CLIENT 13
 // #define ZMQ_RADIO 14
@@ -48,7 +48,7 @@
 // #define ZMQ_PEER 19
 // #define ZMQ_CHANNEL 20
 
-/*  DRAFT Socket options.                                                     */
+//   DRAFT Socket options.
 // #define ZMQ_ZAP_ENFORCE_DOMAIN 93
 // #define ZMQ_LOOPBACK_FASTPATH 94
 // #define ZMQ_METADATA 95
@@ -74,15 +74,15 @@
 // #define ZMQ_XSUB_VERBOSE_UNSUBSCRIBE 115
 // #define ZMQ_TOPICS_COUNT 116
 
-/*  DRAFT ZMQ_RECONNECT_STOP options                                          */
+//   DRAFT ZMQ_RECONNECT_STOP options
 // #define ZMQ_RECONNECT_STOP_CONN_REFUSED 0x1
 // #define ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED 0x2
 // #define ZMQ_RECONNECT_STOP_AFTER_DISCONNECT 0x4
 
-/*  DRAFT Context options                                                     */
+//   DRAFT Context options
 // #define ZMQ_ZERO_COPY_RECV 10
 
-/*  DRAFT Context methods.                                                    */
+//   DRAFT Context methods.
 int zmq_ctx_set_ext (context_: *mut c_void,
                      option_: i32,
                      const optval_: *mut c_void,
@@ -92,18 +92,18 @@ int zmq_ctx_get_ext (context_: *mut c_void,
                      optval_: *mut c_void,
                      optvallen_: *mut usize);
 
-/*  DRAFT Socket methods.                                                     */
+//   DRAFT Socket methods.
 int zmq_join (s_: *mut c_void, group_: *const c_char);
 int zmq_leave (s_: *mut c_void, group_: *const c_char);
 
-/*  DRAFT Msg methods.                                                        */
-int zmq_msg_set_routing_id (msg: *mut zmq_ZmqMessage, uint32_t routing_id_);
-uint32_t zmq_msg_routing_id (zmq_ZmqMessage *msg);
-int zmq_msg_set_group (msg: *mut zmq_ZmqMessage, group_: *const c_char);
-const char *zmq_msg_group (zmq_ZmqMessage *msg);
-int zmq_msg_init_buffer (msg: *mut zmq_ZmqMessage, const buf: *mut c_void, size: usize);
+//   DRAFT Msg methods.
+int zmq_msg_set_routing_id (msg: *mut ZmqRawMessage, u32 routing_id_);
+u32 zmq_msg_routing_id (ZmqRawMessage *msg);
+int zmq_msg_set_group (msg: *mut ZmqRawMessage, group_: *const c_char);
+const char *zmq_msg_group (ZmqRawMessage *msg);
+int zmq_msg_init_buffer (msg: *mut ZmqRawMessage, const buf: *mut c_void, size: usize);
 
-/*  DRAFT Msg property names.                                                 */
+//   DRAFT Msg property names.
 pub const ZMQ_MSG_PROPERTY_ROUTING_ID: &'static str = "Routing-Id";
 // #define ZMQ_MSG_PROPERTY_SOCKET_TYPE "Socket-Type"
 pub const ZMQ_MSG_PROPERTY_SOCKET_TYPE: &'static str = "Socket-Type";
@@ -112,13 +112,13 @@ pub const ZMQ_MSG_PROPERTY_USER_ID: &'static str = "User-Id";
 // #define ZMQ_MSG_PROPERTY_PEER_ADDRESS "Peer-Address"
 pub const ZMQ_MSG_PROPERTY_PEER_ADDRESS: &'static str = "Peer-Address";
 
-/*  Router notify options                                                     */
+//   Router notify options
 // #define ZMQ_NOTIFY_CONNECT 1
 // #define ZMQ_NOTIFY_DISCONNECT 2
 
-/******************************************************************************/
-/*  Poller polling on sockets,fd and thread-safe sockets                      */
-/******************************************************************************/
+// ****************************************************************************
+//   Poller polling on sockets,fd and thread-safe sockets
+// ****************************************************************************
 
 // #if defined _WIN32
 // typedef SOCKET zmq_fd_t;
@@ -153,7 +153,7 @@ pub const ZMQ_MSG_PROPERTY_PEER_ADDRESS: &'static str = "Peer-Address";
 //                                const routing_id_: *mut c_void,
 //                                routing_id_size_: usize);
 
-/*  DRAFT Socket monitoring events                                            */
+//   DRAFT Socket monitoring events
 // #define ZMQ_EVENT_PIPES_STATS 0x10000
 
 // #define ZMQ_CURRENT_EVENT_VERSION 1

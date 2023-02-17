@@ -59,7 +59,7 @@ pub struct select_t ZMQ_FINAL : public worker_poller_base_t
 // public:
     typedef fd_t handle_t;
 
-    select_t (const ThreadCtx &ctx_);
+    select_t (const ThreadCtx &ctx);
     ~select_t () ZMQ_FINAL;
 
     //  "poller" concept.
@@ -162,8 +162,8 @@ pub struct select_t ZMQ_FINAL : public worker_poller_base_t
 
 typedef select_t poller_t;
 
-select_t::select_t (const ThreadCtx &ctx_) :
-    worker_poller_base_t (ctx_),
+select_t::select_t (const ThreadCtx &ctx) :
+    worker_poller_base_t (ctx),
 // #if defined ZMQ_HAVE_WINDOWS
     //  Fine as long as map is not cleared.
     _current_family_entry_it (_family_entries.end ())

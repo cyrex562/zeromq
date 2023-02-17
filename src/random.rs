@@ -56,11 +56,11 @@ void seed_random ()
     srand (static_cast<unsigned int> (clock_t::now_us () + pid));
 }
 
-uint32_t generate_random ()
+u32 generate_random ()
 {
     //  Compensate for the fact that rand() returns signed integer.
-    const uint32_t low = static_cast<uint32_t> (rand ());
-    uint32_t high = static_cast<uint32_t> (rand ());
+    const u32 low = static_cast<u32> (rand ());
+    u32 high = static_cast<u32> (rand ());
     high <<= (mem::size_of::<int>() * 8 - 1);
     return high | low;
 }

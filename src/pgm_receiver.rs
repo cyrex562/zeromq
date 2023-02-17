@@ -367,7 +367,7 @@ pub struct pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine
     {
         bool operator() (const pgm_tsi_t &ltsi, const pgm_tsi_t &rtsi) const
         {
-            uint32_t ll[2], rl[2];
+            u32 ll[2], rl[2];
             memcpy (ll, &ltsi, mem::size_of::<ll>());
             memcpy (rl, &rtsi, mem::size_of::<rl>());
             return (ll[0] < rl[0]) || (ll[0] == rl[0] && ll[1] < rl[1]);

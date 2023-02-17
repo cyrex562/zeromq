@@ -35,7 +35,7 @@
 static int
 receive_monitor_address (monitor_: *mut c_void, char **address_, bool expect_more_)
 {
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
 
     zmq_msg_init (&msg);
     if (zmq_msg_recv (&msg, monitor_, 0) == -1)
@@ -64,7 +64,7 @@ static int get_monitor_event_internal (monitor_: *mut c_void,
                                        recv_flag_: i32)
 {
     //  First frame in message contains event number and value
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     zmq_msg_init (&msg);
     if (zmq_msg_recv (&msg, monitor_, recv_flag_) == -1) {
         TEST_ASSERT_FAILURE_ERRNO (EAGAIN, -1);
@@ -75,7 +75,7 @@ static int get_monitor_event_internal (monitor_: *mut c_void,
     uint8_t *data = static_cast<uint8_t *> (zmq_msg_data (&msg));
     uint16_t event = *reinterpret_cast<uint16_t *> (data);
     if (value_)
-        memcpy (value_, data + 2, mem::size_of::<uint32_t>());
+        memcpy (value_, data + 2, mem::size_of::<u32>());
 
     //  Second frame in message contains event address
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -213,7 +213,7 @@ static i64 get_monitor_event_internal_v2 (monitor_: *mut c_void,
                                               recv_flag_: i32)
 {
     //  First frame in message contains event number
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     zmq_msg_init (&msg);
     if (zmq_msg_recv (&msg, monitor_, recv_flag_) == -1) {
         TEST_ASSERT_FAILURE_ERRNO (EAGAIN, -1);

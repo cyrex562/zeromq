@@ -65,7 +65,7 @@ void test_disconnect_inproc ()
 
         if (items[1].revents & ZMQ_POLLIN) {
             for (more = 1; more;) {
-                zmq_ZmqMessage msg;
+                ZmqRawMessage msg;
                 zmq_msg_init (&msg);
                 TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, pub_socket, 0));
                 const char *const buffer =
@@ -88,7 +88,7 @@ void test_disconnect_inproc ()
         if (items[0].revents & ZMQ_POLLIN) {
             more = 1;
             for (more = 1; more;) {
-                zmq_ZmqMessage msg;
+                ZmqRawMessage msg;
                 TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
                 TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, sub_socket, 0));
                 TEST_ASSERT_SUCCESS_ERRNO (
@@ -109,13 +109,13 @@ void test_disconnect_inproc ()
         if (iteration > 4 && rc == 0)
             break;
 
-        zmq_ZmqMessage channel_envlp;
+        ZmqRawMessage channel_envlp;
         ZMQ_PREPARE_STRING (channel_envlp, "foo", 3);
         TEST_ASSERT_SUCCESS_ERRNO (
           zmq_msg_send (&channel_envlp, pub_socket, ZMQ_SNDMORE));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&channel_envlp));
 
-        zmq_ZmqMessage message;
+        ZmqRawMessage message;
         ZMQ_PREPARE_STRING (message, "this is foo!", 12);
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_send (&message, pub_socket, 0));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&message));

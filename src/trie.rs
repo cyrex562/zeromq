@@ -67,7 +67,7 @@ pub struct trie_t
                        arg_: *mut c_void) const;
     bool is_redundant () const;
 
-    uint32_t _refcnt;
+    u32 _refcnt;
     unsigned char _min;
     unsigned short _count;
     unsigned short _live_nodes;
@@ -119,7 +119,7 @@ pub struct trie_with_size_t
 
     //  Retrieve the number of prefixes stored in this trie (added - removed)
     //  Note this is a multithread safe function.
-    uint32_t num_prefixes () const { return _num_prefixes.get (); }
+    u32 num_prefixes () const { return _num_prefixes.get (); }
 
   // private:
     AtomicCounter _num_prefixes;

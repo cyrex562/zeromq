@@ -64,7 +64,7 @@ extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
         sent = send (client, (const char *) data, size, MSG_NOSIGNAL);
     msleep (250);
 
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     zmq_msg_init (&msg);
     while (-1 != zmq_msg_recv (&msg, server, ZMQ_DONTWAIT)) {
         zmq_msg_close (&msg);
@@ -75,7 +75,7 @@ extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client_good, my_endpoint));
 
     TEST_ASSERT_EQUAL_INT (6, zmq_send_const (client_good, "HELLO", 6, 0));
-    zmq_ZmqMessage routing_id;
+    ZmqRawMessage routing_id;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&routing_id));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&routing_id, server, 0));
     TEST_ASSERT_TRUE (zmq_msg_more (&routing_id));

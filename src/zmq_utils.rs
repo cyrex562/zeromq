@@ -159,7 +159,7 @@ uint8_t *zmq_z85_decode (uint8_t *dest_, string_: *const c_char)
 {
     unsigned int byte_nbr = 0;
     unsigned int char_nbr = 0;
-    uint32_t value = 0;
+    u32 value = 0;
     size_t src_len = strlen (string_);
 
     if (src_len < 5 || src_len % 5 != 0)
@@ -177,7 +177,7 @@ uint8_t *zmq_z85_decode (uint8_t *dest_, string_: *const c_char)
             //  Invalid z85 encoding, character outside range
             goto error_inval;
         }
-        const uint32_t summand = decoder[index];
+        const u32 summand = decoder[index];
         if (summand == 0xFF || summand > (UINT32_MAX - value)) {
             //  Invalid z85 encoding, invalid character or represented value exceeds 0xffffffff
             goto error_inval;

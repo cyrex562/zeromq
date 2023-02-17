@@ -104,7 +104,7 @@ static void publisher_thread_main (pvoid_: *mut c_void)
 
     u64 send_count = 0;
     while (true) {
-        zmq_ZmqMessage msg;
+        ZmqRawMessage msg;
         int rc = zmq_msg_init_size (&msg, NUM_BYTES_PER_MSG);
         assert (rc == 0);
 
@@ -156,7 +156,7 @@ static void subscriber_thread_main (pvoid_: *mut c_void)
     u64 rxsuccess = 0;
     bool success = true;
     while (success) {
-        zmq_ZmqMessage msg;
+        ZmqRawMessage msg;
         int rc = zmq_msg_init (&msg);
         assert (rc == 0);
 
@@ -194,7 +194,7 @@ static void subscriber_thread_main (pvoid_: *mut c_void)
 
 bool recv_stat (sock_: *mut c_void, bool last_, u64 *res_)
 {
-    zmq_ZmqMessage stats_msg;
+    ZmqRawMessage stats_msg;
 
     int rc = zmq_msg_init (&stats_msg);
     assert (rc == 0);

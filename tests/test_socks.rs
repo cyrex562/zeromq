@@ -90,7 +90,7 @@ void sendall (sock_fd: i32, char *buffer, len: i32)
     }
 }
 
-int remote_connect (socket: i32, uint32_t addr, uint16_t port)
+int remote_connect (socket: i32, u32 addr, uint16_t port)
 {
     res: i32;
     struct sockaddr_in ip4addr;
@@ -221,7 +221,7 @@ void socks_server_task (socks_server: *mut c_void,
                      "socks_server: received command (cmd: %d, atype: %d)\n",
                      buffer[1], buffer[3]);
             /* IPv4 ADDR & PORT */
-            uint32_t naddr = 0, bind_naddr = 0;
+            u32 naddr = 0, bind_naddr = 0;
             uint16_t nport = 0, bind_nport = 0;
             int remote = -1;
             int err = 0;

@@ -45,7 +45,7 @@ pub struct poll_t ZMQ_FINAL : public worker_poller_base_t
 // public:
     typedef fd_t handle_t;
 
-    poll_t (const ThreadCtx &ctx_);
+    poll_t (const ThreadCtx &ctx);
     ~poll_t ();
 
     //  "poller" concept.
@@ -88,8 +88,8 @@ pub struct poll_t ZMQ_FINAL : public worker_poller_base_t
 
 typedef poll_t poller_t;
 
-poll_t::poll_t (const ThreadCtx &ctx_) :
-    worker_poller_base_t (ctx_), retired (false)
+poll_t::poll_t (const ThreadCtx &ctx) :
+    worker_poller_base_t (ctx), retired (false)
 {
 }
 

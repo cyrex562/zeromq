@@ -91,7 +91,7 @@ void test_stream_disconnect ()
 
     // wait for connect notification
     // Server: Grab the 1st frame (peer routing id).
-    zmq_ZmqMessage peer_frame;
+    ZmqRawMessage peer_frame;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&peer_frame));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&peer_frame, sockets[SERVER], 0));
     TEST_ASSERT_GREATER_THAN_INT (0, zmq_msg_size (&peer_frame));
@@ -99,7 +99,7 @@ void test_stream_disconnect ()
     TEST_ASSERT_TRUE (has_more (sockets[SERVER]));
 
     // Server: Grab the 2nd frame (actual payload).
-    zmq_ZmqMessage data_frame;
+    ZmqRawMessage data_frame;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&data_frame));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&data_frame, sockets[SERVER], 0));
     TEST_ASSERT_EQUAL_INT (0, zmq_msg_size (&data_frame));
@@ -124,7 +124,7 @@ void test_stream_disconnect ()
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (sockets[CLIENT], ZMQ_ROUTING_ID, blob_data, &blob_size));
     TEST_ASSERT_GREATER_THAN (0, blob_size);
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, blob_size));
     memcpy (zmq_msg_data (&msg), blob_data, blob_size);
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -154,7 +154,7 @@ void test_stream_disconnect ()
             TEST_ASSERT_EQUAL_INT (CLIENT, dialog[step].turn);
 
             // Grab the 1st frame (peer routing id).
-            zmq_ZmqMessage peer_frame;
+            ZmqRawMessage peer_frame;
             TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&peer_frame));
             TEST_ASSERT_SUCCESS_ERRNO (
               zmq_msg_recv (&peer_frame, sockets[SERVER], 0));
@@ -162,7 +162,7 @@ void test_stream_disconnect ()
             TEST_ASSERT_TRUE (has_more (sockets[SERVER]));
 
             // Grab the 2nd frame (actual payload).
-            zmq_ZmqMessage data_frame;
+            ZmqRawMessage data_frame;
             TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&data_frame));
             TEST_ASSERT_SUCCESS_ERRNO (
               zmq_msg_recv (&data_frame, sockets[SERVER], 0));
@@ -208,7 +208,7 @@ void test_stream_disconnect ()
             TEST_ASSERT_EQUAL_INT (SERVER, dialog[step].turn);
 
             // Grab the 1st frame (peer routing id).
-            zmq_ZmqMessage peer_frame;
+            ZmqRawMessage peer_frame;
             TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&peer_frame));
             TEST_ASSERT_SUCCESS_ERRNO (
               zmq_msg_recv (&peer_frame, sockets[CLIENT], 0));
@@ -216,7 +216,7 @@ void test_stream_disconnect ()
             TEST_ASSERT_TRUE (has_more (sockets[CLIENT]));
 
             // Grab the 2nd frame (actual payload).
-            zmq_ZmqMessage data_frame;
+            ZmqRawMessage data_frame;
             TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&data_frame));
             TEST_ASSERT_SUCCESS_ERRNO (
               zmq_msg_recv (&data_frame, sockets[CLIENT], 0));

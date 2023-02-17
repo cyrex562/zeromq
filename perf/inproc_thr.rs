@@ -48,17 +48,17 @@ static int message_count;
 static size_t message_size;
 
 // #if defined ZMQ_HAVE_WINDOWS
-static unsigned int __stdcall worker (ctx_: *mut c_void)
+static unsigned int __stdcall worker (ctx: *mut c_void)
 // #else
-static void *worker (ctx_: *mut c_void)
+static void *worker (ctx: *mut c_void)
 // #endif
 {
     s: *mut c_void;
     rc: i32;
     i: i32;
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
 
-    s = zmq_socket (ctx_, ZMQ_PUSH);
+    s = zmq_socket (ctx, ZMQ_PUSH);
     if (!s) {
         printf ("error in zmq_socket: %s\n", zmq_strerror (errno));
         exit (1);
@@ -116,7 +116,7 @@ int main (argc: i32, char *argv[])
     s: *mut c_void;
     rc: i32;
     i: i32;
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     watch: *mut c_void;
     unsigned long elapsed;
     unsigned long throughput;

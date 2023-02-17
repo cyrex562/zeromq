@@ -138,13 +138,13 @@ void test_req_message_format (bind_address_: *const c_char)
     // Send a multi-part request.
     s_send_seq (req, "ABC", "DEF", SEQ_END);
 
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     zmq_msg_init (&msg);
 
     // Receive peer routing id
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, router, 0));
     TEST_ASSERT_GREATER_THAN_INT (0, zmq_msg_size (&msg));
-    zmq_ZmqMessage peer_id_msg;
+    ZmqRawMessage peer_id_msg;
     zmq_msg_init (&peer_id_msg);
     zmq_msg_copy (&peer_id_msg, &msg);
 

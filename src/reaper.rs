@@ -35,7 +35,7 @@
 pub struct reaper_t ZMQ_FINAL : public object_t, public i_poll_events
 {
 // public:
-    reaper_t (ZmqContext *ctx_, uint32_t tid_);
+    reaper_t (ZmqContext *ctx, u32 tid_);
     ~reaper_t ();
 
     mailbox_t *get_mailbox ();
@@ -77,8 +77,8 @@ pub struct reaper_t ZMQ_FINAL : public object_t, public i_poll_events
     ZMQ_NON_COPYABLE_NOR_MOVABLE (reaper_t)
 };
 
-reaper_t::reaper_t (class ZmqContext *ctx_, uint32_t tid_) :
-    object_t (ctx_, tid_),
+reaper_t::reaper_t (class ZmqContext *ctx, u32 tid_) :
+    object_t (ctx, tid_),
     _mailbox_handle (static_cast<poller_t::handle_t> (NULL)),
     _poller (NULL),
     _sockets (0),
@@ -87,7 +87,7 @@ reaper_t::reaper_t (class ZmqContext *ctx_, uint32_t tid_) :
     if (!_mailbox.valid ())
         return;
 
-    _poller = new (std::nothrow) poller_t (*ctx_);
+    _poller = new (std::nothrow) poller_t (*ctx);
     alloc_assert (_poller);
 
     if (_mailbox.get_fd () != retired_fd) {

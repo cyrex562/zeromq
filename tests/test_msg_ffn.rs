@@ -53,7 +53,7 @@ void test_msg_init_ffn ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (dealer, my_endpoint));
 
     // Test that creating and closing a message triggers ffn
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     char hint[5];
     char data[255];
     memset (data, 0, 255);
@@ -68,7 +68,7 @@ void test_msg_init_ffn ()
     memcpy (hint, (void *) "hint", 4);
 
     // Making and closing a copy triggers ffn
-    zmq_ZmqMessage msg2;
+    ZmqRawMessage msg2;
     zmq_msg_init (&msg2);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_msg_init_data (&msg, (void *) data, 255, ffn, (void *) hint));

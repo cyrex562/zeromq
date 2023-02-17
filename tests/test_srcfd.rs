@@ -62,7 +62,7 @@ void test_srcfd ()
     memset (tmp, 0, MSG_SIZE);
     zmq_send (req, tmp, MSG_SIZE, 0);
 
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
     zmq_recvmsg (rep, &msg, 0);

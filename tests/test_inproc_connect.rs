@@ -267,7 +267,7 @@ void test_routing_id ()
       1, TEST_ASSERT_SUCCESS_ERRNO (zmq_send (sc, "B", 1, 0)));
 
     //  Routing id comes first.
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, sb, 0));
     TEST_ASSERT_EQUAL_INT (1, zmq_msg_more (&msg));

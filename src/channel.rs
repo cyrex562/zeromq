@@ -45,7 +45,7 @@ impl channel_t {
 }
 
 
-channel_t::channel_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+channel_t::channel_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_, true), _pipe (NULL)
 {
     options.type = ZMQ_CHANNEL;

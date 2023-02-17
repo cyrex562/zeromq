@@ -50,7 +50,7 @@ pub struct devpoll_t ZMQ_FINAL : public worker_poller_base_t
 // public:
     typedef fd_t handle_t;
 
-    devpoll_t (const ThreadCtx &ctx_);
+    devpoll_t (const ThreadCtx &ctx);
     ~devpoll_t () ZMQ_FINAL;
 
     //  "poller" concept.
@@ -93,8 +93,8 @@ pub struct devpoll_t ZMQ_FINAL : public worker_poller_base_t
 
 typedef devpoll_t poller_t;
 
-devpoll_t::devpoll_t (const ThreadCtx &ctx_) :
-    worker_poller_base_t (ctx_)
+devpoll_t::devpoll_t (const ThreadCtx &ctx) :
+    worker_poller_base_t (ctx)
 {
     devpoll_fd = open ("/dev/poll", O_RDWR);
     errno_assert (devpoll_fd != -1);

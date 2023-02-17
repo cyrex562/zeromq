@@ -165,14 +165,14 @@ static void publisher_thread_main (pvoid: *mut c_void)
         exit (1);
     }
 
-    zmq_ZmqMessage msg_orig;
+    ZmqRawMessage msg_orig;
     rc = zmq_msg_init_size (&msg_orig, message_size);
     assert (rc == 0);
     memset (zmq_msg_data (&msg_orig), 'A', zmq_msg_size (&msg_orig));
 
     u64 send_count = 0;
     while (send_count < message_count) {
-        zmq_ZmqMessage msg;
+        ZmqRawMessage msg;
         zmq_msg_init (&msg);
         rc = zmq_msg_copy (&msg, &msg_orig);
         assert (rc == 0);
@@ -209,7 +209,7 @@ static void subscriber_thread_main (pvoid: *mut c_void)
     u64 rxsuccess = 0;
     bool success = true;
     while (success) {
-        zmq_ZmqMessage msg;
+        ZmqRawMessage msg;
         int rc = zmq_msg_init (&msg);
         assert (rc == 0);
 

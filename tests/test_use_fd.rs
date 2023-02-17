@@ -95,7 +95,7 @@ void test_client_server (pre_allocate_sock_fun_t pre_allocate_sock_fun_)
     setup_socket_pair (pre_allocate_sock_fun_, ZMQ_SERVER, ZMQ_CLIENT, &sb,
                        &sc);
 
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 1));
 
     char *data = static_cast<char *> (zmq_msg_data (&msg));
@@ -113,7 +113,7 @@ void test_client_server (pre_allocate_sock_fun_t pre_allocate_sock_fun_)
     rc = zmq_msg_recv (&msg, sb, 0);
     TEST_ASSERT_EQUAL_INT (1, rc);
 
-    uint32_t routing_id = zmq_msg_routing_id (&msg);
+    u32 routing_id = zmq_msg_routing_id (&msg);
     TEST_ASSERT_NOT_EQUAL (0, routing_id);
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg));

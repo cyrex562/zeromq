@@ -91,7 +91,7 @@ extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
     msleep (250);
 
     //  Drain the queue, if any
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     zmq_msg_init (&msg);
     while (-1 != zmq_msg_recv (&msg, server, ZMQ_DONTWAIT)) {
         zmq_msg_close (&msg);

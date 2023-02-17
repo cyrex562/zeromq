@@ -38,7 +38,7 @@
 pub struct req_t ZMQ_FINAL : public dealer_t
 {
 // public:
-    req_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    req_t (ZmqContext *parent_, u32 tid_, sid_: i32);
     ~req_t ();
 
     //  Overrides of functions from ZmqSocketBase.
@@ -71,7 +71,7 @@ pub struct req_t ZMQ_FINAL : public dealer_t
 
     //  The current request id. It is incremented every time before a new
     //  request is sent.
-    uint32_t _request_id;
+    u32 _request_id;
 
     //  If false, send() will reset its internal state and terminate the
     //  reply_pipe's connection instead of failing if a previous request is
@@ -105,7 +105,7 @@ pub struct req_session_t ZMQ_FINAL : public session_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (req_session_t)
 };
 
-req_t::req_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+req_t::req_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     dealer_t (parent_, tid_, sid_),
     _receiving_reply (false),
     _message_begins (true),
@@ -143,8 +143,8 @@ int req_t::xsend (ZmqMessage *msg)
             _request_id++;
 
             ZmqMessage id;
-            int rc = id.init_size (mem::size_of::<uint32_t>());
-            memcpy (id.data (), &_request_id, mem::size_of::<uint32_t>());
+            int rc = id.init_size (mem::size_of::<u32>());
+            memcpy (id.data (), &_request_id, mem::size_of::<u32>());
             errno_assert (rc == 0);
             id.set_flags (ZmqMessage::more);
 
@@ -215,7 +215,7 @@ int req_t::xrecv (ZmqMessage *msg)
 
             if (unlikely (!(msg->flags () & ZmqMessage::more)
                           || msg->size () != mem::size_of::<_request_id>()
-                          || *static_cast<uint32_t *> (msg->data ())
+                          || *static_cast<u32 *> (msg->data ())
                                != _request_id)) {
                 //  Skip the remaining frames and try the next message
                 while (msg->flags () & ZmqMessage::more) {
@@ -352,7 +352,7 @@ int req_session_t::push_msg (ZmqMessage *msg)
                 //  In case option ZMQ_CORRELATE is on, allow request_id to be
                 //  transferred as first frame (would be too cumbersome to check
                 //  whether the option is actually on or not).
-                if (msg->size () == mem::size_of::<uint32_t>()) {
+                if (msg->size () == mem::size_of::<u32>()) {
                     _state = request_id;
                     return session_base_t::push_msg (msg);
                 }

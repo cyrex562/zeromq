@@ -36,7 +36,7 @@
 pub struct push_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
-    push_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    push_t (ZmqContext *parent_, u32 tid_, sid_: i32);
     ~push_t ();
 
   protected:
@@ -56,7 +56,7 @@ pub struct push_t ZMQ_FINAL : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (push_t)
 };
 
-push_t::push_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+push_t::push_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_)
 {
     options.type = ZMQ_PUSH;

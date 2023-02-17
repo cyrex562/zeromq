@@ -275,7 +275,7 @@ u64 clock_t::rdtsc ()
                                  ((0 & 7) << 0));   // op2
     return _ReadStatusReg (pmccntr_el0);
 #elif (defined __GNUC__ && (defined __i386__ || defined __x86_64__))
-    uint32_t low, high;
+    u32 low, high;
     __asm__ volatile("rdtsc" : "=a"(low), "=d"(high));
     return static_cast<u64> (high) << 32 | low;
 #elif (defined __SUNPRO_CC && (__SUNPRO_CC >= 0x5100)                          \
@@ -283,7 +283,7 @@ u64 clock_t::rdtsc ()
     union
     {
         u64 u64val;
-        uint32_t u32val[2];
+        u32 u32val[2];
     } tsc;
     asm("rdtsc" : "=a"(tsc.u32val[0]), "=d"(tsc.u32val[1]));
     return tsc.u64val;

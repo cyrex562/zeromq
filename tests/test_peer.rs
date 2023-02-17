@@ -41,11 +41,11 @@ void test_peer ()
     bind_loopback (peer1, false, my_endpoint, len);
 
     void *peer2 = test_context_socket (ZMQ_PEER);
-    uint32_t peer1_routing_id = zmq_connect_peer (peer2, my_endpoint);
+    u32 peer1_routing_id = zmq_connect_peer (peer2, my_endpoint);
     TEST_ASSERT_NOT_EQUAL (0, peer1_routing_id);
 
     {
-        zmq_ZmqMessage msg;
+        ZmqRawMessage msg;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 1));
 
         char *data = static_cast<char *> (zmq_msg_data (&msg));
@@ -58,9 +58,9 @@ void test_peer ()
         TEST_ASSERT_EQUAL_INT (1, rc);
     }
 
-    uint32_t peer2_routing_id;
+    u32 peer2_routing_id;
     {
-        zmq_ZmqMessage msg;
+        ZmqRawMessage msg;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
         int rc = TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, peer1, 0));
@@ -73,7 +73,7 @@ void test_peer ()
     }
 
     {
-        zmq_ZmqMessage msg;
+        ZmqRawMessage msg;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 1));
 
         char *data = static_cast<char *> (zmq_msg_data (&msg));
@@ -87,13 +87,13 @@ void test_peer ()
     }
 
     {
-        zmq_ZmqMessage msg;
+        ZmqRawMessage msg;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
         int rc = zmq_msg_recv (&msg, peer2, 0);
         TEST_ASSERT_EQUAL_INT (1, rc);
 
-        uint32_t routing_id = zmq_msg_routing_id (&msg);
+        u32 routing_id = zmq_msg_routing_id (&msg);
         TEST_ASSERT_EQUAL_UINT32 (peer1_routing_id, routing_id);
 
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg));

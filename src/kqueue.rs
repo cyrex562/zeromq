@@ -63,7 +63,7 @@ pub struct kqueue_t ZMQ_FINAL : public worker_poller_base_t
 // public:
     typedef void *handle_t;
 
-    kqueue_t (const ThreadCtx &ctx_);
+    kqueue_t (const ThreadCtx &ctx);
     ~kqueue_t () ZMQ_FINAL;
 
     //  "poller" concept.
@@ -112,8 +112,8 @@ pub struct kqueue_t ZMQ_FINAL : public worker_poller_base_t
 
 typedef kqueue_t poller_t;
 
-kqueue_t::kqueue_t (const ThreadCtx &ctx_) :
-    worker_poller_base_t (ctx_)
+kqueue_t::kqueue_t (const ThreadCtx &ctx) :
+    worker_poller_base_t (ctx)
 {
     //  Create event queue
     kqueue_fd = kqueue ();

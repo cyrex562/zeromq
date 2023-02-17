@@ -38,22 +38,22 @@
 pub struct peer_t ZMQ_FINAL : public server_t
 {
 // public:
-    peer_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    peer_t (ZmqContext *parent_, u32 tid_, sid_: i32);
 
     //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_,
                        bool locally_initiated_);
 
-    uint32_t connect_peer (endpoint_uri_: *const c_char);
+    u32 connect_peer (endpoint_uri_: *const c_char);
 
   // private:
-    uint32_t _peer_last_routing_id;
+    u32 _peer_last_routing_id;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (peer_t)
 };
 
-peer_t::peer_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+peer_t::peer_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     server_t (parent_, tid_, sid_)
 {
     options.type = ZMQ_PEER;
@@ -62,7 +62,7 @@ peer_t::peer_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
     options.can_recv_hiccup_msg = true;
 }
 
-uint32_t peer_t::connect_peer (endpoint_uri_: *const c_char)
+u32 peer_t::connect_peer (endpoint_uri_: *const c_char)
 {
     scoped_optional_lock_t sync_lock (&_sync);
 

@@ -58,7 +58,7 @@ void test_round_robin_out (bind_address_: *const c_char)
         s_send_seq (dealer, 0, "ABC", SEQ_END);
 
     // Expect every REP got one message
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     zmq_msg_init (&msg);
 
     for (size_t peer = 0; peer < services; ++peer)
@@ -91,7 +91,7 @@ void test_fair_queue_in (bind_address_: *const c_char)
           zmq_connect (senders[peer], connect_address));
     }
 
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
     s_send_seq (senders[0], "A", SEQ_END);
@@ -145,7 +145,7 @@ void test_destroy_queue_on_disconnect (bind_address_: *const c_char)
     TEST_ASSERT_SUCCESS_ERRNO (zmq_poll (poller, 2, 100));
 
     // No messages should be available, sending should fail.
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     zmq_msg_init (&msg);
 
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_send (a, 0, 0, ZMQ_DONTWAIT));

@@ -74,7 +74,7 @@ pub struct poller_base_t
 pub struct worker_poller_base_t : public poller_base_t
 {
 // public:
-    worker_poller_base_t (const ThreadCtx &ctx_);
+    worker_poller_base_t (const ThreadCtx &ctx);
 
     // Methods from the poller concept.
     void start (const char *name = NULL);
@@ -189,8 +189,8 @@ u64 poller_base_t::execute_timers ()
     return res;
 }
 
-worker_poller_base_t::worker_poller_base_t (const ThreadCtx &ctx_) :
-    _ctx (ctx_)
+worker_poller_base_t::worker_poller_base_t (const ThreadCtx &ctx) :
+    _ctx (ctx)
 {
 }
 

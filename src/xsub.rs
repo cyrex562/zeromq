@@ -36,7 +36,7 @@
 pub struct xsub_t : public ZmqSocketBase
 {
 // public:
-    xsub_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    xsub_t (ZmqContext *parent_, u32 tid_, sid_: i32);
     ~xsub_t () ZMQ_OVERRIDE;
 
   protected:
@@ -108,7 +108,7 @@ pub struct xsub_t : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (xsub_t)
 };
 
-xsub_t::xsub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+xsub_t::xsub_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_),
     _verbose_unsubs (false),
     _has_message (false),

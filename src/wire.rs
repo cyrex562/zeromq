@@ -59,7 +59,7 @@ inline uint16_t get_uint16 (const unsigned char *buffer_)
            | (static_cast<uint16_t> (buffer_[1]));
 }
 
-inline void put_uint32 (unsigned char *buffer_, uint32_t value_)
+inline void put_uint32 (unsigned char *buffer_, u32 value_)
 {
     buffer_[0] = static_cast<unsigned char> (((value_) >> 24) & 0xff);
     buffer_[1] = static_cast<unsigned char> (((value_) >> 16) & 0xff);
@@ -67,12 +67,12 @@ inline void put_uint32 (unsigned char *buffer_, uint32_t value_)
     buffer_[3] = static_cast<unsigned char> (value_ & 0xff);
 }
 
-inline uint32_t get_uint32 (const unsigned char *buffer_)
+inline u32 get_uint32 (const unsigned char *buffer_)
 {
-    return ((static_cast<uint32_t> (buffer_[0])) << 24)
-           | ((static_cast<uint32_t> (buffer_[1])) << 16)
-           | ((static_cast<uint32_t> (buffer_[2])) << 8)
-           | (static_cast<uint32_t> (buffer_[3]));
+    return ((static_cast<u32> (buffer_[0])) << 24)
+           | ((static_cast<u32> (buffer_[1])) << 16)
+           | ((static_cast<u32> (buffer_[2])) << 8)
+           | (static_cast<u32> (buffer_[3]));
 }
 
 inline void put_uint64 (unsigned char *buffer_, u64 value_)

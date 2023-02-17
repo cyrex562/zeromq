@@ -69,8 +69,15 @@ use std::intrinsics::unlikely;
 use std::mem;
 use std::ptr::null_mut;
 use libc::{c_char, c_void, EFAULT, EINTR, EINVAL, ENOMEM, ENOTSOCK, ENOTSUP, INT_MAX};
+use crate::ctx::ZmqContext;
 use crate::ctx_hdr::ZmqContext;
-use crate::zmq_hdr::{zmq_free_fn, ZMQ_IO_THREADS, zmq_ZmqMessage, ZMQ_PAIR, ZMQ_PEER, ZMQ_SNDMORE, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH};
+use crate::i_decoder::ZmqMessage;
+use crate::peer::peer_t;
+use crate::socket_base::ZmqSocketBase;
+use crate::zmq_hdr::{zmq_free_fn, ZMQ_IO_THREADS, ZmqRawMessage, ZMQ_PAIR, ZMQ_PEER, ZMQ_SNDMORE, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH};
+use anyhow;
+use anyhow::bail;
+use serde::Serialize;
 
 // XSI vector I/O
 // #if defined ZMQ_HAVE_UIO
@@ -140,110 +147,158 @@ pub fn zmq_errno () -> i32
 }
 
 //  New context API
-pub fn zmq_ctx_new () -> *mut c_void
-{
+pub fn zmq_ctx_new() -> anyhow::Result<Vec<u8>> {
     //  We do this before the ctx constructor since its embedded mailbox_t
     //  object needs the network to be up and running (at least on Windows).
-    if !initialize_network () {
-        return null_mut();
+    if !initialize_network() {
+        bail!("failed to initialize network");
     }
 
     //  Create 0MQ context.
-    let mut ctx: *mut ZmqContext = ZmqContext::new();
-    if ctx {
-        if !ctx.valid () {
-            // delete ctx;
-            return null_mut();
+    let mut ctx = ZmqContext::new();
+    if ctx.valid() == false {
+        bail!("ctx failed validity check");
+    }
+    return Ok(bincode::serialize(&ctx)?);
+}
+
+pub fn zmq_ctx_term (ctx_raw: &mut [u8]) -> anyhow::Result<()>
+{
+    if ctx_raw.len() == 0 {
+        bail!("context buffer is empty")
+    }
+
+    let mut ctx: ZmqContext = bincode::deserialize(ctx_raw)?;
+
+    if ctx.check_tag() == false {
+        bail!("check tag failed")
+    }
+
+    // if ctx.is_null() == false || !(ctx as *mut ZmqContext).check_tag() {
+    //     errno = EFAULT;
+    //     return -1;
+    // }
+
+    // let rc = (ctx as *mut ZmqContext).terminate();
+    // let en = errno;
+    match ctx.terminate() {
+        Ok(_) =>{
+            Ok(())
+        },
+        Err(e) =>{
+            shutdown_network();
+            Err(e)
         }
     }
-    return ctx as *mut c_void;
-}
-
-pub fn zmq_ctx_term (ctx_: *mut c_void) -> i32
-{
-    if ctx_.is_null() == false || !(ctx_ as *mut ZmqContext).check_tag() {
-        errno = EFAULT;
-        return -1;
-    }
-
-    let rc = (ctx_ as *mut ZmqContext).terminate();
-    let en = errno;
 
     //  Shut down only if termination was not interrupted by a signal.
-    if !rc || en != EINTR {
-        shutdown_network();
+    // if !rc || en != EINTR {
+    //     shutdown_network();
+    // }
+    //
+    // errno = en;
+    // return rc;
+}
+
+pub fn zmq_ctx_shutdown (ctx_raw: &mut [u8]) -> anyhow::Result<()>
+{
+    // if (!ctx || !(ctx as *mut ZmqContext).check_tag ()) {
+    //     errno = EFAULT;
+    //     return -1;
+    // }
+    // return (ctx as *mut ZmqContext).shutdown ();
+    if ctx_raw.len() == 0 {
+        bail!("context buffer is empty")
+    }
+    let mut ctx: ZmqContext = bincode::deserialize(ctx_raw)?;
+    if ctx.check_tag() == false {
+        bail!("check tag failed")
     }
 
-    errno = en;
-    return rc;
+    ctx.shutdown();
+    Ok(())
 }
 
-pub fn zmq_ctx_shutdown (ctx_: *mut c_void) -> i32
+pub fn zmq_ctx_set (ctx_raw: &mut[u8], option_: i32, mut optval_: i32) -> anyhow::Result<()>
 {
-    if (!ctx_ || !(ctx_ as *mut ZmqContext).check_tag ()) {
-        errno = EFAULT;
-        return -1;
-    }
-    return (ctx_ as *mut ZmqContext).shutdown ();
+    return zmq_ctx_set_ext (ctx_raw, option_, optval_.to_le_bytes().as_mut_slice());
 }
 
-pub fn zmq_ctx_set (ctx_: *mut c_void, option_: i32, mut optval_: i32) -> i32
-{
-    return zmq_ctx_set_ext (ctx_, option_, &mut optval_ as *mut c_void, mem::size_of::<i32>());
-}
-
-pub fn zmq_ctx_set_ext (ctx_: *mut c_void,
+pub fn zmq_ctx_set_ext (ctx_raw: &mut [u8],
                      option_: i32,
-                     optval_: *mut c_void,
-                     optvallen_: usize) -> i32
+                     optval_: &mut[u8]) -> anyhow::Result<()>
 {
-    if !ctx_ || !(ctx_ as *mut ZmqContext).check_tag () {
-        errno = EFAULT;
-        return -1;
+    // if !ctx || !(ctx as *mut ZmqContext).check_tag () {
+    //     errno = EFAULT;
+    //     return -1;
+    // }
+    // return (ctx as *mut ZmqContext).set(option_, optval_, optvallen_);
+    if ctx_raw.len() == 0 {
+        bail!("context buffer is empty")
     }
-    return (ctx_ as *mut ZmqContext).set(option_, optval_, optvallen_);
+    let mut ctx: ZmqContext = bincode::deserialize(ctx_raw)?;
+    if ctx.check_tag() == false {
+        bail!("check tag failed")
+    }
+
+    ctx.set(option_, optval_, optval_.len())
 }
 
-pub fn zmq_ctx_get (ctx_: *mut c_void, option_: i32) -> i32
+pub fn zmq_ctx_get (ctx_raw: &mut [u8], opt_kind: i32) -> anyhow::Result<i32>
 {
-    if !ctx_ || !(ctx_ as *mut ZmqContext).check_tag () {
-        errno = EFAULT;
-        return -1;
+    // if !ctx || !(ctx as *mut ZmqContext).check_tag () {
+    //     errno = EFAULT;
+    //     return -1;
+    // }
+    // return (ctx as *mut ZmqContext).get (option_);
+    if ctx_raw.len() == 0 {
+        bail!("context buffer is empty")
     }
-    return (ctx_ as *mut ZmqContext).get (option_);
+    let mut ctx: ZmqContext = bincode::deserialize(ctx_raw)?;
+    if ctx.check_tag() == false {
+        bail!("check tag failed")
+    }
+    return ctx.option_i32(opt_kind)
 }
 
-pub fn zmq_ctx_get_ext (ctx_: *mut c_void, option_: i32, optval_: *mut c_void, optvallen_: *mut usize) -> i32
+pub fn zmq_ctx_get_ext (ctx_raw: &mut [u8], opt_kind: i32) -> anyhow::Result<Vec<u8>>
 {
-    if !ctx_ || !(ctx_ as *mut ZmqContext).check_tag () {
-        errno = EFAULT;
-        return -1;
+    // if !ctx || !(ctx as *mut ZmqContext).check_tag () {
+    //     errno = EFAULT;
+    //     return -1;
+    // }
+    // return (ctx as *mut ZmqContext).get(option_, optval_, optvallen_);
+    if ctx_raw.len() == 0 {
+        bail!("context buffer is empty")
     }
-    return (ctx_ as *mut ZmqContext).get(option_, optval_, optvallen_);
+    let mut ctx: ZmqContext = bincode::deserialize(ctx_raw)?;
+    if ctx.check_tag() == false {
+        bail!("check tag failed")
+    }
+    ctx.option_bytes(opt_kind)
 }
 
 
 //  Stable/legacy context API
 
-pub fn zmq_init (io_threads_: i32) -> *mut c_void
+pub fn zmq_init (io_threads_: i32) -> anyhow::Result<Vec<u8>>
 {
     if io_threads_ >= 0 {
-        void *ctx = zmq_ctx_new ();
-        zmq_ctx_set (ctx, ZMQ_IO_THREADS, io_threads_);
-        return ctx;
+        let mut ctx_raw = zmq_ctx_new ()?;
+        zmq_ctx_set (ctx_raw.as_mut_slice(), ZMQ_IO_THREADS, io_threads_)?;
+        Ok(ctx_raw)
     }
-    errno = EINVAL;
-    return null_mut();
+    bail!("invalid io_threads {}", io_threads_)
 }
 
-pub fn zmq_term (ctx_: *mut c_void) -> i32
+pub fn zmq_term (ctx: &mut [u8]) -> anyhow::Result<()>
 {
-    return zmq_ctx_term (ctx_);
+    zmq_ctx_term (ctx)
 }
 
-pub fn zmq_ctx_destroy (ctx_: *mut c_void) -> i32
+pub fn zmq_ctx_destroy (ctx: &mut [u8]) -> anyhow::Result<()>
 {
-    return zmq_ctx_term (ctx_);
+    zmq_ctx_term (ctx)
 }
 
 
@@ -260,12 +315,12 @@ pub fn as_socket_base_t (s_: *mut c_void) -> *mut ZmqSocketBase
     return s;
 }
 
-pub fn zmq_socket(ctx_: *mut c_void, type_: i32) -> *mut c_void {
-    if !ctx_ || !(ctx_ as *mut ZmqContext).check_tag() {
+pub fn zmq_socket(ctx: *mut c_void, type_: i32) -> *mut c_void {
+    if !ctx || !(ctx as *mut ZmqContext).check_tag() {
         errno = EFAULT;
         return null_mut();
     }
-    let mut ctx: *mut ZmqContext = ctx_ as *mut ZmqContext;
+    let mut ctx: *mut ZmqContext = ctx as *mut ZmqContext;
     let mut s: *mut ZmqSocketBase = ctx.create_socket(type_);
     return s as *mut c_void;
 }
@@ -392,7 +447,7 @@ pub fn zmq_disconnect (s_: *mut c_void, addr_: *const c_char) -> i32
 
 // Sending functions.
 
-pub fn s_sendmsg(s_: *mut ZmqSocketBase, msg: *mut zmq_ZmqMessage, flags: i32) -> i32 {
+pub fn s_sendmsg(s_: *mut ZmqSocketBase, msg: *mut ZmqRawMessage, flags: i32) -> i32 {
     let mut sz: usize = zmq_msg_size(msg);
     let rc = s_.send(msg as *mut ZmqMessage, flags);
     if unlikely(rc < 0) {
@@ -407,8 +462,8 @@ pub fn s_sendmsg(s_: *mut ZmqSocketBase, msg: *mut zmq_ZmqMessage, flags: i32) -
     return if sz < max_msgsz { sz } else { max_msgsz } as i32;
 }
 
-/*  To be deprecated once zmq_msg_send() is stable                           */
-pub fn zmq_sendmsg (s_: *mut c_void, msg: *mut zmq_ZmqMessage, flags: i32) -> i32
+//   To be deprecated once zmq_msg_send() is stable
+pub fn zmq_sendmsg (s_: *mut c_void, msg: *mut ZmqRawMessage, flags: i32) -> i32
 {
     return zmq_msg_send (msg, s_, flags);
 }
@@ -419,7 +474,7 @@ pub fn zmq_send (s_: *mut c_void, buf: *mut c_void, len_: usize, flags: i32) -> 
     if (!s) {
         return -1;
     }
-    let mut msg: zmq_ZmqMessage = zmq_ZmqMessage::default();
+    let mut msg: ZmqRawMessage = ZmqRawMessage::default();
     let mut rc = zmq_msg_init_buffer (&mut msg, buf, len_);
     if unlikely (rc < 0) {
         return -1;
@@ -443,7 +498,7 @@ pub fn zmq_send_const(s_: *mut c_void, buf: *mut c_void, len_: usize, flags: i32
     if (!s) {
         return -1;
     }
-    let mut msg: zmq_ZmqMessage = zmq_ZmqMessage { _x: [0; 64] };
+    let mut msg: ZmqRawMessage = ZmqRawMessage { _x: [0; 64] };
     let rc = zmq_msg_init_data(&msg, buf as *mut c_void, len_, null_mut(), null_mut());
     if rc != 0 {
         return -1;
@@ -482,7 +537,7 @@ pub fn zmq_sendiov (s_: *mut c_void, a_: *mut iovec, count: usize, mut flags: i3
     }
 
     let mut rc = 0;
-    let mut msg: zmq_ZmqMessage = zmq_ZmqMessage{_x: [0;64]};
+    let mut msg: ZmqRawMessage = ZmqRawMessage{_x: [0;64]};
 
     // for (size_t i = 0; i < count; ++i)
     for i in 0 .. count
@@ -511,7 +566,7 @@ pub fn zmq_sendiov (s_: *mut c_void, a_: *mut iovec, count: usize, mut flags: i3
 
 // Receiving functions.
 
-pub fn s_recvmsg (s_: *mut ZmqSocketBase, msg: *mut zmq_ZmqMessage, flags: i32) -> i32
+pub fn s_recvmsg (s_: *mut ZmqSocketBase, msg: *mut ZmqRawMessage, flags: i32) -> i32
 {
     let rc = s_.recv (msg as *mut ZmqMessage, flags);
     if unlikely (rc < 0) {
@@ -523,8 +578,8 @@ pub fn s_recvmsg (s_: *mut ZmqSocketBase, msg: *mut zmq_ZmqMessage, flags: i32) 
     return if sz < INT_MAX { sz } else {INT_MAX};
 }
 
-/*  To be deprecated once zmq_msg_recv() is stable                           */
-pub fn zmq_recvmsg (s_: *mut c_void, msg: *mut zmq_ZmqMessage, flags: i32) -> i32
+//   To be deprecated once zmq_msg_recv() is stable
+pub fn zmq_recvmsg (s_: *mut c_void, msg: *mut ZmqRawMessage, flags: i32) -> i32
 {
     return zmq_msg_recv (msg, s_, flags);
 }
@@ -536,7 +591,7 @@ pub fn zmq_recv (s_: *mut c_void, buf: *mut c_void, len_: usize, flags: i32) -> 
     if (!s) {
         return -1;
     }
-    let mut msg: zmq_ZmqMessage = zmq_ZmqMessage::default();
+    let mut msg: ZmqRawMessage = ZmqRawMessage::default();
     let mut rc = zmq_msg_init (&mut msg);
     errno_assert (rc == 0);
 
@@ -599,7 +654,7 @@ pub fn zmq_recviov (s_: *mut c_void, a_: *mut iovec, count: *mut usize, flags: i
     // for (size_t i = 0; recvmore && i < count; ++i)
     for i in 0 .. recvmore
     {
-        let mut msg = zmq_ZmqMessage::default();
+        let mut msg = ZmqRawMessage::default();
         let mut rc = zmq_msg_init (&mut msg);
         errno_assert (rc == 0);
 
@@ -636,77 +691,85 @@ pub fn zmq_recviov (s_: *mut c_void, a_: *mut iovec, count: *mut usize, flags: i
 
 // Message manipulators.
 
-pub fn zmq_msg_init (msg: *mut zmq_ZmqMessage) -> i32
+pub fn zmq_msg_init (msg: *mut ZmqRawMessage) -> i32
 {
-    return (msg as *mut zmq_ZmqMessage).init();
+    return (msg as *mut ZmqRawMessage).init();
 }
 
-pub fn zmq_msg_init_size (msg: *mut zmq_ZmqMessage, size: usize) -> i32
+pub fn zmq_msg_init_size (msg: *mut ZmqRawMessage, size: usize) -> i32
 {
-    return (msg as *mut zmq_ZmqMessage).init_size(size);
+    return (msg as *mut ZmqRawMessage).init_size(size);
 }
 
-pub fn zmq_msg_init_buffer (msg: *mut zmq_ZmqMessage, buf: *mut c_void, size: usize) -> i32
+pub fn zmq_msg_init_buffer (msg: &mut ZmqRawMessage,
+                            buf: &mut [u8],
+                            size: usize) -> i32
 {
-    return (msg as *mut zmq_ZmqMessage).init_buffer (buf, size);
+    return (msg as *mut ZmqRawMessage).init_buffer (buf, size);
 }
 
-pub fn zmq_msg_init_data (
-  msg: *mut zmq_ZmqMessage, data: *mut c_void, size: usize, ffn_: zmq_free_fn, hint: *mut c_void) -> i32
-{
-    return (msg as *mut zmq_ZmqMessage).init_data (data, size, ffn_, hint);
+pub fn zmq_msg_init_data(msg: &mut ZmqRawMessage,
+                         data: &mut [u8],
+                         size: usize,
+                         hint: &mut [u8]) -> i32 {
+    return msg.init_data(data, size, hint);
 }
 
-pub fn zmq_msg_send (msg: *mut zmq_ZmqMessage, s_: *mut c_void, flags: i32) -> i32
+pub fn zmq_msg_send (msg: &mut ZmqRawMessage, s_: &mut [u8], flags: i32) -> i32
 {
-    let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
-    if (!s) {
+    let mut s =  as_socket_base_t (s_);
+    if !s {
         return -1;
     }
     return s_sendmsg (s, msg, flags);
 }
 
-pub fn zmq_msg_recv (msg: *mut zmq_ZmqMessage, s_: *mut c_void, flags: i32) -> i32
+pub fn zmq_msg_recv (msg: &mut ZmqRawMessage, s_: &mut [u8], flags: i32) -> i32
 {
     let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
-    if (!s) {
+    if !s {
         return -1;
     }
     return s_recvmsg (s, msg, flags);
 }
 
-pub fn zmq_msg_close (msg: *mut zmq_ZmqMessage) -> i32
+pub fn zmq_msg_close (msg: &mut ZmqRawMessage) -> i32
 {
     return (msg as *mut ZmqMessage).close();
 }
 
-pub fn zmq_msg_move (dest_: *mut zmq_ZmqMessage, src_: *mut zmq_ZmqMessage)
+pub fn zmq_msg_move (dest_: *mut ZmqRawMessage, src_: *mut ZmqRawMessage)
 {
-    return (dest_ as *mut ZmqMessage).move(src_ as *mut zmq_ZmqMessage);
+    todo!()
+    // TODO: convert raw message to ZmqMessage and move from source to dest
+    // return (dest_ as *mut ZmqMessage).move(src_ as *mut ZmqRawMessage);
 }
 
-int zmq_msg_copy (dest_: *mut zmq_ZmqMessage, zmq_ZmqMessage *src_)
+pub fn zmq_msg_copy (dest_: &mut ZmqRawMessage, src_: &mut ZmqRawMessage) -> i32
 {
-    return (reinterpret_cast<ZmqMessage *> (dest_))
-      ->copy (*reinterpret_cast<ZmqMessage *> (src_));
+    // return (reinterpret_cast<ZmqMessage *> (dest_))
+    //   ->copy (*reinterpret_cast<ZmqMessage *> (src_));
+    dest_ = src_;
+    return 0;
 }
 
-void *zmq_msg_data (zmq_ZmqMessage *msg)
+pub fn zmq_msg_data (msg: &mut ZmqMessage) -> Vec<u8>
 {
-    return (msg as *mut zmq_ZmqMessage).data ();
+    // return (msg as *mut zmq_ZmqMessage).data ();
+    msg.
 }
 
-size_t zmq_msg_size (const zmq_ZmqMessage *msg)
+size_t zmq_msg_size (const ZmqRawMessage *msg)
 {
     return ((ZmqMessage *) msg)->size ();
 }
 
-int zmq_msg_more (const zmq_ZmqMessage *msg)
+int zmq_msg_more (const ZmqRawMessage *msg)
 {
     return zmq_msg_get (msg, ZMQ_MORE);
 }
 
-int zmq_msg_get (const msg: *mut zmq_ZmqMessage, property_: i32)
+int zmq_msg_get (const msg: *mut ZmqRawMessage, property_: i32)
 {
     const char *fd_string;
 
@@ -730,37 +793,37 @@ int zmq_msg_get (const msg: *mut zmq_ZmqMessage, property_: i32)
     }
 }
 
-int zmq_msg_set (zmq_ZmqMessage *, int, int)
+int zmq_msg_set (ZmqRawMessage *, int, int)
 {
     //  No properties supported at present
     errno = EINVAL;
     return -1;
 }
 
-int zmq_msg_set_routing_id (msg: *mut zmq_ZmqMessage, uint32_t routing_id_)
+int zmq_msg_set_routing_id (msg: *mut ZmqRawMessage, u32 routing_id_)
 {
-    return (msg as *mut zmq_ZmqMessage)
+    return (msg as *mut ZmqRawMessage)
       ->set_routing_id (routing_id_);
 }
 
-uint32_t zmq_msg_routing_id (zmq_ZmqMessage *msg)
+u32 zmq_msg_routing_id (ZmqRawMessage *msg)
 {
-    return (msg as *mut zmq_ZmqMessage).get_routing_id ();
+    return (msg as *mut ZmqRawMessage).get_routing_id ();
 }
 
-int zmq_msg_set_group (msg: *mut zmq_ZmqMessage, group_: *const c_char)
+int zmq_msg_set_group (msg: *mut ZmqRawMessage, group_: *const c_char)
 {
-    return (msg as *mut zmq_ZmqMessage).set_group (group_);
+    return (msg as *mut ZmqRawMessage).set_group (group_);
 }
 
-const char *zmq_msg_group (zmq_ZmqMessage *msg)
+const char *zmq_msg_group (ZmqRawMessage *msg)
 {
-    return (msg as *mut zmq_ZmqMessage).group ();
+    return (msg as *mut ZmqRawMessage).group ();
 }
 
 //  Get message metadata string
 
-const char *zmq_msg_gets (const msg: *mut zmq_ZmqMessage, property_: *const c_char)
+const char *zmq_msg_gets (const msg: *mut ZmqRawMessage, property_: *const c_char)
 {
     const ZmqMetadata *metadata =
       reinterpret_cast<const ZmqMessage *> (msg)->metadata ();
@@ -1024,8 +1087,8 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
             //  The poll item is a 0MQ socket. Retrieve pending events
             //  using the ZMQ_EVENTS socket option.
             if (items_[i].socket) {
-                size_t zmq_events_size = mem::size_of::<uint32_t>();
-                uint32_t zmq_events;
+                size_t zmq_events_size = mem::size_of::<u32>();
+                u32 zmq_events;
                 if (zmq_getsockopt (items_[i].socket, ZMQ_EVENTS, &zmq_events,
                                     &zmq_events_size)
                     == -1) {
@@ -1106,8 +1169,8 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
             //  The poll item is a 0MQ socket. Retrieve pending events
             //  using the ZMQ_EVENTS socket option.
             if (items_[i].socket) {
-                size_t zmq_events_size = mem::size_of::<uint32_t>();
-                uint32_t zmq_events;
+                size_t zmq_events_size = mem::size_of::<u32>();
+                u32 zmq_events;
                 if (zmq_getsockopt (items_[i].socket, ZMQ_EVENTS, &zmq_events,
                                     &zmq_events_size)
                     == -1)
@@ -1328,8 +1391,8 @@ int zmq_poll_select_check_events_ (zmq_pollitem_t *items_,
         //  The poll item is a 0MQ socket. Retrieve pending events
         //  using the ZMQ_EVENTS socket option.
         if (items_[i].socket) {
-            size_t zmq_events_size = mem::size_of::<uint32_t>();
-            uint32_t zmq_events;
+            size_t zmq_events_size = mem::size_of::<u32>();
+            u32 zmq_events;
             if (zmq_getsockopt (items_[i].socket, ZMQ_EVENTS, &zmq_events,
                                 &zmq_events_size)
                 == -1)

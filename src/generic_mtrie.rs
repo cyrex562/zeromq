@@ -636,7 +636,7 @@ template <typename T> class generic_mtrie_t
 
     //  Retrieve the number of prefixes stored in this trie (added - removed)
     //  Note this is a multithread safe function.
-    uint32_t num_prefixes () const { return _num_prefixes.get (); }
+    u32 num_prefixes () const { return _num_prefixes.get (); }
 
   // private:
     bool is_redundant () const;

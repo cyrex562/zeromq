@@ -81,8 +81,8 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
     void set_event_sink (i_pipe_events *sink_);
 
     //  Pipe endpoint can store an routing ID to be used by its clients.
-    void set_server_socket_routing_id (uint32_t server_socket_routing_id_);
-    uint32_t get_server_socket_routing_id () const;
+    void set_server_socket_routing_id (u32 server_socket_routing_id_);
+    u32 get_server_socket_routing_id () const;
 
     //  Pipe endpoint can store an opaque ID to be used by its clients.
     void set_router_socket_routing_id (const Blob &router_socket_routing_id_);
@@ -375,12 +375,12 @@ void pipe_t::set_event_sink (i_pipe_events *sink_)
 }
 
 void pipe_t::set_server_socket_routing_id (
-  uint32_t server_socket_routing_id_)
+  u32 server_socket_routing_id_)
 {
     _server_socket_routing_id = server_socket_routing_id_;
 }
 
-uint32_t pipe_t::get_server_socket_routing_id () const
+u32 pipe_t::get_server_socket_routing_id () const
 {
     return _server_socket_routing_id;
 }

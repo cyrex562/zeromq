@@ -290,9 +290,9 @@ static u64 host_to_network (u64 value_)
 
     // Check the endianness
     if (*reinterpret_cast<const char *> (&num) == num) {
-        const uint32_t high_part = htonl (static_cast<uint32_t> (value_ >> 32));
-        const uint32_t low_part =
-          htonl (static_cast<uint32_t> (value_ & 0xFFFFFFFFLL));
+        const u32 high_part = htonl (static_cast<u32> (value_ >> 32));
+        const u32 low_part =
+          htonl (static_cast<u32> (value_ & 0xFFFFFFFFLL));
 
         return (static_cast<u64> (low_part) << 32) | high_part;
     }
@@ -506,10 +506,10 @@ void test_curve_security_invalid_initiate_command_encrypted_content ()
     close (s);
 }
 
-void test_curve_security_invalid_keysize (ctx_: *mut c_void)
+void test_curve_security_invalid_keysize (ctx: *mut c_void)
 {
     //  Check return codes for invalid buffer sizes
-    void *client = zmq_socket (ctx_, ZMQ_DEALER);
+    void *client = zmq_socket (ctx, ZMQ_DEALER);
     TEST_ASSERT_NOT_NULL (client);
     errno = 0;
     int rc =

@@ -36,7 +36,7 @@
 pub struct dish_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
-    dish_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    dish_t (ZmqContext *parent_, u32 tid_, sid_: i32);
     ~dish_t ();
 
   protected:
@@ -105,7 +105,7 @@ pub struct dish_session_t ZMQ_FINAL : public session_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dish_session_t)
 };
 
-dish_t::dish_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+dish_t::dish_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_, true), _has_message (false)
 {
     options.type = ZMQ_DISH;

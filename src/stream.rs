@@ -36,7 +36,7 @@
 // #include "likely.hpp"
 // #include "err.hpp"
 
-stream_t::stream_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+stream_t::stream_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     routing_socket_base_t (parent_, tid_, sid_),
     _prefetched (false),
     _routing_id_sent (false),
@@ -292,7 +292,7 @@ void stream_t::identify_peer (pipe_t *pipe_, bool locally_initiated_)
 pub struct stream_t ZMQ_FINAL : public routing_socket_base_t
 {
 // public:
-    stream_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    stream_t (ZmqContext *parent_, u32 tid_, sid_: i32);
     ~stream_t ();
 
     //  Overrides of functions from ZmqSocketBase.
@@ -335,7 +335,7 @@ pub struct stream_t ZMQ_FINAL : public routing_socket_base_t
 
     //  Routing IDs are generated. It's a simple increment and wrap-over
     //  algorithm. This value is the next ID to use (if not used already).
-    uint32_t _next_integral_routing_id;
+    u32 _next_integral_routing_id;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_t)
 };

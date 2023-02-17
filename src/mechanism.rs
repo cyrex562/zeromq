@@ -224,7 +224,7 @@ const char *mechanism_t::socket_type_string (socket_type_: i32)
 }
 
 const size_t name_len_size = sizeof (unsigned char);
-const size_t value_len_size = mem::size_of::<uint32_t>();
+const size_t value_len_size = mem::size_of::<u32>();
 
 static size_t property_len (name_len_: usize, value_len_: usize)
 {
@@ -253,7 +253,7 @@ size_t mechanism_t::add_property (unsigned char *ptr_,
     memcpy (ptr_, name_, name_len);
     ptr_ += name_len;
     zmq_assert (value_len_ <= 0x7FFFFFFF);
-    put_uint32 (ptr_, static_cast<uint32_t> (value_len_));
+    put_uint32 (ptr_, static_cast<u32> (value_len_));
     ptr_ += value_len_size;
     memcpy (ptr_, value_, value_len_);
 

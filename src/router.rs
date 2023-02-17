@@ -41,7 +41,7 @@
 pub struct router_t : public routing_socket_base_t
 {
 // public:
-    router_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    router_t (ZmqContext *parent_, u32 tid_, sid_: i32);
     ~router_t () ZMQ_OVERRIDE;
 
     //  Overrides of functions from ZmqSocketBase.
@@ -103,7 +103,7 @@ pub struct router_t : public routing_socket_base_t
 
     //  Routing IDs are generated. It's a simple increment and wrap-over
     //  algorithm. This value is the next ID to use (if not used already).
-    uint32_t _next_integral_routing_id;
+    u32 _next_integral_routing_id;
 
     // If true, report EAGAIN to the caller instead of silently dropping
     // the message targeting an unknown peer.
@@ -121,7 +121,7 @@ pub struct router_t : public routing_socket_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (router_t)
 };
 
-router_t::router_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+router_t::router_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     routing_socket_base_t (parent_, tid_, sid_),
     _prefetched (false),
     _routing_id_sent (false),

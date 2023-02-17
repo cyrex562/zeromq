@@ -41,7 +41,7 @@
 pub struct server_t : public ZmqSocketBase
 {
 // public:
-    server_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    server_t (ZmqContext *parent_, u32 tid_, sid_: i32);
     ~server_t ();
 
     //  Overrides of functions from ZmqSocketBase.
@@ -67,17 +67,17 @@ pub struct server_t : public ZmqSocketBase
     };
 
     //  Outbound pipes indexed by the peer IDs.
-    typedef std::map<uint32_t, outpipe_t> out_pipes_t;
+    typedef std::map<u32, outpipe_t> out_pipes_t;
     out_pipes_t _out_pipes;
 
     //  Routing IDs are generated. It's a simple increment and wrap-over
     //  algorithm. This value is the next ID to use (if not used already).
-    uint32_t _next_routing_id;
+    u32 _next_routing_id;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (server_t)
 };
 
-server_t::server_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+server_t::server_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_, true),
     _next_routing_id (generate_random ())
 {
@@ -100,7 +100,7 @@ void server_t::xattach_pipe (pipe_t *pipe_,
 
     zmq_assert (pipe_);
 
-    uint32_t routing_id = _next_routing_id++;
+    u32 routing_id = _next_routing_id++;
     if (!routing_id)
         routing_id = _next_routing_id++; //  Never use Routing ID zero
 
@@ -149,7 +149,7 @@ int server_t::xsend (ZmqMessage *msg)
         return -1;
     }
     //  Find the pipe associated with the routing stored in the message.
-    const uint32_t routing_id = msg->get_routing_id ();
+    const u32 routing_id = msg->get_routing_id ();
     out_pipes_t::iterator it = _out_pipes.find (routing_id);
 
     if (it != _out_pipes.end ()) {
@@ -205,7 +205,7 @@ int server_t::xrecv (ZmqMessage *msg)
 
     zmq_assert (pipe != NULL);
 
-    const uint32_t routing_id = pipe->get_server_socket_routing_id ();
+    const u32 routing_id = pipe->get_server_socket_routing_id ();
     msg->set_routing_id (routing_id);
 
     return 0;

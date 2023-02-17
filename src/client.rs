@@ -35,7 +35,7 @@
 pub struct client_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
-    client_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    client_t (ZmqContext *parent_, u32 tid_, sid_: i32);
     ~client_t ();
 
   protected:
@@ -60,7 +60,7 @@ pub struct client_t ZMQ_FINAL : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (client_t)
 };
 
-client_t::client_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+client_t::client_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_, true)
 {
     options.type = ZMQ_CLIENT;

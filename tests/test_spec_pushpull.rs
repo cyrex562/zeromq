@@ -120,7 +120,7 @@ void test_pull_fair_queue_in (bind_address_: *const c_char)
     // Wait for data.
     msleep (SETTLE_TIME);
 
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
     // Expect to pull one from each first
@@ -205,7 +205,7 @@ void test_destroy_queue_on_disconnect (bind_address_: *const c_char)
     TEST_ASSERT_EQUAL_INT (
       0, TEST_ASSERT_SUCCESS_ERRNO (zmq_poll (poller, 2, 100)));
 
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
     // Can't receive old data on B.
@@ -260,7 +260,7 @@ void test_push_multipart_atomic_drop (bind_address_: *const c_char,
     msleep (SETTLE_TIME);
 
     rc: i32;
-    zmq_ZmqMessage msg_data;
+    ZmqRawMessage msg_data;
     // A large message is needed to overrun the TCP buffers
     const size_t len = 16 * 1024 * 1024;
     size_t zmq_events_size = mem::size_of::<int>();

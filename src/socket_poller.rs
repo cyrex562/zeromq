@@ -100,7 +100,7 @@ pub struct socket_poller_t
     int rebuild ();
 
     //  Used to check whether the object is a socket_poller.
-    uint32_t _tag;
+    u32 _tag;
 
     //  Signaler used for thread safe sockets polling
     signaler_t *_signaler;
@@ -521,8 +521,8 @@ int socket_poller_t::check_events (socket_poller_t::event_t *events_,
         //  The poll item is a 0MQ socket. Retrieve pending events
         //  using the ZMQ_EVENTS socket option.
         if (it->socket) {
-            size_t events_size = mem::size_of::<uint32_t>();
-            uint32_t events;
+            size_t events_size = mem::size_of::<u32>();
+            u32 events;
             if (it->socket->getsockopt (ZMQ_EVENTS, &events, &events_size)
                 == -1) {
                 return -1;

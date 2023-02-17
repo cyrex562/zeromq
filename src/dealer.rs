@@ -35,7 +35,7 @@
 pub struct dealer_t : public ZmqSocketBase
 {
 // public:
-    dealer_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    dealer_t (ZmqContext *parent_, u32 tid_, sid_: i32);
     ~dealer_t () ZMQ_OVERRIDE;
 
   protected:
@@ -70,7 +70,7 @@ pub struct dealer_t : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dealer_t)
 };
 
-dealer_t::dealer_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+dealer_t::dealer_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_), _probe_router (false)
 {
     options.type = ZMQ_DEALER;

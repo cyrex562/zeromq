@@ -46,7 +46,7 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
 // public:
     typedef void *handle_t;
 
-    pollset_t (const ThreadCtx &ctx_);
+    pollset_t (const ThreadCtx &ctx);
     ~pollset_t () ZMQ_FINAL;
 
     //  "poller" concept.
@@ -99,8 +99,8 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (pollset_t)
 };
 
-pollset_t::pollset_t (const ThreadCtx &ctx_) :
-    ctx (ctx_), stopping (false)
+pollset_t::pollset_t (const ThreadCtx &ctx) :
+    ctx (ctx), stopping (false)
 {
     pollset_fd = pollset_create (-1);
     errno_assert (pollset_fd != -1);

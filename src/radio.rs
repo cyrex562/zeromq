@@ -38,7 +38,7 @@
 pub struct radio_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
-    radio_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    radio_t (ZmqContext *parent_, u32 tid_, sid_: i32);
     ~radio_t ();
 
     //  Implementations of virtual functions from ZmqSocketBase.
@@ -98,7 +98,7 @@ pub struct radio_session_t ZMQ_FINAL : public session_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (radio_session_t)
 };
 
-radio_t::radio_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+radio_t::radio_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_, true), _lossy (true)
 {
     options.type = ZMQ_RADIO;

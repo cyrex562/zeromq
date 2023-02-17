@@ -46,7 +46,7 @@
 #pragma warning(disable : 4018 4244 4146)
 // #endif
 
-/* clang-format off */
+//  clang-format off
 
 // #include "tweetnacl.h"
 
@@ -950,7 +950,7 @@ void randombytes (unsigned char *x,unsigned long long xlen)
     }
 }
 
-/*  Do not call manually! Use random_close from random.hpp */
+//   Do not call manually! Use random_close from random.hpp
 int randombytes_close (void)
 {
     int rc = -1;
@@ -963,7 +963,7 @@ int randombytes_close (void)
     return rc;
 }
 
-/*  Do not call manually! Use random_open from random.hpp */
+//   Do not call manually! Use random_open from random.hpp
 int sodium_init (void)
 {
 // #ifndef ZMQ_HAVE_GETRANDOM
@@ -990,4 +990,4 @@ int sodium_init (void)
 // #endif
 
 // #endif
-/* clang-format on */
+//  clang-format on

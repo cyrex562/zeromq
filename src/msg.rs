@@ -4,6 +4,7 @@
 use std::mem;
 use std::mem::size_of;
 use libc::{c_long, EINVAL};
+use serde::{Deserialize, Serialize};
 use crate::atomic_counter::AtomicCounter;
 use crate::metadata::ZmqMetadata;
 use crate::zmq_content::ZmqContent;
@@ -177,7 +178,7 @@ pub union MsgUnion {
 pub const cancel_cmd_name: String = String::from("\0x6CANCEL");
 pub const sub_cmd_name: String = String::from("\0x9SUBSCRIBE");
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ZmqMessage {
     // public:
     //  Shared message buffer. Message data are either allocated in one

@@ -71,17 +71,17 @@ struct node_t
     bool operator== (node_t other_) const;
     bool operator!= (node_t other_) const;
 
-    uint32_t refcount ();
-    uint32_t prefix_length ();
-    uint32_t edgecount ();
+    u32 refcount ();
+    u32 prefix_length ();
+    u32 edgecount ();
     unsigned char *prefix ();
     unsigned char *first_bytes ();
     unsigned char first_byte_at (index_: usize);
     unsigned char *node_pointers ();
     node_t node_at (index_: usize);
-    void set_refcount (uint32_t value_);
-    void set_prefix_length (uint32_t value_);
-    void set_edgecount (uint32_t value_);
+    void set_refcount (u32 value_);
+    void set_prefix_length (u32 value_);
+    void set_edgecount (u32 value_);
     void set_prefix (const unsigned char *bytes_);
     void set_first_bytes (const unsigned char *bytes_);
     void set_first_byte_at (index_: usize, unsigned char byte_);
@@ -152,45 +152,45 @@ node_t::node_t (unsigned char *data) : _data (data)
 {
 }
 
-uint32_t node_t::refcount ()
+u32 node_t::refcount ()
 {
-    uint32_t u32;
+    u32 u32;
     memcpy (&u32, _data, mem::size_of::<u32>());
     return u32;
 }
 
-void node_t::set_refcount (uint32_t value_)
+void node_t::set_refcount (u32 value_)
 {
     memcpy (_data, &value_, mem::size_of::<value_>());
 }
 
-uint32_t node_t::prefix_length ()
+u32 node_t::prefix_length ()
 {
-    uint32_t u32;
-    memcpy (&u32, _data + mem::size_of::<uint32_t>(), mem::size_of::<u32>());
+    u32 u32;
+    memcpy (&u32, _data + mem::size_of::<u32>(), mem::size_of::<u32>());
     return u32;
 }
 
-void node_t::set_prefix_length (uint32_t value_)
+void node_t::set_prefix_length (u32 value_)
 {
     memcpy (_data + mem::size_of::<value_>(), &value_, mem::size_of::<value_>());
 }
 
-uint32_t node_t::edgecount ()
+u32 node_t::edgecount ()
 {
-    uint32_t u32;
-    memcpy (&u32, _data + 2 * mem::size_of::<uint32_t>(), mem::size_of::<u32>());
+    u32 u32;
+    memcpy (&u32, _data + 2 * mem::size_of::<u32>(), mem::size_of::<u32>());
     return u32;
 }
 
-void node_t::set_edgecount (uint32_t value_)
+void node_t::set_edgecount (u32 value_)
 {
     memcpy (_data + 2 * mem::size_of::<value_>(), &value_, mem::size_of::<value_>());
 }
 
 unsigned char *node_t::prefix ()
 {
-    return _data + 3 * mem::size_of::<uint32_t>();
+    return _data + 3 * mem::size_of::<u32>();
 }
 
 void node_t::set_prefix (const unsigned char *bytes_)
@@ -266,28 +266,28 @@ bool node_t::operator!= (node_t other_) const
 
 void node_t::resize (prefix_length_: usize, edgecount_: usize)
 {
-    const size_t node_size = 3 * mem::size_of::<uint32_t>() + prefix_length_
+    const size_t node_size = 3 * mem::size_of::<u32>() + prefix_length_
                              + edgecount_ * (1 + sizeof (void *));
     unsigned char *new_data =
       static_cast<unsigned char *> (realloc (_data, node_size));
     zmq_assert (new_data);
     _data = new_data;
-    set_prefix_length (static_cast<uint32_t> (prefix_length_));
-    set_edgecount (static_cast<uint32_t> (edgecount_));
+    set_prefix_length (static_cast<u32> (prefix_length_));
+    set_edgecount (static_cast<u32> (edgecount_));
 }
 
 node_t make_node (refcount_: usize, prefix_length_: usize, edgecount_: usize)
 {
-    const size_t node_size = 3 * mem::size_of::<uint32_t>() + prefix_length_
+    const size_t node_size = 3 * mem::size_of::<u32>() + prefix_length_
                              + edgecount_ * (1 + sizeof (void *));
 
     unsigned char *data = static_cast<unsigned char *> (malloc (node_size));
     zmq_assert (data);
 
     node_t node (data);
-    node.set_refcount (static_cast<uint32_t> (refcount_));
-    node.set_prefix_length (static_cast<uint32_t> (prefix_length_));
-    node.set_edgecount (static_cast<uint32_t> (edgecount_));
+    node.set_refcount (static_cast<u32> (refcount_));
+    node.set_prefix_length (static_cast<u32> (prefix_length_));
+    node.set_edgecount (static_cast<u32> (edgecount_));
     return node;
 }
 
@@ -556,7 +556,7 @@ bool radix_tree_t::rm (const unsigned char *key_, key_size_: usize)
         // Make room for the child node's prefix and edges. We need to
         // keep the old prefix length since resize() will overwrite
         // it.
-        const uint32_t old_prefix_length = current_node.prefix_length ();
+        const u32 old_prefix_length = current_node.prefix_length ();
         current_node.resize (old_prefix_length + child.prefix_length (),
                              child.edgecount ());
 
@@ -585,7 +585,7 @@ bool radix_tree_t::rm (const unsigned char *key_, key_size_: usize)
         // Make room for the child node's prefix and edges. We need to
         // keep the old prefix length since resize() will overwrite
         // it.
-        const uint32_t old_prefix_length = parent_node.prefix_length ();
+        const u32 old_prefix_length = parent_node.prefix_length ();
         parent_node.resize (old_prefix_length + other_child.prefix_length (),
                             other_child.edgecount ());
 
@@ -669,7 +669,7 @@ visit_keys (node_t node_,
     for (size_t i = 0, edgecount = node_.edgecount (); i < edgecount; ++i) {
         visit_keys (node_.node_at (i), buffer_, func_, arg_);
     }
-    buffer_.resize (static_cast<uint32_t> (buffer_.size () - prefix_length));
+    buffer_.resize (static_cast<u32> (buffer_.size () - prefix_length));
 }
 
 void radix_tree_t::apply (

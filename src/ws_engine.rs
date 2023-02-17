@@ -1153,7 +1153,7 @@ encode_base64 (const unsigned char *in_, in_len_: i32, char *out_, out_len_: i32
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     int io = 0;
-    uint32_t v = 0;
+    u32 v = 0;
     int rem = 0;
 
     for (int ii = 0; ii < in_len_; ii++) {

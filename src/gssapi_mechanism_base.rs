@@ -193,7 +193,7 @@ int gssapi_mechanism_base_t::encode_message (ZmqMessage *msg)
     ptr += 8;
 
     // Add token length
-    put_uint32 (ptr, static_cast<uint32_t> (wrapped.length));
+    put_uint32 (ptr, static_cast<u32> (wrapped.length));
     ptr += 4;
 
     // Add wrapped token value
@@ -321,7 +321,7 @@ int gssapi_mechanism_base_t::produce_initiate (msg: &mut ZmqMessage
     ptr += 9;
 
     // Add token length
-    put_uint32 (ptr, static_cast<uint32_t> (token_length_));
+    put_uint32 (ptr, static_cast<u32> (token_length_));
     ptr += 4;
 
     // Add token value

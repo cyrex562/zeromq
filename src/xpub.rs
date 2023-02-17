@@ -39,7 +39,7 @@
 pub struct xpub_t : public ZmqSocketBase
 {
 // public:
-    xpub_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    xpub_t (ZmqContext *parent_, u32 tid_, sid_: i32);
     ~xpub_t () ZMQ_OVERRIDE;
 
     //  Implementations of virtual functions from ZmqSocketBase.
@@ -129,7 +129,7 @@ pub struct xpub_t : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (xpub_t)
 };
 
-xpub_t::xpub_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+xpub_t::xpub_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_),
     _verbose_subs (false),
     _verbose_unsubs (false),

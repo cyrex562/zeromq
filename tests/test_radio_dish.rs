@@ -58,7 +58,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 void msg_send_expect_success (s_: *mut c_void, group_: *const c_char, body_: *const c_char)
 {
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     const size_t len = strlen (body_);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, len));
 
@@ -75,7 +75,7 @@ void msg_send_expect_success (s_: *mut c_void, group_: *const c_char, body_: *co
 
 void msg_recv_cmp (s_: *mut c_void, group_: *const c_char, body_: *const c_char)
 {
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     const size_t len = strlen (body_);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 

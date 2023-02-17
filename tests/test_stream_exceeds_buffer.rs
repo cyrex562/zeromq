@@ -53,7 +53,7 @@ void test_stream_exceeds_buffer ()
 
     TEST_ASSERT_EQUAL_INT (msgsize, send (client_sock, sndbuf, msgsize, 0));
 
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     zmq_msg_init (&msg);
 
     int rcvbytes = 0;

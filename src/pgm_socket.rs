@@ -339,7 +339,7 @@ int pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
     addr.sa_addr.sport = DEFAULT_DATA_SOURCE_PORT;
 
     //  Create random GSI.
-    uint32_t buf[2];
+    u32 buf[2];
     buf[0] = generate_random ();
     buf[1] = generate_random ();
     if (!pgm_gsi_create_from_data (&addr.sa_addr.gsi, (uint8_t *) buf, 8))

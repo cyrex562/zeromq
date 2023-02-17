@@ -331,7 +331,7 @@ static void server_worker (void * /*unused_*/)
 u64 recv_stat (sock_: *mut c_void, bool last_)
 {
     u64 res;
-    zmq_ZmqMessage stats_msg;
+    ZmqRawMessage stats_msg;
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&stats_msg));
     TEST_ASSERT_EQUAL_INT (mem::size_of::<u64>(),

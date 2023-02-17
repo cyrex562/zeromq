@@ -79,7 +79,7 @@ static void bounce (socket_: *mut c_void)
     more: i32;
     size_t more_size = mem::size_of::<more>();
     do {
-        zmq_ZmqMessage recv_part, sent_part;
+        ZmqRawMessage recv_part, sent_part;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&recv_part));
 
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&recv_part, socket_, 0));

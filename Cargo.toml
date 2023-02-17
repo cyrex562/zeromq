@@ -12,6 +12,8 @@ dns-lookup = "1"
 gethostname = "0.4"
 macaddr = "1"
 anyhow = "1"
+bincode = "1"
+serde = { version="1", features = ["derive"]}
 
 [lib]
 name = "zmqrs"

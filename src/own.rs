@@ -39,7 +39,7 @@ pub struct own_t : public object_t
 
     //  The object is not living within an I/O thread. It has it's own
     //  thread outside of 0MQ infrastructure.
-    own_t (ZmqContext *parent_, uint32_t tid_);
+    own_t (ZmqContext *parent_, u32 tid_);
 
     //  The object is living within I/O thread.
     own_t (io_thread_t *io_thread_, const ZmqOptions &options_);
@@ -133,7 +133,7 @@ impl own_t {
 
 }
 
-own_t::own_t (class ZmqContext *parent_, uint32_t tid_) :
+own_t::own_t (class ZmqContext *parent_, u32 tid_) :
     object_t (parent_, tid_),
     _terminating (false),
     _sent_seqnum (0),

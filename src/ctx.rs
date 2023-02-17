@@ -16,28 +16,29 @@ use std::intrinsics::unlikely;
 use std::mem::size_of;
 use std::ptr::null_mut;
 use anyhow;
+use anyhow::bail;
 use crate::command::ZmqCommand;
 use crate::ctx::side::{bind_side, connect_side};
 use crate::ctx::tid_type::{reaper_tid, term_tid};
 use crate::msg::ZmqMessage;
 use crate::object::object_t;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
-use crate::zmq_hdr::{ZMQ_PAIR, ZMQ_MAX_SOCKETS, ZMQ_IO_THREADS, ZMQ_IPV6, ZMQ_BLOCKY, ZMQ_MAX_MSGSZ, ZMQ_ZERO_COPY_RECV, ZMQ_SOCKET_LIMIT, zmq_free_fn, zmq_ZmqMessage, ZMQ_ZmqMessage_SIZE};
+use crate::zmq_hdr::{ZMQ_PAIR, ZMQ_MAX_SOCKETS, ZMQ_IO_THREADS, ZMQ_IPV6, ZMQ_BLOCKY, ZMQ_MAX_MSGSZ, ZMQ_ZERO_COPY_RECV, ZMQ_SOCKET_LIMIT, ZmqRawMessage, ZMQ_MAX_SOCKETS_DFLT, ZMQ_IO_THREADS_DFLT, ZMQ_MESSAGE_SIZE};
+use serde::{Serialize, Deserialize};
+
 
 //  Context object encapsulates all the global state associated with
 //  the library.
 
-enum tid_type
-    {
-        term_tid = 0,
-        reaper_tid = 1
-    }
+enum tid_type {
+    term_tid = 0,
+    reaper_tid = 1,
+}
 
-enum side
-    {
-        connect_side,
-        bind_side
-    }
+enum side {
+    connect_side,
+    bind_side,
+}
 
 // #define ZMQ_CTX_TAG_VALUE_GOOD 0xabadcafe
 pub const ZMQ_CTX_TAG_VALUE_GOOD: u32 = 0xabadcafe;
@@ -61,16 +62,15 @@ pub const ZMQ_CTX_TAG_VALUE_BAD: u32 = 0xdeadbeef;
 // pub type pending_connections_t = HashMap<String, PendingConnection>
 
 // class ctx_t ZMQ_FINAL : public ThreadCtx
-#[derive(Default,Debug,Clone)]
-pub struct ZmqContext
-{
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct ZmqContext {
     pub _thread_ctx_t: ThreadCtx,
 // public:
-  // private:
+    // private:
 
     //  Used to check whether the object is a context.
     // uint32_t _tag;
-pub _tag: u32,
+    pub _tag: u32,
     //  Sockets belonging to this context. We need the list so that
     //  we can notify the sockets when zmq_ctx_term() is called.
     //  The sockets will return ETERM then.
@@ -79,12 +79,12 @@ pub _tag: u32,
     //  List of unused thread slots.
 
     // empty_slots_t _empty_slots;
-pub _empty_slots: Vec<u32>,
+    pub _empty_slots: Vec<u32>,
 
     //  If true, zmq_init has been called but no socket has been created
     //  yet. Launching of I/O threads is delayed.
     // bool _starting;
-pub _starting: bool,
+    pub _starting: bool,
 
     //  If true, zmq_ctx_term was already called.
     // bool _terminating;
@@ -95,11 +95,11 @@ pub _starting: bool,
     //  access to zombie sockets as such (as opposed to slots) and provides
     //  a memory barrier to ensure that all CPU cores see the same data.
     // mutex_t _slot_sync;
-pub _slot_sync: Mutex<u8>,
+    pub _slot_sync: Mutex<u8>,
 
     //  The reaper thread.
     // reaper_t *_reaper;
-pub _reaper: Option<reaper_t>,
+    pub _reaper: Option<reaper_t>,
 
     //  I/O threads.
 
@@ -116,7 +116,7 @@ pub _reaper: Option<reaper_t>,
 
     //  List of inproc endpoints within this context.
     // endpoints_t _endpoints;
-    pub _endpoints: HashMap<String,ZmqEndpoint>,
+    pub _endpoints: HashMap<String, ZmqEndpoint>,
 
     // List of inproc connection endpoints pending a bind
     // pending_connections_t _pending_connections;
@@ -153,19 +153,19 @@ pub _reaper: Option<reaper_t>,
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (ctx_t)
 
-// #ifdef HAVE_FORK
+    // #ifdef HAVE_FORK
     // the process that created this context. Used to detect forking.
     // pid_t _pid;
     pub _pid: pid_t,
 // #endif
 
-// #ifdef ZMQ_HAVE_VMCI
+    // #ifdef ZMQ_HAVE_VMCI
 //     _vmci_fd: i32;
-pub _vmci_fd: i32,
+    pub _vmci_fd: i32,
     // _vmci_family: i32;
     pub _vmci_family: i32,
     // mutex_t _vmci_sync;
-pub _vmci_sync: Mutex<u8>
+    pub _vmci_sync: Mutex<u8>,
 // #endif
 }
 
@@ -173,7 +173,7 @@ impl ZmqContext {
     //  Create the context object.
     // ctx_t ();
 
-// ZmqContext::ZmqContext () :
+    // ZmqContext::ZmqContext () :
 //     _tag (ZMQ_CTX_TAG_VALUE_GOOD),
 //     _starting (true),
 //     _terminating (false),
@@ -204,7 +204,7 @@ impl ZmqContext {
 //     gnutls_global_init ();
 // // #endif
 // }
-pub fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             _thread_ctx_t: Default::default(),
             _tag: ZMQ_CTX_TAG_VALUE_GOOD,
@@ -227,7 +227,7 @@ pub fn new() -> Self {
             _blocky: true,
             _ipv6: false,
             _zero_copy: false,
-            _pid: process:id(),
+            _pid: process: id(),
             _vmci_fd: -1,
             _vmci_family: -1,
             _vmci_sync: Mutex::new(0),
@@ -355,7 +355,7 @@ pub fn new() -> Self {
         return 0;
     }
 
-    pub fn set(&mut self, option: i32, opt_val: &mut [u8], opt_val_len: usize) -> i32 {
+    pub fn set(&mut self, option: i32, opt_val: &mut [u8], opt_val_len: usize) -> anyhow::Result<()> {
         let is_int = (opt_val_len == mem::size_of::<i32>());
         let mut value = 0i32;
         if is_int {
@@ -370,7 +370,7 @@ pub fn new() -> Self {
                 if is_int && value >= 1 && value == clipped_maxsocket(value) {
                     // let locker = scoped_lock_t::new(self._opt_sync);
                     self._max_sockets = value;
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -378,32 +378,32 @@ pub fn new() -> Self {
                 if is_int && value >= 0 {
                     // let locker = scoped_lock_t::new(self._opt_sync);
                     self._io_thread_count = value;
-                    return 0;
+                    return Ok(());
                 }
             }
 
             ZMQ_IPV6 => if is_int && value >= 0 {
                 // let locker = scoped_lock_t::new(self._opt_sync);
                 self._ipv6 = (value != 0);
-                return 0;
+                return Ok(());
             }
 
             ZMQ_BLOCKY => if is_int && value >= 0 {
                 // scoped_lock_t locker (_opt_sync);
                 self._blocky = (value != 0);
-                return 0;
+                return Ok(());
             }
 
             ZMQ_MAX_MSGSZ => if is_int && value >= 0 {
                 // scoped_lock_t locker (_opt_sync);
                 self._max_msgsz = if value < i32::MAX { value } else { i32::MAX };
-                return 0;
+                return Ok(());
             }
 
             ZMQ_ZERO_COPY_RECV => if is_int && value >= 0 {
                 // scoped_lock_t locker (_opt_sync);
                 self._zero_copy = (value != 0);
-                return 0;
+                return Ok(());
             }
 
             _ => {
@@ -411,81 +411,79 @@ pub fn new() -> Self {
             }
         }
 
-        errno = EINVAL;
-        return -1;
+        // errno = EINVAL;
+        // return -1;
+        bail!("invalid")
     }
 
     // int ZmqContext::get (option_: i32, optval_: *mut c_void, const optvallen_: *mut usize)
-    pub fn get(&mut self, option: i32, opt_val: &mut [u8], opt_val_len: &mut usize) -> i32 {
+    pub fn option_bytes(&mut self, option: i32) -> anyhow::Result<Vec<u8>> {
         // const bool is_int = (*optvallen_ == sizeof (int));
-        let is_int = *opt_val_len == size_of::<i32>();
+        // let is_int = *opt_val_len == size_of::<i32>();
         // int *value = static_cast<int *> (optval_);
         // let mut value = 0i32;
         //     let mut bytes: [u8;4] = [0;4];
         //     bytes.clone_from_slice(optval_);
         //     value = i32::from_le_bytes(bytes);
+        let mut out: Vec<u8> = Vec::new();
 
         match option {
             ZMQ_MAX_SOCKETS => {
-                if is_int {
-                    // scoped_lock_t
-                    // locker(_opt_sync);
-                    // value = self._max_sockets;
-                    opt_val.clone_from_slice(self._max_sockets.to_le_bytes().as_slice());
-                    return 0;
-                }
+                // scoped_lock_t
+                // locker(_opt_sync);
+                // value = self._max_sockets;
+                out.clone_from_slice(self._max_sockets.to_le_bytes().as_slice());
+                Ok(out)
             }
 
             ZMQ_SOCKET_LIMIT => {
-                if is_int {
-                    // *value = clipped_maxsocket(65535);
-                    let x = clipped_maxsocket(65535);
-                    opt_val.clone_from_slice(x.to_le_bytes().as_slice());
-                    return 0;
-                }
+                // *value = clipped_maxsocket(65535);
+                let x = clipped_maxsocket(65535);
+                out.clone_from_slice(x.to_le_bytes().as_slice());
+                Ok(out)
             }
 
-            ZMQ_IO_THREADS => if (is_int) {
+            ZMQ_IO_THREADS => {
                 // scoped_lock_t locker (_opt_sync);
                 // *value = _io_thread_count;
-                opt_val.clone_from_slice(self._io_thread_count.to_le_bytes().as_slice());
-                return 0;
+                out.clone_from_slice(self._io_thread_count.to_le_bytes().as_slice());
+                Ok(out)
             }
 
-            ZMQ_IPV6 => if (is_int) {
+            ZMQ_IPV6 => {
                 // scoped_lock_t locker (_opt_sync);
                 // *value = _ipv6;
-                opt_val.clone_from_slice(self._ipv6.to_le_bytes().as_slice());
-                return 0;
+                out.clone_from_slice(self._ipv6.to_le_bytes().as_slice());
+                Ok(out)
             }
 
-            ZMQ_BLOCKY => if (is_int) {
+            ZMQ_BLOCKY => {
                 // scoped_lock_t locker (_opt_sync);
                 // *value = _blocky;
-                opt_val.clone_from_slice(self._blocky.to_le_bytes().as_slice());
-                return 0;
+                out.clone_from_slice(self._blocky.to_le_bytes().as_slice());
+                Ok(out)
             }
 
-            ZMQ_MAX_MSGSZ => if (is_int) {
+            ZMQ_MAX_MSGSZ => {
                 // scoped_lock_t locker (_opt_sync);
                 // *value = _max_msgsz;
-                opt_val.clone_from_slice(self._max_msgsz.to_le_bytes().as_slice());
-                return 0;
+                out.clone_from_slice(self._max_msgsz.to_le_bytes().as_slice());
+                Ok(out)
             }
 
-            ZMQ_ZmqMessage_SIZE => if (is_int) {
+            ZMQ_MESSAGE_SIZE => {
                 // scoped_lock_t locker (_opt_sync);
                 // *value = sizeof (zmq_ZmqMessage);
-                let x = size_of::<zmq_ZmqMessage>();
-                opt_val.clone_from_slice(x.to_le_bytes().as_slice());
-                return 0;
+                let x = size_of::<ZmqRawMessage>();
+                out.clone_from_slice(x.to_le_bytes().as_slice());
+                Ok(out)
             }
 
-            ZMQ_ZERO_COPY_RECV => if (is_int) {
+            ZMQ_ZERO_COPY_RECV => {
                 // scoped_lock_t locker (_opt_sync);
                 // *value = self._zero_copy;
-                opt_val[0] = self._zero_copy.into();
-                return 0;
+                out[0] = self._zero_copy.into();
+                Ok(out)
             }
 
             _ => {
@@ -493,25 +491,16 @@ pub fn new() -> Self {
             }
         }
 
-        errno = EINVAL;
-        return -1;
+        // errno = EINVAL;
+        // return -1;
     }
 
-    // int ZmqContext::get (option_: i32)
-    pub fn get2(&mut self, option_: i32) -> i32 {
-        // int optval = 0;
-        let mut optval: i32 = 0;
-        // size_t optvallen = sizeof (int);
-        let mut optvallen = size_of::<i32>();
-
+    pub fn option_i32(&mut self, opt_kind: i32) -> anyhow::Result<i32> {
+        let data = self.option_bytes(opt_kind)?;
         let mut opt_bytes: [u8; 4] = [0; 4];
-        if self.get(option_, &mut opt_bytes, &mut optvallen) == 0 {
-            optval = i32::from_le_bytes(opt_bytes);
-            return optval;
-        }
-
-        errno = EINVAL;
-        return -1;
+        opt_bytes.clone_from_slice(&data);
+        let data_int = i32::from_le_bytes(opt_bytes);
+        Ok(data_int)
     }
 
 
@@ -705,7 +694,7 @@ pub fn new() -> Self {
         return 0;
     }
 
-// int ZmqContext::unregister_endpoint (const std::string &addr_,
+    // int ZmqContext::unregister_endpoint (const std::string &addr_,
 //                                      const ZmqSocketBase *const socket_)
     pub fn unregister_endpoint(&mut self, addr_: &mut str, socket_: &mut ZmqSocketBase) -> i32 {
         // scoped_lock_t locker (_endpoints_sync);
@@ -742,8 +731,7 @@ pub fn new() -> Self {
     }
 
     // void ZmqContext::unregister_endpoints (const ZmqSocketBase *const socket_)
-    pub fn unregister_endpoints(&mut self, socket_: &mut ZmqSocketBase)
-    {
+    pub fn unregister_endpoints(&mut self, socket_: &mut ZmqSocketBase) {
         // scoped_lock_t locker (_endpoints_sync);
 
         // for (endpoints_t::iterator it = _endpoints.begin (),
@@ -752,16 +740,15 @@ pub fn new() -> Self {
 
         let mut erase_list: Vec<String> = vec![];
 
-        for (k, v) in self._endpoints.iter_mut()
-        {
-    //         if (it->second.socket == socket_)
-    // #if __cplusplus >= 201103L || (defined _MSC_VER && _MSC_VER >= 1700)
-    //             it = _endpoints.erase (it);
-    // // #else
-    //             _endpoints.erase (it++);
-    // // #endif
-    //         else
-    //             ++it;
+        for (k, v) in self._endpoints.iter_mut() {
+            //         if (it->second.socket == socket_)
+            // #if __cplusplus >= 201103L || (defined _MSC_VER && _MSC_VER >= 1700)
+            //             it = _endpoints.erase (it);
+            // // #else
+            //             _endpoints.erase (it++);
+            // // #endif
+            //         else
+            //             ++it;
             if v.socket == socket_ {
                 erase_list.push(k.clone())
             }
@@ -772,7 +759,7 @@ pub fn new() -> Self {
         }
     }
 
-// ZmqEndpoint ZmqContext::find_endpoint (addr_: *const c_char)
+    // ZmqEndpoint ZmqContext::find_endpoint (addr_: *const c_char)
     pub fn find_endpoint(&mut self, addr_: &str) -> Option<ZmqEndpoint> {
         // scoped_lock_t locker (_endpoints_sync);
 
@@ -798,8 +785,7 @@ pub fn new() -> Self {
     // void ZmqContext::pend_connection (const std::string &addr_,
     //                                   const ZmqEndpoint &endpoint_,
     //                                   pipe_t **pipes_)
-    pub fn pend_connection(&mut self, addr_: &mut str, endpoint_: &mut ZmqEndpoint, pipes_: &mut [pipe_t])
-    {
+    pub fn pend_connection(&mut self, addr_: &mut str, endpoint_: &mut ZmqEndpoint, pipes_: &mut [pipe_t]) {
         // scoped_lock_t locker (_endpoints_sync);
 
         // const PendingConnection pending_connection = {endpoint_, pipes_[0],
@@ -813,23 +799,21 @@ pub fn new() -> Self {
         // const endpoints_t::iterator it = _endpoints.find (addr_);
         let it = self._endpoints.get(addr_);
         // if (it == _endpoints.end ())
-        if it.is_none()
-        {
+        if it.is_none() {
             //  Still no bind.
-            endpoint_.socket.inc_seqnum ();
-            self._pending_connections.ZMQ_MAP_INSERT_OR_EMPLACE (addr_,
-                                                            pending_connection);
+            endpoint_.socket.inc_seqnum();
+            self._pending_connections.ZMQ_MAP_INSERT_OR_EMPLACE(addr_,
+                                                                pending_connection);
         } else {
             //  Bind has happened in the mean time, connect directly
             self.connect_inproc_sockets(it.unwrap().socket, it.unwrap().options.clone(),
-                                    pending_connection, connect_side);
+                                        pending_connection, connect_side);
         }
     }
 
     // void ZmqContext::connect_pending (addr_: *const c_char,
     //                                   ZmqSocketBase *bind_socket_)
-    pub fn connect_pending(&mut self, addr_: &str, bind_socket_: &mut ZmqSocketBase)
-    {
+    pub fn connect_pending(&mut self, addr_: &str, bind_socket_: &mut ZmqSocketBase) {
         // scoped_lock_t locker (_endpoints_sync);
 
         // const std::pair<pending_connections_t::iterator,
@@ -861,96 +845,91 @@ pub fn new() -> Self {
         bind_socket_: &mut ZmqSocketBase,
         bind_options_: &mut ZmqOptions,
         pending_connection_: &mut PendingConnection,
-        side_: side)
-    {
-        bind_socket.inc_seqnum ();
-        pending_connection_.bind_pipe.set_tid (bind_socket_.get_tid ());
+        side_: side) {
+        bind_socket.inc_seqnum();
+        pending_connection_.bind_pipe.set_tid(bind_socket_.get_tid());
 
         if (!bind_options_.recv_routing_id) {
             // ZmqMessage msg;
-            let msg = ZmqMessage{
+            let msg = ZmqMessage {
                 data: (),
                 size: 0,
-                hint: ()
+                hint: (),
             };
-            let ok = pending_connection_.bind_pipe.read (&msg);
-            zmq_assert (ok);
-            let rc = msg.close ();
-            errno_assert (rc == 0);
+            let ok = pending_connection_.bind_pipe.read(&msg);
+            zmq_assert(ok);
+            let rc = msg.close();
+            errno_assert(rc == 0);
         }
 
-        if !get_effective_conflate_option (pending_connection_.endpoint.options) {
-            pending_connection_.connect_pipe->set_hwms_boost (bind_options_.sndhwm,
-                                                              bind_options_.rcvhwm);
-            pending_connection_.bind_pipe->set_hwms_boost (
-              pending_connection_.endpoint.options.sndhwm,
-              pending_connection_.endpoint.options.rcvhwm);
+        if !get_effective_conflate_option(pending_connection_.endpoint.options) {
+            pending_connection_.connect_pipe -> set_hwms_boost(bind_options_.sndhwm,
+                                                               bind_options_.rcvhwm);
+            pending_connection_.bind_pipe -> set_hwms_boost(
+                pending_connection_.endpoint.options.sndhwm,
+                pending_connection_.endpoint.options.rcvhwm);
 
-            pending_connection_.connect_pipe->set_hwms (
-              pending_connection_.endpoint.options.rcvhwm,
-              pending_connection_.endpoint.options.sndhwm);
-            pending_connection_.bind_pipe->set_hwms (bind_options_.rcvhwm,
-                                                     bind_options_.sndhwm);
+            pending_connection_.connect_pipe -> set_hwms(
+                pending_connection_.endpoint.options.rcvhwm,
+                pending_connection_.endpoint.options.sndhwm);
+            pending_connection_.bind_pipe -> set_hwms(bind_options_.rcvhwm,
+                                                      bind_options_.sndhwm);
         } else {
-            pending_connection_.connect_pipe->set_hwms (-1, -1);
-            pending_connection_.bind_pipe->set_hwms (-1, -1);
+            pending_connection_.connect_pipe -> set_hwms(-1, -1);
+            pending_connection_.bind_pipe -> set_hwms(-1, -1);
         }
 
-    // #ifdef ZMQ_BUILD_DRAFT_API
-        if (bind_options_.can_recv_disconnect_msg
-            && !bind_options_.disconnect_msg.empty ())
-            pending_connection_.connect_pipe->set_disconnect_msg (
-              bind_options_.disconnect_msg);
-    // #endif
+        // #ifdef ZMQ_BUILD_DRAFT_API
+        if (bind_options_.can_recv_disconnect_msg && !bind_options_.disconnect_msg.empty())
+        pending_connection_.connect_pipe -> set_disconnect_msg(
+            bind_options_.disconnect_msg);
+        // #endif
 
         if (side_ == bind_side) {
-            ZmqCommand cmd;
-            cmd.type = ZmqCommand::bind;
+            ZmqCommand
+            cmd;
+            cmd. type = ZmqCommand::bind;
             cmd.args.bind.pipe = pending_connection_.bind_pipe;
-            bind_socket_->process_command (cmd);
-            bind_socket_->send_inproc_connected (
-              pending_connection_.endpoint.socket);
-        } else
-            pending_connection_.connect_pipe->send_bind (
-              bind_socket_, pending_connection_.bind_pipe, false);
+            bind_socket_ -> process_command(cmd);
+            bind_socket_ -> send_inproc_connected(
+                pending_connection_.endpoint.socket);
+        } else pending_connection_.connect_pipe -> send_bind(
+            bind_socket_, pending_connection_.bind_pipe, false);
 
         // When a ctx is terminated all pending inproc connection will be
         // connected, but the socket will already be closed and the pipe will be
         // in waiting_for_delimiter state, which means no more writes can be done
         // and the routing id write fails and causes an assert. Check if the socket
         // is open before sending.
-        if (pending_connection_.endpoint.options.recv_routing_id
-            && pending_connection_.endpoint.socket->check_tag ()) {
-            send_routing_id (pending_connection_.bind_pipe, bind_options_);
+        if (pending_connection_.endpoint.options.recv_routing_id && pending_connection_.endpoint.socket -> check_tag()) {
+            send_routing_id(pending_connection_.bind_pipe, bind_options_);
         }
 
-    // #ifdef ZMQ_BUILD_DRAFT_API
+        // #ifdef ZMQ_BUILD_DRAFT_API
         //  If set, send the hello msg of the bind socket to the pending connection.
-        if (bind_options_.can_send_hello_msg
-            && bind_options_.hello_msg.size () > 0) {
-            send_hello_msg (pending_connection_.bind_pipe, bind_options_);
+        if (bind_options_.can_send_hello_msg && bind_options_.hello_msg.size() > 0) {
+            send_hello_msg(pending_connection_.bind_pipe, bind_options_);
         }
-    // #endif
+        // #endif
     }
 
 // #ifdef ZMQ_HAVE_VMCI
 
     int ZmqContext::get_vmci_socket_family ()
     {
-        scoped_lock_t locker (_vmci_sync);
+    scoped_lock_t locker (_vmci_sync);
 
-        if (_vmci_fd == -1) {
-            _vmci_family = VMCISock_GetAFValueFd (&_vmci_fd);
+    if (_vmci_fd == - 1) {
+    _vmci_family = VMCISock_GetAFValueFd ( & _vmci_fd);
 
-            if (_vmci_fd != -1) {
+    if (_vmci_fd != - 1) {
     // #ifdef FD_CLOEXEC
-                int rc = fcntl (_vmci_fd, F_SETFD, FD_CLOEXEC);
-                errno_assert (rc != -1);
+    int rc = fcntl (_vmci_fd, F_SETFD, FD_CLOEXEC); errno_assert (rc != - 1);
     // #endif
-            }
-        }
+    }
+    }
 
-        return _vmci_family;
+    return _vmci_family;
     }
 
     // #endif
@@ -1067,10 +1046,8 @@ pub fn new() -> Self {
     //                             side side_);
 } // impl ZmqContext
 
-pub fn clipped_maxsocket (mut max_requested: i32) -> i32
-{
-    if max_requested >= max_fds()
-        && max_fds() != -1 {
+pub fn clipped_maxsocket(mut max_requested: i32) -> i32 {
+    if max_requested >= max_fds() && max_fds() != -1 {
         // -1 because we need room for the reaper mailbox.
         max_requested = max_fds() - 1;
     }

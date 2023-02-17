@@ -49,13 +49,13 @@ void test_req_correlate ()
     // Send a multi-part request.
     s_send_seq (req, "ABC", "DEF", SEQ_END);
 
-    zmq_ZmqMessage msg;
+    ZmqRawMessage msg;
     zmq_msg_init (&msg);
 
     // Receive peer routing id
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, router, 0));
     TEST_ASSERT_GREATER_THAN_INT (0, zmq_msg_size (&msg));
-    zmq_ZmqMessage peer_id_msg;
+    ZmqRawMessage peer_id_msg;
     zmq_msg_init (&peer_id_msg);
     zmq_msg_copy (&peer_id_msg, &msg);
 
@@ -67,9 +67,9 @@ void test_req_correlate ()
 
     // Receive request id 1
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, router, 0));
-    TEST_ASSERT_EQUAL_UINT (mem::size_of::<uint32_t>(), zmq_msg_size (&msg));
-    const uint32_t req_id = *static_cast<uint32_t *> (zmq_msg_data (&msg));
-    zmq_ZmqMessage req_id_msg;
+    TEST_ASSERT_EQUAL_UINT (mem::size_of::<u32>(), zmq_msg_size (&msg));
+    const u32 req_id = *static_cast<u32 *> (zmq_msg_data (&msg));
+    ZmqRawMessage req_id_msg;
     zmq_msg_init (&req_id_msg);
     zmq_msg_copy (&req_id_msg, &msg);
 
@@ -82,12 +82,12 @@ void test_req_correlate ()
     // Receive the rest.
     s_recv_seq (router, 0, "ABC", "DEF", SEQ_END);
 
-    uint32_t bad_req_id = req_id + 1;
+    u32 bad_req_id = req_id + 1;
 
     // Send back a bad reply: wrong req id, 0, data
     zmq_msg_copy (&msg, &peer_id_msg);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_send (&msg, router, ZMQ_SNDMORE));
-    zmq_msg_init_data (&msg, &bad_req_id, mem::size_of::<uint32_t>(), NULL, NULL);
+    zmq_msg_init_data (&msg, &bad_req_id, mem::size_of::<u32>(), NULL, NULL);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_send (&msg, router, ZMQ_SNDMORE));
     s_send_seq (router, 0, "DATA", SEQ_END);
 

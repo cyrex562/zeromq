@@ -70,7 +70,7 @@ pub struct timers_t
 
   // private:
     //  Used to check whether the object is a timers class.
-    uint32_t _tag;
+    u32 _tag;
 
     _next_timer_id: i32;
 

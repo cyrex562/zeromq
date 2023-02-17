@@ -40,7 +40,9 @@
 // #include "pthread.h"
 // #endif
 
-typedef void (thread_fn) (void *);
+// typedef void (thread_fn) (void *);
+type thread_fn = fn(&mut[u8]);
+
 
 //  Class encapsulating OS thread. Thread initiation/termination is done
 //  using special functions rather than in constructor/destructor so that

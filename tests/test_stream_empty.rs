@@ -43,7 +43,7 @@ void test_stream_empty ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (dealer, my_endpoint));
     send_string_expect_success (dealer, "", 0);
 
-    zmq_ZmqMessage ident, empty;
+    ZmqRawMessage ident, empty;
     zmq_msg_init (&ident);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&ident, stream, 0));
     TEST_ASSERT_SUCCESS_ERRNO (

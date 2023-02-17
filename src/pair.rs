@@ -36,7 +36,7 @@
 pub struct pair_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
-    pair_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    pair_t (ZmqContext *parent_, u32 tid_, sid_: i32);
     ~pair_t ();
 
     //  Overrides of functions from ZmqSocketBase.
@@ -57,7 +57,7 @@ pub struct pair_t ZMQ_FINAL : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (pair_t)
 };
 
-pair_t::pair_t (class ZmqContext *parent_, uint32_t tid_, sid_: i32) :
+pair_t::pair_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     ZmqSocketBase (parent_, tid_, sid_), _pipe (NULL)
 {
     options.type = ZMQ_PAIR;
