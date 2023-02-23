@@ -27,15 +27,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// #ifndef __ZMQ_YPIPE_CONFLATE_HPP_INCLUDED__
-// #define __ZMQ_YPIPE_CONFLATE_HPP_INCLUDED__
 
-// #include "platform.hpp"
-// #include "dbuffer.hpp"
-// #include "ypipe_base.hpp"
-
-namespace zmq
-{
 //  Adapter for dbuffer, to plug it in instead of a queue for the sake
 //  of implementing the conflate socket option, which, if set, makes
 //  the receiving side to discard all incoming messages but the last one.
@@ -43,7 +35,7 @@ namespace zmq
 //  reader_awake flag is needed here to mimic ypipe delicate behaviour
 //  around the reader being asleep (see 'c' pointer being NULL in ypipe.hpp)
 
-template <typename T> class ypipe_conflate_t ZMQ_FINAL : public ypipe_base_t<T>
+template <typename T> class ypipe_conflate_t ZMQ_FINAL : public YpipeBase<T>
 {
 // public:
     //  Initialises the pipe.
@@ -117,6 +109,6 @@ template <typename T> class ypipe_conflate_t ZMQ_FINAL : public ypipe_base_t<T>
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (ypipe_conflate_t)
 };
-}
+
 
 // #endif

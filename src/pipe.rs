@@ -148,7 +148,7 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
 
   // private:
     //  Type of the underlying lock-free pipe.
-    typedef ypipe_base_t<ZmqMessage> upipe_t;
+    typedef YpipeBase<ZmqMessage> upipe_t;
 
     //  Command handlers.
     void process_activate_read () ZMQ_OVERRIDE;
@@ -274,7 +274,7 @@ int pipepair (object_t *parents_[2],
     //   Creates two pipe objects. These objects are connected by two ypipes,
     //   each to pass messages in one direction.
 
-    typedef ypipe_t<ZmqMessage, message_pipe_granularity> upipe_normal_t;
+    typedef Ypipe<ZmqMessage, message_pipe_granularity> upipe_normal_t;
     typedef ypipe_conflate_t<ZmqMessage> upipe_conflate_t;
 
     pipe_t::upipe_t *upipe1;
@@ -754,7 +754,7 @@ void pipe_t::hiccup ()
     _in_pipe =
       _conflate
         ? static_cast<upipe_t *> (new (std::nothrow) ypipe_conflate_t<ZmqMessage> ())
-        : new (std::nothrow) ypipe_t<ZmqMessage, message_pipe_granularity> ();
+        : new (std::nothrow) Ypipe<ZmqMessage, message_pipe_granularity> ();
 
     alloc_assert (_in_pipe);
     _in_active = true;

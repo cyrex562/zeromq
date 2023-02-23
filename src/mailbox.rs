@@ -54,7 +54,7 @@ pub struct mailbox_t ZMQ_FINAL : public i_mailbox
 
   // private:
     //  The pipe to store actual commands.
-    typedef ypipe_t<ZmqCommand, command_pipe_granularity> cpipe_t;
+    typedef Ypipe<ZmqCommand, command_pipe_granularity> cpipe_t;
     cpipe_t _cpipe;
 
     //  Signaler to pass signals from writer thread to reader thread.
