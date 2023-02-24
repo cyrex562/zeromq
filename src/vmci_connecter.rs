@@ -53,7 +53,7 @@ pub struct vmci_connecter_t ZMQ_FINAL : public stream_connecter_base_t
                       session_base_t *session_,
                       const ZmqOptions &options_,
                       Address *addr_,
-                      bool delayed_start_);
+                      delayed_start_: bool);
     ~vmci_connecter_t ();
 
   protected:
@@ -95,7 +95,7 @@ pub struct vmci_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     fd_t connect ();
 
     //  True iff a timer has been started.
-    bool _connect_timer_started;
+    _connect_timer_started: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (vmci_connecter_t)
 };
@@ -104,7 +104,7 @@ vmci_connecter_t::vmci_connecter_t (class io_thread_t *io_thread_,
 pub struct session_base_t *session_,
                                          const ZmqOptions &options_,
                                          Address *addr_,
-                                         bool delayed_start_) :
+                                         delayed_start_: bool) :
     stream_connecter_base_t (
       io_thread_, session_, options_, addr_, delayed_start_),
     _connect_timer_started (false)
@@ -195,7 +195,7 @@ vmci_connecter_t::get_socket_name (fd_t fd_,
 
     const VmciAddress addr (reinterpret_cast<struct sockaddr *> (&ss), sl,
                                this->get_ctx ());
-    std::string address_string;
+    address_string: String;
     addr.to_string (address_string);
     return address_string;
 }
@@ -254,7 +254,7 @@ int vmci_connecter_t::open ()
     zmq_assert (_s == retired_fd);
 
     //  Resolve the address
-    if (_addr->resolved.vmci_addr != NULL) {
+    if (_addr->resolved.vmci_addr != null_mut()) {
         LIBZMQ_DELETE (_addr->resolved.vmci_addr);
     }
 
@@ -269,7 +269,7 @@ int vmci_connecter_t::open ()
         LIBZMQ_DELETE (_addr->resolved.vmci_addr);
         return -1;
     }
-    zmq_assert (_addr->resolved.vmci_addr != NULL);
+    zmq_assert (_addr->resolved.vmci_addr != null_mut());
 
     // Set the socket to non-blocking mode so that we get async connect().
     unblock_socket (_s);

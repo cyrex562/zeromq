@@ -58,7 +58,7 @@ void test__zmq_z85_encode__valid__success ()
 void test__zmq_z85_encode__invalid__failure (size: usize)
 {
     errno = 0;
-    TEST_ASSERT_NULL (zmq_z85_encode (NULL, NULL, size));
+    TEST_ASSERT_NULL (zmq_z85_encode (null_mut(), null_mut(), size));
     TEST_ASSERT_EQUAL_INT (EINVAL, zmq_errno ());
 }
 

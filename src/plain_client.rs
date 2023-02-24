@@ -45,8 +45,8 @@ pub struct plain_client_t ZMQ_FINAL : public mechanism_base_t
     ~plain_client_t ();
 
     // mechanism implementation
-    int next_handshake_command (ZmqMessage *msg);
-    int process_handshake_command (ZmqMessage *msg);
+    int next_handshake_command (msg: &mut ZmqMessage);
+    int process_handshake_command (msg: &mut ZmqMessage);
     status_t status () const;
 
   // private:
@@ -62,8 +62,8 @@ pub struct plain_client_t ZMQ_FINAL : public mechanism_base_t
 
     state_t _state;
 
-    void produce_hello (ZmqMessage *msg) const;
-    void produce_initiate (ZmqMessage *msg) const;
+    void produce_hello (msg: &mut ZmqMessage) const;
+    void produce_initiate (msg: &mut ZmqMessage) const;
 
     int process_welcome (const unsigned char *cmd_data_, data_size_: usize);
     int process_ready (const unsigned char *cmd_data_, data_size_: usize);
@@ -80,7 +80,7 @@ plain_client_t::~plain_client_t ()
 {
 }
 
-int plain_client_t::next_handshake_command (ZmqMessage *msg)
+int plain_client_t::next_handshake_command (msg: &mut ZmqMessage)
 {
     int rc = 0;
 
@@ -100,11 +100,11 @@ int plain_client_t::next_handshake_command (ZmqMessage *msg)
     return rc;
 }
 
-int plain_client_t::process_handshake_command (ZmqMessage *msg)
+int plain_client_t::process_handshake_command (msg: &mut ZmqMessage)
 {
     const unsigned char *cmd_data =
-      static_cast<unsigned char *> (msg->data ());
-    const size_t data_size = msg->size ();
+      static_cast<unsigned char *> (msg.data ());
+    const size_t data_size = msg.size ();
 
     int rc = 0;
     if (data_size >= welcome_prefix_len
@@ -124,9 +124,9 @@ int plain_client_t::process_handshake_command (ZmqMessage *msg)
     }
 
     if (rc == 0) {
-        rc = msg->close ();
+        rc = msg.close ();
         errno_assert (rc == 0);
-        rc = msg->init ();
+        rc = msg.init ();
         errno_assert (rc == 0);
     }
 
@@ -145,7 +145,7 @@ mechanism_t::status_t plain_client_t::status () const
     }
 }
 
-void plain_client_t::produce_hello (ZmqMessage *msg) const
+void plain_client_t::produce_hello (msg: &mut ZmqMessage) const
 {
     const std::string username = options.plain_username;
     zmq_assert (username.length () <= UCHAR_MAX);
@@ -157,10 +157,10 @@ void plain_client_t::produce_hello (ZmqMessage *msg) const
                                 + username.length () + brief_len_size
                                 + password.length ();
 
-    let rc: i32 = msg->init_size (command_size);
+    let rc: i32 = msg.init_size (command_size);
     errno_assert (rc == 0);
 
-    unsigned char *ptr = static_cast<unsigned char *> (msg->data ());
+    unsigned char *ptr = static_cast<unsigned char *> (msg.data ());
     memcpy (ptr, hello_prefix, hello_prefix_len);
     ptr += hello_prefix_len;
 
@@ -194,7 +194,7 @@ int plain_client_t::process_welcome (const unsigned char *cmd_data_,
     return 0;
 }
 
-void plain_client_t::produce_initiate (ZmqMessage *msg) const
+void plain_client_t::produce_initiate (msg: &mut ZmqMessage) const
 {
     make_command_with_basic_properties (msg, initiate_prefix,
                                         initiate_prefix_len);

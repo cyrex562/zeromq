@@ -60,7 +60,7 @@ pub struct socks_connecter_t ZMQ_FINAL : public stream_connecter_base_t
                        const ZmqOptions &options_,
                        Address *addr_,
                        Address *proxy_addr_,
-                       bool delayed_start_);
+                       delayed_start_: bool);
     ~socks_connecter_t ();
 
     void set_auth_method_basic (const std::string &username,
@@ -132,8 +132,8 @@ pub struct socks_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     _auth_method: i32;
 
     // Credentials for basic authentication
-    std::string _auth_username;
-    std::string _auth_password;
+    _auth_username: String;
+    _auth_password: String;
 
     _status: i32;
 
@@ -145,7 +145,7 @@ pub struct session_base_t *session_,
                                            const ZmqOptions &options_,
                                            Address *addr_,
                                            Address *proxy_addr_,
-                                           bool delayed_start_) :
+                                           delayed_start_: bool) :
     stream_connecter_base_t (
       io_thread_, session_, options_, addr_, delayed_start_),
     _proxy_addr (proxy_addr_),
@@ -238,7 +238,7 @@ void socks_connecter_t::in_event ()
         set_pollout (_handle);
         _status = sending_basic_auth_request;
     } else if (expected_status == sending_request) {
-        std::string hostname;
+        hostname: String;
         uint16_t port = 0;
         if (parse_address (_addr->address, hostname, port) == -1)
             error ();
@@ -367,7 +367,7 @@ int socks_connecter_t::connect_to_proxy ()
     zmq_assert (_s == retired_fd);
 
     //  Resolve the address
-    if (_proxy_addr->resolved.tcp_addr != NULL) {
+    if (_proxy_addr->resolved.tcp_addr != null_mut()) {
         LIBZMQ_DELETE (_proxy_addr->resolved.tcp_addr);
     }
 
@@ -383,7 +383,7 @@ int socks_connecter_t::connect_to_proxy ()
         LIBZMQ_DELETE (_proxy_addr->resolved.tcp_addr);
         return -1;
     }
-    zmq_assert (_proxy_addr->resolved.tcp_addr != NULL);
+    zmq_assert (_proxy_addr->resolved.tcp_addr != null_mut());
 
     // Set the socket to non-blocking mode so that we get async connect().
     unblock_socket (_s);

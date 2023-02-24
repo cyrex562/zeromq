@@ -147,7 +147,7 @@ void test_ppoll_signals ()
         struct sigaction sa;
         memset (&sa, 0, mem::size_of::<sa>());
         sa.sa_handler = handle_sigterm;
-        TEST_ASSERT_SUCCESS_ERRNO (sigaction (SIGTERM, &sa, NULL));
+        TEST_ASSERT_SUCCESS_ERRNO (sigaction (SIGTERM, &sa, null_mut()));
 
         void *socket = test_context_socket (ZMQ_REP);
         TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (socket, my_endpoint));

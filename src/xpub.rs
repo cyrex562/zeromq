@@ -46,16 +46,16 @@ pub struct xpub_t : public ZmqSocketBase
     void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false) ZMQ_OVERRIDE;
-    int xsend (ZmqMessage *msg) ZMQ_FINAL;
+    int xsend (msg: &mut ZmqMessage) ZMQ_FINAL;
     bool xhas_out () ZMQ_FINAL;
-    int xrecv (ZmqMessage *msg) ZMQ_OVERRIDE;
+    int xrecv (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
     bool xhas_in () ZMQ_OVERRIDE;
-    void xread_activated (pipe_t *pipe_) ZMQ_FINAL;
-    void xwrite_activated (pipe_t *pipe_) ZMQ_FINAL;
+    void xread_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
+    void xwrite_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
     int
     xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize) ZMQ_FINAL;
     int xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize) ZMQ_FINAL;
-    void xpipe_terminated (pipe_t *pipe_) ZMQ_FINAL;
+    void xpipe_terminated (pipe_: &mut pipe_t) ZMQ_FINAL;
 
   // private:
     //  Function to be applied to the trie to send all the subscriptions
@@ -78,35 +78,35 @@ pub struct xpub_t : public ZmqSocketBase
 
     // If true, send all subscription messages upstream, not just
     // unique ones
-    bool _verbose_subs;
+    _verbose_subs: bool
 
     // If true, send all unsubscription messages upstream, not just
     // unique ones
-    bool _verbose_unsubs;
+    _verbose_unsubs: bool
 
     //  True if we are in the middle of sending a multi-part message.
-    bool _more_send;
+    _more_send: bool
 
     //  True if we are in the middle of receiving a multi-part message.
-    bool _more_recv;
+    _more_recv: bool
 
     //  If true, subscribe and cancel messages are processed for the rest
     //  of multipart message.
-    bool _process_subscribe;
+    _process_subscribe: bool
 
     //  This option is enabled with ZMQ_ONLY_FIRST_SUBSCRIBE.
     //  If true, messages following subscribe/unsubscribe in a multipart
     //  message are treated as user data regardless of the first byte.
-    bool _only_first_subscribe;
+    _only_first_subscribe: bool
 
     //  Drop messages if HWM reached, otherwise return with EAGAIN
-    bool _lossy;
+    _lossy: bool
 
     //  Subscriptions will not bed added automatically, only after calling set option with ZMQ_SUBSCRIBE or ZMQ_UNSUBSCRIBE
-    bool _manual;
+    _manual: bool
 
     //  Send message to the last pipe, only used if xpub is on manual and after calling set option with ZMQ_SUBSCRIBE
-    bool _send_last_pipe;
+    _send_last_pipe: bool
 
     //  Function to be applied to match the last pipe.
     static void mark_last_pipe_as_matching (pipe_t *pipe_, xpub_t *self_);
@@ -143,7 +143,7 @@ xpub_t::xpub_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     _pending_pipes (),
     _welcome_msg ()
 {
-    _last_pipe = NULL;
+    _last_pipe = null_mut();
     options.type = ZMQ_XPUB;
     _welcome_msg.init ();
 }
@@ -159,8 +159,8 @@ xpub_t::~xpub_t ()
 }
 
 void xpub_t::xattach_pipe (pipe_t *pipe_,
-                                bool subscribe_to_all_,
-                                bool locally_initiated_)
+                                subscribe_to_all_: bool,
+                                locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (locally_initiated_);
 
@@ -170,7 +170,7 @@ void xpub_t::xattach_pipe (pipe_t *pipe_,
     //  If subscribe_to_all_ is specified, the caller would like to subscribe
     //  to all data on this pipe, implicitly.
     if (subscribe_to_all_)
-        _subscriptions.add (NULL, 0, pipe_);
+        _subscriptions.add (null_mut(), 0, pipe_);
 
     // if welcome message exists, send a copy of it
     if (_welcome_msg.size () > 0) {
@@ -188,14 +188,14 @@ void xpub_t::xattach_pipe (pipe_t *pipe_,
     xread_activated (pipe_);
 }
 
-void xpub_t::xread_activated (pipe_t *pipe_)
+void xpub_t::xread_activated (pipe_: &mut pipe_t)
 {
     //  There are some subscriptions waiting. Let's process them.
     ZmqMessage msg;
     while (pipe_->read (&msg)) {
         ZmqMetadata *metadata = msg.metadata ();
         unsigned char *msg_data = static_cast<unsigned char *> (msg.data ()),
-                      *data = NULL;
+                      *data = null_mut();
         size_t size = 0;
         bool subscribe = false;
         bool is_subscribe_or_cancel = false;
@@ -288,7 +288,7 @@ void xpub_t::xread_activated (pipe_t *pipe_)
     }
 }
 
-void xpub_t::xwrite_activated (pipe_t *pipe_)
+void xpub_t::xwrite_activated (pipe_: &mut pipe_t)
 {
     _dist.activated (pipe_);
 }
@@ -321,11 +321,11 @@ int xpub_t::xsetsockopt (option_: i32,
         else if (option_ == ZMQ_ONLY_FIRST_SUBSCRIBE)
             _only_first_subscribe = (*static_cast<const int *> (optval_) != 0);
     } else if (option_ == ZMQ_SUBSCRIBE && _manual) {
-        if (_last_pipe != NULL)
+        if (_last_pipe != null_mut())
             _subscriptions.add ((unsigned char *) optval_, optvallen_,
                                 _last_pipe);
     } else if (option_ == ZMQ_UNSUBSCRIBE && _manual) {
-        if (_last_pipe != NULL)
+        if (_last_pipe != null_mut())
             _subscriptions.rm ((unsigned char *) optval_, optvallen_,
                                _last_pipe);
     } else if (option_ == ZMQ_XPUB_WELCOME_MSG) {
@@ -362,14 +362,14 @@ int xpub_t::xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut us
     return -1;
 }
 
-static void stub (mtrie_t::prefix_t data, size: usize, arg_: *mut c_void)
+static void stub (mtrie_t::prefix_t data, size: usize, arg_: &mut [u8])
 {
     LIBZMQ_UNUSED (data);
     LIBZMQ_UNUSED (size);
     LIBZMQ_UNUSED (arg_);
 }
 
-void xpub_t::xpipe_terminated (pipe_t *pipe_)
+void xpub_t::xpipe_terminated (pipe_: &mut pipe_t)
 {
     if (_manual) {
         //  Remove the pipe from the trie and send corresponding manual
@@ -378,12 +378,12 @@ void xpub_t::xpipe_terminated (pipe_t *pipe_)
         //  Remove pipe without actually sending the message as it was taken
         //  care of by the manual call above. subscriptions is the real mtrie,
         //  so the pipe must be removed from there or it will be left over.
-        _subscriptions.rm (pipe_, stub, static_cast<void *> (NULL), false);
+        _subscriptions.rm (pipe_, stub, static_cast<void *> (null_mut()), false);
 
         // In case the pipe is currently set as last we must clear it to prevent
         // subscriptions from being re-added.
         if (pipe_ == _last_pipe) {
-            _last_pipe = NULL;
+            _last_pipe = null_mut();
         }
     } else {
         //  Remove the pipe from the trie. If there are topics that nobody
@@ -406,9 +406,9 @@ void xpub_t::mark_last_pipe_as_matching (pipe_t *pipe_, xpub_t *self_)
         self_->_dist.match (pipe_);
 }
 
-int xpub_t::xsend (ZmqMessage *msg)
+int xpub_t::xsend (msg: &mut ZmqMessage)
 {
-    const bool msg_more = (msg->flags () & ZmqMessage::more) != 0;
+    const bool msg_more = (msg.flags () & ZmqMessage::more) != 0;
 
     //  For the first part of multi-part message, find the matching pipes.
     if (!_more_send) {
@@ -416,13 +416,13 @@ int xpub_t::xsend (ZmqMessage *msg)
         _dist.unmatch ();
 
         if (unlikely (_manual && _last_pipe && _send_last_pipe)) {
-            _subscriptions.match (static_cast<unsigned char *> (msg->data ()),
-                                  msg->size (), mark_last_pipe_as_matching,
+            _subscriptions.match (static_cast<unsigned char *> (msg.data ()),
+                                  msg.size (), mark_last_pipe_as_matching,
                                   this);
-            _last_pipe = NULL;
+            _last_pipe = null_mut();
         } else
-            _subscriptions.match (static_cast<unsigned char *> (msg->data ()),
-                                  msg->size (), mark_as_matching, this);
+            _subscriptions.match (static_cast<unsigned char *> (msg.data ()),
+                                  msg.size (), mark_as_matching, this);
         // If inverted matching is used, reverse the selection now
         if (options.invert_matching) {
             _dist.reverse_match ();
@@ -449,7 +449,7 @@ bool xpub_t::xhas_out ()
     return _dist.has_out ();
 }
 
-int xpub_t::xrecv (ZmqMessage *msg)
+int xpub_t::xrecv (msg: &mut ZmqMessage)
 {
     //  If there is at least one
     if (_pending_data.empty ()) {
@@ -464,26 +464,26 @@ int xpub_t::xrecv (ZmqMessage *msg)
 
         // If the distributor doesn't know about this pipe it must have already
         // been terminated and thus we can't allow manual subscriptions.
-        if (_last_pipe != NULL && !_dist.has_pipe (_last_pipe)) {
-            _last_pipe = NULL;
+        if (_last_pipe != null_mut() && !_dist.has_pipe (_last_pipe)) {
+            _last_pipe = null_mut();
         }
     }
 
-    int rc = msg->close ();
+    int rc = msg.close ();
     errno_assert (rc == 0);
-    rc = msg->init_size (_pending_data.front ().size ());
+    rc = msg.init_size (_pending_data.front ().size ());
     errno_assert (rc == 0);
-    memcpy (msg->data (), _pending_data.front ().data (),
+    memcpy (msg.data (), _pending_data.front ().data (),
             _pending_data.front ().size ());
 
     // set metadata only if there is some
     if (ZmqMetadata *metadata = _pending_metadata.front ()) {
-        msg->set_metadata (metadata);
+        msg.set_metadata (metadata);
         // Remove ref corresponding to vector placement
         metadata->drop_ref ();
     }
 
-    msg->set_flags (_pending_flags.front ());
+    msg.set_flags (_pending_flags.front ());
     _pending_data.pop_front ();
     _pending_metadata.pop_front ();
     _pending_flags.pop_front ();
@@ -507,12 +507,12 @@ void xpub_t::send_unsubscription (mtrie_t::prefix_t data,
         if (size > 0)
             memcpy (unsub.data () + 1, data, size);
         self_->_pending_data.ZMQ_PUSH_OR_EMPLACE_BACK (ZMQ_MOVE (unsub));
-        self_->_pending_metadata.push_back (NULL);
+        self_->_pending_metadata.push_back (null_mut());
         self_->_pending_flags.push_back (0);
 
         if (self_->_manual) {
-            self_->_last_pipe = NULL;
-            self_->_pending_pipes.push_back (NULL);
+            self_->_last_pipe = null_mut();
+            self_->_pending_pipes.push_back (null_mut());
         }
     }
 }

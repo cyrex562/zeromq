@@ -94,7 +94,7 @@ void expect_new_client_curve_bounce_fail (server_public_: *const c_char,
                                           client_secret_: *const c_char,
                                           char *my_endpoint_,
                                           server_: *mut c_void,
-                                          void **client_mon_ = NULL,
+                                          void **client_mon_ = null_mut(),
                                           int expected_client_event_ = 0,
                                           int expected_client_value_ = 0)
 {
@@ -143,12 +143,12 @@ void test_curve_security_with_valid_credentials ()
     bounce (server, client);
     test_context_socket_close (client);
 
-    int event = get_monitor_event_with_timeout (server_mon, NULL, NULL, -1);
+    int event = get_monitor_event_with_timeout (server_mon, null_mut(), null_mut(), -1);
     assert (event == ZMQ_EVENT_HANDSHAKE_SUCCEEDED);
 
     assert_no_more_monitor_events_with_timeout (server_mon, timeout);
 
-    event = get_monitor_event_with_timeout (client_mon, NULL, NULL, -1);
+    event = get_monitor_event_with_timeout (client_mon, null_mut(), null_mut(), -1);
     assert (event == ZMQ_EVENT_HANDSHAKE_SUCCEEDED);
 
     assert_no_more_monitor_events_with_timeout (client_mon, timeout);
@@ -165,7 +165,7 @@ void test_curve_security_with_bogus_client_credentials ()
 
     expect_new_client_curve_bounce_fail (
       valid_server_public, bogus_public, bogus_secret, my_endpoint, server,
-      NULL, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, 400);
+      null_mut(), ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, 400);
 
     int server_event_count = 0;
     server_event_count = expect_monitor_event_multiple (
@@ -411,7 +411,7 @@ void test_curve_security_invalid_initiate_wrong_length ()
     // receive but ignore WELCOME
     flush_read (s);
 
-    int res = get_monitor_event_with_timeout (server_mon, NULL, NULL, timeout);
+    int res = get_monitor_event_with_timeout (server_mon, null_mut(), null_mut(), timeout);
     TEST_ASSERT_EQUAL_INT (-1, res);
 
     send (s, "\x04\x09\x08INITIATE");
@@ -440,7 +440,7 @@ fd_t connect_exchange_greeting_and_hello_welcome (
       tools_.process_welcome (welcome + 2, welcome_length, cn_precom));
 
     let res: i32 =
-      get_monitor_event_with_timeout (server_mon_, NULL, NULL, timeout_);
+      get_monitor_event_with_timeout (server_mon_, null_mut(), null_mut(), timeout_);
     TEST_ASSERT_EQUAL_INT (-1, res);
 
     return s;
@@ -453,7 +453,7 @@ void test_curve_security_invalid_initiate_command_name ()
       my_endpoint, server_mon, timeout, tools);
 
     char initiate[257];
-    tools.produce_initiate (initiate, 257, 1, NULL, 0);
+    tools.produce_initiate (initiate, 257, 1, null_mut(), 0);
     // modify command name
     initiate[5] = 'X';
 
@@ -473,7 +473,7 @@ void test_curve_security_invalid_initiate_command_encrypted_cookie ()
       my_endpoint, server_mon, timeout, tools);
 
     char initiate[257];
-    tools.produce_initiate (initiate, 257, 1, NULL, 0);
+    tools.produce_initiate (initiate, 257, 1, null_mut(), 0);
     // make garbage from encrypted cookie
     initiate[30] = !initiate[30];
 
@@ -493,7 +493,7 @@ void test_curve_security_invalid_initiate_command_encrypted_content ()
       my_endpoint, server_mon, timeout, tools);
 
     char initiate[257];
-    tools.produce_initiate (initiate, 257, 1, NULL, 0);
+    tools.produce_initiate (initiate, 257, 1, null_mut(), 0);
     // make garbage from encrypted content
     initiate[150] = !initiate[150];
 

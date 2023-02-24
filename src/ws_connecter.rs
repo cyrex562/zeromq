@@ -76,8 +76,8 @@ pub struct ws_connecter_t ZMQ_FINAL : public stream_connecter_base_t
                     session_base_t *session_,
                     const ZmqOptions &options_,
                     Address *addr_,
-                    bool delayed_start_,
-                    bool wss_,
+                    delayed_start_: bool,
+                    wss_: bool,
                     tls_hostname_: &str);
     ~ws_connecter_t ();
 
@@ -117,9 +117,9 @@ pub struct ws_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     bool tune_socket (fd_t fd_);
 
     //  True iff a timer has been started.
-    bool _connect_timer_started;
+    _connect_timer_started: bool
 
-    bool _wss;
+    _wss: bool
     const std::string &_hostname;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_connecter_t)
@@ -129,8 +129,8 @@ ws_connecter_t::ws_connecter_t (class io_thread_t *io_thread_,
 pub struct session_base_t *session_,
                                      const ZmqOptions &options_,
                                      Address *addr_,
-                                     bool delayed_start_,
-                                     bool wss_,
+                                     delayed_start_: bool,
+                                     wss_: bool,
                                      tls_hostname_: &str) :
     stream_connecter_base_t (
       io_thread_, session_, options_, addr_, delayed_start_),
@@ -338,12 +338,12 @@ void ws_connecter_t::create_engine (fd_t fd_,
                                              endpoint_type_connect);
 
     //  Create the engine object for this connection.
-    i_engine *engine = NULL;
+    i_engine *engine = null_mut();
     if (_wss) {
 // #ifdef ZMQ_HAVE_WSS
         engine = new (std::nothrow)
           wss_engine_t (fd_, options, endpoint_pair, *_addr->resolved.ws_addr,
-                        true, NULL, _hostname);
+                        true, null_mut(), _hostname);
 // #else
         LIBZMQ_UNUSED (_hostname);
         assert (false);

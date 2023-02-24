@@ -167,8 +167,8 @@ void expect_bounce_fail (server_: *mut c_void, client_: *mut c_void);
 //  is being terminated.
 char *s_recv (socket_: *mut c_void);
 
-bool streq (lhs: *const c_char, rhs: *const c_char);
-bool strneq (lhs: *const c_char, rhs: *const c_char);
+bool streq (lhs: *const c_char, rhs: &str);
+bool strneq (lhs: *const c_char, rhs: &str);
 
 extern const char *SEQ_END;
 

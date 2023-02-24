@@ -51,7 +51,7 @@ pub struct ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
                     const ZmqOptions &options_);
 
     //  Set address to listen on.
-    int set_local_address (addr_: *const c_char);
+    int set_local_address (addr_: &str);
 
   protected:
     std::string get_socket_name (fd_t fd_, SocketEnd socket_end_) const;
@@ -74,14 +74,14 @@ pub struct ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
     fd_t accept ();
 
     //  True, if the underlying file for UNIX domain socket exists.
-    bool _has_file;
+    _has_file: bool
 
     //  Name of the temporary directory (if any) that has the
     //  UNIX domain socket
-    std::string _tmp_socket_dirname;
+    _tmp_socket_dirname: String;
 
     //  Name of the file associated with the UNIX domain address.
-    std::string _filename;
+    _filename: String;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (ipc_listener_t)
 };
@@ -147,7 +147,7 @@ ipc_listener_t::get_socket_name (fd_t fd_,
     return get_socket_name<IpcAddress> (fd_, socket_end_);
 }
 
-int ipc_listener_t::set_local_address (addr_: *const c_char)
+int ipc_listener_t::set_local_address (addr_: &str)
 {
     //  Create addr on stack for auto-cleanup
     std::string addr (addr_);
@@ -344,7 +344,7 @@ fd_t ipc_listener_t::accept ()
     //  resources is considered valid and treated by ignoring the connection.
     zmq_assert (_s != retired_fd);
 // #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
-    fd_t sock = ::accept4 (_s, NULL, NULL, SOCK_CLOEXEC);
+    fd_t sock = ::accept4 (_s, null_mut(), null_mut(), SOCK_CLOEXEC);
 // #else
     struct sockaddr_storage ss;
     memset (&ss, 0, mem::size_of::<ss>());

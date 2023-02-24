@@ -86,9 +86,9 @@ static void test_stream_handshake_timeout_accept ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (stream, my_endpoint));
 
     // we should get ZMQ_EVENT_ACCEPTED and then ZMQ_EVENT_DISCONNECTED
-    int event = get_monitor_event (dealer_mon, NULL, NULL);
+    int event = get_monitor_event (dealer_mon, null_mut(), null_mut());
     TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_ACCEPTED, event);
-    event = get_monitor_event (dealer_mon, NULL, NULL);
+    event = get_monitor_event (dealer_mon, null_mut(), null_mut());
     TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_DISCONNECTED, event);
 
     test_context_socket_close (dealer);
@@ -146,9 +146,9 @@ static void test_stream_handshake_timeout_connect ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (dealer, my_endpoint));
 
     // we should get ZMQ_EVENT_CONNECTED and then ZMQ_EVENT_DISCONNECTED
-    int event = get_monitor_event (dealer_mon, NULL, NULL);
+    int event = get_monitor_event (dealer_mon, null_mut(), null_mut());
     TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_CONNECTED, event);
-    event = get_monitor_event (dealer_mon, NULL, NULL);
+    event = get_monitor_event (dealer_mon, null_mut(), null_mut());
     TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_DISCONNECTED, event);
 
     test_context_socket_close (dealer);

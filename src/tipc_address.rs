@@ -44,7 +44,7 @@ pub struct TipcAddress
     TipcAddress (const sockaddr *sa, socklen_t sa_len);
 
     //  This function sets up the address "{type, lower, upper}" for TIPC transport
-    int resolve (name: *const c_char);
+    int resolve (name: &str);
 
     //  The opposite to resolve()
     int to_string (std::string &addr_) const;
@@ -58,7 +58,7 @@ pub struct TipcAddress
     socklen_t addrlen () const;
 
   // private:
-    bool _random;
+    _random: bool
     struct sockaddr_tipc address;
 };
 
@@ -94,7 +94,7 @@ bool TipcAddress::is_service () const
 
     return true;
 }
-int TipcAddress::resolve (name_: *const c_char)
+int TipcAddress::resolve (name_: &str)
 {
     unsigned int type = 0;
     unsigned int lower = 0;

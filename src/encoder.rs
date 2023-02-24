@@ -57,11 +57,11 @@ template <typename T> class encoder_base_t : public i_encoder
     explicit encoder_base_t (bufsize_: usize) :
         _write_pos (0),
         _to_write (0),
-        _next (NULL),
+        _next (null_mut()),
         _new_msg_flag (false),
         _buf_size (bufsize_),
         _buf (static_cast<unsigned char *> (malloc (bufsize_))),
-        _in_progress (NULL)
+        _in_progress (null_mut())
     {
         alloc_assert (_buf);
     }
@@ -76,7 +76,7 @@ template <typename T> class encoder_base_t : public i_encoder
         unsigned char *buffer = !*data ? _buf : *data;
         const size_t buffersize = !*data ? _buf_size : size;
 
-        if (in_progress () == NULL)
+        if (in_progress () == null_mut())
             return 0;
 
         size_t pos = 0;
@@ -90,7 +90,7 @@ template <typename T> class encoder_base_t : public i_encoder
                     errno_assert (rc == 0);
                     rc = _in_progress->init ();
                     errno_assert (rc == 0);
-                    _in_progress = NULL;
+                    _in_progress = null_mut();
                     break;
                 }
                 (static_cast<T *> (this)->*_next) ();
@@ -109,7 +109,7 @@ template <typename T> class encoder_base_t : public i_encoder
             if (!pos && !*data && _to_write >= buffersize) {
                 *data = _write_pos;
                 pos = _to_write;
-                _write_pos = NULL;
+                _write_pos = null_mut();
                 _to_write = 0;
                 return pos;
             }
@@ -126,9 +126,9 @@ template <typename T> class encoder_base_t : public i_encoder
         return pos;
     }
 
-    void load_msg (ZmqMessage *msg) ZMQ_FINAL
+    void load_msg (msg: &mut ZmqMessage) ZMQ_FINAL
     {
-        zmq_assert (in_progress () == NULL);
+        zmq_assert (in_progress () == null_mut());
         _in_progress = msg;
         (static_cast<T *> (this)->*_next) ();
     }
@@ -142,7 +142,7 @@ template <typename T> class encoder_base_t : public i_encoder
     void next_step (write_pos_: *mut c_void,
                     to_write_: usize,
                     step_t next_,
-                    bool new_msg_flag_)
+                    new_msg_flag_: bool)
     {
         _write_pos = static_cast<unsigned char *> (write_pos_);
         _to_write = to_write_;
@@ -163,7 +163,7 @@ template <typename T> class encoder_base_t : public i_encoder
     //  is dead.
     step_t _next;
 
-    bool _new_msg_flag;
+    _new_msg_flag: bool
 
     //  The buffer for encoded data.
     const size_t _buf_size;

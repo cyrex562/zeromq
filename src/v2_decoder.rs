@@ -45,7 +45,7 @@ pub struct v2_decoder_t ZMQ_FINAL
     : public decoder_base_t<v2_decoder_t, shared_message_memory_allocator>
 {
 // public:
-    v2_decoder_t (bufsize_: usize, i64 maxmsgsize_, bool zero_copy_);
+    v2_decoder_t (bufsize_: usize, i64 maxmsgsize_, zero_copy_: bool);
     ~v2_decoder_t ();
 
     //  i_decoder interface.
@@ -63,7 +63,7 @@ pub struct v2_decoder_t ZMQ_FINAL
     unsigned char _msg_flags;
     ZmqMessage _in_progress;
 
-    const bool _zero_copy;
+    const _zero_copy: bool
     const i64 _max_msg_size;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (v2_decoder_t)
@@ -71,7 +71,7 @@ pub struct v2_decoder_t ZMQ_FINAL
 
 v2_decoder_t::v2_decoder_t (bufsize_: usize,
                                  i64 maxmsgsize_,
-                                 bool zero_copy_) :
+                                 zero_copy_: bool) :
     decoder_base_t<v2_decoder_t, shared_message_memory_allocator> (bufsize_),
     _msg_flags (0),
     _zero_copy (zero_copy_),

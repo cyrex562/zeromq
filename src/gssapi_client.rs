@@ -46,10 +46,10 @@ pub struct gssapi_client_t ZMQ_FINAL : public gssapi_mechanism_base_t
     ~gssapi_client_t () ZMQ_FINAL;
 
     // mechanism implementation
-    int next_handshake_command (ZmqMessage *msg) ZMQ_FINAL;
-    int process_handshake_command (ZmqMessage *msg) ZMQ_FINAL;
-    int encode (ZmqMessage *msg) ZMQ_FINAL;
-    int decode (ZmqMessage *msg) ZMQ_FINAL;
+    int next_handshake_command (msg: &mut ZmqMessage) ZMQ_FINAL;
+    int process_handshake_command (msg: &mut ZmqMessage) ZMQ_FINAL;
+    int encode (msg: &mut ZmqMessage) ZMQ_FINAL;
+    int decode (msg: &mut ZmqMessage) ZMQ_FINAL;
     status_t status () const ZMQ_FINAL;
 
   // private:
@@ -79,11 +79,11 @@ pub struct gssapi_client_t ZMQ_FINAL : public gssapi_mechanism_base_t
     gss_OID_set_desc mechs;
 
     //  True iff client considers the server authenticated
-    bool security_context_established;
+    security_context_established: bool
 
     int initialize_context ();
-    int produce_next_token (ZmqMessage *msg);
-    int process_next_token (ZmqMessage *msg);
+    int produce_next_token (msg: &mut ZmqMessage);
+    int process_next_token (msg: &mut ZmqMessage);
 };
 
 gssapi_client_t::gssapi_client_t (session_base_t *session_,
@@ -117,7 +117,7 @@ gssapi_client_t::gssapi_client_t (session_base_t *session_,
             maj_stat = GSS_S_FAILURE;
     }
 
-    mechs.elements = NULL;
+    mechs.elements = null_mut();
     mechs.count = 0;
 }
 
@@ -129,7 +129,7 @@ gssapi_client_t::~gssapi_client_t ()
         gss_release_cred (&min_stat, &cred);
 }
 
-int gssapi_client_t::next_handshake_command (ZmqMessage *msg)
+int gssapi_client_t::next_handshake_command (msg: &mut ZmqMessage)
 {
     if (state == send_ready) {
         int rc = produce_ready (msg);
@@ -162,7 +162,7 @@ int gssapi_client_t::next_handshake_command (ZmqMessage *msg)
     return 0;
 }
 
-int gssapi_client_t::process_handshake_command (ZmqMessage *msg)
+int gssapi_client_t::process_handshake_command (msg: &mut ZmqMessage)
 {
     if (state == recv_ready) {
         int rc = process_ready (msg);
@@ -187,13 +187,13 @@ int gssapi_client_t::process_handshake_command (ZmqMessage *msg)
 
     state = call_next_init;
 
-    errno_assert (msg->close () == 0);
-    errno_assert (msg->init () == 0);
+    errno_assert (msg.close () == 0);
+    errno_assert (msg.init () == 0);
 
     return 0;
 }
 
-int gssapi_client_t::encode (ZmqMessage *msg)
+int gssapi_client_t::encode (msg: &mut ZmqMessage)
 {
     zmq_assert (state == connected);
 
@@ -203,7 +203,7 @@ int gssapi_client_t::encode (ZmqMessage *msg)
     return 0;
 }
 
-int gssapi_client_t::decode (ZmqMessage *msg)
+int gssapi_client_t::decode (msg: &mut ZmqMessage)
 {
     zmq_assert (state == connected);
 
@@ -221,7 +221,7 @@ mechanism_t::status_t gssapi_client_t::status () const
 int gssapi_client_t::initialize_context ()
 {
     // principal was specified but credentials could not be acquired
-    if (principal_name != NULL && cred == NULL)
+    if (principal_name != null_mut() && cred == null_mut())
         return -1;
 
     // First time through, import service_name into target_name
@@ -237,7 +237,7 @@ int gssapi_client_t::initialize_context ()
 
     maj_stat = gss_init_sec_context (
       &init_sec_min_stat, cred, &context, target_name, mechs.elements,
-      gss_flags, 0, NULL, token_ptr, NULL, &send_tok, &ret_flags, NULL);
+      gss_flags, 0, null_mut(), token_ptr, null_mut(), &send_tok, &ret_flags, null_mut());
 
     if (token_ptr != GSS_C_NO_BUFFER)
         free (recv_tok.value);
@@ -245,7 +245,7 @@ int gssapi_client_t::initialize_context ()
     return 0;
 }
 
-int gssapi_client_t::produce_next_token (ZmqMessage *msg)
+int gssapi_client_t::produce_next_token (msg: &mut ZmqMessage)
 {
     if (send_tok.length != 0) { // Server expects another token
         if (produce_initiate (msg, send_tok.value, send_tok.length) < 0) {
@@ -266,7 +266,7 @@ int gssapi_client_t::produce_next_token (ZmqMessage *msg)
     return 0;
 }
 
-int gssapi_client_t::process_next_token (ZmqMessage *msg)
+int gssapi_client_t::process_next_token (msg: &mut ZmqMessage)
 {
     if (maj_stat == GSS_S_CONTINUE_NEEDED) {
         if (process_initiate (msg, &recv_tok.value, recv_tok.length) < 0) {

@@ -122,8 +122,8 @@ int tune_tcp_keepalives (fd_t s_,
           keepalive_intvl_ != -1 ? keepalive_intvl_ * 1000 : 1000;
         DWORD num_bytes_returned;
         let rc: i32 = WSAIoctl (s_, SIO_KEEPALIVE_VALS, &keepalive_opts,
-                                 mem::size_of::<keepalive_opts>(), NULL, 0,
-                                 &num_bytes_returned, NULL, NULL);
+                                 mem::size_of::<keepalive_opts>(), null_mut(), 0,
+                                 &num_bytes_returned, null_mut(), null_mut());
         assert_success_or_recoverable (s_, rc);
         if (rc == SOCKET_ERROR)
             return rc;
@@ -325,7 +325,7 @@ void tcp_tune_loopback_fast_path (const fd_t socket_)
 
     let rc: i32 = WSAIoctl (
       socket_, SIO_LOOPBACK_FAST_PATH, &sio_loopback_fastpath,
-      sizeof sio_loopback_fastpath, NULL, 0, &number_of_bytes_returned, 0, 0);
+      sizeof sio_loopback_fastpath, null_mut(), 0, &number_of_bytes_returned, 0, 0);
 
     if (SOCKET_ERROR == rc) {
         const DWORD last_error = ::WSAGetLastError ();
@@ -358,8 +358,8 @@ void tune_tcp_busy_poll (fd_t socket_, busy_poll_: i32)
 
 fd_t tcp_open_socket (address_: *const c_char,
                                 const ZmqOptions &options_,
-                                bool local_,
-                                bool fallback_to_ipv4_,
+                                local_: bool,
+                                fallback_to_ipv4_: bool,
                                 TcpAddress *out_tcp_addr_)
 {
     //  Convert the textual address into address structure.

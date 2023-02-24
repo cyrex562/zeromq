@@ -74,8 +74,8 @@ int message_check(ZmqRawMessage* msg) {
 //****** SERVER *****************************************************
 //*******************************************************************
 
-void *server_ctx = NULL;
-void *server_sock = NULL;
+void *server_ctx = null_mut();
+void *server_sock = null_mut();
 
 std::atomic<int> worker_cnt[SERVER_WORKER_COUNT] = {0}; // statistic
 

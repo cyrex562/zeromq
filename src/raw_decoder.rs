@@ -82,7 +82,7 @@ pub struct raw_decoder_t ZMQ_FINAL : public i_decoder
 
     void get_buffer (unsigned char **data, size: *mut usize);
 
-    int decode (const unsigned char *data, size: usize, size_t &bytes_used_);
+    int decode (const data: &mut [u8], size: usize, size_t &bytes_used_);
 
     ZmqMessage *msg () { return &_in_progress; }
 

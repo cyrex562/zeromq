@@ -64,7 +64,7 @@ void test ()
     //  sub1 should receive it, but not sub2
     recv_string_expect_success (sub1, prefi_x1, ZMQ_DONTWAIT);
 
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (sub2, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (sub2, null_mut(), 0, ZMQ_DONTWAIT));
 
     //  Send a message with the second prefix
     send_string_expect_success (pub, prefi_x2, 0);
@@ -73,7 +73,7 @@ void test ()
     //  sub2 should receive it, but not sub1
     recv_string_expect_success (sub2, prefi_x2, ZMQ_DONTWAIT);
 
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (sub1, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (sub1, null_mut(), 0, ZMQ_DONTWAIT));
 
     //  Now invert the matching
     int invert = 1;
@@ -93,7 +93,7 @@ void test ()
     //  sub2 should receive it, but not sub1
     recv_string_expect_success (sub2, prefi_x1, ZMQ_DONTWAIT);
 
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (sub1, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (sub1, null_mut(), 0, ZMQ_DONTWAIT));
 
     //  Send a message with the second prefix
     send_string_expect_success (pub, prefi_x2, 0);
@@ -102,7 +102,7 @@ void test ()
     //  sub1 should receive it, but not sub2
     recv_string_expect_success (sub1, prefi_x2, ZMQ_DONTWAIT);
 
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (sub2, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (sub2, null_mut(), 0, ZMQ_DONTWAIT));
 
     //  Clean up.
     test_context_socket_close (pub);

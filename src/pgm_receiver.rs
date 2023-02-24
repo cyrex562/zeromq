@@ -47,8 +47,8 @@ pgm_receiver_t::pgm_receiver_t (class io_thread_t *parent_,
     has_rx_timer (false),
     pgm_socket (true, options_),
     options (options_),
-    session (NULL),
-    active_tsi (NULL),
+    session (null_mut()),
+    active_tsi (null_mut()),
     insize (0)
 {
 }
@@ -59,7 +59,7 @@ pgm_receiver_t::~pgm_receiver_t ()
     zmq_assert (peers.empty ());
 }
 
-int pgm_receiver_t::init (bool udp_encapsulation_, network_: *const c_char)
+int pgm_receiver_t::init (udp_encapsulation_: bool, network_: &str)
 {
     return pgm_socket.init (udp_encapsulation_, network_);
 }
@@ -88,12 +88,12 @@ void pgm_receiver_t::unplug ()
     //  Delete decoders.
     for (peers_t::iterator it = peers.begin (), end = peers.end (); it != end;
          ++it) {
-        if (it->second.decoder != NULL) {
+        if (it->second.decoder != null_mut()) {
             LIBZMQ_DELETE (it->second.decoder);
         }
     }
     peers.clear ();
-    active_tsi = NULL;
+    active_tsi = null_mut();
 
     if (has_rx_timer) {
         cancel_timer (rx_timer_id);
@@ -103,7 +103,7 @@ void pgm_receiver_t::unplug ()
     rm_fd (socket_handle);
     rm_fd (pipe_handle);
 
-    session = NULL;
+    session = null_mut();
 }
 
 void pgm_receiver_t::terminate ()
@@ -119,8 +119,8 @@ void pgm_receiver_t::restart_output ()
 
 bool pgm_receiver_t::restart_input ()
 {
-    zmq_assert (session != NULL);
-    zmq_assert (active_tsi != NULL);
+    zmq_assert (session != null_mut());
+    zmq_assert (active_tsi != null_mut());
 
     const peers_t::iterator it = peers.find (*active_tsi);
     zmq_assert (it != peers.end ());
@@ -150,7 +150,7 @@ bool pgm_receiver_t::restart_input ()
     set_pollin (pipe_handle);
     set_pollin (socket_handle);
 
-    active_tsi = NULL;
+    active_tsi = null_mut();
     in_event ();
 
     return true;
@@ -170,7 +170,7 @@ void pgm_receiver_t::in_event ()
     }
 
     // Read data from the underlying pgm_socket.
-    const pgm_tsi_t *tsi = NULL;
+    const pgm_tsi_t *tsi = null_mut();
 
     if (has_rx_timer) {
         cancel_timer (rx_timer_id);
@@ -183,7 +183,7 @@ void pgm_receiver_t::in_event ()
         //  Get new batch of data.
         //  Note the workaround made not to break strict-aliasing rules.
         insize = 0;
-        void *tmp = NULL;
+        void *tmp = null_mut();
         ssize_t received = pgm_socket.receive (&tmp, &tsi);
 
         //  No data to process. This may happen if the packet received is
@@ -204,7 +204,7 @@ void pgm_receiver_t::in_event ()
         if (received == -1) {
             if (it != peers.end ()) {
                 it->second.joined = false;
-                if (it->second.decoder != NULL) {
+                if (it->second.decoder != null_mut()) {
                     LIBZMQ_DELETE (it->second.decoder);
                 }
             }
@@ -213,7 +213,7 @@ void pgm_receiver_t::in_event ()
 
         //  New peer. Add it to the list of know but unjoint peers.
         if (it == peers.end ()) {
-            peer_info_t peer_info = {false, NULL};
+            peer_info_t peer_info = {false, null_mut()};
             it = peers.ZMQ_MAP_INSERT_OR_EMPLACE (*tsi, peer_info).first;
         }
 
@@ -234,7 +234,7 @@ void pgm_receiver_t::in_event ()
                 continue;
 
             zmq_assert (offset <= insize);
-            zmq_assert (it->second.decoder == NULL);
+            zmq_assert (it->second.decoder == null_mut());
 
             //  We have to move data to the beginning of the first message.
             inpos += offset;
@@ -273,7 +273,7 @@ void pgm_receiver_t::in_event ()
 
 int pgm_receiver_t::process_input (v1_decoder_t *decoder)
 {
-    zmq_assert (session != NULL);
+    zmq_assert (session != null_mut());
 
     while (insize > 0) {
         size_t n = 0;
@@ -316,7 +316,7 @@ pub struct pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine
     pgm_receiver_t (io_thread_t *parent_, const ZmqOptions &options_);
     ~pgm_receiver_t ();
 
-    int init (bool udp_encapsulation_, network_: *const c_char);
+    int init (udp_encapsulation_: bool, network_: &str);
 
     //  i_engine interface implementation.
     bool has_handshake_stage () { return false; };
@@ -352,14 +352,14 @@ pub struct pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine
     const EndpointUriPair _empty_endpoint;
 
     //  RX timer is running.
-    bool has_rx_timer;
+    has_rx_timer: bool
 
     //  If joined is true we are already getting messages from the peer.
     //  It it's false, we are getting data but still we haven't seen
     //  beginning of a message.
     struct peer_info_t
     {
-        bool joined;
+        joined: bool
         v1_decoder_t *decoder;
     };
 

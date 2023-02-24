@@ -46,7 +46,7 @@ pub struct VmciAddress
     VmciAddress (const sockaddr *sa, socklen_t sa_len, ZmqContext *parent_);
 
     //  This function sets up the address for VMCI transport.
-    int resolve (path_: *const c_char);
+    int resolve (path_: &str);
 
     //  The opposite to resolve()
     int to_string (std::string &addr_) const;
@@ -88,7 +88,7 @@ VmciAddress::VmciAddress (const sockaddr *sa,
         memcpy (&address, sa, sa_len);
 }
 
-int VmciAddress::resolve (path_: *const c_char)
+int VmciAddress::resolve (path_: &str)
 {
     //  Find the ':' at end that separates address from the port number.
     const char *delimiter = strrchr (path_, ':');
@@ -116,7 +116,7 @@ int VmciAddress::resolve (path_: *const c_char)
         }
     } else if (addr_str != "*" && addr_str != "-1") {
         const char *begin = addr_str;
-        char *end = NULL;
+        char *end = null_mut();
         unsigned long l = strtoul (begin, &end, 10);
 
         if ((l == 0 && end == begin) || (l == ULONG_MAX && errno == ERANGE)
@@ -133,7 +133,7 @@ int VmciAddress::resolve (path_: *const c_char)
         return -1;
     } else if (port_str != "*" && port_str != "-1") {
         const char *begin = port_str;
-        char *end = NULL;
+        char *end = null_mut();
         unsigned long l = strtoul (begin, &end, 10);
 
         if ((l == 0 && end == begin) || (l == ULONG_MAX && errno == ERANGE)

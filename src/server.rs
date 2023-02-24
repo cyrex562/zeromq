@@ -46,15 +46,15 @@ pub struct server_t : public ZmqSocketBase
 
     //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (pipe_t *pipe_,
-                       bool subscribe_to_all_,
-                       bool locally_initiated_);
-    int xsend (ZmqMessage *msg);
-    int xrecv (ZmqMessage *msg);
+                       subscribe_to_all_: bool,
+                       locally_initiated_: bool);
+    int xsend (msg: &mut ZmqMessage);
+    int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
     bool xhas_out ();
-    void xread_activated (pipe_t *pipe_);
-    void xwrite_activated (pipe_t *pipe_);
-    void xpipe_terminated (pipe_t *pipe_);
+    void xread_activated (pipe_: &mut pipe_t);
+    void xwrite_activated (pipe_: &mut pipe_t);
+    void xpipe_terminated (pipe_: &mut pipe_t);
 
   // private:
     //  Fair queueing object for inbound pipes.
@@ -63,7 +63,7 @@ pub struct server_t : public ZmqSocketBase
     struct outpipe_t
     {
         pipe_t *pipe;
-        bool active;
+        active: bool
     };
 
     //  Outbound pipes indexed by the peer IDs.
@@ -92,8 +92,8 @@ server_t::~server_t ()
 }
 
 void server_t::xattach_pipe (pipe_t *pipe_,
-                                  bool subscribe_to_all_,
-                                  bool locally_initiated_)
+                                  subscribe_to_all_: bool,
+                                  locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
@@ -114,7 +114,7 @@ void server_t::xattach_pipe (pipe_t *pipe_,
     _fq.attach (pipe_);
 }
 
-void server_t::xpipe_terminated (pipe_t *pipe_)
+void server_t::xpipe_terminated (pipe_: &mut pipe_t)
 {
     const out_pipes_t::iterator it =
       _out_pipes.find (pipe_->get_server_socket_routing_id ());
@@ -123,12 +123,12 @@ void server_t::xpipe_terminated (pipe_t *pipe_)
     _fq.pipe_terminated (pipe_);
 }
 
-void server_t::xread_activated (pipe_t *pipe_)
+void server_t::xread_activated (pipe_: &mut pipe_t)
 {
     _fq.activated (pipe_);
 }
 
-void server_t::xwrite_activated (pipe_t *pipe_)
+void server_t::xwrite_activated (pipe_: &mut pipe_t)
 {
     const out_pipes_t::iterator end = _out_pipes.end ();
     out_pipes_t::iterator it;
@@ -141,19 +141,19 @@ void server_t::xwrite_activated (pipe_t *pipe_)
     it->second.active = true;
 }
 
-int server_t::xsend (ZmqMessage *msg)
+int server_t::xsend (msg: &mut ZmqMessage)
 {
     //  SERVER sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg->flags () & ZmqMessage::more) {
+    if (msg.flags () & ZmqMessage::more) {
         errno = EINVAL;
         return -1;
     }
     //  Find the pipe associated with the routing stored in the message.
-    const u32 routing_id = msg->get_routing_id ();
+    const u32 routing_id = msg.get_routing_id ();
     out_pipes_t::iterator it = _out_pipes.find (routing_id);
 
     if (it != _out_pipes.end ()) {
-        if (!it->second.pipe->check_write ()) {
+        if (!it->second.pipe.check_write ()) {
             it->second.active = false;
             errno = EAGAIN;
             return -1;
@@ -164,36 +164,36 @@ int server_t::xsend (ZmqMessage *msg)
     }
 
     //  Message might be delivered over inproc, so we reset routing id
-    int rc = msg->reset_routing_id ();
+    int rc = msg.reset_routing_id ();
     errno_assert (rc == 0);
 
-    const bool ok = it->second.pipe->write (msg);
+    const bool ok = it->second.pipe.write (msg);
     if (unlikely (!ok)) {
         // Message failed to send - we must close it ourselves.
-        rc = msg->close ();
+        rc = msg.close ();
         errno_assert (rc == 0);
     } else
-        it->second.pipe->flush ();
+        it->second.pipe.flush ();
 
     //  Detach the message from the data buffer.
-    rc = msg->init ();
+    rc = msg.init ();
     errno_assert (rc == 0);
 
     return 0;
 }
 
-int server_t::xrecv (ZmqMessage *msg)
+int server_t::xrecv (msg: &mut ZmqMessage)
 {
-    pipe_t *pipe = NULL;
+    pipe_t *pipe = null_mut();
     int rc = _fq.recvpipe (msg, &pipe);
 
     // Drop any messages with more flag
-    while (rc == 0 && msg->flags () & ZmqMessage::more) {
+    while (rc == 0 && msg.flags () & ZmqMessage::more) {
         // drop all frames of the current multi-frame message
-        rc = _fq.recvpipe (msg, NULL);
+        rc = _fq.recvpipe (msg, null_mut());
 
-        while (rc == 0 && msg->flags () & ZmqMessage::more)
-            rc = _fq.recvpipe (msg, NULL);
+        while (rc == 0 && msg.flags () & ZmqMessage::more)
+            rc = _fq.recvpipe (msg, null_mut());
 
         // get the new message
         if (rc == 0)
@@ -203,10 +203,10 @@ int server_t::xrecv (ZmqMessage *msg)
     if (rc != 0)
         return rc;
 
-    zmq_assert (pipe != NULL);
+    zmq_assert (pipe != null_mut());
 
-    const u32 routing_id = pipe->get_server_socket_routing_id ();
-    msg->set_routing_id (routing_id);
+    const u32 routing_id = pipe.get_server_socket_routing_id ();
+    msg.set_routing_id (routing_id);
 
     return 0;
 }

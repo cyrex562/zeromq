@@ -125,7 +125,7 @@ template <> class dbuffer_t<ZmqMessage>
     _back: &mut ZmqMessage *_front;
 
     mutex_t _sync;
-    bool _has_msg;
+    _has_msg: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dbuffer_t)
 };

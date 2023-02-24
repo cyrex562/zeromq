@@ -48,12 +48,12 @@ stream_connecter_base_t::stream_connecter_base_t (
   session_base_t *session_,
   const ZmqOptions &options_,
   Address *addr_,
-  bool delayed_start_) :
+  delayed_start_: bool) :
     own_t (io_thread_, options_),
     io_object_t (io_thread_),
     _addr (addr_),
     _s (retired_fd),
-    _handle (static_cast<handle_t> (NULL)),
+    _handle (static_cast<handle_t> (null_mut())),
     _socket (session_->get_socket ()),
     _delayed_start (delayed_start_),
     _reconnect_timer_started (false),
@@ -140,7 +140,7 @@ int stream_connecter_base_t::get_new_reconnect_ivl ()
 void stream_connecter_base_t::rm_handle ()
 {
     rm_fd (_handle);
-    _handle = static_cast<handle_t> (NULL);
+    _handle = static_cast<handle_t> (null_mut());
 }
 
 void stream_connecter_base_t::close ()
@@ -206,7 +206,7 @@ pub struct stream_connecter_base_t : public own_t, public io_object_t
                              session_base_t *session_,
                              const ZmqOptions &options_,
                              Address *addr_,
-                             bool delayed_start_);
+                             delayed_start_: bool);
 
     ~stream_connecter_base_t () ZMQ_OVERRIDE;
 
@@ -243,7 +243,7 @@ pub struct stream_connecter_base_t : public own_t, public io_object_t
     handle_t _handle;
 
     // String representation of endpoint to connect to
-    std::string _endpoint;
+    _endpoint: String;
 
     // Socket
     ZmqSocketBase *const _socket;
@@ -263,10 +263,10 @@ pub struct stream_connecter_base_t : public own_t, public io_object_t
     virtual void start_connecting () = 0;
 
     //  If true, connecter is waiting a while before trying to connect.
-    const bool _delayed_start;
+    const _delayed_start: bool
 
     //  True iff a timer has been started.
-    bool _reconnect_timer_started;
+    _reconnect_timer_started: bool
 
     //  Current reconnect ivl, updated for backoff strategy
     _current_reconnect_ivl: i32;

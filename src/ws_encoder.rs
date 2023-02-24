@@ -39,7 +39,7 @@
 pub struct ws_encoder_t ZMQ_FINAL : public encoder_base_t<ws_encoder_t>
 {
 // public:
-    ws_encoder_t (bufsize_: usize, bool must_mask_);
+    ws_encoder_t (bufsize_: usize, must_mask_: bool);
     ~ws_encoder_t ();
 
   // private:
@@ -47,19 +47,19 @@ pub struct ws_encoder_t ZMQ_FINAL : public encoder_base_t<ws_encoder_t>
     void message_ready ();
 
     unsigned char _tmp_buf[16];
-    bool _must_mask;
+    _must_mask: bool
     unsigned char _mask[4];
     ZmqMessage _masked_msg;
-    bool _is_binary;
+    _is_binary: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_encoder_t)
 };
 
-ws_encoder_t::ws_encoder_t (bufsize_: usize, bool must_mask_) :
+ws_encoder_t::ws_encoder_t (bufsize_: usize, must_mask_: bool) :
     encoder_base_t<ws_encoder_t> (bufsize_), _must_mask (must_mask_)
 {
     //  Write 0 bytes to the batch and go to message_ready state.
-    next_step (NULL, 0, &ws_encoder_t::message_ready, true);
+    next_step (null_mut(), 0, &ws_encoder_t::message_ready, true);
     _masked_msg.init ();
 }
 

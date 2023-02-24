@@ -90,8 +90,8 @@ struct socks_basic_auth_request_t
     socks_basic_auth_request_t (const std::string &username_,
                                 password_: &str);
 
-    const std::string username;
-    const std::string password;
+    const username: String;
+    const password: String;
 };
 pub struct socks_basic_auth_request_encoder_t
 {
@@ -132,7 +132,7 @@ struct socks_request_t
     socks_request_t (uint8_t command_, std::string hostname_, uint16_t port_);
 
     const uint8_t command;
-    const std::string hostname;
+    const hostname: String;
     const uint16_t port;
 };
 pub struct socks_request_encoder_t
@@ -156,7 +156,7 @@ struct socks_response_t
                       const std::string &address_,
                       uint16_t port_);
     uint8_t response_code;
-    std::string address;
+    address: String;
     uint16_t port;
 };
 pub struct socks_response_decoder_t
@@ -372,9 +372,9 @@ void socks_request_encoder_t::encode (const socks_request_t &req_)
     *ptr++ = 0x00;
 
 // #if defined ZMQ_HAVE_OPENVMS && defined __ia64 && __INITIAL_POINTER_SIZE == 64
-    __addrinfo64 hints, *res = NULL;
+    __addrinfo64 hints, *res = null_mut();
 // #else
-    addrinfo hints, *res = NULL;
+    addrinfo hints, *res = null_mut();
 // #endif
 
     memset (&hints, 0, sizeof hints);
@@ -382,7 +382,7 @@ void socks_request_encoder_t::encode (const socks_request_t &req_)
     //  Suppress potential DNS lookups.
     hints.ai_flags = AI_NUMERICHOST;
 
-    let rc: i32 = getaddrinfo (req_.hostname, NULL, &hints, &res);
+    let rc: i32 = getaddrinfo (req_.hostname, null_mut(), &hints, &res);
     if (rc == 0 && res->ai_family == AF_INET) {
         const struct sockaddr_in *sockaddr_in =
           reinterpret_cast<const struct sockaddr_in *> (res->ai_addr);

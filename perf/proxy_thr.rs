@@ -72,7 +72,7 @@
 // #endif
 
 // #define TEST_ASSERT_SUCCESS_ERRNO(expr)                                        \
-    test_assert_success_message_errno_helper (expr, NULL, #expr)
+    test_assert_success_message_errno_helper (expr, null_mut(), #expr)
 
 // This macro is used to avoid-variable warning. If used with an expression,
 // the sizeof is not evaluated to avoid polluting the assembly code.
@@ -102,7 +102,7 @@ typedef struct
 
 int test_assert_success_message_errno_helper (rc_: i32,
                                               msg: *const c_char,
-                                              expr_: *const c_char)
+                                              expr_: &str)
 {
     if (rc_ == -1) {
         char buffer[512];
@@ -246,7 +246,7 @@ static void proxy_thread_main (pvoid: *mut c_void)
     //  Bind FRONTEND
     for (unsigned int i = 0; i < ARRAY_SIZE (cfg->frontend_endpoint); i++) {
         const char *ep = cfg->frontend_endpoint[i];
-        if (ep != NULL) {
+        if (ep != null_mut()) {
             assert (strlen (ep) > 5);
             rc = zmq_bind (frontend_xsub, ep);
             ASSERT_EXPR_SAFE (rc == 0);
@@ -270,7 +270,7 @@ static void proxy_thread_main (pvoid: *mut c_void)
     //  Bind BACKEND
     for (unsigned int i = 0; i < ARRAY_SIZE (cfg->backend_endpoint); i++) {
         const char *ep = cfg->backend_endpoint[i];
-        if (ep != NULL) {
+        if (ep != null_mut()) {
             assert (strlen (ep) > 5);
             rc = zmq_bind (backend_xpub, ep);
             ASSERT_EXPR_SAFE (rc == 0);
@@ -290,7 +290,7 @@ static void proxy_thread_main (pvoid: *mut c_void)
 
     //  Start proxying!
 
-    zmq_proxy_steerable (frontend_xsub, backend_xpub, NULL, control_rep);
+    zmq_proxy_steerable (frontend_xsub, backend_xpub, null_mut(), control_rep);
 
     zmq_close (frontend_xsub);
     zmq_close (backend_xpub);

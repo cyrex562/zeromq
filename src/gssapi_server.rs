@@ -51,10 +51,10 @@ pub struct gssapi_server_t ZMQ_FINAL : public gssapi_mechanism_base_t,
     ~gssapi_server_t () ZMQ_FINAL;
 
     // mechanism implementation
-    int next_handshake_command (ZmqMessage *msg) ZMQ_FINAL;
-    int process_handshake_command (ZmqMessage *msg) ZMQ_FINAL;
-    int encode (ZmqMessage *msg) ZMQ_FINAL;
-    int decode (ZmqMessage *msg) ZMQ_FINAL;
+    int next_handshake_command (msg: &mut ZmqMessage) ZMQ_FINAL;
+    int process_handshake_command (msg: &mut ZmqMessage) ZMQ_FINAL;
+    int encode (msg: &mut ZmqMessage) ZMQ_FINAL;
+    int decode (msg: &mut ZmqMessage) ZMQ_FINAL;
     int zap_msg_available () ZMQ_FINAL;
     status_t status () const ZMQ_FINAL;
 
@@ -71,20 +71,20 @@ pub struct gssapi_server_t ZMQ_FINAL : public gssapi_mechanism_base_t,
 
     session_base_t *const session;
 
-    const std::string peer_address;
+    const peer_address: String;
 
     //  Current FSM state
     state_t state;
 
     //  True iff server considers the client authenticated
-    bool security_context_established;
+    security_context_established: bool
 
     //  The underlying mechanism type (ignored)
     gss_OID doid;
 
     void accept_context ();
-    int produce_next_token (ZmqMessage *msg);
-    int process_next_token (ZmqMessage *msg);
+    int produce_next_token (msg: &mut ZmqMessage);
+    int process_next_token (msg: &mut ZmqMessage);
     void send_zap_request ();
 };
 
@@ -122,7 +122,7 @@ gssapi_server_t::~gssapi_server_t ()
         gss_release_name (&min_stat, &target_name);
 }
 
-int gssapi_server_t::next_handshake_command (ZmqMessage *msg)
+int gssapi_server_t::next_handshake_command (msg: &mut ZmqMessage)
 {
     if (state == send_ready) {
         int rc = produce_ready (msg);
@@ -152,7 +152,7 @@ int gssapi_server_t::next_handshake_command (ZmqMessage *msg)
     return 0;
 }
 
-int gssapi_server_t::process_handshake_command (ZmqMessage *msg)
+int gssapi_server_t::process_handshake_command (msg: &mut ZmqMessage)
 {
     if (state == recv_ready) {
         int rc = process_ready (msg);
@@ -194,8 +194,8 @@ int gssapi_server_t::process_handshake_command (ZmqMessage *msg)
     accept_context ();
     state = send_next_token;
 
-    errno_assert (msg->close () == 0);
-    errno_assert (msg->init () == 0);
+    errno_assert (msg.close () == 0);
+    errno_assert (msg.init () == 0);
 
     return 0;
 }
@@ -203,7 +203,7 @@ int gssapi_server_t::process_handshake_command (ZmqMessage *msg)
 void gssapi_server_t::send_zap_request ()
 {
     gss_buffer_desc principal;
-    gss_display_name (&min_stat, target_name, &principal, NULL);
+    gss_display_name (&min_stat, target_name, &principal, null_mut());
     zap_client_t::send_zap_request (
       "GSSAPI", 6, reinterpret_cast<const uint8_t *> (principal.value),
       principal.length);
@@ -211,7 +211,7 @@ void gssapi_server_t::send_zap_request ()
     gss_release_buffer (&min_stat, &principal);
 }
 
-int gssapi_server_t::encode (ZmqMessage *msg)
+int gssapi_server_t::encode (msg: &mut ZmqMessage)
 {
     zmq_assert (state == connected);
 
@@ -221,7 +221,7 @@ int gssapi_server_t::encode (ZmqMessage *msg)
     return 0;
 }
 
-int gssapi_server_t::decode (ZmqMessage *msg)
+int gssapi_server_t::decode (msg: &mut ZmqMessage)
 {
     zmq_assert (state == connected);
 
@@ -248,7 +248,7 @@ mechanism_t::status_t gssapi_server_t::status () const
     return state == connected ? mechanism_t::ready : mechanism_t::handshaking;
 }
 
-int gssapi_server_t::produce_next_token (ZmqMessage *msg)
+int gssapi_server_t::produce_next_token (msg: &mut ZmqMessage)
 {
     if (send_tok.length != 0) { // Client expects another token
         if (produce_initiate (msg, send_tok.value, send_tok.length) < 0)
@@ -266,7 +266,7 @@ int gssapi_server_t::produce_next_token (ZmqMessage *msg)
     return 0;
 }
 
-int gssapi_server_t::process_next_token (ZmqMessage *msg)
+int gssapi_server_t::process_next_token (msg: &mut ZmqMessage)
 {
     if (maj_stat == GSS_S_CONTINUE_NEEDED) {
         if (process_initiate (msg, &recv_tok.value, recv_tok.length) < 0) {
@@ -283,11 +283,11 @@ void gssapi_server_t::accept_context ()
 {
     maj_stat = gss_accept_sec_context (
       &init_sec_min_stat, &context, cred, &recv_tok, GSS_C_NO_CHANNEL_BINDINGS,
-      &target_name, &doid, &send_tok, &ret_flags, NULL, NULL);
+      &target_name, &doid, &send_tok, &ret_flags, null_mut(), null_mut());
 
     if (recv_tok.value) {
         free (recv_tok.value);
-        recv_tok.value = NULL;
+        recv_tok.value = null_mut();
     }
 }
 

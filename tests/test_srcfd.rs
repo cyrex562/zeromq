@@ -87,7 +87,7 @@ void test_srcfd ()
     char host[NI_MAXHOST];
     TEST_ASSERT_SUCCESS_RAW_ERRNO (getnameinfo ((struct sockaddr *) &ss,
                                                 addrlen, host, sizeof host,
-                                                NULL, 0, NI_NUMERICHOST));
+                                                null_mut(), 0, NI_NUMERICHOST));
 
     // assert it is localhost which connected
     TEST_ASSERT_EQUAL_STRING ("127.0.0.1", host);

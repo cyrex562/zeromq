@@ -51,7 +51,7 @@ void server_task (void * /*unused_*/)
     send_string_expect_success (control, my_endpoint, 0);
 
     // Use rep as both frontend and backend
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_proxy_steerable (rep, rep, NULL, control));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_proxy_steerable (rep, rep, null_mut(), control));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_close (rep));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_close (control));
@@ -62,7 +62,7 @@ void server_task (void * /*unused_*/)
 // waits for the server to finish.
 void test_proxy_single_socket ()
 {
-    void *server_thread = zmq_threadstart (&server_task, NULL);
+    void *server_thread = zmq_threadstart (&server_task, null_mut());
 
     // Control socket receives terminate command from main over inproc
     void *control = test_context_socket (ZMQ_REP);

@@ -35,7 +35,7 @@
 SETUP_TEARDOWN_TESTCONTEXT
 
 // #ifdef ZMQ_BUILD_DRAFT_API
-bool send_ZmqMessageo_peer_if_ready (router_: *mut c_void, peer_routing_id_: *const c_char)
+bool send_ZmqMessageo_peer_if_ready (router_: *mut c_void, peer_routing_id_: &str)
 {
     int rc = TEST_ASSERT_SUCCESS_MESSAGE_ERRNO (
       zmq_socket_get_peer_state (router_, peer_routing_id_, 1),
@@ -102,9 +102,9 @@ void test_get_peer_state ()
 
     //  Poll on router and dealer1, but not on dealer2
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add (poller, router, NULL, ZMQ_POLLOUT));
+      zmq_poller_add (poller, router, null_mut(), ZMQ_POLLOUT));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add (poller, dealer1, NULL, ZMQ_POLLIN));
+      zmq_poller_add (poller, dealer1, null_mut(), ZMQ_POLLIN));
 
     const unsigned int count = 10000;
     const unsigned int event_size = 2;
@@ -157,7 +157,7 @@ void test_get_peer_state_corner_cases ()
     const char peer_routing_id[] = "foo";
 
     //  call get_peer_state with NULL socket
-    int rc = zmq_socket_get_peer_state (NULL, peer_routing_id,
+    int rc = zmq_socket_get_peer_state (null_mut(), peer_routing_id,
                                         strlen (peer_routing_id));
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (ENOTSOCK, errno);

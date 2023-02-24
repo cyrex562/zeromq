@@ -103,7 +103,7 @@ void zap_handler (void * /*unused_*/);
     {                                                                                 \
         int event_count = 0;                                                          \
         event: i32, err;                                                               \
-        while ((event = get_monitor_event_with_timeout ((monitor), &err, NULL,        \
+        while ((event = get_monitor_event_with_timeout ((monitor), &err, null_mut(),        \
                                                         (timeout)))                   \
                != -1) {                                                               \
             if (event == ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL                         \
@@ -142,13 +142,13 @@ void shutdown_context_and_server_side (zap_thread_: *mut c_void,
 void *create_and_connect_client (char *my_endpoint_,
                                  socket_config_fn socket_config_,
                                  socket_config_data_: *mut c_void,
-                                 void **client_mon_ = NULL);
+                                 void **client_mon_ = null_mut());
 
 void expect_new_client_bounce_fail (char *my_endpoint_,
                                     server_: *mut c_void,
                                     socket_config_fn socket_config_,
                                     socket_config_data_: *mut c_void,
-                                    void **client_mon_ = NULL,
+                                    void **client_mon_ = null_mut(),
                                     int expected_client_event_ = 0,
                                     int expected_client_value_ = 0);
 

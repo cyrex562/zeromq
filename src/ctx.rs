@@ -304,7 +304,7 @@ impl ZmqContext {
             let cmd = ZmqCommand::default();
             let rc = self._term_mailbox.recv(&cmd, -1);
             if rc == -1 && errno == EINTR {
-                return -1;
+                return Ok(-1);
             }
             errno_assert(rc == 0);
             zmq_assert(cmd.type_ == ZmqCommand::done);

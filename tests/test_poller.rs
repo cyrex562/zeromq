@@ -51,23 +51,23 @@ fd_t get_fd (socket_: *mut c_void)
 
 void test_null_poller_pointers_destroy_direct ()
 {
-    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_destroy (NULL));
+    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_destroy (null_mut()));
 }
 
 void test_null_poller_pointers_destroy_indirect ()
 {
-    void *null_poller = NULL;
+    void *null_poller = null_mut();
     TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_destroy (&null_poller));
 }
 
 void test_null_poller_pointers_size_direct ()
 {
-    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_size (NULL));
+    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_size (null_mut()));
 }
 
 void test_null_poller_pointers_size_indirect ()
 {
-    void *null_poller = NULL;
+    void *null_poller = null_mut();
     TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_size (&null_poller));
 }
 
@@ -75,16 +75,16 @@ void test_null_poller_pointers_add_direct ()
 {
     void *socket = test_context_socket (ZMQ_PAIR);
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
-                               zmq_poller_add (NULL, socket, NULL, ZMQ_POLLIN));
+                               zmq_poller_add (null_mut(), socket, null_mut(), ZMQ_POLLIN));
     test_context_socket_close (socket);
 }
 
 void test_null_poller_pointers_add_indirect ()
 {
-    void *null_poller = NULL;
+    void *null_poller = null_mut();
     void *socket = test_context_socket (ZMQ_PAIR);
     TEST_ASSERT_FAILURE_ERRNO (
-      EFAULT, zmq_poller_add (&null_poller, socket, NULL, ZMQ_POLLIN));
+      EFAULT, zmq_poller_add (&null_poller, socket, null_mut(), ZMQ_POLLIN));
     test_context_socket_close (socket);
 }
 
@@ -92,13 +92,13 @@ void test_null_poller_pointers_modify_direct ()
 {
     void *socket = test_context_socket (ZMQ_PAIR);
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
-                               zmq_poller_modify (NULL, socket, ZMQ_POLLIN));
+                               zmq_poller_modify (null_mut(), socket, ZMQ_POLLIN));
     test_context_socket_close (socket);
 }
 
 void test_null_poller_pointers_modify_indirect ()
 {
-    void *null_poller = NULL;
+    void *null_poller = null_mut();
     void *socket = test_context_socket (ZMQ_PAIR);
     TEST_ASSERT_FAILURE_ERRNO (
       EFAULT, zmq_poller_modify (&null_poller, socket, ZMQ_POLLIN));
@@ -108,13 +108,13 @@ void test_null_poller_pointers_modify_indirect ()
 void test_null_poller_pointers_remove_direct ()
 {
     void *socket = test_context_socket (ZMQ_PAIR);
-    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_remove (NULL, socket));
+    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_remove (null_mut(), socket));
     test_context_socket_close (socket);
 }
 
 void test_null_poller_pointers_remove_indirect ()
 {
-    void *null_poller = NULL;
+    void *null_poller = null_mut();
     void *socket = test_context_socket (ZMQ_PAIR);
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
                                zmq_poller_remove (&null_poller, socket));
@@ -127,7 +127,7 @@ void test_null_poller_pointers_add_fd_direct ()
     const fd_t fd = get_fd (socket);
 
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
-                               zmq_poller_add_fd (NULL, fd, NULL, ZMQ_POLLIN));
+                               zmq_poller_add_fd (null_mut(), fd, null_mut(), ZMQ_POLLIN));
     test_context_socket_close (socket);
 }
 
@@ -135,9 +135,9 @@ void test_null_poller_pointers_add_fd_indirect ()
 {
     void *socket = test_context_socket (ZMQ_PAIR);
     const fd_t fd = get_fd (socket);
-    void *null_poller = NULL;
+    void *null_poller = null_mut();
     TEST_ASSERT_FAILURE_ERRNO (
-      EFAULT, zmq_poller_add_fd (&null_poller, fd, NULL, ZMQ_POLLIN));
+      EFAULT, zmq_poller_add_fd (&null_poller, fd, null_mut(), ZMQ_POLLIN));
     test_context_socket_close (socket);
 }
 
@@ -146,7 +146,7 @@ void test_null_poller_pointers_modify_fd_direct ()
     void *socket = test_context_socket (ZMQ_PAIR);
     const fd_t fd = get_fd (socket);
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
-                               zmq_poller_modify_fd (NULL, fd, ZMQ_POLLIN));
+                               zmq_poller_modify_fd (null_mut(), fd, ZMQ_POLLIN));
     test_context_socket_close (socket);
 }
 
@@ -154,7 +154,7 @@ void test_null_poller_pointers_modify_fd_indirect ()
 {
     void *socket = test_context_socket (ZMQ_PAIR);
     const fd_t fd = get_fd (socket);
-    void *null_poller = NULL;
+    void *null_poller = null_mut();
     TEST_ASSERT_FAILURE_ERRNO (
       EFAULT, zmq_poller_modify_fd (&null_poller, fd, ZMQ_POLLIN));
     test_context_socket_close (socket);
@@ -164,7 +164,7 @@ void test_null_poller_pointers_remove_fd_direct ()
 {
     void *socket = test_context_socket (ZMQ_PAIR);
     const fd_t fd = get_fd (socket);
-    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_remove_fd (NULL, fd));
+    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_remove_fd (null_mut(), fd));
     test_context_socket_close (socket);
 }
 
@@ -172,7 +172,7 @@ void test_null_poller_pointers_remove_fd_indirect ()
 {
     void *socket = test_context_socket (ZMQ_PAIR);
     const fd_t fd = get_fd (socket);
-    void *null_poller = NULL;
+    void *null_poller = null_mut();
     TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_remove_fd (&null_poller, fd));
     test_context_socket_close (socket);
 }
@@ -180,13 +180,13 @@ void test_null_poller_pointers_remove_fd_indirect ()
 void test_null_poller_pointers_wait_direct ()
 {
     ZmqPollerEvent event;
-    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_wait (NULL, &event, 0));
+    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_wait (null_mut(), &event, 0));
 }
 
 void test_null_poller_pointers_wait_indirect ()
 {
     ZmqPollerEvent event;
-    void *null_poller = NULL;
+    void *null_poller = null_mut();
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
                                zmq_poller_wait (&null_poller, &event, 0));
 }
@@ -195,20 +195,20 @@ void test_null_poller_pointers_wait_all_direct ()
 {
     ZmqPollerEvent event;
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
-                               zmq_poller_wait_all (NULL, &event, 1, 0));
+                               zmq_poller_wait_all (null_mut(), &event, 1, 0));
 }
 
 void test_null_poller_pointers_wait_all_indirect ()
 {
     ZmqPollerEvent event;
-    void *null_poller = NULL;
+    void *null_poller = null_mut();
     TEST_ASSERT_FAILURE_ERRNO (
       EFAULT, zmq_poller_wait_all (&null_poller, &event, 1, 0));
 }
 
 void test_null_poller_pointer_poller_fd ()
 {
-    void *null_poller = NULL;
+    void *null_poller = null_mut();
     fd_t fd;
     TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_fd (&null_poller, &fd));
 }
@@ -219,17 +219,17 @@ void test_null_socket_pointers ()
     TEST_ASSERT_NOT_NULL (poller);
 
     TEST_ASSERT_FAILURE_ERRNO (ENOTSOCK,
-                               zmq_poller_add (poller, NULL, NULL, ZMQ_POLLIN));
+                               zmq_poller_add (poller, null_mut(), null_mut(), ZMQ_POLLIN));
 
     TEST_ASSERT_FAILURE_ERRNO (ENOTSOCK,
-                               zmq_poller_modify (poller, NULL, ZMQ_POLLIN));
+                               zmq_poller_modify (poller, null_mut(), ZMQ_POLLIN));
 
-    TEST_ASSERT_FAILURE_ERRNO (ENOTSOCK, zmq_poller_remove (poller, NULL));
+    TEST_ASSERT_FAILURE_ERRNO (ENOTSOCK, zmq_poller_remove (poller, null_mut()));
 
     fd_t null_socket_fd = retired_fd;
 
     TEST_ASSERT_FAILURE_ERRNO (
-      EBADF, zmq_poller_add_fd (poller, null_socket_fd, NULL, ZMQ_POLLIN));
+      EBADF, zmq_poller_add_fd (poller, null_socket_fd, null_mut(), ZMQ_POLLIN));
 
     TEST_ASSERT_FAILURE_ERRNO (
       EBADF, zmq_poller_modify_fd (poller, null_socket_fd, ZMQ_POLLIN));
@@ -266,7 +266,7 @@ void test_with_valid_poller (extra_poller_func_t extra_func_)
     TEST_ASSERT_NOT_NULL (poller);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add (poller, socket, NULL, ZMQ_POLLIN));
+      zmq_poller_add (poller, socket, null_mut(), ZMQ_POLLIN));
 
     extra_func_ (poller);
 
@@ -283,7 +283,7 @@ void test_call_poller_fd_no_signaler ()
     TEST_ASSERT_NOT_NULL (poller);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add (poller, socket, NULL, ZMQ_POLLIN));
+      zmq_poller_add (poller, socket, null_mut(), ZMQ_POLLIN));
 
     fd_t fd;
     TEST_ASSERT_FAILURE_ERRNO (EINVAL, zmq_poller_fd (poller, &fd));
@@ -301,7 +301,7 @@ void test_call_poller_fd ()
     TEST_ASSERT_NOT_NULL (poller);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add (poller, socket, NULL, ZMQ_POLLIN));
+      zmq_poller_add (poller, socket, null_mut(), ZMQ_POLLIN));
 
     fd_t fd;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_fd (poller, &fd));
@@ -313,13 +313,13 @@ void test_call_poller_fd ()
 
 void call_poller_wait_null_event_fails (poller_: *mut c_void)
 {
-    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_wait (poller_, NULL, 0));
+    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_wait (poller_, null_mut(), 0));
 }
 
 void call_poller_wait_all_null_event_fails_event_count_nonzero (poller_: *mut c_void)
 {
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
-                               zmq_poller_wait_all (poller_, NULL, 1, 0));
+                               zmq_poller_wait_all (poller_, null_mut(), 1, 0));
 }
 
 void call_poller_wait_all_null_event_fails_event_count_zero (poller_: *mut c_void)
@@ -328,7 +328,7 @@ void call_poller_wait_all_null_event_fails_event_count_zero (poller_: *mut c_voi
     //  TODO this causes an assertion, which is not consistent if the number
     //  of events may be 0, the pointer should be allowed to by NULL in that
     //  case too
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_wait_all (poller, NULL, 0, 0));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_wait_all (poller, null_mut(), 0, 0));
 // #endif
 }
 
@@ -351,7 +351,7 @@ void call_poller_size (poller_: *mut c_void, socket_: *mut c_void)
     TEST_ASSERT_EQUAL (rc, 0);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add (poller_, socket_, NULL, ZMQ_POLLIN));
+      zmq_poller_add (poller_, socket_, null_mut(), ZMQ_POLLIN));
     rc = zmq_poller_size (poller_);
     TEST_ASSERT_SUCCESS_ERRNO (rc);
     TEST_ASSERT_EQUAL (rc, 1);
@@ -363,7 +363,7 @@ void call_poller_size (poller_: *mut c_void, socket_: *mut c_void)
 
     fd_t plain_socket = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add_fd (poller_, plain_socket, NULL, ZMQ_POLLOUT));
+      zmq_poller_add_fd (poller_, plain_socket, null_mut(), ZMQ_POLLOUT));
     rc = zmq_poller_size (poller_);
     TEST_ASSERT_SUCCESS_ERRNO (rc);
     TEST_ASSERT_EQUAL (rc, 2);
@@ -383,11 +383,11 @@ void call_poller_size (poller_: *mut c_void, socket_: *mut c_void)
 void call_poller_add_twice_fails (poller_: *mut c_void, socket_: *mut c_void)
 {
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add (poller_, socket_, NULL, ZMQ_POLLIN));
+      zmq_poller_add (poller_, socket_, null_mut(), ZMQ_POLLIN));
 
     //  attempt to add the same socket twice
     TEST_ASSERT_FAILURE_ERRNO (
-      EINVAL, zmq_poller_add (poller_, socket_, NULL, ZMQ_POLLIN));
+      EINVAL, zmq_poller_add (poller_, socket_, null_mut(), ZMQ_POLLIN));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_remove (poller_, socket_));
 }
@@ -409,7 +409,7 @@ void call_poller_add_no_events (poller_: *mut c_void, socket_: *mut c_void)
 {
     //  add a socket with no events initially (may be activated later with
     //  zmq_poller_modify)
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_add (poller_, socket_, NULL, 0));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_add (poller_, socket_, null_mut(), 0));
     //  TODO test that no events are signalled
 }
 
@@ -417,7 +417,7 @@ void call_poller_modify_no_events (poller_: *mut c_void, socket_: *mut c_void)
 {
     //  deactivates all events for a socket temporarily (may be activated again
     //  later with zmq_poller_modify)
-    zmq_poller_add (poller_, socket_, NULL, ZMQ_POLLIN);
+    zmq_poller_add (poller_, socket_, null_mut(), ZMQ_POLLIN);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_modify (poller_, socket_, 0));
     //  TODO test that no events are signalled
 }
@@ -426,11 +426,11 @@ void call_poller_add_fd_twice_fails (poller_: *mut c_void, void * /*zeromq_socke
 {
     fd_t plain_socket = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add_fd (poller_, plain_socket, NULL, ZMQ_POLLIN));
+      zmq_poller_add_fd (poller_, plain_socket, null_mut(), ZMQ_POLLIN));
 
     //  attempt to add the same plain socket twice
     TEST_ASSERT_FAILURE_ERRNO (
-      EINVAL, zmq_poller_add_fd (poller_, plain_socket, NULL, ZMQ_POLLIN));
+      EINVAL, zmq_poller_add_fd (poller_, plain_socket, null_mut(), ZMQ_POLLIN));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_remove_fd (poller_, plain_socket));
 
@@ -464,14 +464,14 @@ void call_poller_modify_fd_unregistered_fails (poller_: *mut c_void,
 void call_poller_add_invalid_events_fails (poller_: *mut c_void, zeromq_socket_: *mut c_void)
 {
     TEST_ASSERT_FAILURE_ERRNO (
-      EINVAL, zmq_poller_add (poller_, zeromq_socket_, NULL, SHRT_MAX));
+      EINVAL, zmq_poller_add (poller_, zeromq_socket_, null_mut(), SHRT_MAX));
 }
 
 void call_poller_modify_invalid_events_fails (poller_: *mut c_void,
                                               zeromq_socket_: *mut c_void)
 {
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add (poller_, zeromq_socket_, NULL, 0));
+      zmq_poller_add (poller_, zeromq_socket_, null_mut(), 0));
 
     TEST_ASSERT_FAILURE_ERRNO (
       EINVAL, zmq_poller_modify (poller_, zeromq_socket_, SHRT_MAX));
@@ -482,7 +482,7 @@ void call_poller_add_fd_invalid_events_fails (poller_: *mut c_void,
 {
     fd_t plain_socket = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
     TEST_ASSERT_FAILURE_ERRNO (
-      EINVAL, zmq_poller_add_fd (poller_, plain_socket, NULL, SHRT_MAX));
+      EINVAL, zmq_poller_add_fd (poller_, plain_socket, null_mut(), SHRT_MAX));
 
     TEST_ASSERT_SUCCESS_ERRNO (close (plain_socket));
 }
@@ -492,7 +492,7 @@ void call_poller_modify_fd_invalid_events_fails (poller_: *mut c_void,
 {
     fd_t plain_socket = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add_fd (poller_, plain_socket, NULL, 0));
+      zmq_poller_add_fd (poller_, plain_socket, null_mut(), 0));
     TEST_ASSERT_FAILURE_ERRNO (
       EINVAL, zmq_poller_modify_fd (poller_, plain_socket, SHRT_MAX));
 
@@ -565,7 +565,7 @@ void call_poller_wait_all_empty_with_timeout_fails (poller_: *mut c_void,
 
 void call_poller_wait_all_inf_disabled_fails (poller_: *mut c_void, socket_: *mut c_void)
 {
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_add (poller_, socket_, NULL, 0));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_add (poller_, socket_, null_mut(), 0));
 
     ZmqPollerEvent events[1];
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN,
@@ -679,7 +679,7 @@ void test_poll_client_server ()
 
     //  Polling on thread safe sockets
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add (poller, server, NULL, ZMQ_POLLIN));
+      zmq_poller_add (poller, server, null_mut(), ZMQ_POLLIN));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
     const char *client_server_msg = "I";

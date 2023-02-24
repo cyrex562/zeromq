@@ -42,11 +42,11 @@ pub struct lb_t
     lb_t ();
     ~lb_t ();
 
-    void attach (pipe_t *pipe_);
-    void activated (pipe_t *pipe_);
-    void pipe_terminated (pipe_t *pipe_);
+    void attach (pipe_: &mut pipe_t);
+    void activated (pipe_: &mut pipe_t);
+    void pipe_terminated (pipe_: &mut pipe_t);
 
-    int send (ZmqMessage *msg);
+    int send (msg: &mut ZmqMessage);
 
     //  Sends a message and stores the pipe that was used in pipe_.
     //  It is possible for this function to return success but keep pipe_
@@ -69,10 +69,10 @@ pub struct lb_t
     pipes_t::size_type _current;
 
     //  True if last we are in the middle of a multipart message.
-    bool _more;
+    _more: bool
 
     //  True if we are dropping current message.
-    bool _dropping;
+    _dropping: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (lb_t)
 };
@@ -86,13 +86,13 @@ lb_t::~lb_t ()
     zmq_assert (_pipes.empty ());
 }
 
-void lb_t::attach (pipe_t *pipe_)
+void lb_t::attach (pipe_: &mut pipe_t)
 {
     _pipes.push_back (pipe_);
     activated (pipe_);
 }
 
-void lb_t::pipe_terminated (pipe_t *pipe_)
+void lb_t::pipe_terminated (pipe_: &mut pipe_t)
 {
     const pipes_t::size_type index = _pipes.index (pipe_);
 
@@ -112,16 +112,16 @@ void lb_t::pipe_terminated (pipe_t *pipe_)
     _pipes.erase (pipe_);
 }
 
-void lb_t::activated (pipe_t *pipe_)
+void lb_t::activated (pipe_: &mut pipe_t)
 {
     //  Move the pipe to the list of active pipes.
     _pipes.swap (_pipes.index (pipe_), _active);
     _active++;
 }
 
-int lb_t::send (ZmqMessage *msg)
+int lb_t::send (msg: &mut ZmqMessage)
 {
-    return sendpipe (msg, NULL);
+    return sendpipe (msg, null_mut());
 }
 
 int lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe_)
@@ -129,12 +129,12 @@ int lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe_)
     //  Drop the message if required. If we are at the end of the message
     //  switch back to non-dropping mode.
     if (_dropping) {
-        _more = (msg->flags () & ZmqMessage::more) != 0;
+        _more = (msg.flags () & ZmqMessage::more) != 0;
         _dropping = _more;
 
-        int rc = msg->close ();
+        int rc = msg.close ();
         errno_assert (rc == 0);
-        rc = msg->init ();
+        rc = msg.init ();
         errno_assert (rc == 0);
         return 0;
     }
@@ -165,7 +165,7 @@ int lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe_)
             // can't really fix it without breaking backward compatibility.
             // -2/EAGAIN will make sure socket_base caller does not re-enter
             // immediately or after a short sleep in blocking mode.
-            _dropping = (msg->flags () & ZmqMessage::more) != 0;
+            _dropping = (msg.flags () & ZmqMessage::more) != 0;
             _more = false;
             errno = EAGAIN;
             return -2;
@@ -186,7 +186,7 @@ int lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe_)
 
     //  If it's final part of the message we can flush it downstream and
     //  continue round-robining (load balance).
-    _more = (msg->flags () & ZmqMessage::more) != 0;
+    _more = (msg.flags () & ZmqMessage::more) != 0;
     if (!_more) {
         _pipes[_current]->flush ();
 
@@ -195,7 +195,7 @@ int lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe_)
     }
 
     //  Detach the message from the data buffer.
-    let rc: i32 = msg->init ();
+    let rc: i32 = msg.init ();
     errno_assert (rc == 0);
 
     return 0;

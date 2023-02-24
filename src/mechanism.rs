@@ -52,10 +52,10 @@ pub struct mechanism_t
     virtual ~mechanism_t ();
 
     //  Prepare next handshake command that is to be sent to the peer.
-    virtual int next_handshake_command (ZmqMessage *msg) = 0;
+    virtual int next_handshake_command (msg: &mut ZmqMessage) = 0;
 
     //  Process the handshake command received from the peer.
-    virtual int process_handshake_command (ZmqMessage *msg) = 0;
+    virtual int process_handshake_command (msg: &mut ZmqMessage) = 0;
 
     virtual int encode (ZmqMessage *) { return 0; }
 
@@ -69,7 +69,7 @@ pub struct mechanism_t
 
     void set_peer_routing_id (const id_ptr_: *mut c_void, id_size_: usize);
 
-    void peer_routing_id (ZmqMessage *msg);
+    void peer_routing_id (msg: &mut ZmqMessage);
 
     void set_user_id (const user_id_: *mut c_void, size: usize);
 
@@ -155,12 +155,12 @@ void mechanism_t::set_peer_routing_id (const id_ptr_: *mut c_void,
     _routing_id.set (static_cast<const unsigned char *> (id_ptr_), id_size_);
 }
 
-void mechanism_t::peer_routing_id (ZmqMessage *msg)
+void mechanism_t::peer_routing_id (msg: &mut ZmqMessage)
 {
-    let rc: i32 = msg->init_size (_routing_id.size ());
+    let rc: i32 = msg.init_size (_routing_id.size ());
     errno_assert (rc == 0);
-    memcpy (msg->data (), _routing_id.data (), _routing_id.size ());
-    msg->set_flags (ZmqMessage::routing_id);
+    memcpy (msg.data (), _routing_id.data (), _routing_id.size ());
+    msg.set_flags (ZmqMessage::routing_id);
 }
 
 void mechanism_t::set_user_id (const user_id_: *mut c_void, size: usize)
@@ -231,7 +231,7 @@ static size_t property_len (name_len_: usize, value_len_: usize)
     return name_len_size + name_len_ + value_len_size + value_len_;
 }
 
-static size_t name_len (name_: *const c_char)
+static size_t name_len (name_: &str)
 {
     const size_t name_len = strlen (name_);
     zmq_assert (name_len <= UCHAR_MAX);
@@ -324,22 +324,22 @@ void mechanism_t::make_command_with_basic_properties (
   msg: &mut ZmqMessage prefix_: *const c_char, prefix_len_: usize) const
 {
     const size_t command_size = prefix_len_ + basic_properties_len ();
-    let rc: i32 = msg->init_size (command_size);
+    let rc: i32 = msg.init_size (command_size);
     errno_assert (rc == 0);
 
-    unsigned char *ptr = static_cast<unsigned char *> (msg->data ());
+    unsigned char *ptr = static_cast<unsigned char *> (msg.data ());
 
     //  Add prefix
     memcpy (ptr, prefix_, prefix_len_);
     ptr += prefix_len_;
 
     add_basic_properties (
-      ptr, command_size - (ptr - static_cast<unsigned char *> (msg->data ())));
+      ptr, command_size - (ptr - static_cast<unsigned char *> (msg.data ())));
 }
 
 int mechanism_t::parse_metadata (const unsigned char *ptr_,
                                       length_: usize,
-                                      bool zap_flag_)
+                                      zap_flag_: bool)
 {
     size_t bytes_left = length_;
 

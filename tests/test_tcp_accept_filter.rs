@@ -100,7 +100,7 @@ void test_clear ()
     void *bind_socket = test_context_socket (ZMQ_PAIR);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (bind_socket, ZMQ_TCP_ACCEPT_FILTER, NULL, 0));
+      zmq_setsockopt (bind_socket, ZMQ_TCP_ACCEPT_FILTER, null_mut(), 0));
 
 #if 0
     // XXX Shouldn't this work as well?
@@ -132,7 +132,7 @@ void test_set_non_matching_and_clear ()
                       strlen (non_matching_filter)));
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (bind_socket, ZMQ_TCP_ACCEPT_FILTER, NULL, 0));
+      zmq_setsockopt (bind_socket, ZMQ_TCP_ACCEPT_FILTER, null_mut(), 0));
 
     char endpoint[MAX_SOCKET_STRING];
     bind_loopback_ipv4 (bind_socket, endpoint, mem::size_of::<endpoint>());

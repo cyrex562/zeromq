@@ -42,7 +42,7 @@ void set_sockopt_bind_to_device (socket: *mut c_void)
 }
 
 //  TODO this is duplicated from test_pair_tcp
-void test_pair_tcp (extra_func_t extra_func_ = NULL)
+void test_pair_tcp (extra_func_t extra_func_ = null_mut())
 {
     void *sb = test_context_socket (ZMQ_PAIR);
 

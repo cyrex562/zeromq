@@ -62,8 +62,8 @@ typedef struct
     zmq_socket_stats_t backend;
 } zmq_proxy_stats_t;
 
-void *g_clients_pkts_out = NULL;
-void *g_workers_pkts_out = NULL;
+void *g_clients_pkts_out = null_mut();
+void *g_workers_pkts_out = null_mut();
 
 // Asynchronous client-to-server (DEALER to ROUTER) - pure libzmq
 //
@@ -218,7 +218,7 @@ void server_task (void * /*unused_*/)
     thread_nbr: i32;
     void *threads[5];
     for (thread_nbr = 0; thread_nbr < QT_WORKERS; thread_nbr++)
-        threads[thread_nbr] = zmq_threadstart (&server_worker, NULL);
+        threads[thread_nbr] = zmq_threadstart (&server_worker, null_mut());
 
     // Endpoint socket sends random port to avoid test failing when port in use
     void *endpoint_receivers[QT_CLIENTS];
@@ -239,7 +239,7 @@ void server_task (void * /*unused_*/)
 
     // Connect backend to frontend via a proxy
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_proxy_steerable (frontend, backend, NULL, control));
+      zmq_proxy_steerable (frontend, backend, null_mut(), control));
 
     for (thread_nbr = 0; thread_nbr < QT_WORKERS; thread_nbr++)
         zmq_threadclose (threads[thread_nbr]);
@@ -328,7 +328,7 @@ static void server_worker (void * /*unused_*/)
     TEST_ASSERT_SUCCESS_ERRNO (zmq_close (control));
 }
 
-u64 recv_stat (sock_: *mut c_void, bool last_)
+u64 recv_stat (sock_: *mut c_void, last_: bool)
 {
     u64 res;
     ZmqRawMessage stats_msg;
@@ -432,7 +432,7 @@ void test_proxy ()
         databags[i].id = i;
         threads[i] = zmq_threadstart (&client_task, &databags[i]);
     }
-    threads[QT_CLIENTS] = zmq_threadstart (&server_task, NULL);
+    threads[QT_CLIENTS] = zmq_threadstart (&server_task, null_mut());
     msleep (500); // Run for 500 ms then quit
 
     if (is_verbose)

@@ -323,7 +323,7 @@ impl ZmqMessage {
             self._u.lmsg.group.sgroup.group[0] = 0;
             self._u.lmsg.group.type_ = group_type_short;
             self._u.lmsg.routing_id = 0;
-            self._u.lmsg.content = NULL;
+            self._u.lmsg.content = null_mut();
             // if (mem::size_of::<ZmqContent>() + size > size)
             // if mem::size_of::<ZmqContent>() + size > size
             // {

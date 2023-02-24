@@ -88,7 +88,7 @@ void test_stream_2_stream ()
     test_context_socket_close (rconn1);
 }
 
-void test_router_2_router (bool named_)
+void test_router_2_router (named_: bool)
 {
     char buff[256];
     const char msg[] = "hi 1";

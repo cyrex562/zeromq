@@ -59,7 +59,7 @@ pub struct WsAddress
     //  structure. If 'local' is true, names are resolved as local interface
     //  names. If it is false, names are resolved as remote hostnames.
     //  If 'ipv6' is true, the name may resolve to IPv6 address.
-    int resolve (name_: *const c_char, bool local_, bool ipv6_);
+    int resolve (name_: *const c_char, local_: bool, ipv6_: bool);
 
     //  The opposite to resolve()
     int to_string (std::string &addr_) const;
@@ -79,8 +79,8 @@ pub struct WsAddress
     ip_addr_t _address;
 
   // private:
-    std::string _host;
-    std::string _path;
+    _host: String;
+    _path: String;
 };
 
 WsAddress::WsAddress ()
@@ -103,7 +103,7 @@ WsAddress::WsAddress (const sockaddr *sa_, socklen_t sa_len_)
     _path = std::string ("");
 
     char hbuf[NI_MAXHOST];
-    let rc: i32 = getnameinfo (addr (), addrlen (), hbuf, mem::size_of::<hbuf>(), NULL,
+    let rc: i32 = getnameinfo (addr (), addrlen (), hbuf, mem::size_of::<hbuf>(), null_mut(),
                                 0, NI_NUMERICHOST);
     if (rc != 0) {
         _host = std::string ("localhost");
@@ -123,12 +123,12 @@ WsAddress::WsAddress (const sockaddr *sa_, socklen_t sa_len_)
     _host = os.str ();
 }
 
-int WsAddress::resolve (name_: *const c_char, bool local_, bool ipv6_)
+int WsAddress::resolve (name_: *const c_char, local_: bool, ipv6_: bool)
 {
     //  find the host part, It's important to use str*r*chr to only get
     //  the latest colon since IPv6 addresses use colons as delemiters.
     const char *delim = strrchr (name_, ':');
-    if (delim == NULL) {
+    if (delim == null_mut()) {
         errno = EINVAL;
         return -1;
     }
@@ -136,7 +136,7 @@ int WsAddress::resolve (name_: *const c_char, bool local_, bool ipv6_)
 
     // find the path part, which is optional
     delim = strrchr (name_, '/');
-    std::string host_name;
+    host_name: String;
     if (delim) {
         _path = std::string (delim);
         // remove the path, otherwise resolving the port will fail with wildcard

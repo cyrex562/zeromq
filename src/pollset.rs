@@ -63,7 +63,7 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
 
   // private:
     //  Main worker thread routine.
-    static void worker_routine (arg_: *mut c_void);
+    static void worker_routine (arg_: &mut [u8]);
 
     //  Main event loop.
     void loop () ZMQ_FINAL;
@@ -77,8 +77,8 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
     struct poll_entry_t
     {
         fd_t fd;
-        bool flag_pollin;
-        bool flag_pollout;
+        flag_pollin: bool
+        flag_pollout: bool
         i_poll_events *events;
     };
 
@@ -91,7 +91,7 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
     fd_table_t fd_table;
 
     //  If true, thread is in the process of shutting down.
-    bool stopping;
+    stopping: bool
 
     //  Handle of the physical thread doing the I/O work.
     thread_t worker;
@@ -139,7 +139,7 @@ pollset_t::handle_t pollset_t::add_fd (fd_t fd_,
     adjust_load (1);
 
     if (fd_ >= fd_table.size ()) {
-        fd_table.resize (fd_ + 1, NULL);
+        fd_table.resize (fd_ + 1, null_mut());
     }
     fd_table[fd_] = pe;
     return pe;
@@ -155,7 +155,7 @@ void pollset_t::rm_fd (handle_t handle_)
     pc.events = 0;
     pollset_ctl (pollset_fd, &pc, 1);
 
-    fd_table[pe->fd] = NULL;
+    fd_table[pe->fd] = null_mut();
 
     pe->fd = retired_fd;
     retired.push_back (pe);
@@ -302,7 +302,7 @@ void pollset_t::loop ()
     }
 }
 
-void pollset_t::worker_routine (arg_: *mut c_void)
+void pollset_t::worker_routine (arg_: &mut [u8])
 {
     ((pollset_t *) arg_)->loop ();
 }

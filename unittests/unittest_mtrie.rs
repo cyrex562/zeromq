@@ -66,7 +66,7 @@ void test_check_empty_match_empty_data ()
     generic_mtrie_t<int> mtrie;
 
     int count = 0;
-    mtrie.match (NULL, 0, mtrie_count, &count);
+    mtrie.match (null_mut(), 0, mtrie_count, &count);
     TEST_ASSERT_EQUAL_INT (0, count);
 }
 
@@ -199,7 +199,7 @@ void test_rm_nonexistent_empty ()
     TEST_ASSERT_EQUAL_INT (0, count);
 }
 
-void test_add_and_rm_other (add_name_: *const c_char, rm_name_: *const c_char)
+void test_add_and_rm_other (add_name_: *const c_char, rm_name_: &str)
 {
     addpipe: i32, rmpipe;
     generic_mtrie_t<int> mtrie;
@@ -367,7 +367,7 @@ void test_rm_multiple_reverse_order ()
 
 void check_name (generic_mtrie_t<int>::prefix_t data,
                  len_: usize,
-                 name_: *const c_char)
+                 name_: &str)
 {
     TEST_ASSERT_EQUAL_UINT (strlen (name_), len_);
     TEST_ASSERT_EQUAL_STRING_LEN (name_, data, len_);

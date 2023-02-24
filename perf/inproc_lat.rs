@@ -102,7 +102,7 @@ static void *worker (ctx: *mut c_void)
 // #if defined ZMQ_HAVE_WINDOWS
     return 0;
 // #else
-    return NULL;
+    return null_mut();
 // #endif
 }
 
@@ -149,13 +149,13 @@ int main (argc: i32, char *argv[])
     }
 
 // #if defined ZMQ_HAVE_WINDOWS
-    local_thread = (HANDLE) _beginthreadex (NULL, 0, worker, ctx, 0, NULL);
+    local_thread = (HANDLE) _beginthreadex (null_mut(), 0, worker, ctx, 0, null_mut());
     if (local_thread == 0) {
         printf ("error in _beginthreadex\n");
         return -1;
     }
 // #else
-    rc = pthread_create (&local_thread, NULL, worker, ctx);
+    rc = pthread_create (&local_thread, null_mut(), worker, ctx);
     if (rc != 0) {
         printf ("error in pthread_create: %s\n", zmq_strerror (rc));
         return -1;
@@ -213,7 +213,7 @@ int main (argc: i32, char *argv[])
         return -1;
     }
 // #else
-    rc = pthread_join (local_thread, NULL);
+    rc = pthread_join (local_thread, null_mut());
     if (rc != 0) {
         printf ("error in pthread_join: %s\n", zmq_strerror (rc));
         return -1;

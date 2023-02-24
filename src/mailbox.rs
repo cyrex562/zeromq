@@ -68,7 +68,7 @@ pub struct mailbox_t ZMQ_FINAL : public i_mailbox
 
     //  True if the underlying pipe is active, ie. when we are allowed to
     //  read commands from it.
-    bool _active;
+    _active: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_t)
 };

@@ -369,7 +369,7 @@ pub fn zmq_socket_monitor (s_: *mut c_void, addr_: *const c_char, events_: u64) 
     return zmq_socket_monitor_versioned (s_, addr_, events_, 1, ZMQ_PAIR);
 }
 
-pub fn zmq_join (s_: *mut c_void, group_: *const c_char) -> i32
+pub fn zmq_join (s_: *mut c_void, group_: &str) -> i32
 {
     let mut s: *mut ZmqSocketBase = as_socket_base_t (s_);
     if !s {
@@ -378,7 +378,7 @@ pub fn zmq_join (s_: *mut c_void, group_: *const c_char) -> i32
     return s.join (group_);
 }
 
-pub fn zmq_leave (s_: *mut c_void, group_: *const c_char) -> i32
+pub fn zmq_leave (s_: *mut c_void, group_: &str) -> i32
 {
     let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if !s {
@@ -387,7 +387,7 @@ pub fn zmq_leave (s_: *mut c_void, group_: *const c_char) -> i32
     return s.leave (group_);
 }
 
-pub fn zmq_bind (s_: *mut c_void, addr_: *const c_char) -> i32
+pub fn zmq_bind (s_: *mut c_void, addr_: &str) -> i32
 {
     let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s) {
@@ -396,7 +396,7 @@ pub fn zmq_bind (s_: *mut c_void, addr_: *const c_char) -> i32
     return s.bind (addr_);
 }
 
-pub fn zmq_connect (s_: *mut c_void, addr_: *const c_char) -> i32
+pub fn zmq_connect (s_: *mut c_void, addr_: &str) -> i32
 {
     let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s){
@@ -404,7 +404,7 @@ return - 1;}
     return s.connect (addr_);
 }
 
-pub fn zmq_connect_peer (s_: *mut c_void, addr_: *const c_char) -> u32
+pub fn zmq_connect_peer (s_: *mut c_void, addr_: &str) -> u32
 {
     let mut s: *mut peer_t = s_ as *mut peer_t;
     if !s_ || !s.check_tag () {
@@ -427,7 +427,7 @@ pub fn zmq_connect_peer (s_: *mut c_void, addr_: *const c_char) -> u32
 }
 
 
-pub fn zmq_unbind (s_: *mut c_void, addr_: *const c_char) -> i32
+pub fn zmq_unbind (s_: *mut c_void, addr_: &str) -> i32
 {
     let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s) {
@@ -436,7 +436,7 @@ pub fn zmq_unbind (s_: *mut c_void, addr_: *const c_char) -> i32
     return s.term_endpoint (addr_);
 }
 
-pub fn zmq_disconnect (s_: *mut c_void, addr_: *const c_char) -> i32
+pub fn zmq_disconnect (s_: *mut c_void, addr_: &str) -> i32
 {
     let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if !s {
@@ -811,7 +811,7 @@ u32 zmq_msg_routing_id (ZmqRawMessage *msg)
     return (msg as *mut ZmqRawMessage).get_routing_id ();
 }
 
-int zmq_msg_set_group (msg: *mut ZmqRawMessage, group_: *const c_char)
+int zmq_msg_set_group (msg: *mut ZmqRawMessage, group_: &str)
 {
     return (msg as *mut ZmqRawMessage).set_group (group_);
 }
@@ -823,7 +823,7 @@ const char *zmq_msg_group (ZmqRawMessage *msg)
 
 //  Get message metadata string
 
-const char *zmq_msg_gets (const msg: *mut ZmqRawMessage, property_: *const c_char)
+const char *zmq_msg_gets (const msg: *mut ZmqRawMessage, property_: &str)
 {
     const ZmqMetadata *metadata =
       reinterpret_cast<const ZmqMessage *> (msg)->metadata ();
@@ -1344,7 +1344,7 @@ zmq_poll_build_select_fds_ (zmq_pollitem_t *items_, nitems_: i32, int &rc)
 }
 
 timeval *zmq_poll_select_set_timeout_ (
-  long timeout_, bool first_pass, now: u64, end: u64, timeval &timeout)
+  long timeout_, first_pass: bool, now: u64, end: u64, timeval &timeout)
 {
     timeval *ptimeout;
     if (first_pass) {
@@ -1362,7 +1362,7 @@ timeval *zmq_poll_select_set_timeout_ (
 }
 
 timespec *zmq_poll_select_set_timeout_ (
-  long timeout_, bool first_pass, now: u64, end: u64, timespec &timeout)
+  long timeout_, first_pass: bool, now: u64, end: u64, timespec &timeout)
 {
     timespec *ptimeout;
     if (first_pass) {
@@ -1774,7 +1774,7 @@ int zmq_timers_destroy (void **timers_p_)
 int zmq_timers_add (timers_: *mut c_void,
                     interval_: usize,
                     zmq_timer_fn handler_,
-                    arg_: *mut c_void)
+                    arg_: &mut [u8])
 {
     if (!timers_ || !(static_cast<timers_t *> (timers_))->check_tag ()) {
         errno = EFAULT;
@@ -1874,7 +1874,7 @@ int zmq_device (int /* type */, frontend_: *mut c_void, backend_: *mut c_void)
 
 //  Probe library capabilities; for now, reports on transport and security
 
-int zmq_has (capability_: *const c_char)
+int zmq_has (capability_: &str)
 {
 // #if defined(ZMQ_HAVE_IPC)
     if (strcmp (capability_, protocol_name::ipc) == 0)

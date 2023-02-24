@@ -47,8 +47,8 @@ pub struct ws_decoder_t ZMQ_FINAL
 // public:
     ws_decoder_t (bufsize_: usize,
                   i64 maxmsgsize_,
-                  bool zero_copy_,
-                  bool must_mask_);
+                  zero_copy_: bool,
+                  must_mask_: bool);
     ~ws_decoder_t ();
 
     //  i_decoder interface.
@@ -69,9 +69,9 @@ pub struct ws_decoder_t ZMQ_FINAL
     unsigned char _msg_flags;
     ZmqMessage _in_progress;
 
-    const bool _zero_copy;
+    const _zero_copy: bool
     const i64 _max_msg_size;
-    const bool _must_mask;
+    const _must_mask: bool
     u64 _size;
     ws_protocol_t::opcode_t _opcode;
     unsigned char _mask[4];
@@ -81,8 +81,8 @@ pub struct ws_decoder_t ZMQ_FINAL
 
 ws_decoder_t::ws_decoder_t (bufsize_: usize,
                                  i64 maxmsgsize_,
-                                 bool zero_copy_,
-                                 bool must_mask_) :
+                                 zero_copy_: bool,
+                                 must_mask_: bool) :
     decoder_base_t<ws_decoder_t, shared_message_memory_allocator> (bufsize_),
     _msg_flags (0),
     _zero_copy (zero_copy_),

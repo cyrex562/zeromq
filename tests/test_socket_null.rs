@@ -42,13 +42,13 @@ void tearDown ()
 //  tests all socket-related functions with a NULL socket argument
 void test_zmq_socket_null_context ()
 {
-    TEST_ASSERT_NULL (zmq_socket (NULL, ZMQ_PAIR));
+    TEST_ASSERT_NULL (zmq_socket (null_mut(), ZMQ_PAIR));
     TEST_ASSERT_EQUAL_INT (EFAULT, errno); // TODO use EINVAL instead?
 }
 
 void test_zmq_close_null_socket ()
 {
-    int rc = zmq_close (NULL);
+    int rc = zmq_close (null_mut());
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (ENOTSOCK, errno); // TODO use EINVAL instead?
 }
@@ -57,7 +57,7 @@ void test_zmq_setsockopt_null_socket ()
 {
     int hwm = 100;
     size_t hwm_size = sizeof hwm;
-    int rc = zmq_setsockopt (NULL, ZMQ_SNDHWM, &hwm, hwm_size);
+    int rc = zmq_setsockopt (null_mut(), ZMQ_SNDHWM, &hwm, hwm_size);
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (ENOTSOCK, errno); // TODO use EINVAL instead?
 }
@@ -66,14 +66,14 @@ void test_zmq_getsockopt_null_socket ()
 {
     hwm: i32;
     size_t hwm_size = sizeof hwm;
-    int rc = zmq_getsockopt (NULL, ZMQ_SNDHWM, &hwm, &hwm_size);
+    int rc = zmq_getsockopt (null_mut(), ZMQ_SNDHWM, &hwm, &hwm_size);
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (ENOTSOCK, errno); // TODO use EINVAL instead?
 }
 
 void test_zmq_socket_monitor_null_socket ()
 {
-    int rc = zmq_socket_monitor (NULL, "inproc://monitor", ZMQ_EVENT_ALL);
+    int rc = zmq_socket_monitor (null_mut(), "inproc://monitor", ZMQ_EVENT_ALL);
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (ENOTSOCK, errno); // TODO use EINVAL instead?
 }
@@ -81,14 +81,14 @@ void test_zmq_socket_monitor_null_socket ()
 // #ifdef ZMQ_BUILD_DRAFT_API
 void test_zmq_join_null_socket ()
 {
-    int rc = zmq_join (NULL, "group");
+    int rc = zmq_join (null_mut(), "group");
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (ENOTSOCK, errno); // TODO use EINVAL instead?
 }
 
 void test_zmq_leave_null_socket ()
 {
-    int rc = zmq_leave (NULL, "group");
+    int rc = zmq_leave (null_mut(), "group");
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (ENOTSOCK, errno); // TODO use EINVAL instead?
 }
@@ -97,28 +97,28 @@ void test_zmq_leave_null_socket ()
 
 void test_zmq_bind_null_socket ()
 {
-    int rc = zmq_bind (NULL, "inproc://socket");
+    int rc = zmq_bind (null_mut(), "inproc://socket");
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (ENOTSOCK, errno); // TODO use EINVAL instead?
 }
 
 void test_zmq_connect_null_socket ()
 {
-    int rc = zmq_connect (NULL, "inproc://socket");
+    int rc = zmq_connect (null_mut(), "inproc://socket");
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (ENOTSOCK, errno); // TODO use EINVAL instead?
 }
 
 void test_zmq_unbind_null_socket ()
 {
-    int rc = zmq_unbind (NULL, "inproc://socket");
+    int rc = zmq_unbind (null_mut(), "inproc://socket");
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (ENOTSOCK, errno); // TODO use EINVAL instead?
 }
 
 void test_zmq_disconnect_null_socket ()
 {
-    int rc = zmq_disconnect (NULL, "inproc://socket");
+    int rc = zmq_disconnect (null_mut(), "inproc://socket");
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (ENOTSOCK, errno); // TODO use EINVAL instead?
 }

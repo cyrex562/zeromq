@@ -41,7 +41,7 @@ pub struct timers_t
     //  Add timer to the set, timer repeats forever, or until cancel is called.
     //  Returns a timer_id that is used to cancel the timer.
     //  Returns -1 if there was an error.
-    int add (interval_: usize, timers_timer_fn handler_, arg_: *mut c_void);
+    int add (interval_: usize, timers_timer_fn handler_, arg_: &mut [u8]);
 
     //  Set the interval of the timer.
     //  This method is slow, cancelling exsting and adding a new timer yield better performance.
@@ -111,9 +111,9 @@ bool timers_t::check_tag () const
     return _tag == 0xCAFEDADA;
 }
 
-int timers_t::add (interval_: usize, timers_timer_fn handler_, arg_: *mut c_void)
+int timers_t::add (interval_: usize, timers_timer_fn handler_, arg_: &mut [u8])
 {
-    if (handler_ == NULL) {
+    if (handler_ == null_mut()) {
         errno = EFAULT;
         return -1;
     }

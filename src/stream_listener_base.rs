@@ -75,7 +75,7 @@ pub struct stream_listener_base_t : public own_t, public io_object_t
     ZmqSocketBase *_socket;
 
     // String representation of endpoint to bind to
-    std::string _endpoint;
+    _endpoint: String;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_listener_base_t)
 };
@@ -87,7 +87,7 @@ stream_listener_base_t::stream_listener_base_t (
     own_t (io_thread_, options_),
     io_object_t (io_thread_),
     _s (retired_fd),
-    _handle (static_cast<handle_t> (NULL)),
+    _handle (static_cast<handle_t> (null_mut())),
     _socket (socket_)
 {
 }
@@ -114,7 +114,7 @@ void stream_listener_base_t::process_plug ()
 void stream_listener_base_t::process_term (linger_: i32)
 {
     rm_fd (_handle);
-    _handle = static_cast<handle_t> (NULL);
+    _handle = static_cast<handle_t> (null_mut());
     close ();
     own_t::process_term (linger_);
 }
@@ -157,7 +157,7 @@ void stream_listener_base_t::create_engine (fd_t fd_)
 
     //  Create and launch a session object.
     session_base_t *session =
-      session_base_t::create (io_thread, false, _socket, options, NULL);
+      session_base_t::create (io_thread, false, _socket, options, null_mut());
     errno_assert (session);
     session->inc_seqnum ();
     launch_child (session);

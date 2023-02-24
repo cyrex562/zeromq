@@ -76,7 +76,7 @@ pub struct raw_engine_t ZMQ_FINAL : public stream_engine_base_t
     bool handshake ();
 
   // private:
-    int push_raw_ZmqMessageo_session (ZmqMessage *msg);
+    int push_raw_ZmqMessageo_session (msg: &mut ZmqMessage);
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (raw_engine_t)
 };
@@ -109,7 +109,7 @@ void raw_engine_t::plug_internal ()
     properties_t properties;
     if (init_properties (properties)) {
         //  Compile metadata.
-        zmq_assert (_metadata == NULL);
+        zmq_assert (_metadata == null_mut());
         _metadata = new (std::nothrow) ZmqMetadata (properties);
         alloc_assert (_metadata);
     }
@@ -148,9 +148,9 @@ void raw_engine_t::error (error_reason_t reason_)
     stream_engine_base_t::error (reason_);
 }
 
-int raw_engine_t::push_raw_ZmqMessageo_session (ZmqMessage *msg)
+int raw_engine_t::push_raw_ZmqMessageo_session (msg: &mut ZmqMessage)
 {
-    if (_metadata && _metadata != msg->metadata ())
-        msg->set_metadata (_metadata);
+    if (_metadata && _metadata != msg.metadata ())
+        msg.set_metadata (_metadata);
     return push_ZmqMessageo_session (msg);
 }

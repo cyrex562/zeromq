@@ -49,7 +49,7 @@ template <typename T> class ypipe_conflate_t ZMQ_FINAL : public YpipeBase<T>
 #pragma message save
 #pragma message disable(UNINIT)
 // #endif
-    void write (const T &value_, bool incomplete_)
+    void write (const T &value_, incomplete_: bool)
     {
         (void) incomplete_;
 
@@ -105,7 +105,7 @@ template <typename T> class ypipe_conflate_t ZMQ_FINAL : public YpipeBase<T>
 
   protected:
     dbuffer_t<T> dbuffer;
-    bool reader_awake;
+    reader_awake: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (ypipe_conflate_t)
 };

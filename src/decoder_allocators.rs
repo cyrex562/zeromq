@@ -122,20 +122,20 @@ pub struct shared_message_memory_allocator
 
 shared_message_memory_allocator::shared_message_memory_allocator (
   std::bufsize_: usize) :
-    _buf (NULL),
+    _buf (null_mut()),
     _buf_size (0),
     _max_size (bufsize_),
-    _msg_content (NULL),
+    _msg_content (null_mut()),
     _max_counters ((_max_size + ZmqMessage::max_vsm_size - 1) / ZmqMessage::max_vsm_size)
 {
 }
 
 shared_message_memory_allocator::shared_message_memory_allocator (
   std::bufsize_: usize, std::max_messages_: usize) :
-    _buf (NULL),
+    _buf (null_mut()),
     _buf_size (0),
     _max_size (bufsize_),
-    _msg_content (NULL),
+    _msg_content (null_mut()),
     _max_counters (max_messages_)
 {
 }
@@ -205,9 +205,9 @@ unsigned char *shared_message_memory_allocator::release ()
 
 void shared_message_memory_allocator::clear ()
 {
-    _buf = NULL;
+    _buf = null_mut();
     _buf_size = 0;
-    _msg_content = NULL;
+    _msg_content = null_mut();
 }
 
 void shared_message_memory_allocator::inc_ref ()
@@ -224,7 +224,7 @@ void shared_message_memory_allocator::call_dec_ref (void *, hint: *mut c_void)
     if (!c->sub (1)) {
         c->~AtomicCounter ();
         std::free (buf);
-        buf = NULL;
+        buf = null_mut();
     }
 }
 

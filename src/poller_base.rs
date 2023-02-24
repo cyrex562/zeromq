@@ -77,7 +77,7 @@ pub struct worker_poller_base_t : public poller_base_t
     worker_poller_base_t (const ThreadCtx &ctx);
 
     // Methods from the poller concept.
-    void start (const char *name = NULL);
+    void start (const char *name = null_mut());
 
   protected:
     //  Checks whether the currently executing thread is the worker thread
@@ -92,7 +92,7 @@ pub struct worker_poller_base_t : public poller_base_t
 
   // private:
     //  Main worker thread routine.
-    static void worker_routine (arg_: *mut c_void);
+    static void worker_routine (arg_: &mut [u8]);
 
     virtual void loop () = 0;
 
@@ -199,7 +199,7 @@ void worker_poller_base_t::stop_worker ()
     _worker.stop ();
 }
 
-void worker_poller_base_t::start (name_: *const c_char)
+void worker_poller_base_t::start (name_: &str)
 {
     zmq_assert (get_load () > 0);
     _ctx.start_thread (_worker, worker_routine, this, name_);
@@ -212,7 +212,7 @@ void worker_poller_base_t::check_thread () const
 // #endif
 }
 
-void worker_poller_base_t::worker_routine (arg_: *mut c_void)
+void worker_poller_base_t::worker_routine (arg_: &mut [u8])
 {
     (static_cast<worker_poller_base_t *> (arg_))->loop ();
 }

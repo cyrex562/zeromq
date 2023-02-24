@@ -81,7 +81,7 @@ pub struct poll_t ZMQ_FINAL : public worker_poller_base_t
     pollset_t pollset;
 
     //  If true, there's at least one retired event source.
-    bool retired;
+    retired: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (poll_t)
 };

@@ -93,13 +93,13 @@ int zmq_ctx_get_ext (context_: *mut c_void,
                      optvallen_: *mut usize);
 
 //   DRAFT Socket methods.
-int zmq_join (s_: *mut c_void, group_: *const c_char);
-int zmq_leave (s_: *mut c_void, group_: *const c_char);
+int zmq_join (s_: *mut c_void, group_: &str);
+int zmq_leave (s_: *mut c_void, group_: &str);
 
 //   DRAFT Msg methods.
 int zmq_msg_set_routing_id (msg: *mut ZmqRawMessage, u32 routing_id_);
 u32 zmq_msg_routing_id (ZmqRawMessage *msg);
-int zmq_msg_set_group (msg: *mut ZmqRawMessage, group_: *const c_char);
+int zmq_msg_set_group (msg: *mut ZmqRawMessage, group_: &str);
 const char *zmq_msg_group (ZmqRawMessage *msg);
 int zmq_msg_init_buffer (msg: *mut ZmqRawMessage, const buf: *mut c_void, size: usize);
 

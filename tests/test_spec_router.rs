@@ -37,7 +37,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 // SHALL receive incoming messages from its peers using a fair-queuing
 // strategy.
-void test_fair_queue_in (bind_address_: *const c_char)
+void test_fair_queue_in (bind_address_: &str)
 {
     char connect_address[MAX_SOCKET_STRING];
     void *receiver = test_context_socket (ZMQ_ROUTER);
@@ -108,7 +108,7 @@ void test_fair_queue_in (bind_address_: *const c_char)
 // SHALL create a double queue when a peer connects to it. If this peer
 // disconnects, the ROUTER socket SHALL destroy its double queue and SHALL
 // discard any messages it contains.
-void test_destroy_queue_on_disconnect (bind_address_: *const c_char)
+void test_destroy_queue_on_disconnect (bind_address_: &str)
 {
     void *a = test_context_socket (ZMQ_ROUTER);
 

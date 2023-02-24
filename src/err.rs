@@ -34,14 +34,14 @@
 const char *errno_to_string (errno_: i32);
 // #if defined __clang__
 #if __has_feature(attribute_analyzer_noreturn)
-void zmq_abort (errmsg_: *const c_char) __attribute__ ((analyzer_noreturn));
+void zmq_abort (errmsg_: &str) __attribute__ ((analyzer_noreturn));
 // #else
-void zmq_abort (errmsg_: *const c_char);
+void zmq_abort (errmsg_: &str);
 // #endif
 #elif defined __MSCVER__
-__declspec(noreturn) void zmq_abort (errmsg_: *const c_char);
+__declspec(noreturn) void zmq_abort (errmsg_: &str);
 // #else
-void zmq_abort (errmsg_: *const c_char);
+void zmq_abort (errmsg_: &str);
 // #endif
 void print_backtrace ();
 }
@@ -63,7 +63,7 @@ int wsa_error_to_errno (errcode_: i32);
     do {                                                                       \
         if (unlikely (!(x))) {                                                 \
             const char *errstr = wsa_error ();                            \
-            if (errstr != NULL) {                                              \
+            if (errstr != null_mut()) {                                              \
                 fprintf (stderr, "Assertion failed: %s [%i] (%s:%d)\n",        \
                          errstr, WSAGetLastError (), __FILE__, __LINE__);      \
                 fflush (stderr);                                               \
@@ -76,7 +76,7 @@ int wsa_error_to_errno (errcode_: i32);
 // #define wsa_assert_no(no)                                                      \
     do {                                                                       \
         const char *errstr = wsa_error_no (no);                           \
-        if (errstr != NULL) {                                                  \
+        if (errstr != null_mut()) {                                                  \
             fprintf (stderr, "Assertion failed: %s (%s:%d)\n", errstr,         \
                      __FILE__, __LINE__);                                      \
             fflush (stderr);                                                   \
@@ -202,7 +202,7 @@ const char *errno_to_string (errno_: i32)
     }
 }
 
-void zmq_abort (errmsg_: *const c_char)
+void zmq_abort (errmsg_: &str)
 {
 // #if defined ZMQ_HAVE_WINDOWS
 
@@ -221,10 +221,10 @@ void zmq_abort (errmsg_: *const c_char)
 
 const char *wsa_error ()
 {
-    return wsa_error_no (WSAGetLastError (), NULL);
+    return wsa_error_no (WSAGetLastError (), null_mut());
 }
 
-const char *wsa_error_no (no_: i32, wsae_wouldblock_string_: *const c_char)
+const char *wsa_error_no (no_: i32, wsae_wouldblock_string_: &str)
 {
     //  TODO:  It seems that list of Windows socket errors is longer than this.
     //         Investigate whether there's a way to convert it into the string
@@ -342,14 +342,14 @@ void win_error (char *buffer_, buffer_size_: usize)
     const DWORD errcode = GetLastError ();
 // #if defined _WIN32_WCE
     DWORD rc = FormatMessageW (
-      FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errcode,
+      FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, null_mut(), errcode,
       MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR) buffer_,
-      buffer_size_ / mem::size_of::<wchar_t>(), NULL);
+      buffer_size_ / mem::size_of::<wchar_t>(), null_mut());
 // #else
     const DWORD rc = FormatMessageA (
-      FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errcode,
+      FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, null_mut(), errcode,
       MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT), buffer_,
-      static_cast<DWORD> (buffer_size_), NULL);
+      static_cast<DWORD> (buffer_size_), null_mut());
 // #endif
     zmq_assert (rc);
 }
@@ -560,7 +560,7 @@ void print_backtrace (void)
         else
             file_name = unknown;
 
-        demangled_name = abi::__cxa_demangle (func_name, NULL, NULL, &rc);
+        demangled_name = abi::__cxa_demangle (func_name, null_mut(), null_mut(), &rc);
 
         printf ("#%u  %p in %s (%s+0x%lx)\n", frame_n++, addr, file_name,
                 rc ? func_name : demangled_name, (unsigned long) offset);

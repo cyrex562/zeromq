@@ -66,7 +66,7 @@ template <typename T, size_t S> class fast_vector_t
 template <typename T, size_t S> class resizable_fast_vector_t
 {
 // public:
-    resizable_fast_vector_t () : _dynamic_buf (NULL) {}
+    resizable_fast_vector_t () : _dynamic_buf (null_mut()) {}
 
     void resize (const nitems_: usize)
     {
@@ -101,7 +101,7 @@ template <typename T, size_t S> class resizable_fast_vector_t
 typedef int timeout_t;
 
 timeout_t
-compute_timeout (bool first_pass_, long timeout_, now_: u64, u64 end_);
+compute_timeout (first_pass_: bool, long timeout_, now_: u64, u64 end_);
 // #endif
 #if (!defined ZMQ_POLL_BASED_ON_POLL && defined ZMQ_POLL_BASED_ON_SELECT)      \
   || defined ZMQ_HAVE_PPOLL
@@ -172,7 +172,7 @@ pub struct resizable_optimized_fd_set_t : public optimized_fd_set_t
 // #endif
 // #endif
 
-timeout_t compute_timeout (const bool first_pass_,
+timeout_t compute_timeout (const first_pass_: bool,
                                      const long timeout_,
                                      const now_: u64,
                                      const u64 end_)

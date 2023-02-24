@@ -65,7 +65,7 @@ pub struct curve_encoding_t
     //  Intermediary buffer used to speed up boxing and unboxing.
     uint8_t _cn_precom[crypto_box_BEFORENMBYTES];
 
-    const bool _downgrade_sub;
+    const _downgrade_sub: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (curve_encoding_t)
 }
@@ -73,9 +73,9 @@ pub struct curve_encoding_t
 pub impl curve_encoding_t {
     curve_encoding_t (encode_nonce_prefix_: *const c_char,
         decode_nonce_prefix_: *const c_char,
-        const bool downgrade_sub_);
+        const downgrade_sub_: bool);
 
-int encode (ZmqMessage *msg);
+int encode (msg: &mut ZmqMessage);
 int decode (msg: &mut ZmqMessage error_event_code_: *mut i32);
 
 uint8_t *get_writable_precom_buffer () { return _cn_precom; }
@@ -93,11 +93,11 @@ pub struct curve_mechanism_base_t : public virtual mechanism_base_t,
                             const ZmqOptions &options_,
                             encode_nonce_prefix_: *const c_char,
                             decode_nonce_prefix_: *const c_char,
-                            const bool downgrade_sub_);
+                            const downgrade_sub_: bool);
 
     // mechanism implementation
-    int encode (ZmqMessage *msg) ZMQ_OVERRIDE;
-    int decode (ZmqMessage *msg) ZMQ_OVERRIDE;
+    int encode (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
+    int decode (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
 };
 
 curve_mechanism_base_t::curve_mechanism_base_t (
@@ -105,19 +105,19 @@ curve_mechanism_base_t::curve_mechanism_base_t (
   const ZmqOptions &options_,
   encode_nonce_prefix_: *const c_char,
   decode_nonce_prefix_: *const c_char,
-  const bool downgrade_sub_) :
+  const downgrade_sub_: bool) :
     mechanism_base_t (session_, options_),
     curve_encoding_t (
       encode_nonce_prefix_, decode_nonce_prefix_, downgrade_sub_)
 {
 }
 
-int curve_mechanism_base_t::encode (ZmqMessage *msg)
+int curve_mechanism_base_t::encode (msg: &mut ZmqMessage)
 {
     return curve_encoding_t::encode (msg);
 }
 
-int curve_mechanism_base_t::decode (ZmqMessage *msg)
+int curve_mechanism_base_t::decode (msg: &mut ZmqMessage)
 {
     int rc = check_basic_command_structure (msg);
     if (rc == -1)
@@ -135,7 +135,7 @@ int curve_mechanism_base_t::decode (ZmqMessage *msg)
 
 curve_encoding_t::curve_encoding_t (encode_nonce_prefix_: *const c_char,
                                          decode_nonce_prefix_: *const c_char,
-                                         const bool downgrade_sub_) :
+                                         const downgrade_sub_: bool) :
     _encode_nonce_prefix (encode_nonce_prefix_),
     _decode_nonce_prefix (decode_nonce_prefix_),
     _cn_nonce (1),
@@ -161,8 +161,8 @@ static const size_t crypto_box_MACBYTES = 16;
 
 int curve_encoding_t::check_validity (msg: &mut ZmqMessage error_event_code_: *mut i32)
 {
-    const size_t size = msg->size ();
-    const uint8_t *const message = static_cast<uint8_t *> (msg->data ());
+    const size_t size = msg.size ();
+    const uint8_t *const message = static_cast<uint8_t *> (msg.data ());
 
     if (size < message_command_len
         || 0 != memcmp (message, message_command, message_command_len)) {
@@ -190,28 +190,28 @@ int curve_encoding_t::check_validity (msg: &mut ZmqMessage error_event_code_: *m
     return 0;
 }
 
-int curve_encoding_t::encode (ZmqMessage *msg)
+int curve_encoding_t::encode (msg: &mut ZmqMessage)
 {
     size_t sub_cancel_len = 0;
     uint8_t message_nonce[crypto_box_NONCEBYTES];
     memcpy (message_nonce, _encode_nonce_prefix, nonce_prefix_len);
     put_uint64 (message_nonce + nonce_prefix_len, get_and_inc_nonce ());
 
-    if (msg->is_subscribe () || msg->is_cancel ()) {
+    if (msg.is_subscribe () || msg.is_cancel ()) {
         if (_downgrade_sub)
             sub_cancel_len = 1;
         else
-            sub_cancel_len = msg->is_cancel ()
+            sub_cancel_len = msg.is_cancel ()
                                ? ZmqMessage::cancel_cmd_name_size
                                : ZmqMessage::sub_cmd_name_size;
     }
 
 // #ifdef ZMQ_HAVE_CRYPTO_BOX_EASY_FNS
-    const size_t mlen = flags_len + sub_cancel_len + msg->size ();
+    const size_t mlen = flags_len + sub_cancel_len + msg.size ();
     std::vector<uint8_t> message_plaintext (mlen);
 // #else
     const size_t mlen =
-      crypto_box_ZEROBYTES + flags_len + sub_cancel_len + msg->size ();
+      crypto_box_ZEROBYTES + flags_len + sub_cancel_len + msg.size ();
     std::vector<uint8_t> message_plaintext_with_zerobytes (mlen);
     uint8_t *const message_plaintext =
       &message_plaintext_with_zerobytes[crypto_box_ZEROBYTES];
@@ -221,14 +221,14 @@ int curve_encoding_t::encode (ZmqMessage *msg)
                0);
 // #endif
 
-    const uint8_t flags = msg->flags () & flag_mask;
+    const uint8_t flags = msg.flags () & flag_mask;
     message_plaintext[0] = flags;
 
     // For backward compatibility subscribe/cancel command messages are not stored with
     // the message flags, and are encoded in the encoder, so that messages for < 3.0 peers
     // can be encoded in the "old" 0/1 way rather than as commands.
     if (sub_cancel_len == 1)
-        message_plaintext[flags_len] = msg->is_subscribe () ? 1 : 0;
+        message_plaintext[flags_len] = msg.is_subscribe () ? 1 : 0;
     else if (sub_cancel_len == ZmqMessage::sub_cmd_name_size) {
         message_plaintext[0] |= ZmqMessage::command;
         memcpy (&message_plaintext[flags_len], sub_cmd_name,
@@ -241,9 +241,9 @@ int curve_encoding_t::encode (ZmqMessage *msg)
 
     // this is copying the data from insecure memory, so there is no point in
     // using secure_allocator_t for message_plaintext
-    if (msg->size () > 0)
-        memcpy (&message_plaintext[flags_len + sub_cancel_len], msg->data (),
-                msg->size ());
+    if (msg.size () > 0)
+        memcpy (&message_plaintext[flags_len + sub_cancel_len], msg.data (),
+                msg.size ());
 
 // #ifdef ZMQ_HAVE_CRYPTO_BOX_EASY_FNS
     ZmqMessage msg_box;
@@ -256,9 +256,9 @@ int curve_encoding_t::encode (ZmqMessage *msg)
       &message_plaintext[0], mlen, message_nonce, _cn_precom);
     zmq_assert (rc == 0);
 
-    msg->move (msg_box);
+    msg.move (msg_box);
 
-    uint8_t *const message = static_cast<uint8_t *> (msg->data ());
+    uint8_t *const message = static_cast<uint8_t *> (msg.data ());
 // #else
     std::vector<uint8_t> message_box (mlen);
 
@@ -267,13 +267,13 @@ int curve_encoding_t::encode (ZmqMessage *msg)
                           mlen, message_nonce, _cn_precom);
     zmq_assert (rc == 0);
 
-    rc = msg->close ();
+    rc = msg.close ();
     zmq_assert (rc == 0);
 
-    rc = msg->init_size (16 + mlen - crypto_box_BOXZEROBYTES);
+    rc = msg.init_size (16 + mlen - crypto_box_BOXZEROBYTES);
     zmq_assert (rc == 0);
 
-    uint8_t *const message = static_cast<uint8_t *> (msg->data ());
+    uint8_t *const message = static_cast<uint8_t *> (msg.data ());
 
     memcpy (message + message_header_len, &message_box[crypto_box_BOXZEROBYTES],
             mlen - crypto_box_BOXZEROBYTES);
@@ -293,7 +293,7 @@ int curve_encoding_t::decode (msg: &mut ZmqMessage error_event_code_: *mut i32)
         return rc;
     }
 
-    uint8_t *const message = static_cast<uint8_t *> (msg->data ());
+    uint8_t *const message = static_cast<uint8_t *> (msg.data ());
 
     uint8_t message_nonce[crypto_box_NONCEBYTES];
     memcpy (message_nonce, _decode_nonce_prefix, nonce_prefix_len);
@@ -301,7 +301,7 @@ int curve_encoding_t::decode (msg: &mut ZmqMessage error_event_code_: *mut i32)
             mem::size_of::<nonce_t>());
 
 // #ifdef ZMQ_HAVE_CRYPTO_BOX_EASY_FNS
-    const size_t clen = msg->size () - message_header_len;
+    const size_t clen = msg.size () - message_header_len;
 
     uint8_t *const message_plaintext = message + message_header_len;
 
@@ -310,7 +310,7 @@ int curve_encoding_t::decode (msg: &mut ZmqMessage error_event_code_: *mut i32)
                                        message_nonce, _cn_precom);
 // #else
     const size_t clen =
-      crypto_box_BOXZEROBYTES + msg->size () - message_header_len;
+      crypto_box_BOXZEROBYTES + msg.size () - message_header_len;
 
     std::vector<uint8_t> message_plaintext_with_zerobytes (clen);
     std::vector<uint8_t> message_box (clen);
@@ -318,7 +318,7 @@ int curve_encoding_t::decode (msg: &mut ZmqMessage error_event_code_: *mut i32)
     std::fill (message_box.begin (),
                message_box.begin () + crypto_box_BOXZEROBYTES, 0);
     memcpy (&message_box[crypto_box_BOXZEROBYTES], message + message_header_len,
-            msg->size () - message_header_len);
+            msg.size () - message_header_len);
 
     rc = crypto_box_open_afternm (&message_plaintext_with_zerobytes[0],
                                   &message_box[0], clen, message_nonce,
@@ -335,27 +335,27 @@ int curve_encoding_t::decode (msg: &mut ZmqMessage error_event_code_: *mut i32)
         const size_t plaintext_size = clen - flags_len - crypto_box_MACBYTES;
 
         if (plaintext_size > 0) {
-            memmove (msg->data (), &message_plaintext[flags_len],
+            memmove (msg.data (), &message_plaintext[flags_len],
                      plaintext_size);
         }
 
-        msg->shrink (plaintext_size);
+        msg.shrink (plaintext_size);
 // #else
-        rc = msg->close ();
+        rc = msg.close ();
         zmq_assert (rc == 0);
 
-        rc = msg->init_size (clen - flags_len - crypto_box_ZEROBYTES);
+        rc = msg.init_size (clen - flags_len - crypto_box_ZEROBYTES);
         zmq_assert (rc == 0);
 
         // this is copying the data to insecure memory, so there is no point in
         // using secure_allocator_t for message_plaintext
-        if (msg->size () > 0) {
-            memcpy (msg->data (), &message_plaintext[flags_len],
-                    msg->size ());
+        if (msg.size () > 0) {
+            memcpy (msg.data (), &message_plaintext[flags_len],
+                    msg.size ());
         }
 // #endif
 
-        msg->set_flags (flags & flag_mask);
+        msg.set_flags (flags & flag_mask);
     } else {
         // CURVE I : connection key used for MESSAGE is wrong
         *error_event_code_ = ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC;

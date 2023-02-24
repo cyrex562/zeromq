@@ -47,7 +47,7 @@ raw_encoder_t::raw_encoder_t (bufsize_: usize) :
     encoder_base_t<raw_encoder_t> (bufsize_)
 {
     //  Write 0 bytes to the batch and go to message_ready state.
-    next_step (NULL, 0, &raw_encoder_t::raw_message_ready, true);
+    next_step (null_mut(), 0, &raw_encoder_t::raw_message_ready, true);
 }
 
 raw_encoder_t::~raw_encoder_t ()

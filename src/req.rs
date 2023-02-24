@@ -42,32 +42,32 @@ pub struct req_t ZMQ_FINAL : public dealer_t
     ~req_t ();
 
     //  Overrides of functions from ZmqSocketBase.
-    int xsend (ZmqMessage *msg);
-    int xrecv (ZmqMessage *msg);
+    int xsend (msg: &mut ZmqMessage);
+    int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
     bool xhas_out ();
     int xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
-    void xpipe_terminated (pipe_t *pipe_);
+    void xpipe_terminated (pipe_: &mut pipe_t);
 
   protected:
     //  Receive only from the pipe the request was sent to, discarding
     //  frames from other pipes.
-    int recv_reply_pipe (ZmqMessage *msg);
+    int recv_reply_pipe (msg: &mut ZmqMessage);
 
   // private:
     //  If true, request was already sent and reply wasn't received yet or
     //  was received partially.
-    bool _receiving_reply;
+    _receiving_reply: bool
 
     //  If true, we are starting to send/recv a message. The first part
     //  of the message must be empty message part (backtrace stack bottom).
-    bool _message_begins;
+    _message_begins: bool
 
     //  The pipe the request was sent to and where the reply is expected.
     pipe_t *_reply_pipe;
 
     //  Whether request id frames shall be sent and expected.
-    bool _request_id_frames_enabled;
+    _request_id_frames_enabled: bool
 
     //  The current request id. It is incremented every time before a new
     //  request is sent.
@@ -76,7 +76,7 @@ pub struct req_t ZMQ_FINAL : public dealer_t
     //  If false, send() will reset its internal state and terminate the
     //  reply_pipe's connection instead of failing if a previous request is
     //  still pending.
-    bool _strict;
+    _strict: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (req_t)
 };
@@ -84,14 +84,14 @@ pub struct req_session_t ZMQ_FINAL : public session_base_t
 {
 // public:
     req_session_t (io_thread_t *io_thread_,
-                   bool connect_,
+                   connect_: bool,
                    socket_: *mut ZmqSocketBase,
                    const ZmqOptions &options_,
                    Address *addr_);
     ~req_session_t ();
 
     //  Overrides of the functions from session_base_t.
-    int push_msg (ZmqMessage *msg);
+    int push_msg (msg: &mut ZmqMessage);
     void reset ();
 
   // private:
@@ -109,7 +109,7 @@ req_t::req_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
     dealer_t (parent_, tid_, sid_),
     _receiving_reply (false),
     _message_begins (true),
-    _reply_pipe (NULL),
+    _reply_pipe (null_mut()),
     _request_id_frames_enabled (false),
     _request_id (generate_random ()),
     _strict (true)
@@ -121,7 +121,7 @@ req_t::~req_t ()
 {
 }
 
-int req_t::xsend (ZmqMessage *msg)
+int req_t::xsend (msg: &mut ZmqMessage)
 {
     //  If we've sent a request and we still haven't got the reply,
     //  we can't send another request unless the strict option is disabled.
@@ -137,7 +137,7 @@ int req_t::xsend (ZmqMessage *msg)
 
     //  First part of the request is the request routing id.
     if (_message_begins) {
-        _reply_pipe = NULL;
+        _reply_pipe = null_mut();
 
         if (_request_id_frames_enabled) {
             _request_id++;
@@ -182,7 +182,7 @@ int req_t::xsend (ZmqMessage *msg)
         }
     }
 
-    bool more = (msg->flags () & ZmqMessage::more) != 0;
+    bool more = (msg.flags () & ZmqMessage::more) != 0;
 
     int rc = dealer_t::xsend (msg);
     if (rc != 0)
@@ -197,7 +197,7 @@ int req_t::xsend (ZmqMessage *msg)
     return 0;
 }
 
-int req_t::xrecv (ZmqMessage *msg)
+int req_t::xrecv (msg: &mut ZmqMessage)
 {
     //  If request wasn't send, we can't wait for reply.
     if (!_receiving_reply) {
@@ -213,12 +213,12 @@ int req_t::xrecv (ZmqMessage *msg)
             if (rc != 0)
                 return rc;
 
-            if (unlikely (!(msg->flags () & ZmqMessage::more)
-                          || msg->size () != mem::size_of::<_request_id>()
-                          || *static_cast<u32 *> (msg->data ())
+            if (unlikely (!(msg.flags () & ZmqMessage::more)
+                          || msg.size () != mem::size_of::<_request_id>()
+                          || *static_cast<u32 *> (msg.data ())
                                != _request_id)) {
                 //  Skip the remaining frames and try the next message
-                while (msg->flags () & ZmqMessage::more) {
+                while (msg.flags () & ZmqMessage::more) {
                     rc = recv_reply_pipe (msg);
                     errno_assert (rc == 0);
                 }
@@ -232,9 +232,9 @@ int req_t::xrecv (ZmqMessage *msg)
         if (rc != 0)
             return rc;
 
-        if (unlikely (!(msg->flags () & ZmqMessage::more) || msg->size () != 0)) {
+        if (unlikely (!(msg.flags () & ZmqMessage::more) || msg.size () != 0)) {
             //  Skip the remaining frames and try the next message
-            while (msg->flags () & ZmqMessage::more) {
+            while (msg.flags () & ZmqMessage::more) {
                 rc = recv_reply_pipe (msg);
                 errno_assert (rc == 0);
             }
@@ -249,7 +249,7 @@ int req_t::xrecv (ZmqMessage *msg)
         return rc;
 
     //  If the reply is fully received, flip the FSM into request-sending state.
-    if (!(msg->flags () & ZmqMessage::more)) {
+    if (!(msg.flags () & ZmqMessage::more)) {
         _receiving_reply = false;
         _message_begins = true;
     }
@@ -306,17 +306,17 @@ int req_t::xsetsockopt (option_: i32,
     return dealer_t::xsetsockopt (option_, optval_, optvallen_);
 }
 
-void req_t::xpipe_terminated (pipe_t *pipe_)
+void req_t::xpipe_terminated (pipe_: &mut pipe_t)
 {
     if (_reply_pipe == pipe_)
-        _reply_pipe = NULL;
+        _reply_pipe = null_mut();
     dealer_t::xpipe_terminated (pipe_);
 }
 
-int req_t::recv_reply_pipe (ZmqMessage *msg)
+int req_t::recv_reply_pipe (msg: &mut ZmqMessage)
 {
     while (true) {
-        pipe_t *pipe = NULL;
+        pipe_t *pipe = null_mut();
         let rc: i32 = dealer_t::recvpipe (msg, &pipe);
         if (rc != 0)
             return rc;
@@ -326,7 +326,7 @@ int req_t::recv_reply_pipe (ZmqMessage *msg)
 }
 
 req_session_t::req_session_t (io_thread_t *io_thread_,
-                                   bool connect_,
+                                   connect_: bool,
                                    ZmqSocketBase *socket_,
                                    const ZmqOptions &options_,
                                    Address *addr_) :
@@ -339,39 +339,39 @@ req_session_t::~req_session_t ()
 {
 }
 
-int req_session_t::push_msg (ZmqMessage *msg)
+int req_session_t::push_msg (msg: &mut ZmqMessage)
 {
     //  Ignore commands, they are processed by the engine and should not
     //  affect the state machine.
-    if (unlikely (msg->flags () & ZmqMessage::command))
+    if (unlikely (msg.flags () & ZmqMessage::command))
         return 0;
 
     switch (_state) {
         case bottom:
-            if (msg->flags () == ZmqMessage::more) {
+            if (msg.flags () == ZmqMessage::more) {
                 //  In case option ZMQ_CORRELATE is on, allow request_id to be
                 //  transferred as first frame (would be too cumbersome to check
                 //  whether the option is actually on or not).
-                if (msg->size () == mem::size_of::<u32>()) {
+                if (msg.size () == mem::size_of::<u32>()) {
                     _state = request_id;
                     return session_base_t::push_msg (msg);
                 }
-                if (msg->size () == 0) {
+                if (msg.size () == 0) {
                     _state = body;
                     return session_base_t::push_msg (msg);
                 }
             }
             break;
         case request_id:
-            if (msg->flags () == ZmqMessage::more && msg->size () == 0) {
+            if (msg.flags () == ZmqMessage::more && msg.size () == 0) {
                 _state = body;
                 return session_base_t::push_msg (msg);
             }
             break;
         case body:
-            if (msg->flags () == ZmqMessage::more)
+            if (msg.flags () == ZmqMessage::more)
                 return session_base_t::push_msg (msg);
-            if (msg->flags () == 0) {
+            if (msg.flags () == 0) {
                 _state = bottom;
                 return session_base_t::push_msg (msg);
             }

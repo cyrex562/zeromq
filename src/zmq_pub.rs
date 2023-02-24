@@ -42,7 +42,7 @@ pub struct pub_t ZMQ_FINAL : public xpub_t
     void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false);
-    int xrecv (ZmqMessage *msg);
+    int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (pub_t)
@@ -59,8 +59,8 @@ pub_t::~pub_t ()
 }
 
 void pub_t::xattach_pipe (pipe_t *pipe_,
-                               bool subscribe_to_all_,
-                               bool locally_initiated_)
+                               subscribe_to_all_: bool,
+                               locally_initiated_: bool)
 {
     zmq_assert (pipe_);
 

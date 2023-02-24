@@ -270,7 +270,7 @@ static void test_stream_to_stream ()
 
     //  Send zero to close connection to client
     TEST_ASSERT_SUCCESS_ERRNO (zmq_send (server, id, id_size, ZMQ_SNDMORE));
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_send (server, NULL, 0, ZMQ_SNDMORE));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_send (server, null_mut(), 0, ZMQ_SNDMORE));
 
     //  Get reply at client and check that it's complete
     TEST_ASSERT_GREATER_THAN_INT (

@@ -149,7 +149,7 @@ static void setup_curve (socket_: *mut c_void, is_server_: i32)
     if (is_server_) {
         secret_key = "JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6";
         public_key = "rq:rM>}U?@Lns47E1%kR.o@n%FcmmsL/@{H8]yf7";
-        server_key = NULL;
+        server_key = null_mut();
     } else {
         secret_key = "D:)Q[IlAW!ahhC2ac:9*A}h:p?([4%wOTJ%JR%cs";
         public_key = "Yne@$w-vo<fVvi]a<NY6T1ed:M$fCG*[IaLV{hID";

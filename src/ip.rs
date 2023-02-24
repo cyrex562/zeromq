@@ -153,7 +153,7 @@ fd_t open_socket (domain_: i32, type_: i32, protocol_: i32)
 // #if defined ZMQ_HAVE_WINDOWS && defined WSA_FLAG_NO_HANDLE_INHERIT
     // if supported, create socket with WSA_FLAG_NO_HANDLE_INHERIT, such that
     // the race condition in making it non-inheritable later is avoided
-    const fd_t s = WSASocket (domain_, type_, protocol_, NULL, 0,
+    const fd_t s = WSASocket (domain_, type_, protocol_, null_mut(), 0,
                               WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT);
 // #else
     const fd_t s = socket (domain_, type_, protocol_);
@@ -238,7 +238,7 @@ int get_peer_ip_address (fd_t sockfd_, std::string &ip_addr_)
     char host[NI_MAXHOST];
     let rc: i32 =
       getnameinfo (reinterpret_cast<struct sockaddr *> (&ss), addrlen, host,
-                   sizeof host, NULL, 0, NI_NUMERICHOST);
+                   sizeof host, null_mut(), 0, NI_NUMERICHOST);
     if (rc != 0)
         return 0;
 
@@ -336,11 +336,11 @@ bool initialize_network ()
     //  protocol ID. Note that if you want to use gettimeofday and sleep for
     //  openPGM timing, set environment variables PGM_TIMER to "GTOD" and
     //  PGM_SLEEP to "USLEEP".
-    pgm_error_t *pgm_error = NULL;
+    pgm_error_t *pgm_error = null_mut();
     const bool ok = pgm_init (&pgm_error);
     if (ok != TRUE) {
         //  Invalid parameters don't set pgm_error_t
-        zmq_assert (pgm_error != NULL);
+        zmq_assert (pgm_error != null_mut());
         if (pgm_error->domain == PGM_ERROR_DOMAIN_TIME
             && (pgm_error->code == PGM_ERROR_FAILED)) {
             //  Failed to access RTC or HPET device.
@@ -419,7 +419,7 @@ static int make_fdpair_tcpip (fd_t *r_, fd_t *w_)
     //  Note that if the event object already exists, the CreateEvent requests
     //  EVENT_ALL_ACCESS access right. If this fails, we try to open
     //  the event object asking for SYNCHRONIZE access only.
-    HANDLE sync = NULL;
+    HANDLE sync = null_mut();
 
     //  Create critical section only if using fixed signaler port
     //  Use problematic Event implementation for compatibility if using old port 5905.
@@ -432,13 +432,13 @@ static int make_fdpair_tcpip (fd_t *r_, fd_t *w_)
           CreateEventW (&sa, FALSE, TRUE, L"Global\\zmq-signaler-port-sync");
 // #else
         sync =
-          CreateEventW (NULL, FALSE, TRUE, L"Global\\zmq-signaler-port-sync");
+          CreateEventW (null_mut(), FALSE, TRUE, L"Global\\zmq-signaler-port-sync");
 // #endif
-        if (sync == NULL && GetLastError () == ERROR_ACCESS_DENIED)
+        if (sync == null_mut() && GetLastError () == ERROR_ACCESS_DENIED)
             sync = OpenEventW (SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE,
                                L"Global\\zmq-signaler-port-sync");
 
-        win_assert (sync != NULL);
+        win_assert (sync != null_mut());
     } else if (signaler_port != 0) {
         wchar_t mutex_name[MAX_PATH];
 // #ifdef __MINGW32__
@@ -452,12 +452,12 @@ static int make_fdpair_tcpip (fd_t *r_, fd_t *w_)
 // #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
         sync = CreateMutexW (&sa, FALSE, mutex_name);
 // #else
-        sync = CreateMutexW (NULL, FALSE, mutex_name);
+        sync = CreateMutexW (null_mut(), FALSE, mutex_name);
 // #endif
-        if (sync == NULL && GetLastError () == ERROR_ACCESS_DENIED)
+        if (sync == null_mut() && GetLastError () == ERROR_ACCESS_DENIED)
             sync = OpenMutexW (SYNCHRONIZE, FALSE, mutex_name);
 
-        win_assert (sync != NULL);
+        win_assert (sync != null_mut());
     }
 
     //  Windows has no 'socketpair' function. CreatePipe is no good as pipe
@@ -490,7 +490,7 @@ static int make_fdpair_tcpip (fd_t *r_, fd_t *w_)
     *w_ = open_socket (AF_INET, SOCK_STREAM, 0);
     wsa_assert (*w_ != INVALID_SOCKET);
 
-    if (sync != NULL) {
+    if (sync != null_mut()) {
         //  Enter the critical section.
         const DWORD dwrc = WaitForSingleObject (sync, INFINITE);
         zmq_assert (dwrc == WAIT_OBJECT_0 || dwrc == WAIT_ABANDONED);
@@ -523,7 +523,7 @@ static int make_fdpair_tcpip (fd_t *r_, fd_t *w_)
         //  Set TCP_NODELAY on writer socket.
         tune_socket (*w_);
 
-        *r_ = accept (listener, NULL, NULL);
+        *r_ = accept (listener, null_mut(), null_mut());
     }
 
     //  Send/receive large chunk to work around TCP slow start
@@ -566,7 +566,7 @@ static int make_fdpair_tcpip (fd_t *r_, fd_t *w_)
     rc = closesocket (listener);
     wsa_assert (rc != SOCKET_ERROR);
 
-    if (sync != NULL) {
+    if (sync != null_mut()) {
         //  Exit the critical section.
         BOOL brc;
         if (signaler_port == event_signaler_port)
@@ -681,7 +681,7 @@ int make_fdpair (fd_t *r_, fd_t *w_)
         goto error_closeclient;
     }
 
-    *r_ = accept (listener, NULL, NULL);
+    *r_ = accept (listener, null_mut(), null_mut());
     errno_assert (*r_ != -1);
 
     //  Close the listener socket, we don't need it anymore.
@@ -782,7 +782,7 @@ try_tcpip:
     rc = connect (*w_, (struct sockaddr *) &lcladdr, sizeof lcladdr);
     errno_assert (rc != -1);
 
-    *r_ = accept (listener, NULL, NULL);
+    *r_ = accept (listener, null_mut(), null_mut());
     errno_assert (*r_ != -1);
 
     close (listener);
@@ -824,7 +824,7 @@ try_tcpip:
     rc = connect (*w_, (struct sockaddr *) &lcladdr, sizeof lcladdr);
     errno_assert (rc != -1);
 
-    *r_ = accept (listener, NULL, NULL);
+    *r_ = accept (listener, null_mut(), null_mut());
     errno_assert (*r_ != -1);
 
     close (listener);
@@ -934,11 +934,11 @@ char *widechar_to_utf8 (const wchar_t *widestring)
 {
     nch: i32, n;
     char *utf8 = 0;
-    nch = WideCharToMultiByte (CP_UTF8, 0, widestring, -1, 0, 0, NULL, NULL);
+    nch = WideCharToMultiByte (CP_UTF8, 0, widestring, -1, 0, 0, null_mut(), null_mut());
     if (nch > 0) {
         utf8 = (char *) malloc ((nch + 1) * mem::size_of::<char>());
-        n = WideCharToMultiByte (CP_UTF8, 0, widestring, -1, utf8, nch, NULL,
-                                 NULL);
+        n = WideCharToMultiByte (CP_UTF8, 0, widestring, -1, utf8, nch, null_mut(),
+                                 null_mut());
         utf8[nch] = 0;
     }
     return utf8;
@@ -971,7 +971,7 @@ int create_ipc_wildcard_address (std::string &path_, std::string &file_)
 
     free (tmp);
 // #else
-    std::string tmp_path;
+    tmp_path: String;
 
     // If TMPDIR, TEMPDIR, or TMP are available and are directories, create
     // the socket directory there.

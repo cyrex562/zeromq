@@ -56,7 +56,7 @@ int test_assert_success_message_errno_helper (rc_: i32,
 }
 
 int test_assert_success_message_raw_errno_helper (
-  rc_: i32, msg: *const c_char, expr_: *const c_char, line_: i32, bool zero)
+  rc_: i32, msg: *const c_char, expr_: *const c_char, line_: i32, zero: bool)
 {
     if (rc_ == -1 || (zero && rc_ != 0)) {
 // #if defined ZMQ_HAVE_WINDOWS
@@ -141,13 +141,13 @@ void recv_string_expect_success (socket_: *mut c_void, str_: *const c_char, flag
         TEST_ASSERT_EQUAL_STRING_LEN (str_, buffer, len);
 }
 
-static void *internal_manage_test_context (bool init_, bool clear_)
+static void *internal_manage_test_context (init_: bool, clear_: bool)
 {
-    static void *test_context = NULL;
+    static void *test_context = null_mut();
     if (clear_) {
         TEST_ASSERT_NOT_NULL (test_context);
         TEST_ASSERT_SUCCESS_ERRNO (zmq_ctx_term (test_context));
-        test_context = NULL;
+        test_context = null_mut();
     } else {
         if (init_) {
             TEST_ASSERT_NULL (test_context);
@@ -158,7 +158,7 @@ static void *internal_manage_test_context (bool init_, bool clear_)
     return test_context;
 }
 
-static void internal_manage_test_sockets (socket_: *mut c_void, bool add_)
+static void internal_manage_test_sockets (socket_: *mut c_void, add_: bool)
 {
     static void *test_sockets[MAX_TEST_SOCKETS];
     static size_t test_socket_count = 0;
@@ -219,7 +219,7 @@ void teardown_test_context ()
     // test. if this is never used, it should probably be removed, to detect
     // misuses
     if (get_test_context ()) {
-        internal_manage_test_sockets (NULL, false);
+        internal_manage_test_sockets (null_mut(), false);
         internal_manage_test_context (false, true);
     }
 }

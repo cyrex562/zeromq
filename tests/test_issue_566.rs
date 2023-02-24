@@ -72,7 +72,7 @@ void test_issue_566 ()
         //  before failing the test (e.g. for running on a debugger or
         //  a very slow system).
         for (int attempt = 0; attempt < 500; attempt++) {
-            zmq_poll (NULL, 0, 2);
+            zmq_poll (null_mut(), 0, 2);
             int rc = zmq_send (router, routing_id, 10, ZMQ_SNDMORE);
             if (rc == -1 && errno == EHOSTUNREACH)
                 continue;

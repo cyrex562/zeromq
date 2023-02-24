@@ -38,7 +38,7 @@ pub struct mechanism_base_t : public mechanism_t
 
     session_base_t *const session;
 
-    int check_basic_command_structure (ZmqMessage *msg) const;
+    int check_basic_command_structure (msg: &mut ZmqMessage) const;
 
     void handle_error_reason (error_reason_: *const c_char,
                               error_reason_len_: usize);
@@ -52,10 +52,10 @@ mechanism_base_t::mechanism_base_t (session_base_t *const session_,
 {
 }
 
-int mechanism_base_t::check_basic_command_structure (ZmqMessage *msg) const
+int mechanism_base_t::check_basic_command_structure (msg: &mut ZmqMessage) const
 {
-    if (msg->size () <= 1
-        || msg->size () <= (static_cast<uint8_t *> (msg->data ()))[0]) {
+    if (msg.size () <= 1
+        || msg.size () <= (static_cast<uint8_t *> (msg.data ()))[0]) {
         session->get_socket ()->event_handshake_failed_protocol (
           session->get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED);

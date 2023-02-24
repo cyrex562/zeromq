@@ -48,7 +48,7 @@ void test_monitor_invalid_protocol_fails ()
 // #ifdef ZMQ_EVENT_PIPES_STATS
     //  Stats command needs to be called on a valid socket with monitoring
     //  enabled
-    TEST_ASSERT_FAILURE_ERRNO (ENOTSOCK, zmq_socket_monitor_pipes_stats (NULL));
+    TEST_ASSERT_FAILURE_ERRNO (ENOTSOCK, zmq_socket_monitor_pipes_stats (null_mut()));
     TEST_ASSERT_FAILURE_ERRNO (EINVAL, zmq_socket_monitor_pipes_stats (client));
 // #endif
 
@@ -91,12 +91,12 @@ void test_monitor_basic ()
     test_context_socket_close_zero_linger (server);
 
     //  Now collect and check events from both sockets
-    int event = get_monitor_event (client_mon, NULL, NULL);
+    int event = get_monitor_event (client_mon, null_mut(), null_mut());
     if (event == ZMQ_EVENT_CONNECT_DELAYED)
-        event = get_monitor_event (client_mon, NULL, NULL);
+        event = get_monitor_event (client_mon, null_mut(), null_mut());
     TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_CONNECTED, event);
     expect_monitor_event (client_mon, ZMQ_EVENT_HANDSHAKE_SUCCEEDED);
-    event = get_monitor_event (client_mon, NULL, NULL);
+    event = get_monitor_event (client_mon, null_mut(), null_mut());
     if (event == ZMQ_EVENT_DISCONNECTED) {
         expect_monitor_event (client_mon, ZMQ_EVENT_CONNECT_RETRIED);
         expect_monitor_event (client_mon, ZMQ_EVENT_MONITOR_STOPPED);
@@ -107,11 +107,11 @@ void test_monitor_basic ()
     expect_monitor_event (server_mon, ZMQ_EVENT_LISTENING);
     expect_monitor_event (server_mon, ZMQ_EVENT_ACCEPTED);
     expect_monitor_event (server_mon, ZMQ_EVENT_HANDSHAKE_SUCCEEDED);
-    event = get_monitor_event (server_mon, NULL, NULL);
+    event = get_monitor_event (server_mon, null_mut(), null_mut());
     //  Sometimes the server sees the client closing before it gets closed.
     if (event != ZMQ_EVENT_DISCONNECTED) {
         TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_CLOSED, event);
-        event = get_monitor_event (server_mon, NULL, NULL);
+        event = get_monitor_event (server_mon, null_mut(), null_mut());
     }
     if (event != ZMQ_EVENT_DISCONNECTED) {
         TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_MONITOR_STOPPED, event);
@@ -120,7 +120,7 @@ void test_monitor_basic ()
     //  into some deadlock. This must be fixed, but until it is fixed, we wait
     //  here in order to have more reliable test execution.
     while (event != ZMQ_EVENT_MONITOR_STOPPED) {
-        event = get_monitor_event (server_mon, NULL, NULL);
+        event = get_monitor_event (server_mon, null_mut(), null_mut());
     }
 
     //  Close down the sockets
@@ -216,16 +216,16 @@ void test_monitor_versioned_basic (bind_function_t bind_function_,
     test_context_socket_close_zero_linger (client);
     test_context_socket_close_zero_linger (server);
 
-    char *client_local_address = NULL;
-    char *client_remote_address = NULL;
+    char *client_local_address = null_mut();
+    char *client_remote_address = null_mut();
 
     //  Now collect and check events from both sockets
     i64 event = get_monitor_event_v2 (
-      client_mon, NULL, &client_local_address, &client_remote_address);
+      client_mon, null_mut(), &client_local_address, &client_remote_address);
     if (event == ZMQ_EVENT_CONNECT_DELAYED) {
         free (client_local_address);
         free (client_remote_address);
-        event = get_monitor_event_v2 (client_mon, NULL, &client_local_address,
+        event = get_monitor_event_v2 (client_mon, null_mut(), &client_local_address,
                                       &client_remote_address);
     }
     TEST_ASSERT_EQUAL (ZMQ_EVENT_CONNECTED, event);
@@ -237,7 +237,7 @@ void test_monitor_versioned_basic (bind_function_t bind_function_,
 
     expect_monitor_event_v2 (client_mon, ZMQ_EVENT_HANDSHAKE_SUCCEEDED,
                              client_local_address, client_remote_address);
-    event = get_monitor_event_v2 (client_mon, NULL, NULL, NULL);
+    event = get_monitor_event_v2 (client_mon, null_mut(), null_mut(), null_mut());
     if (event == ZMQ_EVENT_DISCONNECTED) {
         expect_monitor_event_v2 (client_mon, ZMQ_EVENT_CONNECT_RETRIED,
                                  client_local_address, client_remote_address);
@@ -252,11 +252,11 @@ void test_monitor_versioned_basic (bind_function_t bind_function_,
                              client_remote_address, client_local_address);
     expect_monitor_event_v2 (server_mon, ZMQ_EVENT_HANDSHAKE_SUCCEEDED,
                              client_remote_address, client_local_address);
-    event = get_monitor_event_v2 (server_mon, NULL, NULL, NULL);
+    event = get_monitor_event_v2 (server_mon, null_mut(), null_mut(), null_mut());
     //  Sometimes the server sees the client closing before it gets closed.
     if (event != ZMQ_EVENT_DISCONNECTED) {
         TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_CLOSED, event);
-        event = get_monitor_event_v2 (server_mon, NULL, NULL, NULL);
+        event = get_monitor_event_v2 (server_mon, null_mut(), null_mut(), null_mut());
     }
     if (event != ZMQ_EVENT_DISCONNECTED) {
         TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_MONITOR_STOPPED, event);
@@ -265,7 +265,7 @@ void test_monitor_versioned_basic (bind_function_t bind_function_,
     //  into some deadlock. This must be fixed, but until it is fixed, we wait
     //  here in order to have more reliable test execution.
     while (event != ZMQ_EVENT_MONITOR_STOPPED) {
-        event = get_monitor_event_v2 (server_mon, NULL, NULL, NULL);
+        event = get_monitor_event_v2 (server_mon, null_mut(), null_mut(), null_mut());
     }
     free (client_local_address);
     free (client_remote_address);
@@ -310,7 +310,7 @@ void test_monitor_versioned_basic_tipc ()
 
 // #ifdef ZMQ_EVENT_PIPES_STATS
 void test_monitor_versioned_stats (bind_function_t bind_function_,
-                                   expected_prefix_: *const c_char)
+                                   expected_prefix_: &str)
 {
     char server_endpoint[MAX_SOCKET_STRING];
     let pulls_count: i32 = 4;
@@ -394,9 +394,9 @@ void test_monitor_versioned_stats (bind_function_t bind_function_,
     zmq_getsockopt (push, ZMQ_EVENTS, &dummy, &dummy_size);
 
     for (int i = 0; i < pulls_count; ++i) {
-        char *push_local_address = NULL;
-        char *push_remote_address = NULL;
-        u64 *queue_stat = NULL;
+        char *push_local_address = null_mut();
+        char *push_remote_address = null_mut();
+        u64 *queue_stat = null_mut();
         i64 event = get_monitor_event_v2 (
           push_mon, &queue_stat, &push_local_address, &push_remote_address);
         TEST_ASSERT_EQUAL_STRING (server_endpoint, push_local_address);

@@ -46,7 +46,7 @@ pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
     pgm_sender_t (io_thread_t *parent_, const ZmqOptions &options_);
     ~pgm_sender_t ();
 
-    int init (bool udp_encapsulation_, network_: *const c_char);
+    int init (udp_encapsulation_: bool, network_: &str);
 
     //  i_engine interface implementation.
     bool has_handshake_stage () { return false; };
@@ -76,8 +76,8 @@ pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
     const EndpointUriPair _empty_endpoint;
 
     //  Timers are running.
-    bool has_tx_timer;
-    bool has_rx_timer;
+    has_tx_timer: bool
+    has_rx_timer: bool
 
     session_base_t *session;
 
@@ -87,7 +87,7 @@ pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
     ZmqMessage msg;
 
     //  Keeps track of message boundaries.
-    bool more_flag;
+    more_flag: bool
 
     //  PGM socket.
     pgm_socket_t pgm_socket;
@@ -119,16 +119,16 @@ pgm_sender_t::pgm_sender_t (io_thread_t *parent_,
     io_object_t (parent_),
     has_tx_timer (false),
     has_rx_timer (false),
-    session (NULL),
+    session (null_mut()),
     encoder (0),
     more_flag (false),
     pgm_socket (false, options_),
     options (options_),
-    handle (static_cast<handle_t> (NULL)),
-    uplink_handle (static_cast<handle_t> (NULL)),
-    rdata_notify_handle (static_cast<handle_t> (NULL)),
-    pending_notify_handle (static_cast<handle_t> (NULL)),
-    out_buffer (NULL),
+    handle (static_cast<handle_t> (null_mut())),
+    uplink_handle (static_cast<handle_t> (null_mut())),
+    rdata_notify_handle (static_cast<handle_t> (null_mut())),
+    pending_notify_handle (static_cast<handle_t> (null_mut())),
+    out_buffer (null_mut()),
     out_buffer_size (0),
     write_size (0)
 {
@@ -136,7 +136,7 @@ pgm_sender_t::pgm_sender_t (io_thread_t *parent_,
     errno_assert (rc == 0);
 }
 
-int pgm_sender_t::init (bool udp_encapsulation_, network_: *const c_char)
+int pgm_sender_t::init (udp_encapsulation_: bool, network_: &str)
 {
     int rc = pgm_socket.init (udp_encapsulation_, network_);
     if (rc != 0)
@@ -195,7 +195,7 @@ void pgm_sender_t::unplug ()
     rm_fd (uplink_handle);
     rm_fd (rdata_notify_handle);
     rm_fd (pending_notify_handle);
-    session = NULL;
+    session = null_mut();
 }
 
 void pgm_sender_t::terminate ()
@@ -228,7 +228,7 @@ pgm_sender_t::~pgm_sender_t ()
 
     if (out_buffer) {
         free (out_buffer);
-        out_buffer = NULL;
+        out_buffer = null_mut();
     }
 }
 

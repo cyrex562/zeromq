@@ -127,19 +127,19 @@ ULONGLONG compatible_get_tick_count64 ()
 
 f_compatible_get_tick_count64 init_compatible_get_tick_count64 ()
 {
-    f_compatible_get_tick_count64 func = NULL;
+    f_compatible_get_tick_count64 func = null_mut();
 // #if !defined ZMQ_HAVE_WINDOWS_UWP
 
     const HMODULE module = ::LoadLibraryA ("Kernel32.dll");
-    if (module != NULL)
+    if (module != null_mut())
         func = reinterpret_cast<f_compatible_get_tick_count64> (
           ::GetProcAddress (module, "GetTickCount64"));
 // #endif
-    if (func == NULL)
+    if (func == null_mut())
         func = compatible_get_tick_count64;
 
 // #if !defined ZMQ_HAVE_WINDOWS_UWP
-    if (module != NULL)
+    if (module != null_mut())
         ::FreeLibrary (module);
 // #endif
 
@@ -206,7 +206,7 @@ u64 clock_t::now_us ()
 // #ifndef ZMQ_HAVE_VXWORKS
         //  Use POSIX gettimeofday function to get precise time.
         struct timeval tv;
-        int rc = gettimeofday (&tv, NULL);
+        int rc = gettimeofday (&tv, null_mut());
         errno_assert (rc == 0);
         return tv.tv_sec * usecs_per_sec + tv.tv_usec;
 // #endif
@@ -222,7 +222,7 @@ u64 clock_t::now_us ()
     LIBZMQ_UNUSED (nsecs_per_usec);
     //  Use POSIX gettimeofday function to get precise time.
     struct timeval tv;
-    int rc = gettimeofday (&tv, NULL);
+    int rc = gettimeofday (&tv, null_mut());
     errno_assert (rc == 0);
     return tv.tv_sec * usecs_per_sec + tv.tv_usec;
 

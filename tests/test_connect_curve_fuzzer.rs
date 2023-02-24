@@ -57,7 +57,7 @@ extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
       my_endpoint, socket_config_curve_client, &curve_client_data, &client_mon);
 
     fd_t server_accept =
-      TEST_ASSERT_SUCCESS_RAW_ERRNO (accept (server, NULL, NULL));
+      TEST_ASSERT_SUCCESS_RAW_ERRNO (accept (server, null_mut(), null_mut()));
 
     //  If there is not enough data for a full greeting, just send what we can
     //  Otherwise send greeting first, as expected by the protocol

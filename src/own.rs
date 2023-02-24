@@ -106,7 +106,7 @@ pub struct own_t : public object_t
 
     //  True if termination was already initiated. If so, we can destroy
     //  the object if there are no more child objects or pending term acks.
-    bool _terminating;
+    _terminating: bool
 
     //  Sequence number of the last command sent to this object.
     AtomicCounter _sent_seqnum;
@@ -138,7 +138,7 @@ own_t::own_t (class ZmqContext *parent_, u32 tid_) :
     _terminating (false),
     _sent_seqnum (0),
     _processed_seqnum (0),
-    _owner (NULL),
+    _owner (null_mut()),
     _term_acks (0)
 {
 }
@@ -149,7 +149,7 @@ own_t::own_t (io_thread_t *io_thread_, const ZmqOptions &options_) :
     _terminating (false),
     _sent_seqnum (0),
     _processed_seqnum (0),
-    _owner (NULL),
+    _owner (null_mut()),
     _term_acks (0)
 {
 }

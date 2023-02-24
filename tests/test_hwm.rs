@@ -53,14 +53,14 @@ void test_defaults ()
     // Send until we block
     int send_count = 0;
     while (send_count < MAX_SENDS
-           && zmq_send (connect_socket, NULL, 0, ZMQ_DONTWAIT) == 0)
+           && zmq_send (connect_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
         ++send_count;
 
     msleep (SETTLE_TIME);
 
     // Now receive all sent messages
     int recv_count = 0;
-    while (zmq_recv (bind_socket, NULL, 0, ZMQ_DONTWAIT) == 0)
+    while (zmq_recv (bind_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
         ++recv_count;
 
     TEST_ASSERT_EQUAL_INT (send_count, recv_count);
@@ -110,21 +110,21 @@ int count_msg (send_hwm_: i32, recv_hwm_: i32, TestType test_type_)
     // Send until we block
     int send_count = 0;
     while (send_count < MAX_SENDS
-           && zmq_send (connect_socket, NULL, 0, ZMQ_DONTWAIT) == 0)
+           && zmq_send (connect_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
         ++send_count;
 
     // Now receive all sent messages
     int recv_count = 0;
-    while (zmq_recv (bind_socket, NULL, 0, ZMQ_DONTWAIT) == 0)
+    while (zmq_recv (bind_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
         ++recv_count;
 
     TEST_ASSERT_EQUAL_INT (send_count, recv_count);
 
     // Now it should be possible to send one more.
-    send_string_expect_success (connect_socket, NULL, 0);
+    send_string_expect_success (connect_socket, null_mut(), 0);
 
     //  Consume the remaining message.
-    recv_string_expect_success (bind_socket, NULL, 0);
+    recv_string_expect_success (bind_socket, null_mut(), 0);
 
     // Clean up
     test_context_socket_close (connect_socket);
@@ -154,7 +154,7 @@ int test_inproc_connect_and_close_first (send_hwm_: i32, recv_hwm_: i32)
     // Send until we block
     int send_count = 0;
     while (send_count < MAX_SENDS
-           && zmq_send (connect_socket, NULL, 0, ZMQ_DONTWAIT) == 0)
+           && zmq_send (connect_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
         ++send_count;
 
     // Close connect
@@ -168,7 +168,7 @@ int test_inproc_connect_and_close_first (send_hwm_: i32, recv_hwm_: i32)
 
     // Now receive all sent messages
     int recv_count = 0;
-    while (zmq_recv (bind_socket, NULL, 0, ZMQ_DONTWAIT) == 0)
+    while (zmq_recv (bind_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
         ++recv_count;
 
     TEST_ASSERT_EQUAL_INT (send_count, recv_count);
@@ -190,7 +190,7 @@ int test_inproc_bind_and_close_first (send_hwm_: i32, int /* recv_hwm */)
     // Send until we block
     int send_count = 0;
     while (send_count < MAX_SENDS
-           && zmq_send (bind_socket, NULL, 0, ZMQ_DONTWAIT) == 0)
+           && zmq_send (bind_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
         ++send_count;
 
     // Close bind

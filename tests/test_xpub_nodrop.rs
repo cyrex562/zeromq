@@ -62,14 +62,14 @@ void test ()
 
     //  Send an empty message
     for (int i = 0; i < hwmlimit; i++) {
-        TEST_ASSERT_SUCCESS_ERRNO (zmq_send (pub, NULL, 0, 0));
+        TEST_ASSERT_SUCCESS_ERRNO (zmq_send (pub, null_mut(), 0, 0));
         send_count++;
     }
 
     int recv_count = 0;
     do {
         //  Receive the message in the subscriber
-        int rc = zmq_recv (sub, NULL, 0, 0);
+        int rc = zmq_recv (sub, null_mut(), 0, 0);
         if (rc == -1) {
             TEST_ASSERT_EQUAL_INT (EAGAIN, errno);
             break;
@@ -103,10 +103,10 @@ void test ()
 
     if (send_count > 0) {
         //  Receive first message with blocking
-        TEST_ASSERT_SUCCESS_ERRNO (zmq_recv (sub, NULL, 0, 0));
+        TEST_ASSERT_SUCCESS_ERRNO (zmq_recv (sub, null_mut(), 0, 0));
         recv_count++;
 
-        while (zmq_recv (sub, NULL, 0, ZMQ_DONTWAIT) == 0)
+        while (zmq_recv (sub, null_mut(), 0, ZMQ_DONTWAIT) == 0)
             recv_count++;
     }
 

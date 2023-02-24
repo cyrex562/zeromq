@@ -41,15 +41,15 @@ pub struct pair_t ZMQ_FINAL : public ZmqSocketBase
 
     //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (pipe_t *pipe_,
-                       bool subscribe_to_all_,
-                       bool locally_initiated_);
-    int xsend (ZmqMessage *msg);
-    int xrecv (ZmqMessage *msg);
+                       subscribe_to_all_: bool,
+                       locally_initiated_: bool);
+    int xsend (msg: &mut ZmqMessage);
+    int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
     bool xhas_out ();
-    void xread_activated (pipe_t *pipe_);
-    void xwrite_activated (pipe_t *pipe_);
-    void xpipe_terminated (pipe_t *pipe_);
+    void xread_activated (pipe_: &mut pipe_t);
+    void xwrite_activated (pipe_: &mut pipe_t);
+    void xpipe_terminated (pipe_: &mut pipe_t);
 
   // private:
     pipe_t *_pipe;
@@ -58,7 +58,7 @@ pub struct pair_t ZMQ_FINAL : public ZmqSocketBase
 };
 
 pair_t::pair_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    ZmqSocketBase (parent_, tid_, sid_), _pipe (NULL)
+    ZmqSocketBase (parent_, tid_, sid_), _pipe (null_mut())
 {
     options.type = ZMQ_PAIR;
 }
@@ -69,26 +69,26 @@ pair_t::~pair_t ()
 }
 
 void pair_t::xattach_pipe (pipe_t *pipe_,
-                                bool subscribe_to_all_,
-                                bool locally_initiated_)
+                                subscribe_to_all_: bool,
+                                locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
 
-    zmq_assert (pipe_ != NULL);
+    zmq_assert (pipe_ != null_mut());
 
     //  ZMQ_PAIR socket can only be connected to a single peer.
     //  The socket rejects any further connection requests.
-    if (_pipe == NULL)
+    if (_pipe == null_mut())
         _pipe = pipe_;
     else
         pipe_->terminate (false);
 }
 
-void pair_t::xpipe_terminated (pipe_t *pipe_)
+void pair_t::xpipe_terminated (pipe_: &mut pipe_t)
 {
     if (pipe_ == _pipe) {
-        _pipe = NULL;
+        _pipe = null_mut();
     }
 }
 
@@ -104,32 +104,32 @@ void pair_t::xwrite_activated (pipe_t *)
     //  There's nothing to do here.
 }
 
-int pair_t::xsend (ZmqMessage *msg)
+int pair_t::xsend (msg: &mut ZmqMessage)
 {
-    if (!_pipe || !_pipe->write (msg)) {
+    if (!_pipe || !_pipe.write (msg)) {
         errno = EAGAIN;
         return -1;
     }
 
-    if (!(msg->flags () & ZmqMessage::more))
-        _pipe->flush ();
+    if (!(msg.flags () & ZmqMessage::more))
+        _pipe.flush ();
 
     //  Detach the original message from the data buffer.
-    let rc: i32 = msg->init ();
+    let rc: i32 = msg.init ();
     errno_assert (rc == 0);
 
     return 0;
 }
 
-int pair_t::xrecv (ZmqMessage *msg)
+int pair_t::xrecv (msg: &mut ZmqMessage)
 {
     //  Deallocate old content of the message.
-    int rc = msg->close ();
+    int rc = msg.close ();
     errno_assert (rc == 0);
 
-    if (!_pipe || !_pipe->read (msg)) {
+    if (!_pipe || !_pipe.read (msg)) {
         //  Initialise the output parameter to be a 0-byte message.
-        rc = msg->init ();
+        rc = msg.init ();
         errno_assert (rc == 0);
 
         errno = EAGAIN;
@@ -143,7 +143,7 @@ bool pair_t::xhas_in ()
     if (!_pipe)
         return false;
 
-    return _pipe->check_read ();
+    return _pipe.check_read ();
 }
 
 bool pair_t::xhas_out ()
@@ -151,5 +151,5 @@ bool pair_t::xhas_out ()
     if (!_pipe)
         return false;
 
-    return _pipe->check_write ();
+    return _pipe.check_write ();
 }

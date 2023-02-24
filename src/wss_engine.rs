@@ -36,7 +36,7 @@ pub struct wss_engine_t : public ws_engine_t
                   const ZmqOptions &options_,
                   const endpoint_uri_pair_t &endpoint_uri_pair_,
                   WsAddress &address_,
-                  bool client_,
+                  client_: bool,
                   tls_server_cred_: *mut c_void,
                   hostname_: &str);
     ~wss_engine_t ();
@@ -52,7 +52,7 @@ pub struct wss_engine_t : public ws_engine_t
   // private:
     bool do_handshake ();
 
-    bool _established;
+    _established: bool
     gnutls_certificate_credentials_t _tls_client_cred;
     gnutls_session_t _tls_session;
 };
@@ -83,12 +83,12 @@ wss_engine_t::wss_engine_t (fd_t fd_,
                                  const ZmqOptions &options_,
                                  const endpoint_uri_pair_t &endpoint_uri_pair_,
                                  WsAddress &address_,
-                                 bool client_,
+                                 client_: bool,
                                  tls_server_cred_: *mut c_void,
                                  hostname_: &str) :
     ws_engine_t (fd_, options_, endpoint_uri_pair_, address_, client_),
     _established (false),
-    _tls_client_cred (NULL)
+    _tls_client_cred (null_mut())
 {
     int rc = 0;
 
@@ -121,7 +121,7 @@ wss_engine_t::wss_engine_t (fd_t fd_,
 
         gnutls_session_set_ptr (
           _tls_session,
-          hostname_.is_empty() ? NULL : const_cast<char *> (hostname_.c_str ()));
+          hostname_.is_empty() ? null_mut() : const_cast<char *> (hostname_.c_str ()));
 
         rc = gnutls_credentials_set (_tls_session, GNUTLS_CRD_CERTIFICATE,
                                      _tls_client_cred);

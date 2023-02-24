@@ -75,8 +75,8 @@ pub struct devpoll_t ZMQ_FINAL : public worker_poller_base_t
     {
         short events;
         i_poll_events *reactor;
-        bool valid;
-        bool accepted;
+        valid: bool
+        accepted: bool
     };
 
     typedef std::vector<fd_entry_t> fd_table_t;

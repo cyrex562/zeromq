@@ -52,7 +52,7 @@ extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
     fd_t server_accept =
-      TEST_ASSERT_SUCCESS_RAW_ERRNO (accept (server, NULL, NULL));
+      TEST_ASSERT_SUCCESS_RAW_ERRNO (accept (server, null_mut(), null_mut()));
 
     //  If there is not enough data for a full handshake, just send what we can
     //  Otherwise send websocket handshake first, as expected by the protocol

@@ -70,7 +70,7 @@ static void recv_with_retry (fd_t fd_, char *buffer_, bytes_: i32)
     }
 }
 
-static void mock_handshake (fd_t fd_, bool sub_command, bool mock_pub)
+static void mock_handshake (fd_t fd_, sub_command: bool, mock_pub: bool)
 {
     char buffer[128];
     memset (buffer, 0, mem::size_of::<buffer>());
@@ -132,7 +132,7 @@ static void prep_server_socket (server_out_: *mut *mut c_void
     *mon_out_ = server_mon;
 }
 
-static void test_mock_pub_sub (bool sub_command_, bool mock_pub_)
+static void test_mock_pub_sub (sub_command_: bool, mock_pub_: bool)
 {
     rc: i32;
     char my_endpoint[MAX_SOCKET_STRING];

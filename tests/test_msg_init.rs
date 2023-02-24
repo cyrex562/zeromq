@@ -69,7 +69,7 @@ void test_msg_init_buffer ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg));
 
     ZmqRawMessage msg2;
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_buffer (&msg2, NULL, 0));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_buffer (&msg2, null_mut(), 0));
     TEST_ASSERT_EQUAL_INT (0, zmq_msg_size (&msg2));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg2));
 }

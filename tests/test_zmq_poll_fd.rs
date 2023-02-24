@@ -56,7 +56,7 @@ void test_poll_fd ()
 
     zmq_pollitem_t pollitems[] = {
       {sb, 0, ZMQ_POLLIN, 0},
-      {NULL, recv_socket, ZMQ_POLLIN, 0},
+      {null_mut(), recv_socket, ZMQ_POLLIN, 0},
     };
 
     int send_socket = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);

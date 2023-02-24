@@ -93,8 +93,8 @@ pub struct kqueue_t ZMQ_FINAL : public worker_poller_base_t
     struct poll_entry_t
     {
         fd_t fd;
-        bool flag_pollin;
-        bool flag_pollout;
+        flag_pollin: bool
+        flag_pollout: bool
         i_poll_events *reactor;
     };
 
@@ -135,7 +135,7 @@ void kqueue_t::kevent_add (fd_t fd_, short filter_, udata_: *mut c_void)
     struct kevent ev;
 
     EV_SET (&ev, fd_, filter_, EV_ADD, 0, 0, (kevent_udata_t) udata_);
-    int rc = kevent (kqueue_fd, &ev, 1, NULL, 0, NULL);
+    int rc = kevent (kqueue_fd, &ev, 1, null_mut(), 0, null_mut());
     errno_assert (rc != -1);
 }
 
@@ -144,7 +144,7 @@ void kqueue_t::kevent_delete (fd_t fd_, short filter_)
     struct kevent ev;
 
     EV_SET (&ev, fd_, filter_, EV_DELETE, 0, 0, 0);
-    int rc = kevent (kqueue_fd, &ev, 1, NULL, 0, NULL);
+    int rc = kevent (kqueue_fd, &ev, 1, null_mut(), 0, null_mut());
     errno_assert (rc != -1);
 }
 
@@ -245,8 +245,8 @@ void kqueue_t::loop ()
         //  Wait for events.
         struct kevent ev_buf[max_io_events];
         timespec ts = {timeout / 1000, (timeout % 1000) * 1000000};
-        int n = kevent (kqueue_fd, NULL, 0, &ev_buf[0], max_io_events,
-                        timeout ? &ts : NULL);
+        int n = kevent (kqueue_fd, null_mut(), 0, &ev_buf[0], max_io_events,
+                        timeout ? &ts : null_mut());
 // #ifdef HAVE_FORK
         if (unlikely (pid != getpid ())) {
             //printf("kqueue_t::loop aborting on forked child %d\n", (int)getpid());

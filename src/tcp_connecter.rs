@@ -70,7 +70,7 @@ pub struct tcp_connecter_t ZMQ_FINAL : public stream_connecter_base_t
                      session_base_t *session_,
                      const ZmqOptions &options_,
                      Address *addr_,
-                     bool delayed_start_);
+                     delayed_start_: bool);
     ~tcp_connecter_t ();
 
   // private:
@@ -106,7 +106,7 @@ pub struct tcp_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     bool tune_socket (fd_t fd_);
 
     //  True iff a timer has been started.
-    bool _connect_timer_started;
+    _connect_timer_started: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (tcp_connecter_t)
 };
@@ -115,7 +115,7 @@ tcp_connecter_t::tcp_connecter_t (class io_thread_t *io_thread_,
 pub struct session_base_t *session_,
                                        const ZmqOptions &options_,
                                        Address *addr_,
-                                       bool delayed_start_) :
+                                       delayed_start_: bool) :
     stream_connecter_base_t (
       io_thread_, session_, options_, addr_, delayed_start_),
     _connect_timer_started (false)
@@ -225,7 +225,7 @@ int tcp_connecter_t::open ()
     zmq_assert (_s == retired_fd);
 
     //  Resolve the address
-    if (_addr->resolved.tcp_addr != NULL) {
+    if (_addr->resolved.tcp_addr != null_mut()) {
         LIBZMQ_DELETE (_addr->resolved.tcp_addr);
     }
 
@@ -239,7 +239,7 @@ int tcp_connecter_t::open ()
         LIBZMQ_DELETE (_addr->resolved.tcp_addr);
         return -1;
     }
-    zmq_assert (_addr->resolved.tcp_addr != NULL);
+    zmq_assert (_addr->resolved.tcp_addr != null_mut());
 
     // Set the socket to non-blocking mode so that we get async connect().
     unblock_socket (_s);

@@ -108,12 +108,12 @@ pub struct select_t ZMQ_FINAL : public worker_poller_base_t
 
         fd_entries_t fd_entries;
         fds_set_t fds_set;
-        bool has_retired;
+        has_retired: bool
     };
 
     void select_family_entry (family_entry_t &family_entry_,
                               max_fd_: i32,
-                              bool use_timeout_,
+                              use_timeout_: bool,
                               struct timeval &tv_);
 
 // #if defined ZMQ_HAVE_WINDOWS
@@ -528,7 +528,7 @@ void select_t::loop ()
 
 void select_t::select_family_entry (family_entry_t &family_entry_,
                                          const max_fd_: i32,
-                                         const bool use_timeout_,
+                                         const use_timeout_: bool,
                                          struct timeval &tv_)
 {
     //  select will fail when run with empty sets.
@@ -538,7 +538,7 @@ void select_t::select_family_entry (family_entry_t &family_entry_,
 
     fds_set_t local_fds_set = family_entry_.fds_set;
     int rc = select (max_fd_, &local_fds_set.read, &local_fds_set.write,
-                     &local_fds_set.error, use_timeout_ ? &tv_ : NULL);
+                     &local_fds_set.error, use_timeout_ ? &tv_ : null_mut());
 
 // #if defined ZMQ_HAVE_WINDOWS
     wsa_assert (rc != SOCKET_ERROR);

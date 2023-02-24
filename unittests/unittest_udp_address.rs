@@ -34,13 +34,13 @@ void tearDown ()
 
 //  Test an UDP address resolution. If 'dest_addr_' is NULL assume the
 //  resolution is supposed to fail.
-static void test_resolve (bool bind_,
+static void test_resolve (bind_: bool,
                           family_: i32,
                           name_: *const c_char,
                           target_addr_: *const c_char,
                           expected_port_: u16,
                           bind_addr_: *const c_char,
-                          bool multicast_)
+                          multicast_: bool)
 {
     if (family_ == AF_INET6 && !is_ipv6_available ()) {
         TEST_IGNORE_MESSAGE ("ipv6 is not available");
@@ -50,7 +50,7 @@ static void test_resolve (bool bind_,
 
     int rc = addr.resolve (name_, bind_, family_ == AF_INET6);
 
-    if (target_addr_ == NULL) {
+    if (target_addr_ == null_mut()) {
         TEST_ASSERT_EQUAL (-1, rc);
         TEST_ASSERT_EQUAL (EINVAL, errno);
         return;
@@ -60,7 +60,7 @@ static void test_resolve (bool bind_,
 
     TEST_ASSERT_EQUAL (multicast_, addr.is_mcast ());
 
-    if (bind_addr_ == NULL) {
+    if (bind_addr_ == null_mut()) {
         // Bind ANY
         if (family_ == AF_INET) {
             bind_addr_ = "0.0.0.0";
@@ -78,7 +78,7 @@ static void test_resolve_bind (family_: i32,
                                name_: *const c_char,
                                dest_addr_: *const c_char,
                                uint16_t expected_port_ = 0,
-                               const char *bind_addr_ = NULL,
+                               const char *bind_addr_ = null_mut(),
                                bool multicast_ = false)
 {
     test_resolve (true, family_, name_, dest_addr_, expected_port_, bind_addr_,
@@ -89,7 +89,7 @@ static void test_resolve_connect (family_: i32,
                                   name_: *const c_char,
                                   dest_addr_: *const c_char,
                                   uint16_t expected_port_ = 0,
-                                  const char *bind_addr_ = NULL,
+                                  const char *bind_addr_ = null_mut(),
                                   bool multicast_ = false)
 {
     test_resolve (false, family_, name_, dest_addr_, expected_port_, bind_addr_,
@@ -152,23 +152,23 @@ static void test_resolve_ipv6_bind_any_port ()
 static void test_resolve_ipv4_connect_any ()
 {
     //  Cannot use wildcard for connection
-    test_resolve_connect (AF_INET, "*:5555", NULL);
+    test_resolve_connect (AF_INET, "*:5555", null_mut());
 }
 
 static void test_resolve_ipv6_connect_any ()
 {
     //  Cannot use wildcard for connection
-    test_resolve_connect (AF_INET6, "*:5555", NULL);
+    test_resolve_connect (AF_INET6, "*:5555", null_mut());
 }
 
 static void test_resolve_ipv4_connect_anyport ()
 {
-    test_resolve_connect (AF_INET, "127.0.0.1:*", NULL);
+    test_resolve_connect (AF_INET, "127.0.0.1:*", null_mut());
 }
 
 static void test_resolve_ipv6_connect_anyport ()
 {
-    test_resolve_connect (AF_INET6, "[::1]:*", NULL);
+    test_resolve_connect (AF_INET6, "[::1]:*", null_mut());
 }
 
 static void test_resolve_ipv4_connect_port0 ()
@@ -194,13 +194,13 @@ static void test_resolve_ipv6_bind_mcast ()
 
 static void test_resolve_ipv4_connect_mcast ()
 {
-    test_resolve_connect (AF_INET, "239.0.0.1:2222", "239.0.0.1", 2222, NULL,
+    test_resolve_connect (AF_INET, "239.0.0.1:2222", "239.0.0.1", 2222, null_mut(),
                           true);
 }
 
 static void test_resolve_ipv6_connect_mcast ()
 {
-    test_resolve_connect (AF_INET6, "[ff00::1]:2222", "ff00::1", 2222, NULL,
+    test_resolve_connect (AF_INET6, "[ff00::1]:2222", "ff00::1", 2222, null_mut(),
                           true);
 }
 
@@ -271,22 +271,22 @@ static void test_resolve_ipv6_mcast_src_connect_any ()
 
 static void test_resolve_ipv4_mcast_src_bind_bad ()
 {
-    test_resolve_bind (AF_INET, "127.0.0.1;1.2.3.4:5555", NULL);
+    test_resolve_bind (AF_INET, "127.0.0.1;1.2.3.4:5555", null_mut());
 }
 
 static void test_resolve_ipv6_mcast_src_bind_bad ()
 {
-    test_resolve_bind (AF_INET6, "[::1];[fe00::1]:5555", NULL);
+    test_resolve_bind (AF_INET6, "[::1];[fe00::1]:5555", null_mut());
 }
 
 static void test_resolve_ipv4_mcast_src_connect_bad ()
 {
-    test_resolve_connect (AF_INET, "127.0.0.1;1.2.3.4:5555", NULL);
+    test_resolve_connect (AF_INET, "127.0.0.1;1.2.3.4:5555", null_mut());
 }
 
 static void test_resolve_ipv6_mcast_src_connect_bad ()
 {
-    test_resolve_connect (AF_INET6, "[::1];[fe00:1]:5555", NULL);
+    test_resolve_connect (AF_INET6, "[::1];[fe00:1]:5555", null_mut());
 }
 
 int main (void)

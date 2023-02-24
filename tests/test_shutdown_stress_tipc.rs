@@ -51,7 +51,7 @@ static void *worker (ctx: *mut c_void)
     //  Start closing the socket while the connecting process is underway.
     TEST_ASSERT_SUCCESS_ERRNO (zmq_close (s));
 
-    return NULL;
+    return null_mut();
 }
 }
 
@@ -73,11 +73,11 @@ void test_shutdown_stress_tipc ()
 
         for (i = 0; i != THREAD_COUNT; i++) {
             TEST_ASSERT_SUCCESS_RAW_ERRNO (
-              pthread_create (&threads[i], NULL, worker, get_test_context ()));
+              pthread_create (&threads[i], null_mut(), worker, get_test_context ()));
         }
 
         for (i = 0; i != THREAD_COUNT; i++) {
-            TEST_ASSERT_SUCCESS_RAW_ERRNO (pthread_join (threads[i], NULL));
+            TEST_ASSERT_SUCCESS_RAW_ERRNO (pthread_join (threads[i], null_mut()));
         }
 
         test_context_socket_close (s1);

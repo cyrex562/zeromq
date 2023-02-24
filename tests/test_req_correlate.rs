@@ -87,7 +87,7 @@ void test_req_correlate ()
     // Send back a bad reply: wrong req id, 0, data
     zmq_msg_copy (&msg, &peer_id_msg);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_send (&msg, router, ZMQ_SNDMORE));
-    zmq_msg_init_data (&msg, &bad_req_id, mem::size_of::<u32>(), NULL, NULL);
+    zmq_msg_init_data (&msg, &bad_req_id, mem::size_of::<u32>(), null_mut(), null_mut());
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_send (&msg, router, ZMQ_SNDMORE));
     s_send_seq (router, 0, "DATA", SEQ_END);
 

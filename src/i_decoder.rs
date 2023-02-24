@@ -51,7 +51,7 @@ pub struct i_decoder
     //  When the decoder needs more data, 0 is returned.
     //  On error, -1 is returned and errno is set accordingly.
     virtual int
-    decode (const unsigned char *data, size: usize, size_t &processed_) = 0;
+    decode (const data: &mut [u8], size: usize, size_t &processed_) = 0;
 
     virtual ZmqMessage *msg () = 0;
 };

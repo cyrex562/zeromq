@@ -22,7 +22,7 @@ pub struct norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     ~norm_engine_t () ZMQ_FINAL;
 
     // create NORM instance, session, etc
-    int init (network_: *const c_char, bool send, bool recv);
+    int init (network_: *const c_char, send: bool, recv: bool);
     void shutdown ();
 
     bool has_handshake_stage () ZMQ_FINAL { return false; };
@@ -70,7 +70,7 @@ pub struct NormRxStreamState
 ^      // public:
         NormRxStreamState (NormObjectHandle normStream,
                            i64 maxMsgSize,
-                           bool zeroCopy,
+                           zeroCopy: bool,
                            inBatchSize: i32);
         ~NormRxStreamState ();
 
@@ -78,10 +78,10 @@ pub struct NormRxStreamState
 
         bool Init ();
 
-        void SetRxReady (bool state) { rx_ready = state; }
+        void SetRxReady (state: bool) { rx_ready = state; }
         bool IsRxReady () const { return rx_ready; }
 
-        void SetSync (bool state) { in_sync = state; }
+        void SetSync (state: bool) { in_sync = state; }
         bool InSync () const { return in_sync; }
 
         // These are used to feed data to decoder
@@ -105,7 +105,7 @@ pub struct List
             void Append (NormRxStreamState &item);
             void Remove (NormRxStreamState &item);
 
-            bool IsEmpty () const { return NULL == head; }
+            bool IsEmpty () const { return null_mut() == head; }
 
             void Destroy ();
 pub struct Iterator
@@ -133,12 +133,12 @@ pub struct Iterator
       // private:
         NormObjectHandle norm_stream;
         i64 max_msg_size;
-        bool zero_copy;
+        zero_copy: bool
         in_batch_size: i32;
-        bool in_sync;
-        bool rx_ready;
+        in_sync: bool
+        rx_ready: bool
         v2_decoder_t *zmq_decoder;
-        bool skip_norm_sync;
+        skip_norm_sync: bool
         unsigned char *buffer_ptr;
         buffer_size: usize;
         buffer_count: usize;
@@ -156,16 +156,16 @@ pub struct Iterator
     NormInstanceHandle norm_instance;
     handle_t norm_descriptor_handle;
     NormSessionHandle norm_session;
-    bool is_sender;
-    bool is_receiver;
+    is_sender: bool
+    is_receiver: bool
     // Sender state
     ZmqMessage tx_msg;
     v2_encoder_t zmq_encoder; // for tx messages (we use v2 for now)
     NormObjectHandle norm_tx_stream;
-    bool tx_first_msg;
-    bool tx_more_bit;
-    bool zmq_output_ready; // zmq has msg(s) to send
-    bool norm_tx_ready;    // norm has tx queue vacancy
+    tx_first_msg: bool
+    tx_more_bit: bool
+    zmq_output_ready: bool // zmq has msg(s) to send
+    norm_tx_ready: bool    // norm has tx queue vacancy
     // TBD - maybe don't need buffer if can access zmq message buffer directly?
     char tx_buffer[BUFFER_SIZE];
     unsigned int tx_index;
@@ -173,7 +173,7 @@ pub struct Iterator
 
     // Receiver state
     // Lists of norm rx streams from remote senders
-    bool zmq_input_ready; // zmq ready to receive msg(s)
+    zmq_input_ready: bool // zmq ready to receive msg(s)
     NormRxStreamState::List
       rx_pending_list; // rx streams waiting for data reception
     NormRxStreamState::List
@@ -203,7 +203,7 @@ DWORD WINAPI normWrapperThread (LPVOID lpParam);
 norm_engine_t::norm_engine_t (io_thread_t *parent_,
                                    const ZmqOptions &options_) :
     io_object_t (parent_),
-    zmq_session (NULL),
+    zmq_session (null_mut()),
     options (options_),
     norm_instance (NORM_INSTANCE_INVALID),
     norm_session (NORM_SESSION_INVALID),
@@ -229,7 +229,7 @@ norm_engine_t::~norm_engine_t ()
 }
 
 
-int norm_engine_t::init (network_: *const c_char, bool send, bool recv)
+int norm_engine_t::init (network_: *const c_char, send: bool, recv: bool)
 {
     // Parse the "network_" address int "iface", "addr", and "port"
     // norm endpoint format: [id,][<iface>;]<addr>:<port>
@@ -237,7 +237,7 @@ int norm_engine_t::init (network_: *const c_char, bool send, bool recv)
     // (default NORM_NODE_ANY causes NORM to use host IP addr for NormNodeId)
     NormNodeId localId = NORM_NODE_ANY;
     const char *ifacePtr = strchr (network_, ',');
-    if (NULL != ifacePtr) {
+    if (null_mut() != ifacePtr) {
         size_t idLen = ifacePtr - network_;
         if (idLen > 31)
             idLen = 31;
@@ -253,7 +253,7 @@ int norm_engine_t::init (network_: *const c_char, bool send, bool recv)
     // Second, look for optional multicast ifaceName
     char ifaceName[256];
     const char *addrPtr = strchr (ifacePtr, ';');
-    if (NULL != addrPtr) {
+    if (null_mut() != addrPtr) {
         size_t ifaceLen = addrPtr - ifacePtr;
         if (ifaceLen > 255)
             ifaceLen = 255; // return error instead?
@@ -263,12 +263,12 @@ int norm_engine_t::init (network_: *const c_char, bool send, bool recv)
         addrPtr++;
     } else {
         addrPtr = ifacePtr;
-        ifacePtr = NULL;
+        ifacePtr = null_mut();
     }
 
     // Finally, parse IP address and port number
     const char *portPtr = strrchr (addrPtr, ':');
-    if (NULL == portPtr) {
+    if (null_mut() == portPtr) {
         errno = EINVAL;
         return -1;
     }
@@ -318,7 +318,7 @@ int norm_engine_t::init (network_: *const c_char, bool send, bool recv)
           true); // port reuse doesn't work for non-connected unicast
         NormSetLoopback (norm_session,
                          true); // needed when multicast users on same machine
-        if (NULL != ifacePtr) {
+        if (null_mut() != ifacePtr) {
             // Note a bad interface may not be caught until sender or receiver start
             // (Since sender/receiver is not yet started, this always succeeds here)
             NormSetMulticastInterface (norm_session, ifacePtr);
@@ -436,7 +436,7 @@ void norm_engine_t::plug (io_thread_t *io_thread_,
         send_data ();
 
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
-    wrapper_thread_handle = CreateThread (NULL, 0, normWrapperThread,
+    wrapper_thread_handle = CreateThread (null_mut(), 0, normWrapperThread,
                                           threadArgs, 0, &wrapper_thread_id);
 // #endif
 
@@ -446,8 +446,8 @@ void norm_engine_t::unplug ()
 {
     rm_fd (norm_descriptor_handle);
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
-    PostThreadMessage (wrapper_thread_id, WM_QUIT, (WPARAM) NULL,
-                       (LPARAM) NULL);
+    PostThreadMessage (wrapper_thread_id, WM_QUIT, (WPARAM) null_mut(),
+                       (LPARAM) null_mut());
     WaitForSingleObject (wrapper_thread_handle, INFINITE);
     DWORD exitCode;
     GetExitCodeThread (wrapper_thread_handle, &exitCode);
@@ -455,7 +455,7 @@ void norm_engine_t::unplug ()
     int rc = closesocket (wrapper_read_fd);
     errno_assert (rc != -1);
 // #endif
-    zmq_session = NULL;
+    zmq_session = null_mut();
 } // end norm_engine_t::unplug()
 
 void norm_engine_t::terminate ()
@@ -574,12 +574,12 @@ void norm_engine_t::in_event ()
         case NORM_RX_OBJECT_ABORTED: {
             NormRxStreamState *rxState =
               (NormRxStreamState *) NormObjectGetUserData (event.object);
-            if (NULL != rxState) {
+            if (null_mut() != rxState) {
                 // Remove the state from the list it's in
                 // This is now unnecessary since deletion takes care of list removal
                 // but in the interest of being clear ...
                 NormRxStreamState::List *list = rxState->AccessList ();
-                if (NULL != list)
+                if (null_mut() != list)
                     list->Remove (*rxState);
             }
             delete rxState;
@@ -625,7 +625,7 @@ void norm_engine_t::recv_data (NormObjectHandle object)
         // state for each separate rx stream.
         NormRxStreamState *rxState =
           (NormRxStreamState *) NormObjectGetUserData (object);
-        if (NULL == rxState) {
+        if (null_mut() == rxState) {
             // This is a new stream, so create rxState with zmq decoder, etc
             rxState = new (std::nothrow)
               NormRxStreamState (object, options.maxmsgsize, options.zero_copy,
@@ -657,7 +657,7 @@ void norm_engine_t::recv_data (NormObjectHandle object)
         // (This services incoming "rx ready" streams in a round-robin fashion)
         NormRxStreamState::List::Iterator iterator (rx_ready_list);
         NormRxStreamState *rxState;
-        while (NULL != (rxState = iterator.GetNextItem ())) {
+        while (null_mut() != (rxState = iterator.GetNextItem ())) {
             switch (rxState->Decode ()) {
                 case 1: // msg completed
                     // Complete message decoded, move this stream to msg_ready_list
@@ -738,7 +738,7 @@ void norm_engine_t::recv_data (NormObjectHandle object)
             // the "rx ready" stream list after their pending message is handled
             NormRxStreamState::List::Iterator iterator (msg_ready_list);
             NormRxStreamState *rxState;
-            while (NULL != (rxState = iterator.GetNextItem ())) {
+            while (null_mut() != (rxState = iterator.GetNextItem ())) {
                 ZmqMessage *msg = rxState->AccessMsg ();
                 int rc = zmq_session->push_msg (msg);
                 if (-1 == rc) {
@@ -772,7 +772,7 @@ void norm_engine_t::recv_data (NormObjectHandle object)
 norm_engine_t::NormRxStreamState::NormRxStreamState (
   NormObjectHandle normStream,
   i64 maxMsgSize,
-  bool zeroCopy,
+  zeroCopy: bool,
   inBatchSize: i32) :
     norm_stream (normStream),
     max_msg_size (maxMsgSize),
@@ -780,26 +780,26 @@ norm_engine_t::NormRxStreamState::NormRxStreamState (
     in_batch_size (inBatchSize),
     in_sync (false),
     rx_ready (false),
-    zmq_decoder (NULL),
+    zmq_decoder (null_mut()),
     skip_norm_sync (false),
-    buffer_ptr (NULL),
+    buffer_ptr (null_mut()),
     buffer_size (0),
     buffer_count (0),
-    prev (NULL),
-    next (NULL),
-    list (NULL)
+    prev (null_mut()),
+    next (null_mut()),
+    list (null_mut())
 {
 }
 
 norm_engine_t::NormRxStreamState::~NormRxStreamState ()
 {
-    if (NULL != zmq_decoder) {
+    if (null_mut() != zmq_decoder) {
         delete zmq_decoder;
-        zmq_decoder = NULL;
+        zmq_decoder = null_mut();
     }
-    if (NULL != list) {
+    if (null_mut() != list) {
         list->Remove (*this);
-        list = NULL;
+        list = null_mut();
     }
 }
 
@@ -807,12 +807,12 @@ bool norm_engine_t::NormRxStreamState::Init ()
 {
     in_sync = false;
     skip_norm_sync = false;
-    if (NULL != zmq_decoder)
+    if (null_mut() != zmq_decoder)
         delete zmq_decoder;
     zmq_decoder =
       new (std::nothrow) v2_decoder_t (in_batch_size, max_msg_size, zero_copy);
     alloc_assert (zmq_decoder);
-    if (NULL != zmq_decoder) {
+    if (null_mut() != zmq_decoder) {
         buffer_count = 0;
         buffer_size = 0;
         zmq_decoder->get_buffer (&buffer_ptr, &buffer_size);
@@ -872,7 +872,7 @@ int norm_engine_t::NormRxStreamState::Decode ()
 
 } // end norm_engine_t::NormRxStreamState::Decode()
 
-norm_engine_t::NormRxStreamState::List::List () : head (NULL), tail (NULL)
+norm_engine_t::NormRxStreamState::List::List () : head (null_mut()), tail (null_mut())
 {
 }
 
@@ -884,7 +884,7 @@ norm_engine_t::NormRxStreamState::List::~List ()
 void norm_engine_t::NormRxStreamState::List::Destroy ()
 {
     NormRxStreamState *item = head;
-    while (NULL != item) {
+    while (null_mut() != item) {
         Remove (*item);
         delete item;
         item = head;
@@ -895,11 +895,11 @@ void norm_engine_t::NormRxStreamState::List::Append (
   NormRxStreamState &item)
 {
     item.prev = tail;
-    if (NULL != tail)
+    if (null_mut() != tail)
         tail->next = &item;
     else
         head = &item;
-    item.next = NULL;
+    item.next = null_mut();
     tail = &item;
     item.list = this;
 } // end norm_engine_t::NormRxStreamState::List::Append()
@@ -907,16 +907,16 @@ void norm_engine_t::NormRxStreamState::List::Append (
 void norm_engine_t::NormRxStreamState::List::Remove (
   NormRxStreamState &item)
 {
-    if (NULL != item.prev)
+    if (null_mut() != item.prev)
         item.prev->next = item.next;
     else
         head = item.next;
-    if (NULL != item.next)
+    if (null_mut() != item.next)
         item.next->prev = item.prev;
     else
         tail = item.prev;
-    item.prev = item.next = NULL;
-    item.list = NULL;
+    item.prev = item.next = null_mut();
+    item.list = null_mut();
 } // end norm_engine_t::NormRxStreamState::List::Remove()
 
 norm_engine_t::NormRxStreamState::List::Iterator::Iterator (
@@ -929,7 +929,7 @@ norm_engine_t::NormRxStreamState *
 norm_engine_t::NormRxStreamState::List::Iterator::GetNextItem ()
 {
     NormRxStreamState *nextItem = next_item;
-    if (NULL != nextItem)
+    if (null_mut() != nextItem)
         next_item = nextItem->next;
     return nextItem;
 } // end norm_engine_t::NormRxStreamState::List::Iterator::GetNextItem()

@@ -38,7 +38,7 @@ pub struct sub_t ZMQ_FINAL : public xsub_t
 
   protected:
     int xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
-    int xsend (ZmqMessage *msg);
+    int xsend (msg: &mut ZmqMessage);
     bool xhas_out ();
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (sub_t)

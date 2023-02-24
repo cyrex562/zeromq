@@ -59,7 +59,7 @@ pub struct vmci_listener_t ZMQ_FINAL : public stream_listener_base_t
                      const ZmqOptions &options_);
 
     //  Set address to listen on.
-    int set_local_address (addr_: *const c_char);
+    int set_local_address (addr_: &str);
 
   protected:
     std::string get_socket_name (fd_t fd_, SocketEnd socket_end_) const;
@@ -73,7 +73,7 @@ pub struct vmci_listener_t ZMQ_FINAL : public stream_listener_base_t
     //  if the connection was dropped while waiting in the listen backlog.
     fd_t accept ();
 
-    int create_socket (addr_: *const c_char);
+    int create_socket (addr_: &str);
 
     //  Address to listen on.
     VmciAddress _address;
@@ -129,12 +129,12 @@ vmci_listener_t::get_socket_name (fd_t fd_,
 
     const VmciAddress addr (reinterpret_cast<struct sockaddr *> (&ss), sl,
                                this->get_ctx ());
-    std::string address_string;
+    address_string: String;
     addr.to_string (address_string);
     return address_string;
 }
 
-int vmci_listener_t::set_local_address (addr_: *const c_char)
+int vmci_listener_t::set_local_address (addr_: &str)
 {
     //  Create addr on stack for auto-cleanup
     std::string addr (addr_);
@@ -206,7 +206,7 @@ fd_t vmci_listener_t::accept ()
     //  The situation where connection cannot be accepted due to insufficient
     //  resources is considered valid and treated by ignoring the connection.
     zmq_assert (_s != retired_fd);
-    fd_t sock = ::accept (_s, NULL, NULL);
+    fd_t sock = ::accept (_s, null_mut(), null_mut());
 
 // #ifdef ZMQ_HAVE_WINDOWS
     if (sock == INVALID_SOCKET) {

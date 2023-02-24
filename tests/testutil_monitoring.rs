@@ -33,7 +33,7 @@
 // #include <string.h>
 
 static int
-receive_monitor_address (monitor_: *mut c_void, char **address_, bool expect_more_)
+receive_monitor_address (monitor_: *mut c_void, char **address_, expect_more_: bool)
 {
     ZmqRawMessage msg;
 
@@ -123,7 +123,7 @@ int get_monitor_event (monitor_: *mut c_void, value_: *mut i32, char **address_)
 void expect_monitor_event (monitor_: *mut c_void, expected_event_: i32)
 {
     TEST_ASSERT_EQUAL_HEX (expected_event_,
-                           get_monitor_event (monitor_, NULL, NULL));
+                           get_monitor_event (monitor_, null_mut(), null_mut()));
 }
 
 static void print_unexpected_event (char *buf,
@@ -154,7 +154,7 @@ void print_unexpected_event_stderr (event_: i32,
 int expect_monitor_event_multiple (server_mon_: *mut c_void,
                                    expected_event_: i32,
                                    expected_err_: i32,
-                                   bool optional_)
+                                   optional_: bool)
 {
     int count_of_expected_events = 0;
     int client_closed_connection = 0;
@@ -164,7 +164,7 @@ int expect_monitor_event_multiple (server_mon_: *mut c_void,
     event: i32;
     err: i32;
     while ((event =
-              get_monitor_event_with_timeout (server_mon_, &err, NULL, timeout))
+              get_monitor_event_with_timeout (server_mon_, &err, null_mut(), timeout))
              != -1
            || !count_of_expected_events) {
         if (event == -1) {
@@ -316,13 +316,13 @@ i64 get_monitor_event_v2 (monitor_: *mut c_void,
 void expect_monitor_event_v2 (monitor_: *mut c_void,
                               i64 expected_event_,
                               expected_local_address_: *const c_char,
-                              expected_remote_address_: *const c_char)
+                              expected_remote_address_: &str)
 {
-    char *local_address = NULL;
-    char *remote_address = NULL;
+    char *local_address = null_mut();
+    char *remote_address = null_mut();
     i64 event = get_monitor_event_v2 (
-      monitor_, NULL, expected_local_address_ ? &local_address : NULL,
-      expected_remote_address_ ? &remote_address : NULL);
+      monitor_, null_mut(), expected_local_address_ ? &local_address : null_mut(),
+      expected_remote_address_ ? &remote_address : null_mut());
     bool failed = false;
     char buf[256];
     char *pos = buf;

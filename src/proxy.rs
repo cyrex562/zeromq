@@ -53,7 +53,7 @@ int proxy (class ZmqSocketBase *frontend_,
 pub struct ZmqSocketBase *backend_,
 pub struct ZmqSocketBase *capture_,
 pub struct ZmqSocketBase *control_ =
-             NULL); // backward compatibility without this argument
+             null_mut()); // backward compatibility without this argument
 
 //  Macros for repetitive code.
 
@@ -119,7 +119,7 @@ static int forward (class from_: *mut ZmqSocketBase,
 pub struct to_: *mut ZmqSocketBase,
                     zmq_socket_stats_t *to_stats_,
 pub struct capture_: *mut ZmqSocketBase,
-                    ZmqMessage *msg)
+                    msg: &mut ZmqMessage)
 {
     // Forward a burst of messages
     for (unsigned int i = 0; i < proxy_burst_size; i++) {
@@ -137,7 +137,7 @@ pub struct capture_: *mut ZmqSocketBase,
                 return -1;
             }
 
-            complete_msg_size += msg->size ();
+            complete_msg_size += msg.size ();
 
             moresz = sizeof more;
             rc = from_->getsockopt (ZMQ_RCVMORE, &more, &moresz);
@@ -169,8 +169,8 @@ pub struct capture_: *mut ZmqSocketBase,
 
 static int loop_and_send_multipart_stat (control_: *mut ZmqSocketBase,
                                          stat_: u64,
-                                         bool first_,
-                                         bool more_)
+                                         first_: bool,
+                                         more_: bool)
 {
     rc: i32;
     ZmqMessage msg;
@@ -246,7 +246,7 @@ pub struct ZmqSocketBase *control_)
         terminated
     } state = active;
 
-    bool frontend_equal_to_backend;
+    frontend_equal_to_backend: bool
     bool frontend_in = false;
     bool frontend_out = false;
     bool backend_in = false;
@@ -275,13 +275,13 @@ pub struct ZmqSocketBase *control_)
     //  We also don't need 'poller_both_blocked', 'poller_backend_only' nor 'poller_frontend_only' no need to initialize it.
     //  We save some RAM and time for initialization.
     socket_poller_t *poller_send_blocked =
-      NULL; //  All except 'ZMQ_POLLIN' on 'backend_'.
+      null_mut(); //  All except 'ZMQ_POLLIN' on 'backend_'.
     socket_poller_t *poller_both_blocked =
-      NULL; //  All except 'ZMQ_POLLIN' on both 'frontend_' and 'backend_'.
+      null_mut(); //  All except 'ZMQ_POLLIN' on both 'frontend_' and 'backend_'.
     socket_poller_t *poller_frontend_only =
-      NULL; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'frontend_'.
+      null_mut(); //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'frontend_'.
     socket_poller_t *poller_backend_only =
-      NULL; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'backend_'.
+      null_mut(); //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'backend_'.
 
     if (frontend_ != backend_) {
         poller_send_blocked = new (std::nothrow)
@@ -296,9 +296,9 @@ pub struct ZmqSocketBase *control_)
     } else
         frontend_equal_to_backend = true;
 
-    if (poller_all == NULL || poller_in == NULL || poller_control == NULL
-        || poller_receive_blocked == NULL
-        || ((poller_send_blocked == NULL || poller_both_blocked == NULL)
+    if (poller_all == null_mut() || poller_in == null_mut() || poller_control == null_mut()
+        || poller_receive_blocked == null_mut()
+        || ((poller_send_blocked == null_mut() || poller_both_blocked == null_mut())
             && !frontend_equal_to_backend)) {
         PROXY_CLEANUP ();
         return close_and_return (&msg, -1);
@@ -308,79 +308,79 @@ pub struct ZmqSocketBase *control_)
       poller_in; //  Poller for blocking wait, initially all 'ZMQ_POLLIN'.
 
     //  Register 'frontend_' and 'backend_' with pollers.
-    rc = poller_all->add (frontend_, NULL,
+    rc = poller_all->add (frontend_, null_mut(),
                           ZMQ_POLLIN | ZMQ_POLLOUT); //  Everything.
     CHECK_RC_EXIT_ON_FAILURE ();
-    rc = poller_in->add (frontend_, NULL, ZMQ_POLLIN); //  All 'ZMQ_POLLIN's.
+    rc = poller_in->add (frontend_, null_mut(), ZMQ_POLLIN); //  All 'ZMQ_POLLIN's.
     CHECK_RC_EXIT_ON_FAILURE ();
 
     if (frontend_equal_to_backend) {
         //  If frontend_==backend_ 'poller_send_blocked' and 'poller_receive_blocked' are the same,
         //  so we don't need 'poller_send_blocked'. We need only 'poller_receive_blocked'.
         //  We also don't need 'poller_both_blocked', no need to initialize it.
-        rc = poller_receive_blocked->add (frontend_, NULL, ZMQ_POLLOUT);
+        rc = poller_receive_blocked->add (frontend_, null_mut(), ZMQ_POLLOUT);
         CHECK_RC_EXIT_ON_FAILURE ();
     } else {
-        rc = poller_all->add (backend_, NULL,
+        rc = poller_all->add (backend_, null_mut(),
                               ZMQ_POLLIN | ZMQ_POLLOUT); //  Everything.
         CHECK_RC_EXIT_ON_FAILURE ();
-        rc = poller_in->add (backend_, NULL, ZMQ_POLLIN); //  All 'ZMQ_POLLIN's.
+        rc = poller_in->add (backend_, null_mut(), ZMQ_POLLIN); //  All 'ZMQ_POLLIN's.
         CHECK_RC_EXIT_ON_FAILURE ();
         rc = poller_both_blocked->add (
-          frontend_, NULL, ZMQ_POLLOUT); //  Waiting only for 'ZMQ_POLLOUT'.
+          frontend_, null_mut(), ZMQ_POLLOUT); //  Waiting only for 'ZMQ_POLLOUT'.
         CHECK_RC_EXIT_ON_FAILURE ();
         rc = poller_both_blocked->add (
-          backend_, NULL, ZMQ_POLLOUT); //  Waiting only for 'ZMQ_POLLOUT'.
+          backend_, null_mut(), ZMQ_POLLOUT); //  Waiting only for 'ZMQ_POLLOUT'.
         CHECK_RC_EXIT_ON_FAILURE ();
         rc = poller_send_blocked->add (
-          backend_, NULL,
+          backend_, null_mut(),
           ZMQ_POLLOUT); //  All except 'ZMQ_POLLIN' on 'backend_'.
         CHECK_RC_EXIT_ON_FAILURE ();
         rc = poller_send_blocked->add (
-          frontend_, NULL,
+          frontend_, null_mut(),
           ZMQ_POLLIN | ZMQ_POLLOUT); //  All except 'ZMQ_POLLIN' on 'backend_'.
         CHECK_RC_EXIT_ON_FAILURE ();
         rc = poller_receive_blocked->add (
-          frontend_, NULL,
+          frontend_, null_mut(),
           ZMQ_POLLOUT); //  All except 'ZMQ_POLLIN' on 'frontend_'.
         CHECK_RC_EXIT_ON_FAILURE ();
         rc = poller_receive_blocked->add (
-          backend_, NULL,
+          backend_, null_mut(),
           ZMQ_POLLIN | ZMQ_POLLOUT); //  All except 'ZMQ_POLLIN' on 'frontend_'.
         CHECK_RC_EXIT_ON_FAILURE ();
         rc =
-          poller_frontend_only->add (frontend_, NULL, ZMQ_POLLIN | ZMQ_POLLOUT);
+          poller_frontend_only->add (frontend_, null_mut(), ZMQ_POLLIN | ZMQ_POLLOUT);
         CHECK_RC_EXIT_ON_FAILURE ();
         rc =
-          poller_backend_only->add (backend_, NULL, ZMQ_POLLIN | ZMQ_POLLOUT);
+          poller_backend_only->add (backend_, null_mut(), ZMQ_POLLIN | ZMQ_POLLOUT);
         CHECK_RC_EXIT_ON_FAILURE ();
     }
 
     //  Register 'control_' with pollers.
-    if (control_ != NULL) {
-        rc = poller_all->add (control_, NULL, ZMQ_POLLIN);
+    if (control_ != null_mut()) {
+        rc = poller_all->add (control_, null_mut(), ZMQ_POLLIN);
         CHECK_RC_EXIT_ON_FAILURE ();
-        rc = poller_in->add (control_, NULL, ZMQ_POLLIN);
+        rc = poller_in->add (control_, null_mut(), ZMQ_POLLIN);
         CHECK_RC_EXIT_ON_FAILURE ();
         rc = poller_control->add (
-          control_, NULL,
+          control_, null_mut(),
           ZMQ_POLLIN); //  When proxy is paused we wait only for ZMQ_POLLIN on 'control_' socket.
         CHECK_RC_EXIT_ON_FAILURE ();
-        rc = poller_receive_blocked->add (control_, NULL, ZMQ_POLLIN);
+        rc = poller_receive_blocked->add (control_, null_mut(), ZMQ_POLLIN);
         CHECK_RC_EXIT_ON_FAILURE ();
         if (!frontend_equal_to_backend) {
-            rc = poller_send_blocked->add (control_, NULL, ZMQ_POLLIN);
+            rc = poller_send_blocked->add (control_, null_mut(), ZMQ_POLLIN);
             CHECK_RC_EXIT_ON_FAILURE ();
-            rc = poller_both_blocked->add (control_, NULL, ZMQ_POLLIN);
+            rc = poller_both_blocked->add (control_, null_mut(), ZMQ_POLLIN);
             CHECK_RC_EXIT_ON_FAILURE ();
-            rc = poller_frontend_only->add (control_, NULL, ZMQ_POLLIN);
+            rc = poller_frontend_only->add (control_, null_mut(), ZMQ_POLLIN);
             CHECK_RC_EXIT_ON_FAILURE ();
-            rc = poller_backend_only->add (control_, NULL, ZMQ_POLLIN);
+            rc = poller_backend_only->add (control_, null_mut(), ZMQ_POLLIN);
             CHECK_RC_EXIT_ON_FAILURE ();
         }
     }
 
-    bool request_processed, reply_processed;
+    request_processed: bool, reply_processed;
 
     while (state != terminated) {
         //  Blocking wait initially only for 'ZMQ_POLLIN' - 'poller_wait' points to 'poller_in'.

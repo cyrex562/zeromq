@@ -32,7 +32,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-void test (address: *const c_char)
+void test (address: &str)
 {
     //  Create a router
     void *router = test_context_socket (ZMQ_ROUTER);

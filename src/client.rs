@@ -41,15 +41,15 @@ pub struct client_t ZMQ_FINAL : public ZmqSocketBase
   protected:
     //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (pipe_t *pipe_,
-                       bool subscribe_to_all_,
-                       bool locally_initiated_);
-    int xsend (ZmqMessage *msg);
-    int xrecv (ZmqMessage *msg);
+                       subscribe_to_all_: bool,
+                       locally_initiated_: bool);
+    int xsend (msg: &mut ZmqMessage);
+    int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
     bool xhas_out ();
-    void xread_activated (pipe_t *pipe_);
-    void xwrite_activated (pipe_t *pipe_);
-    void xpipe_terminated (pipe_t *pipe_);
+    void xread_activated (pipe_: &mut pipe_t);
+    void xwrite_activated (pipe_: &mut pipe_t);
+    void xpipe_terminated (pipe_: &mut pipe_t);
 
   // private:
     //  Messages are fair-queued from inbound pipes. And load-balanced to
@@ -73,8 +73,8 @@ client_t::~client_t ()
 }
 
 void client_t::xattach_pipe (pipe_t *pipe_,
-                                  bool subscribe_to_all_,
-                                  bool locally_initiated_)
+                                  subscribe_to_all_: bool,
+                                  locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
@@ -85,31 +85,31 @@ void client_t::xattach_pipe (pipe_t *pipe_,
     _lb.attach (pipe_);
 }
 
-int client_t::xsend (ZmqMessage *msg)
+int client_t::xsend (msg: &mut ZmqMessage)
 {
     //  CLIENT sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg->flags () & ZmqMessage::more) {
+    if (msg.flags () & ZmqMessage::more) {
         errno = EINVAL;
         return -1;
     }
-    return _lb.sendpipe (msg, NULL);
+    return _lb.sendpipe (msg, null_mut());
 }
 
-int client_t::xrecv (ZmqMessage *msg)
+int client_t::xrecv (msg: &mut ZmqMessage)
 {
-    int rc = _fq.recvpipe (msg, NULL);
+    int rc = _fq.recvpipe (msg, null_mut());
 
     // Drop any messages with more flag
-    while (rc == 0 && msg->flags () & ZmqMessage::more) {
+    while (rc == 0 && msg.flags () & ZmqMessage::more) {
         // drop all frames of the current multi-frame message
-        rc = _fq.recvpipe (msg, NULL);
+        rc = _fq.recvpipe (msg, null_mut());
 
-        while (rc == 0 && msg->flags () & ZmqMessage::more)
-            rc = _fq.recvpipe (msg, NULL);
+        while (rc == 0 && msg.flags () & ZmqMessage::more)
+            rc = _fq.recvpipe (msg, null_mut());
 
         // get the new message
         if (rc == 0)
-            rc = _fq.recvpipe (msg, NULL);
+            rc = _fq.recvpipe (msg, null_mut());
     }
 
     return rc;
@@ -125,17 +125,17 @@ bool client_t::xhas_out ()
     return _lb.has_out ();
 }
 
-void client_t::xread_activated (pipe_t *pipe_)
+void client_t::xread_activated (pipe_: &mut pipe_t)
 {
     _fq.activated (pipe_);
 }
 
-void client_t::xwrite_activated (pipe_t *pipe_)
+void client_t::xwrite_activated (pipe_: &mut pipe_t)
 {
     _lb.activated (pipe_);
 }
 
-void client_t::xpipe_terminated (pipe_t *pipe_)
+void client_t::xpipe_terminated (pipe_: &mut pipe_t)
 {
     _fq.pipe_terminated (pipe_);
     _lb.pipe_terminated (pipe_);

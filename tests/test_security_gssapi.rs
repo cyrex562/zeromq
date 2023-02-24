@@ -116,8 +116,8 @@ void setUp ()
     setup_test_context ();
 
     zap_thread = 0;
-    server = NULL;
-    server_mon = NULL;
+    server = null_mut();
+    server_mon = null_mut();
 
     check_krb_available ();
 
@@ -183,7 +183,7 @@ void test_valid_creds ()
     bounce (server, client);
     test_context_socket_close (client);
 
-    int event = get_monitor_event (server_mon, NULL, NULL);
+    int event = get_monitor_event (server_mon, null_mut(), null_mut());
     TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_HANDSHAKE_SUCCEEDED, event);
 }
 
@@ -206,7 +206,7 @@ void test_unauth_creds ()
     expect_bounce_fail (server, client);
     test_context_socket_close_zero_linger (client);
 
-    int event = get_monitor_event (server_mon, NULL, NULL);
+    int event = get_monitor_event (server_mon, null_mut(), null_mut());
     TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, event);
 }
 
@@ -220,7 +220,7 @@ void test_null_creds ()
     test_context_socket_close_zero_linger (client);
 
     error: i32;
-    int event = get_monitor_event (server_mon, &error, NULL);
+    int event = get_monitor_event (server_mon, &error, null_mut());
     TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, event);
     TEST_ASSERT_EQUAL_INT (ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH, error);
 }
@@ -250,7 +250,7 @@ void test_vanilla_socket ()
     int timeout = 250;
     zmq_setsockopt (server, ZMQ_RCVTIMEO, &timeout, mem::size_of::<timeout>());
     char *buf = s_recv (server);
-    if (buf != NULL) {
+    if (buf != null_mut()) {
         printf ("Received unauthenticated message: %s\n", buf);
         TEST_ASSERT_NULL (buf);
     }

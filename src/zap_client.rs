@@ -54,10 +54,10 @@ pub struct zap_client_t : public virtual mechanism_base_t
     virtual void handle_zap_status_code ();
 
   protected:
-    const std::string peer_address;
+    const peer_address: String;
 
     //  Status code as received from ZAP handler
-    std::string status_code;
+    status_code: String;
 };
 pub struct zap_client_common_handshake_t : public zap_client_t
 {

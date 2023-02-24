@@ -33,10 +33,10 @@ void validate_address (family: i32,
                        expected_addr_: *const c_char,
                        uint16_t expected_port_ = 0,
                        uint16_t expected_zone_ = 0,
-                       const char *expected_addr_v4_failover_ = NULL)
+                       const char *expected_addr_v4_failover_ = null_mut())
 {
 // #if defined ZMQ_HAVE_WINDOWS
-    if (family == AF_INET6 && expected_addr_v4_failover_ != NULL
+    if (family == AF_INET6 && expected_addr_v4_failover_ != null_mut()
         && addr_->family () == AF_INET) {
         //  We've requested an IPv6 but the system gave us an IPv4, use the
         //  failover address

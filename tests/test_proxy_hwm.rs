@@ -192,7 +192,7 @@ static void subscriber_thread_main (pvoid_: *mut c_void)
     zmq_close (subsocket);
 }
 
-bool recv_stat (sock_: *mut c_void, bool last_, u64 *res_)
+bool recv_stat (sock_: *mut c_void, last_: bool, u64 *res_)
 {
     ZmqRawMessage stats_msg;
 
@@ -371,7 +371,7 @@ static void proxy_thread_main (pvoid_: *mut c_void)
 
     // start proxying!
 
-    zmq_proxy_steerable (frontend_xsub, backend_xpub, NULL, control_rep);
+    zmq_proxy_steerable (frontend_xsub, backend_xpub, null_mut(), control_rep);
 
     zmq_close (frontend_xsub);
     zmq_close (backend_xpub);

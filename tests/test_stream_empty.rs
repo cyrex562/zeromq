@@ -47,7 +47,7 @@ void test_stream_empty ()
     zmq_msg_init (&ident);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&ident, stream, 0));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_msg_init_data (&empty, (void *) "", 0, NULL, NULL));
+      zmq_msg_init_data (&empty, (void *) "", 0, null_mut(), null_mut()));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_send (&ident, stream, ZMQ_SNDMORE));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&ident));

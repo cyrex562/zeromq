@@ -39,7 +39,7 @@ void tearDown ()
 {
 }
 
-void handler (timer_id_: i32, arg_: *mut c_void)
+void handler (timer_id_: i32, arg_: &mut [u8])
 {
     (void) timer_id_; //  Stop 'unused' compiler warnings
     *(static_cast<bool *> (arg_)) = true;
@@ -60,22 +60,22 @@ int sleep_and_execute (timers_: *mut c_void)
 
 void test_null_timer_pointers ()
 {
-    void *timers = NULL;
+    void *timers = null_mut();
 
     TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_timers_destroy (&timers));
 
 //  TODO this currently triggers an access violation
 #if 0
-  TEST_ASSERT_FAILURE_ERRNO(EFAULT, zmq_timers_destroy (NULL));
+  TEST_ASSERT_FAILURE_ERRNO(EFAULT, zmq_timers_destroy (null_mut()));
 // #endif
 
     const size_t dummy_interval = 100;
     let dummy_timer_id: i32 = 1;
 
     TEST_ASSERT_FAILURE_ERRNO (
-      EFAULT, zmq_timers_add (timers, dummy_interval, &handler, NULL));
+      EFAULT, zmq_timers_add (timers, dummy_interval, &handler, null_mut()));
     TEST_ASSERT_FAILURE_ERRNO (
-      EFAULT, zmq_timers_add (&timers, dummy_interval, &handler, NULL));
+      EFAULT, zmq_timers_add (&timers, dummy_interval, &handler, null_mut()));
 
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
                                zmq_timers_cancel (timers, dummy_timer_id));
@@ -122,10 +122,10 @@ void test_corner_cases ()
 
     //  attempt to add NULL handler
     TEST_ASSERT_FAILURE_ERRNO (
-      EFAULT, zmq_timers_add (timers, dummy_interval, NULL, NULL));
+      EFAULT, zmq_timers_add (timers, dummy_interval, null_mut(), null_mut()));
 
     let timer_id: i32 = TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_timers_add (timers, dummy_interval, handler, NULL));
+      zmq_timers_add (timers, dummy_interval, handler, null_mut()));
 
     //  attempt to cancel timer twice
     //  TODO should this case really be an error? canceling twice could be allowed

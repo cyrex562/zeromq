@@ -133,21 +133,21 @@ void test_ctx_shutdown_only_socket_opened_after ()
 
 void test_zmq_ctx_term_null_fails ()
 {
-    int rc = zmq_ctx_term (NULL);
+    int rc = zmq_ctx_term (null_mut());
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (EFAULT, errno);
 }
 
 void test_zmq_term_null_fails ()
 {
-    int rc = zmq_term (NULL);
+    int rc = zmq_term (null_mut());
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (EFAULT, errno);
 }
 
 void test_zmq_ctx_shutdown_null_fails ()
 {
-    int rc = zmq_ctx_shutdown (NULL);
+    int rc = zmq_ctx_shutdown (null_mut());
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (EFAULT, errno);
 }
@@ -173,7 +173,7 @@ void run_poller (data: *mut c_void)
     TEST_ASSERT_NOT_NULL (poller);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add (poller, socket, NULL, ZMQ_POLLIN));
+      zmq_poller_add (poller, socket, null_mut(), ZMQ_POLLIN));
 
     zmq_atomic_counter_set (poller_test_data->counter, 1);
 

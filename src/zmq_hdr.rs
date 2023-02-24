@@ -101,8 +101,8 @@ pub const ZMQ_THREAD_AFFINITY_CPU_REMOVE: u8 = 8;
 pub const ZMQ_THREAD_NAME_PREFIX: u8 = 9;
 
 //   Default for new contexts
-pub const ZMQ_IO_THREADS_DFLT: u32 =  1;
-pub const ZMQ_MAX_SOCKETS_DFLT: u32 = 1023;
+pub const ZMQ_IO_THREADS_DFLT: i32 =  1;
+pub const ZMQ_MAX_SOCKETS_DFLT: i32 = 1023;
 pub const ZMQ_THREAD_PRIORITY_DFLT: i32 = -1;
 pub const ZMQ_THREAD_SCHED_POLICY_DFLT: i32 = -1;
 

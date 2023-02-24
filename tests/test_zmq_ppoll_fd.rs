@@ -57,7 +57,7 @@ void test_ppoll_fd ()
 
     zmq_pollitem_t pollitems[] = {
       {sb, 0, ZMQ_POLLIN, 0},
-      {NULL, recv_socket, ZMQ_POLLIN, 0},
+      {null_mut(), recv_socket, ZMQ_POLLIN, 0},
     };
 
     int send_socket = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -69,7 +69,7 @@ void test_ppoll_fd ()
     TEST_ASSERT_SUCCESS_ERRNO (sendto (
       send_socket, buf, 10, 0, (struct sockaddr *) &saddr, mem::size_of::<saddr>()));
 
-    TEST_ASSERT_EQUAL (1, zmq_ppoll (pollitems, 2, 1, NULL));
+    TEST_ASSERT_EQUAL (1, zmq_ppoll (pollitems, 2, 1, null_mut()));
     TEST_ASSERT_BITS_LOW (ZMQ_POLLIN, pollitems[0].revents);
     TEST_ASSERT_BITS_HIGH (ZMQ_POLLIN, pollitems[1].revents);
 

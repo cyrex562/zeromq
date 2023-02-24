@@ -44,7 +44,7 @@ void setUp ()
 void tearDown ()
 {
     test_context_socket_close (sock);
-    sock = NULL;
+    sock = null_mut();
     teardown_test_context ();
 }
 

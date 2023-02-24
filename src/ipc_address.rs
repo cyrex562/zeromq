@@ -44,7 +44,7 @@ pub struct IpcAddress
     ~IpcAddress ();
 
     //  This function sets up the address for UNIX domain transport.
-    int resolve (path_: *const c_char);
+    int resolve (path_: &str);
 
     //  The opposite to resolve()
     int to_string (std::string &addr_) const;
@@ -78,7 +78,7 @@ IpcAddress::~IpcAddress ()
 {
 }
 
-int IpcAddress::resolve (path_: *const c_char)
+int IpcAddress::resolve (path_: &str)
 {
     const size_t path_len = strlen (path_);
     if (path_len >= sizeof _address.sun_path) {

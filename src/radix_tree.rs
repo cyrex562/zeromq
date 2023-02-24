@@ -134,15 +134,15 @@ pub struct radix_tree_t
     bool check (const unsigned char *key_, key_size_: usize);
 
     //  Apply the function supplied to each key in the tree.
-    void apply (void (*func_) (unsigned char *data, size: usize, arg: *mut c_void),
-                arg_: *mut c_void);
+    void apply (void (*func_) (data: &mut [u8], size: usize, arg: *mut c_void),
+                arg_: &mut [u8]);
 
     //  Retrieve size of the radix tree. Note this is a multithread safe function.
     size_t size () const;
 
   // private:
     match_result_t
-    match (const unsigned char *key_, key_size_: usize, bool is_lookup_) const;
+    match (const unsigned char *key_, key_size_: usize, is_lookup_: bool) const;
 
     node_t _root;
     AtomicCounter _size;
@@ -653,8 +653,8 @@ bool radix_tree_t::check (const unsigned char *key_, key_size_: usize)
 static void
 visit_keys (node_t node_,
             std::vector<unsigned char> &buffer_,
-            void (*func_) (unsigned char *data, size: usize, arg_: *mut c_void),
-            arg_: *mut c_void)
+            void (*func_) (data: &mut [u8], size: usize, arg_: &mut [u8]),
+            arg_: &mut [u8])
 {
     const size_t prefix_length = node_.prefix_length ();
     buffer_.reserve (buffer_.size () + prefix_length);
@@ -673,10 +673,10 @@ visit_keys (node_t node_,
 }
 
 void radix_tree_t::apply (
-  void (*func_) (unsigned char *data, size: usize, arg_: *mut c_void), arg_: *mut c_void)
+  void (*func_) (data: &mut [u8], size: usize, arg_: &mut [u8]), arg_: &mut [u8])
 {
     if (_root.refcount () > 0)
-        func_ (NULL, 0, arg_); // Root node is always empty.
+        func_ (null_mut(), 0, arg_); // Root node is always empty.
 
     std::vector<unsigned char> buffer;
     for (size_t i = 0; i < _root.edgecount (); ++i)

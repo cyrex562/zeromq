@@ -127,11 +127,11 @@ void socks_server_task (socks_server: *mut c_void,
     TEST_ASSERT_SUCCESS_RAW_ERRNO (res);
 
     auth_method: i32;
-    if (username == NULL || username[0] == 0) {
+    if (username == null_mut() || username[0] == 0) {
         auth_method = 0x0; /* No auth */
     } else {
         auth_method = 0x2; /* Basic auth */
-        if (password == NULL)
+        if (password == null_mut())
             password = "";
     }
 
@@ -141,7 +141,7 @@ void socks_server_task (socks_server: *mut c_void,
         do {
             char buffer[4096];
             fprintf (stderr, "socks_server: waiting for connection\n");
-            client = accept (server_fd, NULL, NULL);
+            client = accept (server_fd, null_mut(), null_mut());
             TEST_ASSERT_SUCCESS_RAW_ERRNO (client);
             count++;
             fprintf (stderr, "socks_server: accepted client connection %d/%d\n",
@@ -319,8 +319,8 @@ void socks_server_task (socks_server: *mut c_void,
 
             /* Communication loop */
             zmq_pollitem_t items[] = {
-              {NULL, client, ZMQ_POLLIN, 0},
-              {NULL, remote, ZMQ_POLLIN, 0},
+              {null_mut(), client, ZMQ_POLLIN, 0},
+              {null_mut(), remote, ZMQ_POLLIN, 0},
             };
             fprintf (stderr,
                      "socks_server: waiting for input (client fd: %d, remote "
@@ -381,7 +381,7 @@ void socks_server_task (socks_server: *mut c_void,
 
 void socks_server_no_auth (socks_server: *mut c_void)
 {
-    socks_server_task (socks_server, NULL, NULL, 1);
+    socks_server_task (socks_server, null_mut(), null_mut(), 1);
 }
 
 void socks_server_no_auth_delay (socks_server: *mut c_void)
@@ -389,7 +389,7 @@ void socks_server_no_auth_delay (socks_server: *mut c_void)
     fprintf (stderr, "socks_server: delay no auth socks server start\n");
     // Enough delay to have client connecting before proxy listens
     msleep (SETTLE_TIME * 10);
-    socks_server_task (socks_server, NULL, NULL, 1);
+    socks_server_task (socks_server, null_mut(), null_mut(), 1);
 }
 
 void socks_server_basic_auth (socks_server: *mut c_void)
@@ -407,7 +407,7 @@ void socks_server_basic_auth_delay (socks_server: *mut c_void)
 
 void socks_server_basic_auth_no_pass (socks_server: *mut c_void)
 {
-    socks_server_task (socks_server, "someuser", NULL, 1);
+    socks_server_task (socks_server, "someuser", null_mut(), 1);
 }
 
 void *setup_push_server (char *connect_address, connect_address_size: i32)
@@ -424,11 +424,11 @@ void *setup_push_server (char *connect_address, connect_address_size: i32)
     return push;
 }
 
-void *setup_pull_client (connect_address: *const c_char, socks_proxy: *const c_char)
+void *setup_pull_client (connect_address: *const c_char, socks_proxy: &str)
 {
     res: i32;
     void *pull = test_context_socket (ZMQ_PULL);
-    if (socks_proxy != NULL) {
+    if (socks_proxy != null_mut()) {
         res = zmq_setsockopt (pull, ZMQ_SOCKS_PROXY, socks_proxy,
                               strlen (socks_proxy));
         TEST_ASSERT_SUCCESS_ERRNO (res);
@@ -445,12 +445,12 @@ void *setup_pull_client (connect_address: *const c_char, socks_proxy: *const c_c
 void *setup_pull_client_with_auth (connect_address: *const c_char,
                                    socks_proxy: *const c_char,
                                    username: *const c_char,
-                                   password: *const c_char)
+                                   password: &str)
 {
     res: i32;
     void *pull = test_context_socket (ZMQ_PULL);
 
-    if (socks_proxy != NULL) {
+    if (socks_proxy != null_mut()) {
         res = zmq_setsockopt (pull, ZMQ_SOCKS_PROXY, socks_proxy,
                               strlen (socks_proxy));
         TEST_ASSERT_SUCCESS_ERRNO (res);
@@ -459,11 +459,11 @@ void *setup_pull_client_with_auth (connect_address: *const c_char,
     }
 
     res = zmq_setsockopt (pull, ZMQ_SOCKS_USERNAME, username,
-                          username == NULL ? 0 : strlen (username));
+                          username == null_mut() ? 0 : strlen (username));
     TEST_ASSERT_SUCCESS_ERRNO (res);
 
     res = zmq_setsockopt (pull, ZMQ_SOCKS_PASSWORD, password,
-                          password == NULL ? 0 : strlen (password));
+                          password == null_mut() ? 0 : strlen (password));
     TEST_ASSERT_SUCCESS_ERRNO (res);
 
     res = zmq_connect (pull, connect_address);
@@ -489,7 +489,7 @@ void test_socks_no_socks (void)
     char connect_address[MAX_SOCKET_STRING];
 
     void *push = setup_push_server (connect_address, sizeof connect_address);
-    void *pull = setup_pull_client (connect_address, NULL);
+    void *pull = setup_pull_client (connect_address, null_mut());
     communicate (push, pull);
 
     test_context_socket_close_zero_linger (push);
@@ -690,7 +690,7 @@ void test_socks_basic_auth_empty_user (void)
       setup_socks_server (socks_server_address, sizeof socks_server_address);
     void *push = setup_push_server (connect_address, sizeof connect_address);
     void *pull = setup_pull_client_with_auth (connect_address,
-                                              socks_server_address, "", NULL);
+                                              socks_server_address, "", null_mut());
     void *thread = zmq_threadstart (&socks_server_no_auth, socks);
 
     communicate (push, pull);
@@ -715,7 +715,7 @@ void test_socks_basic_auth_null_user (void)
       setup_socks_server (socks_server_address, sizeof socks_server_address);
     void *push = setup_push_server (connect_address, sizeof connect_address);
     void *pull = setup_pull_client_with_auth (connect_address,
-                                              socks_server_address, NULL, NULL);
+                                              socks_server_address, null_mut(), null_mut());
     void *thread = zmq_threadstart (&socks_server_no_auth, socks);
 
     communicate (push, pull);
@@ -765,7 +765,7 @@ void test_socks_basic_auth_null_pass (void)
       setup_socks_server (socks_server_address, sizeof socks_server_address);
     void *push = setup_push_server (connect_address, sizeof connect_address);
     void *pull = setup_pull_client_with_auth (
-      connect_address, socks_server_address, "someuser", NULL);
+      connect_address, socks_server_address, "someuser", null_mut());
     void *thread = zmq_threadstart (&socks_server_basic_auth_no_pass, socks);
 
     communicate (push, pull);
@@ -781,7 +781,7 @@ void test_socks_basic_auth_null_pass (void)
 }
 
 
-void test_string_opt_ok (msg: *const c_char, opt: i32, value: *const c_char)
+void test_string_opt_ok (msg: *const c_char, opt: i32, value: &str)
 {
     res: i32;
     void *sub = test_context_socket (ZMQ_SUB);
@@ -832,7 +832,7 @@ void test_opt_invalid (msg: *const c_char, opt: i32, value: *const c_char, len: 
 void test_socks_proxy_options (void)
 {
     // NULL is equivalent to not set and returns empty string
-    test_opt_ok ("NULL proxy", ZMQ_SOCKS_PROXY, NULL, 0, "", 0);
+    test_opt_ok ("NULL proxy", ZMQ_SOCKS_PROXY, null_mut(), 0, "", 0);
     test_string_opt_ok ("valid proxy", ZMQ_SOCKS_PROXY, "somehost:1080");
     // Empty value not allowed for proxy server
     test_opt_invalid ("empty proxy", ZMQ_SOCKS_PROXY, "", 0);
@@ -847,7 +847,7 @@ void test_socks_userpass_options (void)
     }
 
     // NULL is equivalent to not-set or ""
-    test_opt_ok ("NULL username", ZMQ_SOCKS_USERNAME, NULL, 0, "", 0);
+    test_opt_ok ("NULL username", ZMQ_SOCKS_USERNAME, null_mut(), 0, "", 0);
     // Empty value is allowed for username, means no authentication
     test_string_opt_ok ("empty username", ZMQ_SOCKS_USERNAME, "");
     test_string_opt_ok ("valid username", ZMQ_SOCKS_USERNAME, "someuser");
@@ -856,7 +856,7 @@ void test_socks_userpass_options (void)
     test_opt_invalid ("too long username", ZMQ_SOCKS_USERNAME, buffer, 256);
 
     // NULL is equivalent to not-set or ""
-    test_opt_ok ("NULL password", ZMQ_SOCKS_PASSWORD, NULL, 0, "", 0);
+    test_opt_ok ("NULL password", ZMQ_SOCKS_PASSWORD, null_mut(), 0, "", 0);
     // Empty value allowed for password
     test_string_opt_ok ("empty password", ZMQ_SOCKS_PASSWORD, "");
     test_string_opt_ok ("valid password", ZMQ_SOCKS_PASSWORD, "someuser");

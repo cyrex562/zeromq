@@ -61,7 +61,7 @@ void server_task (void * /*unused_*/)
 
     // Connect backend to frontend via a proxy
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_proxy_steerable (frontend, backend, NULL, control));
+      zmq_proxy_steerable (frontend, backend, null_mut(), control));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_close (frontend));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_close (backend));
@@ -73,7 +73,7 @@ void server_task (void * /*unused_*/)
 // waits for the server to terminate.
 void test_proxy_terminate ()
 {
-    void *thread = zmq_threadstart (&server_task, NULL);
+    void *thread = zmq_threadstart (&server_task, null_mut());
 
     // Control socket receives terminate command from main over inproc
     void *control = test_context_socket (ZMQ_REP);

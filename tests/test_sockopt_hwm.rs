@@ -58,7 +58,7 @@ void test_change_before_connected ()
 
     int send_count = 0;
     while (send_count < MAX_SENDS
-           && zmq_send (bind_socket, NULL, 0, ZMQ_DONTWAIT) == 0)
+           && zmq_send (bind_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
         ++send_count;
 
     TEST_ASSERT_EQUAL_INT (4, send_count);
@@ -95,7 +95,7 @@ void test_change_after_connected ()
 
     int send_count = 0;
     while (send_count < MAX_SENDS
-           && zmq_send (bind_socket, NULL, 0, ZMQ_DONTWAIT) == 0)
+           && zmq_send (bind_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
         ++send_count;
 
     TEST_ASSERT_EQUAL_INT (6, send_count);

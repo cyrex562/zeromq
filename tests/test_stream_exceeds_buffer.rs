@@ -47,7 +47,7 @@ void test_stream_exceeds_buffer ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (zsock, my_endpoint));
 
     int client_sock =
-      TEST_ASSERT_SUCCESS_RAW_ERRNO (accept (server_sock, NULL, NULL));
+      TEST_ASSERT_SUCCESS_RAW_ERRNO (accept (server_sock, null_mut(), null_mut()));
 
     TEST_ASSERT_SUCCESS_RAW_ERRNO (close (server_sock));
 

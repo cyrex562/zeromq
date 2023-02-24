@@ -59,7 +59,7 @@ impl TcpAddress {
     //         memcpy (&_address.ipv6, sa_, sizeof (_address.ipv6));
     // }
     
-    fn resolve(&mut self, name: &mut str, local: bool, ipv6: bool) -> i32 {
+    pub fn resolve(&mut self, name: &mut str, local: bool, ipv6: bool) -> i32 {
         // Test the ';' to know if we have a source address in name_
         // const char *src_delimiter = strrchr (name_, ';');
         let src_delimeter = name.find(';');

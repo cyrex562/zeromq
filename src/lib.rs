@@ -159,3 +159,5 @@ mod pending_connection;
 mod zmq_content;
 mod zmq_poller_event;
 mod zmq_poll_item;
+mod inprocs;
+mod out_pipe;

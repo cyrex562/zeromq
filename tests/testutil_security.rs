@@ -123,7 +123,7 @@ void socket_config_curve_client (client_: *mut c_void, data: *mut c_void)
 void *zap_requests_handled;
 
 void zap_handler_generic (zap_protocol_t zap_protocol_,
-                          expected_routing_id_: *const c_char)
+                          expected_routing_id_: &str)
 {
     void *control = zmq_socket (get_test_context (), ZMQ_REQ);
     TEST_ASSERT_NOT_NULL (control);
@@ -269,7 +269,7 @@ void zap_handler (void *)
 
 static void setup_handshake_socket_monitor (server_: *mut c_void,
                                             server_mon_: *mut *mut c_void
-                                            monitor_endpoint_: *const c_char)
+                                            monitor_endpoint_: &str)
 {
     //  Monitor handshake events on the server
     TEST_ASSERT_SUCCESS_ERRNO (zmq_socket_monitor (
@@ -296,7 +296,7 @@ void setup_context_and_server_side (zap_control_: *mut *mut c_void
                                     zmq_thread_fn zap_handler_,
                                     socket_config_fn socket_config_,
                                     socket_config_data_: *mut c_void,
-                                    routing_id_: *const c_char)
+                                    routing_id_: &str)
 {
     //  Spawn ZAP handler
     zap_requests_handled = zmq_atomic_counter_new ();
@@ -309,12 +309,12 @@ void setup_context_and_server_side (zap_control_: *mut *mut c_void
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (*zap_control_, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
 
-    if (zap_handler_ != NULL) {
-        *zap_thread_ = zmq_threadstart (zap_handler_, NULL);
+    if (zap_handler_ != null_mut()) {
+        *zap_thread_ = zmq_threadstart (zap_handler_, null_mut());
 
         recv_string_expect_success (*zap_control_, "GO", 0);
     } else
-        *zap_thread_ = NULL;
+        *zap_thread_ = null_mut();
 
     //  Server socket will accept connections
     *server_ = test_context_socket (ZMQ_DEALER);
@@ -342,7 +342,7 @@ void shutdown_context_and_server_side (zap_thread_: *mut c_void,
                                        server_: *mut c_void,
                                        server_mon_: *mut c_void,
                                        zap_control_: *mut c_void,
-                                       bool zap_handler_stopped_)
+                                       zap_handler_stopped_: bool)
 {
     if (zap_thread_ && !zap_handler_stopped_) {
         send_string_expect_success (zap_control_, "STOP", 0);
@@ -351,7 +351,7 @@ void shutdown_context_and_server_side (zap_thread_: *mut c_void,
           zmq_unbind (zap_control_, "inproc://handler-control"));
     }
     test_context_socket_close (zap_control_);
-    zmq_socket_monitor (server_, NULL, 0);
+    zmq_socket_monitor (server_, null_mut(), 0);
     test_context_socket_close (server_mon_);
     test_context_socket_close (server_);
 
@@ -394,8 +394,8 @@ void expect_new_client_bounce_fail (char *my_endpoint_,
                                     expected_client_event_: i32,
                                     expected_client_value_: i32)
 {
-    void *my_client_mon = NULL;
-    TEST_ASSERT_TRUE (client_mon_ == NULL || expected_client_event_ == 0);
+    void *my_client_mon = null_mut();
+    TEST_ASSERT_TRUE (client_mon_ == null_mut() || expected_client_event_ == 0);
     if (expected_client_event_ != 0)
         client_mon_ = &my_client_mon;
     void *client = create_and_connect_client (my_endpoint_, socket_config_,

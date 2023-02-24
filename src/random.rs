@@ -119,7 +119,7 @@ static unsigned int random_refcount = 0;
 static mutex_t random_sync;
 // #endif
 
-static void manage_random (bool init_)
+static void manage_random (init_: bool)
 {
 // #if defined(ZMQ_USE_TWEETNACL) && !defined(ZMQ_HAVE_WINDOWS)                   \
   && !defined(ZMQ_HAVE_GETRANDOM)

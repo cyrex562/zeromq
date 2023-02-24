@@ -107,7 +107,7 @@ void test_zap_unsuccessful (char *my_endpoint_,
                             expected_server_value_: i32,
                             socket_config_fn socket_config_,
                             socket_config_data_: *mut c_void,
-                            void **client_mon_ = NULL,
+                            void **client_mon_ = null_mut(),
                             int expected_client_event_ = 0,
                             int expected_client_value_ = 0)
 {
@@ -130,7 +130,7 @@ void test_zap_unsuccessful_no_handler (char *my_endpoint_,
                                        expected_err_: i32,
                                        socket_config_fn socket_config_,
                                        socket_config_data_: *mut c_void,
-                                       void **client_mon_ = NULL)
+                                       void **client_mon_ = null_mut())
 {
     let events_received: i32 =
       expect_new_client_bounce_fail_and_count_monitor_events (
@@ -180,7 +180,7 @@ void test_zap_unsuccessful_status_500 (char *my_endpoint_,
     test_zap_unsuccessful (my_endpoint_, server_, server_mon_,
                            ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, 500,
                            client_socket_config_, client_socket_config_data_,
-                           NULL, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, 500);
+                           null_mut(), ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, 500);
 }
 
 static void
@@ -302,7 +302,7 @@ test_zap_unsuccesful_no_handler_started (socket_config_fn server_socket_config_,
     //  no ZAP handler
     int enforce = 1;
     setup_context_and_server_side (
-      &handler, &zap_thread, &server, &server_mon, my_endpoint, NULL,
+      &handler, &zap_thread, &server, &server_mon, my_endpoint, null_mut(),
       server_socket_config_,
       server_socket_config_data_ ? server_socket_config_data_ : &enforce);
     test_zap_unsuccessful_no_handler (
@@ -426,10 +426,10 @@ test_zap_unsuccesful_do_not_send (socket_config_fn server_socket_config_,
     }
 
 DEFINE_ZAP_ERROR_TESTS (
-  null, &socket_config_null_server, NULL, &socket_config_null_client, NULL)
+  null, &socket_config_null_server, null_mut(), &socket_config_null_client, null_mut())
 
 DEFINE_ZAP_ERROR_TESTS (
-  plain, &socket_config_plain_server, NULL, &socket_config_plain_client, NULL)
+  plain, &socket_config_plain_server, null_mut(), &socket_config_plain_client, null_mut())
 
 static curve_client_data_t curve_client_data = {
   valid_server_public, valid_client_public, valid_client_secret};

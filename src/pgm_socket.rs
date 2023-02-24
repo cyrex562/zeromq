@@ -53,13 +53,13 @@ pub struct pgm_socket_t
 {
 // public:
     //  If receiver_ is true PGM transport is not generating SPM packets.
-    pgm_socket_t (bool receiver_, const ZmqOptions &options_);
+    pgm_socket_t (receiver_: bool, const ZmqOptions &options_);
 
     //  Closes the transport.
     ~pgm_socket_t ();
 
     //  Initialize PGM network structures (GSI, GSRs).
-    int init (bool udp_encapsulation_, network_: *const c_char);
+    int init (udp_encapsulation_: bool, network_: &str);
 
     //  Resolve PGM socket address.
     static int init_address (network_: *const c_char,
@@ -77,7 +77,7 @@ pub struct pgm_socket_t
                          fd_t *pending_notify_fd_);
 
     //  Send data as one APDU, transmit window owned memory.
-    size_t send (unsigned char *data, data_len_: usize);
+    size_t send (data: &mut [u8], data_len_: usize);
 
     //  Returns max tsdu size without fragmentation.
     size_t get_max_tsdu_size ();
@@ -105,7 +105,7 @@ pub struct pgm_socket_t
     ZmqOptions options;
 
     //  true when pgm_socket should create receiving side.
-    bool receiver;
+    receiver: bool
 
     //  Array of pgm_msgv_t structures to store received data
     //  from the socket (pgm_transport_recvmsgv).
@@ -124,11 +124,11 @@ pub struct pgm_socket_t
     pgm_msgv_processed: usize;
 };
 
-pgm_socket_t::pgm_socket_t (bool receiver_, const ZmqOptions &options_) :
-    sock (NULL),
+pgm_socket_t::pgm_socket_t (receiver_: bool, const ZmqOptions &options_) :
+    sock (null_mut()),
     options (options_),
     receiver (receiver_),
-    pgm_msgv (NULL),
+    pgm_msgv (null_mut()),
     pgm_msgv_len (0),
     nbytes_rec (0),
     nbytes_processed (0),
@@ -162,14 +162,14 @@ int pgm_socket_t::init_address (network_: *const c_char,
     memset (network, 0, mem::size_of::<network>());
     memcpy (network, network_, port_delim - network_);
 
-    pgm_error_t *pgm_error = NULL;
+    pgm_error_t *pgm_error = null_mut();
     struct pgm_addrinfo_t hints;
 
     memset (&hints, 0, mem::size_of::<hints>());
     hints.ai_family = AF_UNSPEC;
-    if (!pgm_getaddrinfo (network, NULL, res, &pgm_error)) {
+    if (!pgm_getaddrinfo (network, null_mut(), res, &pgm_error)) {
         //  Invalid parameters don't set pgm_error_t.
-        zmq_assert (pgm_error != NULL);
+        zmq_assert (pgm_error != null_mut());
         if (pgm_error->domain == PGM_ERROR_DOMAIN_IF &&
 
             //  NB: cannot catch EAI_BADFLAGS.
@@ -188,10 +188,10 @@ int pgm_socket_t::init_address (network_: *const c_char,
 }
 
 //  Create, bind and connect PGM socket.
-int pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
+int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
 {
     //  Can not open transport before destroying old one.
-    zmq_assert (sock == NULL);
+    zmq_assert (sock == null_mut());
     zmq_assert (options.rate > 0);
 
     //  Zero counter used in msgrecv.
@@ -200,16 +200,16 @@ int pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
     pgm_msgv_processed = 0;
 
     uint16_t port_number;
-    struct pgm_addrinfo_t *res = NULL;
+    struct pgm_addrinfo_t *res = null_mut();
     sa_family_t sa_family;
 
-    pgm_error_t *pgm_error = NULL;
+    pgm_error_t *pgm_error = null_mut();
 
     if (init_address (network_, &res, &port_number) < 0) {
         goto err_abort;
     }
 
-    zmq_assert (res != NULL);
+    zmq_assert (res != null_mut());
 
     //  Pick up detected IP family.
     sa_family = res->ai_send_addrs[0].gsr_group.ss_family;
@@ -219,7 +219,7 @@ int pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
         if (!pgm_socket (&sock, sa_family, SOCK_SEQPACKET, IPPROTO_UDP,
                          &pgm_error)) {
             //  Invalid parameters don't set pgm_error_t.
-            zmq_assert (pgm_error != NULL);
+            zmq_assert (pgm_error != null_mut());
             if (pgm_error->domain == PGM_ERROR_DOMAIN_SOCKET
                 && (pgm_error->code != PGM_ERROR_BADF
                     && pgm_error->code != PGM_ERROR_FAULT
@@ -245,7 +245,7 @@ int pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
         if (!pgm_socket (&sock, sa_family, SOCK_SEQPACKET, IPPROTO_PGM,
                          &pgm_error)) {
             //  Invalid parameters don't set pgm_error_t.
-            zmq_assert (pgm_error != NULL);
+            zmq_assert (pgm_error != null_mut());
             if (pgm_error->domain == PGM_ERROR_DOMAIN_SOCKET
                 && (pgm_error->code != PGM_ERROR_BADF
                     && pgm_error->code != PGM_ERROR_FAULT
@@ -359,7 +359,7 @@ int pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
     if (!pgm_bind3 (sock, &addr, mem::size_of::<addr>(), &if_req, mem::size_of::<if_req>(),
                     &if_req, mem::size_of::<if_req>(), &pgm_error)) {
         //  Invalid parameters don't set pgm_error_t.
-        zmq_assert (pgm_error != NULL);
+        zmq_assert (pgm_error != null_mut());
         if ((pgm_error->domain == PGM_ERROR_DOMAIN_SOCKET
              || pgm_error->domain == PGM_ERROR_DOMAIN_IF)
             && (pgm_error->code != PGM_ERROR_INVAL
@@ -384,7 +384,7 @@ int pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
         goto err_abort;
 
     pgm_freeaddrinfo (res);
-    res = NULL;
+    res = null_mut();
 
     //  Set IP level parameters.
     {
@@ -414,7 +414,7 @@ int pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
     //  Connect PGM transport to start state machine.
     if (!pgm_connect (sock, &pgm_error)) {
         //  Invalid parameters don't set pgm_error_t.
-        zmq_assert (pgm_error != NULL);
+        zmq_assert (pgm_error != null_mut());
         goto err_abort;
     }
 
@@ -434,17 +434,17 @@ int pgm_socket_t::init (bool udp_encapsulation_, network_: *const c_char)
     return 0;
 
 err_abort:
-    if (sock != NULL) {
+    if (sock != null_mut()) {
         pgm_close (sock, FALSE);
-        sock = NULL;
+        sock = null_mut();
     }
-    if (res != NULL) {
+    if (res != null_mut()) {
         pgm_freeaddrinfo (res);
-        res = NULL;
+        res = null_mut();
     }
-    if (pgm_error != NULL) {
+    if (pgm_error != null_mut()) {
         pgm_error_free (pgm_error);
-        pgm_error = NULL;
+        pgm_error = null_mut();
     }
     errno = EINVAL;
     return -1;
@@ -464,7 +464,7 @@ void pgm_socket_t::get_receiver_fds (fd_t *receive_fd_,
                                           fd_t *waiting_pipe_fd_)
 {
     socklen_t socklen;
-    bool rc;
+    rc: bool
 
     zmq_assert (receive_fd_);
     zmq_assert (waiting_pipe_fd_);
@@ -493,7 +493,7 @@ void pgm_socket_t::get_sender_fds (fd_t *send_fd_,
                                         fd_t *pending_notify_fd_)
 {
     socklen_t socklen;
-    bool rc;
+    rc: bool
 
     zmq_assert (send_fd_);
     zmq_assert (receive_fd_);
@@ -526,7 +526,7 @@ void pgm_socket_t::get_sender_fds (fd_t *send_fd_,
 
 //  Send one APDU, transmit window owned memory.
 //  data_len_ must be less than one TPDU.
-size_t pgm_socket_t::send (unsigned char *data, data_len_: usize)
+size_t pgm_socket_t::send (data: &mut [u8], data_len_: usize)
 {
     size_t nbytes = 0;
 
@@ -627,7 +627,7 @@ ssize_t pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t **tsi
 
         //  Receive a vector of Application Protocol Domain Unit's (APDUs)
         //  from the transport.
-        pgm_error_t *pgm_error = NULL;
+        pgm_error_t *pgm_error = null_mut();
 
         let status: i32 = pgm_recvmsgv (sock, pgm_msgv, pgm_msgv_len,
                                          MSG_ERRQUEUE, &nbytes_rec, &pgm_error);
@@ -716,7 +716,7 @@ void pgm_socket_t::process_upstream ()
     pgm_msgv_t dummy_msg;
 
     size_t dummy_bytes = 0;
-    pgm_error_t *pgm_error = NULL;
+    pgm_error_t *pgm_error = null_mut();
 
     let status: i32 = pgm_recvmsgv (sock, &dummy_msg, 1, MSG_ERRQUEUE,
                                      &dummy_bytes, &pgm_error);

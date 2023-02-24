@@ -339,7 +339,7 @@ void object_t::unregister_endpoints (ZmqSocketBase *socket_)
     return _ctx->unregister_endpoints (socket_);
 }
 
-ZmqEndpoint object_t::find_endpoint (addr_: *const c_char) const
+ZmqEndpoint object_t::find_endpoint (addr_: &str) const
 {
     return _ctx->find_endpoint (addr_);
 }
@@ -377,7 +377,7 @@ void object_t::send_stop ()
     _ctx->send_command (_tid, cmd);
 }
 
-void object_t::send_plug (own_t *destination_, bool inc_seqnum_)
+void object_t::send_plug (own_t *destination_, inc_seqnum_: bool)
 {
     if (inc_seqnum_)
         destination_->inc_seqnum ();
@@ -400,7 +400,7 @@ void object_t::send_own (own_t *destination_, own_t *object_)
 
 void object_t::send_attach (session_base_t *destination_,
                                  i_engine *engine_,
-                                 bool inc_seqnum_)
+                                 inc_seqnum_: bool)
 {
     if (inc_seqnum_)
         destination_->inc_seqnum ();
@@ -422,7 +422,7 @@ void object_t::send_conn_failed (session_base_t *destination_)
 
 void object_t::send_bind (own_t *destination_,
                                pipe_t *pipe_,
-                               bool inc_seqnum_)
+                               inc_seqnum_: bool)
 {
     if (inc_seqnum_)
         destination_->inc_seqnum ();
@@ -582,7 +582,7 @@ void object_t::send_inproc_connected (ZmqSocketBase *socket_)
 void object_t::send_done ()
 {
     ZmqCommand cmd;
-    cmd.destination = NULL;
+    cmd.destination = null_mut();
     cmd.type = ZmqCommand::done;
     _ctx->send_command (ZmqContext::term_tid, cmd);
 }

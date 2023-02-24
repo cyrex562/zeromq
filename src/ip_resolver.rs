@@ -274,13 +274,13 @@ impl IpResolver {
     
         //  Resolve the literal address. Some of the error info is lost in case
         //  of error, however, there's no way to report EAI errors via errno.
-        let rc = do_getaddrinfo (addr_, NULL, &req, &res);
+        let rc = do_getaddrinfo (addr_, null_mut(), &req, &res);
 
         // Some OS do have AI_V4MAPPED defined but it is not supported in getaddrinfo()
         // returning EAI_BADFLAGS. Detect this and retry
         if rc == EAI_BADFLAGS && (req.ai_flags & AI_V4MAPPED) != 0 {
             req.ai_flags &= !AI_V4MAPPED;
-            rc = do_getaddrinfo (addr_, NULL, &req, &res);
+            rc = do_getaddrinfo (addr_, null_mut(), &req, &res);
         }
 
         //  Resolve specific case on Windows platform when using IPv4 address
@@ -288,7 +288,7 @@ impl IpResolver {
         #[cfg(target_os = "windows")]
         if (req.ai_family == AF_INET6) && (rc == WSAHOST_NOT_FOUND) {
             req.ai_family = AF_INET as i32;
-            rc = do_getaddrinfo (addr_, NULL, &req, &res);
+            rc = do_getaddrinfo (addr_, null_mut(), &req, &res);
         }
     
         if rc {
@@ -554,10 +554,10 @@ impl IpResolver {
               GetAdaptersAddresses (AF_UNSPEC,
                                     GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST
                                       | GAA_FLAG_SKIP_DNS_SERVER,
-                                    NULL, addresses, &out_buf_len);
+                                    null_mut(), addresses, &out_buf_len);
             if (rc == ERROR_BUFFER_OVERFLOW) {
                 free (addresses);
-                addresses = NULL;
+                addresses = null_mut();
             } else {
                 break;
             }
@@ -567,8 +567,8 @@ impl IpResolver {
         if (rc == 0) {
             for (const IP_ADAPTER_ADDRESSES *current_addresses = addresses;
                  current_addresses; current_addresses = current_addresses->Next) {
-                char *if_name = NULL;
-                char *if_friendly_name = NULL;
+                char *if_name = null_mut();
+                char *if_friendly_name = null_mut();
     
                 let str_rc1: i32 =
                   get_interface_name (current_addresses->IfIndex, &if_name);
@@ -619,7 +619,7 @@ impl IpResolver {
     // #else
     
     //  On other platforms we assume there are no sane interface names.
-    pub fn resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char) -> i32
+    pub fn resolve_nic_name (ip_addr_t *ip_addr_, nic_: &str) -> i32
     {
         LIBZMQ_UNUSED (ip_addr_);
         LIBZMQ_UNUSED (nic_);

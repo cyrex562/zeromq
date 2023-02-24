@@ -51,7 +51,7 @@ struct i_encoder
     virtual size_t encode (unsigned char **data, size: usize) = 0;
 
     //  Load a new message into encoder.
-    virtual void load_msg (ZmqMessage *msg) = 0;
+    virtual void load_msg (msg: &mut ZmqMessage) = 0;
 };
 }
 

@@ -73,8 +73,8 @@ i64 get_monitor_event_v2 (monitor_: *mut c_void,
 
 void expect_monitor_event_v2 (monitor_: *mut c_void,
                               i64 expected_event_,
-                              const char *expected_local_address_ = NULL,
-                              const char *expected_remote_address_ = NULL);
+                              const char *expected_local_address_ = null_mut(),
+                              const char *expected_remote_address_ = null_mut());
 
 
 const char *get_zmqEventName (u64 event);

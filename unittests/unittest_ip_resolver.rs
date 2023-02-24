@@ -63,7 +63,7 @@ pub struct test_ip_resolver_t ZMQ_FINAL : public IpResolver
         static const struct dns_lut_t dns_lut[] = {
           {"ip.zeromq.org", "10.100.0.1", "fdf5:d058:d656::1"},
           {"ipv4only.zeromq.org", "10.100.0.2", "::ffff:10.100.0.2"},
-          {"ipv6only.zeromq.org", NULL, "fdf5:d058:d656::2"},
+          {"ipv6only.zeromq.org", null_mut(), "fdf5:d058:d656::2"},
         };
         unsigned lut_len = mem::size_of::<dns_lut>() / sizeof (dns_lut[0]);
         struct addrinfo ai;
@@ -72,7 +72,7 @@ pub struct test_ip_resolver_t ZMQ_FINAL : public IpResolver
 
         bool ipv6 = (hints_->ai_family == AF_INET6);
         bool no_dns = (hints_->ai_flags & AI_NUMERICHOST) != 0;
-        const char *ip = NULL;
+        const char *ip = null_mut();
 
         if (!no_dns) {
             for (unsigned i = 0; i < lut_len; i++) {
@@ -82,7 +82,7 @@ pub struct test_ip_resolver_t ZMQ_FINAL : public IpResolver
                     } else {
                         ip = dns_lut[i].ipv4;
 
-                        if (ip == NULL) {
+                        if (ip == null_mut()) {
                             //  No address associated with NAME
                             return EAI_NODATA;
                         }
@@ -91,7 +91,7 @@ pub struct test_ip_resolver_t ZMQ_FINAL : public IpResolver
             }
         }
 
-        if (ip == NULL) {
+        if (ip == null_mut()) {
             //  No entry for 'node_' found in the LUT (or DNS is
             //  forbidden), assume that it's a numeric IP address
             ip = node_;
@@ -102,10 +102,10 @@ pub struct test_ip_resolver_t ZMQ_FINAL : public IpResolver
         ai = *hints_;
         ai.ai_flags |= AI_NUMERICHOST;
 
-        return IpResolver::do_getaddrinfo (ip, NULL, &ai, res_);
+        return IpResolver::do_getaddrinfo (ip, null_mut(), &ai, res_);
     }
 
-    unsigned int do_if_nametoindex (ifname_: *const c_char) ZMQ_FINAL
+    unsigned int do_if_nametoindex (ifname_: &str) ZMQ_FINAL
     {
         static const char *dummy_interfaces[] = {
           "lo0",
@@ -139,7 +139,7 @@ static void test_resolve (IpResolverOptions opts_,
                           expected_addr_: *const c_char,
                           uint16_t expected_port_ = 0,
                           uint16_t expected_zone_ = 0,
-                          const char *expected_addr_v4_failover_ = NULL)
+                          const char *expected_addr_v4_failover_ = null_mut())
 {
     ip_addr_t addr;
     int family = opts_.ipv6 () ? AF_INET6 : AF_INET;
@@ -156,7 +156,7 @@ static void test_resolve (IpResolverOptions opts_,
 
     int rc = resolver.resolve (&addr, name_);
 
-    if (expected_addr_ == NULL) {
+    if (expected_addr_ == null_mut()) {
         // TODO also check the expected errno
         TEST_ASSERT_EQUAL (-1, rc);
         return;
@@ -174,7 +174,7 @@ static void test_resolve (IpResolverOptions opts_,
                                                                                \
     static void _test##_ipv6 () { _test (true); }
 
-static void test_bind_any (bool ipv6_)
+static void test_bind_any (ipv6_: bool)
 {
     IpResolverOptions resolver_opts;
 
@@ -185,7 +185,7 @@ static void test_bind_any (bool ipv6_)
 }
 MAKE_TEST_V4V6 (test_bind_any)
 
-static void test_bind_any_port0 (bool ipv6_)
+static void test_bind_any_port0 (ipv6_: bool)
 {
     IpResolverOptions resolver_opts;
 
@@ -197,7 +197,7 @@ static void test_bind_any_port0 (bool ipv6_)
 }
 MAKE_TEST_V4V6 (test_bind_any_port0)
 
-static void test_nobind_any (bool ipv6_)
+static void test_nobind_any (ipv6_: bool)
 {
     IpResolverOptions resolver_opts;
 
@@ -205,11 +205,11 @@ static void test_nobind_any (bool ipv6_)
 
     //  Wildcard should be rejected if we're not looking for a
     //  bindable address
-    test_resolve (resolver_opts, "*:*", NULL);
+    test_resolve (resolver_opts, "*:*", null_mut());
 }
 MAKE_TEST_V4V6 (test_nobind_any)
 
-static void test_nobind_any_port (bool ipv6_)
+static void test_nobind_any_port (ipv6_: bool)
 {
     IpResolverOptions resolver_opts;
 
@@ -217,22 +217,22 @@ static void test_nobind_any_port (bool ipv6_)
 
     //  Wildcard should be rejected if we're not looking for a
     //  bindable address
-    test_resolve (resolver_opts, "*:1234", NULL);
+    test_resolve (resolver_opts, "*:1234", null_mut());
 }
 MAKE_TEST_V4V6 (test_nobind_any_port)
 
-static void test_nobind_addr_anyport (bool ipv6_)
+static void test_nobind_addr_anyport (ipv6_: bool)
 {
     IpResolverOptions resolver_opts;
 
     resolver_opts.expect_port (true).ipv6 (ipv6_);
 
     //  Wildcard port should be rejected for non-bindable addresses
-    test_resolve (resolver_opts, "127.0.0.1:*", NULL);
+    test_resolve (resolver_opts, "127.0.0.1:*", null_mut());
 }
 MAKE_TEST_V4V6 (test_nobind_addr_anyport)
 
-static void test_nobind_addr_port0 (bool ipv6_)
+static void test_nobind_addr_port0 (ipv6_: bool)
 {
     IpResolverOptions resolver_opts;
 
@@ -241,7 +241,7 @@ static void test_nobind_addr_port0 (bool ipv6_)
     //  Connecting to port 0 is allowed, although it might not be massively
     //  useful
     const char *expected = ipv6_ ? "::ffff:127.0.0.1" : "127.0.0.1";
-    const char *fallback = ipv6_ ? "127.0.0.1" : NULL;
+    const char *fallback = ipv6_ ? "127.0.0.1" : null_mut();
     test_resolve (resolver_opts, "127.0.0.1:0", expected, 0, 0, fallback);
 }
 MAKE_TEST_V4V6 (test_nobind_addr_port0)
@@ -279,21 +279,21 @@ static void test_parse_ipv4_brackets_missingl ()
 {
     IpResolverOptions resolver_opts;
 
-    test_resolve (resolver_opts, "1.2.128.129]", NULL);
+    test_resolve (resolver_opts, "1.2.128.129]", null_mut());
 }
 
 static void test_parse_ipv4_brackets_missingr ()
 {
     IpResolverOptions resolver_opts;
 
-    test_resolve (resolver_opts, "[1.2.128.129", NULL);
+    test_resolve (resolver_opts, "[1.2.128.129", null_mut());
 }
 
 static void test_parse_ipv4_brackets_bad ()
 {
     IpResolverOptions resolver_opts;
 
-    test_resolve (resolver_opts, "[1.2.128].129", NULL);
+    test_resolve (resolver_opts, "[1.2.128].129", null_mut());
 }
 
 static void test_parse_ipv4_reject_port ()
@@ -301,7 +301,7 @@ static void test_parse_ipv4_reject_port ()
     IpResolverOptions resolver_opts;
 
     //  No port expected, should be rejected
-    test_resolve (resolver_opts, "1.2.128.129:123", NULL);
+    test_resolve (resolver_opts, "1.2.128.129:123", null_mut());
 }
 
 static void test_parse_ipv4_reject_any ()
@@ -309,7 +309,7 @@ static void test_parse_ipv4_reject_any ()
     IpResolverOptions resolver_opts;
 
     //  No port expected, should be rejected
-    test_resolve (resolver_opts, "1.2.128.129:*", NULL);
+    test_resolve (resolver_opts, "1.2.128.129:*", null_mut());
 }
 
 static void test_parse_ipv4_reject_ipv6 ()
@@ -317,7 +317,7 @@ static void test_parse_ipv4_reject_ipv6 ()
     IpResolverOptions resolver_opts;
 
     //  No port expected, should be rejected
-    test_resolve (resolver_opts, "::1", NULL);
+    test_resolve (resolver_opts, "::1", null_mut());
 }
 
 static void test_parse_ipv4_port ()
@@ -355,7 +355,7 @@ static void test_parse_ipv4_port_missing ()
 
     resolver_opts.expect_port (true);
 
-    test_resolve (resolver_opts, "1.2.3.4", NULL);
+    test_resolve (resolver_opts, "1.2.3.4", null_mut());
 }
 
 static void test_parse_ipv4_port_bad ()
@@ -364,7 +364,7 @@ static void test_parse_ipv4_port_bad ()
 
     resolver_opts.expect_port (true);
 
-    test_resolve (resolver_opts, "1.2.3.4:bad", NULL);
+    test_resolve (resolver_opts, "1.2.3.4:bad", null_mut());
 }
 
 static void test_parse_ipv4_port_brackets ()
@@ -382,7 +382,7 @@ static void test_parse_ipv4_port_brackets_bad ()
 
     resolver_opts.expect_port (true);
 
-    test_resolve (resolver_opts, "[192.168.1.1:]5555", NULL);
+    test_resolve (resolver_opts, "[192.168.1.1:]5555", null_mut());
 }
 
 static void test_parse_ipv4_port_brackets_bad2 ()
@@ -391,7 +391,7 @@ static void test_parse_ipv4_port_brackets_bad2 ()
 
     resolver_opts.expect_port (true);
 
-    test_resolve (resolver_opts, "[192.168.1.1:5555]", NULL);
+    test_resolve (resolver_opts, "[192.168.1.1:5555]", null_mut());
 }
 
 static void test_parse_ipv4_wild_brackets_bad ()
@@ -400,7 +400,7 @@ static void test_parse_ipv4_wild_brackets_bad ()
 
     resolver_opts.expect_port (true);
 
-    test_resolve (resolver_opts, "[192.168.1.1:*]", NULL);
+    test_resolve (resolver_opts, "[192.168.1.1:*]", null_mut());
 }
 
 static void test_parse_ipv4_port_ipv6_reject ()
@@ -409,7 +409,7 @@ static void test_parse_ipv4_port_ipv6_reject ()
 
     resolver_opts.expect_port (true);
 
-    test_resolve (resolver_opts, "[::1]:1234", NULL);
+    test_resolve (resolver_opts, "[::1]:1234", null_mut());
 }
 
 static void test_parse_ipv6_simple ()
@@ -464,7 +464,7 @@ static void test_parse_ipv6_brackets_missingl ()
 
     resolver_opts.ipv6 (true);
 
-    test_resolve (resolver_opts, "::1]", NULL);
+    test_resolve (resolver_opts, "::1]", null_mut());
 }
 
 static void test_parse_ipv6_brackets_missingr ()
@@ -473,7 +473,7 @@ static void test_parse_ipv6_brackets_missingr ()
 
     resolver_opts.ipv6 (true);
 
-    test_resolve (resolver_opts, "[::1", NULL);
+    test_resolve (resolver_opts, "[::1", null_mut());
 }
 
 static void test_parse_ipv6_brackets_bad ()
@@ -482,7 +482,7 @@ static void test_parse_ipv6_brackets_bad ()
 
     resolver_opts.ipv6 (true);
 
-    test_resolve (resolver_opts, "[abcd:1234::1:]0:234", NULL);
+    test_resolve (resolver_opts, "[abcd:1234::1:]0:234", null_mut());
 }
 
 static void test_parse_ipv6_port ()
@@ -552,7 +552,7 @@ static void test_parse_ipv6_scope_zero ()
 
     resolver_opts.ipv6 (true);
 
-    test_resolve (resolver_opts, "3000:4:5::1:234%0", NULL);
+    test_resolve (resolver_opts, "3000:4:5::1:234%0", null_mut());
 }
 
 static void test_parse_ipv6_scope_int_port ()
@@ -601,7 +601,7 @@ static void test_parse_ipv6_scope_badif ()
 
     resolver_opts.ipv6 (true);
 
-    test_resolve (resolver_opts, "3000:4:5::1:234%bad0", NULL);
+    test_resolve (resolver_opts, "3000:4:5::1:234%bad0", null_mut());
 }
 
 static void test_dns_ipv4_simple ()
@@ -628,7 +628,7 @@ static void test_dns_ipv4_invalid ()
 
     resolver_opts.allow_dns (true);
 
-    test_resolve (resolver_opts, "invalid.zeromq.org", NULL);
+    test_resolve (resolver_opts, "invalid.zeromq.org", null_mut());
 }
 
 static void test_dns_ipv4_ipv6 ()
@@ -637,7 +637,7 @@ static void test_dns_ipv4_ipv6 ()
 
     resolver_opts.allow_dns (true);
 
-    test_resolve (resolver_opts, "ipv6only.zeromq.org", NULL);
+    test_resolve (resolver_opts, "ipv6only.zeromq.org", null_mut());
 }
 
 static void test_dns_ipv4_numeric ()
@@ -683,7 +683,7 @@ static void test_dns_ipv6_invalid ()
 
     resolver_opts.ipv6 (true).allow_dns (true);
 
-    test_resolve (resolver_opts, "invalid.zeromq.org", NULL);
+    test_resolve (resolver_opts, "invalid.zeromq.org", null_mut());
 }
 
 static void test_dns_ipv6_ipv4 ()
@@ -732,7 +732,7 @@ void test_dns_brackets_bad ()
 
     resolver_opts.allow_dns (true);
 
-    test_resolve (resolver_opts, "[ip.zeromq].org", NULL);
+    test_resolve (resolver_opts, "[ip.zeromq].org", null_mut());
 }
 
 void test_dns_brackets_port ()
@@ -750,17 +750,17 @@ void test_dns_brackets_port_bad ()
 
     resolver_opts.allow_dns (true);
 
-    test_resolve (resolver_opts, "[ip.zeromq.org:22]", NULL);
+    test_resolve (resolver_opts, "[ip.zeromq.org:22]", null_mut());
 }
 
-void test_dns_deny (bool ipv6_)
+void test_dns_deny (ipv6_: bool)
 {
     IpResolverOptions resolver_opts;
 
     resolver_opts.allow_dns (false).ipv6 (ipv6_);
 
     //  DNS resolution shouldn't work when disallowed
-    test_resolve (resolver_opts, "ip.zeromq.org", NULL);
+    test_resolve (resolver_opts, "ip.zeromq.org", null_mut());
 }
 MAKE_TEST_V4V6 (test_dns_deny)
 
@@ -798,7 +798,7 @@ void test_dns_ipv6_scope_port_brackets ()
                   "fdf5:d058:d656::1", 4444, 1);
 }
 
-static void test_addr (family_: i32, addr_: *const c_char, bool multicast_)
+static void test_addr (family_: i32, addr_: *const c_char, multicast_: bool)
 {
     if (family_ == AF_INET6 && !is_ipv6_available ()) {
         TEST_IGNORE_MESSAGE ("ipv6 is not available");

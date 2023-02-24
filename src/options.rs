@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::sync::atomic::{AtomicU64, Ordering};
+use anyhow::bail;
 use libc::{gid_t, pid_t, uid_t, c_void, EINVAL, memcpy};
 use crate::tcp_address::TcpAddressMask;
 use crate::zmq_hdr::{ZMQ_CURVE, ZMQ_DEALER, ZMQ_GSSAPI, ZMQ_GSSAPI_NT_HOSTBASED, ZMQ_GSSAPI_NT_KRB5_PRINCIPAL, ZMQ_GSSAPI_NT_USER_NAME, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_SUB, ZMQ_SNDHWM, ZMQ_RCVHWM, ZMQ_AFFINITY, ZMQ_ROUTING_ID, ZMQ_RATE, ZMQ_RECOVERY_IVL, ZMQ_SNDBUF, ZMQ_RCVBUF, ZMQ_TOS, ZMQ_LINGER, ZMQ_CONNECT_TIMEOUT, ZMQ_TCP_MAXRT, ZMQ_RECONNECT_STOP, ZMQ_RECONNECT_IVL, ZMQ_RECONNECT_IVL_MAX, ZMQ_BACKLOG, ZMQ_MAXMSGSIZE, ZMQ_MULTICAST_HOPS, ZMQ_MULTICAST_MAXTPDU, ZMQ_RCVTIMEO, ZMQ_SNDTIMEO, ZMQ_IPV4ONLY, ZMQ_IPV6, ZMQ_SOCKS_PROXY, ZMQ_SOCKS_USERNAME, ZMQ_SOCKS_PASSWORD, ZMQ_TCP_KEEPALIVE, ZMQ_TCP_KEEPALIVE_CNT, ZMQ_TCP_KEEPALIVE_IDLE, ZMQ_TCP_KEEPALIVE_INTVL, ZMQ_TCP_ACCEPT_FILTER, ZMQ_IPC_FILTER_UID, ZMQ_IPC_FILTER_GID, ZMQ_IPC_FILTER_PID, ZMQ_PLAIN_SERVER, ZMQ_PLAIN_USERNAME, ZMQ_PLAIN_PASSWORD, ZMQ_ZAP_DOMAIN, ZMQ_CURVE_SERVER, ZMQ_CURVE_PUBLICKEY, ZMQ_CURVE_SECRETKEY, ZMQ_CURVE_SERVERKEY, ZMQ_CONFLATE, ZMQ_GSSAPI_SERVER, ZMQ_GSSAPI_PRINCIPAL, ZMQ_GSSAPI_SERVICE_PRINCIPAL, ZMQ_GSSAPI_PLAINTEXT, ZMQ_GSSAPI_PRINCIPAL_NAMETYPE, ZMQ_GSSAPI_SERVICE_PRINCIPAL_NAMETYPE, ZMQ_HANDSHAKE_IVL, ZMQ_INVERT_MATCHING, ZMQ_HEARTBEAT_IVL, ZMQ_HEARTBEAT_TTL, ZMQ_HEARTBEAT_TIMEOUT, ZMQ_VMCI_BUFFER_SIZE, ZMQ_VMCI_BUFFER_MIN_SIZE, ZMQ_VMCI_BUFFER_MAX_SIZE, ZMQ_VMCI_CONNECT_TIMEOUT, ZMQ_USE_FD, ZMQ_BINDTODEVICE, ZMQ_ZAP_ENFORCE_DOMAIN, ZMQ_LOOPBACK_FASTPATH, ZMQ_METADATA, ZMQ_MULTICAST_LOOP, ZMQ_IN_BATCH_SIZE, ZMQ_OUT_BATCH_SIZE, ZMQ_BUSY_POLL, ZMQ_WSS_KEY_PEM, ZMQ_WSS_CERT_PEM, ZMQ_WSS_TRUST_PEM, ZMQ_WSS_HOSTNAME, ZMQ_WSS_TRUST_SYSTEM, ZMQ_HELLO_MSG, ZMQ_DISCONNECT_MSG, ZMQ_PRIORITY, ZMQ_HICCUP_MSG, ZMQ_IMMEDIATE, ZMQ_TYPE, ZMQ_MECHANISM, ZMQ_ROUTER_NOTIFY};
@@ -577,7 +578,7 @@ impl ZmqOptions {
 
             ZMQ_SOCKS_USERNAME => {
                 /* Make empty string or NULL equivalent. */
-                return if opt_val == NULL || opt_val_len == 0 {
+                return if opt_val == null_mut() || opt_val_len == 0 {
                     self.socks_proxy_username.clear();
                     0
                 } else {
@@ -587,7 +588,7 @@ impl ZmqOptions {
             }
             ZMQ_SOCKS_PASSWORD => {
                 /* Make empty string or NULL equivalent. */
-                return if opt_val == NULL || opt_val_len == 0 {
+                return if opt_val.is_empty() || opt_val_len == 0 {
                     self.socks_proxy_password.clear();
                     0
                 } else {
@@ -762,7 +763,7 @@ impl ZmqOptions {
             }
 
             ZMQ_GSSAPI_PRINCIPAL => {
-                if opt_val_len > 0 && opt_val_len <= UCHAR_MAX && opt_val != NULL {
+                if opt_val_len > 0 && opt_val_len <= UCHAR_MAX && opt_val != null_mut() {
                     // self.gss_principal.assign((const char
                     // *) opt_val, opt_val_len);
                     unsafe { self.gss_principal = String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1); }
@@ -772,7 +773,7 @@ impl ZmqOptions {
             }
 
             ZMQ_GSSAPI_SERVICE_PRINCIPAL => {
-                if opt_val_len > 0 && opt_val_len <= UCHAR_MAX && opt_val != NULL {
+                if opt_val_len > 0 && opt_val_len <= UCHAR_MAX && opt_val.is_empty() == false {
                     // gss_service_principal.assign((const char
                     // *) opt_val,
                     // opt_val_len);
@@ -1055,7 +1056,7 @@ impl ZmqOptions {
     }
 
     // int getsockopt (option_: i32, opt_val: *mut c_void, opt_val_len: *mut usize) const;
-    pub fn getsockopt(&mut self, opt: i32, opt_val: &mut [u8], opt_val_len: &mut usize) -> i32 {
+    pub fn getsockopt(&mut self, opt: i32, opt_val: &mut [u8], opt_val_len: &mut usize) -> anyhow::Result<()> {
         let is_int = *opt_val_len == mem::size_of::<i32>();
         let mut value = opt_val;
 // #if defined(ZMQ_ACT_MILITANT)
@@ -1066,15 +1067,15 @@ impl ZmqOptions {
             ZMQ_SNDHWM => {
                 if is_int {
                     value.clone_from_slice(self.sndhwm.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
             ZMQ_RCVHWM => {
-                if (is_int) {
+                if is_int {
                     // *value = self.rcvhwm;
                     value.clone_from_slice(self.rcvhwm.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1082,12 +1083,12 @@ impl ZmqOptions {
                 if *opt_val_len == mem::size_of::<u64>() {
                     // *opt_val = self.affinity;
                     opt_val.clone_from_slice(self.affinity.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
             ZMQ_ROUTING_ID => {
-                return do_getsockopt2(opt_val, opt_val_len, routing_id,
+                return do_getsockopt2(opt_val, opt_val_len, &self.routing_id,
                                       self.routing_id_size);
             }
 
@@ -1095,7 +1096,7 @@ impl ZmqOptions {
                 if is_int {
                     // *value = self.rate;
                     value.clone_from_slice(self.rate.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1103,7 +1104,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.recovery_ivl;
                     value.clone_from_slice(self.recovery_ivl.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1111,7 +1112,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.sndbuf;
                     value.clone_from_slice(self.sndbuf.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1119,7 +1120,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.rcvbuf;
                     value.clone_from_slice(self.rcvbuf.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1127,7 +1128,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.tos;
                     value.clone_from_slice(self.tos.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1135,7 +1136,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.type_ ;
                     value[0] = self.type_;
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1143,7 +1144,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.linger.load();
                     value.clone_frome_slice(self.linger.load(Ordering::Relaxed).to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1151,7 +1152,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.connect_timeout;
                     value.clone_from_slice(self.connect_timeout.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1159,7 +1160,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.tcp_maxrt;
                     value.clone_from_slice(self.tcp_maxrt.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1167,7 +1168,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.reconnect_stop;
                     value.clone_from_slice(self.reconnect_stop.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1175,7 +1176,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.reconnect_ivl;
                     value.clone_from_slice(self.reconnect_ivl.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1183,7 +1184,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.reconnect_ivl_max;
                     value.clone_from_slice(self.reconnect_ivl_max.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1191,7 +1192,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.backlog;
                     value.clone_from_slice(self.backlog.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1200,7 +1201,7 @@ impl ZmqOptions {
                     // *opt_val = self.maxmsgsize;
                     value.clone_from_slice(self.maxmsgsize.to_le_bytes().as_slice());
                     *opt_val_len = mem::size_of::<i64>();
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1208,7 +1209,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.multicast_hops;
                     value.clone_from_slice(self.multicast_hops.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1216,7 +1217,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.multicast_maxtpdu;
                     value.clone_from_slice(self.multicast_maxtpdu.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1224,7 +1225,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.rcvtimeo;
                     value.clone_from_slice(self.rcvtimeo.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1232,7 +1233,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.sndtimeo;
                     value.clone_from_slice(self.sndtimeo.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1241,7 +1242,7 @@ impl ZmqOptions {
                     // *value = 1 - self.ipv6;
                     let x: u8 = self.ipv6.into();
                     value[0] = x;
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1250,7 +1251,7 @@ impl ZmqOptions {
                     // *value = self.ipv6;
                     let x: u8 = self.ipv6.into();
                     value[0] = x;
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1258,7 +1259,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.immediate;
                     value.clone_from_slice(self.immediate.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1278,7 +1279,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.tcp_keepalive;
                     value.clone_from_slice(self.tcp_keepalive.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1286,7 +1287,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.tcp_keepalive_cnt;
                     value.clone_from_slice(self.tcp_keepalive_cnt.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1294,7 +1295,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.tcp_keepalive_idle;
                     value.clone_from_slice(self.tcp_keepalive_idle.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1302,7 +1303,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.tcp_keepalive_intvl;
                     value.clone_from_slice(self.tcp_keepalive_intvl.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1310,7 +1311,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.mechanism;
                     value.clone_from_slice(self.mechanism.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1319,7 +1320,7 @@ impl ZmqOptions {
                     // *value = self.as_server && self.mechanism == ZMQ_PLAIN;
                     let x = self.as_server != 0 && self.mechanism == ZMQ_PLAIN;
                     value[0] = x.into();
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1342,7 +1343,7 @@ impl ZmqOptions {
                     // *value = self.as_server && self.mechanism == ZMQ_CURVE;
                     let x = self.as_server != 0 && self.mechanism == ZMQ_CURVE;
                     value[0] = x.into();
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1367,7 +1368,7 @@ impl ZmqOptions {
                     // *value = self.conflate;
                     let x = self.conflate;
                     value[0] = x.into();
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1379,7 +1380,7 @@ impl ZmqOptions {
                     // *value = self.as_server && self.mechanism == ZMQ_GSSAPI;
                     let x = self.as_server != 0 && self.mechanism == ZMQ_GSSAPI;
                     value[0] = x.into();
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1394,7 +1395,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.gss_plaintext;
                     value[0] = self.gss_plaintext.into();
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1402,7 +1403,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.gss_principal_nt;
                     value.clone_from_slice(self.gss_principal_nt.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1410,7 +1411,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.gss_service_principal_nt;
                     value.clone_from_slice(self.gss_service_principal_nt.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1420,7 +1421,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.handshake_ivl;
                     value.clone_from_slice(self.handshake_ivl.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1428,7 +1429,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.invert_matching;
                     value[0] = self.invert_matching.into();
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1436,7 +1437,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.heartbeat_interval;
                     value.clone_from_slice(self.heartbeat_interval.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1446,7 +1447,7 @@ impl ZmqOptions {
                     // *value = self.heartbeat_ttl * 100;
                     let x = self.heartbeat_ttl * 100;
                     value.clone_from_slice(x.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1454,7 +1455,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.heartbeat_timeout;
                     value.clone_from_slice(self.heartbeat_timeout.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1462,7 +1463,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.use_fd;
                     value.clone_from_slice(self.use_fd.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1474,7 +1475,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.zap_enforce_domain;
                     value[0] = self.zap_enforce_domain.into();
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1482,7 +1483,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.loopback_fastpath;
                     value[0] = self.loopback_fastpath.into();
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1490,7 +1491,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.multicast_loop;
                     value[0] = self.multicast_loop.into();
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1500,7 +1501,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.router_notify;
                     value.clone_from_slice(self.router_notify.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1508,7 +1509,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.in_batch_size;
                     value.clone_from_slice(self.in_batch_size.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1516,7 +1517,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.out_batch_size;
                     value.clone_from_slice(self.out_batch_size.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1524,7 +1525,7 @@ impl ZmqOptions {
                 if (is_int) {
                     // *value = self.priority;
                     value.clone_from_slice(self.priority.to_le_bytes().as_slice());
-                    return 0;
+                    return Ok(());
                 }
             }
 
@@ -1549,10 +1550,11 @@ impl ZmqOptions {
             zmq_assert(false);
         }
 // #endif
-        errno = EINVAL;
-        return -1;
+//         errno = EINVAL;
+//         return -1;
+        bail!("EINVAL")
     }
-}
+} // impl ZmqOptions
 
 pub const CURVE_KEYSIZE: usize = 128;
 pub const CURVE_KEYSIZE_Z85: usize = 256;
@@ -1719,7 +1721,7 @@ pub fn do_setsockopt_string_allow_empty_relaxed(opt_val: &mut [u8],
 pub fn do_setsockopt_set<T>(opt_val: &mut [u8],
                             opt_val_len: usize,
                             set_: &mut HashSet<T>) -> i32 {
-    if opt_val_len == 0 && opt_val == NULL {
+    if opt_val_len == 0 && opt_val == null_mut() {
         set_.clear();
         return 0;
     }

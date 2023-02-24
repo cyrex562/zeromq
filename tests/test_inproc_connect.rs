@@ -203,7 +203,7 @@ void test_multiple_threads ()
 
     // Connect first
     for (unsigned int i = 0; i < no_of_threads; ++i) {
-        threads[i] = zmq_threadstart (&pusher, NULL);
+        threads[i] = zmq_threadstart (&pusher, null_mut());
     }
 
     // Now bind

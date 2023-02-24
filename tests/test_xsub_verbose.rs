@@ -54,7 +54,7 @@ void test_xsub_verbose_unsubscribe ()
     send_array_expect_success (sub, unsubscribe_a_msg, 0);
 
     // does not exist, so it will be filtered out by XSUB
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, null_mut(), 0, ZMQ_DONTWAIT));
 
     // subscribe to topic A
     send_array_expect_success (sub, subscribe_a_msg, 0);
@@ -72,7 +72,7 @@ void test_xsub_verbose_unsubscribe ()
     send_array_expect_success (sub, unsubscribe_a_msg, 0);
 
     // The first unsubscribe will be filtered out
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, null_mut(), 0, ZMQ_DONTWAIT));
 
     // unsubscribe again from topic A
     send_array_expect_success (sub, unsubscribe_a_msg, 0);

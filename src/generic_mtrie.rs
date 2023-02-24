@@ -75,7 +75,7 @@ bool generic_mtrie_t<T>::add (prefix_t prefix_, size: usize, value_t *pipe_)
             if (!it->_count) {
                 it->_min = c;
                 it->_count = 1;
-                it->_next.node = NULL;
+                it->_next.node = null_mut();
             } else if (it->_count == 1) {
                 const unsigned char oldc = it->_min;
                 generic_mtrie_t *oldp = it->_next.node;
@@ -95,7 +95,7 @@ bool generic_mtrie_t<T>::add (prefix_t prefix_, size: usize, value_t *pipe_)
                   it->_next.table, sizeof (generic_mtrie_t *) * it->_count));
                 alloc_assert (it->_next.table);
                 for (unsigned short i = old_count; i != it->_count; i++)
-                    it->_next.table[i] = NULL;
+                    it->_next.table[i] = null_mut();
             } else {
                 //  The new character is below the current character range.
                 const unsigned short old_count = it->_count;
@@ -106,7 +106,7 @@ bool generic_mtrie_t<T>::add (prefix_t prefix_, size: usize, value_t *pipe_)
                 memmove (it->_next.table + it->_min - c, it->_next.table,
                          old_count * sizeof (generic_mtrie_t *));
                 for (unsigned short i = 0; i != it->_min - c; i++)
-                    it->_next.table[i] = NULL;
+                    it->_next.table[i] = null_mut();
                 it->_min = c;
             }
         }
@@ -156,7 +156,7 @@ void generic_mtrie_t<T>::rm (value_t *pipe_,
                                             size: usize,
                                             Arg arg_),
                              Arg arg_,
-                             bool call_on_uniq_)
+                             call_on_uniq_: bool)
 {
     //  This used to be implemented as a non-tail recursive traversal of the trie,
     //  which means remote clients controlled the depth of the recursion and the
@@ -169,9 +169,9 @@ void generic_mtrie_t<T>::rm (value_t *pipe_,
     //  In the case of a node with (N > 1) children, the node has to be re-visited
     //  N times, in the correct order after each child visit.
     std::list<struct iter> stack;
-    unsigned char *buff = NULL;
+    unsigned char *buff = null_mut();
     size_t maxbuffsize = 0;
-    struct iter it = {this, NULL, NULL, 0, 0, 0, 0, false};
+    struct iter it = {this, null_mut(), null_mut(), 0, 0, 0, 0, false};
     stack.push_back (it);
 
     while (!stack.empty ()) {
@@ -212,8 +212,8 @@ void generic_mtrie_t<T>::rm (value_t *pipe_,
                     it.processed_for_removal = true;
                     stack.push_back (it);
                     struct iter next = {it.node->_next.node,
-                                        NULL,
-                                        NULL,
+                                        null_mut(),
+                                        null_mut(),
                                         ++it.size,
                                         0,
                                         0,
@@ -242,8 +242,8 @@ void generic_mtrie_t<T>::rm (value_t *pipe_,
                     if (it.node->_next.table[it.current_child]) {
                         struct iter next = {
                           it.node->_next.table[it.current_child],
-                          NULL,
-                          NULL,
+                          null_mut(),
+                          null_mut(),
                           it.size + 1,
                           0,
                           0,
@@ -326,7 +326,7 @@ void generic_mtrie_t<T>::rm (value_t *pipe_,
                         switch (it.node->_live_nodes) {
                             case 0:
                                 free (it.node->_next.table);
-                                it.node->_next.table = NULL;
+                                it.node->_next.table = null_mut();
                                 it.node->_count = 0;
                                 break;
                             case 1:
@@ -410,7 +410,7 @@ generic_mtrie_t<T>::rm (prefix_t prefix_, size: usize, value_t *pipe_)
     //  determine if the pre- or post- children visit actions have to be taken.
     rm_result ret = not_found;
     std::list<struct iter> stack;
-    struct iter it = {this, NULL, prefix_, size, 0, 0, 0, false};
+    struct iter it = {this, null_mut(), prefix_, size, 0, 0, 0, false};
     stack.push_back (it);
 
     while (!stack.empty ()) {
@@ -456,7 +456,7 @@ generic_mtrie_t<T>::rm (prefix_t prefix_, size: usize, value_t *pipe_)
             it.processed_for_removal = true;
             stack.push_back (it);
             struct iter next = {
-              it.next_node, NULL, it.prefix + 1, it.size - 1, 0, 0, 0, false};
+              it.next_node, null_mut(), it.prefix + 1, it.size - 1, 0, 0, 0, false};
             stack.push_back (next);
         } else {
             it.processed_for_removal = false;
@@ -466,7 +466,7 @@ generic_mtrie_t<T>::rm (prefix_t prefix_, size: usize, value_t *pipe_)
                 zmq_assert (it.node->_count > 0);
 
                 if (it.node->_count == 1) {
-                    it.node->_next.node = NULL;
+                    it.node->_next.node = null_mut();
                     it.node->_count = 0;
                     --it.node->_live_nodes;
                     zmq_assert (it.node->_live_nodes == 0);
@@ -490,7 +490,7 @@ generic_mtrie_t<T>::rm (prefix_t prefix_, size: usize, value_t *pipe_)
                         it.node->_count = 1;
                         generic_mtrie_t *oldp = it.node->_next.table[i];
                         free (it.node->_next.table);
-                        it.node->_next.table = NULL;
+                        it.node->_next.table = null_mut();
                         it.node->_next.node = oldp;
                     } else if (it.current_child == it.node->_min) {
                         //  We can compact the table "from the left"
@@ -617,9 +617,9 @@ template <typename T> class generic_mtrie_t
     //  through to the callback function.
     template <typename Arg>
     void rm (value_t *value_,
-             void (*func_) (const unsigned char *data, size: usize, Arg arg_),
+             void (*func_) (const data: &mut [u8], size: usize, Arg arg_),
              Arg arg_,
-             bool call_on_uniq_);
+             call_on_uniq_: bool);
 
     //  Removes a specific entry from the trie.
     //  Returns the result of the operation.
@@ -664,7 +664,7 @@ pub struct generic_mtrie_t<value_t> **table;
         unsigned short current_child;
         unsigned char new_min;
         unsigned char new_max;
-        bool processed_for_removal;
+        processed_for_removal: bool
     };
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (generic_mtrie_t)

@@ -80,7 +80,7 @@ unsigned long zmq_stopwatch_stop (watch_: *mut c_void)
     return res;
 }
 
-void *zmq_threadstart (zmq_thread_fn *func_, arg_: *mut c_void)
+void *zmq_threadstart (zmq_thread_fn *func_, arg_: &mut [u8])
 {
     thread_t *thread = new (std::nothrow) thread_t;
     alloc_assert (thread);
@@ -155,7 +155,7 @@ pub fn zmq_z85_encode (dest_: &mut [u8], data: &[u8], size: usize) -> Option<Str
 //  must be a multiple of 5.
 //  Returns NULL and sets errno = EINVAL for invalid input.
 
-uint8_t *zmq_z85_decode (uint8_t *dest_, string_: *const c_char)
+uint8_t *zmq_z85_decode (uint8_t *dest_, string_: &str)
 {
     unsigned int byte_nbr = 0;
     unsigned int char_nbr = 0;
@@ -201,7 +201,7 @@ uint8_t *zmq_z85_decode (uint8_t *dest_, string_: *const c_char)
 
 error_inval:
     errno = EINVAL;
-    return NULL;
+    return null_mut();
 }
 
 //  --------------------------------------------------------------------------
@@ -242,7 +242,7 @@ int zmq_curve_keypair (char *z85_public_key_, char *z85_secret_key_)
 //  Returns 0 on success, -1 on failure, setting errno.
 //  Sets errno = ENOTSUP in the absence of a CURVE library.
 
-int zmq_curve_public (char *z85_public_key_, z85_secret_key_: *const c_char)
+int zmq_curve_public (char *z85_public_key_, z85_secret_key_: &str)
 {
 // #if defined(ZMQ_HAVE_CURVE)
 #if crypto_box_PUBLICKEYBYTES != 32 || crypto_box_SECRETKEYBYTES != 32
@@ -254,7 +254,7 @@ int zmq_curve_public (char *z85_public_key_, z85_secret_key_: *const c_char)
 
     random_open ();
 
-    if (zmq_z85_decode (secret_key, z85_secret_key_) == NULL)
+    if (zmq_z85_decode (secret_key, z85_secret_key_) == null_mut())
         return -1;
 
     // Return codes are suppressed as none of these can actually fail.
@@ -316,5 +316,5 @@ int zmq_atomic_counter_value (counter_: *mut c_void)
 void zmq_atomic_counter_destroy (void **counter_p_)
 {
     delete (static_cast<AtomicCounter *> (*counter_p_));
-    *counter_p_ = NULL;
+    *counter_p_ = null_mut();
 }

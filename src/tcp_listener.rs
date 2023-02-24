@@ -66,7 +66,7 @@ pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
                     const ZmqOptions &options_);
 
     //  Set address to listen on.
-    int set_local_address (addr_: *const c_char);
+    int set_local_address (addr_: &str);
 
   protected:
     std::string get_socket_name (fd_t fd_, SocketEnd socket_end_) const;
@@ -81,7 +81,7 @@ pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
     //  or was denied because of accept filters.
     fd_t accept ();
 
-    int create_socket (addr_: *const c_char);
+    int create_socket (addr_: &str);
 
     //  Address to listen on.
     TcpAddress _address;
@@ -131,7 +131,7 @@ tcp_listener_t::get_socket_name (fd_t fd_,
     return get_socket_name<TcpAddress> (fd_, socket_end_);
 }
 
-int tcp_listener_t::create_socket (addr_: *const c_char)
+int tcp_listener_t::create_socket (addr_: &str)
 {
     _s = tcp_open_socket (addr_, options, true, true, &_address);
     if (_s == retired_fd) {
@@ -199,7 +199,7 @@ error:
     return -1;
 }
 
-int tcp_listener_t::set_local_address (addr_: *const c_char)
+int tcp_listener_t::set_local_address (addr_: &str)
 {
     if (options.use_fd != -1) {
         //  in this case, the addr_ passed is not used and ignored, since the

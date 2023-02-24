@@ -62,7 +62,7 @@ pub struct tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
                      const ZmqOptions &options_);
 
     //  Set address to listen on.
-    int set_local_address (addr_: *const c_char);
+    int set_local_address (addr_: &str);
 
   protected:
     std::string get_socket_name (fd_t fd_,
@@ -113,7 +113,7 @@ tipc_listener_t::get_socket_name (fd_t fd_,
     return get_socket_name<TipcAddress> (fd_, socket_end_);
 }
 
-int tipc_listener_t::set_local_address (addr_: *const c_char)
+int tipc_listener_t::set_local_address (addr_: &str)
 {
     // Convert str to address struct
     int rc = _address.resolve (addr_);

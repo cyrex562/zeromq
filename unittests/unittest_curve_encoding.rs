@@ -40,12 +40,12 @@ void tearDown ()
 {
 }
 
-void test_roundtrip (ZmqMessage *msg)
+void test_roundtrip (msg: &mut ZmqMessage)
 {
 // #ifdef ZMQ_HAVE_CURVE
-    const std::vector<uint8_t> original (static_cast<uint8_t *> (msg->data ()),
-                                         static_cast<uint8_t *> (msg->data ())
-                                           + msg->size ());
+    const std::vector<uint8_t> original (static_cast<uint8_t *> (msg.data ()),
+                                         static_cast<uint8_t *> (msg.data ())
+                                           + msg.size ());
 
     curve_encoding_t encoding_client ("CurveZMQMESSAGEC",
                                            "CurveZMQMESSAGES",
@@ -79,9 +79,9 @@ void test_roundtrip (ZmqMessage *msg)
     TEST_ASSERT_SUCCESS_ERRNO (
       encoding_server.decode (msg, &error_event_code));
 
-    TEST_ASSERT_EQUAL_INT (original.size (), msg->size ());
+    TEST_ASSERT_EQUAL_INT (original.size (), msg.size ());
     if (!original.empty ()) {
-        TEST_ASSERT_EQUAL_UINT8_ARRAY (&original[0], msg->data (),
+        TEST_ASSERT_EQUAL_UINT8_ARRAY (&original[0], msg.data (),
                                        original.size ());
     }
 // #else

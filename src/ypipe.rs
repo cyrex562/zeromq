@@ -131,7 +131,7 @@ impl YpipeBase<T> for Ypipe<T> {
         //  Prefetching is to simply retrieve the
         //  pointer from c in atomic fashion. If there are no
         //  items to prefetch, set c to NULL (using compare-and-swap).
-        self._r = self._c.cas(&self._queue.front(), NULL);
+        self._r = self._c.cas(&self._queue.front(), null_mut());
 
         //  If there are no elements prefetched, exit.
         //  During pipe's lifetime r should never be NULL, however,

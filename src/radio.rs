@@ -45,14 +45,14 @@ pub struct radio_t ZMQ_FINAL : public ZmqSocketBase
     void xattach_pipe (pipe_t *pipe_,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false);
-    int xsend (ZmqMessage *msg);
+    int xsend (msg: &mut ZmqMessage);
     bool xhas_out ();
-    int xrecv (ZmqMessage *msg);
+    int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
-    void xread_activated (pipe_t *pipe_);
-    void xwrite_activated (pipe_t *pipe_);
+    void xread_activated (pipe_: &mut pipe_t);
+    void xwrite_activated (pipe_: &mut pipe_t);
     int xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
-    void xpipe_terminated (pipe_t *pipe_);
+    void xpipe_terminated (pipe_: &mut pipe_t);
 
   // private:
     //  List of all subscriptions mapped to corresponding pipes.
@@ -67,7 +67,7 @@ pub struct radio_t ZMQ_FINAL : public ZmqSocketBase
     dist_t _dist;
 
     //  Drop messages if HWM reached, otherwise return with EAGAIN
-    bool _lossy;
+    _lossy: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (radio_t)
 };
@@ -75,15 +75,15 @@ pub struct radio_session_t ZMQ_FINAL : public session_base_t
 {
 // public:
     radio_session_t (io_thread_t *io_thread_,
-                     bool connect_,
+                     connect_: bool,
                      socket_: *mut ZmqSocketBase,
                      const ZmqOptions &options_,
                      Address *addr_);
     ~radio_session_t ();
 
     //  Overrides of the functions from session_base_t.
-    int push_msg (ZmqMessage *msg);
-    int pull_msg (ZmqMessage *msg);
+    int push_msg (msg: &mut ZmqMessage);
+    int pull_msg (msg: &mut ZmqMessage);
     void reset ();
 
   // private:
@@ -109,8 +109,8 @@ radio_t::~radio_t ()
 }
 
 void radio_t::xattach_pipe (pipe_t *pipe_,
-                                 bool subscribe_to_all_,
-                                 bool locally_initiated_)
+                                 subscribe_to_all_: bool,
+                                 locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
@@ -131,7 +131,7 @@ void radio_t::xattach_pipe (pipe_t *pipe_,
         xread_activated (pipe_);
 }
 
-void radio_t::xread_activated (pipe_t *pipe_)
+void radio_t::xread_activated (pipe_: &mut pipe_t)
 {
     //  There are some subscriptions waiting. Let's process them.
     ZmqMessage msg;
@@ -160,7 +160,7 @@ void radio_t::xread_activated (pipe_t *pipe_)
     }
 }
 
-void radio_t::xwrite_activated (pipe_t *pipe_)
+void radio_t::xwrite_activated (pipe_: &mut pipe_t)
 {
     _dist.activated (pipe_);
 }
@@ -181,7 +181,7 @@ int radio_t::xsetsockopt (option_: i32,
     return 0;
 }
 
-void radio_t::xpipe_terminated (pipe_t *pipe_)
+void radio_t::xpipe_terminated (pipe_: &mut pipe_t)
 {
     for (subscriptions_t::iterator it = _subscriptions.begin (),
                                    end = _subscriptions.end ();
@@ -208,10 +208,10 @@ void radio_t::xpipe_terminated (pipe_t *pipe_)
     _dist.pipe_terminated (pipe_);
 }
 
-int radio_t::xsend (ZmqMessage *msg)
+int radio_t::xsend (msg: &mut ZmqMessage)
 {
     //  Radio sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg->flags () & ZmqMessage::more) {
+    if (msg.flags () & ZmqMessage::more) {
         errno = EINVAL;
         return -1;
     }
@@ -219,7 +219,7 @@ int radio_t::xsend (ZmqMessage *msg)
     _dist.unmatch ();
 
     const std::pair<subscriptions_t::iterator, subscriptions_t::iterator>
-      range = _subscriptions.equal_range (std::string (msg->group ()));
+      range = _subscriptions.equal_range (std::string (msg.group ()));
 
     for (subscriptions_t::iterator it = range.first; it != range.second; ++it)
         _dist.match (it->second);
@@ -245,7 +245,7 @@ bool radio_t::xhas_out ()
     return _dist.has_out ();
 }
 
-int radio_t::xrecv (ZmqMessage *msg)
+int radio_t::xrecv (msg: &mut ZmqMessage)
 {
     //  Messages cannot be received from PUB socket.
     LIBZMQ_UNUSED (msg);
@@ -259,7 +259,7 @@ bool radio_t::xhas_in ()
 }
 
 radio_session_t::radio_session_t (io_thread_t *io_thread_,
-                                       bool connect_,
+                                       connect_: bool,
                                        ZmqSocketBase *socket_,
                                        const ZmqOptions &options_,
                                        Address *addr_) :
@@ -272,11 +272,11 @@ radio_session_t::~radio_session_t ()
 {
 }
 
-int radio_session_t::push_msg (ZmqMessage *msg)
+int radio_session_t::push_msg (msg: &mut ZmqMessage)
 {
-    if (msg->flags () & ZmqMessage::command) {
-        char *command_data = static_cast<char *> (msg->data ());
-        const size_t data_size = msg->size ();
+    if (msg.flags () & ZmqMessage::command) {
+        char *command_data = static_cast<char *> (msg.data ());
+        const size_t data_size = msg.size ();
 
         group_length: i32;
         const char *group;
@@ -305,7 +305,7 @@ int radio_session_t::push_msg (ZmqMessage *msg)
         errno_assert (rc == 0);
 
         //  Close the current command
-        rc = msg->close ();
+        rc = msg.close ();
         errno_assert (rc == 0);
 
         //  Push the join or leave command
@@ -315,7 +315,7 @@ int radio_session_t::push_msg (ZmqMessage *msg)
     return session_base_t::push_msg (msg);
 }
 
-int radio_session_t::pull_msg (ZmqMessage *msg)
+int radio_session_t::pull_msg (msg: &mut ZmqMessage)
 {
     if (_state == group) {
         int rc = session_base_t::pull_msg (&_pending_msg);
@@ -326,10 +326,10 @@ int radio_session_t::pull_msg (ZmqMessage *msg)
         let length: i32 = static_cast<int> (strlen (group));
 
         //  First frame is the group
-        rc = msg->init_size (length);
+        rc = msg.init_size (length);
         errno_assert (rc == 0);
-        msg->set_flags (ZmqMessage::more);
-        memcpy (msg->data (), group, length);
+        msg.set_flags (ZmqMessage::more);
+        memcpy (msg.data (), group, length);
 
         //  Next status is the body
         _state = body;

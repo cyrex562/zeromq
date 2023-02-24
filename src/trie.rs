@@ -51,20 +51,20 @@ pub struct trie_t
     bool rm (unsigned char *prefix_, size: usize);
 
     //  Check whether particular key is in the trie.
-    bool check (const unsigned char *data, size: usize) const;
+    bool check (const data: &mut [u8], size: usize) const;
 
     //  Apply the function supplied to each subscription in the trie.
-    void apply (void (*func_) (unsigned char *data, size: usize, arg_: *mut c_void),
-                arg_: *mut c_void);
+    void apply (void (*func_) (data: &mut [u8], size: usize, arg_: &mut [u8]),
+                arg_: &mut [u8]);
 
   // private:
     void apply_helper (unsigned char **buff_,
                        buffsize_: usize,
                        maxbuffsize_: usize,
-                       void (*func_) (unsigned char *data,
+                       void (*func_) (data: &mut [u8],
                                       size: usize,
-                                      arg_: *mut c_void),
-                       arg_: *mut c_void) const;
+                                      arg_: &mut [u8]),
+                       arg_: &mut [u8]) const;
     bool is_redundant () const;
 
     u32 _refcnt;
@@ -106,13 +106,13 @@ pub struct trie_with_size_t
             return false;
     }
 
-    bool check (const unsigned char *data, size: usize) const
+    bool check (const data: &mut [u8], size: usize) const
     {
         return _trie.check (data, size);
     }
 
-    void apply (void (*func_) (unsigned char *data, size: usize, arg_: *mut c_void),
-                arg_: *mut c_void)
+    void apply (void (*func_) (data: &mut [u8], size: usize, arg_: &mut [u8]),
+                arg_: &mut [u8])
     {
         _trie.apply (func_, arg_);
     }
@@ -158,7 +158,7 @@ bool trie_t::add (unsigned char *prefix_, size: usize)
         if (!_count) {
             _min = c;
             _count = 1;
-            _next.node = NULL;
+            _next.node = null_mut();
         } else if (_count == 1) {
             const unsigned char oldc = _min;
             trie_t *oldp = _next.node;
@@ -178,7 +178,7 @@ bool trie_t::add (unsigned char *prefix_, size: usize)
               realloc (_next.table, sizeof (trie_t *) * _count));
             zmq_assert (_next.table);
             for (unsigned short i = old_count; i != _count; i++)
-                _next.table[i] = NULL;
+                _next.table[i] = null_mut();
         } else {
             //  The new character is below the current character range.
             const unsigned short old_count = _count;
@@ -189,7 +189,7 @@ bool trie_t::add (unsigned char *prefix_, size: usize)
             memmove (_next.table + _min - c, _next.table,
                      old_count * sizeof (trie_t *));
             for (unsigned short i = 0; i != _min - c; i++)
-                _next.table[i] = NULL;
+                _next.table[i] = null_mut();
             _min = c;
         }
     }
@@ -325,7 +325,7 @@ bool trie_t::rm (unsigned char *prefix_, size: usize)
     return ret;
 }
 
-bool trie_t::check (const unsigned char *data, size: usize) const
+bool trie_t::check (const data: &mut [u8], size: usize) const
 {
     //  This function is on critical path. It deliberately doesn't use
     //  recursion to get a bit better performance.
@@ -359,9 +359,9 @@ bool trie_t::check (const unsigned char *data, size: usize) const
 }
 
 void trie_t::apply (
-  void (*func_) (unsigned char *data, size: usize, arg_: *mut c_void), arg_: *mut c_void)
+  void (*func_) (data: &mut [u8], size: usize, arg_: &mut [u8]), arg_: &mut [u8])
 {
-    unsigned char *buff = NULL;
+    unsigned char *buff = null_mut();
     apply_helper (&buff, 0, 0, func_, arg_);
     free (buff);
 }
@@ -369,10 +369,10 @@ void trie_t::apply (
 void trie_t::apply_helper (unsigned char **buff_,
                                 buffsize_: usize,
                                 maxbuffsize_: usize,
-                                void (*func_) (unsigned char *data,
+                                void (*func_) (data: &mut [u8],
                                                size: usize,
-                                               arg_: *mut c_void),
-                                arg_: *mut c_void) const
+                                               arg_: &mut [u8]),
+                                arg_: &mut [u8]) const
 {
     //  If this node is a subscription, apply the function.
     if (_refcnt)

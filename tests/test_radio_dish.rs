@@ -56,7 +56,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-void msg_send_expect_success (s_: *mut c_void, group_: *const c_char, body_: *const c_char)
+void msg_send_expect_success (s_: *mut c_void, group_: *const c_char, body_: &str)
 {
     ZmqRawMessage msg;
     const size_t len = strlen (body_);
@@ -73,7 +73,7 @@ void msg_send_expect_success (s_: *mut c_void, group_: *const c_char, body_: *co
     zmq_msg_close (&msg);
 }
 
-void msg_recv_cmp (s_: *mut c_void, group_: *const c_char, body_: *const c_char)
+void msg_recv_cmp (s_: *mut c_void, group_: *const c_char, body_: &str)
 {
     ZmqRawMessage msg;
     const size_t len = strlen (body_);
@@ -430,7 +430,7 @@ static bool is_multicast_available (ipv6_: i32)
 
     msleep (SETTLE_TIME);
 
-    rc = recvfrom (bind_sock, buf, mem::size_of::<buf>() - 1, 0, NULL, 0);
+    rc = recvfrom (bind_sock, buf, mem::size_of::<buf>() - 1, 0, null_mut(), 0);
     if (rc < 0) {
         goto out;
     }
@@ -523,7 +523,7 @@ static void test_radio_dish_no_loop (ipv6_: i32)
     // Looping is disabled, we shouldn't receive anything
     msleep (SETTLE_TIME);
 
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (dish, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (dish, null_mut(), 0, ZMQ_DONTWAIT));
 
     test_context_socket_close (dish);
     test_context_socket_close (radio);

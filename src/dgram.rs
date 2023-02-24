@@ -43,26 +43,26 @@ pub struct dgram_t ZMQ_FINAL : public ZmqSocketBase
 
     //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (pipe_t *pipe_,
-                       bool subscribe_to_all_,
-                       bool locally_initiated_);
-    int xsend (ZmqMessage *msg);
-    int xrecv (ZmqMessage *msg);
+                       subscribe_to_all_: bool,
+                       locally_initiated_: bool);
+    int xsend (msg: &mut ZmqMessage);
+    int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
     bool xhas_out ();
-    void xread_activated (pipe_t *pipe_);
-    void xwrite_activated (pipe_t *pipe_);
-    void xpipe_terminated (pipe_t *pipe_);
+    void xread_activated (pipe_: &mut pipe_t);
+    void xwrite_activated (pipe_: &mut pipe_t);
+    void xpipe_terminated (pipe_: &mut pipe_t);
 
   // private:
     pipe_t *_pipe;
 
     //  If true, more outgoing message parts are expected.
-    bool _more_out;
+    _more_out: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dgram_t)
 };
 dgram_t::dgram_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    ZmqSocketBase (parent_, tid_, sid_), _pipe (NULL), _more_out (false)
+    ZmqSocketBase (parent_, tid_, sid_), _pipe (null_mut()), _more_out (false)
 {
     options.type = ZMQ_DGRAM;
     options.raw_socket = true;
@@ -74,8 +74,8 @@ dgram_t::~dgram_t ()
 }
 
 void dgram_t::xattach_pipe (pipe_t *pipe_,
-                                 bool subscribe_to_all_,
-                                 bool locally_initiated_)
+                                 subscribe_to_all_: bool,
+                                 locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
@@ -84,16 +84,16 @@ void dgram_t::xattach_pipe (pipe_t *pipe_,
 
     //  ZMQ_DGRAM socket can only be connected to a single peer.
     //  The socket rejects any further connection requests.
-    if (_pipe == NULL)
+    if (_pipe == null_mut())
         _pipe = pipe_;
     else
         pipe_->terminate (false);
 }
 
-void dgram_t::xpipe_terminated (pipe_t *pipe_)
+void dgram_t::xpipe_terminated (pipe_: &mut pipe_t)
 {
     if (pipe_ == _pipe) {
-        _pipe = NULL;
+        _pipe = null_mut();
     }
 }
 
@@ -109,11 +109,11 @@ void dgram_t::xwrite_activated (pipe_t *)
     //  There's nothing to do here.
 }
 
-int dgram_t::xsend (ZmqMessage *msg)
+int dgram_t::xsend (msg: &mut ZmqMessage)
 {
     // If there's no out pipe, just drop it.
     if (!_pipe) {
-        let rc: i32 = msg->close ();
+        let rc: i32 = msg.close ();
         errno_assert (rc == 0);
         return -1;
     }
@@ -121,46 +121,46 @@ int dgram_t::xsend (ZmqMessage *msg)
     //  If this is the first part of the message it's the ID of the
     //  peer to send the message to.
     if (!_more_out) {
-        if (!(msg->flags () & ZmqMessage::more)) {
+        if (!(msg.flags () & ZmqMessage::more)) {
             errno = EINVAL;
             return -1;
         }
     } else {
         //  dgram messages are two part only, reject part if more is set
-        if (msg->flags () & ZmqMessage::more) {
+        if (msg.flags () & ZmqMessage::more) {
             errno = EINVAL;
             return -1;
         }
     }
 
     // Push the message into the pipe.
-    if (!_pipe->write (msg)) {
+    if (!_pipe.write (msg)) {
         errno = EAGAIN;
         return -1;
     }
 
-    if (!(msg->flags () & ZmqMessage::more))
-        _pipe->flush ();
+    if (!(msg.flags () & ZmqMessage::more))
+        _pipe.flush ();
 
     // flip the more flag
     _more_out = !_more_out;
 
     //  Detach the message from the data buffer.
-    let rc: i32 = msg->init ();
+    let rc: i32 = msg.init ();
     errno_assert (rc == 0);
 
     return 0;
 }
 
-int dgram_t::xrecv (ZmqMessage *msg)
+int dgram_t::xrecv (msg: &mut ZmqMessage)
 {
     //  Deallocate old content of the message.
-    int rc = msg->close ();
+    int rc = msg.close ();
     errno_assert (rc == 0);
 
-    if (!_pipe || !_pipe->read (msg)) {
+    if (!_pipe || !_pipe.read (msg)) {
         //  Initialise the output parameter to be a 0-byte message.
-        rc = msg->init ();
+        rc = msg.init ();
         errno_assert (rc == 0);
 
         errno = EAGAIN;
@@ -175,7 +175,7 @@ bool dgram_t::xhas_in ()
     if (!_pipe)
         return false;
 
-    return _pipe->check_read ();
+    return _pipe.check_read ();
 }
 
 bool dgram_t::xhas_out ()
@@ -183,5 +183,5 @@ bool dgram_t::xhas_out ()
     if (!_pipe)
         return false;
 
-    return _pipe->check_write ();
+    return _pipe.check_write ();
 }

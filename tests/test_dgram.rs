@@ -35,7 +35,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-void str_send_to (s_: *mut c_void, content: *const c_char, address_: *const c_char)
+void str_send_to (s_: *mut c_void, content: *const c_char, address_: &str)
 {
     send_string_expect_success (s_, address_, ZMQ_SNDMORE);
     send_string_expect_success (s_, content, 0);

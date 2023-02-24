@@ -44,7 +44,7 @@ rep_t::~rep_t ()
 {
 }
 
-int rep_t::xsend (ZmqMessage *msg)
+int rep_t::xsend (msg: &mut ZmqMessage)
 {
     //  If we are in the middle of receiving a request, we cannot send reply.
     if (!_sending_reply) {
@@ -52,7 +52,7 @@ int rep_t::xsend (ZmqMessage *msg)
         return -1;
     }
 
-    const bool more = (msg->flags () & ZmqMessage::more) != 0;
+    const bool more = (msg.flags () & ZmqMessage::more) != 0;
 
     //  Push message to the reply pipe.
     let rc: i32 = router_t::xsend (msg);
@@ -66,7 +66,7 @@ int rep_t::xsend (ZmqMessage *msg)
     return 0;
 }
 
-int rep_t::xrecv (ZmqMessage *msg)
+int rep_t::xrecv (msg: &mut ZmqMessage)
 {
     //  If we are in middle of sending a reply, we cannot receive next request.
     if (_sending_reply) {
@@ -82,9 +82,9 @@ int rep_t::xrecv (ZmqMessage *msg)
             if (rc != 0)
                 return rc;
 
-            if ((msg->flags () & ZmqMessage::more)) {
+            if ((msg.flags () & ZmqMessage::more)) {
                 //  Empty message part delimits the traceback stack.
-                const bool bottom = (msg->size () == 0);
+                const bool bottom = (msg.size () == 0);
 
                 //  Push it to the reply pipe.
                 rc = router_t::xsend (msg);
@@ -108,7 +108,7 @@ int rep_t::xrecv (ZmqMessage *msg)
         return rc;
 
     //  If whole request is read, flip the FSM to reply-sending state.
-    if (!(msg->flags () & ZmqMessage::more)) {
+    if (!(msg.flags () & ZmqMessage::more)) {
         _sending_reply = true;
         _request_begins = true;
     }
@@ -138,19 +138,19 @@ pub struct rep_t ZMQ_FINAL : public router_t
     ~rep_t ();
 
     //  Overrides of functions from ZmqSocketBase.
-    int xsend (ZmqMessage *msg);
-    int xrecv (ZmqMessage *msg);
+    int xsend (msg: &mut ZmqMessage);
+    int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
     bool xhas_out ();
 
   // private:
     //  If true, we are in process of sending the reply. If false we are
     //  in process of receiving a request.
-    bool _sending_reply;
+    _sending_reply: bool
 
     //  If true, we are starting to receive a request. The beginning
     //  of the request is the backtrace stack.
-    bool _request_begins;
+    _request_begins: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (rep_t)
 };

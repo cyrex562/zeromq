@@ -38,11 +38,11 @@ pub struct fq_t
     fq_t ();
     ~fq_t ();
 
-    void attach (pipe_t *pipe_);
-    void activated (pipe_t *pipe_);
-    void pipe_terminated (pipe_t *pipe_);
+    void attach (pipe_: &mut pipe_t);
+    void activated (pipe_: &mut pipe_t);
+    void pipe_terminated (pipe_: &mut pipe_t);
 
-    int recv (ZmqMessage *msg);
+    int recv (msg: &mut ZmqMessage);
     int recvpipe (msg: &mut ZmqMessage pipe_t **pipe_);
     bool has_in ();
 
@@ -60,7 +60,7 @@ pub struct fq_t
 
     //  If true, part of a multipart message was already received, but
     //  there are following parts still waiting in the current pipe.
-    bool _more;
+    _more: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (fq_t)
 };
@@ -74,14 +74,14 @@ fq_t::~fq_t ()
     zmq_assert (_pipes.empty ());
 }
 
-void fq_t::attach (pipe_t *pipe_)
+void fq_t::attach (pipe_: &mut pipe_t)
 {
     _pipes.push_back (pipe_);
     _pipes.swap (_active, _pipes.size () - 1);
     _active++;
 }
 
-void fq_t::pipe_terminated (pipe_t *pipe_)
+void fq_t::pipe_terminated (pipe_: &mut pipe_t)
 {
     const pipes_t::size_type index = _pipes.index (pipe_);
 
@@ -96,22 +96,22 @@ void fq_t::pipe_terminated (pipe_t *pipe_)
     _pipes.erase (pipe_);
 }
 
-void fq_t::activated (pipe_t *pipe_)
+void fq_t::activated (pipe_: &mut pipe_t)
 {
     //  Move the pipe to the list of active pipes.
     _pipes.swap (_pipes.index (pipe_), _active);
     _active++;
 }
 
-int fq_t::recv (ZmqMessage *msg)
+int fq_t::recv (msg: &mut ZmqMessage)
 {
-    return recvpipe (msg, NULL);
+    return recvpipe (msg, null_mut());
 }
 
 int fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe_)
 {
     //  Deallocate old content of the message.
-    int rc = msg->close ();
+    int rc = msg.close ();
     errno_assert (rc == 0);
 
     //  Round-robin over the pipes to get the next message.
@@ -126,7 +126,7 @@ int fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe_)
         if (fetched) {
             if (pipe_)
                 *pipe_ = _pipes[_current];
-            _more = (msg->flags () & ZmqMessage::more) != 0;
+            _more = (msg.flags () & ZmqMessage::more) != 0;
             if (!_more) {
                 _current = (_current + 1) % _active;
             }
@@ -146,7 +146,7 @@ int fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe_)
 
     //  No message is available. Initialise the output parameter
     //  to be a 0-byte message.
-    rc = msg->init ();
+    rc = msg.init ();
     errno_assert (rc == 0);
     errno = EAGAIN;
     return -1;

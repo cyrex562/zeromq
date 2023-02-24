@@ -152,7 +152,7 @@ char *s_recv (socket_: *mut c_void)
     char buffer[256];
     int size = zmq_recv (socket_, buffer, 255, 0);
     if (size == -1)
-        return NULL;
+        return null_mut();
     if (size > 255)
         size = 255;
     buffer[size] = 0;
@@ -532,12 +532,12 @@ fd_t bind_socket_resolve_port (address_: *const c_char,
     return s_pre;
 }
 
-bool streq (lhs_: *const c_char, rhs_: *const c_char)
+bool streq (lhs_: *const c_char, rhs_: &str)
 {
     return strcmp (lhs_, rhs_) == 0;
 }
 
-bool strneq (lhs_: *const c_char, rhs_: *const c_char)
+bool strneq (lhs_: *const c_char, rhs_: &str)
 {
     return strcmp (lhs_, rhs_) != 0;
 }
@@ -572,11 +572,11 @@ int fuzzer_corpus_encode (dirname: *const c_char,
     if (!dir)
         return -1;
 
-    *len = NULL;
-    *data = NULL;
+    *len = null_mut();
+    *data = null_mut();
     *num_cases = 0;
 
-    while ((ent = readdir (dir)) != NULL) {
+    while ((ent = readdir (dir)) != null_mut()) {
         if (!strcmp (ent->d_name, ".") || !strcmp (ent->d_name, ".."))
             continue;
 

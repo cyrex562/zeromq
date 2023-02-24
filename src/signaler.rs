@@ -316,11 +316,11 @@ int signaler_t::wait (timeout_: i32) const
     }
 // #ifdef ZMQ_HAVE_WINDOWS
     int rc =
-      select (0, fds.get (), NULL, NULL, timeout_ >= 0 ? &timeout : NULL);
+      select (0, fds.get (), null_mut(), null_mut(), timeout_ >= 0 ? &timeout : null_mut());
     wsa_assert (rc != SOCKET_ERROR);
 // #else
     int rc =
-      select (_r + 1, fds.get (), NULL, NULL, timeout_ >= 0 ? &timeout : NULL);
+      select (_r + 1, fds.get (), null_mut(), null_mut(), timeout_ >= 0 ? &timeout : null_mut());
     if (unlikely (rc < 0)) {
         errno_assert (errno == EINTR);
         return -1;

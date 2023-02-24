@@ -58,7 +58,7 @@ pub struct decoder_base_t : public i_decoder
 {
 // public:
     explicit decoder_base_t (const buf_size_: usize) :
-        _next (NULL), _read_pos (NULL), _to_read (0), _allocator (buf_size_)
+        _next (null_mut()), _read_pos (null_mut()), _to_read (0), _allocator (buf_size_)
     {
         _buf = _allocator.allocate ();
     }
@@ -94,7 +94,7 @@ pub struct decoder_base_t : public i_decoder
     //  whole message was decoded or 0 when more data is required.
     //  On error, -1 is returned and errno set accordingly.
     //  Number of bytes processed is returned in bytes_used_.
-    int decode (const unsigned char *data,
+    int decode (const data: &mut [u8],
                 std::size: usize,
                 std::size_t &bytes_used_) ZMQ_FINAL
     {

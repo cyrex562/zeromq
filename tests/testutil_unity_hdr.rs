@@ -84,7 +84,7 @@ int test_assert_failure_message_raw_errno_helper (
 // If an additional message should be displayed in case of a failure, use
 // TEST_ASSERT_SUCCESS_MESSAGE_ERRNO.
 // #define TEST_ASSERT_SUCCESS_ERRNO(expr)                                        \
-    test_assert_success_message_errno_helper (expr, NULL, #expr, __LINE__)
+    test_assert_success_message_errno_helper (expr, null_mut(), #expr, __LINE__)
 
 // Asserts that the socket API 'expr' is successful. In case of a failure, the
 // assertion message includes the literal 'expr' and the error code.
@@ -94,7 +94,7 @@ int test_assert_failure_message_raw_errno_helper (
 // Success is strictly defined by a return value different from -1, as opposed
 // to checking that it is 0, like TEST_ASSERT_FAILURE_RAW_ZERO_ERRNO does.
 // #define TEST_ASSERT_SUCCESS_RAW_ERRNO(expr)                                    \
-    test_assert_success_message_raw_errno_helper (expr, NULL, #expr, __LINE__)
+    test_assert_success_message_raw_errno_helper (expr, null_mut(), #expr, __LINE__)
 
 // Asserts that the socket API 'expr' is successful. In case of a failure, the
 // assertion message includes the literal 'expr' and the error code.
@@ -104,7 +104,7 @@ int test_assert_failure_message_raw_errno_helper (
 // Success is strictly defined by a return value of 0, as opposed to checking
 // that it is not -1, like TEST_ASSERT_FAILURE_RAW_ERRNO does.
 // #define TEST_ASSERT_SUCCESS_RAW_ZERO_ERRNO(expr)                               \
-    test_assert_success_message_raw_zero_errno_helper (expr, NULL, #expr,      \
+    test_assert_success_message_raw_zero_errno_helper (expr, null_mut(), #expr,      \
                                                        __LINE__)
 
 // Asserts that the socket API 'expr' is not successful, and the error code is
@@ -112,7 +112,7 @@ int test_assert_failure_message_raw_errno_helper (
 // unexpected error code, the assertion message includes the literal 'expr'
 // and, in case of a failure, the actual error code.
 // #define TEST_ASSERT_FAILURE_RAW_ERRNO(error_code, expr)                        \
-    test_assert_failure_message_raw_errno_helper (expr, error_code, NULL,      \
+    test_assert_failure_message_raw_errno_helper (expr, error_code, null_mut(),      \
                                                   #expr, __LINE__)
 
 // Asserts that the libzmq API 'expr' is not successful, and the error code is

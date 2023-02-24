@@ -34,7 +34,7 @@
 pub struct io_object_t : public i_poll_events
 {
 // public:
-    io_object_t (io_thread_t *io_thread_ = NULL);
+    io_object_t (io_thread_t *io_thread_ = null_mut());
     ~io_object_t () ZMQ_OVERRIDE;
 
     //  When migrating an object from one I/O thread to another, first
@@ -66,7 +66,7 @@ pub struct io_object_t : public i_poll_events
     ZMQ_NON_COPYABLE_NOR_MOVABLE (io_object_t)
 };
 
-io_object_t::io_object_t (io_thread_t *io_thread_) : _poller (NULL)
+io_object_t::io_object_t (io_thread_t *io_thread_) : _poller (null_mut())
 {
     if (io_thread_)
         plug (io_thread_);
@@ -91,7 +91,7 @@ void io_object_t::unplug ()
 
     //  Forget about old poller in preparation to be migrated
     //  to a different I/O thread.
-    _poller = NULL;
+    _poller = null_mut();
 }
 
 io_object_t::handle_t io_object_t::add_fd (fd_t fd_)

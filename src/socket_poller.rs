@@ -110,10 +110,10 @@ pub struct socket_poller_t
     items_t _items;
 
     //  Does the pollset needs rebuilding?
-    bool _need_rebuild;
+    _need_rebuild: bool
 
     //  Should the signaler be used for the thread safe polling?
-    bool _use_signaler;
+    _use_signaler: bool
 
     //  Size of the pollset
     _pollset_size: i32;
@@ -150,10 +150,10 @@ static It find_if2 (It b_, It e_, const T &value, Pred pred)
 
 socket_poller_t::socket_poller_t () :
     _tag (0xCAFEBABE),
-    _signaler (NULL)
+    _signaler (null_mut())
 // #if defined ZMQ_POLL_BASED_ON_POLL
     ,
-    _pollfds (NULL)
+    _pollfds (null_mut())
 #elif defined ZMQ_POLL_BASED_ON_SELECT
     ,
     _max_fd (0)
@@ -176,14 +176,14 @@ socket_poller_t::~socket_poller_t ()
         }
     }
 
-    if (_signaler != NULL) {
+    if (_signaler != null_mut()) {
         LIBZMQ_DELETE (_signaler);
     }
 
 // #if defined ZMQ_POLL_BASED_ON_POLL
     if (_pollfds) {
         free (_pollfds);
-        _pollfds = NULL;
+        _pollfds = null_mut();
     }
 // #endif
 }
@@ -215,7 +215,7 @@ int socket_poller_t::add (ZmqSocketBase *socket_,
     }
 
     if (is_thread_safe (*socket_)) {
-        if (_signaler == NULL) {
+        if (_signaler == null_mut()) {
             _signaler = new (std::nothrow) signaler_t ();
             if (!_signaler) {
                 errno = ENOMEM;
@@ -223,7 +223,7 @@ int socket_poller_t::add (ZmqSocketBase *socket_,
             }
             if (!_signaler->valid ()) {
                 delete _signaler;
-                _signaler = NULL;
+                _signaler = null_mut();
                 errno = EMFILE;
                 return -1;
             }
@@ -263,7 +263,7 @@ int socket_poller_t::add_fd (fd_t fd_, user_data_: *mut c_void, short events_)
     }
 
     const item_t item = {
-        NULL,
+        null_mut(),
         fd_,
         user_data_,
         events_
@@ -364,7 +364,7 @@ int socket_poller_t::rebuild ()
 
     if (_pollfds) {
         free (_pollfds);
-        _pollfds = NULL;
+        _pollfds = null_mut();
     }
 
     for (items_t::iterator it = _items.begin (), end = _items.end (); it != end;
@@ -497,9 +497,9 @@ void socket_poller_t::zero_trail_events (
   socket_poller_t::event_t *events_, n_events_: i32, found_: i32)
 {
     for (int i = found_; i < n_events_; ++i) {
-        events_[i].socket = NULL;
+        events_[i].socket = null_mut();
         events_[i].fd = retired_fd;
-        events_[i].user_data = NULL;
+        events_[i].user_data = null_mut();
         events_[i].events = 0;
     }
 }
@@ -566,7 +566,7 @@ int socket_poller_t::check_events (socket_poller_t::event_t *events_,
 // #endif //POLL_SELECT
 
             if (events) {
-                events_[found].socket = NULL;
+                events_[found].socket = null_mut();
                 events_[found].fd = it->fd;
                 events_[found].user_data = it->user_data;
                 events_[found].events = events;
@@ -731,7 +731,7 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
             timeout.tv_usec = 0;
             ptimeout = &timeout;
         } else if (timeout_ < 0)
-            ptimeout = NULL;
+            ptimeout = null_mut();
         else {
             timeout.tv_sec = static_cast<long> ((end - now) / 1000);
             timeout.tv_usec = static_cast<long> ((end - now) % 1000 * 1000);

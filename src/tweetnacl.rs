@@ -869,7 +869,7 @@ void randombytes(unsigned char *x,unsigned long long xlen)
 
     if (hProvider == NCP) {
         for (;;) {
-            ret = CryptAcquireContext(&hProvider, NULL, NULL,
+            ret = CryptAcquireContext(&hProvider, null_mut(), null_mut(),
                                       PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT);
             if (ret != FALSE)
                 break;

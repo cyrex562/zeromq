@@ -38,7 +38,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-int test_defaults (send_hwm_: i32, msg_cnt_: i32, endpoint_: *const c_char)
+int test_defaults (send_hwm_: i32, msg_cnt_: i32, endpoint_: &str)
 {
     char pub_endpoint[SOCKET_STRING_LEN];
 
@@ -106,7 +106,7 @@ int receive (socket_: *mut c_void, is_termination_: *mut i32)
     return recv_count;
 }
 
-int test_blocking (send_hwm_: i32, msg_cnt_: i32, endpoint_: *const c_char)
+int test_blocking (send_hwm_: i32, msg_cnt_: i32, endpoint_: &str)
 {
     char pub_endpoint[SOCKET_STRING_LEN];
 
@@ -141,7 +141,7 @@ int test_blocking (send_hwm_: i32, msg_cnt_: i32, endpoint_: *const c_char)
     int blocked_count = 0;
     int is_termination = 0;
     while (send_count < msg_cnt_) {
-        let rc: i32 = zmq_send (pub_socket, NULL, 0, ZMQ_DONTWAIT);
+        let rc: i32 = zmq_send (pub_socket, null_mut(), 0, ZMQ_DONTWAIT);
         if (rc == 0) {
             ++send_count;
         } else if (-1 == rc) {
@@ -208,7 +208,7 @@ void test_reset_hwm ()
     // Send messages
     int send_count = 0;
     while (send_count < first_count
-           && zmq_send (pub_socket, NULL, 0, ZMQ_DONTWAIT) == 0)
+           && zmq_send (pub_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
         ++send_count;
     TEST_ASSERT_EQUAL_INT (first_count, send_count);
 
@@ -216,7 +216,7 @@ void test_reset_hwm ()
 
     // Now receive all sent messages
     int recv_count = 0;
-    while (0 == zmq_recv (sub_socket, NULL, 0, ZMQ_DONTWAIT)) {
+    while (0 == zmq_recv (sub_socket, null_mut(), 0, ZMQ_DONTWAIT)) {
         ++recv_count;
     }
     TEST_ASSERT_EQUAL_INT (first_count, recv_count);
@@ -226,7 +226,7 @@ void test_reset_hwm ()
     // Send messages
     send_count = 0;
     while (send_count < second_count
-           && zmq_send (pub_socket, NULL, 0, ZMQ_DONTWAIT) == 0)
+           && zmq_send (pub_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
         ++send_count;
     TEST_ASSERT_EQUAL_INT (second_count, send_count);
 
@@ -234,7 +234,7 @@ void test_reset_hwm ()
 
     // Now receive all sent messages
     recv_count = 0;
-    while (0 == zmq_recv (sub_socket, NULL, 0, ZMQ_DONTWAIT)) {
+    while (0 == zmq_recv (sub_socket, null_mut(), 0, ZMQ_DONTWAIT)) {
         ++recv_count;
     }
     TEST_ASSERT_EQUAL_INT (second_count, recv_count);
@@ -244,19 +244,19 @@ void test_reset_hwm ()
     test_context_socket_close (pub_socket);
 }
 
-void test_defaults_large (bind_endpoint_: *const c_char)
+void test_defaults_large (bind_endpoint_: &str)
 {
     // send 1000 msg on hwm 1000, receive 1000
     TEST_ASSERT_EQUAL_INT (1000, test_defaults (1000, 1000, bind_endpoint_));
 }
 
-void test_defaults_small (bind_endpoint_: *const c_char)
+void test_defaults_small (bind_endpoint_: &str)
 {
     // send 1000 msg on hwm 100, receive 100
     TEST_ASSERT_EQUAL_INT (100, test_defaults (100, 100, bind_endpoint_));
 }
 
-void test_blocking (bind_endpoint_: *const c_char)
+void test_blocking (bind_endpoint_: &str)
 {
     // send 6000 msg on hwm 2000, drops above hwm, only receive hwm:
     TEST_ASSERT_EQUAL_INT (6000, test_blocking (2000, 6000, bind_endpoint_));

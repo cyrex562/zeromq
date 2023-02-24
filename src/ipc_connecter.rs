@@ -60,7 +60,7 @@ pub struct ipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
                      session_base_t *session_,
                      const ZmqOptions &options_,
                      Address *addr_,
-                     bool delayed_start_);
+                     delayed_start_: bool);
 
   // private:
     //  Handlers for I/O events.
@@ -85,7 +85,7 @@ ipc_connecter_t::ipc_connecter_t (class io_thread_t *io_thread_,
 pub struct session_base_t *session_,
                                        const ZmqOptions &options_,
                                        Address *addr_,
-                                       bool delayed_start_) :
+                                       delayed_start_: bool) :
     stream_connecter_base_t (
       io_thread_, session_, options_, addr_, delayed_start_)
 {

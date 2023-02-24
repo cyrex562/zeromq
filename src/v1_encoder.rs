@@ -53,7 +53,7 @@ v1_encoder_t::v1_encoder_t (bufsize_: usize) :
     encoder_base_t<v1_encoder_t> (bufsize_)
 {
     //  Write 0 bytes to the batch and go to message_ready state.
-    next_step (NULL, 0, &v1_encoder_t::message_ready, true);
+    next_step (null_mut(), 0, &v1_encoder_t::message_ready, true);
 }
 
 v1_encoder_t::~v1_encoder_t ()

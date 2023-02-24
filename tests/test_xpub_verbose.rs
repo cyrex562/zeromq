@@ -64,7 +64,7 @@ void test_xpub_verbose_one_sub ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (sub, ZMQ_SUBSCRIBE, topic_a, 1));
 
     //  This time it is duplicated, so it will be filtered out
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, null_mut(), 0, ZMQ_DONTWAIT));
 
     int verbose = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -114,7 +114,7 @@ void create_duplicate_subscription (pub_: *mut c_void, sub0_: *mut c_void, sub1_
       zmq_setsockopt (sub1_, ZMQ_SUBSCRIBE, topic_a, 1));
 
     //  This time it is duplicated, so it will be filtered out by XPUB
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub_, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub_, null_mut(), 0, ZMQ_DONTWAIT));
 }
 
 void test_xpub_verbose_two_subs ()
@@ -171,7 +171,7 @@ void test_xpub_verboser_one_sub ()
       zmq_setsockopt (sub, ZMQ_UNSUBSCRIBE, topic_a, 1));
 
     //  Does not exist, so it will be filtered out by XSUB
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, null_mut(), 0, ZMQ_DONTWAIT));
 
     //  Subscribe for A
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (sub, ZMQ_SUBSCRIBE, topic_a, 1));
@@ -183,7 +183,7 @@ void test_xpub_verboser_one_sub ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (sub, ZMQ_SUBSCRIBE, topic_a, 1));
 
     //  This time it is duplicated, so it will be filtered out by XPUB
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, null_mut(), 0, ZMQ_DONTWAIT));
 
     //  Unsubscribe for A, this time it exists in XPUB
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -198,14 +198,14 @@ void test_xpub_verboser_one_sub ()
     recv_array_expect_success (pub, unsubscribe_a_msg, 0);
 
     //  XSUB only sends the last and final unsub, so XPUB will only receive 1
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, null_mut(), 0, ZMQ_DONTWAIT));
 
     //  Unsubscribe for A, does not exist anymore
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (sub, ZMQ_UNSUBSCRIBE, topic_a, 1));
 
     //  Does not exist, so it will be filtered out by XSUB
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, null_mut(), 0, ZMQ_DONTWAIT));
 
     int verbose = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -235,7 +235,7 @@ void test_xpub_verboser_one_sub ()
 
     //  XSUB only sends unsub if it matched it in its trie, IOW: it will only
     //  send it if it existed in the first place even with XPUB_VERBBOSER
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, null_mut(), 0, ZMQ_DONTWAIT));
 
     //  Clean up.
     test_context_socket_close (pub);
@@ -253,7 +253,7 @@ void test_xpub_verboser_two_subs ()
       zmq_setsockopt (sub0, ZMQ_UNSUBSCRIBE, topic_a, 1));
 
     //  sub1 is still subscribed, so no notification
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, null_mut(), 0, ZMQ_DONTWAIT));
 
     //  Unsubscribe the second socket to trigger the notification
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -263,7 +263,7 @@ void test_xpub_verboser_two_subs ()
     recv_array_expect_success (pub, unsubscribe_a_msg, 0);
 
     //  Make really sure there is only one notification
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, null_mut(), 0, ZMQ_DONTWAIT));
 
     int verbose = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -308,7 +308,7 @@ void test_xpub_verboser_two_subs ()
       zmq_setsockopt (sub1, ZMQ_UNSUBSCRIBE, topic_a, 1));
 
     //  Unmatched, so XSUB filters even with VERBOSER
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, NULL, 0, ZMQ_DONTWAIT));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (pub, null_mut(), 0, ZMQ_DONTWAIT));
 
     //  Clean up.
     test_context_socket_close (pub);

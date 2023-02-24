@@ -46,7 +46,7 @@ impl channel_t {
 
 
 channel_t::channel_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    ZmqSocketBase (parent_, tid_, sid_, true), _pipe (NULL)
+    ZmqSocketBase (parent_, tid_, sid_, true), _pipe (null_mut())
 {
     options.type = ZMQ_CHANNEL;
 }
@@ -57,26 +57,26 @@ channel_t::~channel_t ()
 }
 
 void channel_t::xattach_pipe (pipe_t *pipe_,
-                                   bool subscribe_to_all_,
-                                   bool locally_initiated_)
+                                   subscribe_to_all_: bool,
+                                   locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
 
-    zmq_assert (pipe_ != NULL);
+    zmq_assert (pipe_ != null_mut());
 
     //  ZMQ_PAIR socket can only be connected to a single peer.
     //  The socket rejects any further connection requests.
-    if (_pipe == NULL)
+    if (_pipe == null_mut())
         _pipe = pipe_;
     else
         pipe_->terminate (false);
 }
 
-void channel_t::xpipe_terminated (pipe_t *pipe_)
+void channel_t::xpipe_terminated (pipe_: &mut pipe_t)
 {
     if (pipe_ == _pipe)
-        _pipe = NULL;
+        _pipe = null_mut();
 }
 
 void channel_t::xread_activated (pipe_t *)
@@ -91,37 +91,37 @@ void channel_t::xwrite_activated (pipe_t *)
     //  There's nothing to do here.
 }
 
-int channel_t::xsend (ZmqMessage *msg)
+int channel_t::xsend (msg: &mut ZmqMessage)
 {
     //  CHANNEL sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg->flags () & ZmqMessage::more) {
+    if (msg.flags () & ZmqMessage::more) {
         errno = EINVAL;
         return -1;
     }
 
-    if (!_pipe || !_pipe->write (msg)) {
+    if (!_pipe || !_pipe.write (msg)) {
         errno = EAGAIN;
         return -1;
     }
 
-    _pipe->flush ();
+    _pipe.flush ();
 
     //  Detach the original message from the data buffer.
-    let rc: i32 = msg->init ();
+    let rc: i32 = msg.init ();
     errno_assert (rc == 0);
 
     return 0;
 }
 
-int channel_t::xrecv (ZmqMessage *msg)
+int channel_t::xrecv (msg: &mut ZmqMessage)
 {
     //  Deallocate old content of the message.
-    int rc = msg->close ();
+    int rc = msg.close ();
     errno_assert (rc == 0);
 
     if (!_pipe) {
         //  Initialise the output parameter to be a 0-byte message.
-        rc = msg->init ();
+        rc = msg.init ();
         errno_assert (rc == 0);
 
         errno = EAGAIN;
@@ -129,21 +129,21 @@ int channel_t::xrecv (ZmqMessage *msg)
     }
 
     // Drop any messages with more flag
-    bool read = _pipe->read (msg);
-    while (read && msg->flags () & ZmqMessage::more) {
+    bool read = _pipe.read (msg);
+    while (read && msg.flags () & ZmqMessage::more) {
         // drop all frames of the current multi-frame message
-        read = _pipe->read (msg);
-        while (read && msg->flags () & ZmqMessage::more)
-            read = _pipe->read (msg);
+        read = _pipe.read (msg);
+        while (read && msg.flags () & ZmqMessage::more)
+            read = _pipe.read (msg);
 
         // get the new message
         if (read)
-            read = _pipe->read (msg);
+            read = _pipe.read (msg);
     }
 
     if (!read) {
         //  Initialise the output parameter to be a 0-byte message.
-        rc = msg->init ();
+        rc = msg.init ();
         errno_assert (rc == 0);
 
         errno = EAGAIN;
@@ -158,7 +158,7 @@ bool channel_t::xhas_in ()
     if (!_pipe)
         return false;
 
-    return _pipe->check_read ();
+    return _pipe.check_read ();
 }
 
 bool channel_t::xhas_out ()
@@ -166,5 +166,5 @@ bool channel_t::xhas_out ()
     if (!_pipe)
         return false;
 
-    return _pipe->check_write ();
+    return _pipe.check_write ();
 }

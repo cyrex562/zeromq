@@ -71,12 +71,12 @@ pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
     ws_listener_t (io_thread_t *io_thread_,
                    socket_: *mut ZmqSocketBase,
                    const ZmqOptions &options_,
-                   bool wss_);
+                   wss_: bool);
 
     ~ws_listener_t ();
 
     //  Set address to listen on.
-    int set_local_address (addr_: *const c_char);
+    int set_local_address (addr_: &str);
 
   protected:
     std::string get_socket_name (fd_t fd_, SocketEnd socket_end_) const;
@@ -92,12 +92,12 @@ pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
     //  or was denied because of accept filters.
     fd_t accept ();
 
-    int create_socket (addr_: *const c_char);
+    int create_socket (addr_: &str);
 
     //  Address to listen on.
     WsAddress _address;
 
-    bool _wss;
+    _wss: bool
 // #ifdef ZMQ_HAVE_WSS
     gnutls_certificate_credentials_t _tls_cred;
 // #endif
@@ -108,7 +108,7 @@ pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
 ws_listener_t::ws_listener_t (io_thread_t *io_thread_,
                                    ZmqSocketBase *socket_,
                                    const ZmqOptions &options_,
-                                   bool wss_) :
+                                   wss_: bool) :
     stream_listener_base_t (io_thread_, socket_, options_), _wss (wss_)
 {
 // #ifdef ZMQ_HAVE_WSS
@@ -162,7 +162,7 @@ void ws_listener_t::in_event ()
 std::string ws_listener_t::get_socket_name (fd_t fd_,
                                                  SocketEnd socket_end_) const
 {
-    std::string socket_name;
+    socket_name: String;
 
 // #ifdef ZMQ_HAVE_WSS
     if (_wss)
@@ -174,7 +174,7 @@ std::string ws_listener_t::get_socket_name (fd_t fd_,
     return socket_name + _address.path ();
 }
 
-int ws_listener_t::create_socket (addr_: *const c_char)
+int ws_listener_t::create_socket (addr_: &str)
 {
     TcpAddress address;
     _s = tcp_open_socket (addr_, options, true, true, &address);
@@ -243,7 +243,7 @@ error:
     return -1;
 }
 
-int ws_listener_t::set_local_address (addr_: *const c_char)
+int ws_listener_t::set_local_address (addr_: &str)
 {
     if (options.use_fd != -1) {
         //  in this case, the addr_ passed is not used and ignored, since the
@@ -256,7 +256,7 @@ int ws_listener_t::set_local_address (addr_: *const c_char)
 
         //  remove the path, otherwise resolving the port will fail with wildcard
         const char *delim = strrchr (addr_, '/');
-        std::string host_address;
+        host_address: String;
         if (delim) {
             host_address = std::string (addr_, delim - addr_);
         } else {
@@ -345,7 +345,7 @@ void ws_listener_t::create_engine (fd_t fd_)
       get_socket_name (fd_, SocketEndLocal),
       get_socket_name (fd_, SocketEndRemote), endpoint_type_bind);
 
-    i_engine *engine = NULL;
+    i_engine *engine = null_mut();
     if (_wss)
 // #ifdef ZMQ_HAVE_WSS
         engine = new (std::nothrow)
@@ -367,7 +367,7 @@ void ws_listener_t::create_engine (fd_t fd_)
 
     //  Create and launch a session object.
     session_base_t *session =
-      session_base_t::create (io_thread, false, _socket, options, NULL);
+      session_base_t::create (io_thread, false, _socket, options, null_mut());
     errno_assert (session);
     session->inc_seqnum ();
     launch_child (session);

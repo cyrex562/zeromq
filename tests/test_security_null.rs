@@ -178,7 +178,7 @@ void test_vanilla_socket ()
     int timeout = 250;
     zmq_setsockopt (server, ZMQ_RCVTIMEO, &timeout, mem::size_of::<timeout>());
     char *buf = s_recv (server);
-    if (buf != NULL) {
+    if (buf != null_mut()) {
         printf ("Received unauthenticated message: %s\n", buf);
         TEST_ASSERT_NULL (buf);
     }

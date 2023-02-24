@@ -54,7 +54,7 @@ pub const prefix: String = String::from("ipc://");
 
 void test_endpoint_too_long ()
 {
-    std::string endpoint_too_long;
+    endpoint_too_long: String;
     endpoint_too_long.append (prefix);
     for (size_t i = 0; i < 108; ++i) {
         endpoint_too_long.append ("a");

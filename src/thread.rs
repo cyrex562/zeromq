@@ -54,8 +54,8 @@ pub struct thread_t
 {
 // public:
     thread_t () :
-        _tfn (NULL),
-        _arg (NULL),
+        _tfn (null_mut()),
+        _arg (null_mut()),
         _started (false),
         _thread_priority (ZMQ_THREAD_PRIORITY_DFLT),
         _thread_sched_policy (ZMQ_THREAD_SCHED_POLICY_DFLT)
@@ -66,7 +66,7 @@ pub struct thread_t
 // #ifdef ZMQ_HAVE_VXWORKS
     ~thread_t ()
     {
-        if (descriptor != NULL || descriptor > 0) {
+        if (descriptor != null_mut() || descriptor > 0) {
             taskDelete (descriptor);
         }
     }
@@ -76,7 +76,7 @@ pub struct thread_t
     //  'arg' as an argument.
     //  Name is 16 characters max including terminating NUL. Thread naming is
     //  implemented only for pthread, and windows when a debugger is attached.
-    void start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char);
+    void start (thread_fn *tfn_, arg_: *mut c_void, name_: &str);
 
     //  Returns whether the thread was started, i.e. start was called.
     bool get_started () const;
@@ -103,7 +103,7 @@ pub struct thread_t
     char _name[16];
 
   // private:
-    bool _started;
+    _started: bool
 
 // #ifdef ZMQ_HAVE_WINDOWS
     HANDLE _descriptor;
@@ -143,7 +143,7 @@ extern "C" {
 // #if defined _WIN32_WCE
 static DWORD thread_routine (LPVOID arg_)
 // #else
-static unsigned int __stdcall thread_routine (arg_: *mut c_void)
+static unsigned int __stdcall thread_routine (arg_: &mut [u8])
 // #endif
 {
     thread_t *self = static_cast<thread_t *> (arg_);
@@ -153,7 +153,7 @@ static unsigned int __stdcall thread_routine (arg_: *mut c_void)
 }
 }
 
-void thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char)
+void thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: &str)
 {
     _tfn = tfn_;
     _arg = arg_;
@@ -167,13 +167,13 @@ void thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char)
 // #endif
 
 // #if defined _WIN32_WCE
-    _descriptor = (HANDLE) CreateThread (NULL, stack, &::thread_routine, this,
+    _descriptor = (HANDLE) CreateThread (null_mut(), stack, &::thread_routine, this,
                                          0, &_thread_id);
 // #else
-    _descriptor = (HANDLE) _beginthreadex (NULL, stack, &::thread_routine, this,
+    _descriptor = (HANDLE) _beginthreadex (null_mut(), stack, &::thread_routine, this,
                                            0, &_thread_id);
 // #endif
-    win_assert (_descriptor != NULL);
+    win_assert (_descriptor != null_mut());
     _started = true;
 }
 
@@ -264,31 +264,31 @@ void thread_t::
 #elif defined ZMQ_HAVE_VXWORKS
 
 extern "C" {
-static void *thread_routine (arg_: *mut c_void)
+static void *thread_routine (arg_: &mut [u8])
 {
     thread_t *self = (thread_t *) arg_;
     self->applySchedulingParameters ();
     self->_tfn (self->_arg);
-    return NULL;
+    return null_mut();
 }
 }
 
-void thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char)
+void thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: &str)
 {
     LIBZMQ_UNUSED (name_);
     _tfn = tfn_;
     _arg = arg_;
-    _descriptor = taskSpawn (NULL, DEFAULT_PRIORITY, DEFAULT_OPTIONS,
+    _descriptor = taskSpawn (null_mut(), DEFAULT_PRIORITY, DEFAULT_OPTIONS,
                              DEFAULT_STACK_SIZE, (FUNCPTR) thread_routine,
                              (int) this, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    if (_descriptor != NULL || _descriptor > 0)
+    if (_descriptor != null_mut() || _descriptor > 0)
         _started = true;
 }
 
 void thread_t::stop ()
 {
     if (_started)
-        while ((_descriptor != NULL || _descriptor > 0)
+        while ((_descriptor != null_mut() || _descriptor > 0)
                && taskIdVerify (_descriptor) == 0) {
         }
 }
@@ -312,7 +312,7 @@ void thread_t::
     int priority =
       (_thread_priority >= 0 ? _thread_priority : DEFAULT_PRIORITY);
     priority = (priority < UCHAR_MAX ? priority : DEFAULT_PRIORITY);
-    if (_descriptor != NULL || _descriptor > 0) {
+    if (_descriptor != null_mut() || _descriptor > 0) {
         taskPrioritySet (_descriptor, priority);
     }
 }
@@ -331,7 +331,7 @@ void thread_t::
 // #include <sys/resource.h>
 
 extern "C" {
-static void *thread_routine (arg_: *mut c_void)
+static void *thread_routine (arg_: &mut [u8])
 {
 // #if !defined ZMQ_HAVE_OPENVMS && !defined ZMQ_HAVE_ANDROID
     //  Following code will guarantee more predictable latencies as it'll
@@ -339,24 +339,24 @@ static void *thread_routine (arg_: *mut c_void)
     sigset_t signal_set;
     int rc = sigfillset (&signal_set);
     errno_assert (rc == 0);
-    rc = pthread_sigmask (SIG_BLOCK, &signal_set, NULL);
+    rc = pthread_sigmask (SIG_BLOCK, &signal_set, null_mut());
     posix_assert (rc);
 // #endif
     thread_t *self = (thread_t *) arg_;
     self->applySchedulingParameters ();
     self->applyThreadName ();
     self->_tfn (self->_arg);
-    return NULL;
+    return null_mut();
 }
 }
 
-void thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char)
+void thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: &str)
 {
     _tfn = tfn_;
     _arg = arg_;
     if (name_)
         strncpy (_name, name_, mem::size_of::<_name>() - 1);
-    int rc = pthread_create (&_descriptor, NULL, thread_routine, this);
+    int rc = pthread_create (&_descriptor, null_mut(), thread_routine, this);
     posix_assert (rc);
     _started = true;
 }
@@ -364,7 +364,7 @@ void thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: *const c_char)
 void thread_t::stop ()
 {
     if (_started) {
-        int rc = pthread_join (_descriptor, NULL);
+        int rc = pthread_join (_descriptor, null_mut());
         posix_assert (rc);
     }
 }
@@ -493,7 +493,7 @@ void thread_t::
     if (rc)
         return;
 #elif defined(ZMQ_HAVE_PTHREAD_SETNAME_3)
-    int rc = pthread_setname_np (pthread_self (), _name, NULL);
+    int rc = pthread_setname_np (pthread_self (), _name, null_mut());
     if (rc)
         return;
 #elif defined(ZMQ_HAVE_PTHREAD_SET_NAME)

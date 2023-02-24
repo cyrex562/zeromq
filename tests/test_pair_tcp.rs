@@ -50,7 +50,7 @@ void set_sockopt_fastpath (socket: *mut c_void)
 }
 // #endif
 
-void test_pair_tcp (extra_func_t extra_func_ = NULL)
+void test_pair_tcp (extra_func_t extra_func_ = null_mut())
 {
     void *sb = test_context_socket (ZMQ_PAIR);
 
@@ -130,11 +130,11 @@ void test_io_completion_port ()
                                        pi.iProtocol /*IPPROTO_TCP*/, &pi, 0, 0);
 
     const HANDLE iocp =
-      ::CreateIoCompletionPort (INVALID_HANDLE_VALUE, NULL, 0, 0);
-    TEST_ASSERT_NOT_EQUAL (NULL, iocp);
+      ::CreateIoCompletionPort (INVALID_HANDLE_VALUE, null_mut(), 0, 0);
+    TEST_ASSERT_NOT_EQUAL (null_mut(), iocp);
     const HANDLE res =
       ::CreateIoCompletionPort (reinterpret_cast<HANDLE> (socket), iocp, 0, 0);
-    TEST_ASSERT_NOT_EQUAL (NULL, res);
+    TEST_ASSERT_NOT_EQUAL (null_mut(), res);
 
     TEST_ASSERT_SUCCESS_RAW_ERRNO (closesocket (socket));
     TEST_ASSERT_TRUE (CloseHandle (iocp));

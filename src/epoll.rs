@@ -244,9 +244,9 @@ void epoll_t::loop ()
             const poll_entry_t *const pe =
               static_cast<const poll_entry_t *> (ev_buf[i].data.ptr);
 
-            if (NULL == pe)
+            if (null_mut() == pe)
                 continue;
-            if (NULL == pe->events)
+            if (null_mut() == pe->events)
                 continue;
             if (pe->fd == retired_fd)
                 continue;

@@ -42,12 +42,12 @@ pub struct gather_t ZMQ_FINAL : public ZmqSocketBase
   protected:
     //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (pipe_t *pipe_,
-                       bool subscribe_to_all_,
-                       bool locally_initiated_);
-    int xrecv (ZmqMessage *msg);
+                       subscribe_to_all_: bool,
+                       locally_initiated_: bool);
+    int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
-    void xread_activated (pipe_t *pipe_);
-    void xpipe_terminated (pipe_t *pipe_);
+    void xread_activated (pipe_: &mut pipe_t);
+    void xpipe_terminated (pipe_: &mut pipe_t);
 
   // private:
     //  Fair queueing object for inbound pipes.
@@ -67,8 +67,8 @@ gather_t::~gather_t ()
 }
 
 void gather_t::xattach_pipe (pipe_t *pipe_,
-                                  bool subscribe_to_all_,
-                                  bool locally_initiated_)
+                                  subscribe_to_all_: bool,
+                                  locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
@@ -77,31 +77,31 @@ void gather_t::xattach_pipe (pipe_t *pipe_,
     _fq.attach (pipe_);
 }
 
-void gather_t::xread_activated (pipe_t *pipe_)
+void gather_t::xread_activated (pipe_: &mut pipe_t)
 {
     _fq.activated (pipe_);
 }
 
-void gather_t::xpipe_terminated (pipe_t *pipe_)
+void gather_t::xpipe_terminated (pipe_: &mut pipe_t)
 {
     _fq.pipe_terminated (pipe_);
 }
 
-int gather_t::xrecv (ZmqMessage *msg)
+int gather_t::xrecv (msg: &mut ZmqMessage)
 {
-    int rc = _fq.recvpipe (msg, NULL);
+    int rc = _fq.recvpipe (msg, null_mut());
 
     // Drop any messages with more flag
-    while (rc == 0 && msg->flags () & ZmqMessage::more) {
+    while (rc == 0 && msg.flags () & ZmqMessage::more) {
         // drop all frames of the current multi-frame message
-        rc = _fq.recvpipe (msg, NULL);
+        rc = _fq.recvpipe (msg, null_mut());
 
-        while (rc == 0 && msg->flags () & ZmqMessage::more)
-            rc = _fq.recvpipe (msg, NULL);
+        while (rc == 0 && msg.flags () & ZmqMessage::more)
+            rc = _fq.recvpipe (msg, null_mut());
 
         // get the new message
         if (rc == 0)
-            rc = _fq.recvpipe (msg, NULL);
+            rc = _fq.recvpipe (msg, null_mut());
     }
 
     return rc;
