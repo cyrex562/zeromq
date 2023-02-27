@@ -52,6 +52,12 @@ pub type XHasInFunc = fn(&mut ZmqSocketBase) -> bool;
 
 pub type XRecvFunc = fn(&mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()>;
 
+pub type XJoinFunc = fn(&mut ZmqSocketBase, group_: &str) -> anyhow::Result<()>;
+
+pub type XLeaveFunc = fn(&mut ZmqSocketBase, group_: &str) -> anyhow::Result<()>;
+
+pub type XReadActivatedFunc = fn(&mut ZmqSocketBase, pipe: &mut pipe_t);
+
 #[derive(Default,Debug,Clone,Serialize,Deserialize)]
 pub struct ZmqSocketBase {
 
@@ -132,6 +138,9 @@ pub struct ZmqSocketBase {
     pub xsend_func: Option<XSendFunc>,
     pub xhasin_func: Option<XHasInFunc>,
     pub xrecv_fn: Option<XRecvFunc>,
+    pub xjoin_fn: Option<XJoinFunc>,
+    pub xleave_fn: Option<XLeaveFunc>,
+    pub xreadactivated_fn: Option<XReadActivatedFunc>
 }
 
 impl ZmqSocketBase {
@@ -1222,13 +1231,36 @@ impl ZmqSocketBase {
 
     //  i_pipe_events will be forwarded to these functions.
     // virtual void xread_activated (pipe_t *pipe_);
+    pub fn xread_activated (&mut self, pipe: &mut pipe_t)
+    {
+        if self.xreadactivated_fn.is_some() {
+            self.xreadactivated_fn.unwrap()(self,pipe)
+        }
+
+    }
+
     // virtual void xwrite_activated (pipe_t *pipe_);
     // virtual void xhiccuped (pipe_t *pipe_);
     // virtual void xpipe_terminated (pipe_t *pipe_) = 0;
 
     //  the default implementation assumes that joub and leave are not supported.
     // virtual int xjoin (group_: *const c_char);
+    pub fn xjoin (&mut self, group_: &str) -> anyhow::Result<()>
+    {
+        if self.xjoin_fn.is_some() {
+            self.xjoin_fn.unwrap()(self,group_)
+        }
+        bail!("xjoin not supported")
+    }
+
     // virtual int xleave (group_: *const c_char);
+    pub fn xleave (&mut self, group_: &str) -> anyhow::Result<()>
+    {
+        if self.xleave_fn.is_some() {
+            self.xleave_fn.unwrap()(self,group_)
+        }
+        bail!("xleave not supported/implemented")
+    }
 
     //  Delay actual destruction of the socket.
     // void process_destroy () ZMQ_FINAL;
@@ -2027,26 +2059,13 @@ impl routing_socket_base_t {
 
 
 
-int xjoin (group_: &str)
-{
-    LIBZMQ_UNUSED (group_);
-    errno = ENOTSUP;
-    return -1;
-}
-
-int xleave (group_: &str)
-{
-    LIBZMQ_UNUSED (group_);
-    errno = ENOTSUP;
-    return -1;
-}
 
 
 
-void xread_activated (pipe_t *)
-{
-    zmq_assert (false);
-}
+
+
+
+
 void xwrite_activated (pipe_t *)
 {
     zmq_assert (false);
