@@ -285,7 +285,7 @@ pub struct ZmqSocketBase *socket_,
 
 const EndpointUriPair &session_base_t::get_endpoint () const
 {
-    return _engine->get_endpoint ();
+    return _engine.get_endpoint ();
 }
 
 session_base_t::~session_base_t ()
@@ -301,7 +301,7 @@ session_base_t::~session_base_t ()
 
     //  Close the engine.
     if (_engine)
-        _engine->terminate ();
+        _engine.terminate ();
 
     LIBZMQ_DELETE (_addr);
 }
@@ -431,7 +431,7 @@ void session_base_t::pipe_terminated (pipe_: &mut pipe_t)
 
     if (!is_terminating () && options.raw_socket) {
         if (_engine) {
-            _engine->terminate ();
+            _engine.terminate ();
             _engine = null_mut();
         }
         terminate ();
@@ -461,10 +461,10 @@ void session_base_t::read_activated (pipe_: &mut pipe_t)
     }
 
     if (likely (pipe_ == _pipe))
-        _engine->restart_output ();
+        _engine.restart_output ();
     else {
         // i.e. pipe_ == zap_pipe
-        _engine->zap_msg_available ();
+        _engine.zap_msg_available ();
     }
 }
 
@@ -477,7 +477,7 @@ void session_base_t::write_activated (pipe_: &mut pipe_t)
     }
 
     if (_engine)
-        _engine->restart_input ();
+        _engine.restart_input ();
 }
 
 void session_base_t::hiccuped (pipe_t *)
@@ -558,11 +558,11 @@ void session_base_t::process_attach (i_engine *engine_)
     zmq_assert (!_engine);
     _engine = engine_;
 
-    if (!engine_->has_handshake_stage ())
+    if (!engine_.has_handshake_stage ())
         engine_ready ();
 
     //  Plug in the engine.
-    _engine->plug (_io_thread, this);
+    _engine.plug (_io_thread, this);
 }
 
 void session_base_t::engine_ready ()
@@ -589,8 +589,8 @@ void session_base_t::engine_ready ()
 
         //  The endpoints strings are not set on bind, set them here so that
         //  events can use them.
-        pipes[0]->set_endpoint_pair (_engine->get_endpoint ());
-        pipes[1]->set_endpoint_pair (_engine->get_endpoint ());
+        pipes[0]->set_endpoint_pair (_engine.get_endpoint ());
+        pipes[1]->set_endpoint_pair (_engine.get_endpoint ());
 
         //  Ask socket to plug into the remote end of the pipe.
         send_bind (_socket, pipes[1]);
@@ -708,7 +708,7 @@ void session_base_t::timer_event (id_: i32)
 void session_base_t::process_conn_failed ()
 {
     std::string *ep = new (std::string);
-    _addr->to_string (*ep);
+    _addr.to_string (*ep);
     send_term_endpoint (_socket, ep);
 }
 
@@ -718,13 +718,13 @@ void session_base_t::reconnect ()
     //  and reestablish later on
     if (_pipe && options.immediate == 1
 // #ifdef ZMQ_HAVE_OPENPGM
-        && _addr->protocol != protocol_name::pgm
-        && _addr->protocol != protocol_name::epgm
+        && _addr.protocol != protocol_name::pgm
+        && _addr.protocol != protocol_name::epgm
 // #endif
 // #ifdef ZMQ_HAVE_NORM
-        && _addr->protocol != protocol_name::norm
+        && _addr.protocol != protocol_name::norm
 // #endif
-        && _addr->protocol != protocol_name::udp) {
+        && _addr.protocol != protocol_name::udp) {
         _pipe.hiccup ();
         _pipe.terminate (false);
         _terminating_pipes.insert (_pipe);
@@ -743,7 +743,7 @@ void session_base_t::reconnect ()
         start_connecting (true);
     else {
         std::string *ep = new (std::string);
-        _addr->to_string (*ep);
+        _addr.to_string (*ep);
         send_term_endpoint (_socket, ep);
     }
 
@@ -766,11 +766,11 @@ void session_base_t::start_connecting (wait_: bool)
 
     //  Create the connecter object.
     own_t *connecter = null_mut();
-    if (_addr->protocol == protocol_name::tcp) {
+    if (_addr.protocol == protocol_name::tcp) {
         if (!options.socks_proxy_address.empty ()) {
             Address *proxy_address = new (std::nothrow)
               Address (protocol_name::tcp, options.socks_proxy_address,
-                         this->get_ctx ());
+                         this.get_ctx ());
             alloc_assert (proxy_address);
             connecter = new (std::nothrow) socks_connecter_t (
               io_thread, this, options, _addr, proxy_address, wait_);
@@ -786,31 +786,31 @@ void session_base_t::start_connecting (wait_: bool)
         }
     }
 // #if defined ZMQ_HAVE_IPC
-    else if (_addr->protocol == protocol_name::ipc) {
+    else if (_addr.protocol == protocol_name::ipc) {
         connecter = new (std::nothrow)
           ipc_connecter_t (io_thread, this, options, _addr, wait_);
     }
 // #endif
 // #if defined ZMQ_HAVE_TIPC
-    else if (_addr->protocol == protocol_name::tipc) {
+    else if (_addr.protocol == protocol_name::tipc) {
         connecter = new (std::nothrow)
           tipc_connecter_t (io_thread, this, options, _addr, wait_);
     }
 // #endif
 // #if defined ZMQ_HAVE_VMCI
-    else if (_addr->protocol == protocol_name::vmci) {
+    else if (_addr.protocol == protocol_name::vmci) {
         connecter = new (std::nothrow)
           vmci_connecter_t (io_thread, this, options, _addr, wait_);
     }
 // #endif
 // #if defined ZMQ_HAVE_WS
-    else if (_addr->protocol == protocol_name::ws) {
+    else if (_addr.protocol == protocol_name::ws) {
         connecter = new (std::nothrow) ws_connecter_t (
           io_thread, this, options, _addr, wait_, false, std::string ());
     }
 // #endif
 // #if defined ZMQ_HAVE_WSS
-    else if (_addr->protocol == protocol_name::wss) {
+    else if (_addr.protocol == protocol_name::wss) {
         connecter = new (std::nothrow) ws_connecter_t (
           io_thread, this, options, _addr, wait_, true, _wss_hostname);
     }
@@ -821,7 +821,7 @@ void session_base_t::start_connecting (wait_: bool)
         return;
     }
 
-    if (_addr->protocol == protocol_name::udp) {
+    if (_addr.protocol == protocol_name::udp) {
         zmq_assert (options.type == ZMQ_DISH || options.type == ZMQ_RADIO
                     || options.type == ZMQ_DGRAM);
 
@@ -842,7 +842,7 @@ void session_base_t::start_connecting (wait_: bool)
             recv = true;
         }
 
-        int rc = engine->init (_addr, send, recv);
+        int rc = engine.init (_addr, send, recv);
         errno_assert (rc == 0);
 
         send_attach (this, engine);
@@ -853,12 +853,12 @@ void session_base_t::start_connecting (wait_: bool)
 // #ifdef ZMQ_HAVE_OPENPGM
 
     //  Both PGM and EPGM transports are using the same infrastructure.
-    if (_addr->protocol == "pgm" || _addr->protocol == "epgm") {
+    if (_addr.protocol == "pgm" || _addr.protocol == "epgm") {
         zmq_assert (options.type == ZMQ_PUB || options.type == ZMQ_XPUB
                     || options.type == ZMQ_SUB || options.type == ZMQ_XSUB);
 
         //  For EPGM transport with UDP encapsulation of PGM is used.
-        bool const udp_encapsulation = _addr->protocol == "epgm";
+        bool const udp_encapsulation = _addr.protocol == "epgm";
 
         //  At this point we'll create message pipes to the session straight
         //  away. There's no point in delaying it as no concept of 'connect'
@@ -870,7 +870,7 @@ void session_base_t::start_connecting (wait_: bool)
             alloc_assert (pgm_sender);
 
             int rc =
-              pgm_sender->init (udp_encapsulation, _addr->address.c_str ());
+              pgm_sender.init (udp_encapsulation, _addr.address.c_str ());
             errno_assert (rc == 0);
 
             send_attach (this, pgm_sender);
@@ -881,7 +881,7 @@ void session_base_t::start_connecting (wait_: bool)
             alloc_assert (pgm_receiver);
 
             int rc =
-              pgm_receiver->init (udp_encapsulation, _addr->address.c_str ());
+              pgm_receiver.init (udp_encapsulation, _addr.address.c_str ());
             errno_assert (rc == 0);
 
             send_attach (this, pgm_receiver);
@@ -892,7 +892,7 @@ void session_base_t::start_connecting (wait_: bool)
 // #endif
 
 // #ifdef ZMQ_HAVE_NORM
-    if (_addr->protocol == "norm") {
+    if (_addr.protocol == "norm") {
         //  At this point we'll create message pipes to the session straight
         //  away. There's no point in delaying it as no concept of 'connect'
         //  exists with NORM anyway.
@@ -902,7 +902,7 @@ void session_base_t::start_connecting (wait_: bool)
               new (std::nothrow) norm_engine_t (io_thread, options);
             alloc_assert (norm_sender);
 
-            int rc = norm_sender->init (_addr->address, true, false);
+            int rc = norm_sender.init (_addr.address, true, false);
             errno_assert (rc == 0);
 
             send_attach (this, norm_sender);
@@ -913,7 +913,7 @@ void session_base_t::start_connecting (wait_: bool)
               new (std::nothrow) norm_engine_t (io_thread, options);
             alloc_assert (norm_receiver);
 
-            int rc = norm_receiver->init (_addr->address, false, true);
+            int rc = norm_receiver.init (_addr.address, false, true);
             errno_assert (rc == 0);
 
             send_attach (this, norm_receiver);

@@ -163,8 +163,8 @@ int gssapi_server_t::process_handshake_command (msg: &mut ZmqMessage)
     }
 
     if (state != recv_next_token) {
-        session->get_socket ()->event_handshake_failed_protocol (
-          session->get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
+        session.get_socket ()->event_handshake_failed_protocol (
+          session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
         errno = EPROTO;
         return -1;
     }
@@ -174,7 +174,7 @@ int gssapi_server_t::process_handshake_command (msg: &mut ZmqMessage)
         //  Note that rc will be -1 only if ZAP is not set up, but if it was
         //  requested and it does not work properly the program will abort.
         bool expecting_zap_reply = false;
-        int rc = session->zap_connect ();
+        int rc = session.zap_connect ();
         if (rc == 0) {
             send_zap_request ();
             rc = receive_and_process_zap_reply ();

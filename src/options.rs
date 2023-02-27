@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::ffi::{CStr, CString};
 use std::mem;
+use std::ptr::null_mut;
 use std::sync::atomic::{AtomicU64, Ordering};
 use anyhow::bail;
 use libc::{gid_t, pid_t, uid_t, c_void, EINVAL, memcpy};
@@ -1603,7 +1604,7 @@ pub fn sockopt_invalid() -> i32 {
 
 pub fn do_getsockopt(opt_val: &mut [u8],
                      opt_val_len: &mut usize,
-                     val_in: &str) -> i32 {
+                     val_in: &str) -> anyhow::Result<()> {
     // let mut str_ptr = CString::from(val_in);
     return do_getsockopt2(opt_val, opt_val_len, val_in.as_bytes(),
                           val_in.len());
@@ -1612,13 +1613,14 @@ pub fn do_getsockopt(opt_val: &mut [u8],
 pub fn do_getsockopt2(opt_val: &mut [u8],
                       opt_val_len: &mut usize,
                       val_in: &[u8],
-                      val_in_len: usize) -> i32 {
+                      val_in_len: usize) -> anyhow::Result<()> {
     // TODO behaviour is inconsistent with ZmqOptions::getsockopt; there, an
     // *exact* length match is required except for string-like (but not the
     // CURVE keys!) (and therefore null-ing remaining memory is a no-op, see
     // comment below)
     if *opt_val_len < val_in_len {
-        return sockopt_invalid();
+        // return sockopt_invalid();
+        bail!("sockopt invalid")
     }
     // unsafe { libc::memcpy(opt_val, value_, value_len_); }
     opt_val.clone_from_slice(&val_in[0..val_in_len]);
@@ -1626,23 +1628,23 @@ pub fn do_getsockopt2(opt_val: &mut [u8],
     // libc::memset (static_cast<char *> (opt_val) + value_len_, 0,
     //         *opt_val_len - value_len_);
     *opt_val_len = val_in_len;
-    return 0;
+    Ok(())
 }
 
 // #ifdef ZMQ_HAVE_CURVE
 pub fn do_getsockopt_curve_key(opt_val: &mut [u8],
                                opt_val_len: &mut usize,
-                               curve_key_: [u8; CURVE_KEYSIZE]) -> i32 {
+                               curve_key_: [u8; CURVE_KEYSIZE]) -> anyhow::Result<()> {
     if *opt_val_len == CURVE_KEYSIZE {
         // unsafe { libc::memcpy(opt_val, curve_key_.as_ptr() as *const c_void, CURVE_KEYSIZE); }
         opt_val.clone_from_slice(&curve_key_[0..CURVE_KEYSIZE]);
-        return 0;
+        Ok(())
     }
     if *opt_val_len == CURVE_KEYSIZE_Z85 + 1 {
         zmq_z85_encode(opt_val, &curve_key_, CURVE_KEYSIZE);
-        return 0;
+        Ok(())
     }
-    return sockopt_invalid();
+    bail!("sockopt invalid")
 }
 // #endif
 

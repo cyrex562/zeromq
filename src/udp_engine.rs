@@ -164,7 +164,7 @@ int udp_engine_t::init (Address *address_, send_: bool, recv_: bool)
     _recv_enabled = recv_;
     _address = address_;
 
-    _fd = open_socket (_address->resolved.udp_addr->family (), SOCK_DGRAM,
+    _fd = open_socket (_address.resolved.udp_addr.family (), SOCK_DGRAM,
                        IPPROTO_UDP);
     if (_fd == retired_fd)
         return -1;
@@ -187,7 +187,7 @@ void udp_engine_t::plug (io_thread_t *io_thread_, session_base_t *session_)
     io_object_t::plug (io_thread_);
     _handle = add_fd (_fd);
 
-    const UdpAddress *const udp_addr = _address->resolved.udp_addr;
+    const UdpAddress *const udp_addr = _address.resolved.udp_addr;
 
     int rc = 0;
 
@@ -203,12 +203,12 @@ void udp_engine_t::plug (io_thread_t *io_thread_, session_base_t *session_)
 
     if (_send_enabled) {
         if (!_options.raw_socket) {
-            const ip_addr_t *out = udp_addr->target_addr ();
-            _out_address = out->as_sockaddr ();
-            _out_address_len = out->sockaddr_len ();
+            const ip_addr_t *out = udp_addr.target_addr ();
+            _out_address = out.as_sockaddr ();
+            _out_address_len = out.sockaddr_len ();
 
-            if (out->is_multicast ()) {
-                const bool is_ipv6 = (out->family () == AF_INET6);
+            if (out.is_multicast ()) {
+                const bool is_ipv6 = (out.family () == AF_INET6);
                 rc = rc
                      | set_udp_multicast_loop (_fd, is_ipv6,
                                                _options.multicast_loop);
@@ -232,11 +232,11 @@ void udp_engine_t::plug (io_thread_t *io_thread_, session_base_t *session_)
     if (_recv_enabled) {
         rc = rc | set_udp_reuse_address (_fd, true);
 
-        const ip_addr_t *bind_addr = udp_addr->bind_addr ();
-        ip_addr_t any = ip_addr_t::any (bind_addr->family ());
+        const ip_addr_t *bind_addr = udp_addr.bind_addr ();
+        ip_addr_t any = ip_addr_t::any (bind_addr.family ());
         const ip_addr_t *real_bind_addr;
 
-        const bool multicast = udp_addr->is_mcast ();
+        const bool multicast = udp_addr.is_mcast ();
 
         if (multicast) {
             //  Multicast addresses should be allowed to bind to more than
@@ -245,7 +245,7 @@ void udp_engine_t::plug (io_thread_t *io_thread_, session_base_t *session_)
 
             //  In multicast we should bind ANY and use the mreq struct to
             //  specify the interface
-            any.set_port (bind_addr->port ());
+            any.set_port (bind_addr.port ());
 
             real_bind_addr = &any;
         } else {
@@ -259,12 +259,12 @@ void udp_engine_t::plug (io_thread_t *io_thread_, session_base_t *session_)
 
 // #ifdef ZMQ_HAVE_VXWORKS
         rc = rc
-             | bind (_fd, (sockaddr *) real_bind_addr->as_sockaddr (),
-                     real_bind_addr->sockaddr_len ());
+             | bind (_fd, (sockaddr *) real_bind_addr.as_sockaddr (),
+                     real_bind_addr.sockaddr_len ());
 // #else
         rc = rc
-             | bind (_fd, real_bind_addr->as_sockaddr (),
-                     real_bind_addr->sockaddr_len ());
+             | bind (_fd, real_bind_addr.as_sockaddr (),
+                     real_bind_addr.sockaddr_len ());
 // #endif
         if (rc != 0) {
             assert_success_or_recoverable (_fd, rc);
@@ -339,7 +339,7 @@ int udp_engine_t::set_udp_multicast_iface (fd_t s_,
     int rc = 0;
 
     if (is_ipv6_) {
-        int bind_if = addr_->bind_if ();
+        int bind_if = addr_.bind_if ();
 
         if (bind_if > 0) {
             //  If a bind interface is provided we tell the
@@ -349,7 +349,7 @@ int udp_engine_t::set_udp_multicast_iface (fd_t s_,
                              mem::size_of::<bind_if>());
         }
     } else {
-        struct in_addr bind_addr = addr_->bind_addr ()->ipv4.sin_addr;
+        struct in_addr bind_addr = addr_.bind_addr ()->ipv4.sin_addr;
 
         if (bind_addr.s_addr != INADDR_ANY) {
             rc = setsockopt (s_, IPPROTO_IP, IP_MULTICAST_IF,
@@ -386,24 +386,24 @@ int udp_engine_t::set_udp_reuse_port (fd_t s_, on_: bool)
 
 int udp_engine_t::add_membership (fd_t s_, const UdpAddress *addr_)
 {
-    const ip_addr_t *mcast_addr = addr_->target_addr ();
+    const ip_addr_t *mcast_addr = addr_.target_addr ();
     int rc = 0;
 
-    if (mcast_addr->family () == AF_INET) {
+    if (mcast_addr.family () == AF_INET) {
         struct ip_mreq mreq;
-        mreq.imr_multiaddr = mcast_addr->ipv4.sin_addr;
-        mreq.imr_interface = addr_->bind_addr ()->ipv4.sin_addr;
+        mreq.imr_multiaddr = mcast_addr.ipv4.sin_addr;
+        mreq.imr_interface = addr_.bind_addr ()->ipv4.sin_addr;
 
         rc = setsockopt (s_, IPPROTO_IP, IP_ADD_MEMBERSHIP,
                          reinterpret_cast<char *> (&mreq), mem::size_of::<mreq>());
 
-    } else if (mcast_addr->family () == AF_INET6) {
+    } else if (mcast_addr.family () == AF_INET6) {
         struct ipv6_mreq mreq;
-        let iface: i32 = addr_->bind_if ();
+        let iface: i32 = addr_.bind_if ();
 
         zmq_assert (iface >= -1);
 
-        mreq.ipv6mr_multiaddr = mcast_addr->ipv6.sin6_addr;
+        mreq.ipv6mr_multiaddr = mcast_addr.ipv6.sin6_addr;
         mreq.ipv6mr_interface = iface;
 
         rc = setsockopt (s_, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP,
@@ -417,7 +417,7 @@ int udp_engine_t::add_membership (fd_t s_, const UdpAddress *addr_)
 void udp_engine_t::error (error_reason_t reason_)
 {
     zmq_assert (_session);
-    _session->engine_error (false, reason_);
+    _session.engine_error (false, reason_);
     terminate ();
 }
 
@@ -437,11 +437,11 @@ void udp_engine_t::terminate ()
 void udp_engine_t::sockaddr_to_msg (msg: &mut ZmqMessage
                                          const sockaddr_in *addr_)
 {
-    const char *const name = inet_ntoa (addr_->sin_addr);
+    const char *const name = inet_ntoa (addr_.sin_addr);
 
     char port[6];
     let port_len: i32 =
-      sprintf (port, "%d", static_cast<int> (ntohs (addr_->sin_port)));
+      sprintf (port, "%d", static_cast<int> (ntohs (addr_.sin_port)));
     zmq_assert (port_len > 0);
 
     const size_t name_len = strlen (name);
@@ -510,12 +510,12 @@ int udp_engine_t::resolve_raw_address (name_: *const c_char, length_: usize)
 void udp_engine_t::out_event ()
 {
     ZmqMessage group_msg;
-    int rc = _session->pull_msg (&group_msg);
+    int rc = _session.pull_msg (&group_msg);
     errno_assert (rc == 0 || (rc == -1 && errno == EAGAIN));
 
     if (rc == 0) {
         ZmqMessage body_msg;
-        rc = _session->pull_msg (&body_msg);
+        rc = _session.pull_msg (&body_msg);
         //  If there's a group, there should also be a body
         errno_assert (rc == 0);
 
@@ -593,7 +593,7 @@ void udp_engine_t::restart_output ()
     //  If we don't support send we just drop all messages
     if (!_send_enabled) {
         ZmqMessage msg;
-        while (_session->pull_msg (&msg) == 0)
+        while (_session.pull_msg (&msg) == 0)
             msg.close ();
     } else {
         set_pollout (_handle);
@@ -656,7 +656,7 @@ void udp_engine_t::in_event ()
         body_offset = 1 + group_size;
     }
     // Push group description to session
-    rc = _session->push_msg (&msg);
+    rc = _session.push_msg (&msg);
     errno_assert (rc == 0 || (rc == -1 && errno == EAGAIN));
 
     //  Group description message doesn't fit in the pipe, drop
@@ -675,20 +675,20 @@ void udp_engine_t::in_event ()
     memcpy (msg.data (), _in_buffer + body_offset, body_size);
 
     // Push message body to session
-    rc = _session->push_msg (&msg);
+    rc = _session.push_msg (&msg);
     // Message body doesn't fit in the pipe, drop and reset session state
     if (rc != 0) {
         rc = msg.close ();
         errno_assert (rc == 0);
 
-        _session->reset ();
+        _session.reset ();
         reset_pollin (_handle);
         return;
     }
 
     rc = msg.close ();
     errno_assert (rc == 0);
-    _session->flush ();
+    _session.flush ();
 }
 
 bool udp_engine_t::restart_input ()

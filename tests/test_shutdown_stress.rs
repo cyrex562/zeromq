@@ -52,7 +52,7 @@ static void worker (data: *mut c_void)
 
     void *socket = zmq_socket (get_test_context (), ZMQ_SUB);
 
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (socket, tdata->endpoint));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (socket, tdata.endpoint));
 
     //  Start closing the socket while the connecting process is underway.
     TEST_ASSERT_SUCCESS_ERRNO (zmq_close (socket));

@@ -70,7 +70,7 @@ IpcAddress::IpcAddress (const sockaddr *sa_, socklen_t sa_len_) :
     zmq_assert (sa_ && sa_len_ > 0);
 
     memset (&_address, 0, sizeof _address);
-    if (sa_->sa_family == AF_UNIX)
+    if (sa_.sa_family == AF_UNIX)
         memcpy (&_address, sa_, sa_len_);
 }
 

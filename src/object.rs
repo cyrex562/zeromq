@@ -325,46 +325,46 @@ void object_t::process_command (const ZmqCommand &cmd_)
 int object_t::register_endpoint (addr_: *const c_char,
                                       const ZmqEndpoint &endpoint_)
 {
-    return _ctx->register_endpoint (addr_, endpoint_);
+    return _ctx.register_endpoint (addr_, endpoint_);
 }
 
 int object_t::unregister_endpoint (const std::string &addr_,
                                         ZmqSocketBase *socket_)
 {
-    return _ctx->unregister_endpoint (addr_, socket_);
+    return _ctx.unregister_endpoint (addr_, socket_);
 }
 
 void object_t::unregister_endpoints (ZmqSocketBase *socket_)
 {
-    return _ctx->unregister_endpoints (socket_);
+    return _ctx.unregister_endpoints (socket_);
 }
 
 ZmqEndpoint object_t::find_endpoint (addr_: &str) const
 {
-    return _ctx->find_endpoint (addr_);
+    return _ctx.find_endpoint (addr_);
 }
 
 void object_t::pend_connection (const std::string &addr_,
                                      const ZmqEndpoint &endpoint_,
                                      pipe_t **pipes_)
 {
-    _ctx->pend_connection (addr_, endpoint_, pipes_);
+    _ctx.pend_connection (addr_, endpoint_, pipes_);
 }
 
 void object_t::connect_pending (addr_: *const c_char,
                                      ZmqSocketBase *bind_socket_)
 {
-    return _ctx->connect_pending (addr_, bind_socket_);
+    return _ctx.connect_pending (addr_, bind_socket_);
 }
 
 void object_t::destroy_socket (ZmqSocketBase *socket_)
 {
-    _ctx->destroy_socket (socket_);
+    _ctx.destroy_socket (socket_);
 }
 
 io_thread_t *object_t::choose_io_thread (u64 affinity_) const
 {
-    return _ctx->choose_io_thread (affinity_);
+    return _ctx.choose_io_thread (affinity_);
 }
 
 void object_t::send_stop ()
@@ -374,13 +374,13 @@ void object_t::send_stop ()
     ZmqCommand cmd;
     cmd.destination = this;
     cmd.type = ZmqCommand::stop;
-    _ctx->send_command (_tid, cmd);
+    _ctx.send_command (_tid, cmd);
 }
 
 void object_t::send_plug (own_t *destination_, inc_seqnum_: bool)
 {
     if (inc_seqnum_)
-        destination_->inc_seqnum ();
+        destination_.inc_seqnum ();
 
     ZmqCommand cmd;
     cmd.destination = destination_;
@@ -390,7 +390,7 @@ void object_t::send_plug (own_t *destination_, inc_seqnum_: bool)
 
 void object_t::send_own (own_t *destination_, own_t *object_)
 {
-    destination_->inc_seqnum ();
+    destination_.inc_seqnum ();
     ZmqCommand cmd;
     cmd.destination = destination_;
     cmd.type = ZmqCommand::own;
@@ -403,7 +403,7 @@ void object_t::send_attach (session_base_t *destination_,
                                  inc_seqnum_: bool)
 {
     if (inc_seqnum_)
-        destination_->inc_seqnum ();
+        destination_.inc_seqnum ();
 
     ZmqCommand cmd;
     cmd.destination = destination_;
@@ -425,7 +425,7 @@ void object_t::send_bind (own_t *destination_,
                                inc_seqnum_: bool)
 {
     if (inc_seqnum_)
-        destination_->inc_seqnum ();
+        destination_.inc_seqnum ();
 
     ZmqCommand cmd;
     cmd.destination = destination_;
@@ -557,7 +557,7 @@ void object_t::send_term_endpoint (own_t *destination_,
 void object_t::send_reap (class ZmqSocketBase *socket_)
 {
     ZmqCommand cmd;
-    cmd.destination = _ctx->get_reaper ();
+    cmd.destination = _ctx.get_reaper ();
     cmd.type = ZmqCommand::reap;
     cmd.args.reap.socket = socket_;
     send_command (cmd);
@@ -566,7 +566,7 @@ void object_t::send_reap (class ZmqSocketBase *socket_)
 void object_t::send_reaped ()
 {
     ZmqCommand cmd;
-    cmd.destination = _ctx->get_reaper ();
+    cmd.destination = _ctx.get_reaper ();
     cmd.type = ZmqCommand::reaped;
     send_command (cmd);
 }
@@ -584,7 +584,7 @@ void object_t::send_done ()
     ZmqCommand cmd;
     cmd.destination = null_mut();
     cmd.type = ZmqCommand::done;
-    _ctx->send_command (ZmqContext::term_tid, cmd);
+    _ctx.send_command (ZmqContext::term_tid, cmd);
 }
 
 void object_t::process_stop ()
@@ -698,5 +698,5 @@ void object_t::process_conn_failed ()
 
 void object_t::send_command (const ZmqCommand &cmd_)
 {
-    _ctx->send_command (cmd_.destination->get_tid (), cmd_);
+    _ctx.send_command (cmd_.destination.get_tid (), cmd_);
 }

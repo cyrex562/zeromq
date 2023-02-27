@@ -155,10 +155,10 @@ kqueue_t::handle_t kqueue_t::add_fd (fd_t fd_,
     poll_entry_t *pe = new (std::nothrow) poll_entry_t;
     alloc_assert (pe);
 
-    pe->fd = fd_;
-    pe->flag_pollin = 0;
-    pe->flag_pollout = 0;
-    pe->reactor = reactor_;
+    pe.fd = fd_;
+    pe.flag_pollin = 0;
+    pe.flag_pollout = 0;
+    pe.reactor = reactor_;
 
     adjust_load (1);
 
@@ -169,11 +169,11 @@ void kqueue_t::rm_fd (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = (poll_entry_t *) handle_;
-    if (pe->flag_pollin)
-        kevent_delete (pe->fd, EVFILT_READ);
-    if (pe->flag_pollout)
-        kevent_delete (pe->fd, EVFILT_WRITE);
-    pe->fd = retired_fd;
+    if (pe.flag_pollin)
+        kevent_delete (pe.fd, EVFILT_READ);
+    if (pe.flag_pollout)
+        kevent_delete (pe.fd, EVFILT_WRITE);
+    pe.fd = retired_fd;
     retired.push_back (pe);
 
     adjust_load (-1);
@@ -183,9 +183,9 @@ void kqueue_t::set_pollin (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = (poll_entry_t *) handle_;
-    if (likely (!pe->flag_pollin)) {
-        pe->flag_pollin = true;
-        kevent_add (pe->fd, EVFILT_READ, pe);
+    if (likely (!pe.flag_pollin)) {
+        pe.flag_pollin = true;
+        kevent_add (pe.fd, EVFILT_READ, pe);
     }
 }
 
@@ -193,9 +193,9 @@ void kqueue_t::reset_pollin (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = (poll_entry_t *) handle_;
-    if (likely (pe->flag_pollin)) {
-        pe->flag_pollin = false;
-        kevent_delete (pe->fd, EVFILT_READ);
+    if (likely (pe.flag_pollin)) {
+        pe.flag_pollin = false;
+        kevent_delete (pe.fd, EVFILT_READ);
     }
 }
 
@@ -203,9 +203,9 @@ void kqueue_t::set_pollout (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = (poll_entry_t *) handle_;
-    if (likely (!pe->flag_pollout)) {
-        pe->flag_pollout = true;
-        kevent_add (pe->fd, EVFILT_WRITE, pe);
+    if (likely (!pe.flag_pollout)) {
+        pe.flag_pollout = true;
+        kevent_add (pe.fd, EVFILT_WRITE, pe);
     }
 }
 
@@ -213,9 +213,9 @@ void kqueue_t::reset_pollout (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = (poll_entry_t *) handle_;
-    if (likely (pe->flag_pollout)) {
-        pe->flag_pollout = false;
-        kevent_delete (pe->fd, EVFILT_WRITE);
+    if (likely (pe.flag_pollout)) {
+        pe.flag_pollout = false;
+        kevent_delete (pe.fd, EVFILT_WRITE);
     }
 }
 
@@ -262,18 +262,18 @@ void kqueue_t::loop ()
         for (int i = 0; i < n; i++) {
             poll_entry_t *pe = (poll_entry_t *) ev_buf[i].udata;
 
-            if (pe->fd == retired_fd)
+            if (pe.fd == retired_fd)
                 continue;
             if (ev_buf[i].flags & EV_EOF)
-                pe->reactor->in_event ();
-            if (pe->fd == retired_fd)
+                pe.reactor.in_event ();
+            if (pe.fd == retired_fd)
                 continue;
             if (ev_buf[i].filter == EVFILT_WRITE)
-                pe->reactor->out_event ();
-            if (pe->fd == retired_fd)
+                pe.reactor.out_event ();
+            if (pe.fd == retired_fd)
                 continue;
             if (ev_buf[i].filter == EVFILT_READ)
-                pe->reactor->in_event ();
+                pe.reactor.in_event ();
         }
 
         //  Destroy retired event sources.

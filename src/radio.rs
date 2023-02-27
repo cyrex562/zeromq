@@ -119,7 +119,7 @@ void radio_t::xattach_pipe (pipe_t *pipe_,
 
     //  Don't delay pipe termination as there is no one
     //  to receive the delimiter.
-    pipe_->set_nodelay ();
+    pipe_.set_nodelay ();
 
     _dist.attach (pipe_);
 
@@ -135,7 +135,7 @@ void radio_t::xread_activated (pipe_: &mut pipe_t)
 {
     //  There are some subscriptions waiting. Let's process them.
     ZmqMessage msg;
-    while (pipe_->read (&msg)) {
+    while (pipe_.read (&msg)) {
         //  Apply the subscription to the trie
         if (msg.is_join () || msg.is_leave ()) {
             std::string group = std::string (msg.group ());
@@ -149,7 +149,7 @@ void radio_t::xread_activated (pipe_: &mut pipe_t)
 
                 for (subscriptions_t::iterator it = range.first;
                      it != range.second; ++it) {
-                    if (it->second == pipe_) {
+                    if (it.second == pipe_) {
                         _subscriptions.erase (it);
                         break;
                     }
@@ -186,7 +186,7 @@ void radio_t::xpipe_terminated (pipe_: &mut pipe_t)
     for (subscriptions_t::iterator it = _subscriptions.begin (),
                                    end = _subscriptions.end ();
          it != end;) {
-        if (it->second == pipe_) {
+        if (it.second == pipe_) {
 #if __cplusplus >= 201103L || (defined _MSC_VER && _MSC_VER >= 1700)
             it = _subscriptions.erase (it);
 // #else
@@ -222,7 +222,7 @@ int radio_t::xsend (msg: &mut ZmqMessage)
       range = _subscriptions.equal_range (std::string (msg.group ()));
 
     for (subscriptions_t::iterator it = range.first; it != range.second; ++it)
-        _dist.match (it->second);
+        _dist.match (it.second);
 
     for (udp_pipes_t::iterator it = _udp_pipes.begin (),
                                end = _udp_pipes.end ();

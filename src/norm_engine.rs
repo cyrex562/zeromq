@@ -89,7 +89,7 @@ pub struct NormRxStreamState
         char *AccessBuffer () { return (char *) (buffer_ptr + buffer_count); }
         size_t GetBytesNeeded () const { return buffer_size - buffer_count; }
         void IncrementBufferCount (count: usize) { buffer_count += count; }
-        ZmqMessage *AccessMsg () { return zmq_decoder->msg (); }
+        ZmqMessage *AccessMsg () { return zmq_decoder.msg (); }
         // This invokes the decoder "decode" method
         // returning 0 if more data is needed,
         // 1 if the message is complete, If an error
@@ -412,11 +412,11 @@ void norm_engine_t::plug (io_thread_t *io_thread_,
 {
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
     norm_wrapper_thread_args_t *threadArgs = new norm_wrapper_thread_args_t;
-    int rc = make_fdpair (&wrapper_read_fd, &threadArgs->wrapper_write_fd);
+    int rc = make_fdpair (&wrapper_read_fd, &threadArgs.wrapper_write_fd);
     errno_assert (rc != -1);
 
-    threadArgs->norm_descriptor = NormGetDescriptor (norm_instance);
-    threadArgs->norm_instance_handle = norm_instance;
+    threadArgs.norm_descriptor = NormGetDescriptor (norm_instance);
+    threadArgs.norm_instance_handle = norm_instance;
     norm_descriptor_handle = add_fd (wrapper_read_fd);
 // #else
     fd_t normDescriptor = NormGetDescriptor (norm_instance);
@@ -499,7 +499,7 @@ void norm_engine_t::send_data ()
                     NormStreamFlush (norm_tx_stream, true, NORM_FLUSH_ACTIVE);
                 }
                 // Need to pull and load a new message to send
-                if (-1 == zmq_session->pull_msg (&tx_msg)) {
+                if (-1 == zmq_session.pull_msg (&tx_msg)) {
                     // We need to wait for "restart_output()" to be called by ZMQ
                     zmq_output_ready = false;
                     break;
@@ -578,9 +578,9 @@ void norm_engine_t::in_event ()
                 // Remove the state from the list it's in
                 // This is now unnecessary since deletion takes care of list removal
                 // but in the interest of being clear ...
-                NormRxStreamState::List *list = rxState->AccessList ();
+                NormRxStreamState::List *list = rxState.AccessList ();
                 if (null_mut() != list)
-                    list->Remove (*rxState);
+                    list.Remove (*rxState);
             }
             delete rxState;
             break;
@@ -632,20 +632,20 @@ void norm_engine_t::recv_data (NormObjectHandle object)
                                  options.in_batch_size);
             errno_assert (rxState);
 
-            if (!rxState->Init ()) {
+            if (!rxState.Init ()) {
                 errno_assert (false);
                 delete rxState;
                 return;
             }
             NormObjectSetUserData (object, rxState);
-        } else if (!rxState->IsRxReady ()) {
+        } else if (!rxState.IsRxReady ()) {
             // Existing non-ready stream, so remove from pending
             // list to be promoted to rx_ready_list ...
             rx_pending_list.Remove (*rxState);
         }
-        if (!rxState->IsRxReady ()) {
+        if (!rxState.IsRxReady ()) {
             // TBD - prepend up front for immediate service?
-            rxState->SetRxReady (true);
+            rxState.SetRxReady (true);
             rx_ready_list.Append (*rxState);
         }
     }
@@ -658,7 +658,7 @@ void norm_engine_t::recv_data (NormObjectHandle object)
         NormRxStreamState::List::Iterator iterator (rx_ready_list);
         NormRxStreamState *rxState;
         while (null_mut() != (rxState = iterator.GetNextItem ())) {
-            switch (rxState->Decode ()) {
+            switch (rxState.Decode ()) {
                 case 1: // msg completed
                     // Complete message decoded, move this stream to msg_ready_list
                     // to push the message up to the session below.  Note the stream
@@ -669,16 +669,16 @@ void norm_engine_t::recv_data (NormObjectHandle object)
 
                 case -1: // decoding error (shouldn't happen w/ NORM, but ...)
                     // We need to re-sync this stream (decoder buffer was reset)
-                    rxState->SetSync (false);
+                    rxState.SetSync (false);
                     break;
 
                 default: // 0 - need more data
                     break;
             }
             // Get more data from this stream
-            NormObjectHandle stream = rxState->GetStreamHandle ();
+            NormObjectHandle stream = rxState.GetStreamHandle ();
             // First, make sure we're in sync ...
-            while (!rxState->InSync ()) {
+            while (!rxState.InSync ()) {
                 // seek NORM message start
                 if (!NormStreamSeekMsgStart (stream)) {
                     // Need to wait for more data
@@ -698,13 +698,13 @@ void norm_engine_t::recv_data (NormObjectHandle object)
                     break;
                 }
                 if (0 == syncFlag)
-                    rxState->SetSync (true);
+                    rxState.SetSync (true);
                 // else keep seeking ...
             } // end while(!rxState->InSync())
-            if (!rxState->InSync ()) {
+            if (!rxState.InSync ()) {
                 // Need more data for this stream, so remove from "rx ready"
                 // list and iterate to next "rx ready" stream
-                rxState->SetRxReady (false);
+                rxState.SetRxReady (false);
                 // Move from rx_ready_list to rx_pending_list
                 rx_ready_list.Remove (*rxState);
                 rx_pending_list.Append (*rxState);
@@ -712,19 +712,19 @@ void norm_engine_t::recv_data (NormObjectHandle object)
             }
             // Now we're actually ready to read data from the NORM stream to the zmq_decoder
             // the underlying zmq_decoder->get_buffer() call sets how much is needed.
-            unsigned int numBytes = rxState->GetBytesNeeded ();
-            if (!NormStreamRead (stream, rxState->AccessBuffer (), &numBytes)) {
+            unsigned int numBytes = rxState.GetBytesNeeded ();
+            if (!NormStreamRead (stream, rxState.AccessBuffer (), &numBytes)) {
                 // broken NORM stream, so re-sync
-                rxState->Init (); // TBD - check result
+                rxState.Init (); // TBD - check result
                 // This will retry syncing, and getting data from this stream
                 // since we don't increment the "it" iterator
                 continue;
             }
-            rxState->IncrementBufferCount (numBytes);
+            rxState.IncrementBufferCount (numBytes);
             if (0 == numBytes) {
                 // All the data available has been read
                 // Need to wait for NORM_RX_OBJECT_UPDATED for this stream
-                rxState->SetRxReady (false);
+                rxState.SetRxReady (false);
                 // Move from rx_ready_list to rx_pending_list
                 rx_ready_list.Remove (*rxState);
                 rx_pending_list.Append (*rxState);
@@ -739,8 +739,8 @@ void norm_engine_t::recv_data (NormObjectHandle object)
             NormRxStreamState::List::Iterator iterator (msg_ready_list);
             NormRxStreamState *rxState;
             while (null_mut() != (rxState = iterator.GetNextItem ())) {
-                ZmqMessage *msg = rxState->AccessMsg ();
-                int rc = zmq_session->push_msg (msg);
+                ZmqMessage *msg = rxState.AccessMsg ();
+                int rc = zmq_session.push_msg (msg);
                 if (-1 == rc) {
                     if (EAGAIN == errno) {
                         // need to wait until session calls "restart_input()"
@@ -765,7 +765,7 @@ void norm_engine_t::recv_data (NormObjectHandle object)
     } // end while ((!rx_ready_list.empty() || (zmq_input_ready && !msg_ready_list.empty()))
 
     // Alert zmq of the messages we have pushed up
-    zmq_session->flush ();
+    zmq_session.flush ();
 
 } // end norm_engine_t::recv_data()
 
@@ -798,7 +798,7 @@ norm_engine_t::NormRxStreamState::~NormRxStreamState ()
         zmq_decoder = null_mut();
     }
     if (null_mut() != list) {
-        list->Remove (*this);
+        list.Remove (*this);
         list = null_mut();
     }
 }
@@ -815,7 +815,7 @@ bool norm_engine_t::NormRxStreamState::Init ()
     if (null_mut() != zmq_decoder) {
         buffer_count = 0;
         buffer_size = 0;
-        zmq_decoder->get_buffer (&buffer_ptr, &buffer_size);
+        zmq_decoder.get_buffer (&buffer_ptr, &buffer_size);
         return true;
     } else {
         return false;
@@ -840,7 +840,7 @@ int norm_engine_t::NormRxStreamState::Decode ()
             skip_norm_sync = false;
         }
 
-        int rc = zmq_decoder->decode (buffer_ptr, buffer_count, processed);
+        int rc = zmq_decoder.decode (buffer_ptr, buffer_count, processed);
         buffer_ptr += processed;
         buffer_count -= processed;
         switch (rc) {
@@ -848,7 +848,7 @@ int norm_engine_t::NormRxStreamState::Decode ()
                 // msg completed
                 if (0 == buffer_count) {
                     buffer_size = 0;
-                    zmq_decoder->get_buffer (&buffer_ptr, &buffer_size);
+                    zmq_decoder.get_buffer (&buffer_ptr, &buffer_size);
                 }
                 skip_norm_sync = true;
                 return 1;
@@ -867,7 +867,7 @@ int norm_engine_t::NormRxStreamState::Decode ()
     // Reset buffer pointer/count for next read
     buffer_count = 0;
     buffer_size = 0;
-    zmq_decoder->get_buffer (&buffer_ptr, &buffer_size);
+    zmq_decoder.get_buffer (&buffer_ptr, &buffer_size);
     return 0; //  need more data
 
 } // end norm_engine_t::NormRxStreamState::Decode()
@@ -896,7 +896,7 @@ void norm_engine_t::NormRxStreamState::List::Append (
 {
     item.prev = tail;
     if (null_mut() != tail)
-        tail->next = &item;
+        tail.next = &item;
     else
         head = &item;
     item.next = null_mut();
@@ -908,11 +908,11 @@ void norm_engine_t::NormRxStreamState::List::Remove (
   NormRxStreamState &item)
 {
     if (null_mut() != item.prev)
-        item.prev->next = item.next;
+        item.prev.next = item.next;
     else
         head = item.next;
     if (null_mut() != item.next)
-        item.next->prev = item.prev;
+        item.next.prev = item.prev;
     else
         tail = item.prev;
     item.prev = item.next = null_mut();
@@ -930,7 +930,7 @@ norm_engine_t::NormRxStreamState::List::Iterator::GetNextItem ()
 {
     NormRxStreamState *nextItem = next_item;
     if (null_mut() != nextItem)
-        next_item = nextItem->next;
+        next_item = nextItem.next;
     return nextItem;
 } // end norm_engine_t::NormRxStreamState::List::Iterator::GetNextItem()
 
@@ -954,19 +954,19 @@ DWORD WINAPI normWrapperThread (LPVOID lpParam)
     for (;;) {
         // wait for norm event or message
         waitRc = MsgWaitForMultipleObjectsEx (
-          1, &norm_wrapper_thread_args->norm_descriptor, INFINITE,
+          1, &norm_wrapper_thread_args.norm_descriptor, INFINITE,
           QS_ALLPOSTMESSAGE, 0);
 
         // Check if norm event
         if (waitRc == WAIT_OBJECT_0) {
             // Process norm event
             if (!NormGetNextEvent (
-                  norm_wrapper_thread_args->norm_instance_handle, &message)) {
+                  norm_wrapper_thread_args.norm_instance_handle, &message)) {
                 exitCode = -1;
                 break;
             }
             rc =
-              send (norm_wrapper_thread_args->wrapper_write_fd,
+              send (norm_wrapper_thread_args.wrapper_write_fd,
                     reinterpret_cast<char *> (&message), mem::size_of::<message>(), 0);
             errno_assert (rc != -1);
             // Check if message
@@ -986,7 +986,7 @@ DWORD WINAPI normWrapperThread (LPVOID lpParam)
         }
     }
     // Free resources
-    rc = closesocket (norm_wrapper_thread_args->wrapper_write_fd);
+    rc = closesocket (norm_wrapper_thread_args.wrapper_write_fd);
     free (norm_wrapper_thread_args);
     errno_assert (rc != -1);
 

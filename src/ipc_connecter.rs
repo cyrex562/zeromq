@@ -89,7 +89,7 @@ pub struct session_base_t *session_,
     stream_connecter_base_t (
       io_thread_, session_, options_, addr_, delayed_start_)
 {
-    zmq_assert (_addr->protocol == protocol_name::ipc);
+    zmq_assert (_addr.protocol == protocol_name::ipc);
 }
 
 void ipc_connecter_t::out_event ()
@@ -122,7 +122,7 @@ void ipc_connecter_t::start_connecting ()
     else if (rc == -1 && errno == EINPROGRESS) {
         _handle = add_fd (_s);
         set_pollout (_handle);
-        _socket->event_connect_delayed (
+        _socket.event_connect_delayed (
           make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
 
         // TODO, tcp_connecter_t adds a connect timer in this case; maybe this
@@ -132,7 +132,7 @@ void ipc_connecter_t::start_connecting ()
     //stop connecting after called zmq_disconnect
     else if (rc == -1
              && (options.reconnect_stop & ZMQ_RECONNECT_STOP_AFTER_DISCONNECT)
-             && errno == ECONNREFUSED && _socket->is_disconnected ()) {
+             && errno == ECONNREFUSED && _socket.is_disconnected ()) {
         if (_s != retired_fd)
             close ();
     }
@@ -158,8 +158,8 @@ int ipc_connecter_t::open ()
     unblock_socket (_s);
 
     //  Connect to the remote peer.
-    let rc: i32 = ::connect (_s, _addr->resolved.ipc_addr->addr (),
-                              _addr->resolved.ipc_addr->addrlen ());
+    let rc: i32 = ::connect (_s, _addr.resolved.ipc_addr.addr (),
+                              _addr.resolved.ipc_addr.addrlen ());
 
     //  Connect was successful immediately.
     if (rc == 0)

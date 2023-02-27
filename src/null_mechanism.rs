@@ -106,10 +106,10 @@ int null_mechanism_t::next_handshake_command (msg: &mut ZmqMessage)
         }
         //  Given this is a backward-incompatible change, it's behind a socket
         //  option disabled by default.
-        int rc = session->zap_connect ();
+        int rc = session.zap_connect ();
         if (rc == -1 && options.zap_enforce_domain) {
-            session->get_socket ()->event_handshake_failed_no_detail (
-              session->get_endpoint (), EFAULT);
+            session.get_socket ()->event_handshake_failed_no_detail (
+              session.get_endpoint (), EFAULT);
             return -1;
         }
         if (rc == 0) {
@@ -159,8 +159,8 @@ int null_mechanism_t::next_handshake_command (msg: &mut ZmqMessage)
 int null_mechanism_t::process_handshake_command (msg: &mut ZmqMessage)
 {
     if (_ready_command_received || _error_command_received) {
-        session->get_socket ()->event_handshake_failed_protocol (
-          session->get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
+        session.get_socket ()->event_handshake_failed_protocol (
+          session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
         errno = EPROTO;
         return -1;
     }
@@ -177,8 +177,8 @@ int null_mechanism_t::process_handshake_command (msg: &mut ZmqMessage)
              && !memcmp (cmd_data, error_command_name, error_command_name_len))
         rc = process_error_command (cmd_data, data_size);
     else {
-        session->get_socket ()->event_handshake_failed_protocol (
-          session->get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
+        session.get_socket ()->event_handshake_failed_protocol (
+          session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
         errno = EPROTO;
         rc = -1;
     }
@@ -206,8 +206,8 @@ int null_mechanism_t::process_error_command (
     const size_t fixed_prefix_size =
       error_command_name_len + error_reason_len_size;
     if (data_size_ < fixed_prefix_size) {
-        session->get_socket ()->event_handshake_failed_protocol (
-          session->get_endpoint (),
+        session.get_socket ()->event_handshake_failed_protocol (
+          session.get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR);
 
         errno = EPROTO;
@@ -216,8 +216,8 @@ int null_mechanism_t::process_error_command (
     const size_t error_reason_len =
       static_cast<size_t> (cmd_data_[error_command_name_len]);
     if (error_reason_len > data_size_ - fixed_prefix_size) {
-        session->get_socket ()->event_handshake_failed_protocol (
-          session->get_endpoint (),
+        session.get_socket ()->event_handshake_failed_protocol (
+          session.get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR);
 
         errno = EPROTO;

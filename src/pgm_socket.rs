@@ -170,11 +170,11 @@ int pgm_socket_t::init_address (network_: *const c_char,
     if (!pgm_getaddrinfo (network, null_mut(), res, &pgm_error)) {
         //  Invalid parameters don't set pgm_error_t.
         zmq_assert (pgm_error != null_mut());
-        if (pgm_error->domain == PGM_ERROR_DOMAIN_IF &&
+        if (pgm_error.domain == PGM_ERROR_DOMAIN_IF &&
 
             //  NB: cannot catch EAI_BADFLAGS.
-            (pgm_error->code != PGM_ERROR_SERVICE
-             && pgm_error->code != PGM_ERROR_SOCKTNOSUPPORT)) {
+            (pgm_error.code != PGM_ERROR_SERVICE
+             && pgm_error.code != PGM_ERROR_SOCKTNOSUPPORT)) {
             //  User, host, or network configuration or transient error.
             pgm_error_free (pgm_error);
             errno = EINVAL;
@@ -212,7 +212,7 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
     zmq_assert (res != null_mut());
 
     //  Pick up detected IP family.
-    sa_family = res->ai_send_addrs[0].gsr_group.ss_family;
+    sa_family = res.ai_send_addrs[0].gsr_group.ss_family;
 
     //  Create IP/PGM or UDP/PGM socket.
     if (udp_encapsulation_) {
@@ -220,11 +220,11 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
                          &pgm_error)) {
             //  Invalid parameters don't set pgm_error_t.
             zmq_assert (pgm_error != null_mut());
-            if (pgm_error->domain == PGM_ERROR_DOMAIN_SOCKET
-                && (pgm_error->code != PGM_ERROR_BADF
-                    && pgm_error->code != PGM_ERROR_FAULT
-                    && pgm_error->code != PGM_ERROR_NOPROTOOPT
-                    && pgm_error->code != PGM_ERROR_FAILED))
+            if (pgm_error.domain == PGM_ERROR_DOMAIN_SOCKET
+                && (pgm_error.code != PGM_ERROR_BADF
+                    && pgm_error.code != PGM_ERROR_FAULT
+                    && pgm_error.code != PGM_ERROR_NOPROTOOPT
+                    && pgm_error.code != PGM_ERROR_FAILED))
 
                 //  User, host, or network configuration or transient error.
                 goto err_abort;
@@ -246,11 +246,11 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
                          &pgm_error)) {
             //  Invalid parameters don't set pgm_error_t.
             zmq_assert (pgm_error != null_mut());
-            if (pgm_error->domain == PGM_ERROR_DOMAIN_SOCKET
-                && (pgm_error->code != PGM_ERROR_BADF
-                    && pgm_error->code != PGM_ERROR_FAULT
-                    && pgm_error->code != PGM_ERROR_NOPROTOOPT
-                    && pgm_error->code != PGM_ERROR_FAILED))
+            if (pgm_error.domain == PGM_ERROR_DOMAIN_SOCKET
+                && (pgm_error.code != PGM_ERROR_BADF
+                    && pgm_error.code != PGM_ERROR_FAULT
+                    && pgm_error.code != PGM_ERROR_NOPROTOOPT
+                    && pgm_error.code != PGM_ERROR_FAILED))
 
                 //  User, host, or network configuration or transient error.
                 goto err_abort;
@@ -349,22 +349,22 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
     //  Bind a transport to the specified network devices.
     struct pgm_interface_req_t if_req;
     memset (&if_req, 0, mem::size_of::<if_req>());
-    if_req.ir_interface = res->ai_recv_addrs[0].gsr_interface;
+    if_req.ir_interface = res.ai_recv_addrs[0].gsr_interface;
     if_req.ir_scope_id = 0;
     if (AF_INET6 == sa_family) {
         struct sockaddr_in6 sa6;
-        memcpy (&sa6, &res->ai_recv_addrs[0].gsr_group, mem::size_of::<sa6>());
+        memcpy (&sa6, &res.ai_recv_addrs[0].gsr_group, mem::size_of::<sa6>());
         if_req.ir_scope_id = sa6.sin6_scope_id;
     }
     if (!pgm_bind3 (sock, &addr, mem::size_of::<addr>(), &if_req, mem::size_of::<if_req>(),
                     &if_req, mem::size_of::<if_req>(), &pgm_error)) {
         //  Invalid parameters don't set pgm_error_t.
         zmq_assert (pgm_error != null_mut());
-        if ((pgm_error->domain == PGM_ERROR_DOMAIN_SOCKET
-             || pgm_error->domain == PGM_ERROR_DOMAIN_IF)
-            && (pgm_error->code != PGM_ERROR_INVAL
-                && pgm_error->code != PGM_ERROR_BADF
-                && pgm_error->code != PGM_ERROR_FAULT))
+        if ((pgm_error.domain == PGM_ERROR_DOMAIN_SOCKET
+             || pgm_error.domain == PGM_ERROR_DOMAIN_IF)
+            && (pgm_error.code != PGM_ERROR_INVAL
+                && pgm_error.code != PGM_ERROR_BADF
+                && pgm_error.code != PGM_ERROR_FAULT))
 
             //  User, host, or network configuration or transient error.
             goto err_abort;
@@ -374,13 +374,13 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
     }
 
     //  Join IP multicast groups.
-    for (unsigned i = 0; i < res->ai_recv_addrs_len; i++) {
+    for (unsigned i = 0; i < res.ai_recv_addrs_len; i++) {
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_JOIN_GROUP,
-                             &res->ai_recv_addrs[i], sizeof (struct group_req)))
+                             &res.ai_recv_addrs[i], sizeof (struct group_req)))
             goto err_abort;
     }
     if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_SEND_GROUP,
-                         &res->ai_send_addrs[0], sizeof (struct group_req)))
+                         &res.ai_send_addrs[0], sizeof (struct group_req)))
         goto err_abort;
 
     pgm_freeaddrinfo (res);
@@ -674,7 +674,7 @@ ssize_t pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t **tsi
             struct pgm_sk_buff_t *skb = pgm_msgv[0].msgv_skb[0];
 
             //  Save lost data TSI.
-            *tsi_ = &skb->tsi;
+            *tsi_ = &skb.tsi;
             nbytes_rec = 0;
 
             //  In case of dala loss -1 is returned.
@@ -697,11 +697,11 @@ ssize_t pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t **tsi
     struct pgm_sk_buff_t *skb = pgm_msgv[pgm_msgv_processed].msgv_skb[0];
 
     //  Take pointers from pgm_msgv_t structure.
-    *raw_data_ = skb->data;
-    raw_data_len = skb->len;
+    *raw_data_ = skb.data;
+    raw_data_len = skb.len;
 
     //  Save current TSI.
-    *tsi_ = &skb->tsi;
+    *tsi_ = &skb.tsi;
 
     //  Move the the next pgm_msgv_t structure.
     pgm_msgv_processed++;

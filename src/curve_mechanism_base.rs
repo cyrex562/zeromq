@@ -126,8 +126,8 @@ int curve_mechanism_base_t::decode (msg: &mut ZmqMessage)
     error_event_code: i32;
     rc = curve_encoding_t::decode (msg, &error_event_code);
     if (-1 == rc) {
-        session->get_socket ()->event_handshake_failed_protocol (
-          session->get_endpoint (), error_event_code);
+        session.get_socket ()->event_handshake_failed_protocol (
+          session.get_endpoint (), error_event_code);
     }
 
     return rc;

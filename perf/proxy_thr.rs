@@ -130,11 +130,11 @@ static void set_hwm (skt: *mut c_void)
 static void publisher_thread_main (pvoid: *mut c_void)
 {
     const proxy_hwm_cfg_t *cfg = (proxy_hwm_cfg_t *) pvoid;
-    let idx: i32 = cfg->thread_idx;
+    let idx: i32 = cfg.thread_idx;
     optval: i32;
     rc: i32;
 
-    void *pubsocket = zmq_socket (cfg->context, ZMQ_XPUB);
+    void *pubsocket = zmq_socket (cfg.context, ZMQ_XPUB);
     assert (pubsocket);
 
     set_hwm (pubsocket);
@@ -148,7 +148,7 @@ static void publisher_thread_main (pvoid: *mut c_void)
       zmq_setsockopt (pubsocket, ZMQ_SNDTIMEO, &optval, mem::size_of::<optval>()));
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_connect (pubsocket, cfg->frontend_endpoint[idx]));
+      zmq_connect (pubsocket, cfg.frontend_endpoint[idx]));
 
     //  Wait before starting TX operations till 1 subscriber has subscribed
     //  (in this test there's 1 subscriber only)
@@ -193,9 +193,9 @@ static void publisher_thread_main (pvoid: *mut c_void)
 static void subscriber_thread_main (pvoid: *mut c_void)
 {
     const proxy_hwm_cfg_t *cfg = (proxy_hwm_cfg_t *) pvoid;
-    let idx: i32 = cfg->thread_idx;
+    let idx: i32 = cfg.thread_idx;
 
-    void *subsocket = zmq_socket (cfg->context, ZMQ_SUB);
+    void *subsocket = zmq_socket (cfg.context, ZMQ_SUB);
     assert (subsocket);
 
     set_hwm (subsocket);
@@ -203,7 +203,7 @@ static void subscriber_thread_main (pvoid: *mut c_void)
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (subsocket, ZMQ_SUBSCRIBE, 0, 0));
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_connect (subsocket, cfg->backend_endpoint[idx]));
+      zmq_connect (subsocket, cfg.backend_endpoint[idx]));
 
     //  Receive message_count messages
     u64 rxsuccess = 0;
@@ -237,15 +237,15 @@ static void proxy_thread_main (pvoid: *mut c_void)
     //  FRONTEND SUB
 
     void *frontend_xsub = zmq_socket (
-      cfg->context,
+      cfg.context,
       ZMQ_XSUB); // the frontend is the one exposed to internal threads (INPROC)
     assert (frontend_xsub);
 
     set_hwm (frontend_xsub);
 
     //  Bind FRONTEND
-    for (unsigned int i = 0; i < ARRAY_SIZE (cfg->frontend_endpoint); i++) {
-        const char *ep = cfg->frontend_endpoint[i];
+    for (unsigned int i = 0; i < ARRAY_SIZE (cfg.frontend_endpoint); i++) {
+        const char *ep = cfg.frontend_endpoint[i];
         if (ep != null_mut()) {
             assert (strlen (ep) > 5);
             rc = zmq_bind (frontend_xsub, ep);
@@ -256,7 +256,7 @@ static void proxy_thread_main (pvoid: *mut c_void)
     //  BACKEND PUB
 
     void *backend_xpub = zmq_socket (
-      cfg->context,
+      cfg.context,
       ZMQ_XPUB); //  the backend is the one exposed to the external world (TCP)
     assert (backend_xpub);
 
@@ -268,8 +268,8 @@ static void proxy_thread_main (pvoid: *mut c_void)
     set_hwm (backend_xpub);
 
     //  Bind BACKEND
-    for (unsigned int i = 0; i < ARRAY_SIZE (cfg->backend_endpoint); i++) {
-        const char *ep = cfg->backend_endpoint[i];
+    for (unsigned int i = 0; i < ARRAY_SIZE (cfg.backend_endpoint); i++) {
+        const char *ep = cfg.backend_endpoint[i];
         if (ep != null_mut()) {
             assert (strlen (ep) > 5);
             rc = zmq_bind (backend_xpub, ep);
@@ -280,12 +280,12 @@ static void proxy_thread_main (pvoid: *mut c_void)
     //  CONTROL REP
 
     void *control_rep = zmq_socket (
-      cfg->context,
+      cfg.context,
       ZMQ_REP); //  This one is used by the proxy to receive&reply to commands
     assert (control_rep);
 
     //  Bind CONTROL
-    rc = zmq_bind (control_rep, cfg->control_endpoint);
+    rc = zmq_bind (control_rep, cfg.control_endpoint);
     ASSERT_EXPR_SAFE (rc == 0);
 
     //  Start proxying!
@@ -303,12 +303,12 @@ void terminate_proxy (const proxy_hwm_cfg_t *cfg)
     //  CONTROL REQ
 
     void *control_req = zmq_socket (
-      cfg->context,
+      cfg.context,
       ZMQ_REQ); //  This one can be used to send command to the proxy
     assert (control_req);
 
     //  Connect CONTROL-REQ: a socket to which send commands
-    int rc = zmq_connect (control_req, cfg->control_endpoint);
+    int rc = zmq_connect (control_req, cfg.control_endpoint);
     ASSERT_EXPR_SAFE (rc == 0);
 
     //  Ask the proxy to exit: the subscriber has received all messages

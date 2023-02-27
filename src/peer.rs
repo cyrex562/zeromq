@@ -84,5 +84,5 @@ void peer_t::xattach_pipe (pipe_t *pipe_,
                                 locally_initiated_: bool)
 {
     server_t::xattach_pipe (pipe_, subscribe_to_all_, locally_initiated_);
-    _peer_last_routing_id = pipe_->get_server_socket_routing_id ();
+    _peer_last_routing_id = pipe_.get_server_socket_routing_id ();
 }

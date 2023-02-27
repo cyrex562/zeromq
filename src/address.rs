@@ -71,28 +71,28 @@ impl Address {
 int Address::to_string (std::string &addr_) const
 {
     if (protocol == protocol_name::tcp && resolved.tcp_addr)
-        return resolved.tcp_addr->to_string (addr_);
+        return resolved.tcp_addr.to_string (addr_);
     if (protocol == protocol_name::udp && resolved.udp_addr)
-        return resolved.udp_addr->to_string (addr_);
+        return resolved.udp_addr.to_string (addr_);
 // #ifdef ZMQ_HAVE_WS
     if (protocol == protocol_name::ws && resolved.ws_addr)
-        return resolved.ws_addr->to_string (addr_);
+        return resolved.ws_addr.to_string (addr_);
 // #endif
 // #ifdef ZMQ_HAVE_WSS
     if (protocol == protocol_name::wss && resolved.ws_addr)
-        return resolved.ws_addr->to_string (addr_);
+        return resolved.ws_addr.to_string (addr_);
 // #endif
 // #if defined ZMQ_HAVE_IPC
     if (protocol == protocol_name::ipc && resolved.ipc_addr)
-        return resolved.ipc_addr->to_string (addr_);
+        return resolved.ipc_addr.to_string (addr_);
 // #endif
 // #if defined ZMQ_HAVE_TIPC
     if (protocol == protocol_name::tipc && resolved.tipc_addr)
-        return resolved.tipc_addr->to_string (addr_);
+        return resolved.tipc_addr.to_string (addr_);
 // #endif
 // #if defined ZMQ_HAVE_VMCI
     if (protocol == protocol_name::vmci && resolved.vmci_addr)
-        return resolved.vmci_addr->to_string (addr_);
+        return resolved.vmci_addr.to_string (addr_);
 // #endif
 
     if (!protocol.is_empty() && !address.empty ()) {

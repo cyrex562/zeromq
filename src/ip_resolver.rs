@@ -353,11 +353,11 @@ impl IpResolver {
         bool found = false;
         lifreq *ifrp = ifc.lifc_req;
         for (int n = 0; n < (int) (ifc.lifc_len / mem::size_of::<lifreq>()); n++, ifrp++) {
-            if (!strcmp (nic_, ifrp->lifr_name)) {
+            if (!strcmp (nic_, ifrp.lifr_name)) {
                 rc = ioctl (fd, SIOCGLIFADDR, (char *) ifrp);
                 errno_assert (rc != -1);
-                if (ifrp->lifr_addr.ss_family == AF_INET) {
-                    ip_addr_->ipv4 = *(sockaddr_in *) &ifrp->lifr_addr;
+                if (ifrp.lifr_addr.ss_family == AF_INET) {
+                    ip_addr_.ipv4 = *(sockaddr_in *) &ifrp.lifr_addr;
                     found = true;
                     break;
                 }
@@ -566,13 +566,13 @@ impl IpResolver {
     
         if (rc == 0) {
             for (const IP_ADAPTER_ADDRESSES *current_addresses = addresses;
-                 current_addresses; current_addresses = current_addresses->Next) {
+                 current_addresses; current_addresses = current_addresses.Next) {
                 char *if_name = null_mut();
                 char *if_friendly_name = null_mut();
     
                 let str_rc1: i32 =
-                  get_interface_name (current_addresses->IfIndex, &if_name);
-                let str_rc2: i32 = wchar_to_utf8 (current_addresses->FriendlyName,
+                  get_interface_name (current_addresses.IfIndex, &if_name);
+                let str_rc2: i32 = wchar_to_utf8 (current_addresses.FriendlyName,
                                                    &if_friendly_name);
     
                 //  Find a network adapter by its "name" or "friendly name"
@@ -580,15 +580,15 @@ impl IpResolver {
                     || ((str_rc2 == 0) && (!strcmp (nic_, if_friendly_name)))) {
                     //  Iterate over all unicast addresses bound to the current network interface
                     for (const IP_ADAPTER_UNICAST_ADDRESS *current_unicast_address =
-                           current_addresses->FirstUnicastAddress;
+                           current_addresses.FirstUnicastAddress;
                          current_unicast_address;
-                         current_unicast_address = current_unicast_address->Next) {
+                         current_unicast_address = current_unicast_address.Next) {
                         const ADDRESS_FAMILY family =
-                          current_unicast_address->Address.lpSockaddr->sa_family;
+                          current_unicast_address.Address.lpSockaddr.sa_family;
     
                         if (family == (_options.ipv6 () ? AF_INET6 : AF_INET)) {
                             memcpy (
-                              ip_addr_, current_unicast_address->Address.lpSockaddr,
+                              ip_addr_, current_unicast_address.Address.lpSockaddr,
                               (family == AF_INET) ? sizeof (struct sockaddr_in)
                                                   : sizeof (struct sockaddr_in6));
                             found = true;

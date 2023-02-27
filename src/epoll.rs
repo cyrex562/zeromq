@@ -143,12 +143,12 @@ epoll_t::handle_t epoll_t::add_fd (fd_t fd_, i_poll_events *events_)
     //  tools to complain about using uninitialised memory.
     memset (pe, 0, mem::size_of::<poll_entry_t>());
 
-    pe->fd = fd_;
-    pe->ev.events = 0;
-    pe->ev.data.ptr = pe;
-    pe->events = events_;
+    pe.fd = fd_;
+    pe.ev.events = 0;
+    pe.ev.data.ptr = pe;
+    pe.events = events_;
 
-    let rc: i32 = epoll_ctl (_epoll_fd, EPOLL_CTL_ADD, fd_, &pe->ev);
+    let rc: i32 = epoll_ctl (_epoll_fd, EPOLL_CTL_ADD, fd_, &pe.ev);
     errno_assert (rc != -1);
 
     //  Increase the load metric of the thread.
@@ -161,9 +161,9 @@ void epoll_t::rm_fd (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = static_cast<poll_entry_t *> (handle_);
-    let rc: i32 = epoll_ctl (_epoll_fd, EPOLL_CTL_DEL, pe->fd, &pe->ev);
+    let rc: i32 = epoll_ctl (_epoll_fd, EPOLL_CTL_DEL, pe.fd, &pe.ev);
     errno_assert (rc != -1);
-    pe->fd = retired_fd;
+    pe.fd = retired_fd;
     _retired.push_back (pe);
 
     //  Decrease the load metric of the thread.
@@ -174,8 +174,8 @@ void epoll_t::set_pollin (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = static_cast<poll_entry_t *> (handle_);
-    pe->ev.events |= EPOLLIN;
-    let rc: i32 = epoll_ctl (_epoll_fd, EPOLL_CTL_MOD, pe->fd, &pe->ev);
+    pe.ev.events |= EPOLLIN;
+    let rc: i32 = epoll_ctl (_epoll_fd, EPOLL_CTL_MOD, pe.fd, &pe.ev);
     errno_assert (rc != -1);
 }
 
@@ -183,8 +183,8 @@ void epoll_t::reset_pollin (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = static_cast<poll_entry_t *> (handle_);
-    pe->ev.events &= ~(static_cast<u32> (EPOLLIN));
-    let rc: i32 = epoll_ctl (_epoll_fd, EPOLL_CTL_MOD, pe->fd, &pe->ev);
+    pe.ev.events &= ~(static_cast<u32> (EPOLLIN));
+    let rc: i32 = epoll_ctl (_epoll_fd, EPOLL_CTL_MOD, pe.fd, &pe.ev);
     errno_assert (rc != -1);
 }
 
@@ -192,8 +192,8 @@ void epoll_t::set_pollout (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = static_cast<poll_entry_t *> (handle_);
-    pe->ev.events |= EPOLLOUT;
-    let rc: i32 = epoll_ctl (_epoll_fd, EPOLL_CTL_MOD, pe->fd, &pe->ev);
+    pe.ev.events |= EPOLLOUT;
+    let rc: i32 = epoll_ctl (_epoll_fd, EPOLL_CTL_MOD, pe.fd, &pe.ev);
     errno_assert (rc != -1);
 }
 
@@ -201,8 +201,8 @@ void epoll_t::reset_pollout (handle_t handle_)
 {
     check_thread ();
     poll_entry_t *pe = static_cast<poll_entry_t *> (handle_);
-    pe->ev.events &= ~(static_cast<u32> (EPOLLOUT));
-    let rc: i32 = epoll_ctl (_epoll_fd, EPOLL_CTL_MOD, pe->fd, &pe->ev);
+    pe.ev.events &= ~(static_cast<u32> (EPOLLOUT));
+    let rc: i32 = epoll_ctl (_epoll_fd, EPOLL_CTL_MOD, pe.fd, &pe.ev);
     errno_assert (rc != -1);
 }
 
@@ -246,20 +246,20 @@ void epoll_t::loop ()
 
             if (null_mut() == pe)
                 continue;
-            if (null_mut() == pe->events)
+            if (null_mut() == pe.events)
                 continue;
-            if (pe->fd == retired_fd)
+            if (pe.fd == retired_fd)
                 continue;
             if (ev_buf[i].events & (EPOLLERR | EPOLLHUP))
-                pe->events->in_event ();
-            if (pe->fd == retired_fd)
+                pe.events.in_event ();
+            if (pe.fd == retired_fd)
                 continue;
             if (ev_buf[i].events & EPOLLOUT)
-                pe->events->out_event ();
-            if (pe->fd == retired_fd)
+                pe.events.out_event ();
+            if (pe.fd == retired_fd)
                 continue;
             if (ev_buf[i].events & EPOLLIN)
-                pe->events->in_event ();
+                pe.events.in_event ();
         }
 
         //  Destroy retired event sources.

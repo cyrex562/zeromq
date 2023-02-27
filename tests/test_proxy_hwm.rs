@@ -86,12 +86,12 @@ static void publisher_thread_main (pvoid_: *mut c_void)
     const proxy_hwm_cfg_t *const cfg =
       static_cast<const proxy_hwm_cfg_t *> (pvoid_);
 
-    void *pubsocket = zmq_socket (cfg->context, ZMQ_XPUB);
+    void *pubsocket = zmq_socket (cfg.context, ZMQ_XPUB);
     assert (pubsocket);
 
     lower_hwm (pubsocket);
 
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (pubsocket, cfg->frontend_endpoint));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (pubsocket, cfg.frontend_endpoint));
 
     int optval = 1;
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -142,14 +142,14 @@ static void subscriber_thread_main (pvoid_: *mut c_void)
     const proxy_hwm_cfg_t *const cfg =
       static_cast<const proxy_hwm_cfg_t *> (pvoid_);
 
-    void *subsocket = zmq_socket (cfg->context, ZMQ_SUB);
+    void *subsocket = zmq_socket (cfg.context, ZMQ_SUB);
     assert (subsocket);
 
     lower_hwm (subsocket);
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (subsocket, ZMQ_SUBSCRIBE, 0, 0));
 
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (subsocket, cfg->backend_endpoint));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (subsocket, cfg.backend_endpoint));
 
 
     // receive all sent messages
@@ -185,7 +185,7 @@ static void subscriber_thread_main (pvoid_: *mut c_void)
 
     // INFORM THAT WE COMPLETED:
 
-    zmq_atomic_counter_inc (cfg->subscriber_received_all);
+    zmq_atomic_counter_inc (cfg.subscriber_received_all);
 
     // CLEANUP
 
@@ -274,12 +274,12 @@ static void proxy_stats_asker_thread_main (pvoid_: *mut c_void)
     // CONTROL REQ
 
     void *control_req =
-      zmq_socket (cfg->context,
+      zmq_socket (cfg.context,
                   ZMQ_REQ); // this one can be used to send command to the proxy
     assert (control_req);
 
     // connect CONTROL-REQ: a socket to which send commands
-    int rc = zmq_connect (control_req, cfg->control_endpoint);
+    int rc = zmq_connect (control_req, cfg.control_endpoint);
     assert (rc == 0);
 
 
@@ -304,7 +304,7 @@ static void proxy_stats_asker_thread_main (pvoid_: *mut c_void)
 
     // Start!
 
-    while (!zmq_atomic_counter_value (cfg->subscriber_received_all)) {
+    while (!zmq_atomic_counter_value (cfg.subscriber_received_all)) {
         check_proxy_stats (control_req);
         usleep (1000); // 1ms -> in best case we will get 1000updates/second
     }
@@ -327,21 +327,21 @@ static void proxy_thread_main (pvoid_: *mut c_void)
     // FRONTEND SUB
 
     void *frontend_xsub = zmq_socket (
-      cfg->context,
+      cfg.context,
       ZMQ_XSUB); // the frontend is the one exposed to internal threads (INPROC)
     assert (frontend_xsub);
 
     lower_hwm (frontend_xsub);
 
     // bind FRONTEND
-    rc = zmq_bind (frontend_xsub, cfg->frontend_endpoint);
+    rc = zmq_bind (frontend_xsub, cfg.frontend_endpoint);
     assert (rc == 0);
 
 
     // BACKEND PUB
 
     void *backend_xpub = zmq_socket (
-      cfg->context,
+      cfg.context,
       ZMQ_XPUB); // the backend is the one exposed to the external world (TCP)
     assert (backend_xpub);
 
@@ -353,19 +353,19 @@ static void proxy_thread_main (pvoid_: *mut c_void)
     lower_hwm (backend_xpub);
 
     // bind BACKEND
-    rc = zmq_bind (backend_xpub, cfg->backend_endpoint);
+    rc = zmq_bind (backend_xpub, cfg.backend_endpoint);
     assert (rc == 0);
 
 
     // CONTROL REP
 
     void *control_rep = zmq_socket (
-      cfg->context,
+      cfg.context,
       ZMQ_REP); // this one is used by the proxy to receive&reply to commands
     assert (control_rep);
 
     // bind CONTROL
-    rc = zmq_bind (control_rep, cfg->control_endpoint);
+    rc = zmq_bind (control_rep, cfg.control_endpoint);
     assert (rc == 0);
 
 

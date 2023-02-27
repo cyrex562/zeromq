@@ -88,7 +88,7 @@ static void client_task (db_: *mut c_void)
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (endpoint, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     char endpoint_source[256];
-    sprintf (endpoint_source, "inproc://endpoint%d", databag->id);
+    sprintf (endpoint_source, "inproc://endpoint%d", databag.id);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (endpoint, endpoint_source));
     char *my_endpoint = s_recv (endpoint);
     TEST_ASSERT_NOT_NULL (my_endpoint);

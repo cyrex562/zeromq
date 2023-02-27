@@ -325,19 +325,19 @@ static bool is_multicast_available (ipv6_: i32)
         struct sockaddr_in6 *any_ipv6 = &any.ipv6;
         struct sockaddr_in6 *mcast_ipv6 = &mcast.ipv6;
 
-        any_ipv6->sin6_family = AF_INET6;
-        any_ipv6->sin6_port = htons (port);
-        any_ipv6->sin6_flowinfo = 0;
-        any_ipv6->sin6_scope_id = 0;
+        any_ipv6.sin6_family = AF_INET6;
+        any_ipv6.sin6_port = htons (port);
+        any_ipv6.sin6_flowinfo = 0;
+        any_ipv6.sin6_scope_id = 0;
 
-        rc = test_inet_pton (AF_INET6, "::", &any_ipv6->sin6_addr);
+        rc = test_inet_pton (AF_INET6, "::", &any_ipv6.sin6_addr);
         if (rc == 0) {
             goto out;
         }
 
         *mcast_ipv6 = *any_ipv6;
 
-        rc = test_inet_pton (AF_INET6, MCAST_IPV6, &mcast_ipv6->sin6_addr);
+        rc = test_inet_pton (AF_INET6, MCAST_IPV6, &mcast_ipv6.sin6_addr);
         if (rc == 0) {
             goto out;
         }
@@ -347,17 +347,17 @@ static bool is_multicast_available (ipv6_: i32)
         struct sockaddr_in *any_ipv4 = &any.ipv4;
         struct sockaddr_in *mcast_ipv4 = &mcast.ipv4;
 
-        any_ipv4->sin_family = AF_INET;
-        any_ipv4->sin_port = htons (5555);
+        any_ipv4.sin_family = AF_INET;
+        any_ipv4.sin_port = htons (5555);
 
-        rc = test_inet_pton (AF_INET, "0.0.0.0", &any_ipv4->sin_addr);
+        rc = test_inet_pton (AF_INET, "0.0.0.0", &any_ipv4.sin_addr);
         if (rc == 0) {
             goto out;
         }
 
         *mcast_ipv4 = *any_ipv4;
 
-        rc = test_inet_pton (AF_INET, MCAST_IPV4, &mcast_ipv4->sin_addr);
+        rc = test_inet_pton (AF_INET, MCAST_IPV4, &mcast_ipv4.sin_addr);
         if (rc == 0) {
             goto out;
         }
@@ -384,7 +384,7 @@ static bool is_multicast_available (ipv6_: i32)
         struct ipv6_mreq mreq;
         const sockaddr_in6 *const mcast_ipv6 = &mcast.ipv6;
 
-        mreq.ipv6mr_multiaddr = mcast_ipv6->sin6_addr;
+        mreq.ipv6mr_multiaddr = mcast_ipv6.sin6_addr;
         mreq.ipv6mr_interface = 0;
 
         rc = setsockopt (bind_sock, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP,
@@ -403,7 +403,7 @@ static bool is_multicast_available (ipv6_: i32)
         struct ip_mreq mreq;
         const sockaddr_in *const mcast_ipv4 = &mcast.ipv4;
 
-        mreq.imr_multiaddr = mcast_ipv4->sin_addr;
+        mreq.imr_multiaddr = mcast_ipv4.sin_addr;
         mreq.imr_interface.s_addr = htonl (INADDR_ANY);
 
         rc = setsockopt (bind_sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,

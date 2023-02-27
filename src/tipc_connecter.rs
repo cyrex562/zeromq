@@ -89,7 +89,7 @@ pub struct session_base_t *session_,
     stream_connecter_base_t (
       io_thread_, session_, options_, addr_, delayed_start_)
 {
-    zmq_assert (_addr->protocol == "tipc");
+    zmq_assert (_addr.protocol == "tipc");
 }
 
 void tipc_connecter_t::out_event ()
@@ -122,7 +122,7 @@ void tipc_connecter_t::start_connecting ()
     else if (rc == -1 && errno == EINPROGRESS) {
         _handle = add_fd (_s);
         set_pollout (_handle);
-        _socket->event_connect_delayed (
+        _socket.event_connect_delayed (
           make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
     }
 
@@ -139,7 +139,7 @@ int tipc_connecter_t::open ()
     zmq_assert (_s == retired_fd);
 
     // Cannot connect to random tipc addresses
-    if (_addr->resolved.tipc_addr->is_random ()) {
+    if (_addr.resolved.tipc_addr.is_random ()) {
         errno = EINVAL;
         return -1;
     }
@@ -152,11 +152,11 @@ int tipc_connecter_t::open ()
     unblock_socket (_s);
     //  Connect to the remote peer.
 // #ifdef ZMQ_HAVE_VXWORKS
-    int rc = ::connect (s, (sockaddr *) addr->resolved.tipc_addr->addr (),
-                        addr->resolved.tipc_addr->addrlen ());
+    int rc = ::connect (s, (sockaddr *) addr.resolved.tipc_addr.addr (),
+                        addr.resolved.tipc_addr.addrlen ());
 // #else
-    int rc = ::connect (_s, _addr->resolved.tipc_addr->addr (),
-                        _addr->resolved.tipc_addr->addrlen ());
+    int rc = ::connect (_s, _addr.resolved.tipc_addr.addr (),
+                        _addr.resolved.tipc_addr.addrlen ());
 // #endif
     //  Connect was successful immediately.
     if (rc == 0)

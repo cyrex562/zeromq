@@ -88,8 +88,8 @@ io_thread_t::io_thread_t (ZmqContext *ctx, u32 tid_) :
     alloc_assert (_poller);
 
     if (_mailbox.get_fd () != retired_fd) {
-        _mailbox_handle = _poller->add_fd (_mailbox.get_fd (), this);
-        _poller->set_pollin (_mailbox_handle);
+        _mailbox_handle = _poller.add_fd (_mailbox.get_fd (), this);
+        _poller.set_pollin (_mailbox_handle);
     }
 }
 
@@ -104,7 +104,7 @@ void io_thread_t::start ()
     snprintf (name, mem::size_of::<name>(), "IO/%u",
               get_tid () - ZmqContext::reaper_tid - 1);
     //  Start the underlying I/O thread.
-    _poller->start (name);
+    _poller.start (name);
 }
 
 void io_thread_t::stop ()
@@ -119,7 +119,7 @@ mailbox_t *io_thread_t::get_mailbox ()
 
 int io_thread_t::get_load () const
 {
-    return _poller->get_load ();
+    return _poller.get_load ();
 }
 
 void io_thread_t::in_event ()
@@ -132,7 +132,7 @@ void io_thread_t::in_event ()
 
     while (rc == 0 || errno == EINTR) {
         if (rc == 0)
-            cmd.destination->process_command (cmd);
+            cmd.destination.process_command (cmd);
         rc = _mailbox.recv (&cmd, 0);
     }
 
@@ -160,6 +160,6 @@ poller_t *io_thread_t::get_poller () const
 void io_thread_t::process_stop ()
 {
     zmq_assert (_mailbox_handle);
-    _poller->rm_fd (_mailbox_handle);
-    _poller->stop ();
+    _poller.rm_fd (_mailbox_handle);
+    _poller.stop ();
 }

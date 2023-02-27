@@ -43,7 +43,7 @@ void tune_vmci_buffer_size (ZmqContext *context_,
                                  min_size_: u64,
                                  u64 max_size_)
 {
-    int family = context_->get_vmci_socket_family ();
+    int family = context_.get_vmci_socket_family ();
     assert (family != -1);
 
     if (default_size_ != 0) {
@@ -87,7 +87,7 @@ void tune_vmci_connect_timeout (ZmqContext *context_,
                                      struct timeval timeout_)
 // #endif
 {
-    int family = context_->get_vmci_socket_family ();
+    int family = context_.get_vmci_socket_family ();
     assert (family != -1);
 
     int rc = setsockopt (sockfd_, family, SO_VMCI_CONNECT_TIMEOUT,
@@ -104,12 +104,12 @@ fd_t vmci_open_socket (address_: *const c_char,
                                  VmciAddress *out_vmci_addr_)
 {
     //  Convert the textual address into address structure.
-    int rc = out_vmci_addr_->resolve (address_);
+    int rc = out_vmci_addr_.resolve (address_);
     if (rc != 0)
         return retired_fd;
 
     //  Create the socket.
-    fd_t s = open_socket (out_vmci_addr_->family (), SOCK_STREAM, 0);
+    fd_t s = open_socket (out_vmci_addr_.family (), SOCK_STREAM, 0);
 
     if (s == retired_fd) {
         return retired_fd;

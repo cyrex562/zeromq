@@ -1051,7 +1051,7 @@ int ws_engine_t::decode_and_push (msg: &mut ZmqMessage)
     if (msg.is_ping () || msg.is_pong () || msg.is_close_cmd ()) {
         if (process_command_message (msg) == -1)
             return -1;
-    } else if (_mechanism->decode (msg) == -1)
+    } else if (_mechanism.decode (msg) == -1)
         return -1;
 
     if (_has_timeout_timer) {

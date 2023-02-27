@@ -70,8 +70,8 @@ pub struct test_ip_resolver_t ZMQ_FINAL : public IpResolver
 
         TEST_ASSERT_NULL (service_);
 
-        bool ipv6 = (hints_->ai_family == AF_INET6);
-        bool no_dns = (hints_->ai_flags & AI_NUMERICHOST) != 0;
+        bool ipv6 = (hints_.ai_family == AF_INET6);
+        bool no_dns = (hints_.ai_flags & AI_NUMERICHOST) != 0;
         const char *ip = null_mut();
 
         if (!no_dns) {

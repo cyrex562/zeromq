@@ -152,8 +152,8 @@ pub struct session_base_t *session_,
     _auth_method (socks_no_auth_required),
     _status (unplugged)
 {
-    zmq_assert (_addr->protocol == protocol_name::tcp);
-    _proxy_addr->to_string (_endpoint);
+    zmq_assert (_addr.protocol == protocol_name::tcp);
+    _proxy_addr.to_string (_endpoint);
 }
 
 socks_connecter_t::~socks_connecter_t ()
@@ -240,7 +240,7 @@ void socks_connecter_t::in_event ()
     } else if (expected_status == sending_request) {
         hostname: String;
         uint16_t port = 0;
-        if (parse_address (_addr->address, hostname, port) == -1)
+        if (parse_address (_addr.address, hostname, port) == -1)
             error ();
         else {
             _request_encoder.encode (socks_request_t (1, hostname, port));
@@ -316,7 +316,7 @@ void socks_connecter_t::start_connecting ()
         _handle = add_fd (_s);
         set_pollout (_handle);
         _status = waiting_for_proxy_connection;
-        _socket->event_connect_delayed (
+        _socket.event_connect_delayed (
           make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
     }
     //  Handle any other error condition by eventual reconnect.
@@ -367,38 +367,38 @@ int socks_connecter_t::connect_to_proxy ()
     zmq_assert (_s == retired_fd);
 
     //  Resolve the address
-    if (_proxy_addr->resolved.tcp_addr != null_mut()) {
-        LIBZMQ_DELETE (_proxy_addr->resolved.tcp_addr);
+    if (_proxy_addr.resolved.tcp_addr != null_mut()) {
+        LIBZMQ_DELETE (_proxy_addr.resolved.tcp_addr);
     }
 
-    _proxy_addr->resolved.tcp_addr = new (std::nothrow) TcpAddress ();
-    alloc_assert (_proxy_addr->resolved.tcp_addr);
+    _proxy_addr.resolved.tcp_addr = new (std::nothrow) TcpAddress ();
+    alloc_assert (_proxy_addr.resolved.tcp_addr);
     //  Automatic fallback to ipv4 is disabled here since this was the existing
     //  behaviour, however I don't see a real reason for this. Maybe this can
     //  be changed to true (and then the parameter can be removed entirely).
-    _s = tcp_open_socket (_proxy_addr->address, options, false, false,
-                          _proxy_addr->resolved.tcp_addr);
+    _s = tcp_open_socket (_proxy_addr.address, options, false, false,
+                          _proxy_addr.resolved.tcp_addr);
     if (_s == retired_fd) {
         //  TODO we should emit some event in this case!
-        LIBZMQ_DELETE (_proxy_addr->resolved.tcp_addr);
+        LIBZMQ_DELETE (_proxy_addr.resolved.tcp_addr);
         return -1;
     }
-    zmq_assert (_proxy_addr->resolved.tcp_addr != null_mut());
+    zmq_assert (_proxy_addr.resolved.tcp_addr != null_mut());
 
     // Set the socket to non-blocking mode so that we get async connect().
     unblock_socket (_s);
 
-    const TcpAddress *const tcp_addr = _proxy_addr->resolved.tcp_addr;
+    const TcpAddress *const tcp_addr = _proxy_addr.resolved.tcp_addr;
 
     rc: i32;
 
     // Set a source address for conversations
-    if (tcp_addr->has_src_addr ()) {
+    if (tcp_addr.has_src_addr ()) {
 // #if defined ZMQ_HAVE_VXWORKS
-        rc = ::bind (_s, (sockaddr *) tcp_addr->src_addr (),
-                     tcp_addr->src_addrlen ());
+        rc = ::bind (_s, (sockaddr *) tcp_addr.src_addr (),
+                     tcp_addr.src_addrlen ());
 // #else
-        rc = ::bind (_s, tcp_addr->src_addr (), tcp_addr->src_addrlen ());
+        rc = ::bind (_s, tcp_addr.src_addr (), tcp_addr.src_addrlen ());
 // #endif
         if (rc == -1) {
             close ();
@@ -408,9 +408,9 @@ int socks_connecter_t::connect_to_proxy ()
 
     //  Connect to the remote peer.
 // #if defined ZMQ_HAVE_VXWORKS
-    rc = ::connect (_s, (sockaddr *) tcp_addr->addr (), tcp_addr->addrlen ());
+    rc = ::connect (_s, (sockaddr *) tcp_addr.addr (), tcp_addr.addrlen ());
 // #else
-    rc = ::connect (_s, tcp_addr->addr (), tcp_addr->addrlen ());
+    rc = ::connect (_s, tcp_addr.addr (), tcp_addr.addrlen ());
 // #endif
     //  Connect was successful immediately.
     if (rc == 0)

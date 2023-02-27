@@ -829,7 +829,7 @@ const char *zmq_msg_gets (const msg: *mut ZmqRawMessage, property_: &str)
       reinterpret_cast<const ZmqMessage *> (msg)->metadata ();
     const char *value = null_mut();
     if (metadata)
-        value = metadata->get (std::string (property_));
+        value = metadata.get (std::string (property_));
     if (value)
         return value;
 
@@ -1555,7 +1555,7 @@ int zmq_poller_destroy (void **poller_p_)
     if (poller_p_) {
         const socket_poller_t *const poller =
           static_cast<const socket_poller_t *> (*poller_p_);
-        if (poller && poller->check_tag ()) {
+        if (poller && poller.check_tag ()) {
             delete poller;
             *poller_p_ = null_mut();
             return 0;
@@ -1693,10 +1693,10 @@ int zmq_poller_wait (poller_: *mut c_void, ZmqPollerEvent *event_, long timeout_
     let rc: i32 = zmq_poller_wait_all (poller_, event_, 1, timeout_);
 
     if (rc < 0 && event_) {
-        event_->socket = null_mut();
-        event_->fd = retired_fd;
-        event_->user_data = null_mut();
-        event_->events = 0;
+        event_.socket = null_mut();
+        event_.fd = retired_fd;
+        event_.user_data = null_mut();
+        event_.events = 0;
     }
     // wait_all returns number of events, but we return 0 for any success
     return rc >= 0 ? 0 : rc;

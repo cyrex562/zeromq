@@ -236,18 +236,18 @@ void devpoll_t::loop ()
 
         for (int i = 0; i < n; i++) {
             fd_entry_t *fd_ptr = &fd_table[ev_buf[i].fd];
-            if (!fd_ptr->valid || !fd_ptr->accepted)
+            if (!fd_ptr.valid || !fd_ptr.accepted)
                 continue;
             if (ev_buf[i].revents & (POLLERR | POLLHUP))
-                fd_ptr->reactor->in_event ();
-            if (!fd_ptr->valid || !fd_ptr->accepted)
+                fd_ptr.reactor.in_event ();
+            if (!fd_ptr.valid || !fd_ptr.accepted)
                 continue;
             if (ev_buf[i].revents & POLLOUT)
-                fd_ptr->reactor->out_event ();
-            if (!fd_ptr->valid || !fd_ptr->accepted)
+                fd_ptr.reactor.out_event ();
+            if (!fd_ptr.valid || !fd_ptr.accepted)
                 continue;
             if (ev_buf[i].revents & POLLIN)
-                fd_ptr->reactor->in_event ();
+                fd_ptr.reactor.in_event ();
         }
     }
 }

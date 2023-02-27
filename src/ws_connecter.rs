@@ -214,7 +214,7 @@ void ws_connecter_t::start_connecting ()
     else if (rc == -1 && errno == EINPROGRESS) {
         _handle = add_fd (_s);
         set_pollout (_handle);
-        _socket->event_connect_delayed (
+        _socket.event_connect_delayed (
           make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
 
         //  add userspace connect timeout
@@ -242,7 +242,7 @@ int ws_connecter_t::open ()
     zmq_assert (_s == retired_fd);
 
     TcpAddress tcp_addr;
-    _s = tcp_open_socket (_addr->address, options, false, true,
+    _s = tcp_open_socket (_addr.address, options, false, true,
                           &tcp_addr);
     if (_s == retired_fd)
         return -1;
@@ -342,7 +342,7 @@ void ws_connecter_t::create_engine (fd_t fd_,
     if (_wss) {
 // #ifdef ZMQ_HAVE_WSS
         engine = new (std::nothrow)
-          wss_engine_t (fd_, options, endpoint_pair, *_addr->resolved.ws_addr,
+          wss_engine_t (fd_, options, endpoint_pair, *_addr.resolved.ws_addr,
                         true, null_mut(), _hostname);
 // #else
         LIBZMQ_UNUSED (_hostname);
@@ -350,7 +350,7 @@ void ws_connecter_t::create_engine (fd_t fd_,
 // #endif
     } else
         engine = new (std::nothrow) ws_engine_t (
-          fd_, options, endpoint_pair, *_addr->resolved.ws_addr, true);
+          fd_, options, endpoint_pair, *_addr.resolved.ws_addr, true);
     alloc_assert (engine);
 
     //  Attach the engine to the corresponding session object.
@@ -359,5 +359,5 @@ void ws_connecter_t::create_engine (fd_t fd_,
     //  Shut the connecter down.
     terminate ();
 
-    _socket->event_connected (endpoint_pair, fd_);
+    _socket.event_connected (endpoint_pair, fd_);
 }

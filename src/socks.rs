@@ -383,17 +383,17 @@ void socks_request_encoder_t::encode (const socks_request_t &req_)
     hints.ai_flags = AI_NUMERICHOST;
 
     let rc: i32 = getaddrinfo (req_.hostname, null_mut(), &hints, &res);
-    if (rc == 0 && res->ai_family == AF_INET) {
+    if (rc == 0 && res.ai_family == AF_INET) {
         const struct sockaddr_in *sockaddr_in =
-          reinterpret_cast<const struct sockaddr_in *> (res->ai_addr);
+          reinterpret_cast<const struct sockaddr_in *> (res.ai_addr);
         *ptr++ = 0x01;
-        memcpy (ptr, &sockaddr_in->sin_addr, 4);
+        memcpy (ptr, &sockaddr_in.sin_addr, 4);
         ptr += 4;
-    } else if (rc == 0 && res->ai_family == AF_INET6) {
+    } else if (rc == 0 && res.ai_family == AF_INET6) {
         const struct sockaddr_in6 *sockaddr_in6 =
-          reinterpret_cast<const struct sockaddr_in6 *> (res->ai_addr);
+          reinterpret_cast<const struct sockaddr_in6 *> (res.ai_addr);
         *ptr++ = 0x04;
-        memcpy (ptr, &sockaddr_in6->sin6_addr, 16);
+        memcpy (ptr, &sockaddr_in6.sin6_addr, 16);
         ptr += 16;
     } else {
         *ptr++ = 0x03;

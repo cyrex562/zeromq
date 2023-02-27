@@ -56,8 +56,8 @@ int mechanism_base_t::check_basic_command_structure (msg: &mut ZmqMessage) const
 {
     if (msg.size () <= 1
         || msg.size () <= (static_cast<uint8_t *> (msg.data ()))[0]) {
-        session->get_socket ()->event_handshake_failed_protocol (
-          session->get_endpoint (),
+        session.get_socket ()->event_handshake_failed_protocol (
+          session.get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED);
         errno = EPROTO;
         return -1;
@@ -80,8 +80,8 @@ void mechanism_base_t::handle_error_reason (error_reason_: *const c_char,
         && error_reason_[significant_digit_index] >= '3'
         && error_reason_[significant_digit_index] <= '5') {
         // it is a ZAP error status code (300, 400 or 500), so emit an authentication failure event
-        session->get_socket ()->event_handshake_failed_auth (
-          session->get_endpoint (),
+        session.get_socket ()->event_handshake_failed_auth (
+          session.get_endpoint (),
           (error_reason_[significant_digit_index] - zero_digit) * factor);
     } else {
         // this is a violation of the ZAP protocol

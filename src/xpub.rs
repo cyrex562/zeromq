@@ -178,9 +178,9 @@ void xpub_t::xattach_pipe (pipe_t *pipe_,
         copy.init ();
         let rc: i32 = copy.copy (_welcome_msg);
         errno_assert (rc == 0);
-        const bool ok = pipe_->write (&copy);
+        const bool ok = pipe_.write (&copy);
         zmq_assert (ok);
-        pipe_->flush ();
+        pipe_.flush ();
     }
 
     //  The pipe is active when attached. Let's read the subscriptions from
@@ -192,7 +192,7 @@ void xpub_t::xread_activated (pipe_: &mut pipe_t)
 {
     //  There are some subscriptions waiting. Let's process them.
     ZmqMessage msg;
-    while (pipe_->read (&msg)) {
+    while (pipe_.read (&msg)) {
         ZmqMetadata *metadata = msg.metadata ();
         unsigned char *msg_data = static_cast<unsigned char *> (msg.data ()),
                       *data = null_mut();
@@ -269,7 +269,7 @@ void xpub_t::xread_activated (pipe_: &mut pipe_t)
 
                 _pending_data.push_back (ZMQ_MOVE (notification));
                 if (metadata)
-                    metadata->add_ref ();
+                    metadata.add_ref ();
                 _pending_metadata.push_back (metadata);
                 _pending_flags.push_back (0);
             }
@@ -279,7 +279,7 @@ void xpub_t::xread_activated (pipe_: &mut pipe_t)
             //  messages
             _pending_data.push_back (Blob (msg_data, msg.size ()));
             if (metadata)
-                metadata->add_ref ();
+                metadata.add_ref ();
             _pending_metadata.push_back (metadata);
             _pending_flags.push_back (msg.flags ());
         }
@@ -397,13 +397,13 @@ void xpub_t::xpipe_terminated (pipe_: &mut pipe_t)
 
 void xpub_t::mark_as_matching (pipe_t *pipe_, xpub_t *self_)
 {
-    self_->_dist.match (pipe_);
+    self_._dist.match (pipe_);
 }
 
 void xpub_t::mark_last_pipe_as_matching (pipe_t *pipe_, xpub_t *self_)
 {
-    if (self_->_last_pipe == pipe_)
-        self_->_dist.match (pipe_);
+    if (self_._last_pipe == pipe_)
+        self_._dist.match (pipe_);
 }
 
 int xpub_t::xsend (msg: &mut ZmqMessage)
@@ -480,7 +480,7 @@ int xpub_t::xrecv (msg: &mut ZmqMessage)
     if (ZmqMetadata *metadata = _pending_metadata.front ()) {
         msg.set_metadata (metadata);
         // Remove ref corresponding to vector placement
-        metadata->drop_ref ();
+        metadata.drop_ref ();
     }
 
     msg.set_flags (_pending_flags.front ());
@@ -499,20 +499,20 @@ void xpub_t::send_unsubscription (mtrie_t::prefix_t data,
                                        size: usize,
                                        xpub_t *self_)
 {
-    if (self_->options.type != ZMQ_PUB) {
+    if (self_.options.type != ZMQ_PUB) {
         //  Place the unsubscription to the queue of pending (un)subscriptions
         //  to be retrieved by the user later on.
         Blob unsub (size + 1);
         *unsub.data () = 0;
         if (size > 0)
             memcpy (unsub.data () + 1, data, size);
-        self_->_pending_data.ZMQ_PUSH_OR_EMPLACE_BACK (ZMQ_MOVE (unsub));
-        self_->_pending_metadata.push_back (null_mut());
-        self_->_pending_flags.push_back (0);
+        self_._pending_data.ZMQ_PUSH_OR_EMPLACE_BACK (ZMQ_MOVE (unsub));
+        self_._pending_metadata.push_back (null_mut());
+        self_._pending_flags.push_back (0);
 
-        if (self_->_manual) {
-            self_->_last_pipe = null_mut();
-            self_->_pending_pipes.push_back (null_mut());
+        if (self_._manual) {
+            self_._last_pipe = null_mut();
+            self_._pending_pipes.push_back (null_mut());
         }
     }
 }

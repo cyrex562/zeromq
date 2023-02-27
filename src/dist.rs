@@ -297,7 +297,7 @@ bool dist_t::has_out ()
 
 bool dist_t::write (pipe_t *pipe_, msg: &mut ZmqMessage)
 {
-    if (!pipe_->write (msg)) {
+    if (!pipe_.write (msg)) {
         _pipes.swap (_pipes.index (pipe_), _matching - 1);
         _matching--;
         _pipes.swap (_pipes.index (pipe_), _active - 1);
@@ -307,7 +307,7 @@ bool dist_t::write (pipe_t *pipe_, msg: &mut ZmqMessage)
         return false;
     }
     if (!(msg.flags () & ZmqMessage::more))
-        pipe_->flush ();
+        pipe_.flush ();
     return true;
 }
 

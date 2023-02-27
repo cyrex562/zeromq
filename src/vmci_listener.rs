@@ -94,22 +94,22 @@ void vmci_listener_t::in_event ()
 
     //  If connection was reset by the peer in the meantime, just ignore it.
     if (fd == retired_fd) {
-        _socket->event_accept_failed (
+        _socket.event_accept_failed (
           make_unconnected_bind_endpoint_pair (_endpoint), zmq_errno ());
         return;
     }
 
-    tune_vmci_buffer_size (this->get_ctx (), fd, options.vmci_buffer_size,
+    tune_vmci_buffer_size (this.get_ctx (), fd, options.vmci_buffer_size,
                            options.vmci_buffer_min_size,
                            options.vmci_buffer_max_size);
 
     if (options.vmci_connect_timeout > 0) {
 // #if defined ZMQ_HAVE_WINDOWS
-        tune_vmci_connect_timeout (this->get_ctx (), fd,
+        tune_vmci_connect_timeout (this.get_ctx (), fd,
                                    options.vmci_connect_timeout);
 // #else
         struct timeval timeout = {0, options.vmci_connect_timeout * 1000};
-        tune_vmci_connect_timeout (this->get_ctx (), fd, timeout);
+        tune_vmci_connect_timeout (this.get_ctx (), fd, timeout);
 // #endif
     }
 
@@ -128,7 +128,7 @@ vmci_listener_t::get_socket_name (fd_t fd_,
     }
 
     const VmciAddress addr (reinterpret_cast<struct sockaddr *> (&ss), sl,
-                               this->get_ctx ());
+                               this.get_ctx ());
     address_string: String;
     addr.to_string (address_string);
     return address_string;
@@ -140,14 +140,14 @@ int vmci_listener_t::set_local_address (addr_: &str)
     std::string addr (addr_);
 
     //  Initialise the address structure.
-    VmciAddress address (this->get_ctx ());
+    VmciAddress address (this.get_ctx ());
     int rc = address.resolve (addr.c_str ());
     if (rc != 0)
         return -1;
 
     //  Create a listening socket.
     _s =
-      open_socket (this->get_ctx ()->get_vmci_socket_family (), SOCK_STREAM, 0);
+      open_socket (this.get_ctx ()->get_vmci_socket_family (), SOCK_STREAM, 0);
 // #ifdef ZMQ_HAVE_WINDOWS
     if (s == INVALID_SOCKET) {
         errno = wsa_error_to_errno (WSAGetLastError ());
@@ -189,7 +189,7 @@ int vmci_listener_t::set_local_address (addr_: &str)
         goto error;
 // #endif
 
-    _socket->event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
+    _socket.event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
                               _s);
     return 0;
 

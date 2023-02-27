@@ -167,11 +167,11 @@ void router_t::xattach_pipe (pipe_t *pipe_,
         int rc = probe_msg.init ();
         errno_assert (rc == 0);
 
-        rc = pipe_->write (&probe_msg);
+        rc = pipe_.write (&probe_msg);
         // zmq_assert (rc) is not applicable here, since it is not a bug.
         LIBZMQ_UNUSED (rc);
 
-        pipe_->flush ();
+        pipe_.flush ();
 
         rc = probe_msg.close ();
         errno_assert (rc == 0);
@@ -250,7 +250,7 @@ void router_t::xpipe_terminated (pipe_: &mut pipe_t)
     if (0 == _anonymous_pipes.erase (pipe_)) {
         erase_out_pipe (pipe_);
         _fq.pipe_terminated (pipe_);
-        pipe_->rollback ();
+        pipe_.rollback ();
         if (pipe_ == _current_out)
             _current_out = null_mut();
     }
@@ -294,9 +294,9 @@ int router_t::xsend (msg: &mut ZmqMessage)
                 _current_out = out_pipe.pipe;
 
                 // Check whether pipe is closed or not
-                if (!_current_out->check_write ()) {
+                if (!_current_out.check_write ()) {
                     // Check whether pipe is full or not
-                    const bool pipe_full = !_current_out->check_hwm ();
+                    const bool pipe_full = !_current_out.check_hwm ();
                     out_pipe.active = false;
                     _current_out = null_mut();
 
@@ -336,7 +336,7 @@ int router_t::xsend (msg: &mut ZmqMessage)
         // by sending zero length message.
         // Pending messages in the pipe will be dropped (on receiving term- ack)
         if (_raw_socket && msg.size () == 0) {
-            _current_out->terminate (false);
+            _current_out.terminate (false);
             int rc = msg.close ();
             errno_assert (rc == 0);
             rc = msg.init ();
@@ -345,18 +345,18 @@ int router_t::xsend (msg: &mut ZmqMessage)
             return 0;
         }
 
-        const bool ok = _current_out->write (msg);
+        const bool ok = _current_out.write (msg);
         if (unlikely (!ok)) {
             // Message failed to send - we must close it ourselves.
             let rc: i32 = msg.close ();
             errno_assert (rc == 0);
             // HWM was checked before, so the pipe must be gone. Roll back
             // messages that were piped, for example REP labels.
-            _current_out->rollback ();
+            _current_out.rollback ();
             _current_out = null_mut();
         } else {
             if (!_more_out) {
-                _current_out->flush ();
+                _current_out.flush ();
                 _current_out = null_mut();
             }
         }
@@ -388,7 +388,7 @@ int router_t::xrecv (msg: &mut ZmqMessage)
 
         if (!_more_in) {
             if (_terminate_current_in) {
-                _current_in->terminate (true);
+                _current_in.terminate (true);
                 _terminate_current_in = false;
             }
             _current_in = null_mut();
@@ -416,7 +416,7 @@ int router_t::xrecv (msg: &mut ZmqMessage)
 
         if (!_more_in) {
             if (_terminate_current_in) {
-                _current_in->terminate (true);
+                _current_in.terminate (true);
                 _terminate_current_in = false;
             }
             _current_in = null_mut();
@@ -446,7 +446,7 @@ int router_t::xrecv (msg: &mut ZmqMessage)
 int router_t::rollback ()
 {
     if (_current_out) {
-        _current_out->rollback ();
+        _current_out.rollback ();
         _current_out = null_mut();
         _more_out = false;
     }
@@ -558,7 +558,7 @@ bool router_t::identify_peer (pipe_t *pipe_, locally_initiated_: bool)
     } else if (!options.raw_socket) {
         //  Pick up handshake cases and also case where next integral routing id is set
         msg.init ();
-        const bool ok = pipe_->read (&msg);
+        const bool ok = pipe_.read (&msg);
         if (!ok)
             return false;
 
@@ -606,7 +606,7 @@ bool router_t::identify_peer (pipe_t *pipe_, locally_initiated_: bool)
         }
     }
 
-    pipe_->set_router_socket_routing_id (routing_id);
+    pipe_.set_router_socket_routing_id (routing_id);
     add_out_pipe (ZMQ_MOVE (routing_id), pipe_);
 
     return true;

@@ -88,8 +88,8 @@ void pgm_receiver_t::unplug ()
     //  Delete decoders.
     for (peers_t::iterator it = peers.begin (), end = peers.end (); it != end;
          ++it) {
-        if (it->second.decoder != null_mut()) {
-            LIBZMQ_DELETE (it->second.decoder);
+        if (it.second.decoder != null_mut()) {
+            LIBZMQ_DELETE (it.second.decoder);
         }
     }
     peers.clear ();
@@ -124,24 +124,24 @@ bool pgm_receiver_t::restart_input ()
 
     const peers_t::iterator it = peers.find (*active_tsi);
     zmq_assert (it != peers.end ());
-    zmq_assert (it->second.joined);
+    zmq_assert (it.second.joined);
 
     //  Push the pending message into the session.
-    int rc = session->push_msg (it->second.decoder->msg ());
+    int rc = session.push_msg (it.second.decoder.msg ());
     errno_assert (rc == 0);
 
     if (insize > 0) {
-        rc = process_input (it->second.decoder);
+        rc = process_input (it.second.decoder);
         if (rc == -1) {
             //  HWM reached; we will try later.
             if (errno == EAGAIN) {
-                session->flush ();
+                session.flush ();
                 return true;
             }
             //  Data error. Delete message decoder, mark the
             //  peer as not joined and drop remaining data.
-            it->second.joined = false;
-            LIBZMQ_DELETE (it->second.decoder);
+            it.second.joined = false;
+            LIBZMQ_DELETE (it.second.decoder);
             insize = 0;
         }
     }
@@ -203,9 +203,9 @@ void pgm_receiver_t::in_event ()
         //  Data loss. Delete decoder and mark the peer as disjoint.
         if (received == -1) {
             if (it != peers.end ()) {
-                it->second.joined = false;
-                if (it->second.decoder != null_mut()) {
-                    LIBZMQ_DELETE (it->second.decoder);
+                it.second.joined = false;
+                if (it.second.decoder != null_mut()) {
+                    LIBZMQ_DELETE (it.second.decoder);
                 }
             }
             break;
@@ -227,29 +227,29 @@ void pgm_receiver_t::in_event ()
         insize -= mem::size_of::<uint16_t>();
 
         //  Join the stream if needed.
-        if (!it->second.joined) {
+        if (!it.second.joined) {
             //  There is no beginning of the message in current packet.
             //  Ignore the data.
             if (offset == 0xffff)
                 continue;
 
             zmq_assert (offset <= insize);
-            zmq_assert (it->second.decoder == null_mut());
+            zmq_assert (it.second.decoder == null_mut());
 
             //  We have to move data to the beginning of the first message.
             inpos += offset;
             insize -= offset;
 
             //  Mark the stream as joined.
-            it->second.joined = true;
+            it.second.joined = true;
 
             //  Create and connect decoder for the peer.
-            it->second.decoder =
+            it.second.decoder =
               new (std::nothrow) v1_decoder_t (0, options.maxmsgsize);
-            alloc_assert (it->second.decoder);
+            alloc_assert (it.second.decoder);
         }
 
-        int rc = process_input (it->second.decoder);
+        int rc = process_input (it.second.decoder);
         if (rc == -1) {
             if (errno == EAGAIN) {
                 active_tsi = tsi;
@@ -261,14 +261,14 @@ void pgm_receiver_t::in_event ()
                 break;
             }
 
-            it->second.joined = false;
-            LIBZMQ_DELETE (it->second.decoder);
+            it.second.joined = false;
+            LIBZMQ_DELETE (it.second.decoder);
             insize = 0;
         }
     }
 
     //  Flush any messages decoder may have produced.
-    session->flush ();
+    session.flush ();
 }
 
 int pgm_receiver_t::process_input (v1_decoder_t *decoder)
@@ -277,14 +277,14 @@ int pgm_receiver_t::process_input (v1_decoder_t *decoder)
 
     while (insize > 0) {
         size_t n = 0;
-        int rc = decoder->decode (inpos, insize, n);
+        int rc = decoder.decode (inpos, insize, n);
         if (rc == -1)
             return -1;
         inpos += n;
         insize -= n;
         if (rc == 0)
             break;
-        rc = session->push_msg (decoder->msg ());
+        rc = session.push_msg (decoder.msg ());
         if (rc == -1) {
             errno_assert (errno == EAGAIN);
             return -1;
@@ -307,7 +307,7 @@ void pgm_receiver_t::drop_subscriptions ()
 {
     ZmqMessage msg;
     msg.init ();
-    while (session->pull_msg (&msg) == 0)
+    while (session.pull_msg (&msg) == 0)
         msg.close ();
 }
 pub struct pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine

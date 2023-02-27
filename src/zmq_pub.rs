@@ -66,7 +66,7 @@ void pub_t::xattach_pipe (pipe_t *pipe_,
 
     //  Don't delay pipe termination as there is no one
     //  to receive the delimiter.
-    pipe_->set_nodelay ();
+    pipe_.set_nodelay ();
 
     xpub_t::xattach_pipe (pipe_, subscribe_to_all_, locally_initiated_);
 }

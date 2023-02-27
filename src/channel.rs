@@ -70,7 +70,7 @@ void channel_t::xattach_pipe (pipe_t *pipe_,
     if (_pipe == null_mut())
         _pipe = pipe_;
     else
-        pipe_->terminate (false);
+        pipe_.terminate (false);
 }
 
 void channel_t::xpipe_terminated (pipe_: &mut pipe_t)

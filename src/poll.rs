@@ -216,15 +216,15 @@ void poll_t::loop ()
             if (pollset[i].fd == retired_fd)
                 continue;
             if (pollset[i].revents & (POLLERR | POLLHUP))
-                fd_table[pollset[i].fd].events->in_event ();
+                fd_table[pollset[i].fd].events.in_event ();
             if (pollset[i].fd == retired_fd)
                 continue;
             if (pollset[i].revents & POLLOUT)
-                fd_table[pollset[i].fd].events->out_event ();
+                fd_table[pollset[i].fd].events.out_event ();
             if (pollset[i].fd == retired_fd)
                 continue;
             if (pollset[i].revents & POLLIN)
-                fd_table[pollset[i].fd].events->in_event ();
+                fd_table[pollset[i].fd].events.in_event ();
         }
     }
 }

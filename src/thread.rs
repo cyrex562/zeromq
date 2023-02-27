@@ -147,8 +147,8 @@ static unsigned int __stdcall thread_routine (arg_: &mut [u8])
 // #endif
 {
     thread_t *self = static_cast<thread_t *> (arg_);
-    self->applyThreadName ();
-    self->_tfn (self->_arg);
+    self.applyThreadName ();
+    self._tfn (self._arg);
     return 0;
 }
 }
@@ -267,8 +267,8 @@ extern "C" {
 static void *thread_routine (arg_: &mut [u8])
 {
     thread_t *self = (thread_t *) arg_;
-    self->applySchedulingParameters ();
-    self->_tfn (self->_arg);
+    self.applySchedulingParameters ();
+    self._tfn (self._arg);
     return null_mut();
 }
 }
@@ -343,9 +343,9 @@ static void *thread_routine (arg_: &mut [u8])
     posix_assert (rc);
 // #endif
     thread_t *self = (thread_t *) arg_;
-    self->applySchedulingParameters ();
-    self->applyThreadName ();
-    self->_tfn (self->_arg);
+    self.applySchedulingParameters ();
+    self.applyThreadName ();
+    self._tfn (self._arg);
     return null_mut();
 }
 }

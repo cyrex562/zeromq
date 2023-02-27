@@ -60,14 +60,14 @@ template <> class dbuffer_t<ZmqMessage>
 // public:
     dbuffer_t () : _back (&_storage[0]), _front (&_storage[1]), _has_msg (false)
     {
-        _back->init ();
-        _front->init ();
+        _back.init ();
+        _front.init ();
     }
 
     ~dbuffer_t ()
     {
-        _back->close ();
-        _front->close ();
+        _back.close ();
+        _front.close ();
     }
 
     void write (const ZmqMessage &value_)
@@ -75,10 +75,10 @@ template <> class dbuffer_t<ZmqMessage>
         zmq_assert (value_.check ());
         *_back = value_;
 
-        zmq_assert (_back->check ());
+        zmq_assert (_back.check ());
 
         if (_sync.try_lock ()) {
-            _front->move (*_back);
+            _front.move (*_back);
             _has_msg = true;
 
             _sync.unlock ();
@@ -95,10 +95,10 @@ template <> class dbuffer_t<ZmqMessage>
             if (!_has_msg)
                 return false;
 
-            zmq_assert (_front->check ());
+            zmq_assert (_front.check ());
 
             *value_ = *_front;
-            _front->init (); // avoid double free
+            _front.init (); // avoid double free
 
             _has_msg = false;
             return true;

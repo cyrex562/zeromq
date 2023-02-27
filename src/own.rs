@@ -182,7 +182,7 @@ void own_t::process_seqnum ()
 void own_t::launch_child (own_t *object_)
 {
     //  Specify the owner of the object.
-    object_->set_owner (this);
+    object_.set_owner (this);
 
     //  Plug the object into the I/O thread.
     send_plug (object_);

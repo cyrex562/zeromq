@@ -82,7 +82,7 @@ void io_object_t::plug (io_thread_t *io_thread_)
     zmq_assert (!_poller);
 
     //  Retrieve the poller from the thread we are running in.
-    _poller = io_thread_->get_poller ();
+    _poller = io_thread_.get_poller ();
 }
 
 void io_object_t::unplug ()
@@ -96,42 +96,42 @@ void io_object_t::unplug ()
 
 io_object_t::handle_t io_object_t::add_fd (fd_t fd_)
 {
-    return _poller->add_fd (fd_, this);
+    return _poller.add_fd (fd_, this);
 }
 
 void io_object_t::rm_fd (handle_t handle_)
 {
-    _poller->rm_fd (handle_);
+    _poller.rm_fd (handle_);
 }
 
 void io_object_t::set_pollin (handle_t handle_)
 {
-    _poller->set_pollin (handle_);
+    _poller.set_pollin (handle_);
 }
 
 void io_object_t::reset_pollin (handle_t handle_)
 {
-    _poller->reset_pollin (handle_);
+    _poller.reset_pollin (handle_);
 }
 
 void io_object_t::set_pollout (handle_t handle_)
 {
-    _poller->set_pollout (handle_);
+    _poller.set_pollout (handle_);
 }
 
 void io_object_t::reset_pollout (handle_t handle_)
 {
-    _poller->reset_pollout (handle_);
+    _poller.reset_pollout (handle_);
 }
 
 void io_object_t::add_timer (timeout_: i32, id_: i32)
 {
-    _poller->add_timer (timeout_, this, id_);
+    _poller.add_timer (timeout_, this, id_);
 }
 
 void io_object_t::cancel_timer (id_: i32)
 {
-    _poller->cancel_timer (this, id_);
+    _poller.cancel_timer (this, id_);
 }
 
 void io_object_t::in_event ()

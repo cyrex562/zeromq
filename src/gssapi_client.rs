@@ -173,8 +173,8 @@ int gssapi_client_t::process_handshake_command (msg: &mut ZmqMessage)
     }
 
     if (state != recv_next_token) {
-        session->get_socket ()->event_handshake_failed_protocol (
-          session->get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
+        session.get_socket ()->event_handshake_failed_protocol (
+          session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
         errno = EPROTO;
         return -1;
     }

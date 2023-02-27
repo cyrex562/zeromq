@@ -75,7 +75,7 @@ void scatter_t::xattach_pipe (pipe_t *pipe_,
 
     //  Don't delay pipe termination as there is no one
     //  to receive the delimiter.
-    pipe_->set_nodelay ();
+    pipe_.set_nodelay ();
 
     zmq_assert (pipe_);
     _lb.attach (pipe_);

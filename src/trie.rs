@@ -202,7 +202,7 @@ bool trie_t::add (unsigned char *prefix_, size: usize)
             ++_live_nodes;
             zmq_assert (_live_nodes == 1);
         }
-        return _next.node->add (prefix_ + 1, size - 1);
+        return _next.node.add (prefix_ + 1, size - 1);
     }
     if (!_next.table[c - _min]) {
         _next.table[c - _min] = new (std::nothrow) trie_t;
@@ -231,10 +231,10 @@ bool trie_t::rm (unsigned char *prefix_, size: usize)
     if (!next_node)
         return false;
 
-    const bool ret = next_node->rm (prefix_ + 1, size - 1);
+    const bool ret = next_node.rm (prefix_ + 1, size - 1);
 
     //  Prune redundant nodes
-    if (next_node->is_redundant ()) {
+    if (next_node.is_redundant ()) {
         LIBZMQ_DELETE (next_node);
         zmq_assert (_count > 0);
 
@@ -332,7 +332,7 @@ bool trie_t::check (const data: &mut [u8], size: usize) const
     const trie_t *current = this;
     while (true) {
         //  We've found a corresponding subscription!
-        if (current->_refcnt)
+        if (current._refcnt)
             return true;
 
         //  We've checked all the data and haven't found matching subscription.
@@ -342,14 +342,14 @@ bool trie_t::check (const data: &mut [u8], size: usize) const
         //  If there's no corresponding slot for the first character
         //  of the prefix, the message does not match.
         const unsigned char c = *data;
-        if (c < current->_min || c >= current->_min + current->_count)
+        if (c < current._min || c >= current._min + current._count)
             return false;
 
         //  Move to the next character.
-        if (current->_count == 1)
-            current = current->_next.node;
+        if (current._count == 1)
+            current = current._next.node;
         else {
-            current = current->_next.table[c - current->_min];
+            current = current._next.table[c - current._min];
             if (!current)
                 return false;
         }
@@ -393,7 +393,7 @@ void trie_t::apply_helper (unsigned char **buff_,
     if (_count == 1) {
         (*buff_)[buffsize_] = _min;
         buffsize_++;
-        _next.node->apply_helper (buff_, buffsize_, maxbuffsize_, func_, arg_);
+        _next.node.apply_helper (buff_, buffsize_, maxbuffsize_, func_, arg_);
         return;
     }
 

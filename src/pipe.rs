@@ -314,9 +314,9 @@ void send_routing_id (pipe_t *pipe_, const ZmqOptions &options_)
     errno_assert (rc == 0);
     memcpy (id.data (), options_.routing_id, options_.routing_id_size);
     id.set_flags (ZmqMessage::routing_id);
-    const bool written = pipe_->write (&id);
+    const bool written = pipe_.write (&id);
     zmq_assert (written);
-    pipe_->flush ();
+    pipe_.flush ();
 }
 
 void send_hello_msg (pipe_t *pipe_, const ZmqOptions &options_)
@@ -325,9 +325,9 @@ void send_hello_msg (pipe_t *pipe_, const ZmqOptions &options_)
     let rc: i32 =
       hello.init_buffer (&options_.hello_msg[0], options_.hello_msg.size ());
     errno_assert (rc == 0);
-    const bool written = pipe_->write (&hello);
+    const bool written = pipe_.write (&hello);
     zmq_assert (written);
-    pipe_->flush ();
+    pipe_.flush ();
 }
 
 pipe_t::pipe_t (object_t *parent_,
@@ -518,7 +518,7 @@ void pipe_t::process_activate_read ()
 {
     if (!_in_active && (_state == active || _state == waiting_for_delimiter)) {
         _in_active = true;
-        _sink->read_activated (this);
+        _sink.read_activated (this);
     }
 }
 
@@ -529,7 +529,7 @@ void pipe_t::process_activate_write (u64 msgs_read_)
 
     if (!_out_active && _state == active) {
         _out_active = true;
-        _sink->write_activated (this);
+        _sink.write_activated (this);
     }
 }
 
@@ -555,7 +555,7 @@ void pipe_t::process_hiccup (pipe_: *mut c_void)
 
     //  If appropriate, notify the user about the hiccup.
     if (_state == active)
-        _sink->hiccuped (this);
+        _sink.hiccuped (this);
 }
 
 void pipe_t::process_pipe_term ()
@@ -600,7 +600,7 @@ void pipe_t::process_pipe_term_ack ()
 {
     //  Notify the user that all the references to the pipe should be dropped.
     zmq_assert (_sink);
-    _sink->pipe_terminated (this);
+    _sink.pipe_terminated (this);
 
     //  In term_ack_sent and term_req_sent2 states there's nothing to do.
     //  Simply deallocate the pipe. In term_req_sent1 state we have to ack
@@ -639,7 +639,7 @@ void pipe_t::process_pipe_hwm (inhwm_: i32, outhwm_: i32)
 
 void pipe_t::set_nodelay ()
 {
-    this->_delay = false;
+    this._delay = false;
 }
 
 void pipe_t::terminate (delay_: bool)

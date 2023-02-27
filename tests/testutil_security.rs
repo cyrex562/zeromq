@@ -113,11 +113,11 @@ void socket_config_curve_client (client_: *mut c_void, data: *mut c_void)
       static_cast<const curve_client_data_t *> (data);
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      client_, ZMQ_CURVE_SERVERKEY, curve_client_data->server_public, 41));
+      client_, ZMQ_CURVE_SERVERKEY, curve_client_data.server_public, 41));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      client_, ZMQ_CURVE_PUBLICKEY, curve_client_data->client_public, 41));
+      client_, ZMQ_CURVE_PUBLICKEY, curve_client_data.client_public, 41));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
-      client_, ZMQ_CURVE_SECRETKEY, curve_client_data->client_secret, 41));
+      client_, ZMQ_CURVE_SECRETKEY, curve_client_data.client_secret, 41));
 }
 
 void *zap_requests_handled;

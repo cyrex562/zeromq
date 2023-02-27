@@ -366,8 +366,8 @@ bool zmtp_engine_t::handshake_v1_0_unversioned ()
     zmq_assert (rc == 0);
     memcpy (_routing_id_msg.data (), _options.routing_id,
             _options.routing_id_size);
-    _encoder->load_msg (&_routing_id_msg);
-    const size_t buffer_size = _encoder->encode (&bufferp, header_size);
+    _encoder.load_msg (&_routing_id_msg);
+    const size_t buffer_size = _encoder.encode (&bufferp, header_size);
     zmq_assert (buffer_size == header_size);
 
     //  Make sure the decoder sees the data we have already received.
@@ -569,7 +569,7 @@ int zmtp_engine_t::produce_ping_message (msg: &mut ZmqMessage)
     memcpy (static_cast<uint8_t *> (msg.data ()) + ZmqMessage::ping_cmd_name_size,
             &ttl_val, mem::size_of::<ttl_val>());
 
-    rc = _mechanism->encode (msg);
+    rc = _mechanism.encode (msg);
     _next_msg = &zmtp_engine_t::pull_and_encode;
     if (!_has_timeout_timer && _heartbeat_timeout > 0) {
         add_timer (_heartbeat_timeout, heartbeat_timeout_timer_id);
@@ -585,7 +585,7 @@ int zmtp_engine_t::produce_pong_message (msg: &mut ZmqMessage)
     int rc = msg.move (_pong_msg);
     errno_assert (rc == 0);
 
-    rc = _mechanism->encode (msg);
+    rc = _mechanism.encode (msg);
     _next_msg = &zmtp_engine_t::pull_and_encode;
     return rc;
 }

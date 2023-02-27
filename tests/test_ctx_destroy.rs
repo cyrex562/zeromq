@@ -166,7 +166,7 @@ void run_poller (data: *mut c_void)
       static_cast<const poller_test_data_t *> (data);
 
     void *socket =
-      zmq_socket (poller_test_data->ctx, poller_test_data->socket_type);
+      zmq_socket (poller_test_data.ctx, poller_test_data.socket_type);
     TEST_ASSERT_NOT_NULL (socket);
 
     void *poller = zmq_poller_new ();
@@ -175,7 +175,7 @@ void run_poller (data: *mut c_void)
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_poller_add (poller, socket, null_mut(), ZMQ_POLLIN));
 
-    zmq_atomic_counter_set (poller_test_data->counter, 1);
+    zmq_atomic_counter_set (poller_test_data.counter, 1);
 
     ZmqPollerEvent event;
     TEST_ASSERT_FAILURE_ERRNO (ETERM, zmq_poller_wait (poller, &event, -1));

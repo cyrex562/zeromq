@@ -69,7 +69,7 @@ pub struct condition_variable_t
 
     inline int wait (mutex_t *mutex_, timeout_: i32)
     {
-        int rc = SleepConditionVariableCS (&_cv, mutex_->get_cs (), timeout_);
+        int rc = SleepConditionVariableCS (&_cv, mutex_.get_cs (), timeout_);
 
         if (rc != 0)
             return 0;
@@ -164,7 +164,7 @@ pub struct condition_variable_t
             scoped_lock_t l (_listenersMutex);
             _listeners.push_back (sem);
         }
-        mutex_->unlock ();
+        mutex_.unlock ();
 
         rc: i32;
         if (timeout_ < 0)
@@ -186,7 +186,7 @@ pub struct condition_variable_t
             }
             semDelete (sem);
         }
-        mutex_->lock ();
+        mutex_.lock ();
 
         if (rc == 0)
             return 0;
@@ -272,16 +272,16 @@ pub struct condition_variable_t
             }
 // #ifdef ZMQ_HAVE_OSX
             rc = pthread_cond_timedwait_relative_np (
-              &_cond, mutex_->get_mutex (), &timeout);
+              &_cond, mutex_.get_mutex (), &timeout);
 #elif defined(ANDROID_LEGACY)
             rc = pthread_cond_timedwait_monotonic_np (
-              &_cond, mutex_->get_mutex (), &timeout);
+              &_cond, mutex_.get_mutex (), &timeout);
 // #else
             rc =
-              pthread_cond_timedwait (&_cond, mutex_->get_mutex (), &timeout);
+              pthread_cond_timedwait (&_cond, mutex_.get_mutex (), &timeout);
 // #endif
         } else
-            rc = pthread_cond_wait (&_cond, mutex_->get_mutex ());
+            rc = pthread_cond_wait (&_cond, mutex_.get_mutex ());
 
         if (rc == 0)
             return 0;

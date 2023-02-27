@@ -363,18 +363,18 @@ fd_t tcp_open_socket (address_: *const c_char,
                                 TcpAddress *out_tcp_addr_)
 {
     //  Convert the textual address into address structure.
-    int rc = out_tcp_addr_->resolve (address_, local_, options_.ipv6);
+    int rc = out_tcp_addr_.resolve (address_, local_, options_.ipv6);
     if (rc != 0)
         return retired_fd;
 
     //  Create the socket.
-    fd_t s = open_socket (out_tcp_addr_->family (), SOCK_STREAM, IPPROTO_TCP);
+    fd_t s = open_socket (out_tcp_addr_.family (), SOCK_STREAM, IPPROTO_TCP);
 
     //  IPv6 address family not supported, try automatic downgrade to IPv4.
     if (s == retired_fd && fallback_to_ipv4_
-        && out_tcp_addr_->family () == AF_INET6 && errno == EAFNOSUPPORT
+        && out_tcp_addr_.family () == AF_INET6 && errno == EAFNOSUPPORT
         && options_.ipv6) {
-        rc = out_tcp_addr_->resolve (address_, local_, false);
+        rc = out_tcp_addr_.resolve (address_, local_, false);
         if (rc != 0) {
             return retired_fd;
         }
@@ -387,7 +387,7 @@ fd_t tcp_open_socket (address_: *const c_char,
 
     //  On some systems, IPv4 mapping in IPv6 sockets is disabled by default.
     //  Switch it on in such cases.
-    if (out_tcp_addr_->family () == AF_INET6)
+    if (out_tcp_addr_.family () == AF_INET6)
         enable_ipv4_mapping (s);
 
     // Set the IP Type-Of-Service priority for this socket

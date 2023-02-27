@@ -218,7 +218,7 @@ select_t::find_fd_entry_by_handle (fd_entries_t &fd_entries_,
     fd_entries_t::iterator fd_entry_it;
     for (fd_entry_it = fd_entries_.begin (); fd_entry_it != fd_entries_.end ();
          ++fd_entry_it)
-        if (fd_entry_it->fd == handle_)
+        if (fd_entry_it.fd == handle_)
             break;
 
     return fd_entry_it;
@@ -238,7 +238,7 @@ void select_t::trigger_events (const fd_entries_t &fd_entries_,
             continue;
 
         if (FD_ISSET (fd_entries_[i].fd, &local_fds_set_.read)) {
-            fd_entries_[i].events->in_event ();
+            fd_entries_[i].events.in_event ();
             --event_count_;
         }
 
@@ -250,7 +250,7 @@ void select_t::trigger_events (const fd_entries_t &fd_entries_,
             continue;
 
         if (FD_ISSET (fd_entries_[i].fd, &local_fds_set_.write)) {
-            fd_entries_[i].events->out_event ();
+            fd_entries_[i].events.out_event ();
             --event_count_;
         }
 
@@ -259,7 +259,7 @@ void select_t::trigger_events (const fd_entries_t &fd_entries_,
             continue;
 
         if (FD_ISSET (fd_entries_[i].fd, &local_fds_set_.error)) {
-            fd_entries_[i].events->in_event ();
+            fd_entries_[i].events.in_event ();
             --event_count_;
         }
     }
@@ -269,7 +269,7 @@ void select_t::trigger_events (const fd_entries_t &fd_entries_,
 int select_t::try_retire_fd_entry (
   family_entries_t::iterator family_entry_it_, fd_t &handle_)
 {
-    family_entry_t &family_entry = family_entry_it_->second;
+    family_entry_t &family_entry = family_entry_it_.second;
 
     fd_entries_t::iterator fd_entry_it =
       find_fd_entry_by_handle (family_entry.fd_entries, handle_);
@@ -325,8 +325,8 @@ void select_t::rm_fd (handle_t handle_)
       find_fd_entry_by_handle (_family_entry.fd_entries, handle_);
     assert (fd_entry_it != _family_entry.fd_entries.end ());
 
-    zmq_assert (fd_entry_it->fd != retired_fd);
-    fd_entry_it->fd = retired_fd;
+    zmq_assert (fd_entry_it.fd != retired_fd);
+    fd_entry_it.fd = retired_fd;
     _family_entry.fds_set.remove_fd (handle_);
 
     ++retired;
@@ -335,8 +335,8 @@ void select_t::rm_fd (handle_t handle_)
         _max_fd = retired_fd;
         for (fd_entry_it = _family_entry.fd_entries.begin ();
              fd_entry_it != _family_entry.fd_entries.end (); ++fd_entry_it)
-            if (fd_entry_it->fd > _max_fd)
-                _max_fd = fd_entry_it->fd;
+            if (fd_entry_it.fd > _max_fd)
+                _max_fd = fd_entry_it.fd;
     }
 
     _family_entry.has_retired = true;
@@ -469,13 +469,13 @@ void select_t::loop ()
             for (family_entries_t::iterator family_entry_it =
                    _family_entries.begin ();
                  family_entry_it != _family_entries.end (); ++family_entry_it) {
-                family_entry_t &family_entry = family_entry_it->second;
+                family_entry_t &family_entry = family_entry_it.second;
 
                 for (fd_entries_t::iterator fd_entry_it =
                        family_entry.fd_entries.begin ();
                      fd_entry_it != family_entry.fd_entries.end ();
                      ++fd_entry_it) {
-                    fd_t fd = fd_entry_it->fd;
+                    fd_t fd = fd_entry_it.fd;
 
                     //  http://stackoverflow.com/q/35043420/188530
                     if (FD_ISSET (fd, &family_entry.fds_set.read)
@@ -508,7 +508,7 @@ void select_t::loop ()
         for (_current_family_entry_it = _family_entries.begin ();
              _current_family_entry_it != _family_entries.end ();
              ++_current_family_entry_it) {
-            family_entry_t &family_entry = _current_family_entry_it->second;
+            family_entry_t &family_entry = _current_family_entry_it.second;
 
 
             if (use_wsa_events) {
@@ -633,7 +633,7 @@ void select_t::cleanup_retired ()
 // #ifdef _WIN32
     for (family_entries_t::iterator it = _family_entries.begin ();
          it != _family_entries.end ();) {
-        if (cleanup_retired (it->second))
+        if (cleanup_retired (it.second))
             it = _family_entries.erase (it);
         else
             ++it;

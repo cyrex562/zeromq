@@ -229,7 +229,7 @@ void return_key (data: &mut [u8], size: usize, arg_: &mut [u8])
     key: String;
     for (size_t i = 0; i < size; ++i)
         key.push_back (static_cast<char> (data[i]));
-    vec->push_back (key);
+    vec.push_back (key);
 }
 
 void test_apply ()
@@ -251,7 +251,7 @@ void test_apply ()
 
     std::vector<std::string> *vec = new std::vector<std::string> ();
     tree.apply (return_key, static_cast<void *> (vec));
-    for (size_t i = 0; i < vec->size (); ++i)
+    for (size_t i = 0; i < vec.size (); ++i)
         TEST_ASSERT_TRUE (keys.count ((*vec)[i]) > 0);
     delete vec;
 }

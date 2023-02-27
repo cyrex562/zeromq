@@ -131,7 +131,7 @@ int stream_listener_base_t::close ()
     let rc: i32 = ::close (_s);
     errno_assert (rc == 0);
 // #endif
-    _socket->event_closed (make_unconnected_bind_endpoint_pair (_endpoint), _s);
+    _socket.event_closed (make_unconnected_bind_endpoint_pair (_endpoint), _s);
     _s = retired_fd;
 
     return 0;
@@ -159,9 +159,9 @@ void stream_listener_base_t::create_engine (fd_t fd_)
     session_base_t *session =
       session_base_t::create (io_thread, false, _socket, options, null_mut());
     errno_assert (session);
-    session->inc_seqnum ();
+    session.inc_seqnum ();
     launch_child (session);
     send_attach (session, engine, false);
 
-    _socket->event_accepted (endpoint_pair, fd_);
+    _socket.event_accepted (endpoint_pair, fd_);
 }

@@ -9,29 +9,48 @@ use anyhow::bail;
 use crate::i_mailbox::i_mailbox;
 use crate::clock::clock_t;
 use crate::signaler::signaler_t;
-use libc::{c_void, EINTR, EINVAL};
+use libc::{c_void, EAGAIN, EINTR, EINVAL};
 use crate::address::Address;
 use crate::command::ZmqCommand;
 use crate::ctx::ZmqContext;
 use crate::endpoint::{EndpointUriPair, make_unconnected_bind_endpoint_pair, ZmqEndpoint};
 use crate::endpoint::EndpointType::endpoint_type_none;
+use crate::ipc_address::IpcAddress;
 use crate::ipc_listener::ipc_listener_t;
 use crate::mailbox::mailbox_t;
 use crate::mailbox_safe::mailbox_safe_t;
+use crate::msg::ZmqMessage;
 use crate::object::object_t;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
 use crate::out_pipe::out_pipe_t;
+use crate::pgm_socket::pgm_socket_t;
 use crate::session_base::session_base_t;
 use crate::tcp_address::TcpAddress;
 use crate::tcp_listener::tcp_listener_t;
+use crate::tipc_address::TipcAddress;
 use crate::tipc_listener::tipc_listener_t;
 use crate::udp_address::UdpAddress;
+use crate::vmci_address::VmciAddress;
 use crate::vmci_listener::vmci_listener_t;
+use crate::ws_address::WsAddress;
 use crate::ws_listener::ws_listener_t;
-use crate::zmq_hdr::{ZMQ_BLOCKY, ZMQ_DEALER, ZMQ_DISH, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB, ZMQ_ZERO_COPY_RECV};
+use crate::wss_address::WssAddress;
+use crate::zmq_hdr::{ZMQ_BLOCKY, ZMQ_DEALER, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB, ZMQ_ZERO_COPY_RECV};
 use crate::zmq_ops::zmq_errno;
 
 pub type GetPeerStateFunc = fn(&mut ZmqSocketBase, routing_id_: &mut [u8], routing_id_size_: usize) -> anyhow::Result<i32>;
+
+pub type XSetSockOptFunc = fn(&mut ZmqSocketBase, a: i32, b: &mut [u8], c: usize) -> anyhow::Result<()>;
+
+pub type XGetSockOptFunc = fn (&mut ZmqSocketBase, a: i32, b: &mut [u8], c: usize) -> anyhow::Result<()>;
+
+pub type XHasOutFunc = fn(&mut ZmqSocketBase) -> bool;
+
+pub type XSendFunc = fn(&mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()>;
+
+pub type XHasInFunc = fn(&mut ZmqSocketBase) -> bool;
+
+pub type XRecvFunc = fn(&mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()>;
 
 #[derive(Default,Debug,Clone,Serialize,Deserialize)]
 pub struct ZmqSocketBase {
@@ -106,6 +125,13 @@ pub struct ZmqSocketBase {
 
     // Add a flag for mark disconnect action
     pub _disconnected: bool,
+
+    pub xsetsockopt_func: Option<XSetSockOptFunc>,
+    pub xgetsockopt_func: Option<XGetSockOptFunc>,
+    pub xhasout_func: Option<XHasOutFunc>,
+    pub xsend_func: Option<XSendFunc>,
+    pub xhasin_func: Option<XHasInFunc>,
+    pub xrecv_fn: Option<XRecvFunc>,
 }
 
 impl ZmqSocketBase {
@@ -301,14 +327,14 @@ impl ZmqSocketBase {
 
     //  Interface for communication with the API layer.
     // int setsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
-    pub fn setsockopt (&mut self, options: &mut ZmqOptions, opt_kind: i32, opt_val: &mut [u8], opt_len: usize) -> i32
+    pub fn setsockopt (&mut self, options: &mut ZmqOptions, opt_kind: i32, opt_val: &mut [u8], opt_len: usize) -> anyhow::Result<()>
     {
         // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
-        let mut sync_lock = if self._thread_safe {
-            &mut _sync
-        } else {
-            null_mut()
-        };
+        // let mut sync_lock = if self._thread_safe {
+        //     &mut _sync
+        // } else {
+        //     null_mut()
+        // };
 
         // if (unlikely (_ctx_terminated)) {
         //     errno = ETERM;
@@ -316,18 +342,15 @@ impl ZmqSocketBase {
         // }
 
         //  First, check whether specific socket type overloads the option.
-        let mut rc = self.xsetsockopt (opt_kind, opt_val, opt_len);
-        if rc == 0 || errno != EINVAL {
-            return rc;
-        }
+        self.xsetsockopt (opt_kind, opt_val, opt_len)?;
 
         //  If the socket type doesn't support the option, pass it to
         //  the generic option parser.
-        rc = options.setsockopt (opt_kind, opt_val, opt_len);
-        self.update_pipe_options (options, opt_kind);
-
-        return rc;
+        options.setsockopt (opt_kind, opt_val, opt_len)?;
+        self.update_pipe_options (options, opt_kind)?;
+        Ok(())
     }
+
     // int getsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize);
     pub fn getsockopt (&mut self, options: &mut ZmqOptions, opt_kind: i32, opt_val: &mut [u8], opt_len: &mut usize) -> anyhow::Result<()>
     {
@@ -343,7 +366,7 @@ impl ZmqSocketBase {
         // }
 
         //  First, check whether specific socket type overloads the option.
-        let rc = self.xgetsockopt (opt_kind, opt_val, opt_len);
+        let rc = self.xgetsockopt (opt_kind, opt_val, *opt_len);
         if rc == 0 || errno != EINVAL {
             return rc;
         }
@@ -464,7 +487,7 @@ impl ZmqSocketBase {
             let mut paddr = Address::new(&protocol, &address, self.get_ctx());
 
             paddr.resolved.udp_addr = UdpAddress::new();
-            // alloc_assert (paddr->resolved.udp_addr);
+            // alloc_assert (paddr.resolved.udp_addr);
             paddr.resolved.udp_addr.resolve (&address, true, options.ipv6)?;
             // if rc != 0 {
             //     // LIBZMQ_DELETE (paddr);
@@ -494,8 +517,8 @@ impl ZmqSocketBase {
             paddr.to_string (&self._last_endpoint);
 
             //  TODO shouldn't this use _last_endpoint instead of endpoint_uri_? as in the other cases
-            self.add_endpoint (EndpointUriPair::new(endpoint_uri_, "", endpoint_type_none),
-                          session, newpipe);
+            let mut ep = EndpointUriPair::new(endpoint_uri_, "", endpoint_type_none);
+            self.add_endpoint (&ep, session, &mut newpipe);
 
             Ok(())
         }
@@ -702,7 +725,201 @@ impl ZmqSocketBase {
     }
 
     // int send (msg: &mut ZmqMessage flags: i32);
+    pub fn send (&mut self, msg: &mut ZmqMessage, options: &mut ZmqOptions, flags: i32) -> anyhow::Result<()>
+    {
+        // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
+
+        //  Check whether the context hasn't been shut down yet.
+        // if (unlikely (_ctx_terminated)) {
+        //     errno = ETERM;
+        //     return -1;
+        // }
+
+        //  Check whether message passed to the function is valid.
+        // if (unlikely (!msg || !msg.check ())) {
+        //     errno = EFAULT;
+        //     return -1;
+        // }
+
+        //  Process pending commands, if any.
+        self.process_commands (0, true)?;
+        // if (unlikely (rc != 0)) {
+        //     return -1;
+        // }
+
+        //  Clear any user-visible flags that are set on the message.
+        msg.reset_flags (ZmqMessage::more);
+
+        //  At this point we impose the flags on the message.
+        if (flags & ZMQ_SNDMORE) {
+            msg.set_flags(ZmqMessage::more);
+        }
+
+        msg.reset_metadata ();
+
+        //  Try to send the message using method in each socket class
+        self.xsend (msg)?;
+        // if (rc == 0) {
+        //     return 0;
+        // }
+        //  Special case for ZMQ_PUSH: -2 means pipe is dead while a
+        //  multi-part send is in progress and can't be recovered, so drop
+        //  silently when in blocking mode to keep backward compatibility.
+        // if (unlikely (rc == -2)) {
+        //     if (!((flags & ZMQ_DONTWAIT) || options.sndtimeo == 0)) {
+        //         rc = msg.close ();
+        //         errno_assert (rc == 0);
+        //         rc = msg.init ();
+        //         errno_assert (rc == 0);
+        //         return 0;
+        //     }
+        // }
+        // if (unlikely (errno != EAGAIN)) {
+        //     return -1;
+        // }
+
+        //  In case of non-blocking send we'll simply propagate
+        //  the error - including EAGAIN - up the stack.
+        if (flags & ZMQ_DONTWAIT)!=0 || (options.sndtimeo == 0) {
+            bail!("EAGAIN")
+        }
+
+        //  Compute the time when the timeout should occur.
+        //  If the timeout is infinite, don't care.
+        let mut timeout = options.sndtimeo;
+        let end = if timeout < 0 { 0 } else { (self._clock.now_ms() + timeout) };
+
+        //  Oops, we couldn't send the message. Wait for the next
+        //  command, process it and try to send the message again.
+        //  If timeout is reached in the meantime, return EAGAIN.
+        loop{
+            // if (unlikely (process_commands (timeout, false) != 0)) {
+            //     return -1;
+            // }
+            self.xsend (msg)?;
+            // if (rc == 0)
+            //     break;
+            // if (unlikely (errno != EAGAIN)) {
+            //     return -1;
+            // }
+            if timeout > 0 {
+                timeout = (end - self._clock.now_ms ());
+                if timeout <= 0 {
+                    bail!("EAGAIN")
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+
+
     // int recv (msg: &mut ZmqMessage flags: i32);
+    pub fn recv(&mut self, msg: &mut ZmqMessage, options: &mut ZmqOptions, flags: i32) -> anyhow::Result<()>
+    {
+        // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
+
+        //  Check whether the context hasn't been shut down yet.
+        // if (unlikely (_ctx_terminated)) {
+        //     errno = ETERM;
+        //     return -1;
+        // }
+
+        //  Check whether message passed to the function is valid.
+        // if (unlikely (!msg || !msg.check ())) {
+        //     errno = EFAULT;
+        //     return -1;
+        // }
+
+        //  Once every inbound_poll_rate messages check for signals and process
+        //  incoming commands. This happens only if we are not polling altogether
+        //  because there are messages available all the time. If poll occurs,
+        //  ticks is set to zero and thus we avoid this code.
+        //
+        //  Note that 'recv' uses different command throttling algorithm (the one
+        //  described above) from the one used by 'send'. This is because counting
+        //  ticks is more efficient than doing RDTSC all the time.
+        self._ticks += 1;
+        if self._ticks == inbound_poll_rate {
+            // if (unlikely (process_commands (0, false) != 0)) {
+            //     return -1;
+            // }
+            self._ticks = 0;
+        }
+
+        //  Get the message.
+        self.xrecv(msg)?;
+        // if (unlikely (rc != 0 && errno != EAGAIN)) {
+        //     return -1;
+        // }
+
+        //  If we have the message, return immediately.
+        // if (rc == 0) {
+        //     extract_flags (msg);
+        //     return 0;
+        // }
+        self.extract_flags (msg);
+        // TODO: find condition to exit if message is processed.
+
+        //  If the message cannot be fetched immediately, there are two scenarios.
+        //  For non-blocking recv, commands are processed in case there's an
+        //  activate_reader command already waiting in a command pipe.
+        //  If it's not, return EAGAIN.
+        if (flags & ZMQ_DONTWAIT)!=0 || options.rcvtimeo == 0 {
+            // if (unlikely (process_commands (0, false) != 0)) {
+            //     return -1;
+            // }
+            self._ticks = 0;
+
+            self.xrecv (msg)?;
+            // if rc < 0 {
+            //     return rc;
+            // }
+            self.extract_flags (msg);
+
+            // return 0;
+            return Ok(());
+        }
+
+        //  Compute the time when the timeout should occur.
+        //  If the timeout is infinite, don't care.
+        let mut timeout = options.rcvtimeo;
+        let end = if timeout < 0 { 0 } else { (self._clock.now_ms() + timeout) };
+
+        //  In blocking scenario, commands are processed over and over again until
+        //  we are able to fetch a message.
+        let mut block = (self._ticks != 0);
+        loop {
+            // if (unlikely (process_commands (block ? timeout : 0, false) != 0)) {
+            //     return -1;
+            // }
+            xrecv (msg)?;
+            if (rc == 0) {
+                self._ticks = 0;
+                break;
+            }
+            // if (unlikely (errno != EAGAIN)) {
+            //     return -1;
+            // }
+            block = true;
+            if (timeout > 0) {
+                timeout = (end - self._clock.now_ms ());
+                if (timeout <= 0) {
+                    // errno = EAGAIN;
+                    // return -1;
+                    bail!("EAGAIN");
+                }
+            }
+        }
+
+        extract_flags (msg);
+        Ok(())
+    }
+
+
+
+
     // void add_signaler (signaler_t *s_);
     pub fn add_signaler (&mut self, s_: &mut signaler_t)
     {
@@ -938,19 +1155,70 @@ impl ZmqSocketBase {
     //  method.
     // virtual int
     // xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
+    pub fn xsetsockopt (&mut self, a: i32, b: &mut [u8], c: usize) -> anyhow::Result<()>
+    {
+        if self.xsetsockopt_func.is_some() {
+            return self.xsetsockopt_func.unwrap()(self,a,b,c);
+        } else {
+            bail!("not implemented")
+        }
+    }
+
 
     //  The default implementation assumes there are no specific socket
     //  options for the particular socket type. If not so, ZMQ_FINAL this
     //  method.
     // virtual int xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize);
+    pub fn xgetsockopt (&mut self, a: i32, b: &mut [u8], c: usize) -> anyhow::Result<()>
+    {
+        if self.xgetsockopt_func.is_some() {
+            return self.xgetsockopt_func.unwrap()(self,a,b,c);
+        } else {
+            bail!("not implemented")
+        }
+    }
 
     //  The default implementation assumes that send is not supported.
     // virtual bool xhas_out ();
+    pub fn xhas_out (&mut self) -> bool
+    {
+        if self.xhasout_func.is_some() {
+            self.xhasout_func.unwrap()()
+        } else {
+            return false;
+        }
+    }
+
     // virtual int xsend (ZmqMessage *msg);
+    pub fn xsend (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
+    {
+        if self.xsend_func.is_some() {
+            self.xsend_func.unwrap()(self, msg)
+        } else {
+            bail!("not implemented")
+        }
+    }
 
     //  The default implementation assumes that recv in not supported.
     // virtual bool xhas_in ();
+    pub fn xhas_in (&mut self) -> bool
+    {
+        if self.xhasin_func.is_some() {
+            self.xhasin_func.unwrap()(self)
+        } else {
+            false
+        }
+    }
+
     // virtual int xrecv (ZmqMessage *msg);
+    pub fn xrecv (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
+    {
+        if self.xrecv_fn.is_some() {
+            self.xrecv_fn.unwrap()(self,msg)
+        } else {
+            bail!("not implemented")
+        }
+    }
 
     //  i_pipe_events will be forwarded to these functions.
     // virtual void xread_activated (pipe_t *pipe_);
@@ -964,6 +1232,11 @@ impl ZmqSocketBase {
 
     //  Delay actual destruction of the socket.
     // void process_destroy () ZMQ_FINAL;
+    pub fn process_destroy (&mut self)
+    {
+        self._destroyed = true;
+    }
+
 
     // int connect_internal (endpoint_uri_: *const c_char);
     pub fn connect_internal (&mut self, options: &mut ZmqOptions, endpoint_uri_: &str) -> anyhow::Result<()>
@@ -982,8 +1255,8 @@ impl ZmqSocketBase {
         //  Parse endpoint_uri_ string.
         let mut protocol = String::new();
         let mut address = String::new();
-        if self.parse_uri (endpoint_uri_, protocol, address)
-            || self.check_protocol (&protocol) {
+        if self.parse_uri (endpoint_uri_, &mut protocol, &mut address)
+            || self.check_protocol (options, &protocol) {
             bail!("failed to parse uri or check protocol");
         }
 
@@ -997,25 +1270,27 @@ impl ZmqSocketBase {
 
             // The total HWM for an inproc connection should be the sum of
             // the binder's HWM and the connector's HWM.
-            let sndhwm: i32 = if peer.socket == null_mut() ? options.sndhwm
-                               : options.sndhwm != 0 && peer.options.rcvhwm != 0
-                                 ? options.sndhwm + peer.options.rcvhwm
-                                 : 0;
-            let rcvhwm: i32 = peer.socket == null_mut() ? options.rcvhwm
-                               : options.rcvhwm != 0 && peer.options.sndhwm != 0
-                                 ? options.rcvhwm + peer.options.sndhwm
-                                 : 0;
+            let sndhwm: i32 = if peer.socket == null_mut() { options.sndhwm }
+                               else if options.sndhwm != 0 && peer.options.rcvhwm != 0 {
+                                   options.sndhwm + peer.options.rcvhwm
+                               } else { 0 };
+            let rcvhwm: i32 = if peer.socket == null_mut() { options.rcvhwm }
+                               else if options.rcvhwm != 0 && peer.options.sndhwm != 0 {
+                                   options.rcvhwm + peer.options.sndhwm
+                               } else { 0 };
 
             //  Create a bi-directional pipe to connect the peers.
-            let mut parents: [object_t;2] = [self, peer.socket == null_mut() ? this : peer.socket];
+            let mut parents: [&mut ZmqSocketBase;2] = [
+                self,
+                if peer.socket == null_mut() { self } else { peer.socket }];
             let mut new_pipes: [pipe_t;2] = [pipe_t::default(),pipe_t::default()];
 
             let conflate = get_effective_conflate_option (options);
 
-            int hwms[2] = {conflate ? -1 : sndhwm, conflate ? -1 : rcvhwm};
-            bool conflates[2] = {conflate, conflate};
+            let mut hwms: [i32;2] = [if conflate { -1 } else { sndhwm }, if conflate { -1 } else { rcvhwm }];
+            let mut conflates: [bool;2] = [conflate, conflate];
             rc = pipepair (parents, new_pipes, hwms, conflates);
-            if (!conflate) {
+            if !conflate {
                 new_pipes[0].set_hwms_boost (peer.options.sndhwm,
                                               peer.options.rcvhwm);
                 new_pipes[1].set_hwms_boost (options.sndhwm, options.rcvhwm);
@@ -1075,7 +1350,7 @@ impl ZmqSocketBase {
             }
 
             //  Attach local end of the pipe to this socket object.
-            self.attach_pipe (&new_pipes[0], false, true);
+            self.attach_pipe (&mut new_pipes[0], false, true);
 
             // Save last endpoint URI
             self._last_endpoint.assign (endpoint_uri_);
@@ -1105,7 +1380,7 @@ impl ZmqSocketBase {
         //     return -1;
         // }
 
-        let paddr =  Address::new(protocol, address, self.get_ctx ());
+        let mut paddr =  Address::new(&protocol, &address, self.get_ctx ());
         // alloc_assert (paddr);
 
         //  Resolve address (if needed by the protocol)
@@ -1120,191 +1395,212 @@ impl ZmqSocketBase {
             //  - Address may contain two parts separated by ':'
             //  Following code is quick and dirty check to catch obvious errors,
             //  without trying to be fully accurate.
-            let check = &address;
-            if (isalnum (*check) || isxdigit (*check) || *check == '['
-                || *check == ':') {
-                check++;
-                while (isalnum (*check) || isxdigit (*check) || *check == '.'
-                       || *check == '-' || *check == ':' || *check == '%'
-                       || *check == ';' || *check == '[' || *check == ']'
-                       || *check == '_' || *check == '*') {
-                    check++;
+            // let check = &address;
+            // let check = address.as_mut_ptr();
+            // if (isalnum (*check) || isxdigit (*check) || *check == '['
+            //     || *check == ':')
+            let mut check = address.as_ptr();
+            let lbracket_bytes = String::from("[").as_ptr();
+            let colon_bytes = String::from(":").as_ptr();
+            let dot_bytes = String::from(".").as_ptr();
+            let semicolon_bytes = String::from(";").as_ptr();
+            let percent_bytes = String::from("%").as_ptr();
+            let rbracked_bytes = String::from("]").as_ptr();
+            let underscore_bytes = String::from("_").as_ptr();
+            let asterisk_bytes = String::from("*").as_ptr();
+            let hyphen_bytes = String::from("-").as_ptr();
+        
+
+            // if *check.is_ascii_alphanumeric() || *check.is_ascii_hexdigit() || *check.eq(*('['.encode_utf8().as_ptr())) || *check.eq(':')
+            // {
+            //     check++;
+            //     while (isalnum (*check) || isxdigit (*check) || *check == '.'
+            //            || *check == '-' || *check == ':' || *check == '%'
+            //            || *check == ';' || *check == '[' || *check == ']'
+            //            || *check == '_' || *check == '*') {
+            //         check++;
+            //     }
+            // }
+            if *check.is_ascii_alphanumeric() || *check.is_ascii_hexdigit() || *check.eq(&lbracket_bytes) || *check.eq(&colon_bytes){
+                check += 1;
+                while *check.is_ascii_alphanumeric() || *check.is_ascii_hexdigit() || *check.eq(&dot_bytes) || *check.eq(&hyphen_bytes) || *check.eq(&colon_bytes) || *check.eq(&percent_bytes) || *check.eq(&semicolon_bytes) || *check.eq(&lbracket_bytes) || *check.eq(&rbracked_bytes) || *check.eq(&underscore_bytes) || *check.eq(&asterisk_bytes) {
+                check +=1;
                 }
             }
+            
             //  Assume the worst, now look for success
             rc = -1;
             //  Did we reach the end of the address safely?
-            if *check == 0 {
+            if *check.is_null() {
                 //  Do we have a valid port string? (cannot be '*' in connect
-                check = strrchr (address, ':');
-                if check {
-                    check++;
-                    if *check && (isdigit (*check))
-                        rc = 0; //  Valid
+                // check = strrchr (address, ':');
+                check = address.as_ptr();
+                let index = address.find(":");
+                if index.is_some() {
+                    check += 1;
+                    check += index.unwrap();
+                    if *check.is_null() == false && *check.is_ascii_digit() {
+                        //  Valid
+                        rc = 0; 
+                    }
                 }
             }
             if rc == -1 {
-                errno = EINVAL;
-                LIBZMQ_DELETE (paddr);
-                return -1;
+                // errno = EINVAL;
+                // LIBZMQ_DELETE (paddr);
+                // return -1;
+                bail!("EINVAL");
             }
             //  Defer resolution until a socket is opened
-            paddr->resolved.tcp_addr = null_mut();
+            paddr.resolved.tcp_addr = null_mut();
+            Ok(())
         }
     // #ifdef ZMQ_HAVE_WS
     // #ifdef ZMQ_HAVE_WSS
-        else if (protocol == protocol_name::ws || protocol == protocol_name::wss) {
-            if (protocol == protocol_name::wss) {
-                paddr->resolved.wss_addr = new (std::nothrow) WssAddress ();
-                alloc_assert (paddr->resolved.wss_addr);
-                rc = paddr->resolved.wss_addr->resolve (address, false,
-                                                        options.ipv6);
-            } else
+        else if protocol == protocol_name::ws || protocol == protocol_name::wss {
+            if protocol == protocol_name::wss {
+                paddr.resolved.wss_addr = WssAddress::new();
+                // alloc_assert (paddr.resolved.wss_addr);
+                paddr.resolved.wss_addr.resolve(&address, false, options.ipv6)?;
+            } 
     // #else
-        else if (protocol == protocol_name::ws) {
+            else if protocol == protocol_name::ws {
     // #endif
-            {
-                paddr->resolved.ws_addr = new (std::nothrow) WsAddress ();
-                alloc_assert (paddr->resolved.ws_addr);
-                rc = paddr->resolved.ws_addr->resolve (address, false,
-                                                       options.ipv6);
-            }
 
-            if (rc != 0) {
-                LIBZMQ_DELETE (paddr);
-                return -1;
-            }
-        }
+                paddr.resolved.ws_addr = WsAddress::new();
+                // alloc_assert (paddr.resolved.ws_addr);
+                paddr.resolved.ws_addr.resolve(&address, false, options.ipv6)?;
+
+
+            }}
     // #endif
 
     // #if defined ZMQ_HAVE_IPC
-        else if (protocol == protocol_name::ipc) {
-            paddr->resolved.ipc_addr = new (std::nothrow) IpcAddress ();
-            alloc_assert (paddr->resolved.ipc_addr);
-            int rc = paddr->resolved.ipc_addr->resolve (address.c_str ());
-            if (rc != 0) {
-                LIBZMQ_DELETE (paddr);
-                return -1;
-            }
+        else if protocol == protocol_name::ipc {
+            paddr.resolved.ipc_addr = IpcAddress::new();
+            // alloc_assert (paddr.resolved.ipc_addr);
+            paddr.resolved.ipc_addr.resolve (&address)?;
+
         }
     // #endif
 
-        if (protocol == protocol_name::udp) {
-            if (options.type != ZMQ_RADIO) {
-                errno = ENOCOMPATPROTO;
-                LIBZMQ_DELETE (paddr);
-                return -1;
+        else if protocol == protocol_name::udp {
+            if options.type_ != ZMQ_RADIO {
+                // errno = ENOCOMPATPROTO;
+                // LIBZMQ_DELETE (paddr);
+                // return -1;
+                bail!("socket type not ZMQ_RADIO");
             }
 
-            paddr->resolved.udp_addr = new (std::nothrow) UdpAddress ();
-            alloc_assert (paddr->resolved.udp_addr);
-            rc = paddr->resolved.udp_addr->resolve (address, false,
-                                                    options.ipv6);
-            if (rc != 0) {
-                LIBZMQ_DELETE (paddr);
-                return -1;
-            }
+            paddr.resolved.udp_addr = UdpAddress::new();
+            // alloc_assert (paddr.resolved.udp_addr);
+            paddr.resolved.udp_addr.resolve(&address, false, options.ipv6)?;
+            // if (rc != 0) {
+            //     LIBZMQ_DELETE (paddr);
+            //     return -1;
+            // }
         }
 
         // TBD - Should we check address for ZMQ_HAVE_NORM???
 
     // #ifdef ZMQ_HAVE_OPENPGM
-        if (protocol == protocol_name::pgm || protocol == protocol_name::epgm) {
-            struct pgm_addrinfo_t *res = null_mut();
-            uint16_t port_number = 0;
-            int rc =
-              pgm_socket_t::init_address (address, &res, &port_number);
-            if (res != null_mut())
-                pgm_freeaddrinfo (res);
-            if (rc != 0 || port_number == 0) {
-                return -1;
-            }
+        else if protocol == protocol_name::pgm || protocol == protocol_name::epgm {
+            let mut res = pgm_addrinfo_t::new();
+            let mut port_number = 0u16;
+            pgm_socket_t::init_address(&address, &mut res, &port_number)?;
+            // if (res != null_mut()) {
+            //     pgm_freeaddrinfo(res);
+            // }
+            // if rc != 0 || port_number == 0 {
+            //     baiL!("failed to create PGM socket");
+            // }
         }
     // #endif
     // #if defined ZMQ_HAVE_TIPC
-        else if (protocol == protocol_name::tipc) {
-            paddr->resolved.tipc_addr = new (std::nothrow) TipcAddress ();
-            alloc_assert (paddr->resolved.tipc_addr);
-            int rc = paddr->resolved.tipc_addr->resolve (address.c_str ());
-            if (rc != 0) {
-                LIBZMQ_DELETE (paddr);
-                return -1;
-            }
-            const sockaddr_tipc *const saddr =
-              reinterpret_cast<const sockaddr_tipc *> (
-                paddr->resolved.tipc_addr->addr ());
+        else if protocol == protocol_name::tipc {
+            paddr.resolved.tipc_addr = TipcAddress::new();
+            alloc_assert (paddr.resolved.tipc_addr);
+            paddr.resolved.tipc_addr.resolve (address.c_str ())?;
+            // if (rc != 0) {
+            //     LIBZMQ_DELETE (paddr);
+            //     return -1;
+            // }
+            // const sockaddr_tipc *const saddr =
+            //   reinterpret_cast<const sockaddr_tipc *> (
+            //     paddr.resolved.tipc_addr->addr ());
             // Cannot connect to random Port Identity
-            if (saddr->addrtype == TIPC_ADDR_ID
-                && paddr->resolved.tipc_addr->is_random ()) {
-                LIBZMQ_DELETE (paddr);
-                errno = EINVAL;
-                return -1;
+            let saddr = paddr.resolved.tipc_addr as sockaddr_tipc;
+            if saddr.addrtype == TIPC_ADDR_ID
+                && paddr.resolved.tipc_addr.is_random () {
+                // LIBZMQ_DELETE (paddr);
+                // errno = EINVAL;
+                // return -1;
+                bail!("resolved TIPC address is random!");
             }
         }
     // #endif
     // #if defined ZMQ_HAVE_VMCI
-        else if (protocol == protocol_name::vmci) {
-            paddr->resolved.vmci_addr =
-              new (std::nothrow) VmciAddress (this->get_ctx ());
-            alloc_assert (paddr->resolved.vmci_addr);
-            int rc = paddr->resolved.vmci_addr->resolve (address.c_str ());
-            if (rc != 0) {
-                LIBZMQ_DELETE (paddr);
-                return -1;
-            }
+        else if protocol == protocol_name::vmci {
+            paddr.resolved.vmci_addr = VmciAddress::new(&self.get_ctx());
+            // alloc_assert (paddr.resolved.vmci_addr);
+            paddr.resolved.vmci_addr.resolve(&address)?;
+            // if (rc != 0) {
+            //     LIBZMQ_DELETE (paddr);
+            //     return -1;
+            // }
         }
     // #endif
 
         //  Create session.
-        session_base_t *session =
-          session_base_t::create (io_thread, true, this, options, paddr);
-        errno_assert (session);
+        let mut session = session_base_t::create (io_thread, true, self, options, paddr);
+        // errno_assert (session);
 
         //  PGM does not support subscription forwarding; ask for all data to be
         //  sent to this pipe. (same for NORM, currently?)
     // #if defined ZMQ_HAVE_OPENPGM && defined ZMQ_HAVE_NORM
-        const bool subscribe_to_all =
+        let subscribe_to_all =
           protocol == protocol_name::pgm || protocol == protocol_name::epgm
           || protocol == protocol_name::norm || protocol == protocol_name::udp;
-    #elif defined ZMQ_HAVE_OPENPGM
-        const bool subscribe_to_all = protocol == protocol_name::pgm
-                                      || protocol == protocol_name::epgm
-                                      || protocol == protocol_name::udp;
-    #elif defined ZMQ_HAVE_NORM
-        const bool subscribe_to_all =
-          protocol == protocol_name::norm || protocol == protocol_name::udp;
-    // #else
-        const bool subscribe_to_all = protocol == protocol_name::udp;
-    // #endif
-        pipe_t *newpipe = null_mut();
+    // #elif defined ZMQ_HAVE_OPENPGM
+    //     const bool subscribe_to_all = protocol == protocol_name::pgm
+    //                                   || protocol == protocol_name::epgm
+    //                                   || protocol == protocol_name::udp;
+    // #elif defined ZMQ_HAVE_NORM
+    //     const bool subscribe_to_all =
+    //       protocol == protocol_name::norm || protocol == protocol_name::udp;
+    // // #else
+    //     const bool subscribe_to_all = protocol == protocol_name::udp;
+    // // #endif
+    //     pipe_t *newpipe = null_mut();
+        let mut newpipe = pipe_t::new();
 
-        if (options.immediate != 1 || subscribe_to_all) {
+        if options.immediate != 1 || subscribe_to_all {
             //  Create a bi-directional pipe.
-            object_t *parents[2] = {this, session};
-            pipe_t *new_pipes[2] = {null_mut(), null_mut()};
+            let mut parents:[&mut ZmqSocketBase;2] = [self, session];
+            let mut new_pipes: [pipe_t; 2] = [pipe_t::default(), pipe_t::default()];
 
-            const bool conflate = get_effective_conflate_option (options);
+            let conflate = get_effective_conflate_option (options);
 
-            int hwms[2] = {conflate ? -1 : options.sndhwm,
-                           conflate ? -1 : options.rcvhwm};
-            bool conflates[2] = {conflate, conflate};
+            let hwms: [i32;2] = [if conflate { -1 } else { options.sndhwm },
+                           if  conflate { -1 }  else { options.rcvhwm }];
+            let conflates: [bool;2] = [conflate, conflate];
             rc = pipepair (parents, new_pipes, hwms, conflates);
             errno_assert (rc == 0);
 
             //  Attach local end of the pipe to the socket object.
-            attach_pipe (new_pipes[0], subscribe_to_all, true);
-            newpipe = new_pipes[0];
+            self.attach_pipe (&mut new_pipes[0], subscribe_to_all, true);
+            newpipe = new_pipes[0].clone();
 
             //  Attach remote end of the pipe to the session object later on.
-            session->attach_pipe (new_pipes[1]);
+            session.attach_pipe (&new_pipes[1]);
         }
 
         //  Save last endpoint URI
-        paddr->to_string (_last_endpoint);
+        paddr.to_string (_last_endpoint);
 
         add_endpoint (make_unconnected_connect_endpoint_pair (endpoint_uri_),
-                      static_cast<own_t *> (session), newpipe);
-        return 0;
+                      session, newpipe);
+        Ok(())
     }
 
 
@@ -1327,7 +1623,18 @@ impl ZmqSocketBase {
     // void add_endpoint (const EndpointUriPair &endpoint_pair_,
     //                    own_t *endpoint_,
     //                    pipe_t *pipe_);
+    pub fn  add_endpoint (
+      &mut self, endpoint_pair_: &EndpointUriPair, endpoint_: &mut own_t, pipe_: &mut pipe_t)
+    {
+        //  Activate the session. Make it a child of this socket.
+        self.launch_child (endpoint_);
+        self._endpoints.ZMQ_MAP_INSERT_OR_EMPLACE(endpoint_pair_.identifier (),
+                                              endpoint_pipe_t::new(endpoint_, pipe_));
 
+        if pipe_ != null_mut() {
+            pipe_.set_endpoint_pair(endpoint_pair_);
+        }
+    }
 
 
 
@@ -1720,269 +2027,6 @@ impl routing_socket_base_t {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-void add_endpoint (
-  const EndpointUriPair &endpoint_pair_, own_t *endpoint_, pipe_: &mut pipe_t)
-{
-    //  Activate the session. Make it a child of this socket.
-    launch_child (endpoint_);
-    _endpoints.ZMQ_MAP_INSERT_OR_EMPLACE (endpoint_pair_.identifier (),
-                                          endpoint_pipe_t (endpoint_, pipe_));
-
-    if (pipe_ != null_mut())
-        pipe_->set_endpoint_pair (endpoint_pair_);
-}
-
-
-
-int send (msg: &mut ZmqMessage flags: i32)
-{
-    scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
-
-    //  Check whether the context hasn't been shut down yet.
-    if (unlikely (_ctx_terminated)) {
-        errno = ETERM;
-        return -1;
-    }
-
-    //  Check whether message passed to the function is valid.
-    if (unlikely (!msg || !msg.check ())) {
-        errno = EFAULT;
-        return -1;
-    }
-
-    //  Process pending commands, if any.
-    int rc = process_commands (0, true);
-    if (unlikely (rc != 0)) {
-        return -1;
-    }
-
-    //  Clear any user-visible flags that are set on the message.
-    msg.reset_flags (ZmqMessage::more);
-
-    //  At this point we impose the flags on the message.
-    if (flags & ZMQ_SNDMORE)
-        msg.set_flags (ZmqMessage::more);
-
-    msg.reset_metadata ();
-
-    //  Try to send the message using method in each socket class
-    rc = xsend (msg);
-    if (rc == 0) {
-        return 0;
-    }
-    //  Special case for ZMQ_PUSH: -2 means pipe is dead while a
-    //  multi-part send is in progress and can't be recovered, so drop
-    //  silently when in blocking mode to keep backward compatibility.
-    if (unlikely (rc == -2)) {
-        if (!((flags & ZMQ_DONTWAIT) || options.sndtimeo == 0)) {
-            rc = msg.close ();
-            errno_assert (rc == 0);
-            rc = msg.init ();
-            errno_assert (rc == 0);
-            return 0;
-        }
-    }
-    if (unlikely (errno != EAGAIN)) {
-        return -1;
-    }
-
-    //  In case of non-blocking send we'll simply propagate
-    //  the error - including EAGAIN - up the stack.
-    if ((flags & ZMQ_DONTWAIT) || options.sndtimeo == 0) {
-        return -1;
-    }
-
-    //  Compute the time when the timeout should occur.
-    //  If the timeout is infinite, don't care.
-    int timeout = options.sndtimeo;
-    const u64 end = timeout < 0 ? 0 : (_clock.now_ms () + timeout);
-
-    //  Oops, we couldn't send the message. Wait for the next
-    //  command, process it and try to send the message again.
-    //  If timeout is reached in the meantime, return EAGAIN.
-    while (true) {
-        if (unlikely (process_commands (timeout, false) != 0)) {
-            return -1;
-        }
-        rc = xsend (msg);
-        if (rc == 0)
-            break;
-        if (unlikely (errno != EAGAIN)) {
-            return -1;
-        }
-        if (timeout > 0) {
-            timeout = static_cast<int> (end - _clock.now_ms ());
-            if (timeout <= 0) {
-                errno = EAGAIN;
-                return -1;
-            }
-        }
-    }
-
-    return 0;
-}
-
-int recv (msg: &mut ZmqMessage flags: i32)
-{
-    scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
-
-    //  Check whether the context hasn't been shut down yet.
-    if (unlikely (_ctx_terminated)) {
-        errno = ETERM;
-        return -1;
-    }
-
-    //  Check whether message passed to the function is valid.
-    if (unlikely (!msg || !msg.check ())) {
-        errno = EFAULT;
-        return -1;
-    }
-
-    //  Once every inbound_poll_rate messages check for signals and process
-    //  incoming commands. This happens only if we are not polling altogether
-    //  because there are messages available all the time. If poll occurs,
-    //  ticks is set to zero and thus we avoid this code.
-    //
-    //  Note that 'recv' uses different command throttling algorithm (the one
-    //  described above) from the one used by 'send'. This is because counting
-    //  ticks is more efficient than doing RDTSC all the time.
-    if (++_ticks == inbound_poll_rate) {
-        if (unlikely (process_commands (0, false) != 0)) {
-            return -1;
-        }
-        _ticks = 0;
-    }
-
-    //  Get the message.
-    int rc = xrecv (msg);
-    if (unlikely (rc != 0 && errno != EAGAIN)) {
-        return -1;
-    }
-
-    //  If we have the message, return immediately.
-    if (rc == 0) {
-        extract_flags (msg);
-        return 0;
-    }
-
-    //  If the message cannot be fetched immediately, there are two scenarios.
-    //  For non-blocking recv, commands are processed in case there's an
-    //  activate_reader command already waiting in a command pipe.
-    //  If it's not, return EAGAIN.
-    if ((flags & ZMQ_DONTWAIT) || options.rcvtimeo == 0) {
-        if (unlikely (process_commands (0, false) != 0)) {
-            return -1;
-        }
-        _ticks = 0;
-
-        rc = xrecv (msg);
-        if (rc < 0) {
-            return rc;
-        }
-        extract_flags (msg);
-
-        return 0;
-    }
-
-    //  Compute the time when the timeout should occur.
-    //  If the timeout is infinite, don't care.
-    int timeout = options.rcvtimeo;
-    const u64 end = timeout < 0 ? 0 : (_clock.now_ms () + timeout);
-
-    //  In blocking scenario, commands are processed over and over again until
-    //  we are able to fetch a message.
-    bool block = (_ticks != 0);
-    while (true) {
-        if (unlikely (process_commands (block ? timeout : 0, false) != 0)) {
-            return -1;
-        }
-        rc = xrecv (msg);
-        if (rc == 0) {
-            _ticks = 0;
-            break;
-        }
-        if (unlikely (errno != EAGAIN)) {
-            return -1;
-        }
-        block = true;
-        if (timeout > 0) {
-            timeout = static_cast<int> (end - _clock.now_ms ());
-            if (timeout <= 0) {
-                errno = EAGAIN;
-                return -1;
-            }
-        }
-    }
-
-    extract_flags (msg);
-    return 0;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void process_destroy ()
-{
-    _destroyed = true;
-}
-
-int xsetsockopt (int, const void *, size_t)
-{
-    errno = EINVAL;
-    return -1;
-}
-
-int xgetsockopt (int, void *, size_t *)
-{
-    errno = EINVAL;
-    return -1;
-}
-
-bool xhas_out ()
-{
-    return false;
-}
-
-int xsend (ZmqMessage *)
-{
-    errno = ENOTSUP;
-    return -1;
-}
-
-bool xhas_in ()
-{
-    return false;
-}
-
 int xjoin (group_: &str)
 {
     LIBZMQ_UNUSED (group_);
@@ -1997,11 +2041,7 @@ int xleave (group_: &str)
     return -1;
 }
 
-int xrecv (ZmqMessage *)
-{
-    errno = ENOTSUP;
-    return -1;
-}
+
 
 void xread_activated (pipe_t *)
 {
@@ -2028,7 +2068,7 @@ void in_event ()
 
         //  If the socket is thread safe we need to unsignal the reaper signaler
         if (_thread_safe)
-            _reaper_signaler->recv ();
+            _reaper_signaler.recv ();
 
         process_commands (0, false);
     }
@@ -2050,7 +2090,7 @@ void check_destroy ()
     //  If the object was already marked as destroyed, finish the deallocation.
     if (_destroyed) {
         //  Remove the socket from the reaper's poller.
-        _poller->rm_fd (_handle);
+        _poller.rm_fd (_handle);
 
         //  Remove the socket from the context.
         destroy_socket (this);
@@ -2076,7 +2116,7 @@ void write_activated (pipe_: &mut pipe_t)
 void hiccuped (pipe_: &mut pipe_t)
 {
     if (options.immediate == 1)
-        pipe_->terminate (false);
+        pipe_.terminate (false);
     else
         // Notify derived sockets of the hiccup
         xhiccuped (pipe_);
@@ -2095,14 +2135,14 @@ void pipe_terminated (pipe_: &mut pipe_t)
     _pipes.erase (pipe_);
 
     // Remove the pipe from _endpoints (set it to NULL).
-    const std::string &identifier = pipe_->get_endpoint_pair ().identifier ();
+    const std::string &identifier = pipe_.get_endpoint_pair ().identifier ();
     if (!identifier.empty ()) {
         std::pair<endpoints_t::iterator, endpoints_t::iterator> range;
         range = _endpoints.equal_range (identifier);
 
         for (endpoints_t::iterator it = range.first; it != range.second; ++it) {
-            if (it->second.second == pipe_) {
-                it->second.second = null_mut();
+            if (it.second.second == pipe_) {
+                it.second.second = null_mut();
                 break;
             }
         }
@@ -2440,12 +2480,12 @@ void routing_socket_base_t::xwrite_activated (pipe_: &mut pipe_t)
     const out_pipes_t::iterator end = _out_pipes.end ();
     out_pipes_t::iterator it;
     for (it = _out_pipes.begin (); it != end; ++it)
-        if (it->second.pipe == pipe_)
+        if (it.second.pipe == pipe_)
             break;
 
     zmq_assert (it != end);
-    zmq_assert (!it->second.active);
-    it->second.active = true;
+    zmq_assert (!it.second.active);
+    it.second.active = true;
 }
 
 std::string routing_socket_base_t::extract_connect_routing_id ()
@@ -2481,7 +2521,7 @@ routing_socket_base_t::lookup_out_pipe (const Blob &routing_id_)
 {
     // TODO we could probably avoid constructor a temporary Blob to call this function
     out_pipes_t::iterator it = _out_pipes.find (routing_id_);
-    return it == _out_pipes.end () ? null_mut() : &it->second;
+    return it == _out_pipes.end () ? null_mut() : &it.second;
 }
 
 const routing_socket_base_t::out_pipe_t *
@@ -2489,12 +2529,12 @@ routing_socket_base_t::lookup_out_pipe (const Blob &routing_id_) const
 {
     // TODO we could probably avoid constructor a temporary Blob to call this function
     const out_pipes_t::const_iterator it = _out_pipes.find (routing_id_);
-    return it == _out_pipes.end () ? null_mut() : &it->second;
+    return it == _out_pipes.end () ? null_mut() : &it.second;
 }
 
 void routing_socket_base_t::erase_out_pipe (const pipe_: &mut pipe_t)
 {
-    const size_t erased = _out_pipes.erase (pipe_->get_routing_id ());
+    const size_t erased = _out_pipes.erase (pipe_.get_routing_id ());
     zmq_assert (erased);
 }
 
@@ -2504,7 +2544,7 @@ routing_socket_base_t::try_erase_out_pipe (const Blob &routing_id_)
     const out_pipes_t::iterator it = _out_pipes.find (routing_id_);
     out_pipe_t res = {null_mut(), false};
     if (it != _out_pipes.end ()) {
-        res = it->second;
+        res = it.second;
         _out_pipes.erase (it);
     }
     return res;

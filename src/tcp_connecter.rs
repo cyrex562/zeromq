@@ -120,7 +120,7 @@ pub struct session_base_t *session_,
       io_thread_, session_, options_, addr_, delayed_start_),
     _connect_timer_started (false)
 {
-    zmq_assert (_addr->protocol == protocol_name::tcp);
+    zmq_assert (_addr.protocol == protocol_name::tcp);
 }
 
 tcp_connecter_t::~tcp_connecter_t ()
@@ -197,7 +197,7 @@ void tcp_connecter_t::start_connecting ()
     else if (rc == -1 && errno == EINPROGRESS) {
         _handle = add_fd (_s);
         set_pollout (_handle);
-        _socket->event_connect_delayed (
+        _socket.event_connect_delayed (
           make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
 
         //  add userspace connect timeout
@@ -225,31 +225,31 @@ int tcp_connecter_t::open ()
     zmq_assert (_s == retired_fd);
 
     //  Resolve the address
-    if (_addr->resolved.tcp_addr != null_mut()) {
-        LIBZMQ_DELETE (_addr->resolved.tcp_addr);
+    if (_addr.resolved.tcp_addr != null_mut()) {
+        LIBZMQ_DELETE (_addr.resolved.tcp_addr);
     }
 
-    _addr->resolved.tcp_addr = new (std::nothrow) TcpAddress ();
-    alloc_assert (_addr->resolved.tcp_addr);
-    _s = tcp_open_socket (_addr->address, options, false, true,
-                          _addr->resolved.tcp_addr);
+    _addr.resolved.tcp_addr = new (std::nothrow) TcpAddress ();
+    alloc_assert (_addr.resolved.tcp_addr);
+    _s = tcp_open_socket (_addr.address, options, false, true,
+                          _addr.resolved.tcp_addr);
     if (_s == retired_fd) {
         //  TODO we should emit some event in this case!
 
-        LIBZMQ_DELETE (_addr->resolved.tcp_addr);
+        LIBZMQ_DELETE (_addr.resolved.tcp_addr);
         return -1;
     }
-    zmq_assert (_addr->resolved.tcp_addr != null_mut());
+    zmq_assert (_addr.resolved.tcp_addr != null_mut());
 
     // Set the socket to non-blocking mode so that we get async connect().
     unblock_socket (_s);
 
-    const TcpAddress *const tcp_addr = _addr->resolved.tcp_addr;
+    const TcpAddress *const tcp_addr = _addr.resolved.tcp_addr;
 
     rc: i32;
 
     // Set a source address for conversations
-    if (tcp_addr->has_src_addr ()) {
+    if (tcp_addr.has_src_addr ()) {
         //  Allow reusing of the address, to connect to different servers
         //  using the same source port on the client.
         int flag = 1;
@@ -267,10 +267,10 @@ int tcp_connecter_t::open ()
 // #endif
 
 // #if defined ZMQ_HAVE_VXWORKS
-        rc = ::bind (_s, (sockaddr *) tcp_addr->src_addr (),
-                     tcp_addr->src_addrlen ());
+        rc = ::bind (_s, (sockaddr *) tcp_addr.src_addr (),
+                     tcp_addr.src_addrlen ());
 // #else
-        rc = ::bind (_s, tcp_addr->src_addr (), tcp_addr->src_addrlen ());
+        rc = ::bind (_s, tcp_addr.src_addr (), tcp_addr.src_addrlen ());
 // #endif
         if (rc == -1)
             return -1;
@@ -278,9 +278,9 @@ int tcp_connecter_t::open ()
 
     //  Connect to the remote peer.
 // #if defined ZMQ_HAVE_VXWORKS
-    rc = ::connect (_s, (sockaddr *) tcp_addr->addr (), tcp_addr->addrlen ());
+    rc = ::connect (_s, (sockaddr *) tcp_addr.addr (), tcp_addr.addrlen ());
 // #else
-    rc = ::connect (_s, tcp_addr->addr (), tcp_addr->addrlen ());
+    rc = ::connect (_s, tcp_addr.addr (), tcp_addr.addrlen ());
 // #endif
     //  Connect was successful immediately.
     if (rc == 0) {

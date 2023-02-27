@@ -88,8 +88,8 @@ mailbox_safe_t::~mailbox_safe_t ()
 
     // Work around problem that other threads might still be in our
     // send() method, by waiting on the mutex before disappearing.
-    _sync->lock ();
-    _sync->unlock ();
+    _sync.lock ();
+    _sync.unlock ();
 }
 
 void mailbox_safe_t::add_signaler (signaler_t *signaler_)
@@ -115,7 +115,7 @@ void mailbox_safe_t::clear_signalers ()
 
 void mailbox_safe_t::send (const ZmqCommand &cmd_)
 {
-    _sync->lock ();
+    _sync.lock ();
     _cpipe.write (cmd_, false);
     const bool ok = _cpipe.flush ();
 
@@ -129,7 +129,7 @@ void mailbox_safe_t::send (const ZmqCommand &cmd_)
         }
     }
 
-    _sync->unlock ();
+    _sync.unlock ();
 }
 
 int mailbox_safe_t::recv (ZmqCommand *cmd_, timeout_: i32)
@@ -141,8 +141,8 @@ int mailbox_safe_t::recv (ZmqCommand *cmd_, timeout_: i32)
     //  If the timeout is zero, it will be quicker to release the lock, giving other a chance to send a command
     //  and immediately relock it.
     if (timeout_ == 0) {
-        _sync->unlock ();
-        _sync->lock ();
+        _sync.unlock ();
+        _sync.lock ();
     } else {
         //  Wait for signal from the command sender.
         let rc: i32 = _cond_var.wait (_sync, timeout_);

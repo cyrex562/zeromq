@@ -86,9 +86,9 @@ template <typename T> class encoder_base_t : public i_encoder
             //  in the buffer.
             if (!_to_write) {
                 if (_new_msg_flag) {
-                    int rc = _in_progress->close ();
+                    int rc = _in_progress.close ();
                     errno_assert (rc == 0);
-                    rc = _in_progress->init ();
+                    rc = _in_progress.init ();
                     errno_assert (rc == 0);
                     _in_progress = null_mut();
                     break;

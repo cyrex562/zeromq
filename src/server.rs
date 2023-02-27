@@ -104,7 +104,7 @@ void server_t::xattach_pipe (pipe_t *pipe_,
     if (!routing_id)
         routing_id = _next_routing_id++; //  Never use Routing ID zero
 
-    pipe_->set_server_socket_routing_id (routing_id);
+    pipe_.set_server_socket_routing_id (routing_id);
     //  Add the record into output pipes lookup table
     outpipe_t outpipe = {pipe_, true};
     const bool ok =
@@ -117,7 +117,7 @@ void server_t::xattach_pipe (pipe_t *pipe_,
 void server_t::xpipe_terminated (pipe_: &mut pipe_t)
 {
     const out_pipes_t::iterator it =
-      _out_pipes.find (pipe_->get_server_socket_routing_id ());
+      _out_pipes.find (pipe_.get_server_socket_routing_id ());
     zmq_assert (it != _out_pipes.end ());
     _out_pipes.erase (it);
     _fq.pipe_terminated (pipe_);
@@ -133,12 +133,12 @@ void server_t::xwrite_activated (pipe_: &mut pipe_t)
     const out_pipes_t::iterator end = _out_pipes.end ();
     out_pipes_t::iterator it;
     for (it = _out_pipes.begin (); it != end; ++it)
-        if (it->second.pipe == pipe_)
+        if (it.second.pipe == pipe_)
             break;
 
     zmq_assert (it != _out_pipes.end ());
-    zmq_assert (!it->second.active);
-    it->second.active = true;
+    zmq_assert (!it.second.active);
+    it.second.active = true;
 }
 
 int server_t::xsend (msg: &mut ZmqMessage)
@@ -153,8 +153,8 @@ int server_t::xsend (msg: &mut ZmqMessage)
     out_pipes_t::iterator it = _out_pipes.find (routing_id);
 
     if (it != _out_pipes.end ()) {
-        if (!it->second.pipe.check_write ()) {
-            it->second.active = false;
+        if (!it.second.pipe.check_write ()) {
+            it.second.active = false;
             errno = EAGAIN;
             return -1;
         }
@@ -167,13 +167,13 @@ int server_t::xsend (msg: &mut ZmqMessage)
     int rc = msg.reset_routing_id ();
     errno_assert (rc == 0);
 
-    const bool ok = it->second.pipe.write (msg);
+    const bool ok = it.second.pipe.write (msg);
     if (unlikely (!ok)) {
         // Message failed to send - we must close it ourselves.
         rc = msg.close ();
         errno_assert (rc == 0);
     } else
-        it->second.pipe.flush ();
+        it.second.pipe.flush ();
 
     //  Detach the message from the data buffer.
     rc = msg.init ();

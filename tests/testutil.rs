@@ -333,11 +333,11 @@ int test_inet_pton (af_: i32, src_: *const c_char, dst_: *mut c_void)
     if (af_ == AF_INET) {
         struct in_addr *ip4addr = (struct in_addr *) dst_;
 
-        ip4addr->s_addr = inet_addr (src_);
+        ip4addr.s_addr = inet_addr (src_);
 
         //  INADDR_NONE is -1 which is also a valid representation for IP
         //  255.255.255.255
-        if (ip4addr->s_addr == INADDR_NONE
+        if (ip4addr.s_addr == INADDR_NONE
             && strcmp (src_, "255.255.255.255") != 0) {
             return 0;
         }
@@ -414,8 +414,8 @@ fd_t connect_socket (endpoint_: *const c_char, const af_: i32, const protocol_: 
         TEST_ASSERT_SUCCESS_RAW_ZERO_ERRNO (
           getaddrinfo (address, port, &hint, &in));
         TEST_ASSERT_NOT_NULL (in);
-        memcpy (&addr, in->ai_addr, in->ai_addrlen);
-        addr_len = (socklen_t) in->ai_addrlen;
+        memcpy (&addr, in.ai_addr, in.ai_addrlen);
+        addr_len = (socklen_t) in.ai_addrlen;
         freeaddrinfo (in);
     } else {
 // #if defined(ZMQ_HAVE_IPC)
@@ -473,8 +473,8 @@ fd_t bind_socket_resolve_port (address_: *const c_char,
         TEST_ASSERT_SUCCESS_RAW_ZERO_ERRNO (
           getaddrinfo (address_, port_, &hint, &in));
         TEST_ASSERT_NOT_NULL (in);
-        memcpy (&addr, in->ai_addr, in->ai_addrlen);
-        addr_len = (socklen_t) in->ai_addrlen;
+        memcpy (&addr, in.ai_addr, in.ai_addrlen);
+        addr_len = (socklen_t) in.ai_addrlen;
         freeaddrinfo (in);
     } else {
 // #if defined(ZMQ_HAVE_IPC)
@@ -577,15 +577,15 @@ int fuzzer_corpus_encode (dirname: *const c_char,
     *num_cases = 0;
 
     while ((ent = readdir (dir)) != null_mut()) {
-        if (!strcmp (ent->d_name, ".") || !strcmp (ent->d_name, ".."))
+        if (!strcmp (ent.d_name, ".") || !strcmp (ent.d_name, ".."))
             continue;
 
         char *filename =
-          (char *) malloc (strlen (dirname) + strlen (ent->d_name) + 2);
+          (char *) malloc (strlen (dirname) + strlen (ent.d_name) + 2);
         TEST_ASSERT_NOT_NULL (filename);
         strcpy (filename, dirname);
         strcat (filename, "/");
-        strcat (filename, ent->d_name);
+        strcat (filename, ent.d_name);
         FILE *f = fopen (filename, "r");
         free (filename);
         if (!f)

@@ -155,7 +155,7 @@ unsigned char *shared_message_memory_allocator::allocate ()
         // if refcnt drops to 0, there are no message using the buffer
         // because either all messages have been closed or only vsm-messages
         // were created
-        if (c->sub (1)) {
+        if (c.sub (1)) {
             // buffer is still in use as message data. "Release" it and create a new one
             // release pointer because we are going to create a new buffer
             release ();
@@ -177,7 +177,7 @@ unsigned char *shared_message_memory_allocator::allocate ()
         // release reference count to couple lifetime to messages
         AtomicCounter *c =
           reinterpret_cast<AtomicCounter *> (_buf);
-        c->set (1);
+        c.set (1);
     }
 
     _buf_size = _max_size;
@@ -189,7 +189,7 @@ unsigned char *shared_message_memory_allocator::allocate ()
 void shared_message_memory_allocator::deallocate ()
 {
     AtomicCounter *c = reinterpret_cast<AtomicCounter *> (_buf);
-    if (_buf && !c->sub (1)) {
+    if (_buf && !c.sub (1)) {
         c->~AtomicCounter ();
         std::free (_buf);
     }
@@ -221,7 +221,7 @@ void shared_message_memory_allocator::call_dec_ref (void *, hint: *mut c_void)
     unsigned char *buf = static_cast<unsigned char *> (hint);
     AtomicCounter *c = reinterpret_cast<AtomicCounter *> (buf);
 
-    if (!c->sub (1)) {
+    if (!c.sub (1)) {
         c->~AtomicCounter ();
         std::free (buf);
         buf = null_mut();

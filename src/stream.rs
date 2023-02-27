@@ -104,7 +104,7 @@ int stream_t::xsend (msg: &mut ZmqMessage)
 
             if (out_pipe) {
                 _current_out = out_pipe.pipe;
-                if (!_current_out->check_write ()) {
+                if (!_current_out.check_write ()) {
                     out_pipe.active = false;
                     _current_out = null_mut();
                     errno = EAGAIN;
@@ -138,7 +138,7 @@ int stream_t::xsend (msg: &mut ZmqMessage)
         // by sending zero length message.
         // Pending messages in the pipe will be dropped (on receiving term- ack)
         if (msg.size () == 0) {
-            _current_out->terminate (false);
+            _current_out.terminate (false);
             int rc = msg.close ();
             errno_assert (rc == 0);
             rc = msg.init ();
@@ -146,9 +146,9 @@ int stream_t::xsend (msg: &mut ZmqMessage)
             _current_out = null_mut();
             return 0;
         }
-        const bool ok = _current_out->write (msg);
+        const bool ok = _current_out.write (msg);
         if (likely (ok))
-            _current_out->flush ();
+            _current_out.flush ();
         _current_out = null_mut();
     } else {
         let rc: i32 = msg.close ();
@@ -286,7 +286,7 @@ void stream_t::identify_peer (pipe_t *pipe_, locally_initiated_: bool)
         options.routing_id_size =
           static_cast<unsigned char> (routing_id.size ());
     }
-    pipe_->set_router_socket_routing_id (routing_id);
+    pipe_.set_router_socket_routing_id (routing_id);
     add_out_pipe (ZMQ_MOVE (routing_id), pipe_);
 }
 pub struct stream_t ZMQ_FINAL : public routing_socket_base_t

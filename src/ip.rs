@@ -341,8 +341,8 @@ bool initialize_network ()
     if (ok != TRUE) {
         //  Invalid parameters don't set pgm_error_t
         zmq_assert (pgm_error != null_mut());
-        if (pgm_error->domain == PGM_ERROR_DOMAIN_TIME
-            && (pgm_error->code == PGM_ERROR_FAILED)) {
+        if (pgm_error.domain == PGM_ERROR_DOMAIN_TIME
+            && (pgm_error.code == PGM_ERROR_FAILED)) {
             //  Failed to access RTC or HPET device.
             pgm_error_free (pgm_error);
             errno = EINVAL;

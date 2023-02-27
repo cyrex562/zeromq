@@ -84,14 +84,14 @@ void *zmq_threadstart (zmq_thread_fn *func_, arg_: &mut [u8])
 {
     thread_t *thread = new (std::nothrow) thread_t;
     alloc_assert (thread);
-    thread->start (func_, arg_, "ZMQapp");
+    thread.start (func_, arg_, "ZMQapp");
     return thread;
 }
 
 void zmq_threadclose (thread_: *mut c_void)
 {
     thread_t *p_thread = static_cast<thread_t *> (thread_);
-    p_thread->stop ();
+    p_thread.stop ();
     LIBZMQ_DELETE (p_thread);
 }
 

@@ -122,10 +122,10 @@ pollset_t::handle_t pollset_t::add_fd (fd_t fd_,
     poll_entry_t *pe = new (std::nothrow) poll_entry_t;
     alloc_assert (pe);
 
-    pe->fd = fd_;
-    pe->flag_pollin = false;
-    pe->flag_pollout = false;
-    pe->events = events_;
+    pe.fd = fd_;
+    pe.flag_pollin = false;
+    pe.flag_pollout = false;
+    pe.events = events_;
 
     struct poll_ctl pc;
     pc.fd = fd_;
@@ -150,14 +150,14 @@ void pollset_t::rm_fd (handle_t handle_)
     poll_entry_t *pe = (poll_entry_t *) handle_;
 
     struct poll_ctl pc;
-    pc.fd = pe->fd;
+    pc.fd = pe.fd;
     pc.cmd = PS_DELETE;
     pc.events = 0;
     pollset_ctl (pollset_fd, &pc, 1);
 
-    fd_table[pe->fd] = null_mut();
+    fd_table[pe.fd] = null_mut();
 
-    pe->fd = retired_fd;
+    pe.fd = retired_fd;
     retired.push_back (pe);
 
     //  Decrease the load metric of the thread.
@@ -167,81 +167,81 @@ void pollset_t::rm_fd (handle_t handle_)
 void pollset_t::set_pollin (handle_t handle_)
 {
     poll_entry_t *pe = (poll_entry_t *) handle_;
-    if (likely (!pe->flag_pollin)) {
+    if (likely (!pe.flag_pollin)) {
         struct poll_ctl pc;
-        pc.fd = pe->fd;
+        pc.fd = pe.fd;
         pc.cmd = PS_MOD;
         pc.events = POLLIN;
 
         let rc: i32 = pollset_ctl (pollset_fd, &pc, 1);
         errno_assert (rc != -1);
 
-        pe->flag_pollin = true;
+        pe.flag_pollin = true;
     }
 }
 
 void pollset_t::reset_pollin (handle_t handle_)
 {
     poll_entry_t *pe = (poll_entry_t *) handle_;
-    if (unlikely (!pe->flag_pollin)) {
+    if (unlikely (!pe.flag_pollin)) {
         return;
     }
 
     struct poll_ctl pc;
-    pc.fd = pe->fd;
+    pc.fd = pe.fd;
     pc.events = 0;
 
     pc.cmd = PS_DELETE;
     int rc = pollset_ctl (pollset_fd, &pc, 1);
 
-    if (pe->flag_pollout) {
+    if (pe.flag_pollout) {
         pc.events = POLLOUT;
         pc.cmd = PS_MOD;
         rc = pollset_ctl (pollset_fd, &pc, 1);
         errno_assert (rc != -1);
     }
 
-    pe->flag_pollin = false;
+    pe.flag_pollin = false;
 }
 
 void pollset_t::set_pollout (handle_t handle_)
 {
     poll_entry_t *pe = (poll_entry_t *) handle_;
-    if (likely (!pe->flag_pollout)) {
+    if (likely (!pe.flag_pollout)) {
         struct poll_ctl pc;
-        pc.fd = pe->fd;
+        pc.fd = pe.fd;
         pc.cmd = PS_MOD;
         pc.events = POLLOUT;
 
         let rc: i32 = pollset_ctl (pollset_fd, &pc, 1);
         errno_assert (rc != -1);
 
-        pe->flag_pollout = true;
+        pe.flag_pollout = true;
     }
 }
 
 void pollset_t::reset_pollout (handle_t handle_)
 {
     poll_entry_t *pe = (poll_entry_t *) handle_;
-    if (unlikely (!pe->flag_pollout)) {
+    if (unlikely (!pe.flag_pollout)) {
         return;
     }
 
     struct poll_ctl pc;
-    pc.fd = pe->fd;
+    pc.fd = pe.fd;
     pc.events = 0;
 
     pc.cmd = PS_DELETE;
     int rc = pollset_ctl (pollset_fd, &pc, 1);
     errno_assert (rc != -1);
 
-    if (pe->flag_pollin) {
+    if (pe.flag_pollin) {
         pc.cmd = PS_MOD;
         pc.events = POLLIN;
         rc = pollset_ctl (pollset_fd, &pc, 1);
         errno_assert (rc != -1);
     }
-    pe->flag_pollout = false;
+    pe.flag_pollout = false;
 }
 
 void pollset_t::start ()
@@ -280,18 +280,18 @@ void pollset_t::loop ()
             if (!pe)
                 continue;
 
-            if (pe->fd == retired_fd)
+            if (pe.fd == retired_fd)
                 continue;
             if (polldata_array[i].revents & (POLLERR | POLLHUP))
-                pe->events->in_event ();
-            if (pe->fd == retired_fd)
+                pe.events.in_event ();
+            if (pe.fd == retired_fd)
                 continue;
             if (polldata_array[i].revents & POLLOUT)
-                pe->events->out_event ();
-            if (pe->fd == retired_fd)
+                pe.events.out_event ();
+            if (pe.fd == retired_fd)
                 continue;
             if (polldata_array[i].revents & POLLIN)
-                pe->events->in_event ();
+                pe.events.in_event ();
         }
 
         //  Destroy retired event sources.

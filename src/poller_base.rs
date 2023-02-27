@@ -134,7 +134,7 @@ void poller_base_t::cancel_timer (i_poll_events *sink_, id_: i32)
     //  Complexity of this operation is O(n). We assume it is rarely used.
     for (timers_t::iterator it = _timers.begin (), end = _timers.end ();
          it != end; ++it)
-        if (it->second.sink == sink_ && it->second.id == id_) {
+        if (it.second.sink == sink_ && it.second.id == id_) {
             _timers.erase (it);
             return;
         }
@@ -169,18 +169,18 @@ u64 poller_base_t::execute_timers ()
         //  If we have to wait to execute the item, same will be true for
         //  all the following items because multimap is sorted. Thus we can
         //  stop checking the subsequent timers.
-        if (it->first > current) {
-            res = it->first - current;
+        if (it.first > current) {
+            res = it.first - current;
             break;
         }
 
         //  Save and remove the timer because timer_event() call might delete
         //  exactly this timer and then the iterator will be invalid.
-        timer_temp = it->second;
+        timer_temp = it.second;
         _timers.erase (it);
 
         //  Trigger the timer.
-        timer_temp.sink->timer_event (timer_temp.id);
+        timer_temp.sink.timer_event (timer_temp.id);
 
     } while (!_timers.empty ());
 

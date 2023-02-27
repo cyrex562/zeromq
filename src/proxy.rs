@@ -107,7 +107,7 @@ capture (class capture_: *mut ZmqSocketBase, msg: &mut ZmqMessage int more_ = 0)
         rc = ctrl.copy (*msg);
         if (unlikely (rc < 0))
             return -1;
-        rc = capture_->send (&ctrl, more_ ? ZMQ_SNDMORE : 0);
+        rc = capture_.send (&ctrl, more_ ? ZMQ_SNDMORE : 0);
         if (unlikely (rc < 0))
             return -1;
     }
@@ -129,7 +129,7 @@ pub struct capture_: *mut ZmqSocketBase,
 
         // Forward all the parts of one message
         while (true) {
-            int rc = from_->recv (msg, ZMQ_DONTWAIT);
+            int rc = from_.recv (msg, ZMQ_DONTWAIT);
             if (rc < 0) {
                 if (likely (errno == EAGAIN && i > 0))
                     return 0; // End of burst
@@ -140,7 +140,7 @@ pub struct capture_: *mut ZmqSocketBase,
             complete_msg_size += msg.size ();
 
             moresz = sizeof more;
-            rc = from_->getsockopt (ZMQ_RCVMORE, &more, &moresz);
+            rc = from_.getsockopt (ZMQ_RCVMORE, &more, &moresz);
             if (unlikely (rc < 0))
                 return -1;
 
@@ -149,7 +149,7 @@ pub struct capture_: *mut ZmqSocketBase,
             if (unlikely (rc < 0))
                 return -1;
 
-            rc = to_->send (msg, more ? ZMQ_SNDMORE : 0);
+            rc = to_.send (msg, more ? ZMQ_SNDMORE : 0);
             if (unlikely (rc < 0))
                 return -1;
 
@@ -158,10 +158,10 @@ pub struct capture_: *mut ZmqSocketBase,
         }
 
         // A multipart message counts as 1 packet:
-        from_stats_->msg_in++;
-        from_stats_->bytes_in += complete_msg_size;
-        to_stats_->msg_out++;
-        to_stats_->bytes_out += complete_msg_size;
+        from_stats_.msg_in++;
+        from_stats_.bytes_in += complete_msg_size;
+        to_stats_.msg_out++;
+        to_stats_.bytes_out += complete_msg_size;
     }
 
     return 0;
@@ -183,7 +183,7 @@ static int loop_and_send_multipart_stat (control_: *mut ZmqSocketBase,
     //  is not full, which means failures are due to interrupts (on Windows pipes
     //  are TCP sockets), so keep retrying
     do {
-        rc = control_->send (&msg, more_ ? ZMQ_SNDMORE : 0);
+        rc = control_.send (&msg, more_ ? ZMQ_SNDMORE : 0);
     } while (!first_ && rc != 0 && errno == EAGAIN);
 
     return rc;
@@ -194,26 +194,26 @@ static int reply_stats (control_: *mut ZmqSocketBase,
                         const zmq_socket_stats_t *backend_stats_)
 {
     // first part: frontend stats - the first send might fail due to HWM
-    if (loop_and_send_multipart_stat (control_, frontend_stats_->msg_in, true,
+    if (loop_and_send_multipart_stat (control_, frontend_stats_.msg_in, true,
                                       true)
         != 0)
         return -1;
 
-    loop_and_send_multipart_stat (control_, frontend_stats_->bytes_in, false,
+    loop_and_send_multipart_stat (control_, frontend_stats_.bytes_in, false,
                                   true);
-    loop_and_send_multipart_stat (control_, frontend_stats_->msg_out, false,
+    loop_and_send_multipart_stat (control_, frontend_stats_.msg_out, false,
                                   true);
-    loop_and_send_multipart_stat (control_, frontend_stats_->bytes_out, false,
+    loop_and_send_multipart_stat (control_, frontend_stats_.bytes_out, false,
                                   true);
 
     // second part: backend stats
-    loop_and_send_multipart_stat (control_, backend_stats_->msg_in, false,
+    loop_and_send_multipart_stat (control_, backend_stats_.msg_in, false,
                                   true);
-    loop_and_send_multipart_stat (control_, backend_stats_->bytes_in, false,
+    loop_and_send_multipart_stat (control_, backend_stats_.bytes_in, false,
                                   true);
-    loop_and_send_multipart_stat (control_, backend_stats_->msg_out, false,
+    loop_and_send_multipart_stat (control_, backend_stats_.msg_out, false,
                                   true);
-    loop_and_send_multipart_stat (control_, backend_stats_->bytes_out, false,
+    loop_and_send_multipart_stat (control_, backend_stats_.bytes_out, false,
                                   false);
 
     return 0;
@@ -308,74 +308,74 @@ pub struct ZmqSocketBase *control_)
       poller_in; //  Poller for blocking wait, initially all 'ZMQ_POLLIN'.
 
     //  Register 'frontend_' and 'backend_' with pollers.
-    rc = poller_all->add (frontend_, null_mut(),
+    rc = poller_all.add (frontend_, null_mut(),
                           ZMQ_POLLIN | ZMQ_POLLOUT); //  Everything.
     CHECK_RC_EXIT_ON_FAILURE ();
-    rc = poller_in->add (frontend_, null_mut(), ZMQ_POLLIN); //  All 'ZMQ_POLLIN's.
+    rc = poller_in.add (frontend_, null_mut(), ZMQ_POLLIN); //  All 'ZMQ_POLLIN's.
     CHECK_RC_EXIT_ON_FAILURE ();
 
     if (frontend_equal_to_backend) {
         //  If frontend_==backend_ 'poller_send_blocked' and 'poller_receive_blocked' are the same,
         //  so we don't need 'poller_send_blocked'. We need only 'poller_receive_blocked'.
         //  We also don't need 'poller_both_blocked', no need to initialize it.
-        rc = poller_receive_blocked->add (frontend_, null_mut(), ZMQ_POLLOUT);
+        rc = poller_receive_blocked.add (frontend_, null_mut(), ZMQ_POLLOUT);
         CHECK_RC_EXIT_ON_FAILURE ();
     } else {
-        rc = poller_all->add (backend_, null_mut(),
+        rc = poller_all.add (backend_, null_mut(),
                               ZMQ_POLLIN | ZMQ_POLLOUT); //  Everything.
         CHECK_RC_EXIT_ON_FAILURE ();
-        rc = poller_in->add (backend_, null_mut(), ZMQ_POLLIN); //  All 'ZMQ_POLLIN's.
+        rc = poller_in.add (backend_, null_mut(), ZMQ_POLLIN); //  All 'ZMQ_POLLIN's.
         CHECK_RC_EXIT_ON_FAILURE ();
-        rc = poller_both_blocked->add (
+        rc = poller_both_blocked.add (
           frontend_, null_mut(), ZMQ_POLLOUT); //  Waiting only for 'ZMQ_POLLOUT'.
         CHECK_RC_EXIT_ON_FAILURE ();
-        rc = poller_both_blocked->add (
+        rc = poller_both_blocked.add (
           backend_, null_mut(), ZMQ_POLLOUT); //  Waiting only for 'ZMQ_POLLOUT'.
         CHECK_RC_EXIT_ON_FAILURE ();
-        rc = poller_send_blocked->add (
+        rc = poller_send_blocked.add (
           backend_, null_mut(),
           ZMQ_POLLOUT); //  All except 'ZMQ_POLLIN' on 'backend_'.
         CHECK_RC_EXIT_ON_FAILURE ();
-        rc = poller_send_blocked->add (
+        rc = poller_send_blocked.add (
           frontend_, null_mut(),
           ZMQ_POLLIN | ZMQ_POLLOUT); //  All except 'ZMQ_POLLIN' on 'backend_'.
         CHECK_RC_EXIT_ON_FAILURE ();
-        rc = poller_receive_blocked->add (
+        rc = poller_receive_blocked.add (
           frontend_, null_mut(),
           ZMQ_POLLOUT); //  All except 'ZMQ_POLLIN' on 'frontend_'.
         CHECK_RC_EXIT_ON_FAILURE ();
-        rc = poller_receive_blocked->add (
+        rc = poller_receive_blocked.add (
           backend_, null_mut(),
           ZMQ_POLLIN | ZMQ_POLLOUT); //  All except 'ZMQ_POLLIN' on 'frontend_'.
         CHECK_RC_EXIT_ON_FAILURE ();
         rc =
-          poller_frontend_only->add (frontend_, null_mut(), ZMQ_POLLIN | ZMQ_POLLOUT);
+          poller_frontend_only.add (frontend_, null_mut(), ZMQ_POLLIN | ZMQ_POLLOUT);
         CHECK_RC_EXIT_ON_FAILURE ();
         rc =
-          poller_backend_only->add (backend_, null_mut(), ZMQ_POLLIN | ZMQ_POLLOUT);
+          poller_backend_only.add (backend_, null_mut(), ZMQ_POLLIN | ZMQ_POLLOUT);
         CHECK_RC_EXIT_ON_FAILURE ();
     }
 
     //  Register 'control_' with pollers.
     if (control_ != null_mut()) {
-        rc = poller_all->add (control_, null_mut(), ZMQ_POLLIN);
+        rc = poller_all.add (control_, null_mut(), ZMQ_POLLIN);
         CHECK_RC_EXIT_ON_FAILURE ();
-        rc = poller_in->add (control_, null_mut(), ZMQ_POLLIN);
+        rc = poller_in.add (control_, null_mut(), ZMQ_POLLIN);
         CHECK_RC_EXIT_ON_FAILURE ();
-        rc = poller_control->add (
+        rc = poller_control.add (
           control_, null_mut(),
           ZMQ_POLLIN); //  When proxy is paused we wait only for ZMQ_POLLIN on 'control_' socket.
         CHECK_RC_EXIT_ON_FAILURE ();
-        rc = poller_receive_blocked->add (control_, null_mut(), ZMQ_POLLIN);
+        rc = poller_receive_blocked.add (control_, null_mut(), ZMQ_POLLIN);
         CHECK_RC_EXIT_ON_FAILURE ();
         if (!frontend_equal_to_backend) {
-            rc = poller_send_blocked->add (control_, null_mut(), ZMQ_POLLIN);
+            rc = poller_send_blocked.add (control_, null_mut(), ZMQ_POLLIN);
             CHECK_RC_EXIT_ON_FAILURE ();
-            rc = poller_both_blocked->add (control_, null_mut(), ZMQ_POLLIN);
+            rc = poller_both_blocked.add (control_, null_mut(), ZMQ_POLLIN);
             CHECK_RC_EXIT_ON_FAILURE ();
-            rc = poller_frontend_only->add (control_, null_mut(), ZMQ_POLLIN);
+            rc = poller_frontend_only.add (control_, null_mut(), ZMQ_POLLIN);
             CHECK_RC_EXIT_ON_FAILURE ();
-            rc = poller_backend_only->add (control_, null_mut(), ZMQ_POLLIN);
+            rc = poller_backend_only.add (control_, null_mut(), ZMQ_POLLIN);
             CHECK_RC_EXIT_ON_FAILURE ();
         }
     }
@@ -386,13 +386,13 @@ pub struct ZmqSocketBase *control_)
         //  Blocking wait initially only for 'ZMQ_POLLIN' - 'poller_wait' points to 'poller_in'.
         //  If one of receiving end's queue is full ('ZMQ_POLLOUT' not available),
         //  'poller_wait' is pointed to 'poller_receive_blocked', 'poller_send_blocked' or 'poller_both_blocked'.
-        rc = poller_wait->wait (events, 3, -1);
+        rc = poller_wait.wait (events, 3, -1);
         if (rc < 0 && errno == EAGAIN)
             rc = 0;
         CHECK_RC_EXIT_ON_FAILURE ();
 
         //  Some of events waited for by 'poller_wait' have arrived, now poll for everything without blocking.
-        rc = poller_all->wait (events, 3, 0);
+        rc = poller_all.wait (events, 3, 0);
         if (rc < 0 && errno == EAGAIN)
             rc = 0;
         CHECK_RC_EXIT_ON_FAILURE ();
@@ -415,9 +415,9 @@ pub struct ZmqSocketBase *control_)
 
         //  Process a control command if any.
         if (control_in) {
-            rc = control_->recv (&msg, 0);
+            rc = control_.recv (&msg, 0);
             CHECK_RC_EXIT_ON_FAILURE ();
-            rc = control_->getsockopt (ZMQ_RCVMORE, &more, &moresz);
+            rc = control_.getsockopt (ZMQ_RCVMORE, &more, &moresz);
             if (unlikely (rc < 0) || more) {
                 PROXY_CLEANUP ();
                 return close_and_return (&msg, -1);
@@ -592,12 +592,12 @@ pub struct ZmqSocketBase *control_)
 
         //  Process a control command if any
         if (control_ && items[2].revents & ZMQ_POLLIN) {
-            rc = control_->recv (&msg, 0);
+            rc = control_.recv (&msg, 0);
             if (unlikely (rc < 0))
                 return close_and_return (&msg, -1);
 
             moresz = sizeof more;
-            rc = control_->getsockopt (ZMQ_RCVMORE, &more, &moresz);
+            rc = control_.getsockopt (ZMQ_RCVMORE, &more, &moresz);
             if (unlikely (rc < 0) || more)
                 return close_and_return (&msg, -1);
 

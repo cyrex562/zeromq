@@ -109,7 +109,7 @@ pub struct session_base_t *session_,
       io_thread_, session_, options_, addr_, delayed_start_),
     _connect_timer_started (false)
 {
-    zmq_assert (_addr->protocol == protocol_name::vmci);
+    zmq_assert (_addr.protocol == protocol_name::vmci);
 }
 
 vmci_connecter_t::~vmci_connecter_t ()
@@ -165,17 +165,17 @@ void vmci_connecter_t::out_event ()
         return;
     }
 
-    tune_vmci_buffer_size (this->get_ctx (), fd, options.vmci_buffer_size,
+    tune_vmci_buffer_size (this.get_ctx (), fd, options.vmci_buffer_size,
                            options.vmci_buffer_min_size,
                            options.vmci_buffer_max_size);
 
     if (options.vmci_connect_timeout > 0) {
 // #if defined ZMQ_HAVE_WINDOWS
-        tune_vmci_connect_timeout (this->get_ctx (), fd,
+        tune_vmci_connect_timeout (this.get_ctx (), fd,
                                    options.vmci_connect_timeout);
 // #else
         struct timeval timeout = {0, options.vmci_connect_timeout * 1000};
-        tune_vmci_connect_timeout (this->get_ctx (), fd, timeout);
+        tune_vmci_connect_timeout (this.get_ctx (), fd, timeout);
 // #endif
     }
 
@@ -194,7 +194,7 @@ vmci_connecter_t::get_socket_name (fd_t fd_,
     }
 
     const VmciAddress addr (reinterpret_cast<struct sockaddr *> (&ss), sl,
-                               this->get_ctx ());
+                               this.get_ctx ());
     address_string: String;
     addr.to_string (address_string);
     return address_string;
@@ -226,7 +226,7 @@ void vmci_connecter_t::start_connecting ()
     else if (rc == -1 && errno == EINPROGRESS) {
         _handle = add_fd (_s);
         set_pollout (_handle);
-        _socket->event_connect_delayed (
+        _socket.event_connect_delayed (
           make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
 
         //  add userspace connect timeout
@@ -254,35 +254,35 @@ int vmci_connecter_t::open ()
     zmq_assert (_s == retired_fd);
 
     //  Resolve the address
-    if (_addr->resolved.vmci_addr != null_mut()) {
-        LIBZMQ_DELETE (_addr->resolved.vmci_addr);
+    if (_addr.resolved.vmci_addr != null_mut()) {
+        LIBZMQ_DELETE (_addr.resolved.vmci_addr);
     }
 
-    _addr->resolved.vmci_addr =
-      new (std::nothrow) VmciAddress (this->get_ctx ());
-    alloc_assert (_addr->resolved.vmci_addr);
-    _s = vmci_open_socket (_addr->address, options,
-                           _addr->resolved.vmci_addr);
+    _addr.resolved.vmci_addr =
+      new (std::nothrow) VmciAddress (this.get_ctx ());
+    alloc_assert (_addr.resolved.vmci_addr);
+    _s = vmci_open_socket (_addr.address, options,
+                           _addr.resolved.vmci_addr);
     if (_s == retired_fd) {
         //  TODO we should emit some event in this case!
 
-        LIBZMQ_DELETE (_addr->resolved.vmci_addr);
+        LIBZMQ_DELETE (_addr.resolved.vmci_addr);
         return -1;
     }
-    zmq_assert (_addr->resolved.vmci_addr != null_mut());
+    zmq_assert (_addr.resolved.vmci_addr != null_mut());
 
     // Set the socket to non-blocking mode so that we get async connect().
     unblock_socket (_s);
 
-    const VmciAddress *const vmci_addr = _addr->resolved.vmci_addr;
+    const VmciAddress *const vmci_addr = _addr.resolved.vmci_addr;
 
     rc: i32;
 
     //  Connect to the remote peer.
 // #if defined ZMQ_HAVE_VXWORKS
-    rc = ::connect (_s, (sockaddr *) vmci_addr->addr (), vmci_addr->addrlen ());
+    rc = ::connect (_s, (sockaddr *) vmci_addr.addr (), vmci_addr.addrlen ());
 // #else
-    rc = ::connect (_s, vmci_addr->addr (), vmci_addr->addrlen ());
+    rc = ::connect (_s, vmci_addr.addr (), vmci_addr.addrlen ());
 // #endif
     //  Connect was successful immediately.
     if (rc == 0) {

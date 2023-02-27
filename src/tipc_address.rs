@@ -73,7 +73,7 @@ TipcAddress::TipcAddress (const sockaddr *sa_, socklen_t sa_len_)
     zmq_assert (sa_ && sa_len_ > 0);
 
     memset (&address, 0, sizeof address);
-    if (sa_->sa_family == AF_TIPC)
+    if (sa_.sa_family == AF_TIPC)
         memcpy (&address, sa_, sa_len_);
 
     _random = false;

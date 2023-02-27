@@ -54,14 +54,14 @@ stream_connecter_base_t::stream_connecter_base_t (
     _addr (addr_),
     _s (retired_fd),
     _handle (static_cast<handle_t> (null_mut())),
-    _socket (session_->get_socket ()),
+    _socket (session_.get_socket ()),
     _delayed_start (delayed_start_),
     _reconnect_timer_started (false),
     _current_reconnect_ivl (options.reconnect_ivl),
     _session (session_)
 {
     zmq_assert (_addr);
-    _addr->to_string (_endpoint);
+    _addr.to_string (_endpoint);
     // TODO the return value is unused! what if it fails? if this is impossible
     // or does not matter, change such that endpoint in initialized using an
     // initializer, and make endpoint const
@@ -104,7 +104,7 @@ void stream_connecter_base_t::add_reconnect_timer ()
     if (options.reconnect_ivl > 0) {
         let interval: i32 = get_new_reconnect_ivl ();
         add_timer (interval, reconnect_timer_id);
-        _socket->event_connect_retried (
+        _socket.event_connect_retried (
           make_unconnected_connect_endpoint_pair (_endpoint), interval);
         _reconnect_timer_started = true;
     }
@@ -154,7 +154,7 @@ void stream_connecter_base_t::close ()
         let rc: i32 = ::close (_s);
         errno_assert (rc == 0);
 // #endif
-        _socket->event_closed (
+        _socket.event_closed (
           make_unconnected_connect_endpoint_pair (_endpoint), _s);
         _s = retired_fd;
     }
@@ -188,7 +188,7 @@ void stream_connecter_base_t::create_engine (
     //  Shut the connecter down.
     terminate ();
 
-    _socket->event_connected (endpoint_pair, fd_);
+    _socket.event_connected (endpoint_pair, fd_);
 }
 
 void stream_connecter_base_t::timer_event (id_: i32)

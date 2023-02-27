@@ -330,7 +330,7 @@ stream_engine_base_t::~stream_engine_base_t ()
     //  Drop reference to metadata and destroy it if we are
     //  the only user.
     if (_metadata != null_mut()) {
-        if (_metadata->drop_ref ()) {
+        if (_metadata.drop_ref ()) {
             LIBZMQ_DELETE (_metadata);
         }
     }
@@ -350,7 +350,7 @@ void stream_engine_base_t::plug (io_thread_t *io_thread_,
     zmq_assert (!_session);
     zmq_assert (session_);
     _session = session_;
-    _socket = _session->get_socket ();
+    _socket = _session.get_socket ();
 
     //  Connect to I/O threads poller object.
     io_object_t::plug (io_thread_);
@@ -420,7 +420,7 @@ bool stream_engine_base_t::in_event_internal ()
             _handshaking = false;
 
             if (_mechanism == null_mut() && _has_handshake_stage) {
-                _session->engine_ready ();
+                _session.engine_ready ();
 
                 if (_has_handshake_timer) {
                     cancel_timer (handshake_timer_id);
@@ -448,7 +448,7 @@ bool stream_engine_base_t::in_event_internal ()
         //  the underlying TCP layer has fixed buffer size and thus the
         //  number of bytes read will be always limited.
         size_t bufsize = 0;
-        _decoder->get_buffer (&_inpos, &bufsize);
+        _decoder.get_buffer (&_inpos, &bufsize);
 
         let rc: i32 = read (_inpos, bufsize);
 
@@ -463,20 +463,20 @@ bool stream_engine_base_t::in_event_internal ()
         //  Adjust input size
         _insize = static_cast<size_t> (rc);
         // Adjust buffer size to received bytes
-        _decoder->resize_buffer (_insize);
+        _decoder.resize_buffer (_insize);
     }
 
     int rc = 0;
     size_t processed = 0;
 
     while (_insize > 0) {
-        rc = _decoder->decode (_inpos, _insize, processed);
+        rc = _decoder.decode (_inpos, _insize, processed);
         zmq_assert (processed <= _insize);
         _inpos += processed;
         _insize -= processed;
         if (rc == 0 || rc == -1)
             break;
-        rc = (this->*_process_msg) (_decoder->msg ());
+        rc = (this->*_process_msg) (_decoder.msg ());
         if (rc == -1)
             break;
     }
@@ -492,7 +492,7 @@ bool stream_engine_base_t::in_event_internal ()
         reset_pollin (_handle);
     }
 
-    _session->flush ();
+    _session.flush ();
     return true;
 }
 
@@ -511,7 +511,7 @@ void stream_engine_base_t::out_event ()
         }
 
         _outpos = null_mut();
-        _outsize = _encoder->encode (&_outpos, 0);
+        _outsize = _encoder.encode (&_outpos, 0);
 
         while (_outsize < static_cast<size_t> (_options.out_batch_size)) {
             if ((this->*_next_msg) (&_tx_msg) == -1) {
@@ -522,10 +522,10 @@ void stream_engine_base_t::out_event ()
                 else
                     break;
             }
-            _encoder->load_msg (&_tx_msg);
+            _encoder.load_msg (&_tx_msg);
             unsigned char *bufptr = _outpos + _outsize;
             const size_t n =
-              _encoder->encode (&bufptr, _options.out_batch_size - _outsize);
+              _encoder.encode (&bufptr, _options.out_batch_size - _outsize);
             zmq_assert (n > 0);
             if (_outpos == null_mut())
                 _outpos = bufptr;
@@ -588,10 +588,10 @@ bool stream_engine_base_t::restart_input ()
     zmq_assert (_session != null_mut());
     zmq_assert (_decoder != null_mut());
 
-    int rc = (this->*_process_msg) (_decoder->msg ());
+    int rc = (this->*_process_msg) (_decoder.msg ());
     if (rc == -1) {
         if (errno == EAGAIN)
-            _session->flush ();
+            _session.flush ();
         else {
             error (protocol_error);
             return false;
@@ -601,19 +601,19 @@ bool stream_engine_base_t::restart_input ()
 
     while (_insize > 0) {
         size_t processed = 0;
-        rc = _decoder->decode (_inpos, _insize, processed);
+        rc = _decoder.decode (_inpos, _insize, processed);
         zmq_assert (processed <= _insize);
         _inpos += processed;
         _insize -= processed;
         if (rc == 0 || rc == -1)
             break;
-        rc = (this->*_process_msg) (_decoder->msg ());
+        rc = (this->*_process_msg) (_decoder.msg ());
         if (rc == -1)
             break;
     }
 
     if (rc == -1 && errno == EAGAIN)
-        _session->flush ();
+        _session.flush ();
     else if (_io_error) {
         error (connection_error);
         return false;
@@ -625,7 +625,7 @@ bool stream_engine_base_t::restart_input ()
     else {
         _input_stopped = false;
         set_pollin ();
-        _session->flush ();
+        _session.flush ();
 
         //  Speculative read.
         if (!in_event_internal ())
@@ -639,15 +639,15 @@ int stream_engine_base_t::next_handshake_command (msg: &mut ZmqMessage)
 {
     zmq_assert (_mechanism != null_mut());
 
-    if (_mechanism->status () == mechanism_t::ready) {
+    if (_mechanism.status () == mechanism_t::ready) {
         mechanism_ready ();
         return pull_and_encode (msg);
     }
-    if (_mechanism->status () == mechanism_t::error) {
+    if (_mechanism.status () == mechanism_t::error) {
         errno = EPROTO;
         return -1;
     }
-    let rc: i32 = _mechanism->next_handshake_command (msg);
+    let rc: i32 = _mechanism.next_handshake_command (msg);
 
     if (rc == 0)
         msg.set_flags (ZmqMessage::command);
@@ -658,11 +658,11 @@ int stream_engine_base_t::next_handshake_command (msg: &mut ZmqMessage)
 int stream_engine_base_t::process_handshake_command (msg: &mut ZmqMessage)
 {
     zmq_assert (_mechanism != null_mut());
-    let rc: i32 = _mechanism->process_handshake_command (msg);
+    let rc: i32 = _mechanism.process_handshake_command (msg);
     if (rc == 0) {
-        if (_mechanism->status () == mechanism_t::ready)
+        if (_mechanism.status () == mechanism_t::ready)
             mechanism_ready ();
-        else if (_mechanism->status () == mechanism_t::error) {
+        else if (_mechanism.status () == mechanism_t::error) {
             errno = EPROTO;
             return -1;
         }
@@ -677,7 +677,7 @@ void stream_engine_base_t::zap_msg_available ()
 {
     zmq_assert (_mechanism != null_mut());
 
-    let rc: i32 = _mechanism->zap_msg_available ();
+    let rc: i32 = _mechanism.zap_msg_available ();
     if (rc == -1) {
         error (protocol_error);
         return;
@@ -702,14 +702,14 @@ void stream_engine_base_t::mechanism_ready ()
     }
 
     if (_has_handshake_stage)
-        _session->engine_ready ();
+        _session.engine_ready ();
 
     bool flush_session = false;
 
     if (_options.recv_routing_id) {
         ZmqMessage routing_id;
-        _mechanism->peer_routing_id (&routing_id);
-        let rc: i32 = _session->push_msg (&routing_id);
+        _mechanism.peer_routing_id (&routing_id);
+        let rc: i32 = _session.push_msg (&routing_id);
         if (rc == -1 && errno == EAGAIN) {
             // If the write is failing at this stage with
             // an EAGAIN the pipe must be being shut down,
@@ -723,7 +723,7 @@ void stream_engine_base_t::mechanism_ready ()
     if (_options.router_notify & ZMQ_NOTIFY_CONNECT) {
         ZmqMessage connect_notification;
         connect_notification.init ();
-        let rc: i32 = _session->push_msg (&connect_notification);
+        let rc: i32 = _session.push_msg (&connect_notification);
         if (rc == -1 && errno == EAGAIN) {
             // If the write is failing at this stage with
             // an EAGAIN the pipe must be being shut down,
@@ -735,7 +735,7 @@ void stream_engine_base_t::mechanism_ready ()
     }
 
     if (flush_session)
-        _session->flush ();
+        _session.flush ();
 
     _next_msg = &stream_engine_base_t::pull_and_encode;
     _process_msg = &stream_engine_base_t::write_credential;
@@ -745,11 +745,11 @@ void stream_engine_base_t::mechanism_ready ()
     init_properties (properties);
 
     //  Add ZAP properties.
-    const properties_t &zap_properties = _mechanism->get_zap_properties ();
+    const properties_t &zap_properties = _mechanism.get_zap_properties ();
     properties.insert (zap_properties.begin (), zap_properties.end ());
 
     //  Add ZMTP properties.
-    const properties_t &zmtp_properties = _mechanism->get_zmtp_properties ();
+    const properties_t &zmtp_properties = _mechanism.get_zmtp_properties ();
     properties.insert (zmtp_properties.begin (), zmtp_properties.end ());
 
     zmq_assert (_metadata == null_mut());
@@ -763,7 +763,7 @@ void stream_engine_base_t::mechanism_ready ()
         _has_handshake_timer = false;
     }
 
-    _socket->event_handshake_succeeded (_endpoint_uri_pair, 0);
+    _socket.event_handshake_succeeded (_endpoint_uri_pair, 0);
 }
 
 int stream_engine_base_t::write_credential (msg: &mut ZmqMessage)
@@ -771,14 +771,14 @@ int stream_engine_base_t::write_credential (msg: &mut ZmqMessage)
     zmq_assert (_mechanism != null_mut());
     zmq_assert (_session != null_mut());
 
-    const Blob &credential = _mechanism->get_user_id ();
+    const Blob &credential = _mechanism.get_user_id ();
     if (credential.size () > 0) {
         ZmqMessage msg;
         int rc = msg.init_size (credential.size ());
         zmq_assert (rc == 0);
         memcpy (msg.data (), credential.data (), credential.size ());
         msg.set_flags (ZmqMessage::credential);
-        rc = _session->push_msg (&msg);
+        rc = _session.push_msg (&msg);
         if (rc == -1) {
             rc = msg.close ();
             errno_assert (rc == 0);
@@ -793,9 +793,9 @@ int stream_engine_base_t::pull_and_encode (msg: &mut ZmqMessage)
 {
     zmq_assert (_mechanism != null_mut());
 
-    if (_session->pull_msg (msg) == -1)
+    if (_session.pull_msg (msg) == -1)
         return -1;
-    if (_mechanism->encode (msg) == -1)
+    if (_mechanism.encode (msg) == -1)
         return -1;
     return 0;
 }
@@ -804,7 +804,7 @@ int stream_engine_base_t::decode_and_push (msg: &mut ZmqMessage)
 {
     zmq_assert (_mechanism != null_mut());
 
-    if (_mechanism->decode (msg) == -1)
+    if (_mechanism.decode (msg) == -1)
         return -1;
 
     if (_has_timeout_timer) {
@@ -823,7 +823,7 @@ int stream_engine_base_t::decode_and_push (msg: &mut ZmqMessage)
 
     if (_metadata)
         msg.set_metadata (_metadata);
-    if (_session->push_msg (msg) == -1) {
+    if (_session.push_msg (msg) == -1) {
         if (errno == EAGAIN)
             _process_msg = &stream_engine_base_t::push_one_then_decode_and_push;
         return -1;
@@ -833,7 +833,7 @@ int stream_engine_base_t::decode_and_push (msg: &mut ZmqMessage)
 
 int stream_engine_base_t::push_one_then_decode_and_push (msg: &mut ZmqMessage)
 {
-    let rc: i32 = _session->push_msg (msg);
+    let rc: i32 = _session.push_msg (msg);
     if (rc == 0)
         _process_msg = &stream_engine_base_t::decode_and_push;
     return rc;
@@ -841,12 +841,12 @@ int stream_engine_base_t::push_one_then_decode_and_push (msg: &mut ZmqMessage)
 
 int stream_engine_base_t::pull_msg_from_session (msg: &mut ZmqMessage)
 {
-    return _session->pull_msg (msg);
+    return _session.pull_msg (msg);
 }
 
 int stream_engine_base_t::push_ZmqMessageo_session (msg: &mut ZmqMessage)
 {
-    return _session->push_msg (msg);
+    return _session.push_msg (msg);
 }
 
 void stream_engine_base_t::error (error_reason_t reason_)
@@ -857,19 +857,19 @@ void stream_engine_base_t::error (error_reason_t reason_)
         // For router sockets with disconnect notification, rollback
         // any incomplete message in the pipe, and push the disconnect
         // notification message.
-        _session->rollback ();
+        _session.rollback ();
 
         ZmqMessage disconnect_notification;
         disconnect_notification.init ();
-        _session->push_msg (&disconnect_notification);
+        _session.push_msg (&disconnect_notification);
     }
 
     // protocol errors have been signaled already at the point where they occurred
     if (reason_ != protocol_error
         && (_mechanism == null_mut()
-            || _mechanism->status () == mechanism_t::handshaking)) {
+            || _mechanism.status () == mechanism_t::handshaking)) {
         let err: i32 = errno;
-        _socket->event_handshake_failed_no_detail (_endpoint_uri_pair, err);
+        _socket.event_handshake_failed_no_detail (_endpoint_uri_pair, err);
         // special case: connecting to non-ZMTP process which immediately drops connection,
         // or which never responds with greeting, should be treated as a protocol error
         // (i.e. stop reconnect)
@@ -880,12 +880,12 @@ void stream_engine_base_t::error (error_reason_t reason_)
         }
     }
 
-    _socket->event_disconnected (_endpoint_uri_pair, _s);
-    _session->flush ();
-    _session->engine_error (
+    _socket.event_disconnected (_endpoint_uri_pair, _s);
+    _session.flush ();
+    _session.engine_error (
       !_handshaking
         && (_mechanism == null_mut()
-            || _mechanism->status () != mechanism_t::handshaking),
+            || _mechanism.status () != mechanism_t::handshaking),
       reason_);
     unplug ();
     delete this;

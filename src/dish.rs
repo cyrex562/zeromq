@@ -298,14 +298,14 @@ void dish_t::send_subscriptions (pipe_: &mut pipe_t)
         int rc = msg.init_join ();
         errno_assert (rc == 0);
 
-        rc = msg.set_group (it->c_str ());
+        rc = msg.set_group (it.c_str ());
         errno_assert (rc == 0);
 
         //  Send it to the pipe.
-        pipe_->write (&msg);
+        pipe_.write (&msg);
     }
 
-    pipe_->flush ();
+    pipe_.flush ();
 }
 
 dish_session_t::dish_session_t (io_thread_t *io_thread_,

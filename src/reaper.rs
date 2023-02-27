@@ -91,8 +91,8 @@ reaper_t::reaper_t (class ZmqContext *ctx, u32 tid_) :
     alloc_assert (_poller);
 
     if (_mailbox.get_fd () != retired_fd) {
-        _mailbox_handle = _poller->add_fd (_mailbox.get_fd (), this);
-        _poller->set_pollin (_mailbox_handle);
+        _mailbox_handle = _poller.add_fd (_mailbox.get_fd (), this);
+        _poller.set_pollin (_mailbox_handle);
     }
 
 // #ifdef HAVE_FORK
@@ -115,7 +115,7 @@ void reaper_t::start ()
     zmq_assert (_mailbox.valid ());
 
     //  Start the thread.
-    _poller->start ("Reaper");
+    _poller.start ("Reaper");
 }
 
 void reaper_t::stop ()
@@ -145,7 +145,7 @@ void reaper_t::in_event ()
         errno_assert (rc == 0);
 
         //  Process the command.
-        cmd.destination->process_command (cmd);
+        cmd.destination.process_command (cmd);
     }
 }
 
@@ -166,15 +166,15 @@ void reaper_t::process_stop ()
     //  If there are no sockets being reaped finish immediately.
     if (!_sockets) {
         send_done ();
-        _poller->rm_fd (_mailbox_handle);
-        _poller->stop ();
+        _poller.rm_fd (_mailbox_handle);
+        _poller.stop ();
     }
 }
 
 void reaper_t::process_reap (ZmqSocketBase *socket_)
 {
     //  Add the socket to the poller.
-    socket_->start_reaping (_poller);
+    socket_.start_reaping (_poller);
 
     ++_sockets;
 }
@@ -187,7 +187,7 @@ void reaper_t::process_reaped ()
     //  finish immediately.
     if (!_sockets && _terminating) {
         send_done ();
-        _poller->rm_fd (_mailbox_handle);
-        _poller->stop ();
+        _poller.rm_fd (_mailbox_handle);
+        _poller.stop ();
     }
 }

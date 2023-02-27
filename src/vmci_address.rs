@@ -84,7 +84,7 @@ VmciAddress::VmciAddress (const sockaddr *sa,
     zmq_assert (sa && sa_len > 0);
 
     memset (&address, 0, sizeof address);
-    if (sa->sa_family == parent->get_vmci_socket_family ())
+    if (sa.sa_family == parent.get_vmci_socket_family ())
         memcpy (&address, sa, sa_len);
 }
 
@@ -146,7 +146,7 @@ int VmciAddress::resolve (path_: &str)
     }
 
     address.svm_family =
-      static_cast<sa_family_t> (parent->get_vmci_socket_family ());
+      static_cast<sa_family_t> (parent.get_vmci_socket_family ());
     address.svm_cid = cid;
     address.svm_port = port;
 
@@ -155,7 +155,7 @@ int VmciAddress::resolve (path_: &str)
 
 int VmciAddress::to_string (std::string &addr_) const
 {
-    if (address.svm_family != parent->get_vmci_socket_family ()) {
+    if (address.svm_family != parent.get_vmci_socket_family ()) {
         addr_.clear ();
         return -1;
     }
@@ -198,7 +198,7 @@ unsigned short VmciAddress::family () const
 sa_family_t VmciAddress::family () const
 // #endif
 {
-    return parent->get_vmci_socket_family ();
+    return parent.get_vmci_socket_family ();
 }
 
 // #endif

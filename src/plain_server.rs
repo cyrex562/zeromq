@@ -116,8 +116,8 @@ int plain_server_t::process_handshake_command (msg: &mut ZmqMessage)
             break;
         default:
             //  TODO see comment in curve_server_t::process_handshake_command
-            session->get_socket ()->event_handshake_failed_protocol (
-              session->get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNSPECIFIED);
+            session.get_socket ()->event_handshake_failed_protocol (
+              session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNSPECIFIED);
             errno = EPROTO;
             rc = -1;
             break;
@@ -142,8 +142,8 @@ int plain_server_t::process_hello (msg: &mut ZmqMessage)
 
     if (bytes_left < hello_prefix_len
         || memcmp (ptr, hello_prefix, hello_prefix_len) != 0) {
-        session->get_socket ()->event_handshake_failed_protocol (
-          session->get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
+        session.get_socket ()->event_handshake_failed_protocol (
+          session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
         errno = EPROTO;
         return -1;
     }
@@ -152,8 +152,8 @@ int plain_server_t::process_hello (msg: &mut ZmqMessage)
 
     if (bytes_left < 1) {
         //  PLAIN I: invalid PLAIN client, did not send username
-        session->get_socket ()->event_handshake_failed_protocol (
-          session->get_endpoint (),
+        session.get_socket ()->event_handshake_failed_protocol (
+          session.get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
         errno = EPROTO;
         return -1;
@@ -163,8 +163,8 @@ int plain_server_t::process_hello (msg: &mut ZmqMessage)
 
     if (bytes_left < username_length) {
         //  PLAIN I: invalid PLAIN client, sent malformed username
-        session->get_socket ()->event_handshake_failed_protocol (
-          session->get_endpoint (),
+        session.get_socket ()->event_handshake_failed_protocol (
+          session.get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
         errno = EPROTO;
         return -1;
@@ -174,8 +174,8 @@ int plain_server_t::process_hello (msg: &mut ZmqMessage)
     bytes_left -= username_length;
     if (bytes_left < 1) {
         //  PLAIN I: invalid PLAIN client, did not send password
-        session->get_socket ()->event_handshake_failed_protocol (
-          session->get_endpoint (),
+        session.get_socket ()->event_handshake_failed_protocol (
+          session.get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
         errno = EPROTO;
         return -1;
@@ -186,8 +186,8 @@ int plain_server_t::process_hello (msg: &mut ZmqMessage)
     if (bytes_left != password_length) {
         //  PLAIN I: invalid PLAIN client, sent malformed password or
         //  extraneous data
-        session->get_socket ()->event_handshake_failed_protocol (
-          session->get_endpoint (),
+        session.get_socket ()->event_handshake_failed_protocol (
+          session.get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
         errno = EPROTO;
         return -1;
@@ -196,10 +196,10 @@ int plain_server_t::process_hello (msg: &mut ZmqMessage)
     const std::string password = std::string (ptr, password_length);
 
     //  Use ZAP protocol (RFC 27) to authenticate the user.
-    rc = session->zap_connect ();
+    rc = session.zap_connect ();
     if (rc != 0) {
-        session->get_socket ()->event_handshake_failed_no_detail (
-          session->get_endpoint (), EFAULT);
+        session.get_socket ()->event_handshake_failed_no_detail (
+          session.get_endpoint (), EFAULT);
         return -1;
     }
 
@@ -227,8 +227,8 @@ int plain_server_t::process_initiate (msg: &mut ZmqMessage)
 
     if (bytes_left < initiate_prefix_len
         || memcmp (ptr, initiate_prefix, initiate_prefix_len) != 0) {
-        session->get_socket ()->event_handshake_failed_protocol (
-          session->get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
+        session.get_socket ()->event_handshake_failed_protocol (
+          session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
         errno = EPROTO;
         return -1;
     }

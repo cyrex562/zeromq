@@ -96,11 +96,11 @@ void dealer_t::xattach_pipe (pipe_t *pipe_,
         int rc = probe_msg.init ();
         errno_assert (rc == 0);
 
-        rc = pipe_->write (&probe_msg);
+        rc = pipe_.write (&probe_msg);
         // zmq_assert (rc) is not applicable here, since it is not a bug.
         LIBZMQ_UNUSED (rc);
 
-        pipe_->flush ();
+        pipe_.flush ();
 
         rc = probe_msg.close ();
         errno_assert (rc == 0);

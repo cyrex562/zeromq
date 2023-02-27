@@ -93,10 +93,10 @@ WsAddress::WsAddress (const sockaddr *sa_, socklen_t sa_len_)
     zmq_assert (sa_ && sa_len_ > 0);
 
     memset (&_address, 0, mem::size_of::<_address>());
-    if (sa_->sa_family == AF_INET
+    if (sa_.sa_family == AF_INET
         && sa_len_ >= static_cast<socklen_t> (sizeof (_address.ipv4)))
         memcpy (&_address.ipv4, sa_, sizeof (_address.ipv4));
-    else if (sa_->sa_family == AF_INET6
+    else if (sa_.sa_family == AF_INET6
              && sa_len_ >= static_cast<socklen_t> (sizeof (_address.ipv6)))
         memcpy (&_address.ipv6, sa_, sizeof (_address.ipv6));
 

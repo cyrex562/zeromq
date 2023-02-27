@@ -292,8 +292,8 @@ size_t mechanism_t::add_basic_properties (unsigned char *ptr_,
            end = options.app_metadata.end ();
          it != end; ++it) {
         ptr +=
-          add_property (ptr, ptr_capacity_ - (ptr - ptr_), it->first,
-                        it->second, strlen (it->second.c_str ()));
+          add_property (ptr, ptr_capacity_ - (ptr - ptr_), it.first,
+                        it.second, strlen (it.second.c_str ()));
     }
 
     return ptr - ptr_;
@@ -309,7 +309,7 @@ size_t mechanism_t::basic_properties_len () const
            end = options.app_metadata.end ();
          it != end; ++it) {
         meta_len +=
-          property_len (it->first, strlen (it->second.c_str ()));
+          property_len (it.first, strlen (it.second.c_str ()));
     }
 
     return property_len (ZMTP_PROPERTY_SOCKET_TYPE, strlen (socket_type))

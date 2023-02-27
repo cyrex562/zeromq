@@ -264,7 +264,7 @@ void pgm_sender_t::out_event ()
         while (bytes < bfsz) {
             if (!more_flag && offset == 0xffff)
                 offset = static_cast<uint16_t> (bytes);
-            int rc = session->pull_msg (&msg);
+            int rc = session.pull_msg (&msg);
             if (rc == -1)
                 break;
             more_flag = msg.flags () & ZmqMessage::more;
