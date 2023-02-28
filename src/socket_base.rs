@@ -58,6 +58,10 @@ pub type XLeaveFunc = fn(&mut ZmqSocketBase, group_: &str) -> anyhow::Result<()>
 
 pub type XReadActivatedFunc = fn(&mut ZmqSocketBase, pipe: &mut pipe_t);
 
+pub type XWriteActivatedFunc = fn(&mut ZmqSocketBase, pipe: &mut pipe_t);
+
+pub type XHiccupedFunc = fn(&mut ZmqSocketBase, pipe: & mut pipe_t);
+
 #[derive(Default,Debug,Clone,Serialize,Deserialize)]
 pub struct ZmqSocketBase {
 
@@ -140,7 +144,9 @@ pub struct ZmqSocketBase {
     pub xrecv_fn: Option<XRecvFunc>,
     pub xjoin_fn: Option<XJoinFunc>,
     pub xleave_fn: Option<XLeaveFunc>,
-    pub xreadactivated_fn: Option<XReadActivatedFunc>
+    pub xreadactivated_fn: Option<XReadActivatedFunc>,
+    pub xwriteactivated_fn: Option<XWriteActivatedFunc>,
+    pub xhiccuped_fn: Option<XHiccupedFunc>,
 }
 
 impl ZmqSocketBase {
@@ -994,11 +1000,10 @@ impl ZmqSocketBase {
         return self.xjoin (group_);
     }
     // int leave (group_: *const c_char);
-    pub fn leave (&mut self, group_: &str) -> i32
+    pub fn leave(&mut self, group_: &str) -> anyhow::Result<()>
     {
         // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
-
-        return self.xleave (group_);
+        self.xleave(group_)
     }
 
     //  Using this function reaper thread ask the socket to register with
@@ -1040,14 +1045,97 @@ impl ZmqSocketBase {
     //  i_poll_events implementation. This interface is used when socket
     //  is handled by the poller in the reaper thread.
     // void in_event () ZMQ_FINAL;
+    pub fn in_event(&mut self)
+    {
+        //  This function is invoked only once the socket is running in the context
+        //  of the reaper thread. Process any commands from other threads/sockets
+        //  that may be available at the moment. Ultimately, the socket will
+        //  be destroyed.
+        {
+            // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
+
+            //  If the socket is thread safe we need to unsignal the reaper signaler
+            if (self._thread_safe) {
+                self._reaper_signaler.recv();
+            }
+
+            self.process_commands(0, false);
+        }
+        self.check_destroy();
+    }
+
     // void out_event () ZMQ_FINAL;
+    pub fn out_event (&mut self)
+    {
+        unimplemented!()
+        // zmq_assert (false);
+    }
+
     // void timer_event (id_: i32) ZMQ_FINAL;
+    pub fn timer_event (&mut self, id_: i32)
+    {
+        unimplemented!()
+    }
 
     //  i_pipe_events interface implementation.
     // void read_activated (pipe_t *pipe_) ZMQ_FINAL;
+    pub fn read_activated (&mut self, pipe_: &mut pipe_t)
+    {
+        self.xread_activated (pipe_);
+    }
+
     // void write_activated (pipe_t *pipe_) ZMQ_FINAL;
+    pub fn write_activated (&mut self, pipe_: &mut pipe_t)
+    {
+        self.xwrite_activated (pipe_);
+    }
+
     // void hiccuped (pipe_t *pipe_) ZMQ_FINAL;
+    pub fn hiccuped(&mut self, pipe_: &mut pipe_t)
+    {
+        if (options.immediate == 1) {
+            pipe_.terminate(false);
+        } else {
+            // Notify derived sockets of the hiccup
+            self.xhiccuped(pipe_);
+        }
+    }
+
     // void pipe_terminated (pipe_t *pipe_) ZMQ_FINAL;
+    pub fn pipe_terminated (&mut self, pipe_: &mut pipe_t)
+    {
+        //  Notify the specific socket type about the pipe termination.
+        self.xpipe_terminated (pipe_);
+
+        // Remove pipe from inproc pipes
+        self._inprocs.erase_pipe (pipe_);
+
+        //  Remove the pipe from the list of attached pipes and confirm its
+        //  termination if we are already shutting down.
+        self._pipes.erase (pipe_);
+
+        // Remove the pipe from _endpoints (set it to NULL).
+        let identifier = pipe_.get_endpoint_pair ().identifier ();
+        if (!identifier.empty ()) {
+            // std::pair<endpoints_t::iterator, endpoints_t::iterator> range;
+            // range = _endpoints.equal_range (identifier);
+            // for (endpoints_t::iterator it = range.first; it != range.second; ++it) {
+            //     if (it.second.second == pipe_) {
+            //         it.second.second = null_mut();
+            //         break;
+            //     }
+            // }
+            for it in self._endpoints.iter() {
+
+            }
+        }
+
+        if (self.is_terminating ()) {
+            self.unregister_term_ack();
+        }
+    }
+
+
     // void lock ();
     // void unlock ();
 
@@ -1055,6 +1143,93 @@ impl ZmqSocketBase {
     //              events_: u64,
     //              event_version_: i32,
     //              type_: i32);
+
+    pub fn monitor (&mut self,
+                    options: &mut ZmqOptions,
+                    endpoint_: &str,
+                    events_: u64,
+                    event_version_: i32,
+                    type_: i32) -> anyhow::Result<()>
+    {
+        // scoped_lock_t lock (_monitor_sync);
+
+        // if (unlikely (_ctx_terminated)) {
+        // errno = ETERM;
+        // return -1;
+        // }
+
+        //  Event version 1 supports only first 16 events.
+        // if (unlikely (event_version_ == 1 && events_ >> 16 != 0)) {
+        // errno = EINVAL;
+        // return -1;
+        // }
+
+        //  Support deregistering monitoring endpoints as well
+        if (endpoint_ == null_mut()) {
+            self.stop_monitor ();
+            return Ok(());
+        }
+        //  Parse endpoint_uri_ string.
+        let mut protocol = String::new();
+        let mut address = String::new();
+        if (self.parse_uri (endpoint_, &mut protocol, &mut address) ||
+            self.check_protocol (options, &protocol)) {
+            bail!("failed to parse uri and/or protocol");
+        }
+
+        //  Event notification only supported over inproc://
+        if (protocol != protocol_name::inproc) {
+        // errno = EPROTONOSUPPORT;
+        // return -1;
+            bail!("protocol not supported");
+        }
+
+        // already monitoring. Stop previous monitor before starting new one.
+        if (self._monitor_socket != null_mut()) {
+            self.stop_monitor (true);
+        }
+
+        // Check if the specified socket type is supported. It must be a
+        // one-way socket types that support the SNDMORE flag.
+        match type_ {
+            ZMQ_PAIR => {}
+
+            ZMQ_PUB => {}
+
+            ZMQ_PUSH => {}
+
+            _ => {
+                bail!("invalid socket type")
+            }
+            // errno = EINVAL;
+            // return -1;
+        }
+
+        //  Register events to monitor
+        self._monitor_events = events_;
+        options.monitor_event_version = event_version_;
+        //  Create a monitor socket of the specified type.
+        self._monitor_socket = zmq_socket (get_ctx (), type_);
+        if (self._monitor_socket == null_mut()) {
+            bail!("failed to create monitor socket")
+        }
+
+        //  Never block context termination on pending event messages
+        let mut linger = 0i32;
+        let rc = zmq_setsockopt (self._monitor_socket, ZMQ_LINGER, &linger, mem::size_of::<linger>());
+        if (rc == -1) {
+            self.stop_monitor(false);
+        }
+
+        //  Spawn the monitor socket endpoint
+        rc = zmq_bind (_monitor_socket, endpoint_);
+        if (rc == -1) {
+            self.stop_monitor(false);
+        }
+        return rc;
+    }
+
+
 
     // void event_connected (const EndpointUriPair &endpoint_uri_pair_,
     //                       fd_t fd_);
@@ -1240,7 +1415,20 @@ impl ZmqSocketBase {
     }
 
     // virtual void xwrite_activated (pipe_t *pipe_);
+    pub fn xwrite_activated (&mut self, pipe: &mut pipe_t)
+    {
+        if self.xwriteactivated_fn.is_some() {
+            self.xwriteactivated_fn.unwrap()(self,pipe)
+        }
+    }
     // virtual void xhiccuped (pipe_t *pipe_);
+    pub fn xhiccuped (&mut self, pipe: & mut pipe_t)
+    {
+        if self.xhiccuped_fn.is_some() {
+            self.xhiccuped_fn.unwrap()(self,pipe)
+        }
+    }
+
     // virtual void xpipe_terminated (pipe_t *pipe_) = 0;
 
     //  the default implementation assumes that joub and leave are not supported.
@@ -1674,10 +1862,37 @@ impl ZmqSocketBase {
     //  To be called after processing commands or invoking any command
     //  handlers explicitly. If required, it will deallocate the socket.
     // void check_destroy ();
+    pub fn check_destroy (&mut self)
+    {
+        //  If the object was already marked as destroyed, finish the deallocation.
+        if (self._destroyed) {
+            //  Remove the socket from the reaper's poller.
+            self._poller.rm_fd(self._handle);
+
+            //  Remove the socket from the context.
+            self.destroy_socket(self);
+
+            //  Notify the reaper about the fact.
+            self.send_reaped();
+
+            //  Deallocate.
+            // self.own_t::process_destroy ();
+        }
+    }
 
     //  Moves the flags from the message to local variables,
     //  to be later retrieved by getsockopt.
     // void extract_flags (const ZmqMessage *msg);
+    pub fn extract_flags(&mut self, msg: &mut ZmqMessage)
+    {
+        //  Test whether routing_id flag is valid for this socket type.
+        // if (unlikely (msg.flags () & ZmqMessage::routing_id)){
+        //     zmq_assert (options.recv_routing_id);
+        // }
+
+        //  Remove MORE flag.
+        self._rcvmore = (msg.flags() & ZmqMessage::more) != 0;
+    }
 
 
 
@@ -1984,24 +2199,14 @@ impl ZmqSocketBase {
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct routing_socket_base_t {
     // protected:
-
-
     // methods from ZmqSocketBase
-
-
     // own methods
-
-
-
-
-
     // private:
     //  Outbound pipes indexed by the peer IDs.
     // typedef std::map<Blob, out_pipe_t> out_pipes_t;
     // out_pipes_t _out_pipes;
     pub _out_pipes: HashMap<Blob, out_pipe_t>,
     pub base: ZmqSocketBase,
-
     // Next assigned name on a zmq_connect() call used by ROUTER and STREAM socket types
     // std::string _connect_routing_id;
     pub _connect_routing_id: String,
@@ -2041,9 +2246,7 @@ impl routing_socket_base_t {
         //      it != end && !res; ++it) {
         //     res |= func_ (*it->second.pipe);
         // }
-        for pipe in self._out_pipes.iter_mut() {
-
-        }
+        for pipe in self._out_pipes.iter_mut() {}
 
         return res;
     }
@@ -2066,196 +2269,7 @@ impl routing_socket_base_t {
 
 
 
-void xwrite_activated (pipe_t *)
-{
-    zmq_assert (false);
-}
 
-void xhiccuped (pipe_t *)
-{
-    zmq_assert (false);
-}
-
-void in_event ()
-{
-    //  This function is invoked only once the socket is running in the context
-    //  of the reaper thread. Process any commands from other threads/sockets
-    //  that may be available at the moment. Ultimately, the socket will
-    //  be destroyed.
-    {
-        scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
-
-        //  If the socket is thread safe we need to unsignal the reaper signaler
-        if (_thread_safe)
-            _reaper_signaler.recv ();
-
-        process_commands (0, false);
-    }
-    check_destroy ();
-}
-
-void out_event ()
-{
-    zmq_assert (false);
-}
-
-void timer_event (int)
-{
-    zmq_assert (false);
-}
-
-void check_destroy ()
-{
-    //  If the object was already marked as destroyed, finish the deallocation.
-    if (_destroyed) {
-        //  Remove the socket from the reaper's poller.
-        _poller.rm_fd (_handle);
-
-        //  Remove the socket from the context.
-        destroy_socket (this);
-
-        //  Notify the reaper about the fact.
-        send_reaped ();
-
-        //  Deallocate.
-        own_t::process_destroy ();
-    }
-}
-
-void read_activated (pipe_: &mut pipe_t)
-{
-    xread_activated (pipe_);
-}
-
-void write_activated (pipe_: &mut pipe_t)
-{
-    xwrite_activated (pipe_);
-}
-
-void hiccuped (pipe_: &mut pipe_t)
-{
-    if (options.immediate == 1)
-        pipe_.terminate (false);
-    else
-        // Notify derived sockets of the hiccup
-        xhiccuped (pipe_);
-}
-
-void pipe_terminated (pipe_: &mut pipe_t)
-{
-    //  Notify the specific socket type about the pipe termination.
-    xpipe_terminated (pipe_);
-
-    // Remove pipe from inproc pipes
-    _inprocs.erase_pipe (pipe_);
-
-    //  Remove the pipe from the list of attached pipes and confirm its
-    //  termination if we are already shutting down.
-    _pipes.erase (pipe_);
-
-    // Remove the pipe from _endpoints (set it to NULL).
-    const std::string &identifier = pipe_.get_endpoint_pair ().identifier ();
-    if (!identifier.empty ()) {
-        std::pair<endpoints_t::iterator, endpoints_t::iterator> range;
-        range = _endpoints.equal_range (identifier);
-
-        for (endpoints_t::iterator it = range.first; it != range.second; ++it) {
-            if (it.second.second == pipe_) {
-                it.second.second = null_mut();
-                break;
-            }
-        }
-    }
-
-    if (is_terminating ())
-        unregister_term_ack ();
-}
-
-void extract_flags (const msg: &mut ZmqMessage)
-{
-    //  Test whether routing_id flag is valid for this socket type.
-    if (unlikely (msg.flags () & ZmqMessage::routing_id))
-        zmq_assert (options.recv_routing_id);
-
-    //  Remove MORE flag.
-    _rcvmore = (msg.flags () & ZmqMessage::more) != 0;
-}
-
-int monitor (endpoint_: *const c_char,
-                                 events_: u64,
-                                 event_version_: i32,
-                                 type_: i32)
-{
-    scoped_lock_t lock (_monitor_sync);
-
-    if (unlikely (_ctx_terminated)) {
-        errno = ETERM;
-        return -1;
-    }
-
-    //  Event version 1 supports only first 16 events.
-    if (unlikely (event_version_ == 1 && events_ >> 16 != 0)) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    //  Support deregistering monitoring endpoints as well
-    if (endpoint_ == null_mut()) {
-        stop_monitor ();
-        return 0;
-    }
-    //  Parse endpoint_uri_ string.
-    std::string protocol;
-    std::string address;
-    if (parse_uri (endpoint_, protocol, address) || check_protocol (protocol))
-        return -1;
-
-    //  Event notification only supported over inproc://
-    if (protocol != protocol_name::inproc) {
-        errno = EPROTONOSUPPORT;
-        return -1;
-    }
-
-    // already monitoring. Stop previous monitor before starting new one.
-    if (_monitor_socket != null_mut()) {
-        stop_monitor (true);
-    }
-
-    // Check if the specified socket type is supported. It must be a
-    // one-way socket types that support the SNDMORE flag.
-    switch (type_) {
-        case ZMQ_PAIR:
-            break;
-        case ZMQ_PUB:
-            break;
-        case ZMQ_PUSH:
-            break;
-        default:
-            errno = EINVAL;
-            return -1;
-    }
-
-    //  Register events to monitor
-    _monitor_events = events_;
-    options.monitor_event_version = event_version_;
-    //  Create a monitor socket of the specified type.
-    _monitor_socket = zmq_socket (get_ctx (), type_);
-    if (_monitor_socket == null_mut())
-        return -1;
-
-    //  Never block context termination on pending event messages
-    int linger = 0;
-    int rc =
-      zmq_setsockopt (_monitor_socket, ZMQ_LINGER, &linger, mem::size_of::<linger>());
-    if (rc == -1)
-        stop_monitor (false);
-
-    //  Spawn the monitor socket endpoint
-    rc = zmq_bind (_monitor_socket, endpoint_);
-    if (rc == -1)
-        stop_monitor (false);
-    return rc;
-}
 
 void event_connected (
   const EndpointUriPair &endpoint_uri_pair_, fd_t fd_)
