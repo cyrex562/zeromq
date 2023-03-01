@@ -78,6 +78,7 @@ use crate::zmq_hdr::{zmq_free_fn, ZMQ_IO_THREADS, ZmqRawMessage, ZMQ_PAIR, ZMQ_P
 use anyhow;
 use anyhow::bail;
 use serde::Serialize;
+use crate::options::ZmqOptions;
 
 // XSI vector I/O
 // #if defined ZMQ_HAVE_UIO
@@ -315,7 +316,7 @@ pub fn as_socket_base_t (s_: *mut c_void) -> *mut ZmqSocketBase
     return s;
 }
 
-pub fn zmq_socket(ctx: *mut c_void, type_: i32) -> *mut c_void {
+pub fn zmq_socket(ctx: &mut [u8], type_: i32) -> Vec<u8> {
     if !ctx || !(ctx as *mut ZmqContext).check_tag() {
         errno = EFAULT;
         return null_mut();
@@ -334,15 +335,16 @@ pub fn zmq_close(s_: *mut c_void) -> i32 {
     return 0;
 }
 
-pub fn zmq_setsockopt(s_: *mut c_void,
+pub fn zmq_setsockopt(options: &mut ZmqOptions,
+                      s_: &[u8],
                       option_: i32,
-                      optval_: *mut c_void,
+                      optval_: &[u8],
                       optvallen_: usize) -> i32 {
     let mut s: *mut ZmqSocketBase = as_socket_base_t(s_);
     if (!s) {
         return -1;
     }
-    return s.setsockopt(option_, optval_, optvallen_);
+    return s.setsockopt(options, option_, optval_, optvallen_);
 }
 
 pub fn zmq_getsockopt (s_: *mut c_void, option_: i32, optval_: *mut c_void, optvallen_: *mut usize) -> i32
