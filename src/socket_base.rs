@@ -36,7 +36,7 @@ use crate::vmci_listener::vmci_listener_t;
 use crate::ws_address::WsAddress;
 use crate::ws_listener::ws_listener_t;
 use crate::wss_address::WssAddress;
-use crate::zmq_hdr::{ZMQ_BLOCKY, ZMQ_DEALER, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB, ZMQ_ZERO_COPY_RECV};
+use crate::zmq_hdr::{ZMQ_BLOCKY, ZMQ_DEALER, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_LISTENING, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB, ZMQ_ZERO_COPY_RECV};
 use crate::zmq_ops::{zmq_bind, zmq_errno, zmq_setsockopt, zmq_socket};
 
 pub type GetPeerStateFunc = fn(&mut ZmqSocketBase, routing_id_: &mut [u8], routing_id_size_: usize) -> anyhow::Result<i32>;
@@ -1233,7 +1233,7 @@ impl ZmqSocketBase {
 
     // void event_connected (const EndpointUriPair &endpoint_uri_pair_,
     //                       fd_t fd_);
-    pub fn event_connected (&mut self, endpoint_uri_pair: &EndpointUriPair, fd_: fd_t)
+    pub fn event_connected (&mut self, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
     {
     // u64 values[1] = {static_cast<u64> (fd_)};
     let values: [u64;1] = [fd_];
@@ -1242,7 +1242,7 @@ impl ZmqSocketBase {
 
     // void event_connect_delayed (const EndpointUriPair &endpoint_uri_pair_,
     //                             err_: i32);
-    pub fn event_connect_delayed (&mut self, endpoint_uri_pair: &EndpointUriPair, err_: i32)
+    pub fn event_connect_delayed (&mut self, endpoint_uri_pair_: &EndpointUriPair, err_: i32)
     {
         // u64 values[1] = {static_cast<u64> (err_)};
         let values: [u64;1] = [err_ as u64];
@@ -1251,7 +1251,7 @@ impl ZmqSocketBase {
 
     // void event_connect_retried (const EndpointUriPair &endpoint_uri_pair_,
     //                             interval_: i32);
-    pub fn event_connect_retried(&mut self, endpoint_uri_pair: &EndpointUriPair, interval_: i32) {
+    pub fn event_connect_retried(&mut self, endpoint_uri_pair_: &EndpointUriPair, interval_: i32) {
         // u64 values[1] = {static_cast<u64> (interval_)};
         let values: [u64; 1] = [interval_ as u64];
         self.event(endpoint_uri_pair_, values, 1, ZMQ_EVENT_CONNECT_RETRIED);
@@ -1259,7 +1259,7 @@ impl ZmqSocketBase {
 
     // void event_listening (const EndpointUriPair &endpoint_uri_pair_,
     //                       fd_t fd_);
-    pub fn event_listening (&mut self, endpoint_uri_pair: &EndpointUriPair, fd_: fd_t)
+    pub fn event_listening (&mut self, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
     {
         // u64 values[1] = {static_cast<u64> (fd_)};
         let values: [u64;1] = [fd_];
@@ -1268,24 +1268,60 @@ impl ZmqSocketBase {
 
     // void event_bind_failed (const EndpointUriPair &endpoint_uri_pair_,
     //                         err_: i32);
-    pub fn event_bind_failed (&mut self, endpoint_uri_pair: &EndpointUriPair, err_: i32)
+    pub fn event_bind_failed (&mut self, endpoint_uri_pair_: &EndpointUriPair, err_: i32)
     {
         // u64 values[1] = {static_cast<u64> (err_)};
-        let values: [u64;1] = [err_as u64];
+        let values: [u64;1] = [err_ as u64];
 
         self.event(endpoint_uri_pair_, values, 1, ZMQ_EVENT_BIND_FAILED);
     }
 
     // void event_accepted (const EndpointUriPair &endpoint_uri_pair_,
     //                      fd_t fd_);
+    pub fn event_accepted (&mut self, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
+    {
+    // u64 values[1] = {static_cast<u64> (fd_)};
+        let values: [u64;1] = [fd_];
+        self.event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_ACCEPTED);
+    }
+
     // void event_accept_failed (const EndpointUriPair &endpoint_uri_pair_,
     //                           err_: i32);
+    pub fn event_accept_failed (&mut self, endpoint_uri_pair_: &EndpointUriPair, err_: i32)
+    {
+    // u64 values[1] = {static_cast<u64> (err_)};
+        let values: [u64;1] = [err_ as u64];
+        self.event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_ACCEPT_FAILED);
+    }
+
+
     // void event_closed (const EndpointUriPair &endpoint_uri_pair_,
     //                    fd_t fd_);
+    pub fn event_closed (&mut self, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
+    {
+        // u64 values[1] = {static_cast<u64> (fd_)};
+        let values: [u64;1] = [fd_];
+        self.event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_CLOSED);
+    }
+
     // void event_close_failed (const EndpointUriPair &endpoint_uri_pair_,
     //                          err_: i32);
+    pub fn event_close_failed (&mut self, enpoint_uri_pair_: &EndpointUriPair, err_: i32)
+    {
+        // u64 values[1] = {static_cast<u64> (err_)};
+        let values: [u64;1] = [err_ as u64];
+        self.event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_CLOSE_FAILED);
+    }
+
     // void event_disconnected (const EndpointUriPair &endpoint_uri_pair_,
     //                          fd_t fd_);
+    pub fn event_disconnected (&mut self, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
+    {
+        // u64 values[1] = {static_cast<u64> (fd_)};
+        let values: [u64;1] = [fd_];
+        self.event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_DISCONNECTED);
+    }
+
     // void event_handshake_failed_no_detail (
     //   const EndpointUriPair &endpoint_uri_pair_, err_: i32);
     // void event_handshake_failed_protocol (
@@ -2290,70 +2326,10 @@ impl routing_socket_base_t {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void event_accepted (
-  const EndpointUriPair &endpoint_uri_pair_, fd_t fd_)
+pub fn event_handshake_failed_no_detail (&mut self, endpoint_uri_pair: &EndpointUriPair, err_: i32)
 {
-    u64 values[1] = {static_cast<u64> (fd_)};
-    event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_ACCEPTED);
-}
-
-void event_accept_failed (
-  const EndpointUriPair &endpoint_uri_pair_, err_: i32)
-{
-    u64 values[1] = {static_cast<u64> (err_)};
-    event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_ACCEPT_FAILED);
-}
-
-void event_closed (
-  const EndpointUriPair &endpoint_uri_pair_, fd_t fd_)
-{
-    u64 values[1] = {static_cast<u64> (fd_)};
-    event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_CLOSED);
-}
-
-void event_close_failed (
-  const EndpointUriPair &endpoint_uri_pair_, err_: i32)
-{
-    u64 values[1] = {static_cast<u64> (err_)};
-    event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_CLOSE_FAILED);
-}
-
-void event_disconnected (
-  const EndpointUriPair &endpoint_uri_pair_, fd_t fd_)
-{
-    u64 values[1] = {static_cast<u64> (fd_)};
-    event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_DISCONNECTED);
-}
-
-void event_handshake_failed_no_detail (
-  const endpoint_uri_pair_t &endpoint_uri_pair_, err_: i32)
-{
-    u64 values[1] = {static_cast<u64> (err_)};
+    // u64 values[1] = {static_cast<u64> (err_)};
+    let values: [u64;1] = [err_ as u64];
     event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL);
 }
 
