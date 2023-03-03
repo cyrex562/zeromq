@@ -205,7 +205,7 @@ pub const ZMQ_CONFLATE: u8 = 54;
 pub const ZMQ_ZAP_DOMAIN: u8 = 55;
 pub const ZMQ_ROUTER_HANDOVER: u8 = 56;
 pub const ZMQ_TOS: u8 = 57;
-pub const ZMQ_CONNECT_ROUTING_ID: u8 = 61;
+pub const ZMQ_CONNECT_ROUTING_ID: i32 = 61;
 pub const ZMQ_GSSAPI_SERVER: u8 = 62;
 pub const ZMQ_GSSAPI_PRINCIPAL: u8 = 63;
 pub const ZMQ_GSSAPI_SERVICE_PRINCIPAL: u8 = 64;
@@ -242,7 +242,7 @@ pub const ZMQ_SHARED: u8 = 3;
 
 //   Send/recv options.
 pub const ZMQ_DONTWAIT: u8 = 1;
-pub const ZMQ_SNDMORE: u8 = 2;
+pub const ZMQ_SNDMORE: i32 = 2;
 
 //   Security mechanisms
 pub const ZMQ_NULL: u8 = 0;

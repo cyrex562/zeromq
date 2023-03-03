@@ -326,7 +326,7 @@ pub fn zmq_socket(ctx: &mut [u8], type_: i32) -> Vec<u8> {
     return s as *mut c_void;
 }
 
-pub fn zmq_close(s_: *mut c_void) -> i32 {
+pub fn zmq_close(s_: &mut [u8]) -> i32 {
     let mut s: *mut ZmqSocketBase = as_socket_base_t(s_);
     if (!s) {
         return -1;

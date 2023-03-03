@@ -36,8 +36,8 @@ use crate::vmci_listener::vmci_listener_t;
 use crate::ws_address::WsAddress;
 use crate::ws_listener::ws_listener_t;
 use crate::wss_address::WssAddress;
-use crate::zmq_hdr::{ZMQ_BLOCKY, ZMQ_DEALER, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_LISTENING, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB, ZMQ_ZERO_COPY_RECV};
-use crate::zmq_ops::{zmq_bind, zmq_errno, zmq_setsockopt, zmq_socket};
+use crate::zmq_hdr::{ZMQ_BLOCKY, ZMQ_DEALER, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB, ZMQ_ZERO_COPY_RECV, ZmqRawMessage, ZMQ_CONNECT_ROUTING_ID};
+use crate::zmq_ops::{zmq_bind, zmq_close, zmq_errno, zmq_msg_data, zmq_msg_init_size, zmq_msg_send, zmq_setsockopt, zmq_socket};
 
 pub type GetPeerStateFunc = fn(&mut ZmqSocketBase, routing_id_: &mut [u8], routing_id_size_: usize) -> anyhow::Result<i32>;
 
@@ -1167,7 +1167,7 @@ impl ZmqSocketBase {
 
         //  Support deregistering monitoring endpoints as well
         if (endpoint_ == null_mut()) {
-            self.stop_monitor ();
+            self.stop_monitor (options, false);
             return Ok(());
         }
         //  Parse endpoint_uri_ string.
@@ -1187,7 +1187,7 @@ impl ZmqSocketBase {
 
         // already monitoring. Stop previous monitor before starting new one.
         if (self._monitor_socket != null_mut()) {
-            self.stop_monitor (true);
+            self.stop_monitor (options,true);
         }
 
         // Check if the specified socket type is supported. It must be a
@@ -1220,118 +1220,148 @@ impl ZmqSocketBase {
         let linger_bytes: [u8;4] = linger.to_le_bytes();
         let mut  rc = zmq_setsockopt (options, self._monitor_socket.as_slice(), ZMQ_LINGER, &linger_bytes, mem::size_of::<linger>());
         if (rc == -1) {
-            self.stop_monitor(false);
+            self.stop_monitor(options,false);
         }
 
         //  Spawn the monitor socket endpoint
         rc = zmq_bind (_monitor_socket, endpoint_);
         if (rc == -1) {
-            self.stop_monitor(false);
+            self.stop_monitor(options,false);
         }
         Ok(())
     }
 
     // void event_connected (const EndpointUriPair &endpoint_uri_pair_,
     //                       fd_t fd_);
-    pub fn event_connected (&mut self, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
+    pub fn event_connected (&mut self, options: &mut ZmqOptions, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
     {
     // u64 values[1] = {static_cast<u64> (fd_)};
     let values: [u64;1] = [fd_];
-        self.event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_CONNECTED);
+        self.event (options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_CONNECTED as u64);
     }
 
     // void event_connect_delayed (const EndpointUriPair &endpoint_uri_pair_,
     //                             err_: i32);
-    pub fn event_connect_delayed (&mut self, endpoint_uri_pair_: &EndpointUriPair, err_: i32)
+    pub fn event_connect_delayed (&mut self, options: &mut ZmqOptions, endpoint_uri_pair_: &EndpointUriPair, err_: i32)
     {
         // u64 values[1] = {static_cast<u64> (err_)};
         let values: [u64;1] = [err_ as u64];
-        self.event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_CONNECT_DELAYED);
+        self.event (options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_CONNECT_DELAYED as u64);
     }
 
     // void event_connect_retried (const EndpointUriPair &endpoint_uri_pair_,
     //                             interval_: i32);
-    pub fn event_connect_retried(&mut self, endpoint_uri_pair_: &EndpointUriPair, interval_: i32) {
+    pub fn event_connect_retried(&mut self, options: &mut ZmqOptions, endpoint_uri_pair_: &EndpointUriPair, interval_: i32) {
         // u64 values[1] = {static_cast<u64> (interval_)};
         let values: [u64; 1] = [interval_ as u64];
-        self.event(endpoint_uri_pair_, values, 1, ZMQ_EVENT_CONNECT_RETRIED);
+        self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_CONNECT_RETRIED as u64);
     }
 
     // void event_listening (const EndpointUriPair &endpoint_uri_pair_,
     //                       fd_t fd_);
-    pub fn event_listening (&mut self, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
+    pub fn event_listening (&mut self, options: &mut ZmqOptions, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
     {
         // u64 values[1] = {static_cast<u64> (fd_)};
         let values: [u64;1] = [fd_];
-        self.event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_LISTENING);
+        self.event (options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_LISTENING as u64);
     }
 
     // void event_bind_failed (const EndpointUriPair &endpoint_uri_pair_,
     //                         err_: i32);
-    pub fn event_bind_failed (&mut self, endpoint_uri_pair_: &EndpointUriPair, err_: i32)
+    pub fn event_bind_failed (&mut self, options: &mut ZmqOptions, endpoint_uri_pair_: &EndpointUriPair, err_: i32)
     {
         // u64 values[1] = {static_cast<u64> (err_)};
         let values: [u64;1] = [err_ as u64];
 
-        self.event(endpoint_uri_pair_, values, 1, ZMQ_EVENT_BIND_FAILED);
+        self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_BIND_FAILED as u64);
     }
 
     // void event_accepted (const EndpointUriPair &endpoint_uri_pair_,
     //                      fd_t fd_);
-    pub fn event_accepted (&mut self, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
+    pub fn event_accepted (&mut self, options: &mut ZmqOptions, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
     {
     // u64 values[1] = {static_cast<u64> (fd_)};
         let values: [u64;1] = [fd_];
-        self.event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_ACCEPTED);
+        self.event (options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_ACCEPTED as u64);
     }
 
     // void event_accept_failed (const EndpointUriPair &endpoint_uri_pair_,
     //                           err_: i32);
-    pub fn event_accept_failed (&mut self, endpoint_uri_pair_: &EndpointUriPair, err_: i32)
+    pub fn event_accept_failed (&mut self, options: &mut ZmqOptions, endpoint_uri_pair_: &EndpointUriPair, err_: i32)
     {
     // u64 values[1] = {static_cast<u64> (err_)};
         let values: [u64;1] = [err_ as u64];
-        self.event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_ACCEPT_FAILED);
+        self.event (options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_ACCEPT_FAILED as u64);
     }
 
 
     // void event_closed (const EndpointUriPair &endpoint_uri_pair_,
     //                    fd_t fd_);
-    pub fn event_closed (&mut self, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
+    pub fn event_closed (&mut self, options: &mut ZmqOptions, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
     {
         // u64 values[1] = {static_cast<u64> (fd_)};
         let values: [u64;1] = [fd_];
-        self.event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_CLOSED);
+        self.event (options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_CLOSED as u64);
     }
 
     // void event_close_failed (const EndpointUriPair &endpoint_uri_pair_,
     //                          err_: i32);
-    pub fn event_close_failed (&mut self, enpoint_uri_pair_: &EndpointUriPair, err_: i32)
+    pub fn event_close_failed (&mut self, options: &mut ZmqOptions, enpoint_uri_pair_: &EndpointUriPair, err_: i32)
     {
         // u64 values[1] = {static_cast<u64> (err_)};
         let values: [u64;1] = [err_ as u64];
-        self.event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_CLOSE_FAILED);
+        self.event (options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_CLOSE_FAILED as u64);
     }
 
     // void event_disconnected (const EndpointUriPair &endpoint_uri_pair_,
     //                          fd_t fd_);
-    pub fn event_disconnected (&mut self, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
+    pub fn event_disconnected (&mut self, options: &mut ZmqOptions, endpoint_uri_pair_: &EndpointUriPair, fd_: fd_t)
     {
         // u64 values[1] = {static_cast<u64> (fd_)};
         let values: [u64;1] = [fd_];
-        self.event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_DISCONNECTED);
+        self.event (options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_DISCONNECTED as u64);
     }
 
     // void event_handshake_failed_no_detail (
     //   const EndpointUriPair &endpoint_uri_pair_, err_: i32);
+    pub fn event_handshake_failed_no_detail (&mut self, options: &mut ZqmOptions, endpoint_uri_pair: &EndpointUriPair, err_: i32)
+    {
+        // u64 values[1] = {static_cast<u64> (err_)};
+        let values: [u64;1] = [err_ as u64];
+        self.event (options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL as u64);
+    }
+
+
     // void event_handshake_failed_protocol (
     //   const EndpointUriPair &endpoint_uri_pair_, err_: i32);
+    pub fn event_handshake_failed_protocol (&mut self, options: &mut ZmqOptions, endpoint_uri_pair_: &EndpointUriPair, err_: i32)
+    {
+        // u64 values[1] = {static_cast<u64> (err_)};
+        let values: [u64;1] = [err_ as u64];
+        self.event (options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL as u64);
+    }
+
+
     // void
     // event_handshake_failed_auth (const EndpointUriPair &endpoint_uri_pair_,
     //                              err_: i32);
+    pub fn event_handshake_failed_auth (&mut self, options: &mut ZmqOptions, endpoint_uri_pair_: &EndpointUriPair, err_: i32)
+    {
+        // u64 values[1] = {static_cast<u64> (err_)};
+        let values: [u64;1] = [err_ as u64];
+        self.event (options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH as u64);
+    }
+
     // void
     // event_handshake_succeeded (const EndpointUriPair &endpoint_uri_pair_,
     //                            err_: i32);
+    pub fn event_handshake_succeeded (&mut self, options: &mut ZmqOptions, endpoint_uri_pair_: &EndpointUriPair, err_: i32)
+    {
+        // u64 values[1] = {static_cast<u64> (err_)};
+        let values: [u64;1] = [err_ as u64];
+        self.event (options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_HANDSHAKE_SUCCEEDED as u64);
+    }
+
 
     //  Query the state of a specific peer. The default implementation
     //  always returns an ENOTSUP error.
@@ -1900,15 +1930,130 @@ impl ZmqSocketBase {
     //             u64 values_[],
     //             values_count_: u64,
     //             u64 type_);
+    pub fn event (&mut self, options: &mut ZmqOptions, endpoint_uri_pair_: &EndpointUriPair, values_: &[u64], values_count_: u64, type_: u64)
+    {
+        // scoped_lock_t lock (_monitor_sync);
+        if (self._monitor_events & type_) {
+            self.monitor_event (options, type_, values_, values_count_, endpoint_uri_pair_);
+        }
+    }
+
 
     // Socket event data dispatch
     // void monitor_event (event_: u64,
     //                     const u64 values_[],
     //                     values_count_: u64,
     //                     const EndpointUriPair &endpoint_uri_pair_) const;
+    pub fn monitor_event (&mut self,
+                          options: &mut ZmqOptions,
+                          event_: u64,
+                          values_: &[u64],
+                          values_count_: u64,
+                          endpoint_uri_pair_: &EndpointUriPair)
+    {
+        // this is a private method which is only called from
+        // contexts where the _monitor_sync mutex has been locked before
+
+        if (_monitor_socket) {
+            let mut msg = ZmqRawMessage::default();
+
+            match (options.monitor_event_version) {
+                1 => {
+                    //  The API should not allow to activate unsupported events
+                    // zmq_assert (event_ <= std::numeric_limits<uint16_t>::max ());
+                    //  v1 only allows one value
+                    // zmq_assert (values_count_ == 1);
+                    // zmq_assert (values_[0]
+                    //             <= std::numeric_limits<u32>::max ());
+
+                    //  Send event and value in first frame
+                    // const uint16_t event = static_cast<uint16_t> (event_);
+                    let event = event_ as u16;
+                    // const u32 value = static_cast<u32> (values_[0]);
+                    let value = values_[0] as u32;
+                    zmq_msg_init_size (&mut msg, mem::size_of::<event>() + mem::size_of::<value>());
+                    let mut data = (zmq_msg_data (&mut msg));
+                    //  Avoid dereferencing uint32_t on unaligned address
+                    // memcpy (data + 0, &event, mem::size_of::<event>());
+                    let event_bytes = event.to_le_bytes();
+                    data.extend_from_slice(&event_bytes);
+                    // memcpy (data + mem::size_of::<event>(), &value, mem::size_of::<value>());
+                    let value_bytes = event.to_le_bytes();
+                    data.extend_from_slice(&value_bytes);
+                    zmq_msg_send (&mut msg, _monitor_socket, ZMQ_SNDMORE);
+
+                    let endpoint_uri = endpoint_uri_pair_.identifier ();
+
+                    //  Send address in second frame
+                    zmq_msg_init_size (&mut msg, endpoint_uri.size ());
+                    // memcpy (zmq_msg_data (&mut msg), endpoint_uri,
+                    //         endpoint_uri.size ());
+                    zmq_msg_send (&mut msg, _monitor_socket, 0);
+                }
+                2 => {
+                    //  Send event in first frame (64bit unsigned)
+                    zmq_msg_init_size (&mut msg, mem::size_of::<event_>());
+                    // memcpy (zmq_msg_data (&mut msg), &event_, mem::size_of::<event_>());
+
+                    zmq_msg_send (&mut msg, _monitor_socket, ZMQ_SNDMORE);
+
+                    //  Send number of values that will follow in second frame
+                    zmq_msg_init_size (&mut msg, mem::size_of::<values_count_>());
+                    // memcpy (zmq_msg_data (&msg), &values_count_,
+                    //         mem::size_of::<values_count_>());
+                    zmq_msg_data(&mut msg).extend_from_slice(&values_count_.to_le_bytes().as_slice());
+                    zmq_msg_send (&mut msg, _monitor_socket, ZMQ_SNDMORE);
+
+                    //  Send values in third-Nth frames (64bit unsigned)
+                    // for (u64 i = 0; i < values_count_; ++i)
+                    for i in 0 .. values_count_
+                    {
+                        zmq_msg_init_size (&mut msg, sizeof (values_[i]));
+                        // memcpy (zmq_msg_data (&msg), &values_[i],
+                        //         sizeof (values_[i]));
+                        zmq_msg_data(&mut msg).extend_from_slice(&values_[i]);
+                        zmq_msg_send (&mut msg, _monitor_socket, ZMQ_SNDMORE);
+                    }
+
+                    //  Send local endpoint URI in second-to-last frame (string)
+                    zmq_msg_init_size (&mut msg, endpoint_uri_pair_.local.size ());
+                    // memcpy (zmq_msg_data (&msg), endpoint_uri_pair_.local,
+                    //         endpoint_uri_pair_.local.size ());
+                    let epup_bytes = endpoint_uri_pair_.local.as_bytes();
+                    zmq_msg_data(&mut msg).extend_from_slice(epup_bytes);
+                    zmq_msg_send (&mut msg, _monitor_socket, ZMQ_SNDMORE);
+
+                    //  Send remote endpoint URI in last frame (string)
+                    zmq_msg_init_size (&mut msg, endpoint_uri_pair_.remote.size ());
+                    // memcpy (zmq_msg_data (&msg), endpoint_uri_pair_.remote,
+                    //         endpoint_uri_pair_.remote.size ());
+                    zmq_msg_data(&mut msg).extend_from_slice(endpoint_uri_pair_.remote.as_bytes());
+                    zmq_msg_send (&mut msg, _monitor_socket, 0);
+                }
+                _ => {}
+            }
+        }
+    }
 
     // Monitor socket cleanup
     // void stop_monitor (bool send_monitor_stopped_event_ = true);
+    pub fn stop_monitor (&mut self, options: &mut ZmqOptions, send_monitor_stopped_event_: bool)
+    {
+        // this is a private method which is only called from
+        // contexts where the _monitor_sync mutex has been locked before
+
+        if (self._monitor_socket) {
+            if ((self._monitor_events & ZMQ_EVENT_MONITOR_STOPPED) != 0
+                && send_monitor_stopped_event_) {
+                let values: [u64;1] = [0];
+                self.monitor_event (options, ZMQ_EVENT_MONITOR_STOPPED as u64, &values, 1,
+                                    &EndpointUriPair::default ());
+            }
+            zmq_close (&mut self._monitor_socket);
+            self._monitor_socket.clear();
+            self._monitor_events = 0;
+        }
+    }
 
     //  Creates new endpoint ID and adds the endpoint to the map.
     // void add_endpoint (const EndpointUriPair &endpoint_pair_,
@@ -2155,14 +2300,14 @@ impl ZmqSocketBase {
 
     //  Handlers for incoming commands.
     // void process_stop () ZMQ_FINAL;
-        pub fn process_stop (&mut self)
+        pub fn process_stop (&mut self, options: &mut ZmqOptions)
     {
         //  Here, someone have called zmq_ctx_term while the socket was still alive.
         //  We'll remember the fact so that any blocking call is interrupted and any
         //  further attempt to use the socket will return ETERM. The user is still
         //  responsible for calling zmq_close on the socket though!
         // scoped_lock_t lock (_monitor_sync);
-        self.stop_monitor ();
+        self.stop_monitor (options, false);
 
         self._ctx_terminated = true;
     }
@@ -2176,13 +2321,13 @@ impl ZmqSocketBase {
     // void process_pipe_stats_publish (outbound_queue_count_: u64,
     //                             inbound_queue_count_: u64,
     //                             EndpointUriPair *endpoint_pair_) ZMQ_FINAL;
-    pub fn process_pipe_stats_publish (&mut self,
+    pub fn process_pipe_stats_publish (&mut self, options: &mut ZmqOptions,
       outbound_queue_count_: u64,
       inbound_queue_count_: u64,
       endpoint_pair_: &mut EndpointUriPair)
     {
         let mut values: [u64;2] = [outbound_queue_count_, inbound_queue_count_];
-        self.event (endpoint_pair_, values, 2, ZMQ_EVENT_PIPES_STATS);
+        self.event (options,endpoint_pair_, &values, 2, ZMQ_EVENT_PIPES_STATS as u64);
         // delete endpoint_pair_;
     }
 
@@ -2285,14 +2430,82 @@ pub struct routing_socket_base_t {
 
 impl routing_socket_base_t {
     // routing_socket_base_t (class ZmqContext *parent_, u32 tid_, sid_: i32);
+    // routing_socket_base_t::routing_socket_base_t (class ZmqContext *parent_,
+    // u32 tid_,
+    // sid_: i32) :
+    // ZmqSocketBase (parent_, tid_, sid_)
+    // {
+    // }
+    pub fn new(parent_: &mut ZmqContext, options: &mut ZmqOptions, tid_: u32, sid_: i32) -> Self {
+        Self {
+            _out_pipes: HashMap::new(),
+            base: ZmqSocketBase::new(parent_, options, tid_, sid_, false),
+            _connect_routing_id: String::new()
+        }
+    }
+
 
     // ~routing_socket_base_t () ZMQ_OVERRIDE;
+    // routing_socket_base_t::~routing_socket_base_t ()
+    // {
+    // zmq_assert (_out_pipes.empty ());
+    // }
+
 
     // int xsetsockopt (option_: i32, const optval_: *mut c_void, ptvallen_: usize) ZMQ_OVERRIDE;
+    pub fn xsetsockopt(&mut self, option_: i32, optval_: &[u8], optvallen_: usize) -> i32
+    {
+        match (option_) {
+            ZMQ_CONNECT_ROUTING_ID => {
+                // TODO why isn't it possible to set an empty connect_routing_id
+                //   (which is the default value)
+                if (optval_ && optvallen_ > 0) {
+                    // self._connect_routing_id.assign(static_cast <const char
+                    // * > (optval_),
+                    // optvallen_);
+                    self._connect_routing_id += String::from_utf8_lossy(optval_).to_string().as_str();
+                    return 0;
+                }
+            }
+            _ => {}
+        }
+        errno = EINVAL;
+        return -1;
+    }
+
 
     // void xwrite_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
+    pub fn xwrite_activated(&mut self, pipe_: &mut pipe_t)
+    {
+        // const out_pipes_t::iterator end = _out_pipes.end ();
+        let (end_blob, end_pipe) = self._out_pipes.last().unwrap();
+        // out_pipes_t::iterator it;
+        // for (it = _out_pipes.begin (); it != end; ++it)
+        // let mut pipe_ref: &mut pipe_t
+        for (it_blob, it_pipe) in self._out_pipes.iter_mut()
+        {
+            // if (it.second.pipe == pipe_) {
+            //     break;
+            // }
+            if it_pipe == pipe_ && it_pipe != end_pipe && it_pipe.active == false {
+                it_pipe.active = true;
+                break;
+            }
+        }
+
+        // zmq_assert (it != end);
+        // zmq_assert (!it.second.active);
+        // it.second.active = true;
+    }
 
     // std::string extract_connect_routing_id ();
+    pub fn extract_connect_routing_id(&mut self) -> String
+    {
+        let res = self._connect_routing_id.clone();
+        self._connect_routing_id.clear();
+        return res;
+    }
+
 
     // bool connect_routing_id_is_set () const;
 
@@ -2308,7 +2521,75 @@ impl routing_socket_base_t {
 
     // out_pipe_t try_erase_out_pipe (const Blob &routing_id_);
 
-    // template <typename Func> bool any_of_out_pipes (Func func_)
+
+
+
+
+
+
+
+
+
+
+
+    bool routing_socket_base_t::connect_routing_id_is_set () const
+    {
+    return !_connect_routing_id.is_empty();
+    }
+
+    void routing_socket_base_t::add_out_pipe (Blob routing_id_,
+    pipe_: &mut pipe_t)
+    {
+    //  Add the record into output pipes lookup table
+    const out_pipe_t outpipe = {pipe_, true};
+    const bool ok =
+    _out_pipes.ZMQ_MAP_INSERT_OR_EMPLACE (ZMQ_MOVE (routing_id_), outpipe)
+    .second;
+    zmq_assert (ok);
+    }
+
+    bool routing_socket_base_t::has_out_pipe (const Blob &routing_id_) const
+    {
+    return 0 != _out_pipes.count (routing_id_);
+    }
+
+    routing_socket_base_t::out_pipe_t *
+    routing_socket_base_t::lookup_out_pipe (const Blob &routing_id_)
+    {
+    // TODO we could probably avoid constructor a temporary Blob to call this function
+    out_pipes_t::iterator it = _out_pipes.find (routing_id_);
+    return it == _out_pipes.end () ? null_mut() : &it.second;
+    }
+
+    const routing_socket_base_t::out_pipe_t *
+    routing_socket_base_t::lookup_out_pipe (const Blob &routing_id_) const
+    {
+    // TODO we could probably avoid constructor a temporary Blob to call this function
+    const out_pipes_t::const_iterator it = _out_pipes.find (routing_id_);
+    return it == _out_pipes.end () ? null_mut() : &it.second;
+}
+
+void routing_socket_base_t::erase_out_pipe (const pipe_: &mut pipe_t)
+{
+const size_t erased = _out_pipes.erase (pipe_.get_routing_id ());
+zmq_assert (erased);
+}
+
+routing_socket_base_t::out_pipe_t
+routing_socket_base_t::try_erase_out_pipe (const Blob &routing_id_)
+{
+const out_pipes_t::iterator it = _out_pipes.find (routing_id_);
+out_pipe_t res = {null_mut(), false};
+if (it != _out_pipes.end ()) {
+res = it.second;
+_out_pipes.erase (it);
+}
+return res;
+}
+
+
+
+// template <typename Func> bool any_of_out_pipes (Func func_)
     pub fn any_of_out_pipes(&mut self) -> bool
     {
         let mut res = false;
@@ -2326,244 +2607,19 @@ impl routing_socket_base_t {
 
 
 
-pub fn event_handshake_failed_no_detail (&mut self, endpoint_uri_pair: &EndpointUriPair, err_: i32)
-{
-    // u64 values[1] = {static_cast<u64> (err_)};
-    let values: [u64;1] = [err_ as u64];
-    event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL);
-}
 
-void event_handshake_failed_protocol (
-  const endpoint_uri_pair_t &endpoint_uri_pair_, err_: i32)
-{
-    u64 values[1] = {static_cast<u64> (err_)};
-    event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL);
-}
 
-void event_handshake_failed_auth (
-  const endpoint_uri_pair_t &endpoint_uri_pair_, err_: i32)
-{
-    u64 values[1] = {static_cast<u64> (err_)};
-    event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH);
-}
 
-void event_handshake_succeeded (
-  const endpoint_uri_pair_t &endpoint_uri_pair_, err_: i32)
-{
-    u64 values[1] = {static_cast<u64> (err_)};
-    event (endpoint_uri_pair_, values, 1, ZMQ_EVENT_HANDSHAKE_SUCCEEDED);
-}
 
-void event (const endpoint_uri_pair_t &endpoint_uri_pair_,
-                                u64 values_[],
-                                values_count_: u64,
-                                u64 type_)
-{
-    scoped_lock_t lock (_monitor_sync);
-    if (_monitor_events & type_) {
-        monitor_event (type_, values_, values_count_, endpoint_uri_pair_);
-    }
-}
 
-//  Send a monitor event
-void monitor_event (
-  event_: u64,
-  const u64 values_[],
-  values_count_: u64,
-  const endpoint_uri_pair_t &endpoint_uri_pair_) const
-{
-    // this is a private method which is only called from
-    // contexts where the _monitor_sync mutex has been locked before
 
-    if (_monitor_socket) {
-        ZmqRawMessage msg;
 
-        switch (options.monitor_event_version) {
-            case 1: {
-                //  The API should not allow to activate unsupported events
-                zmq_assert (event_ <= std::numeric_limits<uint16_t>::max ());
-                //  v1 only allows one value
-                zmq_assert (values_count_ == 1);
-                zmq_assert (values_[0]
-                            <= std::numeric_limits<u32>::max ());
-
-                //  Send event and value in first frame
-                const uint16_t event = static_cast<uint16_t> (event_);
-                const u32 value = static_cast<u32> (values_[0]);
-                zmq_msg_init_size (&msg, mem::size_of::<event>() + mem::size_of::<value>());
-                uint8_t *data = static_cast<uint8_t *> (zmq_msg_data (&msg));
-                //  Avoid dereferencing uint32_t on unaligned address
-                memcpy (data + 0, &event, mem::size_of::<event>());
-                memcpy (data + mem::size_of::<event>(), &value, mem::size_of::<value>());
-                zmq_msg_send (&msg, _monitor_socket, ZMQ_SNDMORE);
-
-                const std::string &endpoint_uri =
-                  endpoint_uri_pair_.identifier ();
-
-                //  Send address in second frame
-                zmq_msg_init_size (&msg, endpoint_uri.size ());
-                memcpy (zmq_msg_data (&msg), endpoint_uri,
-                        endpoint_uri.size ());
-                zmq_msg_send (&msg, _monitor_socket, 0);
-            } break;
-            case 2: {
-                //  Send event in first frame (64bit unsigned)
-                zmq_msg_init_size (&msg, mem::size_of::<event_>());
-                memcpy (zmq_msg_data (&msg), &event_, mem::size_of::<event_>());
-                zmq_msg_send (&msg, _monitor_socket, ZMQ_SNDMORE);
-
-                //  Send number of values that will follow in second frame
-                zmq_msg_init_size (&msg, mem::size_of::<values_count_>());
-                memcpy (zmq_msg_data (&msg), &values_count_,
-                        mem::size_of::<values_count_>());
-                zmq_msg_send (&msg, _monitor_socket, ZMQ_SNDMORE);
-
-                //  Send values in third-Nth frames (64bit unsigned)
-                for (u64 i = 0; i < values_count_; ++i) {
-                    zmq_msg_init_size (&msg, sizeof (values_[i]));
-                    memcpy (zmq_msg_data (&msg), &values_[i],
-                            sizeof (values_[i]));
-                    zmq_msg_send (&msg, _monitor_socket, ZMQ_SNDMORE);
-                }
-
-                //  Send local endpoint URI in second-to-last frame (string)
-                zmq_msg_init_size (&msg, endpoint_uri_pair_.local.size ());
-                memcpy (zmq_msg_data (&msg), endpoint_uri_pair_.local,
-                        endpoint_uri_pair_.local.size ());
-                zmq_msg_send (&msg, _monitor_socket, ZMQ_SNDMORE);
-
-                //  Send remote endpoint URI in last frame (string)
-                zmq_msg_init_size (&msg, endpoint_uri_pair_.remote.size ());
-                memcpy (zmq_msg_data (&msg), endpoint_uri_pair_.remote,
-                        endpoint_uri_pair_.remote.size ());
-                zmq_msg_send (&msg, _monitor_socket, 0);
-            } break;
-        }
-    }
-}
-
-void stop_monitor (send_monitor_stopped_event_: bool)
-{
-    // this is a private method which is only called from
-    // contexts where the _monitor_sync mutex has been locked before
-
-    if (_monitor_socket) {
-        if ((_monitor_events & ZMQ_EVENT_MONITOR_STOPPED)
-            && send_monitor_stopped_event_) {
-            u64 values[1] = {0};
-            monitor_event (ZMQ_EVENT_MONITOR_STOPPED, values, 1,
-                           endpoint_uri_pair_t ());
-        }
-        zmq_close (_monitor_socket);
-        _monitor_socket = null_mut();
-        _monitor_events = 0;
-    }
-}
 
 
 
-routing_socket_base_t::routing_socket_base_t (class ZmqContext *parent_,
-                                                   u32 tid_,
-                                                   sid_: i32) :
-    ZmqSocketBase (parent_, tid_, sid_)
-{
-}
+//  Send a monitor event
 
-routing_socket_base_t::~routing_socket_base_t ()
-{
-    zmq_assert (_out_pipes.empty ());
-}
 
-int routing_socket_base_t::xsetsockopt (option_: i32,
-                                             const optval_: *mut c_void,
-                                             optvallen_: usize)
-{
-    switch (option_) {
-        case ZMQ_CONNECT_ROUTING_ID:
-            // TODO why isn't it possible to set an empty connect_routing_id
-            //   (which is the default value)
-            if (optval_ && optvallen_) {
-                _connect_routing_id.assign (static_cast<const char *> (optval_),
-                                            optvallen_);
-                return 0;
-            }
-            break;
-    }
-    errno = EINVAL;
-    return -1;
-}
 
-void routing_socket_base_t::xwrite_activated (pipe_: &mut pipe_t)
-{
-    const out_pipes_t::iterator end = _out_pipes.end ();
-    out_pipes_t::iterator it;
-    for (it = _out_pipes.begin (); it != end; ++it)
-        if (it.second.pipe == pipe_)
-            break;
 
-    zmq_assert (it != end);
-    zmq_assert (!it.second.active);
-    it.second.active = true;
-}
 
-std::string routing_socket_base_t::extract_connect_routing_id ()
-{
-    std::string res = ZMQ_MOVE (_connect_routing_id);
-    _connect_routing_id.clear ();
-    return res;
-}
-
-bool routing_socket_base_t::connect_routing_id_is_set () const
-{
-    return !_connect_routing_id.is_empty();
-}
-
-void routing_socket_base_t::add_out_pipe (Blob routing_id_,
-                                               pipe_: &mut pipe_t)
-{
-    //  Add the record into output pipes lookup table
-    const out_pipe_t outpipe = {pipe_, true};
-    const bool ok =
-      _out_pipes.ZMQ_MAP_INSERT_OR_EMPLACE (ZMQ_MOVE (routing_id_), outpipe)
-        .second;
-    zmq_assert (ok);
-}
-
-bool routing_socket_base_t::has_out_pipe (const Blob &routing_id_) const
-{
-    return 0 != _out_pipes.count (routing_id_);
-}
-
-routing_socket_base_t::out_pipe_t *
-routing_socket_base_t::lookup_out_pipe (const Blob &routing_id_)
-{
-    // TODO we could probably avoid constructor a temporary Blob to call this function
-    out_pipes_t::iterator it = _out_pipes.find (routing_id_);
-    return it == _out_pipes.end () ? null_mut() : &it.second;
-}
-
-const routing_socket_base_t::out_pipe_t *
-routing_socket_base_t::lookup_out_pipe (const Blob &routing_id_) const
-{
-    // TODO we could probably avoid constructor a temporary Blob to call this function
-    const out_pipes_t::const_iterator it = _out_pipes.find (routing_id_);
-    return it == _out_pipes.end () ? null_mut() : &it.second;
-}
-
-void routing_socket_base_t::erase_out_pipe (const pipe_: &mut pipe_t)
-{
-    const size_t erased = _out_pipes.erase (pipe_.get_routing_id ());
-    zmq_assert (erased);
-}
-
-routing_socket_base_t::out_pipe_t
-routing_socket_base_t::try_erase_out_pipe (const Blob &routing_id_)
-{
-    const out_pipes_t::iterator it = _out_pipes.find (routing_id_);
-    out_pipe_t res = {null_mut(), false};
-    if (it != _out_pipes.end ()) {
-        res = it.second;
-        _out_pipes.erase (it);
-    }
-    return res;
-}
