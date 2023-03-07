@@ -20,7 +20,7 @@ use crate::ipc_address::IpcAddress;
 use crate::ipc_listener::ipc_listener_t;
 use crate::mailbox::mailbox_t;
 use crate::mailbox_safe::mailbox_safe_t;
-use crate::msg::ZmqMessage;
+use crate::msg::{routing_id, ZmqMessage};
 use crate::object::object_t;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
 use crate::out_pipe::out_pipe_t;
@@ -2459,7 +2459,7 @@ impl routing_socket_base_t {
             ZMQ_CONNECT_ROUTING_ID => {
                 // TODO why isn't it possible to set an empty connect_routing_id
                 //   (which is the default value)
-                if (optval_ && optvallen_ > 0) {
+                if (optvallen_ > 0) {
                     // self._connect_routing_id.assign(static_cast <const char
                     // * > (optval_),
                     // optvallen_);
@@ -2508,84 +2508,93 @@ impl routing_socket_base_t {
 
 
     // bool connect_routing_id_is_set () const;
+    pub fn connect_routing_id_is_set (& mut self) -> bool
+    {
+        return !self._connect_routing_id.is_empty();
+    }
 
     // void add_out_pipe (Blob routing_id_, pipe_: &mut pipe_t);
+    pub fn add_out_pipe (&mut self, routing_id_: Blob,
+                         pipe_: &mut pipe_t)
+    {
+        //  Add the record into output pipes lookup table
+        let outpipe = out_pipe_t::new(pipe_, true);
+        let ok =
+            self._out_pipes.ZMQ_MAP_INSERT_OR_EMPLACE (routing_id_, outpipe)
+                .second;
+        // zmq_assert (ok);
+    }
 
     // bool has_out_pipe (const Blob &routing_id_) const;
+    pub fn has_out_pipe (&mut self, routing_id_: &mut Blob) -> bool
+    {
+        return 0 != _out_pipes.count (routing_id_);
+    }
 
     // out_pipe_t *lookup_out_pipe (const Blob &routing_id_);
+    pub fn lookup_out_pipe (&mut self, routing_id_: &mut Blob) -> Option<out_pipe_t>
+    {
+        // TODO we could probably avoid constructor a temporary Blob to call this function
+        // out_pipes_t::iterator it = _out_pipes.find (routing_id_);
+        // return it == _out_pipes.end () ? null_mut() : &it.second;
+        let result = self._out_pipes.iter().find(routing_id_);
+        if result.is_some() {
+            Some(result.unwrap())
+        }
+        None
+    }
 
     // const out_pipe_t *lookup_out_pipe (const Blob &routing_id_) const;
 
+
+
     // void erase_out_pipe (const pipe_: &mut pipe_t);
+    pub fn erase_out_pipe (&mut self, pipe_: &mut pipe_t)
+    {
+        let erased = _out_pipes.erase (pipe_.get_routing_id ());
+        // zmq_assert (erased);
+    }
 
     // out_pipe_t try_erase_out_pipe (const Blob &routing_id_);
-
-
-
-
-
-
-
-
-
-
-
-
-    bool routing_socket_base_t::connect_routing_id_is_set () const
+    pub fn try_erase_out_pipe (&mut self, routing_id_: &mut Blob) -> Option<out_pipe_t>
     {
-    return !_connect_routing_id.is_empty();
+        // const out_pipes_t::iterator it = _out_pipes.find (routing_id_);
+        let result = self._out_pipes.remove(routing_id_);
+        //     if result.is_some() {
+        //
+        //     }
+        //     out_pipe_t res = {null_mut(), false};
+        // if (it != _out_pipes.end ()) {
+        // res = it.second;
+        // _out_pipes.erase (it);
+        // }
+        // return res;
+        // }
+        result
     }
 
-    void routing_socket_base_t::add_out_pipe (Blob routing_id_,
-    pipe_: &mut pipe_t)
-    {
-    //  Add the record into output pipes lookup table
-    const out_pipe_t outpipe = {pipe_, true};
-    const bool ok =
-    _out_pipes.ZMQ_MAP_INSERT_OR_EMPLACE (ZMQ_MOVE (routing_id_), outpipe)
-    .second;
-    zmq_assert (ok);
-    }
 
-    bool routing_socket_base_t::has_out_pipe (const Blob &routing_id_) const
-    {
-    return 0 != _out_pipes.count (routing_id_);
-    }
 
-    routing_socket_base_t::out_pipe_t *
-    routing_socket_base_t::lookup_out_pipe (const Blob &routing_id_)
-    {
-    // TODO we could probably avoid constructor a temporary Blob to call this function
-    out_pipes_t::iterator it = _out_pipes.find (routing_id_);
-    return it == _out_pipes.end () ? null_mut() : &it.second;
-    }
 
-    const routing_socket_base_t::out_pipe_t *
-    routing_socket_base_t::lookup_out_pipe (const Blob &routing_id_) const
-    {
-    // TODO we could probably avoid constructor a temporary Blob to call this function
-    const out_pipes_t::const_iterator it = _out_pipes.find (routing_id_);
-    return it == _out_pipes.end () ? null_mut() : &it.second;
-}
 
-void routing_socket_base_t::erase_out_pipe (const pipe_: &mut pipe_t)
-{
-const size_t erased = _out_pipes.erase (pipe_.get_routing_id ());
-zmq_assert (erased);
-}
 
-routing_socket_base_t::out_pipe_t
-routing_socket_base_t::try_erase_out_pipe (const Blob &routing_id_)
-{
-const out_pipes_t::iterator it = _out_pipes.find (routing_id_);
-out_pipe_t res = {null_mut(), false};
-if (it != _out_pipes.end ()) {
-res = it.second;
-_out_pipes.erase (it);
-}
-return res;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
