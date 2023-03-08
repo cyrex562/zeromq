@@ -23,7 +23,7 @@ use crate::ctx::tid_type::{reaper_tid, term_tid};
 use crate::msg::ZmqMessage;
 use crate::object::object_t;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
-use crate::zmq_hdr::{ZMQ_PAIR, ZMQ_MAX_SOCKETS, ZMQ_IO_THREADS, ZMQ_IPV6, ZMQ_BLOCKY, ZMQ_MAX_MSGSZ, ZMQ_ZERO_COPY_RECV, ZMQ_SOCKET_LIMIT, ZmqRawMessage, ZMQ_MAX_SOCKETS_DFLT, ZMQ_IO_THREADS_DFLT, ZMQ_MESSAGE_SIZE};
+use crate::zmq_hdr::{ZMQ_PAIR, ZMQ_MAX_SOCKETS, ZMQ_IO_THREADS, ZMQ_IPV6, ZMQ_BLOCKY, ZMQ_MAX_MSGSZ, ZMQ_ZERO_COPY_RECV, ZMQ_SOCKET_LIMIT, ZmqMessage, ZMQ_MAX_SOCKETS_DFLT, ZMQ_IO_THREADS_DFLT, ZMQ_MESSAGE_SIZE};
 use serde::{Serialize, Deserialize};
 
 
@@ -474,7 +474,7 @@ impl ZmqContext {
             ZMQ_MESSAGE_SIZE => {
                 // scoped_lock_t locker (_opt_sync);
                 // *value = sizeof (zmq_ZmqMessage);
-                let x = size_of::<ZmqRawMessage>();
+                let x = size_of::<ZmqMessage>();
                 out.clone_from_slice(x.to_le_bytes().as_slice());
                 Ok(out)
             }

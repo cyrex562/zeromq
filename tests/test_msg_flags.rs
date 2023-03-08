@@ -46,7 +46,7 @@ void test_more ()
     send_string_expect_success (sc, "B", 0);
 
     //  Routing id comes first.
-    ZmqRawMessage msg;
+    ZmqMessage msg;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, sb, 0));
     TEST_ASSERT_EQUAL_INT (1, TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_more (&msg)));
@@ -69,14 +69,14 @@ void test_more ()
 void test_shared_refcounted ()
 {
     // Test ZMQ_SHARED property (case 1, refcounted messages)
-    ZmqRawMessage msg_a;
+    ZmqMessage msg_a;
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_msg_init_size (&msg_a, 1024)); // large enough to be a type_lmsg
 
     // Message is not shared
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_get (&msg_a, ZMQ_SHARED));
 
-    ZmqRawMessage msg_b;
+    ZmqMessage msg_b;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg_b));
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_copy (&msg_b, &msg_a));
@@ -92,7 +92,7 @@ void test_shared_refcounted ()
 
 void test_shared_const ()
 {
-    ZmqRawMessage msg_a;
+    ZmqMessage msg_a;
     // Test ZMQ_SHARED property (case 2, constant data messages)
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_msg_init_data (&msg_a, (void *) "TEST", 5, 0, 0));

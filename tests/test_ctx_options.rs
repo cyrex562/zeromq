@@ -235,8 +235,8 @@ void test_ctx_option_ipv6 ()
 void test_ctx_option_ZmqMessage_size ()
 {
 // #if defined(ZMQ_ZmqMessage_SIZE)
-    TEST_ASSERT_EQUAL_INT (mem::size_of::<ZmqRawMessage>(),
-                           zmq_ctx_get (get_test_context (), ZmqRawMessage_SIZE));
+    TEST_ASSERT_EQUAL_INT (mem::size_of::<ZmqMessage>(),
+                           zmq_ctx_get (get_test_context (), ZmqMessage_SIZE));
 // #endif
 }
 

@@ -1,9 +1,10 @@
 use libc::socket;
+use crate::options::ZmqOptions;
 use crate::pipe::pipe_t;
 use crate::socket_base::{ZmqSocketBase, ZmqContext};
 
-#[derive!(Default,Debug,Clone)]
-pub struct channel_t //: public ZmqSocketBase
+#[derive(Default,Debug,Clone)]
+pub struct ZmqChannel //: public ZmqSocketBase
 {
 // public:
 //     channel_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
@@ -25,83 +26,86 @@ pub struct channel_t //: public ZmqSocketBase
   //   pipe_t *_pipe;
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (channel_t)
-    pipe: pipe_t,
+    pipe: Option<pipe_t>,
     base: ZmqSocketBase,
 }
 
-impl channel_t {
-    pub fn new(parent: *mut ZmqContext, tid: u32, sid: i32) -> Self {
-        Self {
+impl ZmqChannel {
+    pub fn new(parent: &mut ZmqContext, options: &mut ZmqOptions, tid: u32, sid: i32) -> Self {
+        let mut out = Self {
             pipe: Default::default(),
-            base: ZmqSocketBase {
-                parent,
-                tid,
-                sid,
-                true
+            base: ZmqSocketBase::new(parent, options, tid, sid, true)
+            };
 
-            }
+        out
+    }
+
+    // channel_t::~channel_t ()
+    // {
+    //     zmq_assert (!_pipe);
+    // }
+
+    // channel_t::channel_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
+    // ZmqSocketBase (parent_, tid_, sid_, true), _pipe (null_mut())
+    // {
+    // options.type = ZMQ_CHANNEL;
+    // }
+
+    pub fn xattach_pipe(&mut self, pipe_: &mut pipe_t,
+                        subscribe_to_all_: bool,
+                        locally_initiated_: bool)
+    {
+        // LIBZMQ_UNUSED (subscribe_to_all_);
+        // LIBZMQ_UNUSED (locally_initiated_);
+
+        // zmq_assert (pipe_ != null_mut());
+
+        //  ZMQ_PAIR socket can only be connected to a single peer.
+        //  The socket rejects any further connection requests.
+        // if (_pipe == null_mut())
+        // _pipe = pipe_;
+        // else
+        // pipe_.terminate (false);
+        // }
+        if self.pipe.is_none() {
+            self.pipe = Some(pipe_t.clone());
+        } else {
+            pipe_.terminate(false);
         }
     }
-}
 
+    pub fn xpipe_terminated(&mut self, pipe_: &mut pipe_t)
+    {
+        if (pipe_ == self._pipe.unwrap()) {
+            self._pipe = None;
+        }
+    }
 
-channel_t::channel_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    ZmqSocketBase (parent_, tid_, sid_, true), _pipe (null_mut())
-{
-    options.type = ZMQ_CHANNEL;
-}
-
-channel_t::~channel_t ()
-{
-    zmq_assert (!_pipe);
-}
-
-void channel_t::xattach_pipe (pipe_t *pipe_,
-                                   subscribe_to_all_: bool,
-                                   locally_initiated_: bool)
-{
-    LIBZMQ_UNUSED (subscribe_to_all_);
-    LIBZMQ_UNUSED (locally_initiated_);
-
-    zmq_assert (pipe_ != null_mut());
-
-    //  ZMQ_PAIR socket can only be connected to a single peer.
-    //  The socket rejects any further connection requests.
-    if (_pipe == null_mut())
-        _pipe = pipe_;
-    else
-        pipe_.terminate (false);
-}
-
-void channel_t::xpipe_terminated (pipe_: &mut pipe_t)
-{
-    if (pipe_ == _pipe)
-        _pipe = null_mut();
-}
-
-void channel_t::xread_activated (pipe_t *)
-{
+    pub fn xread_activated (&mut self, pipe: &mut pipe_t)
+    {
     //  There's just one pipe. No lists of active and inactive pipes.
     //  There's nothing to do here.
-}
+        unimplemented!()
+    }
 
-void channel_t::xwrite_activated (pipe_t *)
-{
+    pub fn xwrite_activated (&mut self, pipe: &mut pipe_t)
+    {
     //  There's just one pipe. No lists of active and inactive pipes.
     //  There's nothing to do here.
-}
+        unimplemented!()
+    }
 
-int channel_t::xsend (msg: &mut ZmqMessage)
-{
+    pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32
+    {
     //  CHANNEL sockets do not allow multipart data (ZMQ_SNDMORE)
     if (msg.flags () & ZmqMessage::more) {
-        errno = EINVAL;
-        return -1;
+    errno = EINVAL;
+    return -1;
     }
 
     if (!_pipe || !_pipe.write (msg)) {
-        errno = EAGAIN;
-        return -1;
+    errno = EAGAIN;
+    return -1;
     }
 
     _pipe.flush ();
@@ -111,7 +115,23 @@ int channel_t::xsend (msg: &mut ZmqMessage)
     errno_assert (rc == 0);
 
     return 0;
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 int channel_t::xrecv (msg: &mut ZmqMessage)
 {

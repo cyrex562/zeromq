@@ -95,7 +95,7 @@ void test_client_server (pre_allocate_sock_fun_t pre_allocate_sock_fun_)
     setup_socket_pair (pre_allocate_sock_fun_, ZMQ_SERVER, ZMQ_CLIENT, &sb,
                        &sc);
 
-    ZmqRawMessage msg;
+    ZmqMessage msg;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 1));
 
     char *data = static_cast<char *> (zmq_msg_data (&msg));

@@ -36,7 +36,7 @@ use crate::vmci_listener::vmci_listener_t;
 use crate::ws_address::WsAddress;
 use crate::ws_listener::ws_listener_t;
 use crate::wss_address::WssAddress;
-use crate::zmq_hdr::{ZMQ_BLOCKY, ZMQ_DEALER, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB, ZMQ_ZERO_COPY_RECV, ZmqRawMessage, ZMQ_CONNECT_ROUTING_ID};
+use crate::zmq_hdr::{ZMQ_BLOCKY, ZMQ_DEALER, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB, ZMQ_ZERO_COPY_RECV, ZMQ_CONNECT_ROUTING_ID};
 use crate::zmq_ops::{zmq_bind, zmq_close, zmq_errno, zmq_msg_data, zmq_msg_init_size, zmq_msg_send, zmq_setsockopt, zmq_socket};
 
 pub type GetPeerStateFunc = fn(&mut ZmqSocketBase, routing_id_: &mut [u8], routing_id_size_: usize) -> anyhow::Result<i32>;
@@ -1368,7 +1368,7 @@ impl ZmqSocketBase {
     // virtual int get_peer_state (const routing_id_: *mut c_void,
     //                             routing_id_size_: usize) const;
     pub fn get_peer_state (&mut self,
-                           routing_id: &mut [u8],
+                           routing_id_: &mut [u8],
                            routing_id_size: usize) -> anyhow::Result<i32>
     {
         // LIBZMQ_UNUSED (routing_id_);
@@ -1379,7 +1379,7 @@ impl ZmqSocketBase {
         // return -1;
         if self.get_peer_state_func.is_some() {
             let f = self.get_peer_state_func.unwrap();
-            f(self,routing_id,routing_id_size)
+            f(self, routing_id_, routing_id_size)
         }
         bail!("get peer state not supported")
     }
@@ -1955,7 +1955,7 @@ impl ZmqSocketBase {
         // contexts where the _monitor_sync mutex has been locked before
 
         if (_monitor_socket) {
-            let mut msg = ZmqRawMessage::default();
+            let mut raw_msg = ZmqMessage::default();
 
             match (options.monitor_event_version) {
                 1 => {
@@ -1971,64 +1971,64 @@ impl ZmqSocketBase {
                     let event = event_ as u16;
                     // const u32 value = static_cast<u32> (values_[0]);
                     let value = values_[0] as u32;
-                    zmq_msg_init_size (&mut msg, mem::size_of::<event>() + mem::size_of::<value>());
-                    let mut data = (zmq_msg_data (&mut msg));
+                    zmq_msg_init_size (&mut raw_msg, mem::size_of::<event>() + mem::size_of::<value>());
+                    // let mut data = (zmq_msg_data (&mut raw_msg));
                     //  Avoid dereferencing uint32_t on unaligned address
                     // memcpy (data + 0, &event, mem::size_of::<event>());
-                    let event_bytes = event.to_le_bytes();
-                    data.extend_from_slice(&event_bytes);
+                    // let event_bytes = event.to_le_bytes();
+                    // data.extend_from_slice(&event_bytes);
                     // memcpy (data + mem::size_of::<event>(), &value, mem::size_of::<value>());
-                    let value_bytes = event.to_le_bytes();
-                    data.extend_from_slice(&value_bytes);
-                    zmq_msg_send (&mut msg, _monitor_socket, ZMQ_SNDMORE);
+                    // let value_bytes = event.to_le_bytes();
+                    // data.extend_from_slice(&value_bytes);
+                    zmq_msg_send (&mut raw_msg, _monitor_socket, ZMQ_SNDMORE);
 
                     let endpoint_uri = endpoint_uri_pair_.identifier ();
 
                     //  Send address in second frame
-                    zmq_msg_init_size (&mut msg, endpoint_uri.size ());
+                    zmq_msg_init_size (&mut raw_msg, endpoint_uri.size ());
                     // memcpy (zmq_msg_data (&mut msg), endpoint_uri,
                     //         endpoint_uri.size ());
-                    zmq_msg_send (&mut msg, _monitor_socket, 0);
+                    zmq_msg_send (&mut raw_msg, _monitor_socket, 0);
                 }
                 2 => {
                     //  Send event in first frame (64bit unsigned)
-                    zmq_msg_init_size (&mut msg, mem::size_of::<event_>());
+                    zmq_msg_init_size (&mut raw_msg, mem::size_of::<event_>());
                     // memcpy (zmq_msg_data (&mut msg), &event_, mem::size_of::<event_>());
 
-                    zmq_msg_send (&mut msg, _monitor_socket, ZMQ_SNDMORE);
+                    zmq_msg_send (&mut raw_msg, _monitor_socket, ZMQ_SNDMORE);
 
                     //  Send number of values that will follow in second frame
-                    zmq_msg_init_size (&mut msg, mem::size_of::<values_count_>());
+                    zmq_msg_init_size (&mut raw_msg, mem::size_of::<values_count_>());
                     // memcpy (zmq_msg_data (&msg), &values_count_,
                     //         mem::size_of::<values_count_>());
-                    zmq_msg_data(&mut msg).extend_from_slice(&values_count_.to_le_bytes().as_slice());
-                    zmq_msg_send (&mut msg, _monitor_socket, ZMQ_SNDMORE);
+                    zmq_msg_data(&mut raw_msg).extend_from_slice(&values_count_.to_le_bytes().as_slice());
+                    zmq_msg_send (&mut raw_msg, _monitor_socket, ZMQ_SNDMORE);
 
                     //  Send values in third-Nth frames (64bit unsigned)
                     // for (u64 i = 0; i < values_count_; ++i)
                     for i in 0 .. values_count_
                     {
-                        zmq_msg_init_size (&mut msg, sizeof (values_[i]));
+                        zmq_msg_init_size (&mut raw_msg, sizeof (values_[i]));
                         // memcpy (zmq_msg_data (&msg), &values_[i],
                         //         sizeof (values_[i]));
-                        zmq_msg_data(&mut msg).extend_from_slice(&values_[i]);
-                        zmq_msg_send (&mut msg, _monitor_socket, ZMQ_SNDMORE);
+                        zmq_msg_data(&mut raw_msg).extend_from_slice(&values_[i]);
+                        zmq_msg_send (&mut raw_msg, _monitor_socket, ZMQ_SNDMORE);
                     }
 
                     //  Send local endpoint URI in second-to-last frame (string)
-                    zmq_msg_init_size (&mut msg, endpoint_uri_pair_.local.size ());
+                    zmq_msg_init_size (&mut raw_msg, endpoint_uri_pair_.local.size ());
                     // memcpy (zmq_msg_data (&msg), endpoint_uri_pair_.local,
                     //         endpoint_uri_pair_.local.size ());
                     let epup_bytes = endpoint_uri_pair_.local.as_bytes();
-                    zmq_msg_data(&mut msg).extend_from_slice(epup_bytes);
-                    zmq_msg_send (&mut msg, _monitor_socket, ZMQ_SNDMORE);
+                    zmq_msg_data(&mut raw_msg).extend_from_slice(epup_bytes);
+                    zmq_msg_send (&mut raw_msg, _monitor_socket, ZMQ_SNDMORE);
 
                     //  Send remote endpoint URI in last frame (string)
-                    zmq_msg_init_size (&mut msg, endpoint_uri_pair_.remote.size ());
+                    zmq_msg_init_size (&mut raw_msg, endpoint_uri_pair_.remote.size ());
                     // memcpy (zmq_msg_data (&msg), endpoint_uri_pair_.remote,
                     //         endpoint_uri_pair_.remote.size ());
-                    zmq_msg_data(&mut msg).extend_from_slice(endpoint_uri_pair_.remote.as_bytes());
-                    zmq_msg_send (&mut msg, _monitor_socket, 0);
+                    zmq_msg_data(&mut raw_msg).extend_from_slice(endpoint_uri_pair_.remote.as_bytes());
+                    zmq_msg_send (&mut raw_msg, _monitor_socket, 0);
                 }
                 _ => {}
             }
