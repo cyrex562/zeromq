@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use libc::socket;
 use crate::options::ZmqOptions;
 use crate::pipe::pipe_t;
@@ -95,96 +96,103 @@ impl ZmqChannel {
         unimplemented!()
     }
 
-    pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32
+    pub fn xsend(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<(), anyhow::Error>
     {
-    //  CHANNEL sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg.flags () & ZmqMessage::more) {
-    errno = EINVAL;
-    return -1;
+        //  CHANNEL sockets do not allow multipart data (ZMQ_SNDMORE)
+        if (msg.flags() & ZmqMessage::more) {
+            // errno = EINVAL;
+            // return -1;
+            return Err(anyhow!("invalid state: channel sockets do not allow multipart data"));
+        }
+
+        if (!self._pipe || !self._pipe.write(msg)) {
+            return Err(anyhow!("EAGAIN"));
+        }
+
+        self._pipe.flush();
+
+        //  Detach the original message from the data buffer.
+        let rc: i32 = msg.init();
+        // errno_assert (rc == 0);
+
+        Ok(())
     }
 
-    if (!_pipe || !_pipe.write (msg)) {
-    errno = EAGAIN;
-    return -1;
-    }
 
-    _pipe.flush ();
-
-    //  Detach the original message from the data buffer.
-    let rc: i32 = msg.init ();
-    errno_assert (rc == 0);
-
-    return 0;
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int channel_t::xrecv (msg: &mut ZmqMessage)
-{
-    //  Deallocate old content of the message.
-    int rc = msg.close ();
-    errno_assert (rc == 0);
-
-    if (!_pipe) {
-        //  Initialise the output parameter to be a 0-byte message.
-        rc = msg.init ();
+    pub fn xrecv (&mut self, msg: &mut ZmqMessage) -> i32
+    {
+        //  Deallocate old content of the message.
+        let rc = msg.close ();
         errno_assert (rc == 0);
 
-        errno = EAGAIN;
-        return -1;
-    }
+        if (!_pipe) {
+            //  Initialise the output parameter to be a 0-byte message.
+            rc = msg.init ();
+            errno_assert (rc == 0);
 
-    // Drop any messages with more flag
-    bool read = _pipe.read (msg);
-    while (read && msg.flags () & ZmqMessage::more) {
-        // drop all frames of the current multi-frame message
-        read = _pipe.read (msg);
-        while (read && msg.flags () & ZmqMessage::more)
+            errno = EAGAIN;
+            return -1;
+        }
+
+        // Drop any messages with more flag
+        bool read = _pipe.read (msg);
+        while (read && msg.flags () & ZmqMessage::more) {
+            // drop all frames of the current multi-frame message
+            read = _pipe.read (msg);
+            while (read && msg.flags () & ZmqMessage::more)
             read = _pipe.read (msg);
 
-        // get the new message
-        if (read)
+            // get the new message
+            if (read)
             read = _pipe.read (msg);
+        }
+
+        if (!read) {
+            //  Initialise the output parameter to be a 0-byte message.
+            rc = msg.init ();
+            errno_assert (rc == 0);
+
+            errno = EAGAIN;
+            return -1;
+        }
+
+        return 0;
     }
 
-    if (!read) {
-        //  Initialise the output parameter to be a 0-byte message.
-        rc = msg.init ();
-        errno_assert (rc == 0);
+    pub fn xhas_in (&mut self) -> bool
+    {
+        if (!self._pipe) {
+            return false;
+        }
 
-        errno = EAGAIN;
-        return -1;
+        return self._pipe.check_read ();
     }
 
-    return 0;
+    pub fn xhas_out (&mut self) -> bool
+    {
+        if (!self._pipe) {
+            return false;
+        }
+
+        return self._pipe.check_write ();
+    }
 }
 
-bool channel_t::xhas_in ()
-{
-    if (!_pipe)
-        return false;
 
-    return _pipe.check_read ();
-}
 
-bool channel_t::xhas_out ()
-{
-    if (!_pipe)
-        return false;
 
-    return _pipe.check_write ();
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
