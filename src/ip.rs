@@ -115,7 +115,7 @@ bool initialize_network ();
 // Shutdown network subsystem. Must be called once for each call to initialize_network before terminating.
 void shutdown_network ();
 
-// Creates a pair of sockets (using signaler_port on OS using TCP sockets).
+// Creates a pair of sockets (using SIGNALER_PORT on OS using TCP sockets).
 // Returns -1 if we could not make the socket pair successfully
 int make_fdpair (fd_t *r_, fd_t *w_);
 

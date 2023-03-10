@@ -146,7 +146,7 @@ int req_t::xsend (msg: &mut ZmqMessage)
             int rc = id.init_size (mem::size_of::<u32>());
             memcpy (id.data (), &_request_id, mem::size_of::<u32>());
             errno_assert (rc == 0);
-            id.set_flags (ZmqMessage::more);
+            id.set_flags (ZMQ_MSG_MORE);
 
             rc = dealer_t::sendpipe (&id, &_reply_pipe);
             if (rc != 0) {
@@ -157,7 +157,7 @@ int req_t::xsend (msg: &mut ZmqMessage)
         ZmqMessage bottom;
         int rc = bottom.init ();
         errno_assert (rc == 0);
-        bottom.set_flags (ZmqMessage::more);
+        bottom.set_flags (ZMQ_MSG_MORE);
 
         rc = dealer_t::sendpipe (&bottom, &_reply_pipe);
         if (rc != 0)
@@ -182,7 +182,7 @@ int req_t::xsend (msg: &mut ZmqMessage)
         }
     }
 
-    bool more = (msg.flags () & ZmqMessage::more) != 0;
+    bool more = (msg.flags () & ZMQ_MSG_MORE) != 0;
 
     int rc = dealer_t::xsend (msg);
     if (rc != 0)
@@ -213,12 +213,12 @@ int req_t::xrecv (msg: &mut ZmqMessage)
             if (rc != 0)
                 return rc;
 
-            if (unlikely (!(msg.flags () & ZmqMessage::more)
+            if (unlikely (!(msg.flags () & ZMQ_MSG_MORE)
                           || msg.size () != mem::size_of::<_request_id>()
                           || *static_cast<u32 *> (msg.data ())
                                != _request_id)) {
                 //  Skip the remaining frames and try the next message
-                while (msg.flags () & ZmqMessage::more) {
+                while (msg.flags () & ZMQ_MSG_MORE) {
                     rc = recv_reply_pipe (msg);
                     errno_assert (rc == 0);
                 }
@@ -232,9 +232,9 @@ int req_t::xrecv (msg: &mut ZmqMessage)
         if (rc != 0)
             return rc;
 
-        if (unlikely (!(msg.flags () & ZmqMessage::more) || msg.size () != 0)) {
+        if (unlikely (!(msg.flags () & ZMQ_MSG_MORE) || msg.size () != 0)) {
             //  Skip the remaining frames and try the next message
-            while (msg.flags () & ZmqMessage::more) {
+            while (msg.flags () & ZMQ_MSG_MORE) {
                 rc = recv_reply_pipe (msg);
                 errno_assert (rc == 0);
             }
@@ -249,7 +249,7 @@ int req_t::xrecv (msg: &mut ZmqMessage)
         return rc;
 
     //  If the reply is fully received, flip the FSM into request-sending state.
-    if (!(msg.flags () & ZmqMessage::more)) {
+    if (!(msg.flags () & ZMQ_MSG_MORE)) {
         _receiving_reply = false;
         _message_begins = true;
     }
@@ -343,12 +343,12 @@ int req_session_t::push_msg (msg: &mut ZmqMessage)
 {
     //  Ignore commands, they are processed by the engine and should not
     //  affect the state machine.
-    if (unlikely (msg.flags () & ZmqMessage::command))
+    if (unlikely (msg.flags () & ZMQ_MSG_COMMAND))
         return 0;
 
     switch (_state) {
         case bottom:
-            if (msg.flags () == ZmqMessage::more) {
+            if (msg.flags () == ZMQ_MSG_MORE) {
                 //  In case option ZMQ_CORRELATE is on, allow request_id to be
                 //  transferred as first frame (would be too cumbersome to check
                 //  whether the option is actually on or not).
@@ -363,13 +363,13 @@ int req_session_t::push_msg (msg: &mut ZmqMessage)
             }
             break;
         case request_id:
-            if (msg.flags () == ZmqMessage::more && msg.size () == 0) {
+            if (msg.flags () == ZMQ_MSG_MORE && msg.size () == 0) {
                 _state = body;
                 return session_base_t::push_msg (msg);
             }
             break;
         case body:
-            if (msg.flags () == ZmqMessage::more)
+            if (msg.flags () == ZMQ_MSG_MORE)
                 return session_base_t::push_msg (msg);
             if (msg.flags () == 0) {
                 _state = bottom;

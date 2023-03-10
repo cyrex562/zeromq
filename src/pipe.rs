@@ -313,7 +313,7 @@ void send_routing_id (pipe_t *pipe_, const ZmqOptions &options_)
     let rc: i32 = id.init_size (options_.routing_id_size);
     errno_assert (rc == 0);
     memcpy (id.data (), options_.routing_id, options_.routing_id_size);
-    id.set_flags (ZmqMessage::routing_id);
+    id.set_flags (ZMQ_MSG_ROUTING_ID);
     const bool written = pipe_.write (&id);
     zmq_assert (written);
     pipe_.flush ();
@@ -453,7 +453,7 @@ bool pipe_t::read (msg: &mut ZmqMessage)
         return false;
     }
 
-    if (!(msg.flags () & ZmqMessage::more) && !msg.is_routing_id ())
+    if (!(msg.flags () & ZMQ_MSG_MORE) && !msg.is_routing_id ())
         _msgs_read++;
 
     if (_lwm > 0 && _msgs_read % _lwm == 0)
@@ -482,7 +482,7 @@ bool pipe_t::write (const msg: &mut ZmqMessage)
     if (unlikely (!check_write ()))
         return false;
 
-    const bool more = (msg.flags () & ZmqMessage::more) != 0;
+    const bool more = (msg.flags () & ZMQ_MSG_MORE) != 0;
     const bool is_routing_id = msg.is_routing_id ();
     _out_pipe.write (*msg, more);
     if (!more && !is_routing_id)
@@ -497,7 +497,7 @@ void pipe_t::rollback () const
     ZmqMessage msg;
     if (_out_pipe) {
         while (_out_pipe.unwrite (&msg)) {
-            zmq_assert (msg.flags () & ZmqMessage::more);
+            zmq_assert (msg.flags () & ZMQ_MSG_MORE);
             let rc: i32 = msg.close ();
             errno_assert (rc == 0);
         }
@@ -541,7 +541,7 @@ void pipe_t::process_hiccup (pipe_: *mut c_void)
     _out_pipe.flush ();
     ZmqMessage msg;
     while (_out_pipe.read (&msg)) {
-        if (!(msg.flags () & ZmqMessage::more))
+        if (!(msg.flags () & ZMQ_MSG_MORE))
             _msgs_written--;
         let rc: i32 = msg.close ();
         errno_assert (rc == 0);

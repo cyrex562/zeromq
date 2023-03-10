@@ -325,7 +325,7 @@ dish_session_t::~dish_session_t ()
 int dish_session_t::push_msg (msg: &mut ZmqMessage)
 {
     if (_state == group) {
-        if ((msg.flags () & ZmqMessage::more) != ZmqMessage::more) {
+        if ((msg.flags () & ZMQ_MSG_MORE) != ZMQ_MSG_MORE) {
             errno = EFAULT;
             return -1;
         }
@@ -357,7 +357,7 @@ int dish_session_t::push_msg (msg: &mut ZmqMessage)
     errno_assert (rc == 0);
 has_group:
     //  Thread safe socket doesn't support multipart messages
-    if ((msg.flags () & ZmqMessage::more) == ZmqMessage::more) {
+    if ((msg.flags () & ZMQ_MSG_MORE) == ZMQ_MSG_MORE) {
         errno = EFAULT;
         return -1;
     }
@@ -398,7 +398,7 @@ int dish_session_t::pull_msg (msg: &mut ZmqMessage)
         memcpy (command.data (), "\5LEAVE", 6);
     }
 
-    command.set_flags (ZmqMessage::command);
+    command.set_flags (ZMQ_MSG_COMMAND);
     char *command_data = static_cast<char *> (command.data ());
 
     //  Copy the group

@@ -280,7 +280,7 @@ int router_t::xsend (msg: &mut ZmqMessage)
         //  If we have malformed message (prefix with no subsequent message)
         //  then just silently ignore it.
         //  TODO: The connections should be killed instead.
-        if (msg.flags () & ZmqMessage::more) {
+        if (msg.flags () & ZMQ_MSG_MORE) {
             _more_out = true;
 
             //  Find the pipe associated with the routing id stored in the prefix.
@@ -325,10 +325,10 @@ int router_t::xsend (msg: &mut ZmqMessage)
 
     //  Ignore the MORE flag for raw-sock or assert?
     if (options.raw_socket)
-        msg.reset_flags (ZmqMessage::more);
+        msg.reset_flags (ZMQ_MSG_MORE);
 
     //  Check whether this is the last part of the message.
-    _more_out = (msg.flags () & ZmqMessage::more) != 0;
+    _more_out = (msg.flags () & ZMQ_MSG_MORE) != 0;
 
     //  Push the message into the pipe. If there's no out pipe, just drop it.
     if (_current_out) {
@@ -384,7 +384,7 @@ int router_t::xrecv (msg: &mut ZmqMessage)
             errno_assert (rc == 0);
             _prefetched = false;
         }
-        _more_in = (msg.flags () & ZmqMessage::more) != 0;
+        _more_in = (msg.flags () & ZMQ_MSG_MORE) != 0;
 
         if (!_more_in) {
             if (_terminate_current_in) {
@@ -412,7 +412,7 @@ int router_t::xrecv (msg: &mut ZmqMessage)
 
     //  If we are in the middle of reading a message, just return the next part.
     if (_more_in) {
-        _more_in = (msg.flags () & ZmqMessage::more) != 0;
+        _more_in = (msg.flags () & ZMQ_MSG_MORE) != 0;
 
         if (!_more_in) {
             if (_terminate_current_in) {
@@ -434,7 +434,7 @@ int router_t::xrecv (msg: &mut ZmqMessage)
         rc = msg.init_size (routing_id.size ());
         errno_assert (rc == 0);
         memcpy (msg.data (), routing_id.data (), routing_id.size ());
-        msg.set_flags (ZmqMessage::more);
+        msg.set_flags (ZMQ_MSG_MORE);
         if (_prefetched_msg.metadata ())
             msg.set_metadata (_prefetched_msg.metadata ());
         _routing_id_sent = true;
@@ -485,7 +485,7 @@ bool router_t::xhas_in ()
     rc = _prefetched_id.init_size (routing_id.size ());
     errno_assert (rc == 0);
     memcpy (_prefetched_id.data (), routing_id.data (), routing_id.size ());
-    _prefetched_id.set_flags (ZmqMessage::more);
+    _prefetched_id.set_flags (ZMQ_MSG_MORE);
     if (_prefetched_msg.metadata ())
         _prefetched_id.set_metadata (_prefetched_msg.metadata ());
 

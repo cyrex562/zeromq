@@ -126,7 +126,7 @@ int fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe_)
         if (fetched) {
             if (pipe_)
                 *pipe_ = _pipes[_current];
-            _more = (msg.flags () & ZmqMessage::more) != 0;
+            _more = (msg.flags () & ZMQ_MSG_MORE) != 0;
             if (!_more) {
                 _current = (_current + 1) % _active;
             }

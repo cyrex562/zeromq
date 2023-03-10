@@ -94,7 +94,7 @@ int stream_t::xsend (msg: &mut ZmqMessage)
         //  If we have malformed message (prefix with no subsequent message)
         //  then just silently ignore it.
         //  TODO: The connections should be killed instead.
-        if (msg.flags () & ZmqMessage::more) {
+        if (msg.flags () & ZMQ_MSG_MORE) {
             //  Find the pipe associated with the routing id stored in the prefix.
             //  If there's no such pipe return an error
 
@@ -127,7 +127,7 @@ int stream_t::xsend (msg: &mut ZmqMessage)
     }
 
     //  Ignore the MORE flag
-    msg.reset_flags (ZmqMessage::more);
+    msg.reset_flags (ZMQ_MSG_MORE);
 
     //  This is the last part of the message.
     _more_out = false;
@@ -198,7 +198,7 @@ int stream_t::xrecv (msg: &mut ZmqMessage)
         return -1;
 
     zmq_assert (pipe != null_mut());
-    zmq_assert ((_prefetched_msg.flags () & ZmqMessage::more) == 0);
+    zmq_assert ((_prefetched_msg.flags () & ZMQ_MSG_MORE) == 0);
 
     //  We have received a frame with TCP data.
     //  Rather than sending this frame, we keep it in prefetched
@@ -215,7 +215,7 @@ int stream_t::xrecv (msg: &mut ZmqMessage)
         msg.set_metadata (metadata);
 
     memcpy (msg.data (), routing_id.data (), routing_id.size ());
-    msg.set_flags (ZmqMessage::more);
+    msg.set_flags (ZMQ_MSG_MORE);
 
     _prefetched = true;
     _routing_id_sent = true;
@@ -237,7 +237,7 @@ bool stream_t::xhas_in ()
         return false;
 
     zmq_assert (pipe != null_mut());
-    zmq_assert ((_prefetched_msg.flags () & ZmqMessage::more) == 0);
+    zmq_assert ((_prefetched_msg.flags () & ZMQ_MSG_MORE) == 0);
 
     const Blob &routing_id = pipe.get_routing_id ();
     rc = _prefetched_routing_id.init_size (routing_id.size ());
@@ -250,7 +250,7 @@ bool stream_t::xhas_in ()
 
     memcpy (_prefetched_routing_id.data (), routing_id.data (),
             routing_id.size ());
-    _prefetched_routing_id.set_flags (ZmqMessage::more);
+    _prefetched_routing_id.set_flags (ZMQ_MSG_MORE);
 
     _prefetched = true;
     _routing_id_sent = false;

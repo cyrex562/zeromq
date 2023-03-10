@@ -102,7 +102,7 @@ void io_thread_t::start ()
 {
     char name[16] = "";
     snprintf (name, mem::size_of::<name>(), "IO/%u",
-              get_tid () - ZmqContext::reaper_tid - 1);
+              get_tid () - ZmqContext::REAPER_TID - 1);
     //  Start the underlying I/O thread.
     _poller.start (name);
 }

@@ -121,13 +121,13 @@ int dgram_t::xsend (msg: &mut ZmqMessage)
     //  If this is the first part of the message it's the ID of the
     //  peer to send the message to.
     if (!_more_out) {
-        if (!(msg.flags () & ZmqMessage::more)) {
+        if (!(msg.flags () & ZMQ_MSG_MORE)) {
             errno = EINVAL;
             return -1;
         }
     } else {
         //  dgram messages are two part only, reject part if more is set
-        if (msg.flags () & ZmqMessage::more) {
+        if (msg.flags () & ZMQ_MSG_MORE) {
             errno = EINVAL;
             return -1;
         }
@@ -139,7 +139,7 @@ int dgram_t::xsend (msg: &mut ZmqMessage)
         return -1;
     }
 
-    if (!(msg.flags () & ZmqMessage::more))
+    if (!(msg.flags () & ZMQ_MSG_MORE))
         _pipe.flush ();
 
     // flip the more flag

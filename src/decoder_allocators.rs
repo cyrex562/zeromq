@@ -126,7 +126,7 @@ shared_message_memory_allocator::shared_message_memory_allocator (
     _buf_size (0),
     _max_size (bufsize_),
     _msg_content (null_mut()),
-    _max_counters ((_max_size + ZmqMessage::max_vsm_size - 1) / ZmqMessage::max_vsm_size)
+    _max_counters ((_max_size + ZmqMessage::MAX_VSM_SIZE - 1) / ZmqMessage::MAX_VSM_SIZE)
 {
 }
 

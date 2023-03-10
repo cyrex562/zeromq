@@ -72,7 +72,7 @@ pub fn make_unconnected_bind_endpoint_pair(endpoint: &str) -> EndpointUriPair {
 #[derive(Default, Debug, Clone)]
 pub struct ZmqEndpoint {
     // ZmqSocketBase *socket;
-    pub socket: *mut ZmqSocketBase,
+    pub socket: ZmqSocketBase,
     // ZmqOptions options;
     pub options: ZmqOptions,
 }

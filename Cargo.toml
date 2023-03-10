@@ -1,5 +1,5 @@
 [package]
-name = "libzmq_rs"
+name = "zeromq"
 version = "0.1.0"
 edition = "2021"
 
@@ -16,5 +16,8 @@ bincode = "1"
 serde = { version="1", features = ["derive"]}
 
 [lib]
-name = "zmqrs"
+name = "zeromq"
 path = "src/lib.rs"
+
+[features]
+vmci = []

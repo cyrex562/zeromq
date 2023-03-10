@@ -85,11 +85,11 @@ void v1_encoder_t::message_ready ()
     //  message size. In both cases 'flags' field follows.
     if (size < UCHAR_MAX) {
         _tmpbuf[0] = static_cast<unsigned char> (size);
-        _tmpbuf[1] = (in_progress ()->flags () & ZmqMessage::more);
+        _tmpbuf[1] = (in_progress ()->flags () & ZMQ_MSG_MORE);
     } else {
         _tmpbuf[0] = UCHAR_MAX;
         put_uint64 (_tmpbuf + 1, size);
-        _tmpbuf[9] = (in_progress ()->flags () & ZmqMessage::more);
+        _tmpbuf[9] = (in_progress ()->flags () & ZMQ_MSG_MORE);
         header_size = 10;
     }
 

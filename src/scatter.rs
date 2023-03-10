@@ -94,7 +94,7 @@ void scatter_t::xpipe_terminated (pipe_: &mut pipe_t)
 int scatter_t::xsend (msg: &mut ZmqMessage)
 {
     //  SCATTER sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg.flags () & ZmqMessage::more) {
+    if (msg.flags () & ZMQ_MSG_MORE) {
         errno = EINVAL;
         return -1;
     }

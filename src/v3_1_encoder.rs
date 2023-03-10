@@ -45,7 +45,7 @@ pub struct v3_1_encoder_t ZMQ_FINAL : public encoder_base_t<v3_1_encoder_t>
     void size_ready ();
     void message_ready ();
 
-    unsigned char _tmp_buf[9 + ZmqMessage::sub_cmd_name_size];
+    unsigned char _tmp_buf[9 + ZmqMessage::SUB_CMD_NAME_SIZE];
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (v3_1_encoder_t)
 };
@@ -68,17 +68,17 @@ void v3_1_encoder_t::message_ready ()
     size_t header_size = 2; // flags byte + size byte
     unsigned char &protocol_flags = _tmp_buf[0];
     protocol_flags = 0;
-    if (in_progress ()->flags () & ZmqMessage::more)
+    if (in_progress ()->flags () & ZMQ_MSG_MORE)
         protocol_flags |= v2_protocol_t::more_flag;
     if (in_progress ()->size () > UCHAR_MAX)
         protocol_flags |= v2_protocol_t::large_flag;
-    if (in_progress ()->flags () & ZmqMessage::command
+    if (in_progress ()->flags () & ZMQ_MSG_COMMAND
         || in_progress ()->is_subscribe () || in_progress ()->is_cancel ()) {
         protocol_flags |= v2_protocol_t::command_flag;
         if (in_progress ()->is_subscribe ())
-            size += ZmqMessage::sub_cmd_name_size;
+            size += ZmqMessage::SUB_CMD_NAME_SIZE;
         else if (in_progress ()->is_cancel ())
-            size += ZmqMessage::cancel_cmd_name_size;
+            size += ZmqMessage::CANCEL_CMD_NAME_SIZE;
     }
 
     //  Encode the message length. For messages less then 256 bytes,
@@ -99,13 +99,13 @@ void v3_1_encoder_t::message_ready ()
     //  be avoided. This processing can be moved to xsub once support for
     //  ZMTP < 3.1 is dropped.
     if (in_progress ()->is_subscribe ()) {
-        memcpy (_tmp_buf + header_size, sub_cmd_name,
-                ZmqMessage::sub_cmd_name_size);
-        header_size += ZmqMessage::sub_cmd_name_size;
+        memcpy (_tmp_buf + header_size, SUB_CMD_NAME,
+                ZmqMessage::SUB_CMD_NAME_SIZE);
+        header_size += ZmqMessage::SUB_CMD_NAME_SIZE;
     } else if (in_progress ()->is_cancel ()) {
-        memcpy (_tmp_buf + header_size, cancel_cmd_name,
-                ZmqMessage::cancel_cmd_name_size);
-        header_size += ZmqMessage::cancel_cmd_name_size;
+        memcpy (_tmp_buf + header_size, CANCEL_CMD_NAME,
+                ZmqMessage::CANCEL_CMD_NAME_SIZE);
+        header_size += ZmqMessage::CANCEL_CMD_NAME_SIZE;
     }
 
     next_step (_tmp_buf, header_size, &v3_1_encoder_t::size_ready, false);

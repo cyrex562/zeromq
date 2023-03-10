@@ -1,5 +1,5 @@
 use crate::command::{CommandType, ZmqCommand};
-use crate::ctx::ZmqContext;
+use crate::context::ZmqContext;
 
 #[derive(Default,Debug,Clone)]
 pub struct object_t {
@@ -584,7 +584,7 @@ void object_t::send_done ()
     ZmqCommand cmd;
     cmd.destination = null_mut();
     cmd.type = ZmqCommand::done;
-    _ctx.send_command (ZmqContext::term_tid, cmd);
+    _ctx.send_command (ZmqContext::TERM_TID, cmd);
 }
 
 void object_t::process_stop ()

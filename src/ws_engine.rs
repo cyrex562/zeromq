@@ -325,7 +325,7 @@ int ws_engine_t::routing_id_msg (msg: &mut ZmqMessage)
 int ws_engine_t::process_routing_id_msg (msg: &mut ZmqMessage)
 {
     if (_options.recv_routing_id) {
-        msg.set_flags (ZmqMessage::routing_id);
+        msg.set_flags (ZMQ_MSG_ROUTING_ID);
         let rc: i32 = session ()->push_msg (msg);
         errno_assert (rc == 0);
     } else {
@@ -1059,7 +1059,7 @@ int ws_engine_t::decode_and_push (msg: &mut ZmqMessage)
         cancel_timer (heartbeat_timeout_timer_id);
     }
 
-    if (msg.flags () & ZmqMessage::command && !msg.is_ping ()
+    if (msg.flags () & ZMQ_MSG_COMMAND && !msg.is_ping ()
         && !msg.is_pong () && !msg.is_close_cmd ())
         process_command_message (msg);
 
@@ -1106,7 +1106,7 @@ int ws_engine_t::produce_ping_message (msg: &mut ZmqMessage)
 {
     int rc = msg.init ();
     errno_assert (rc == 0);
-    msg.set_flags (ZmqMessage::command | ZmqMessage::ping);
+    msg.set_flags (ZMQ_MSG_COMMAND | ZMQ_MSG_PING);
 
     _next_msg = &ws_engine_t::pull_and_encode;
     if (!_has_timeout_timer && _heartbeat_timeout > 0) {
@@ -1122,7 +1122,7 @@ int ws_engine_t::produce_pong_message (msg: &mut ZmqMessage)
 {
     int rc = msg.init ();
     errno_assert (rc == 0);
-    msg.set_flags (ZmqMessage::command | ZmqMessage::pong);
+    msg.set_flags (ZMQ_MSG_COMMAND | ZMQ_MSG_PONG);
 
     _next_msg = &ws_engine_t::pull_and_encode;
     return rc;

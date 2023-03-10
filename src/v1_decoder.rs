@@ -159,7 +159,7 @@ int v1_decoder_t::eight_byte_size_ready (unsigned char const *)
 int v1_decoder_t::flags_ready (unsigned char const *)
 {
     //  Store the flags from the wire into the message structure.
-    _in_progress.set_flags (_tmpbuf[0] & ZmqMessage::more);
+    _in_progress.set_flags (_tmpbuf[0] & ZMQ_MSG_MORE);
 
     next_step (_in_progress.data (), _in_progress.size (),
                &v1_decoder_t::message_ready);

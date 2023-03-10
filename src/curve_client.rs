@@ -39,7 +39,8 @@
 // #include "wire.hpp"
 // #include "curve_client_tools.hpp"
 // #include "secure_allocator.hpp"
-pub struct curve_client_t ZMQ_FINAL : public curve_mechanism_base_t
+// pub struct curve_client_t ZMQ_FINAL : public curve_mechanism_base_t
+pub struct curve_client_t
 {
 // public:
     curve_client_t (session_base_t *session_,

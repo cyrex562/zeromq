@@ -144,7 +144,7 @@ void server_t::xwrite_activated (pipe_: &mut pipe_t)
 int server_t::xsend (msg: &mut ZmqMessage)
 {
     //  SERVER sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg.flags () & ZmqMessage::more) {
+    if (msg.flags () & ZMQ_MSG_MORE) {
         errno = EINVAL;
         return -1;
     }
@@ -188,11 +188,11 @@ int server_t::xrecv (msg: &mut ZmqMessage)
     int rc = _fq.recvpipe (msg, &pipe);
 
     // Drop any messages with more flag
-    while (rc == 0 && msg.flags () & ZmqMessage::more) {
+    while (rc == 0 && msg.flags () & ZMQ_MSG_MORE) {
         // drop all frames of the current multi-frame message
         rc = _fq.recvpipe (msg, null_mut());
 
-        while (rc == 0 && msg.flags () & ZmqMessage::more)
+        while (rc == 0 && msg.flags () & ZMQ_MSG_MORE)
             rc = _fq.recvpipe (msg, null_mut());
 
         // get the new message

@@ -1,3 +1,4 @@
-# libzmq-rs
+# zeromq
 
-This is a pure rust port of the ZeroMQ library cloned from its GitHub repository.
+Zeromq is a pure rust port of the libzmq c++ library.
+

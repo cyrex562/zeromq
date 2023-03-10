@@ -92,11 +92,11 @@ int gather_t::xrecv (msg: &mut ZmqMessage)
     int rc = _fq.recvpipe (msg, null_mut());
 
     // Drop any messages with more flag
-    while (rc == 0 && msg.flags () & ZmqMessage::more) {
+    while (rc == 0 && msg.flags () & ZMQ_MSG_MORE) {
         // drop all frames of the current multi-frame message
         rc = _fq.recvpipe (msg, null_mut());
 
-        while (rc == 0 && msg.flags () & ZmqMessage::more)
+        while (rc == 0 && msg.flags () & ZMQ_MSG_MORE)
             rc = _fq.recvpipe (msg, null_mut());
 
         // get the new message

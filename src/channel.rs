@@ -1,10 +1,12 @@
 use anyhow::anyhow;
 use libc::socket;
+use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
 use crate::options::ZmqOptions;
 use crate::pipe::pipe_t;
 use crate::socket_base::{ZmqSocketBase, ZmqContext};
+use crate::socket_base_ops::ZmqSocketBaseOps;
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ZmqChannel //: public ZmqSocketBase
 {
 // public:
@@ -23,8 +25,8 @@ pub struct ZmqChannel //: public ZmqSocketBase
 //     void xwrite_activated (pipe_t *pipe_);
 //     void xpipe_terminated (pipe_t *pipe_);
 
-  // private:
-  //   pipe_t *_pipe;
+    // private:
+    //   pipe_t *_pipe;
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (channel_t)
     pipe: Option<pipe_t>,
@@ -35,8 +37,8 @@ impl ZmqChannel {
     pub fn new(parent: &mut ZmqContext, options: &mut ZmqOptions, tid: u32, sid: i32) -> Self {
         let mut out = Self {
             pipe: Default::default(),
-            base: ZmqSocketBase::new(parent, options, tid, sid, true)
-            };
+            base: ZmqSocketBase::new(parent, options, tid, sid, true),
+        };
 
         out
     }
@@ -51,10 +53,10 @@ impl ZmqChannel {
     // {
     // options.type = ZMQ_CHANNEL;
     // }
+}
 
-    pub fn xattach_pipe(&mut self, pipe_: &mut pipe_t,
-                        subscribe_to_all_: bool,
-                        locally_initiated_: bool)
+impl ZmqSocketBaseOps for ZmqChannel {
+    fn xattach_pipe(&mut self, skt_base: &mut ZmqSocketBase, in_pipe: &mut pipe_t, subscribe_to_all: bool, locally_initiated: bool)
     {
         // LIBZMQ_UNUSED (subscribe_to_all_);
         // LIBZMQ_UNUSED (locally_initiated_);
@@ -69,116 +71,108 @@ impl ZmqChannel {
         // pipe_.terminate (false);
         // }
         if self.pipe.is_none() {
-            self.pipe = Some(pipe_t.clone());
+            self.pipe = Some(in_pipe.clone());
         } else {
-            pipe_.terminate(false);
+            in_pipe.terminate(false);
         }
     }
 
-    pub fn xpipe_terminated(&mut self, pipe_: &mut pipe_t)
+    fn xpipe_terminated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut pipe_t)
     {
-        if (pipe_ == self._pipe.unwrap()) {
-            self._pipe = None;
+        if (pipe_ == self.pipe.unwrap()) {
+            self.pipe = None;
         }
     }
 
-    pub fn xread_activated (&mut self, pipe: &mut pipe_t)
+    fn xwrite_activated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut pipe_t)
     {
-    //  There's just one pipe. No lists of active and inactive pipes.
-    //  There's nothing to do here.
+        //  There's just one pipe. No lists of active and inactive pipes.
+        //  There's nothing to do here.
         unimplemented!()
     }
 
-    pub fn xwrite_activated (&mut self, pipe: &mut pipe_t)
-    {
-    //  There's just one pipe. No lists of active and inactive pipes.
-    //  There's nothing to do here.
-        unimplemented!()
-    }
-
-    pub fn xsend(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<(), anyhow::Error>
+    fn xsend(&mut self, skt_base: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()>
     {
         //  CHANNEL sockets do not allow multipart data (ZMQ_SNDMORE)
-        if (msg.flags() & ZmqMessage::more) {
+        if (msg.flags() & ZMQ_MSG_MORE) {
             // errno = EINVAL;
             // return -1;
             return Err(anyhow!("invalid state: channel sockets do not allow multipart data"));
         }
 
-        if (!self._pipe || !self._pipe.write(msg)) {
+        if (self.pipe.is_none() || !self.pipe.unwrap().write(msg)) {
             return Err(anyhow!("EAGAIN"));
         }
 
-        self._pipe.flush();
+        self.pipe.flush();
 
         //  Detach the original message from the data buffer.
-        let rc: i32 = msg.init();
+        let rc: i32 = msg.init2();
         // errno_assert (rc == 0);
 
         Ok(())
     }
 
 
-    pub fn xrecv (&mut self, msg: &mut ZmqMessage) -> i32
+    fn xrecv(&mut self, skt_base: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()>
     {
         //  Deallocate old content of the message.
-        let rc = msg.close ();
-        errno_assert (rc == 0);
+        let mut rc = msg.close();
+        errno_assert(rc == 0);
 
-        if (!_pipe) {
+        if (self.pipe.is_none()) {
             //  Initialise the output parameter to be a 0-byte message.
-            rc = msg.init ();
-            errno_assert (rc == 0);
-
-            errno = EAGAIN;
-            return -1;
+            rc = msg.init2();
+            errno_assert(rc == 0);
+            return Err(anyhow!("error EAGAIN"));
         }
 
         // Drop any messages with more flag
-        bool read = _pipe.read (msg);
-        while (read && msg.flags () & ZmqMessage::more) {
+        let read = self.pipe.unwrap().read(msg);
+        while (read && msg.flags() & ZMQ_MSG_MORE) {
             // drop all frames of the current multi-frame message
-            read = _pipe.read (msg);
-            while (read && msg.flags () & ZmqMessage::more)
-            read = _pipe.read (msg);
+            read = self.pipe.unwrap().read(msg);
+            while (read && msg.flags() & ZMQ_MSG_MORE) {
+                read = self.pipe.unwrap().read(msg);
+            }
 
             // get the new message
-            if (read)
-            read = _pipe.read (msg);
+            if (read) {
+                read = self.pipe.unwrap().read(msg);
+            }
         }
 
         if (!read) {
             //  Initialise the output parameter to be a 0-byte message.
-            rc = msg.init ();
-            errno_assert (rc == 0);
-
-            errno = EAGAIN;
-            return -1;
+            rc = msg.init2();
+            errno_assert(rc == 0);
+            return Err(anyhow!("EAGAIN"));
+            // errno = EAGAIN;
+            // return -1;
         }
 
-        return 0;
+        // return 0;
+        Ok(())
     }
 
-    pub fn xhas_in (&mut self) -> bool
+    fn xhas_in(&mut self, skt_base: &mut ZmqSocketBase) -> bool
     {
-        if (!self._pipe) {
+        if (self.pipe.is_none()) {
             return false;
         }
 
-        return self._pipe.check_read ();
+        return self.pipe.unwrap().check_read();
     }
 
-    pub fn xhas_out (&mut self) -> bool
+    fn xhas_out(&mut self, skt_base: &mut ZmqSocketBase) -> bool
     {
-        if (!self._pipe) {
+        if (self.pipe.is_none()) {
             return false;
         }
 
-        return self._pipe.check_write ();
+        return self.pipe.unwrap().check_write();
     }
 }
-
-
 
 
 

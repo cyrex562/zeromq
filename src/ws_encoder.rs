@@ -117,9 +117,9 @@ void ws_encoder_t::message_ready ()
     if (_is_binary) {
         //  Encode flags.
         unsigned char protocol_flags = 0;
-        if (in_progress ()->flags () & ZmqMessage::more)
+        if (in_progress ()->flags () & ZMQ_MSG_MORE)
             protocol_flags |= ws_protocol_t::more_flag;
-        if (in_progress ()->flags () & ZmqMessage::command)
+        if (in_progress ()->flags () & ZMQ_MSG_COMMAND)
             protocol_flags |= ws_protocol_t::command_flag;
 
         _tmp_buf[offset++] =
@@ -147,7 +147,7 @@ void ws_encoder_t::size_ready ()
         unsigned char *dest = src;
 
         //  If msg is shared or data is constant we cannot mask in-place, allocate a new msg for it
-        if (in_progress ()->flags () & ZmqMessage::shared
+        if (in_progress ()->flags () & ZMQ_MSG_SHARED
             || in_progress ()->is_cmsg ()) {
             _masked_msg.close ();
             _masked_msg.init_size (size);

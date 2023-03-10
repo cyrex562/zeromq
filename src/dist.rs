@@ -229,7 +229,7 @@ int dist_t::send_to_all (msg: &mut ZmqMessage)
 int dist_t::send_to_matching (msg: &mut ZmqMessage)
 {
     //  Is this end of a multipart message?
-    const bool msg_more = (msg.flags () & ZmqMessage::more) != 0;
+    const bool msg_more = (msg.flags () & ZMQ_MSG_MORE) != 0;
 
     //  Push the message to matching pipes.
     distribute (msg);
@@ -306,7 +306,7 @@ bool dist_t::write (pipe_t *pipe_, msg: &mut ZmqMessage)
         _eligible--;
         return false;
     }
-    if (!(msg.flags () & ZmqMessage::more))
+    if (!(msg.flags () & ZMQ_MSG_MORE))
         pipe_.flush ();
     return true;
 }

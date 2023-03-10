@@ -133,7 +133,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     //  Address delimiter frame
     rc = msg.init ();
     errno_assert (rc == 0);
-    msg.set_flags (ZmqMessage::more);
+    msg.set_flags (ZMQ_MSG_MORE);
     rc = session.write_zap_msg (&msg);
     errno_assert (rc == 0);
 
@@ -141,7 +141,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     rc = msg.init_size (zap_version_len);
     errno_assert (rc == 0);
     memcpy (msg.data (), zap_version, zap_version_len);
-    msg.set_flags (ZmqMessage::more);
+    msg.set_flags (ZMQ_MSG_MORE);
     rc = session.write_zap_msg (&msg);
     errno_assert (rc == 0);
 
@@ -149,7 +149,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     rc = msg.init_size (id_len);
     errno_assert (rc == 0);
     memcpy (msg.data (), id, id_len);
-    msg.set_flags (ZmqMessage::more);
+    msg.set_flags (ZMQ_MSG_MORE);
     rc = session.write_zap_msg (&msg);
     errno_assert (rc == 0);
 
@@ -158,7 +158,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     errno_assert (rc == 0);
     memcpy (msg.data (), options.zap_domain,
             options.zap_domain.length ());
-    msg.set_flags (ZmqMessage::more);
+    msg.set_flags (ZMQ_MSG_MORE);
     rc = session.write_zap_msg (&msg);
     errno_assert (rc == 0);
 
@@ -166,7 +166,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     rc = msg.init_size (peer_address.length ());
     errno_assert (rc == 0);
     memcpy (msg.data (), peer_address, peer_address.length ());
-    msg.set_flags (ZmqMessage::more);
+    msg.set_flags (ZMQ_MSG_MORE);
     rc = session.write_zap_msg (&msg);
     errno_assert (rc == 0);
 
@@ -174,7 +174,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     rc = msg.init_size (options.routing_id_size);
     errno_assert (rc == 0);
     memcpy (msg.data (), options.routing_id, options.routing_id_size);
-    msg.set_flags (ZmqMessage::more);
+    msg.set_flags (ZMQ_MSG_MORE);
     rc = session.write_zap_msg (&msg);
     errno_assert (rc == 0);
 
@@ -183,7 +183,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
     errno_assert (rc == 0);
     memcpy (msg.data (), mechanism_, mechanism_length_);
     if (credentials_count_)
-        msg.set_flags (ZmqMessage::more);
+        msg.set_flags (ZMQ_MSG_MORE);
     rc = session.write_zap_msg (&msg);
     errno_assert (rc == 0);
 
@@ -192,7 +192,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
         rc = msg.init_size (credentials_sizes_[i]);
         errno_assert (rc == 0);
         if (i < credentials_count_ - 1)
-            msg.set_flags (ZmqMessage::more);
+            msg.set_flags (ZMQ_MSG_MORE);
         memcpy (msg.data (), credentials_[i], credentials_sizes_[i]);
         rc = session.write_zap_msg (&msg);
         errno_assert (rc == 0);
@@ -219,8 +219,8 @@ int zap_client_t::receive_and_process_zap_reply ()
             }
             return close_and_return (msg, -1);
         }
-        if ((msg[i].flags () & ZmqMessage::more)
-            == (i < zap_reply_frame_count - 1 ? 0 : ZmqMessage::more)) {
+        if ((msg[i].flags () & ZMQ_MSG_MORE)
+            == (i < zap_reply_frame_count - 1 ? 0 : ZMQ_MSG_MORE)) {
             session.get_socket ()->event_handshake_failed_protocol (
               session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_MALFORMED_REPLY);
             errno = EPROTO;

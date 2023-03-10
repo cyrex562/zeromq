@@ -35,7 +35,7 @@ use bincode::{deserialize, options};
 use libc::EINVAL;
 use crate::dist::dist_t;
 use crate::fq::fq_t;
-use crate::msg::ZmqMessage;
+use crate::message::ZmqMessage;
 use crate::pipe::pipe_t;
 use crate::radix_tree::radix_tree_t;
 use crate::socket_base::{ZmqContext, ZmqSocketBase};
@@ -210,7 +210,7 @@ impl xsub_t {
         let mut data = msg.data().unwrap().first_mut().unwrap();
 
         let first_part = !self._more_send;
-        self._more_send = (msg.flags () & ZmqMessage::more) != 0;
+        self._more_send = (msg.flags () & ZMQ_MSG_MORE) != 0;
 
         if first_part {
             self._process_subscribe = !self._only_first_subscribe;
@@ -273,7 +273,7 @@ impl xsub_t {
             self._message = msg.clone();
             // errno_assert (rc == 0);
             self._has_message = false;
-            self._more_recv = (msg.flags () & ZmqMessage::more) != 0;
+            self._more_recv = (msg.flags () & ZMQ_MSG_MORE) != 0;
             return 0;
         }
 
@@ -293,13 +293,13 @@ impl xsub_t {
             //  Check whether the message matches at least one subscription.
             //  Non-initial parts of the message are passed
             if self._more_recv || !options.filter || self.match_(msg) {
-                self._more_recv = (msg.flags () & ZmqMessage::more) != 0;
+                self._more_recv = (msg.flags () & ZMQ_MSG_MORE) != 0;
                 return 0;
             }
 
             //  Message doesn't match. Pop any remaining parts of the message
             //  from the pipe.
-            while msg.flags () & ZmqMessage::more {
+            while msg.flags () & ZMQ_MSG_MORE {
                 rc = self._fq.recv (msg);
                 errno_assert (rc == 0);
             }
@@ -341,7 +341,7 @@ impl xsub_t {
 
             //  Message doesn't match. Pop any remaining parts of the message
             //  from the pipe.
-            while self._message.flags () & ZmqMessage::more {
+            while self._message.flags () & ZMQ_MSG_MORE {
                 rc = self._fq.recv (&self._message);
                 // errno_assert (rc == 0);
             }

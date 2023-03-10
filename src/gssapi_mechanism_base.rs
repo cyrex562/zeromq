@@ -158,9 +158,9 @@ int gssapi_mechanism_base_t::encode_message (msg: &mut ZmqMessage)
     gss_buffer_desc wrapped;
 
     uint8_t flags = 0;
-    if (msg.flags () & ZmqMessage::more)
+    if (msg.flags () & ZMQ_MSG_MORE)
         flags |= 0x01;
-    if (msg.flags () & ZmqMessage::command)
+    if (msg.flags () & ZMQ_MSG_COMMAND)
         flags |= 0x02;
 
     uint8_t *plaintext_buffer =
@@ -281,9 +281,9 @@ int gssapi_mechanism_base_t::decode_message (msg: &mut ZmqMessage)
 
     const uint8_t flags = static_cast<char *> (plaintext.value)[0];
     if (flags & 0x01)
-        msg.set_flags (ZmqMessage::more);
+        msg.set_flags (ZMQ_MSG_MORE);
     if (flags & 0x02)
-        msg.set_flags (ZmqMessage::command);
+        msg.set_flags (ZMQ_MSG_COMMAND);
 
     memcpy (msg.data (), static_cast<char *> (plaintext.value) + 1,
             plaintext.length - 1);

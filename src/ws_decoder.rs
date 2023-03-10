@@ -118,13 +118,13 @@ int ws_decoder_t::opcode_ready (unsigned char const *)
         case ws_protocol_t::opcode_binary:
             break;
         case ws_protocol_t::opcode_close:
-            _msg_flags = ZmqMessage::command | ZmqMessage::close_cmd;
+            _msg_flags = ZMQ_MSG_COMMAND | ZMQ_MSG_CLOSE_CMD;
             break;
         case ws_protocol_t::opcode_ping:
-            _msg_flags = ZmqMessage::ping | ZmqMessage::command;
+            _msg_flags = ZMQ_MSG_PING | ZMQ_MSG_COMMAND;
             break;
         case ws_protocol_t::opcode_pong:
-            _msg_flags = ZmqMessage::pong | ZmqMessage::command;
+            _msg_flags = ZMQ_MSG_PONG | ZMQ_MSG_COMMAND;
             break;
         default:
             return -1;
@@ -221,9 +221,9 @@ int ws_decoder_t::flags_ready (unsigned char const *read_from_)
         flags = _tmpbuf[0];
 
     if (flags & ws_protocol_t::more_flag)
-        _msg_flags |= ZmqMessage::more;
+        _msg_flags |= ZMQ_MSG_MORE;
     if (flags & ws_protocol_t::command_flag)
-        _msg_flags |= ZmqMessage::command;
+        _msg_flags |= ZMQ_MSG_COMMAND;
 
     _size--;
 

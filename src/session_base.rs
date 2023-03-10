@@ -322,7 +322,7 @@ int session_base_t::pull_msg (msg: &mut ZmqMessage)
         return -1;
     }
 
-    _incomplete_in = (msg.flags () & ZmqMessage::more) != 0;
+    _incomplete_in = (msg.flags () & ZMQ_MSG_MORE) != 0;
 
     return 0;
 }
@@ -330,7 +330,7 @@ int session_base_t::pull_msg (msg: &mut ZmqMessage)
 int session_base_t::push_msg (msg: &mut ZmqMessage)
 {
     //  pass subscribe/cancel to the sockets
-    if ((msg.flags () & ZmqMessage::command) && !msg.is_subscribe ()
+    if ((msg.flags () & ZMQ_MSG_COMMAND) && !msg.is_subscribe ()
         && !msg.is_cancel ())
         return 0;
     if (_pipe && _pipe.write (msg)) {
@@ -365,7 +365,7 @@ int session_base_t::write_zap_msg (msg: &mut ZmqMessage)
         return -1;
     }
 
-    if ((msg.flags () & ZmqMessage::more) == 0)
+    if ((msg.flags () & ZMQ_MSG_MORE) == 0)
         _zap_pipe.flush ();
 
     let rc: i32 = msg.init ();
@@ -538,7 +538,7 @@ int session_base_t::zap_connect ()
         ZmqMessage id;
         rc = id.init ();
         errno_assert (rc == 0);
-        id.set_flags (ZmqMessage::routing_id);
+        id.set_flags (ZMQ_MSG_ROUTING_ID);
         bool ok = _zap_pipe.write (&id);
         zmq_assert (ok);
         _zap_pipe.flush ();

@@ -202,7 +202,7 @@ void xpub_t::xread_activated (pipe_: &mut pipe_t)
         bool notify = false;
 
         const bool first_part = !_more_recv;
-        _more_recv = (msg.flags () & ZmqMessage::more) != 0;
+        _more_recv = (msg.flags () & ZMQ_MSG_MORE) != 0;
 
         if (first_part || _process_subscribe) {
             //  Apply the subscription to the trie
@@ -408,7 +408,7 @@ void xpub_t::mark_last_pipe_as_matching (pipe_t *pipe_, xpub_t *self_)
 
 int xpub_t::xsend (msg: &mut ZmqMessage)
 {
-    const bool msg_more = (msg.flags () & ZmqMessage::more) != 0;
+    const bool msg_more = (msg.flags () & ZMQ_MSG_MORE) != 0;
 
     //  For the first part of multi-part message, find the matching pipes.
     if (!_more_send) {

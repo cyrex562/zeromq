@@ -650,7 +650,7 @@ int stream_engine_base_t::next_handshake_command (msg: &mut ZmqMessage)
     let rc: i32 = _mechanism.next_handshake_command (msg);
 
     if (rc == 0)
-        msg.set_flags (ZmqMessage::command);
+        msg.set_flags (ZMQ_MSG_COMMAND);
 
     return rc;
 }
@@ -777,7 +777,7 @@ int stream_engine_base_t::write_credential (msg: &mut ZmqMessage)
         int rc = msg.init_size (credential.size ());
         zmq_assert (rc == 0);
         memcpy (msg.data (), credential.data (), credential.size ());
-        msg.set_flags (ZmqMessage::credential);
+        msg.set_flags (ZMQ_MSG_CREDENTIAL);
         rc = _session.push_msg (&msg);
         if (rc == -1) {
             rc = msg.close ();
@@ -817,7 +817,7 @@ int stream_engine_base_t::decode_and_push (msg: &mut ZmqMessage)
         cancel_timer (heartbeat_ttl_timer_id);
     }
 
-    if (msg.flags () & ZmqMessage::command) {
+    if (msg.flags () & ZMQ_MSG_COMMAND) {
         process_command_message (msg);
     }
 

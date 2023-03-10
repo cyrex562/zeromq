@@ -69,7 +69,7 @@ use std::intrinsics::unlikely;
 use std::mem;
 use std::ptr::null_mut;
 use libc::{c_char, c_void, EFAULT, EINTR, EINVAL, ENOMEM, ENOTSOCK, ENOTSUP, INT_MAX};
-use crate::ctx::ZmqContext;
+use crate::context::ZmqContext;
 use crate::ctx_hdr::ZmqContext;
 use crate::peer::peer_t;
 use crate::socket_base::ZmqSocketBase;
@@ -77,7 +77,7 @@ use crate::zmq_hdr::{zmq_free_fn, ZMQ_IO_THREADS, ZmqMessage, ZMQ_PAIR, ZMQ_PEER
 use anyhow;
 use anyhow::bail;
 use serde::Serialize;
-use crate::msg::ZmqMessage;
+use crate::message::ZmqMessage;
 use crate::options::ZmqOptions;
 
 // XSI vector I/O
@@ -682,7 +682,7 @@ pub fn zmq_recviov (s_: *mut c_void, a_: *mut iovec, count: *mut usize, flags: i
         }
         // Assume zmq_socket ZMQ_RVCMORE is properly set.
         let p_msg = &mut msg;
-        recvmore = p_msg.flags() & ZmqMessage::more;
+        recvmore = p_msg.flags() & ZMQ_MSG_MORE;
         rc = zmq_msg_close (&msg);
         errno_assert (rc == 0);
         *count += 1;
@@ -777,7 +777,7 @@ int zmq_msg_get (const msg: *mut ZmqMessage, property_: i32)
 
     switch (property_) {
         case ZMQ_MORE:
-            return (((ZmqMessage *) msg)->flags () & ZmqMessage::more) ? 1 : 0;
+            return (((ZmqMessage *) msg)->flags () & ZMQ_MSG_MORE) ? 1 : 0;
         case ZMQ_SRCFD:
             fd_string = zmq_msg_gets (msg, "__fd");
             if (fd_string == null_mut())
@@ -786,7 +786,7 @@ int zmq_msg_get (const msg: *mut ZmqMessage, property_: i32)
             return atoi (fd_string);
         case ZMQ_SHARED:
             return (((ZmqMessage *) msg)->is_cmsg ())
-                       || (((ZmqMessage *) msg)->flags () & ZmqMessage::shared)
+                       || (((ZmqMessage *) msg)->flags () & ZMQ_MSG_SHARED)
                      ? 1
                      : 0;
         default:

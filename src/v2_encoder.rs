@@ -69,11 +69,11 @@ void v2_encoder_t::message_ready ()
     size_t header_size = 2; // flags byte + size byte
     unsigned char &protocol_flags = _tmp_buf[0];
     protocol_flags = 0;
-    if (in_progress ()->flags () & ZmqMessage::more)
+    if (in_progress ()->flags () & ZMQ_MSG_MORE)
         protocol_flags |= v2_protocol_t::more_flag;
     if (in_progress ()->size () > UCHAR_MAX)
         protocol_flags |= v2_protocol_t::large_flag;
-    if (in_progress ()->flags () & ZmqMessage::command)
+    if (in_progress ()->flags () & ZMQ_MSG_COMMAND)
         protocol_flags |= v2_protocol_t::command_flag;
     if (in_progress ()->is_subscribe () || in_progress ()->is_cancel ())
         ++size;

@@ -160,7 +160,7 @@ void mechanism_t::peer_routing_id (msg: &mut ZmqMessage)
     let rc: i32 = msg.init_size (_routing_id.size ());
     errno_assert (rc == 0);
     memcpy (msg.data (), _routing_id.data (), _routing_id.size ());
-    msg.set_flags (ZmqMessage::routing_id);
+    msg.set_flags (ZMQ_MSG_ROUTING_ID);
 }
 
 void mechanism_t::set_user_id (const user_id_: *mut c_void, size: usize)

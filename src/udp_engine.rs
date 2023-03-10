@@ -449,7 +449,7 @@ void udp_engine_t::sockaddr_to_msg (msg: &mut ZmqMessage
                      + port_len + 1;                 //  terminating NUL
     let rc: i32 = msg.init_size (size);
     errno_assert (rc == 0);
-    msg.set_flags (ZmqMessage::more);
+    msg.set_flags (ZMQ_MSG_MORE);
 
     //  use memcpy instead of strcpy/strcat, since this is more efficient when
     //  we already know the lengths, which we calculated above
@@ -645,7 +645,7 @@ void udp_engine_t::in_event ()
 
         rc = msg.init_size (group_size);
         errno_assert (rc == 0);
-        msg.set_flags (ZmqMessage::more);
+        msg.set_flags (ZMQ_MSG_MORE);
         memcpy (msg.data (), group_buffer, group_size);
 
         //  This doesn't fit, just ignore

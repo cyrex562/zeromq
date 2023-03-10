@@ -211,7 +211,7 @@ void radio_t::xpipe_terminated (pipe_: &mut pipe_t)
 int radio_t::xsend (msg: &mut ZmqMessage)
 {
     //  Radio sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg.flags () & ZmqMessage::more) {
+    if (msg.flags () & ZMQ_MSG_MORE) {
         errno = EINVAL;
         return -1;
     }
@@ -274,7 +274,7 @@ radio_session_t::~radio_session_t ()
 
 int radio_session_t::push_msg (msg: &mut ZmqMessage)
 {
-    if (msg.flags () & ZmqMessage::command) {
+    if (msg.flags () & ZMQ_MSG_COMMAND) {
         char *command_data = static_cast<char *> (msg.data ());
         const size_t data_size = msg.size ();
 
@@ -328,7 +328,7 @@ int radio_session_t::pull_msg (msg: &mut ZmqMessage)
         //  First frame is the group
         rc = msg.init_size (length);
         errno_assert (rc == 0);
-        msg.set_flags (ZmqMessage::more);
+        msg.set_flags (ZMQ_MSG_MORE);
         memcpy (msg.data (), group, length);
 
         //  Next status is the body

@@ -111,7 +111,7 @@ int pair_t::xsend (msg: &mut ZmqMessage)
         return -1;
     }
 
-    if (!(msg.flags () & ZmqMessage::more))
+    if (!(msg.flags () & ZMQ_MSG_MORE))
         _pipe.flush ();
 
     //  Detach the original message from the data buffer.

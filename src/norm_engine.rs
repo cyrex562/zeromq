@@ -517,7 +517,7 @@ void norm_engine_t::send_data ()
                       (char) 0xff; // this is not first frame of message
                 else
                     tx_buffer[0] = 0x00; // this is first frame of message
-                tx_more_bit = (0 != (tx_msg.flags () & ZmqMessage::more));
+                tx_more_bit = (0 != (tx_msg.flags () & ZMQ_MSG_MORE));
                 // Go ahead an get a first chunk of the message
                 bufPtr++;
                 space--;
