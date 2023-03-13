@@ -52,6 +52,8 @@ use std::mem;
 use std::ptr::null_mut;
 use std::sync::atomic::Ordering;
 use std::sync::Mutex;
+use std::time;
+use crate::cpu_time::get_cpu_tick_counter;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ZmqSocketBase {
@@ -99,7 +101,7 @@ pub struct ZmqSocketBase {
     pub rcvmore: bool,
 
     //  Improves efficiency of time measurement.
-    pub clock: clock_t,
+    // pub clock: clock_t,
 
     // Monitor socket;
     pub monitor_socket: Vec<u8>,
@@ -1027,7 +1029,7 @@ impl ZmqSocketBase {
             // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
 
             self.reaper_signaler = signaler_t::default(); //new (std::nothrow) signaler_t ();
-                                                          // zmq_assert (_reaper_signaler);
+            // zmq_assert (_reaper_signaler);
 
             //  Add signaler to the safe mailbox
             fd = _reaper_signaler.get_fd();
@@ -1197,7 +1199,7 @@ impl ZmqSocketBase {
             _ => {
                 bail!("invalid socket type")
             } // errno = EINVAL;
-              // return -1;
+            // return -1;
         }
 
         //  Register events to monitor
@@ -2191,31 +2193,31 @@ impl ZmqSocketBase {
     ) -> anyhow::Result<()> {
         //  First check out whether the protocol is something we are aware of.
         if protocol_ != protocol_name::inproc
-    // #if defined ZMQ_HAVE_IPC
+            // #if defined ZMQ_HAVE_IPC
             && protocol_ != protocol_name::ipc
-    // #endif
+            // #endif
             && protocol_ != protocol_name::tcp
-    // #ifdef ZMQ_HAVE_WS
+            // #ifdef ZMQ_HAVE_WS
             && protocol_ != protocol_name::ws
-    // #endif
-    // #ifdef ZMQ_HAVE_WSS
+            // #endif
+            // #ifdef ZMQ_HAVE_WSS
             && protocol_ != protocol_name::wss
-    // #endif
-    // #if defined ZMQ_HAVE_OPENPGM
+            // #endif
+            // #if defined ZMQ_HAVE_OPENPGM
             //  pgm/epgm transports only available if 0MQ is compiled with OpenPGM.
             && protocol_ != protocol_name::pgm
             && protocol_ != protocol_name::epgm
-    // #endif
-    // #if defined ZMQ_HAVE_TIPC
+            // #endif
+            // #if defined ZMQ_HAVE_TIPC
             // TIPC transport is only available on Linux.
             && protocol_ != protocol_name::tipc
-    // #endif
-    // #if defined ZMQ_HAVE_NORM
+            // #endif
+            // #if defined ZMQ_HAVE_NORM
             && protocol_ != protocol_name::norm
-    // #endif
-    // #if defined ZMQ_HAVE_VMCI
+            // #endif
+            // #if defined ZMQ_HAVE_VMCI
             && protocol_ != protocol_name::vmci
-    // #endif
+            // #endif
             && protocol_ != protocol_name::udp
         {
             // errno = EPROTONOSUPPORT;
@@ -2229,12 +2231,12 @@ impl ZmqSocketBase {
         // #if defined ZMQ_HAVE_OPENPGM || defined ZMQ_HAVE_NORM
         // #if defined ZMQ_HAVE_OPENPGM && defined ZMQ_HAVE_NORM
         if (protocol_ == protocol_name::pgm || protocol_ == protocol_name::epgm
-             || protocol_ == protocol_name::norm)
-    // #elif defined ZMQ_HAVE_OPENPGM
-    //     if ((protocol_ == protocol_name::pgm || protocol_ == protocol_name::epgm)
-    // #else // defined ZMQ_HAVE_NORM
-    //     if (protocol_ == protocol_name::norm
-    // #endif
+            || protocol_ == protocol_name::norm)
+            // #elif defined ZMQ_HAVE_OPENPGM
+            //     if ((protocol_ == protocol_name::pgm || protocol_ == protocol_name::epgm)
+            // #else // defined ZMQ_HAVE_NORM
+            //     if (protocol_ == protocol_name::norm
+            // #endif
             && options.type_ != ZMQ_PUB && options.type_ != ZMQ_SUB
             && options.type_ != ZMQ_XPUB && options.type_ != ZMQ_XSUB
         {
@@ -2245,8 +2247,8 @@ impl ZmqSocketBase {
 
         if protocol_ == protocol_name::udp
             && (options.type_ != ZMQ_DISH
-                && options.type_ != ZMQ_RADIO
-                && options.type_ != ZMQ_DGRAM)
+            && options.type_ != ZMQ_RADIO
+            && options.type_ != ZMQ_DGRAM)
         {
             // errno = ENOCOMPATPROTO;
             // return -1;
@@ -2294,7 +2296,8 @@ impl ZmqSocketBase {
             //  commands recently, so that we can throttle the new commands.
 
             //  Get the CPU's tick counter. If 0, the counter is not available.
-            let tsc = clock_t::rdtsc();
+            // let tsc = clock_t::rdtsc();
+            let tsc = get_cpu_tick_counter()?;
 
             //  Optimised version of command processing - it doesn't have to check
             //  for incoming commands each time. It does so only if certain time
@@ -2302,7 +2305,7 @@ impl ZmqSocketBase {
             //  depending on CPU speed: It's ~1ms on 3GHz CPU, ~2ms on 1.5GHz CPU
             //  etc. The optimisation makes sense only on platforms where getting
             //  a timestamp is a very cheap operation (tens of nanoseconds).
-            if tsc && throttle_ {
+            if tsc != 0 && throttle_ {
                 //  Check whether TSC haven't jumped backwards (in case of migration
                 //  between CPU cores) and whether certain time have elapsed since
                 //  last command processing. If it didn't do nothing.

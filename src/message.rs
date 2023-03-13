@@ -297,7 +297,7 @@ impl ZmqMessage {
         return self.init_data(data, size, hint);
     }
 
-    pub fn init2(&mut self) -> i32 {
+    pub fn init2(&mut self) -> anyhow::Result<()> {
         self.u.vsm.metadata = None;
         self.u.vsm.type_ = TYPE_VSM;
         self.u.vsm.flags = 0;
@@ -305,7 +305,7 @@ impl ZmqMessage {
         self.u.vsm.group.sgroup.group[0] = 0;
         self.u.vsm.group.type_ = GROUP_TYPE_SHORT;
         self.u.vsm.routing_id = 0;
-        return 0;
+        Ok(())
     }
 
     pub fn init_size(&mut self, size: usize) -> i32 {
@@ -482,7 +482,7 @@ impl ZmqMessage {
         return rc;
     }
 
-    pub fn close(&mut self) -> i32 {
+    pub fn close(&mut self) -> anyhow::Result<()>{
         //  Check the validity of the message.
         // if (unlikely (!check ())) {
         //     errno = EFAULT;
@@ -539,7 +539,7 @@ impl ZmqMessage {
         //  Make the message invalid.
         self.u.base.type_ = 0;
 
-        return 0;
+        Ok(())
     }
 
     // pub fn move_(&mut self, src: &mut ZmqMessage) -> i32

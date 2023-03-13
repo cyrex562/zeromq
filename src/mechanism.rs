@@ -37,15 +37,19 @@
 // #include "err.hpp"
 // #include "wire.hpp"
 // #include "session_base.hpp"
+
+pub enum ZmqMechanismStatus
+{
+    handshaking,
+    ready,
+    error
+}
+
+
 pub struct mechanism_t
 {
 // public:
-    enum status_t
-    {
-        handshaking,
-        ready,
-        error
-    };
+    
 
     mechanism_t (const ZmqOptions &options_);
 
