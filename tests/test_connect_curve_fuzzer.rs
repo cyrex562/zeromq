@@ -37,7 +37,7 @@
 // Test that the ZMTP engine handles invalid handshake when connecting
 // https://rfc.zeromq.org/spec/37/
 // https://rfc.zeromq.org/spec/26/
-extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
+extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
 {
     const char *fixed_client_public =
       "{{k*81)yMWEF{/BxdMd[5RL^qRFxBgoL<8m.D^KD";

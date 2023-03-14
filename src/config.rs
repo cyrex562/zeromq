@@ -82,5 +82,25 @@ pub const CLOCK_PRECISION: i32 = 1000000;
 //  https://github.com/zeromq/libzmq/issues/1542
 pub const SIGNALER_PORT: i32 = 0;
 
+// #define crypto_box_SECRETKEYBYTES 32
+pub const CRYPTO_BOX_SECRETKEYBYTES: u32 = 32;
+// #define crypto_box_BOXZEROBYTES 16
+pub const CRYPTO_BOX_BOXZEROBYTES: u32 = 16;
+// #define crypto_box_NONCEBYTES 24
+pub const CRYPTO_BOX_NONCEBYTES: u32 = 24;
+// #define crypto_box_ZEROBYTES 32
+pub const CRYPTO_BOX_ZEROBYTES: u32 = 32;
+// #define crypto_box_PUBLICKEYBYTES 32
+pub const CRYPTO_BOX_PUBLICKEYBYTES: u32 = 32;
+// #define crypto_box_BEFORENMBYTES 32
+pub const CRYPTO_BOX_BEFORENMBYTES: u32 = 32;
+// #define crypto_secretbox_KEYBYTES 32
+pub const CRYPTO_SECRETBOX_KEYBYTES: u32 = 32;
+// #define crypto_secretbox_NONCEBYTES 24
+pub const CRYPTO_SECRETBOX_NONCEBYTES: u32 = 24;
+// #define crypto_secretbox_ZEROBYTES 32
+pub const CRYPTO_SECRETBOX_ZEROBYTES: u32 = 32;
+// #define crypto_secretbox_BOXZEROBYTES 16
+pub const CRYPTO_SECRETBOX_BOXZEROBYTES: u32 = 16;
 
 // #endif

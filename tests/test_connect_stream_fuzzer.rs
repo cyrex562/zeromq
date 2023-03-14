@@ -36,7 +36,7 @@
 
 // Test that the ZMTP engine handles invalid handshake when connecting
 // https://rfc.zeromq.org/spec/37/
-extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
+extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
 {
     setup_test_context ();
     char my_endpoint[MAX_SOCKET_STRING];

@@ -64,20 +64,20 @@ v3_1_encoder_t::~v3_1_encoder_t ()
 void v3_1_encoder_t::message_ready ()
 {
     //  Encode flags.
-    size_t size = in_progress ()->size ();
+    size_t size = in_progress ().size ();
     size_t header_size = 2; // flags byte + size byte
     unsigned char &protocol_flags = _tmp_buf[0];
     protocol_flags = 0;
-    if (in_progress ()->flags () & ZMQ_MSG_MORE)
+    if (in_progress ().flags () & ZMQ_MSG_MORE)
         protocol_flags |= v2_protocol_t::more_flag;
-    if (in_progress ()->size () > UCHAR_MAX)
+    if (in_progress ().size () > UCHAR_MAX)
         protocol_flags |= v2_protocol_t::large_flag;
-    if (in_progress ()->flags () & ZMQ_MSG_COMMAND
-        || in_progress ()->is_subscribe () || in_progress ()->is_cancel ()) {
+    if (in_progress ().flags () & ZMQ_MSG_COMMAND
+        || in_progress ().is_subscribe () || in_progress ().is_cancel ()) {
         protocol_flags |= v2_protocol_t::command_flag;
-        if (in_progress ()->is_subscribe ())
+        if (in_progress ().is_subscribe ())
             size += ZmqMessage::SUB_CMD_NAME_SIZE;
-        else if (in_progress ()->is_cancel ())
+        else if (in_progress ().is_cancel ())
             size += ZmqMessage::CANCEL_CMD_NAME_SIZE;
     }
 
@@ -98,11 +98,11 @@ void v3_1_encoder_t::message_ready ()
     //  is sending the subscription/cancel to multiple pubs, but it cannot
     //  be avoided. This processing can be moved to xsub once support for
     //  ZMTP < 3.1 is dropped.
-    if (in_progress ()->is_subscribe ()) {
+    if (in_progress ().is_subscribe ()) {
         memcpy (_tmp_buf + header_size, SUB_CMD_NAME,
                 ZmqMessage::SUB_CMD_NAME_SIZE);
         header_size += ZmqMessage::SUB_CMD_NAME_SIZE;
-    } else if (in_progress ()->is_cancel ()) {
+    } else if (in_progress ().is_cancel ()) {
         memcpy (_tmp_buf + header_size, CANCEL_CMD_NAME,
                 ZmqMessage::CANCEL_CMD_NAME_SIZE);
         header_size += ZmqMessage::CANCEL_CMD_NAME_SIZE;
@@ -114,6 +114,6 @@ void v3_1_encoder_t::message_ready ()
 void v3_1_encoder_t::size_ready ()
 {
     //  Write message body into the buffer.
-    next_step (in_progress ()->data (), in_progress ()->size (),
+    next_step (in_progress ().data (), in_progress ().size (),
                &v3_1_encoder_t::message_ready, true);
 }

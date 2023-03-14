@@ -117,7 +117,7 @@ int plain_client_t::process_handshake_command (msg: &mut ZmqMessage)
              && !memcmp (cmd_data, error_prefix, error_prefix_len))
         rc = process_error (cmd_data, data_size);
     else {
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
         errno = EPROTO;
         rc = -1;
@@ -178,13 +178,13 @@ int plain_client_t::process_welcome (const unsigned char *cmd_data_,
     LIBZMQ_UNUSED (cmd_data_);
 
     if (_state != waiting_for_welcome) {
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
         errno = EPROTO;
         return -1;
     }
     if (data_size_ != welcome_prefix_len) {
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_WELCOME);
         errno = EPROTO;
@@ -204,7 +204,7 @@ int plain_client_t::process_ready (const unsigned char *cmd_data_,
                                         data_size_: usize)
 {
     if (_state != waiting_for_ready) {
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
         errno = EPROTO;
         return -1;
@@ -214,7 +214,7 @@ int plain_client_t::process_ready (const unsigned char *cmd_data_,
     if (rc == 0)
         _state = ready;
     else
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA);
 
     return rc;
@@ -224,14 +224,14 @@ int plain_client_t::process_error (const unsigned char *cmd_data_,
                                         data_size_: usize)
 {
     if (_state != waiting_for_welcome && _state != waiting_for_ready) {
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
         errno = EPROTO;
         return -1;
     }
     const size_t start_of_error_reason = error_prefix_len + brief_len_size;
     if (data_size_ < start_of_error_reason) {
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR);
         errno = EPROTO;

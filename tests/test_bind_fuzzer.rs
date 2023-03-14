@@ -41,7 +41,7 @@
 // #endif
 
 // Test that zmq_bind can handle malformed strings
-extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
+extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
 {
     //  This test might create socket files, so move to /tmp to avoid clobbering
     //  the working directory with random filenames

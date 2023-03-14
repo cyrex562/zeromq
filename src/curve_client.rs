@@ -40,14 +40,17 @@
 // #include "curve_client_tools.hpp"
 // #include "secure_allocator.hpp"
 
+use anyhow::anyhow;
 use libc::EPROTO;
-use crate::curve_mechanism_base::curve_mechanism_base_t;
+use crate::config::{CRYPTO_BOX_BOXZEROBYTES, CRYPTO_BOX_NONCEBYTES, CRYPTO_BOX_ZEROBYTES};
+use crate::curve_client_tools::{is_handshake_command_error, is_handshake_command_ready, is_handshake_command_welcome, produce_initiate};
+use crate::curve_mechanism_base::ZmqCurveMechanismBase;
 use crate::mechanism::ZmqMechanismStatus;
 use crate::mechanism_base::mechanism_base_t;
 use crate::message::ZmqMessage;
 use crate::options::ZmqOptions;
 use crate::session_base::session_base_t;
-use crate::zmq_hdr::{ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND};
+use crate::zmq_hdr::{ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC, ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_READY, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND};
 
 pub enum ZmqCurveClientState
 {
@@ -56,7 +59,7 @@ pub enum ZmqCurveClientState
     send_initiate,
     expect_ready,
     error_received,
-    connected
+    connected,
 }
 
 // pub struct curve_client_t ZMQ_FINAL : public curve_mechanism_base_t
@@ -71,7 +74,7 @@ pub struct ZmqCurveClient
     // curve_client_tools_t _tools;
     pub tools: ZmqCurveClientTools,
     pub mechanism_base: mechanism_base_t,
-    pub curve_mechanism_base: curve_mechanism_base_t,
+    pub curve_mechanism_base: ZmqCurveMechanismBase,
 }
 
 impl ZmqCurveClient {
@@ -98,7 +101,7 @@ impl ZmqCurveClient {
                downgrade_sub: bool) -> Self {
         Self {
             mechanism_base: mechanism_base_t::new(session, options),
-            curve_mechanism_base: curve_mechanism_base_t::new(session, options, "CurveZMQMESSAGEC", "CurveZMQMESSAGES", downgrade_sub),
+            curve_mechanism_base: ZmqCurveMechanismBase::new(session, options, "CurveZMQMESSAGEC", "CurveZMQMESSAGES", downgrade_sub),
             state: ZmqCurveClientState::send_hello,
             tools: ZmqCurveClientTools::new(options.curve_public_key, options.curve_secret_key, options.curve_server_key),
         }
@@ -111,77 +114,45 @@ impl ZmqCurveClient {
 
     // // mechanism implementation
     // int next_handshake_command (msg: &mut ZmqMessage) ZMQ_FINAL;
-    pub fn next_handshake_command (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
+    pub fn next_handshake_command(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
     {
-        // int rc = 0;
-        let mut rc = 0i32;
-
         match self.state {
             ZmqCurveClientState::send_hello => {
-                rc = produce_hello(msg);
-                if rc == 0 {
-                    self.state = ZmqCurveClientState::expect_welcome;
-                    return Ok(());
-                } else {
-                    return Err(anyhow!("produce_hello command failed"))
-                }
+                self.produce_hello(msg)?;
+                self.state = ZmqCurveClientState::expect_welcome;
+                Ok(())
             }
-            // ZmqCurveClientState::expect_welcome => {
-            //
-            // }
+            // ZmqCurveClientState::expect_welcome => {}
             ZmqCurveClientState::send_initiate => {
-                rc = produce_initiate(msg);
-                if rc == 0 {
-                    self.state = ZmqCurveClientState::expect_ready;
-                    return Ok(());
-                } else {
-                    return Err(anyhow!("produce_initiate command failed"));
-                }
+                self.produce_initiate(msg)?;
+                self.state = ZmqCurveClientState::expect_ready;
+                Ok(())
             }
             // ZmqCurveClientState::expect_ready => {}
             // ZmqCurveClientState::error_received => {}
             // ZmqCurveClientState::connected => {}
             _ => {
-                return Err(anyhow!("EAGAIN"));
+                Err(anyhow!("EAGAIN"))
             }
         }
-
-        // case send_hello:
-        // rc = produce_hello (msg);
-        // if (rc == 0)
-        // _state = expect_welcome;
-        // break;
-        // case send_initiate:
-        // rc = produce_initiate (msg);
-        // if (rc == 0)
-        // _state = expect_ready;
-        // break;
-        // default:
-        // errno = EAGAIN;
-        // rc = -1;
-        // }
-        // return rc;
     }
     // int process_handshake_command (msg: &mut ZmqMessage) ZMQ_FINAL;
-    pub fn process_handshake_command (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
+    pub fn process_handshake_command(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
     {
         let msg_data = msg.data()?;
-        let msg_size = msg.size ();
+        let msg_size = msg.size();
         let rc = 0;
-        if (is_handshake_command_welcome (msg_data.as_slice(), msg_size)) {
+        if (is_handshake_command_welcome(msg_data.as_slice(), msg_size)) {
             self.process_welcome(msg_data.as_slice(), msg_size)?;
-        }
-        else if (is_handshake_command_ready (msg_data.as_slice(),
-        msg_size)) {
+        } else if (is_handshake_command_ready(msg_data.as_slice(),
+                                              msg_size)) {
             self.process_ready(msg_data.as_slice(), msg_size)?;
-        }
-        else if (is_handshake_command_error (msg_data.as_slice(),
-        msg_size)) {
-            self.process_error(msg_data, msg_size)?;
-        }
-        else {
-            self.ession.get_socket().event_handshake_failed_protocol (
-                self.session.get_endpoint (),
+        } else if (is_handshake_command_error(msg_data.as_slice(),
+                                              msg_size)) {
+            self.process_error(&msg_data, msg_size)?;
+        } else {
+            self.ession.get_socket().event_handshake_failed_protocol(
+                self.session.get_endpoint(),
                 ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
             // errno = EPROTO;
             // rc = -1;
@@ -202,17 +173,17 @@ impl ZmqCurveClient {
     }
 
     // int encode (msg: &mut ZmqMessage) ZMQ_FINAL;
-    pub fn encode (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
+    pub fn encode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
     {
         // zmq_assert (_state == connected);
-        self.curve_mechanism_base.encode (msg)
+        self.curve_mechanism_base.encode(msg)
     }
 
     // int decode (msg: &mut ZmqMessage) ZMQ_FINAL;
-    pub fn decode (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
+    pub fn decode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
     {
         // zmq_assert (_state == connected);
-        self.curve_mechanism_base.decode (msg)
+        self.curve_mechanism_base.decode(msg)
     }
 
     // status_t status () const ZMQ_FINAL;
@@ -266,32 +237,32 @@ impl ZmqCurveClient {
     }
 
     //     int process_welcome (const uint8_t *msg_data_, msg_size_: usize);
-    pub fn process_welcome (&mut self, msg_data: &[u8], msg_size: usize) -> anyhow::Result<()>
+    pub fn process_welcome(&mut self, msg_data: &[u8], msg_size: usize) -> anyhow::Result<()>
     {
-        match self.tools.process_welcome (msg_data, msg_size, get_writable_precom_buffer ()) {
+        match self.tools.process_welcome(msg_data, msg_size, get_writable_precom_buffer()) {
             Ok(_) => {
                 self.state = ZmqCurveClientState::send_initiate;
                 return Ok(());
             }
             Err(e) => {
-                self.session.get_socket().event_handshake_failed_protocol (
-                    self.session.get_endpoint (),
+                self.session.get_socket().event_handshake_failed_protocol(
+                    self.session.get_endpoint(),
                     ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC)?;
-                return Err(anyhow!("EPROTO: {}", e))
+                return Err(anyhow!("EPROTO: {}", e));
             }
         }
 
-    // if (rc == -1) {
-    // session.get_socket ()->event_handshake_failed_protocol (
-    // session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
-    //
-    // errno = EPROTO;
-    // return -1;
-    // }
-    //
-    // _state = send_initiate;
-    //
-    // return 0;
+        // if (rc == -1) {
+        // session.get_socket ()->event_handshake_failed_protocol (
+        // session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
+        //
+        // errno = EPROTO;
+        // return -1;
+        // }
+        //
+        // _state = send_initiate;
+        //
+        // return 0;
     }
 
 
@@ -305,7 +276,7 @@ impl ZmqCurveClient {
 
         add_basic_properties(&metadata_plaintext[0], metadata_length);
 
-        let msg_size = 113 + 128 + crypto_box_BOXZEROBYTES + metadata_length;
+        let msg_size = 113 + 128 + CRYPTO_BOX_BOXZEROBYTES + metadata_length;
         msg.init_size(msg_size)?;
         // errno_assert (rc == 0);
 
@@ -314,7 +285,7 @@ impl ZmqCurveClient {
             Err(e) => {
                 self.session.get_socket().event_handshake_failed_protocol(
                     session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC)?;
-                return Err(anyhow!("produce_initiate failed: {}", e))
+                return Err(anyhow!("produce_initiate failed: {}", e));
             }
             Ok(_) => {
                 Ok(())
@@ -333,111 +304,106 @@ impl ZmqCurveClient {
 
 
     //     int process_ready (const uint8_t *msg_data_, msg_size_: usize);
-    pub fn process_ready (&mut self, msg_data: &[u8], msg_size: usize) -> anyhow::Result<()>
+    pub fn process_ready(&mut self, msg_data: &[u8], msg_size: usize) -> anyhow::Result<()>
     {
         if (msg_size_ < 30) {
-            self.session.get_socket ().event_handshake_failed_protocol (
-                self.session.get_endpoint (),
+            self.session.get_socket().event_handshake_failed_protocol(
+                self.session.get_endpoint(),
                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_READY);
-            errno = EPROTO;
-            return -1;
+            // errno = EPROTO;
+            // return -1;
+            return Err(anyhow!("EPROTO"));
         }
 
-        let clen = (msg_size - 14) + crypto_box_BOXZEROBYTES;
+        let clen = (msg_size - 14) + CRYPTO_BOX_BOXZEROBYTES;
 
-        let mut ready_nonce: [u8;crypto_box_NONCEBYTES] = [0;crypto_box_NONCEBYTES];
+        let mut ready_nonce: [u8; CRYPTO_BOX_NONCEBYTES as usize] = [0; CRYPTO_BOX_NONCEBYTES];
         // std::vector<uint8_t, secure_allocator_t<uint8_t> > ready_plaintext (
         // crypto_box_ZEROBYTES + clen);
-        let mut ready_plaintext: Vec<u8> = Vec::with_capacity(crypto_box_ZEROBYTES + clen);
-        std::vector<uint8_t> ready_box (crypto_box_BOXZEROBYTES + 16 + clen);
+        let mut ready_plaintext: Vec<u8> = Vec::with_capacity((CRYPTO_BOX_ZEROBYTES + clen) as usize);
+        // std::vector<uint8_t> ready_box (crypto_box_BOXZEROBYTES + 16 + clen);
+        let mut ready_box: Vec<u8> = Vec::with_capacity((CRYPTO_BOX_BOXZEROBYTES + 16 + clen) as usize);
 
-        std::fill (ready_box.begin (), ready_box.begin () + crypto_box_BOXZEROBYTES,
-        0);
-        memcpy (&ready_box[crypto_box_BOXZEROBYTES], msg_data_ + 14,
-        clen - crypto_box_BOXZEROBYTES);
+        // std::fill (ready_box.begin (), ready_box.begin () + crypto_box_BOXZEROBYTES,
+        // 0);
+        ready_plaintext.fill(0);
+        ready_box.fill(0);
+        // memcpy (&ready_box[crypto_box_BOXZEROBYTES],
+        //         msg_data_ + 14,
+        //         clen - crypto_box_BOXZEROBYTES);
+        for i in 0..clen - CRYPTO_BOX_BOXZEROBYTES {
+            ready_box[CRYPTO_BOX_BOXZEROBYTES + i] = msg_data[14 + i];
+        }
 
-        memcpy (ready_nonce, "CurveZMQREADY---", 16);
-        memcpy (ready_nonce + 16, msg_data_ + 6, 8);
-        set_peer_nonce (get_uint64 (msg_data_ + 6));
+        // memcpy (ready_nonce, "CurveZMQREADY---", 16);
+        ready_nonce.clone_from(b"CurveZMQREADY---");
 
-        int rc = crypto_box_open_afternm (&ready_plaintext[0], &ready_box[0], clen,
-        ready_nonce, get_precom_buffer ());
+        // memcpy (ready_nonce + 16, msg_data_ + 6, 8);
+        for i in 0..8 {
+            ready_nonce[16 + i] = msg_data[6 + i];
+        }
+        set_peer_nonce(get_uint64(msg_data_ + 6));
+
+        let rc = crypto_box_open_afternm(&ready_plaintext[0], &ready_box[0], clen,
+                                         ready_nonce, get_precom_buffer());
 
         if (rc != 0) {
-        session.get_socket ()->event_handshake_failed_protocol (
-        session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
-        errno = EPROTO;
-        return -1;
+            session.get_socket().event_handshake_failed_protocol(
+                session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
+            // errno = EPROTO;
+            // return -1;
+            return Err(anyhow!("EPROTO"));
         }
 
-        rc = parse_metadata (&ready_plaintext[crypto_box_ZEROBYTES],
-        clen - crypto_box_ZEROBYTES);
+        rc = parse_metadata(&ready_plaintext[CRYPTO_BOX_ZEROBYTES],
+                            clen - CRYPTO_BOX_ZEROBYTES);
 
-        if (rc == 0)
-        _state = connected;
-        else {
-        session.get_socket ()->event_handshake_failed_protocol (
-        session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA);
-        errno = EPROTO;
+        if (rc == 0) {
+            self.state = ZmqCurveClientState::connected;
+        } else {
+            session.get_socket().event_handshake_failed_protocol(
+                session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA);
+            // errno = EPROTO;
+            return Err(anyhow!("EPROTO"));
         }
 
-        return rc;
+        // return rc;
+        Ok(())
     }
 
 
-
-    //     int process_error (const uint8_t *msg_data_, msg_size_: usize);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    int curve_client_t::process_error (const uint8_t *msg_data_,
-    msg_size_: usize)
+    pub fn process_error(&mut self, msg_data: &[u8], msg_size: usize) -> anyhow::Result<()>
     {
-    if (_state != expect_welcome && _state != expect_ready) {
-    session.get_socket ()->event_handshake_failed_protocol (
-    session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
-    errno = EPROTO;
-    return -1;
+        if (self.state != ZmqCurveClientState::expect_welcome && _state != ZmqCurveClientState::expect_ready) {
+            session.get_socket().event_handshake_failed_protocol(
+                session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
+            // errno = EPROTO;
+            // return -1;
+            return Err(anyhow!("EPROTO"));
+        }
+        if (msg_size < 7) {
+            session.get_socket().event_handshake_failed_protocol(
+                session.get_endpoint(),
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR);
+            // errno = EPROTO;
+            // return -1;
+            return Err(anyhow!("EPROTO"));
+        }
+        let error_reason_len = (msg_data[6]) as usize;
+        if (error_reason_len > msg_size - 7) {
+            session.get_socket().event_handshake_failed_protocol(
+                session.get_endpoint(),
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR);
+            // errno = EPROTO;
+            // return -1;
+            return Err(anyhow!("EPROTO"));
+        }
+        let error_reason = String::from_utf8_lossy(&msg_data[7..]).to_string();
+        handle_error_reason(error_reason, error_reason_len);
+        self.state = ZmqCurveClientState::error_received;
+        Ok(())
     }
-    if (msg_size_ < 7) {
-    session.get_socket ()->event_handshake_failed_protocol (
-    session.get_endpoint (),
-    ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR);
-    errno = EPROTO;
-    return -1;
-    }
-    const size_t error_reason_len = static_cast<size_t> (msg_data_[6]);
-    if (error_reason_len > msg_size_ - 7) {
-    session.get_socket ()->event_handshake_failed_protocol (
-    session.get_endpoint (),
-    ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR);
-    errno = EPROTO;
-    return -1;
-    }
-    const char *error_reason = reinterpret_cast<const char *> (msg_data_) + 7;
-    handle_error_reason (error_reason, error_reason_len);
-    _state = error_received;
-    return 0;
-    }
-
+    //     int process_error (const uint8_t *msg_data_, msg_size_: usize);
 }
 
 

@@ -39,7 +39,7 @@
 // #include "wire.hpp"
 // #include "secure_allocator.hpp"
 pub struct curve_server_t ZMQ_FINAL : public zap_client_common_handshake_t,
-                                 public curve_mechanism_base_t
+                                 public ZmqCurveMechanismBase
 {
 // public:
     curve_server_t (session_base_t *session_,
@@ -56,19 +56,19 @@ pub struct curve_server_t ZMQ_FINAL : public zap_client_common_handshake_t,
 
   // private:
     //  Our secret key (s)
-    uint8_t _secret_key[crypto_box_SECRETKEYBYTES];
+    uint8_t _secret_key[CRYPTO_BOX_SECRETKEYBYTES];
 
     //  Our short-term public key (S')
-    uint8_t _cn_public[crypto_box_PUBLICKEYBYTES];
+    uint8_t _cn_public[CRYPTO_BOX_PUBLICKEYBYTES];
 
     //  Our short-term secret key (s')
-    uint8_t _cn_secret[crypto_box_SECRETKEYBYTES];
+    uint8_t _cn_secret[CRYPTO_BOX_SECRETKEYBYTES];
 
     //  Client's short-term public key (C')
-    uint8_t _cn_client[crypto_box_PUBLICKEYBYTES];
+    uint8_t _cn_client[CRYPTO_BOX_PUBLICKEYBYTES];
 
     //  Key used to produce cookie
-    uint8_t _cookie_key[crypto_secretbox_KEYBYTES];
+    uint8_t _cookie_key[CRYPTO_SECRETBOX_KEYBYTES];
 
     int process_hello (msg: &mut ZmqMessage);
     int produce_welcome (msg: &mut ZmqMessage);
@@ -76,7 +76,7 @@ pub struct curve_server_t ZMQ_FINAL : public zap_client_common_handshake_t,
     int produce_ready (msg: &mut ZmqMessage);
     int produce_error (msg: &mut ZmqMessage) const;
 
-    void send_zap_request (const uint8_t *key_);
+    void send_zap_request (const key_: &mut [u8]);
 };
 
 curve_server_t::curve_server_t (session_base_t *session_,
@@ -86,7 +86,7 @@ curve_server_t::curve_server_t (session_base_t *session_,
     mechanism_base_t (session_, options_),
     zap_client_common_handshake_t (
       session_, peer_address_, options_, sending_ready),
-    curve_mechanism_base_t (session_,
+    ZmqCurveMechanismBase (session_,
                             options_,
                             "CurveZMQMESSAGES",
                             "CurveZMQMESSAGEC",
@@ -94,11 +94,11 @@ curve_server_t::curve_server_t (session_base_t *session_,
 {
     rc: i32;
     //  Fetch our secret key from socket options
-    memcpy (_secret_key, options_.curve_secret_key, crypto_box_SECRETKEYBYTES);
+    memcpy (_secret_key, options_.curve_secret_key, CRYPTO_BOX_SECRETKEYBYTES);
 
     //  Generate short-term key pair
-    memset (_cn_secret, 0, crypto_box_SECRETKEYBYTES);
-    memset (_cn_public, 0, crypto_box_PUBLICKEYBYTES);
+    memset (_cn_secret, 0, CRYPTO_BOX_SECRETKEYBYTES);
+    memset (_cn_public, 0, CRYPTO_BOX_PUBLICKEYBYTES);
     rc = crypto_box_keypair (_cn_public, _cn_secret);
     zmq_assert (rc == 0);
 }
@@ -154,7 +154,7 @@ int curve_server_t::process_handshake_command (msg: &mut ZmqMessage)
             // Therefore, it should be changed to zmq_assert (false);
 
             // CURVE I: invalid handshake command
-            session.get_socket ()->event_handshake_failed_protocol (
+            session.get_socket ().event_handshake_failed_protocol (
               session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNSPECIFIED);
             errno = EPROTO;
             rc = -1;
@@ -172,13 +172,13 @@ int curve_server_t::process_handshake_command (msg: &mut ZmqMessage)
 int curve_server_t::encode (msg: &mut ZmqMessage)
 {
     zmq_assert (state == ready);
-    return curve_mechanism_base_t::encode (msg);
+    return ZmqCurveMechanismBase::encode (msg);
 }
 
 int curve_server_t::decode (msg: &mut ZmqMessage)
 {
     zmq_assert (state == ready);
-    return curve_mechanism_base_t::decode (msg);
+    return ZmqCurveMechanismBase::decode (msg);
 }
 
 int curve_server_t::process_hello (msg: &mut ZmqMessage)
@@ -191,14 +191,14 @@ int curve_server_t::process_hello (msg: &mut ZmqMessage)
     const uint8_t *const hello = static_cast<uint8_t *> (msg.data ());
 
     if (size < 6 || memcmp (hello, "\x05HELLO", 6)) {
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
         errno = EPROTO;
         return -1;
     }
 
     if (size != 200) {
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
         errno = EPROTO;
@@ -210,7 +210,7 @@ int curve_server_t::process_hello (msg: &mut ZmqMessage)
 
     if (major != 1 || minor != 0) {
         // CURVE I: client HELLO has unknown version number
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
         errno = EPROTO;
@@ -220,24 +220,24 @@ int curve_server_t::process_hello (msg: &mut ZmqMessage)
     //  Save client's short-term public key (C')
     memcpy (_cn_client, hello + 80, 32);
 
-    uint8_t hello_nonce[crypto_box_NONCEBYTES];
+    uint8_t hello_nonce[CRYPTO_BOX_NONCEBYTES];
     std::vector<uint8_t, secure_allocator_t<uint8_t> > hello_plaintext (
-      crypto_box_ZEROBYTES + 64);
-    uint8_t hello_box[crypto_box_BOXZEROBYTES + 80];
+      CRYPTO_BOX_ZEROBYTES + 64);
+    uint8_t hello_box[CRYPTO_BOX_BOXZEROBYTES + 80];
 
     memcpy (hello_nonce, "CurveZMQHELLO---", 16);
     memcpy (hello_nonce + 16, hello + 112, 8);
     set_peer_nonce (get_uint64 (hello + 112));
 
-    memset (hello_box, 0, crypto_box_BOXZEROBYTES);
-    memcpy (hello_box + crypto_box_BOXZEROBYTES, hello + 120, 80);
+    memset (hello_box, 0, CRYPTO_BOX_BOXZEROBYTES);
+    memcpy (hello_box + CRYPTO_BOX_BOXZEROBYTES, hello + 120, 80);
 
     //  Open Box [64 * %x0](C'->S)
     rc = crypto_box_open (&hello_plaintext[0], hello_box, sizeof hello_box,
                           hello_nonce, _cn_client, _secret_key);
     if (rc != 0) {
         // CURVE I: cannot open client HELLO -- wrong server key?
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
         errno = EPROTO;
         return -1;
@@ -249,26 +249,26 @@ int curve_server_t::process_hello (msg: &mut ZmqMessage)
 
 int curve_server_t::produce_welcome (msg: &mut ZmqMessage)
 {
-    uint8_t cookie_nonce[crypto_secretbox_NONCEBYTES];
+    uint8_t cookie_nonce[CRYPTO_SECRETBOX_NONCEBYTES];
     std::vector<uint8_t, secure_allocator_t<uint8_t> > cookie_plaintext (
-      crypto_secretbox_ZEROBYTES + 64);
-    uint8_t cookie_ciphertext[crypto_secretbox_BOXZEROBYTES + 80];
+      CRYPTO_SECRETBOX_ZEROBYTES + 64);
+    uint8_t cookie_ciphertext[CRYPTO_SECRETBOX_BOXZEROBYTES + 80];
 
     //  Create full nonce for encryption
     //  8-byte prefix plus 16-byte random nonce
-    memset (cookie_nonce, 0, crypto_secretbox_NONCEBYTES);
+    memset (cookie_nonce, 0, CRYPTO_SECRETBOX_NONCEBYTES);
     memcpy (cookie_nonce, "COOKIE--", 8);
     randombytes (cookie_nonce + 8, 16);
 
     //  Generate cookie = Box [C' + s'](t)
     std::fill (cookie_plaintext.begin (),
-               cookie_plaintext.begin () + crypto_secretbox_ZEROBYTES, 0);
-    memcpy (&cookie_plaintext[crypto_secretbox_ZEROBYTES], _cn_client, 32);
-    memcpy (&cookie_plaintext[crypto_secretbox_ZEROBYTES + 32], _cn_secret, 32);
+               cookie_plaintext.begin () + CRYPTO_SECRETBOX_ZEROBYTES, 0);
+    memcpy (&cookie_plaintext[CRYPTO_SECRETBOX_ZEROBYTES], _cn_client, 32);
+    memcpy (&cookie_plaintext[CRYPTO_SECRETBOX_ZEROBYTES + 32], _cn_secret, 32);
 
     //  Generate fresh cookie key
-    memset (_cookie_key, 0, crypto_secretbox_KEYBYTES);
-    randombytes (_cookie_key, crypto_secretbox_KEYBYTES);
+    memset (_cookie_key, 0, CRYPTO_SECRETBOX_KEYBYTES);
+    randombytes (_cookie_key, CRYPTO_SECRETBOX_KEYBYTES);
 
     //  Encrypt using symmetric cookie key
     int rc =
@@ -276,25 +276,25 @@ int curve_server_t::produce_welcome (msg: &mut ZmqMessage)
                         cookie_plaintext.size (), cookie_nonce, _cookie_key);
     zmq_assert (rc == 0);
 
-    uint8_t welcome_nonce[crypto_box_NONCEBYTES];
+    uint8_t welcome_nonce[CRYPTO_BOX_NONCEBYTES];
     std::vector<uint8_t, secure_allocator_t<uint8_t> > welcome_plaintext (
-      crypto_box_ZEROBYTES + 128);
-    uint8_t welcome_ciphertext[crypto_box_BOXZEROBYTES + 144];
+      CRYPTO_BOX_ZEROBYTES + 128);
+    uint8_t welcome_ciphertext[CRYPTO_BOX_BOXZEROBYTES + 144];
 
     //  Create full nonce for encryption
     //  8-byte prefix plus 16-byte random nonce
-    memset (welcome_nonce, 0, crypto_box_NONCEBYTES);
+    memset (welcome_nonce, 0, CRYPTO_BOX_NONCEBYTES);
     memcpy (welcome_nonce, "WELCOME-", 8);
-    randombytes (welcome_nonce + 8, crypto_box_NONCEBYTES - 8);
+    randombytes (welcome_nonce + 8, CRYPTO_BOX_NONCEBYTES - 8);
 
     //  Create 144-byte Box [S' + cookie](S->C')
     std::fill (welcome_plaintext.begin (),
-               welcome_plaintext.begin () + crypto_box_ZEROBYTES, 0);
-    memcpy (&welcome_plaintext[crypto_box_ZEROBYTES], _cn_public, 32);
-    memcpy (&welcome_plaintext[crypto_box_ZEROBYTES + 32], cookie_nonce + 8,
+               welcome_plaintext.begin () + CRYPTO_BOX_ZEROBYTES, 0);
+    memcpy (&welcome_plaintext[CRYPTO_BOX_ZEROBYTES], _cn_public, 32);
+    memcpy (&welcome_plaintext[CRYPTO_BOX_ZEROBYTES + 32], cookie_nonce + 8,
             16);
-    memcpy (&welcome_plaintext[crypto_box_ZEROBYTES + 48],
-            cookie_ciphertext + crypto_secretbox_BOXZEROBYTES, 80);
+    memcpy (&welcome_plaintext[CRYPTO_BOX_ZEROBYTES + 48],
+            cookie_ciphertext + CRYPTO_SECRETBOX_BOXZEROBYTES, 80);
 
     rc = crypto_box (welcome_ciphertext, &welcome_plaintext[0],
                      welcome_plaintext.size (), welcome_nonce, _cn_client,
@@ -315,7 +315,7 @@ int curve_server_t::produce_welcome (msg: &mut ZmqMessage)
     uint8_t *const welcome = static_cast<uint8_t *> (msg.data ());
     memcpy (welcome, "\x07WELCOME", 8);
     memcpy (welcome + 8, welcome_nonce + 8, 16);
-    memcpy (welcome + 24, welcome_ciphertext + crypto_box_BOXZEROBYTES, 144);
+    memcpy (welcome + 24, welcome_ciphertext + CRYPTO_BOX_BOXZEROBYTES, 144);
 
     return 0;
 }
@@ -330,27 +330,27 @@ int curve_server_t::process_initiate (msg: &mut ZmqMessage)
     const uint8_t *initiate = static_cast<uint8_t *> (msg.data ());
 
     if (size < 9 || memcmp (initiate, "\x08INITIATE", 9)) {
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
         errno = EPROTO;
         return -1;
     }
 
     if (size < 257) {
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_INITIATE);
         errno = EPROTO;
         return -1;
     }
 
-    uint8_t cookie_nonce[crypto_secretbox_NONCEBYTES];
-    uint8_t cookie_plaintext[crypto_secretbox_ZEROBYTES + 64];
-    uint8_t cookie_box[crypto_secretbox_BOXZEROBYTES + 80];
+    uint8_t cookie_nonce[CRYPTO_SECRETBOX_NONCEBYTES];
+    uint8_t cookie_plaintext[CRYPTO_SECRETBOX_ZEROBYTES + 64];
+    uint8_t cookie_box[CRYPTO_SECRETBOX_BOXZEROBYTES + 80];
 
     //  Open Box [C' + s'](t)
-    memset (cookie_box, 0, crypto_secretbox_BOXZEROBYTES);
-    memcpy (cookie_box + crypto_secretbox_BOXZEROBYTES, initiate + 25, 80);
+    memset (cookie_box, 0, CRYPTO_SECRETBOX_BOXZEROBYTES);
+    memcpy (cookie_box + CRYPTO_SECRETBOX_BOXZEROBYTES, initiate + 25, 80);
 
     memcpy (cookie_nonce, "COOKIE--", 8);
     memcpy (cookie_nonce + 8, initiate + 9, 16);
@@ -359,87 +359,87 @@ int curve_server_t::process_initiate (msg: &mut ZmqMessage)
                                 cookie_nonce, _cookie_key);
     if (rc != 0) {
         // CURVE I: cannot open client INITIATE cookie
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
         errno = EPROTO;
         return -1;
     }
 
     //  Check cookie plain text is as expected [C' + s']
-    if (memcmp (cookie_plaintext + crypto_secretbox_ZEROBYTES, _cn_client, 32)
-        || memcmp (cookie_plaintext + crypto_secretbox_ZEROBYTES + 32,
+    if (memcmp (cookie_plaintext + CRYPTO_SECRETBOX_ZEROBYTES, _cn_client, 32)
+        || memcmp (cookie_plaintext + CRYPTO_SECRETBOX_ZEROBYTES + 32,
                    _cn_secret, 32)) {
         // TODO this case is very hard to test, as it would require a modified
         //  client that knows the server's secret temporary cookie key
 
         // CURVE I: client INITIATE cookie is not valid
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
         errno = EPROTO;
         return -1;
     }
 
-    const size_t clen = (size - 113) + crypto_box_BOXZEROBYTES;
+    const size_t clen = (size - 113) + CRYPTO_BOX_BOXZEROBYTES;
 
-    uint8_t initiate_nonce[crypto_box_NONCEBYTES];
+    uint8_t initiate_nonce[CRYPTO_BOX_NONCEBYTES];
     std::vector<uint8_t, secure_allocator_t<uint8_t> > initiate_plaintext (
-      crypto_box_ZEROBYTES + clen);
-    std::vector<uint8_t> initiate_box (crypto_box_BOXZEROBYTES + clen);
+      CRYPTO_BOX_ZEROBYTES + clen);
+    std::vector<uint8_t> initiate_box (CRYPTO_BOX_BOXZEROBYTES + clen);
 
     //  Open Box [C + vouch + metadata](C'->S')
     std::fill (initiate_box.begin (),
-               initiate_box.begin () + crypto_box_BOXZEROBYTES, 0);
-    memcpy (&initiate_box[crypto_box_BOXZEROBYTES], initiate + 113,
-            clen - crypto_box_BOXZEROBYTES);
+               initiate_box.begin () + CRYPTO_BOX_BOXZEROBYTES, 0);
+    memcpy (&initiate_box[CRYPTO_BOX_BOXZEROBYTES], initiate + 113,
+            clen - CRYPTO_BOX_BOXZEROBYTES);
 
     memcpy (initiate_nonce, "CurveZMQINITIATE", 16);
     memcpy (initiate_nonce + 16, initiate + 105, 8);
     set_peer_nonce (get_uint64 (initiate + 105));
 
-    const uint8_t *client_key = &initiate_plaintext[crypto_box_ZEROBYTES];
+    const uint8_t *client_key = &initiate_plaintext[CRYPTO_BOX_ZEROBYTES];
 
     rc = crypto_box_open (&initiate_plaintext[0], &initiate_box[0], clen,
                           initiate_nonce, _cn_client, _cn_secret);
     if (rc != 0) {
         // CURVE I: cannot open client INITIATE
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
         errno = EPROTO;
         return -1;
     }
 
-    uint8_t vouch_nonce[crypto_box_NONCEBYTES];
+    uint8_t vouch_nonce[CRYPTO_BOX_NONCEBYTES];
     std::vector<uint8_t, secure_allocator_t<uint8_t> > vouch_plaintext (
-      crypto_box_ZEROBYTES + 64);
-    uint8_t vouch_box[crypto_box_BOXZEROBYTES + 80];
+      CRYPTO_BOX_ZEROBYTES + 64);
+    uint8_t vouch_box[CRYPTO_BOX_BOXZEROBYTES + 80];
 
     //  Open Box Box [C',S](C->S') and check contents
-    memset (vouch_box, 0, crypto_box_BOXZEROBYTES);
-    memcpy (vouch_box + crypto_box_BOXZEROBYTES,
-            &initiate_plaintext[crypto_box_ZEROBYTES + 48], 80);
+    memset (vouch_box, 0, CRYPTO_BOX_BOXZEROBYTES);
+    memcpy (vouch_box + CRYPTO_BOX_BOXZEROBYTES,
+            &initiate_plaintext[CRYPTO_BOX_ZEROBYTES + 48], 80);
 
-    memset (vouch_nonce, 0, crypto_box_NONCEBYTES);
+    memset (vouch_nonce, 0, CRYPTO_BOX_NONCEBYTES);
     memcpy (vouch_nonce, "VOUCH---", 8);
-    memcpy (vouch_nonce + 8, &initiate_plaintext[crypto_box_ZEROBYTES + 32],
+    memcpy (vouch_nonce + 8, &initiate_plaintext[CRYPTO_BOX_ZEROBYTES + 32],
             16);
 
     rc = crypto_box_open (&vouch_plaintext[0], vouch_box, sizeof vouch_box,
                           vouch_nonce, client_key, _cn_secret);
     if (rc != 0) {
         // CURVE I: cannot open client INITIATE vouch
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
         errno = EPROTO;
         return -1;
     }
 
     //  What we decrypted must be the client's short-term public key
-    if (memcmp (&vouch_plaintext[crypto_box_ZEROBYTES], _cn_client, 32)) {
+    if (memcmp (&vouch_plaintext[CRYPTO_BOX_ZEROBYTES], _cn_client, 32)) {
         // TODO this case is very hard to test, as it would require a modified
         //  client that knows the server's secret short-term key
 
         // CURVE I: invalid handshake from client (public key)
-        session.get_socket ()->event_handshake_failed_protocol (
+        session.get_socket ().event_handshake_failed_protocol (
           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_KEY_EXCHANGE);
         errno = EPROTO;
         return -1;
@@ -479,22 +479,22 @@ int curve_server_t::process_initiate (msg: &mut ZmqMessage)
         state = sending_ready;
     }
 
-    return parse_metadata (&initiate_plaintext[crypto_box_ZEROBYTES + 128],
-                           clen - crypto_box_ZEROBYTES - 128);
+    return parse_metadata (&initiate_plaintext[CRYPTO_BOX_ZEROBYTES + 128],
+                           clen - CRYPTO_BOX_ZEROBYTES - 128);
 }
 
 int curve_server_t::produce_ready (msg: &mut ZmqMessage)
 {
     const size_t metadata_length = basic_properties_len ();
-    uint8_t ready_nonce[crypto_box_NONCEBYTES];
+    uint8_t ready_nonce[CRYPTO_BOX_NONCEBYTES];
 
     std::vector<uint8_t, secure_allocator_t<uint8_t> > ready_plaintext (
-      crypto_box_ZEROBYTES + metadata_length);
+      CRYPTO_BOX_ZEROBYTES + metadata_length);
 
     //  Create Box [metadata](S'->C')
     std::fill (ready_plaintext.begin (),
-               ready_plaintext.begin () + crypto_box_ZEROBYTES, 0);
-    uint8_t *ptr = &ready_plaintext[crypto_box_ZEROBYTES];
+               ready_plaintext.begin () + CRYPTO_BOX_ZEROBYTES, 0);
+    uint8_t *ptr = &ready_plaintext[CRYPTO_BOX_ZEROBYTES];
 
     ptr += add_basic_properties (ptr, metadata_length);
     const size_t mlen = ptr - &ready_plaintext[0];
@@ -502,14 +502,14 @@ int curve_server_t::produce_ready (msg: &mut ZmqMessage)
     memcpy (ready_nonce, "CurveZMQREADY---", 16);
     put_uint64 (ready_nonce + 16, get_and_inc_nonce ());
 
-    std::vector<uint8_t> ready_box (crypto_box_BOXZEROBYTES + 16
+    std::vector<uint8_t> ready_box (CRYPTO_BOX_BOXZEROBYTES + 16
                                     + metadata_length);
 
     int rc = crypto_box_afternm (&ready_box[0], &ready_plaintext[0], mlen,
                                  ready_nonce, get_precom_buffer ());
     zmq_assert (rc == 0);
 
-    rc = msg.init_size (14 + mlen - crypto_box_BOXZEROBYTES);
+    rc = msg.init_size (14 + mlen - CRYPTO_BOX_BOXZEROBYTES);
     errno_assert (rc == 0);
 
     uint8_t *ready = static_cast<uint8_t *> (msg.data ());
@@ -518,8 +518,8 @@ int curve_server_t::produce_ready (msg: &mut ZmqMessage)
     //  Short nonce, prefixed by "CurveZMQREADY---"
     memcpy (ready + 6, ready_nonce + 16, 8);
     //  Box [metadata](S'->C')
-    memcpy (ready + 14, &ready_box[crypto_box_BOXZEROBYTES],
-            mlen - crypto_box_BOXZEROBYTES);
+    memcpy (ready + 14, &ready_box[CRYPTO_BOX_BOXZEROBYTES],
+            mlen - CRYPTO_BOX_BOXZEROBYTES);
 
     return 0;
 }
@@ -537,10 +537,10 @@ int curve_server_t::produce_error (msg: &mut ZmqMessage) const
     return 0;
 }
 
-void curve_server_t::send_zap_request (const uint8_t *key_)
+void curve_server_t::send_zap_request (const key_: &mut [u8])
 {
     zap_client_t::send_zap_request ("CURVE", 5, key_,
-                                    crypto_box_PUBLICKEYBYTES);
+                                    CRYPTO_BOX_PUBLICKEYBYTES);
 }
 
 // #endif

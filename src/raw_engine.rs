@@ -121,7 +121,7 @@ void raw_engine_t::plug_internal ()
         connector.init ();
         push_raw_ZmqMessageo_session (&connector);
         connector.close ();
-        session ()->flush ();
+        session ().flush ();
     }
 
     set_pollin ();

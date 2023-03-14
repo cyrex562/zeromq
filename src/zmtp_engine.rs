@@ -337,7 +337,7 @@ zmtp_engine_t::handshake_fun_t zmtp_engine_t::select_handshake_fun (
 bool zmtp_engine_t::handshake_v1_0_unversioned ()
 {
     //  We send and receive rest of routing id message
-    if (session ()->zap_enabled ()) {
+    if (session ().zap_enabled ()) {
         // reject ZMTP 1.0 connections if ZAP is enabled
         error (protocol_error);
         return false;
@@ -393,7 +393,7 @@ bool zmtp_engine_t::handshake_v1_0_unversioned ()
 
 bool zmtp_engine_t::handshake_v1_0 ()
 {
-    if (session ()->zap_enabled ()) {
+    if (session ().zap_enabled ()) {
         // reject ZMTP 1.0 connections if ZAP is enabled
         error (protocol_error);
         return false;
@@ -411,7 +411,7 @@ bool zmtp_engine_t::handshake_v1_0 ()
 
 bool zmtp_engine_t::handshake_v2_0 ()
 {
-    if (session ()->zap_enabled ()) {
+    if (session ().zap_enabled ()) {
         // reject ZMTP 2.0 connections if ZAP is enabled
         error (protocol_error);
         return false;
@@ -477,8 +477,8 @@ bool zmtp_engine_t::handshake_v3_x (const downgrade_sub_: bool)
     }
 // #endif
     else {
-        socket ()->event_handshake_failed_protocol (
-          session ()->get_endpoint (),
+        socket ().event_handshake_failed_protocol (
+          session ().get_endpoint (),
           ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH);
         error (protocol_error);
         return false;
@@ -527,7 +527,7 @@ int zmtp_engine_t::process_routing_id_msg (msg: &mut ZmqMessage)
 {
     if (_options.recv_routing_id) {
         msg.set_flags (ZMQ_MSG_ROUTING_ID);
-        let rc: i32 = session ()->push_msg (msg);
+        let rc: i32 = session ().push_msg (msg);
         errno_assert (rc == 0);
     } else {
         int rc = msg.close ();
@@ -544,7 +544,7 @@ int zmtp_engine_t::process_routing_id_msg (msg: &mut ZmqMessage)
         int rc = subscription.init_size (1);
         errno_assert (rc == 0);
         *static_cast<unsigned char *> (subscription.data ()) = 1;
-        rc = session ()->push_msg (&subscription);
+        rc = session ().push_msg (&subscription);
         errno_assert (rc == 0);
     }
 

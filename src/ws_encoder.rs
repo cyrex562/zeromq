@@ -74,11 +74,11 @@ void ws_encoder_t::message_ready ()
 
     _is_binary = false;
 
-    if (in_progress ()->is_ping ())
+    if (in_progress ().is_ping ())
         _tmp_buf[offset++] = 0x80 | ws_protocol_t::opcode_ping;
-    else if (in_progress ()->is_pong ())
+    else if (in_progress ().is_pong ())
         _tmp_buf[offset++] = 0x80 | ws_protocol_t::opcode_pong;
-    else if (in_progress ()->is_close_cmd ())
+    else if (in_progress ().is_close_cmd ())
         _tmp_buf[offset++] = 0x80 | ws_protocol_t::opcode_close;
     else {
         _tmp_buf[offset++] = 0x82; // Final | binary
@@ -87,11 +87,11 @@ void ws_encoder_t::message_ready ()
 
     _tmp_buf[offset] = _must_mask ? 0x80 : 0x00;
 
-    size_t size = in_progress ()->size ();
+    size_t size = in_progress ().size ();
     if (_is_binary)
         size++;
     //  TODO: create an opcode for subscribe/cancel
-    if (in_progress ()->is_subscribe () || in_progress ()->is_cancel ())
+    if (in_progress ().is_subscribe () || in_progress ().is_cancel ())
         size++;
 
     if (size <= 125)
@@ -117,9 +117,9 @@ void ws_encoder_t::message_ready ()
     if (_is_binary) {
         //  Encode flags.
         unsigned char protocol_flags = 0;
-        if (in_progress ()->flags () & ZMQ_MSG_MORE)
+        if (in_progress ().flags () & ZMQ_MSG_MORE)
             protocol_flags |= ws_protocol_t::more_flag;
-        if (in_progress ()->flags () & ZMQ_MSG_COMMAND)
+        if (in_progress ().flags () & ZMQ_MSG_COMMAND)
             protocol_flags |= ws_protocol_t::command_flag;
 
         _tmp_buf[offset++] =
@@ -128,9 +128,9 @@ void ws_encoder_t::message_ready ()
 
     //  Encode the subscribe/cancel byte.
     //  TODO: remove once there is an opcode for subscribe/cancel
-    if (in_progress ()->is_subscribe ())
+    if (in_progress ().is_subscribe ())
         _tmp_buf[offset++] = _must_mask ? 1 ^ _mask[mask_index++] : 1;
-    else if (in_progress ()->is_cancel ())
+    else if (in_progress ().is_cancel ())
         _tmp_buf[offset++] = _must_mask ? 0 ^ _mask[mask_index++] : 0;
 
     next_step (_tmp_buf, offset, &ws_encoder_t::size_ready, false);
@@ -140,15 +140,15 @@ void ws_encoder_t::size_ready ()
 {
     if (_must_mask) {
         assert (in_progress () != &_masked_msg);
-        const size_t size = in_progress ()->size ();
+        const size_t size = in_progress ().size ();
 
         unsigned char *src =
-          static_cast<unsigned char *> (in_progress ()->data ());
+          static_cast<unsigned char *> (in_progress ().data ());
         unsigned char *dest = src;
 
         //  If msg is shared or data is constant we cannot mask in-place, allocate a new msg for it
-        if (in_progress ()->flags () & ZMQ_MSG_SHARED
-            || in_progress ()->is_cmsg ()) {
+        if (in_progress ().flags () & ZMQ_MSG_SHARED
+            || in_progress ().is_cmsg ()) {
             _masked_msg.close ();
             _masked_msg.init_size (size);
             dest = static_cast<unsigned char *> (_masked_msg.data ());
@@ -158,14 +158,14 @@ void ws_encoder_t::size_ready ()
         if (_is_binary)
             ++mask_index;
         //  TODO: remove once there is an opcode for subscribe/cancel
-        if (in_progress ()->is_subscribe () || in_progress ()->is_cancel ())
+        if (in_progress ().is_subscribe () || in_progress ().is_cancel ())
             ++mask_index;
         for (size_t i = 0; i < size; ++i, mask_index++)
             dest[i] = src[i] ^ _mask[mask_index % 4];
 
         next_step (dest, size, &ws_encoder_t::message_ready, true);
     } else {
-        next_step (in_progress ()->data (), in_progress ()->size (),
+        next_step (in_progress ().data (), in_progress ().size (),
                    &ws_encoder_t::message_ready, true);
     }
 }

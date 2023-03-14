@@ -63,7 +63,7 @@ v1_encoder_t::~v1_encoder_t ()
 void v1_encoder_t::size_ready ()
 {
     //  Write message body into the buffer.
-    next_step (in_progress ()->data (), in_progress ()->size (),
+    next_step (in_progress ().data (), in_progress ().size (),
                &v1_encoder_t::message_ready, true);
 }
 
@@ -71,13 +71,13 @@ void v1_encoder_t::message_ready ()
 {
     size_t header_size = 2; // flags byte + size byte
     //  Get the message size.
-    size_t size = in_progress ()->size ();
+    size_t size = in_progress ().size ();
 
     //  Account for the 'flags' byte.
     size++;
 
     //  Account for the subscribe/cancel byte.
-    if (in_progress ()->is_subscribe () || in_progress ()->is_cancel ())
+    if (in_progress ().is_subscribe () || in_progress ().is_cancel ())
         size++;
 
     //  For messages less than 255 bytes long, write one byte of message size.
@@ -85,11 +85,11 @@ void v1_encoder_t::message_ready ()
     //  message size. In both cases 'flags' field follows.
     if (size < UCHAR_MAX) {
         _tmpbuf[0] = static_cast<unsigned char> (size);
-        _tmpbuf[1] = (in_progress ()->flags () & ZMQ_MSG_MORE);
+        _tmpbuf[1] = (in_progress ().flags () & ZMQ_MSG_MORE);
     } else {
         _tmpbuf[0] = UCHAR_MAX;
         put_uint64 (_tmpbuf + 1, size);
-        _tmpbuf[9] = (in_progress ()->flags () & ZMQ_MSG_MORE);
+        _tmpbuf[9] = (in_progress ().flags () & ZMQ_MSG_MORE);
         header_size = 10;
     }
 
@@ -100,9 +100,9 @@ void v1_encoder_t::message_ready ()
     //  is sending the subscription/cancel to multiple pubs, but it cannot
     //  be avoided. This processing can be moved to xsub once support for
     //  ZMTP < 3.1 is dropped.
-    if (in_progress ()->is_subscribe ())
+    if (in_progress ().is_subscribe ())
         _tmpbuf[header_size++] = 1;
-    else if (in_progress ()->is_cancel ())
+    else if (in_progress ().is_cancel ())
         _tmpbuf[header_size++] = 0;
 
     next_step (_tmpbuf, header_size, &v1_encoder_t::size_ready, false);

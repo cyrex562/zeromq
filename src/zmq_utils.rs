@@ -155,7 +155,7 @@ pub fn zmq_z85_encode (dest_: &mut [u8], data: &[u8], size: usize) -> Option<Str
 //  must be a multiple of 5.
 //  Returns NULL and sets errno = EINVAL for invalid input.
 
-uint8_t *zmq_z85_decode (uint8_t *dest_, string_: &str)
+uint8_t *zmq_z85_decode (dest_: &mut [u8], string_: &str)
 {
     unsigned int byte_nbr = 0;
     unsigned int char_nbr = 0;
@@ -213,7 +213,7 @@ error_inval:
 int zmq_curve_keypair (char *z85_public_key_, char *z85_secret_key_)
 {
 // #if defined(ZMQ_HAVE_CURVE)
-#if crypto_box_PUBLICKEYBYTES != 32 || crypto_box_SECRETKEYBYTES != 32
+#if CRYPTO_BOX_PUBLICKEYBYTES != 32 || CRYPTO_BOX_SECRETKEYBYTES != 32
 #error "CURVE encryption library not built correctly"
 // #endif
 
@@ -245,7 +245,7 @@ int zmq_curve_keypair (char *z85_public_key_, char *z85_secret_key_)
 int zmq_curve_public (char *z85_public_key_, z85_secret_key_: &str)
 {
 // #if defined(ZMQ_HAVE_CURVE)
-#if crypto_box_PUBLICKEYBYTES != 32 || crypto_box_SECRETKEYBYTES != 32
+#if CRYPTO_BOX_PUBLICKEYBYTES != 32 || CRYPTO_BOX_SECRETKEYBYTES != 32
 #error "CURVE encryption library not built correctly"
 // #endif
 

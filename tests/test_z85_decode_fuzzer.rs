@@ -37,7 +37,7 @@
 // #include "testutil.hpp"
 // #include "testutil_unity.hpp"
 
-extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
+extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
 {
     uint8_t *secret_key;
 

@@ -326,7 +326,7 @@ int ws_engine_t::process_routing_id_msg (msg: &mut ZmqMessage)
 {
     if (_options.recv_routing_id) {
         msg.set_flags (ZMQ_MSG_ROUTING_ID);
-        let rc: i32 = session ()->push_msg (msg);
+        let rc: i32 = session ().push_msg (msg);
         errno_assert (rc == 0);
     } else {
         int rc = msg.close ();
@@ -409,7 +409,7 @@ bool ws_engine_t::handshake ()
                         _options.zero_copy, !_client);
         alloc_assert (_decoder);
 
-        socket ()->event_handshake_succeeded (_endpoint_uri_pair, 0);
+        socket ().event_handshake_succeeded (_endpoint_uri_pair, 0);
 
         set_pollout ();
     }
@@ -687,7 +687,7 @@ bool ws_engine_t::server_handshake ()
         if (_server_handshake_state == handshake_error) {
             // TODO: send bad request
 
-            socket ()->event_handshake_failed_protocol (
+            socket ().event_handshake_failed_protocol (
               _endpoint_uri_pair, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED);
 
             error (i_engine::protocol_error);
@@ -1032,7 +1032,7 @@ bool ws_engine_t::client_handshake ()
         _insize--;
 
         if (_client_handshake_state == client_handshake_error) {
-            socket ()->event_handshake_failed_protocol (
+            socket ().event_handshake_failed_protocol (
               _endpoint_uri_pair, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED);
 
             error (i_engine::protocol_error);
@@ -1065,7 +1065,7 @@ int ws_engine_t::decode_and_push (msg: &mut ZmqMessage)
 
     if (_metadata)
         msg.set_metadata (_metadata);
-    if (session ()->push_msg (msg) == -1) {
+    if (session ().push_msg (msg) == -1) {
         if (errno == EAGAIN)
             _process_msg = &ws_engine_t::push_one_then_decode_and_push;
         return -1;

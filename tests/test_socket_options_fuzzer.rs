@@ -40,7 +40,7 @@
 // #define LAST_OPTION ZMQ_BINDTODEVICE
 // #endif
 
-extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
+extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
 {
     option: i32;
     void *ctx = zmq_ctx_new ();

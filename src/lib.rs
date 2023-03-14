@@ -163,3 +163,5 @@ mod inprocs;
 mod out_pipe;
 mod socket_base_ops;
 mod cpu_time;
+mod utils;
+mod curve_encoding;

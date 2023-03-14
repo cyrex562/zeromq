@@ -367,7 +367,7 @@ void flush_read (fd_t fd_)
     TEST_ASSERT_NOT_EQUAL (-1, res);
 }
 
-void recv_all (fd_t fd_, uint8_t *data, socket_len_: usize)
+void recv_all (fd_t fd_, data: &mut [u8], socket_len_: usize)
 {
     socket_size_t received = 0;
     while (received < len_) {
@@ -435,7 +435,7 @@ fd_t connect_exchange_greeting_and_hello_welcome (
     uint8_t welcome[welcome_length + 2];
     recv_all (s, welcome, welcome_length + 2);
 
-    uint8_t cn_precom[crypto_box_BEFORENMBYTES];
+    uint8_t cn_precom[CRYPTO_BOX_BEFORENMBYTES];
     TEST_ASSERT_SUCCESS_ERRNO (
       tools_.process_welcome (welcome + 2, welcome_length, cn_precom));
 

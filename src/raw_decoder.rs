@@ -52,7 +52,7 @@ void raw_decoder_t::get_buffer (unsigned char **data, size: *mut usize)
     *size = _allocator.size ();
 }
 
-int raw_decoder_t::decode (const uint8_t *data,
+int raw_decoder_t::decode (data: &[u8],
                                 size: usize,
                                 size_t &bytes_used_)
 {

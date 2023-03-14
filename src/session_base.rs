@@ -50,7 +50,9 @@
 // #include "req.hpp"
 // #include "radio.hpp"
 // #include "dish.hpp"
-pub struct session_base_t : public own_t, public io_object_t, public i_pipe_events
+// pub struct session_base_t : public own_t, public io_object_t, public i_pipe_events
+#[derive(Default,Debug,Clone)]
+pub struct session_base_t
 {
 // public:
     //  Create a session of the particular type.

@@ -3,6 +3,7 @@
 
 use std::mem;
 use std::mem::size_of;
+use anyhow::anyhow;
 use libc::{c_long, EINVAL};
 use serde::{Deserialize, Serialize};
 use crate::atomic_counter::AtomicCounter;
@@ -176,8 +177,8 @@ pub union MsgUnion {
 }
 
 
-pub const CANCEL_CMD_NAME: String = String::from("\0x6CANCEL");
-pub const SUB_CMD_NAME: String = String::from("\0x9SUBSCRIBE");
+pub const CANCEL_CMD_NAME: &[u8] = b"\0x6CANCEL";
+pub const SUB_CMD_NAME: &[u8] = b"\0x9SUBSCRIBE";
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ZmqMessage {
@@ -601,16 +602,26 @@ impl ZmqMessage {
     //     return 0;
     // }
 
-    pub fn data(&mut self) -> Option<Vec<u8>> {
+    pub fn data(&mut self) -> &[u8] {
         //  Check the validity of the message.
         // zmq_assert (check ());
 
         match self.u.base.type_ {
-            TYPE_VSM => Some(Vec::from(self.u.vsm.data)),
-            TYPE_LMSG => Some(self.u.lmsg.content.data.clone()),
-            TYPE_CMSG => Some(self.u.cmsg.data.clone()),
-            TYPE_ZCLMSG => Some(self.u.zclmsg.content.data.clone()),
-            _ => None
+            TYPE_VSM => self.u.vsm.data.as_slice(),
+            TYPE_LMSG => self.u.lmsg.content.data.as_slice(),
+            TYPE_CMSG => self.u.cmsg.content.data.as_slice(),
+            TYPE_DELIMITER => self.u.delimiter.unused.as_slice(),
+            _ => self.u.raw.as_slice()
+        }
+    }
+
+    pub fn data_mut(&mut self) -> &mut [u8] {
+        match self.u.base.type_ {
+            TYPE_VSM => self.u.vsm.data.as_mut_slice(),
+            TYPE_LMSG => self.u.lmsg.content.data.as_mut_slice(),
+            TYPE_CMSG => self.u.cmsg.content.data.as_mut_slice(),
+            TYPE_DELIMITER => self.u.delimiter.unused.as_mut_slice(),
+            _ => self.u.raw.as_mut_slice()
         }
     }
 
@@ -891,13 +902,16 @@ impl ZmqMessage {
     }
 }
 
-pub fn close_and_return(msg: &mut ZmqMessage, echo: i32) -> i32 {
+pub fn close_and_return(msg: &mut ZmqMessage, echo: i32) -> anyhow::Resuylt<i32> {
     // Since we abort on close failure we preserve errno for success case.
-    let err: i32 = errno;
-    let rc: i32 = msg.close();
-    errno_assert(rc == 0);
-    errno = err;
-    return echo;
+    // let err: i32 = errno;
+    match msg.close() {
+        Ok(_) => Ok(echo),
+        Err(e) => Err(anyhow!("error: {}", e))
+    }
+    // errno_assert(rc == 0);
+    // errno = err;
+    // return echo;
 }
 
 pub fn close_and_return2(msg: &mut [ZmqMessage], count: i32, echo: i32) -> i32 {

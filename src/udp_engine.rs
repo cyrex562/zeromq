@@ -349,7 +349,7 @@ int udp_engine_t::set_udp_multicast_iface (fd_t s_,
                              mem::size_of::<bind_if>());
         }
     } else {
-        struct in_addr bind_addr = addr_.bind_addr ()->ipv4.sin_addr;
+        struct in_addr bind_addr = addr_.bind_addr ().ipv4.sin_addr;
 
         if (bind_addr.s_addr != INADDR_ANY) {
             rc = setsockopt (s_, IPPROTO_IP, IP_MULTICAST_IF,
@@ -392,7 +392,7 @@ int udp_engine_t::add_membership (fd_t s_, const UdpAddress *addr_)
     if (mcast_addr.family () == AF_INET) {
         struct ip_mreq mreq;
         mreq.imr_multiaddr = mcast_addr.ipv4.sin_addr;
-        mreq.imr_interface = addr_.bind_addr ()->ipv4.sin_addr;
+        mreq.imr_interface = addr_.bind_addr ().ipv4.sin_addr;
 
         rc = setsockopt (s_, IPPROTO_IP, IP_ADD_MEMBERSHIP,
                          reinterpret_cast<char *> (&mreq), mem::size_of::<mreq>());

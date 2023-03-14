@@ -47,10 +47,10 @@ void test_roundtrip (msg: &mut ZmqMessage)
                                          static_cast<uint8_t *> (msg.data ())
                                            + msg.size ());
 
-    curve_encoding_t encoding_client ("CurveZMQMESSAGEC",
+    ZmqCurveEncoding encoding_client ("CurveZMQMESSAGEC",
                                            "CurveZMQMESSAGES",
                                            false);
-    curve_encoding_t encoding_server ("CurveZMQMESSAGES",
+    ZmqCurveEncoding encoding_server ("CurveZMQMESSAGES",
                                            "CurveZMQMESSAGEC",
                                            false);
 

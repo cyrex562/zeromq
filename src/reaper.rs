@@ -120,7 +120,7 @@ void reaper_t::start ()
 
 void reaper_t::stop ()
 {
-    if (get_mailbox ()->valid ()) {
+    if (get_mailbox ().valid ()) {
         send_stop ();
     }
 }

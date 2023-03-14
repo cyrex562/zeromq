@@ -36,7 +36,7 @@
 
 // Test that the ZMTP WebSocket engine handles invalid handshake when connecting
 // https://rfc.zeromq.org/spec/45/
-extern "C" int LLVMFuzzerTestOneInput (const uint8_t *data, size: usize)
+extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
 {
     setup_test_context ();
     char my_endpoint[MAX_SOCKET_STRING];
