@@ -371,7 +371,7 @@ pub const ZMQ_RADIO: u8 = 14;
 pub const ZMQ_DISH: u8 = 15;
 pub const ZMQ_GATHER: u8 = 16;
 pub const ZMQ_SCATTER: u8 = 17;
-pub const ZQM_DGRAM: u8 = 18;
+pub const ZMQ_DGRAM: u8 = 18;
 pub const ZMQ_PEER: i32 = 19;
 pub const ZMQ_CHANNEL: u8 = 20;
 

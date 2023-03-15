@@ -50,7 +50,7 @@ pub struct UdpAddress
     UdpAddress ();
     virtual ~UdpAddress ();
 
-    int resolve (name_: *const c_char, bind_: bool, ipv6_: bool);
+    int resolve (name_: &str, bind_: bool, ipv6_: bool);
 
     //  The opposite to resolve()
     virtual int to_string (std::string &addr_);
@@ -83,7 +83,7 @@ UdpAddress::~UdpAddress ()
 {
 }
 
-int UdpAddress::resolve (name_: *const c_char, bind_: bool, ipv6_: bool)
+int UdpAddress::resolve (name_: &str, bind_: bool, ipv6_: bool)
 {
     //  No IPv6 support yet
     bool has_interface = false;

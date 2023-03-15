@@ -32,19 +32,19 @@
 // #include "zap_client.hpp"
 // #include "msg.hpp"
 // #include "session_base.hpp"
-pub struct zap_client_t : public virtual mechanism_base_t
+pub struct zap_client_t : public virtual ZmqMechanismBase
 {
 // public:
-    zap_client_t (session_base_t *session_,
+    zap_client_t (ZmqSessionBase *session_,
                   const std::string &peer_address_,
                   const ZmqOptions &options_);
 
-    void send_zap_request (mechanism_: *const c_char,
+    void send_zap_request (mechanism_: &str,
                            mechanism_length_: usize,
                            credentials_: &[u8],
                            credentials_size_: usize);
 
-    void send_zap_request (mechanism_: *const c_char,
+    void send_zap_request (mechanism_: &str,
                            mechanism_length_: usize,
                            const uint8_t **credentials_,
                            size_t *credentials_sizes_,
@@ -74,7 +74,7 @@ pub struct zap_client_common_handshake_t : public zap_client_t
         ready
     };
 
-    zap_client_common_handshake_t (session_base_t *session_,
+    zap_client_common_handshake_t (ZmqSessionBase *session_,
                                    const std::string &peer_address_,
                                    const ZmqOptions &options_,
                                    state_t zap_reply_ok_state_);
@@ -99,17 +99,17 @@ namespace zmq
 const char zap_version[] = "1.0";
 const size_t zap_version_len = mem::size_of::<zap_version>() - 1;
 
-const char id[] = "1";
+pub const id: &str = "1";
 const size_t id_len = mem::size_of::<id>() - 1;
 
-zap_client_t::zap_client_t (session_base_t *const session_,
+zap_client_t::zap_client_t (ZmqSessionBase *const session_,
                             const std::string &peer_address_,
                             const ZmqOptions &options_) :
-    mechanism_base_t (session_, options_), peer_address (peer_address_)
+    ZmqMechanismBase (session_, options_), peer_address (peer_address_)
 {
 }
 
-void zap_client_t::send_zap_request (mechanism_: *const c_char,
+void zap_client_t::send_zap_request (mechanism_: &str,
                                      mechanism_length_: usize,
                                      credentials_: &[u8],
                                      credentials_size_: usize)
@@ -118,7 +118,7 @@ void zap_client_t::send_zap_request (mechanism_: *const c_char,
                       &credentials_size_, 1);
 }
 
-void zap_client_t::send_zap_request (mechanism_: *const c_char,
+void zap_client_t::send_zap_request (mechanism_: &str,
                                      mechanism_length_: usize,
                                      const uint8_t **credentials_,
                                      size_t *credentials_sizes_,
@@ -317,25 +317,25 @@ void zap_client_t::handle_zap_status_code ()
 }
 
 zap_client_common_handshake_t::zap_client_common_handshake_t (
-  session_base_t *const session_,
+  ZmqSessionBase *const session_,
   const std::string &peer_address_,
   const ZmqOptions &options_,
   state_t zap_reply_ok_state_) :
-    mechanism_base_t (session_, options_),
+    ZmqMechanismBase (session_, options_),
     zap_client_t (session_, peer_address_, options_),
     state (waiting_for_hello),
     _zap_reply_ok_state (zap_reply_ok_state_)
 {
 }
 
-mechanism_t::status_t zap_client_common_handshake_t::status () const
+ZmqMechanism::status_t zap_client_common_handshake_t::status () const
 {
     if (state == ready)
-        return mechanism_t::ready;
+        return ZmqMechanism::ready;
     if (state == error_sent)
-        return mechanism_t::error;
+        return ZmqMechanism::error;
 
-    return mechanism_t::handshaking;
+    return ZmqMechanism::handshaking;
 }
 
 int zap_client_common_handshake_t::zap_msg_available ()

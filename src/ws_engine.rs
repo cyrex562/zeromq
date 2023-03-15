@@ -215,7 +215,7 @@ pub struct ws_engine_t : public stream_engine_base_t
 };
 
 static int
-encode_base64 (const unsigned char *in_, in_len_: i32, char *out_, out_len_: i32);
+encode_base64 (const in_: &mut [u8], in_len_: i32, char *out_, out_len_: i32);
 
 static void compute_accept_key (char *key_,
                                 unsigned char hash_[SHA_DIGEST_LENGTH]);
@@ -359,7 +359,7 @@ bool ws_engine_t::select_protocol (protocol_: &str)
     if (_options.mechanism == ZMQ_NULL
         && strcmp ("ZWS2.0/NULL", protocol_) == 0) {
         _mechanism = new (std::nothrow)
-          null_mechanism_t (session (), _peer_address, _options);
+          null_ZmqMechanism (session (), _peer_address, _options);
         alloc_assert (_mechanism);
         return true;
     } else if (_options.mechanism == ZMQ_PLAIN
@@ -1147,7 +1147,7 @@ int ws_engine_t::process_command_message (msg: &mut ZmqMessage)
 }
 
 static int
-encode_base64 (const unsigned char *in_, in_len_: i32, char *out_, out_len_: i32)
+encode_base64 (const in_: &mut [u8], in_len_: i32, char *out_, out_len_: i32)
 {
     static const unsigned char base64enc_tab[65] =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

@@ -56,7 +56,7 @@ struct i_engine
 
     //  Plug the engine to the session.
     virtual void plug (io_thread_t *io_thread_,
-pub struct session_base_t *session_) = 0;
+pub struct ZmqSessionBase *session_) = 0;
 
     //  Terminate and deallocate the engine. Note that 'detached'
     //  events are not fired on termination.

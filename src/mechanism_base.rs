@@ -29,30 +29,41 @@
 
 // #include "precompiled.hpp"
 
+use crate::mechanism::ZmqMechanism;
+use crate::session_base::ZmqSessionBase;
+
 // #include "mechanism_base.hpp"
 // #include "session_base.hpp"
-pub struct mechanism_base_t : public mechanism_t
+// public mechanism_t
+#[derive(Default,Debug,Clone)]
+pub struct ZmqMechanismBase
 {
-  protected:
-    mechanism_base_t (session_base_t *session_, const ZmqOptions &options_);
+pub mechanism: ZmqMechanism,
+// ZmqSessionBase *const session;
+pub session: ZmqSessionBase,
 
-    session_base_t *const session;
+}
 
-    int check_basic_command_structure (msg: &mut ZmqMessage) const;
+impl ZmqMechanismBase {
+    // ZmqMechanismBase (ZmqSessionBase *session_, const ZmqOptions &options_);
+    pub fn new() -> Self {
 
-    void handle_error_reason (error_reason_: *const c_char,
-                              error_reason_len_: usize);
+    }
 
-    bool zap_required () const;
-};
+    // int check_basic_command_structure (msg: &mut ZmqMessage) const;
 
-mechanism_base_t::mechanism_base_t (session_base_t *const session_,
+    // void handle_error_reason (error_reason_: *const c_char, error_reason_len_: usize);
+
+    // bool zap_required () const;
+}
+
+ZmqMechanismBase::ZmqMechanismBase (ZmqSessionBase *const session_,
                                          const ZmqOptions &options_) :
-    mechanism_t (options_), session (session_)
+    ZmqMechanism (options_), session (session_)
 {
 }
 
-int mechanism_base_t::check_basic_command_structure (msg: &mut ZmqMessage) const
+int ZmqMechanismBase::check_basic_command_structure (msg: &mut ZmqMessage) const
 {
     if (msg.size () <= 1
         || msg.size () <= (static_cast<uint8_t *> (msg.data ()))[0]) {
@@ -65,7 +76,7 @@ int mechanism_base_t::check_basic_command_structure (msg: &mut ZmqMessage) const
     return 0;
 }
 
-void mechanism_base_t::handle_error_reason (error_reason_: *const c_char,
+void ZmqMechanismBase::handle_error_reason (error_reason_: &str,
                                                  error_reason_len_: usize)
 {
     const size_t status_code_len = 3;
@@ -89,7 +100,7 @@ void mechanism_base_t::handle_error_reason (error_reason_: *const c_char,
     }
 }
 
-bool mechanism_base_t::zap_required () const
+bool ZmqMechanismBase::zap_required () const
 {
     return !options.zap_domain.is_empty();
 }

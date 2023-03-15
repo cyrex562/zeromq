@@ -149,7 +149,7 @@ void test_ctx_thread_opts ()
 // #ifdef ZMQ_BUILD_DRAFT_API
     // test STRING thread name prefix:
 
-    const char prefix[] = "MyPrefix9012345"; // max len is 16 chars
+    pub const prefix: &str = "MyPrefix9012345"; // max len is 16 chars
 
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_ctx_set_ext (get_test_context (), ZMQ_THREAD_NAME_PREFIX, prefix,

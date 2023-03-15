@@ -76,7 +76,7 @@ pub struct thread_t
     //  'arg' as an argument.
     //  Name is 16 characters max including terminating NUL. Thread naming is
     //  implemented only for pthread, and windows when a debugger is attached.
-    void start (thread_fn *tfn_, arg_: *mut c_void, name_: &str);
+    void start (thread_fn *tfn_, arg_: &mut [u8], name_: &str);
 
     //  Returns whether the thread was started, i.e. start was called.
     bool get_started () const;
@@ -153,7 +153,7 @@ static unsigned int __stdcall thread_routine (arg_: &mut [u8])
 }
 }
 
-void thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: &str)
+void thread_t::start (thread_fn *tfn_, arg_: &mut [u8], name_: &str)
 {
     _tfn = tfn_;
     _arg = arg_;
@@ -273,7 +273,7 @@ static void *thread_routine (arg_: &mut [u8])
 }
 }
 
-void thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: &str)
+void thread_t::start (thread_fn *tfn_, arg_: &mut [u8], name_: &str)
 {
     LIBZMQ_UNUSED (name_);
     _tfn = tfn_;
@@ -350,7 +350,7 @@ static void *thread_routine (arg_: &mut [u8])
 }
 }
 
-void thread_t::start (thread_fn *tfn_, arg_: *mut c_void, name_: &str)
+void thread_t::start (thread_fn *tfn_, arg_: &mut [u8], name_: &str)
 {
     _tfn = tfn_;
     _arg = arg_;

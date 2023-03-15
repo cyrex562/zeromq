@@ -74,7 +74,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     //  i_engine interface implementation.
     bool has_handshake_stage () ZMQ_FINAL { return _has_handshake_stage; };
     void plug (io_thread_t *io_thread_,
-               session_base_t *session_) ZMQ_FINAL;
+               ZmqSessionBase *session_) ZMQ_FINAL;
     void terminate () ZMQ_FINAL;
     bool restart_input () ZMQ_FINAL;
     void restart_output () ZMQ_FINAL;
@@ -129,13 +129,13 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
         return -1;
     };
 
-    virtual int read (data: *mut c_void, size: usize);
-    virtual int write (const data: *mut c_void, size: usize);
+    virtual int read (data: &mut [u8], size: usize);
+    virtual int write (const data: &mut [u8], size: usize);
 
     void reset_pollout () { io_object_t::reset_pollout (_handle); }
     void set_pollout () { io_object_t::set_pollout (_handle); }
     void set_pollin () { io_object_t::set_pollin (_handle); }
-    session_base_t *session () { return _session; }
+    ZmqSessionBase *session () { return _session; }
     ZmqSocketBase *socket () { return _socket; }
 
     const ZmqOptions _options;
@@ -148,7 +148,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     _outsize: usize;
     i_encoder *_encoder;
 
-    mechanism_t *_mechanism;
+    ZmqMechanism *_mechanism;
 
     int (stream_engine_base_t::*_next_msg) (msg: &mut ZmqMessage);
     int (stream_engine_base_t::*_process_msg) (msg: &mut ZmqMessage);
@@ -215,7 +215,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     _io_error: bool
 
     //  The session this engine is attached to.
-    session_base_t *_session;
+    ZmqSessionBase *_session;
 
     //  Socket
     ZmqSocketBase *_socket;
@@ -341,7 +341,7 @@ stream_engine_base_t::~stream_engine_base_t ()
 }
 
 void stream_engine_base_t::plug (io_thread_t *io_thread_,
-                                      session_base_t *session_)
+                                      ZmqSessionBase *session_)
 {
     zmq_assert (!_plugged);
     _plugged = true;
@@ -639,11 +639,11 @@ int stream_engine_base_t::next_handshake_command (msg: &mut ZmqMessage)
 {
     zmq_assert (_mechanism != null_mut());
 
-    if (_mechanism.status () == mechanism_t::ready) {
+    if (_mechanism.status () == ZmqMechanism::ready) {
         mechanism_ready ();
         return pull_and_encode (msg);
     }
-    if (_mechanism.status () == mechanism_t::error) {
+    if (_mechanism.status () == ZmqMechanism::error) {
         errno = EPROTO;
         return -1;
     }
@@ -660,9 +660,9 @@ int stream_engine_base_t::process_handshake_command (msg: &mut ZmqMessage)
     zmq_assert (_mechanism != null_mut());
     let rc: i32 = _mechanism.process_handshake_command (msg);
     if (rc == 0) {
-        if (_mechanism.status () == mechanism_t::ready)
+        if (_mechanism.status () == ZmqMechanism::ready)
             mechanism_ready ();
-        else if (_mechanism.status () == mechanism_t::error) {
+        else if (_mechanism.status () == ZmqMechanism::error) {
             errno = EPROTO;
             return -1;
         }
@@ -867,7 +867,7 @@ void stream_engine_base_t::error (error_reason_t reason_)
     // protocol errors have been signaled already at the point where they occurred
     if (reason_ != protocol_error
         && (_mechanism == null_mut()
-            || _mechanism.status () == mechanism_t::handshaking)) {
+            || _mechanism.status () == ZmqMechanism::handshaking)) {
         let err: i32 = errno;
         _socket.event_handshake_failed_no_detail (_endpoint_uri_pair, err);
         // special case: connecting to non-ZMTP process which immediately drops connection,
@@ -885,7 +885,7 @@ void stream_engine_base_t::error (error_reason_t reason_)
     _session.engine_error (
       !_handshaking
         && (_mechanism == null_mut()
-            || _mechanism.status () != mechanism_t::handshaking),
+            || _mechanism.status () != ZmqMechanism::handshaking),
       reason_);
     unplug ();
     delete this;
@@ -938,7 +938,7 @@ void stream_engine_base_t::timer_event (id_: i32)
         assert (false);
 }
 
-int stream_engine_base_t::read (data: *mut c_void, size: usize)
+int stream_engine_base_t::read (data: &mut [u8], size: usize)
 {
     let rc: i32 = tcp_read (_s, data, size);
 
@@ -951,7 +951,7 @@ int stream_engine_base_t::read (data: *mut c_void, size: usize)
     return rc;
 }
 
-int stream_engine_base_t::write (const data: *mut c_void, size: usize)
+int stream_engine_base_t::write (const data: &mut [u8], size: usize)
 {
     return tcp_write (_s, data, size);
 }

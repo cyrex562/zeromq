@@ -46,7 +46,7 @@ pub struct req_t ZMQ_FINAL : public dealer_t
     int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
     bool xhas_out ();
-    int xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
+    int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
     void xpipe_terminated (pipe_: &mut pipe_t);
 
   protected:
@@ -80,7 +80,7 @@ pub struct req_t ZMQ_FINAL : public dealer_t
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (req_t)
 };
-pub struct req_session_t ZMQ_FINAL : public session_base_t
+pub struct req_session_t ZMQ_FINAL : public ZmqSessionBase
 {
 // public:
     req_session_t (io_thread_t *io_thread_,
@@ -90,7 +90,7 @@ pub struct req_session_t ZMQ_FINAL : public session_base_t
                    Address *addr_);
     ~req_session_t ();
 
-    //  Overrides of the functions from session_base_t.
+    //  Overrides of the functions from ZmqSessionBase.
     int push_msg (msg: &mut ZmqMessage);
     void reset ();
 
@@ -276,7 +276,7 @@ bool req_t::xhas_out ()
 }
 
 int req_t::xsetsockopt (option_: i32,
-                             const optval_: *mut c_void,
+                             const optval_: &mut [u8],
                              optvallen_: usize)
 {
     const bool is_int = (optvallen_ == mem::size_of::<int>());
@@ -330,7 +330,7 @@ req_session_t::req_session_t (io_thread_t *io_thread_,
                                    ZmqSocketBase *socket_,
                                    const ZmqOptions &options_,
                                    Address *addr_) :
-    session_base_t (io_thread_, connect_, socket_, options_, addr_),
+    ZmqSessionBase (io_thread_, connect_, socket_, options_, addr_),
     _state (bottom)
 {
 }
@@ -354,26 +354,26 @@ int req_session_t::push_msg (msg: &mut ZmqMessage)
                 //  whether the option is actually on or not).
                 if (msg.size () == mem::size_of::<u32>()) {
                     _state = request_id;
-                    return session_base_t::push_msg (msg);
+                    return ZmqSessionBase::push_msg (msg);
                 }
                 if (msg.size () == 0) {
                     _state = body;
-                    return session_base_t::push_msg (msg);
+                    return ZmqSessionBase::push_msg (msg);
                 }
             }
             break;
         case request_id:
             if (msg.flags () == ZMQ_MSG_MORE && msg.size () == 0) {
                 _state = body;
-                return session_base_t::push_msg (msg);
+                return ZmqSessionBase::push_msg (msg);
             }
             break;
         case body:
             if (msg.flags () == ZMQ_MSG_MORE)
-                return session_base_t::push_msg (msg);
+                return ZmqSessionBase::push_msg (msg);
             if (msg.flags () == 0) {
                 _state = bottom;
-                return session_base_t::push_msg (msg);
+                return ZmqSessionBase::push_msg (msg);
             }
             break;
     }
@@ -383,6 +383,6 @@ int req_session_t::push_msg (msg: &mut ZmqMessage)
 
 void req_session_t::reset ()
 {
-    session_base_t::reset ();
+    ZmqSessionBase::reset ();
     _state = bottom;
 }

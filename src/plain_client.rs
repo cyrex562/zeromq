@@ -38,10 +38,10 @@
 // #include "plain_client.hpp"
 // #include "session_base.hpp"
 // #include "plain_common.hpp"
-pub struct plain_client_t ZMQ_FINAL : public mechanism_base_t
+pub struct plain_client_t ZMQ_FINAL : public ZmqMechanismBase
 {
 // public:
-    plain_client_t (session_base_t *session_, const ZmqOptions &options_);
+    plain_client_t (ZmqSessionBase *session_, const ZmqOptions &options_);
     ~plain_client_t ();
 
     // mechanism implementation
@@ -65,14 +65,14 @@ pub struct plain_client_t ZMQ_FINAL : public mechanism_base_t
     void produce_hello (msg: &mut ZmqMessage) const;
     void produce_initiate (msg: &mut ZmqMessage) const;
 
-    int process_welcome (const unsigned char *cmd_data_, data_size_: usize);
-    int process_ready (const unsigned char *cmd_data_, data_size_: usize);
-    int process_error (const unsigned char *cmd_data_, data_size_: usize);
+    int process_welcome (const cmd_data_: &mut [u8], data_size_: usize);
+    int process_ready (const cmd_data_: &mut [u8], data_size_: usize);
+    int process_error (const cmd_data_: &mut [u8], data_size_: usize);
 };
 
-plain_client_t::plain_client_t (session_base_t *const session_,
+plain_client_t::plain_client_t (ZmqSessionBase *const session_,
                                      const ZmqOptions &options_) :
-    mechanism_base_t (session_, options_), _state (sending_hello)
+    ZmqMechanismBase (session_, options_), _state (sending_hello)
 {
 }
 
@@ -133,15 +133,15 @@ int plain_client_t::process_handshake_command (msg: &mut ZmqMessage)
     return rc;
 }
 
-mechanism_t::status_t plain_client_t::status () const
+ZmqMechanism::status_t plain_client_t::status () const
 {
     switch (_state) {
         case ready:
-            return mechanism_t::ready;
+            return ZmqMechanism::ready;
         case error_command_received:
-            return mechanism_t::error;
+            return ZmqMechanism::error;
         default:
-            return mechanism_t::handshaking;
+            return ZmqMechanism::handshaking;
     }
 }
 
@@ -172,7 +172,7 @@ void plain_client_t::produce_hello (msg: &mut ZmqMessage) const
     memcpy (ptr, password, password.length ());
 }
 
-int plain_client_t::process_welcome (const unsigned char *cmd_data_,
+int plain_client_t::process_welcome (const cmd_data_: &mut [u8],
                                           data_size_: usize)
 {
     LIBZMQ_UNUSED (cmd_data_);
@@ -200,7 +200,7 @@ void plain_client_t::produce_initiate (msg: &mut ZmqMessage) const
                                         initiate_prefix_len);
 }
 
-int plain_client_t::process_ready (const unsigned char *cmd_data_,
+int plain_client_t::process_ready (const cmd_data_: &mut [u8],
                                         data_size_: usize)
 {
     if (_state != waiting_for_ready) {
@@ -220,7 +220,7 @@ int plain_client_t::process_ready (const unsigned char *cmd_data_,
     return rc;
 }
 
-int plain_client_t::process_error (const unsigned char *cmd_data_,
+int plain_client_t::process_error (const cmd_data_: &mut [u8],
                                         data_size_: usize)
 {
     if (_state != waiting_for_welcome && _state != waiting_for_ready) {

@@ -58,7 +58,7 @@ pub fn start_thread (thread: &mut thread_t,
     thread_.start (tfn_, arg_, namebuf);
 }
 
-int set (option_: i32, const opt_val: *mut c_void, optvallen_: usize)
+int set (option_: i32, const opt_val: &mut [u8], optvallen_: usize)
 {
     const bool is_int = (optvallen_ == sizeof (int));
     int value = 0;
@@ -123,7 +123,7 @@ int set (option_: i32, const opt_val: *mut c_void, optvallen_: usize)
 }
 
 int get (option_: i32,
-                            optval_: *mut c_void,
+                            optval_: &mut [u8],
                             const optvallen_: *mut usize)
 {
     const bool is_int = (*optvallen_ == sizeof (int));

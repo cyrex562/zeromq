@@ -37,7 +37,7 @@ pub struct wss_engine_t : public ws_engine_t
                   const endpoint_uri_pair_t &endpoint_uri_pair_,
                   WsAddress &address_,
                   client_: bool,
-                  tls_server_cred_: *mut c_void,
+                  tls_server_cred_: &mut [u8],
                   hostname_: &str);
     ~wss_engine_t ();
 
@@ -46,8 +46,8 @@ pub struct wss_engine_t : public ws_engine_t
   protected:
     bool handshake ();
     void plug_internal ();
-    int read (data: *mut c_void, size: usize);
-    int write (const data: *mut c_void, size: usize);
+    int read (data: &mut [u8], size: usize);
+    int write (const data: &mut [u8], size: usize);
 
   // private:
     bool do_handshake ();
@@ -84,7 +84,7 @@ wss_engine_t::wss_engine_t (fd_t fd_,
                                  const endpoint_uri_pair_t &endpoint_uri_pair_,
                                  WsAddress &address_,
                                  client_: bool,
-                                 tls_server_cred_: *mut c_void,
+                                 tls_server_cred_: &mut [u8],
                                  hostname_: &str) :
     ws_engine_t (fd_, options_, endpoint_uri_pair_, address_, client_),
     _established (false),
@@ -201,7 +201,7 @@ bool wss_engine_t::handshake ()
     return ws_engine_t::handshake ();
 }
 
-int wss_engine_t::read (data: *mut c_void, size: usize)
+int wss_engine_t::read (data: &mut [u8], size: usize)
 {
     ssize_t rc = gnutls_record_recv (_tls_session, data, size);
 
@@ -235,7 +235,7 @@ int wss_engine_t::read (data: *mut c_void, size: usize)
     return rc;
 }
 
-int wss_engine_t::write (const data: *mut c_void, size: usize)
+int wss_engine_t::write (const data: &mut [u8], size: usize)
 {
     ssize_t rc = gnutls_record_send (_tls_session, data, size);
 

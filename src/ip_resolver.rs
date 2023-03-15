@@ -630,8 +630,8 @@ impl IpResolver {
     
     // #endif
     
-    pub fn do_getaddrinfo (node_: *const c_char,
-                                            service_: *const c_char,
+    pub fn do_getaddrinfo (node_: &str,
+                                            service_: &str,
                                             const struct addrinfo *hints_,
                                             struct addrinfo **res_) -> i32
     {

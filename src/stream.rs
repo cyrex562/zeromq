@@ -163,7 +163,7 @@ int stream_t::xsend (msg: &mut ZmqMessage)
 }
 
 int stream_t::xsetsockopt (option_: i32,
-                                const optval_: *mut c_void,
+                                const optval_: &mut [u8],
                                 optvallen_: usize)
 {
     switch (option_) {
@@ -280,7 +280,7 @@ void stream_t::identify_peer (pipe_t *pipe_, locally_initiated_: bool)
         //  Not allowed to duplicate an existing rid
         zmq_assert (!has_out_pipe (routing_id));
     } else {
-        put_uint32 (buffer + 1, _next_integral_routing_id++);
+        put_u32 (buffer + 1, _next_integral_routing_id++);
         routing_id.set (buffer, sizeof buffer);
         memcpy (options.routing_id, routing_id.data (), routing_id.size ());
         options.routing_id_size =
@@ -305,7 +305,7 @@ pub struct stream_t ZMQ_FINAL : public routing_socket_base_t
     bool xhas_out ();
     void xread_activated (pipe_: &mut pipe_t);
     void xpipe_terminated (pipe_: &mut pipe_t);
-    int xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
+    int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
 
   // private:
     //  Generate peer's id and update lookup map

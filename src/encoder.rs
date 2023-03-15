@@ -139,7 +139,7 @@ template <typename T> class encoder_base_t : public i_encoder
 
     //  This function should be called from derived class to write the data
     //  to the buffer and schedule next state machine action.
-    void next_step (write_pos_: *mut c_void,
+    void next_step (write_pos_: &mut [u8],
                     to_write_: usize,
                     step_t next_,
                     new_msg_flag_: bool)

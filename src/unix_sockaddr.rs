@@ -73,5 +73,5 @@ pub struct addrinfo {
     pub ai_addrlen: size_t, // the length of the addr member
     pub ai_canonname: *mut c_char, // the canonical name for nodename
     pub ai_addr: *mut sockaddr, // binary socket address
-    pub ai_next: *mut c_void, // pointer to the next addrinfo struct
+    pub ai_next: &mut [u8], // pointer to the next addrinfo struct
 }

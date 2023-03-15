@@ -108,8 +108,8 @@ void ws_encoder_t::message_ready ()
 
     if (_must_mask) {
         const u32 random = generate_random ();
-        put_uint32 (_tmp_buf + offset, random);
-        put_uint32 (_mask, random);
+        put_u32 (_tmp_buf + offset, random);
+        put_u32 (_mask, random);
         offset += 4;
     }
 

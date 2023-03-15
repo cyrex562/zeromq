@@ -37,8 +37,8 @@ const uint8_t subscribe_a_msg[] = {1, 'A'};
 const uint8_t subscribe_b_msg[] = {1, 'B'};
 
 const char test_endpoint[] = "inproc://soname";
-const char topic_a[] = "A";
-const char topic_b[] = "B";
+pub const topic_a: &str = "A";
+pub const topic_b: &str = "B";
 
 void test_xpub_verbose_one_sub ()
 {

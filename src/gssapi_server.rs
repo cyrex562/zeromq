@@ -41,11 +41,11 @@
 // #include "wire.hpp"
 
 // #include <gssapi/gssapi.h>
-pub struct gssapi_server_t ZMQ_FINAL : public gssapi_mechanism_base_t,
+pub struct gssapi_server_t ZMQ_FINAL : public gssapi_ZmqMechanismBase,
                                   public zap_client_t
 {
 // public:
-    gssapi_server_t (session_base_t *session_,
+    gssapi_server_t (ZmqSessionBase *session_,
                      const std::string &peer_address,
                      const ZmqOptions &options_);
     ~gssapi_server_t () ZMQ_FINAL;
@@ -69,7 +69,7 @@ pub struct gssapi_server_t ZMQ_FINAL : public gssapi_mechanism_base_t,
         connected
     };
 
-    session_base_t *const session;
+    ZmqSessionBase *const session;
 
     const peer_address: String;
 
@@ -88,11 +88,11 @@ pub struct gssapi_server_t ZMQ_FINAL : public gssapi_mechanism_base_t,
     void send_zap_request ();
 };
 
-gssapi_server_t::gssapi_server_t (session_base_t *session_,
+gssapi_server_t::gssapi_server_t (ZmqSessionBase *session_,
                                        const std::string &peer_address_,
                                        const ZmqOptions &options_) :
-    mechanism_base_t (session_, options_),
-    gssapi_mechanism_base_t (session_, options_),
+    ZmqMechanismBase (session_, options_),
+    gssapi_ZmqMechanismBase (session_, options_),
     zap_client_t (session_, peer_address_, options_),
     session (session_),
     peer_address (peer_address_),
@@ -243,9 +243,9 @@ int gssapi_server_t::zap_msg_available ()
     return rc == -1 ? -1 : 0;
 }
 
-mechanism_t::status_t gssapi_server_t::status () const
+ZmqMechanism::status_t gssapi_server_t::status () const
 {
-    return state == connected ? mechanism_t::ready : mechanism_t::handshaking;
+    return state == connected ? ZmqMechanism::ready : ZmqMechanism::handshaking;
 }
 
 int gssapi_server_t::produce_next_token (msg: &mut ZmqMessage)

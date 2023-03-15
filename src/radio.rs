@@ -51,7 +51,7 @@ pub struct radio_t ZMQ_FINAL : public ZmqSocketBase
     bool xhas_in ();
     void xread_activated (pipe_: &mut pipe_t);
     void xwrite_activated (pipe_: &mut pipe_t);
-    int xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
+    int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
     void xpipe_terminated (pipe_: &mut pipe_t);
 
   // private:
@@ -71,7 +71,7 @@ pub struct radio_t ZMQ_FINAL : public ZmqSocketBase
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (radio_t)
 };
-pub struct radio_session_t ZMQ_FINAL : public session_base_t
+pub struct radio_session_t ZMQ_FINAL : public ZmqSessionBase
 {
 // public:
     radio_session_t (io_thread_t *io_thread_,
@@ -81,7 +81,7 @@ pub struct radio_session_t ZMQ_FINAL : public session_base_t
                      Address *addr_);
     ~radio_session_t ();
 
-    //  Overrides of the functions from session_base_t.
+    //  Overrides of the functions from ZmqSessionBase.
     int push_msg (msg: &mut ZmqMessage);
     int pull_msg (msg: &mut ZmqMessage);
     void reset ();
@@ -165,7 +165,7 @@ void radio_t::xwrite_activated (pipe_: &mut pipe_t)
     _dist.activated (pipe_);
 }
 int radio_t::xsetsockopt (option_: i32,
-                               const optval_: *mut c_void,
+                               const optval_: &mut [u8],
                                optvallen_: usize)
 {
     if (optvallen_ != mem::size_of::<int>() || *static_cast<const int *> (optval_) < 0) {
@@ -263,7 +263,7 @@ radio_session_t::radio_session_t (io_thread_t *io_thread_,
                                        ZmqSocketBase *socket_,
                                        const ZmqOptions &options_,
                                        Address *addr_) :
-    session_base_t (io_thread_, connect_, socket_, options_, addr_),
+    ZmqSessionBase (io_thread_, connect_, socket_, options_, addr_),
     _state (group)
 {
 }
@@ -296,7 +296,7 @@ int radio_session_t::push_msg (msg: &mut ZmqMessage)
         }
         //  If it is not a JOIN or LEAVE just push the message
         else
-            return session_base_t::push_msg (msg);
+            return ZmqSessionBase::push_msg (msg);
 
         errno_assert (rc == 0);
 
@@ -310,15 +310,15 @@ int radio_session_t::push_msg (msg: &mut ZmqMessage)
 
         //  Push the join or leave command
         *msg = join_leave_msg;
-        return session_base_t::push_msg (msg);
+        return ZmqSessionBase::push_msg (msg);
     }
-    return session_base_t::push_msg (msg);
+    return ZmqSessionBase::push_msg (msg);
 }
 
 int radio_session_t::pull_msg (msg: &mut ZmqMessage)
 {
     if (_state == group) {
-        int rc = session_base_t::pull_msg (&_pending_msg);
+        int rc = ZmqSessionBase::pull_msg (&_pending_msg);
         if (rc != 0)
             return rc;
 
@@ -342,6 +342,6 @@ int radio_session_t::pull_msg (msg: &mut ZmqMessage)
 
 void radio_session_t::reset ()
 {
-    session_base_t::reset ();
+    ZmqSessionBase::reset ();
     _state = group;
 }

@@ -42,11 +42,11 @@ pub struct socket_poller_t
 
     typedef ZmqPollerEvent event_t;
 
-    int add (ZmqSocketBase *socket_, user_data_: *mut c_void, short events_);
+    int add (ZmqSocketBase *socket_, user_data_: &mut [u8], short events_);
     int modify (const ZmqSocketBase *socket_, short events_);
     int remove (ZmqSocketBase *socket_);
 
-    int add_fd (fd_t fd_, user_data_: *mut c_void, short events_);
+    int add_fd (fd_t fd_, user_data_: &mut [u8], short events_);
     int modify_fd (fd_t fd_, short events_);
     int remove_fd (fd_t fd_);
     // Returns the signaler's fd if there is one, otherwise errors.
@@ -205,7 +205,7 @@ int socket_poller_t::signaler_fd (fd_t *fd_) const
 }
 
 int socket_poller_t::add (ZmqSocketBase *socket_,
-                               user_data_: *mut c_void,
+                               user_data_: &mut [u8],
                                short events_)
 {
     if (find_if2 (_items.begin (), _items.end (), socket_, &is_socket)
@@ -254,7 +254,7 @@ int socket_poller_t::add (ZmqSocketBase *socket_,
     return 0;
 }
 
-int socket_poller_t::add_fd (fd_t fd_, user_data_: *mut c_void, short events_)
+int socket_poller_t::add_fd (fd_t fd_, user_data_: &mut [u8], short events_)
 {
     if (find_if2 (_items.begin (), _items.end (), fd_, &is_fd)
         != _items.end ()) {

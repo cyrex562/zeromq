@@ -16,7 +16,7 @@ use crate::out_pipe::out_pipe_t;
 use crate::own::own_t;
 use crate::pgm_socket::pgm_socket_t;
 use crate::pipe::pipe_t;
-use crate::session_base::session_base_t;
+use crate::session_base::ZmqSessionBase;
 use crate::signaler::signaler_t;
 use crate::tcp_address::TcpAddress;
 use crate::tcp_listener::tcp_listener_t;
@@ -503,7 +503,7 @@ impl ZmqSocketBase {
             //     return -1;
             // }
 
-            let session = session_base_t::create(io_thread, true, this, options, paddr);
+            let session = ZmqSessionBase::create(io_thread, true, this, options, paddr);
             // errno_assert (session);
 
             //  Create a bi-directional pipe.
@@ -1898,7 +1898,7 @@ impl ZmqSocketBase {
         // #endif
 
         //  Create session.
-        let mut session = session_base_t::create(io_thread, true, self, options, paddr);
+        let mut session = ZmqSessionBase::create(io_thread, true, self, options, paddr);
         // errno_assert (session);
 
         //  PGM does not support subscription forwarding; ask for all data to be

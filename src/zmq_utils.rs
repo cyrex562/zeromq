@@ -284,7 +284,7 @@ void *zmq_atomic_counter_new (void)
 
 //  Se the value of the atomic counter
 
-void zmq_atomic_counter_set (counter_: *mut c_void, value_: i32)
+void zmq_atomic_counter_set (counter_: &mut [u8], value_: i32)
 {
     (static_cast<AtomicCounter *> (counter_))->set (value_);
 }

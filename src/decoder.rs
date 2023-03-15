@@ -156,7 +156,7 @@ pub struct decoder_base_t : public i_decoder
 
     //  This function should be called from derived class to read data
     //  from the buffer and schedule next state machine action.
-    void next_step (read_pos_: *mut c_void, std::to_read_: usize, step_t next_)
+    void next_step (read_pos_: &mut [u8], std::to_read_: usize, step_t next_)
     {
         _read_pos = static_cast<unsigned char *> (read_pos_);
         _to_read = to_read_;

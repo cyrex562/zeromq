@@ -154,7 +154,7 @@ void test_get_peer_state ()
 void test_get_peer_state_corner_cases ()
 {
 // #ifdef ZMQ_BUILD_DRAFT_API
-    const char peer_routing_id[] = "foo";
+    pub const peer_routing_id: &str = "foo";
 
     //  call get_peer_state with NULL socket
     int rc = zmq_socket_get_peer_state (null_mut(), peer_routing_id,

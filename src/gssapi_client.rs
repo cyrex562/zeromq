@@ -39,10 +39,10 @@
 // #include "err.hpp"
 // #include "gssapi_client.hpp"
 // #include "wire.hpp"
-pub struct gssapi_client_t ZMQ_FINAL : public gssapi_mechanism_base_t
+pub struct gssapi_client_t ZMQ_FINAL : public gssapi_ZmqMechanismBase
 {
 // public:
-    gssapi_client_t (session_base_t *session_, const ZmqOptions &options_);
+    gssapi_client_t (ZmqSessionBase *session_, const ZmqOptions &options_);
     ~gssapi_client_t () ZMQ_FINAL;
 
     // mechanism implementation
@@ -86,10 +86,10 @@ pub struct gssapi_client_t ZMQ_FINAL : public gssapi_mechanism_base_t
     int process_next_token (msg: &mut ZmqMessage);
 };
 
-gssapi_client_t::gssapi_client_t (session_base_t *session_,
+gssapi_client_t::gssapi_client_t (ZmqSessionBase *session_,
                                        const ZmqOptions &options_) :
-    mechanism_base_t (session_, options_),
-    gssapi_mechanism_base_t (session_, options_),
+    ZmqMechanismBase (session_, options_),
+    gssapi_ZmqMechanismBase (session_, options_),
     state (call_next_init),
     token_ptr (GSS_C_NO_BUFFER),
     mechs (),
@@ -213,9 +213,9 @@ int gssapi_client_t::decode (msg: &mut ZmqMessage)
     return 0;
 }
 
-mechanism_t::status_t gssapi_client_t::status () const
+ZmqMechanism::status_t gssapi_client_t::status () const
 {
-    return state == connected ? mechanism_t::ready : mechanism_t::handshaking;
+    return state == connected ? ZmqMechanism::ready : ZmqMechanism::handshaking;
 }
 
 int gssapi_client_t::initialize_context ()

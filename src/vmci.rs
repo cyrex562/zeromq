@@ -99,7 +99,7 @@ void tune_vmci_connect_timeout (ZmqContext *context_,
 // #endif
 }
 
-fd_t vmci_open_socket (address_: *const c_char,
+fd_t vmci_open_socket (address_: &str,
                                  const ZmqOptions &options_,
                                  VmciAddress *out_vmci_addr_)
 {

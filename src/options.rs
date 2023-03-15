@@ -47,7 +47,7 @@ pub struct ZmqOptions {
     pub priority: i32,
 
     //  Socket type.
-    pub type_: u8,
+    pub type_: i32,
 
     //  Linger time, in milliseconds.
     pub linger: AtomicU64,

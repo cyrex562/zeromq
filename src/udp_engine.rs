@@ -66,7 +66,7 @@ pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
 
     //  i_engine interface implementation.
     //  Plug the engine to the session.
-    void plug (io_thread_t *io_thread_, class session_base_t *session_);
+    void plug (io_thread_t *io_thread_, class ZmqSessionBase *session_);
 
     //  Terminate and deallocate the engine. Note that 'detached'
     //  events are not fired on termination.
@@ -88,7 +88,7 @@ pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     const endpoint_uri_pair_t &get_endpoint () const;
 
   // private:
-    int resolve_raw_address (name_: *const c_char, length_: usize);
+    int resolve_raw_address (name_: &str, length_: usize);
     static void sockaddr_to_msg (msg: &mut ZmqMessage const sockaddr_in *addr_);
 
     static int set_udp_reuse_address (fd_t s_, on_: bool);
@@ -112,7 +112,7 @@ pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     _plugged: bool
 
     fd_t _fd;
-    session_base_t *_session;
+    ZmqSessionBase *_session;
     handle_t _handle;
     Address *_address;
 
@@ -174,7 +174,7 @@ int udp_engine_t::init (Address *address_, send_: bool, recv_: bool)
     return 0;
 }
 
-void udp_engine_t::plug (io_thread_t *io_thread_, session_base_t *session_)
+void udp_engine_t::plug (io_thread_t *io_thread_, ZmqSessionBase *session_)
 {
     zmq_assert (!_plugged);
     _plugged = true;
@@ -462,7 +462,7 @@ void udp_engine_t::sockaddr_to_msg (msg: &mut ZmqMessage
     *address = 0;
 }
 
-int udp_engine_t::resolve_raw_address (name_: *const c_char, length_: usize)
+int udp_engine_t::resolve_raw_address (name_: &str, length_: usize)
 {
     memset (&_raw_address, 0, sizeof _raw_address);
 

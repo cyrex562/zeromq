@@ -78,7 +78,7 @@ pub struct dish_t ZMQ_FINAL : public ZmqSocketBase
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dish_t)
 };
-pub struct dish_session_t ZMQ_FINAL : public session_base_t
+pub struct dish_session_t ZMQ_FINAL : public ZmqSessionBase
 {
 // public:
     dish_session_t (io_thread_t *io_thread_,
@@ -88,7 +88,7 @@ pub struct dish_session_t ZMQ_FINAL : public session_base_t
                     Address *addr_);
     ~dish_session_t ();
 
-    //  Overrides of the functions from session_base_t.
+    //  Overrides of the functions from ZmqSessionBase.
     int push_msg (msg: &mut ZmqMessage);
     int pull_msg (msg: &mut ZmqMessage);
     void reset ();
@@ -313,7 +313,7 @@ dish_session_t::dish_session_t (io_thread_t *io_thread_,
                                      ZmqSocketBase *socket_,
                                      const ZmqOptions &options_,
                                      Address *addr_) :
-    session_base_t (io_thread_, connect_, socket_, options_, addr_),
+    ZmqSessionBase (io_thread_, connect_, socket_, options_, addr_),
     _state (group)
 {
 }
@@ -363,7 +363,7 @@ has_group:
     }
 
     //  Push message to dish socket
-    rc = session_base_t::push_msg (msg);
+    rc = ZmqSessionBase::push_msg (msg);
 
     if (rc == 0)
         _state = group;
@@ -373,7 +373,7 @@ has_group:
 
 int dish_session_t::pull_msg (msg: &mut ZmqMessage)
 {
-    int rc = session_base_t::pull_msg (msg);
+    int rc = ZmqSessionBase::pull_msg (msg);
 
     if (rc != 0)
         return rc;
@@ -415,6 +415,6 @@ int dish_session_t::pull_msg (msg: &mut ZmqMessage)
 
 void dish_session_t::reset ()
 {
-    session_base_t::reset ();
+    ZmqSessionBase::reset ();
     _state = group;
 }

@@ -36,7 +36,7 @@ typedef void (*extra_func_t) (socket_: *mut c_void);
 
 void set_sockopt_bind_to_device (socket: *mut c_void)
 {
-    const char device[] = "lo";
+    pub const device: &str = "lo";
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (socket, ZMQ_BINDTODEVICE, &device, mem::size_of::<device>() - 1));
 }

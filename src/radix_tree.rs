@@ -124,14 +124,14 @@ pub struct radix_tree_t
 
     //  Add key to the tree. Returns true if this was a new key rather
     //  than a duplicate.
-    bool add (const unsigned char *key_, key_size_: usize);
+    bool add (const key_: &mut [u8], key_size_: usize);
 
     //  Remove key from the tree. Returns true if the item is actually
     //  removed from the tree.
-    bool rm (const unsigned char *key_, key_size_: usize);
+    bool rm (const key_: &mut [u8], key_size_: usize);
 
     //  Check whether particular key is in the tree.
-    bool check (const unsigned char *key_, key_size_: usize);
+    bool check (const key_: &mut [u8], key_size_: usize);
 
     //  Apply the function supplied to each key in the tree.
     void apply (void (*func_) (data: &mut [u8], size: usize, arg: *mut c_void),
@@ -142,7 +142,7 @@ pub struct radix_tree_t
 
   // private:
     match_result_t
-    match (const unsigned char *key_, key_size_: usize, is_lookup_: bool) const;
+    match (const key_: &mut [u8], key_size_: usize, is_lookup_: bool) const;
 
     node_t _root;
     AtomicCounter _size;
@@ -326,7 +326,7 @@ match_result_t::match_result_t (key_bytes_matched_: usize,
 {
 }
 
-match_result_t radix_tree_t::match (const unsigned char *key_,
+match_result_t radix_tree_t::match (const key_: &mut [u8],
                                          key_size_: usize,
                                          bool is_lookup_ = false) const
 {
@@ -394,7 +394,7 @@ match_result_t radix_tree_t::match (const unsigned char *key_,
                            grandparent_node);
 }
 
-bool radix_tree_t::add (const unsigned char *key_, key_size_: usize)
+bool radix_tree_t::add (const key_: &mut [u8], key_size_: usize)
 {
     const match_result_t match_result = match (key_, key_size_);
     const size_t key_bytes_matched = match_result._key_bytes_matched;
@@ -518,7 +518,7 @@ bool radix_tree_t::add (const unsigned char *key_, key_size_: usize)
     return current_node.refcount () == 1;
 }
 
-bool radix_tree_t::rm (const unsigned char *key_, key_size_: usize)
+bool radix_tree_t::rm (const key_: &mut [u8], key_size_: usize)
 {
     const match_result_t match_result = match (key_, key_size_);
     const size_t key_bytes_matched = match_result._key_bytes_matched;
@@ -638,7 +638,7 @@ bool radix_tree_t::rm (const unsigned char *key_, key_size_: usize)
     return true;
 }
 
-bool radix_tree_t::check (const unsigned char *key_, key_size_: usize)
+bool radix_tree_t::check (const key_: &mut [u8], key_size_: usize)
 {
     if (_root.refcount () > 0)
         return true;

@@ -61,7 +61,7 @@ pub struct ActivateWriteCommandArgs {
 
 #[derive(Default,Debug,Clone)]
 pub struct HiccupCommandArgs {
-    pub pipe: *mut c_void,
+    pub pipe: &mut [u8],
 }
 
 #[derive(Default,Debug,Clone)]

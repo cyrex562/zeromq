@@ -98,7 +98,7 @@ static void teardown_zap_handler ()
     zmq_threadclose (zap_thread);
 }
 
-const char domain[] = "test";
+pub const domain: &str = "test";
 
 void *server;
 
@@ -139,10 +139,10 @@ void test_plain_success ()
 {
     //  Check PLAIN security with correct username/password
     void *client = test_context_socket (ZMQ_DEALER);
-    const char username[] = "admin";
+    pub const username: &str = "admin";
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (client, ZMQ_PLAIN_USERNAME, username, strlen (username)));
-    const char password[] = "password";
+    pub const password: &str = "password";
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (client, ZMQ_PLAIN_PASSWORD, password, strlen (password)));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
@@ -169,8 +169,8 @@ void test_plain_wrong_credentials_fails ()
 {
     //  Check PLAIN security -- failed authentication
     void *client = test_context_socket (ZMQ_DEALER);
-    const char username[] = "wronguser";
-    const char password[] = "wrongpass";
+    pub const username: &str = "wronguser";
+    pub const password: &str = "wrongpass";
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (client, ZMQ_PLAIN_USERNAME, username, strlen (username)));
     TEST_ASSERT_SUCCESS_ERRNO (

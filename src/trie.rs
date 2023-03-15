@@ -44,11 +44,11 @@ pub struct trie_t
 
     //  Add key to the trie. Returns true if this is a new item in the trie
     //  rather than a duplicate.
-    bool add (unsigned char *prefix_, size: usize);
+    bool add (prefix_: &mut [u8], size: usize);
 
     //  Remove key from the trie. Returns true if the item is actually
     //  removed from the trie.
-    bool rm (unsigned char *prefix_, size: usize);
+    bool rm (prefix_: &mut [u8], size: usize);
 
     //  Check whether particular key is in the trie.
     bool check (const data: &mut [u8], size: usize) const;
@@ -88,7 +88,7 @@ pub struct trie_with_size_t
     trie_with_size_t () {}
     ~trie_with_size_t () {}
 
-    bool add (unsigned char *prefix_, size: usize)
+    bool add (prefix_: &mut [u8], size: usize)
     {
         if (_trie.add (prefix_, size)) {
             _num_prefixes.add (1);
@@ -97,7 +97,7 @@ pub struct trie_with_size_t
             return false;
     }
 
-    bool rm (unsigned char *prefix_, size: usize)
+    bool rm (prefix_: &mut [u8], size: usize)
     {
         if (_trie.rm (prefix_, size)) {
             _num_prefixes.sub (1);
@@ -143,7 +143,7 @@ trie_t::~trie_t ()
     }
 }
 
-bool trie_t::add (unsigned char *prefix_, size: usize)
+bool trie_t::add (prefix_: &mut [u8], size: usize)
 {
     //  We are at the node corresponding to the prefix. We are done.
     if (!size) {
@@ -213,7 +213,7 @@ bool trie_t::add (unsigned char *prefix_, size: usize)
     return _next.table[c - _min]->add (prefix_ + 1, size - 1);
 }
 
-bool trie_t::rm (unsigned char *prefix_, size: usize)
+bool trie_t::rm (prefix_: &mut [u8], size: usize)
 {
     //  TODO: Shouldn't an error be reported if the key does not exist?
     if (!size) {

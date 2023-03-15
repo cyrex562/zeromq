@@ -65,7 +65,7 @@ int pgm_receiver_t::init (udp_encapsulation_: bool, network_: &str)
 }
 
 void pgm_receiver_t::plug (io_thread_t *io_thread_,
-                                session_base_t *session_)
+                                ZmqSessionBase *session_)
 {
     LIBZMQ_UNUSED (io_thread_);
     //  Retrieve PGM fds and start polling.
@@ -320,7 +320,7 @@ pub struct pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine
 
     //  i_engine interface implementation.
     bool has_handshake_stage () { return false; };
-    void plug (io_thread_t *io_thread_, session_base_t *session_);
+    void plug (io_thread_t *io_thread_, ZmqSessionBase *session_);
     void terminate ();
     bool restart_input ();
     void restart_output ();
@@ -384,7 +384,7 @@ pub struct pgm_receiver_t ZMQ_FINAL : public io_object_t, public i_engine
     ZmqOptions options;
 
     //  Associated session.
-    session_base_t *session;
+    ZmqSessionBase *session;
 
     const pgm_tsi_t *active_tsi;
 

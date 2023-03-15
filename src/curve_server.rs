@@ -32,58 +32,80 @@
 
 // #ifdef ZMQ_HAVE_CURVE
 
+use crate::curve_mechanism_base::ZmqCurveMechanismBase;
+use crate::options::ZmqOptions;
+use crate::session_base::ZmqSessionBase;
+use crate::zap_client::zap_client_common_handshake_t;
+
 // #include "msg.hpp"
 // #include "session_base.hpp"
 // #include "err.hpp"
 // #include "curve_server.hpp"
 // #include "wire.hpp"
 // #include "secure_allocator.hpp"
-pub struct curve_server_t ZMQ_FINAL : public zap_client_common_handshake_t,
-                                 public ZmqCurveMechanismBase
+// pub struct curve_server_t ZMQ_FINAL : public zap_client_common_handshake_t,
+//                                  public ZmqCurveMechanismBase
+#[derive(Default,Debug,Clone)]
+pub struct curve_server_t
 {
-// public:
-    curve_server_t (session_base_t *session_,
-                    const std::string &peer_address_,
-                    const ZmqOptions &options_,
-                    const downgrade_sub_: bool);
-    ~curve_server_t ();
-
-    // mechanism implementation
-    int next_handshake_command (msg: &mut ZmqMessage);
-    int process_handshake_command (msg: &mut ZmqMessage);
-    int encode (msg: &mut ZmqMessage);
-    int decode (msg: &mut ZmqMessage);
+    pub zap_client_common_handshake: zap_client_common_handshake_t,
+    pub curve_mechanism_base: ZmqCurveMechanismBase,
 
   // private:
     //  Our secret key (s)
-    uint8_t _secret_key[CRYPTO_BOX_SECRETKEYBYTES];
-
+    pub _secret_key: [u8;CRYPTO_BOX_SECRETKEYBYTES],
     //  Our short-term public key (S')
-    uint8_t _cn_public[CRYPTO_BOX_PUBLICKEYBYTES];
-
+    pub _cn_public: [u8; CRYPTO_BOX_PUBLICKEYBYTES],
     //  Our short-term secret key (s')
-    uint8_t _cn_secret[CRYPTO_BOX_SECRETKEYBYTES];
-
+    pub _cn_secret: [u8;CRYPTO_BOX_SECRETKEYBYTES],
     //  Client's short-term public key (C')
-    uint8_t _cn_client[CRYPTO_BOX_PUBLICKEYBYTES];
-
+    pub _cn_client: [u8;CRYPTO_BOX_PUBLICKEYBYTES],
     //  Key used to produce cookie
-    uint8_t _cookie_key[CRYPTO_SECRETBOX_KEYBYTES];
+    pub _cookie_key: [u8; CRYPTO_SECRETBOX_KEYBYTES],
+}
 
-    int process_hello (msg: &mut ZmqMessage);
-    int produce_welcome (msg: &mut ZmqMessage);
-    int process_initiate (msg: &mut ZmqMessage);
-    int produce_ready (msg: &mut ZmqMessage);
-    int produce_error (msg: &mut ZmqMessage) const;
+impl curve_server_t {
+    // public:
+    // curve_server_t (ZmqSessionBase *session_,
+    //                 const std::string &peer_address_,
+    //                 const ZmqOptions &options_,
+    //                 const downgrade_sub_: bool);
+    pub fn new(session: &mut ZmqSessionBase, peer_address: &str, options: &ZmqOptions, downgrade_sub: bool) -> Self {
+        let mut mechanism_base =
+        Self {
 
-    void send_zap_request (const key_: &mut [u8]);
-};
+        }
+    }
 
-curve_server_t::curve_server_t (session_base_t *session_,
+    // ~curve_server_t ();
+
+    // mechanism implementation
+    // int next_handshake_command (msg: &mut ZmqMessage);
+
+    // int process_handshake_command (msg: &mut ZmqMessage);
+
+    // int encode (msg: &mut ZmqMessage);
+
+    // int decode (msg: &mut ZmqMessage);
+
+    // int process_hello (msg: &mut ZmqMessage);
+
+    // int produce_welcome (msg: &mut ZmqMessage);
+
+    // int process_initiate (msg: &mut ZmqMessage);
+
+    // int produce_ready (msg: &mut ZmqMessage);
+
+    // int produce_error (msg: &mut ZmqMessage) const;
+
+    // void send_zap_request (const key_: &mut [u8]);
+}
+
+curve_server_t::curve_server_t (ZmqSessionBase *session_,
                                      const std::string &peer_address_,
                                      const ZmqOptions &options_,
                                      const downgrade_sub_: bool) :
-    mechanism_base_t (session_, options_),
+    ZmqMechanismBase (session_, options_),
     zap_client_common_handshake_t (
       session_, peer_address_, options_, sending_ready),
     ZmqCurveMechanismBase (session_,

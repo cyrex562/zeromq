@@ -53,8 +53,8 @@ pub struct xpub_t : public ZmqSocketBase
     void xread_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
     void xwrite_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
     int
-    xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize) ZMQ_FINAL;
-    int xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize) ZMQ_FINAL;
+    xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize) ZMQ_FINAL;
+    int xgetsockopt (option_: i32, optval_: &mut [u8], optvallen_: *mut usize) ZMQ_FINAL;
     void xpipe_terminated (pipe_: &mut pipe_t) ZMQ_FINAL;
 
   // private:
@@ -294,7 +294,7 @@ void xpub_t::xwrite_activated (pipe_: &mut pipe_t)
 }
 
 int xpub_t::xsetsockopt (option_: i32,
-                              const optval_: *mut c_void,
+                              const optval_: &mut [u8],
                               optvallen_: usize)
 {
     if (option_ == ZMQ_XPUB_VERBOSE || option_ == ZMQ_XPUB_VERBOSER
@@ -347,7 +347,7 @@ int xpub_t::xsetsockopt (option_: i32,
     return 0;
 }
 
-int xpub_t::xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize)
+int xpub_t::xgetsockopt (option_: i32, optval_: &mut [u8], optvallen_: *mut usize)
 {
     if (option_ == ZMQ_TOPICS_COUNT) {
         // make sure to use a multi-thread safe function to avoid race conditions with I/O threads

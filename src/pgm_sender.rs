@@ -50,7 +50,7 @@ pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
 
     //  i_engine interface implementation.
     bool has_handshake_stage () { return false; };
-    void plug (io_thread_t *io_thread_, session_base_t *session_);
+    void plug (io_thread_t *io_thread_, ZmqSessionBase *session_);
     void terminate ();
     bool restart_input ();
     void restart_output ();
@@ -79,7 +79,7 @@ pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
     has_tx_timer: bool
     has_rx_timer: bool
 
-    session_base_t *session;
+    ZmqSessionBase *session;
 
     //  Message encoder.
     v1_encoder_t encoder;
@@ -149,7 +149,7 @@ int pgm_sender_t::init (udp_encapsulation_: bool, network_: &str)
     return rc;
 }
 
-void pgm_sender_t::plug (io_thread_t *io_thread_, session_base_t *session_)
+void pgm_sender_t::plug (io_thread_t *io_thread_, ZmqSessionBase *session_)
 {
     LIBZMQ_UNUSED (io_thread_);
     //  Allocate 2 fds for PGM socket.

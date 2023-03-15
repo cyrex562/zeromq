@@ -37,13 +37,13 @@
 // #include "msg.hpp"
 // #include "session_base.hpp"
 // #include "null_mechanism.hpp"
-pub struct null_mechanism_t ZMQ_FINAL : public zap_client_t
+pub struct null_ZmqMechanism ZMQ_FINAL : public zap_client_t
 {
 // public:
-    null_mechanism_t (session_base_t *session_,
+    null_ZmqMechanism (ZmqSessionBase *session_,
                       const std::string &peer_address_,
                       const ZmqOptions &options_);
-    ~null_mechanism_t ();
+    ~null_ZmqMechanism ();
 
     // mechanism implementation
     int next_handshake_command (msg: &mut ZmqMessage);
@@ -59,9 +59,9 @@ pub struct null_mechanism_t ZMQ_FINAL : public zap_client_t
     _zap_request_sent: bool
     _zap_reply_received: bool
 
-    int process_ready_command (const unsigned char *cmd_data_,
+    int process_ready_command (const cmd_data_: &mut [u8],
                                data_size_: usize);
-    int process_error_command (const unsigned char *cmd_data_,
+    int process_error_command (const cmd_data_: &mut [u8],
                                data_size_: usize);
 
     void send_zap_request ();
@@ -74,10 +74,10 @@ const size_t error_reason_len_size = 1;
 const char ready_command_name[] = "\5READY";
 const size_t ready_command_name_len = mem::size_of::<ready_command_name>() - 1;
 
-null_mechanism_t::null_mechanism_t (session_base_t *session_,
+null_ZmqMechanism::null_ZmqMechanism (ZmqSessionBase *session_,
                                          const std::string &peer_address_,
                                          const ZmqOptions &options_) :
-    mechanism_base_t (session_, options_),
+    ZmqMechanismBase (session_, options_),
     zap_client_t (session_, peer_address_, options_),
     _ready_command_sent (false),
     _error_command_sent (false),
@@ -88,11 +88,11 @@ null_mechanism_t::null_mechanism_t (session_base_t *session_,
 {
 }
 
-null_mechanism_t::~null_mechanism_t ()
+null_ZmqMechanism::~null_ZmqMechanism ()
 {
 }
 
-int null_mechanism_t::next_handshake_command (msg: &mut ZmqMessage)
+int null_ZmqMechanism::next_handshake_command (msg: &mut ZmqMessage)
 {
     if (_ready_command_sent || _error_command_sent) {
         errno = EAGAIN;
@@ -156,7 +156,7 @@ int null_mechanism_t::next_handshake_command (msg: &mut ZmqMessage)
     return 0;
 }
 
-int null_mechanism_t::process_handshake_command (msg: &mut ZmqMessage)
+int null_ZmqMechanism::process_handshake_command (msg: &mut ZmqMessage)
 {
     if (_ready_command_received || _error_command_received) {
         session.get_socket ()->event_handshake_failed_protocol (
@@ -192,16 +192,16 @@ int null_mechanism_t::process_handshake_command (msg: &mut ZmqMessage)
     return rc;
 }
 
-int null_mechanism_t::process_ready_command (
-  const unsigned char *cmd_data_, data_size_: usize)
+int null_ZmqMechanism::process_ready_command (
+  const cmd_data_: &mut [u8], data_size_: usize)
 {
     _ready_command_received = true;
     return parse_metadata (cmd_data_ + ready_command_name_len,
                            data_size_ - ready_command_name_len);
 }
 
-int null_mechanism_t::process_error_command (
-  const unsigned char *cmd_data_, data_size_: usize)
+int null_ZmqMechanism::process_error_command (
+  const cmd_data_: &mut [u8], data_size_: usize)
 {
     const size_t fixed_prefix_size =
       error_command_name_len + error_reason_len_size;
@@ -230,7 +230,7 @@ int null_mechanism_t::process_error_command (
     return 0;
 }
 
-int null_mechanism_t::zap_msg_available ()
+int null_ZmqMechanism::zap_msg_available ()
 {
     if (_zap_reply_received) {
         errno = EFSM;
@@ -242,7 +242,7 @@ int null_mechanism_t::zap_msg_available ()
     return rc == -1 ? -1 : 0;
 }
 
-mechanism_t::status_t null_mechanism_t::status () const
+ZmqMechanism::status_t null_ZmqMechanism::status () const
 {
     if (_ready_command_sent && _ready_command_received)
         return ready;
@@ -253,7 +253,7 @@ mechanism_t::status_t null_mechanism_t::status () const
     return command_sent && command_received ? error : handshaking;
 }
 
-void null_mechanism_t::send_zap_request ()
+void null_ZmqMechanism::send_zap_request ()
 {
     zap_client_t::send_zap_request ("NULL", 4, null_mut(), null_mut(), 0);
 }

@@ -57,7 +57,7 @@ pub struct ipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
     ipc_connecter_t (io_thread_t *io_thread_,
-                     session_base_t *session_,
+                     ZmqSessionBase *session_,
                      const ZmqOptions &options_,
                      Address *addr_,
                      delayed_start_: bool);
@@ -82,7 +82,7 @@ pub struct ipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 };
 
 ipc_connecter_t::ipc_connecter_t (class io_thread_t *io_thread_,
-pub struct session_base_t *session_,
+pub struct ZmqSessionBase *session_,
                                        const ZmqOptions &options_,
                                        Address *addr_,
                                        delayed_start_: bool) :

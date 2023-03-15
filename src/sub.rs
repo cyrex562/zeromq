@@ -37,7 +37,7 @@ pub struct sub_t ZMQ_FINAL : public xsub_t
     ~sub_t ();
 
   protected:
-    int xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
+    int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
     int xsend (msg: &mut ZmqMessage);
     bool xhas_out ();
 
@@ -59,7 +59,7 @@ sub_t::~sub_t ()
 }
 
 int sub_t::xsetsockopt (option_: i32,
-                             const optval_: *mut c_void,
+                             const optval_: &mut [u8],
                              optvallen_: usize)
 {
     if (option_ != ZMQ_SUBSCRIBE && option_ != ZMQ_UNSUBSCRIBE) {

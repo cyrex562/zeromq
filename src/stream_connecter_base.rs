@@ -45,7 +45,7 @@
 
 stream_connecter_base_t::stream_connecter_base_t (
   io_thread_t *io_thread_,
-  session_base_t *session_,
+  ZmqSessionBase *session_,
   const ZmqOptions &options_,
   Address *addr_,
   delayed_start_: bool) :
@@ -203,7 +203,7 @@ pub struct stream_connecter_base_t : public own_t, public io_object_t
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
     stream_connecter_base_t (io_thread_t *io_thread_,
-                             session_base_t *session_,
+                             ZmqSessionBase *session_,
                              const ZmqOptions &options_,
                              Address *addr_,
                              delayed_start_: bool);
@@ -231,7 +231,7 @@ pub struct stream_connecter_base_t : public own_t, public io_object_t
     //  Close the connecting socket.
     void close ();
 
-    //  Address to connect to. Owned by session_base_t.
+    //  Address to connect to. Owned by ZmqSessionBase.
     //  It is non-const since some parts may change during opening.
     Address *const _addr;
 
@@ -275,5 +275,5 @@ pub struct stream_connecter_base_t : public own_t, public io_object_t
 
   protected:
     //  Reference to the session we belong to.
-    session_base_t *const _session;
+    ZmqSessionBase *const _session;
 };

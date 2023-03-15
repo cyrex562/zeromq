@@ -120,7 +120,7 @@ impl object_t {
 
     // void send_own (own_t *destination_, own_t *object_);
 
-    // void send_attach (session_base_t *destination_,
+    // void send_attach (ZmqSessionBase *destination_,
     //                   i_engine *engine_,
     //                   bool inc_seqnum_ = true);
 
@@ -160,7 +160,7 @@ impl object_t {
 
     // void send_done ();
 
-    // void send_conn_failed (session_base_t *destination_);
+    // void send_conn_failed (ZmqSessionBase *destination_);
 
 
     //  These handlers can be overridden by the derived objects. They are
@@ -322,7 +322,7 @@ void object_t::process_command (const ZmqCommand &cmd_)
     }
 }
 
-int object_t::register_endpoint (addr_: *const c_char,
+int object_t::register_endpoint (addr_: &str,
                                       const ZmqEndpoint &endpoint_)
 {
     return _ctx.register_endpoint (addr_, endpoint_);
@@ -351,7 +351,7 @@ void object_t::pend_connection (const std::string &addr_,
     _ctx.pend_connection (addr_, endpoint_, pipes_);
 }
 
-void object_t::connect_pending (addr_: *const c_char,
+void object_t::connect_pending (addr_: &str,
                                      ZmqSocketBase *bind_socket_)
 {
     return _ctx.connect_pending (addr_, bind_socket_);
@@ -398,7 +398,7 @@ void object_t::send_own (own_t *destination_, own_t *object_)
     send_command (cmd);
 }
 
-void object_t::send_attach (session_base_t *destination_,
+void object_t::send_attach (ZmqSessionBase *destination_,
                                  i_engine *engine_,
                                  inc_seqnum_: bool)
 {
@@ -412,7 +412,7 @@ void object_t::send_attach (session_base_t *destination_,
     send_command (cmd);
 }
 
-void object_t::send_conn_failed (session_base_t *destination_)
+void object_t::send_conn_failed (ZmqSessionBase *destination_)
 {
     ZmqCommand cmd;
     cmd.destination = destination_;

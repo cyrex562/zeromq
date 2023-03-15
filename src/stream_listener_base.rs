@@ -156,8 +156,8 @@ void stream_listener_base_t::create_engine (fd_t fd_)
     zmq_assert (io_thread);
 
     //  Create and launch a session object.
-    session_base_t *session =
-      session_base_t::create (io_thread, false, _socket, options, null_mut());
+    ZmqSessionBase *session =
+      ZmqSessionBase::create (io_thread, false, _socket, options, null_mut());
     errno_assert (session);
     session.inc_seqnum ();
     launch_child (session);

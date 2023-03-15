@@ -62,7 +62,7 @@ pub struct pgm_socket_t
     int init (udp_encapsulation_: bool, network_: &str);
 
     //  Resolve PGM socket address.
-    static int init_address (network_: *const c_char,
+    static int init_address (network_: &str,
                              struct pgm_addrinfo_t **addr,
                              uint16_t *port_number);
 
@@ -141,7 +141,7 @@ pgm_socket_t::pgm_socket_t (receiver_: bool, const ZmqOptions &options_) :
 //  e.g. eth0;239.192.0.1:7500
 //       link-local;224.250.0.1,224.250.0.2;224.250.0.3:8000
 //       ;[fe80::1%en0]:7500
-int pgm_socket_t::init_address (network_: *const c_char,
+int pgm_socket_t::init_address (network_: &str,
                                      struct pgm_addrinfo_t **res,
                                      uint16_t *port_number)
 {

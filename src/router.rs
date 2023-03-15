@@ -49,14 +49,14 @@ pub struct router_t : public routing_socket_base_t
                        subscribe_to_all_: bool,
                        locally_initiated_: bool) ZMQ_FINAL;
     int
-    xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize) ZMQ_FINAL;
+    xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize) ZMQ_FINAL;
     int xsend (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
     int xrecv (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
     bool xhas_in () ZMQ_OVERRIDE;
     bool xhas_out () ZMQ_OVERRIDE;
     void xread_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
     void xpipe_terminated (pipe_: &mut pipe_t) ZMQ_FINAL;
-    int get_peer_state (const routing_id_: *mut c_void,
+    int get_peer_state (const routing_id_: &mut [u8],
                         routing_id_size_: usize) const ZMQ_FINAL;
 
   protected:
@@ -185,7 +185,7 @@ void router_t::xattach_pipe (pipe_t *pipe_,
 }
 
 int router_t::xsetsockopt (option_: i32,
-                                const optval_: *mut c_void,
+                                const optval_: &mut [u8],
                                 optvallen_: usize)
 {
     const bool is_int = (optvallen_ == mem::size_of::<int>());
@@ -513,7 +513,7 @@ bool router_t::xhas_out ()
     return any_of_out_pipes (check_pipe_hwm);
 }
 
-int router_t::get_peer_state (const routing_id_: *mut c_void,
+int router_t::get_peer_state (const routing_id_: &mut [u8],
                                    routing_id_size_: usize) const
 {
     int res = 0;
@@ -553,7 +553,7 @@ bool router_t::identify_peer (pipe_t *pipe_, locally_initiated_: bool)
         .raw_socket) { //  Always assign an integral routing id for raw-socket
         unsigned char buf[5];
         buf[0] = 0;
-        put_uint32 (buf + 1, _next_integral_routing_id++);
+        put_u32 (buf + 1, _next_integral_routing_id++);
         routing_id.set (buf, sizeof buf);
     } else if (!options.raw_socket) {
         //  Pick up handshake cases and also case where next integral routing id is set
@@ -566,7 +566,7 @@ bool router_t::identify_peer (pipe_t *pipe_, locally_initiated_: bool)
             //  Fall back on the auto-generation
             unsigned char buf[5];
             buf[0] = 0;
-            put_uint32 (buf + 1, _next_integral_routing_id++);
+            put_u32 (buf + 1, _next_integral_routing_id++);
             routing_id.set (buf, sizeof buf);
             msg.close ();
         } else {
@@ -589,7 +589,7 @@ bool router_t::identify_peer (pipe_t *pipe_, locally_initiated_: bool)
                 //  existing pipe so we can terminate it asynchronously.
                 unsigned char buf[5];
                 buf[0] = 0;
-                put_uint32 (buf + 1, _next_integral_routing_id++);
+                put_u32 (buf + 1, _next_integral_routing_id++);
                 Blob new_routing_id (buf, sizeof buf);
 
                 pipe_t *const old_pipe = existing_outpipe.pipe;

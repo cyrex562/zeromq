@@ -73,7 +73,7 @@
 
 const char *SEQ_END = (const char *) 1;
 
-const char bounce_content[] = "12345678ABCDEFGH12345678abcdefgh";
+pub const bounce_content: &str = "12345678ABCDEFGH12345678abcdefgh";
 
 static void send_bounce_msg (socket_: *mut c_void)
 {

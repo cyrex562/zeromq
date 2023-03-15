@@ -45,17 +45,17 @@
 /// For example, clients and servers both need to produce and
 /// process context-level GSSAPI tokens (via INITIATE commands)
 /// and per-message GSSAPI tokens (via MESSAGE commands).
-pub struct gssapi_mechanism_base_t : public virtual mechanism_base_t
+pub struct gssapi_ZmqMechanismBase : public virtual ZmqMechanismBase
 {
 // public:
-    gssapi_mechanism_base_t (session_base_t *session_,
+    gssapi_ZmqMechanismBase (ZmqSessionBase *session_,
                              const ZmqOptions &options_);
-    ~gssapi_mechanism_base_t () ZMQ_OVERRIDE = 0;
+    ~gssapi_ZmqMechanismBase () ZMQ_OVERRIDE = 0;
 
   protected:
     //  Produce a context-level GSSAPI token (INITIATE command)
     //  during security context initialization.
-    int produce_initiate (msg: &mut ZmqMessage data: *mut c_void, data_len_: usize);
+    int produce_initiate (msg: &mut ZmqMessage data: &mut [u8], data_len_: usize);
 
     //  Process a context-level GSSAPI token (INITIATE command)
     //  during security context initialization.
@@ -123,9 +123,9 @@ pub struct gssapi_mechanism_base_t : public virtual mechanism_base_t
     do_encryption: bool
 };
 
-gssapi_mechanism_base_t::gssapi_mechanism_base_t (
-  session_base_t *session_, const ZmqOptions &options_) :
-    mechanism_base_t (session_, options_),
+gssapi_ZmqMechanismBase::gssapi_ZmqMechanismBase (
+  ZmqSessionBase *session_, const ZmqOptions &options_) :
+    ZmqMechanismBase (session_, options_),
     send_tok (),
     recv_tok (),
     /// FIXME remove? in_buf (),
@@ -142,7 +142,7 @@ gssapi_mechanism_base_t::gssapi_mechanism_base_t (
 {
 }
 
-gssapi_mechanism_base_t::~gssapi_mechanism_base_t ()
+gssapi_ZmqMechanismBase::~gssapi_ZmqMechanismBase ()
 {
     if (target_name)
         gss_release_name (&min_stat, &target_name);
@@ -150,7 +150,7 @@ gssapi_mechanism_base_t::~gssapi_mechanism_base_t ()
         gss_delete_sec_context (&min_stat, &context, GSS_C_NO_BUFFER);
 }
 
-int gssapi_mechanism_base_t::encode_message (msg: &mut ZmqMessage)
+int gssapi_ZmqMechanismBase::encode_message (msg: &mut ZmqMessage)
 {
     // Wrap the token value
     state: i32;
@@ -193,7 +193,7 @@ int gssapi_mechanism_base_t::encode_message (msg: &mut ZmqMessage)
     ptr += 8;
 
     // Add token length
-    put_uint32 (ptr, static_cast<u32> (wrapped.length));
+    put_u32 (ptr, static_cast<u32> (wrapped.length));
     ptr += 4;
 
     // Add wrapped token value
@@ -205,7 +205,7 @@ int gssapi_mechanism_base_t::encode_message (msg: &mut ZmqMessage)
     return 0;
 }
 
-int gssapi_mechanism_base_t::decode_message (msg: &mut ZmqMessage)
+int gssapi_ZmqMechanismBase::decode_message (msg: &mut ZmqMessage)
 {
     const uint8_t *ptr = static_cast<uint8_t *> (msg.data ());
     size_t bytes_left = msg.size ();
@@ -302,8 +302,8 @@ int gssapi_mechanism_base_t::decode_message (msg: &mut ZmqMessage)
     return 0;
 }
 
-int gssapi_mechanism_base_t::produce_initiate (msg: &mut ZmqMessage
-                                                    token_value_: *mut c_void,
+int gssapi_ZmqMechanismBase::produce_initiate (msg: &mut ZmqMessage
+                                                    token_value_: &mut [u8],
                                                     token_length_: usize)
 {
     zmq_assert (token_value_);
@@ -321,7 +321,7 @@ int gssapi_mechanism_base_t::produce_initiate (msg: &mut ZmqMessage
     ptr += 9;
 
     // Add token length
-    put_uint32 (ptr, static_cast<u32> (token_length_));
+    put_u32 (ptr, static_cast<u32> (token_length_));
     ptr += 4;
 
     // Add token value
@@ -331,7 +331,7 @@ int gssapi_mechanism_base_t::produce_initiate (msg: &mut ZmqMessage
     return 0;
 }
 
-int gssapi_mechanism_base_t::process_initiate (msg: &mut ZmqMessage
+int gssapi_ZmqMechanismBase::process_initiate (msg: &mut ZmqMessage
                                                     token_value_: *mut *mut c_void
                                                     size_t &token_length_)
 {
@@ -396,7 +396,7 @@ int gssapi_mechanism_base_t::process_initiate (msg: &mut ZmqMessage
     return 0;
 }
 
-int gssapi_mechanism_base_t::produce_ready (msg: &mut ZmqMessage)
+int gssapi_ZmqMechanismBase::produce_ready (msg: &mut ZmqMessage)
 {
     make_command_with_basic_properties (msg, "\5READY", 6);
 
@@ -406,7 +406,7 @@ int gssapi_mechanism_base_t::produce_ready (msg: &mut ZmqMessage)
     return 0;
 }
 
-int gssapi_mechanism_base_t::process_ready (msg: &mut ZmqMessage)
+int gssapi_ZmqMechanismBase::process_ready (msg: &mut ZmqMessage)
 {
     if (do_encryption) {
         let rc: i32 = decode_message (msg);
@@ -437,7 +437,7 @@ int gssapi_mechanism_base_t::process_ready (msg: &mut ZmqMessage)
     return rc;
 }
 
-const gss_OID gssapi_mechanism_base_t::convert_nametype (zmq_nametype: i32)
+const gss_OID gssapi_ZmqMechanismBase::convert_nametype (zmq_nametype: i32)
 {
     switch (zmq_nametype) {
         case ZMQ_GSSAPI_NT_HOSTBASED:
@@ -454,7 +454,7 @@ const gss_OID gssapi_mechanism_base_t::convert_nametype (zmq_nametype: i32)
     return null_mut();
 }
 
-int gssapi_mechanism_base_t::acquire_credentials (char *service_name_,
+int gssapi_ZmqMechanismBase::acquire_credentials (char *service_name_,
                                                        gss_cred_id_t *cred_,
                                                        gss_OID name_type_)
 {

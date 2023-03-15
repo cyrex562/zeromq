@@ -71,8 +71,8 @@ enum
     ZMTP_3_x = 3
 };
 pub struct io_thread_t;
-pub struct session_base_t;
-pub struct mechanism_t;
+pub struct ZmqSessionBase;
+pub struct ZmqMechanism;
 
 //  This engine handles any socket with SOCK_STREAM semantics,
 //  e.g. TCP socket or an UNIX domain socket.
@@ -434,7 +434,7 @@ bool zmtp_engine_t::handshake_v3_x (const downgrade_sub_: bool)
                    20)
              == 0) {
         _mechanism = new (std::nothrow)
-          null_mechanism_t (session (), _peer_address, _options);
+          null_ZmqMechanism (session (), _peer_address, _options);
         alloc_assert (_mechanism);
     } else if (_options.mechanism == ZMQ_PLAIN
                && memcmp (_greeting_recv + 12,

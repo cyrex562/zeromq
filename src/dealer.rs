@@ -44,7 +44,7 @@ pub struct dealer_t : public ZmqSocketBase
                        subscribe_to_all_: bool,
                        locally_initiated_: bool) ZMQ_FINAL;
     int xsetsockopt (option_: i32,
-                     const optval_: *mut c_void,
+                     const optval_: &mut [u8],
                      optvallen_: usize) ZMQ_OVERRIDE;
     int xsend (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
     int xrecv (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
@@ -111,7 +111,7 @@ void dealer_t::xattach_pipe (pipe_t *pipe_,
 }
 
 int dealer_t::xsetsockopt (option_: i32,
-                                const optval_: *mut c_void,
+                                const optval_: &mut [u8],
                                 optvallen_: usize)
 {
     const bool is_int = (optvallen_ == mem::size_of::<int>());

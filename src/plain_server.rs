@@ -38,7 +38,7 @@
 // #include "wire.hpp"
 // #include "plain_common.hpp"
 
-    plain_server_t (session_base_t *session_,
+    plain_server_t (ZmqSessionBase *session_,
                     const std::string &peer_address_,
                     const ZmqOptions &options_);
     ~plain_server_t ();
@@ -59,10 +59,10 @@
                            password_: &str);
 };
 
-plain_server_t::plain_server_t (session_base_t *session_,
+plain_server_t::plain_server_t (ZmqSessionBase *session_,
                                      const std::string &peer_address_,
                                      const ZmqOptions &options_) :
-    mechanism_base_t (session_, options_),
+    ZmqMechanismBase (session_, options_),
     zap_client_common_handshake_t (
       session_, peer_address_, options_, sending_welcome)
 {
@@ -267,7 +267,7 @@ void plain_server_t::send_zap_request (const std::string &username_,
       reinterpret_cast<const uint8_t *> (username_.c_str ()),
       reinterpret_cast<const uint8_t *> (password_.c_str ())};
     size_t credentials_sizes[] = {username_.size (), password_.size ()};
-    const char plain_mechanism_name[] = "PLAIN";
+    pub const plain_mechanism_name: &str = "PLAIN";
     zap_client_t::send_zap_request (
       plain_mechanism_name, mem::size_of::<plain_mechanism_name>() - 1, credentials,
       credentials_sizes, mem::size_of::<credentials>() / sizeof (credentials[0]));

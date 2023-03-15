@@ -46,10 +46,10 @@ use crate::config::{CRYPTO_BOX_BOXZEROBYTES, CRYPTO_BOX_NONCEBYTES, CRYPTO_BOX_Z
 use crate::curve_client_tools::{is_handshake_command_error, is_handshake_command_ready, is_handshake_command_welcome, produce_initiate};
 use crate::curve_mechanism_base::ZmqCurveMechanismBase;
 use crate::mechanism::ZmqMechanismStatus;
-use crate::mechanism_base::mechanism_base_t;
+use crate::mechanism_base::ZmqMechanismBase;
 use crate::message::ZmqMessage;
 use crate::options::ZmqOptions;
-use crate::session_base::session_base_t;
+use crate::session_base::ZmqSessionBase;
 use crate::zmq_hdr::{ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC, ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_READY, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND};
 
 pub enum ZmqCurveClientState
@@ -73,15 +73,15 @@ pub struct ZmqCurveClient
     //  CURVE protocol tools
     // curve_client_tools_t _tools;
     pub tools: ZmqCurveClientTools,
-    pub mechanism_base: mechanism_base_t,
+    pub mechanism_base: ZmqMechanismBase,
     pub curve_mechanism_base: ZmqCurveMechanismBase,
 }
 
 impl ZmqCurveClient {
-    // curve_client_t (session_base_t *session_,
+    // curve_client_t (ZmqSessionBase *session_,
     // const ZmqOptions &options_,
     // const downgrade_sub_: bool);
-    // curve_client_t::curve_client_t (session_base_t *session_,
+    // curve_client_t::curve_client_t (ZmqSessionBase *session_,
     // const ZmqOptions &options_,
     // const downgrade_sub_: bool) :
     // mechanism_base_t (session_, options_),
@@ -96,11 +96,11 @@ impl ZmqCurveClient {
     // options_.curve_server_key)
     // {
     // }
-    pub fn new(session: &mut session_base_t,
+    pub fn new(session: &mut ZmqSessionBase,
                options: &mut ZmqOptions,
                downgrade_sub: bool) -> Self {
         Self {
-            mechanism_base: mechanism_base_t::new(session, options),
+            mechanism_base: ZmqMechanismBase::new(session, options),
             curve_mechanism_base: ZmqCurveMechanismBase::new(session, options, "CurveZMQMESSAGEC", "CurveZMQMESSAGES", downgrade_sub),
             state: ZmqCurveClientState::send_hello,
             tools: ZmqCurveClientTools::new(options.curve_public_key, options.curve_secret_key, options.curve_server_key),

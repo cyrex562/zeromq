@@ -22,7 +22,7 @@ pub struct norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     ~norm_engine_t () ZMQ_FINAL;
 
     // create NORM instance, session, etc
-    int init (network_: *const c_char, send: bool, recv: bool);
+    int init (network_: &str, send: bool, recv: bool);
     void shutdown ();
 
     bool has_handshake_stage () ZMQ_FINAL { return false; };
@@ -30,7 +30,7 @@ pub struct norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     //  i_engine interface implementation.
     //  Plug the engine to the session.
     void plug (io_thread_t *io_thread_,
-pub struct session_base_t *session_) ZMQ_FINAL;
+pub struct ZmqSessionBase *session_) ZMQ_FINAL;
 
     //  Terminate and deallocate the engine. Note that 'detached'
     //  events are not fired on termination.
@@ -151,7 +151,7 @@ pub struct Iterator
 
     const EndpointUriPair _empty_endpoint;
 
-    session_base_t *zmq_session;
+    ZmqSessionBase *zmq_session;
     ZmqOptions options;
     NormInstanceHandle norm_instance;
     handle_t norm_descriptor_handle;
@@ -229,7 +229,7 @@ norm_engine_t::~norm_engine_t ()
 }
 
 
-int norm_engine_t::init (network_: *const c_char, send: bool, recv: bool)
+int norm_engine_t::init (network_: &str, send: bool, recv: bool)
 {
     // Parse the "network_" address int "iface", "addr", and "port"
     // norm endpoint format: [id,][<iface>;]<addr>:<port>
@@ -408,7 +408,7 @@ void norm_engine_t::shutdown ()
 } // end norm_engine_t::shutdown()
 
 void norm_engine_t::plug (io_thread_t *io_thread_,
-                               session_base_t *session_)
+                               ZmqSessionBase *session_)
 {
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
     norm_wrapper_thread_args_t *threadArgs = new norm_wrapper_thread_args_t;

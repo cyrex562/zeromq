@@ -59,7 +59,7 @@ pub struct WsAddress
     //  structure. If 'local' is true, names are resolved as local interface
     //  names. If it is false, names are resolved as remote hostnames.
     //  If 'ipv6' is true, the name may resolve to IPv6 address.
-    int resolve (name_: *const c_char, local_: bool, ipv6_: bool);
+    int resolve (name_: &str, local_: bool, ipv6_: bool);
 
     //  The opposite to resolve()
     int to_string (std::string &addr_) const;
@@ -123,7 +123,7 @@ WsAddress::WsAddress (const sockaddr *sa_, socklen_t sa_len_)
     _host = os.str ();
 }
 
-int WsAddress::resolve (name_: *const c_char, local_: bool, ipv6_: bool)
+int WsAddress::resolve (name_: &str, local_: bool, ipv6_: bool)
 {
     //  find the host part, It's important to use str*r*chr to only get
     //  the latest colon since IPv6 addresses use colons as delemiters.

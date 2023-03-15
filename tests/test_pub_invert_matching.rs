@@ -49,8 +49,8 @@ void test ()
 
     //  Subscribe pub1 to one prefix
     //  and pub2 to another prefix.
-    const char prefi_x1[] = "prefix1";
-    const char prefi_x2[] = "p2";
+    pub const prefi_x1: &str = "prefix1";
+    pub const prefi_x2: &str = "p2";
 
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (sub1, ZMQ_SUBSCRIBE, prefi_x1, strlen (prefi_x1)));

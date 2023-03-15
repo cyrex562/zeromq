@@ -210,7 +210,7 @@ int tune_tcp_maxrt (fd_t sockfd_, timeout_: i32)
 // #endif
 }
 
-int tcp_write (fd_t s_, const data: *mut c_void, size: usize)
+int tcp_write (fd_t s_, const data: &mut [u8], size: usize)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
 
@@ -269,7 +269,7 @@ int tcp_write (fd_t s_, const data: *mut c_void, size: usize)
 // #endif
 }
 
-int tcp_read (fd_t s_, data: *mut c_void, size: usize)
+int tcp_read (fd_t s_, data: &mut [u8], size: usize)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
 
@@ -356,7 +356,7 @@ void tune_tcp_busy_poll (fd_t socket_, busy_poll_: i32)
 // #endif
 }
 
-fd_t tcp_open_socket (address_: *const c_char,
+fd_t tcp_open_socket (address_: &str,
                                 const ZmqOptions &options_,
                                 local_: bool,
                                 fallback_to_ipv4_: bool,

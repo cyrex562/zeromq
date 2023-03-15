@@ -862,7 +862,7 @@ int crypto_sign_open(u8 *m,u64 *mlen,const u8 *sm,u64 n,const u8 *pk)
 
 HCRYPTPROV hProvider = NCP;
 
-void randombytes(unsigned char *x,unsigned long long xlen)
+void randombytes(x: &mut [u8],unsigned long long xlen)
 {
     unsigned i;
     BOOL ret;
@@ -922,7 +922,7 @@ int sodium_init (void)
 static int fd = -1;
 // #endif
 
-void randombytes (unsigned char *x,unsigned long long xlen)
+void randombytes (x: &mut [u8],unsigned long long xlen)
 {
     i: i32;
 // #ifndef ZMQ_HAVE_GETRANDOM

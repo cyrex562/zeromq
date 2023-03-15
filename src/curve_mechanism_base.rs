@@ -49,10 +49,10 @@ use std::mem;
 use anyhow::anyhow;
 use crate::config::CRYPTO_BOX_NONCEBYTES;
 use crate::curve_encoding::{ZmqCurveEncoding, ZmqNonce};
-use crate::mechanism_base::mechanism_base_t;
+use crate::mechanism_base::ZmqMechanismBase;
 use crate::message::{CANCEL_CMD_NAME, CANCEL_CMD_NAME_SIZE, SUB_CMD_NAME, SUB_CMD_NAME_SIZE, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZmqMessage};
 use crate::options::ZmqOptions;
-use crate::session_base::session_base_t;
+use crate::session_base::ZmqSessionBase;
 use crate::utils::copy_bytes;
 use crate::zmq_hdr::{ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_SEQUENCE, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND};
 
@@ -80,7 +80,7 @@ pub const CRYPTO_BOX_MACBYTES: usize = 16;
 pub struct ZmqCurveMechanismBase
 {
     // public:
-    // curve_mechanism_base_t (session_base_t *session_,
+    // curve_mechanism_base_t (ZmqSessionBase *session_,
     // const ZmqOptions & options_,
     // encode_nonce_prefix_: * const c_char,
     // decode_nonce_prefix_: * const c_char,
@@ -89,14 +89,14 @@ pub struct ZmqCurveMechanismBase
     // // mechanism implementation
     // int encode (msg: & mut ZmqMessage) ZMQ_OVERRIDE;
     // int decode (msg: & mut ZmqMessage) ZMQ_OVERRIDE;
-    pub mechanism_base: mechanism_base_t,
+    pub mechanism_base: ZmqMechanismBase,
     pub curve_encoding: ZmqCurveEncoding,
 }
 
 
 impl ZmqCurveMechanismBase {
     // ZmqCurveMechanismBase::ZmqCurveMechanismBase (
-    // session_base_t *session_,
+    // ZmqSessionBase *session_,
     // const ZmqOptions & options_,
     // encode_nonce_prefix_: * const c_char,
     // decode_nonce_prefix_: * const c_char,
@@ -105,13 +105,13 @@ impl ZmqCurveMechanismBase {
     // ZmqCurveEncoding (
     // encode_nonce_prefix_, decode_nonce_prefix_, downgrade_sub_)
     // {}
-    pub fn new(session: &mut session_base_t,
+    pub fn new(session: &mut ZmqSessionBase,
     options: &ZmqOptions,
     encode_nonce_prefix: &str,
     decode_nonce_prefix: &str,
     downgrade_sub: bool) -> Self {
         Self {
-            mechanism_base: mechanism_base_t::new(session,options),
+            mechanism_base: ZmqMechanismBase::new(session,options),
             curve_encoding: ZmqCurveEncoding::new(encode_nonce_prefix, decode_nonce_prefix, downgrade_sub)
         }
     }
