@@ -46,6 +46,26 @@
 // #include "norm_engine.hpp"
 // #include "udp_engine.hpp"
 
+use std::collections::HashSet;
+use anyhow::anyhow;
+use crate::address::Address;
+use crate::endpoint::EndpointUriPair;
+use crate::io_thread::io_thread_t;
+use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZmqMessage};
+use crate::options::ZmqOptions;
+use crate::own::own_t;
+use crate::pipe::pipe_t;
+use crate::proxy::ZmqSocketBase;
+use crate::zmq_hdr::{
+    ZMQ_REQ, ZMQ_RADIO, ZMQ_DISH, ZMQ_DEALER, ZMQ_ROUTER, ZMQ_XPUB, ZMQ_XSUB, ZMQ_PUB, ZMQ_SUB, ZMQ_PUSH, ZMQ_PULL, ZMQ_PAIR, ZMQ_STREAM, ZMQ_SERVER, ZMQ_CLIENT, ZMQ_GATHER, ZMQ_SCATTER, ZMQ_DGRAM, ZMQ_PEER, ZMQ_CHANNEL, ZMQ_REP
+};
+
+// enum
+// {
+//     LINGER_TIMER_ID = 0x20
+// };
+pub const LINGER_TIMER_ID: i32 = 0x20;
+
 // #include "ctx.hpp"
 // #include "req.hpp"
 // #include "radio.hpp"
@@ -54,61 +74,94 @@
 #[derive(Default,Debug,Clone)]
 pub struct ZmqSessionBase
 {
-
-
     //  If true, this session (re)connects to the peer. Otherwise, it's
     //  a transient session created by the listener.
-    const _active: bool
-
+    pub active: bool,
     //  Pipe connecting the session to its socket.
-    pipe_t *_pipe;
-
+    // pipe_t *_pipe;
+    pub pipe: Option<pipe_t>,
     //  Pipe used to exchange messages with ZAP socket.
-    pipe_t *_zap_pipe;
-
+    // pipe_t *_zap_pipe;
+    pub zap_pipe: Option<pipe_t>,
     //  This set is added to with pipes we are disconnecting, but haven't yet completed
-    std::set<pipe_t *> _terminating_pipes;
-
+    // std::set<pipe_t *> _terminating_pipes;
+    pub terminating_pipes: HashSet<pipe_t>,
     //  This flag is true if the remainder of the message being processed
     //  is still in the in pipe.
-    _incomplete_in: bool
-
+    pub incomplete_in: bool,
     //  True if termination have been suspended to push the pending
     //  messages to the network.
-    _pending: bool
-
+    pub pending: bool,
     //  The protocol I/O engine connected to the session.
-    i_engine *_engine;
-
+    // i_engine *_engine;
+    pub engine: Option<i_engine>,
     //  The socket the session belongs to.
-    ZmqSocketBase *_socket;
-
+    // ZmqSocketBase *_socket;
+    pub socket: ZmqSocketBase,
     //  I/O thread the session is living in. It will be used to plug in
     //  the engines into the same thread.
-    io_thread_t *_io_thread;
-
+    // io_thread_t *_io_thread;
+    pub io_thread: io_thread_t,
     //  ID of the linger timer
-    enum
-    {
-        linger_timer_id = 0x20
-    };
-
     //  True is linger timer is running.
-    _has_linger_timer: bool
-
+    pub has_linger_timer: bool,
     //  Protocol and address to use when connecting.
-    Address *_addr;
-
+    // Address *_addr;
+    pub addr: Address,
 // #ifdef ZMQ_HAVE_WSS
     //  TLS handshake, we need to take a copy when the session is created,
     //  in order to maintain the value at the creation time
-    const _wss_hostname: String;
+    // const _wss_hostname: String;
+    pub wss_hostname: String,
 // #endif
-
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqSessionBase)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqSessionBase)
+    pub reset_fn: Option<fn()>
 }
 
 impl ZmqSessionBase {
+    // ZmqSessionBase::ZmqSessionBase (class io_thread_t *io_thread_,
+    //                                  active_: bool,
+    // pub struct ZmqSocketBase *socket_,
+    //                                      const ZmqOptions &options_,
+    //                                      Address *addr_) :
+    //     own_t (io_thread_, options_),
+    //     io_object_t (io_thread_),
+    //     _active (active_),
+    //     _pipe (null_mut()),
+    //     _zap_pipe (null_mut()),
+    //     _incomplete_in (false),
+    //     _pending (false),
+    //     _engine (null_mut()),
+    //     _socket (socket_),
+    //     _io_thread (io_thread_),
+    //     _has_linger_timer (false),
+    //     _addr (addr_)
+    // // #ifdef ZMQ_HAVE_WSS
+    //     ,
+    //     _wss_hostname (options_.wss_hostname)
+    // // #endif
+    // {
+    // }
+    pub fn new(io_thread: &mut io_thread_t, active: bool, socket: &mut ZmqSocketBase, options: &ZmqOptions, addr: &mut Address) -> Self {
+        let mut own = own_t::new(io_thread, options);
+        let mut io_object = io_object_t::new(io_thread);
+        Self {
+            active: active,
+            pipe: None,
+            zap_pipe: None,
+            terminating_pipes: HashSet::new(),
+            incomplete_in: false,
+            pending: false,
+            engine: None,
+            socket: socket.clone(),
+            io_thread: io_thread.clone(),
+            has_linger_timer: false,
+            addr: addr.clone(),
+            wss_hostname: options.wss_hostname.clone(),
+            reset_fn: None
+        }
+    }
+
     // public:
     //  Create a session of the particular type.
     // static ZmqSessionBase *create (io_thread_t *io_thread_,
@@ -116,13 +169,126 @@ impl ZmqSessionBase {
     // socket_: *mut ZmqSocketBase,
     // const ZmqOptions &options_,
     // Address *addr_);
+    pub fn create(io_thread: &mut io_thread_t,
+                  active: bool,
+                  socket: &mut ZmqSocketBase,
+                  options: &ZmqOptions,
+                  addr: &mut Address) -> anyhow::Result<Self>
+    {
+        // ZmqSessionBase *s = null_mut();
+        let mut s = ZmqSessionBase::default();
+        match (options.type_) {
+            ZMQ_REQ => s = req_session_t(io_thread_, active_, socket_, options_, addr_),
+            ZMQ_RADIO => s = radio_session_t(io_thread_, active_, socket_, options_, addr_),
+            ZMQ_DISH => s = dish_session_t(io_thread_, active_, socket_, options_, addr_),
+            ZMQ_DEALER | ZMQ_ROUTER | ZMQ_XPUB | ZMQ_XSUB | ZMQ_REP | ZMQ_PUB | ZMQ_SUB | ZMQ_PUSH | ZMQ_PULL | ZMQ_PAIR | ZMQ_STREAM | ZMQ_SERVER | ZMQ_CLIENT | ZMQ_GATHER | ZMQ_SCATTER | ZMQ_DGRAM | ZMQ_PEER | ZMQ_CHANNEL => {
+
+
+// #ifdef ZMQ_BUILD_DRAFT_API
+                if (options.can_send_hello_msg && options.hello_msg.size() > 0) {
+                    s = hello_msg_session_t::new(io_thread, active, socket, options, addr);
+                }
+                // hello_msg_session_t(
+                //     io_thread_, active_, socket_, options_, addr_);
+                else {
+                    s = Self::new(io_thread, active, socket, options, addr);
+
+                    // ZmqSessionBase(
+                    //     io_thread_, active_, socket_, options_, addr_);
+
+                    // break;
+// #else
+//             s = new(std::nothrow)
+//             ZmqSessionBase(io_thread_, active_, socket_, options_, addr_);
+//             break;
+// #endif
+                }
+            }
+            _ => {
+                // errno = EINVAL;
+                // return null_mut();
+                return Err(anyhow!("EINVAL"));
+            }
+        }
+
+
+        // alloc_assert (s);
+        // return s;
+        Ok(s)
+    }
+
 
     //  To be used once only, when creating the session.
     // void attach_pipe (pipe_: &mut pipe_t);
+    pub fn attach_pipe (&mut self, pipe_: &mut pipe_t)
+    {
+        // zmq_assert (!is_terminating ());
+        // zmq_assert (!_pipe);
+        // zmq_assert (pipe_);
+        self.pipe = Some(pipe_.clone());
+        self.pipe.set_event_sink (this);
+    }
+
+    //  Fetches a message. Returns 0 if successful; -1 otherwise.
+    //  The caller is responsible for freeing the message when no
+    //  longer used.
+    // virtual int pull_msg (msg: &mut ZmqMessage);
+    pub fn pull_msg (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
+    {
+        // TODO: enable override by checking for filled in fn ptr
+        if (self.pipe.is_none() || self.pipe.unwrap().read (msg)) {
+            // errno = EAGAIN;
+            // return -1;
+            return Err(anyhow!("EAGAIN"));
+        }
+
+        self.incomplete_in = (msg.flags () & ZMQ_MSG_MORE) != 0;
+
+        Ok(())
+    }
+
+
+    pub fn push_msg (&mut self, &mut msg: &mut ZmqMessage) -> anyhow::Result<()>
+    {
+        //  pass subscribe/cancel to the sockets
+        if ((msg.flags () & ZMQ_MSG_COMMAND) && !msg.is_subscribe ()
+            && !msg.is_cancel ()) {
+            Ok(())
+        }
+        if (self.pipe.is_some() && self.pipe.unwrap().write (msg)) {
+            msg.init2()?;
+            // errno_assert (rc == 0);
+            // return 0;
+            Ok(())
+        }
+
+        // errno = EAGAIN;
+        // return -1;
+        Err(anyhow!("EAGAIN"))
+    }
 
     // void flush ();
+    pub fn flush (&mut self) -> anyhow::Result<()>
+    {
+    // if (_pipe)
+    // _pipe.flush ();
+        if self.pipe.is_some() {
+            self.pipe.unwrap().flush()?;
+        }
+        Ok(())
+    }
 
     // void rollback ();
+    pub fn rollback (&mut self) -> anyhow::Result<()>
+    {
+    // if (_pipe)
+    // _pipe.rollback ();
+        if self.pipe.is_some() {
+            self.pipe.unwrap().rollback()?;
+        }
+        Ok(())
+    }
+
 
     // void engine_error (handshaked_: bool, i_engine::error_reason_t reason_);
 
@@ -131,34 +297,135 @@ impl ZmqSessionBase {
     //  i_pipe_events interface implementation.
     // void read_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
 
+    pub fn read_activated (&mut self, pipe_: &mut pipe_t)
+    {
+    // Skip activating if we're detaching this pipe
+    if (unlikely (pipe_ != self.pipe && pipe_ != self.zap_pipe)) {
+    // zmq_assert (_terminating_pipes.count (pipe_) == 1);
+    return;
+    }
+
+    if (unlikely (self.engine.is_none())) {
+    if (self.pipe.is_some()) {
+        self.pipe.unwrap().check_read();
+    }
+    return;
+    }
+
+    if (likely (pipe_ == self.pipe)) {
+        self.engine.restart_output();
+    }
+    else {
+    // i.e. pipe_ == zap_pipe
+    self.engine.zap_msg_available ();
+    }
+    }
+
+
     // void write_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
 
     // void hiccuped (pipe_: &mut pipe_t) ZMQ_FINAL;
 
     // void pipe_terminated (pipe_: &mut pipe_t) ZMQ_FINAL;
+    pub fn pipe_terminated(&mut self, pipe_: &mut pipe_t) -> anyhow::Result<()>
+    {
+        // Drop the reference to the deallocated pipe if required.
+        // zmq_assert (pipe_ == _pipe || pipe_ == _zap_pipe
+        // || _terminating_pipes.count (pipe_) == 1);
+
+        if (pipe_ == self.pipe) {
+            // If this is our current pipe, remove it
+            self.pipe = None;
+            if (self.has_linger_timer) {
+                cancel_timer(LINGER_TIMER_ID);
+                self.has_linger_timer = false;
+            }
+        } else if (pipe_ == self.zap_pipe) {
+            self.zap_pipe = None;
+        } else {
+            // Remove the pipe from the detached pipes set
+            self.terminating_pipes.erase(pipe_);
+        }
+
+        if (!self.is_terminating() && self.options.raw_socket) {
+            if (_engine) {
+                self.engine.unwrap().terminate();
+                self.engine = None;
+            }
+            self.terminate();
+        }
+
+        //  If we are waiting for pending messages to be sent, at this point
+        //  we are sure that there will be no more messages and we can proceed
+        //  with termination safely.
+        if (self.pending && self.pipe.is_none() && self.zap_pipe.is_none() && self.terminating_pipes.empty()) {
+            self.pending = false;
+            own_t::process_term(0);
+        }
+
+        Ok(())
+    }
+
 
     // int zap_connect ();
 
     // bool zap_enabled () const;
 
-    //  Fetches a message. Returns 0 if successful; -1 otherwise.
-    //  The caller is responsible for freeing the message when no
-    //  longer used.
-    // virtual int pull_msg (msg: &mut ZmqMessage);
 
-    //  Receives message from ZAP socket.
-    //  Returns 0 on success; -1 otherwise.
-    //  The caller is responsible for freeing the message.
-    // int read_zap_msg (msg: &mut ZmqMessage);
+
+
 
     //  Sends message to ZAP socket.
     //  Returns 0 on success; -1 otherwise.
     //  The function takes ownership of the message.
     // int write_zap_msg (msg: &mut ZmqMessage);
+    pub fn write_zap_msg (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
+    {
+        if (self.zap_pipe.is_none() || !self.zap_pipe.unwrap().write (msg)) {
+            // errno = ENOTCONN;
+            // return -1;
+            Err(anyhow!("ENOTCONN"))
+        }
+
+        if ((msg.flags () & ZMQ_MSG_MORE) == 0) {
+            _zap_pipe.flush();
+        }
+
+        msg.init2()?;
+        // errno_assert (rc == 0);
+        // return 0;
+        Ok(())
+    }
 
     // ZmqSocketBase *get_socket () const;
 
     // const EndpointUriPair &get_endpoint () const;
+    pub fn get_endpoint (&self) -> &EndpointUriPair
+    {
+        self.engine.get_endpoint()
+    }
+
+    //  Receives message from ZAP socket.
+    //  Returns 0 on success; -1 otherwise.
+    //  The caller is responsible for freeing the message.
+    // int read_zap_msg (msg: &mut ZmqMessage);
+    pub fn read_zap_msg(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
+    {
+        if (self.zap_pipe.is_none()) {
+            // errno = ENOTCONN;
+            // return -1;
+            Err(anyhow!("ENOTCONN"))
+        }
+
+        if (!self.zap_pipe.unwrap().read(msg)) {
+            // errno = EAGAIN;
+            // return -1;
+            Err(anyhow!("EAGAIN"))
+        }
+
+        Ok(())
+    }
+
 
     // protected:
     // ZmqSessionBase (io_thread_t *io_thread_,
@@ -168,6 +435,23 @@ impl ZmqSessionBase {
     // Address *addr_);
 
     // ~ZmqSessionBase () ZMQ_OVERRIDE;
+    // ZmqSessionBase::~ZmqSessionBase ()
+    // {
+    // zmq_assert (!_pipe);
+    // zmq_assert (!_zap_pipe);
+    //
+    // //  If there's still a pending linger timer, remove it.
+    // if (_has_linger_timer) {
+    // cancel_timer (LINGER_TIMER_ID);
+    // _has_linger_timer = false;
+    // }
+    //
+    // //  Close the engine.
+    // if (_engine)
+    // _engine.terminate ();
+    //
+    // LIBZMQ_DELETE (_addr);
+    // }
 
     // private:
     // void start_connecting (wait_: bool);
@@ -189,23 +473,49 @@ impl ZmqSessionBase {
     //  Remove any half processed messages. Flush unflushed messages.
     //  Call this function when engine disconnect to get rid of leftovers.
     // void clean_pipes ();
-}
+    pub fn clean_pipes (&mut self) -> anyhow::Result<()>
+    {
+        // zmq_assert (_pipe != null_mut());
 
-trait ZmqSessionBaseOps {
+        //  Get rid of half-processed messages in the out pipe. Flush any
+        //  unflushed messages upstream.
+        self.pipe.unwrap().rollback ()?;
+        self.pipe.unwrap().flush ();
+
+        //  Remove any half-read message from the in pipe.
+        while (self.incomplete_in) {
+            // ZmqMessage msg;
+            let mut msg = ZmqMessage::default();
+            msg.init2()?;
+            // errno_assert (rc == 0);
+            self.pull_msg (&mut msg)?;
+            // errno_assert (rc == 0);
+            msg.close()?;
+            // errno_assert (rc == 0);
+        }
+        Ok(())
+    }
+
+
     //  Following functions are the interface exposed towards the engine.
     // virtual void reset ();
-}
+    pub fn reset (&mut self)
+    {
+        if self.reset_fn.is_some() {
+            self.reset_fn.unwrap()();
+        }
+    }
+} // end of impl SessionBase
 
 // pub struct hello_msg_session_t ZMQ_FINAL : public ZmqSessionBase
 #[derive(Default,Debug,Clone)]
 pub struct hello_msg_session_t
 {
-
-
   // private:
-    _new_pipe: bool
+    pub new_pipe: bool,
+    pub session_base: ZmqSessionBase,
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (hello_msg_session_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (hello_msg_session_t)
 }
 
 impl hello_msg_session_t
@@ -225,275 +535,17 @@ impl hello_msg_session_t
     // void reset ();
 }
 
-ZmqSessionBase *ZmqSessionBase::create (class io_thread_t *io_thread_,
-                                                  active_: bool,
-pub struct ZmqSocketBase *socket_,
-                                                  const ZmqOptions &options_,
-                                                  Address *addr_)
-{
-    ZmqSessionBase *s = null_mut();
-    switch (options_.type) {
-        case ZMQ_REQ:
-            s = new (std::nothrow)
-              req_session_t (io_thread_, active_, socket_, options_, addr_);
-            break;
-        case ZMQ_RADIO:
-            s = new (std::nothrow)
-              radio_session_t (io_thread_, active_, socket_, options_, addr_);
-            break;
-        case ZMQ_DISH:
-            s = new (std::nothrow)
-              dish_session_t (io_thread_, active_, socket_, options_, addr_);
-            break;
-        case ZMQ_DEALER:
-        case ZMQ_REP:
-        case ZMQ_ROUTER:
-        case ZMQ_PUB:
-        case ZMQ_XPUB:
-        case ZMQ_SUB:
-        case ZMQ_XSUB:
-        case ZMQ_PUSH:
-        case ZMQ_PULL:
-        case ZMQ_PAIR:
-        case ZMQ_STREAM:
-        case ZMQ_SERVER:
-        case ZMQ_CLIENT:
-        case ZMQ_GATHER:
-        case ZMQ_SCATTER:
-        case ZMQ_DGRAM:
-        case ZMQ_PEER:
-        case ZMQ_CHANNEL:
-// #ifdef ZMQ_BUILD_DRAFT_API
-            if (options_.can_send_hello_msg && options_.hello_msg.size () > 0)
-                s = new (std::nothrow) hello_msg_session_t (
-                  io_thread_, active_, socket_, options_, addr_);
-            else
-                s = new (std::nothrow) ZmqSessionBase (
-                  io_thread_, active_, socket_, options_, addr_);
 
-            break;
-// #else
-            s = new (std::nothrow)
-              ZmqSessionBase (io_thread_, active_, socket_, options_, addr_);
-            break;
-// #endif
 
-        default:
-            errno = EINVAL;
-            return null_mut();
-    }
-    alloc_assert (s);
-    return s;
-}
 
-ZmqSessionBase::ZmqSessionBase (class io_thread_t *io_thread_,
-                                     active_: bool,
-pub struct ZmqSocketBase *socket_,
-                                     const ZmqOptions &options_,
-                                     Address *addr_) :
-    own_t (io_thread_, options_),
-    io_object_t (io_thread_),
-    _active (active_),
-    _pipe (null_mut()),
-    _zap_pipe (null_mut()),
-    _incomplete_in (false),
-    _pending (false),
-    _engine (null_mut()),
-    _socket (socket_),
-    _io_thread (io_thread_),
-    _has_linger_timer (false),
-    _addr (addr_)
-// #ifdef ZMQ_HAVE_WSS
-    ,
-    _wss_hostname (options_.wss_hostname)
-// #endif
-{
-}
 
-const EndpointUriPair &ZmqSessionBase::get_endpoint () const
-{
-    return _engine.get_endpoint ();
-}
 
-ZmqSessionBase::~ZmqSessionBase ()
-{
-    zmq_assert (!_pipe);
-    zmq_assert (!_zap_pipe);
 
-    //  If there's still a pending linger timer, remove it.
-    if (_has_linger_timer) {
-        cancel_timer (linger_timer_id);
-        _has_linger_timer = false;
-    }
 
-    //  Close the engine.
-    if (_engine)
-        _engine.terminate ();
 
-    LIBZMQ_DELETE (_addr);
-}
 
-void ZmqSessionBase::attach_pipe (pipe_: &mut pipe_t)
-{
-    zmq_assert (!is_terminating ());
-    zmq_assert (!_pipe);
-    zmq_assert (pipe_);
-    _pipe = pipe_;
-    _pipe.set_event_sink (this);
-}
 
-int ZmqSessionBase::pull_msg (msg: &mut ZmqMessage)
-{
-    if (!_pipe || !_pipe.read (msg)) {
-        errno = EAGAIN;
-        return -1;
-    }
 
-    _incomplete_in = (msg.flags () & ZMQ_MSG_MORE) != 0;
-
-    return 0;
-}
-
-int ZmqSessionBase::push_msg (msg: &mut ZmqMessage)
-{
-    //  pass subscribe/cancel to the sockets
-    if ((msg.flags () & ZMQ_MSG_COMMAND) && !msg.is_subscribe ()
-        && !msg.is_cancel ())
-        return 0;
-    if (_pipe && _pipe.write (msg)) {
-        let rc: i32 = msg.init ();
-        errno_assert (rc == 0);
-        return 0;
-    }
-
-    errno = EAGAIN;
-    return -1;
-}
-
-int ZmqSessionBase::read_zap_msg (msg: &mut ZmqMessage)
-{
-    if (_zap_pipe == null_mut()) {
-        errno = ENOTCONN;
-        return -1;
-    }
-
-    if (!_zap_pipe.read (msg)) {
-        errno = EAGAIN;
-        return -1;
-    }
-
-    return 0;
-}
-
-int ZmqSessionBase::write_zap_msg (msg: &mut ZmqMessage)
-{
-    if (_zap_pipe == null_mut() || !_zap_pipe.write (msg)) {
-        errno = ENOTCONN;
-        return -1;
-    }
-
-    if ((msg.flags () & ZMQ_MSG_MORE) == 0)
-        _zap_pipe.flush ();
-
-    let rc: i32 = msg.init ();
-    errno_assert (rc == 0);
-    return 0;
-}
-
-void ZmqSessionBase::reset ()
-{
-}
-
-void ZmqSessionBase::flush ()
-{
-    if (_pipe)
-        _pipe.flush ();
-}
-
-void ZmqSessionBase::rollback ()
-{
-    if (_pipe)
-        _pipe.rollback ();
-}
-
-void ZmqSessionBase::clean_pipes ()
-{
-    zmq_assert (_pipe != null_mut());
-
-    //  Get rid of half-processed messages in the out pipe. Flush any
-    //  unflushed messages upstream.
-    _pipe.rollback ();
-    _pipe.flush ();
-
-    //  Remove any half-read message from the in pipe.
-    while (_incomplete_in) {
-        ZmqMessage msg;
-        int rc = msg.init ();
-        errno_assert (rc == 0);
-        rc = pull_msg (&msg);
-        errno_assert (rc == 0);
-        rc = msg.close ();
-        errno_assert (rc == 0);
-    }
-}
-
-void ZmqSessionBase::pipe_terminated (pipe_: &mut pipe_t)
-{
-    // Drop the reference to the deallocated pipe if required.
-    zmq_assert (pipe_ == _pipe || pipe_ == _zap_pipe
-                || _terminating_pipes.count (pipe_) == 1);
-
-    if (pipe_ == _pipe) {
-        // If this is our current pipe, remove it
-        _pipe = null_mut();
-        if (_has_linger_timer) {
-            cancel_timer (linger_timer_id);
-            _has_linger_timer = false;
-        }
-    } else if (pipe_ == _zap_pipe)
-        _zap_pipe = null_mut();
-    else
-        // Remove the pipe from the detached pipes set
-        _terminating_pipes.erase (pipe_);
-
-    if (!is_terminating () && options.raw_socket) {
-        if (_engine) {
-            _engine.terminate ();
-            _engine = null_mut();
-        }
-        terminate ();
-    }
-
-    //  If we are waiting for pending messages to be sent, at this point
-    //  we are sure that there will be no more messages and we can proceed
-    //  with termination safely.
-    if (_pending && !_pipe && !_zap_pipe && _terminating_pipes.empty ()) {
-        _pending = false;
-        own_t::process_term (0);
-    }
-}
-
-void ZmqSessionBase::read_activated (pipe_: &mut pipe_t)
-{
-    // Skip activating if we're detaching this pipe
-    if (unlikely (pipe_ != _pipe && pipe_ != _zap_pipe)) {
-        zmq_assert (_terminating_pipes.count (pipe_) == 1);
-        return;
-    }
-
-    if (unlikely (_engine == null_mut())) {
-        if (_pipe)
-            _pipe.check_read ();
-        return;
-    }
-
-    if (likely (pipe_ == _pipe))
-        _engine.restart_output ();
-    else {
-        // i.e. pipe_ == zap_pipe
-        _engine.zap_msg_available ();
-    }
-}
 
 void ZmqSessionBase::write_activated (pipe_: &mut pipe_t)
 {
@@ -701,7 +753,7 @@ void ZmqSessionBase::process_term (linger_: i32)
         //  the timer.
         if (linger_ > 0) {
             zmq_assert (!_has_linger_timer);
-            add_timer (linger_, linger_timer_id);
+            add_timer (linger_, LINGER_TIMER_ID);
             _has_linger_timer = true;
         }
 
@@ -724,7 +776,7 @@ void ZmqSessionBase::timer_event (id_: i32)
 {
     //  Linger period expired. We can proceed with termination even though
     //  there are still pending messages to be sent.
-    zmq_assert (id_ == linger_timer_id);
+    zmq_assert (id_ == LINGER_TIMER_ID);
     _has_linger_timer = false;
 
     //  Ask pipe to terminate even though there may be pending messages in it.
@@ -758,7 +810,7 @@ void ZmqSessionBase::reconnect ()
         _pipe = null_mut();
 
         if (_has_linger_timer) {
-            cancel_timer (linger_timer_id);
+            cancel_timer (LINGER_TIMER_ID);
             _has_linger_timer = false;
         }
     }
