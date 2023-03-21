@@ -349,13 +349,13 @@ pub fn zmq_leave (s_: &mut [u8], group_: &str) -> i32
     return s.leave (group_);
 }
 
-pub fn zmq_bind (s_: &mut [u8], addr_: &str) -> i32
+pub fn zmq_bind (options: &mut ZmqOptions, s_: &mut [u8], addr_: &str) -> anyhow::Result<()>
 {
     let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s) {
-        return -1;
+        return Err(anyhow!("failed to create socketbase"));
     }
-    return s.bind (addr_);
+    return s.bind (options, addr_);
 }
 
 pub fn zmq_connect (s_: &mut [u8], addr_: &str) -> i32

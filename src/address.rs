@@ -1,5 +1,12 @@
 use std::ptr::null_mut;
+use crate::context::ZmqContext;
+use crate::ipc_address::IpcAddress;
 use crate::tcp_address::TcpAddress;
+use crate::tipc_address::TipcAddress;
+use crate::udp_address::UdpAddress;
+use crate::vmci_address::VmciAddress;
+use crate::ws_address::WsAddress;
+use crate::wss_address::WssAddress;
 
 pub const inproc: String = String::from("inproc");
 pub const tcp: String = String::from("tcp");
@@ -50,7 +57,7 @@ impl Address {
     // address_t (const std::string &protocol_,
     //     const std::string &address_,
     //     ctx_t *parent_);
-    pub fn new(protocol_: &str, address: &str, parent: *mut ZmqContext) -> Self {
+    pub fn new(protocol_: &str, address: &str, parent: &mut ZmqContext) -> Self {
         Self {
             protocol: String::from(protocol_),
             address: String::from(address),

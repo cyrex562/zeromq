@@ -25,6 +25,7 @@ use std::ptr::null_mut;
 pub trait ZmqObject {
     //  Context provides access to the global state.
     fn get_ctx(&self) -> &ZmqContext;
+    fn get_ctx_mut(&mut self) -> &mut ZmqContext;
     fn set_ctx(&mut self, ctx: &mut ZmqContext);
     //  Thread ID of the thread the object belongs to.
     fn get_tid(&self) -> u32;

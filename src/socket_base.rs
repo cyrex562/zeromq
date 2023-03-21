@@ -6,6 +6,7 @@ use crate::cpu_time::get_cpu_tick_counter;
 use crate::endpoint::EndpointType::endpoint_type_none;
 use crate::endpoint::{make_unconnected_bind_endpoint_pair, EndpointUriPair, ZmqEndpoint};
 use crate::i_mailbox::i_mailbox;
+use crate::io_thread::io_thread_t;
 use crate::ipc_address::IpcAddress;
 use crate::ipc_listener::ipc_listener_t;
 use crate::mailbox::mailbox_t;
@@ -130,7 +131,274 @@ pub struct ZmqSocketBase {
     pub disconnected: bool,
 }
 
-impl ZmqObject for ZmqSocketBase {}
+impl ZmqObject for ZmqSocketBase {
+    fn get_ctx(&self) -> &ZmqContext {
+        todo!()
+    }
+
+    fn get_ctx_mut(&mut self) -> &mut ZmqContext {
+        todo!()
+    }
+
+    fn set_ctx(&mut self, ctx: &mut ZmqContext) {
+        todo!()
+    }
+
+    fn get_tid(&self) -> u32 {
+        todo!()
+    }
+
+    fn set_tid(&mut self, tid: u32) {
+        todo!()
+    }
+
+    fn process_command(&mut self, cmd: &ZmqCommand) {
+        todo!()
+    }
+
+    fn register_endpoint(&mut self, addr: &str, endpoint: &mut ZmqEndpoint) -> anyhow::Result<()> {
+        todo!()
+    }
+
+    fn unregister_endpoint(
+        &mut self,
+        addr: &str,
+        sock_base: &mut ZmqSocketBase,
+    ) -> anyhow::Result<()> {
+        todo!()
+    }
+
+    fn unregister_endpoints(&mut self, sock_base: &mut ZmqSocketBase) {
+        todo!()
+    }
+
+    fn find_endpoint(&self, addr: &str) -> Option<ZmqEndpoint> {
+        todo!()
+    }
+
+    fn pend_connection(&mut self, addr: &str, endpoint: &ZmqEndpoint, pipes: &[pipe_t]) {
+        todo!()
+    }
+
+    fn connect_pending(&self, addr: &str, bind_socket: &mut ZmqSocketBase) {
+        todo!()
+    }
+
+    fn destroy_socket(&mut self, socket: &mut ZmqSocketBase) {
+        todo!()
+    }
+
+    fn log(msg: &str) {
+        todo!()
+    }
+
+    fn send_inproc_connected(&mut self, socket: &mut ZmqSocketBase) {
+        todo!()
+    }
+
+    fn send_bind(&mut self, destination: &mut own_t, pipe: &mut pipe_t, inc_seqnum: bool) {
+        todo!()
+    }
+
+    fn choose_io_thread(&mut self, affinity: u64) -> Option<io_thread_t> {
+        todo!()
+    }
+
+    fn send_stop(&mut self) {
+        todo!()
+    }
+
+    fn send_plug(&mut self, destination: &mut own_t, inc_seqnum: bool) {
+        todo!()
+    }
+
+    fn send_own(&mut self, destination: &mut own_t, object: &mut own_t) {
+        todo!()
+    }
+
+    fn send_attach(
+        &mut self,
+        destination: &mut ZmqSessionbase,
+        engine: &mut i_engine,
+        inc_seqnum: bool,
+    ) {
+        todo!()
+    }
+
+    fn send_activate_read(&mut self, destination: &mut pipe_t) {
+        todo!()
+    }
+
+    fn send_activate_write(&mut self, destination: &mut pipe_t, msgs_read: u64) {
+        todo!()
+    }
+
+    fn send_hiccup(&mut self, destination: &mut pipe_t, pipe: &mut [u8]) {
+        todo!()
+    }
+
+    fn send_pipe_peer_stats(
+        &mut self,
+        destination: &mut pipe_t,
+        queue_count: u64,
+        socket_base: &mut own_t,
+        endpoint_pair: &mut EndpointUriPair,
+    ) {
+        todo!()
+    }
+
+    fn send_pipe_stats_publish(
+        &mut self,
+        destination: &mut own_t,
+        outbound_queue_count: u64,
+        inbound_queue_count: u64,
+        endpoint_pair: &mut EndpointUriPair,
+    ) {
+        todo!()
+    }
+
+    fn send_pipe_term(&mut self, destination: &mut pipe_t) {
+        todo!()
+    }
+
+    fn send_pipe_term_ack(&mut self, destination: &mut pipe_t) {
+        todo!()
+    }
+
+    fn send_pipe_hwm(&mut self, destination: &mut pipe_t, inhwm: i32, outhwm: i32) {
+        todo!()
+    }
+
+    fn send_term_req(&mut self, destination: &mut own_t, object: &mut own_t) {
+        todo!()
+    }
+
+    fn send_term(&mut self, destination: &mut own_t, linger: i32) {
+        todo!()
+    }
+
+    fn send_term_ack(&mut self, destination: &mut own_t) {
+        todo!()
+    }
+
+    fn send_term_endpoint(&mut self, destination: &mut own_t, endpoint: &str) {
+        todo!()
+    }
+
+    fn send_reap(&mut self, socket: &mut ZmqSocketBase) {
+        todo!()
+    }
+
+    fn send_reaped(&mut self) {
+        todo!()
+    }
+
+    fn send_done(&mut self) {
+        todo!()
+    }
+
+    fn send_conn_failed(&mut self, destination: &mut ZmqSessionBase) {
+        todo!()
+    }
+
+    fn process_stop(&mut self) {
+        todo!()
+    }
+
+    fn process_plug(&mut self) {
+        todo!()
+    }
+
+    fn process_own(&mut self, object: &mut own_t) {
+        todo!()
+    }
+
+    fn process_attached(&mut self, engine: &mut i_engine) {
+        todo!()
+    }
+
+    fn process_bind(&mut self, pipe: &mut pipe_t) {
+        todo!()
+    }
+
+    fn process_activate_read(&mut self) {
+        todo!()
+    }
+
+    fn process_activate_write(&mut self, msgs_read: u64) {
+        todo!()
+    }
+
+    fn process_hiccup(&mut self, pipe: &mut [u8]) {
+        todo!()
+    }
+
+    fn process_pipe_peer_stats(
+        &mut self,
+        queue_count: u64,
+        socket_base: &mut own_t,
+        endpoint_pair: &mut EndpointUriPair,
+    ) {
+        todo!()
+    }
+
+    fn process_pipe_stats_publish(
+        &mut self,
+        outbound_queue_count: u64,
+        inbound_queue_count: u64,
+        endpoint_pair: &mut EndpointUriPair,
+    ) {
+        todo!()
+    }
+
+    fn process_pipe_term(&mut self) {
+        todo!()
+    }
+
+    fn process_pipe_term_ack(&mut self) {
+        todo!()
+    }
+
+    fn process_pipe_hwm(&mut self, inhwm: i32, outhwm: i32) {
+        todo!()
+    }
+
+    fn process_term_req(&mut self, object: &mut own_t) {
+        todo!()
+    }
+
+    fn process_term(&mut self, linger: i32) {
+        todo!()
+    }
+
+    fn process_term_ack(&mut self) {
+        todo!()
+    }
+
+    fn process_term_endpoint(&mut self, endpoint: &str) {
+        todo!()
+    }
+
+    fn process_reap(&mut self, socket: &mut ZmqSocketBase) {
+        todo!()
+    }
+
+    fn process_reaped(&mut self) {
+        todo!()
+    }
+
+    fn process_conn_failed(&mut self) {
+        todo!()
+    }
+
+    fn process_seqnum(&mut self) {
+        todo!()
+    }
+
+    fn send_command(&mut self, cmd: &mut ZmqCommand) -> anyhow::Result<()> {
+        todo!()
+    }
+}
 
 impl ZmqSocketBase {
     // ZmqSocketBase (ZmqContext *parent_,
@@ -460,7 +728,7 @@ impl ZmqSocketBase {
             // const ZmqEndpoint endpoint = {this, options};
             let mut endpoint: ZmqEndpoint = ZmqEndpoint::default();
             endpoint.options = options.clone();
-            self.register_endpoint(endpoint_uri_, endpoint)?;
+            self.register_endpoint(endpoint_uri_, &mut endpoint)?;
             self.connect_pending(endpoint_uri_, this);
             self.last_endpoint.assign(endpoint_uri_);
             options.connected = true;
@@ -508,7 +776,7 @@ impl ZmqSocketBase {
             // Address *paddr =
             //   new (std::nothrow) Address (protocol, address, this->get_ctx ());
             // alloc_assert (paddr);
-            let mut paddr = Address::new(&protocol, &address, self.get_ctx());
+            let mut paddr = Address::new(&protocol, &address, self.get_ctx_mut());
 
             paddr.resolved.udp_addr = UdpAddress::new();
             // alloc_assert (paddr.resolved.udp_addr);
@@ -521,7 +789,8 @@ impl ZmqSocketBase {
             //     return -1;
             // }
 
-            let session = ZmqSessionBase::create(io_thread, true, this, options, &mut paddr)?;
+            let mut session =
+                ZmqSessionBase::create(&mut io_thread.unwrap(), true, this, options, &mut paddr)?;
             // errno_assert (session);
 
             //  Create a bi-directional pipe.
@@ -545,7 +814,8 @@ impl ZmqSocketBase {
 
             //  TODO shouldn't this use _last_endpoint instead of endpoint_uri_? as in the other cases
             let mut ep = EndpointUriPair::new(endpoint_uri_, "", endpoint_type_none);
-            self.add_endpoint(&ep, session, &mut newpipe);
+            // todo add trait own_t to ZmqSessionBase
+            self.add_endpoint(&ep, &mut session, &mut newpipe);
 
             Ok(())
         }
@@ -1224,10 +1494,7 @@ impl ZmqSocketBase {
         self.monitor_events = events_ as i64;
         options.monitor_event_version = event_version_;
         //  Create a monitor socket of the specified type.
-        self.monitor_socket = zmq_socket(get_ctx(), type_);
-        if (self.monitor_socket == null_mut()) {
-            bail!("failed to create monitor socket")
-        }
+        self.monitor_socket = zmq_socket(get_ctx(), type_)?;
 
         //  Never block context termination on pending event messages
         let mut linger = 0i32;
@@ -1244,7 +1511,7 @@ impl ZmqSocketBase {
         }
 
         //  Spawn the monitor socket endpoint
-        rc = zmq_bind(_monitor_socket, endpoint);
+        rc = zmq_bind(options, self._monitor_socket, endpoint);
         if (rc == -1) {
             self.stop_monitor(options, false);
         }
@@ -1660,7 +1927,7 @@ impl ZmqSocketBase {
                 // #endif
 
                 let mut endpoint: ZmqEndpoint = ZmqEndpoint::new(self, options);
-                self.pend_connection(endpoint_uri_, endpoint, &new_pipes);
+                self.pend_connection(endpoint_uri_, &endpoint, &new_pipes);
             } else {
                 //  If required, send the routing id of the local socket to the peer.
                 if peer.options.recv_routing_id {
@@ -1691,7 +1958,7 @@ impl ZmqSocketBase {
                 //  Attach remote end of the pipe to the peer socket. Note that peer's
                 //  seqnum was incremented in find_endpoint function. We don't need it
                 //  increased here.
-                self.send_bind(peer.socket, &new_pipes[1], false);
+                self.send_bind(peer.socket, &mut new_pipes[1], false);
             }
 
             //  Attach local end of the pipe to this socket object.
@@ -1720,13 +1987,13 @@ impl ZmqSocketBase {
         // }
 
         //  Choose the I/O thread to run the session in.
-        let io_thread = self.choose_io_thread(options.affinity)?;
+        let mut io_thread = self.choose_io_thread(options.affinity)?;
         // if (!io_thread) {
         //     errno = EMTHREAD;
         //     return -1;
         // }
 
-        let mut paddr = Address::new(&protocol, &address, self.get_ctx());
+        let mut paddr = Address::new(&protocol, &address, self.get_ctx_mut());
         // alloc_assert (paddr);
 
         //  Resolve address (if needed by the protocol)
@@ -1916,7 +2183,7 @@ impl ZmqSocketBase {
         // #endif
 
         //  Create session.
-        let mut session = ZmqSessionBase::create(io_thread, true, self, options, paddr);
+        let mut session = ZmqSessionBase::create(&mut io_thread, true, self, options, &mut paddr);
         // errno_assert (session);
 
         //  PGM does not support subscription forwarding; ask for all data to be
@@ -1967,7 +2234,7 @@ impl ZmqSocketBase {
 
         add_endpoint(
             make_unconnected_connect_endpoint_pair(endpoint_uri_),
-            session,
+            &session,
             newpipe,
         );
         Ok(())
