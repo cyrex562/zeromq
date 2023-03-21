@@ -165,7 +165,7 @@ void expect_bounce_fail (server_: *mut c_void, client_: *mut c_void);
 //  Receive 0MQ string from socket and convert into C string
 //  Caller must free returned string. Returns NULL if the context
 //  is being terminated.
-char *s_recv (socket_: *mut c_void);
+char *s_recv (socket: *mut c_void);
 
 bool streq (lhs: *const c_char, rhs: &str);
 bool strneq (lhs: *const c_char, rhs: &str);
@@ -176,18 +176,18 @@ extern const char *SEQ_END;
 //  The list must be terminated by SEQ_END.
 //  Example: s_send_seq (req, "ABC", 0, "DEF", SEQ_END);
 
-void s_send_seq (socket_: *mut c_void, ...);
+void s_send_seq (socket: *mut c_void, ...);
 
 //  Receives message a number of frames long and checks that the frames have
 //  the given data which can be either C strings or 0 for a null frame.
 //  The list must be terminated by SEQ_END.
 //  Example: s_recv_seq (rep, "ABC", 0, "DEF", SEQ_END);
 
-void s_recv_seq (socket_: *mut c_void, ...);
+void s_recv_seq (socket: *mut c_void, ...);
 
 
 //  Sets a zero linger period on a socket and closes it.
-void close_zero_linger (socket_: *mut c_void);
+void close_zero_linger (socket: *mut c_void);
 
 //  Setups the test environment. Must be called at the beginning of each test
 //  executable. On POSIX systems, it sets an alarm to the specified number of
@@ -222,7 +222,7 @@ struct sockaddr_in bind_bsd_socket (socket: i32);
 // #define IPPROTO_WSS 10001
 
 //  Connects a BSD socket to the ZMQ endpoint. Works with ipv4/ipv6/unix.
-fd_t connect_socket (endpoint_: *const c_char,
+fd_t connect_socket (endpoint: *const c_char,
                      let af_: i32 = AF_INET,
                      let protocol_: i32 = IPPROTO_TCP);
 

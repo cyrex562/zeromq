@@ -38,13 +38,13 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-int test_defaults (send_hwm_: i32, msg_cnt_: i32, endpoint_: &str)
+int test_defaults (send_hwm_: i32, msg_cnt_: i32, endpoint: &str)
 {
     char pub_endpoint[SOCKET_STRING_LEN];
 
     // Set up and bind XPUB socket
     void *pub_socket = test_context_socket (ZMQ_XPUB);
-    test_bind (pub_socket, endpoint_, pub_endpoint, sizeof pub_endpoint);
+    test_bind (pub_socket, endpoint, pub_endpoint, sizeof pub_endpoint);
 
     // Set up and connect SUB socket
     void *sub_socket = test_context_socket (ZMQ_SUB);
@@ -86,7 +86,7 @@ int test_defaults (send_hwm_: i32, msg_cnt_: i32, endpoint_: &str)
     return recv_count;
 }
 
-int receive (socket_: *mut c_void, is_termination_: *mut i32)
+int receive (socket: *mut c_void, is_termination_: *mut i32)
 {
     int recv_count = 0;
     *is_termination_ = 0;
@@ -94,7 +94,7 @@ int receive (socket_: *mut c_void, is_termination_: *mut i32)
     // Now receive all sent messages
     char buffer[255];
     len: i32;
-    while ((len = zmq_recv (socket_, buffer, mem::size_of::<buffer>(), 0)) >= 0) {
+    while ((len = zmq_recv (socket, buffer, mem::size_of::<buffer>(), 0)) >= 0) {
         ++recv_count;
 
         if (len == 3 && strncmp (buffer, "end", len) == 0) {
@@ -106,13 +106,13 @@ int receive (socket_: *mut c_void, is_termination_: *mut i32)
     return recv_count;
 }
 
-int test_blocking (send_hwm_: i32, msg_cnt_: i32, endpoint_: &str)
+int test_blocking (send_hwm_: i32, msg_cnt_: i32, endpoint: &str)
 {
     char pub_endpoint[SOCKET_STRING_LEN];
 
     // Set up bind socket
     void *pub_socket = test_context_socket (ZMQ_XPUB);
-    test_bind (pub_socket, endpoint_, pub_endpoint, sizeof pub_endpoint);
+    test_bind (pub_socket, endpoint, pub_endpoint, sizeof pub_endpoint);
 
     // Set up connect socket
     void *sub_socket = test_context_socket (ZMQ_SUB);

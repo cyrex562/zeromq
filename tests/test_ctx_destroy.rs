@@ -40,10 +40,10 @@ void tearDown ()
 {
 }
 
-static void receiver (socket_: *mut c_void)
+static void receiver (socket: *mut c_void)
 {
     char buffer[16];
-    int rc = zmq_recv (socket_, &buffer, mem::size_of::<buffer>(), 0);
+    int rc = zmq_recv (socket, &buffer, mem::size_of::<buffer>(), 0);
     // TODO which error is expected here? use TEST_ASSERT_FAILURE_ERRNO instead
     TEST_ASSERT_EQUAL_INT (-1, rc);
 }

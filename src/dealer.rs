@@ -40,7 +40,7 @@ pub struct dealer_t : public ZmqSocketBase
 
   protected:
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool) ZMQ_FINAL;
     int xsetsockopt (option_: i32,
@@ -50,13 +50,13 @@ pub struct dealer_t : public ZmqSocketBase
     int xrecv (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
     bool xhas_in () ZMQ_OVERRIDE;
     bool xhas_out () ZMQ_OVERRIDE;
-    void xread_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
-    void xwrite_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
-    void xpipe_terminated (pipe_: &mut pipe_t) ZMQ_OVERRIDE;
+    void xread_activated (pipe: &mut pipe_t) ZMQ_FINAL;
+    void xwrite_activated (pipe: &mut pipe_t) ZMQ_FINAL;
+    void xpipe_terminated (pipe: &mut pipe_t) ZMQ_OVERRIDE;
 
     //  Send and recv - knowing which pipe was used.
-    int sendpipe (msg: &mut ZmqMessage pipe_t **pipe_);
-    int recvpipe (msg: &mut ZmqMessage pipe_t **pipe_);
+    int sendpipe (msg: &mut ZmqMessage pipe_t **pipe);
+    int recvpipe (msg: &mut ZmqMessage pipe_t **pipe);
 
   // private:
     //  Messages are fair-queued from inbound pipes. And load-balanced to
@@ -82,32 +82,32 @@ dealer_t::~dealer_t ()
 {
 }
 
-void dealer_t::xattach_pipe (pipe_t *pipe_,
+void dealer_t::xattach_pipe (pipe_t *pipe,
                                   subscribe_to_all_: bool,
                                   locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
 
-    zmq_assert (pipe_);
+    zmq_assert (pipe);
 
     if (_probe_router) {
         ZmqMessage probe_msg;
         int rc = probe_msg.init ();
         errno_assert (rc == 0);
 
-        rc = pipe_.write (&probe_msg);
+        rc = pipe.write (&probe_msg);
         // zmq_assert (rc) is not applicable here, since it is not a bug.
         LIBZMQ_UNUSED (rc);
 
-        pipe_.flush ();
+        pipe.flush ();
 
         rc = probe_msg.close ();
         errno_assert (rc == 0);
     }
 
-    _fq.attach (pipe_);
-    _lb.attach (pipe_);
+    _fq.attach (pipe);
+    _lb.attach (pipe);
 }
 
 int dealer_t::xsetsockopt (option_: i32,
@@ -155,28 +155,28 @@ bool dealer_t::xhas_out ()
     return _lb.has_out ();
 }
 
-void dealer_t::xread_activated (pipe_: &mut pipe_t)
+void dealer_t::xread_activated (pipe: &mut pipe_t)
 {
-    _fq.activated (pipe_);
+    _fq.activated (pipe);
 }
 
-void dealer_t::xwrite_activated (pipe_: &mut pipe_t)
+void dealer_t::xwrite_activated (pipe: &mut pipe_t)
 {
-    _lb.activated (pipe_);
+    _lb.activated (pipe);
 }
 
-void dealer_t::xpipe_terminated (pipe_: &mut pipe_t)
+void dealer_t::xpipe_terminated (pipe: &mut pipe_t)
 {
-    _fq.pipe_terminated (pipe_);
-    _lb.pipe_terminated (pipe_);
+    _fq.pipe_terminated (pipe);
+    _lb.pipe_terminated (pipe);
 }
 
-int dealer_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe_)
+int dealer_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe)
 {
-    return _lb.sendpipe (msg, pipe_);
+    return _lb.sendpipe (msg, pipe);
 }
 
-int dealer_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe_)
+int dealer_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe)
 {
-    return _fq.recvpipe (msg, pipe_);
+    return _fq.recvpipe (msg, pipe);
 }

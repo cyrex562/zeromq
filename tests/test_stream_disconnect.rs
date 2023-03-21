@@ -51,11 +51,11 @@ const test_message_t dialog[] = {
 };
 const int steps = mem::size_of::<dialog>() / sizeof (dialog[0]);
 
-bool has_more (socket_: *mut c_void)
+bool has_more (socket: *mut c_void)
 {
     int more = 0;
     size_t more_size = mem::size_of::<more>();
-    int rc = zmq_getsockopt (socket_, ZMQ_RCVMORE, &more, &more_size);
+    int rc = zmq_getsockopt (socket, ZMQ_RCVMORE, &more, &more_size);
     if (rc != 0)
         return false;
     return more != 0;

@@ -104,7 +104,7 @@ static void mock_handshake (fd_t fd_, sub_command: bool, mock_pub: bool)
 
 static void prep_server_socket (server_out_: *mut *mut c_void
                                 mon_out_: *mut *mut c_void
-                                char *endpoint_,
+                                char *endpoint,
                                 ep_length_: usize,
                                 socket_type: i32)
 {
@@ -115,7 +115,7 @@ static void prep_server_socket (server_out_: *mut *mut c_void
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (server, ZMQ_LINGER, &value, mem::size_of::<value>()));
 
-    bind_loopback_ipv4 (server, endpoint_, ep_length_);
+    bind_loopback_ipv4 (server, endpoint, ep_length_);
 
     //  Create and connect a socket for collecting monitor events on xpub
     void *server_mon = test_context_socket (ZMQ_PAIR);

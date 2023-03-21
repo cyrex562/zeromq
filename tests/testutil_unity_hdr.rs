@@ -137,7 +137,7 @@ int test_assert_failure_message_raw_errno_helper (
 // 'socket_' must be the libzmq socket to use for sending.
 // 'str_' must be a 0-terminated string.
 // 'flags' are as documented by the zmq_send function.
-void send_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags: i32);
+void send_string_expect_success (socket: *mut c_void, str_: *const c_char, flags: i32);
 
 // Receives a message via a libzmq socket, and expects the operation to be
 // successful, and the message to be a given string. Otherwise, a Unity test
@@ -145,7 +145,7 @@ void send_string_expect_success (socket_: *mut c_void, str_: *const c_char, flag
 // 'socket_' must be the libzmq socket to use for receiving.
 // 'str_' must be a 0-terminated string.
 // 'flags' are as documented by the zmq_recv function.
-void recv_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags: i32);
+void recv_string_expect_success (socket: *mut c_void, str_: *const c_char, flags: i32);
 
 // Sends a byte array via a libzmq socket, and expects the operation to be
 // successful (the meaning of which depends on the socket type and configured
@@ -156,11 +156,11 @@ void recv_string_expect_success (socket_: *mut c_void, str_: *const c_char, flag
 // determined via template argument deduction.
 // 'flags' are as documented by the zmq_send function.
 template <size_t SIZE>
-void send_array_expect_success (socket_: *mut c_void,
+void send_array_expect_success (socket: *mut c_void,
                                 const uint8_t (&array_)[SIZE],
                                 flags: i32)
 {
-    let rc: i32 = zmq_send (socket_, array_, SIZE, flags);
+    let rc: i32 = zmq_send (socket, array_, SIZE, flags);
     TEST_ASSERT_EQUAL_INT (static_cast<int> (SIZE), rc);
 }
 
@@ -172,7 +172,7 @@ void send_array_expect_success (socket_: *mut c_void,
 // determined via template argument deduction.
 // 'flags' are as documented by the zmq_recv function.
 template <size_t SIZE>
-void recv_array_expect_success (socket_: *mut c_void,
+void recv_array_expect_success (socket: *mut c_void,
                                 const uint8_t (&array_)[SIZE],
                                 flags: i32)
 {
@@ -183,7 +183,7 @@ void recv_array_expect_success (socket_: *mut c_void,
                                        "characters");
 
     let rc: i32 = TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_recv (socket_, buffer, mem::size_of::<buffer>(), flags));
+      zmq_recv (socket, buffer, mem::size_of::<buffer>(), flags));
     TEST_ASSERT_EQUAL_INT (static_cast<int> (SIZE), rc);
     TEST_ASSERT_EQUAL_UINT8_ARRAY (array_, buffer, SIZE);
 }
@@ -232,13 +232,13 @@ void *test_context_socket (type_: i32);
 // Closes a socket created via test_context_socket.
 // CAUTION: this function is not thread-safe, and may only be used from the
 // main thread.
-void *test_context_socket_close (socket_: *mut c_void);
+void *test_context_socket_close (socket: *mut c_void);
 
 // Closes a socket created via test_context_socket after setting its linger
 // timeout to 0.
 // CAUTION: this function is not thread-safe, and may only be used from the
 // main thread.
-void *test_context_socket_close_zero_linger (socket_: *mut c_void);
+void *test_context_socket_close_zero_linger (socket: *mut c_void);
 
 /////////////////////////////////////////////////////////////////////////////
 // Utility function for handling wildcard binds.
@@ -252,31 +252,31 @@ void *test_context_socket_close_zero_linger (socket_: *mut c_void);
 // Binds to an explicitly given (wildcard) address.
 // TODO redesign such that this function is not necessary to be exposed, but
 // the protocol to use is rather specified via an enum value
-void test_bind (socket_: *mut c_void,
+void test_bind (socket: *mut c_void,
                 bind_address_: *const c_char,
                 char *my_endpoint_,
                 len_: usize);
 
 // Binds to a tcp endpoint using the ipv4 or ipv6 loopback wildcard address.
-void bind_loopback (socket_: *mut c_void, ipv6_: i32, char *my_endpoint_, len_: usize);
+void bind_loopback (socket: *mut c_void, ipv6_: i32, char *my_endpoint_, len_: usize);
 
-typedef void (*bind_function_t) (socket_: *mut c_void,
+typedef void (*bind_function_t) (socket: *mut c_void,
                                  char *my_endpoint_,
                                  len_: usize);
 
 // Binds to a tcp endpoint using the ipv4 loopback wildcard address.
-void bind_loopback_ipv4 (socket_: *mut c_void, char *my_endpoint_, len_: usize);
+void bind_loopback_ipv4 (socket: *mut c_void, char *my_endpoint_, len_: usize);
 
 // Binds to a tcp endpoint using the ipv6 loopback wildcard address.
-void bind_loopback_ipv6 (socket_: *mut c_void, char *my_endpoint_, len_: usize);
+void bind_loopback_ipv6 (socket: *mut c_void, char *my_endpoint_, len_: usize);
 
 // Binds to an ipc endpoint using the ipc wildcard address.
 // Note that the returned address cannot be reused to bind a second socket.
 // If you need to do this, use make_random_ipc_endpoint instead.
-void bind_loopback_ipc (socket_: *mut c_void, char *my_endpoint_, len_: usize);
+void bind_loopback_ipc (socket: *mut c_void, char *my_endpoint_, len_: usize);
 
 // Binds to an ipc endpoint using the tipc wildcard address.
-void bind_loopback_tipc (socket_: *mut c_void, char *my_endpoint_, len_: usize);
+void bind_loopback_tipc (socket: *mut c_void, char *my_endpoint_, len_: usize);
 
 // #if defined(ZMQ_HAVE_IPC)
 // utility function to create a random IPC endpoint, similar to what a ipc://*

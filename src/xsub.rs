@@ -140,19 +140,19 @@ impl xsub_t {
     // void xattach_pipe (pipe_t *pipe_,
     //                    bool subscribe_to_all_,
     //                    bool locally_initiated_) ZMQ_FINAL;
-    pub fn xattach_pipe (&mut self, pipe_: &mut pipe_t, subscribe_to_all_: bool,
+    pub fn xattach_pipe (&mut self, pipe: &mut pipe_t, subscribe_to_all_: bool,
                                 locally_initiated_: bool)
     {
         // LIBZMQ_UNUSED (subscribe_to_all_);
         // LIBZMQ_UNUSED (locally_initiated_);
 
         // zmq_assert (pipe_);
-        self._fq.attach (pipe_);
-        self._dist.attach (pipe_);
+        self._fq.attach (pipe);
+        self._dist.attach (pipe);
 
         //  Send all the cached subscriptions to the new upstream peer.
-        self._subscriptions.apply (send_subscription, pipe_);
-        self.pipe_.flush ();
+        self._subscriptions.apply (send_subscription, pipe);
+        self.pipe.flush ();
     }
 
     // int xsetsockopt (option_: i32,
@@ -350,31 +350,31 @@ impl xsub_t {
 
 
     // void xread_activated (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn xread_activated (&mut self, pipe_: &mut pipe_t)
+    pub fn xread_activated (&mut self, pipe: &mut pipe_t)
     {
-        self._fq.activated (pipe_);
+        self._fq.activated (pipe);
     }
 
     // void xwrite_activated (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn xwrite_activated (&mut self, pipe_: &mut pipe_t)
+    pub fn xwrite_activated (&mut self, pipe: &mut pipe_t)
     {
-        self._dist.activated (pipe_);
+        self._dist.activated (pipe);
     }
 
     // void xhiccuped (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn xhiccuped (&mut self, pipe_: &mut pipe_t)
+    pub fn xhiccuped (&mut self, pipe: &mut pipe_t)
     {
         //  Send all the cached subscriptions to the hiccuped pipe.
-        self._subscriptions.apply (send_subscription, pipe_);
-        self.pipe_.flush ();
+        self._subscriptions.apply (send_subscription, pipe);
+        self.pipe.flush ();
     }
 
 
     // void xpipe_terminated (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn xpipe_terminated (&mut self, pipe_: &mut pipe_t)
+    pub fn xpipe_terminated (&mut self, pipe: &mut pipe_t)
     {
-        self._fq.pipe_terminated (pipe_);
-        self._dist.pipe_terminated (pipe_);
+        self._fq.pipe_terminated (pipe);
+        self._dist.pipe_terminated (pipe);
     }
 
     //  Check whether the message matches at least one subscription.

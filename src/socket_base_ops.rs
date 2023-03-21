@@ -56,7 +56,7 @@ pub trait ZmqSocketBaseOps {
     //  options for the particular socket type. If not so, ZMQ_FINAL this
     //  method.
     // virtual int xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize);
-    fn xgetsockopt(&mut self, skt_base: &mut ZmqSocketBase, a: i32, b: &mut [u8], c: usize) -> anyhow::Result<()>
+    fn xgetsockopt(&mut self, skt_base: &mut ZmqSocketBase, opt_kind: i32) -> anyhow::Result<(Vec<u8>)>
     {
         unimplemented!()
     }

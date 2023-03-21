@@ -47,7 +47,7 @@ pub struct req_t ZMQ_FINAL : public dealer_t
     bool xhas_in ();
     bool xhas_out ();
     int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
-    void xpipe_terminated (pipe_: &mut pipe_t);
+    void xpipe_terminated (pipe: &mut pipe_t);
 
   protected:
     //  Receive only from the pipe the request was sent to, discarding
@@ -85,7 +85,7 @@ pub struct req_session_t ZMQ_FINAL : public ZmqSessionBase
 // public:
     req_session_t (io_thread_t *io_thread_,
                    connect_: bool,
-                   socket_: *mut ZmqSocketBase,
+                   socket: *mut ZmqSocketBase,
                    const ZmqOptions &options_,
                    Address *addr_);
     ~req_session_t ();
@@ -306,11 +306,11 @@ int req_t::xsetsockopt (option_: i32,
     return dealer_t::xsetsockopt (option_, optval_, optvallen_);
 }
 
-void req_t::xpipe_terminated (pipe_: &mut pipe_t)
+void req_t::xpipe_terminated (pipe: &mut pipe_t)
 {
-    if (_reply_pipe == pipe_)
+    if (_reply_pipe == pipe)
         _reply_pipe = null_mut();
-    dealer_t::xpipe_terminated (pipe_);
+    dealer_t::xpipe_terminated (pipe);
 }
 
 int req_t::recv_reply_pipe (msg: &mut ZmqMessage)
@@ -327,10 +327,10 @@ int req_t::recv_reply_pipe (msg: &mut ZmqMessage)
 
 req_session_t::req_session_t (io_thread_t *io_thread_,
                                    connect_: bool,
-                                   ZmqSocketBase *socket_,
+                                   ZmqSocketBase *socket,
                                    const ZmqOptions &options_,
                                    Address *addr_) :
-    ZmqSessionBase (io_thread_, connect_, socket_, options_, addr_),
+    ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),
     _state (bottom)
 {
 }

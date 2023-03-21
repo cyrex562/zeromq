@@ -32,7 +32,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-typedef void (*extra_func_t) (socket_: *mut c_void);
+typedef void (*extra_func_t) (socket: *mut c_void);
 
 void set_sockopt_bind_to_device (socket: *mut c_void)
 {

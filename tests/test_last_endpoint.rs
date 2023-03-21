@@ -32,14 +32,14 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-static void do_bind_and_verify (s_: *mut c_void, endpoint_: &str)
+static void do_bind_and_verify (s_: *mut c_void, endpoint: &str)
 {
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (s_, endpoint_));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (s_, endpoint));
     char reported[255];
     size_t size = 255;
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (s_, ZMQ_LAST_ENDPOINT, reported, &size));
-    TEST_ASSERT_EQUAL_STRING (endpoint_, reported);
+    TEST_ASSERT_EQUAL_STRING (endpoint, reported);
 }
 
 void test_last_endpoint ()

@@ -42,17 +42,17 @@ pub struct radio_t ZMQ_FINAL : public ZmqSocketBase
     ~radio_t ();
 
     //  Implementations of virtual functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false);
     int xsend (msg: &mut ZmqMessage);
     bool xhas_out ();
     int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
-    void xread_activated (pipe_: &mut pipe_t);
-    void xwrite_activated (pipe_: &mut pipe_t);
+    void xread_activated (pipe: &mut pipe_t);
+    void xwrite_activated (pipe: &mut pipe_t);
     int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
-    void xpipe_terminated (pipe_: &mut pipe_t);
+    void xpipe_terminated (pipe: &mut pipe_t);
 
   // private:
     //  List of all subscriptions mapped to corresponding pipes.
@@ -76,7 +76,7 @@ pub struct radio_session_t ZMQ_FINAL : public ZmqSessionBase
 // public:
     radio_session_t (io_thread_t *io_thread_,
                      connect_: bool,
-                     socket_: *mut ZmqSocketBase,
+                     socket: *mut ZmqSocketBase,
                      const ZmqOptions &options_,
                      Address *addr_);
     ~radio_session_t ();
@@ -108,48 +108,48 @@ radio_t::~radio_t ()
 {
 }
 
-void radio_t::xattach_pipe (pipe_t *pipe_,
+void radio_t::xattach_pipe (pipe_t *pipe,
                                  subscribe_to_all_: bool,
                                  locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
 
-    zmq_assert (pipe_);
+    zmq_assert (pipe);
 
     //  Don't delay pipe termination as there is no one
     //  to receive the delimiter.
-    pipe_.set_nodelay ();
+    pipe.set_nodelay ();
 
-    _dist.attach (pipe_);
+    _dist.attach (pipe);
 
     if (subscribe_to_all_)
-        _udp_pipes.push_back (pipe_);
+        _udp_pipes.push_back (pipe);
     //  The pipe is active when attached. Let's read the subscriptions from
     //  it, if any.
     else
-        xread_activated (pipe_);
+        xread_activated (pipe);
 }
 
-void radio_t::xread_activated (pipe_: &mut pipe_t)
+void radio_t::xread_activated (pipe: &mut pipe_t)
 {
     //  There are some subscriptions waiting. Let's process them.
     ZmqMessage msg;
-    while (pipe_.read (&msg)) {
+    while (pipe.read (&msg)) {
         //  Apply the subscription to the trie
         if (msg.is_join () || msg.is_leave ()) {
             std::string group = std::string (msg.group ());
 
             if (msg.is_join ())
                 _subscriptions.ZMQ_MAP_INSERT_OR_EMPLACE (ZMQ_MOVE (group),
-                                                          pipe_);
+                                                          pipe);
             else {
                 std::pair<subscriptions_t::iterator, subscriptions_t::iterator>
                   range = _subscriptions.equal_range (group);
 
                 for (subscriptions_t::iterator it = range.first;
                      it != range.second; ++it) {
-                    if (it.second == pipe_) {
+                    if (it.second == pipe) {
                         _subscriptions.erase (it);
                         break;
                     }
@@ -160,9 +160,9 @@ void radio_t::xread_activated (pipe_: &mut pipe_t)
     }
 }
 
-void radio_t::xwrite_activated (pipe_: &mut pipe_t)
+void radio_t::xwrite_activated (pipe: &mut pipe_t)
 {
-    _dist.activated (pipe_);
+    _dist.activated (pipe);
 }
 int radio_t::xsetsockopt (option_: i32,
                                const optval_: &mut [u8],
@@ -181,12 +181,12 @@ int radio_t::xsetsockopt (option_: i32,
     return 0;
 }
 
-void radio_t::xpipe_terminated (pipe_: &mut pipe_t)
+void radio_t::xpipe_terminated (pipe: &mut pipe_t)
 {
     for (subscriptions_t::iterator it = _subscriptions.begin (),
                                    end = _subscriptions.end ();
          it != end;) {
-        if (it.second == pipe_) {
+        if (it.second == pipe) {
 #if __cplusplus >= 201103L || (defined _MSC_VER && _MSC_VER >= 1700)
             it = _subscriptions.erase (it);
 // #else
@@ -200,12 +200,12 @@ void radio_t::xpipe_terminated (pipe_: &mut pipe_t)
     {
         const udp_pipes_t::iterator end = _udp_pipes.end ();
         const udp_pipes_t::iterator it =
-          std::find (_udp_pipes.begin (), end, pipe_);
+          std::find (_udp_pipes.begin (), end, pipe);
         if (it != end)
             _udp_pipes.erase (it);
     }
 
-    _dist.pipe_terminated (pipe_);
+    _dist.pipe_terminated (pipe);
 }
 
 int radio_t::xsend (msg: &mut ZmqMessage)
@@ -260,10 +260,10 @@ bool radio_t::xhas_in ()
 
 radio_session_t::radio_session_t (io_thread_t *io_thread_,
                                        connect_: bool,
-                                       ZmqSocketBase *socket_,
+                                       ZmqSocketBase *socket,
                                        const ZmqOptions &options_,
                                        Address *addr_) :
-    ZmqSessionBase (io_thread_, connect_, socket_, options_, addr_),
+    ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),
     _state (group)
 {
 }

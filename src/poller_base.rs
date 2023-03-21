@@ -97,7 +97,7 @@ pub struct worker_poller_base_t : public poller_base_t
     virtual void loop () = 0;
 
     // Reference to ZMQ context.
-    const ThreadCtx &_ctx;
+    const ThreadCtx &ctx;
 
     //  Handle of the physical thread doing the I/O work.
     thread_t _worker;
@@ -190,7 +190,7 @@ u64 poller_base_t::execute_timers ()
 }
 
 worker_poller_base_t::worker_poller_base_t (const ThreadCtx &ctx) :
-    _ctx (ctx)
+    ctx (ctx)
 {
 }
 
@@ -202,7 +202,7 @@ void worker_poller_base_t::stop_worker ()
 void worker_poller_base_t::start (name_: &str)
 {
     zmq_assert (get_load () > 0);
-    _ctx.start_thread (_worker, worker_routine, this, name_);
+    ctx.start_thread (_worker, worker_routine, this, name_);
 }
 
 void worker_poller_base_t::check_thread () const

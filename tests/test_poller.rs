@@ -41,11 +41,11 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-fd_t get_fd (socket_: *mut c_void)
+fd_t get_fd (socket: *mut c_void)
 {
     fd_t fd;
     size_t fd_size = sizeof fd;
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_getsockopt (socket_, ZMQ_FD, &fd, &fd_size));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_getsockopt (socket, ZMQ_FD, &fd, &fd_size));
     return fd;
 }
 
@@ -240,7 +240,7 @@ void test_null_socket_pointers ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_destroy (&poller));
 }
 
-typedef void (*extra_poller_socket_func_t) (poller_: *mut c_void, socket_: *mut c_void);
+typedef void (*extra_poller_socket_func_t) (poller_: *mut c_void, socket: *mut c_void);
 
 void test_with_empty_poller (extra_poller_socket_func_t extra_func_)
 {
@@ -344,19 +344,19 @@ TEST_CASE_FUNC_PARAM (call_poller_wait_all_null_event_fails_event_count_nonzero,
 TEST_CASE_FUNC_PARAM (call_poller_wait_all_null_event_fails_event_count_zero,
                       test_with_valid_poller)
 
-void call_poller_size (poller_: *mut c_void, socket_: *mut c_void)
+void call_poller_size (poller_: *mut c_void, socket: *mut c_void)
 {
     int rc = zmq_poller_size (poller_);
     TEST_ASSERT_SUCCESS_ERRNO (rc);
     TEST_ASSERT_EQUAL (rc, 0);
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add (poller_, socket_, null_mut(), ZMQ_POLLIN));
+      zmq_poller_add (poller_, socket, null_mut(), ZMQ_POLLIN));
     rc = zmq_poller_size (poller_);
     TEST_ASSERT_SUCCESS_ERRNO (rc);
     TEST_ASSERT_EQUAL (rc, 1);
 
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_modify (poller_, socket_, 0));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_modify (poller_, socket, 0));
     rc = zmq_poller_size (poller_);
     TEST_ASSERT_SUCCESS_ERRNO (rc);
     TEST_ASSERT_EQUAL (rc, 1);
@@ -368,7 +368,7 @@ void call_poller_size (poller_: *mut c_void, socket_: *mut c_void)
     TEST_ASSERT_SUCCESS_ERRNO (rc);
     TEST_ASSERT_EQUAL (rc, 2);
 
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_remove (poller_, socket_));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_remove (poller_, socket));
     rc = zmq_poller_size (poller_);
     TEST_ASSERT_SUCCESS_ERRNO (rc);
     TEST_ASSERT_EQUAL (rc, 1);
@@ -380,45 +380,45 @@ void call_poller_size (poller_: *mut c_void, socket_: *mut c_void)
     TEST_ASSERT_EQUAL (rc, 0);
 }
 
-void call_poller_add_twice_fails (poller_: *mut c_void, socket_: *mut c_void)
+void call_poller_add_twice_fails (poller_: *mut c_void, socket: *mut c_void)
 {
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_poller_add (poller_, socket_, null_mut(), ZMQ_POLLIN));
+      zmq_poller_add (poller_, socket, null_mut(), ZMQ_POLLIN));
 
     //  attempt to add the same socket twice
     TEST_ASSERT_FAILURE_ERRNO (
-      EINVAL, zmq_poller_add (poller_, socket_, null_mut(), ZMQ_POLLIN));
+      EINVAL, zmq_poller_add (poller_, socket, null_mut(), ZMQ_POLLIN));
 
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_remove (poller_, socket_));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_remove (poller_, socket));
 }
 
-void call_poller_remove_unregistered_fails (poller_: *mut c_void, socket_: *mut c_void)
+void call_poller_remove_unregistered_fails (poller_: *mut c_void, socket: *mut c_void)
 {
     //  attempt to remove socket that is not present
-    TEST_ASSERT_FAILURE_ERRNO (EINVAL, zmq_poller_remove (poller_, socket_));
+    TEST_ASSERT_FAILURE_ERRNO (EINVAL, zmq_poller_remove (poller_, socket));
 }
 
-void call_poller_modify_unregistered_fails (poller_: *mut c_void, socket_: *mut c_void)
+void call_poller_modify_unregistered_fails (poller_: *mut c_void, socket: *mut c_void)
 {
     //  attempt to modify socket that is not present
     TEST_ASSERT_FAILURE_ERRNO (
-      EINVAL, zmq_poller_modify (poller_, socket_, ZMQ_POLLIN));
+      EINVAL, zmq_poller_modify (poller_, socket, ZMQ_POLLIN));
 }
 
-void call_poller_add_no_events (poller_: *mut c_void, socket_: *mut c_void)
+void call_poller_add_no_events (poller_: *mut c_void, socket: *mut c_void)
 {
     //  add a socket with no events initially (may be activated later with
     //  zmq_poller_modify)
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_add (poller_, socket_, null_mut(), 0));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_add (poller_, socket, null_mut(), 0));
     //  TODO test that no events are signalled
 }
 
-void call_poller_modify_no_events (poller_: *mut c_void, socket_: *mut c_void)
+void call_poller_modify_no_events (poller_: *mut c_void, socket: *mut c_void)
 {
     //  deactivates all events for a socket temporarily (may be activated again
     //  later with zmq_poller_modify)
-    zmq_poller_add (poller_, socket_, null_mut(), ZMQ_POLLIN);
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_modify (poller_, socket_, 0));
+    zmq_poller_add (poller_, socket, null_mut(), ZMQ_POLLIN);
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_modify (poller_, socket, 0));
     //  TODO test that no events are signalled
 }
 
@@ -563,9 +563,9 @@ void call_poller_wait_all_empty_with_timeout_fails (poller_: *mut c_void,
                                zmq_poller_wait_all (poller_, &event, 0, -1));
 }
 
-void call_poller_wait_all_inf_disabled_fails (poller_: *mut c_void, socket_: *mut c_void)
+void call_poller_wait_all_inf_disabled_fails (poller_: *mut c_void, socket: *mut c_void)
 {
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_add (poller_, socket_, null_mut(), 0));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_poller_add (poller_, socket, null_mut(), 0));
 
     ZmqPollerEvent events[1];
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN,

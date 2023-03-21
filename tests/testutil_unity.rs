@@ -118,14 +118,14 @@ int test_assert_failure_message_raw_errno_helper (
     return rc_;
 }
 
-void send_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags: i32)
+void send_string_expect_success (socket: *mut c_void, str_: *const c_char, flags: i32)
 {
     const size_t len = str_ ? strlen (str_) : 0;
-    let rc: i32 = zmq_send (socket_, str_, len, flags);
+    let rc: i32 = zmq_send (socket, str_, len, flags);
     TEST_ASSERT_EQUAL_INT ((int) len, rc);
 }
 
-void recv_string_expect_success (socket_: *mut c_void, str_: *const c_char, flags: i32)
+void recv_string_expect_success (socket: *mut c_void, str_: *const c_char, flags: i32)
 {
     const size_t len = str_ ? strlen (str_) : 0;
     char buffer[255];
@@ -135,7 +135,7 @@ void recv_string_expect_success (socket_: *mut c_void, str_: *const c_char, flag
                                        "characters");
 
     let rc: i32 = TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_recv (socket_, buffer, mem::size_of::<buffer>(), flags));
+      zmq_recv (socket, buffer, mem::size_of::<buffer>(), flags));
     TEST_ASSERT_EQUAL_INT ((int) len, rc);
     if (str_)
         TEST_ASSERT_EQUAL_STRING_LEN (str_, buffer, len);
@@ -158,11 +158,11 @@ static void *internal_manage_test_context (init_: bool, clear_: bool)
     return test_context;
 }
 
-static void internal_manage_test_sockets (socket_: *mut c_void, add_: bool)
+static void internal_manage_test_sockets (socket: *mut c_void, add_: bool)
 {
     static void *test_sockets[MAX_TEST_SOCKETS];
     static size_t test_socket_count = 0;
-    if (!socket_) {
+    if (!socket) {
         TEST_ASSERT_FALSE (add_);
 
         // force-close all sockets
@@ -183,11 +183,11 @@ static void internal_manage_test_sockets (socket_: *mut c_void, add_: bool)
                                            "MAX_TEST_SOCKETS must be "
                                            "increased, or you cannot use the "
                                            "test context");
-            test_sockets[test_socket_count - 1] = socket_;
+            test_sockets[test_socket_count - 1] = socket;
         } else {
             bool found = false;
             for (size_t i = 0; i < test_socket_count; ++i) {
-                if (test_sockets[i] == socket_) {
+                if (test_sockets[i] == socket) {
                     found = true;
                 }
                 if (found) {
@@ -232,70 +232,70 @@ void *test_context_socket (type_: i32)
     return socket;
 }
 
-void *test_context_socket_close (socket_: *mut c_void)
+void *test_context_socket_close (socket: *mut c_void)
 {
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_close (socket_));
-    internal_manage_test_sockets (socket_, false);
-    return socket_;
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_close (socket));
+    internal_manage_test_sockets (socket, false);
+    return socket;
 }
 
-void *test_context_socket_close_zero_linger (socket_: *mut c_void)
+void *test_context_socket_close_zero_linger (socket: *mut c_void)
 {
     let linger: i32 = 0;
-    int rc = zmq_setsockopt (socket_, ZMQ_LINGER, &linger, mem::size_of::<linger>());
+    int rc = zmq_setsockopt (socket, ZMQ_LINGER, &linger, mem::size_of::<linger>());
     TEST_ASSERT_TRUE (rc == 0 || zmq_errno () == ETERM);
-    return test_context_socket_close (socket_);
+    return test_context_socket_close (socket);
 }
 
-void test_bind (socket_: *mut c_void,
+void test_bind (socket: *mut c_void,
                 bind_address_: *const c_char,
                 char *my_endpoint_,
                 len_: usize)
 {
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (socket_, bind_address_));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (socket, bind_address_));
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_getsockopt (socket_, ZMQ_LAST_ENDPOINT, my_endpoint_, &len_));
+      zmq_getsockopt (socket, ZMQ_LAST_ENDPOINT, my_endpoint_, &len_));
 }
 
-void bind_loopback (socket_: *mut c_void, ipv6_: i32, char *my_endpoint_, len_: usize)
+void bind_loopback (socket: *mut c_void, ipv6_: i32, char *my_endpoint_, len_: usize)
 {
     if (ipv6_ && !is_ipv6_available ()) {
         TEST_IGNORE_MESSAGE ("ipv6 is not available");
     }
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (socket_, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
+      zmq_setsockopt (socket, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
 
-    test_bind (socket_, ipv6_ ? "tcp://[::1]:*" : "tcp://127.0.0.1:*",
+    test_bind (socket, ipv6_ ? "tcp://[::1]:*" : "tcp://127.0.0.1:*",
                my_endpoint_, len_);
 }
 
-void bind_loopback_ipv4 (socket_: *mut c_void, char *my_endpoint_, len_: usize)
+void bind_loopback_ipv4 (socket: *mut c_void, char *my_endpoint_, len_: usize)
 {
-    bind_loopback (socket_, false, my_endpoint_, len_);
+    bind_loopback (socket, false, my_endpoint_, len_);
 }
 
-void bind_loopback_ipv6 (socket_: *mut c_void, char *my_endpoint_, len_: usize)
+void bind_loopback_ipv6 (socket: *mut c_void, char *my_endpoint_, len_: usize)
 {
-    bind_loopback (socket_, true, my_endpoint_, len_);
+    bind_loopback (socket, true, my_endpoint_, len_);
 }
 
-void bind_loopback_ipc (socket_: *mut c_void, char *my_endpoint_, len_: usize)
+void bind_loopback_ipc (socket: *mut c_void, char *my_endpoint_, len_: usize)
 {
     if (!zmq_has ("ipc")) {
         TEST_IGNORE_MESSAGE ("ipc is not available");
     }
 
-    test_bind (socket_, "ipc://*", my_endpoint_, len_);
+    test_bind (socket, "ipc://*", my_endpoint_, len_);
 }
 
-void bind_loopback_tipc (socket_: *mut c_void, char *my_endpoint_, len_: usize)
+void bind_loopback_tipc (socket: *mut c_void, char *my_endpoint_, len_: usize)
 {
     if (!is_tipc_available ()) {
         TEST_IGNORE_MESSAGE ("tipc is not available");
     }
 
-    test_bind (socket_, "tipc://<*>", my_endpoint_, len_);
+    test_bind (socket, "tipc://<*>", my_endpoint_, len_);
 }
 
 // #if defined(ZMQ_HAVE_IPC)

@@ -67,7 +67,7 @@ pub struct vmci_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     };
 
     //  Handlers for incoming commands.
-    void process_term (linger_: i32);
+    void process_term (linger: i32);
 
     //  Handlers for I/O events.
     void in_event ();
@@ -117,14 +117,14 @@ vmci_connecter_t::~vmci_connecter_t ()
     zmq_assert (!_connect_timer_started);
 }
 
-void vmci_connecter_t::process_term (linger_: i32)
+void vmci_connecter_t::process_term (linger: i32)
 {
     if (_connect_timer_started) {
         cancel_timer (connect_timer_id);
         _connect_timer_started = false;
     }
 
-    stream_connecter_base_t::process_term (linger_);
+    stream_connecter_base_t::process_term (linger);
 }
 
 void vmci_connecter_t::in_event ()

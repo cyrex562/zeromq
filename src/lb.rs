@@ -42,9 +42,9 @@ pub struct lb_t
     lb_t ();
     ~lb_t ();
 
-    void attach (pipe_: &mut pipe_t);
-    void activated (pipe_: &mut pipe_t);
-    void pipe_terminated (pipe_: &mut pipe_t);
+    void attach (pipe: &mut pipe_t);
+    void activated (pipe: &mut pipe_t);
+    void pipe_terminated (pipe: &mut pipe_t);
 
     int send (msg: &mut ZmqMessage);
 
@@ -52,7 +52,7 @@ pub struct lb_t
     //  It is possible for this function to return success but keep pipe_
     //  unset if the rest of a multipart message to a terminated pipe is
     //  being dropped. For the first frame, this will never happen.
-    int sendpipe (msg: &mut ZmqMessage pipe_t **pipe_);
+    int sendpipe (msg: &mut ZmqMessage pipe_t **pipe);
 
     bool has_out ();
 
@@ -86,15 +86,15 @@ lb_t::~lb_t ()
     zmq_assert (_pipes.empty ());
 }
 
-void lb_t::attach (pipe_: &mut pipe_t)
+void lb_t::attach (pipe: &mut pipe_t)
 {
-    _pipes.push_back (pipe_);
-    activated (pipe_);
+    _pipes.push_back (pipe);
+    activated (pipe);
 }
 
-void lb_t::pipe_terminated (pipe_: &mut pipe_t)
+void lb_t::pipe_terminated (pipe: &mut pipe_t)
 {
-    const pipes_t::size_type index = _pipes.index (pipe_);
+    const pipes_t::size_type index = _pipes.index (pipe);
 
     //  If we are in the middle of multipart message and current pipe
     //  have disconnected, we have to drop the remainder of the message.
@@ -109,13 +109,13 @@ void lb_t::pipe_terminated (pipe_: &mut pipe_t)
         if (_current == _active)
             _current = 0;
     }
-    _pipes.erase (pipe_);
+    _pipes.erase (pipe);
 }
 
-void lb_t::activated (pipe_: &mut pipe_t)
+void lb_t::activated (pipe: &mut pipe_t)
 {
     //  Move the pipe to the list of active pipes.
-    _pipes.swap (_pipes.index (pipe_), _active);
+    _pipes.swap (_pipes.index (pipe), _active);
     _active++;
 }
 
@@ -124,7 +124,7 @@ int lb_t::send (msg: &mut ZmqMessage)
     return sendpipe (msg, null_mut());
 }
 
-int lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe_)
+int lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe)
 {
     //  Drop the message if required. If we are at the end of the message
     //  switch back to non-dropping mode.
@@ -141,8 +141,8 @@ int lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe_)
 
     while (_active > 0) {
         if (_pipes[_current]->write (msg)) {
-            if (pipe_)
-                *pipe_ = _pipes[_current];
+            if (pipe)
+                *pipe = _pipes[_current];
             break;
         }
 

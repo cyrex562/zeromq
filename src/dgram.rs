@@ -42,16 +42,16 @@ pub struct dgram_t ZMQ_FINAL : public ZmqSocketBase
     ~dgram_t ();
 
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool);
     int xsend (msg: &mut ZmqMessage);
     int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
     bool xhas_out ();
-    void xread_activated (pipe_: &mut pipe_t);
-    void xwrite_activated (pipe_: &mut pipe_t);
-    void xpipe_terminated (pipe_: &mut pipe_t);
+    void xread_activated (pipe: &mut pipe_t);
+    void xwrite_activated (pipe: &mut pipe_t);
+    void xpipe_terminated (pipe: &mut pipe_t);
 
   // private:
     pipe_t *_pipe;
@@ -73,26 +73,26 @@ dgram_t::~dgram_t ()
     zmq_assert (!_pipe);
 }
 
-void dgram_t::xattach_pipe (pipe_t *pipe_,
+void dgram_t::xattach_pipe (pipe_t *pipe,
                                  subscribe_to_all_: bool,
                                  locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
 
-    zmq_assert (pipe_);
+    zmq_assert (pipe);
 
     //  ZMQ_DGRAM socket can only be connected to a single peer.
     //  The socket rejects any further connection requests.
     if (_pipe == null_mut())
-        _pipe = pipe_;
+        _pipe = pipe;
     else
-        pipe_.terminate (false);
+        pipe.terminate (false);
 }
 
-void dgram_t::xpipe_terminated (pipe_: &mut pipe_t)
+void dgram_t::xpipe_terminated (pipe: &mut pipe_t)
 {
-    if (pipe_ == _pipe) {
+    if (pipe == _pipe) {
         _pipe = null_mut();
     }
 }

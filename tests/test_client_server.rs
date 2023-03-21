@@ -43,9 +43,9 @@ void create_inproc_client_server_pair (server_: *mut *mut c_void void **client_)
       zmq_connect (*client_, "inproc://test-client-server"));
 }
 
-void send_sndmore_expect_failure (socket_: *mut c_void)
+void send_sndmore_expect_failure (socket: *mut c_void)
 {
-    int rc = zmq_send (socket_, "X", 1, ZMQ_SNDMORE);
+    int rc = zmq_send (socket, "X", 1, ZMQ_SNDMORE);
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (EINVAL, errno);
 }

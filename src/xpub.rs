@@ -43,19 +43,19 @@ pub struct xpub_t : public ZmqSocketBase
     ~xpub_t () ZMQ_OVERRIDE;
 
     //  Implementations of virtual functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false) ZMQ_OVERRIDE;
     int xsend (msg: &mut ZmqMessage) ZMQ_FINAL;
     bool xhas_out () ZMQ_FINAL;
     int xrecv (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
     bool xhas_in () ZMQ_OVERRIDE;
-    void xread_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
-    void xwrite_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
+    void xread_activated (pipe: &mut pipe_t) ZMQ_FINAL;
+    void xwrite_activated (pipe: &mut pipe_t) ZMQ_FINAL;
     int
     xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize) ZMQ_FINAL;
     int xgetsockopt (option_: i32, optval_: &mut [u8], optvallen_: *mut usize) ZMQ_FINAL;
-    void xpipe_terminated (pipe_: &mut pipe_t) ZMQ_FINAL;
+    void xpipe_terminated (pipe: &mut pipe_t) ZMQ_FINAL;
 
   // private:
     //  Function to be applied to the trie to send all the subscriptions
@@ -65,7 +65,7 @@ pub struct xpub_t : public ZmqSocketBase
                                      xpub_t *self_);
 
     //  Function to be applied to each matching pipes.
-    static void mark_as_matching (pipe_t *pipe_, xpub_t *self_);
+    static void mark_as_matching (pipe_t *pipe, xpub_t *self_);
 
     //  List of all subscriptions mapped to corresponding pipes.
     mtrie_t _subscriptions;
@@ -109,7 +109,7 @@ pub struct xpub_t : public ZmqSocketBase
     _send_last_pipe: bool
 
     //  Function to be applied to match the last pipe.
-    static void mark_last_pipe_as_matching (pipe_t *pipe_, xpub_t *self_);
+    static void mark_last_pipe_as_matching (pipe_t *pipe, xpub_t *self_);
 
     //  Last pipe that sent subscription message, only used if xpub is on manual
     pipe_t *_last_pipe;
@@ -158,19 +158,19 @@ xpub_t::~xpub_t ()
             LIBZMQ_DELETE (*it);
 }
 
-void xpub_t::xattach_pipe (pipe_t *pipe_,
+void xpub_t::xattach_pipe (pipe_t *pipe,
                                 subscribe_to_all_: bool,
                                 locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (locally_initiated_);
 
-    zmq_assert (pipe_);
-    _dist.attach (pipe_);
+    zmq_assert (pipe);
+    _dist.attach (pipe);
 
     //  If subscribe_to_all_ is specified, the caller would like to subscribe
     //  to all data on this pipe, implicitly.
     if (subscribe_to_all_)
-        _subscriptions.add (null_mut(), 0, pipe_);
+        _subscriptions.add (null_mut(), 0, pipe);
 
     // if welcome message exists, send a copy of it
     if (_welcome_msg.size () > 0) {
@@ -178,21 +178,21 @@ void xpub_t::xattach_pipe (pipe_t *pipe_,
         copy.init ();
         let rc: i32 = copy.copy (_welcome_msg);
         errno_assert (rc == 0);
-        const bool ok = pipe_.write (&copy);
+        const bool ok = pipe.write (&copy);
         zmq_assert (ok);
-        pipe_.flush ();
+        pipe.flush ();
     }
 
     //  The pipe is active when attached. Let's read the subscriptions from
     //  it, if any.
-    xread_activated (pipe_);
+    xread_activated (pipe);
 }
 
-void xpub_t::xread_activated (pipe_: &mut pipe_t)
+void xpub_t::xread_activated (pipe: &mut pipe_t)
 {
     //  There are some subscriptions waiting. Let's process them.
     ZmqMessage msg;
-    while (pipe_.read (&msg)) {
+    while (pipe.read (&msg)) {
         ZmqMetadata *metadata = msg.metadata ();
         unsigned char *msg_data = static_cast<unsigned char *> (msg.data ()),
                       *data = null_mut();
@@ -227,21 +227,21 @@ void xpub_t::xread_activated (pipe_: &mut pipe_t)
             if (_manual) {
                 // Store manual subscription to use on termination
                 if (!subscribe)
-                    _manual_subscriptions.rm (data, size, pipe_);
+                    _manual_subscriptions.rm (data, size, pipe);
                 else
-                    _manual_subscriptions.add (data, size, pipe_);
+                    _manual_subscriptions.add (data, size, pipe);
 
-                _pending_pipes.push_back (pipe_);
+                _pending_pipes.push_back (pipe);
             } else {
                 if (!subscribe) {
                     const mtrie_t::rm_result rm_result =
-                      _subscriptions.rm (data, size, pipe_);
+                      _subscriptions.rm (data, size, pipe);
                     //  TODO reconsider what to do if rm_result == mtrie_t::not_found
                     notify =
                       rm_result != mtrie_t::values_remain || _verbose_unsubs;
                 } else {
                     const bool first_added =
-                      _subscriptions.add (data, size, pipe_);
+                      _subscriptions.add (data, size, pipe);
                     notify = first_added || _verbose_subs;
                 }
             }
@@ -288,9 +288,9 @@ void xpub_t::xread_activated (pipe_: &mut pipe_t)
     }
 }
 
-void xpub_t::xwrite_activated (pipe_: &mut pipe_t)
+void xpub_t::xwrite_activated (pipe: &mut pipe_t)
 {
-    _dist.activated (pipe_);
+    _dist.activated (pipe);
 }
 
 int xpub_t::xsetsockopt (option_: i32,
@@ -369,41 +369,41 @@ static void stub (mtrie_t::prefix_t data, size: usize, arg_: &mut [u8])
     LIBZMQ_UNUSED (arg_);
 }
 
-void xpub_t::xpipe_terminated (pipe_: &mut pipe_t)
+void xpub_t::xpipe_terminated (pipe: &mut pipe_t)
 {
     if (_manual) {
         //  Remove the pipe from the trie and send corresponding manual
         //  unsubscriptions upstream.
-        _manual_subscriptions.rm (pipe_, send_unsubscription, this, false);
+        _manual_subscriptions.rm (pipe, send_unsubscription, this, false);
         //  Remove pipe without actually sending the message as it was taken
         //  care of by the manual call above. subscriptions is the real mtrie,
         //  so the pipe must be removed from there or it will be left over.
-        _subscriptions.rm (pipe_, stub, static_cast<void *> (null_mut()), false);
+        _subscriptions.rm (pipe, stub, static_cast<void *> (null_mut()), false);
 
         // In case the pipe is currently set as last we must clear it to prevent
         // subscriptions from being re-added.
-        if (pipe_ == _last_pipe) {
+        if (pipe == _last_pipe) {
             _last_pipe = null_mut();
         }
     } else {
         //  Remove the pipe from the trie. If there are topics that nobody
         //  is interested in anymore, send corresponding unsubscriptions
         //  upstream.
-        _subscriptions.rm (pipe_, send_unsubscription, this, !_verbose_unsubs);
+        _subscriptions.rm (pipe, send_unsubscription, this, !_verbose_unsubs);
     }
 
-    _dist.pipe_terminated (pipe_);
+    _dist.pipe_terminated (pipe);
 }
 
-void xpub_t::mark_as_matching (pipe_t *pipe_, xpub_t *self_)
+void xpub_t::mark_as_matching (pipe_t *pipe, xpub_t *self_)
 {
-    self_._dist.match (pipe_);
+    self_._dist.match (pipe);
 }
 
-void xpub_t::mark_last_pipe_as_matching (pipe_t *pipe_, xpub_t *self_)
+void xpub_t::mark_last_pipe_as_matching (pipe_t *pipe, xpub_t *self_)
 {
-    if (self_._last_pipe == pipe_)
-        self_._dist.match (pipe_);
+    if (self_._last_pipe == pipe)
+        self_._dist.match (pipe);
 }
 
 int xpub_t::xsend (msg: &mut ZmqMessage)

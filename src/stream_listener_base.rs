@@ -43,7 +43,7 @@ pub struct stream_listener_base_t : public own_t, public io_object_t
 {
 // public:
     stream_listener_base_t (io_thread_t *io_thread_,
-                            socket_: *mut ZmqSocketBase,
+                            socket: *mut ZmqSocketBase,
                             const ZmqOptions &options_);
     ~stream_listener_base_t () ZMQ_OVERRIDE;
 
@@ -57,7 +57,7 @@ pub struct stream_listener_base_t : public own_t, public io_object_t
   // private:
     //  Handlers for incoming commands.
     void process_plug () ZMQ_FINAL;
-    void process_term (linger_: i32) ZMQ_FINAL;
+    void process_term (linger: i32) ZMQ_FINAL;
 
   protected:
     //  Close the listening socket.
@@ -82,13 +82,13 @@ pub struct stream_listener_base_t : public own_t, public io_object_t
 
 stream_listener_base_t::stream_listener_base_t (
   io_thread_t *io_thread_,
-  socket_: *mut ZmqSocketBase,
+  socket: *mut ZmqSocketBase,
   const ZmqOptions &options_) :
     own_t (io_thread_, options_),
     io_object_t (io_thread_),
     _s (retired_fd),
     _handle (static_cast<handle_t> (null_mut())),
-    _socket (socket_)
+    _socket (socket)
 {
 }
 
@@ -111,12 +111,12 @@ void stream_listener_base_t::process_plug ()
     set_pollin (_handle);
 }
 
-void stream_listener_base_t::process_term (linger_: i32)
+void stream_listener_base_t::process_term (linger: i32)
 {
     rm_fd (_handle);
     _handle = static_cast<handle_t> (null_mut());
     close ();
-    own_t::process_term (linger_);
+    own_t::process_term (linger);
 }
 
 int stream_listener_base_t::close ()

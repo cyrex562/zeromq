@@ -38,7 +38,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-typedef void (*extra_func_t) (socket_: *mut c_void);
+typedef void (*extra_func_t) (socket: *mut c_void);
 
 // #ifdef ZMQ_BUILD_DRAFT
 void set_sockopt_fastpath (socket: *mut c_void)

@@ -57,31 +57,31 @@ stream_t::~stream_t ()
     _prefetched_msg.close ();
 }
 
-void stream_t::xattach_pipe (pipe_t *pipe_,
+void stream_t::xattach_pipe (pipe_t *pipe,
                                   subscribe_to_all_: bool,
                                   locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
 
-    zmq_assert (pipe_);
+    zmq_assert (pipe);
 
-    identify_peer (pipe_, locally_initiated_);
-    _fq.attach (pipe_);
+    identify_peer (pipe, locally_initiated_);
+    _fq.attach (pipe);
 }
 
-void stream_t::xpipe_terminated (pipe_: &mut pipe_t)
+void stream_t::xpipe_terminated (pipe: &mut pipe_t)
 {
-    erase_out_pipe (pipe_);
-    _fq.pipe_terminated (pipe_);
+    erase_out_pipe (pipe);
+    _fq.pipe_terminated (pipe);
     // TODO router_t calls pipe_->rollback() here; should this be done here as
     // well? then xpipe_terminated could be pulled up to routing_socket_base_t
-    if (pipe_ == _current_out)
+    if (pipe == _current_out)
         _current_out = null_mut();
 }
 
-void stream_t::xread_activated (pipe_: &mut pipe_t)
+void stream_t::xread_activated (pipe: &mut pipe_t)
 {
-    _fq.activated (pipe_);
+    _fq.activated (pipe);
 }
 
 int stream_t::xsend (msg: &mut ZmqMessage)
@@ -162,18 +162,25 @@ int stream_t::xsend (msg: &mut ZmqMessage)
     return 0;
 }
 
-int stream_t::xsetsockopt (option_: i32,
-                                const optval_: &mut [u8],
-                                optvallen_: usize)
-{
-    switch (option_) {
-        case ZMQ_STREAM_NOTIFY:
-            return do_setsockopt_int_as_bool_strict (optval_, optvallen_,
-                                                     &options.raw_notify);
+use std::default::default;
+use bincode::options;
+use crate::options::set_opt_bool;
+use crate::socket_base::routing_socket_base_t;
+use crate::zmq_hdr::ZMQ_STREAM_NOTIFY;
 
-        default:
-            return routing_socket_base_t::xsetsockopt (option_, optval_,
-                                                       optvallen_);
+pub fn xsetsockopt (opt_kind: i32,
+                    optval_: &[u8]) -> anyhow::Result<()>
+{
+    match (opt_kind) {
+        case ZMQ_STREAM_NOTIFY =>{
+        // return do_setsockopt_int_as_bool_strict (optval_, optvallen_,
+        //                                          &options.raw_notify);
+        return set_opt_bool(optval_, & mut options.raw_notify);}
+
+        // default:
+        _ => {
+            return routing_socket_base_t::xsetsockopt(self, opt_kind, optval_);
+        }
     }
 }
 
@@ -266,7 +273,7 @@ bool stream_t::xhas_out ()
     return true;
 }
 
-void stream_t::identify_peer (pipe_t *pipe_, locally_initiated_: bool)
+void stream_t::identify_peer (pipe_t *pipe, locally_initiated_: bool)
 {
     //  Always assign routing id for raw-socket
     unsigned char buffer[5];
@@ -286,8 +293,8 @@ void stream_t::identify_peer (pipe_t *pipe_, locally_initiated_: bool)
         options.routing_id_size =
           static_cast<unsigned char> (routing_id.size ());
     }
-    pipe_.set_router_socket_routing_id (routing_id);
-    add_out_pipe (ZMQ_MOVE (routing_id), pipe_);
+    pipe.set_router_socket_routing_id (routing_id);
+    add_out_pipe (ZMQ_MOVE (routing_id), pipe);
 }
 pub struct stream_t ZMQ_FINAL : public routing_socket_base_t
 {
@@ -296,20 +303,20 @@ pub struct stream_t ZMQ_FINAL : public routing_socket_base_t
     ~stream_t ();
 
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool);
     int xsend (msg: &mut ZmqMessage);
     int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
     bool xhas_out ();
-    void xread_activated (pipe_: &mut pipe_t);
-    void xpipe_terminated (pipe_: &mut pipe_t);
+    void xread_activated (pipe: &mut pipe_t);
+    void xpipe_terminated (pipe: &mut pipe_t);
     int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
 
   // private:
     //  Generate peer's id and update lookup map
-    void identify_peer (pipe_t *pipe_, locally_initiated_: bool);
+    void identify_peer (pipe_t *pipe, locally_initiated_: bool);
 
     //  Fair queueing object for inbound pipes.
     fq_t _fq;

@@ -44,7 +44,7 @@ void handle_sigterm (int /*signum*/)
     sigterm_received = true;
 }
 
-void recv_string_expect_success_or_eagain (socket_: *mut c_void,
+void recv_string_expect_success_or_eagain (socket: *mut c_void,
                                            str_: *const c_char,
                                            flags: i32)
 {
@@ -55,7 +55,7 @@ void recv_string_expect_success_or_eagain (socket_: *mut c_void,
                                        "used for strings longer than 255 "
                                        "characters");
 
-    let rc: i32 = zmq_recv (socket_, buffer, mem::size_of::<buffer>(), flags);
+    let rc: i32 = zmq_recv (socket, buffer, mem::size_of::<buffer>(), flags);
     if (rc < 0) {
         if (errno == EAGAIN) {
             printf ("got EAGAIN\n");

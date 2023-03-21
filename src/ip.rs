@@ -385,15 +385,15 @@ void shutdown_network ()
 }
 
 // #if defined ZMQ_HAVE_WINDOWS
-static void tune_socket (const SOCKET socket_)
+static void tune_socket (const SOCKET socket)
 {
     BOOL tcp_nodelay = 1;
     let rc: i32 =
-      setsockopt (socket_, IPPROTO_TCP, TCP_NODELAY,
+      setsockopt (socket, IPPROTO_TCP, TCP_NODELAY,
                   reinterpret_cast<char *> (&tcp_nodelay), sizeof tcp_nodelay);
     wsa_assert (rc != SOCKET_ERROR);
 
-    tcp_tune_loopback_fast_path (socket_);
+    tcp_tune_loopback_fast_path (socket);
 }
 
 static int make_fdpair_tcpip (fd_t *r_, fd_t *w_)

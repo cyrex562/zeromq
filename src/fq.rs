@@ -38,12 +38,12 @@ pub struct fq_t
     fq_t ();
     ~fq_t ();
 
-    void attach (pipe_: &mut pipe_t);
-    void activated (pipe_: &mut pipe_t);
-    void pipe_terminated (pipe_: &mut pipe_t);
+    void attach (pipe: &mut pipe_t);
+    void activated (pipe: &mut pipe_t);
+    void pipe_terminated (pipe: &mut pipe_t);
 
     int recv (msg: &mut ZmqMessage);
-    int recvpipe (msg: &mut ZmqMessage pipe_t **pipe_);
+    int recvpipe (msg: &mut ZmqMessage pipe_t **pipe);
     bool has_in ();
 
   // private:
@@ -74,16 +74,16 @@ fq_t::~fq_t ()
     zmq_assert (_pipes.empty ());
 }
 
-void fq_t::attach (pipe_: &mut pipe_t)
+void fq_t::attach (pipe: &mut pipe_t)
 {
-    _pipes.push_back (pipe_);
+    _pipes.push_back (pipe);
     _pipes.swap (_active, _pipes.size () - 1);
     _active++;
 }
 
-void fq_t::pipe_terminated (pipe_: &mut pipe_t)
+void fq_t::pipe_terminated (pipe: &mut pipe_t)
 {
-    const pipes_t::size_type index = _pipes.index (pipe_);
+    const pipes_t::size_type index = _pipes.index (pipe);
 
     //  Remove the pipe from the list; adjust number of active pipes
     //  accordingly.
@@ -93,13 +93,13 @@ void fq_t::pipe_terminated (pipe_: &mut pipe_t)
         if (_current == _active)
             _current = 0;
     }
-    _pipes.erase (pipe_);
+    _pipes.erase (pipe);
 }
 
-void fq_t::activated (pipe_: &mut pipe_t)
+void fq_t::activated (pipe: &mut pipe_t)
 {
     //  Move the pipe to the list of active pipes.
-    _pipes.swap (_pipes.index (pipe_), _active);
+    _pipes.swap (_pipes.index (pipe), _active);
     _active++;
 }
 
@@ -108,7 +108,7 @@ int fq_t::recv (msg: &mut ZmqMessage)
     return recvpipe (msg, null_mut());
 }
 
-int fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe_)
+int fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe)
 {
     //  Deallocate old content of the message.
     int rc = msg.close ();
@@ -124,8 +124,8 @@ int fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe_)
         //  and replaced by another active pipe. Thus we don't have to increase
         //  the 'current' pointer.
         if (fetched) {
-            if (pipe_)
-                *pipe_ = _pipes[_current];
+            if (pipe)
+                *pipe = _pipes[_current];
             _more = (msg.flags () & ZMQ_MSG_MORE) != 0;
             if (!_more) {
                 _current = (_current + 1) % _active;

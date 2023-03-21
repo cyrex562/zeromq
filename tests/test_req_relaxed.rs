@@ -74,7 +74,7 @@ void tearDown ()
     teardown_test_context ();
 }
 
-static void bounce (socket_: *mut c_void)
+static void bounce (socket: *mut c_void)
 {
     more: i32;
     size_t more_size = mem::size_of::<more>();
@@ -82,27 +82,27 @@ static void bounce (socket_: *mut c_void)
         ZmqMessage recv_part, sent_part;
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&recv_part));
 
-        TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&recv_part, socket_, 0));
+        TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&recv_part, socket, 0));
 
         TEST_ASSERT_SUCCESS_ERRNO (
-          zmq_getsockopt (socket_, ZMQ_RCVMORE, &more, &more_size));
+          zmq_getsockopt (socket, ZMQ_RCVMORE, &more, &more_size));
 
         zmq_msg_init (&sent_part);
         zmq_msg_copy (&sent_part, &recv_part);
 
         TEST_ASSERT_SUCCESS_ERRNO (
-          zmq_msg_send (&sent_part, socket_, more ? ZMQ_SNDMORE : 0));
+          zmq_msg_send (&sent_part, socket, more ? ZMQ_SNDMORE : 0));
 
         zmq_msg_close (&recv_part);
     } while (more);
 }
 
-static int get_events (socket_: *mut c_void)
+static int get_events (socket: *mut c_void)
 {
     events: i32;
     size_t events_size = mem::size_of::<events>();
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_getsockopt (socket_, ZMQ_EVENTS, &events, &events_size));
+      zmq_getsockopt (socket, ZMQ_EVENTS, &events, &events_size));
     return events;
 }
 

@@ -82,7 +82,7 @@ void stream_connecter_base_t::process_plug ()
         start_connecting ();
 }
 
-void stream_connecter_base_t::process_term (linger_: i32)
+void stream_connecter_base_t::process_term (linger: i32)
 {
     if (_reconnect_timer_started) {
         cancel_timer (reconnect_timer_id);
@@ -96,7 +96,7 @@ void stream_connecter_base_t::process_term (linger_: i32)
     if (_s != retired_fd)
         close ();
 
-    own_t::process_term (linger_);
+    own_t::process_term (linger);
 }
 
 void stream_connecter_base_t::add_reconnect_timer ()
@@ -213,7 +213,7 @@ pub struct stream_connecter_base_t : public own_t, public io_object_t
   protected:
     //  Handlers for incoming commands.
     void process_plug () ZMQ_FINAL;
-    void process_term (linger_: i32) ZMQ_OVERRIDE;
+    void process_term (linger: i32) ZMQ_OVERRIDE;
 
     //  Handlers for I/O events.
     void in_event () ZMQ_OVERRIDE;

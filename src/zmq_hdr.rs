@@ -347,10 +347,10 @@ pub const ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED: u32 = 0x30000000;
 // type zmq_fd_t = i32;
 // // #endif
 
-pub const ZMQ_POLLIN: u8 = 1;
-pub const ZMQ_POLLOUT: u8 = 2;
-pub const ZMQ_POLLERR: u8 = 4;
-pub const ZMQ_POLLPRI: u8 = 8;
+pub const ZMQ_POLLIN: i32 = 1;
+pub const ZMQ_POLLOUT: i32 = 2;
+pub const ZMQ_POLLERR: i32 = 4;
+pub const ZMQ_POLLPRI: i32 = 8;
 
 pub const ZMQ_POLLITEMS_DFLT: usize = 16;
 

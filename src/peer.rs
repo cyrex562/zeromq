@@ -41,7 +41,7 @@ pub struct peer_t ZMQ_FINAL : public server_t
     peer_t (ZmqContext *parent_, u32 tid_, sid_: i32);
 
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool);
 
@@ -79,10 +79,10 @@ u32 peer_t::connect_peer (endpoint_uri_: &str)
     return _peer_last_routing_id;
 }
 
-void peer_t::xattach_pipe (pipe_t *pipe_,
+void peer_t::xattach_pipe (pipe_t *pipe,
                                 subscribe_to_all_: bool,
                                 locally_initiated_: bool)
 {
-    server_t::xattach_pipe (pipe_, subscribe_to_all_, locally_initiated_);
-    _peer_last_routing_id = pipe_.get_server_socket_routing_id ();
+    server_t::xattach_pipe (pipe, subscribe_to_all_, locally_initiated_);
+    _peer_last_routing_id = pipe.get_server_socket_routing_id ();
 }

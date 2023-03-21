@@ -44,17 +44,17 @@ pub struct dist_t
     ~dist_t ();
 
     //  Adds the pipe to the distributor object.
-    void attach (pipe_: &mut pipe_t);
+    void attach (pipe: &mut pipe_t);
 
     //  Checks if this pipe is present in the distributor.
-    bool has_pipe (pipe_: &mut pipe_t);
+    bool has_pipe (pipe: &mut pipe_t);
 
     //  Activates pipe that have previously reached high watermark.
-    void activated (pipe_: &mut pipe_t);
+    void activated (pipe: &mut pipe_t);
 
     //  Mark the pipe as matching. Subsequent call to send_to_matching
     //  will send message also to this pipe.
-    void match (pipe_: &mut pipe_t);
+    void match (pipe: &mut pipe_t);
 
     //  Marks all pipes that are not matched as matched and vice-versa.
     void reverse_match ();
@@ -63,7 +63,7 @@ pub struct dist_t
     void unmatch ();
 
     //  Removes the pipe from the distributor object.
-    void pipe_terminated (pipe_: &mut pipe_t);
+    void pipe_terminated (pipe: &mut pipe_t);
 
     //  Send the message to the matching outbound pipes.
     int send_to_matching (msg: &mut ZmqMessage);
@@ -79,7 +79,7 @@ pub struct dist_t
   // private:
     //  Write the message to the pipe. Make the pipe inactive if writing
     //  fails. In such a case false is returned.
-    bool write (pipe_t *pipe_, msg: &mut ZmqMessage);
+    bool write (pipe_t *pipe, msg: &mut ZmqMessage);
 
     //  Put the message to all active pipes.
     void distribute (msg: &mut ZmqMessage);
@@ -119,47 +119,47 @@ dist_t::~dist_t ()
     zmq_assert (_pipes.empty ());
 }
 
-void dist_t::attach (pipe_: &mut pipe_t)
+void dist_t::attach (pipe: &mut pipe_t)
 {
     //  If we are in the middle of sending a message, we'll add new pipe
     //  into the list of eligible pipes. Otherwise we add it to the list
     //  of active pipes.
     if (_more) {
-        _pipes.push_back (pipe_);
+        _pipes.push_back (pipe);
         _pipes.swap (_eligible, _pipes.size () - 1);
         _eligible++;
     } else {
-        _pipes.push_back (pipe_);
+        _pipes.push_back (pipe);
         _pipes.swap (_active, _pipes.size () - 1);
         _active++;
         _eligible++;
     }
 }
 
-bool dist_t::has_pipe (pipe_: &mut pipe_t)
+bool dist_t::has_pipe (pipe: &mut pipe_t)
 {
-    std::size_t claimed_index = _pipes.index (pipe_);
+    std::size_t claimed_index = _pipes.index (pipe);
 
     // If pipe claims to be outside the available index space it can't be in the distributor.
     if (claimed_index >= _pipes.size ()) {
         return false;
     }
 
-    return _pipes[claimed_index] == pipe_;
+    return _pipes[claimed_index] == pipe;
 }
 
-void dist_t::match (pipe_: &mut pipe_t)
+void dist_t::match (pipe: &mut pipe_t)
 {
     //  If pipe is already matching do nothing.
-    if (_pipes.index (pipe_) < _matching)
+    if (_pipes.index (pipe) < _matching)
         return;
 
     //  If the pipe isn't eligible, ignore it.
-    if (_pipes.index (pipe_) >= _eligible)
+    if (_pipes.index (pipe) >= _eligible)
         return;
 
     //  Mark the pipe as matching.
-    _pipes.swap (_pipes.index (pipe_), _matching);
+    _pipes.swap (_pipes.index (pipe), _matching);
     _matching++;
 }
 
@@ -184,31 +184,31 @@ void dist_t::unmatch ()
     _matching = 0;
 }
 
-void dist_t::pipe_terminated (pipe_: &mut pipe_t)
+void dist_t::pipe_terminated (pipe: &mut pipe_t)
 {
     //  Remove the pipe from the list; adjust number of matching, active and/or
     //  eligible pipes accordingly.
-    if (_pipes.index (pipe_) < _matching) {
-        _pipes.swap (_pipes.index (pipe_), _matching - 1);
+    if (_pipes.index (pipe) < _matching) {
+        _pipes.swap (_pipes.index (pipe), _matching - 1);
         _matching--;
     }
-    if (_pipes.index (pipe_) < _active) {
-        _pipes.swap (_pipes.index (pipe_), _active - 1);
+    if (_pipes.index (pipe) < _active) {
+        _pipes.swap (_pipes.index (pipe), _active - 1);
         _active--;
     }
-    if (_pipes.index (pipe_) < _eligible) {
-        _pipes.swap (_pipes.index (pipe_), _eligible - 1);
+    if (_pipes.index (pipe) < _eligible) {
+        _pipes.swap (_pipes.index (pipe), _eligible - 1);
         _eligible--;
     }
 
-    _pipes.erase (pipe_);
+    _pipes.erase (pipe);
 }
 
-void dist_t::activated (pipe_: &mut pipe_t)
+void dist_t::activated (pipe: &mut pipe_t)
 {
     //  Move the pipe from passive to eligible state.
     if (_eligible < _pipes.size ()) {
-        _pipes.swap (_pipes.index (pipe_), _eligible);
+        _pipes.swap (_pipes.index (pipe), _eligible);
         _eligible++;
     }
 
@@ -295,19 +295,19 @@ bool dist_t::has_out ()
     return true;
 }
 
-bool dist_t::write (pipe_t *pipe_, msg: &mut ZmqMessage)
+bool dist_t::write (pipe_t *pipe, msg: &mut ZmqMessage)
 {
-    if (!pipe_.write (msg)) {
-        _pipes.swap (_pipes.index (pipe_), _matching - 1);
+    if (!pipe.write (msg)) {
+        _pipes.swap (_pipes.index (pipe), _matching - 1);
         _matching--;
-        _pipes.swap (_pipes.index (pipe_), _active - 1);
+        _pipes.swap (_pipes.index (pipe), _active - 1);
         _active--;
         _pipes.swap (_active, _eligible - 1);
         _eligible--;
         return false;
     }
     if (!(msg.flags () & ZMQ_MSG_MORE))
-        pipe_.flush ();
+        pipe.flush ();
     return true;
 }
 

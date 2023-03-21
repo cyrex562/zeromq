@@ -44,25 +44,25 @@ pull_t::~pull_t ()
 {
 }
 
-void pull_t::xattach_pipe (pipe_t *pipe_,
+void pull_t::xattach_pipe (pipe_t *pipe,
                                 subscribe_to_all_: bool,
                                 locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
 
-    zmq_assert (pipe_);
-    _fq.attach (pipe_);
+    zmq_assert (pipe);
+    _fq.attach (pipe);
 }
 
-void pull_t::xread_activated (pipe_: &mut pipe_t)
+void pull_t::xread_activated (pipe: &mut pipe_t)
 {
-    _fq.activated (pipe_);
+    _fq.activated (pipe);
 }
 
-void pull_t::xpipe_terminated (pipe_: &mut pipe_t)
+void pull_t::xpipe_terminated (pipe: &mut pipe_t)
 {
-    _fq.pipe_terminated (pipe_);
+    _fq.pipe_terminated (pipe);
 }
 
 int pull_t::xrecv (msg: &mut ZmqMessage)
@@ -82,13 +82,13 @@ pub struct pull_t ZMQ_FINAL : public ZmqSocketBase
 
   protected:
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool);
     int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
-    void xread_activated (pipe_: &mut pipe_t);
-    void xpipe_terminated (pipe_: &mut pipe_t);
+    void xread_activated (pipe: &mut pipe_t);
+    void xpipe_terminated (pipe: &mut pipe_t);
 
   // private:
     //  Fair queueing object for inbound pipes.

@@ -47,7 +47,7 @@
 //  terminates straight away.
 //  If conflate is true, only the most recently arrived message could be
 //  read (older messages are discarded)
-int pipepair (object_t *parents_[2],
+int pipepair (ZmqObject *parents_[2],
               pipe_t *pipes_[2],
 use serde::{Deserialize, Serialize};
 
@@ -58,23 +58,23 @@ struct i_pipe_events
 {
     virtual ~i_pipe_events () ZMQ_DEFAULT;
 
-    virtual void read_activated (pipe_: &mut pipe_t) = 0;
-    virtual void write_activated (pipe_: &mut pipe_t) = 0;
-    virtual void hiccuped (pipe_: &mut pipe_t) = 0;
-    virtual void pipe_terminated (pipe_: &mut pipe_t) = 0;
+    virtual void read_activated (pipe: &mut pipe_t) = 0;
+    virtual void write_activated (pipe: &mut pipe_t) = 0;
+    virtual void hiccuped (pipe: &mut pipe_t) = 0;
+    virtual void pipe_terminated (pipe: &mut pipe_t) = 0;
 };
 
 //  Note that pipe can be stored in three different arrays.
 //  The array of inbound pipes (1), the array of outbound pipes (2) and
 //  the generic array of pipes to be deallocated (3).
 #[derive(Default,Debug,Clone,Serialize,Deserialize)]
-pub struct pipe_t ZMQ_FINAL : public object_t,
+pub struct pipe_t ZMQ_FINAL : public ZmqObject,
                          public array_item_t<1>,
                          public array_item_t<2>,
                          public array_item_t<3>
 {
     //  This allows pipepair to create pipe objects.
-    friend int pipepair (object_t *parents_[2],
+    friend int pipepair (ZmqObject *parents_[2],
                          pipe_t *pipes_[2],
                          const int hwms_[2],
                          const bool conflate_[2]);
@@ -128,21 +128,21 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
     void terminate (delay_: bool);
 
     //  Set the high water marks.
-    void set_hwms (inhwm_: i32, outhwm_: i32);
+    void set_hwms (inhwm: i32, outhwm: i32);
 
     //  Set the boost to high water marks, used by inproc sockets so total hwm are sum of connect and bind sockets watermarks
     void set_hwms_boost (inhwmboost_: i32, outhwmboost_: i32);
 
     // send command to peer for notify the change of hwm
-    void send_hwms_to_peer (inhwm_: i32, outhwm_: i32);
+    void send_hwms_to_peer (inhwm: i32, outhwm: i32);
 
     //  Returns true if HWM is not reached
     bool check_hwm () const;
 
-    void set_endpoint_pair (EndpointUriPair endpoint_pair_);
+    void set_endpoint_pair (EndpointUriPair endpoint_pair);
     const EndpointUriPair &get_endpoint_pair () const;
 
-    void send_stats_to_peer (own_t *socket_base_);
+    void send_stats_to_peer (own_t *socket_base);
 
     void send_disconnect_msg ();
     void set_disconnect_msg (const std::vector<unsigned char> &disconnect_);
@@ -155,26 +155,26 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
 
     //  Command handlers.
     void process_activate_read () ZMQ_OVERRIDE;
-    void process_activate_write (u64 msgs_read_) ZMQ_OVERRIDE;
-    void process_hiccup (pipe_: *mut c_void) ZMQ_OVERRIDE;
+    void process_activate_write (u64 msgs_read) ZMQ_OVERRIDE;
+    void process_hiccup (pipe: *mut c_void) ZMQ_OVERRIDE;
     void
-    process_pipe_peer_stats (queue_count_: u64,
-                             own_t *socket_base_,
-                             EndpointUriPair *endpoint_pair_) ZMQ_OVERRIDE;
+    process_pipe_peer_stats (queue_count: u64,
+                             own_t *socket_base,
+                             EndpointUriPair *endpoint_pair) ZMQ_OVERRIDE;
     void process_pipe_term () ZMQ_OVERRIDE;
     void process_pipe_term_ack () ZMQ_OVERRIDE;
-    void process_pipe_hwm (inhwm_: i32, outhwm_: i32) ZMQ_OVERRIDE;
+    void process_pipe_hwm (inhwm: i32, outhwm: i32) ZMQ_OVERRIDE;
 
     //  Handler for delimiter read from the pipe.
     void process_delimiter ();
 
     //  Constructor is private. Pipe can only be created using
     //  pipepair function.
-    pipe_t (object_t *parent_,
+    pipe_t (ZmqObject *parent_,
             upipe_t *inpipe_,
             upipe_t *outpipe_,
-            inhwm_: i32,
-            outhwm_: i32,
+            inhwm: i32,
+            outhwm: i32,
             conflate_: bool);
 
     //  Pipepair uses this function to let us know about
@@ -265,11 +265,11 @@ pub struct pipe_t ZMQ_FINAL : public object_t,
     ZMQ_NON_COPYABLE_NOR_MOVABLE (pipe_t)
 };
 
-void send_routing_id (pipe_t *pipe_, const ZmqOptions &options_);
+void send_routing_id (pipe_t *pipe, const ZmqOptions &options_);
 
-void send_hello_msg (pipe_t *pipe_, const ZmqOptions &options_);
+void send_hello_msg (pipe_t *pipe, const ZmqOptions &options_);
 
-int pipepair (object_t *parents_[2],
+int pipepair (ZmqObject *parents_[2],
                    pipe_t *pipes_[2],
                    const int hwms_[2],
                    const bool conflate_[2])
@@ -307,42 +307,42 @@ int pipepair (object_t *parents_[2],
     return 0;
 }
 
-void send_routing_id (pipe_t *pipe_, const ZmqOptions &options_)
+void send_routing_id (pipe_t *pipe, const ZmqOptions &options_)
 {
     ZmqMessage id;
     let rc: i32 = id.init_size (options_.routing_id_size);
     errno_assert (rc == 0);
     memcpy (id.data (), options_.routing_id, options_.routing_id_size);
     id.set_flags (ZMQ_MSG_ROUTING_ID);
-    const bool written = pipe_.write (&id);
+    const bool written = pipe.write (&id);
     zmq_assert (written);
-    pipe_.flush ();
+    pipe.flush ();
 }
 
-void send_hello_msg (pipe_t *pipe_, const ZmqOptions &options_)
+void send_hello_msg (pipe_t *pipe, const ZmqOptions &options_)
 {
     ZmqMessage hello;
     let rc: i32 =
       hello.init_buffer (&options_.hello_msg[0], options_.hello_msg.size ());
     errno_assert (rc == 0);
-    const bool written = pipe_.write (&hello);
+    const bool written = pipe.write (&hello);
     zmq_assert (written);
-    pipe_.flush ();
+    pipe.flush ();
 }
 
-pipe_t::pipe_t (object_t *parent_,
+pipe_t::pipe_t (ZmqObject *parent_,
                      upipe_t *inpipe_,
                      upipe_t *outpipe_,
-                     inhwm_: i32,
-                     outhwm_: i32,
+                     inhwm: i32,
+                     outhwm: i32,
                      conflate_: bool) :
-    object_t (parent_),
+    ZmqObject (parent_),
     _in_pipe (inpipe_),
     _out_pipe (outpipe_),
     _in_active (true),
     _out_active (true),
-    _hwm (outhwm_),
-    _lwm (compute_lwm (inhwm_)),
+    _hwm (outhwm),
+    _lwm (compute_lwm (inhwm)),
     _in_hwm_boost (-1),
     _out_hwm_boost (-1),
     _msgs_read (0),
@@ -522,10 +522,10 @@ void pipe_t::process_activate_read ()
     }
 }
 
-void pipe_t::process_activate_write (u64 msgs_read_)
+void pipe_t::process_activate_write (u64 msgs_read)
 {
     //  Remember the peer's message sequence number.
-    _peers_msgs_read = msgs_read_;
+    _peers_msgs_read = msgs_read;
 
     if (!_out_active && _state == active) {
         _out_active = true;
@@ -533,7 +533,7 @@ void pipe_t::process_activate_write (u64 msgs_read_)
     }
 }
 
-void pipe_t::process_hiccup (pipe_: *mut c_void)
+void pipe_t::process_hiccup (pipe: *mut c_void)
 {
     //  Destroy old outpipe. Note that the read end of the pipe was already
     //  migrated to this thread.
@@ -549,8 +549,8 @@ void pipe_t::process_hiccup (pipe_: *mut c_void)
     LIBZMQ_DELETE (_out_pipe);
 
     //  Plug in the new outpipe.
-    zmq_assert (pipe_);
-    _out_pipe = static_cast<upipe_t *> (pipe_);
+    zmq_assert (pipe);
+    _out_pipe = static_cast<upipe_t *> (pipe);
     _out_active = true;
 
     //  If appropriate, notify the user about the hiccup.
@@ -632,9 +632,9 @@ void pipe_t::process_pipe_term_ack ()
     delete this;
 }
 
-void pipe_t::process_pipe_hwm (inhwm_: i32, outhwm_: i32)
+void pipe_t::process_pipe_hwm (inhwm: i32, outhwm: i32)
 {
-    set_hwms (inhwm_, outhwm_);
+    set_hwms (inhwm, outhwm);
 }
 
 void pipe_t::set_nodelay ()
@@ -766,16 +766,16 @@ void pipe_t::hiccup ()
     send_hiccup (_peer, _in_pipe);
 }
 
-void pipe_t::set_hwms (inhwm_: i32, outhwm_: i32)
+void pipe_t::set_hwms (inhwm: i32, outhwm: i32)
 {
-    int in = inhwm_ + std::max (_in_hwm_boost, 0);
-    int out = outhwm_ + std::max (_out_hwm_boost, 0);
+    int in = inhwm + std::max (_in_hwm_boost, 0);
+    int out = outhwm + std::max (_out_hwm_boost, 0);
 
     // if either send or recv side has hwm <= 0 it means infinite so we should set hwms infinite
-    if (inhwm_ <= 0 || _in_hwm_boost == 0)
+    if (inhwm <= 0 || _in_hwm_boost == 0)
         in = 0;
 
-    if (outhwm_ <= 0 || _out_hwm_boost == 0)
+    if (outhwm <= 0 || _out_hwm_boost == 0)
         out = 0;
 
     _lwm = compute_lwm (in);
@@ -795,14 +795,14 @@ bool pipe_t::check_hwm () const
     return !full;
 }
 
-void pipe_t::send_hwms_to_peer (inhwm_: i32, outhwm_: i32)
+void pipe_t::send_hwms_to_peer (inhwm: i32, outhwm: i32)
 {
-    send_pipe_hwm (_peer, inhwm_, outhwm_);
+    send_pipe_hwm (_peer, inhwm, outhwm);
 }
 
-void pipe_t::set_endpoint_pair (EndpointUriPair endpoint_pair_)
+void pipe_t::set_endpoint_pair (EndpointUriPair endpoint_pair)
 {
-    _endpoint_pair = ZMQ_MOVE (endpoint_pair_);
+    _endpoint_pair = ZMQ_MOVE (endpoint_pair);
 }
 
 const EndpointUriPair &pipe_t::get_endpoint_pair () const
@@ -810,20 +810,20 @@ const EndpointUriPair &pipe_t::get_endpoint_pair () const
     return _endpoint_pair;
 }
 
-void pipe_t::send_stats_to_peer (own_t *socket_base_)
+void pipe_t::send_stats_to_peer (own_t *socket_base)
 {
     EndpointUriPair *ep =
       new (std::nothrow) EndpointUriPair (_endpoint_pair);
-    send_pipe_peer_stats (_peer, _msgs_written - _peers_msgs_read, socket_base_,
+    send_pipe_peer_stats (_peer, _msgs_written - _peers_msgs_read, socket_base,
                           ep);
 }
 
-void pipe_t::process_pipe_peer_stats (queue_count_: u64,
-                                           own_t *socket_base_,
-                                           EndpointUriPair *endpoint_pair_)
+void pipe_t::process_pipe_peer_stats (queue_count: u64,
+                                           own_t *socket_base,
+                                           EndpointUriPair *endpoint_pair)
 {
-    send_pipe_stats_publish (socket_base_, queue_count_,
-                             _msgs_written - _peers_msgs_read, endpoint_pair_);
+    send_pipe_stats_publish (socket_base, queue_count,
+                             _msgs_written - _peers_msgs_read, endpoint_pair);
 }
 
 void pipe_t::send_disconnect_msg ()

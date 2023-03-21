@@ -31,7 +31,7 @@
 // #include "own.hpp"
 // #include "err.hpp"
 // #include "io_thread.hpp"
-pub struct own_t : public object_t
+pub struct own_t : public ZmqObject
 {
 // public:
     //  Note that the owner is unspecified in the constructor.
@@ -59,10 +59,10 @@ pub struct own_t : public object_t
 
   protected:
     //  Launch the supplied object and become its owner.
-    void launch_child (own_t *object_);
+    void launch_child (own_t *object);
 
     //  Terminate owned object
-    void term_child (own_t *object_);
+    void term_child (own_t *object);
 
     //  Ask owner object to terminate this object. It may take a while
     //  while actual termination is started. This function should not be
@@ -81,7 +81,7 @@ pub struct own_t : public object_t
     //  Term handler is protected rather than private so that it can
     //  be intercepted by the derived class. This is useful to add custom
     //  steps to the beginning of the termination process.
-    void process_term (linger_: i32) ZMQ_OVERRIDE;
+    void process_term (linger: i32) ZMQ_OVERRIDE;
 
     //  A place to hook in when physical destruction of the object
     //  is to be delayed.
@@ -95,8 +95,8 @@ pub struct own_t : public object_t
     void set_owner (own_t *owner_);
 
     //  Handlers for incoming commands.
-    void process_own (own_t *object_) ZMQ_OVERRIDE;
-    void process_term_req (own_t *object_) ZMQ_OVERRIDE;
+    void process_own (own_t *object) ZMQ_OVERRIDE;
+    void process_term_req (own_t *object) ZMQ_OVERRIDE;
     void process_term_ack () ZMQ_OVERRIDE;
     void process_seqnum () ZMQ_OVERRIDE;
 
@@ -134,7 +134,7 @@ impl own_t {
 }
 
 own_t::own_t (class ZmqContext *parent_, u32 tid_) :
-    object_t (parent_, tid_),
+    ZmqObject (parent_, tid_),
     _terminating (false),
     _sent_seqnum (0),
     _processed_seqnum (0),
@@ -144,7 +144,7 @@ own_t::own_t (class ZmqContext *parent_, u32 tid_) :
 }
 
 own_t::own_t (io_thread_t *io_thread_, const ZmqOptions &options_) :
-    object_t (io_thread_),
+    ZmqObject (io_thread_),
     options (options_),
     _terminating (false),
     _sent_seqnum (0),
@@ -179,24 +179,24 @@ void own_t::process_seqnum ()
     check_term_acks ();
 }
 
-void own_t::launch_child (own_t *object_)
+void own_t::launch_child (own_t *object)
 {
     //  Specify the owner of the object.
-    object_.set_owner (this);
+    object.set_owner (this);
 
     //  Plug the object into the I/O thread.
-    send_plug (object_);
+    send_plug (object);
 
     //  Take ownership of the object.
-    send_own (this, object_);
+    send_own (this, object);
 }
 
-void own_t::term_child (own_t *object_)
+void own_t::term_child (own_t *object)
 {
-    process_term_req (object_);
+    process_term_req (object);
 }
 
-void own_t::process_term_req (own_t *object_)
+void own_t::process_term_req (own_t *object)
 {
     //  When shutting down we can ignore termination requests from owned
     //  objects. The termination request was already sent to the object.
@@ -205,7 +205,7 @@ void own_t::process_term_req (own_t *object_)
 
     //  If not found, we assume that termination request was already sent to
     //  the object so we can safely ignore the request.
-    if (0 == _owned.erase (object_))
+    if (0 == _owned.erase (object))
         return;
 
     //  If I/O object is well and alive let's ask it to terminate.
@@ -213,21 +213,21 @@ void own_t::process_term_req (own_t *object_)
 
     //  Note that this object is the root of the (partial shutdown) thus, its
     //  value of linger is used, rather than the value stored by the children.
-    send_term (object_, options.linger.load ());
+    send_term (object, options.linger.load ());
 }
 
-void own_t::process_own (own_t *object_)
+void own_t::process_own (own_t *object)
 {
     //  If the object is already being shut down, new owned objects are
     //  immediately asked to terminate. Note that linger is set to zero.
     if (_terminating) {
         register_term_acks (1);
-        send_term (object_, 0);
+        send_term (object, 0);
         return;
     }
 
     //  Store the reference to the owned object.
-    _owned.insert (object_);
+    _owned.insert (object);
 }
 
 void own_t::terminate ()
@@ -253,7 +253,7 @@ bool own_t::is_terminating () const
     return _terminating;
 }
 
-void own_t::process_term (linger_: i32)
+void own_t::process_term (linger: i32)
 {
     //  Double termination should never happen.
     zmq_assert (!_terminating);
@@ -261,7 +261,7 @@ void own_t::process_term (linger_: i32)
     //  Send termination request to all owned objects.
     for (owned_t::iterator it = _owned.begin (), end = _owned.end (); it != end;
          ++it)
-        send_term (*it, linger_);
+        send_term (*it, linger);
     register_term_acks (static_cast<int> (_owned.size ()));
     _owned.clear ();
 

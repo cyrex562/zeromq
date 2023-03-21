@@ -140,7 +140,7 @@ static void mock_handshake (raw_socket fd_, mock_ping_: i32)
     }
 }
 
-static void setup_curve (socket_: *mut c_void, is_server_: i32)
+static void setup_curve (socket: *mut c_void, is_server_: i32)
 {
     const char *secret_key;
     const char *public_key;
@@ -156,15 +156,15 @@ static void setup_curve (socket_: *mut c_void, is_server_: i32)
         server_key = "rq:rM>}U?@Lns47E1%kR.o@n%FcmmsL/@{H8]yf7";
     }
 
-    zmq_setsockopt (socket_, ZMQ_CURVE_SECRETKEY, secret_key,
+    zmq_setsockopt (socket, ZMQ_CURVE_SECRETKEY, secret_key,
                     strlen (secret_key));
-    zmq_setsockopt (socket_, ZMQ_CURVE_PUBLICKEY, public_key,
+    zmq_setsockopt (socket, ZMQ_CURVE_PUBLICKEY, public_key,
                     strlen (public_key));
     if (is_server_)
-        zmq_setsockopt (socket_, ZMQ_CURVE_SERVER, &is_server_,
+        zmq_setsockopt (socket, ZMQ_CURVE_SERVER, &is_server_,
                         mem::size_of::<is_server_>());
     else
-        zmq_setsockopt (socket_, ZMQ_CURVE_SERVERKEY, server_key,
+        zmq_setsockopt (socket, ZMQ_CURVE_SERVERKEY, server_key,
                         strlen (server_key));
 }
 
@@ -172,7 +172,7 @@ static void prep_server_socket (set_heartbeats_: i32,
                                 is_curve_: i32,
                                 server_out_: *mut *mut c_void
                                 mon_out_: *mut *mut c_void
-                                char *endpoint_,
+                                char *endpoint,
                                 ep_length_: usize,
                                 socket_type_: i32)
 {
@@ -192,7 +192,7 @@ static void prep_server_socket (set_heartbeats_: i32,
     if (is_curve_)
         setup_curve (server, 1);
 
-    bind_loopback_ipv4 (server, endpoint_, ep_length_);
+    bind_loopback_ipv4 (server, endpoint, ep_length_);
 
     //  Create and connect a socket for collecting monitor events on dealer
     void *server_mon = test_context_socket (ZMQ_PAIR);

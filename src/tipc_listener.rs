@@ -58,7 +58,7 @@ pub struct tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
     tipc_listener_t (io_thread_t *io_thread_,
-                     socket_: *mut ZmqSocketBase,
+                     socket: *mut ZmqSocketBase,
                      const ZmqOptions &options_);
 
     //  Set address to listen on.
@@ -84,9 +84,9 @@ pub struct tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
 };
 
 tipc_listener_t::tipc_listener_t (io_thread_t *io_thread_,
-                                       ZmqSocketBase *socket_,
+                                       ZmqSocketBase *socket,
                                        const ZmqOptions &options_) :
-    stream_listener_base_t (io_thread_, socket_, options_)
+    stream_listener_base_t (io_thread_, socket, options_)
 {
 }
 

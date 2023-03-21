@@ -41,13 +41,13 @@ pub struct scatter_t ZMQ_FINAL : public ZmqSocketBase
 
   protected:
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool);
     int xsend (msg: &mut ZmqMessage);
     bool xhas_out ();
-    void xwrite_activated (pipe_: &mut pipe_t);
-    void xpipe_terminated (pipe_: &mut pipe_t);
+    void xwrite_activated (pipe: &mut pipe_t);
+    void xpipe_terminated (pipe: &mut pipe_t);
 
   // private:
     //  Load balancer managing the outbound pipes.
@@ -66,7 +66,7 @@ scatter_t::~scatter_t ()
 {
 }
 
-void scatter_t::xattach_pipe (pipe_t *pipe_,
+void scatter_t::xattach_pipe (pipe_t *pipe,
                                    subscribe_to_all_: bool,
                                    locally_initiated_: bool)
 {
@@ -75,20 +75,20 @@ void scatter_t::xattach_pipe (pipe_t *pipe_,
 
     //  Don't delay pipe termination as there is no one
     //  to receive the delimiter.
-    pipe_.set_nodelay ();
+    pipe.set_nodelay ();
 
-    zmq_assert (pipe_);
-    _lb.attach (pipe_);
+    zmq_assert (pipe);
+    _lb.attach (pipe);
 }
 
-void scatter_t::xwrite_activated (pipe_: &mut pipe_t)
+void scatter_t::xwrite_activated (pipe: &mut pipe_t)
 {
-    _lb.activated (pipe_);
+    _lb.activated (pipe);
 }
 
-void scatter_t::xpipe_terminated (pipe_: &mut pipe_t)
+void scatter_t::xpipe_terminated (pipe: &mut pipe_t)
 {
-    _lb.pipe_terminated (pipe_);
+    _lb.pipe_terminated (pipe);
 }
 
 int scatter_t::xsend (msg: &mut ZmqMessage)

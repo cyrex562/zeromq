@@ -44,9 +44,9 @@ void test_create ()
     generic_mtrie_t<int> mtrie;
 }
 
-void mtrie_count (pipe_: *mut i32, count: *mut i32)
+void mtrie_count (pipe: *mut i32, count: *mut i32)
 {
-    LIBZMQ_UNUSED (pipe_);
+    LIBZMQ_UNUSED (pipe);
     ++*count;
 }
 

@@ -317,14 +317,14 @@ int tcp_read (fd_t s_, data: &mut [u8], size: usize)
 // #endif
 }
 
-void tcp_tune_loopback_fast_path (const fd_t socket_)
+void tcp_tune_loopback_fast_path (const fd_t socket)
 {
 // #if defined ZMQ_HAVE_WINDOWS && defined SIO_LOOPBACK_FAST_PATH
     int sio_loopback_fastpath = 1;
     DWORD number_of_bytes_returned = 0;
 
     let rc: i32 = WSAIoctl (
-      socket_, SIO_LOOPBACK_FAST_PATH, &sio_loopback_fastpath,
+      socket, SIO_LOOPBACK_FAST_PATH, &sio_loopback_fastpath,
       sizeof sio_loopback_fastpath, null_mut(), 0, &number_of_bytes_returned, 0, 0);
 
     if (SOCKET_ERROR == rc) {
@@ -337,21 +337,21 @@ void tcp_tune_loopback_fast_path (const fd_t socket_)
         }
     }
 // #else
-    LIBZMQ_UNUSED (socket_);
+    LIBZMQ_UNUSED (socket);
 // #endif
 }
 
-void tune_tcp_busy_poll (fd_t socket_, busy_poll_: i32)
+void tune_tcp_busy_poll (fd_t socket, busy_poll_: i32)
 {
 // #if defined(ZMQ_HAVE_BUSY_POLL)
     if (busy_poll_ > 0) {
         let rc: i32 =
-          setsockopt (socket_, SOL_SOCKET, SO_BUSY_POLL,
+          setsockopt (socket, SOL_SOCKET, SO_BUSY_POLL,
                       reinterpret_cast<char *> (&busy_poll_), mem::size_of::<int>());
-        assert_success_or_recoverable (socket_, rc);
+        assert_success_or_recoverable (socket, rc);
     }
 // #else
-    LIBZMQ_UNUSED (socket_);
+    LIBZMQ_UNUSED (socket);
     LIBZMQ_UNUSED (busy_poll_);
 // #endif
 }

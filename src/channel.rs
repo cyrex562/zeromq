@@ -1,29 +1,30 @@
-use anyhow::anyhow;
-use libc::socket;
-use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
+use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::options::ZmqOptions;
 use crate::pipe::pipe_t;
-use crate::socket_base::{ZmqSocketBase, ZmqContext};
+use crate::socket_base::{ZmqContext, ZmqSocketBase};
 use crate::socket_base_ops::ZmqSocketBaseOps;
+use anyhow::anyhow;
+use libc::socket;
 
 #[derive(Default, Debug, Clone)]
-pub struct ZmqChannel //: public ZmqSocketBase
+pub struct ZmqChannel
+//: public ZmqSocketBase
 {
-// public:
-//     channel_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
-//     ~channel_t ();
-//
-//     //  Overrides of functions from ZmqSocketBase.
-//     void xattach_pipe (pipe_t *pipe_,
-//                        bool subscribe_to_all_,
-//                        bool locally_initiated_);
-//     int xsend (ZmqMessage *msg);
-//     int xrecv (ZmqMessage *msg);
-//     bool xhas_in ();
-//     bool xhas_out ();
-//     void xread_activated (pipe_t *pipe_);
-//     void xwrite_activated (pipe_t *pipe_);
-//     void xpipe_terminated (pipe_t *pipe_);
+    // public:
+    //     channel_t (ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    //     ~channel_t ();
+    //
+    //     //  Overrides of functions from ZmqSocketBase.
+    //     void xattach_pipe (pipe_t *pipe_,
+    //                        bool subscribe_to_all_,
+    //                        bool locally_initiated_);
+    //     int xsend (ZmqMessage *msg);
+    //     int xrecv (ZmqMessage *msg);
+    //     bool xhas_in ();
+    //     bool xhas_out ();
+    //     void xread_activated (pipe_t *pipe_);
+    //     void xwrite_activated (pipe_t *pipe_);
+    //     void xpipe_terminated (pipe_t *pipe_);
 
     // private:
     //   pipe_t *_pipe;
@@ -56,8 +57,13 @@ impl ZmqChannel {
 }
 
 impl ZmqSocketBaseOps for ZmqChannel {
-    fn xattach_pipe(&mut self, skt_base: &mut ZmqSocketBase, in_pipe: &mut pipe_t, subscribe_to_all: bool, locally_initiated: bool)
-    {
+    fn xattach_pipe(
+        &mut self,
+        skt_base: &mut ZmqSocketBase,
+        in_pipe: &mut pipe_t,
+        subscribe_to_all: bool,
+        locally_initiated: bool,
+    ) {
         // LIBZMQ_UNUSED (subscribe_to_all_);
         // LIBZMQ_UNUSED (locally_initiated_);
 
@@ -77,27 +83,26 @@ impl ZmqSocketBaseOps for ZmqChannel {
         }
     }
 
-    fn xpipe_terminated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut pipe_t)
-    {
-        if (pipe_ == self.pipe.unwrap()) {
+    fn xpipe_terminated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut pipe_t) {
+        if (pipe == self.pipe.unwrap()) {
             self.pipe = None;
         }
     }
 
-    fn xwrite_activated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut pipe_t)
-    {
+    fn xwrite_activated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut pipe_t) {
         //  There's just one pipe. No lists of active and inactive pipes.
         //  There's nothing to do here.
         unimplemented!()
     }
 
-    fn xsend(&mut self, skt_base: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()>
-    {
+    fn xsend(&mut self, skt_base: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         //  CHANNEL sockets do not allow multipart data (ZMQ_SNDMORE)
         if (msg.flags() & ZMQ_MSG_MORE) {
             // errno = EINVAL;
             // return -1;
-            return Err(anyhow!("invalid state: channel sockets do not allow multipart data"));
+            return Err(anyhow!(
+                "invalid state: channel sockets do not allow multipart data"
+            ));
         }
 
         if (self.pipe.is_none() || !self.pipe.unwrap().write(msg)) {
@@ -113,9 +118,7 @@ impl ZmqSocketBaseOps for ZmqChannel {
         Ok(())
     }
 
-
-    fn xrecv(&mut self, skt_base: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()>
-    {
+    fn xrecv(&mut self, skt_base: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         //  Deallocate old content of the message.
         let mut rc = msg.close();
         errno_assert(rc == 0);
@@ -155,8 +158,7 @@ impl ZmqSocketBaseOps for ZmqChannel {
         Ok(())
     }
 
-    fn xhas_in(&mut self, skt_base: &mut ZmqSocketBase) -> bool
-    {
+    fn xhas_in(&mut self, skt_base: &mut ZmqSocketBase) -> bool {
         if (self.pipe.is_none()) {
             return false;
         }
@@ -164,8 +166,7 @@ impl ZmqSocketBaseOps for ZmqChannel {
         return self.pipe.unwrap().check_read();
     }
 
-    fn xhas_out(&mut self, skt_base: &mut ZmqSocketBase) -> bool
-    {
+    fn xhas_out(&mut self, skt_base: &mut ZmqSocketBase) -> bool {
         if (self.pipe.is_none()) {
             return false;
         }
@@ -173,20 +174,3 @@ impl ZmqSocketBaseOps for ZmqChannel {
         return self.pipe.unwrap().check_write();
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

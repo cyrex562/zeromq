@@ -69,7 +69,7 @@ pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
     ws_listener_t (io_thread_t *io_thread_,
-                   socket_: *mut ZmqSocketBase,
+                   socket: *mut ZmqSocketBase,
                    const ZmqOptions &options_,
                    wss_: bool);
 
@@ -106,10 +106,10 @@ pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
 };
 
 ws_listener_t::ws_listener_t (io_thread_t *io_thread_,
-                                   ZmqSocketBase *socket_,
+                                   ZmqSocketBase *socket,
                                    const ZmqOptions &options_,
                                    wss_: bool) :
-    stream_listener_base_t (io_thread_, socket_, options_), _wss (wss_)
+    stream_listener_base_t (io_thread_, socket, options_), _wss (wss_)
 {
 // #ifdef ZMQ_HAVE_WSS
     if (_wss) {

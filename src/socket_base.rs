@@ -2,6 +2,7 @@ use crate::address::Address;
 use crate::clock::clock_t;
 use crate::command::ZmqCommand;
 use crate::context::ZmqContext;
+use crate::cpu_time::get_cpu_tick_counter;
 use crate::endpoint::EndpointType::endpoint_type_none;
 use crate::endpoint::{make_unconnected_bind_endpoint_pair, EndpointUriPair, ZmqEndpoint};
 use crate::i_mailbox::i_mailbox;
@@ -10,14 +11,17 @@ use crate::ipc_listener::ipc_listener_t;
 use crate::mailbox::mailbox_t;
 use crate::mailbox_safe::mailbox_safe_t;
 use crate::message::{routing_id, ZmqMessage, ZMQ_MSG_MORE};
-use crate::object::object_t;
-use crate::options::{get_effective_conflate_option, ZmqOptions};
+use crate::object::ZmqObject;
+use crate::options::{
+    bool_to_vec, get_effective_conflate_option, i32_to_vec, str_to_vec, ZmqOptions,
+};
 use crate::out_pipe::out_pipe_t;
 use crate::own::own_t;
 use crate::pgm_socket::pgm_socket_t;
 use crate::pipe::pipe_t;
 use crate::session_base::ZmqSessionBase;
 use crate::signaler::signaler_t;
+use crate::socket_base_ops::ZmqSocketBaseOps;
 use crate::tcp_address::TcpAddress;
 use crate::tcp_listener::tcp_listener_t;
 use crate::tipc_address::TipcAddress;
@@ -29,7 +33,7 @@ use crate::ws_address::WsAddress;
 use crate::ws_listener::ws_listener_t;
 use crate::wss_address::WssAddress;
 use crate::zmq_hdr::{
-    ZMQ_BLOCKY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENTS,
+    ZMQ_BLOCKY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENTS,
     ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSED,
     ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_CONNECT_DELAYED,
     ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH,
@@ -44,7 +48,7 @@ use crate::zmq_ops::{
     zmq_bind, zmq_close, zmq_errno, zmq_msg_data, zmq_msg_init_size, zmq_msg_send, zmq_setsockopt,
     zmq_socket,
 };
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use libc::{c_void, EAGAIN, EINTR, EINVAL};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -53,7 +57,6 @@ use std::ptr::null_mut;
 use std::sync::atomic::Ordering;
 use std::sync::Mutex;
 use std::time;
-use crate::cpu_time::get_cpu_tick_counter;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ZmqSocketBase {
@@ -126,6 +129,8 @@ pub struct ZmqSocketBase {
     // Add a flag for mark disconnect action
     pub disconnected: bool,
 }
+
+impl ZmqObject for ZmqSocketBase {}
 
 impl ZmqSocketBase {
     // ZmqSocketBase (ZmqContext *parent_,
@@ -323,7 +328,7 @@ impl ZmqSocketBase {
         &mut self,
         options: &mut ZmqOptions,
         opt_kind: i32,
-        opt_val: &mut [u8],
+        opt_val: &[u8],
         opt_len: usize,
     ) -> anyhow::Result<()> {
         // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
@@ -353,65 +358,78 @@ impl ZmqSocketBase {
         &mut self,
         options: &mut ZmqOptions,
         opt_kind: i32,
-        opt_val: &mut [u8],
-        opt_len: &mut usize,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<Vec<u8>> {
         // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
-        let mut sync_lock = if self.thread_safe {
-            &mut _sync
-        } else {
-            null_mut()
-        };
+        // let mut sync_lock = if self.thread_safe {
+        //     &mut _sync
+        // } else {
+        //     null_mut()
+        // };
         // if (unlikely (_ctx_terminated)) {
         //     errno = ETERM;
         //     return -1;
         // }
 
         //  First, check whether specific socket type overloads the option.
-        let rc = self.xgetsockopt(opt_kind, opt_val, *opt_len);
-        if rc == 0 || errno != EINVAL {
-            return rc;
+        let rc = self.xgetsockopt(self, opt_kind);
+        // if rc == 0 || errno != EINVAL {
+        //     return rc;
+        // }
+        if rc.is_ok() {
+            return Ok(rc.unwrap());
         }
 
         if opt_kind == ZMQ_RCVMORE {
-            return do_getsockopt_int(opt_val, opt_len, if self.rcvmore { 1 } else { 0 });
+            return bool_to_vec(self.rcvmore);
+            // return self.do_getsockopt_int(opt_val, opt_len, if self.rcvmore { 1 } else { 0 });
         }
 
         if opt_kind == ZMQ_FD {
             if self.thread_safe {
                 // thread safe socket doesn't provide file descriptor
-                // errno = EINVAL;
-                // return -1;
-                bail!("thread safe socket doenst provide a file descriptor")
+                return Err(anyhow!(
+                    "thread safe socket doenst provide a file descriptor"
+                ));
             }
 
-            return do_getsockopt_fd(opt_val, opt_len, self.mailbox.get_fd());
+            return self.do_getsockopt_fd(opt_val, opt_len, self.mailbox.get_fd());
         }
 
         if opt_kind == ZMQ_EVENTS {
-            self.process_commands(0, false)?;
+            match self.process_commands(0, false) {
+                Ok(_) => {}
+                Err(e) => {
+                    return Err(anyhow!("failed to process comands: {}", e));
+                }
+            }
+
             // if rc != 0 && (errno == EINTR || errno == ETERM) {
             //     return -1;
             // }
             // errno_assert (rc == 0);
 
-            return do_getsockopt_int(
-                opt_val,
-                opt_len,
-                (if self.has_out() { ZMQ_POLLOUT } else { 0 })
-                    | (if self.has_in() { ZMQ_POLLIN } else { 0 }),
-            );
+            // return do_getsockopt_int(
+            //     opt_val,
+            //     opt_len,
+            //     (if self.has_out() { ZMQ_POLLOUT } else { 0 })
+            //         | (if self.has_in() { ZMQ_POLLIN } else { 0 }),
+            // );
+            let result: i32 = ((if self.has_out() { ZMQ_POLLOUT } else { 0i32 })
+                | (if self.has_in { ZMQ_POLLIN } else { 0i32 }));
+            return i32_to_vec(result);
         }
 
         if opt_kind == ZMQ_LAST_ENDPOINT {
-            return do_getsockopt_string(opt_val, opt_len, &self.last_endpoint);
+            // return do_getsockopt_string(opt_val, opt_len, &self.last_endpoint);
+            return str_to_vec(&self.last_endpoint);
         }
 
         if opt_kind == ZMQ_THREAD_SAFE {
-            return do_getsockopt_int(opt_val, opt_len, if self.thread_safe { 1 } else { 0 });
+            // return do_getsockopt_int(opt_val, opt_len, if self.thread_safe { 1 } else { 0 });
+            return bool_to_vec(self.thread_safe);
         }
 
-        options.getsockopt(opt_kind, opt_val, opt_len)
+        options.getsockopt(opt_kind)
     }
 
     // int bind (endpoint_uri_: *const c_char);
@@ -503,11 +521,11 @@ impl ZmqSocketBase {
             //     return -1;
             // }
 
-            let session = ZmqSessionBase::create(io_thread, true, this, options, paddr);
+            let session = ZmqSessionBase::create(io_thread, true, this, options, &mut paddr)?;
             // errno_assert (session);
 
             //  Create a bi-directional pipe.
-            let mut parents: [object_t; 2] = [this, session];
+            let mut parents: [Box<dyn ZmqObject>; 2] = [Box::new(self), Box::new(session)];
             let mut new_pipes: [pipe_t; 2] = [pipe_t::default(), pipe_t::default()];
 
             let mut hwms: [i32; 2] = [options.sndhwm, options.rcvhwm];
@@ -1029,7 +1047,7 @@ impl ZmqSocketBase {
             // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
 
             self.reaper_signaler = signaler_t::default(); //new (std::nothrow) signaler_t ();
-            // zmq_assert (_reaper_signaler);
+                                                          // zmq_assert (_reaper_signaler);
 
             //  Add signaler to the safe mailbox
             fd = _reaper_signaler.get_fd();
@@ -1082,39 +1100,39 @@ impl ZmqSocketBase {
 
     //  i_pipe_events interface implementation.
     // void read_activated (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn read_activated(&mut self, pipe_: &mut pipe_t) {
-        ops.xread_activated(pipe_);
+    pub fn read_activated(&mut self, pipe: &mut pipe_t) {
+        ops.xread_activated(pipe);
     }
 
     // void write_activated (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn write_activated(&mut self, pipe_: &mut pipe_t) {
-        ops.xwrite_activated(pipe_);
+    pub fn write_activated(&mut self, pipe: &mut pipe_t) {
+        ops.xwrite_activated(pipe);
     }
 
     // void hiccuped (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn hiccuped(&mut self, options: &mut ZmqOptions, pipe_: &mut pipe_t) {
+    pub fn hiccuped(&mut self, options: &mut ZmqOptions, pipe: &mut pipe_t) {
         if (options.immediate == 1) {
-            pipe_.terminate(false);
+            pipe.terminate(false);
         } else {
             // Notify derived sockets of the hiccup
-            ops.xhiccuped(pipe_);
+            ops.xhiccuped(pipe);
         }
     }
 
     // void pipe_terminated (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn pipe_terminated(&mut self, pipe_: &mut pipe_t) {
+    pub fn pipe_terminated(&mut self, pipe: &mut pipe_t) {
         //  Notify the specific socket type about the pipe termination.
-        ops.xpipe_terminated(pipe_);
+        ops.xpipe_terminated(pipe);
 
         // Remove pipe from inproc pipes
-        self._inprocs.erase_pipe(pipe_);
+        self._inprocs.erase_pipe(pipe);
 
         //  Remove the pipe from the list of attached pipes and confirm its
         //  termination if we are already shutting down.
-        self.pipes.erase(pipe_);
+        self.pipes.erase(pipe);
 
         // Remove the pipe from _endpoints (set it to NULL).
-        let identifier = pipe_.get_endpoint_pair().identifier();
+        let identifier = pipe.get_endpoint_pair().identifier();
         if (!identifier.empty()) {
             // std::pair<endpoints_t::iterator, endpoints_t::iterator> range;
             // range = _endpoints.equal_range (identifier);
@@ -1143,7 +1161,7 @@ impl ZmqSocketBase {
     pub fn monitor(
         &mut self,
         options: &mut ZmqOptions,
-        endpoint_: &str,
+        endpoint: &str,
         events_: u64,
         event_version_: i32,
         type_: i32,
@@ -1162,14 +1180,14 @@ impl ZmqSocketBase {
         // }
 
         //  Support deregistering monitoring endpoints as well
-        if (endpoint_ == null_mut()) {
+        if (endpoint == null_mut()) {
             self.stop_monitor(options, false);
             return Ok(());
         }
         //  Parse endpoint_uri_ string.
         let mut protocol = String::new();
         let mut address = String::new();
-        if (self.parse_uri(endpoint_, &mut protocol, &mut address)
+        if (self.parse_uri(endpoint, &mut protocol, &mut address)
             || self.check_protocol(options, &protocol))
         {
             bail!("failed to parse uri and/or protocol");
@@ -1199,7 +1217,7 @@ impl ZmqSocketBase {
             _ => {
                 bail!("invalid socket type")
             } // errno = EINVAL;
-            // return -1;
+              // return -1;
         }
 
         //  Register events to monitor
@@ -1226,7 +1244,7 @@ impl ZmqSocketBase {
         }
 
         //  Spawn the monitor socket endpoint
-        rc = zmq_bind(_monitor_socket, endpoint_);
+        rc = zmq_bind(_monitor_socket, endpoint);
         if (rc == -1) {
             self.stop_monitor(options, false);
         }
@@ -2106,19 +2124,19 @@ impl ZmqSocketBase {
     //                    pipe_t *pipe_);
     pub fn add_endpoint(
         &mut self,
-        endpoint_pair_: &EndpointUriPair,
-        endpoint_: &mut own_t,
-        pipe_: &mut pipe_t,
+        endpoint_pair: &EndpointUriPair,
+        endpoint: &mut own_t,
+        pipe: &mut pipe_t,
     ) {
         //  Activate the session. Make it a child of this socket.
-        self.launch_child(endpoint_);
+        self.launch_child(endpoint);
         self.endpoints.ZMQ_MAP_INSERT_OR_EMPLACE(
-            endpoint_pair_.identifier(),
-            endpoint_pipe_t::new(endpoint_, pipe_),
+            endpoint_pair.identifier(),
+            endpoint_pipe_t::new(endpoint, pipe),
         );
 
-        if pipe_ != null_mut() {
-            pipe_.set_endpoint_pair(endpoint_pair_);
+        if pipe != null_mut() {
+            pipe.set_endpoint_pair(endpoint_pair);
         }
     }
 
@@ -2247,8 +2265,8 @@ impl ZmqSocketBase {
 
         if protocol_ == protocol_name::udp
             && (options.type_ != ZMQ_DISH
-            && options.type_ != ZMQ_RADIO
-            && options.type_ != ZMQ_DGRAM)
+                && options.type_ != ZMQ_RADIO
+                && options.type_ != ZMQ_DGRAM)
         {
             // errno = ENOCOMPATPROTO;
             // return -1;
@@ -2365,8 +2383,8 @@ impl ZmqSocketBase {
     }
 
     // void process_bind (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn process_bind(&mut self, pipe_: &mut pipe_t) {
-        self.attach_pipe(pipe_, false, false);
+    pub fn process_bind(&mut self, pipe: &mut pipe_t) {
+        self.attach_pipe(pipe, false, false);
     }
 
     // void process_pipe_stats_publish (outbound_queue_count_: u64,
@@ -2375,14 +2393,14 @@ impl ZmqSocketBase {
     pub fn process_pipe_stats_publish(
         &mut self,
         options: &mut ZmqOptions,
-        outbound_queue_count_: u64,
-        inbound_queue_count_: u64,
-        endpoint_pair_: &mut EndpointUriPair,
+        outbound_queue_count: u64,
+        inbound_queue_count: u64,
+        endpoint_pair: &mut EndpointUriPair,
     ) {
-        let mut values: [u64; 2] = [outbound_queue_count_, inbound_queue_count_];
+        let mut values: [u64; 2] = [outbound_queue_count, inbound_queue_count];
         self.event(
             options,
-            endpoint_pair_,
+            endpoint_pair,
             &values,
             2,
             ZMQ_EVENT_PIPES_STATS as u64,
@@ -2391,7 +2409,7 @@ impl ZmqSocketBase {
     }
 
     // void process_term (linger_: i32) ZMQ_FINAL;
-    pub fn process_term(&mut self, linger_: i32) {
+    pub fn process_term(&mut self, linger: i32) {
         //  Unregister all inproc endpoints associated with this socket.
         //  Doing this we make sure that no new pipes from other sockets (inproc)
         //  will be initiated.
@@ -2416,8 +2434,8 @@ impl ZmqSocketBase {
     }
 
     // void process_term_endpoint (std::string *endpoint_) ZMQ_FINAL;
-    pub fn process_term_endpoint(&mut self, options: &mut ZmqOptions, endpoint_: &str) {
-        self.term_endpoint(options, endpoint_);
+    pub fn process_term_endpoint(&mut self, options: &mut ZmqOptions, endpoint: &str) {
+        self.term_endpoint(options, endpoint);
         // delete endpoint_;
     }
 
@@ -2526,7 +2544,7 @@ impl routing_socket_base_t {
     }
 
     // void xwrite_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
-    pub fn xwrite_activated(&mut self, pipe_: &mut pipe_t) {
+    pub fn xwrite_activated(&mut self, pipe: &mut pipe_t) {
         // const out_pipes_t::iterator end = _out_pipes.end ();
         let (end_blob, end_pipe) = self._out_pipes.last().unwrap();
         // out_pipes_t::iterator it;
@@ -2536,7 +2554,7 @@ impl routing_socket_base_t {
             // if (it.second.pipe == pipe_) {
             //     break;
             // }
-            if it_pipe == pipe_ && it_pipe != end_pipe && it_pipe.active == false {
+            if it_pipe == pipe && it_pipe != end_pipe && it_pipe.active == false {
                 it_pipe.active = true;
                 break;
             }
@@ -2560,9 +2578,9 @@ impl routing_socket_base_t {
     }
 
     // void add_out_pipe (Blob routing_id_, pipe_: &mut pipe_t);
-    pub fn add_out_pipe(&mut self, routing_id_: Blob, pipe_: &mut pipe_t) {
+    pub fn add_out_pipe(&mut self, routing_id_: Blob, pipe: &mut pipe_t) {
         //  Add the record into output pipes lookup table
-        let outpipe = out_pipe_t::new(pipe_, true);
+        let outpipe = out_pipe_t::new(pipe, true);
         let ok = self
             ._out_pipes
             .ZMQ_MAP_INSERT_OR_EMPLACE(routing_id_, outpipe)
@@ -2590,8 +2608,8 @@ impl routing_socket_base_t {
     // const out_pipe_t *lookup_out_pipe (const Blob &routing_id_) const;
 
     // void erase_out_pipe (const pipe_: &mut pipe_t);
-    pub fn erase_out_pipe(&mut self, pipe_: &mut pipe_t) {
-        let erased = _out_pipes.erase(pipe_.get_routing_id());
+    pub fn erase_out_pipe(&mut self, pipe: &mut pipe_t) {
+        let erased = _out_pipes.erase(pipe.get_routing_id());
         // zmq_assert (erased);
     }
 

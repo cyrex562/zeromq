@@ -75,23 +75,23 @@ const char *SEQ_END = (const char *) 1;
 
 pub const bounce_content: &str = "12345678ABCDEFGH12345678abcdefgh";
 
-static void send_bounce_msg (socket_: *mut c_void)
+static void send_bounce_msg (socket: *mut c_void)
 {
-    send_string_expect_success (socket_, bounce_content, ZMQ_SNDMORE);
-    send_string_expect_success (socket_, bounce_content, 0);
+    send_string_expect_success (socket, bounce_content, ZMQ_SNDMORE);
+    send_string_expect_success (socket, bounce_content, 0);
 }
 
-static void recv_bounce_msg (socket_: *mut c_void)
+static void recv_bounce_msg (socket: *mut c_void)
 {
-    recv_string_expect_success (socket_, bounce_content, 0);
+    recv_string_expect_success (socket, bounce_content, 0);
     rcvmore: i32;
     size_t sz = mem::size_of::<rcvmore>();
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_getsockopt (socket_, ZMQ_RCVMORE, &rcvmore, &sz));
+      zmq_getsockopt (socket, ZMQ_RCVMORE, &rcvmore, &sz));
     TEST_ASSERT_TRUE (rcvmore);
-    recv_string_expect_success (socket_, bounce_content, 0);
+    recv_string_expect_success (socket, bounce_content, 0);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_getsockopt (socket_, ZMQ_RCVMORE, &rcvmore, &sz));
+      zmq_getsockopt (socket, ZMQ_RCVMORE, &rcvmore, &sz));
     TEST_ASSERT_FALSE (rcvmore);
 }
 
@@ -111,24 +111,24 @@ void bounce (server_: *mut c_void, client_: *mut c_void)
     recv_bounce_msg (client_);
 }
 
-static void send_bounce_msg_may_fail (socket_: *mut c_void)
+static void send_bounce_msg_may_fail (socket: *mut c_void)
 {
     int timeout = 250;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (socket_, ZMQ_SNDTIMEO, &timeout, mem::size_of::<int>()));
-    int rc = zmq_send (socket_, bounce_content, 32, ZMQ_SNDMORE);
+      zmq_setsockopt (socket, ZMQ_SNDTIMEO, &timeout, mem::size_of::<int>()));
+    int rc = zmq_send (socket, bounce_content, 32, ZMQ_SNDMORE);
     TEST_ASSERT_TRUE ((rc == 32) || ((rc == -1) && (errno == EAGAIN)));
-    rc = zmq_send (socket_, bounce_content, 32, 0);
+    rc = zmq_send (socket, bounce_content, 32, 0);
     TEST_ASSERT_TRUE ((rc == 32) || ((rc == -1) && (errno == EAGAIN)));
 }
 
-static void recv_bounce_msg_fail (socket_: *mut c_void)
+static void recv_bounce_msg_fail (socket: *mut c_void)
 {
     int timeout = 250;
     char buffer[32];
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (socket_, ZMQ_RCVTIMEO, &timeout, mem::size_of::<int>()));
-    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (socket_, buffer, 32, 0));
+      zmq_setsockopt (socket, ZMQ_RCVTIMEO, &timeout, mem::size_of::<int>()));
+    TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_recv (socket, buffer, 32, 0));
 }
 
 void expect_bounce_fail (server_: *mut c_void, client_: *mut c_void)
@@ -147,10 +147,10 @@ void expect_bounce_fail (server_: *mut c_void, client_: *mut c_void)
     recv_bounce_msg_fail (client_);
 }
 
-char *s_recv (socket_: *mut c_void)
+char *s_recv (socket: *mut c_void)
 {
     char buffer[256];
-    int size = zmq_recv (socket_, buffer, 255, 0);
+    int size = zmq_recv (socket, buffer, 255, 0);
     if (size == -1)
         return null_mut();
     if (size > 255)
@@ -159,10 +159,10 @@ char *s_recv (socket_: *mut c_void)
     return strdup (buffer);
 }
 
-void s_send_seq (socket_: *mut c_void, ...)
+void s_send_seq (socket: *mut c_void, ...)
 {
     va_list ap;
-    va_start (ap, socket_);
+    va_start (ap, socket);
     const char *data = va_arg (ap, const char *);
     while (true) {
         const char *prev = data;
@@ -171,10 +171,10 @@ void s_send_seq (socket_: *mut c_void, ...)
 
         if (!prev) {
             TEST_ASSERT_SUCCESS_ERRNO (
-              zmq_send (socket_, 0, 0, end ? 0 : ZMQ_SNDMORE));
+              zmq_send (socket, 0, 0, end ? 0 : ZMQ_SNDMORE));
         } else {
             TEST_ASSERT_SUCCESS_ERRNO (zmq_send (
-              socket_, prev, strlen (prev) + 1, end ? 0 : ZMQ_SNDMORE));
+              socket, prev, strlen (prev) + 1, end ? 0 : ZMQ_SNDMORE));
         }
         if (end)
             break;
@@ -182,7 +182,7 @@ void s_send_seq (socket_: *mut c_void, ...)
     va_end (ap);
 }
 
-void s_recv_seq (socket_: *mut c_void, ...)
+void s_recv_seq (socket: *mut c_void, ...)
 {
     ZmqMessage msg;
     zmq_msg_init (&msg);
@@ -191,11 +191,11 @@ void s_recv_seq (socket_: *mut c_void, ...)
     size_t more_size = mem::size_of::<more>();
 
     va_list ap;
-    va_start (ap, socket_);
+    va_start (ap, socket);
     const char *data = va_arg (ap, const char *);
 
     while (true) {
-        TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, socket_, 0));
+        TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, socket, 0));
 
         if (!data)
             TEST_ASSERT_EQUAL_INT (0, zmq_msg_size (&msg));
@@ -206,7 +206,7 @@ void s_recv_seq (socket_: *mut c_void, ...)
         bool end = data == SEQ_END;
 
         TEST_ASSERT_SUCCESS_ERRNO (
-          zmq_getsockopt (socket_, ZMQ_RCVMORE, &more, &more_size));
+          zmq_getsockopt (socket, ZMQ_RCVMORE, &more, &more_size));
 
         TEST_ASSERT_TRUE (!more == end);
         if (end)
@@ -217,12 +217,12 @@ void s_recv_seq (socket_: *mut c_void, ...)
     zmq_msg_close (&msg);
 }
 
-void close_zero_linger (socket_: *mut c_void)
+void close_zero_linger (socket: *mut c_void)
 {
     int linger = 0;
-    int rc = zmq_setsockopt (socket_, ZMQ_LINGER, &linger, mem::size_of::<linger>());
+    int rc = zmq_setsockopt (socket, ZMQ_LINGER, &linger, mem::size_of::<linger>());
     TEST_ASSERT_TRUE (rc == 0 || errno == ETERM);
-    TEST_ASSERT_SUCCESS_ERRNO (zmq_close (socket_));
+    TEST_ASSERT_SUCCESS_ERRNO (zmq_close (socket));
 }
 
 void setup_test_environment (timeout_seconds_: i32)
@@ -353,7 +353,7 @@ int test_inet_pton (af_: i32, src_: *const c_char, dst_: *mut c_void)
 // #endif
 }
 
-sockaddr_in bind_bsd_socket (socket_: i32)
+sockaddr_in bind_bsd_socket (socket: i32)
 {
     struct sockaddr_in saddr;
     memset (&saddr, 0, mem::size_of::<saddr>());
@@ -366,18 +366,18 @@ sockaddr_in bind_bsd_socket (socket_: i32)
 // #endif
 
     TEST_ASSERT_SUCCESS_RAW_ERRNO (
-      bind (socket_, (struct sockaddr *) &saddr, mem::size_of::<saddr>()));
+      bind (socket, (struct sockaddr *) &saddr, mem::size_of::<saddr>()));
 
 // #if !defined(_WIN32_WINNT) || (_WIN32_WINNT >= 0x0600)
     socklen_t saddr_len = mem::size_of::<saddr>();
     TEST_ASSERT_SUCCESS_RAW_ERRNO (
-      getsockname (socket_, (struct sockaddr *) &saddr, &saddr_len));
+      getsockname (socket, (struct sockaddr *) &saddr, &saddr_len));
 // #endif
 
     return saddr;
 }
 
-fd_t connect_socket (endpoint_: *const c_char, const af_: i32, const protocol_: i32)
+fd_t connect_socket (endpoint: *const c_char, const af_: i32, const protocol_: i32)
 {
     struct sockaddr_storage addr;
     //  OSX is very opinionated and wants the size to match the AF family type
@@ -393,14 +393,14 @@ fd_t connect_socket (endpoint_: *const c_char, const af_: i32, const protocol_: 
 // #endif
 
     if (af_ == AF_INET || af_ == AF_INET6) {
-        const char *port = strrchr (endpoint_, ':') + 1;
+        const char *port = strrchr (endpoint, ':') + 1;
         char address[MAX_SOCKET_STRING];
         // getaddrinfo does not like [x:y::z]
-        if (*strchr (endpoint_, '/') + 2 == '[') {
-            strcpy (address, strchr (endpoint_, '[') + 1);
+        if (*strchr (endpoint, '/') + 2 == '[') {
+            strcpy (address, strchr (endpoint, '[') + 1);
             address[strlen (address) - strlen (port) - 2] = 0;
         } else {
-            strcpy (address, strchr (endpoint_, '/') + 2);
+            strcpy (address, strchr (endpoint, '/') + 2);
             address[strlen (address) - strlen (port) - 1] = 0;
         }
 
@@ -421,7 +421,7 @@ fd_t connect_socket (endpoint_: *const c_char, const af_: i32, const protocol_: 
 // #if defined(ZMQ_HAVE_IPC)
         //  Cannot cast addr as gcc 4.4 will fail with strict aliasing errors
         (*(struct sockaddr_un *) &addr).sun_family = AF_UNIX;
-        strcpy ((*(struct sockaddr_un *) &addr).sun_path, endpoint_);
+        strcpy ((*(struct sockaddr_un *) &addr).sun_path, endpoint);
         addr_len = sizeof (struct sockaddr_un);
 // #else
         return retired_fd;

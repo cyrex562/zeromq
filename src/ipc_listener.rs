@@ -47,7 +47,7 @@ pub struct ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
     ipc_listener_t (io_thread_t *io_thread_,
-                    socket_: *mut ZmqSocketBase,
+                    socket: *mut ZmqSocketBase,
                     const ZmqOptions &options_);
 
     //  Set address to listen on.
@@ -118,9 +118,9 @@ pub struct ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
 // #endif
 
 ipc_listener_t::ipc_listener_t (io_thread_t *io_thread_,
-                                     ZmqSocketBase *socket_,
+                                     ZmqSocketBase *socket,
                                      const ZmqOptions &options_) :
-    stream_listener_base_t (io_thread_, socket_, options_), _has_file (false)
+    stream_listener_base_t (io_thread_, socket, options_), _has_file (false)
 {
 }
 

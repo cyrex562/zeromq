@@ -45,7 +45,7 @@ pub struct router_t : public routing_socket_base_t
     ~router_t () ZMQ_OVERRIDE;
 
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool) ZMQ_FINAL;
     int
@@ -54,8 +54,8 @@ pub struct router_t : public routing_socket_base_t
     int xrecv (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
     bool xhas_in () ZMQ_OVERRIDE;
     bool xhas_out () ZMQ_OVERRIDE;
-    void xread_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
-    void xpipe_terminated (pipe_: &mut pipe_t) ZMQ_FINAL;
+    void xread_activated (pipe: &mut pipe_t) ZMQ_FINAL;
+    void xpipe_terminated (pipe: &mut pipe_t) ZMQ_FINAL;
     int get_peer_state (const routing_id_: &mut [u8],
                         routing_id_size_: usize) const ZMQ_FINAL;
 
@@ -65,7 +65,7 @@ pub struct router_t : public routing_socket_base_t
 
   // private:
     //  Receive peer id and update lookup map
-    bool identify_peer (pipe_t *pipe_, locally_initiated_: bool);
+    bool identify_peer (pipe_t *pipe, locally_initiated_: bool);
 
     //  Fair queueing object for inbound pipes.
     fq_t _fq;
@@ -154,34 +154,34 @@ router_t::~router_t ()
     _prefetched_msg.close ();
 }
 
-void router_t::xattach_pipe (pipe_t *pipe_,
+void router_t::xattach_pipe (pipe_t *pipe,
                                   subscribe_to_all_: bool,
                                   locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
 
-    zmq_assert (pipe_);
+    zmq_assert (pipe);
 
     if (_probe_router) {
         ZmqMessage probe_msg;
         int rc = probe_msg.init ();
         errno_assert (rc == 0);
 
-        rc = pipe_.write (&probe_msg);
+        rc = pipe.write (&probe_msg);
         // zmq_assert (rc) is not applicable here, since it is not a bug.
         LIBZMQ_UNUSED (rc);
 
-        pipe_.flush ();
+        pipe.flush ();
 
         rc = probe_msg.close ();
         errno_assert (rc == 0);
     }
 
-    const bool routing_id_ok = identify_peer (pipe_, locally_initiated_);
+    const bool routing_id_ok = identify_peer (pipe, locally_initiated_);
     if (routing_id_ok)
-        _fq.attach (pipe_);
+        _fq.attach (pipe);
     else
-        _anonymous_pipes.insert (pipe_);
+        _anonymous_pipes.insert (pipe);
 }
 
 int router_t::xsetsockopt (option_: i32,
@@ -245,27 +245,27 @@ int router_t::xsetsockopt (option_: i32,
 }
 
 
-void router_t::xpipe_terminated (pipe_: &mut pipe_t)
+void router_t::xpipe_terminated (pipe: &mut pipe_t)
 {
-    if (0 == _anonymous_pipes.erase (pipe_)) {
-        erase_out_pipe (pipe_);
-        _fq.pipe_terminated (pipe_);
-        pipe_.rollback ();
-        if (pipe_ == _current_out)
+    if (0 == _anonymous_pipes.erase (pipe)) {
+        erase_out_pipe (pipe);
+        _fq.pipe_terminated (pipe);
+        pipe.rollback ();
+        if (pipe == _current_out)
             _current_out = null_mut();
     }
 }
 
-void router_t::xread_activated (pipe_: &mut pipe_t)
+void router_t::xread_activated (pipe: &mut pipe_t)
 {
-    const std::set<pipe_t *>::iterator it = _anonymous_pipes.find (pipe_);
+    const std::set<pipe_t *>::iterator it = _anonymous_pipes.find (pipe);
     if (it == _anonymous_pipes.end ())
-        _fq.activated (pipe_);
+        _fq.activated (pipe);
     else {
-        const bool routing_id_ok = identify_peer (pipe_, false);
+        const bool routing_id_ok = identify_peer (pipe, false);
         if (routing_id_ok) {
             _anonymous_pipes.erase (it);
-            _fq.attach (pipe_);
+            _fq.attach (pipe);
         }
     }
 }
@@ -496,9 +496,9 @@ bool router_t::xhas_in ()
     return true;
 }
 
-static bool check_pipe_hwm (const pipe_t &pipe_)
+static bool check_pipe_hwm (const pipe_t &pipe)
 {
-    return pipe_.check_hwm ();
+    return pipe.check_hwm ();
 }
 
 bool router_t::xhas_out ()
@@ -536,7 +536,7 @@ int router_t::get_peer_state (const routing_id_: &mut [u8],
     return res;
 }
 
-bool router_t::identify_peer (pipe_t *pipe_, locally_initiated_: bool)
+bool router_t::identify_peer (pipe_t *pipe, locally_initiated_: bool)
 {
     ZmqMessage msg;
     Blob routing_id;
@@ -558,7 +558,7 @@ bool router_t::identify_peer (pipe_t *pipe_, locally_initiated_: bool)
     } else if (!options.raw_socket) {
         //  Pick up handshake cases and also case where next integral routing id is set
         msg.init ();
-        const bool ok = pipe_.read (&msg);
+        const bool ok = pipe.read (&msg);
         if (!ok)
             return false;
 
@@ -606,8 +606,8 @@ bool router_t::identify_peer (pipe_t *pipe_, locally_initiated_: bool)
         }
     }
 
-    pipe_.set_router_socket_routing_id (routing_id);
-    add_out_pipe (ZMQ_MOVE (routing_id), pipe_);
+    pipe.set_router_socket_routing_id (routing_id);
+    add_out_pipe (ZMQ_MOVE (routing_id), pipe);
 
     return true;
 }

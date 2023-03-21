@@ -1,122 +1,129 @@
-use crate::object::object_t;
+use crate::endpoint::EndpointUriPair;
+use crate::object::ZmqObject;
 use crate::own::own_t;
 use crate::pipe::pipe_t;
-use libc::c_void;
-use crate::endpoint::EndpointUriPair;
 use crate::socket_base::ZmqSocketBase;
+use libc::c_void;
+use std::fmt::{Display, Formatter};
 
 pub enum CommandType {
     stop,
-        plug,
-        own,
-        attach,
-        bind,
-        activate_read,
-        activate_write,
-        hiccup,
-        pipe_term,
-        pipe_term_ack,
-        pipe_hwm,
-        term_req,
-        term,
-        term_ack,
-        term_endpoint,
-        reap,
-        reaped,
-        inproc_connected,
-        conn_failed,
-        pipe_peer_stats,
-        pipe_stats_publish,
-        done
+    plug,
+    own,
+    attach,
+    bind,
+    activate_read,
+    activate_write,
+    hiccup,
+    pipe_term,
+    pipe_term_ack,
+    pipe_hwm,
+    term_req,
+    term,
+    term_ack,
+    term_endpoint,
+    reap,
+    reaped,
+    inproc_connected,
+    conn_failed,
+    pipe_peer_stats,
+    pipe_stats_publish,
+    done,
 }
 
-#[derive(Default,Debug,Clone)]
+impl Display for CommandType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+#[derive(Default, Debug, Clone)]
 pub struct StopCommandArgs {}
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct PlugCommandArgs {}
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct OwnCommandArgs {
     pub object: *mut own_t,
 }
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct AttachCommandArgs {
     pub engine: *mut i_engine,
 }
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct BindCommandArgs {
-    pub pipe: *mut pipe_t,
+    pub pipe: pipe_t,
 }
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ActivateReadCommandArgs {}
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ActivateWriteCommandArgs {
     pub msgs_read: u64,
 }
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct HiccupCommandArgs {
     pub pipe: &mut [u8],
 }
 
-#[derive(Default,Debug,Clone)]
-pub struct PipeTermCommandArgs {
-}
+#[derive(Default, Debug, Clone)]
+pub struct PipeTermCommandArgs {}
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct PipeTermAckCommandArgs {}
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct PipeHwmCommandArgs {
     pub inhwm: i32,
-    pub outhwm: i32
+    pub outhwm: i32,
 }
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct TermReqCommandArgs {
-    pub object: *mut own_t
+    pub object: *mut own_t,
 }
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct TermCommandArgs {
-    pub linger: i32,}
+    pub linger: i32,
+}
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct TermAckCommandArgs {}
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct TermEndpointCommandArgs {
-    pub endpoint: String
+    pub endpoint: String,
 }
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ReapCommandArgs {
-    pub socket: *mut ZmqSocketBase
+    pub socket: *mut ZmqSocketBase,
 }
 
 pub struct PipePeerStatsCommandArgs {
     pub queue_count: u64,
     pub socket_base: *mut own_t,
-    pub enpoint_pair: EndpointUriPair
+    pub enpoint_pair: EndpointUriPair,
 }
 
 pub struct PipeStatsPublishCommandArgs {
     pub outbound_queue_count: u64,
     pub inbound_queue_count: u64,
-    pub endpoint_pair: EndpointUriPair
+    pub endpoint_pair: EndpointUriPair,
 }
 
 pub struct DoneCommandArgs {}
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ReapedCommandArgs {}
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub union ArgsUnion {
     //  Sent to I/O thread to let it know that it should
     //  terminate itself.
@@ -171,17 +178,16 @@ pub union ArgsUnion {
     pub pip_stats_publish: PipeStatsPublishCommandArgs,
     //  Sent by reaper thread to the term thread when all the sockets
     //  are successfully deallocated.
-    pub done: DoneCommandArgs
+    pub done: DoneCommandArgs,
 }
 
 //  This structure defines the commands that can be sent between threads.
-#[derive(Default,Debug,Clone)]
-pub struct ZmqCommand
-{
-    pub type_: CommandType,
+#[derive(Default, Debug, Clone)]
+pub struct ZmqCommand {
+    pub cmd_type: CommandType,
     //  Object to process the command.
     // object_t *destination;
-    pub destination: *mut object_t,
+    pub destination: ZmqObject,
     //
     pub args: ArgsUnion,
 }

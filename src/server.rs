@@ -45,16 +45,16 @@ pub struct server_t : public ZmqSocketBase
     ~server_t ();
 
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool);
     int xsend (msg: &mut ZmqMessage);
     int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
     bool xhas_out ();
-    void xread_activated (pipe_: &mut pipe_t);
-    void xwrite_activated (pipe_: &mut pipe_t);
-    void xpipe_terminated (pipe_: &mut pipe_t);
+    void xread_activated (pipe: &mut pipe_t);
+    void xwrite_activated (pipe: &mut pipe_t);
+    void xpipe_terminated (pipe: &mut pipe_t);
 
   // private:
     //  Fair queueing object for inbound pipes.
@@ -91,49 +91,49 @@ server_t::~server_t ()
     zmq_assert (_out_pipes.empty ());
 }
 
-void server_t::xattach_pipe (pipe_t *pipe_,
+void server_t::xattach_pipe (pipe_t *pipe,
                                   subscribe_to_all_: bool,
                                   locally_initiated_: bool)
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
 
-    zmq_assert (pipe_);
+    zmq_assert (pipe);
 
     u32 routing_id = _next_routing_id++;
     if (!routing_id)
         routing_id = _next_routing_id++; //  Never use Routing ID zero
 
-    pipe_.set_server_socket_routing_id (routing_id);
+    pipe.set_server_socket_routing_id (routing_id);
     //  Add the record into output pipes lookup table
-    outpipe_t outpipe = {pipe_, true};
+    outpipe_t outpipe = {pipe, true};
     const bool ok =
       _out_pipes.ZMQ_MAP_INSERT_OR_EMPLACE (routing_id, outpipe).second;
     zmq_assert (ok);
 
-    _fq.attach (pipe_);
+    _fq.attach (pipe);
 }
 
-void server_t::xpipe_terminated (pipe_: &mut pipe_t)
+void server_t::xpipe_terminated (pipe: &mut pipe_t)
 {
     const out_pipes_t::iterator it =
-      _out_pipes.find (pipe_.get_server_socket_routing_id ());
+      _out_pipes.find (pipe.get_server_socket_routing_id ());
     zmq_assert (it != _out_pipes.end ());
     _out_pipes.erase (it);
-    _fq.pipe_terminated (pipe_);
+    _fq.pipe_terminated (pipe);
 }
 
-void server_t::xread_activated (pipe_: &mut pipe_t)
+void server_t::xread_activated (pipe: &mut pipe_t)
 {
-    _fq.activated (pipe_);
+    _fq.activated (pipe);
 }
 
-void server_t::xwrite_activated (pipe_: &mut pipe_t)
+void server_t::xwrite_activated (pipe: &mut pipe_t)
 {
     const out_pipes_t::iterator end = _out_pipes.end ();
     out_pipes_t::iterator it;
     for (it = _out_pipes.begin (); it != end; ++it)
-        if (it.second.pipe == pipe_)
+        if (it.second.pipe == pipe)
             break;
 
     zmq_assert (it != _out_pipes.end ());

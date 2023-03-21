@@ -35,7 +35,7 @@
 // #include "io_thread.hpp"
 // #include "err.hpp"
 // #include "ctx.hpp"
-pub struct io_thread_t ZMQ_FINAL : public object_t, public i_poll_events
+pub struct io_thread_t ZMQ_FINAL : public ZmqObject, public i_poll_events
 {
 // public:
     io_thread_t (ZmqContext *ctx, u32 tid_);
@@ -81,7 +81,7 @@ pub struct io_thread_t ZMQ_FINAL : public object_t, public i_poll_events
 };
 
 io_thread_t::io_thread_t (ZmqContext *ctx, u32 tid_) :
-    object_t (ctx, tid_),
+    ZmqObject (ctx, tid_),
     _mailbox_handle (static_cast<poller_t::handle_t> (null_mut()))
 {
     _poller = new (std::nothrow) poller_t (*ctx);

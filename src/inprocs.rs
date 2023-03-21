@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use crate::pipe::pipe_t;
+use std::collections::HashMap;
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct inprocs_t {
@@ -10,9 +10,11 @@ pub struct inprocs_t {
 
 impl inprocs_t {
     // void emplace (endpoint_uri_: *const c_char, pipe_: &mut pipe_t);
-    pub fn emplace(&mut self, endpoint_uri_: &str, pipe_: &mut pipe_t) {
+    pub fn emplace(&mut self, endpoint_uri_: &str, pipe: &mut pipe_t) {
         // self._inprocs.ZMQ_MAP_INSERT_OR_EMPLACE (endpoint_uri_), pipe_);
-        let _old = self._inprocs.insert(String::from(endpoint_uri_), pipe_.clone());
+        let _old = self
+            ._inprocs
+            .insert(String::from(endpoint_uri_), pipe.clone());
     }
 
     // int erase_pipes (endpoint_uri_str_: &str);
@@ -42,13 +44,13 @@ impl inprocs_t {
     }
 
     // void erase_pipe (const pipe_: &mut pipe_t);
-    pub fn erase_pipe(&mut self, pipe_: &mut pipe_t) {
+    pub fn erase_pipe(&mut self, pipe: &mut pipe_t) {
         // for (map_t::iterator it = _inprocs.begin (), end = _inprocs.end ();
         //      it != end; ++it)
         //     if (it->second == pipe_) {
         //         _inprocs.erase (it);
         //         break;
         //     }
-        self._inprocs.retain(|_, x| x != pipe_);
+        self._inprocs.retain(|_, x| x != pipe);
     }
 }

@@ -39,7 +39,7 @@ pub struct pub_t ZMQ_FINAL : public xpub_t
     ~pub_t ();
 
     //  Implementations of virtual functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe_,
+    void xattach_pipe (pipe_t *pipe,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false);
     int xrecv (msg: &mut ZmqMessage);
@@ -58,17 +58,17 @@ pub_t::~pub_t ()
 {
 }
 
-void pub_t::xattach_pipe (pipe_t *pipe_,
+void pub_t::xattach_pipe (pipe_t *pipe,
                                subscribe_to_all_: bool,
                                locally_initiated_: bool)
 {
-    zmq_assert (pipe_);
+    zmq_assert (pipe);
 
     //  Don't delay pipe termination as there is no one
     //  to receive the delimiter.
-    pipe_.set_nodelay ();
+    pipe.set_nodelay ();
 
-    xpub_t::xattach_pipe (pipe_, subscribe_to_all_, locally_initiated_);
+    xpub_t::xattach_pipe (pipe, subscribe_to_all_, locally_initiated_);
 }
 
 int pub_t::xrecv (class ZmqMessage *)

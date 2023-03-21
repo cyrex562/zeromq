@@ -62,7 +62,7 @@ template <typename T> generic_mtrie_t<T>::~generic_mtrie_t ()
 }
 
 template <typename T>
-bool generic_mtrie_t<T>::add (prefix_t prefix_, size: usize, value_t *pipe_)
+bool generic_mtrie_t<T>::add (prefix_t prefix_, size: usize, value_t *pipe)
 {
     generic_mtrie_t<value_t> *it = this;
 
@@ -144,14 +144,14 @@ bool generic_mtrie_t<T>::add (prefix_t prefix_, size: usize, value_t *pipe_)
 
         _num_prefixes.add (1);
     }
-    it._pipes.insert (pipe_);
+    it._pipes.insert (pipe);
 
     return result;
 }
 
 template <typename T>
 template <typename Arg>
-void generic_mtrie_t<T>::rm (value_t *pipe_,
+void generic_mtrie_t<T>::rm (value_t *pipe,
                              void (*func_) (prefix_t data,
                                             size: usize,
                                             Arg arg_),
@@ -180,7 +180,7 @@ void generic_mtrie_t<T>::rm (value_t *pipe_,
 
         if (!it.processed_for_removal) {
             //  Remove the subscription from this node.
-            if (it.node._pipes && it.node._pipes.erase (pipe_)) {
+            if (it.node._pipes && it.node._pipes.erase (pipe)) {
                 if (!call_on_uniq_ || it.node._pipes.empty ()) {
                     func_ (buff, it.size, arg_);
                 }
@@ -398,7 +398,7 @@ void generic_mtrie_t<T>::rm (value_t *pipe_,
 
 template <typename T>
 typename generic_mtrie_t<T>::rm_result
-generic_mtrie_t<T>::rm (prefix_t prefix_, size: usize, value_t *pipe_)
+generic_mtrie_t<T>::rm (prefix_t prefix_, size: usize, value_t *pipe)
 {
     //  This used to be implemented as a non-tail recursive traversal of the trie,
     //  which means remote clients controlled the depth of the recursion and the
@@ -425,7 +425,7 @@ generic_mtrie_t<T>::rm (prefix_t prefix_, size: usize, value_t *pipe_)
                 }
 
                 typename pipes_t::size_type erased =
-                  it.node._pipes.erase (pipe_);
+                  it.node._pipes.erase (pipe);
                 if (it.node._pipes.empty ()) {
                     zmq_assert (erased == 1);
                     LIBZMQ_DELETE (it.node._pipes);
@@ -546,7 +546,7 @@ template <typename T>
 template <typename Arg>
 void generic_mtrie_t<T>::match (prefix_t data,
                                 size: usize,
-                                void (*func_) (value_t *pipe_, Arg arg_),
+                                void (*func_) (value_t *pipe, Arg arg_),
                                 Arg arg_)
 {
     for (generic_mtrie_t *current = this; current; data++, size--) {

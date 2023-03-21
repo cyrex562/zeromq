@@ -32,7 +32,7 @@
 // #include "reaper.hpp"
 // #include "socket_base.hpp"
 // #include "err.hpp"
-pub struct reaper_t ZMQ_FINAL : public object_t, public i_poll_events
+pub struct reaper_t ZMQ_FINAL : public ZmqObject, public i_poll_events
 {
 // public:
     reaper_t (ZmqContext *ctx, u32 tid_);
@@ -51,7 +51,7 @@ pub struct reaper_t ZMQ_FINAL : public object_t, public i_poll_events
   // private:
     //  Command handlers.
     void process_stop ();
-    void process_reap (ZmqSocketBase *socket_);
+    void process_reap (ZmqSocketBase *socket);
     void process_reaped ();
 
     //  Reaper thread accesses incoming commands via this mailbox.
@@ -78,7 +78,7 @@ pub struct reaper_t ZMQ_FINAL : public object_t, public i_poll_events
 };
 
 reaper_t::reaper_t (class ZmqContext *ctx, u32 tid_) :
-    object_t (ctx, tid_),
+    ZmqObject (ctx, tid_),
     _mailbox_handle (static_cast<poller_t::handle_t> (null_mut())),
     _poller (null_mut()),
     _sockets (0),
@@ -171,10 +171,10 @@ void reaper_t::process_stop ()
     }
 }
 
-void reaper_t::process_reap (ZmqSocketBase *socket_)
+void reaper_t::process_reap (ZmqSocketBase *socket)
 {
     //  Add the socket to the poller.
-    socket_.start_reaping (_poller);
+    socket.start_reaping (_poller);
 
     ++_sockets;
 }

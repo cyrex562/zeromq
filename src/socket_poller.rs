@@ -42,9 +42,9 @@ pub struct socket_poller_t
 
     typedef ZmqPollerEvent event_t;
 
-    int add (ZmqSocketBase *socket_, user_data_: &mut [u8], short events_);
-    int modify (const ZmqSocketBase *socket_, short events_);
-    int remove (ZmqSocketBase *socket_);
+    int add (ZmqSocketBase *socket, user_data_: &mut [u8], short events_);
+    int modify (const ZmqSocketBase *socket, short events_);
+    int remove (ZmqSocketBase *socket);
 
     int add_fd (fd_t fd_, user_data_: &mut [u8], short events_);
     int modify_fd (fd_t fd_, short events_);
@@ -88,9 +88,9 @@ pub struct socket_poller_t
                                u64 &now_,
                                u64 &end_,
                                bool &first_pass_);
-    static bool is_socket (const item_t &item, const ZmqSocketBase *socket_)
+    static bool is_socket (const item_t &item, const ZmqSocketBase *socket)
     {
-        return item.socket == socket_;
+        return item.socket == socket;
     }
     static bool is_fd (const item_t &item, fd_t fd_)
     {
@@ -130,10 +130,10 @@ pub struct socket_poller_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (socket_poller_t)
 };
 
-static bool is_thread_safe (const ZmqSocketBase &socket_)
+static bool is_thread_safe (const ZmqSocketBase &socket)
 {
     // do not use getsockopt here, since that would fail during context termination
-    return socket_.is_thread_safe ();
+    return socket.is_thread_safe ();
 }
 
 // compare elements to value
@@ -204,17 +204,17 @@ int socket_poller_t::signaler_fd (fd_t *fd_) const
     return -1;
 }
 
-int socket_poller_t::add (ZmqSocketBase *socket_,
+int socket_poller_t::add (ZmqSocketBase *socket,
                                user_data_: &mut [u8],
                                short events_)
 {
-    if (find_if2 (_items.begin (), _items.end (), socket_, &is_socket)
+    if (find_if2 (_items.begin (), _items.end (), socket, &is_socket)
         != _items.end ()) {
         errno = EINVAL;
         return -1;
     }
 
-    if (is_thread_safe (*socket_)) {
+    if (is_thread_safe (*socket)) {
         if (_signaler == null_mut()) {
             _signaler = new (std::nothrow) signaler_t ();
             if (!_signaler) {
@@ -229,11 +229,11 @@ int socket_poller_t::add (ZmqSocketBase *socket_,
             }
         }
 
-        socket_.add_signaler (_signaler);
+        socket.add_signaler (_signaler);
     }
 
     const item_t item = {
-        socket_,
+        socket,
         0,
         user_data_,
         events_
@@ -284,10 +284,10 @@ int socket_poller_t::add_fd (fd_t fd_, user_data_: &mut [u8], short events_)
     return 0;
 }
 
-int socket_poller_t::modify (const ZmqSocketBase *socket_, short events_)
+int socket_poller_t::modify (const ZmqSocketBase *socket, short events_)
 {
     const items_t::iterator it =
-      find_if2 (_items.begin (), _items.end (), socket_, &is_socket);
+      find_if2 (_items.begin (), _items.end (), socket, &is_socket);
 
     if (it == _items.end ()) {
         errno = EINVAL;
@@ -318,10 +318,10 @@ int socket_poller_t::modify_fd (fd_t fd_, short events_)
 }
 
 
-int socket_poller_t::remove (ZmqSocketBase *socket_)
+int socket_poller_t::remove (ZmqSocketBase *socket)
 {
     const items_t::iterator it =
-      find_if2 (_items.begin (), _items.end (), socket_, &is_socket);
+      find_if2 (_items.begin (), _items.end (), socket, &is_socket);
 
     if (it == _items.end ()) {
         errno = EINVAL;
@@ -331,8 +331,8 @@ int socket_poller_t::remove (ZmqSocketBase *socket_)
     _items.erase (it);
     _need_rebuild = true;
 
-    if (is_thread_safe (*socket_)) {
-        socket_.remove_signaler (_signaler);
+    if (is_thread_safe (*socket)) {
+        socket.remove_signaler (_signaler);
     }
 
     return 0;
