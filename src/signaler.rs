@@ -63,210 +63,250 @@
 // #include "ip.hpp"
 // #include "tcp.hpp"
 
+use std::mem;
+use std::thread::sleep;
+use std::time::Duration;
+use libc::{EAGAIN, EINTR, getpid};
+
 // #if !defined ZMQ_HAVE_WINDOWS
 // #include <unistd.h>
 // #include <netinet/tcp.h>
 // #include <sys/types.h>
 // #include <sys/socket.h>
 // #endif
+#[derive(Default,Debug,Clone)]
 pub struct signaler_t
 {
-// public:
-    signaler_t ();
-    ~signaler_t ();
-
-    // Returns the socket/file descriptor
-    // May return retired_fd if the signaler could not be initialized.
-    fd_t get_fd () const;
-    void send ();
-    int wait (timeout_: i32) const;
-    void recv ();
-    int recv_failable ();
-
-    bool valid () const;
-
-// #ifdef HAVE_FORK
-    // close the file descriptors in a forked child process so that they
-    // do not interfere with the context in the parent process.
-    void forked ();
-// #endif
-
   // private:
     //  Underlying write & read file descriptor
     //  Will be -1 if an error occurred during initialization, e.g. we
     //  exceeded the number of available handles
-    fd_t _w;
-    fd_t _r;
+    pub _w: fd_t,
+    pub _r: fd_t,
 
 // #ifdef HAVE_FORK
     // the process that created this context. Used to detect forking.
-    pid_t pid;
-    // idempotent close of file descriptors that is safe to use by destructor
-    // and forked().
-    void close_internal ();
+    pub pid: pid_t,
 // #endif
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (signaler_t)
-};
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (signaler_t)
+}
+
+impl signaler_t {
+    // idempotent close of file descriptors that is safe to use by destructor
+    // and forked().
+    // void close_internal ();
+
+    // public:
+    // signaler_t ();
+    pub fn new ()
+    {
+        let mut out = Self{
+            _w: (),
+            _r: (),
+            pid: (),
+        };
+        //  Create the socketpair for signaling.
+        if (make_fdpair (&out._r, &out._w) == 0) {
+            unblock_socket (out._w);
+            unblock_socket (out._r);
+        }
+        // #ifdef HAVE_FORK
+        unsafe { out.pid = getpid(); }
+    // #endif
+    }
+
+    // ~signaler_t ();
+
+    // Returns the socket/file descriptor
+    // May return retired_fd if the signaler could not be initialized.
+    // fd_t get_fd () const;
+    pub fn get_fd (&self) -> fd_t
+    {
+        return self._r;
+    }
+
+    // void send ();
+
+    pub fn send (&self)
+    {
+// #if defined HAVE_FORK
+//     if (unlikely (pid != getpid ())) {
+//         //printf("Child process %d signaler_t::send returning without sending #1\n", getpid());
+//         return; // do not send anything in forked child context
+//     }
+// #endif
+// #if defined ZMQ_HAVE_EVENTFD
+        let inc = 1;
+        let sz = unsafe {
+            libc::write(self._w, &inc, mem::size_of_val(&inc))
+        };
+        // errno_assert (sz == mem::size_of::<inc>());
+// #elif defined ZMQ_HAVE_WINDOWS
+        if cfg!(windows) {
+            let dummy = 0;
+            let mut nbytes: i32;
+            loop {
+                nbytes = send(self._w, &dummy, mem::size_of_val(dummy), 0);
+                wsa_assert(nbytes != SOCKET_ERROR);
+                // wsa_assert does not abort on WSAEWOULDBLOCK. If we get this, we retry.
+                if nbytes != SOCKET_ERROR {break;}
+            }
+            // while (nbytes == SOCKET_ERROR);
+            // Given the small size of dummy (should be 1) expect that send was able to send everything.
+            zmq_assert(nbytes == mem::size_of::<dummy>());
+        }
+// #elif defined ZMQ_HAVE_VXWORKS
+//     unsigned char dummy = 0;
+//     while (true) {
+//         ssize_t nbytes = ::send (_w, (char *) &dummy, mem::size_of::<dummy>(), 0);
+//         if (unlikely (nbytes == -1 && errno == EINTR))
+//             continue;
+// // #if defined(HAVE_FORK)
+//         if (unlikely (pid != getpid ())) {
+//             //printf("Child process %d signaler_t::send returning without sending #2\n", getpid());
+//             errno = EINTR;
+//             break;
+//         }
+// // #endif
+//         zmq_assert (nbytes == sizeof dummy);
+//         break;
+//     }
+// #else
+        else {
+            let dummy = 0;
+            loop {
+                let nbytes = send(self._w, &dummy, mem::size_of::<dummy>(), 0);
+                if (unlikely(nbytes == -1 && errno == EINTR)) {
+                    continue;
+                }
+// #if defined(HAVE_FORK)
+                unsafe {
+                    if (unlikely(self.pid != getpid())) {
+                        //printf("Child process %d signaler_t::send returning without sending #2\n", getpid());
+                        errno = EINTR;
+                        break;
+                    }
+                }
+// #endif
+//             zmq_assert(nbytes == sizeof dummy);
+                break;
+            }
+        }
+// #endif
+    }
+
+    // int wait (timeout: i32) const;
+
+    // void recv ();
+
+    // int recv_failable ();
+
+    // bool valid () const;
+
+// #ifdef HAVE_FORK
+    // close the file descriptors in a forked child process so that they
+    // do not interfere with the context in the parent process.
+    // void forked ();
+// #endif
+}
 
 // #if !defined(ZMQ_HAVE_WINDOWS)
 // Helper to sleep for specific number of milliseconds (or until signal)
 //
-static int sleep_ms (unsigned ms_: i32)
+pub fn sleep_ms (ms: i32) -> anyhow::Result<()>
 {
-    if (ms_ == 0)
-        return 0;
-// #if defined ZMQ_HAVE_ANDROID
-    usleep (ms_ * 1000);
-    return 0;
-#elif defined ZMQ_HAVE_VXWORKS
-    struct timespec ns_;
-    ns_.tv_sec = ms_ / 1000;
-    ns_.tv_nsec = ms_ % 1000 * 1000000;
-    return nanosleep (&ns_, 0);
-// #else
-    return usleep (ms_ * 1000);
-// #endif
+    if (ms == 0) {
+        return Ok(());
+    }
+// // #if defined ZMQ_HAVE_ANDROID
+//     usleep (ms * 1000);
+//     return 0;
+// // TODO:
+// // #elif defined ZMQ_HAVE_VXWORKS
+// //     struct timespec ns_;
+// //     ns_.tv_sec = ms / 1000;
+// //     ns_.tv_nsec = ms % 1000 * 1000000;
+// //     return nanosleep (&ns_, 0);
+// // // #else
+//     return usleep (ms * 1000);
+// // #endif
+    let dur = Duration::new((ms * 1000) as u64, 0);
+    sleep(dur);
+    Ok(())
 }
 
 // Helper to wait on close(), for non-blocking sockets, until it completes
 // If EAGAIN is received, will sleep briefly (1-100ms) then try again, until
 // the overall timeout is reached.
 //
-static int close_wait_ms (fd_: i32, unsigned int max_ms_ = 2000)
-{
-    unsigned int ms_so_far = 0;
-    const unsigned int min_step_ms = 1;
-    const unsigned int max_step_ms = 100;
-    const unsigned int step_ms =
-      std::min (std::max (min_step_ms, max_ms_ / 10), max_step_ms);
+pub fn close_wait_ms(fd: i32, max_ms_: u32) -> i32 {
+    let mut ms_so_far = 0u32;
+    let min_step_ms = 1;
+    let max_step_ms = 100;
+    let step_ms = i32::min(i32::max(min_step_mx, (max_ms_ / 10) as i32), max_step_ms);
+    // std::min (std::max (min_step_ms, max_ms_ / 10), max_step_ms);
 
-    int rc = 0; // do not sleep on first attempt
-    do {
+    let mut rc = 0; // do not sleep on first attempt
+    loop {
         if (rc == -1 && errno == EAGAIN) {
-            sleep_ms (step_ms);
+            sleep_ms(step_ms);
             ms_so_far += step_ms;
         }
-        rc = close (fd_);
-    } while (ms_so_far < max_ms_ && rc == -1 && errno == EAGAIN);
+        rc = close(fd);
+        if !(ms_so_far < max_ms_ && rc == -1 && errno == EAGAIN) {
+            break;
+        }
+    }
 
     return rc;
 }
 // #endif
 
-signaler_t::signaler_t ()
-{
-    //  Create the socketpair for signaling.
-    if (make_fdpair (&_r, &_w) == 0) {
-        unblock_socket (_w);
-        unblock_socket (_r);
-    }
-// #ifdef HAVE_FORK
-    pid = getpid ();
-// #endif
-}
+
 
 // This might get run after some part of construction failed, leaving one or
 // both of _r and _w retired_fd.
-signaler_t::~signaler_t ()
-{
-// #if defined ZMQ_HAVE_EVENTFD
-    if (_r == retired_fd)
-        return;
-    int rc = close_wait_ms (_r);
-    errno_assert (rc == 0);
-#elif defined ZMQ_HAVE_WINDOWS
-    if (_w != retired_fd) {
-        const struct linger so_linger = {1, 0};
-        int rc = setsockopt (_w, SOL_SOCKET, SO_LINGER,
-                             reinterpret_cast<const char *> (&so_linger),
-                             sizeof so_linger);
-        //  Only check shutdown if WSASTARTUP was previously done
-        if (rc == 0 || WSAGetLastError () != WSANOTINITIALISED) {
-            wsa_assert (rc != SOCKET_ERROR);
-            rc = closesocket (_w);
-            wsa_assert (rc != SOCKET_ERROR);
-            if (_r == retired_fd)
-                return;
-            rc = closesocket (_r);
-            wsa_assert (rc != SOCKET_ERROR);
-        }
-    }
-// #else
-    if (_w != retired_fd) {
-        int rc = close_wait_ms (_w);
-        errno_assert (rc == 0);
-    }
-    if (_r != retired_fd) {
-        int rc = close_wait_ms (_r);
-        errno_assert (rc == 0);
-    }
-// #endif
-}
+// signaler_t::~signaler_t ()
+// {
+// // #if defined ZMQ_HAVE_EVENTFD
+//     if (_r == retired_fd)
+//         return;
+//     int rc = close_wait_ms (_r);
+//     errno_assert (rc == 0);
+// #elif defined ZMQ_HAVE_WINDOWS
+//     if (_w != retired_fd) {
+//         const struct linger so_linger = {1, 0};
+//         int rc = setsockopt (_w, SOL_SOCKET, SO_LINGER,
+//                              reinterpret_cast<const char *> (&so_linger),
+//                              sizeof so_linger);
+//         //  Only check shutdown if WSASTARTUP was previously done
+//         if (rc == 0 || WSAGetLastError () != WSANOTINITIALISED) {
+//             wsa_assert (rc != SOCKET_ERROR);
+//             rc = closesocket (_w);
+//             wsa_assert (rc != SOCKET_ERROR);
+//             if (_r == retired_fd)
+//                 return;
+//             rc = closesocket (_r);
+//             wsa_assert (rc != SOCKET_ERROR);
+//         }
+//     }
+// // #else
+//     if (_w != retired_fd) {
+//         int rc = close_wait_ms (_w);
+//         errno_assert (rc == 0);
+//     }
+//     if (_r != retired_fd) {
+//         int rc = close_wait_ms (_r);
+//         errno_assert (rc == 0);
+//     }
+// // #endif
+// }
 
-fd_t signaler_t::get_fd () const
-{
-    return _r;
-}
 
-void signaler_t::send ()
-{
-// #if defined HAVE_FORK
-    if (unlikely (pid != getpid ())) {
-        //printf("Child process %d signaler_t::send returning without sending #1\n", getpid());
-        return; // do not send anything in forked child context
-    }
-// #endif
-// #if defined ZMQ_HAVE_EVENTFD
-    const u64 inc = 1;
-    ssize_t sz = write (_w, &inc, mem::size_of::<inc>());
-    errno_assert (sz == mem::size_of::<inc>());
-#elif defined ZMQ_HAVE_WINDOWS
-    const char dummy = 0;
-    nbytes: i32;
-    do {
-        nbytes = ::send (_w, &dummy, mem::size_of::<dummy>(), 0);
-        wsa_assert (nbytes != SOCKET_ERROR);
-        // wsa_assert does not abort on WSAEWOULDBLOCK. If we get this, we retry.
-    } while (nbytes == SOCKET_ERROR);
-    // Given the small size of dummy (should be 1) expect that send was able to send everything.
-    zmq_assert (nbytes == mem::size_of::<dummy>());
-#elif defined ZMQ_HAVE_VXWORKS
-    unsigned char dummy = 0;
-    while (true) {
-        ssize_t nbytes = ::send (_w, (char *) &dummy, mem::size_of::<dummy>(), 0);
-        if (unlikely (nbytes == -1 && errno == EINTR))
-            continue;
-// #if defined(HAVE_FORK)
-        if (unlikely (pid != getpid ())) {
-            //printf("Child process %d signaler_t::send returning without sending #2\n", getpid());
-            errno = EINTR;
-            break;
-        }
-// #endif
-        zmq_assert (nbytes == sizeof dummy);
-        break;
-    }
-// #else
-    unsigned char dummy = 0;
-    while (true) {
-        ssize_t nbytes = ::send (_w, &dummy, mem::size_of::<dummy>(), 0);
-        if (unlikely (nbytes == -1 && errno == EINTR))
-            continue;
-// #if defined(HAVE_FORK)
-        if (unlikely (pid != getpid ())) {
-            //printf("Child process %d signaler_t::send returning without sending #2\n", getpid());
-            errno = EINTR;
-            break;
-        }
-// #endif
-        zmq_assert (nbytes == sizeof dummy);
-        break;
-    }
-// #endif
-}
 
-int signaler_t::wait (timeout_: i32) const
+
+pub fn wait (&self, timeout: i32) -> anyhow::Result<()>
 {
 // #ifdef HAVE_FORK
     if (unlikely (pid != getpid ())) {
@@ -279,60 +319,66 @@ int signaler_t::wait (timeout_: i32) const
 // #endif
 
 // #ifdef ZMQ_POLL_BASED_ON_POLL
-    struct pollfd pfd;
-    pfd.fd = _r;
-    pfd.events = POLLIN;
-    let rc: i32 = poll (&pfd, 1, timeout_);
-    if (unlikely (rc < 0)) {
-        errno_assert (errno == EINTR);
-        return -1;
-    }
-    if (unlikely (rc == 0)) {
-        errno = EAGAIN;
-        return -1;
-    }
+    #[cfg(feature="poll")]
+    {
+        let pfd: pollfd = pollfd {};
+        pfd.fd = self._r;
+        pfd.events = POLLIN;
+        let rc: i32 = libc::poll(&pfd, 1, timeout);
+        if (unlikely(rc < 0)) {
+            errno_assert(errno == EINTR);
+            return -1;
+        }
+        if (unlikely(rc == 0)) {
+            errno = EAGAIN;
+            return -1;
+        }
 // #ifdef HAVE_FORK
-    if (unlikely (pid != getpid ())) {
-        // we have forked and the file descriptor is closed. Emulate an interrupt
-        // response.
-        //printf("Child process %d signaler_t::wait returning simulating interrupt #2\n", getpid());
-        errno = EINTR;
-        return -1;
-    }
+        #[cfg(feature = "fork")]
+        if (unlikely(pid != getpid())) {
+            // we have forked and the file descriptor is closed. Emulate an interrupt
+            // response.
+            //printf("Child process %d signaler_t::wait returning simulating interrupt #2\n", getpid());
+            errno = EINTR;
+            return -1;
+        }
 // #endif
-    zmq_assert (rc == 1);
-    zmq_assert (pfd.revents & POLLIN);
-    return 0;
+//     zmq_assert (rc == 1);
+//     zmq_assert (pfd.revents & POLLIN);
+        return 0;
+    }
 
-#elif defined ZMQ_POLL_BASED_ON_SELECT
-
-    optimized_fd_set_t fds (1);
-    FD_ZERO (fds.get ());
-    FD_SET (_r, fds.get ());
-    struct timeval timeout;
-    if (timeout_ >= 0) {
-        timeout.tv_sec = timeout_ / 1000;
-        timeout.tv_usec = timeout_ % 1000 * 1000;
+// #elif defined ZMQ_POLL_BASED_ON_SELECT
+#[cfg(feature="select")]{
+    optimized_fd_set_t
+    fds(1);
+    FD_ZERO(fds.get());
+    FD_SET(_r, fds.get());
+    struct timeval
+    timeout;
+    if (timeout >= 0) {
+        timeout.tv_sec = timeout / 1000;
+        timeout.tv_usec = timeout % 1000 * 1000;
     }
 // #ifdef ZMQ_HAVE_WINDOWS
-    int rc =
-      select (0, fds.get (), null_mut(), null_mut(), timeout_ >= 0 ? &timeout : null_mut());
-    wsa_assert (rc != SOCKET_ERROR);
+    int
+    rc = select(0, fds.get(), null_mut(), null_mut(), timeout >= 0? & timeout: null_mut());
+    wsa_assert(rc != SOCKET_ERROR);
 // #else
-    int rc =
-      select (_r + 1, fds.get (), null_mut(), null_mut(), timeout_ >= 0 ? &timeout : null_mut());
-    if (unlikely (rc < 0)) {
-        errno_assert (errno == EINTR);
+    int
+    rc = select(_r + 1, fds.get(), null_mut(), null_mut(), timeout >= 0? & timeout: null_mut());
+    if (unlikely(rc < 0)) {
+        errno_assert(errno == EINTR);
         return -1;
     }
 // #endif
-    if (unlikely (rc == 0)) {
+    if (unlikely(rc == 0)) {
         errno = EAGAIN;
         return -1;
     }
-    zmq_assert (rc == 1);
+    zmq_assert(rc == 1);
     return 0;
-
+}
 // #else
 #error
 // #endif

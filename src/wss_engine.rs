@@ -32,7 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 pub struct wss_engine_t : public ws_engine_t
 {
 // public:
-    wss_engine_t (fd_t fd_,
+    wss_engine_t (fd_t fd,
                   const ZmqOptions &options_,
                   const endpoint_uri_pair_t &endpoint_uri_pair_,
                   WsAddress &address_,
@@ -79,14 +79,14 @@ static int verify_certificate_callback (gnutls_session_t session)
 }
 
 
-wss_engine_t::wss_engine_t (fd_t fd_,
+wss_engine_t::wss_engine_t (fd_t fd,
                                  const ZmqOptions &options_,
                                  const endpoint_uri_pair_t &endpoint_uri_pair_,
                                  WsAddress &address_,
                                  client_: bool,
                                  tls_server_cred_: &mut [u8],
                                  hostname_: &str) :
-    ws_engine_t (fd_, options_, endpoint_uri_pair_, address_, client_),
+    ws_engine_t (fd, options_, endpoint_uri_pair_, address_, client_),
     _established (false),
     _tls_client_cred (null_mut())
 {
@@ -138,7 +138,7 @@ wss_engine_t::wss_engine_t (fd_t fd_,
     }
 
     gnutls_set_default_priority (_tls_session);
-    gnutls_transport_set_int (_tls_session, fd_);
+    gnutls_transport_set_int (_tls_session, fd);
 }
 
 wss_engine_t::~wss_engine_t ()

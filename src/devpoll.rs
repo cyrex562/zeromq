@@ -54,7 +54,7 @@ pub struct devpoll_t ZMQ_FINAL : public worker_poller_base_t
     ~devpoll_t () ZMQ_FINAL;
 
     //  "poller" concept.
-    handle_t add_fd (fd_t fd_, i_poll_events *events_);
+    handle_t add_fd (fd_t fd, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -86,7 +86,7 @@ pub struct devpoll_t ZMQ_FINAL : public worker_poller_base_t
     pending_list_t pending_list;
 
     //  Pollset manipulation function.
-    void devpoll_ctl (fd_t fd_, short events_);
+    void devpoll_ctl (fd_t fd, short events_);
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (devpoll_t)
 };
@@ -108,41 +108,41 @@ devpoll_t::~devpoll_t ()
     close (devpoll_fd);
 }
 
-void devpoll_t::devpoll_ctl (fd_t fd_, short events_)
+void devpoll_t::devpoll_ctl (fd_t fd, short events_)
 {
-    struct pollfd pfd = {fd_, events_, 0};
+    struct pollfd pfd = {fd, events_, 0};
     ssize_t rc = write (devpoll_fd, &pfd, sizeof pfd);
     zmq_assert (rc == sizeof pfd);
 }
 
-devpoll_t::handle_t devpoll_t::add_fd (fd_t fd_,
+devpoll_t::handle_t devpoll_t::add_fd (fd_t fd,
                                                  i_poll_events *reactor_)
 {
     check_thread ();
     //  If the file descriptor table is too small expand it.
     fd_table_t::size_type sz = fd_table.size ();
-    if (sz <= (fd_table_t::size_type) fd_) {
-        fd_table.resize (fd_ + 1);
-        while (sz != (fd_table_t::size_type) (fd_ + 1)) {
+    if (sz <= (fd_table_t::size_type) fd) {
+        fd_table.resize (fd + 1);
+        while (sz != (fd_table_t::size_type) (fd + 1)) {
             fd_table[sz].valid = false;
             ++sz;
         }
     }
 
-    zmq_assert (!fd_table[fd_].valid);
+    zmq_assert (!fd_table[fd].valid);
 
-    fd_table[fd_].events = 0;
-    fd_table[fd_].reactor = reactor_;
-    fd_table[fd_].valid = true;
-    fd_table[fd_].accepted = false;
+    fd_table[fd].events = 0;
+    fd_table[fd].reactor = reactor_;
+    fd_table[fd].valid = true;
+    fd_table[fd].accepted = false;
 
-    devpoll_ctl (fd_, 0);
-    pending_list.push_back (fd_);
+    devpoll_ctl (fd, 0);
+    pending_list.push_back (fd);
 
     //  Increase the load metric of the thread.
     adjust_load (1);
 
-    return fd_;
+    return fd;
 }
 
 void devpoll_t::rm_fd (handle_t handle_)

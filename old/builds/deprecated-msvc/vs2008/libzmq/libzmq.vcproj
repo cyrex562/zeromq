@@ -239,7 +239,7 @@
       <File RelativePath="..\..\..\..\src\i_decoder.hpp" />
       <File RelativePath="..\..\..\..\src\i_encoder.hpp" />
       <File RelativePath="..\..\..\..\src\i_engine.hpp" />
-      <File RelativePath="..\..\..\..\src\i_mailbox.hpp" />
+      <File RelativePath="..\..\..\..\src\imailbox.hpp" />
       <File RelativePath="..\..\..\..\src\io_object.hpp" />
       <File RelativePath="..\..\..\..\src\io_thread.hpp" />
       <File RelativePath="..\..\..\..\src\ipc_address.hpp" />

@@ -35,7 +35,7 @@
 pub struct pub_t ZMQ_FINAL : public xpub_t
 {
 // public:
-    pub_t (ZmqContext *parent_, u32 tid_, sid_: i32);
+    pub_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~pub_t ();
 
     //  Implementations of virtual functions from ZmqSocketBase.
@@ -48,8 +48,8 @@ pub struct pub_t ZMQ_FINAL : public xpub_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (pub_t)
 };
 
-pub_t::pub_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    xpub_t (parent_, tid_, sid_)
+pub_t::pub_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+    xpub_t (parent_, tid, sid_)
 {
     options.type = ZMQ_PUB;
 }

@@ -63,7 +63,7 @@ pub struct select_t ZMQ_FINAL : public worker_poller_base_t
     ~select_t () ZMQ_FINAL;
 
     //  "poller" concept.
-    handle_t add_fd (fd_t fd_, i_poll_events *events_);
+    handle_t add_fd (fd_t fd, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -84,7 +84,7 @@ pub struct select_t ZMQ_FINAL : public worker_poller_base_t
         fds_set_t (const fds_set_t &other_);
         fds_set_t &operator= (const fds_set_t &other_);
         //  Convenience method to descriptor from all sets.
-        void remove_fd (const fd_t &fd_);
+        void remove_fd (const fd_t &fd);
 
         fd_set read;
         fd_set write;
@@ -138,10 +138,10 @@ pub struct select_t ZMQ_FINAL : public worker_poller_base_t
     static const size_t fd_family_cache_size = 8;
     std::pair<fd_t, u_short> _fd_family_cache[fd_family_cache_size];
 
-    u_short get_fd_family (fd_t fd_);
+    u_short get_fd_family (fd_t fd);
 
     //  Socket's family or AF_UNSPEC on error.
-    static u_short determine_fd_family (fd_t fd_);
+    static u_short determine_fd_family (fd_t fd);
 // #else
     //  on non-Windows, we can treat all fds as one family
     family_entry_t _family_entry;
@@ -182,33 +182,33 @@ select_t::~select_t ()
     stop_worker ();
 }
 
-select_t::handle_t select_t::add_fd (fd_t fd_, i_poll_events *events_)
+select_t::handle_t select_t::add_fd (fd_t fd, i_poll_events *events_)
 {
     check_thread ();
-    zmq_assert (fd_ != retired_fd);
+    zmq_assert (fd != retired_fd);
 
     fd_entry_t fd_entry;
-    fd_entry.fd = fd_;
+    fd_entry.fd = fd;
     fd_entry.events = events_;
 
 // #if defined ZMQ_HAVE_WINDOWS
-    u_short family = get_fd_family (fd_);
+    u_short family = get_fd_family (fd);
     wsa_assert (family != AF_UNSPEC);
     family_entry_t &family_entry = _family_entries[family];
 // #else
     family_entry_t &family_entry = _family_entry;
 // #endif
     family_entry.fd_entries.push_back (fd_entry);
-    FD_SET (fd_, &family_entry.fds_set.error);
+    FD_SET (fd, &family_entry.fds_set.error);
 
 // #if !defined ZMQ_HAVE_WINDOWS
-    if (fd_ > _max_fd)
-        _max_fd = fd_;
+    if (fd > _max_fd)
+        _max_fd = fd;
 // #endif
 
     adjust_load (1);
 
-    return fd_;
+    return fd;
 }
 
 select_t::fd_entries_t::iterator
@@ -609,11 +609,11 @@ select_t::fds_set_t::operator= (const fds_set_t &other_)
     return *this;
 }
 
-void select_t::fds_set_t::remove_fd (const fd_t &fd_)
+void select_t::fds_set_t::remove_fd (const fd_t &fd)
 {
-    FD_CLR (fd_, &read);
-    FD_CLR (fd_, &write);
-    FD_CLR (fd_, &error);
+    FD_CLR (fd, &read);
+    FD_CLR (fd, &write);
+    FD_CLR (fd, &error);
 }
 
 bool select_t::cleanup_retired (family_entry_t &family_entry_)
@@ -654,14 +654,14 @@ select_t::family_entry_t::family_entry_t () : has_retired (false)
 
 
 // #if defined ZMQ_HAVE_WINDOWS
-u_short select_t::get_fd_family (fd_t fd_)
+u_short select_t::get_fd_family (fd_t fd)
 {
     // cache the results of determine_fd_family, as this is frequently called
     // for the same sockets, and determine_fd_family is expensive
     i: usize;
     for (i = 0; i < fd_family_cache_size; ++i) {
         const std::pair<fd_t, u_short> &entry = _fd_family_cache[i];
-        if (entry.first == fd_) {
+        if (entry.first == fd) {
             return entry.second;
         }
         if (entry.first == retired_fd)
@@ -669,7 +669,7 @@ u_short select_t::get_fd_family (fd_t fd_)
     }
 
     std::pair<fd_t, u_short> res =
-      std::make_pair (fd_, determine_fd_family (fd_));
+      std::make_pair (fd, determine_fd_family (fd));
     if (i < fd_family_cache_size) {
         _fd_family_cache[i] = res;
     } else {
@@ -681,7 +681,7 @@ u_short select_t::get_fd_family (fd_t fd_)
     return res.second;
 }
 
-u_short select_t::determine_fd_family (fd_t fd_)
+u_short select_t::determine_fd_family (fd_t fd)
 {
     //  Use sockaddr_storage instead of sockaddr to accommodate different structure sizes
     sockaddr_storage addr = {0};
@@ -690,7 +690,7 @@ u_short select_t::determine_fd_family (fd_t fd_)
     type: i32;
     int type_length = mem::size_of::<int>();
 
-    int rc = getsockopt (fd_, SOL_SOCKET, SO_TYPE,
+    int rc = getsockopt (fd, SOL_SOCKET, SO_TYPE,
                          reinterpret_cast<char *> (&type), &type_length);
 
     if (rc == 0) {
@@ -698,7 +698,7 @@ u_short select_t::determine_fd_family (fd_t fd_)
             return AF_INET;
 
         rc =
-          getsockname (fd_, reinterpret_cast<sockaddr *> (&addr), &addr_size);
+          getsockname (fd, reinterpret_cast<sockaddr *> (&addr), &addr_size);
 
         //  AF_INET and AF_INET6 can be mixed in select
         //  TODO: If proven otherwise, should simply return addr.sa_family

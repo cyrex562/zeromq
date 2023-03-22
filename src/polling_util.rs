@@ -101,7 +101,7 @@ template <typename T, size_t S> class resizable_fast_vector_t
 typedef int timeout_t;
 
 timeout_t
-compute_timeout (first_pass_: bool, long timeout_, now_: u64, u64 end_);
+compute_timeout (first_pass_: bool, long timeout, now_: u64, u64 end_);
 // #endif
 #if (!defined ZMQ_POLL_BASED_ON_POLL && defined ZMQ_POLL_BASED_ON_SELECT)      \
   || defined ZMQ_HAVE_PPOLL
@@ -173,14 +173,14 @@ pub struct resizable_optimized_fd_set_t : public optimized_fd_set_t
 // #endif
 
 timeout_t compute_timeout (const first_pass_: bool,
-                                     const long timeout_,
+                                     const long timeout,
                                      const now_: u64,
                                      const u64 end_)
 {
     if (first_pass_)
         return 0;
 
-    if (timeout_ < 0)
+    if (timeout < 0)
         return -1;
 
     return static_cast<timeout_t> (

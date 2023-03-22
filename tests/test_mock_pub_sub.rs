@@ -56,12 +56,12 @@ static int get_monitor_event (monitor_: *mut c_void)
     return -1;
 }
 
-static void recv_with_retry (fd_t fd_, char *buffer_, bytes_: i32)
+static void recv_with_retry (fd_t fd, char *buffer_, bytes_: i32)
 {
     int received = 0;
     while (true) {
         int rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (
-          recv (fd_, buffer_ + received, bytes_ - received, 0));
+          recv (fd, buffer_ + received, bytes_ - received, 0));
         TEST_ASSERT_GREATER_THAN_INT (0, rc);
         received += rc;
         TEST_ASSERT_LESS_OR_EQUAL_INT (bytes_, received);
@@ -70,7 +70,7 @@ static void recv_with_retry (fd_t fd_, char *buffer_, bytes_: i32)
     }
 }
 
-static void mock_handshake (fd_t fd_, sub_command: bool, mock_pub: bool)
+static void mock_handshake (fd_t fd, sub_command: bool, mock_pub: bool)
 {
     char buffer[128];
     memset (buffer, 0, mem::size_of::<buffer>());
@@ -80,24 +80,24 @@ static void mock_handshake (fd_t fd_, sub_command: bool, mock_pub: bool)
     if (sub_command) {
         buffer[11] = 1;
     }
-    int rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (send (fd_, buffer, 64, 0));
+    int rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (send (fd, buffer, 64, 0));
     TEST_ASSERT_EQUAL_INT (64, rc);
 
-    recv_with_retry (fd_, buffer, 64);
+    recv_with_retry (fd, buffer, 64);
 
     if (!mock_pub) {
         rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (send (
-          fd_, (const char *) zmtp_ready_sub, mem::size_of::<zmtp_ready_sub>(), 0));
+          fd, (const char *) zmtp_ready_sub, mem::size_of::<zmtp_ready_sub>(), 0));
         TEST_ASSERT_EQUAL_INT (mem::size_of::<zmtp_ready_sub>(), rc);
     } else {
         rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (send (
-          fd_, (const char *) zmtp_ready_xpub, mem::size_of::<zmtp_ready_xpub>(), 0));
+          fd, (const char *) zmtp_ready_xpub, mem::size_of::<zmtp_ready_xpub>(), 0));
         TEST_ASSERT_EQUAL_INT (mem::size_of::<zmtp_ready_xpub>(), rc);
     }
 
     //  greeting - XPUB has one extra byte
     memset (buffer, 0, mem::size_of::<buffer>());
-    recv_with_retry (fd_, buffer,
+    recv_with_retry (fd, buffer,
                      mock_pub ? mem::size_of::<zmtp_ready_sub>()
                               : mem::size_of::<zmtp_ready_xpub>());
 }

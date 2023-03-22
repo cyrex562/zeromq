@@ -87,10 +87,10 @@ static int get_monitor_event_internal (monitor_: *mut c_void,
 int get_monitor_event_with_timeout (monitor_: *mut c_void,
                                     value_: *mut i32,
                                     char **address_,
-                                    timeout_: i32)
+                                    timeout: i32)
 {
     res: i32;
-    if (timeout_ == -1) {
+    if (timeout == -1) {
         // process infinite timeout in small steps to allow the user
         // to see some information on the console
 
@@ -106,7 +106,7 @@ int get_monitor_event_with_timeout (monitor_: *mut c_void,
                      wait_time);
         }
     } else {
-        zmq_setsockopt (monitor_, ZMQ_RCVTIMEO, &timeout_, mem::size_of::<timeout_>());
+        zmq_setsockopt (monitor_, ZMQ_RCVTIMEO, &timeout, mem::size_of::<timeout>());
         res = get_monitor_event_internal (monitor_, value_, address_, 0);
     }
     int timeout_infinite = -1;
@@ -275,10 +275,10 @@ static i64 get_monitor_event_with_timeout_v2 (monitor_: *mut c_void,
                                                   u64 **value_,
                                                   char **local_address_,
                                                   char **remote_address_,
-                                                  timeout_: i32)
+                                                  timeout: i32)
 {
     i64 res;
-    if (timeout_ == -1) {
+    if (timeout == -1) {
         // process infinite timeout in small steps to allow the user
         // to see some information on the console
 
@@ -294,7 +294,7 @@ static i64 get_monitor_event_with_timeout_v2 (monitor_: *mut c_void,
                      wait_time);
         }
     } else {
-        zmq_setsockopt (monitor_, ZMQ_RCVTIMEO, &timeout_, mem::size_of::<timeout_>());
+        zmq_setsockopt (monitor_, ZMQ_RCVTIMEO, &timeout, mem::size_of::<timeout>());
         res = get_monitor_event_internal_v2 (monitor_, value_, local_address_,
                                              remote_address_, 0);
     }

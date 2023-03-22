@@ -1,7 +1,7 @@
 use crate::command::{CommandType, ZmqCommand};
 use crate::context::ZmqContext;
 use crate::endpoint::{EndpointUriPair, ZmqEndpoint};
-use crate::io_thread::io_thread_t;
+use crate::io_thread::ZmqThread;
 use crate::own::own_t;
 use crate::pipe::pipe_t;
 use crate::session_base::ZmqSessionBase;
@@ -132,8 +132,8 @@ pub trait ZmqObject {
     }
 
     //  Chooses least loaded I/O thread.
-    // io_thread_t *choose_io_thread (uint64_t affinity_) const;
-    fn choose_io_thread(&mut self, affinity: u64) -> Option<io_thread_t> {
+    // ZmqThread *choose_io_thread (uint64_t affinity_) const;
+    fn choose_io_thread(&mut self, affinity: u64) -> Option<ZmqThread> {
         self.get_ctx().choose_io_thread(affinity)
     }
 
@@ -476,7 +476,7 @@ pub trait ZmqObject {
         unimplemented!()
     }
 
-    // void send_command (const command_t &cmd_);
+    // void send_command (const command_t &cmd);
     fn send_command(&mut self, cmd: &mut ZmqCommand) -> anyhow::Result<()> {
         match (cmd.cmd_type) {
             CommandType::activate_read => self.process_activate_read(),
@@ -594,7 +594,7 @@ pub trait ZmqObject {
 //     _ctx.destroy_socket (socket_);
 // }
 
-// io_thread_t *object_t::choose_io_thread (u64 affinity_) const
+// ZmqThread *object_t::choose_io_thread (u64 affinity_) const
 // {
 //     return _ctx.choose_io_thread (affinity_);
 // }
@@ -928,7 +928,7 @@ pub trait ZmqObject {
 //     zmq_assert (false);
 // }
 
-// void object_t::send_command (const ZmqCommand &cmd_)
+// void object_t::send_command (const ZmqCommand &cmd)
 // {
-//     self.ctx.send_command (cmd_.destination.get_tid (), cmd_);
+//     self.ctx.send_command (cmd.destination.get_tid (), cmd);
 // }

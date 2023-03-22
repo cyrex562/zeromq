@@ -67,7 +67,7 @@ pub struct kqueue_t ZMQ_FINAL : public worker_poller_base_t
     ~kqueue_t () ZMQ_FINAL;
 
     //  "poller" concept.
-    handle_t add_fd (fd_t fd_, i_poll_events *events_);
+    handle_t add_fd (fd_t fd, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -85,10 +85,10 @@ pub struct kqueue_t ZMQ_FINAL : public worker_poller_base_t
     fd_t kqueue_fd;
 
     //  Adds the event to the kqueue.
-    void kevent_add (fd_t fd_, short filter_, udata_: *mut c_void);
+    void kevent_add (fd_t fd, short filter_, udata_: *mut c_void);
 
     //  Deletes the event from the kqueue.
-    void kevent_delete (fd_t fd_, short filter_);
+    void kevent_delete (fd_t fd, short filter_);
 
     struct poll_entry_t
     {
@@ -129,33 +129,33 @@ kqueue_t::~kqueue_t ()
     close (kqueue_fd);
 }
 
-void kqueue_t::kevent_add (fd_t fd_, short filter_, udata_: *mut c_void)
+void kqueue_t::kevent_add (fd_t fd, short filter_, udata_: *mut c_void)
 {
     check_thread ();
     struct kevent ev;
 
-    EV_SET (&ev, fd_, filter_, EV_ADD, 0, 0, (kevent_udata_t) udata_);
+    EV_SET (&ev, fd, filter_, EV_ADD, 0, 0, (kevent_udata_t) udata_);
     int rc = kevent (kqueue_fd, &ev, 1, null_mut(), 0, null_mut());
     errno_assert (rc != -1);
 }
 
-void kqueue_t::kevent_delete (fd_t fd_, short filter_)
+void kqueue_t::kevent_delete (fd_t fd, short filter_)
 {
     struct kevent ev;
 
-    EV_SET (&ev, fd_, filter_, EV_DELETE, 0, 0, 0);
+    EV_SET (&ev, fd, filter_, EV_DELETE, 0, 0, 0);
     int rc = kevent (kqueue_fd, &ev, 1, null_mut(), 0, null_mut());
     errno_assert (rc != -1);
 }
 
-kqueue_t::handle_t kqueue_t::add_fd (fd_t fd_,
+kqueue_t::handle_t kqueue_t::add_fd (fd_t fd,
                                                i_poll_events *reactor_)
 {
     check_thread ();
     poll_entry_t *pe = new (std::nothrow) poll_entry_t;
     alloc_assert (pe);
 
-    pe.fd = fd_;
+    pe.fd = fd;
     pe.flag_pollin = 0;
     pe.flag_pollout = 0;
     pe.reactor = reactor_;

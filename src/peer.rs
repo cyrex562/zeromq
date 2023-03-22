@@ -38,7 +38,7 @@
 pub struct peer_t ZMQ_FINAL : public server_t
 {
 // public:
-    peer_t (ZmqContext *parent_, u32 tid_, sid_: i32);
+    peer_t (ZmqContext *parent_, tid: u32, sid_: i32);
 
     //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (pipe_t *pipe,
@@ -53,8 +53,8 @@ pub struct peer_t ZMQ_FINAL : public server_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (peer_t)
 };
 
-peer_t::peer_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    server_t (parent_, tid_, sid_)
+peer_t::peer_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+    server_t (parent_, tid, sid_)
 {
     options.type = ZMQ_PEER;
     options.can_send_hello_msg = true;
@@ -64,7 +64,7 @@ peer_t::peer_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
 
 u32 peer_t::connect_peer (endpoint_uri_: &str)
 {
-    scoped_optional_lock_t sync_lock (&_sync);
+    scoped_optional_lock_t sync_lock (&sync);
 
     // connect_peer cannot work with immediate enabled
     if (options.immediate == 1) {

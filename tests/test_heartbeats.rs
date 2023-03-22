@@ -75,12 +75,12 @@ static int get_monitor_event (monitor_: *mut c_void)
     return -1;
 }
 
-static void recv_with_retry (raw_socket fd_, char *buffer_, bytes_: i32)
+static void recv_with_retry (raw_socket fd, char *buffer_, bytes_: i32)
 {
     int received = 0;
     while (true) {
         int rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (
-          recv (fd_, buffer_ + received, bytes_ - received, 0));
+          recv (fd, buffer_ + received, bytes_ - received, 0));
         TEST_ASSERT_GREATER_THAN_INT (0, rc);
         received += rc;
         TEST_ASSERT_LESS_OR_EQUAL_INT (bytes_, received);
@@ -89,26 +89,26 @@ static void recv_with_retry (raw_socket fd_, char *buffer_, bytes_: i32)
     }
 }
 
-static void mock_handshake (raw_socket fd_, mock_ping_: i32)
+static void mock_handshake (raw_socket fd, mock_ping_: i32)
 {
     char buffer[128];
     memset (buffer, 0, mem::size_of::<buffer>());
     memcpy (buffer, zmtp_greeting_null, mem::size_of::<zmtp_greeting_null>());
 
     int rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (
-      send (fd_, buffer, mem::size_of::<zmtp_greeting_null>(), 0));
+      send (fd, buffer, mem::size_of::<zmtp_greeting_null>(), 0));
     TEST_ASSERT_EQUAL_INT (mem::size_of::<zmtp_greeting_null>(), rc);
 
-    recv_with_retry (fd_, buffer, mem::size_of::<zmtp_greeting_null>());
+    recv_with_retry (fd, buffer, mem::size_of::<zmtp_greeting_null>());
 
     memset (buffer, 0, mem::size_of::<buffer>());
     memcpy (buffer, zmtp_ready_dealer, mem::size_of::<zmtp_ready_dealer>());
     rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (
-      send (fd_, buffer, mem::size_of::<zmtp_ready_dealer>(), 0));
+      send (fd, buffer, mem::size_of::<zmtp_ready_dealer>(), 0));
     TEST_ASSERT_EQUAL_INT (mem::size_of::<zmtp_ready_dealer>(), rc);
 
     //  greeting
-    recv_with_retry (fd_, buffer, mem::size_of::<zmtp_ready_dealer>());
+    recv_with_retry (fd, buffer, mem::size_of::<zmtp_ready_dealer>());
 
     if (mock_ping_) {
         //  test PING context - should be replicated in the PONG
@@ -118,7 +118,7 @@ static void mock_handshake (raw_socket fd_, mock_ping_: i32)
         uint8_t zmtp_pong[10] = {4, 8, 4, 'P', 'O', 'N', 'G', 'L', 'O', 'L'};
         memset (buffer, 0, mem::size_of::<buffer>());
         memcpy (buffer, zmtp_ping, 12);
-        rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (send (fd_, buffer, 12, 0));
+        rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (send (fd, buffer, 12, 0));
         TEST_ASSERT_EQUAL_INT (12, rc);
 
         //  test a larger body that won't fit in a small message and should get
@@ -126,14 +126,14 @@ static void mock_handshake (raw_socket fd_, mock_ping_: i32)
         memset (buffer, 'z', mem::size_of::<buffer>());
         memcpy (buffer, zmtp_ping, 12);
         buffer[1] = 65;
-        rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (send (fd_, buffer, 67, 0));
+        rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (send (fd, buffer, 67, 0));
         TEST_ASSERT_EQUAL_INT (67, rc);
 
         //  small pong
-        recv_with_retry (fd_, buffer, 10);
+        recv_with_retry (fd, buffer, 10);
         TEST_ASSERT_EQUAL_INT (0, memcmp (zmtp_pong, buffer, 10));
         //  large pong
-        recv_with_retry (fd_, buffer, 23);
+        recv_with_retry (fd, buffer, 23);
         uint8_t zmtp_pooong[65] = {4, 21, 4, 'P', 'O', 'N', 'G', 'L', 'O', 'L'};
         memset (zmtp_pooong + 10, 'z', 55);
         TEST_ASSERT_EQUAL_INT (0, memcmp (zmtp_pooong, buffer, 23));

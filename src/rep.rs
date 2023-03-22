@@ -32,8 +32,8 @@
 // #include "err.hpp"
 // #include "msg.hpp"
 
-rep_t::rep_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    router_t (parent_, tid_, sid_),
+rep_t::rep_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+    router_t (parent_, tid, sid_),
     _sending_reply (false),
     _request_begins (true)
 {
@@ -134,7 +134,7 @@ bool rep_t::xhas_out ()
 pub struct rep_t ZMQ_FINAL : public router_t
 {
 // public:
-    rep_t (ZmqContext *parent_, u32 tid_, sid_: i32);
+    rep_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~rep_t ();
 
     //  Overrides of functions from ZmqSocketBase.

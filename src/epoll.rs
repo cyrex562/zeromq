@@ -54,7 +54,7 @@ pub struct epoll_t ZMQ_FINAL : public worker_poller_base_t
     ~epoll_t () ZMQ_OVERRIDE;
 
     //  "poller" concept.
-    handle_t add_fd (fd_t fd_, i_poll_events *events_);
+    handle_t add_fd (fd_t fd, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -133,7 +133,7 @@ epoll_t::~epoll_t ()
     }
 }
 
-epoll_t::handle_t epoll_t::add_fd (fd_t fd_, i_poll_events *events_)
+epoll_t::handle_t epoll_t::add_fd (fd_t fd, i_poll_events *events_)
 {
     check_thread ();
     poll_entry_t *pe = new (std::nothrow) poll_entry_t;
@@ -143,12 +143,12 @@ epoll_t::handle_t epoll_t::add_fd (fd_t fd_, i_poll_events *events_)
     //  tools to complain about using uninitialised memory.
     memset (pe, 0, mem::size_of::<poll_entry_t>());
 
-    pe.fd = fd_;
+    pe.fd = fd;
     pe.ev.events = 0;
     pe.ev.data.ptr = pe;
     pe.events = events_;
 
-    let rc: i32 = epoll_ctl (_epoll_fd, EPOLL_CTL_ADD, fd_, &pe.ev);
+    let rc: i32 = epoll_ctl (_epoll_fd, EPOLL_CTL_ADD, fd, &pe.ev);
     errno_assert (rc != -1);
 
     //  Increase the load metric of the thread.

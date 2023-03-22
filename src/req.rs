@@ -38,7 +38,7 @@
 pub struct req_t ZMQ_FINAL : public dealer_t
 {
 // public:
-    req_t (ZmqContext *parent_, u32 tid_, sid_: i32);
+    req_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~req_t ();
 
     //  Overrides of functions from ZmqSocketBase.
@@ -83,7 +83,7 @@ pub struct req_t ZMQ_FINAL : public dealer_t
 pub struct req_session_t ZMQ_FINAL : public ZmqSessionBase
 {
 // public:
-    req_session_t (io_thread_t *io_thread_,
+    req_session_t (ZmqThread *io_thread_,
                    connect_: bool,
                    socket: *mut ZmqSocketBase,
                    const ZmqOptions &options_,
@@ -105,8 +105,8 @@ pub struct req_session_t ZMQ_FINAL : public ZmqSessionBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (req_session_t)
 };
 
-req_t::req_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    dealer_t (parent_, tid_, sid_),
+req_t::req_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+    dealer_t (parent_, tid, sid_),
     _receiving_reply (false),
     _message_begins (true),
     _reply_pipe (null_mut()),
@@ -325,7 +325,7 @@ int req_t::recv_reply_pipe (msg: &mut ZmqMessage)
     }
 }
 
-req_session_t::req_session_t (io_thread_t *io_thread_,
+req_session_t::req_session_t (ZmqThread *io_thread_,
                                    connect_: bool,
                                    ZmqSocketBase *socket,
                                    const ZmqOptions &options_,

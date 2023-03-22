@@ -34,25 +34,25 @@
 pub struct io_object_t : public i_poll_events
 {
 // public:
-    io_object_t (io_thread_t *io_thread_ = null_mut());
+    io_object_t (ZmqThread *io_thread_ = null_mut());
     ~io_object_t () ZMQ_OVERRIDE;
 
     //  When migrating an object from one I/O thread to another, first
     //  unplug it, then migrate it, then plug it to the new thread.
-    void plug (io_thread_t *io_thread_);
+    void plug (ZmqThread *io_thread_);
     void unplug ();
 
   protected:
     typedef poller_t::handle_t handle_t;
 
     //  Methods to access underlying poller object.
-    handle_t add_fd (fd_t fd_);
+    handle_t add_fd (fd_t fd);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
     void set_pollout (handle_t handle_);
     void reset_pollout (handle_t handle_);
-    void add_timer (timeout_: i32, id_: i32);
+    void add_timer (timeout: i32, id_: i32);
     void cancel_timer (id_: i32);
 
     //  i_poll_events interface implementation.
@@ -61,12 +61,12 @@ pub struct io_object_t : public i_poll_events
     void timer_event (id_: i32) ZMQ_OVERRIDE;
 
   // private:
-    poller_t *_poller;
+    poller_t *poller;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (io_object_t)
 };
 
-io_object_t::io_object_t (io_thread_t *io_thread_) : _poller (null_mut())
+io_object_t::io_object_t (ZmqThread *io_thread_) : poller (null_mut())
 {
     if (io_thread_)
         plug (io_thread_);
@@ -76,62 +76,62 @@ io_object_t::~io_object_t ()
 {
 }
 
-void io_object_t::plug (io_thread_t *io_thread_)
+void io_object_t::plug (ZmqThread *io_thread_)
 {
     zmq_assert (io_thread_);
-    zmq_assert (!_poller);
+    zmq_assert (!poller);
 
     //  Retrieve the poller from the thread we are running in.
-    _poller = io_thread_.get_poller ();
+    poller = io_thread_.get_poller ();
 }
 
 void io_object_t::unplug ()
 {
-    zmq_assert (_poller);
+    zmq_assert (poller);
 
     //  Forget about old poller in preparation to be migrated
     //  to a different I/O thread.
-    _poller = null_mut();
+    poller = null_mut();
 }
 
-io_object_t::handle_t io_object_t::add_fd (fd_t fd_)
+io_object_t::handle_t io_object_t::add_fd (fd_t fd)
 {
-    return _poller.add_fd (fd_, this);
+    return poller.add_fd (fd, this);
 }
 
 void io_object_t::rm_fd (handle_t handle_)
 {
-    _poller.rm_fd (handle_);
+    poller.rm_fd (handle_);
 }
 
 void io_object_t::set_pollin (handle_t handle_)
 {
-    _poller.set_pollin (handle_);
+    poller.set_pollin (handle_);
 }
 
 void io_object_t::reset_pollin (handle_t handle_)
 {
-    _poller.reset_pollin (handle_);
+    poller.reset_pollin (handle_);
 }
 
 void io_object_t::set_pollout (handle_t handle_)
 {
-    _poller.set_pollout (handle_);
+    poller.set_pollout (handle_);
 }
 
 void io_object_t::reset_pollout (handle_t handle_)
 {
-    _poller.reset_pollout (handle_);
+    poller.reset_pollout (handle_);
 }
 
-void io_object_t::add_timer (timeout_: i32, id_: i32)
+void io_object_t::add_timer (timeout: i32, id_: i32)
 {
-    _poller.add_timer (timeout_, this, id_);
+    poller.add_timer (timeout, this, id_);
 }
 
 void io_object_t::cancel_timer (id_: i32)
 {
-    _poller.cancel_timer (this, id_);
+    poller.cancel_timer (this, id_);
 }
 
 void io_object_t::in_event ()

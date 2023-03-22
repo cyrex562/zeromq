@@ -65,7 +65,7 @@
 pub struct stream_engine_base_t : public io_object_t, public i_engine
 {
 // public:
-    stream_engine_base_t (fd_t fd_,
+    stream_engine_base_t (fd_t fd,
                           const ZmqOptions &options_,
                           const endpoint_uri_pair_t &endpoint_uri_pair_,
                           has_handshake_stage_: bool);
@@ -73,7 +73,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
 
     //  i_engine interface implementation.
     bool has_handshake_stage () ZMQ_FINAL { return _has_handshake_stage; };
-    void plug (io_thread_t *io_thread_,
+    void plug (ZmqThread *io_thread_,
                ZmqSessionBase *session_) ZMQ_FINAL;
     void terminate () ZMQ_FINAL;
     bool restart_input () ZMQ_FINAL;
@@ -264,7 +264,7 @@ static std::string get_peer_address (fd_t s_)
 }
 
 stream_engine_base_t::stream_engine_base_t (
-  fd_t fd_,
+  fd_t fd,
   const ZmqOptions &options_,
   const endpoint_uri_pair_t &endpoint_uri_pair_,
   has_handshake_stage_: bool) :
@@ -286,8 +286,8 @@ stream_engine_base_t::stream_engine_base_t (
     _has_ttl_timer (false),
     _has_timeout_timer (false),
     _has_heartbeat_timer (false),
-    _peer_address (get_peer_address (fd_)),
-    _s (fd_),
+    _peer_address (get_peer_address (fd)),
+    _s (fd),
     _handle (static_cast<handle_t> (null_mut())),
     _plugged (false),
     _handshaking (true),
@@ -340,7 +340,7 @@ stream_engine_base_t::~stream_engine_base_t ()
     LIBZMQ_DELETE (_mechanism);
 }
 
-void stream_engine_base_t::plug (io_thread_t *io_thread_,
+void stream_engine_base_t::plug (ZmqThread *io_thread_,
                                       ZmqSessionBase *session_)
 {
     zmq_assert (!_plugged);

@@ -94,7 +94,7 @@ pub struct dist_t
     //  Number of active pipes. All the active pipes are located at the
     //  beginning of the pipes array. These are the pipes the messages
     //  can be sent to at the moment.
-    pipes_t::size_type _active;
+    pipes_t::size_type active;
 
     //  Number of pipes eligible for sending messages to. This includes all
     //  the active pipes plus all the pipes that we can in theory send
@@ -110,7 +110,7 @@ pub struct dist_t
 };
 
 dist_t::dist_t () :
-    _matching (0), _active (0), _eligible (0), _more (false)
+    _matching (0), active (0), _eligible (0), _more (false)
 {
 }
 
@@ -130,8 +130,8 @@ void dist_t::attach (pipe: &mut pipe_t)
         _eligible++;
     } else {
         _pipes.push_back (pipe);
-        _pipes.swap (_active, _pipes.size () - 1);
-        _active++;
+        _pipes.swap (active, _pipes.size () - 1);
+        active++;
         _eligible++;
     }
 }
@@ -192,9 +192,9 @@ void dist_t::pipe_terminated (pipe: &mut pipe_t)
         _pipes.swap (_pipes.index (pipe), _matching - 1);
         _matching--;
     }
-    if (_pipes.index (pipe) < _active) {
-        _pipes.swap (_pipes.index (pipe), _active - 1);
-        _active--;
+    if (_pipes.index (pipe) < active) {
+        _pipes.swap (_pipes.index (pipe), active - 1);
+        active--;
     }
     if (_pipes.index (pipe) < _eligible) {
         _pipes.swap (_pipes.index (pipe), _eligible - 1);
@@ -214,15 +214,15 @@ void dist_t::activated (pipe: &mut pipe_t)
 
     //  If there's no message being sent at the moment, move it to
     //  the active state.
-    if (!_more && _active < _pipes.size ()) {
-        _pipes.swap (_eligible - 1, _active);
-        _active++;
+    if (!_more && active < _pipes.size ()) {
+        _pipes.swap (_eligible - 1, active);
+        active++;
     }
 }
 
 int dist_t::send_to_all (msg: &mut ZmqMessage)
 {
-    _matching = _active;
+    _matching = active;
     return send_to_matching (msg);
 }
 
@@ -236,7 +236,7 @@ int dist_t::send_to_matching (msg: &mut ZmqMessage)
 
     //  If multipart message is fully sent, activate all the eligible pipes.
     if (!msg_more)
-        _active = _eligible;
+        active = _eligible;
 
     _more = msg_more;
 
@@ -300,9 +300,9 @@ bool dist_t::write (pipe_t *pipe, msg: &mut ZmqMessage)
     if (!pipe.write (msg)) {
         _pipes.swap (_pipes.index (pipe), _matching - 1);
         _matching--;
-        _pipes.swap (_pipes.index (pipe), _active - 1);
-        _active--;
-        _pipes.swap (_active, _eligible - 1);
+        _pipes.swap (_pipes.index (pipe), active - 1);
+        active--;
+        _pipes.swap (active, _eligible - 1);
         _eligible--;
         return false;
     }

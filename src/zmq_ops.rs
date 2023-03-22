@@ -821,7 +821,7 @@ const char *zmq_msg_gets (const msg: *mut ZmqMessage, property_: &str)
 // Polling.
 
 // #if defined ZMQ_HAVE_POLLER
-static int zmq_poller_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
+static int zmq_poller_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
 {
     // implement zmq_poll on top of zmq_poller
     rc: i32;
@@ -879,7 +879,7 @@ static int zmq_poller_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
     }
 
     //  Wait for events
-    rc = zmq_poller_wait_all (&poller, events, nitems_, timeout_);
+    rc = zmq_poller_wait_all (&poller, events, nitems_, timeout);
     if (rc < 0) {
         delete[] events;
         if (zmq_errno () == EAGAIN) {
@@ -920,7 +920,7 @@ static int zmq_poller_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
 }
 // #endif // ZMQ_HAVE_POLLER
 
-int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
+int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
 {
 // #if defined ZMQ_HAVE_POLLER
     // if poller is present, use that if there is at least 1 thread-safe socket,
@@ -930,7 +930,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
             let mut s: *mut ZmqSocketBase =  as_socket_base_t (items_[i].socket);
             if (s) {
                 if (s.is_thread_safe ())
-                    return zmq_poller_poll (items_, nitems_, timeout_);
+                    return zmq_poller_poll (items_, nitems_, timeout);
             } else {
                 //as_socket_base_t returned null_mut() : socket is invalid
                 return -1;
@@ -944,18 +944,18 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
         return -1;
     }
     if (unlikely (nitems_ == 0)) {
-        if (timeout_ == 0)
+        if (timeout == 0)
             return 0;
 // #if defined ZMQ_HAVE_WINDOWS
-        Sleep (timeout_ > 0 ? timeout_ : INFINITE);
+        Sleep (timeout > 0 ? timeout : INFINITE);
         return 0;
 #elif defined ZMQ_HAVE_VXWORKS
         struct timespec ns_;
-        ns_.tv_sec = timeout_ / 1000;
-        ns_.tv_nsec = timeout_ % 1000 * 1000000;
+        ns_.tv_sec = timeout / 1000;
+        ns_.tv_nsec = timeout % 1000 * 1000000;
         return nanosleep (&ns_, 0);
 // #else
-        return usleep (timeout_ * 1000);
+        return usleep (timeout * 1000);
 // #endif
     }
     if (!items_) {
@@ -1051,7 +1051,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
 
         //  Compute the timeout for the subsequent poll.
         const timeout_t timeout =
-          compute_timeout (first_pass, timeout_, now, end);
+          compute_timeout (first_pass, timeout, now, end);
 
         //  Wait for events.
         {
@@ -1108,7 +1108,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
             timeout.tv_sec = 0;
             timeout.tv_usec = 0;
             ptimeout = &timeout;
-        } else if (timeout_ < 0)
+        } else if (timeout < 0)
             ptimeout = null_mut();
         else {
             timeout.tv_sec = static_cast<long> ((end - now) / 1000);
@@ -1180,7 +1180,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
 // #endif
 
         //  If timeout is zero, exit immediately whether there are events or not.
-        if (timeout_ == 0)
+        if (timeout == 0)
             break;
 
         //  If there are events to return, we can exit immediately.
@@ -1189,7 +1189,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
 
         //  At this point we are meant to wait for events but there are none.
         //  If timeout is infinite we can just loop until we get some events.
-        if (timeout_ < 0) {
+        if (timeout < 0) {
             if (first_pass)
                 first_pass = false;
             continue;
@@ -1201,7 +1201,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
         //  when the polling should time out.
         if (first_pass) {
             now = clock.now_ms ();
-            end = now + timeout_;
+            end = now + timeout;
             if (now == end)
                 break;
             first_pass = false;
@@ -1224,25 +1224,25 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
 
 // #ifdef ZMQ_HAVE_PPOLL
 // return values of 0 or -1 should be returned from zmq_poll; return value 1 means items passed checks
-int zmq_poll_check_items_ (zmq_pollitem_t *items_, nitems_: i32, long timeout_)
+int zmq_poll_check_items_ (zmq_pollitem_t *items_, nitems_: i32, long timeout)
 {
     if (unlikely (nitems_ < 0)) {
         errno = EINVAL;
         return -1;
     }
     if (unlikely (nitems_ == 0)) {
-        if (timeout_ == 0)
+        if (timeout == 0)
             return 0;
 // #if defined ZMQ_HAVE_WINDOWS
-        Sleep (timeout_ > 0 ? timeout_ : INFINITE);
+        Sleep (timeout > 0 ? timeout : INFINITE);
         return 0;
 #elif defined ZMQ_HAVE_VXWORKS
         struct timespec ns_;
-        ns_.tv_sec = timeout_ / 1000;
-        ns_.tv_nsec = timeout_ % 1000 * 1000000;
+        ns_.tv_sec = timeout / 1000;
+        ns_.tv_nsec = timeout % 1000 * 1000000;
         return nanosleep (&ns_, 0);
 // #else
-        return usleep (timeout_ * 1000);
+        return usleep (timeout * 1000);
 // #endif
     }
     if (!items_) {
@@ -1325,14 +1325,14 @@ zmq_poll_build_select_fds_ (zmq_pollitem_t *items_, nitems_: i32, int &rc)
 }
 
 timeval *zmq_poll_select_set_timeout_ (
-  long timeout_, first_pass: bool, now: u64, end: u64, timeval &timeout)
+  long timeout, first_pass: bool, now: u64, end: u64, timeval &timeout)
 {
     timeval *ptimeout;
     if (first_pass) {
         timeout.tv_sec = 0;
         timeout.tv_usec = 0;
         ptimeout = &timeout;
-    } else if (timeout_ < 0)
+    } else if (timeout < 0)
         ptimeout = null_mut();
     else {
         timeout.tv_sec = static_cast<long> ((end - now) / 1000);
@@ -1343,14 +1343,14 @@ timeval *zmq_poll_select_set_timeout_ (
 }
 
 timespec *zmq_poll_select_set_timeout_ (
-  long timeout_, first_pass: bool, now: u64, end: u64, timespec &timeout)
+  long timeout, first_pass: bool, now: u64, end: u64, timespec &timeout)
 {
     timespec *ptimeout;
     if (first_pass) {
         timeout.tv_sec = 0;
         timeout.tv_nsec = 0;
         ptimeout = &timeout;
-    } else if (timeout_ < 0)
+    } else if (timeout < 0)
         ptimeout = null_mut();
     else {
         timeout.tv_sec = static_cast<long> ((end - now) / 1000);
@@ -1401,7 +1401,7 @@ int zmq_poll_select_check_events_ (zmq_pollitem_t *items_,
     return 0;
 }
 
-bool zmq_poll_must_break_loop_ (long timeout_,
+bool zmq_poll_must_break_loop_ (long timeout,
                                 nevents: i32,
                                 bool &first_pass,
                                 clock_t &clock,
@@ -1409,7 +1409,7 @@ bool zmq_poll_must_break_loop_ (long timeout_,
                                 u64 &end)
 {
     //  If timeout is zero, exit immediately whether there are events or not.
-    if (timeout_ == 0)
+    if (timeout == 0)
         return true;
 
     //  If there are events to return, we can exit immediately.
@@ -1418,7 +1418,7 @@ bool zmq_poll_must_break_loop_ (long timeout_,
 
     //  At this point we are meant to wait for events but there are none.
     //  If timeout is infinite we can just loop until we get some events.
-    if (timeout_ < 0) {
+    if (timeout < 0) {
         if (first_pass)
             first_pass = false;
         return false;
@@ -1430,7 +1430,7 @@ bool zmq_poll_must_break_loop_ (long timeout_,
     //  when the polling should time out.
     if (first_pass) {
         now = clock.now_ms ();
-        end = now + timeout_;
+        end = now + timeout;
         if (now == end)
             return true;
         first_pass = false;
@@ -1450,18 +1450,18 @@ bool zmq_poll_must_break_loop_ (long timeout_,
 // #if !defined _WIN32
 int zmq_ppoll (zmq_pollitem_t *items_,
                nitems_: i32,
-               long timeout_,
+               long timeout,
                const sigset_t *sigmask_)
 // #else
 // Windows has no sigset_t
 int zmq_ppoll (zmq_pollitem_t *items_,
                nitems_: i32,
-               long timeout_,
+               long timeout,
                const sigmask_: *mut c_void)
 // #endif
 {
 // #ifdef ZMQ_HAVE_PPOLL
-    int rc = zmq_poll_check_items_ (items_, nitems_, timeout_);
+    int rc = zmq_poll_check_items_ (items_, nitems_, timeout);
     if (rc <= 0) {
         return rc;
     }
@@ -1481,7 +1481,7 @@ int zmq_ppoll (zmq_pollitem_t *items_,
     while (true) {
         //  Compute the timeout for the subsequent poll.
         timespec timeout;
-        timespec *ptimeout = zmq_poll_select_set_timeout_ (timeout_, first_pass,
+        timespec *ptimeout = zmq_poll_select_set_timeout_ (timeout, first_pass,
                                                            now, end, timeout);
 
         //  Wait for events. Ignore interrupts if there's infinite timeout.
@@ -1507,7 +1507,7 @@ int zmq_ppoll (zmq_pollitem_t *items_,
             return rc;
         }
 
-        if (zmq_poll_must_break_loop_ (timeout_, nevents, first_pass, clock,
+        if (zmq_poll_must_break_loop_ (timeout, nevents, first_pass, clock,
                                        now, end)) {
             break;
         }
@@ -1581,12 +1581,12 @@ static int check_poller_registration_args (poller_: *const c_void, void *const s
 }
 
 static int check_poller_fd_registration_args (poller_: *const c_void,
-                                              const fd_t fd_)
+                                              const fd_t fd)
 {
     if (-1 == check_poller (poller_))
         return -1;
 
-    if (fd_ == retired_fd) {
+    if (fd == retired_fd) {
         errno = EBADF;
         return -1;
     }
@@ -1615,16 +1615,16 @@ int zmq_poller_add (poller_: &mut [u8], s_: &mut [u8], user_data_: &mut [u8], sh
 }
 
 int zmq_poller_add_fd (poller_: &mut [u8],
-                       fd_t fd_,
+                       fd_t fd,
                        user_data_: &mut [u8],
                        short events_)
 {
-    if (-1 == check_poller_fd_registration_args (poller_, fd_)
+    if (-1 == check_poller_fd_registration_args (poller_, fd)
         || -1 == check_events (events_))
         return -1;
 
     return (static_cast<socket_poller_t *> (poller_))
-      ->add_fd (fd_, user_data_, events_);
+      ->add_fd (fd, user_data_, events_);
 }
 
 
@@ -1641,14 +1641,14 @@ int zmq_poller_modify (poller_: &mut [u8], s_: &mut [u8], short events_)
       ->modify (socket, events_);
 }
 
-int zmq_poller_modify_fd (poller_: &mut [u8], fd_t fd_, short events_)
+int zmq_poller_modify_fd (poller_: &mut [u8], fd_t fd, short events_)
 {
-    if (-1 == check_poller_fd_registration_args (poller_, fd_)
+    if (-1 == check_poller_fd_registration_args (poller_, fd)
         || -1 == check_events (events_))
         return -1;
 
     return (static_cast<socket_poller_t *> (poller_))
-      ->modify_fd (fd_, events_);
+      ->modify_fd (fd, events_);
 }
 
 int zmq_poller_remove (poller_: &mut [u8], s_: *mut c_void)
@@ -1661,17 +1661,17 @@ int zmq_poller_remove (poller_: &mut [u8], s_: *mut c_void)
     return (static_cast<socket_poller_t *> (poller_))->remove (socket);
 }
 
-int zmq_poller_remove_fd (poller_: &mut [u8], fd_t fd_)
+int zmq_poller_remove_fd (poller_: &mut [u8], fd_t fd)
 {
-    if (-1 == check_poller_fd_registration_args (poller_, fd_))
+    if (-1 == check_poller_fd_registration_args (poller_, fd))
         return -1;
 
-    return (static_cast<socket_poller_t *> (poller_))->remove_fd (fd_);
+    return (static_cast<socket_poller_t *> (poller_))->remove_fd (fd);
 }
 
-int zmq_poller_wait (poller_: &mut [u8], ZmqPollerEvent *event_, long timeout_)
+int zmq_poller_wait (poller_: &mut [u8], ZmqPollerEvent *event_, long timeout)
 {
-    let rc: i32 = zmq_poller_wait_all (poller_, event_, 1, timeout_);
+    let rc: i32 = zmq_poller_wait_all (poller_, event_, 1, timeout);
 
     if (rc < 0 && event_) {
         event_.socket = null_mut();
@@ -1686,7 +1686,7 @@ int zmq_poller_wait (poller_: &mut [u8], ZmqPollerEvent *event_, long timeout_)
 int zmq_poller_wait_all (poller_: &mut [u8],
                          ZmqPollerEvent *events_,
                          n_events_: i32,
-                         long timeout_)
+                         long timeout)
 {
     if (-1 == check_poller (poller_))
         return -1;
@@ -1703,19 +1703,19 @@ int zmq_poller_wait_all (poller_: &mut [u8],
     let rc: i32 =
       (static_cast<socket_poller_t *> (poller_))
         ->wait (reinterpret_cast<socket_poller_t::event_t *> (events_),
-                n_events_, timeout_);
+                n_events_, timeout);
 
     return rc;
 }
 
-int zmq_poller_fd (poller_: &mut [u8], zmq_fd_t *fd_)
+int zmq_poller_fd (poller_: &mut [u8], zmq_fd_t *fd)
 {
     if (!poller_
         || !(static_cast<socket_poller_t *> (poller_)->check_tag ())) {
         errno = EFAULT;
         return -1;
     }
-    return static_cast<socket_poller_t *> (poller_)->signaler_fd (fd_);
+    return static_cast<socket_poller_t *> (poller_)->signaler_fd (fd);
 }
 
 //  Peer-specific state

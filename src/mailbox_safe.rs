@@ -39,8 +39,8 @@ pub struct mailbox_safe_t ZMQ_FINAL : public i_mailbox
     mailbox_safe_t (mutex_t *sync_);
     ~mailbox_safe_t ();
 
-    void send (const ZmqCommand &cmd_);
-    int recv (ZmqCommand *cmd_, timeout_: i32);
+    void send (const ZmqCommand &cmd);
+    int recv (cmd: &mut ZmqCommand timeout: i32);
 
     // Add signaler to mailbox which will be called when a message is ready
     void add_signaler (signaler_t *signaler_);
@@ -60,25 +60,25 @@ pub struct mailbox_safe_t ZMQ_FINAL : public i_mailbox
   // private:
     //  The pipe to store actual commands.
     typedef Ypipe<ZmqCommand, command_pipe_granularity> cpipe_t;
-    cpipe_t _cpipe;
+    cpipe_t cpipe;
 
     //  Condition variable to pass signals from writer thread to reader thread.
     condition_variable_t _cond_var;
 
     //  Synchronize access to the mailbox from receivers and senders
-    mutex_t *const _sync;
+    mutex_t *const sync;
 
     std::vector<signaler_t *> _signalers;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_safe_t)
 };
 
-mailbox_safe_t::mailbox_safe_t (mutex_t *sync_) : _sync (sync_)
+mailbox_safe_t::mailbox_safe_t (mutex_t *sync_) : sync (sync_)
 {
     //  Get the pipe into passive state. That way, if the users starts by
     //  polling on the associated file descriptor it will get woken up when
     //  new command is posted.
-    const bool ok = _cpipe.check_read ();
+    const bool ok = cpipe.check_read ();
     zmq_assert (!ok);
 }
 
@@ -88,8 +88,8 @@ mailbox_safe_t::~mailbox_safe_t ()
 
     // Work around problem that other threads might still be in our
     // send() method, by waiting on the mutex before disappearing.
-    _sync.lock ();
-    _sync.unlock ();
+    sync.lock ();
+    sync.unlock ();
 }
 
 void mailbox_safe_t::add_signaler (signaler_t *signaler_)
@@ -113,11 +113,11 @@ void mailbox_safe_t::clear_signalers ()
     _signalers.clear ();
 }
 
-void mailbox_safe_t::send (const ZmqCommand &cmd_)
+void mailbox_safe_t::send (const ZmqCommand &cmd)
 {
-    _sync.lock ();
-    _cpipe.write (cmd_, false);
-    const bool ok = _cpipe.flush ();
+    sync.lock ();
+    cpipe.write (cmd, false);
+    const bool ok = cpipe.flush ();
 
     if (!ok) {
         _cond_var.broadcast ();
@@ -129,23 +129,23 @@ void mailbox_safe_t::send (const ZmqCommand &cmd_)
         }
     }
 
-    _sync.unlock ();
+    sync.unlock ();
 }
 
-int mailbox_safe_t::recv (ZmqCommand *cmd_, timeout_: i32)
+int mailbox_safe_t::recv (cmd: &mut ZmqCommand timeout: i32)
 {
     //  Try to get the command straight away.
-    if (_cpipe.read (cmd_))
+    if (cpipe.read (cmd))
         return 0;
 
     //  If the timeout is zero, it will be quicker to release the lock, giving other a chance to send a command
     //  and immediately relock it.
-    if (timeout_ == 0) {
-        _sync.unlock ();
-        _sync.lock ();
+    if (timeout == 0) {
+        sync.unlock ();
+        sync.lock ();
     } else {
         //  Wait for signal from the command sender.
-        let rc: i32 = _cond_var.wait (_sync, timeout_);
+        let rc: i32 = _cond_var.wait (sync, timeout);
         if (rc == -1) {
             errno_assert (errno == EAGAIN || errno == EINTR);
             return -1;
@@ -153,7 +153,7 @@ int mailbox_safe_t::recv (ZmqCommand *cmd_, timeout_: i32)
     }
 
     //  Another thread may already fetch the command
-    const bool ok = _cpipe.read (cmd_);
+    const bool ok = cpipe.read (cmd);
 
     if (!ok) {
         errno = EAGAIN;

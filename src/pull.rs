@@ -34,8 +34,8 @@
 // #include "msg.hpp"
 // #include "pipe.hpp"
 
-pull_t::pull_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    ZmqSocketBase (parent_, tid_, sid_)
+pull_t::pull_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+    ZmqSocketBase (parent_, tid, sid_)
 {
     options.type = ZMQ_PULL;
 }
@@ -77,7 +77,7 @@ bool pull_t::xhas_in ()
 pub struct pull_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
-    pull_t (ZmqContext *parent_, u32 tid_, sid_: i32);
+    pull_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~pull_t ();
 
   protected:

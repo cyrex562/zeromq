@@ -49,7 +49,7 @@ pub struct vmci_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
-    vmci_connecter_t (io_thread_t *io_thread_,
+    vmci_connecter_t (ZmqThread *io_thread_,
                       ZmqSessionBase *session_,
                       const ZmqOptions &options_,
                       Address *addr_,
@@ -57,7 +57,7 @@ pub struct vmci_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     ~vmci_connecter_t ();
 
   protected:
-    std::string get_socket_name (fd_t fd_, SocketEnd socket_end_) const;
+    std::string get_socket_name (fd_t fd, SocketEnd socket_end_) const;
 
   // private:
     //  ID of the timer used to check the connect timeout, must be different from stream_connecter_base_t::reconnect_timer_id.
@@ -100,7 +100,7 @@ pub struct vmci_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (vmci_connecter_t)
 };
 
-vmci_connecter_t::vmci_connecter_t (class io_thread_t *io_thread_,
+vmci_connecter_t::vmci_connecter_t (class ZmqThread *io_thread_,
 pub struct ZmqSessionBase *session_,
                                          const ZmqOptions &options_,
                                          Address *addr_,
@@ -184,11 +184,11 @@ void vmci_connecter_t::out_event ()
 }
 
 std::string
-vmci_connecter_t::get_socket_name (fd_t fd_,
+vmci_connecter_t::get_socket_name (fd_t fd,
                                         SocketEnd socket_end_) const
 {
     struct sockaddr_storage ss;
-    const ZmqSocklen sl = get_socket_address (fd_, socket_end_, &ss);
+    const ZmqSocklen sl = get_socket_address (fd, socket_end_, &ss);
     if (sl == 0) {
         return std::string ();
     }

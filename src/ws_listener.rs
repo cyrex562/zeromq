@@ -68,7 +68,7 @@
 pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
-    ws_listener_t (io_thread_t *io_thread_,
+    ws_listener_t (ZmqThread *io_thread_,
                    socket: *mut ZmqSocketBase,
                    const ZmqOptions &options_,
                    wss_: bool);
@@ -79,7 +79,7 @@ pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
     int set_local_address (addr_: &str);
 
   protected:
-    std::string get_socket_name (fd_t fd_, SocketEnd socket_end_) const;
+    std::string get_socket_name (fd_t fd, SocketEnd socket_end_) const;
     void create_engine (fd_t fd);
 
   // private:
@@ -105,7 +105,7 @@ pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_listener_t)
 };
 
-ws_listener_t::ws_listener_t (io_thread_t *io_thread_,
+ws_listener_t::ws_listener_t (ZmqThread *io_thread_,
                                    ZmqSocketBase *socket,
                                    const ZmqOptions &options_,
                                    wss_: bool) :
@@ -159,17 +159,17 @@ void ws_listener_t::in_event ()
     create_engine (fd);
 }
 
-std::string ws_listener_t::get_socket_name (fd_t fd_,
+std::string ws_listener_t::get_socket_name (fd_t fd,
                                                  SocketEnd socket_end_) const
 {
     socket_name: String;
 
 // #ifdef ZMQ_HAVE_WSS
     if (_wss)
-        socket_name = get_socket_name<WssAddress> (fd_, socket_end_);
+        socket_name = get_socket_name<WssAddress> (fd, socket_end_);
     else
 // #endif
-        socket_name = get_socket_name<WsAddress> (fd_, socket_end_);
+        socket_name = get_socket_name<WsAddress> (fd, socket_end_);
 
     return socket_name + _address.path ();
 }
@@ -339,30 +339,30 @@ fd_t ws_listener_t::accept ()
     return sock;
 }
 
-void ws_listener_t::create_engine (fd_t fd_)
+void ws_listener_t::create_engine (fd_t fd)
 {
     const endpoint_uri_pair_t endpoint_pair (
-      get_socket_name (fd_, SocketEndLocal),
-      get_socket_name (fd_, SocketEndRemote), endpoint_type_bind);
+      get_socket_name (fd, SocketEndLocal),
+      get_socket_name (fd, SocketEndRemote), endpoint_type_bind);
 
     i_engine *engine = null_mut();
     if (_wss)
 // #ifdef ZMQ_HAVE_WSS
         engine = new (std::nothrow)
-          wss_engine_t (fd_, options, endpoint_pair, _address, false, _tls_cred,
+          wss_engine_t (fd, options, endpoint_pair, _address, false, _tls_cred,
                         std::string ());
 // #else
         zmq_assert (false);
 // #endif
     else
         engine = new (std::nothrow)
-          ws_engine_t (fd_, options, endpoint_pair, _address, false);
+          ws_engine_t (fd, options, endpoint_pair, _address, false);
 
     alloc_assert (engine);
 
     //  Choose I/O thread to run connecter in. Given that we are already
     //  running in an I/O thread, there must be at least one available.
-    io_thread_t *io_thread = choose_io_thread (options.affinity);
+    ZmqThread *io_thread = choose_io_thread (options.affinity);
     zmq_assert (io_thread);
 
     //  Create and launch a session object.
@@ -373,5 +373,5 @@ void ws_listener_t::create_engine (fd_t fd_)
     launch_child (session);
     send_attach (session, engine, false);
 
-    _socket.event_accepted (endpoint_pair, fd_);
+    _socket.event_accepted (endpoint_pair, fd);
 }

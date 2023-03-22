@@ -54,7 +54,7 @@
 pub struct vmci_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
-    vmci_listener_t (io_thread_t *io_thread_,
+    vmci_listener_t (ZmqThread *io_thread_,
                      socket: *mut ZmqSocketBase,
                      const ZmqOptions &options_);
 
@@ -62,7 +62,7 @@ pub struct vmci_listener_t ZMQ_FINAL : public stream_listener_base_t
     int set_local_address (addr_: &str);
 
   protected:
-    std::string get_socket_name (fd_t fd_, SocketEnd socket_end_) const;
+    std::string get_socket_name (fd_t fd, SocketEnd socket_end_) const;
 
   // private:
     //  Handlers for I/O events.
@@ -81,7 +81,7 @@ pub struct vmci_listener_t ZMQ_FINAL : public stream_listener_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (vmci_listener_t)
 };
 
-vmci_listener_t::vmci_listener_t (io_thread_t *io_thread_,
+vmci_listener_t::vmci_listener_t (ZmqThread *io_thread_,
                                        ZmqSocketBase *socket,
                                        const ZmqOptions &options_) :
     stream_listener_base_t (io_thread_, socket, options_)
@@ -118,11 +118,11 @@ void vmci_listener_t::in_event ()
 }
 
 std::string
-vmci_listener_t::get_socket_name (fd_t fd_,
+vmci_listener_t::get_socket_name (fd_t fd,
                                        SocketEnd socket_end_) const
 {
     struct sockaddr_storage ss;
-    const ZmqSocklen sl = get_socket_address (fd_, socket_end_, &ss);
+    const ZmqSocklen sl = get_socket_address (fd, socket_end_, &ss);
     if (sl == 0) {
         return std::string ();
     }

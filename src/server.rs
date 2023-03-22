@@ -41,7 +41,7 @@
 pub struct server_t : public ZmqSocketBase
 {
 // public:
-    server_t (ZmqContext *parent_, u32 tid_, sid_: i32);
+    server_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~server_t ();
 
     //  Overrides of functions from ZmqSocketBase.
@@ -77,8 +77,8 @@ pub struct server_t : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (server_t)
 };
 
-server_t::server_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    ZmqSocketBase (parent_, tid_, sid_, true),
+server_t::server_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+    ZmqSocketBase (parent_, tid, sid_, true),
     _next_routing_id (generate_random ())
 {
     options.type = ZMQ_SERVER;

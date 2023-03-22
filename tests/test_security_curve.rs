@@ -227,24 +227,24 @@ void test_curve_security_unauthenticated_message ()
     close (s);
 }
 
-void send_all (fd_t fd_, data: *const c_char, socket_size_: usize)
+void send_all (fd_t fd, data: *const c_char, socket_size_: usize)
 {
     while (size > 0) {
-        int res = send (fd_, data, size, 0);
+        int res = send (fd, data, size, 0);
         TEST_ASSERT_GREATER_THAN_INT (0, res);
         size -= res;
         data += res;
     }
 }
 
-template <size_t N> void send (fd_t fd_, const char (&data)[N])
+template <size_t N> void send (fd_t fd, const char (&data)[N])
 {
-    send_all (fd_, data, N - 1);
+    send_all (fd, data, N - 1);
 }
 
-template <size_t N> void send (fd_t fd_, const uint8_t (&data)[N])
+template <size_t N> void send (fd_t fd, const uint8_t (&data)[N])
 {
-    send_all (fd_, reinterpret_cast<const char *> (&data), N);
+    send_all (fd, reinterpret_cast<const char *> (&data), N);
 }
 
 void test_curve_security_invalid_hello_wrong_length ()
@@ -357,21 +357,21 @@ void test_curve_security_invalid_hello_version ()
     close (s);
 }
 
-void flush_read (fd_t fd_)
+void flush_read (fd_t fd)
 {
     res: i32;
     char buf[256];
 
-    while ((res = recv (fd_, buf, 256, 0)) == 256) {
+    while ((res = recv (fd, buf, 256, 0)) == 256) {
     }
     TEST_ASSERT_NOT_EQUAL (-1, res);
 }
 
-void recv_all (fd_t fd_, data: &mut [u8], socket_len_: usize)
+void recv_all (fd_t fd, data: &mut [u8], socket_len_: usize)
 {
     socket_size_t received = 0;
     while (received < len_) {
-        int res = recv (fd_, reinterpret_cast<char *> (data), len_, 0);
+        int res = recv (fd, reinterpret_cast<char *> (data), len_, 0);
         TEST_ASSERT_GREATER_THAN_INT (0, res);
 
         data += res;
@@ -379,10 +379,10 @@ void recv_all (fd_t fd_, data: &mut [u8], socket_len_: usize)
     }
 }
 
-void recv_greeting (fd_t fd_)
+void recv_greeting (fd_t fd)
 {
     uint8_t greeting[64];
-    recv_all (fd_, greeting, 64);
+    recv_all (fd, greeting, 64);
     //  TODO assert anything about the greeting received from the server?
 }
 
@@ -426,7 +426,7 @@ void test_curve_security_invalid_initiate_wrong_length ()
 fd_t connect_exchange_greeting_and_hello_welcome (
   char *my_endpoint_,
   server_mon_: *mut c_void,
-  timeout_: i32,
+  timeout: i32,
   curve_client_tools_t &tools_)
 {
     fd_t s = connect_exchange_greeting_and_send_hello (my_endpoint_, tools_);
@@ -440,7 +440,7 @@ fd_t connect_exchange_greeting_and_hello_welcome (
       tools_.process_welcome (welcome + 2, welcome_length, cn_precom));
 
     let res: i32 =
-      get_monitor_event_with_timeout (server_mon_, null_mut(), null_mut(), timeout_);
+      get_monitor_event_with_timeout (server_mon_, null_mut(), null_mut(), timeout);
     TEST_ASSERT_EQUAL_INT (-1, res);
 
     return s;

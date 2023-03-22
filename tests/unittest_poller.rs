@@ -56,16 +56,16 @@ void test_start_empty ()
 
 struct test_events_t : i_poll_events
 {
-    test_events_t (fd_t fd_, poller_t &poller_) :
-        _fd (fd_),
-        _poller (poller_)
+    test_events_t (fd_t fd, poller_t &poller_) :
+        _fd (fd),
+        poller (poller_)
     {
         (void) _fd;
     }
 
     void in_event () ZMQ_OVERRIDE
     {
-        _poller.rm_fd (_handle);
+        poller.rm_fd (_handle);
         _handle = (poller_t::handle_t) null_mut();
 
         // this must only be incremented after rm_fd
@@ -82,7 +82,7 @@ struct test_events_t : i_poll_events
     void timer_event (id_: i32) ZMQ_OVERRIDE
     {
         LIBZMQ_UNUSED (id_);
-        _poller.rm_fd (_handle);
+        poller.rm_fd (_handle);
         _handle = (poller_t::handle_t) null_mut();
 
         // this must only be incremented after rm_fd
@@ -95,7 +95,7 @@ struct test_events_t : i_poll_events
 
   // private:
     fd_t _fd;
-    poller_t &_poller;
+    poller_t &poller;
     poller_t::handle_t _handle;
 };
 

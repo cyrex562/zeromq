@@ -36,7 +36,7 @@
 pub struct gather_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
-    gather_t (ZmqContext *parent_, u32 tid_, sid_: i32);
+    gather_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~gather_t ();
 
   protected:
@@ -56,8 +56,8 @@ pub struct gather_t ZMQ_FINAL : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (gather_t)
 };
 
-gather_t::gather_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    ZmqSocketBase (parent_, tid_, sid_, true)
+gather_t::gather_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+    ZmqSocketBase (parent_, tid, sid_, true)
 {
     options.type = ZMQ_GATHER;
 }

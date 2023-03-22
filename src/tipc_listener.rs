@@ -57,7 +57,7 @@
 pub struct tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
-    tipc_listener_t (io_thread_t *io_thread_,
+    tipc_listener_t (ZmqThread *io_thread_,
                      socket: *mut ZmqSocketBase,
                      const ZmqOptions &options_);
 
@@ -65,7 +65,7 @@ pub struct tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
     int set_local_address (addr_: &str);
 
   protected:
-    std::string get_socket_name (fd_t fd_,
+    std::string get_socket_name (fd_t fd,
                                  SocketEnd socket_end_) const ZMQ_FINAL;
 
   // private:
@@ -83,7 +83,7 @@ pub struct tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (tipc_listener_t)
 };
 
-tipc_listener_t::tipc_listener_t (io_thread_t *io_thread_,
+tipc_listener_t::tipc_listener_t (ZmqThread *io_thread_,
                                        ZmqSocketBase *socket,
                                        const ZmqOptions &options_) :
     stream_listener_base_t (io_thread_, socket, options_)
@@ -107,10 +107,10 @@ void tipc_listener_t::in_event ()
 }
 
 std::string
-tipc_listener_t::get_socket_name (fd_t fd_,
+tipc_listener_t::get_socket_name (fd_t fd,
                                        SocketEnd socket_end_) const
 {
-    return get_socket_name<TipcAddress> (fd_, socket_end_);
+    return get_socket_name<TipcAddress> (fd, socket_end_);
 }
 
 int tipc_listener_t::set_local_address (addr_: &str)

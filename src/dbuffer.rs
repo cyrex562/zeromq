@@ -77,11 +77,11 @@ template <> class dbuffer_t<ZmqMessage>
 
         zmq_assert (_back.check ());
 
-        if (_sync.try_lock ()) {
+        if (sync.try_lock ()) {
             _front.move (*_back);
             _has_msg = true;
 
-            _sync.unlock ();
+            sync.unlock ();
         }
     }
 
@@ -91,7 +91,7 @@ template <> class dbuffer_t<ZmqMessage>
             return false;
 
         {
-            scoped_lock_t lock (_sync);
+            scoped_lock_t lock (sync);
             if (!_has_msg)
                 return false;
 
@@ -108,14 +108,14 @@ template <> class dbuffer_t<ZmqMessage>
 
     bool check_read ()
     {
-        scoped_lock_t lock (_sync);
+        scoped_lock_t lock (sync);
 
         return _has_msg;
     }
 
     bool probe (bool (*fn_) (const ZmqMessage &))
     {
-        scoped_lock_t lock (_sync);
+        scoped_lock_t lock (sync);
         return (*fn_) (*_front);
     }
 
@@ -124,7 +124,7 @@ template <> class dbuffer_t<ZmqMessage>
     ZmqMessage _storage[2];
     _back: &mut ZmqMessage *_front;
 
-    mutex_t _sync;
+    mutex_t sync;
     _has_msg: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dbuffer_t)

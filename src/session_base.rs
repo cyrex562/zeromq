@@ -50,7 +50,7 @@ use std::collections::HashSet;
 use anyhow::anyhow;
 use crate::address::Address;
 use crate::endpoint::EndpointUriPair;
-use crate::io_thread::io_thread_t;
+use crate::io_thread::ZmqThread;
 use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZmqMessage};
 use crate::options::ZmqOptions;
 use crate::own::own_t;
@@ -100,8 +100,8 @@ pub struct ZmqSessionBase
     pub socket: ZmqSocketBase,
     //  I/O thread the session is living in. It will be used to plug in
     //  the engines into the same thread.
-    // io_thread_t *_io_thread;
-    pub io_thread: io_thread_t,
+    // ZmqThread *_io_thread;
+    pub io_thread: ZmqThread,
     //  ID of the linger timer
     //  True is linger timer is running.
     pub has_linger_timer: bool,
@@ -119,14 +119,14 @@ pub struct ZmqSessionBase
 }
 
 impl ZmqSessionBase {
-    // ZmqSessionBase::ZmqSessionBase (class io_thread_t *io_thread_,
+    // ZmqSessionBase::ZmqSessionBase (class ZmqThread *io_thread_,
     //                                  active_: bool,
     // pub struct ZmqSocketBase *socket_,
     //                                      const ZmqOptions &options_,
     //                                      Address *addr_) :
     //     own_t (io_thread_, options_),
     //     io_object_t (io_thread_),
-    //     _active (active_),
+    //     active (active_),
     //     _pipe (null_mut()),
     //     _zap_pipe (null_mut()),
     //     _incomplete_in (false),
@@ -142,7 +142,7 @@ impl ZmqSessionBase {
     // // #endif
     // {
     // }
-    pub fn new(io_thread: &mut io_thread_t, active: bool, socket: &mut ZmqSocketBase, options: &ZmqOptions, addr: &mut Address) -> Self {
+    pub fn new(io_thread: &mut ZmqThread, active: bool, socket: &mut ZmqSocketBase, options: &ZmqOptions, addr: &mut Address) -> Self {
         let mut own = own_t::new(io_thread, options);
         let mut io_object = io_object_t::new(io_thread);
         Self {
@@ -164,12 +164,12 @@ impl ZmqSessionBase {
 
     // public:
     //  Create a session of the particular type.
-    // static ZmqSessionBase *create (io_thread_t *io_thread_,
+    // static ZmqSessionBase *create (ZmqThread *io_thread_,
     // active_: bool,
     // socket_: *mut ZmqSocketBase,
     // const ZmqOptions &options_,
     // Address *addr_);
-    pub fn create(io_thread: &mut io_thread_t,
+    pub fn create(io_thread: &mut ZmqThread,
                   active: bool,
                   socket: &mut ZmqSocketBase,
                   options: &ZmqOptions,
@@ -428,7 +428,7 @@ impl ZmqSessionBase {
 
 
     // protected:
-    // ZmqSessionBase (io_thread_t *io_thread_,
+    // ZmqSessionBase (ZmqThread *io_thread_,
     // active_: bool,
     // socket_: *mut ZmqSocketBase,
     // const ZmqOptions &options_,
@@ -521,7 +521,7 @@ pub struct hello_msg_session_t
 impl hello_msg_session_t
 {
     // public:
-    // hello_msg_session_t (io_thread_t *io_thread_,
+    // hello_msg_session_t (ZmqThread *io_thread_,
     // connect_: bool,
     // socket_: *mut ZmqSocketBase,
     // const ZmqOptions &options_,
@@ -573,7 +573,7 @@ ZmqSocketBase *ZmqSessionBase::get_socket () const
 
 void ZmqSessionBase::process_plug ()
 {
-    if (_active)
+    if (active)
         start_connecting (false);
 }
 
@@ -687,14 +687,14 @@ void ZmqSessionBase::engine_error (handshaked_: bool,
         clean_pipes ();
 
         //  Only send disconnect message if socket was accepted and handshake was completed
-        if (!_active && handshaked_ && options.can_recv_disconnect_msg
+        if (!active && handshaked_ && options.can_recv_disconnect_msg
             && !options.disconnect_msg.empty ()) {
             _pipe.set_disconnect_msg (options.disconnect_msg);
             _pipe.send_disconnect_msg ();
         }
 
         //  Only send hiccup message if socket was connected and handshake was completed
-        if (_active && handshaked_ && options.can_recv_hiccup_msg
+        if (active && handshaked_ && options.can_recv_hiccup_msg
             && !options.hiccup_msg.empty ()) {
             _pipe.send_hiccup_msg (options.hiccup_msg);
         }
@@ -708,7 +708,7 @@ void ZmqSessionBase::engine_error (handshaked_: bool,
         case i_engine::timeout_error:
             /* FALLTHROUGH */
         case i_engine::connection_error:
-            if (_active) {
+            if (active) {
                 reconnect ();
                 break;
             }
@@ -836,11 +836,11 @@ void ZmqSessionBase::reconnect ()
 
 void ZmqSessionBase::start_connecting (wait_: bool)
 {
-    zmq_assert (_active);
+    zmq_assert (active);
 
     //  Choose I/O thread to run connecter in. Given that we are already
     //  running in an I/O thread, there must be at least one available.
-    io_thread_t *io_thread = choose_io_thread (options.affinity);
+    ZmqThread *io_thread = choose_io_thread (options.affinity);
     zmq_assert (io_thread);
 
     //  Create the connecter object.
@@ -1004,7 +1004,7 @@ void ZmqSessionBase::start_connecting (wait_: bool)
     zmq_assert (false);
 }
 
-hello_msg_session_t::hello_msg_session_t (io_thread_t *io_thread_,
+hello_msg_session_t::hello_msg_session_t (ZmqThread *io_thread_,
                                                connect_: bool,
                                                ZmqSocketBase *socket,
                                                const ZmqOptions &options_,

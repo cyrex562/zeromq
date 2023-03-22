@@ -56,7 +56,7 @@ pub struct tipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
-    tipc_connecter_t (io_thread_t *io_thread_,
+    tipc_connecter_t (ZmqThread *io_thread_,
                       ZmqSessionBase *session_,
                       const ZmqOptions &options_,
                       Address *addr_,
@@ -81,7 +81,7 @@ pub struct tipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (tipc_connecter_t)
 };
 
-tipc_connecter_t::tipc_connecter_t (class io_thread_t *io_thread_,
+tipc_connecter_t::tipc_connecter_t (class ZmqThread *io_thread_,
 pub struct ZmqSessionBase *session_,
                                          const ZmqOptions &options_,
                                          Address *addr_,

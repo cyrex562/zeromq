@@ -46,13 +46,13 @@ pub struct socket_poller_t
     int modify (const ZmqSocketBase *socket, short events_);
     int remove (ZmqSocketBase *socket);
 
-    int add_fd (fd_t fd_, user_data_: &mut [u8], short events_);
-    int modify_fd (fd_t fd_, short events_);
-    int remove_fd (fd_t fd_);
+    int add_fd (fd_t fd, user_data_: &mut [u8], short events_);
+    int modify_fd (fd_t fd, short events_);
+    int remove_fd (fd_t fd);
     // Returns the signaler's fd if there is one, otherwise errors.
-    int signaler_fd (fd_t *fd_) const;
+    int signaler_fd (fd_t *fd) const;
 
-    int wait (event_t *events_, n_events_: i32, long timeout_);
+    int wait (event_t *events_, n_events_: i32, long timeout);
 
     int size () const { return static_cast<int> (_items.size ()); };
 
@@ -84,7 +84,7 @@ pub struct socket_poller_t
                       fd_set &errset_);
 // #endif
     static int adjust_timeout (clock_t &clock_,
-                               long timeout_,
+                               long timeout,
                                u64 &now_,
                                u64 &end_,
                                bool &first_pass_);
@@ -92,9 +92,9 @@ pub struct socket_poller_t
     {
         return item.socket == socket;
     }
-    static bool is_fd (const item_t &item, fd_t fd_)
+    static bool is_fd (const item_t &item, fd_t fd)
     {
-        return !item.socket && item.fd == fd_;
+        return !item.socket && item.fd == fd;
     }
 
     int rebuild ();
@@ -103,7 +103,7 @@ pub struct socket_poller_t
     u32 _tag;
 
     //  Signaler used for thread safe sockets polling
-    signaler_t *_signaler;
+    signaler_t *signaler;
 
     //  List of sockets
     typedef std::vector<item_t> items_t;
@@ -150,7 +150,7 @@ static It find_if2 (It b_, It e_, const T &value, Pred pred)
 
 socket_poller_t::socket_poller_t () :
     _tag (0xCAFEBABE),
-    _signaler (null_mut())
+    signaler (null_mut())
 // #if defined ZMQ_POLL_BASED_ON_POLL
     ,
     _pollfds (null_mut())
@@ -172,12 +172,12 @@ socket_poller_t::~socket_poller_t ()
         // TODO shouldn't this zmq_assert (it->socket->check_tag ()) instead?
         if (it.socket && it.socket.check_tag ()
             && is_thread_safe (*it.socket)) {
-            it.socket.remove_signaler (_signaler);
+            it.socket.remove_signaler (signaler);
         }
     }
 
-    if (_signaler != null_mut()) {
-        LIBZMQ_DELETE (_signaler);
+    if (signaler != null_mut()) {
+        LIBZMQ_DELETE (signaler);
     }
 
 // #if defined ZMQ_POLL_BASED_ON_POLL
@@ -193,10 +193,10 @@ bool socket_poller_t::check_tag () const
     return _tag == 0xCAFEBABE;
 }
 
-int socket_poller_t::signaler_fd (fd_t *fd_) const
+int socket_poller_t::signaler_fd (fd_t *fd) const
 {
-    if (_signaler) {
-        *fd_ = _signaler.get_fd ();
+    if (signaler) {
+        *fd = signaler.get_fd ();
         return 0;
     }
     // Only thread-safe socket types are guaranteed to have a signaler.
@@ -215,21 +215,21 @@ int socket_poller_t::add (ZmqSocketBase *socket,
     }
 
     if (is_thread_safe (*socket)) {
-        if (_signaler == null_mut()) {
-            _signaler = new (std::nothrow) signaler_t ();
-            if (!_signaler) {
+        if (signaler == null_mut()) {
+            signaler = new (std::nothrow) signaler_t ();
+            if (!signaler) {
                 errno = ENOMEM;
                 return -1;
             }
-            if (!_signaler.valid ()) {
-                delete _signaler;
-                _signaler = null_mut();
+            if (!signaler.valid ()) {
+                delete signaler;
+                signaler = null_mut();
                 errno = EMFILE;
                 return -1;
             }
         }
 
-        socket.add_signaler (_signaler);
+        socket.add_signaler (signaler);
     }
 
     const item_t item = {
@@ -254,9 +254,9 @@ int socket_poller_t::add (ZmqSocketBase *socket,
     return 0;
 }
 
-int socket_poller_t::add_fd (fd_t fd_, user_data_: &mut [u8], short events_)
+int socket_poller_t::add_fd (fd_t fd, user_data_: &mut [u8], short events_)
 {
-    if (find_if2 (_items.begin (), _items.end (), fd_, &is_fd)
+    if (find_if2 (_items.begin (), _items.end (), fd, &is_fd)
         != _items.end ()) {
         errno = EINVAL;
         return -1;
@@ -264,7 +264,7 @@ int socket_poller_t::add_fd (fd_t fd_, user_data_: &mut [u8], short events_)
 
     const item_t item = {
         null_mut(),
-        fd_,
+        fd,
         user_data_,
         events_
 // #if defined ZMQ_POLL_BASED_ON_POLL
@@ -301,10 +301,10 @@ int socket_poller_t::modify (const ZmqSocketBase *socket, short events_)
 }
 
 
-int socket_poller_t::modify_fd (fd_t fd_, short events_)
+int socket_poller_t::modify_fd (fd_t fd, short events_)
 {
     const items_t::iterator it =
-      find_if2 (_items.begin (), _items.end (), fd_, &is_fd);
+      find_if2 (_items.begin (), _items.end (), fd, &is_fd);
 
     if (it == _items.end ()) {
         errno = EINVAL;
@@ -332,16 +332,16 @@ int socket_poller_t::remove (ZmqSocketBase *socket)
     _need_rebuild = true;
 
     if (is_thread_safe (*socket)) {
-        socket.remove_signaler (_signaler);
+        socket.remove_signaler (signaler);
     }
 
     return 0;
 }
 
-int socket_poller_t::remove_fd (fd_t fd_)
+int socket_poller_t::remove_fd (fd_t fd)
 {
     const items_t::iterator it =
-      find_if2 (_items.begin (), _items.end (), fd_, &is_fd);
+      find_if2 (_items.begin (), _items.end (), fd, &is_fd);
 
     if (it == _items.end ()) {
         errno = EINVAL;
@@ -395,7 +395,7 @@ int socket_poller_t::rebuild ()
 
     if (_use_signaler) {
         item_nbr = 1;
-        _pollfds[0].fd = _signaler.get_fd ();
+        _pollfds[0].fd = signaler.get_fd ();
         _pollfds[0].events = POLLIN;
     }
 
@@ -442,7 +442,7 @@ int socket_poller_t::rebuild ()
          ++it) {
         if (it.socket && is_thread_safe (*it.socket) && it.events) {
             _use_signaler = true;
-            FD_SET (_signaler.get_fd (), _pollset_in.get ());
+            FD_SET (signaler.get_fd (), _pollset_in.get ());
             _pollset_size = 1;
             break;
         }
@@ -580,19 +580,19 @@ int socket_poller_t::check_events (socket_poller_t::event_t *events_,
 
 //Return 0 if timeout is expired otherwise 1
 int socket_poller_t::adjust_timeout (clock_t &clock_,
-                                          long timeout_,
+                                          long timeout,
                                           u64 &now_,
                                           u64 &end_,
                                           bool &first_pass_)
 {
     //  If socket_poller_t::timeout is zero, exit immediately whether there
     //  are events or not.
-    if (timeout_ == 0)
+    if (timeout == 0)
         return 0;
 
     //  At this point we are meant to wait for events but there are none.
     //  If timeout is infinite we can just loop until we get some events.
-    if (timeout_ < 0) {
+    if (timeout < 0) {
         if (first_pass_)
             first_pass_ = false;
         return 1;
@@ -604,7 +604,7 @@ int socket_poller_t::adjust_timeout (clock_t &clock_,
     //  when the polling should time out.
     now_ = clock_.now_ms ();
     if (first_pass_) {
-        end_ = now_ + timeout_;
+        end_ = now_ + timeout;
         first_pass_ = false;
         return 1;
     }
@@ -618,9 +618,9 @@ int socket_poller_t::adjust_timeout (clock_t &clock_,
 
 int socket_poller_t::wait (socket_poller_t::event_t *events_,
                                 n_events_: i32,
-                                long timeout_)
+                                long timeout)
 {
-    if (_items.is_empty() && timeout_ < 0) {
+    if (_items.is_empty() && timeout < 0) {
         errno = EFAULT;
         return -1;
     }
@@ -632,7 +632,7 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
     }
 
     if (unlikely (_pollset_size == 0)) {
-        if (timeout_ < 0) {
+        if (timeout < 0) {
             // Fail instead of trying to sleep forever
             errno = EFAULT;
             return -1;
@@ -642,26 +642,26 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
         // needs to check the return value AND the event to avoid using the
         // nullified event data.
         errno = EAGAIN;
-        if (timeout_ == 0)
+        if (timeout == 0)
             return -1;
 // #if defined ZMQ_HAVE_WINDOWS
-        Sleep (timeout_ > 0 ? timeout_ : INFINITE);
+        Sleep (timeout > 0 ? timeout : INFINITE);
         return -1;
 #elif defined ZMQ_HAVE_ANDROID
-        usleep (timeout_ * 1000);
+        usleep (timeout * 1000);
         return -1;
 #elif defined ZMQ_HAVE_OSX
-        usleep (timeout_ * 1000);
+        usleep (timeout * 1000);
         errno = EAGAIN;
         return -1;
 #elif defined ZMQ_HAVE_VXWORKS
         struct timespec ns_;
-        ns_.tv_sec = timeout_ / 1000;
-        ns_.tv_nsec = timeout_ % 1000 * 1000000;
+        ns_.tv_sec = timeout / 1000;
+        ns_.tv_nsec = timeout % 1000 * 1000000;
         nanosleep (&ns_, 0);
         return -1;
 // #else
-        usleep (timeout_ * 1000);
+        usleep (timeout * 1000);
         return -1;
 // #endif
     }
@@ -678,7 +678,7 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
         timeout: i32;
         if (first_pass)
             timeout = 0;
-        else if (timeout_ < 0)
+        else if (timeout < 0)
             timeout = -1;
         else
             timeout =
@@ -693,7 +693,7 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
 
         //  Receive the signal from pollfd
         if (_use_signaler && _pollfds[0].revents & POLLIN)
-            _signaler.recv ();
+            signaler.recv ();
 
         //  Check for the events.
         let found: i32 = check_events (events_, n_events_);
@@ -704,7 +704,7 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
         }
 
         //  Adjust timeout or break
-        if (adjust_timeout (clock, timeout_, now, end, first_pass) == 0)
+        if (adjust_timeout (clock, timeout, now, end, first_pass) == 0)
             break;
     }
     errno = EAGAIN;
@@ -730,7 +730,7 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
             timeout.tv_sec = 0;
             timeout.tv_usec = 0;
             ptimeout = &timeout;
-        } else if (timeout_ < 0)
+        } else if (timeout < 0)
             ptimeout = null_mut();
         else {
             timeout.tv_sec = static_cast<long> ((end - now) / 1000);
@@ -760,8 +760,8 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
         }
 // #endif
 
-        if (_use_signaler && FD_ISSET (_signaler.get_fd (), inset.get ()))
-            _signaler.recv ();
+        if (_use_signaler && FD_ISSET (signaler.get_fd (), inset.get ()))
+            signaler.recv ();
 
         //  Check for the events.
         let found: i32 = check_events (events_, n_events_, *inset.get (),
@@ -773,7 +773,7 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
         }
 
         //  Adjust timeout or break
-        if (adjust_timeout (clock, timeout_, now, end, first_pass) == 0)
+        if (adjust_timeout (clock, timeout, now, end, first_pass) == 0)
             break;
     }
 

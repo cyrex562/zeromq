@@ -163,7 +163,7 @@ typedef enum
 pub struct ws_engine_t : public stream_engine_base_t
 {
 // public:
-    ws_engine_t (fd_t fd_,
+    ws_engine_t (fd_t fd,
                  const ZmqOptions &options_,
                  const endpoint_uri_pair_t &endpoint_uri_pair_,
                  const WsAddress &address_,
@@ -220,12 +220,12 @@ encode_base64 (const in_: &mut [u8], in_len_: i32, char *out_, out_len_: i32);
 static void compute_accept_key (char *key_,
                                 unsigned char hash_[SHA_DIGEST_LENGTH]);
 
-ws_engine_t::ws_engine_t (fd_t fd_,
+ws_engine_t::ws_engine_t (fd_t fd,
                                const ZmqOptions &options_,
                                const endpoint_uri_pair_t &endpoint_uri_pair_,
                                const WsAddress &address_,
                                client_: bool) :
-    stream_engine_base_t (fd_, options_, endpoint_uri_pair_, true),
+    stream_engine_base_t (fd, options_, endpoint_uri_pair_, true),
     _client (client_),
     _address (address_),
     _client_handshake_state (client_handshake_initial),

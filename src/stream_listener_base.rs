@@ -42,7 +42,7 @@
 pub struct stream_listener_base_t : public own_t, public io_object_t
 {
 // public:
-    stream_listener_base_t (io_thread_t *io_thread_,
+    stream_listener_base_t (ZmqThread *io_thread_,
                             socket: *mut ZmqSocketBase,
                             const ZmqOptions &options_);
     ~stream_listener_base_t () ZMQ_OVERRIDE;
@@ -51,7 +51,7 @@ pub struct stream_listener_base_t : public own_t, public io_object_t
     int get_local_address (std::string &addr_) const;
 
   protected:
-    virtual std::string get_socket_name (fd_t fd_,
+    virtual std::string get_socket_name (fd_t fd,
                                          SocketEnd socket_end_) const = 0;
 
   // private:
@@ -81,7 +81,7 @@ pub struct stream_listener_base_t : public own_t, public io_object_t
 };
 
 stream_listener_base_t::stream_listener_base_t (
-  io_thread_t *io_thread_,
+  ZmqThread *io_thread_,
   socket: *mut ZmqSocketBase,
   const ZmqOptions &options_) :
     own_t (io_thread_, options_),
@@ -137,22 +137,22 @@ int stream_listener_base_t::close ()
     return 0;
 }
 
-void stream_listener_base_t::create_engine (fd_t fd_)
+void stream_listener_base_t::create_engine (fd_t fd)
 {
     const endpoint_uri_pair_t endpoint_pair (
-      get_socket_name (fd_, SocketEndLocal),
-      get_socket_name (fd_, SocketEndRemote), endpoint_type_bind);
+      get_socket_name (fd, SocketEndLocal),
+      get_socket_name (fd, SocketEndRemote), endpoint_type_bind);
 
     i_engine *engine;
     if (options.raw_socket)
-        engine = new (std::nothrow) raw_engine_t (fd_, options, endpoint_pair);
+        engine = new (std::nothrow) raw_engine_t (fd, options, endpoint_pair);
     else
-        engine = new (std::nothrow) zmtp_engine_t (fd_, options, endpoint_pair);
+        engine = new (std::nothrow) zmtp_engine_t (fd, options, endpoint_pair);
     alloc_assert (engine);
 
     //  Choose I/O thread to run connecter in. Given that we are already
     //  running in an I/O thread, there must be at least one available.
-    io_thread_t *io_thread = choose_io_thread (options.affinity);
+    ZmqThread *io_thread = choose_io_thread (options.affinity);
     zmq_assert (io_thread);
 
     //  Create and launch a session object.
@@ -163,5 +163,5 @@ void stream_listener_base_t::create_engine (fd_t fd_)
     launch_child (session);
     send_attach (session, engine, false);
 
-    _socket.event_accepted (endpoint_pair, fd_);
+    _socket.event_accepted (endpoint_pair, fd);
 }

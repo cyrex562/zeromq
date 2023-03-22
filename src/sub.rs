@@ -33,7 +33,7 @@
 pub struct sub_t ZMQ_FINAL : public xsub_t
 {
 // public:
-    sub_t (ZmqContext *parent_, u32 tid_, sid_: i32);
+    sub_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~sub_t ();
 
   protected:
@@ -44,8 +44,8 @@ pub struct sub_t ZMQ_FINAL : public xsub_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (sub_t)
 };
 
-sub_t::sub_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    xsub_t (parent_, tid_, sid_)
+sub_t::sub_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+    xsub_t (parent_, tid, sid_)
 {
     options.type = ZMQ_SUB;
 

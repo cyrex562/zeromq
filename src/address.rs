@@ -112,7 +112,7 @@ int Address::to_string (std::string &addr_) const
     return -1;
 }
 
-ZmqSocklen get_socket_address (fd_t fd_,
+ZmqSocklen get_socket_address (fd_t fd,
                                             SocketEnd socket_end_,
                                             sockaddr_storage *ss_)
 {
@@ -120,17 +120,17 @@ ZmqSocklen get_socket_address (fd_t fd_,
 
     let rc: i32 =
       socket_end_ == SocketEndLocal
-        ? getsockname (fd_, reinterpret_cast<struct sockaddr *> (ss_), &sl)
-        : getpeername (fd_, reinterpret_cast<struct sockaddr *> (ss_), &sl);
+        ? getsockname (fd, reinterpret_cast<struct sockaddr *> (ss_), &sl)
+        : getpeername (fd, reinterpret_cast<struct sockaddr *> (ss_), &sl);
 
     return rc != 0 ? 0 : sl;
 }
 
-pub fn get_socket_name<T>(fd_: fd_t, socket_end_: SocketEnd) -> String
+pub fn get_socket_name<T>(fd: fd_t, socket_end_: SocketEnd) -> String
 {
     // struct sockaddr_storage ss;
     let mut ss: sockaddr_storage = sockaddr_storage{};
-    let mut sl: ZmqSocklen = get_socket_address (fd_, socket_end_, &ss);
+    let mut sl: ZmqSocklen = get_socket_address (fd, socket_end_, &ss);
     if (sl == 0) {
         return String::empty();
     }

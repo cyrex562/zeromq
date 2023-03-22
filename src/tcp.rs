@@ -184,25 +184,25 @@ int tune_tcp_keepalives (fd_t s_,
     return 0;
 }
 
-int tune_tcp_maxrt (fd_t sockfd_, timeout_: i32)
+int tune_tcp_maxrt (fd_t sockfd_, timeout: i32)
 {
-    if (timeout_ <= 0)
+    if (timeout <= 0)
         return 0;
 
     LIBZMQ_UNUSED (sockfd_);
 
 // #if defined(ZMQ_HAVE_WINDOWS) && defined(TCP_MAXRT)
     // msdn says it's supported in >= Vista, >= Windows Server 2003
-    timeout_ /= 1000; // in seconds
+    timeout /= 1000; // in seconds
     let rc: i32 =
       setsockopt (sockfd_, IPPROTO_TCP, TCP_MAXRT,
-                  reinterpret_cast<char *> (&timeout_), mem::size_of::<timeout_>());
+                  reinterpret_cast<char *> (&timeout), mem::size_of::<timeout>());
     assert_success_or_recoverable (sockfd_, rc);
     return rc;
 // FIXME: should be ZMQ_HAVE_TCP_USER_TIMEOUT
 #elif defined(TCP_USER_TIMEOUT)
-    int rc = setsockopt (sockfd_, IPPROTO_TCP, TCP_USER_TIMEOUT, &timeout_,
-                         mem::size_of::<timeout_>());
+    int rc = setsockopt (sockfd_, IPPROTO_TCP, TCP_USER_TIMEOUT, &timeout,
+                         mem::size_of::<timeout>());
     assert_success_or_recoverable (sockfd_, rc);
     return rc;
 // #else

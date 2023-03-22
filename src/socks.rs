@@ -54,7 +54,7 @@ pub struct socks_greeting_encoder_t
 // public:
     socks_greeting_encoder_t ();
     void encode (const socks_greeting_t &greeting_);
-    int output (fd_t fd_);
+    int output (fd_t fd);
     bool has_pending_data () const;
     void reset ();
 
@@ -74,7 +74,7 @@ pub struct socks_choice_decoder_t
 {
 // public:
     socks_choice_decoder_t ();
-    int input (fd_t fd_);
+    int input (fd_t fd);
     bool message_ready () const;
     socks_choice_t decode ();
     void reset ();
@@ -98,7 +98,7 @@ pub struct socks_basic_auth_request_encoder_t
 // public:
     socks_basic_auth_request_encoder_t ();
     void encode (const socks_basic_auth_request_t &req_);
-    int output (fd_t fd_);
+    int output (fd_t fd);
     bool has_pending_data () const;
     void reset ();
 
@@ -117,7 +117,7 @@ pub struct socks_auth_response_decoder_t
 {
 // public:
     socks_auth_response_decoder_t ();
-    int input (fd_t fd_);
+    int input (fd_t fd);
     bool message_ready () const;
     socks_auth_response_t decode ();
     void reset ();
@@ -140,7 +140,7 @@ pub struct socks_request_encoder_t
 // public:
     socks_request_encoder_t ();
     void encode (const socks_request_t &req_);
-    int output (fd_t fd_);
+    int output (fd_t fd);
     bool has_pending_data () const;
     void reset ();
 
@@ -163,7 +163,7 @@ pub struct socks_response_decoder_t
 {
 // public:
     socks_response_decoder_t ();
-    int input (fd_t fd_);
+    int input (fd_t fd);
     bool message_ready () const;
     socks_response_t decode ();
     void reset ();
@@ -204,10 +204,10 @@ void socks_greeting_encoder_t::encode (const socks_greeting_t &greeting_)
     _bytes_written = 0;
 }
 
-int socks_greeting_encoder_t::output (fd_t fd_)
+int socks_greeting_encoder_t::output (fd_t fd)
 {
     let rc: i32 =
-      tcp_write (fd_, _buf + _bytes_written, _bytes_encoded - _bytes_written);
+      tcp_write (fd, _buf + _bytes_written, _bytes_encoded - _bytes_written);
     if (rc > 0)
         _bytes_written += static_cast<size_t> (rc);
     return rc;
@@ -231,10 +231,10 @@ socks_choice_decoder_t::socks_choice_decoder_t () : _bytes_read (0)
 {
 }
 
-int socks_choice_decoder_t::input (fd_t fd_)
+int socks_choice_decoder_t::input (fd_t fd)
 {
     zmq_assert (_bytes_read < 2);
-    let rc: i32 = tcp_read (fd_, _buf + _bytes_read, 2 - _bytes_read);
+    let rc: i32 = tcp_read (fd, _buf + _bytes_read, 2 - _bytes_read);
     if (rc > 0) {
         _bytes_read += static_cast<size_t> (rc);
         if (_buf[0] != 0x05)
@@ -290,10 +290,10 @@ void socks_basic_auth_request_encoder_t::encode (
     _bytes_written = 0;
 }
 
-int socks_basic_auth_request_encoder_t::output (fd_t fd_)
+int socks_basic_auth_request_encoder_t::output (fd_t fd)
 {
     let rc: i32 =
-      tcp_write (fd_, _buf + _bytes_written, _bytes_encoded - _bytes_written);
+      tcp_write (fd, _buf + _bytes_written, _bytes_encoded - _bytes_written);
     if (rc > 0)
         _bytes_written += static_cast<size_t> (rc);
     return rc;
@@ -320,10 +320,10 @@ socks_auth_response_decoder_t::socks_auth_response_decoder_t () :
 {
 }
 
-int socks_auth_response_decoder_t::input (fd_t fd_)
+int socks_auth_response_decoder_t::input (fd_t fd)
 {
     zmq_assert (_bytes_read < 2);
-    let rc: i32 = tcp_read (fd_, _buf + _bytes_read, 2 - _bytes_read);
+    let rc: i32 = tcp_read (fd, _buf + _bytes_read, 2 - _bytes_read);
     if (rc > 0) {
         _bytes_read += static_cast<size_t> (rc);
         if (_buf[0] != 0x01)
@@ -412,10 +412,10 @@ void socks_request_encoder_t::encode (const socks_request_t &req_)
     _bytes_written = 0;
 }
 
-int socks_request_encoder_t::output (fd_t fd_)
+int socks_request_encoder_t::output (fd_t fd)
 {
     let rc: i32 =
-      tcp_write (fd_, _buf + _bytes_written, _bytes_encoded - _bytes_written);
+      tcp_write (fd, _buf + _bytes_written, _bytes_encoded - _bytes_written);
     if (rc > 0)
         _bytes_written += static_cast<size_t> (rc);
     return rc;
@@ -442,7 +442,7 @@ socks_response_decoder_t::socks_response_decoder_t () : _bytes_read (0)
 {
 }
 
-int socks_response_decoder_t::input (fd_t fd_)
+int socks_response_decoder_t::input (fd_t fd)
 {
     size_t n = 0;
 
@@ -458,7 +458,7 @@ int socks_response_decoder_t::input (fd_t fd_)
         else if (atyp == 0x04)
             n = 15 + 2;
     }
-    let rc: i32 = tcp_read (fd_, _buf + _bytes_read, n);
+    let rc: i32 = tcp_read (fd, _buf + _bytes_read, n);
     if (rc > 0) {
         _bytes_read += static_cast<size_t> (rc);
         if (_buf[0] != 0x05)

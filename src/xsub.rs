@@ -97,9 +97,9 @@ pub struct xsub_t {
 }
 
 impl xsub_t {
-    // xsub_t (ZmqContext *parent_, u32 tid_, sid_: i32);
-//     xsub_t::xsub_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-//     ZmqSocketBase (parent_, tid_, sid_),
+    // xsub_t (ZmqContext *parent_, tid: u32, sid_: i32);
+//     xsub_t::xsub_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+//     ZmqSocketBase (parent_, tid, sid_),
 //     _verbose_unsubs (false),
 //     _has_message (false),
 //     _more_send (false),

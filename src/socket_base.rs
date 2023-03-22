@@ -6,7 +6,7 @@ use crate::cpu_time::get_cpu_tick_counter;
 use crate::endpoint::EndpointType::endpoint_type_none;
 use crate::endpoint::{make_unconnected_bind_endpoint_pair, EndpointUriPair, ZmqEndpoint};
 use crate::i_mailbox::i_mailbox;
-use crate::io_thread::io_thread_t;
+use crate::io_thread::ZmqThread;
 use crate::ipc_address::IpcAddress;
 use crate::ipc_listener::ipc_listener_t;
 use crate::mailbox::mailbox_t;
@@ -81,7 +81,7 @@ pub struct ZmqSocketBase {
     pub destroyed: bool,
 
     //  Socket's mailbox object.
-    // i_mailbox *_mailbox;
+    // i_mailbox *mailbox;
     pub mailbox: Option<i_mailbox>,
 
     //  List of attached pipes.
@@ -90,7 +90,7 @@ pub struct ZmqSocketBase {
     pub pipes: [pipe_t; 3],
 
     //  Reaper's poller and handle of this socket within it.
-    // poller_t *_poller;
+    // poller_t *poller;
     pub poller: Option<poller_t>,
     // poller_t::handle_t _handle;
     pub handle: Option<handle_t>,
@@ -200,7 +200,7 @@ impl ZmqObject for ZmqSocketBase {
         todo!()
     }
 
-    fn choose_io_thread(&mut self, affinity: u64) -> Option<io_thread_t> {
+    fn choose_io_thread(&mut self, affinity: u64) -> Option<ZmqThread> {
         todo!()
     }
 
@@ -402,20 +402,20 @@ impl ZmqObject for ZmqSocketBase {
 
 impl ZmqSocketBase {
     // ZmqSocketBase (ZmqContext *parent_,
-    //                uint32_t tid_,
+    //                uint32_t tid,
     //                sid_: i32,
     //                bool thread_safe_ = false);
     // ~ZmqSocketBase () ZMQ_OVERRIDE;
     // ZmqSocketBase (ZmqContext *parent_,
-    //                                    u32 tid_,
+    //                                    tid: u32,
     //                                    sid_: i32,
     //                                    thread_safe_: bool) :
-    //     own_t (parent_, tid_),
-    //     _sync (),
+    //     own_t (parent_, tid),
+    //     sync (),
     //     _tag (0xbaddecaf),
     //     _ctx_terminated (false),
     //     _destroyed (false),
-    //     _poller (null_mut()),
+    //     poller (null_mut()),
     //     _handle (static_cast<poller_t::handle_t> (null_mut())),
     //     _last_tsc (0),
     //     _ticks (0),
@@ -428,7 +428,7 @@ impl ZmqSocketBase {
     pub fn new(
         parent: &mut ZmqContext,
         options: &mut ZmqOptions,
-        tid_: u32,
+        tid: u32,
         sid_: i32,
         thread_safe_: bool,
     ) -> Self {
@@ -458,7 +458,7 @@ impl ZmqSocketBase {
 
         if out.thread_safe {
             out.mailbox = mailbox_safe_t::new(&out.sync);
-            // zmq_assert (_mailbox);
+            // zmq_assert (mailbox);
         } else {
             let mut m = mailbox_t::new();
             // zmq_assert (m);
@@ -486,75 +486,75 @@ impl ZmqSocketBase {
     }
 
     //  Create a socket of a specified type.
-    // static ZmqSocketBase * create (type_: i32, ZmqContext *parent_, uint32_t tid_, sid_: i32);
+    // static ZmqSocketBase * create (type_: i32, ZmqContext *parent_, uint32_t tid, sid_: i32);
 
-    // pub fn create (type_: i32, parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> anyhow::Result<Self>
+    // pub fn create (type_: i32, parent_: &mut ZmqContext, tid: u32, sid_: i32) -> anyhow::Result<Self>
     // {
     //     let mut s: Self;
     //     // ZmqSocketBase *s = NULL;
     //     match type_ {
-    //         ZMQ_PAIR => { s = Self::new(parent_, tid_, sid_); }
-    //             // s = new (std::nothrow) pair_t (parent_, tid_, sid_);
+    //         ZMQ_PAIR => { s = Self::new(parent_, tid, sid_); }
+    //             // s = new (std::nothrow) pair_t (parent_, tid, sid_);
     //             // break;
     //         ZMQ_PUB =>{}
-    //             // s = new (std::nothrow) pub_t (parent_, tid_, sid_);
+    //             // s = new (std::nothrow) pub_t (parent_, tid, sid_);
     //             // break;
     //         ZMQ_SUB =>
-    //             s = new (std::nothrow) sub_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) sub_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_REQ =>
-    //             s = new (std::nothrow) req_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) req_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_REP =>
-    //             s = new (std::nothrow) rep_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) rep_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_DEALER =>
-    //             s = new (std::nothrow) dealer_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) dealer_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_ROUTER =>
-    //             s = new (std::nothrow) router_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) router_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_PULL =>
-    //             s = new (std::nothrow) pull_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) pull_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_PUSH =>
-    //             s = new (std::nothrow) push_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) push_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_XPUB =>
-    //             s = new (std::nothrow) xpub_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) xpub_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_XSUB =>
-    //             s = new (std::nothrow) xsub_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) xsub_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_STREAM =>
-    //             s = new (std::nothrow) stream_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) stream_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_SERVER =>
-    //             s = new (std::nothrow) server_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) server_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_CLIENT =>
-    //             s = new (std::nothrow) client_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) client_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_RADIO =>
-    //             s = new (std::nothrow) radio_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) radio_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_DISH =>
-    //             s = new (std::nothrow) dish_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) dish_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_GATHER =>
-    //             s = new (std::nothrow) gather_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) gather_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_SCATTER =>
-    //             s = new (std::nothrow) scatter_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) scatter_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_DGRAM =>
-    //             s = new (std::nothrow) dgram_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) dgram_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_PEER =>
-    //             s = new (std::nothrow) peer_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) peer_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_CHANNEL =>
-    //             s = new (std::nothrow) channel_t (parent_, tid_, sid_);
+    //             s = new (std::nothrow) channel_t (parent_, tid, sid_);
     //             break;
     //         default:
     //             errno = EINVAL;
@@ -563,7 +563,7 @@ impl ZmqSocketBase {
     //
     //     // alloc_assert (s);
     //
-    //     if (s->_mailbox == NULL) {
+    //     if (s->mailbox == NULL) {
     //         s->_destroyed = true;
     //         LIBZMQ_DELETE (s);
     //         return NULL;
@@ -599,9 +599,9 @@ impl ZmqSocketBase {
         opt_val: &[u8],
         opt_len: usize,
     ) -> anyhow::Result<()> {
-        // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
+        // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : NULL);
         // let mut sync_lock = if self._thread_safe {
-        //     &mut _sync
+        //     &mut sync
         // } else {
         //     null_mut()
         // };
@@ -627,9 +627,9 @@ impl ZmqSocketBase {
         options: &mut ZmqOptions,
         opt_kind: i32,
     ) -> anyhow::Result<Vec<u8>> {
-        // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
+        // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : NULL);
         // let mut sync_lock = if self.thread_safe {
-        //     &mut _sync
+        //     &mut sync
         // } else {
         //     null_mut()
         // };
@@ -702,7 +702,7 @@ impl ZmqSocketBase {
 
     // int bind (endpoint_uri_: *const c_char);
     pub fn bind(&mut self, options: &mut ZmqOptions, endpoint_uri_: &str) -> anyhow::Result<()> {
-        // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
+        // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : NULL);
 
         // if (unlikely (_ctx_terminated)) {
         //     errno = ETERM;
@@ -951,13 +951,13 @@ impl ZmqSocketBase {
 
     // int connect (endpoint_uri_: *const c_char);
     pub fn connect(&mut self, options: &mut ZmqOptions, endpoint_uri_: &str) -> anyhow::Result<()> {
-        // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
+        // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
         self.connect_internal(options, endpoint_uri_)
     }
 
     // int term_endpoint (endpoint_uri_: *const c_char);
     pub fn term_endpoint(&mut self, options: &mut ZmqOptions, endpoint_uri_: &str) -> i32 {
-        // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
+        // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
         //  Check whether the context hasn't been shut down yet.
         // if (unlikely (_ctx_terminated)) {
@@ -1039,7 +1039,7 @@ impl ZmqSocketBase {
         options: &mut ZmqOptions,
         flags: i32,
     ) -> anyhow::Result<()> {
-        // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
+        // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
         //  Check whether the context hasn't been shut down yet.
         // if (unlikely (_ctx_terminated)) {
@@ -1136,7 +1136,7 @@ impl ZmqSocketBase {
         options: &mut ZmqOptions,
         flags: i32,
     ) -> anyhow::Result<()> {
-        // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
+        // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
         //  Check whether the context hasn't been shut down yet.
         // if (unlikely (_ctx_terminated)) {
@@ -1243,8 +1243,8 @@ impl ZmqSocketBase {
     pub fn add_signaler(&mut self, s_: &mut signaler_t) {
         // zmq_assert (_thread_safe);
 
-        // scoped_lock_t sync_lock (_sync);
-        // (static_cast<mailbox_safe_t *> (_mailbox))->add_signaler (s_);
+        // scoped_lock_t sync_lock (sync);
+        // (static_cast<mailbox_safe_t *> (mailbox))->add_signaler (s_);
         self.mailbox.add_signaler(s_);
     }
 
@@ -1252,14 +1252,14 @@ impl ZmqSocketBase {
     pub fn remove_signaler(&mut self, s_: &mut signaler_t) {
         // zmq_assert (_thread_safe);
 
-        // scoped_lock_t sync_lock (_sync);
-        // (static_cast<mailbox_safe_t *> (_mailbox))->remove_signaler (s_);
+        // scoped_lock_t sync_lock (sync);
+        // (static_cast<mailbox_safe_t *> (mailbox))->remove_signaler (s_);
         self.mailbox.remove_signaler(s_);
     }
 
     // int close ();
     pub fn close(&mut self) -> anyhow::Result<()> {
-        // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
+        // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
         //  Remove all existing signalers for thread safe sockets
         if (self.thread_safe) {
@@ -1292,13 +1292,13 @@ impl ZmqSocketBase {
     //  Joining and leaving groups
     // int join (group_: *const c_char);
     pub fn join(&mut self, group_: &str) -> anyhow::Result<()> {
-        // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
+        // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
         ops.xjoin(group_)
     }
     // int leave (group_: *const c_char);
     pub fn leave(&mut self, group_: &str) -> anyhow::Result<()> {
-        // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
+        // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
         ops.xleave(group_)
     }
 
@@ -1314,7 +1314,7 @@ impl ZmqSocketBase {
         if !self.thread_safe {
             fd = self.mailbox.get_fd();
         } else {
-            // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
+            // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
             self.reaper_signaler = signaler_t::default(); //new (std::nothrow) signaler_t ();
                                                           // zmq_assert (_reaper_signaler);
@@ -1345,7 +1345,7 @@ impl ZmqSocketBase {
         //  that may be available at the moment. Ultimately, the socket will
         //  be destroyed.
         {
-            // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : null_mut());
+            // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
             //  If the socket is thread safe we need to unsignal the reaper signaler
             if (self.thread_safe) {
@@ -1519,15 +1519,15 @@ impl ZmqSocketBase {
     }
 
     // void event_connected (const EndpointUriPair &endpoint_uri_pair_,
-    //                       fd_t fd_);
+    //                       fd_t fd);
     pub fn event_connected(
         &mut self,
         options: &mut ZmqOptions,
         endpoint_uri_pair_: &EndpointUriPair,
-        fd_: fd_t,
+        fd: fd_t,
     ) {
-        // u64 values[1] = {static_cast<u64> (fd_)};
-        let values: [u64; 1] = [fd_];
+        // u64 values[1] = {static_cast<u64> (fd)};
+        let values: [u64; 1] = [fd];
         self.event(
             options,
             endpoint_uri_pair_,
@@ -1576,15 +1576,15 @@ impl ZmqSocketBase {
     }
 
     // void event_listening (const EndpointUriPair &endpoint_uri_pair_,
-    //                       fd_t fd_);
+    //                       fd_t fd);
     pub fn event_listening(
         &mut self,
         options: &mut ZmqOptions,
         endpoint_uri_pair_: &EndpointUriPair,
-        fd_: fd_t,
+        fd: fd_t,
     ) {
-        // u64 values[1] = {static_cast<u64> (fd_)};
-        let values: [u64; 1] = [fd_];
+        // u64 values[1] = {static_cast<u64> (fd)};
+        let values: [u64; 1] = [fd];
         self.event(
             options,
             endpoint_uri_pair_,
@@ -1615,15 +1615,15 @@ impl ZmqSocketBase {
     }
 
     // void event_accepted (const EndpointUriPair &endpoint_uri_pair_,
-    //                      fd_t fd_);
+    //                      fd_t fd);
     pub fn event_accepted(
         &mut self,
         options: &mut ZmqOptions,
         endpoint_uri_pair_: &EndpointUriPair,
-        fd_: fd_t,
+        fd: fd_t,
     ) {
-        // u64 values[1] = {static_cast<u64> (fd_)};
-        let values: [u64; 1] = [fd_];
+        // u64 values[1] = {static_cast<u64> (fd)};
+        let values: [u64; 1] = [fd];
         self.event(
             options,
             endpoint_uri_pair_,
@@ -1653,15 +1653,15 @@ impl ZmqSocketBase {
     }
 
     // void event_closed (const EndpointUriPair &endpoint_uri_pair_,
-    //                    fd_t fd_);
+    //                    fd_t fd);
     pub fn event_closed(
         &mut self,
         options: &mut ZmqOptions,
         endpoint_uri_pair_: &EndpointUriPair,
-        fd_: fd_t,
+        fd: fd_t,
     ) {
-        // u64 values[1] = {static_cast<u64> (fd_)};
-        let values: [u64; 1] = [fd_];
+        // u64 values[1] = {static_cast<u64> (fd)};
+        let values: [u64; 1] = [fd];
         self.event(
             options,
             endpoint_uri_pair_,
@@ -1691,15 +1691,15 @@ impl ZmqSocketBase {
     }
 
     // void event_disconnected (const EndpointUriPair &endpoint_uri_pair_,
-    //                          fd_t fd_);
+    //                          fd_t fd);
     pub fn event_disconnected(
         &mut self,
         options: &mut ZmqOptions,
         endpoint_uri_pair_: &EndpointUriPair,
-        fd_: fd_t,
+        fd: fd_t,
     ) {
-        // u64 values[1] = {static_cast<u64> (fd_)};
-        let values: [u64; 1] = [fd_];
+        // u64 values[1] = {static_cast<u64> (fd)};
+        let values: [u64; 1] = [fd];
         self.event(
             options,
             endpoint_uri_pair_,
@@ -2574,9 +2574,9 @@ impl ZmqSocketBase {
     //  returns only after at least one command was processed.
     //  If throttle argument is true, commands are processed at most once
     //  in a predefined time period.
-    // int process_commands (timeout_: i32, bool throttle_);
-    pub fn process_commands(&mut self, timeout_: i32, throttle_: bool) -> anyhow::Result<()> {
-        if timeout_ == 0 {
+    // int process_commands (timeout: i32, bool throttle_);
+    pub fn process_commands(&mut self, timeout: i32, throttle_: bool) -> anyhow::Result<()> {
+        if timeout == 0 {
             //  If we are asked not to wait, check whether we haven't processed
             //  commands recently, so that we can throttle the new commands.
 
@@ -2603,7 +2603,7 @@ impl ZmqSocketBase {
 
         //  Check whether there are any commands pending for this thread.
         let mut cmd: ZmqCommand = ZmqCommand::default();
-        self.mailbox.recv(&cmd, timeout_)?;
+        self.mailbox.recv(&cmd, timeout)?;
         // if (rc != 0 && errno == EINTR) {
         //     return -1;
         // }
@@ -2613,7 +2613,7 @@ impl ZmqSocketBase {
         //     if (rc == 0) {
         //         cmd.destination.process_command(cmd);
         //     }
-        //     rc = _mailbox->recv (&cmd, 0);
+        //     rc = mailbox->recv (&cmd, 0);
         // }
         loop {
             cmd.destination.process_command(&cmd);
@@ -2768,17 +2768,17 @@ pub struct routing_socket_base_t {
 }
 
 impl routing_socket_base_t {
-    // routing_socket_base_t (class ZmqContext *parent_, u32 tid_, sid_: i32);
+    // routing_socket_base_t (class ZmqContext *parent_, tid: u32, sid_: i32);
     // routing_socket_base_t::routing_socket_base_t (class ZmqContext *parent_,
-    // u32 tid_,
+    // tid: u32,
     // sid_: i32) :
-    // ZmqSocketBase (parent_, tid_, sid_)
+    // ZmqSocketBase (parent_, tid, sid_)
     // {
     // }
-    pub fn new(parent_: &mut ZmqContext, options: &mut ZmqOptions, tid_: u32, sid_: i32) -> Self {
+    pub fn new(parent_: &mut ZmqContext, options: &mut ZmqOptions, tid: u32, sid_: i32) -> Self {
         Self {
             _out_pipes: HashMap::new(),
-            base: ZmqSocketBase::new(parent_, options, tid_, sid_, false),
+            base: ZmqSocketBase::new(parent_, options, tid, sid_, false),
             _connect_routing_id: String::new(),
         }
     }

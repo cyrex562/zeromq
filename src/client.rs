@@ -64,12 +64,12 @@ pub struct ZmqClient
 
 impl ZmqClient {
     // public:
-//     client_t (ZmqContext *parent_, u32 tid_, sid_: i32);
+//     client_t (ZmqContext *parent_, tid: u32, sid_: i32);
 //     ~client_t ();
 //
 //   // protected:
-//     client_t::client_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-//     ZmqSocketBase (parent_, tid_, sid_, true)
+//     client_t::client_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+//     ZmqSocketBase (parent_, tid, sid_, true)
 //     {
 //     options.type = ZMQ_CLIENT;
 //     options.can_send_hello_msg = true;

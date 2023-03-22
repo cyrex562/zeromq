@@ -36,8 +36,8 @@
 // #include "likely.hpp"
 // #include "err.hpp"
 
-stream_t::stream_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    routing_socket_base_t (parent_, tid_, sid_),
+stream_t::stream_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+    routing_socket_base_t (parent_, tid, sid_),
     _prefetched (false),
     _routing_id_sent (false),
     _current_out (null_mut()),
@@ -299,7 +299,7 @@ void stream_t::identify_peer (pipe_t *pipe, locally_initiated_: bool)
 pub struct stream_t ZMQ_FINAL : public routing_socket_base_t
 {
 // public:
-    stream_t (ZmqContext *parent_, u32 tid_, sid_: i32);
+    stream_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~stream_t ();
 
     //  Overrides of functions from ZmqSocketBase.

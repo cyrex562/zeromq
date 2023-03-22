@@ -61,7 +61,7 @@
 pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
 {
 // public:
-    tcp_listener_t (io_thread_t *io_thread_,
+    tcp_listener_t (ZmqThread *io_thread_,
                     socket: *mut ZmqSocketBase,
                     const ZmqOptions &options_);
 
@@ -69,7 +69,7 @@ pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
     int set_local_address (addr_: &str);
 
   protected:
-    std::string get_socket_name (fd_t fd_, SocketEnd socket_end_) const;
+    std::string get_socket_name (fd_t fd, SocketEnd socket_end_) const;
 
   // private:
     //  Handlers for I/O events.
@@ -89,7 +89,7 @@ pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (tcp_listener_t)
 };
 
-tcp_listener_t::tcp_listener_t (io_thread_t *io_thread_,
+tcp_listener_t::tcp_listener_t (ZmqThread *io_thread_,
                                      ZmqSocketBase *socket,
                                      const ZmqOptions &options_) :
     stream_listener_base_t (io_thread_, socket, options_)
@@ -125,10 +125,10 @@ void tcp_listener_t::in_event ()
 }
 
 std::string
-tcp_listener_t::get_socket_name (fd_t fd_,
+tcp_listener_t::get_socket_name (fd_t fd,
                                       SocketEnd socket_end_) const
 {
-    return get_socket_name<TcpAddress> (fd_, socket_end_);
+    return get_socket_name<TcpAddress> (fd, socket_end_);
 }
 
 int tcp_listener_t::create_socket (addr_: &str)

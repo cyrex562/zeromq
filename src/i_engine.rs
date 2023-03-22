@@ -35,7 +35,7 @@
 
 namespace zmq
 {
-pub struct io_thread_t;
+pub struct ZmqThread;
 
 //  Abstract interface to be implemented by various engines.
 
@@ -55,7 +55,7 @@ struct i_engine
     virtual bool has_handshake_stage () = 0;
 
     //  Plug the engine to the session.
-    virtual void plug (io_thread_t *io_thread_,
+    virtual void plug (ZmqThread *io_thread_,
 pub struct ZmqSessionBase *session_) = 0;
 
     //  Terminate and deallocate the engine. Note that 'detached'

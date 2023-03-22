@@ -63,7 +63,7 @@ pub struct lb_t
 
     //  Number of active pipes. All the active pipes are located at the
     //  beginning of the pipes array.
-    pipes_t::size_type _active;
+    pipes_t::size_type active;
 
     //  Points to the last pipe that the most recent message was sent to.
     pipes_t::size_type _current;
@@ -77,7 +77,7 @@ pub struct lb_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (lb_t)
 };
 
-lb_t::lb_t () : _active (0), _current (0), _more (false), _dropping (false)
+lb_t::lb_t () : active (0), _current (0), _more (false), _dropping (false)
 {
 }
 
@@ -103,10 +103,10 @@ void lb_t::pipe_terminated (pipe: &mut pipe_t)
 
     //  Remove the pipe from the list; adjust number of active pipes
     //  accordingly.
-    if (index < _active) {
-        _active--;
-        _pipes.swap (index, _active);
-        if (_current == _active)
+    if (index < active) {
+        active--;
+        _pipes.swap (index, active);
+        if (_current == active)
             _current = 0;
     }
     _pipes.erase (pipe);
@@ -115,8 +115,8 @@ void lb_t::pipe_terminated (pipe: &mut pipe_t)
 void lb_t::activated (pipe: &mut pipe_t)
 {
     //  Move the pipe to the list of active pipes.
-    _pipes.swap (_pipes.index (pipe), _active);
-    _active++;
+    _pipes.swap (_pipes.index (pipe), active);
+    active++;
 }
 
 int lb_t::send (msg: &mut ZmqMessage)
@@ -139,7 +139,7 @@ int lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe)
         return 0;
     }
 
-    while (_active > 0) {
+    while (active > 0) {
         if (_pipes[_current]->write (msg)) {
             if (pipe)
                 *pipe = _pipes[_current];
@@ -171,15 +171,15 @@ int lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe)
             return -2;
         }
 
-        _active--;
-        if (_current < _active)
-            _pipes.swap (_current, _active);
+        active--;
+        if (_current < active)
+            _pipes.swap (_current, active);
         else
             _current = 0;
     }
 
     //  If there are no pipes we cannot send the message.
-    if (_active == 0) {
+    if (active == 0) {
         errno = EAGAIN;
         return -1;
     }
@@ -190,7 +190,7 @@ int lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe)
     if (!_more) {
         _pipes[_current]->flush ();
 
-        if (++_current >= _active)
+        if (++_current >= active)
             _current = 0;
     }
 
@@ -208,15 +208,15 @@ bool lb_t::has_out ()
     if (_more)
         return true;
 
-    while (_active > 0) {
+    while (active > 0) {
         //  Check whether a pipe has room for another message.
         if (_pipes[_current]->check_write ())
             return true;
 
         //  Deactivate the pipe.
-        _active--;
-        _pipes.swap (_current, _active);
-        if (_current == _active)
+        active--;
+        _pipes.swap (_current, active);
+        if (_current == active)
             _current = 0;
     }
 

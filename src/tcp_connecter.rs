@@ -66,7 +66,7 @@ pub struct tcp_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
-    tcp_connecter_t (io_thread_t *io_thread_,
+    tcp_connecter_t (ZmqThread *io_thread_,
                      ZmqSessionBase *session_,
                      const ZmqOptions &options_,
                      Address *addr_,
@@ -103,7 +103,7 @@ pub struct tcp_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     fd_t connect ();
 
     //  Tunes a connected socket.
-    bool tune_socket (fd_t fd_);
+    bool tune_socket (fd_t fd);
 
     //  True iff a timer has been started.
     _connect_timer_started: bool
@@ -111,7 +111,7 @@ pub struct tcp_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (tcp_connecter_t)
 };
 
-tcp_connecter_t::tcp_connecter_t (class io_thread_t *io_thread_,
+tcp_connecter_t::tcp_connecter_t (class ZmqThread *io_thread_,
 pub struct ZmqSessionBase *session_,
                                        const ZmqOptions &options_,
                                        Address *addr_,
@@ -351,12 +351,12 @@ fd_t tcp_connecter_t::connect ()
     return result;
 }
 
-bool tcp_connecter_t::tune_socket (const fd_t fd_)
+bool tcp_connecter_t::tune_socket (const fd_t fd)
 {
-    let rc: i32 = tune_tcp_socket (fd_)
+    let rc: i32 = tune_tcp_socket (fd)
                    | tune_tcp_keepalives (
-                     fd_, options.tcp_keepalive, options.tcp_keepalive_cnt,
+                     fd, options.tcp_keepalive, options.tcp_keepalive_cnt,
                      options.tcp_keepalive_idle, options.tcp_keepalive_intvl)
-                   | tune_tcp_maxrt (fd_, options.tcp_maxrt);
+                   | tune_tcp_maxrt (fd, options.tcp_maxrt);
     return rc == 0;
 }

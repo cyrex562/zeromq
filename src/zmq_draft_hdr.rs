@@ -135,19 +135,19 @@ pub const ZMQ_MSG_PROPERTY_PEER_ADDRESS: &'static str = "Peer-Address";
 //                     short events_);
 // int zmq_poller_modify (poller_: *mut c_void, socket_: *mut c_void, short events_);
 // int zmq_poller_remove (poller_: *mut c_void, socket_: *mut c_void);
-// int zmq_poller_wait (poller_: *mut c_void, ZmqPollerEvent *event_, long timeout_);
+// int zmq_poller_wait (poller_: *mut c_void, ZmqPollerEvent *event_, long timeout);
 // int zmq_poller_wait_all (poller_: *mut c_void,
 //                          ZmqPollerEvent *events_,
 //                          n_events_: i32,
-//                          long timeout_);
+//                          long timeout);
 // zmq_fd_t zmq_poller_fd (poller_: *mut c_void);
 //
 // int zmq_poller_add_fd (poller_: *mut c_void,
-//                        zmq_fd_t fd_,
+//                        zmq_fd_t fd,
 //                        user_data_: *mut c_void,
 //                        short events_);
-// int zmq_poller_modify_fd (poller_: *mut c_void, zmq_fd_t fd_, short events_);
-// int zmq_poller_remove_fd (poller_: *mut c_void, zmq_fd_t fd_);
+// int zmq_poller_modify_fd (poller_: *mut c_void, zmq_fd_t fd, short events_);
+// int zmq_poller_remove_fd (poller_: *mut c_void, zmq_fd_t fd);
 //
 // int zmq_socket_get_peer_state (socket_: *mut c_void,
 //                                const routing_id_: *mut c_void,
@@ -169,13 +169,13 @@ pub const ZMQ_MSG_PROPERTY_PEER_ADDRESS: &'static str = "Peer-Address";
 // #if !defined _WIN32
 // int zmq_ppoll (zmq_pollitem_t *items_,
 //                nitems_: i32,
-//                long timeout_,
+//                long timeout,
 //                const sigset_t *sigmask_);
 // #else
 // Windows has no sigset_t
 // int zmq_ppoll (zmq_pollitem_t *items_,
 //                nitems_: i32,
-//                long timeout_,
+//                long timeout,
 //                const sigmask_: *mut c_void);
 // #endif
 

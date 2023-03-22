@@ -50,7 +50,7 @@ pub struct poll_t ZMQ_FINAL : public worker_poller_base_t
 
     //  "poller" concept.
     //  These methods may only be called from an event callback; add_fd may also be called before start.
-    handle_t add_fd (fd_t fd_, i_poll_events *events_);
+    handle_t add_fd (fd_t fd, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -98,32 +98,32 @@ poll_t::~poll_t ()
     stop_worker ();
 }
 
-poll_t::handle_t poll_t::add_fd (fd_t fd_, i_poll_events *events_)
+poll_t::handle_t poll_t::add_fd (fd_t fd, i_poll_events *events_)
 {
     check_thread ();
-    zmq_assert (fd_ != retired_fd);
+    zmq_assert (fd != retired_fd);
 
     //  If the file descriptor table is too small expand it.
     fd_table_t::size_type sz = fd_table.size ();
-    if (sz <= (fd_table_t::size_type) fd_) {
-        fd_table.resize (fd_ + 1);
-        while (sz != (fd_table_t::size_type) (fd_ + 1)) {
+    if (sz <= (fd_table_t::size_type) fd) {
+        fd_table.resize (fd + 1);
+        while (sz != (fd_table_t::size_type) (fd + 1)) {
             fd_table[sz].index = retired_fd;
             ++sz;
         }
     }
 
-    pollfd pfd = {fd_, 0, 0};
+    pollfd pfd = {fd, 0, 0};
     pollset.push_back (pfd);
-    zmq_assert (fd_table[fd_].index == retired_fd);
+    zmq_assert (fd_table[fd].index == retired_fd);
 
-    fd_table[fd_].index = pollset.size () - 1;
-    fd_table[fd_].events = events_;
+    fd_table[fd].index = pollset.size () - 1;
+    fd_table[fd].events = events_;
 
     //  Increase the load metric of the thread.
     adjust_load (1);
 
-    return fd_;
+    return fd;
 }
 
 void poll_t::rm_fd (handle_t handle_)

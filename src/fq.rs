@@ -53,7 +53,7 @@ pub struct fq_t
 
     //  Number of active pipes. All the active pipes are located at the
     //  beginning of the pipes array.
-    pipes_t::size_type _active;
+    pipes_t::size_type active;
 
     //  Index of the next bound pipe to read a message from.
     pipes_t::size_type _current;
@@ -65,7 +65,7 @@ pub struct fq_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (fq_t)
 };
 
-fq_t::fq_t () : _active (0), _current (0), _more (false)
+fq_t::fq_t () : active (0), _current (0), _more (false)
 {
 }
 
@@ -77,8 +77,8 @@ fq_t::~fq_t ()
 void fq_t::attach (pipe: &mut pipe_t)
 {
     _pipes.push_back (pipe);
-    _pipes.swap (_active, _pipes.size () - 1);
-    _active++;
+    _pipes.swap (active, _pipes.size () - 1);
+    active++;
 }
 
 void fq_t::pipe_terminated (pipe: &mut pipe_t)
@@ -87,10 +87,10 @@ void fq_t::pipe_terminated (pipe: &mut pipe_t)
 
     //  Remove the pipe from the list; adjust number of active pipes
     //  accordingly.
-    if (index < _active) {
-        _active--;
-        _pipes.swap (index, _active);
-        if (_current == _active)
+    if (index < active) {
+        active--;
+        _pipes.swap (index, active);
+        if (_current == active)
             _current = 0;
     }
     _pipes.erase (pipe);
@@ -99,8 +99,8 @@ void fq_t::pipe_terminated (pipe: &mut pipe_t)
 void fq_t::activated (pipe: &mut pipe_t)
 {
     //  Move the pipe to the list of active pipes.
-    _pipes.swap (_pipes.index (pipe), _active);
-    _active++;
+    _pipes.swap (_pipes.index (pipe), active);
+    active++;
 }
 
 int fq_t::recv (msg: &mut ZmqMessage)
@@ -115,7 +115,7 @@ int fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe)
     errno_assert (rc == 0);
 
     //  Round-robin over the pipes to get the next message.
-    while (_active > 0) {
+    while (active > 0) {
         //  Try to fetch new message. If we've already read part of the message
         //  subsequent part should be immediately available.
         const bool fetched = _pipes[_current]->read (msg);
@@ -128,7 +128,7 @@ int fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe)
                 *pipe = _pipes[_current];
             _more = (msg.flags () & ZMQ_MSG_MORE) != 0;
             if (!_more) {
-                _current = (_current + 1) % _active;
+                _current = (_current + 1) % active;
             }
             return 0;
         }
@@ -138,9 +138,9 @@ int fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe)
         //  we should get the remaining parts without blocking.
         zmq_assert (!_more);
 
-        _active--;
-        _pipes.swap (_current, _active);
-        if (_current == _active)
+        active--;
+        _pipes.swap (_current, active);
+        if (_current == active)
             _current = 0;
     }
 
@@ -162,14 +162,14 @@ bool fq_t::has_in ()
     //  queueing algorithm. If there are no messages available current will
     //  get back to its original value. Otherwise it'll point to the first
     //  pipe holding messages, skipping only pipes with no messages available.
-    while (_active > 0) {
+    while (active > 0) {
         if (_pipes[_current]->check_read ())
             return true;
 
         //  Deactivate the pipe.
-        _active--;
-        _pipes.swap (_current, _active);
-        if (_current == _active)
+        active--;
+        _pipes.swap (_current, active);
+        if (_current == active)
             _current = 0;
     }
 

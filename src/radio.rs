@@ -38,7 +38,7 @@
 pub struct radio_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
-    radio_t (ZmqContext *parent_, u32 tid_, sid_: i32);
+    radio_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~radio_t ();
 
     //  Implementations of virtual functions from ZmqSocketBase.
@@ -74,7 +74,7 @@ pub struct radio_t ZMQ_FINAL : public ZmqSocketBase
 pub struct radio_session_t ZMQ_FINAL : public ZmqSessionBase
 {
 // public:
-    radio_session_t (io_thread_t *io_thread_,
+    radio_session_t (ZmqThread *io_thread_,
                      connect_: bool,
                      socket: *mut ZmqSocketBase,
                      const ZmqOptions &options_,
@@ -98,8 +98,8 @@ pub struct radio_session_t ZMQ_FINAL : public ZmqSessionBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (radio_session_t)
 };
 
-radio_t::radio_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    ZmqSocketBase (parent_, tid_, sid_, true), _lossy (true)
+radio_t::radio_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+    ZmqSocketBase (parent_, tid, sid_, true), _lossy (true)
 {
     options.type = ZMQ_RADIO;
 }
@@ -258,7 +258,7 @@ bool radio_t::xhas_in ()
     return false;
 }
 
-radio_session_t::radio_session_t (io_thread_t *io_thread_,
+radio_session_t::radio_session_t (ZmqThread *io_thread_,
                                        connect_: bool,
                                        ZmqSocketBase *socket,
                                        const ZmqOptions &options_,

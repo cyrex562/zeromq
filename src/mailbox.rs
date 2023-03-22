@@ -27,122 +27,138 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use crate::command::ZmqCommand;
+use crate::ypipe::Ypipe;
+use std::sync::Mutex;
+use crate::signaler::signaler_t;
+
+pub const COMMAND_PIPE_GRANULARITY: i32 = 16;
+
 // #include "precompiled.hpp"
 // #include "mailbox.hpp"
 // #include "err.hpp"
-pub struct mailbox_t ZMQ_FINAL : public i_mailbox
+#[derive(Default,Debug,Clone)]
+//  ZMQ_FINAL : public i_mailbox
+pub struct mailbox_t
 {
 // public:
-    mailbox_t ();
-    ~mailbox_t ();
-
-    fd_t get_fd () const;
-    void send (const ZmqCommand &cmd_);
-    int recv (ZmqCommand *cmd_, timeout_: i32);
-
-    bool valid () const;
-
-// #ifdef HAVE_FORK
-    // close the file descriptors in the signaller. This is used in a forked
-    // child process to close the file descriptors so that they do not interfere
-    // with the context in the parent process.
-    void forked () ZMQ_FINAL
-    {
-        _signaler.forked ();
-    }
-// #endif
-
   // private:
     //  The pipe to store actual commands.
-    typedef Ypipe<ZmqCommand, command_pipe_granularity> cpipe_t;
-    cpipe_t _cpipe;
+    // typedef Ypipe<ZmqCommand, command_pipe_granularity> cpipe_t;
+    // cpipe_t cpipe;
+    pub cpipe: Ypipe<ZmqCommand>,
 
     //  Signaler to pass signals from writer thread to reader thread.
-    signaler_t _signaler;
+    pub signaler: signaler_t,
 
     //  There's only one thread receiving from the mailbox, but there
     //  is arbitrary number of threads sending. Given that ypipe requires
     //  synchronised access on both of its endpoints, we have to synchronise
     //  the sending side.
-    mutex_t _sync;
+    // mutex_t sync;
+    // TODO: figure out how to implement sync primitives
+    pub sync: Mutex<()>,
 
     //  True if the underlying pipe is active, ie. when we are allowed to
     //  read commands from it.
-    _active: bool
+    pub active: bool,
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_t)
-};
-
-mailbox_t::mailbox_t ()
-{
-    //  Get the pipe into passive state. That way, if the users starts by
-    //  polling on the associated file descriptor it will get woken up when
-    //  new command is posted.
-    const bool ok = _cpipe.check_read ();
-    zmq_assert (!ok);
-    _active = false;
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_t)
 }
 
-mailbox_t::~mailbox_t ()
-{
-    //  TODO: Retrieve and deallocate commands inside the _cpipe.
-
-    // Work around problem that other threads might still be in our
-    // send() method, by waiting on the mutex before disappearing.
-    _sync.lock ();
-    _sync.unlock ();
-}
-
-fd_t mailbox_t::get_fd () const
-{
-    return _signaler.get_fd ();
-}
-
-void mailbox_t::send (const ZmqCommand &cmd_)
-{
-    _sync.lock ();
-    _cpipe.write (cmd_, false);
-    const bool ok = _cpipe.flush ();
-    _sync.unlock ();
-    if (!ok)
-        _signaler.send ();
-}
-
-int mailbox_t::recv (ZmqCommand *cmd_, timeout_: i32)
-{
-    //  Try to get the command straight away.
-    if (_active) {
-        if (_cpipe.read (cmd_))
-            return 0;
-
-        //  If there are no more commands available, switch into passive state.
-        _active = false;
+impl mailbox_t {
+    // mailbox_t ();
+    // mailbox_t::mailbox_t ()
+    pub fn new() -> Self
+    {
+        //  Get the pipe into passive state. That way, if the users starts by
+        //  polling on the associated file descriptor it will get woken up when
+        //  new command is posted. const bool ok = cpipe.check_read ();
+        // zmq_assert ( ! ok); active = false;
+        Self {
+            cpipe: Ypipe::new(),
+            signaler: signaler_t::new(),
+            active: false,
+            sync: Mutex::new(()),
+        }
     }
 
-    //  Wait for signal from the command sender.
-    int rc = _signaler.wait (timeout_);
-    if (rc == -1) {
-        errno_assert (errno == EAGAIN || errno == EINTR);
-        return -1;
+    // ~mailbox_t ();
+    // mailbox_t::~mailbox_t ()
+    // {
+    // //  TODO: Retrieve and deallocate commands inside the cpipe.
+    //
+    // // Work around problem that other threads might still be in our
+    // // send() method, by waiting on the mutex before disappearing.
+    // sync.lock (); sync.unlock ();
+    // }
+
+    // fd_t get_fd () const;
+    // fd_t mailbox_t::get_fd () const
+    pub fn get_fd(&mut self) -> fd_t
+    {
+    return self.signaler.get_fd ();
     }
 
-    //  Receive the signal.
-    rc = _signaler.recv_failable ();
-    if (rc == -1) {
-        errno_assert (errno == EAGAIN);
-        return -1;
+    // void send (const ZmqCommand &cmd);
+    pub fn send(&mut self, cmd: &ZmqCommand) -> anyhow::Result<()>
+    {
+        // sync.lock ();
+        let guard = self.sync.lock()?;
+        self.cpipe.write (cmd, false);
+        let ok = self.cpipe.flush ();
+        //sync.unlock ();
+        std::mem::drop(guard);
+
+        if ( ! ok) {
+            self.signaler.send();
+        }
+
+        Ok(())
     }
 
-    //  Switch into active state.
-    _active = true;
+    // int recv (cmd: &mut ZmqCommand timeout: i32);
+    pub fn recv(&mut self, cmd: &mut ZmqCommand, timeout: i32) -> anyhow::Result<()> {
+        //  Try to get the command straight away.
+        if (active) {
+            if (self.cpipe.read(cmd)) { return 0; }
 
-    //  Get a command.
-    const bool ok = _cpipe.read (cmd_);
-    zmq_assert (ok);
-    return 0;
-}
+            //  If there are no more commands available, switch into passive state.
+            self.active = false;
+        }
 
-bool mailbox_t::valid () const
-{
-    return _signaler.valid ();
+        //  Wait for signal from the command sender.
+        self.signaler.wait(timeout)?;
+        // if (rc == - 1) {
+        //     // errno_assert (errno == EAGAIN | | errno == EINTR); return - 1;
+        // }
+
+        //  Receive the signal.
+        self.signaler.recv_failable()?;
+        // if (rc == - 1) {
+        //     // errno_assert (errno == EAGAIN); return - 1;
+        // }
+
+        //  Switch into active state.
+        self.active = true;
+
+        //  Get a command. const bool ok = cpipe.read (cmd); zmq_assert (ok);
+        // return 0;
+        Ok(())
+    }
+
+// bool valid () const;
+    bool mailbox_t::valid () const {
+    return signaler.valid ();
+    }
+
+    // #ifdef HAVE_FORK
+    // close the file descriptors in the signaller. This is used in a forked
+    // child process to close the file descriptors so that they do not interfere
+    // with the context in the parent process.
+    void forked () ZMQ_FINAL
+    {
+    signaler.forked ();
+    }
+    // #endif
 }

@@ -50,7 +50,7 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
     ~pollset_t () ZMQ_FINAL;
 
     //  "poller" concept.
-    handle_t add_fd (fd_t fd_, i_poll_events *events_);
+    handle_t add_fd (fd_t fd, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -116,19 +116,19 @@ pollset_t::~pollset_t ()
         LIBZMQ_DELETE (*it);
 }
 
-pollset_t::handle_t pollset_t::add_fd (fd_t fd_,
+pollset_t::handle_t pollset_t::add_fd (fd_t fd,
                                                  i_poll_events *events_)
 {
     poll_entry_t *pe = new (std::nothrow) poll_entry_t;
     alloc_assert (pe);
 
-    pe.fd = fd_;
+    pe.fd = fd;
     pe.flag_pollin = false;
     pe.flag_pollout = false;
     pe.events = events_;
 
     struct poll_ctl pc;
-    pc.fd = fd_;
+    pc.fd = fd;
     pc.cmd = PS_ADD;
     pc.events = 0;
 
@@ -138,10 +138,10 @@ pollset_t::handle_t pollset_t::add_fd (fd_t fd_,
     //  Increase the load metric of the thread.
     adjust_load (1);
 
-    if (fd_ >= fd_table.size ()) {
-        fd_table.resize (fd_ + 1, null_mut());
+    if (fd >= fd_table.size ()) {
+        fd_table.resize (fd + 1, null_mut());
     }
-    fd_table[fd_] = pe;
+    fd_table[fd] = pe;
     return pe;
 }
 

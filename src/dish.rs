@@ -36,7 +36,7 @@
 pub struct dish_t ZMQ_FINAL : public ZmqSocketBase
 {
 // public:
-    dish_t (ZmqContext *parent_, u32 tid_, sid_: i32);
+    dish_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~dish_t ();
 
   protected:
@@ -81,7 +81,7 @@ pub struct dish_t ZMQ_FINAL : public ZmqSocketBase
 pub struct dish_session_t ZMQ_FINAL : public ZmqSessionBase
 {
 // public:
-    dish_session_t (io_thread_t *io_thread_,
+    dish_session_t (ZmqThread *io_thread_,
                     connect_: bool,
                     socket: *mut ZmqSocketBase,
                     const ZmqOptions &options_,
@@ -105,8 +105,8 @@ pub struct dish_session_t ZMQ_FINAL : public ZmqSessionBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dish_session_t)
 };
 
-dish_t::dish_t (class ZmqContext *parent_, u32 tid_, sid_: i32) :
-    ZmqSocketBase (parent_, tid_, sid_, true), _has_message (false)
+dish_t::dish_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+    ZmqSocketBase (parent_, tid, sid_, true), _has_message (false)
 {
     options.type = ZMQ_DISH;
 
@@ -308,7 +308,7 @@ void dish_t::send_subscriptions (pipe: &mut pipe_t)
     pipe.flush ();
 }
 
-dish_session_t::dish_session_t (io_thread_t *io_thread_,
+dish_session_t::dish_session_t (ZmqThread *io_thread_,
                                      connect_: bool,
                                      ZmqSocketBase *socket,
                                      const ZmqOptions &options_,

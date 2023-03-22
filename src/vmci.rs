@@ -80,18 +80,18 @@ void tune_vmci_buffer_size (ZmqContext *context_,
 // #if defined ZMQ_HAVE_WINDOWS
 void tune_vmci_connect_timeout (ZmqContext *context_,
                                      fd_t sockfd_,
-                                     DWORD timeout_)
+                                     DWORD timeout)
 // #else
 void tune_vmci_connect_timeout (ZmqContext *context_,
                                      fd_t sockfd_,
-                                     struct timeval timeout_)
+                                     struct timeval timeout)
 // #endif
 {
     int family = context_.get_vmci_socket_family ();
     assert (family != -1);
 
     int rc = setsockopt (sockfd_, family, SO_VMCI_CONNECT_TIMEOUT,
-                         (char *) &timeout_, sizeof timeout_);
+                         (char *) &timeout, sizeof timeout);
 // #if defined ZMQ_HAVE_WINDOWS
     wsa_assert (rc != SOCKET_ERROR);
 // #else
