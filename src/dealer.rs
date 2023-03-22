@@ -40,7 +40,7 @@ pub struct dealer_t : public ZmqSocketBase
 
   protected:
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe,
+    void xattach_pipe (pipe: &mut ZmqPipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool) ZMQ_FINAL;
     int xsetsockopt (option_: i32,
@@ -50,13 +50,13 @@ pub struct dealer_t : public ZmqSocketBase
     int xrecv (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
     bool xhas_in () ZMQ_OVERRIDE;
     bool xhas_out () ZMQ_OVERRIDE;
-    void xread_activated (pipe: &mut pipe_t) ZMQ_FINAL;
-    void xwrite_activated (pipe: &mut pipe_t) ZMQ_FINAL;
-    void xpipe_terminated (pipe: &mut pipe_t) ZMQ_OVERRIDE;
+    void xread_activated (pipe: &mut ZmqPipe) ZMQ_FINAL;
+    void xwrite_activated (pipe: &mut ZmqPipe) ZMQ_FINAL;
+    void xpipe_terminated (pipe: &mut ZmqPipe) ZMQ_OVERRIDE;
 
     //  Send and recv - knowing which pipe was used.
-    int sendpipe (msg: &mut ZmqMessage pipe_t **pipe);
-    int recvpipe (msg: &mut ZmqMessage pipe_t **pipe);
+    int sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe);
+    int recvpipe (msg: &mut ZmqMessage ZmqPipe **pipe);
 
   // private:
     //  Messages are fair-queued from inbound pipes. And load-balanced to
@@ -82,7 +82,7 @@ dealer_t::~dealer_t ()
 {
 }
 
-void dealer_t::xattach_pipe (pipe_t *pipe,
+void dealer_t::xattach_pipe (pipe: &mut ZmqPipe,
                                   subscribe_to_all_: bool,
                                   locally_initiated_: bool)
 {
@@ -155,28 +155,28 @@ bool dealer_t::xhas_out ()
     return _lb.has_out ();
 }
 
-void dealer_t::xread_activated (pipe: &mut pipe_t)
+void dealer_t::xread_activated (pipe: &mut ZmqPipe)
 {
     _fq.activated (pipe);
 }
 
-void dealer_t::xwrite_activated (pipe: &mut pipe_t)
+void dealer_t::xwrite_activated (pipe: &mut ZmqPipe)
 {
     _lb.activated (pipe);
 }
 
-void dealer_t::xpipe_terminated (pipe: &mut pipe_t)
+void dealer_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
     _fq.pipe_terminated (pipe);
     _lb.pipe_terminated (pipe);
 }
 
-int dealer_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe)
+int dealer_t::sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
 {
     return _lb.sendpipe (msg, pipe);
 }
 
-int dealer_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe)
+int dealer_t::recvpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
 {
     return _fq.recvpipe (msg, pipe);
 }

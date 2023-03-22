@@ -8,7 +8,7 @@ use crate::message::ZmqMessage;
 use crate::object::ZmqObject;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
 use crate::pending_connection::PendingConnection;
-use crate::pipe::pipe_t;
+use crate::pipe::ZmqPipe;
 use crate::reaper::reaper_t;
 use crate::socket_base::ZmqSocketBase;
 use crate::thread_ctx::ThreadCtx;
@@ -96,7 +96,7 @@ pub struct ZmqContext {
     pub starting: bool,
 
     //  If true, zmq_ctx_term was already called.
-    // bool _terminating;
+    // bool terminating;
     pub terminating: bool,
 
     //  Synchronisation of accesses to global slot-related data:
@@ -188,7 +188,7 @@ impl ZmqContext {
     // ZmqContext::ZmqContext () :
     //     _tag (ZMQ_CTX_TAG_VALUE_GOOD),
     //     _starting (true),
-    //     _terminating (false),
+    //     terminating (false),
     //     _reaper (NULL),
     //     _max_sockets (clipped_maxsocket (ZMQ_MAX_SOCKETS_DFLT)),
     //     _max_msgsz (INT_MAX),
@@ -827,12 +827,12 @@ impl ZmqContext {
 
     // void ZmqContext::pend_connection (const std::string &addr_,
     //                                   const ZmqEndpoint &endpoint_,
-    //                                   pipe_t **pipes_)
+    //                                   ZmqPipe **pipes_)
     pub fn pend_connection(
         &mut self,
         in_addr: &str,
         in_endpoint: &ZmqEndpoint,
-        in_pipes: &[pipe_t],
+        in_pipes: &[ZmqPipe],
     ) {
         // scoped_lock_t locker (_endpoints_sync);
 
@@ -1089,7 +1089,7 @@ impl ZmqContext {
     // endpoint_t find_endpoint (addr_: *const c_char);
     // void pend_connection (const std::string &addr_,
     //                       const endpoint_t &endpoint_,
-    //                       pipe_t **pipes_);
+    //                       ZmqPipe **pipes_);
     // void connect_pending (addr_: *const c_char, ZmqSocketBase *bind_socket_);
 
     // #ifdef ZMQ_HAVE_VMCI

@@ -43,7 +43,7 @@
 pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
 {
 // public:
-    pgm_sender_t (ZmqThread *parent_, const ZmqOptions &options_);
+    pgm_sender_t (ZmqThread *parent_, options: &ZmqOptions);
     ~pgm_sender_t ();
 
     int init (udp_encapsulation_: bool, network_: &str);
@@ -83,8 +83,7 @@ pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
 
     //  Message encoder.
     v1_encoder_t encoder;
-
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
 
     //  Keeps track of message boundaries.
     more_flag: bool
@@ -115,7 +114,7 @@ pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
 };
 
 pgm_sender_t::pgm_sender_t (ZmqThread *parent_,
-                                 const ZmqOptions &options_) :
+                                 options: &ZmqOptions) :
     io_object_t (parent_),
     has_tx_timer (false),
     has_rx_timer (false),

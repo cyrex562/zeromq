@@ -53,8 +53,8 @@ use crate::endpoint::EndpointUriPair;
 use crate::io_thread::ZmqThread;
 use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZmqMessage};
 use crate::options::ZmqOptions;
-use crate::own::own_t;
-use crate::pipe::pipe_t;
+use crate::own::ZmqOwn;
+use crate::pipe::ZmqPipe;
 use crate::proxy::ZmqSocketBase;
 use crate::zmq_hdr::{
     ZMQ_REQ, ZMQ_RADIO, ZMQ_DISH, ZMQ_DEALER, ZMQ_ROUTER, ZMQ_XPUB, ZMQ_XSUB, ZMQ_PUB, ZMQ_SUB, ZMQ_PUSH, ZMQ_PULL, ZMQ_PAIR, ZMQ_STREAM, ZMQ_SERVER, ZMQ_CLIENT, ZMQ_GATHER, ZMQ_SCATTER, ZMQ_DGRAM, ZMQ_PEER, ZMQ_CHANNEL, ZMQ_REP
@@ -70,7 +70,7 @@ pub const LINGER_TIMER_ID: i32 = 0x20;
 // #include "req.hpp"
 // #include "radio.hpp"
 // #include "dish.hpp"
-// pub struct ZmqSessionBase : public own_t, public io_object_t, public i_pipe_events
+// pub struct ZmqSessionBase : public ZmqOwn, public io_object_t, public i_pipe_events
 #[derive(Default,Debug,Clone)]
 pub struct ZmqSessionBase
 {
@@ -78,14 +78,14 @@ pub struct ZmqSessionBase
     //  a transient session created by the listener.
     pub active: bool,
     //  Pipe connecting the session to its socket.
-    // pipe_t *_pipe;
-    pub pipe: Option<pipe_t>,
+    // ZmqPipe *_pipe;
+    pub pipe: Option<ZmqPipe>,
     //  Pipe used to exchange messages with ZAP socket.
-    // pipe_t *_zap_pipe;
-    pub zap_pipe: Option<pipe_t>,
+    // ZmqPipe *_zap_pipe;
+    pub zap_pipe: Option<ZmqPipe>,
     //  This set is added to with pipes we are disconnecting, but haven't yet completed
-    // std::set<pipe_t *> _terminating_pipes;
-    pub terminating_pipes: HashSet<pipe_t>,
+    // std::set<ZmqPipe *> _terminating_pipes;
+    pub terminating_pipes: HashSet<ZmqPipe>,
     //  This flag is true if the remainder of the message being processed
     //  is still in the in pipe.
     pub incomplete_in: bool,
@@ -122,9 +122,9 @@ impl ZmqSessionBase {
     // ZmqSessionBase::ZmqSessionBase (class ZmqThread *io_thread_,
     //                                  active_: bool,
     // pub struct ZmqSocketBase *socket_,
-    //                                      const ZmqOptions &options_,
+    //                                      options: &ZmqOptions,
     //                                      Address *addr_) :
-    //     own_t (io_thread_, options_),
+    //     ZmqOwn (io_thread_, options_),
     //     io_object_t (io_thread_),
     //     active (active_),
     //     _pipe (null_mut()),
@@ -143,7 +143,7 @@ impl ZmqSessionBase {
     // {
     // }
     pub fn new(io_thread: &mut ZmqThread, active: bool, socket: &mut ZmqSocketBase, options: &ZmqOptions, addr: &mut Address) -> Self {
-        let mut own = own_t::new(io_thread, options);
+        let mut own = ZmqOwn::new(io_thread, options);
         let mut io_object = io_object_t::new(io_thread);
         Self {
             active: active,
@@ -167,7 +167,7 @@ impl ZmqSessionBase {
     // static ZmqSessionBase *create (ZmqThread *io_thread_,
     // active_: bool,
     // socket_: *mut ZmqSocketBase,
-    // const ZmqOptions &options_,
+    // options: &ZmqOptions,
     // Address *addr_);
     pub fn create(io_thread: &mut ZmqThread,
                   active: bool,
@@ -219,8 +219,8 @@ impl ZmqSessionBase {
 
 
     //  To be used once only, when creating the session.
-    // void attach_pipe (pipe_: &mut pipe_t);
-    pub fn attach_pipe (&mut self, pipe: &mut pipe_t)
+    // void attach_pipe (pipe_: &mut ZmqPipe);
+    pub fn attach_pipe (&mut self, pipe: &mut ZmqPipe)
     {
         // zmq_assert (!is_terminating ());
         // zmq_assert (!_pipe);
@@ -295,9 +295,9 @@ impl ZmqSessionBase {
     // void engine_ready ();
 
     //  i_pipe_events interface implementation.
-    // void read_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
+    // void read_activated (pipe_: &mut ZmqPipe) ZMQ_FINAL;
 
-    pub fn read_activated (&mut self, pipe: &mut pipe_t)
+    pub fn read_activated (&mut self, pipe: &mut ZmqPipe)
     {
     // Skip activating if we're detaching this pipe
     if (unlikely (pipe != self.pipe && pipe != self.zap_pipe)) {
@@ -322,12 +322,12 @@ impl ZmqSessionBase {
     }
 
 
-    // void write_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
+    // void write_activated (pipe_: &mut ZmqPipe) ZMQ_FINAL;
 
-    // void hiccuped (pipe_: &mut pipe_t) ZMQ_FINAL;
+    // void hiccuped (pipe_: &mut ZmqPipe) ZMQ_FINAL;
 
-    // void pipe_terminated (pipe_: &mut pipe_t) ZMQ_FINAL;
-    pub fn pipe_terminated(&mut self, pipe: &mut pipe_t) -> anyhow::Result<()>
+    // void pipe_terminated (pipe_: &mut ZmqPipe) ZMQ_FINAL;
+    pub fn pipe_terminated(&mut self, pipe: &mut ZmqPipe) -> anyhow::Result<()>
     {
         // Drop the reference to the deallocated pipe if required.
         // zmq_assert (pipe_ == _pipe || pipe_ == _zap_pipe
@@ -360,7 +360,7 @@ impl ZmqSessionBase {
         //  with termination safely.
         if (self.pending && self.pipe.is_none() && self.zap_pipe.is_none() && self.terminating_pipes.empty()) {
             self.pending = false;
-            own_t::process_term(0);
+            ZmqOwn::process_term(0);
         }
 
         Ok(())
@@ -431,7 +431,7 @@ impl ZmqSessionBase {
     // ZmqSessionBase (ZmqThread *io_thread_,
     // active_: bool,
     // socket_: *mut ZmqSocketBase,
-    // const ZmqOptions &options_,
+    // options: &ZmqOptions,
     // Address *addr_);
 
     // ~ZmqSessionBase () ZMQ_OVERRIDE;
@@ -524,7 +524,7 @@ impl hello_msg_session_t
     // hello_msg_session_t (ZmqThread *io_thread_,
     // connect_: bool,
     // socket_: *mut ZmqSocketBase,
-    // const ZmqOptions &options_,
+    // options: &ZmqOptions,
     // Address *addr_);
 
     // ~hello_msg_session_t ();
@@ -547,7 +547,7 @@ impl hello_msg_session_t
 
 
 
-void ZmqSessionBase::write_activated (pipe: &mut pipe_t)
+void ZmqSessionBase::write_activated (pipe: &mut ZmqPipe)
 {
     // Skip activating if we're detaching this pipe
     if (_pipe != pipe) {
@@ -559,7 +559,7 @@ void ZmqSessionBase::write_activated (pipe: &mut pipe_t)
         _engine.restart_input ();
 }
 
-void ZmqSessionBase::hiccuped (pipe_t *)
+void ZmqSessionBase::hiccuped (ZmqPipe *)
 {
     //  Hiccups are always sent from session to socket, not the other
     //  way round.
@@ -599,7 +599,7 @@ int ZmqSessionBase::zap_connect ()
     //  Create a bi-directional pipe that will connect
     //  session with zap socket.
     ZmqObject *parents[2] = {this, peer.socket};
-    pipe_t *new_pipes[2] = {null_mut(), null_mut()};
+    ZmqPipe *new_pipes[2] = {null_mut(), null_mut()};
     int hwms[2] = {0, 0};
     bool conflates[2] = {false, false};
     int rc = pipepair (parents, new_pipes, hwms, conflates);
@@ -649,7 +649,7 @@ void ZmqSessionBase::engine_ready ()
     //  Create the pipe if it does not exist yet.
     if (!_pipe && !is_terminating ()) {
         ZmqObject *parents[2] = {this, _socket};
-        pipe_t *pipes[2] = {null_mut(), null_mut()};
+        ZmqPipe *pipes[2] = {null_mut(), null_mut()};
 
         const bool conflate = get_effective_conflate_option (options);
 
@@ -741,7 +741,7 @@ void ZmqSessionBase::process_term (linger: i32)
     //  delivered there's nothing much to do. We can proceed with the
     //  standard termination immediately.
     if (!_pipe && !_zap_pipe && _terminating_pipes.empty ()) {
-        own_t::process_term (0);
+        ZmqOwn::process_term (0);
         return;
     }
 
@@ -761,7 +761,7 @@ void ZmqSessionBase::process_term (linger: i32)
         //  are processed in case the linger time is non-zero.
         _pipe.terminate (linger != 0);
 
-        //  TODO: Should this go into pipe_t::terminate ?
+        //  TODO: Should this go into ZmqPipe::terminate ?
         //  In case there's no engine and there's only delimiter in the
         //  pipe it wouldn't be ever read. Thus we check for it explicitly.
         if (!_engine)
@@ -844,7 +844,7 @@ void ZmqSessionBase::start_connecting (wait_: bool)
     zmq_assert (io_thread);
 
     //  Create the connecter object.
-    own_t *connecter = null_mut();
+    ZmqOwn *connecter = null_mut();
     if (_addr.protocol == protocol_name::tcp) {
         if (!options.socks_proxy_address.empty ()) {
             Address *proxy_address = new (std::nothrow)
@@ -1007,7 +1007,7 @@ void ZmqSessionBase::start_connecting (wait_: bool)
 hello_msg_session_t::hello_msg_session_t (ZmqThread *io_thread_,
                                                connect_: bool,
                                                ZmqSocketBase *socket,
-                                               const ZmqOptions &options_,
+                                               options: &ZmqOptions,
                                                Address *addr_) :
     ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),
     _new_pipe (true)

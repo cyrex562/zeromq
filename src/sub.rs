@@ -68,7 +68,7 @@ int sub_t::xsetsockopt (option_: i32,
     }
 
     //  Create the subscription message.
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     rc: i32;
     const unsigned char *data = static_cast<const unsigned char *> (optval_);
     if (option_ == ZMQ_SUBSCRIBE) {

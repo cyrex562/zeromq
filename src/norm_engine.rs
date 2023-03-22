@@ -18,7 +18,7 @@
 pub struct norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
 {
 // public:
-    norm_engine_t (ZmqThread *parent_, const ZmqOptions &options_);
+    norm_engine_t (ZmqThread *parent_, options: &ZmqOptions);
     ~norm_engine_t () ZMQ_FINAL;
 
     // create NORM instance, session, etc
@@ -201,7 +201,7 @@ DWORD WINAPI normWrapperThread (LPVOID lpParam);
 // #endif
 
 norm_engine_t::norm_engine_t (ZmqThread *parent_,
-                                   const ZmqOptions &options_) :
+                                   options: &ZmqOptions) :
     io_object_t (parent_),
     zmq_session (null_mut()),
     options (options_),

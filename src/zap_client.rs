@@ -37,7 +37,7 @@ pub struct zap_client_t : public virtual ZmqMechanismBase
 // public:
     zap_client_t (ZmqSessionBase *session_,
                   const std::string &peer_address_,
-                  const ZmqOptions &options_);
+                  options: &ZmqOptions);
 
     void send_zap_request (mechanism_: &str,
                            mechanism_length_: usize,
@@ -76,7 +76,7 @@ pub struct zap_client_common_handshake_t : public zap_client_t
 
     zap_client_common_handshake_t (ZmqSessionBase *session_,
                                    const std::string &peer_address_,
-                                   const ZmqOptions &options_,
+                                   options: &ZmqOptions,
                                    state_t zap_reply_ok_state_);
 
     //  methods from mechanism_t
@@ -104,7 +104,7 @@ const size_t id_len = mem::size_of::<id>() - 1;
 
 zap_client_t::zap_client_t (ZmqSessionBase *const session_,
                             const std::string &peer_address_,
-                            const ZmqOptions &options_) :
+                            options: &ZmqOptions) :
     ZmqMechanismBase (session_, options_), peer_address (peer_address_)
 {
 }
@@ -128,7 +128,7 @@ void zap_client_t::send_zap_request (mechanism_: &str,
     // but on the ZAP socket, the HWM is disabled.
 
     rc: i32;
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
 
     //  Address delimiter frame
     rc = msg.init ();
@@ -319,7 +319,7 @@ void zap_client_t::handle_zap_status_code ()
 zap_client_common_handshake_t::zap_client_common_handshake_t (
   ZmqSessionBase *const session_,
   const std::string &peer_address_,
-  const ZmqOptions &options_,
+  options: &ZmqOptions,
   state_t zap_reply_ok_state_) :
     ZmqMechanismBase (session_, options_),
     zap_client_t (session_, peer_address_, options_),

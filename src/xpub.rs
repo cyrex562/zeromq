@@ -43,19 +43,19 @@ pub struct xpub_t : public ZmqSocketBase
     ~xpub_t () ZMQ_OVERRIDE;
 
     //  Implementations of virtual functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe,
+    void xattach_pipe (pipe: &mut ZmqPipe,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false) ZMQ_OVERRIDE;
     int xsend (msg: &mut ZmqMessage) ZMQ_FINAL;
     bool xhas_out () ZMQ_FINAL;
     int xrecv (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
     bool xhas_in () ZMQ_OVERRIDE;
-    void xread_activated (pipe: &mut pipe_t) ZMQ_FINAL;
-    void xwrite_activated (pipe: &mut pipe_t) ZMQ_FINAL;
+    void xread_activated (pipe: &mut ZmqPipe) ZMQ_FINAL;
+    void xwrite_activated (pipe: &mut ZmqPipe) ZMQ_FINAL;
     int
     xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize) ZMQ_FINAL;
     int xgetsockopt (option_: i32, optval_: &mut [u8], optvallen_: *mut usize) ZMQ_FINAL;
-    void xpipe_terminated (pipe: &mut pipe_t) ZMQ_FINAL;
+    void xpipe_terminated (pipe: &mut ZmqPipe) ZMQ_FINAL;
 
   // private:
     //  Function to be applied to the trie to send all the subscriptions
@@ -65,7 +65,7 @@ pub struct xpub_t : public ZmqSocketBase
                                      xpub_t *self_);
 
     //  Function to be applied to each matching pipes.
-    static void mark_as_matching (pipe_t *pipe, xpub_t *self_);
+    static void mark_as_matching (pipe: &mut ZmqPipe, xpub_t *self_);
 
     //  List of all subscriptions mapped to corresponding pipes.
     mtrie_t _subscriptions;
@@ -109,13 +109,13 @@ pub struct xpub_t : public ZmqSocketBase
     _send_last_pipe: bool
 
     //  Function to be applied to match the last pipe.
-    static void mark_last_pipe_as_matching (pipe_t *pipe, xpub_t *self_);
+    static void mark_last_pipe_as_matching (pipe: &mut ZmqPipe, xpub_t *self_);
 
     //  Last pipe that sent subscription message, only used if xpub is on manual
-    pipe_t *_last_pipe;
+    ZmqPipe *_last_pipe;
 
     // Pipes that sent subscriptions messages that have not yet been processed, only used if xpub is on manual
-    std::deque<pipe_t *> _pending_pipes;
+    std::deque<ZmqPipe *> _pending_pipes;
 
     //  Welcome message to send to pipe when attached
     ZmqMessage _welcome_msg;
@@ -158,7 +158,7 @@ xpub_t::~xpub_t ()
             LIBZMQ_DELETE (*it);
 }
 
-void xpub_t::xattach_pipe (pipe_t *pipe,
+void xpub_t::xattach_pipe (pipe: &mut ZmqPipe,
                                 subscribe_to_all_: bool,
                                 locally_initiated_: bool)
 {
@@ -188,10 +188,10 @@ void xpub_t::xattach_pipe (pipe_t *pipe,
     xread_activated (pipe);
 }
 
-void xpub_t::xread_activated (pipe: &mut pipe_t)
+void xpub_t::xread_activated (pipe: &mut ZmqPipe)
 {
     //  There are some subscriptions waiting. Let's process them.
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     while (pipe.read (&msg)) {
         ZmqMetadata *metadata = msg.metadata ();
         unsigned char *msg_data = static_cast<unsigned char *> (msg.data ()),
@@ -288,7 +288,7 @@ void xpub_t::xread_activated (pipe: &mut pipe_t)
     }
 }
 
-void xpub_t::xwrite_activated (pipe: &mut pipe_t)
+void xpub_t::xwrite_activated (pipe: &mut ZmqPipe)
 {
     _dist.activated (pipe);
 }
@@ -369,7 +369,7 @@ static void stub (mtrie_t::prefix_t data, size: usize, arg_: &mut [u8])
     LIBZMQ_UNUSED (arg_);
 }
 
-void xpub_t::xpipe_terminated (pipe: &mut pipe_t)
+void xpub_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
     if (_manual) {
         //  Remove the pipe from the trie and send corresponding manual
@@ -395,12 +395,12 @@ void xpub_t::xpipe_terminated (pipe: &mut pipe_t)
     _dist.pipe_terminated (pipe);
 }
 
-void xpub_t::mark_as_matching (pipe_t *pipe, xpub_t *self_)
+void xpub_t::mark_as_matching (pipe: &mut ZmqPipe, xpub_t *self_)
 {
     self_._dist.match (pipe);
 }
 
-void xpub_t::mark_last_pipe_as_matching (pipe_t *pipe, xpub_t *self_)
+void xpub_t::mark_last_pipe_as_matching (pipe: &mut ZmqPipe, xpub_t *self_)
 {
     if (self_._last_pipe == pipe)
         self_._dist.match (pipe);

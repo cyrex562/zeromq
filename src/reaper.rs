@@ -67,7 +67,7 @@ pub struct reaper_t ZMQ_FINAL : public ZmqObject, public i_poll_events
     _sockets: i32;
 
     //  If true, we were already asked to terminate.
-    _terminating: bool
+    terminating: bool
 
 // #ifdef HAVE_FORK
     // the process that created this context. Used to detect forking.
@@ -82,7 +82,7 @@ reaper_t::reaper_t (class ctx: &mut ZmqContext, tid: u32) :
     mailbox_handle (static_cast<poller_t::handle_t> (null_mut())),
     poller (null_mut()),
     _sockets (0),
-    _terminating (false)
+    terminating (false)
 {
     if (!mailbox.valid ())
         return;
@@ -161,7 +161,7 @@ void reaper_t::timer_event (int)
 
 void reaper_t::process_stop ()
 {
-    _terminating = true;
+    terminating = true;
 
     //  If there are no sockets being reaped finish immediately.
     if (!_sockets) {
@@ -185,7 +185,7 @@ void reaper_t::process_reaped ()
 
     //  If reaped was already asked to terminate and there are no more sockets,
     //  finish immediately.
-    if (!_sockets && _terminating) {
+    if (!_sockets && terminating) {
         send_done ();
         poller.rm_fd (mailbox_handle);
         poller.stop ();

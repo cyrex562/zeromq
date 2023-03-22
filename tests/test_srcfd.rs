@@ -61,8 +61,7 @@ void test_srcfd ()
     char tmp[MSG_SIZE];
     memset (tmp, 0, MSG_SIZE);
     zmq_send (req, tmp, MSG_SIZE, 0);
-
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
     zmq_recvmsg (rep, &msg, 0);

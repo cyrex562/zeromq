@@ -45,7 +45,7 @@ pub session: ZmqSessionBase,
 }
 
 impl ZmqMechanismBase {
-    // ZmqMechanismBase (ZmqSessionBase *session_, const ZmqOptions &options_);
+    // ZmqMechanismBase (ZmqSessionBase *session_, options: &ZmqOptions);
     pub fn new() -> Self {
 
     }
@@ -58,7 +58,7 @@ impl ZmqMechanismBase {
 }
 
 ZmqMechanismBase::ZmqMechanismBase (ZmqSessionBase *const session_,
-                                         const ZmqOptions &options_) :
+                                         options: &ZmqOptions) :
     ZmqMechanism (options_), session (session_)
 {
 }

@@ -91,7 +91,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
     msleep (250);
 
     //  Drain the queue, if any
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     zmq_msg_init (&msg);
     while (-1 != zmq_msg_recv (&msg, server, ZMQ_DONTWAIT)) {
         zmq_msg_close (&msg);

@@ -36,7 +36,7 @@ use libc::EINVAL;
 use crate::dist::dist_t;
 use crate::fq::fq_t;
 use crate::message::ZmqMessage;
-use crate::pipe::pipe_t;
+use crate::pipe::ZmqPipe;
 use crate::radix_tree::radix_tree_t;
 use crate::socket_base::{ZmqContext, ZmqSocketBase};
 use crate::zmq_hdr::{ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_XSUB_VERBOSE_UNSUBSCRIBE};
@@ -137,10 +137,10 @@ impl xsub_t {
     //     errno_assert (rc == 0);
     // }
 
-    // void xattach_pipe (pipe_t *pipe_,
+    // void xattach_pipe (ZmqPipe *pipe_,
     //                    bool subscribe_to_all_,
     //                    bool locally_initiated_) ZMQ_FINAL;
-    pub fn xattach_pipe (&mut self, pipe: &mut pipe_t, subscribe_to_all_: bool,
+    pub fn xattach_pipe (&mut self, pipe: &mut ZmqPipe, subscribe_to_all_: bool,
                                 locally_initiated_: bool)
     {
         // LIBZMQ_UNUSED (subscribe_to_all_);
@@ -349,20 +349,20 @@ impl xsub_t {
     }
 
 
-    // void xread_activated (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn xread_activated (&mut self, pipe: &mut pipe_t)
+    // void xread_activated (ZmqPipe *pipe_) ZMQ_FINAL;
+    pub fn xread_activated (&mut self, pipe: &mut ZmqPipe)
     {
         self._fq.activated (pipe);
     }
 
-    // void xwrite_activated (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn xwrite_activated (&mut self, pipe: &mut pipe_t)
+    // void xwrite_activated (ZmqPipe *pipe_) ZMQ_FINAL;
+    pub fn xwrite_activated (&mut self, pipe: &mut ZmqPipe)
     {
         self._dist.activated (pipe);
     }
 
-    // void xhiccuped (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn xhiccuped (&mut self, pipe: &mut pipe_t)
+    // void xhiccuped (ZmqPipe *pipe_) ZMQ_FINAL;
+    pub fn xhiccuped (&mut self, pipe: &mut ZmqPipe)
     {
         //  Send all the cached subscriptions to the hiccuped pipe.
         self._subscriptions.apply (send_subscription, pipe);
@@ -370,8 +370,8 @@ impl xsub_t {
     }
 
 
-    // void xpipe_terminated (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn xpipe_terminated (&mut self, pipe: &mut pipe_t)
+    // void xpipe_terminated (ZmqPipe *pipe_) ZMQ_FINAL;
+    pub fn xpipe_terminated (&mut self, pipe: &mut ZmqPipe)
     {
         self._fq.pipe_terminated (pipe);
         self._dist.pipe_terminated (pipe);
@@ -395,8 +395,8 @@ impl xsub_t {
                                      size: usize,
                                      arg_: &mut [u8]) -> anyhow::Result<()>
     {
-        // pipe_t *pipe = static_cast<pipe_t *> (arg_);
-        let pipe: pipe_t = deserialize(arg_)?;
+        // ZmqPipe *pipe = static_cast<ZmqPipe *> (arg_);
+        let pipe: ZmqPipe = deserialize(arg_)?;
 
         //  Create the subscription message.
         let mut msg = ZmqMessage::default();

@@ -184,7 +184,7 @@ void s_send_seq (socket: *mut c_void, ...)
 
 void s_recv_seq (socket: *mut c_void, ...)
 {
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     zmq_msg_init (&msg);
 
     more: i32;

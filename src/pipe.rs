@@ -47,704 +47,1198 @@
 //  terminates straight away.
 //  If conflate is true, only the most recently arrived message could be
 //  read (older messages are discarded)
-int pipepair (ZmqObject *parents_[2],
-              pipe_t *pipes_[2],
+
+use std::intrinsics::unlikely;
+use std::io::Write;
+use std::ptr::null_mut;
+use libc::memcpy;
 use serde::{Deserialize, Serialize};
+use crate::context::ZmqContext;
+use crate::endpoint::EndpointUriPair;
+use crate::object::ZmqObject;
+use crate::ypipe_base::YpipeBase;
+use crate::message::{ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID, ZmqMessage};
+use crate::options::ZmqOptions;
+use crate::own::ZmqOwn;
+use crate::pipe::PipeState::{active, delimiter_received, term_ack_sent, term_req_sent1, term_req_sent2, waiting_for_delimiter};
+use crate::ypipe::Ypipe;
 
-const int hwms_[2],
-              const bool conflate_[2]);
+// int pipepair (ZmqObject *parents_[2],
+// ZmqPipe *pipes_[2],
+// const int hwms_[2],
+//               const bool conflate_[2]);
 
-struct i_pipe_events
+pub trait i_pipe_events
 {
-    virtual ~i_pipe_events () ZMQ_DEFAULT;
+    // virtual ~i_pipe_events () ZMQ_DEFAULT;
+    fn read_activated(&mut self, pipe: &mut ZmqPipe);
+    fn write_activated(&mut self, pipe: &mut ZmqPipe);
+    fn hiccuped(&mut self, pipe: &mut ZmqPipe);
+    fn pipe_terminated(&mut self, pipe: &mut ZmqPipe);
+}
 
-    virtual void read_activated (pipe: &mut pipe_t) = 0;
-    virtual void write_activated (pipe: &mut pipe_t) = 0;
-    virtual void hiccuped (pipe: &mut pipe_t) = 0;
-    virtual void pipe_terminated (pipe: &mut pipe_t) = 0;
-};
+//  States of the pipe endpoint:
+//  active: common state before any termination begins,
+//  delimiter_received: delimiter was read from pipe before
+//      term command was received,
+//  waiting_for_delimiter: term command was already received
+//      from the peer but there are still pending messages to read,
+//  term_ack_sent: all pending messages were already read and
+//      all we are waiting for is ack from the peer,
+//  term_req_sent1: 'terminate' was explicitly called by the user,
+//  term_req_sent2: user called 'terminate' and then we've got
+//      term command from the peer as well.
+pub enum PipeState
+{
+    active,
+    delimiter_received,
+    waiting_for_delimiter,
+    term_ack_sent,
+    term_req_sent1,
+    term_req_sent2
+}
 
 //  Note that pipe can be stored in three different arrays.
 //  The array of inbound pipes (1), the array of outbound pipes (2) and
 //  the generic array of pipes to be deallocated (3).
 #[derive(Default,Debug,Clone,Serialize,Deserialize)]
-pub struct pipe_t ZMQ_FINAL : public ZmqObject,
-                         public array_item_t<1>,
-                         public array_item_t<2>,
-                         public array_item_t<3>
+// pub struct ZmqPipe ZMQ_FINAL : public ZmqObject,
+//                          public array_item_t<1>,
+//                          public array_item_t<2>,
+//                          public array_item_t<3>
+pub struct ZmqPipe
 {
+    // typedef YpipeBase<ZmqMessage> upipe_t;
+    //  Underlying pipes for both directions.
+    // upipe_t *_in_pipe;
+    pub _in_pipe: YpipeBase<ZmqMessage>,
+    // upipe_t *_out_pipe;
+    pub _out_pipe: YpipeBase<ZmqMessage>,
+    //  Can the pipe be read from / written to?
+    pub _in_active: bool,
+    pub _out_active: bool,
+    //  High watermark for the outbound pipe.
+    pub _hwm: i32,
+    //  Low watermark for the inbound pipe.
+    pub _lwm: i32,
+    // boosts for high and low watermarks, used with inproc sockets so hwm are sum of send and recv hmws on each side of pipe
+    pub _in_hwm_boost: i32,
+    pub _out_hwm_boost: i32,
+    //  Number of messages read and written so far.
+    pub _msgs_read: u64,
+    pub _msgs_written: u64,
+    //  Last received peer's msgs_read. The actual number in the peer
+    //  can be higher at the moment.
+    // u64 _peers_msgs_read;
+    pub _peers_msgs_read: u64,
+    //  The pipe object on the other side of the pipepair.
+    // TODO:
+    // ZmqPipe *_peer;
+    //  Sink to send events to.
+    // i_pipe_events *_sink;
+    //  If true, we receive all the pending inbound messages before
+    //  terminating. If false, we terminate immediately when the peer
+    //  asks us to.
+    pub _delay: bool,
+    //  Routing id of the writer. Used uniquely by the reader side.
+    pub _router_socket_routing_id: Vec<u8>,
+    //  Routing id of the writer. Used uniquely by the reader side.
+    pub _server_socket_routing_id: i32,
+    pub _conflate: bool,
+    // The endpoints of this pipe.
+    pub _endpoint_pair: EndpointUriPair,
+    // Disconnect msg
+    pub _disconnect_msg: ZmqMessage,
+
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqPipe)
+}
+
+impl ZmqPipe {
     //  This allows pipepair to create pipe objects.
-    friend int pipepair (ZmqObject *parents_[2],
-                         pipe_t *pipes_[2],
-                         const int hwms_[2],
-                         const bool conflate_[2]);
+    // friend int pipepair (ZmqObject *parents_[2],
+    // ZmqPipe *pipes_[2],
+    // const int hwms_[2],
+    // const bool conflate_[2]);
+    pub fn pipepair(parents: &[ZmqObject], pipes: &[Self], hwms: &[i32;2], conflate: &[bool;2]){
+        //   Creates two pipe objects. These objects are connected by two ypipes,
+        //   each to pass messages in one direction.
+
+        typedef Ypipe<ZmqMessage, message_pipe_granularity> upipe_normal_t;
+        typedef ypipe_conflate_t<ZmqMessage> upipe_conflate_t;
+
+        ZmqPipe::upipe_t *upipe1;
+        if (conflate_[0])
+        upipe1 = new (std::nothrow) upipe_conflate_t ();
+        else
+        upipe1 = new (std::nothrow) upipe_normal_t ();
+        alloc_assert (upipe1);
+
+        ZmqPipe::upipe_t *upipe2;
+        if (conflate_[1])
+        upipe2 = new (std::nothrow) upipe_conflate_t ();
+        else
+        upipe2 = new (std::nothrow) upipe_normal_t ();
+        alloc_assert (upipe2);
+
+        pipes_[0] = new (std::nothrow)
+        ZmqPipe (parents_[0], upipe1, upipe2, hwms_[1], hwms_[0], conflate_[0]);
+        alloc_assert (pipes_[0]);
+        pipes_[1] = new (std::nothrow)
+        ZmqPipe (parents_[1], upipe2, upipe1, hwms_[0], hwms_[1], conflate_[1]);
+        alloc_assert (pipes_[1]);
+
+        pipes_[0]->set_peer (pipes_[1]);
+        pipes_[1]->set_peer (pipes_[0]);
+
+        return 0;
+    }
 
 // public:
     //  Specifies the object to send events to.
-    void set_event_sink (i_pipe_events *sink_);
+    pub fn set_event_sink (&mut self, sink: &mut i_pipe_events) {
+        // Sink can be set once only.
+        zmq_assert (!_sink);
+        self._sink = sink;
+    }
 
     //  Pipe endpoint can store an routing ID to be used by its clients.
-    void set_server_socket_routing_id (u32 server_socket_routing_id_);
-    u32 get_server_socket_routing_id () const;
+    pub fn set_server_socket_routing_id (&mut self, server_socket_routing_id_: u32) {
+        self._server_socket_routing_id = server_socket_routing_id_ as i32;
+    }
+
+    // u32 get_server_socket_routing_id () const;
+    pub fn get_server_socket_routing_id(&mut self) -> u32 {
+        self._server_socket_routing_id as u32
+    }
 
     //  Pipe endpoint can store an opaque ID to be used by its clients.
-    void set_router_socket_routing_id (const Blob &router_socket_routing_id_);
-    const Blob &get_routing_id () const;
+    pub fn set_router_socket_routing_id (&mut self, router_socket_routing_id_: &mut Vec<u8>)
+    {
+        self._router_socket_routing_id = router_socket_routing_id_.clone();
+    }
+
+    // const Blob &get_routing_id () const;
+    pub fn get_routing_id(&self) -> &Vec<u8>
+    {
+        &self._router_socket_routing_id
+    }
 
     //  Returns true if there is at least one message to read in the pipe.
-    bool check_read ();
+    // bool check_read ();
+    pub fn check_read(&mut self) -> bool {
+        if (unlikely(!self._in_active)) {
+            return false;
+        }
+        if (unlikely(self._state != active && self._state != waiting_for_delimiter)) {
+            return false;
+        }
+
+        //  Check if there's an item in the pipe.
+        if (!self._in_pipe.check_read()) {
+            self._in_active = false;
+            return false;
+        }
+
+        //  If the next item in the pipe is message delimiter,
+        //  initiate termination process.
+        if (self._in_pipe.probe(is_delimiter)) {
+            // ZmqMessage msg;
+            let mut msg = ZmqMessage::default();
+            let ok = self._in_pipe.read(msg);
+            // zmq_assert (ok);
+            self.process_delimiter();
+            return false;
+        }
+
+        return true;
+    }
 
     //  Reads a message to the underlying pipe.
-    bool read (msg: &mut ZmqMessage);
+    // bool read (msg: &mut ZmqMessage);
+    pub fn read(&mut self, msg: &mut ZmqMessage) -> bool
+    {
+        if (unlikely (!self._in_active)) {
+            return false;
+        }
+        if (unlikely (self._state != active && self._state != waiting_for_delimiter)) {
+            return false;
+        }
+
+        loop {
+            if (!self._in_pipe.read (msg)) {
+                self._in_active = false;
+                return false;
+            }
+
+            //  If this is a credential, ignore it and receive next message.
+            if (unlikely (msg.is_credential ())) {
+                let rc: i32 = msg.close ();
+                // zmq_assert (rc == 0);
+            } else {
+                break;
+            }
+        }
+
+        //  If delimiter was read, start termination process of the pipe.
+        if (msg.is_delimiter ()) {
+            self.process_delimiter ();
+            return false;
+        }
+
+        if (!(msg.flags () & ZMQ_MSG_MORE) && !msg.is_routing_id ())
+        self._msgs_read += 1;
+
+        if (_lwm > 0 && _msgs_read % _lwm == 0)
+        send_activate_write (_peer, _msgs_read);
+
+        return true;
+    }
 
     //  Checks whether messages can be written to the pipe. If the pipe is
     //  closed or if writing the message would cause high watermark the
     //  function returns false.
-    bool check_write ();
+    // bool check_write ();
+    pub fn check_write(&mut self) -> bool
+    {
+        if (unlikely (!self._out_active || self._state != PipeState::active)) {
+            return false;
+        }
+
+        let full = !self.check_hwm ();
+
+        if (unlikely (full)) {
+            self._out_active = false;
+            return false;
+        }
+
+        return true;
+    }
 
     //  Writes a message to the underlying pipe. Returns false if the
     //  message does not pass check_write. If false, the message object
     //  retains ownership of its message buffer.
-    bool write (const msg: &mut ZmqMessage);
+    // bool write (const msg: &mut ZmqMessage);
+    pub fn write(&mut self, msg: &mut ZmqMessage) -> bool
+    {
+        if (unlikely (!check_write ())) {
+            return false;
+        }
+
+        let more = (msg.flags () & ZMQ_MSG_MORE) != 0;
+        let is_routing_id = msg.is_routing_id ();
+        self._out_pipe.write (msg, more);
+        if (!more && !is_routing_id) {
+            self._msgs_written += 1;
+        }
+
+        return true;
+    }
 
     //  Remove unfinished parts of the outbound message from the pipe.
-    void rollback () const;
+    // void rollback () const;
+    pub fn rollback(&mut self) -> anyhow::Result<()> {
+        //  Remove incomplete message from the outbound pipe.
+        let mut msg = ZmqMessage::default();
+        if (_out_pipe) {
+            while (_out_pipe.unwrite(&msg)) {
+                // zmq_assert (msg.flags () & ZMQ_MSG_MORE);
+                msg.close()?;
+                // errno_assert (rc == 0);
+            }
+        }
+        Ok(())
+    }
 
     //  Flush the messages downstream.
-    void flush ();
+    // void flush ();
+    pub fn flush(&mut self)
+    {
+        //  The peer does not exist anymore at this point.
+        if (self._state == PipeState::term_ack_sent) {
+            return;
+        }
+
+        if (self._out_pipe && !self._out_pipe.flush()) {
+            self.send_activate_read(self._peer);
+        }
+    }
 
     //  Temporarily disconnects the inbound message stream and drops
     //  all the messages on the fly. Causes 'hiccuped' event to be generated
     //  in the peer.
-    void hiccup ();
+    pub fn hiccup (&mut self)
+    {}
 
     //  Ensure the pipe won't block on receiving pipe_term.
-    void set_nodelay ();
+    pub fn set_nodelay (&mut self)
+    {
+        self._delay = false;
+    }
 
     //  Ask pipe to terminate. The termination will happen asynchronously
     //  and user will be notified about actual deallocation by 'terminated'
     //  event. If delay is true, the pending messages will be processed
     //  before actual shutdown.
-    void terminate (delay_: bool);
+    pub fn terminate (&mut self, delay_: bool)
+    {
+        //  Overload the value specified at pipe creation.
+        self._delay = delay_;
+
+        //  If terminate was already called, we can ignore the duplicate invocation.
+        if (self._state == PeerState::term_req_sent1 || self._state == PeerState::term_req_sent2) {
+            return;
+        }
+        //  If the pipe is in the final phase of async termination, it's going to
+        //  closed anyway. No need to do anything special here.
+        if (self._state == PeerState::term_ack_sent) {
+            return;
+        }
+        //  The simple sync termination case. Ask the peer to terminate and wait
+        //  for the ack.
+        if (self._state == PeerState::active) {
+            self.send_pipe_term (self._peer);
+            self._state = PeerState::term_req_sent1;
+        }
+        //  There are still pending messages available, but the user calls
+        //  'terminate'. We can act as if all the pending messages were read.
+        else if (self._state == PeerState::waiting_for_delimiter && !self._delay) {
+            //  Drop any unfinished outbound messages.
+            self.rollback ();
+            self._out_pipe.clear();
+            self.send_pipe_term_ack (self._peer);
+            self._state = PeerState::term_ack_sent;
+        }
+        //  If there are pending messages still available, do nothing.
+        else if (self._state == PeerState::waiting_for_delimiter) {
+        }
+        //  We've already got delimiter, but not term command yet. We can ignore
+        //  the delimiter and ack synchronously terminate as if we were in
+        //  active state.
+        else if (self._state == PeerState::delimiter_received) {
+            self.send_pipe_term (self._peer);
+            self._state = PeerState::term_req_sent1;
+        }
+        //  There are no other states.
+        else {
+            // zmq_assert (false);
+        }
+
+        //  Stop outbound flow of messages.
+        self._out_active = false;
+
+        if (self._out_pipe) {
+            //  Drop any unfinished outbound messages.
+            self.rollback ();
+
+            //  Write the delimiter into the pipe. Note that watermarks are not
+            //  checked; thus the delimiter can be written even when the pipe is full.
+            let mut msg = ZmqMessage::default();
+            msg.init_delimiter ();
+            self._out_pipe.write (&msg, false);
+            self.flush ();
+        }
+    }
 
     //  Set the high water marks.
-    void set_hwms (inhwm: i32, outhwm: i32);
+    pub fn set_hwms (&mut self, inhwm: i32, outhwm: i32)
+    {
+
+    }
 
     //  Set the boost to high water marks, used by inproc sockets so total hwm are sum of connect and bind sockets watermarks
-    void set_hwms_boost (inhwmboost_: i32, outhwmboost_: i32);
+    pub fn set_hwms_boost (&mut self, inhwmboost_: i32, outhwmboost_: i32)
+    {
+
+    }
 
     // send command to peer for notify the change of hwm
-    void send_hwms_to_peer (inhwm: i32, outhwm: i32);
+    pub fn send_hwms_to_peer (inhwm: i32, outhwm: i32)
+    {
+
+    }
 
     //  Returns true if HWM is not reached
-    bool check_hwm () const;
+    pub fn check_hwm ()-> bool
+    {
 
-    void set_endpoint_pair (EndpointUriPair endpoint_pair);
-    const EndpointUriPair &get_endpoint_pair () const;
+    }
 
-    void send_stats_to_peer (own_t *socket_base);
+    pub fn set_endpoint_pair (&self, endpoint_pair: EndpointUriPair)
+    {
 
-    void send_disconnect_msg ();
-    void set_disconnect_msg (const std::vector<unsigned char> &disconnect_);
+    }
 
-    void send_hiccup_msg (const std::vector<unsigned char> &hiccup_);
 
-  // private:
+    // const EndpointUriPair &get_endpoint_pair () const;
+    pub fn get_endpoint_pair(&mut self) -> &EndpointUriPair {
+
+    }
+
+    // void send_stats_to_peer (ZmqOwn *socket_base);
+    pub fn send_stats_to_peer(&mut self, socket_base: &mut ZmqOwn)
+    {
+
+    }
+
+    // void send_disconnect_msg ();
+    pub fn send_disconnect_msg(&mut self)
+    {
+
+    }
+
+    // void set_disconnect_msg (const std::vector<unsigned char> &disconnect_);
+    pub fn set_disconnect_msg(&mut self, disconnect: &Vec<u8>)
+    {
+
+    }
+
+    // void send_hiccup_msg (const std::vector<unsigned char> &hiccup_);
+    pub fn send_hiccup_msg(&mut self, hiccup: &Vec<u8>)
+    {
+
+    }
+
+    // private:
     //  Type of the underlying lock-free pipe.
-    typedef YpipeBase<ZmqMessage> upipe_t;
+    // typedef YpipeBase<ZmqMessage> upipe_t;
 
     //  Command handlers.
-    void process_activate_read () ZMQ_OVERRIDE;
-    void process_activate_write (u64 msgs_read) ZMQ_OVERRIDE;
-    void process_hiccup (pipe: *mut c_void) ZMQ_OVERRIDE;
-    void
-    process_pipe_peer_stats (queue_count: u64,
-                             own_t *socket_base,
-                             EndpointUriPair *endpoint_pair) ZMQ_OVERRIDE;
-    void process_pipe_term () ZMQ_OVERRIDE;
-    void process_pipe_term_ack () ZMQ_OVERRIDE;
-    void process_pipe_hwm (inhwm: i32, outhwm: i32) ZMQ_OVERRIDE;
+    pub fn process_activate_read (&mut self)
+    {
+        if (!self._in_active && (self._state == PipeState::active || self._state == PipeState::waiting_for_delimiter)) {
+            self._in_active = true;
+            self._sink.read_activated (this);
+        }
+    }
+
+    // void process_activate_write (u64 msgs_read) ZMQ_OVERRIDE;
+    pub fn process_activate_write(&mut self, msgs_read: u64)
+    {
+        //  Remember the peer's message sequence number.
+        self._peers_msgs_read = msgs_read;
+
+        if (!_out_active && self._state == PipeState::active) {
+            self.out_active = true;
+            self._sink.write_activated (this);
+        }
+    }
+
+    // void process_hiccup (pipe: *mut c_void) ZMQ_OVERRIDE;
+    pub fn process_hiccup(&mut self, pipe: &mut [u8])
+    {
+        //  Destroy old outpipe. Note that the read end of the pipe was already
+        //  migrated to this thread.
+        // zmq_assert (_out_pipe);
+        self._out_pipe.flush ();
+        let mut msg = ZmqMessage::default();
+        while (self._out_pipe.read (&mut msg)) {
+            if (!(self.msg.flags () & ZMQ_MSG_MORE)) {
+                self._msgs_written -= 1;
+            }
+            let rc: i32 = msg.clsose ();
+            // errno_assert (rc == 0);
+        }
+        // LIBZMQ_DELETE (_out_pipe);
+
+        //  Plug in the new outpipe.
+        // zmq_assert (pipe);
+        self._out_pipe = (pipe);
+        self._out_active = true;
+
+        //  If appropriate, notify the user about the hiccup.
+        if (self._state == PipeState::active) {
+            self._sink.hiccuped(this);
+        }
+    }
+
+    // void process_pipe_peer_stats (queue_count: u64, ZmqOwn *socket_base, EndpointUriPair *endpoint_pair) ZMQ_OVERRIDE;
+    pub fn process_pipe_peer_stats(&mut self, queue_count: u64, socket_base: &mut ZmqOwn, endpoint_pair: &mut EndpointUriPair)
+    {
+
+    }
+
+    // void process_pipe_term () ZMQ_OVERRIDE;
+    pub fn process_pipe_term(&mut self)
+    {
+        // zmq_assert (_state == active || _state == delimiter_received
+        //     || _state == term_req_sent1);
+
+        //  This is the simple case of peer-induced termination. If there are no
+        //  more pending messages to read, or if the pipe was configured to drop
+        //  pending messages, we can move directly to the term_ack_sent state.
+        //  Otherwise we'll hang up in waiting_for_delimiter state till all
+        //  pending messages are read.
+        if (self._state == PeerState::active) {
+            if (self._delay) {
+                self._state = PeerState::waiting_for_delimiter;
+            }
+            else {
+                self._state = PeerState::term_ack_sent;
+                self._out_pipe.clear();
+                self.send_pipe_term_ack (_peer);
+            }
+        }
+
+        //  Delimiter happened to arrive before the term command. Now we have the
+        //  term command as well, so we can move straight to term_ack_sent state.
+        else if (self._state == PeerState::delimiter_received) {
+            self._state = PeerState::term_ack_sent;
+            self._out_pipe.clear();
+            self.send_pipe_term_ack (self._peer);
+        }
+
+        //  This is the case where both ends of the pipe are closed in parallel.
+        //  We simply reply to the request by ack and continue waiting for our
+        //  own ack.
+        else if (self._state == PeerState::term_req_sent1) {
+            self._state = PeerState::term_req_sent2;
+            self._out_pipe.clear();
+            self.send_pipe_term_ack (self._peer);
+        }
+    }
+
+    // void process_pipe_term_ack () ZMQ_OVERRIDE;
+    pub fn process_pipe_term_ack(&mut self) -> anyhow::Result<()>
+    {
+        //  Notify the user that all the references to the pipe should be dropped.
+        // zmq_assert (_sink);
+        self._sink.pipe_terminated (this);
+
+        //  In term_ack_sent and term_req_sent2 states there's nothing to do.
+        //  Simply deallocate the pipe. In term_req_sent1 state we have to ack
+        //  the peer before deallocating this side of the pipe.
+        //  All the other states are invalid.
+        if (self._state == PeerState::term_req_sent1) {
+            self._out_pipe = null_mut();
+            self.send_pipe_term_ack (self._peer);
+        } else {}
+        // zmq_assert (_state == term_ack_sent || _state == term_req_sent2);
+
+        //  We'll deallocate the inbound pipe, the peer will deallocate the outbound
+        //  pipe (which is an inbound pipe from its point of view).
+        //  First, delete all the unread messages in the pipe. We have to do it by
+        //  hand because ZmqMessage doesn't have automatic destructor. Then deallocate
+        //  the ypipe itself.
+
+        if (!self._conflate) {
+            let mut msg = ZmqMessage::default();
+            while (self._in_pipe.read (&msg)) {
+                msg.close ()?;
+                // errno_assert (rc == 0);
+            }
+        }
+
+        // LIBZMQ_DELETE (_in_pipe);
+
+        //  Deallocate the pipe object
+        // delete this;
+        Ok(())
+    }
+
+    // void process_pipe_hwm (inhwm: i32, outhwm: i32) ZMQ_OVERRIDE;
+    pub fn process_pipe_hwm(&mut self, inhwm: i32, outhwm: i32)
+    {
+        self.set_hwms (inhwm, outhwm);
+    }
 
     //  Handler for delimiter read from the pipe.
-    void process_delimiter ();
+    // void process_delimiter ();
+    pub fn process_delimiter(&mut self)
+    {
+        // zmq_assert (_state == active || _state == waiting_for_delimiter);
+
+        if (self._state == PeerState::active) {
+            self._state = PeerState::delimiter_received;
+        }
+        else {
+            self.rollback ();
+            self._out_pipe.clone();
+            self.send_pipe_term_ack (self._peer);
+            self._state = PeerState::term_ack_sent;
+        }
+    }
 
     //  Constructor is private. Pipe can only be created using
     //  pipepair function.
-    pipe_t (ZmqObject *parent_,
-            upipe_t *inpipe_,
-            upipe_t *outpipe_,
-            inhwm: i32,
-            outhwm: i32,
-            conflate_: bool);
+    // ZmqPipe (ZmqObject *parent_, upipe_t *inpipe_, upipe_t *outpipe_, inhwm: i32, outhwm: i32, conflate_: bool);
+    // ZmqPipe::ZmqPipe (ZmqObject *parent_,
+    //                  upipe_t *inpipe_,
+    //                  upipe_t *outpipe_,
+    //                  inhwm: i32,
+    //                  outhwm: i32,
+    //                  conflate_: bool) :
+    // ZmqObject (parent_),
+    // _in_pipe (inpipe_),
+    // _out_pipe (outpipe_),
+    // _in_active (true),
+    // _out_active (true),
+    // _hwm (outhwm),
+    // _lwm (compute_lwm (inhwm)),
+    // _in_hwm_boost (-1),
+    // _out_hwm_boost (-1),
+    // _msgs_read (0),
+    // _msgs_written (0),
+    // _peers_msgs_read (0),
+    // _peer (null_mut()),
+    // _sink (null_mut()),
+    // _state (active),
+    // _delay (true),
+    // _server_socket_routing_id (0),
+    // _conflate (conflate_)
+    pub fn new(parent: &mut ZmqObject, inpipe: &mut YpipeBase<ZmqMessage>, outpipe: &mut YpipeBase<ZmqMessage>, inhwm: i32, outhwm: i32, conflate: bool) -> Self
+    {
+        let mut out = Self {
+            _in_pipe: inpipe,
+            _out_pipe: outpipe,
+            _in_active: true,
+            _out_active: true,
+            _hwm: outhwm,
+            _lwm: compute_lwm(inhwm),
+            _in_hwm_boost: -1,
+            _out_hwm_boost: -1,
+            _msgs_read: 0,
+            _msgs_written: 0,
+            _peers_msgs_read: 0,
+            _delay: false,
+            _router_socket_routing_id: vec![],
+            _server_socket_routing_id: 0,
+            _conflate: false,
+            _endpoint_pair: Default::default(),
+            _disconnect_msg: Default::default(),
+        };
+        _disconnect_msg.init();
+        out
+    }
+
 
     //  Pipepair uses this function to let us know about
     //  the peer pipe object.
-    void set_peer (pipe_t *peer_);
+    // void set_peer (ZmqPipe *peer_);
+    pub fn set_peer(&mut self, peer: &mut Self)
+    {
+        //  Peer can be set once only.
+        // zmq_assert (!_peer);
+        self._peer = peer_;
+    }
 
     //  Destructor is private. Pipe objects destroy themselves.
-    ~pipe_t () ZMQ_OVERRIDE;
-
-    //  Underlying pipes for both directions.
-    upipe_t *_in_pipe;
-    upipe_t *_out_pipe;
-
-    //  Can the pipe be read from / written to?
-    _in_active: bool
-    _out_active: bool
-
-    //  High watermark for the outbound pipe.
-    _hwm: i32;
-
-    //  Low watermark for the inbound pipe.
-    _lwm: i32;
-
-    // boosts for high and low watermarks, used with inproc sockets so hwm are sum of send and recv hmws on each side of pipe
-    _in_hwm_boost: i32;
-    _out_hwm_boost: i32;
-
-    //  Number of messages read and written so far.
-    u64 _msgs_read;
-    u64 _msgs_written;
-
-    //  Last received peer's msgs_read. The actual number in the peer
-    //  can be higher at the moment.
-    u64 _peers_msgs_read;
-
-    //  The pipe object on the other side of the pipepair.
-    pipe_t *_peer;
-
-    //  Sink to send events to.
-    i_pipe_events *_sink;
-
-    //  States of the pipe endpoint:
-    //  active: common state before any termination begins,
-    //  delimiter_received: delimiter was read from pipe before
-    //      term command was received,
-    //  waiting_for_delimiter: term command was already received
-    //      from the peer but there are still pending messages to read,
-    //  term_ack_sent: all pending messages were already read and
-    //      all we are waiting for is ack from the peer,
-    //  term_req_sent1: 'terminate' was explicitly called by the user,
-    //  term_req_sent2: user called 'terminate' and then we've got
-    //      term command from the peer as well.
-    enum
-    {
-        active,
-        delimiter_received,
-        waiting_for_delimiter,
-        term_ack_sent,
-        term_req_sent1,
-        term_req_sent2
-    } _state;
-
-    //  If true, we receive all the pending inbound messages before
-    //  terminating. If false, we terminate immediately when the peer
-    //  asks us to.
-    _delay: bool
-
-    //  Routing id of the writer. Used uniquely by the reader side.
-    Blob _router_socket_routing_id;
-
-    //  Routing id of the writer. Used uniquely by the reader side.
-    _server_socket_routing_id: i32;
+    // ~ZmqPipe () ZMQ_OVERRIDE;
 
     //  Returns true if the message is delimiter; false otherwise.
-    static bool is_delimiter (const ZmqMessage &msg);
+    // static bool is_delimiter (const ZmqMessage &msg);
+    pub fn is_delimiter(&mut self, msg: &ZmqMessage) -> bool
+    {
+        return msg.is_delimiter ();
+    }
 
     //  Computes appropriate low watermark from the given high watermark.
-    static int compute_lwm (hwm_: i32);
+    // static int compute_lwm (hwm_: i32);
+    pub fn compute_lwm(&mut self, hwm_: i32) -> i32
+    {
+        //  Compute the low water mark. Following point should be taken
+        //  into consideration:
+        //
+        //  1. LWM has to be less than HWM.
+        //  2. LWM cannot be set to very low value (such as zero) as after filling
+        //     the queue it would start to refill only after all the messages are
+        //     read from it and thus unnecessarily hold the progress back.
+        //  3. LWM cannot be set to very high value (such as HWM-1) as it would
+        //     result in lock-step filling of the queue - if a single message is
+        //     read from a full queue, writer thread is resumed to write exactly one
+        //     message to the queue and go back to sleep immediately. This would
+        //     result in low performance.
+        //
+        //  Given the 3. it would be good to keep HWM and LWM as far apart as
+        //  possible to reduce the thread switching overhead to almost zero.
+        //  Let's make LWM 1/2 of HWM.
+        let result: i32 = (hwm_ + 1) / 2;
 
-    const _conflate: bool
-
-    // The endpoints of this pipe.
-    EndpointUriPair _endpoint_pair;
-
-    // Disconnect msg
-    ZmqMessage _disconnect_msg;
-
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (pipe_t)
-};
-
-void send_routing_id (pipe_t *pipe, const ZmqOptions &options_);
-
-void send_hello_msg (pipe_t *pipe, const ZmqOptions &options_);
-
-int pipepair (ZmqObject *parents_[2],
-                   pipe_t *pipes_[2],
-                   const int hwms_[2],
-                   const bool conflate_[2])
-{
-    //   Creates two pipe objects. These objects are connected by two ypipes,
-    //   each to pass messages in one direction.
-
-    typedef Ypipe<ZmqMessage, message_pipe_granularity> upipe_normal_t;
-    typedef ypipe_conflate_t<ZmqMessage> upipe_conflate_t;
-
-    pipe_t::upipe_t *upipe1;
-    if (conflate_[0])
-        upipe1 = new (std::nothrow) upipe_conflate_t ();
-    else
-        upipe1 = new (std::nothrow) upipe_normal_t ();
-    alloc_assert (upipe1);
-
-    pipe_t::upipe_t *upipe2;
-    if (conflate_[1])
-        upipe2 = new (std::nothrow) upipe_conflate_t ();
-    else
-        upipe2 = new (std::nothrow) upipe_normal_t ();
-    alloc_assert (upipe2);
-
-    pipes_[0] = new (std::nothrow)
-      pipe_t (parents_[0], upipe1, upipe2, hwms_[1], hwms_[0], conflate_[0]);
-    alloc_assert (pipes_[0]);
-    pipes_[1] = new (std::nothrow)
-      pipe_t (parents_[1], upipe2, upipe1, hwms_[0], hwms_[1], conflate_[1]);
-    alloc_assert (pipes_[1]);
-
-    pipes_[0]->set_peer (pipes_[1]);
-    pipes_[1]->set_peer (pipes_[0]);
-
-    return 0;
-}
-
-void send_routing_id (pipe_t *pipe, const ZmqOptions &options_)
-{
-    ZmqMessage id;
-    let rc: i32 = id.init_size (options_.routing_id_size);
-    errno_assert (rc == 0);
-    memcpy (id.data (), options_.routing_id, options_.routing_id_size);
-    id.set_flags (ZMQ_MSG_ROUTING_ID);
-    const bool written = pipe.write (&id);
-    zmq_assert (written);
-    pipe.flush ();
-}
-
-void send_hello_msg (pipe_t *pipe, const ZmqOptions &options_)
-{
-    ZmqMessage hello;
-    let rc: i32 =
-      hello.init_buffer (&options_.hello_msg[0], options_.hello_msg.size ());
-    errno_assert (rc == 0);
-    const bool written = pipe.write (&hello);
-    zmq_assert (written);
-    pipe.flush ();
-}
-
-pipe_t::pipe_t (ZmqObject *parent_,
-                     upipe_t *inpipe_,
-                     upipe_t *outpipe_,
-                     inhwm: i32,
-                     outhwm: i32,
-                     conflate_: bool) :
-    ZmqObject (parent_),
-    _in_pipe (inpipe_),
-    _out_pipe (outpipe_),
-    _in_active (true),
-    _out_active (true),
-    _hwm (outhwm),
-    _lwm (compute_lwm (inhwm)),
-    _in_hwm_boost (-1),
-    _out_hwm_boost (-1),
-    _msgs_read (0),
-    _msgs_written (0),
-    _peers_msgs_read (0),
-    _peer (null_mut()),
-    _sink (null_mut()),
-    _state (active),
-    _delay (true),
-    _server_socket_routing_id (0),
-    _conflate (conflate_)
-{
-    _disconnect_msg.init ();
-}
-
-pipe_t::~pipe_t ()
-{
-    _disconnect_msg.close ();
-}
-
-void pipe_t::set_peer (pipe_t *peer_)
-{
-    //  Peer can be set once only.
-    zmq_assert (!_peer);
-    _peer = peer_;
-}
-
-void pipe_t::set_event_sink (i_pipe_events *sink_)
-{
-    // Sink can be set once only.
-    zmq_assert (!_sink);
-    _sink = sink_;
-}
-
-void pipe_t::set_server_socket_routing_id (
-  u32 server_socket_routing_id_)
-{
-    _server_socket_routing_id = server_socket_routing_id_;
-}
-
-u32 pipe_t::get_server_socket_routing_id () const
-{
-    return _server_socket_routing_id;
-}
-
-void pipe_t::set_router_socket_routing_id (
-  const Blob &router_socket_routing_id_)
-{
-    _router_socket_routing_id.set_deep_copy (router_socket_routing_id_);
-}
-
-const Blob &pipe_t::get_routing_id () const
-{
-    return _router_socket_routing_id;
-}
-
-bool pipe_t::check_read ()
-{
-    if (unlikely (!_in_active))
-        return false;
-    if (unlikely (_state != active && _state != waiting_for_delimiter))
-        return false;
-
-    //  Check if there's an item in the pipe.
-    if (!_in_pipe.check_read ()) {
-        _in_active = false;
-        return false;
-    }
-
-    //  If the next item in the pipe is message delimiter,
-    //  initiate termination process.
-    if (_in_pipe.probe (is_delimiter)) {
-        ZmqMessage msg;
-        const bool ok = _in_pipe.read (&msg);
-        zmq_assert (ok);
-        process_delimiter ();
-        return false;
-    }
-
-    return true;
-}
-
-bool pipe_t::read (msg: &mut ZmqMessage)
-{
-    if (unlikely (!_in_active))
-        return false;
-    if (unlikely (_state != active && _state != waiting_for_delimiter))
-        return false;
-
-    while (true) {
-        if (!_in_pipe.read (msg)) {
-            _in_active = false;
-            return false;
-        }
-
-        //  If this is a credential, ignore it and receive next message.
-        if (unlikely (msg.is_credential ())) {
-            let rc: i32 = msg.close ();
-            zmq_assert (rc == 0);
-        } else {
-            break;
-        }
-    }
-
-    //  If delimiter was read, start termination process of the pipe.
-    if (msg.is_delimiter ()) {
-        process_delimiter ();
-        return false;
-    }
-
-    if (!(msg.flags () & ZMQ_MSG_MORE) && !msg.is_routing_id ())
-        _msgs_read++;
-
-    if (_lwm > 0 && _msgs_read % _lwm == 0)
-        send_activate_write (_peer, _msgs_read);
-
-    return true;
-}
-
-bool pipe_t::check_write ()
-{
-    if (unlikely (!_out_active || _state != active))
-        return false;
-
-    const bool full = !check_hwm ();
-
-    if (unlikely (full)) {
-        _out_active = false;
-        return false;
-    }
-
-    return true;
-}
-
-bool pipe_t::write (const msg: &mut ZmqMessage)
-{
-    if (unlikely (!check_write ()))
-        return false;
-
-    const bool more = (msg.flags () & ZMQ_MSG_MORE) != 0;
-    const bool is_routing_id = msg.is_routing_id ();
-    _out_pipe.write (*msg, more);
-    if (!more && !is_routing_id)
-        _msgs_written++;
-
-    return true;
-}
-
-void pipe_t::rollback () const
-{
-    //  Remove incomplete message from the outbound pipe.
-    ZmqMessage msg;
-    if (_out_pipe) {
-        while (_out_pipe.unwrite (&msg)) {
-            zmq_assert (msg.flags () & ZMQ_MSG_MORE);
-            let rc: i32 = msg.close ();
-            errno_assert (rc == 0);
-        }
+        return result;
     }
 }
 
-void pipe_t::flush ()
-{
-    //  The peer does not exist anymore at this point.
-    if (_state == term_ack_sent)
-        return;
+impl ZmqObject for ZmqPipe {
+    fn get_ctx(&self) -> &ZmqContext {
+        todo!()
+    }
 
-    if (_out_pipe && !_out_pipe.flush ())
-        send_activate_read (_peer);
-}
+    fn get_ctx_mut(&mut self) -> &mut ZmqContext {
+        todo!()
+    }
 
-void pipe_t::process_activate_read ()
-{
-    if (!_in_active && (_state == active || _state == waiting_for_delimiter)) {
-        _in_active = true;
-        _sink.read_activated (this);
+    fn set_ctx(&mut self, ctx: &mut ZmqContext) {
+        todo!()
+    }
+
+    fn get_tid(&self) -> u32 {
+        todo!()
+    }
+
+    fn set_tid(&mut self, tid: u32) {
+        todo!()
     }
 }
 
-void pipe_t::process_activate_write (u64 msgs_read)
-{
-    //  Remember the peer's message sequence number.
-    _peers_msgs_read = msgs_read;
-
-    if (!_out_active && _state == active) {
-        _out_active = true;
-        _sink.write_activated (this);
+impl i_pipe_events for ZmqPipe {
+    fn read_activated(&mut self, pipe: &mut ZmqPipe) {
+        todo!()
     }
+
+    fn write_activated(&mut self, pipe: &mut ZmqPipe) {
+        todo!()
+    }
+
+    fn hiccuped(&mut self, pipe: &mut ZmqPipe) {
+        todo!()
+    }
+
+    fn pipe_terminated(&mut self, pipe: &mut ZmqPipe) {
+        todo!()
+    }
+}// end of impl pipe_t
+
+// void send_routing_id (pipe: &mut ZmqPipe, options: &ZmqOptions);
+
+// void send_hello_msg (pipe: &mut ZmqPipe, options: &ZmqOptions);
+
+// int pipepair (ZmqObject *parents_[2],
+//                    ZmqPipe *pipes_[2],
+//                    const int hwms_[2],
+//                    const bool conflate_[2])
+// {
+//     //   Creates two pipe objects. These objects are connected by two ypipes,
+//     //   each to pass messages in one direction.
+//
+//     typedef Ypipe<ZmqMessage, message_pipe_granularity> upipe_normal_t;
+//     typedef ypipe_conflate_t<ZmqMessage> upipe_conflate_t;
+//
+//     ZmqPipe::upipe_t *upipe1;
+//     if (conflate_[0])
+//         upipe1 = new (std::nothrow) upipe_conflate_t ();
+//     else
+//         upipe1 = new (std::nothrow) upipe_normal_t ();
+//     alloc_assert (upipe1);
+//
+//     ZmqPipe::upipe_t *upipe2;
+//     if (conflate_[1])
+//         upipe2 = new (std::nothrow) upipe_conflate_t ();
+//     else
+//         upipe2 = new (std::nothrow) upipe_normal_t ();
+//     alloc_assert (upipe2);
+//
+//     pipes_[0] = new (std::nothrow)
+//       ZmqPipe (parents_[0], upipe1, upipe2, hwms_[1], hwms_[0], conflate_[0]);
+//     alloc_assert (pipes_[0]);
+//     pipes_[1] = new (std::nothrow)
+//       ZmqPipe (parents_[1], upipe2, upipe1, hwms_[0], hwms_[1], conflate_[1]);
+//     alloc_assert (pipes_[1]);
+//
+//     pipes_[0]->set_peer (pipes_[1]);
+//     pipes_[1]->set_peer (pipes_[0]);
+//
+//     return 0;
+// }
+
+
+pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqOptions)
+{
+    // ZmqMessage hello;
+    let mut hello = ZmqMessage { u: Default::default() };
+    let rc: i32 = hello.init_buffer(&mut options_.hello_msg[0], options_.hello_msg.size());
+    // errno_assert (rc == 0);
+    let written = pipe.write(&mut hello);
+    // zmq_assert (written);
+    pipe.flush();
 }
 
-void pipe_t::process_hiccup (pipe: *mut c_void)
-{
-    //  Destroy old outpipe. Note that the read end of the pipe was already
-    //  migrated to this thread.
-    zmq_assert (_out_pipe);
-    _out_pipe.flush ();
-    ZmqMessage msg;
-    while (_out_pipe.read (&msg)) {
-        if (!(msg.flags () & ZMQ_MSG_MORE))
-            _msgs_written--;
-        let rc: i32 = msg.close ();
-        errno_assert (rc == 0);
-    }
-    LIBZMQ_DELETE (_out_pipe);
 
-    //  Plug in the new outpipe.
-    zmq_assert (pipe);
-    _out_pipe = static_cast<upipe_t *> (pipe);
-    _out_active = true;
+// ZmqPipe::~ZmqPipe ()
+// {
+//     _disconnect_msg.close ();
+// }
 
-    //  If appropriate, notify the user about the hiccup.
-    if (_state == active)
-        _sink.hiccuped (this);
-}
+// void ZmqPipe::set_peer (ZmqPipe *peer_)
+// {
+// //  Peer can be set once only.
+// zmq_assert (!_peer);
+// _peer = peer_;
+// }
 
-void pipe_t::process_pipe_term ()
-{
-    zmq_assert (_state == active || _state == delimiter_received
-                || _state == term_req_sent1);
+// void ZmqPipe::set_event_sink (i_pipe_events *sink_)
+// {
+//     // Sink can be set once only.
+//     zmq_assert (!_sink);
+//     _sink = sink_;
+// }
 
-    //  This is the simple case of peer-induced termination. If there are no
-    //  more pending messages to read, or if the pipe was configured to drop
-    //  pending messages, we can move directly to the term_ack_sent state.
-    //  Otherwise we'll hang up in waiting_for_delimiter state till all
-    //  pending messages are read.
-    if (_state == active) {
-        if (_delay)
-            _state = waiting_for_delimiter;
-        else {
-            _state = term_ack_sent;
-            _out_pipe = null_mut();
-            send_pipe_term_ack (_peer);
-        }
-    }
+// void ZmqPipe::set_server_socket_routing_id (
+//   u32 server_socket_routing_id_)
+// {
+//     _server_socket_routing_id = server_socket_routing_id_;
+// }
 
-    //  Delimiter happened to arrive before the term command. Now we have the
-    //  term command as well, so we can move straight to term_ack_sent state.
-    else if (_state == delimiter_received) {
-        _state = term_ack_sent;
-        _out_pipe = null_mut();
-        send_pipe_term_ack (_peer);
-    }
+// u32 ZmqPipe::get_server_socket_routing_id () const
+// {
+//     return _server_socket_routing_id;
+// }
 
-    //  This is the case where both ends of the pipe are closed in parallel.
-    //  We simply reply to the request by ack and continue waiting for our
-    //  own ack.
-    else if (_state == term_req_sent1) {
-        _state = term_req_sent2;
-        _out_pipe = null_mut();
-        send_pipe_term_ack (_peer);
-    }
-}
+// void ZmqPipe::set_router_socket_routing_id (
+//   const Blob &router_socket_routing_id_)
+// {
+//     _router_socket_routing_id.set_deep_copy (router_socket_routing_id_);
+// }
 
-void pipe_t::process_pipe_term_ack ()
-{
-    //  Notify the user that all the references to the pipe should be dropped.
-    zmq_assert (_sink);
-    _sink.pipe_terminated (this);
+// const Blob &ZmqPipe::get_routing_id () const
+// {
+//     return _router_socket_routing_id;
+// }
 
-    //  In term_ack_sent and term_req_sent2 states there's nothing to do.
-    //  Simply deallocate the pipe. In term_req_sent1 state we have to ack
-    //  the peer before deallocating this side of the pipe.
-    //  All the other states are invalid.
-    if (_state == term_req_sent1) {
-        _out_pipe = null_mut();
-        send_pipe_term_ack (_peer);
-    } else
-        zmq_assert (_state == term_ack_sent || _state == term_req_sent2);
+// bool ZmqPipe::check_read ()
+// {
+//     if (unlikely (!_in_active))
+//         return false;
+//     if (unlikely (_state != active && _state != waiting_for_delimiter))
+//         return false;
+//
+//     //  Check if there's an item in the pipe.
+//     if (!_in_pipe.check_read ()) {
+//         _in_active = false;
+//         return false;
+//     }
+//
+//     //  If the next item in the pipe is message delimiter,
+//     //  initiate termination process.
+//     if (_in_pipe.probe (is_delimiter)) {
+//         ZmqMessage msg;
+//         const bool ok = _in_pipe.read (&msg);
+//         zmq_assert (ok);
+//         process_delimiter ();
+//         return false;
+//     }
+//
+//     return true;
+// }
+//
+// bool ZmqPipe::read (msg: &mut ZmqMessage)
+// {
+//     if (unlikely (!_in_active))
+//         return false;
+//     if (unlikely (_state != active && _state != waiting_for_delimiter))
+//         return false;
+//
+//     while (true) {
+//         if (!_in_pipe.read (msg)) {
+//             _in_active = false;
+//             return false;
+//         }
+//
+//         //  If this is a credential, ignore it and receive next message.
+//         if (unlikely (msg.is_credential ())) {
+//             let rc: i32 = msg.close ();
+//             zmq_assert (rc == 0);
+//         } else {
+//             break;
+//         }
+//     }
+//
+//     //  If delimiter was read, start termination process of the pipe.
+//     if (msg.is_delimiter ()) {
+//         process_delimiter ();
+//         return false;
+//     }
+//
+//     if (!(msg.flags () & ZMQ_MSG_MORE) && !msg.is_routing_id ())
+//         _msgs_read++;
+//
+//     if (_lwm > 0 && _msgs_read % _lwm == 0)
+//         send_activate_write (_peer, _msgs_read);
+//
+//     return true;
+// }
 
-    //  We'll deallocate the inbound pipe, the peer will deallocate the outbound
-    //  pipe (which is an inbound pipe from its point of view).
-    //  First, delete all the unread messages in the pipe. We have to do it by
-    //  hand because ZmqMessage doesn't have automatic destructor. Then deallocate
-    //  the ypipe itself.
+// bool ZmqPipe::check_write ()
+// {
+//     if (unlikely (!_out_active || _state != active))
+//         return false;
+//
+//     const bool full = !check_hwm ();
+//
+//     if (unlikely (full)) {
+//         _out_active = false;
+//         return false;
+//     }
+//
+//     return true;
+// }
 
-    if (!_conflate) {
-        ZmqMessage msg;
-        while (_in_pipe.read (&msg)) {
-            let rc: i32 = msg.close ();
-            errno_assert (rc == 0);
-        }
-    }
+// bool ZmqPipe::write (const msg: &mut ZmqMessage)
+// {
+//     if (unlikely (!check_write ()))
+//         return false;
+//
+//     const bool more = (msg.flags () & ZMQ_MSG_MORE) != 0;
+//     const bool is_routing_id = msg.is_routing_id ();
+//     _out_pipe.write (*msg, more);
+//     if (!more && !is_routing_id)
+//         _msgs_written++;
+//
+//     return true;
+// }
 
-    LIBZMQ_DELETE (_in_pipe);
+// void ZmqPipe::rollback () const
+// {
+//     //  Remove incomplete message from the outbound pipe.
+//     ZmqMessage msg;
+//     if (_out_pipe) {
+//         while (_out_pipe.unwrite (&msg)) {
+//             zmq_assert (msg.flags () & ZMQ_MSG_MORE);
+//             let rc: i32 = msg.close ();
+//             errno_assert (rc == 0);
+//         }
+//     }
+// }
 
-    //  Deallocate the pipe object
-    delete this;
-}
+// void ZmqPipe::flush ()
+// {
+//     //  The peer does not exist anymore at this point.
+//     if (_state == term_ack_sent){
+// return;}
+//
+//     if (_out_pipe && !_out_pipe.flush ()){
+// send_activate_read (_peer);}
+// }
 
-void pipe_t::process_pipe_hwm (inhwm: i32, outhwm: i32)
-{
-    set_hwms (inhwm, outhwm);
-}
+// void ZmqPipe::process_activate_read ()
+// {
+//     if (!_in_active && (_state == active || _state == waiting_for_delimiter)) {
+//         _in_active = true;
+//         _sink.read_activated (this);
+//     }
+// }
 
-void pipe_t::set_nodelay ()
-{
-    this._delay = false;
-}
+// void ZmqPipe::process_activate_write (u64 msgs_read)
+// {
+//     //  Remember the peer's message sequence number.
+//     _peers_msgs_read = msgs_read;
+//
+//     if (!_out_active && _state == active) {
+//         _out_active = true;
+//         _sink.write_activated (this);
+//     }
+// }
 
-void pipe_t::terminate (delay_: bool)
-{
-    //  Overload the value specified at pipe creation.
-    _delay = delay_;
+// void ZmqPipe::process_hiccup (pipe: *mut c_void)
+// {
+//     //  Destroy old outpipe. Note that the read end of the pipe was already
+//     //  migrated to this thread.
+//     zmq_assert (_out_pipe);
+//     _out_pipe.flush ();
+// let mut msg = ZmqMessage::default();
+//     while (_out_pipe.read (&msg)) {
+//         if (!(msg.flags () & ZMQ_MSG_MORE))
+//             _msgs_written--;
+//         let rc: i32 = msg.close ();
+//         errno_assert (rc == 0);
+//     }
+//     LIBZMQ_DELETE (_out_pipe);
+//
+//     //  Plug in the new outpipe.
+//     zmq_assert (pipe);
+//     _out_pipe = static_cast<upipe_t *> (pipe);
+//     _out_active = true;
+//
+//     //  If appropriate, notify the user about the hiccup.
+//     if (_state == active)
+//         _sink.hiccuped (this);
+// }
 
-    //  If terminate was already called, we can ignore the duplicate invocation.
-    if (_state == term_req_sent1 || _state == term_req_sent2) {
-        return;
-    }
-    //  If the pipe is in the final phase of async termination, it's going to
-    //  closed anyway. No need to do anything special here.
-    if (_state == term_ack_sent) {
-        return;
-    }
-    //  The simple sync termination case. Ask the peer to terminate and wait
-    //  for the ack.
-    if (_state == active) {
-        send_pipe_term (_peer);
-        _state = term_req_sent1;
-    }
-    //  There are still pending messages available, but the user calls
-    //  'terminate'. We can act as if all the pending messages were read.
-    else if (_state == waiting_for_delimiter && !_delay) {
-        //  Drop any unfinished outbound messages.
-        rollback ();
-        _out_pipe = null_mut();
-        send_pipe_term_ack (_peer);
-        _state = term_ack_sent;
-    }
-    //  If there are pending messages still available, do nothing.
-    else if (_state == waiting_for_delimiter) {
-    }
-    //  We've already got delimiter, but not term command yet. We can ignore
-    //  the delimiter and ack synchronously terminate as if we were in
-    //  active state.
-    else if (_state == delimiter_received) {
-        send_pipe_term (_peer);
-        _state = term_req_sent1;
-    }
-    //  There are no other states.
-    else {
-        zmq_assert (false);
-    }
+// void ZmqPipe::process_pipe_term ()
+// {
+//     zmq_assert (_state == active || _state == delimiter_received
+//                 || _state == term_req_sent1);
+//
+//     //  This is the simple case of peer-induced termination. If there are no
+//     //  more pending messages to read, or if the pipe was configured to drop
+//     //  pending messages, we can move directly to the term_ack_sent state.
+//     //  Otherwise we'll hang up in waiting_for_delimiter state till all
+//     //  pending messages are read.
+//     if (_state == active) {
+//         if (_delay)
+//             _state = waiting_for_delimiter;
+//         else {
+//             _state = term_ack_sent;
+//             _out_pipe = null_mut();
+//             send_pipe_term_ack (_peer);
+//         }
+//     }
+//
+//     //  Delimiter happened to arrive before the term command. Now we have the
+//     //  term command as well, so we can move straight to term_ack_sent state.
+//     else if (_state == delimiter_received) {
+//         _state = term_ack_sent;
+//         _out_pipe = null_mut();
+//         send_pipe_term_ack (_peer);
+//     }
+//
+//     //  This is the case where both ends of the pipe are closed in parallel.
+//     //  We simply reply to the request by ack and continue waiting for our
+//     //  own ack.
+//     else if (_state == term_req_sent1) {
+//         _state = term_req_sent2;
+//         _out_pipe = null_mut();
+//         send_pipe_term_ack (_peer);
+//     }
+// }
 
-    //  Stop outbound flow of messages.
-    _out_active = false;
+// void ZmqPipe::process_pipe_term_ack ()
+// {
+//     //  Notify the user that all the references to the pipe should be dropped.
+//     zmq_assert (_sink);
+//     _sink.pipe_terminated (this);
+//
+//     //  In term_ack_sent and term_req_sent2 states there's nothing to do.
+//     //  Simply deallocate the pipe. In term_req_sent1 state we have to ack
+//     //  the peer before deallocating this side of the pipe.
+//     //  All the other states are invalid.
+//     if (_state == term_req_sent1) {
+//         _out_pipe = null_mut();
+//         send_pipe_term_ack (_peer);
+//     } else
+//         zmq_assert (_state == term_ack_sent || _state == term_req_sent2);
+//
+//     //  We'll deallocate the inbound pipe, the peer will deallocate the outbound
+//     //  pipe (which is an inbound pipe from its point of view).
+//     //  First, delete all the unread messages in the pipe. We have to do it by
+//     //  hand because ZmqMessage doesn't have automatic destructor. Then deallocate
+//     //  the ypipe itself.
+//
+//     if (!_conflate) {
+// let mut msg = ZmqMessage::default();
+//         while (_in_pipe.read (&msg)) {
+//             let rc: i32 = msg.close ();
+//             errno_assert (rc == 0);
+//         }
+//     }
+//
+//     LIBZMQ_DELETE (_in_pipe);
+//
+//     //  Deallocate the pipe object
+//     delete this;
+// }
 
-    if (_out_pipe) {
-        //  Drop any unfinished outbound messages.
-        rollback ();
+// void ZmqPipe::process_pipe_hwm (inhwm: i32, outhwm: i32)
+// {
+//     set_hwms (inhwm, outhwm);
+// }
 
-        //  Write the delimiter into the pipe. Note that watermarks are not
-        //  checked; thus the delimiter can be written even when the pipe is full.
-        ZmqMessage msg;
-        msg.init_delimiter ();
-        _out_pipe.write (msg, false);
-        flush ();
-    }
-}
+// void ZmqPipe::set_nodelay ()
+// {
+//     this._delay = false;
+// }
 
-bool pipe_t::is_delimiter (const ZmqMessage &msg)
-{
-    return msg.is_delimiter ();
-}
+// void ZmqPipe::terminate (delay_: bool)
+// {
+//     //  Overload the value specified at pipe creation.
+//     _delay = delay_;
+//
+//     //  If terminate was already called, we can ignore the duplicate invocation.
+//     if (_state == term_req_sent1 || _state == term_req_sent2) {
+//         return;
+//     }
+//     //  If the pipe is in the final phase of async termination, it's going to
+//     //  closed anyway. No need to do anything special here.
+//     if (_state == term_ack_sent) {
+//         return;
+//     }
+//     //  The simple sync termination case. Ask the peer to terminate and wait
+//     //  for the ack.
+//     if (_state == active) {
+//         send_pipe_term (_peer);
+//         _state = term_req_sent1;
+//     }
+//     //  There are still pending messages available, but the user calls
+//     //  'terminate'. We can act as if all the pending messages were read.
+//     else if (_state == waiting_for_delimiter && !_delay) {
+//         //  Drop any unfinished outbound messages.
+//         rollback ();
+//         _out_pipe = null_mut();
+//         send_pipe_term_ack (_peer);
+//         _state = term_ack_sent;
+//     }
+//     //  If there are pending messages still available, do nothing.
+//     else if (_state == waiting_for_delimiter) {
+//     }
+//     //  We've already got delimiter, but not term command yet. We can ignore
+//     //  the delimiter and ack synchronously terminate as if we were in
+//     //  active state.
+//     else if (_state == delimiter_received) {
+//         send_pipe_term (_peer);
+//         _state = term_req_sent1;
+//     }
+//     //  There are no other states.
+//     else {
+//         zmq_assert (false);
+//     }
+//
+//     //  Stop outbound flow of messages.
+//     _out_active = false;
+//
+//     if (_out_pipe) {
+//         //  Drop any unfinished outbound messages.
+//         rollback ();
+//
+//         //  Write the delimiter into the pipe. Note that watermarks are not
+//         //  checked; thus the delimiter can be written even when the pipe is full.
+// let mut msg = ZmqMessage::default();
+//         msg.init_delimiter ();
+//         _out_pipe.write (msg, false);
+//         flush ();
+//     }
+// }
 
-int pipe_t::compute_lwm (hwm_: i32)
-{
-    //  Compute the low water mark. Following point should be taken
-    //  into consideration:
-    //
-    //  1. LWM has to be less than HWM.
-    //  2. LWM cannot be set to very low value (such as zero) as after filling
-    //     the queue it would start to refill only after all the messages are
-    //     read from it and thus unnecessarily hold the progress back.
-    //  3. LWM cannot be set to very high value (such as HWM-1) as it would
-    //     result in lock-step filling of the queue - if a single message is
-    //     read from a full queue, writer thread is resumed to write exactly one
-    //     message to the queue and go back to sleep immediately. This would
-    //     result in low performance.
-    //
-    //  Given the 3. it would be good to keep HWM and LWM as far apart as
-    //  possible to reduce the thread switching overhead to almost zero.
-    //  Let's make LWM 1/2 of HWM.
-    let result: i32 = (hwm_ + 1) / 2;
+// bool ZmqPipe::is_delimiter (const ZmqMessage &msg)
+// {
+//     return msg.is_delimiter ();
+// }
 
-    return result;
-}
+// int ZmqPipe::compute_lwm (hwm_: i32)
+// {
+//     //  Compute the low water mark. Following point should be taken
+//     //  into consideration:
+//     //
+//     //  1. LWM has to be less than HWM.
+//     //  2. LWM cannot be set to very low value (such as zero) as after filling
+//     //     the queue it would start to refill only after all the messages are
+//     //     read from it and thus unnecessarily hold the progress back.
+//     //  3. LWM cannot be set to very high value (such as HWM-1) as it would
+//     //     result in lock-step filling of the queue - if a single message is
+//     //     read from a full queue, writer thread is resumed to write exactly one
+//     //     message to the queue and go back to sleep immediately. This would
+//     //     result in low performance.
+//     //
+//     //  Given the 3. it would be good to keep HWM and LWM as far apart as
+//     //  possible to reduce the thread switching overhead to almost zero.
+//     //  Let's make LWM 1/2 of HWM.
+//     let result: i32 = (hwm_ + 1) / 2;
+//
+//     return result;
+// }
 
-void pipe_t::process_delimiter ()
-{
-    zmq_assert (_state == active || _state == waiting_for_delimiter);
+// void ZmqPipe::process_delimiter ()
+// {
+//     zmq_assert (_state == active || _state == waiting_for_delimiter);
+//
+//     if (_state == active)
+//         _state = delimiter_received;
+//     else {
+//         rollback ();
+//         _out_pipe = null_mut();
+//         send_pipe_term_ack (_peer);
+//         _state = term_ack_sent;
+//     }
+// }
 
-    if (_state == active)
-        _state = delimiter_received;
-    else {
-        rollback ();
-        _out_pipe = null_mut();
-        send_pipe_term_ack (_peer);
-        _state = term_ack_sent;
-    }
-}
-
-void pipe_t::hiccup ()
+void ZmqPipe::hiccup ()
 {
     //  If termination is already under way do nothing.
     if (_state != active)
@@ -766,7 +1260,7 @@ void pipe_t::hiccup ()
     send_hiccup (_peer, _in_pipe);
 }
 
-void pipe_t::set_hwms (inhwm: i32, outhwm: i32)
+void ZmqPipe::set_hwms (inhwm: i32, outhwm: i32)
 {
     int in = inhwm + std::max (_in_hwm_boost, 0);
     int out = outhwm + std::max (_out_hwm_boost, 0);
@@ -782,35 +1276,35 @@ void pipe_t::set_hwms (inhwm: i32, outhwm: i32)
     _hwm = out;
 }
 
-void pipe_t::set_hwms_boost (inhwmboost_: i32, outhwmboost_: i32)
+void ZmqPipe::set_hwms_boost (inhwmboost_: i32, outhwmboost_: i32)
 {
     _in_hwm_boost = inhwmboost_;
     _out_hwm_boost = outhwmboost_;
 }
 
-bool pipe_t::check_hwm () const
+bool ZmqPipe::check_hwm () const
 {
     const bool full =
       _hwm > 0 && _msgs_written - _peers_msgs_read >= u64 (_hwm);
     return !full;
 }
 
-void pipe_t::send_hwms_to_peer (inhwm: i32, outhwm: i32)
+void ZmqPipe::send_hwms_to_peer (inhwm: i32, outhwm: i32)
 {
     send_pipe_hwm (_peer, inhwm, outhwm);
 }
 
-void pipe_t::set_endpoint_pair (EndpointUriPair endpoint_pair)
+void ZmqPipe::set_endpoint_pair (EndpointUriPair endpoint_pair)
 {
     _endpoint_pair = ZMQ_MOVE (endpoint_pair);
 }
 
-const EndpointUriPair &pipe_t::get_endpoint_pair () const
+const EndpointUriPair &ZmqPipe::get_endpoint_pair () const
 {
     return _endpoint_pair;
 }
 
-void pipe_t::send_stats_to_peer (own_t *socket_base)
+void ZmqPipe::send_stats_to_peer (ZmqOwn *socket_base)
 {
     EndpointUriPair *ep =
       new (std::nothrow) EndpointUriPair (_endpoint_pair);
@@ -818,15 +1312,15 @@ void pipe_t::send_stats_to_peer (own_t *socket_base)
                           ep);
 }
 
-void pipe_t::process_pipe_peer_stats (queue_count: u64,
-                                           own_t *socket_base,
+void ZmqPipe::process_pipe_peer_stats (queue_count: u64,
+                                           ZmqOwn *socket_base,
                                            EndpointUriPair *endpoint_pair)
 {
     send_pipe_stats_publish (socket_base, queue_count,
                              _msgs_written - _peers_msgs_read, endpoint_pair);
 }
 
-void pipe_t::send_disconnect_msg ()
+void ZmqPipe::send_disconnect_msg ()
 {
     if (_disconnect_msg.size () > 0 && _out_pipe) {
         // Rollback any incomplete message in the pipe, and push the disconnect message.
@@ -838,7 +1332,7 @@ void pipe_t::send_disconnect_msg ()
     }
 }
 
-void pipe_t::set_disconnect_msg (
+void ZmqPipe::set_disconnect_msg (
   const std::vector<unsigned char> &disconnect_)
 {
     _disconnect_msg.close ();
@@ -847,10 +1341,10 @@ void pipe_t::set_disconnect_msg (
     errno_assert (rc == 0);
 }
 
-void pipe_t::send_hiccup_msg (const std::vector<unsigned char> &hiccup_)
+void ZmqPipe::send_hiccup_msg (const std::vector<unsigned char> &hiccup_)
 {
     if (!hiccup_.is_empty() && _out_pipe) {
-        ZmqMessage msg;
+let mut msg = ZmqMessage::default();
         let rc: i32 = msg.init_buffer (&hiccup_[0], hiccup_.size ());
         errno_assert (rc == 0);
 

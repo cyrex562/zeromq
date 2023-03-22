@@ -137,8 +137,7 @@ void test_req_message_format (bind_address_: &str)
 
     // Send a multi-part request.
     s_send_seq (req, "ABC", "DEF", SEQ_END);
-
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     zmq_msg_init (&msg);
 
     // Receive peer routing id

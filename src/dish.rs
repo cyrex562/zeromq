@@ -41,17 +41,17 @@ pub struct dish_t ZMQ_FINAL : public ZmqSocketBase
 
   protected:
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe,
+    void xattach_pipe (pipe: &mut ZmqPipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool);
     int xsend (msg: &mut ZmqMessage);
     bool xhas_out ();
     int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
-    void xread_activated (pipe: &mut pipe_t);
-    void xwrite_activated (pipe: &mut pipe_t);
-    void xhiccuped (pipe: &mut pipe_t);
-    void xpipe_terminated (pipe: &mut pipe_t);
+    void xread_activated (pipe: &mut ZmqPipe);
+    void xwrite_activated (pipe: &mut ZmqPipe);
+    void xhiccuped (pipe: &mut ZmqPipe);
+    void xpipe_terminated (pipe: &mut ZmqPipe);
     int xjoin (group_: &str);
     int xleave (group_: &str);
 
@@ -59,7 +59,7 @@ pub struct dish_t ZMQ_FINAL : public ZmqSocketBase
     int xxrecv (msg: &mut ZmqMessage);
 
     //  Send subscriptions to a pipe
-    void send_subscriptions (pipe: &mut pipe_t);
+    void send_subscriptions (pipe: &mut ZmqPipe);
 
     //  Fair queueing object for inbound pipes.
     fq_t _fq;
@@ -84,7 +84,7 @@ pub struct dish_session_t ZMQ_FINAL : public ZmqSessionBase
     dish_session_t (ZmqThread *io_thread_,
                     connect_: bool,
                     socket: *mut ZmqSocketBase,
-                    const ZmqOptions &options_,
+                    options: &ZmqOptions,
                     Address *addr_);
     ~dish_session_t ();
 
@@ -124,7 +124,7 @@ dish_t::~dish_t ()
     errno_assert (rc == 0);
 }
 
-void dish_t::xattach_pipe (pipe_t *pipe,
+void dish_t::xattach_pipe (pipe: &mut ZmqPipe,
                                 subscribe_to_all_: bool,
                                 locally_initiated_: bool)
 {
@@ -139,23 +139,23 @@ void dish_t::xattach_pipe (pipe_t *pipe,
     send_subscriptions (pipe);
 }
 
-void dish_t::xread_activated (pipe: &mut pipe_t)
+void dish_t::xread_activated (pipe: &mut ZmqPipe)
 {
     _fq.activated (pipe);
 }
 
-void dish_t::xwrite_activated (pipe: &mut pipe_t)
+void dish_t::xwrite_activated (pipe: &mut ZmqPipe)
 {
     _dist.activated (pipe);
 }
 
-void dish_t::xpipe_terminated (pipe: &mut pipe_t)
+void dish_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
     _fq.pipe_terminated (pipe);
     _dist.pipe_terminated (pipe);
 }
 
-void dish_t::xhiccuped (pipe: &mut pipe_t)
+void dish_t::xhiccuped (pipe: &mut ZmqPipe)
 {
     //  Send all the cached subscriptions to the hiccuped pipe.
     send_subscriptions (pipe);
@@ -175,8 +175,7 @@ int dish_t::xjoin (group_: &str)
         errno = EINVAL;
         return -1;
     }
-
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     int rc = msg.init_join ();
     errno_assert (rc == 0);
 
@@ -207,8 +206,7 @@ int dish_t::xleave (group_: &str)
         errno = EINVAL;
         return -1;
     }
-
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     int rc = msg.init_leave ();
     errno_assert (rc == 0);
 
@@ -289,12 +287,12 @@ bool dish_t::xhas_in ()
     return true;
 }
 
-void dish_t::send_subscriptions (pipe: &mut pipe_t)
+void dish_t::send_subscriptions (pipe: &mut ZmqPipe)
 {
     for (subscriptions_t::iterator it = _subscriptions.begin (),
                                    end = _subscriptions.end ();
          it != end; ++it) {
-        ZmqMessage msg;
+let mut msg = ZmqMessage::default();
         int rc = msg.init_join ();
         errno_assert (rc == 0);
 
@@ -311,7 +309,7 @@ void dish_t::send_subscriptions (pipe: &mut pipe_t)
 dish_session_t::dish_session_t (ZmqThread *io_thread_,
                                      connect_: bool,
                                      ZmqSocketBase *socket,
-                                     const ZmqOptions &options_,
+                                     options: &ZmqOptions,
                                      Address *addr_) :
     ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),
     _state (group)

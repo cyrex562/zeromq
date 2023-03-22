@@ -42,19 +42,19 @@ pub struct dgram_t ZMQ_FINAL : public ZmqSocketBase
     ~dgram_t ();
 
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe,
+    void xattach_pipe (pipe: &mut ZmqPipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool);
     int xsend (msg: &mut ZmqMessage);
     int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
     bool xhas_out ();
-    void xread_activated (pipe: &mut pipe_t);
-    void xwrite_activated (pipe: &mut pipe_t);
-    void xpipe_terminated (pipe: &mut pipe_t);
+    void xread_activated (pipe: &mut ZmqPipe);
+    void xwrite_activated (pipe: &mut ZmqPipe);
+    void xpipe_terminated (pipe: &mut ZmqPipe);
 
   // private:
-    pipe_t *_pipe;
+    ZmqPipe *_pipe;
 
     //  If true, more outgoing message parts are expected.
     _more_out: bool
@@ -73,7 +73,7 @@ dgram_t::~dgram_t ()
     zmq_assert (!_pipe);
 }
 
-void dgram_t::xattach_pipe (pipe_t *pipe,
+void dgram_t::xattach_pipe (pipe: &mut ZmqPipe,
                                  subscribe_to_all_: bool,
                                  locally_initiated_: bool)
 {
@@ -90,20 +90,20 @@ void dgram_t::xattach_pipe (pipe_t *pipe,
         pipe.terminate (false);
 }
 
-void dgram_t::xpipe_terminated (pipe: &mut pipe_t)
+void dgram_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
     if (pipe == _pipe) {
         _pipe = null_mut();
     }
 }
 
-void dgram_t::xread_activated (pipe_t *)
+void dgram_t::xread_activated (ZmqPipe *)
 {
     //  There's just one pipe. No lists of active and inactive pipes.
     //  There's nothing to do here.
 }
 
-void dgram_t::xwrite_activated (pipe_t *)
+void dgram_t::xwrite_activated (ZmqPipe *)
 {
     //  There's just one pipe. No lists of active and inactive pipes.
     //  There's nothing to do here.

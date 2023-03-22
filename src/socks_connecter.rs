@@ -57,7 +57,7 @@ pub struct socks_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     //  then starts connection process.
     socks_connecter_t (ZmqThread *io_thread_,
                        ZmqSessionBase *session_,
-                       const ZmqOptions &options_,
+                       options: &ZmqOptions,
                        Address *addr_,
                        Address *proxy_addr_,
                        delayed_start_: bool);
@@ -142,7 +142,7 @@ pub struct socks_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 
 socks_connecter_t::socks_connecter_t (class ZmqThread *io_thread_,
 pub struct ZmqSessionBase *session_,
-                                           const ZmqOptions &options_,
+                                           options: &ZmqOptions,
                                            Address *addr_,
                                            Address *proxy_addr_,
                                            delayed_start_: bool) :

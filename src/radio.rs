@@ -42,25 +42,25 @@ pub struct radio_t ZMQ_FINAL : public ZmqSocketBase
     ~radio_t ();
 
     //  Implementations of virtual functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe,
+    void xattach_pipe (pipe: &mut ZmqPipe,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false);
     int xsend (msg: &mut ZmqMessage);
     bool xhas_out ();
     int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
-    void xread_activated (pipe: &mut pipe_t);
-    void xwrite_activated (pipe: &mut pipe_t);
+    void xread_activated (pipe: &mut ZmqPipe);
+    void xwrite_activated (pipe: &mut ZmqPipe);
     int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
-    void xpipe_terminated (pipe: &mut pipe_t);
+    void xpipe_terminated (pipe: &mut ZmqPipe);
 
   // private:
     //  List of all subscriptions mapped to corresponding pipes.
-    typedef std::multimap<std::string, pipe_t *> subscriptions_t;
+    typedef std::multimap<std::string, ZmqPipe *> subscriptions_t;
     subscriptions_t _subscriptions;
 
     //  List of udp pipes
-    typedef std::vector<pipe_t *> udp_pipes_t;
+    typedef std::vector<ZmqPipe *> udp_pipes_t;
     udp_pipes_t _udp_pipes;
 
     //  Distributor of messages holding the list of outbound pipes.
@@ -77,7 +77,7 @@ pub struct radio_session_t ZMQ_FINAL : public ZmqSessionBase
     radio_session_t (ZmqThread *io_thread_,
                      connect_: bool,
                      socket: *mut ZmqSocketBase,
-                     const ZmqOptions &options_,
+                     options: &ZmqOptions,
                      Address *addr_);
     ~radio_session_t ();
 
@@ -108,7 +108,7 @@ radio_t::~radio_t ()
 {
 }
 
-void radio_t::xattach_pipe (pipe_t *pipe,
+void radio_t::xattach_pipe (pipe: &mut ZmqPipe,
                                  subscribe_to_all_: bool,
                                  locally_initiated_: bool)
 {
@@ -131,10 +131,10 @@ void radio_t::xattach_pipe (pipe_t *pipe,
         xread_activated (pipe);
 }
 
-void radio_t::xread_activated (pipe: &mut pipe_t)
+void radio_t::xread_activated (pipe: &mut ZmqPipe)
 {
     //  There are some subscriptions waiting. Let's process them.
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     while (pipe.read (&msg)) {
         //  Apply the subscription to the trie
         if (msg.is_join () || msg.is_leave ()) {
@@ -160,7 +160,7 @@ void radio_t::xread_activated (pipe: &mut pipe_t)
     }
 }
 
-void radio_t::xwrite_activated (pipe: &mut pipe_t)
+void radio_t::xwrite_activated (pipe: &mut ZmqPipe)
 {
     _dist.activated (pipe);
 }
@@ -181,7 +181,7 @@ int radio_t::xsetsockopt (option_: i32,
     return 0;
 }
 
-void radio_t::xpipe_terminated (pipe: &mut pipe_t)
+void radio_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
     for (subscriptions_t::iterator it = _subscriptions.begin (),
                                    end = _subscriptions.end ();
@@ -261,7 +261,7 @@ bool radio_t::xhas_in ()
 radio_session_t::radio_session_t (ZmqThread *io_thread_,
                                        connect_: bool,
                                        ZmqSocketBase *socket,
-                                       const ZmqOptions &options_,
+                                       options: &ZmqOptions,
                                        Address *addr_) :
     ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),
     _state (group)

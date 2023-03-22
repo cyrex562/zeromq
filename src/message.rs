@@ -1,15 +1,15 @@
 //  Check whether the sizes of public representation of the message (zmq_ZmqMessage)
 //  and private representation of the message (ZmqMessage) match.
 
-use std::mem;
-use std::mem::size_of;
-use anyhow::anyhow;
-use libc::{c_long, EINVAL};
-use serde::{Deserialize, Serialize};
 use crate::atomic_counter::AtomicCounter;
 use crate::metadata::ZmqMetadata;
 use crate::zmq_content::ZmqContent;
 use crate::zmq_hdr::ZMQ_GROUP_MAX_LENGTH;
+use anyhow::anyhow;
+use libc::{c_long, EINVAL};
+use serde::{Deserialize, Serialize};
+use std::mem;
+use std::mem::size_of;
 
 // enum
 //     {
@@ -22,11 +22,12 @@ pub const ZMQ_MSG_SIZE: usize = 64;
 //         MAX_VSM_SIZE =
 //           ZMQ_MSG_SIZE - (sizeof (ZmqMetadata *) + 3 + 16 + mem::size_of::<uint32_t>())
 //     }
-pub const MAX_VSM_SIZE: usize = ZMQ_MSG_SIZE - size_of::<*mut ZmqMetadata> + 3 + 16 + size_of::<u32>();
+pub const MAX_VSM_SIZE: usize =
+    ZMQ_MSG_SIZE - size_of::<*mut ZmqMetadata> + 3 + 16 + size_of::<u32>();
 
-pub const PING_CMD_NAME_SIZE: usize = 5;   // 4PING
+pub const PING_CMD_NAME_SIZE: usize = 5; // 4PING
 pub const CANCEL_CMD_NAME_SIZE: usize = 7; // 6CANCEL
-pub const SUB_CMD_NAME_SIZE: usize = 10;    // 9SUBSCRIBE
+pub const SUB_CMD_NAME_SIZE: usize = 10; // 9SUBSCRIBE
 
 // enum {
 pub const ZMQ_MSG_MORE: u8 = 1;
@@ -98,7 +99,10 @@ pub union ZmqMsgGrp {
 #[derive(Default, Debug, Clone)]
 pub struct MsgUnionBase {
     pub metadata: Option<ZmqMetadata>,
-    pub unused: [u8; ZMQ_MSG_SIZE - size_of::<*mut ZmqMetadata>() + 2 + size_of::<u32>() + size_of::<ZmqMsgGrp>()],
+    pub unused: [u8; ZMQ_MSG_SIZE - size_of::<*mut ZmqMetadata>()
+        + 2
+        + size_of::<u32>()
+        + size_of::<ZmqMsgGrp>()],
     pub type_: u8,
     pub flags: u8,
     pub routing_id: u32,
@@ -120,7 +124,11 @@ pub struct MsgUnionVsm {
 pub struct MsgUnionLmsg {
     pub metadata: Option<ZmqMetadata>,
     pub content: ZmqContent,
-    pub unused: [u8; size_of::<*mut ZmqMetadata>() + size_of::<*mut ZmqContent>() + 2 + size_of::<u32>() + size_of::<ZmqMsgGrp>()],
+    pub unused: [u8; size_of::<*mut ZmqMetadata>()
+        + size_of::<*mut ZmqContent>()
+        + 2
+        + size_of::<u32>()
+        + size_of::<ZmqMsgGrp>()],
     pub type_: u8,
     pub flags: u8,
     pub routing_id: u32,
@@ -131,7 +139,11 @@ pub struct MsgUnionLmsg {
 pub struct MsgUnionZclmsg {
     pub metadata: Option<ZmqMetadata>,
     pub content: ZmqContent,
-    pub unused: [u8; size_of::<*mut ZmqMetadata>() + size_of::<*mut ZmqContent>() + 2 + size_of::<u32>() + size_of::<ZmqMsgGrp>()],
+    pub unused: [u8; size_of::<*mut ZmqMetadata>()
+        + size_of::<*mut ZmqContent>()
+        + 2
+        + size_of::<u32>()
+        + size_of::<ZmqMsgGrp>()],
     pub type_: u8,
     pub flags: u8,
     pub routing_id: u32,
@@ -144,7 +156,11 @@ pub struct MsgUnionCmsg {
     pub content: ZmqContent,
     pub data: Vec<u8>,
     pub size: usize,
-    pub unused: [u8; size_of::<*mut ZmqMetadata>() + size_of::<*mut ZmqContent>() + 2 + size_of::<u32>() + size_of::<ZmqMsgGrp>()],
+    pub unused: [u8; size_of::<*mut ZmqMetadata>()
+        + size_of::<*mut ZmqContent>()
+        + 2
+        + size_of::<u32>()
+        + size_of::<ZmqMsgGrp>()],
     pub type_: u8,
     pub flags: u8,
     pub routing_id: u32,
@@ -154,7 +170,11 @@ pub struct MsgUnionCmsg {
 #[derive(Default, Debug, Clone)]
 pub struct MsgUnionDelimiter {
     pub metadata: Option<ZmqMetadata>,
-    pub unused: [u8; size_of::<*mut ZmqMetadata>() + size_of::<*mut ZmqContent>() + 2 + size_of::<u32>() + size_of::<ZmqMsgGrp>()],
+    pub unused: [u8; size_of::<*mut ZmqMetadata>()
+        + size_of::<*mut ZmqContent>()
+        + 2
+        + size_of::<u32>()
+        + size_of::<ZmqMsgGrp>()],
     pub type_: u8,
     pub flags: u8,
     pub routing_id: u32,
@@ -173,9 +193,8 @@ pub union MsgUnion {
     pub zclmsg: MsgUnionZclmsg,
     pub cmsg: MsgUnionCmsg,
     pub delimiter: MsgUnionDelimiter,
-    pub raw: [u8;64]
+    pub raw: [u8; 64],
 }
-
 
 pub const CANCEL_CMD_NAME: &[u8] = b"\0x6CANCEL";
 pub const SUB_CMD_NAME: &[u8] = b"\0x9SUBSCRIBE";
@@ -196,7 +215,7 @@ pub struct ZmqMessage {
     // private:
     // refcnt: AtomicCounter,
     //  Different message types.
-    u: MsgUnion,
+    pub u: MsgUnion,
 }
 
 impl ZmqMessage {
@@ -281,7 +300,13 @@ impl ZmqMessage {
         return self.u.base.type_ >= TYPE_MIN && self.u.base.type_ <= TYPE_MAX;
     }
 
-    pub fn init(&mut self, data: &mut [u8], size: usize, hint: &mut [u8], content: Option<&mut ZmqContent>) -> i32 {
+    pub fn init(
+        &mut self,
+        data: &mut [u8],
+        size: usize,
+        hint: &mut [u8],
+        content: Option<&mut ZmqContent>,
+    ) -> i32 {
         if size < MAX_VSM_SIZE {
             let rc: i32 = self.init_size(size);
 
@@ -359,10 +384,13 @@ impl ZmqMessage {
         return 0;
     }
 
-    pub fn init_external_storage(&mut self, content: &mut ZmqContent,
-                                 data: &mut [u8],
-                                 size: usize,
-                                 hint: &mut [u8]) -> i32 {
+    pub fn init_external_storage(
+        &mut self,
+        content: &mut ZmqContent,
+        data: &mut [u8],
+        size: usize,
+        hint: &mut [u8],
+    ) -> i32 {
         // zmq_assert (NULL != data);
         // zmq_assert (NULL != content);
 
@@ -483,7 +511,7 @@ impl ZmqMessage {
         return rc;
     }
 
-    pub fn close(&mut self) -> anyhow::Result<()>{
+    pub fn close(&mut self) -> anyhow::Result<()> {
         //  Check the validity of the message.
         // if (unlikely (!check ())) {
         //     errno = EFAULT;
@@ -611,7 +639,7 @@ impl ZmqMessage {
             TYPE_LMSG => self.u.lmsg.content.data.as_slice(),
             TYPE_CMSG => self.u.cmsg.content.data.as_slice(),
             TYPE_DELIMITER => self.u.delimiter.unused.as_slice(),
-            _ => self.u.raw.as_slice()
+            _ => self.u.raw.as_slice(),
         }
     }
 
@@ -621,7 +649,7 @@ impl ZmqMessage {
             TYPE_LMSG => self.u.lmsg.content.data.as_mut_slice(),
             TYPE_CMSG => self.u.cmsg.content.data.as_mut_slice(),
             TYPE_DELIMITER => self.u.delimiter.unused.as_mut_slice(),
-            _ => self.u.raw.as_mut_slice()
+            _ => self.u.raw.as_mut_slice(),
         }
     }
 
@@ -634,9 +662,8 @@ impl ZmqMessage {
             TYPE_LMSG => self.u.lmsg.content.size,
             TYPE_ZCLMSG => self.u.zclmsg.content.size,
             TYPE_CMSG => self.u.cmsg.size,
-            _ => 0
-            // zmq_assert (false);
-            // return 0;
+            _ => 0, // zmq_assert (false);
+                    // return 0;
         }
     }
 
@@ -650,8 +677,7 @@ impl ZmqMessage {
             TYPE_LMSG => self.u.lmsg.content.size = new_size,
             TYPE_ZCLMSG => self.u.zclmsg.content.size = new_size,
             TYPE_CMSG => self.u.cmsg.size = new_size,
-            _ => {}
-            // zmq_assert (false);
+            _ => {} // zmq_assert (false);
         }
     }
 
@@ -884,7 +910,12 @@ impl ZmqMessage {
             self.u.base.group.lgroup.content.group[length_] = 0;
         } else {
             // strncpy (_u.base.group.sgroup.group, group_, length_);
-            self.u.base.group.sgroup.group.clone_from_slice(group_.as_bytes());
+            self.u
+                .base
+                .group
+                .sgroup
+                .group
+                .clone_from_slice(group_.as_bytes());
             self.u.base.group.sgroup.group[length_] = 0;
         }
 
@@ -895,9 +926,8 @@ impl ZmqMessage {
         match (self.u.base.type_) {
             TYPE_LMSG => Some(self.u.lmsg.content.refcnt.clone()),
             TYPE_ZCLMSG => Some(self.u.zclmsg.content.refcnt.clone()),
-            _ => None
-            // zmq_assert (false);
-            // return NULL;
+            _ => None, // zmq_assert (false);
+                       // return NULL;
         }
     }
 }
@@ -907,7 +937,7 @@ pub fn close_and_return(msg: &mut ZmqMessage, echo: i32) -> anyhow::Resuylt<i32>
     // let err: i32 = errno;
     match msg.close() {
         Ok(_) => Ok(echo),
-        Err(e) => Err(anyhow!("error: {}", e))
+        Err(e) => Err(anyhow!("error: {}", e)),
     }
     // errno_assert(rc == 0);
     // errno = err;

@@ -172,7 +172,7 @@ static void publisher_thread_main (pvoid: *mut c_void)
 
     u64 send_count = 0;
     while (send_count < message_count) {
-        ZmqMessage msg;
+let mut msg = ZmqMessage::default();
         zmq_msg_init (&msg);
         rc = zmq_msg_copy (&msg, &msg_orig);
         assert (rc == 0);
@@ -209,7 +209,7 @@ static void subscriber_thread_main (pvoid: *mut c_void)
     u64 rxsuccess = 0;
     bool success = true;
     while (success) {
-        ZmqMessage msg;
+let mut msg = ZmqMessage::default();
         int rc = zmq_msg_init (&msg);
         assert (rc == 0);
 

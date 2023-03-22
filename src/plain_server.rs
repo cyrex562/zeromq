@@ -40,7 +40,7 @@
 
     plain_server_t (ZmqSessionBase *session_,
                     const std::string &peer_address_,
-                    const ZmqOptions &options_);
+                    options: &ZmqOptions);
     ~plain_server_t ();
 
     // mechanism implementation
@@ -61,7 +61,7 @@
 
 plain_server_t::plain_server_t (ZmqSessionBase *session_,
                                      const std::string &peer_address_,
-                                     const ZmqOptions &options_) :
+                                     options: &ZmqOptions) :
     ZmqMechanismBase (session_, options_),
     zap_client_common_handshake_t (
       session_, peer_address_, options_, sending_welcome)

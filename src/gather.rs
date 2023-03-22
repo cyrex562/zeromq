@@ -41,13 +41,13 @@ pub struct gather_t ZMQ_FINAL : public ZmqSocketBase
 
   protected:
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe,
+    void xattach_pipe (pipe: &mut ZmqPipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool);
     int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
-    void xread_activated (pipe: &mut pipe_t);
-    void xpipe_terminated (pipe: &mut pipe_t);
+    void xread_activated (pipe: &mut ZmqPipe);
+    void xpipe_terminated (pipe: &mut ZmqPipe);
 
   // private:
     //  Fair queueing object for inbound pipes.
@@ -66,7 +66,7 @@ gather_t::~gather_t ()
 {
 }
 
-void gather_t::xattach_pipe (pipe_t *pipe,
+void gather_t::xattach_pipe (pipe: &mut ZmqPipe,
                                   subscribe_to_all_: bool,
                                   locally_initiated_: bool)
 {
@@ -77,12 +77,12 @@ void gather_t::xattach_pipe (pipe_t *pipe,
     _fq.attach (pipe);
 }
 
-void gather_t::xread_activated (pipe: &mut pipe_t)
+void gather_t::xread_activated (pipe: &mut ZmqPipe)
 {
     _fq.activated (pipe);
 }
 
-void gather_t::xpipe_terminated (pipe: &mut pipe_t)
+void gather_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
     _fq.pipe_terminated (pipe);
 }

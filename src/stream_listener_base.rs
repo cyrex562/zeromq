@@ -39,12 +39,12 @@
 // #else
 // #include <winsock2.h>
 // #endif
-pub struct stream_listener_base_t : public own_t, public io_object_t
+pub struct stream_listener_base_t : public ZmqOwn, public io_object_t
 {
 // public:
     stream_listener_base_t (ZmqThread *io_thread_,
                             socket: *mut ZmqSocketBase,
-                            const ZmqOptions &options_);
+                            options: &ZmqOptions);
     ~stream_listener_base_t () ZMQ_OVERRIDE;
 
     // Get the bound address for use with wildcards
@@ -83,8 +83,8 @@ pub struct stream_listener_base_t : public own_t, public io_object_t
 stream_listener_base_t::stream_listener_base_t (
   ZmqThread *io_thread_,
   socket: *mut ZmqSocketBase,
-  const ZmqOptions &options_) :
-    own_t (io_thread_, options_),
+  options: &ZmqOptions) :
+    ZmqOwn (io_thread_, options_),
     io_object_t (io_thread_),
     _s (retired_fd),
     _handle (static_cast<handle_t> (null_mut())),
@@ -116,7 +116,7 @@ void stream_listener_base_t::process_term (linger: i32)
     rm_fd (_handle);
     _handle = static_cast<handle_t> (null_mut());
     close ();
-    own_t::process_term (linger);
+    ZmqOwn::process_term (linger);
 }
 
 int stream_listener_base_t::close ()

@@ -100,7 +100,7 @@ void tune_vmci_connect_timeout (ZmqContext *context_,
 }
 
 fd_t vmci_open_socket (address_: &str,
-                                 const ZmqOptions &options_,
+                                 options: &ZmqOptions,
                                  VmciAddress *out_vmci_addr_)
 {
     //  Convert the textual address into address structure.

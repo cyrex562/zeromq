@@ -35,7 +35,7 @@
 static int
 receive_monitor_address (monitor_: *mut c_void, char **address_, expect_more_: bool)
 {
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
 
     zmq_msg_init (&msg);
     if (zmq_msg_recv (&msg, monitor_, 0) == -1)
@@ -64,7 +64,7 @@ static int get_monitor_event_internal (monitor_: *mut c_void,
                                        recv_flag_: i32)
 {
     //  First frame in message contains event number and value
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     zmq_msg_init (&msg);
     if (zmq_msg_recv (&msg, monitor_, recv_flag_) == -1) {
         TEST_ASSERT_FAILURE_ERRNO (EAGAIN, -1);
@@ -213,7 +213,7 @@ static i64 get_monitor_event_internal_v2 (monitor_: *mut c_void,
                                               recv_flag_: i32)
 {
     //  First frame in message contains event number
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     zmq_msg_init (&msg);
     if (zmq_msg_recv (&msg, monitor_, recv_flag_) == -1) {
         TEST_ASSERT_FAILURE_ERRNO (EAGAIN, -1);

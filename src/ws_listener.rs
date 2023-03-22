@@ -70,7 +70,7 @@ pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
 // public:
     ws_listener_t (ZmqThread *io_thread_,
                    socket: *mut ZmqSocketBase,
-                   const ZmqOptions &options_,
+                   options: &ZmqOptions,
                    wss_: bool);
 
     ~ws_listener_t ();
@@ -107,7 +107,7 @@ pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
 
 ws_listener_t::ws_listener_t (ZmqThread *io_thread_,
                                    ZmqSocketBase *socket,
-                                   const ZmqOptions &options_,
+                                   options: &ZmqOptions,
                                    wss_: bool) :
     stream_listener_base_t (io_thread_, socket, options_), _wss (wss_)
 {

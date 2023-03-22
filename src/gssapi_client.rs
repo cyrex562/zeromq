@@ -42,7 +42,7 @@
 pub struct gssapi_client_t ZMQ_FINAL : public gssapi_ZmqMechanismBase
 {
 // public:
-    gssapi_client_t (ZmqSessionBase *session_, const ZmqOptions &options_);
+    gssapi_client_t (ZmqSessionBase *session_, options: &ZmqOptions);
     ~gssapi_client_t () ZMQ_FINAL;
 
     // mechanism implementation
@@ -87,7 +87,7 @@ pub struct gssapi_client_t ZMQ_FINAL : public gssapi_ZmqMechanismBase
 };
 
 gssapi_client_t::gssapi_client_t (ZmqSessionBase *session_,
-                                       const ZmqOptions &options_) :
+                                       options: &ZmqOptions) :
     ZmqMechanismBase (session_, options_),
     gssapi_ZmqMechanismBase (session_, options_),
     state (call_next_init),

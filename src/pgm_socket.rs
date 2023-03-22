@@ -53,7 +53,7 @@ pub struct pgm_socket_t
 {
 // public:
     //  If receiver_ is true PGM transport is not generating SPM packets.
-    pgm_socket_t (receiver_: bool, const ZmqOptions &options_);
+    pgm_socket_t (receiver_: bool, options: &ZmqOptions);
 
     //  Closes the transport.
     ~pgm_socket_t ();
@@ -124,7 +124,7 @@ pub struct pgm_socket_t
     pgm_msgv_processed: usize;
 };
 
-pgm_socket_t::pgm_socket_t (receiver_: bool, const ZmqOptions &options_) :
+pgm_socket_t::pgm_socket_t (receiver_: bool, options: &ZmqOptions) :
     sock (null_mut()),
     options (options_),
     receiver (receiver_),

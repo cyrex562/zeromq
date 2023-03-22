@@ -1,6 +1,6 @@
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::options::ZmqOptions;
-use crate::pipe::pipe_t;
+use crate::pipe::ZmqPipe;
 use crate::socket_base::{ZmqContext, ZmqSocketBase};
 use crate::socket_base_ops::ZmqSocketBaseOps;
 use anyhow::anyhow;
@@ -15,22 +15,22 @@ pub struct ZmqChannel
     //     ~channel_t ();
     //
     //     //  Overrides of functions from ZmqSocketBase.
-    //     void xattach_pipe (pipe_t *pipe_,
+    //     void xattach_pipe (ZmqPipe *pipe_,
     //                        bool subscribe_to_all_,
     //                        bool locally_initiated_);
     //     int xsend (ZmqMessage *msg);
     //     int xrecv (ZmqMessage *msg);
     //     bool xhas_in ();
     //     bool xhas_out ();
-    //     void xread_activated (pipe_t *pipe_);
-    //     void xwrite_activated (pipe_t *pipe_);
-    //     void xpipe_terminated (pipe_t *pipe_);
+    //     void xread_activated (ZmqPipe *pipe_);
+    //     void xwrite_activated (ZmqPipe *pipe_);
+    //     void xpipe_terminated (ZmqPipe *pipe_);
 
     // private:
-    //   pipe_t *_pipe;
+    //   ZmqPipe *_pipe;
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (channel_t)
-    pipe: Option<pipe_t>,
+    pipe: Option<ZmqPipe>,
     base: ZmqSocketBase,
 }
 
@@ -60,7 +60,7 @@ impl ZmqSocketBaseOps for ZmqChannel {
     fn xattach_pipe(
         &mut self,
         skt_base: &mut ZmqSocketBase,
-        in_pipe: &mut pipe_t,
+        in_pipe: &mut ZmqPipe,
         subscribe_to_all: bool,
         locally_initiated: bool,
     ) {
@@ -83,13 +83,13 @@ impl ZmqSocketBaseOps for ZmqChannel {
         }
     }
 
-    fn xpipe_terminated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut pipe_t) {
+    fn xpipe_terminated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut ZmqPipe) {
         if (pipe == self.pipe.unwrap()) {
             self.pipe = None;
         }
     }
 
-    fn xwrite_activated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut pipe_t) {
+    fn xwrite_activated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut ZmqPipe) {
         //  There's just one pipe. No lists of active and inactive pipes.
         //  There's nothing to do here.
         unimplemented!()

@@ -87,7 +87,7 @@ void worker(num: i32) {
 
 	while (1) {
 		// receive messages from the queue
-		ZmqMessage msg;
+let mut msg = ZmqMessage::default();
 		rc = zmq_msg_init(&msg); assert(rc == 0);
 		rc = zmq_msg_recv(&msg, queue, 0); assert(rc > 0);
 		// check message
@@ -114,7 +114,7 @@ void server() {
 
 	while (1) {
 		// wait client message
-		ZmqMessage msg;
+let mut msg = ZmqMessage::default();
 		rc = zmq_msg_init(&msg); assert(rc == 0);
 		rc = zmq_msg_recv(&msg, server_sock, 0); assert(rc > 0);
 		//printf("recv %d bytes at %X from %X\n", zmq_msg_size(&msg), zmq_msg_data(&msg), zmq_msg_routing_id(&msg));
@@ -144,7 +144,7 @@ void client(num: i32)
 		sock[i] = zmq_socket(ctx, ZMQ_CLIENT); assert(sock[i]);
 		rc = zmq_connect(sock[i], SERVER_ADDR); assert(rc == 0);
 		// test connection
-		ZmqMessage msg;
+let mut msg = ZmqMessage::default();
 		int v = rand() % 256 + 1;
 		message_fill(&msg, v);
 		rc = zmq_msg_send(&msg, sock[i], 0); assert(rc > 0);
@@ -160,7 +160,7 @@ void client(num: i32)
 	int reconnect = 0;
 	while(1) {
 		int val[CLIENT_CONNECTION];
-		ZmqMessage msg;
+let mut msg = ZmqMessage::default();
 		// send messages
 		for(int i = 0; i < CLIENT_CONNECTION; i++) {
 			val[i] = rand() % MESSAGE_MAX_SIZE + 1;

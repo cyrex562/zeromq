@@ -1,7 +1,7 @@
 use crate::endpoint::EndpointUriPair;
 use crate::object::ZmqObject;
-use crate::own::own_t;
-use crate::pipe::pipe_t;
+use crate::own::ZmqOwn;
+use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 use libc::c_void;
 use std::fmt::{Display, Formatter};
@@ -45,7 +45,7 @@ pub struct PlugCommandArgs {}
 
 #[derive(Default, Debug, Clone)]
 pub struct OwnCommandArgs {
-    pub object: *mut own_t,
+    pub object: *mut ZmqOwn,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -55,7 +55,7 @@ pub struct AttachCommandArgs {
 
 #[derive(Default, Debug, Clone)]
 pub struct BindCommandArgs {
-    pub pipe: pipe_t,
+    pub pipe: ZmqPipe,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -85,7 +85,7 @@ pub struct PipeHwmCommandArgs {
 
 #[derive(Default, Debug, Clone)]
 pub struct TermReqCommandArgs {
-    pub object: *mut own_t,
+    pub object: *mut ZmqOwn,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -108,7 +108,7 @@ pub struct ReapCommandArgs {
 
 pub struct PipePeerStatsCommandArgs {
     pub queue_count: u64,
-    pub socket_base: *mut own_t,
+    pub socket_base: *mut ZmqOwn,
     pub enpoint_pair: EndpointUriPair,
 }
 
@@ -145,7 +145,7 @@ pub union ArgsUnion {
     //  messages it has read so far.
     pub activate_write: ActivateWriteCommandArgs,
     //  Sent by pipe reader to writer after creating a new inpipe.
-    //  The parameter is actually of type pipe_t::upipe_t, however,
+    //  The parameter is actually of type ZmqPipe::upipe_t, however,
     //  its definition is private so we'll have to do with void*.
     pub hiccup: HiccupCommandArgs,
     //  Sent by pipe reader to pipe writer to ask it to terminate

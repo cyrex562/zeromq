@@ -42,7 +42,7 @@ pub struct null_ZmqMechanism ZMQ_FINAL : public zap_client_t
 // public:
     null_ZmqMechanism (ZmqSessionBase *session_,
                       const std::string &peer_address_,
-                      const ZmqOptions &options_);
+                      options: &ZmqOptions);
     ~null_ZmqMechanism ();
 
     // mechanism implementation
@@ -76,7 +76,7 @@ const size_t ready_command_name_len = mem::size_of::<ready_command_name>() - 1;
 
 null_ZmqMechanism::null_ZmqMechanism (ZmqSessionBase *session_,
                                          const std::string &peer_address_,
-                                         const ZmqOptions &options_) :
+                                         options: &ZmqOptions) :
     ZmqMechanismBase (session_, options_),
     zap_client_t (session_, peer_address_, options_),
     _ready_command_sent (false),

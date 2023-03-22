@@ -47,7 +47,7 @@ pub struct req_t ZMQ_FINAL : public dealer_t
     bool xhas_in ();
     bool xhas_out ();
     int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
-    void xpipe_terminated (pipe: &mut pipe_t);
+    void xpipe_terminated (pipe: &mut ZmqPipe);
 
   protected:
     //  Receive only from the pipe the request was sent to, discarding
@@ -64,7 +64,7 @@ pub struct req_t ZMQ_FINAL : public dealer_t
     _message_begins: bool
 
     //  The pipe the request was sent to and where the reply is expected.
-    pipe_t *_reply_pipe;
+    ZmqPipe *_reply_pipe;
 
     //  Whether request id frames shall be sent and expected.
     _request_id_frames_enabled: bool
@@ -86,7 +86,7 @@ pub struct req_session_t ZMQ_FINAL : public ZmqSessionBase
     req_session_t (ZmqThread *io_thread_,
                    connect_: bool,
                    socket: *mut ZmqSocketBase,
-                   const ZmqOptions &options_,
+                   options: &ZmqOptions,
                    Address *addr_);
     ~req_session_t ();
 
@@ -306,7 +306,7 @@ int req_t::xsetsockopt (option_: i32,
     return dealer_t::xsetsockopt (option_, optval_, optvallen_);
 }
 
-void req_t::xpipe_terminated (pipe: &mut pipe_t)
+void req_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
     if (_reply_pipe == pipe)
         _reply_pipe = null_mut();
@@ -316,7 +316,7 @@ void req_t::xpipe_terminated (pipe: &mut pipe_t)
 int req_t::recv_reply_pipe (msg: &mut ZmqMessage)
 {
     while (true) {
-        pipe_t *pipe = null_mut();
+        ZmqPipe *pipe = null_mut();
         let rc: i32 = dealer_t::recvpipe (msg, &pipe);
         if (rc != 0)
             return rc;
@@ -328,7 +328,7 @@ int req_t::recv_reply_pipe (msg: &mut ZmqMessage)
 req_session_t::req_session_t (ZmqThread *io_thread_,
                                    connect_: bool,
                                    ZmqSocketBase *socket,
-                                   const ZmqOptions &options_,
+                                   options: &ZmqOptions,
                                    Address *addr_) :
     ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),
     _state (bottom)

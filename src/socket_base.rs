@@ -17,11 +17,11 @@ use crate::options::{
     bool_to_vec, get_effective_conflate_option, i32_to_vec, str_to_vec, ZmqOptions,
 };
 use crate::out_pipe::out_pipe_t;
-use crate::own::own_t;
+use crate::own::ZmqOwn;
 use crate::pgm_socket::pgm_socket_t;
-use crate::pipe::pipe_t;
+use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
-use crate::signaler::signaler_t;
+use crate::signaler::ZmqSignaler;
 use crate::socket_base_ops::ZmqSocketBaseOps;
 use crate::tcp_address::TcpAddress;
 use crate::tcp_listener::tcp_listener_t;
@@ -61,14 +61,14 @@ use std::time;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ZmqSocketBase {
-    pub own: own_t,
+    pub own: ZmqOwn,
     // Mutex for synchronize access to the socket in thread safe mode
     pub sync: Mutex<u8>,
     //  Map of open endpoints.
-    // typedef std::pair<own_t *, pipe_t *> endpoint_pipe_t;
+    // typedef std::pair<ZmqOwn *, ZmqPipe *> endpoint_pipe_t;
     // typedef std::multimap<std::string, endpoint_pipe_t> endpoints_t;
     // endpoints_t _endpoints;
-    pub endpoints: HashMap<String, (own_t, pipe_t)>,
+    pub endpoints: HashMap<String, (ZmqOwn, ZmqPipe)>,
     //  Used to check whether the object is a socket.
     pub tag: u32,
 
@@ -85,9 +85,9 @@ pub struct ZmqSocketBase {
     pub mailbox: Option<i_mailbox>,
 
     //  List of attached pipes.
-    // typedef array_t<pipe_t, 3> pipes_t;
+    // typedef array_t<ZmqPipe, 3> pipes_t;
     // pipes_t _pipes;
-    pub pipes: [pipe_t; 3],
+    pub pipes: [ZmqPipe; 3],
 
     //  Reaper's poller and handle of this socket within it.
     // poller_t *poller;
@@ -120,7 +120,7 @@ pub struct ZmqSocketBase {
     pub thread_safe: bool,
 
     // Signaler to be used in the reaping stage
-    pub reaper_signaler: Option<signaler_t>,
+    pub reaper_signaler: Option<ZmqSignaler>,
 
     // Mutex to synchronize access to the monitor Pair socket
     pub monitor_sync: Mutex<u8>,
@@ -176,7 +176,7 @@ impl ZmqObject for ZmqSocketBase {
         todo!()
     }
 
-    fn pend_connection(&mut self, addr: &str, endpoint: &ZmqEndpoint, pipes: &[pipe_t]) {
+    fn pend_connection(&mut self, addr: &str, endpoint: &ZmqEndpoint, pipes: &[ZmqPipe]) {
         todo!()
     }
 
@@ -196,7 +196,7 @@ impl ZmqObject for ZmqSocketBase {
         todo!()
     }
 
-    fn send_bind(&mut self, destination: &mut own_t, pipe: &mut pipe_t, inc_seqnum: bool) {
+    fn send_bind(&mut self, destination: &mut ZmqOwn, pipe: &mut ZmqPipe, inc_seqnum: bool) {
         todo!()
     }
 
@@ -208,11 +208,11 @@ impl ZmqObject for ZmqSocketBase {
         todo!()
     }
 
-    fn send_plug(&mut self, destination: &mut own_t, inc_seqnum: bool) {
+    fn send_plug(&mut self, destination: &mut ZmqOwn, inc_seqnum: bool) {
         todo!()
     }
 
-    fn send_own(&mut self, destination: &mut own_t, object: &mut own_t) {
+    fn send_own(&mut self, destination: &mut ZmqOwn, object: &mut ZmqOwn) {
         todo!()
     }
 
@@ -225,23 +225,23 @@ impl ZmqObject for ZmqSocketBase {
         todo!()
     }
 
-    fn send_activate_read(&mut self, destination: &mut pipe_t) {
+    fn send_activate_read(&mut self, destination: &mut ZmqPipe) {
         todo!()
     }
 
-    fn send_activate_write(&mut self, destination: &mut pipe_t, msgs_read: u64) {
+    fn send_activate_write(&mut self, destination: &mut ZmqPipe, msgs_read: u64) {
         todo!()
     }
 
-    fn send_hiccup(&mut self, destination: &mut pipe_t, pipe: &mut [u8]) {
+    fn send_hiccup(&mut self, destination: &mut ZmqPipe, pipe: &mut [u8]) {
         todo!()
     }
 
     fn send_pipe_peer_stats(
         &mut self,
-        destination: &mut pipe_t,
+        destination: &mut ZmqPipe,
         queue_count: u64,
-        socket_base: &mut own_t,
+        socket_base: &mut ZmqOwn,
         endpoint_pair: &mut EndpointUriPair,
     ) {
         todo!()
@@ -249,7 +249,7 @@ impl ZmqObject for ZmqSocketBase {
 
     fn send_pipe_stats_publish(
         &mut self,
-        destination: &mut own_t,
+        destination: &mut ZmqOwn,
         outbound_queue_count: u64,
         inbound_queue_count: u64,
         endpoint_pair: &mut EndpointUriPair,
@@ -257,31 +257,31 @@ impl ZmqObject for ZmqSocketBase {
         todo!()
     }
 
-    fn send_pipe_term(&mut self, destination: &mut pipe_t) {
+    fn send_pipe_term(&mut self, destination: &mut ZmqPipe) {
         todo!()
     }
 
-    fn send_pipe_term_ack(&mut self, destination: &mut pipe_t) {
+    fn send_pipe_term_ack(&mut self, destination: &mut ZmqPipe) {
         todo!()
     }
 
-    fn send_pipe_hwm(&mut self, destination: &mut pipe_t, inhwm: i32, outhwm: i32) {
+    fn send_pipe_hwm(&mut self, destination: &mut ZmqPipe, inhwm: i32, outhwm: i32) {
         todo!()
     }
 
-    fn send_term_req(&mut self, destination: &mut own_t, object: &mut own_t) {
+    fn send_term_req(&mut self, destination: &mut ZmqOwn, object: &mut ZmqOwn) {
         todo!()
     }
 
-    fn send_term(&mut self, destination: &mut own_t, linger: i32) {
+    fn send_term(&mut self, destination: &mut ZmqOwn, linger: i32) {
         todo!()
     }
 
-    fn send_term_ack(&mut self, destination: &mut own_t) {
+    fn send_term_ack(&mut self, destination: &mut ZmqOwn) {
         todo!()
     }
 
-    fn send_term_endpoint(&mut self, destination: &mut own_t, endpoint: &str) {
+    fn send_term_endpoint(&mut self, destination: &mut ZmqOwn, endpoint: &str) {
         todo!()
     }
 
@@ -309,7 +309,7 @@ impl ZmqObject for ZmqSocketBase {
         todo!()
     }
 
-    fn process_own(&mut self, object: &mut own_t) {
+    fn process_own(&mut self, object: &mut ZmqOwn) {
         todo!()
     }
 
@@ -317,7 +317,7 @@ impl ZmqObject for ZmqSocketBase {
         todo!()
     }
 
-    fn process_bind(&mut self, pipe: &mut pipe_t) {
+    fn process_bind(&mut self, pipe: &mut ZmqPipe) {
         todo!()
     }
 
@@ -336,7 +336,7 @@ impl ZmqObject for ZmqSocketBase {
     fn process_pipe_peer_stats(
         &mut self,
         queue_count: u64,
-        socket_base: &mut own_t,
+        socket_base: &mut ZmqOwn,
         endpoint_pair: &mut EndpointUriPair,
     ) {
         todo!()
@@ -363,7 +363,7 @@ impl ZmqObject for ZmqSocketBase {
         todo!()
     }
 
-    fn process_term_req(&mut self, object: &mut own_t) {
+    fn process_term_req(&mut self, object: &mut ZmqOwn) {
         todo!()
     }
 
@@ -410,7 +410,7 @@ impl ZmqSocketBase {
     //                                    tid: u32,
     //                                    sid_: i32,
     //                                    thread_safe_: bool) :
-    //     own_t (parent_, tid),
+    //     ZmqOwn (parent_, tid),
     //     sync (),
     //     _tag (0xbaddecaf),
     //     _ctx_terminated (false),
@@ -795,7 +795,7 @@ impl ZmqSocketBase {
 
             //  Create a bi-directional pipe.
             let mut parents: [Box<dyn ZmqObject>; 2] = [Box::new(self), Box::new(session)];
-            let mut new_pipes: [pipe_t; 2] = [pipe_t::default(), pipe_t::default()];
+            let mut new_pipes: [ZmqPipe; 2] = [ZmqPipe::default(), ZmqPipe::default()];
 
             let mut hwms: [i32; 2] = [options.sndhwm, options.rcvhwm];
             let mut conflates: [nool; 2] = [false, false];
@@ -814,7 +814,7 @@ impl ZmqSocketBase {
 
             //  TODO shouldn't this use _last_endpoint instead of endpoint_uri_? as in the other cases
             let mut ep = EndpointUriPair::new(endpoint_uri_, "", endpoint_type_none);
-            // todo add trait own_t to ZmqSessionBase
+            // todo add trait ZmqOwn to ZmqSessionBase
             self.add_endpoint(&ep, &mut session, &mut newpipe);
 
             Ok(())
@@ -1239,8 +1239,8 @@ impl ZmqSocketBase {
         Ok(())
     }
 
-    // void add_signaler (signaler_t *s_);
-    pub fn add_signaler(&mut self, s_: &mut signaler_t) {
+    // void add_signaler (ZmqSignaler *s_);
+    pub fn add_signaler(&mut self, s_: &mut ZmqSignaler) {
         // zmq_assert (_thread_safe);
 
         // scoped_lock_t sync_lock (sync);
@@ -1248,8 +1248,8 @@ impl ZmqSocketBase {
         self.mailbox.add_signaler(s_);
     }
 
-    // void remove_signaler (signaler_t *s_);
-    pub fn remove_signaler(&mut self, s_: &mut signaler_t) {
+    // void remove_signaler (ZmqSignaler *s_);
+    pub fn remove_signaler(&mut self, s_: &mut ZmqSignaler) {
         // zmq_assert (_thread_safe);
 
         // scoped_lock_t sync_lock (sync);
@@ -1316,8 +1316,8 @@ impl ZmqSocketBase {
         } else {
             // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
-            self.reaper_signaler = signaler_t::default(); //new (std::nothrow) signaler_t ();
-                                                          // zmq_assert (_reaper_signaler);
+            self.reaper_signaler = ZmqSignaler::default(); //new (std::nothrow) ZmqSignaler ();
+                                                           // zmq_assert (_reaper_signaler);
 
             //  Add signaler to the safe mailbox
             fd = _reaper_signaler.get_fd();
@@ -1369,18 +1369,18 @@ impl ZmqSocketBase {
     }
 
     //  i_pipe_events interface implementation.
-    // void read_activated (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn read_activated(&mut self, pipe: &mut pipe_t) {
+    // void read_activated (ZmqPipe *pipe_) ZMQ_FINAL;
+    pub fn read_activated(&mut self, pipe: &mut ZmqPipe) {
         ops.xread_activated(pipe);
     }
 
-    // void write_activated (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn write_activated(&mut self, pipe: &mut pipe_t) {
+    // void write_activated (ZmqPipe *pipe_) ZMQ_FINAL;
+    pub fn write_activated(&mut self, pipe: &mut ZmqPipe) {
         ops.xwrite_activated(pipe);
     }
 
-    // void hiccuped (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn hiccuped(&mut self, options: &mut ZmqOptions, pipe: &mut pipe_t) {
+    // void hiccuped (ZmqPipe *pipe_) ZMQ_FINAL;
+    pub fn hiccuped(&mut self, options: &mut ZmqOptions, pipe: &mut ZmqPipe) {
         if (options.immediate == 1) {
             pipe.terminate(false);
         } else {
@@ -1389,8 +1389,8 @@ impl ZmqSocketBase {
         }
     }
 
-    // void pipe_terminated (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn pipe_terminated(&mut self, pipe: &mut pipe_t) {
+    // void pipe_terminated (ZmqPipe *pipe_) ZMQ_FINAL;
+    pub fn pipe_terminated(&mut self, pipe: &mut ZmqPipe) {
         //  Notify the specific socket type about the pipe termination.
         ops.xpipe_terminated(pipe);
 
@@ -1895,7 +1895,7 @@ impl ZmqSocketBase {
                     peer.socket
                 },
             ];
-            let mut new_pipes: [pipe_t; 2] = [pipe_t::default(), pipe_t::default()];
+            let mut new_pipes: [ZmqPipe; 2] = [ZmqPipe::default(), ZmqPipe::default()];
 
             let conflate = get_effective_conflate_option(options);
 
@@ -2203,13 +2203,13 @@ impl ZmqSocketBase {
         // // #else
         //     const bool subscribe_to_all = protocol == protocol_name::udp;
         // // #endif
-        //     pipe_t *newpipe = null_mut();
-        let mut newpipe = pipe_t::new();
+        //     ZmqPipe *newpipe = null_mut();
+        let mut newpipe = ZmqPipe::new();
 
         if options.immediate != 1 || subscribe_to_all {
             //  Create a bi-directional pipe.
             let mut parents: [&mut ZmqSocketBase; 2] = [self, session];
-            let mut new_pipes: [pipe_t; 2] = [pipe_t::default(), pipe_t::default()];
+            let mut new_pipes: [ZmqPipe; 2] = [ZmqPipe::default(), ZmqPipe::default()];
 
             let conflate = get_effective_conflate_option(options);
 
@@ -2387,13 +2387,13 @@ impl ZmqSocketBase {
 
     //  Creates new endpoint ID and adds the endpoint to the map.
     // void add_endpoint (const EndpointUriPair &endpoint_pair_,
-    //                    own_t *endpoint_,
-    //                    pipe_t *pipe_);
+    //                    ZmqOwn *endpoint_,
+    //                    ZmqPipe *pipe_);
     pub fn add_endpoint(
         &mut self,
         endpoint_pair: &EndpointUriPair,
-        endpoint: &mut own_t,
-        pipe: &mut pipe_t,
+        endpoint: &mut ZmqOwn,
+        pipe: &mut ZmqPipe,
     ) {
         //  Activate the session. Make it a child of this socket.
         self.launch_child(endpoint);
@@ -2423,7 +2423,7 @@ impl ZmqSocketBase {
             self.send_reaped();
 
             //  Deallocate.
-            // self.own_t::process_destroy ();
+            // self.ZmqOwn::process_destroy ();
         }
     }
 
@@ -2546,12 +2546,12 @@ impl ZmqSocketBase {
     }
 
     //  Register the pipe with this socket.
-    // void attach_pipe (pipe_t *pipe_,
+    // void attach_pipe (ZmqPipe *pipe_,
     //                   bool subscribe_to_all_ = false,
     //                   bool locally_initiated_ = false);
     pub fn attach_pipe(
         &mut self,
-        pipe: &mut pipe_t,
+        pipe: &mut ZmqPipe,
         subscribe_to_all_: bool,
         locally_initiated_: bool,
     ) {
@@ -2649,8 +2649,8 @@ impl ZmqSocketBase {
         self.ctx_terminated = true;
     }
 
-    // void process_bind (pipe_t *pipe_) ZMQ_FINAL;
-    pub fn process_bind(&mut self, pipe: &mut pipe_t) {
+    // void process_bind (ZmqPipe *pipe_) ZMQ_FINAL;
+    pub fn process_bind(&mut self, pipe: &mut ZmqPipe) {
         self.attach_pipe(pipe, false, false);
     }
 
@@ -2697,7 +2697,7 @@ impl ZmqSocketBase {
         self.register_term_acks(self.pipes.len());
 
         //  Continue the termination process immediately.
-        // own_t::process_term (linger_);
+        // ZmqOwn::process_term (linger_);
     }
 
     // void process_term_endpoint (std::string *endpoint_) ZMQ_FINAL;
@@ -2810,13 +2810,13 @@ impl routing_socket_base_t {
         return -1;
     }
 
-    // void xwrite_activated (pipe_: &mut pipe_t) ZMQ_FINAL;
-    pub fn xwrite_activated(&mut self, pipe: &mut pipe_t) {
+    // void xwrite_activated (pipe_: &mut ZmqPipe) ZMQ_FINAL;
+    pub fn xwrite_activated(&mut self, pipe: &mut ZmqPipe) {
         // const out_pipes_t::iterator end = _out_pipes.end ();
         let (end_blob, end_pipe) = self._out_pipes.last().unwrap();
         // out_pipes_t::iterator it;
         // for (it = _out_pipes.begin (); it != end; ++it)
-        // let mut pipe_ref: &mut pipe_t
+        // let mut pipe_ref: &mut ZmqPipe
         for (it_blob, it_pipe) in self._out_pipes.iter_mut() {
             // if (it.second.pipe == pipe_) {
             //     break;
@@ -2844,8 +2844,8 @@ impl routing_socket_base_t {
         return !self._connect_routing_id.is_empty();
     }
 
-    // void add_out_pipe (Blob routing_id_, pipe_: &mut pipe_t);
-    pub fn add_out_pipe(&mut self, routing_id_: Blob, pipe: &mut pipe_t) {
+    // void add_out_pipe (Blob routing_id_, pipe_: &mut ZmqPipe);
+    pub fn add_out_pipe(&mut self, routing_id_: Blob, pipe: &mut ZmqPipe) {
         //  Add the record into output pipes lookup table
         let outpipe = out_pipe_t::new(pipe, true);
         let ok = self
@@ -2874,8 +2874,8 @@ impl routing_socket_base_t {
 
     // const out_pipe_t *lookup_out_pipe (const Blob &routing_id_) const;
 
-    // void erase_out_pipe (const pipe_: &mut pipe_t);
-    pub fn erase_out_pipe(&mut self, pipe: &mut pipe_t) {
+    // void erase_out_pipe (const pipe_: &mut ZmqPipe);
+    pub fn erase_out_pipe(&mut self, pipe: &mut ZmqPipe) {
         let erased = _out_pipes.erase(pipe.get_routing_id());
         // zmq_assert (erased);
     }

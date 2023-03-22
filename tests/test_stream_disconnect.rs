@@ -124,7 +124,7 @@ void test_stream_disconnect ()
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (sockets[CLIENT], ZMQ_ROUTING_ID, blob_data, &blob_size));
     TEST_ASSERT_GREATER_THAN (0, blob_size);
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, blob_size));
     memcpy (zmq_msg_data (&msg), blob_data, blob_size);
     TEST_ASSERT_SUCCESS_ERRNO (

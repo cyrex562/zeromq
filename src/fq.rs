@@ -38,17 +38,17 @@ pub struct fq_t
     fq_t ();
     ~fq_t ();
 
-    void attach (pipe: &mut pipe_t);
-    void activated (pipe: &mut pipe_t);
-    void pipe_terminated (pipe: &mut pipe_t);
+    void attach (pipe: &mut ZmqPipe);
+    void activated (pipe: &mut ZmqPipe);
+    void pipe_terminated (pipe: &mut ZmqPipe);
 
     int recv (msg: &mut ZmqMessage);
-    int recvpipe (msg: &mut ZmqMessage pipe_t **pipe);
+    int recvpipe (msg: &mut ZmqMessage ZmqPipe **pipe);
     bool has_in ();
 
   // private:
     //  Inbound pipes.
-    typedef array_t<pipe_t, 1> pipes_t;
+    typedef array_t<ZmqPipe, 1> pipes_t;
     pipes_t _pipes;
 
     //  Number of active pipes. All the active pipes are located at the
@@ -74,14 +74,14 @@ fq_t::~fq_t ()
     zmq_assert (_pipes.empty ());
 }
 
-void fq_t::attach (pipe: &mut pipe_t)
+void fq_t::attach (pipe: &mut ZmqPipe)
 {
     _pipes.push_back (pipe);
     _pipes.swap (active, _pipes.size () - 1);
     active++;
 }
 
-void fq_t::pipe_terminated (pipe: &mut pipe_t)
+void fq_t::pipe_terminated (pipe: &mut ZmqPipe)
 {
     const pipes_t::size_type index = _pipes.index (pipe);
 
@@ -96,7 +96,7 @@ void fq_t::pipe_terminated (pipe: &mut pipe_t)
     _pipes.erase (pipe);
 }
 
-void fq_t::activated (pipe: &mut pipe_t)
+void fq_t::activated (pipe: &mut ZmqPipe)
 {
     //  Move the pipe to the list of active pipes.
     _pipes.swap (_pipes.index (pipe), active);
@@ -108,7 +108,7 @@ int fq_t::recv (msg: &mut ZmqMessage)
     return recvpipe (msg, null_mut());
 }
 
-int fq_t::recvpipe (msg: &mut ZmqMessage pipe_t **pipe)
+int fq_t::recvpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
 {
     //  Deallocate old content of the message.
     int rc = msg.close ();

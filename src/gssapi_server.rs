@@ -47,7 +47,7 @@ pub struct gssapi_server_t ZMQ_FINAL : public gssapi_ZmqMechanismBase,
 // public:
     gssapi_server_t (ZmqSessionBase *session_,
                      const std::string &peer_address,
-                     const ZmqOptions &options_);
+                     options: &ZmqOptions);
     ~gssapi_server_t () ZMQ_FINAL;
 
     // mechanism implementation
@@ -90,7 +90,7 @@ pub struct gssapi_server_t ZMQ_FINAL : public gssapi_ZmqMechanismBase,
 
 gssapi_server_t::gssapi_server_t (ZmqSessionBase *session_,
                                        const std::string &peer_address_,
-                                       const ZmqOptions &options_) :
+                                       options: &ZmqOptions) :
     ZmqMechanismBase (session_, options_),
     gssapi_ZmqMechanismBase (session_, options_),
     zap_client_t (session_, peer_address_, options_),

@@ -80,7 +80,7 @@ pub struct zmtp_engine_t ZMQ_FINAL : public stream_engine_base_t
 {
 // public:
     zmtp_engine_t (fd_t fd,
-                   const ZmqOptions &options_,
+                   options: &ZmqOptions,
                    const endpoint_uri_pair_t &endpoint_uri_pair_);
     ~zmtp_engine_t ();
 
@@ -150,7 +150,7 @@ pub struct zmtp_engine_t ZMQ_FINAL : public stream_engine_base_t
 
 zmtp_engine_t::zmtp_engine_t (
   fd_t fd,
-  const ZmqOptions &options_,
+  options: &ZmqOptions,
   const endpoint_uri_pair_t &endpoint_uri_pair_) :
     stream_engine_base_t (fd, options_, endpoint_uri_pair_, true),
     _greeting_size (v2_greeting_size),

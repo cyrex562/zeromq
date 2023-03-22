@@ -173,7 +173,7 @@ static int loop_and_send_multipart_stat (control_: *mut ZmqSocketBase,
                                          more_: bool)
 {
     rc: i32;
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
 
     //  VSM of 8 bytes can't fail to init
     msg.init_size (mem::size_of::<u64>());
@@ -227,7 +227,7 @@ pub struct ZmqSocketBase *backend_,
 pub struct ZmqSocketBase *capture_,
 pub struct ZmqSocketBase *control_)
 {
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     int rc = msg.init ();
     if (rc != 0)
         return -1;
@@ -544,7 +544,7 @@ pub struct ZmqSocketBase *backend_,
 pub struct ZmqSocketBase *capture_,
 pub struct ZmqSocketBase *control_)
 {
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     int rc = msg.init ();
     if (rc != 0)
         return -1;

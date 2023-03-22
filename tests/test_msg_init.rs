@@ -36,7 +36,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 void test_msg_init ()
 {
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
     TEST_ASSERT_EQUAL_INT (0, zmq_msg_size (&msg));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg));
@@ -45,7 +45,7 @@ void test_msg_init ()
 void test_msg_init_size ()
 {
     const char *data = "foobar";
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 6));
     TEST_ASSERT_EQUAL_INT (6, zmq_msg_size (&msg));
     memcpy (zmq_msg_data (&msg), data, 6);
@@ -61,7 +61,7 @@ void test_msg_init_size ()
 void test_msg_init_buffer ()
 {
     const char *data = "foobar";
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_buffer (&msg, data, 6));
     TEST_ASSERT_EQUAL_INT (6, zmq_msg_size (&msg));
     TEST_ASSERT (data != zmq_msg_data (&msg));

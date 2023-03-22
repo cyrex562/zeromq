@@ -34,7 +34,6 @@
 // #include "windows.hpp"
 // #endif
 
-
 // // typedef zmq_fd_t fd_t;
 //
 // // #ifdef ZMQ_HAVE_WINDOWS
@@ -63,9 +62,9 @@
 
 use libc::SOCKET;
 
-#[cfg(target_os="windows")]
-type zmq_fd_t = SOCKET;
-#[cfg(target_os="linux")]
+#[cfg(target_os = "windows")]
+pub type zmq_fd_t = SOCKET;
+#[cfg(target_os = "linux")]
 type zmq_fd_t = i32;
 
-type fd_t = zmq_fd_t;
+pub type fd_t = zmq_fd_t;

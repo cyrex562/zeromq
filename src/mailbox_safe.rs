@@ -43,8 +43,8 @@ pub struct mailbox_safe_t ZMQ_FINAL : public i_mailbox
     int recv (cmd: &mut ZmqCommand timeout: i32);
 
     // Add signaler to mailbox which will be called when a message is ready
-    void add_signaler (signaler_t *signaler_);
-    void remove_signaler (signaler_t *signaler_);
+    void add_signaler (ZmqSignaler *signaler_);
+    void remove_signaler (ZmqSignaler *signaler_);
     void clear_signalers ();
 
 // #ifdef HAVE_FORK
@@ -68,7 +68,7 @@ pub struct mailbox_safe_t ZMQ_FINAL : public i_mailbox
     //  Synchronize access to the mailbox from receivers and senders
     mutex_t *const sync;
 
-    std::vector<signaler_t *> _signalers;
+    std::vector<ZmqSignaler *> _signalers;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_safe_t)
 };
@@ -92,16 +92,16 @@ mailbox_safe_t::~mailbox_safe_t ()
     sync.unlock ();
 }
 
-void mailbox_safe_t::add_signaler (signaler_t *signaler_)
+void mailbox_safe_t::add_signaler (ZmqSignaler *signaler_)
 {
     _signalers.push_back (signaler_);
 }
 
-void mailbox_safe_t::remove_signaler (signaler_t *signaler_)
+void mailbox_safe_t::remove_signaler (ZmqSignaler *signaler_)
 {
     // TODO: make a copy of array and signal outside the lock
-    const std::vector<signaler_t *>::iterator end = _signalers.end ();
-    const std::vector<signaler_t *>::iterator it =
+    const std::vector<ZmqSignaler *>::iterator end = _signalers.end ();
+    const std::vector<ZmqSignaler *>::iterator it =
       std::find (_signalers.begin (), end, signaler_);
 
     if (it != end)
@@ -122,7 +122,7 @@ void mailbox_safe_t::send (const ZmqCommand &cmd)
     if (!ok) {
         _cond_var.broadcast ();
 
-        for (std::vector<signaler_t *>::iterator it = _signalers.begin (),
+        for (std::vector<ZmqSignaler *>::iterator it = _signalers.begin (),
                                                  end = _signalers.end ();
              it != end; ++it) {
             (*it)->send ();

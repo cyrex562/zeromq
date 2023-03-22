@@ -45,16 +45,16 @@ pub struct server_t : public ZmqSocketBase
     ~server_t ();
 
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe,
+    void xattach_pipe (pipe: &mut ZmqPipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool);
     int xsend (msg: &mut ZmqMessage);
     int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
     bool xhas_out ();
-    void xread_activated (pipe: &mut pipe_t);
-    void xwrite_activated (pipe: &mut pipe_t);
-    void xpipe_terminated (pipe: &mut pipe_t);
+    void xread_activated (pipe: &mut ZmqPipe);
+    void xwrite_activated (pipe: &mut ZmqPipe);
+    void xpipe_terminated (pipe: &mut ZmqPipe);
 
   // private:
     //  Fair queueing object for inbound pipes.
@@ -62,7 +62,7 @@ pub struct server_t : public ZmqSocketBase
 
     struct outpipe_t
     {
-        pipe_t *pipe;
+        ZmqPipe *pipe;
         active: bool
     };
 
@@ -91,7 +91,7 @@ server_t::~server_t ()
     zmq_assert (_out_pipes.empty ());
 }
 
-void server_t::xattach_pipe (pipe_t *pipe,
+void server_t::xattach_pipe (pipe: &mut ZmqPipe,
                                   subscribe_to_all_: bool,
                                   locally_initiated_: bool)
 {
@@ -114,7 +114,7 @@ void server_t::xattach_pipe (pipe_t *pipe,
     _fq.attach (pipe);
 }
 
-void server_t::xpipe_terminated (pipe: &mut pipe_t)
+void server_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
     const out_pipes_t::iterator it =
       _out_pipes.find (pipe.get_server_socket_routing_id ());
@@ -123,12 +123,12 @@ void server_t::xpipe_terminated (pipe: &mut pipe_t)
     _fq.pipe_terminated (pipe);
 }
 
-void server_t::xread_activated (pipe: &mut pipe_t)
+void server_t::xread_activated (pipe: &mut ZmqPipe)
 {
     _fq.activated (pipe);
 }
 
-void server_t::xwrite_activated (pipe: &mut pipe_t)
+void server_t::xwrite_activated (pipe: &mut ZmqPipe)
 {
     const out_pipes_t::iterator end = _out_pipes.end ();
     out_pipes_t::iterator it;
@@ -184,7 +184,7 @@ int server_t::xsend (msg: &mut ZmqMessage)
 
 int server_t::xrecv (msg: &mut ZmqMessage)
 {
-    pipe_t *pipe = null_mut();
+    ZmqPipe *pipe = null_mut();
     int rc = _fq.recvpipe (msg, &pipe);
 
     // Drop any messages with more flag

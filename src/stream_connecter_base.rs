@@ -46,10 +46,10 @@
 stream_connecter_base_t::stream_connecter_base_t (
   ZmqThread *io_thread_,
   ZmqSessionBase *session_,
-  const ZmqOptions &options_,
+  options: &ZmqOptions,
   Address *addr_,
   delayed_start_: bool) :
-    own_t (io_thread_, options_),
+    ZmqOwn (io_thread_, options_),
     io_object_t (io_thread_),
     _addr (addr_),
     _s (retired_fd),
@@ -96,7 +96,7 @@ void stream_connecter_base_t::process_term (linger: i32)
     if (_s != retired_fd)
         close ();
 
-    own_t::process_term (linger);
+    ZmqOwn::process_term (linger);
 }
 
 void stream_connecter_base_t::add_reconnect_timer ()
@@ -197,14 +197,14 @@ void stream_connecter_base_t::timer_event (id_: i32)
     _reconnect_timer_started = false;
     start_connecting ();
 }
-pub struct stream_connecter_base_t : public own_t, public io_object_t
+pub struct stream_connecter_base_t : public ZmqOwn, public io_object_t
 {
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
     stream_connecter_base_t (ZmqThread *io_thread_,
                              ZmqSessionBase *session_,
-                             const ZmqOptions &options_,
+                             options: &ZmqOptions,
                              Address *addr_,
                              delayed_start_: bool);
 

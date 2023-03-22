@@ -68,7 +68,7 @@ impl curve_server_t {
     // public:
     // curve_server_t (ZmqSessionBase *session_,
     //                 const std::string &peer_address_,
-    //                 const ZmqOptions &options_,
+    //                 options: &ZmqOptions,
     //                 const downgrade_sub_: bool);
     pub fn new(session: &mut ZmqSessionBase, peer_address: &str, options: &ZmqOptions, downgrade_sub: bool) -> Self {
         let mut mechanism_base =
@@ -103,7 +103,7 @@ impl curve_server_t {
 
 curve_server_t::curve_server_t (ZmqSessionBase *session_,
                                      const std::string &peer_address_,
-                                     const ZmqOptions &options_,
+                                     options: &ZmqOptions,
                                      const downgrade_sub_: bool) :
     ZmqMechanismBase (session_, options_),
     zap_client_common_handshake_t (

@@ -46,7 +46,7 @@ void test_more ()
     send_string_expect_success (sc, "B", 0);
 
     //  Routing id comes first.
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, sb, 0));
     TEST_ASSERT_EQUAL_INT (1, TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_more (&msg)));

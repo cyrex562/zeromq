@@ -357,7 +357,7 @@ void tune_tcp_busy_poll (fd_t socket, busy_poll_: i32)
 }
 
 fd_t tcp_open_socket (address_: &str,
-                                const ZmqOptions &options_,
+                                options: &ZmqOptions,
                                 local_: bool,
                                 fallback_to_ipv4_: bool,
                                 TcpAddress *out_tcp_addr_)

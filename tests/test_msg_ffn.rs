@@ -53,7 +53,7 @@ void test_msg_init_ffn ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (dealer, my_endpoint));
 
     // Test that creating and closing a message triggers ffn
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     char hint[5];
     char data[255];
     memset (data, 0, 255);

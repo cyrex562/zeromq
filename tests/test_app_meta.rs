@@ -43,7 +43,7 @@ void tearDown ()
 void test_app_meta_reqrep ()
 {
     ctx: *mut c_void;
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     rep_sock: *mut c_void, *req_sock;
     char connect_address[MAX_SOCKET_STRING];
     const char *req_hello = "X-hello:hello";

@@ -94,8 +94,7 @@ void test_client_server (pre_allocate_sock_fun_t pre_allocate_sock_fun_)
     sb: *mut c_void, *sc;
     setup_socket_pair (pre_allocate_sock_fun_, ZMQ_SERVER, ZMQ_CLIENT, &sb,
                        &sc);
-
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 1));
 
     char *data = static_cast<char *> (zmq_msg_data (&msg));

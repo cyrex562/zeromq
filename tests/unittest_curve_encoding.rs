@@ -91,7 +91,7 @@ void test_roundtrip (msg: &mut ZmqMessage)
 
 void test_roundtrip_empty ()
 {
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     msg.init ();
 
     test_roundtrip (&msg);
@@ -101,7 +101,7 @@ void test_roundtrip_empty ()
 
 void test_roundtrip_small ()
 {
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     msg.init_size (32);
     memcpy (msg.data (), "0123456789ABCDEF0123456789ABCDEF", 32);
 
@@ -112,7 +112,7 @@ void test_roundtrip_small ()
 
 void test_roundtrip_large ()
 {
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     msg.init_size (2048);
     for (size_t pos = 0; pos < 2048; pos += 32) {
         memcpy (static_cast<char *> (msg.data ()) + pos,
@@ -126,7 +126,7 @@ void test_roundtrip_large ()
 
 void test_roundtrip_empty_more ()
 {
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     msg.init ();
     msg.set_flags (ZMQ_MSG_MORE);
 

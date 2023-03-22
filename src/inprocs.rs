@@ -1,16 +1,16 @@
-use crate::pipe::pipe_t;
+use crate::pipe::ZmqPipe;
 use std::collections::HashMap;
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct inprocs_t {
-    // typedef std::multimap<std::string, pipe_t *> map_t;
+    // typedef std::multimap<std::string, ZmqPipe *> map_t;
     //         map_t _inprocs;
-    pub _inprocs: HashMap<String, pipe_t>,
+    pub _inprocs: HashMap<String, ZmqPipe>,
 }
 
 impl inprocs_t {
-    // void emplace (endpoint_uri_: *const c_char, pipe_: &mut pipe_t);
-    pub fn emplace(&mut self, endpoint_uri_: &str, pipe: &mut pipe_t) {
+    // void emplace (endpoint_uri_: *const c_char, pipe_: &mut ZmqPipe);
+    pub fn emplace(&mut self, endpoint_uri_: &str, pipe: &mut ZmqPipe) {
         // self._inprocs.ZMQ_MAP_INSERT_OR_EMPLACE (endpoint_uri_), pipe_);
         let _old = self
             ._inprocs
@@ -43,8 +43,8 @@ impl inprocs_t {
         return 0;
     }
 
-    // void erase_pipe (const pipe_: &mut pipe_t);
-    pub fn erase_pipe(&mut self, pipe: &mut pipe_t) {
+    // void erase_pipe (const pipe_: &mut ZmqPipe);
+    pub fn erase_pipe(&mut self, pipe: &mut ZmqPipe) {
         // for (map_t::iterator it = _inprocs.begin (), end = _inprocs.end ();
         //      it != end; ++it)
         //     if (it->second == pipe_) {

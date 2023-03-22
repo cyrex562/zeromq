@@ -30,7 +30,7 @@
 use crate::command::ZmqCommand;
 use crate::ypipe::Ypipe;
 use std::sync::Mutex;
-use crate::signaler::signaler_t;
+use crate::signaler::ZmqSignaler;
 
 pub const COMMAND_PIPE_GRANULARITY: i32 = 16;
 
@@ -49,7 +49,7 @@ pub struct mailbox_t
     pub cpipe: Ypipe<ZmqCommand>,
 
     //  Signaler to pass signals from writer thread to reader thread.
-    pub signaler: signaler_t,
+    pub signaler: ZmqSignaler,
 
     //  There's only one thread receiving from the mailbox, but there
     //  is arbitrary number of threads sending. Given that ypipe requires
@@ -77,7 +77,7 @@ impl mailbox_t {
         // zmq_assert ( ! ok); active = false;
         Self {
             cpipe: Ypipe::new(),
-            signaler: signaler_t::new(),
+            signaler: ZmqSignaler::new(),
             active: false,
             sync: Mutex::new(()),
         }

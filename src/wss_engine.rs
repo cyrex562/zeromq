@@ -33,7 +33,7 @@ pub struct wss_engine_t : public ws_engine_t
 {
 // public:
     wss_engine_t (fd_t fd,
-                  const ZmqOptions &options_,
+                  options: &ZmqOptions,
                   const endpoint_uri_pair_t &endpoint_uri_pair_,
                   WsAddress &address_,
                   client_: bool,
@@ -80,7 +80,7 @@ static int verify_certificate_callback (gnutls_session_t session)
 
 
 wss_engine_t::wss_engine_t (fd_t fd,
-                                 const ZmqOptions &options_,
+                                 options: &ZmqOptions,
                                  const endpoint_uri_pair_t &endpoint_uri_pair_,
                                  WsAddress &address_,
                                  client_: bool,

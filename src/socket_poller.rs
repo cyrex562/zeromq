@@ -103,7 +103,7 @@ pub struct socket_poller_t
     u32 _tag;
 
     //  Signaler used for thread safe sockets polling
-    signaler_t *signaler;
+    ZmqSignaler *signaler;
 
     //  List of sockets
     typedef std::vector<item_t> items_t;
@@ -216,7 +216,7 @@ int socket_poller_t::add (ZmqSocketBase *socket,
 
     if (is_thread_safe (*socket)) {
         if (signaler == null_mut()) {
-            signaler = new (std::nothrow) signaler_t ();
+            signaler = new (std::nothrow) ZmqSignaler ();
             if (!signaler) {
                 errno = ENOMEM;
                 return -1;

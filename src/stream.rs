@@ -57,7 +57,7 @@ stream_t::~stream_t ()
     _prefetched_msg.close ();
 }
 
-void stream_t::xattach_pipe (pipe_t *pipe,
+void stream_t::xattach_pipe (pipe: &mut ZmqPipe,
                                   subscribe_to_all_: bool,
                                   locally_initiated_: bool)
 {
@@ -69,7 +69,7 @@ void stream_t::xattach_pipe (pipe_t *pipe,
     _fq.attach (pipe);
 }
 
-void stream_t::xpipe_terminated (pipe: &mut pipe_t)
+void stream_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
     erase_out_pipe (pipe);
     _fq.pipe_terminated (pipe);
@@ -79,7 +79,7 @@ void stream_t::xpipe_terminated (pipe: &mut pipe_t)
         _current_out = null_mut();
 }
 
-void stream_t::xread_activated (pipe: &mut pipe_t)
+void stream_t::xread_activated (pipe: &mut ZmqPipe)
 {
     _fq.activated (pipe);
 }
@@ -199,7 +199,7 @@ int stream_t::xrecv (msg: &mut ZmqMessage)
         return 0;
     }
 
-    pipe_t *pipe = null_mut();
+    ZmqPipe *pipe = null_mut();
     int rc = _fq.recvpipe (&_prefetched_msg, &pipe);
     if (rc != 0)
         return -1;
@@ -238,7 +238,7 @@ bool stream_t::xhas_in ()
 
     //  Try to read the next message.
     //  The message, if read, is kept in the pre-fetch buffer.
-    pipe_t *pipe = null_mut();
+    ZmqPipe *pipe = null_mut();
     int rc = _fq.recvpipe (&_prefetched_msg, &pipe);
     if (rc != 0)
         return false;
@@ -273,7 +273,7 @@ bool stream_t::xhas_out ()
     return true;
 }
 
-void stream_t::identify_peer (pipe_t *pipe, locally_initiated_: bool)
+void stream_t::identify_peer (pipe: &mut ZmqPipe, locally_initiated_: bool)
 {
     //  Always assign routing id for raw-socket
     unsigned char buffer[5];
@@ -303,20 +303,20 @@ pub struct stream_t ZMQ_FINAL : public routing_socket_base_t
     ~stream_t ();
 
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe,
+    void xattach_pipe (pipe: &mut ZmqPipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool);
     int xsend (msg: &mut ZmqMessage);
     int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
     bool xhas_out ();
-    void xread_activated (pipe: &mut pipe_t);
-    void xpipe_terminated (pipe: &mut pipe_t);
+    void xread_activated (pipe: &mut ZmqPipe);
+    void xpipe_terminated (pipe: &mut ZmqPipe);
     int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
 
   // private:
     //  Generate peer's id and update lookup map
-    void identify_peer (pipe_t *pipe, locally_initiated_: bool);
+    void identify_peer (pipe: &mut ZmqPipe, locally_initiated_: bool);
 
     //  Fair queueing object for inbound pipes.
     fq_t _fq;
@@ -335,7 +335,7 @@ pub struct stream_t ZMQ_FINAL : public routing_socket_base_t
     ZmqMessage _prefetched_msg;
 
     //  The pipe we are currently writing to.
-    pipe_t *_current_out;
+    ZmqPipe *_current_out;
 
     //  If true, more outgoing message parts are expected.
     _more_out: bool

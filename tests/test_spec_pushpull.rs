@@ -119,8 +119,7 @@ void test_pull_fair_queue_in (bind_address_: &str)
 
     // Wait for data.
     msleep (SETTLE_TIME);
-
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
     // Expect to pull one from each first
@@ -204,8 +203,7 @@ void test_destroy_queue_on_disconnect (bind_address_: &str)
       0, TEST_ASSERT_SUCCESS_ERRNO (zmq_poll (poller, 2, 100)));
     TEST_ASSERT_EQUAL_INT (
       0, TEST_ASSERT_SUCCESS_ERRNO (zmq_poll (poller, 2, 100)));
-
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
     // Can't receive old data on B.

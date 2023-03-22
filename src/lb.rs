@@ -42,9 +42,9 @@ pub struct lb_t
     lb_t ();
     ~lb_t ();
 
-    void attach (pipe: &mut pipe_t);
-    void activated (pipe: &mut pipe_t);
-    void pipe_terminated (pipe: &mut pipe_t);
+    void attach (pipe: &mut ZmqPipe);
+    void activated (pipe: &mut ZmqPipe);
+    void pipe_terminated (pipe: &mut ZmqPipe);
 
     int send (msg: &mut ZmqMessage);
 
@@ -52,13 +52,13 @@ pub struct lb_t
     //  It is possible for this function to return success but keep pipe_
     //  unset if the rest of a multipart message to a terminated pipe is
     //  being dropped. For the first frame, this will never happen.
-    int sendpipe (msg: &mut ZmqMessage pipe_t **pipe);
+    int sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe);
 
     bool has_out ();
 
   // private:
     //  List of outbound pipes.
-    typedef array_t<pipe_t, 2> pipes_t;
+    typedef array_t<ZmqPipe, 2> pipes_t;
     pipes_t _pipes;
 
     //  Number of active pipes. All the active pipes are located at the
@@ -86,13 +86,13 @@ lb_t::~lb_t ()
     zmq_assert (_pipes.empty ());
 }
 
-void lb_t::attach (pipe: &mut pipe_t)
+void lb_t::attach (pipe: &mut ZmqPipe)
 {
     _pipes.push_back (pipe);
     activated (pipe);
 }
 
-void lb_t::pipe_terminated (pipe: &mut pipe_t)
+void lb_t::pipe_terminated (pipe: &mut ZmqPipe)
 {
     const pipes_t::size_type index = _pipes.index (pipe);
 
@@ -112,7 +112,7 @@ void lb_t::pipe_terminated (pipe: &mut pipe_t)
     _pipes.erase (pipe);
 }
 
-void lb_t::activated (pipe: &mut pipe_t)
+void lb_t::activated (pipe: &mut ZmqPipe)
 {
     //  Move the pipe to the list of active pipes.
     _pipes.swap (_pipes.index (pipe), active);
@@ -124,7 +124,7 @@ int lb_t::send (msg: &mut ZmqMessage)
     return sendpipe (msg, null_mut());
 }
 
-int lb_t::sendpipe (msg: &mut ZmqMessage pipe_t **pipe)
+int lb_t::sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
 {
     //  Drop the message if required. If we are at the end of the message
     //  switch back to non-dropping mode.

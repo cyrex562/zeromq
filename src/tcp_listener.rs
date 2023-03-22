@@ -63,7 +63,7 @@ pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
 // public:
     tcp_listener_t (ZmqThread *io_thread_,
                     socket: *mut ZmqSocketBase,
-                    const ZmqOptions &options_);
+                    options: &ZmqOptions);
 
     //  Set address to listen on.
     int set_local_address (addr_: &str);
@@ -91,7 +91,7 @@ pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
 
 tcp_listener_t::tcp_listener_t (ZmqThread *io_thread_,
                                      ZmqSocketBase *socket,
-                                     const ZmqOptions &options_) :
+                                     options: &ZmqOptions) :
     stream_listener_base_t (io_thread_, socket, options_)
 {
 }

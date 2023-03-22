@@ -58,7 +58,7 @@ void test_roundtrip ()
 
     //  Pass the request through the device.
     for (int i = 0; i != 4; i++) {
-        ZmqMessage msg;
+let mut msg = ZmqMessage::default();
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, router, 0));
         rcvmore: i32;
@@ -87,7 +87,7 @@ void test_roundtrip ()
 
     //  Pass the reply through the device.
     for (int i = 0; i != 4; i++) {
-        ZmqMessage msg;
+let mut msg = ZmqMessage::default();
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, dealer, 0));
         rcvmore: i32;

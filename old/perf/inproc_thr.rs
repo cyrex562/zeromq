@@ -56,7 +56,7 @@ static void *worker (ctx: *mut c_void)
     s: *mut c_void;
     rc: i32;
     i: i32;
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
 
     s = zmq_socket (ctx, ZMQ_PUSH);
     if (!s) {
@@ -116,7 +116,7 @@ int main (argc: i32, char *argv[])
     s: *mut c_void;
     rc: i32;
     i: i32;
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     watch: *mut c_void;
     unsigned long elapsed;
     unsigned long throughput;

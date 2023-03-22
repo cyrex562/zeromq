@@ -66,7 +66,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
 {
 // public:
     stream_engine_base_t (fd_t fd,
-                          const ZmqOptions &options_,
+                          options: &ZmqOptions,
                           const endpoint_uri_pair_t &endpoint_uri_pair_,
                           has_handshake_stage_: bool);
     ~stream_engine_base_t () ZMQ_OVERRIDE;
@@ -265,7 +265,7 @@ static std::string get_peer_address (fd_t s_)
 
 stream_engine_base_t::stream_engine_base_t (
   fd_t fd,
-  const ZmqOptions &options_,
+  options: &ZmqOptions,
   const endpoint_uri_pair_t &endpoint_uri_pair_,
   has_handshake_stage_: bool) :
     _options (options_),
@@ -773,7 +773,7 @@ int stream_engine_base_t::write_credential (msg: &mut ZmqMessage)
 
     const Blob &credential = _mechanism.get_user_id ();
     if (credential.size () > 0) {
-        ZmqMessage msg;
+let mut msg = ZmqMessage::default();
         int rc = msg.init_size (credential.size ());
         zmq_assert (rc == 0);
         memcpy (msg.data (), credential.data (), credential.size ());

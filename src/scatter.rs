@@ -41,13 +41,13 @@ pub struct scatter_t ZMQ_FINAL : public ZmqSocketBase
 
   protected:
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe_t *pipe,
+    void xattach_pipe (pipe: &mut ZmqPipe,
                        subscribe_to_all_: bool,
                        locally_initiated_: bool);
     int xsend (msg: &mut ZmqMessage);
     bool xhas_out ();
-    void xwrite_activated (pipe: &mut pipe_t);
-    void xpipe_terminated (pipe: &mut pipe_t);
+    void xwrite_activated (pipe: &mut ZmqPipe);
+    void xpipe_terminated (pipe: &mut ZmqPipe);
 
   // private:
     //  Load balancer managing the outbound pipes.
@@ -66,7 +66,7 @@ scatter_t::~scatter_t ()
 {
 }
 
-void scatter_t::xattach_pipe (pipe_t *pipe,
+void scatter_t::xattach_pipe (pipe: &mut ZmqPipe,
                                    subscribe_to_all_: bool,
                                    locally_initiated_: bool)
 {
@@ -81,12 +81,12 @@ void scatter_t::xattach_pipe (pipe_t *pipe,
     _lb.attach (pipe);
 }
 
-void scatter_t::xwrite_activated (pipe: &mut pipe_t)
+void scatter_t::xwrite_activated (pipe: &mut ZmqPipe)
 {
     _lb.activated (pipe);
 }
 
-void scatter_t::xpipe_terminated (pipe: &mut pipe_t)
+void scatter_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
     _lb.pipe_terminated (pipe);
 }

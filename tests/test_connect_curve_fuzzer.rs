@@ -88,8 +88,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
         sent = send (server_accept, (const char *) data, size, MSG_NOSIGNAL);
     recv (server_accept, buf, 512, MSG_DONTWAIT);
     msleep (250);
-
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     zmq_msg_init (&msg);
     while (-1 != zmq_msg_recv (&msg, client, ZMQ_DONTWAIT)) {
         zmq_msg_close (&msg);

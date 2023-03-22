@@ -34,9 +34,10 @@
 use crate::command::ZmqCommand;
 use crate::context::ZmqContext;
 use crate::endpoint::{EndpointUriPair, ZmqEndpoint};
+use crate::mailbox::mailbox_t;
 use crate::object::ZmqObject;
-use crate::own::own_t;
-use crate::pipe::pipe_t;
+use crate::own::ZmqOwn;
+use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
 
@@ -162,7 +163,7 @@ impl ZmqObject for ZmqThread {
         todo!()
     }
 
-    fn pend_connection(&mut self, addr: &str, endpoint: &ZmqEndpoint, pipes: &[pipe_t]) {
+    fn pend_connection(&mut self, addr: &str, endpoint: &ZmqEndpoint, pipes: &[ZmqPipe]) {
         todo!()
     }
 
@@ -182,7 +183,7 @@ impl ZmqObject for ZmqThread {
         todo!()
     }
 
-    fn send_bind(&mut self, destination: &mut own_t, pipe: &mut pipe_t, inc_seqnum: bool) {
+    fn send_bind(&mut self, destination: &mut ZmqOwn, pipe: &mut ZmqPipe, inc_seqnum: bool) {
         todo!()
     }
 
@@ -194,11 +195,11 @@ impl ZmqObject for ZmqThread {
         todo!()
     }
 
-    fn send_plug(&mut self, destination: &mut own_t, inc_seqnum: bool) {
+    fn send_plug(&mut self, destination: &mut ZmqOwn, inc_seqnum: bool) {
         todo!()
     }
 
-    fn send_own(&mut self, destination: &mut own_t, object: &mut own_t) {
+    fn send_own(&mut self, destination: &mut ZmqOwn, object: &mut ZmqOwn) {
         todo!()
     }
 
@@ -206,51 +207,51 @@ impl ZmqObject for ZmqThread {
         todo!()
     }
 
-    fn send_activate_read(&mut self, destination: &mut pipe_t) {
+    fn send_activate_read(&mut self, destination: &mut ZmqPipe) {
         todo!()
     }
 
-    fn send_activate_write(&mut self, destination: &mut pipe_t, msgs_read: u64) {
+    fn send_activate_write(&mut self, destination: &mut ZmqPipe, msgs_read: u64) {
         todo!()
     }
 
-    fn send_hiccup(&mut self, destination: &mut pipe_t, pipe: &mut [u8]) {
+    fn send_hiccup(&mut self, destination: &mut ZmqPipe, pipe: &mut [u8]) {
         todo!()
     }
 
-    fn send_pipe_peer_stats(&mut self, destination: &mut pipe_t, queue_count: u64, socket_base: &mut own_t, endpoint_pair: &mut EndpointUriPair) {
+    fn send_pipe_peer_stats(&mut self, destination: &mut ZmqPipe, queue_count: u64, socket_base: &mut ZmqOwn, endpoint_pair: &mut EndpointUriPair) {
         todo!()
     }
 
-    fn send_pipe_stats_publish(&mut self, destination: &mut own_t, outbound_queue_count: u64, inbound_queue_count: u64, endpoint_pair: &mut EndpointUriPair) {
+    fn send_pipe_stats_publish(&mut self, destination: &mut ZmqOwn, outbound_queue_count: u64, inbound_queue_count: u64, endpoint_pair: &mut EndpointUriPair) {
         todo!()
     }
 
-    fn send_pipe_term(&mut self, destination: &mut pipe_t) {
+    fn send_pipe_term(&mut self, destination: &mut ZmqPipe) {
         todo!()
     }
 
-    fn send_pipe_term_ack(&mut self, destination: &mut pipe_t) {
+    fn send_pipe_term_ack(&mut self, destination: &mut ZmqPipe) {
         todo!()
     }
 
-    fn send_pipe_hwm(&mut self, destination: &mut pipe_t, inhwm: i32, outhwm: i32) {
+    fn send_pipe_hwm(&mut self, destination: &mut ZmqPipe, inhwm: i32, outhwm: i32) {
         todo!()
     }
 
-    fn send_term_req(&mut self, destination: &mut own_t, object: &mut own_t) {
+    fn send_term_req(&mut self, destination: &mut ZmqOwn, object: &mut ZmqOwn) {
         todo!()
     }
 
-    fn send_term(&mut self, destination: &mut own_t, linger: i32) {
+    fn send_term(&mut self, destination: &mut ZmqOwn, linger: i32) {
         todo!()
     }
 
-    fn send_term_ack(&mut self, destination: &mut own_t) {
+    fn send_term_ack(&mut self, destination: &mut ZmqOwn) {
         todo!()
     }
 
-    fn send_term_endpoint(&mut self, destination: &mut own_t, endpoint: &str) {
+    fn send_term_endpoint(&mut self, destination: &mut ZmqOwn, endpoint: &str) {
         todo!()
     }
 
@@ -278,7 +279,7 @@ impl ZmqObject for ZmqThread {
         todo!()
     }
 
-    fn process_own(&mut self, object: &mut own_t) {
+    fn process_own(&mut self, object: &mut ZmqOwn) {
         todo!()
     }
 
@@ -286,7 +287,7 @@ impl ZmqObject for ZmqThread {
         todo!()
     }
 
-    fn process_bind(&mut self, pipe: &mut pipe_t) {
+    fn process_bind(&mut self, pipe: &mut ZmqPipe) {
         todo!()
     }
 
@@ -302,7 +303,7 @@ impl ZmqObject for ZmqThread {
         todo!()
     }
 
-    fn process_pipe_peer_stats(&mut self, queue_count: u64, socket_base: &mut own_t, endpoint_pair: &mut EndpointUriPair) {
+    fn process_pipe_peer_stats(&mut self, queue_count: u64, socket_base: &mut ZmqOwn, endpoint_pair: &mut EndpointUriPair) {
         todo!()
     }
 
@@ -322,7 +323,7 @@ impl ZmqObject for ZmqThread {
         todo!()
     }
 
-    fn process_term_req(&mut self, object: &mut own_t) {
+    fn process_term_req(&mut self, object: &mut ZmqOwn) {
         todo!()
     }
 

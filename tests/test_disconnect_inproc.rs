@@ -65,7 +65,7 @@ void test_disconnect_inproc ()
 
         if (items[1].revents & ZMQ_POLLIN) {
             for (more = 1; more;) {
-                ZmqMessage msg;
+let mut msg = ZmqMessage::default();
                 zmq_msg_init (&msg);
                 TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, pub_socket, 0));
                 const char *const buffer =
@@ -88,7 +88,7 @@ void test_disconnect_inproc ()
         if (items[0].revents & ZMQ_POLLIN) {
             more = 1;
             for (more = 1; more;) {
-                ZmqMessage msg;
+let mut msg = ZmqMessage::default();
                 TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
                 TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, sub_socket, 0));
                 TEST_ASSERT_SUCCESS_ERRNO (

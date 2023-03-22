@@ -2,8 +2,8 @@ use crate::command::{CommandType, ZmqCommand};
 use crate::context::ZmqContext;
 use crate::endpoint::{EndpointUriPair, ZmqEndpoint};
 use crate::io_thread::ZmqThread;
-use crate::own::own_t;
-use crate::pipe::pipe_t;
+use crate::own::ZmqOwn;
+use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
 use anyhow::anyhow;
@@ -85,8 +85,8 @@ pub trait ZmqObject {
 
     // void pend_connection (const std::string &addr_,
     //                       const endpoint_t &endpoint_,
-    //                       pipe_t **pipes_);
-    fn pend_connection(&mut self, addr: &str, endpoint: &ZmqEndpoint, pipes: &[pipe_t]) {
+    //                       ZmqPipe **pipes_);
+    fn pend_connection(&mut self, addr: &str, endpoint: &ZmqEndpoint, pipes: &[ZmqPipe]) {
         self.get_ctx().pend_connection(addr, endpoint, pipes);
     }
 
@@ -116,10 +116,10 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_bind (own_t *destination_,
-    //                 pipe_t *pipe_,
+    // void send_bind (ZmqOwn *destination_,
+    //                 ZmqPipe *pipe_,
     //                 bool inc_seqnum_ = true);
-    fn send_bind(&mut self, destination: &mut own_t, pipe: &mut pipe_t, inc_seqnum: bool) {
+    fn send_bind(&mut self, destination: &mut ZmqOwn, pipe: &mut ZmqPipe, inc_seqnum: bool) {
         if (inc_seqnum) {
             destination.inc_seqnum();
         }
@@ -149,8 +149,8 @@ pub trait ZmqObject {
         self.get_ctx().send_command(self.get_tid(), &mut cmd);
     }
 
-    // void send_plug (own_t *destination_, bool inc_seqnum_ = true);
-    fn send_plug(&mut self, destination: &mut own_t, inc_seqnum: bool) {
+    // void send_plug (ZmqOwn *destination_, bool inc_seqnum_ = true);
+    fn send_plug(&mut self, destination: &mut ZmqOwn, inc_seqnum: bool) {
         if (inc_seqnum_) {
             destination.inc_seqnum();
         }
@@ -161,8 +161,8 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_own (own_t *destination_, own_t *object_);
-    fn send_own(&mut self, destination: &mut own_t, object: &mut own_t) {
+    // void send_own (ZmqOwn *destination_, ZmqOwn *object_);
+    fn send_own(&mut self, destination: &mut ZmqOwn, object: &mut ZmqOwn) {
         destination.inc_seqnum();
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
@@ -191,16 +191,16 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_activate_read (pipe_t *destination_);
-    fn send_activate_read(&mut self, destination: &mut pipe_t) {
+    // void send_activate_read (ZmqPipe *destination_);
+    fn send_activate_read(&mut self, destination: &mut ZmqPipe) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::activate_read;
         self.send_command(&mut cmd);
     }
 
-    // void send_activate_write (pipe_t *destination_, uint64_t msgs_read_);
-    fn send_activate_write(&mut self, destination: &mut pipe_t, msgs_read: u64) {
+    // void send_activate_write (ZmqPipe *destination_, uint64_t msgs_read_);
+    fn send_activate_write(&mut self, destination: &mut ZmqPipe, msgs_read: u64) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::activate_write;
@@ -208,8 +208,8 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_hiccup (pipe_t *destination_, pipe_: *mut c_void);
-    fn send_hiccup(&mut self, destination: &mut pipe_t, pipe: &mut [u8]) {
+    // void send_hiccup (ZmqPipe *destination_, pipe_: *mut c_void);
+    fn send_hiccup(&mut self, destination: &mut ZmqPipe, pipe: &mut [u8]) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::hiccup;
@@ -217,15 +217,15 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_pipe_peer_stats (pipe_t *destination_,
+    // void send_pipe_peer_stats (ZmqPipe *destination_,
     //                            queue_count_: u64,
-    //                            own_t *socket_base,
+    //                            ZmqOwn *socket_base,
     //                            endpoint_uri_pair_t *endpoint_pair_);
     fn send_pipe_peer_stats(
         &mut self,
-        destination: &mut pipe_t,
+        destination: &mut ZmqPipe,
         queue_count: u64,
-        socket_base: &mut own_t,
+        socket_base: &mut ZmqOwn,
         endpoint_pair: &mut EndpointUriPair,
     ) {
         let mut cmd = ZmqCommand::default();
@@ -237,13 +237,13 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_pipe_stats_publish (own_t *destination_,
+    // void send_pipe_stats_publish (ZmqOwn *destination_,
     //                               outbound_queue_count_: u64,
     //                               inbound_queue_count_: u64,
     //                               endpoint_uri_pair_t *endpoint_pair_);
     fn send_pipe_stats_publish(
         &mut self,
-        destination: &mut own_t,
+        destination: &mut ZmqOwn,
         outbound_queue_count: u64,
         inbound_queue_count: u64,
         endpoint_pair: &mut EndpointUriPair,
@@ -257,24 +257,24 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_pipe_term (pipe_t *destination_);
-    fn send_pipe_term(&mut self, destination: &mut pipe_t) {
+    // void send_pipe_term (ZmqPipe *destination_);
+    fn send_pipe_term(&mut self, destination: &mut ZmqPipe) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::pipe_term;
         self.send_command(&mut cmd);
     }
 
-    // void send_pipe_term_ack (pipe_t *destination_);
-    fn send_pipe_term_ack(&mut self, destination: &mut pipe_t) {
+    // void send_pipe_term_ack (ZmqPipe *destination_);
+    fn send_pipe_term_ack(&mut self, destination: &mut ZmqPipe) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::pipe_term_ack;
         self.send_command(&mut cmd);
     }
 
-    // void send_pipe_hwm (pipe_t *destination_, inhwm_: i32, outhwm_: i32);
-    fn send_pipe_hwm(&mut self, destination: &mut pipe_t, inhwm: i32, outhwm: i32) {
+    // void send_pipe_hwm (ZmqPipe *destination_, inhwm_: i32, outhwm_: i32);
+    fn send_pipe_hwm(&mut self, destination: &mut ZmqPipe, inhwm: i32, outhwm: i32) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::pipe_hwm;
@@ -283,8 +283,8 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_term_req (own_t *destination_, own_t *object_);
-    fn send_term_req(&mut self, destination: &mut own_t, object: &mut own_t) {
+    // void send_term_req (ZmqOwn *destination_, ZmqOwn *object_);
+    fn send_term_req(&mut self, destination: &mut ZmqOwn, object: &mut ZmqOwn) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::term_req;
@@ -292,8 +292,8 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_term (own_t *destination_, linger_: i32);
-    fn send_term(&mut self, destination: &mut own_t, linger: i32) {
+    // void send_term (ZmqOwn *destination_, linger_: i32);
+    fn send_term(&mut self, destination: &mut ZmqOwn, linger: i32) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::term;
@@ -301,16 +301,16 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_term_ack (own_t *destination_);
-    fn send_term_ack(&mut self, destination: &mut own_t) {
+    // void send_term_ack (ZmqOwn *destination_);
+    fn send_term_ack(&mut self, destination: &mut ZmqOwn) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::term_ack;
         self.send_command(&mut cmd);
     }
 
-    // void send_term_endpoint (own_t *destination_, std::string *endpoint_);
-    fn send_term_endpoint(&mut self, destination: &mut own_t, endpoint: &str) {
+    // void send_term_endpoint (ZmqOwn *destination_, std::string *endpoint_);
+    fn send_term_endpoint(&mut self, destination: &mut ZmqOwn, endpoint: &str) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::term_endpoint;
@@ -363,8 +363,8 @@ pub trait ZmqObject {
         unimplemented!()
     }
 
-    // virtual void process_own (own_t *object_);
-    fn process_own(&mut self, object: &mut own_t) {
+    // virtual void process_own (ZmqOwn *object_);
+    fn process_own(&mut self, object: &mut ZmqOwn) {
         unimplemented!()
     }
 
@@ -373,8 +373,8 @@ pub trait ZmqObject {
         unimplemented!()
     }
 
-    // virtual void process_bind (pipe_t *pipe_);
-    fn process_bind(&mut self, pipe: &mut pipe_t) {
+    // virtual void process_bind (ZmqPipe *pipe_);
+    fn process_bind(&mut self, pipe: &mut ZmqPipe) {
         unimplemented!()
     }
 
@@ -394,12 +394,12 @@ pub trait ZmqObject {
     }
 
     // virtual void process_pipe_peer_stats (queue_count_: u64,
-    //                                       own_t *socket_base_,
+    //                                       ZmqOwn *socket_base_,
     //                                       endpoint_uri_pair_t *endpoint_pair_);
     fn process_pipe_peer_stats(
         &mut self,
         queue_count: u64,
-        socket_base: &mut own_t,
+        socket_base: &mut ZmqOwn,
         endpoint_pair: &mut EndpointUriPair,
     ) {
         unimplemented!()
@@ -433,8 +433,8 @@ pub trait ZmqObject {
         unimplemented!()
     }
 
-    // virtual void process_term_req (own_t *object_);
-    fn process_term_req(&mut self, object: &mut own_t) {
+    // virtual void process_term_req (ZmqOwn *object_);
+    fn process_term_req(&mut self, object: &mut ZmqOwn) {
         unimplemented!()
     }
 
@@ -578,7 +578,7 @@ pub trait ZmqObject {
 
 // void object_t::pend_connection (const std::string &addr_,
 //                                      const ZmqEndpoint &endpoint_,
-//                                      pipe_t **pipes_)
+//                                      ZmqPipe **pipes_)
 // {
 //     _ctx.pend_connection (addr_, endpoint_, pipes_);
 // }
@@ -609,7 +609,7 @@ pub trait ZmqObject {
 //     _ctx.send_command (_tid, cmd);
 // }
 
-// void object_t::send_plug (own_t *destination, inc_seqnum_: bool)
+// void object_t::send_plug (ZmqOwn *destination, inc_seqnum_: bool)
 // {
 //     if (inc_seqnum_)
 //         destination.inc_seqnum ();
@@ -620,7 +620,7 @@ pub trait ZmqObject {
 //     send_command (cmd);
 // }
 
-// void object_t::send_own (own_t *destination, own_t *object_)
+// void object_t::send_own (ZmqOwn *destination, ZmqOwn *object_)
 // {
 //     destination.inc_seqnum ();
 //     ZmqCommand cmd;
@@ -652,8 +652,8 @@ pub trait ZmqObject {
 //     self.send_command(&cmd);
 // }
 
-// void object_t::send_bind (own_t *destination_,
-//                                pipe_t *pipe_,
+// void object_t::send_bind (ZmqOwn *destination_,
+//                                ZmqPipe *pipe_,
 //                                inc_seqnum_: bool)
 // {
 //     if (inc_seqnum_)
@@ -666,7 +666,7 @@ pub trait ZmqObject {
 //     send_command (cmd);
 // }
 
-// void object_t::send_activate_read (pipe_t *destination)
+// void object_t::send_activate_read (ZmqPipe *destination)
 // {
 //     let mut cmd = ZmqCommand::default();
 //     cmd.destination = destination;
@@ -674,7 +674,7 @@ pub trait ZmqObject {
 //     send_command (cmd);
 // }
 
-// void object_t::send_activate_write (pipe_t *destination,
+// void object_t::send_activate_write (ZmqPipe *destination,
 //                                          u64 msgs_read_)
 // {
 //     let mut cmd = ZmqCommand::default();
@@ -684,7 +684,7 @@ pub trait ZmqObject {
 //     self.send_command(&cmd);
 // }
 
-// void object_t::send_hiccup (pipe_t *destination, pipe: *mut c_void)
+// void object_t::send_hiccup (ZmqPipe *destination, pipe: *mut c_void)
 // {
 //     let mut cmd = ZmqCommand::default();
 //     cmd.destination = destination;
@@ -693,9 +693,9 @@ pub trait ZmqObject {
 //     self.send_command(&cmd);
 // }
 
-// void object_t::send_pipe_peer_stats (pipe_t *destination,
+// void object_t::send_pipe_peer_stats (ZmqPipe *destination,
 //                                           queue_count_: u64,
-//                                           own_t *socket_base_,
+//                                           ZmqOwn *socket_base_,
 //                                           EndpointUriPair *endpoint_pair_)
 // {
 //     let mut cmd = ZmqCommand::default();
@@ -708,7 +708,7 @@ pub trait ZmqObject {
 // }
 
 // void object_t::send_pipe_stats_publish (
-//   own_t *destination,
+//   ZmqOwn *destination,
 //   outbound_queue_count_: u64,
 //   inbound_queue_count_: u64,
 //   EndpointUriPair *endpoint_pair)
@@ -722,7 +722,7 @@ pub trait ZmqObject {
 //     self.send_command(&cmd);
 // }
 
-// void object_t::send_pipe_term (pipe_t *destination)
+// void object_t::send_pipe_term (ZmqPipe *destination)
 // {
 //     let mut cmd = ZmqCommand::default();
 //     cmd.destination = destination;
@@ -730,7 +730,7 @@ pub trait ZmqObject {
 //     self.send_command(&cmd);
 // }
 
-// void object_t::send_pipe_term_ack (pipe_t *destination)
+// void object_t::send_pipe_term_ack (ZmqPipe *destination)
 // {
 //     let mut cmd = ZmqCommand::default();
 //     cmd.destination = destination;
@@ -738,7 +738,7 @@ pub trait ZmqObject {
 //     self.send_command(&cmd);
 // }
 
-// void object_t::send_pipe_hwm (pipe_t *destination,
+// void object_t::send_pipe_hwm (ZmqPipe *destination,
 //                                    inhwm_: i32,
 //                                    outhwm_: i32)
 // {
@@ -750,7 +750,7 @@ pub trait ZmqObject {
 //     self.send_command(&cmd);
 // }
 
-// void object_t::send_term_req (own_t *destination, own_t *object)
+// void object_t::send_term_req (ZmqOwn *destination, ZmqOwn *object)
 // {
 //     let mut cmd = ZmqCommand::default();
 //     cmd.destination = destination;
@@ -759,7 +759,7 @@ pub trait ZmqObject {
 //     self.send_command(&cmd);
 // }
 
-// void object_t::send_term (own_t *destination, linger_: i32)
+// void object_t::send_term (ZmqOwn *destination, linger_: i32)
 // {
 //     let mut cmd = ZmqCommand::default();
 //     cmd.destination = destination;
@@ -768,7 +768,7 @@ pub trait ZmqObject {
 //     self.send_command(&cmd);
 // }
 
-// void object_t::send_term_ack (own_t *destination)
+// void object_t::send_term_ack (ZmqOwn *destination)
 // {
 //     let mut cmd = ZmqCommand::default();
 //     cmd.destination = destination;
@@ -776,7 +776,7 @@ pub trait ZmqObject {
 //     self.send_command(&cmd);
 // }
 
-// void object_t::send_term_endpoint (own_t *destination,
+// void object_t::send_term_endpoint (ZmqOwn *destination,
 //                                         std::string *endpoint_)
 // {
 //     let mut cmd = ZmqCommand::default();
@@ -829,7 +829,7 @@ pub trait ZmqObject {
 //     zmq_assert (false);
 // }
 
-// void object_t::process_own (own_t *)
+// void object_t::process_own (ZmqOwn *)
 // {
 //     zmq_assert (false);
 // }
@@ -839,7 +839,7 @@ pub trait ZmqObject {
 //     zmq_assert (false);
 // }
 
-// void object_t::process_bind (pipe_t *)
+// void object_t::process_bind (ZmqPipe *)
 // {
 //     zmq_assert (false);
 // }
@@ -860,7 +860,7 @@ pub trait ZmqObject {
 // }
 
 // void object_t::process_pipe_peer_stats (u64,
-//                                              own_t *,
+//                                              ZmqOwn *,
 //                                              EndpointUriPair *)
 // {
 //     zmq_assert (false);
@@ -888,7 +888,7 @@ pub trait ZmqObject {
 //     zmq_assert (false);
 // }
 
-// void object_t::process_term_req (own_t *)
+// void object_t::process_term_req (ZmqOwn *)
 // {
 //     zmq_assert (false);
 // }

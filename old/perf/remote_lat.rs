@@ -41,7 +41,7 @@ int main (argc: i32, char *argv[])
     s: *mut c_void;
     rc: i32;
     i: i32;
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
     watch: *mut c_void;
     unsigned long elapsed;
     double latency;

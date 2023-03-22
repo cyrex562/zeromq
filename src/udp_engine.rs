@@ -57,7 +57,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
 {
 // public:
-    udp_engine_t (const ZmqOptions &options_);
+    udp_engine_t (options: &ZmqOptions);
     ~udp_engine_t ();
 
     int init (Address *address_, send_: bool, recv_: bool);
@@ -128,7 +128,7 @@ pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     _recv_enabled: bool
 };
 
-udp_engine_t::udp_engine_t (const ZmqOptions &options_) :
+udp_engine_t::udp_engine_t (options: &ZmqOptions) :
     _plugged (false),
     _fd (-1),
     _session (null_mut()),
@@ -592,7 +592,7 @@ void udp_engine_t::restart_output ()
 {
     //  If we don't support send we just drop all messages
     if (!_send_enabled) {
-        ZmqMessage msg;
+let mut msg = ZmqMessage::default();
         while (_session.pull_msg (&msg) == 0)
             msg.close ();
     } else {
@@ -629,7 +629,7 @@ void udp_engine_t::in_event ()
     rc: i32;
     body_size: i32;
     body_offset: i32;
-    ZmqMessage msg;
+let mut msg = ZmqMessage::default();
 
     if (_options.raw_socket) {
         zmq_assert (in_address.ss_family == AF_INET);

@@ -27,18 +27,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use std::ptr::null_mut;
-use anyhow::anyhow;
 use crate::context::ZmqContext;
 use crate::fq::fq_t;
 use crate::lb::lb_t;
-use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
+use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::options::ZmqOptions;
-use crate::pipe::pipe_t;
+use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 use crate::socket_base_ops::ZmqSocketBaseOps;
 use crate::zmq_content::ZmqContent;
 use crate::zmq_hdr::ZMQ_CLIENT;
+use anyhow::anyhow;
+use std::ptr::null_mut;
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"
@@ -46,35 +46,31 @@ use crate::zmq_hdr::ZMQ_CLIENT;
 // #include "err.hpp"
 // #include "msg.hpp"
 // pub struct client_t ZMQ_FINAL : public ZmqSocketBase
-#[derive(Default,Debug,Clone)]
-pub struct ZmqClient
-{
-
-
-  // private:
+#[derive(Default, Debug, Clone)]
+pub struct ZmqClient {
+    // private:
     //  Messages are fair-queued from inbound pipes. And load-balanced to
     //  the outbound pipes.
     // fq_t _fq;
-  pub fq: fq_t,
-  // lb_t _lb;
+    pub fq: fq_t,
+    // lb_t _lb;
     pub lb: lb_t,
-    pub base: ZmqSocketBase
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (client_t)
+    pub base: ZmqSocketBase, // ZMQ_NON_COPYABLE_NOR_MOVABLE (client_t)
 }
 
 impl ZmqClient {
     // public:
-//     client_t (ZmqContext *parent_, tid: u32, sid_: i32);
-//     ~client_t ();
-//
-//   // protected:
-//     client_t::client_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
-//     ZmqSocketBase (parent_, tid, sid_, true)
-//     {
-//     options.type = ZMQ_CLIENT;
-//     options.can_send_hello_msg = true;
-//     options.can_recv_hiccup_msg = true;
-//     }
+    //     client_t (ZmqContext *parent_, tid: u32, sid_: i32);
+    //     ~client_t ();
+    //
+    //   // protected:
+    //     client_t::client_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+    //     ZmqSocketBase (parent_, tid, sid_, true)
+    //     {
+    //     options.type = ZMQ_CLIENT;
+    //     options.can_send_hello_msg = true;
+    //     options.can_recv_hiccup_msg = true;
+    //     }
     pub fn new(parent: &mut ZmqContext, options: &mut ZmqOptions, tid: u32, sid: i32) -> Self {
         options.type_ = ZMQ_CLIENT;
         options.can_send_hello_msg = true;
@@ -82,7 +78,7 @@ impl ZmqClient {
         Self {
             fq: fq_t::Default(),
             lb: lb_t::Default(),
-            base: ZmqSocketBase::new(parent, options, tid, sid, true)
+            base: ZmqSocketBase::new(parent, options, tid, sid, true),
         }
     }
 
@@ -93,11 +89,16 @@ impl ZmqClient {
 
 impl ZmqSocketBaseOps for ZmqClient {
     //     //  Overrides of functions from ZmqSocketBase.
-    //     void xattach_pipe (pipe_t *pipe_,
+    //     void xattach_pipe (ZmqPipe *pipe_,
     //                        subscribe_to_all_: bool,
     //                        locally_initiated_: bool);
-    fn xattach_pipe(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut pipe_t, subscribe_to_all: bool, locally_initiated: bool)
-    {
+    fn xattach_pipe(
+        &mut self,
+        skt_base: &mut ZmqSocketBase,
+        pipe: &mut ZmqPipe,
+        subscribe_to_all: bool,
+        locally_initiated: bool,
+    ) {
         // LIBZMQ_UNUSED(subscribe_to_all_);
         // LIBZMQ_UNUSED(locally_initiated_);
 
@@ -108,20 +109,20 @@ impl ZmqSocketBaseOps for ZmqClient {
     }
 
     //     int xsend (msg: &mut ZmqMessage);
-    fn xsend(&mut self, skt_base: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()>
-    {
+    fn xsend(&mut self, skt_base: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         //  CLIENT sockets do not allow multipart data (ZMQ_SNDMORE)
         if (msg.flags() & ZMQ_MSG_MORE) {
             // errno = EINVAL;
             // return -1;
-            return Err(anyhow!("EINVAL: client sockets do not allow multipart dart (ZMQ_SNDMORE)"));
+            return Err(anyhow!(
+                "EINVAL: client sockets do not allow multipart dart (ZMQ_SNDMORE)"
+            ));
         }
         return self.lb.sendpipe(msg, null_mut());
     }
 
     //     int xrecv (msg: &mut ZmqMessage);
-    fn xrecv(&mut self, skt_base: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()>
-    {
+    fn xrecv(&mut self, skt_base: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         let mut rc = self.fq.recvpipe(msg, null_mut());
 
         // Drop any messages with more flag
@@ -143,54 +144,28 @@ impl ZmqSocketBaseOps for ZmqClient {
     }
 
     //     bool xhas_in ();
-    fn xhas_in(&mut self, skt_base: &mut ZmqSocketBase) -> bool
-    {
-        return self.fq.has_in ();
+    fn xhas_in(&mut self, skt_base: &mut ZmqSocketBase) -> bool {
+        return self.fq.has_in();
     }
 
     //     bool xhas_out ();
-    fn xhas_out(&mut self, skt_base: &mut ZmqSocketBase) -> bool
-    {
-        return self.lb.has_out ();
+    fn xhas_out(&mut self, skt_base: &mut ZmqSocketBase) -> bool {
+        return self.lb.has_out();
     }
 
-    //     void xread_activated (pipe_: &mut pipe_t);
-    fn xread_activated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut pipe_t)
-    {
-        self.fq.activated (pipe);
+    //     void xread_activated (pipe_: &mut ZmqPipe);
+    fn xread_activated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut ZmqPipe) {
+        self.fq.activated(pipe);
     }
 
-    //     void xwrite_activated (pipe_: &mut pipe_t);
-    fn xwrite_activated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut pipe_t)
-    {
-        self.lb.activated (pipe);
+    //     void xwrite_activated (pipe_: &mut ZmqPipe);
+    fn xwrite_activated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut ZmqPipe) {
+        self.lb.activated(pipe);
     }
 
-    //     void xpipe_terminated (pipe_: &mut pipe_t);
-    fn xpipe_terminated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut pipe_t)
-    {
-    self.fq.pipe_terminated (pipe);
-    self.lb.pipe_terminated (pipe);
+    //     void xpipe_terminated (pipe_: &mut ZmqPipe);
+    fn xpipe_terminated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut ZmqPipe) {
+        self.fq.pipe_terminated(pipe);
+        self.lb.pipe_terminated(pipe);
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
-
-
-
-

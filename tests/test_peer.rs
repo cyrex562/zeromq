@@ -45,7 +45,7 @@ void test_peer ()
     TEST_ASSERT_NOT_EQUAL (0, peer1_routing_id);
 
     {
-        ZmqMessage msg;
+let mut msg = ZmqMessage::default();
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 1));
 
         char *data = static_cast<char *> (zmq_msg_data (&msg));
@@ -60,7 +60,7 @@ void test_peer ()
 
     u32 peer2_routing_id;
     {
-        ZmqMessage msg;
+let mut msg = ZmqMessage::default();
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
         int rc = TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, peer1, 0));
@@ -73,7 +73,7 @@ void test_peer ()
     }
 
     {
-        ZmqMessage msg;
+let mut msg = ZmqMessage::default();
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 1));
 
         char *data = static_cast<char *> (zmq_msg_data (&msg));
@@ -87,7 +87,7 @@ void test_peer ()
     }
 
     {
-        ZmqMessage msg;
+let mut msg = ZmqMessage::default();
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
         int rc = zmq_msg_recv (&msg, peer2, 0);

@@ -27,287 +27,306 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use crate::atomic_counter::AtomicCounter;
+use crate::context::ZmqContext;
+use crate::io_thread::ZmqThread;
+use crate::object::ZmqObject;
+use crate::options::ZmqOptions;
+use bincode::options;
+use std::sync::atomic::Ordering;
+
 // #include "precompiled.hpp"
 // #include "own.hpp"
 // #include "err.hpp"
 // #include "io_thread.hpp"
-pub struct own_t : public ZmqObject
-{
-// public:
+// pub struct ZmqOwn : public ZmqObject
+#[derive(Default, Debug, Clone)]
+pub struct ZmqOwn {
+    // public:
     //  Note that the owner is unspecified in the constructor.
     //  It'll be supplied later on when the object is plugged in.
+    // protected:
+    //  Socket options associated with this object.
+    pub options: ZmqOptions,
+    // private:
+    //  Handlers for incoming commands.
+    //  True if termination was already initiated. If so, we can destroy
+    //  the object if there are no more child objects or pending term acks.
+    pub terminating: bool,
+    //  Sequence number of the last command sent to this object.
+    pub sent_seqnum: AtomicCounter,
+    //  Sequence number of the last command processed by this object.
+    pub processed_seqnum: u64,
+    //  Socket owning this object. It's responsible for shutting down
+    //  this object.
+    // pub _owner: ZmqOwn,
+    //  List of all objects owned by this socket. We are responsible
+    //  for deallocating them before we quit.
+    // typedef std::set<ZmqOwn *> owned_t;
+    // owned_t _owned;
+    //  Number of events we have to get before we can destroy the object.
+    pub term_acks: u32,
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqOwn)
+    pub ctx: ZmqContext,
+    pub tid: u32,
+}
 
+impl ZmqOwn {
     //  The object is not living within an I/O thread. It has it's own
     //  thread outside of 0MQ infrastructure.
-    own_t (ZmqContext *parent_, tid: u32);
+    // ZmqOwn (ZmqContext *parent_, tid: u32);
+    // ZmqOwn::ZmqOwn (class ZmqContext *parent_, tid: u32):
+    // ZmqObject (parent_, tid),
+    // terminating (false),
+    // sent_seqnum (0),
+    // processed_seqnum (0),
+    // _owner (null_mut()),
+    // term_acks (0)
+    pub fn new(parent: &mut ZmqContext, tid: u32) -> Self {
+        Self {
+            options: Default::default(),
+            terminating: false,
+            sent_seqnum: AtomicCounter::new(),
+            processed_seqnum: 0,
+            term_acks: 0,
+            ctx: ZmqContext,
+            tid: tid,
+        }
+    }
 
     //  The object is living within I/O thread.
-    own_t (ZmqThread *io_thread_, const ZmqOptions &options_);
+    // ZmqOwn (ZmqThread *io_thread_, options: &ZmqOptions);
+    // ZmqOwn::ZmqOwn (ZmqThread *io_thread_, const ZmqOptions & options_):
+    // ZmqObject (io_thread_),
+    // options (options_),
+    // terminating (false),
+    // sent_seqnum (0),
+    // processed_seqnum (0),
+    // _owner (null_mut()),
+    // term_acks (0)
+    pub fn new2(io_thread: &mut ZmqThread, options: &ZmqOptions) -> Self {
+        Self {
+            options: Default::default(),
+            terminating: false,
+            sent_seqnum: AtomicCounter::new(),
+            processed_seqnum: 0,
+            term_acks: 0,
+            ctx: ZmqContext,
+            tid: 0,
+        }
+    }
+
+    //  Derived object destroys ZmqOwn. There's no point in allowing
+    //  others to invoke the destructor. At the same time, it has to be
+    //  virtual so that generic ZmqOwn deallocation mechanism destroys
+    //  specific type of the owned object correctly.
+    // ~ZmqOwn () ZMQ_OVERRIDE;
+    // ZmqOwn::~ZmqOwn ()
+    // {}
+
+    //  Set owner of the object
+    // void set_owner (ZmqOwn *owner_);
+    pub fn set_owner(&mut self, owner_: &Self) {
+        // zmq_assert ( ! _owner);
+        // _owner = owner_;
+        todo!()
+    }
 
     //  When another owned object wants to send command to this object
     //  it calls this function to let it know it should not shut down
     //  before the command is delivered.
-    void inc_seqnum ();
+    // void inc_seqnum ();
+    pub fn inc_seqnum(&mut self) {
+        //  This function may be called from a different thread!
+        self.sent_seqnum.add(1);
+    }
 
-    //  Use following two functions to wait for arbitrary events before
-    //  terminating. Just add number of events to wait for using
-    //  register_tem_acks functions. When event occurs, call
-    //  remove_term_ack. When number of pending acks reaches zero
-    //  object will be deallocated.
-    void register_term_acks (count: i32);
-    void unregister_term_ack ();
+    // void process_seqnum () ZMQ_OVERRIDE;
+    pub fn process_seqnum(&mut self) {
+        //  Catch up with counter of processed commands.
+        self.processed_seqnum += 1;
 
-  protected:
-    //  Launch the supplied object and become its owner.
-    void launch_child (own_t *object);
+        //  We may have caught up and still have pending terms acks.
+        self.check_term_acks();
+    }
+
+    // Launch the supplied object and become its owner.
+    //     void launch_child (ZmqOwn *object);
+    pub fn launch_child(&mut self, object: &mut Self) {
+        //  Specify the owner of the object.
+        // object.set_owner (this);
+
+        //  Plug the object into the I/O thread.
+        self.send_plug(object);
+
+        //  Take ownership of the object.
+        self.send_own(self, object);
+    }
 
     //  Terminate owned object
-    void term_child (own_t *object);
+    // void term_child (ZmqOwn *object);
+    pub fn term_child(&mut self, object: &mut Self) {
+        self.process_term_req(object);
+    }
+
+    // void process_term_req (ZmqOwn *object) ZMQ_OVERRIDE;
+    pub fn process_term_req(&mut self, object: &mut Self) {
+        //  When shutting down we can ignore termination requests from owned
+        //  objects. The termination request was already sent to the object.
+        if (self.terminating) {
+            return;
+        }
+
+        //  If not found, we assume that termination request was already sent to
+        //  the object so we can safely ignore the request.
+        if (0 == self._owned.erase(object)) {
+            return;
+        }
+
+        //  If I/O object is well and alive let's ask it to terminate.
+        // //  Use following two functions to wait for arbitrary events before
+        //     //  terminating. Just add number of events to wait for using
+        //     //  register_tem_acks functions. When event occurs, call
+        //     //  remove_term_ack. When number of pending acks reaches zero
+        //     //  object will be deallocated.
+        //     void register_term_acks (count: i32);
+        self.register_term_acks(1);
+
+        //  Note that this object is the root of the (partial shutdown) thus, its
+        //  value of linger is used, rather than the value stored by the children.
+        self.send_term(object, options.linger.load());
+    }
+
+    // void process_own (ZmqOwn *object) ZMQ_OVERRIDE;
+    pub fn process_own(&mut self, object: &mut Self) {
+        //  If the object is already being shut down, new owned objects are
+        //  immediately asked to terminate. Note that linger is set to zero.
+        if (self.terminating) {
+            self.register_term_acks(1);
+            self.send_term(object, 0);
+            return;
+        }
+
+        //  Store the reference to the owned object.
+        self._owned.insert(object);
+    }
 
     //  Ask owner object to terminate this object. It may take a while
     //  while actual termination is started. This function should not be
     //  called more than once.
-    void terminate ();
+    // void terminate ();
+    pub fn terminate(&mut self) {
+        //  If termination is already underway, there's no point
+        //  in starting it anew.
+        if (self.terminating) {
+            return;
+        }
+
+        //  As for the root of the ownership tree, there's no one to terminate it,
+        //  so it has to terminate itself.
+        if (!self._owner) {
+            self.process_term(self.options.linger.load(Ordering::Relaxed) as i32);
+            return;
+        }
+
+        //  If I am an owned object, I'll ask my owner to terminate me.
+        self.send_term_req(self._owner, self);
+    }
 
     //  Returns true if the object is in process of termination.
-    bool is_terminating () const;
-
-    //  Derived object destroys own_t. There's no point in allowing
-    //  others to invoke the destructor. At the same time, it has to be
-    //  virtual so that generic own_t deallocation mechanism destroys
-    //  specific type of the owned object correctly.
-    ~own_t () ZMQ_OVERRIDE;
+    // bool is_terminating () const;
+    pub fn is_terminating(&self) -> bool {
+        return self.terminating;
+    }
 
     //  Term handler is protected rather than private so that it can
     //  be intercepted by the derived class. This is useful to add custom
     //  steps to the beginning of the termination process.
-    void process_term (linger: i32) ZMQ_OVERRIDE;
+    // void process_term (linger: i32) ZMQ_OVERRIDE;
+    pub fn process_term(&mut self, linger: i32) {
+        //  Double termination should never happen.
+        // zmq_assert ( ! terminating);
 
-    //  A place to hook in when physical destruction of the object
-    //  is to be delayed.
-    virtual void process_destroy ();
+        //  Send termination request to all owned objects.
+        // TODO:
+        // for (owned_t::iterator it = _owned.begin (), end = _owned.end (); it != end;
+        // + + it){
+        //     send_term(*it, linger);
+        // }
+        // self.register_term_acks (static_cast < int > (_owned.size ()));
+        self._owned.clear();
 
-    //  Socket options associated with this object.
-    ZmqOptions options;
+        //  Start termination process and check whether by chance we cannot
+        //  terminate immediately.
+        self.terminating = true;
+        self.check_term_acks();
+    }
 
-  // private:
-    //  Set owner of the object
-    void set_owner (own_t *owner_);
+    pub fn register_term_acks(&mut self, count: i32) {
+        self.term_acks += count;
+    }
 
-    //  Handlers for incoming commands.
-    void process_own (own_t *object) ZMQ_OVERRIDE;
-    void process_term_req (own_t *object) ZMQ_OVERRIDE;
-    void process_term_ack () ZMQ_OVERRIDE;
-    void process_seqnum () ZMQ_OVERRIDE;
+    // void unregister_term_ack ();
+    pub fn unregister_term_ack(&mut self) {
+        // zmq_assert (term_acks > 0);
+        self.term_acks -= 1;
+
+        //  This may be a last ack we are waiting for before termination...
+        self.check_term_acks();
+    }
+
+    // void process_term_ack () ZMQ_OVERRIDE;
+    pub fn process_term_ack(&mut self) {
+        self.unregister_term_ack();
+    }
 
     //  Check whether all the pending term acks were delivered.
     //  If so, deallocate this object.
-    void check_term_acks ();
+    // void check_term_acks ();
+    pub fn check_term_acks(&mut self) {
+        if (self.terminating && self.processed_seqnum != 0)
+            == (self.sent_seqnum.get() != 0 && self.term_acks == 0)
+        {
+            //  Sanity check. There should be no active children at this point.
+            // zmq_assert (_owned.empty ());
 
-    //  True if termination was already initiated. If so, we can destroy
-    //  the object if there are no more child objects or pending term acks.
-    _terminating: bool
+            //  The root object has nobody to confirm the termination to.
+            //  Other nodes will confirm the termination to the owner.
+            if (self._owner) {
+                self.send_term_ack(self._owner);
+            }
 
-    //  Sequence number of the last command sent to this object.
-    AtomicCounter _sent_seqnum;
-
-    //  Sequence number of the last command processed by this object.
-    u64 _processed_seqnum;
-
-    //  Socket owning this object. It's responsible for shutting down
-    //  this object.
-    own_t *_owner;
-
-    //  List of all objects owned by this socket. We are responsible
-    //  for deallocating them before we quit.
-    typedef std::set<own_t *> owned_t;
-    owned_t _owned;
-
-    //  Number of events we have to get before we can destroy the object.
-    _term_acks: i32;
-
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (own_t)
-};
-
-impl own_t {
-
-}
-
-own_t::own_t (class ZmqContext *parent_, tid: u32) :
-    ZmqObject (parent_, tid),
-    _terminating (false),
-    _sent_seqnum (0),
-    _processed_seqnum (0),
-    _owner (null_mut()),
-    _term_acks (0)
-{
-}
-
-own_t::own_t (ZmqThread *io_thread_, const ZmqOptions &options_) :
-    ZmqObject (io_thread_),
-    options (options_),
-    _terminating (false),
-    _sent_seqnum (0),
-    _processed_seqnum (0),
-    _owner (null_mut()),
-    _term_acks (0)
-{
-}
-
-own_t::~own_t ()
-{
-}
-
-void own_t::set_owner (own_t *owner_)
-{
-    zmq_assert (!_owner);
-    _owner = owner_;
-}
-
-void own_t::inc_seqnum ()
-{
-    //  This function may be called from a different thread!
-    _sent_seqnum.add (1);
-}
-
-void own_t::process_seqnum ()
-{
-    //  Catch up with counter of processed commands.
-    _processed_seqnum++;
-
-    //  We may have caught up and still have pending terms acks.
-    check_term_acks ();
-}
-
-void own_t::launch_child (own_t *object)
-{
-    //  Specify the owner of the object.
-    object.set_owner (this);
-
-    //  Plug the object into the I/O thread.
-    send_plug (object);
-
-    //  Take ownership of the object.
-    send_own (this, object);
-}
-
-void own_t::term_child (own_t *object)
-{
-    process_term_req (object);
-}
-
-void own_t::process_term_req (own_t *object)
-{
-    //  When shutting down we can ignore termination requests from owned
-    //  objects. The termination request was already sent to the object.
-    if (_terminating)
-        return;
-
-    //  If not found, we assume that termination request was already sent to
-    //  the object so we can safely ignore the request.
-    if (0 == _owned.erase (object))
-        return;
-
-    //  If I/O object is well and alive let's ask it to terminate.
-    register_term_acks (1);
-
-    //  Note that this object is the root of the (partial shutdown) thus, its
-    //  value of linger is used, rather than the value stored by the children.
-    send_term (object, options.linger.load ());
-}
-
-void own_t::process_own (own_t *object)
-{
-    //  If the object is already being shut down, new owned objects are
-    //  immediately asked to terminate. Note that linger is set to zero.
-    if (_terminating) {
-        register_term_acks (1);
-        send_term (object, 0);
-        return;
+            //  A place to hook in when physical destruction of the object
+            //  is to be delayed.
+            // virtual void process_destroy ();
+            //  Deallocate the resources.
+            self.process_destroy();
+        }
     }
 
-    //  Store the reference to the owned object.
-    _owned.insert (object);
-}
-
-void own_t::terminate ()
-{
-    //  If termination is already underway, there's no point
-    //  in starting it anew.
-    if (_terminating)
-        return;
-
-    //  As for the root of the ownership tree, there's no one to terminate it,
-    //  so it has to terminate itself.
-    if (!_owner) {
-        process_term (options.linger.load ());
-        return;
-    }
-
-    //  If I am an owned object, I'll ask my owner to terminate me.
-    send_term_req (_owner, this);
-}
-
-bool own_t::is_terminating () const
-{
-    return _terminating;
-}
-
-void own_t::process_term (linger: i32)
-{
-    //  Double termination should never happen.
-    zmq_assert (!_terminating);
-
-    //  Send termination request to all owned objects.
-    for (owned_t::iterator it = _owned.begin (), end = _owned.end (); it != end;
-         ++it)
-        send_term (*it, linger);
-    register_term_acks (static_cast<int> (_owned.size ()));
-    _owned.clear ();
-
-    //  Start termination process and check whether by chance we cannot
-    //  terminate immediately.
-    _terminating = true;
-    check_term_acks ();
-}
-
-void own_t::register_term_acks (count: i32)
-{
-    _term_acks += count;
-}
-
-void own_t::unregister_term_ack ()
-{
-    zmq_assert (_term_acks > 0);
-    _term_acks--;
-
-    //  This may be a last ack we are waiting for before termination...
-    check_term_acks ();
-}
-
-void own_t::process_term_ack ()
-{
-    unregister_term_ack ();
-}
-
-void own_t::check_term_acks ()
-{
-    if (_terminating && _processed_seqnum == _sent_seqnum.get ()
-        && _term_acks == 0) {
-        //  Sanity check. There should be no active children at this point.
-        zmq_assert (_owned.empty ());
-
-        //  The root object has nobody to confirm the termination to.
-        //  Other nodes will confirm the termination to the owner.
-        if (_owner)
-            send_term_ack (_owner);
-
-        //  Deallocate the resources.
-        process_destroy ();
+    pub fn process_destroy(&self) {
+        // delete this;
     }
 }
 
-void own_t::process_destroy ()
-{
-    delete this;
+impl ZmqObject for ZmqOwn {
+    fn get_ctx(&self) -> &ZmqContext {
+        &self.ctx
+    }
+
+    fn get_ctx_mut(&mut self) -> &mut ZmqContext {
+        &mut self.ctx
+    }
+
+    fn set_ctx(&mut self, ctx: &mut ZmqContext) {
+        self.ctx = ctx.clone();
+    }
+
+    fn get_tid(&self) -> u32 {
+        self.tid
+    }
+
+    fn set_tid(&mut self, tid: u32) {
+        self.tid = tid
+    }
 }
