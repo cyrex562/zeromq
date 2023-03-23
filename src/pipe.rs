@@ -118,12 +118,12 @@ pub struct ZmqPipe
     pub _in_active: bool,
     pub _out_active: bool,
     //  High watermark for the outbound pipe.
-    pub _hwm: i32,
+    pub _hwm: u32,
     //  Low watermark for the inbound pipe.
-    pub _lwm: i32,
+    pub _lwm: u32,
     // boosts for high and low watermarks, used with inproc sockets so hwm are sum of send and recv hmws on each side of pipe
-    pub _in_hwm_boost: i32,
-    pub _out_hwm_boost: i32,
+    pub _in_hwm_boost: u32,
+    pub _out_hwm_boost: u32,
     //  Number of messages read and written so far.
     pub _msgs_read: u64,
     pub _msgs_written: u64,
@@ -367,7 +367,27 @@ impl ZmqPipe {
     //  all the messages on the fly. Causes 'hiccuped' event to be generated
     //  in the peer.
     pub fn hiccup (&mut self)
-    {}
+    {
+        //  If termination is already under way do nothing.
+        if (_state != PipeState::active) {
+            return;
+        }
+
+        //  We'll drop the pointer to the inpipe. From now on, the peer is
+        //  responsible for deallocating it.
+
+        //  Create new inpipe.
+        self._in_pipe =
+            self._conflate
+                ? static_cast<upipe_t *> (new (std::nothrow) ypipe_conflate_t<ZmqMessage> ())
+        : new (std::nothrow) Ypipe<ZmqMessage, message_pipe_granularity> ();
+
+        alloc_assert (_in_pipe);
+        _in_active = true;
+
+        //  Notify the peer about the hiccup.
+        send_hiccup (_peer, _in_pipe);
+    }
 
     //  Ensure the pipe won't block on receiving pipe_term.
     pub fn set_nodelay (&mut self)
@@ -440,50 +460,75 @@ impl ZmqPipe {
     }
 
     //  Set the high water marks.
-    pub fn set_hwms (&mut self, inhwm: i32, outhwm: i32)
+    pub fn set_hwms (&mut self, inhwm: u32, outhwm: u32)
     {
+        let mut in_ = inhwm + u32::max(self._in_hwm_boost, 0);
+        let mut out = outhwm + u32::max(self._out_hwm_boost, 0);
 
+        // if either send or recv side has hwm <= 0 it means infinite so we should set hwms infinite
+        if (inhwm <= 0 || self._in_hwm_boost == 0) {
+            in_ = 0;
+        }
+
+        if (outhwm <= 0 || self._out_hwm_boost == 0) {
+            out = 0;
+        }
+
+        self._lwm = self.compute_lwm (in_);
+        self._hwm = out;
     }
 
     //  Set the boost to high water marks, used by inproc sockets so total hwm are sum of connect and bind sockets watermarks
-    pub fn set_hwms_boost (&mut self, inhwmboost_: i32, outhwmboost_: i32)
+    pub fn set_hwms_boost (&mut self, inhwmboost_: u32, outhwmboost_: u32)
     {
-
+       self._in_hwm_boost = inhwmboost_;
+        self._out_hwm_boost = outhwmboost_;
     }
 
     // send command to peer for notify the change of hwm
-    pub fn send_hwms_to_peer (inhwm: i32, outhwm: i32)
+    pub fn send_hwms_to_peer (&mut self, inhwm: i32, outhwm: i32)
     {
-
+        self.send_pipe_hwm (self._peer, inhwm, outhwm);
     }
 
     //  Returns true if HWM is not reached
-    pub fn check_hwm ()-> bool
+    pub fn check_hwm (&mut self)-> bool
     {
-
+        let full = self._hwm > 0 && self._msgs_written - self._peers_msgs_read >= u64 (self._hwm);
+        return !full;
     }
 
-    pub fn set_endpoint_pair (&self, endpoint_pair: EndpointUriPair)
+    pub fn set_endpoint_pair (&mut self, endpoint_pair: EndpointUriPair)
     {
-
+        self._endpoint_pair = endpoint_pair;
     }
 
 
     // const EndpointUriPair &get_endpoint_pair () const;
     pub fn get_endpoint_pair(&mut self) -> &EndpointUriPair {
-
+        &self._endpoint_pair
     }
 
     // void send_stats_to_peer (ZmqOwn *socket_base);
     pub fn send_stats_to_peer(&mut self, socket_base: &mut ZmqOwn)
     {
-
+        // EndpointUriPair *ep = new (std::nothrow) EndpointUriPair (_endpoint_pair);
+        let mut ep = EndpointUriPair::default();
+        ep = self._endpoint_pair.clone();
+        self.send_pipe_peer_stats (self._peer, self._msgs_written - self._peers_msgs_read, socket_base, &mut ep);
     }
 
     // void send_disconnect_msg ();
     pub fn send_disconnect_msg(&mut self)
     {
+        if (self._disconnect_msg.size () > 0 && self._out_pipe) {
+            // Rollback any incomplete message in the pipe, and push the disconnect message.
+            self.rollback ();
 
+            self._out_pipe.write (self._disconnect_msg, false);
+            self.flush ();
+            self._disconnect_msg.init ();
+        }
     }
 
     // void set_disconnect_msg (const std::vector<unsigned char> &disconnect_);
@@ -1238,79 +1283,79 @@ pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqOptions)
 //     }
 // }
 
-void ZmqPipe::hiccup ()
-{
-    //  If termination is already under way do nothing.
-    if (_state != active)
-        return;
+// void ZmqPipe::hiccup ()
+// {
+//     //  If termination is already under way do nothing.
+//     if (_state != active)
+//         return;
+//
+//     //  We'll drop the pointer to the inpipe. From now on, the peer is
+//     //  responsible for deallocating it.
+//
+//     //  Create new inpipe.
+//     _in_pipe =
+//       _conflate
+//         ? static_cast<upipe_t *> (new (std::nothrow) ypipe_conflate_t<ZmqMessage> ())
+//         : new (std::nothrow) Ypipe<ZmqMessage, message_pipe_granularity> ();
+//
+//     alloc_assert (_in_pipe);
+//     _in_active = true;
+//
+//     //  Notify the peer about the hiccup.
+//     send_hiccup (_peer, _in_pipe);
+// }
 
-    //  We'll drop the pointer to the inpipe. From now on, the peer is
-    //  responsible for deallocating it.
+// void ZmqPipe::set_hwms (inhwm: i32, outhwm: i32)
+// {
+//     int in = inhwm + std::max (_in_hwm_boost, 0);
+//     int out = outhwm + std::max (_out_hwm_boost, 0);
+//
+//     // if either send or recv side has hwm <= 0 it means infinite so we should set hwms infinite
+//     if (inhwm <= 0 || _in_hwm_boost == 0)
+//         in = 0;
+//
+//     if (outhwm <= 0 || _out_hwm_boost == 0)
+//         out = 0;
+//
+//     _lwm = compute_lwm (in);
+//     _hwm = out;
+// }
 
-    //  Create new inpipe.
-    _in_pipe =
-      _conflate
-        ? static_cast<upipe_t *> (new (std::nothrow) ypipe_conflate_t<ZmqMessage> ())
-        : new (std::nothrow) Ypipe<ZmqMessage, message_pipe_granularity> ();
+// void ZmqPipe::set_hwms_boost (inhwmboost_: i32, outhwmboost_: i32)
+// {
+//     _in_hwm_boost = inhwmboost_;
+//     _out_hwm_boost = outhwmboost_;
+// }
 
-    alloc_assert (_in_pipe);
-    _in_active = true;
+// bool ZmqPipe::check_hwm () const
+// {
+//     const bool full =
+//       _hwm > 0 && _msgs_written - _peers_msgs_read >= u64 (_hwm);
+//     return !full;
+// }
 
-    //  Notify the peer about the hiccup.
-    send_hiccup (_peer, _in_pipe);
-}
+// void ZmqPipe::send_hwms_to_peer (inhwm: i32, outhwm: i32)
+// {
+//     send_pipe_hwm (_peer, inhwm, outhwm);
+// }
 
-void ZmqPipe::set_hwms (inhwm: i32, outhwm: i32)
-{
-    int in = inhwm + std::max (_in_hwm_boost, 0);
-    int out = outhwm + std::max (_out_hwm_boost, 0);
+// void ZmqPipe::set_endpoint_pair (EndpointUriPair endpoint_pair)
+// {
+//     _endpoint_pair = ZMQ_MOVE (endpoint_pair);
+// }
 
-    // if either send or recv side has hwm <= 0 it means infinite so we should set hwms infinite
-    if (inhwm <= 0 || _in_hwm_boost == 0)
-        in = 0;
+// const EndpointUriPair &ZmqPipe::get_endpoint_pair () const
+// {
+//     return _endpoint_pair;
+// }
 
-    if (outhwm <= 0 || _out_hwm_boost == 0)
-        out = 0;
-
-    _lwm = compute_lwm (in);
-    _hwm = out;
-}
-
-void ZmqPipe::set_hwms_boost (inhwmboost_: i32, outhwmboost_: i32)
-{
-    _in_hwm_boost = inhwmboost_;
-    _out_hwm_boost = outhwmboost_;
-}
-
-bool ZmqPipe::check_hwm () const
-{
-    const bool full =
-      _hwm > 0 && _msgs_written - _peers_msgs_read >= u64 (_hwm);
-    return !full;
-}
-
-void ZmqPipe::send_hwms_to_peer (inhwm: i32, outhwm: i32)
-{
-    send_pipe_hwm (_peer, inhwm, outhwm);
-}
-
-void ZmqPipe::set_endpoint_pair (EndpointUriPair endpoint_pair)
-{
-    _endpoint_pair = ZMQ_MOVE (endpoint_pair);
-}
-
-const EndpointUriPair &ZmqPipe::get_endpoint_pair () const
-{
-    return _endpoint_pair;
-}
-
-void ZmqPipe::send_stats_to_peer (ZmqOwn *socket_base)
-{
-    EndpointUriPair *ep =
-      new (std::nothrow) EndpointUriPair (_endpoint_pair);
-    send_pipe_peer_stats (_peer, _msgs_written - _peers_msgs_read, socket_base,
-                          ep);
-}
+// void ZmqPipe::send_stats_to_peer (ZmqOwn *socket_base)
+// {
+//     EndpointUriPair *ep =
+//       new (std::nothrow) EndpointUriPair (_endpoint_pair);
+//     send_pipe_peer_stats (_peer, _msgs_written - _peers_msgs_read, socket_base,
+//                           ep);
+// }
 
 void ZmqPipe::process_pipe_peer_stats (queue_count: u64,
                                            ZmqOwn *socket_base,
@@ -1320,17 +1365,17 @@ void ZmqPipe::process_pipe_peer_stats (queue_count: u64,
                              _msgs_written - _peers_msgs_read, endpoint_pair);
 }
 
-void ZmqPipe::send_disconnect_msg ()
-{
-    if (_disconnect_msg.size () > 0 && _out_pipe) {
-        // Rollback any incomplete message in the pipe, and push the disconnect message.
-        rollback ();
-
-        _out_pipe.write (_disconnect_msg, false);
-        flush ();
-        _disconnect_msg.init ();
-    }
-}
+// void ZmqPipe::send_disconnect_msg ()
+// {
+//     if (_disconnect_msg.size () > 0 && _out_pipe) {
+//         // Rollback any incomplete message in the pipe, and push the disconnect message.
+//         rollback ();
+//
+//         _out_pipe.write (_disconnect_msg, false);
+//         flush ();
+//         _disconnect_msg.init ();
+//     }
+// }
 
 void ZmqPipe::set_disconnect_msg (
   const std::vector<unsigned char> &disconnect_)
