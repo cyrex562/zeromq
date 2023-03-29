@@ -221,7 +221,7 @@ static void test_heartbeat_timeout (server_type_: i32, mock_ping_: i32)
     prep_server_socket (!mock_ping_, 0, &server, &server_mon, my_endpoint,
                         MAX_SOCKET_STRING, server_type_);
 
-    fd_t s = connect_socket (my_endpoint);
+    ZmqFileDesc s = connect_socket (my_endpoint);
 
     // Mock a ZMTP 3 client so we can forcibly time out a connection
     mock_handshake (s, mock_ping_);

@@ -82,7 +82,7 @@ pub struct ws_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     ~ws_connecter_t ();
 
   protected:
-    void create_engine (fd_t fd, local_address_: &str);
+    void create_engine (fd: ZmqFileDesc, local_address_: &str);
 
   // private:
     //  ID of the timer used to check the connect timeout, must be different from stream_connecter_base_t::reconnect_timer_id.
@@ -111,10 +111,10 @@ pub struct ws_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 
     //  Get the file descriptor of newly created connection. Returns
     //  retired_fd if the connection was unsuccessful.
-    fd_t connect ();
+    ZmqFileDesc connect ();
 
     //  Tunes a connected socket.
-    bool tune_socket (fd_t fd);
+    bool tune_socket (ZmqFileDesc fd);
 
     //  True iff a timer has been started.
     _connect_timer_started: bool
@@ -167,7 +167,7 @@ void ws_connecter_t::out_event ()
 
     rm_handle ();
 
-    const fd_t fd = connect ();
+    const ZmqFileDesc fd = connect ();
 
     //  Handle the error condition by attempt to reconnect.
     if (fd == retired_fd || !tune_socket (fd)) {
@@ -276,7 +276,7 @@ int ws_connecter_t::open ()
     return -1;
 }
 
-fd_t ws_connecter_t::connect ()
+ZmqFileDesc ws_connecter_t::connect ()
 {
     //  Async connect has finished. Check whether an error occurred
     int err = 0;
@@ -319,19 +319,19 @@ fd_t ws_connecter_t::connect ()
 // #endif
 
     //  Return the newly connected socket.
-    const fd_t result = _s;
+    const ZmqFileDesc result = _s;
     _s = retired_fd;
     return result;
 }
 
-bool ws_connecter_t::tune_socket (const fd_t fd)
+bool ws_connecter_t::tune_socket (const ZmqFileDesc fd)
 {
     let rc: i32 =
       tune_tcp_socket (fd) | tune_tcp_maxrt (fd, options.tcp_maxrt);
     return rc == 0;
 }
 
-void ws_connecter_t::create_engine (fd_t fd,
+void ws_connecter_t::create_engine (fd: ZmqFileDesc,
                                          local_address_: &str)
 {
     const endpoint_uri_pair_t endpoint_pair (local_address_, _endpoint,

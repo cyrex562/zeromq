@@ -48,7 +48,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
 
     setup_test_context ();
     char my_endpoint[MAX_SOCKET_STRING];
-    fd_t server = bind_socket_resolve_port ("127.0.0.1", "0", my_endpoint);
+    ZmqFileDesc server = bind_socket_resolve_port ("127.0.0.1", "0", my_endpoint);
 
     curve_client_data_t curve_client_data = {
       fixed_server_public, fixed_client_public, fixed_client_secret};
@@ -56,7 +56,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
     void *client = create_and_connect_client (
       my_endpoint, socket_config_curve_client, &curve_client_data, &client_mon);
 
-    fd_t server_accept =
+    ZmqFileDesc server_accept =
       TEST_ASSERT_SUCCESS_RAW_ERRNO (accept (server, null_mut(), null_mut()));
 
     //  If there is not enough data for a full greeting, just send what we can

@@ -183,7 +183,7 @@ void test_plain_wrong_credentials_fails ()
 void test_plain_vanilla_socket ()
 {
     // Unauthenticated messages from a vanilla socket shouldn't be received
-    fd_t s = connect_socket (my_endpoint);
+    ZmqFileDesc s = connect_socket (my_endpoint);
     // send anonymous ZMTP/1.0 greeting
     send (s, "\x01\x00", 2, 0);
     // send sneaky message that shouldn't be received

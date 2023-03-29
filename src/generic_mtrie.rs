@@ -222,7 +222,7 @@ void generic_mtrie_t<T>::rm (value_t *pipe,
                     stack.push_back (next);
                     break;
                 }
-                default: {
+                _ => {
                     //  If there are multiple subnodes.
                     //  When first visiting this node, initialize the new_min/max parameters
                     //  which will then be used after each child has been processed, on the
@@ -274,7 +274,7 @@ void generic_mtrie_t<T>::rm (value_t *pipe,
                         zmq_assert (it.node._live_nodes == 0);
                     }
                     break;
-                default:
+                _ =>
                     //  If there are multiple subnodes.
                     {
                         if (it.node._next.table[it.current_child]) {
@@ -350,7 +350,7 @@ void generic_mtrie_t<T>::rm (value_t *pipe,
                                 it.node._count = 1;
                                 it.node._min = it.new_min;
                                 break;
-                            default:
+                            _ =>
                                 if (it.new_min > it.node._min
                                     || it.new_max < it.node._min
                                                       + it.node._count - 1) {

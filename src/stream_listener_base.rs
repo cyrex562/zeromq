@@ -51,7 +51,7 @@ pub struct stream_listener_base_t : public ZmqOwn, public io_object_t
     int get_local_address (std::string &addr_) const;
 
   protected:
-    virtual std::string get_socket_name (fd_t fd,
+    virtual std::string get_socket_name (fd: ZmqFileDesc,
                                          SocketEnd socket_end_) const = 0;
 
   // private:
@@ -63,10 +63,10 @@ pub struct stream_listener_base_t : public ZmqOwn, public io_object_t
     //  Close the listening socket.
     virtual int close ();
 
-    virtual void create_engine (fd_t fd);
+    virtual void create_engine (ZmqFileDesc fd);
 
     //  Underlying socket.
-    fd_t _s;
+    ZmqFileDesc _s;
 
     //  Handle corresponding to the listening socket.
     handle_t _handle;
@@ -137,7 +137,7 @@ int stream_listener_base_t::close ()
     return 0;
 }
 
-void stream_listener_base_t::create_engine (fd_t fd)
+void stream_listener_base_t::create_engine (ZmqFileDesc fd)
 {
     const endpoint_uri_pair_t endpoint_pair (
       get_socket_name (fd, SocketEndLocal),

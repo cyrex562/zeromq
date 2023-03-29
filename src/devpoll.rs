@@ -48,13 +48,13 @@
 pub struct devpoll_t ZMQ_FINAL : public worker_poller_base_t
 {
 // public:
-    typedef fd_t handle_t;
+    typedef ZmqFileDesc handle_t;
 
     devpoll_t (const ThreadCtx &ctx);
     ~devpoll_t () ZMQ_FINAL;
 
     //  "poller" concept.
-    handle_t add_fd (fd_t fd, i_poll_events *events_);
+    handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -69,7 +69,7 @@ pub struct devpoll_t ZMQ_FINAL : public worker_poller_base_t
     void loop () ZMQ_FINAL;
 
     //  File descriptor referring to "/dev/poll" pseudo-device.
-    fd_t devpoll_fd;
+    ZmqFileDesc devpoll_fd;
 
     struct fd_entry_t
     {
@@ -82,11 +82,11 @@ pub struct devpoll_t ZMQ_FINAL : public worker_poller_base_t
     typedef std::vector<fd_entry_t> fd_table_t;
     fd_table_t fd_table;
 
-    typedef std::vector<fd_t> pending_list_t;
+    typedef std::vector<ZmqFileDesc> pending_list_t;
     pending_list_t pending_list;
 
     //  Pollset manipulation function.
-    void devpoll_ctl (fd_t fd, short events_);
+    void devpoll_ctl (fd: ZmqFileDesc, short events_);
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (devpoll_t)
 };
@@ -108,14 +108,14 @@ devpoll_t::~devpoll_t ()
     close (devpoll_fd);
 }
 
-void devpoll_t::devpoll_ctl (fd_t fd, short events_)
+void devpoll_t::devpoll_ctl (fd: ZmqFileDesc, short events_)
 {
     struct pollfd pfd = {fd, events_, 0};
     ssize_t rc = write (devpoll_fd, &pfd, sizeof pfd);
     zmq_assert (rc == sizeof pfd);
 }
 
-devpoll_t::handle_t devpoll_t::add_fd (fd_t fd,
+devpoll_t::handle_t devpoll_t::add_fd (fd: ZmqFileDesc,
                                                  i_poll_events *reactor_)
 {
     check_thread ();

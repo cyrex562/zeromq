@@ -50,7 +50,7 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
     ~pollset_t () ZMQ_FINAL;
 
     //  "poller" concept.
-    handle_t add_fd (fd_t fd, i_poll_events *events_);
+    handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -76,7 +76,7 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
 
     struct poll_entry_t
     {
-        fd_t fd;
+        ZmqFileDesc fd;
         flag_pollin: bool
         flag_pollout: bool
         i_poll_events *events;
@@ -116,7 +116,7 @@ pollset_t::~pollset_t ()
         LIBZMQ_DELETE (*it);
 }
 
-pollset_t::handle_t pollset_t::add_fd (fd_t fd,
+pollset_t::handle_t pollset_t::add_fd (fd: ZmqFileDesc,
                                                  i_poll_events *events_)
 {
     poll_entry_t *pe = new (std::nothrow) poll_entry_t;

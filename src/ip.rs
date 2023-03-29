@@ -84,30 +84,30 @@
 // #include <TargetConditionals.h>
 // #endif
 
-fd_t open_socket (domain_: i32, type_: i32, protocol_: i32);
+ZmqFileDesc open_socket (domain_: i32, type_: i32, protocol_: i32);
 
 //  Sets the socket into non-blocking mode.
-void unblock_socket (fd_t s_);
+void unblock_socket (ZmqFileDesc s_);
 
 //  Enable IPv4-mapping of addresses in case it is disabled by default.
-void enable_ipv4_mapping (fd_t s_);
+void enable_ipv4_mapping (ZmqFileDesc s_);
 
 //  Returns string representation of peer's address.
 //  Socket sockfd_ must be connected. Returns true iff successful.
-int get_peer_ip_address (fd_t sockfd_, std::string &ip_addr_);
+int get_peer_ip_address (ZmqFileDesc sockfd_, std::string &ip_addr_);
 
 // Sets the IP Type-Of-Service for the underlying socket
-void set_ip_type_of_service (fd_t s_, iptos_: i32);
+void set_ip_type_of_service (ZmqFileDesc s_, iptos_: i32);
 
 // Sets the protocol-defined priority for the underlying socket
-void set_socket_priority (fd_t s_, priority_: i32);
+void set_socket_priority (ZmqFileDesc s_, priority_: i32);
 
 // Sets the SO_NOSIGPIPE option for the underlying socket.
 // Return 0 on success, -1 if the connection has been closed by the peer
-int set_nosigpipe (fd_t s_);
+int set_nosigpipe (ZmqFileDesc s_);
 
 // Binds the underlying socket to the given device, eg. VRF or interface
-int bind_to_device (fd_t s_, bound_device_: &str);
+int bind_to_device (ZmqFileDesc s_, bound_device_: &str);
 
 // Initialize network subsystem. May be called multiple times. Each call must be matched by a call to shutdown_network.
 bool initialize_network ();
@@ -117,16 +117,16 @@ void shutdown_network ();
 
 // Creates a pair of sockets (using SIGNALER_PORT on OS using TCP sockets).
 // Returns -1 if we could not make the socket pair successfully
-int make_fdpair (fd_t *r_, fd_t *w_);
+int make_fdpair (ZmqFileDesc *r_, ZmqFileDesc *w_);
 
 // Makes a socket non-inheritable to child processes.
 // Asserts on any failure.
-void make_socket_noninheritable (fd_t sock_);
+void make_socket_noninheritable (ZmqFileDesc sock_);
 
 //  Asserts that:
 //  - an internal 0MQ error did not occur,
 //  - and, if a socket error occurred, it can be recovered from.
-void assert_success_or_recoverable (fd_t s_, rc_: i32);
+void assert_success_or_recoverable (ZmqFileDesc s_, rc_: i32);
 
 // #ifdef ZMQ_HAVE_IPC
 // Create an IPC wildcard path address
@@ -140,7 +140,7 @@ static const char *tmp_env_vars[] = {
 };
 // #endif
 
-fd_t open_socket (domain_: i32, type_: i32, protocol_: i32)
+ZmqFileDesc open_socket (domain_: i32, type_: i32, protocol_: i32)
 {
     rc: i32;
 
@@ -153,10 +153,10 @@ fd_t open_socket (domain_: i32, type_: i32, protocol_: i32)
 // #if defined ZMQ_HAVE_WINDOWS && defined WSA_FLAG_NO_HANDLE_INHERIT
     // if supported, create socket with WSA_FLAG_NO_HANDLE_INHERIT, such that
     // the race condition in making it non-inheritable later is avoided
-    const fd_t s = WSASocket (domain_, type_, protocol_, null_mut(), 0,
+    const ZmqFileDesc s = WSASocket (domain_, type_, protocol_, null_mut(), 0,
                               WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT);
 // #else
-    const fd_t s = socket (domain_, type_, protocol_);
+    const ZmqFileDesc s = socket (domain_, type_, protocol_);
 // #endif
     if (s == retired_fd) {
 // #ifdef ZMQ_HAVE_WINDOWS
@@ -174,7 +174,7 @@ fd_t open_socket (domain_: i32, type_: i32, protocol_: i32)
     return s;
 }
 
-void unblock_socket (fd_t s_)
+void unblock_socket (ZmqFileDesc s_)
 {
 // #if defined ZMQ_HAVE_WINDOWS
     u_long nonblock = 1;
@@ -193,7 +193,7 @@ void unblock_socket (fd_t s_)
 // #endif
 }
 
-void enable_ipv4_mapping (fd_t s_)
+void enable_ipv4_mapping (ZmqFileDesc s_)
 {
     LIBZMQ_UNUSED (s_);
 
@@ -214,7 +214,7 @@ void enable_ipv4_mapping (fd_t s_)
 // #endif
 }
 
-int get_peer_ip_address (fd_t sockfd_, std::string &ip_addr_)
+int get_peer_ip_address (ZmqFileDesc sockfd_, std::string &ip_addr_)
 {
     struct sockaddr_storage ss;
 
@@ -254,7 +254,7 @@ int get_peer_ip_address (fd_t sockfd_, std::string &ip_addr_)
     return static_cast<int> (u.sa.sa_family);
 }
 
-void set_ip_type_of_service (fd_t s_, iptos_: i32)
+void set_ip_type_of_service (ZmqFileDesc s_, iptos_: i32)
 {
     int rc = setsockopt (s_, IPPROTO_IP, IP_TOS,
                          reinterpret_cast<char *> (&iptos_), mem::size_of::<iptos_>());
@@ -278,7 +278,7 @@ void set_ip_type_of_service (fd_t s_, iptos_: i32)
 // #endif
 }
 
-void set_socket_priority (fd_t s_, priority_: i32)
+void set_socket_priority (ZmqFileDesc s_, priority_: i32)
 {
 // #ifdef ZMQ_HAVE_SO_PRIORITY
     int rc =
@@ -288,7 +288,7 @@ void set_socket_priority (fd_t s_, priority_: i32)
 // #endif
 }
 
-int set_nosigpipe (fd_t s_)
+int set_nosigpipe (ZmqFileDesc s_)
 {
 // #ifdef SO_NOSIGPIPE
     //  Make sure that SIGPIPE signal is not generated when writing to a
@@ -308,7 +308,7 @@ int set_nosigpipe (fd_t s_)
     return 0;
 }
 
-int bind_to_device (fd_t s_, bound_device_: &str)
+int bind_to_device (ZmqFileDesc s_, bound_device_: &str)
 {
 // #ifdef ZMQ_HAVE_SO_BINDTODEVICE
     int rc = setsockopt (s_, SOL_SOCKET, SO_BINDTODEVICE,
@@ -396,7 +396,7 @@ static void tune_socket (const SOCKET socket)
     tcp_tune_loopback_fast_path (socket);
 }
 
-static int make_fdpair_tcpip (fd_t *r_, fd_t *w_)
+static int make_fdpair_tcpip (ZmqFileDesc *r_, ZmqFileDesc *w_)
 {
 // #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
     //  Windows CE does not manage security attributes
@@ -596,7 +596,7 @@ static int make_fdpair_tcpip (fd_t *r_, fd_t *w_)
 }
 // #endif
 
-int make_fdpair (fd_t *r_, fd_t *w_)
+int make_fdpair (ZmqFileDesc *r_, ZmqFileDesc *w_)
 {
 // #if defined ZMQ_HAVE_EVENTFD
     int flags = 0;
@@ -606,7 +606,7 @@ int make_fdpair (fd_t *r_, fd_t *w_)
     //  leaks, etc.
     flags |= EFD_CLOEXEC;
 // #endif
-    fd_t fd = eventfd (0, flags);
+    ZmqFileDesc fd = eventfd (0, flags);
     if (fd == -1) {
         errno_assert (errno == ENFILE || errno == EMFILE);
         *w_ = *r_ = -1;
@@ -856,7 +856,7 @@ try_tcpip:
 // #endif
 }
 
-void make_socket_noninheritable (fd_t sock_)
+void make_socket_noninheritable (ZmqFileDesc sock_)
 {
 // #if defined ZMQ_HAVE_WINDOWS && !defined _WIN32_WCE                            \
   && !defined ZMQ_HAVE_WINDOWS_UWP
@@ -876,7 +876,7 @@ void make_socket_noninheritable (fd_t sock_)
 // #endif
 }
 
-void assert_success_or_recoverable (fd_t s_, rc_: i32)
+void assert_success_or_recoverable (ZmqFileDesc s_, rc_: i32)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
     if (rc_ != SOCKET_ERROR) {

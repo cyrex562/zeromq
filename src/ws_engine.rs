@@ -163,7 +163,7 @@ typedef enum
 pub struct ws_engine_t : public stream_engine_base_t
 {
 // public:
-    ws_engine_t (fd_t fd,
+    ws_engine_t (fd: ZmqFileDesc,
                  options: &ZmqOptions,
                  const endpoint_uri_pair_t &endpoint_uri_pair_,
                  const WsAddress &address_,
@@ -220,7 +220,7 @@ encode_base64 (const in_: &mut [u8], in_len_: i32, char *out_, out_len_: i32);
 static void compute_accept_key (char *key_,
                                 unsigned char hash_[SHA_DIGEST_LENGTH]);
 
-ws_engine_t::ws_engine_t (fd_t fd,
+ws_engine_t::ws_engine_t (fd: ZmqFileDesc,
                                options: &ZmqOptions,
                                const endpoint_uri_pair_t &endpoint_uri_pair_,
                                const WsAddress &address_,
@@ -542,7 +542,7 @@ bool ws_engine_t::server_handshake ()
                     case '\n':
                         _server_handshake_state = handshake_error;
                         break;
-                    default:
+                    _ =>
                         _header_name[0] = c;
                         _header_name_position = 1;
                         _server_handshake_state = header_field_name;
@@ -677,7 +677,7 @@ bool ws_engine_t::server_handshake ()
                 } else
                     _server_handshake_state = handshake_error;
                 break;
-            default:
+            _ =>
                 assert (false);
         }
 
@@ -931,7 +931,7 @@ bool ws_engine_t::client_handshake ()
                     case '\n':
                         _client_handshake_state = client_handshake_error;
                         break;
-                    default:
+                    _ =>
                         _header_name[0] = c;
                         _header_name_position = 1;
                         _client_handshake_state = client_header_field_name;
@@ -1024,7 +1024,7 @@ bool ws_engine_t::client_handshake ()
                 } else
                     _client_handshake_state = client_handshake_error;
                 break;
-            default:
+            _ =>
                 assert (false);
         }
 

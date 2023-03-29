@@ -169,7 +169,7 @@ void test_vanilla_socket ()
     char my_endpoint[MAX_SOCKET_STRING];
     bind_loopback_ipv4 (server, my_endpoint, sizeof my_endpoint);
 
-    fd_t s = connect_socket (my_endpoint);
+    ZmqFileDesc s = connect_socket (my_endpoint);
 
     // send anonymous ZMTP/1.0 greeting
     send (s, "\x01\x00", 2, 0);

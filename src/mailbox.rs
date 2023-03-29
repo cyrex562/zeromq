@@ -93,9 +93,9 @@ impl mailbox_t {
     // sync.lock (); sync.unlock ();
     // }
 
-    // fd_t get_fd () const;
-    // fd_t mailbox_t::get_fd () const
-    pub fn get_fd(&mut self) -> fd_t
+    // ZmqFileDesc get_fd () const;
+    // ZmqFileDesc mailbox_t::get_fd () const
+    pub fn get_fd(&mut self) -> ZmqFileDesc
     {
     return self.signaler.get_fd ();
     }

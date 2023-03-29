@@ -65,7 +65,7 @@
 pub struct raw_engine_t ZMQ_FINAL : public stream_engine_base_t
 {
 // public:
-    raw_engine_t (fd_t fd,
+    raw_engine_t (fd: ZmqFileDesc,
                   options: &ZmqOptions,
                   const EndpointUriPair &endpoint_uri_pair_);
     ~raw_engine_t ();
@@ -82,7 +82,7 @@ pub struct raw_engine_t ZMQ_FINAL : public stream_engine_base_t
 };
 
 raw_engine_t::raw_engine_t (
-  fd_t fd,
+  fd: ZmqFileDesc,
   options: &ZmqOptions,
   const EndpointUriPair &endpoint_uri_pair_) :
     stream_engine_base_t (fd, options_, endpoint_uri_pair_, false)

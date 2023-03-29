@@ -299,7 +299,7 @@ int req_t::xsetsockopt (option_: i32,
             }
             break;
 
-        default:
+        _ =>
             break;
     }
 

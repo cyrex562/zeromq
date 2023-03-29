@@ -59,7 +59,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
     setup_context_and_server_side (
       &handler, &zap_thread, &server, &server_mon, my_endpoint, &zap_handler,
       &socket_config_curve_server, (void *) fixed_server_secret);
-    fd_t client = connect_socket (my_endpoint);
+    ZmqFileDesc client = connect_socket (my_endpoint);
 
     //  If there is not enough data for a full greeting, just send what we can
     //  Otherwise send greeting first, as expected by the protocol

@@ -169,7 +169,7 @@ void stream_connecter_base_t::in_event ()
 }
 
 void stream_connecter_base_t::create_engine (
-  fd_t fd, local_address_: &str)
+  fd: ZmqFileDesc, local_address_: &str)
 {
     const endpoint_uri_pair_t endpoint_pair (local_address_, _endpoint,
                                              endpoint_type_connect);
@@ -220,7 +220,7 @@ pub struct stream_connecter_base_t : public ZmqOwn, public io_object_t
     void timer_event (id_: i32) ZMQ_OVERRIDE;
 
     //  Internal function to create the engine after connection was established.
-    virtual void create_engine (fd_t fd, local_address_: &str);
+    virtual void create_engine (fd: ZmqFileDesc, local_address_: &str);
 
     //  Internal function to add a reconnect timer
     void add_reconnect_timer ();
@@ -236,7 +236,7 @@ pub struct stream_connecter_base_t : public ZmqOwn, public io_object_t
     Address *const _addr;
 
     //  Underlying socket.
-    fd_t _s;
+    ZmqFileDesc _s;
 
     //  Handle corresponding to the listening socket, if file descriptor is
     //  registered with the poller, or NULL.

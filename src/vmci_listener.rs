@@ -62,7 +62,7 @@ pub struct vmci_listener_t ZMQ_FINAL : public stream_listener_base_t
     int set_local_address (addr_: &str);
 
   protected:
-    std::string get_socket_name (fd_t fd, SocketEnd socket_end_) const;
+    std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
 
   // private:
     //  Handlers for I/O events.
@@ -71,7 +71,7 @@ pub struct vmci_listener_t ZMQ_FINAL : public stream_listener_base_t
     //  Accept the new connection. Returns the file descriptor of the
     //  newly created connection. The function may return retired_fd
     //  if the connection was dropped while waiting in the listen backlog.
-    fd_t accept ();
+    ZmqFileDesc accept ();
 
     int create_socket (addr_: &str);
 
@@ -90,7 +90,7 @@ vmci_listener_t::vmci_listener_t (ZmqThread *io_thread_,
 
 void vmci_listener_t::in_event ()
 {
-    fd_t fd = accept ();
+    ZmqFileDesc fd = accept ();
 
     //  If connection was reset by the peer in the meantime, just ignore it.
     if (fd == retired_fd) {
@@ -118,7 +118,7 @@ void vmci_listener_t::in_event ()
 }
 
 std::string
-vmci_listener_t::get_socket_name (fd_t fd,
+vmci_listener_t::get_socket_name (fd: ZmqFileDesc,
                                        SocketEnd socket_end_) const
 {
     struct sockaddr_storage ss;
@@ -200,13 +200,13 @@ error:
     return -1;
 }
 
-fd_t vmci_listener_t::accept ()
+ZmqFileDesc vmci_listener_t::accept ()
 {
     //  Accept one connection and deal with different failure modes.
     //  The situation where connection cannot be accepted due to insufficient
     //  resources is considered valid and treated by ignoring the connection.
     zmq_assert (_s != retired_fd);
-    fd_t sock = ::accept (_s, null_mut(), null_mut());
+    ZmqFileDesc sock = ::accept (_s, null_mut(), null_mut());
 
 // #ifdef ZMQ_HAVE_WINDOWS
     if (sock == INVALID_SOCKET) {

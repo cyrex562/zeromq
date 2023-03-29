@@ -69,8 +69,8 @@ void pgm_receiver_t::plug (ZmqThread *io_thread_,
 {
     LIBZMQ_UNUSED (io_thread_);
     //  Retrieve PGM fds and start polling.
-    fd_t socket_fd = retired_fd;
-    fd_t waiting_pipe_fd = retired_fd;
+    ZmqFileDesc socket_fd = retired_fd;
+    ZmqFileDesc waiting_pipe_fd = retired_fd;
     pgm_socket.get_receiver_fds (&socket_fd, &waiting_pipe_fd);
     socket_handle = add_fd (socket_fd);
     pipe_handle = add_fd (waiting_pipe_fd);

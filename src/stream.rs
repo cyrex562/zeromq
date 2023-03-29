@@ -162,7 +162,7 @@ int stream_t::xsend (msg: &mut ZmqMessage)
     return 0;
 }
 
-use std::default::default;
+use std::_ =>:default;
 use bincode::options;
 use crate::options::set_opt_bool;
 use crate::socket_base::routing_socket_base_t;
@@ -177,7 +177,7 @@ pub fn xsetsockopt (opt_kind: i32,
         //                                          &options.raw_notify);
         return set_opt_bool(optval_, & mut options.raw_notify);}
 
-        // default:
+        // _ =>
         _ => {
             return routing_socket_base_t::xsetsockopt(self, opt_kind, optval_);
         }

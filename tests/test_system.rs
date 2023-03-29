@@ -81,7 +81,7 @@ void test_localhost ()
 void test_max_sockets ()
 {
     //  Check that we can create 1,000 sockets
-    fd_t handle[MAX_SOCKETS];
+    ZmqFileDesc handle[MAX_SOCKETS];
     count: i32;
     for (count = 0; count < MAX_SOCKETS; count++) {
         handle[count] = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);

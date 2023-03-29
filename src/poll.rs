@@ -43,14 +43,14 @@
 pub struct poll_t ZMQ_FINAL : public worker_poller_base_t
 {
 // public:
-    typedef fd_t handle_t;
+    typedef ZmqFileDesc handle_t;
 
     poll_t (const ThreadCtx &ctx);
     ~poll_t ();
 
     //  "poller" concept.
     //  These methods may only be called from an event callback; add_fd may also be called before start.
-    handle_t add_fd (fd_t fd, i_poll_events *events_);
+    handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -68,7 +68,7 @@ pub struct poll_t ZMQ_FINAL : public worker_poller_base_t
 
     struct fd_entry_t
     {
-        fd_t index;
+        ZmqFileDesc index;
         i_poll_events *events;
     };
 
@@ -98,7 +98,7 @@ poll_t::~poll_t ()
     stop_worker ();
 }
 
-poll_t::handle_t poll_t::add_fd (fd_t fd, i_poll_events *events_)
+poll_t::handle_t poll_t::add_fd (fd: ZmqFileDesc, i_poll_events *events_)
 {
     check_thread ();
     zmq_assert (fd != retired_fd);
@@ -129,7 +129,7 @@ poll_t::handle_t poll_t::add_fd (fd_t fd, i_poll_events *events_)
 void poll_t::rm_fd (handle_t handle_)
 {
     check_thread ();
-    fd_t index = fd_table[handle_].index;
+    ZmqFileDesc index = fd_table[handle_].index;
     zmq_assert (index != retired_fd);
 
     //  Mark the fd as unused.
@@ -144,28 +144,28 @@ void poll_t::rm_fd (handle_t handle_)
 void poll_t::set_pollin (handle_t handle_)
 {
     check_thread ();
-    fd_t index = fd_table[handle_].index;
+    ZmqFileDesc index = fd_table[handle_].index;
     pollset[index].events |= POLLIN;
 }
 
 void poll_t::reset_pollin (handle_t handle_)
 {
     check_thread ();
-    fd_t index = fd_table[handle_].index;
+    ZmqFileDesc index = fd_table[handle_].index;
     pollset[index].events &= ~((short) POLLIN);
 }
 
 void poll_t::set_pollout (handle_t handle_)
 {
     check_thread ();
-    fd_t index = fd_table[handle_].index;
+    ZmqFileDesc index = fd_table[handle_].index;
     pollset[index].events |= POLLOUT;
 }
 
 void poll_t::reset_pollout (handle_t handle_)
 {
     check_thread ();
-    fd_t index = fd_table[handle_].index;
+    ZmqFileDesc index = fd_table[handle_].index;
     pollset[index].events &= ~((short) POLLOUT);
 }
 

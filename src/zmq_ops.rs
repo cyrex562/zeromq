@@ -974,7 +974,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
         //  If the poll item is a 0MQ socket, we poll on the file descriptor
         //  retrieved by the ZMQ_FD socket option.
         if (items_[i].socket) {
-            size_t zmq_fd_size = sizeof (fd_t);
+            size_t zmq_fd_size = sizeof (ZmqFileDesc);
             if (zmq_getsockopt (items_[i].socket, ZMQ_FD, &pollfds[i].fd,
                                 &zmq_fd_size)
                 == -1) {
@@ -1005,15 +1005,15 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
     optimized_fd_set_t pollset_err (nitems_);
     FD_ZERO (pollset_err.get ());
 
-    fd_t maxfd = 0;
+    ZmqFileDesc maxfd = 0;
 
     //  Build the fd_sets for passing to select ().
     for (int i = 0; i != nitems_; i++) {
         //  If the poll item is a 0MQ socket we are interested in input on the
         //  notification file descriptor retrieved by the ZMQ_FD socket option.
         if (items_[i].socket) {
-            size_t zmq_fd_size = sizeof (fd_t);
-            fd_t notify_fd;
+            size_t zmq_fd_size = sizeof (ZmqFileDesc);
+            ZmqFileDesc notify_fd;
             if (zmq_getsockopt (items_[i].socket, ZMQ_FD, &notify_fd,
                                 &zmq_fd_size)
                 == -1)
@@ -1274,7 +1274,7 @@ struct zmq_poll_select_fds_t_
     optimized_fd_set_t inset;
     optimized_fd_set_t outset;
     optimized_fd_set_t errset;
-    fd_t maxfd;
+    ZmqFileDesc maxfd;
 };
 
 zmq_poll_select_fds_t_
@@ -1292,8 +1292,8 @@ zmq_poll_build_select_fds_ (zmq_pollitem_t *items_, nitems_: i32, int &rc)
         //  If the poll item is a 0MQ socket we are interested in input on the
         //  notification file descriptor retrieved by the ZMQ_FD socket option.
         if (items_[i].socket) {
-            size_t zmq_fd_size = sizeof (fd_t);
-            fd_t notify_fd;
+            size_t zmq_fd_size = sizeof (ZmqFileDesc);
+            ZmqFileDesc notify_fd;
             if (zmq_getsockopt (items_[i].socket, ZMQ_FD, &notify_fd,
                                 &zmq_fd_size)
                 == -1) {
@@ -1581,7 +1581,7 @@ static int check_poller_registration_args (poller_: *const c_void, void *const s
 }
 
 static int check_poller_fd_registration_args (poller_: *const c_void,
-                                              const fd_t fd)
+                                              const ZmqFileDesc fd)
 {
     if (-1 == check_poller (poller_))
         return -1;
@@ -1615,7 +1615,7 @@ int zmq_poller_add (poller_: &mut [u8], s_: &mut [u8], user_data_: &mut [u8], sh
 }
 
 int zmq_poller_add_fd (poller_: &mut [u8],
-                       fd_t fd,
+                       fd: ZmqFileDesc,
                        user_data_: &mut [u8],
                        short events_)
 {
@@ -1641,7 +1641,7 @@ int zmq_poller_modify (poller_: &mut [u8], s_: &mut [u8], short events_)
       ->modify (socket, events_);
 }
 
-int zmq_poller_modify_fd (poller_: &mut [u8], fd_t fd, short events_)
+int zmq_poller_modify_fd (poller_: &mut [u8], fd: ZmqFileDesc, short events_)
 {
     if (-1 == check_poller_fd_registration_args (poller_, fd)
         || -1 == check_events (events_))
@@ -1661,7 +1661,7 @@ int zmq_poller_remove (poller_: &mut [u8], s_: *mut c_void)
     return (static_cast<socket_poller_t *> (poller_))->remove (socket);
 }
 
-int zmq_poller_remove_fd (poller_: &mut [u8], fd_t fd)
+int zmq_poller_remove_fd (poller_: &mut [u8], ZmqFileDesc fd)
 {
     if (-1 == check_poller_fd_registration_args (poller_, fd))
         return -1;
@@ -1708,7 +1708,7 @@ int zmq_poller_wait_all (poller_: &mut [u8],
     return rc;
 }
 
-int zmq_poller_fd (poller_: &mut [u8], zmq_fd_t *fd)
+int zmq_poller_fd (poller_: &mut [u8], ZmqFileDesc *fd)
 {
     if (!poller_
         || !(static_cast<socket_poller_t *> (poller_)->check_tag ())) {

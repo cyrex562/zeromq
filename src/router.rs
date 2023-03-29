@@ -236,7 +236,7 @@ int router_t::xsetsockopt (option_: i32,
             break;
 // #endif
 
-        default:
+        _ =>
             return routing_socket_base_t::xsetsockopt (option_, optval_,
                                                        optvallen_);
     }

@@ -149,7 +149,7 @@ int curve_server_t::next_handshake_command (msg: &mut ZmqMessage)
             if (rc == 0)
                 state = error_sent;
             break;
-        default:
+        _ =>
             errno = EAGAIN;
             rc = -1;
             break;
@@ -168,7 +168,7 @@ int curve_server_t::process_handshake_command (msg: &mut ZmqMessage)
         case waiting_for_initiate:
             rc = process_initiate (msg);
             break;
-        default:
+        _ =>
             // TODO I think this is not a case reachable with a misbehaving
             // client. It is not an "invalid handshake command", but would be
             // trying to process a handshake command in an invalid state,

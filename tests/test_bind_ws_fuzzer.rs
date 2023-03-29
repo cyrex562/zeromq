@@ -52,7 +52,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
                                                my_endpoint, &my_endpoint_size));
     //  Remove trailing /
     my_endpoint[my_endpoint_size - 2] = 0;
-    fd_t client = connect_socket (my_endpoint, AF_INET, IPPROTO_WS);
+    ZmqFileDesc client = connect_socket (my_endpoint, AF_INET, IPPROTO_WS);
 
     void *client_good = test_context_socket (ZMQ_DEALER);
     my_endpoint[my_endpoint_size - 2] = '/';

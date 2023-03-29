@@ -67,7 +67,7 @@ pub struct kqueue_t ZMQ_FINAL : public worker_poller_base_t
     ~kqueue_t () ZMQ_FINAL;
 
     //  "poller" concept.
-    handle_t add_fd (fd_t fd, i_poll_events *events_);
+    handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -82,17 +82,17 @@ pub struct kqueue_t ZMQ_FINAL : public worker_poller_base_t
     void loop () ZMQ_FINAL;
 
     //  File descriptor referring to the kernel event queue.
-    fd_t kqueue_fd;
+    ZmqFileDesc kqueue_fd;
 
     //  Adds the event to the kqueue.
-    void kevent_add (fd_t fd, short filter_, udata_: *mut c_void);
+    void kevent_add (fd: ZmqFileDesc, short filter_, udata_: *mut c_void);
 
     //  Deletes the event from the kqueue.
-    void kevent_delete (fd_t fd, short filter_);
+    void kevent_delete (fd: ZmqFileDesc, short filter_);
 
     struct poll_entry_t
     {
-        fd_t fd;
+        ZmqFileDesc fd;
         flag_pollin: bool
         flag_pollout: bool
         i_poll_events *reactor;
@@ -129,7 +129,7 @@ kqueue_t::~kqueue_t ()
     close (kqueue_fd);
 }
 
-void kqueue_t::kevent_add (fd_t fd, short filter_, udata_: *mut c_void)
+void kqueue_t::kevent_add (fd: ZmqFileDesc, short filter_, udata_: *mut c_void)
 {
     check_thread ();
     struct kevent ev;
@@ -139,7 +139,7 @@ void kqueue_t::kevent_add (fd_t fd, short filter_, udata_: *mut c_void)
     errno_assert (rc != -1);
 }
 
-void kqueue_t::kevent_delete (fd_t fd, short filter_)
+void kqueue_t::kevent_delete (fd: ZmqFileDesc, short filter_)
 {
     struct kevent ev;
 
@@ -148,7 +148,7 @@ void kqueue_t::kevent_delete (fd_t fd, short filter_)
     errno_assert (rc != -1);
 }
 
-kqueue_t::handle_t kqueue_t::add_fd (fd_t fd,
+kqueue_t::handle_t kqueue_t::add_fd (fd: ZmqFileDesc,
                                                i_poll_events *reactor_)
 {
     check_thread ();

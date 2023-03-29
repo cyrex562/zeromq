@@ -54,7 +54,7 @@ pub struct socks_greeting_encoder_t
 // public:
     socks_greeting_encoder_t ();
     void encode (const socks_greeting_t &greeting_);
-    int output (fd_t fd);
+    int output (ZmqFileDesc fd);
     bool has_pending_data () const;
     void reset ();
 
@@ -74,7 +74,7 @@ pub struct socks_choice_decoder_t
 {
 // public:
     socks_choice_decoder_t ();
-    int input (fd_t fd);
+    int input (ZmqFileDesc fd);
     bool message_ready () const;
     socks_choice_t decode ();
     void reset ();
@@ -98,7 +98,7 @@ pub struct socks_basic_auth_request_encoder_t
 // public:
     socks_basic_auth_request_encoder_t ();
     void encode (const socks_basic_auth_request_t &req_);
-    int output (fd_t fd);
+    int output (ZmqFileDesc fd);
     bool has_pending_data () const;
     void reset ();
 
@@ -117,7 +117,7 @@ pub struct socks_auth_response_decoder_t
 {
 // public:
     socks_auth_response_decoder_t ();
-    int input (fd_t fd);
+    int input (ZmqFileDesc fd);
     bool message_ready () const;
     socks_auth_response_t decode ();
     void reset ();
@@ -140,7 +140,7 @@ pub struct socks_request_encoder_t
 // public:
     socks_request_encoder_t ();
     void encode (const socks_request_t &req_);
-    int output (fd_t fd);
+    int output (ZmqFileDesc fd);
     bool has_pending_data () const;
     void reset ();
 
@@ -163,7 +163,7 @@ pub struct socks_response_decoder_t
 {
 // public:
     socks_response_decoder_t ();
-    int input (fd_t fd);
+    int input (ZmqFileDesc fd);
     bool message_ready () const;
     socks_response_t decode ();
     void reset ();
@@ -204,7 +204,7 @@ void socks_greeting_encoder_t::encode (const socks_greeting_t &greeting_)
     _bytes_written = 0;
 }
 
-int socks_greeting_encoder_t::output (fd_t fd)
+int socks_greeting_encoder_t::output (ZmqFileDesc fd)
 {
     let rc: i32 =
       tcp_write (fd, _buf + _bytes_written, _bytes_encoded - _bytes_written);
@@ -231,7 +231,7 @@ socks_choice_decoder_t::socks_choice_decoder_t () : _bytes_read (0)
 {
 }
 
-int socks_choice_decoder_t::input (fd_t fd)
+int socks_choice_decoder_t::input (ZmqFileDesc fd)
 {
     zmq_assert (_bytes_read < 2);
     let rc: i32 = tcp_read (fd, _buf + _bytes_read, 2 - _bytes_read);
@@ -290,7 +290,7 @@ void socks_basic_auth_request_encoder_t::encode (
     _bytes_written = 0;
 }
 
-int socks_basic_auth_request_encoder_t::output (fd_t fd)
+int socks_basic_auth_request_encoder_t::output (ZmqFileDesc fd)
 {
     let rc: i32 =
       tcp_write (fd, _buf + _bytes_written, _bytes_encoded - _bytes_written);
@@ -320,7 +320,7 @@ socks_auth_response_decoder_t::socks_auth_response_decoder_t () :
 {
 }
 
-int socks_auth_response_decoder_t::input (fd_t fd)
+int socks_auth_response_decoder_t::input (ZmqFileDesc fd)
 {
     zmq_assert (_bytes_read < 2);
     let rc: i32 = tcp_read (fd, _buf + _bytes_read, 2 - _bytes_read);
@@ -412,7 +412,7 @@ void socks_request_encoder_t::encode (const socks_request_t &req_)
     _bytes_written = 0;
 }
 
-int socks_request_encoder_t::output (fd_t fd)
+int socks_request_encoder_t::output (ZmqFileDesc fd)
 {
     let rc: i32 =
       tcp_write (fd, _buf + _bytes_written, _bytes_encoded - _bytes_written);
@@ -442,7 +442,7 @@ socks_response_decoder_t::socks_response_decoder_t () : _bytes_read (0)
 {
 }
 
-int socks_response_decoder_t::input (fd_t fd)
+int socks_response_decoder_t::input (ZmqFileDesc fd)
 {
     size_t n = 0;
 

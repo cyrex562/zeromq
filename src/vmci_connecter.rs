@@ -57,7 +57,7 @@ pub struct vmci_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     ~vmci_connecter_t ();
 
   protected:
-    std::string get_socket_name (fd_t fd, SocketEnd socket_end_) const;
+    std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
 
   // private:
     //  ID of the timer used to check the connect timeout, must be different from stream_connecter_base_t::reconnect_timer_id.
@@ -92,7 +92,7 @@ pub struct vmci_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 
     //  Get the file descriptor of newly created connection. Returns
     //  retired_fd if the connection was unsuccessful.
-    fd_t connect ();
+    ZmqFileDesc connect ();
 
     //  True iff a timer has been started.
     _connect_timer_started: bool
@@ -147,7 +147,7 @@ void vmci_connecter_t::out_event ()
 
     rm_handle ();
 
-    const fd_t fd = connect ();
+    const ZmqFileDesc fd = connect ();
 
     if (fd == retired_fd
         && ((options.reconnect_stop & ZMQ_RECONNECT_STOP_CONN_REFUSED)
@@ -184,7 +184,7 @@ void vmci_connecter_t::out_event ()
 }
 
 std::string
-vmci_connecter_t::get_socket_name (fd_t fd,
+vmci_connecter_t::get_socket_name (fd: ZmqFileDesc,
                                         SocketEnd socket_end_) const
 {
     struct sockaddr_storage ss;
@@ -304,7 +304,7 @@ int vmci_connecter_t::open ()
     return -1;
 }
 
-fd_t vmci_connecter_t::connect ()
+ZmqFileDesc vmci_connecter_t::connect ()
 {
     //  Async connect has finished. Check whether an error occurred
     int err = 0;
@@ -348,7 +348,7 @@ fd_t vmci_connecter_t::connect ()
 // #endif
 
     //  Return the newly connected socket.
-    const fd_t result = _s;
+    const ZmqFileDesc result = _s;
     _s = retired_fd;
     return result;
 }

@@ -54,7 +54,7 @@ pub struct epoll_t ZMQ_FINAL : public worker_poller_base_t
     ~epoll_t () ZMQ_OVERRIDE;
 
     //  "poller" concept.
-    handle_t add_fd (fd_t fd, i_poll_events *events_);
+    handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -69,7 +69,7 @@ pub struct epoll_t ZMQ_FINAL : public worker_poller_base_t
     typedef HANDLE epoll_fd_t;
     static const epoll_fd_t epoll_retired_fd;
 // #else
-    typedef fd_t epoll_fd_t;
+    typedef ZmqFileDesc epoll_fd_t;
     enum
     {
         epoll_retired_fd = retired_fd
@@ -84,7 +84,7 @@ pub struct epoll_t ZMQ_FINAL : public worker_poller_base_t
 
     struct poll_entry_t
     {
-        fd_t fd;
+        ZmqFileDesc fd;
         epoll_event ev;
         i_poll_events *events;
     };
@@ -133,7 +133,7 @@ epoll_t::~epoll_t ()
     }
 }
 
-epoll_t::handle_t epoll_t::add_fd (fd_t fd, i_poll_events *events_)
+epoll_t::handle_t epoll_t::add_fd (fd: ZmqFileDesc, i_poll_events *events_)
 {
     check_thread ();
     poll_entry_t *pe = new (std::nothrow) poll_entry_t;

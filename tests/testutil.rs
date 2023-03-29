@@ -272,7 +272,7 @@ int is_ipv6_available ()
     test_addr.sin6_family = AF_INET6;
     inet_pton (AF_INET6, "::1", &(test_addr.sin6_addr));
 
-    fd_t fd = socket (AF_INET6, SOCK_STREAM, IPPROTO_IP);
+    ZmqFileDesc fd = socket (AF_INET6, SOCK_STREAM, IPPROTO_IP);
     if (fd == retired_fd)
         ipv6 = 0;
     else {
@@ -377,12 +377,12 @@ sockaddr_in bind_bsd_socket (socket: i32)
     return saddr;
 }
 
-fd_t connect_socket (endpoint: *const c_char, const af_: i32, const protocol_: i32)
+ZmqFileDesc connect_socket (endpoint: *const c_char, const af_: i32, const protocol_: i32)
 {
     struct sockaddr_storage addr;
     //  OSX is very opinionated and wants the size to match the AF family type
     socklen_t addr_len;
-    const fd_t s_pre = socket (af_, SOCK_STREAM,
+    const ZmqFileDesc s_pre = socket (af_, SOCK_STREAM,
                                protocol_ == IPPROTO_UDP   ? IPPROTO_UDP
                                : protocol_ == IPPROTO_TCP ? IPPROTO_TCP
                                                           : 0);
@@ -434,7 +434,7 @@ fd_t connect_socket (endpoint: *const c_char, const af_: i32, const protocol_: i
     return s_pre;
 }
 
-fd_t bind_socket_resolve_port (address_: *const c_char,
+ZmqFileDesc bind_socket_resolve_port (address_: *const c_char,
                                port_: *const c_char,
                                char *my_endpoint_,
                                const af_: i32,
@@ -443,7 +443,7 @@ fd_t bind_socket_resolve_port (address_: *const c_char,
     struct sockaddr_storage addr;
     //  OSX is very opinionated and wants the size to match the AF family type
     socklen_t addr_len;
-    const fd_t s_pre = socket (af_, SOCK_STREAM,
+    const ZmqFileDesc s_pre = socket (af_, SOCK_STREAM,
                                protocol_ == IPPROTO_UDP   ? IPPROTO_UDP
                                : protocol_ == IPPROTO_TCP ? IPPROTO_TCP
                                                           : 0);

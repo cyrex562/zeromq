@@ -126,7 +126,7 @@ int ws_decoder_t::opcode_ready (unsigned char const *)
         case ws_protocol_t::opcode_pong:
             _msg_flags = ZMQ_MSG_PONG | ZMQ_MSG_COMMAND;
             break;
-        default:
+        _ =>
             return -1;
     }
 

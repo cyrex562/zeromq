@@ -16,13 +16,14 @@ bincode = "1"
 serde = { version="1", features = ["derive"]}
 cpu-time = "1.0.0"
 serde_bytes = "0.11.9"
+windows = { version = "0.47.0", features = ["Win32_Networking_WinSock"] }
 
 [lib]
 name = "zeromq"
 path = "src/lib.rs"
 
 [features]
-default = ["poll","fork"]
+default = ["poll", "fork"]
 vmci = []
 poll = []
 select = []

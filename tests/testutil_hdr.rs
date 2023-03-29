@@ -122,12 +122,12 @@ inline const void *as_setsockopt_opt_t (const opt_: *mut c_void)
 // #endif
 
 // duplicated from fd.hpp
-typedef zmq_fd_t fd_t;
+// typedef zmq_fd_t ZmqFileDesc;
 // #ifdef ZMQ_HAVE_WINDOWS
 // #if defined _MSC_VER && _MSC_VER <= 1400
 enum
 {
-    retired_fd = (zmq_fd_t) (~0)
+    retired_fd = (ZmqFileDesc) (~0)
 };
 // #else
 enum
@@ -222,7 +222,7 @@ struct sockaddr_in bind_bsd_socket (socket: i32);
 // #define IPPROTO_WSS 10001
 
 //  Connects a BSD socket to the ZMQ endpoint. Works with ipv4/ipv6/unix.
-fd_t connect_socket (endpoint: *const c_char,
+ZmqFileDesc connect_socket (endpoint: *const c_char,
                      let af_: i32 = AF_INET,
                      let protocol_: i32 = IPPROTO_TCP);
 
@@ -231,7 +231,7 @@ fd_t connect_socket (endpoint: *const c_char,
 //  prefix, so ensure it is writable and of appropriate size.
 //  Works with ipv4/ipv6/unix. With unix sockets address_/port_ can be empty and
 //  my_endpoint_ will contain a random path.
-fd_t bind_socket_resolve_port (address_: *const c_char,
+ZmqFileDesc bind_socket_resolve_port (address_: *const c_char,
                                port_: *const c_char,
                                char *my_endpoint_,
                                let af_: i32 = AF_INET,

@@ -79,8 +79,8 @@ pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
     int set_local_address (addr_: &str);
 
   protected:
-    std::string get_socket_name (fd_t fd, SocketEnd socket_end_) const;
-    void create_engine (fd_t fd);
+    std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
+    void create_engine (ZmqFileDesc fd);
 
   // private:
     //  Handlers for I/O events.
@@ -90,7 +90,7 @@ pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
     //  newly created connection. The function may return retired_fd
     //  if the connection was dropped while waiting in the listen backlog
     //  or was denied because of accept filters.
-    fd_t accept ();
+    ZmqFileDesc accept ();
 
     int create_socket (addr_: &str);
 
@@ -137,7 +137,7 @@ ws_listener_t::~ws_listener_t ()
 
 void ws_listener_t::in_event ()
 {
-    const fd_t fd = accept ();
+    const ZmqFileDesc fd = accept ();
 
     //  If connection was reset by the peer in the meantime, just ignore it.
     //  TODO: Handle specific errors like ENFILE/EMFILE etc.
@@ -159,7 +159,7 @@ void ws_listener_t::in_event ()
     create_engine (fd);
 }
 
-std::string ws_listener_t::get_socket_name (fd_t fd,
+std::string ws_listener_t::get_socket_name (fd: ZmqFileDesc,
                                                  SocketEnd socket_end_) const
 {
     socket_name: String;
@@ -274,7 +274,7 @@ int ws_listener_t::set_local_address (addr_: &str)
     return 0;
 }
 
-fd_t ws_listener_t::accept ()
+ZmqFileDesc ws_listener_t::accept ()
 {
     //  The situation where connection cannot be accepted due to insufficient
     //  resources is considered valid and treated by ignoring the connection.
@@ -289,10 +289,10 @@ fd_t ws_listener_t::accept ()
     socklen_t ss_len = mem::size_of::<ss>();
 // #endif
 // #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
-    fd_t sock = ::accept4 (_s, reinterpret_cast<struct sockaddr *> (&ss),
+    ZmqFileDesc sock = ::accept4 (_s, reinterpret_cast<struct sockaddr *> (&ss),
                            &ss_len, SOCK_CLOEXEC);
 // #else
-    const fd_t sock =
+    const ZmqFileDesc sock =
       ::accept (_s, reinterpret_cast<struct sockaddr *> (&ss), &ss_len);
 // #endif
 
@@ -339,7 +339,7 @@ fd_t ws_listener_t::accept ()
     return sock;
 }
 
-void ws_listener_t::create_engine (fd_t fd)
+void ws_listener_t::create_engine (ZmqFileDesc fd)
 {
     const endpoint_uri_pair_t endpoint_pair (
       get_socket_name (fd, SocketEndLocal),

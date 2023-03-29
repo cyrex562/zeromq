@@ -1109,7 +1109,7 @@ impl ZmqOptions {
 
             // #endif
 
-            // default:
+            // _ =>
             _ => {
                 // #if defined(ZMQ_ACT_MILITANT)
                 //  There are valid scenarios for probing with unknown socket option

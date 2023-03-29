@@ -361,7 +361,7 @@ void zap_client_common_handshake_t::handle_zap_status_code ()
             //  therefore, go immediately to state error_sent
             state = error_sent;
             break;
-        default:
+        _ =>
             state = sending_error;
     }
 }

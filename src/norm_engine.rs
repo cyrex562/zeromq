@@ -182,7 +182,7 @@ pub struct Iterator
       msg_ready_list; // rx streams w/ msg ready for push to zmq
 
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
-    fd_t
+    ZmqFileDesc
       wrapper_read_fd; // filedescriptor used to read norm events through the wrapper
     DWORD wrapper_thread_id;
     HANDLE wrapper_thread_handle;
@@ -419,7 +419,7 @@ void norm_engine_t::plug (ZmqThread *io_thread_,
     threadArgs.norm_instance_handle = norm_instance;
     norm_descriptor_handle = add_fd (wrapper_read_fd);
 // #else
-    fd_t normDescriptor = NormGetDescriptor (norm_instance);
+    ZmqFileDesc normDescriptor = NormGetDescriptor (norm_instance);
     norm_descriptor_handle = add_fd (normDescriptor);
 // #endif
     // Set POLLIN for notification of pending NormEvents
@@ -597,7 +597,7 @@ void norm_engine_t::in_event ()
             NormNodeDelete (event.sender);
             break;
 
-        default:
+        _ =>
             // We ignore some NORM events
             break;
     }
@@ -672,7 +672,7 @@ void norm_engine_t::recv_data (NormObjectHandle object)
                     rxState.SetSync (false);
                     break;
 
-                default: // 0 - need more data
+                _ => // 0 - need more data
                     break;
             }
             // Get more data from this stream

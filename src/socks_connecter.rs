@@ -116,7 +116,7 @@ pub struct socks_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 
     //  Get the file descriptor of newly created connection. Returns
     //  retired_fd if the connection was unsuccessful.
-    fd_t check_proxy_connection () const;
+    ZmqFileDesc check_proxy_connection () const;
 
     socks_greeting_encoder_t _greeting_encoder;
     socks_choice_decoder_t _choice_decoder;
@@ -433,7 +433,7 @@ int socks_connecter_t::connect_to_proxy ()
     return -1;
 }
 
-fd_t socks_connecter_t::check_proxy_connection () const
+ZmqFileDesc socks_connecter_t::check_proxy_connection () const
 {
     //  Async connect has finished. Check whether an error occurred
     int err = 0;

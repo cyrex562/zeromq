@@ -1,4 +1,4 @@
-use crate::fd::fd_t;
+use crate::fd::ZmqFileDesc;
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::polling_util::optimized_fd_set_t;
 use anyhow::{anyhow, bail};
@@ -15,8 +15,8 @@ pub struct ZmqSignaler {
     //  Underlying write & read file descriptor
     //  Will be -1 if an error occurred during initialization, e.g. we
     //  exceeded the number of available handles
-    pub _w: fd_t,
-    pub _r: fd_t,
+    pub _w: ZmqFileDesc,
+    pub _r: ZmqFileDesc,
 
     // #ifdef HAVE_FORK
     // the process that created this context. Used to detect forking.
@@ -55,8 +55,8 @@ impl ZmqSignaler {
 
     // Returns the socket/file descriptor
     // May return retired_fd if the signaler could not be initialized.
-    // fd_t get_fd () const;
-    pub fn get_fd(&self) -> fd_t {
+    // ZmqFileDesc get_fd () const;
+    pub fn get_fd(&self) -> ZmqFileDesc {
         return self._r;
     }
 

@@ -71,7 +71,7 @@ pub struct tipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 
     //  Get the file descriptor of newly created connection. Returns
     //  retired_fd if the connection was unsuccessful.
-    fd_t connect ();
+    ZmqFileDesc connect ();
 
     //  Open IPC connecting socket. Returns -1 in case of error,
     //  0 if connect was successful immediately. Returns -1 with
@@ -94,7 +94,7 @@ pub struct ZmqSessionBase *session_,
 
 void tipc_connecter_t::out_event ()
 {
-    fd_t fd = connect ();
+    ZmqFileDesc fd = connect ();
     rm_handle ();
 
     //  Handle the error condition by attempt to reconnect.
@@ -172,7 +172,7 @@ int tipc_connecter_t::open ()
     return -1;
 }
 
-fd_t tipc_connecter_t::connect ()
+ZmqFileDesc tipc_connecter_t::connect ()
 {
     //  Following code should handle both Berkeley-derived socket
     //  implementations and Solaris.
@@ -196,7 +196,7 @@ fd_t tipc_connecter_t::connect ()
 
         return retired_fd;
     }
-    fd_t result = _s;
+    ZmqFileDesc result = _s;
     _s = retired_fd;
     return result;
 }

@@ -225,7 +225,7 @@ void zap_handler_generic (zap_protocol_t zap_protocol_,
                 case zap_status_invalid:
                     status_code = "invalid_status";
                     break;
-                default:
+                _ =>
                     status_code = "200";
             }
             send_string_expect_success (handler, status_code, ZMQ_SNDMORE);

@@ -69,7 +69,7 @@ pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
     int set_local_address (addr_: &str);
 
   protected:
-    std::string get_socket_name (fd_t fd, SocketEnd socket_end_) const;
+    std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
 
   // private:
     //  Handlers for I/O events.
@@ -79,7 +79,7 @@ pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
     //  newly created connection. The function may return retired_fd
     //  if the connection was dropped while waiting in the listen backlog
     //  or was denied because of accept filters.
-    fd_t accept ();
+    ZmqFileDesc accept ();
 
     int create_socket (addr_: &str);
 
@@ -98,7 +98,7 @@ tcp_listener_t::tcp_listener_t (ZmqThread *io_thread_,
 
 void tcp_listener_t::in_event ()
 {
-    const fd_t fd = accept ();
+    const ZmqFileDesc fd = accept ();
 
     //  If connection was reset by the peer in the meantime, just ignore it.
     //  TODO: Handle specific errors like ENFILE/EMFILE etc.
@@ -125,7 +125,7 @@ void tcp_listener_t::in_event ()
 }
 
 std::string
-tcp_listener_t::get_socket_name (fd_t fd,
+tcp_listener_t::get_socket_name (fd: ZmqFileDesc,
                                       SocketEnd socket_end_) const
 {
     return get_socket_name<TcpAddress> (fd, socket_end_);
@@ -217,7 +217,7 @@ int tcp_listener_t::set_local_address (addr_: &str)
     return 0;
 }
 
-fd_t tcp_listener_t::accept ()
+ZmqFileDesc tcp_listener_t::accept ()
 {
     //  The situation where connection cannot be accepted due to insufficient
     //  resources is considered valid and treated by ignoring the connection.
@@ -232,10 +232,10 @@ fd_t tcp_listener_t::accept ()
     socklen_t ss_len = mem::size_of::<ss>();
 // #endif
 // #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
-    fd_t sock = ::accept4 (_s, reinterpret_cast<struct sockaddr *> (&ss),
+    ZmqFileDesc sock = ::accept4 (_s, reinterpret_cast<struct sockaddr *> (&ss),
                            &ss_len, SOCK_CLOEXEC);
 // #else
-    const fd_t sock =
+    const ZmqFileDesc sock =
       ::accept (_s, reinterpret_cast<struct sockaddr *> (&ss), &ss_len);
 // #endif
 

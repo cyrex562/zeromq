@@ -556,7 +556,7 @@ impl ZmqSocketBase {
     //         ZMQ_CHANNEL =>
     //             s = new (std::nothrow) channel_t (parent_, tid, sid_);
     //             break;
-    //         default:
+    //         _ =>
     //             errno = EINVAL;
     //             return NULL;
     //     }
@@ -1309,7 +1309,7 @@ impl ZmqSocketBase {
         //  Plug the socket to the reaper thread.
         self.poller = poller_.clone();
 
-        let fd: fd_t;
+        let fd: ZmqFileDesc;
 
         if !self.thread_safe {
             fd = self.mailbox.get_fd();
@@ -1519,12 +1519,12 @@ impl ZmqSocketBase {
     }
 
     // void event_connected (const EndpointUriPair &endpoint_uri_pair_,
-    //                       fd_t fd);
+    //                       ZmqFileDesc fd);
     pub fn event_connected(
         &mut self,
         options: &mut ZmqOptions,
         endpoint_uri_pair_: &EndpointUriPair,
-        fd: fd_t,
+        fd: ZmqFileDesc,
     ) {
         // u64 values[1] = {static_cast<u64> (fd)};
         let values: [u64; 1] = [fd];
@@ -1576,12 +1576,12 @@ impl ZmqSocketBase {
     }
 
     // void event_listening (const EndpointUriPair &endpoint_uri_pair_,
-    //                       fd_t fd);
+    //                       ZmqFileDesc fd);
     pub fn event_listening(
         &mut self,
         options: &mut ZmqOptions,
         endpoint_uri_pair_: &EndpointUriPair,
-        fd: fd_t,
+        fd: ZmqFileDesc,
     ) {
         // u64 values[1] = {static_cast<u64> (fd)};
         let values: [u64; 1] = [fd];
@@ -1615,12 +1615,12 @@ impl ZmqSocketBase {
     }
 
     // void event_accepted (const EndpointUriPair &endpoint_uri_pair_,
-    //                      fd_t fd);
+    //                      ZmqFileDesc fd);
     pub fn event_accepted(
         &mut self,
         options: &mut ZmqOptions,
         endpoint_uri_pair_: &EndpointUriPair,
-        fd: fd_t,
+        fd: ZmqFileDesc,
     ) {
         // u64 values[1] = {static_cast<u64> (fd)};
         let values: [u64; 1] = [fd];
@@ -1653,12 +1653,12 @@ impl ZmqSocketBase {
     }
 
     // void event_closed (const EndpointUriPair &endpoint_uri_pair_,
-    //                    fd_t fd);
+    //                    ZmqFileDesc fd);
     pub fn event_closed(
         &mut self,
         options: &mut ZmqOptions,
         endpoint_uri_pair_: &EndpointUriPair,
-        fd: fd_t,
+        fd: ZmqFileDesc,
     ) {
         // u64 values[1] = {static_cast<u64> (fd)};
         let values: [u64; 1] = [fd];
@@ -1691,12 +1691,12 @@ impl ZmqSocketBase {
     }
 
     // void event_disconnected (const EndpointUriPair &endpoint_uri_pair_,
-    //                          fd_t fd);
+    //                          ZmqFileDesc fd);
     pub fn event_disconnected(
         &mut self,
         options: &mut ZmqOptions,
         endpoint_uri_pair_: &EndpointUriPair,
-        fd: fd_t,
+        fd: ZmqFileDesc,
     ) {
         // u64 values[1] = {static_cast<u64> (fd)};
         let values: [u64; 1] = [fd];

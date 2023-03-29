@@ -40,7 +40,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
 {
     setup_test_context ();
     char my_endpoint[MAX_SOCKET_STRING];
-    fd_t server = bind_socket_resolve_port ("127.0.0.1", "0", my_endpoint,
+    ZmqFileDesc server = bind_socket_resolve_port ("127.0.0.1", "0", my_endpoint,
                                             AF_INET, IPPROTO_WS);
 
     void *client = test_context_socket (ZMQ_PULL);
@@ -51,7 +51,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
       zmq_setsockopt (client, ZMQ_MAXMSGSIZE, &max_msg_size, mem::size_of::<i64>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
-    fd_t server_accept =
+    ZmqFileDesc server_accept =
       TEST_ASSERT_SUCCESS_RAW_ERRNO (accept (server, null_mut(), null_mut()));
 
     //  If there is not enough data for a full handshake, just send what we can

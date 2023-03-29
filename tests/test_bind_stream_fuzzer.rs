@@ -47,7 +47,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (server, ZMQ_MAXMSGSIZE, &max_msg_size, mem::size_of::<i64>()));
     bind_loopback_ipv4 (server, my_endpoint, mem::size_of::<my_endpoint>());
-    fd_t client = connect_socket (my_endpoint);
+    ZmqFileDesc client = connect_socket (my_endpoint);
 
     //  If there is not enough data for a full greeting, just send what we can
     //  Otherwise send greeting first, as expected by the protocol

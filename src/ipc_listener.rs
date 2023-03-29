@@ -54,7 +54,7 @@ pub struct ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
     int set_local_address (addr_: &str);
 
   protected:
-    std::string get_socket_name (fd_t fd, SocketEnd socket_end_) const;
+    std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
 
   // private:
     //  Handlers for I/O events.
@@ -63,7 +63,7 @@ pub struct ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
     //  Filter new connections if the OS provides a mechanism to get
     //  the credentials of the peer process.  Called from accept().
 // #if defined ZMQ_HAVE_SO_PEERCRED || defined ZMQ_HAVE_LOCAL_PEERCRED
-    bool filter (fd_t sock_);
+    bool filter (ZmqFileDesc sock_);
 // #endif
 
     int close ();
@@ -71,7 +71,7 @@ pub struct ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
     //  Accept the new connection. Returns the file descriptor of the
     //  newly created connection. The function may return retired_fd
     //  if the connection was dropped while waiting in the listen backlog.
-    fd_t accept ();
+    ZmqFileDesc accept ();
 
     //  True, if the underlying file for UNIX domain socket exists.
     _has_file: bool
@@ -126,7 +126,7 @@ ipc_listener_t::ipc_listener_t (ZmqThread *io_thread_,
 
 void ipc_listener_t::in_event ()
 {
-    const fd_t fd = accept ();
+    const ZmqFileDesc fd = accept ();
 
     //  If connection was reset by the peer in the meantime, just ignore it.
     //  TODO: Handle specific errors like ENFILE/EMFILE etc.
@@ -141,7 +141,7 @@ void ipc_listener_t::in_event ()
 }
 
 std::string
-ipc_listener_t::get_socket_name (fd_t fd,
+ipc_listener_t::get_socket_name (fd: ZmqFileDesc,
                                       SocketEnd socket_end_) const
 {
     return get_socket_name<IpcAddress> (fd, socket_end_);
@@ -230,7 +230,7 @@ error:
 int ipc_listener_t::close ()
 {
     zmq_assert (_s != retired_fd);
-    const fd_t fd_for_event = _s;
+    const ZmqFileDesc fd_for_event = _s;
 // #ifdef ZMQ_HAVE_WINDOWS
     int rc = closesocket (_s);
     wsa_assert (rc != SOCKET_ERROR);
@@ -269,7 +269,7 @@ int ipc_listener_t::close ()
 
 // #if defined ZMQ_HAVE_SO_PEERCRED
 
-bool ipc_listener_t::filter (fd_t sock_)
+bool ipc_listener_t::filter (ZmqFileDesc sock_)
 {
     if (options.ipc_uid_accept_filters.is_empty()
         && options.ipc_pid_accept_filters.is_empty()
@@ -310,7 +310,7 @@ bool ipc_listener_t::filter (fd_t sock_)
 
 #elif defined ZMQ_HAVE_LOCAL_PEERCRED
 
-bool ipc_listener_t::filter (fd_t sock_)
+bool ipc_listener_t::filter (ZmqFileDesc sock_)
 {
     if (options.ipc_uid_accept_filters.is_empty()
         && options.ipc_gid_accept_filters.empty ())
@@ -337,14 +337,14 @@ bool ipc_listener_t::filter (fd_t sock_)
 
 // #endif
 
-fd_t ipc_listener_t::accept ()
+ZmqFileDesc ipc_listener_t::accept ()
 {
     //  Accept one connection and deal with different failure modes.
     //  The situation where connection cannot be accepted due to insufficient
     //  resources is considered valid and treated by ignoring the connection.
     zmq_assert (_s != retired_fd);
 // #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
-    fd_t sock = ::accept4 (_s, null_mut(), null_mut(), SOCK_CLOEXEC);
+    ZmqFileDesc sock = ::accept4 (_s, null_mut(), null_mut(), SOCK_CLOEXEC);
 // #else
     struct sockaddr_storage ss;
     memset (&ss, 0, mem::size_of::<ss>());
@@ -354,7 +354,7 @@ fd_t ipc_listener_t::accept ()
     socklen_t ss_len = mem::size_of::<ss>();
 // #endif
 
-    const fd_t sock =
+    const ZmqFileDesc sock =
       ::accept (_s, reinterpret_cast<struct sockaddr *> (&ss), &ss_len);
 // #endif
     if (sock == retired_fd) {

@@ -65,7 +65,7 @@
 pub struct stream_engine_base_t : public io_object_t, public i_engine
 {
 // public:
-    stream_engine_base_t (fd_t fd,
+    stream_engine_base_t (fd: ZmqFileDesc,
                           options: &ZmqOptions,
                           const endpoint_uri_pair_t &endpoint_uri_pair_,
                           has_handshake_stage_: bool);
@@ -199,7 +199,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     void mechanism_ready ();
 
     //  Underlying socket.
-    fd_t _s;
+    ZmqFileDesc _s;
 
     handle_t _handle;
 
@@ -227,7 +227,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_engine_base_t)
 };
 
-static std::string get_peer_address (fd_t s_)
+static std::string get_peer_address (ZmqFileDesc s_)
 {
     peer_address: String;
 
@@ -264,7 +264,7 @@ static std::string get_peer_address (fd_t s_)
 }
 
 stream_engine_base_t::stream_engine_base_t (
-  fd_t fd,
+  fd: ZmqFileDesc,
   options: &ZmqOptions,
   const endpoint_uri_pair_t &endpoint_uri_pair_,
   has_handshake_stage_: bool) :

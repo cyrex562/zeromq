@@ -40,7 +40,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 void pre_allocate_sock_tcp (socket: *mut c_void, char *my_endpoint_)
 {
-    fd_t s = bind_socket_resolve_port ("127.0.0.1", "0", my_endpoint_);
+    ZmqFileDesc s = bind_socket_resolve_port ("127.0.0.1", "0", my_endpoint_);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (socket, ZMQ_USE_FD, &s, mem::size_of::<s>()));
 }
@@ -165,7 +165,7 @@ char ipc_endpoint[MAX_SOCKET_STRING] = "";
 
 void pre_allocate_sock_ipc (sb_: *mut c_void, char *my_endpoint_)
 {
-    fd_t s = bind_socket_resolve_port ("", "", my_endpoint_, AF_UNIX, 0);
+    ZmqFileDesc s = bind_socket_resolve_port ("", "", my_endpoint_, AF_UNIX, 0);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (sb_, ZMQ_USE_FD, &s, mem::size_of::<s>()));
     strcpy (ipc_endpoint, strchr (my_endpoint_, '/') + 2);

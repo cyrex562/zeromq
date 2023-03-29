@@ -215,7 +215,7 @@ void test_curve_security_with_plain_client_credentials ()
 void test_curve_security_unauthenticated_message ()
 {
     // Unauthenticated messages from a vanilla socket shouldn't be received
-    fd_t s = connect_socket (my_endpoint);
+    ZmqFileDesc s = connect_socket (my_endpoint);
     // send anonymous ZMTP/1.0 greeting
     send (s, "\x01\x00", 2, 0);
     // send sneaky message that shouldn't be received
@@ -227,7 +227,7 @@ void test_curve_security_unauthenticated_message ()
     close (s);
 }
 
-void send_all (fd_t fd, data: *const c_char, socket_size_: usize)
+void send_all (fd: ZmqFileDesc, data: *const c_char, socket_size_: usize)
 {
     while (size > 0) {
         int res = send (fd, data, size, 0);
@@ -237,19 +237,19 @@ void send_all (fd_t fd, data: *const c_char, socket_size_: usize)
     }
 }
 
-template <size_t N> void send (fd_t fd, const char (&data)[N])
+template <size_t N> void send (fd: ZmqFileDesc, const char (&data)[N])
 {
     send_all (fd, data, N - 1);
 }
 
-template <size_t N> void send (fd_t fd, const uint8_t (&data)[N])
+template <size_t N> void send (fd: ZmqFileDesc, const uint8_t (&data)[N])
 {
     send_all (fd, reinterpret_cast<const char *> (&data), N);
 }
 
 void test_curve_security_invalid_hello_wrong_length ()
 {
-    fd_t s = connect_socket (my_endpoint);
+    ZmqFileDesc s = connect_socket (my_endpoint);
 
     send (s, zmtp_greeting_curve);
 
@@ -299,7 +299,7 @@ static u64 host_to_network (u64 value_)
     return value_;
 }
 
-template <size_t N> void send_command (fd_t s_, char (&command_)[N])
+template <size_t N> void send_command (ZmqFileDesc s_, char (&command_)[N])
 {
     if (N < 256) {
         send (s_, "\x04");
@@ -315,7 +315,7 @@ template <size_t N> void send_command (fd_t s_, char (&command_)[N])
 
 void test_curve_security_invalid_hello_command_name ()
 {
-    fd_t s = connect_socket (my_endpoint);
+    ZmqFileDesc s = connect_socket (my_endpoint);
 
     send (s, zmtp_greeting_curve);
 
@@ -337,7 +337,7 @@ void test_curve_security_invalid_hello_command_name ()
 
 void test_curve_security_invalid_hello_version ()
 {
-    fd_t s = connect_socket (my_endpoint);
+    ZmqFileDesc s = connect_socket (my_endpoint);
 
     send (s, zmtp_greeting_curve);
 
@@ -357,7 +357,7 @@ void test_curve_security_invalid_hello_version ()
     close (s);
 }
 
-void flush_read (fd_t fd)
+void flush_read (ZmqFileDesc fd)
 {
     res: i32;
     char buf[256];
@@ -367,7 +367,7 @@ void flush_read (fd_t fd)
     TEST_ASSERT_NOT_EQUAL (-1, res);
 }
 
-void recv_all (fd_t fd, data: &mut [u8], socket_len_: usize)
+void recv_all (fd: ZmqFileDesc, data: &mut [u8], socket_len_: usize)
 {
     socket_size_t received = 0;
     while (received < len_) {
@@ -379,17 +379,17 @@ void recv_all (fd_t fd, data: &mut [u8], socket_len_: usize)
     }
 }
 
-void recv_greeting (fd_t fd)
+void recv_greeting (ZmqFileDesc fd)
 {
     uint8_t greeting[64];
     recv_all (fd, greeting, 64);
     //  TODO assert anything about the greeting received from the server?
 }
 
-fd_t connect_exchange_greeting_and_send_hello (
+ZmqFileDesc connect_exchange_greeting_and_send_hello (
   char *my_endpoint_, curve_client_tools_t &tools_)
 {
-    fd_t s = connect_socket (my_endpoint_);
+    ZmqFileDesc s = connect_socket (my_endpoint_);
 
     send (s, zmtp_greeting_curve);
     recv_greeting (s);
@@ -406,7 +406,7 @@ void test_curve_security_invalid_initiate_wrong_length ()
 {
     curve_client_tools_t tools = make_curve_client_tools ();
 
-    fd_t s = connect_exchange_greeting_and_send_hello (my_endpoint, tools);
+    ZmqFileDesc s = connect_exchange_greeting_and_send_hello (my_endpoint, tools);
 
     // receive but ignore WELCOME
     flush_read (s);
@@ -423,13 +423,13 @@ void test_curve_security_invalid_initiate_wrong_length ()
     close (s);
 }
 
-fd_t connect_exchange_greeting_and_hello_welcome (
+ZmqFileDesc connect_exchange_greeting_and_hello_welcome (
   char *my_endpoint_,
   server_mon_: *mut c_void,
   timeout: i32,
   curve_client_tools_t &tools_)
 {
-    fd_t s = connect_exchange_greeting_and_send_hello (my_endpoint_, tools_);
+    ZmqFileDesc s = connect_exchange_greeting_and_send_hello (my_endpoint_, tools_);
 
     // receive but ignore WELCOME
     uint8_t welcome[welcome_length + 2];
@@ -449,7 +449,7 @@ fd_t connect_exchange_greeting_and_hello_welcome (
 void test_curve_security_invalid_initiate_command_name ()
 {
     curve_client_tools_t tools = make_curve_client_tools ();
-    fd_t s = connect_exchange_greeting_and_hello_welcome (
+    ZmqFileDesc s = connect_exchange_greeting_and_hello_welcome (
       my_endpoint, server_mon, timeout, tools);
 
     char initiate[257];
@@ -469,7 +469,7 @@ void test_curve_security_invalid_initiate_command_name ()
 void test_curve_security_invalid_initiate_command_encrypted_cookie ()
 {
     curve_client_tools_t tools = make_curve_client_tools ();
-    fd_t s = connect_exchange_greeting_and_hello_welcome (
+    ZmqFileDesc s = connect_exchange_greeting_and_hello_welcome (
       my_endpoint, server_mon, timeout, tools);
 
     char initiate[257];
@@ -489,7 +489,7 @@ void test_curve_security_invalid_initiate_command_encrypted_cookie ()
 void test_curve_security_invalid_initiate_command_encrypted_content ()
 {
     curve_client_tools_t tools = make_curve_client_tools ();
-    fd_t s = connect_exchange_greeting_and_hello_welcome (
+    ZmqFileDesc s = connect_exchange_greeting_and_hello_welcome (
       my_endpoint, server_mon, timeout, tools);
 
     char initiate[257];

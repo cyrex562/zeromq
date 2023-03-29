@@ -76,7 +76,7 @@ pub struct ipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 
     //  Get the file descriptor of newly created connection. Returns
     //  retired_fd if the connection was unsuccessful.
-    fd_t connect ();
+    ZmqFileDesc connect ();
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (ipc_connecter_t)
 };
@@ -94,7 +94,7 @@ pub struct ZmqSessionBase *session_,
 
 void ipc_connecter_t::out_event ()
 {
-    const fd_t fd = connect ();
+    const ZmqFileDesc fd = connect ();
     rm_handle ();
 
     //  Handle the error condition by attempt to reconnect.
@@ -183,7 +183,7 @@ int ipc_connecter_t::open ()
     return -1;
 }
 
-fd_t ipc_connecter_t::connect ()
+ZmqFileDesc ipc_connecter_t::connect ()
 {
     //  Following code should handle both Berkeley-derived socket
     //  implementations and Solaris.
@@ -207,7 +207,7 @@ fd_t ipc_connecter_t::connect ()
         return retired_fd;
     }
 
-    const fd_t result = _s;
+    const ZmqFileDesc result = _s;
     _s = retired_fd;
     return result;
 }

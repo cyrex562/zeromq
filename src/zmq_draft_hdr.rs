@@ -143,10 +143,10 @@ pub const ZMQ_MSG_PROPERTY_PEER_ADDRESS: &'static str = "Peer-Address";
 // zmq_fd_t zmq_poller_fd (poller_: *mut c_void);
 //
 // int zmq_poller_add_fd (poller_: *mut c_void,
-//                        zmq_fd_t fd,
+//                        zmq_fd: ZmqFileDesc,
 //                        user_data_: *mut c_void,
 //                        short events_);
-// int zmq_poller_modify_fd (poller_: *mut c_void, zmq_fd_t fd, short events_);
+// int zmq_poller_modify_fd (poller_: *mut c_void, zmq_fd: ZmqFileDesc, short events_);
 // int zmq_poller_remove_fd (poller_: *mut c_void, zmq_fd_t fd);
 //
 // int zmq_socket_get_peer_state (socket_: *mut c_void,

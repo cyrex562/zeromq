@@ -6,7 +6,7 @@ pub struct zmq_pollitem_t {
     // socket: *mut c_void;
     pub socket: &mut [u8],
     // zmq_fd_t fd;
-    pub fd: zmq_fd_t,
+    pub fd: ZmqFileDesc,
     // short events;
     pub events: i16,
     // short revents;

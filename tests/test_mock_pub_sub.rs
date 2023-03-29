@@ -56,7 +56,7 @@ let mut msg = ZmqMessage::default();
     return -1;
 }
 
-static void recv_with_retry (fd_t fd, char *buffer_, bytes_: i32)
+static void recv_with_retry (fd: ZmqFileDesc, char *buffer_, bytes_: i32)
 {
     int received = 0;
     while (true) {
@@ -70,7 +70,7 @@ static void recv_with_retry (fd_t fd, char *buffer_, bytes_: i32)
     }
 }
 
-static void mock_handshake (fd_t fd, sub_command: bool, mock_pub: bool)
+static void mock_handshake (fd: ZmqFileDesc, sub_command: bool, mock_pub: bool)
 {
     char buffer[128];
     memset (buffer, 0, mem::size_of::<buffer>());
@@ -141,7 +141,7 @@ static void test_mock_pub_sub (sub_command_: bool, mock_pub_: bool)
     prep_server_socket (&server, &server_mon, my_endpoint, MAX_SOCKET_STRING,
                         mock_pub_ ? ZMQ_SUB : ZMQ_XPUB);
 
-    fd_t s = connect_socket (my_endpoint);
+    ZmqFileDesc s = connect_socket (my_endpoint);
 
     // Mock a ZMTP 3 client so we can forcibly try sub commands
     mock_handshake (s, sub_command_, mock_pub_);

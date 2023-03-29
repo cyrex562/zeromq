@@ -65,7 +65,7 @@ pub struct tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
     int set_local_address (addr_: &str);
 
   protected:
-    std::string get_socket_name (fd_t fd,
+    std::string get_socket_name (fd: ZmqFileDesc,
                                  SocketEnd socket_end_) const ZMQ_FINAL;
 
   // private:
@@ -75,7 +75,7 @@ pub struct tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
     //  Accept the new connection. Returns the file descriptor of the
     //  newly created connection. The function may return retired_fd
     //  if the connection was dropped while waiting in the listen backlog.
-    fd_t accept ();
+    ZmqFileDesc accept ();
 
     // Address to listen on
     TipcAddress _address;
@@ -92,7 +92,7 @@ tipc_listener_t::tipc_listener_t (ZmqThread *io_thread_,
 
 void tipc_listener_t::in_event ()
 {
-    fd_t fd = accept ();
+    ZmqFileDesc fd = accept ();
 
     //  If connection was reset by the peer in the meantime, just ignore it.
     //  TODO: Handle specific errors like ENFILE/EMFILE etc.
@@ -107,7 +107,7 @@ void tipc_listener_t::in_event ()
 }
 
 std::string
-tipc_listener_t::get_socket_name (fd_t fd,
+tipc_listener_t::get_socket_name (fd: ZmqFileDesc,
                                        SocketEnd socket_end_) const
 {
     return get_socket_name<TipcAddress> (fd, socket_end_);
@@ -174,7 +174,7 @@ error:
     return -1;
 }
 
-fd_t tipc_listener_t::accept ()
+ZmqFileDesc tipc_listener_t::accept ()
 {
     //  Accept one connection and deal with different failure modes.
     //  The situation where connection cannot be accepted due to insufficient
@@ -184,9 +184,9 @@ fd_t tipc_listener_t::accept ()
 
     zmq_assert (_s != retired_fd);
 // #ifdef ZMQ_HAVE_VXWORKS
-    fd_t sock = ::accept (_s, (struct sockaddr *) &ss, (int *) &ss_len);
+    ZmqFileDesc sock = ::accept (_s, (struct sockaddr *) &ss, (int *) &ss_len);
 // #else
-    fd_t sock =
+    ZmqFileDesc sock =
       ::accept (_s, reinterpret_cast<struct sockaddr *> (&ss), &ss_len);
 // #endif
     if (sock == -1) {

@@ -57,13 +57,13 @@
 pub struct select_t ZMQ_FINAL : public worker_poller_base_t
 {
 // public:
-    typedef fd_t handle_t;
+    typedef ZmqFileDesc handle_t;
 
     select_t (const ThreadCtx &ctx);
     ~select_t () ZMQ_FINAL;
 
     //  "poller" concept.
-    handle_t add_fd (fd_t fd, i_poll_events *events_);
+    handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -84,7 +84,7 @@ pub struct select_t ZMQ_FINAL : public worker_poller_base_t
         fds_set_t (const fds_set_t &other_);
         fds_set_t &operator= (const fds_set_t &other_);
         //  Convenience method to descriptor from all sets.
-        void remove_fd (const fd_t &fd);
+        void remove_fd (const ZmqFileDesc &fd);
 
         fd_set read;
         fd_set write;
@@ -93,7 +93,7 @@ pub struct select_t ZMQ_FINAL : public worker_poller_base_t
 
     struct fd_entry_t
     {
-        fd_t fd;
+        ZmqFileDesc fd;
         i_poll_events *events;
     };
     typedef std::vector<fd_entry_t> fd_entries_t;
@@ -133,19 +133,19 @@ pub struct select_t ZMQ_FINAL : public worker_poller_base_t
     family_entries_t::iterator _current_family_entry_it;
 
     int try_retire_fd_entry (family_entries_t::iterator family_entry_it_,
-                             fd_t &handle_);
+                             ZmqFileDesc &handle_);
 
     static const size_t fd_family_cache_size = 8;
-    std::pair<fd_t, u_short> _fd_family_cache[fd_family_cache_size];
+    std::pair<ZmqFileDesc, u_short> _fd_family_cache[fd_family_cache_size];
 
-    u_short get_fd_family (fd_t fd);
+    u_short get_fd_family (ZmqFileDesc fd);
 
     //  Socket's family or AF_UNSPEC on error.
-    static u_short determine_fd_family (fd_t fd);
+    static u_short determine_fd_family (ZmqFileDesc fd);
 // #else
     //  on non-Windows, we can treat all fds as one family
     family_entry_t _family_entry;
-    fd_t _max_fd;
+    ZmqFileDesc _max_fd;
 // #endif
 
     void cleanup_retired ();
@@ -182,7 +182,7 @@ select_t::~select_t ()
     stop_worker ();
 }
 
-select_t::handle_t select_t::add_fd (fd_t fd, i_poll_events *events_)
+select_t::handle_t select_t::add_fd (fd: ZmqFileDesc, i_poll_events *events_)
 {
     check_thread ();
     zmq_assert (fd != retired_fd);
@@ -267,7 +267,7 @@ void select_t::trigger_events (const fd_entries_t &fd_entries_,
 
 // #if defined ZMQ_HAVE_WINDOWS
 int select_t::try_retire_fd_entry (
-  family_entries_t::iterator family_entry_it_, fd_t &handle_)
+  family_entries_t::iterator family_entry_it_, ZmqFileDesc &handle_)
 {
     family_entry_t &family_entry = family_entry_it_.second;
 
@@ -475,7 +475,7 @@ void select_t::loop ()
                        family_entry.fd_entries.begin ();
                      fd_entry_it != family_entry.fd_entries.end ();
                      ++fd_entry_it) {
-                    fd_t fd = fd_entry_it.fd;
+                    ZmqFileDesc fd = fd_entry_it.fd;
 
                     //  http://stackoverflow.com/q/35043420/188530
                     if (FD_ISSET (fd, &family_entry.fds_set.read)
@@ -609,7 +609,7 @@ select_t::fds_set_t::operator= (const fds_set_t &other_)
     return *this;
 }
 
-void select_t::fds_set_t::remove_fd (const fd_t &fd)
+void select_t::fds_set_t::remove_fd (const ZmqFileDesc &fd)
 {
     FD_CLR (fd, &read);
     FD_CLR (fd, &write);
@@ -654,13 +654,13 @@ select_t::family_entry_t::family_entry_t () : has_retired (false)
 
 
 // #if defined ZMQ_HAVE_WINDOWS
-u_short select_t::get_fd_family (fd_t fd)
+u_short select_t::get_fd_family (ZmqFileDesc fd)
 {
     // cache the results of determine_fd_family, as this is frequently called
     // for the same sockets, and determine_fd_family is expensive
     i: usize;
     for (i = 0; i < fd_family_cache_size; ++i) {
-        const std::pair<fd_t, u_short> &entry = _fd_family_cache[i];
+        const std::pair<ZmqFileDesc, u_short> &entry = _fd_family_cache[i];
         if (entry.first == fd) {
             return entry.second;
         }
@@ -668,7 +668,7 @@ u_short select_t::get_fd_family (fd_t fd)
             break;
     }
 
-    std::pair<fd_t, u_short> res =
+    std::pair<ZmqFileDesc, u_short> res =
       std::make_pair (fd, determine_fd_family (fd));
     if (i < fd_family_cache_size) {
         _fd_family_cache[i] = res;
@@ -681,7 +681,7 @@ u_short select_t::get_fd_family (fd_t fd)
     return res.second;
 }
 
-u_short select_t::determine_fd_family (fd_t fd)
+u_short select_t::determine_fd_family (ZmqFileDesc fd)
 {
     //  Use sockaddr_storage instead of sockaddr to accommodate different structure sizes
     sockaddr_storage addr = {0};

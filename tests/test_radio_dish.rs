@@ -310,8 +310,8 @@ union sa_u
 static bool is_multicast_available (ipv6_: i32)
 {
     int family = ipv6_ ? AF_INET6 : AF_INET;
-    fd_t bind_sock = retired_fd;
-    fd_t send_sock = retired_fd;
+    ZmqFileDesc bind_sock = retired_fd;
+    ZmqFileDesc send_sock = retired_fd;
     int port = 5555;
     bool success = false;
     const char *msg = "it works";

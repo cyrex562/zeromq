@@ -38,72 +38,103 @@
 // #include "wire.hpp"
 // #include "plain_common.hpp"
 
-    plain_server_t (ZmqSessionBase *session_,
-                    const std::string &peer_address_,
-                    options: &ZmqOptions);
-    ~plain_server_t ();
+//     plain_server_t (ZmqSessionBase *session_,
+//                     const std::string &peer_address_,
+//                     options: &ZmqOptions);
+//     ~plain_server_t ();
 
-    // mechanism implementation
-    int next_handshake_command (msg: &mut ZmqMessage);
-    int process_handshake_command (msg: &mut ZmqMessage);
+//     // mechanism implementation
+//     int next_handshake_command (msg: &mut ZmqMessage);
+//     int process_handshake_command (msg: &mut ZmqMessage);
 
-  // private:
-    static void produce_welcome (msg: &mut ZmqMessage);
-    void produce_ready (msg: &mut ZmqMessage) const;
-    void produce_error (msg: &mut ZmqMessage) const;
+//   // private:
+//     static void produce_welcome (msg: &mut ZmqMessage);
+//     void produce_ready (msg: &mut ZmqMessage) const;
+//     void produce_error (msg: &mut ZmqMessage) const;
 
-    int process_hello (msg: &mut ZmqMessage);
-    int process_initiate (msg: &mut ZmqMessage);
+//     int process_hello (msg: &mut ZmqMessage);
+//     int process_initiate (msg: &mut ZmqMessage);
 
-    void send_zap_request (const std::string &username_,
-                           password_: &str);
-};
+//     void send_zap_request (const std::string &username_,
+//                            password_: &str);
+// };
 
-plain_server_t::plain_server_t (ZmqSessionBase *session_,
-                                     const std::string &peer_address_,
-                                     options: &ZmqOptions) :
-    ZmqMechanismBase (session_, options_),
-    zap_client_common_handshake_t (
-      session_, peer_address_, options_, sending_welcome)
-{
-    //  Note that there is no point to PLAIN if ZAP is not set up to handle the
-    //  username and password, so if ZAP is not configured it is considered a
-    //  failure.
-    //  Given this is a backward-incompatible change, it's behind a socket
-    //  option disabled by default.
-    if (options.zap_enforce_domain)
-        zmq_assert (zap_required ());
+pub enum plain_server_state_t {
+    plain_server_state_ready,
+    plain_server_state_waiting_for_zap_reply,
+    plain_server_state_error,
 }
 
-plain_server_t::~plain_server_t ()
-{
+pub struct plain_server_t {
+    mechanism_base: ZmqMechanismBase,
+    zap_client_common_handshake_t: zap_client_common_handshake_t,
+    state: plain_server_state_t,
+    username: String,
+    password: String,
+    peer_address: String,
+    options: ZmqOptions,
 }
 
-int plain_server_t::next_handshake_command (msg: &mut ZmqMessage)
-{
-    int rc = 0;
-
-    switch (state) {
-        case sending_welcome:
-            produce_welcome (msg);
-            state = waiting_for_initiate;
-            break;
-        case sending_ready:
-            produce_ready (msg);
-            state = ready;
-            break;
-        case sending_error:
-            produce_error (msg);
-            state = error_sent;
-            break;
-        default:
-            errno = EAGAIN;
-            rc = -1;
+impl plain_server_t {
+    pub fn new(session: &ZmqSessionBase, peer_address: &str, options: &ZmqOptions) -> Self {
+        Self {
+            mechanism_base: ZmqMechanismBase::new(session, options),
+            zap_client_common_handshake_t: zap_client_common_handshake_t::new(session, peer_address, options, Self::produce_welcome),
+            state: plain_server_state_t::plain_server_state_ready,
+            username: String::new(),
+            password: String::new(),
+            peer_address: String::from(peer_address),
+            options: options.clone(),
+        }
     }
-    return rc;
+
+    pub fn next_handshake_command (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
+{
+    match (self.state) {
+        sending_welcome =>{
+            self.produce_welcome (msg);
+            self.state = waiting_for_initiate;}
+        sending_ready =>{
+            self.produce_ready (msg);
+            self.state = ready;
+        }
+        sending_error =>{
+            self.produce_error (msg);
+            self.state = error_sent;}
+
+        _ =>{
+            // errno = EAGAIN;
+            // rc = -1;
+            bail!("unhandled state: {}", self.state);
+        }
+    }
+    Ok(())
+}
 }
 
-int plain_server_t::process_handshake_command (msg: &mut ZmqMessage)
+// plain_server_t::plain_server_t (ZmqSessionBase *session_,
+//                                      const std::string &peer_address_,
+//                                      options: &ZmqOptions) :
+//     ZmqMechanismBase (session_, options_),
+//     zap_client_common_handshake_t (
+//       session_, peer_address_, options_, sending_welcome)
+// {
+//     //  Note that there is no point to PLAIN if ZAP is not set up to handle the
+//     //  username and password, so if ZAP is not configured it is considered a
+//     //  failure.
+//     //  Given this is a backward-incompatible change, it's behind a socket
+//     //  option disabled by default.
+//     if (options.zap_enforce_domain)
+//         zmq_assert (zap_required ());
+// }
+
+// plain_server_t::~plain_server_t ()
+// {
+// }
+
+
+
+pub fn process_handshake_command (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
 {
     int rc = 0;
 
@@ -114,7 +145,7 @@ int plain_server_t::process_handshake_command (msg: &mut ZmqMessage)
         case waiting_for_initiate:
             rc = process_initiate (msg);
             break;
-        default:
+        _ =>
             //  TODO see comment in curve_server_t::process_handshake_command
             session.get_socket ().event_handshake_failed_protocol (
               session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNSPECIFIED);

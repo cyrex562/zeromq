@@ -67,14 +67,14 @@ pub struct pgm_socket_t
                              uint16_t *port_number);
 
     //   Get receiver fds and store them into user allocated memory.
-    void get_receiver_fds (fd_t *receive_fd_, fd_t *waiting_pipe_fd_);
+    void get_receiver_fds (ZmqFileDesc *receive_fd_, ZmqFileDesc *waiting_pipe_fd_);
 
     //   Get sender and receiver fds and store it to user allocated
     //   memory. Receive fd is used to process NAKs from peers.
-    void get_sender_fds (fd_t *send_fd_,
-                         fd_t *receive_fd_,
-                         fd_t *rdata_notify_fd_,
-                         fd_t *pending_notify_fd_);
+    void get_sender_fds (ZmqFileDesc *send_fd_,
+                         ZmqFileDesc *receive_fd_,
+                         ZmqFileDesc *rdata_notify_fd_,
+                         ZmqFileDesc *pending_notify_fd_);
 
     //  Send data as one APDU, transmit window owned memory.
     size_t send (data: &mut [u8], data_len_: usize);
@@ -460,8 +460,8 @@ pgm_socket_t::~pgm_socket_t ()
 
 //  Get receiver fds. receive_fd_ is signaled for incoming packets,
 //  waiting_pipe_fd_ is signaled for state driven events and data.
-void pgm_socket_t::get_receiver_fds (fd_t *receive_fd_,
-                                          fd_t *waiting_pipe_fd_)
+void pgm_socket_t::get_receiver_fds (ZmqFileDesc *receive_fd_,
+                                          ZmqFileDesc *waiting_pipe_fd_)
 {
     socklen_t socklen;
     rc: bool
@@ -487,10 +487,10 @@ void pgm_socket_t::get_receiver_fds (fd_t *receive_fd_,
 //  receive_fd_ is for incoming back-channel protocol packets.
 //  rdata_notify_fd_ is raised for waiting repair transmissions.
 //  pending_notify_fd_ is for state driven events.
-void pgm_socket_t::get_sender_fds (fd_t *send_fd_,
-                                        fd_t *receive_fd_,
-                                        fd_t *rdata_notify_fd_,
-                                        fd_t *pending_notify_fd_)
+void pgm_socket_t::get_sender_fds (ZmqFileDesc *send_fd_,
+                                        ZmqFileDesc *receive_fd_,
+                                        ZmqFileDesc *rdata_notify_fd_,
+                                        ZmqFileDesc *pending_notify_fd_)
 {
     socklen_t socklen;
     rc: bool

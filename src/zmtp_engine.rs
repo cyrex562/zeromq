@@ -79,7 +79,7 @@ pub struct ZmqMechanism;
 pub struct zmtp_engine_t ZMQ_FINAL : public stream_engine_base_t
 {
 // public:
-    zmtp_engine_t (fd_t fd,
+    zmtp_engine_t (fd: ZmqFileDesc,
                    options: &ZmqOptions,
                    const endpoint_uri_pair_t &endpoint_uri_pair_);
     ~zmtp_engine_t ();
@@ -149,7 +149,7 @@ pub struct zmtp_engine_t ZMQ_FINAL : public stream_engine_base_t
 };
 
 zmtp_engine_t::zmtp_engine_t (
-  fd_t fd,
+  fd: ZmqFileDesc,
   options: &ZmqOptions,
   const endpoint_uri_pair_t &endpoint_uri_pair_) :
     stream_engine_base_t (fd, options_, endpoint_uri_pair_, true),
@@ -326,10 +326,10 @@ zmtp_engine_t::handshake_fun_t zmtp_engine_t::select_handshake_fun (
             switch (minor_) {
                 case 0:
                     return &zmtp_engine_t::handshake_v3_0;
-                default:
+                _ =>
                     return &zmtp_engine_t::handshake_v3_1;
             }
-        default:
+        _ =>
             return &zmtp_engine_t::handshake_v3_1;
     }
 }

@@ -384,7 +384,7 @@ const char *get_zmqEventName (u64 event)
             return "HANDSHAKE_FAILED_PROTOCOL";
         case ZMQ_EVENT_HANDSHAKE_FAILED_AUTH:
             return "HANDSHAKE_FAILED_AUTH";
-        default:
+        _ =>
             return "UNKNOWN";
     }
 }

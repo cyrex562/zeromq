@@ -93,7 +93,7 @@ int plain_client_t::next_handshake_command (msg: &mut ZmqMessage)
             produce_initiate (msg);
             _state = waiting_for_ready;
             break;
-        default:
+        _ =>
             errno = EAGAIN;
             rc = -1;
     }
@@ -140,7 +140,7 @@ ZmqMechanism::status_t plain_client_t::status () const
             return ZmqMechanism::ready;
         case error_command_received:
             return ZmqMechanism::error;
-        default:
+        _ =>
             return ZmqMechanism::handshaking;
     }
 }

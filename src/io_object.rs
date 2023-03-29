@@ -46,7 +46,7 @@ pub struct io_object_t : public i_poll_events
     typedef poller_t::handle_t handle_t;
 
     //  Methods to access underlying poller object.
-    handle_t add_fd (fd_t fd);
+    handle_t add_fd (ZmqFileDesc fd);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -94,7 +94,7 @@ void io_object_t::unplug ()
     poller = null_mut();
 }
 
-io_object_t::handle_t io_object_t::add_fd (fd_t fd)
+io_object_t::handle_t io_object_t::add_fd (ZmqFileDesc fd)
 {
     return poller.add_fd (fd, this);
 }

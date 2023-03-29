@@ -40,7 +40,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
 {
     setup_test_context ();
     char my_endpoint[MAX_SOCKET_STRING];
-    fd_t server = bind_socket_resolve_port ("127.0.0.1", "0", my_endpoint);
+    ZmqFileDesc server = bind_socket_resolve_port ("127.0.0.1", "0", my_endpoint);
 
     void *client = test_context_socket (ZMQ_SUB);
     //  As per API by default there's no limit to the size of a message,
@@ -51,7 +51,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (client, ZMQ_SUBSCRIBE, "", 0));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
-    fd_t server_accept =
+    ZmqFileDesc server_accept =
       TEST_ASSERT_SUCCESS_RAW_ERRNO (accept (server, null_mut(), null_mut()));
 
     //  If there is not enough data for a full greeting, just send what we can

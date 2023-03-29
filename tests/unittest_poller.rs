@@ -56,7 +56,7 @@ void test_start_empty ()
 
 struct test_events_t : i_poll_events
 {
-    test_events_t (fd_t fd, poller_t &poller_) :
+    test_events_t (fd: ZmqFileDesc, poller_t &poller_) :
         _fd (fd),
         poller (poller_)
     {
@@ -94,7 +94,7 @@ struct test_events_t : i_poll_events
     AtomicCounter in_events, timer_events;
 
   // private:
-    fd_t _fd;
+    ZmqFileDesc _fd;
     poller_t &poller;
     poller_t::handle_t _handle;
 };
@@ -127,7 +127,7 @@ void wait_timer_events (test_events_t &events_)
     zmq_stopwatch_stop (watch);
 }
 
-void create_nonblocking_fdpair (fd_t *r_, fd_t *w_)
+void create_nonblocking_fdpair (ZmqFileDesc *r_, ZmqFileDesc *w_)
 {
     int rc = make_fdpair (r_, w_);
     TEST_ASSERT_EQUAL_INT (0, rc);
@@ -137,7 +137,7 @@ void create_nonblocking_fdpair (fd_t *r_, fd_t *w_)
     unblock_socket (*w_);
 }
 
-void send_signal (fd_t w_)
+void send_signal (ZmqFileDesc w_)
 {
 // #if defined ZMQ_HAVE_EVENTFD
     const u64 inc = 1;
@@ -152,7 +152,7 @@ void send_signal (fd_t w_)
 // #endif
 }
 
-void close_fdpair (fd_t w_, fd_t r_)
+void close_fdpair (ZmqFileDesc w_, ZmqFileDesc r_)
 {
     int rc = closesocket (w_);
     TEST_ASSERT_EQUAL_INT (0, rc);
@@ -169,7 +169,7 @@ void test_add_fd_and_start_and_receive_data ()
     ThreadCtx thread_ctx;
     poller_t poller (thread_ctx);
 
-    fd_t r, w;
+    ZmqFileDesc r, w;
     create_nonblocking_fdpair (&r, &w);
 
     test_events_t events (r, poller);
@@ -189,7 +189,7 @@ void test_add_fd_and_start_and_receive_data ()
 
 void test_add_fd_and_remove_by_timer ()
 {
-    fd_t r, w;
+    ZmqFileDesc r, w;
     create_nonblocking_fdpair (&r, &w);
 
     ThreadCtx thread_ctx;
@@ -215,7 +215,7 @@ void test_add_fd_with_pending_failing_connect ()
     ThreadCtx thread_ctx;
     poller_t poller (thread_ctx);
 
-    fd_t bind_socket = socket (AF_INET, SOCK_STREAM, 0);
+    ZmqFileDesc bind_socket = socket (AF_INET, SOCK_STREAM, 0);
     sockaddr_in addr = {0};
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
@@ -229,7 +229,7 @@ void test_add_fd_with_pending_failing_connect ()
                                            reinterpret_cast<sockaddr *> (&addr),
                                            &addr_len));
 
-    fd_t connect_socket = socket (AF_INET, SOCK_STREAM, 0);
+    ZmqFileDesc connect_socket = socket (AF_INET, SOCK_STREAM, 0);
     unblock_socket (connect_socket);
 
     TEST_ASSERT_EQUAL_INT (

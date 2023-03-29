@@ -100,10 +100,10 @@ pub struct tcp_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 
     //  Get the file descriptor of newly created connection. Returns
     //  retired_fd if the connection was unsuccessful.
-    fd_t connect ();
+    ZmqFileDesc connect ();
 
     //  Tunes a connected socket.
-    bool tune_socket (fd_t fd);
+    bool tune_socket (ZmqFileDesc fd);
 
     //  True iff a timer has been started.
     _connect_timer_started: bool
@@ -150,7 +150,7 @@ void tcp_connecter_t::out_event ()
 
     rm_handle ();
 
-    const fd_t fd = connect ();
+    const ZmqFileDesc fd = connect ();
 
     if (fd == retired_fd
         && ((options.reconnect_stop & ZMQ_RECONNECT_STOP_CONN_REFUSED)
@@ -302,7 +302,7 @@ int tcp_connecter_t::open ()
     return -1;
 }
 
-fd_t tcp_connecter_t::connect ()
+ZmqFileDesc tcp_connecter_t::connect ()
 {
     //  Async connect has finished. Check whether an error occurred
     int err = 0;
@@ -346,12 +346,12 @@ fd_t tcp_connecter_t::connect ()
 // #endif
 
     //  Return the newly connected socket.
-    const fd_t result = _s;
+    const ZmqFileDesc result = _s;
     _s = retired_fd;
     return result;
 }
 
-bool tcp_connecter_t::tune_socket (const fd_t fd)
+bool tcp_connecter_t::tune_socket (const ZmqFileDesc fd)
 {
     let rc: i32 = tune_tcp_socket (fd)
                    | tune_tcp_keepalives (

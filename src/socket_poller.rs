@@ -46,11 +46,11 @@ pub struct socket_poller_t
     int modify (const ZmqSocketBase *socket, short events_);
     int remove (ZmqSocketBase *socket);
 
-    int add_fd (fd_t fd, user_data_: &mut [u8], short events_);
-    int modify_fd (fd_t fd, short events_);
-    int remove_fd (fd_t fd);
+    int add_fd (fd: ZmqFileDesc, user_data_: &mut [u8], short events_);
+    int modify_fd (fd: ZmqFileDesc, short events_);
+    int remove_fd (ZmqFileDesc fd);
     // Returns the signaler's fd if there is one, otherwise errors.
-    int signaler_fd (fd_t *fd) const;
+    int signaler_fd (ZmqFileDesc *fd) const;
 
     int wait (event_t *events_, n_events_: i32, long timeout);
 
@@ -63,7 +63,7 @@ pub struct socket_poller_t
     typedef struct item_t
     {
         ZmqSocketBase *socket;
-        fd_t fd;
+        ZmqFileDesc fd;
         user_data: *mut c_void;
         short events;
 // #if defined ZMQ_POLL_BASED_ON_POLL
@@ -92,7 +92,7 @@ pub struct socket_poller_t
     {
         return item.socket == socket;
     }
-    static bool is_fd (const item_t &item, fd_t fd)
+    static bool is_fd (const item_t &item, ZmqFileDesc fd)
     {
         return !item.socket && item.fd == fd;
     }
@@ -124,7 +124,7 @@ pub struct socket_poller_t
     resizable_optimized_fd_set_t _pollset_in;
     resizable_optimized_fd_set_t _pollset_out;
     resizable_optimized_fd_set_t _pollset_err;
-    fd_t _max_fd;
+    ZmqFileDesc _max_fd;
 // #endif
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (socket_poller_t)
@@ -193,7 +193,7 @@ bool socket_poller_t::check_tag () const
     return _tag == 0xCAFEBABE;
 }
 
-int socket_poller_t::signaler_fd (fd_t *fd) const
+int socket_poller_t::signaler_fd (ZmqFileDesc *fd) const
 {
     if (signaler) {
         *fd = signaler.get_fd ();
@@ -254,7 +254,7 @@ int socket_poller_t::add (ZmqSocketBase *socket,
     return 0;
 }
 
-int socket_poller_t::add_fd (fd_t fd, user_data_: &mut [u8], short events_)
+int socket_poller_t::add_fd (fd: ZmqFileDesc, user_data_: &mut [u8], short events_)
 {
     if (find_if2 (_items.begin (), _items.end (), fd, &is_fd)
         != _items.end ()) {
@@ -301,7 +301,7 @@ int socket_poller_t::modify (const ZmqSocketBase *socket, short events_)
 }
 
 
-int socket_poller_t::modify_fd (fd_t fd, short events_)
+int socket_poller_t::modify_fd (fd: ZmqFileDesc, short events_)
 {
     const items_t::iterator it =
       find_if2 (_items.begin (), _items.end (), fd, &is_fd);
@@ -338,7 +338,7 @@ int socket_poller_t::remove (ZmqSocketBase *socket)
     return 0;
 }
 
-int socket_poller_t::remove_fd (fd_t fd)
+int socket_poller_t::remove_fd (ZmqFileDesc fd)
 {
     const items_t::iterator it =
       find_if2 (_items.begin (), _items.end (), fd, &is_fd);
@@ -404,7 +404,7 @@ int socket_poller_t::rebuild ()
         if (it.events) {
             if (it.socket) {
                 if (!is_thread_safe (*it.socket)) {
-                    size_t fd_size = sizeof (fd_t);
+                    size_t fd_size = sizeof (ZmqFileDesc);
                     let rc: i32 = it.socket.getsockopt (
                       ZMQ_FD, &_pollfds[item_nbr].fd, &fd_size);
                     zmq_assert (rc == 0);
@@ -458,8 +458,8 @@ int socket_poller_t::rebuild ()
             //  notification file descriptor retrieved by the ZMQ_FD socket option.
             if (it.socket) {
                 if (!is_thread_safe (*it.socket)) {
-                    fd_t notify_fd;
-                    size_t fd_size = sizeof (fd_t);
+                    ZmqFileDesc notify_fd;
+                    size_t fd_size = sizeof (ZmqFileDesc);
                     int rc =
                       it.socket.getsockopt (ZMQ_FD, &notify_fd, &fd_size);
                     zmq_assert (rc == 0);

@@ -34,18 +34,18 @@
 // #include "windows.hpp"
 // #endif
 
-// // typedef zmq_fd_t fd_t;
+// // typedef zmq_fd_t ZmqFileDesc;
 //
 // // #ifdef ZMQ_HAVE_WINDOWS
 // // #if defined _MSC_VER && _MSC_VER <= 1400
 // enum
 // {
-//     retired_fd = (fd_t) (~0)
+//     retired_fd = (ZmqFileDesc) (~0)
 // };
 // // #else
 // enum
 // #if _MSC_VER >= 1800
-//   : fd_t
+//   : ZmqFileDesc
 // // #endif
 // {
 //     retired_fd = INVALID_SOCKET
@@ -63,8 +63,8 @@
 use libc::SOCKET;
 
 #[cfg(target_os = "windows")]
-pub type zmq_fd_t = SOCKET;
+pub type ZmqFileDesc = SOCKET;
 #[cfg(target_os = "linux")]
-type zmq_fd_t = i32;
+pub type ZmqFileDesc = i32;
 
-pub type fd_t = zmq_fd_t;
+

@@ -152,10 +152,10 @@ void pgm_sender_t::plug (ZmqThread *io_thread_, ZmqSessionBase *session_)
 {
     LIBZMQ_UNUSED (io_thread_);
     //  Allocate 2 fds for PGM socket.
-    fd_t downlink_socket_fd = retired_fd;
-    fd_t uplink_socket_fd = retired_fd;
-    fd_t rdata_notify_fd = retired_fd;
-    fd_t pending_notify_fd = retired_fd;
+    ZmqFileDesc downlink_socket_fd = retired_fd;
+    ZmqFileDesc uplink_socket_fd = retired_fd;
+    ZmqFileDesc rdata_notify_fd = retired_fd;
+    ZmqFileDesc pending_notify_fd = retired_fd;
 
     session = session_;
 

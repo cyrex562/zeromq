@@ -91,18 +91,18 @@ pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     int resolve_raw_address (name_: &str, length_: usize);
     static void sockaddr_to_msg (msg: &mut ZmqMessage const sockaddr_in *addr_);
 
-    static int set_udp_reuse_address (fd_t s_, on_: bool);
-    static int set_udp_reuse_port (fd_t s_, on_: bool);
+    static int set_udp_reuse_address (ZmqFileDesc s_, on_: bool);
+    static int set_udp_reuse_port (ZmqFileDesc s_, on_: bool);
     // Indicate, if the multicast data being sent should be looped back
-    static int set_udp_multicast_loop (fd_t s_, is_ipv6_: bool, loop_: bool);
+    static int set_udp_multicast_loop (ZmqFileDesc s_, is_ipv6_: bool, loop_: bool);
     // Set multicast TTL
-    static int set_udp_multicast_ttl (fd_t s_, is_ipv6_: bool, hops_: i32);
+    static int set_udp_multicast_ttl (ZmqFileDesc s_, is_ipv6_: bool, hops_: i32);
     // Set multicast address/interface
-    int set_udp_multicast_iface (fd_t s_,
+    int set_udp_multicast_iface (ZmqFileDesc s_,
                                  is_ipv6_: bool,
                                  const UdpAddress *addr_);
     // Join a multicast group
-    int add_membership (fd_t s_, const UdpAddress *addr_);
+    int add_membership (ZmqFileDesc s_, const UdpAddress *addr_);
 
     //  Function to handle network issues.
     void error (error_reason_t reason_);
@@ -111,7 +111,7 @@ pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
 
     _plugged: bool
 
-    fd_t _fd;
+    ZmqFileDesc _fd;
     ZmqSessionBase *_session;
     handle_t _handle;
     Address *_address;
@@ -293,7 +293,7 @@ void udp_engine_t::plug (ZmqThread *io_thread_, ZmqSessionBase *session_)
     }
 }
 
-int udp_engine_t::set_udp_multicast_loop (fd_t s_,
+int udp_engine_t::set_udp_multicast_loop (ZmqFileDesc s_,
                                                is_ipv6_: bool,
                                                loop_: bool)
 {
@@ -315,7 +315,7 @@ int udp_engine_t::set_udp_multicast_loop (fd_t s_,
     return rc;
 }
 
-int udp_engine_t::set_udp_multicast_ttl (fd_t s_, is_ipv6_: bool, hops_: i32)
+int udp_engine_t::set_udp_multicast_ttl (ZmqFileDesc s_, is_ipv6_: bool, hops_: i32)
 {
     level: i32;
 
@@ -332,7 +332,7 @@ int udp_engine_t::set_udp_multicast_ttl (fd_t s_, is_ipv6_: bool, hops_: i32)
     return rc;
 }
 
-int udp_engine_t::set_udp_multicast_iface (fd_t s_,
+int udp_engine_t::set_udp_multicast_iface (ZmqFileDesc s_,
                                                 is_ipv6_: bool,
                                                 const UdpAddress *addr_)
 {
@@ -362,7 +362,7 @@ int udp_engine_t::set_udp_multicast_iface (fd_t s_,
     return rc;
 }
 
-int udp_engine_t::set_udp_reuse_address (fd_t s_, on_: bool)
+int udp_engine_t::set_udp_reuse_address (ZmqFileDesc s_, on_: bool)
 {
     int on = on_ ? 1 : 0;
     let rc: i32 = setsockopt (s_, SOL_SOCKET, SO_REUSEADDR,
@@ -371,7 +371,7 @@ int udp_engine_t::set_udp_reuse_address (fd_t s_, on_: bool)
     return rc;
 }
 
-int udp_engine_t::set_udp_reuse_port (fd_t s_, on_: bool)
+int udp_engine_t::set_udp_reuse_port (ZmqFileDesc s_, on_: bool)
 {
 // #ifndef SO_REUSEPORT
     return 0;
@@ -384,7 +384,7 @@ int udp_engine_t::set_udp_reuse_port (fd_t s_, on_: bool)
 // #endif
 }
 
-int udp_engine_t::add_membership (fd_t s_, const UdpAddress *addr_)
+int udp_engine_t::add_membership (ZmqFileDesc s_, const UdpAddress *addr_)
 {
     const ip_addr_t *mcast_addr = addr_.target_addr ();
     int rc = 0;

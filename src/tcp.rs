@@ -54,7 +54,7 @@
 // #include <TargetConditionals.h>
 // #endif
 
-int tune_tcp_socket (fd_t s_)
+int tune_tcp_socket (ZmqFileDesc s_)
 {
     //  Disable Nagle's algorithm. We are doing data batching on 0MQ level,
     //  so using Nagle wouldn't improve throughput in anyway, but it would
@@ -77,7 +77,7 @@ int tune_tcp_socket (fd_t s_)
     return rc;
 }
 
-int set_tcp_send_buffer (fd_t sockfd_, bufsize_: i32)
+int set_tcp_send_buffer (ZmqFileDesc sockfd_, bufsize_: i32)
 {
     let rc: i32 =
       setsockopt (sockfd_, SOL_SOCKET, SO_SNDBUF,
@@ -86,7 +86,7 @@ int set_tcp_send_buffer (fd_t sockfd_, bufsize_: i32)
     return rc;
 }
 
-int set_tcp_receive_buffer (fd_t sockfd_, bufsize_: i32)
+int set_tcp_receive_buffer (ZmqFileDesc sockfd_, bufsize_: i32)
 {
     let rc: i32 =
       setsockopt (sockfd_, SOL_SOCKET, SO_RCVBUF,
@@ -95,7 +95,7 @@ int set_tcp_receive_buffer (fd_t sockfd_, bufsize_: i32)
     return rc;
 }
 
-int tune_tcp_keepalives (fd_t s_,
+int tune_tcp_keepalives (ZmqFileDesc s_,
                               keepalive_: i32,
                               keepalive_cnt_: i32,
                               keepalive_idle_: i32,
@@ -184,7 +184,7 @@ int tune_tcp_keepalives (fd_t s_,
     return 0;
 }
 
-int tune_tcp_maxrt (fd_t sockfd_, timeout: i32)
+int tune_tcp_maxrt (ZmqFileDesc sockfd_, timeout: i32)
 {
     if (timeout <= 0)
         return 0;
@@ -210,7 +210,7 @@ int tune_tcp_maxrt (fd_t sockfd_, timeout: i32)
 // #endif
 }
 
-int tcp_write (fd_t s_, const data: &mut [u8], size: usize)
+int tcp_write (ZmqFileDesc s_, const data: &mut [u8], size: usize)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
 
@@ -269,7 +269,7 @@ int tcp_write (fd_t s_, const data: &mut [u8], size: usize)
 // #endif
 }
 
-int tcp_read (fd_t s_, data: &mut [u8], size: usize)
+int tcp_read (ZmqFileDesc s_, data: &mut [u8], size: usize)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
 
@@ -317,7 +317,7 @@ int tcp_read (fd_t s_, data: &mut [u8], size: usize)
 // #endif
 }
 
-void tcp_tune_loopback_fast_path (const fd_t socket)
+void tcp_tune_loopback_fast_path (const ZmqFileDesc socket)
 {
 // #if defined ZMQ_HAVE_WINDOWS && defined SIO_LOOPBACK_FAST_PATH
     int sio_loopback_fastpath = 1;
@@ -341,7 +341,7 @@ void tcp_tune_loopback_fast_path (const fd_t socket)
 // #endif
 }
 
-void tune_tcp_busy_poll (fd_t socket, busy_poll_: i32)
+void tune_tcp_busy_poll (ZmqFileDesc socket, busy_poll_: i32)
 {
 // #if defined(ZMQ_HAVE_BUSY_POLL)
     if (busy_poll_ > 0) {
@@ -356,7 +356,7 @@ void tune_tcp_busy_poll (fd_t socket, busy_poll_: i32)
 // #endif
 }
 
-fd_t tcp_open_socket (address_: &str,
+ZmqFileDesc tcp_open_socket (address_: &str,
                                 options: &ZmqOptions,
                                 local_: bool,
                                 fallback_to_ipv4_: bool,
@@ -368,7 +368,7 @@ fd_t tcp_open_socket (address_: &str,
         return retired_fd;
 
     //  Create the socket.
-    fd_t s = open_socket (out_tcp_addr_.family (), SOCK_STREAM, IPPROTO_TCP);
+    ZmqFileDesc s = open_socket (out_tcp_addr_.family (), SOCK_STREAM, IPPROTO_TCP);
 
     //  IPv6 address family not supported, try automatic downgrade to IPv4.
     if (s == retired_fd && fallback_to_ipv4_
