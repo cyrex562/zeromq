@@ -32,7 +32,9 @@
 
 // #ifdef ZMQ_HAVE_CURVE
 
+use crate::config::{CRYPTO_BOX_PUBLICKEYBYTES, CRYPTO_BOX_SECRETKEYBYTES, CRYPTO_BOX_NONCEBYTES, CRYPTO_BOX_BOXZEROBYTES, CRYPTO_SECRETBOX_NONCEBYTES, CRYPTO_SECRETBOX_ZEROBYTES};
 use crate::curve_mechanism_base::ZmqCurveMechanismBase;
+use crate::message::ZmqMessage;
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 use crate::zap_client::zap_client_common_handshake_t;
@@ -77,13 +79,18 @@ impl curve_server_t {
         let mut mechanism_base =
         Self {
             zap_client_common_handshake: zap_client_common_handshake_t::new(session,peer_address,options,sending_ready),
-            curve_mechanism_base: ZmqCurveMe,
-            _secret_key: todo!(),
-            _cn_public: todo!(),
-            _cn_secret: todo!(),
+            curve_mechanism_base: ZmqCurveMechanismBase::new(
+                session,
+                options,
+                "CurveZMQMESSAGES", "CurveZMQMESSAGEC",
+                downgrade_sub),
+            _secret_key: options.curve_secret_key,
+            _cn_public: [0;CRYPTO_BOX_PUBLICKEYBYTES],
+            _cn_secret: [0;CRYPTO_BOX_SECRETKEYBYTES],
             _cn_client: todo!(),
             _cookie_key: todo!(),
         };
+        cyrpto_box_keypair(mechanism_base._secret_key, options.curve_secret_key, CRYPTO_BOX_SECRETKEYBYTES);
         mechanism_base
     }
 
@@ -91,18 +98,235 @@ impl curve_server_t {
 
     // mechanism implementation
     // int next_handshake_command (msg: &mut ZmqMessage);
+    pub fn next_handshake_command (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
+    {
+        // int rc = 0;
+
+        match (state) {
+            sending_welcome =>{
+                rc = produce_welcome (msg);
+                if (rc == 0){
+                    state = waiting_for_initiate;}}
+                // break;
+            sending_ready =>{
+                rc = produce_ready (msg);
+                if (rc == 0){
+                    state = ready;}}
+                // break;
+            sending_error =>{
+                rc = produce_error (msg);
+                if (rc == 0){
+                    state = error_sent;}}
+                // break;
+            _ =>{
+                // errno = EAGAIN;
+                // rc = -1;
+                bail!("EAGAIN")
+            }
+                // break;
+        }
+        return rc;
+    }
 
     // int process_handshake_command (msg: &mut ZmqMessage);
+    pub fn process_handshake_command(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+        // int rc = 0;
+
+        match (state) {
+            waiting_for_hello =>{
+                rc = process_hello (msg);
+                if (rc == 0){
+                    state = sending_welcome;}}
+                // break;
+            waiting_for_initiate =>{
+                rc = process_initiate (msg);
+                if (rc == 0){
+                    state = sending_ready;}}
+                // break;
+            _ =>{
+                // errno = EAGAIN;
+                // rc = -1;
+                bail!("EAGAIN")
+            }
+                // break;
+        }
+        return rc;
+    }
 
     // int encode (msg: &mut ZmqMessage);
+    pub fn encode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>{
+        // int rc = 0;
+
+        //  If we are not ready yet, return EAGAIN.
+        if (state != ready){
+            // errno = EAGAIN;
+            // rc = -1;
+            bail!("EAGAIN")
+        }
+
+        //  Encode the message.
+        // rc = ZmqCurveMechanismBase::encode (msg);
+        // return rc;
+        self.curve_mechanism_base.encode(msg);
+        Ok(())
+    }
 
     // int decode (msg: &mut ZmqMessage);
+    pub fn decode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+        // int rc = 0;
+
+        //  If we are not ready yet, return EAGAIN.
+        if (state != ready){
+            // errno = EAGAIN;
+            // rc = -1;
+            bail!("EAGAIN")
+        }
+
+        //  Decode the message.
+        // rc = ZmqCurveMechanismBase::decode (msg);
+        self.curve_mechanism_base.decode(msg);
+        // return rc;
+        Ok(())
+    }
 
     // int process_hello (msg: &mut ZmqMessage);
+    pub fn process_hello(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+        // int rc = 0;
+        check_basic_command_structure(msg)?;
+
+        let hello = msg.data();
+        if msg.size() < 6 || hello == b"\x05HELLO" {
+            self.session.get_socket().event_handshake_failed_protocol(
+                self.session.get_endpoint(),
+                ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
+                self.peer_address,
+                "CURVE",
+                "HELLO command is malformed");
+            bail!("EPROTO");
+        }
+
+        let major = hello[6];
+        let minor = hello[7];
+        if major != 1 || minor != 0 {
+            self.session.get_socket().event_handshake_failed_protocol(
+                self.session.get_endpoint(),
+                ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
+                self.peer_address,
+                "CURVE",
+                "HELLO command is malformed");
+            bail!("EPROTO");
+        }
+
+        copy_bytes(self._cn_client, 0, hello, 80, 32);
+
+        let mut hello_nonce: [u8;CRYPTO_BOX_NONCEBYTES] = [0;CRYPTO_BOX_NONCEBYTES];
+        let mut hello_plaintext: [u8;80] = [0;80];
+        let mut hello_box: [u8;80 + CRYPTO_BOX_MACBYTES] = [0;80 + CRYPTO_BOX_MACBYTES];
+
+        copy_bytes(hello_nonce, 0, b"CurveZMQHELLO---", 0, 16);
+
+        copy_bytes(hello_nonce, 16, hello, 112, 8);
+
+        set_peer_nonce(get_u64(hello, 112));
+
+        copy_bytes(hello_box, CRYPTO_BOX_BOXZEROBYTES, hello, 120, 80);
+
+        match crypto_box_open(&hello_plaintext[0], hello_box, hello_box.size(), &hello_nonce, &self._cn_client, &self._secret_key) {
+            Ok(_) => {},
+            Err(e) => {
+                self.session.get_socket().event_handshake_failed_protocol(
+                    self.session.get_endpoint(),
+                    ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
+                    self.peer_address,
+                    "CURVE",
+                    "HELLO command is malformed");
+                bail!("EPROTO");
+            }
+        };
+
+        self.state = sending_welcome;
+
+        // return rc;
+        Ok(())
+    }
 
     // int produce_welcome (msg: &mut ZmqMessage);
+    pub fn produce_welcome(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+        // int rc = 0;
+        let cookie_none: [u8;CRYPTO_SECRETBOX_NONCEBYTES] = [0;CRYPTO_SECRETBOX_NONCEBYTES];
+        let cookie_plaintext: [u8;CRYPTO_SECRETBOX_ZEROBYTES] = [0;CRYPTO_SECRETBOX_ZEROBYTES];
+        copy_bytes(cookie_nonce, 0, b"COOKIE--", 0, 8);
+        self._cookie_key = [0;CRYPTO_SECRETBOX_KEYBYTES];
+        randombytes(self._cookie_key, CRYPTO_SECRETBOX_KEYBYTES);
+
+        //  Create welcome message.
+        let mut welcome = ZmqMessage::new();
+        if (welcome.addmem (1) == -1){
+            // rc = -1;
+            bail!("EPROTO")
+        }
+        let mut version = welcome.get (0);
+        if (version.addmem (1) == -1){
+            // rc = -1;
+            bail!("EPROTO")
+        }
+        version.put (0, 1);
+
+        //  Copy the message to the output.
+        msg.copy (&welcome);
+
+        // return rc;
+        Ok(())
+    }
 
     // int process_initiate (msg: &mut ZmqMessage);
+    pub fn process_initiate(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+        // int rc = 0;
+
+        //  Check message size.
+        if (msg.size () != 3){
+            // errno = EPROTO;
+            // rc = -1;
+            bail!("EPROTO")
+        }
+
+        //  Check protocol version.
+        let mut version = msg.get (0);
+        if (version.size () != 1){
+            // errno = EPROTO;
+            // rc = -1;
+            bail!("EPROTO")
+        }
+        let version = version.get (0);
+        if (version != 1){
+            // errno = EPROTO;
+            // rc = -1;
+            bail!("EPROTO")
+        }
+
+        //  Get client's public key.
+        let mut client_key = msg.get (1);
+        if (client_key.size () != CRYPTO_BOX_PUBLICKEYBYTES){
+            // errno = EPROTO;
+            // rc = -1;
+            bail!("EPROTO")
+        }
+        memcpy (_cn_client, client_key.data (), CRYPTO_BOX_PUBLICKEYBYTES);
+
+        //  Get client's cookie.
+        let mut cookie = msg.get (2);
+        if (cookie.size () != CRYPTO_BOX_NONCEBYTES){
+            // errno = EPROTO;
+            // rc = -1;
+            bail!("EPROTO")
+        }
+
+        //  Send ZAP request.
+        send_zap_request (b"INITIATE");
+
+        // return rc;
+        Ok(())
+    }
 
     // int produce_ready (msg: &mut ZmqMessage);
 
@@ -111,173 +335,173 @@ impl curve_server_t {
     // void send_zap_request (const key_: &mut [u8]);
 }
 
-curve_server_t::curve_server_t (ZmqSessionBase *session_,
-                                     const std::string &peer_address_,
-                                     options: &ZmqOptions,
-                                     const downgrade_sub_: bool) :
-    ZmqMechanismBase (session_, options_),
-    zap_client_common_handshake_t (
-      session_, peer_address_, options_, sending_ready),
-    ZmqCurveMechanismBase (session_,
-                            options_,
-                            "CurveZMQMESSAGES",
-                            "CurveZMQMESSAGEC",
-                            downgrade_sub_)
-{
-    rc: i32;
-    //  Fetch our secret key from socket options
-    memcpy (_secret_key, options_.curve_secret_key, CRYPTO_BOX_SECRETKEYBYTES);
+// curve_server_t::curve_server_t (ZmqSessionBase *session_,
+//                                      const std::string &peer_address_,
+//                                      options: &ZmqOptions,
+//                                      const downgrade_sub_: bool) :
+//     ZmqMechanismBase (session_, options_),
+//     zap_client_common_handshake_t (
+//       session_, peer_address_, options_, sending_ready),
+//     ZmqCurveMechanismBase (session_,
+//                             options_,
+//                             "CurveZMQMESSAGES",
+//                             "CurveZMQMESSAGEC",
+//                             downgrade_sub_)
+// {
+//     rc: i32;
+//     //  Fetch our secret key from socket options
+//     memcpy (_secret_key, options_.curve_secret_key, CRYPTO_BOX_SECRETKEYBYTES);
 
-    //  Generate short-term key pair
-    memset (_cn_secret, 0, CRYPTO_BOX_SECRETKEYBYTES);
-    memset (_cn_public, 0, CRYPTO_BOX_PUBLICKEYBYTES);
-    rc = crypto_box_keypair (_cn_public, _cn_secret);
-    zmq_assert (rc == 0);
-}
+//     //  Generate short-term key pair
+//     memset (_cn_secret, 0, CRYPTO_BOX_SECRETKEYBYTES);
+//     memset (_cn_public, 0, CRYPTO_BOX_PUBLICKEYBYTES);
+//     rc = crypto_box_keypair (_cn_public, _cn_secret);
+//     zmq_assert (rc == 0);
+// }
 
-curve_server_t::~curve_server_t ()
-{
-}
+// curve_server_t::~curve_server_t ()
+// {
+// }
 
-int curve_server_t::next_handshake_command (msg: &mut ZmqMessage)
-{
-    int rc = 0;
+// int curve_server_t::next_handshake_command (msg: &mut ZmqMessage)
+// {
+//     int rc = 0;
 
-    switch (state) {
-        case sending_welcome:
-            rc = produce_welcome (msg);
-            if (rc == 0)
-                state = waiting_for_initiate;
-            break;
-        case sending_ready:
-            rc = produce_ready (msg);
-            if (rc == 0)
-                state = ready;
-            break;
-        case sending_error:
-            rc = produce_error (msg);
-            if (rc == 0)
-                state = error_sent;
-            break;
-        _ =>
-            errno = EAGAIN;
-            rc = -1;
-            break;
-    }
-    return rc;
-}
+//     switch (state) {
+//         case sending_welcome:
+//             rc = produce_welcome (msg);
+//             if (rc == 0)
+//                 state = waiting_for_initiate;
+//             break;
+//         case sending_ready:
+//             rc = produce_ready (msg);
+//             if (rc == 0)
+//                 state = ready;
+//             break;
+//         case sending_error:
+//             rc = produce_error (msg);
+//             if (rc == 0)
+//                 state = error_sent;
+//             break;
+//         _ =>
+//             errno = EAGAIN;
+//             rc = -1;
+//             break;
+//     }
+//     return rc;
+// }
 
-int curve_server_t::process_handshake_command (msg: &mut ZmqMessage)
-{
-    int rc = 0;
+// int curve_server_t::process_handshake_command (msg: &mut ZmqMessage)
+// {
+//     int rc = 0;
 
-    switch (state) {
-        case waiting_for_hello:
-            rc = process_hello (msg);
-            break;
-        case waiting_for_initiate:
-            rc = process_initiate (msg);
-            break;
-        _ =>
-            // TODO I think this is not a case reachable with a misbehaving
-            // client. It is not an "invalid handshake command", but would be
-            // trying to process a handshake command in an invalid state,
-            // which is purely under control of this peer.
-            // Therefore, it should be changed to zmq_assert (false);
+//     switch (state) {
+//         case waiting_for_hello:
+//             rc = process_hello (msg);
+//             break;
+//         case waiting_for_initiate:
+//             rc = process_initiate (msg);
+//             break;
+//         _ =>
+//             // TODO I think this is not a case reachable with a misbehaving
+//             // client. It is not an "invalid handshake command", but would be
+//             // trying to process a handshake command in an invalid state,
+//             // which is purely under control of this peer.
+//             // Therefore, it should be changed to zmq_assert (false);
 
-            // CURVE I: invalid handshake command
-            session.get_socket ().event_handshake_failed_protocol (
-              session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNSPECIFIED);
-            errno = EPROTO;
-            rc = -1;
-            break;
-    }
-    if (rc == 0) {
-        rc = msg.close ();
-        errno_assert (rc == 0);
-        rc = msg.init ();
-        errno_assert (rc == 0);
-    }
-    return rc;
-}
+//             // CURVE I: invalid handshake command
+//             session.get_socket ().event_handshake_failed_protocol (
+//               session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNSPECIFIED);
+//             errno = EPROTO;
+//             rc = -1;
+//             break;
+//     }
+//     if (rc == 0) {
+//         rc = msg.close ();
+//         errno_assert (rc == 0);
+//         rc = msg.init ();
+//         errno_assert (rc == 0);
+//     }
+//     return rc;
+// }
 
-int curve_server_t::encode (msg: &mut ZmqMessage)
-{
-    zmq_assert (state == ready);
-    return ZmqCurveMechanismBase::encode (msg);
-}
+// int curve_server_t::encode (msg: &mut ZmqMessage)
+// {
+//     zmq_assert (state == ready);
+//     return ZmqCurveMechanismBase::encode (msg);
+// }
 
-int curve_server_t::decode (msg: &mut ZmqMessage)
-{
-    zmq_assert (state == ready);
-    return ZmqCurveMechanismBase::decode (msg);
-}
+// int curve_server_t::decode (msg: &mut ZmqMessage)
+// {
+//     zmq_assert (state == ready);
+//     return ZmqCurveMechanismBase::decode (msg);
+// }
 
-int curve_server_t::process_hello (msg: &mut ZmqMessage)
-{
-    int rc = check_basic_command_structure (msg);
-    if (rc == -1)
-        return -1;
+// int curve_server_t::process_hello (msg: &mut ZmqMessage)
+// {
+//     int rc = check_basic_command_structure (msg);
+//     if (rc == -1)
+//         return -1;
 
-    const size_t size = msg.size ();
-    const uint8_t *const hello = static_cast<uint8_t *> (msg.data ());
+//     const size_t size = msg.size ();
+//     const uint8_t *const hello = static_cast<uint8_t *> (msg.data ());
 
-    if (size < 6 || memcmp (hello, "\x05HELLO", 6)) {
-        session.get_socket ().event_handshake_failed_protocol (
-          session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
-        errno = EPROTO;
-        return -1;
-    }
+//     if (size < 6 || memcmp (hello, "\x05HELLO", 6)) {
+//         session.get_socket ().event_handshake_failed_protocol (
+//           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
+//         errno = EPROTO;
+//         return -1;
+//     }
 
-    if (size != 200) {
-        session.get_socket ().event_handshake_failed_protocol (
-          session.get_endpoint (),
-          ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
-        errno = EPROTO;
-        return -1;
-    }
+//     if (size != 200) {
+//         session.get_socket ().event_handshake_failed_protocol (
+//           session.get_endpoint (),
+//           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
+//         errno = EPROTO;
+//         return -1;
+//     }
 
-    const uint8_t major = hello[6];
-    const uint8_t minor = hello[7];
+//     const uint8_t major = hello[6];
+//     const uint8_t minor = hello[7];
 
-    if (major != 1 || minor != 0) {
-        // CURVE I: client HELLO has unknown version number
-        session.get_socket ().event_handshake_failed_protocol (
-          session.get_endpoint (),
-          ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
-        errno = EPROTO;
-        return -1;
-    }
+//     if (major != 1 || minor != 0) {
+//         // CURVE I: client HELLO has unknown version number
+//         session.get_socket ().event_handshake_failed_protocol (
+//           session.get_endpoint (),
+//           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
+//         errno = EPROTO;
+//         return -1;
+//     }
 
-    //  Save client's short-term public key (C')
-    memcpy (_cn_client, hello + 80, 32);
+//     //  Save client's short-term public key (C')
+//     memcpy (_cn_client, hello + 80, 32);
 
-    uint8_t hello_nonce[CRYPTO_BOX_NONCEBYTES];
-    std::vector<uint8_t, secure_allocator_t<uint8_t> > hello_plaintext (
-      CRYPTO_BOX_ZEROBYTES + 64);
-    uint8_t hello_box[CRYPTO_BOX_BOXZEROBYTES + 80];
+//     uint8_t hello_nonce[CRYPTO_BOX_NONCEBYTES];
+//     std::vector<uint8_t, secure_allocator_t<uint8_t> > hello_plaintext (
+//       CRYPTO_BOX_ZEROBYTES + 64);
+//     uint8_t hello_box[CRYPTO_BOX_BOXZEROBYTES + 80];
 
-    memcpy (hello_nonce, "CurveZMQHELLO---", 16);
-    memcpy (hello_nonce + 16, hello + 112, 8);
-    set_peer_nonce (get_uint64 (hello + 112));
+//     memcpy (hello_nonce, "CurveZMQHELLO---", 16);
+//     memcpy (hello_nonce + 16, hello + 112, 8);
+//     set_peer_nonce (get_uint64 (hello + 112));
 
-    memset (hello_box, 0, CRYPTO_BOX_BOXZEROBYTES);
-    memcpy (hello_box + CRYPTO_BOX_BOXZEROBYTES, hello + 120, 80);
+//     memset (hello_box, 0, CRYPTO_BOX_BOXZEROBYTES);
+//     memcpy (hello_box + CRYPTO_BOX_BOXZEROBYTES, hello + 120, 80);
 
-    //  Open Box [64 * %x0](C'->S)
-    rc = crypto_box_open (&hello_plaintext[0], hello_box, sizeof hello_box,
-                          hello_nonce, _cn_client, _secret_key);
-    if (rc != 0) {
-        // CURVE I: cannot open client HELLO -- wrong server key?
-        session.get_socket ().event_handshake_failed_protocol (
-          session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
-        errno = EPROTO;
-        return -1;
-    }
+//     //  Open Box [64 * %x0](C'->S)
+//     rc = crypto_box_open (&hello_plaintext[0], hello_box, sizeof hello_box,
+//                           hello_nonce, _cn_client, _secret_key);
+//     if (rc != 0) {
+//         // CURVE I: cannot open client HELLO -- wrong server key?
+//         session.get_socket ().event_handshake_failed_protocol (
+//           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
+//         errno = EPROTO;
+//         return -1;
+//     }
 
-    state = sending_welcome;
-    return rc;
-}
+//     state = sending_welcome;
+//     return rc;
+// }
 
 int curve_server_t::produce_welcome (msg: &mut ZmqMessage)
 {
