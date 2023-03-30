@@ -70,11 +70,21 @@ impl curve_server_t {
     //                 const std::string &peer_address_,
     //                 options: &ZmqOptions,
     //                 const downgrade_sub_: bool);
-    pub fn new(session: &mut ZmqSessionBase, peer_address: &str, options: &ZmqOptions, downgrade_sub: bool) -> Self {
+    pub fn new(session: &mut ZmqSessionBase,
+        peer_address: &str,
+        options: &ZmqOptions,
+        downgrade_sub: bool) -> Self {
         let mut mechanism_base =
         Self {
-
-        }
+            zap_client_common_handshake: zap_client_common_handshake_t::new(session,peer_address,options,sending_ready),
+            curve_mechanism_base: ZmqCurveMe,
+            _secret_key: todo!(),
+            _cn_public: todo!(),
+            _cn_secret: todo!(),
+            _cn_client: todo!(),
+            _cookie_key: todo!(),
+        };
+        mechanism_base
     }
 
     // ~curve_server_t ();
