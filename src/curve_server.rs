@@ -430,18 +430,45 @@ impl curve_server_t {
     }
 
     // int produce_ready (msg: &mut ZmqMessage);
+
     pub fn produce_ready(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         let metadata_len = self.basic_properties_len;
         let mut ready_nonce: [u8;CRYPTO_BOX_NONCEBYTES] = [0;CRYPTO_BOX_NONCEBYTES];
 
         let ready_plaintext: [u8;CRYPTO_BOX_ZEROBYTES + metadata_len] = [0;CRYPTO_BOX_ZEROBYTES + metadata_len];
 
-        let ptr = &ready_plaintext[CRYPO_BOX_ZEROBYTES];
+        // let ptr = &ready_plaintext[CRYPO_BOX_ZEROBYTES];
+        let ptr: usize = 0;
+        ptr += add_basic_properties(ready_plaintext, ptr, metadata_len);
+        copy_bytes(ready_nonce, 0, b"CurveZMQREADY---", 0, 16);
+        put_u64(ready_nonce + 16, get_and_inc_nonce());
+
+        let len = CRYPTO_BOX_BOXZEROBYTES + 16 + metadata_len;
+        let mut ready_box: [u8;len] = [0;len];
+        cyrpto_box_afternm(ready_box, ready_plaintext, metadata_len + CRYPTO_BOX_ZEROBYTES, ready_nonce, get_precom_buffer())?;
+
+        msg.init_size(14 + metadata_len - CRYPTO_BOX_BOXZEROBYTES)?;
+
+        let ready = msg.data_mut();
+        copy_bytes(ready, 0, b"\x05READY", 0, 6);
+        copy_bytes(ready, 6, ready_nonce, 16, 8);
+        copy_bytes(ready, 14, ready_box, CRYPTO_BOX_BOXZEROBYTES, metadata_len - CRYPTO_BOX_BOXZEROBYTES);
+        Ok(())
     }
 
     // int produce_error (msg: &mut ZmqMessage) const;
+    pub fn produce_error(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+        let expected_status_code_len = 3usize;
+        msg.init_size(6 + 1+ expected_status_code_len)?;
+        let msg_data = msg.data_mut();
+        copy_bytes(msg_data, 0, b"\x05ERROR", 0, 6);
+        msg_data[6] = expected_status_code_len;
+        copy_bytes(msg_data, 7, status_code, 0, expected_status_code_len);
+        Ok(())
+    }
 
     // void send_zap_request (const key_: &mut [u8]);
+    pub fn send_zap_request(&mut self, )
 }
 
 // curve_server_t::curve_server_t (ZmqSessionBase *session_,
@@ -848,59 +875,59 @@ impl curve_server_t {
 //                            clen - CRYPTO_BOX_ZEROBYTES - 128);
 // }
 
-int curve_server_t::produce_ready (msg: &mut ZmqMessage)
-{
-    const size_t metadata_length = basic_properties_len ();
-    uint8_t ready_nonce[CRYPTO_BOX_NONCEBYTES];
+// int curve_server_t::produce_ready (msg: &mut ZmqMessage)
+// {
+//     const size_t metadata_length = basic_properties_len ();
+//     uint8_t ready_nonce[CRYPTO_BOX_NONCEBYTES];
 
-    std::vector<uint8_t, secure_allocator_t<uint8_t> > ready_plaintext (
-      CRYPTO_BOX_ZEROBYTES + metadata_length);
+//     std::vector<uint8_t, secure_allocator_t<uint8_t> > ready_plaintext (
+//       CRYPTO_BOX_ZEROBYTES + metadata_length);
 
-    //  Create Box [metadata](S'->C')
-    std::fill (ready_plaintext.begin (),
-               ready_plaintext.begin () + CRYPTO_BOX_ZEROBYTES, 0);
-    uint8_t *ptr = &ready_plaintext[CRYPTO_BOX_ZEROBYTES];
+//     //  Create Box [metadata](S'->C')
+//     std::fill (ready_plaintext.begin (),
+//                ready_plaintext.begin () + CRYPTO_BOX_ZEROBYTES, 0);
+//     uint8_t *ptr = &ready_plaintext[CRYPTO_BOX_ZEROBYTES];
 
-    ptr += add_basic_properties (ptr, metadata_length);
-    const size_t mlen = ptr - &ready_plaintext[0];
+//     ptr += add_basic_properties (ptr, metadata_length);
+//     const size_t mlen = ptr - &ready_plaintext[0];
 
-    memcpy (ready_nonce, "CurveZMQREADY---", 16);
-    put_uint64 (ready_nonce + 16, get_and_inc_nonce ());
+//     memcpy (ready_nonce, "CurveZMQREADY---", 16);
+//     put_uint64 (ready_nonce + 16, get_and_inc_nonce ());
 
-    std::vector<uint8_t> ready_box (CRYPTO_BOX_BOXZEROBYTES + 16
-                                    + metadata_length);
+//     std::vector<uint8_t> ready_box (CRYPTO_BOX_BOXZEROBYTES + 16
+//                                     + metadata_length);
 
-    int rc = crypto_box_afternm (&ready_box[0], &ready_plaintext[0], mlen,
-                                 ready_nonce, get_precom_buffer ());
-    zmq_assert (rc == 0);
+//     int rc = crypto_box_afternm (&ready_box[0], &ready_plaintext[0], mlen,
+//                                  ready_nonce, get_precom_buffer ());
+//     zmq_assert (rc == 0);
 
-    rc = msg.init_size (14 + mlen - CRYPTO_BOX_BOXZEROBYTES);
-    errno_assert (rc == 0);
+//     rc = msg.init_size (14 + mlen - CRYPTO_BOX_BOXZEROBYTES);
+//     errno_assert (rc == 0);
 
-    uint8_t *ready = static_cast<uint8_t *> (msg.data ());
+//     uint8_t *ready = static_cast<uint8_t *> (msg.data ());
 
-    memcpy (ready, "\x05READY", 6);
-    //  Short nonce, prefixed by "CurveZMQREADY---"
-    memcpy (ready + 6, ready_nonce + 16, 8);
-    //  Box [metadata](S'->C')
-    memcpy (ready + 14, &ready_box[CRYPTO_BOX_BOXZEROBYTES],
-            mlen - CRYPTO_BOX_BOXZEROBYTES);
+//     memcpy (ready, "\x05READY", 6);
+//     //  Short nonce, prefixed by "CurveZMQREADY---"
+//     memcpy (ready + 6, ready_nonce + 16, 8);
+//     //  Box [metadata](S'->C')
+//     memcpy (ready + 14, &ready_box[CRYPTO_BOX_BOXZEROBYTES],
+//             mlen - CRYPTO_BOX_BOXZEROBYTES);
 
-    return 0;
-}
+//     return 0;
+// }
 
-int curve_server_t::produce_error (msg: &mut ZmqMessage) const
-{
-    const size_t expected_status_code_length = 3;
-    zmq_assert (status_code.length () == 3);
-    let rc: i32 = msg.init_size (6 + 1 + expected_status_code_length);
-    zmq_assert (rc == 0);
-    char *msg_data = static_cast<char *> (msg.data ());
-    memcpy (msg_data, "\5ERROR", 6);
-    msg_data[6] = expected_status_code_length;
-    memcpy (msg_data + 7, status_code, expected_status_code_length);
-    return 0;
-}
+// int curve_server_t::produce_error (msg: &mut ZmqMessage) const
+// {
+//     const size_t expected_status_code_length = 3;
+//     zmq_assert (status_code.length () == 3);
+//     let rc: i32 = msg.init_size (6 + 1 + expected_status_code_length);
+//     zmq_assert (rc == 0);
+//     char *msg_data = static_cast<char *> (msg.data ());
+//     memcpy (msg_data, "\5ERROR", 6);
+//     msg_data[6] = expected_status_code_length;
+//     memcpy (msg_data + 7, status_code, expected_status_code_length);
+//     return 0;
+// }
 
 void curve_server_t::send_zap_request (const key_: &mut [u8])
 {
