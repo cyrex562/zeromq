@@ -49,7 +49,7 @@ impl ZmqChannel {
     //     zmq_assert (!_pipe);
     // }
 
-    // channel_t::channel_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+    // channel_t::channel_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     // ZmqSocketBase (parent_, tid, sid_, true), _pipe (null_mut())
     // {
     // options.type = ZMQ_CHANNEL;

@@ -468,7 +468,9 @@ impl curve_server_t {
     }
 
     // void send_zap_request (const key_: &mut [u8]);
-    pub fn send_zap_request(&mut self, )
+    pub fn send_zap_request(&mut self, key: &mut[u8]) {
+        ZmqZapClient::send_zap_request(b"CURVE", 5, key_, CRYPTO_BOX_PUBLICKEYBYTES);
+    }
 }
 
 // curve_server_t::curve_server_t (ZmqSessionBase *session_,
@@ -929,10 +931,10 @@ impl curve_server_t {
 //     return 0;
 // }
 
-void curve_server_t::send_zap_request (const key_: &mut [u8])
-{
-    zap_client_t::send_zap_request ("CURVE", 5, key_,
-                                    CRYPTO_BOX_PUBLICKEYBYTES);
-}
+// void curve_server_t::send_zap_request (const key_: &mut [u8])
+// {
+//     zap_client_t::send_zap_request ("CURVE", 5, key_,
+//                                     CRYPTO_BOX_PUBLICKEYBYTES);
+// }
 
 // #endif

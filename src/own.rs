@@ -75,7 +75,7 @@ impl ZmqOwn {
     //  The object is not living within an I/O thread. It has it's own
     //  thread outside of 0MQ infrastructure.
     // ZmqOwn (ZmqContext *parent_, tid: u32);
-    // ZmqOwn::ZmqOwn (class ZmqContext *parent_, tid: u32):
+    // ZmqOwn::ZmqOwn (parent: &mut ZmqContext, tid: u32):
     // ZmqObject (parent_, tid),
     // terminating (false),
     // sent_seqnum (0),

@@ -37,8 +37,8 @@
 // #include "mutex.hpp"
 // #include "msg.hpp"
 
-namespace zmq
-{
+// namespace zmq
+// {
 //  dbuffer is a single-producer single-consumer double-buffer
 //  implementation.
 //
@@ -53,82 +53,82 @@ namespace zmq
 //  value written, it is used by ypipe_conflate to mimic ypipe
 //  functionality regarding a reader being asleep
 
-template <typename T> class dbuffer_t;
+// template <typename T> class dbuffer_t;
 
-template <> class dbuffer_t<ZmqMessage>
-{
-// public:
-    dbuffer_t () : _back (&_storage[0]), _front (&_storage[1]), _has_msg (false)
-    {
-        _back.init ();
-        _front.init ();
-    }
+// template <> class dbuffer_t<ZmqMessage>
+// {
+// // public:
+//     dbuffer_t () : _back (&_storage[0]), _front (&_storage[1]), _has_msg (false)
+//     {
+//         _back.init ();
+//         _front.init ();
+//     }
 
-    ~dbuffer_t ()
-    {
-        _back.close ();
-        _front.close ();
-    }
+//     ~dbuffer_t ()
+//     {
+//         _back.close ();
+//         _front.close ();
+//     }
 
-    void write (const ZmqMessage &value_)
-    {
-        zmq_assert (value_.check ());
-        *_back = value_;
+//     void write (const ZmqMessage &value_)
+//     {
+//         zmq_assert (value_.check ());
+//         *_back = value_;
 
-        zmq_assert (_back.check ());
+//         zmq_assert (_back.check ());
 
-        if (sync.try_lock ()) {
-            _front.move (*_back);
-            _has_msg = true;
+//         if (sync.try_lock ()) {
+//             _front.move (*_back);
+//             _has_msg = true;
 
-            sync.unlock ();
-        }
-    }
+//             sync.unlock ();
+//         }
+//     }
 
-    bool read (ZmqMessage *value_)
-    {
-        if (!value_)
-            return false;
+//     bool read (ZmqMessage *value_)
+//     {
+//         if (!value_)
+//             return false;
 
-        {
-            scoped_lock_t lock (sync);
-            if (!_has_msg)
-                return false;
+//         {
+//             scoped_lock_t lock (sync);
+//             if (!_has_msg)
+//                 return false;
 
-            zmq_assert (_front.check ());
+//             zmq_assert (_front.check ());
 
-            *value_ = *_front;
-            _front.init (); // avoid double free
+//             *value_ = *_front;
+//             _front.init (); // avoid double free
 
-            _has_msg = false;
-            return true;
-        }
-    }
-
-
-    bool check_read ()
-    {
-        scoped_lock_t lock (sync);
-
-        return _has_msg;
-    }
-
-    bool probe (bool (*fn_) (const ZmqMessage &))
-    {
-        scoped_lock_t lock (sync);
-        return (*fn_) (*_front);
-    }
+//             _has_msg = false;
+//             return true;
+//         }
+//     }
 
 
-  // private:
-    ZmqMessage _storage[2];
-    _back: &mut ZmqMessage *_front;
+//     bool check_read ()
+//     {
+//         scoped_lock_t lock (sync);
 
-    mutex_t sync;
-    _has_msg: bool
+//         return _has_msg;
+//     }
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (dbuffer_t)
-};
-}
+//     bool probe (bool (*fn_) (const ZmqMessage &))
+//     {
+//         scoped_lock_t lock (sync);
+//         return (*fn_) (*_front);
+//     }
+
+
+//   // private:
+//     ZmqMessage _storage[2];
+//     _back: &mut ZmqMessage *_front;
+
+//     mutex_t sync;
+//     _has_msg: bool
+
+//     ZMQ_NON_COPYABLE_NOR_MOVABLE (dbuffer_t)
+// };
+// }
 
 // #endif

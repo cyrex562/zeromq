@@ -64,7 +64,7 @@ impl ZmqClient {
     //     ~client_t ();
     //
     //   // protected:
-    //     client_t::client_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+    //     client_t::client_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     //     ZmqSocketBase (parent_, tid, sid_, true)
     //     {
     //     options.type = ZMQ_CLIENT;

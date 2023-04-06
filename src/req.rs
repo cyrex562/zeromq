@@ -35,7 +35,7 @@
 // #include "wire.hpp"
 // #include "random.hpp"
 // #include "likely.hpp"
-pub struct req_t ZMQ_FINAL : public dealer_t
+pub struct req_t ZMQ_FINAL : public ZmqDealer
 {
 // public:
     req_t (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -105,8 +105,8 @@ pub struct req_session_t ZMQ_FINAL : public ZmqSessionBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (req_session_t)
 };
 
-req_t::req_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
-    dealer_t (parent_, tid, sid_),
+req_t::req_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
+    ZmqDealer (parent_, tid, sid_),
     _receiving_reply (false),
     _message_begins (true),
     _reply_pipe (null_mut()),
@@ -148,7 +148,7 @@ int req_t::xsend (msg: &mut ZmqMessage)
             errno_assert (rc == 0);
             id.set_flags (ZMQ_MSG_MORE);
 
-            rc = dealer_t::sendpipe (&id, &_reply_pipe);
+            rc = ZmqDealer::sendpipe (&id, &_reply_pipe);
             if (rc != 0) {
                 return -1;
             }
@@ -159,7 +159,7 @@ int req_t::xsend (msg: &mut ZmqMessage)
         errno_assert (rc == 0);
         bottom.set_flags (ZMQ_MSG_MORE);
 
-        rc = dealer_t::sendpipe (&bottom, &_reply_pipe);
+        rc = ZmqDealer::sendpipe (&bottom, &_reply_pipe);
         if (rc != 0)
             return -1;
         zmq_assert (_reply_pipe);
@@ -175,7 +175,7 @@ int req_t::xsend (msg: &mut ZmqMessage)
         while (true) {
             rc = drop.init ();
             errno_assert (rc == 0);
-            rc = dealer_t::xrecv (&drop);
+            rc = ZmqDealer::xrecv (&drop);
             if (rc != 0)
                 break;
             drop.close ();
@@ -184,7 +184,7 @@ int req_t::xsend (msg: &mut ZmqMessage)
 
     bool more = (msg.flags () & ZMQ_MSG_MORE) != 0;
 
-    int rc = dealer_t::xsend (msg);
+    int rc = ZmqDealer::xsend (msg);
     if (rc != 0)
         return rc;
 
@@ -264,7 +264,7 @@ bool req_t::xhas_in ()
     if (!_receiving_reply)
         return false;
 
-    return dealer_t::xhas_in ();
+    return ZmqDealer::xhas_in ();
 }
 
 bool req_t::xhas_out ()
@@ -272,7 +272,7 @@ bool req_t::xhas_out ()
     if (_receiving_reply && _strict)
         return false;
 
-    return dealer_t::xhas_out ();
+    return ZmqDealer::xhas_out ();
 }
 
 int req_t::xsetsockopt (option_: i32,
@@ -303,21 +303,21 @@ int req_t::xsetsockopt (option_: i32,
             break;
     }
 
-    return dealer_t::xsetsockopt (option_, optval_, optvallen_);
+    return ZmqDealer::xsetsockopt (option_, optval_, optvallen_);
 }
 
 void req_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
     if (_reply_pipe == pipe)
         _reply_pipe = null_mut();
-    dealer_t::xpipe_terminated (pipe);
+    ZmqDealer::xpipe_terminated (pipe);
 }
 
 int req_t::recv_reply_pipe (msg: &mut ZmqMessage)
 {
     while (true) {
         ZmqPipe *pipe = null_mut();
-        let rc: i32 = dealer_t::recvpipe (msg, &pipe);
+        let rc: i32 = ZmqDealer::recvpipe (msg, &pipe);
         if (rc != 0)
             return rc;
         if (!_reply_pipe || pipe == _reply_pipe)

@@ -111,7 +111,7 @@ impl ZmqCurveMechanismBase {
     decode_nonce_prefix: &str,
     downgrade_sub: bool) -> Self {
         Self {
-            mechanism_base: ZmqMechanismBase::new(session,options),
+            mechanism_base: ZmqMechanismBase::new2(session,options),
             curve_encoding: ZmqCurveEncoding::new(encode_nonce_prefix, decode_nonce_prefix, downgrade_sub)
         }
     }

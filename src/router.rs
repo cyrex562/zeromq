@@ -121,7 +121,7 @@ pub struct router_t : public routing_socket_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (router_t)
 };
 
-router_t::router_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+router_t::router_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     routing_socket_base_t (parent_, tid, sid_),
     _prefetched (false),
     _routing_id_sent (false),

@@ -509,7 +509,7 @@ impl ZmqSocketBase {
     //             s = new (std::nothrow) rep_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_DEALER =>
-    //             s = new (std::nothrow) dealer_t (parent_, tid, sid_);
+    //             s = new (std::nothrow) ZmqDealer (parent_, tid, sid_);
     //             break;
     //         ZMQ_ROUTER =>
     //             s = new (std::nothrow) router_t (parent_, tid, sid_);
@@ -2768,8 +2768,8 @@ pub struct routing_socket_base_t {
 }
 
 impl routing_socket_base_t {
-    // routing_socket_base_t (class ZmqContext *parent_, tid: u32, sid_: i32);
-    // routing_socket_base_t::routing_socket_base_t (class ZmqContext *parent_,
+    // routing_socket_base_t (parent: &mut ZmqContext, tid: u32, sid_: i32);
+    // routing_socket_base_t::routing_socket_base_t (parent: &mut ZmqContext,
     // tid: u32,
     // sid_: i32) :
     // ZmqSocketBase (parent_, tid, sid_)

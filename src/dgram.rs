@@ -61,7 +61,7 @@ pub struct dgram_t ZMQ_FINAL : public ZmqSocketBase
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dgram_t)
 };
-dgram_t::dgram_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+dgram_t::dgram_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_), _pipe (null_mut()), _more_out (false)
 {
     options.type = ZMQ_DGRAM;

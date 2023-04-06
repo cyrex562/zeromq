@@ -53,7 +53,7 @@ pub struct peer_t ZMQ_FINAL : public server_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (peer_t)
 };
 
-peer_t::peer_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+peer_t::peer_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     server_t (parent_, tid, sid_)
 {
     options.type = ZMQ_PEER;

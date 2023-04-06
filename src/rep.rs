@@ -32,7 +32,7 @@
 // #include "err.hpp"
 // #include "msg.hpp"
 
-rep_t::rep_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+rep_t::rep_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     router_t (parent_, tid, sid_),
     _sending_reply (false),
     _request_begins (true)

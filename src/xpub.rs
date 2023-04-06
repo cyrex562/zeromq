@@ -129,7 +129,7 @@ pub struct xpub_t : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (xpub_t)
 };
 
-xpub_t::xpub_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+xpub_t::xpub_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_),
     _verbose_subs (false),
     _verbose_unsubs (false),

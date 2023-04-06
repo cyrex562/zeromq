@@ -77,7 +77,7 @@ pub struct server_t : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (server_t)
 };
 
-server_t::server_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+server_t::server_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_, true),
     _next_routing_id (generate_random ())
 {

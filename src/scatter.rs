@@ -56,7 +56,7 @@ pub struct scatter_t ZMQ_FINAL : public ZmqSocketBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (scatter_t)
 };
 
-scatter_t::scatter_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+scatter_t::scatter_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_, true)
 {
     options.type = ZMQ_SCATTER;

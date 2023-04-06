@@ -105,7 +105,7 @@ pub struct dish_session_t ZMQ_FINAL : public ZmqSessionBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (dish_session_t)
 };
 
-dish_t::dish_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+dish_t::dish_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_, true), _has_message (false)
 {
     options.type = ZMQ_DISH;

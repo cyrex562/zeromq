@@ -98,7 +98,7 @@ pub struct radio_session_t ZMQ_FINAL : public ZmqSessionBase
     ZMQ_NON_COPYABLE_NOR_MOVABLE (radio_session_t)
 };
 
-radio_t::radio_t (class ZmqContext *parent_, tid: u32, sid_: i32) :
+radio_t::radio_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_, true), _lossy (true)
 {
     options.type = ZMQ_RADIO;
