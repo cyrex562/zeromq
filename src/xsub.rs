@@ -52,8 +52,8 @@ pub struct xsub_t {
     //  Overrides of functions from ZmqSocketBase.
     // private:
     //  Fair queueing object for inbound pipes.
-    // fq_t _fq;
-    pub _fq: fq_t,
+    // fq_t fair_queue;
+    pub fair_queue: fq_t,
 
     //  Object for distributing the subscriptions upstream.
     // dist_t _dist;
@@ -147,7 +147,7 @@ impl xsub_t {
         // LIBZMQ_UNUSED (locally_initiated_);
 
         // zmq_assert (pipe_);
-        self._fq.attach (pipe);
+        self.fair_queue.attach (pipe);
         self._dist.attach (pipe);
 
         //  Send all the cached subscriptions to the new upstream peer.
@@ -282,7 +282,7 @@ impl xsub_t {
         //  semantics.
         loop {
             //  Get a message using fair queueing algorithm.
-            let rc = self._fq.recv (msg);
+            let rc = self.fair_queue.recv (msg);
 
             //  If there's no message available, return immediately.
             //  The same when error occurs.
@@ -300,7 +300,7 @@ impl xsub_t {
             //  Message doesn't match. Pop any remaining parts of the message
             //  from the pipe.
             while msg.flags () & ZMQ_MSG_MORE {
-                rc = self._fq.recv (msg);
+                rc = self.fair_queue.recv (msg);
                 errno_assert (rc == 0);
             }
         }
@@ -324,7 +324,7 @@ impl xsub_t {
         //  stream of non-matching messages.
         loop {
             //  Get a message using fair queueing algorithm.
-            let rc = self._fq.recv (&self._message);
+            let rc = self.fair_queue.recv (&self._message);
 
             //  If there's no message available, return immediately.
             //  The same when error occurs.
@@ -342,7 +342,7 @@ impl xsub_t {
             //  Message doesn't match. Pop any remaining parts of the message
             //  from the pipe.
             while self._message.flags () & ZMQ_MSG_MORE {
-                rc = self._fq.recv (&self._message);
+                rc = self.fair_queue.recv (&self._message);
                 // errno_assert (rc == 0);
             }
         }
@@ -352,7 +352,7 @@ impl xsub_t {
     // void xread_activated (ZmqPipe *pipe_) ZMQ_FINAL;
     pub fn xread_activated (&mut self, pipe: &mut ZmqPipe)
     {
-        self._fq.activated (pipe);
+        self.fair_queue.activated (pipe);
     }
 
     // void xwrite_activated (ZmqPipe *pipe_) ZMQ_FINAL;
@@ -373,7 +373,7 @@ impl xsub_t {
     // void xpipe_terminated (ZmqPipe *pipe_) ZMQ_FINAL;
     pub fn xpipe_terminated (&mut self, pipe: &mut ZmqPipe)
     {
-        self._fq.pipe_terminated (pipe);
+        self.fair_queue.pipe_terminated (pipe);
         self._dist.pipe_terminated (pipe);
     }
 

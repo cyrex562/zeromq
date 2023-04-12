@@ -58,7 +58,7 @@ pub struct server_t : public ZmqSocketBase
 
   // private:
     //  Fair queueing object for inbound pipes.
-    fq_t _fq;
+    fq_t fair_queue;
 
     struct outpipe_t
     {
@@ -111,7 +111,7 @@ void server_t::xattach_pipe (pipe: &mut ZmqPipe,
       _out_pipes.ZMQ_MAP_INSERT_OR_EMPLACE (routing_id, outpipe).second;
     zmq_assert (ok);
 
-    _fq.attach (pipe);
+    fair_queue.attach (pipe);
 }
 
 void server_t::xpipe_terminated (pipe: &mut ZmqPipe)
@@ -120,12 +120,12 @@ void server_t::xpipe_terminated (pipe: &mut ZmqPipe)
       _out_pipes.find (pipe.get_server_socket_routing_id ());
     zmq_assert (it != _out_pipes.end ());
     _out_pipes.erase (it);
-    _fq.pipe_terminated (pipe);
+    fair_queue.pipe_terminated (pipe);
 }
 
 void server_t::xread_activated (pipe: &mut ZmqPipe)
 {
-    _fq.activated (pipe);
+    fair_queue.activated (pipe);
 }
 
 void server_t::xwrite_activated (pipe: &mut ZmqPipe)
@@ -185,19 +185,19 @@ int server_t::xsend (msg: &mut ZmqMessage)
 int server_t::xrecv (msg: &mut ZmqMessage)
 {
     ZmqPipe *pipe = null_mut();
-    int rc = _fq.recvpipe (msg, &pipe);
+    int rc = fair_queue.recvpipe (msg, &pipe);
 
     // Drop any messages with more flag
     while (rc == 0 && msg.flags () & ZMQ_MSG_MORE) {
         // drop all frames of the current multi-frame message
-        rc = _fq.recvpipe (msg, null_mut());
+        rc = fair_queue.recvpipe (msg, null_mut());
 
         while (rc == 0 && msg.flags () & ZMQ_MSG_MORE)
-            rc = _fq.recvpipe (msg, null_mut());
+            rc = fair_queue.recvpipe (msg, null_mut());
 
         // get the new message
         if (rc == 0)
-            rc = _fq.recvpipe (msg, &pipe);
+            rc = fair_queue.recvpipe (msg, &pipe);
     }
 
     if (rc != 0)
@@ -213,7 +213,7 @@ int server_t::xrecv (msg: &mut ZmqMessage)
 
 bool server_t::xhas_in ()
 {
-    return _fq.has_in ();
+    return fair_queue.has_in ();
 }
 
 bool server_t::xhas_out ()

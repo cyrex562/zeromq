@@ -62,7 +62,7 @@ pub struct dish_t ZMQ_FINAL : public ZmqSocketBase
     void send_subscriptions (pipe: &mut ZmqPipe);
 
     //  Fair queueing object for inbound pipes.
-    fq_t _fq;
+    fq_t fair_queue;
 
     //  Object for distributing the subscriptions upstream.
     dist_t _dist;
@@ -132,7 +132,7 @@ void dish_t::xattach_pipe (pipe: &mut ZmqPipe,
     LIBZMQ_UNUSED (locally_initiated_);
 
     zmq_assert (pipe);
-    _fq.attach (pipe);
+    fair_queue.attach (pipe);
     _dist.attach (pipe);
 
     //  Send all the cached subscriptions to the new upstream peer.
@@ -141,7 +141,7 @@ void dish_t::xattach_pipe (pipe: &mut ZmqPipe,
 
 void dish_t::xread_activated (pipe: &mut ZmqPipe)
 {
-    _fq.activated (pipe);
+    fair_queue.activated (pipe);
 }
 
 void dish_t::xwrite_activated (pipe: &mut ZmqPipe)
@@ -151,7 +151,7 @@ void dish_t::xwrite_activated (pipe: &mut ZmqPipe)
 
 void dish_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
-    _fq.pipe_terminated (pipe);
+    fair_queue.pipe_terminated (pipe);
     _dist.pipe_terminated (pipe);
 }
 
@@ -255,7 +255,7 @@ int dish_t::xxrecv (msg: &mut ZmqMessage)
 {
     do {
         //  Get a message using fair queueing algorithm.
-        let rc: i32 = _fq.recv (msg);
+        let rc: i32 = fair_queue.recv (msg);
 
         //  If there's no message available, return immediately.
         //  The same when error occurs.

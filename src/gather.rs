@@ -51,7 +51,7 @@ pub struct gather_t ZMQ_FINAL : public ZmqSocketBase
 
   // private:
     //  Fair queueing object for inbound pipes.
-    fq_t _fq;
+    fq_t fair_queue;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (gather_t)
 };
@@ -74,34 +74,34 @@ void gather_t::xattach_pipe (pipe: &mut ZmqPipe,
     LIBZMQ_UNUSED (locally_initiated_);
 
     zmq_assert (pipe);
-    _fq.attach (pipe);
+    fair_queue.attach (pipe);
 }
 
 void gather_t::xread_activated (pipe: &mut ZmqPipe)
 {
-    _fq.activated (pipe);
+    fair_queue.activated (pipe);
 }
 
 void gather_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
-    _fq.pipe_terminated (pipe);
+    fair_queue.pipe_terminated (pipe);
 }
 
 int gather_t::xrecv (msg: &mut ZmqMessage)
 {
-    int rc = _fq.recvpipe (msg, null_mut());
+    int rc = fair_queue.recvpipe (msg, null_mut());
 
     // Drop any messages with more flag
     while (rc == 0 && msg.flags () & ZMQ_MSG_MORE) {
         // drop all frames of the current multi-frame message
-        rc = _fq.recvpipe (msg, null_mut());
+        rc = fair_queue.recvpipe (msg, null_mut());
 
         while (rc == 0 && msg.flags () & ZMQ_MSG_MORE)
-            rc = _fq.recvpipe (msg, null_mut());
+            rc = fair_queue.recvpipe (msg, null_mut());
 
         // get the new message
         if (rc == 0)
-            rc = _fq.recvpipe (msg, null_mut());
+            rc = fair_queue.recvpipe (msg, null_mut());
     }
 
     return rc;
@@ -109,5 +109,5 @@ int gather_t::xrecv (msg: &mut ZmqMessage)
 
 bool gather_t::xhas_in ()
 {
-    return _fq.has_in ();
+    return fair_queue.has_in ();
 }

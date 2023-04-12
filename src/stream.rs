@@ -66,13 +66,13 @@ void stream_t::xattach_pipe (pipe: &mut ZmqPipe,
     zmq_assert (pipe);
 
     identify_peer (pipe, locally_initiated_);
-    _fq.attach (pipe);
+    fair_queue.attach (pipe);
 }
 
 void stream_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
     erase_out_pipe (pipe);
-    _fq.pipe_terminated (pipe);
+    fair_queue.pipe_terminated (pipe);
     // TODO router_t calls pipe_->rollback() here; should this be done here as
     // well? then xpipe_terminated could be pulled up to routing_socket_base_t
     if (pipe == _current_out)
@@ -81,7 +81,7 @@ void stream_t::xpipe_terminated (pipe: &mut ZmqPipe)
 
 void stream_t::xread_activated (pipe: &mut ZmqPipe)
 {
-    _fq.activated (pipe);
+    fair_queue.activated (pipe);
 }
 
 int stream_t::xsend (msg: &mut ZmqMessage)
@@ -200,7 +200,7 @@ int stream_t::xrecv (msg: &mut ZmqMessage)
     }
 
     ZmqPipe *pipe = null_mut();
-    int rc = _fq.recvpipe (&_prefetched_msg, &pipe);
+    int rc = fair_queue.recvpipe (&_prefetched_msg, &pipe);
     if (rc != 0)
         return -1;
 
@@ -239,7 +239,7 @@ bool stream_t::xhas_in ()
     //  Try to read the next message.
     //  The message, if read, is kept in the pre-fetch buffer.
     ZmqPipe *pipe = null_mut();
-    int rc = _fq.recvpipe (&_prefetched_msg, &pipe);
+    int rc = fair_queue.recvpipe (&_prefetched_msg, &pipe);
     if (rc != 0)
         return false;
 
@@ -319,7 +319,7 @@ pub struct stream_t ZMQ_FINAL : public routing_socket_base_t
     void identify_peer (pipe: &mut ZmqPipe, locally_initiated_: bool);
 
     //  Fair queueing object for inbound pipes.
-    fq_t _fq;
+    fq_t fair_queue;
 
     //  True iff there is a message held in the pre-fetch buffer.
     _prefetched: bool

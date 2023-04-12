@@ -51,7 +51,7 @@ pub struct push_t ZMQ_FINAL : public ZmqSocketBase
 
   // private:
     //  Load balancer managing the outbound pipes.
-    lb_t _lb;
+    lb_t load_balance;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (push_t)
 };
@@ -78,25 +78,25 @@ void push_t::xattach_pipe (pipe: &mut ZmqPipe,
     pipe.set_nodelay ();
 
     zmq_assert (pipe);
-    _lb.attach (pipe);
+    load_balance.attach (pipe);
 }
 
 void push_t::xwrite_activated (pipe: &mut ZmqPipe)
 {
-    _lb.activated (pipe);
+    load_balance.activated (pipe);
 }
 
 void push_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
-    _lb.pipe_terminated (pipe);
+    load_balance.pipe_terminated (pipe);
 }
 
 int push_t::xsend (msg: &mut ZmqMessage)
 {
-    return _lb.send (msg);
+    return load_balance.send (msg);
 }
 
 bool push_t::xhas_out ()
 {
-    return _lb.has_out ();
+    return load_balance.has_out ();
 }

@@ -52,27 +52,27 @@ void pull_t::xattach_pipe (pipe: &mut ZmqPipe,
     LIBZMQ_UNUSED (locally_initiated_);
 
     zmq_assert (pipe);
-    _fq.attach (pipe);
+    fair_queue.attach (pipe);
 }
 
 void pull_t::xread_activated (pipe: &mut ZmqPipe)
 {
-    _fq.activated (pipe);
+    fair_queue.activated (pipe);
 }
 
 void pull_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
-    _fq.pipe_terminated (pipe);
+    fair_queue.pipe_terminated (pipe);
 }
 
 int pull_t::xrecv (msg: &mut ZmqMessage)
 {
-    return _fq.recv (msg);
+    return fair_queue.recv (msg);
 }
 
 bool pull_t::xhas_in ()
 {
-    return _fq.has_in ();
+    return fair_queue.has_in ();
 }
 pub struct pull_t ZMQ_FINAL : public ZmqSocketBase
 {
@@ -92,7 +92,7 @@ pub struct pull_t ZMQ_FINAL : public ZmqSocketBase
 
   // private:
     //  Fair queueing object for inbound pipes.
-    fq_t _fq;
+    fq_t fair_queue;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (pull_t)
 };

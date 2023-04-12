@@ -68,7 +68,7 @@ pub struct router_t : public routing_socket_base_t
     bool identify_peer (pipe: &mut ZmqPipe, locally_initiated_: bool);
 
     //  Fair queueing object for inbound pipes.
-    fq_t _fq;
+    fq_t fair_queue;
 
     //  True iff there is a message held in the pre-fetch buffer.
     _prefetched: bool
@@ -111,7 +111,7 @@ pub struct router_t : public routing_socket_base_t
     _raw_socket: bool
 
     // if true, send an empty message to every connected router peer
-    _probe_router: bool
+    probe_router: bool
 
     // If true, the router will reassign an identity upon encountering a
     // name collision. The new pipe will take the identity, the old pipe
@@ -134,7 +134,7 @@ router_t::router_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     _mandatory (false),
     //  raw_socket functionality in ROUTER is deprecated
     _raw_socket (false),
-    _probe_router (false),
+    probe_router (false),
     _handover (false)
 {
     options.type = ZMQ_ROUTER;
@@ -162,7 +162,7 @@ void router_t::xattach_pipe (pipe: &mut ZmqPipe,
 
     zmq_assert (pipe);
 
-    if (_probe_router) {
+    if (probe_router) {
         ZmqMessage probe_msg;
         int rc = probe_msg.init ();
         errno_assert (rc == 0);
@@ -179,7 +179,7 @@ void router_t::xattach_pipe (pipe: &mut ZmqPipe,
 
     const bool routing_id_ok = identify_peer (pipe, locally_initiated_);
     if (routing_id_ok)
-        _fq.attach (pipe);
+        fair_queue.attach (pipe);
     else
         _anonymous_pipes.insert (pipe);
 }
@@ -214,7 +214,7 @@ int router_t::xsetsockopt (option_: i32,
 
         case ZMQ_PROBE_ROUTER:
             if (is_int && value >= 0) {
-                _probe_router = (value != 0);
+                probe_router = (value != 0);
                 return 0;
             }
             break;
@@ -249,7 +249,7 @@ void router_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
     if (0 == _anonymous_pipes.erase (pipe)) {
         erase_out_pipe (pipe);
-        _fq.pipe_terminated (pipe);
+        fair_queue.pipe_terminated (pipe);
         pipe.rollback ();
         if (pipe == _current_out)
             _current_out = null_mut();
@@ -260,12 +260,12 @@ void router_t::xread_activated (pipe: &mut ZmqPipe)
 {
     const std::set<ZmqPipe *>::iterator it = _anonymous_pipes.find (pipe);
     if (it == _anonymous_pipes.end ())
-        _fq.activated (pipe);
+        fair_queue.activated (pipe);
     else {
         const bool routing_id_ok = identify_peer (pipe, false);
         if (routing_id_ok) {
             _anonymous_pipes.erase (it);
-            _fq.attach (pipe);
+            fair_queue.attach (pipe);
         }
     }
 }
@@ -397,13 +397,13 @@ int router_t::xrecv (msg: &mut ZmqMessage)
     }
 
     ZmqPipe *pipe = null_mut();
-    int rc = _fq.recvpipe (msg, &pipe);
+    int rc = fair_queue.recvpipe (msg, &pipe);
 
     //  It's possible that we receive peer's routing id. That happens
     //  after reconnection. The current implementation assumes that
     //  the peer always uses the same routing id.
     while (rc == 0 && msg.is_routing_id ())
-        rc = _fq.recvpipe (msg, &pipe);
+        rc = fair_queue.recvpipe (msg, &pipe);
 
     if (rc != 0)
         return -1;
@@ -467,14 +467,14 @@ bool router_t::xhas_in ()
     //  Try to read the next message.
     //  The message, if read, is kept in the pre-fetch buffer.
     ZmqPipe *pipe = null_mut();
-    int rc = _fq.recvpipe (&_prefetched_msg, &pipe);
+    int rc = fair_queue.recvpipe (&_prefetched_msg, &pipe);
 
     //  It's possible that we receive peer's routing id. That happens
     //  after reconnection. The current implementation assumes that
     //  the peer always uses the same routing id.
     //  TODO: handle the situation when the peer changes its routing id.
     while (rc == 0 && _prefetched_msg.is_routing_id ())
-        rc = _fq.recvpipe (&_prefetched_msg, &pipe);
+        rc = fair_queue.recvpipe (&_prefetched_msg, &pipe);
 
     if (rc != 0)
         return false;

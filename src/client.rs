@@ -51,9 +51,9 @@ pub struct ZmqClient {
     // private:
     //  Messages are fair-queued from inbound pipes. And load-balanced to
     //  the outbound pipes.
-    // fq_t _fq;
+    // fq_t fair_queue;
     pub fq: fq_t,
-    // lb_t _lb;
+    // lb_t load_balance;
     pub lb: lb_t,
     pub base: ZmqSocketBase, // ZMQ_NON_COPYABLE_NOR_MOVABLE (client_t)
 }
@@ -136,7 +136,7 @@ impl ZmqSocketBaseOps for ZmqClient {
 
             // get the new message
             if (rc == 0) {
-                rc = _fq.recvpipe(msg, null_mut());
+                rc = fair_queue.recvpipe(msg, null_mut());
             }
         }
 

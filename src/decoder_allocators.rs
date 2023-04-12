@@ -1,63 +1,48 @@
-/*
-    Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
-
-    libzmq is free software; you can redistribute it and/or modify it under
-    the terms of the GNU Lesser General Public License (LGPL) as published
-    by the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    As a special exception, the Contributors give you permission to link
-    this library with independent modules to produce an executable,
-    regardless of the license terms of these independent modules, and to
-    copy and distribute the resulting executable under terms of your choice,
-    provided that you also meet, for each linked independent module, the
-    terms and conditions of the license of that module. An independent
-    module is a module which is not derived from or based on this library.
-    If you modify this library, you must extend this exception to your
-    version of the library.
-
-    libzmq is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-    License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-// #include "precompiled.hpp"
-// #include "decoder_allocators.hpp"
-
-// #include "msg.hpp"
+#[derive(Default,Debug,Clone)]
 pub struct c_single_allocator
 {
 // public:
-    explicit c_single_allocator (std::bufsize_: usize) :
-        _buf_size (bufsize_),
-        _buf (static_cast<unsigned char *> (std::malloc (_buf_size)))
-    {
-        alloc_assert (_buf);
-    }
-
-    ~c_single_allocator () { std::free (_buf); }
-
-    unsigned char *allocate () { return _buf; }
-
-    void deallocate () {}
-
-    std::size_t size () const { return _buf_size; }
-
-    //  This buffer is fixed, size must not be changed
-    void resize (std::new_size: usize) { LIBZMQ_UNUSED (new_size); }
-
   // private:
-    std::size_t _buf_size;
-    unsigned char *_buf;
+    // std::size_t _buf_size;
+    pub _buf_size: usize,
+    // unsigned char *_buf;
+    pub _buf: Vec<u8>,
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (c_single_allocator)
-};
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (c_single_allocator)
+}
+
+impl c_single_allocator {
+//     explicit c_single_allocator (std::bufsize_: usize) :
+//     _buf_size (bufsize_),
+//     _buf (static_cast<unsigned char *> (std::malloc (_buf_size)))
+// {
+//     alloc_assert (_buf);
+// }
+pub fn new(buf_size: usize) -> Self {
+    let mut out = Self::default();
+    out._buf_size = buf_size;
+    out._buf = vec![0; buf_size];
+    out
+}
+
+// ~c_single_allocator () { std::free (_buf); }
+
+// unsigned char *allocate () { return _buf; }
+pub fn allocate(&mut self) -> *mut u8 {
+    self._buf.as_mut_ptr()
+}
+
+// void deallocate () {}
+
+// std::size_t size () const { return _buf_size; }
+pub fn size(&self) -> usize {
+    self._buf_size
+}
+
+//  This buffer is fixed, size must not be changed
+// void resize (std::new_size: usize) { LIBZMQ_UNUSED (new_size); }
+}
 
 // This allocator allocates a reference counted buffer which is used by v2_decoder_t
 // to use zero-copy msg::init_data to create messages with memory from this buffer as
@@ -68,6 +53,7 @@ pub struct c_single_allocator
 // from zero to one, gets passed to the user application, processed in the user thread and deleted
 // which would then deallocate the buffer. The drawback is that the buffer may be allocated longer
 // than necessary because it is only deleted when allocate is called the next time.
+#[derive(Default,Debug,Clone)]
 pub struct shared_message_memory_allocator
 {
 // public:

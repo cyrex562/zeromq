@@ -51,7 +51,7 @@ pub struct scatter_t ZMQ_FINAL : public ZmqSocketBase
 
   // private:
     //  Load balancer managing the outbound pipes.
-    lb_t _lb;
+    lb_t load_balance;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (scatter_t)
 };
@@ -78,17 +78,17 @@ void scatter_t::xattach_pipe (pipe: &mut ZmqPipe,
     pipe.set_nodelay ();
 
     zmq_assert (pipe);
-    _lb.attach (pipe);
+    load_balance.attach (pipe);
 }
 
 void scatter_t::xwrite_activated (pipe: &mut ZmqPipe)
 {
-    _lb.activated (pipe);
+    load_balance.activated (pipe);
 }
 
 void scatter_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
-    _lb.pipe_terminated (pipe);
+    load_balance.pipe_terminated (pipe);
 }
 
 int scatter_t::xsend (msg: &mut ZmqMessage)
@@ -99,10 +99,10 @@ int scatter_t::xsend (msg: &mut ZmqMessage)
         return -1;
     }
 
-    return _lb.send (msg);
+    return load_balance.send (msg);
 }
 
 bool scatter_t::xhas_out ()
 {
-    return _lb.has_out ();
+    return load_balance.has_out ();
 }
