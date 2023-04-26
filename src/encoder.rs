@@ -59,22 +59,22 @@ template <typename T> class encoder_base_t : public i_encoder
         _to_write (0),
         _next (null_mut()),
         _new_msg_flag (false),
-        _buf_size (bufsize_),
-        _buf (static_cast<unsigned char *> (malloc (bufsize_))),
+        buf_size (bufsize_),
+        buf (static_cast<unsigned char *> (malloc (bufsize_))),
         _in_progress (null_mut())
     {
-        alloc_assert (_buf);
+        alloc_assert (buf);
     }
 
-    ~encoder_base_t () ZMQ_OVERRIDE { free (_buf); }
+    ~encoder_base_t () ZMQ_OVERRIDE { free (buf); }
 
     //  The function returns a batch of binary data. The data
     //  are filled to a supplied buffer. If no buffer is supplied (data
     //  points to NULL) decoder object will provide buffer of its own.
     size_t encode (unsigned char **data, size: usize) ZMQ_FINAL
     {
-        unsigned char *buffer = !*data ? _buf : *data;
-        const size_t buffersize = !*data ? _buf_size : size;
+        unsigned char *buffer = !*data ? buf : *data;
+        const size_t buffersize = !*data ? buf_size : size;
 
         if (in_progress () == null_mut())
             return 0;
@@ -166,8 +166,8 @@ template <typename T> class encoder_base_t : public i_encoder
     _new_msg_flag: bool
 
     //  The buffer for encoded data.
-    const size_t _buf_size;
-    unsigned char *const _buf;
+    const size_t buf_size;
+    unsigned char *const buf;
 
     ZmqMessage *_in_progress;
 

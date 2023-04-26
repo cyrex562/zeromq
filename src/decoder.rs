@@ -60,7 +60,7 @@ pub struct decoder_base_t : public i_decoder
     explicit decoder_base_t (const buf_size_: usize) :
         _next (null_mut()), _read_pos (null_mut()), _to_read (0), _allocator (buf_size_)
     {
-        _buf = _allocator.allocate ();
+        buf = _allocator.allocate ();
     }
 
     ~decoder_base_t () ZMQ_OVERRIDE { _allocator.deallocate (); }
@@ -68,7 +68,7 @@ pub struct decoder_base_t : public i_decoder
     //  Returns a buffer to be filled with binary data.
     void get_buffer (unsigned char **data, std::size: *mut usize) ZMQ_FINAL
     {
-        _buf = _allocator.allocate ();
+        buf = _allocator.allocate ();
 
         //  If we are expected to read large message, we'll opt for zero-
         //  copy, i.e. we'll ask caller to fill the data directly to the
@@ -84,7 +84,7 @@ pub struct decoder_base_t : public i_decoder
             return;
         }
 
-        *data = _buf;
+        *data = buf;
         *size = _allocator.size ();
     }
 
@@ -179,7 +179,7 @@ pub struct decoder_base_t : public i_decoder
 
     //  The duffer for data to decode.
     A _allocator;
-    unsigned char *_buf;
+    unsigned char *buf;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (decoder_base_t)
 };

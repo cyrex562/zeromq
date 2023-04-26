@@ -40,25 +40,25 @@ template <typename T, size_t S> class fast_vector_t
     explicit fast_vector_t (const nitems_: usize)
     {
         if (nitems_ > S) {
-            _buf = new (std::nothrow) T[nitems_];
+            buf = new (std::nothrow) T[nitems_];
             //  TODO since this function is called by a client, we could return errno == ENOMEM here
-            alloc_assert (_buf);
+            alloc_assert (buf);
         } else {
-            _buf = _static_buf;
+            buf = _static_buf;
         }
     }
 
-    T &operator[] (const i: usize) { return _buf[i]; }
+    T &operator[] (const i: usize) { return buf[i]; }
 
     ~fast_vector_t ()
     {
-        if (_buf != _static_buf)
-            delete[] _buf;
+        if (buf != _static_buf)
+            delete[] buf;
     }
 
   // private:
     T _static_buf[S];
-    T *_buf;
+    T *buf;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (fast_vector_t)
 };

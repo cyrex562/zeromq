@@ -1,6 +1,6 @@
 use crate::atomic_counter::AtomicCounter;
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct ZmqContent {
     pub data: Vec<u8>,
     pub size: usize,
