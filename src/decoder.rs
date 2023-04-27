@@ -150,8 +150,9 @@ impl DecoderBase {
             bytes_used_ = size;
 
             while (!to_read) {
-                let rc: i32 =
-                (static_cast<T *> (this)->*next) (data + bytes_used_);
+                let rc: i32 = 0;
+                // TODO
+                // (static_cast<T *> (this)->*next) (data + bytes_used_);
                 if (rc != 0){
                     return rc;}
             }
@@ -174,36 +175,40 @@ impl DecoderBase {
             //  If none is available, return.
             while (to_read == 0) {
                 // pass current address in the buffer
-                let rc: i32 =
-                (static_cast<T *> (this)->*next) (data + bytes_used_);
-                if (rc != 0)
-                    return rc;
+                let rc: i32 = 0;
+                // TODO
+                // (static_cast<T *> (this)->*next) (data + bytes_used_);
+                if (rc != 0){
+                    return rc;}
             }
         }
 
         return 0;
     }
 
-    void resize_buffer (std::new_size: usize) ZMQ_FINAL
+    pub fn resize_buffer (&mut self, new_size: usize)
     {
-        allocator.resize (new_size);
+        self.allocator.resize (new_size);
     }
 
     //   protected:
     //  Prototype of state machine action. Action should return false if
     //  it is unable to push the data to the system.
-    typedef int (T::*step_t) (unsigned char const *);
+    // typedef int (T::*step_t) (unsigned char const *);
 
     //  This function should be called from derived class to read data
     //  from the buffer and schedule next state machine action.
-    void next_step (read_pos_: &mut [u8], std::to_read_: usize, step_t next_)
+    pub fn next_step (&mut self, read_pos_: usize, to_read_: usize, next_: usize)
     {
-        read_pos = static_cast<unsigned char *> (read_pos_);
-        to_read = to_read_;
-        next = next_;
+        self.read_pos = read_pos_;
+        self.to_read = to_read_;
+        self.next = next_;
     }
 
-    A &get_allocator () { return allocator; }
+    // A &get_allocator () { return allocator; }
+    pub fn get_allocator(&mut self) -> &mut T {
+        &mut self.allocator
+    }
 
 }
 // }

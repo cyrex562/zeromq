@@ -241,7 +241,7 @@ impl shared_message_memory_allocator {
 
     // void resize (std::new_size: usize) { buf_size = new_size; }
     pub fn resize(&mut self, new_size: usize) {
-        self.buf.resize(new_size);
+        self.buf.resize(new_size, 0);
     }
 
     // ZmqMessage::ZmqContent *provide_content () { return msg_content; }
