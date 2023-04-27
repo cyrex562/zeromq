@@ -75,7 +75,7 @@ pub struct trie_t
     {
 pub struct trie_t *node;
 pub struct trie_t **table;
-    } _next;
+    } next;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (trie_t)
 };
@@ -133,13 +133,13 @@ trie_t::trie_t () : _refcnt (0), _min (0), _count (0), _live_nodes (0)
 trie_t::~trie_t ()
 {
     if (_count == 1) {
-        zmq_assert (_next.node);
-        LIBZMQ_DELETE (_next.node);
+        zmq_assert (next.node);
+        LIBZMQ_DELETE (next.node);
     } else if (_count > 1) {
         for (unsigned short i = 0; i != _count; ++i) {
-            LIBZMQ_DELETE (_next.table[i]);
+            LIBZMQ_DELETE (next.table[i]);
         }
-        free (_next.table);
+        free (next.table);
     }
 }
 
@@ -158,59 +158,59 @@ bool trie_t::add (prefix_: &mut [u8], size: usize)
         if (!_count) {
             _min = c;
             _count = 1;
-            _next.node = null_mut();
+            next.node = null_mut();
         } else if (_count == 1) {
             const unsigned char oldc = _min;
-            trie_t *oldp = _next.node;
+            trie_t *oldp = next.node;
             _count = (_min < c ? c - _min : _min - c) + 1;
-            _next.table =
+            next.table =
               static_cast<trie_t **> (malloc (sizeof (trie_t *) * _count));
-            alloc_assert (_next.table);
+            alloc_assert (next.table);
             for (unsigned short i = 0; i != _count; ++i)
-                _next.table[i] = 0;
+                next.table[i] = 0;
             _min = std::min (_min, c);
-            _next.table[oldc - _min] = oldp;
+            next.table[oldc - _min] = oldp;
         } else if (_min < c) {
             //  The new character is above the current character range.
             const unsigned short old_count = _count;
             _count = c - _min + 1;
-            _next.table = static_cast<trie_t **> (
-              realloc (_next.table, sizeof (trie_t *) * _count));
-            zmq_assert (_next.table);
+            next.table = static_cast<trie_t **> (
+              realloc (next.table, sizeof (trie_t *) * _count));
+            zmq_assert (next.table);
             for (unsigned short i = old_count; i != _count; i++)
-                _next.table[i] = null_mut();
+                next.table[i] = null_mut();
         } else {
             //  The new character is below the current character range.
             const unsigned short old_count = _count;
             _count = (_min + old_count) - c;
-            _next.table = static_cast<trie_t **> (
-              realloc (_next.table, sizeof (trie_t *) * _count));
-            zmq_assert (_next.table);
-            memmove (_next.table + _min - c, _next.table,
+            next.table = static_cast<trie_t **> (
+              realloc (next.table, sizeof (trie_t *) * _count));
+            zmq_assert (next.table);
+            memmove (next.table + _min - c, next.table,
                      old_count * sizeof (trie_t *));
             for (unsigned short i = 0; i != _min - c; i++)
-                _next.table[i] = null_mut();
+                next.table[i] = null_mut();
             _min = c;
         }
     }
 
     //  If next node does not exist, create one.
     if (_count == 1) {
-        if (!_next.node) {
-            _next.node = new (std::nothrow) trie_t;
-            alloc_assert (_next.node);
+        if (!next.node) {
+            next.node = new (std::nothrow) trie_t;
+            alloc_assert (next.node);
             ++_live_nodes;
             zmq_assert (_live_nodes == 1);
         }
-        return _next.node.add (prefix_ + 1, size - 1);
+        return next.node.add (prefix_ + 1, size - 1);
     }
-    if (!_next.table[c - _min]) {
-        _next.table[c - _min] = new (std::nothrow) trie_t;
-        alloc_assert (_next.table[c - _min]);
+    if (!next.table[c - _min]) {
+        next.table[c - _min] = new (std::nothrow) trie_t;
+        alloc_assert (next.table[c - _min]);
         ++_live_nodes;
         zmq_assert (_live_nodes > 1);
     }
-    return _next.table[c - _min]->add (prefix_ + 1, size - 1);
+    return next.table[c - _min]->add (prefix_ + 1, size - 1);
 }
 
 bool trie_t::rm (prefix_: &mut [u8], size: usize)
@@ -226,7 +226,7 @@ bool trie_t::rm (prefix_: &mut [u8], size: usize)
     if (!_count || c < _min || c >= _min + _count)
         return false;
 
-    trie_t *next_node = _count == 1 ? _next.node : _next.table[c - _min];
+    trie_t *next_node = _count == 1 ? next.node : next.table[c - _min];
 
     if (!next_node)
         return false;
@@ -240,12 +240,12 @@ bool trie_t::rm (prefix_: &mut [u8], size: usize)
 
         if (_count == 1) {
             //  The just pruned node is was the only live node
-            _next.node = 0;
+            next.node = 0;
             _count = 0;
             --_live_nodes;
             zmq_assert (_live_nodes == 0);
         } else {
-            _next.table[c - _min] = 0;
+            next.table[c - _min] = 0;
             zmq_assert (_live_nodes > 1);
             --_live_nodes;
 
@@ -260,16 +260,16 @@ bool trie_t::rm (prefix_: &mut [u8], size: usize)
                 if (c == _min) {
                     //  The pruned node is the left-most node ptr in the
                     //  node table => keep the right-most node
-                    node = _next.table[_count - 1];
+                    node = next.table[_count - 1];
                     _min += _count - 1;
                 } else if (c == _min + _count - 1) {
                     //  The pruned node is the right-most node ptr in the
                     //  node table => keep the left-most node
-                    node = _next.table[0];
+                    node = next.table[0];
                 }
                 zmq_assert (node);
-                free (_next.table);
-                _next.node = node;
+                free (next.table);
+                next.node = node;
                 _count = 1;
             } else if (c == _min) {
                 //  We can compact the table "from the left".
@@ -277,23 +277,23 @@ bool trie_t::rm (prefix_: &mut [u8], size: usize)
                 //  our new min
                 unsigned char new_min = _min;
                 for (unsigned short i = 1; i < _count; ++i) {
-                    if (_next.table[i]) {
+                    if (next.table[i]) {
                         new_min = i + _min;
                         break;
                     }
                 }
                 zmq_assert (new_min != _min);
 
-                trie_t **old_table = _next.table;
+                trie_t **old_table = next.table;
                 zmq_assert (new_min > _min);
                 zmq_assert (_count > new_min - _min);
 
                 _count = _count - (new_min - _min);
-                _next.table =
+                next.table =
                   static_cast<trie_t **> (malloc (sizeof (trie_t *) * _count));
-                alloc_assert (_next.table);
+                alloc_assert (next.table);
 
-                memmove (_next.table, old_table + (new_min - _min),
+                memmove (next.table, old_table + (new_min - _min),
                          sizeof (trie_t *) * _count);
                 free (old_table);
 
@@ -304,7 +304,7 @@ bool trie_t::rm (prefix_: &mut [u8], size: usize)
                 //  determine the new table size
                 unsigned short new_count = _count;
                 for (unsigned short i = 1; i < _count; ++i) {
-                    if (_next.table[_count - 1 - i]) {
+                    if (next.table[_count - 1 - i]) {
                         new_count = _count - i;
                         break;
                     }
@@ -312,12 +312,12 @@ bool trie_t::rm (prefix_: &mut [u8], size: usize)
                 zmq_assert (new_count != _count);
                 _count = new_count;
 
-                trie_t **old_table = _next.table;
-                _next.table =
+                trie_t **old_table = next.table;
+                next.table =
                   static_cast<trie_t **> (malloc (sizeof (trie_t *) * _count));
-                alloc_assert (_next.table);
+                alloc_assert (next.table);
 
-                memmove (_next.table, old_table, sizeof (trie_t *) * _count);
+                memmove (next.table, old_table, sizeof (trie_t *) * _count);
                 free (old_table);
             }
         }
@@ -347,9 +347,9 @@ bool trie_t::check (const data: &mut [u8], size: usize) const
 
         //  Move to the next character.
         if (current._count == 1)
-            current = current._next.node;
+            current = current.next.node;
         else {
-            current = current._next.table[c - current._min];
+            current = current.next.table[c - current._min];
             if (!current)
                 return false;
         }
@@ -393,15 +393,15 @@ void trie_t::apply_helper (unsigned char **buff_,
     if (_count == 1) {
         (*buff_)[buffsize_] = _min;
         buffsize_++;
-        _next.node.apply_helper (buff_, buffsize_, maxbuffsize_, func_, arg_);
+        next.node.apply_helper (buff_, buffsize_, maxbuffsize_, func_, arg_);
         return;
     }
 
     //  If there are multiple subnodes.
     for (unsigned short c = 0; c != _count; c++) {
         (*buff_)[buffsize_] = _min + c;
-        if (_next.table[c])
-            _next.table[c]->apply_helper (buff_, buffsize_ + 1, maxbuffsize_,
+        if (next.table[c])
+            next.table[c]->apply_helper (buff_, buffsize_ + 1, maxbuffsize_,
                                           func_, arg_);
     }
 }

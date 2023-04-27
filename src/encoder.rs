@@ -57,7 +57,7 @@ template <typename T> class encoder_base_t : public i_encoder
     explicit encoder_base_t (bufsize_: usize) :
         _write_pos (0),
         _to_write (0),
-        _next (null_mut()),
+        next (null_mut()),
         _new_msg_flag (false),
         buf_size (bufsize_),
         buf (static_cast<unsigned char *> (malloc (bufsize_))),
@@ -93,7 +93,7 @@ template <typename T> class encoder_base_t : public i_encoder
                     _in_progress = null_mut();
                     break;
                 }
-                (static_cast<T *> (this)->*_next) ();
+                (static_cast<T *> (this)->*next) ();
             }
 
             //  If there are no data in the buffer yet and we are able to
@@ -130,7 +130,7 @@ template <typename T> class encoder_base_t : public i_encoder
     {
         zmq_assert (in_progress () == null_mut());
         _in_progress = msg;
-        (static_cast<T *> (this)->*_next) ();
+        (static_cast<T *> (this)->*next) ();
     }
 
   protected:
@@ -146,7 +146,7 @@ template <typename T> class encoder_base_t : public i_encoder
     {
         _write_pos = static_cast<unsigned char *> (write_pos_);
         _to_write = to_write_;
-        _next = next_;
+        next = next_;
         _new_msg_flag = new_msg_flag_;
     }
 
@@ -161,7 +161,7 @@ template <typename T> class encoder_base_t : public i_encoder
 
     //  Next step. If set to NULL, it means that associated data stream
     //  is dead.
-    step_t _next;
+    step_t next;
 
     _new_msg_flag: bool
 

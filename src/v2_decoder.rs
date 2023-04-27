@@ -42,7 +42,7 @@
 //  The class has to inherit from shared_message_memory_allocator because
 //  the base class calls allocate in its constructor.
 pub struct v2_decoder_t ZMQ_FINAL
-    : public decoder_base_t<v2_decoder_t, shared_message_memory_allocator>
+    : public DecoderBase<v2_decoder_t, shared_message_memory_allocator>
 {
 // public:
     v2_decoder_t (bufsize_: usize, i64 maxmsgsize_, zero_copy_: bool);
@@ -72,7 +72,7 @@ pub struct v2_decoder_t ZMQ_FINAL
 v2_decoder_t::v2_decoder_t (bufsize_: usize,
                                  i64 maxmsgsize_,
                                  zero_copy_: bool) :
-    decoder_base_t<v2_decoder_t, shared_message_memory_allocator> (bufsize_),
+    DecoderBase<v2_decoder_t, shared_message_memory_allocator> (bufsize_),
     _msg_flags (0),
     _zero_copy (zero_copy_),
     _max_msg_size (maxmsgsize_)

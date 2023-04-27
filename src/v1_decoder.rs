@@ -38,7 +38,7 @@
 // #include "likely.hpp"
 // #include "wire.hpp"
 // #include "err.hpp"
-pub struct v1_decoder_t ZMQ_FINAL : public decoder_base_t<v1_decoder_t>
+pub struct v1_decoder_t ZMQ_FINAL : public DecoderBase<v1_decoder_t>
 {
 // public:
     v1_decoder_t (bufsize_: usize, i64 maxmsgsize_);
@@ -61,7 +61,7 @@ pub struct v1_decoder_t ZMQ_FINAL : public decoder_base_t<v1_decoder_t>
 };
 
 v1_decoder_t::v1_decoder_t (bufsize_: usize, i64 maxmsgsize_) :
-    decoder_base_t<v1_decoder_t> (bufsize_), _max_msg_size (maxmsgsize_)
+    DecoderBase<v1_decoder_t> (bufsize_), _max_msg_size (maxmsgsize_)
 {
     int rc = _in_progress.init ();
     errno_assert (rc == 0);

@@ -42,7 +42,7 @@
 //  The class has to inherit from shared_message_memory_allocator because
 //  the base class calls allocate in its constructor.
 pub struct ws_decoder_t ZMQ_FINAL
-    : public decoder_base_t<ws_decoder_t, shared_message_memory_allocator>
+    : public DecoderBase<ws_decoder_t, shared_message_memory_allocator>
 {
 // public:
     ws_decoder_t (bufsize_: usize,
@@ -83,7 +83,7 @@ ws_decoder_t::ws_decoder_t (bufsize_: usize,
                                  i64 maxmsgsize_,
                                  zero_copy_: bool,
                                  must_mask_: bool) :
-    decoder_base_t<ws_decoder_t, shared_message_memory_allocator> (bufsize_),
+    DecoderBase<ws_decoder_t, shared_message_memory_allocator> (bufsize_),
     _msg_flags (0),
     _zero_copy (zero_copy_),
     _max_msg_size (maxmsgsize_),

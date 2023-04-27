@@ -161,3 +161,4 @@ mod cpu_time;
 mod utils;
 mod curve_encoding;
 mod platform_socket;
+mod allocator;

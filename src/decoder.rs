@@ -39,8 +39,8 @@
 // #include "i_decoder.hpp"
 // #include "stdint.hpp"
 
-namespace zmq
-{
+// namespace zmq
+// {
 //  Helper base class for decoders that know the amount of data to read
 //  in advance at any moment. Knowing the amount in advance is a property
 //  of the protocol used. 0MQ framing protocol is based size-prefixed
@@ -53,22 +53,64 @@ namespace zmq
 //  Derived class should implement individual state machine actions.
 //
 //  Buffer management is done by an allocator policy.
-template <typename T, typename A = c_single_allocator>
-pub struct decoder_base_t : public i_decoder
+// template <typename T, typename A = c_single_allocator>
+
+pub trait i_decoder {
+
+}
+
+#[derive(Default,Debug,Clone)]
+pub struct DecoderBase<T: Allocator>
 {
 // public:
-    explicit decoder_base_t (const buf_size_: usize) :
-        _next (null_mut()), _read_pos (null_mut()), _to_read (0), _allocator (buf_size_)
-    {
-        buf = _allocator.allocate ();
+
+  // private:
+    //  Next step. If set to NULL, it means that associated data stream
+    //  is dead. Note that there can be still data in the process in such
+    //  case.
+    // step_t next;
+    next: usize,
+
+    //  Where to store the read data.
+    // unsigned char *read_pos;
+    read_pos: Vec<u8>,
+
+    //  How much data to read before taking next step.
+    // std::size_t to_read;
+    to_read: usize,
+
+    //  The duffer for data to decode.
+    // A allocator;
+    allocator: T,
+    // unsigned char *buf;
+    buf: Vec<u8>
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (DecoderBase)
+}
+
+impl DecoderBase {
+    // explicit DecoderBase (const buf_size_: usize) :
+    // next (null_mut()), read_pos (null_mut()), to_read (0), allocator (buf_size_)
+    // {
+    //     buf = allocator.allocate ();
+    // }
+    pub fn new(buf_size: usize) -> Self {
+        let mut out = Self {
+            next: 0,
+            read_pos: vec![],
+            to_read: 0,
+            allocator: Allocator::new(),
+            buf: vec![]
+        };
+        out
     }
 
-    ~decoder_base_t () ZMQ_OVERRIDE { _allocator.deallocate (); }
+    // ~DecoderBase () ZMQ_OVERRIDE { allocator.deallocate (); }
 
     //  Returns a buffer to be filled with binary data.
-    void get_buffer (unsigned char **data, std::size: *mut usize) ZMQ_FINAL
+    // void get_buffer (unsigned char **data, std::size: *mut usize) ZMQ_FINAL
+    pub fn get_buffer(&mut self, data: &mut Vec<u8>, size: &mut usize)
     {
-        buf = _allocator.allocate ();
+        self.buf = self.allocator.allocate();
 
         //  If we are expected to read large message, we'll opt for zero-
         //  copy, i.e. we'll ask caller to fill the data directly to the
@@ -78,14 +120,14 @@ pub struct decoder_base_t : public i_decoder
         //  As a consequence, large messages being received won't block
         //  other engines running in the same I/O thread for excessive
         //  amounts of time.
-        if (_to_read >= _allocator.size ()) {
-            *data = _read_pos;
-            *size = _to_read;
+        if (self.to_read >= self.allocator.size()) {
+            *data = self.buf[read_pos..];
+            *size = to_read;
             return;
         }
 
-        *data = buf;
-        *size = _allocator.size ();
+        *data = self.buf;
+        *size = self.allocator.size ();
     }
 
     //  Processes the data in the buffer previously allocated using
@@ -94,24 +136,22 @@ pub struct decoder_base_t : public i_decoder
     //  whole message was decoded or 0 when more data is required.
     //  On error, -1 is returned and errno set accordingly.
     //  Number of bytes processed is returned in bytes_used_.
-    int decode (const data: &mut [u8],
-                std::size: usize,
-                std::size_t &bytes_used_) ZMQ_FINAL
+    pub fn decode (&mut self, data: &[u8], size: usize, bytes_used: &mut usize) -> i32
     {
-        bytes_used_ = 0;
+        let mut bytes_used_ = 0;
 
         //  In case of zero-copy simply adjust the pointers, no copying
         //  is required. Also, run the state machine in case all the data
         //  were processed.
-        if (data == _read_pos) {
-            zmq_assert (size <= _to_read);
-            _read_pos += size;
-            _to_read -= size;
+        if (data == read_pos) {
+            zmq_assert (size <= to_read);
+            read_pos += size;
+            to_read -= size;
             bytes_used_ = size;
 
-            while (!_to_read) {
+            while (!to_read) {
                 let rc: i32 =
-                  (static_cast<T *> (this)->*_next) (data + bytes_used_);
+                (static_cast<T *> (this)->*next) (data + bytes_used_);
                 if (rc != 0)
                     return rc;
             }
@@ -120,22 +160,22 @@ pub struct decoder_base_t : public i_decoder
 
         while (bytes_used_ < size) {
             //  Copy the data from buffer to the message.
-            const size_t to_copy = std::min (_to_read, size - bytes_used_);
+            const size_t to_copy = std::min (to_read, size - bytes_used_);
             // Only copy when destination address is different from the
             // current address in the buffer.
-            if (_read_pos != data + bytes_used_) {
-                memcpy (_read_pos, data + bytes_used_, to_copy);
+            if (read_pos != data + bytes_used_) {
+                memcpy (read_pos, data + bytes_used_, to_copy);
             }
 
-            _read_pos += to_copy;
-            _to_read -= to_copy;
+            read_pos += to_copy;
+            to_read -= to_copy;
             bytes_used_ += to_copy;
             //  Try to get more space in the message to fill in.
             //  If none is available, return.
-            while (_to_read == 0) {
+            while (to_read == 0) {
                 // pass current address in the buffer
                 let rc: i32 =
-                  (static_cast<T *> (this)->*_next) (data + bytes_used_);
+                (static_cast<T *> (this)->*next) (data + bytes_used_);
                 if (rc != 0)
                     return rc;
             }
@@ -146,10 +186,10 @@ pub struct decoder_base_t : public i_decoder
 
     void resize_buffer (std::new_size: usize) ZMQ_FINAL
     {
-        _allocator.resize (new_size);
+        allocator.resize (new_size);
     }
 
-  protected:
+    //   protected:
     //  Prototype of state machine action. Action should return false if
     //  it is unable to push the data to the system.
     typedef int (T::*step_t) (unsigned char const *);
@@ -158,31 +198,14 @@ pub struct decoder_base_t : public i_decoder
     //  from the buffer and schedule next state machine action.
     void next_step (read_pos_: &mut [u8], std::to_read_: usize, step_t next_)
     {
-        _read_pos = static_cast<unsigned char *> (read_pos_);
-        _to_read = to_read_;
-        _next = next_;
+        read_pos = static_cast<unsigned char *> (read_pos_);
+        to_read = to_read_;
+        next = next_;
     }
 
-    A &get_allocator () { return _allocator; }
+    A &get_allocator () { return allocator; }
 
-  // private:
-    //  Next step. If set to NULL, it means that associated data stream
-    //  is dead. Note that there can be still data in the process in such
-    //  case.
-    step_t _next;
-
-    //  Where to store the read data.
-    unsigned char *_read_pos;
-
-    //  How much data to read before taking next step.
-    std::size_t _to_read;
-
-    //  The duffer for data to decode.
-    A _allocator;
-    unsigned char *buf;
-
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (decoder_base_t)
-};
 }
+// }
 
 // #endif

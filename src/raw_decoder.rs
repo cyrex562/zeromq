@@ -34,7 +34,7 @@
 // #include "raw_decoder.hpp"
 // #include "err.hpp"
 
-raw_decoder_t::raw_decoder_t (bufsize_: usize) : _allocator (bufsize_, 1)
+raw_decoder_t::raw_decoder_t (bufsize_: usize) : allocator (bufsize_, 1)
 {
     let rc: i32 = _in_progress.init ();
     errno_assert (rc == 0);
@@ -48,8 +48,8 @@ raw_decoder_t::~raw_decoder_t ()
 
 void raw_decoder_t::get_buffer (unsigned char **data, size: *mut usize)
 {
-    *data = _allocator.allocate ();
-    *size = _allocator.size ();
+    *data = allocator.allocate ();
+    *size = allocator.size ();
 }
 
 int raw_decoder_t::decode (data: &[u8],
@@ -59,13 +59,13 @@ int raw_decoder_t::decode (data: &[u8],
     let rc: i32 =
       _in_progress.init (const_cast<unsigned char *> (data), size,
                          shared_message_memory_allocator::call_dec_ref,
-                         _allocator.buffer (), _allocator.provide_content ());
+                         allocator.buffer (), allocator.provide_content ());
 
     // if the buffer serves as memory for a zero-copy message, release it
     // and allocate a new buffer in get_buffer for the next decode
     if (_in_progress.is_zcmsg ()) {
-        _allocator.advance_content ();
-        _allocator.release ();
+        allocator.advance_content ();
+        allocator.release ();
     }
 
     errno_assert (rc != -1);
@@ -91,7 +91,7 @@ pub struct raw_decoder_t ZMQ_FINAL : public i_decoder
   // private:
     ZmqMessage _in_progress;
 
-    shared_message_memory_allocator _allocator;
+    shared_message_memory_allocator allocator;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (raw_decoder_t)
 };
