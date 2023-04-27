@@ -152,15 +152,15 @@ impl DecoderBase {
             while (!to_read) {
                 let rc: i32 =
                 (static_cast<T *> (this)->*next) (data + bytes_used_);
-                if (rc != 0)
-                    return rc;
+                if (rc != 0){
+                    return rc;}
             }
             return 0;
         }
 
         while (bytes_used_ < size) {
             //  Copy the data from buffer to the message.
-            const size_t to_copy = std::min (to_read, size - bytes_used_);
+            let to_copy = usize::min(to_read, size - bytes_used_);
             // Only copy when destination address is different from the
             // current address in the buffer.
             if (read_pos != data + bytes_used_) {
