@@ -122,7 +122,7 @@ void send_string_expect_success (socket: *mut c_void, str_: *const c_char, flags
 {
     const size_t len = str_ ? strlen (str_) : 0;
     let rc: i32 = zmq_send (socket, str_, len, flags);
-    TEST_ASSERT_EQUAL_INT ((int) len, rc);
+    TEST_ASSERT_EQUAL_INT ( len, rc);
 }
 
 void recv_string_expect_success (socket: *mut c_void, str_: *const c_char, flags: i32)
@@ -136,7 +136,7 @@ void recv_string_expect_success (socket: *mut c_void, str_: *const c_char, flags
 
     let rc: i32 = TEST_ASSERT_SUCCESS_ERRNO (
       zmq_recv (socket, buffer, mem::size_of::<buffer>(), flags));
-    TEST_ASSERT_EQUAL_INT ((int) len, rc);
+    TEST_ASSERT_EQUAL_INT ( len, rc);
     if (str_)
         TEST_ASSERT_EQUAL_STRING_LEN (str_, buffer, len);
 }

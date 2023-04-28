@@ -119,7 +119,7 @@ void socks_server_task (socks_server: *mut c_void,
                         password: *const c_char,
                         max_client_connect: i32)
 {
-    int server_fd = (int) (intptr_t) socks_server;
+    int server_fd =  (intptr_t) socks_server;
     fprintf (stderr, "socks_server: starting server thread\n");
 
     res: i32;
@@ -842,7 +842,7 @@ void test_socks_userpass_options (void)
 {
 // #ifdef ZMQ_BUILD_DRAFT_API
     char buffer[1024];
-    for (int i = 0; i < (int) sizeof buffer; i++) {
+    for (int i = 0; i <  sizeof buffer; i++) {
         buffer[i] = 'a' + i % 26;
     }
 

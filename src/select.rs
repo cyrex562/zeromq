@@ -54,7 +54,7 @@
 // #include <algorithm>
 // #include <limits>
 // #include <climits>
-pub struct select_t ZMQ_FINAL : public worker_poller_base_t
+pub struct select_t ZMQ_FINAL : public WorkerPollerBase
 {
 // public:
     typedef ZmqFileDesc handle_t;
@@ -91,12 +91,12 @@ pub struct select_t ZMQ_FINAL : public worker_poller_base_t
         fd_set error;
     };
 
-    struct fd_entry_t
+    struct FdEntry
     {
         ZmqFileDesc fd;
         i_poll_events *events;
     };
-    typedef std::vector<fd_entry_t> fd_entries_t;
+    typedef std::vector<FdEntry> fd_entries_t;
 
     void trigger_events (const fd_entries_t &fd_entries_,
                          const fds_set_t &local_fds_set_,
@@ -151,8 +151,8 @@ pub struct select_t ZMQ_FINAL : public worker_poller_base_t
     void cleanup_retired ();
     bool cleanup_retired (family_entry_t &family_entry_);
 
-    //  Checks if an fd_entry_t is retired.
-    static bool is_retired_fd (const fd_entry_t &entry_);
+    //  Checks if an FdEntry is retired.
+    static bool is_retired_fd (const FdEntry &entry_);
 
     static fd_entries_t::iterator
     find_fd_entry_by_handle (fd_entries_t &fd_entries_, handle_t handle_);
@@ -160,10 +160,10 @@ pub struct select_t ZMQ_FINAL : public worker_poller_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (select_t)
 };
 
-typedef select_t poller_t;
+typedef select_t Poller;
 
 select_t::select_t (const ThreadCtx &ctx) :
-    worker_poller_base_t (ctx),
+    WorkerPollerBase (ctx),
 // #if defined ZMQ_HAVE_WINDOWS
     //  Fine as long as map is not cleared.
     _current_family_entry_it (_family_entries.end ())
@@ -187,7 +187,7 @@ select_t::handle_t select_t::add_fd (fd: ZmqFileDesc, i_poll_events *events_)
     check_thread ();
     zmq_assert (fd != retired_fd);
 
-    fd_entry_t fd_entry;
+    FdEntry fd_entry;
     fd_entry.fd = fd;
     fd_entry.events = events_;
 
@@ -277,7 +277,7 @@ int select_t::try_retire_fd_entry (
     if (fd_entry_it == family_entry.fd_entries.end ())
         return 0;
 
-    fd_entry_t &fd_entry = *fd_entry_it;
+    FdEntry &fd_entry = *fd_entry_it;
     zmq_assert (fd_entry.fd != retired_fd);
 
     if (family_entry_it_ != _current_family_entry_it) {
@@ -498,7 +498,7 @@ void select_t::loop ()
 
             rc = WSAWaitForMultipleEvents (4, wsa_events.events, FALSE,
                                            timeout ? timeout : INFINITE, FALSE);
-            wsa_assert (rc != (int) WSA_WAIT_FAILED);
+            wsa_assert (rc !=  WSA_WAIT_FAILED);
             zmq_assert (rc != WSA_WAIT_IO_COMPLETION);
 
             if (rc == WSA_WAIT_TIMEOUT)
@@ -643,7 +643,7 @@ void select_t::cleanup_retired ()
 // #endif
 }
 
-bool select_t::is_retired_fd (const fd_entry_t &entry_)
+bool select_t::is_retired_fd (const FdEntry &entry_)
 {
     return entry_.fd == retired_fd;
 }

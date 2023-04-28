@@ -78,7 +78,7 @@ pub struct ZmqSessionBase
     //  a transient session created by the listener.
     pub active: bool,
     //  Pipe connecting the session to its socket.
-    // ZmqPipe *_pipe;
+    // ZmqPipe *pipe;
     pub pipe: Option<ZmqPipe>,
     //  Pipe used to exchange messages with ZAP socket.
     // ZmqPipe *_zap_pipe;
@@ -127,7 +127,7 @@ impl ZmqSessionBase {
     //     ZmqOwn (io_thread_, options_),
     //     io_object_t (io_thread_),
     //     active (active_),
-    //     _pipe (null_mut()),
+    //     pipe (null_mut()),
     //     _zap_pipe (null_mut()),
     //     _incomplete_in (false),
     //     _pending (false),
@@ -180,7 +180,7 @@ impl ZmqSessionBase {
         match (options.type_) {
             ZMQ_REQ => s = req_session_t(io_thread_, active_, socket, options_, addr_),
             ZMQ_RADIO => s = radio_session_t(io_thread_, active_, socket, options_, addr_),
-            ZMQ_DISH => s = dish_session_t(io_thread_, active_, socket, options_, addr_),
+            ZMQ_DISH => s = DishSession(io_thread_, active_, socket, options_, addr_),
             ZMQ_DEALER | ZMQ_ROUTER | ZMQ_XPUB | ZMQ_XSUB | ZMQ_REP | ZMQ_PUB | ZMQ_SUB | ZMQ_PUSH | ZMQ_PULL | ZMQ_PAIR | ZMQ_STREAM | ZMQ_SERVER | ZMQ_CLIENT | ZMQ_GATHER | ZMQ_SCATTER | ZMQ_DGRAM | ZMQ_PEER | ZMQ_CHANNEL => {
 
 
@@ -223,7 +223,7 @@ impl ZmqSessionBase {
     pub fn attach_pipe (&mut self, pipe: &mut ZmqPipe)
     {
         // zmq_assert (!is_terminating ());
-        // zmq_assert (!_pipe);
+        // zmq_assert (!pipe);
         // zmq_assert (pipe_);
         self.pipe = Some(pipe.clone());
         self.pipe.set_event_sink (this);
@@ -270,8 +270,8 @@ impl ZmqSessionBase {
     // void flush ();
     pub fn flush (&mut self) -> anyhow::Result<()>
     {
-    // if (_pipe)
-    // _pipe.flush ();
+    // if (pipe)
+    // pipe.flush ();
         if self.pipe.is_some() {
             self.pipe.unwrap().flush()?;
         }
@@ -281,8 +281,8 @@ impl ZmqSessionBase {
     // void rollback ();
     pub fn rollback (&mut self) -> anyhow::Result<()>
     {
-    // if (_pipe)
-    // _pipe.rollback ();
+    // if (pipe)
+    // pipe.rollback ();
         if self.pipe.is_some() {
             self.pipe.unwrap().rollback()?;
         }
@@ -330,7 +330,7 @@ impl ZmqSessionBase {
     pub fn pipe_terminated(&mut self, pipe: &mut ZmqPipe) -> anyhow::Result<()>
     {
         // Drop the reference to the deallocated pipe if required.
-        // zmq_assert (pipe_ == _pipe || pipe_ == _zap_pipe
+        // zmq_assert (pipe_ == pipe || pipe_ == _zap_pipe
         // || _terminating_pipes.count (pipe_) == 1);
 
         if (pipe == self.pipe) {
@@ -437,7 +437,7 @@ impl ZmqSessionBase {
     // ~ZmqSessionBase () ZMQ_OVERRIDE;
     // ZmqSessionBase::~ZmqSessionBase ()
     // {
-    // zmq_assert (!_pipe);
+    // zmq_assert (!pipe);
     // zmq_assert (!_zap_pipe);
     //
     // //  If there's still a pending linger timer, remove it.
@@ -475,7 +475,7 @@ impl ZmqSessionBase {
     // void clean_pipes ();
     pub fn clean_pipes (&mut self) -> anyhow::Result<()>
     {
-        // zmq_assert (_pipe != null_mut());
+        // zmq_assert (pipe != null_mut());
 
         //  Get rid of half-processed messages in the out pipe. Flush any
         //  unflushed messages upstream.
@@ -550,7 +550,7 @@ impl hello_msg_session_t
 void ZmqSessionBase::write_activated (pipe: &mut ZmqPipe)
 {
     // Skip activating if we're detaching this pipe
-    if (_pipe != pipe) {
+    if (pipe != pipe) {
         zmq_assert (_terminating_pipes.count (pipe) == 1);
         return;
     }
@@ -647,7 +647,7 @@ void ZmqSessionBase::process_attach (i_engine *engine_)
 void ZmqSessionBase::engine_ready ()
 {
     //  Create the pipe if it does not exist yet.
-    if (!_pipe && !is_terminating ()) {
+    if (!pipe && !is_terminating ()) {
         ZmqObject *parents[2] = {this, _socket};
         ZmqPipe *pipes[2] = {null_mut(), null_mut()};
 
@@ -663,8 +663,8 @@ void ZmqSessionBase::engine_ready ()
         pipes[0]->set_event_sink (this);
 
         //  Remember the local end of the pipe.
-        zmq_assert (!_pipe);
-        _pipe = pipes[0];
+        zmq_assert (!pipe);
+        pipe = pipes[0];
 
         //  The endpoints strings are not set on bind, set them here so that
         //  events can use them.
@@ -683,20 +683,20 @@ void ZmqSessionBase::engine_error (handshaked_: bool,
     _engine = null_mut();
 
     //  Remove any half-done messages from the pipes.
-    if (_pipe) {
+    if (pipe) {
         clean_pipes ();
 
         //  Only send disconnect message if socket was accepted and handshake was completed
         if (!active && handshaked_ && options.can_recv_disconnect_msg
             && !options.disconnect_msg.empty ()) {
-            _pipe.set_disconnect_msg (options.disconnect_msg);
-            _pipe.send_disconnect_msg ();
+            pipe.set_disconnect_msg (options.disconnect_msg);
+            pipe.send_disconnect_msg ();
         }
 
         //  Only send hiccup message if socket was connected and handshake was completed
         if (active && handshaked_ && options.can_recv_hiccup_msg
             && !options.hiccup_msg.empty ()) {
-            _pipe.send_hiccup_msg (options.hiccup_msg);
+            pipe.send_hiccup_msg (options.hiccup_msg);
         }
     }
 
@@ -715,8 +715,8 @@ void ZmqSessionBase::engine_error (handshaked_: bool,
 
         case i_engine::protocol_error:
             if (_pending) {
-                if (_pipe)
-                    _pipe.terminate (false);
+                if (pipe)
+                    pipe.terminate (false);
                 if (_zap_pipe)
                     _zap_pipe.terminate (false);
             } else {
@@ -726,8 +726,8 @@ void ZmqSessionBase::engine_error (handshaked_: bool,
     }
 
     //  Just in case there's only a delimiter in the pipe.
-    if (_pipe)
-        _pipe.check_read ();
+    if (pipe)
+        pipe.check_read ();
 
     if (_zap_pipe)
         _zap_pipe.check_read ();
@@ -740,14 +740,14 @@ void ZmqSessionBase::process_term (linger: i32)
     //  If the termination of the pipe happens before the term command is
     //  delivered there's nothing much to do. We can proceed with the
     //  standard termination immediately.
-    if (!_pipe && !_zap_pipe && _terminating_pipes.empty ()) {
+    if (!pipe && !_zap_pipe && _terminating_pipes.empty ()) {
         ZmqOwn::process_term (0);
         return;
     }
 
     _pending = true;
 
-    if (_pipe != null_mut()) {
+    if (pipe != null_mut()) {
         //  If there's finite linger value, delay the termination.
         //  If linger is infinite (negative) we don't even have to set
         //  the timer.
@@ -759,13 +759,13 @@ void ZmqSessionBase::process_term (linger: i32)
 
         //  Start pipe termination process. Delay the termination till all messages
         //  are processed in case the linger time is non-zero.
-        _pipe.terminate (linger != 0);
+        pipe.terminate (linger != 0);
 
         //  TODO: Should this go into ZmqPipe::terminate ?
         //  In case there's no engine and there's only delimiter in the
         //  pipe it wouldn't be ever read. Thus we check for it explicitly.
         if (!_engine)
-            _pipe.check_read ();
+            pipe.check_read ();
     }
 
     if (_zap_pipe != null_mut())
@@ -780,8 +780,8 @@ void ZmqSessionBase::timer_event (id_: i32)
     _has_linger_timer = false;
 
     //  Ask pipe to terminate even though there may be pending messages in it.
-    zmq_assert (_pipe);
-    _pipe.terminate (false);
+    zmq_assert (pipe);
+    pipe.terminate (false);
 }
 
 void ZmqSessionBase::process_conn_failed ()
@@ -795,7 +795,7 @@ void ZmqSessionBase::reconnect ()
 {
     //  For delayed connect situations, terminate the pipe
     //  and reestablish later on
-    if (_pipe && options.immediate == 1
+    if (pipe && options.immediate == 1
 // #ifdef ZMQ_HAVE_OPENPGM
         && _addr.protocol != protocol_name::pgm
         && _addr.protocol != protocol_name::epgm
@@ -804,10 +804,10 @@ void ZmqSessionBase::reconnect ()
         && _addr.protocol != protocol_name::norm
 // #endif
         && _addr.protocol != protocol_name::udp) {
-        _pipe.hiccup ();
-        _pipe.terminate (false);
-        _terminating_pipes.insert (_pipe);
-        _pipe = null_mut();
+        pipe.hiccup ();
+        pipe.terminate (false);
+        _terminating_pipes.insert (pipe);
+        pipe = null_mut();
 
         if (_has_linger_timer) {
             cancel_timer (LINGER_TIMER_ID);
@@ -828,10 +828,10 @@ void ZmqSessionBase::reconnect ()
 
     //  For subscriber sockets we hiccup the inbound pipe, which will cause
     //  the socket object to resend all the subscriptions.
-    if (_pipe
+    if (pipe
         && (options.type == ZMQ_SUB || options.type == ZMQ_XSUB
             || options.type == ZMQ_DISH))
-        _pipe.hiccup ();
+        pipe.hiccup ();
 }
 
 void ZmqSessionBase::start_connecting (wait_: bool)

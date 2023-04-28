@@ -64,7 +64,7 @@ pub struct radio_t ZMQ_FINAL : public ZmqSocketBase
     udp_pipes_t _udp_pipes;
 
     //  Distributor of messages holding the list of outbound pipes.
-    dist_t _dist;
+    ZmqDist _dist;
 
     //  Drop messages if HWM reached, otherwise return with EAGAIN
     _lossy: bool

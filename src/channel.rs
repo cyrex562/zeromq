@@ -27,7 +27,7 @@ pub struct ZmqChannel
     //     void xpipe_terminated (ZmqPipe *pipe_);
 
     // private:
-    //   ZmqPipe *_pipe;
+    //   ZmqPipe *pipe;
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (channel_t)
     pipe: Option<ZmqPipe>,
@@ -46,11 +46,11 @@ impl ZmqChannel {
 
     // channel_t::~channel_t ()
     // {
-    //     zmq_assert (!_pipe);
+    //     zmq_assert (!pipe);
     // }
 
     // channel_t::channel_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
-    // ZmqSocketBase (parent_, tid, sid_, true), _pipe (null_mut())
+    // ZmqSocketBase (parent_, tid, sid_, true), pipe (null_mut())
     // {
     // options.type = ZMQ_CHANNEL;
     // }
@@ -71,8 +71,8 @@ impl ZmqSocketBaseOps for ZmqChannel {
 
         //  ZMQ_PAIR socket can only be connected to a single peer.
         //  The socket rejects any further connection requests.
-        // if (_pipe == null_mut())
-        // _pipe = pipe_;
+        // if (pipe == null_mut())
+        // pipe = pipe_;
         // else
         // pipe_.terminate (false);
         // }

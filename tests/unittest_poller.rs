@@ -40,7 +40,7 @@ void tearDown ()
 void test_create ()
 {
     ThreadCtx thread_ctx;
-    poller_t poller (thread_ctx);
+    Poller poller (thread_ctx);
 }
 
 #if 0
@@ -48,7 +48,7 @@ void test_create ()
 void test_start_empty ()
 {
     ThreadCtx thread_ctx;
-    poller_t poller (thread_ctx);
+    Poller poller (thread_ctx);
     poller.start ();
     msleep (SETTLE_TIME);
 }
@@ -56,7 +56,7 @@ void test_start_empty ()
 
 struct test_events_t : i_poll_events
 {
-    test_events_t (fd: ZmqFileDesc, poller_t &poller_) :
+    test_events_t (fd: ZmqFileDesc, Poller &poller_) :
         _fd (fd),
         poller (poller_)
     {
@@ -66,7 +66,7 @@ struct test_events_t : i_poll_events
     void in_event () ZMQ_OVERRIDE
     {
         poller.rm_fd (_handle);
-        _handle = (poller_t::handle_t) null_mut();
+        _handle = (Poller::handle_t) null_mut();
 
         // this must only be incremented after rm_fd
         in_events.add (1);
@@ -83,20 +83,20 @@ struct test_events_t : i_poll_events
     {
         LIBZMQ_UNUSED (id_);
         poller.rm_fd (_handle);
-        _handle = (poller_t::handle_t) null_mut();
+        _handle = (Poller::handle_t) null_mut();
 
         // this must only be incremented after rm_fd
         timer_events.add (1);
     }
 
-    void set_handle (poller_t::handle_t handle_) { _handle = handle_; }
+    void set_handle (Poller::handle_t handle_) { _handle = handle_; }
 
     AtomicCounter in_events, timer_events;
 
   // private:
     ZmqFileDesc _fd;
-    poller_t &poller;
-    poller_t::handle_t _handle;
+    Poller &poller;
+    Poller::handle_t _handle;
 };
 
 void wait_in_events (test_events_t &events_)
@@ -167,14 +167,14 @@ void close_fdpair (ZmqFileDesc w_, ZmqFileDesc r_)
 void test_add_fd_and_start_and_receive_data ()
 {
     ThreadCtx thread_ctx;
-    poller_t poller (thread_ctx);
+    Poller poller (thread_ctx);
 
     ZmqFileDesc r, w;
     create_nonblocking_fdpair (&r, &w);
 
     test_events_t events (r, poller);
 
-    poller_t::handle_t handle = poller.add_fd (r, &events);
+    Poller::handle_t handle = poller.add_fd (r, &events);
     events.set_handle (handle);
     poller.set_pollin (handle);
     poller.start ();
@@ -193,11 +193,11 @@ void test_add_fd_and_remove_by_timer ()
     create_nonblocking_fdpair (&r, &w);
 
     ThreadCtx thread_ctx;
-    poller_t poller (thread_ctx);
+    Poller poller (thread_ctx);
 
     test_events_t events (r, poller);
 
-    poller_t::handle_t handle = poller.add_fd (r, &events);
+    Poller::handle_t handle = poller.add_fd (r, &events);
     events.set_handle (handle);
 
     poller.add_timer (50, &events, 0);
@@ -213,7 +213,7 @@ void test_add_fd_and_remove_by_timer ()
 void test_add_fd_with_pending_failing_connect ()
 {
     ThreadCtx thread_ctx;
-    poller_t poller (thread_ctx);
+    Poller poller (thread_ctx);
 
     ZmqFileDesc bind_socket = socket (AF_INET, SOCK_STREAM, 0);
     sockaddr_in addr = {0};
@@ -239,7 +239,7 @@ void test_add_fd_with_pending_failing_connect ()
 
     test_events_t events (connect_socket, poller);
 
-    poller_t::handle_t handle = poller.add_fd (connect_socket, &events);
+    Poller::handle_t handle = poller.add_fd (connect_socket, &events);
     events.set_handle (handle);
     poller.set_pollin (handle);
     poller.start ();

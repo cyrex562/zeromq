@@ -81,7 +81,7 @@ int main(int argc, char *argv [])
     int s, rc, opt = 1;
     return(
        ((s = socket(PF_INET, SOCK_STREAM, 0)) == -1) ||
-       ((rc = setsockopt(s, SOL_SOCKET, SO_KEEPALIVE,(char*) &opt, sizeof(int))) == -1)
+       ((rc = setsockopt(s, SOL_SOCKET, SO_KEEPALIVE,(char*) &opt, sizeof)) == -1)
     );
 }
 "
@@ -102,8 +102,8 @@ int main(int argc, char *argv [])
     int s, rc, opt = 1;
     return(
        ((s = socket(PF_INET, SOCK_STREAM, 0)) == -1) ||
-       ((rc = setsockopt(s, SOL_SOCKET, SO_KEEPALIVE,(char*) &opt, sizeof(int))) == -1) ||
-       ((rc = setsockopt(s, IPPROTO_TCP, TCP_KEEPCNT,(char*) &opt, sizeof(int))) == -1)
+       ((rc = setsockopt(s, SOL_SOCKET, SO_KEEPALIVE,(char*) &opt, sizeof)) == -1) ||
+       ((rc = setsockopt(s, IPPROTO_TCP, TCP_KEEPCNT,(char*) &opt, sizeof)) == -1)
     );
 }
 "
@@ -124,8 +124,8 @@ int main(int argc, char *argv [])
     int s, rc, opt = 1;
     return(
        ((s = socket(PF_INET, SOCK_STREAM, 0)) == -1) ||
-       ((rc = setsockopt(s, SOL_SOCKET, SO_KEEPALIVE,(char*) &opt, sizeof(int))) == -1) ||
-       ((rc = setsockopt(s, IPPROTO_TCP, TCP_KEEPIDLE,(char*) &opt, sizeof(int))) == -1)
+       ((rc = setsockopt(s, SOL_SOCKET, SO_KEEPALIVE,(char*) &opt, sizeof)) == -1) ||
+       ((rc = setsockopt(s, IPPROTO_TCP, TCP_KEEPIDLE,(char*) &opt, sizeof)) == -1)
     );
 }
 "
@@ -147,8 +147,8 @@ int main(int argc, char *argv [])
     int s, rc, opt = 1;
     return(
        ((s = socket(PF_INET, SOCK_STREAM, 0)) == -1) ||
-       ((rc = setsockopt(s, SOL_SOCKET, SO_KEEPALIVE,(char*) &opt, sizeof(int))) == -1) ||
-       ((rc = setsockopt(s, IPPROTO_TCP, TCP_KEEPINTVL,(char*) &opt, sizeof(int))) == -1)
+       ((rc = setsockopt(s, SOL_SOCKET, SO_KEEPALIVE,(char*) &opt, sizeof)) == -1) ||
+       ((rc = setsockopt(s, IPPROTO_TCP, TCP_KEEPINTVL,(char*) &opt, sizeof)) == -1)
     );
 }
 
@@ -171,8 +171,8 @@ int main(int argc, char *argv [])
     int s, rc, opt = 1;
     return(
        ((s = socket(PF_INET, SOCK_STREAM, 0)) == -1) ||
-       ((rc = setsockopt(s, SOL_SOCKET, SO_KEEPALIVE,(char*) &opt, sizeof(int))) == -1) ||
-       ((rc = setsockopt(s, IPPROTO_TCP, TCP_KEEPALIVE,(char*) &opt, sizeof(int))) == -1)
+       ((rc = setsockopt(s, SOL_SOCKET, SO_KEEPALIVE,(char*) &opt, sizeof)) == -1) ||
+       ((rc = setsockopt(s, IPPROTO_TCP, TCP_KEEPALIVE,(char*) &opt, sizeof)) == -1)
     );
 }
 "
@@ -324,7 +324,7 @@ int main (int argc, char *argv [])
     int s, rc, opt = 1;
     return (
         ((s = socket (PF_INET, SOCK_STREAM, 0)) == -1) ||
-        ((rc = setsockopt (s, SOL_SOCKET, SO_PRIORITY, (char*) &opt, sizeof (int))) == -1)
+        ((rc = setsockopt (s, SOL_SOCKET, SO_PRIORITY, (char*) &opt, sizeof )) == -1)
     );
 }
 "

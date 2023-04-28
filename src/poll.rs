@@ -40,7 +40,7 @@
 // #include "err.hpp"
 // #include "config.hpp"
 // #include "i_poll_events.hpp"
-pub struct poll_t ZMQ_FINAL : public worker_poller_base_t
+pub struct poll_t ZMQ_FINAL : public WorkerPollerBase
 {
 // public:
     typedef ZmqFileDesc handle_t;
@@ -66,14 +66,14 @@ pub struct poll_t ZMQ_FINAL : public worker_poller_base_t
 
     void cleanup_retired ();
 
-    struct fd_entry_t
+    struct FdEntry
     {
         ZmqFileDesc index;
         i_poll_events *events;
     };
 
     //  This table stores data for registered descriptors.
-    typedef std::vector<fd_entry_t> fd_table_t;
+    typedef std::vector<FdEntry> fd_table_t;
     fd_table_t fd_table;
 
     //  Pollset to pass to the poll function.
@@ -86,10 +86,10 @@ pub struct poll_t ZMQ_FINAL : public worker_poller_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (poll_t)
 };
 
-typedef poll_t poller_t;
+typedef poll_t Poller;
 
 poll_t::poll_t (const ThreadCtx &ctx) :
-    worker_poller_base_t (ctx), retired (false)
+    WorkerPollerBase (ctx), retired (false)
 {
 }
 
@@ -184,7 +184,7 @@ void poll_t::loop ()
 {
     while (true) {
         //  Execute any due timers.
-        int timeout = (int) execute_timers ();
+        int timeout =  execute_timers ();
 
         cleanup_retired ();
 

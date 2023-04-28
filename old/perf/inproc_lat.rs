@@ -169,8 +169,8 @@ let mut msg = ZmqMessage::default();
     }
     memset (zmq_msg_data (&msg), 0, message_size);
 
-    printf ("message size: %d [B]\n", (int) message_size);
-    printf ("roundtrip count: %d\n", (int) roundtrip_count);
+    printf ("message size: %d [B]\n",  message_size);
+    printf ("roundtrip count: %d\n",  roundtrip_count);
 
     watch = zmq_stopwatch_start ();
 

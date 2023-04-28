@@ -43,7 +43,7 @@ pub struct io_object_t : public i_poll_events
     void unplug ();
 
   protected:
-    typedef poller_t::handle_t handle_t;
+    typedef Poller::handle_t handle_t;
 
     //  Methods to access underlying poller object.
     handle_t add_fd (ZmqFileDesc fd);
@@ -61,7 +61,7 @@ pub struct io_object_t : public i_poll_events
     void timer_event (id_: i32) ZMQ_OVERRIDE;
 
   // private:
-    poller_t *poller;
+    Poller *poller;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (io_object_t)
 };
@@ -144,7 +144,7 @@ void io_object_t::out_event ()
     zmq_assert (false);
 }
 
-void io_object_t::timer_event (int)
+void io_object_t::timer_event
 {
     zmq_assert (false);
 }

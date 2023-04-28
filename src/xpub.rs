@@ -74,7 +74,7 @@ pub struct xpub_t : public ZmqSocketBase
     mtrie_t _manual_subscriptions;
 
     //  Distributor of messages holding the list of outbound pipes.
-    dist_t _dist;
+    ZmqDist _dist;
 
     // If true, send all subscription messages upstream, not just
     // unique ones
@@ -353,7 +353,7 @@ int xpub_t::xgetsockopt (option_: i32, optval_: &mut [u8], optvallen_: *mut usiz
         // make sure to use a multi-thread safe function to avoid race conditions with I/O threads
         // where subscriptions are processed:
         return do_getsockopt<int> (optval_, optvallen_,
-                                   (int) _subscriptions.num_prefixes ());
+                                    _subscriptions.num_prefixes ());
     }
 
     // room for future options here

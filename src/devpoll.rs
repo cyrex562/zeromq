@@ -41,215 +41,226 @@
 // #include <limits.h>
 // #include <algorithm>
 
+use crate::poller_base::WorkerPollerBase;
+
 // #include "devpoll.hpp"
 // #include "err.hpp"
 // #include "config.hpp"
 // #include "i_poll_events.hpp"
-pub struct devpoll_t ZMQ_FINAL : public worker_poller_base_t
-{
-// public:
-    typedef ZmqFileDesc handle_t;
+// typedef ZmqFileDesc handle_t;
+type ZmqHandle = ZmqFileDesc;
 
-    devpoll_t (const ThreadCtx &ctx);
-    ~devpoll_t () ZMQ_FINAL;
+// typedef DevPoll Poller;
+type Poller = DevPoll;
+
+// typedef std::vector<FdEntry> fd_table_t;
+
+// typedef std::vector<ZmqFileDesc> pending_list_t;
+
+pub struct FdEntry {
+    // short events;
+    pub events: i16,
+    // i_poll_events *reactor;
+    pub reactor: i_poll_events,
+    // valid: bool
+    pub valid: bool,
+    // accepted: bool
+    pub accepted: bool,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct DevPoll {
+    // public:
+    //  File descriptor referring to "/dev/poll" pseudo-device.
+    // ZmqFileDesc devpoll_fd;
+    pub devpoll_fd: ZmqFileDesc,
+    // fd_table_t fd_table;
+    pub fd_table: Vec<FdEntry>,
+    // pending_list_t pending_list;
+    pub pending_list: Vec<ZmqFileDesc>,
+    //  Pollset manipulation function.
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (DevPoll)
+    pub worker_poller_base: WorkerPollerBase,
+}
+
+impl DevPoll {
+    // DevPoll (const ThreadCtx &ctx);
+    // DevPoll::DevPoll (const ThreadCtx &ctx) :
+    // WorkerPollerBase (ctx)
+    pub fn new(ctx: &ThreadCtx) -> Self {
+        devpoll_fd = open("/dev/poll", O_RDWR);
+        // errno_assert (devpoll_fd != -1);
+        Self {
+            worker_poller_base: WorkerPollerBase::new(ctx),
+            ..Default::default()
+        }
+    }
+    // ~DevPoll () ZMQ_FINAL;
+    // DevPoll::~DevPoll ()
+    // {
+    //     //  Wait till the worker thread exits.
+    //     stop_worker ();
+
+    //     close (devpoll_fd);
+    // }
 
     //  "poller" concept.
-    handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
-    void rm_fd (handle_t handle_);
-    void set_pollin (handle_t handle_);
-    void reset_pollin (handle_t handle_);
-    void set_pollout (handle_t handle_);
-    void reset_pollout (handle_t handle_);
-    void stop ();
+    // handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
+    pub fn add_fd(&mut self, fd: ZmqFileDesc, reactor_: &mut i_poll_events) {
+        check_thread();
+        //  If the file descriptor table is too small expand it.
+        let sz = self.fd_table.size();
+        if (sz <= fd) {
+            self.fd_table.resize(fd + 1);
+            while (sz != (fd + 1)) {
+                self.fd_table[sz].valid = false;
+                sz += 1;
+            }
+        }
 
-    static int max_fds ();
+        // zmq_assert (!fd_table[fd].valid);
 
-  // private:
+        self.fd_table[fd].events = 0;
+        self.fd_table[fd].reactor = reactor_;
+        self.fd_table[fd].valid = true;
+        self.fd_table[fd].accepted = false;
+
+        self.devpoll_ctl(fd, 0);
+        self.pending_list.push_back(fd);
+
+        //  Increase the load metric of the thread.
+        self.adjust_load(1);
+
+        return fd;
+    }
+
+    // void rm_fd (handle_t handle_);
+    pub fn rm_fd(&mut self, handle_: ZmqHandle) {
+        check_thread();
+        // zmq_assert (fd_table[handle_].valid);
+
+        self.devpoll_ctl(handle_, POLLREMOVE);
+        self.fd_table[handle_].valid = false;
+
+        //  Decrease the load metric of the thread.
+        self.adjust_load(-1);
+    }
+
+    // void set_pollin (handle_t handle_);
+    pub fn set_pollin(&mut self, handle_: &ZmqHandle) {
+        check_thread();
+        self.devpoll_ctl(handle_, POLLREMOVE);
+        self.fd_table[handle_].events |= POLLIN;
+        self.devpoll_ctl(handle_, self.fd_table[handle_].events);
+    }
+
+    // void reset_pollin (handle_t handle_);
+    pub fn reset_pollin(&mut self, handle_: ZmqHandle) {
+        check_thread();
+        self.devpoll_ctl(handle_, POLLREMOVE);
+        self.fd_table[handle_].events &= !(POLLIN);
+        self.devpoll_ctl(handle_, fd_table[handle_].events);
+    }
+
+    // void set_pollout (handle_t handle_);
+    pub fn set_pollout(&mut self, handle_: ZmqHandle) {
+        check_thread();
+        self.devpoll_ctl(handle_, POLLREMOVE);
+        self.fd_table[handle_].events |= POLLOUT;
+        self.devpoll_ctl(handle_, self.fd_table[handle_].events);
+    }
+
+    // void reset_pollout (handle_t handle_);
+    pub fn reset_pollout(&mut self, handle_: ZmqHandle) {
+        check_thread();
+        self.devpoll_ctl(handle_, POLLREMOVE);
+        self.fd_table[handle_].events &= !(POLLOUT);
+        self.devpoll_ctl(handle_, self.fd_table[handle_].events);
+    }
+
+    // void stop ();
+    pub fn stop(&mut self) {
+        check_thread();
+    }
+
+    // static int max_fds ();
+    pub fn max_fds(&mut self) -> i32 {
+        return -1;
+    }
+
+    // private:
     //  Main event loop.
-    void loop () ZMQ_FINAL;
 
-    //  File descriptor referring to "/dev/poll" pseudo-device.
-    ZmqFileDesc devpoll_fd;
+    // void loop () ZMQ_FINAL;
 
-    struct fd_entry_t
-    {
-        short events;
-        i_poll_events *reactor;
-        valid: bool
-        accepted: bool
-    };
-
-    typedef std::vector<fd_entry_t> fd_table_t;
-    fd_table_t fd_table;
-
-    typedef std::vector<ZmqFileDesc> pending_list_t;
-    pending_list_t pending_list;
-
-    //  Pollset manipulation function.
-    void devpoll_ctl (fd: ZmqFileDesc, short events_);
-
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (devpoll_t)
-};
-
-typedef devpoll_t poller_t;
-
-devpoll_t::devpoll_t (const ThreadCtx &ctx) :
-    worker_poller_base_t (ctx)
-{
-    devpoll_fd = open ("/dev/poll", O_RDWR);
-    errno_assert (devpoll_fd != -1);
-}
-
-devpoll_t::~devpoll_t ()
-{
-    //  Wait till the worker thread exits.
-    stop_worker ();
-
-    close (devpoll_fd);
-}
-
-void devpoll_t::devpoll_ctl (fd: ZmqFileDesc, short events_)
-{
-    struct pollfd pfd = {fd, events_, 0};
-    ssize_t rc = write (devpoll_fd, &pfd, sizeof pfd);
-    zmq_assert (rc == sizeof pfd);
-}
-
-devpoll_t::handle_t devpoll_t::add_fd (fd: ZmqFileDesc,
-                                                 i_poll_events *reactor_)
-{
-    check_thread ();
-    //  If the file descriptor table is too small expand it.
-    fd_table_t::size_type sz = fd_table.size ();
-    if (sz <= (fd_table_t::size_type) fd) {
-        fd_table.resize (fd + 1);
-        while (sz != (fd_table_t::size_type) (fd + 1)) {
-            fd_table[sz].valid = false;
-            ++sz;
-        }
+    // void devpoll_ctl (fd: ZmqFileDesc, short events_);
+    pub fn devpoll_ctl(&mut self, fd: ZmqFileDesc, events_: i16) {
+        // let mut pfd = PollFd{fd, events_, 0};
+        let rc = write(devpoll_fd, &pfd, pfd.len());
+        // zmq_assert (rc == pfd.len());
     }
 
-    zmq_assert (!fd_table[fd].valid);
+    pub fn loop_fn(&mut self) {
+        loop {
+            let mut ev_buf: [pollfd; max_io_events];
+            let mut poll_req: dvpoll;
 
-    fd_table[fd].events = 0;
-    fd_table[fd].reactor = reactor_;
-    fd_table[fd].valid = true;
-    fd_table[fd].accepted = false;
+            // for (pending_list_t::size_type i = 0; i < pending_list.size (); i++)
+            for i in 0..self.pending_list.len() {
+                fd_table[pending_list[i]].accepted = true;
+            }
+            self.pending_list.clear();
 
-    devpoll_ctl (fd, 0);
-    pending_list.push_back (fd);
+            //  Execute any due timers.
+            let timeout = execute_timers();
 
-    //  Increase the load metric of the thread.
-    adjust_load (1);
+            if (self.get_load() == 0) {
+                if (timeout == 0) {
+                    break;
+                }
 
-    return fd;
-}
-
-void devpoll_t::rm_fd (handle_t handle_)
-{
-    check_thread ();
-    zmq_assert (fd_table[handle_].valid);
-
-    devpoll_ctl (handle_, POLLREMOVE);
-    fd_table[handle_].valid = false;
-
-    //  Decrease the load metric of the thread.
-    adjust_load (-1);
-}
-
-void devpoll_t::set_pollin (handle_t handle_)
-{
-    check_thread ();
-    devpoll_ctl (handle_, POLLREMOVE);
-    fd_table[handle_].events |= POLLIN;
-    devpoll_ctl (handle_, fd_table[handle_].events);
-}
-
-void devpoll_t::reset_pollin (handle_t handle_)
-{
-    check_thread ();
-    devpoll_ctl (handle_, POLLREMOVE);
-    fd_table[handle_].events &= ~((short) POLLIN);
-    devpoll_ctl (handle_, fd_table[handle_].events);
-}
-
-void devpoll_t::set_pollout (handle_t handle_)
-{
-    check_thread ();
-    devpoll_ctl (handle_, POLLREMOVE);
-    fd_table[handle_].events |= POLLOUT;
-    devpoll_ctl (handle_, fd_table[handle_].events);
-}
-
-void devpoll_t::reset_pollout (handle_t handle_)
-{
-    check_thread ();
-    devpoll_ctl (handle_, POLLREMOVE);
-    fd_table[handle_].events &= ~((short) POLLOUT);
-    devpoll_ctl (handle_, fd_table[handle_].events);
-}
-
-void devpoll_t::stop ()
-{
-    check_thread ();
-}
-
-int devpoll_t::max_fds ()
-{
-    return -1;
-}
-
-void devpoll_t::loop ()
-{
-    while (true) {
-        struct pollfd ev_buf[max_io_events];
-        struct dvpoll poll_req;
-
-        for (pending_list_t::size_type i = 0; i < pending_list.size (); i++)
-            fd_table[pending_list[i]].accepted = true;
-        pending_list.clear ();
-
-        //  Execute any due timers.
-        int timeout = (int) execute_timers ();
-
-        if (get_load () == 0) {
-            if (timeout == 0)
-                break;
-
-            // TODO sleep for timeout
-            continue;
-        }
-
-        //  Wait for events.
-        //  On Solaris, we can retrieve no more then (OPEN_MAX - 1) events.
-        poll_req.dp_fds = &ev_buf[0];
-// #if defined ZMQ_HAVE_SOLARIS
-        poll_req.dp_nfds = std::min ((int) max_io_events, OPEN_MAX - 1);
-// #else
-        poll_req.dp_nfds = max_io_events;
-// #endif
-        poll_req.dp_timeout = timeout ? timeout : -1;
-        int n = ioctl (devpoll_fd, DP_POLL, &poll_req);
-        if (n == -1 && errno == EINTR)
-            continue;
-        errno_assert (n != -1);
-
-        for (int i = 0; i < n; i++) {
-            fd_entry_t *fd_ptr = &fd_table[ev_buf[i].fd];
-            if (!fd_ptr.valid || !fd_ptr.accepted)
+                // TODO sleep for timeout
                 continue;
-            if (ev_buf[i].revents & (POLLERR | POLLHUP))
-                fd_ptr.reactor.in_event ();
-            if (!fd_ptr.valid || !fd_ptr.accepted)
+            }
+
+            //  Wait for events.
+            //  On Solaris, we can retrieve no more then (OPEN_MAX - 1) events.
+            poll_req.dp_fds = &ev_buf[0];
+            // #if defined ZMQ_HAVE_SOLARIS
+            poll_req.dp_nfds = i32::min(max_io_events, OPEN_MAX - 1);
+            // #else
+            poll_req.dp_nfds = max_io_events;
+            // #endif
+            poll_req.dp_timeout = if timeout { timeout } else { -1 };
+            // TODO
+            // let n = ioctl (devpoll_fd, DP_POLL, &poll_req);
+            if (n == -1 && errno == EINTR) {
                 continue;
-            if (ev_buf[i].revents & POLLOUT)
-                fd_ptr.reactor.out_event ();
-            if (!fd_ptr.valid || !fd_ptr.accepted)
-                continue;
-            if (ev_buf[i].revents & POLLIN)
-                fd_ptr.reactor.in_event ();
+            }
+            // errno_assert (n != -1);
+
+            // for (int i = 0; i < n; i++)
+            for i in 0..n {
+                FdEntry * fd_ptr = &fd_table[ev_buf[i].fd];
+                if (!fd_ptr.valid || !fd_ptr.accepted) {
+                    continue;
+                }
+                if (ev_buf[i].revents & (POLLERR | POLLHUP)) {
+                    fd_ptr.reactor.in_event();
+                }
+                if (!fd_ptr.valid || !fd_ptr.accepted) {
+                    continue;
+                }
+                if (ev_buf[i].revents & POLLOUT) {
+                    fd_ptr.reactor.out_event();
+                }
+                if (!fd_ptr.valid || !fd_ptr.accepted) {
+                    continue;
+                }
+                if (ev_buf[i].revents & POLLIN) {
+                    fd_ptr.reactor.in_event();
+                }
+            }
         }
     }
 }
-
-// #endif

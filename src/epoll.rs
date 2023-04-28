@@ -45,7 +45,7 @@
 // #include "err.hpp"
 // #include "config.hpp"
 // #include "i_poll_events.hpp"
-pub struct epoll_t ZMQ_FINAL : public worker_poller_base_t
+pub struct epoll_t ZMQ_FINAL : public WorkerPollerBase
 {
 // public:
     typedef void *handle_t;
@@ -96,7 +96,7 @@ pub struct epoll_t ZMQ_FINAL : public worker_poller_base_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (epoll_t)
 };
 
-typedef epoll_t poller_t;
+typedef epoll_t Poller;
 
 // #ifdef ZMQ_HAVE_WINDOWS
 const epoll_t::epoll_fd_t epoll_t::epoll_retired_fd =
@@ -104,7 +104,7 @@ const epoll_t::epoll_fd_t epoll_t::epoll_retired_fd =
 // #endif
 
 epoll_t::epoll_t (const ThreadCtx &ctx) :
-    worker_poller_base_t (ctx)
+    WorkerPollerBase (ctx)
 {
 // #ifdef ZMQ_IOTHREAD_POLLER_USE_EPOLL_CLOEXEC
     //  Setting this option result in sane behaviour when exec() functions

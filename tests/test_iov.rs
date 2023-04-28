@@ -91,7 +91,7 @@ static void do_check (sb_: *mut c_void, sc_: *mut c_void, msg_size_: usize)
     // the last message, which does not hold much sense from a batch send
     // perspective; hence the assert checks if the result is same as msg_size.
     TEST_ASSERT_EQUAL_INT (
-      (int) msg_size_, TEST_ASSERT_SUCCESS_ERRNO (
+       msg_size_, TEST_ASSERT_SUCCESS_ERRNO (
                          zmq_sendiov (sc_, send_iov, send_count, ZMQ_SNDMORE)));
 
     // zmq_recviov(3) single-shot

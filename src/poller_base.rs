@@ -71,10 +71,10 @@ pub struct poller_base_t
 };
 
 //  Base class for a poller with a single worker thread.
-pub struct worker_poller_base_t : public poller_base_t
+pub struct WorkerPollerBase : public poller_base_t
 {
 // public:
-    worker_poller_base_t (const ThreadCtx &ctx);
+    WorkerPollerBase (const ThreadCtx &ctx);
 
     // Methods from the poller concept.
     void start (const char *name = null_mut());
@@ -189,30 +189,30 @@ u64 poller_base_t::execute_timers ()
     return res;
 }
 
-worker_poller_base_t::worker_poller_base_t (const ThreadCtx &ctx) :
+WorkerPollerBase::WorkerPollerBase (const ThreadCtx &ctx) :
     ctx (ctx)
 {
 }
 
-void worker_poller_base_t::stop_worker ()
+void WorkerPollerBase::stop_worker ()
 {
     _worker.stop ();
 }
 
-void worker_poller_base_t::start (name_: &str)
+void WorkerPollerBase::start (name_: &str)
 {
     zmq_assert (get_load () > 0);
     ctx.start_thread (_worker, worker_routine, this, name_);
 }
 
-void worker_poller_base_t::check_thread () const
+void WorkerPollerBase::check_thread () const
 {
 // #ifndef NDEBUG
     zmq_assert (!_worker.get_started () || _worker.is_current_thread ());
 // #endif
 }
 
-void worker_poller_base_t::worker_routine (arg_: &mut [u8])
+void WorkerPollerBase::worker_routine (arg_: &mut [u8])
 {
-    (static_cast<worker_poller_base_t *> (arg_))->loop ();
+    (static_cast<WorkerPollerBase *> (arg_))->loop ();
 }

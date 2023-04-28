@@ -280,7 +280,7 @@ void thread_t::start (thread_fn *tfn_, arg_: &mut [u8], name_: &str)
     _arg = arg_;
     _descriptor = taskSpawn (null_mut(), DEFAULT_PRIORITY, DEFAULT_OPTIONS,
                              DEFAULT_STACK_SIZE, (FUNCPTR) thread_routine,
-                             (int) this, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+                              this, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     if (_descriptor != null_mut() || _descriptor > 0)
         _started = true;
 }
@@ -456,7 +456,7 @@ void thread_t::
         for (std::set<int>::const_iterator it = _thread_affinity_cpus.begin (),
                                            end = _thread_affinity_cpus.end ();
              it != end; it++) {
-            CPU_SET ((int) (*it), &cpuset);
+            CPU_SET ( (*it), &cpuset);
         }
         rc =
           pthread_setaffinity_np (pthread_self (), mem::size_of::<cpu_set_t>(), &cpuset);

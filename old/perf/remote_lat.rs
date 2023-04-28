@@ -109,8 +109,8 @@ let mut msg = ZmqMessage::default();
 
     latency = (double) elapsed / (roundtrip_count * 2);
 
-    printf ("message size: %d [B]\n", (int) message_size);
-    printf ("roundtrip count: %d\n", (int) roundtrip_count);
+    printf ("message size: %d [B]\n",  message_size);
+    printf ("roundtrip count: %d\n",  roundtrip_count);
     printf ("average latency: %.3f [us]\n", (double) latency);
 
     rc = zmq_close (s);

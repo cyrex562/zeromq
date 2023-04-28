@@ -67,7 +67,7 @@ let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_set_group (&msg, group_));
 
     int rc = zmq_msg_send (&msg, s_, 0);
-    TEST_ASSERT_EQUAL_INT ((int) len, rc);
+    TEST_ASSERT_EQUAL_INT ( len, rc);
 
     // TODO isn't the msg closed by zmq_msg_send?
     zmq_msg_close (&msg);

@@ -893,7 +893,7 @@ pub trait ZmqObject {
 //     zmq_assert (false);
 // }
 
-// void object_t::process_term (int)
+// void object_t::process_term
 // {
 //     zmq_assert (false);
 // }

@@ -27,6 +27,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use crate::zmq_content::ZmqContent;
+
 // #include "precompiled.hpp"
 // #include "macros.hpp"
 // #include "dgram.hpp"
@@ -35,153 +37,169 @@
 // #include "random.hpp"
 // #include "likely.hpp"
 // #include "err.hpp"
-pub struct dgram_t ZMQ_FINAL : public ZmqSocketBase
-{
-// public:
-    dgram_t (ZmqContext *parent_, tid: u32, sid_: i32);
-    ~dgram_t ();
+#[derive(Copy, Clone, Debug)]
+pub struct ZmqDgram {
+    // public:
 
-    //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe: &mut ZmqPipe,
-                       subscribe_to_all_: bool,
-                       locally_initiated_: bool);
-    int xsend (msg: &mut ZmqMessage);
-    int xrecv (msg: &mut ZmqMessage);
-    bool xhas_in ();
-    bool xhas_out ();
-    void xread_activated (pipe: &mut ZmqPipe);
-    void xwrite_activated (pipe: &mut ZmqPipe);
-    void xpipe_terminated (pipe: &mut ZmqPipe);
-
-  // private:
-    ZmqPipe *_pipe;
+    // private:
+    // ZmqPipe *pipe;
+    pub pipe: *mut ZmqPipe,
 
     //  If true, more outgoing message parts are expected.
-    _more_out: bool
+    pub _more_out: bool,
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (dgram_t)
-};
-dgram_t::dgram_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
-    ZmqSocketBase (parent_, tid, sid_), _pipe (null_mut()), _more_out (false)
-{
-    options.type = ZMQ_DGRAM;
-    options.raw_socket = true;
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqDgram)
+    pub socket_base: ZmqSocketBase,
 }
 
-dgram_t::~dgram_t ()
-{
-    zmq_assert (!_pipe);
-}
-
-void dgram_t::xattach_pipe (pipe: &mut ZmqPipe,
-                                 subscribe_to_all_: bool,
-                                 locally_initiated_: bool)
-{
-    LIBZMQ_UNUSED (subscribe_to_all_);
-    LIBZMQ_UNUSED (locally_initiated_);
-
-    zmq_assert (pipe);
-
-    //  ZMQ_DGRAM socket can only be connected to a single peer.
-    //  The socket rejects any further connection requests.
-    if (_pipe == null_mut())
-        _pipe = pipe;
-    else
-        pipe.terminate (false);
-}
-
-void dgram_t::xpipe_terminated (pipe: &mut ZmqPipe)
-{
-    if (pipe == _pipe) {
-        _pipe = null_mut();
-    }
-}
-
-void dgram_t::xread_activated (ZmqPipe *)
-{
-    //  There's just one pipe. No lists of active and inactive pipes.
-    //  There's nothing to do here.
-}
-
-void dgram_t::xwrite_activated (ZmqPipe *)
-{
-    //  There's just one pipe. No lists of active and inactive pipes.
-    //  There's nothing to do here.
-}
-
-int dgram_t::xsend (msg: &mut ZmqMessage)
-{
-    // If there's no out pipe, just drop it.
-    if (!_pipe) {
-        let rc: i32 = msg.close ();
-        errno_assert (rc == 0);
-        return -1;
-    }
-
-    //  If this is the first part of the message it's the ID of the
-    //  peer to send the message to.
-    if (!_more_out) {
-        if (!(msg.flags () & ZMQ_MSG_MORE)) {
-            errno = EINVAL;
-            return -1;
-        }
-    } else {
-        //  dgram messages are two part only, reject part if more is set
-        if (msg.flags () & ZMQ_MSG_MORE) {
-            errno = EINVAL;
-            return -1;
+impl ZmqDgram {
+    // ZmqDgram (ZmqContext *parent_, tid: u32, sid_: i32);
+    // ZmqDgram::ZmqDgram (parent: &mut ZmqContext, tid: u32, sid_: i32) :
+    // ZmqSocketBase (parent_, tid, sid_), pipe (null_mut()), _more_out (false)
+    // {
+    //     options.type = ZMQ_DGRAM;
+    //     options.raw_socket = true;
+    // }
+    pub fn new(parent_: &mut ZmqContent, tid: u32, sid_: i32) -> Self {
+        let mut socket_base = ZmqSocketBase::new(parent_, tid, sid_);
+        socket_base.options.type_ = ZMQ_DGRAM;
+        socket_base.options.raw_socket = true;
+        Self {
+            socket_base,
+            pipe: null_mut(),
+            _more_out: false,
         }
     }
 
-    // Push the message into the pipe.
-    if (!_pipe.write (msg)) {
-        errno = EAGAIN;
-        return -1;
+    // ~ZmqDgram ();
+    // ZmqDgram::~ZmqDgram ()
+    // {
+    //     zmq_assert (!pipe);
+    // }
+
+    //  Overrides of functions from ZmqSocketBase.
+    // void xattach_pipe (pipe: &mut ZmqPipe,
+    //                    subscribe_to_all_: bool,
+    //                    locally_initiated_: bool);
+    pub fn xattach_pipe(
+        &mut self,
+        pipe: &mut ZmqPipe,
+        subscribe_to_all_: bool,
+        locally_initiated_: bool,
+    ) {
+        // LIBZMQ_UNUSED (subscribe_to_all_);
+        // LIBZMQ_UNUSED (locally_initiated_);
+
+        // zmq_assert (pipe);
+
+        //  ZMQ_DGRAM socket can only be connected to a single peer.
+        //  The socket rejects any further connection requests.
+        if (self.pipe == null_mut()) {
+            self.pipe = pipe;
+        } else {
+            pipe.terminate(false);
+        }
     }
 
-    if (!(msg.flags () & ZMQ_MSG_MORE))
-        _pipe.flush ();
+    // int xsend (msg: &mut ZmqMessage);
+    pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32 {
+        // If there's no out pipe, just drop it.
+        if (!self.pipe) {
+            let rc: i32 = msg.close();
+            // errno_assert (rc == 0);
+            return -1;
+        }
 
-    // flip the more flag
-    _more_out = !_more_out;
+        //  If this is the first part of the message it's the ID of the
+        //  peer to send the message to.
+        if (!self._more_out) {
+            if (!(msg.flags() & ZMQ_MSG_MORE)) {
+                errno = EINVAL;
+                return -1;
+            }
+        } else {
+            //  dgram messages are two part only, reject part if more is set
+            if (msg.flags() & ZMQ_MSG_MORE) {
+                errno = EINVAL;
+                return -1;
+            }
+        }
 
-    //  Detach the message from the data buffer.
-    let rc: i32 = msg.init ();
-    errno_assert (rc == 0);
+        // Push the message into the pipe.
+        if (!unsafe { self.pipe.write(msg) }) {
+            errno = EAGAIN;
+            return -1;
+        }
 
-    return 0;
-}
+        if (!(msg.flags() & ZMQ_MSG_MORE)) {
+            self.pipe.flush();
+        }
 
-int dgram_t::xrecv (msg: &mut ZmqMessage)
-{
-    //  Deallocate old content of the message.
-    int rc = msg.close ();
-    errno_assert (rc == 0);
+        // flip the more flag
+        self._more_out = !self._more_out;
 
-    if (!_pipe || !_pipe.read (msg)) {
-        //  Initialise the output parameter to be a 0-byte message.
-        rc = msg.init ();
-        errno_assert (rc == 0);
+        //  Detach the message from the data buffer.
+        let rc: i32 = msg.init();
+        errno_assert(rc == 0);
 
-        errno = EAGAIN;
-        return -1;
+        return 0;
     }
 
-    return 0;
-}
+    // int xrecv (msg: &mut ZmqMessage);
+    pub fn xrecv(msg: &mut ZmqMessage) -> i32 {
+        //  Deallocate old content of the message.
+        let rc = msg.close();
+        // errno_assert (rc == 0);
 
-bool dgram_t::xhas_in ()
-{
-    if (!_pipe)
-        return false;
+        if (!self.pipe || !self.pipe.read(msg)) {
+            //  Initialise the output parameter to be a 0-byte message.
+            rc = msg.init();
+            errno_assert(rc == 0);
 
-    return _pipe.check_read ();
-}
+            errno = EAGAIN;
+            return -1;
+        }
 
-bool dgram_t::xhas_out ()
-{
-    if (!_pipe)
-        return false;
+        return 0;
+    }
 
-    return _pipe.check_write ();
+    // bool xhas_in ();
+    pub fn xhas_in(&mut self) -> bool {
+        if (!self.pipe) {
+            return false;
+        }
+
+        return self.pipe.check_read();
+    }
+
+    // bool xhas_out ();
+
+    // void xread_activated (pipe: &mut ZmqPipe);
+    pub fn xread_activated(&mut self, pipe: *mut ZmqPipe) {
+        //  There's just one pipe. No lists of active and inactive pipes.
+        //  There's nothing to do here.
+        unimplemented!("xread_activated")
+    }
+
+    // void xwrite_activated (pipe: &mut ZmqPipe);
+    pub fn xwrite_activated(&mut self, pipe: *mut ZmqPipe) {
+        //  There's just one pipe. No lists of active and inactive pipes.
+        //  There's nothing to do here.
+        unimplemented!("xwrite_activated")
+    }
+
+    // void xpipe_terminated (pipe: &mut ZmqPipe);
+    pub fn xpipe_terminated(&mut self, pipe: &mut ZmqPipe) {
+        if (pipe == self.pipe) {
+            self.pipe = null_mut();
+        }
+    }
+
+    pub fn xhas_out(&mut self) -> bool {
+        if (!self.pipe) {
+            return false;
+        }
+
+        return self.pipe.check_write();
+    }
 }

@@ -64,7 +64,7 @@ void recv_string_expect_success_or_eagain (socket: *mut c_void,
             TEST_ASSERT_SUCCESS_ERRNO (rc);
         }
     } else {
-        TEST_ASSERT_EQUAL_INT ((int) len, rc);
+        TEST_ASSERT_EQUAL_INT ( len, rc);
         if (str_)
             TEST_ASSERT_EQUAL_STRING_LEN (str_, buffer, len);
     }

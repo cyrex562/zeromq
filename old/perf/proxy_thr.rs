@@ -161,7 +161,7 @@ static void publisher_thread_main (pvoid: *mut c_void)
     }
     if (buffer[0] != 1) {
         printf ("invalid response value: expected 1, received %d",
-                (int) buffer[0]);
+                 buffer[0]);
         exit (1);
     }
 
@@ -331,8 +331,8 @@ int main (argc: i32, char *argv[])
 
     message_size = atoi (argv[1]);
     message_count = atoi (argv[2]);
-    printf ("message size: %d [B]\n", (int) message_size);
-    printf ("message count: %d\n", (int) message_count);
+    printf ("message size: %d [B]\n",  message_size);
+    printf ("message count: %d\n",  message_count);
 
     void *context = zmq_ctx_new ();
     assert (context);
@@ -394,7 +394,7 @@ int main (argc: i32, char *argv[])
       (unsigned long) ((double) message_count / (double) elapsed * 1000000);
     double megabits = (double) (throughput * message_size * 8) / 1000000;
 
-    printf ("mean throughput: %d [msg/s]\n", (int) throughput);
+    printf ("mean throughput: %d [msg/s]\n",  throughput);
     printf ("mean throughput: %.3f [Mb/s]\n", (double) megabits);
 
     //  Wait for the end of publishers...

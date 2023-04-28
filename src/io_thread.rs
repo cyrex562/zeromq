@@ -55,7 +55,7 @@ pub struct ZmqThread
     //  Handle associated with mailbox' file descriptor.
     pub mailbox_handle: Option<handle_t>,
     //  I/O multiplexing is performed using a poller object.
-    pub poller: poller_t,
+    pub poller: Poller,
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqThread)
     pub ctx: ZmqContext,
     //
@@ -69,7 +69,7 @@ impl ZmqThread {
     pub fn new (ctx: &mut ZmqContext, tid: u32) -> Self {
         let mut out = Self {
             mailbox: None,
-            poller: poller_t::new(ctx),
+            poller: Poller::new(ctx),
             mailbox_handle: None,
             ctx: ctx.clone(),
             tid: 0,
@@ -82,9 +82,9 @@ impl ZmqThread {
         out
     }
 
-    // mailbox_handle (static_cast<poller_t::handle_t> (null_mut()))
+    // mailbox_handle (static_cast<Poller::handle_t> (null_mut()))
     // {
-    // poller = new (std::nothrow) poller_t (*ctx);
+    // poller = new (std::nothrow) Poller (*ctx);
     // alloc_assert (poller);
     //
     // if (mailbox.get_fd () != retired_fd) {
@@ -112,7 +112,7 @@ impl ZmqThread {
     // void timer_event (id_: i32);
 
     //  Used by io_objects to retrieve the associated poller object.
-    // poller_t *get_poller () const;
+    // Poller *get_poller () const;
 
     //  Command handlers.
     // void process_stop ();
@@ -414,13 +414,13 @@ void ZmqThread::out_event ()
     zmq_assert (false);
 }
 
-void ZmqThread::timer_event (int)
+void ZmqThread::timer_event
 {
     //  No timers here. This function is never called.
     zmq_assert (false);
 }
 
-poller_t *ZmqThread::get_poller () const
+Poller *ZmqThread::get_poller () const
 {
     zmq_assert (poller);
     return poller;

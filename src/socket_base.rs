@@ -90,9 +90,9 @@ pub struct ZmqSocketBase {
     pub pipes: [ZmqPipe; 3],
 
     //  Reaper's poller and handle of this socket within it.
-    // poller_t *poller;
-    pub poller: Option<poller_t>,
-    // poller_t::handle_t _handle;
+    // Poller *poller;
+    pub poller: Option<Poller>,
+    // Poller::handle_t _handle;
     pub handle: Option<handle_t>,
 
     //  Timestamp of when commands were processed the last time.
@@ -416,7 +416,7 @@ impl ZmqSocketBase {
     //     _ctx_terminated (false),
     //     _destroyed (false),
     //     poller (null_mut()),
-    //     _handle (static_cast<poller_t::handle_t> (null_mut())),
+    //     _handle (static_cast<Poller::handle_t> (null_mut())),
     //     _last_tsc (0),
     //     _ticks (0),
     //     _rcvmore (false),
@@ -539,7 +539,7 @@ impl ZmqSocketBase {
     //             s = new (std::nothrow) radio_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_DISH =>
-    //             s = new (std::nothrow) dish_t (parent_, tid, sid_);
+    //             s = new (std::nothrow) ZmqDish (parent_, tid, sid_);
     //             break;
     //         ZMQ_GATHER =>
     //             s = new (std::nothrow) gather_t (parent_, tid, sid_);
@@ -548,7 +548,7 @@ impl ZmqSocketBase {
     //             s = new (std::nothrow) scatter_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_DGRAM =>
-    //             s = new (std::nothrow) dgram_t (parent_, tid, sid_);
+    //             s = new (std::nothrow) ZmqDgram (parent_, tid, sid_);
     //             break;
     //         ZMQ_PEER =>
     //             s = new (std::nothrow) peer_t (parent_, tid, sid_);
@@ -1304,8 +1304,8 @@ impl ZmqSocketBase {
 
     //  Using this function reaper thread ask the socket to register with
     //  its poller.
-    // void start_reaping (poller_t *poller_);
-    pub fn start_reaping(&mut self, poller_: &mut poller_t) {
+    // void start_reaping (Poller *poller_);
+    pub fn start_reaping(&mut self, poller_: &mut Poller) {
         //  Plug the socket to the reaper thread.
         self.poller = poller_.clone();
 

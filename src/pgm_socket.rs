@@ -155,7 +155,7 @@ int pgm_socket_t::init_address (network_: &str,
     *port_number = atoi (port_delim + 1);
 
     char network[256];
-    if (port_delim - network_ >= (int) mem::size_of::<network>() - 1) {
+    if (port_delim - network_ >=  mem::size_of::<network>() - 1) {
         errno = EINVAL;
         return -1;
     }
@@ -261,28 +261,28 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
     }
 
     {
-        let rcvbuf: i32 = (int) options.rcvbuf;
+        let rcvbuf: i32 =  options.rcvbuf;
         if (rcvbuf >= 0) {
             if (!pgm_setsockopt (sock, SOL_SOCKET, SO_RCVBUF, &rcvbuf,
                                  mem::size_of::<rcvbuf>()))
                 goto err_abort;
         }
 
-        let sndbuf: i32 = (int) options.sndbuf;
+        let sndbuf: i32 =  options.sndbuf;
         if (sndbuf >= 0) {
             if (!pgm_setsockopt (sock, SOL_SOCKET, SO_SNDBUF, &sndbuf,
                                  mem::size_of::<sndbuf>()))
                 goto err_abort;
         }
 
-        let max_tpdu: i32 = (int) options.multicast_maxtpdu;
+        let max_tpdu: i32 =  options.multicast_maxtpdu;
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_MTU, &max_tpdu,
                              mem::size_of::<max_tpdu>()))
             goto err_abort;
     }
 
     if (receiver) {
-        let recv_only: i32 = 1, rxw_max_tpdu = (int) options.multicast_maxtpdu,
+        let recv_only: i32 = 1, rxw_max_tpdu =  options.multicast_maxtpdu,
                   rxw_sqns = compute_sqns (rxw_max_tpdu),
                   peer_expiry = pgm_secs (300), spmr_expiry = pgm_msecs (25),
                   nak_bo_ivl = pgm_msecs (50), nak_rpt_ivl = pgm_msecs (200),
@@ -309,8 +309,8 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
                                 &nak_ncf_retries, mem::size_of::<nak_ncf_retries>()))
             goto err_abort;
     } else {
-        let send_only: i32 = 1, max_rte = (int) ((options.rate * 1000) / 8),
-                  txw_max_tpdu = (int) options.multicast_maxtpdu,
+        let send_only: i32 = 1, max_rte =  ((options.rate * 1000) / 8),
+                  txw_max_tpdu =  options.multicast_maxtpdu,
                   txw_sqns = compute_sqns (txw_max_tpdu),
                   ambient_spm = pgm_secs (30),
                   heartbeat_spm[] = {
@@ -422,8 +422,8 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
     if (receiver) {
         zmq_assert (options.in_batch_size > 0);
         size_t max_tsdu_size = get_max_tsdu_size ();
-        pgm_msgv_len = (int) options.in_batch_size / max_tsdu_size;
-        if ((int) options.in_batch_size % max_tsdu_size)
+        pgm_msgv_len =  options.in_batch_size / max_tsdu_size;
+        if ( options.in_batch_size % max_tsdu_size)
             pgm_msgv_len++;
         zmq_assert (pgm_msgv_len);
 
@@ -755,7 +755,7 @@ int pgm_socket_t::compute_sqns (tpdu_: i32)
     if (sqns == 0)
         sqns = 1;
 
-    return (int) sqns;
+    return  sqns;
 }
 
 // #endif

@@ -247,7 +247,7 @@ static void test_stream_to_stream ()
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (client, ZMQ_ROUTING_ID, id, &id_size));
     //  First frame is server routing id
-    TEST_ASSERT_EQUAL_INT ((int) id_size, TEST_ASSERT_SUCCESS_ERRNO (zmq_send (
+    TEST_ASSERT_EQUAL_INT ( id_size, TEST_ASSERT_SUCCESS_ERRNO (zmq_send (
                                             client, id, id_size, ZMQ_SNDMORE)));
     //  Second frame is HTTP GET request
     TEST_ASSERT_EQUAL_INT (

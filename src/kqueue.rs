@@ -58,7 +58,7 @@ struct i_poll_events;
 
 //  Implements socket polling mechanism using the BSD-specific
 //  kqueue interface.
-pub struct kqueue_t ZMQ_FINAL : public worker_poller_base_t
+pub struct kqueue_t ZMQ_FINAL : public WorkerPollerBase
 {
 // public:
     typedef void *handle_t;
@@ -110,10 +110,10 @@ pub struct kqueue_t ZMQ_FINAL : public worker_poller_base_t
 // #endif
 };
 
-typedef kqueue_t poller_t;
+typedef kqueue_t Poller;
 
 kqueue_t::kqueue_t (const ThreadCtx &ctx) :
-    worker_poller_base_t (ctx)
+    WorkerPollerBase (ctx)
 {
     //  Create event queue
     kqueue_fd = kqueue ();
@@ -232,7 +232,7 @@ void kqueue_t::loop ()
 {
     while (true) {
         //  Execute any due timers.
-        int timeout = (int) execute_timers ();
+        int timeout =  execute_timers ();
 
         if (get_load () == 0) {
             if (timeout == 0)
@@ -249,7 +249,7 @@ void kqueue_t::loop ()
                         timeout ? &ts : null_mut());
 // #ifdef HAVE_FORK
         if (unlikely (pid != getpid ())) {
-            //printf("kqueue_t::loop aborting on forked child %d\n", (int)getpid());
+            //printf("kqueue_t::loop aborting on forked child %d\n", getpid());
             // simply exit the loop in a forked process.
             return;
         }

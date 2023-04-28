@@ -58,10 +58,10 @@ pub struct reaper_t ZMQ_FINAL : public ZmqObject, public i_poll_events
     mailbox_t mailbox;
 
     //  Handle associated with mailbox' file descriptor.
-    poller_t::handle_t mailbox_handle;
+    Poller::handle_t mailbox_handle;
 
     //  I/O multiplexing is performed using a poller object.
-    poller_t *poller;
+    Poller *poller;
 
     //  Number of sockets being reaped at the moment.
     _sockets: i32;
@@ -79,7 +79,7 @@ pub struct reaper_t ZMQ_FINAL : public ZmqObject, public i_poll_events
 
 reaper_t::reaper_t (class ctx: &mut ZmqContext, tid: u32) :
     ZmqObject (ctx, tid),
-    mailbox_handle (static_cast<poller_t::handle_t> (null_mut())),
+    mailbox_handle (static_cast<Poller::handle_t> (null_mut())),
     poller (null_mut()),
     _sockets (0),
     terminating (false)
@@ -87,7 +87,7 @@ reaper_t::reaper_t (class ctx: &mut ZmqContext, tid: u32) :
     if (!mailbox.valid ())
         return;
 
-    poller = new (std::nothrow) poller_t (*ctx);
+    poller = new (std::nothrow) Poller (*ctx);
     alloc_assert (poller);
 
     if (mailbox.get_fd () != retired_fd) {
@@ -130,7 +130,7 @@ void reaper_t::in_event ()
     while (true) {
 // #ifdef HAVE_FORK
         if (unlikely (_pid != getpid ())) {
-            //printf("reaper_t::in_event return in child process %d\n", (int)getpid());
+            //printf("reaper_t::in_event return in child process %d\n", getpid());
             return;
         }
 // #endif
@@ -154,7 +154,7 @@ void reaper_t::out_event ()
     zmq_assert (false);
 }
 
-void reaper_t::timer_event (int)
+void reaper_t::timer_event
 {
     zmq_assert (false);
 }

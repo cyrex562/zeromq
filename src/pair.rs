@@ -52,20 +52,20 @@ pub struct pair_t ZMQ_FINAL : public ZmqSocketBase
     void xpipe_terminated (pipe: &mut ZmqPipe);
 
   // private:
-    ZmqPipe *_pipe;
+    ZmqPipe *pipe;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (pair_t)
 };
 
 pair_t::pair_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
-    ZmqSocketBase (parent_, tid, sid_), _pipe (null_mut())
+    ZmqSocketBase (parent_, tid, sid_), pipe (null_mut())
 {
     options.type = ZMQ_PAIR;
 }
 
 pair_t::~pair_t ()
 {
-    zmq_assert (!_pipe);
+    zmq_assert (!pipe);
 }
 
 void pair_t::xattach_pipe (pipe: &mut ZmqPipe,
@@ -79,16 +79,16 @@ void pair_t::xattach_pipe (pipe: &mut ZmqPipe,
 
     //  ZMQ_PAIR socket can only be connected to a single peer.
     //  The socket rejects any further connection requests.
-    if (_pipe == null_mut())
-        _pipe = pipe;
+    if (pipe == null_mut())
+        pipe = pipe;
     else
         pipe.terminate (false);
 }
 
 void pair_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
-    if (pipe == _pipe) {
-        _pipe = null_mut();
+    if (pipe == pipe) {
+        pipe = null_mut();
     }
 }
 
@@ -106,13 +106,13 @@ void pair_t::xwrite_activated (ZmqPipe *)
 
 int pair_t::xsend (msg: &mut ZmqMessage)
 {
-    if (!_pipe || !_pipe.write (msg)) {
+    if (!pipe || !pipe.write (msg)) {
         errno = EAGAIN;
         return -1;
     }
 
     if (!(msg.flags () & ZMQ_MSG_MORE))
-        _pipe.flush ();
+        pipe.flush ();
 
     //  Detach the original message from the data buffer.
     let rc: i32 = msg.init ();
@@ -127,7 +127,7 @@ int pair_t::xrecv (msg: &mut ZmqMessage)
     int rc = msg.close ();
     errno_assert (rc == 0);
 
-    if (!_pipe || !_pipe.read (msg)) {
+    if (!pipe || !pipe.read (msg)) {
         //  Initialise the output parameter to be a 0-byte message.
         rc = msg.init ();
         errno_assert (rc == 0);
@@ -140,16 +140,16 @@ int pair_t::xrecv (msg: &mut ZmqMessage)
 
 bool pair_t::xhas_in ()
 {
-    if (!_pipe)
+    if (!pipe)
         return false;
 
-    return _pipe.check_read ();
+    return pipe.check_read ();
 }
 
 bool pair_t::xhas_out ()
 {
-    if (!_pipe)
+    if (!pipe)
         return false;
 
-    return _pipe.check_write ();
+    return pipe.check_write ();
 }

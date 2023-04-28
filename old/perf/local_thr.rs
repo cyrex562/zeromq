@@ -140,9 +140,9 @@ let mut msg = ZmqMessage::default();
     throughput = ((double) message_count / (double) elapsed * 1000000);
     megabits = ((double) throughput * message_size * 8) / 1000000;
 
-    printf ("message size: %d [B]\n", (int) message_size);
-    printf ("message count: %d\n", (int) message_count);
-    printf ("mean throughput: %d [msg/s]\n", (int) throughput);
+    printf ("message size: %d [B]\n",  message_size);
+    printf ("message count: %d\n",  message_count);
+    printf ("mean throughput: %d [msg/s]\n",  throughput);
     printf ("mean throughput: %.3f [Mb/s]\n", (double) megabits);
 
     rc = zmq_close (s);

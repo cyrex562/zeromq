@@ -265,7 +265,7 @@ void pollset_t::loop ()
 
     while (!stopping) {
         //  Execute any due timers.
-        int timeout = (int) execute_timers ();
+        int timeout =  execute_timers ();
 
         //  Wait for events.
         int n = pollset_poll (pollset_fd, polldata_array, max_io_events,

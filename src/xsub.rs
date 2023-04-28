@@ -33,7 +33,7 @@
 use std::mem;
 use bincode::{deserialize, options};
 use libc::EINVAL;
-use crate::dist::dist_t;
+use crate::dist::ZmqDist;
 use crate::fq::fq_t;
 use crate::message::ZmqMessage;
 use crate::pipe::ZmqPipe;
@@ -56,8 +56,8 @@ pub struct xsub_t {
     pub fair_queue: fq_t,
 
     //  Object for distributing the subscriptions upstream.
-    // dist_t _dist;
-    pub _dist: dist_t,
+    // ZmqDist _dist;
+    pub _dist: ZmqDist,
 
     //  The repository of subscriptions.
 // #ifdef ZMQ_USE_RADIX_TREE

@@ -60,10 +60,10 @@ pub fn start_thread (thread: &mut thread_t,
 
 int set (option_: i32, const opt_val: &mut [u8], optvallen_: usize)
 {
-    const bool is_int = (optvallen_ == sizeof (int));
+    const bool is_int = (optvallen_ == sizeof );
     int value = 0;
     if (is_int)
-        memcpy (&value, optval_, sizeof (int));
+        memcpy (&value, optval_, sizeof );
 
     switch (option_) {
         ZMQ_THREAD_SCHED_POLICY =>
@@ -126,7 +126,7 @@ int get (option_: i32,
                             optval_: &mut [u8],
                             const optvallen_: *mut usize)
 {
-    const bool is_int = (*optvallen_ == sizeof (int));
+    const bool is_int = (*optvallen_ == sizeof );
     int *value = static_cast<int *> (optval_);
 
     switch (option_) {

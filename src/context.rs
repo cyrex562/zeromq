@@ -381,7 +381,7 @@ impl ZmqContext {
             let bytes: [u8; 4] = [0; 4];
             bytes.clone_from_slice(&opt_val);
             value = i32::from_le_bytes(bytes);
-            // memcpy(&value, optval_, sizeof(int));
+            // memcpy(&value, optval_, sizeof);
         }
 
         match option {
@@ -445,7 +445,7 @@ impl ZmqContext {
 
     // int ZmqContext::get (option_: i32, optval_: *mut c_void, const optvallen_: *mut usize)
     pub fn option_bytes(&mut self, option: i32) -> anyhow::Result<Vec<u8>> {
-        // const bool is_int = (*optvallen_ == sizeof (int));
+        // const bool is_int = (*optvallen_ == sizeof );
         // let is_int = *opt_val_len == size_of::<i32>();
         // int *value = static_cast<int *> (optval_);
         // let mut value = 0i32;
