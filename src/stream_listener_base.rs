@@ -45,7 +45,7 @@ pub struct stream_listener_base_t : public ZmqOwn, public io_object_t
     stream_listener_base_t (ZmqThread *io_thread_,
                             socket: *mut ZmqSocketBase,
                             options: &ZmqOptions);
-    ~stream_listener_base_t () ZMQ_OVERRIDE;
+    ~stream_listener_base_t () ;
 
     // Get the bound address for use with wildcards
     int get_local_address (std::string &addr_) const;

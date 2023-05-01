@@ -69,7 +69,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
                           options: &ZmqOptions,
                           const endpoint_uri_pair_t &endpoint_uri_pair_,
                           has_handshake_stage_: bool);
-    ~stream_engine_base_t () ZMQ_OVERRIDE;
+    ~stream_engine_base_t () ;
 
     //  i_engine interface implementation.
     bool has_handshake_stage () ZMQ_FINAL { return _has_handshake_stage; };
@@ -83,7 +83,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
 
     //  i_poll_events interface implementation.
     void in_event () ZMQ_FINAL;
-    void out_event () ZMQ_OVERRIDE;
+    void out_event () ;
     void timer_event (id_: i32) ZMQ_FINAL;
 
   protected:

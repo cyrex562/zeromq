@@ -90,7 +90,7 @@ pub struct kqueue_t ZMQ_FINAL : public WorkerPollerBase
     //  Deletes the event from the kqueue.
     void kevent_delete (fd: ZmqFileDesc, short filter_);
 
-    struct poll_entry_t
+    struct ZmqPollEntry
     {
         ZmqFileDesc fd;
         flag_pollin: bool
@@ -99,7 +99,7 @@ pub struct kqueue_t ZMQ_FINAL : public WorkerPollerBase
     };
 
     //  List of retired event sources.
-    typedef std::vector<poll_entry_t *> retired_t;
+    typedef std::vector<ZmqPollEntry *> retired_t;
     retired_t retired;
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (kqueue_t)
@@ -152,7 +152,7 @@ kqueue_t::handle_t kqueue_t::add_fd (fd: ZmqFileDesc,
                                                i_poll_events *reactor_)
 {
     check_thread ();
-    poll_entry_t *pe = new (std::nothrow) poll_entry_t;
+    ZmqPollEntry *pe = new (std::nothrow) ZmqPollEntry;
     alloc_assert (pe);
 
     pe.fd = fd;
@@ -168,7 +168,7 @@ kqueue_t::handle_t kqueue_t::add_fd (fd: ZmqFileDesc,
 void kqueue_t::rm_fd (handle_t handle_)
 {
     check_thread ();
-    poll_entry_t *pe = (poll_entry_t *) handle_;
+    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
     if (pe.flag_pollin)
         kevent_delete (pe.fd, EVFILT_READ);
     if (pe.flag_pollout)
@@ -182,7 +182,7 @@ void kqueue_t::rm_fd (handle_t handle_)
 void kqueue_t::set_pollin (handle_t handle_)
 {
     check_thread ();
-    poll_entry_t *pe = (poll_entry_t *) handle_;
+    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
     if (likely (!pe.flag_pollin)) {
         pe.flag_pollin = true;
         kevent_add (pe.fd, EVFILT_READ, pe);
@@ -192,7 +192,7 @@ void kqueue_t::set_pollin (handle_t handle_)
 void kqueue_t::reset_pollin (handle_t handle_)
 {
     check_thread ();
-    poll_entry_t *pe = (poll_entry_t *) handle_;
+    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
     if (likely (pe.flag_pollin)) {
         pe.flag_pollin = false;
         kevent_delete (pe.fd, EVFILT_READ);
@@ -202,7 +202,7 @@ void kqueue_t::reset_pollin (handle_t handle_)
 void kqueue_t::set_pollout (handle_t handle_)
 {
     check_thread ();
-    poll_entry_t *pe = (poll_entry_t *) handle_;
+    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
     if (likely (!pe.flag_pollout)) {
         pe.flag_pollout = true;
         kevent_add (pe.fd, EVFILT_WRITE, pe);
@@ -212,7 +212,7 @@ void kqueue_t::set_pollout (handle_t handle_)
 void kqueue_t::reset_pollout (handle_t handle_)
 {
     check_thread ();
-    poll_entry_t *pe = (poll_entry_t *) handle_;
+    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
     if (likely (pe.flag_pollout)) {
         pe.flag_pollout = false;
         kevent_delete (pe.fd, EVFILT_WRITE);
@@ -260,7 +260,7 @@ void kqueue_t::loop ()
         }
 
         for (int i = 0; i < n; i+= 1) {
-            poll_entry_t *pe = (poll_entry_t *) ev_buf[i].udata;
+            ZmqPollEntry *pe = (ZmqPollEntry *) ev_buf[i].udata;
 
             if (pe.fd == retired_fd)
                 continue;

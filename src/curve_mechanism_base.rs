@@ -87,8 +87,8 @@ pub struct ZmqCurveMechanismBase
     // const downgrade_sub_: bool);
     //
     // // mechanism implementation
-    // int encode (msg: & mut ZmqMessage) ZMQ_OVERRIDE;
-    // int decode (msg: & mut ZmqMessage) ZMQ_OVERRIDE;
+    // int encode (msg: & mut ZmqMessage) ;
+    // int decode (msg: & mut ZmqMessage) ;
     pub mechanism_base: ZmqMechanismBase,
     pub curve_encoding: ZmqCurveEncoding,
 }

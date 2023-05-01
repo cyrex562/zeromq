@@ -120,7 +120,7 @@ impl ZmqOwn {
     //  others to invoke the destructor. At the same time, it has to be
     //  virtual so that generic ZmqOwn deallocation mechanism destroys
     //  specific type of the owned object correctly.
-    // ~ZmqOwn () ZMQ_OVERRIDE;
+    // ~ZmqOwn () ;
     // ZmqOwn::~ZmqOwn ()
     // {}
 
@@ -141,7 +141,7 @@ impl ZmqOwn {
         self.sent_seqnum.add(1);
     }
 
-    // void process_seqnum () ZMQ_OVERRIDE;
+    // void process_seqnum () ;
     pub fn process_seqnum(&mut self) {
         //  Catch up with counter of processed commands.
         self.processed_seqnum += 1;
@@ -169,7 +169,7 @@ impl ZmqOwn {
         self.process_term_req(object);
     }
 
-    // void process_term_req (ZmqOwn *object) ZMQ_OVERRIDE;
+    // void process_term_req (ZmqOwn *object) ;
     pub fn process_term_req(&mut self, object: &mut Self) {
         //  When shutting down we can ignore termination requests from owned
         //  objects. The termination request was already sent to the object.
@@ -197,7 +197,7 @@ impl ZmqOwn {
         self.send_term(object, options.linger.load());
     }
 
-    // void process_own (ZmqOwn *object) ZMQ_OVERRIDE;
+    // void process_own (ZmqOwn *object) ;
     pub fn process_own(&mut self, object: &mut Self) {
         //  If the object is already being shut down, new owned objects are
         //  immediately asked to terminate. Note that linger is set to zero.
@@ -242,7 +242,7 @@ impl ZmqOwn {
     //  Term handler is protected rather than private so that it can
     //  be intercepted by the derived class. This is useful to add custom
     //  steps to the beginning of the termination process.
-    // void process_term (linger: i32) ZMQ_OVERRIDE;
+    // void process_term (linger: i32) ;
     pub fn process_term(&mut self, linger: i32) {
         //  Double termination should never happen.
         // zmq_assert ( ! terminating);
@@ -275,7 +275,7 @@ impl ZmqOwn {
         self.check_term_acks();
     }
 
-    // void process_term_ack () ZMQ_OVERRIDE;
+    // void process_term_ack () ;
     pub fn process_term_ack(&mut self) {
         self.unregister_term_ack();
     }

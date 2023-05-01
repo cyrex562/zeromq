@@ -42,7 +42,7 @@ pub struct router_t : public routing_socket_base_t
 {
 // public:
     router_t (ZmqContext *parent_, tid: u32, sid_: i32);
-    ~router_t () ZMQ_OVERRIDE;
+    ~router_t () ;
 
     //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (pipe: &mut ZmqPipe,
@@ -50,10 +50,10 @@ pub struct router_t : public routing_socket_base_t
                        locally_initiated_: bool) ZMQ_FINAL;
     int
     xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize) ZMQ_FINAL;
-    int xsend (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
-    int xrecv (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
-    bool xhas_in () ZMQ_OVERRIDE;
-    bool xhas_out () ZMQ_OVERRIDE;
+    int xsend (msg: &mut ZmqMessage) ;
+    int xrecv (msg: &mut ZmqMessage) ;
+    bool xhas_in () ;
+    bool xhas_out () ;
     void xread_activated (pipe: &mut ZmqPipe) ZMQ_FINAL;
     void xpipe_terminated (pipe: &mut ZmqPipe) ZMQ_FINAL;
     int get_peer_state (const routing_id_: &mut [u8],

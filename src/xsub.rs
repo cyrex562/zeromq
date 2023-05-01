@@ -130,7 +130,7 @@ impl xsub_t {
         out
     }
 
-    // ~xsub_t () ZMQ_OVERRIDE;
+    // ~xsub_t () ;
     // xsub_t::~xsub_t ()
     // {
     //     let rc: i32 = _message.close ();
@@ -157,7 +157,7 @@ impl xsub_t {
 
     // int xsetsockopt (option_: i32,
     //                  const optval_: *mut c_void,
-    //                  optvallen_: usize) ZMQ_OVERRIDE;
+    //                  optvallen_: usize) ;
     pub fn xsetsockopt(&mut self, option_: i32,
                        optval_: &mut [u8],
                        optvallen_: usize) -> i32 {
@@ -202,7 +202,7 @@ impl xsub_t {
         return -1;
     }
 
-    // int xsend (ZmqMessage *msg) ZMQ_OVERRIDE;
+    // int xsend (ZmqMessage *msg) ;
 
     pub fn xsend (&mut self, msg: &mut ZmqMessage) -> i32
     {
@@ -258,7 +258,7 @@ impl xsub_t {
     }
 
 
-    // bool xhas_out () ZMQ_OVERRIDE;
+    // bool xhas_out () ;
     pub fn xhas_out(&mut self) -> bool {
         //  Subscription can be added/removed anytime.
         return true;

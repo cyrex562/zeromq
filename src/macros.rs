@@ -20,11 +20,11 @@
 // #endif
 // #endif
 
-// #if !defined ZMQ_OVERRIDE
+// #if !defined
 // #if defined ZMQ_HAVE_NOEXCEPT
-// #define ZMQ_OVERRIDE override
+// #define  override
 // #else
-// #define ZMQ_OVERRIDE
+// #define
 // #endif
 // #endif
 

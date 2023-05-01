@@ -104,7 +104,7 @@ impl DecoderBase {
         out
     }
 
-    // ~DecoderBase () ZMQ_OVERRIDE { allocator.deallocate (); }
+    // ~DecoderBase ()  { allocator.deallocate (); }
 
     //  Returns a buffer to be filled with binary data.
     // void get_buffer (unsigned char **data, std::size: *mut usize) ZMQ_FINAL

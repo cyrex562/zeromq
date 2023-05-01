@@ -50,7 +50,7 @@ pub struct gssapi_ZmqMechanismBase : public virtual ZmqMechanismBase
 // public:
     gssapi_ZmqMechanismBase (ZmqSessionBase *session_,
                              options: &ZmqOptions);
-    ~gssapi_ZmqMechanismBase () ZMQ_OVERRIDE = 0;
+    ~gssapi_ZmqMechanismBase ()  = 0;
 
   protected:
     //  Produce a context-level GSSAPI token (INITIATE command)

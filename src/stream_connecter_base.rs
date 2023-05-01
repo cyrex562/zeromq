@@ -208,16 +208,16 @@ pub struct stream_connecter_base_t : public ZmqOwn, public io_object_t
                              Address *addr_,
                              delayed_start_: bool);
 
-    ~stream_connecter_base_t () ZMQ_OVERRIDE;
+    ~stream_connecter_base_t () ;
 
   protected:
     //  Handlers for incoming commands.
     void process_plug () ZMQ_FINAL;
-    void process_term (linger: i32) ZMQ_OVERRIDE;
+    void process_term (linger: i32) ;
 
     //  Handlers for I/O events.
-    void in_event () ZMQ_OVERRIDE;
-    void timer_event (id_: i32) ZMQ_OVERRIDE;
+    void in_event () ;
+    void timer_event (id_: i32) ;
 
     //  Internal function to create the engine after connection was established.
     virtual void create_engine (fd: ZmqFileDesc, local_address_: &str);

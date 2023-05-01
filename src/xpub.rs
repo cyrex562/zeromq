@@ -40,16 +40,16 @@ pub struct xpub_t : public ZmqSocketBase
 {
 // public:
     xpub_t (ZmqContext *parent_, tid: u32, sid_: i32);
-    ~xpub_t () ZMQ_OVERRIDE;
+    ~xpub_t () ;
 
     //  Implementations of virtual functions from ZmqSocketBase.
     void xattach_pipe (pipe: &mut ZmqPipe,
                        bool subscribe_to_all_ = false,
-                       bool locally_initiated_ = false) ZMQ_OVERRIDE;
+                       bool locally_initiated_ = false) ;
     int xsend (msg: &mut ZmqMessage) ZMQ_FINAL;
     bool xhas_out () ZMQ_FINAL;
-    int xrecv (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
-    bool xhas_in () ZMQ_OVERRIDE;
+    int xrecv (msg: &mut ZmqMessage) ;
+    bool xhas_in () ;
     void xread_activated (pipe: &mut ZmqPipe) ZMQ_FINAL;
     void xwrite_activated (pipe: &mut ZmqPipe) ZMQ_FINAL;
     int

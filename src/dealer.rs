@@ -74,7 +74,7 @@ impl ZmqDealer {
         out
     }
 
-    // ~ZmqDealer () ZMQ_OVERRIDE;
+    // ~ZmqDealer () ;
 
     //   protected:
     //  Overrides of functions from ZmqSocketBase.
@@ -116,7 +116,7 @@ impl ZmqDealer {
     // int xsetsockopt (option_: i32,
 
     //                  const optval_: &mut [u8],
-    //                  optvallen_: usize) ZMQ_OVERRIDE;
+    //                  optvallen_: usize) ;
 
     pub fn xsetsockopt(option_: i32, optval_: &mut [u8], optvallen_: usize) -> anyhow::Result<()> {
         let is_int = (optvallen_ == mem::size_of::<int>());
@@ -144,22 +144,22 @@ impl ZmqDealer {
         return anyhow!("EINVAL");
     }
 
-    // int xsend (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
+    // int xsend (msg: &mut ZmqMessage) ;
     pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32 {
         return sendpipe(msg, null_mut());
     }
 
-    // int xrecv (msg: &mut ZmqMessage) ZMQ_OVERRIDE;
+    // int xrecv (msg: &mut ZmqMessage) ;
     pub fn xrecv(&mut self, msg: &mut ZmqMessage) -> i32 {
         return recvpipe(msg, null_mut());
     }
 
-    // bool xhas_in () ZMQ_OVERRIDE;
+    // bool xhas_in () ;
     pub fn xhas_in(&mut self) -> bool {
         return self.fair_queue.has_in();
     }
 
-    // bool xhas_out () ZMQ_OVERRIDE;
+    // bool xhas_out () ;
     pub fn xhas_out(&mut self) -> bool {
         return sellf.load_balance.has_out();
     }
@@ -174,7 +174,7 @@ impl ZmqDealer {
         self.load_balance.activated(pipe);
     }
 
-    // void xpipe_terminated (pipe: &mut ZmqPipe) ZMQ_OVERRIDE;
+    // void xpipe_terminated (pipe: &mut ZmqPipe) ;
     pub fn xpipe_terminated(&mut self, pipe: &mut ZmqPipe) {
         self.fair_queue.pipe_terminated(pipe);
         self.load_balance.pipe_terminated(pipe);

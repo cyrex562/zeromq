@@ -105,7 +105,7 @@ impl ZmqBaseEncoder {
         }
     }
 
-// ~encoder_base_t () ZMQ_OVERRIDE { free (buf); }
+// ~encoder_base_t ()  { free (buf); }
 
 //  The function returns a batch of binary data. The data
 //  are filled to a supplied buffer. If no buffer is supplied (data

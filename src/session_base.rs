@@ -434,7 +434,7 @@ impl ZmqSessionBase {
     // options: &ZmqOptions,
     // Address *addr_);
 
-    // ~ZmqSessionBase () ZMQ_OVERRIDE;
+    // ~ZmqSessionBase () ;
     // ZmqSessionBase::~ZmqSessionBase ()
     // {
     // zmq_assert (!pipe);
@@ -465,7 +465,7 @@ impl ZmqSessionBase {
 
     // void process_term (linger_: i32) ZMQ_FINAL;
 
-    // void process_conn_failed () ZMQ_OVERRIDE;
+    // void process_conn_failed () ;
 
     //  i_poll_events handlers.
     // void timer_event (id_: i32) ZMQ_FINAL;

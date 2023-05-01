@@ -405,7 +405,7 @@ impl ZmqSocketBase {
     //                uint32_t tid,
     //                sid_: i32,
     //                bool thread_safe_ = false);
-    // ~ZmqSocketBase () ZMQ_OVERRIDE;
+    // ~ZmqSocketBase () ;
     // ZmqSocketBase (ZmqContext *parent_,
     //                                    tid: u32,
     //                                    sid_: i32,
@@ -2783,13 +2783,13 @@ impl routing_socket_base_t {
         }
     }
 
-    // ~routing_socket_base_t () ZMQ_OVERRIDE;
+    // ~routing_socket_base_t () ;
     // routing_socket_base_t::~routing_socket_base_t ()
     // {
     // zmq_assert (_out_pipes.empty ());
     // }
 
-    // int xsetsockopt (option_: i32, const optval_: *mut c_void, ptvallen_: usize) ZMQ_OVERRIDE;
+    // int xsetsockopt (option_: i32, const optval_: *mut c_void, ptvallen_: usize) ;
     pub fn xsetsockopt(&mut self, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
         match (option_) {
             ZMQ_CONNECT_ROUTING_ID => {

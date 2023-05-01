@@ -556,7 +556,7 @@ impl ZmqPipe {
         }
     }
 
-    // void process_activate_write (u64 msgs_read) ZMQ_OVERRIDE;
+    // void process_activate_write (u64 msgs_read) ;
     pub fn process_activate_write(&mut self, msgs_read: u64)
     {
         //  Remember the peer's message sequence number.
@@ -568,7 +568,7 @@ impl ZmqPipe {
         }
     }
 
-    // void process_hiccup (pipe: *mut c_void) ZMQ_OVERRIDE;
+    // void process_hiccup (pipe: *mut c_void) ;
     pub fn process_hiccup(&mut self, pipe: &mut [u8])
     {
         //  Destroy old outpipe. Note that the read end of the pipe was already
@@ -596,13 +596,13 @@ impl ZmqPipe {
         }
     }
 
-    // void process_pipe_peer_stats (queue_count: u64, ZmqOwn *socket_base, EndpointUriPair *endpoint_pair) ZMQ_OVERRIDE;
+    // void process_pipe_peer_stats (queue_count: u64, ZmqOwn *socket_base, EndpointUriPair *endpoint_pair) ;
     pub fn process_pipe_peer_stats(&mut self, queue_count: u64, socket_base: &mut ZmqOwn, endpoint_pair: &mut EndpointUriPair)
     {
 
     }
 
-    // void process_pipe_term () ZMQ_OVERRIDE;
+    // void process_pipe_term () ;
     pub fn process_pipe_term(&mut self)
     {
         // zmq_assert (_state == active || _state == delimiter_received
@@ -642,7 +642,7 @@ impl ZmqPipe {
         }
     }
 
-    // void process_pipe_term_ack () ZMQ_OVERRIDE;
+    // void process_pipe_term_ack () ;
     pub fn process_pipe_term_ack(&mut self) -> anyhow::Result<()>
     {
         //  Notify the user that all the references to the pipe should be dropped.
@@ -680,7 +680,7 @@ impl ZmqPipe {
         Ok(())
     }
 
-    // void process_pipe_hwm (inhwm: i32, outhwm: i32) ZMQ_OVERRIDE;
+    // void process_pipe_hwm (inhwm: i32, outhwm: i32) ;
     pub fn process_pipe_hwm(&mut self, inhwm: i32, outhwm: i32)
     {
         self.set_hwms (inhwm, outhwm);
@@ -767,7 +767,7 @@ impl ZmqPipe {
     }
 
     //  Destructor is private. Pipe objects destroy themselves.
-    // ~ZmqPipe () ZMQ_OVERRIDE;
+    // ~ZmqPipe () ;
 
     //  Returns true if the message is delimiter; false otherwise.
     // static bool is_delimiter (const ZmqMessage &msg);

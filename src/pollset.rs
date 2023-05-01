@@ -74,7 +74,7 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
     //  Main pollset file descriptor
     ::pollset_t pollset_fd;
 
-    struct poll_entry_t
+    struct ZmqPollEntry
     {
         ZmqFileDesc fd;
         flag_pollin: bool
@@ -83,11 +83,11 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
     };
 
     //  List of retired event sources.
-    typedef std::vector<poll_entry_t *> retired_t;
+    typedef std::vector<ZmqPollEntry *> retired_t;
     retired_t retired;
 
     //  This table stores data for registered descriptors.
-    typedef std::vector<poll_entry_t *> fd_table_t;
+    typedef std::vector<ZmqPollEntry *> fd_table_t;
     fd_table_t fd_table;
 
     //  If true, thread is in the process of shutting down.
@@ -119,7 +119,7 @@ pollset_t::~pollset_t ()
 pollset_t::handle_t pollset_t::add_fd (fd: ZmqFileDesc,
                                                  i_poll_events *events_)
 {
-    poll_entry_t *pe = new (std::nothrow) poll_entry_t;
+    ZmqPollEntry *pe = new (std::nothrow) ZmqPollEntry;
     alloc_assert (pe);
 
     pe.fd = fd;
@@ -147,7 +147,7 @@ pollset_t::handle_t pollset_t::add_fd (fd: ZmqFileDesc,
 
 void pollset_t::rm_fd (handle_t handle_)
 {
-    poll_entry_t *pe = (poll_entry_t *) handle_;
+    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
 
     struct poll_ctl pc;
     pc.fd = pe.fd;
@@ -166,7 +166,7 @@ void pollset_t::rm_fd (handle_t handle_)
 
 void pollset_t::set_pollin (handle_t handle_)
 {
-    poll_entry_t *pe = (poll_entry_t *) handle_;
+    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
     if (likely (!pe.flag_pollin)) {
         struct poll_ctl pc;
         pc.fd = pe.fd;
@@ -182,7 +182,7 @@ void pollset_t::set_pollin (handle_t handle_)
 
 void pollset_t::reset_pollin (handle_t handle_)
 {
-    poll_entry_t *pe = (poll_entry_t *) handle_;
+    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
     if (unlikely (!pe.flag_pollin)) {
         return;
     }
@@ -206,7 +206,7 @@ void pollset_t::reset_pollin (handle_t handle_)
 
 void pollset_t::set_pollout (handle_t handle_)
 {
-    poll_entry_t *pe = (poll_entry_t *) handle_;
+    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
     if (likely (!pe.flag_pollout)) {
         struct poll_ctl pc;
         pc.fd = pe.fd;
@@ -222,7 +222,7 @@ void pollset_t::set_pollout (handle_t handle_)
 
 void pollset_t::reset_pollout (handle_t handle_)
 {
-    poll_entry_t *pe = (poll_entry_t *) handle_;
+    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
     if (unlikely (!pe.flag_pollout)) {
         return;
     }
@@ -276,7 +276,7 @@ void pollset_t::loop ()
         }
 
         for (int i = 0; i < n; i+= 1) {
-            poll_entry_t *pe = fd_table[polldata_array[i].fd];
+            ZmqPollEntry *pe = fd_table[polldata_array[i].fd];
             if (!pe)
                 continue;
 

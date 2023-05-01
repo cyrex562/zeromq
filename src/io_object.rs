@@ -35,7 +35,7 @@ pub struct io_object_t : public i_poll_events
 {
 // public:
     io_object_t (ZmqThread *io_thread_ = null_mut());
-    ~io_object_t () ZMQ_OVERRIDE;
+    ~io_object_t () ;
 
     //  When migrating an object from one I/O thread to another, first
     //  unplug it, then migrate it, then plug it to the new thread.
@@ -56,9 +56,9 @@ pub struct io_object_t : public i_poll_events
     void cancel_timer (id_: i32);
 
     //  i_poll_events interface implementation.
-    void in_event () ZMQ_OVERRIDE;
-    void out_event () ZMQ_OVERRIDE;
-    void timer_event (id_: i32) ZMQ_OVERRIDE;
+    void in_event () ;
+    void out_event () ;
+    void timer_event (id_: i32) ;
 
   // private:
     Poller *poller;
