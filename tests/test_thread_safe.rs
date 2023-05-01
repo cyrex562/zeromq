@@ -1,7 +1,7 @@
 /*:
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -35,7 +35,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 //  Client threads loop on send/recv until told to exit
 void client_thread (client_: *mut c_void)
 {
-    for (int count = 0; count < 15000; count++) {
+    for (int count = 0; count < 15000; count+= 1) {
         send_string_expect_success (client_, "0", 0);
     }
     send_string_expect_success (client_, "1", 0);
@@ -60,7 +60,7 @@ void test_thread_safe ()
     while (threads_completed < 2) {
         TEST_ASSERT_SUCCESS_ERRNO (zmq_recv (server, &data, 1, 0));
         if (data == '1')
-            threads_completed++; //  Thread ended
+            threads_completed+= 1; //  Thread ended
     }
     zmq_threadclose (t1);
     zmq_threadclose (t2);

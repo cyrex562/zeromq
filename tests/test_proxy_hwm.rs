@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -114,7 +114,7 @@ let mut msg = ZmqMessage::default();
         /* Send the message to the socket */
         rc = zmq_msg_send (&msg, pubsocket, ZMQ_DONTWAIT);
         if (rc != -1) {
-            send_count++;
+            send_count+= 1;
         } else {
             TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg));
             break;
@@ -163,7 +163,7 @@ let mut msg = ZmqMessage::default();
         rc = zmq_msg_recv (&msg, subsocket, 0);
         if (rc != -1) {
             TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg));
-            rxsuccess++;
+            rxsuccess+= 1;
 
             // after receiving 1st message, set a finite timeout (default is infinite)
             int timeout_ms = 100;

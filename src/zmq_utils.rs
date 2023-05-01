@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -172,7 +172,7 @@ uint8_t *zmq_z85_decode (dest_: &mut [u8], string_: &str)
             goto error_inval;
         }
         value *= 85;
-        const uint8_t index = string_[char_nbr++] - 32;
+        const uint8_t index = string_[char_nbr+= 1] - 32;
         if (index >= mem::size_of::<decoder>()) {
             //  Invalid z85 encoding, character outside range
             goto error_inval;
@@ -187,7 +187,7 @@ uint8_t *zmq_z85_decode (dest_: &mut [u8], string_: &str)
             //  Output value in base 256
             unsigned int divisor = 256 * 256 * 256;
             while (divisor) {
-                dest_[byte_nbr++] = value / divisor % 256;
+                dest_[byte_nbr+= 1] = value / divisor % 256;
                 divisor /= 256;
             }
             value = 0;

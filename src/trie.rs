@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -136,7 +136,7 @@ trie_t::~trie_t ()
         zmq_assert (next.node);
         LIBZMQ_DELETE (next.node);
     } else if (_count > 1) {
-        for (unsigned short i = 0; i != _count; ++i) {
+        for (unsigned short i = 0; i != _count; += 1i) {
             LIBZMQ_DELETE (next.table[i]);
         }
         free (next.table);
@@ -147,7 +147,7 @@ bool trie_t::add (prefix_: &mut [u8], size: usize)
 {
     //  We are at the node corresponding to the prefix. We are done.
     if (!size) {
-        ++_refcnt;
+        += 1_refcnt;
         return _refcnt == 1;
     }
 
@@ -166,7 +166,7 @@ bool trie_t::add (prefix_: &mut [u8], size: usize)
             next.table =
               static_cast<trie_t **> (malloc (sizeof (trie_t *) * _count));
             alloc_assert (next.table);
-            for (unsigned short i = 0; i != _count; ++i)
+            for (unsigned short i = 0; i != _count; += 1i)
                 next.table[i] = 0;
             _min = std::min (_min, c);
             next.table[oldc - _min] = oldp;
@@ -177,7 +177,7 @@ bool trie_t::add (prefix_: &mut [u8], size: usize)
             next.table = static_cast<trie_t **> (
               realloc (next.table, sizeof (trie_t *) * _count));
             zmq_assert (next.table);
-            for (unsigned short i = old_count; i != _count; i++)
+            for (unsigned short i = old_count; i != _count; i+= 1)
                 next.table[i] = null_mut();
         } else {
             //  The new character is below the current character range.
@@ -188,7 +188,7 @@ bool trie_t::add (prefix_: &mut [u8], size: usize)
             zmq_assert (next.table);
             memmove (next.table + _min - c, next.table,
                      old_count * sizeof (trie_t *));
-            for (unsigned short i = 0; i != _min - c; i++)
+            for (unsigned short i = 0; i != _min - c; i+= 1)
                 next.table[i] = null_mut();
             _min = c;
         }
@@ -199,7 +199,7 @@ bool trie_t::add (prefix_: &mut [u8], size: usize)
         if (!next.node) {
             next.node = new (std::nothrow) trie_t;
             alloc_assert (next.node);
-            ++_live_nodes;
+            += 1_live_nodes;
             zmq_assert (_live_nodes == 1);
         }
         return next.node.add (prefix_ + 1, size - 1);
@@ -207,7 +207,7 @@ bool trie_t::add (prefix_: &mut [u8], size: usize)
     if (!next.table[c - _min]) {
         next.table[c - _min] = new (std::nothrow) trie_t;
         alloc_assert (next.table[c - _min]);
-        ++_live_nodes;
+        += 1_live_nodes;
         zmq_assert (_live_nodes > 1);
     }
     return next.table[c - _min]->add (prefix_ + 1, size - 1);
@@ -219,7 +219,7 @@ bool trie_t::rm (prefix_: &mut [u8], size: usize)
     if (!size) {
         if (!_refcnt)
             return false;
-        _refcnt--;
+        _refcnt -= 1;
         return _refcnt == 0;
     }
     const unsigned char c = *prefix_;
@@ -276,7 +276,7 @@ bool trie_t::rm (prefix_: &mut [u8], size: usize)
                 //  Find the left-most non-null node ptr, which we'll use as
                 //  our new min
                 unsigned char new_min = _min;
-                for (unsigned short i = 1; i < _count; ++i) {
+                for (unsigned short i = 1; i < _count; += 1i) {
                     if (next.table[i]) {
                         new_min = i + _min;
                         break;
@@ -303,7 +303,7 @@ bool trie_t::rm (prefix_: &mut [u8], size: usize)
                 //  Find the right-most non-null node ptr, which we'll use to
                 //  determine the new table size
                 unsigned short new_count = _count;
-                for (unsigned short i = 1; i < _count; ++i) {
+                for (unsigned short i = 1; i < _count; += 1i) {
                     if (next.table[_count - 1 - i]) {
                         new_count = _count - i;
                         break;
@@ -353,8 +353,8 @@ bool trie_t::check (const data: &mut [u8], size: usize) const
             if (!current)
                 return false;
         }
-        data++;
-        size--;
+        data+= 1;
+        size -= 1;
     }
 }
 
@@ -392,13 +392,13 @@ void trie_t::apply_helper (unsigned char **buff_,
     //  If there's one subnode (optimisation).
     if (_count == 1) {
         (*buff_)[buffsize_] = _min;
-        buffsize_++;
+        buffsize_+= 1;
         next.node.apply_helper (buff_, buffsize_, maxbuffsize_, func_, arg_);
         return;
     }
 
     //  If there are multiple subnodes.
-    for (unsigned short c = 0; c != _count; c++) {
+    for (unsigned short c = 0; c != _count; c+= 1) {
         (*buff_)[buffsize_] = _min + c;
         if (next.table[c])
             next.table[c]->apply_helper (buff_, buffsize_ + 1, maxbuffsize_,

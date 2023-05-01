@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -287,7 +287,7 @@ void stream_t::identify_peer (pipe: &mut ZmqPipe, locally_initiated_: bool)
         //  Not allowed to duplicate an existing rid
         zmq_assert (!has_out_pipe (routing_id));
     } else {
-        put_u32 (buffer + 1, _next_integral_routing_id++);
+        put_u32 (buffer + 1, _next_integral_routing_id+= 1);
         routing_id.set (buffer, sizeof buffer);
         memcpy (options.routing_id, routing_id.data (), routing_id.size ());
         options.routing_id_size =

@@ -57,7 +57,7 @@ int message_check(ZmqMessage* msg) {
 	// check sum
 	data += mem::size_of::<int>();
 	int cs = val;
-	for(int i = 0; i < val; i++) {
+	for(int i = 0; i < val; i+= 1) {
 		cs += data[i];
 	}
 	data += val;
@@ -94,7 +94,7 @@ let mut msg = ZmqMessage::default();
 		//printf("worker %d recv %d bytes at %X from %X\n", num, zmq_msg_size(&msg), zmq_msg_data(&msg), zmq_msg_routing_id(&msg));
 		// send to client
 		rc = zmq_msg_send(&msg, server_sock, 0); assert(rc != -1);
-		worker_cnt[num]++;
+		worker_cnt[num]+= 1;
 	}
 	zmq_close(queue);
 }
@@ -107,7 +107,7 @@ void server() {
 	int rc = zmq_bind(queue, "inproc://queue"); assert(rc == 0);
 	// start workers
 	std::thread w[SERVER_WORKER_COUNT];
-	for (int i = 0; i < SERVER_WORKER_COUNT; i++) w[i] = std::thread(worker, i);
+	for (int i = 0; i < SERVER_WORKER_COUNT; i+= 1) w[i] = std::thread(worker, i);
 	// ZMQ_SERVER for client messages
 	server_sock = zmq_socket(server_ctx, ZMQ_SERVER); assert(server_sock);
 	rc = zmq_bind(server_sock, SERVER_ADDR); assert(rc == 0);
@@ -140,7 +140,7 @@ void client(num: i32)
 	void *sock[CLIENT_CONNECTION];
 	rc: i32;
 	// open ZMQ_CLIENT connections
-	for (int i = 0; i < CLIENT_CONNECTION; i++) {
+	for (int i = 0; i < CLIENT_CONNECTION; i+= 1) {
 		sock[i] = zmq_socket(ctx, ZMQ_CLIENT); assert(sock[i]);
 		rc = zmq_connect(sock[i], SERVER_ADDR); assert(rc == 0);
 		// test connection
@@ -154,7 +154,7 @@ let mut msg = ZmqMessage::default();
 		zmq_msg_close(&msg);
 	}
 	printf("client %d open %d connections\n", num, CLIENT_CONNECTION);
-	client_ready++;
+	client_ready+= 1;
 	while (client_ready < CLIENT_COUNT) Sleep(10); // wait while all clients open sockets
 
 	int reconnect = 0;
@@ -162,13 +162,13 @@ let mut msg = ZmqMessage::default();
 		int val[CLIENT_CONNECTION];
 let mut msg = ZmqMessage::default();
 		// send messages
-		for(int i = 0; i < CLIENT_CONNECTION; i++) {
+		for(int i = 0; i < CLIENT_CONNECTION; i+= 1) {
 			val[i] = rand() % MESSAGE_MAX_SIZE + 1;
 			message_fill(&msg, val[i]);
 			rc = zmq_msg_send(&msg, sock[i], 0); assert(rc > 0);
 		}
 		// recv and check
-		for (int i = 0; i < CLIENT_CONNECTION; i++) {
+		for (int i = 0; i < CLIENT_CONNECTION; i+= 1) {
 			rc = zmq_msg_init(&msg); assert(rc == 0);
 			rc = zmq_msg_recv(&msg, sock[i], 0); assert(rc > 0);
 			rc = message_check(&msg);
@@ -176,10 +176,10 @@ let mut msg = ZmqMessage::default();
 				fprintf(stderr, "wrong message: send %d recv %d     \n", val[i], rc);
 			}
 			zmq_msg_close(&msg);
-			client_cnt[num]++;
+			client_cnt[num]+= 1;
 		}
 		// reconnect one
-		reconnect++;
+		reconnect+= 1;
 		if(reconnect == CLIENT_RECONNECT) {
 			int n = rand() % CLIENT_CONNECTION;
 			zmq_close(sock[n]);
@@ -195,7 +195,7 @@ int main (void) {
 	printf("ZMQ version %d.%d.%d. Compile %s %s\n", v1, v2, v3, __DATE__, __TIME__);
 
 	std::thread ct[CLIENT_COUNT];
-	for (int i = 0; i < CLIENT_COUNT; i++) ct[i] = std::thread(client, i);
+	for (int i = 0; i < CLIENT_COUNT; i+= 1) ct[i] = std::thread(client, i);
 
 	std::thread st(server);
 
@@ -207,7 +207,7 @@ int main (void) {
 		Sleep(1000);
 		if (client_ready < CLIENT_COUNT) continue;
 		// check workers
-		for(int i = 0; i < SERVER_WORKER_COUNT; i++) {
+		for(int i = 0; i < SERVER_WORKER_COUNT; i+= 1) {
 			if(w[i] == worker_cnt[i]) {
 				fprintf(stderr, "worker %d not work        \n", i);
 			}
@@ -215,7 +215,7 @@ int main (void) {
 		}
 		// check clients
 		int t = 0;
-		for (int i = 0; i < CLIENT_COUNT; i++) {
+		for (int i = 0; i < CLIENT_COUNT; i+= 1) {
 			if (c[i] == client_cnt[i]) {
 				fprintf(stderr, "client %d not work        \n", i);
 			}

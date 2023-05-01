@@ -1,7 +1,7 @@
 /*
 Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-This file is part of libzmq, the ZeroMQ core engine in C++.
+This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
 libzmq is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License (LGPL) as published
@@ -456,7 +456,7 @@ void udp_engine_t::sockaddr_to_msg (msg: &mut ZmqMessage
     char *address = static_cast<char *> (msg.data ());
     memcpy (address, name, name_len);
     address += name_len;
-    *address++ = ':';
+    *address+= 1 = ':';
     memcpy (address, port, static_cast<size_t> (port_len));
     address += port_len;
     *address = 0;

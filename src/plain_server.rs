@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -189,7 +189,7 @@ int plain_server_t::process_hello (msg: &mut ZmqMessage)
         errno = EPROTO;
         return -1;
     }
-    const uint8_t username_length = *ptr++;
+    const uint8_t username_length = *ptr+= 1;
     bytes_left -= mem::size_of::<username_length>();
 
     if (bytes_left < username_length) {
@@ -212,7 +212,7 @@ int plain_server_t::process_hello (msg: &mut ZmqMessage)
         return -1;
     }
 
-    const uint8_t password_length = *ptr++;
+    const uint8_t password_length = *ptr+= 1;
     bytes_left -= mem::size_of::<password_length>();
     if (bytes_left != password_length) {
         //  PLAIN I: invalid PLAIN client, sent malformed password or

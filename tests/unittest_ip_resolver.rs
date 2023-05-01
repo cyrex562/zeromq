@@ -75,7 +75,7 @@ pub struct test_ip_resolver_t ZMQ_FINAL : public IpResolver
         const char *ip = null_mut();
 
         if (!no_dns) {
-            for (unsigned i = 0; i < lut_len; i++) {
+            for (unsigned i = 0; i < lut_len; i+= 1) {
                 if (strcmp (dns_lut[i].hostname, node_) == 0) {
                     if (ipv6) {
                         ip = dns_lut[i].ipv6;
@@ -115,7 +115,7 @@ pub struct test_ip_resolver_t ZMQ_FINAL : public IpResolver
         unsigned lut_len =
           mem::size_of::<dummy_interfaces>() / sizeof (dummy_interfaces[0]);
 
-        for (unsigned i = 0; i < lut_len; i++) {
+        for (unsigned i = 0; i < lut_len; i+= 1) {
             if (strcmp (dummy_interfaces[i], ifname_) == 0) {
                 //  The dummy index will be the position in the array + 1 (0 is
                 //  invalid)

@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -111,18 +111,18 @@ void test_get_peer_state ()
     bool dealer2_blocked = false;
     unsigned int dealer1_sent = 0, dealer2_sent = 0, dealer1_received = 0;
     ZmqPollerEvent events[event_size];
-    for (unsigned int iteration = 0; iteration < count; ++iteration) {
+    for (unsigned int iteration = 0; iteration < count; += 1iteration) {
         TEST_ASSERT_SUCCESS_ERRNO (
           zmq_poller_wait_all (poller, events, event_size, -1));
-        for (unsigned int event_no = 0; event_no < event_size; ++event_no) {
+        for (unsigned int event_no = 0; event_no < event_size; += 1event_no) {
             const ZmqPollerEvent &current_event = events[event_no];
             if (current_event.socket == router
                 && current_event.events & ZMQ_POLLOUT) {
                 if (send_ZmqMessageo_peer_if_ready (router, dealer1_routing_id))
-                    ++dealer1_sent;
+                    += 1dealer1_sent;
 
                 if (send_ZmqMessageo_peer_if_ready (router, dealer2_routing_id))
-                    ++dealer2_sent;
+                    += 1dealer2_sent;
                 else
                     dealer2_blocked = true;
             }
@@ -135,7 +135,7 @@ void test_get_peer_state ()
                   zmq_getsockopt (dealer1, ZMQ_RCVMORE, &more, &more_size));
                 TEST_ASSERT_FALSE (more);
 
-                ++dealer1_received;
+                += 1dealer1_received;
             }
             // never read from dealer2, so its pipe becomes full eventually
         }

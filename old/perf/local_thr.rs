@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -115,7 +115,7 @@ let mut msg = ZmqMessage::default();
 
     watch = zmq_stopwatch_start ();
 
-    for (i = 0; i != message_count - 1; i++) {
+    for (i = 0; i != message_count - 1; i+= 1) {
         rc = zmq_recvmsg (s, &msg, 0);
         if (rc < 0) {
             printf ("error in zmq_recvmsg: %s\n", zmq_strerror (errno));

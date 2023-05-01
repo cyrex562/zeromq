@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -66,7 +66,7 @@ void test_fork ()
         int rc = zmq_connect (push, connect_address);
         assert (rc == 0);
         count: i32;
-        for (count = 0; count < NUM_MESSAGES; count++)
+        for (count = 0; count < NUM_MESSAGES; count+= 1)
             zmq_send (push, "Hello", 5, 0);
 
         zmq_close (push);
@@ -75,7 +75,7 @@ void test_fork ()
     } else {
         //  Parent process
         count: i32;
-        for (count = 0; count < NUM_MESSAGES; count++) {
+        for (count = 0; count < NUM_MESSAGES; count+= 1) {
             recv_string_expect_success (pull, "Hello", 0);
         }
         child_status: i32;

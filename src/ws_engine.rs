@@ -1,7 +1,7 @@
 /*
 Copyright (c) 2007-2019 Contributors as noted in the AUTHORS file
 
-This file is part of libzmq, the ZeroMQ core engine in C++.
+This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
 libzmq is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License (LGPL) as published
@@ -559,7 +559,7 @@ bool ws_engine_t::server_handshake ()
                     _server_handshake_state = handshake_error;
                 else {
                     _header_name[_header_name_position] = c;
-                    _header_name_position++;
+                    _header_name_position+= 1;
                     _server_handshake_state = header_field_name;
                 }
                 break;
@@ -591,7 +591,7 @@ bool ws_engine_t::server_handshake ()
                         char *element = strtok_r (_header_value, ",", &rest);
                         while (element != null_mut()) {
                             while (*element == ' ')
-                                element++;
+                                element+= 1;
                             if (strcasecmp ("upgrade", element) == 0) {
                                 _header_connection_upgrade = true;
                                 break;
@@ -611,7 +611,7 @@ bool ws_engine_t::server_handshake ()
                             char *p = strtok_r (_header_value, ",", &rest);
                             while (p != null_mut()) {
                                 if (*p == ' ')
-                                    p++;
+                                    p+= 1;
 
                                 if (select_protocol (p)) {
                                     strcpy_s (_websocket_protocol, p);
@@ -628,7 +628,7 @@ bool ws_engine_t::server_handshake ()
                     _server_handshake_state = handshake_error;
                 else {
                     _header_value[_header_value_position] = c;
-                    _header_value_position++;
+                    _header_value_position+= 1;
                     _server_handshake_state = header_field_value;
                 }
                 break;
@@ -668,8 +668,8 @@ bool ws_engine_t::server_handshake ()
                         _outpos = _write_buffer;
                         _outsize = written;
 
-                        _inpos++;
-                        _insize--;
+                        _inpos+= 1;
+                        _insize -= 1;
 
                         return true;
                     }
@@ -681,8 +681,8 @@ bool ws_engine_t::server_handshake ()
                 assert (false);
         }
 
-        _inpos++;
-        _insize--;
+        _inpos+= 1;
+        _insize -= 1;
 
         if (_server_handshake_state == handshake_error) {
             // TODO: send bad request
@@ -948,7 +948,7 @@ bool ws_engine_t::client_handshake ()
                     _client_handshake_state = client_handshake_error;
                 else {
                     _header_name[_header_name_position] = c;
-                    _header_name_position++;
+                    _header_name_position+= 1;
                     _client_handshake_state = client_header_field_name;
                 }
                 break;
@@ -996,7 +996,7 @@ bool ws_engine_t::client_handshake ()
                     _client_handshake_state = client_handshake_error;
                 else {
                     _header_value[_header_value_position] = c;
-                    _header_value_position++;
+                    _header_value_position+= 1;
                     _client_handshake_state = client_header_field_value;
                 }
                 break;
@@ -1015,8 +1015,8 @@ bool ws_engine_t::client_handshake ()
 
                         // TODO: validate accept key
 
-                        _inpos++;
-                        _insize--;
+                        _inpos+= 1;
+                        _insize -= 1;
 
                         return true;
                     }
@@ -1028,8 +1028,8 @@ bool ws_engine_t::client_handshake ()
                 assert (false);
         }
 
-        _inpos++;
-        _insize--;
+        _inpos+= 1;
+        _insize -= 1;
 
         if (_client_handshake_state == client_handshake_error) {
             socket ().event_handshake_failed_protocol (
@@ -1156,7 +1156,7 @@ encode_base64 (const in_: &mut [u8], in_len_: i32, char *out_, out_len_: i32)
     u32 v = 0;
     int rem = 0;
 
-    for (int ii = 0; ii < in_len_; ii++) {
+    for (int ii = 0; ii < in_len_; ii+= 1) {
         unsigned char ch;
         ch = in_[ii];
         v = (v << 8) | ch;
@@ -1165,19 +1165,19 @@ encode_base64 (const in_: &mut [u8], in_len_: i32, char *out_, out_len_: i32)
             rem -= 6;
             if (io >= out_len_)
                 return -1; /* truncation is failure */
-            out_[io++] = base64enc_tab[(v >> rem) & 63];
+            out_[io+= 1] = base64enc_tab[(v >> rem) & 63];
         }
     }
     if (rem) {
         v <<= (6 - rem);
         if (io >= out_len_)
             return -1; /* truncation is failure */
-        out_[io++] = base64enc_tab[v & 63];
+        out_[io+= 1] = base64enc_tab[v & 63];
     }
     while (io & 3) {
         if (io >= out_len_)
             return -1; /* truncation is failure */
-        out_[io++] = '=';
+        out_[io+= 1] = '=';
     }
     if (io >= out_len_)
         return -1; /* no room for null terminator */

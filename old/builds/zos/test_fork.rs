@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -62,7 +62,7 @@ int main (void)
         rc = zmq_connect (push, address);
         assert (rc == 0);
         count: i32;
-        for (count = 0; count < NUM_MESSAGES; count++)
+        for (count = 0; count < NUM_MESSAGES; count+= 1)
             zmq_send (push, "Hello", 5, 0);
 
         zmq_close (push);
@@ -74,7 +74,7 @@ int main (void)
         alarm(TIMEOUT_SECS);   // Set upper limit on runtime
 
         count: i32;
-        for (count = 0; count < NUM_MESSAGES; count++) {
+        for (count = 0; count < NUM_MESSAGES; count+= 1) {
             char buffer [5];
             int num_bytes = zmq_recv (pull, buffer, 5, 0);
             assert (num_bytes == 5);

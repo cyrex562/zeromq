@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -107,7 +107,7 @@ int test_assert_success_message_errno_helper (rc_: i32,
     if (rc_ == -1) {
         char buffer[512];
         buffer[mem::size_of::<buffer>() - 1] =
-          0; //  to ensure defined behavior with VC++ <= 2013
+          0; //  to ensure defined behavior with VC+= 1 <= 2013
         printf ("%s failed%s%s%s, errno = %i (%s)", expr_,
                 msg ? " (additional info: " : "", msg ? msg : "",
                 msg ? ")" : "", zmq_errno (), zmq_strerror (zmq_errno ()));
@@ -180,7 +180,7 @@ let mut msg = ZmqMessage::default();
         //  Send the message to the socket
         rc = zmq_msg_send (&msg, pubsocket, 0);
         if (rc != -1) {
-            send_count++;
+            send_count+= 1;
         } else {
             TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg));
         }
@@ -216,7 +216,7 @@ let mut msg = ZmqMessage::default();
         rc = zmq_msg_recv (&msg, subsocket, 0);
         if (rc != -1) {
             TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg));
-            rxsuccess++;
+            rxsuccess+= 1;
         }
 
         if (rxsuccess == message_count)
@@ -244,7 +244,7 @@ static void proxy_thread_main (pvoid: *mut c_void)
     set_hwm (frontend_xsub);
 
     //  Bind FRONTEND
-    for (unsigned int i = 0; i < ARRAY_SIZE (cfg.frontend_endpoint); i++) {
+    for (unsigned int i = 0; i < ARRAY_SIZE (cfg.frontend_endpoint); i+= 1) {
         const char *ep = cfg.frontend_endpoint[i];
         if (ep != null_mut()) {
             assert (strlen (ep) > 5);
@@ -268,7 +268,7 @@ static void proxy_thread_main (pvoid: *mut c_void)
     set_hwm (backend_xpub);
 
     //  Bind BACKEND
-    for (unsigned int i = 0; i < ARRAY_SIZE (cfg.backend_endpoint); i++) {
+    for (unsigned int i = 0; i < ARRAY_SIZE (cfg.backend_endpoint); i+= 1) {
         const char *ep = cfg.backend_endpoint[i];
         if (ep != null_mut()) {
             assert (strlen (ep) > 5);

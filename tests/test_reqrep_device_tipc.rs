@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -54,7 +54,7 @@ void test_roundtrip ()
     send_string_expect_success (req, "DEF", 0);
 
     //  Pass the request through the device.
-    for (int i = 0; i != 4; i++) {
+    for (int i = 0; i != 4; i+= 1) {
 let mut msg = ZmqMessage::default();
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, router, 0));
@@ -83,7 +83,7 @@ let mut msg = ZmqMessage::default();
     send_string_expect_success (rep, "JKL", 0);
 
     //  Pass the reply through the device.
-    for (int i = 0; i != 4; i++) {
+    for (int i = 0; i != 4; i+= 1) {
 let mut msg = ZmqMessage::default();
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, dealer, 0));

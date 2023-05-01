@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -553,7 +553,7 @@ let mut msg = ZmqMessage::default();
         .raw_socket) { //  Always assign an integral routing id for raw-socket
         unsigned char buf[5];
         buf[0] = 0;
-        put_u32 (buf + 1, _next_integral_routing_id++);
+        put_u32 (buf + 1, _next_integral_routing_id+= 1);
         routing_id.set (buf, sizeof buf);
     } else if (!options.raw_socket) {
         //  Pick up handshake cases and also case where next integral routing id is set
@@ -566,7 +566,7 @@ let mut msg = ZmqMessage::default();
             //  Fall back on the auto-generation
             unsigned char buf[5];
             buf[0] = 0;
-            put_u32 (buf + 1, _next_integral_routing_id++);
+            put_u32 (buf + 1, _next_integral_routing_id+= 1);
             routing_id.set (buf, sizeof buf);
             msg.close ();
         } else {
@@ -589,7 +589,7 @@ let mut msg = ZmqMessage::default();
                 //  existing pipe so we can terminate it asynchronously.
                 unsigned char buf[5];
                 buf[0] = 0;
-                put_u32 (buf + 1, _next_integral_routing_id++);
+                put_u32 (buf + 1, _next_integral_routing_id+= 1);
                 Blob new_routing_id (buf, sizeof buf);
 
                 ZmqPipe *const old_pipe = existing_outpipe.pipe;

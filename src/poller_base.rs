@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -133,7 +133,7 @@ void poller_base_t::cancel_timer (i_poll_events *sink_, id_: i32)
 {
     //  Complexity of this operation is O(n). We assume it is rarely used.
     for (timers_t::iterator it = _timers.begin (), end = _timers.end ();
-         it != end; ++it)
+         it != end; += 1it)
         if (it.second.sink == sink_ && it.second.id == id_) {
             _timers.erase (it);
             return;

@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2020 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -74,7 +74,7 @@ void test_bind_fuzzer ()
         != 0)
         exit (77);
 
-    while (num_cases-- > 0) {
+    while (num_cases -= 1 > 0) {
         TEST_ASSERT_SUCCESS_ERRNO (
           LLVMFuzzerTestOneInput (data[num_cases], len[num_cases]));
         free (data[num_cases]);

@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -76,7 +76,7 @@ void v2_encoder_t::message_ready ()
     if (in_progress ().flags () & ZMQ_MSG_COMMAND)
         protocol_flags |= v2_protocol_t::command_flag;
     if (in_progress ().is_subscribe () || in_progress ().is_cancel ())
-        ++size;
+        += 1size;
 
     //  Encode the message length. For messages less then 256 bytes,
     //  the length is encoded as 8-bit unsigned integer. For larger
@@ -96,9 +96,9 @@ void v2_encoder_t::message_ready ()
     //  be avoided. This processing can be moved to xsub once support for
     //  ZMTP < 3.1 is dropped.
     if (in_progress ().is_subscribe ())
-        _tmp_buf[header_size++] = 1;
+        _tmp_buf[header_size+= 1] = 1;
     else if (in_progress ().is_cancel ())
-        _tmp_buf[header_size++] = 0;
+        _tmp_buf[header_size+= 1] = 0;
 
     next_step (_tmp_buf, header_size, &v2_encoder_t::size_ready, false);
 }

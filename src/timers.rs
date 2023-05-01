@@ -1,7 +1,7 @@
 /*
 Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-This file is part of libzmq, the ZeroMQ core engine in C++.
+This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
 libzmq is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License (LGPL) as published
@@ -119,7 +119,7 @@ int timers_t::add (interval_: usize, timers_timer_fn handler_, arg_: &mut [u8])
     }
 
     u64 when = _clock.now_ms () + interval_;
-    timer_t timer = {++_next_timer_id, interval_, handler_, arg_};
+    timer_t timer = {+= 1_next_timer_id, interval_, handler_, arg_};
     _timers.insert (timersmap_t::value_type (when, timer));
 
     return timer.timer_id;
@@ -204,7 +204,7 @@ long timers_t::timeout ()
     const timersmap_t::iterator begin = _timers.begin ();
     const timersmap_t::iterator end = _timers.end ();
     timersmap_t::iterator it = begin;
-    for (; it != end; ++it) {
+    for (; it != end; += 1it) {
         if (0 == _cancelled_timers.erase (it.second.timer_id)) {
             //  Live timer, lets return the timeout
             res = std::max (static_cast<long> (it.first - now), 0l);
@@ -225,7 +225,7 @@ int timers_t::execute ()
     const timersmap_t::iterator begin = _timers.begin ();
     const timersmap_t::iterator end = _timers.end ();
     timersmap_t::iterator it = _timers.begin ();
-    for (; it != end; ++it) {
+    for (; it != end; += 1it) {
         if (0 == _cancelled_timers.erase (it.second.timer_id)) {
             //  Timer is not cancelled
 

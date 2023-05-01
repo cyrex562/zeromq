@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -109,7 +109,7 @@ poll_t::handle_t poll_t::add_fd (fd: ZmqFileDesc, i_poll_events *events_)
         fd_table.resize (fd + 1);
         while (sz != (fd_table_t::size_type) (fd + 1)) {
             fd_table[sz].index = retired_fd;
-            ++sz;
+            += 1sz;
         }
     }
 
@@ -211,7 +211,7 @@ void poll_t::loop ()
         if (rc == 0)
             continue;
 
-        for (pollset_t::size_type i = 0; i != pollset.size (); i++) {
+        for (pollset_t::size_type i = 0; i != pollset.size (); i+= 1) {
             zmq_assert (!(pollset[i].revents & POLLNVAL));
             if (pollset[i].fd == retired_fd)
                 continue;
@@ -239,7 +239,7 @@ void poll_t::cleanup_retired ()
                 pollset.erase (pollset.begin () + i);
             else {
                 fd_table[pollset[i].fd].index = i;
-                i++;
+                i+= 1;
             }
         }
         retired = false;

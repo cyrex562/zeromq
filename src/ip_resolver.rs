@@ -352,7 +352,7 @@ impl IpResolver {
         //  Find the interface with the specified name and AF_INET family.
         bool found = false;
         lifreq *ifrp = ifc.lifc_req;
-        for (int n = 0; n <  (ifc.lifc_len / mem::size_of::<lifreq>()); n++, ifrp++) {
+        for (int n = 0; n <  (ifc.lifc_len / mem::size_of::<lifreq>()); n+= 1, ifrp+= 1) {
             if (!strcmp (nic_, ifrp.lifr_name)) {
                 rc = ioctl (fd, SIOCGLIFADDR, (char *) ifrp);
                 errno_assert (rc != -1);
@@ -444,7 +444,7 @@ impl IpResolver {
     //     int rc = 0;
     //     const int max_attempts = 10;
     //     const int backoff_msec = 1;
-    //     for (int i = 0; i < max_attempts; i++) {
+    //     for (int i = 0; i < max_attempts; i+= 1) {
     //         rc = getifaddrs (&ifa);
     //         if (rc == 0 || (rc < 0 && errno != ECONNREFUSED))
     //             break;
@@ -561,7 +561,7 @@ impl IpResolver {
             } else {
                 break;
             }
-            iterations++;
+            iterations+= 1;
         } while ((rc == ERROR_BUFFER_OVERFLOW) && (iterations < max_attempts));
 
         if (rc == 0) {

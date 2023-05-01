@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -993,7 +993,7 @@ pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqOptions)
 //     }
 //
 //     if (!(msg.flags () & ZMQ_MSG_MORE) && !msg.is_routing_id ())
-//         _msgs_read++;
+//         _msgs_read+= 1;
 //
 //     if (_lwm > 0 && _msgs_read % _lwm == 0)
 //         send_activate_write (_peer, _msgs_read);
@@ -1025,7 +1025,7 @@ pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqOptions)
 //     const bool is_routing_id = msg.is_routing_id ();
 //     _out_pipe.write (*msg, more);
 //     if (!more && !is_routing_id)
-//         _msgs_written++;
+//         _msgs_written+= 1;
 //
 //     return true;
 // }
@@ -1081,7 +1081,7 @@ pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqOptions)
 // let mut msg = ZmqMessage::default();
 //     while (_out_pipe.read (&msg)) {
 //         if (!(msg.flags () & ZMQ_MSG_MORE))
-//             _msgs_written--;
+//             _msgs_written -= 1;
 //         let rc: i32 = msg.close ();
 //         errno_assert (rc == 0);
 //     }

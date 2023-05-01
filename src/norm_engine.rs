@@ -245,7 +245,7 @@ int norm_engine_t::init (network_: &str, send: bool, recv: bool)
         strncpy (idText, network_, idLen);
         idText[idLen] = 0;
         localId = (NormNodeId) atoi (idText);
-        ifacePtr++;
+        ifacePtr+= 1;
     } else {
         ifacePtr = network_;
     }
@@ -260,7 +260,7 @@ int norm_engine_t::init (network_: &str, send: bool, recv: bool)
         strncpy (ifaceName, ifacePtr, ifaceLen);
         ifaceName[ifaceLen] = 0;
         ifacePtr = ifaceName;
-        addrPtr++;
+        addrPtr+= 1;
     } else {
         addrPtr = ifacePtr;
         ifacePtr = null_mut();
@@ -279,7 +279,7 @@ int norm_engine_t::init (network_: &str, send: bool, recv: bool)
         addrLen = 255;
     strncpy (addr, addrPtr, addrLen);
     addr[addrLen] = 0;
-    portPtr++;
+    portPtr+= 1;
     unsigned short portNumber = atoi (portPtr);
 
     if (NORM_INSTANCE_INVALID == norm_instance) {
@@ -519,8 +519,8 @@ void norm_engine_t::send_data ()
                     tx_buffer[0] = 0x00; // this is first frame of message
                 tx_more_bit = (0 != (tx_msg.flags () & ZMQ_MSG_MORE));
                 // Go ahead an get a first chunk of the message
-                bufPtr++;
-                space--;
+                bufPtr+= 1;
+                space -= 1;
                 tx_len = 1 + zmq_encoder.encode (&bufPtr, space);
                 tx_index = 0;
             }
@@ -835,8 +835,8 @@ int norm_engine_t::NormRxStreamState::Decode ()
         // out the NORM ZMQ message transport "syncFlag" byte
         // from the ZMQ message stream being decoded (but it works!)
         if (skip_norm_sync) {
-            buffer_ptr++;
-            buffer_count--;
+            buffer_ptr+= 1;
+            buffer_count -= 1;
             skip_norm_sync = false;
         }
 

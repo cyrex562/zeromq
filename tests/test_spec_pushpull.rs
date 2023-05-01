@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2018 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -50,7 +50,7 @@ void test_push_round_robin_out (bind_address_: &str)
 
     const size_t services = 5;
     void *pulls[services];
-    for (size_t peer = 0; peer < services; ++peer) {
+    for (size_t peer = 0; peer < services; += 1peer) {
         pulls[peer] = test_context_socket (ZMQ_PULL);
 
         TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (pulls[peer], connect_address));
@@ -60,20 +60,20 @@ void test_push_round_robin_out (bind_address_: &str)
     msleep (SETTLE_TIME);
 
     // Send 2N messages
-    for (size_t peer = 0; peer < services; ++peer)
+    for (size_t peer = 0; peer < services; += 1peer)
         s_send_seq (push, "ABC", SEQ_END);
-    for (size_t peer = 0; peer < services; ++peer)
+    for (size_t peer = 0; peer < services; += 1peer)
         s_send_seq (push, "DEF", SEQ_END);
 
     // Expect every PULL got one of each
-    for (size_t peer = 0; peer < services; ++peer) {
+    for (size_t peer = 0; peer < services; += 1peer) {
         s_recv_seq (pulls[peer], "ABC", SEQ_END);
         s_recv_seq (pulls[peer], "DEF", SEQ_END);
     }
 
     test_context_socket_close_zero_linger (push);
 
-    for (size_t peer = 0; peer < services; ++peer)
+    for (size_t peer = 0; peer < services; += 1peer)
         test_context_socket_close_zero_linger (pulls[peer]);
 }
 
@@ -90,7 +90,7 @@ void test_pull_fair_queue_in (bind_address_: &str)
 
     const unsigned char services = 5;
     void *pushs[services];
-    for (unsigned char peer = 0; peer < services; ++peer) {
+    for (unsigned char peer = 0; peer < services; += 1peer) {
         pushs[peer] = test_context_socket (ZMQ_PUSH);
 
         TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (pushs[peer], connect_address));
@@ -103,7 +103,7 @@ void test_pull_fair_queue_in (bind_address_: &str)
     int second_half = 0;
 
     // Send 2N messages
-    for (unsigned char peer = 0; peer < services; ++peer) {
+    for (unsigned char peer = 0; peer < services; += 1peer) {
         char *str = strdup ("A");
 
         str[0] += peer;
@@ -123,7 +123,7 @@ let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));
 
     // Expect to pull one from each first
-    for (size_t peer = 0; peer < services; ++peer) {
+    for (size_t peer = 0; peer < services; += 1peer) {
         TEST_ASSERT_EQUAL_INT (
           2, TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, pull, 0)));
         const char *str = static_cast<const char *> (zmq_msg_data (&msg));
@@ -132,7 +132,7 @@ let mut msg = ZmqMessage::default();
     TEST_ASSERT_EQUAL_INT (0, first_half);
 
     // And then get the second batch
-    for (size_t peer = 0; peer < services; ++peer) {
+    for (size_t peer = 0; peer < services; += 1peer) {
         TEST_ASSERT_EQUAL_INT (
           2, TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, pull, 0)));
         const char *str = static_cast<const char *> (zmq_msg_data (&msg));
@@ -144,7 +144,7 @@ let mut msg = ZmqMessage::default();
 
     test_context_socket_close_zero_linger (pull);
 
-    for (size_t peer = 0; peer < services; ++peer)
+    for (size_t peer = 0; peer < services; += 1peer)
         test_context_socket_close_zero_linger (pushs[peer]);
 }
 

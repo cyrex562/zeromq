@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -45,7 +45,7 @@ void test_round_robin_out (bind_address_: &str)
 
     const size_t services = 5;
     void *rep[services];
-    for (size_t peer = 0; peer < services; peer++) {
+    for (size_t peer = 0; peer < services; peer+= 1) {
         rep[peer] = test_context_socket (ZMQ_REP);
 
         TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (rep[peer], connect_address));
@@ -56,7 +56,7 @@ void test_round_robin_out (bind_address_: &str)
     msleep (SETTLE_TIME * services);
 
     // Send our peer-replies, and expect every REP it used once in order
-    for (size_t peer = 0; peer < services; peer++) {
+    for (size_t peer = 0; peer < services; peer+= 1) {
         s_send_seq (req, "ABC", SEQ_END);
         s_recv_seq (rep[peer], "ABC", SEQ_END);
         s_send_seq (rep[peer], "DEF", SEQ_END);
@@ -64,7 +64,7 @@ void test_round_robin_out (bind_address_: &str)
     }
 
     test_context_socket_close_zero_linger (req);
-    for (size_t peer = 0; peer < services; peer++)
+    for (size_t peer = 0; peer < services; peer+= 1)
         test_context_socket_close_zero_linger (rep[peer]);
 }
 
@@ -82,7 +82,7 @@ void test_req_only_listens_to_current_peer (bind_address_: &str)
     const size_t services = 3;
     void *router[services];
 
-    for (size_t i = 0; i < services; ++i) {
+    for (size_t i = 0; i < services; += 1i) {
         router[i] = test_context_socket (ZMQ_ROUTER);
 
         int enabled = 1;
@@ -95,7 +95,7 @@ void test_req_only_listens_to_current_peer (bind_address_: &str)
     // Wait for connects to finish.
     msleep (SETTLE_TIME);
 
-    for (size_t i = 0; i < services; ++i) {
+    for (size_t i = 0; i < services; += 1i) {
         // There still is a race condition when a stale peer's message
         // arrives at the REQ just after a request was sent to that peer.
         // To avoid that happening in the test, sleep for a bit.
@@ -108,7 +108,7 @@ void test_req_only_listens_to_current_peer (bind_address_: &str)
         s_recv_seq (router[i], "A", 0, "ABC", SEQ_END);
 
         // Send back replies on all routers
-        for (size_t j = 0; j < services; ++j) {
+        for (size_t j = 0; j < services; += 1j) {
             const char *replies[] = {"WRONG", "GOOD"};
             const char *reply = replies[i == j ? 1 : 0];
             s_send_seq (router[j], "A", 0, reply, SEQ_END);
@@ -119,7 +119,7 @@ void test_req_only_listens_to_current_peer (bind_address_: &str)
     }
 
     test_context_socket_close_zero_linger (req);
-    for (size_t i = 0; i < services; ++i)
+    for (size_t i = 0; i < services; += 1i)
         test_context_socket_close_zero_linger (router[i]);
 }
 

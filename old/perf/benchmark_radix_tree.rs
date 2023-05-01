@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2018 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -55,12 +55,12 @@ void benchmark_lookup (T &subscriptions_,
     std::vector<duration<long, std::nano> > samples_vec;
     samples_vec.reserve (samples);
 
-    for (std::size_t run = 0; run < warmup_runs; ++run) {
+    for (std::size_t run = 0; run < warmup_runs; += 1run) {
         for (auto &query : queries_)
             subscriptions_.check (query, key_length);
     }
 
-    for (std::size_t run = 0; run < samples; ++run) {
+    for (std::size_t run = 0; run < samples; += 1run) {
         duration<long, std::nano> interval (0);
         for (auto &query : queries_) {
             auto start = steady_clock::now ();
@@ -87,13 +87,13 @@ int main ()
     input_set.reserve (nkeys);
     queries.reserve (nqueries);
 
-    for (std::size_t i = 0; i < nkeys; ++i) {
+    for (std::size_t i = 0; i < nkeys; += 1i) {
         unsigned char *key = new unsigned char[key_length];
-        for (std::size_t j = 0; j < key_length; j++)
+        for (std::size_t j = 0; j < key_length; j+= 1)
             key[j] = static_cast<unsigned char> (chars[rng () % chars_len]);
         input_set.emplace_back (key);
     }
-    for (std::size_t i = 0; i < nqueries; ++i)
+    for (std::size_t i = 0; i < nqueries; += 1i)
         queries.push_back (input_set[rng () % nkeys]);
 
     // Initialize both data structures.

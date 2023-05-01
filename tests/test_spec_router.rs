@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -48,7 +48,7 @@ void test_fair_queue_in (bind_address_: &str)
 
     const unsigned char services = 5;
     void *senders[services];
-    for (unsigned char peer = 0; peer < services; ++peer) {
+    for (unsigned char peer = 0; peer < services; += 1peer) {
         senders[peer] = test_context_socket (ZMQ_DEALER);
 
         char *str = strdup ("A");
@@ -74,7 +74,7 @@ let mut msg = ZmqMessage::default();
     int sum = 0;
 
     // send N requests
-    for (unsigned char peer = 0; peer < services; ++peer) {
+    for (unsigned char peer = 0; peer < services; += 1peer) {
         s_send_seq (senders[peer], "M", SEQ_END);
         sum += 'A' + peer;
     }
@@ -82,7 +82,7 @@ let mut msg = ZmqMessage::default();
     TEST_ASSERT_EQUAL_INT (services * 'A' + services * (services - 1) / 2, sum);
 
     // handle N requests
-    for (unsigned char peer = 0; peer < services; ++peer) {
+    for (unsigned char peer = 0; peer < services; += 1peer) {
         TEST_ASSERT_EQUAL_INT (
           2, TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, receiver, 0)));
         const char *id = static_cast<const char *> (zmq_msg_data (&msg));
@@ -97,7 +97,7 @@ let mut msg = ZmqMessage::default();
 
     test_context_socket_close_zero_linger (receiver);
 
-    for (size_t peer = 0; peer < services; ++peer)
+    for (size_t peer = 0; peer < services; += 1peer)
         test_context_socket_close_zero_linger (senders[peer]);
 
     // Wait for disconnects.

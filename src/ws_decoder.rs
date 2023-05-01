@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2019 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -52,7 +52,7 @@ pub struct ws_decoder_t ZMQ_FINAL
     ~ws_decoder_t ();
 
     //  i_decoder interface.
-    ZmqMessage *msg () { return &_in_progress; }
+    ZmqMessage *msg () { return &in_progress; }
 
   // private:
     int opcode_ready (unsigned char const *);
@@ -67,7 +67,7 @@ pub struct ws_decoder_t ZMQ_FINAL
 
     unsigned char _tmpbuf[8];
     unsigned char _msg_flags;
-    ZmqMessage _in_progress;
+    ZmqMessage in_progress;
 
     const _zero_copy: bool
     const i64 _max_msg_size;
@@ -91,7 +91,7 @@ ws_decoder_t::ws_decoder_t (bufsize_: usize,
     _size (0)
 {
     memset (_tmpbuf, 0, mem::size_of::<_tmpbuf>());
-    int rc = _in_progress.init ();
+    int rc = in_progress.init ();
     errno_assert (rc == 0);
 
     //  At the beginning, read one byte and go to opcode_ready state.
@@ -100,7 +100,7 @@ ws_decoder_t::ws_decoder_t (bufsize_: usize,
 
 ws_decoder_t::~ws_decoder_t ()
 {
-    let rc: i32 = _in_progress.close ();
+    let rc: i32 = in_progress.close ();
     errno_assert (rc == 0);
 }
 
@@ -225,7 +225,7 @@ int ws_decoder_t::flags_ready (unsigned char const *read_from_)
     if (flags & ws_protocol_t::command_flag)
         _msg_flags |= ZMQ_MSG_COMMAND;
 
-    _size--;
+    _size -= 1;
 
     return size_ready (read_from_);
 }
@@ -246,7 +246,7 @@ int ws_decoder_t::size_ready (unsigned char const *read_pos_)
         return -1;
     }
 
-    int rc = _in_progress.close ();
+    int rc = in_progress.close ();
     assert (rc == 0);
 
     // the current message can exceed the current buffer. We have to copy the buffer
@@ -261,18 +261,18 @@ int ws_decoder_t::size_ready (unsigned char const *read_pos_)
         // a new message has started, but the size would exceed the pre-allocated arena
         // (or read_pos_ is in the initial handshake buffer)
         // this happens every time when a message does not fit completely into the buffer
-        rc = _in_progress.init_size (static_cast<size_t> (_size));
+        rc = in_progress.init_size (static_cast<size_t> (_size));
     } else {
         // construct message using n bytes from the buffer as storage
         // increase buffer ref count
         // if the message will be a large message, pass a valid refcnt memory location as well
-        rc = _in_progress.init (
+        rc = in_progress.init (
           const_cast<unsigned char *> (read_pos_), static_cast<size_t> (_size),
           shared_message_memory_allocator::call_dec_ref, allocator.buffer (),
           allocator.provide_content ());
 
         // For small messages, data has been copied and refcount does not have to be increased
-        if (_in_progress.is_zcmsg ()) {
+        if (in_progress.is_zcmsg ()) {
             allocator.advance_content ();
             allocator.inc_ref ();
         }
@@ -280,20 +280,20 @@ int ws_decoder_t::size_ready (unsigned char const *read_pos_)
 
     if (unlikely (rc)) {
         errno_assert (errno == ENOMEM);
-        rc = _in_progress.init ();
+        rc = in_progress.init ();
         errno_assert (rc == 0);
         errno = ENOMEM;
         return -1;
     }
 
-    _in_progress.set_flags (_msg_flags);
+    in_progress.set_flags (_msg_flags);
     // this sets read_pos to
     // the message data address if the data needs to be copied
     // for small message / messages exceeding the current buffer
     // or
     // to the current start address in the buffer because the message
     // was constructed to use n bytes from the address passed as argument
-    next_step (_in_progress.data (), _in_progress.size (),
+    next_step (in_progress.data (), in_progress.size (),
                &ws_decoder_t::message_ready);
 
     return 0;
@@ -305,8 +305,8 @@ int ws_decoder_t::message_ready (unsigned char const *)
         int mask_index = _opcode == ws_protocol_t::opcode_binary ? 1 : 0;
 
         unsigned char *data =
-          static_cast<unsigned char *> (_in_progress.data ());
-        for (size_t i = 0; i < _size; ++i, mask_index++)
+          static_cast<unsigned char *> (in_progress.data ());
+        for (size_t i = 0; i < _size; += 1i, mask_index+= 1)
             data[i] = data[i] ^ _mask[mask_index % 4];
     }
 

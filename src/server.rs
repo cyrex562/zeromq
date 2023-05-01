@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -100,9 +100,9 @@ void server_t::xattach_pipe (pipe: &mut ZmqPipe,
 
     zmq_assert (pipe);
 
-    u32 routing_id = _next_routing_id++;
+    u32 routing_id = _next_routing_id+= 1;
     if (!routing_id)
-        routing_id = _next_routing_id++; //  Never use Routing ID zero
+        routing_id = _next_routing_id+= 1; //  Never use Routing ID zero
 
     pipe.set_server_socket_routing_id (routing_id);
     //  Add the record into output pipes lookup table
@@ -132,7 +132,7 @@ void server_t::xwrite_activated (pipe: &mut ZmqPipe)
 {
     const out_pipes_t::iterator end = _out_pipes.end ();
     out_pipes_t::iterator it;
-    for (it = _out_pipes.begin (); it != end; ++it)
+    for (it = _out_pipes.begin (); it != end; += 1it)
         if (it.second.pipe == pipe)
             break;
 

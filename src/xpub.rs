@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -153,7 +153,7 @@ xpub_t::~xpub_t ()
     _welcome_msg.close ();
     for (std::deque<ZmqMetadata *>::iterator it = _pending_metadata.begin (),
                                             end = _pending_metadata.end ();
-         it != end; ++it)
+         it != end; += 1it)
         if (*it && (*it)->drop_ref ())
             LIBZMQ_DELETE (*it);
 }

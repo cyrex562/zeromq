@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2019 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -198,7 +198,7 @@ int expect_monitor_event_multiple (server_mon_: *mut c_void,
                                     expected_event_, expected_err_);
             TEST_FAIL_MESSAGE (buf);
         }
-        ++count_of_expected_events;
+        += 1count_of_expected_events;
     }
     TEST_ASSERT_TRUE (optional_ || count_of_expected_events > 0
                       || client_closed_connection);
@@ -245,7 +245,7 @@ let mut msg = ZmqMessage::default();
         TEST_ASSERT_NOT_NULL (*value_);
     }
 
-    for (u64 i = 0; i < value_count; ++i) {
+    for (u64 i = 0; i < value_count; += 1i) {
         //  Subsequent frames in message contain event values
         zmq_msg_init (&msg);
         if (zmq_msg_recv (&msg, monitor_, recv_flag_) == -1) {
@@ -398,7 +398,7 @@ void print_events (socket: *mut c_void, timeout: i32, limit: i32)
       get_monitor_event_with_timeout (socket, &value, &event_address, timeout);
     int i = 0;
     ;
-    while ((event != -1) && (++i < limit)) {
+    while ((event != -1) && (+= 1i < limit)) {
         const char *eventName = get_zmqEventName (event);
         printf ("Got event: %s\n", eventName);
         event = get_monitor_event_with_timeout (socket, &value, &event_address,

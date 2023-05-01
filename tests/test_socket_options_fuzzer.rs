@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2020 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -51,7 +51,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
     if (!size)
         return 0;
 
-    for (option = ZMQ_AFFINITY; option <= LAST_OPTION; ++option) {
+    for (option = ZMQ_AFFINITY; option <= LAST_OPTION; += 1option) {
         uint8_t out[8192];
         size_t out_size = 8192;
 
@@ -76,7 +76,7 @@ void test_socket_options_fuzzer ()
         != 0)
         exit (77);
 
-    while (num_cases-- > 0) {
+    while (num_cases -= 1 > 0) {
         TEST_ASSERT_SUCCESS_ERRNO (
           LLVMFuzzerTestOneInput (data[num_cases], len[num_cases]));
         free (data[num_cases]);

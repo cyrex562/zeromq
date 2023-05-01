@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2019 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -190,10 +190,10 @@ void zmtp_engine_t::plug_internal ()
     //  Send the 'length' and 'flags' fields of the routing id message.
     //  The 'length' field is encoded in the long format.
     _outpos = _greeting_send;
-    _outpos[_outsize++] = UCHAR_MAX;
+    _outpos[_outsize+= 1] = UCHAR_MAX;
     put_uint64 (&_outpos[_outsize], _options.routing_id_size + 1);
     _outsize += 8;
-    _outpos[_outsize++] = 0x7f;
+    _outpos[_outsize+= 1] = 0x7f;
 
     set_pollin ();
     set_pollout ();
@@ -272,7 +272,7 @@ void zmtp_engine_t::receive_greeting_versioned ()
     if (_outpos + _outsize == _greeting_send + signature_size) {
         if (_outsize == 0)
             set_pollout ();
-        _outpos[_outsize++] = 3; //  Major version number
+        _outpos[_outsize+= 1] = 3; //  Major version number
     }
 
     if (_greeting_bytes_read > signature_size) {
@@ -283,9 +283,9 @@ void zmtp_engine_t::receive_greeting_versioned ()
             //  Use ZMTP/2.0 to talk to older peers.
             if (_greeting_recv[revision_pos] == ZMTP_1_0
                 || _greeting_recv[revision_pos] == ZMTP_2_0)
-                _outpos[_outsize++] = _options.type;
+                _outpos[_outsize+= 1] = _options.type;
             else {
-                _outpos[_outsize++] = 1; //  Minor version number
+                _outpos[_outsize+= 1] = 1; //  Minor version number
                 memset (_outpos + _outsize, 0, 20);
 
                 zmq_assert (_options.mechanism == ZMQ_NULL

@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -134,7 +134,7 @@ void test_join_too_long_fails ()
 
     //  Joining too long group
     char too_long_group[ZMQ_GROUP_MAX_LENGTH + 2];
-    for (int index = 0; index < ZMQ_GROUP_MAX_LENGTH + 2; index++)
+    for (int index = 0; index < ZMQ_GROUP_MAX_LENGTH + 2; index+= 1)
         too_long_group[index] = 'A';
     too_long_group[ZMQ_GROUP_MAX_LENGTH + 1] = 0;
     TEST_ASSERT_FAILURE_ERRNO (EINVAL, zmq_join (dish, too_long_group));

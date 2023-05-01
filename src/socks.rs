@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -182,7 +182,7 @@ socks_greeting_t::socks_greeting_t (methods_: &[u8],
                                          uint8_t num_methods_) :
     num_methods (num_methods_)
 {
-    for (uint8_t i = 0; i < num_methods_; i++)
+    for (uint8_t i = 0; i < num_methods_; i+= 1)
         methods[i] = methods_[i];
 }
 
@@ -195,10 +195,10 @@ void socks_greeting_encoder_t::encode (const socks_greeting_t &greeting_)
 {
     uint8_t *ptr = buf;
 
-    *ptr++ = 0x05;
-    *ptr++ = static_cast<uint8_t> (greeting_.num_methods);
-    for (uint8_t i = 0; i < greeting_.num_methods; i++)
-        *ptr++ = greeting_.methods[i];
+    *ptr+= 1 = 0x05;
+    *ptr+= 1 = static_cast<uint8_t> (greeting_.num_methods);
+    for (uint8_t i = 0; i < greeting_.num_methods; i+= 1)
+        *ptr+= 1 = greeting_.methods[i];
 
     _bytes_encoded = 2 + greeting_.num_methods;
     _bytes_written = 0;
@@ -278,11 +278,11 @@ void socks_basic_auth_request_encoder_t::encode (
   const socks_basic_auth_request_t &req_)
 {
     unsigned char *ptr = buf;
-    *ptr++ = 0x01;
-    *ptr++ = static_cast<unsigned char> (req_.username.size ());
+    *ptr+= 1 = 0x01;
+    *ptr+= 1 = static_cast<unsigned char> (req_.username.size ());
     memcpy (ptr, req_.username, req_.username.size ());
     ptr += req_.username.size ();
-    *ptr++ = static_cast<unsigned char> (req_.password.size ());
+    *ptr+= 1 = static_cast<unsigned char> (req_.password.size ());
     memcpy (ptr, req_.password, req_.password.size ());
     ptr += req_.password.size ();
 
@@ -367,9 +367,9 @@ void socks_request_encoder_t::encode (const socks_request_t &req_)
     zmq_assert (req_.hostname.size () <= UINT8_MAX);
 
     unsigned char *ptr = buf;
-    *ptr++ = 0x05;
-    *ptr++ = req_.command;
-    *ptr++ = 0x00;
+    *ptr+= 1 = 0x05;
+    *ptr+= 1 = req_.command;
+    *ptr+= 1 = 0x00;
 
 // #if defined ZMQ_HAVE_OPENVMS && defined __ia64 && __INITIAL_POINTER_SIZE == 64
     __addrinfo64 hints, *res = null_mut();
@@ -386,18 +386,18 @@ void socks_request_encoder_t::encode (const socks_request_t &req_)
     if (rc == 0 && res.ai_family == AF_INET) {
         const struct sockaddr_in *sockaddr_in =
           reinterpret_cast<const struct sockaddr_in *> (res.ai_addr);
-        *ptr++ = 0x01;
+        *ptr+= 1 = 0x01;
         memcpy (ptr, &sockaddr_in.sin_addr, 4);
         ptr += 4;
     } else if (rc == 0 && res.ai_family == AF_INET6) {
         const struct sockaddr_in6 *sockaddr_in6 =
           reinterpret_cast<const struct sockaddr_in6 *> (res.ai_addr);
-        *ptr++ = 0x04;
+        *ptr+= 1 = 0x04;
         memcpy (ptr, &sockaddr_in6.sin6_addr, 16);
         ptr += 16;
     } else {
-        *ptr++ = 0x03;
-        *ptr++ = static_cast<unsigned char> (req_.hostname.size ());
+        *ptr+= 1 = 0x03;
+        *ptr+= 1 = static_cast<unsigned char> (req_.hostname.size ());
         memcpy (ptr, req_.hostname, req_.hostname.size ());
         ptr += req_.hostname.size ();
     }
@@ -405,8 +405,8 @@ void socks_request_encoder_t::encode (const socks_request_t &req_)
     if (rc == 0)
         freeaddrinfo (res);
 
-    *ptr++ = req_.port / 256;
-    *ptr++ = req_.port % 256;
+    *ptr+= 1 = req_.port / 256;
+    *ptr+= 1 = req_.port % 256;
 
     _bytes_encoded = ptr - buf;
     _bytes_written = 0;

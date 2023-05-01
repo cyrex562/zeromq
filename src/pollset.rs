@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -112,7 +112,7 @@ pollset_t::~pollset_t ()
     worker.stop ();
 
     pollset_destroy (pollset_fd);
-    for (retired_t::iterator it = retired.begin (); it != retired.end (); ++it)
+    for (retired_t::iterator it = retired.begin (); it != retired.end (); += 1it)
         LIBZMQ_DELETE (*it);
 }
 
@@ -275,7 +275,7 @@ void pollset_t::loop ()
             continue;
         }
 
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < n; i+= 1) {
             poll_entry_t *pe = fd_table[polldata_array[i].fd];
             if (!pe)
                 continue;
@@ -296,7 +296,7 @@ void pollset_t::loop ()
 
         //  Destroy retired event sources.
         for (retired_t::iterator it = retired.begin (); it != retired.end ();
-             ++it)
+             += 1it)
             LIBZMQ_DELETE (*it);
         retired.clear ();
     }

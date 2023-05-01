@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -76,7 +76,7 @@ void test_router_mandatory_hwm ()
     let buf_size: i32 = 65536;
     const uint8_t buf[buf_size] = {0};
     // Send first batch of messages
-    for (i = 0; i < 100000; ++i) {
+    for (i = 0; i < 100000; += 1i) {
         if (TRACE_ENABLED)
             fprintf (stderr, "Sending message %d ...\n", i);
         let rc: i32 = zmq_send (router, "X", 1, ZMQ_DONTWAIT | ZMQ_SNDMORE);
@@ -90,7 +90,7 @@ void test_router_mandatory_hwm ()
     TEST_ASSERT_LESS_THAN_INT (10, i);
     msleep (1000);
     // Send second batch of messages
-    for (; i < 100000; ++i) {
+    for (; i < 100000; += 1i) {
         if (TRACE_ENABLED)
             fprintf (stderr, "Sending message %d (part 2) ...\n", i);
         let rc: i32 = zmq_send (router, "X", 1, ZMQ_DONTWAIT | ZMQ_SNDMORE);

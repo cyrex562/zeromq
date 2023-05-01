@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -202,7 +202,7 @@ void reconnect_stop_on_refused ()
     int rc = get_monitor_event_with_timeout (sub_mon, &event, &event_address,
                                              2 * 1000);
     int limit = 0;
-    while ((rc != -1) && (++limit < 1000)) {
+    while ((rc != -1) && (+= 1limit < 1000)) {
         print_unexpected_event_stderr (event, rc, 0, -1);
         rc = get_monitor_event_with_timeout (sub_mon, &event, &event_address,
                                              2 * 1000);

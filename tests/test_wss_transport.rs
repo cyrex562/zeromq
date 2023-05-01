@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -74,7 +74,7 @@ const char *key =
   "vlmwbokDVEGYoXrZpDa1Ljdhms40YYQjzZXBXgvUSUXR1F4wmyWaBanRYRje61PG\n"
   "ueMI5uzmSk+3dp5vRUQhdkKKIgbpep00Ucc2a2pPhkrnXFJ5UvmXaeip0+AXAZ9h\n"
   "DCQd0yoB65lQ6LIWIi2SmNMvk/YMf3o/Rxy6NKF7H1JLcrw9N9WmCgrWm9oGhyJV\n"
-  "Fsdp2krj/B++tn/mmmaORkIdBd+wgOnYOuAghC0CggEBAK6KtLgyieh9Eqk06GIY\n"
+  "Fsdp2krj/B+= 1tn/mmmaORkIdBd+wgOnYOuAghC0CggEBAK6KtLgyieh9Eqk06GIY\n"
   "HlJ/sOde6Pc2bIO3SW/HHcb6TDVVNjWGSzSHA+yb1np70sFc0RyziOMVWWzOMhY4\n"
   "jORV2CiaPxq6Eb/IRO6APf6KGIeJKsVRSgTRCvAf2SnfUTEr+WO4ftrAfnHPu6sR\n"
   "ldL+6ZyYG/7qNOPR6O9P/YbzwFRjqaL3b7ppuCD5ZnTjEkeKRVYwS3HeKmmpYf6W\n"

@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -52,7 +52,7 @@ void test_issue_566 ()
     bind_loopback_ipv4 (router, my_endpoint, mem::size_of::<my_endpoint>());
 
     //  Repeat often enough to be sure this works as it should
-    for (int cycle = 0; cycle < 100; cycle++) {
+    for (int cycle = 0; cycle < 100; cycle+= 1) {
         //  Create dealer with unique explicit routing id
         //  We assume the router learns this out-of-band
         void *dealer = zmq_socket (ctx2, ZMQ_DEALER);
@@ -71,7 +71,7 @@ void test_issue_566 ()
         //  on a loopback interface, but we'll allow up to one second
         //  before failing the test (e.g. for running on a debugger or
         //  a very slow system).
-        for (int attempt = 0; attempt < 500; attempt++) {
+        for (int attempt = 0; attempt < 500; attempt+= 1) {
             zmq_poll (null_mut(), 0, 2);
             int rc = zmq_send (router, routing_id, 10, ZMQ_SNDMORE);
             if (rc == -1 && errno == EHOSTUNREACH)

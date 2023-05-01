@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -63,7 +63,7 @@ void test_shutdown_stress ()
 {
     void *threads[THREAD_COUNT];
 
-    for (int j = 0; j != 10; j++) {
+    for (int j = 0; j != 10; j+= 1) {
         //  Check the shutdown with many parallel I/O threads.
         struct thread_data tdata;
         setup_test_context ();
@@ -73,11 +73,11 @@ void test_shutdown_stress ()
 
         bind_loopback_ipv4 (socket, tdata.endpoint, sizeof (tdata.endpoint));
 
-        for (int i = 0; i != THREAD_COUNT; i++) {
+        for (int i = 0; i != THREAD_COUNT; i+= 1) {
             threads[i] = zmq_threadstart (&worker, &tdata);
         }
 
-        for (int i = 0; i != THREAD_COUNT; i++) {
+        for (int i = 0; i != THREAD_COUNT; i+= 1) {
             zmq_threadclose (threads[i]);
         }
 

@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -61,9 +61,9 @@ void test ()
     int send_count = 0;
 
     //  Send an empty message
-    for (int i = 0; i < hwmlimit; i++) {
+    for (int i = 0; i < hwmlimit; i+= 1) {
         TEST_ASSERT_SUCCESS_ERRNO (zmq_send (pub, null_mut(), 0, 0));
-        send_count++;
+        send_count+= 1;
     }
 
     int recv_count = 0;
@@ -75,7 +75,7 @@ void test ()
             break;
         }
         TEST_ASSERT_EQUAL_INT (0, rc);
-        recv_count++;
+        recv_count+= 1;
 
         if (recv_count == 1) {
             let sub_rcvtimeo: i32 = 250;
@@ -98,16 +98,16 @@ void test ()
 
     //  Send an empty message until we get an error, which must be EAGAIN
     while (zmq_send (pub, "", 0, 0) == 0)
-        send_count++;
+        send_count+= 1;
     TEST_ASSERT_EQUAL_INT (EAGAIN, errno);
 
     if (send_count > 0) {
         //  Receive first message with blocking
         TEST_ASSERT_SUCCESS_ERRNO (zmq_recv (sub, null_mut(), 0, 0));
-        recv_count++;
+        recv_count+= 1;
 
         while (zmq_recv (sub, null_mut(), 0, ZMQ_DONTWAIT) == 0)
-            recv_count++;
+            recv_count+= 1;
     }
 
     TEST_ASSERT_EQUAL_INT (send_count, recv_count);

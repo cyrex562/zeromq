@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -140,7 +140,7 @@ int req_t::xsend (msg: &mut ZmqMessage)
         _reply_pipe = null_mut();
 
         if (_request_id_frames_enabled) {
-            _request_id++;
+            _request_id+= 1;
 
             ZmqMessage id;
             int rc = id.init_size (mem::size_of::<u32>());

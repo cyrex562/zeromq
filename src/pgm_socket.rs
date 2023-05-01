@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -374,7 +374,7 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
     }
 
     //  Join IP multicast groups.
-    for (unsigned i = 0; i < res.ai_recv_addrs_len; i++) {
+    for (unsigned i = 0; i < res.ai_recv_addrs_len; i+= 1) {
         if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_JOIN_GROUP,
                              &res.ai_recv_addrs[i], sizeof (struct group_req)))
             goto err_abort;
@@ -424,7 +424,7 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
         size_t max_tsdu_size = get_max_tsdu_size ();
         pgm_msgv_len =  options.in_batch_size / max_tsdu_size;
         if ( options.in_batch_size % max_tsdu_size)
-            pgm_msgv_len++;
+            pgm_msgv_len+= 1;
         zmq_assert (pgm_msgv_len);
 
         pgm_msgv = (pgm_msgv_t *) malloc (mem::size_of::<pgm_msgv_t>() * pgm_msgv_len);
@@ -704,7 +704,7 @@ ssize_t pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t **tsi
     *tsi_ = &skb.tsi;
 
     //  Move the the next pgm_msgv_t structure.
-    pgm_msgv_processed++;
+    pgm_msgv_processed+= 1;
     zmq_assert (pgm_msgv_processed <= pgm_msgv_len);
     nbytes_processed += raw_data_len;
 

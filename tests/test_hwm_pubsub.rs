@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -65,7 +65,7 @@ int test_defaults (send_hwm_: i32, msg_cnt_: i32, endpoint: &str)
     int send_count = 0;
     while (send_count < msg_cnt_
            && zmq_send (pub_socket, "test message", 13, ZMQ_DONTWAIT) == 13)
-        ++send_count;
+        += 1send_count;
 
     TEST_ASSERT_EQUAL_INT (send_hwm_, send_count);
     msleep (SETTLE_TIME);
@@ -74,7 +74,7 @@ int test_defaults (send_hwm_: i32, msg_cnt_: i32, endpoint: &str)
     int recv_count = 0;
     char dummybuff[64];
     while (13 == zmq_recv (sub_socket, &dummybuff, 64, ZMQ_DONTWAIT)) {
-        ++recv_count;
+        += 1recv_count;
     }
 
     TEST_ASSERT_EQUAL_INT (send_hwm_, recv_count);
@@ -95,7 +95,7 @@ int receive (socket: *mut c_void, is_termination_: *mut i32)
     char buffer[255];
     len: i32;
     while ((len = zmq_recv (socket, buffer, mem::size_of::<buffer>(), 0)) >= 0) {
-        ++recv_count;
+        += 1recv_count;
 
         if (len == 3 && strncmp (buffer, "end", len) == 0) {
             *is_termination_ = 1;
@@ -143,10 +143,10 @@ int test_blocking (send_hwm_: i32, msg_cnt_: i32, endpoint: &str)
     while (send_count < msg_cnt_) {
         let rc: i32 = zmq_send (pub_socket, null_mut(), 0, ZMQ_DONTWAIT);
         if (rc == 0) {
-            ++send_count;
+            += 1send_count;
         } else if (-1 == rc) {
             // if the PUB socket blocks due to HWM, errno should be EAGAIN:
-            blocked_count++;
+            blocked_count+= 1;
             TEST_ASSERT_FAILURE_ERRNO (EAGAIN, -1);
             recv_count += receive (sub_socket, &is_termination);
         }
@@ -169,7 +169,7 @@ int test_blocking (send_hwm_: i32, msg_cnt_: i32, endpoint: &str)
         recv_count += receive (sub_socket, &is_termination);
 
     // remove termination message from the count:
-    recv_count--;
+    recv_count -= 1;
 
     TEST_ASSERT_EQUAL_INT (send_count, recv_count);
 
@@ -209,7 +209,7 @@ void test_reset_hwm ()
     int send_count = 0;
     while (send_count < first_count
            && zmq_send (pub_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
-        ++send_count;
+        += 1send_count;
     TEST_ASSERT_EQUAL_INT (first_count, send_count);
 
     msleep (SETTLE_TIME);
@@ -217,7 +217,7 @@ void test_reset_hwm ()
     // Now receive all sent messages
     int recv_count = 0;
     while (0 == zmq_recv (sub_socket, null_mut(), 0, ZMQ_DONTWAIT)) {
-        ++recv_count;
+        += 1recv_count;
     }
     TEST_ASSERT_EQUAL_INT (first_count, recv_count);
 
@@ -227,7 +227,7 @@ void test_reset_hwm ()
     send_count = 0;
     while (send_count < second_count
            && zmq_send (pub_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
-        ++send_count;
+        += 1send_count;
     TEST_ASSERT_EQUAL_INT (second_count, send_count);
 
     msleep (SETTLE_TIME);
@@ -235,7 +235,7 @@ void test_reset_hwm ()
     // Now receive all sent messages
     recv_count = 0;
     while (0 == zmq_recv (sub_socket, null_mut(), 0, ZMQ_DONTWAIT)) {
-        ++recv_count;
+        += 1recv_count;
     }
     TEST_ASSERT_EQUAL_INT (second_count, recv_count);
 

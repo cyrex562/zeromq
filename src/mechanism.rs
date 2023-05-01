@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -288,7 +288,7 @@ impl ZmqMechanism {
         // for (std::map<std::string, std::string>::const_iterator
         //     it = options.app_metadata.begin (),
         //     end = options.app_metadata.end ();
-        //     it != end; ++it)
+        //     it != end; += 1it)
         for (first, second) in self.options.app_metadata.iter() {
             ptr += add_property(
                 ptr,
@@ -350,7 +350,7 @@ impl ZmqMechanism {
         // for (std::map<std::string, std::string>::const_iterator
         //        it = options.app_metadata.begin (),
         //        end = options.app_metadata.end ();
-        //      it != end; ++it)
+        //      it != end; += 1it)
         for (first, second) in self.options.app_metadata.iter() {
             meta_len += property_len(first.len(), second.len());
         }

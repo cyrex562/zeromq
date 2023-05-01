@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -53,7 +53,7 @@ void setUp ()
 
     bind_loopback_ipv4 (req, my_endpoint, mem::size_of::<my_endpoint>());
 
-    for (size_t peer = 0; peer < services; peer++) {
+    for (size_t peer = 0; peer < services; peer+= 1) {
         rep[peer] = test_context_socket (ZMQ_REP);
 
         TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (rep[peer], my_endpoint));
@@ -68,7 +68,7 @@ void setUp ()
 void tearDown ()
 {
     test_context_socket_close_zero_linger (req);
-    for (size_t peer = 0; peer < services; peer++)
+    for (size_t peer = 0; peer < services; peer+= 1)
         test_context_socket_close_zero_linger (rep[peer]);
 
     teardown_test_context ();

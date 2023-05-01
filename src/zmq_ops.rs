@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -416,7 +416,7 @@ pub fn s_sendmsg(s_: *mut ZmqSocketBase, msg: *mut ZmqMessage, flags: i32) -> i3
         return -1;
     }
 
-    //  This is what I'd like to do, my C++ fu is too weak -- PH 2016/02/09
+    //  This is what I'd like to do, my C+= 1 fu is too weak -- PH 2016/02/09
     //  int max_msgsz = s_->parent->get (ZMQ_MAX_MSGSZ);
     let max_msgsz: usize = INT_MAX as usize;
 
@@ -501,7 +501,7 @@ pub fn zmq_sendiov (s_: &mut [u8], a_: *mut iovec, count: usize, mut flags: i32)
     let mut rc = 0;
     let mut msg: ZmqMessage = ZmqMessage{_x: [0;64]};
 
-    // for (size_t i = 0; i < count; ++i)
+    // for (size_t i = 0; i < count; += 1i)
     for i in 0 .. count
     {
         rc = zmq_msg_init_size (&mut msg, a_[i].iov_len);
@@ -613,7 +613,7 @@ pub fn zmq_recviov (s_: &mut [u8], a_: *mut iovec, count: *mut usize, flags: i32
 
     *count = 0;
 
-    // for (size_t i = 0; recvmore && i < count; ++i)
+    // for (size_t i = 0; recvmore && i < count; += 1i)
     for i in 0 .. recvmore
     {
         let mut msg = ZmqMessage::default();
@@ -832,14 +832,14 @@ static int zmq_poller_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
 
     bool repeat_items = false;
     //  Register sockets with poller
-    for (int i = 0; i < nitems_; i++) {
+    for (int i = 0; i < nitems_; i+= 1) {
         items_[i].revents = 0;
 
         bool modify = false;
         short e = items_[i].events;
         if (items_[i].socket) {
             //  Poll item is a 0MQ socket.
-            for (int j = 0; j < i; ++j) {
+            for (int j = 0; j < i; += 1j) {
                 // Check for repeat entries
                 if (items_[j].socket == items_[i].socket) {
                     repeat_items = true;
@@ -858,7 +858,7 @@ static int zmq_poller_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
             }
         } else {
             //  Poll item is a raw file descriptor.
-            for (int j = 0; j < i; ++j) {
+            for (int j = 0; j < i; += 1j) {
                 // Check for repeat entries
                 if (!items_[j].socket && items_[j].fd == items_[i].fd) {
                     repeat_items = true;
@@ -895,15 +895,15 @@ static int zmq_poller_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
     //  If there are repeat items, they cannot be assumed to be co-ordered,
     //  so each pollitem must check fired events from the beginning.
     int j_start = 0, found_events = rc;
-    for (int i = 0; i < nitems_; i++) {
-        for (int j = j_start; j < found_events; ++j) {
+    for (int i = 0; i < nitems_; i+= 1) {
+        for (int j = j_start; j < found_events; += 1j) {
             if ((items_[i].socket && items_[i].socket == events[j].socket)
                 || (!(items_[i].socket || events[j].socket)
                     && items_[i].fd == events[j].fd)) {
                 items_[i].revents = events[j].events & items_[i].events;
                 if (!repeat_items) {
                     // no repeats, we can ignore events we've already seen
-                    j_start++;
+                    j_start+= 1;
                 }
                 break;
             }
@@ -925,7 +925,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
 // #if defined ZMQ_HAVE_POLLER
     // if poller is present, use that if there is at least 1 thread-safe socket,
     // otherwise fall back to the previous implementation as it's faster.
-    for (int i = 0; i != nitems_; i++) {
+    for (int i = 0; i != nitems_; i+= 1) {
         if (items_[i].socket) {
             let mut s: *mut ZmqSocketBase =  as_socket_base_t (items_[i].socket);
             if (s) {
@@ -970,7 +970,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
     fast_vector_t<pollfd, ZMQ_POLLITEMS_DFLT> pollfds (nitems_);
 
     //  Build pollset for poll () system call.
-    for (int i = 0; i != nitems_; i++) {
+    for (int i = 0; i != nitems_; i+= 1) {
         //  If the poll item is a 0MQ socket, we poll on the file descriptor
         //  retrieved by the ZMQ_FD socket option.
         if (items_[i].socket) {
@@ -1008,7 +1008,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
     ZmqFileDesc maxfd = 0;
 
     //  Build the fd_sets for passing to select ().
-    for (int i = 0; i != nitems_; i++) {
+    for (int i = 0; i != nitems_; i+= 1) {
         //  If the poll item is a 0MQ socket we are interested in input on the
         //  notification file descriptor retrieved by the ZMQ_FD socket option.
         if (items_[i].socket) {
@@ -1062,7 +1062,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
             errno_assert (rc >= 0);
         }
         //  Check for the events.
-        for (int i = 0; i != nitems_; i++) {
+        for (int i = 0; i != nitems_; i+= 1) {
             items_[i].revents = 0;
 
             //  The poll item is a 0MQ socket. Retrieve pending events
@@ -1096,7 +1096,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
             }
 
             if (items_[i].revents)
-                nevents++;
+                nevents+= 1;
         }
 
 // #else
@@ -1144,7 +1144,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
         }
 
         //  Check for the events.
-        for (int i = 0; i != nitems_; i++) {
+        for (int i = 0; i != nitems_; i+= 1) {
             items_[i].revents = 0;
 
             //  The poll item is a 0MQ socket. Retrieve pending events
@@ -1175,7 +1175,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
             }
 
             if (items_[i].revents)
-                nevents++;
+                nevents+= 1;
         }
 // #endif
 
@@ -1288,7 +1288,7 @@ zmq_poll_build_select_fds_ (zmq_pollitem_t *items_, nitems_: i32, int &rc)
     zmq_poll_select_fds_t_ fds (nitems_);
 
     //  Build the fd_sets for passing to select ().
-    for (int i = 0; i != nitems_; i++) {
+    for (int i = 0; i != nitems_; i+= 1) {
         //  If the poll item is a 0MQ socket we are interested in input on the
         //  notification file descriptor retrieved by the ZMQ_FD socket option.
         if (items_[i].socket) {
@@ -1366,7 +1366,7 @@ int zmq_poll_select_check_events_ (zmq_pollitem_t *items_,
                                    int &nevents)
 {
     //  Check for the events.
-    for (int i = 0; i != nitems_; i++) {
+    for (int i = 0; i != nitems_; i+= 1) {
         items_[i].revents = 0;
 
         //  The poll item is a 0MQ socket. Retrieve pending events
@@ -1395,7 +1395,7 @@ int zmq_poll_select_check_events_ (zmq_pollitem_t *items_,
         }
 
         if (items_[i].revents)
-            nevents++;
+            nevents+= 1;
     }
 
     return 0;

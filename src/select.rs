@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -172,7 +172,7 @@ select_t::select_t (const ThreadCtx &ctx) :
 // #endif
 {
 // #if defined ZMQ_HAVE_WINDOWS
-    for (size_t i = 0; i < fd_family_cache_size; ++i)
+    for (size_t i = 0; i < fd_family_cache_size; += 1i)
         _fd_family_cache[i] = std::make_pair (retired_fd, 0);
 // #endif
 }
@@ -217,7 +217,7 @@ select_t::find_fd_entry_by_handle (fd_entries_t &fd_entries_,
 {
     fd_entries_t::iterator fd_entry_it;
     for (fd_entry_it = fd_entries_.begin (); fd_entry_it != fd_entries_.end ();
-         ++fd_entry_it)
+         += 1fd_entry_it)
         if (fd_entry_it.fd == handle_)
             break;
 
@@ -230,7 +230,7 @@ void select_t::trigger_events (const fd_entries_t &fd_entries_,
 {
     //  Size is cached to avoid iteration through recently added descriptors.
     for (fd_entries_t::size_type i = 0, size = fd_entries_.size ();
-         i < size && event_count_ > 0; ++i) {
+         i < size && event_count_ > 0; += 1i) {
         //  fd_entries_[i] may not be stored, since calls to
         //  in_event/out_event may reallocate the vector
 
@@ -314,7 +314,7 @@ void select_t::rm_fd (handle_t handle_)
         family_entries_t::iterator end = _family_entries.end ();
         for (family_entries_t::iterator family_entry_it =
                _family_entries.begin ();
-             family_entry_it != end; ++family_entry_it) {
+             family_entry_it != end; += 1family_entry_it) {
             if (retired += try_retire_fd_entry (family_entry_it, handle_)) {
                 break;
             }
@@ -329,12 +329,12 @@ void select_t::rm_fd (handle_t handle_)
     fd_entry_it.fd = retired_fd;
     _family_entry.fds_set.remove_fd (handle_);
 
-    ++retired;
+    += 1retired;
 
     if (handle_ == _max_fd) {
         _max_fd = retired_fd;
         for (fd_entry_it = _family_entry.fd_entries.begin ();
-             fd_entry_it != _family_entry.fd_entries.end (); ++fd_entry_it)
+             fd_entry_it != _family_entry.fd_entries.end (); += 1fd_entry_it)
             if (fd_entry_it.fd > _max_fd)
                 _max_fd = fd_entry_it.fd;
     }
@@ -468,13 +468,13 @@ void select_t::loop ()
 
             for (family_entries_t::iterator family_entry_it =
                    _family_entries.begin ();
-                 family_entry_it != _family_entries.end (); ++family_entry_it) {
+                 family_entry_it != _family_entries.end (); += 1family_entry_it) {
                 family_entry_t &family_entry = family_entry_it.second;
 
                 for (fd_entries_t::iterator fd_entry_it =
                        family_entry.fd_entries.begin ();
                      fd_entry_it != family_entry.fd_entries.end ();
-                     ++fd_entry_it) {
+                     += 1fd_entry_it) {
                     ZmqFileDesc fd = fd_entry_it.fd;
 
                     //  http://stackoverflow.com/q/35043420/188530
@@ -507,7 +507,7 @@ void select_t::loop ()
 
         for (_current_family_entry_it = _family_entries.begin ();
              _current_family_entry_it != _family_entries.end ();
-             ++_current_family_entry_it) {
+             += 1_current_family_entry_it) {
             family_entry_t &family_entry = _current_family_entry_it.second;
 
 
@@ -636,7 +636,7 @@ void select_t::cleanup_retired ()
         if (cleanup_retired (it.second))
             it = _family_entries.erase (it);
         else
-            ++it;
+            += 1it;
     }
 // #else
     cleanup_retired (_family_entry);
@@ -659,7 +659,7 @@ u_short select_t::get_fd_family (ZmqFileDesc fd)
     // cache the results of determine_fd_family, as this is frequently called
     // for the same sockets, and determine_fd_family is expensive
     i: usize;
-    for (i = 0; i < fd_family_cache_size; ++i) {
+    for (i = 0; i < fd_family_cache_size; += 1i) {
         const std::pair<ZmqFileDesc, u_short> &entry = _fd_family_cache[i];
         if (entry.first == fd) {
             return entry.second;

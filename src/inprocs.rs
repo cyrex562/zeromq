@@ -29,7 +29,7 @@ impl inprocs_t {
             return -1;
         }
 
-        // for (map_t::iterator it = range.first; it != range.second; ++it) {
+        // for (map_t::iterator it = range.first; it != range.second; += 1it) {
         //     it->second->send_disconnect_msg ();
         //     it->second->terminate (true);
         // }
@@ -46,7 +46,7 @@ impl inprocs_t {
     // void erase_pipe (const pipe_: &mut ZmqPipe);
     pub fn erase_pipe(&mut self, pipe: &mut ZmqPipe) {
         // for (map_t::iterator it = _inprocs.begin (), end = _inprocs.end ();
-        //      it != end; ++it)
+        //      it != end; += 1it)
         //     if (it->second == pipe_) {
         //         _inprocs.erase (it);
         //         break;

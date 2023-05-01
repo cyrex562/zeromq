@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -50,7 +50,7 @@ void test_conflate ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (s_out, my_endpoint));
 
     int message_count = 20;
-    for (int j = 0; j < message_count; ++j) {
+    for (int j = 0; j < message_count; += 1j) {
         TEST_ASSERT_SUCCESS_ERRNO (
           zmq_send (s_out, (void *) &j, mem::size_of::<int>(), 0));
     }

@@ -249,7 +249,7 @@ impl shared_message_memory_allocator {
         &mut self.msg_content
     }
 
-    // void advance_content () { msg_content++; }
+    // void advance_content () { msg_content+= 1; }
     pub fn advance_content(&mut self) {
         todo!()
     }

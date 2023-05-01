@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2019 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -75,13 +75,13 @@ void ws_encoder_t::message_ready ()
     _is_binary = false;
 
     if (in_progress ().is_ping ())
-        _tmp_buf[offset++] = 0x80 | ws_protocol_t::opcode_ping;
+        _tmp_buf[offset+= 1] = 0x80 | ws_protocol_t::opcode_ping;
     else if (in_progress ().is_pong ())
-        _tmp_buf[offset++] = 0x80 | ws_protocol_t::opcode_pong;
+        _tmp_buf[offset+= 1] = 0x80 | ws_protocol_t::opcode_pong;
     else if (in_progress ().is_close_cmd ())
-        _tmp_buf[offset++] = 0x80 | ws_protocol_t::opcode_close;
+        _tmp_buf[offset+= 1] = 0x80 | ws_protocol_t::opcode_close;
     else {
-        _tmp_buf[offset++] = 0x82; // Final | binary
+        _tmp_buf[offset+= 1] = 0x82; // Final | binary
         _is_binary = true;
     }
 
@@ -89,19 +89,19 @@ void ws_encoder_t::message_ready ()
 
     size_t size = in_progress ().size ();
     if (_is_binary)
-        size++;
+        size+= 1;
     //  TODO: create an opcode for subscribe/cancel
     if (in_progress ().is_subscribe () || in_progress ().is_cancel ())
-        size++;
+        size+= 1;
 
     if (size <= 125)
-        _tmp_buf[offset++] |= static_cast<unsigned char> (size & 127);
+        _tmp_buf[offset+= 1] |= static_cast<unsigned char> (size & 127);
     else if (size <= 0xFFFF) {
-        _tmp_buf[offset++] |= 126;
-        _tmp_buf[offset++] = static_cast<unsigned char> ((size >> 8) & 0xFF);
-        _tmp_buf[offset++] = static_cast<unsigned char> (size & 0xFF);
+        _tmp_buf[offset+= 1] |= 126;
+        _tmp_buf[offset+= 1] = static_cast<unsigned char> ((size >> 8) & 0xFF);
+        _tmp_buf[offset+= 1] = static_cast<unsigned char> (size & 0xFF);
     } else {
-        _tmp_buf[offset++] |= 127;
+        _tmp_buf[offset+= 1] |= 127;
         put_uint64 (_tmp_buf + offset, size);
         offset += 8;
     }
@@ -122,16 +122,16 @@ void ws_encoder_t::message_ready ()
         if (in_progress ().flags () & ZMQ_MSG_COMMAND)
             protocol_flags |= ws_protocol_t::command_flag;
 
-        _tmp_buf[offset++] =
-          _must_mask ? protocol_flags ^ _mask[mask_index++] : protocol_flags;
+        _tmp_buf[offset+= 1] =
+          _must_mask ? protocol_flags ^ _mask[mask_index+= 1] : protocol_flags;
     }
 
     //  Encode the subscribe/cancel byte.
     //  TODO: remove once there is an opcode for subscribe/cancel
     if (in_progress ().is_subscribe ())
-        _tmp_buf[offset++] = _must_mask ? 1 ^ _mask[mask_index++] : 1;
+        _tmp_buf[offset+= 1] = _must_mask ? 1 ^ _mask[mask_index+= 1] : 1;
     else if (in_progress ().is_cancel ())
-        _tmp_buf[offset++] = _must_mask ? 0 ^ _mask[mask_index++] : 0;
+        _tmp_buf[offset+= 1] = _must_mask ? 0 ^ _mask[mask_index+= 1] : 0;
 
     next_step (_tmp_buf, offset, &ws_encoder_t::size_ready, false);
 }
@@ -156,11 +156,11 @@ void ws_encoder_t::size_ready ()
 
         int mask_index = 0;
         if (_is_binary)
-            ++mask_index;
+            += 1mask_index;
         //  TODO: remove once there is an opcode for subscribe/cancel
         if (in_progress ().is_subscribe () || in_progress ().is_cancel ())
-            ++mask_index;
-        for (size_t i = 0; i < size; ++i, mask_index++)
+            += 1mask_index;
+        for (size_t i = 0; i < size; += 1i, mask_index+= 1)
             dest[i] = src[i] ^ _mask[mask_index % 4];
 
         next_step (dest, size, &ws_encoder_t::message_ready, true);

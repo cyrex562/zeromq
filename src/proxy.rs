@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -122,7 +122,7 @@ pub struct capture_: *mut ZmqSocketBase,
                     msg: &mut ZmqMessage)
 {
     // Forward a burst of messages
-    for (unsigned int i = 0; i < proxy_burst_size; i++) {
+    for (unsigned int i = 0; i < proxy_burst_size; i+= 1) {
         more: i32;
         moresz: usize;
         size_t complete_msg_size = 0;
@@ -158,9 +158,9 @@ pub struct capture_: *mut ZmqSocketBase,
         }
 
         // A multipart message counts as 1 packet:
-        from_stats_.msg_in++;
+        from_stats_.msg_in+= 1;
         from_stats_.bytes_in += complete_msg_size;
-        to_stats_.msg_out++;
+        to_stats_.msg_out+= 1;
         to_stats_.bytes_out += complete_msg_size;
     }
 
@@ -260,7 +260,7 @@ let mut msg = ZmqMessage::default();
 
     //  Don't allocate these pollers from stack because they will take more than 900 kB of stack!
     //  On Windows this blows up default stack of 1 MB and aborts the program.
-    //  I wanted to use std::shared_ptr here as the best solution but that requires C++11...
+    //  I wanted to use std::shared_ptr here as the best solution but that requires C+= 111...
     socket_poller_t *poller_all =
       new (std::nothrow) socket_poller_t; //  Poll for everything.
     socket_poller_t *poller_in = new (std::nothrow)
@@ -398,7 +398,7 @@ let mut msg = ZmqMessage::default();
         CHECK_RC_EXIT_ON_FAILURE ();
 
         //  Process events.
-        for (int i = 0; i < rc; i++) {
+        for (int i = 0; i < rc; i+= 1) {
             if (events[i].socket == frontend_) {
                 frontend_in = (events[i].events & ZMQ_POLLIN) != 0;
                 frontend_out = (events[i].events & ZMQ_POLLOUT) != 0;

@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2018 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -59,7 +59,7 @@ pub struct lb_t
   // private:
     //  List of outbound pipes.
     typedef array_t<ZmqPipe, 2> pipes_t;
-    pipes_t _pipes;
+    pipes_t pipes;
 
     //  Number of active pipes. All the active pipes are located at the
     //  beginning of the pipes array.
@@ -69,7 +69,7 @@ pub struct lb_t
     pipes_t::size_type _current;
 
     //  True if last we are in the middle of a multipart message.
-    _more: bool
+    more: bool
 
     //  True if we are dropping current message.
     _dropping: bool
@@ -77,46 +77,46 @@ pub struct lb_t
     ZMQ_NON_COPYABLE_NOR_MOVABLE (lb_t)
 };
 
-lb_t::lb_t () : active (0), _current (0), _more (false), _dropping (false)
+lb_t::lb_t () : active (0), _current (0), more (false), _dropping (false)
 {
 }
 
 lb_t::~lb_t ()
 {
-    zmq_assert (_pipes.empty ());
+    zmq_assert (pipes.empty ());
 }
 
 void lb_t::attach (pipe: &mut ZmqPipe)
 {
-    _pipes.push_back (pipe);
+    pipes.push_back (pipe);
     activated (pipe);
 }
 
 void lb_t::pipe_terminated (pipe: &mut ZmqPipe)
 {
-    const pipes_t::size_type index = _pipes.index (pipe);
+    const pipes_t::size_type index = pipes.index (pipe);
 
     //  If we are in the middle of multipart message and current pipe
     //  have disconnected, we have to drop the remainder of the message.
-    if (index == _current && _more)
+    if (index == _current && more)
         _dropping = true;
 
     //  Remove the pipe from the list; adjust number of active pipes
     //  accordingly.
     if (index < active) {
-        active--;
-        _pipes.swap (index, active);
+        active -= 1;
+        pipes.swap (index, active);
         if (_current == active)
             _current = 0;
     }
-    _pipes.erase (pipe);
+    pipes.erase (pipe);
 }
 
 void lb_t::activated (pipe: &mut ZmqPipe)
 {
     //  Move the pipe to the list of active pipes.
-    _pipes.swap (_pipes.index (pipe), active);
-    active++;
+    pipes.swap (pipes.index (pipe), active);
+    active+= 1;
 }
 
 int lb_t::send (msg: &mut ZmqMessage)
@@ -129,8 +129,8 @@ int lb_t::sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
     //  Drop the message if required. If we are at the end of the message
     //  switch back to non-dropping mode.
     if (_dropping) {
-        _more = (msg.flags () & ZMQ_MSG_MORE) != 0;
-        _dropping = _more;
+        more = (msg.flags () & ZMQ_MSG_MORE) != 0;
+        _dropping = more;
 
         int rc = msg.close ();
         errno_assert (rc == 0);
@@ -140,17 +140,17 @@ int lb_t::sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
     }
 
     while (active > 0) {
-        if (_pipes[_current]->write (msg)) {
+        if (pipes[_current]->write (msg)) {
             if (pipe)
-                *pipe = _pipes[_current];
+                *pipe = pipes[_current];
             break;
         }
 
         // If send fails for multi-part msg rollback other
         // parts sent earlier and return EAGAIN.
         // Application should handle this as suitable
-        if (_more) {
-            _pipes[_current]->rollback ();
+        if (more) {
+            pipes[_current]->rollback ();
             // At this point the pipe is already being deallocated
             // and the first N frames are unreachable (_outpipe is
             // most likely already NULL so rollback won't actually do
@@ -166,14 +166,14 @@ int lb_t::sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
             // -2/EAGAIN will make sure socket_base caller does not re-enter
             // immediately or after a short sleep in blocking mode.
             _dropping = (msg.flags () & ZMQ_MSG_MORE) != 0;
-            _more = false;
+            more = false;
             errno = EAGAIN;
             return -2;
         }
 
-        active--;
+        active -= 1;
         if (_current < active)
-            _pipes.swap (_current, active);
+            pipes.swap (_current, active);
         else
             _current = 0;
     }
@@ -186,11 +186,11 @@ int lb_t::sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
 
     //  If it's final part of the message we can flush it downstream and
     //  continue round-robining (load balance).
-    _more = (msg.flags () & ZMQ_MSG_MORE) != 0;
-    if (!_more) {
-        _pipes[_current]->flush ();
+    more = (msg.flags () & ZMQ_MSG_MORE) != 0;
+    if (!more) {
+        pipes[_current]->flush ();
 
-        if (++_current >= active)
+        if (+= 1_current >= active)
             _current = 0;
     }
 
@@ -205,17 +205,17 @@ bool lb_t::has_out ()
 {
     //  If one part of the message was already written we can definitely
     //  write the rest of the message.
-    if (_more)
+    if (more)
         return true;
 
     while (active > 0) {
         //  Check whether a pipe has room for another message.
-        if (_pipes[_current]->check_write ())
+        if (pipes[_current]->check_write ())
             return true;
 
         //  Deactivate the pipe.
-        active--;
-        _pipes.swap (_current, active);
+        active -= 1;
+        pipes.swap (_current, active);
         if (_current == active)
             _current = 0;
     }

@@ -269,7 +269,7 @@ impl ZmqContext {
         // Connect up any pending inproc connections, otherwise we will hang
         let copy = self.pending_connections.clone();
         // for (pending_connections_t::iterator p = copy.begin (), end = copy.end ();
-        //      p != end; ++p)
+        //      p != end; += 1p)
         for (key, val) in copy.iter() {
             let mut s = self.create_socket(ZMQ_PAIR);
             // create_socket might fail eg: out of memory/sockets limit reached
@@ -285,7 +285,7 @@ impl ZmqContext {
                 // we are a forked child process. Close all file descriptors
                 // inherited from the parent.
                 // for (sockets_t::size_type i = 0, size = _sockets.size (); i != size;
-                //      i++)
+                //      i+= 1)
                 for i in 0..self.sockets.len() {
                     self.sockets[i].get_mailbox().forked();
                 }
@@ -304,7 +304,7 @@ impl ZmqContext {
                 //  can be interrupted. If there are no sockets we can ask reaper
                 //  thread to stop.
                 // for (sockets_t::size_type i = 0, size = _sockets.size (); i != size;
-                //      i++)
+                //      i+= 1)
                 for i in 0..self.sockets.len() {
                     self.sockets[i].stop();
                 }
@@ -356,7 +356,7 @@ impl ZmqContext {
                 //  can be interrupted. If there are no sockets we can ask reaper
                 //  thread to stop.
                 // for (sockets_t::size_type i = 0, size = _sockets.size (); i != size;
-                //      i++)
+                //      i+= 1)
                 for i in 0..self.sockets.len() {
                     self.sockets[i].stop();
                 }
@@ -572,7 +572,7 @@ impl ZmqContext {
         self.slots.resize(slot_count, null_mut());
 
         // for (int i = term_and_reaper_threads_count;
-        //      i != ios + term_and_reaper_threads_count; i++)
+        //      i != ios + term_and_reaper_threads_count; i+= 1)
         for i in term_and_reaper_threads_count..ios + term_and_reaper_threads_count {
             let io_thread = ZmqThread::new(self, i);
             if !io_thread {
@@ -590,7 +590,7 @@ impl ZmqContext {
 
         //  In the unused part of the slot array, create a list of empty slots.
         // for (int32_t i = static_cast<int32_t> (_slots.size ()) - 1;
-        //      i >= static_cast<int32_t> (ios) + term_and_reaper_threads_count; i--)
+        //      i >= static_cast<int32_t> (ios) + term_and_reaper_threads_count; i -= 1)
         for i in self.slots.len() - 1..ios + term_and_reaper_team_threads_count {
             self.empty_slots.push_back(i);
         }
@@ -695,7 +695,7 @@ impl ZmqContext {
         // ZmqThread *selected_io_thread = NULL;
         let mut selected_io_thread: Option<ZmqThread> = None;
         // for (io_threads_t::size_type i = 0, size = _io_threads.size (); i != size;
-        //      i++)
+        //      i+= 1)
         for i in 0..self.io_threads.len() {
             if !affinity || (affinity & (1 << i)) {
                 let load = self.io_threads[i].get_load();
@@ -788,10 +788,10 @@ impl ZmqContext {
             // #if __cplusplus >= 201103L || (defined _MSC_VER && _MSC_VER >= 1700)
             //             it = _endpoints.erase (it);
             // // #else
-            //             _endpoints.erase (it++);
+            //             _endpoints.erase (it+= 1);
             // // #endif
             //         else
-            //             ++it;
+            //             += 1it;
             if v.socket == socket {
                 erase_list.push(k.clone())
             }
@@ -873,7 +873,7 @@ impl ZmqContext {
         //
         //   let pending = self._pending_connections.equal_range (addr_);
         // for (pending_connections_t::iterator p = pending.first; p != pending.second;
-        //      ++p)
+        //      += 1p)
         //     connect_inproc_sockets (bind_socket_, _endpoints[addr_].options,
         //                             p->second, bind_side);
         let pending = self.pending_connections.get(addr_);
@@ -1013,12 +1013,12 @@ impl ZmqContext {
     //     //  Ask I/O threads to terminate. If stop signal wasn't sent to I/O
     //     //  thread subsequent invocation of destructor would hang-up.
     //     const io_threads_t::size_type io_threads_size = _io_threads.size ();
-    //     for (io_threads_t::size_type i = 0; i != io_threads_size; i++) {
+    //     for (io_threads_t::size_type i = 0; i != io_threads_size; i+= 1) {
     //         _io_threads[i]->stop ();
     //     }
     //
     //     //  Wait till I/O threads actually terminate.
-    //     for (io_threads_t::size_type i = 0; i != io_threads_size; i++) {
+    //     for (io_threads_t::size_type i = 0; i != io_threads_size; i+= 1) {
     //         LIBZMQ_DELETE (_io_threads[i]);
     //     }
     //

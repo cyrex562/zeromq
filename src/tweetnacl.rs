@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2016-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -50,7 +50,7 @@
 
 // #include "tweetnacl.h"
 
-// #define FOR(i,n) for (i = 0;i < n;++i)
+// #define FOR(i,n) for (i = 0;i < n;+= 1i)
 // #define sv static void
 
 static const u8
@@ -177,7 +177,7 @@ int crypto_stream_salsa20_xor(u8 *c,const u8 *m,u64 b,const u8 *n,const u8 *k)
     crypto_core_salsa20(x,z,k,sigma);
     FOR(i,64) c[i] = (m?m[i]:0) ^ x[i];
     u = 1;
-    for (i = 8;i < 16;++i) {
+    for (i = 8;i < 16;+= 1i) {
       u += (u32) z[i];
       z[i] = u;
       u >>= 8;
@@ -242,7 +242,7 @@ int crypto_onetimeauth(u8 *out,const u8 *m,u64 n,const u8 *k)
 
   while (n > 0) {
     FOR(j,17) c[j] = 0;
-    for (j = 0;(j < 16) && (j < n);++j) c[j] = m[j];
+    for (j = 0;(j < 16) && (j < n);+= 1j) c[j] = m[j];
     c[j] = 1;
     m += j; n -= j;
     add1305(h,c);
@@ -346,7 +346,7 @@ sv pack25519(u8 *o,const gf n)
   car25519(t);
   FOR(j,2) {
     m[0]=t[0]-0xffed;
-    for(i=1;i<15;i++) {
+    for(i=1;i<15;i+= 1) {
       m[i]=t[i]-0xffff-((m[i-1]>>16)&1);
       m[i-1]&=0xffff;
     }
@@ -416,7 +416,7 @@ sv inv25519(gf o,const gf i)
   gf c;
   a: i32;
   FOR(a,16) c[a]=i[a];
-  for(a=253;a>=0;a--) {
+  for(a=253;a>=0;a -= 1) {
     S(c,c);
     if(a!=2&&a!=4) M(c,c,i);
   }
@@ -428,7 +428,7 @@ sv pow2523(gf o,const gf i)
   gf c;
   a: i32;
   FOR(a,16) c[a]=i[a];
-  for(a=250;a>=0;a--) {
+  for(a=250;a>=0;a -= 1) {
     S(c,c);
     if(a!=1) M(c,c,i);
   }
@@ -723,7 +723,7 @@ sv modL(u8 *r,i64 x[64])
   i64 carry,i,j;
   for (i = 63;i >= 32;--i) {
     carry = 0;
-    for (j = i - 32;j < i - 12;++j) {
+    for (j = i - 32;j < i - 12;+= 1j) {
       x[j] += carry - 16 * x[i] * L[j - (i - 32)];
       carry = (x[j] + 128) >> 8;
       x[j] -= carry << 8;

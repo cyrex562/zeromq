@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -455,7 +455,7 @@ void thread_t::
         CPU_ZERO (&cpuset);
         for (std::set<int>::const_iterator it = _thread_affinity_cpus.begin (),
                                            end = _thread_affinity_cpus.end ();
-             it != end; it++) {
+             it != end; it+= 1) {
             CPU_SET ( (*it), &cpuset);
         }
         rc =

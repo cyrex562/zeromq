@@ -47,7 +47,7 @@ void test_create ()
 void mtrie_count (pipe: *mut i32, count: *mut i32)
 {
     LIBZMQ_UNUSED (pipe);
-    ++*count;
+    += 1*count;
 }
 
 void test_check_empty_match_nonempty_data ()
@@ -292,7 +292,7 @@ void add_entries (generic_mtrie_t<int> &mtrie_,
                   int (&pipes_)[N],
                   const char *(&names_)[N])
 {
-    for (size_t i = 0; i < N; ++i) {
+    for (size_t i = 0; i < N; += 1i) {
         add_indexed_expect_unique (mtrie_, pipes_, names_, i);
     }
     TEST_ASSERT_EQUAL_INT (N, mtrie_.num_prefixes ());
@@ -306,7 +306,7 @@ void test_add_multiple ()
     generic_mtrie_t<int> mtrie;
     add_entries (mtrie, pipes, names);
 
-    for (size_t i = 0; i < mem::size_of::<names>() / sizeof (names[0]); ++i) {
+    for (size_t i = 0; i < mem::size_of::<names>() / sizeof (names[0]); += 1i) {
         const generic_mtrie_t<int>::prefix_t name_data =
           reinterpret_cast<generic_mtrie_t<int>::prefix_t> (names[i]);
         int count = 0;
@@ -327,7 +327,7 @@ void test_add_multiple_reverse ()
     }
     TEST_ASSERT_EQUAL_INT (3, mtrie.num_prefixes ());
 
-    for (size_t i = 0; i < 3; ++i) {
+    for (size_t i = 0; i < 3; += 1i) {
         const generic_mtrie_t<int>::prefix_t name_data =
           reinterpret_cast<generic_mtrie_t<int>::prefix_t> (names[i]);
         int count = 0;
@@ -342,7 +342,7 @@ template <size_t N> void add_and_rm_entries (const char *(&names_)[N])
     generic_mtrie_t<int> mtrie;
     add_entries (mtrie, pipes, names_);
 
-    for (size_t i = 0; i < N; ++i) {
+    for (size_t i = 0; i < N; += 1i) {
         const generic_mtrie_t<int>::prefix_t name_data =
           reinterpret_cast<generic_mtrie_t<int>::prefix_t> (names_[i]);
 
@@ -379,7 +379,7 @@ template <size_t N> void add_entries_rm_pipes_unique (const char *(&names_)[N])
     generic_mtrie_t<int> mtrie;
     add_entries (mtrie, pipes, names_);
 
-    for (size_t i = 0; i < N; ++i) {
+    for (size_t i = 0; i < N; += 1i) {
         mtrie.rm (&pipes[i], check_name, names_[i], false);
     }
 }

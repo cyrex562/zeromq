@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -56,7 +56,7 @@ void test_endpoint_too_long ()
 {
     endpoint_too_long: String;
     endpoint_too_long.append (prefix);
-    for (size_t i = 0; i < 108; ++i) {
+    for (size_t i = 0; i < 108; += 1i) {
         endpoint_too_long.append ("a");
     }
 

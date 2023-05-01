@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -270,7 +270,7 @@ impl ZmqDish {
     pub fn send_subscriptions(&mut self, pipe: &mut ZmqPipe) {
         // for (subscriptions_t::iterator it = _subscriptions.begin (),
         //     end = _subscriptions.end ();
-        // it != end; ++it)
+        // it != end; += 1it)
         for it in _subscriptions.iter() {
             let mut msg = ZmqMessage::default();
             let rc = msg.init_join();

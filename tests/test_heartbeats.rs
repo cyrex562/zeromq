@@ -50,7 +50,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 static int get_monitor_event (monitor_: *mut c_void)
 {
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i+= 1) {
         //  First frame in message contains event number and value
 let mut msg = ZmqMessage::default();
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));

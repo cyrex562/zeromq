@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -148,7 +148,7 @@ let mut msg = ZmqMessage::default();
                   range = _subscriptions.equal_range (group);
 
                 for (subscriptions_t::iterator it = range.first;
-                     it != range.second; ++it) {
+                     it != range.second; += 1it) {
                     if (it.second == pipe) {
                         _subscriptions.erase (it);
                         break;
@@ -190,10 +190,10 @@ void radio_t::xpipe_terminated (pipe: &mut ZmqPipe)
 #if __cplusplus >= 201103L || (defined _MSC_VER && _MSC_VER >= 1700)
             it = _subscriptions.erase (it);
 // #else
-            _subscriptions.erase (it++);
+            _subscriptions.erase (it+= 1);
 // #endif
         } else {
-            ++it;
+            += 1it;
         }
     }
 
@@ -221,12 +221,12 @@ int radio_t::xsend (msg: &mut ZmqMessage)
     const std::pair<subscriptions_t::iterator, subscriptions_t::iterator>
       range = _subscriptions.equal_range (std::string (msg.group ()));
 
-    for (subscriptions_t::iterator it = range.first; it != range.second; ++it)
+    for (subscriptions_t::iterator it = range.first; it != range.second; += 1it)
         _dist.match (it.second);
 
     for (udp_pipes_t::iterator it = _udp_pipes.begin (),
                                end = _udp_pipes.end ();
-         it != end; ++it)
+         it != end; += 1it)
         _dist.match (*it);
 
     int rc = -1;

@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -56,7 +56,7 @@ void test_disconnect_inproc ()
     more: i32;
     size_t more_size = mem::size_of::<more>();
 
-    for (int iteration = 0;; ++iteration) {
+    for (int iteration = 0;; += 1iteration) {
         zmq_pollitem_t items[] = {
           {sub_socket, 0, ZMQ_POLLIN, 0}, // read publications
           {pub_socket, 0, ZMQ_POLLIN, 0}, // read subscriptions
@@ -95,7 +95,7 @@ let mut msg = ZmqMessage::default();
                   zmq_getsockopt (sub_socket, ZMQ_RCVMORE, &more, &more_size));
                 TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg));
             }
-            publicationsReceived++;
+            publicationsReceived+= 1;
         }
         if (iteration == 1) {
             TEST_ASSERT_SUCCESS_ERRNO (

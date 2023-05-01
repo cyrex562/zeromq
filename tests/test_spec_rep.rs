@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -46,7 +46,7 @@ void test_fair_queue_in (bind_address_: &str)
 
     const size_t services = 5;
     void *reqs[services];
-    for (size_t peer = 0; peer < services; ++peer) {
+    for (size_t peer = 0; peer < services; += 1peer) {
         reqs[peer] = test_context_socket (ZMQ_REQ);
 
         TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (reqs[peer], connect_address));
@@ -67,7 +67,7 @@ void test_fair_queue_in (bind_address_: &str)
     // TODO: following test fails randomly on some boxes
 // #ifdef SOMEONE_FIXES_THIS
     // send N requests
-    for (size_t peer = 0; peer < services; ++peer) {
+    for (size_t peer = 0; peer < services; += 1peer) {
         char *str = strdup ("A");
         str[0] += peer;
         s_send_seq (reqs[peer], str, SEQ_END);
@@ -75,7 +75,7 @@ void test_fair_queue_in (bind_address_: &str)
     }
 
     // handle N requests
-    for (size_t peer = 0; peer < services; ++peer) {
+    for (size_t peer = 0; peer < services; += 1peer) {
         char *str = strdup ("A");
         str[0] += peer;
         //  Test fails here
@@ -87,7 +87,7 @@ void test_fair_queue_in (bind_address_: &str)
 // #endif
     test_context_socket_close_zero_linger (rep);
 
-    for (size_t peer = 0; peer < services; ++peer)
+    for (size_t peer = 0; peer < services; += 1peer)
         test_context_socket_close_zero_linger (reqs[peer]);
 }
 

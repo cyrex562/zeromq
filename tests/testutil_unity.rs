@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2019 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -45,7 +45,7 @@ int test_assert_success_message_errno_helper (rc_: i32,
     if (rc_ == -1) {
         char buffer[512];
         buffer[mem::size_of::<buffer>() - 1] =
-          0; // to ensure defined behavior with VC++ <= 2013
+          0; // to ensure defined behavior with VC+= 1 <= 2013
         snprintf (buffer, mem::size_of::<buffer>() - 1,
                   "%s failed%s%s%s, errno = %i (%s)", expr_,
                   msg ? " (additional info: " : "", msg ? msg : "",
@@ -67,7 +67,7 @@ int test_assert_success_message_raw_errno_helper (
 
         char buffer[512];
         buffer[mem::size_of::<buffer>() - 1] =
-          0; // to ensure defined behavior with VC++ <= 2013
+          0; // to ensure defined behavior with VC+= 1 <= 2013
         snprintf (
           buffer, mem::size_of::<buffer>() - 1, "%s failed%s%s%s with %d, errno = %i/%s",
           expr_, msg ? " (additional info: " : "", msg ? msg : "",
@@ -91,7 +91,7 @@ int test_assert_failure_message_raw_errno_helper (
 {
     char buffer[512];
     buffer[mem::size_of::<buffer>() - 1] =
-      0; // to ensure defined behavior with VC++ <= 2013
+      0; // to ensure defined behavior with VC+= 1 <= 2013
     if (rc_ != -1) {
         snprintf (buffer, mem::size_of::<buffer>() - 1,
                   "%s was unexpectedly successful%s%s%s, expected "
@@ -167,7 +167,7 @@ static void internal_manage_test_sockets (socket: *mut c_void, add_: bool)
 
         // force-close all sockets
         if (test_socket_count) {
-            for (size_t i = 0; i < test_socket_count; ++i) {
+            for (size_t i = 0; i < test_socket_count; += 1i) {
                 close_zero_linger (test_sockets[i]);
             }
             fprintf (stderr,
@@ -178,7 +178,7 @@ static void internal_manage_test_sockets (socket: *mut c_void, add_: bool)
         }
     } else {
         if (add_) {
-            ++test_socket_count;
+            += 1test_socket_count;
             TEST_ASSERT_LESS_THAN_MESSAGE (MAX_TEST_SOCKETS, test_socket_count,
                                            "MAX_TEST_SOCKETS must be "
                                            "increased, or you cannot use the "
@@ -186,7 +186,7 @@ static void internal_manage_test_sockets (socket: *mut c_void, add_: bool)
             test_sockets[test_socket_count - 1] = socket;
         } else {
             bool found = false;
-            for (size_t i = 0; i < test_socket_count; ++i) {
+            for (size_t i = 0; i < test_socket_count; += 1i) {
                 if (test_sockets[i] == socket) {
                     found = true;
                 }

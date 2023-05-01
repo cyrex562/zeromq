@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -44,7 +44,7 @@ void test_round_robin_out (bind_address_: &str)
 
     const size_t services = 5;
     void *rep[services];
-    for (size_t peer = 0; peer < services; ++peer) {
+    for (size_t peer = 0; peer < services; += 1peer) {
         rep[peer] = test_context_socket (ZMQ_REP);
 
         TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (rep[peer], connect_address));
@@ -54,21 +54,21 @@ void test_round_robin_out (bind_address_: &str)
     msleep (SETTLE_TIME);
 
     // Send all requests
-    for (size_t i = 0; i < services; ++i)
+    for (size_t i = 0; i < services; += 1i)
         s_send_seq (dealer, 0, "ABC", SEQ_END);
 
     // Expect every REP got one message
 let mut msg = ZmqMessage::default();
     zmq_msg_init (&msg);
 
-    for (size_t peer = 0; peer < services; ++peer)
+    for (size_t peer = 0; peer < services; += 1peer)
         s_recv_seq (rep[peer], "ABC", SEQ_END);
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg));
 
     test_context_socket_close_zero_linger (dealer);
 
-    for (size_t peer = 0; peer < services; ++peer)
+    for (size_t peer = 0; peer < services; += 1peer)
         test_context_socket_close_zero_linger (rep[peer]);
 }
 
@@ -84,7 +84,7 @@ void test_fair_queue_in (bind_address_: &str)
 
     const size_t services = 5;
     void *senders[services];
-    for (size_t peer = 0; peer < services; ++peer) {
+    for (size_t peer = 0; peer < services; += 1peer) {
         senders[peer] = test_context_socket (ZMQ_DEALER);
 
         TEST_ASSERT_SUCCESS_ERRNO (
@@ -100,21 +100,21 @@ let mut msg = ZmqMessage::default();
     s_recv_seq (receiver, "A", SEQ_END);
 
     // send our requests
-    for (size_t peer = 0; peer < services; ++peer)
+    for (size_t peer = 0; peer < services; += 1peer)
         s_send_seq (senders[peer], "B", SEQ_END);
 
     // Wait for data.
     msleep (SETTLE_TIME);
 
     // handle the requests
-    for (size_t peer = 0; peer < services; ++peer)
+    for (size_t peer = 0; peer < services; += 1peer)
         s_recv_seq (receiver, "B", SEQ_END);
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg));
 
     test_context_socket_close_zero_linger (receiver);
 
-    for (size_t peer = 0; peer < services; ++peer)
+    for (size_t peer = 0; peer < services; += 1peer)
         test_context_socket_close_zero_linger (senders[peer]);
 }
 

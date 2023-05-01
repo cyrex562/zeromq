@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -124,7 +124,7 @@ static void client_task (db_: *mut c_void)
     while (run) {
         // Tick once per 200 ms, pulling in arriving messages
         centitick: i32;
-        for (centitick = 0; centitick < 20; centitick++) {
+        for (centitick = 0; centitick < 20; centitick+= 1) {
             zmq_poll (items, 2, 10);
             if (items[0].revents & ZMQ_POLLIN) {
                 rcvmore: i32;
@@ -164,7 +164,7 @@ static void client_task (db_: *mut c_void)
         }
 
         if (keep_sending) {
-            sprintf (content, "request #%03d", ++request_nbr); // CONTENT_SIZE
+            sprintf (content, "request #%03d", += 1request_nbr); // CONTENT_SIZE
             if (is_verbose)
                 printf ("client send - routing_id = %s    request #%03d\n",
                         routing_id, request_nbr);
@@ -217,13 +217,13 @@ void server_task (void * /*unused_*/)
     // Launch pool of worker threads, precise number is not critical
     thread_nbr: i32;
     void *threads[5];
-    for (thread_nbr = 0; thread_nbr < QT_WORKERS; thread_nbr++)
+    for (thread_nbr = 0; thread_nbr < QT_WORKERS; thread_nbr+= 1)
         threads[thread_nbr] = zmq_threadstart (&server_worker, null_mut());
 
     // Endpoint socket sends random port to avoid test failing when port in use
     void *endpoint_receivers[QT_CLIENTS];
     char endpoint_source[256];
-    for (int i = 0; i < QT_CLIENTS; ++i) {
+    for (int i = 0; i < QT_CLIENTS; += 1i) {
         endpoint_receivers[i] = zmq_socket (get_test_context (), ZMQ_PAIR);
         TEST_ASSERT_NOT_NULL (endpoint_receivers[i]);
         TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
@@ -233,7 +233,7 @@ void server_task (void * /*unused_*/)
           zmq_bind (endpoint_receivers[i], endpoint_source));
     }
 
-    for (int i = 0; i < QT_CLIENTS; ++i) {
+    for (int i = 0; i < QT_CLIENTS; += 1i) {
         send_string_expect_success (endpoint_receivers[i], my_endpoint, 0);
     }
 
@@ -241,13 +241,13 @@ void server_task (void * /*unused_*/)
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_proxy_steerable (frontend, backend, null_mut(), control));
 
-    for (thread_nbr = 0; thread_nbr < QT_WORKERS; thread_nbr++)
+    for (thread_nbr = 0; thread_nbr < QT_WORKERS; thread_nbr+= 1)
         zmq_threadclose (threads[thread_nbr]);
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_close (frontend));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_close (backend));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_close (control));
-    for (int i = 0; i < QT_CLIENTS; ++i) {
+    for (int i = 0; i < QT_CLIENTS; += 1i) {
         TEST_ASSERT_SUCCESS_ERRNO (zmq_close (endpoint_receivers[i]));
     }
 }
@@ -305,7 +305,7 @@ static void server_worker (void * /*unused_*/)
             // Send 0..4 replies back
             if (keep_sending) {
                 reply: i32, replies = rand () % 5;
-                for (reply = 0; reply < replies; reply++) {
+                for (reply = 0; reply < replies; reply+= 1) {
                     // Sleep for some fraction of a second
                     msleep (rand () % 10 + 1);
 
@@ -428,7 +428,7 @@ void test_proxy ()
 
     void *threads[QT_CLIENTS + 1];
     struct thread_data databags[QT_CLIENTS + 1];
-    for (int i = 0; i < QT_CLIENTS; i++) {
+    for (int i = 0; i < QT_CLIENTS; i+= 1) {
         databags[i].id = i;
         threads[i] = zmq_threadstart (&client_task, &databags[i]);
     }
@@ -456,7 +456,7 @@ void test_proxy ()
     test_context_socket_close (control);
     test_context_socket_close (control_proxy);
 
-    for (int i = 0; i < QT_CLIENTS + 1; i++)
+    for (int i = 0; i < QT_CLIENTS + 1; i+= 1)
         zmq_threadclose (threads[i]);
 }
 

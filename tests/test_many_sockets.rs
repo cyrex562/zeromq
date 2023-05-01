@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -55,11 +55,11 @@ void test_system_max ()
             static_cast<int> (sockets.size ()));
 
     //  System is out of resources, further calls to zmq_socket should return NULL
-    for (unsigned int i = 0; i < 10; ++i) {
+    for (unsigned int i = 0; i < 10; += 1i) {
         TEST_ASSERT_NULL (zmq_socket (get_test_context (), ZMQ_PAIR));
     }
     // Clean up.
-    for (unsigned int i = 0; i < sockets.size (); ++i)
+    for (unsigned int i = 0; i < sockets.size (); += 1i)
         TEST_ASSERT_SUCCESS_ERRNO (zmq_close (sockets[i]));
 }
 
@@ -78,12 +78,12 @@ void test_zmq_default_max ()
     TEST_ASSERT_LESS_OR_EQUAL (ZMQ_MAX_SOCKETS_DFLT, sockets.size ());
 
     //  Further calls to zmq_socket should return NULL
-    for (unsigned int i = 0; i < 10; ++i) {
+    for (unsigned int i = 0; i < 10; += 1i) {
         TEST_ASSERT_NULL (zmq_socket (get_test_context (), ZMQ_PAIR));
     }
 
     //  Clean up
-    for (unsigned int i = 0; i < sockets.size (); ++i)
+    for (unsigned int i = 0; i < sockets.size (); += 1i)
         TEST_ASSERT_SUCCESS_ERRNO (zmq_close (sockets[i]));
 }
 

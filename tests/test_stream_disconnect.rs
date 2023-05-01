@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -174,13 +174,13 @@ let mut msg = ZmqMessage::default();
             // 0-length frame is a disconnection notification.  The server
             // should receive it as the last step in the dialogue.
             if (size == 0) {
-                ++step;
+                += 1step;
                 TEST_ASSERT_EQUAL_INT (steps, step);
             } else {
                 TEST_ASSERT_EQUAL_INT (strlen (dialog[step].text), size);
                 TEST_ASSERT_EQUAL_STRING_LEN (dialog[step].text, data, size);
 
-                ++step;
+                += 1step;
 
                 TEST_ASSERT_LESS_THAN_INT (steps, step);
 
@@ -229,7 +229,7 @@ let mut msg = ZmqMessage::default();
             TEST_ASSERT_EQUAL_INT (strlen (dialog[step].text), size);
             TEST_ASSERT_EQUAL_STRING_LEN (dialog[step].text, data, size);
 
-            ++step;
+            += 1step;
 
             // Prepare the response (next line in the dialog).
             TEST_ASSERT_LESS_THAN_INT (steps, step);

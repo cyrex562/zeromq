@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -150,7 +150,7 @@ void test_connect_before_bind_pub_sub ()
 
 void test_connect_before_bind_ctx_term ()
 {
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 20; += 1i) {
         // Connect first
         void *connect_socket = test_context_socket (ZMQ_ROUTER);
 
@@ -170,7 +170,7 @@ void test_multiple_connects ()
     void *connect_socket[no_of_connects];
 
     // Connect first
-    for (unsigned int i = 0; i < no_of_connects; ++i) {
+    for (unsigned int i = 0; i < no_of_connects; += 1i) {
         connect_socket[i] = test_context_socket (ZMQ_PUSH);
         TEST_ASSERT_SUCCESS_ERRNO (
           zmq_connect (connect_socket[i], "inproc://multiple"));
@@ -183,12 +183,12 @@ void test_multiple_connects ()
     void *bind_socket = test_context_socket (ZMQ_PULL);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (bind_socket, "inproc://multiple"));
 
-    for (unsigned int i = 0; i < no_of_connects; ++i) {
+    for (unsigned int i = 0; i < no_of_connects; += 1i) {
         recv_string_expect_success (bind_socket, "foobar", 0);
     }
 
     // Cleanup
-    for (unsigned int i = 0; i < no_of_connects; ++i) {
+    for (unsigned int i = 0; i < no_of_connects; += 1i) {
         test_context_socket_close (connect_socket[i]);
     }
 
@@ -202,7 +202,7 @@ void test_multiple_threads ()
     void *threads[no_of_threads];
 
     // Connect first
-    for (unsigned int i = 0; i < no_of_threads; ++i) {
+    for (unsigned int i = 0; i < no_of_threads; += 1i) {
         threads[i] = zmq_threadstart (&pusher, null_mut());
     }
 
@@ -210,13 +210,13 @@ void test_multiple_threads ()
     void *bind_socket = test_context_socket (ZMQ_PULL);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (bind_socket, "inproc://sink"));
 
-    for (unsigned int i = 0; i < no_of_threads; ++i) {
+    for (unsigned int i = 0; i < no_of_threads; += 1i) {
         // Read pending message
         recv_string_expect_success (bind_socket, "foobar", 0);
     }
 
     // Cleanup
-    for (unsigned int i = 0; i < no_of_threads; ++i) {
+    for (unsigned int i = 0; i < no_of_threads; += 1i) {
         zmq_threadclose (threads[i]);
     }
 
@@ -231,19 +231,19 @@ void test_simultaneous_connect_bind_threads ()
     char endpts[no_of_times][20];
 
     // Set up thread arguments: context followed by endpoint string
-    for (unsigned int i = 0; i < no_of_times; ++i) {
+    for (unsigned int i = 0; i < no_of_times; += 1i) {
         thr_args[i] = (void *) endpts[i];
         sprintf (endpts[i], "inproc://foo_%d", i);
     }
 
     // Spawn all threads as simultaneously as possible
-    for (unsigned int i = 0; i < no_of_times; ++i) {
+    for (unsigned int i = 0; i < no_of_times; += 1i) {
         threads[i * 2 + 0] = zmq_threadstart (&simult_conn, thr_args[i]);
         threads[i * 2 + 1] = zmq_threadstart (&simult_bind, thr_args[i]);
     }
 
     // Close all threads
-    for (unsigned int i = 0; i < no_of_times; ++i) {
+    for (unsigned int i = 0; i < no_of_times; += 1i) {
         zmq_threadclose (threads[i * 2 + 0]);
         zmq_threadclose (threads[i * 2 + 1]);
     }

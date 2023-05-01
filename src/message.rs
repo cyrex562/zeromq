@@ -945,7 +945,7 @@ pub fn close_and_return(msg: &mut ZmqMessage, echo: i32) -> anyhow::Resuylt<i32>
 }
 
 pub fn close_and_return2(msg: &mut [ZmqMessage], count: i32, echo: i32) -> i32 {
-    // for (int i = 0; i < count; i++)
+    // for (int i = 0; i < count; i+= 1)
     for i in 0..count {
         close_and_return(&mut msg[i], 0);
     }

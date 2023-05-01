@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -42,12 +42,12 @@ pub struct ZmqDist
 {
     //  List of outbound pipes.
     // typedef array_t<ZmqPipe, 2> pipes_t;
-    // pipes_t _pipes;
-    pub _pipes: Vec<ZmqPipe>,
+    // pipes_t pipes;
+    pub pipes: Vec<ZmqPipe>,
 
     //  Number of all the pipes to send the next message to.
-    // pipes_t::size_type _matching;
-    pub _matching: usize,
+    // pipes_t::size_type matching;
+    pub matching: usize,
 
     //  Number of active pipes. All the active pipes are located at the
     //  beginning of the pipes array. These are the pipes the messages
@@ -60,11 +60,11 @@ pub struct ZmqDist
     //  messages to (the HWM is not yet reached), but sending a message
     //  to them would result in partial message being delivered, ie. message
     //  with initial parts missing.
-    // pipes_t::size_type _eligible;
-    pub _eligible: usize,
+    // pipes_t::size_type eligible;
+    pub eligible: usize,
 
     //  True if last we are in the middle of a multipart message.
-    pub _more: bool,
+    pub more: bool,
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqDist)
 }
@@ -75,18 +75,18 @@ impl ZmqDist{
     //     ~ZmqDist ();
     // ZmqDist::~ZmqDist ()
     // {
-    //     zmq_assert (_pipes.empty ());
+    //     zmq_assert (pipes.empty ());
     // }
 
     // ZmqDist::ZmqDist () :
-    //     _matching (0), active (0), _eligible (0), _more (false)
+    //     matching (0), active (0), eligible (0), more (false)
     pub fn new() -> Self{
         ZmqDist{
-            _pipes: Vec::new(),
-            _matching: 0,
+            pipes: Vec::new(),
+            matching: 0,
             active: 0,
-            _eligible: 0,
-            _more: false,
+            eligible: 0,
+            more: false,
         }
     }
 
@@ -97,15 +97,15 @@ impl ZmqDist{
         //  If we are in the middle of sending a message, we'll add new pipe
         //  into the list of eligible pipes. Otherwise we add it to the list
         //  of active pipes.
-        if (self._more) {
-            self._pipes.push_back (pipe);
-            self._pipes.swap (self._eligible, self._pipes.size() - 1);
-            self._eligible += 1;
+        if (self.more) {
+            self.pipes.push_back (pipe);
+            self.pipes.swap (self.eligible, self.pipes.size() - 1);
+            self.eligible += 1;
         } else {
-            self._pipes.push_back (pipe);
-            self._pipes.swap (active, self._pipes.size() - 1);
+            self.pipes.push_back (pipe);
+            self.pipes.swap (active, self.pipes.size() - 1);
             active += 1;
-            self._eligible += 1;
+            self.eligible += 1;
         }
     }
 
@@ -113,14 +113,14 @@ impl ZmqDist{
     //     bool has_pipe (pipe: &mut ZmqPipe);
     pub fn has_pipe (&mut self, pipe: &mut ZmqPipe) -> bool
     {
-        let mut claimed_index = self._pipes.index (pipe);
+        let mut claimed_index = self.pipes.index (pipe);
 
         // If pipe claims to be outside the available index space it can't be in the distributor.
-        if (claimed_index >= self._pipes.size ()) {
+        if (claimed_index >= self.pipes.size ()) {
             return false;
         }
 
-        return self._pipes[claimed_index] == pipe;
+        return self.pipes[claimed_index] == pipe;
     }
 
     //     //  Activates pipe that have previously reached high watermark.
@@ -129,37 +129,113 @@ impl ZmqDist{
     //     //  Mark the pipe as matching. Subsequent call to send_to_matching
     //     //  will send message also to this pipe.
     //     void match (pipe: &mut ZmqPipe);
-    pub fn match (pipe: &mut ZmqPipe)
+    pub fn mark_matching(&mut self, pipe: &mut ZmqPipe)
     {
         //  If pipe is already matching do nothing.
-        if (_pipes.index (pipe) < _matching)
-            return;
+        if (self.pipes.index (pipe) < self.matching){
+            return;}
 
         //  If the pipe isn't eligible, ignore it.
-        if (_pipes.index (pipe) >= _eligible)
-            return;
+        if (self.pipes.index (pipe) >= self.eligible){
+            return;}
 
         //  Mark the pipe as matching.
-        _pipes.swap (_pipes.index (pipe), _matching);
-        _matching++;
+        self.pipes.swap (self.pipes.index (pipe), self.matching);
+        self.matching += 1;
     }
 
     //     //  Marks all pipes that are not matched as matched and vice-versa.
     //     void reverse_match ();
+    pub fn reverse_match (&mut self)
+    {
+        let prev_matching = self.matching;
+
+        // Reset matching to 0
+        self.unmatch();
+
+        // Mark all matching pipes as not matching and vice-versa.
+        // To do this, push all pipes that are eligible but not
+        // matched - i.e. between "matching" and "eligible" -
+        // to the beginning of the queue.
+        // for (pipes_t::size_type i = prev_matching; i < eligible; += 1i)
+        for i in prev_matching .. self.eligible
+        {
+            self.pipes.swap (i, self.matching += 1);
+        }
+    }
 
     //     //  Mark all pipes as non-matching.
     //     void unmatch ();
+    pub fn unmatch (&mut self)
+    {
+        self.matching = 0;
+    }
 
     //     //  Removes the pipe from the distributor object.
     //     void pipe_terminated (pipe: &mut ZmqPipe);
+    pub fn pipe_terminated (&mut self, pipe: &mut ZmqPipe)
+    {
+        //  Remove the pipe from the list; adjust number of matching, active and/or
+        //  eligible pipes accordingly.
+        if (self.pipes.index (pipe) < self.matching) {
+            self.pipes.swap (self.pipes.index (pipe), self.matching - 1);
+            self.matching -= 1;
+        }
+        if (self.pipes.index (pipe) < active) {
+            self.pipes.swap (self.pipes.index (pipe), active - 1);
+            active -= 1;
+        }
+        if (self.pipes.index (pipe) < self.eligible) {
+            self.pipes.swap (self.pipes.index (pipe), self.eligible - 1);
+            self.eligible -= 1;
+        }
+
+        self.pipes.erase (pipe);
+    }
 
     //     //  Send the message to the matching outbound pipes.
     //     int send_to_matching (msg: &mut ZmqMessage);
+    pub fn activated (&mut self, pipe: &mut ZmqPipe)
+    {
+        //  Move the pipe from passive to eligible state.
+        if (self.eligible < self.pipes.size ()) {
+            self.pipes.swap (self.pipes.index (pipe), self.eligible);
+            self.eligible += 1;
+        }
+
+        //  If there's no message being sent at the moment, move it to
+        //  the active state.
+        if (!self.more && active < self.pipes.size ()) {
+            self.pipes.swap (self.eligible - 1, self.active);
+            self.active += 1;
+        }
+    }
 
     //     //  Send the message to all the outbound pipes.
     //     int send_to_all (msg: &mut ZmqMessage);
+    pub fn send_to_all (&mut self, msg: &mut ZmqMessage) -> i32
+    {
+        self.matching = self.active;
+        return self.send_to_matching (msg);
+    }
 
     //     static bool has_out ();
+    pub fn send_to_matching (msg: &mut ZmqMessage) -> i32
+    {
+        //  Is this end of a multipart message?
+        let msg_more = (msg.flags () & ZMQ_MSG_MORE) != 0;
+
+        //  Push the message to matching pipes.
+        self.distribute (msg);
+
+        //  If multipart message is fully sent, activate all the eligible pipes.
+        if (!msg_more){
+            self.active = self.eligible;}
+
+        self.more = msg_more;
+
+        return 0;
+    }
 
     //     // check HWM of all pipes matching
     //     bool check_hwm ();
@@ -171,170 +247,86 @@ impl ZmqDist{
 
     //     //  Put the message to all active pipes.
     //     void distribute (msg: &mut ZmqMessage);
-
-
-
-
-
-
-
-
-
-
-
-    pub fn reverse_match ()
-    {
-        const pipes_t::size_type prev_matching = _matching;
-
-        // Reset matching to 0
-        unmatch ();
-
-        // Mark all matching pipes as not matching and vice-versa.
-        // To do this, push all pipes that are eligible but not
-        // matched - i.e. between "matching" and "eligible" -
-        // to the beginning of the queue.
-        for (pipes_t::size_type i = prev_matching; i < _eligible; ++i) {
-            _pipes.swap (i, _matching++);
-        }
-    }
-
-    pub fn unmatch ()
-    {
-        _matching = 0;
-    }
-
-    pub fn pipe_terminated (pipe: &mut ZmqPipe)
-    {
-        //  Remove the pipe from the list; adjust number of matching, active and/or
-        //  eligible pipes accordingly.
-        if (_pipes.index (pipe) < _matching) {
-            _pipes.swap (_pipes.index (pipe), _matching - 1);
-            _matching--;
-        }
-        if (_pipes.index (pipe) < active) {
-            _pipes.swap (_pipes.index (pipe), active - 1);
-            active--;
-        }
-        if (_pipes.index (pipe) < _eligible) {
-            _pipes.swap (_pipes.index (pipe), _eligible - 1);
-            _eligible--;
-        }
-
-        _pipes.erase (pipe);
-    }
-
-    pub fn activated (pipe: &mut ZmqPipe)
-    {
-        //  Move the pipe from passive to eligible state.
-        if (_eligible < _pipes.size ()) {
-            _pipes.swap (_pipes.index (pipe), _eligible);
-            _eligible += 1;
-        }
-
-        //  If there's no message being sent at the moment, move it to
-        //  the active state.
-        if (!_more && active < _pipes.size ()) {
-            _pipes.swap (_eligible - 1, active);
-            active++;
-        }
-    }
-
-    int ZmqDist::send_to_all (msg: &mut ZmqMessage)
-    {
-        _matching = active;
-        return send_to_matching (msg);
-    }
-
-    int ZmqDist::send_to_matching (msg: &mut ZmqMessage)
-    {
-        //  Is this end of a multipart message?
-        const bool msg_more = (msg.flags () & ZMQ_MSG_MORE) != 0;
-
-        //  Push the message to matching pipes.
-        distribute (msg);
-
-        //  If multipart message is fully sent, activate all the eligible pipes.
-        if (!msg_more)
-            active = _eligible;
-
-        _more = msg_more;
-
-        return 0;
-    }
-
-    pub fn distribute (msg: &mut ZmqMessage)
+    pub fn distribute (&mut self, msg: &mut ZmqMessage)
     {
         //  If there are no matching pipes available, simply drop the message.
-        if (_matching == 0) {
-            int rc = msg.close ();
-            errno_assert (rc == 0);
+        if (self.matching == 0) {
+            let mut rc = msg.close ();
+            // errno_assert (rc == 0);
             rc = msg.init ();
-            errno_assert (rc == 0);
+            // errno_assert (rc == 0);
             return;
         }
 
         if (msg.is_vsm ()) {
-            for (pipes_t::size_type i = 0; i < _matching;) {
-                if (!write (_pipes[i], msg)) {
+            // for (pipes_t::size_type i = 0; i < matching;)
+            for i in 0 .. self.matching
+            {
+                if (!self.write (self.pipes[i], msg)) {
                     //  Use same index again because entry will have been removed.
                 } else {
-                    ++i;
+                    i += 1;
                 }
             }
-            int rc = msg.init ();
-            errno_assert (rc == 0);
+            let mut rc = msg.init();
+            // errno_assert (rc == 0);
             return;
         }
 
         //  Add matching-1 references to the message. We already hold one reference,
         //  that's why -1.
-        msg.add_refs (static_cast<int> (_matching) - 1);
+        msg.add_refs (self.matching - 1);
 
         //  Push copy of the message to each matching pipe.
-        int failed = 0;
-        for (pipes_t::size_type i = 0; i < _matching;) {
-            if (!write (_pipes[i], msg)) {
-                ++failed;
+        let mut failed = 0;
+        // for (pipes_t::size_type i = 0; i < matching;)
+        for i in 0 .. self.matching
+        {
+            if (!self.write (self.pipes[i], msg)) {
+                failed += 1;
                 //  Use same index again because entry will have been removed.
             } else {
-                ++i;
+                i += 1;
             }
         }
-        if (unlikely (failed))
-            msg.rm_refs (failed);
+        if (unlikely (failed)){
+            msg.rm_refs (failed);}
 
         //  Detach the original message from the data buffer. Note that we don't
         //  close the message. That's because we've already used all the references.
         let rc: i32 = msg.init ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
     }
 
-    bool ZmqDist::has_out ()
+
+    pub fn has_out (&self) -> bool
     {
         return true;
     }
 
-    bool ZmqDist::write (pipe: &mut ZmqPipe, msg: &mut ZmqMessage)
+    pub fn write (pipe: &mut ZmqPipe, msg: &mut ZmqMessage) -> bool
     {
         if (!pipe.write (msg)) {
-            _pipes.swap (_pipes.index (pipe), _matching - 1);
-            _matching--;
-            _pipes.swap (_pipes.index (pipe), active - 1);
-            active--;
-            _pipes.swap (active, _eligible - 1);
-            _eligible--;
+            self.pipes.swap (self.pipes.index (pipe), self.matching - 1);
+            self.matching -= 1;
+            self.pipes.swap (self.pipes.index (pipe), self.active - 1);
+            self.active -= 1;
+            self.pipes.swap (self.active, self.eligible - 1);
+            self.eligible -= 1;
             return false;
         }
-        if (!(msg.flags () & ZMQ_MSG_MORE))
-            pipe.flush ();
+        if (!(msg.flags () & ZMQ_MSG_MORE)){
+            pipe.flush ();}
         return true;
     }
 
-    bool ZmqDist::check_hwm ()
+    pub fn check_hwm (&self) -> bool
     {
-        for (pipes_t::size_type i = 0; i < _matching; ++i)
-            if (!_pipes[i]->check_hwm ())
-                return false;
+        // for (pipes_t::size_type i = 0; i < matching; += 1i)
+        for i in 0 .. self.matching
+        {
+            if (!self.pipes[i].check_hwm ()){
+                return false;}}
 
         return true;
     }

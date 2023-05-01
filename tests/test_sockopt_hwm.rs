@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -59,7 +59,7 @@ void test_change_before_connected ()
     int send_count = 0;
     while (send_count < MAX_SENDS
            && zmq_send (bind_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
-        ++send_count;
+        += 1send_count;
 
     TEST_ASSERT_EQUAL_INT (4, send_count);
 
@@ -96,7 +96,7 @@ void test_change_after_connected ()
     int send_count = 0;
     while (send_count < MAX_SENDS
            && zmq_send (bind_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
-        ++send_count;
+        += 1send_count;
 
     TEST_ASSERT_EQUAL_INT (6, send_count);
 
@@ -110,7 +110,7 @@ int send_until_wouldblock (socket: *mut c_void)
     while (send_count < MAX_SENDS
            && zmq_send (socket, &send_count, mem::size_of::<send_count>(), ZMQ_DONTWAIT)
                 == mem::size_of::<send_count>()) {
-        ++send_count;
+        += 1send_count;
     }
     return send_count;
 }
@@ -171,7 +171,7 @@ void test_decrease_when_full ()
       && zmq_recv (connect_socket, &read_data, mem::size_of::<read_data>(), ZMQ_DONTWAIT)
            == mem::size_of::<read_data>()) {
         TEST_ASSERT_EQUAL_INT (read_data, read_count);
-        ++read_count;
+        += 1read_count;
     }
 
     TEST_ASSERT_EQUAL_INT (send_count, read_count);

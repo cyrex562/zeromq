@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -49,7 +49,7 @@ pub struct fq_t
   // private:
     //  Inbound pipes.
     typedef array_t<ZmqPipe, 1> pipes_t;
-    pipes_t _pipes;
+    pipes_t pipes;
 
     //  Number of active pipes. All the active pipes are located at the
     //  beginning of the pipes array.
@@ -60,47 +60,47 @@ pub struct fq_t
 
     //  If true, part of a multipart message was already received, but
     //  there are following parts still waiting in the current pipe.
-    _more: bool
+    more: bool
 
     ZMQ_NON_COPYABLE_NOR_MOVABLE (fq_t)
 };
 
-fq_t::fq_t () : active (0), _current (0), _more (false)
+fq_t::fq_t () : active (0), _current (0), more (false)
 {
 }
 
 fq_t::~fq_t ()
 {
-    zmq_assert (_pipes.empty ());
+    zmq_assert (pipes.empty ());
 }
 
 void fq_t::attach (pipe: &mut ZmqPipe)
 {
-    _pipes.push_back (pipe);
-    _pipes.swap (active, _pipes.size () - 1);
-    active++;
+    pipes.push_back (pipe);
+    pipes.swap (active, pipes.size () - 1);
+    active+= 1;
 }
 
 void fq_t::pipe_terminated (pipe: &mut ZmqPipe)
 {
-    const pipes_t::size_type index = _pipes.index (pipe);
+    const pipes_t::size_type index = pipes.index (pipe);
 
     //  Remove the pipe from the list; adjust number of active pipes
     //  accordingly.
     if (index < active) {
-        active--;
-        _pipes.swap (index, active);
+        active -= 1;
+        pipes.swap (index, active);
         if (_current == active)
             _current = 0;
     }
-    _pipes.erase (pipe);
+    pipes.erase (pipe);
 }
 
 void fq_t::activated (pipe: &mut ZmqPipe)
 {
     //  Move the pipe to the list of active pipes.
-    _pipes.swap (_pipes.index (pipe), active);
-    active++;
+    pipes.swap (pipes.index (pipe), active);
+    active+= 1;
 }
 
 int fq_t::recv (msg: &mut ZmqMessage)
@@ -118,16 +118,16 @@ int fq_t::recvpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
     while (active > 0) {
         //  Try to fetch new message. If we've already read part of the message
         //  subsequent part should be immediately available.
-        const bool fetched = _pipes[_current]->read (msg);
+        const bool fetched = pipes[_current]->read (msg);
 
         //  Note that when message is not fetched, current pipe is deactivated
         //  and replaced by another active pipe. Thus we don't have to increase
         //  the 'current' pointer.
         if (fetched) {
             if (pipe)
-                *pipe = _pipes[_current];
-            _more = (msg.flags () & ZMQ_MSG_MORE) != 0;
-            if (!_more) {
+                *pipe = pipes[_current];
+            more = (msg.flags () & ZMQ_MSG_MORE) != 0;
+            if (!more) {
                 _current = (_current + 1) % active;
             }
             return 0;
@@ -136,10 +136,10 @@ int fq_t::recvpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
         //  Check the atomicity of the message.
         //  If we've already received the first part of the message
         //  we should get the remaining parts without blocking.
-        zmq_assert (!_more);
+        zmq_assert (!more);
 
-        active--;
-        _pipes.swap (_current, active);
+        active -= 1;
+        pipes.swap (_current, active);
         if (_current == active)
             _current = 0;
     }
@@ -155,7 +155,7 @@ int fq_t::recvpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
 bool fq_t::has_in ()
 {
     //  There are subsequent parts of the partly-read message available.
-    if (_more)
+    if (more)
         return true;
 
     //  Note that messing with current doesn't break the fairness of fair
@@ -163,12 +163,12 @@ bool fq_t::has_in ()
     //  get back to its original value. Otherwise it'll point to the first
     //  pipe holding messages, skipping only pipes with no messages available.
     while (active > 0) {
-        if (_pipes[_current]->check_read ())
+        if (pipes[_current]->check_read ())
             return true;
 
         //  Deactivate the pipe.
-        active--;
-        _pipes.swap (_current, active);
+        active -= 1;
+        pipes.swap (_current, active);
         if (_current == active)
             _current = 0;
     }

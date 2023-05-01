@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2018 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -299,7 +299,7 @@ radix_tree_t::radix_tree_t () : _root (make_node (0, 0, 0)), _size (0)
 
 static void free_nodes (node_t node_)
 {
-    for (size_t i = 0, count = node_.edgecount (); i < count; ++i)
+    for (size_t i = 0, count = node_.edgecount (); i < count; += 1i)
         free_nodes (node_.node_at (i));
     free (node_._data);
 }
@@ -351,7 +351,7 @@ match_result_t radix_tree_t::match (const key_: &mut [u8],
 
         for (prefix_byte_index = 0;
              prefix_byte_index < prefix_length && key_byte_index < key_size_;
-             ++prefix_byte_index, ++key_byte_index) {
+             += 1prefix_byte_index, += 1key_byte_index) {
             if (prefix[prefix_byte_index] != key_[key_byte_index])
                 break;
         }
@@ -373,7 +373,7 @@ match_result_t radix_tree_t::match (const key_: &mut [u8],
         // outgoing edge from this node.
         node_t next_node = current_node;
         for (size_t i = 0, edgecount = current_node.edgecount (); i < edgecount;
-             ++i) {
+             += 1i) {
             if (current_node.first_byte_at (i) == key_[key_byte_index]) {
                 parent_edge_index = edge_index;
                 edge_index = i;
@@ -666,7 +666,7 @@ visit_keys (node_t node_,
         func_ (&buffer_[0], buffer_.size (), arg_);
     }
 
-    for (size_t i = 0, edgecount = node_.edgecount (); i < edgecount; ++i) {
+    for (size_t i = 0, edgecount = node_.edgecount (); i < edgecount; += 1i) {
         visit_keys (node_.node_at (i), buffer_, func_, arg_);
     }
     buffer_.resize (static_cast<u32> (buffer_.size () - prefix_length));
@@ -679,7 +679,7 @@ void radix_tree_t::apply (
         func_ (null_mut(), 0, arg_); // Root node is always empty.
 
     std::vector<unsigned char> buffer;
-    for (size_t i = 0; i < _root.edgecount (); ++i)
+    for (size_t i = 0; i < _root.edgecount (); += 1i)
         visit_keys (_root.node_at (i), buffer, func_, arg_);
 }
 

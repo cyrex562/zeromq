@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -66,7 +66,7 @@ static void do_check (sb_: *mut c_void, sc_: *mut c_void, msg_size_: usize)
     struct iovec send_iov[num_messages];
     char *buf = static_cast<char *> (malloc (msg_size_ * num_messages));
 
-    for (int i = 0; i < num_messages; i++) {
+    for (int i = 0; i < num_messages; i+= 1) {
         send_iov[i].iov_base = &buf[i * msg_size_];
         send_iov[i].iov_len = msg_size_;
         memcpy (send_iov[i].iov_base, ref_msg, msg_size_);
@@ -113,7 +113,7 @@ static void do_check (sb_: *mut c_void, sc_: *mut c_void, msg_size_: usize)
       num_messages,
       TEST_ASSERT_SUCCESS_ERRNO (zmq_recviov (sb_, recv_iov, &recv_count, 0)));
 
-    for (int i = 0; i < num_messages; i++) {
+    for (int i = 0; i < num_messages; i+= 1) {
         TEST_ASSERT_NOT_NULL (recv_iov[i].iov_base);
         TEST_ASSERT_EQUAL_STRING_LEN (ref_msg, recv_iov[i].iov_base, msg_size_);
         free (recv_iov[i].iov_base);

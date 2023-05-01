@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -205,7 +205,7 @@ impl DevPoll {
             let mut ev_buf: [pollfd; max_io_events];
             let mut poll_req: dvpoll;
 
-            // for (pending_list_t::size_type i = 0; i < pending_list.size (); i++)
+            // for (pending_list_t::size_type i = 0; i < pending_list.size (); i+= 1)
             for i in 0..self.pending_list.len() {
                 fd_table[pending_list[i]].accepted = true;
             }
@@ -239,7 +239,7 @@ impl DevPoll {
             }
             // errno_assert (n != -1);
 
-            // for (int i = 0; i < n; i++)
+            // for (int i = 0; i < n; i+= 1)
             for i in 0..n {
                 FdEntry * fd_ptr = &fd_table[ev_buf[i].fd];
                 if (!fd_ptr.valid || !fd_ptr.accepted) {

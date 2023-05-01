@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -44,7 +44,7 @@ pub struct v1_decoder_t ZMQ_FINAL : public DecoderBase<v1_decoder_t>
     v1_decoder_t (bufsize_: usize, i64 maxmsgsize_);
     ~v1_decoder_t ();
 
-    ZmqMessage *msg () { return &_in_progress; }
+    ZmqMessage *msg () { return &in_progress; }
 
   // private:
     int one_byte_size_ready (unsigned char const *);
@@ -53,7 +53,7 @@ pub struct v1_decoder_t ZMQ_FINAL : public DecoderBase<v1_decoder_t>
     int message_ready (unsigned char const *);
 
     unsigned char _tmpbuf[8];
-    ZmqMessage _in_progress;
+    ZmqMessage in_progress;
 
     const i64 _max_msg_size;
 
@@ -63,7 +63,7 @@ pub struct v1_decoder_t ZMQ_FINAL : public DecoderBase<v1_decoder_t>
 v1_decoder_t::v1_decoder_t (bufsize_: usize, i64 maxmsgsize_) :
     DecoderBase<v1_decoder_t> (bufsize_), _max_msg_size (maxmsgsize_)
 {
-    int rc = _in_progress.init ();
+    int rc = in_progress.init ();
     errno_assert (rc == 0);
 
     //  At the beginning, read one byte and go to one_byte_size_ready state.
@@ -72,7 +72,7 @@ v1_decoder_t::v1_decoder_t (bufsize_: usize, i64 maxmsgsize_) :
 
 v1_decoder_t::~v1_decoder_t ()
 {
-    let rc: i32 = _in_progress.close ();
+    let rc: i32 = in_progress.close ();
     errno_assert (rc == 0);
 }
 
@@ -96,12 +96,12 @@ int v1_decoder_t::one_byte_size_ready (unsigned char const *)
             return -1;
         }
 
-        int rc = _in_progress.close ();
+        int rc = in_progress.close ();
         assert (rc == 0);
-        rc = _in_progress.init_size (*_tmpbuf - 1);
+        rc = in_progress.init_size (*_tmpbuf - 1);
         if (rc != 0) {
             errno_assert (errno == ENOMEM);
-            rc = _in_progress.init ();
+            rc = in_progress.init ();
             errno_assert (rc == 0);
             errno = ENOMEM;
             return -1;
@@ -141,12 +141,12 @@ int v1_decoder_t::eight_byte_size_ready (unsigned char const *)
 
     const size_t msg_size = static_cast<size_t> (payload_length - 1);
 
-    int rc = _in_progress.close ();
+    int rc = in_progress.close ();
     assert (rc == 0);
-    rc = _in_progress.init_size (msg_size);
+    rc = in_progress.init_size (msg_size);
     if (rc != 0) {
         errno_assert (errno == ENOMEM);
-        rc = _in_progress.init ();
+        rc = in_progress.init ();
         errno_assert (rc == 0);
         errno = ENOMEM;
         return -1;
@@ -159,9 +159,9 @@ int v1_decoder_t::eight_byte_size_ready (unsigned char const *)
 int v1_decoder_t::flags_ready (unsigned char const *)
 {
     //  Store the flags from the wire into the message structure.
-    _in_progress.set_flags (_tmpbuf[0] & ZMQ_MSG_MORE);
+    in_progress.set_flags (_tmpbuf[0] & ZMQ_MSG_MORE);
 
-    next_step (_in_progress.data (), _in_progress.size (),
+    next_step (in_progress.data (), in_progress.size (),
                &v1_decoder_t::message_ready);
 
     return 0;

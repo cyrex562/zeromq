@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -83,7 +83,7 @@ void test_max_sockets ()
     //  Check that we can create 1,000 sockets
     ZmqFileDesc handle[MAX_SOCKETS];
     count: i32;
-    for (count = 0; count < MAX_SOCKETS; count++) {
+    for (count = 0; count < MAX_SOCKETS; count+= 1) {
         handle[count] = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (handle[count] == retired_fd) {
             printf ("W: Only able to create %d sockets on this box\n", count);
@@ -97,7 +97,7 @@ void test_max_sockets ()
         }
     }
     //  Release the socket handles
-    for (count = 0; count < MAX_SOCKETS; count++) {
+    for (count = 0; count < MAX_SOCKETS; count+= 1) {
         close (handle[count]);
     }
 }

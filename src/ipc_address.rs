@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -115,8 +115,8 @@ int IpcAddress::to_string (std::string &addr_) const
     pos += sizeof prefix - 1;
     const char *src_pos = _address.sun_path;
     if (!_address.sun_path[0] && _address.sun_path[1]) {
-        *pos++ = '@';
-        src_pos++;
+        *pos+= 1 = '@';
+        src_pos+= 1;
     }
     // according to http://man7.org/linux/man-pages/man7/unix.7.html, NOTES
     // section, address.sun_path might not always be null-terminated; therefore,

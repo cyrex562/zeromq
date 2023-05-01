@@ -46,7 +46,7 @@ impl ZmqCurveEncoding {
         &self.cn_precom
     }
 
-    // nonce_t get_and_inc_nonce () { return _cn_nonce++; }
+    // nonce_t get_and_inc_nonce () { return _cn_nonce+= 1; }
     pub fn get_and_inc_nonce(&mut self) -> ZmqNonce {
         self.cn_nonce += 1;
         self.cn_nonce

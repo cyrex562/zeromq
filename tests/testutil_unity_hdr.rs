@@ -3,7 +3,7 @@
 /*
 Copyright (c) 2018 Contributors as noted in the AUTHORS file
 
-This file is part of libzmq, the ZeroMQ core engine in C++.
+This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
 libzmq is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License (LGPL) as published

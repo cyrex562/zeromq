@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -41,11 +41,13 @@
 // #include <algorithm>
 // #include <new>
 
+use crate::poller_base::WorkerPollerBase;
+
 // #include "macros.hpp"
 // #include "err.hpp"
 // #include "config.hpp"
 // #include "i_poll_events.hpp"
-pub struct epoll_t ZMQ_FINAL : public WorkerPollerBase
+pub struct epoll_t
 {
 // public:
     typedef void *handle_t;
@@ -93,7 +95,10 @@ pub struct epoll_t ZMQ_FINAL : public WorkerPollerBase
     typedef std::vector<poll_entry_t *> retired_t;
     retired_t _retired;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (epoll_t)
+    // public WorkerPollerBase
+    pub worker_poller_base: WorkerPollerBase
+
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (epoll_t)
 };
 
 typedef epoll_t Poller;
@@ -128,7 +133,7 @@ epoll_t::~epoll_t ()
     close (_epoll_fd);
 // #endif
     for (retired_t::iterator it = _retired.begin (), end = _retired.end ();
-         it != end; ++it) {
+         it != end; += 1it) {
         LIBZMQ_DELETE (*it);
     }
 }
@@ -240,7 +245,7 @@ void epoll_t::loop ()
             continue;
         }
 
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < n; i+= 1) {
             const poll_entry_t *const pe =
               static_cast<const poll_entry_t *> (ev_buf[i].data.ptr);
 
@@ -264,7 +269,7 @@ void epoll_t::loop ()
 
         //  Destroy retired event sources.
         for (retired_t::iterator it = _retired.begin (), end = _retired.end ();
-             it != end; ++it) {
+             it != end; += 1it) {
             LIBZMQ_DELETE (*it);
         }
         _retired.clear ();

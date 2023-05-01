@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -126,7 +126,7 @@ void test_short_message ()
 let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 255));
 
-    for (unsigned char i = 0; i < 255; ++i)
+    for (unsigned char i = 0; i < 255; += 1i)
         ((unsigned char *) zmq_msg_data (&msg))[i] = i;
 
     int rc = zmq_msg_send (&msg, sc, 0);
@@ -135,7 +135,7 @@ let mut msg = ZmqMessage::default();
     rc = zmq_msg_recv (&msg, sb, 0);
     TEST_ASSERT_EQUAL_INT (255, rc);
 
-    for (unsigned char i = 0; i < 255; ++i)
+    for (unsigned char i = 0; i < 255; += 1i)
         TEST_ASSERT_EQUAL_INT (i, ((unsigned char *) zmq_msg_data (&msg))[i]);
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg));
@@ -158,7 +158,7 @@ void test_large_message ()
 let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 65536));
 
-    for (int i = 0; i < 65536; ++i)
+    for (int i = 0; i < 65536; += 1i)
         ((unsigned char *) zmq_msg_data (&msg))[i] = i % 255;
 
     int rc = zmq_msg_send (&msg, sc, 0);
@@ -167,7 +167,7 @@ let mut msg = ZmqMessage::default();
     rc = zmq_msg_recv (&msg, sb, 0);
     TEST_ASSERT_EQUAL_INT (65536, rc);
 
-    for (int i = 0; i < 65536; ++i)
+    for (int i = 0; i < 65536; += 1i)
         TEST_ASSERT_EQUAL_INT (i % 255,
                                ((unsigned char *) zmq_msg_data (&msg))[i]);
 
@@ -232,7 +232,7 @@ let mut msg = ZmqMessage::default();
     zmq_msg_init_size (
       &msg, 255); // Message have to be long enough so it won't fit inside msg
     unsigned char *data = (unsigned char *) zmq_msg_data (&msg);
-    for (int i = 0; i < 255; i++)
+    for (int i = 0; i < 255; i+= 1)
         data[i] = i;
 
     //  Taking a copy to make the msg shared
@@ -248,12 +248,12 @@ let mut msg = ZmqMessage::default();
     rc = zmq_msg_recv (&msg, sb, 0);
     TEST_ASSERT_EQUAL_INT (255, rc);
     data = (unsigned char *) zmq_msg_data (&msg);
-    for (int i = 0; i < 255; i++)
+    for (int i = 0; i < 255; i+= 1)
         TEST_ASSERT_EQUAL_INT (i, data[i]);
 
     //  Testing that copy was not masked
     data = (unsigned char *) zmq_msg_data (&copy);
-    for (int i = 0; i < 255; i++)
+    for (int i = 0; i < 255; i+= 1)
         TEST_ASSERT_EQUAL_INT (i, data[i]);
 
     //  Constant msg cannot be masked as well, as it is constant

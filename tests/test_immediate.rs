@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -69,7 +69,7 @@ void test_immediate_1 ()
 
     // We send 10 messages, 5 should just get stuck in the queue
     // for the not-yet-connected pipe
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 10; += 1i) {
         send_string_expect_success (from, "Hello", 0);
     }
 
@@ -84,7 +84,7 @@ void test_immediate_1 ()
         rc = zmq_recv (to, &buffer, mem::size_of::<buffer>(), 0);
         if (rc == -1)
             break; //  Break when we didn't get a message
-        seen++;
+        seen+= 1;
     }
     // TODO: this fails ~1% of the runs on OBS but it does not seem to be reproducible anywhere else
     if (seen == 0)
@@ -134,7 +134,7 @@ void test_immediate_2 ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (from, my_endpoint));
 
     // Send 10 messages, all should be routed to the connected pipe
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 10; += 1i) {
         send_string_expect_success (from, "Hello", 0);
     }
     int timeout = 250;
@@ -147,7 +147,7 @@ void test_immediate_2 ()
         int rc = zmq_recv (to, &buffer, mem::size_of::<buffer>(), 0);
         if (rc == -1)
             break; //  Break when we didn't get a message
-        seen++;
+        seen+= 1;
     }
     TEST_ASSERT_EQUAL_INT (10, seen);
 

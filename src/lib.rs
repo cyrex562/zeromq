@@ -37,7 +37,7 @@ mod gssapi_client;
 mod gssapi_mechanism_base;
 mod gssapi_server;
 mod i_decoder;
-mod i_encoder;
+mod ZmqBaseEncoder;
 mod i_engine;
 mod i_mailbox;
 mod i_poll_events;

@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -158,7 +158,7 @@ void test_router_prefetch_metadata ()
 let mut msg = ZmqMessage::default();
 
     // Ensure all frames in the message contain metadata
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i+= 1) {
         zmq_msg_init (&msg);
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, server, 0));
         TEST_ASSERT_EQUAL_STRING ("World", zmq_msg_gets (&msg, "Hello"));

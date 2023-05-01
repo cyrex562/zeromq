@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -62,7 +62,7 @@ void test_shutdown_stress_tipc ()
     j: i32;
     pthread_t threads[THREAD_COUNT];
 
-    for (j = 0; j != 10; j++) {
+    for (j = 0; j != 10; j+= 1) {
         //  Check the shutdown with many parallel I/O threads.
         setup_test_context ();
         zmq_ctx_set (get_test_context (), ZMQ_IO_THREADS, 7);
@@ -71,12 +71,12 @@ void test_shutdown_stress_tipc ()
 
         TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (s1, "tipc://{5560,0,0}"));
 
-        for (i = 0; i != THREAD_COUNT; i++) {
+        for (i = 0; i != THREAD_COUNT; i+= 1) {
             TEST_ASSERT_SUCCESS_RAW_ERRNO (
               pthread_create (&threads[i], null_mut(), worker, get_test_context ()));
         }
 
-        for (i = 0; i != THREAD_COUNT; i++) {
+        for (i = 0; i != THREAD_COUNT; i+= 1) {
             TEST_ASSERT_SUCCESS_RAW_ERRNO (pthread_join (threads[i], null_mut()));
         }
 

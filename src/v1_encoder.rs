@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -74,11 +74,11 @@ void v1_encoder_t::message_ready ()
     size_t size = in_progress ().size ();
 
     //  Account for the 'flags' byte.
-    size++;
+    size+= 1;
 
     //  Account for the subscribe/cancel byte.
     if (in_progress ().is_subscribe () || in_progress ().is_cancel ())
-        size++;
+        size+= 1;
 
     //  For messages less than 255 bytes long, write one byte of message size.
     //  For longer messages write 0xff escape character followed by 8-byte
@@ -101,9 +101,9 @@ void v1_encoder_t::message_ready ()
     //  be avoided. This processing can be moved to xsub once support for
     //  ZMTP < 3.1 is dropped.
     if (in_progress ().is_subscribe ())
-        _tmpbuf[header_size++] = 1;
+        _tmpbuf[header_size+= 1] = 1;
     else if (in_progress ().is_cancel ())
-        _tmpbuf[header_size++] = 0;
+        _tmpbuf[header_size+= 1] = 0;
 
     next_step (_tmpbuf, header_size, &v1_encoder_t::size_ready, false);
 }

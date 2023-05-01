@@ -1,7 +1,7 @@
 /*
 Copyright (c) 2018 Contributors as noted in the AUTHORS file
 
-This file is part of libzmq, the ZeroMQ core engine in C++.
+This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
 libzmq is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License (LGPL) as published
@@ -42,19 +42,19 @@ namespace zmq
 
 template <typename T>
 generic_mtrie_t<T>::generic_mtrie_t () :
-    _pipes (0), _num_prefixes (0), _min (0), _count (0), _live_nodes (0)
+    pipes (0), _num_prefixes (0), _min (0), _count (0), _live_nodes (0)
 {
 }
 
 template <typename T> generic_mtrie_t<T>::~generic_mtrie_t ()
 {
-    LIBZMQ_DELETE (_pipes);
+    LIBZMQ_DELETE (pipes);
 
     if (_count == 1) {
         zmq_assert (next.node);
         LIBZMQ_DELETE (next.node);
     } else if (_count > 1) {
-        for (unsigned short i = 0; i != _count; ++i) {
+        for (unsigned short i = 0; i != _count; += 1i) {
             LIBZMQ_DELETE (next.table[i]);
         }
         free (next.table);
@@ -83,7 +83,7 @@ bool generic_mtrie_t<T>::add (prefix_t prefix_, size: usize, value_t *pipe)
                 it.next.table = static_cast<generic_mtrie_t **> (
                   malloc (sizeof (generic_mtrie_t *) * it._count));
                 alloc_assert (it.next.table);
-                for (unsigned short i = 0; i != it._count; ++i)
+                for (unsigned short i = 0; i != it._count; += 1i)
                     it.next.table[i] = 0;
                 it._min = std::min (it._min, c);
                 it.next.table[oldc - it._min] = oldp;
@@ -94,7 +94,7 @@ bool generic_mtrie_t<T>::add (prefix_t prefix_, size: usize, value_t *pipe)
                 it.next.table = static_cast<generic_mtrie_t **> (realloc (
                   it.next.table, sizeof (generic_mtrie_t *) * it._count));
                 alloc_assert (it.next.table);
-                for (unsigned short i = old_count; i != it._count; i++)
+                for (unsigned short i = old_count; i != it._count; i+= 1)
                     it.next.table[i] = null_mut();
             } else {
                 //  The new character is below the current character range.
@@ -105,7 +105,7 @@ bool generic_mtrie_t<T>::add (prefix_t prefix_, size: usize, value_t *pipe)
                 alloc_assert (it.next.table);
                 memmove (it.next.table + it._min - c, it.next.table,
                          old_count * sizeof (generic_mtrie_t *));
-                for (unsigned short i = 0; i != it._min - c; i++)
+                for (unsigned short i = 0; i != it._min - c; i+= 1)
                     it.next.table[i] = null_mut();
                 it._min = c;
             }
@@ -116,10 +116,10 @@ bool generic_mtrie_t<T>::add (prefix_t prefix_, size: usize, value_t *pipe)
             if (!it.next.node) {
                 it.next.node = new (std::nothrow) generic_mtrie_t;
                 alloc_assert (it.next.node);
-                ++(it._live_nodes);
+                += 1(it._live_nodes);
             }
 
-            ++prefix_;
+            += 1prefix_;
             --size;
             it = it.next.node;
         } else {
@@ -127,24 +127,24 @@ bool generic_mtrie_t<T>::add (prefix_t prefix_, size: usize, value_t *pipe)
                 it.next.table[c - it._min] =
                   new (std::nothrow) generic_mtrie_t;
                 alloc_assert (it.next.table[c - it._min]);
-                ++(it._live_nodes);
+                += 1(it._live_nodes);
             }
 
-            ++prefix_;
+            += 1prefix_;
             --size;
             it = it.next.table[c - it._min];
         }
     }
 
     //  We are at the node corresponding to the prefix. We are done.
-    const bool result = !it._pipes;
-    if (!it._pipes) {
-        it._pipes = new (std::nothrow) pipes_t;
-        alloc_assert (it._pipes);
+    const bool result = !it.pipes;
+    if (!it.pipes) {
+        it.pipes = new (std::nothrow) pipes_t;
+        alloc_assert (it.pipes);
 
         _num_prefixes.add (1);
     }
-    it._pipes.insert (pipe);
+    it.pipes.insert (pipe);
 
     return result;
 }
@@ -180,13 +180,13 @@ void generic_mtrie_t<T>::rm (value_t *pipe,
 
         if (!it.processed_for_removal) {
             //  Remove the subscription from this node.
-            if (it.node._pipes && it.node._pipes.erase (pipe)) {
-                if (!call_on_uniq_ || it.node._pipes.empty ()) {
+            if (it.node.pipes && it.node.pipes.erase (pipe)) {
+                if (!call_on_uniq_ || it.node.pipes.empty ()) {
                     func_ (buff, it.size, arg_);
                 }
 
-                if (it.node._pipes.empty ()) {
-                    LIBZMQ_DELETE (it.node._pipes);
+                if (it.node.pipes.empty ()) {
+                    LIBZMQ_DELETE (it.node.pipes);
                 }
             }
 
@@ -214,7 +214,7 @@ void generic_mtrie_t<T>::rm (value_t *pipe,
                     struct iter next = {it.node.next.node,
                                         null_mut(),
                                         null_mut(),
-                                        ++it.size,
+                                        += 1it.size,
                                         0,
                                         0,
                                         0,
@@ -309,7 +309,7 @@ void generic_mtrie_t<T>::rm (value_t *pipe,
                         //  node, so that pre-processing can happen on the next child.
                         //  If we are done, reset the child index so that the ::rm is
                         //  fully idempotent.
-                        ++it.current_child;
+                        += 1it.current_child;
                         if (it.current_child >= it.node._count)
                             it.current_child = 0;
                         else {
@@ -419,16 +419,16 @@ generic_mtrie_t<T>::rm (prefix_t prefix_, size: usize, value_t *pipe)
 
         if (!it.processed_for_removal) {
             if (!it.size) {
-                if (!it.node._pipes) {
+                if (!it.node.pipes) {
                     ret = not_found;
                     continue;
                 }
 
                 typename pipes_t::size_type erased =
-                  it.node._pipes.erase (pipe);
-                if (it.node._pipes.empty ()) {
+                  it.node.pipes.erase (pipe);
+                if (it.node.pipes.empty ()) {
                     zmq_assert (erased == 1);
-                    LIBZMQ_DELETE (it.node._pipes);
+                    LIBZMQ_DELETE (it.node.pipes);
                     ret = last_value_removed;
                     continue;
                 }
@@ -481,7 +481,7 @@ generic_mtrie_t<T>::rm (prefix_t prefix_, size: usize, value_t *pipe)
                         //  switch to using the more compact single-node
                         //  representation
                         unsigned short i;
-                        for (i = 0; i < it.node._count; ++i)
+                        for (i = 0; i < it.node._count; += 1i)
                             if (it.node.next.table[i])
                                 break;
 
@@ -495,7 +495,7 @@ generic_mtrie_t<T>::rm (prefix_t prefix_, size: usize, value_t *pipe)
                     } else if (it.current_child == it.node._min) {
                         //  We can compact the table "from the left"
                         unsigned short i;
-                        for (i = 1; i < it.node._count; ++i)
+                        for (i = 1; i < it.node._count; += 1i)
                             if (it.node.next.table[i])
                                 break;
 
@@ -514,7 +514,7 @@ generic_mtrie_t<T>::rm (prefix_t prefix_, size: usize, value_t *pipe)
                                == it.node._min + it.node._count - 1) {
                         //  We can compact the table "from the right"
                         unsigned short i;
-                        for (i = 1; i < it.node._count; ++i)
+                        for (i = 1; i < it.node._count; += 1i)
                             if (it.node.next.table[it.node._count - 1 - i])
                                 break;
 
@@ -549,12 +549,12 @@ void generic_mtrie_t<T>::match (prefix_t data,
                                 void (*func_) (value_t *pipe, Arg arg_),
                                 Arg arg_)
 {
-    for (generic_mtrie_t *current = this; current; data++, size--) {
+    for (generic_mtrie_t *current = this; current; data+= 1, size -= 1) {
         //  Signal the pipes attached to this node.
-        if (current._pipes) {
-            for (typename pipes_t::iterator it = current._pipes.begin (),
-                                            end = current._pipes.end ();
-                 it != end; ++it) {
+        if (current.pipes) {
+            for (typename pipes_t::iterator it = current.pipes.begin (),
+                                            end = current.pipes.end ();
+                 it != end; += 1it) {
                 func_ (*it, arg_);
             }
         }
@@ -586,7 +586,7 @@ void generic_mtrie_t<T>::match (prefix_t data,
 
 template <typename T> bool generic_mtrie_t<T>::is_redundant () const
 {
-    return !_pipes && _live_nodes == 0;
+    return !pipes && _live_nodes == 0;
 }
 
 //  Multi-trie (prefix tree). Each node in the trie is a set of pointers.
@@ -642,7 +642,7 @@ template <typename T> class generic_mtrie_t
     bool is_redundant () const;
 
     typedef std::set<value_t *> pipes_t;
-    pipes_t *_pipes;
+    pipes_t *pipes;
 
     AtomicCounter _num_prefixes;
 

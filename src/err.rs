@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -550,7 +550,7 @@ pub fn wsa_error_to_errno (errcode_: i32) -> i32
 
 //         demangled_name = abi::__cxa_demangle (func_name, null_mut(), null_mut(), &rc);
 
-//         printf ("#%u  %p in %s (%s+0x%lx)\n", frame_n++, addr, file_name,
+//         printf ("#%u  %p in %s (%s+0x%lx)\n", frame_n+= 1, addr, file_name,
 //                 rc ? func_name : demangled_name, (unsigned long) offset);
 //         free (demangled_name);
 //     }

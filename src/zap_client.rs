@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -188,7 +188,7 @@ let mut msg = ZmqMessage::default();
     errno_assert (rc == 0);
 
     //  Credentials frames
-    for (size_t i = 0; i < credentials_count_; ++i) {
+    for (size_t i = 0; i < credentials_count_; += 1i) {
         rc = msg.init_size (credentials_sizes_[i]);
         errno_assert (rc == 0);
         if (i < credentials_count_ - 1)
@@ -206,12 +206,12 @@ int zap_client_t::receive_and_process_zap_reply ()
     ZmqMessage msg[zap_reply_frame_count];
 
     //  Initialize all reply frames
-    for (size_t i = 0; i < zap_reply_frame_count; i++) {
+    for (size_t i = 0; i < zap_reply_frame_count; i+= 1) {
         rc = msg[i].init ();
         errno_assert (rc == 0);
     }
 
-    for (size_t i = 0; i < zap_reply_frame_count; i++) {
+    for (size_t i = 0; i < zap_reply_frame_count; i+= 1) {
         rc = session.read_zap_msg (&msg[i]);
         if (rc == -1) {
             if (errno == EAGAIN) {
@@ -283,7 +283,7 @@ int zap_client_t::receive_and_process_zap_reply ()
     }
 
     //  Close all reply frames
-    for (size_t i = 0; i < zap_reply_frame_count; i++) {
+    for (size_t i = 0; i < zap_reply_frame_count; i+= 1) {
         let rc2: i32 = msg[i].close ();
         errno_assert (rc2 == 0);
     }

@@ -86,7 +86,7 @@ pub struct ZmqSocketBase {
 
     //  List of attached pipes.
     // typedef array_t<ZmqPipe, 3> pipes_t;
-    // pipes_t _pipes;
+    // pipes_t pipes;
     pub pipes: [ZmqPipe; 3],
 
     //  Reaper's poller and handle of this socket within it.
@@ -1013,7 +1013,7 @@ impl ZmqSocketBase {
             return -1;
         }
 
-        // for (endpoints_t::iterator it = range.first; it != range.second; ++it) {
+        // for (endpoints_t::iterator it = range.first; it != range.second; += 1it) {
         //     //  If we have an associated pipe, terminate it.
         //     if (it->second.second != null_mut())
         //         it->second.second->terminate (false);
@@ -1406,7 +1406,7 @@ impl ZmqSocketBase {
         if (!identifier.empty()) {
             // std::pair<endpoints_t::iterator, endpoints_t::iterator> range;
             // range = _endpoints.equal_range (identifier);
-            // for (endpoints_t::iterator it = range.first; it != range.second; ++it) {
+            // for (endpoints_t::iterator it = range.first; it != range.second; += 1it) {
             //     if (it.second.second == pipe_) {
             //         it.second.second = null_mut();
             //         break;
@@ -1814,8 +1814,8 @@ impl ZmqSocketBase {
             // return -1;
             bail!("EAGAIN!")
         }
-        // for (pipes_t::size_type i = 0, size = _pipes.size (); i != size; ++i) {
-        //     _pipes[i]->send_stats_to_peer (this);
+        // for (pipes_t::size_type i = 0, size = pipes.size (); i != size; += 1i) {
+        //     pipes[i]->send_stats_to_peer (this);
         // }
         for pipe in self.pipes.iter_mut() {
             pipe.send_stats_to_peer(self);
@@ -2025,12 +2025,12 @@ impl ZmqSocketBase {
 
             // if *check.is_ascii_alphanumeric() || *check.is_ascii_hexdigit() || *check.eq(*('['.encode_utf8().as_ptr())) || *check.eq(':')
             // {
-            //     check++;
+            //     check+= 1;
             //     while (isalnum (*check) || isxdigit (*check) || *check == '.'
             //            || *check == '-' || *check == ':' || *check == '%'
             //            || *check == ';' || *check == '[' || *check == ']'
             //            || *check == '_' || *check == '*') {
-            //         check++;
+            //         check+= 1;
             //     }
             // }
             if *check.is_ascii_alphanumeric()
@@ -2330,7 +2330,7 @@ impl ZmqSocketBase {
                     zmq_msg_send(&mut raw_msg, _monitor_socket, ZMQ_SNDMORE);
 
                     //  Send values in third-Nth frames (64bit unsigned)
-                    // for (u64 i = 0; i < values_count_; ++i)
+                    // for (u64 i = 0; i < values_count_; += 1i)
                     for i in 0..values_count_ {
                         zmq_msg_init_size(&mut raw_msg, sizeof(values_[i]));
                         // memcpy (zmq_msg_data (&msg), &values_[i],
@@ -2683,11 +2683,11 @@ impl ZmqSocketBase {
         self.unregister_endpoints(self);
 
         //  Ask all attached pipes to terminate.
-        // for (pipes_t::size_type i = 0, size = _pipes.size (); i != size; ++i)
+        // for (pipes_t::size_type i = 0, size = pipes.size (); i != size; += 1i)
         // {
         //     //  Only inprocs might have a disconnect message set
-        //     _pipes[i]->send_disconnect_msg ();
-        //     _pipes[i]->terminate (false);
+        //     pipes[i]->send_disconnect_msg ();
+        //     pipes[i]->terminate (false);
         // }
         for pipe in self.pipes.iter_mut() {
             pipe.send_disconnect_msg();
@@ -2709,7 +2709,7 @@ impl ZmqSocketBase {
     // void update_pipe_options (option_: i32);
     pub fn update_pipe_options(&mut self, options: &mut ZmqOptions, option_: i32) {
         if option_ == ZMQ_SNDHWM || option_ == ZMQ_RCVHWM {
-            // for (pipes_t::size_type i = 0, size = _pipes.size (); i != size; ++i)
+            // for (pipes_t::size_type i = 0, size = pipes.size (); i != size; += 1i)
             for pipe in self.pipes.iter_mut() {
                 pipe.set_hwms(options.rcvhwm, options.sndhwm);
                 pipe.send_hwms_to_peer(options.sndhwm, options.rcvhwm);
@@ -2815,7 +2815,7 @@ impl routing_socket_base_t {
         // const out_pipes_t::iterator end = _out_pipes.end ();
         let (end_blob, end_pipe) = self._out_pipes.last().unwrap();
         // out_pipes_t::iterator it;
-        // for (it = _out_pipes.begin (); it != end; ++it)
+        // for (it = _out_pipes.begin (); it != end; += 1it)
         // let mut pipe_ref: &mut ZmqPipe
         for (it_blob, it_pipe) in self._out_pipes.iter_mut() {
             // if (it.second.pipe == pipe_) {
@@ -2902,7 +2902,7 @@ impl routing_socket_base_t {
         let mut res = false;
         // for (out_pipes_t::iterator it = _out_pipes.begin (),
         //                            end = _out_pipes.end ();
-        //      it != end && !res; ++it) {
+        //      it != end && !res; += 1it) {
         //     res |= func_ (*it->second.pipe);
         // }
         for pipe in self._out_pipes.iter_mut() {}

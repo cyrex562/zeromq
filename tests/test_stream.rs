@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -203,7 +203,7 @@ static void test_stream_to_dealer ()
                                                     9 + size - bytes_read, 0)));
         bytes_read += rc;
     }
-    for (int byte_nbr = 0; byte_nbr < size; byte_nbr++) {
+    for (int byte_nbr = 0; byte_nbr < size; byte_nbr+= 1) {
         TEST_ASSERT_EQUAL_UINT8 (0xAB, msgin[9 + byte_nbr]);
     }
     test_context_socket_close (dealer);

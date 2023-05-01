@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -265,7 +265,7 @@ ZmqFileDesc tcp_listener_t::accept ()
         for (ZmqOptions::tcp_accept_filters_t::size_type
                i = 0,
                size = options.tcp_accept_filters.size ();
-             i != size; ++i) {
+             i != size; += 1i) {
             if (options.tcp_accept_filters[i].match_address (
                   reinterpret_cast<struct sockaddr *> (&ss), ss_len)) {
                 matched = true;

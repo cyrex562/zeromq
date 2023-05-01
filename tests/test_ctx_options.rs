@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -124,7 +124,7 @@ void test_ctx_thread_opts ()
 
     int cpus_add[] = {0, 1};
     for (unsigned int idx = 0; idx < mem::size_of::<cpus_add>() / sizeof (cpus_add[0]);
-         idx++) {
+         idx+= 1) {
         TEST_ASSERT_SUCCESS_ERRNO (zmq_ctx_set (
           get_test_context (), ZMQ_THREAD_AFFINITY_CPU_ADD, cpus_add[idx]));
     }
@@ -132,7 +132,7 @@ void test_ctx_thread_opts ()
     // you can also remove CPUs from list of affinities:
     int cpus_remove[] = {1};
     for (unsigned int idx = 0;
-         idx < mem::size_of::<cpus_remove>() / sizeof (cpus_remove[0]); idx++) {
+         idx < mem::size_of::<cpus_remove>() / sizeof (cpus_remove[0]); idx+= 1) {
         TEST_ASSERT_SUCCESS_ERRNO (zmq_ctx_set (get_test_context (),
                                                 ZMQ_THREAD_AFFINITY_CPU_REMOVE,
                                                 cpus_remove[idx]));

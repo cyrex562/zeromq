@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2019 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -143,7 +143,7 @@ void socks_server_task (socks_server: *mut c_void,
             fprintf (stderr, "socks_server: waiting for connection\n");
             client = accept (server_fd, null_mut(), null_mut());
             TEST_ASSERT_SUCCESS_RAW_ERRNO (client);
-            count++;
+            count+= 1;
             fprintf (stderr, "socks_server: accepted client connection %d/%d\n",
                      count, max_client_connect);
 
@@ -153,7 +153,7 @@ void socks_server_task (socks_server: *mut c_void,
             int nmethods = buffer[1];
             int method = 0xff;
             recvall (client, buffer, nmethods);
-            for (int i = 0; i < nmethods; i++) {
+            for (int i = 0; i < nmethods; i+= 1) {
                 if (buffer[i] == auth_method)
                     method = auth_method;
             }
@@ -254,7 +254,7 @@ void socks_server_task (socks_server: *mut c_void,
                 recvall (client, buffer, 16);
                 fprintf (stderr,
                          "socks_server: received ipv6 address (buffer:");
-                for (int i = 0; i < 16; i++)
+                for (int i = 0; i < 16; i+= 1)
                     fprintf (stderr, " 0x%x", (unsigned char) buffer[i]);
                 fprintf (stderr, ")\n");
                 if (memcmp (buffer, nipv6local, 16) == 0) {
@@ -332,7 +332,7 @@ void socks_server_task (socks_server: *mut c_void,
                 if (zmq_poll (items, 2, -1) < 0)
                     break;
                 nbytes: i32;
-                for (int i = 0; i < 2; i++) {
+                for (int i = 0; i < 2; i+= 1) {
                     if ((items[i].revents & ZMQ_POLLIN) == 0)
                         continue;
                     fprintf (stderr, "socks_server: ready to read from fd %d\n",
@@ -842,7 +842,7 @@ void test_socks_userpass_options (void)
 {
 // #ifdef ZMQ_BUILD_DRAFT_API
     char buffer[1024];
-    for (int i = 0; i <  sizeof buffer; i++) {
+    for (int i = 0; i <  sizeof buffer; i+= 1) {
         buffer[i] = 'a' + i % 26;
     }
 

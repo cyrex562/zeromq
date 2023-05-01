@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -137,7 +137,7 @@ static void manage_random (init_: bool)
             zmq_assert (rc != -1);
         }
 
-        ++random_refcount;
+        += 1random_refcount;
     } else {
         scoped_lock_t locker (random_sync);
         --random_refcount;

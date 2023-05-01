@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -115,7 +115,7 @@ void zap_handler (void * /*unused_*/);
                          event, err, zmq_strerror (err));                             \
                 continue;                                                             \
             }                                                                         \
-            ++event_count;                                                            \
+            += 1event_count;                                                            \
             /* TODO write this into a buffer and attach to the assertion msg below */ \
             print_unexpected_event_stderr (event, err, 0, 0);                         \
         }                                                                             \

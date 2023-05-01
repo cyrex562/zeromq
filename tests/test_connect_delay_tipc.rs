@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -70,7 +70,7 @@ void test_send_one_connected_one_unconnected ()
     // We send 10 messages, 5 should just get stuck in the queue
     // for the not-yet-connected pipe
     let send_count: i32 = 10;
-    for (int i = 0; i < send_count; ++i) {
+    for (int i = 0; i < send_count; += 1i) {
         send_string_expect_success (from, "Hello", 0);
     }
 
@@ -88,7 +88,7 @@ void test_send_one_connected_one_unconnected ()
             TEST_ASSERT_EQUAL_INT (EAGAIN, zmq_errno ());
             break; //  Break when we didn't get a message
         }
-        seen++;
+        seen+= 1;
     }
     TEST_ASSERT_EQUAL_INT (send_count / 2, seen);
 
@@ -140,7 +140,7 @@ void test_send_one_connected_one_unconnected_with_delay ()
 
     // Send 10 messages, all should be routed to the connected pipe
     let send_count: i32 = 10;
-    for (int i = 0; i < send_count; ++i) {
+    for (int i = 0; i < send_count; += 1i) {
         send_string_expect_success (from, "Hello", 0);
     }
     timeout = SETTLE_TIME;
@@ -155,7 +155,7 @@ void test_send_one_connected_one_unconnected_with_delay ()
             TEST_ASSERT_EQUAL_INT (EAGAIN, zmq_errno ());
             break; //  Break when we didn't get a message
         }
-        seen++;
+        seen+= 1;
     }
     TEST_ASSERT_EQUAL_INT (send_count, seen);
 

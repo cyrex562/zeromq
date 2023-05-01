@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -164,11 +164,11 @@ void plain_client_t::produce_hello (msg: &mut ZmqMessage) const
     memcpy (ptr, hello_prefix, hello_prefix_len);
     ptr += hello_prefix_len;
 
-    *ptr++ = static_cast<unsigned char> (username.length ());
+    *ptr+= 1 = static_cast<unsigned char> (username.length ());
     memcpy (ptr, username, username.length ());
     ptr += username.length ();
 
-    *ptr++ = static_cast<unsigned char> (password.length ());
+    *ptr+= 1 = static_cast<unsigned char> (password.length ());
     memcpy (ptr, password, password.length ());
 }
 

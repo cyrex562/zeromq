@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2017 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -343,7 +343,7 @@ void test_monitor_versioned_stats (bind_function_t bind_function_,
     size_t ipv6_size = mem::size_of::<ipv6>();
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (push, ZMQ_IPV6, &ipv6, &ipv6_size));
-    for (int i = 0; i < pulls_count; ++i) {
+    for (int i = 0; i < pulls_count; += 1i) {
         pulls[i] = test_context_socket (ZMQ_PULL);
         TEST_ASSERT_SUCCESS_ERRNO (
           zmq_setsockopt (pulls[i], ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
@@ -366,7 +366,7 @@ void test_monitor_versioned_stats (bind_function_t bind_function_,
     while (send_count < send_hwm * 2 * pulls_count) {
         TEST_ASSERT_EQUAL_INT (mem::size_of::<data>(),
                                zmq_send (push, data, mem::size_of::<data>(), 0));
-        ++send_count;
+        += 1send_count;
     }
 
     //  Drain one of the pulls - doesn't matter how many messages, at least one
@@ -393,7 +393,7 @@ void test_monitor_versioned_stats (bind_function_t bind_function_,
     msleep (SETTLE_TIME);
     zmq_getsockopt (push, ZMQ_EVENTS, &dummy, &dummy_size);
 
-    for (int i = 0; i < pulls_count; ++i) {
+    for (int i = 0; i < pulls_count; += 1i) {
         char *push_local_address = null_mut();
         char *push_remote_address = null_mut();
         u64 *queue_stat = null_mut();
@@ -414,7 +414,7 @@ void test_monitor_versioned_stats (bind_function_t bind_function_,
     //  Close client and server
     test_context_socket_close_zero_linger (push_mon);
     test_context_socket_close_zero_linger (push);
-    for (int i = 0; i < pulls_count; ++i)
+    for (int i = 0; i < pulls_count; += 1i)
         test_context_socket_close_zero_linger (pulls[i]);
 }
 

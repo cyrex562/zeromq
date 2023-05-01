@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -297,10 +297,10 @@ bool ipc_listener_t::filter (ZmqFileDesc sock_)
     for (ZmqOptions::ipc_gid_accept_filters_t::const_iterator
            it = options.ipc_gid_accept_filters.begin (),
            end = options.ipc_gid_accept_filters.end ();
-         it != end; it++) {
+         it != end; it+= 1) {
         if (!(gr = getgrgid (*it)))
             continue;
-        for (char **mem = gr.gr_mem; *mem; mem++) {
+        for (char **mem = gr.gr_mem; *mem; mem+= 1) {
             if (!strcmp (*mem, pw.pw_name))
                 return true;
         }
@@ -326,7 +326,7 @@ bool ipc_listener_t::filter (ZmqFileDesc sock_)
     if (options.ipc_uid_accept_filters.find (cred.cr_uid)
         != options.ipc_uid_accept_filters.end ())
         return true;
-    for (int i = 0; i < cred.cr_ngroups; i++) {
+    for (int i = 0; i < cred.cr_ngroups; i+= 1) {
         if (options.ipc_gid_accept_filters.find (cred.cr_groups[i])
             != options.ipc_gid_accept_filters.end ())
             return true;

@@ -208,16 +208,16 @@ void test_size ()
     keys.push_back ("team");
     keys.push_back ("toast");
 
-    for (size_t i = 0; i < keys.size (); ++i)
+    for (size_t i = 0; i < keys.size (); += 1i)
         TEST_ASSERT_TRUE (tree_add (tree, keys[i]));
     TEST_ASSERT_TRUE (tree.size () == keys.size ());
-    for (size_t i = 0; i < keys.size (); ++i)
+    for (size_t i = 0; i < keys.size (); += 1i)
         TEST_ASSERT_FALSE (tree_add (tree, keys[i]));
     TEST_ASSERT_TRUE (tree.size () == 2 * keys.size ());
-    for (size_t i = 0; i < keys.size (); ++i)
+    for (size_t i = 0; i < keys.size (); += 1i)
         TEST_ASSERT_FALSE (tree_rm (tree, keys[i]));
     TEST_ASSERT_TRUE (tree.size () == keys.size ());
-    for (size_t i = 0; i < keys.size (); ++i)
+    for (size_t i = 0; i < keys.size (); += 1i)
         TEST_ASSERT_TRUE (tree_rm (tree, keys[i]));
     TEST_ASSERT_TRUE (tree.size () == 0);
 }
@@ -227,7 +227,7 @@ void return_key (data: &mut [u8], size: usize, arg_: &mut [u8])
     std::vector<std::string> *vec =
       reinterpret_cast<std::vector<std::string> *> (arg_);
     key: String;
-    for (size_t i = 0; i < size; ++i)
+    for (size_t i = 0; i < size; += 1i)
         key.push_back (static_cast<char> (data[i]));
     vec.push_back (key);
 }
@@ -246,12 +246,12 @@ void test_apply ()
     keys.insert ("toast");
 
     const std::set<std::string>::iterator end = keys.end ();
-    for (std::set<std::string>::iterator it = keys.begin (); it != end; ++it)
+    for (std::set<std::string>::iterator it = keys.begin (); it != end; += 1it)
         tree_add (tree, *it);
 
     std::vector<std::string> *vec = new std::vector<std::string> ();
     tree.apply (return_key, static_cast<void *> (vec));
-    for (size_t i = 0; i < vec.size (); ++i)
+    for (size_t i = 0; i < vec.size (); += 1i)
         TEST_ASSERT_TRUE (keys.count ((*vec)[i]) > 0);
     delete vec;
 }

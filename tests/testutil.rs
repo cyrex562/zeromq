@@ -1,7 +1,7 @@
 /*
     Copyright (c) 2007-2019 Contributors as noted in the AUTHORS file
 
-    This file is part of libzmq, the ZeroMQ core engine in C++.
+    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
 
     libzmq is free software; you can redistribute it and/or modify it under
     the terms of the GNU Lesser General Public License (LGPL) as published
@@ -611,7 +611,7 @@ int fuzzer_corpus_encode (dirname: *const c_char,
         size_t read_bytes = 0;
         read_bytes = fread (*(*data + *num_cases), 1, file_len, f);
         TEST_ASSERT_EQUAL (file_len, read_bytes);
-        (*num_cases)++;
+        (*num_cases)+= 1;
 
         fclose (f);
     }
