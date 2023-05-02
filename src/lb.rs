@@ -74,7 +74,7 @@ pub struct lb_t
     //  True if we are dropping current message.
     _dropping: bool
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (lb_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (lb_t)
 };
 
 lb_t::lb_t () : active (0), _current (0), more (false), _dropping (false)

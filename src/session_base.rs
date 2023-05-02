@@ -114,7 +114,7 @@ pub struct ZmqSessionBase
     // const _wss_hostname: String;
     pub wss_hostname: String,
 // #endif
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqSessionBase)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqSessionBase)
     pub reset_fn: Option<fn()>
 }
 
@@ -295,7 +295,7 @@ impl ZmqSessionBase {
     // void engine_ready ();
 
     //  i_pipe_events interface implementation.
-    // void read_activated (pipe_: &mut ZmqPipe) ZMQ_FINAL;
+    // void read_activated (pipe_: &mut ZmqPipe) ;
 
     pub fn read_activated (&mut self, pipe: &mut ZmqPipe)
     {
@@ -322,11 +322,11 @@ impl ZmqSessionBase {
     }
 
 
-    // void write_activated (pipe_: &mut ZmqPipe) ZMQ_FINAL;
+    // void write_activated (pipe_: &mut ZmqPipe) ;
 
-    // void hiccuped (pipe_: &mut ZmqPipe) ZMQ_FINAL;
+    // void hiccuped (pipe_: &mut ZmqPipe) ;
 
-    // void pipe_terminated (pipe_: &mut ZmqPipe) ZMQ_FINAL;
+    // void pipe_terminated (pipe_: &mut ZmqPipe) ;
     pub fn pipe_terminated(&mut self, pipe: &mut ZmqPipe) -> anyhow::Result<()>
     {
         // Drop the reference to the deallocated pipe if required.
@@ -459,16 +459,16 @@ impl ZmqSessionBase {
     // void reconnect ();
 
     //  Handlers for incoming commands.
-    // void process_plug () ZMQ_FINAL;
+    // void process_plug () ;
 
-    // void process_attach (i_engine *engine_) ZMQ_FINAL;
+    // void process_attach (i_engine *engine_) ;
 
-    // void process_term (linger_: i32) ZMQ_FINAL;
+    // void process_term (linger_: i32) ;
 
     // void process_conn_failed () ;
 
     //  i_poll_events handlers.
-    // void timer_event (id_: i32) ZMQ_FINAL;
+    // void timer_event (id_: i32) ;
 
     //  Remove any half processed messages. Flush unflushed messages.
     //  Call this function when engine disconnect to get rid of leftovers.
@@ -507,7 +507,7 @@ impl ZmqSessionBase {
     }
 } // end of impl SessionBase
 
-// pub struct hello_msg_session_t ZMQ_FINAL : public ZmqSessionBase
+// pub struct hello_msg_session_t  : public ZmqSessionBase
 #[derive(Default,Debug,Clone)]
 pub struct hello_msg_session_t
 {
@@ -515,7 +515,7 @@ pub struct hello_msg_session_t
     pub new_pipe: bool,
     pub session_base: ZmqSessionBase,
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (hello_msg_session_t)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (hello_msg_session_t)
 }
 
 impl hello_msg_session_t

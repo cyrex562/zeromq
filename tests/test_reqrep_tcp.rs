@@ -34,17 +34,17 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-void test_single_connect (ipv6_: i32)
+void test_single_connect (ipv6: i32)
 {
     size_t len = MAX_SOCKET_STRING;
     char my_endpoint[MAX_SOCKET_STRING];
 
     void *sb = test_context_socket (ZMQ_REP);
-    bind_loopback (sb, ipv6_, my_endpoint, len);
+    bind_loopback (sb, ipv6, my_endpoint, len);
 
     void *sc = test_context_socket (ZMQ_REQ);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
+      zmq_setsockopt (sc, ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc, my_endpoint));
 
     bounce (sb, sc);
@@ -62,15 +62,15 @@ void test_single_connect (ipv6_: i32)
 }
 
 void make_connect_address (char *connect_address_,
-                           const ipv6_: i32,
+                           const ipv6: i32,
                            const port_: i32,
                            bind_address_: &str)
 {
-    sprintf (connect_address_, "tcp://%s:%i;%s", ipv6_ ? "[::1]" : "127.0.0.1",
+    sprintf (connect_address_, "tcp://%s:%i;%s", ipv6 ? "[::1]" : "127.0.0.1",
              port_, strrchr (bind_address_, '/') + 1);
 }
 
-void test_multi_connect (ipv6_: i32)
+void test_multi_connect (ipv6: i32)
 {
     size_t len = MAX_SOCKET_STRING;
     char my_endpoint_0[MAX_SOCKET_STRING];
@@ -79,20 +79,20 @@ void test_multi_connect (ipv6_: i32)
     char my_endpoint_3[MAX_SOCKET_STRING * 2];
 
     void *sb0 = test_context_socket (ZMQ_REP);
-    bind_loopback (sb0, ipv6_, my_endpoint_0, len);
+    bind_loopback (sb0, ipv6, my_endpoint_0, len);
 
     void *sb1 = test_context_socket (ZMQ_REP);
-    bind_loopback (sb1, ipv6_, my_endpoint_1, len);
+    bind_loopback (sb1, ipv6, my_endpoint_1, len);
 
     void *sb2 = test_context_socket (ZMQ_REP);
-    bind_loopback (sb2, ipv6_, my_endpoint_2, len);
+    bind_loopback (sb2, ipv6, my_endpoint_2, len);
 
     void *sc = test_context_socket (ZMQ_REQ);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
+      zmq_setsockopt (sc, ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc, my_endpoint_0));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc, my_endpoint_1));
-    make_connect_address (my_endpoint_3, ipv6_, 5564, my_endpoint_2);
+    make_connect_address (my_endpoint_3, ipv6, 5564, my_endpoint_2);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc, my_endpoint_3));
 
     bounce (sb0, sc);
@@ -119,7 +119,7 @@ void test_multi_connect (ipv6_: i32)
     test_context_socket_close (sb2);
 }
 
-void test_multi_connect_same_port (ipv6_: i32)
+void test_multi_connect_same_port (ipv6: i32)
 {
     size_t len = MAX_SOCKET_STRING;
     char my_endpoint_0[MAX_SOCKET_STRING];
@@ -130,25 +130,25 @@ void test_multi_connect_same_port (ipv6_: i32)
     char my_endpoint_5[MAX_SOCKET_STRING * 2];
 
     void *sb0 = test_context_socket (ZMQ_REP);
-    bind_loopback (sb0, ipv6_, my_endpoint_0, len);
+    bind_loopback (sb0, ipv6, my_endpoint_0, len);
 
     void *sb1 = test_context_socket (ZMQ_REP);
-    bind_loopback (sb1, ipv6_, my_endpoint_1, len);
+    bind_loopback (sb1, ipv6, my_endpoint_1, len);
 
     void *sc0 = test_context_socket (ZMQ_REQ);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc0, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
-    make_connect_address (my_endpoint_2, ipv6_, 5564, my_endpoint_0);
+      zmq_setsockopt (sc0, ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
+    make_connect_address (my_endpoint_2, ipv6, 5564, my_endpoint_0);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc0, my_endpoint_2));
-    make_connect_address (my_endpoint_3, ipv6_, 5565, my_endpoint_1);
+    make_connect_address (my_endpoint_3, ipv6, 5565, my_endpoint_1);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc0, my_endpoint_3));
 
     void *sc1 = test_context_socket (ZMQ_REQ);
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (sc1, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
-    make_connect_address (my_endpoint_4, ipv6_, 5565, my_endpoint_0);
+      zmq_setsockopt (sc1, ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
+    make_connect_address (my_endpoint_4, ipv6, 5565, my_endpoint_0);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc1, my_endpoint_4));
-    make_connect_address (my_endpoint_5, ipv6_, 5564, my_endpoint_1);
+    make_connect_address (my_endpoint_5, ipv6, 5564, my_endpoint_1);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sc1, my_endpoint_5));
 
     bounce (sb0, sc0);

@@ -58,7 +58,7 @@
 // #ifdef ZMQ_HAVE_OPENVMS
 // #include <ioctl.h>
 // #endif
-pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
+pub struct tcp_listener_t  : public stream_listener_base_t
 {
 // public:
     tcp_listener_t (ZmqThread *io_thread_,
@@ -84,9 +84,9 @@ pub struct tcp_listener_t ZMQ_FINAL : public stream_listener_base_t
     int create_socket (addr_: &str);
 
     //  Address to listen on.
-    TcpAddress _address;
+    TcpAddress address;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (tcp_listener_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (tcp_listener_t)
 };
 
 tcp_listener_t::tcp_listener_t (ZmqThread *io_thread_,
@@ -133,7 +133,7 @@ tcp_listener_t::get_socket_name (fd: ZmqFileDesc,
 
 int tcp_listener_t::create_socket (addr_: &str)
 {
-    _s = tcp_open_socket (addr_, options, true, true, &_address);
+    _s = tcp_open_socket (addr_, options, true, true, &address);
     if (_s == retired_fd) {
         return -1;
     }
@@ -164,9 +164,9 @@ int tcp_listener_t::create_socket (addr_: &str)
 
     //  Bind the socket to the network interface and port.
 // #if defined ZMQ_HAVE_VXWORKS
-    rc = bind (_s, (sockaddr *) _address.addr (), _address.addrlen ());
+    rc = bind (_s, (sockaddr *) address.addr (), address.addrlen ());
 // #else
-    rc = bind (_s, _address.addr (), _address.addrlen ());
+    rc = bind (_s, address.addr (), address.addrlen ());
 // #endif
 // #ifdef ZMQ_HAVE_WINDOWS
     if (rc == SOCKET_ERROR) {

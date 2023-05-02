@@ -54,7 +54,7 @@ int WssAddress::to_string (std::string &addr_) const
 {
     std::ostringstream os;
     os << std::string ("wss://") << host () << std::string (":")
-       << _address.port () << path ();
+       << address.port () << path ();
     addr_ = os.str ();
 
     return 0;

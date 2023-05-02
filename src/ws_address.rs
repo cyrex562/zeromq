@@ -59,7 +59,7 @@ pub struct WsAddress
     //  structure. If 'local' is true, names are resolved as local interface
     //  names. If it is false, names are resolved as remote hostnames.
     //  If 'ipv6' is true, the name may resolve to IPv6 address.
-    int resolve (name_: &str, local_: bool, ipv6_: bool);
+    int resolve (name: &str, local_: bool, ipv6: bool);
 
     //  The opposite to resolve()
     int to_string (std::string &addr_) const;
@@ -76,7 +76,7 @@ pub struct WsAddress
     const char *path () const;
 
   protected:
-    ip_addr_t _address;
+    ip_addr_t address;
 
   // private:
     _host: String;
@@ -85,20 +85,20 @@ pub struct WsAddress
 
 WsAddress::WsAddress ()
 {
-    memset (&_address, 0, mem::size_of::<_address>());
+    memset (&address, 0, mem::size_of::<address>());
 }
 
 WsAddress::WsAddress (const sockaddr *sa_, socklen_t sa_len_)
 {
     zmq_assert (sa_ && sa_len_ > 0);
 
-    memset (&_address, 0, mem::size_of::<_address>());
+    memset (&address, 0, mem::size_of::<address>());
     if (sa_.sa_family == AF_INET
-        && sa_len_ >= static_cast<socklen_t> (sizeof (_address.ipv4)))
-        memcpy (&_address.ipv4, sa_, sizeof (_address.ipv4));
+        && sa_len_ >= static_cast<socklen_t> (sizeof (address.ipv4)))
+        memcpy (&address.ipv4, sa_, sizeof (address.ipv4));
     else if (sa_.sa_family == AF_INET6
-             && sa_len_ >= static_cast<socklen_t> (sizeof (_address.ipv6)))
-        memcpy (&_address.ipv6, sa_, sizeof (_address.ipv6));
+             && sa_len_ >= static_cast<socklen_t> (sizeof (address.ipv6)))
+        memcpy (&address.ipv6, sa_, sizeof (address.ipv6));
 
     _path = std::string ("");
 
@@ -112,58 +112,58 @@ WsAddress::WsAddress (const sockaddr *sa_, socklen_t sa_len_)
 
     std::ostringstream os;
 
-    if (_address.family () == AF_INET6)
+    if (address.family () == AF_INET6)
         os << std::string ("[");
 
     os << std::string (hbuf);
 
-    if (_address.family () == AF_INET6)
+    if (address.family () == AF_INET6)
         os << std::string ("]");
 
     _host = os.str ();
 }
 
-int WsAddress::resolve (name_: &str, local_: bool, ipv6_: bool)
+int WsAddress::resolve (name: &str, local_: bool, ipv6: bool)
 {
     //  find the host part, It's important to use str*r*chr to only get
     //  the latest colon since IPv6 addresses use colons as delemiters.
-    const char *delim = strrchr (name_, ':');
+    const char *delim = strrchr (name, ':');
     if (delim == null_mut()) {
         errno = EINVAL;
         return -1;
     }
-    _host = std::string (name_, delim - name_);
+    _host = std::string (name, delim - name);
 
     // find the path part, which is optional
-    delim = strrchr (name_, '/');
+    delim = strrchr (name, '/');
     host_name: String;
     if (delim) {
         _path = std::string (delim);
         // remove the path, otherwise resolving the port will fail with wildcard
-        host_name = std::string (name_, delim - name_);
+        host_name = std::string (name, delim - name);
     } else {
         _path = std::string ("/");
-        host_name = name_;
+        host_name = name;
     }
 
     IpResolverOptions resolver_opts;
     resolver_opts.bindable (local_)
       .allow_dns (!local_)
       .allow_nic_name (local_)
-      .ipv6 (ipv6_)
+      .ipv6 (ipv6)
       .allow_path (true)
       .expect_port (true);
 
     IpResolver resolver (resolver_opts);
 
-    return resolver.resolve (&_address, host_name.c_str ());
+    return resolver.resolve (&address, host_name.c_str ());
 }
 
 int WsAddress::to_string (std::string &addr_) const
 {
     std::ostringstream os;
     os << std::string ("ws://") << host () << std::string (":")
-       << _address.port () << _path;
+       << address.port () << _path;
     addr_ = os.str ();
 
     return 0;
@@ -171,12 +171,12 @@ int WsAddress::to_string (std::string &addr_) const
 
 const sockaddr *WsAddress::addr () const
 {
-    return _address.as_sockaddr ();
+    return address.as_sockaddr ();
 }
 
 socklen_t WsAddress::addrlen () const
 {
-    return _address.sockaddr_len ();
+    return address.sockaddr_len ();
 }
 
 const char *WsAddress::host () const
@@ -195,5 +195,5 @@ unsigned short WsAddress::family () const
 sa_family_t WsAddress::family () const
 // #endif
 {
-    return _address.family ();
+    return address.family ();
 }

@@ -24,7 +24,7 @@ pub struct ZmqCurveEncoding
     pub cn_precom: Vec<u8>,
     // const _downgrade_sub: bool
     pub downgrade_sub: bool,
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (curve_encoding_t)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (curve_encoding_t)
 }
 
 impl ZmqCurveEncoding {

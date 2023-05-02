@@ -34,7 +34,7 @@
 // #include "wire.hpp"
 
 // #include <limits.h>
-pub struct v1_encoder_t ZMQ_FINAL : public encoder_base_t<v1_encoder_t>
+pub struct v1_encoder_t  : public encoder_base_t<v1_encoder_t>
 {
 // public:
     v1_encoder_t (bufsize_: usize);
@@ -46,7 +46,7 @@ pub struct v1_encoder_t ZMQ_FINAL : public encoder_base_t<v1_encoder_t>
 
     unsigned char _tmpbuf[11];
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (v1_encoder_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (v1_encoder_t)
 };
 
 v1_encoder_t::v1_encoder_t (bufsize_: usize) :

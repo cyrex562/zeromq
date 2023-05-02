@@ -56,8 +56,8 @@ pub struct stream_listener_base_t : public ZmqOwn, public io_object_t
 
   // private:
     //  Handlers for incoming commands.
-    void process_plug () ZMQ_FINAL;
-    void process_term (linger: i32) ZMQ_FINAL;
+    void process_plug () ;
+    void process_term (linger: i32) ;
 
   protected:
     //  Close the listening socket.
@@ -77,7 +77,7 @@ pub struct stream_listener_base_t : public ZmqOwn, public io_object_t
     // String representation of endpoint to bind to
     _endpoint: String;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_listener_base_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_listener_base_t)
 };
 
 stream_listener_base_t::stream_listener_base_t (
@@ -147,7 +147,7 @@ void stream_listener_base_t::create_engine (ZmqFileDesc fd)
     if (options.raw_socket)
         engine = new (std::nothrow) raw_engine_t (fd, options, endpoint_pair);
     else
-        engine = new (std::nothrow) zmtp_engine_t (fd, options, endpoint_pair);
+        engine = new (std::nothrow) ZmqZmtpEngine (fd, options, endpoint_pair);
     alloc_assert (engine);
 
     //  Choose I/O thread to run connecter in. Given that we are already

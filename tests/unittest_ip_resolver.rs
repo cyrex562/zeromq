@@ -39,7 +39,7 @@ void setUp ()
 void tearDown ()
 {
 }
-pub struct test_ip_resolver_t ZMQ_FINAL : public IpResolver
+pub struct test_ip_resolver_t  : public IpResolver
 {
 // public:
     test_ip_resolver_t (IpResolverOptions opts_) :
@@ -58,7 +58,7 @@ pub struct test_ip_resolver_t ZMQ_FINAL : public IpResolver
     int do_getaddrinfo (node_: *const c_char,
                         service_: *const c_char,
                         const struct addrinfo *hints_,
-                        struct addrinfo **res_) ZMQ_FINAL
+                        struct addrinfo **res_)
     {
         static const struct dns_lut_t dns_lut[] = {
           {"ip.zeromq.org", "10.100.0.1", "fdf5:d058:d656::1"},
@@ -105,7 +105,7 @@ pub struct test_ip_resolver_t ZMQ_FINAL : public IpResolver
         return IpResolver::do_getaddrinfo (ip, null_mut(), &ai, res_);
     }
 
-    unsigned int do_if_nametoindex (ifname_: &str) ZMQ_FINAL
+    unsigned int do_if_nametoindex (ifname_: &str)
     {
         static const char *dummy_interfaces[] = {
           "lo0",
@@ -135,7 +135,7 @@ pub struct test_ip_resolver_t ZMQ_FINAL : public IpResolver
 //  we're in this situation then we compare to 'expected_addr_v4_failover_'
 //  instead.
 static void test_resolve (IpResolverOptions opts_,
-                          name_: *const c_char,
+                          name: *const c_char,
                           expected_addr_: *const c_char,
                           uint16_t expected_port_ = 0,
                           uint16_t expected_zone_ = 0,
@@ -154,7 +154,7 @@ static void test_resolve (IpResolverOptions opts_,
 
     test_ip_resolver_t resolver (opts_);
 
-    int rc = resolver.resolve (&addr, name_);
+    int rc = resolver.resolve (&addr, name);
 
     if (expected_addr_ == null_mut()) {
         // TODO also check the expected errno
@@ -174,34 +174,34 @@ static void test_resolve (IpResolverOptions opts_,
                                                                                \
     static void _test##_ipv6 () { _test (true); }
 
-static void test_bind_any (ipv6_: bool)
+static void test_bind_any (ipv6: bool)
 {
     IpResolverOptions resolver_opts;
 
-    resolver_opts.bindable (true).expect_port (true).ipv6 (ipv6_);
+    resolver_opts.bindable (true).expect_port (true).ipv6 (ipv6);
 
-    const char *expected = ipv6_ ? "::" : "0.0.0.0";
+    const char *expected = ipv6 ? "::" : "0.0.0.0";
     test_resolve (resolver_opts, "*:*", expected, 0);
 }
 MAKE_TEST_V4V6 (test_bind_any)
 
-static void test_bind_any_port0 (ipv6_: bool)
+static void test_bind_any_port0 (ipv6: bool)
 {
     IpResolverOptions resolver_opts;
 
-    resolver_opts.bindable (true).expect_port (true).ipv6 (ipv6_);
+    resolver_opts.bindable (true).expect_port (true).ipv6 (ipv6);
 
     //  Should be equivalent to "*:*"
-    const char *expected = ipv6_ ? "::" : "0.0.0.0";
+    const char *expected = ipv6 ? "::" : "0.0.0.0";
     test_resolve (resolver_opts, "*:0", expected, 0);
 }
 MAKE_TEST_V4V6 (test_bind_any_port0)
 
-static void test_nobind_any (ipv6_: bool)
+static void test_nobind_any (ipv6: bool)
 {
     IpResolverOptions resolver_opts;
 
-    resolver_opts.expect_port (true).ipv6 (ipv6_);
+    resolver_opts.expect_port (true).ipv6 (ipv6);
 
     //  Wildcard should be rejected if we're not looking for a
     //  bindable address
@@ -209,11 +209,11 @@ static void test_nobind_any (ipv6_: bool)
 }
 MAKE_TEST_V4V6 (test_nobind_any)
 
-static void test_nobind_any_port (ipv6_: bool)
+static void test_nobind_any_port (ipv6: bool)
 {
     IpResolverOptions resolver_opts;
 
-    resolver_opts.expect_port (true).ipv6 (ipv6_);
+    resolver_opts.expect_port (true).ipv6 (ipv6);
 
     //  Wildcard should be rejected if we're not looking for a
     //  bindable address
@@ -221,27 +221,27 @@ static void test_nobind_any_port (ipv6_: bool)
 }
 MAKE_TEST_V4V6 (test_nobind_any_port)
 
-static void test_nobind_addr_anyport (ipv6_: bool)
+static void test_nobind_addr_anyport (ipv6: bool)
 {
     IpResolverOptions resolver_opts;
 
-    resolver_opts.expect_port (true).ipv6 (ipv6_);
+    resolver_opts.expect_port (true).ipv6 (ipv6);
 
     //  Wildcard port should be rejected for non-bindable addresses
     test_resolve (resolver_opts, "127.0.0.1:*", null_mut());
 }
 MAKE_TEST_V4V6 (test_nobind_addr_anyport)
 
-static void test_nobind_addr_port0 (ipv6_: bool)
+static void test_nobind_addr_port0 (ipv6: bool)
 {
     IpResolverOptions resolver_opts;
 
-    resolver_opts.expect_port (true).ipv6 (ipv6_);
+    resolver_opts.expect_port (true).ipv6 (ipv6);
 
     //  Connecting to port 0 is allowed, although it might not be massively
     //  useful
-    const char *expected = ipv6_ ? "::ffff:127.0.0.1" : "127.0.0.1";
-    const char *fallback = ipv6_ ? "127.0.0.1" : null_mut();
+    const char *expected = ipv6 ? "::ffff:127.0.0.1" : "127.0.0.1";
+    const char *fallback = ipv6 ? "127.0.0.1" : null_mut();
     test_resolve (resolver_opts, "127.0.0.1:0", expected, 0, 0, fallback);
 }
 MAKE_TEST_V4V6 (test_nobind_addr_port0)
@@ -753,11 +753,11 @@ void test_dns_brackets_port_bad ()
     test_resolve (resolver_opts, "[ip.zeromq.org:22]", null_mut());
 }
 
-void test_dns_deny (ipv6_: bool)
+void test_dns_deny (ipv6: bool)
 {
     IpResolverOptions resolver_opts;
 
-    resolver_opts.allow_dns (false).ipv6 (ipv6_);
+    resolver_opts.allow_dns (false).ipv6 (ipv6);
 
     //  DNS resolution shouldn't work when disallowed
     test_resolve (resolver_opts, "ip.zeromq.org", null_mut());

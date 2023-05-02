@@ -44,7 +44,7 @@
 // #include "vmci_address.hpp"
 // #include "vmci.hpp"
 // #include "session_base.hpp"
-pub struct vmci_connecter_t ZMQ_FINAL : public stream_connecter_base_t
+pub struct vmci_connecter_t  : public stream_connecter_base_t
 {
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
@@ -97,7 +97,7 @@ pub struct vmci_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     //  True iff a timer has been started.
     _connect_timer_started: bool
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (vmci_connecter_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (vmci_connecter_t)
 };
 
 vmci_connecter_t::vmci_connecter_t (class ZmqThread *io_thread_,

@@ -58,13 +58,13 @@ struct i_poll_events;
 
 //  Implements socket polling mechanism using the BSD-specific
 //  kqueue interface.
-pub struct kqueue_t ZMQ_FINAL : public WorkerPollerBase
+pub struct kqueue_t  : public WorkerPollerBase
 {
 // public:
     typedef void *handle_t;
 
     kqueue_t (const ThreadCtx &ctx);
-    ~kqueue_t () ZMQ_FINAL;
+    ~kqueue_t () ;
 
     //  "poller" concept.
     handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
@@ -79,7 +79,7 @@ pub struct kqueue_t ZMQ_FINAL : public WorkerPollerBase
 
   // private:
     //  Main event loop.
-    void loop () ZMQ_FINAL;
+    void loop () ;
 
     //  File descriptor referring to the kernel event queue.
     ZmqFileDesc kqueue_fd;
@@ -102,7 +102,7 @@ pub struct kqueue_t ZMQ_FINAL : public WorkerPollerBase
     typedef std::vector<ZmqPollEntry *> retired_t;
     retired_t retired;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (kqueue_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (kqueue_t)
 
 // #ifdef HAVE_FORK
     // the process that created this context. Used to detect forking.

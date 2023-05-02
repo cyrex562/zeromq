@@ -55,16 +55,13 @@
 //  Buffer management is done by an allocator policy.
 // template <typename T, typename A = c_single_allocator>
 
-pub trait i_decoder {
+pub trait i_decoder {}
 
-}
+#[derive(Default, Debug, Clone)]
+pub struct DecoderBase<T: Allocator> {
+    // public:
 
-#[derive(Default,Debug,Clone)]
-pub struct DecoderBase<T: Allocator>
-{
-// public:
-
-  // private:
+    // private:
     //  Next step. If set to NULL, it means that associated data stream
     //  is dead. Note that there can be still data in the process in such
     //  case.
@@ -83,8 +80,7 @@ pub struct DecoderBase<T: Allocator>
     // A allocator;
     allocator: T,
     // unsigned char *buf;
-    buf: Vec<u8>
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (DecoderBase)
+    buf: Vec<u8>, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (DecoderBase)
 }
 
 impl DecoderBase {
@@ -99,7 +95,7 @@ impl DecoderBase {
             read_pos: vec![],
             to_read: 0,
             allocator: Allocator::new(),
-            buf: vec![]
+            buf: vec![],
         };
         out
     }
@@ -107,9 +103,8 @@ impl DecoderBase {
     // ~DecoderBase ()  { allocator.deallocate (); }
 
     //  Returns a buffer to be filled with binary data.
-    // void get_buffer (unsigned char **data, std::size: *mut usize) ZMQ_FINAL
-    pub fn get_buffer(&mut self, data: &mut Vec<u8>, size: &mut usize)
-    {
+    // void get_buffer (unsigned char **data, std::size: *mut usize)
+    pub fn get_buffer(&mut self, data: &mut Vec<u8>, size: &mut usize) {
         self.buf = self.allocator.allocate();
 
         //  If we are expected to read large message, we'll opt for zero-
@@ -127,7 +122,7 @@ impl DecoderBase {
         }
 
         *data = self.buf;
-        *size = self.allocator.size ();
+        *size = self.allocator.size();
     }
 
     //  Processes the data in the buffer previously allocated using
@@ -136,15 +131,14 @@ impl DecoderBase {
     //  whole message was decoded or 0 when more data is required.
     //  On error, -1 is returned and errno set accordingly.
     //  Number of bytes processed is returned in bytes_used_.
-    pub fn decode (&mut self, data: &[u8], size: usize, bytes_used: &mut usize) -> i32
-    {
+    pub fn decode(&mut self, data: &[u8], size: usize, bytes_used: &mut usize) -> i32 {
         let mut bytes_used_ = 0;
 
         //  In case of zero-copy simply adjust the pointers, no copying
         //  is required. Also, run the state machine in case all the data
         //  were processed.
         if (data == read_pos) {
-            zmq_assert (size <= to_read);
+            zmq_assert(size <= to_read);
             read_pos += size;
             to_read -= size;
             bytes_used_ = size;
@@ -153,8 +147,9 @@ impl DecoderBase {
                 let rc: i32 = 0;
                 // TODO
                 // (static_cast<T *> (this)->*next) (data + bytes_used_);
-                if (rc != 0){
-                    return rc;}
+                if (rc != 0) {
+                    return rc;
+                }
             }
             return 0;
         }
@@ -165,7 +160,7 @@ impl DecoderBase {
             // Only copy when destination address is different from the
             // current address in the buffer.
             if (read_pos != data + bytes_used_) {
-                memcpy (read_pos, data + bytes_used_, to_copy);
+                memcpy(read_pos, data + bytes_used_, to_copy);
             }
 
             read_pos += to_copy;
@@ -178,17 +173,17 @@ impl DecoderBase {
                 let rc: i32 = 0;
                 // TODO
                 // (static_cast<T *> (this)->*next) (data + bytes_used_);
-                if (rc != 0){
-                    return rc;}
+                if (rc != 0) {
+                    return rc;
+                }
             }
         }
 
         return 0;
     }
 
-    pub fn resize_buffer (&mut self, new_size: usize)
-    {
-        self.allocator.resize (new_size);
+    pub fn resize_buffer(&mut self, new_size: usize) {
+        self.allocator.resize(new_size);
     }
 
     //   protected:
@@ -198,8 +193,7 @@ impl DecoderBase {
 
     //  This function should be called from derived class to read data
     //  from the buffer and schedule next state machine action.
-    pub fn next_step (&mut self, read_pos_: usize, to_read_: usize, next_: usize)
-    {
+    pub fn next_step(&mut self, read_pos_: usize, to_read_: usize, next_: usize) {
         self.read_pos = read_pos_;
         self.to_read = to_read_;
         self.next = next_;
@@ -209,7 +203,6 @@ impl DecoderBase {
     pub fn get_allocator(&mut self) -> &mut T {
         &mut self.allocator
     }
-
 }
 // }
 

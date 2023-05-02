@@ -27,8 +27,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use std::ptr::null_mut;
+
+use anyhow::anyhow;
+
 use crate::context::ZmqContext;
-use crate::fq::fq_t;
+use crate::fq::ZmqFq;
 use crate::lb::lb_t;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::options::ZmqOptions;
@@ -37,25 +41,23 @@ use crate::socket_base::ZmqSocketBase;
 use crate::socket_base_ops::ZmqSocketBaseOps;
 use crate::zmq_content::ZmqContent;
 use crate::zmq_hdr::ZMQ_CLIENT;
-use anyhow::anyhow;
-use std::ptr::null_mut;
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"
 // #include "client.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-// pub struct client_t ZMQ_FINAL : public ZmqSocketBase
+// pub struct client_t  : public ZmqSocketBase
 #[derive(Default, Debug, Clone)]
 pub struct ZmqClient {
     // private:
     //  Messages are fair-queued from inbound pipes. And load-balanced to
     //  the outbound pipes.
-    // fq_t fair_queue;
-    pub fq: fq_t,
+    // ZmqFq fair_queue;
+    pub fq: ZmqFq,
     // lb_t load_balance;
     pub lb: lb_t,
-    pub base: ZmqSocketBase, // ZMQ_NON_COPYABLE_NOR_MOVABLE (client_t)
+    pub base: ZmqSocketBase, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (client_t)
 }
 
 impl ZmqClient {
@@ -76,7 +78,7 @@ impl ZmqClient {
         options.can_send_hello_msg = true;
         options.can_recv_hiccup_msg = true;
         Self {
-            fq: fq_t::Default(),
+            fq: ZmqFq::Default(),
             lb: lb_t::Default(),
             base: ZmqSocketBase::new(parent, options, tid, sid, true),
         }

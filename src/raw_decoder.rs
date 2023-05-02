@@ -72,7 +72,7 @@ int raw_decoder_t::decode (data: &[u8],
     bytes_used_ = size;
     return 1;
 }
-pub struct raw_decoder_t ZMQ_FINAL : public i_decoder
+pub struct raw_decoder_t  : public i_decoder
 {
 // public:
     raw_decoder_t (bufsize_: usize);
@@ -93,5 +93,5 @@ pub struct raw_decoder_t ZMQ_FINAL : public i_decoder
 
     shared_message_memory_allocator allocator;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (raw_decoder_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (raw_decoder_t)
 };

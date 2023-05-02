@@ -54,7 +54,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #ifdef __APPLE__
 // #include <TargetConditionals.h>
 // #endif
-pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
+pub struct udp_engine_t  : public io_object_t, public i_engine
 {
 // public:
     udp_engine_t (options: &ZmqOptions);
@@ -62,7 +62,7 @@ pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
 
     int init (Address *address_, send_: bool, recv_: bool);
 
-    bool has_handshake_stage () ZMQ_FINAL { return false; };
+    bool has_handshake_stage ()  { return false; };
 
     //  i_engine interface implementation.
     //  Plug the engine to the session.
@@ -88,7 +88,7 @@ pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     const endpoint_uri_pair_t &get_endpoint () const;
 
   // private:
-    int resolve_raw_address (name_: &str, length_: usize);
+    int resolve_raw_address (name: &str, length_: usize);
     static void sockaddr_to_msg (msg: &mut ZmqMessage const sockaddr_in *addr_);
 
     static int set_udp_reuse_address (ZmqFileDesc s_, on_: bool);
@@ -114,7 +114,7 @@ pub struct udp_engine_t ZMQ_FINAL : public io_object_t, public i_engine
     ZmqFileDesc _fd;
     ZmqSessionBase *_session;
     handle_t _handle;
-    Address *_address;
+    Address *address;
 
     ZmqOptions _options;
 
@@ -133,7 +133,7 @@ udp_engine_t::udp_engine_t (options: &ZmqOptions) :
     _fd (-1),
     _session (null_mut()),
     _handle (static_cast<handle_t> (null_mut())),
-    _address (null_mut()),
+    address (null_mut()),
     _options (options_),
     _send_enabled (false),
     _recv_enabled (false)
@@ -162,9 +162,9 @@ int udp_engine_t::init (Address *address_, send_: bool, recv_: bool)
     zmq_assert (send_ || recv_);
     _send_enabled = send_;
     _recv_enabled = recv_;
-    _address = address_;
+    address = address_;
 
-    _fd = open_socket (_address.resolved.udp_addr.family (), SOCK_DGRAM,
+    _fd = open_socket (address.resolved.udp_addr.family (), SOCK_DGRAM,
                        IPPROTO_UDP);
     if (_fd == retired_fd)
         return -1;
@@ -187,7 +187,7 @@ void udp_engine_t::plug (ZmqThread *io_thread_, ZmqSessionBase *session_)
     io_object_t::plug (io_thread_);
     _handle = add_fd (_fd);
 
-    const UdpAddress *const udp_addr = _address.resolved.udp_addr;
+    const UdpAddress *const udp_addr = address.resolved.udp_addr;
 
     int rc = 0;
 
@@ -462,7 +462,7 @@ void udp_engine_t::sockaddr_to_msg (msg: &mut ZmqMessage
     *address = 0;
 }
 
-int udp_engine_t::resolve_raw_address (name_: &str, length_: usize)
+int udp_engine_t::resolve_raw_address (name: &str, length_: usize)
 {
     memset (&_raw_address, 0, sizeof _raw_address);
 
@@ -471,7 +471,7 @@ int udp_engine_t::resolve_raw_address (name_: &str, length_: usize)
     // Find delimiter, cannot use memrchr as it is not supported on windows
     if (length_ != 0) {
         int chars_left = static_cast<int> (length_);
-        const char *current_char = name_ + length_;
+        const char *current_char = name + length_;
         do {
             if (*(--current_char) == ':') {
                 delimiter = current_char;
@@ -485,8 +485,8 @@ int udp_engine_t::resolve_raw_address (name_: &str, length_: usize)
         return -1;
     }
 
-    const std::string addr_str (name_, delimiter - name_);
-    const std::string port_str (delimiter + 1, name_ + length_ - delimiter - 1);
+    const std::string addr_str (name, delimiter - name);
+    const std::string port_str (delimiter + 1, name + length_ - delimiter - 1);
 
     //  Parse the port number (0 is not a valid port).
     const uint16_t port = static_cast<uint16_t> (atoi (port_str.c_str ()));

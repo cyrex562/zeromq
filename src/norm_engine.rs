@@ -15,38 +15,38 @@
 
 
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
-pub struct norm_engine_t ZMQ_FINAL : public io_object_t, public i_engine
+pub struct norm_engine_t  : public io_object_t, public i_engine
 {
 // public:
     norm_engine_t (ZmqThread *parent_, options: &ZmqOptions);
-    ~norm_engine_t () ZMQ_FINAL;
+    ~norm_engine_t () ;
 
     // create NORM instance, session, etc
     int init (network_: &str, send: bool, recv: bool);
     void shutdown ();
 
-    bool has_handshake_stage () ZMQ_FINAL { return false; };
+    bool has_handshake_stage ()  { return false; };
 
     //  i_engine interface implementation.
     //  Plug the engine to the session.
     void plug (ZmqThread *io_thread_,
-pub struct ZmqSessionBase *session_) ZMQ_FINAL;
+pub struct ZmqSessionBase *session_) ;
 
     //  Terminate and deallocate the engine. Note that 'detached'
     //  events are not fired on termination.
-    void terminate () ZMQ_FINAL;
+    void terminate () ;
 
     //  This method is called by the session to signalise that more
     //  messages can be written to the pipe.
-    bool restart_input () ZMQ_FINAL;
+    bool restart_input () ;
 
     //  This method is called by the session to signalise that there
     //  are messages to send available.
-    void restart_output () ZMQ_FINAL;
+    void restart_output () ;
 
-    void zap_msg_available () ZMQ_FINAL {}
+    void zap_msg_available ()  {}
 
-    const EndpointUriPair &get_endpoint () const ZMQ_FINAL;
+    const EndpointUriPair &get_endpoint () const ;
 
     // i_poll_events interface implementation.
     // (we only need in_event() for NormEvent notification)

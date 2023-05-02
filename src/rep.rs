@@ -131,7 +131,7 @@ bool rep_t::xhas_out ()
 
     return router_t::xhas_out ();
 }
-pub struct rep_t ZMQ_FINAL : public router_t
+pub struct rep_t  : public router_t
 {
 // public:
     rep_t (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -152,5 +152,5 @@ pub struct rep_t ZMQ_FINAL : public router_t
     //  of the request is the backtrace stack.
     _request_begins: bool
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (rep_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (rep_t)
 };

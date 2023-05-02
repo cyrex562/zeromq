@@ -296,7 +296,7 @@ void stream_t::identify_peer (pipe: &mut ZmqPipe, locally_initiated_: bool)
     pipe.set_router_socket_routing_id (routing_id);
     add_out_pipe (ZMQ_MOVE (routing_id), pipe);
 }
-pub struct stream_t ZMQ_FINAL : public routing_socket_base_t
+pub struct stream_t  : public routing_socket_base_t
 {
 // public:
     stream_t (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -319,7 +319,7 @@ pub struct stream_t ZMQ_FINAL : public routing_socket_base_t
     void identify_peer (pipe: &mut ZmqPipe, locally_initiated_: bool);
 
     //  Fair queueing object for inbound pipes.
-    fq_t fair_queue;
+    ZmqFq fair_queue;
 
     //  True iff there is a message held in the pre-fetch buffer.
     _prefetched: bool
@@ -344,5 +344,5 @@ pub struct stream_t ZMQ_FINAL : public routing_socket_base_t
     //  algorithm. This value is the next ID to use (if not used already).
     u32 _next_integral_routing_id;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_t)
 };

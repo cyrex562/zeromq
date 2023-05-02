@@ -74,7 +74,7 @@ bool pull_t::xhas_in ()
 {
     return fair_queue.has_in ();
 }
-pub struct pull_t ZMQ_FINAL : public ZmqSocketBase
+pub struct pull_t  : public ZmqSocketBase
 {
 // public:
     pull_t (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -92,7 +92,7 @@ pub struct pull_t ZMQ_FINAL : public ZmqSocketBase
 
   // private:
     //  Fair queueing object for inbound pipes.
-    fq_t fair_queue;
+    ZmqFq fair_queue;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (pull_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (pull_t)
 };

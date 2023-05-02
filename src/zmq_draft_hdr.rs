@@ -83,25 +83,25 @@
 // #define ZMQ_ZERO_COPY_RECV 10
 
 //   DRAFT Context methods.
-int zmq_ctx_set_ext (context_: &mut [u8],
-                     option_: i32,
-                     const optval_: &mut [u8],
-                     optvallen_: usize);
-int zmq_ctx_get_ext (context_: &mut [u8],
-                     option_: i32,
-                     optval_: &mut [u8],
-                     optvallen_: *mut usize);
+// int zmq_ctx_set_ext (context_: &mut [u8],
+//                      option_: i32,
+//                      const optval_: &mut [u8],
+//                      optvallen_: usize);
+// int zmq_ctx_get_ext (context_: &mut [u8],
+//                      option_: i32,
+//                      optval_: &mut [u8],
+//                      optvallen_: *mut usize);
 
 //   DRAFT Socket methods.
-int zmq_join (s_: &mut [u8], group_: &str);
-int zmq_leave (s_: &mut [u8], group_: &str);
+// int zmq_join (s_: &mut [u8], group_: &str);
+// int zmq_leave (s_: &mut [u8], group_: &str);
 
 //   DRAFT Msg methods.
-int zmq_msg_set_routing_id (msg: *mut ZmqMessage, u32 routing_id_);
-u32 zmq_msg_routing_id (ZmqMessage *msg);
-int zmq_msg_set_group (msg: *mut ZmqMessage, group_: &str);
-const char *zmq_msg_group (ZmqMessage *msg);
-int zmq_msg_init_buffer (msg: *mut ZmqMessage, const buf: &mut [u8], size: usize);
+// int zmq_msg_set_routing_id (msg: *mut ZmqMessage, u32 routing_id_);
+// u32 zmq_msg_routing_id (ZmqMessage *msg);
+// int zmq_msg_set_group (msg: *mut ZmqMessage, group_: &str);
+// const char *zmq_msg_group (ZmqMessage *msg);
+// int zmq_msg_init_buffer (msg: *mut ZmqMessage, const buf: &mut [u8], size: usize);
 
 //   DRAFT Msg property names.
 pub const ZMQ_MSG_PROPERTY_ROUTING_ID: &'static str = "Routing-Id";

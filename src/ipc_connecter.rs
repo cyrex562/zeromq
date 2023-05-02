@@ -51,7 +51,7 @@
 // #include <sys/socket.h>
 // #include <sys/un.h>
 // #endif
-pub struct ipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
+pub struct ipc_connecter_t  : public stream_connecter_base_t
 {
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
@@ -78,7 +78,7 @@ pub struct ipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     //  retired_fd if the connection was unsuccessful.
     ZmqFileDesc connect ();
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (ipc_connecter_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ipc_connecter_t)
 };
 
 ipc_connecter_t::ipc_connecter_t (class ZmqThread *io_thread_,

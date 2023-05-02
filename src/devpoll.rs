@@ -79,7 +79,7 @@ pub struct DevPoll {
     // pending_list_t pending_list;
     pub pending_list: Vec<ZmqFileDesc>,
     //  Pollset manipulation function.
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (DevPoll)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (DevPoll)
     pub worker_poller_base: WorkerPollerBase,
 }
 
@@ -95,7 +95,7 @@ impl DevPoll {
             ..Default::default()
         }
     }
-    // ~DevPoll () ZMQ_FINAL;
+    // ~DevPoll () ;
     // DevPoll::~DevPoll ()
     // {
     //     //  Wait till the worker thread exits.
@@ -191,7 +191,7 @@ impl DevPoll {
     // private:
     //  Main event loop.
 
-    // void loop () ZMQ_FINAL;
+    // void loop () ;
 
     // void devpoll_ctl (fd: ZmqFileDesc, short events_);
     pub fn devpoll_ctl(&mut self, fd: ZmqFileDesc, events_: i16) {

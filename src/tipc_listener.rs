@@ -54,7 +54,7 @@
 // #else
 // #include <linux/tipc.h>
 // #endif
-pub struct tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
+pub struct tipc_listener_t  : public stream_listener_base_t
 {
 // public:
     tipc_listener_t (ZmqThread *io_thread_,
@@ -66,11 +66,11 @@ pub struct tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
 
   protected:
     std::string get_socket_name (fd: ZmqFileDesc,
-                                 SocketEnd socket_end_) const ZMQ_FINAL;
+                                 SocketEnd socket_end_) const ;
 
   // private:
     //  Handlers for I/O events.
-    void in_event () ZMQ_FINAL;
+    void in_event () ;
 
     //  Accept the new connection. Returns the file descriptor of the
     //  newly created connection. The function may return retired_fd
@@ -78,9 +78,9 @@ pub struct tipc_listener_t ZMQ_FINAL : public stream_listener_base_t
     ZmqFileDesc accept ();
 
     // Address to listen on
-    TipcAddress _address;
+    TipcAddress address;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (tipc_listener_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (tipc_listener_t)
 };
 
 tipc_listener_t::tipc_listener_t (ZmqThread *io_thread_,
@@ -116,14 +116,14 @@ tipc_listener_t::get_socket_name (fd: ZmqFileDesc,
 int tipc_listener_t::set_local_address (addr_: &str)
 {
     // Convert str to address struct
-    int rc = _address.resolve (addr_);
+    int rc = address.resolve (addr_);
     if (rc != 0)
         return -1;
 
     // Cannot bind non-random Port Identity
     const sockaddr_tipc *const a =
-      reinterpret_cast<const sockaddr_tipc *> (_address.addr ());
-    if (!_address.is_random () && a.addrtype == TIPC_ADDR_ID) {
+      reinterpret_cast<const sockaddr_tipc *> (address.addr ());
+    if (!address.is_random () && a.addrtype == TIPC_ADDR_ID) {
         errno = EINVAL;
         return -1;
     }
@@ -134,25 +134,25 @@ int tipc_listener_t::set_local_address (addr_: &str)
         return -1;
 
     // If random Port Identity, update address object to reflect the assigned address
-    if (_address.is_random ()) {
+    if (address.is_random ()) {
         struct sockaddr_storage ss;
         const ZmqSocklen sl = get_socket_address (_s, SocketEndLocal, &ss);
         if (sl == 0)
             goto error;
 
-        _address =
+        address =
           TipcAddress (reinterpret_cast<struct sockaddr *> (&ss), sl);
     }
 
 
-    _address.to_string (_endpoint);
+    address.to_string (_endpoint);
 
     //  Bind the socket to tipc name
-    if (_address.is_service ()) {
+    if (address.is_service ()) {
 // #ifdef ZMQ_HAVE_VXWORKS
         rc = bind (_s, (sockaddr *) address.addr (), address.addrlen ());
 // #else
-        rc = bind (_s, _address.addr (), _address.addrlen ());
+        rc = bind (_s, address.addr (), address.addrlen ());
 // #endif
         if (rc != 0)
             goto error;

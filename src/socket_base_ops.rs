@@ -47,7 +47,7 @@ pub trait ZmqSocketBaseOps {
     }
 
     //  The default implementation assumes there are no specific socket
-    //  options for the particular socket type. If not so, ZMQ_FINAL this
+    //  options for the particular socket type. If not so,  this
     //  method.
     // virtual int
     // xsetsockopt (option_: i32, const optval_: *mut c_void, optvallen_: usize);
@@ -64,7 +64,7 @@ pub trait ZmqSocketBaseOps {
     // pub xgetsockopt_func: Option<XGetSockOptFunc>,
     // pub type XGetSockOptFunc = fn (&mut ZmqSocketBase, a: i32, b: &mut [u8], c: usize) -> anyhow::Result<()>;
     //  The default implementation assumes there are no specific socket
-    //  options for the particular socket type. If not so, ZMQ_FINAL this
+    //  options for the particular socket type. If not so,  this
     //  method.
     // virtual int xgetsockopt (option_: i32, optval_: *mut c_void, optvallen_: *mut usize);
     fn xgetsockopt(

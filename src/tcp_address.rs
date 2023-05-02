@@ -34,13 +34,13 @@ impl TcpAddress {
     //  structure. If 'local' is true, names are resolved as local interface
     //  names. If it is false, names are resolved as remote hostnames.
     //  If 'ipv6' is true, the name may resolve to IPv6 address.
-    // int resolve (name_: *const c_char, bool local_, bool ipv6_);
+    // int resolve (name: *const c_char, bool local_, bool ipv6);
 
     //  The opposite to resolve()
     // int to_string (std::string &addr_) const;
     // TcpAddress () : _has_src_addr (false)
     // {
-    //     memset (&_address, 0, mem::size_of::<_address>());
+    //     memset (&address, 0, mem::size_of::<address>());
     //     memset (&_source_address, 0, mem::size_of::<_source_address>());
     // }
     
@@ -49,23 +49,23 @@ impl TcpAddress {
     // {
     //     zmq_assert (sa_ && sa_len_ > 0);
     // 
-    //     memset (&_address, 0, mem::size_of::<_address>());
+    //     memset (&address, 0, mem::size_of::<address>());
     //     memset (&_source_address, 0, mem::size_of::<_source_address>());
     //     if (sa_->sa_family == AF_INET
-    //         && sa_len_ >= static_cast<socklen_t> (sizeof (_address.ipv4)))
-    //         memcpy (&_address.ipv4, sa_, sizeof (_address.ipv4));
+    //         && sa_len_ >= static_cast<socklen_t> (sizeof (address.ipv4)))
+    //         memcpy (&address.ipv4, sa_, sizeof (address.ipv4));
     //     else if (sa_->sa_family == AF_INET6
-    //              && sa_len_ >= static_cast<socklen_t> (sizeof (_address.ipv6)))
-    //         memcpy (&_address.ipv6, sa_, sizeof (_address.ipv6));
+    //              && sa_len_ >= static_cast<socklen_t> (sizeof (address.ipv6)))
+    //         memcpy (&address.ipv6, sa_, sizeof (address.ipv6));
     // }
     
     pub fn resolve(&mut self, name: &mut str, local: bool, ipv6: bool) -> i32 {
-        // Test the ';' to know if we have a source address in name_
-        // const char *src_delimiter = strrchr (name_, ';');
+        // Test the ';' to know if we have a source address in name
+        // const char *src_delimiter = strrchr (name, ';');
         let src_delimeter = name.find(';');
         if src_delimiter.is_some() {
             let src_name = &name[..src_delimeter.unwrap()];
-            // const std::string src_name (name_, src_delimiter - name_);
+            // const std::string src_name (name, src_delimiter - name);
 
             let mut src_resolver_opts = IpResolverOptions {
                 bindable: true,
@@ -83,7 +83,7 @@ impl TcpAddress {
             //   //  indeterminate socktype.
             //   .allow_dns (false)
             //   .allow_nic_name (true)
-            //   .ipv6 (ipv6_)
+            //   .ipv6 (ipv6)
             //   .expect_port (true);
             let mut src_resolver = IpResolver::new(&src_resolver_opts);
             let rc =  src_resolver.resolve (&mut self.src_addr.unwrap(), src_name);
@@ -98,7 +98,7 @@ impl TcpAddress {
         // resolver_opts.bindable (local_)
         //           .allow_dns (!local_)
         //           .allow_nic_name (local_)
-        //           .ipv6 (ipv6_)
+        //           .ipv6 (ipv6)
         //           .expect_port (true);
         let resolver_opts = IpResolverOptions {
             bindable: false,
@@ -112,7 +112,7 @@ impl TcpAddress {
         // ip_resolver_t resolver (resolver_opts);
         let mut resolver = IpResolver::new(&resolver_opts);
 
-        // return resolver.resolve (&_address, name_);
+        // return resolver.resolve (&address, name);
         return resolver.resolve(&mut self.addr, name);
     }
 
@@ -163,25 +163,25 @@ impl TcpAddressMask {
     // This function enhances tcp_address_t::resolve() with ability to parse
     // additional cidr-like(/xx) mask value at the end of the name string.
     // Works only with remote hostnames.
-    // int resolve (const char *name_, bool ipv6_);
-    pub fn resolve(&mut self, name_: &str, ipv6_: bool) -> i32 {
+    // int resolve (const char *name, bool ipv6);
+    pub fn resolve(&mut self, name: &str, ipv6: bool) -> i32 {
         // Find '/' at the end that separates address from the cidr mask number.
         // Allow empty mask clause and treat it like '/32' for ipv4 or '/128' for ipv6.
         // std::string addr_str, mask_str;
         let mut addr_str: &str = "";
         let mut mask_str: &str = "";
 
-        // const char *delimiter = strrchr (name_, '/');
-        let mut delimiter = name_.find('/');
+        // const char *delimiter = strrchr (name, '/');
+        let mut delimiter = name.find('/');
         if delimiter.is_some() {
-            addr_str = &name_[..delimiter.unwrap()];
-            mask_str = &name_[delimiter.unwrap()+1..];
+            addr_str = &name[..delimiter.unwrap()];
+            mask_str = &name[delimiter.unwrap()+1..];
             if mask_str.is_empty () {
                 errno = EINVAL;
                 return -1;
             }
         } else {
-            addr_str = name_;
+            addr_str = name;
         }
 
         // Parse address part using standard routines.
@@ -189,13 +189,13 @@ impl TcpAddressMask {
         // resolver_opts.bindable (false)
         //   .allow_dns (false)
         //   .allow_nic_name (false)
-        //   .ipv6 (ipv6_)
+        //   .ipv6 (ipv6)
         //   .expect_port (false);
         let mut resolver_opts = IpResolverOptions {
             bindable: false,
             allow_dns: false,
             allow_nic_name: false,
-            ipv6: ipv6_,
+            ipv6: ipv6,
             expect_port: false,
             allow_path: false,
         };

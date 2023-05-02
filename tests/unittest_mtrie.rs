@@ -367,10 +367,10 @@ void test_rm_multiple_reverse_order ()
 
 void check_name (generic_mtrie_t<int>::prefix_t data,
                  len_: usize,
-                 name_: &str)
+                 name: &str)
 {
-    TEST_ASSERT_EQUAL_UINT (strlen (name_), len_);
-    TEST_ASSERT_EQUAL_STRING_LEN (name_, data, len_);
+    TEST_ASSERT_EQUAL_UINT (strlen (name), len_);
+    TEST_ASSERT_EQUAL_STRING_LEN (name, data, len_);
 }
 
 template <size_t N> void add_entries_rm_pipes_unique (const char *(&names_)[N])

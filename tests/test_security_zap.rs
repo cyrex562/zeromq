@@ -362,63 +362,63 @@ test_zap_unsuccesful_do_not_send (socket_config_fn server_socket_config_,
 }
 
 // #define DEFINE_ZAP_ERROR_TESTS(                                                \
-  name_, server_socket_config_, server_socket_config_data_,                    \
+  name, server_socket_config_, server_socket_config_data_,                    \
   client_socket_config_, client_socket_config_data_)                           \
-    void test_zap_protocol_error_wrong_version_##name_ ()                      \
+    void test_zap_protocol_error_wrong_version_##name ()                      \
     {                                                                          \
         test_zap_protocol_error_wrong_version (                                \
           server_socket_config_, client_socket_config_,                        \
           client_socket_config_data_, server_socket_config_data_);             \
     }                                                                          \
-    void test_zap_protocol_error_wrong_request_id_##name_ ()                   \
+    void test_zap_protocol_error_wrong_request_id_##name ()                   \
     {                                                                          \
         test_zap_protocol_error_wrong_request_id (                             \
           server_socket_config_, client_socket_config_,                        \
           client_socket_config_data_, server_socket_config_data_);             \
     }                                                                          \
-    void test_zap_protocol_error_wrong_status_invalid_##name_ ()               \
+    void test_zap_protocol_error_wrong_status_invalid_##name ()               \
     {                                                                          \
         test_zap_protocol_error_wrong_status_invalid (                         \
           server_socket_config_, client_socket_config_,                        \
           client_socket_config_data_, server_socket_config_data_);             \
     }                                                                          \
-    void test_zap_protocol_error_too_many_parts_##name_ ()                     \
+    void test_zap_protocol_error_too_many_parts_##name ()                     \
     {                                                                          \
         test_zap_protocol_error_too_many_parts (                               \
           server_socket_config_, client_socket_config_,                        \
           client_socket_config_data_, server_socket_config_data_);             \
     }                                                                          \
-    void test_zap_wrong_status_temporary_failure_##name_ ()                    \
+    void test_zap_wrong_status_temporary_failure_##name ()                    \
     {                                                                          \
         test_zap_wrong_status_temporary_failure (                              \
           server_socket_config_, client_socket_config_,                        \
           client_socket_config_data_, server_socket_config_data_);             \
     }                                                                          \
-    void test_zap_wrong_status_internal_error_##name_ ()                       \
+    void test_zap_wrong_status_internal_error_##name ()                       \
     {                                                                          \
         test_zap_wrong_status_internal_error (server_socket_config_,           \
                                               client_socket_config_,           \
                                               client_socket_config_data_);     \
     }                                                                          \
-    void test_zap_unsuccessful_no_handler_started_##name_ ()                   \
+    void test_zap_unsuccessful_no_handler_started_##name ()                   \
     {                                                                          \
         test_zap_unsuccesful_no_handler_started (                              \
           server_socket_config_, client_socket_config_,                        \
           client_socket_config_data_, server_socket_config_data_);             \
     }                                                                          \
-    void test_zap_unsuccessful_disconnect_##name_ ()                           \
+    void test_zap_unsuccessful_disconnect_##name ()                           \
     {                                                                          \
         test_zap_unsuccesful_disconnect (server_socket_config_,                \
                                          client_socket_config_,                \
                                          client_socket_config_data_);          \
     }                                                                          \
-    void test_zap_unsuccessful_do_not_recv_##name_ ()                          \
+    void test_zap_unsuccessful_do_not_recv_##name ()                          \
     {                                                                          \
         test_zap_unsuccesful_do_not_recv (server_socket_config_,               \
                                           client_socket_config_,               \
                                           client_socket_config_data_);         \
     }                                                                          \
-    void test_zap_unsuccessful_do_not_send_##name_ ()                          \
+    void test_zap_unsuccessful_do_not_send_##name ()                          \
     {                                                                          \
         test_zap_unsuccesful_do_not_send (server_socket_config_,               \
                                           client_socket_config_,               \
@@ -440,18 +440,18 @@ DEFINE_ZAP_ERROR_TESTS (curve,
                         &socket_config_curve_client,
                         &curve_client_data)
 
-// #define RUN_ZAP_ERROR_TESTS(name_)                                             \
+// #define RUN_ZAP_ERROR_TESTS(name)                                             \
     {                                                                          \
-        RUN_TEST (test_zap_protocol_error_wrong_version_##name_);              \
-        RUN_TEST (test_zap_protocol_error_wrong_request_id_##name_);           \
-        RUN_TEST (test_zap_protocol_error_wrong_status_invalid_##name_);       \
-        RUN_TEST (test_zap_protocol_error_too_many_parts_##name_);             \
-        RUN_TEST (test_zap_wrong_status_temporary_failure_##name_);            \
-        RUN_TEST (test_zap_wrong_status_internal_error_##name_);               \
-        RUN_TEST (test_zap_unsuccessful_no_handler_started_##name_);           \
-        RUN_TEST (test_zap_unsuccessful_disconnect_##name_);                   \
-        RUN_TEST (test_zap_unsuccessful_do_not_recv_##name_);                  \
-        RUN_TEST (test_zap_unsuccessful_do_not_send_##name_);                  \
+        RUN_TEST (test_zap_protocol_error_wrong_version_##name);              \
+        RUN_TEST (test_zap_protocol_error_wrong_request_id_##name);           \
+        RUN_TEST (test_zap_protocol_error_wrong_status_invalid_##name);       \
+        RUN_TEST (test_zap_protocol_error_too_many_parts_##name);             \
+        RUN_TEST (test_zap_wrong_status_temporary_failure_##name);            \
+        RUN_TEST (test_zap_wrong_status_internal_error_##name);               \
+        RUN_TEST (test_zap_unsuccessful_no_handler_started_##name);           \
+        RUN_TEST (test_zap_unsuccessful_disconnect_##name);                   \
+        RUN_TEST (test_zap_unsuccessful_do_not_recv_##name);                  \
+        RUN_TEST (test_zap_unsuccessful_do_not_send_##name);                  \
     }
 
 int main ()

@@ -105,7 +105,6 @@
 //         }
 //     }
 
-
 //     bool check_read ()
 //     {
 //         scoped_lock_t lock (sync);
@@ -119,7 +118,6 @@
 //         return (*fn_) (*_front);
 //     }
 
-
 //   // private:
 //     ZmqMessage _storage[2];
 //     _back: &mut ZmqMessage *_front;
@@ -127,7 +125,7 @@
 //     mutex_t sync;
 //     _has_msg: bool
 
-//     ZMQ_NON_COPYABLE_NOR_MOVABLE (dbuffer_t)
+//     // ZMQ_NON_COPYABLE_NOR_MOVABLE (dbuffer_t)
 // };
 // }
 

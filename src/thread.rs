@@ -76,7 +76,7 @@ pub struct thread_t
     //  'arg' as an argument.
     //  Name is 16 characters max including terminating NUL. Thread naming is
     //  implemented only for pthread, and windows when a debugger is attached.
-    void start (thread_fn *tfn_, arg_: &mut [u8], name_: &str);
+    void start (thread_fn *tfn_, arg_: &mut [u8], name: &str);
 
     //  Returns whether the thread was started, i.e. start was called.
     bool get_started () const;
@@ -129,7 +129,7 @@ pub struct thread_t
     _thread_sched_policy: i32;
     std::set<int> _thread_affinity_cpus;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (thread_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (thread_t)
 };
 
 bool thread_t::get_started () const
@@ -153,12 +153,12 @@ static unsigned int __stdcall thread_routine (arg_: &mut [u8])
 }
 }
 
-void thread_t::start (thread_fn *tfn_, arg_: &mut [u8], name_: &str)
+void thread_t::start (thread_fn *tfn_, arg_: &mut [u8], name: &str)
 {
     _tfn = tfn_;
     _arg = arg_;
-    if (name_)
-        strncpy (_name, name_, mem::size_of::<_name>() - 1);
+    if (name)
+        strncpy (_name, name, mem::size_of::<_name>() - 1);
 
     // set default stack size to 4MB to avoid std::map stack overflow on x64
     unsigned int stack = 0;
@@ -273,9 +273,9 @@ static void *thread_routine (arg_: &mut [u8])
 }
 }
 
-void thread_t::start (thread_fn *tfn_, arg_: &mut [u8], name_: &str)
+void thread_t::start (thread_fn *tfn_, arg_: &mut [u8], name: &str)
 {
-    LIBZMQ_UNUSED (name_);
+    LIBZMQ_UNUSED (name);
     _tfn = tfn_;
     _arg = arg_;
     _descriptor = taskSpawn (null_mut(), DEFAULT_PRIORITY, DEFAULT_OPTIONS,
@@ -350,12 +350,12 @@ static void *thread_routine (arg_: &mut [u8])
 }
 }
 
-void thread_t::start (thread_fn *tfn_, arg_: &mut [u8], name_: &str)
+void thread_t::start (thread_fn *tfn_, arg_: &mut [u8], name: &str)
 {
     _tfn = tfn_;
     _arg = arg_;
-    if (name_)
-        strncpy (_name, name_, mem::size_of::<_name>() - 1);
+    if (name)
+        strncpy (_name, name, mem::size_of::<_name>() - 1);
     int rc = pthread_create (&_descriptor, null_mut(), thread_routine, this);
     posix_assert (rc);
     _started = true;

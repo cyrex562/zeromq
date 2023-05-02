@@ -38,7 +38,7 @@
 // #include "likely.hpp"
 // #include "wire.hpp"
 // #include "err.hpp"
-pub struct v1_decoder_t ZMQ_FINAL : public DecoderBase<v1_decoder_t>
+pub struct v1_decoder_t  : public DecoderBase<v1_decoder_t>
 {
 // public:
     v1_decoder_t (bufsize_: usize, i64 maxmsgsize_);
@@ -57,7 +57,7 @@ pub struct v1_decoder_t ZMQ_FINAL : public DecoderBase<v1_decoder_t>
 
     const i64 _max_msg_size;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (v1_decoder_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (v1_decoder_t)
 };
 
 v1_decoder_t::v1_decoder_t (bufsize_: usize, i64 maxmsgsize_) :

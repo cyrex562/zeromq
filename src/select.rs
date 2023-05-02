@@ -54,13 +54,13 @@
 // #include <algorithm>
 // #include <limits>
 // #include <climits>
-pub struct select_t ZMQ_FINAL : public WorkerPollerBase
+pub struct select_t  : public WorkerPollerBase
 {
 // public:
     typedef ZmqFileDesc handle_t;
 
     select_t (const ThreadCtx &ctx);
-    ~select_t () ZMQ_FINAL;
+    ~select_t () ;
 
     //  "poller" concept.
     handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
@@ -75,7 +75,7 @@ pub struct select_t ZMQ_FINAL : public WorkerPollerBase
 
   // private:
     //  Main event loop.
-    void loop () ZMQ_FINAL;
+    void loop () ;
 
     //  Internal state.
     struct fds_set_t
@@ -157,7 +157,7 @@ pub struct select_t ZMQ_FINAL : public WorkerPollerBase
     static fd_entries_t::iterator
     find_fd_entry_by_handle (fd_entries_t &fd_entries_, handle_t handle_);
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (select_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (select_t)
 };
 
 typedef select_t Poller;

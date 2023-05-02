@@ -47,17 +47,17 @@ pub struct router_t : public routing_socket_base_t
     //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (pipe: &mut ZmqPipe,
                        subscribe_to_all_: bool,
-                       locally_initiated_: bool) ZMQ_FINAL;
+                       locally_initiated_: bool) ;
     int
-    xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize) ZMQ_FINAL;
+    xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize) ;
     int xsend (msg: &mut ZmqMessage) ;
     int xrecv (msg: &mut ZmqMessage) ;
     bool xhas_in () ;
     bool xhas_out () ;
-    void xread_activated (pipe: &mut ZmqPipe) ZMQ_FINAL;
-    void xpipe_terminated (pipe: &mut ZmqPipe) ZMQ_FINAL;
+    void xread_activated (pipe: &mut ZmqPipe) ;
+    void xpipe_terminated (pipe: &mut ZmqPipe) ;
     int get_peer_state (const routing_id_: &mut [u8],
-                        routing_id_size_: usize) const ZMQ_FINAL;
+                        routing_id_size_: usize) const ;
 
   protected:
     //  Rollback any message parts that were sent but not yet flushed.
@@ -68,7 +68,7 @@ pub struct router_t : public routing_socket_base_t
     bool identify_peer (pipe: &mut ZmqPipe, locally_initiated_: bool);
 
     //  Fair queueing object for inbound pipes.
-    fq_t fair_queue;
+    ZmqFq fair_queue;
 
     //  True iff there is a message held in the pre-fetch buffer.
     _prefetched: bool
@@ -118,7 +118,7 @@ pub struct router_t : public routing_socket_base_t
     // will be terminated.
     _handover: bool
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (router_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (router_t)
 };
 
 router_t::router_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :

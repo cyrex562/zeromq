@@ -667,7 +667,7 @@ pub struct generic_mtrie_t<value_t> **table;
         processed_for_removal: bool
     };
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (generic_mtrie_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (generic_mtrie_t)
 };
 }
 

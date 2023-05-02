@@ -67,7 +67,7 @@ pub enum plain_server_state_t {
 
 pub struct plain_server_t {
     mechanism_base: ZmqMechanismBase,
-    zap_client_common_handshake_t: zap_client_common_handshake_t,
+    ZmqZapClientCommonHandshake: ZmqZapClientCommonHandshake,
     state: plain_server_state_t,
     username: String,
     password: String,
@@ -79,7 +79,7 @@ impl plain_server_t {
     pub fn new(session: &ZmqSessionBase, peer_address: &str, options: &ZmqOptions) -> Self {
         Self {
             mechanism_base: ZmqMechanismBase::new(session, options),
-            zap_client_common_handshake_t: zap_client_common_handshake_t::new(session, peer_address, options, Self::produce_welcome),
+            ZmqZapClientCommonHandshake: ZmqZapClientCommonHandshake::new(session, peer_address, options, Self::produce_welcome),
             state: plain_server_state_t::plain_server_state_ready,
             username: String::new(),
             password: String::new(),
@@ -116,7 +116,7 @@ impl plain_server_t {
 //                                      const std::string &peer_address_,
 //                                      options: &ZmqOptions) :
 //     ZmqMechanismBase (session_, options_),
-//     zap_client_common_handshake_t (
+//     ZmqZapClientCommonHandshake (
 //       session_, peer_address_, options_, sending_welcome)
 // {
 //     //  Note that there is no point to PLAIN if ZAP is not set up to handle the
@@ -299,7 +299,7 @@ void plain_server_t::send_zap_request (const std::string &username_,
       reinterpret_cast<const uint8_t *> (password_.c_str ())};
     size_t credentials_sizes[] = {username_.size (), password_.size ()};
     pub const plain_mechanism_name: &str = "PLAIN";
-    zap_client_t::send_zap_request (
+    ZmqZapClient::send_zap_request (
       plain_mechanism_name, mem::size_of::<plain_mechanism_name>() - 1, credentials,
       credentials_sizes, mem::size_of::<credentials>() / sizeof (credentials[0]));
 }

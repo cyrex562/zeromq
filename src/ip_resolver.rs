@@ -29,7 +29,7 @@ impl IpResolverOptions {
 
     // IpResolverOptions &bindable (bool bindable_);
     // IpResolverOptions &allow_nic_name (bool allow_);
-    // IpResolverOptions &ipv6 (bool ipv6_);
+    // IpResolverOptions &ipv6 (bool ipv6);
     // IpResolverOptions &expect_port (bool expect_);
     // IpResolverOptions &allow_dns (bool allow_);
     // IpResolverOptions &allow_path (bool allow_);
@@ -54,7 +54,7 @@ impl IpResolver {
 
     // virtual ~ip_resolver_t (){};
 
-    // int resolve (ip_addr_t *ip_addr_, name_: *const c_char);
+    // int resolve (ip_addr_t *ip_addr_, name: *const c_char);
 
   // protected:
     //  Virtual functions that are overridden in tests
@@ -99,7 +99,7 @@ impl IpResolver {
         if self.options.expect_port {
             //  We expect 'addr:port'. It's important to use str*r*chr to only get
             //  the latest colon since IPv6 addresses use colons as delemiters.
-            // const char *delim = strrchr (name_, ':');
+            // const char *delim = strrchr (name, ':');
             let delim = name.find(':');
 
             if delim.is_none() {
@@ -107,7 +107,7 @@ impl IpResolver {
                 return -1;
             }
 
-            // addr = std::string (name_, delim - name_);
+            // addr = std::string (name, delim - name);
             let addr = &name[..delim.unwrap()];
             let port_str = &name[delim.unwrap() + 1..];
 

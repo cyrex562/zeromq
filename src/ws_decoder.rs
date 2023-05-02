@@ -41,7 +41,7 @@
 //  Decoder for Web socket framing protocol. Converts data stream into messages.
 //  The class has to inherit from shared_message_memory_allocator because
 //  the base class calls allocate in its constructor.
-pub struct ws_decoder_t ZMQ_FINAL
+pub struct ws_decoder_t
     : public DecoderBase<ws_decoder_t, shared_message_memory_allocator>
 {
 // public:
@@ -76,7 +76,7 @@ pub struct ws_decoder_t ZMQ_FINAL
     ws_protocol_t::opcode_t _opcode;
     unsigned char _mask[4];
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_decoder_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_decoder_t)
 };
 
 ws_decoder_t::ws_decoder_t (bufsize_: usize,

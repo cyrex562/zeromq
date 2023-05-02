@@ -67,7 +67,7 @@ pub struct poller_base_t
     //  registered.
     AtomicCounter _load;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (poller_base_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (poller_base_t)
 };
 
 //  Base class for a poller with a single worker thread.
@@ -199,10 +199,10 @@ void WorkerPollerBase::stop_worker ()
     _worker.stop ();
 }
 
-void WorkerPollerBase::start (name_: &str)
+void WorkerPollerBase::start (name: &str)
 {
     zmq_assert (get_load () > 0);
-    ctx.start_thread (_worker, worker_routine, this, name_);
+    ctx.start_thread (_worker, worker_routine, this, name);
 }
 
 void WorkerPollerBase::check_thread () const

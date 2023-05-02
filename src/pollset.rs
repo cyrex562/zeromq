@@ -41,13 +41,13 @@
 // #include "err.hpp"
 // #include "config.hpp"
 // #include "i_poll_events.hpp"
-pub struct pollset_t ZMQ_FINAL : public poller_base_t
+pub struct pollset_t  : public poller_base_t
 {
 // public:
     typedef void *handle_t;
 
     pollset_t (const ThreadCtx &ctx);
-    ~pollset_t () ZMQ_FINAL;
+    ~pollset_t () ;
 
     //  "poller" concept.
     handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
@@ -66,7 +66,7 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
     static void worker_routine (arg_: &mut [u8]);
 
     //  Main event loop.
-    void loop () ZMQ_FINAL;
+    void loop () ;
 
     // Reference to ZMQ context.
     const ThreadCtx &ctx;
@@ -96,7 +96,7 @@ pub struct pollset_t ZMQ_FINAL : public poller_base_t
     //  Handle of the physical thread doing the I/O work.
     thread_t worker;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (pollset_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (pollset_t)
 };
 
 pollset_t::pollset_t (const ThreadCtx &ctx) :

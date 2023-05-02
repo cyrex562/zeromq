@@ -65,7 +65,7 @@
 // #ifdef ZMQ_HAVE_OPENVMS
 // #include <ioctl.h>
 // #endif
-pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
+pub struct ws_listener_t  : public stream_listener_base_t
 {
 // public:
     ws_listener_t (ZmqThread *io_thread_,
@@ -95,14 +95,14 @@ pub struct ws_listener_t ZMQ_FINAL : public stream_listener_base_t
     int create_socket (addr_: &str);
 
     //  Address to listen on.
-    WsAddress _address;
+    WsAddress address;
 
     _wss: bool
 // #ifdef ZMQ_HAVE_WSS
     gnutls_certificate_credentials_t _tls_cred;
 // #endif
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_listener_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_listener_t)
 };
 
 ws_listener_t::ws_listener_t (ZmqThread *io_thread_,
@@ -171,7 +171,7 @@ std::string ws_listener_t::get_socket_name (fd: ZmqFileDesc,
 // #endif
         socket_name = get_socket_name<WsAddress> (fd, socket_end_);
 
-    return socket_name + _address.path ();
+    return socket_name + address.path ();
 }
 
 int ws_listener_t::create_socket (addr_: &str)
@@ -208,7 +208,7 @@ int ws_listener_t::create_socket (addr_: &str)
 
     //  Bind the socket to the network interface and port.
 // #if defined ZMQ_HAVE_VXWORKS
-    rc = bind (_s, (sockaddr *) _address.addr (), _address.addrlen ());
+    rc = bind (_s, (sockaddr *) address.addr (), address.addrlen ());
 // #else
     rc = bind (_s, address.addr (), address.addrlen ());
 // #endif
@@ -250,7 +250,7 @@ int ws_listener_t::set_local_address (addr_: &str)
         //  socket was already created by the application
         _s = options.use_fd;
     } else {
-        let rc: i32 = _address.resolve (addr_, true, options.ipv6);
+        let rc: i32 = address.resolve (addr_, true, options.ipv6);
         if (rc != 0)
             return -1;
 
@@ -349,14 +349,14 @@ void ws_listener_t::create_engine (ZmqFileDesc fd)
     if (_wss)
 // #ifdef ZMQ_HAVE_WSS
         engine = new (std::nothrow)
-          wss_engine_t (fd, options, endpoint_pair, _address, false, _tls_cred,
+          wss_engine_t (fd, options, endpoint_pair, address, false, _tls_cred,
                         std::string ());
 // #else
         zmq_assert (false);
 // #endif
     else
         engine = new (std::nothrow)
-          ws_engine_t (fd, options, endpoint_pair, _address, false);
+          ws_engine_t (fd, options, endpoint_pair, address, false);
 
     alloc_assert (engine);
 

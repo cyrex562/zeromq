@@ -45,14 +45,14 @@ pub struct ZmqDealer {
     // private:
     //  Messages are fair-queued from inbound pipes. And load-balanced to
     //  the outbound pipes.
-    // fq_t fair_queue;
+    // ZmqFq fair_queue;
     pub fair_queue: VecDeque<ZmqMessage>,
 
     // lb_t load_balance;
     pub load_balance: lb_t,
 
     // if true, send an empty message to every connected router peer
-    pub probe_router: bool, // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqDealer)
+    pub probe_router: bool, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqDealer)
 }
 
 impl ZmqDealer {
@@ -80,7 +80,7 @@ impl ZmqDealer {
     //  Overrides of functions from ZmqSocketBase.
     // void xattach_pipe (pipe: &mut ZmqPipe,
     //    subscribe_to_all_: bool,
-    //    locally_initiated_: bool) ZMQ_FINAL;
+    //    locally_initiated_: bool) ;
 
     pub fn xattach_pipe(
         &mut self,
@@ -164,12 +164,12 @@ impl ZmqDealer {
         return sellf.load_balance.has_out();
     }
 
-    // void xread_activated (pipe: &mut ZmqPipe) ZMQ_FINAL;
+    // void xread_activated (pipe: &mut ZmqPipe) ;
     pub fn xread_activated(&mut self, pipe: &mut ZmqPipe) {
         self.fair_queue.activated(pipe);
     }
 
-    // void xwrite_activated (pipe: &mut ZmqPipe) ZMQ_FINAL;
+    // void xwrite_activated (pipe: &mut ZmqPipe) ;
     pub fn xwrite_activated(&mut self, pipe: &mut ZmqPipe) {
         self.load_balance.activated(pipe);
     }

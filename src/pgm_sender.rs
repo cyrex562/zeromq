@@ -40,7 +40,7 @@
 // #include "wire.hpp"
 // #include "stdint.hpp"
 // #include "macros.hpp"
-pub struct pgm_sender_t ZMQ_FINAL : public io_object_t, public i_engine
+pub struct pgm_sender_t  : public io_object_t, public i_engine
 {
 // public:
     pgm_sender_t (ZmqThread *parent_, options: &ZmqOptions);
@@ -110,7 +110,7 @@ let mut msg = ZmqMessage::default();
     //  If zero, there are no data to be sent.
     write_size: usize;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (pgm_sender_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (pgm_sender_t)
 };
 
 pgm_sender_t::pgm_sender_t (ZmqThread *parent_,

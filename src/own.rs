@@ -66,7 +66,7 @@ pub struct ZmqOwn {
     // owned_t _owned;
     //  Number of events we have to get before we can destroy the object.
     pub term_acks: u32,
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqOwn)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqOwn)
     pub ctx: ZmqContext,
     pub tid: u32,
 }

@@ -63,7 +63,7 @@ pub struct io_object_t : public i_poll_events
   // private:
     Poller *poller;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (io_object_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (io_object_t)
 };
 
 io_object_t::io_object_t (ZmqThread *io_thread_) : poller (null_mut())

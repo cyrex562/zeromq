@@ -179,7 +179,7 @@ void stream_connecter_base_t::create_engine (
     if (options.raw_socket)
         engine = new (std::nothrow) raw_engine_t (fd, options, endpoint_pair);
     else
-        engine = new (std::nothrow) zmtp_engine_t (fd, options, endpoint_pair);
+        engine = new (std::nothrow) ZmqZmtpEngine (fd, options, endpoint_pair);
     alloc_assert (engine);
 
     //  Attach the engine to the corresponding session object.
@@ -212,7 +212,7 @@ pub struct stream_connecter_base_t : public ZmqOwn, public io_object_t
 
   protected:
     //  Handlers for incoming commands.
-    void process_plug () ZMQ_FINAL;
+    void process_plug () ;
     void process_term (linger: i32) ;
 
     //  Handlers for I/O events.
@@ -271,7 +271,7 @@ pub struct stream_connecter_base_t : public ZmqOwn, public io_object_t
     //  Current reconnect ivl, updated for backoff strategy
     _current_reconnect_ivl: i32;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_connecter_base_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_connecter_base_t)
 
   protected:
     //  Reference to the session we belong to.

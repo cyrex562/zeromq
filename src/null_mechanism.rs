@@ -37,7 +37,7 @@
 // #include "msg.hpp"
 // #include "session_base.hpp"
 // #include "null_mechanism.hpp"
-pub struct null_ZmqMechanism ZMQ_FINAL : public zap_client_t
+pub struct null_ZmqMechanism  : public ZmqZapClient
 {
 // public:
     null_ZmqMechanism (ZmqSessionBase *session_,
@@ -78,7 +78,7 @@ null_ZmqMechanism::null_ZmqMechanism (ZmqSessionBase *session_,
                                          const std::string &peer_address_,
                                          options: &ZmqOptions) :
     ZmqMechanismBase (session_, options_),
-    zap_client_t (session_, peer_address_, options_),
+    ZmqZapClient (session_, peer_address_, options_),
     _ready_command_sent (false),
     _error_command_sent (false),
     _ready_command_received (false),
@@ -255,5 +255,5 @@ ZmqMechanism::status_t null_ZmqMechanism::status () const
 
 void null_ZmqMechanism::send_zap_request ()
 {
-    zap_client_t::send_zap_request ("NULL", 4, null_mut(), null_mut(), 0);
+    ZmqZapClient::send_zap_request ("NULL", 4, null_mut(), null_mut(), 0);
 }

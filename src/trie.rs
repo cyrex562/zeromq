@@ -77,7 +77,7 @@ pub struct trie_t *node;
 pub struct trie_t **table;
     } next;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (trie_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (trie_t)
 };
 
 

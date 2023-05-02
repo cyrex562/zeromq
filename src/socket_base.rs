@@ -1,3 +1,14 @@
+use std::collections::HashMap;
+use std::mem;
+use std::ptr::null_mut;
+use std::sync::atomic::Ordering;
+use std::sync::Mutex;
+use std::time;
+
+use anyhow::{anyhow, bail};
+use libc::{c_void, EAGAIN, EINTR, EINVAL};
+use serde::{Deserialize, Serialize};
+
 use crate::address::Address;
 use crate::clock::clock_t;
 use crate::command::ZmqCommand;
@@ -49,15 +60,6 @@ use crate::zmq_ops::{
     zmq_bind, zmq_close, zmq_errno, zmq_msg_data, zmq_msg_init_size, zmq_msg_send, zmq_setsockopt,
     zmq_socket,
 };
-use anyhow::{anyhow, bail};
-use libc::{c_void, EAGAIN, EINTR, EINVAL};
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::mem;
-use std::ptr::null_mut;
-use std::sync::atomic::Ordering;
-use std::sync::Mutex;
-use std::time;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ZmqSocketBase {
@@ -125,7 +127,7 @@ pub struct ZmqSocketBase {
     // Mutex to synchronize access to the monitor Pair socket
     pub monitor_sync: Mutex<u8>,
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqSocketBase)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqSocketBase)
 
     // Add a flag for mark disconnect action
     pub disconnected: bool,
@@ -464,7 +466,7 @@ impl ZmqSocketBase {
             // zmq_assert (m);
 
             if m.get_fd() != retired_fd {
-                out.mailbox = m;
+                out.mailbox = Some(m);
             } else {
                 // LIBZMQ_DELETE (m);
                 out.mailbox = None;
@@ -542,7 +544,7 @@ impl ZmqSocketBase {
     //             s = new (std::nothrow) ZmqDish (parent_, tid, sid_);
     //             break;
     //         ZMQ_GATHER =>
-    //             s = new (std::nothrow) gather_t (parent_, tid, sid_);
+    //             s = new (std::nothrow) ZmqGather (parent_, tid, sid_);
     //             break;
     //         ZMQ_SCATTER =>
     //             s = new (std::nothrow) scatter_t (parent_, tid, sid_);
@@ -1317,7 +1319,7 @@ impl ZmqSocketBase {
             // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
             self.reaper_signaler = ZmqSignaler::default(); //new (std::nothrow) ZmqSignaler ();
-                                                           // zmq_assert (_reaper_signaler);
+            // zmq_assert (_reaper_signaler);
 
             //  Add signaler to the safe mailbox
             fd = _reaper_signaler.get_fd();
@@ -1338,7 +1340,7 @@ impl ZmqSocketBase {
 
     //  i_poll_events implementation. This interface is used when socket
     //  is handled by the poller in the reaper thread.
-    // void in_event () ZMQ_FINAL;
+    // void in_event () ;
     pub fn in_event(&mut self) {
         //  This function is invoked only once the socket is running in the context
         //  of the reaper thread. Process any commands from other threads/sockets
@@ -1357,29 +1359,29 @@ impl ZmqSocketBase {
         self.check_destroy();
     }
 
-    // void out_event () ZMQ_FINAL;
+    // void out_event () ;
     pub fn out_event(&mut self) {
         unimplemented!()
         // zmq_assert (false);
     }
 
-    // void timer_event (id_: i32) ZMQ_FINAL;
+    // void timer_event (id_: i32) ;
     pub fn timer_event(&mut self, id_: i32) {
         unimplemented!()
     }
 
     //  i_pipe_events interface implementation.
-    // void read_activated (ZmqPipe *pipe_) ZMQ_FINAL;
+    // void read_activated (ZmqPipe *pipe_) ;
     pub fn read_activated(&mut self, pipe: &mut ZmqPipe) {
         ops.xread_activated(pipe);
     }
 
-    // void write_activated (ZmqPipe *pipe_) ZMQ_FINAL;
+    // void write_activated (ZmqPipe *pipe_) ;
     pub fn write_activated(&mut self, pipe: &mut ZmqPipe) {
         ops.xwrite_activated(pipe);
     }
 
-    // void hiccuped (ZmqPipe *pipe_) ZMQ_FINAL;
+    // void hiccuped (ZmqPipe *pipe_) ;
     pub fn hiccuped(&mut self, options: &mut ZmqOptions, pipe: &mut ZmqPipe) {
         if (options.immediate == 1) {
             pipe.terminate(false);
@@ -1389,7 +1391,7 @@ impl ZmqSocketBase {
         }
     }
 
-    // void pipe_terminated (ZmqPipe *pipe_) ZMQ_FINAL;
+    // void pipe_terminated (ZmqPipe *pipe_) ;
     pub fn pipe_terminated(&mut self, pipe: &mut ZmqPipe) {
         //  Notify the specific socket type about the pipe termination.
         ops.xpipe_terminated(pipe);
@@ -1487,7 +1489,7 @@ impl ZmqSocketBase {
             _ => {
                 bail!("invalid socket type")
             } // errno = EINVAL;
-              // return -1;
+            // return -1;
         }
 
         //  Register events to monitor
@@ -1830,7 +1832,7 @@ impl ZmqSocketBase {
     }
 
     //  Delay actual destruction of the socket.
-    // void process_destroy () ZMQ_FINAL;
+    // void process_destroy () ;
     pub fn process_destroy(&mut self) {
         self.destroyed = true;
     }
@@ -2532,8 +2534,8 @@ impl ZmqSocketBase {
 
         if protocol_ == protocol_name::udp
             && (options.type_ != ZMQ_DISH
-                && options.type_ != ZMQ_RADIO
-                && options.type_ != ZMQ_DGRAM)
+            && options.type_ != ZMQ_RADIO
+            && options.type_ != ZMQ_DGRAM)
         {
             // errno = ENOCOMPATPROTO;
             // return -1;
@@ -2637,7 +2639,7 @@ impl ZmqSocketBase {
     }
 
     //  Handlers for incoming commands.
-    // void process_stop () ZMQ_FINAL;
+    // void process_stop () ;
     pub fn process_stop(&mut self, options: &mut ZmqOptions) {
         //  Here, someone have called zmq_ctx_term while the socket was still alive.
         //  We'll remember the fact so that any blocking call is interrupted and any
@@ -2649,14 +2651,14 @@ impl ZmqSocketBase {
         self.ctx_terminated = true;
     }
 
-    // void process_bind (ZmqPipe *pipe_) ZMQ_FINAL;
+    // void process_bind (ZmqPipe *pipe_) ;
     pub fn process_bind(&mut self, pipe: &mut ZmqPipe) {
         self.attach_pipe(pipe, false, false);
     }
 
     // void process_pipe_stats_publish (outbound_queue_count_: u64,
     //                             inbound_queue_count_: u64,
-    //                             EndpointUriPair *endpoint_pair_) ZMQ_FINAL;
+    //                             EndpointUriPair *endpoint_pair_) ;
     pub fn process_pipe_stats_publish(
         &mut self,
         options: &mut ZmqOptions,
@@ -2675,7 +2677,7 @@ impl ZmqSocketBase {
         // delete endpoint_pair_;
     }
 
-    // void process_term (linger_: i32) ZMQ_FINAL;
+    // void process_term (linger_: i32) ;
     pub fn process_term(&mut self, linger: i32) {
         //  Unregister all inproc endpoints associated with this socket.
         //  Doing this we make sure that no new pipes from other sockets (inproc)
@@ -2700,7 +2702,7 @@ impl ZmqSocketBase {
         // ZmqOwn::process_term (linger_);
     }
 
-    // void process_term_endpoint (std::string *endpoint_) ZMQ_FINAL;
+    // void process_term_endpoint (std::string *endpoint_) ;
     pub fn process_term_endpoint(&mut self, options: &mut ZmqOptions, endpoint: &str) {
         self.term_endpoint(options, endpoint);
         // delete endpoint_;
@@ -2810,7 +2812,7 @@ impl routing_socket_base_t {
         return -1;
     }
 
-    // void xwrite_activated (pipe_: &mut ZmqPipe) ZMQ_FINAL;
+    // void xwrite_activated (pipe_: &mut ZmqPipe) ;
     pub fn xwrite_activated(&mut self, pipe: &mut ZmqPipe) {
         // const out_pipes_t::iterator end = _out_pipes.end ();
         let (end_blob, end_pipe) = self._out_pipes.last().unwrap();

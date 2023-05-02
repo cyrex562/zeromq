@@ -33,7 +33,7 @@
 // #include "err.hpp"
 
 // #include <algorithm>
-pub struct mailbox_safe_t ZMQ_FINAL : public i_mailbox
+pub struct mailbox_safe_t  : public i_mailbox
 {
 // public:
     mailbox_safe_t (mutex_t *sync_);
@@ -51,7 +51,7 @@ pub struct mailbox_safe_t ZMQ_FINAL : public i_mailbox
     // close the file descriptors in the signaller. This is used in a forked
     // child process to close the file descriptors so that they do not interfere
     // with the context in the parent process.
-    void forked () ZMQ_FINAL
+    void forked ()
     {
         // TODO: call fork on the condition variable
     }
@@ -70,7 +70,7 @@ pub struct mailbox_safe_t ZMQ_FINAL : public i_mailbox
 
     std::vector<ZmqSignaler *> _signalers;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_safe_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_safe_t)
 };
 
 mailbox_safe_t::mailbox_safe_t (mutex_t *sync_) : sync (sync_)

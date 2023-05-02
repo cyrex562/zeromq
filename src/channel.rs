@@ -1,4 +1,4 @@
-use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
+use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket_base::{ZmqContext, ZmqSocketBase};
@@ -29,7 +29,7 @@ pub struct ZmqChannel
     // private:
     //   ZmqPipe *pipe;
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (channel_t)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (channel_t)
     pipe: Option<ZmqPipe>,
     base: ZmqSocketBase,
 }

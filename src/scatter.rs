@@ -33,7 +33,7 @@
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-pub struct scatter_t ZMQ_FINAL : public ZmqSocketBase
+pub struct scatter_t  : public ZmqSocketBase
 {
 // public:
     scatter_t (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -53,7 +53,7 @@ pub struct scatter_t ZMQ_FINAL : public ZmqSocketBase
     //  Load balancer managing the outbound pipes.
     lb_t load_balance;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (scatter_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (scatter_t)
 };
 
 scatter_t::scatter_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :

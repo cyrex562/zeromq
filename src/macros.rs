@@ -28,11 +28,11 @@
 // #endif
 // #endif
 
-// #if !defined ZMQ_FINAL
+// #if !defined
 // #if defined ZMQ_HAVE_NOEXCEPT
-// #define ZMQ_FINAL final
+// #define  final
 // #else
-// #define ZMQ_FINAL
+// #define
 // #endif
 // #endif
 
@@ -46,16 +46,16 @@
 // #endif
 // #endif
 
-// #if !defined ZMQ_NON_COPYABLE_NOR_MOVABLE
+// #if !defined // ZMQ_NON_COPYABLE_NOR_MOVABLE
 // #if defined ZMQ_HAVE_NOEXCEPT
-// #define ZMQ_NON_COPYABLE_NOR_MOVABLE(classname)                                \
+// #define // ZMQ_NON_COPYABLE_NOR_MOVABLE(classname)                                \
 // public:                                                                      \
 pub structname (const classname &) = delete;                                    \
 pub structname &operator= (const classname &) = delete;                         \
 pub structname (classname &&) = delete;                                         \
 pub structname &operator= (classname &&) = delete;
 // #else
-// #define ZMQ_NON_COPYABLE_NOR_MOVABLE(classname)                                \
+// #define // ZMQ_NON_COPYABLE_NOR_MOVABLE(classname)                                \
   // private:                                                                     \
 pub structname (const classname &);                                             \
 pub structname &operator= (const classname &);

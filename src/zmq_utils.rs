@@ -45,18 +45,18 @@
 
 // #if defined(ZMQ_USE_TWEETNACL)
 // #include "tweetnacl.h"
-#elif defined(ZMQ_USE_LIBSODIUM)
+// #elif defined(ZMQ_USE_LIBSODIUM)
 // #include "sodium.h"
 // #endif
 
-void zmq_sleep (seconds_: i32)
-{
-// #if defined ZMQ_HAVE_WINDOWS
-    Sleep (seconds_ * 1000);
-// #else
-    sleep (seconds_);
-// #endif
-}
+// void zmq_sleep (seconds_: i32)
+// {
+// // #if defined ZMQ_HAVE_WINDOWS
+//     Sleep (seconds_ * 1000);
+// // #else
+//     sleep (seconds_);
+// // #endif
+// }
 
 void *zmq_stopwatch_start ()
 {
@@ -318,3 +318,4 @@ void zmq_atomic_counter_destroy (void **counter_p_)
     delete (static_cast<AtomicCounter *> (*counter_p_));
     *counter_p_ = null_mut();
 }
+

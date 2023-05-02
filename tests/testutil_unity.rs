@@ -257,16 +257,16 @@ void test_bind (socket: *mut c_void,
       zmq_getsockopt (socket, ZMQ_LAST_ENDPOINT, my_endpoint_, &len_));
 }
 
-void bind_loopback (socket: *mut c_void, ipv6_: i32, char *my_endpoint_, len_: usize)
+void bind_loopback (socket: *mut c_void, ipv6: i32, char *my_endpoint_, len_: usize)
 {
-    if (ipv6_ && !is_ipv6_available ()) {
+    if (ipv6 && !is_ipv6_available ()) {
         TEST_IGNORE_MESSAGE ("ipv6 is not available");
     }
 
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_setsockopt (socket, ZMQ_IPV6, &ipv6_, mem::size_of::<int>()));
+      zmq_setsockopt (socket, ZMQ_IPV6, &ipv6, mem::size_of::<int>()));
 
-    test_bind (socket, ipv6_ ? "tcp://[::1]:*" : "tcp://127.0.0.1:*",
+    test_bind (socket, ipv6 ? "tcp://[::1]:*" : "tcp://127.0.0.1:*",
                my_endpoint_, len_);
 }
 

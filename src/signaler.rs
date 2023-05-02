@@ -1,13 +1,15 @@
-use crate::fd::ZmqFileDesc;
-use crate::mechanism::ZmqMechanismStatus::error;
-use crate::polling_util::optimized_fd_set_t;
-use anyhow::{anyhow, bail};
-use libc::{c_int, c_uint, c_void, close, getpid, ssize_t, timeval, EAGAIN, EINTR, EWOULDBLOCK};
 use std::intrinsics::unlikely;
 use std::mem;
 use std::ptr::null_mut;
 use std::thread::{sleep, sleep_ms};
 use std::time::Duration;
+
+use anyhow::{anyhow, bail};
+use libc::{c_int, c_uint, c_void, close, EAGAIN, EINTR, EWOULDBLOCK, getpid, ssize_t, timeval};
+
+use crate::fd::ZmqFileDesc;
+use crate::mechanism::ZmqMechanismStatus::error;
+use crate::polling_util::optimized_fd_set_t;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqSignaler {
@@ -23,7 +25,7 @@ pub struct ZmqSignaler {
     pub pid: pid_t,
     // #endif
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqSignaler)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqSignaler)
 }
 
 impl ZmqSignaler {
@@ -288,7 +290,7 @@ impl ZmqSignaler {
 
             // #else
             #[cfg(not(target_os = "windows"))]
-            let nbytes = recv(_r, &dummy, mem::size_of::<dummy>(), 0);
+                let nbytes = recv(_r, &dummy, mem::size_of::<dummy>(), 0);
             // errno_assert(nbytes >= 0);
             // #endif
             //             zmq_assert(nbytes == mem::size_of::<dummy>());

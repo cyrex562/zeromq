@@ -58,7 +58,7 @@ pub struct server_t : public ZmqSocketBase
 
   // private:
     //  Fair queueing object for inbound pipes.
-    fq_t fair_queue;
+    ZmqFq fair_queue;
 
     struct outpipe_t
     {
@@ -74,7 +74,7 @@ pub struct server_t : public ZmqSocketBase
     //  algorithm. This value is the next ID to use (if not used already).
     u32 _next_routing_id;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (server_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (server_t)
 };
 
 server_t::server_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :

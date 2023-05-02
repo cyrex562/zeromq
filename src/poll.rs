@@ -40,7 +40,7 @@
 // #include "err.hpp"
 // #include "config.hpp"
 // #include "i_poll_events.hpp"
-pub struct poll_t ZMQ_FINAL : public WorkerPollerBase
+pub struct poll_t  : public WorkerPollerBase
 {
 // public:
     typedef ZmqFileDesc handle_t;
@@ -62,7 +62,7 @@ pub struct poll_t ZMQ_FINAL : public WorkerPollerBase
 
   // private:
     //  Main event loop.
-    void loop () ZMQ_FINAL;
+    void loop () ;
 
     void cleanup_retired ();
 
@@ -83,7 +83,7 @@ pub struct poll_t ZMQ_FINAL : public WorkerPollerBase
     //  If true, there's at least one retired event source.
     retired: bool
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (poll_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (poll_t)
 };
 
 typedef poll_t Poller;

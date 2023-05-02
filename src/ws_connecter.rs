@@ -67,7 +67,7 @@
 // #ifdef __APPLE__
 // #include <TargetConditionals.h>
 // #endif
-pub struct ws_connecter_t ZMQ_FINAL : public stream_connecter_base_t
+pub struct ws_connecter_t  : public stream_connecter_base_t
 {
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
@@ -122,7 +122,7 @@ pub struct ws_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     _wss: bool
     const std::string &_hostname;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_connecter_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_connecter_t)
 };
 
 ws_connecter_t::ws_connecter_t (class ZmqThread *io_thread_,

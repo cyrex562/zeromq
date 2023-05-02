@@ -50,7 +50,7 @@
 // #include <sockLib.h>
 // #endif
 // #endif
-pub struct socks_connecter_t ZMQ_FINAL : public stream_connecter_base_t
+pub struct socks_connecter_t  : public stream_connecter_base_t
 {
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
@@ -137,7 +137,7 @@ pub struct socks_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 
     _status: i32;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (socks_connecter_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (socks_connecter_t)
 };
 
 socks_connecter_t::socks_connecter_t (class ZmqThread *io_thread_,

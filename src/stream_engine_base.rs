@@ -72,19 +72,19 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     ~stream_engine_base_t () ;
 
     //  i_engine interface implementation.
-    bool has_handshake_stage () ZMQ_FINAL { return _has_handshake_stage; };
+    bool has_handshake_stage ()  { return _has_handshake_stage; };
     void plug (ZmqThread *io_thread_,
-               ZmqSessionBase *session_) ZMQ_FINAL;
-    void terminate () ZMQ_FINAL;
-    bool restart_input () ZMQ_FINAL;
-    void restart_output () ZMQ_FINAL;
-    void zap_msg_available () ZMQ_FINAL;
-    const endpoint_uri_pair_t &get_endpoint () const ZMQ_FINAL;
+               ZmqSessionBase *session_) ;
+    void terminate () ;
+    bool restart_input () ;
+    void restart_output () ;
+    void zap_msg_available () ;
+    const endpoint_uri_pair_t &get_endpoint () const ;
 
     //  i_poll_events interface implementation.
-    void in_event () ZMQ_FINAL;
+    void in_event () ;
     void out_event () ;
-    void timer_event (id_: i32) ZMQ_FINAL;
+    void timer_event (id_: i32) ;
 
   protected:
     typedef ZmqMetadata::dict_t properties_t;
@@ -224,7 +224,7 @@ pub struct stream_engine_base_t : public io_object_t, public i_engine
     //  when handshake is completed.
     _has_handshake_stage: bool
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_engine_base_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_engine_base_t)
 };
 
 static std::string get_peer_address (ZmqFileDesc s_)

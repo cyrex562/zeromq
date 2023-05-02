@@ -35,7 +35,7 @@
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-pub struct radio_t ZMQ_FINAL : public ZmqSocketBase
+pub struct radio_t  : public ZmqSocketBase
 {
 // public:
     radio_t (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -69,9 +69,9 @@ pub struct radio_t ZMQ_FINAL : public ZmqSocketBase
     //  Drop messages if HWM reached, otherwise return with EAGAIN
     _lossy: bool
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (radio_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (radio_t)
 };
-pub struct radio_session_t ZMQ_FINAL : public ZmqSessionBase
+pub struct radio_session_t  : public ZmqSessionBase
 {
 // public:
     radio_session_t (ZmqThread *io_thread_,
@@ -95,7 +95,7 @@ pub struct radio_session_t ZMQ_FINAL : public ZmqSessionBase
 
     ZmqMessage _pending_msg;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (radio_session_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (radio_session_t)
 };
 
 radio_t::radio_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :

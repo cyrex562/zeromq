@@ -33,7 +33,7 @@
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-pub struct push_t ZMQ_FINAL : public ZmqSocketBase
+pub struct push_t  : public ZmqSocketBase
 {
 // public:
     push_t (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -53,7 +53,7 @@ pub struct push_t ZMQ_FINAL : public ZmqSocketBase
     //  Load balancer managing the outbound pipes.
     lb_t load_balance;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (push_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (push_t)
 };
 
 push_t::push_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :

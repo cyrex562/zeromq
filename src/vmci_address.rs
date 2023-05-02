@@ -63,7 +63,7 @@ pub struct VmciAddress
     struct sockaddr_vm address;
     ZmqContext *parent;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (VmciAddress)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (VmciAddress)
 };
 
 VmciAddress::VmciAddress ()

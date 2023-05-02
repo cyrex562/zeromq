@@ -30,7 +30,7 @@
 // #include "precompiled.hpp"
 // #include <string.h>
 
-use crate::fq::{self, fq_t};
+use crate::fq::{self, ZmqFq};
 use crate::options::ZmqOptions;
 use crate::utils::copy_bytes;
 
@@ -47,8 +47,8 @@ pub struct ZmqDish {
     // private:
     //  Send subscriptions to a pipe
     //  Fair queueing object for inbound pipes.
-    // fq_t fair_queue;
-    pub fair_queue: fq_t,
+    // ZmqFq fair_queue;
+    pub fair_queue: ZmqFq,
 
     //  Object for distributing the subscriptions upstream.
     // ZmqDist _dist;
@@ -64,7 +64,7 @@ pub struct ZmqDish {
     pub _has_message: bool,
     pub _message: ZmqMessage,
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqDish)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqDish)
     pub socket_base: ZmqSocketBase,
 }
 
@@ -296,7 +296,7 @@ pub struct DishSession {
     // public:
     // private:
     pub _group_msg: ZmqMessage,
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (DishSession)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (DishSession)
     pub session_base: ZmqSessionBase,
 }
 

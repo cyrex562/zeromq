@@ -34,9 +34,9 @@ void tearDown ()
 
 //  Test an UDP address resolution. If 'dest_addr_' is NULL assume the
 //  resolution is supposed to fail.
-static void test_resolve (bind_: bool,
+static void test_resolve (bind: bool,
                           family_: i32,
-                          name_: *const c_char,
+                          name: *const c_char,
                           target_addr_: *const c_char,
                           expected_port_: u16,
                           bind_addr_: *const c_char,
@@ -48,7 +48,7 @@ static void test_resolve (bind_: bool,
 
     UdpAddress addr;
 
-    int rc = addr.resolve (name_, bind_, family_ == AF_INET6);
+    int rc = addr.resolve (name, bind, family_ == AF_INET6);
 
     if (target_addr_ == null_mut()) {
         TEST_ASSERT_EQUAL (-1, rc);
@@ -75,24 +75,24 @@ static void test_resolve (bind_: bool,
 }
 
 static void test_resolve_bind (family_: i32,
-                               name_: *const c_char,
+                               name: *const c_char,
                                dest_addr_: *const c_char,
                                uint16_t expected_port_ = 0,
                                const char *bind_addr_ = null_mut(),
                                bool multicast_ = false)
 {
-    test_resolve (true, family_, name_, dest_addr_, expected_port_, bind_addr_,
+    test_resolve (true, family_, name, dest_addr_, expected_port_, bind_addr_,
                   multicast_);
 }
 
 static void test_resolve_connect (family_: i32,
-                                  name_: *const c_char,
+                                  name: *const c_char,
                                   dest_addr_: *const c_char,
                                   uint16_t expected_port_ = 0,
                                   const char *bind_addr_ = null_mut(),
                                   bool multicast_ = false)
 {
-    test_resolve (false, family_, name_, dest_addr_, expected_port_, bind_addr_,
+    test_resolve (false, family_, name, dest_addr_, expected_port_, bind_addr_,
                   multicast_);
 }
 

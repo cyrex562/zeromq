@@ -32,7 +32,7 @@
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-pub struct pub_t ZMQ_FINAL : public xpub_t
+pub struct pub_t  : public xpub_t
 {
 // public:
     pub_t (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -45,7 +45,7 @@ pub struct pub_t ZMQ_FINAL : public xpub_t
     int xrecv (msg: &mut ZmqMessage);
     bool xhas_in ();
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (pub_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (pub_t)
 };
 
 pub_t::pub_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :

@@ -258,7 +258,7 @@ void test_bind (socket: *mut c_void,
                 len_: usize);
 
 // Binds to a tcp endpoint using the ipv4 or ipv6 loopback wildcard address.
-void bind_loopback (socket: *mut c_void, ipv6_: i32, char *my_endpoint_, len_: usize);
+void bind_loopback (socket: *mut c_void, ipv6: i32, char *my_endpoint_, len_: usize);
 
 typedef void (*bind_function_t) (socket: *mut c_void,
                                  char *my_endpoint_,

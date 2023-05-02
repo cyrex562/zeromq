@@ -43,7 +43,7 @@
 // #include "ip.hpp"
 // #include "socket_base.hpp"
 // #include "address.hpp"
-pub struct ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
+pub struct ipc_listener_t  : public stream_listener_base_t
 {
 // public:
     ipc_listener_t (ZmqThread *io_thread_,
@@ -83,7 +83,7 @@ pub struct ipc_listener_t ZMQ_FINAL : public stream_listener_base_t
     //  Name of the file associated with the UNIX domain address.
     _filename: String;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (ipc_listener_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ipc_listener_t)
 };
 
 // #ifdef _MSC_VER

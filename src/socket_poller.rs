@@ -127,7 +127,7 @@ pub struct socket_poller_t
     ZmqFileDesc _max_fd;
 // #endif
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (socket_poller_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (socket_poller_t)
 };
 
 static bool is_thread_safe (const ZmqSocketBase &socket)

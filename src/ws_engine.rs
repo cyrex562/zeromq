@@ -192,7 +192,7 @@ pub struct ws_engine_t : public stream_engine_base_t
     bool server_handshake ();
 
     _client: bool
-    WsAddress _address;
+    WsAddress address;
 
     ws_client_handshake_state_t _client_handshake_state;
     ws_server_handshake_state_t _server_handshake_state;
@@ -227,7 +227,7 @@ ws_engine_t::ws_engine_t (fd: ZmqFileDesc,
                                client_: bool) :
     stream_engine_base_t (fd, options_, endpoint_uri_pair_, true),
     _client (client_),
-    _address (address_),
+    address (address_),
     _client_handshake_state (client_handshake_initial),
     _server_handshake_state (handshake_initial),
     _header_name_position (0),
@@ -296,7 +296,7 @@ void ws_engine_t::start_ws_handshake ()
           "Sec-WebSocket-Key: %s\r\n"
           "Sec-WebSocket-Protocol: %s\r\n"
           "Sec-WebSocket-Version: 13\r\n\r\n",
-          _address.path (), _address.host (), _websocket_key, protocol);
+          address.path (), address.host (), _websocket_key, protocol);
         assert (size > 0 && size < WS_BUFFER_SIZE);
         _outpos = _write_buffer;
         _outsize = size;

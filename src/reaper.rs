@@ -32,7 +32,7 @@
 // #include "reaper.hpp"
 // #include "socket_base.hpp"
 // #include "err.hpp"
-pub struct reaper_t ZMQ_FINAL : public ZmqObject, public i_poll_events
+pub struct reaper_t  : public ZmqObject, public i_poll_events
 {
 // public:
     reaper_t (ctx: &mut ZmqContext, tid: u32);
@@ -74,7 +74,7 @@ pub struct reaper_t ZMQ_FINAL : public ZmqObject, public i_poll_events
     pid_t _pid;
 // #endif
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (reaper_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (reaper_t)
 };
 
 reaper_t::reaper_t (class ctx: &mut ZmqContext, tid: u32) :

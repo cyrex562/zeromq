@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use crate::atomic_counter::AtomicCounter;
 use crate::zmq_draft_hdr::ZMQ_MSG_PROPERTY_ROUTING_ID;
+use std::collections::HashMap;
 
 // public:
 //     typedef std::map<std::string, std::string> dict_t;
@@ -17,7 +17,7 @@ pub struct ZmqMetadata {
     //   //  Dictionary holding metadata.
     //   const dict_t _dict;
     //
-    //   ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqMetadata)
+    //   // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqMetadata)
 }
 
 impl ZmqMetadata {
@@ -29,7 +29,6 @@ impl ZmqMetadata {
             _dict: dict_.clone(),
         }
     }
-
 
     //  Returns pointer to property value or NULL if
     //  property is not found.

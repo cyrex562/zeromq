@@ -41,7 +41,7 @@
 //  Decoder for ZMTP/2.x framing protocol. Converts data stream into messages.
 //  The class has to inherit from shared_message_memory_allocator because
 //  the base class calls allocate in its constructor.
-pub struct v2_decoder_t ZMQ_FINAL
+pub struct v2_decoder_t
     : public DecoderBase<v2_decoder_t, shared_message_memory_allocator>
 {
 // public:
@@ -66,7 +66,7 @@ pub struct v2_decoder_t ZMQ_FINAL
     const _zero_copy: bool
     const i64 _max_msg_size;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (v2_decoder_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (v2_decoder_t)
 };
 
 v2_decoder_t::v2_decoder_t (bufsize_: usize,

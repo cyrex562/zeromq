@@ -30,7 +30,7 @@
 // #include "precompiled.hpp"
 // #include "sub.hpp"
 // #include "msg.hpp"
-pub struct sub_t ZMQ_FINAL : public xsub_t
+pub struct sub_t  : public xsub_t
 {
 // public:
     sub_t (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -41,7 +41,7 @@ pub struct sub_t ZMQ_FINAL : public xsub_t
     int xsend (msg: &mut ZmqMessage);
     bool xhas_out ();
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (sub_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (sub_t)
 };
 
 sub_t::sub_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :

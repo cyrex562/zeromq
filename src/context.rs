@@ -1,3 +1,19 @@
+use std::{mem, process};
+use std::collections::{HashMap, HashSet};
+use std::intrinsics::unlikely;
+use std::mem::size_of;
+use std::ptr::null_mut;
+use std::sync::Mutex;
+
+use anyhow::{anyhow, bail};
+use libc::{
+    EADDRINUSE, ECONNREFUSED, EINTR, EINVAL, EMFILE, ENOENT, ENOMEM, F_SETFD, FD_CLOEXEC, getpid,
+    pid_t,
+};
+use serde::{Deserialize, Serialize};
+
+use anyhow;
+
 use crate::atomic_counter::AtomicCounter;
 use crate::command::ZmqCommand;
 use crate::endpoint::ZmqEndpoint;
@@ -13,23 +29,10 @@ use crate::reaper::reaper_t;
 use crate::socket_base::ZmqSocketBase;
 use crate::thread_ctx::ThreadCtx;
 use crate::zmq_hdr::{
-    ZmqMessage, ZMQ_BLOCKY, ZMQ_IO_THREADS, ZMQ_IO_THREADS_DFLT, ZMQ_IPV6, ZMQ_MAX_MSGSZ,
-    ZMQ_MAX_SOCKETS, ZMQ_MAX_SOCKETS_DFLT, ZMQ_MESSAGE_SIZE, ZMQ_PAIR, ZMQ_SOCKET_LIMIT,
-    ZMQ_ZERO_COPY_RECV,
+    ZMQ_BLOCKY, ZMQ_IO_THREADS, ZMQ_IO_THREADS_DFLT, ZMQ_IPV6, ZMQ_MAX_MSGSZ, ZMQ_MAX_SOCKETS,
+    ZMQ_MAX_SOCKETS_DFLT, ZMQ_MESSAGE_SIZE, ZMQ_PAIR, ZMQ_SOCKET_LIMIT, ZMQ_ZERO_COPY_RECV,
+    ZmqMessage,
 };
-use anyhow;
-use anyhow::{anyhow, bail};
-use libc::{
-    getpid, pid_t, EADDRINUSE, ECONNREFUSED, EINTR, EINVAL, EMFILE, ENOENT, ENOMEM, FD_CLOEXEC,
-    F_SETFD,
-};
-use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
-use std::intrinsics::unlikely;
-use std::mem::size_of;
-use std::ptr::null_mut;
-use std::sync::Mutex;
-use std::{mem, process};
 
 //  Context object encapsulates all the global state associated with
 //  the library.
@@ -70,7 +73,7 @@ pub const ZMQ_CTX_TAG_VALUE_BAD: u32 = 0xdeadbeef;
 // //       pending_connections_t;
 // pub type pending_connections_t = HashMap<String, PendingConnection>
 
-// class ctx_t ZMQ_FINAL : public ThreadCtx
+// class ctx_t  : public ThreadCtx
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ZmqContext {
     pub thread_ctx: ThreadCtx,
@@ -160,7 +163,7 @@ pub struct ZmqContext {
     // bool _zero_copy;
     pub zero_copy: bool,
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ctx_t)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ctx_t)
 
     // #ifdef HAVE_FORK
     // the process that created this context. Used to detect forking.

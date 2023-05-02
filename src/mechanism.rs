@@ -38,6 +38,11 @@
 // #include "wire.hpp"
 // #include "session_base.hpp"
 
+use std::collections::HashMap;
+use std::mem;
+
+use anyhow::anyhow;
+
 use crate::message::{ZmqMessage, ZMQ_MSG_ROUTING_ID};
 use crate::options::ZmqOptions;
 use crate::utils::{copy_bytes, get_u32, put_u32};
@@ -46,9 +51,6 @@ use crate::zmq_hdr::{
     ZMQ_PAIR, ZMQ_PEER, ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_RADIO, ZMQ_REP, ZMQ_REQ, ZMQ_ROUTER,
     ZMQ_SCATTER, ZMQ_SERVER, ZMQ_SUB, ZMQ_XPUB, ZMQ_XSUB,
 };
-use anyhow::anyhow;
-use std::collections::HashMap;
-use std::mem;
 
 pub enum ZmqMechanismStatus {
     handshaking,
@@ -92,11 +94,11 @@ pub fn property_len(name_len_: usize, value_len_: usize) -> usize {
     name_len_size + name_len_ + value_len_size + value_len_
 }
 
-pub fn name_len(name_: &str) -> usize {
-    // const size_t name_len = strlen (name_);
+pub fn name_len(name: &str) -> usize {
+    // const size_t name_len = strlen (name);
     // zmq_assert (name_len <= UCHAR_MAX);
     // return name_len;
-    name_.len()
+    name.len()
 }
 
 pub fn socket_type_string(socket_type_: i32) -> String {
@@ -219,27 +221,27 @@ impl ZmqMechanism {
 
     // static size_t add_property (unsigned char *ptr_,
     // ptr_capacity_: usize,
-    // name_: *const c_char,
+    // name: *const c_char,
     // const value_: *mut c_void,
     // value_len_: usize);
-    // static size_t property_len (name_: *const c_char, value_len_: usize);
+    // static size_t property_len (name: *const c_char, value_len_: usize);
     pub fn add_property(
         &mut self,
         ptr_: &mut [u8],
         ptr_capacity_: usize,
-        name_: &str,
+        name: &str,
         value_: &[u8],
         value_len_: usize,
     ) -> usize {
-        let name_len = name_len(name_);
+        let name_len = name_len(name);
         lettotal_len = property_len(name_len, value_len_);
         // zmq_assert (total_len <= ptr_capacity_);
 
         // *ptr_ = static_cast<unsigned char> (name_len);
         // ptr_ += name_len_size;
-        // memcpy (ptr_, name_, name_len);
+        // memcpy (ptr_, name, name_len);
         let mut dst_off = name_len_size;
-        copy_bytes(ptr_, name_len_size, name_.as_ref(), 0, name_len);
+        copy_bytes(ptr_, name_len_size, name.as_ref(), 0, name_len);
 
         // ptr_ += name_len;
         dst_off += name_len;
@@ -339,8 +341,8 @@ impl ZmqMechanism {
     //     //  is compatible with a given socket type 'type_'.
     //     bool check_socket_type (type_: *const c_char, len_: usize) const;
 
-    fn property_len(&mut self, name_: &str, value_len_: usize) -> usize {
-        property_len(name_len(name_), value_len_)
+    fn property_len(&mut self, name: &str, value_len_: usize) -> usize {
+        property_len(name_len(name), value_len_)
     }
 
     pub fn basic_properties_len(&self) -> usize {
@@ -499,11 +501,11 @@ trait ZmqMechanismOps {
     //  Derived classes are supposed to override this
     //  method to handle custom processing.
     // virtual int
-    // property (const std::string &name_, const value_: *mut c_void, length_: usize);
-    // int ZmqMechanism::property (const std::string & /* name_ */,
+    // property (const std::string &name, const value_: *mut c_void, length_: usize);
+    // int ZmqMechanism::property (const std::string & /* name */,
     // const void * /* value_ */,
     // size_t /* length_ */)
-    fn property(&mut self, name_: &str, value: &[u8], length: usize) -> anyhow::Result<()> {
+    fn property(&mut self, name: &str, value: &[u8], length: usize) -> anyhow::Result<()> {
         //  Default implementation does not check
         //  property values and returns 0 to signal success.
         Ok(())

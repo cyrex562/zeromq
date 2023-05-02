@@ -38,7 +38,7 @@ pub const COMMAND_PIPE_GRANULARITY: i32 = 16;
 // #include "mailbox.hpp"
 // #include "err.hpp"
 #[derive(Default,Debug,Clone)]
-//  ZMQ_FINAL : public i_mailbox
+//   : public i_mailbox
 pub struct mailbox_t
 {
 // public:
@@ -63,7 +63,7 @@ pub struct mailbox_t
     //  read commands from it.
     pub active: bool,
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_t)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_t)
 }
 
 impl mailbox_t {
@@ -156,7 +156,7 @@ impl mailbox_t {
     // close the file descriptors in the signaller. This is used in a forked
     // child process to close the file descriptors so that they do not interfere
     // with the context in the parent process.
-    void forked () ZMQ_FINAL
+    void forked ()
     {
     signaler.forked ();
     }

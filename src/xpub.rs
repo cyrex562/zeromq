@@ -46,16 +46,16 @@ pub struct xpub_t : public ZmqSocketBase
     void xattach_pipe (pipe: &mut ZmqPipe,
                        bool subscribe_to_all_ = false,
                        bool locally_initiated_ = false) ;
-    int xsend (msg: &mut ZmqMessage) ZMQ_FINAL;
-    bool xhas_out () ZMQ_FINAL;
+    int xsend (msg: &mut ZmqMessage) ;
+    bool xhas_out () ;
     int xrecv (msg: &mut ZmqMessage) ;
     bool xhas_in () ;
-    void xread_activated (pipe: &mut ZmqPipe) ZMQ_FINAL;
-    void xwrite_activated (pipe: &mut ZmqPipe) ZMQ_FINAL;
+    void xread_activated (pipe: &mut ZmqPipe) ;
+    void xwrite_activated (pipe: &mut ZmqPipe) ;
     int
-    xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize) ZMQ_FINAL;
-    int xgetsockopt (option_: i32, optval_: &mut [u8], optvallen_: *mut usize) ZMQ_FINAL;
-    void xpipe_terminated (pipe: &mut ZmqPipe) ZMQ_FINAL;
+    xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize) ;
+    int xgetsockopt (option_: i32, optval_: &mut [u8], optvallen_: *mut usize) ;
+    void xpipe_terminated (pipe: &mut ZmqPipe) ;
 
   // private:
     //  Function to be applied to the trie to send all the subscriptions
@@ -126,7 +126,7 @@ pub struct xpub_t : public ZmqSocketBase
     std::deque<ZmqMetadata *> _pending_metadata;
     std::deque<unsigned char> _pending_flags;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (xpub_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (xpub_t)
 };
 
 xpub_t::xpub_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :

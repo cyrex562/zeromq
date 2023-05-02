@@ -19,7 +19,7 @@ use std::ptr::null_mut;
 //     // uint32_t _tid;
 //     tid: u32,
 //
-//     // ZMQ_NON_COPYABLE_NOR_MOVABLE (object_t)
+//     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (object_t)
 // }
 
 pub trait ZmqObject {

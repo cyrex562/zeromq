@@ -25,7 +25,7 @@ impl ThreadCtx {
     // void start_thread (thread_t &thread_,
     //                    thread_fn *tfn_,
     //                    arg_: *mut c_void,
-    //                    const char *name_ = NULL) const;
+    //                    const char *name = NULL) const;
 
     // int set (option_: i32, const optval_: *mut c_void, optvallen_: usize);
     // int get (option_: i32, optval_: *mut c_void, const optvallen_: *mut usize);
@@ -45,7 +45,7 @@ pub fn new()-> Self {
 pub fn start_thread (thread: &mut thread_t,
                                       tfn: thread_fn,
                                       arg_: &mut [u8],
-                                      name_: &str) const
+                                      name: &str) const
 {
     thread_.setSchedulingParameters (_thread_priority, _thread_sched_policy,
                                      _thread_affinity_cpus);
@@ -53,8 +53,8 @@ pub fn start_thread (thread: &mut thread_t,
     char namebuf[16] = "";
     snprintf (namebuf, sizeof (namebuf), "%s%sZMQbg%s%s",
               _thread_name_prefix.is_empty() ? "" : _thread_name_prefix,
-              _thread_name_prefix.is_empty() ? "" : "/", name_ ? "/" : "",
-              name_ ? name_ : "");
+              _thread_name_prefix.is_empty() ? "" : "/", name ? "/" : "",
+              name ? name : "");
     thread_.start (tfn_, arg_, namebuf);
 }
 

@@ -35,7 +35,7 @@
 // #include "random.hpp"
 // #include "likely.hpp"
 // #include "err.hpp"
-pub struct peer_t ZMQ_FINAL : public server_t
+pub struct peer_t  : public server_t
 {
 // public:
     peer_t (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -50,7 +50,7 @@ pub struct peer_t ZMQ_FINAL : public server_t
   // private:
     u32 _peer_last_routing_id;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (peer_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (peer_t)
 };
 
 peer_t::peer_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :

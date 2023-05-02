@@ -33,7 +33,7 @@
 // #include "err.hpp"
 // #include "pipe.hpp"
 // #include "msg.hpp"
-pub struct pair_t ZMQ_FINAL : public ZmqSocketBase
+pub struct pair_t  : public ZmqSocketBase
 {
 // public:
     pair_t (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -54,7 +54,7 @@ pub struct pair_t ZMQ_FINAL : public ZmqSocketBase
   // private:
     ZmqPipe *pipe;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (pair_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (pair_t)
 };
 
 pair_t::pair_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :

@@ -7,12 +7,12 @@
 
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicPtr, Ordering};
+
 use crate::ypipe_base::YpipeBase;
 
-// template <typename T, int N> class ypipe_t ZMQ_FINAL : public YpipeBase<T>
+// template <typename T, int N> class ypipe_t  : public YpipeBase<T>
 #[derive(Default, Debug, Clone)]
-pub struct Ypipe<T>
-{
+pub struct Ypipe<T> {
     //  Allocation-efficient queue to store pipe items.
     //  Front of the queue points to the first prefetched item, back of
     //  the pipe points to last un-flushed item. Front is used only by
@@ -40,15 +40,13 @@ pub struct Ypipe<T>
     //  atomic operations.
     // atomic_ptr_t<T> pub _c:;
     pub _c: AtomicPtr<T>,
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ypipe_t)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ypipe_t)
 }
 
 impl Ypipe<T> {
     //  Initialises the pipe.
-//     ypipe_t ()
-    pub fn new() -> Self
-    {
+    //     ypipe_t ()
+    pub fn new() -> Self {
         let mut out = Self::default();
         //  Insert terminator element into the queue.
         // _queue.push ();
@@ -59,7 +57,8 @@ impl Ypipe<T> {
         out._r = out._queue.back_mut().unwrap();
         out._w = out._queue.back_mut().unwrap();
         out._f = out._queue.back_mut().unwrap();
-        out._c.store(out._queue.back_mut().unwrap(), Ordering::Relaxed);
+        out._c
+            .store(out._queue.back_mut().unwrap(), Ordering::Relaxed);
 
         // _c.set (&_queue.back ());
         out

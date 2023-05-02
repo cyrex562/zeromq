@@ -39,18 +39,18 @@
 // #include "err.hpp"
 // #include "gssapi_client.hpp"
 // #include "wire.hpp"
-pub struct gssapi_client_t ZMQ_FINAL : public gssapi_ZmqMechanismBase
+pub struct gssapi_client_t  : public gssapi_ZmqMechanismBase
 {
 // public:
     gssapi_client_t (ZmqSessionBase *session_, options: &ZmqOptions);
-    ~gssapi_client_t () ZMQ_FINAL;
+    ~gssapi_client_t () ;
 
     // mechanism implementation
-    int next_handshake_command (msg: &mut ZmqMessage) ZMQ_FINAL;
-    int process_handshake_command (msg: &mut ZmqMessage) ZMQ_FINAL;
-    int encode (msg: &mut ZmqMessage) ZMQ_FINAL;
-    int decode (msg: &mut ZmqMessage) ZMQ_FINAL;
-    status_t status () const ZMQ_FINAL;
+    int next_handshake_command (msg: &mut ZmqMessage) ;
+    int process_handshake_command (msg: &mut ZmqMessage) ;
+    int encode (msg: &mut ZmqMessage) ;
+    int decode (msg: &mut ZmqMessage) ;
+    status_t status () const ;
 
   // private:
     enum state_t

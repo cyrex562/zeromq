@@ -35,7 +35,7 @@
 // #include "wire.hpp"
 // #include "random.hpp"
 // #include "likely.hpp"
-pub struct req_t ZMQ_FINAL : public ZmqDealer
+pub struct req_t  : public ZmqDealer
 {
 // public:
     req_t (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -78,9 +78,9 @@ pub struct req_t ZMQ_FINAL : public ZmqDealer
     //  still pending.
     _strict: bool
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (req_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (req_t)
 };
-pub struct req_session_t ZMQ_FINAL : public ZmqSessionBase
+pub struct req_session_t  : public ZmqSessionBase
 {
 // public:
     req_session_t (ZmqThread *io_thread_,
@@ -102,7 +102,7 @@ pub struct req_session_t ZMQ_FINAL : public ZmqSessionBase
         body
     } _state;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (req_session_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (req_session_t)
 };
 
 req_t::req_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :

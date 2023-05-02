@@ -93,7 +93,7 @@ pub struct timers_t
 
     struct match_by_id;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (timers_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (timers_t)
 };
 
 timers_t::timers_t () : _tag (0xCAFEDADA), _next_timer_id (0)

@@ -53,10 +53,9 @@
 
 use crate::message::ZmqMessage;
 
-#[derive(Default,Debug,Clone)]
-pub struct ZmqBaseEncoder
-{
-  // private:
+#[derive(Default, Debug, Clone)]
+pub struct ZmqBaseEncoder {
+    // private:
     //  Where to get the data to write from.
     // unsigned char *write_pos;
     pub write_pos: usize,
@@ -80,23 +79,22 @@ pub struct ZmqBaseEncoder
 
     // ZmqMessage *in_progress;
     pub in_progress: Option<ZmqMessage>,
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (encoder_base_t)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (encoder_base_t)
 }
 
 impl ZmqBaseEncoder {
-// public:
-// explicit encoder_base_t (bufsize_: usize) :
-// write_pos (0),
-// to_write (0),
-// next (null_mut()),
-// new_msg_flag (false),
-// buf_size (bufsize_),
-// buf (static_cast<unsigned char *> (malloc (bufsize_))),
-// in_progress (null_mut())
-// {
-// alloc_assert (buf);
-// }
+    // public:
+    // explicit encoder_base_t (bufsize_: usize) :
+    // write_pos (0),
+    // to_write (0),
+    // next (null_mut()),
+    // new_msg_flag (false),
+    // buf_size (bufsize_),
+    // buf (static_cast<unsigned char *> (malloc (bufsize_))),
+    // in_progress (null_mut())
+    // {
+    // alloc_assert (buf);
+    // }
     pub fn new(buf_size: usize) -> Self {
         Self {
             buf: Vec::with_capacity(buf_size),
@@ -105,21 +103,23 @@ impl ZmqBaseEncoder {
         }
     }
 
-// ~encoder_base_t ()  { free (buf); }
+    // ~encoder_base_t ()  { free (buf); }
 
-//  The function returns a batch of binary data. The data
-//  are filled to a supplied buffer. If no buffer is supplied (data
-//  points to NULL) decoder object will provide buffer of its own.
-    pub fn encode (&mut self, data: &mut Option<&mut [u8]>, size: usize) -> usize
-    {
-    //
+    //  The function returns a batch of binary data. The data
+    //  are filled to a supplied buffer. If no buffer is supplied (data
+    //  points to NULL) decoder object will provide buffer of its own.
+    pub fn encode(&mut self, data: &mut Option<&mut [u8]>, size: usize) -> usize {
+        //
         // unsigned char *buffer = !*data ? buf : *data;
-        let buffer = if data.is_some() {data.unwrap()} else {self.buf.as_mut_slice()};
+        let buffer = if data.is_some() {
+            data.unwrap()
+        } else {
+            self.buf.as_mut_slice()
+        };
         //   const size_t buffersize = !*data ? buf_size : size;
-        let buffer_size = if data.is_some() {size} else {self.buf_size};
+        let buffer_size = if data.is_some() { size } else { self.buf_size };
 
-        if (self.in_progress.is_none())
-        {
+        if (self.in_progress.is_none()) {
             return 0;
         }
 
@@ -159,7 +159,7 @@ impl ZmqBaseEncoder {
             }
 
             //  Copy data to the buffer. If the buffer is full, return.
-            let to_copy = usize::min (self.to_write, buffersize - pos);
+            let to_copy = usize::min(self.to_write, buffersize - pos);
             // memcpy (buffer + pos, write_pos, to_copy);
             copy_bytes(buffer, pos, self.buf, self.write_pos, to_copy);
             pos += to_copy;
@@ -171,8 +171,7 @@ impl ZmqBaseEncoder {
         return pos;
     }
 
-    pub fn load_msg (&mut self, msg: &mut ZmqMessage)
-    {
+    pub fn load_msg(&mut self, msg: &mut ZmqMessage) {
         // zmq_assert (in_progress () == null_mut());
         self.in_progress = Some(msg.clone());
         // (static_cast<T *> (this)->*next) ();
@@ -185,14 +184,10 @@ impl ZmqBaseEncoder {
 
     //  This function should be called from derived class to write the data
     //  to the buffer and schedule next state machine action.
-    pub fn next_step (write_pos_: usize,
-                to_write_: usize,
-                next_: step_t,
-                new_msg_flag_: bool)
-    {
+    pub fn next_step(write_pos_: usize, to_write_: usize, next_: step_t, new_msg_flag_: bool) {
         self.write_pos = write_pos_;
         to_write = to_write_;
-       self.next = next_;
+        self.next = next_;
         self.new_msg_flag = new_msg_flag_;
     }
 

@@ -36,7 +36,7 @@
 // #include "random.hpp"
 
 // #include <limits.h>
-pub struct ws_encoder_t ZMQ_FINAL : public encoder_base_t<ws_encoder_t>
+pub struct ws_encoder_t  : public encoder_base_t<ws_encoder_t>
 {
 // public:
     ws_encoder_t (bufsize_: usize, must_mask_: bool);
@@ -52,7 +52,7 @@ pub struct ws_encoder_t ZMQ_FINAL : public encoder_base_t<ws_encoder_t>
     ZmqMessage _masked_msg;
     _is_binary: bool
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_encoder_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_encoder_t)
 };
 
 ws_encoder_t::ws_encoder_t (bufsize_: usize, must_mask_: bool) :

@@ -51,7 +51,7 @@
 // #include <unistd.h>
 // #include <fcntl.h>
 // #endif
-pub struct vmci_listener_t ZMQ_FINAL : public stream_listener_base_t
+pub struct vmci_listener_t  : public stream_listener_base_t
 {
 // public:
     vmci_listener_t (ZmqThread *io_thread_,
@@ -76,9 +76,9 @@ pub struct vmci_listener_t ZMQ_FINAL : public stream_listener_base_t
     int create_socket (addr_: &str);
 
     //  Address to listen on.
-    VmciAddress _address;
+    VmciAddress address;
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (vmci_listener_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (vmci_listener_t)
 };
 
 vmci_listener_t::vmci_listener_t (ZmqThread *io_thread_,

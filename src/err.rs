@@ -60,42 +60,42 @@
 
 //  Provides convenient way to check WSA-style errors on Windows.
 // #define wsa_assert(x)                                                          \
-    // do {                                                                       \
-    //     if (unlikely (!(x))) {                                                 \
-    //         const char *errstr = wsa_error ();                            \
-    //         if (errstr != null_mut()) {                                              \
-    //             fprintf (stderr, "Assertion failed: %s [%i] (%s:%d)\n",        \
-    //                      errstr, WSAGetLastError (), __FILE__, __LINE__);      \
-    //             fflush (stderr);                                               \
-    //             zmq_abort (errstr);                                       \
-    //         }                                                                  \
-    //     }                                                                      \
-    // } while (false)
+// do {                                                                       \
+//     if (unlikely (!(x))) {                                                 \
+//         const char *errstr = wsa_error ();                            \
+//         if (errstr != null_mut()) {                                              \
+//             fprintf (stderr, "Assertion failed: %s [%i] (%s:%d)\n",        \
+//                      errstr, WSAGetLastError (), __FILE__, __LINE__);      \
+//             fflush (stderr);                                               \
+//             zmq_abort (errstr);                                       \
+//         }                                                                  \
+//     }                                                                      \
+// } while (false)
 
 //  Provides convenient way to assert on WSA-style errors on Windows.
 // #define wsa_assert_no(no)                                                      \
-    // do {                                                                       \
-    //     const char *errstr = wsa_error_no (no);                           \
-    //     if (errstr != null_mut()) {                                                  \
-    //         fprintf (stderr, "Assertion failed: %s (%s:%d)\n", errstr,         \
-    //                  __FILE__, __LINE__);                                      \
-    //         fflush (stderr);                                                   \
-    //         zmq_abort (errstr);                                           \
-    //     }                                                                      \
-    // } while (false)
+// do {                                                                       \
+//     const char *errstr = wsa_error_no (no);                           \
+//     if (errstr != null_mut()) {                                                  \
+//         fprintf (stderr, "Assertion failed: %s (%s:%d)\n", errstr,         \
+//                  __FILE__, __LINE__);                                      \
+//         fflush (stderr);                                                   \
+//         zmq_abort (errstr);                                           \
+//     }                                                                      \
+// } while (false)
 
 // Provides convenient way to check GetLastError-style errors on Windows.
 // #define win_assert(x)                                                          \
-    // do {                                                                       \
-    //     if (unlikely (!(x))) {                                                 \
-    //         char errstr[256];                                                  \
-    //         win_error (errstr, 256);                                      \
-    //         fprintf (stderr, "Assertion failed: %s (%s:%d)\n", errstr,         \
-    //                  __FILE__, __LINE__);                                      \
-    //         fflush (stderr);                                                   \
-    //         zmq_abort (errstr);                                           \
-    //     }                                                                      \
-    // } while (false)
+// do {                                                                       \
+//     if (unlikely (!(x))) {                                                 \
+//         char errstr[256];                                                  \
+//         win_error (errstr, 256);                                      \
+//         fprintf (stderr, "Assertion failed: %s (%s:%d)\n", errstr,         \
+//                  __FILE__, __LINE__);                                      \
+//         fflush (stderr);                                                   \
+//         zmq_abort (errstr);                                           \
+//     }                                                                      \
+// } while (false)
 
 // #endif
 
@@ -103,89 +103,93 @@
 //  in its stead because standard assert on Win32 in broken - it prints nothing
 //  when used within the scope of JNI library.
 // #define zmq_assert(x)                                                          \
-    // do {                                                                       \
-    //     if (unlikely (!(x))) {                                                 \
-    //         fprintf (stderr, "Assertion failed: %s (%s:%d)\n", #x, __FILE__,   \
-    //                  __LINE__);                                                \
-    //         fflush (stderr);                                                   \
-    //         zmq_abort (#x);                                               \
-    //     }                                                                      \
-    // } while (false)
+// do {                                                                       \
+//     if (unlikely (!(x))) {                                                 \
+//         fprintf (stderr, "Assertion failed: %s (%s:%d)\n", #x, __FILE__,   \
+//                  __LINE__);                                                \
+//         fflush (stderr);                                                   \
+//         zmq_abort (#x);                                               \
+//     }                                                                      \
+// } while (false)
 
 //  Provides convenient way to check for errno-style errors.
 // #define errno_assert(x)                                                        \
-    // do {                                                                       \
-    //     if (unlikely (!(x))) {                                                 \
-    //         const char *errstr = strerror (errno);                             \
-    //         fprintf (stderr, "%s (%s:%d)\n", errstr, __FILE__, __LINE__);      \
-    //         fflush (stderr);                                                   \
-    //         zmq_abort (errstr);                                           \
-    //     }                                                                      \
-    // } while (false)
+// do {                                                                       \
+//     if (unlikely (!(x))) {                                                 \
+//         const char *errstr = strerror (errno);                             \
+//         fprintf (stderr, "%s (%s:%d)\n", errstr, __FILE__, __LINE__);      \
+//         fflush (stderr);                                                   \
+//         zmq_abort (errstr);                                           \
+//     }                                                                      \
+// } while (false)
 
 //  Provides convenient way to check for POSIX errors.
 // #define posix_assert(x)                                                        \
-    // do {                                                                       \
-    //     if (unlikely (x)) {                                                    \
-    //         const char *errstr = strerror (x);                                 \
-    //         fprintf (stderr, "%s (%s:%d)\n", errstr, __FILE__, __LINE__);      \
-    //         fflush (stderr);                                                   \
-    //         zmq_abort (errstr);                                           \
-    //     }                                                                      \
-    // } while (false)
+// do {                                                                       \
+//     if (unlikely (x)) {                                                    \
+//         const char *errstr = strerror (x);                                 \
+//         fprintf (stderr, "%s (%s:%d)\n", errstr, __FILE__, __LINE__);      \
+//         fflush (stderr);                                                   \
+//         zmq_abort (errstr);                                           \
+//     }                                                                      \
+// } while (false)
 
 //  Provides convenient way to check for errors from getaddrinfo.
 // #define gai_assert(x)                                                          \
-    // do {                                                                       \
-    //     if (unlikely (x)) {                                                    \
-    //         const char *errstr = gai_strerror (x);                             \
-    //         fprintf (stderr, "%s (%s:%d)\n", errstr, __FILE__, __LINE__);      \
-    //         fflush (stderr);                                                   \
-    //         zmq_abort (errstr);                                           \
-    //     }                                                                      \
-    // } while (false)
+// do {                                                                       \
+//     if (unlikely (x)) {                                                    \
+//         const char *errstr = gai_strerror (x);                             \
+//         fprintf (stderr, "%s (%s:%d)\n", errstr, __FILE__, __LINE__);      \
+//         fflush (stderr);                                                   \
+//         zmq_abort (errstr);                                           \
+//     }                                                                      \
+// } while (false)
 
 //  Provides convenient way to check whether memory allocation have succeeded.
 // #define alloc_assert(x)                                                        \
-    // do {                                                                       \
-    //     if (unlikely (!x)) {                                                   \
-    //         fprintf (stderr, "FATAL ERROR: OUT OF MEMORY (%s:%d)\n", __FILE__, \
-    //                  __LINE__);                                                \
-    //         fflush (stderr);                                                   \
-    //         zmq_abort ("FATAL ERROR: OUT OF MEMORY");                     \
-    //     }                                                                      \
-    // } while (false)
+// do {                                                                       \
+//     if (unlikely (!x)) {                                                   \
+//         fprintf (stderr, "FATAL ERROR: OUT OF MEMORY (%s:%d)\n", __FILE__, \
+//                  __LINE__);                                                \
+//         fflush (stderr);                                                   \
+//         zmq_abort ("FATAL ERROR: OUT OF MEMORY");                     \
+//     }                                                                      \
+// } while (false)
 
 // #endif
 
+use libc::{
+    EACCES, EADDRINUSE, EADDRNOTAVAIL, EAFNOSUPPORT, EAGAIN, EBADF, EBUSY, ECONNABORTED,
+    ECONNREFUSED, ECONNRESET, EFAULT, EHOSTUNREACH, EINTR, EINVAL, EMFILE, EMSGSIZE, ENETDOWN,
+    ENETRESET, ENETUNREACH, ENOBUFS, ENOTCONN, ENOTSOCK, EPROTONOSUPPORT, ETIMEDOUT,
+};
 
-pub fn errno_to_string (errno_: i32) -> &str
-{
+pub fn errno_to_string(errno_: i32) -> &'static str {
     match (errno_) {
-// #if defined ZMQ_HAVE_WINDOWS
+        // #if defined ZMQ_HAVE_WINDOWS
         ENOTSUP => return "Not supported",
         EPROTONOSUPPORT => return "Protocol not supported",
         ENOBUFS => return "No buffer space available",
         ENETDOWN => return "Network is down",
         EADDRINUSE => return "Address in use",
         EADDRNOTAVAIL => return "Address not available",
-        ECONNREFUSED =>            return "Connection refused",
-        EINPROGRESS =>             return "Operation in progress",
-// #endif
-        EFSM =>             return "Operation cannot be accomplished in current state",
-        ENOCOMPATPROTO =>             return "The protocol is not compatible with the socket type",
-        ETERM =>             return "Context was terminated",
-        EMTHREAD =>             return "No thread available",
-        EHOSTUNREACH =>             return "Host unreachable",
+        ECONNREFUSED => return "Connection refused",
+        EINPROGRESS => return "Operation in progress",
+        // #endif
+        EFSM => return "Operation cannot be accomplished in current state",
+        ENOCOMPATPROTO => return "The protocol is not compatible with the socket type",
+        ETERM => return "Context was terminated",
+        EMTHREAD => return "No thread available",
+        EHOSTUNREACH => return "Host unreachable",
         _ => return format!("Unknown error {}", errno_).as_str(),
-// // #if defined _MSC_VER
-// #pragma warning(push)
-// #pragma warning(disable : 4996)
-// // #endif
-//             return strerror (errno_);
-// // #if defined _MSC_VER
-// #pragma warning(pop)
-// // #endif
+        // // #if defined _MSC_VER
+        // #pragma warning(push)
+        // #pragma warning(disable : 4996)
+        // // #endif
+        //             return strerror (errno_);
+        // // #if defined _MSC_VER
+        // #pragma warning(pop)
+        // // #endif
     }
 }
 
@@ -211,116 +215,167 @@ pub fn errno_to_string (errno_: i32) -> &str
 //     return wsa_error_no (WSAGetLastError (), null_mut());
 // }
 
-pub fn wsa_error_no (no_: i32, wsae_wouldblock_string_: &str) -> &str
-{
+pub fn wsa_error_no(no_: i32, wsae_wouldblock_string_: &str) -> &str {
     //  TODO:  It seems that list of Windows socket errors is longer than this.
     //         Investigate whether there's a way to convert it into the string
     //         automatically (wsaError->HRESULT->string?).
     match (no_) {
-        WSABASEERR =>{
-            return "No Error";}
-        WSAEINTR =>{
-            return "Interrupted system call";}
-        WSAEBADF =>{
-            return "Bad file number";}
-        WSAEACCES =>{
-            return "Permission denied";}
-        WSAEFAULT =>{
-            return "Bad address";}
-        WSAEINVAL =>{
-            return "Invalid argument";}
-        WSAEMFILE =>{
-            return "Too many open files";}
-        WSAEWOULDBLOCK =>{
-            return wsae_wouldblock_string_;}
-        WSAEINPROGRESS =>{
-            return "Operation now in progress";}
-        WSAEALREADY =>{
-            return "Operation already in progress";}
-        WSAENOTSOCK =>{
-            return "Socket operation on non-socket";}
-        WSAEDESTADDRREQ =>{
-            return "Destination address required";}
-        WSAEMSGSIZE =>{
-            return "Message too long";}
-        WSAEPROTOTYPE =>{
-            return "Protocol wrong type for socket";}
-        WSAENOPROTOOPT =>{
-            return "Bas protocol option";}
-        WSAEPROTONOSUPPORT =>{
-            return "Protocol not supported";}
-        WSAESOCKTNOSUPPORT =>{
-            return "Socket type not supported";}
-        WSAEOPNOTSUPP =>{
-            return "Operation not supported on socket";}
-        WSAEPFNOSUPPORT =>{
-            return "Protocol family not supported";}
-        WSAEAFNOSUPPORT =>{
-            return "Address family not supported by protocol family";}
-        WSAEADDRINUSE =>{
-            return "Address already in use";}
-        WSAEADDRNOTAVAIL =>{
-            return "Can't assign requested address";}
-        WSAENETDOWN =>{
-            return "Network is down";}
-        WSAENETUNREACH =>{
-            return "Network is unreachable";}
-        WSAENETRESET =>{
-            return "Net dropped connection or reset";}
-        WSAECONNABORTED =>{
-            return "Software caused connection abort";}
-        WSAECONNRESET =>{
-            return "Connection reset by peer";}
-        WSAENOBUFS =>{
-            return "No buffer space available";}
-        WSAEISCONN =>{
-            return "Socket is already connected";}
-        WSAENOTCONN =>{
-            return "Socket is not connected";}
-        WSAESHUTDOWN =>{
-            return "Can't send after socket shutdown";}
-        WSAETOOMANYREFS =>{
-            return "Too many references can't splice";}
-        WSAETIMEDOUT =>{
-            return "Connection timed out";}
-        WSAECONNREFUSED =>{
-            return "Connection refused";}
-        WSAELOOP =>{
-            return "Too many levels of symbolic links";}
-        WSAENAMETOOLONG =>{
-            return "File name too long";}
-        WSAEHOSTDOWN =>{
-            return "Host is down";}
-        WSAEHOSTUNREACH =>{
-            return "No Route to Host";}
-        WSAENOTEMPTY =>{
-            return "Directory not empty";}
-        WSAEPROCLIM =>{
-            return "Too many processes";}
-        WSAEUSERS =>{
-            return "Too many users";}
-        WSAEDQUOT =>{
-            return "Disc Quota Exceeded";}
-        WSAESTALE =>{
-            return "Stale NFS file handle";}
-        WSAEREMOTE =>{
-            return "Too many levels of remote in path";}
-        WSASYSNOTREADY =>{
-            return "Network SubSystem is unavailable";}
-        WSAVERNOTSUPPORTED =>{
-            return "WINSOCK DLL Version out of range";}
-        WSANOTINITIALISED =>{
-            return "Successful WSASTARTUP not yet performed";}
-        WSAHOST_NOT_FOUND =>{
-            return "Host not found";}
-        WSATRY_AGAIN =>{
-            return "Non-Authoritative Host not found";}
-        WSANO_RECOVERY =>{
-            return "Non-Recoverable errors: FORMERR REFUSED NOTIMP";}
-        WSANO_DATA =>{
-            return "Valid name no data record of requested";}
-        _ =>{
-            return "error not defined";}
+        WSABASEERR => {
+            return "No Error";
+        }
+        WSAEINTR => {
+            return "Interrupted system call";
+        }
+        WSAEBADF => {
+            return "Bad file number";
+        }
+        WSAEACCES => {
+            return "Permission denied";
+        }
+        WSAEFAULT => {
+            return "Bad address";
+        }
+        WSAEINVAL => {
+            return "Invalid argument";
+        }
+        WSAEMFILE => {
+            return "Too many open files";
+        }
+        WSAEWOULDBLOCK => {
+            return wsae_wouldblock_string_;
+        }
+        WSAEINPROGRESS => {
+            return "Operation now in progress";
+        }
+        WSAEALREADY => {
+            return "Operation already in progress";
+        }
+        WSAENOTSOCK => {
+            return "Socket operation on non-socket";
+        }
+        WSAEDESTADDRREQ => {
+            return "Destination address required";
+        }
+        WSAEMSGSIZE => {
+            return "Message too long";
+        }
+        WSAEPROTOTYPE => {
+            return "Protocol wrong type for socket";
+        }
+        WSAENOPROTOOPT => {
+            return "Bas protocol option";
+        }
+        WSAEPROTONOSUPPORT => {
+            return "Protocol not supported";
+        }
+        WSAESOCKTNOSUPPORT => {
+            return "Socket type not supported";
+        }
+        WSAEOPNOTSUPP => {
+            return "Operation not supported on socket";
+        }
+        WSAEPFNOSUPPORT => {
+            return "Protocol family not supported";
+        }
+        WSAEAFNOSUPPORT => {
+            return "Address family not supported by protocol family";
+        }
+        WSAEADDRINUSE => {
+            return "Address already in use";
+        }
+        WSAEADDRNOTAVAIL => {
+            return "Can't assign requested address";
+        }
+        WSAENETDOWN => {
+            return "Network is down";
+        }
+        WSAENETUNREACH => {
+            return "Network is unreachable";
+        }
+        WSAENETRESET => {
+            return "Net dropped connection or reset";
+        }
+        WSAECONNABORTED => {
+            return "Software caused connection abort";
+        }
+        WSAECONNRESET => {
+            return "Connection reset by peer";
+        }
+        WSAENOBUFS => {
+            return "No buffer space available";
+        }
+        WSAEISCONN => {
+            return "Socket is already connected";
+        }
+        WSAENOTCONN => {
+            return "Socket is not connected";
+        }
+        WSAESHUTDOWN => {
+            return "Can't send after socket shutdown";
+        }
+        WSAETOOMANYREFS => {
+            return "Too many references can't splice";
+        }
+        WSAETIMEDOUT => {
+            return "Connection timed out";
+        }
+        WSAECONNREFUSED => {
+            return "Connection refused";
+        }
+        WSAELOOP => {
+            return "Too many levels of symbolic links";
+        }
+        WSAENAMETOOLONG => {
+            return "File name too long";
+        }
+        WSAEHOSTDOWN => {
+            return "Host is down";
+        }
+        WSAEHOSTUNREACH => {
+            return "No Route to Host";
+        }
+        WSAENOTEMPTY => {
+            return "Directory not empty";
+        }
+        WSAEPROCLIM => {
+            return "Too many processes";
+        }
+        WSAEUSERS => {
+            return "Too many users";
+        }
+        WSAEDQUOT => {
+            return "Disc Quota Exceeded";
+        }
+        WSAESTALE => {
+            return "Stale NFS file handle";
+        }
+        WSAEREMOTE => {
+            return "Too many levels of remote in path";
+        }
+        WSASYSNOTREADY => {
+            return "Network SubSystem is unavailable";
+        }
+        WSAVERNOTSUPPORTED => {
+            return "WINSOCK DLL Version out of range";
+        }
+        WSANOTINITIALISED => {
+            return "Successful WSASTARTUP not yet performed";
+        }
+        WSAHOST_NOT_FOUND => {
+            return "Host not found";
+        }
+        WSATRY_AGAIN => {
+            return "Non-Authoritative Host not found";
+        }
+        WSANO_RECOVERY => {
+            return "Non-Recoverable errors: FORMERR REFUSED NOTIMP";
+        }
+        WSANO_DATA => {
+            return "Valid name no data record of requested";
+        }
+        _ => {
+            return "error not defined";
+        }
     }
 }
 
@@ -341,163 +396,212 @@ pub fn wsa_error_no (no_: i32, wsae_wouldblock_string_: &str) -> &str
 //     zmq_assert (rc);
 // }
 
-pub fn wsa_error_to_errno (errcode_: i32) -> i32
-{
+pub fn wsa_error_to_errno(errcode_: i32) -> i32 {
     match (errcode_) {
-            //  10004 - Interrupted system call.
-        WSAEINTR =>{
-            return EINTR;}
-            //  10009 - File handle is not valid.
-        WSAEBADF =>{
-            return EBADF;}
-            //  10013 - Permission denied.
-        WSAEACCES =>{
-            return EACCES;}
-            //  10014 - Bad address.
-        WSAEFAULT =>{
-            return EFAULT;}
-            //  10022 - Invalid argument.
-        WSAEINVAL =>{
-            return EINVAL;}
-            //  10024 - Too many open files.
-        WSAEMFILE =>{
-            return EMFILE;}
-            //  10035 - Operation would block.
-        WSAEWOULDBLOCK =>{
-            return EBUSY;}
-            //  10036 - Operation now in progress.
-        WSAEINPROGRESS =>{
-            return EAGAIN;}
-            //  10037 - Operation already in progress.
-        WSAEALREADY =>{
-            return EAGAIN;}
-            //  10038 - Socket operation on non-socket.
-        WSAENOTSOCK =>{
-            return ENOTSOCK;}
-            //  10039 - Destination address required.
-        WSAEDESTADDRREQ =>{
-            return EFAULT;}
-            //  10040 - Message too long.
-        WSAEMSGSIZE =>{
-            return EMSGSIZE;}
-            //  10041 - Protocol wrong type for socket.
-        WSAEPROTOTYPE =>{
-            return EFAULT;}
-            //  10042 - Bad protocol option.
-        WSAENOPROTOOPT =>{
-            return EINVAL;}
-            //  10043 - Protocol not supported.
-        WSAEPROTONOSUPPORT =>{
-            return EPROTONOSUPPORT;}
-            //  10044 - Socket type not supported.
-        WSAESOCKTNOSUPPORT =>{
-            return EFAULT;}
-            //  10045 - Operation not supported on socket.
-        WSAEOPNOTSUPP =>{
-            return EFAULT;}
-            //  10046 - Protocol family not supported.
-        WSAEPFNOSUPPORT =>{
-            return EPROTONOSUPPORT;}
-            //  10047 - Address family not supported by protocol family.
-        WSAEAFNOSUPPORT =>{
-            return EAFNOSUPPORT;}
-            //  10048 - Address already in use.
-        WSAEADDRINUSE =>{
-            return EADDRINUSE;}
-            //  10049 - Cannot assign requested address.
-        WSAEADDRNOTAVAIL =>{
-            return EADDRNOTAVAIL;}
-            //  10050 - Network is down.
-        WSAENETDOWN =>{
-            return ENETDOWN;}
-            //  10051 - Network is unreachable.
-        WSAENETUNREACH =>{
-            return ENETUNREACH;}
-            //  10052 - Network dropped connection on reset.
-        WSAENETRESET =>{
-            return ENETRESET;}
-            //  10053 - Software caused connection abort.
-        WSAECONNABORTED =>{
-            return ECONNABORTED;}
-            //  10054 - Connection reset by peer.
-        WSAECONNRESET =>{
-            return ECONNRESET;}
-            //  10055 - No buffer space available.
-        WSAENOBUFS =>{
-            return ENOBUFS;}
-            //  10056 - Socket is already connected.
-        WSAEISCONN =>{
-            return EFAULT;}
-            //  10057 - Socket is not connected.
-        WSAENOTCONN =>{
-            return ENOTCONN;}
-            //  10058 - Can't send after socket shutdown.
-        WSAESHUTDOWN =>{
-            return EFAULT;}
-            //  10059 - Too many references can't splice.
-        WSAETOOMANYREFS =>{
-            return EFAULT;}
-            //  10060 - Connection timed out.
-        WSAETIMEDOUT =>{
-            return ETIMEDOUT;}
-            //  10061 - Connection refused.
-        WSAECONNREFUSED =>{
-            return ECONNREFUSED;}
-            //  10062 - Too many levels of symbolic links.
-        WSAELOOP =>{
-            return EFAULT;}
-            //  10063 - File name too long.
-        WSAENAMETOOLONG =>{
-            return EFAULT;}
-            //  10064 - Host is down.
-        WSAEHOSTDOWN =>{
-            return EAGAIN;}
-            //  10065 - No route to host.
-        WSAEHOSTUNREACH =>{
-            return EHOSTUNREACH;}
-            //  10066 - Directory not empty.
-        WSAENOTEMPTY =>{
-            return EFAULT;}
-            //  10067 - Too many processes.
-        WSAEPROCLIM =>{
-            return EFAULT;}
-            //  10068 - Too many users.
-        WSAEUSERS =>{
-            return EFAULT;}
-            //  10069 - Disc Quota Exceeded.
-        WSAEDQUOT =>{
-            return EFAULT;}
-            //  10070 - Stale NFS file handle.
-        WSAESTALE =>{
-            return EFAULT;}
-            //  10071 - Too many levels of remote in path.
-        WSAEREMOTE =>{
-            return EFAULT;}
-            //  10091 - Network SubSystem is unavailable.
-        WSASYSNOTREADY =>{
-            return EFAULT;}
-            //  10092 - WINSOCK DLL Version out of range.
-        WSAVERNOTSUPPORTED =>{
-            return EFAULT;}
-            //  10093 - Successful WSASTARTUP not yet performed.
-        WSANOTINITIALISED =>{
-            return EFAULT;}
-            //  11001 - Host not found.
-        WSAHOST_NOT_FOUND =>{
-            return EFAULT;}
-            //  11002 - Non-Authoritative Host not found.
-        WSATRY_AGAIN =>{
-            return EFAULT;}
-            //  11003 - Non-Recoverable errors: FORMERR REFUSED NOTIMP.
-        WSANO_RECOVERY =>{
-            return EFAULT;}
-            //  11004 - Valid name no data record of requested.
-        WSANO_DATA =>{
-            return EFAULT;}
-        _ =>{
+        //  10004 - Interrupted system call.
+        WSAEINTR => {
+            return EINTR;
+        }
+        //  10009 - File handle is not valid.
+        WSAEBADF => {
+            return EBADF;
+        }
+        //  10013 - Permission denied.
+        WSAEACCES => {
+            return EACCES;
+        }
+        //  10014 - Bad address.
+        WSAEFAULT => {
+            return EFAULT;
+        }
+        //  10022 - Invalid argument.
+        WSAEINVAL => {
+            return EINVAL;
+        }
+        //  10024 - Too many open files.
+        WSAEMFILE => {
+            return EMFILE;
+        }
+        //  10035 - Operation would block.
+        WSAEWOULDBLOCK => {
+            return EBUSY;
+        }
+        //  10036 - Operation now in progress.
+        WSAEINPROGRESS => {
+            return EAGAIN;
+        }
+        //  10037 - Operation already in progress.
+        WSAEALREADY => {
+            return EAGAIN;
+        }
+        //  10038 - Socket operation on non-socket.
+        WSAENOTSOCK => {
+            return ENOTSOCK;
+        }
+        //  10039 - Destination address required.
+        WSAEDESTADDRREQ => {
+            return EFAULT;
+        }
+        //  10040 - Message too long.
+        WSAEMSGSIZE => {
+            return EMSGSIZE;
+        }
+        //  10041 - Protocol wrong type for socket.
+        WSAEPROTOTYPE => {
+            return EFAULT;
+        }
+        //  10042 - Bad protocol option.
+        WSAENOPROTOOPT => {
+            return EINVAL;
+        }
+        //  10043 - Protocol not supported.
+        WSAEPROTONOSUPPORT => {
+            return EPROTONOSUPPORT;
+        }
+        //  10044 - Socket type not supported.
+        WSAESOCKTNOSUPPORT => {
+            return EFAULT;
+        }
+        //  10045 - Operation not supported on socket.
+        WSAEOPNOTSUPP => {
+            return EFAULT;
+        }
+        //  10046 - Protocol family not supported.
+        WSAEPFNOSUPPORT => {
+            return EPROTONOSUPPORT;
+        }
+        //  10047 - Address family not supported by protocol family.
+        WSAEAFNOSUPPORT => {
+            return EAFNOSUPPORT;
+        }
+        //  10048 - Address already in use.
+        WSAEADDRINUSE => {
+            return EADDRINUSE;
+        }
+        //  10049 - Cannot assign requested address.
+        WSAEADDRNOTAVAIL => {
+            return EADDRNOTAVAIL;
+        }
+        //  10050 - Network is down.
+        WSAENETDOWN => {
+            return ENETDOWN;
+        }
+        //  10051 - Network is unreachable.
+        WSAENETUNREACH => {
+            return ENETUNREACH;
+        }
+        //  10052 - Network dropped connection on reset.
+        WSAENETRESET => {
+            return ENETRESET;
+        }
+        //  10053 - Software caused connection abort.
+        WSAECONNABORTED => {
+            return ECONNABORTED;
+        }
+        //  10054 - Connection reset by peer.
+        WSAECONNRESET => {
+            return ECONNRESET;
+        }
+        //  10055 - No buffer space available.
+        WSAENOBUFS => {
+            return ENOBUFS;
+        }
+        //  10056 - Socket is already connected.
+        WSAEISCONN => {
+            return EFAULT;
+        }
+        //  10057 - Socket is not connected.
+        WSAENOTCONN => {
+            return ENOTCONN;
+        }
+        //  10058 - Can't send after socket shutdown.
+        WSAESHUTDOWN => {
+            return EFAULT;
+        }
+        //  10059 - Too many references can't splice.
+        WSAETOOMANYREFS => {
+            return EFAULT;
+        }
+        //  10060 - Connection timed out.
+        WSAETIMEDOUT => {
+            return ETIMEDOUT;
+        }
+        //  10061 - Connection refused.
+        WSAECONNREFUSED => {
+            return ECONNREFUSED;
+        }
+        //  10062 - Too many levels of symbolic links.
+        WSAELOOP => {
+            return EFAULT;
+        }
+        //  10063 - File name too long.
+        WSAENAMETOOLONG => {
+            return EFAULT;
+        }
+        //  10064 - Host is down.
+        WSAEHOSTDOWN => {
+            return EAGAIN;
+        }
+        //  10065 - No route to host.
+        WSAEHOSTUNREACH => {
+            return EHOSTUNREACH;
+        }
+        //  10066 - Directory not empty.
+        WSAENOTEMPTY => {
+            return EFAULT;
+        }
+        //  10067 - Too many processes.
+        WSAEPROCLIM => {
+            return EFAULT;
+        }
+        //  10068 - Too many users.
+        WSAEUSERS => {
+            return EFAULT;
+        }
+        //  10069 - Disc Quota Exceeded.
+        WSAEDQUOT => {
+            return EFAULT;
+        }
+        //  10070 - Stale NFS file handle.
+        WSAESTALE => {
+            return EFAULT;
+        }
+        //  10071 - Too many levels of remote in path.
+        WSAEREMOTE => {
+            return EFAULT;
+        }
+        //  10091 - Network SubSystem is unavailable.
+        WSASYSNOTREADY => {
+            return EFAULT;
+        }
+        //  10092 - WINSOCK DLL Version out of range.
+        WSAVERNOTSUPPORTED => {
+            return EFAULT;
+        }
+        //  10093 - Successful WSASTARTUP not yet performed.
+        WSANOTINITIALISED => {
+            return EFAULT;
+        }
+        //  11001 - Host not found.
+        WSAHOST_NOT_FOUND => {
+            return EFAULT;
+        }
+        //  11002 - Non-Authoritative Host not found.
+        WSATRY_AGAIN => {
+            return EFAULT;
+        }
+        //  11003 - Non-Recoverable errors: FORMERR REFUSED NOTIMP.
+        WSANO_RECOVERY => {
+            return EFAULT;
+        }
+        //  11004 - Valid name no data record of requested.
+        WSANO_DATA => {
+            return EFAULT;
+        }
+        _ => {
             // wsa_assert (false);
-            return EFAULT;}
-
+            return EFAULT;
+        }
     }
     //  Not reachable
 }

@@ -35,7 +35,7 @@
 //  reader_awake flag is needed here to mimic ypipe delicate behaviour
 //  around the reader being asleep (see 'c' pointer being NULL in ypipe.hpp)
 
-template <typename T> class ypipe_conflate_t ZMQ_FINAL : public YpipeBase<T>
+template <typename T> class ypipe_conflate_t  : public YpipeBase<T>
 {
 // public:
     //  Initialises the pipe.
@@ -107,7 +107,7 @@ template <typename T> class ypipe_conflate_t ZMQ_FINAL : public YpipeBase<T>
     dbuffer_t<T> dbuffer;
     reader_awake: bool
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (ypipe_conflate_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ypipe_conflate_t)
 };
 
 

@@ -40,6 +40,9 @@
 // #include "curve_client_tools.hpp"
 // #include "secure_allocator.hpp"
 
+use anyhow::anyhow;
+use libc::EPROTO;
+
 use crate::config::{CRYPTO_BOX_BOXZEROBYTES, CRYPTO_BOX_NONCEBYTES, CRYPTO_BOX_ZEROBYTES};
 use crate::curve_client_tools::{
     is_handshake_command_error, is_handshake_command_ready, is_handshake_command_welcome,
@@ -56,8 +59,6 @@ use crate::zmq_hdr::{
     ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR,
     ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_READY, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
 };
-use anyhow::anyhow;
-use libc::EPROTO;
 
 pub enum ZmqCurveClientState {
     send_hello,
@@ -68,7 +69,7 @@ pub enum ZmqCurveClientState {
     connected,
 }
 
-// pub struct curve_client_t ZMQ_FINAL : public curve_mechanism_base_t
+// pub struct curve_client_t  : public curve_mechanism_base_t
 pub struct ZmqCurveClient {
     // public:
     // private:
@@ -124,13 +125,13 @@ impl ZmqCurveClient {
         }
     }
 
-    // ~curve_client_t () ZMQ_FINAL;
+    // ~curve_client_t () ;
     // curve_client_t::~curve_client_t ()
     // {
     // }
 
     // // mechanism implementation
-    // int next_handshake_command (msg: &mut ZmqMessage) ZMQ_FINAL;
+    // int next_handshake_command (msg: &mut ZmqMessage) ;
     pub fn next_handshake_command(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         match self.state {
             ZmqCurveClientState::send_hello => {
@@ -150,7 +151,7 @@ impl ZmqCurveClient {
             _ => Err(anyhow!("EAGAIN")),
         }
     }
-    // int process_handshake_command (msg: &mut ZmqMessage) ZMQ_FINAL;
+    // int process_handshake_command (msg: &mut ZmqMessage) ;
     pub fn process_handshake_command(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         let msg_data = msg.data()?;
         let msg_size = msg.size();
@@ -184,19 +185,19 @@ impl ZmqCurveClient {
         // return rc;
     }
 
-    // int encode (msg: &mut ZmqMessage) ZMQ_FINAL;
+    // int encode (msg: &mut ZmqMessage) ;
     pub fn encode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         // zmq_assert (_state == connected);
         self.curve_mechanism_base.encode(msg)
     }
 
-    // int decode (msg: &mut ZmqMessage) ZMQ_FINAL;
+    // int decode (msg: &mut ZmqMessage) ;
     pub fn decode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         // zmq_assert (_state == connected);
         self.curve_mechanism_base.decode(msg)
     }
 
-    // status_t status () const ZMQ_FINAL;
+    // status_t status () const ;
     pub fn status(&mut self) -> ZmqMechanismStatus {
         if (self.state == ZmqCurveClientState::connected) {
             return ZmqMechanismStatus::ready;

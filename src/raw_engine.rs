@@ -62,7 +62,7 @@
 // #include "tcp.hpp"
 // #include "likely.hpp"
 // #include "wire.hpp"
-pub struct raw_engine_t ZMQ_FINAL : public stream_engine_base_t
+pub struct raw_engine_t  : public stream_engine_base_t
 {
 // public:
     raw_engine_t (fd: ZmqFileDesc,
@@ -78,7 +78,7 @@ pub struct raw_engine_t ZMQ_FINAL : public stream_engine_base_t
   // private:
     int push_raw_ZmqMessageo_session (msg: &mut ZmqMessage);
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (raw_engine_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (raw_engine_t)
 };
 
 raw_engine_t::raw_engine_t (

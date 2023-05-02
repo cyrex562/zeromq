@@ -45,7 +45,7 @@ use crate::socket_base::ZmqSocketBase;
 // #include "io_thread.hpp"
 // #include "err.hpp"
 // #include "ctx.hpp"
-// pub struct ZmqThread ZMQ_FINAL : public ZmqObject, public i_poll_events
+// pub struct ZmqThread  : public ZmqObject, public i_poll_events
 #[derive(Default,Debug,Clone)]
 pub struct ZmqThread
 {
@@ -56,7 +56,7 @@ pub struct ZmqThread
     pub mailbox_handle: Option<handle_t>,
     //  I/O multiplexing is performed using a poller object.
     pub poller: Poller,
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqThread)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqThread)
     pub ctx: ZmqContext,
     //
     pub tid: u32,

@@ -37,6 +37,11 @@
 // #include "err.hpp"
 // #include "ip.hpp"
 
+use std::net::{IpAddr, Ipv4Addr};
+use std::str::FromStr;
+use libc::{EINVAL, ENODEV};
+use crate::ip_resolver::{IpResolver, IpResolverOptions};
+
 // #ifndef ZMQ_HAVE_WINDOWS
 // #include <sys/types.h>
 // #include <arpa/inet.h>
@@ -44,193 +49,210 @@
 // #include <net/if.h>
 // #include <ctype.h>
 // #endif
+#[derive(Default,Debug,Clone)]
 pub struct UdpAddress
 {
 // public:
-    UdpAddress ();
-    virtual ~UdpAddress ();
-
-    int resolve (name_: &str, bind_: bool, ipv6_: bool);
-
+//     UdpAddress ();
+//     virtual ~UdpAddress ();
+    // int resolve (name: &str, bind: bool, ipv6: bool);=
     //  The opposite to resolve()
-    virtual int to_string (std::string &addr_);
-
-
-    int family () const;
-
-    bool is_mcast () const;
-
-    const ip_addr_t *bind_addr () const;
-    int bind_if () const;
-    const ip_addr_t *target_addr () const;
-
+    // virtual int to_string (std::string &addr_);
+    // int family () const;
+    // bool is_mcast () const;
+    // const ip_addr_t *bind_addr () const;
+    // int bind_if () const;
+    // const ip_addr_t *target_addr () const;
   // private:
-    ip_addr_t _bind_address;
-    _bind_interface: i32;
-    ip_addr_t _target_address;
-    _is_multicast: bool
-    _address: String;
-};
-
-UdpAddress::UdpAddress () :
-    _bind_interface (-1), _is_multicast (false)
-{
-    _bind_address = ip_addr_t::any (AF_INET);
-    _target_address = ip_addr_t::any (AF_INET);
+  //   ip_addr_t bind_address;
+    pub bind_address: IpAddr,
+    // bind_interface: i32;
+    pub bind_interface: i32,
+    // ip_addr_t target_address;
+    pub target_address: IpAddr,
+    // is_multicast: bool
+    pub is_multicast: bool,
+    // address: String;
+    pub address: String,
 }
 
-UdpAddress::~UdpAddress ()
-{
-}
+impl UdpAddress {
+    pub fn new()-> Self
+    {
+// bind_interface (-1), is_multicast (false)
+//     bind_address = ip_addr_t::any (AF_INET);
+//     target_address = ip_addr_t::any (AF_INET);
+        let mut out = Self {
+            bind_address: IpAddr::from_str("0.0.0.0").unwrap(),
+            target_address: IpAddr::from_str("0.0.0.0").unwrap(),
+                ..Default::default()
+        };
+        out
+    }
 
-int UdpAddress::resolve (name_: &str, bind_: bool, ipv6_: bool)
-{
-    //  No IPv6 support yet
-    bool has_interface = false;
+    pub fn resolve (&mut self, name: &mut String, bind: bool, ipv6: bool) -> i32
+    {
+        //  No IPv6 support yet
+        let has_interface = false;
 
-    _address = name_;
+        address = name;
 
-    //  If we have a semicolon then we should have an interface specifier in the
-    //  URL
-    const char *src_delimiter = strrchr (name_, ';');
-    if (src_delimiter) {
-        const std::string src_name (name_, src_delimiter - name_);
+        //  If we have a semicolon then we should have an interface specifier in the
+        //  URL
+        // const char *src_delimiter = strrchr (name, ';');
+        let src_delimiter = name.find(';');
+        if (src_delimiter.is_some()) {
+            let src_name = name[0..src_delimiter.unwrap()].to_string();
 
-        IpResolverOptions src_resolver_opts;
+            let mut src_resolver_opts: IpResolverOptions = Default::default();
 
-        src_resolver_opts
-          .bindable (true)
-          //  Restrict hostname/service to literals to avoid any DNS
-          //  lookups or service-name irregularity due to
-          //  indeterminate socktype.
-          .allow_dns (false)
-          .allow_nic_name (true)
-          .ipv6 (ipv6_)
-          .expect_port (false);
+            src_resolver_opts
+                .bindable (true)
+                //  Restrict hostname/service to literals to avoid any DNS
+                //  lookups or service-name irregularity due to
+                //  indeterminate socktype.
+                .allow_dns (false)
+                .allow_nic_name (true)
+                .ipv6 (ipv6)
+                .expect_port (false);
 
-        IpResolver src_resolver (src_resolver_opts);
+            let mut src_resolver = IpResolver::new(&src_resolver_opts);
 
-        let rc: i32 = src_resolver.resolve (&_bind_address, src_name.c_str ());
+            let rc: i32 = src_resolver.resolve (&mut bind_address, src_name.c_str ());
 
+            if (rc != 0) {
+                return -1;
+            }
+
+            if (self.bind_address.is_multicast ()) {
+                //  It doesn't make sense to have a multicast address as a source
+                errno = EINVAL;
+                return -1;
+            }
+
+            //  This is a hack because we need the interface index when binding
+            //  multicast IPv6, we can't do it by address. Unfortunately for the
+            //  time being we don't have a generic platform-independent function to
+            //  resolve an interface index from an address, so we only support it
+            //  when an actual interface name is provided.
+            if (src_name == "*") {
+                self.bind_interface = 0;
+            } else {
+// #ifdef HAVE_IF_NAMETOINDEX
+                self.bind_interface = if_nametoindex (src_name.c_str ());
+                if (self.bind_interface == 0) {
+                    //  Error, probably not an interface name.
+                    self.bind_interface = -1;
+                }
+// #endif
+            }
+
+            self.has_interface = true;
+            *name = name[src_delimiter + 1..].to_string();
+        }
+
+        let mut resolver_opts = IpResolverOptions::default();
+
+        resolver_opts.bindable (bind)
+            .allow_dns (!bind)
+            .allow_nic_name (bind)
+            .expect_port (true)
+            .ipv6 (ipv6);
+
+        let mut resolver = IpResolver::new(resolver_opts);
+
+        let rc: i32 = resolver.resolve (&mut target_address, name);
         if (rc != 0) {
             return -1;
         }
 
-        if (_bind_address.is_multicast ()) {
-            //  It doesn't make sense to have a multicast address as a source
-            errno = EINVAL;
-            return -1;
-        }
+        self.is_multicast = target_address.is_multicast ();
+        let port = target_address.port ();
 
-        //  This is a hack because we need the interface index when binding
-        //  multicast IPv6, we can't do it by address. Unfortunately for the
-        //  time being we don't have a generic platform-independent function to
-        //  resolve an interface index from an address, so we only support it
-        //  when an actual interface name is provided.
-        if (src_name == "*") {
-            _bind_interface = 0;
-        } else {
-// #ifdef HAVE_IF_NAMETOINDEX
-            _bind_interface = if_nametoindex (src_name.c_str ());
-            if (_bind_interface == 0) {
-                //  Error, probably not an interface name.
-                _bind_interface = -1;
+        if (self.has_interface) {
+            //  If we have an interface specifier then the target address must be a
+            //  multicast address
+            if (!self.is_multicast) {
+                errno = EINVAL;
+                return -1;
             }
-// #endif
+
+            self.bind_address.set_port (port);
+        } else {
+            //  If we don't have an explicit interface specifier then the URL is
+            //  ambiguous: if the target address is multicast then it's the
+            //  destination address and the bind address is ANY, if it's unicast
+            //  then it's the bind address when 'bind' is true and the destination
+            //  otherwise
+            if (self.is_multicast || !bind) {
+                self.bind_address = if self.target_address.is_ipv4() {
+                    IpAddr::from_str("0.0.0.0").unwrap()
+                    // ip_addr_t::any (target_address.family ());
+                } else {
+                    IpAddr::from_str("::").unwrap()
+                };
+                self.bind_address.set_port (port);
+                self.bind_interface = 0;
+            } else {
+                //  If we were asked for a bind socket and the address
+                //  provided was not multicast then it was really meant as
+                //  a bind address and the target_address is useless.
+                self.bind_address = target_address;
+            }
         }
 
-        has_interface = true;
-        name_ = src_delimiter + 1;
-    }
-
-    IpResolverOptions resolver_opts;
-
-    resolver_opts.bindable (bind_)
-      .allow_dns (!bind_)
-      .allow_nic_name (bind_)
-      .expect_port (true)
-      .ipv6 (ipv6_);
-
-    IpResolver resolver (resolver_opts);
-
-    let rc: i32 = resolver.resolve (&_target_address, name_);
-    if (rc != 0) {
-        return -1;
-    }
-
-    _is_multicast = _target_address.is_multicast ();
-    const uint16_t port = _target_address.port ();
-
-    if (has_interface) {
-        //  If we have an interface specifier then the target address must be a
-        //  multicast address
-        if (!_is_multicast) {
+        if (bind_address.family () != target_address.family ()) {
             errno = EINVAL;
             return -1;
         }
 
-        _bind_address.set_port (port);
-    } else {
-        //  If we don't have an explicit interface specifier then the URL is
-        //  ambiguous: if the target address is multicast then it's the
-        //  destination address and the bind address is ANY, if it's unicast
-        //  then it's the bind address when 'bind_' is true and the destination
-        //  otherwise
-        if (_is_multicast || !bind_) {
-            _bind_address = ip_addr_t::any (_target_address.family ());
-            _bind_address.set_port (port);
-            _bind_interface = 0;
-        } else {
-            //  If we were asked for a bind socket and the address
-            //  provided was not multicast then it was really meant as
-            //  a bind address and the target_address is useless.
-            _bind_address = _target_address;
+        //  For IPv6 multicast we *must* have an interface index since we can't
+        //  bind by address.
+        if (ipv6 && is_multicast && bind_interface < 0) {
+            errno = ENO`DEV;
+            return -1;
         }
+
+        return 0;
     }
 
-    if (_bind_address.family () != _target_address.family ()) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    //  For IPv6 multicast we *must* have an interface index since we can't
-    //  bind by address.
-    if (ipv6_ && _is_multicast && _bind_interface < 0) {
-        errno = ENODEV;
-        return -1;
-    }
-
-    return 0;
 }
+
+
+
+// UdpAddress::~UdpAddress ()
+// {
+// }
+
 
 int UdpAddress::family () const
 {
-    return _bind_address.family ();
+    return bind_address.family ();
 }
 
 bool UdpAddress::is_mcast () const
 {
-    return _is_multicast;
+    return is_multicast;
 }
 
 const ip_addr_t *UdpAddress::bind_addr () const
 {
-    return &_bind_address;
+    return &bind_address;
 }
 
 int UdpAddress::bind_if () const
 {
-    return _bind_interface;
+    return bind_interface;
 }
 
 const ip_addr_t *UdpAddress::target_addr () const
 {
-    return &_target_address;
+    return &target_address;
 }
 
 int UdpAddress::to_string (std::string &addr_)
 {
     // XXX what do (factor TCP code?)
-    addr_ = _address;
+    addr_ = address;
     return 0;
 }

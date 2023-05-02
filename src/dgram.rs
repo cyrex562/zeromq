@@ -48,7 +48,7 @@ pub struct ZmqDgram {
     //  If true, more outgoing message parts are expected.
     pub _more_out: bool,
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqDgram)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqDgram)
     pub socket_base: ZmqSocketBase,
 }
 

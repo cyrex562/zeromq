@@ -51,7 +51,7 @@
 // #ifdef ZMQ_HAVE_VXWORKS
 // #include <sockLib.h>
 // #endif
-pub struct tipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
+pub struct tipc_connecter_t  : public stream_connecter_base_t
 {
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
@@ -64,10 +64,10 @@ pub struct tipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
 
   // private:
     //  Handlers for I/O events.
-    void out_event () ZMQ_FINAL;
+    void out_event () ;
 
     //  Internal function to start the actual connection establishment.
-    void start_connecting () ZMQ_FINAL;
+    void start_connecting () ;
 
     //  Get the file descriptor of newly created connection. Returns
     //  retired_fd if the connection was unsuccessful.
@@ -78,7 +78,7 @@ pub struct tipc_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     //  EAGAIN errno if async connect was launched.
     int open ();
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (tipc_connecter_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (tipc_connecter_t)
 };
 
 tipc_connecter_t::tipc_connecter_t (class ZmqThread *io_thread_,

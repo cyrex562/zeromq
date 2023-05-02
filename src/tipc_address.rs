@@ -94,7 +94,7 @@ bool TipcAddress::is_service () const
 
     return true;
 }
-int TipcAddress::resolve (name_: &str)
+int TipcAddress::resolve (name: &str)
 {
     unsigned int type = 0;
     unsigned int lower = 0;
@@ -106,7 +106,7 @@ int TipcAddress::resolve (name_: &str)
     res: i32;
 
 
-    if (strncmp (name_, "<*>", 3) == 0) {
+    if (strncmp (name, "<*>", 3) == 0) {
         set_random ();
         address.family = AF_TIPC;
         address.addrtype = TIPC_ADDR_ID;
@@ -116,9 +116,9 @@ int TipcAddress::resolve (name_: &str)
         return 0;
     }
 
-    res = sscanf (name_, "{%u,%u,%u}", &type, &lower, &upper);
+    res = sscanf (name, "{%u,%u,%u}", &type, &lower, &upper);
     /* Fetch optional domain suffix. */
-    if ((domain = strchr (name_, '@'))) {
+    if ((domain = strchr (name, '@'))) {
         if (sscanf (domain, "@%u.%u.%u%c", &z, &c, &n, &eof) != 3)
             return EINVAL;
     }
@@ -142,7 +142,7 @@ int TipcAddress::resolve (name_: &str)
         address.scope = 0;
         return 0;
     } else if (res == 0) {
-        res = sscanf (name_, "<%u.%u.%u:%u>", &z, &c, &n, &ref);
+        res = sscanf (name, "<%u.%u.%u:%u>", &z, &c, &n, &ref);
         if (res == 4) {
             address.family = AF_TIPC;
             address.addrtype = TIPC_ADDR_ID;

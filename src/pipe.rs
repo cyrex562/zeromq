@@ -102,7 +102,7 @@ pub enum PipeState
 //  The array of inbound pipes (1), the array of outbound pipes (2) and
 //  the generic array of pipes to be deallocated (3).
 #[derive(Default,Debug,Clone,Serialize,Deserialize)]
-// pub struct ZmqPipe ZMQ_FINAL : public ZmqObject,
+// pub struct ZmqPipe  : public ZmqObject,
 //                          public array_item_t<1>,
 //                          public array_item_t<2>,
 //                          public array_item_t<3>
@@ -150,7 +150,7 @@ pub struct ZmqPipe
     // Disconnect msg
     pub _disconnect_msg: ZmqMessage,
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqPipe)
+    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqPipe)
 }
 
 impl ZmqPipe {

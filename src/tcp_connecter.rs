@@ -61,7 +61,7 @@
 // #ifdef __APPLE__
 // #include <TargetConditionals.h>
 // #endif
-pub struct tcp_connecter_t ZMQ_FINAL : public stream_connecter_base_t
+pub struct tcp_connecter_t  : public stream_connecter_base_t
 {
 // public:
     //  If 'delayed_start' is true connecter first waits for a while,
@@ -108,7 +108,7 @@ pub struct tcp_connecter_t ZMQ_FINAL : public stream_connecter_base_t
     //  True iff a timer has been started.
     _connect_timer_started: bool
 
-    ZMQ_NON_COPYABLE_NOR_MOVABLE (tcp_connecter_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (tcp_connecter_t)
 };
 
 tcp_connecter_t::tcp_connecter_t (class ZmqThread *io_thread_,

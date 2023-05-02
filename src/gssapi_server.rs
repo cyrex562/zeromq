@@ -41,22 +41,22 @@
 // #include "wire.hpp"
 
 // #include <gssapi/gssapi.h>
-pub struct gssapi_server_t ZMQ_FINAL : public gssapi_ZmqMechanismBase,
-                                  public zap_client_t
+pub struct gssapi_server_t  : public gssapi_ZmqMechanismBase,
+                                  public ZmqZapClient
 {
 // public:
     gssapi_server_t (ZmqSessionBase *session_,
                      const std::string &peer_address,
                      options: &ZmqOptions);
-    ~gssapi_server_t () ZMQ_FINAL;
+    ~gssapi_server_t () ;
 
     // mechanism implementation
-    int next_handshake_command (msg: &mut ZmqMessage) ZMQ_FINAL;
-    int process_handshake_command (msg: &mut ZmqMessage) ZMQ_FINAL;
-    int encode (msg: &mut ZmqMessage) ZMQ_FINAL;
-    int decode (msg: &mut ZmqMessage) ZMQ_FINAL;
-    int zap_msg_available () ZMQ_FINAL;
-    status_t status () const ZMQ_FINAL;
+    int next_handshake_command (msg: &mut ZmqMessage) ;
+    int process_handshake_command (msg: &mut ZmqMessage) ;
+    int encode (msg: &mut ZmqMessage) ;
+    int decode (msg: &mut ZmqMessage) ;
+    int zap_msg_available () ;
+    status_t status () const ;
 
   // private:
     enum state_t
@@ -93,7 +93,7 @@ gssapi_server_t::gssapi_server_t (ZmqSessionBase *session_,
                                        options: &ZmqOptions) :
     ZmqMechanismBase (session_, options_),
     gssapi_ZmqMechanismBase (session_, options_),
-    zap_client_t (session_, peer_address_, options_),
+    ZmqZapClient (session_, peer_address_, options_),
     session (session_),
     peer_address (peer_address_),
     state (recv_next_token),
@@ -204,7 +204,7 @@ void gssapi_server_t::send_zap_request ()
 {
     gss_buffer_desc principal;
     gss_display_name (&min_stat, target_name, &principal, null_mut());
-    zap_client_t::send_zap_request (
+    ZmqZapClient::send_zap_request (
       "GSSAPI", 6, reinterpret_cast<const uint8_t *> (principal.value),
       principal.length);
 
