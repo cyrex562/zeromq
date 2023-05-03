@@ -90,7 +90,7 @@ impl ZmqBaseEncoder {
     // next (null_mut()),
     // new_msg_flag (false),
     // buf_size (bufsize_),
-    // buf (static_cast<unsigned char *> (malloc (bufsize_))),
+    // buf ( (malloc (bufsize_))),
     // in_progress (null_mut())
     // {
     // alloc_assert (buf);

@@ -30,7 +30,7 @@
 // #include "precompiled.hpp"
 // #include "sub.hpp"
 // #include "msg.hpp"
-pub struct sub_t  : public xsub_t
+pub struct sub_t  : public XSub
 {
 // public:
     sub_t (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -45,7 +45,7 @@ pub struct sub_t  : public xsub_t
 };
 
 sub_t::sub_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
-    xsub_t (parent_, tid, sid_)
+    XSub (parent_, tid, sid_)
 {
     options.type = ZMQ_SUB;
 
@@ -79,7 +79,7 @@ let mut msg = ZmqMessage::default();
     errno_assert (rc == 0);
 
     //  Pass it further on in the stack.
-    rc = xsub_t::xsend (&msg);
+    rc = XSub::xsend (&msg);
     return close_and_return (&msg, rc);
 }
 

@@ -143,7 +143,7 @@ void ws_encoder_t::size_ready ()
         const size_t size = in_progress ().size ();
 
         unsigned char *src =
-          static_cast<unsigned char *> (in_progress ().data ());
+           (in_progress ().data ());
         unsigned char *dest = src;
 
         //  If msg is shared or data is constant we cannot mask in-place, allocate a new msg for it
@@ -151,7 +151,7 @@ void ws_encoder_t::size_ready ()
             || in_progress ().is_cmsg ()) {
             _masked_msg.close ();
             _masked_msg.init_size (size);
-            dest = static_cast<unsigned char *> (_masked_msg.data ());
+            dest =  (_masked_msg.data ());
         }
 
         int mask_index = 0;

@@ -287,7 +287,7 @@ int router_t::xsend (msg: &mut ZmqMessage)
             //  If there's no such pipe just silently ignore the message, unless
             //  router_mandatory is set.
             out_pipe_t *out_pipe = lookup_out_pipe (
-              Blob (static_cast<unsigned char *> (msg.data ()),
+              Blob ( (msg.data ()),
                       msg.size (), ReferenceTag ()));
 
             if (out_pipe) {
@@ -520,7 +520,7 @@ int router_t::get_peer_state (const routing_id_: &mut [u8],
 
     // TODO remove the const_cast, see comment in lookup_out_pipe
     const Blob routing_id_blob (
-      static_cast<unsigned char *> (const_cast<void *> (routing_id_)),
+       (const_cast<void *> (routing_id_)),
       routing_id_size_, ReferenceTag ());
     const out_pipe_t *out_pipe = lookup_out_pipe (routing_id_blob);
     if (!out_pipe) {
@@ -570,7 +570,7 @@ let mut msg = ZmqMessage::default();
             routing_id.set (buf, sizeof buf);
             msg.close ();
         } else {
-            routing_id.set (static_cast<unsigned char *> (msg.data ()),
+            routing_id.set ( (msg.data ()),
                             msg.size ());
             msg.close ();
 

@@ -414,7 +414,7 @@ int gssapi_ZmqMechanismBase::process_ready (msg: &mut ZmqMessage)
             return rc;
     }
 
-    const unsigned char *ptr = static_cast<unsigned char *> (msg.data ());
+    const unsigned char *ptr =  (msg.data ());
     size_t bytes_left = msg.size ();
 
     int rc = check_basic_command_structure (msg);

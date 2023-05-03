@@ -143,7 +143,7 @@ let mut msg = ZmqMessage::default();
     int step = 0;
     while (step < steps) {
         // Wait until something happens.
-        zmq_pollitem_t items[] = {
+        ZmqPollItem items[] = {
           {sockets[SERVER], 0, ZMQ_POLLIN, 0},
           {sockets[CLIENT], 0, ZMQ_POLLIN, 0},
         };

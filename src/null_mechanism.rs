@@ -136,7 +136,7 @@ int null_ZmqMechanism::next_handshake_command (msg: &mut ZmqMessage)
               error_command_name_len + error_reason_len_size + status_code_len);
             zmq_assert (rc == 0);
             unsigned char *msg_data =
-              static_cast<unsigned char *> (msg.data ());
+               (msg.data ());
             memcpy (msg_data, error_command_name, error_command_name_len);
             msg_data += error_command_name_len;
             *msg_data = status_code_len;
@@ -166,7 +166,7 @@ int null_ZmqMechanism::process_handshake_command (msg: &mut ZmqMessage)
     }
 
     const unsigned char *cmd_data =
-      static_cast<unsigned char *> (msg.data ());
+       (msg.data ());
     const size_t data_size = msg.size ();
 
     int rc = 0;

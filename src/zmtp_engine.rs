@@ -81,7 +81,7 @@ use crate::v1_encoder::v1_encoder_t;
 use crate::v2_decoder::v2_decoder_t;
 use crate::v2_encoder::v2_encoder_t;
 use crate::v3_1_encoder::v3_1_encoder_t;
-use crate::zmq_hdr::{ZMQ_CURVE, ZMQ_GSSAPI, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH, ZMQ_PUB, ZMQ_XPUB};
+use crate::defines::{ZMQ_CURVE, ZMQ_GSSAPI, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH, ZMQ_PUB, ZMQ_XPUB};
 use crate::zmtp_engine::ZmtpRevisions::ZMTP_2_0;
 
 //  Protocol revisions

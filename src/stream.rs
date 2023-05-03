@@ -99,7 +99,7 @@ int stream_t::xsend (msg: &mut ZmqMessage)
             //  If there's no such pipe return an error
 
             out_pipe_t *out_pipe = lookup_out_pipe (
-              Blob (static_cast<unsigned char *> (msg.data ()),
+              Blob ( (msg.data ()),
                       msg.size (), ReferenceTag ()));
 
             if (out_pipe) {
@@ -166,7 +166,7 @@ use std::_ =>:default;
 use bincode::options;
 use crate::options::set_opt_bool;
 use crate::socket_base::routing_socket_base_t;
-use crate::zmq_hdr::ZMQ_STREAM_NOTIFY;
+use crate::defines::ZMQ_STREAM_NOTIFY;
 
 pub fn xsetsockopt (opt_kind: i32,
                     optval_: &[u8]) -> anyhow::Result<()>

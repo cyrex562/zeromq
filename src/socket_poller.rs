@@ -537,7 +537,7 @@ int socket_poller_t::check_events (socket_poller_t::event_t *events_,
             }
         }
         //  Else, the poll item is a raw file descriptor, simply convert
-        //  the events to zmq_pollitem_t-style format.
+        //  the events to ZmqPollItem-style format.
         else if (it.events) {
 // #if defined ZMQ_POLL_BASED_ON_POLL
             zmq_assert (it.pollfd_index >= 0);

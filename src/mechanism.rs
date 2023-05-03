@@ -43,14 +43,14 @@ use std::mem;
 
 use anyhow::anyhow;
 
-use crate::message::{ZmqMessage, ZMQ_MSG_ROUTING_ID};
-use crate::options::ZmqOptions;
-use crate::utils::{copy_bytes, get_u32, put_u32};
-use crate::zmq_hdr::{
+use crate::defines::{
     ZMQ_CHANNEL, ZMQ_CLIENT, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_GATHER, ZMQ_MSG_PROPERTY_USER_ID,
     ZMQ_PAIR, ZMQ_PEER, ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_RADIO, ZMQ_REP, ZMQ_REQ, ZMQ_ROUTER,
     ZMQ_SCATTER, ZMQ_SERVER, ZMQ_SUB, ZMQ_XPUB, ZMQ_XSUB,
 };
+use crate::message::{ZmqMessage, ZMQ_MSG_ROUTING_ID};
+use crate::options::ZmqOptions;
+use crate::utils::{copy_bytes, get_u32, put_u32};
 
 pub enum ZmqMechanismStatus {
     handshaking,
@@ -317,7 +317,7 @@ impl ZmqMechanism {
         msg.init_size(command_size)?;
         // errno_assert (rc == 0);
 
-        // unsigned char *ptr = static_cast<unsigned char *> (msg.data ());
+        // unsigned char *ptr =  (msg.data ());
         let mut ptr = msg.data_mut();
 
         //  Add prefix

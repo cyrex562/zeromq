@@ -127,7 +127,7 @@ let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 255));
 
     for (unsigned char i = 0; i < 255; += 1i)
-        ((unsigned char *) zmq_msg_data (&msg))[i] = i;
+        ( zmq_msg_data (&msg))[i] = i;
 
     int rc = zmq_msg_send (&msg, sc, 0);
     TEST_ASSERT_EQUAL_INT (255, rc);
@@ -136,7 +136,7 @@ let mut msg = ZmqMessage::default();
     TEST_ASSERT_EQUAL_INT (255, rc);
 
     for (unsigned char i = 0; i < 255; += 1i)
-        TEST_ASSERT_EQUAL_INT (i, ((unsigned char *) zmq_msg_data (&msg))[i]);
+        TEST_ASSERT_EQUAL_INT (i, ( zmq_msg_data (&msg))[i]);
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg));
 
@@ -159,7 +159,7 @@ let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 65536));
 
     for (int i = 0; i < 65536; += 1i)
-        ((unsigned char *) zmq_msg_data (&msg))[i] = i % 255;
+        ( zmq_msg_data (&msg))[i] = i % 255;
 
     int rc = zmq_msg_send (&msg, sc, 0);
     TEST_ASSERT_EQUAL_INT (65536, rc);
@@ -169,7 +169,7 @@ let mut msg = ZmqMessage::default();
 
     for (int i = 0; i < 65536; += 1i)
         TEST_ASSERT_EQUAL_INT (i % 255,
-                               ((unsigned char *) zmq_msg_data (&msg))[i]);
+                               ( zmq_msg_data (&msg))[i]);
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_close (&msg));
 
@@ -231,7 +231,7 @@ void test_mask_shared_msg ()
 let mut msg = ZmqMessage::default();
     zmq_msg_init_size (
       &msg, 255); // Message have to be long enough so it won't fit inside msg
-    unsigned char *data = (unsigned char *) zmq_msg_data (&msg);
+    unsigned char *data =  zmq_msg_data (&msg);
     for (int i = 0; i < 255; i+= 1)
         data[i] = i;
 
@@ -247,12 +247,12 @@ let mut msg = ZmqMessage::default();
     //  Recv the msg and check that it was masked correctly
     rc = zmq_msg_recv (&msg, sb, 0);
     TEST_ASSERT_EQUAL_INT (255, rc);
-    data = (unsigned char *) zmq_msg_data (&msg);
+    data =  zmq_msg_data (&msg);
     for (int i = 0; i < 255; i+= 1)
         TEST_ASSERT_EQUAL_INT (i, data[i]);
 
     //  Testing that copy was not masked
-    data = (unsigned char *) zmq_msg_data (&copy);
+    data =  zmq_msg_data (&copy);
     for (int i = 0; i < 255; i+= 1)
         TEST_ASSERT_EQUAL_INT (i, data[i]);
 

@@ -532,7 +532,7 @@ static int make_fdpair_tcpip (ZmqFileDesc *r_, ZmqFileDesc *w_)
         const size_t dummy_size =
           1024 * 1024; //  1M to overload default receive buffer
         unsigned char *dummy =
-          static_cast<unsigned char *> (malloc (dummy_size));
+           (malloc (dummy_size));
         wsa_assert (dummy);
 
         int still_to_send = static_cast<int> (dummy_size);

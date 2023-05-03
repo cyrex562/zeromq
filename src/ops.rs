@@ -73,7 +73,7 @@ use crate::context::ZmqContext;
 use crate::ctx_hdr::ZmqContext;
 use crate::peer::peer_t;
 use crate::socket_base::ZmqSocketBase;
-use crate::zmq_hdr::{zmq_free_fn, ZMQ_IO_THREADS, ZmqMessage, ZMQ_PAIR, ZMQ_PEER, ZMQ_SNDMORE, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH, ZMQ_MORE, ZMQ_SRCFD, ZMQ_SHARED};
+use crate::defines::{zmq_free_fn, ZMQ_IO_THREADS, ZmqMessage, ZMQ_PAIR, ZMQ_PEER, ZMQ_SNDMORE, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH, ZMQ_MORE, ZMQ_SRCFD, ZMQ_SHARED};
 use anyhow::{anyhow, bail};
 use bincode::options;
 use serde::Serialize;
@@ -821,7 +821,7 @@ const char *zmq_msg_gets (const msg: *mut ZmqMessage, property_: &str)
 // Polling.
 
 // #if defined ZMQ_HAVE_POLLER
-static int zmq_poller_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
+static int zmq_poller_poll (ZmqPollItem *items_, nitems_: i32, long timeout)
 {
     // implement zmq_poll on top of zmq_poller
     rc: i32;
@@ -920,7 +920,7 @@ static int zmq_poller_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
 }
 // #endif // ZMQ_HAVE_POLLER
 
-int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
+int zmq_poll (ZmqPollItem *items_, nitems_: i32, long timeout)
 {
 // #if defined ZMQ_HAVE_POLLER
     // if poller is present, use that if there is at least 1 thread-safe socket,
@@ -1083,7 +1083,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
                     items_[i].revents |= ZMQ_POLLIN;
             }
             //  Else, the poll item is a raw file descriptor, simply convert
-            //  the events to zmq_pollitem_t-style format.
+            //  the events to ZmqPollItem-style format.
             else {
                 if (pollfds[i].revents & POLLIN)
                     items_[i].revents |= ZMQ_POLLIN;
@@ -1164,7 +1164,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
                     items_[i].revents |= ZMQ_POLLIN;
             }
             //  Else, the poll item is a raw file descriptor, simply convert
-            //  the events to zmq_pollitem_t-style format.
+            //  the events to ZmqPollItem-style format.
             else {
                 if (FD_ISSET (items_[i].fd, inset.get ()))
                     items_[i].revents |= ZMQ_POLLIN;
@@ -1224,7 +1224,7 @@ int zmq_poll (zmq_pollitem_t *items_, nitems_: i32, long timeout)
 
 // #ifdef ZMQ_HAVE_PPOLL
 // return values of 0 or -1 should be returned from zmq_poll; return value 1 means items passed checks
-int zmq_poll_check_items_ (zmq_pollitem_t *items_, nitems_: i32, long timeout)
+int zmq_poll_check_items_ (ZmqPollItem *items_, nitems_: i32, long timeout)
 {
     if (unlikely (nitems_ < 0)) {
         errno = EINVAL;
@@ -1278,7 +1278,7 @@ struct zmq_poll_select_fds_t_
 };
 
 zmq_poll_select_fds_t_
-zmq_poll_build_select_fds_ (zmq_pollitem_t *items_, nitems_: i32, int &rc)
+zmq_poll_build_select_fds_ (ZmqPollItem *items_, nitems_: i32, int &rc)
 {
     //  Ensure we do not attempt to select () on more than FD_SETSIZE
     //  file descriptors.
@@ -1360,7 +1360,7 @@ timespec *zmq_poll_select_set_timeout_ (
     return ptimeout;
 }
 
-int zmq_poll_select_check_events_ (zmq_pollitem_t *items_,
+int zmq_poll_select_check_events_ (ZmqPollItem *items_,
                                    nitems_: i32,
                                    zmq_poll_select_fds_t_ &fds,
                                    int &nevents)
@@ -1384,7 +1384,7 @@ int zmq_poll_select_check_events_ (zmq_pollitem_t *items_,
                 items_[i].revents |= ZMQ_POLLIN;
         }
         //  Else, the poll item is a raw file descriptor, simply convert
-        //  the events to zmq_pollitem_t-style format.
+        //  the events to ZmqPollItem-style format.
         else {
             if (FD_ISSET (items_[i].fd, fds.inset.get ()))
                 items_[i].revents |= ZMQ_POLLIN;
@@ -1448,13 +1448,13 @@ bool zmq_poll_must_break_loop_ (long timeout,
 // #endif // ZMQ_HAVE_PPOLL
 
 // #if !defined _WIN32
-int zmq_ppoll (zmq_pollitem_t *items_,
+int zmq_ppoll (ZmqPollItem *items_,
                nitems_: i32,
                long timeout,
                const sigset_t *sigmask_)
 // #else
 // Windows has no sigset_t
-int zmq_ppoll (zmq_pollitem_t *items_,
+int zmq_ppoll (ZmqPollItem *items_,
                nitems_: i32,
                long timeout,
                const sigmask_: *mut c_void)

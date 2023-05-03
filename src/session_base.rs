@@ -56,7 +56,7 @@ use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
 use crate::proxy::ZmqSocketBase;
-use crate::zmq_hdr::{
+use crate::defines::{
     ZMQ_REQ, ZMQ_RADIO, ZMQ_DISH, ZMQ_DEALER, ZMQ_ROUTER, ZMQ_XPUB, ZMQ_XSUB, ZMQ_PUB, ZMQ_SUB, ZMQ_PUSH, ZMQ_PULL, ZMQ_PAIR, ZMQ_STREAM, ZMQ_SERVER, ZMQ_CLIENT, ZMQ_GATHER, ZMQ_SCATTER, ZMQ_DGRAM, ZMQ_PEER, ZMQ_CHANNEL, ZMQ_REP
 };
 

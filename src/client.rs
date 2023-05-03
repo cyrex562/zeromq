@@ -39,8 +39,8 @@ use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 use crate::socket_base_ops::ZmqSocketBaseOps;
-use crate::zmq_content::ZmqContent;
-use crate::zmq_hdr::ZMQ_CLIENT;
+use crate::content::ZmqContent;
+use crate::defines::ZMQ_CLIENT;
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"

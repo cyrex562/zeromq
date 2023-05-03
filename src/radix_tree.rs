@@ -269,7 +269,7 @@ void node_t::resize (prefix_length_: usize, edgecount_: usize)
     const size_t node_size = 3 * mem::size_of::<u32>() + prefix_length_
                              + edgecount_ * (1 + sizeof (void *));
     unsigned char *new_data =
-      static_cast<unsigned char *> (realloc (_data, node_size));
+       (realloc (_data, node_size));
     zmq_assert (new_data);
     _data = new_data;
     set_prefix_length (static_cast<u32> (prefix_length_));
@@ -281,7 +281,7 @@ node_t make_node (refcount_: usize, prefix_length_: usize, edgecount_: usize)
     const size_t node_size = 3 * mem::size_of::<u32>() + prefix_length_
                              + edgecount_ * (1 + sizeof (void *));
 
-    unsigned char *data = static_cast<unsigned char *> (malloc (node_size));
+    unsigned char *data =  (malloc (node_size));
     zmq_assert (data);
 
     node_t node (data);

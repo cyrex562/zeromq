@@ -207,7 +207,7 @@ void test_radio_dish_tcp_poll (ipv6: i32)
     msg_send_expect_success (radio, "Movies", "Godfather");
 
     // test zmq_poll with dish
-    zmq_pollitem_t items[] = {
+    ZmqPollItem items[] = {
       {radio, 0, ZMQ_POLLIN, 0}, // read publications
       {dish, 0, ZMQ_POLLIN, 0},  // read subscriptions
     };

@@ -554,11 +554,11 @@ let mut msg = ZmqMessage::default();
 
     more: i32;
     moresz: usize;
-    zmq_pollitem_t items[] = {{frontend_, 0, ZMQ_POLLIN, 0},
+    ZmqPollItem items[] = {{frontend_, 0, ZMQ_POLLIN, 0},
                               {backend_, 0, ZMQ_POLLIN, 0},
                               {control_, 0, ZMQ_POLLIN, 0}};
     int qt_poll_items = (control_ ? 3 : 2);
-    zmq_pollitem_t itemsout[] = {{frontend_, 0, ZMQ_POLLOUT, 0},
+    ZmqPollItem itemsout[] = {{frontend_, 0, ZMQ_POLLOUT, 0},
                                  {backend_, 0, ZMQ_POLLOUT, 0}};
 
     zmq_socket_stats_t frontend_stats;

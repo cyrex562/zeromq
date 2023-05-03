@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 use std::collections::HashSet;
-use crate::zmq_hdr::{ZMQ_THREAD_PRIORITY_DFLT, ZMQ_THREAD_SCHED_POLICY_DFLT};
+use crate::defines::{ZMQ_THREAD_PRIORITY_DFLT, ZMQ_THREAD_SCHED_POLICY_DFLT};
 
 #[derive(Default,Debug,Clone)]
 pub struct ThreadCtx {

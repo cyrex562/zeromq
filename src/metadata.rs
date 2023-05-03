@@ -1,5 +1,4 @@
 use crate::atomic_counter::AtomicCounter;
-use crate::zmq_draft_hdr::ZMQ_MSG_PROPERTY_ROUTING_ID;
 use std::collections::HashMap;
 
 // public:

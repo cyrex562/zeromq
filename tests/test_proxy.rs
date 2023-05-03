@@ -116,7 +116,7 @@ static void client_task (db_: *mut c_void)
       zmq_setsockopt (client, ZMQ_LINGER, &linger, mem::size_of::<linger>()));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
-    zmq_pollitem_t items[] = {{client, 0, ZMQ_POLLIN, 0},
+    ZmqPollItem items[] = {{client, 0, ZMQ_POLLIN, 0},
                               {control, 0, ZMQ_POLLIN, 0}};
     int request_nbr = 0;
     bool run = true;

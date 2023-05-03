@@ -31,10 +31,10 @@
 // #include "mtrie.hpp"
 // #include "generic_mtrie_impl.hpp"
 
-namespace zmq
-{
-
-typedef generic_mtrie_t<ZmqPipe> mtrie_t;
-
-template class generic_mtrie_t<ZmqPipe>;
-}
+// namespace zmq
+// {
+//
+// typedef generic_mtrie_t<ZmqPipe> mtrie_t;
+//
+// template class generic_mtrie_t<ZmqPipe>;
+// }

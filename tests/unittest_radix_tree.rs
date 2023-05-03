@@ -250,7 +250,7 @@ void test_apply ()
         tree_add (tree, *it);
 
     std::vector<std::string> *vec = new std::vector<std::string> ();
-    tree.apply (return_key, static_cast<void *> (vec));
+    tree.apply (return_key,  (vec));
     for (size_t i = 0; i < vec.size (); += 1i)
         TEST_ASSERT_TRUE (keys.count ((*vec)[i]) > 0);
     delete vec;

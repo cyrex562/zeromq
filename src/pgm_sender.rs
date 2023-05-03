@@ -142,7 +142,7 @@ int pgm_sender_t::init (udp_encapsulation_: bool, network_: &str)
         return rc;
 
     out_buffer_size = pgm_socket.get_max_tsdu_size ();
-    out_buffer = (unsigned char *) malloc (out_buffer_size);
+    out_buffer =  malloc (out_buffer_size);
     alloc_assert (out_buffer);
 
     return rc;

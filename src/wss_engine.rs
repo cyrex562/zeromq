@@ -102,7 +102,7 @@ wss_engine_t::wss_engine_t (fd: ZmqFileDesc,
 
         if (options_.wss_trust_pem.length () > 0) {
             gnutls_datum_t trust = {
-              (unsigned char *) options_.wss_trust_pem,
+               options_.wss_trust_pem,
               (unsigned int) options_.wss_trust_pem.length ()};
             rc = gnutls_certificate_set_x509_trust_mem (
               _tls_client_cred, &trust, GNUTLS_X509_FMT_PEM);

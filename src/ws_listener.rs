@@ -116,9 +116,9 @@ ws_listener_t::ws_listener_t (ZmqThread *io_thread_,
         int rc = gnutls_certificate_allocate_credentials (&_tls_cred);
         zmq_assert (rc == GNUTLS_E_SUCCESS);
 
-        gnutls_datum_t cert = {(unsigned char *) options_.wss_cert_pem,
+        gnutls_datum_t cert = { options_.wss_cert_pem,
                                (unsigned int) options_.wss_cert_pem.length ()};
-        gnutls_datum_t key = {(unsigned char *) options_.wss_key_pem,
+        gnutls_datum_t key = { options_.wss_key_pem,
                               (unsigned int) options_.wss_key_pem.length ()};
         rc = gnutls_certificate_set_x509_key_mem (_tls_cred, &cert, &key,
                                                   GNUTLS_X509_FMT_PEM);

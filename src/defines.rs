@@ -255,7 +255,7 @@ pub const ZMQ_GROUP_MAX_LENGTH: usize = 255;
 
 //   Deprecated options and aliases
 pub const ZMQ_IDENTITY: u8 = ZMQ_ROUTING_ID;
-pub const ZMQ_CONNECT_RID: u8 = ZMQ_CONNECT_ROUTING_ID;
+pub const ZMQ_CONNECT_RID: i32 = ZMQ_CONNECT_ROUTING_ID;
 pub const ZMQ_TCP_ACCEPT_FILTER: u8 = 38;
 pub const ZMQ_IPC_FILTER_PID: u8 = 58;
 pub const ZMQ_IPC_FILTER_UID: u8 = 59;

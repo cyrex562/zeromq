@@ -6,6 +6,7 @@
 //  perform next memory allocation.
 
 use std::collections::VecDeque;
+use std::ptr::null_mut;
 use std::sync::atomic::{AtomicPtr, Ordering};
 
 use crate::ypipe_base::YpipeBase;

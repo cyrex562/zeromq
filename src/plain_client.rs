@@ -103,7 +103,7 @@ int plain_client_t::next_handshake_command (msg: &mut ZmqMessage)
 int plain_client_t::process_handshake_command (msg: &mut ZmqMessage)
 {
     const unsigned char *cmd_data =
-      static_cast<unsigned char *> (msg.data ());
+       (msg.data ());
     const size_t data_size = msg.size ();
 
     int rc = 0;
@@ -160,7 +160,7 @@ void plain_client_t::produce_hello (msg: &mut ZmqMessage) const
     let rc: i32 = msg.init_size (command_size);
     errno_assert (rc == 0);
 
-    unsigned char *ptr = static_cast<unsigned char *> (msg.data ());
+    unsigned char *ptr =  (msg.data ());
     memcpy (ptr, hello_prefix, hello_prefix_len);
     ptr += hello_prefix_len;
 

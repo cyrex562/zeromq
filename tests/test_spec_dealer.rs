@@ -139,7 +139,7 @@ void test_destroy_queue_on_disconnect (bind_address_: &str)
     TEST_ASSERT_SUCCESS_ERRNO (zmq_disconnect (b, connect_address));
 
     // Disconnect may take time and need command processing.
-    zmq_pollitem_t poller[2] = {{a, 0, 0, 0}, {b, 0, 0, 0}};
+    ZmqPollItem poller[2] = {{a, 0, 0, 0}, {b, 0, 0, 0}};
     TEST_ASSERT_SUCCESS_ERRNO (zmq_poll (poller, 2, 100));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_poll (poller, 2, 100));
 

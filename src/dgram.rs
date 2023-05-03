@@ -27,7 +27,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::zmq_content::ZmqContent;
+use crate::content::ZmqContent;
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"

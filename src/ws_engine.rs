@@ -1195,16 +1195,16 @@ static void compute_accept_key (char *key_, unsigned char *hash_)
     assert (ctx);
 
     HASH_Begin (ctx);
-    HASH_Update (ctx, (unsigned char *) key_, (unsigned int) strlen (key_));
-    HASH_Update (ctx, (unsigned char *) magic_string,
+    HASH_Update (ctx,  key_, (unsigned int) strlen (key_));
+    HASH_Update (ctx,  magic_string,
                  (unsigned int) strlen (magic_string));
     HASH_End (ctx, hash_, &len, SHA_DIGEST_LENGTH);
     HASH_Destroy (ctx);
 #elif defined ZMQ_USE_BUILTIN_SHA1
     sha1_ctxt ctx;
     SHA1_Init (&ctx);
-    SHA1_Update (&ctx, (unsigned char *) key_, strlen (key_));
-    SHA1_Update (&ctx, (unsigned char *) magic_string, strlen (magic_string));
+    SHA1_Update (&ctx,  key_, strlen (key_));
+    SHA1_Update (&ctx,  magic_string, strlen (magic_string));
 
     SHA1_Final (hash_, &ctx);
 #elif defined ZMQ_USE_GNUTLS

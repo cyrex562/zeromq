@@ -168,12 +168,12 @@ int radio_t::xsetsockopt (option_: i32,
                                const optval_: &mut [u8],
                                optvallen_: usize)
 {
-    if (optvallen_ != mem::size_of::<int>() || *static_cast<const int *> (optval_) < 0) {
+    if (optvallen_ != mem::size_of::<int>() ||  (optval_) < 0) {
         errno = EINVAL;
         return -1;
     }
     if (option_ == ZMQ_XPUB_NODROP)
-        _lossy = (*static_cast<const int *> (optval_) == 0);
+        _lossy = ( (optval_) == 0);
     else {
         errno = EINVAL;
         return -1;

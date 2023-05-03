@@ -57,7 +57,7 @@ void test_disconnect_inproc ()
     size_t more_size = mem::size_of::<more>();
 
     for (int iteration = 0;; += 1iteration) {
-        zmq_pollitem_t items[] = {
+        ZmqPollItem items[] = {
           {sub_socket, 0, ZMQ_POLLIN, 0}, // read publications
           {pub_socket, 0, ZMQ_POLLIN, 0}, // read subscriptions
         };

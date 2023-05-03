@@ -14,6 +14,18 @@ use crate::clock::clock_t;
 use crate::command::ZmqCommand;
 use crate::context::ZmqContext;
 use crate::cpu_time::get_cpu_tick_counter;
+use crate::defines::{
+    ZMQ_BLOCKY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENTS,
+    ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSED,
+    ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_CONNECT_DELAYED,
+    ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH,
+    ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL,
+    ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED,
+    ZMQ_EVENT_PIPES_STATS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN,
+    ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT,
+    ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB,
+    ZMQ_ZERO_COPY_RECV,
+};
 use crate::endpoint::EndpointType::endpoint_type_none;
 use crate::endpoint::{make_unconnected_bind_endpoint_pair, EndpointUriPair, ZmqEndpoint};
 use crate::i_mailbox::i_mailbox;
@@ -24,6 +36,10 @@ use crate::mailbox::mailbox_t;
 use crate::mailbox_safe::mailbox_safe_t;
 use crate::message::{routing_id, ZmqMessage, ZMQ_MSG_MORE};
 use crate::object::ZmqObject;
+use crate::ops::{
+    zmq_bind, zmq_close, zmq_errno, zmq_msg_data, zmq_msg_init_size, zmq_msg_send, zmq_setsockopt,
+    zmq_socket,
+};
 use crate::options::{
     bool_to_vec, get_effective_conflate_option, i32_to_vec, str_to_vec, ZmqOptions,
 };
@@ -44,22 +60,6 @@ use crate::vmci_listener::vmci_listener_t;
 use crate::ws_address::WsAddress;
 use crate::ws_listener::ws_listener_t;
 use crate::wss_address::WssAddress;
-use crate::zmq_hdr::{
-    ZMQ_BLOCKY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENTS,
-    ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSED,
-    ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_CONNECT_DELAYED,
-    ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH,
-    ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL,
-    ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED,
-    ZMQ_EVENT_PIPES_STATS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN,
-    ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT,
-    ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB,
-    ZMQ_ZERO_COPY_RECV,
-};
-use crate::zmq_ops::{
-    zmq_bind, zmq_close, zmq_errno, zmq_msg_data, zmq_msg_init_size, zmq_msg_send, zmq_setsockopt,
-    zmq_socket,
-};
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ZmqSocketBase {
@@ -523,10 +523,10 @@ impl ZmqSocketBase {
     //             s = new (std::nothrow) push_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_XPUB =>
-    //             s = new (std::nothrow) xpub_t (parent_, tid, sid_);
+    //             s = new (std::nothrow) XPub (parent_, tid, sid_);
     //             break;
     //         ZMQ_XSUB =>
-    //             s = new (std::nothrow) xsub_t (parent_, tid, sid_);
+    //             s = new (std::nothrow) XSub (parent_, tid, sid_);
     //             break;
     //         ZMQ_STREAM =>
     //             s = new (std::nothrow) stream_t (parent_, tid, sid_);
@@ -1319,7 +1319,7 @@ impl ZmqSocketBase {
             // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
             self.reaper_signaler = ZmqSignaler::default(); //new (std::nothrow) ZmqSignaler ();
-            // zmq_assert (_reaper_signaler);
+                                                           // zmq_assert (_reaper_signaler);
 
             //  Add signaler to the safe mailbox
             fd = _reaper_signaler.get_fd();
@@ -1489,7 +1489,7 @@ impl ZmqSocketBase {
             _ => {
                 bail!("invalid socket type")
             } // errno = EINVAL;
-            // return -1;
+              // return -1;
         }
 
         //  Register events to monitor
@@ -2534,8 +2534,8 @@ impl ZmqSocketBase {
 
         if protocol_ == protocol_name::udp
             && (options.type_ != ZMQ_DISH
-            && options.type_ != ZMQ_RADIO
-            && options.type_ != ZMQ_DGRAM)
+                && options.type_ != ZMQ_RADIO
+                && options.type_ != ZMQ_DGRAM)
         {
             // errno = ENOCOMPATPROTO;
             // return -1;

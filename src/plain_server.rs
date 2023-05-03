@@ -253,7 +253,7 @@ void plain_server_t::produce_welcome (msg: &mut ZmqMessage)
 
 int plain_server_t::process_initiate (msg: &mut ZmqMessage)
 {
-    const unsigned char *ptr = static_cast<unsigned char *> (msg.data ());
+    const unsigned char *ptr =  (msg.data ());
     const size_t bytes_left = msg.size ();
 
     if (bytes_left < initiate_prefix_len

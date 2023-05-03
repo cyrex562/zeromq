@@ -28,7 +28,7 @@ use crate::pipe::ZmqPipe;
 use crate::reaper::reaper_t;
 use crate::socket_base::ZmqSocketBase;
 use crate::thread_ctx::ThreadCtx;
-use crate::zmq_hdr::{
+use crate::defines::{
     ZMQ_BLOCKY, ZMQ_IO_THREADS, ZMQ_IO_THREADS_DFLT, ZMQ_IPV6, ZMQ_MAX_MSGSZ, ZMQ_MAX_SOCKETS,
     ZMQ_MAX_SOCKETS_DFLT, ZMQ_MESSAGE_SIZE, ZMQ_PAIR, ZMQ_SOCKET_LIMIT, ZMQ_ZERO_COPY_RECV,
     ZmqMessage,

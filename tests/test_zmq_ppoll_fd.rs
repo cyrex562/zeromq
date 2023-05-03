@@ -55,7 +55,7 @@ void test_ppoll_fd ()
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sb, "tcp://127.0.0.1:*"));
 
-    zmq_pollitem_t pollitems[] = {
+    ZmqPollItem pollitems[] = {
       {sb, 0, ZMQ_POLLIN, 0},
       {null_mut(), recv_socket, ZMQ_POLLIN, 0},
     };

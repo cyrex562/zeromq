@@ -318,7 +318,7 @@ void socks_server_task (socks_server: *mut c_void,
                 break; /* Out of client connection. */
 
             /* Communication loop */
-            zmq_pollitem_t items[] = {
+            ZmqPollItem items[] = {
               {null_mut(), client, ZMQ_POLLIN, 0},
               {null_mut(), remote, ZMQ_POLLIN, 0},
             };

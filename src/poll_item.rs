@@ -1,10 +1,11 @@
 use std::ffi::c_void;
-use crate::zmq_hdr::zmq_fd_t;
+use crate::fd::ZmqFileDesc;
+use crate::defines::zmq_fd_t;
 
 #[derive(Default, Debug, Clone)]
-pub struct zmq_pollitem_t {
+pub struct ZmqPollItem {
     // socket: *mut c_void;
-    pub socket: &mut [u8],
+    pub socket: ZmqSocket,
     // zmq_fd_t fd;
     pub fd: ZmqFileDesc,
     // short events;

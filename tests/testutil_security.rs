@@ -137,7 +137,7 @@ void zap_handler_generic (zap_protocol_t zap_protocol_,
     //  Signal main thread that we are ready
     send_string_expect_success (control, "GO", 0);
 
-    zmq_pollitem_t items[] = {
+    ZmqPollItem items[] = {
       {control, 0, ZMQ_POLLIN, 0},
       {handler, 0, ZMQ_POLLIN, 0},
     };

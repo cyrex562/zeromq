@@ -32,7 +32,7 @@
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-pub struct pub_t  : public xpub_t
+pub struct pub_t  : public XPub
 {
 // public:
     pub_t (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -49,7 +49,7 @@ pub struct pub_t  : public xpub_t
 };
 
 pub_t::pub_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
-    xpub_t (parent_, tid, sid_)
+    XPub (parent_, tid, sid_)
 {
     options.type = ZMQ_PUB;
 }
@@ -68,7 +68,7 @@ void pub_t::xattach_pipe (pipe: &mut ZmqPipe,
     //  to receive the delimiter.
     pipe.set_nodelay ();
 
-    xpub_t::xattach_pipe (pipe, subscribe_to_all_, locally_initiated_);
+    XPub::xattach_pipe (pipe, subscribe_to_all_, locally_initiated_);
 }
 
 int pub_t::xrecv (class ZmqMessage *)

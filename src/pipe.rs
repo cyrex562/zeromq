@@ -164,7 +164,7 @@ impl ZmqPipe {
         //   each to pass messages in one direction.
 
         typedef Ypipe<ZmqMessage, message_pipe_granularity> upipe_normal_t;
-        typedef ypipe_conflate_t<ZmqMessage> upipe_conflate_t;
+        typedef YpipeConflate<ZmqMessage> upipe_conflate_t;
 
         ZmqPipe::upipe_t *upipe1;
         if (conflate_[0])
@@ -379,7 +379,7 @@ impl ZmqPipe {
         //  Create new inpipe.
         self._in_pipe =
             self._conflate
-                ? static_cast<upipe_t *> (new (std::nothrow) ypipe_conflate_t<ZmqMessage> ())
+                ? static_cast<upipe_t *> (new (std::nothrow) YpipeConflate<ZmqMessage> ())
         : new (std::nothrow) Ypipe<ZmqMessage, message_pipe_granularity> ();
 
         alloc_assert (_in_pipe);
@@ -855,7 +855,7 @@ impl i_pipe_events for ZmqPipe {
 //     //   each to pass messages in one direction.
 //
 //     typedef Ypipe<ZmqMessage, message_pipe_granularity> upipe_normal_t;
-//     typedef ypipe_conflate_t<ZmqMessage> upipe_conflate_t;
+//     typedef YpipeConflate<ZmqMessage> upipe_conflate_t;
 //
 //     ZmqPipe::upipe_t *upipe1;
 //     if (conflate_[0])
@@ -1295,7 +1295,7 @@ pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqOptions)
 //     //  Create new inpipe.
 //     _in_pipe =
 //       _conflate
-//         ? static_cast<upipe_t *> (new (std::nothrow) ypipe_conflate_t<ZmqMessage> ())
+//         ? static_cast<upipe_t *> (new (std::nothrow) YpipeConflate<ZmqMessage> ())
 //         : new (std::nothrow) Ypipe<ZmqMessage, message_pipe_granularity> ();
 //
 //     alloc_assert (_in_pipe);

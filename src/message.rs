@@ -3,8 +3,8 @@
 
 use crate::atomic_counter::AtomicCounter;
 use crate::metadata::ZmqMetadata;
-use crate::zmq_content::ZmqContent;
-use crate::zmq_hdr::ZMQ_GROUP_MAX_LENGTH;
+use crate::content::ZmqContent;
+use crate::defines::ZMQ_GROUP_MAX_LENGTH;
 use anyhow::anyhow;
 use libc::{c_long, EINVAL};
 use serde::{Deserialize, Serialize};

@@ -1,6 +1,6 @@
 use crate::tcp_address::TcpAddressMask;
 use crate::utils::copy_bytes;
-use crate::zmq_hdr::{
+use crate::defines::{
     ZMQ_AFFINITY, ZMQ_BACKLOG, ZMQ_BINDTODEVICE, ZMQ_BUSY_POLL, ZMQ_CONFLATE, ZMQ_CONNECT_TIMEOUT,
     ZMQ_CURVE, ZMQ_CURVE_PUBLICKEY, ZMQ_CURVE_SECRETKEY, ZMQ_CURVE_SERVER, ZMQ_CURVE_SERVERKEY,
     ZMQ_DEALER, ZMQ_DISCONNECT_MSG, ZMQ_GSSAPI, ZMQ_GSSAPI_NT_HOSTBASED,
@@ -22,7 +22,7 @@ use crate::zmq_hdr::{
     ZMQ_WSS_HOSTNAME, ZMQ_WSS_KEY_PEM, ZMQ_WSS_TRUST_PEM, ZMQ_WSS_TRUST_SYSTEM, ZMQ_ZAP_DOMAIN,
     ZMQ_ZAP_ENFORCE_DOMAIN,
 };
-use crate::zmq_utils::zmq_z85_encode;
+use crate::utils::zmq_z85_encode;
 use anyhow::{anyhow, bail};
 use libc::{c_void, gid_t, memcpy, pid_t, uid_t, EINVAL};
 use std::collections::{HashMap, HashSet};

@@ -54,7 +54,7 @@ use crate::mechanism_base::ZmqMechanismBase;
 use crate::message::ZmqMessage;
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
-use crate::zmq_hdr::{
+use crate::defines::{
     ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC, ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA,
     ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR,
     ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_READY, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,

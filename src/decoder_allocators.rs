@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{message::MAX_VSM_SIZE, zmq_content::ZmqContent};
+use crate::{content::ZmqContent, message::MAX_VSM_SIZE};
 
 #[derive(Default, Debug, Clone)]
 pub struct c_single_allocator {
@@ -16,7 +16,7 @@ pub struct c_single_allocator {
 impl c_single_allocator {
     //     explicit c_single_allocator (std::bufsize_: usize) :
     //     buf_size (bufsize_),
-    //     buf (static_cast<unsigned char *> (std::malloc (buf_size)))
+    //     buf ( (std::malloc (buf_size)))
     // {
     //     alloc_assert (buf);
     // }
@@ -148,7 +148,7 @@ impl shared_message_memory_allocator {
                 + std::mem::size_of::<AtomicCounter>();
             // max_size + sizeof (AtomicCounter)
             // + max_counters * sizeof (ZmqMessage::ZmqContent);
-            // buf = static_cast<unsigned char *> (std::malloc (allocationsize));
+            // buf =  (std::malloc (allocationsize));
             // alloc_assert (buf);
             self.buf.clear();
             self.buf.reserve(allocationSize);
@@ -198,7 +198,7 @@ impl shared_message_memory_allocator {
     // static void call_dec_ref (void *, hint: *mut c_void);
     pub fn call_dec_ref(&mut self, hint: *mut c_void) {
         // zmq_assert (hint);
-        // unsigned char *buf = static_cast<unsigned char *> (hint);
+        // unsigned char *buf =  (hint);
         // AtomicCounter *c = reinterpret_cast<AtomicCounter *> (buf);
 
         // if (!c.sub (1)) {

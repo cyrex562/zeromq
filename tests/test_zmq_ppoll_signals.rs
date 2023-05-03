@@ -152,7 +152,7 @@ void test_ppoll_signals ()
         void *socket = test_context_socket (ZMQ_REP);
         TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (socket, my_endpoint));
 
-        zmq_pollitem_t pollitems[] = {
+        ZmqPollItem pollitems[] = {
           {socket, 0, ZMQ_POLLIN, 0},
         };
 

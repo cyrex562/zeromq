@@ -218,7 +218,7 @@ void pgm_receiver_t::in_event ()
         }
 
         insize = static_cast<size_t> (received);
-        inpos = (unsigned char *) tmp;
+        inpos =  tmp;
 
         //  Read the offset of the fist message in the current packet.
         zmq_assert (insize >= mem::size_of::<uint16_t>());

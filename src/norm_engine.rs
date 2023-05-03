@@ -482,7 +482,7 @@ void norm_engine_t::send_data ()
             // Our tx_buffer needs data to send
             // Get more data from encoder
             size_t space = BUFFER_SIZE;
-            unsigned char *bufPtr = (unsigned char *) tx_buffer;
+            unsigned char *bufPtr =  tx_buffer;
             tx_len = zmq_encoder.encode (&bufPtr, space);
             if (0 == tx_len) {
                 if (tx_first_msg) {

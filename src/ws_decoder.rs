@@ -305,7 +305,7 @@ int ws_decoder_t::message_ready (unsigned char const *)
         int mask_index = _opcode == ws_protocol_t::opcode_binary ? 1 : 0;
 
         unsigned char *data =
-          static_cast<unsigned char *> (in_progress.data ());
+           (in_progress.data ());
         for (size_t i = 0; i < _size; += 1i, mask_index+= 1)
             data[i] = data[i] ^ _mask[mask_index % 4];
     }
