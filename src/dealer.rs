@@ -42,7 +42,7 @@ use crate::lb::lb_t;
 pub struct ZmqDealer {
     pub socket_base: ZmqSocketBase,
 
-    // private:
+    //
     //  Messages are fair-queued from inbound pipes. And load-balanced to
     //  the outbound pipes.
     // ZmqFq fair_queue;
@@ -56,7 +56,7 @@ pub struct ZmqDealer {
 }
 
 impl ZmqDealer {
-    // public:
+    //
     // ZmqDealer (ZmqContext *parent_, tid: u32, sid_: i32);
     // ZmqSocketBase (parent_, tid, sid_), probe_router (false)
     pub fn new(
@@ -76,7 +76,7 @@ impl ZmqDealer {
 
     // ~ZmqDealer () ;
 
-    //   protected:
+    //
     //  Overrides of functions from ZmqSocketBase.
     // void xattach_pipe (pipe: &mut ZmqPipe,
     //    subscribe_to_all_: bool,
@@ -105,7 +105,7 @@ impl ZmqDealer {
             pipe.flush();
 
             rc = probe_msg.close();
-            errno_assert(rc == 0);
+            // errno_assert(rc == 0);
         }
 
         self.fair_queue.attach(pipe);

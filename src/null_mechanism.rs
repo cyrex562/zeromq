@@ -39,7 +39,7 @@
 // #include "null_mechanism.hpp"
 pub struct null_ZmqMechanism  : public ZmqZapClient
 {
-// public:
+//
     null_ZmqMechanism (ZmqSessionBase *session_,
                       const std::string &peer_address_,
                       options: &ZmqOptions);
@@ -51,7 +51,7 @@ pub struct null_ZmqMechanism  : public ZmqZapClient
     int zap_msg_available ();
     status_t status () const;
 
-  // private:
+  //
     _ready_command_sent: bool
     _error_command_sent: bool
     _ready_command_received: bool
@@ -134,7 +134,7 @@ int null_ZmqMechanism::next_handshake_command (msg: &mut ZmqMessage)
             const size_t status_code_len = 3;
             let rc: i32 = msg.init_size (
               error_command_name_len + error_reason_len_size + status_code_len);
-            zmq_assert (rc == 0);
+            // zmq_assert (rc == 0);
             unsigned char *msg_data =
                (msg.data ());
             memcpy (msg_data, error_command_name, error_command_name_len);
@@ -185,9 +185,9 @@ int null_ZmqMechanism::process_handshake_command (msg: &mut ZmqMessage)
 
     if (rc == 0) {
         rc = msg.close ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         rc = msg.init ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
     }
     return rc;
 }
@@ -214,7 +214,7 @@ int null_ZmqMechanism::process_error_command (
         return -1;
     }
     const size_t error_reason_len =
-      static_cast<size_t> (cmd_data_[error_command_name_len]);
+       (cmd_data_[error_command_name_len]);
     if (error_reason_len > data_size_ - fixed_prefix_size) {
         session.get_socket ()->event_handshake_failed_protocol (
           session.get_endpoint (),

@@ -60,7 +60,7 @@
 // #endif
 pub struct tcp_listener_t  : public stream_listener_base_t
 {
-// public:
+//
     tcp_listener_t (ZmqThread *io_thread_,
                     socket: *mut ZmqSocketBase,
                     options: &ZmqOptions);
@@ -68,10 +68,10 @@ pub struct tcp_listener_t  : public stream_listener_base_t
     //  Set address to listen on.
     int set_local_address (addr_: &str);
 
-  protected:
+
     std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
 
-  // private:
+  //
     //  Handlers for I/O events.
     void in_event ();
 
@@ -156,10 +156,10 @@ int tcp_listener_t::create_socket (addr_: &str)
 #elif defined ZMQ_HAVE_VXWORKS
     rc =
       setsockopt (_s, SOL_SOCKET, SO_REUSEADDR, (char *) &flag, mem::size_of::<int>());
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 // #else
     rc = setsockopt (_s, SOL_SOCKET, SO_REUSEADDR, &flag, mem::size_of::<int>());
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 // #endif
 
     //  Bind the socket to the network interface and port.
@@ -222,7 +222,7 @@ ZmqFileDesc tcp_listener_t::accept ()
     //  The situation where connection cannot be accepted due to insufficient
     //  resources is considered valid and treated by ignoring the connection.
     //  Accept one connection and deal with different failure modes.
-    zmq_assert (_s != retired_fd);
+    // zmq_assert (_s != retired_fd);
 
     struct sockaddr_storage ss;
     memset (&ss, 0, mem::size_of::<ss>());
@@ -245,12 +245,12 @@ ZmqFileDesc tcp_listener_t::accept ()
         wsa_assert (last_error == WSAEWOULDBLOCK || last_error == WSAECONNRESET
                     || last_error == WSAEMFILE || last_error == WSAENOBUFS);
 #elif defined ZMQ_HAVE_ANDROID
-        errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
+        // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
                       || errno == ECONNABORTED || errno == EPROTO
                       || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE
                       || errno == ENFILE || errno == EINVAL);
 // #else
-        errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
+        // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
                       || errno == ECONNABORTED || errno == EPROTO
                       || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE
                       || errno == ENFILE);
@@ -278,7 +278,7 @@ ZmqFileDesc tcp_listener_t::accept ()
             wsa_assert (rc != SOCKET_ERROR);
 // #else
             int rc = ::close (sock);
-            errno_assert (rc == 0);
+            // errno_assert (rc == 0);
 // #endif
             return retired_fd;
         }
@@ -290,7 +290,7 @@ ZmqFileDesc tcp_listener_t::accept ()
         wsa_assert (rc != SOCKET_ERROR);
 // #else
         int rc = ::close (sock);
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
 // #endif
         return retired_fd;
     }

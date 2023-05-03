@@ -53,7 +53,7 @@
 // #endif
 pub struct ipc_connecter_t  : public stream_connecter_base_t
 {
-// public:
+//
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
     ipc_connecter_t (ZmqThread *io_thread_,
@@ -62,7 +62,7 @@ pub struct ipc_connecter_t  : public stream_connecter_base_t
                      Address *addr_,
                      delayed_start_: bool);
 
-  // private:
+  //
     //  Handlers for I/O events.
     void out_event ();
 
@@ -89,7 +89,7 @@ pub struct ZmqSessionBase *session_,
     stream_connecter_base_t (
       io_thread_, session_, options_, addr_, delayed_start_)
 {
-    zmq_assert (_addr.protocol == protocol_name::ipc);
+    // zmq_assert (_addr.protocol == protocol_name::ipc);
 }
 
 void ipc_connecter_t::out_event ()
@@ -147,7 +147,7 @@ void ipc_connecter_t::start_connecting ()
 
 int ipc_connecter_t::open ()
 {
-    zmq_assert (_s == retired_fd);
+    // zmq_assert (_s == retired_fd);
 
     //  Create the socket.
     _s = open_socket (AF_UNIX, SOCK_STREAM, 0);
@@ -200,7 +200,7 @@ ZmqFileDesc ipc_connecter_t::connect ()
         //  Assert if the error was caused by 0MQ bug.
         //  Networking problems are OK. No need to assert.
         errno = err;
-        errno_assert (errno == ECONNREFUSED || errno == ECONNRESET
+        // errno_assert (errno == ECONNREFUSED || errno == ECONNRESET
                       || errno == ETIMEDOUT || errno == EHOSTUNREACH
                       || errno == ENETUNREACH || errno == ENETDOWN);
 

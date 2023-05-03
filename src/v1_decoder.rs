@@ -40,13 +40,13 @@
 // #include "err.hpp"
 pub struct v1_decoder_t  : public DecoderBase<v1_decoder_t>
 {
-// public:
+//
     v1_decoder_t (bufsize_: usize, i64 maxmsgsize_);
     ~v1_decoder_t ();
 
     ZmqMessage *msg () { return &in_progress; }
 
-  // private:
+  //
     int one_byte_size_ready (unsigned char const *);
     int eight_byte_size_ready (unsigned char const *);
     int flags_ready (unsigned char const *);
@@ -64,7 +64,7 @@ v1_decoder_t::v1_decoder_t (bufsize_: usize, i64 maxmsgsize_) :
     DecoderBase<v1_decoder_t> (bufsize_), _max_msg_size (maxmsgsize_)
 {
     int rc = in_progress.init ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     //  At the beginning, read one byte and go to one_byte_size_ready state.
     next_step (_tmpbuf, 1, &v1_decoder_t::one_byte_size_ready);
@@ -73,7 +73,7 @@ v1_decoder_t::v1_decoder_t (bufsize_: usize, i64 maxmsgsize_) :
 v1_decoder_t::~v1_decoder_t ()
 {
     let rc: i32 = in_progress.close ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 }
 
 int v1_decoder_t::one_byte_size_ready (unsigned char const *)
@@ -100,9 +100,9 @@ int v1_decoder_t::one_byte_size_ready (unsigned char const *)
         assert (rc == 0);
         rc = in_progress.init_size (*_tmpbuf - 1);
         if (rc != 0) {
-            errno_assert (errno == ENOMEM);
+            // errno_assert (errno == ENOMEM);
             rc = in_progress.init ();
-            errno_assert (rc == 0);
+            // errno_assert (rc == 0);
             errno = ENOMEM;
             return -1;
         }
@@ -139,15 +139,15 @@ int v1_decoder_t::eight_byte_size_ready (unsigned char const *)
     }
 // #endif
 
-    const size_t msg_size = static_cast<size_t> (payload_length - 1);
+    const size_t msg_size =  (payload_length - 1);
 
     int rc = in_progress.close ();
     assert (rc == 0);
     rc = in_progress.init_size (msg_size);
     if (rc != 0) {
-        errno_assert (errno == ENOMEM);
+        // errno_assert (errno == ENOMEM);
         rc = in_progress.init ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         errno = ENOMEM;
         return -1;
     }

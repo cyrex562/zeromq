@@ -38,7 +38,7 @@ namespace zmq
 //  Interface to be implemented by mailbox.
 pub struct i_mailbox
 {
-// public:
+//
     virtual ~i_mailbox () ZMQ_DEFAULT;
 
     virtual void send (const ZmqCommand &cmd) = 0;

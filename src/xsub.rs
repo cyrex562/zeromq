@@ -49,10 +49,10 @@ use crate::socket_base::{ZmqContext, ZmqSocketBase};
 //  : public ZmqSocketBase
 #[derive(Default, Debug, Clone)]
 pub struct XSub {
-    // public:
-    // protected:
+    //
+    //
     //  Overrides of functions from ZmqSocketBase.
-    // private:
+    //
     //  Fair queueing object for inbound pipes.
     // ZmqFq fair_queue;
     pub fair_queue: ZmqFq,

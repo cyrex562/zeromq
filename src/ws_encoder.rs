@@ -38,11 +38,11 @@
 // #include <limits.h>
 pub struct ws_encoder_t  : public encoder_base_t<ws_encoder_t>
 {
-// public:
+//
     ws_encoder_t (bufsize_: usize, must_mask_: bool);
     ~ws_encoder_t ();
 
-  // private:
+  //
     void size_ready ();
     void message_ready ();
 

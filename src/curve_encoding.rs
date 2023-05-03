@@ -8,9 +8,9 @@ use crate::defines::{ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_SEQUENCE, ZMQ_PROTOCOL_ERRO
 #[derive(Default,Debug,Clone)]
 pub struct ZmqCurveEncoding
 {
-    // public:
+    //
     // typedef u64 nonce_t;
-//   private:
+//
     // const char *_encode_nonce_prefix;
     pub encode_nonce_prefix: Vec<u8>,
     // const char *_decode_nonce_prefix;

@@ -221,7 +221,7 @@ impl ZmqObject for ZmqSocketBase {
     fn send_attach(
         &mut self,
         destination: &mut ZmqSessionbase,
-        engine: &mut i_engine,
+        engine: &mut ZmqIEngine,
         inc_seqnum: bool,
     ) {
         todo!()
@@ -315,7 +315,7 @@ impl ZmqObject for ZmqSocketBase {
         todo!()
     }
 
-    fn process_attached(&mut self, engine: &mut i_engine) {
+    fn process_attached(&mut self, engine: &mut ZmqIEngine) {
         todo!()
     }
 
@@ -1319,7 +1319,7 @@ impl ZmqSocketBase {
             // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
             self.reaper_signaler = ZmqSignaler::default(); //new (std::nothrow) ZmqSignaler ();
-                                                           // zmq_assert (_reaper_signaler);
+            // zmq_assert (_reaper_signaler);
 
             //  Add signaler to the safe mailbox
             fd = _reaper_signaler.get_fd();
@@ -1489,7 +1489,7 @@ impl ZmqSocketBase {
             _ => {
                 bail!("invalid socket type")
             } // errno = EINVAL;
-              // return -1;
+            // return -1;
         }
 
         //  Register events to monitor
@@ -2153,7 +2153,7 @@ impl ZmqSocketBase {
         // #if defined ZMQ_HAVE_TIPC
         else if protocol == protocol_name::tipc {
             paddr.resolved.tipc_addr = TipcAddress::new();
-            alloc_assert(paddr.resolved.tipc_addr);
+            // alloc_assert(paddr.resolved.tipc_addr);
             paddr.resolved.tipc_addr.resolve(address.c_str())?;
             // if (rc != 0) {
             //     LIBZMQ_DELETE (paddr);
@@ -2221,7 +2221,7 @@ impl ZmqSocketBase {
             ];
             let conflates: [bool; 2] = [conflate, conflate];
             rc = pipepair(parents, new_pipes, hwms, conflates);
-            errno_assert(rc == 0);
+            // errno_assert(rc == 0);
 
             //  Attach local end of the pipe to the socket object.
             self.attach_pipe(&mut new_pipes[0], subscribe_to_all, true);
@@ -2534,8 +2534,8 @@ impl ZmqSocketBase {
 
         if protocol_ == protocol_name::udp
             && (options.type_ != ZMQ_DISH
-                && options.type_ != ZMQ_RADIO
-                && options.type_ != ZMQ_DGRAM)
+            && options.type_ != ZMQ_RADIO
+            && options.type_ != ZMQ_DGRAM)
         {
             // errno = ENOCOMPATPROTO;
             // return -1;
@@ -2755,10 +2755,10 @@ impl ZmqSocketBase {
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct routing_socket_base_t {
-    // protected:
+    //
     // methods from ZmqSocketBase
     // own methods
-    // private:
+    //
     //  Outbound pipes indexed by the peer IDs.
     // typedef std::map<Blob, out_pipe_t> out_pipes_t;
     // out_pipes_t _out_pipes;

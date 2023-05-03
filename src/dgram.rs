@@ -39,9 +39,9 @@ use crate::content::ZmqContent;
 // #include "err.hpp"
 #[derive(Copy, Clone, Debug)]
 pub struct ZmqDgram {
-    // public:
+    //
 
-    // private:
+    //
     // ZmqPipe *pipe;
     pub pipe: *mut ZmqPipe,
 
@@ -140,7 +140,7 @@ impl ZmqDgram {
 
         //  Detach the message from the data buffer.
         let rc: i32 = msg.init();
-        errno_assert(rc == 0);
+        // errno_assert(rc == 0);
 
         return 0;
     }
@@ -154,7 +154,7 @@ impl ZmqDgram {
         if (!self.pipe || !self.pipe.read(msg)) {
             //  Initialise the output parameter to be a 0-byte message.
             rc = msg.init();
-            errno_assert(rc == 0);
+            // errno_assert(rc == 0);
 
             errno = EAGAIN;
             return -1;

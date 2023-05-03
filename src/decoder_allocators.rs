@@ -4,8 +4,8 @@ use crate::{content::ZmqContent, message::MAX_VSM_SIZE};
 
 #[derive(Default, Debug, Clone)]
 pub struct c_single_allocator {
-    // public:
-    // private:
+    //
+    //
     // std::size_t buf_size;
     pub buf_size: usize,
     // unsigned char *buf;
@@ -70,7 +70,7 @@ pub struct shared_message_memory_allocator {
 
 //
 impl shared_message_memory_allocator {
-    // public:
+    //
     // explicit shared_message_memory_allocator (std::bufsize_: usize);
     // shared_message_memory_allocator::shared_message_memory_allocator (
     //     std::bufsize_: usize) :
@@ -247,7 +247,7 @@ impl shared_message_memory_allocator {
         todo!()
     }
 
-    // private:
+    //
     // void clear ();
     pub fn clear(&mut self) {
         // buf = null_mut();

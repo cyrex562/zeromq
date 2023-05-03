@@ -35,11 +35,11 @@
 // #include "msg.hpp"
 pub struct push_t  : public ZmqSocketBase
 {
-// public:
+//
     push_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~push_t ();
 
-  protected:
+
     //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (pipe: &mut ZmqPipe,
                        subscribe_to_all_: bool,
@@ -49,7 +49,7 @@ pub struct push_t  : public ZmqSocketBase
     void xwrite_activated (pipe: &mut ZmqPipe);
     void xpipe_terminated (pipe: &mut ZmqPipe);
 
-  // private:
+  //
     //  Load balancer managing the outbound pipes.
     lb_t load_balance;
 
@@ -77,7 +77,7 @@ void push_t::xattach_pipe (pipe: &mut ZmqPipe,
     //  to receive the delimiter.
     pipe.set_nodelay ();
 
-    zmq_assert (pipe);
+    // zmq_assert (pipe);
     load_balance.attach (pipe);
 }
 

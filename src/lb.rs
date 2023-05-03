@@ -38,7 +38,7 @@
 //  messages fairly among the pipes.
 pub struct lb_t
 {
-// public:
+//
     lb_t ();
     ~lb_t ();
 
@@ -56,7 +56,7 @@ pub struct lb_t
 
     bool has_out ();
 
-  // private:
+  //
     //  List of outbound pipes.
     typedef array_t<ZmqPipe, 2> pipes_t;
     pipes_t pipes;
@@ -83,7 +83,7 @@ lb_t::lb_t () : active (0), _current (0), more (false), _dropping (false)
 
 lb_t::~lb_t ()
 {
-    zmq_assert (pipes.empty ());
+    // zmq_assert (pipes.empty ());
 }
 
 void lb_t::attach (pipe: &mut ZmqPipe)
@@ -133,9 +133,9 @@ int lb_t::sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
         _dropping = more;
 
         int rc = msg.close ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         rc = msg.init ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         return 0;
     }
 
@@ -196,7 +196,7 @@ int lb_t::sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
 
     //  Detach the message from the data buffer.
     let rc: i32 = msg.init ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     return 0;
 }

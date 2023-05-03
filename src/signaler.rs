@@ -1,11 +1,12 @@
-use std::intrinsics::unlikely;
+use std::intrinsics::
+// zmq_assert;
 use std::mem;
 use std::ptr::null_mut;
 use std::thread::{sleep, sleep_ms};
 use std::time::Duration;
 
 use anyhow::{anyhow, bail};
-use libc::{c_int, c_uint, c_void, close, EAGAIN, EINTR, EWOULDBLOCK, getpid, ssize_t, timeval};
+use libc::{c_int, c_uint, c_void, close, getpid, ssize_t, timeval, EAGAIN, EINTR, EWOULDBLOCK};
 
 use crate::fd::ZmqFileDesc;
 use crate::mechanism::ZmqMechanismStatus::error;
@@ -13,7 +14,7 @@ use crate::polling_util::optimized_fd_set_t;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqSignaler {
-    // private:
+    //
     //  Underlying write & read file descriptor
     //  Will be -1 if an error occurred during initialization, e.g. we
     //  exceeded the number of available handles
@@ -33,7 +34,7 @@ impl ZmqSignaler {
     // and forked().
     // void close_internal ();
 
-    // public:
+    //
     // ZmqSignaler ();
     pub fn new() {
         let mut out = Self {
@@ -95,7 +96,7 @@ impl ZmqSignaler {
             }
             // while (nbytes == SOCKET_ERROR);
             // Given the small size of dummy (should be 1) expect that send was able to send everything.
-            zmq_assert(nbytes == mem::size_of::<dummy>());
+            // zmq_assert(nbytes == mem::size_of::<dummy>());
         }
         // #elif defined ZMQ_HAVE_VXWORKS
         //     unsigned char dummy = 0;
@@ -118,299 +119,299 @@ impl ZmqSignaler {
             let dummy = 0;
             loop {
                 let nbytes = send(self._w, &dummy, mem::size_of::<dummy>(), 0);
-                if (unlikely(nbytes == -1 && errno == EINTR)) {
+                if ((nbytes == -1 && errno == EINTR)) {
                     continue;
-                }
-                // #if defined(HAVE_FORK)
-                unsafe {
-                    if (unlikely(self.pid != getpid())) {
-                        //printf("Child process %d ZmqSignaler::send returning without sending #2\n", getpid());
-                        errno = EINTR;
-                        break;
-                    }
-                }
-                // #endif
-                //             zmq_assert(nbytes == sizeof dummy);
+            }
+            // #if defined(HAVE_FORK)
+            unsafe {
+                if ((self.pid != getpid())) {
+                    //printf("Child process %d ZmqSignaler::send returning without sending #2\n", getpid());
+                    errno = EINTR;
                 break;
             }
         }
         // #endif
+        //             zmq_assert(nbytes == sizeof dummy);
+        break;
     }
+}
+// #endif
+}
 
-    // int wait (timeout: i32) const;
+// int wait (timeout: i32) const;
 
-    pub fn wait(&self, timeout: i32) -> anyhow::Result<()> {
-        // #ifdef HAVE_FORK
-        #[cfg(feature = "fork")]
-        if (unlikely(pid != std::process::id())) {
-            // we have forked and the file descriptor is closed. Emulate an interrupt
-            // response.
-            //printf("Child process %d ZmqSignaler::wait returning simulating interrupt #1\n", getpid());
-            // errno = EINTR;
-            // return -1;
-            bail!("error: EINTR");
-        }
-        // #endif
+pub fn wait(&self, timeout: i32) -> anyhow::Result<()> {
+    // #ifdef HAVE_FORK
+    #[cfg(feature = "fork")]
+    if ((pid != std::process::id())) {
+        // we have forked and the file descriptor is closed. Emulate an interrupt
+        // response.
+        //printf("Child process %d ZmqSignaler::wait returning simulating interrupt #1\n", getpid());
+        // errno = EINTR;
+        // return -1;
+        bail!("error: EINTR");
+}
+// #endif
 
-        // #ifdef ZMQ_POLL_BASED_ON_POLL
-        #[cfg(feature = "poll")]
-        {
-            let pfd: pollfd = pollfd {};
-            pfd.fd = self._r;
-            pfd.events = POLLIN;
-            let rc: i32 = libc::poll(&pfd, 1, timeout);
-            if (unlikely(rc < 0)) {
-                // errno_assert(errno == EINTR);
-                // return -1;
-                bail!("error: EINTR");
-            }
-            if (unlikely(rc == 0)) {
-                // errno = EAGAIN;
-                // return -1;
-                bail!("error: EAGAIN")
-            }
-            // #ifdef HAVE_FORK
-            unsafe {
-                #[cfg(feature = "fork")]
-                if (unlikely(pid != std::process::id())) {
-                    // we have forked and the file descriptor is closed. Emulate an interrupt
-                    // response.
-                    //printf("Child process %d ZmqSignaler::wait returning simulating interrupt #2\n", getpid());
-                    // errno = EINTR;
-                    // return -1;
-                    bail!("error: EINTR")
-                }
-            }
-            // #endif
-            //     zmq_assert (rc == 1);
-            //     zmq_assert (pfd.revents & POLLIN);
-            //             return 0;
-            return Ok(());
-        }
+// #ifdef ZMQ_POLL_BASED_ON_POLL
+# [cfg(feature = "poll")]
+{
+let pfd: pollfd = pollfd {};
+pfd.fd = self._r;
+pfd.events = POLLIN;
+let rc: i32 = libc::poll( & pfd, 1, timeout);
+if ((rc < 0)) {
+// errno_assert(errno == EINTR);
+// return -1;
+bail ! ("error: EINTR");
+}
+if ((rc == 0)) {
+// errno = EAGAIN;
+// return -1;
+bail!("error: EAGAIN")
+}
+// #ifdef HAVE_FORK
+unsafe {
+# [cfg(feature = "fork")]
+if ((pid != std::process::id())) {
+// we have forked and the file descriptor is closed. Emulate an interrupt
+// response.
+//printf("Child process %d ZmqSignaler::wait returning simulating interrupt #2\n", getpid());
+// errno = EINTR;
+// return -1;
+bail!("error: EINTR")
+}
+}
+// #endif
+//     zmq_assert (rc == 1);
+//     zmq_assert (pfd.revents & POLLIN);
+//             return 0;
+return Ok(());
+}
 
-        // #elif defined ZMQ_POLL_BASED_ON_SELECT
-        #[cfg(feature = "select")]
-        {
-            fds: optimized_fd_set_t = optimized_fd_set_t {}; //(1);
-            FD_ZERO(fds.get());
-            FD_SET(_r, fds.get());
-            let mut timeout: libc::timeval = libc::timeval {
-                tv_sec: 0,
-                tv_usec: 0,
-            };
-            timeout;
-            if (timeout >= 0) {
-                timeout.tv_sec = timeout / 1000;
-                timeout.tv_usec = timeout % 1000 * 1000;
-            }
-            // #ifdef ZMQ_HAVE_WINDOWS
-            let rc = select(
-                0,
-                fds.get(),
-                null_mut(),
-                null_mut(),
-                timeout >= 0? & timeout: null_mut(),
-            );
-            wsa_assert(rc != SOCKET_ERROR);
-            // #else
-            let rc = select(
-                _r + 1,
-                fds.get(),
-                null_mut(),
-                null_mut(),
-                timeout >= 0? & timeout: null_mut(),
-            );
-            if (unlikely(rc < 0)) {
-                // errno_assert(errno == EINTR);
-                // return -1;
-                bail!("EINTR")
-            }
-            // #endif
-            if (unlikely(rc == 0)) {
-                // errno = EAGAIN;
-                // return -1;
-                bail!("EAGAIN");
-            }
-            // zmq_assert(rc == 1);
-            // return 0;
-            return Ok(());
-        }
-        // #else
-        // #error
-        // #endif
+// #elif defined ZMQ_POLL_BASED_ON_SELECT
+# [cfg(feature = "select")]
+{
+fds: optimized_fd_set_t = optimized_fd_set_t {}; //(1);
+FD_ZERO(fds.get());
+FD_SET(_r, fds.get());
+let mut timeout: libc::timeval = libc::timeval {
+tv_sec: 0,
+tv_usec: 0,
+};
+timeout;
+if (timeout > = 0) {
+timeout.tv_sec = timeout / 1000;
+timeout.tv_usec = timeout % 1000 * 1000;
+}
+// #ifdef ZMQ_HAVE_WINDOWS
+let rc = select(
+0,
+fds.get(),
+null_mut(),
+null_mut(),
+timeout > = 0 ? & timeout: null_mut(),
+);
+wsa_assert(rc != SOCKET_ERROR);
+// #else
+let rc = select(
+_r + 1,
+fds.get(),
+null_mut(),
+null_mut(),
+timeout > = 0 ? & timeout: null_mut(),
+);
+if ((rc < 0)) {
+// errno_assert(errno == EINTR);
+// return -1;
+bail ! ("EINTR")
+}
+// #endif
+if ((rc == 0)) {
+// errno = EAGAIN;
+// return -1;
+bail!("EAGAIN");
+}
+// zmq_assert(rc == 1);
+// return 0;
+return Ok(());
+}
+// #else
+// #error
+// #endif
+}
+
+// void recv ();
+pub fn recv(&mut self) {
+    //  Attempt to read a signal.
+    // #if defined ZMQ_HAVE_EVENTFD
+    #[cfg(feature = "eventfd")]
+    {
+        let mut dummy = 0u64;
+        let sz = unsafe {
+            libc::read(
+                self._r as c_int,
+                &dummy as *mut c_void,
+                mem::size_of::<dummy>() as c_uint,
+            )
+        };
+        // errno_assert (sz == mem::size_of::<dummy>());
+
+        //  If we accidentally grabbed the next signal(s) along with the current
+        //  one, return it back to the eventfd object.
+        if ((dummy > 1)) {
+            let mut inc = dummy - 1;
+        let sz2 = unsafe {
+            libc::write(
+                self._w as c_int,
+                &inc as *mut c_void,
+                mem::size_of::<inc>() as c_uint,
+            )
+        };
+        // errno_assert (sz2 == mem::size_of::<inc>());
+        return;
     }
+}
 
-    // void recv ();
-    pub fn recv(&mut self) {
-        //  Attempt to read a signal.
-        // #if defined ZMQ_HAVE_EVENTFD
+// zmq_assert (dummy == 1);
+// #else
+# [cfg(not(feature = "eventfd"))]
+{
+let mut dummy = 0u8;
+// #if defined ZMQ_HAVE_WINDOWS
+# [cfg(target_os = "windows")]
+{
+let nbytes: i32 = recv( self._r, & dummy, mem::size_of::< dummy> (), 0);
+// libc::wsa_assert(nbytes != SOCKET_ERROR);
+}
+// # elif defined ZMQ_HAVE_VXWORKS
+// ssize_t
+// nbytes = ::recv(_r, (char *) & dummy, mem::size_of::<dummy>(), 0);
+// errno_assert(nbytes >= 0);
+
+// #else
+# [cfg(not(target_os = "windows"))]
+let nbytes = recv(_r, &dummy, mem::size_of::< dummy > (), 0);
+// errno_assert(nbytes >= 0);
+// #endif
+//             zmq_assert(nbytes == mem::size_of::<dummy>());
+//             zmq_assert(dummy == 0);
+// #endif
+}
+}
+
+// int recv_failable ();
+
+pub fn recv_failable(&mut self) -> anyhow::Result<()> {
+    //  Attempt to read a signal.
+    // #if defined ZMQ_HAVE_EVENTFD
+    unsafe {
         #[cfg(feature = "eventfd")]
         {
             let mut dummy = 0u64;
-            let sz = unsafe {
-                libc::read(
-                    self._r as c_int,
-                    &dummy as *mut c_void,
-                    mem::size_of::<dummy>() as c_uint,
-                )
-            };
+            let mut sz = libc::read(
+                self._r as c_int,
+                &dummy as *mut c_void,
+                mem::size_of_val(&dummy) as c_uint,
+            );
+            if (sz == -1) {
+                // errno_assert (errno == EAGAIN);
+                // return -1;
+                bail!("error EGAIN")
+            }
             // errno_assert (sz == mem::size_of::<dummy>());
 
             //  If we accidentally grabbed the next signal(s) along with the current
             //  one, return it back to the eventfd object.
-            if (unlikely(dummy > 1)) {
-                let mut inc = dummy - 1;
-                let sz2 = unsafe {
-                    libc::write(
-                        self._w as c_int,
-                        &inc as *mut c_void,
-                        mem::size_of::<inc>() as c_uint,
-                    )
-                };
-                // errno_assert (sz2 == mem::size_of::<inc>());
-                return;
-            }
+            if ((dummy > 1)) {
+                let inc = dummy - 1;
+            let sz2 = libc::write(
+                self._w as c_int,
+                &inc as *mut c_void,
+                mem::size_of_val(&inc) as c_uint,
+            );
+            // errno_assert(sz2 == mem::size_of::<inc>());
+            // return 0;
+            return Ok(());
         }
 
-        // zmq_assert (dummy == 1);
-        // #else
-        #[cfg(not(feature = "eventfd"))]
-        {
-            let mut dummy = 0u8;
-            // #if defined ZMQ_HAVE_WINDOWS
-            #[cfg(target_os = "windows")]
-            {
-                let nbytes: i32 = recv(self._r, &dummy, mem::size_of::<dummy>(), 0);
-                // libc::wsa_assert(nbytes != SOCKET_ERROR);
-            }
-            // # elif defined ZMQ_HAVE_VXWORKS
-            // ssize_t
-            // nbytes = ::recv(_r, (char *) & dummy, mem::size_of::<dummy>(), 0);
-            // errno_assert(nbytes >= 0);
-
-            // #else
-            #[cfg(not(target_os = "windows"))]
-                let nbytes = recv(_r, &dummy, mem::size_of::<dummy>(), 0);
-            // errno_assert(nbytes >= 0);
-            // #endif
-            //             zmq_assert(nbytes == mem::size_of::<dummy>());
-            //             zmq_assert(dummy == 0);
-            // #endif
-        }
+        // zmq_assert(dummy == 1);
     }
+}
+// #else
+# [cfg(not(feature = "eventfd"))]
+{
+let mut dummy = 0u8;
+// #if defined ZMQ_HAVE_WINDOWS
+# [cfg(target_os = "windows")]
+{
+let nbytes: i32 = recv( self._r, ( & dummy), mem::size_of::< dummy > (), 0);
+if (nbytes == SOCKET_ERROR) {
+let last_error: i32 = WSAGetLastError();
+if (last_error == WSAEWOULDBLOCK) {
+// errno = EAGAIN;
+// return -1;
+bail ! ("error: EAGAIN")
+}
+wsa_assert(last_error == WSAEWOULDBLOCK);
+}
+}
+// #elif defined ZMQ_HAVE_VXWORKS
+//     ssize_t nbytes = ::recv (_r, (char *) &dummy, mem::size_of::<dummy>(), 0);
+//     if (nbytes == -1) {
+//         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+//             errno = EAGAIN;
+//             return -1;
+//         }
+//         errno_assert (errno == EAGAIN || errno == EWOULDBLOCK
+//                       || errno == EINTR);
+//     }
+// #else
+# [cfg(not(target_os = "windows"))]
+{
+let nbytes = libc::recv( self._r, & dummy, mem::size_of::< dummy> (), 0);
+if (nbytes == - 1) {
+if (errno == EAGAIN | | errno == EWOULDBLOCK | | errno == EINTR) {
+// errno = EAGAIN;
+// return -1;
+bail ! ("error EAGAIN")
+}
+// errno_assert(errno == EAGAIN || errno == EWOULDBLOCK
+//     || errno == EINTR);
+}
+}
+// #endif
+// zmq_assert(nbytes == mem::size_of::<dummy>());
+// zmq_assert(dummy == 0);
+}
+// #endif
+//     return 0;
+return Ok(());
+}
 
-    // int recv_failable ();
+// bool valid () const;
+pub fn valid(&mut self) -> bool {
+    return self._w != retired_fd;
+}
 
-    pub fn recv_failable(&mut self) -> anyhow::Result<()> {
-        //  Attempt to read a signal.
-        // #if defined ZMQ_HAVE_EVENTFD
-        unsafe {
-            #[cfg(feature = "eventfd")]
-            {
-                let mut dummy = 0u64;
-                let mut sz = libc::read(
-                    self._r as c_int,
-                    &dummy as *mut c_void,
-                    mem::size_of_val(&dummy) as c_uint,
-                );
-                if (sz == -1) {
-                    // errno_assert (errno == EAGAIN);
-                    // return -1;
-                    bail!("error EGAIN")
-                }
-                // errno_assert (sz == mem::size_of::<dummy>());
-
-                //  If we accidentally grabbed the next signal(s) along with the current
-                //  one, return it back to the eventfd object.
-                if (unlikely(dummy > 1)) {
-                    let inc = dummy - 1;
-                    let sz2 = libc::write(
-                        self._w as c_int,
-                        &inc as *mut c_void,
-                        mem::size_of_val(&inc) as c_uint,
-                    );
-                    // errno_assert(sz2 == mem::size_of::<inc>());
-                    // return 0;
-                    return Ok(());
-                }
-
-                // zmq_assert(dummy == 1);
-            }
-        }
-        // #else
-        #[cfg(not(feature = "eventfd"))]
-        {
-            let mut dummy = 0u8;
-            // #if defined ZMQ_HAVE_WINDOWS
-            #[cfg(target_os = "windows")]
-            {
-                let nbytes: i32 = recv(self._r, (&dummy), mem::size_of::<dummy>(), 0);
-                if (nbytes == SOCKET_ERROR) {
-                    let last_error: i32 = WSAGetLastError();
-                    if (last_error == WSAEWOULDBLOCK) {
-                        // errno = EAGAIN;
-                        // return -1;
-                        bail!("error: EAGAIN")
-                    }
-                    wsa_assert(last_error == WSAEWOULDBLOCK);
-                }
-            }
-            // #elif defined ZMQ_HAVE_VXWORKS
-            //     ssize_t nbytes = ::recv (_r, (char *) &dummy, mem::size_of::<dummy>(), 0);
-            //     if (nbytes == -1) {
-            //         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
-            //             errno = EAGAIN;
-            //             return -1;
-            //         }
-            //         errno_assert (errno == EAGAIN || errno == EWOULDBLOCK
-            //                       || errno == EINTR);
-            //     }
-            // #else
-            #[cfg(not(target_os = "windows"))]
-            {
-                let nbytes = libc::recv(self._r, &dummy, mem::size_of::<dummy>(), 0);
-                if (nbytes == -1) {
-                    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
-                        // errno = EAGAIN;
-                        // return -1;
-                        bail!("error EAGAIN")
-                    }
-                    // errno_assert(errno == EAGAIN || errno == EWOULDBLOCK
-                    //     || errno == EINTR);
-                }
-            }
-            // #endif
-            zmq_assert(nbytes == mem::size_of::<dummy>());
-            zmq_assert(dummy == 0);
-        }
-        // #endif
-        //     return 0;
-        return Ok(());
+// #ifdef HAVE_FORK
+// close the file descriptors in a forked child process so that they
+// do not interfere with the context in the parent process.
+// void forked ();
+// #endif
+// #ifdef HAVE_FORK
+#[cfg(feature = "fork")]
+pub fn forked(&mut self) {
+    //  Close file descriptors created in the parent and create new pair
+    unsafe {
+        libc::close(self._r as c_int);
     }
-
-    // bool valid () const;
-    pub fn valid(&mut self) -> bool {
-        return self._w != retired_fd;
+    unsafe {
+        libc::close(self._w as c_int);
     }
-
-    // #ifdef HAVE_FORK
-    // close the file descriptors in a forked child process so that they
-    // do not interfere with the context in the parent process.
-    // void forked ();
-    // #endif
-    // #ifdef HAVE_FORK
-    #[cfg(feature = "fork")]
-    pub fn forked(&mut self) {
-        //  Close file descriptors created in the parent and create new pair
-        unsafe {
-            libc::close(self._r as c_int);
-        }
-        unsafe {
-            libc::close(self._w as c_int);
-        }
-        make_fdpair(&self._r, &self._w);
-    }
-    // #endif
+    make_fdpair(&self._r, &self._w);
+}
+// #endif
 }
 
 // #if !defined(ZMQ_HAVE_WINDOWS)

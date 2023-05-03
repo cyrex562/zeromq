@@ -51,7 +51,7 @@
 // #include <limits.h>
 pub struct WsAddress
 {
-// public:
+//
     WsAddress ();
     WsAddress (const sockaddr *sa_, socklen_t sa_len_);
 
@@ -75,10 +75,10 @@ pub struct WsAddress
     const char *host () const;
     const char *path () const;
 
-  protected:
+
     ip_addr_t address;
 
-  // private:
+  //
     _host: String;
     _path: String;
 };
@@ -90,7 +90,7 @@ WsAddress::WsAddress ()
 
 WsAddress::WsAddress (const sockaddr *sa_, socklen_t sa_len_)
 {
-    zmq_assert (sa_ && sa_len_ > 0);
+    // zmq_assert (sa_ && sa_len_ > 0);
 
     memset (&address, 0, mem::size_of::<address>());
     if (sa_.sa_family == AF_INET

@@ -39,7 +39,7 @@
 // #include <sstream>
 pub struct TipcAddress
 {
-// public:
+//
     TipcAddress ();
     TipcAddress (const sockaddr *sa, socklen_t sa_len);
 
@@ -57,7 +57,7 @@ pub struct TipcAddress
     const sockaddr *addr () const;
     socklen_t addrlen () const;
 
-  // private:
+  //
     _random: bool
     struct sockaddr_tipc address;
 };
@@ -70,7 +70,7 @@ TipcAddress::TipcAddress ()
 
 TipcAddress::TipcAddress (const sockaddr *sa_, socklen_t sa_len_)
 {
-    zmq_assert (sa_ && sa_len_ > 0);
+    // zmq_assert (sa_ && sa_len_ > 0);
 
     memset (&address, 0, sizeof address);
     if (sa_.sa_family == AF_TIPC)

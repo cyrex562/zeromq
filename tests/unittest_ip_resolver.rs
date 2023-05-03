@@ -41,13 +41,13 @@ void tearDown ()
 }
 pub struct test_ip_resolver_t  : public IpResolver
 {
-// public:
+//
     test_ip_resolver_t (IpResolverOptions opts_) :
         IpResolver (opts_)
     {
     }
 
-  protected:
+
     struct dns_lut_t
     {
         const char *hostname;

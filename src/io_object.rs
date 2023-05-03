@@ -33,7 +33,7 @@
 // #include "err.hpp"
 pub struct io_object_t : public i_poll_events
 {
-// public:
+//
     io_object_t (ZmqThread *io_thread_ = null_mut());
     ~io_object_t () ;
 
@@ -42,7 +42,7 @@ pub struct io_object_t : public i_poll_events
     void plug (ZmqThread *io_thread_);
     void unplug ();
 
-  protected:
+
     typedef Poller::handle_t handle_t;
 
     //  Methods to access underlying poller object.
@@ -60,7 +60,7 @@ pub struct io_object_t : public i_poll_events
     void out_event () ;
     void timer_event (id_: i32) ;
 
-  // private:
+  //
     Poller *poller;
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (io_object_t)
@@ -78,8 +78,8 @@ io_object_t::~io_object_t ()
 
 void io_object_t::plug (ZmqThread *io_thread_)
 {
-    zmq_assert (io_thread_);
-    zmq_assert (!poller);
+    // zmq_assert (io_thread_);
+    // zmq_assert (!poller);
 
     //  Retrieve the poller from the thread we are running in.
     poller = io_thread_.get_poller ();
@@ -87,7 +87,7 @@ void io_object_t::plug (ZmqThread *io_thread_)
 
 void io_object_t::unplug ()
 {
-    zmq_assert (poller);
+    // zmq_assert (poller);
 
     //  Forget about old poller in preparation to be migrated
     //  to a different I/O thread.
@@ -136,15 +136,15 @@ void io_object_t::cancel_timer (id_: i32)
 
 void io_object_t::in_event ()
 {
-    zmq_assert (false);
+    // zmq_assert (false);
 }
 
 void io_object_t::out_event ()
 {
-    zmq_assert (false);
+    // zmq_assert (false);
 }
 
 void io_object_t::timer_event
 {
-    zmq_assert (false);
+    // zmq_assert (false);
 }

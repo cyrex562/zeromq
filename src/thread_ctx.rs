@@ -4,11 +4,11 @@ use crate::defines::{ZMQ_THREAD_PRIORITY_DFLT, ZMQ_THREAD_SCHED_POLICY_DFLT};
 
 #[derive(Default,Debug,Clone)]
 pub struct ThreadCtx {
-    // protected:
+    //
     //  Synchronisation of access to context options.
     // mutex_t _opt_sync;
     pub _opt_sync: Mutex<u8>,
-    // private:
+    //
     //  Thread parameters.
     pub _thread_priority: i32,
     pub _thread_sched_policy: i32,

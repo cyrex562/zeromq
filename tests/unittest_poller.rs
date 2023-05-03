@@ -93,7 +93,7 @@ struct test_events_t : i_poll_events
 
     AtomicCounter in_events, timer_events;
 
-  // private:
+  //
     ZmqFileDesc _fd;
     Poller &poller;
     Poller::handle_t _handle;

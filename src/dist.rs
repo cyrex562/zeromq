@@ -67,7 +67,7 @@ pub struct ZmqDist {
 }
 
 impl ZmqDist {
-    // public:
+    //
     //     ZmqDist ();
     //     ~ZmqDist ();
     // ZmqDist::~ZmqDist ()
@@ -230,7 +230,7 @@ impl ZmqDist {
     //     // check HWM of all pipes matching
     //     bool check_hwm ();
 
-    //   // private:
+    //   //
     //     //  Write the message to the pipe. Make the pipe inactive if writing
     //     //  fails. In such a case false is returned.
     //     bool write (pipe: &mut ZmqPipe, msg: &mut ZmqMessage);
@@ -276,44 +276,44 @@ impl ZmqDist {
                 i += 1;
             }
         }
-        if (unlikely(failed)) {
+        if ((failed)) {
             msg.rm_refs(failed);
-        }
-
-        //  Detach the original message from the data buffer. Note that we don't
-        //  close the message. That's because we've already used all the references.
-        let rc: i32 = msg.init();
-        // errno_assert (rc == 0);
     }
 
-    pub fn has_out(&self) -> bool {
-        return true;
-    }
+    //  Detach the original message from the data buffer. Note that we don't
+    //  close the message. That's because we've already used all the references.
+    let rc: i32 = msg.init();
+    // errno_assert (rc == 0);
+}
 
-    pub fn write(pipe: &mut ZmqPipe, msg: &mut ZmqMessage) -> bool {
-        if (!pipe.write(msg)) {
-            self.pipes.swap(self.pipes.index(pipe), self.matching - 1);
-            self.matching -= 1;
-            self.pipes.swap(self.pipes.index(pipe), self.active - 1);
-            self.active -= 1;
-            self.pipes.swap(self.active, self.eligible - 1);
-            self.eligible -= 1;
+pub fn has_out(&self) -> bool {
+    return true;
+}
+
+pub fn write(pipe: &mut ZmqPipe, msg: &mut ZmqMessage) -> bool {
+    if (!pipe.write(msg)) {
+        self.pipes.swap(self.pipes.index(pipe), self.matching - 1);
+        self.matching -= 1;
+        self.pipes.swap(self.pipes.index(pipe), self.active - 1);
+        self.active -= 1;
+        self.pipes.swap(self.active, self.eligible - 1);
+        self.eligible -= 1;
+        return false;
+    }
+    if (!(msg.flags() & ZMQ_MSG_MORE)) {
+        pipe.flush();
+    }
+    return true;
+}
+
+pub fn check_hwm(&self) -> bool {
+    // for (pipes_t::size_type i = 0; i < matching; += 1i)
+    for i in 0..self.matching {
+        if (!self.pipes[i].check_hwm()) {
             return false;
         }
-        if (!(msg.flags() & ZMQ_MSG_MORE)) {
-            pipe.flush();
-        }
-        return true;
     }
 
-    pub fn check_hwm(&self) -> bool {
-        // for (pipes_t::size_type i = 0; i < matching; += 1i)
-        for i in 0..self.matching {
-            if (!self.pipes[i].check_hwm()) {
-                return false;
-            }
-        }
-
-        return true;
+    return true;
     }
 }

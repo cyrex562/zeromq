@@ -54,7 +54,7 @@ For test cases, the client shall use this long-term key pair (specified
 as hexadecimal and in Z85):
 
 ----
-^// public:
+^//
     BB88471D65E2659B30C55A5321CEBB5AAB2B70A398645C26DCA2B2FCB43FC518
     Yne@$w-vo<fVvi]a<NY6T1ed:M$fCG*[IaLV{hID
 
@@ -67,7 +67,7 @@ And the server shall use this long-term key pair (specified as hexadecimal
 and in Z85):
 
 ----
-^// public:
+^//
     54FCBA24E93249969316FB617C872BB0C1D1FF14800427C594CBFACF1BC2D652
     rq:rM>}U?@Lns47E1%kR.o@n%FcmmsL/@{H8]yf7
 

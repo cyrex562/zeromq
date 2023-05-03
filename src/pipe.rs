@@ -48,7 +48,7 @@
 //  If conflate is true, only the most recently arrived message could be
 //  read (older messages are discarded)
 
-use std::intrinsics::unlikely;
+use std::intrinsics::// zmq_assert;
 use std::io::Write;
 use std::ptr::null_mut;
 use libc::memcpy;
@@ -171,21 +171,21 @@ impl ZmqPipe {
         upipe1 = new (std::nothrow) upipe_conflate_t ();
         else
         upipe1 = new (std::nothrow) upipe_normal_t ();
-        alloc_assert (upipe1);
+        // alloc_assert (upipe1);
 
         ZmqPipe::upipe_t *upipe2;
         if (conflate_[1])
         upipe2 = new (std::nothrow) upipe_conflate_t ();
         else
         upipe2 = new (std::nothrow) upipe_normal_t ();
-        alloc_assert (upipe2);
+        // alloc_assert (upipe2);
 
         pipes_[0] = new (std::nothrow)
         ZmqPipe (parents_[0], upipe1, upipe2, hwms_[1], hwms_[0], conflate_[0]);
-        alloc_assert (pipes_[0]);
+        // alloc_assert (pipes_[0]);
         pipes_[1] = new (std::nothrow)
         ZmqPipe (parents_[1], upipe2, upipe1, hwms_[0], hwms_[1], conflate_[1]);
-        alloc_assert (pipes_[1]);
+        // alloc_assert (pipes_[1]);
 
         pipes_[0]->set_peer (pipes_[1]);
         pipes_[1]->set_peer (pipes_[0]);
@@ -193,11 +193,11 @@ impl ZmqPipe {
         return 0;
     }
 
-// public:
+//
     //  Specifies the object to send events to.
     pub fn set_event_sink (&mut self, sink: &mut i_pipe_events) {
         // Sink can be set once only.
-        zmq_assert (!_sink);
+        // zmq_assert (!_sink);
         self._sink = sink;
     }
 
@@ -226,10 +226,10 @@ impl ZmqPipe {
     //  Returns true if there is at least one message to read in the pipe.
     // bool check_read ();
     pub fn check_read(&mut self) -> bool {
-        if (unlikely(!self._in_active)) {
+        if ((!self._in_active)) {
             return false;
         }
-        if (unlikely(self._state != active && self._state != waiting_for_delimiter)) {
+        if ((self._state != active && self._state != waiting_for_delimiter)) {
             return false;
         }
 
@@ -257,10 +257,10 @@ impl ZmqPipe {
     // bool read (msg: &mut ZmqMessage);
     pub fn read(&mut self, msg: &mut ZmqMessage) -> bool
     {
-        if (unlikely (!self._in_active)) {
+        if ( (!self._in_active)) {
             return false;
         }
-        if (unlikely (self._state != active && self._state != waiting_for_delimiter)) {
+        if ( (self._state != active && self._state != waiting_for_delimiter)) {
             return false;
         }
 
@@ -271,7 +271,7 @@ impl ZmqPipe {
             }
 
             //  If this is a credential, ignore it and receive next message.
-            if (unlikely (msg.is_credential ())) {
+            if ( (msg.is_credential ())) {
                 let rc: i32 = msg.close ();
                 // zmq_assert (rc == 0);
             } else {
@@ -300,13 +300,13 @@ impl ZmqPipe {
     // bool check_write ();
     pub fn check_write(&mut self) -> bool
     {
-        if (unlikely (!self._out_active || self._state != PipeState::active)) {
+        if ( (!self._out_active || self._state != PipeState::active)) {
             return false;
         }
 
         let full = !self.check_hwm ();
 
-        if (unlikely (full)) {
+        if ( (full)) {
             self._out_active = false;
             return false;
         }
@@ -320,7 +320,7 @@ impl ZmqPipe {
     // bool write (const msg: &mut ZmqMessage);
     pub fn write(&mut self, msg: &mut ZmqMessage) -> bool
     {
-        if (unlikely (!check_write ())) {
+        if ( (!check_write ())) {
             return false;
         }
 
@@ -382,7 +382,7 @@ impl ZmqPipe {
                 ? static_cast<upipe_t *> (new (std::nothrow) YpipeConflate<ZmqMessage> ())
         : new (std::nothrow) Ypipe<ZmqMessage, message_pipe_granularity> ();
 
-        alloc_assert (_in_pipe);
+        // alloc_assert (_in_pipe);
         _in_active = true;
 
         //  Notify the peer about the hiccup.
@@ -543,7 +543,7 @@ impl ZmqPipe {
 
     }
 
-    // private:
+    //
     //  Type of the underlying lock-free pipe.
     // typedef YpipeBase<ZmqMessage> upipe_t;
 
@@ -1383,7 +1383,7 @@ void ZmqPipe::set_disconnect_msg (
     _disconnect_msg.close ();
     let rc: i32 =
       _disconnect_msg.init_buffer (&disconnect_[0], disconnect_.size ());
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 }
 
 void ZmqPipe::send_hiccup_msg (const std::vector<unsigned char> &hiccup_)
@@ -1391,7 +1391,7 @@ void ZmqPipe::send_hiccup_msg (const std::vector<unsigned char> &hiccup_)
     if (!hiccup_.is_empty() && _out_pipe) {
 let mut msg = ZmqMessage::default();
         let rc: i32 = msg.init_buffer (&hiccup_[0], hiccup_.size ());
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
 
         _out_pipe.write (msg, false);
         flush ();

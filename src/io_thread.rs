@@ -49,7 +49,7 @@ use crate::socket_base::ZmqSocketBase;
 #[derive(Default,Debug,Clone)]
 pub struct ZmqThread
 {
-  // private:
+  //
     //  I/O thread accesses incoming commands via this mailbox.
     pub mailbox: Option<mailbox_t>,
     //  Handle associated with mailbox' file descriptor.
@@ -63,7 +63,7 @@ pub struct ZmqThread
 }
 
 impl ZmqThread {
-    // public:
+    //
     // ZmqThread (ctx: &mut ZmqContext, tid: u32);
     // ZmqObject (ctx, tid),
     pub fn new (ctx: &mut ZmqContext, tid: u32) -> Self {
@@ -203,7 +203,7 @@ impl ZmqObject for ZmqThread {
         todo!()
     }
 
-    fn send_attach(&mut self, destination: &mut ZmqSessionbase, engine: &mut i_engine, inc_seqnum: bool) {
+    fn send_attach(&mut self, destination: &mut ZmqSessionbase, engine: &mut ZmqIEngine, inc_seqnum: bool) {
         todo!()
     }
 
@@ -283,7 +283,7 @@ impl ZmqObject for ZmqThread {
         todo!()
     }
 
-    fn process_attached(&mut self, engine: &mut i_engine) {
+    fn process_attached(&mut self, engine: &mut ZmqIEngine) {
         todo!()
     }
 
@@ -405,30 +405,30 @@ void ZmqThread::in_event ()
         rc = mailbox.recv (&cmd, 0);
     }
 
-    errno_assert (rc != 0 && errno == EAGAIN);
+    // errno_assert (rc != 0 && errno == EAGAIN);
 }
 
 void ZmqThread::out_event ()
 {
     //  We are never polling for POLLOUT here. This function is never called.
-    zmq_assert (false);
+    // zmq_assert (false);
 }
 
 void ZmqThread::timer_event
 {
     //  No timers here. This function is never called.
-    zmq_assert (false);
+    // zmq_assert (false);
 }
 
 Poller *ZmqThread::get_poller () const
 {
-    zmq_assert (poller);
+    // zmq_assert (poller);
     return poller;
 }
 
 void ZmqThread::process_stop ()
 {
-    zmq_assert (mailbox_handle);
+    // zmq_assert (mailbox_handle);
     poller.rm_fd (mailbox_handle);
     poller.stop ();
 }

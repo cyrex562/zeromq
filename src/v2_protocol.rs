@@ -35,7 +35,7 @@ namespace zmq
 //  Definition of constants for ZMTP/2.0 transport protocol.
 pub struct v2_protocol_t
 {
-// public:
+//
     //  Message flags.
     enum
     {

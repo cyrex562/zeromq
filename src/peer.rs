@@ -37,7 +37,7 @@
 // #include "err.hpp"
 pub struct peer_t  : public server_t
 {
-// public:
+//
     peer_t (ZmqContext *parent_, tid: u32, sid_: i32);
 
     //  Overrides of functions from ZmqSocketBase.
@@ -47,7 +47,7 @@ pub struct peer_t  : public server_t
 
     u32 connect_peer (endpoint_uri_: &str);
 
-  // private:
+  //
     u32 _peer_last_routing_id;
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (peer_t)

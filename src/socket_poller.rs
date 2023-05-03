@@ -36,7 +36,7 @@
 // #include <limits.h>
 pub struct socket_poller_t
 {
-// public:
+//
     socket_poller_t ();
     ~socket_poller_t ();
 
@@ -59,7 +59,7 @@ pub struct socket_poller_t
     //  Return false if object is not a socket.
     bool check_tag () const;
 
-  // private:
+  //
     typedef struct item_t
     {
         ZmqSocketBase *socket;
@@ -407,7 +407,7 @@ int socket_poller_t::rebuild ()
                     size_t fd_size = sizeof (ZmqFileDesc);
                     let rc: i32 = it.socket.getsockopt (
                       ZMQ_FD, &_pollfds[item_nbr].fd, &fd_size);
-                    zmq_assert (rc == 0);
+                    // zmq_assert (rc == 0);
 
                     _pollfds[item_nbr].events = POLLIN;
                     item_nbr+= 1;
@@ -428,7 +428,7 @@ int socket_poller_t::rebuild ()
 
     //  Ensure we do not attempt to select () on more than FD_SETSIZE
     //  file descriptors.
-    zmq_assert (_items.size () <= FD_SETSIZE);
+    // zmq_assert (_items.size () <= FD_SETSIZE);
 
     _pollset_in.resize (_items.size ());
     _pollset_out.resize (_items.size ());
@@ -462,7 +462,7 @@ int socket_poller_t::rebuild ()
                     size_t fd_size = sizeof (ZmqFileDesc);
                     int rc =
                       it.socket.getsockopt (ZMQ_FD, &notify_fd, &fd_size);
-                    zmq_assert (rc == 0);
+                    // zmq_assert (rc == 0);
 
                     FD_SET (notify_fd, _pollset_in.get ());
                     if (_max_fd < notify_fd)
@@ -540,7 +540,7 @@ int socket_poller_t::check_events (socket_poller_t::event_t *events_,
         //  the events to ZmqPollItem-style format.
         else if (it.events) {
 // #if defined ZMQ_POLL_BASED_ON_POLL
-            zmq_assert (it.pollfd_index >= 0);
+            // zmq_assert (it.pollfd_index >= 0);
             const short revents = _pollfds[it.pollfd_index].revents;
             short events = 0;
 
@@ -631,7 +631,7 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
             return -1;
     }
 
-    if (unlikely (_pollset_size == 0)) {
+    if ( (_pollset_size == 0)) {
         if (timeout < 0) {
             // Fail instead of trying to sleep forever
             errno = EFAULT;
@@ -689,7 +689,7 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
         if (rc == -1 && errno == EINTR) {
             return -1;
         }
-        errno_assert (rc >= 0);
+        // errno_assert (rc >= 0);
 
         //  Receive the signal from pollfd
         if (_use_signaler && _pollfds[0].revents & POLLIN)
@@ -748,14 +748,14 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
         let rc: i32 = select (static_cast<int> (_max_fd + 1), inset.get (),
                                outset.get (), errset.get (), ptimeout);
 // #if defined ZMQ_HAVE_WINDOWS
-        if (unlikely (rc == SOCKET_ERROR)) {
+        if ( (rc == SOCKET_ERROR)) {
             errno = wsa_error_to_errno (WSAGetLastError ());
             wsa_assert (errno == ENOTSOCK);
             return -1;
         }
 // #else
-        if (unlikely (rc == -1)) {
-            errno_assert (errno == EINTR || errno == EBADF);
+        if ( (rc == -1)) {
+            // errno_assert (errno == EINTR || errno == EBADF);
             return -1;
         }
 // #endif

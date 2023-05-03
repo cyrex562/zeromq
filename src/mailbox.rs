@@ -41,8 +41,8 @@ pub const COMMAND_PIPE_GRANULARITY: i32 = 16;
 //   : public i_mailbox
 pub struct mailbox_t
 {
-// public:
-  // private:
+//
+  //
     //  The pipe to store actual commands.
     // typedef Ypipe<ZmqCommand, command_pipe_granularity> cpipe_t;
     // cpipe_t cpipe;

@@ -6,11 +6,11 @@ use crate::socket_base::ZmqSocketBase;
 #[derive(Default,Debug,Clone)]
 pub struct ZmqGather
 {
-// public:
+//
 //     ZmqGather (ZmqContext *parent_, tid: u32, sid_: i32);
 //     ~ZmqGather ();
 
-  // protected:
+  //
     //  Overrides of functions from ZmqSocketBase.
     // void xattach_pipe (pipe: &mut ZmqPipe,
     //                    subscribe_to_all_: bool,
@@ -20,7 +20,7 @@ pub struct ZmqGather
     // void xread_activated (pipe: &mut ZmqPipe);
     // void xpipe_terminated (pipe: &mut ZmqPipe);
 
-  // private:
+  //
     //  Fair queueing object for inbound pipes.
     pub fair_queue: ZmqFq,
     pub socket_base: ZmqSocketBase,
@@ -56,7 +56,7 @@ void ZmqGather::xattach_pipe (pipe: &mut ZmqPipe,
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
 
-    zmq_assert (pipe);
+    // zmq_assert (pipe);
     fair_queue.attach (pipe);
 }
 

@@ -47,12 +47,12 @@
 /// and per-message GSSAPI tokens (via MESSAGE commands).
 pub struct gssapi_ZmqMechanismBase : public virtual ZmqMechanismBase
 {
-// public:
+//
     gssapi_ZmqMechanismBase (ZmqSessionBase *session_,
                              options: &ZmqOptions);
     ~gssapi_ZmqMechanismBase ()  = 0;
 
-  protected:
+
     //  Produce a context-level GSSAPI token (INITIATE command)
     //  during security context initialization.
     int produce_initiate (msg: &mut ZmqMessage data: &mut [u8], data_len_: usize);
@@ -84,7 +84,7 @@ pub struct gssapi_ZmqMechanismBase : public virtual ZmqMechanismBase
                                     gss_cred_id_t *cred_,
                                     gss_OID name_type_);
 
-  protected:
+
     //  Opaque GSSAPI token for outgoing data
     gss_buffer_desc send_tok;
 
@@ -165,7 +165,7 @@ int gssapi_ZmqMechanismBase::encode_message (msg: &mut ZmqMessage)
 
     uint8_t *plaintext_buffer =
       static_cast<uint8_t *> (malloc (msg.size () + 1));
-    alloc_assert (plaintext_buffer);
+    // alloc_assert (plaintext_buffer);
 
     plaintext_buffer[0] = flags;
     memcpy (plaintext_buffer + 1, msg.data (), msg.size ());
@@ -176,15 +176,15 @@ int gssapi_ZmqMechanismBase::encode_message (msg: &mut ZmqMessage)
     maj_stat = gss_wrap (&min_stat, context, 1, GSS_C_QOP_DEFAULT, &plaintext,
                          &state, &wrapped);
 
-    zmq_assert (maj_stat == GSS_S_COMPLETE);
-    zmq_assert (state);
+    // zmq_assert (maj_stat == GSS_S_COMPLETE);
+    // zmq_assert (state);
 
     // Re-initialize msg for wrapped text
     int rc = msg.close ();
-    zmq_assert (rc == 0);
+    // zmq_assert (rc == 0);
 
     rc = msg.init_size (8 + 4 + wrapped.length);
-    zmq_assert (rc == 0);
+    // zmq_assert (rc == 0);
 
     uint8_t *ptr = static_cast<uint8_t *> (msg.data ());
 
@@ -248,7 +248,7 @@ int gssapi_ZmqMechanismBase::decode_message (msg: &mut ZmqMessage)
     // TODO: instead of malloc/memcpy, can we just do: wrapped.value = ptr;
     const size_t alloc_length = wrapped.length ? wrapped.length : 1;
     wrapped.value = static_cast<char *> (malloc (alloc_length));
-    alloc_assert (wrapped.value);
+    // alloc_assert (wrapped.value);
 
     if (wrapped.length) {
         memcpy (wrapped.value, ptr, wrapped.length);
@@ -270,14 +270,14 @@ int gssapi_ZmqMechanismBase::decode_message (msg: &mut ZmqMessage)
         errno = EPROTO;
         return -1;
     }
-    zmq_assert (state);
+    // zmq_assert (state);
 
     // Re-initialize msg for plaintext
     rc = msg.close ();
-    zmq_assert (rc == 0);
+    // zmq_assert (rc == 0);
 
     rc = msg.init_size (plaintext.length - 1);
-    zmq_assert (rc == 0);
+    // zmq_assert (rc == 0);
 
     const uint8_t flags = static_cast<char *> (plaintext.value)[0];
     if (flags & 0x01)
@@ -306,13 +306,13 @@ int gssapi_ZmqMechanismBase::produce_initiate (msg: &mut ZmqMessage
                                                     token_value_: &mut [u8],
                                                     token_length_: usize)
 {
-    zmq_assert (token_value_);
-    zmq_assert (token_length_ <= 0xFFFFFFFFUL);
+    // zmq_assert (token_value_);
+    // zmq_assert (token_length_ <= 0xFFFFFFFFUL);
 
     const size_t command_size = 9 + 4 + token_length_;
 
     let rc: i32 = msg.init_size (command_size);
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     uint8_t *ptr = static_cast<uint8_t *> (msg.data ());
 
@@ -335,7 +335,7 @@ int gssapi_ZmqMechanismBase::process_initiate (msg: &mut ZmqMessage
                                                     token_value_: *mut *mut c_void
                                                     size_t &token_length_)
 {
-    zmq_assert (token_value_);
+    // zmq_assert (token_value_);
 
     const uint8_t *ptr = static_cast<uint8_t *> (msg.data ());
     size_t bytes_left = msg.size ();
@@ -377,7 +377,7 @@ int gssapi_ZmqMechanismBase::process_initiate (msg: &mut ZmqMessage
 
     *token_value_ =
       static_cast<char *> (malloc (token_length_ ? token_length_ : 1));
-    alloc_assert (*token_value_);
+    // alloc_assert (*token_value_);
 
     if (token_length_) {
         memcpy (*token_value_, ptr, token_length_);

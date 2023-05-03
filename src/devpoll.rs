@@ -70,7 +70,7 @@ pub struct FdEntry {
 
 #[derive(Clone, Debug, Default)]
 pub struct DevPoll {
-    // public:
+    //
     //  File descriptor referring to "/dev/poll" pseudo-device.
     // ZmqFileDesc devpoll_fd;
     pub devpoll_fd: ZmqFileDesc,
@@ -188,7 +188,7 @@ impl DevPoll {
         return -1;
     }
 
-    // private:
+    //
     //  Main event loop.
 
     // void loop () ;

@@ -53,7 +53,7 @@
 // #endif
 pub struct vmci_listener_t  : public stream_listener_base_t
 {
-// public:
+//
     vmci_listener_t (ZmqThread *io_thread_,
                      socket: *mut ZmqSocketBase,
                      options: &ZmqOptions);
@@ -61,10 +61,10 @@ pub struct vmci_listener_t  : public stream_listener_base_t
     //  Set address to listen on.
     int set_local_address (addr_: &str);
 
-  protected:
+
     std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
 
-  // private:
+  //
     //  Handlers for I/O events.
     void in_event ();
 
@@ -205,7 +205,7 @@ ZmqFileDesc vmci_listener_t::accept ()
     //  Accept one connection and deal with different failure modes.
     //  The situation where connection cannot be accepted due to insufficient
     //  resources is considered valid and treated by ignoring the connection.
-    zmq_assert (_s != retired_fd);
+    // zmq_assert (_s != retired_fd);
     ZmqFileDesc sock = ::accept (_s, null_mut(), null_mut());
 
 // #ifdef ZMQ_HAVE_WINDOWS
@@ -223,7 +223,7 @@ ZmqFileDesc vmci_listener_t::accept ()
 // #endif
 // #else
     if (sock == -1) {
-        errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
+        // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
                       || errno == ECONNABORTED || errno == EPROTO
                       || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE
                       || errno == ENFILE);
@@ -235,7 +235,7 @@ ZmqFileDesc vmci_listener_t::accept ()
     //  between accept and this point).
 // #ifdef FD_CLOEXEC
     int rc = fcntl (sock, F_SETFD, FD_CLOEXEC);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 // #endif
 
     return sock;

@@ -2,9 +2,9 @@
 //  and private representation of the message (ZmqMessage) match.
 
 use crate::atomic_counter::AtomicCounter;
-use crate::metadata::ZmqMetadata;
 use crate::content::ZmqContent;
 use crate::defines::ZMQ_GROUP_MAX_LENGTH;
+use crate::metadata::ZmqMetadata;
 use anyhow::anyhow;
 use libc::{c_long, EINVAL};
 use serde::{Deserialize, Serialize};
@@ -201,7 +201,7 @@ pub const SUB_CMD_NAME: &[u8] = b"\0x9SUBSCRIBE";
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ZmqMessage {
-    // public:
+    //
     //  Shared message buffer. Message data are either allocated in one
     //  continuous block along with this structure - thus avoiding one
     //  malloc/free pair or they are stored in user-supplied memory.
@@ -212,7 +212,7 @@ pub struct ZmqMessage {
     //  Message flags.
     //  Size in bytes of the largest message that is still copied around
     //  rather than being reference-counted.
-    // private:
+    //
     // refcnt: AtomicCounter,
     //  Different message types.
     pub u: MsgUnion,

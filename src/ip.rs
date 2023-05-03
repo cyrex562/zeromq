@@ -169,7 +169,7 @@ ZmqFileDesc open_socket (domain_: i32, type_: i32, protocol_: i32)
 
     //  Socket is not yet connected so EINVAL is not a valid networking error
     rc = set_nosigpipe (s);
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     return s;
 }
@@ -183,13 +183,13 @@ void unblock_socket (ZmqFileDesc s_)
 #elif defined ZMQ_HAVE_OPENVMS || defined ZMQ_HAVE_VXWORKS
     int nonblock = 1;
     int rc = ioctl (s_, FIONBIO, &nonblock);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 // #else
     int flags = fcntl (s_, F_GETFL, 0);
     if (flags == -1)
         flags = 0;
     int rc = fcntl (s_, F_SETFL, flags | O_NONBLOCK);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 // #endif
 }
 
@@ -209,7 +209,7 @@ void enable_ipv4_mapping (ZmqFileDesc s_)
 // #ifdef ZMQ_HAVE_WINDOWS
     wsa_assert (rc != SOCKET_ERROR);
 // #else
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 // #endif
 // #endif
 }
@@ -228,9 +228,9 @@ int get_peer_ip_address (ZmqFileDesc sockfd_, std::string &ip_addr_)
                     && last_error != WSAEINPROGRESS
                     && last_error != WSAENOTSOCK);
 #elif !defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
-        errno_assert (errno != EBADF && errno != EFAULT && errno != ENOTSOCK);
+        // errno_assert (errno != EBADF && errno != EFAULT && errno != ENOTSOCK);
 // #else
-        errno_assert (errno != EFAULT && errno != ENOTSOCK);
+        // errno_assert (errno != EFAULT && errno != ENOTSOCK);
 // #endif
         return 0;
     }
@@ -262,7 +262,7 @@ void set_ip_type_of_service (ZmqFileDesc s_, iptos_: i32)
 // #ifdef ZMQ_HAVE_WINDOWS
     wsa_assert (rc != SOCKET_ERROR);
 // #else
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 // #endif
 
     //  Windows and Hurd do not support IPV6_TCLASS
@@ -273,7 +273,7 @@ void set_ip_type_of_service (ZmqFileDesc s_, iptos_: i32)
     //  If IPv6 is not enabled ENOPROTOOPT will be returned on Linux and
     //  EINVAL on OSX
     if (rc == -1) {
-        errno_assert (errno == ENOPROTOOPT || errno == EINVAL);
+        // errno_assert (errno == ENOPROTOOPT || errno == EINVAL);
     }
 // #endif
 }
@@ -284,7 +284,7 @@ void set_socket_priority (ZmqFileDesc s_, priority_: i32)
     int rc =
       setsockopt (s_, SOL_SOCKET, SO_PRIORITY,
                   reinterpret_cast<char *> (&priority_), mem::size_of::<priority_>());
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 // #endif
 }
 
@@ -300,7 +300,7 @@ int set_nosigpipe (ZmqFileDesc s_)
     int rc = setsockopt (s_, SOL_SOCKET, SO_NOSIGPIPE, &set, mem::size_of::<int>());
     if (rc != 0 && errno == EINVAL)
         return -1;
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 // #else
     LIBZMQ_UNUSED (s_);
 // #endif
@@ -340,7 +340,7 @@ bool initialize_network ()
     const bool ok = pgm_init (&pgm_error);
     if (ok != TRUE) {
         //  Invalid parameters don't set pgm_error_t
-        zmq_assert (pgm_error != null_mut());
+        // zmq_assert (pgm_error != null_mut());
         if (pgm_error.domain == PGM_ERROR_DOMAIN_TIME
             && (pgm_error.code == PGM_ERROR_FAILED)) {
             //  Failed to access RTC or HPET device.
@@ -350,7 +350,7 @@ bool initialize_network ()
         }
 
         //  PGM_ERROR_DOMAIN_ENGINE: WSAStartup errors or missing WSARecvMsg.
-        zmq_assert (false);
+        // zmq_assert (false);
     }
 // #endif
 
@@ -361,8 +361,8 @@ bool initialize_network ()
     const WORD version_requested = MAKEWORD (2, 2);
     WSADATA wsa_data;
     let rc: i32 = WSAStartup (version_requested, &wsa_data);
-    zmq_assert (rc == 0);
-    zmq_assert (LOBYTE (wsa_data.wVersion) == 2
+    // zmq_assert (rc == 0);
+    // zmq_assert (LOBYTE (wsa_data.wVersion) == 2
                 && HIBYTE (wsa_data.wVersion) == 2);
 // #endif
 
@@ -380,7 +380,7 @@ void shutdown_network ()
 // #if defined ZMQ_HAVE_OPENPGM
     //  Shut down the OpenPGM library.
     if (pgm_shutdown () != TRUE)
-        zmq_assert (false);
+        // zmq_assert (false);
 // #endif
 }
 
@@ -493,7 +493,7 @@ static int make_fdpair_tcpip (ZmqFileDesc *r_, ZmqFileDesc *w_)
     if (sync != null_mut()) {
         //  Enter the critical section.
         const DWORD dwrc = WaitForSingleObject (sync, INFINITE);
-        zmq_assert (dwrc == WAIT_OBJECT_0 || dwrc == WAIT_ABANDONED);
+        // zmq_assert (dwrc == WAIT_OBJECT_0 || dwrc == WAIT_ABANDONED);
     }
 
     //  Bind listening socket to signaler port.
@@ -608,7 +608,7 @@ int make_fdpair (ZmqFileDesc *r_, ZmqFileDesc *w_)
 // #endif
     ZmqFileDesc fd = eventfd (0, flags);
     if (fd == -1) {
-        errno_assert (errno == ENFILE || errno == EMFILE);
+        // errno_assert (errno == ENFILE || errno == EMFILE);
         *w_ = *r_ = -1;
         return -1;
     }
@@ -682,7 +682,7 @@ int make_fdpair (ZmqFileDesc *r_, ZmqFileDesc *w_)
     }
 
     *r_ = accept (listener, null_mut(), null_mut());
-    errno_assert (*r_ != -1);
+    // errno_assert (*r_ != -1);
 
     //  Close the listener socket, we don't need it anymore.
     rc = closesocket (listener);
@@ -750,40 +750,40 @@ try_tcpip:
     lcladdr.sin_port = 0;
 
     int listener = open_socket (AF_INET, SOCK_STREAM, 0);
-    errno_assert (listener != -1);
+    // errno_assert (listener != -1);
 
     int on = 1;
     int rc = setsockopt (listener, IPPROTO_TCP, TCP_NODELAY, &on, sizeof on);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     rc = setsockopt (listener, IPPROTO_TCP, TCP_NODELACK, &on, sizeof on);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     rc = bind (listener, (struct sockaddr *) &lcladdr, sizeof lcladdr);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     socklen_t lcladdr_len = sizeof lcladdr;
 
     rc = getsockname (listener, (struct sockaddr *) &lcladdr, &lcladdr_len);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     rc = listen (listener, 1);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     *w_ = open_socket (AF_INET, SOCK_STREAM, 0);
-    errno_assert (*w_ != -1);
+    // errno_assert (*w_ != -1);
 
     rc = setsockopt (*w_, IPPROTO_TCP, TCP_NODELAY, &on, sizeof on);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     rc = setsockopt (*w_, IPPROTO_TCP, TCP_NODELACK, &on, sizeof on);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     rc = connect (*w_, (struct sockaddr *) &lcladdr, sizeof lcladdr);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     *r_ = accept (listener, null_mut(), null_mut());
-    errno_assert (*r_ != -1);
+    // errno_assert (*r_ != -1);
 
     close (listener);
 
@@ -796,36 +796,36 @@ try_tcpip:
     lcladdr.sin_port = 0;
 
     int listener = open_socket (AF_INET, SOCK_STREAM, 0);
-    errno_assert (listener != -1);
+    // errno_assert (listener != -1);
 
     int on = 1;
     int rc =
       setsockopt (listener, IPPROTO_TCP, TCP_NODELAY, (char *) &on, sizeof on);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     rc = bind (listener, (struct sockaddr *) &lcladdr, sizeof lcladdr);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     socklen_t lcladdr_len = sizeof lcladdr;
 
     rc = getsockname (listener, (struct sockaddr *) &lcladdr,
                       (int *) &lcladdr_len);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     rc = listen (listener, 1);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     *w_ = open_socket (AF_INET, SOCK_STREAM, 0);
-    errno_assert (*w_ != -1);
+    // errno_assert (*w_ != -1);
 
     rc = setsockopt (*w_, IPPROTO_TCP, TCP_NODELAY, (char *) &on, sizeof on);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     rc = connect (*w_, (struct sockaddr *) &lcladdr, sizeof lcladdr);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     *r_ = accept (listener, null_mut(), null_mut());
-    errno_assert (*r_ != -1);
+    // errno_assert (*r_ != -1);
 
     close (listener);
 
@@ -842,7 +842,7 @@ try_tcpip:
 // #endif
     int rc = socketpair (AF_UNIX, type, 0, sv);
     if (rc == -1) {
-        errno_assert (errno == ENFILE || errno == EMFILE);
+        // errno_assert (errno == ENFILE || errno == EMFILE);
         *w_ = *r_ = -1;
         return -1;
     } else {
@@ -870,7 +870,7 @@ void make_socket_noninheritable (ZmqFileDesc sock_)
     //  Race condition can cause socket not to be closed (if fork happens
     //  between accept and this point).
     let rc: i32 = fcntl (sock_, F_SETFD, FD_CLOEXEC);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 // #else
     LIBZMQ_UNUSED (sock_);
 // #endif
@@ -902,7 +902,7 @@ void assert_success_or_recoverable (ZmqFileDesc s_, rc_: i32)
     //  Assert if the error was caused by 0MQ bug.
     //  Networking problems are OK. No need to assert.
 // #ifdef ZMQ_HAVE_WINDOWS
-    zmq_assert (rc == 0);
+    // zmq_assert (rc == 0);
     if (err != 0) {
         wsa_assert (err == WSAECONNREFUSED || err == WSAECONNRESET
                     || err == WSAECONNABORTED || err == WSAEINTR
@@ -918,7 +918,7 @@ void assert_success_or_recoverable (ZmqFileDesc s_, rc_: i32)
         err = errno;
     if (err != 0) {
         errno = err;
-        errno_assert (errno == ECONNREFUSED || errno == ECONNRESET
+        // errno_assert (errno == ECONNREFUSED || errno == ECONNRESET
                       || errno == ECONNABORTED || errno == EINTR
                       || errno == ETIMEDOUT || errno == EHOSTUNREACH
                       || errno == ENETUNREACH || errno == ENETDOWN
@@ -952,7 +952,7 @@ int create_ipc_wildcard_address (std::string &path_, std::string &file_)
 
     {
         const errno_t rc = _wtmpnam_s (buffer);
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
     }
 
     // TODO or use CreateDirectoryA and specify permissions?

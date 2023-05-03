@@ -36,7 +36,7 @@
 
 // #include "decoder_allocators.hpp"
 // #include "err.hpp"
-// #include "i_decoder.hpp"
+// #include "ZmqDecoderInterface.hpp"
 // #include "stdint.hpp"
 
 // namespace zmq
@@ -55,13 +55,13 @@
 //  Buffer management is done by an allocator policy.
 // template <typename T, typename A = c_single_allocator>
 
-pub trait i_decoder {}
+pub trait ZmqDecoderInterface {}
 
 #[derive(Default, Debug, Clone)]
 pub struct DecoderBase<T: Allocator> {
-    // public:
+    //
 
-    // private:
+    //
     //  Next step. If set to NULL, it means that associated data stream
     //  is dead. Note that there can be still data in the process in such
     //  case.
@@ -138,7 +138,7 @@ impl DecoderBase {
         //  is required. Also, run the state machine in case all the data
         //  were processed.
         if (data == read_pos) {
-            zmq_assert(size <= to_read);
+            // zmq_assert(size <= to_read);
             read_pos += size;
             to_read -= size;
             bytes_used_ = size;
@@ -186,7 +186,7 @@ impl DecoderBase {
         self.allocator.resize(new_size);
     }
 
-    //   protected:
+    //
     //  Prototype of state machine action. Action should return false if
     //  it is unable to push the data to the system.
     // typedef int (T::*step_t) (unsigned char const *);

@@ -134,7 +134,7 @@ static void manage_random (init_: bool)
 
         if (random_refcount == 0) {
             int rc = sodium_init ();
-            zmq_assert (rc != -1);
+            // zmq_assert (rc != -1);
         }
 
         += 1random_refcount;
@@ -150,7 +150,7 @@ static void manage_random (init_: bool)
 #elif defined(ZMQ_USE_LIBSODIUM)
     if (init_) {
         int rc = sodium_init ();
-        zmq_assert (rc != -1);
+        // zmq_assert (rc != -1);
 // #if defined(ZMQ_LIBSODIUM_RANDOMBYTES_CLOSE)
     } else {
         // randombytes_close either a no-op or not threadsafe

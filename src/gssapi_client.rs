@@ -41,7 +41,7 @@
 // #include "wire.hpp"
 pub struct gssapi_client_t  : public gssapi_ZmqMechanismBase
 {
-// public:
+//
     gssapi_client_t (ZmqSessionBase *session_, options: &ZmqOptions);
     ~gssapi_client_t () ;
 
@@ -52,7 +52,7 @@ pub struct gssapi_client_t  : public gssapi_ZmqMechanismBase
     int decode (msg: &mut ZmqMessage) ;
     status_t status () const ;
 
-  // private:
+  //
     enum state_t
     {
         call_next_init,
@@ -187,15 +187,15 @@ int gssapi_client_t::process_handshake_command (msg: &mut ZmqMessage)
 
     state = call_next_init;
 
-    errno_assert (msg.close () == 0);
-    errno_assert (msg.init () == 0);
+    // errno_assert (msg.close () == 0);
+    // errno_assert (msg.init () == 0);
 
     return 0;
 }
 
 int gssapi_client_t::encode (msg: &mut ZmqMessage)
 {
-    zmq_assert (state == connected);
+    // zmq_assert (state == connected);
 
     if (do_encryption)
         return encode_message (msg);
@@ -205,7 +205,7 @@ int gssapi_client_t::encode (msg: &mut ZmqMessage)
 
 int gssapi_client_t::decode (msg: &mut ZmqMessage)
 {
-    zmq_assert (state == connected);
+    // zmq_assert (state == connected);
 
     if (do_encryption)
         return decode_message (msg);

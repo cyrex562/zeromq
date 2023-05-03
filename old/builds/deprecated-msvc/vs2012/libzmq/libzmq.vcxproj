@@ -102,7 +102,7 @@
     <ClInclude Include="..\..\..\..\src\gssapi_client.hpp" />
     <ClInclude Include="..\..\..\..\src\gssapi_mechanism_base.hpp" />
     <ClInclude Include="..\..\..\..\src\gssapi_server.hpp" />
-    <ClInclude Include="..\..\..\..\src\i_engine.hpp" />
+    <ClInclude Include="..\..\..\..\src\ZmqIEngine.hpp" />
     <ClInclude Include="..\..\..\..\src\i_poll_events.hpp" />
     <ClInclude Include="..\..\..\..\src\io_object.hpp" />
     <ClInclude Include="..\..\..\..\src\io_thread.hpp" />

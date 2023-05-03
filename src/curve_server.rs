@@ -56,7 +56,7 @@ pub struct curve_server_t {
     pub zap_client_common_handshake: ZmqZapClientCommonHandshake,
     pub curve_mechanism_base: ZmqCurveMechanismBase,
 
-    // private:
+    //
     //  Our secret key (s)
     pub _secret_key: [u8; CRYPTO_BOX_SECRETKEYBYTES],
     //  Our short-term public key (S')
@@ -70,7 +70,7 @@ pub struct curve_server_t {
 }
 
 impl curve_server_t {
-    // public:
+    //
     // curve_server_t (ZmqSessionBase *session_,
     //                 const std::string &peer_address_,
     //                 options: &ZmqOptions,

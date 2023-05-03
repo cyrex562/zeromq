@@ -38,7 +38,7 @@
 // #include <string>
 pub struct IpcAddress
 {
-// public:
+//
     IpcAddress ();
     IpcAddress (const sockaddr *sa_, socklen_t sa_len_);
     ~IpcAddress ();
@@ -52,7 +52,7 @@ pub struct IpcAddress
     const sockaddr *addr () const;
     socklen_t addrlen () const;
 
-  // private:
+  //
     struct sockaddr_un address;
     socklen_t _addrlen;
 
@@ -67,7 +67,7 @@ IpcAddress::IpcAddress ()
 IpcAddress::IpcAddress (const sockaddr *sa_, socklen_t sa_len_) :
     _addrlen (sa_len_)
 {
-    zmq_assert (sa_ && sa_len_ > 0);
+    // zmq_assert (sa_ && sa_len_ > 0);
 
     memset (&address, 0, sizeof address);
     if (sa_.sa_family == AF_UNIX)

@@ -8,8 +8,8 @@ use crate::unix_sockaddr::{addrinfo};
 
 pub struct IpResolverOptions
 {
-    // public:
-    // private:
+    //
+    //
     // bool _bindable_wanted;
     pub bindable: bool,
     // bool _nic_name_allowed;
@@ -49,14 +49,14 @@ pub struct IpResolver
 }
 
 impl IpResolver {
-    // public:
+    //
     // ip_resolver_t (IpResolverOptions opts_);
 
     // virtual ~ip_resolver_t (){};
 
     // int resolve (ip_addr_t *ip_addr_, name: *const c_char);
 
-  // protected:
+  //
     //  Virtual functions that are overridden in tests
     // virtual int do_getaddrinfo (node_: *const c_char,
     //                             service_: *const c_char,
@@ -67,7 +67,7 @@ impl IpResolver {
 
     // virtual unsigned int do_if_nametoindex (ifname_: *const c_char);
 
-  // private:
+  //
     // int resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char);
 
     // int resolve_getaddrinfo (ip_addr_t *ip_addr_, addr_: *const c_char);
@@ -326,19 +326,19 @@ impl IpResolver {
     {
         //  Create a socket.
         let fd: i32 = open_socket (AF_INET, SOCK_DGRAM, 0);
-        errno_assert (fd != -1);
+        // errno_assert (fd != -1);
 
         //  Retrieve number of interfaces.
         lifnum ifn;
         ifn.lifn_family = AF_INET;
         ifn.lifn_flags = 0;
         int rc = ioctl (fd, SIOCGLIFNUM, (char *) &ifn);
-        errno_assert (rc != -1);
+        // errno_assert (rc != -1);
 
         //  Allocate memory to get interface names.
         const size_t ifr_size = sizeof (struct lifreq) * ifn.lifn_count;
         char *ifr = (char *) malloc (ifr_size);
-        alloc_assert (ifr);
+        // alloc_assert (ifr);
 
         //  Retrieve interface names.
         lifconf ifc;
@@ -347,7 +347,7 @@ impl IpResolver {
         ifc.lifc_len = ifr_size;
         ifc.lifc_buf = ifr;
         rc = ioctl (fd, SIOCGLIFCONF, (char *) &ifc);
-        errno_assert (rc != -1);
+        // errno_assert (rc != -1);
 
         //  Find the interface with the specified name and AF_INET family.
         bool found = false;
@@ -355,7 +355,7 @@ impl IpResolver {
         for (int n = 0; n <  (ifc.lifc_len / mem::size_of::<lifreq>()); n+= 1, ifrp+= 1) {
             if (!strcmp (nic_, ifrp.lifr_name)) {
                 rc = ioctl (fd, SIOCGLIFADDR, (char *) ifrp);
-                errno_assert (rc != -1);
+                // errno_assert (rc != -1);
                 if (ifrp.lifr_addr.ss_family == AF_INET) {
                     ip_addr_.ipv4 = *(sockaddr_in *) &ifrp.lifr_addr;
                     found = true;
@@ -548,7 +548,7 @@ impl IpResolver {
 
         do {
             addresses = static_cast<IP_ADAPTER_ADDRESSES *> (malloc (out_buf_len));
-            alloc_assert (addresses);
+            // alloc_assert (addresses);
 
             rc =
               GetAdaptersAddresses (AF_UNSPEC,

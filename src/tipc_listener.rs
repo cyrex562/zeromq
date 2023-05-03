@@ -56,7 +56,7 @@
 // #endif
 pub struct tipc_listener_t  : public stream_listener_base_t
 {
-// public:
+//
     tipc_listener_t (ZmqThread *io_thread_,
                      socket: *mut ZmqSocketBase,
                      options: &ZmqOptions);
@@ -64,11 +64,11 @@ pub struct tipc_listener_t  : public stream_listener_base_t
     //  Set address to listen on.
     int set_local_address (addr_: &str);
 
-  protected:
+
     std::string get_socket_name (fd: ZmqFileDesc,
                                  SocketEnd socket_end_) const ;
 
-  // private:
+  //
     //  Handlers for I/O events.
     void in_event () ;
 
@@ -182,7 +182,7 @@ ZmqFileDesc tipc_listener_t::accept ()
     struct sockaddr_storage ss = {};
     socklen_t ss_len = mem::size_of::<ss>();
 
-    zmq_assert (_s != retired_fd);
+    // zmq_assert (_s != retired_fd);
 // #ifdef ZMQ_HAVE_VXWORKS
     ZmqFileDesc sock = ::accept (_s, (struct sockaddr *) &ss, (int *) &ss_len);
 // #else
@@ -190,7 +190,7 @@ ZmqFileDesc tipc_listener_t::accept ()
       ::accept (_s, reinterpret_cast<struct sockaddr *> (&ss), &ss_len);
 // #endif
     if (sock == -1) {
-        errno_assert (errno == EAGAIN || errno == EWOULDBLOCK
+        // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK
                       || errno == ENOBUFS || errno == EINTR
                       || errno == ECONNABORTED || errno == EPROTO
                       || errno == EMFILE || errno == ENFILE);

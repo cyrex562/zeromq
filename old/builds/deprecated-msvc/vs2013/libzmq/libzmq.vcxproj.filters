@@ -324,7 +324,7 @@
     <ClInclude Include="..\..\..\..\src\fq.hpp">
       <Filter>src\include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\src\i_engine.hpp">
+    <ClInclude Include="..\..\..\..\src\ZmqIEngine.hpp">
       <Filter>src\include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\i_poll_events.hpp">

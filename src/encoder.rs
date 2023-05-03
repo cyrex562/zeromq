@@ -55,7 +55,7 @@ use crate::message::ZmqMessage;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqBaseEncoder {
-    // private:
+    //
     //  Where to get the data to write from.
     // unsigned char *write_pos;
     pub write_pos: usize,
@@ -83,7 +83,7 @@ pub struct ZmqBaseEncoder {
 }
 
 impl ZmqBaseEncoder {
-    // public:
+    //
     // explicit encoder_base_t (bufsize_: usize) :
     // write_pos (0),
     // to_write (0),
@@ -178,7 +178,7 @@ impl ZmqBaseEncoder {
         self.next();
     }
 
-    // protected:
+    //
     //  Prototype of state machine action.
     // typedef void (T::*step_t) ();
 

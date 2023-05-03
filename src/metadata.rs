@@ -1,7 +1,7 @@
 use crate::atomic_counter::AtomicCounter;
 use std::collections::HashMap;
 
-// public:
+//
 //     typedef std::map<std::string, std::string> dict_t;
 
 // #include "precompiled.hpp"
@@ -9,7 +9,7 @@ use std::collections::HashMap;
 pub struct ZmqMetadata {
     pub _dict: HashMap<String, String>,
     pub _ref_cnt: AtomicCounter,
-    // // private:
+    // //
     //   //  Reference counter.
     //   AtomicCounter _ref_cnt;
     //

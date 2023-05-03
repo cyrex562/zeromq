@@ -40,7 +40,7 @@
 // #include "err.hpp"
 pub struct VmciAddress
 {
-// public:
+//
     VmciAddress ();
     VmciAddress (ZmqContext *parent_);
     VmciAddress (const sockaddr *sa, socklen_t sa_len, ZmqContext *parent_);
@@ -59,7 +59,7 @@ pub struct VmciAddress
     const sockaddr *addr () const;
     socklen_t addrlen () const;
 
-  // private:
+  //
     struct sockaddr_vm address;
     ZmqContext *parent;
 
@@ -81,7 +81,7 @@ VmciAddress::VmciAddress (const sockaddr *sa,
                                      ZmqContext *parent_) :
     parent (parent_)
 {
-    zmq_assert (sa && sa_len > 0);
+    // zmq_assert (sa && sa_len > 0);
 
     memset (&address, 0, sizeof address);
     if (sa.sa_family == parent.get_vmci_socket_family ())

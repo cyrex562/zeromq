@@ -41,7 +41,7 @@
 // #endif
 pub struct stream_listener_base_t : public ZmqOwn, public io_object_t
 {
-// public:
+//
     stream_listener_base_t (ZmqThread *io_thread_,
                             socket: *mut ZmqSocketBase,
                             options: &ZmqOptions);
@@ -50,16 +50,16 @@ pub struct stream_listener_base_t : public ZmqOwn, public io_object_t
     // Get the bound address for use with wildcards
     int get_local_address (std::string &addr_) const;
 
-  protected:
+
     virtual std::string get_socket_name (fd: ZmqFileDesc,
                                          SocketEnd socket_end_) const = 0;
 
-  // private:
+  //
     //  Handlers for incoming commands.
     void process_plug () ;
     void process_term (linger: i32) ;
 
-  protected:
+
     //  Close the listening socket.
     virtual int close ();
 
@@ -94,8 +94,8 @@ stream_listener_base_t::stream_listener_base_t (
 
 stream_listener_base_t::~stream_listener_base_t ()
 {
-    zmq_assert (_s == retired_fd);
-    zmq_assert (!_handle);
+    // zmq_assert (_s == retired_fd);
+    // zmq_assert (!_handle);
 }
 
 int stream_listener_base_t::get_local_address (std::string &addr_) const
@@ -123,13 +123,13 @@ int stream_listener_base_t::close ()
 {
     // TODO this is identical to stream_connector_base_t::close
 
-    zmq_assert (_s != retired_fd);
+    // zmq_assert (_s != retired_fd);
 // #ifdef ZMQ_HAVE_WINDOWS
     let rc: i32 = closesocket (_s);
     wsa_assert (rc != SOCKET_ERROR);
 // #else
     let rc: i32 = ::close (_s);
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 // #endif
     _socket.event_closed (make_unconnected_bind_endpoint_pair (_endpoint), _s);
     _s = retired_fd;
@@ -143,22 +143,22 @@ void stream_listener_base_t::create_engine (ZmqFileDesc fd)
       get_socket_name (fd, SocketEndLocal),
       get_socket_name (fd, SocketEndRemote), endpoint_type_bind);
 
-    i_engine *engine;
+    ZmqIEngine *engine;
     if (options.raw_socket)
         engine = new (std::nothrow) raw_engine_t (fd, options, endpoint_pair);
     else
         engine = new (std::nothrow) ZmqZmtpEngine (fd, options, endpoint_pair);
-    alloc_assert (engine);
+    // alloc_assert (engine);
 
     //  Choose I/O thread to run connecter in. Given that we are already
     //  running in an I/O thread, there must be at least one available.
     ZmqThread *io_thread = choose_io_thread (options.affinity);
-    zmq_assert (io_thread);
+    // zmq_assert (io_thread);
 
     //  Create and launch a session object.
     ZmqSessionBase *session =
       ZmqSessionBase::create (io_thread, false, _socket, options, null_mut());
-    errno_assert (session);
+    // errno_assert (session);
     session.inc_seqnum ();
     launch_child (session);
     send_attach (session, engine, false);

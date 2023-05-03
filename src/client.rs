@@ -31,7 +31,9 @@ use std::ptr::null_mut;
 
 use anyhow::anyhow;
 
+use crate::content::ZmqContent;
 use crate::context::ZmqContext;
+use crate::defines::ZMQ_CLIENT;
 use crate::fq::ZmqFq;
 use crate::lb::lb_t;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
@@ -39,8 +41,6 @@ use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 use crate::socket_base_ops::ZmqSocketBaseOps;
-use crate::content::ZmqContent;
-use crate::defines::ZMQ_CLIENT;
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"
@@ -50,7 +50,7 @@ use crate::defines::ZMQ_CLIENT;
 // pub struct client_t  : public ZmqSocketBase
 #[derive(Default, Debug, Clone)]
 pub struct ZmqClient {
-    // private:
+    //
     //  Messages are fair-queued from inbound pipes. And load-balanced to
     //  the outbound pipes.
     // ZmqFq fair_queue;
@@ -61,11 +61,11 @@ pub struct ZmqClient {
 }
 
 impl ZmqClient {
-    // public:
+    //
     //     client_t (ZmqContext *parent_, tid: u32, sid_: i32);
     //     ~client_t ();
     //
-    //   // protected:
+    //   //
     //     client_t::client_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     //     ZmqSocketBase (parent_, tid, sid_, true)
     //     {

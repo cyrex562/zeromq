@@ -35,7 +35,7 @@ namespace zmq
 //  Definition of constants for WS transport protocol.
 pub struct ws_protocol_t
 {
-// public:
+//
     //  Message flags.
     enum opcode_t
     {

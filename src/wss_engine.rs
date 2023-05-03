@@ -29,27 +29,28 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // #include "precompiled.hpp"
 // #include "wss_engine.hpp"
-pub struct wss_engine_t : public ws_engine_t
+pub struct WssEngine : public ws_engine_t
 {
-// public:
-    wss_engine_t (fd: ZmqFileDesc,
+    pub ws_engine: ws_engine_t,
+//
+    WssEngine (fd: ZmqFileDesc,
                   options: &ZmqOptions,
                   const endpoint_uri_pair_t &endpoint_uri_pair_,
                   WsAddress &address_,
                   client_: bool,
                   tls_server_cred_: &mut [u8],
                   hostname_: &str);
-    ~wss_engine_t ();
+    ~WssEngine ();
 
     void out_event ();
 
-  protected:
+
     bool handshake ();
     void plug_internal ();
     int read (data: &mut [u8], size: usize);
     int write (const data: &mut [u8], size: usize);
 
-  // private:
+  //
     bool do_handshake ();
 
     _established: bool
@@ -66,7 +67,7 @@ static int verify_certificate_callback (gnutls_session_t session)
     hostname = (const char *) gnutls_session_get_ptr (session);
 
     int rc = gnutls_certificate_verify_peers3 (session, hostname, &status);
-    zmq_assert (rc >= 0);
+    // zmq_assert (rc >= 0);
 
     if (status != 0) {
         // TODO: somehow log the error
@@ -79,7 +80,7 @@ static int verify_certificate_callback (gnutls_session_t session)
 }
 
 
-wss_engine_t::wss_engine_t (fd: ZmqFileDesc,
+WssEngine::WssEngine (fd: ZmqFileDesc,
                                  options: &ZmqOptions,
                                  const endpoint_uri_pair_t &endpoint_uri_pair_,
                                  WsAddress &address_,
@@ -95,7 +96,7 @@ wss_engine_t::wss_engine_t (fd: ZmqFileDesc,
     if (client_) {
         // TODO: move to session_base, to allow changing the socket options between connect calls
         rc = gnutls_certificate_allocate_credentials (&_tls_client_cred);
-        zmq_assert (rc == 0);
+        // zmq_assert (rc == 0);
 
         if (options_.wss_trust_system)
             gnutls_certificate_set_x509_system_trust (_tls_client_cred);
@@ -106,14 +107,14 @@ wss_engine_t::wss_engine_t (fd: ZmqFileDesc,
               (unsigned int) options_.wss_trust_pem.length ()};
             rc = gnutls_certificate_set_x509_trust_mem (
               _tls_client_cred, &trust, GNUTLS_X509_FMT_PEM);
-            zmq_assert (rc >= 0);
+            // zmq_assert (rc >= 0);
         }
 
         gnutls_certificate_set_verify_function (_tls_client_cred,
                                                 verify_certificate_callback);
 
         rc = gnutls_init (&_tls_session, GNUTLS_CLIENT | GNUTLS_NONBLOCK);
-        zmq_assert (rc == GNUTLS_E_SUCCESS);
+        // zmq_assert (rc == GNUTLS_E_SUCCESS);
 
         if (!hostname_.empty ())
             gnutls_server_name_set (_tls_session, GNUTLS_NAME_DNS,
@@ -125,23 +126,23 @@ wss_engine_t::wss_engine_t (fd: ZmqFileDesc,
 
         rc = gnutls_credentials_set (_tls_session, GNUTLS_CRD_CERTIFICATE,
                                      _tls_client_cred);
-        zmq_assert (rc == GNUTLS_E_SUCCESS);
+        // zmq_assert (rc == GNUTLS_E_SUCCESS);
     } else {
-        zmq_assert (tls_server_cred_);
+        // zmq_assert (tls_server_cred_);
 
         rc = gnutls_init (&_tls_session, GNUTLS_SERVER | GNUTLS_NONBLOCK);
-        zmq_assert (rc == GNUTLS_E_SUCCESS);
+        // zmq_assert (rc == GNUTLS_E_SUCCESS);
 
         rc = gnutls_credentials_set (_tls_session, GNUTLS_CRD_CERTIFICATE,
                                      tls_server_cred_);
-        zmq_assert (rc == GNUTLS_E_SUCCESS);
+        // zmq_assert (rc == GNUTLS_E_SUCCESS);
     }
 
     gnutls_set_default_priority (_tls_session);
     gnutls_transport_set_int (_tls_session, fd);
 }
 
-wss_engine_t::~wss_engine_t ()
+WssEngine::~WssEngine ()
 {
     gnutls_deinit (_tls_session);
 
@@ -149,13 +150,13 @@ wss_engine_t::~wss_engine_t ()
         gnutls_certificate_free_credentials (_tls_client_cred);
 }
 
-void wss_engine_t::plug_internal ()
+void WssEngine::plug_internal ()
 {
     set_pollin ();
     in_event ();
 }
 
-void wss_engine_t::out_event ()
+void WssEngine::out_event ()
 {
     if (_established)
         return ws_engine_t::out_event ();
@@ -163,7 +164,7 @@ void wss_engine_t::out_event ()
     do_handshake ();
 }
 
-bool wss_engine_t::do_handshake ()
+bool WssEngine::do_handshake ()
 {
     int rc = gnutls_handshake (_tls_session);
 
@@ -183,14 +184,14 @@ bool wss_engine_t::do_handshake ()
                || rc == GNUTLS_E_WARNING_ALERT_RECEIVED) {
         return false;
     } else {
-        error (i_engine::connection_error);
+        // error (ZmqIEngine::connection_error);
         return false;
     }
 
     return true;
 }
 
-bool wss_engine_t::handshake ()
+bool WssEngine::handshake ()
 {
     if (!_established) {
         if (!do_handshake ()) {
@@ -201,7 +202,7 @@ bool wss_engine_t::handshake ()
     return ws_engine_t::handshake ();
 }
 
-int wss_engine_t::read (data: &mut [u8], size: usize)
+int WssEngine::read (data: &mut [u8], size: usize)
 {
     ssize_t rc = gnutls_record_recv (_tls_session, data, size);
 
@@ -235,7 +236,7 @@ int wss_engine_t::read (data: &mut [u8], size: usize)
     return rc;
 }
 
-int wss_engine_t::write (const data: &mut [u8], size: usize)
+int WssEngine::write (const data: &mut [u8], size: usize)
 {
     ssize_t rc = gnutls_record_send (_tls_session, data, size);
 

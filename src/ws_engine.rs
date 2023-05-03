@@ -33,9 +33,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #include <secoid.h>
 // #include <sechash.h>
 // #define SHA_DIGEST_LENGTH 20
-#elif defined ZMQ_USE_BUILTIN_SHA1
+// #elif defined ZMQ_USE_BUILTIN_SHA1
 // #include "../external/sha1/sha1.h"
-#elif defined ZMQ_USE_GNUTLS
+// #elif defined ZMQ_USE_GNUTLS
 // #define SHA_DIGEST_LENGTH 20
 // #include <gnutls/gnutls.h>
 // #include <gnutls/crypto.h>
@@ -82,7 +82,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #endif
 
 
-typedef enum
+enum ws_server_handshake_state
 {
     handshake_initial = 0,
     request_line_G,
@@ -110,10 +110,10 @@ typedef enum
     handshake_complete,
 
     handshake_error = -1
-} ws_server_handshake_state_t;
+}
 
 
-typedef enum
+enum ws_client_handshake_state
 {
     client_handshake_initial = 0,
     response_line_H,
@@ -157,12 +157,12 @@ typedef enum
     client_header_field_cr,
     client_handshake_end_line_cr,
     client_handshake_complete,
-
     client_handshake_error = -1
-} ws_client_handshake_state_t;
-pub struct ws_engine_t : public stream_engine_base_t
+}
+pub struct ws_engine_t : public ZmqStreamEngineBase
 {
-// public:
+    pub stream_engine_base: ZmqStreamEngineBase,
+//
     ws_engine_t (fd: ZmqFileDesc,
                  options: &ZmqOptions,
                  const endpoint_uri_pair_t &endpoint_uri_pair_,
@@ -170,7 +170,7 @@ pub struct ws_engine_t : public stream_engine_base_t
                  client_: bool);
     ~ws_engine_t ();
 
-  protected:
+
     int decode_and_push (msg: &mut ZmqMessage);
     int process_command_message (msg: &mut ZmqMessage);
     int produce_pong_message (msg: &mut ZmqMessage);
@@ -179,7 +179,7 @@ pub struct ws_engine_t : public stream_engine_base_t
     void plug_internal ();
     void start_ws_handshake ();
 
-  // private:
+  //
     int routing_id_msg (msg: &mut ZmqMessage);
     int process_routing_id_msg (msg: &mut ZmqMessage);
     int produce_close_message (msg: &mut ZmqMessage);
@@ -225,7 +225,7 @@ ws_engine_t::ws_engine_t (fd: ZmqFileDesc,
                                const endpoint_uri_pair_t &endpoint_uri_pair_,
                                const WsAddress &address_,
                                client_: bool) :
-    stream_engine_base_t (fd, options_, endpoint_uri_pair_, true),
+    ZmqStreamEngineBase (fd, options_, endpoint_uri_pair_, true),
     _client (client_),
     address (address_),
     _client_handshake_state (client_handshake_initial),
@@ -314,7 +314,7 @@ void ws_engine_t::plug_internal ()
 int ws_engine_t::routing_id_msg (msg: &mut ZmqMessage)
 {
     let rc: i32 = msg.init_size (_options.routing_id_size);
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
     if (_options.routing_id_size > 0)
         memcpy (msg.data (), _options.routing_id, _options.routing_id_size);
     _next_msg = &ws_engine_t::pull_msg_from_session;
@@ -327,12 +327,12 @@ int ws_engine_t::process_routing_id_msg (msg: &mut ZmqMessage)
     if (_options.recv_routing_id) {
         msg.set_flags (ZMQ_MSG_ROUTING_ID);
         let rc: i32 = session ().push_msg (msg);
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
     } else {
         int rc = msg.close ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         rc = msg.init ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
     }
 
     _process_msg = &ws_engine_t::push_ZmqMessageo_session;
@@ -343,9 +343,9 @@ int ws_engine_t::process_routing_id_msg (msg: &mut ZmqMessage)
 bool ws_engine_t::select_protocol (protocol_: &str)
 {
     if (_options.mechanism == ZMQ_NULL && (strcmp ("ZWS2.0", protocol_) == 0)) {
-        _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
+        _next_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
           &ws_engine_t::routing_id_msg);
-        _process_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
+        _process_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
           &ws_engine_t::process_routing_id_msg);
 
         // No mechanism in place, enabling heartbeat
@@ -360,7 +360,7 @@ bool ws_engine_t::select_protocol (protocol_: &str)
         && strcmp ("ZWS2.0/NULL", protocol_) == 0) {
         _mechanism = new (std::nothrow)
           null_ZmqMechanism (session (), _peer_address, _options);
-        alloc_assert (_mechanism);
+        // alloc_assert (_mechanism);
         return true;
     } else if (_options.mechanism == ZMQ_PLAIN
                && strcmp ("ZWS2.0/PLAIN", protocol_) == 0) {
@@ -370,7 +370,7 @@ bool ws_engine_t::select_protocol (protocol_: &str)
         else
             _mechanism =
               new (std::nothrow) plain_client_t (session (), _options);
-        alloc_assert (_mechanism);
+        // alloc_assert (_mechanism);
         return true;
     }
 // #ifdef ZMQ_HAVE_CURVE
@@ -382,7 +382,7 @@ bool ws_engine_t::select_protocol (protocol_: &str)
         else
             _mechanism =
               new (std::nothrow) curve_client_t (session (), _options, false);
-        alloc_assert (_mechanism);
+        // alloc_assert (_mechanism);
         return true;
     }
 // #endif
@@ -402,12 +402,12 @@ bool ws_engine_t::handshake ()
     if (complete) {
         _encoder =
           new (std::nothrow) ws_encoder_t (_options.out_batch_size, _client);
-        alloc_assert (_encoder);
+        // alloc_assert (_encoder);
 
         _decoder = new (std::nothrow)
           ws_decoder_t (_options.in_batch_size, _options.maxmsgsize,
                         _options.zero_copy, !_client);
-        alloc_assert (_decoder);
+        // alloc_assert (_decoder);
 
         socket ().event_handshake_succeeded (_endpoint_uri_pair, 0);
 
@@ -422,7 +422,7 @@ bool ws_engine_t::server_handshake ()
     let nbytes: i32 = read (_read_buffer, WS_BUFFER_SIZE);
     if (nbytes == -1) {
         if (errno != EAGAIN)
-            error (i_engine::connection_error);
+            // error (ZmqIEngine::connection_error);
         return false;
     }
 
@@ -690,7 +690,7 @@ bool ws_engine_t::server_handshake ()
             socket ().event_handshake_failed_protocol (
               _endpoint_uri_pair, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED);
 
-            error (i_engine::protocol_error);
+            // error (ZmqIEngine::protocol_error);
             return false;
         }
     }
@@ -702,7 +702,7 @@ bool ws_engine_t::client_handshake ()
     let nbytes: i32 = read (_read_buffer, WS_BUFFER_SIZE);
     if (nbytes == -1) {
         if (errno != EAGAIN)
-            error (i_engine::connection_error);
+            // error (ZmqIEngine::connection_error);
         return false;
     }
 
@@ -1035,7 +1035,7 @@ bool ws_engine_t::client_handshake ()
             socket ().event_handshake_failed_protocol (
               _endpoint_uri_pair, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED);
 
-            error (i_engine::protocol_error);
+            // error (ZmqIEngine::protocol_error);
             return false;
         }
     }
@@ -1045,7 +1045,7 @@ bool ws_engine_t::client_handshake ()
 
 int ws_engine_t::decode_and_push (msg: &mut ZmqMessage)
 {
-    zmq_assert (_mechanism != null_mut());
+    // zmq_assert (_mechanism != null_mut());
 
     //  with WS engine, ping and pong commands are control messages and should not go through any mechanism
     if (msg.is_ping () || msg.is_pong () || msg.is_close_cmd ()) {
@@ -1076,9 +1076,9 @@ int ws_engine_t::decode_and_push (msg: &mut ZmqMessage)
 int ws_engine_t::produce_close_message (msg: &mut ZmqMessage)
 {
     int rc = msg.move (_close_msg);
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
-    _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
+    _next_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
       &ws_engine_t::produce_no_msg_after_close);
 
     return rc;
@@ -1087,7 +1087,7 @@ int ws_engine_t::produce_close_message (msg: &mut ZmqMessage)
 int ws_engine_t::produce_no_msg_after_close (msg: &mut ZmqMessage)
 {
     LIBZMQ_UNUSED (msg);
-    _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
+    _next_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
       &ws_engine_t::close_connection_after_close);
 
     errno = EAGAIN;
@@ -1097,7 +1097,7 @@ int ws_engine_t::produce_no_msg_after_close (msg: &mut ZmqMessage)
 int ws_engine_t::close_connection_after_close (msg: &mut ZmqMessage)
 {
     LIBZMQ_UNUSED (msg);
-    error (connection_error);
+    // error (connection_error);
     errno = ECONNRESET;
     return -1;
 }
@@ -1105,7 +1105,7 @@ int ws_engine_t::close_connection_after_close (msg: &mut ZmqMessage)
 int ws_engine_t::produce_ping_message (msg: &mut ZmqMessage)
 {
     int rc = msg.init ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
     msg.set_flags (ZMQ_MSG_COMMAND | ZMQ_MSG_PING);
 
     _next_msg = &ws_engine_t::pull_and_encode;
@@ -1121,7 +1121,7 @@ int ws_engine_t::produce_ping_message (msg: &mut ZmqMessage)
 int ws_engine_t::produce_pong_message (msg: &mut ZmqMessage)
 {
     int rc = msg.init ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
     msg.set_flags (ZMQ_MSG_COMMAND | ZMQ_MSG_PONG);
 
     _next_msg = &ws_engine_t::pull_and_encode;
@@ -1132,13 +1132,13 @@ int ws_engine_t::produce_pong_message (msg: &mut ZmqMessage)
 int ws_engine_t::process_command_message (msg: &mut ZmqMessage)
 {
     if (msg.is_ping ()) {
-        _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
+        _next_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
           &ws_engine_t::produce_pong_message);
         out_event ();
     } else if (msg.is_close_cmd ()) {
         int rc = _close_msg.copy (*msg);
-        errno_assert (rc == 0);
-        _next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
+        // errno_assert (rc == 0);
+        _next_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
           &ws_engine_t::produce_close_message);
         out_event ();
     }

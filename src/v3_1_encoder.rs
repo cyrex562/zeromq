@@ -37,11 +37,11 @@
 // #include <limits.h>
 pub struct v3_1_encoder_t  : public encoder_base_t<v3_1_encoder_t>
 {
-// public:
+//
     v3_1_encoder_t (bufsize_: usize);
     ~v3_1_encoder_t () ;
 
-  // private:
+  //
     void size_ready ();
     void message_ready ();
 
@@ -84,7 +84,7 @@ void v3_1_encoder_t::message_ready ()
     //  Encode the message length. For messages less then 256 bytes,
     //  the length is encoded as 8-bit unsigned integer. For larger
     //  messages, 64-bit unsigned integer in network byte order is used.
-    if (unlikely (size > UCHAR_MAX)) {
+    if ( (size > UCHAR_MAX)) {
         put_uint64 (_tmp_buf + 1, size);
         header_size = 9; // flags byte + size 8 bytes
     } else {

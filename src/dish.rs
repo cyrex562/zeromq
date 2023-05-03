@@ -39,12 +39,12 @@ use crate::utils::copy_bytes;
 // #include "err.hpp"
 #[derive(Default, Debug, Clone)]
 pub struct ZmqDish {
-    // public:
+    //
     // ZmqDish (ZmqContext *parent_, tid: u32, sid_: i32);
     // ~ZmqDish ();
-    //   protected:
+    //
     //  Overrides of functions from ZmqSocketBase.
-    // private:
+    //
     //  Send subscriptions to a pipe
     //  Fair queueing object for inbound pipes.
     // ZmqFq fair_queue;
@@ -101,7 +101,7 @@ impl ZmqDish {
         // LIBZMQ_UNUSED (subscribe_to_all_);
         // LIBZMQ_UNUSED (locally_initiated_);
 
-        zmq_assert(pipe);
+        // zmq_assert(pipe);
         fair_queue.attach(pipe);
         _dist.attach(pipe);
 
@@ -293,8 +293,8 @@ pub enum DishSessionState {
 }
 
 pub struct DishSession {
-    // public:
-    // private:
+    //
+    //
     pub _group_msg: ZmqMessage,
     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (DishSession)
     pub session_base: ZmqSessionBase,
@@ -403,12 +403,12 @@ impl DishSession {
 
         if (msg.is_join()) {
             rc = command.init_size(group_length + 5);
-            errno_assert(rc == 0);
+            // errno_assert(rc == 0);
             offset = 5;
             copy_bytes(command.data(), 0, b"\x04JOIN", 0, 5);
         } else {
             rc = command.init_size(group_length + 6);
-            errno_assert(rc == 0);
+            // errno_assert(rc == 0);
             offset = 6;
             copy_bytes(command.data(), 0, b"\x05LEAVE", 0, 6);
         }
@@ -421,7 +421,7 @@ impl DishSession {
 
         //  Close the join message
         rc = msg.close();
-        errno_assert(rc == 0);
+        // errno_assert(rc == 0);
 
         *msg = command;
 

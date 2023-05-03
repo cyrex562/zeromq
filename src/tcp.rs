@@ -251,12 +251,12 @@ int tcp_write (ZmqFileDesc s_, const data: &mut [u8], size: usize)
     //  Signalise peer failure.
     if (nbytes == -1) {
 // #if !defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
-        errno_assert (errno != EACCES && errno != EBADF && errno != EDESTADDRREQ
+        // errno_assert (errno != EACCES && errno != EBADF && errno != EDESTADDRREQ
                       && errno != EFAULT && errno != EISCONN
                       && errno != EMSGSIZE && errno != ENOMEM
                       && errno != ENOTSOCK && errno != EOPNOTSUPP);
 // #else
-        errno_assert (errno != EACCES && errno != EDESTADDRREQ
+        // errno_assert (errno != EACCES && errno != EDESTADDRREQ
                       && errno != EFAULT && errno != EISCONN
                       && errno != EMSGSIZE && errno != ENOMEM
                       && errno != ENOTSOCK && errno != EOPNOTSUPP);
@@ -303,10 +303,10 @@ int tcp_read (ZmqFileDesc s_, data: &mut [u8], size: usize)
     //  by a debugging tool can result in EINTR error.
     if (rc == -1) {
 // #if !defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
-        errno_assert (errno != EBADF && errno != EFAULT && errno != ENOMEM
+        // errno_assert (errno != EBADF && errno != EFAULT && errno != ENOMEM
                       && errno != ENOTSOCK);
 // #else
-        errno_assert (errno != EFAULT && errno != ENOMEM && errno != ENOTSOCK);
+        // errno_assert (errno != EFAULT && errno != ENOMEM && errno != ENOTSOCK);
 // #endif
         if (errno == EWOULDBLOCK || errno == EINTR)
             errno = EAGAIN;
@@ -424,7 +424,7 @@ setsockopt_error:
     wsa_assert (rc != SOCKET_ERROR);
 // #else
     rc = ::close (s);
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 // #endif
     return retired_fd;
 }

@@ -36,13 +36,13 @@
 
 template <typename T, size_t S> class fast_vector_t
 {
-// public:
+//
     explicit fast_vector_t (const nitems_: usize)
     {
         if (nitems_ > S) {
             buf = new (std::nothrow) T[nitems_];
             //  TODO since this function is called by a client, we could return errno == ENOMEM here
-            alloc_assert (buf);
+            // alloc_assert (buf);
         } else {
             buf = _static_buf;
         }
@@ -56,7 +56,7 @@ template <typename T, size_t S> class fast_vector_t
             delete[] buf;
     }
 
-  // private:
+  //
     T _static_buf[S];
     T *buf;
 
@@ -65,7 +65,7 @@ template <typename T, size_t S> class fast_vector_t
 
 template <typename T, size_t S> class resizable_fast_vector_t
 {
-// public:
+//
     resizable_fast_vector_t () : _dynamic_buf (null_mut()) {}
 
     void resize (const nitems_: usize)
@@ -75,7 +75,7 @@ template <typename T, size_t S> class resizable_fast_vector_t
         } else if (nitems_ > S) {
             _dynamic_buf = new (std::nothrow) std::vector<T> (nitems_);
             //  TODO since this function is called by a client, we could return errno == ENOMEM here
-            alloc_assert (_dynamic_buf);
+            // alloc_assert (_dynamic_buf);
             memcpy (&(*_dynamic_buf)[0], _static_buf, sizeof _static_buf);
         }
     }
@@ -90,7 +90,7 @@ template <typename T, size_t S> class resizable_fast_vector_t
 
     ~resizable_fast_vector_t () { delete _dynamic_buf; }
 
-  // private:
+  //
     T _static_buf[S];
     std::vector<T> *_dynamic_buf;
 
@@ -133,38 +133,38 @@ inline size_t valid_pollset_bytes (const fd_set & /*pollset_*/)
 //       due to alignment bytes for the latter.
 pub struct optimized_fd_set_t
 {
-// public:
+//
     explicit optimized_fd_set_t (nevents_: usize) : _fd_set (1 + nevents_) {}
 
     fd_set *get () { return reinterpret_cast<fd_set *> (&_fd_set[0]); }
 
-  // private:
+  //
     fast_vector_t<SOCKET, 1 + ZMQ_POLLITEMS_DFLT> _fd_set;
 };
 pub struct resizable_optimized_fd_set_t
 {
-// public:
+//
     void resize (nevents_: usize) { _fd_set.resize (1 + nevents_); }
 
     fd_set *get () { return reinterpret_cast<fd_set *> (&_fd_set[0]); }
 
-  // private:
+  //
     resizable_fast_vector_t<SOCKET, 1 + ZMQ_POLLITEMS_DFLT> _fd_set;
 };
 // #else
 pub struct optimized_fd_set_t
 {
-// public:
+//
     explicit optimized_fd_set_t (size_t /*nevents_*/) {}
 
     fd_set *get () { return &_fd_set; }
 
-  // private:
+  //
     fd_set _fd_set;
 };
 pub struct resizable_optimized_fd_set_t : public optimized_fd_set_t
 {
-// public:
+//
     resizable_optimized_fd_set_t () : optimized_fd_set_t (0) {}
 
     void resize (size_t /*nevents_*/) {}

@@ -42,13 +42,13 @@ use std::sync::atomic::Ordering;
 // pub struct ZmqOwn : public ZmqObject
 #[derive(Default, Debug, Clone)]
 pub struct ZmqOwn {
-    // public:
+    //
     //  Note that the owner is unspecified in the constructor.
     //  It'll be supplied later on when the object is plugged in.
-    // protected:
+    //
     //  Socket options associated with this object.
     pub options: ZmqOptions,
-    // private:
+    //
     //  Handlers for incoming commands.
     //  True if termination was already initiated. If so, we can destroy
     //  the object if there are no more child objects or pending term acks.

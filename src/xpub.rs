@@ -44,13 +44,13 @@ use crate::defines::{
     ZMQ_XPUB_VERBOSER, ZMQ_XPUB_WELCOME_MSG,
 };
 use crate::dist::ZmqDist;
-use crate::i_decoder::ZmqMessage;
 use crate::message::ZMQ_MSG_MORE;
 use crate::metadata::ZmqMetadata;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 use crate::utils::copy_bytes;
+use crate::ZmqDecoderInterface::ZmqMessage;
 
 // #include "xpub.hpp"
 // #include "pipe.hpp"
@@ -115,7 +115,7 @@ pub struct XPub {
 }
 
 impl XPub {
-    // public:
+    //
     // XPub (ZmqContext *parent_, tid: u32, sid_: i32);
     pub fn new(parent: &mut ZmqContext, options: &mut ZmqOptions, tid: u32, sid_: i32) -> Self {
         // ZmqSocketBase (parent_, tid, sid_),
@@ -256,9 +256,9 @@ impl XPub {
         }
 
         let rc = msg.close();
-        errno_assert(rc == 0);
+        // errno_assert(rc == 0);
         rc = msg.init_size(self._pending_data.front().size());
-        errno_assert(rc == 0);
+        // errno_assert(rc == 0);
         copy_bytes(
             msg.data(),
             0,
@@ -440,7 +440,7 @@ impl XPub {
 
             if (optvallen_ > 0) {
                 let rc: i32 = self._welcome_msg.init_size(optvallen_);
-                errno_assert(rc == 0);
+                // errno_assert(rc == 0);
 
                 let data = (self._welcome_msg.data_mut());
                 copy_bytes(data, 0, optval_, 0, optvallen_);
@@ -496,7 +496,7 @@ impl XPub {
         self._dist.pipe_terminated(pipe);
     }
 
-    // private:
+    //
     //  Function to be applied to the trie to send all the subscriptions
     //  upstream.
     // static void send_unsubscription (mtrie_t::prefix_t data,

@@ -34,7 +34,7 @@
 // #include "err.hpp"
 pub struct reaper_t  : public ZmqObject, public i_poll_events
 {
-// public:
+//
     reaper_t (ctx: &mut ZmqContext, tid: u32);
     ~reaper_t ();
 
@@ -48,7 +48,7 @@ pub struct reaper_t  : public ZmqObject, public i_poll_events
     void out_event ();
     void timer_event (id_: i32);
 
-  // private:
+  //
     //  Command handlers.
     void process_stop ();
     void process_reap (ZmqSocketBase *socket);
@@ -88,7 +88,7 @@ reaper_t::reaper_t (class ctx: &mut ZmqContext, tid: u32) :
         return;
 
     poller = new (std::nothrow) Poller (*ctx);
-    alloc_assert (poller);
+    // alloc_assert (poller);
 
     if (mailbox.get_fd () != retired_fd) {
         mailbox_handle = poller.add_fd (mailbox.get_fd (), this);
@@ -112,7 +112,7 @@ mailbox_t *reaper_t::get_mailbox ()
 
 void reaper_t::start ()
 {
-    zmq_assert (mailbox.valid ());
+    // zmq_assert (mailbox.valid ());
 
     //  Start the thread.
     poller.start ("Reaper");
@@ -129,7 +129,7 @@ void reaper_t::in_event ()
 {
     while (true) {
 // #ifdef HAVE_FORK
-        if (unlikely (_pid != getpid ())) {
+        if ( (_pid != getpid ())) {
             //printf("reaper_t::in_event return in child process %d\n", getpid());
             return;
         }
@@ -142,7 +142,7 @@ void reaper_t::in_event ()
             continue;
         if (rc != 0 && errno == EAGAIN)
             break;
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
 
         //  Process the command.
         cmd.destination.process_command (cmd);
@@ -151,12 +151,12 @@ void reaper_t::in_event ()
 
 void reaper_t::out_event ()
 {
-    zmq_assert (false);
+    // zmq_assert (false);
 }
 
 void reaper_t::timer_event
 {
-    zmq_assert (false);
+    // zmq_assert (false);
 }
 
 void reaper_t::process_stop ()

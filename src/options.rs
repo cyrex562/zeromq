@@ -856,8 +856,8 @@ impl ZmqOptions {
             ZMQ_GSSAPI_PRINCIPAL_NAMETYPE => {
                 if is_int
                     && (value == ZMQ_GSSAPI_NT_HOSTBASED
-                        || value == ZMQ_GSSAPI_NT_USER_NAME
-                        || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL)
+                    || value == ZMQ_GSSAPI_NT_USER_NAME
+                    || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL)
                 {
                     self.gss_principal_nt = value;
                     return Ok(());
@@ -867,8 +867,8 @@ impl ZmqOptions {
             ZMQ_GSSAPI_SERVICE_PRINCIPAL_NAMETYPE => {
                 if is_int
                     && (value == ZMQ_GSSAPI_NT_HOSTBASED
-                        || value == ZMQ_GSSAPI_NT_USER_NAME
-                        || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL)
+                    || value == ZMQ_GSSAPI_NT_USER_NAME
+                    || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL)
                 {
                     self.gss_service_principal_nt = value;
                     return Ok(());
@@ -1132,7 +1132,7 @@ impl ZmqOptions {
         //  when it sent malformed arguments to a socket option. Use ./configure
         //  --with-militant to enable this checking.
         if self.malformed {
-            zmq_assert(false);
+            // zmq_assert(false);
         }
         // #endif
         // errno = EINVAL;
@@ -1665,10 +1665,10 @@ pub fn get_effective_conflate_option(options: &ZmqOptions) -> bool {
     // conflate is only effective for some socket types
     return options.conflate
         && (options.type_ == ZMQ_DEALER
-            || options.type_ == ZMQ_PULL
-            || options.type_ == ZMQ_PUSH
-            || options.type_ == ZMQ_PUB
-            || options.type_ == ZMQ_SUB);
+        || options.type_ == ZMQ_PULL
+        || options.type_ == ZMQ_PUSH
+        || options.type_ == ZMQ_PUB
+        || options.type_ == ZMQ_SUB);
 }
 
 // int do_getsockopt (opt_val: *mut c_void,

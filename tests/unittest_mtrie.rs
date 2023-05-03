@@ -323,7 +323,7 @@ void test_add_multiple_reverse ()
     generic_mtrie_t<int> mtrie;
     for (int i = 2; i >= 0; --i) {
         add_indexed_expect_unique (mtrie, pipes, names,
-                                   static_cast<size_t> (i));
+                                    (i));
     }
     TEST_ASSERT_EQUAL_INT (3, mtrie.num_prefixes ());
 

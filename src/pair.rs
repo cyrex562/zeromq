@@ -35,7 +35,7 @@
 // #include "msg.hpp"
 pub struct pair_t  : public ZmqSocketBase
 {
-// public:
+//
     pair_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~pair_t ();
 
@@ -51,7 +51,7 @@ pub struct pair_t  : public ZmqSocketBase
     void xwrite_activated (pipe: &mut ZmqPipe);
     void xpipe_terminated (pipe: &mut ZmqPipe);
 
-  // private:
+  //
     ZmqPipe *pipe;
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (pair_t)
@@ -65,7 +65,7 @@ pair_t::pair_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
 
 pair_t::~pair_t ()
 {
-    zmq_assert (!pipe);
+    // zmq_assert (!pipe);
 }
 
 void pair_t::xattach_pipe (pipe: &mut ZmqPipe,
@@ -75,7 +75,7 @@ void pair_t::xattach_pipe (pipe: &mut ZmqPipe,
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
 
-    zmq_assert (pipe != null_mut());
+    // zmq_assert (pipe != null_mut());
 
     //  ZMQ_PAIR socket can only be connected to a single peer.
     //  The socket rejects any further connection requests.
@@ -116,7 +116,7 @@ int pair_t::xsend (msg: &mut ZmqMessage)
 
     //  Detach the original message from the data buffer.
     let rc: i32 = msg.init ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     return 0;
 }
@@ -125,12 +125,12 @@ int pair_t::xrecv (msg: &mut ZmqMessage)
 {
     //  Deallocate old content of the message.
     int rc = msg.close ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     if (!pipe || !pipe.read (msg)) {
         //  Initialise the output parameter to be a 0-byte message.
         rc = msg.init ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
 
         errno = EAGAIN;
         return -1;

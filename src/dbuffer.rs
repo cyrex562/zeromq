@@ -57,7 +57,7 @@
 
 // template <> class dbuffer_t<ZmqMessage>
 // {
-// // public:
+// //
 //     dbuffer_t () : _back (&_storage[0]), _front (&_storage[1]), _has_msg (false)
 //     {
 //         _back.init ();
@@ -118,7 +118,7 @@
 //         return (*fn_) (*_front);
 //     }
 
-//   // private:
+//   //
 //     ZmqMessage _storage[2];
 //     _back: &mut ZmqMessage *_front;
 

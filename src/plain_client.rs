@@ -40,7 +40,7 @@
 // #include "plain_common.hpp"
 pub struct plain_client_t  : public ZmqMechanismBase
 {
-// public:
+//
     plain_client_t (ZmqSessionBase *session_, options: &ZmqOptions);
     ~plain_client_t ();
 
@@ -49,7 +49,7 @@ pub struct plain_client_t  : public ZmqMechanismBase
     int process_handshake_command (msg: &mut ZmqMessage);
     status_t status () const;
 
-  // private:
+  //
     enum state_t
     {
         sending_hello,
@@ -125,9 +125,9 @@ int plain_client_t::process_handshake_command (msg: &mut ZmqMessage)
 
     if (rc == 0) {
         rc = msg.close ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         rc = msg.init ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
     }
 
     return rc;
@@ -148,17 +148,17 @@ ZmqMechanism::status_t plain_client_t::status () const
 void plain_client_t::produce_hello (msg: &mut ZmqMessage) const
 {
     const std::string username = options.plain_username;
-    zmq_assert (username.length () <= UCHAR_MAX);
+    // zmq_assert (username.length () <= UCHAR_MAX);
 
     const std::string password = options.plain_password;
-    zmq_assert (password.length () <= UCHAR_MAX);
+    // zmq_assert (password.length () <= UCHAR_MAX);
 
     const size_t command_size = hello_prefix_len + brief_len_size
                                 + username.length () + brief_len_size
                                 + password.length ();
 
     let rc: i32 = msg.init_size (command_size);
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     unsigned char *ptr =  (msg.data ());
     memcpy (ptr, hello_prefix, hello_prefix_len);
@@ -238,7 +238,7 @@ int plain_client_t::process_error (const cmd_data_: &mut [u8],
         return -1;
     }
     const size_t error_reason_len =
-      static_cast<size_t> (cmd_data_[error_prefix_len]);
+       (cmd_data_[error_prefix_len]);
     if (error_reason_len > data_size_ - start_of_error_reason) {
         session.get_socket ()->event_handshake_failed_protocol (
           session.get_endpoint (),

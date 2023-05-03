@@ -52,7 +52,7 @@
 // #endif
 pub struct socks_connecter_t  : public stream_connecter_base_t
 {
-// public:
+//
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
     socks_connecter_t (ZmqThread *io_thread_,
@@ -68,7 +68,7 @@ pub struct socks_connecter_t  : public stream_connecter_base_t
     void set_auth_method_none ();
 
 
-  // private:
+  //
     enum
     {
         unplugged,
@@ -107,7 +107,7 @@ pub struct socks_connecter_t  : public stream_connecter_base_t
 
     int connect_to_proxy ();
 
-    void error ();
+    void // error ();
 
     //  Open TCP connecting socket. Returns -1 in case of error,
     //  0 if connect was successful immediately. Returns -1 with
@@ -152,7 +152,7 @@ pub struct ZmqSessionBase *session_,
     _auth_method (socks_no_auth_required),
     _status (unplugged)
 {
-    zmq_assert (_addr.protocol == protocol_name::tcp);
+    // zmq_assert (_addr.protocol == protocol_name::tcp);
     _proxy_addr.to_string (_endpoint);
 }
 
@@ -179,17 +179,17 @@ void socks_connecter_t::set_auth_method_basic (
 void socks_connecter_t::in_event ()
 {
     int expected_status = -1;
-    zmq_assert (_status != unplugged);
+    // zmq_assert (_status != unplugged);
 
     if (_status == waiting_for_choice) {
         int rc = _choice_decoder.input (_s);
         if (rc == 0 || rc == -1)
-            error ();
+            // error ();
         else if (_choice_decoder.message_ready ()) {
             const socks_choice_t choice = _choice_decoder.decode ();
             rc = process_server_response (choice);
             if (rc == -1)
-                error ();
+                // error ();
             else {
                 if (choice.method == socks_basic_auth)
                     expected_status = sending_basic_auth_request;
@@ -200,13 +200,13 @@ void socks_connecter_t::in_event ()
     } else if (_status == waiting_for_auth_response) {
         int rc = _auth_response_decoder.input (_s);
         if (rc == 0 || rc == -1)
-            error ();
+            // error ();
         else if (_auth_response_decoder.message_ready ()) {
             const socks_auth_response_t auth_response =
               _auth_response_decoder.decode ();
             rc = process_server_response (auth_response);
             if (rc == -1)
-                error ();
+                // error ();
             else {
                 expected_status = sending_request;
             }
@@ -214,12 +214,12 @@ void socks_connecter_t::in_event ()
     } else if (_status == waiting_for_response) {
         int rc = _response_decoder.input (_s);
         if (rc == 0 || rc == -1)
-            error ();
+            // error ();
         else if (_response_decoder.message_ready ()) {
             const socks_response_t response = _response_decoder.decode ();
             rc = process_server_response (response);
             if (rc == -1)
-                error ();
+                // error ();
             else {
                 rm_handle ();
                 create_engine (
@@ -229,7 +229,7 @@ void socks_connecter_t::in_event ()
             }
         }
     } else
-        error ();
+        // error ();
 
     if (expected_status == sending_basic_auth_request) {
         _basic_auth_request_encoder.encode (
@@ -241,7 +241,7 @@ void socks_connecter_t::in_event ()
         hostname: String;
         uint16_t port = 0;
         if (parse_address (_addr.address, hostname, port) == -1)
-            error ();
+            // error ();
         else {
             _request_encoder.encode (socks_request_t (1, hostname, port));
             reset_pollin (_handle);
@@ -253,43 +253,43 @@ void socks_connecter_t::in_event ()
 
 void socks_connecter_t::out_event ()
 {
-    zmq_assert (
+    // zmq_assert (
       _status == waiting_for_proxy_connection || _status == sending_greeting
       || _status == sending_basic_auth_request || _status == sending_request);
 
     if (_status == waiting_for_proxy_connection) {
         let rc: i32 = static_cast<int> (check_proxy_connection ());
         if (rc == -1)
-            error ();
+            // error ();
         else {
             _greeting_encoder.encode (socks_greeting_t (_auth_method));
             _status = sending_greeting;
         }
     } else if (_status == sending_greeting) {
-        zmq_assert (_greeting_encoder.has_pending_data ());
+        // zmq_assert (_greeting_encoder.has_pending_data ());
         let rc: i32 = _greeting_encoder.output (_s);
         if (rc == -1 || rc == 0)
-            error ();
+            // error ();
         else if (!_greeting_encoder.has_pending_data ()) {
             reset_pollout (_handle);
             set_pollin (_handle);
             _status = waiting_for_choice;
         }
     } else if (_status == sending_basic_auth_request) {
-        zmq_assert (_basic_auth_request_encoder.has_pending_data ());
+        // zmq_assert (_basic_auth_request_encoder.has_pending_data ());
         let rc: i32 = _basic_auth_request_encoder.output (_s);
         if (rc == -1 || rc == 0)
-            error ();
+            // error ();
         else if (!_basic_auth_request_encoder.has_pending_data ()) {
             reset_pollout (_handle);
             set_pollin (_handle);
             _status = waiting_for_auth_response;
         }
     } else {
-        zmq_assert (_request_encoder.has_pending_data ());
+        // zmq_assert (_request_encoder.has_pending_data ());
         let rc: i32 = _request_encoder.output (_s);
         if (rc == -1 || rc == 0)
-            error ();
+            // error ();
         else if (!_request_encoder.has_pending_data ()) {
             reset_pollout (_handle);
             set_pollin (_handle);
@@ -300,7 +300,7 @@ void socks_connecter_t::out_event ()
 
 void socks_connecter_t::start_connecting ()
 {
-    zmq_assert (_status == unplugged);
+    // zmq_assert (_status == unplugged);
 
     //  Open the connecting socket.
     let rc: i32 = connect_to_proxy ();
@@ -348,7 +348,7 @@ int socks_connecter_t::process_server_response (
     return response_.response_code == 0 ? 0 : -1;
 }
 
-void socks_connecter_t::error ()
+void socks_connecter_t::// error ()
 {
     rm_fd (_handle);
     close ();
@@ -364,7 +364,7 @@ void socks_connecter_t::error ()
 
 int socks_connecter_t::connect_to_proxy ()
 {
-    zmq_assert (_s == retired_fd);
+    // zmq_assert (_s == retired_fd);
 
     //  Resolve the address
     if (_proxy_addr.resolved.tcp_addr != null_mut()) {
@@ -372,7 +372,7 @@ int socks_connecter_t::connect_to_proxy ()
     }
 
     _proxy_addr.resolved.tcp_addr = new (std::nothrow) TcpAddress ();
-    alloc_assert (_proxy_addr.resolved.tcp_addr);
+    // alloc_assert (_proxy_addr.resolved.tcp_addr);
     //  Automatic fallback to ipv4 is disabled here since this was the existing
     //  behaviour, however I don't see a real reason for this. Maybe this can
     //  be changed to true (and then the parameter can be removed entirely).
@@ -383,7 +383,7 @@ int socks_connecter_t::connect_to_proxy ()
         LIBZMQ_DELETE (_proxy_addr.resolved.tcp_addr);
         return -1;
     }
-    zmq_assert (_proxy_addr.resolved.tcp_addr != null_mut());
+    // zmq_assert (_proxy_addr.resolved.tcp_addr != null_mut());
 
     // Set the socket to non-blocking mode so that we get async connect().
     unblock_socket (_s);
@@ -449,7 +449,7 @@ ZmqFileDesc socks_connecter_t::check_proxy_connection () const
     //  Assert if the error was caused by 0MQ bug.
     //  Networking problems are OK. No need to assert.
 // #ifdef ZMQ_HAVE_WINDOWS
-    zmq_assert (rc == 0);
+    // zmq_assert (rc == 0);
     if (err != 0) {
         wsa_assert (err == WSAECONNREFUSED || err == WSAETIMEDOUT
                     || err == WSAECONNABORTED || err == WSAEHOSTUNREACH
@@ -465,7 +465,7 @@ ZmqFileDesc socks_connecter_t::check_proxy_connection () const
         err = errno;
     if (err != 0) {
         errno = err;
-        errno_assert (errno == ECONNREFUSED || errno == ECONNRESET
+        // errno_assert (errno == ECONNREFUSED || errno == ECONNRESET
                       || errno == ETIMEDOUT || errno == EHOSTUNREACH
                       || errno == ENETUNREACH || errno == ENETDOWN
                       || errno == EINVAL);

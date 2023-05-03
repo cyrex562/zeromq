@@ -88,7 +88,7 @@ int rep_t::xrecv (msg: &mut ZmqMessage)
 
                 //  Push it to the reply pipe.
                 rc = router_t::xsend (msg);
-                errno_assert (rc == 0);
+                // errno_assert (rc == 0);
 
                 if (bottom)
                     break;
@@ -96,7 +96,7 @@ int rep_t::xrecv (msg: &mut ZmqMessage)
                 //  If the traceback stack is malformed, discard anything
                 //  already sent to pipe (we're at end of invalid message).
                 rc = router_t::rollback ();
-                errno_assert (rc == 0);
+                // errno_assert (rc == 0);
             }
         }
         _request_begins = false;
@@ -133,7 +133,7 @@ bool rep_t::xhas_out ()
 }
 pub struct rep_t  : public router_t
 {
-// public:
+//
     rep_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~rep_t ();
 
@@ -143,7 +143,7 @@ pub struct rep_t  : public router_t
     bool xhas_in ();
     bool xhas_out ();
 
-  // private:
+  //
     //  If true, we are in process of sending the reply. If false we are
     //  in process of receiving a request.
     _sending_reply: bool

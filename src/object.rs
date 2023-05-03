@@ -172,12 +172,12 @@ pub trait ZmqObject {
     }
 
     // void send_attach (ZmqSessionBase *destination_,
-    //                   i_engine *engine_,
+    //                   ZmqIEngine *engine_,
     //                   bool inc_seqnum_ = true);
     fn send_attach(
         &mut self,
         destination: &mut ZmqSessionbase,
-        engine: &mut i_engine,
+        engine: &mut ZmqIEngine,
         inc_seqnum: bool,
     ) {
         if (inc_seqnum_) {
@@ -368,8 +368,8 @@ pub trait ZmqObject {
         unimplemented!()
     }
 
-    // virtual void process_attach (i_engine *engine_);
-    fn process_attached(&mut self, engine: &mut i_engine) {
+    // virtual void process_attach (ZmqIEngine *engine_);
+    fn process_attached(&mut self, engine: &mut ZmqIEngine) {
         unimplemented!()
     }
 
@@ -631,7 +631,7 @@ pub trait ZmqObject {
 // }
 
 // void object_t::send_attach (ZmqSessionBase *destination,
-//                                  i_engine *engine_,
+//                                  ZmqIEngine *engine_,
 //                                  inc_seqnum_: bool)
 // {
 //     if (inc_seqnum_)
@@ -834,7 +834,7 @@ pub trait ZmqObject {
 //     zmq_assert (false);
 // }
 
-// void object_t::process_attach (i_engine *)
+// void object_t::process_attach (ZmqIEngine *)
 // {
 //     zmq_assert (false);
 // }

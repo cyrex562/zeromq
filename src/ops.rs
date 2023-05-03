@@ -65,7 +65,7 @@
 // #endif
 // #endif
 
-use std::intrinsics::unlikely;
+use std::intrinsics::// zmq_assert;
 use std::mem;
 use std::ptr::null_mut;
 use libc::{atoi, c_char, c_void, EFAULT, EINTR, EINVAL, ENOMEM, ENOTSOCK, ENOTSUP, INT_MAX};
@@ -412,7 +412,7 @@ pub fn zmq_disconnect (s_: &mut [u8], addr_: &str) -> i32
 pub fn s_sendmsg(s_: *mut ZmqSocketBase, msg: *mut ZmqMessage, flags: i32) -> i32 {
     let mut sz: usize = zmq_msg_size(msg);
     let rc = s_.send(msg, flags);
-    if unlikely(rc < 0) {
+    if // zmq_assert(rc < 0) {
         return -1;
     }
 
@@ -438,15 +438,15 @@ pub fn zmq_send (s_: &mut [u8], buf: &mut [u8], len_: usize, flags: i32) -> i32
     }
     let mut msg: ZmqMessage = ZmqMessage::default();
     let mut rc = zmq_msg_init_buffer (&mut msg, buf, len_);
-    if unlikely (rc < 0) {
+    if // zmq_assert (rc < 0) {
         return -1;
     }
 
     rc = s_sendmsg (s, &mut msg, flags);
-    if unlikely (rc < 0) {
+    if // zmq_assert (rc < 0) {
         let err = errno;
         let rc2 = zmq_msg_close (&msg);
-        errno_assert (rc2 == 0);
+        // errno_assert (rc2 == 0);
         errno = err;
         return -1;
     }
@@ -467,10 +467,10 @@ pub fn zmq_send_const(s_: &mut [u8], buf: &mut [u8], len_: usize, flags: i32) ->
     }
 
     rc = s_sendmsg(s, &mut msg, flags);
-    if unlikely(rc < 0) {
+    if // zmq_assert(rc < 0) {
         let err = errno;
         let rc2 = zmq_msg_close(&msg);
-        errno_assert(rc2 == 0);
+        // errno_assert(rc2 == 0);
         errno = err;
         return -1;
     }
@@ -493,7 +493,7 @@ pub fn zmq_sendiov (s_: &mut [u8], a_: *mut iovec, count: usize, mut flags: i32)
     if !s {
         return -1;
     }
-    if unlikely (count <= 0 || a_.is_null()) {
+    if // zmq_assert (count <= 0 || a_.is_null()) {
         errno = EINVAL;
         return -1;
     }
@@ -514,10 +514,10 @@ pub fn zmq_sendiov (s_: &mut [u8], a_: *mut iovec, count: usize, mut flags: i32)
             flags = flags & !ZMQ_SNDMORE;
         }
         rc = s_sendmsg (s, &mut msg, flags);
-        if unlikely (rc < 0) {
+        if // zmq_assert (rc < 0) {
             let err = errno;
             let rc2 = zmq_msg_close (&msg);
-            errno_assert (rc2 == 0);
+            // errno_assert (rc2 == 0);
             errno = err;
             rc = -1;
             break;
@@ -531,7 +531,7 @@ pub fn zmq_sendiov (s_: &mut [u8], a_: *mut iovec, count: usize, mut flags: i32)
 pub fn s_recvmsg (s_: *mut ZmqSocketBase, msg: *mut ZmqMessage, flags: i32) -> i32
 {
     let rc = s_.recv (msg as *mut ZmqMessage, flags);
-    if unlikely (rc < 0) {
+    if // zmq_assert (rc < 0) {
         return -1;
     }
 
@@ -555,13 +555,13 @@ pub fn zmq_recv (s_: &mut [u8], buf: &mut [u8], len_: usize, flags: i32) -> i32
     }
     let mut msg: ZmqMessage = ZmqMessage::default();
     let mut rc = zmq_msg_init (&mut msg);
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     let nbytes = s_recvmsg (s, &mut msg, flags);
-    if unlikely (nbytes < 0) {
+    if // zmq_assert (nbytes < 0) {
         let err = errno;
         rc = zmq_msg_close (&mut msg);
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         errno = err;
         return -1;
     }
@@ -575,7 +575,7 @@ pub fn zmq_recv (s_: &mut [u8], buf: &mut [u8], len_: usize, flags: i32) -> i32
         unsafe { libc::memcpy(buf, zmq_msg_data(&msg), to_copy as usize); }
     }
     rc = zmq_msg_close (&msg);
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     return nbytes;
 }
@@ -602,7 +602,7 @@ pub fn zmq_recviov (s_: &mut [u8], a_: *mut iovec, count: *mut usize, flags: i32
     if !s {
         return -1;
     }
-    if unlikely (!count || *count <= 0 || a_.is_null()) {
+    if // zmq_assert (!count || *count <= 0 || a_.is_null()) {
         errno = EINVAL;
         return -1;
     }
@@ -618,13 +618,13 @@ pub fn zmq_recviov (s_: &mut [u8], a_: *mut iovec, count: *mut usize, flags: i32
     {
         let mut msg = ZmqMessage::default();
         let mut rc = zmq_msg_init (&mut msg);
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
 
         let nbytes = s_recvmsg (s, &mut msg, flags);
-        if unlikely (nbytes < 0) {
+        if // zmq_assert (nbytes < 0) {
             let err = errno;
             rc = zmq_msg_close (&mut msg);
-            errno_assert (rc == 0);
+            // errno_assert (rc == 0);
             errno = err;
             nread = -1;
             break;
@@ -632,7 +632,7 @@ pub fn zmq_recviov (s_: &mut [u8], a_: *mut iovec, count: *mut usize, flags: i32
 
         a_[i].iov_len = zmq_msg_size (&msg);
         unsafe { a_[i].iov_base = libc::malloc(a_[i].iov_len); }
-        if unlikely (!a_[i].iov_base) {
+        if // zmq_assert (!a_[i].iov_base) {
             errno = ENOMEM;
             return -1;
         }
@@ -644,7 +644,7 @@ pub fn zmq_recviov (s_: &mut [u8], a_: *mut iovec, count: *mut usize, flags: i32
         let p_msg = &mut msg;
         recvmore = p_msg.flags() & ZMQ_MSG_MORE;
         rc = zmq_msg_close (&msg);
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         *count += 1;
         nread += 1;
     }
@@ -828,7 +828,7 @@ static int zmq_poller_poll (ZmqPollItem *items_, nitems_: i32, long timeout)
     ZmqPollerEvent *events;
     socket_poller_t poller;
     events = new (std::nothrow) ZmqPollerEvent[nitems_];
-    alloc_assert (events);
+    // alloc_assert (events);
 
     bool repeat_items = false;
     //  Register sockets with poller
@@ -939,11 +939,11 @@ int zmq_poll (ZmqPollItem *items_, nitems_: i32, long timeout)
     }
 // #endif // ZMQ_HAVE_POLLER
 // #if defined ZMQ_POLL_BASED_ON_POLL || defined ZMQ_POLL_BASED_ON_SELECT
-    if (unlikely (nitems_ < 0)) {
+    if ( (nitems_ < 0)) {
         errno = EINVAL;
         return -1;
     }
-    if (unlikely (nitems_ == 0)) {
+    if ( (nitems_ == 0)) {
         if (timeout == 0)
             return 0;
 // #if defined ZMQ_HAVE_WINDOWS
@@ -996,7 +996,7 @@ int zmq_poll (ZmqPollItem *items_, nitems_: i32, long timeout)
     //  Ensure we do not attempt to select () on more than FD_SETSIZE
     //  file descriptors.
     //  TODO since this function is called by a client, we could return errno EINVAL/ENOMEM/... here
-    zmq_assert (nitems_ <= FD_SETSIZE);
+    // zmq_assert (nitems_ <= FD_SETSIZE);
 
     optimized_fd_set_t pollset_in (nitems_);
     FD_ZERO (pollset_in.get ());
@@ -1059,7 +1059,7 @@ int zmq_poll (ZmqPollItem *items_, nitems_: i32, long timeout)
             if (rc == -1 && errno == EINTR) {
                 return -1;
             }
-            errno_assert (rc >= 0);
+            // errno_assert (rc >= 0);
         }
         //  Check for the events.
         for (int i = 0; i != nitems_; i+= 1) {
@@ -1127,7 +1127,7 @@ int zmq_poll (ZmqPollItem *items_, nitems_: i32, long timeout)
 // #if defined ZMQ_HAVE_WINDOWS
             int rc =
               select (0, inset.get (), outset.get (), errset.get (), ptimeout);
-            if (unlikely (rc == SOCKET_ERROR)) {
+            if ( (rc == SOCKET_ERROR)) {
                 errno = wsa_error_to_errno (WSAGetLastError ());
                 wsa_assert (errno == ENOTSOCK);
                 return -1;
@@ -1135,8 +1135,8 @@ int zmq_poll (ZmqPollItem *items_, nitems_: i32, long timeout)
 // #else
             int rc = select (maxfd + 1, inset.get (), outset.get (),
                              errset.get (), ptimeout);
-            if (unlikely (rc == -1)) {
-                errno_assert (errno == EINTR || errno == EBADF);
+            if ( (rc == -1)) {
+                // errno_assert (errno == EINTR || errno == EBADF);
                 return -1;
             }
 // #endif
@@ -1226,11 +1226,11 @@ int zmq_poll (ZmqPollItem *items_, nitems_: i32, long timeout)
 // return values of 0 or -1 should be returned from zmq_poll; return value 1 means items passed checks
 int zmq_poll_check_items_ (ZmqPollItem *items_, nitems_: i32, long timeout)
 {
-    if (unlikely (nitems_ < 0)) {
+    if ( (nitems_ < 0)) {
         errno = EINVAL;
         return -1;
     }
-    if (unlikely (nitems_ == 0)) {
+    if ( (nitems_ == 0)) {
         if (timeout == 0)
             return 0;
 // #if defined ZMQ_HAVE_WINDOWS
@@ -1283,7 +1283,7 @@ zmq_poll_build_select_fds_ (ZmqPollItem *items_, nitems_: i32, int &rc)
     //  Ensure we do not attempt to select () on more than FD_SETSIZE
     //  file descriptors.
     //  TODO since this function is called by a client, we could return errno EINVAL/ENOMEM/... here
-    zmq_assert (nitems_ <= FD_SETSIZE);
+    // zmq_assert (nitems_ <= FD_SETSIZE);
 
     zmq_poll_select_fds_t_ fds (nitems_);
 
@@ -1495,8 +1495,8 @@ int zmq_ppoll (ZmqPollItem *items_,
             int rc =
               pselect (fds.maxfd + 1, fds.inset.get (), fds.outset.get (),
                        fds.errset.get (), ptimeout, sigmask_);
-            if (unlikely (rc == -1)) {
-                errno_assert (errno == EINTR || errno == EBADF);
+            if ( (rc == -1)) {
+                // errno_assert (errno == EINTR || errno == EBADF);
                 return -1;
             }
             break;
@@ -1736,7 +1736,7 @@ int zmq_socket_get_peer_state (s_: &mut [u8],
 void *zmq_timers_new (void)
 {
     timers_t *timers = new (std::nothrow) timers_t;
-    alloc_assert (timers);
+    // alloc_assert (timers);
     return timers;
 }
 
