@@ -76,10 +76,11 @@ use crate::fd::ZmqFileDesc;
 use crate::io_object::io_object_t;
 use crate::io_thread::ZmqThread;
 use crate::mechanism::ZmqMechanismStatus::{error, ready};
-use crate::message::{ZMQ_MSG_COMMAND, ZmqMessage};
+use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_CREDENTIAL, ZmqMessage};
 use crate::metadata::ZmqMetadata;
 use crate::options::ZmqOptions;
 use crate::socket_base::ZmqSocketBase;
+use crate::utils::copy_bytes;
 use crate::zmtp_engine::{ZmqMechanism, ZmqSessionBase};
 
 
@@ -782,7 +783,28 @@ impl ZmqStreamEngineBase {
         &mut self._socket
     }
 
+    pub fn write_credential (&mut self, msg: &mut ZmqMessage) -> i32
+    {
+        // zmq_assert (_mechanism != null_mut());
+        // zmq_assert (_session != null_mut());
 
+        let credential = self._mechanism.get_user_id ();
+        if (credential.size () > 0) {
+            let mut msg = ZmqMessage::default();
+            int rc = msg.init_size (credential.size ());
+            // zmq_assert (rc == 0);
+            copy_bytes(msg.data_mut(), 0, credential.data (), 0, credential.size ());
+            msg.set_flags (ZMQ_MSG_CREDENTIAL);
+            rc = self._session.push_msg (&msg);
+            if (rc == -1) {
+                rc = msg.close ();
+                // errno_assert (rc == 0);
+                return -1;
+            }
+        }
+        self._process_msg = &ZmqStreamEngineBase::decode_and_push;
+        return decode_and_push (msg);
+    }
 
 
 }
@@ -895,28 +917,7 @@ pub fn get_peer_address (s_: ZmqFileDesc) -> String
 
 
 
-int ZmqStreamEngineBase::write_credential (msg: &mut ZmqMessage)
-{
-    // zmq_assert (_mechanism != null_mut());
-    // zmq_assert (_session != null_mut());
 
-    const Blob &credential = _mechanism.get_user_id ();
-    if (credential.size () > 0) {
-let mut msg = ZmqMessage::default();
-        int rc = msg.init_size (credential.size ());
-        // zmq_assert (rc == 0);
-        memcpy (msg.data (), credential.data (), credential.size ());
-        msg.set_flags (ZMQ_MSG_CREDENTIAL);
-        rc = _session.push_msg (&msg);
-        if (rc == -1) {
-            rc = msg.close ();
-            // errno_assert (rc == 0);
-            return -1;
-        }
-    }
-    _process_msg = &ZmqStreamEngineBase::decode_and_push;
-    return decode_and_push (msg);
-}
 
 int ZmqStreamEngineBase::pull_and_encode (msg: &mut ZmqMessage)
 {
