@@ -15,7 +15,7 @@
 
 
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
-pub struct norm_engine_t  : public io_object_t, public ZmqIEngine
+pub struct norm_engine_t  : public ZmqIoObject, public ZmqEngineInterface
 {
 //
     norm_engine_t (ZmqThread *parent_, options: &ZmqOptions);
@@ -202,7 +202,7 @@ DWORD WINAPI normWrapperThread (LPVOID lpParam);
 
 norm_engine_t::norm_engine_t (ZmqThread *parent_,
                                    options: &ZmqOptions) :
-    io_object_t (parent_),
+    ZmqIoObject (parent_),
     zmq_session (null_mut()),
     options (options_),
     norm_instance (NORM_INSTANCE_INVALID),
@@ -545,7 +545,7 @@ void norm_engine_t::in_event ()
     // This means a NormEvent is pending, so call NormGetNextEvent() and handle
     NormEvent event;
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
-    int rc = recv (wrapper_read_fd, reinterpret_cast<char *> (&event),
+    int rc = recv (wrapper_read_fd,  (&event),
                    mem::size_of::<event>(), 0);
     // errno_assert (rc == mem::size_of::<event>());
 // #else
@@ -627,7 +627,7 @@ void norm_engine_t::recv_data (NormObjectHandle object)
           (NormRxStreamState *) NormObjectGetUserData (object);
         if (null_mut() == rxState) {
             // This is a new stream, so create rxState with zmq decoder, etc
-            rxState = new (std::nothrow)
+            rxState =
               NormRxStreamState (object, options.maxmsgsize, options.zero_copy,
                                  options.in_batch_size);
             // errno_assert (rxState);
@@ -810,7 +810,7 @@ bool norm_engine_t::NormRxStreamState::Init ()
     if (null_mut() != zmq_decoder)
         delete zmq_decoder;
     zmq_decoder =
-      new (std::nothrow) v2_decoder_t (in_batch_size, max_msg_size, zero_copy);
+       v2_decoder_t (in_batch_size, max_msg_size, zero_copy);
     // alloc_assert (zmq_decoder);
     if (null_mut() != zmq_decoder) {
         buffer_count = 0;
@@ -967,7 +967,7 @@ DWORD WINAPI normWrapperThread (LPVOID lpParam)
             }
             rc =
               send (norm_wrapper_thread_args.wrapper_write_fd,
-                    reinterpret_cast<char *> (&message), mem::size_of::<message>(), 0);
+                     (&message), mem::size_of::<message>(), 0);
             // errno_assert (rc != -1);
             // Check if message
         } else if (waitRc == WAIT_OBJECT_0 + 1) {

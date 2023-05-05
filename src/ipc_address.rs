@@ -97,7 +97,7 @@ int IpcAddress::resolve (path_: &str)
         *address.sun_path = 0;
 
     _addrlen =
-      static_cast<socklen_t> (offsetof (sockaddr_un, sun_path) + path_len);
+       (offsetof (sockaddr_un, sun_path) + path_len);
     return 0;
 }
 

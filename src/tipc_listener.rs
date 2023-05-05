@@ -97,7 +97,7 @@ void tipc_listener_t::in_event ()
     //  If connection was reset by the peer in the meantime, just ignore it.
     //  TODO: Handle specific errors like ENFILE/EMFILE etc.
     if (fd == retired_fd) {
-        _socket.event_accept_failed (
+        self._socket.event_accept_failed (
           make_unconnected_bind_endpoint_pair (_endpoint), zmq_errno ());
         return;
     }
@@ -163,7 +163,7 @@ int tipc_listener_t::set_local_address (addr_: &str)
     if (rc != 0)
         goto error;
 
-    _socket.event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
+    self._socket.event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
                               _s);
     return 0;
 

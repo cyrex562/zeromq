@@ -51,7 +51,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
     TEST_ASSERT_SUCCESS_ERRNO (chdir ("/tmp"));
 
     setup_test_context ();
-    std::string my_endpoint (reinterpret_cast<const char *> (data), size);
+    std::string my_endpoint ( (data), size);
     void *socket = test_context_socket (ZMQ_PUB);
     zmq_bind (socket, my_endpoint.c_str ());
 

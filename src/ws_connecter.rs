@@ -214,7 +214,7 @@ void ws_connecter_t::start_connecting ()
     else if (rc == -1 && errno == EINPROGRESS) {
         _handle = add_fd (_s);
         set_pollout (_handle);
-        _socket.event_connect_delayed (
+        self._socket.event_connect_delayed (
           make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
 
         //  add userspace connect timeout
@@ -287,7 +287,7 @@ ZmqFileDesc ws_connecter_t::connect ()
 // #endif
 
     let rc: i32 = getsockopt (_s, SOL_SOCKET, SO_ERROR,
-                               reinterpret_cast<char *> (&err), &len);
+                                (&err), &len);
 
     //  Assert if the error was caused by 0MQ bug.
     //  Networking problems are OK. No need to assert.
@@ -338,10 +338,10 @@ void ws_connecter_t::create_engine (fd: ZmqFileDesc,
                                              endpoint_type_connect);
 
     //  Create the engine object for this connection.
-    ZmqIEngine *engine = null_mut();
+    ZmqEngineInterface *engine = null_mut();
     if (_wss) {
 // #ifdef ZMQ_HAVE_WSS
-        engine = new (std::nothrow)
+        engine =
           WssEngine (fd, options, endpoint_pair, *_addr.resolved.ws_addr,
                         true, null_mut(), _hostname);
 // #else
@@ -349,7 +349,7 @@ void ws_connecter_t::create_engine (fd: ZmqFileDesc,
         assert (false);
 // #endif
     } else
-        engine = new (std::nothrow) ws_engine_t (
+        engine =  ZmqWsEngine (
           fd, options, endpoint_pair, *_addr.resolved.ws_addr, true);
     // alloc_assert (engine);
 
@@ -359,5 +359,5 @@ void ws_connecter_t::create_engine (fd: ZmqFileDesc,
     //  Shut the connecter down.
     terminate ();
 
-    _socket.event_connected (endpoint_pair, fd);
+    self._socket.event_connected (endpoint_pair, fd);
 }

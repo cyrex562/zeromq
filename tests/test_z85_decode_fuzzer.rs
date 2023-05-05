@@ -49,7 +49,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
     // As per API definition, the destination must be at least 0.8 times the input data
     TEST_ASSERT_NOT_NULL (secret_key = (uint8_t *) malloc (size * 4 / 5));
 
-    std::string z85_secret_key (reinterpret_cast<const char *> (data), size);
+    std::string z85_secret_key ( (data), size);
     zmq_z85_decode (secret_key, z85_secret_key.c_str ());
 
     free (secret_key);

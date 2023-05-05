@@ -81,7 +81,7 @@ server_t::server_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_, true),
     _next_routing_id (generate_random ())
 {
-    options.type = ZMQ_SERVER;
+    options.type_ = ZMQ_SERVER;
     options.can_send_hello_msg = true;
     options.can_recv_disconnect_msg = true;
 }

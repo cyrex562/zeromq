@@ -101,7 +101,7 @@ pub struct radio_session_t  : public ZmqSessionBase
 radio_t::radio_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_, true), _lossy (true)
 {
-    options.type = ZMQ_RADIO;
+    options.type_ = ZMQ_RADIO;
 }
 
 radio_t::~radio_t ()

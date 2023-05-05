@@ -43,7 +43,7 @@
 
 pgm_receiver_t::pgm_receiver_t (class ZmqThread *parent_,
                                      options: &ZmqOptions) :
-    io_object_t (parent_),
+    ZmqIoObject (parent_),
     has_rx_timer (false),
     pgm_socket (true, options_),
     options (options_),
@@ -245,7 +245,7 @@ void pgm_receiver_t::in_event ()
 
             //  Create and connect decoder for the peer.
             it.second.decoder =
-              new (std::nothrow) v1_decoder_t (0, options.maxmsgsize);
+               v1_decoder_t (0, options.maxmsgsize);
             // alloc_assert (it.second.decoder);
         }
 
@@ -310,7 +310,7 @@ let mut msg = ZmqMessage::default();
     while (session.pull_msg (&msg) == 0)
         msg.close ();
 }
-pub struct pgm_receiver_t  : public io_object_t, public ZmqIEngine
+pub struct pgm_receiver_t  : public ZmqIoObject, public ZmqEngineInterface
 {
 //
     pgm_receiver_t (ZmqThread *parent_, options: &ZmqOptions);

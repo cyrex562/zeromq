@@ -59,7 +59,7 @@ pub struct push_t  : public ZmqSocketBase
 push_t::push_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_)
 {
-    options.type = ZMQ_PUSH;
+    options.type_ = ZMQ_PUSH;
 }
 
 push_t::~push_t ()

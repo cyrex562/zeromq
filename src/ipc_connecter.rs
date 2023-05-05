@@ -122,7 +122,7 @@ void ipc_connecter_t::start_connecting ()
     else if (rc == -1 && errno == EINPROGRESS) {
         _handle = add_fd (_s);
         set_pollout (_handle);
-        _socket.event_connect_delayed (
+        self._socket.event_connect_delayed (
           make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
 
         // TODO, tcp_connecter_t adds a connect timer in this case; maybe this
@@ -132,7 +132,7 @@ void ipc_connecter_t::start_connecting ()
     //stop connecting after called zmq_disconnect
     else if (rc == -1
              && (options.reconnect_stop & ZMQ_RECONNECT_STOP_AFTER_DISCONNECT)
-             && errno == ECONNREFUSED && _socket.is_disconnected ()) {
+             && errno == ECONNREFUSED && self._socket.is_disconnected ()) {
         if (_s != retired_fd)
             close ();
     }
@@ -190,7 +190,7 @@ ZmqFileDesc ipc_connecter_t::connect ()
     int err = 0;
     ZmqSocklen len = static_cast<ZmqSocklen> (mem::size_of::<err>());
     let rc: i32 = getsockopt (_s, SOL_SOCKET, SO_ERROR,
-                               reinterpret_cast<char *> (&err), &len);
+                                (&err), &len);
     if (rc == -1) {
         if (errno == ENOPROTOOPT)
             errno = 0;

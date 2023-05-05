@@ -226,7 +226,7 @@ void vmci_connecter_t::start_connecting ()
     else if (rc == -1 && errno == EINPROGRESS) {
         _handle = add_fd (_s);
         set_pollout (_handle);
-        _socket.event_connect_delayed (
+        self._socket.event_connect_delayed (
           make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
 
         //  add userspace connect timeout
@@ -259,7 +259,7 @@ int vmci_connecter_t::open ()
     }
 
     _addr.resolved.vmci_addr =
-      new (std::nothrow) VmciAddress (this.get_ctx ());
+       VmciAddress (this.get_ctx ());
     // alloc_assert (_addr.resolved.vmci_addr);
     _s = vmci_open_socket (_addr.address, options,
                            _addr.resolved.vmci_addr);
@@ -315,7 +315,7 @@ ZmqFileDesc vmci_connecter_t::connect ()
 // #endif
 
     let rc: i32 = getsockopt (_s, SOL_SOCKET, SO_ERROR,
-                               reinterpret_cast<char *> (&err), &len);
+                                (&err), &len);
 
     //  Assert if the error was caused by 0MQ bug.
     //  Networking problems are OK. No need to assert.

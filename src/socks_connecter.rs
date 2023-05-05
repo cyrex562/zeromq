@@ -316,7 +316,7 @@ void socks_connecter_t::start_connecting ()
         _handle = add_fd (_s);
         set_pollout (_handle);
         _status = waiting_for_proxy_connection;
-        _socket.event_connect_delayed (
+        self._socket.event_connect_delayed (
           make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
     }
     //  Handle any other error condition by eventual reconnect.
@@ -371,7 +371,7 @@ int socks_connecter_t::connect_to_proxy ()
         LIBZMQ_DELETE (_proxy_addr.resolved.tcp_addr);
     }
 
-    _proxy_addr.resolved.tcp_addr = new (std::nothrow) TcpAddress ();
+    _proxy_addr.resolved.tcp_addr =  TcpAddress ();
     // alloc_assert (_proxy_addr.resolved.tcp_addr);
     //  Automatic fallback to ipv4 is disabled here since this was the existing
     //  behaviour, however I don't see a real reason for this. Maybe this can
@@ -444,7 +444,7 @@ ZmqFileDesc socks_connecter_t::check_proxy_connection () const
 // #endif
 
     int rc = getsockopt (_s, SOL_SOCKET, SO_ERROR,
-                         reinterpret_cast<char *> (&err), &len);
+                          (&err), &len);
 
     //  Assert if the error was caused by 0MQ bug.
     //  Networking problems are OK. No need to assert.

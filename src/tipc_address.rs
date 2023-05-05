@@ -190,7 +190,7 @@ const sockaddr *TipcAddress::addr () const
 
 socklen_t TipcAddress::addrlen () const
 {
-    return static_cast<socklen_t> (sizeof address);
+    return  (sizeof address);
 }
 
 // #endif

@@ -37,7 +37,7 @@
 pull_t::pull_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_)
 {
-    options.type = ZMQ_PULL;
+    options.type_ = ZMQ_PULL;
 }
 
 pull_t::~pull_t ()

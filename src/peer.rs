@@ -56,7 +56,7 @@ pub struct peer_t  : public server_t
 peer_t::peer_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     server_t (parent_, tid, sid_)
 {
-    options.type = ZMQ_PEER;
+    options.type_ = ZMQ_PEER;
     options.can_send_hello_msg = true;
     options.can_recv_disconnect_msg = true;
     options.can_recv_hiccup_msg = true;

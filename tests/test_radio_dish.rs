@@ -422,7 +422,7 @@ static bool is_multicast_available (ipv6: i32)
 
     msleep (SETTLE_TIME);
 
-    rc = sendto (send_sock, msg, static_cast<socklen_t> (strlen (msg)), 0,
+    rc = sendto (send_sock, msg,  (strlen (msg)), 0,
                  &mcast.generic, sl);
     if (rc < 0) {
         goto out;

@@ -54,7 +54,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #ifdef __APPLE__
 // #include <TargetConditionals.h>
 // #endif
-pub struct udp_engine_t  : public io_object_t, public ZmqIEngine
+pub struct udp_engine_t  : public ZmqIoObject, public ZmqEngineInterface
 {
 //
     udp_engine_t (options: &ZmqOptions);
@@ -116,7 +116,7 @@ pub struct udp_engine_t  : public io_object_t, public ZmqIEngine
     handle_t _handle;
     Address *address;
 
-    ZmqOptions _options;
+    ZmqOptions self._options;
 
     sockaddr_in _raw_address;
     const struct sockaddr *_out_address;
@@ -134,7 +134,7 @@ udp_engine_t::udp_engine_t (options: &ZmqOptions) :
     _session (null_mut()),
     _handle (static_cast<handle_t> (null_mut())),
     address (null_mut()),
-    _options (options_),
+    self._options (options_),
     _send_enabled (false),
     _recv_enabled (false)
 {
@@ -184,7 +184,7 @@ void udp_engine_t::plug (ZmqThread *io_thread_, ZmqSessionBase *session_)
     _session = session_;
 
     //  Connect to I/O threads poller object.
-    io_object_t::plug (io_thread_);
+    ZmqIoObject::plug (io_thread_);
     _handle = add_fd (_fd);
 
     const UdpAddress *const udp_addr = address.resolved.udp_addr;
@@ -193,7 +193,7 @@ void udp_engine_t::plug (ZmqThread *io_thread_, ZmqSessionBase *session_)
 
     // Bind the socket to a device if applicable
     if (!_options.bound_device.empty ()) {
-        rc = rc | bind_to_device (_fd, _options.bound_device);
+        rc = rc | bind_to_device (_fd, self._options.bound_device);
         if (rc != 0) {
             assert_success_or_recoverable (_fd, rc);
             // error (connection_error);
@@ -211,12 +211,12 @@ void udp_engine_t::plug (ZmqThread *io_thread_, ZmqSessionBase *session_)
                 const bool is_ipv6 = (out.family () == AF_INET6);
                 rc = rc
                      | set_udp_multicast_loop (_fd, is_ipv6,
-                                               _options.multicast_loop);
+                                               self._options.multicast_loop);
 
-                if (_options.multicast_hops > 0) {
+                if (self._options.multicast_hops > 0) {
                     rc = rc
                          | set_udp_multicast_ttl (_fd, is_ipv6,
-                                                  _options.multicast_hops);
+                                                  self._options.multicast_hops);
                 }
 
                 rc = rc | set_udp_multicast_iface (_fd, is_ipv6, udp_addr);
@@ -310,7 +310,7 @@ int udp_engine_t::set_udp_multicast_loop (ZmqFileDesc s_,
 
     int loop = loop_ ? 1 : 0;
     let rc: i32 = setsockopt (s_, level, optname,
-                               reinterpret_cast<char *> (&loop), mem::size_of::<loop>());
+                                (&loop), mem::size_of::<loop>());
     assert_success_or_recoverable (s_, rc);
     return rc;
 }
@@ -327,7 +327,7 @@ int udp_engine_t::set_udp_multicast_ttl (ZmqFileDesc s_, is_ipv6_: bool, hops_: 
 
     let rc: i32 =
       setsockopt (s_, level, IP_MULTICAST_TTL,
-                  reinterpret_cast<char *> (&hops_), mem::size_of::<hops_>());
+                   (&hops_), mem::size_of::<hops_>());
     assert_success_or_recoverable (s_, rc);
     return rc;
 }
@@ -345,7 +345,7 @@ int udp_engine_t::set_udp_multicast_iface (ZmqFileDesc s_,
             //  If a bind interface is provided we tell the
             //  kernel to use it to send multicast packets
             rc = setsockopt (s_, IPPROTO_IPV6, IPV6_MULTICAST_IF,
-                             reinterpret_cast<char *> (&bind_if),
+                              (&bind_if),
                              mem::size_of::<bind_if>());
         }
     } else {
@@ -353,7 +353,7 @@ int udp_engine_t::set_udp_multicast_iface (ZmqFileDesc s_,
 
         if (bind_addr.s_addr != INADDR_ANY) {
             rc = setsockopt (s_, IPPROTO_IP, IP_MULTICAST_IF,
-                             reinterpret_cast<char *> (&bind_addr),
+                              (&bind_addr),
                              mem::size_of::<bind_addr>());
         }
     }
@@ -366,7 +366,7 @@ int udp_engine_t::set_udp_reuse_address (ZmqFileDesc s_, on_: bool)
 {
     int on = on_ ? 1 : 0;
     let rc: i32 = setsockopt (s_, SOL_SOCKET, SO_REUSEADDR,
-                               reinterpret_cast<char *> (&on), mem::size_of::<on>());
+                                (&on), mem::size_of::<on>());
     assert_success_or_recoverable (s_, rc);
     return rc;
 }
@@ -378,7 +378,7 @@ int udp_engine_t::set_udp_reuse_port (ZmqFileDesc s_, on_: bool)
 // #else
     int on = on_ ? 1 : 0;
     int rc = setsockopt (s_, SOL_SOCKET, SO_REUSEPORT,
-                         reinterpret_cast<char *> (&on), mem::size_of::<on>());
+                          (&on), mem::size_of::<on>());
     assert_success_or_recoverable (s_, rc);
     return rc;
 // #endif
@@ -395,7 +395,7 @@ int udp_engine_t::add_membership (ZmqFileDesc s_, const UdpAddress *addr_)
         mreq.imr_interface = addr_.bind_addr ().ipv4.sin_addr;
 
         rc = setsockopt (s_, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-                         reinterpret_cast<char *> (&mreq), mem::size_of::<mreq>());
+                          (&mreq), mem::size_of::<mreq>());
 
     } else if (mcast_addr.family () == AF_INET6) {
         struct ipv6_mreq mreq;
@@ -407,7 +407,7 @@ int udp_engine_t::add_membership (ZmqFileDesc s_, const UdpAddress *addr_)
         mreq.ipv6mr_interface = iface;
 
         rc = setsockopt (s_, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP,
-                         reinterpret_cast<char *> (&mreq), mem::size_of::<mreq>());
+                          (&mreq), mem::size_of::<mreq>());
     }
 
     assert_success_or_recoverable (s_, rc);
@@ -429,7 +429,7 @@ void udp_engine_t::terminate ()
     rm_fd (_handle);
 
     //  Disconnect from I/O threads poller object.
-    io_object_t::unplug ();
+    ZmqIoObject::unplug ();
 
     delete this;
 }
@@ -523,7 +523,7 @@ void udp_engine_t::out_event ()
         const size_t body_size = body_msg.size ();
         size: usize;
 
-        if (_options.raw_socket) {
+        if (self._options.raw_socket) {
             rc = resolve_raw_address (static_cast<char *> (group_msg.data ()),
                                       group_size);
 
@@ -631,7 +631,7 @@ void udp_engine_t::in_event ()
     body_offset: i32;
 let mut msg = ZmqMessage::default();
 
-    if (_options.raw_socket) {
+    if (self._options.raw_socket) {
         // zmq_assert (in_address.ss_family == AF_INET);
         sockaddr_to_msg (&msg, reinterpret_cast<sockaddr_in *> (&in_address));
 

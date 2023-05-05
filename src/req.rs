@@ -114,7 +114,7 @@ req_t::req_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     _request_id (generate_random ()),
     _strict (true)
 {
-    options.type = ZMQ_REQ;
+    options.type_ = ZMQ_REQ;
 }
 
 req_t::~req_t ()

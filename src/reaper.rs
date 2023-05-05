@@ -38,7 +38,7 @@ pub struct reaper_t  : public ZmqObject, public i_poll_events
     reaper_t (ctx: &mut ZmqContext, tid: u32);
     ~reaper_t ();
 
-    mailbox_t *get_mailbox ();
+    ZmqMailbox *get_mailbox ();
 
     void start ();
     void stop ();
@@ -55,7 +55,7 @@ pub struct reaper_t  : public ZmqObject, public i_poll_events
     void process_reaped ();
 
     //  Reaper thread accesses incoming commands via this mailbox.
-    mailbox_t mailbox;
+    ZmqMailbox mailbox;
 
     //  Handle associated with mailbox' file descriptor.
     Poller::handle_t mailbox_handle;
@@ -64,7 +64,7 @@ pub struct reaper_t  : public ZmqObject, public i_poll_events
     Poller *poller;
 
     //  Number of sockets being reaped at the moment.
-    _sockets: i32;
+    self._sockets: i32;
 
     //  If true, we were already asked to terminate.
     terminating: bool
@@ -81,13 +81,13 @@ reaper_t::reaper_t (class ctx: &mut ZmqContext, tid: u32) :
     ZmqObject (ctx, tid),
     mailbox_handle (static_cast<Poller::handle_t> (null_mut())),
     poller (null_mut()),
-    _sockets (0),
+    self._sockets (0),
     terminating (false)
 {
     if (!mailbox.valid ())
         return;
 
-    poller = new (std::nothrow) Poller (*ctx);
+    poller =  Poller (*ctx);
     // alloc_assert (poller);
 
     if (mailbox.get_fd () != retired_fd) {
@@ -105,7 +105,7 @@ reaper_t::~reaper_t ()
     LIBZMQ_DELETE (poller);
 }
 
-mailbox_t *reaper_t::get_mailbox ()
+ZmqMailbox *reaper_t::get_mailbox ()
 {
     return &mailbox;
 }

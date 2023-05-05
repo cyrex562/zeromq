@@ -142,7 +142,7 @@ void ws_listener_t::in_event ()
     //  If connection was reset by the peer in the meantime, just ignore it.
     //  TODO: Handle specific errors like ENFILE/EMFILE etc.
     if (fd == retired_fd) {
-        _socket.event_accept_failed (
+        self._socket.event_accept_failed (
           make_unconnected_bind_endpoint_pair (_endpoint), zmq_errno ());
         return;
     }
@@ -150,7 +150,7 @@ void ws_listener_t::in_event ()
     int rc = tune_tcp_socket (fd);
     rc = rc | tune_tcp_maxrt (fd, options.tcp_maxrt);
     if (rc != 0) {
-        _socket.event_accept_failed (
+        self._socket.event_accept_failed (
           make_unconnected_bind_endpoint_pair (_endpoint), zmq_errno ());
         return;
     }
@@ -195,7 +195,7 @@ int ws_listener_t::create_socket (addr_: &str)
     //  different between listener and connecter with a src address.
     //  is this intentional?
     rc = setsockopt (_s, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
-                     reinterpret_cast<const char *> (&flag), mem::size_of::<int>());
+                      (&flag), mem::size_of::<int>());
     wsa_assert (rc != SOCKET_ERROR);
 #elif defined ZMQ_HAVE_VXWORKS
     rc =
@@ -269,7 +269,7 @@ int ws_listener_t::set_local_address (addr_: &str)
 
     _endpoint = get_socket_name (_s, SocketEndLocal);
 
-    _socket.event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
+    self._socket.event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
                               _s);
     return 0;
 }
@@ -345,18 +345,18 @@ void ws_listener_t::create_engine (ZmqFileDesc fd)
       get_socket_name (fd, SocketEndLocal),
       get_socket_name (fd, SocketEndRemote), endpoint_type_bind);
 
-    ZmqIEngine *engine = null_mut();
+    ZmqEngineInterface *engine = null_mut();
     if (_wss)
 // #ifdef ZMQ_HAVE_WSS
-        engine = new (std::nothrow)
+        engine =
           WssEngine (fd, options, endpoint_pair, address, false, _tls_cred,
                         std::string ());
 // #else
         // zmq_assert (false);
 // #endif
     else
-        engine = new (std::nothrow)
-          ws_engine_t (fd, options, endpoint_pair, address, false);
+        engine =
+          ZmqWsEngine (fd, options, endpoint_pair, address, false);
 
     // alloc_assert (engine);
 
@@ -367,11 +367,11 @@ void ws_listener_t::create_engine (ZmqFileDesc fd)
 
     //  Create and launch a session object.
     ZmqSessionBase *session =
-      ZmqSessionBase::create (io_thread, false, _socket, options, null_mut());
+      ZmqSessionBase::create (io_thread, false, self._socket, options, null_mut());
     // errno_assert (session);
     session.inc_seqnum ();
     launch_child (session);
     send_attach (session, engine, false);
 
-    _socket.event_accepted (endpoint_pair, fd);
+    self._socket.event_accepted (endpoint_pair, fd);
 }

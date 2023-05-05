@@ -39,7 +39,7 @@
 // #else
 // #include <winsock2.h>
 // #endif
-pub struct stream_listener_base_t : public ZmqOwn, public io_object_t
+pub struct stream_listener_base_t : public ZmqOwn, public ZmqIoObject
 {
 //
     stream_listener_base_t (ZmqThread *io_thread_,
@@ -85,10 +85,10 @@ stream_listener_base_t::stream_listener_base_t (
   socket: *mut ZmqSocketBase,
   options: &ZmqOptions) :
     ZmqOwn (io_thread_, options_),
-    io_object_t (io_thread_),
+    ZmqIoObject (io_thread_),
     _s (retired_fd),
     _handle (static_cast<handle_t> (null_mut())),
-    _socket (socket)
+    self._socket (socket)
 {
 }
 
@@ -131,7 +131,7 @@ int stream_listener_base_t::close ()
     let rc: i32 = ::close (_s);
     // errno_assert (rc == 0);
 // #endif
-    _socket.event_closed (make_unconnected_bind_endpoint_pair (_endpoint), _s);
+    self._socket.event_closed (make_unconnected_bind_endpoint_pair (_endpoint), _s);
     _s = retired_fd;
 
     return 0;
@@ -143,11 +143,11 @@ void stream_listener_base_t::create_engine (ZmqFileDesc fd)
       get_socket_name (fd, SocketEndLocal),
       get_socket_name (fd, SocketEndRemote), endpoint_type_bind);
 
-    ZmqIEngine *engine;
+    ZmqEngineInterface *engine;
     if (options.raw_socket)
-        engine = new (std::nothrow) raw_engine_t (fd, options, endpoint_pair);
+        engine =  raw_engine_t (fd, options, endpoint_pair);
     else
-        engine = new (std::nothrow) ZmqZmtpEngine (fd, options, endpoint_pair);
+        engine =  ZmqZmtpEngine (fd, options, endpoint_pair);
     // alloc_assert (engine);
 
     //  Choose I/O thread to run connecter in. Given that we are already
@@ -157,11 +157,11 @@ void stream_listener_base_t::create_engine (ZmqFileDesc fd)
 
     //  Create and launch a session object.
     ZmqSessionBase *session =
-      ZmqSessionBase::create (io_thread, false, _socket, options, null_mut());
+      ZmqSessionBase::create (io_thread, false, self._socket, options, null_mut());
     // errno_assert (session);
     session.inc_seqnum ();
     launch_child (session);
     send_attach (session, engine, false);
 
-    _socket.event_accepted (endpoint_pair, fd);
+    self._socket.event_accepted (endpoint_pair, fd);
 }

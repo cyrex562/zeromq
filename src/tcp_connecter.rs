@@ -197,7 +197,7 @@ void tcp_connecter_t::start_connecting ()
     else if (rc == -1 && errno == EINPROGRESS) {
         _handle = add_fd (_s);
         set_pollout (_handle);
-        _socket.event_connect_delayed (
+        self._socket.event_connect_delayed (
           make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
 
         //  add userspace connect timeout
@@ -229,7 +229,7 @@ int tcp_connecter_t::open ()
         LIBZMQ_DELETE (_addr.resolved.tcp_addr);
     }
 
-    _addr.resolved.tcp_addr = new (std::nothrow) TcpAddress ();
+    _addr.resolved.tcp_addr =  TcpAddress ();
     // alloc_assert (_addr.resolved.tcp_addr);
     _s = tcp_open_socket (_addr.address, options, false, true,
                           _addr.resolved.tcp_addr);
@@ -255,7 +255,7 @@ int tcp_connecter_t::open ()
         int flag = 1;
 // #ifdef ZMQ_HAVE_WINDOWS
         rc = setsockopt (_s, SOL_SOCKET, SO_REUSEADDR,
-                         reinterpret_cast<const char *> (&flag), mem::size_of::<int>());
+                          (&flag), mem::size_of::<int>());
         wsa_assert (rc != SOCKET_ERROR);
 #elif defined ZMQ_HAVE_VXWORKS
         rc = setsockopt (_s, SOL_SOCKET, SO_REUSEADDR, (char *) &flag,
@@ -313,7 +313,7 @@ ZmqFileDesc tcp_connecter_t::connect ()
 // #endif
 
     let rc: i32 = getsockopt (_s, SOL_SOCKET, SO_ERROR,
-                               reinterpret_cast<char *> (&err), &len);
+                                (&err), &len);
 
     //  Assert if the error was caused by 0MQ bug.
     //  Networking problems are OK. No need to assert.

@@ -137,7 +137,7 @@ router_t::router_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     probe_router (false),
     _handover (false)
 {
-    options.type = ZMQ_ROUTER;
+    options.type_ = ZMQ_ROUTER;
     options.recv_routing_id = true;
     options.raw_socket = false;
     options.can_send_hello_msg = true;

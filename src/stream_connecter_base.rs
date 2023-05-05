@@ -50,11 +50,11 @@ stream_connecter_base_t::stream_connecter_base_t (
   Address *addr_,
   delayed_start_: bool) :
     ZmqOwn (io_thread_, options_),
-    io_object_t (io_thread_),
+    ZmqIoObject (io_thread_),
     _addr (addr_),
     _s (retired_fd),
     _handle (static_cast<handle_t> (null_mut())),
-    _socket (session_.get_socket ()),
+    self._socket (session_.get_socket ()),
     _delayed_start (delayed_start_),
     _reconnect_timer_started (false),
     _current_reconnect_ivl (options.reconnect_ivl),
@@ -104,7 +104,7 @@ void stream_connecter_base_t::add_reconnect_timer ()
     if (options.reconnect_ivl > 0) {
         let interval: i32 = get_new_reconnect_ivl ();
         add_timer (interval, reconnect_timer_id);
-        _socket.event_connect_retried (
+        self._socket.event_connect_retried (
           make_unconnected_connect_endpoint_pair (_endpoint), interval);
         _reconnect_timer_started = true;
     }
@@ -154,7 +154,7 @@ void stream_connecter_base_t::close ()
         let rc: i32 = ::close (_s);
         // errno_assert (rc == 0);
 // #endif
-        _socket.event_closed (
+        self._socket.event_closed (
           make_unconnected_connect_endpoint_pair (_endpoint), _s);
         _s = retired_fd;
     }
@@ -175,11 +175,11 @@ void stream_connecter_base_t::create_engine (
                                              endpoint_type_connect);
 
     //  Create the engine object for this connection.
-    ZmqIEngine *engine;
+    ZmqEngineInterface *engine;
     if (options.raw_socket)
-        engine = new (std::nothrow) raw_engine_t (fd, options, endpoint_pair);
+        engine =  raw_engine_t (fd, options, endpoint_pair);
     else
-        engine = new (std::nothrow) ZmqZmtpEngine (fd, options, endpoint_pair);
+        engine =  ZmqZmtpEngine (fd, options, endpoint_pair);
     // alloc_assert (engine);
 
     //  Attach the engine to the corresponding session object.
@@ -188,7 +188,7 @@ void stream_connecter_base_t::create_engine (
     //  Shut the connecter down.
     terminate ();
 
-    _socket.event_connected (endpoint_pair, fd);
+    self._socket.event_connected (endpoint_pair, fd);
 }
 
 void stream_connecter_base_t::timer_event (id_: i32)
@@ -197,7 +197,7 @@ void stream_connecter_base_t::timer_event (id_: i32)
     _reconnect_timer_started = false;
     start_connecting ();
 }
-pub struct stream_connecter_base_t : public ZmqOwn, public io_object_t
+pub struct stream_connecter_base_t : public ZmqOwn, public ZmqIoObject
 {
 //
     //  If 'delayed_start' is true connecter first waits for a while,
@@ -246,7 +246,7 @@ pub struct stream_connecter_base_t : public ZmqOwn, public io_object_t
     _endpoint: String;
 
     // Socket
-    ZmqSocketBase *const _socket;
+    ZmqSocketBase *const self._socket;
 
   //
     //  ID of the timer used to delay the reconnection.

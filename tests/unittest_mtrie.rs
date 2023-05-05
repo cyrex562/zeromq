@@ -36,7 +36,7 @@ void tearDown ()
 
 int getlen (const generic_mtrie_t<int>::prefix_t &data)
 {
-    return static_cast<int> (strlen (reinterpret_cast<const char *> (data)));
+    return static_cast<int> (strlen ( (data)));
 }
 
 void test_create ()

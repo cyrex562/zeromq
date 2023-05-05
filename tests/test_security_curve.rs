@@ -244,7 +244,7 @@ template <size_t N> void send (fd: ZmqFileDesc, const char (&data)[N])
 
 template <size_t N> void send (fd: ZmqFileDesc, const uint8_t (&data)[N])
 {
-    send_all (fd, reinterpret_cast<const char *> (&data), N);
+    send_all (fd,  (&data), N);
 }
 
 void test_curve_security_invalid_hello_wrong_length ()
@@ -289,7 +289,7 @@ static u64 host_to_network (u64 value_)
     static const int num = 42;
 
     // Check the endianness
-    if (*reinterpret_cast<const char *> (&num) == num) {
+    if (* (&num) == num) {
         const u32 high_part = htonl (static_cast<u32> (value_ >> 32));
         const u32 low_part =
           htonl (static_cast<u32> (value_ & 0xFFFFFFFFLL));
@@ -308,7 +308,7 @@ template <size_t N> void send_command (ZmqFileDesc s_, char (&command_)[N])
     } else {
         send (s_, "\x06");
         u64 len = host_to_network (N);
-        send_all (s_, reinterpret_cast<char *> (&len), 8);
+        send_all (s_,  (&len), 8);
     }
     send_all (s_, command_, N);
 }
@@ -371,7 +371,7 @@ void recv_all (fd: ZmqFileDesc, data: &mut [u8], socket_len_: usize)
 {
     socket_size_t received = 0;
     while (received < len_) {
-        int res = recv (fd, reinterpret_cast<char *> (data), len_, 0);
+        int res = recv (fd,  (data), len_, 0);
         TEST_ASSERT_GREATER_THAN_INT (0, res);
 
         data += res;

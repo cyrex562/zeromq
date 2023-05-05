@@ -103,7 +103,7 @@ void tcp_listener_t::in_event ()
     //  If connection was reset by the peer in the meantime, just ignore it.
     //  TODO: Handle specific errors like ENFILE/EMFILE etc.
     if (fd == retired_fd) {
-        _socket.event_accept_failed (
+        self._socket.event_accept_failed (
           make_unconnected_bind_endpoint_pair (_endpoint), zmq_errno ());
         return;
     }
@@ -115,7 +115,7 @@ void tcp_listener_t::in_event ()
            options.tcp_keepalive_idle, options.tcp_keepalive_intvl);
     rc = rc | tune_tcp_maxrt (fd, options.tcp_maxrt);
     if (rc != 0) {
-        _socket.event_accept_failed (
+        self._socket.event_accept_failed (
           make_unconnected_bind_endpoint_pair (_endpoint), zmq_errno ());
         return;
     }
@@ -151,7 +151,7 @@ int tcp_listener_t::create_socket (addr_: &str)
     //  different between listener and connecter with a src address.
     //  is this intentional?
     rc = setsockopt (_s, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
-                     reinterpret_cast<const char *> (&flag), mem::size_of::<int>());
+                      (&flag), mem::size_of::<int>());
     wsa_assert (rc != SOCKET_ERROR);
 #elif defined ZMQ_HAVE_VXWORKS
     rc =
@@ -212,7 +212,7 @@ int tcp_listener_t::set_local_address (addr_: &str)
 
     _endpoint = get_socket_name (_s, SocketEndLocal);
 
-    _socket.event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
+    self._socket.event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
                               _s);
     return 0;
 }

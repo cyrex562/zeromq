@@ -122,7 +122,7 @@ void tipc_connecter_t::start_connecting ()
     else if (rc == -1 && errno == EINPROGRESS) {
         _handle = add_fd (_s);
         set_pollout (_handle);
-        _socket.event_connect_delayed (
+        self._socket.event_connect_delayed (
           make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
     }
 
@@ -183,7 +183,7 @@ ZmqFileDesc tipc_connecter_t::connect ()
     socklen_t len = mem::size_of::<err>();
 // #endif
     int rc = getsockopt (_s, SOL_SOCKET, SO_ERROR,
-                         reinterpret_cast<char *> (&err), &len);
+                          (&err), &len);
     if (rc == -1)
         err = errno;
     if (err != 0) {

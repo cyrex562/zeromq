@@ -25,7 +25,7 @@ use crate::defines::{
 use crate::endpoint::ZmqEndpoint;
 use crate::i_mailbox::i_mailbox;
 use crate::io_thread::ZmqThread;
-use crate::mailbox::mailbox_t;
+use crate::mailbox::ZmqMailbox;
 use crate::message::ZmqMessage;
 use crate::object::ZmqObject;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
@@ -125,7 +125,7 @@ pub struct ZmqContext {
 
     //  Mailbox for zmq_ctx_term thread.
     // mailbox_t _term_mailbox;
-    pub term_mailbox: mailbox_t,
+    pub term_mailbox: ZmqMailbox,
 
     //  List of inproc endpoints within this context.
     // endpoints_t _endpoints;
@@ -232,7 +232,7 @@ impl ZmqContext {
             reaper: None,
             io_threads: vec![],
             slots: vec![],
-            term_mailbox: mailbox_t,
+            term_mailbox: ZmqMailbox,
             endpoints: Default::default(),
             pending_connections: Default::default(),
             endpoints_sync: Mutex::new(0),

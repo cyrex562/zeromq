@@ -41,21 +41,17 @@
 // #include <limits.h>
 // #include <algorithm>
 
+use std::ffi::CString;
+use libc::{EINTR, O_RDWR, open, write};
+use windows::Win32::Networking::WinSock::{POLLERR, POLLHUP, POLLIN, POLLOUT};
+use crate::context::ZmqContext;
+use crate::defines::ZmqHandle;
+use crate::fd::ZmqFileDesc;
 use crate::poller_base::WorkerPollerBase;
-
-// #include "devpoll.hpp"
-// #include "err.hpp"
-// #include "config.hpp"
-// #include "i_poll_events.hpp"
-// typedef ZmqFileDesc handle_t;
-type ZmqHandle = ZmqFileDesc;
+use crate::thread_ctx::ThreadCtx;
 
 // typedef DevPoll Poller;
-type Poller = DevPoll;
-
-// typedef std::vector<FdEntry> fd_table_t;
-
-// typedef std::vector<ZmqFileDesc> pending_list_t;
+pub type Poller = DevPoll;
 
 pub struct FdEntry {
     // short events;
@@ -87,8 +83,8 @@ impl DevPoll {
     // DevPoll (const ThreadCtx &ctx);
     // DevPoll::DevPoll (const ThreadCtx &ctx) :
     // WorkerPollerBase (ctx)
-    pub fn new(ctx: &ThreadCtx) -> Self {
-        devpoll_fd = open("/dev/poll", O_RDWR);
+    pub fn new(ctx: &mut ZmqContext) -> Self {
+        unsafe { devpoll_fd = open(CString::from(String::from("/dev/poll")).into_raw(), O_RDWR); }
         // errno_assert (devpoll_fd != -1);
         Self {
             worker_poller_base: WorkerPollerBase::new(ctx),
@@ -106,12 +102,12 @@ impl DevPoll {
 
     //  "poller" concept.
     // handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
-    pub fn add_fd(&mut self, fd: ZmqFileDesc, reactor_: &mut i_poll_events) {
+    pub fn add_fd(&mut self, fd: &ZmqHandle, reactor_: &mut i_poll_events) -> ZmqHandle {
         check_thread();
         //  If the file descriptor table is too small expand it.
         let sz = self.fd_table.size();
         if (sz <= fd) {
-            self.fd_table.resize(fd + 1);
+            self.fd_table.resize(fd + 1, FdEntry::default());
             while (sz != (fd + 1)) {
                 self.fd_table[sz].valid = false;
                 sz += 1;
@@ -131,11 +127,11 @@ impl DevPoll {
         //  Increase the load metric of the thread.
         self.adjust_load(1);
 
-        return fd;
+        return fd.clone();
     }
 
     // void rm_fd (handle_t handle_);
-    pub fn rm_fd(&mut self, handle_: ZmqHandle) {
+    pub fn rm_fd(&mut self, handle_: &ZmqHandle) {
         check_thread();
         // zmq_assert (fd_table[handle_].valid);
 
@@ -155,7 +151,7 @@ impl DevPoll {
     }
 
     // void reset_pollin (handle_t handle_);
-    pub fn reset_pollin(&mut self, handle_: ZmqHandle) {
+    pub fn reset_pollin(&mut self, handle_: &ZmqHandle) {
         check_thread();
         self.devpoll_ctl(handle_, POLLREMOVE);
         self.fd_table[handle_].events &= !(POLLIN);
@@ -163,7 +159,7 @@ impl DevPoll {
     }
 
     // void set_pollout (handle_t handle_);
-    pub fn set_pollout(&mut self, handle_: ZmqHandle) {
+    pub fn set_pollout(&mut self, handle_: &ZmqHandle) {
         check_thread();
         self.devpoll_ctl(handle_, POLLREMOVE);
         self.fd_table[handle_].events |= POLLOUT;
@@ -171,7 +167,7 @@ impl DevPoll {
     }
 
     // void reset_pollout (handle_t handle_);
-    pub fn reset_pollout(&mut self, handle_: ZmqHandle) {
+    pub fn reset_pollout(&mut self, handle_: &ZmqHandle) {
         check_thread();
         self.devpoll_ctl(handle_, POLLREMOVE);
         self.fd_table[handle_].events &= !(POLLOUT);
@@ -194,15 +190,14 @@ impl DevPoll {
     // void loop () ;
 
     // void devpoll_ctl (fd: ZmqFileDesc, short events_);
-    pub fn devpoll_ctl(&mut self, fd: ZmqFileDesc, events_: i16) {
+    pub fn devpoll_ctl(&mut self, fd: &ZmqHandle, events_: i16) {
         // let mut pfd = PollFd{fd, events_, 0};
-        let rc = write(devpoll_fd, &pfd, pfd.len());
+        let rc = unsafe { write(devpoll_fd, &pfd, pfd.len()) };
         // zmq_assert (rc == pfd.len());
     }
-
     pub fn loop_fn(&mut self) {
         loop {
-            let mut ev_buf: [pollfd; max_io_events];
+            let mut ev_buf: [pollfd; max_io_events] = [pollfd::default(); max_io_events];
             let mut poll_req: dvpoll;
 
             // for (pending_list_t::size_type i = 0; i < pending_list.size (); i+= 1)

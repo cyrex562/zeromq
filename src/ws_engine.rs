@@ -82,8 +82,30 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #endif
 
 
-enum ws_server_handshake_state
-{
+use std::io::Read;
+use std::ptr::{hash, null_mut};
+use bincode::options;
+use libc::{EAGAIN, ECONNRESET, memcpy, memset, strcmp};
+use crate::curve_server::curve_server_t;
+use crate::defines::{ZMQ_CURVE, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED};
+use crate::endpoint::EndpointUriPair;
+use crate::fd::ZmqFileDesc;
+use crate::mechanism::ZmqMechanism;
+use crate::mechanism::ZmqMechanismStatus::error;
+use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZMQ_MSG_ROUTING_ID, ZmqMessage};
+use crate::null_mechanism::ZmqNullMechanism;
+use crate::options::ZmqOptions;
+use crate::plain_client::plain_client_t;
+use crate::plain_server::plain_server_t;
+use crate::stream_engine_base::{heartbeat_ivl_timer_id, heartbeat_timeout_timer_id, ZmqStreamEngineBase};
+use crate::utils::{copy_bytes, set_bytes};
+use crate::ws_address::WsAddress;
+use crate::ws_decoder::ws_decoder_t;
+use crate::ws_encoder::ws_encoder_t;
+use crate::ws_engine::ws_client_handshake_state::{client_handshake_complete, client_handshake_end_line_cr, client_handshake_error, client_handshake_initial, client_header_field_begin_name, client_header_field_colon, client_header_field_cr, client_header_field_name, client_header_field_value, client_header_field_value_trailing_space, response_line_cr, response_line_H, response_line_HT, response_line_HTT, response_line_HTTP, response_line_HTTP_slash, response_line_HTTP_slash_1, response_line_HTTP_slash_1_dot, response_line_HTTP_slash_1_dot_1, response_line_HTTP_slash_1_dot_1_space, response_line_p, response_line_pr, response_line_pro, response_line_prot, response_line_proto, response_line_protoc, response_line_protoco, response_line_protocol, response_line_protocols, response_line_s, response_line_status_1, response_line_status_10, response_line_status_101, response_line_status_101_space, response_line_sw, response_line_swi, response_line_swit, response_line_switc, response_line_switch, response_line_switchi, response_line_switchin, response_line_switching, response_line_switching_space};
+use crate::ws_engine::ws_server_handshake_state::{handshake_complete, handshake_end_line_cr, handshake_error, handshake_initial, header_field_begin_name, header_field_colon, header_field_cr, header_field_name, header_field_value, header_field_value_trailing_space, request_line_cr, request_line_G, request_line_GE, request_line_GET, request_line_GET_space, request_line_H, request_line_HT, request_line_HTT, request_line_HTTP, request_line_HTTP_slash, request_line_HTTP_slash_1, request_line_HTTP_slash_1_dot, request_line_HTTP_slash_1_dot_1, request_line_resource, request_line_resource_space};
+
+enum ws_server_handshake_state {
     handshake_initial = 0,
     request_line_G,
     request_line_GE,
@@ -109,12 +131,11 @@ enum ws_server_handshake_state
     handshake_end_line_cr,
     handshake_complete,
 
-    handshake_error = -1
+    handshake_error = -1,
 }
 
 
-enum ws_client_handshake_state
-{
+enum ws_client_handshake_state {
     client_handshake_initial = 0,
     response_line_H,
     response_line_HT,
@@ -157,1063 +178,1166 @@ enum ws_client_handshake_state
     client_header_field_cr,
     client_handshake_end_line_cr,
     client_handshake_complete,
-    client_handshake_error = -1
+    client_handshake_error = -1,
 }
-pub struct ws_engine_t : public ZmqStreamEngineBase
-{
+
+#[derive(Default, Debug, Clone)]
+pub struct ZmqWsEngine {
     pub stream_engine_base: ZmqStreamEngineBase,
-//
-    ws_engine_t (fd: ZmqFileDesc,
-                 options: &ZmqOptions,
-                 const endpoint_uri_pair_t &endpoint_uri_pair_,
-                 const WsAddress &address_,
-                 client_: bool);
-    ~ws_engine_t ();
-
-
-    int decode_and_push (msg: &mut ZmqMessage);
-    int process_command_message (msg: &mut ZmqMessage);
-    int produce_pong_message (msg: &mut ZmqMessage);
-    int produce_ping_message (msg: &mut ZmqMessage);
-    bool handshake ();
-    void plug_internal ();
-    void start_ws_handshake ();
-
-  //
-    int routing_id_msg (msg: &mut ZmqMessage);
-    int process_routing_id_msg (msg: &mut ZmqMessage);
-    int produce_close_message (msg: &mut ZmqMessage);
-    int produce_no_msg_after_close (msg: &mut ZmqMessage);
-    int close_connection_after_close (msg: &mut ZmqMessage);
-
-    bool select_protocol (protocol: &str);
-
-    bool client_handshake ();
-    bool server_handshake ();
-
-    _client: bool
-    WsAddress address;
-
-    ws_client_handshake_state_t _client_handshake_state;
-    ws_server_handshake_state_t _server_handshake_state;
-
-    unsigned char _read_buffer[WS_BUFFER_SIZE];
-    unsigned char _write_buffer[WS_BUFFER_SIZE];
-    char _header_name[MAX_HEADER_NAME_LENGTH + 1];
-    _header_name_position: i32;
-    char _header_value[MAX_HEADER_VALUE_LENGTH + 1];
-    _header_value_position: i32;
-
-    _header_upgrade_websocket: bool
-    _header_connection_upgrade: bool
-    char _websocket_protocol[256];
-    char _websocket_key[MAX_HEADER_VALUE_LENGTH + 1];
-    char _websocket_accept[MAX_HEADER_VALUE_LENGTH + 1];
-
-    _heartbeat_timeout: i32;
-    ZmqMessage _close_msg;
-};
-
-static int
-encode_base64 (const in_: &mut [u8], in_len_: i32, char *out_, out_len_: i32);
-
-static void compute_accept_key (char *key_,
-                                unsigned char hash_[SHA_DIGEST_LENGTH]);
-
-ws_engine_t::ws_engine_t (fd: ZmqFileDesc,
-                               options: &ZmqOptions,
-                               const endpoint_uri_pair_t &endpoint_uri_pair_,
-                               const WsAddress &address_,
-                               client_: bool) :
-    ZmqStreamEngineBase (fd, options_, endpoint_uri_pair_, true),
-    _client (client_),
-    address (address_),
-    _client_handshake_state (client_handshake_initial),
-    _server_handshake_state (handshake_initial),
-    _header_name_position (0),
-    _header_value_position (0),
-    _header_upgrade_websocket (false),
-    _header_connection_upgrade (false),
-    _heartbeat_timeout (0)
-{
-    memset (_websocket_key, 0, MAX_HEADER_VALUE_LENGTH + 1);
-    memset (_websocket_accept, 0, MAX_HEADER_VALUE_LENGTH + 1);
-    memset (_websocket_protocol, 0, 256);
-
-    _next_msg = &ws_engine_t::next_handshake_command;
-    _process_msg = &ws_engine_t::process_handshake_command;
-    _close_msg.init ();
-
-    if (_options.heartbeat_interval > 0) {
-        _heartbeat_timeout = _options.heartbeat_timeout;
-        if (_heartbeat_timeout == -1)
-            _heartbeat_timeout = _options.heartbeat_interval;
-    }
+    pub _client: bool,
+    pub address: WsAddress,
+    pub _client_handshake_state: ws_client_handshake_state,
+    pub _server_handshake_state: ws_server_handshake_state,
+    pub _read_buffer: [u8; WS_BUFFER_SIZE],
+    pub _write_buffer: Vec<u8>,
+    //[u8;WS_BUFFER_SIZE],
+    pub _header_name: [u8; MAX_HEADER_NAME_LENGTH + 1],
+    pub _header_name_position: i32,
+    pub _header_value: [u8; MAX_HEADER_VALUE_LENGTH + 1],
+    pub _header_value_position: i32,
+    pub _header_upgrade_websocket: bool,
+    pub _header_connection_upgrade: bool,
+    pub _websocket_protocol: [u8; 256],
+    pub _websocket_key: [u8; MAX_HEADER_VALUE_LENGTH + 1],
+    pub _websocket_accept: [u8; MAX_HEADER_VALUE_LENGTH + 1],
+    pub _heartbeat_timeout: i32,
+    pub _close_msg: ZmqMessage,
 }
 
-ws_engine_t::~ws_engine_t ()
-{
-    _close_msg.close ();
-}
+impl ZmqWsEngine {
+    // ZmqWsEngine (fd: ZmqFileDesc,
+    //              options: &ZmqOptions,
+    //              const endpoint_uri_pair_t &endpoint_uri_pair_,
+    //              const WsAddress &address_,
+    //              client_: bool);
+    pub fn new(fd: ZmqFileDesc,
+               options: &mut ZmqOptions,
+               endpoint_uri_pair_: &EndpointUriPair,
+               address_: &mut WsAddress,
+               client_: bool) -> Self {
+        // ZmqStreamEngineBase (fd, options_, endpoint_uri_pair_, true),
+        //     _client (client_),
+        //     address (address_),
+        //     _client_handshake_state (client_handshake_initial),
+        //     self._server_handshake_state (handshake_initial),
+        //     _header_name_position (0),
+        //     _header_value_position (0),
+        //     _header_upgrade_websocket (false),
+        //     _header_connection_upgrade (false),
+        //     _heartbeat_timeout (0)
+        let mut out = Self {
+            stream_engine_base: ZmqStreamEngineBase::new(fd, options, endpoint_uri_pair_, true),
+            _client: client_,
+            address: address_.clone(),
+            _client_handshake_state: ws_client_handshake_state::client_handshake_initial,
+            _server_handshake_state: ws_server_handshake_state::handshake_initial,
+            _header_name_position: 0,
+            _header_value_position: 0,
+            _header_upgrade_websocket: false,
+            _header_connection_upgrade: false,
+            _heartbeat_timeout: 0,
+            ..Default::default()
+        };
+        set_bytes(&mut out._websocket_key, 0, 0, MAX_HEADER_VALUE_LENGTH + 1);
+        set_bytes(&mut out._websocket_accept, 0, 0, MAX_HEADER_VALUE_LENGTH + 1);
+        set_bytes(&mut out._websocket_protocol, 0, 0, 256);
 
-void ws_engine_t::start_ws_handshake ()
-{
-    if (_client) {
-        const char *protocol;
-        if (_options.mechanism == ZMQ_NULL)
-            protocol = "ZWS2.0/NULL,ZWS2.0";
-        else if (_options.mechanism == ZMQ_PLAIN)
-            protocol = "ZWS2.0/PLAIN";
-// #ifdef ZMQ_HAVE_CURVE
-        else if (_options.mechanism == ZMQ_CURVE)
-            protocol = "ZWS2.0/CURVE";
-// #endif
-        else {
-            // Avoid uninitialized variable error breaking UWP build
-            protocol = "";
-            assert (false);
+        out._next_msg = &ZmqWsEngine::next_handshake_command;
+        out._process_msg = &ZmqWsEngine::process_handshake_command;
+        out._close_msg.init2();
+
+        if (out._options.heartbeat_interval > 0) {
+            out._heartbeat_timeout = out._options.heartbeat_timeout;
+            if (out._heartbeat_timeout == -1) {
+                out._heartbeat_timeout = out._options.heartbeat_interval;
+            }
         }
+        out
+    }
 
-        unsigned char nonce[16];
-        int *p = reinterpret_cast<int *> (nonce);
+    // ~ZmqWsEngine ();
 
-        // The nonce doesn't have to be secure one, it is just use to avoid proxy cache
-        *p = generate_random ();
-        *(p + 1) = generate_random ();
-        *(p + 2) = generate_random ();
-        *(p + 3) = generate_random ();
+    // int decode_and_push (msg: &mut ZmqMessage);
 
-        int size =
-          encode_base64 (nonce, 16, _websocket_key, MAX_HEADER_VALUE_LENGTH);
-        assert (size > 0);
+    // int process_command_message (msg: &mut ZmqMessage);
 
-        size = snprintf (
-          reinterpret_cast<char *> (_write_buffer), WS_BUFFER_SIZE,
-          "GET %s HTTP/1.1\r\n"
-          "Host: %s\r\n"
-          "Upgrade: websocket\r\n"
-          "Connection: Upgrade\r\n"
-          "Sec-WebSocket-Key: %s\r\n"
-          "Sec-WebSocket-Protocol: %s\r\n"
+    // int produce_pong_message (msg: &mut ZmqMessage);
+
+    // int produce_ping_message (msg: &mut ZmqMessage);
+
+    // bool handshake ();
+
+    // void plug_internal ();
+
+    // void start_ws_handshake ();
+
+    // int routing_id_msg (msg: &mut ZmqMessage);
+
+    // int process_routing_id_msg (msg: &mut ZmqMessage);
+
+    // int produce_close_message (msg: &mut ZmqMessage);
+
+    // int produce_no_msg_after_close (msg: &mut ZmqMessage);
+
+    // int close_connection_after_close (msg: &mut ZmqMessage);
+
+    // bool select_protocol (protocol: &str);
+
+    // bool client_handshake ();
+
+    // bool server_handshake ();
+
+    pub fn plug_internal(&mut self) {
+        start_ws_handshake();
+        set_pollin();
+        in_event();
+    }
+
+    pub fn routing_id_msg(&mut self, msg: &mut ZmqMessage) -> i32 {
+        let rc: i32 = msg.init_size(self._options.routing_id_size);
+        // errno_assert (rc == 0);
+        if (self._options.routing_id_size > 0) {
+            copy_bytes(msg.data_mut(), 0, self._options.routing_id, 0, self._options.routing_id_size);
+        }
+        self._next_msg = &ZmqWsEngine::pull_msg_from_session;
+
+        return 0;
+    }
+
+
+    pub fn start_ws_handshake(&mut self) {
+        if (self._client) {
+            let mut protocol: &str = "";
+            if (self._options.mechanism == ZMQ_NULL) {
+                protocol = "ZWS2.0/NULL,ZWS2.0";
+            } else if (self._options.mechanism == ZMQ_PLAIN) {
+                protocol = "ZWS2.0/PLAIN";
+            }
+// #ifdef ZMQ_HAVE_CURVE
+            else if (self._options.mechanism == ZMQ_CURVE) {
+                protocol = "ZWS2.0/CURVE";
+            }
+// #endif
+            else {
+                // Avoid uninitialized variable error breaking UWP build
+                protocol = "";
+                assert(false);
+            }
+
+            let mut nonce: [u8; 16] = [0; 16];
+            let p = (nonce);
+
+            // The nonce doesn't have to be secure one, it is just use to avoid proxy cache
+            *p = generate_random();
+            *(p + 1) = generate_random();
+            *(p + 2) = generate_random();
+            *(p + 3) = generate_random();
+
+            let mut size = encode_base64(nonce, 16, self._websocket_key, MAX_HEADER_VALUE_LENGTH);
+            // assert (size > 0);
+
+            self._write_buffer = format!(
+          "GET {} HTTP/1.1\r\n" \
+          "Host: {}\r\n" \
+          "Upgrade: websocket\r\n" \
+          "Connection: Upgrade\r\n" \  
+          "Sec-WebSocket-Key: {}\r\n" \
+          "Sec-WebSocket-Protocol: {}\r\n" \
           "Sec-WebSocket-Version: 13\r\n\r\n",
-          address.path (), address.host (), _websocket_key, protocol);
-        assert (size > 0 && size < WS_BUFFER_SIZE);
-        _outpos = _write_buffer;
-        _outsize = size;
-        set_pollout ();
-    }
-}
-
-void ws_engine_t::plug_internal ()
-{
-    start_ws_handshake ();
-    set_pollin ();
-    in_event ();
-}
-
-int ws_engine_t::routing_id_msg (msg: &mut ZmqMessage)
-{
-    let rc: i32 = msg.init_size (_options.routing_id_size);
-    // errno_assert (rc == 0);
-    if (_options.routing_id_size > 0)
-        memcpy (msg.data (), _options.routing_id, _options.routing_id_size);
-    _next_msg = &ws_engine_t::pull_msg_from_session;
-
-    return 0;
-}
-
-int ws_engine_t::process_routing_id_msg (msg: &mut ZmqMessage)
-{
-    if (_options.recv_routing_id) {
-        msg.set_flags (ZMQ_MSG_ROUTING_ID);
-        let rc: i32 = session ().push_msg (msg);
-        // errno_assert (rc == 0);
-    } else {
-        int rc = msg.close ();
-        // errno_assert (rc == 0);
-        rc = msg.init ();
-        // errno_assert (rc == 0);
+          address.path(), address.host(), self._websocket_key, protocol).into_bytes();
+            // assert (size > 0 && size < WS_BUFFER_SIZE);
+            // TODO:
+            // self._outpos = self._write_buffer;
+            self._outsize = size;
+            set_pollout();
+        }
     }
 
-    _process_msg = &ws_engine_t::push_ZmqMessageo_session;
-
-    return 0;
-}
-
-bool ws_engine_t::select_protocol (protocol_: &str)
-{
-    if (_options.mechanism == ZMQ_NULL && (strcmp ("ZWS2.0", protocol_) == 0)) {
-        _next_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
-          &ws_engine_t::routing_id_msg);
-        _process_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
-          &ws_engine_t::process_routing_id_msg);
-
-        // No mechanism in place, enabling heartbeat
-        if (_options.heartbeat_interval > 0 && !_has_heartbeat_timer) {
-            add_timer (_options.heartbeat_interval, heartbeat_ivl_timer_id);
-            _has_heartbeat_timer = true;
+    pub fn process_routing_id_msg(&mut self, msg: &mut ZmqMessage) -> i32 {
+        if (self._options.recv_routing_id) {
+            msg.set_flags(ZMQ_MSG_ROUTING_ID);
+            let rc: i32 = session().push_msg(msg);
+            // errno_assert (rc == 0);
+        } else {
+            let mut rc = msg.close();
+            // errno_assert (rc == 0);
+            rc = msg.init2();
+            // errno_assert (rc == 0);
         }
 
-        return true;
+        self._process_msg = push_msg_to_session;
+
+        return 0;
     }
-    if (_options.mechanism == ZMQ_NULL
-        && strcmp ("ZWS2.0/NULL", protocol_) == 0) {
-        _mechanism = new (std::nothrow)
-          null_ZmqMechanism (session (), _peer_address, _options);
-        // alloc_assert (_mechanism);
-        return true;
-    } else if (_options.mechanism == ZMQ_PLAIN
-               && strcmp ("ZWS2.0/PLAIN", protocol_) == 0) {
-        if (_options.as_server)
-            _mechanism = new (std::nothrow)
-              plain_server_t (session (), _peer_address, _options);
-        else
-            _mechanism =
-              new (std::nothrow) plain_client_t (session (), _options);
-        // alloc_assert (_mechanism);
-        return true;
-    }
+
+
+    pub fn select_protocol(&mut self, options: &mut ZmqOptions, protocol_: &str) -> bool {
+        if (self._options.mechanism == ZMQ_NULL && "ZWS2.0" == protocol_) {
+            self._next_msg = (&ZmqWsEngine::routing_id_msg);
+            self._process_msg = (&ZmqWsEngine::process_routing_id_msg);
+
+            // No mechanism in place, enabling heartbeat
+            if (self._options.heartbeat_interval > 0 && !_has_heartbeat_timer) {
+                add_timer(self._options.heartbeat_interval, heartbeat_ivl_timer_id);
+                self._has_heartbeat_timer = true;
+            }
+
+            return true;
+        }
+
+        if (self._options.mechanism.is_none() && ("ZWS2.0/NULL" == protocol_)) {
+            self._mechanism = ZmqNullMechanism::new(session(), self._peer_address, self._options);
+            // alloc_assert (_mechanism);
+            return true;
+        } else if (self._options.mechanism == ZMQ_PLAIN && ("ZWS2.0/PLAIN" == protocol_)) {
+            if (self._options.as_server) {
+                self._mechanism = plain_server_t::new(session(), self._peer_address, self._options);
+            } else {
+                self._mechanism = plain_client_t::new(session(), self._options);
+            }
+            // alloc_assert (_mechanism);
+            return true;
+        }
 // #ifdef ZMQ_HAVE_CURVE
-    else if (_options.mechanism == ZMQ_CURVE
-             && strcmp ("ZWS2.0/CURVE", protocol_) == 0) {
-        if (_options.as_server)
-            _mechanism = new (std::nothrow)
-              curve_server_t (session (), _peer_address, _options, false);
-        else
-            _mechanism =
-              new (std::nothrow) curve_client_t (session (), _options, false);
-        // alloc_assert (_mechanism);
-        return true;
-    }
+        else if (self._options.mechanism == ZMQ_CURVE && ("ZWS2.0/CURVE" == protocol_)) {
+            if (self._options.as_server) {
+                self._mechanism = curve_server_t(session(), self._peer_address, self._options, false);
+            } else {
+                self._mechanism = curve_client_t(session(), self._options, false);
+            }
+            // alloc_assert (_mechanism);
+            return true;
+        }
 // #endif
 
-    return false;
-}
-
-bool ws_engine_t::handshake ()
-{
-    complete: bool
-
-    if (_client)
-        complete = client_handshake ();
-    else
-        complete = server_handshake ();
-
-    if (complete) {
-        _encoder =
-          new (std::nothrow) ws_encoder_t (_options.out_batch_size, _client);
-        // alloc_assert (_encoder);
-
-        _decoder = new (std::nothrow)
-          ws_decoder_t (_options.in_batch_size, _options.maxmsgsize,
-                        _options.zero_copy, !_client);
-        // alloc_assert (_decoder);
-
-        socket ().event_handshake_succeeded (_endpoint_uri_pair, 0);
-
-        set_pollout ();
-    }
-
-    return complete;
-}
-
-bool ws_engine_t::server_handshake ()
-{
-    let nbytes: i32 = read (_read_buffer, WS_BUFFER_SIZE);
-    if (nbytes == -1) {
-        if (errno != EAGAIN)
-            // error (ZmqIEngine::connection_error);
         return false;
     }
 
-    _inpos = _read_buffer;
-    _insize = nbytes;
 
-    while (_insize > 0) {
-        const char c = static_cast<char> (*_inpos);
+    pub fn handshake(&mut self) -> bool {
+        let mut complete = false;
 
-        switch (_server_handshake_state) {
-            case handshake_initial:
-                if (c == 'G')
-                    _server_handshake_state = request_line_G;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case request_line_G:
-                if (c == 'E')
-                    _server_handshake_state = request_line_GE;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case request_line_GE:
-                if (c == 'T')
-                    _server_handshake_state = request_line_GET;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case request_line_GET:
-                if (c == ' ')
-                    _server_handshake_state = request_line_GET_space;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case request_line_GET_space:
-                if (c == '\r' || c == '\n')
-                    _server_handshake_state = handshake_error;
-                // TODO: instead of check what is not allowed check what is allowed
-                if (c != ' ')
-                    _server_handshake_state = request_line_resource;
-                else
-                    _server_handshake_state = request_line_GET_space;
-                break;
-            case request_line_resource:
-                if (c == '\r' || c == '\n')
-                    _server_handshake_state = handshake_error;
-                else if (c == ' ')
-                    _server_handshake_state = request_line_resource_space;
-                else
-                    _server_handshake_state = request_line_resource;
-                break;
-            case request_line_resource_space:
-                if (c == 'H')
-                    _server_handshake_state = request_line_H;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case request_line_H:
-                if (c == 'T')
-                    _server_handshake_state = request_line_HT;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case request_line_HT:
-                if (c == 'T')
-                    _server_handshake_state = request_line_HTT;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case request_line_HTT:
-                if (c == 'P')
-                    _server_handshake_state = request_line_HTTP;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case request_line_HTTP:
-                if (c == '/')
-                    _server_handshake_state = request_line_HTTP_slash;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case request_line_HTTP_slash:
-                if (c == '1')
-                    _server_handshake_state = request_line_HTTP_slash_1;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case request_line_HTTP_slash_1:
-                if (c == '.')
-                    _server_handshake_state = request_line_HTTP_slash_1_dot;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case request_line_HTTP_slash_1_dot:
-                if (c == '1')
-                    _server_handshake_state = request_line_HTTP_slash_1_dot_1;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case request_line_HTTP_slash_1_dot_1:
-                if (c == '\r')
-                    _server_handshake_state = request_line_cr;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case request_line_cr:
-                if (c == '\n')
-                    _server_handshake_state = header_field_begin_name;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case header_field_begin_name:
-                switch (c) {
-                    case '\r':
-                        _server_handshake_state = handshake_end_line_cr;
-                        break;
-                    case '\n':
-                        _server_handshake_state = handshake_error;
-                        break;
-                    _ =>
-                        _header_name[0] = c;
-                        _header_name_position = 1;
-                        _server_handshake_state = header_field_name;
-                        break;
-                }
-                break;
-            case header_field_name:
-                if (c == '\r' || c == '\n')
-                    _server_handshake_state = handshake_error;
-                else if (c == ':') {
-                    _header_name[_header_name_position] = 0;
-                    _server_handshake_state = header_field_colon;
-                } else if (_header_name_position + 1 > MAX_HEADER_NAME_LENGTH)
-                    _server_handshake_state = handshake_error;
-                else {
-                    _header_name[_header_name_position] = c;
-                    _header_name_position+= 1;
-                    _server_handshake_state = header_field_name;
-                }
-                break;
-            case header_field_colon:
-            case header_field_value_trailing_space:
-                if (c == '\n')
-                    _server_handshake_state = handshake_error;
-                else if (c == '\r')
-                    _server_handshake_state = header_field_cr;
-                else if (c == ' ')
-                    _server_handshake_state = header_field_value_trailing_space;
-                else {
-                    _header_value[0] = c;
-                    _header_value_position = 1;
-                    _server_handshake_state = header_field_value;
-                }
-                break;
-            case header_field_value:
-                if (c == '\n')
-                    _server_handshake_state = handshake_error;
-                else if (c == '\r') {
-                    _header_value[_header_value_position] = 0;
+        if (self._client) {
+            complete = self.client_handshake();
+        } else {
+            complete = self.server_handshake();
+        }
 
-                    if (strcasecmp ("upgrade", _header_name) == 0)
-                        _header_upgrade_websocket =
-                          strcasecmp ("websocket", _header_value) == 0;
-                    else if (strcasecmp ("connection", _header_name) == 0) {
-                        char *rest = null_mut();
-                        char *element = strtok_r (_header_value, ",", &rest);
-                        while (element != null_mut()) {
-                            while (*element == ' ')
-                                element+= 1;
-                            if (strcasecmp ("upgrade", element) == 0) {
-                                _header_connection_upgrade = true;
-                                break;
-                            }
-                            element = strtok_r (null_mut(), ",", &rest);
+        if (complete) {
+            self._encoder = ws_encoder_t::new(self._options.out_batch_size, self._client);
+            // alloc_assert (_encoder);
+
+            self._decoder = ws_decoder_t::new(self._options.in_batch_size, self._options.maxmsgsize,
+                                              self._options.zero_copy, !self._client);
+            // alloc_assert (_decoder);
+
+            self.socket().event_handshake_succeeded(self._endpoint_uri_pair, 0);
+
+            set_pollout();
+        }
+
+        return complete;
+    }
+
+
+    pub fn server_handshake(&mut self) -> bool {
+        let nbytes = self.read(&mut self._read_buffer, WS_BUFFER_SIZE)?;
+        if (nbytes == -1) {
+            if (errno != EAGAIN) {}
+            // error (ZmqIEngine::connection_error);
+            return false;
+        }
+
+        self._inpos = self._read_buffer;
+        self._insize = nbytes;
+
+        while (self._insize > 0) {
+            let c = (*self._inpos);
+
+            match (self._server_handshake_state) {
+                handshake_initial => {
+                    if (c == 'G') {
+                        self._server_handshake_state = request_line_G;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                    //
+                }
+                request_line_G => {
+                    if (c == 'E') {
+                        self._server_handshake_state = request_line_GE;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                }
+
+                request_line_GE => {
+                    if (c == 'T') {
+                        self._server_handshake_state = request_line_GET;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                }
+
+                request_line_GET => {
+                    if (c == ' ') {
+                        self._server_handshake_state = request_line_GET_space;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                }
+                //
+                request_line_GET_space => {
+                    if (c == '\r' || c == '\n') {
+                        self._server_handshake_state = handshake_error;
+                    }
+                    // TODO: instead of check what is not allowed check what is allowed
+                    if (c != ' ') {
+                        self._server_handshake_state = request_line_resource;
+                    } else {
+                        self._server_handshake_state = request_line_GET_space;
+                    }
+                }
+                //
+                request_line_resource => {
+                    if (c == '\r' || c == '\n') {
+                        self._server_handshake_state = handshake_error;
+                    } else if (c == ' ') {
+                        self._server_handshake_state = request_line_resource_space;
+                    } else {
+                        self._server_handshake_state = request_line_resource;
+                    }
+                }
+                //
+                request_line_resource_space => {
+                    if (c == 'H') {
+                        self._server_handshake_state = request_line_H;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                }
+
+                request_line_H => {
+                    if (c == 'T') {
+                        self._server_handshake_state = request_line_HT;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                }
+                //
+                request_line_HT => {
+                    if (c == 'T') {
+                        self._server_handshake_state = request_line_HTT;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                }
+
+                request_line_HTT => {
+                    if (c == 'P') {
+                        self._server_handshake_state = request_line_HTTP;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                }
+
+                request_line_HTTP => {
+                    if (c == '/') {
+                        self._server_handshake_state = request_line_HTTP_slash;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                }
+
+                request_line_HTTP_slash => {
+                    if (c == '1') {
+                        self._server_handshake_state = request_line_HTTP_slash_1;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                }
+
+                request_line_HTTP_slash_1 => {
+                    if (c == '.') {
+                        self._server_handshake_state = request_line_HTTP_slash_1_dot;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                }
+
+                request_line_HTTP_slash_1_dot => {
+                    if (c == '1') {
+                        self._server_handshake_state = request_line_HTTP_slash_1_dot_1;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                }
+
+                request_line_HTTP_slash_1_dot_1 => {
+                    if (c == '\r') {
+                        self._server_handshake_state = request_line_cr;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                }
+
+                request_line_cr => {
+                    if (c == '\n') {
+                        self._server_handshake_state = header_field_begin_name;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                }
+
+                header_field_begin_name => {
+                    match c {
+                        '\r' => self._server_handshake_state = handshake_end_line_cr,
+                        '\n' => self._server_handshake_state = handshake_error,
+
+                        _ => {
+                            self._header_name[0] = c;
+                            self._header_name_position = 1;
+                            self._server_handshake_state = header_field_name;
                         }
-                    } else if (strcasecmp ("Sec-WebSocket-Key", _header_name)
-                               == 0)
-                        strcpy_s (_websocket_key, _header_value);
-                    else if (strcasecmp ("Sec-WebSocket-Protocol", _header_name)
-                             == 0) {
-                        // Currently only the ZWS2.0 is supported
-                        // Sec-WebSocket-Protocol can appear multiple times or be a comma separated list
-                        // if _websocket_protocol is already set we skip the check
-                        if (_websocket_protocol[0] == 0) {
-                            char *rest = null_mut();
-                            char *p = strtok_r (_header_value, ",", &rest);
-                            while (p != null_mut()) {
-                                if (*p == ' ')
-                                    p+= 1;
+                    }
+                }
 
-                                if (select_protocol (p)) {
-                                    strcpy_s (_websocket_protocol, p);
-                                    break;
+                header_field_name => {
+                    if (c == '\r' || c == '\n') {
+                        self._server_handshake_state = handshake_error;
+                    } else if (c == ':') {
+                        self._header_name[_header_name_position] = 0;
+                        self._server_handshake_state = header_field_colon;
+                    } else if (self._header_name_position + 1 > MAX_HEADER_NAME_LENGTH) {
+                        self._server_handshake_state = handshake_error;
+                    } else {
+                        self._header_name[_header_name_position] = c;
+                        self._header_name_position += 1;
+                        self._server_handshake_state = header_field_name;
+                    }
+                }
+
+                header_field_colon | header_field_value_trailing_space => {
+                    if (c == '\n') {
+                        self._server_handshake_state = handshake_error;
+                    } else if (c == '\r') {
+                        self._server_handshake_state = header_field_cr;
+                    } else if (c == ' ') {
+                        self._server_handshake_state = header_field_value_trailing_space;
+                    } else {
+                        self._header_value[0] = c;
+                        self._header_value_position = 1;
+                        self._server_handshake_state = header_field_value;
+                    }
+                }
+
+                header_field_value => {
+                    if (c == '\n') {
+                        self._server_handshake_state = handshake_error;
+                    } else if (c == '\r') {
+                        self._header_value[_header_value_position] = 0;
+
+                        if (("upgrade" == self._header_name)) {
+                            self._header_upgrade_websocket = ("websocket" == self._header_value);
+                        } else if (("connection" == self._header_name)) {
+                            char * rest = null_mut();
+                            char * element = strtok_r(self._header_value, ",", &rest);
+                            while (element != null_mut()) {
+                                while (*element == ' ') {
+                                    element += 1;
                                 }
+                                if (("upgrade" == element)) {
+                                    self._header_connection_upgrade = true;
+                                }
+                                element = strtok_r(null_mut(), ",", &rest);
+                            }
+                        } else if (("Sec-WebSocket-Key" == self._header_name)) {
+                            strcpy_s(self._websocket_key, self._header_value);
+                        } else if (("Sec-WebSocket-Protocol" == self._header_name)) {
+                            // Currently only the ZWS2.0 is supported
+                            // Sec-WebSocket-Protocol can appear multiple times or be a comma separated list
+                            // if _websocket_protocol is already set we skip the check
+                            if (self._websocket_protocol[0] == 0) {
+                                char * rest = null_mut();
+                                char * p = strtok_r(self._header_value, ",", &rest);
+                                while (p != null_mut()) {
+                                    if (*p == ' ') {
+                                        p += 1;
+                                    }
 
-                                p = strtok_r (null_mut(), ",", &rest);
+                                    if (select_protocol(p)) {
+                                        strcpy_s(self._websocket_protocol, p);
+                                    }
+
+                                    p = strtok_r(null_mut(), ",", &rest);
+                                }
                             }
                         }
-                    }
 
-                    _server_handshake_state = header_field_cr;
-                } else if (_header_value_position + 1 > MAX_HEADER_VALUE_LENGTH)
-                    _server_handshake_state = handshake_error;
-                else {
-                    _header_value[_header_value_position] = c;
-                    _header_value_position+= 1;
-                    _server_handshake_state = header_field_value;
+                        self._server_handshake_state = header_field_cr;
+                    } else if (self._header_value_position + 1 > MAX_HEADER_VALUE_LENGTH) {
+                        self._server_handshake_state = handshake_error;
+                    } else {
+                        self._header_value[_header_value_position] = c;
+                        self._header_value_position += 1;
+                        self._server_handshake_state = header_field_value;
+                    }
                 }
-                break;
-            case header_field_cr:
-                if (c == '\n')
-                    _server_handshake_state = header_field_begin_name;
-                else
-                    _server_handshake_state = handshake_error;
-                break;
-            case handshake_end_line_cr:
-                if (c == '\n') {
-                    if (_header_connection_upgrade && _header_upgrade_websocket
-                        && _websocket_protocol[0] != 0
-                        && _websocket_key[0] != 0) {
-                        _server_handshake_state = handshake_complete;
-
-                        unsigned char hash[SHA_DIGEST_LENGTH];
-                        compute_accept_key (_websocket_key, hash);
-
-                        let accept_key_len: i32 = encode_base64 (
-                          hash, SHA_DIGEST_LENGTH, _websocket_accept,
-                          MAX_HEADER_VALUE_LENGTH);
-                        assert (accept_key_len > 0);
-                        _websocket_accept[accept_key_len] = 0;
-
-                        let written: i32 =
-                          snprintf (reinterpret_cast<char *> (_write_buffer),
-                                    WS_BUFFER_SIZE,
-                                    "HTTP/1.1 101 Switching Protocols\r\n"
-                                    "Upgrade: websocket\r\n"
-                                    "Connection: Upgrade\r\n"
-                                    "Sec-WebSocket-Accept: %s\r\n"
-                                    "Sec-WebSocket-Protocol: %s\r\n"
-                                    "\r\n",
-                                    _websocket_accept, _websocket_protocol);
-                        assert (written >= 0 && written < WS_BUFFER_SIZE);
-                        _outpos = _write_buffer;
-                        _outsize = written;
-
-                        _inpos+= 1;
-                        _insize -= 1;
-
-                        return true;
+                header_field_cr => {
+                    if (c == '\n') {
+                        self._server_handshake_state = header_field_begin_name;
+                    } else {
+                        self._server_handshake_state = handshake_error;
                     }
-                    _server_handshake_state = handshake_error;
-                } else
-                    _server_handshake_state = handshake_error;
-                break;
-            _ =>
-                assert (false);
+                }
+
+                handshake_end_line_cr => {
+                    if (c == '\n') {
+                        if (self._header_connection_upgrade && self._header_upgrade_websocket && self._websocket_protocol[0] != 0 && self._websocket_key[0] != 0) {
+                            self._server_handshake_state = handshake_complete;
+
+                            let hash: [u8; SHA_DIGEST_LENGTH] = [0; SHA_DIGEST_LENGTH];
+                            compute_accept_key(&self._websocket_key, &hash);
+
+                            let accept_key_len: i32 = encode_base64(
+                                hash, SHA_DIGEST_LENGTH, self._websocket_accept,
+                                MAX_HEADER_VALUE_LENGTH);
+                            // assert (accept_key_len > 0);
+                            self._websocket_accept[accept_key_len] = 0;
+
+                            self._write_buffer = format!(                                                        "HTTP/1.1 101 Switching Protocols\r\n" \
+                                                        "Upgrade: websocket\r\n" \
+                                                        "Connection: Upgrade\r\n" \
+                                                        "Sec-WebSocket-Accept: %s\r\n" \
+                                                        "Sec-WebSocket-Protocol: %s\r\n" \
+                                                        "\r\n",
+                                                        self._websocket_accept, self._websocket_protocol).into_bytes();
+                            // assert(written >= 0 && written < WS_BUFFER_SIZE);
+                            // TODO
+                            // self._outpos = self._write_buffer;
+                            self._outsize = written;
+
+                            self._inpos += 1;
+                            self._insize -= 1;
+
+                            return true;
+                        }
+                        self._server_handshake_state = handshake_error;
+                    } else {
+                        self._server_handshake_state = handshake_error;
+                    }
+                }
+
+                _ => {}
+                // assert (false);
+            }
+
+            self._inpos += 1;
+            self._insize -= 1;
+
+            if (self._server_handshake_state == handshake_error) {
+                // TODO: send bad request
+
+                self.socket().event_handshake_failed_protocol(
+                    self._endpoint_uri_pair, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED);
+
+                // error (ZmqIEngine::protocol_error);
+                return false;
+            }
         }
-
-        _inpos+= 1;
-        _insize -= 1;
-
-        if (_server_handshake_state == handshake_error) {
-            // TODO: send bad request
-
-            socket ().event_handshake_failed_protocol (
-              _endpoint_uri_pair, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED);
-
-            // error (ZmqIEngine::protocol_error);
-            return false;
-        }
-    }
-    return false;
-}
-
-bool ws_engine_t::client_handshake ()
-{
-    let nbytes: i32 = read (_read_buffer, WS_BUFFER_SIZE);
-    if (nbytes == -1) {
-        if (errno != EAGAIN)
-            // error (ZmqIEngine::connection_error);
         return false;
     }
 
-    _inpos = _read_buffer;
-    _insize = nbytes;
 
-    while (_insize > 0) {
-        const char c = static_cast<char> (*_inpos);
-
-        switch (_client_handshake_state) {
-            case client_handshake_initial:
-                if (c == 'H')
-                    _client_handshake_state = response_line_H;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_H:
-                if (c == 'T')
-                    _client_handshake_state = response_line_HT;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_HT:
-                if (c == 'T')
-                    _client_handshake_state = response_line_HTT;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_HTT:
-                if (c == 'P')
-                    _client_handshake_state = response_line_HTTP;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_HTTP:
-                if (c == '/')
-                    _client_handshake_state = response_line_HTTP_slash;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_HTTP_slash:
-                if (c == '1')
-                    _client_handshake_state = response_line_HTTP_slash_1;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_HTTP_slash_1:
-                if (c == '.')
-                    _client_handshake_state = response_line_HTTP_slash_1_dot;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_HTTP_slash_1_dot:
-                if (c == '1')
-                    _client_handshake_state = response_line_HTTP_slash_1_dot_1;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_HTTP_slash_1_dot_1:
-                if (c == ' ')
-                    _client_handshake_state =
-                      response_line_HTTP_slash_1_dot_1_space;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_HTTP_slash_1_dot_1_space:
-                if (c == ' ')
-                    _client_handshake_state =
-                      response_line_HTTP_slash_1_dot_1_space;
-                else if (c == '1')
-                    _client_handshake_state = response_line_status_1;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_status_1:
-                if (c == '0')
-                    _client_handshake_state = response_line_status_10;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_status_10:
-                if (c == '1')
-                    _client_handshake_state = response_line_status_101;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_status_101:
-                if (c == ' ')
-                    _client_handshake_state = response_line_status_101_space;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_status_101_space:
-                if (c == ' ')
-                    _client_handshake_state = response_line_status_101_space;
-                else if (c == 'S')
-                    _client_handshake_state = response_line_s;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_s:
-                if (c == 'w')
-                    _client_handshake_state = response_line_sw;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_sw:
-                if (c == 'i')
-                    _client_handshake_state = response_line_swi;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_swi:
-                if (c == 't')
-                    _client_handshake_state = response_line_swit;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_swit:
-                if (c == 'c')
-                    _client_handshake_state = response_line_switc;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_switc:
-                if (c == 'h')
-                    _client_handshake_state = response_line_switch;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_switch:
-                if (c == 'i')
-                    _client_handshake_state = response_line_switchi;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_switchi:
-                if (c == 'n')
-                    _client_handshake_state = response_line_switchin;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_switchin:
-                if (c == 'g')
-                    _client_handshake_state = response_line_switching;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_switching:
-                if (c == ' ')
-                    _client_handshake_state = response_line_switching_space;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_switching_space:
-                if (c == 'P')
-                    _client_handshake_state = response_line_p;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_p:
-                if (c == 'r')
-                    _client_handshake_state = response_line_pr;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_pr:
-                if (c == 'o')
-                    _client_handshake_state = response_line_pro;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_pro:
-                if (c == 't')
-                    _client_handshake_state = response_line_prot;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_prot:
-                if (c == 'o')
-                    _client_handshake_state = response_line_proto;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_proto:
-                if (c == 'c')
-                    _client_handshake_state = response_line_protoc;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_protoc:
-                if (c == 'o')
-                    _client_handshake_state = response_line_protoco;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_protoco:
-                if (c == 'l')
-                    _client_handshake_state = response_line_protocol;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_protocol:
-                if (c == 's')
-                    _client_handshake_state = response_line_protocols;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_protocols:
-                if (c == '\r')
-                    _client_handshake_state = response_line_cr;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case response_line_cr:
-                if (c == '\n')
-                    _client_handshake_state = client_header_field_begin_name;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case client_header_field_begin_name:
-                switch (c) {
-                    case '\r':
-                        _client_handshake_state = client_handshake_end_line_cr;
-                        break;
-                    case '\n':
-                        _client_handshake_state = client_handshake_error;
-                        break;
-                    _ =>
-                        _header_name[0] = c;
-                        _header_name_position = 1;
-                        _client_handshake_state = client_header_field_name;
-                        break;
-                }
-                break;
-            case client_header_field_name:
-                if (c == '\r' || c == '\n')
-                    _client_handshake_state = client_handshake_error;
-                else if (c == ':') {
-                    _header_name[_header_name_position] = 0;
-                    _client_handshake_state = client_header_field_colon;
-                } else if (_header_name_position + 1 > MAX_HEADER_NAME_LENGTH)
-                    _client_handshake_state = client_handshake_error;
-                else {
-                    _header_name[_header_name_position] = c;
-                    _header_name_position+= 1;
-                    _client_handshake_state = client_header_field_name;
-                }
-                break;
-            case client_header_field_colon:
-            case client_header_field_value_trailing_space:
-                if (c == '\n')
-                    _client_handshake_state = client_handshake_error;
-                else if (c == '\r')
-                    _client_handshake_state = client_header_field_cr;
-                else if (c == ' ')
-                    _client_handshake_state =
-                      client_header_field_value_trailing_space;
-                else {
-                    _header_value[0] = c;
-                    _header_value_position = 1;
-                    _client_handshake_state = client_header_field_value;
-                }
-                break;
-            case client_header_field_value:
-                if (c == '\n')
-                    _client_handshake_state = client_handshake_error;
-                else if (c == '\r') {
-                    _header_value[_header_value_position] = 0;
-
-                    if (strcasecmp ("upgrade", _header_name) == 0)
-                        _header_upgrade_websocket =
-                          strcasecmp ("websocket", _header_value) == 0;
-                    else if (strcasecmp ("connection", _header_name) == 0)
-                        _header_connection_upgrade =
-                          strcasecmp ("upgrade", _header_value) == 0;
-                    else if (strcasecmp ("Sec-WebSocket-Accept", _header_name)
-                             == 0)
-                        strcpy_s (_websocket_accept, _header_value);
-                    else if (strcasecmp ("Sec-WebSocket-Protocol", _header_name)
-                             == 0) {
-                        if (_mechanism) {
-                            _client_handshake_state = client_handshake_error;
-                            break;
-                        }
-                        if (select_protocol (_header_value))
-                            strcpy_s (_websocket_protocol, _header_value);
-                    }
-                    _client_handshake_state = client_header_field_cr;
-                } else if (_header_value_position + 1 > MAX_HEADER_VALUE_LENGTH)
-                    _client_handshake_state = client_handshake_error;
-                else {
-                    _header_value[_header_value_position] = c;
-                    _header_value_position+= 1;
-                    _client_handshake_state = client_header_field_value;
-                }
-                break;
-            case client_header_field_cr:
-                if (c == '\n')
-                    _client_handshake_state = client_header_field_begin_name;
-                else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            case client_handshake_end_line_cr:
-                if (c == '\n') {
-                    if (_header_connection_upgrade && _header_upgrade_websocket
-                        && _websocket_protocol[0] != 0
-                        && _websocket_accept[0] != 0) {
-                        _client_handshake_state = client_handshake_complete;
-
-                        // TODO: validate accept key
-
-                        _inpos+= 1;
-                        _insize -= 1;
-
-                        return true;
-                    }
-                    _client_handshake_state = client_handshake_error;
-                } else
-                    _client_handshake_state = client_handshake_error;
-                break;
-            _ =>
-                assert (false);
-        }
-
-        _inpos+= 1;
-        _insize -= 1;
-
-        if (_client_handshake_state == client_handshake_error) {
-            socket ().event_handshake_failed_protocol (
-              _endpoint_uri_pair, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED);
-
-            // error (ZmqIEngine::protocol_error);
+    pub fn client_handshake(&mut self) -> bool {
+        let nbytes = self.read(&mut self._read_buffer, WS_BUFFER_SIZE).unwrap();
+        if (nbytes == -1) {
+            if (errno != EAGAIN) {}
+            // error (ZmqIEngine::connection_error);
             return false;
         }
-    }
 
-    return false;
-}
+        self._inpos = self._read_buffer;
+        self._insize = nbytes;
 
-int ws_engine_t::decode_and_push (msg: &mut ZmqMessage)
-{
-    // zmq_assert (_mechanism != null_mut());
+        while (self._insize > 0) {
+            let c = (*_inpos);
 
-    //  with WS engine, ping and pong commands are control messages and should not go through any mechanism
-    if (msg.is_ping () || msg.is_pong () || msg.is_close_cmd ()) {
-        if (process_command_message (msg) == -1)
-            return -1;
-    } else if (_mechanism.decode (msg) == -1)
-        return -1;
+            match (self._client_handshake_state) {
+                client_handshake_initial => {
+                    if (c == 'H') {
+                        self._client_handshake_state = response_line_H;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
+                response_line_H => {
+                    if (c == 'T') {
+                        self._client_handshake_state = response_line_HT;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-    if (_has_timeout_timer) {
-        _has_timeout_timer = false;
-        cancel_timer (heartbeat_timeout_timer_id);
-    }
+                response_line_HT => {
+                    if (c == 'T') {
+                        self._client_handshake_state = response_line_HTT;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-    if (msg.flags () & ZMQ_MSG_COMMAND && !msg.is_ping ()
-        && !msg.is_pong () && !msg.is_close_cmd ())
-        process_command_message (msg);
+                response_line_HTT => {
+                    if (c == 'P') {
+                        self._client_handshake_state = response_line_HTTP;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-    if (_metadata)
-        msg.set_metadata (_metadata);
-    if (session ().push_msg (msg) == -1) {
-        if (errno == EAGAIN)
-            _process_msg = &ws_engine_t::push_one_then_decode_and_push;
-        return -1;
-    }
-    return 0;
-}
+                response_line_HTTP => {
+                    if (c == '/') {
+                        self._client_handshake_state = response_line_HTTP_slash;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-int ws_engine_t::produce_close_message (msg: &mut ZmqMessage)
-{
-    int rc = msg.move (_close_msg);
-    // errno_assert (rc == 0);
+                response_line_HTTP_slash => {
+                    if (c == '1') {
+                        self._client_handshake_state = response_line_HTTP_slash_1;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-    _next_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
-      &ws_engine_t::produce_no_msg_after_close);
+                response_line_HTTP_slash_1 => {
+                    if (c == '.') {
+                        self._client_handshake_state = response_line_HTTP_slash_1_dot;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-    return rc;
-}
+                response_line_HTTP_slash_1_dot => {
+                    if (c == '1') {
+                        self._client_handshake_state = response_line_HTTP_slash_1_dot_1;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-int ws_engine_t::produce_no_msg_after_close (msg: &mut ZmqMessage)
-{
-    LIBZMQ_UNUSED (msg);
-    _next_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
-      &ws_engine_t::close_connection_after_close);
+                response_line_HTTP_slash_1_dot_1 => {
+                    if (c == ' ') {
+                        self._client_handshake_state = response_line_HTTP_slash_1_dot_1_space;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-    errno = EAGAIN;
-    return -1;
-}
+                response_line_HTTP_slash_1_dot_1_space => {
+                    if (c == ' ') {
+                        self._client_handshake_state = response_line_HTTP_slash_1_dot_1_space;
+                    } else if (c == '1') {
+                        self._client_handshake_state = response_line_status_1;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-int ws_engine_t::close_connection_after_close (msg: &mut ZmqMessage)
-{
-    LIBZMQ_UNUSED (msg);
-    // error (connection_error);
-    errno = ECONNRESET;
-    return -1;
-}
+                response_line_status_1 => {
+                    if (c == '0') {
+                        self._client_handshake_state = response_line_status_10;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-int ws_engine_t::produce_ping_message (msg: &mut ZmqMessage)
-{
-    int rc = msg.init ();
-    // errno_assert (rc == 0);
-    msg.set_flags (ZMQ_MSG_COMMAND | ZMQ_MSG_PING);
+                response_line_status_10 => {
+                    if (c == '1') {
+                        self._client_handshake_state = response_line_status_101;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-    _next_msg = &ws_engine_t::pull_and_encode;
-    if (!_has_timeout_timer && _heartbeat_timeout > 0) {
-        add_timer (_heartbeat_timeout, heartbeat_timeout_timer_id);
-        _has_timeout_timer = true;
-    }
+                response_line_status_101 => {
+                    if (c == ' ') {
+                        self._client_handshake_state = response_line_status_101_space;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-    return rc;
-}
+                response_line_status_101_space => {
+                    if (c == ' ') {
+                        self._client_handshake_state = response_line_status_101_space;
+                    } else if (c == 'S') {
+                        self._client_handshake_state = response_line_s;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
+                response_line_s => {
+                    if (c == 'w') {
+                        self._client_handshake_state = response_line_sw;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-int ws_engine_t::produce_pong_message (msg: &mut ZmqMessage)
-{
-    int rc = msg.init ();
-    // errno_assert (rc == 0);
-    msg.set_flags (ZMQ_MSG_COMMAND | ZMQ_MSG_PONG);
+                response_line_sw => {
+                    if (c == 'i') {
+                        self._client_handshake_state = response_line_swi;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-    _next_msg = &ws_engine_t::pull_and_encode;
-    return rc;
-}
+                response_line_swi => {
+                    if (c == 't') {
+                        self._client_handshake_state = response_line_swit;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
+                response_line_swit => {
+                    if (c == 'c') {
+                        self._client_handshake_state = response_line_switc;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-int ws_engine_t::process_command_message (msg: &mut ZmqMessage)
-{
-    if (msg.is_ping ()) {
-        _next_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
-          &ws_engine_t::produce_pong_message);
-        out_event ();
-    } else if (msg.is_close_cmd ()) {
-        int rc = _close_msg.copy (*msg);
-        // errno_assert (rc == 0);
-        _next_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
-          &ws_engine_t::produce_close_message);
-        out_event ();
-    }
+                response_line_switc => {
+                    if (c == 'h') {
+                        self._client_handshake_state = response_line_switch;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-    return 0;
-}
+                response_line_switch => {
+                    if (c == 'i') {
+                        self._client_handshake_state = response_line_switchi;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-static int
-encode_base64 (const in_: &mut [u8], in_len_: i32, char *out_, out_len_: i32)
-{
-    static const unsigned char base64enc_tab[65] =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+                response_line_switchi => {
+                    if (c == 'n') {
+                        self._client_handshake_state = response_line_switchin;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-    int io = 0;
-    u32 v = 0;
-    int rem = 0;
+                response_line_switchin => {
+                    if (c == 'g') {
+                        self._client_handshake_state = response_line_switching;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
 
-    for (int ii = 0; ii < in_len_; ii+= 1) {
-        unsigned char ch;
-        ch = in_[ii];
-        v = (v << 8) | ch;
-        rem += 8;
-        while (rem >= 6) {
-            rem -= 6;
-            if (io >= out_len_)
-                return -1; /* truncation is failure */
-            out_[io+= 1] = base64enc_tab[(v >> rem) & 63];
+                response_line_switching => {
+                    if (c == ' ') {
+                        self._client_handshake_state = response_line_switching_space;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
+
+                response_line_switching_space => {
+                    if (c == 'P') {
+                        self._client_handshake_state = response_line_p;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
+
+                response_line_p => {
+                    if (c == 'r') {
+                        self._client_handshake_state = response_line_pr;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
+
+                response_line_pr => {
+                    if (c == 'o') {
+                        self._client_handshake_state = response_line_pro;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
+
+                response_line_pro => {
+                    if (c == 't') {
+                        self._client_handshake_state = response_line_prot;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
+
+                response_line_prot => {
+                    if (c == 'o') {
+                        self._client_handshake_state = response_line_proto;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
+
+                response_line_proto => {
+                    if (c == 'c') {
+                        self._client_handshake_state = response_line_protoc;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
+
+                response_line_protoc => {
+                    if (c == 'o') {
+                        self._client_handshake_state = response_line_protoco;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
+
+                response_line_protoco => {
+                    if (c == 'l') {
+                        self._client_handshake_state = response_line_protocol;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
+
+                response_line_protocol => {
+                    if (c == 's') {
+                        self._client_handshake_state = response_line_protocols;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
+
+                response_line_protocols => {
+                    if (c == '\r') {
+                        self._client_handshake_state = response_line_cr;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
+
+                response_line_cr => {
+                    if (c == '\n') {
+                        self._client_handshake_state = client_header_field_begin_name;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
+
+                client_header_field_begin_name => {
+                    match (c) {
+                        '\r' => self._client_handshake_state = client_handshake_end_line_cr,
+                        '\n' => self._client_handshake_state = client_handshake_error,
+                        _ => {
+                            self._header_name[0] = c;
+                            self._header_name_position = 1;
+                            self._client_handshake_state = client_header_field_name;
+                        }
+                    }
+                }
+
+                client_header_field_name => {
+                    if (c == '\r' || c == '\n') {
+                        self._client_handshake_state = client_handshake_error;
+                    } else if (c == ':') {
+                        self._header_name[_header_name_position] = 0;
+                        self._client_handshake_state = client_header_field_colon;
+                    } else if (self._header_name_position + 1 > MAX_HEADER_NAME_LENGTH) {
+                        self._client_handshake_state = client_handshake_error;
+                    } else {
+                        self._header_name[_header_name_position] = c;
+                        self._header_name_position += 1;
+                        self._client_handshake_state = client_header_field_name;
+                    }
+                }
+
+                client_header_field_colon | client_header_field_value_trailing_space => {
+                    if (c == '\n') {
+                        self._client_handshake_state = client_handshake_error;
+                    } else if (c == '\r') {
+                        self._client_handshake_state = client_header_field_cr;
+                    } else if (c == ' ') {
+                        self._client_handshake_state = client_header_field_value_trailing_space;
+                    } else {
+                        self._header_value[0] = c;
+                        self._header_value_position = 1;
+                        self._client_handshake_state = client_header_field_value;
+                    }
+                }
+
+                client_header_field_value => {
+                    if (c == '\n') {
+                        self._client_handshake_state = client_handshake_error;
+                    } else if (c == '\r') {
+                        self._header_value[_header_value_position] = 0;
+
+                        if (("upgrade" == self._header_name)) {
+                            self._header_upgrade_websocket = ("websocket" == self._header_value);
+                        } else if (("connection" == self._header_name)) {
+                            self._header_connection_upgrade = ("upgrade" == self._header_value);
+                        } else if (("Sec-WebSocket-Accept" == self._header_name)) {
+                            self._websocket_accept = self._header_value;
+                        } else if (("Sec-WebSocket-Protocol" == self._header_name)) {
+                            if (self._mechanism) {
+                                self._client_handshake_state = client_handshake_error;
+                            }
+                            if (select_protocol(self._header_value)) {
+                                strcpy_s(self._websocket_protocol, self._header_value);
+                            }
+                        }
+                        self._client_handshake_state = client_header_field_cr;
+                    } else if (self._header_value_position + 1 > MAX_HEADER_VALUE_LENGTH) {
+                        self._client_handshake_state = client_handshake_error;
+                    } else {
+                        self._header_value[_header_value_position] = c;
+                        self._header_value_position += 1;
+                        self._client_handshake_state = client_header_field_value;
+                    }
+                }
+
+                client_header_field_cr => {
+                    if (c == '\n') {
+                        self._client_handshake_state = client_header_field_begin_name;
+                    } else {
+                        self._client_handshake_state = client_handshake_error;
+                    }
+                }
+
+                client_handshake_end_line_cr => {
+                    if (c == '\n') {
+                        if (self._header_connection_upgrade && self._header_upgrade_websocket && self._websocket_protocol[0] != 0 && self._websocket_accept[0] != 0) {
+                            self._client_handshake_state = client_handshake_complete;
+
+                            // TODO: validate accept key
+
+                            self._inpos += 1;
+                            self._insize -= 1;
+
+                            return true;
+                        }
+                        self._client_handshake_state = client_handshake_error;
+                    } else { self._client_handshake_state = client_handshake_error; }
+                }
+                _ => {
+                    // assert(false);
+                }
+            }
+
+            self._inpos += 1;
+            self._insize -= 1;
+
+            if (self._client_handshake_state == client_handshake_error) {
+                self.socket().event_handshake_failed_protocol(
+                    self._endpoint_uri_pair, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED);
+
+                // error (ZmqIEngine::protocol_error);
+                return false;
+            }
         }
-    }
-    if (rem) {
-        v <<= (6 - rem);
-        if (io >= out_len_)
-            return -1; /* truncation is failure */
-        out_[io+= 1] = base64enc_tab[v & 63];
-    }
-    while (io & 3) {
-        if (io >= out_len_)
-            return -1; /* truncation is failure */
-        out_[io+= 1] = '=';
-    }
-    if (io >= out_len_)
-        return -1; /* no room for null terminator */
-    out_[io] = 0;
-    return io;
-}
 
-static void compute_accept_key (char *key_, unsigned char *hash_)
-{
-    const char *magic_string = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-// #ifdef ZMQ_USE_NSS
-    unsigned int len;
-    HASH_HashType type = HASH_GetHashTypeByOidTag (SEC_OID_SHA1);
-    HASHContext *ctx = HASH_Create (type);
-    assert (ctx);
+        return false;
+    }
 
-    HASH_Begin (ctx);
-    HASH_Update (ctx,  key_, (unsigned int) strlen (key_));
-    HASH_Update (ctx,  magic_string,
-                 (unsigned int) strlen (magic_string));
-    HASH_End (ctx, hash_, &len, SHA_DIGEST_LENGTH);
-    HASH_Destroy (ctx);
-#elif defined ZMQ_USE_BUILTIN_SHA1
-    sha1_ctxt ctx;
-    SHA1_Init (&ctx);
-    SHA1_Update (&ctx,  key_, strlen (key_));
-    SHA1_Update (&ctx,  magic_string, strlen (magic_string));
+    pub fn decode_and_push(&mut self, msg: &mut ZmqMessage) -> i32 {
+        // zmq_assert (_mechanism != null_mut());
 
-    SHA1_Final (hash_, &ctx);
-#elif defined ZMQ_USE_GNUTLS
-    gnutls_hash_hd_t hd;
-    gnutls_hash_init (&hd, GNUTLS_DIG_SHA1);
-    gnutls_hash (hd, key_, strlen (key_));
-    gnutls_hash (hd, magic_string, strlen (magic_string));
-    gnutls_hash_deinit (hd, hash_);
-// #else
-#error "No sha1 implementation set"
+        //  with WS engine, ping and pong commands are control messages and should not go through any mechanism
+        if (msg.is_ping() || msg.is_pong() || msg.is_close_cmd()) {
+            if (process_command_message(msg) == -1) {
+                return -1;
+            }
+        } else if (self._mechanism.decode(msg) == -1) {
+            return -1;
+        }
+
+        if (self._has_timeout_timer) {
+            self._has_timeout_timer = false;
+            cancel_timer(heartbeat_timeout_timer_id);
+        }
+
+        if (msg.flags() & ZMQ_MSG_COMMAND != 0 && !msg.is_ping() && !msg.is_pong() && !msg.is_close_cmd()) {
+            process_command_message(msg);
+        }
+
+        if (self._metadata) {
+            msg.set_metadata(self._metadata);
+        }
+        if (session().push_msg(msg) == -1) {
+            if (errno == EAGAIN) {
+                self._process_msg = &ZmqWsEngine::push_one_then_decode_and_push;
+            }
+            return -1;
+        }
+        return 0;
+    }
+
+    pub fn produce_close_message(&mut self, msg: &mut ZmqMessage) -> i32 {
+        // let rc = msg.move (self._close_msg);
+        // errno_assert (rc == 0);
+        self._close_msg = msg.clone();
+
+        self._next_msg = (
+            &ZmqWsEngine::produce_no_msg_after_close);
+
+        return rc;
+    }
+
+    pub fn produce_no_msg_after_close(&mut self, msg: &mut ZmqMessage) -> i32 {
+        // LIBZMQ_UNUSED (msg);
+        self._next_msg = (
+            &ZmqWsEngine::close_connection_after_close);
+
+        errno = EAGAIN;
+        return -1;
+    }
+
+    pub fn close_connection_after_close(&mut self, msg: &mut ZmqMessage) -> i32 {
+        // LIBZMQ_UNUSED (msg);
+        // error (connection_error);
+        errno = ECONNRESET;
+        return -1;
+    }
+
+    pub fn produce_ping_message(&mut self, msg: &mut ZmqMessage) -> i32 {
+        msg.init2();
+        // errno_assert (rc == 0);
+        msg.set_flags(ZMQ_MSG_COMMAND | ZMQ_MSG_PING);
+
+        self._next_msg = &ZmqWsEngine::pull_and_encode;
+        if (!_has_timeout_timer && self._heartbeat_timeout > 0) {
+            add_timer(self._heartbeat_timeout, heartbeat_timeout_timer_id);
+            self._has_timeout_timer = true;
+        }
+
+        // return rc;
+        0
+    }
+
+    pub fn produce_pong_message(&mut self, msg: &mut ZmqMessage) -> i32 {
+        msg.init2();
+        // errno_assert (rc == 0);
+        msg.set_flags(ZMQ_MSG_COMMAND | ZMQ_MSG_PONG);
+
+        self._next_msg = &ZmqWsEngine::pull_and_encode;
+        return 0;
+    }
+
+    pub fn process_command_message(&mut self, msg: &mut ZmqMessage) -> i32 {
+        if (msg.is_ping()) {
+            self._next_msg = (
+                &ZmqWsEngine::produce_pong_message);
+            out_event();
+        } else if (msg.is_close_cmd()) {
+            // let rc = self._close_msg.copy (*msg);
+            self._close_msg = msg.clone();
+            // errno_assert (rc == 0);
+            self._next_msg = (
+                &ZmqWsEngine::produce_close_message);
+            out_event();
+        }
+
+        return 0;
+    }
+
+
+    pub fn encode_base64(in_: &mut [u8], in_len_: i32, out_: &str, out_len_: i32) -> i32 {
+        let base64enc_tab: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+        let mut io = 0;
+        let mut v = 0;
+        let mut rem = 0;
+
+        // for (int ii = 0; ii < in_len_; ii+= 1)
+        for ii in 0..in_len_ {
+            let ch = in_[ii];
+            v = (v << 8) | ch;
+            rem += 8;
+            while (rem >= 6) {
+                rem -= 6;
+                if (io >= out_len_) {
+                    return -1;
+                } /* truncation is failure */
+                out_[io += 1] = base64enc_tab[(v >> rem) & 63];
+            }
+        }
+        if (rem) {
+            v <<= (6 - rem);
+            if (io >= out_len_) {
+                return -1;
+            } /* truncation is failure */
+            out_[io += 1] = base64enc_tab[v & 63];
+        }
+        while (io & 3) {
+            if (io >= out_len_) {
+                return -1;
+            } /* truncation is failure */
+            out_[io += 1] = '=';
+        }
+        if (io >= out_len_) {
+            return -1;
+        } /* no room for null terminator */
+        out_[io] = 0;
+        return io;
+    }
+} // impl ws_engine
+
+// static int
+// encode_base64 (const in_: &mut [u8], in_len_: i32, char *out_, out_len_: i32);
+//
+// static void compute_accept_key (char *key_,
+//                                 unsigned char hash_[SHA_DIGEST_LENGTH]);
+
+
+// ZmqWsEngine::~ZmqWsEngine ()
+// {
+//     _close_msg.close ();
+// }
+
+
+pub fn compute_accept_key(key_: &[u8], hash_: &[u8]) {
+    let magic_string: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    // TODO
+// // #ifdef ZMQ_USE_NSS
+//     let mut len = 0u32;
+//     let hash_type = HASH_GetHashTypeByOidTag (SEC_OID_SHA1);
+//     HASHContext *ctx = HASH_Create (hash_type);
+//     assert (ctx);
+//
+//     HASH_Begin (ctx);
+//     HASH_Update (ctx,  key_, (unsigned int) strlen (key_));
+//     HASH_Update (ctx,  magic_string,
+//                  (unsigned int) strlen (magic_string));
+//     HASH_End (ctx, hash_, &len, SHA_DIGEST_LENGTH);
+//     HASH_Destroy (ctx);
+// #elif defined ZMQ_USE_BUILTIN_SHA1
+//     sha1_ctxt ctx;
+//     SHA1_Init (&ctx);
+//     SHA1_Update (&ctx,  key_, strlen (key_));
+//     SHA1_Update (&ctx,  magic_string, strlen (magic_string));
+//
+//     SHA1_Final (hash_, &ctx);
+// #elif defined ZMQ_USE_GNUTLS
+//     gnutls_hash_hd_t hd;
+//     gnutls_hash_init (&hd, GNUTLS_DIG_SHA1);
+//     gnutls_hash (hd, key_, strlen (key_));
+//     gnutls_hash (hd, magic_string, strlen (magic_string));
+//     gnutls_hash_deinit (hd, hash_);
+// // #else
+// #error "No sha1 implementation set"
 // #endif
 }

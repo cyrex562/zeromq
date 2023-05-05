@@ -1,4 +1,5 @@
 use libc::c_void;
+use crate::fd::ZmqFileDesc;
 
 //   Version macros for compile-time API version detection
 // #define ZMQ_VERSION_MAJOR 4
@@ -427,3 +428,10 @@ pub const ZMQ_CURRENT_EVENT_VERSION_DRAFT: u32 = 2;
 
 pub const ZMQ_EVENT_ALL_V1: u32 = ZMQ_EVENT_ALL as u32;
 pub const ZMQ_EVENT_ALL_V2: u32 = ZMQ_EVENT_ALL_V1 | ZMQ_EVENT_PIPES_STATS;
+
+// #include "devpoll.hpp"
+// #include "err.hpp"
+// #include "config.hpp"
+// #include "i_poll_events.hpp"
+// typedef ZmqFileDesc handle_t;
+pub type ZmqHandle = ZmqFileDesc;

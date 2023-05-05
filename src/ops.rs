@@ -827,7 +827,7 @@ static int zmq_poller_poll (ZmqPollItem *items_, nitems_: i32, long timeout)
     rc: i32;
     ZmqPollerEvent *events;
     socket_poller_t poller;
-    events = new (std::nothrow) ZmqPollerEvent[nitems_];
+    events =  ZmqPollerEvent[nitems_];
     // alloc_assert (events);
 
     bool repeat_items = false;
@@ -1524,7 +1524,7 @@ int zmq_ppoll (ZmqPollItem *items_,
 
 void *zmq_poller_new (void)
 {
-    socket_poller_t *poller = new (std::nothrow) socket_poller_t;
+    socket_poller_t *poller =  socket_poller_t;
     if (!poller) {
         errno = ENOMEM;
     }
@@ -1735,7 +1735,7 @@ int zmq_socket_get_peer_state (s_: &mut [u8],
 
 void *zmq_timers_new (void)
 {
-    timers_t *timers = new (std::nothrow) timers_t;
+    timers_t *timers =  timers_t;
     // alloc_assert (timers);
     return timers;
 }

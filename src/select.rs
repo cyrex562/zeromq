@@ -691,7 +691,7 @@ u_short select_t::determine_fd_family (ZmqFileDesc fd)
     int type_length = mem::size_of::<int>();
 
     int rc = getsockopt (fd, SOL_SOCKET, SO_TYPE,
-                         reinterpret_cast<char *> (&type), &type_length);
+                          (&type), &type_length);
 
     if (rc == 0) {
         if (type == SOCK_DGRAM)

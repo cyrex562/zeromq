@@ -168,22 +168,22 @@ impl ZmqPipe {
 
         ZmqPipe::upipe_t *upipe1;
         if (conflate_[0])
-        upipe1 = new (std::nothrow) upipe_conflate_t ();
+        upipe1 =  upipe_conflate_t ();
         else
-        upipe1 = new (std::nothrow) upipe_normal_t ();
+        upipe1 =  upipe_normal_t ();
         // alloc_assert (upipe1);
 
         ZmqPipe::upipe_t *upipe2;
         if (conflate_[1])
-        upipe2 = new (std::nothrow) upipe_conflate_t ();
+        upipe2 =  upipe_conflate_t ();
         else
-        upipe2 = new (std::nothrow) upipe_normal_t ();
+        upipe2 =  upipe_normal_t ();
         // alloc_assert (upipe2);
 
-        pipes_[0] = new (std::nothrow)
+        pipes_[0] =
         ZmqPipe (parents_[0], upipe1, upipe2, hwms_[1], hwms_[0], conflate_[0]);
         // alloc_assert (pipes_[0]);
-        pipes_[1] = new (std::nothrow)
+        pipes_[1] =
         ZmqPipe (parents_[1], upipe2, upipe1, hwms_[0], hwms_[1], conflate_[1]);
         // alloc_assert (pipes_[1]);
 
@@ -379,8 +379,8 @@ impl ZmqPipe {
         //  Create new inpipe.
         self._in_pipe =
             self._conflate
-                ? static_cast<upipe_t *> (new (std::nothrow) YpipeConflate<ZmqMessage> ())
-        : new (std::nothrow) Ypipe<ZmqMessage, message_pipe_granularity> ();
+                ? static_cast<upipe_t *> ( YpipeConflate<ZmqMessage> ())
+        :  Ypipe<ZmqMessage, message_pipe_granularity> ();
 
         // alloc_assert (_in_pipe);
         _in_active = true;

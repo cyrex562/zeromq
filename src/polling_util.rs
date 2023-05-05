@@ -40,7 +40,7 @@ template <typename T, size_t S> class fast_vector_t
     explicit fast_vector_t (const nitems_: usize)
     {
         if (nitems_ > S) {
-            buf = new (std::nothrow) T[nitems_];
+            buf =  T[nitems_];
             //  TODO since this function is called by a client, we could return errno == ENOMEM here
             // alloc_assert (buf);
         } else {
@@ -73,7 +73,7 @@ template <typename T, size_t S> class resizable_fast_vector_t
         if (_dynamic_buf) {
             _dynamic_buf.resize (nitems_);
         } else if (nitems_ > S) {
-            _dynamic_buf = new (std::nothrow) std::vector<T> (nitems_);
+            _dynamic_buf =  std::vector<T> (nitems_);
             //  TODO since this function is called by a client, we could return errno == ENOMEM here
             // alloc_assert (_dynamic_buf);
             memcpy (&(*_dynamic_buf)[0], _static_buf, sizeof _static_buf);
@@ -112,9 +112,9 @@ inline size_t valid_pollset_bytes (const fd_set &pollset_)
     // SOCKETS are continuous from the beginning of fd_array in fd_set.
     // We just need to copy fd_count elements of fd_array.
     // We gain huge memcpy() improvement if number of used SOCKETs is much lower than FD_SETSIZE.
-    return reinterpret_cast<const char *> (
+    return  (
              &pollset_.fd_array[pollset_.fd_count])
-           - reinterpret_cast<const char *> (&pollset_);
+           -  (&pollset_);
 }
 // #else
 inline size_t valid_pollset_bytes (const fd_set & /*pollset_*/)

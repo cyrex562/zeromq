@@ -1,10 +1,13 @@
 use std::ffi::{CStr, CString};
+use std::mem;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
+use std::ptr::null_mut;
 use std::str::FromStr;
-use libc::{AI_NUMERICHOST, AI_PASSIVE, AI_V4MAPPED, c_uint, EAI_BADFLAGS, EINVAL, ENODEV, ENOMEM, if_nametoindex, SOCK_STREAM};
+use libc::{AI_NUMERICHOST, AI_PASSIVE, AI_V4MAPPED, c_uint, close, EAI_BADFLAGS, EINVAL, ENODEV, ENOMEM, free, if_nametoindex, malloc, SOCK_STREAM, strcmp};
+use windows::Win32::Networking::WinSock::{AI_NUMERICHOST, AI_PASSIVE, AI_V4MAPPED, freeaddrinfo, SOCK_DGRAM, SOCK_STREAM, WSAHOST_NOT_FOUND};
 use crate::address_family::{AF_INET, AF_INET6};
 use crate::network_address::{NetworkAddress, NetworkAddressFamily};
-use crate::unix_sockaddr::{addrinfo};
+use crate::unix_sockaddr::{addrinfo, sockaddr_in};
 
 pub struct IpResolverOptions
 {
@@ -112,7 +115,7 @@ impl IpResolver {
             let port_str = &name[delim.unwrap() + 1..];
 
             if port_str == "*" {
-                if _options.bindable () {
+                if self._options.bindable () {
                     //  Resolve wildcard to 0 to allow autoselection of port
                     port = 0;
                 } else {
@@ -255,7 +258,7 @@ impl IpResolver {
 
         req.ai_flags = 0;
 
-        if (_options.bindable ()) {
+        if (self._options.bindable ()) {
             req.ai_flags |= AI_PASSIVE;
         }
 
@@ -586,7 +589,7 @@ impl IpResolver {
                         const ADDRESS_FAMILY family =
                           current_unicast_address.Address.lpSockaddr.sa_family;
 
-                        if (family == (_options.ipv6 () ? AF_INET6 : AF_INET)) {
+                        if (family == (self._options.ipv6 () ? AF_INET6 : AF_INET)) {
                             memcpy (
                               ip_addr_, current_unicast_address.Address.lpSockaddr,
                               (family == AF_INET) ? sizeof (struct sockaddr_in)

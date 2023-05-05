@@ -44,7 +44,7 @@ stream_t::stream_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     _more_out (false),
     _next_integral_routing_id (generate_random ())
 {
-    options.type = ZMQ_STREAM;
+    options.type_ = ZMQ_STREAM;
     options.raw_socket = true;
 
     _prefetched_routing_id.init ();

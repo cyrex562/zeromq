@@ -60,7 +60,7 @@ pub struct pair_t  : public ZmqSocketBase
 pair_t::pair_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_), pipe (null_mut())
 {
-    options.type = ZMQ_PAIR;
+    options.type_ = ZMQ_PAIR;
 }
 
 pair_t::~pair_t ()

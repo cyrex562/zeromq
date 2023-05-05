@@ -37,7 +37,7 @@ rep_t::rep_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     _sending_reply (false),
     _request_begins (true)
 {
-    options.type = ZMQ_REP;
+    options.type_ = ZMQ_REP;
 }
 
 rep_t::~rep_t ()

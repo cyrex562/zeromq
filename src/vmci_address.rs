@@ -189,7 +189,7 @@ const sockaddr *VmciAddress::addr () const
 
 socklen_t VmciAddress::addrlen () const
 {
-    return static_cast<socklen_t> (sizeof address);
+    return  (sizeof address);
 }
 
 // #if defined ZMQ_HAVE_WINDOWS

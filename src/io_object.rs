@@ -27,124 +27,161 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use std::ptr::null_mut;
+use crate::defines::ZmqHandle;
+use crate::fd::ZmqFileDesc;
+use crate::io_thread::ZmqThread;
+
 // #include "precompiled.hpp"
 // #include "io_object.hpp"
 // #include "io_thread.hpp"
 // #include "err.hpp"
-pub struct io_object_t : public i_poll_events
+#[derive(Default,Debug,Clone)]
+pub struct ZmqIoObject
 {
-//
-    io_object_t (ZmqThread *io_thread_ = null_mut());
-    ~io_object_t () ;
+    pub i_poll_events: i_poll_events,
+    pub poller: ZmqHandle,
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (io_object_t)
+}
+
+impl ZmqIoObject {
+    // ZmqIoObject (ZmqThread *io_thread_ = null_mut());
+    pub fn new(io_thread_: Option<ZmqThread>) -> Self
+    {
+// : poller (null_mut())
+//     if (io_thread_)
+//         plug (io_thread_);
+        let mut out = Self {
+            i_poll_events: Default::default(),
+            poller: ZmqHandle::default(),
+        };
+        if io_thread_.is_some() {
+            out.plug(&mut io_thread_.unwrap());
+        }
+
+        out
+    }
+
+    // ~ZmqIoObject () ;
 
     //  When migrating an object from one I/O thread to another, first
     //  unplug it, then migrate it, then plug it to the new thread.
-    void plug (ZmqThread *io_thread_);
-    void unplug ();
+    // void plug (ZmqThread *io_thread_);
+    pub fn plug (&mut self, io_thread: &mut ZmqThread)
+    {
+        // zmq_assert (io_thread_);
+        // zmq_assert (!poller);
+        //  Retrieve the poller from the thread we are running in.
+        self.poller = io_thread_.get_poller ();
+    }
 
-
-    typedef Poller::handle_t handle_t;
+    // void unplug ();
+    pub fn unplug (&mut self)
+    {
+        // zmq_assert (poller);
+        //  Forget about old poller in preparation to be migrated
+        //  to a different I/O thread.
+        self.poller = None;
+    }
 
     //  Methods to access underlying poller object.
-    handle_t add_fd (ZmqFileDesc fd);
-    void rm_fd (handle_t handle_);
-    void set_pollin (handle_t handle_);
-    void reset_pollin (handle_t handle_);
-    void set_pollout (handle_t handle_);
-    void reset_pollout (handle_t handle_);
-    void add_timer (timeout: i32, id_: i32);
-    void cancel_timer (id_: i32);
+    // handle_t add_fd (ZmqFileDesc fd);
+    pub fn add_fd (&mut self, fd: ZmqFileDesc) -> handle_t
+    {
+        return self.poller.add_fd (fd, this);
+    }
+
+    // void rm_fd (handle_t handle_);
+    pub fn rm_fd (&mut self, handle: ZmqHandle)
+    {
+        self.poller.rm_fd (handle_);
+    }
+
+    // void set_pollin (handle_t handle_);
+    pub fn set_pollin (&mut self, handle_: handle_t)
+    {
+        self.poller.set_pollin (handle_);
+    }
+
+    // void reset_pollin (handle_t handle_);
+    pub fn reset_pollin (&mut self, handle_: handle_t)
+    {
+        self.poller.reset_pollin (handle_);
+    }
+
+    // void set_pollout (handle_t handle_);
+    pub fn set_pollout (&mut self, handle_: handle_t)
+    {
+        self.poller.set_pollout (handle_);
+    }
+
+    // void reset_pollout (handle_t handle_);
+    pub fn reset_pollout (&mut self, handle_: handle_t)
+    {
+        self.poller.reset_pollout (handle_);
+    }
+
+    // void add_timer (timeout: i32, id_: i32);
+    pub fn add_timer (&mut self, timeout: i32, id_: i32)
+    {
+        self.poller.add_timer (timeout, self, id_);
+    }
+
+    // void cancel_timer (id_: i32);
+    pub fn cancel_timer (&mut self, id_: i32)
+    {
+        self.poller.cancel_timer (self, id_);
+    }
 
     //  i_poll_events interface implementation.
-    void in_event () ;
-    void out_event () ;
-    void timer_event (id_: i32) ;
+    // void in_event () ;
+    pub fn in_event (&mut self)
+    {
+        // zmq_assert (false);
+    }
 
-  //
-    Poller *poller;
+    // void out_event () ;
+    pub fn out_event (&mut self)
+    {
+        // zmq_assert (false);
+    }
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (io_object_t)
-};
-
-io_object_t::io_object_t (ZmqThread *io_thread_) : poller (null_mut())
-{
-    if (io_thread_)
-        plug (io_thread_);
-}
-
-io_object_t::~io_object_t ()
-{
-}
-
-void io_object_t::plug (ZmqThread *io_thread_)
-{
-    // zmq_assert (io_thread_);
-    // zmq_assert (!poller);
-
-    //  Retrieve the poller from the thread we are running in.
-    poller = io_thread_.get_poller ();
-}
-
-void io_object_t::unplug ()
-{
-    // zmq_assert (poller);
-
-    //  Forget about old poller in preparation to be migrated
-    //  to a different I/O thread.
-    poller = null_mut();
-}
-
-io_object_t::handle_t io_object_t::add_fd (ZmqFileDesc fd)
-{
-    return poller.add_fd (fd, this);
-}
-
-void io_object_t::rm_fd (handle_t handle_)
-{
-    poller.rm_fd (handle_);
-}
-
-void io_object_t::set_pollin (handle_t handle_)
-{
-    poller.set_pollin (handle_);
-}
-
-void io_object_t::reset_pollin (handle_t handle_)
-{
-    poller.reset_pollin (handle_);
-}
-
-void io_object_t::set_pollout (handle_t handle_)
-{
-    poller.set_pollout (handle_);
-}
-
-void io_object_t::reset_pollout (handle_t handle_)
-{
-    poller.reset_pollout (handle_);
-}
-
-void io_object_t::add_timer (timeout: i32, id_: i32)
-{
-    poller.add_timer (timeout, this, id_);
-}
-
-void io_object_t::cancel_timer (id_: i32)
-{
-    poller.cancel_timer (this, id_);
-}
-
-void io_object_t::in_event ()
-{
+    // void timer_event (id_: i32) ;
+    pub fn timer_event(&mut self, id_: i32)
+    {
     // zmq_assert (false);
+    }
 }
 
-void io_object_t::out_event ()
-{
-    // zmq_assert (false);
-}
 
-void io_object_t::timer_event
-{
-    // zmq_assert (false);
-}
+
+
+// ZmqIoObject::~ZmqIoObject ()
+// {
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

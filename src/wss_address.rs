@@ -34,12 +34,16 @@
 // #include "wss_address.hpp"
 pub struct WssAddress : public WsAddress
 {
-//
-    WssAddress ();
-    WssAddress (const sockaddr *sa_, socklen_t sa_len_);
+    pub ws_address: WsAddress,
+
+}
+
+impl WssAddress {
+    // WssAddress ();
+    // WssAddress (const sockaddr *sa_, socklen_t sa_len_);
     //  The opposite to resolve()
-    int to_string (std::string &addr_) const;
-};
+    // int to_string (std::string &addr_) const;
+}
 
 WssAddress::WssAddress () : WsAddress ()
 {

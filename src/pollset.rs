@@ -119,7 +119,7 @@ pollset_t::~pollset_t ()
 pollset_t::handle_t pollset_t::add_fd (fd: ZmqFileDesc,
                                                  i_poll_events *events_)
 {
-    ZmqPollEntry *pe = new (std::nothrow) ZmqPollEntry;
+    ZmqPollEntry *pe =  ZmqPollEntry;
     // alloc_assert (pe);
 
     pe.fd = fd;

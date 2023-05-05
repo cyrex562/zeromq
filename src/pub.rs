@@ -51,7 +51,7 @@ pub struct pub_t  : public XPub
 pub_t::pub_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     XPub (parent_, tid, sid_)
 {
-    options.type = ZMQ_PUB;
+    options.type_ = ZMQ_PUB;
 }
 
 pub_t::~pub_t ()

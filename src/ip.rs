@@ -205,7 +205,7 @@ void enable_ipv4_mapping (ZmqFileDesc s_)
     int flag = 0;
 // #endif
     let rc: i32 = setsockopt (s_, IPPROTO_IPV6, IPV6_V6ONLY,
-                               reinterpret_cast<char *> (&flag), mem::size_of::<flag>());
+                                (&flag), mem::size_of::<flag>());
 // #ifdef ZMQ_HAVE_WINDOWS
     wsa_assert (rc != SOCKET_ERROR);
 // #else
@@ -257,7 +257,7 @@ int get_peer_ip_address (ZmqFileDesc sockfd_, std::string &ip_addr_)
 void set_ip_type_of_service (ZmqFileDesc s_, iptos_: i32)
 {
     int rc = setsockopt (s_, IPPROTO_IP, IP_TOS,
-                         reinterpret_cast<char *> (&iptos_), mem::size_of::<iptos_>());
+                          (&iptos_), mem::size_of::<iptos_>());
 
 // #ifdef ZMQ_HAVE_WINDOWS
     wsa_assert (rc != SOCKET_ERROR);
@@ -268,7 +268,7 @@ void set_ip_type_of_service (ZmqFileDesc s_, iptos_: i32)
     //  Windows and Hurd do not support IPV6_TCLASS
 // #if !defined(ZMQ_HAVE_WINDOWS) && defined(IPV6_TCLASS)
     rc = setsockopt (s_, IPPROTO_IPV6, IPV6_TCLASS,
-                     reinterpret_cast<char *> (&iptos_), mem::size_of::<iptos_>());
+                      (&iptos_), mem::size_of::<iptos_>());
 
     //  If IPv6 is not enabled ENOPROTOOPT will be returned on Linux and
     //  EINVAL on OSX
@@ -283,7 +283,7 @@ void set_socket_priority (ZmqFileDesc s_, priority_: i32)
 // #ifdef ZMQ_HAVE_SO_PRIORITY
     int rc =
       setsockopt (s_, SOL_SOCKET, SO_PRIORITY,
-                  reinterpret_cast<char *> (&priority_), mem::size_of::<priority_>());
+                   (&priority_), mem::size_of::<priority_>());
     // errno_assert (rc == 0);
 // #endif
 }
@@ -390,7 +390,7 @@ static void tune_socket (const SOCKET socket)
     BOOL tcp_nodelay = 1;
     let rc: i32 =
       setsockopt (socket, IPPROTO_TCP, TCP_NODELAY,
-                  reinterpret_cast<char *> (&tcp_nodelay), sizeof tcp_nodelay);
+                   (&tcp_nodelay), sizeof tcp_nodelay);
     wsa_assert (rc != SOCKET_ERROR);
 
     tcp_tune_loopback_fast_path (socket);
@@ -473,7 +473,7 @@ static int make_fdpair_tcpip (ZmqFileDesc *r_, ZmqFileDesc *w_)
     //  Set SO_REUSEADDR and TCP_NODELAY on listening socket.
     BOOL so_reuseaddr = 1;
     int rc = setsockopt (listener, SOL_SOCKET, SO_REUSEADDR,
-                         reinterpret_cast<char *> (&so_reuseaddr),
+                          (&so_reuseaddr),
                          sizeof so_reuseaddr);
     wsa_assert (rc != SOCKET_ERROR);
 
@@ -542,14 +542,14 @@ static int make_fdpair_tcpip (ZmqFileDesc *r_, ZmqFileDesc *w_)
             if (still_to_send > 0) {
                 nbytes = ::send (
                   *w_,
-                  reinterpret_cast<char *> (dummy + dummy_size - still_to_send),
+                   (dummy + dummy_size - still_to_send),
                   still_to_send, 0);
                 wsa_assert (nbytes != SOCKET_ERROR);
                 still_to_send -= nbytes;
             }
             nbytes = ::recv (
               *r_,
-              reinterpret_cast<char *> (dummy + dummy_size - still_to_recv),
+               (dummy + dummy_size - still_to_recv),
               still_to_recv, 0);
             wsa_assert (nbytes != SOCKET_ERROR);
             still_to_recv -= nbytes;
@@ -897,7 +897,7 @@ void assert_success_or_recoverable (ZmqFileDesc s_, rc_: i32)
 // #endif
 
     let rc: i32 = getsockopt (s_, SOL_SOCKET, SO_ERROR,
-                               reinterpret_cast<char *> (&err), &len);
+                                (&err), &len);
 
     //  Assert if the error was caused by 0MQ bug.
     //  Networking problems are OK. No need to assert.

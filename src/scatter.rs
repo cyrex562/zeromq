@@ -59,7 +59,7 @@ pub struct scatter_t  : public ZmqSocketBase
 scatter_t::scatter_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_, true)
 {
-    options.type = ZMQ_SCATTER;
+    options.type_ = ZMQ_SCATTER;
 }
 
 scatter_t::~scatter_t ()

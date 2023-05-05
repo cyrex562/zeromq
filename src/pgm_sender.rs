@@ -40,7 +40,7 @@
 // #include "wire.hpp"
 // #include "stdint.hpp"
 // #include "macros.hpp"
-pub struct pgm_sender_t  : public io_object_t, public ZmqIEngine
+pub struct pgm_sender_t  : public ZmqIoObject, public ZmqEngineInterface
 {
 //
     pgm_sender_t (ZmqThread *parent_, options: &ZmqOptions);
@@ -115,7 +115,7 @@ let mut msg = ZmqMessage::default();
 
 pgm_sender_t::pgm_sender_t (ZmqThread *parent_,
                                  options: &ZmqOptions) :
-    io_object_t (parent_),
+    ZmqIoObject (parent_),
     has_tx_timer (false),
     has_rx_timer (false),
     session (null_mut()),

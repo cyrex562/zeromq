@@ -30,6 +30,8 @@
 use crate::command::ZmqCommand;
 use crate::ypipe::Ypipe;
 use std::sync::Mutex;
+use crate::fd::ZmqFileDesc;
+use crate::pipe::PipeState::active;
 use crate::signaler::ZmqSignaler;
 
 pub const COMMAND_PIPE_GRANULARITY: i32 = 16;
@@ -39,7 +41,7 @@ pub const COMMAND_PIPE_GRANULARITY: i32 = 16;
 // #include "err.hpp"
 #[derive(Default,Debug,Clone)]
 //   : public i_mailbox
-pub struct mailbox_t
+pub struct ZmqMailbox
 {
 //
   //
@@ -66,7 +68,7 @@ pub struct mailbox_t
     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_t)
 }
 
-impl mailbox_t {
+impl ZmqMailbox {
     // mailbox_t ();
     // mailbox_t::mailbox_t ()
     pub fn new() -> Self
@@ -121,7 +123,7 @@ impl mailbox_t {
     pub fn recv(&mut self, cmd: &mut ZmqCommand, timeout: i32) -> anyhow::Result<()> {
         //  Try to get the command straight away.
         if (active) {
-            if (self.cpipe.read(cmd)) { return 0; }
+            if (self.cpipe.read(cmd)) { return Ok(()) }
 
             //  If there are no more commands available, switch into passive state.
             self.active = false;
@@ -148,17 +150,17 @@ impl mailbox_t {
     }
 
 // bool valid () const;
-    bool mailbox_t::valid () const {
-    return signaler.valid ();
+    pub fn valid (&mut self) -> bool {
+        self.signaler.valid ()
     }
 
     // #ifdef HAVE_FORK
     // close the file descriptors in the signaller. This is used in a forked
     // child process to close the file descriptors so that they do not interfere
     // with the context in the parent process.
-    void forked ()
+    pub fn forked (&mut self)
     {
-    signaler.forked ();
+        self.signaler.forked ();
     }
     // #endif
 }

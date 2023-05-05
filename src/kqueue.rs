@@ -152,7 +152,7 @@ kqueue_t::handle_t kqueue_t::add_fd (fd: ZmqFileDesc,
                                                i_poll_events *reactor_)
 {
     check_thread ();
-    ZmqPollEntry *pe = new (std::nothrow) ZmqPollEntry;
+    ZmqPollEntry *pe =  ZmqPollEntry;
     // alloc_assert (pe);
 
     pe.fd = fd;

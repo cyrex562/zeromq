@@ -247,7 +247,7 @@ int plain_client_t::process_error (const cmd_data_: &mut [u8],
         return -1;
     }
     const char *error_reason =
-      reinterpret_cast<const char *> (cmd_data_) + start_of_error_reason;
+       (cmd_data_) + start_of_error_reason;
     handle_error_reason (error_reason, error_reason_len);
     _state = error_command_received;
     return 0;

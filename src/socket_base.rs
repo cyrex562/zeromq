@@ -32,7 +32,7 @@ use crate::i_mailbox::i_mailbox;
 use crate::io_thread::ZmqThread;
 use crate::ipc_address::IpcAddress;
 use crate::ipc_listener::ipc_listener_t;
-use crate::mailbox::mailbox_t;
+use crate::mailbox::ZmqMailbox;
 use crate::mailbox_safe::mailbox_safe_t;
 use crate::message::{routing_id, ZmqMessage, ZMQ_MSG_MORE};
 use crate::object::ZmqObject;
@@ -221,7 +221,7 @@ impl ZmqObject for ZmqSocketBase {
     fn send_attach(
         &mut self,
         destination: &mut ZmqSessionbase,
-        engine: &mut ZmqIEngine,
+        engine: &mut ZmqEngineInterface,
         inc_seqnum: bool,
     ) {
         todo!()
@@ -315,7 +315,7 @@ impl ZmqObject for ZmqSocketBase {
         todo!()
     }
 
-    fn process_attached(&mut self, engine: &mut ZmqIEngine) {
+    fn process_attached(&mut self, engine: &mut ZmqEngineInterface) {
         todo!()
     }
 
@@ -462,7 +462,7 @@ impl ZmqSocketBase {
             out.mailbox = mailbox_safe_t::new(&out.sync);
             // zmq_assert (mailbox);
         } else {
-            let mut m = mailbox_t::new();
+            let mut m = ZmqMailbox::new();
             // zmq_assert (m);
 
             if m.get_fd() != retired_fd {
@@ -684,8 +684,7 @@ impl ZmqSocketBase {
             //     (if self.has_out() { ZMQ_POLLOUT } else { 0 })
             //         | (if self.has_in() { ZMQ_POLLIN } else { 0 }),
             // );
-            let result: i32 = ((if self.has_out() { ZMQ_POLLOUT } else { 0i32 })
-                | (if self.has_in { ZMQ_POLLIN } else { 0i32 }));
+            let result: i32 = ((if self.has_out() { ZMQ_POLLOUT } else { 0i32 }) | (if self.has_in { ZMQ_POLLIN } else { 0i32 }));
             return i32_to_vec(result);
         }
 
@@ -720,9 +719,7 @@ impl ZmqSocketBase {
         //  Parse endpoint_uri_ string.
         let mut protocol: String = String::new();
         let mut address: String = String::new();
-        if self.parse_uri(endpoint_uri_, &mut protocol, &mut address)
-            || self.check_protocol(options, &protocol)
-        {
+        if self.parse_uri(endpoint_uri_, &mut protocol, &mut address) || self.check_protocol(options, &protocol) {
             bail!("failed to parse endpoint_uri")
         }
 
@@ -739,10 +736,7 @@ impl ZmqSocketBase {
 
         // #if defined ZMQ_HAVE_OPENPGM || defined ZMQ_HAVE_NORM
         // #if defined ZMQ_HAVE_OPENPGM && defined ZMQ_HAVE_NORM
-        if protocol == protocol_name::pgm
-            || protocol == protocol_name::epgm
-            || protocol == protocol_name::norm
-        {
+        if protocol == protocol_name::pgm || protocol == protocol_name::epgm || protocol == protocol_name::norm {
             // #elif defined ZMQ_HAVE_OPENPGM
             //     if (protocol == protocol_name::pgm || protocol == protocol_name::epgm) {
             // // #else // defined ZMQ_HAVE_NORM
@@ -782,17 +776,13 @@ impl ZmqSocketBase {
 
             paddr.resolved.udp_addr = UdpAddress::new();
             // alloc_assert (paddr.resolved.udp_addr);
-            paddr
-                .resolved
-                .udp_addr
-                .resolve(&address, true, options.ipv6)?;
+            paddr.resolved.udp_addr.resolve(&address, true, options.ipv6)?;
             // if rc != 0 {
             //     // LIBZMQ_DELETE (paddr);
             //     return -1;
             // }
 
-            let mut session =
-                ZmqSessionBase::create(&mut io_thread.unwrap(), true, this, options, &mut paddr)?;
+            let mut session = ZmqSessionBase::create(&mut io_thread.unwrap(), true, this, options, &mut paddr)?;
             // errno_assert (session);
 
             //  Create a bi-directional pipe.
@@ -855,8 +845,7 @@ impl ZmqSocketBase {
         // #ifdef ZMQ_HAVE_WS
         // #ifdef ZMQ_HAVE_WSS
         if protocol == protocol_name::ws || protocol == protocol_name::wss {
-            let listener =
-                ws_listener_t::new(io_thread, self, options, protocol == protocol_name::wss);
+            let listener = ws_listener_t::new(io_thread, self, options, protocol == protocol_name::wss);
             // #else
             //     if protocol == protocol_name::ws {
             let listener = ws_listener_t::new(io_thread, self, options, false);
@@ -1459,9 +1448,7 @@ impl ZmqSocketBase {
         //  Parse endpoint_uri_ string.
         let mut protocol = String::new();
         let mut address = String::new();
-        if (self.parse_uri(endpoint, &mut protocol, &mut address)
-            || self.check_protocol(options, &protocol))
-        {
+        if (self.parse_uri(endpoint, &mut protocol, &mut address) || self.check_protocol(options, &protocol)) {
             bail!("failed to parse uri and/or protocol");
         }
 
@@ -1857,9 +1844,7 @@ impl ZmqSocketBase {
         //  Parse endpoint_uri_ string.
         let mut protocol = String::new();
         let mut address = String::new();
-        if self.parse_uri(endpoint_uri_, &mut protocol, &mut address)
-            || self.check_protocol(options, &protocol)
-        {
+        if self.parse_uri(endpoint_uri_, &mut protocol, &mut address) || self.check_protocol(options, &protocol) {
             bail!("failed to parse uri or check protocol");
         }
 
@@ -1975,10 +1960,7 @@ impl ZmqSocketBase {
             options.connected = true;
             return Ok(());
         }
-        let is_single_connect = (options.type_ == ZMQ_DEALER
-            || options.type_ == ZMQ_SUB
-            || options.type_ == ZMQ_PUB
-            || options.type_ == ZMQ_REQ);
+        let is_single_connect = (options.type_ == ZMQ_DEALER || options.type_ == ZMQ_SUB || options.type_ == ZMQ_PUB || options.type_ == ZMQ_REQ);
         // if (unlikely (is_single_connect)) {
         //     if (0 != _endpoints.count (endpoint_uri_)) {
         //         // There is no valid use for multiple connects for SUB-PUB nor
@@ -2035,24 +2017,9 @@ impl ZmqSocketBase {
             //         check+= 1;
             //     }
             // }
-            if *check.is_ascii_alphanumeric()
-                || *check.is_ascii_hexdigit()
-                || *check.eq(&lbracket_bytes)
-                || *check.eq(&colon_bytes)
-            {
+            if *check.is_ascii_alphanumeric() || *check.is_ascii_hexdigit() || *check.eq(&lbracket_bytes) || *check.eq(&colon_bytes) {
                 check += 1;
-                while *check.is_ascii_alphanumeric()
-                    || *check.is_ascii_hexdigit()
-                    || *check.eq(&dot_bytes)
-                    || *check.eq(&hyphen_bytes)
-                    || *check.eq(&colon_bytes)
-                    || *check.eq(&percent_bytes)
-                    || *check.eq(&semicolon_bytes)
-                    || *check.eq(&lbracket_bytes)
-                    || *check.eq(&rbracked_bytes)
-                    || *check.eq(&underscore_bytes)
-                    || *check.eq(&asterisk_bytes)
-                {
+                while *check.is_ascii_alphanumeric() || *check.is_ascii_hexdigit() || *check.eq(&dot_bytes) || *check.eq(&hyphen_bytes) || *check.eq(&colon_bytes) || *check.eq(&percent_bytes) || *check.eq(&semicolon_bytes) || *check.eq(&lbracket_bytes) || *check.eq(&rbracked_bytes) || *check.eq(&underscore_bytes) || *check.eq(&asterisk_bytes) {
                     check += 1;
                 }
             }
@@ -2090,10 +2057,7 @@ impl ZmqSocketBase {
             if protocol == protocol_name::wss {
                 paddr.resolved.wss_addr = WssAddress::new();
                 // alloc_assert (paddr.resolved.wss_addr);
-                paddr
-                    .resolved
-                    .wss_addr
-                    .resolve(&address, false, options.ipv6)?;
+                paddr.resolved.wss_addr.resolve(&address, false, options.ipv6)?;
             }
             // #else
             else if protocol == protocol_name::ws {
@@ -2101,10 +2065,7 @@ impl ZmqSocketBase {
 
                 paddr.resolved.ws_addr = WsAddress::new();
                 // alloc_assert (paddr.resolved.ws_addr);
-                paddr
-                    .resolved
-                    .ws_addr
-                    .resolve(&address, false, options.ipv6)?;
+                paddr.resolved.ws_addr.resolve(&address, false, options.ipv6)?;
             }
         }
         // #endif
@@ -2126,10 +2087,7 @@ impl ZmqSocketBase {
 
             paddr.resolved.udp_addr = UdpAddress::new();
             // alloc_assert (paddr.resolved.udp_addr);
-            paddr
-                .resolved
-                .udp_addr
-                .resolve(&address, false, options.ipv6)?;
+            paddr.resolved.udp_addr.resolve(&address, false, options.ipv6)?;
             // if (rc != 0) {
             //     LIBZMQ_DELETE (paddr);
             //     return -1;
@@ -2191,10 +2149,7 @@ impl ZmqSocketBase {
         //  PGM does not support subscription forwarding; ask for all data to be
         //  sent to this pipe. (same for NORM, currently?)
         // #if defined ZMQ_HAVE_OPENPGM && defined ZMQ_HAVE_NORM
-        let subscribe_to_all = protocol == protocol_name::pgm
-            || protocol == protocol_name::epgm
-            || protocol == protocol_name::norm
-            || protocol == protocol_name::udp;
+        let subscribe_to_all = protocol == protocol_name::pgm || protocol == protocol_name::epgm || protocol == protocol_name::norm || protocol == protocol_name::udp;
         // #elif defined ZMQ_HAVE_OPENPGM
         //     const bool subscribe_to_all = protocol == protocol_name::pgm
         //                                   || protocol == protocol_name::epgm
@@ -2327,8 +2282,7 @@ impl ZmqSocketBase {
                     zmq_msg_init_size(&mut raw_msg, mem::size_of::<values_count_>());
                     // memcpy (zmq_msg_data (&msg), &values_count_,
                     //         mem::size_of::<values_count_>());
-                    zmq_msg_data(&mut raw_msg)
-                        .extend_from_slice(&values_count_.to_le_bytes().as_slice());
+                    zmq_msg_data(&mut raw_msg).extend_from_slice(&values_count_.to_le_bytes().as_slice());
                     zmq_msg_send(&mut raw_msg, _monitor_socket, ZMQ_SNDMORE);
 
                     //  Send values in third-Nth frames (64bit unsigned)
@@ -2353,8 +2307,7 @@ impl ZmqSocketBase {
                     zmq_msg_init_size(&mut raw_msg, endpoint_uri_pair_.remote.size());
                     // memcpy (zmq_msg_data (&msg), endpoint_uri_pair_.remote,
                     //         endpoint_uri_pair_.remote.size ());
-                    zmq_msg_data(&mut raw_msg)
-                        .extend_from_slice(endpoint_uri_pair_.remote.as_bytes());
+                    zmq_msg_data(&mut raw_msg).extend_from_slice(endpoint_uri_pair_.remote.as_bytes());
                     zmq_msg_send(&mut raw_msg, _monitor_socket, 0);
                 }
                 _ => {}
@@ -2369,9 +2322,7 @@ impl ZmqSocketBase {
         // contexts where the _monitor_sync mutex has been locked before
 
         if (self.monitor_socket) {
-            if ((self.monitor_events & ZMQ_EVENT_MONITOR_STOPPED) != 0
-                && send_monitor_stopped_event_)
-            {
+            if ((self.monitor_events & ZMQ_EVENT_MONITOR_STOPPED) != 0 && send_monitor_stopped_event_) {
                 let values: [u64; 1] = [0];
                 self.monitor_event(
                     options,
@@ -2480,33 +2431,22 @@ impl ZmqSocketBase {
     ) -> anyhow::Result<()> {
         //  First check out whether the protocol is something we are aware of.
         if protocol_ != protocol_name::inproc
-            // #if defined ZMQ_HAVE_IPC
-            && protocol_ != protocol_name::ipc
+            // #if defined ZMQ_HAVE_IPC && protocol_ != protocol_name::ipc
+            // #endif && protocol_ != protocol_name::tcp
+            // #ifdef ZMQ_HAVE_WS && protocol_ != protocol_name::ws
             // #endif
-            && protocol_ != protocol_name::tcp
-            // #ifdef ZMQ_HAVE_WS
-            && protocol_ != protocol_name::ws
-            // #endif
-            // #ifdef ZMQ_HAVE_WSS
-            && protocol_ != protocol_name::wss
+            // #ifdef ZMQ_HAVE_WSS && protocol_ != protocol_name::wss
             // #endif
             // #if defined ZMQ_HAVE_OPENPGM
-            //  pgm/epgm transports only available if 0MQ is compiled with OpenPGM.
-            && protocol_ != protocol_name::pgm
-            && protocol_ != protocol_name::epgm
+            //  pgm/epgm transports only available if 0MQ is compiled with OpenPGM. && protocol_ != protocol_name::pgm && protocol_ != protocol_name::epgm
             // #endif
             // #if defined ZMQ_HAVE_TIPC
-            // TIPC transport is only available on Linux.
-            && protocol_ != protocol_name::tipc
+            // TIPC transport is only available on Linux. && protocol_ != protocol_name::tipc
             // #endif
-            // #if defined ZMQ_HAVE_NORM
-            && protocol_ != protocol_name::norm
+            // #if defined ZMQ_HAVE_NORM && protocol_ != protocol_name::norm
             // #endif
-            // #if defined ZMQ_HAVE_VMCI
-            && protocol_ != protocol_name::vmci
-            // #endif
-            && protocol_ != protocol_name::udp
-        {
+            // #if defined ZMQ_HAVE_VMCI && protocol_ != protocol_name::vmci
+            // #endif && protocol_ != protocol_name::udp {
             // errno = EPROTONOSUPPORT;
             // return -1;
             bail!("udp protocol not supported")
@@ -2517,26 +2457,18 @@ impl ZmqSocketBase {
         //  bi-directional messaging patterns (socket types).
         // #if defined ZMQ_HAVE_OPENPGM || defined ZMQ_HAVE_NORM
         // #if defined ZMQ_HAVE_OPENPGM && defined ZMQ_HAVE_NORM
-        if (protocol_ == protocol_name::pgm || protocol_ == protocol_name::epgm
-            || protocol_ == protocol_name::norm)
+        if (protocol_ == protocol_name::pgm || protocol_ == protocol_name::epgm || protocol_ == protocol_name::norm)
             // #elif defined ZMQ_HAVE_OPENPGM
             //     if ((protocol_ == protocol_name::pgm || protocol_ == protocol_name::epgm)
             // #else // defined ZMQ_HAVE_NORM
             //     if (protocol_ == protocol_name::norm
-            // #endif
-            && options.type_ != ZMQ_PUB && options.type_ != ZMQ_SUB
-            && options.type_ != ZMQ_XPUB && options.type_ != ZMQ_XSUB
-        {
+            // #endif && options.type_ != ZMQ_PUB && options.type_ != ZMQ_SUB && options.type_ != ZMQ_XPUB && options.type_ != ZMQ_XSUB {
             errno = ENOCOMPATPROTO;
             bail!("no compatible protocol found for pub/xpub/sub/xsub");
         }
         // #endif
 
-        if protocol_ == protocol_name::udp
-            && (options.type_ != ZMQ_DISH
-            && options.type_ != ZMQ_RADIO
-            && options.type_ != ZMQ_DGRAM)
-        {
+        if protocol_ == protocol_name::udp && (options.type_ != ZMQ_DISH && options.type_ != ZMQ_RADIO && options.type_ != ZMQ_DGRAM) {
             // errno = ENOCOMPATPROTO;
             // return -1;
             bail!("no compatible protocol found for dish/radio/dgram")
@@ -2801,8 +2733,7 @@ impl routing_socket_base_t {
                     // self._connect_routing_id.assign(static_cast <const char
                     // * > (optval_),
                     // optvallen_);
-                    self._connect_routing_id +=
-                        String::from_utf8_lossy(optval_).to_string().as_str();
+                    self._connect_routing_id += String::from_utf8_lossy(optval_).to_string().as_str();
                     return 0;
                 }
             }
@@ -2850,10 +2781,7 @@ impl routing_socket_base_t {
     pub fn add_out_pipe(&mut self, routing_id_: Blob, pipe: &mut ZmqPipe) {
         //  Add the record into output pipes lookup table
         let outpipe = out_pipe_t::new(pipe, true);
-        let ok = self
-            ._out_pipes
-            .ZMQ_MAP_INSERT_OR_EMPLACE(routing_id_, outpipe)
-            .second;
+        let ok = self._out_pipes.ZMQ_MAP_INSERT_OR_EMPLACE(routing_id_, outpipe).second;
         // zmq_assert (ok);
     }
 

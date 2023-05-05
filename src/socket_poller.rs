@@ -216,7 +216,7 @@ int socket_poller_t::add (ZmqSocketBase *socket,
 
     if (is_thread_safe (*socket)) {
         if (signaler == null_mut()) {
-            signaler = new (std::nothrow) ZmqSignaler ();
+            signaler =  ZmqSignaler ();
             if (!signaler) {
                 errno = ENOMEM;
                 return -1;

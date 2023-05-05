@@ -96,10 +96,10 @@ raw_engine_t::~raw_engine_t ()
 void raw_engine_t::plug_internal ()
 {
     // no handshaking for raw sock, instantiate raw encoder and decoders
-    _encoder = new (std::nothrow) raw_encoder_t (_options.out_batch_size);
+    _encoder =  raw_encoder_t (self._options.out_batch_size);
     // alloc_assert (_encoder);
 
-    _decoder = new (std::nothrow) raw_decoder_t (_options.in_batch_size);
+    _decoder =  raw_decoder_t (self._options.in_batch_size);
     // alloc_assert (_decoder);
 
     _next_msg = &raw_engine_t::pull_msg_from_session;
@@ -110,11 +110,11 @@ void raw_engine_t::plug_internal ()
     if (init_properties (properties)) {
         //  Compile metadata.
         // zmq_assert (_metadata == null_mut());
-        _metadata = new (std::nothrow) ZmqMetadata (properties);
+        _metadata =  ZmqMetadata (properties);
         // alloc_assert (_metadata);
     }
 
-    if (_options.raw_notify) {
+    if (self._options.raw_notify) {
         //  For raw sockets, send an initial 0-length message to the
         // application so that it knows a peer has connected.
         ZmqMessage connector;
@@ -137,7 +137,7 @@ bool raw_engine_t::handshake ()
 
 void raw_engine_t::// error (ZmqErrorReason reason_)
 {
-    if (_options.raw_socket && _options.raw_notify) {
+    if (self._options.raw_socket && self._options.raw_notify) {
         //  For raw sockets, send a final 0-length message to the application
         //  so that it knows the peer has been disconnected.
         ZmqMessage terminator;
