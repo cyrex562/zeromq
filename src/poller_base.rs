@@ -33,7 +33,7 @@
 // #include "err.hpp"
 pub struct poller_base_t
 {
-// public:
+//
     poller_base_t () ZMQ_DEFAULT;
     virtual ~poller_base_t ();
 
@@ -42,7 +42,7 @@ pub struct poller_base_t
     void add_timer (timeout: i32, i_poll_events *sink_, id_: i32);
     void cancel_timer (i_poll_events *sink_, id_: i32);
 
-  protected:
+
     //  Called by individual poller implementations to manage the load.
     void adjust_load (amount_: i32);
 
@@ -50,7 +50,7 @@ pub struct poller_base_t
     //  to wait to match the next timer or 0 meaning "no timers".
     u64 execute_timers ();
 
-  // private:
+  //
     //  Clock instance private to this I/O thread.
     clock_t _clock;
 
@@ -73,13 +73,13 @@ pub struct poller_base_t
 //  Base class for a poller with a single worker thread.
 pub struct WorkerPollerBase : public poller_base_t
 {
-// public:
+//
     WorkerPollerBase (const ThreadCtx &ctx);
 
     // Methods from the poller concept.
     void start (const char *name = null_mut());
 
-  protected:
+
     //  Checks whether the currently executing thread is the worker thread
     //  via an assertion.
     //  Should be called by the add_fd, removed_fd, set_*, reset_* functions
@@ -90,7 +90,7 @@ pub struct WorkerPollerBase : public poller_base_t
     //  leaf class.
     void stop_worker ();
 
-  // private:
+  //
     //  Main worker thread routine.
     static void worker_routine (arg_: &mut [u8]);
 
@@ -106,7 +106,7 @@ pub struct WorkerPollerBase : public poller_base_t
 poller_base_t::~poller_base_t ()
 {
     //  Make sure there is no more load on the shutdown.
-    zmq_assert (get_load () == 0);
+    // zmq_assert (get_load () == 0);
 }
 
 int poller_base_t::get_load () const
@@ -201,14 +201,14 @@ void WorkerPollerBase::stop_worker ()
 
 void WorkerPollerBase::start (name: &str)
 {
-    zmq_assert (get_load () > 0);
+    // zmq_assert (get_load () > 0);
     ctx.start_thread (_worker, worker_routine, this, name);
 }
 
 void WorkerPollerBase::check_thread () const
 {
 // #ifndef NDEBUG
-    zmq_assert (!_worker.get_started () || _worker.is_current_thread ());
+    // zmq_assert (!_worker.get_started () || _worker.is_current_thread ());
 // #endif
 }
 

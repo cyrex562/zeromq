@@ -43,8 +43,8 @@ void tearDown ()
 void test_roundtrip (msg: &mut ZmqMessage)
 {
 // #ifdef ZMQ_HAVE_CURVE
-    const std::vector<uint8_t> original (static_cast<uint8_t *> (msg.data ()),
-                                         static_cast<uint8_t *> (msg.data ())
+    const std::vector<uint8_t> original ( (msg.data ()),
+                                          (msg.data ())
                                            + msg.size ());
 
     ZmqCurveEncoding encoding_client ("CurveZMQMESSAGEC",

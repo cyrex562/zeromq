@@ -43,7 +43,7 @@
 // #include "i_poll_events.hpp"
 pub struct pollset_t  : public poller_base_t
 {
-// public:
+//
     typedef void *handle_t;
 
     pollset_t (const ThreadCtx &ctx);
@@ -61,7 +61,7 @@ pub struct pollset_t  : public poller_base_t
 
     static int max_fds ();
 
-  // private:
+  //
     //  Main worker thread routine.
     static void worker_routine (arg_: &mut [u8]);
 
@@ -103,7 +103,7 @@ pollset_t::pollset_t (const ThreadCtx &ctx) :
     ctx (ctx), stopping (false)
 {
     pollset_fd = pollset_create (-1);
-    errno_assert (pollset_fd != -1);
+    // errno_assert (pollset_fd != -1);
 }
 
 pollset_t::~pollset_t ()
@@ -119,8 +119,8 @@ pollset_t::~pollset_t ()
 pollset_t::handle_t pollset_t::add_fd (fd: ZmqFileDesc,
                                                  i_poll_events *events_)
 {
-    ZmqPollEntry *pe = new (std::nothrow) ZmqPollEntry;
-    alloc_assert (pe);
+    ZmqPollEntry *pe =  ZmqPollEntry;
+    // alloc_assert (pe);
 
     pe.fd = fd;
     pe.flag_pollin = false;
@@ -133,7 +133,7 @@ pollset_t::handle_t pollset_t::add_fd (fd: ZmqFileDesc,
     pc.events = 0;
 
     int rc = pollset_ctl (pollset_fd, &pc, 1);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     //  Increase the load metric of the thread.
     adjust_load (1);
@@ -167,14 +167,14 @@ void pollset_t::rm_fd (handle_t handle_)
 void pollset_t::set_pollin (handle_t handle_)
 {
     ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
-    if (likely (!pe.flag_pollin)) {
+    if ( (!pe.flag_pollin)) {
         struct poll_ctl pc;
         pc.fd = pe.fd;
         pc.cmd = PS_MOD;
         pc.events = POLLIN;
 
         let rc: i32 = pollset_ctl (pollset_fd, &pc, 1);
-        errno_assert (rc != -1);
+        // errno_assert (rc != -1);
 
         pe.flag_pollin = true;
     }
@@ -183,7 +183,7 @@ void pollset_t::set_pollin (handle_t handle_)
 void pollset_t::reset_pollin (handle_t handle_)
 {
     ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
-    if (unlikely (!pe.flag_pollin)) {
+    if ( (!pe.flag_pollin)) {
         return;
     }
 
@@ -198,7 +198,7 @@ void pollset_t::reset_pollin (handle_t handle_)
         pc.events = POLLOUT;
         pc.cmd = PS_MOD;
         rc = pollset_ctl (pollset_fd, &pc, 1);
-        errno_assert (rc != -1);
+        // errno_assert (rc != -1);
     }
 
     pe.flag_pollin = false;
@@ -207,14 +207,14 @@ void pollset_t::reset_pollin (handle_t handle_)
 void pollset_t::set_pollout (handle_t handle_)
 {
     ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
-    if (likely (!pe.flag_pollout)) {
+    if ( (!pe.flag_pollout)) {
         struct poll_ctl pc;
         pc.fd = pe.fd;
         pc.cmd = PS_MOD;
         pc.events = POLLOUT;
 
         let rc: i32 = pollset_ctl (pollset_fd, &pc, 1);
-        errno_assert (rc != -1);
+        // errno_assert (rc != -1);
 
         pe.flag_pollout = true;
     }
@@ -223,7 +223,7 @@ void pollset_t::set_pollout (handle_t handle_)
 void pollset_t::reset_pollout (handle_t handle_)
 {
     ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
-    if (unlikely (!pe.flag_pollout)) {
+    if ( (!pe.flag_pollout)) {
         return;
     }
 
@@ -233,13 +233,13 @@ void pollset_t::reset_pollout (handle_t handle_)
 
     pc.cmd = PS_DELETE;
     int rc = pollset_ctl (pollset_fd, &pc, 1);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     if (pe.flag_pollin) {
         pc.cmd = PS_MOD;
         pc.events = POLLIN;
         rc = pollset_ctl (pollset_fd, &pc, 1);
-        errno_assert (rc != -1);
+        // errno_assert (rc != -1);
     }
     pe.flag_pollout = false;
 }
@@ -271,7 +271,7 @@ void pollset_t::loop ()
         int n = pollset_poll (pollset_fd, polldata_array, max_io_events,
                               timeout ? timeout : -1);
         if (n == -1) {
-            errno_assert (errno == EINTR);
+            // errno_assert (errno == EINTR);
             continue;
         }
 

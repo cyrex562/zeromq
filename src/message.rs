@@ -1,17 +1,15 @@
 //  Check whether the sizes of public representation of the message (zmq_ZmqMessage)
 //  and private representation of the message (ZmqMessage) match.
 
-use std::mem;
-use std::mem::size_of;
-
-use anyhow::{anyhow, bail};
-use libc::{c_long, EINVAL};
-use serde::{Deserialize, Serialize};
-
 use crate::atomic_counter::AtomicCounter;
 use crate::content::ZmqContent;
 use crate::defines::ZMQ_GROUP_MAX_LENGTH;
 use crate::metadata::ZmqMetadata;
+use anyhow::anyhow;
+use libc::{c_long, EINVAL};
+use serde::{Deserialize, Serialize};
+use std::mem;
+use std::mem::size_of;
 
 // enum
 //     {
@@ -27,10 +25,8 @@ pub const ZMQ_MSG_SIZE: usize = 64;
 pub const MAX_VSM_SIZE: usize =
     ZMQ_MSG_SIZE - size_of::<*mut ZmqMetadata> + 3 + 16 + size_of::<u32>();
 
-pub const PING_CMD_NAME_SIZE: usize = 5;
-// 4PING
-pub const CANCEL_CMD_NAME_SIZE: usize = 7;
-// 6CANCEL
+pub const PING_CMD_NAME_SIZE: usize = 5; // 4PING
+pub const CANCEL_CMD_NAME_SIZE: usize = 7; // 6CANCEL
 pub const SUB_CMD_NAME_SIZE: usize = 10; // 9SUBSCRIBE
 
 // enum {
@@ -205,7 +201,7 @@ pub const SUB_CMD_NAME: &[u8] = b"\0x9SUBSCRIBE";
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ZmqMessage {
-    // public:
+    //
     //  Shared message buffer. Message data are either allocated in one
     //  continuous block along with this structure - thus avoiding one
     //  malloc/free pair or they are stored in user-supplied memory.
@@ -216,7 +212,7 @@ pub struct ZmqMessage {
     //  Message flags.
     //  Size in bytes of the largest message that is still copied around
     //  rather than being reference-counted.
-    // private:
+    //
     // refcnt: AtomicCounter,
     //  Different message types.
     pub u: MsgUnion,
@@ -310,16 +306,16 @@ impl ZmqMessage {
         size: usize,
         hint: &mut [u8],
         content: Option<&mut ZmqContent>,
-    ) -> anyhow::Result<()> {
+    ) -> i32 {
         if size < MAX_VSM_SIZE {
             let rc: i32 = self.init_size(size);
 
             if (rc != -1) {
                 // TODO:
                 // memcpy (data (), data, size);
-                Ok(());
+                return 0;
             }
-            bail!("init size failed");
+            return -1;
         }
         if content.is_some() {
             return self.init_external_storage(content.unwrap(), data, size, hint);
@@ -394,7 +390,7 @@ impl ZmqMessage {
         data: &mut [u8],
         size: usize,
         hint: &mut [u8],
-    ) -> anyhow::Result<()> {
+    ) -> i32 {
         // zmq_assert (NULL != data);
         // zmq_assert (NULL != content);
 
@@ -412,15 +408,10 @@ impl ZmqMessage {
         // new (&_u.zclmsg.content->refcnt) AtomicCounter ();
         self.u.zclmsg.content.refcnt = AtomicCounter::new();
 
-        OK(())
+        return 0;
     }
 
-    pub fn init_data(
-        &mut self,
-        data: &mut [u8],
-        size: usize,
-        hint: &mut [u8],
-    ) -> anyhow::Result<()> {
+    pub fn init_data(&mut self, data: &mut [u8], size: usize, hint: &mut [u8]) -> i32 {
         //  If data is NULL and size is not 0, a segfault
         //  would occur once the data is accessed
         // zmq_assert (data != NULL || size == 0);
@@ -457,7 +448,7 @@ impl ZmqMessage {
         //     _u.lmsg.content->hint = hint;
         //     new (&_u.lmsg.content->refcnt) AtomicCounter ();
         // }
-        Ok(())
+        return 0;
     }
 
     pub fn init_delimiter(&mut self) -> io32 {
@@ -901,7 +892,7 @@ impl ZmqMessage {
         return self.set_group2(group_, length);
     }
 
-    pub fn set_group2(&mut self, group_: &[u8], length_: usize) -> i32 {
+    pub fn set_group2(&mut self, group_: &str, length_: usize) -> i32 {
         if length_ > ZMQ_GROUP_MAX_LENGTH {
             errno = EINVAL;
             return -1;

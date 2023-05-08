@@ -65,7 +65,7 @@
 
 use std::mem;
 use libc::{EAGAIN, memcmp, memcpy, memset};
-use crate::curve_server::ZmqCurveServer;
+use crate::curve_server::curve_server_t;
 use crate::endpoint::EndpointUriPair;
 use crate::fd::ZmqFileDesc;
 use crate::gssapi_client::gssapi_client_t;
@@ -74,7 +74,7 @@ use crate::message::{ZMQ_MSG_CANCEL, ZMQ_MSG_COMMAND, ZMQ_MSG_PING, ZMQ_MSG_PONG
 use crate::options::ZmqOptions;
 use crate::plain_client::plain_client_t;
 use crate::plain_server::plain_server_t;
-use crate::stream_engine_base::stream_engine_base_t;
+use crate::stream_engine_base::ZmqStreamEngineBase;
 use crate::utils::{cmp_bytes, copy_bytes, set_bytes};
 use crate::v1_decoder::v1_decoder_t;
 use crate::v1_encoder::v1_encoder_t;
@@ -86,7 +86,8 @@ use crate::zmtp_engine::ZmtpRevisions::ZMTP_2_0;
 
 //  Protocol revisions
 #[repr(C)]
-enum ZmtpRevisions {
+enum ZmtpRevisions
+{
     ZMTP_1_0 = 0,
     ZMTP_2_0 = 1,
     ZMTP_3_x = 3,
@@ -98,30 +99,35 @@ pub struct ZmqSessionBase;
 
 pub struct ZmqMechanism;
 
-// static const size_t signature_size = 10; const signature_size: usize = 10;
+// static const size_t signature_size = 10;
+const signature_size: usize = 10;
 
 //  Size of ZMTP/1.0 and ZMTP/2.0 greeting message
-// static const size_t v2_greeting_size = 12; const v2_greeting_size: usize = 12;
+// static const size_t v2_greeting_size = 12;
+const v2_greeting_size: usize = 12;
 
 //  Size of ZMTP/3.0 greeting message
-// static const size_t v3_greeting_size = 64; const v3_greeting_size: usize = 64;
+// static const size_t v3_greeting_size = 64;
+const v3_greeting_size: usize = 64;
 
-//  Position of the revision and minor fields in the greeting. const revision_pos: usize = 10;
+//  Position of the revision and minor fields in the greeting.
+const revision_pos: usize = 10;
 const minor_pos: usize = 11;
 
 //  This engine handles any socket with SOCK_STREAM semantics,
 //  e.g. TCP socket or an UNIX domain socket.
 #[derive(Default, Debug, Clone)]
-pub struct ZmqZmtpEngine {
-    // : public stream_engine_base_t
+pub struct ZmqZmtpEngine
+{
+    // : public ZmqStreamEngineBase
     pub stream_engine_base: ZmqStreamEngineBase,
-// public:
+//
 //     ZmqZmtpEngine (fd: ZmqFileDesc,
 //                    options: &ZmqOptions,
 //                    const endpoint_uri_pair_t &endpoint_uri_pair_);
 //     ~ZmqZmtpEngine ();
 //
-//   protected:
+//
 //     //  Detects the protocol used by the peer.
 //     bool handshake ();
 //
@@ -132,7 +138,7 @@ pub struct ZmqZmtpEngine {
 //     int process_heartbeat_message (msg: &mut ZmqMessage);
 //     int produce_pong_message (msg: &mut ZmqMessage);
 
-    // private:
+    //
     //  Receive the greeting from the peer.
     // int receive_greeting ();
     // void receive_greeting_versioned ();
@@ -182,20 +188,21 @@ impl ZmqZmtpEngine {
     //   fd: ZmqFileDesc,
     //   options: &ZmqOptions,
     //   const endpoint_uri_pair_t &endpoint_uri_pair_) :
-    //     stream_engine_base_t (fd, options_, endpoint_uri_pair_, true),
+    //     ZmqStreamEngineBase (fd, options_, endpoint_uri_pair_, true),
     //     _greeting_size (v2_greeting_size),
     //     _greeting_bytes_read (0),
     //     _subscription_required (false),
     //     _heartbeat_timeout (0)
-    pub fn new(fd: ZmqFileDesc, options: &ZmqOptions, endpoint_uri_pair: EndpointUriPair) -> Self {
+    pub fn new(fd: ZmqFileDesc, options: &ZmqOptions, endpoint_uri_pair: EndpointUriPair) -> Self
+    {
         let mut out = Self { ..Default::default() };
 
         // TODO
-        // out._next_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
+        // out._next_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
         //     &ZmqZmtpEngine::routing_id_msg);
 
         // TODO
-        // _process_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
+        // _process_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
         //     &ZmqZmtpEngine::process_routing_id_msg);
         // let _process_msg = &mut out._process_routing_id_msg;
 
@@ -222,7 +229,8 @@ impl ZmqZmtpEngine {
     //     errno_assert (rc == 0);
     // }
 
-    pub fn plug_internal(&mut self) {
+    pub fn plug_internal(&mut self)
+    {
         // start optional timer, to prevent handshake hanging on no input
         self.set_handshake_timer();
 
@@ -240,7 +248,8 @@ impl ZmqZmtpEngine {
         in_event();
     }
 
-    pub fn handshake(&mut self) -> bool {
+    pub fn handshake(&mut self) -> bool
+    {
         // zmq_assert (_greeting_bytes_read < _greeting_size);
         //  Receive the greeting.
         let rc: i32 = receive_greeting();
@@ -263,7 +272,8 @@ impl ZmqZmtpEngine {
     }
 
 
-    pub fn receive_greeting(&mut self) -> i32 {
+    pub fn receive_greeting(&mut self) -> i32
+    {
         let mut unversioned = false;
         while (self._greeting_bytes_read < self._greeting_size) {
             // TODO
@@ -306,7 +316,8 @@ impl ZmqZmtpEngine {
     }
 
 
-    pub fn receive_greeting_versioned(&mut self) {
+    pub fn receive_greeting_versioned(&mut self)
+    {
         //  Send the major version number.
         if (self._outpos + self._outsize == self._greeting_send + signature_size) {
             if (self._outsize == 0) {
@@ -322,14 +333,18 @@ impl ZmqZmtpEngine {
                 }
 
                 //  Use ZMTP/2.0 to talk to older peers.
-                if (self._greeting_recv[revision_pos] == ZmtpRevisions::ZMTP_1_0 as u8 || self._greeting_recv[revision_pos] == ZMTP_2_0 as u8) {
+                if (self._greeting_recv[revision_pos] == ZmtpRevisions::ZMTP_1_0 as u8
+                    || self._greeting_recv[revision_pos] == ZMTP_2_0 as u8) {
                     self._outpos[self._outsize += 1] = self._options.type_;
                 } else {
                     self._outpos[self._outsize += 1] = 1; //  Minor version number
                     // memset (_outpos + _outsize, 0, 20);
                     zero_bytes(self._outpos, self._outsize, 20);
 
-                    zmq_assert(self._options.mechanism == ZMQ_NULL || self._options.mechanism == ZMQ_PLAIN || self._options.mechanism == ZMQ_CURVE || self._options.mechanism == ZMQ_GSSAPI);
+                    // zmq_assert (self._options.mechanism == ZMQ_NULL
+                    || self._options.mechanism == ZMQ_PLAIN
+                        || self._options.mechanism == ZMQ_CURVE
+                        || self._options.mechanism == ZMQ_GSSAPI);
 
                     if (self._options.mechanism == ZMQ_NULL) {
                         copy_bytes(self._outpos, self._outsize, b"NULL", 0, 4);
@@ -350,7 +365,8 @@ impl ZmqZmtpEngine {
     }
 
     pub fn select_handshake_fun(&mut self,
-                                unversioned_: bool, revision_: ZmtpRevisions, minor_: u8) -> handshake_fun_t {
+                                unversioned_: bool, revision_: ZmtpRevisions, minor_: u8) -> handshake_fun_t
+    {
         //  Is the peer using ZMTP/1.0 with no revision number?
         if (unversioned_) {
             return handshake_v1_0_unversioned;
@@ -359,7 +375,8 @@ impl ZmqZmtpEngine {
             ZmtpRevisions::ZMTP_1_0 => handshake_v1_0,
             ZmtpRevisions::ZMTP_2_0 => handshake_v2_0,
             ZmtpRevisions::ZMTP_3_x => {
-                match minor_ {
+                match minor_
+                {
                     0 => handshake_v3_0,
                     _ => handshake_v3_1,
                 }
@@ -369,7 +386,8 @@ impl ZmqZmtpEngine {
     }
 
 
-    pub fn handshake_v1_0_unversioned(&mut self) -> bool {
+    pub fn handshake_v1_0_unversioned(&mut self) -> bool
+    {
         //  We send and receive rest of routing id message
         if (session().zap_enabled()) {
             // reject ZMTP 1.0 connections if ZAP is enabled
@@ -387,7 +405,8 @@ impl ZmqZmtpEngine {
         //  Since there is no way to tell the encoder to
         //  skip the message header, we simply throw that
         //  header data away.
-        let header_size = if self._options.routing_id_size + 1 >= u8::MAX { 10 } else { 2 };
+        let header_size =
+            if self._options.routing_id_size + 1 >= u8::MAX { 10 } else { 2 };
         // unsigned char tmp[10], *bufferp = tmp;
         let mut tmp: [u8; 10] = [0; 10];
         let bufferp = &mut tmp;
@@ -425,7 +444,8 @@ impl ZmqZmtpEngine {
         return true;
     }
 
-    pub fn handshake_v1_0(&mut self) -> bool {
+    pub fn handshake_v1_0(&mut self) -> bool
+    {
         if (session().zap_enabled()) {
             // reject ZMTP 1.0 connections if ZAP is enabled
             // error (protocol_error);
@@ -441,7 +461,8 @@ impl ZmqZmtpEngine {
         return true;
     }
 
-    pub fn handshake_v2_0(&mut self) -> bool {
+    pub fn handshake_v2_0(&mut self) -> bool
+    {
         if (session().zap_enabled()) {
             // reject ZMTP 2.0 connections if ZAP is enabled
             // error (protocol_error);
@@ -459,13 +480,17 @@ impl ZmqZmtpEngine {
     }
 
 
-    pub fn handshake_v3_x(&mut self, downgrade_sub_: bool) -> bool {
-        if self._options.mechanism == ZMQ_NULL && cmp_bytes(&self._greeting_recv, 12, b"NULL\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
-                                                            0, 20) == 0 {
+    pub fn handshake_v3_x(&mut self, downgrade_sub_: bool) -> bool
+    {
+        if self._options.mechanism == ZMQ_NULL
+            && cmp_bytes(&self._greeting_recv, 12, b"NULL\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+                         0, 20) == 0 {
             self._mechanism = ZmqMechanism::new(session(), self._peer_address, self._options);
             // alloc_assert (self._mechanism);
-        } else if (self._options.mechanism == ZMQ_PLAIN && cmp_bytes(&self._greeting_recv, 12,
-                                                                     b"PLAIN\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 0, 20) == 0) {
+        } else if (self._options.mechanism == ZMQ_PLAIN
+            && cmp_bytes(&self._greeting_recv, 12,
+                         b"PLAIN\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 0, 20)
+            == 0) {
             if (self._options.as_server) {
                 self._mechanism = plain_server_t::new(session(), self._peer_address, self._options);
             } else {
@@ -474,10 +499,12 @@ impl ZmqZmtpEngine {
             // alloc_assert (self._mechanism);
         }
 // #ifdef ZMQ_HAVE_CURVE
-        else if (self._options.mechanism == ZMQ_CURVE && cmp_bytes(&self._greeting_recv, 12,
-                                                                   b"CURVE\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 0, 20) == 0) {
+        else if (self._options.mechanism == ZMQ_CURVE
+            && cmp_bytes(&self._greeting_recv, 12,
+                         b"CURVE\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 0, 20)
+            == 0) {
             if (self._options.as_server) {
-                self._mechanism = ZmqCurveServer::new(
+                self._mechanism = curve_server_t::new(
                     session(), self._peer_address, self._options, downgrade_sub_);
             } else {
                 self._mechanism = curve_client_t::new(session(), self._options, downgrade_sub_);
@@ -486,8 +513,10 @@ impl ZmqZmtpEngine {
         }
 // #endif
 // #ifdef HAVE_LIBGSSAPI_KRB5
-        else if (self._options.mechanism == ZMQ_GSSAPI && cmp_bytes(&self._greeting_recv, 12,
-                                                                    b"GSSAPI\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 0, 20) == 0) {
+        else if (self._options.mechanism == ZMQ_GSSAPI
+            && cmp_bytes(&self._greeting_recv, 12,
+                         b"GSSAPI\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 0, 20)
+            == 0) {
             if (self._options.as_server) {
                 self._mechanism = gssapi_server_t::new(session(), self._peer_address, self._options);
             } else {
@@ -510,7 +539,8 @@ impl ZmqZmtpEngine {
         return true;
     }
 
-    pub fn handshake_v3_0(&mut self) -> bool {
+    pub fn handshake_v3_0(&mut self) -> bool
+    {
         self._encoder = v2_encoder_t::new(self._options.out_batch_size);
         // alloc_assert (self._encoder);
 
@@ -521,7 +551,8 @@ impl ZmqZmtpEngine {
         return self.handshake_v3_x(true);
     }
 
-    pub fn handshake_v3_1(&mut self) -> bool {
+    pub fn handshake_v3_1(&mut self) -> bool
+    {
         self._encoder = v3_1_encoder_t::new(self._options.out_batch_size);
         // alloc_assert (self._encoder);
 
@@ -532,7 +563,8 @@ impl ZmqZmtpEngine {
         return self.handshake_v3_x(false);
     }
 
-    pub fn routing_id_msg(&mut self, msg: &mut ZmqMessage) -> i32 {
+    pub fn routing_id_msg(&mut self, msg: &mut ZmqMessage) -> i32
+    {
         let rc: i32 = msg.init_size(self._options.routing_id_size);
         // errno_assert (rc == 0);
         if (self._options.routing_id_size > 0) {
@@ -543,11 +575,12 @@ impl ZmqZmtpEngine {
     }
 
 
-    pub fn process_routing_id_msg(&mut self, msg: &mut ZmqMessage) -> i32 {
+    pub fn process_routing_id_msg(&mut self, msg: &mut ZmqMessage) -> i32
+    {
         if (self._options.recv_routing_id) {
             msg.set_flags(ZMQ_MSG_ROUTING_ID);
             let rc: i32 = session().push_msg(msg);
-            errno_assert(rc == 0);
+            // errno_assert(rc == 0);
         } else {
             let rc = msg.close();
             // errno_assert (rc == 0);
@@ -572,7 +605,8 @@ impl ZmqZmtpEngine {
         return 0;
     }
 
-    pub fn produce_ping_message(&mut self, msg: &mut ZmqMessage) -> i32 {
+    pub fn produce_ping_message(&mut self, msg: &mut ZmqMessage) -> i32
+    {
         // 16-bit TTL + \4PING == 7
         let ping_ttl_len = ZmqMessage::PING_CMD_NAME_SIZE + 2;
         // zmq_assert (self._mechanism != null_mut());
@@ -597,7 +631,8 @@ impl ZmqZmtpEngine {
     }
 
 
-    pub fn produce_pong_message(&mut self, msg: &mut ZmqMessage) -> i32 {
+    pub fn produce_pong_message(&mut self, msg: &mut ZmqMessage) -> i32
+    {
         // zmq_assert (self._mechanism != null_mut());
         // TODO
         // let mut rc = msg.move (self._pong_msg);
@@ -609,7 +644,8 @@ impl ZmqZmtpEngine {
     }
 
 
-    pub fn process_heartbeat_message(&mut self, msg: &mut ZmqMessage) -> i32 {
+    pub fn process_heartbeat_message(&mut self, msg: &mut ZmqMessage) -> i32
+    {
         if (msg.is_ping()) {
             // 16-bit TTL + \4PING == 7
             let ping_ttl_len = ZmqMessage::PING_CMD_NAME_SIZE + 2;
@@ -638,8 +674,10 @@ impl ZmqZmtpEngine {
             //  here and store it. Truncate it if it's too long.
             //  Given the engine goes straight to out_event, sequential PINGs will
             //  not be a problem.
-            let context_len = usize::min(msg.size() - ping_ttl_len, ping_max_ctx_len);
-            let rc: i32 = self._pong_msg.init_size(ZmqMessage::PING_CMD_NAME_SIZE + context_len);
+            let context_len =
+                usize::min(msg.size() - ping_ttl_len, ping_max_ctx_len);
+            let rc: i32 =
+                self._pong_msg.init_size(ZmqMessage::PING_CMD_NAME_SIZE + context_len);
             // errno_assert (rc == 0);
             self._pong_msg.set_flags(ZMQ_MSG_COMMAND);
             copy_bytes(self._pong_msg.data_mut(), 0, b"\x04PONG", 0, ZmqMessage::PING_CMD_NAME_SIZE);
@@ -657,7 +695,8 @@ impl ZmqZmtpEngine {
         return 0;
     }
 
-    pub fn process_command_message(&mut self, msg: &mut ZmqMessage) -> i32 {
+    pub fn process_command_message(&mut self, msg: &mut ZmqMessage) -> i32
+    {
         let cmd_name_size = msg.data()[0];
         let ping_name_size = ZmqMessage::PING_CMD_NAME_SIZE - 1;
         let sub_name_size = ZmqMessage::SUB_CMD_NAME_SIZE - 1;
@@ -668,16 +707,20 @@ impl ZmqZmtpEngine {
         }
 
         let cmd_name = msg.data()[1..];
-        if cmd_name_size == ping_name_size && cmp_bytes(&cmd_name, 0, b"PING", 0, cmd_name_size as usize) == 0 {
+        if cmd_name_size == ping_name_size
+            && cmp_bytes(&cmd_name, 0, b"PING", 0, cmd_name_size as usize) == 0 {
             msg.set_flags(ZMQ_MSG_PING);
         }
-        if (cmd_name_size == ping_name_size && cmp_bytes(&cmd_name, 0, b"PONG", 0, cmd_name_size as usize) == 0) {
+        if (cmd_name_size == ping_name_size
+            && cmp_bytes(&cmd_name, 0, b"PONG", 0, cmd_name_size as usize) == 0) {
             msg.set_flags(ZMQ_MSG_PONG);
         }
-        if (cmd_name_size == sub_name_size && cmp_bytes(&cmd_name, 0, b"SUBSCRIBE", 0, cmd_name_size as usize) == 0) {
+        if (cmd_name_size == sub_name_size
+            && cmp_bytes(&cmd_name, 0, b"SUBSCRIBE", 0, cmd_name_size as usize) == 0) {
             msg.set_flags(ZMQ_MSG_SUBSCRIBE);
         }
-        if (cmd_name_size == cancel_name_size && cmp_bytes(&cmd_name, 0, b"CANCEL", 0, cmd_name_size as usize) == 0) {
+        if (cmd_name_size == cancel_name_size
+            && cmp_bytes(&cmd_name, 0, b"CANCEL", 0, cmd_name_size as usize) == 0) {
             msg.set_flags(ZMQ_MSG_CANCEL);
         }
 

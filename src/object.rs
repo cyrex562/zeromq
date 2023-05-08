@@ -1,7 +1,3 @@
-use std::ptr::null_mut;
-
-use anyhow::anyhow;
-
 use crate::command::{CommandType, ZmqCommand};
 use crate::context::ZmqContext;
 use crate::endpoint::{EndpointUriPair, ZmqEndpoint};
@@ -10,6 +6,8 @@ use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
+use anyhow::anyhow;
+use std::ptr::null_mut;
 
 // #[derive(Default,Debug,Clone)]
 // pub struct object_t {
@@ -109,13 +107,7 @@ pub trait ZmqObject {
 
     // void send_bind (ZmqOwn *destination_,
     //                 ZmqPipe *pipe_,
-    //                 bool inc_seqnum_ = true);
-    pub fn send_bind(
-        &mut self,
-        destination: &mut ZmqSocketBase,
-        pipe: &mut ZmqPipe,
-        inc_seqnum: bool,
-    ) {
+    //                 bool inc_seqnum_ = true); fn send_bind(&mut self, destination: &mut ZmqOwn, pipe: &mut ZmqPipe, inc_seqnum: bool) {
         if (inc_seqnum) {
             destination.inc_seqnum();
         }
@@ -164,11 +156,11 @@ pub trait ZmqObject {
     }
 
     // void send_attach (ZmqSessionBase *destination_,
-    //                   i_engine *engine_,
+    //                   ZmqIEngine *engine_,
     //                   bool inc_seqnum_ = true); fn send_attach(
         &mut self,
         destination: &mut ZmqSessionbase,
-        engine: &mut i_engine,
+        engine: &mut ZmqEngineInterface,
         inc_seqnum: bool,
     ) {
         if (inc_seqnum_) {
@@ -340,7 +332,7 @@ pub trait ZmqObject {
         unimplemented!()
     }
 
-    // virtual void process_attach (i_engine *engine_); fn process_attached(&mut self, engine: &mut i_engine) {
+    // virtual void process_attach (ZmqIEngine *engine_); fn process_attached(&mut self, engine: &mut ZmqEngineInterface) {
         unimplemented!()
     }
 
@@ -584,7 +576,7 @@ pub trait ZmqObject {
 // }
 
 // void object_t::send_attach (ZmqSessionBase *destination,
-//                                  i_engine *engine_,
+//                                  ZmqIEngine *engine_,
 //                                  inc_seqnum_: bool)
 // {
 //     if (inc_seqnum_)
@@ -787,7 +779,7 @@ pub trait ZmqObject {
 //     zmq_assert (false);
 // }
 
-// void object_t::process_attach (i_engine *)
+// void object_t::process_attach (ZmqIEngine *)
 // {
 //     zmq_assert (false);
 // }

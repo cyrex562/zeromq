@@ -45,7 +45,7 @@
 // #include "address.hpp"
 pub struct ipc_listener_t  : public stream_listener_base_t
 {
-// public:
+//
     ipc_listener_t (ZmqThread *io_thread_,
                     socket: *mut ZmqSocketBase,
                     options: &ZmqOptions);
@@ -53,10 +53,10 @@ pub struct ipc_listener_t  : public stream_listener_base_t
     //  Set address to listen on.
     int set_local_address (addr_: &str);
 
-  protected:
+
     std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
 
-  // private:
+  //
     //  Handlers for I/O events.
     void in_event ();
 
@@ -131,7 +131,7 @@ void ipc_listener_t::in_event ()
     //  If connection was reset by the peer in the meantime, just ignore it.
     //  TODO: Handle specific errors like ENFILE/EMFILE etc.
     if (fd == retired_fd) {
-        _socket.event_accept_failed (
+        self._socket.event_accept_failed (
           make_unconnected_bind_endpoint_pair (_endpoint), zmq_errno ());
         return;
     }
@@ -216,7 +216,7 @@ int ipc_listener_t::set_local_address (addr_: &str)
     _filename = ZMQ_MOVE (addr);
     _has_file = true;
 
-    _socket.event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
+    self._socket.event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
                               _s);
     return 0;
 
@@ -229,14 +229,14 @@ error:
 
 int ipc_listener_t::close ()
 {
-    zmq_assert (_s != retired_fd);
+    // zmq_assert (_s != retired_fd);
     const ZmqFileDesc fd_for_event = _s;
 // #ifdef ZMQ_HAVE_WINDOWS
     int rc = closesocket (_s);
     wsa_assert (rc != SOCKET_ERROR);
 // #else
     int rc = ::close (_s);
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 // #endif
 
     _s = retired_fd;
@@ -256,13 +256,13 @@ int ipc_listener_t::close ()
         }
 
         if (rc != 0) {
-            _socket.event_close_failed (
+            self._socket.event_close_failed (
               make_unconnected_bind_endpoint_pair (_endpoint), zmq_errno ());
             return -1;
         }
     }
 
-    _socket.event_closed (make_unconnected_bind_endpoint_pair (_endpoint),
+    self._socket.event_closed (make_unconnected_bind_endpoint_pair (_endpoint),
                            fd_for_event);
     return 0;
 }
@@ -342,7 +342,7 @@ ZmqFileDesc ipc_listener_t::accept ()
     //  Accept one connection and deal with different failure modes.
     //  The situation where connection cannot be accepted due to insufficient
     //  resources is considered valid and treated by ignoring the connection.
-    zmq_assert (_s != retired_fd);
+    // zmq_assert (_s != retired_fd);
 // #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
     ZmqFileDesc sock = ::accept4 (_s, null_mut(), null_mut(), SOCK_CLOEXEC);
 // #else
@@ -363,7 +363,7 @@ ZmqFileDesc ipc_listener_t::accept ()
         wsa_assert (last_error == WSAEWOULDBLOCK || last_error == WSAECONNRESET
                     || last_error == WSAEMFILE || last_error == WSAENOBUFS);
 // #else
-        errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
+        // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
                       || errno == ECONNABORTED || errno == EPROTO
                       || errno == ENFILE);
 // #endif
@@ -376,7 +376,7 @@ ZmqFileDesc ipc_listener_t::accept ()
 // #if defined ZMQ_HAVE_SO_PEERCRED || defined ZMQ_HAVE_LOCAL_PEERCRED
     if (!filter (sock)) {
         int rc = ::close (sock);
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         return retired_fd;
     }
 // #endif
@@ -387,7 +387,7 @@ ZmqFileDesc ipc_listener_t::accept ()
         wsa_assert (rc != SOCKET_ERROR);
 // #else
         int rc = ::close (sock);
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
 // #endif
         return retired_fd;
     }

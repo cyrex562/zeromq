@@ -32,11 +32,11 @@
 // #include "msg.hpp"
 pub struct sub_t  : public XSub
 {
-// public:
+//
     sub_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~sub_t ();
 
-  protected:
+
     int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
     int xsend (msg: &mut ZmqMessage);
     bool xhas_out ();
@@ -47,7 +47,7 @@ pub struct sub_t  : public XSub
 sub_t::sub_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     XSub (parent_, tid, sid_)
 {
-    options.type = ZMQ_SUB;
+    options.type_ = ZMQ_SUB;
 
     //  Switch filtering messages on (as opposed to XSUB which where the
     //  filtering is off).
@@ -76,7 +76,7 @@ let mut msg = ZmqMessage::default();
     } else {
         rc = msg.init_cancel (optvallen_, data);
     }
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     //  Pass it further on in the stack.
     rc = XSub::xsend (&msg);

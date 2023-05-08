@@ -35,7 +35,7 @@
 // #include <algorithm>
 pub struct mailbox_safe_t  : public i_mailbox
 {
-// public:
+//
     mailbox_safe_t (mutex_t *sync_);
     ~mailbox_safe_t ();
 
@@ -57,7 +57,7 @@ pub struct mailbox_safe_t  : public i_mailbox
     }
 // #endif
 
-  // private:
+  //
     //  The pipe to store actual commands.
     typedef Ypipe<ZmqCommand, command_pipe_granularity> cpipe_t;
     cpipe_t cpipe;
@@ -79,7 +79,7 @@ mailbox_safe_t::mailbox_safe_t (mutex_t *sync_) : sync (sync_)
     //  polling on the associated file descriptor it will get woken up when
     //  new command is posted.
     const bool ok = cpipe.check_read ();
-    zmq_assert (!ok);
+    // zmq_assert (!ok);
 }
 
 mailbox_safe_t::~mailbox_safe_t ()
@@ -147,7 +147,7 @@ int mailbox_safe_t::recv (cmd: &mut ZmqCommand timeout: i32)
         //  Wait for signal from the command sender.
         let rc: i32 = _cond_var.wait (sync, timeout);
         if (rc == -1) {
-            errno_assert (errno == EAGAIN || errno == EINTR);
+            // errno_assert (errno == EAGAIN || errno == EINTR);
             return -1;
         }
     }

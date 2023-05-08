@@ -46,7 +46,7 @@
 // #include "session_base.hpp"
 pub struct vmci_connecter_t  : public stream_connecter_base_t
 {
-// public:
+//
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
     vmci_connecter_t (ZmqThread *io_thread_,
@@ -56,10 +56,10 @@ pub struct vmci_connecter_t  : public stream_connecter_base_t
                       delayed_start_: bool);
     ~vmci_connecter_t ();
 
-  protected:
+
     std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
 
-  // private:
+  //
     //  ID of the timer used to check the connect timeout, must be different from stream_connecter_base_t::reconnect_timer_id.
     enum
     {
@@ -109,12 +109,12 @@ pub struct ZmqSessionBase *session_,
       io_thread_, session_, options_, addr_, delayed_start_),
     _connect_timer_started (false)
 {
-    zmq_assert (_addr.protocol == protocol_name::vmci);
+    // zmq_assert (_addr.protocol == protocol_name::vmci);
 }
 
 vmci_connecter_t::~vmci_connecter_t ()
 {
-    zmq_assert (!_connect_timer_started);
+    // zmq_assert (!_connect_timer_started);
 }
 
 void vmci_connecter_t::process_term (linger: i32)
@@ -226,7 +226,7 @@ void vmci_connecter_t::start_connecting ()
     else if (rc == -1 && errno == EINPROGRESS) {
         _handle = add_fd (_s);
         set_pollout (_handle);
-        _socket.event_connect_delayed (
+        self._socket.event_connect_delayed (
           make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
 
         //  add userspace connect timeout
@@ -251,7 +251,7 @@ void vmci_connecter_t::add_connect_timer ()
 
 int vmci_connecter_t::open ()
 {
-    zmq_assert (_s == retired_fd);
+    // zmq_assert (_s == retired_fd);
 
     //  Resolve the address
     if (_addr.resolved.vmci_addr != null_mut()) {
@@ -259,8 +259,8 @@ int vmci_connecter_t::open ()
     }
 
     _addr.resolved.vmci_addr =
-      new (std::nothrow) VmciAddress (this.get_ctx ());
-    alloc_assert (_addr.resolved.vmci_addr);
+       VmciAddress (this.get_ctx ());
+    // alloc_assert (_addr.resolved.vmci_addr);
     _s = vmci_open_socket (_addr.address, options,
                            _addr.resolved.vmci_addr);
     if (_s == retired_fd) {
@@ -269,7 +269,7 @@ int vmci_connecter_t::open ()
         LIBZMQ_DELETE (_addr.resolved.vmci_addr);
         return -1;
     }
-    zmq_assert (_addr.resolved.vmci_addr != null_mut());
+    // zmq_assert (_addr.resolved.vmci_addr != null_mut());
 
     // Set the socket to non-blocking mode so that we get async connect().
     unblock_socket (_s);
@@ -315,12 +315,12 @@ ZmqFileDesc vmci_connecter_t::connect ()
 // #endif
 
     let rc: i32 = getsockopt (_s, SOL_SOCKET, SO_ERROR,
-                               reinterpret_cast<char *> (&err), &len);
+                                (&err), &len);
 
     //  Assert if the error was caused by 0MQ bug.
     //  Networking problems are OK. No need to assert.
 // #ifdef ZMQ_HAVE_WINDOWS
-    zmq_assert (rc == 0);
+    // zmq_assert (rc == 0);
     if (err != 0) {
         if (err == WSAEBADF || err == WSAENOPROTOOPT || err == WSAENOTSOCK
             || err == WSAENOBUFS) {
@@ -337,10 +337,10 @@ ZmqFileDesc vmci_connecter_t::connect ()
     if (err != 0) {
         errno = err;
 // #if !defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
-        errno_assert (errno != EBADF && errno != ENOPROTOOPT
+        // errno_assert (errno != EBADF && errno != ENOPROTOOPT
                       && errno != ENOTSOCK && errno != ENOBUFS);
 // #else
-        errno_assert (errno != ENOPROTOOPT && errno != ENOTSOCK
+        // errno_assert (errno != ENOPROTOOPT && errno != ENOTSOCK
                       && errno != ENOBUFS);
 // #endif
         return retired_fd;

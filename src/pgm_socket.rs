@@ -51,7 +51,7 @@
 // #endif
 pub struct pgm_socket_t
 {
-// public:
+//
     //  If receiver_ is true PGM transport is not generating SPM packets.
     pgm_socket_t (receiver_: bool, options: &ZmqOptions);
 
@@ -92,7 +92,7 @@ pub struct pgm_socket_t
     //  process_upstream function is used to handle such a situation.
     void process_upstream ();
 
-  // private:
+  //
     //  Compute size of the buffer based on rate and recovery interval.
     int compute_sqns (tpdu_: i32);
 
@@ -169,7 +169,7 @@ int pgm_socket_t::init_address (network_: &str,
     hints.ai_family = AF_UNSPEC;
     if (!pgm_getaddrinfo (network, null_mut(), res, &pgm_error)) {
         //  Invalid parameters don't set pgm_error_t.
-        zmq_assert (pgm_error != null_mut());
+        // zmq_assert (pgm_error != null_mut());
         if (pgm_error.domain == PGM_ERROR_DOMAIN_IF &&
 
             //  NB: cannot catch EAI_BADFLAGS.
@@ -182,7 +182,7 @@ int pgm_socket_t::init_address (network_: &str,
         }
 
         //  Fatal OpenPGM internal error.
-        zmq_assert (false);
+        // zmq_assert (false);
     }
     return 0;
 }
@@ -191,8 +191,8 @@ int pgm_socket_t::init_address (network_: &str,
 int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
 {
     //  Can not open transport before destroying old one.
-    zmq_assert (sock == null_mut());
-    zmq_assert (options.rate > 0);
+    // zmq_assert (sock == null_mut());
+    // zmq_assert (options.rate > 0);
 
     //  Zero counter used in msgrecv.
     nbytes_rec = 0;
@@ -209,7 +209,7 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
         goto err_abort;
     }
 
-    zmq_assert (res != null_mut());
+    // zmq_assert (res != null_mut());
 
     //  Pick up detected IP family.
     sa_family = res.ai_send_addrs[0].gsr_group.ss_family;
@@ -219,7 +219,7 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
         if (!pgm_socket (&sock, sa_family, SOCK_SEQPACKET, IPPROTO_UDP,
                          &pgm_error)) {
             //  Invalid parameters don't set pgm_error_t.
-            zmq_assert (pgm_error != null_mut());
+            // zmq_assert (pgm_error != null_mut());
             if (pgm_error.domain == PGM_ERROR_DOMAIN_SOCKET
                 && (pgm_error.code != PGM_ERROR_BADF
                     && pgm_error.code != PGM_ERROR_FAULT
@@ -230,7 +230,7 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
                 goto err_abort;
 
             //  Fatal OpenPGM internal error.
-            zmq_assert (false);
+            // zmq_assert (false);
         }
 
         //  All options are of data type int
@@ -245,7 +245,7 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
         if (!pgm_socket (&sock, sa_family, SOCK_SEQPACKET, IPPROTO_PGM,
                          &pgm_error)) {
             //  Invalid parameters don't set pgm_error_t.
-            zmq_assert (pgm_error != null_mut());
+            // zmq_assert (pgm_error != null_mut());
             if (pgm_error.domain == PGM_ERROR_DOMAIN_SOCKET
                 && (pgm_error.code != PGM_ERROR_BADF
                     && pgm_error.code != PGM_ERROR_FAULT
@@ -256,7 +256,7 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
                 goto err_abort;
 
             //  Fatal OpenPGM internal error.
-            zmq_assert (false);
+            // zmq_assert (false);
         }
     }
 
@@ -359,7 +359,7 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
     if (!pgm_bind3 (sock, &addr, mem::size_of::<addr>(), &if_req, mem::size_of::<if_req>(),
                     &if_req, mem::size_of::<if_req>(), &pgm_error)) {
         //  Invalid parameters don't set pgm_error_t.
-        zmq_assert (pgm_error != null_mut());
+        // zmq_assert (pgm_error != null_mut());
         if ((pgm_error.domain == PGM_ERROR_DOMAIN_SOCKET
              || pgm_error.domain == PGM_ERROR_DOMAIN_IF)
             && (pgm_error.code != PGM_ERROR_INVAL
@@ -370,7 +370,7 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
             goto err_abort;
 
         //  Fatal OpenPGM internal error.
-        zmq_assert (false);
+        // zmq_assert (false);
     }
 
     //  Join IP multicast groups.
@@ -414,21 +414,21 @@ int pgm_socket_t::init (udp_encapsulation_: bool, network_: &str)
     //  Connect PGM transport to start state machine.
     if (!pgm_connect (sock, &pgm_error)) {
         //  Invalid parameters don't set pgm_error_t.
-        zmq_assert (pgm_error != null_mut());
+        // zmq_assert (pgm_error != null_mut());
         goto err_abort;
     }
 
     //  For receiver transport preallocate pgm_msgv array.
     if (receiver) {
-        zmq_assert (options.in_batch_size > 0);
+        // zmq_assert (options.in_batch_size > 0);
         size_t max_tsdu_size = get_max_tsdu_size ();
         pgm_msgv_len =  options.in_batch_size / max_tsdu_size;
         if ( options.in_batch_size % max_tsdu_size)
             pgm_msgv_len+= 1;
-        zmq_assert (pgm_msgv_len);
+        // zmq_assert (pgm_msgv_len);
 
         pgm_msgv = (pgm_msgv_t *) malloc (mem::size_of::<pgm_msgv_t>() * pgm_msgv_len);
-        alloc_assert (pgm_msgv);
+        // alloc_assert (pgm_msgv);
     }
 
     return 0;
@@ -466,20 +466,20 @@ void pgm_socket_t::get_receiver_fds (ZmqFileDesc *receive_fd_,
     socklen_t socklen;
     rc: bool
 
-    zmq_assert (receive_fd_);
-    zmq_assert (waiting_pipe_fd_);
+    // zmq_assert (receive_fd_);
+    // zmq_assert (waiting_pipe_fd_);
 
     socklen = sizeof (*receive_fd_);
     rc =
       pgm_getsockopt (sock, IPPROTO_PGM, PGM_RECV_SOCK, receive_fd_, &socklen);
-    zmq_assert (rc);
-    zmq_assert (socklen == sizeof (*receive_fd_));
+    // zmq_assert (rc);
+    // zmq_assert (socklen == sizeof (*receive_fd_));
 
     socklen = sizeof (*waiting_pipe_fd_);
     rc = pgm_getsockopt (sock, IPPROTO_PGM, PGM_PENDING_SOCK, waiting_pipe_fd_,
                          &socklen);
-    zmq_assert (rc);
-    zmq_assert (socklen == sizeof (*waiting_pipe_fd_));
+    // zmq_assert (rc);
+    // zmq_assert (socklen == sizeof (*waiting_pipe_fd_));
 }
 
 //  Get fds and store them into user allocated memory.
@@ -495,33 +495,33 @@ void pgm_socket_t::get_sender_fds (ZmqFileDesc *send_fd_,
     socklen_t socklen;
     rc: bool
 
-    zmq_assert (send_fd_);
-    zmq_assert (receive_fd_);
-    zmq_assert (rdata_notify_fd_);
-    zmq_assert (pending_notify_fd_);
+    // zmq_assert (send_fd_);
+    // zmq_assert (receive_fd_);
+    // zmq_assert (rdata_notify_fd_);
+    // zmq_assert (pending_notify_fd_);
 
     socklen = sizeof (*send_fd_);
     rc = pgm_getsockopt (sock, IPPROTO_PGM, PGM_SEND_SOCK, send_fd_, &socklen);
-    zmq_assert (rc);
-    zmq_assert (socklen == sizeof (*receive_fd_));
+    // zmq_assert (rc);
+    // zmq_assert (socklen == sizeof (*receive_fd_));
 
     socklen = sizeof (*receive_fd_);
     rc =
       pgm_getsockopt (sock, IPPROTO_PGM, PGM_RECV_SOCK, receive_fd_, &socklen);
-    zmq_assert (rc);
-    zmq_assert (socklen == sizeof (*receive_fd_));
+    // zmq_assert (rc);
+    // zmq_assert (socklen == sizeof (*receive_fd_));
 
     socklen = sizeof (*rdata_notify_fd_);
     rc = pgm_getsockopt (sock, IPPROTO_PGM, PGM_REPAIR_SOCK, rdata_notify_fd_,
                          &socklen);
-    zmq_assert (rc);
-    zmq_assert (socklen == sizeof (*rdata_notify_fd_));
+    // zmq_assert (rc);
+    // zmq_assert (socklen == sizeof (*rdata_notify_fd_));
 
     socklen = sizeof (*pending_notify_fd_);
     rc = pgm_getsockopt (sock, IPPROTO_PGM, PGM_PENDING_SOCK,
                          pending_notify_fd_, &socklen);
-    zmq_assert (rc);
-    zmq_assert (socklen == sizeof (*pending_notify_fd_));
+    // zmq_assert (rc);
+    // zmq_assert (socklen == sizeof (*pending_notify_fd_));
 }
 
 //  Send one APDU, transmit window owned memory.
@@ -534,10 +534,10 @@ size_t pgm_socket_t::send (data: &mut [u8], data_len_: usize)
 
     //  We have to write all data as one packet.
     if (nbytes > 0) {
-        zmq_assert (status == PGM_IO_STATUS_NORMAL);
-        zmq_assert (nbytes == data_len_);
+        // zmq_assert (status == PGM_IO_STATUS_NORMAL);
+        // zmq_assert (nbytes == data_len_);
     } else {
-        zmq_assert (status == PGM_IO_STATUS_RATE_LIMITED
+        // zmq_assert (status == PGM_IO_STATUS_RATE_LIMITED
                     || status == PGM_IO_STATUS_WOULD_BLOCK);
 
         if (status == PGM_IO_STATUS_RATE_LIMITED)
@@ -565,7 +565,7 @@ long pgm_socket_t::get_rx_timeout ()
                                       ? PGM_RATE_REMAIN
                                       : PGM_TIME_REMAIN,
                                     &tv, &optlen);
-    zmq_assert (rc);
+    // zmq_assert (rc);
 
     const long timeout = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 
@@ -581,7 +581,7 @@ long pgm_socket_t::get_tx_timeout ()
     socklen_t optlen = mem::size_of::<tv>();
     const bool rc =
       pgm_getsockopt (sock, IPPROTO_PGM, PGM_RATE_REMAIN, &tv, &optlen);
-    zmq_assert (rc);
+    // zmq_assert (rc);
 
     const long timeout = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 
@@ -595,8 +595,8 @@ size_t pgm_socket_t::get_max_tsdu_size ()
     socklen_t optlen = mem::size_of::<max_tsdu>();
 
     bool rc = pgm_getsockopt (sock, IPPROTO_PGM, PGM_MSS, &max_tsdu, &optlen);
-    zmq_assert (rc);
-    zmq_assert (optlen == mem::size_of::<max_tsdu>());
+    // zmq_assert (rc);
+    // zmq_assert (optlen == mem::size_of::<max_tsdu>());
     return (size_t) max_tsdu;
 }
 
@@ -621,9 +621,9 @@ ssize_t pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t **tsi
     //  structure previously read from the pgm socket.
     if (nbytes_rec == nbytes_processed) {
         //  Check program flow.
-        zmq_assert (pgm_msgv_processed == 0);
-        zmq_assert (nbytes_processed == 0);
-        zmq_assert (nbytes_rec == 0);
+        // zmq_assert (pgm_msgv_processed == 0);
+        // zmq_assert (nbytes_processed == 0);
+        // zmq_assert (nbytes_rec == 0);
 
         //  Receive a vector of Application Protocol Domain Unit's (APDUs)
         //  from the transport.
@@ -633,14 +633,14 @@ ssize_t pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t **tsi
                                          MSG_ERRQUEUE, &nbytes_rec, &pgm_error);
 
         //  Invalid parameters.
-        zmq_assert (status != PGM_IO_STATUS_ERROR);
+        // zmq_assert (status != PGM_IO_STATUS_ERROR);
 
         last_rx_status = status;
 
         //  In a case when no ODATA/RDATA fired POLLIN event (SPM...)
         //  pgm_recvmsg returns PGM_IO_STATUS_TIMER_PENDING.
         if (status == PGM_IO_STATUS_TIMER_PENDING) {
-            zmq_assert (nbytes_rec == 0);
+            // zmq_assert (nbytes_rec == 0);
 
             //  In case if no RDATA/ODATA caused POLLIN 0 is
             //  returned.
@@ -651,7 +651,7 @@ ssize_t pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t **tsi
 
         //  Send SPMR, NAK, ACK is rate limited.
         if (status == PGM_IO_STATUS_RATE_LIMITED) {
-            zmq_assert (nbytes_rec == 0);
+            // zmq_assert (nbytes_rec == 0);
 
             //  In case if no RDATA/ODATA caused POLLIN 0 is returned.
             nbytes_rec = 0;
@@ -661,7 +661,7 @@ ssize_t pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t **tsi
 
         //  No peers and hence no incoming packets.
         if (status == PGM_IO_STATUS_WOULD_BLOCK) {
-            zmq_assert (nbytes_rec == 0);
+            // zmq_assert (nbytes_rec == 0);
 
             //  In case if no RDATA/ODATA caused POLLIN 0 is returned.
             nbytes_rec = 0;
@@ -683,16 +683,16 @@ ssize_t pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t **tsi
             return -1;
         }
 
-        zmq_assert (status == PGM_IO_STATUS_NORMAL);
+        // zmq_assert (status == PGM_IO_STATUS_NORMAL);
     } else {
-        zmq_assert (pgm_msgv_processed <= pgm_msgv_len);
+        // zmq_assert (pgm_msgv_processed <= pgm_msgv_len);
     }
 
     // Zero byte payloads are valid in PGM, but not 0MQ protocol.
-    zmq_assert (nbytes_rec > 0);
+    // zmq_assert (nbytes_rec > 0);
 
     // Only one APDU per pgm_msgv_t structure is allowed.
-    zmq_assert (pgm_msgv[pgm_msgv_processed].msgv_len == 1);
+    // zmq_assert (pgm_msgv[pgm_msgv_processed].msgv_len == 1);
 
     struct pgm_sk_buff_t *skb = pgm_msgv[pgm_msgv_processed].msgv_skb[0];
 
@@ -705,7 +705,7 @@ ssize_t pgm_socket_t::receive (raw_data_: *mut *mut c_void const pgm_tsi_t **tsi
 
     //  Move the the next pgm_msgv_t structure.
     pgm_msgv_processed+= 1;
-    zmq_assert (pgm_msgv_processed <= pgm_msgv_len);
+    // zmq_assert (pgm_msgv_processed <= pgm_msgv_len);
     nbytes_processed += raw_data_len;
 
     return raw_data_len;
@@ -722,10 +722,10 @@ void pgm_socket_t::process_upstream ()
                                      &dummy_bytes, &pgm_error);
 
     //  Invalid parameters.
-    zmq_assert (status != PGM_IO_STATUS_ERROR);
+    // zmq_assert (status != PGM_IO_STATUS_ERROR);
 
     //  No data should be returned.
-    zmq_assert (dummy_bytes == 0
+    // zmq_assert (dummy_bytes == 0
                 && (status == PGM_IO_STATUS_TIMER_PENDING
                     || status == PGM_IO_STATUS_RATE_LIMITED
                     || status == PGM_IO_STATUS_WOULD_BLOCK));

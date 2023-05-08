@@ -60,7 +60,7 @@ const zap_reply_frame_count: usize = 7;
 #[derive(Default, Debug, Clone)]
 pub struct ZmqZapClient {
     // public virtual ZmqMechanismBase
-    // public:
+    //
     //     ZmqZapClient (ZmqSessionBase *session_,
     //                   const std::string &peer_address_,
     //                   options: &ZmqOptions);
@@ -78,7 +78,7 @@ pub struct ZmqZapClient {
     //
     //     virtual int receive_and_process_zap_reply ();
     //     virtual void handle_zap_status_code ();
-    // protected:
+    //
     //   const peer_address: String;
     pub peer_address: String,
     //  Status code as received from ZAP handler
@@ -239,7 +239,7 @@ impl ZmqZapClient {
         // for (size_t i = 0; i < zap_reply_frame_count; i+= 1)
         for i in 0..zap_reply_frame_count {
             msg[i].init2()?;
-            errno_assert(rc == 0);
+            // errno_assert(rc == 0);
         }
 
         // for (size_t i = 0; i < zap_reply_frame_count; i+= 1)
@@ -254,10 +254,10 @@ impl ZmqZapClient {
             }
             if ((msg[i].flags() & ZMQ_MSG_MORE)
                 == (if i < zap_reply_frame_count - 1 {
-                    0
-                } else {
-                    ZMQ_MSG_MORE
-                }))
+                0
+            } else {
+                ZMQ_MSG_MORE
+            }))
             {
                 session.get_socket().event_handshake_failed_protocol(
                     session.get_endpoint(),
@@ -378,7 +378,7 @@ enum ZmqZapClientCommonHandshakeState {
 #[derive(Default, Debug, Clone)]
 pub struct ZmqZapClientCommonHandshake {
     // public ZmqZapClient
-    //   protected:
+    //
     // ZmqZapClientCommonHandshake (ZmqSessionBase *session_,
     //                                const std::string &peer_address_,
     //                                options: &ZmqOptions,
@@ -396,7 +396,7 @@ pub struct ZmqZapClientCommonHandshake {
     // state_t state;
     pub state: ZmqZapClientCommonHandshakeState,
 
-    // private:
+    //
     //   const state_t _zap_reply_ok_state;
     pub _zap_reply_ok_state: ZmqZapClientCommonHandshakeState,
 }
@@ -436,7 +436,7 @@ impl ZmqZapClientCommonHandshake {
     }
 
     pub fn zap_msg_available(&mut self) -> i32 {
-        zmq_assert(state == waiting_for_zap_reply);
+        // zmq_assert(state == waiting_for_zap_reply);
         if receive_and_process_zap_reply() == -1 {
             -1
         }

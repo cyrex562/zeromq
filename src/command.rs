@@ -52,7 +52,7 @@ pub struct OwnCommandArgs {
 
 #[derive(Default, Debug, Clone)]
 pub struct AttachCommandArgs {
-    pub engine: *mut i_engine,
+    pub engine: *mut ZmqEngineInterface,
 }
 
 #[derive(Default, Debug, Clone)]

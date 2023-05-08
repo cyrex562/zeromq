@@ -44,17 +44,17 @@
 pub struct ws_decoder_t
     : public DecoderBase<ws_decoder_t, shared_message_memory_allocator>
 {
-// public:
+//
     ws_decoder_t (bufsize_: usize,
                   i64 maxmsgsize_,
                   zero_copy_: bool,
                   must_mask_: bool);
     ~ws_decoder_t ();
 
-    //  i_decoder interface.
+    //  ZmqDecoderInterface interface.
     ZmqMessage *msg () { return &in_progress; }
 
-  // private:
+  //
     int opcode_ready (unsigned char const *);
     int size_first_byte_ready (unsigned char const *);
     int short_size_ready (unsigned char const *);
@@ -92,7 +92,7 @@ ws_decoder_t::ws_decoder_t (bufsize_: usize,
 {
     memset (_tmpbuf, 0, mem::size_of::<_tmpbuf>());
     int rc = in_progress.init ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     //  At the beginning, read one byte and go to opcode_ready state.
     next_step (_tmpbuf, 1, &ws_decoder_t::opcode_ready);
@@ -101,7 +101,7 @@ ws_decoder_t::ws_decoder_t (bufsize_: usize,
 ws_decoder_t::~ws_decoder_t ()
 {
     let rc: i32 = in_progress.close ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 }
 
 int ws_decoder_t::opcode_ready (unsigned char const *)
@@ -235,13 +235,13 @@ int ws_decoder_t::size_ready (unsigned char const *read_pos_)
 {
     //  Message size must not exceed the maximum allowed size.
     if (_max_msg_size >= 0)
-        if (unlikely (_size > static_cast<u64> (_max_msg_size))) {
+        if ( (_size > static_cast<u64> (_max_msg_size))) {
             errno = EMSGSIZE;
             return -1;
         }
 
     //  Message size must fit into size_t data type.
-    if (unlikely (_size != static_cast<size_t> (_size))) {
+    if ( (_size !=  (_size))) {
         errno = EMSGSIZE;
         return -1;
     }
@@ -253,21 +253,21 @@ int ws_decoder_t::size_ready (unsigned char const *read_pos_)
     // data into a new message and complete it in the next receive.
 
     shared_message_memory_allocator &allocator = get_allocator ();
-    if (unlikely (!_zero_copy || allocator.data () > read_pos_
-                  || static_cast<size_t> (read_pos_ - allocator.data ())
+    if ( (!_zero_copy || allocator.data () > read_pos_
+                  ||  (read_pos_ - allocator.data ())
                        > allocator.size ()
-                  || _size > static_cast<size_t> (
+                  || _size >  (
                        allocator.data () + allocator.size () - read_pos_))) {
         // a new message has started, but the size would exceed the pre-allocated arena
         // (or read_pos_ is in the initial handshake buffer)
         // this happens every time when a message does not fit completely into the buffer
-        rc = in_progress.init_size (static_cast<size_t> (_size));
+        rc = in_progress.init_size ( (_size));
     } else {
         // construct message using n bytes from the buffer as storage
         // increase buffer ref count
         // if the message will be a large message, pass a valid refcnt memory location as well
         rc = in_progress.init (
-          const_cast<unsigned char *> (read_pos_), static_cast<size_t> (_size),
+          const_cast<unsigned char *> (read_pos_),  (_size),
           shared_message_memory_allocator::call_dec_ref, allocator.buffer (),
           allocator.provide_content ());
 
@@ -278,10 +278,10 @@ int ws_decoder_t::size_ready (unsigned char const *read_pos_)
         }
     }
 
-    if (unlikely (rc)) {
-        errno_assert (errno == ENOMEM);
+    if ( (rc)) {
+        // errno_assert (errno == ENOMEM);
         rc = in_progress.init ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         errno = ENOMEM;
         return -1;
     }

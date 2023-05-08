@@ -44,7 +44,7 @@
 pub struct gssapi_server_t  : public gssapi_ZmqMechanismBase,
                                   public ZmqZapClient
 {
-// public:
+//
     gssapi_server_t (ZmqSessionBase *session_,
                      const std::string &peer_address,
                      options: &ZmqOptions);
@@ -58,7 +58,7 @@ pub struct gssapi_server_t  : public gssapi_ZmqMechanismBase,
     int zap_msg_available () ;
     status_t status () const ;
 
-  // private:
+  //
     enum state_t
     {
         send_next_token,
@@ -194,8 +194,8 @@ int gssapi_server_t::process_handshake_command (msg: &mut ZmqMessage)
     accept_context ();
     state = send_next_token;
 
-    errno_assert (msg.close () == 0);
-    errno_assert (msg.init () == 0);
+    // errno_assert (msg.close () == 0);
+    // errno_assert (msg.init () == 0);
 
     return 0;
 }
@@ -213,7 +213,7 @@ void gssapi_server_t::send_zap_request ()
 
 int gssapi_server_t::encode (msg: &mut ZmqMessage)
 {
-    zmq_assert (state == connected);
+    // zmq_assert (state == connected);
 
     if (do_encryption)
         return encode_message (msg);
@@ -223,7 +223,7 @@ int gssapi_server_t::encode (msg: &mut ZmqMessage)
 
 int gssapi_server_t::decode (msg: &mut ZmqMessage)
 {
-    zmq_assert (state == connected);
+    // zmq_assert (state == connected);
 
     if (do_encryption)
         return decode_message (msg);

@@ -37,7 +37,7 @@
 pull_t::pull_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_)
 {
-    options.type = ZMQ_PULL;
+    options.type_ = ZMQ_PULL;
 }
 
 pull_t::~pull_t ()
@@ -51,7 +51,7 @@ void pull_t::xattach_pipe (pipe: &mut ZmqPipe,
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
 
-    zmq_assert (pipe);
+    // zmq_assert (pipe);
     fair_queue.attach (pipe);
 }
 
@@ -76,11 +76,11 @@ bool pull_t::xhas_in ()
 }
 pub struct pull_t  : public ZmqSocketBase
 {
-// public:
+//
     pull_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~pull_t ();
 
-  protected:
+
     //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (pipe: &mut ZmqPipe,
                        subscribe_to_all_: bool,
@@ -90,7 +90,7 @@ pub struct pull_t  : public ZmqSocketBase
     void xread_activated (pipe: &mut ZmqPipe);
     void xpipe_terminated (pipe: &mut ZmqPipe);
 
-  // private:
+  //
     //  Fair queueing object for inbound pipes.
     ZmqFq fair_queue;
 

@@ -34,7 +34,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #include <algorithm>
 pub struct timers_t
 {
-// public:
+//
     timers_t ();
     ~timers_t ();
 
@@ -68,7 +68,7 @@ pub struct timers_t
     //  Return false if object is not a timers class.
     bool check_tag () const;
 
-  // private:
+  //
     //  Used to check whether the object is a timers class.
     u32 _tag;
 
@@ -134,7 +134,7 @@ struct timers_t::match_by_id
         return entry_.second.timer_id == _timer_id;
     }
 
-  // private:
+  //
     _timer_id: i32;
 };
 

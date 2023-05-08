@@ -62,7 +62,7 @@ int tune_tcp_socket (ZmqFileDesc s_)
     int nodelay = 1;
     let rc: i32 =
       setsockopt (s_, IPPROTO_TCP, TCP_NODELAY,
-                  reinterpret_cast<char *> (&nodelay), mem::size_of::<int>());
+                   (&nodelay), mem::size_of::<int>());
     assert_success_or_recoverable (s_, rc);
     if (rc != 0)
         return rc;
@@ -81,7 +81,7 @@ int set_tcp_send_buffer (ZmqFileDesc sockfd_, bufsize_: i32)
 {
     let rc: i32 =
       setsockopt (sockfd_, SOL_SOCKET, SO_SNDBUF,
-                  reinterpret_cast<char *> (&bufsize_), sizeof bufsize_);
+                   (&bufsize_), sizeof bufsize_);
     assert_success_or_recoverable (sockfd_, rc);
     return rc;
 }
@@ -90,7 +90,7 @@ int set_tcp_receive_buffer (ZmqFileDesc sockfd_, bufsize_: i32)
 {
     let rc: i32 =
       setsockopt (sockfd_, SOL_SOCKET, SO_RCVBUF,
-                  reinterpret_cast<char *> (&bufsize_), sizeof bufsize_);
+                   (&bufsize_), sizeof bufsize_);
     assert_success_or_recoverable (sockfd_, rc);
     return rc;
 }
@@ -133,7 +133,7 @@ int tune_tcp_keepalives (ZmqFileDesc s_,
     if (keepalive_ != -1) {
         int rc =
           setsockopt (s_, SOL_SOCKET, SO_KEEPALIVE,
-                      reinterpret_cast<char *> (&keepalive_), mem::size_of::<int>());
+                       (&keepalive_), mem::size_of::<int>());
         assert_success_or_recoverable (s_, rc);
         if (rc != 0)
             return rc;
@@ -196,7 +196,7 @@ int tune_tcp_maxrt (ZmqFileDesc sockfd_, timeout: i32)
     timeout /= 1000; // in seconds
     let rc: i32 =
       setsockopt (sockfd_, IPPROTO_TCP, TCP_MAXRT,
-                  reinterpret_cast<char *> (&timeout), mem::size_of::<timeout>());
+                   (&timeout), mem::size_of::<timeout>());
     assert_success_or_recoverable (sockfd_, rc);
     return rc;
 // FIXME: should be ZMQ_HAVE_TCP_USER_TIMEOUT
@@ -251,12 +251,12 @@ int tcp_write (ZmqFileDesc s_, const data: &mut [u8], size: usize)
     //  Signalise peer failure.
     if (nbytes == -1) {
 // #if !defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
-        errno_assert (errno != EACCES && errno != EBADF && errno != EDESTADDRREQ
+        // errno_assert (errno != EACCES && errno != EBADF && errno != EDESTADDRREQ
                       && errno != EFAULT && errno != EISCONN
                       && errno != EMSGSIZE && errno != ENOMEM
                       && errno != ENOTSOCK && errno != EOPNOTSUPP);
 // #else
-        errno_assert (errno != EACCES && errno != EDESTADDRREQ
+        // errno_assert (errno != EACCES && errno != EDESTADDRREQ
                       && errno != EFAULT && errno != EISCONN
                       && errno != EMSGSIZE && errno != ENOMEM
                       && errno != ENOTSOCK && errno != EOPNOTSUPP);
@@ -303,10 +303,10 @@ int tcp_read (ZmqFileDesc s_, data: &mut [u8], size: usize)
     //  by a debugging tool can result in EINTR error.
     if (rc == -1) {
 // #if !defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
-        errno_assert (errno != EBADF && errno != EFAULT && errno != ENOMEM
+        // errno_assert (errno != EBADF && errno != EFAULT && errno != ENOMEM
                       && errno != ENOTSOCK);
 // #else
-        errno_assert (errno != EFAULT && errno != ENOMEM && errno != ENOTSOCK);
+        // errno_assert (errno != EFAULT && errno != ENOMEM && errno != ENOTSOCK);
 // #endif
         if (errno == EWOULDBLOCK || errno == EINTR)
             errno = EAGAIN;
@@ -347,7 +347,7 @@ void tune_tcp_busy_poll (ZmqFileDesc socket, busy_poll_: i32)
     if (busy_poll_ > 0) {
         let rc: i32 =
           setsockopt (socket, SOL_SOCKET, SO_BUSY_POLL,
-                      reinterpret_cast<char *> (&busy_poll_), mem::size_of::<int>());
+                       (&busy_poll_), mem::size_of::<int>());
         assert_success_or_recoverable (socket, rc);
     }
 // #else
@@ -424,7 +424,7 @@ setsockopt_error:
     wsa_assert (rc != SOCKET_ERROR);
 // #else
     rc = ::close (s);
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 // #endif
     return retired_fd;
 }

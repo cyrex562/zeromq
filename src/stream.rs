@@ -44,7 +44,7 @@ stream_t::stream_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     _more_out (false),
     _next_integral_routing_id (generate_random ())
 {
-    options.type = ZMQ_STREAM;
+    options.type_ = ZMQ_STREAM;
     options.raw_socket = true;
 
     _prefetched_routing_id.init ();
@@ -63,7 +63,7 @@ void stream_t::xattach_pipe (pipe: &mut ZmqPipe,
 {
     LIBZMQ_UNUSED (subscribe_to_all_);
 
-    zmq_assert (pipe);
+    // zmq_assert (pipe);
 
     identify_peer (pipe, locally_initiated_);
     fair_queue.attach (pipe);
@@ -89,7 +89,7 @@ int stream_t::xsend (msg: &mut ZmqMessage)
     //  If this is the first part of the message it's the ID of the
     //  peer to send the message to.
     if (!_more_out) {
-        zmq_assert (!_current_out);
+        // zmq_assert (!_current_out);
 
         //  If we have malformed message (prefix with no subsequent message)
         //  then just silently ignore it.
@@ -120,9 +120,9 @@ int stream_t::xsend (msg: &mut ZmqMessage)
         _more_out = true;
 
         int rc = msg.close ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         rc = msg.init ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         return 0;
     }
 
@@ -140,24 +140,24 @@ int stream_t::xsend (msg: &mut ZmqMessage)
         if (msg.size () == 0) {
             _current_out.terminate (false);
             int rc = msg.close ();
-            errno_assert (rc == 0);
+            // errno_assert (rc == 0);
             rc = msg.init ();
-            errno_assert (rc == 0);
+            // errno_assert (rc == 0);
             _current_out = null_mut();
             return 0;
         }
         const bool ok = _current_out.write (msg);
-        if (likely (ok))
+        if ( (ok))
             _current_out.flush ();
         _current_out = null_mut();
     } else {
         let rc: i32 = msg.close ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
     }
 
     //  Detach the message from the data buffer.
     let rc: i32 = msg.init ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     return 0;
 }
@@ -189,11 +189,11 @@ int stream_t::xrecv (msg: &mut ZmqMessage)
     if (_prefetched) {
         if (!_routing_id_sent) {
             let rc: i32 = msg.move (_prefetched_routing_id);
-            errno_assert (rc == 0);
+            // errno_assert (rc == 0);
             _routing_id_sent = true;
         } else {
             let rc: i32 = msg.move (_prefetched_msg);
-            errno_assert (rc == 0);
+            // errno_assert (rc == 0);
             _prefetched = false;
         }
         return 0;
@@ -204,17 +204,17 @@ int stream_t::xrecv (msg: &mut ZmqMessage)
     if (rc != 0)
         return -1;
 
-    zmq_assert (pipe != null_mut());
-    zmq_assert ((_prefetched_msg.flags () & ZMQ_MSG_MORE) == 0);
+    // zmq_assert (pipe != null_mut());
+    // zmq_assert ((_prefetched_msg.flags () & ZMQ_MSG_MORE) == 0);
 
     //  We have received a frame with TCP data.
     //  Rather than sending this frame, we keep it in prefetched
     //  buffer and send a frame with peer's ID.
     const Blob &routing_id = pipe.get_routing_id ();
     rc = msg.close ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
     rc = msg.init_size (routing_id.size ());
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     // forward metadata (if any)
     ZmqMetadata *metadata = _prefetched_msg.metadata ();
@@ -243,12 +243,12 @@ bool stream_t::xhas_in ()
     if (rc != 0)
         return false;
 
-    zmq_assert (pipe != null_mut());
-    zmq_assert ((_prefetched_msg.flags () & ZMQ_MSG_MORE) == 0);
+    // zmq_assert (pipe != null_mut());
+    // zmq_assert ((_prefetched_msg.flags () & ZMQ_MSG_MORE) == 0);
 
     const Blob &routing_id = pipe.get_routing_id ();
     rc = _prefetched_routing_id.init_size (routing_id.size ());
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     // forward metadata (if any)
     ZmqMetadata *metadata = _prefetched_msg.metadata ();
@@ -285,7 +285,7 @@ void stream_t::identify_peer (pipe: &mut ZmqPipe, locally_initiated_: bool)
           reinterpret_cast<const unsigned char *> (connect_routing_id.c_str ()),
           connect_routing_id.length ());
         //  Not allowed to duplicate an existing rid
-        zmq_assert (!has_out_pipe (routing_id));
+        // zmq_assert (!has_out_pipe (routing_id));
     } else {
         put_u32 (buffer + 1, _next_integral_routing_id+= 1);
         routing_id.set (buffer, sizeof buffer);
@@ -298,7 +298,7 @@ void stream_t::identify_peer (pipe: &mut ZmqPipe, locally_initiated_: bool)
 }
 pub struct stream_t  : public routing_socket_base_t
 {
-// public:
+//
     stream_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~stream_t ();
 
@@ -314,7 +314,7 @@ pub struct stream_t  : public routing_socket_base_t
     void xpipe_terminated (pipe: &mut ZmqPipe);
     int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
 
-  // private:
+  //
     //  Generate peer's id and update lookup map
     void identify_peer (pipe: &mut ZmqPipe, locally_initiated_: bool);
 

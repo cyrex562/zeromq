@@ -32,7 +32,7 @@ use crate::i_mailbox::i_mailbox;
 use crate::io_thread::ZmqThread;
 use crate::ipc_address::IpcAddress;
 use crate::ipc_listener::ipc_listener_t;
-use crate::mailbox::mailbox_t;
+use crate::mailbox::ZmqMailbox;
 use crate::mailbox_safe::mailbox_safe_t;
 use crate::message::{routing_id, ZMQ_MSG_MORE, ZmqMessage};
 use crate::object::ZmqObject;
@@ -221,7 +221,7 @@ impl ZmqObject for ZmqSocketBase {
     fn send_attach(
         &mut self,
         destination: &mut ZmqSessionbase,
-        engine: &mut i_engine,
+        engine: &mut ZmqEngineInterface,
         inc_seqnum: bool,
     ) {
         todo!()
@@ -315,7 +315,7 @@ impl ZmqObject for ZmqSocketBase {
         todo!()
     }
 
-    fn process_attached(&mut self, engine: &mut i_engine) {
+    fn process_attached(&mut self, engine: &mut ZmqEngineInterface) {
         todo!()
     }
 
@@ -462,7 +462,7 @@ impl ZmqSocketBase {
             out.mailbox = mailbox_safe_t::new(&out.sync);
             // zmq_assert (mailbox);
         } else {
-            let mut m = mailbox_t::new();
+            let mut m = ZmqMailbox::new();
             // zmq_assert (m);
 
             if m.get_fd() != retired_fd {
@@ -2111,7 +2111,7 @@ impl ZmqSocketBase {
         // #if defined ZMQ_HAVE_TIPC
         else if protocol == protocol_name::tipc {
             paddr.resolved.tipc_addr = TipcAddress::new();
-            alloc_assert(paddr.resolved.tipc_addr);
+            // alloc_assert(paddr.resolved.tipc_addr);
             paddr.resolved.tipc_addr.resolve(address.c_str())?;
             // if (rc != 0) {
             //     LIBZMQ_DELETE (paddr);
@@ -2176,7 +2176,7 @@ impl ZmqSocketBase {
             ];
             let conflates: [bool; 2] = [conflate, conflate];
             rc = pipepair(parents, new_pipes, hwms, conflates);
-            errno_assert(rc == 0);
+            // errno_assert(rc == 0);
 
             //  Attach local end of the pipe to the socket object.
             self.attach_pipe(&mut new_pipes[0], subscribe_to_all, true);
@@ -2687,10 +2687,10 @@ impl ZmqSocketBase {
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct routing_socket_base_t {
-    // protected:
+    //
     // methods from ZmqSocketBase
     // own methods
-    // private:
+    //
     //  Outbound pipes indexed by the peer IDs.
     // typedef std::map<Blob, out_pipe_t> out_pipes_t;
     // out_pipes_t _out_pipes;

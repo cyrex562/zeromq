@@ -47,7 +47,7 @@
 //     int next_handshake_command (msg: &mut ZmqMessage);
 //     int process_handshake_command (msg: &mut ZmqMessage);
 
-//   // private:
+//   //
 //     static void produce_welcome (msg: &mut ZmqMessage);
 //     void produce_ready (msg: &mut ZmqMessage) const;
 //     void produce_error (msg: &mut ZmqMessage) const;
@@ -155,9 +155,9 @@ pub fn process_handshake_command (&mut self, msg: &mut ZmqMessage) -> anyhow::Re
     }
     if (rc == 0) {
         rc = msg.close ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         rc = msg.init ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
     }
     return rc;
 }
@@ -247,7 +247,7 @@ int plain_server_t::process_hello (msg: &mut ZmqMessage)
 void plain_server_t::produce_welcome (msg: &mut ZmqMessage)
 {
     let rc: i32 = msg.init_size (welcome_prefix_len);
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
     memcpy (msg.data (), welcome_prefix, welcome_prefix_len);
 }
 
@@ -278,12 +278,12 @@ void plain_server_t::produce_ready (msg: &mut ZmqMessage) const
 void plain_server_t::produce_error (msg: &mut ZmqMessage) const
 {
     const char expected_status_code_len = 3;
-    zmq_assert (status_code.length ()
-                == static_cast<size_t> (expected_status_code_len));
+    // zmq_assert (status_code.length ()
+                ==  (expected_status_code_len));
     const size_t status_code_len_size = mem::size_of::<expected_status_code_len>();
     let rc: i32 = msg.init_size (error_prefix_len + status_code_len_size
                                     + expected_status_code_len);
-    zmq_assert (rc == 0);
+    // zmq_assert (rc == 0);
     char *msg_data = static_cast<char *> (msg.data ());
     memcpy (msg_data, error_prefix, error_prefix_len);
     msg_data[error_prefix_len] = expected_status_code_len;

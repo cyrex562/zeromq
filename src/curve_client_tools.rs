@@ -50,22 +50,19 @@
 
 // #include <vector>
 
-
-
-
-use anyhow::anyhow;
 use crate::config::{CRYPTO_BOX_BOXZEROBYTES, CRYPTO_BOX_NONCEBYTES, CRYPTO_BOX_ZEROBYTES};
 use crate::utils::copy_bytes;
+use anyhow::anyhow;
 
-
-pub fn process_welcome(msg_data_: &[u8],
-                       msg_size_: usize,
-                       server_key_: &[u8],
-                       cn_secret_: &[u8],
-                       cn_server_: &mut [u8],
-                       cn_cookie_: &mut [u8],
-                       cn_precom_: &mut [u8]) -> anyhow::Result<()>
-{
+pub fn process_welcome(
+    msg_data_: &[u8],
+    msg_size_: usize,
+    server_key_: &[u8],
+    cn_secret_: &[u8],
+    cn_server_: &mut [u8],
+    cn_cookie_: &mut [u8],
+    cn_precom_: &mut [u8],
+) -> anyhow::Result<()> {
     if (msg_size_ != 168) {
         // errno = EPROTO;
         // return -1;
@@ -77,33 +74,56 @@ pub fn process_welcome(msg_data_: &[u8],
     //   CRYPTO_BOX_ZEROBYTES + 128);
     let mut welcome_plaintext: Vec<u8> = Vec::with_capacity(CRYPTO_BOX_ZEROBYTES as usize);
     welcome_plaintext.fill(0);
-    let mut welcome_box: [u8; (CRYPTO_BOX_BOXZEROBYTES + 144) as usize] = [0; CRYPTO_BOX_BOXZEROBYTES + 144];
+    let mut welcome_box: [u8; (CRYPTO_BOX_BOXZEROBYTES + 144) as usize] =
+        [0; CRYPTO_BOX_BOXZEROBYTES + 144];
 
     //  Open Box [S' + cookie](C'->S)
     // memset (welcome_box, 0, CRYPTO_BOX_BOXZEROBYTES);
     // memcpy (welcome_box + CRYPTO_BOX_BOXZEROBYTES, msg_data_ + 24, 144);
-    copy_bytes(&mut welcome_box, CRYPTO_BOX_BOXZEROBYTES as usize, msg_data_, 24, 144);
+    copy_bytes(
+        &mut welcome_box,
+        CRYPTO_BOX_BOXZEROBYTES as usize,
+        msg_data_,
+        24,
+        144,
+    );
 
     // memcpy (welcome_nonce, "WELCOME-", 8);
     copy_bytes(&mut welcome_nonce, 0, b"WELCOME-", 0, 8);
     // memcpy (welcome_nonce + 8, msg_data_ + 8, 16);
     copy_bytes(&mut welcome_nonce, 8, msg_data_, 8, 16);
 
-    crypto_box_open(&welcome_plaintext[0], welcome_box,
-                    welcome_box.len(), welcome_nonce,
-                    server_key_, cn_secret_)?;
+    crypto_box_open(
+        &welcome_plaintext[0],
+        welcome_box,
+        welcome_box.len(),
+        welcome_nonce,
+        server_key_,
+        cn_secret_,
+    )?;
     // if (rc != 0) {
     //     errno = EPROTO;
     //     return -1;
     // }
 
     // memcpy (cn_server_, &welcome_plaintext[CRYPTO_BOX_ZEROBYTES], 32);
-    copy_bytes(cn_server_, 0, &welcome_plaintext, CRYPTO_BOX_ZEROBYTES as usize, 32);
+    copy_bytes(
+        cn_server_,
+        0,
+        &welcome_plaintext,
+        CRYPTO_BOX_ZEROBYTES as usize,
+        32,
+    );
 
     // memcpy (cn_cookie_, &welcome_plaintext[CRYPTO_BOX_ZEROBYTES + 32],
     //         16 + 80);
-    copy_bytes(cn_cookie_, 0, &welcome_plaintext, (CRYPTO_BOX_ZEROBYTES + 32) as usize, 16 + 80);
-
+    copy_bytes(
+        cn_cookie_,
+        0,
+        &welcome_plaintext,
+        (CRYPTO_BOX_ZEROBYTES + 32) as usize,
+        16 + 80,
+    );
 
     //  Message independent precomputation
     crypto_box_beforenm(cn_precom_, cn_server_, cn_secret_)?;
@@ -113,24 +133,26 @@ pub fn process_welcome(msg_data_: &[u8],
     Ok(())
 }
 
-pub fn produce_initiate(data: &mut [u8],
-                        size: usize,
-                        cn_nonce_: u64,
-                        server_key_: &[u8],
-                        public_key_: &[u8],
-                        secret_key_: &[u8],
-                        cn_public_: &[u8],
-                        cn_secret_: &[u8],
-                        cn_server_: &[u8],
-                        cn_cookie_: &[u8],
-                        metadata_plaintext_: &[u8],
-                        metadata_length_: usize) -> anyhow::Result<()>
-{
+pub fn produce_initiate(
+    data: &mut [u8],
+    size: usize,
+    cn_nonce_: u64,
+    server_key_: &[u8],
+    public_key_: &[u8],
+    secret_key_: &[u8],
+    cn_public_: &[u8],
+    cn_secret_: &[u8],
+    cn_server_: &[u8],
+    cn_cookie_: &[u8],
+    metadata_plaintext_: &[u8],
+    metadata_length_: usize,
+) -> anyhow::Result<()> {
     let mut vouch_nonce: [u8; CRYPTO_BOX_NONCEBYTES as usize] = [0; CRYPTO_BOX_NONCEBYTES];
     // std::vector<uint8_t, secure_allocator_t<uint8_t> > vouch_plaintext (
     //   CRYPTO_BOX_ZEROBYTES + 64);
     let mut vouch_plaintext: Vec<u8> = Vec::with_capacity((CRYPTO_BOX_ZEROBYTES + 64) as usize);
-    let mut vouch_box: [u8; (CRYPTO_BOX_BOXZEROBYTES + 80) as usize] = [0; CRYPTO_BOX_BOXZEROBYTES + 80];
+    let mut vouch_box: [u8; (CRYPTO_BOX_BOXZEROBYTES + 80) as usize] =
+        [0; CRYPTO_BOX_BOXZEROBYTES + 80];
 
     //  Create vouch = Box [C',S](C->S')
     // std::fill (vouch_plaintext.begin (),
@@ -138,10 +160,22 @@ pub fn produce_initiate(data: &mut [u8],
     vouch_plaintext.fill(0);
 
     // memcpy (&vouch_plaintext[CRYPTO_BOX_ZEROBYTES], cn_public_, 32);
-    copy_bytes(&mut vouch_plaintext, CRYPTO_BOX_ZEROBYTES as usize, cn_public_, 0, 32);
+    copy_bytes(
+        &mut vouch_plaintext,
+        CRYPTO_BOX_ZEROBYTES as usize,
+        cn_public_,
+        0,
+        32,
+    );
 
     // memcpy (&vouch_plaintext[CRYPTO_BOX_ZEROBYTES + 32], server_key_, 32);
-    copy_bytes(&mut vouch_plaintext, (CRYPTO_BOX_ZEROBYTES + 32) as usize, server_key_, 0, 32);
+    copy_bytes(
+        &mut vouch_plaintext,
+        (CRYPTO_BOX_ZEROBYTES + 32) as usize,
+        server_key_,
+        0,
+        32,
+    );
 
     // memset (vouch_nonce, 0, CRYPTO_BOX_NONCEBYTES);
 
@@ -149,8 +183,14 @@ pub fn produce_initiate(data: &mut [u8],
     copy_bytes(&mut vouch_nonce, 0, b"VOUCH---", 0, 8);
     randombytes(vouch_nonce + 8, 16);
 
-    crypto_box(vouch_box, &vouch_plaintext[0], vouch_plaintext.size(),
-               vouch_nonce, cn_server_, secret_key_)?;
+    crypto_box(
+        vouch_box,
+        &vouch_plaintext[0],
+        vouch_plaintext.size(),
+        vouch_nonce,
+        cn_server_,
+        secret_key_,
+    )?;
     // if (rc == -1)
     //     return -1;
 
@@ -158,12 +198,14 @@ pub fn produce_initiate(data: &mut [u8],
 
     // std::vector<uint8_t> initiate_box (CRYPTO_BOX_BOXZEROBYTES + 144
     //                                    + metadata_length_);
-    let mut initiate_box: Vec<u8> = Vec::with_capacity((CRYPTO_BOX_BOXZEROBYTES + 144 + metadata_length_) as usize);
+    let mut initiate_box: Vec<u8> =
+        Vec::with_capacity((CRYPTO_BOX_BOXZEROBYTES + 144 + metadata_length_) as usize);
     initiate_box.fill(0);
 
     // std::vector<uint8_t, secure_allocator_t<uint8_t> > initiate_plaintext (
     //   CRYPTO_BOX_ZEROBYTES + 128 + metadata_length_);
-    let mut initiate_plaintext: Vec<u8> = Vec::with_capacity((CRYPTO_BOX_ZEROBYTES + 128 + metadata_length_) as usize);
+    let mut initiate_plaintext: Vec<u8> =
+        Vec::with_capacity((CRYPTO_BOX_ZEROBYTES + 128 + metadata_length_) as usize);
     initiate_plaintext.fill(0);
 
     //  Create Box [C + vouch + metadata](C'->S')
@@ -171,39 +213,67 @@ pub fn produce_initiate(data: &mut [u8],
     //            initiate_plaintext.begin () + CRYPTO_BOX_ZEROBYTES, 0);
 
     //  False positives due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=99578
-// #if __GNUC__ >= 11
-// #pragma GCC diagnostic ignored "-Warray-bounds"
-// #pragma GCC diagnostic ignored "-Wstringop-overflow="
-// #endif
-//     memcpy (&initiate_plaintext[CRYPTO_BOX_ZEROBYTES], public_key_, 32);
-    copy_bytes(&mut initiate_plaintext, CRYPTO_BOX_ZEROBYTES as usize, public_key_, 0, 32);
+    // #if __GNUC__ >= 11
+    // #pragma GCC diagnostic ignored "-Warray-bounds"
+    // #pragma GCC diagnostic ignored "-Wstringop-overflow="
+    // #endif
+    //     memcpy (&initiate_plaintext[CRYPTO_BOX_ZEROBYTES], public_key_, 32);
+    copy_bytes(
+        &mut initiate_plaintext,
+        CRYPTO_BOX_ZEROBYTES as usize,
+        public_key_,
+        0,
+        32,
+    );
 
     // memcpy (&initiate_plaintext[CRYPTO_BOX_ZEROBYTES + 32], vouch_nonce + 8,
     //         16);
-    copy_bytes(&mut initiate_plaintext, (CRYPTO_BOX_ZEROBYTES + 32) as usize, &vouch_nonce, 8, 16);
+    copy_bytes(
+        &mut initiate_plaintext,
+        (CRYPTO_BOX_ZEROBYTES + 32) as usize,
+        &vouch_nonce,
+        8,
+        16,
+    );
 
     // memcpy (&initiate_plaintext[CRYPTO_BOX_ZEROBYTES + 48],
     //         vouch_box + CRYPTO_BOX_BOXZEROBYTES, 80);
-    copy_bytes(&mut initiate_plaintext, (CRYPTO_BOX_ZEROBYTES + 48) as usize, &vouch_box, CRYPTO_BOX_ZEROBYTES as usize, 80);
-
+    copy_bytes(
+        &mut initiate_plaintext,
+        (CRYPTO_BOX_ZEROBYTES + 48) as usize,
+        &vouch_box,
+        CRYPTO_BOX_ZEROBYTES as usize,
+        80,
+    );
 
     if (metadata_length_) {
         // memcpy (&initiate_plaintext[CRYPTO_BOX_ZEROBYTES + 48 + 80],
         //         metadata_plaintext_, metadata_length_);
-        copy_bytes(&mut initiate_plaintext, (CRYPTO_BOX_ZEROBYTES + 48 + 80) as usize, metadata_plaintext_, 0, metadata_length_);
+        copy_bytes(
+            &mut initiate_plaintext,
+            (CRYPTO_BOX_ZEROBYTES + 48 + 80) as usize,
+            metadata_plaintext_,
+            0,
+            metadata_length_,
+        );
     }
-// #if __GNUC__ >= 11
-// #pragma GCC diagnostic pop
-// #pragma GCC diagnostic pop
-// #endif
+    // #if __GNUC__ >= 11
+    // #pragma GCC diagnostic pop
+    // #pragma GCC diagnostic pop
+    // #endif
 
     // memcpy (initiate_nonce, "CurveZMQINITIATE", 16);
     copy_bytes(&mut initiate_nonce, 0, b"CurveZMQINITIATE", 0, 16);
     put_uint64(initiate_nonce + 16, cn_nonce_);
 
-    crypto_box(&initiate_box[0], &initiate_plaintext[0],
-               CRYPTO_BOX_ZEROBYTES + 128 + metadata_length_,
-               initiate_nonce, cn_server_, cn_secret_)?;
+    crypto_box(
+        &initiate_box[0],
+        &initiate_plaintext[0],
+        CRYPTO_BOX_ZEROBYTES + 128 + metadata_length_,
+        initiate_nonce,
+        cn_server_,
+        cn_secret_,
+    )?;
 
     // if (rc == -1)
     //     return -1;
@@ -225,24 +295,27 @@ pub fn produce_initiate(data: &mut [u8],
     //  Box [C + vouch + metadata](C'->S')
     // memcpy (initiate + 113, &initiate_box[CRYPTO_BOX_BOXZEROBYTES],
     //         128 + metadata_length_ + CRYPTO_BOX_BOXZEROBYTES);
-    copy_bytes(initiate, 113, &initiate_box, CRYPTO_BOX_BOXZEROBYTES as usize, 128 + metadata_length_ + CRYPTO_BOX_BOXZEROBYTES);
+    copy_bytes(
+        initiate,
+        113,
+        &initiate_box,
+        CRYPTO_BOX_BOXZEROBYTES as usize,
+        128 + metadata_length_ + CRYPTO_BOX_BOXZEROBYTES,
+    );
 
     // return 0;
     Ok(())
 }
 
-pub fn is_handshake_command_welcome(msg_data_: &[u8], msg_size_: usize) -> bool
-{
+pub fn is_handshake_command_welcome(msg_data_: &[u8], msg_size_: usize) -> bool {
     return is_handshake_command(msg_data_, msg_size_, b"\x07WELCOME");
 }
 
-pub fn is_handshake_command_ready(msg_data_: &[u8], msg_size_: usize) -> bool
-{
+pub fn is_handshake_command_ready(msg_data_: &[u8], msg_size_: usize) -> bool {
     return is_handshake_command(msg_data_, msg_size_, b"\x05READY");
 }
 
-pub fn is_handshake_command_error(msg_data_: &[u8], msg_size_: usize) -> bool
-{
+pub fn is_handshake_command_error(msg_data_: &[u8], msg_size_: usize) -> bool {
     return is_handshake_command(msg_data_, msg_size_, b"\x05ERROR");
 }
 
@@ -311,16 +384,12 @@ pub fn is_handshake_command_error(msg_data_: &[u8], msg_size_: usize) -> bool
 //  Cookie received from server
 // uint8_t cn_cookie[16 + 80];
 
-// private:
-pub fn is_handshake_command(msg_data_: &[u8],
-                            msg_size_: usize,
-                            prefix_: &[u8]) -> bool
-{
+//
+pub fn is_handshake_command(msg_data_: &[u8], msg_size_: usize, prefix_: &[u8]) -> bool {
     let mut N = prefix_.len();
     msg_size_ >= (N - 1) && msg_data_[N - 1] == prefix_[N - 1]
     // return msg_size_ >= (N - 1) && !memcmp (msg_data_, prefix_, N - 1);
 }
-
 
 // #endif
 

@@ -67,7 +67,7 @@
 // #endif
 pub struct ws_listener_t  : public stream_listener_base_t
 {
-// public:
+//
     ws_listener_t (ZmqThread *io_thread_,
                    socket: *mut ZmqSocketBase,
                    options: &ZmqOptions,
@@ -78,11 +78,11 @@ pub struct ws_listener_t  : public stream_listener_base_t
     //  Set address to listen on.
     int set_local_address (addr_: &str);
 
-  protected:
+
     std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
     void create_engine (ZmqFileDesc fd);
 
-  // private:
+  //
     //  Handlers for I/O events.
     void in_event ();
 
@@ -114,7 +114,7 @@ ws_listener_t::ws_listener_t (ZmqThread *io_thread_,
 // #ifdef ZMQ_HAVE_WSS
     if (_wss) {
         int rc = gnutls_certificate_allocate_credentials (&_tls_cred);
-        zmq_assert (rc == GNUTLS_E_SUCCESS);
+        // zmq_assert (rc == GNUTLS_E_SUCCESS);
 
         gnutls_datum_t cert = { options_.wss_cert_pem,
                                (unsigned int) options_.wss_cert_pem.length ()};
@@ -122,7 +122,7 @@ ws_listener_t::ws_listener_t (ZmqThread *io_thread_,
                               (unsigned int) options_.wss_key_pem.length ()};
         rc = gnutls_certificate_set_x509_key_mem (_tls_cred, &cert, &key,
                                                   GNUTLS_X509_FMT_PEM);
-        zmq_assert (rc == GNUTLS_E_SUCCESS);
+        // zmq_assert (rc == GNUTLS_E_SUCCESS);
     }
 // #endif
 }
@@ -142,7 +142,7 @@ void ws_listener_t::in_event ()
     //  If connection was reset by the peer in the meantime, just ignore it.
     //  TODO: Handle specific errors like ENFILE/EMFILE etc.
     if (fd == retired_fd) {
-        _socket.event_accept_failed (
+        self._socket.event_accept_failed (
           make_unconnected_bind_endpoint_pair (_endpoint), zmq_errno ());
         return;
     }
@@ -150,7 +150,7 @@ void ws_listener_t::in_event ()
     int rc = tune_tcp_socket (fd);
     rc = rc | tune_tcp_maxrt (fd, options.tcp_maxrt);
     if (rc != 0) {
-        _socket.event_accept_failed (
+        self._socket.event_accept_failed (
           make_unconnected_bind_endpoint_pair (_endpoint), zmq_errno ());
         return;
     }
@@ -195,15 +195,15 @@ int ws_listener_t::create_socket (addr_: &str)
     //  different between listener and connecter with a src address.
     //  is this intentional?
     rc = setsockopt (_s, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
-                     reinterpret_cast<const char *> (&flag), mem::size_of::<int>());
+                      (&flag), mem::size_of::<int>());
     wsa_assert (rc != SOCKET_ERROR);
 #elif defined ZMQ_HAVE_VXWORKS
     rc =
       setsockopt (_s, SOL_SOCKET, SO_REUSEADDR, (char *) &flag, mem::size_of::<int>());
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 // #else
     rc = setsockopt (_s, SOL_SOCKET, SO_REUSEADDR, &flag, mem::size_of::<int>());
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 // #endif
 
     //  Bind the socket to the network interface and port.
@@ -269,7 +269,7 @@ int ws_listener_t::set_local_address (addr_: &str)
 
     _endpoint = get_socket_name (_s, SocketEndLocal);
 
-    _socket.event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
+    self._socket.event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
                               _s);
     return 0;
 }
@@ -279,7 +279,7 @@ ZmqFileDesc ws_listener_t::accept ()
     //  The situation where connection cannot be accepted due to insufficient
     //  resources is considered valid and treated by ignoring the connection.
     //  Accept one connection and deal with different failure modes.
-    zmq_assert (_s != retired_fd);
+    // zmq_assert (_s != retired_fd);
 
     struct sockaddr_storage ss;
     memset (&ss, 0, mem::size_of::<ss>());
@@ -302,12 +302,12 @@ ZmqFileDesc ws_listener_t::accept ()
         wsa_assert (last_error == WSAEWOULDBLOCK || last_error == WSAECONNRESET
                     || last_error == WSAEMFILE || last_error == WSAENOBUFS);
 #elif defined ZMQ_HAVE_ANDROID
-        errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
+        // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
                       || errno == ECONNABORTED || errno == EPROTO
                       || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE
                       || errno == ENFILE || errno == EINVAL);
 // #else
-        errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
+        // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
                       || errno == ECONNABORTED || errno == EPROTO
                       || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE
                       || errno == ENFILE);
@@ -323,7 +323,7 @@ ZmqFileDesc ws_listener_t::accept ()
         wsa_assert (rc != SOCKET_ERROR);
 // #else
         int rc = ::close (sock);
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
 // #endif
         return retired_fd;
     }
@@ -345,33 +345,33 @@ void ws_listener_t::create_engine (ZmqFileDesc fd)
       get_socket_name (fd, SocketEndLocal),
       get_socket_name (fd, SocketEndRemote), endpoint_type_bind);
 
-    i_engine *engine = null_mut();
+    ZmqEngineInterface *engine = null_mut();
     if (_wss)
 // #ifdef ZMQ_HAVE_WSS
-        engine = new (std::nothrow)
-          wss_engine_t (fd, options, endpoint_pair, address, false, _tls_cred,
+        engine =
+          WssEngine (fd, options, endpoint_pair, address, false, _tls_cred,
                         std::string ());
 // #else
-        zmq_assert (false);
+        // zmq_assert (false);
 // #endif
     else
-        engine = new (std::nothrow)
-          ws_engine_t (fd, options, endpoint_pair, address, false);
+        engine =
+          ZmqWsEngine (fd, options, endpoint_pair, address, false);
 
-    alloc_assert (engine);
+    // alloc_assert (engine);
 
     //  Choose I/O thread to run connecter in. Given that we are already
     //  running in an I/O thread, there must be at least one available.
     ZmqThread *io_thread = choose_io_thread (options.affinity);
-    zmq_assert (io_thread);
+    // zmq_assert (io_thread);
 
     //  Create and launch a session object.
     ZmqSessionBase *session =
-      ZmqSessionBase::create (io_thread, false, _socket, options, null_mut());
-    errno_assert (session);
+      ZmqSessionBase::create (io_thread, false, self._socket, options, null_mut());
+    // errno_assert (session);
     session.inc_seqnum ();
     launch_child (session);
     send_attach (session, engine, false);
 
-    _socket.event_accepted (endpoint_pair, fd);
+    self._socket.event_accepted (endpoint_pair, fd);
 }

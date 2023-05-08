@@ -62,20 +62,20 @@
 // #include "tcp.hpp"
 // #include "likely.hpp"
 // #include "wire.hpp"
-pub struct raw_engine_t  : public stream_engine_base_t
+pub struct raw_engine_t  : public ZmqStreamEngineBase
 {
-// public:
+//
     raw_engine_t (fd: ZmqFileDesc,
                   options: &ZmqOptions,
                   const EndpointUriPair &endpoint_uri_pair_);
     ~raw_engine_t ();
 
-  protected:
-    void error (error_reason_t reason_);
+
+    void // error (ZmqErrorReason reason_);
     void plug_internal ();
     bool handshake ();
 
-  // private:
+  //
     int push_raw_ZmqMessageo_session (msg: &mut ZmqMessage);
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (raw_engine_t)
@@ -85,7 +85,7 @@ raw_engine_t::raw_engine_t (
   fd: ZmqFileDesc,
   options: &ZmqOptions,
   const EndpointUriPair &endpoint_uri_pair_) :
-    stream_engine_base_t (fd, options_, endpoint_uri_pair_, false)
+    ZmqStreamEngineBase (fd, options_, endpoint_uri_pair_, false)
 {
 }
 
@@ -96,25 +96,25 @@ raw_engine_t::~raw_engine_t ()
 void raw_engine_t::plug_internal ()
 {
     // no handshaking for raw sock, instantiate raw encoder and decoders
-    _encoder = new (std::nothrow) raw_encoder_t (_options.out_batch_size);
-    alloc_assert (_encoder);
+    _encoder =  raw_encoder_t (self._options.out_batch_size);
+    // alloc_assert (_encoder);
 
-    _decoder = new (std::nothrow) raw_decoder_t (_options.in_batch_size);
-    alloc_assert (_decoder);
+    _decoder =  raw_decoder_t (self._options.in_batch_size);
+    // alloc_assert (_decoder);
 
     _next_msg = &raw_engine_t::pull_msg_from_session;
-    _process_msg = static_cast<int (stream_engine_base_t::*) (ZmqMessage *)> (
+    _process_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
       &raw_engine_t::push_raw_ZmqMessageo_session);
 
     properties_t properties;
     if (init_properties (properties)) {
         //  Compile metadata.
-        zmq_assert (_metadata == null_mut());
-        _metadata = new (std::nothrow) ZmqMetadata (properties);
-        alloc_assert (_metadata);
+        // zmq_assert (_metadata == null_mut());
+        _metadata =  ZmqMetadata (properties);
+        // alloc_assert (_metadata);
     }
 
-    if (_options.raw_notify) {
+    if (self._options.raw_notify) {
         //  For raw sockets, send an initial 0-length message to the
         // application so that it knows a peer has connected.
         ZmqMessage connector;
@@ -135,9 +135,9 @@ bool raw_engine_t::handshake ()
     return true;
 }
 
-void raw_engine_t::error (error_reason_t reason_)
+void raw_engine_t::// error (ZmqErrorReason reason_)
 {
-    if (_options.raw_socket && _options.raw_notify) {
+    if (self._options.raw_socket && self._options.raw_notify) {
         //  For raw sockets, send a final 0-length message to the application
         //  so that it knows the peer has been disconnected.
         ZmqMessage terminator;
@@ -145,7 +145,7 @@ void raw_engine_t::error (error_reason_t reason_)
         push_raw_ZmqMessageo_session (&terminator);
         terminator.close ();
     }
-    stream_engine_base_t::error (reason_);
+    ZmqStreamEngineBase::// error (reason_);
 }
 
 int raw_engine_t::push_raw_ZmqMessageo_session (msg: &mut ZmqMessage)

@@ -36,11 +36,11 @@
 // #include <limits.h>
 pub struct v1_encoder_t  : public encoder_base_t<v1_encoder_t>
 {
-// public:
+//
     v1_encoder_t (bufsize_: usize);
     ~v1_encoder_t ();
 
-  // private:
+  //
     void size_ready ();
     void message_ready ();
 

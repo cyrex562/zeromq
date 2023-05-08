@@ -15,9 +15,9 @@
 
 
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
-pub struct norm_engine_t  : public io_object_t, public i_engine
+pub struct norm_engine_t  : public ZmqIoObject, public ZmqEngineInterface
 {
-// public:
+//
     norm_engine_t (ZmqThread *parent_, options: &ZmqOptions);
     ~norm_engine_t () ;
 
@@ -27,7 +27,7 @@ pub struct norm_engine_t  : public io_object_t, public i_engine
 
     bool has_handshake_stage ()  { return false; };
 
-    //  i_engine interface implementation.
+    //  ZmqIEngine interface implementation.
     //  Plug the engine to the session.
     void plug (ZmqThread *io_thread_,
 pub struct ZmqSessionBase *session_) ;
@@ -53,7 +53,7 @@ pub struct ZmqSessionBase *session_) ;
     // (i.e., don't have any output events or timers (yet))
     void in_event ();
 
-  // private:
+  //
     void unplug ();
     void send_data ();
     void recv_data (NormObjectHandle stream);
@@ -67,7 +67,7 @@ pub struct ZmqSessionBase *session_) ;
     // Used to keep track of streams from multiple senders
 pub struct NormRxStreamState
     {
-^      // public:
+^      //
         NormRxStreamState (NormObjectHandle normStream,
                            i64 maxMsgSize,
                            zeroCopy: bool,
@@ -98,7 +98,7 @@ pub struct NormRxStreamState
         int Decode ();
 pub struct List
         {
-^          // public:
+^          //
             List ();
             ~List ();
 
@@ -110,16 +110,16 @@ pub struct List
             void Destroy ();
 pub struct Iterator
             {
-^              // public:
+^              //
                 Iterator (const List &list);
                 NormRxStreamState *GetNextItem ();
 
-              // private:
+              //
                 NormRxStreamState *next_item;
             };
             friend class Iterator;
 
-          // private:
+          //
             NormRxStreamState *head;
             NormRxStreamState *tail;
 
@@ -130,7 +130,7 @@ pub struct Iterator
         List *AccessList () { return list; }
 
 
-      // private:
+      //
         NormObjectHandle norm_stream;
         i64 max_msg_size;
         zero_copy: bool
@@ -202,7 +202,7 @@ DWORD WINAPI normWrapperThread (LPVOID lpParam);
 
 norm_engine_t::norm_engine_t (ZmqThread *parent_,
                                    options: &ZmqOptions) :
-    io_object_t (parent_),
+    ZmqIoObject (parent_),
     zmq_session (null_mut()),
     options (options_),
     norm_instance (NORM_INSTANCE_INVALID),
@@ -220,7 +220,7 @@ norm_engine_t::norm_engine_t (ZmqThread *parent_,
     zmq_input_ready (false)
 {
     int rc = tx_msg.init ();
-    errno_assert (0 == rc);
+    // errno_assert (0 == rc);
 }
 
 norm_engine_t::~norm_engine_t ()
@@ -413,7 +413,7 @@ void norm_engine_t::plug (ZmqThread *io_thread_,
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
     norm_wrapper_thread_args_t *threadArgs = new norm_wrapper_thread_args_t;
     int rc = make_fdpair (&wrapper_read_fd, &threadArgs.wrapper_write_fd);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     threadArgs.norm_descriptor = NormGetDescriptor (norm_instance);
     threadArgs.norm_instance_handle = norm_instance;
@@ -451,9 +451,9 @@ void norm_engine_t::unplug ()
     WaitForSingleObject (wrapper_thread_handle, INFINITE);
     DWORD exitCode;
     GetExitCodeThread (wrapper_thread_handle, &exitCode);
-    zmq_assert (exitCode != -1);
+    // zmq_assert (exitCode != -1);
     int rc = closesocket (wrapper_read_fd);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 // #endif
     zmq_session = null_mut();
 } // end norm_engine_t::unplug()
@@ -545,13 +545,13 @@ void norm_engine_t::in_event ()
     // This means a NormEvent is pending, so call NormGetNextEvent() and handle
     NormEvent event;
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
-    int rc = recv (wrapper_read_fd, reinterpret_cast<char *> (&event),
+    int rc = recv (wrapper_read_fd,  (&event),
                    mem::size_of::<event>(), 0);
-    errno_assert (rc == mem::size_of::<event>());
+    // errno_assert (rc == mem::size_of::<event>());
 // #else
     if (!NormGetNextEvent (norm_instance, &event)) {
         // NORM has died before we unplugged?!
-        zmq_assert (false);
+        // zmq_assert (false);
         return;
     }
 // #endif
@@ -620,20 +620,20 @@ void norm_engine_t::recv_data (NormObjectHandle object)
         // Call result of NORM_RX_OBJECT_UPDATED notification
         // This is a rx_ready indication for a new or existing rx stream
         // First, determine if this is a stream we already know
-        zmq_assert (NORM_OBJECT_STREAM == NormObjectGetType (object));
+        // zmq_assert (NORM_OBJECT_STREAM == NormObjectGetType (object));
         // Since there can be multiple senders (publishers), we keep
         // state for each separate rx stream.
         NormRxStreamState *rxState =
           (NormRxStreamState *) NormObjectGetUserData (object);
         if (null_mut() == rxState) {
             // This is a new stream, so create rxState with zmq decoder, etc
-            rxState = new (std::nothrow)
+            rxState =
               NormRxStreamState (object, options.maxmsgsize, options.zero_copy,
                                  options.in_batch_size);
-            errno_assert (rxState);
+            // errno_assert (rxState);
 
             if (!rxState.Init ()) {
-                errno_assert (false);
+                // errno_assert (false);
                 delete rxState;
                 return;
             }
@@ -689,7 +689,7 @@ void norm_engine_t::recv_data (NormObjectHandle object)
                 unsigned int numBytes = 1;
                 if (!NormStreamRead (stream, &syncFlag, &numBytes)) {
                     // broken stream (shouldn't happen after seek msg start?)
-                    zmq_assert (false);
+                    // zmq_assert (false);
                     continue;
                 }
                 if (0 == numBytes) {
@@ -749,7 +749,7 @@ void norm_engine_t::recv_data (NormObjectHandle object)
                     } else {
                         // session rejected message?
                         // TBD - handle this better
-                        zmq_assert (false);
+                        // zmq_assert (false);
                     }
                 }
                 // else message was accepted.
@@ -810,8 +810,8 @@ bool norm_engine_t::NormRxStreamState::Init ()
     if (null_mut() != zmq_decoder)
         delete zmq_decoder;
     zmq_decoder =
-      new (std::nothrow) v2_decoder_t (in_batch_size, max_msg_size, zero_copy);
-    alloc_assert (zmq_decoder);
+       v2_decoder_t (in_batch_size, max_msg_size, zero_copy);
+    // alloc_assert (zmq_decoder);
     if (null_mut() != zmq_decoder) {
         buffer_count = 0;
         buffer_size = 0;
@@ -967,8 +967,8 @@ DWORD WINAPI normWrapperThread (LPVOID lpParam)
             }
             rc =
               send (norm_wrapper_thread_args.wrapper_write_fd,
-                    reinterpret_cast<char *> (&message), mem::size_of::<message>(), 0);
-            errno_assert (rc != -1);
+                     (&message), mem::size_of::<message>(), 0);
+            // errno_assert (rc != -1);
             // Check if message
         } else if (waitRc == WAIT_OBJECT_0 + 1) {
             // Exit if WM_QUIT is received otherwise do nothing
@@ -988,7 +988,7 @@ DWORD WINAPI normWrapperThread (LPVOID lpParam)
     // Free resources
     rc = closesocket (norm_wrapper_thread_args.wrapper_write_fd);
     free (norm_wrapper_thread_args);
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 
     return exitCode;
 }

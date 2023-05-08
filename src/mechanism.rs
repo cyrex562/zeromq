@@ -135,10 +135,10 @@ pub fn socket_type_string(socket_type_: i32) -> String {
 }
 
 pub struct ZmqMechanism {
-    // public:
+    //
     // const ZmqOptions options;
     pub options: ZmqOptions,
-    // private:
+    //
     //  Properties received from ZMTP peer.
     // ZmqMetadata::dict_t _zmtp_properties;
     pub zmtp_properties: HashMap<String, String>,
@@ -214,7 +214,7 @@ impl ZmqMechanism {
     // return _zap_properties;
     // }
 
-    // protected:
+    //
     //  Only used to identify the socket for the Socket-Type
     //  property in the wire protocol.
     // static const char *socket_type_string (socket_type_: i32);

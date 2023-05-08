@@ -43,7 +43,7 @@
 
 pgm_receiver_t::pgm_receiver_t (class ZmqThread *parent_,
                                      options: &ZmqOptions) :
-    io_object_t (parent_),
+    ZmqIoObject (parent_),
     has_rx_timer (false),
     pgm_socket (true, options_),
     options (options_),
@@ -56,7 +56,7 @@ pgm_receiver_t::pgm_receiver_t (class ZmqThread *parent_,
 pgm_receiver_t::~pgm_receiver_t ()
 {
     //  Destructor should not be called before unplug.
-    zmq_assert (peers.empty ());
+    // zmq_assert (peers.empty ());
 }
 
 int pgm_receiver_t::init (udp_encapsulation_: bool, network_: &str)
@@ -119,16 +119,16 @@ void pgm_receiver_t::restart_output ()
 
 bool pgm_receiver_t::restart_input ()
 {
-    zmq_assert (session != null_mut());
-    zmq_assert (active_tsi != null_mut());
+    // zmq_assert (session != null_mut());
+    // zmq_assert (active_tsi != null_mut());
 
     const peers_t::iterator it = peers.find (*active_tsi);
-    zmq_assert (it != peers.end ());
-    zmq_assert (it.second.joined);
+    // zmq_assert (it != peers.end ());
+    // zmq_assert (it.second.joined);
 
     //  Push the pending message into the session.
     int rc = session.push_msg (it.second.decoder.msg ());
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     if (insize > 0) {
         rc = process_input (it.second.decoder);
@@ -217,11 +217,11 @@ void pgm_receiver_t::in_event ()
             it = peers.ZMQ_MAP_INSERT_OR_EMPLACE (*tsi, peer_info).first;
         }
 
-        insize = static_cast<size_t> (received);
+        insize =  (received);
         inpos =  tmp;
 
         //  Read the offset of the fist message in the current packet.
-        zmq_assert (insize >= mem::size_of::<uint16_t>());
+        // zmq_assert (insize >= mem::size_of::<uint16_t>());
         uint16_t offset = get_uint16 (inpos);
         inpos += mem::size_of::<uint16_t>();
         insize -= mem::size_of::<uint16_t>();
@@ -233,8 +233,8 @@ void pgm_receiver_t::in_event ()
             if (offset == 0xffff)
                 continue;
 
-            zmq_assert (offset <= insize);
-            zmq_assert (it.second.decoder == null_mut());
+            // zmq_assert (offset <= insize);
+            // zmq_assert (it.second.decoder == null_mut());
 
             //  We have to move data to the beginning of the first message.
             inpos += offset;
@@ -245,8 +245,8 @@ void pgm_receiver_t::in_event ()
 
             //  Create and connect decoder for the peer.
             it.second.decoder =
-              new (std::nothrow) v1_decoder_t (0, options.maxmsgsize);
-            alloc_assert (it.second.decoder);
+               v1_decoder_t (0, options.maxmsgsize);
+            // alloc_assert (it.second.decoder);
         }
 
         int rc = process_input (it.second.decoder);
@@ -273,7 +273,7 @@ void pgm_receiver_t::in_event ()
 
 int pgm_receiver_t::process_input (v1_decoder_t *decoder)
 {
-    zmq_assert (session != null_mut());
+    // zmq_assert (session != null_mut());
 
     while (insize > 0) {
         size_t n = 0;
@@ -286,7 +286,7 @@ int pgm_receiver_t::process_input (v1_decoder_t *decoder)
             break;
         rc = session.push_msg (decoder.msg ());
         if (rc == -1) {
-            errno_assert (errno == EAGAIN);
+            // errno_assert (errno == EAGAIN);
             return -1;
         }
     }
@@ -296,7 +296,7 @@ int pgm_receiver_t::process_input (v1_decoder_t *decoder)
 
 void pgm_receiver_t::timer_event (token: i32)
 {
-    zmq_assert (token == rx_timer_id);
+    // zmq_assert (token == rx_timer_id);
 
     //  Timer cancels on return by poller_base.
     has_rx_timer = false;
@@ -310,15 +310,15 @@ let mut msg = ZmqMessage::default();
     while (session.pull_msg (&msg) == 0)
         msg.close ();
 }
-pub struct pgm_receiver_t  : public io_object_t, public i_engine
+pub struct pgm_receiver_t  : public ZmqIoObject, public ZmqEngineInterface
 {
-// public:
+//
     pgm_receiver_t (ZmqThread *parent_, options: &ZmqOptions);
     ~pgm_receiver_t ();
 
     int init (udp_encapsulation_: bool, network_: &str);
 
-    //  i_engine interface implementation.
+    //  ZmqIEngine interface implementation.
     bool has_handshake_stage () { return false; };
     void plug (ZmqThread *io_thread_, ZmqSessionBase *session_);
     void terminate ();
@@ -331,7 +331,7 @@ pub struct pgm_receiver_t  : public io_object_t, public i_engine
     void in_event ();
     void timer_event (token: i32);
 
-  // private:
+  //
     //  Unplug the engine from the session.
     void unplug ();
 

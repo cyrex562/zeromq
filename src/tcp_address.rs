@@ -150,9 +150,9 @@ impl TcpAddress {
 #[derive(Default,Debug,Clone)]
 pub struct TcpAddressMask
 {
-  // public:
+  //
   //   tcp_address_mask_t ();
-  // private:
+  //
   //   ip_addr_t _network_address;
   pub network_address: SocketAddr,
     // int _address_mask;
@@ -263,7 +263,7 @@ impl TcpAddressMask {
               &self.network_address.ipv6.sin6_addr);
             mask = sizeof (struct in6_addr) * 8;
         } else {
-            zmq_assert (ss_len_ == sizeof (struct sockaddr_in));
+            // zmq_assert (ss_len_ == sizeof (struct sockaddr_in));
             their_bytes = reinterpret_cast<const uint8_t *> (&(
               (reinterpret_cast<const struct sockaddr_in *> (ss.))->sin_addr));
             our_bytes = reinterpret_cast<const uint8_t *> (

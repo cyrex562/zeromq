@@ -37,7 +37,7 @@
 // #include "likely.hpp"
 pub struct req_t  : public ZmqDealer
 {
-// public:
+//
     req_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~req_t ();
 
@@ -49,12 +49,12 @@ pub struct req_t  : public ZmqDealer
     int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
     void xpipe_terminated (pipe: &mut ZmqPipe);
 
-  protected:
+
     //  Receive only from the pipe the request was sent to, discarding
     //  frames from other pipes.
     int recv_reply_pipe (msg: &mut ZmqMessage);
 
-  // private:
+  //
     //  If true, request was already sent and reply wasn't received yet or
     //  was received partially.
     _receiving_reply: bool
@@ -82,7 +82,7 @@ pub struct req_t  : public ZmqDealer
 };
 pub struct req_session_t  : public ZmqSessionBase
 {
-// public:
+//
     req_session_t (ZmqThread *io_thread_,
                    connect_: bool,
                    socket: *mut ZmqSocketBase,
@@ -94,7 +94,7 @@ pub struct req_session_t  : public ZmqSessionBase
     int push_msg (msg: &mut ZmqMessage);
     void reset ();
 
-  // private:
+  //
     enum
     {
         bottom,
@@ -114,7 +114,7 @@ req_t::req_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     _request_id (generate_random ()),
     _strict (true)
 {
-    options.type = ZMQ_REQ;
+    options.type_ = ZMQ_REQ;
 }
 
 req_t::~req_t ()
@@ -145,7 +145,7 @@ int req_t::xsend (msg: &mut ZmqMessage)
             ZmqMessage id;
             int rc = id.init_size (mem::size_of::<u32>());
             memcpy (id.data (), &_request_id, mem::size_of::<u32>());
-            errno_assert (rc == 0);
+            // errno_assert (rc == 0);
             id.set_flags (ZMQ_MSG_MORE);
 
             rc = ZmqDealer::sendpipe (&id, &_reply_pipe);
@@ -156,13 +156,13 @@ int req_t::xsend (msg: &mut ZmqMessage)
 
         ZmqMessage bottom;
         int rc = bottom.init ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         bottom.set_flags (ZMQ_MSG_MORE);
 
         rc = ZmqDealer::sendpipe (&bottom, &_reply_pipe);
         if (rc != 0)
             return -1;
-        zmq_assert (_reply_pipe);
+        // zmq_assert (_reply_pipe);
 
         _message_begins = false;
 
@@ -174,7 +174,7 @@ int req_t::xsend (msg: &mut ZmqMessage)
         ZmqMessage drop;
         while (true) {
             rc = drop.init ();
-            errno_assert (rc == 0);
+            // errno_assert (rc == 0);
             rc = ZmqDealer::xrecv (&drop);
             if (rc != 0)
                 break;
@@ -213,14 +213,14 @@ int req_t::xrecv (msg: &mut ZmqMessage)
             if (rc != 0)
                 return rc;
 
-            if (unlikely (!(msg.flags () & ZMQ_MSG_MORE)
+            if ( (!(msg.flags () & ZMQ_MSG_MORE)
                           || msg.size () != mem::size_of::<_request_id>()
                           || *static_cast<u32 *> (msg.data ())
                                != _request_id)) {
                 //  Skip the remaining frames and try the next message
                 while (msg.flags () & ZMQ_MSG_MORE) {
                     rc = recv_reply_pipe (msg);
-                    errno_assert (rc == 0);
+                    // errno_assert (rc == 0);
                 }
                 continue;
             }
@@ -232,11 +232,11 @@ int req_t::xrecv (msg: &mut ZmqMessage)
         if (rc != 0)
             return rc;
 
-        if (unlikely (!(msg.flags () & ZMQ_MSG_MORE) || msg.size () != 0)) {
+        if ( (!(msg.flags () & ZMQ_MSG_MORE) || msg.size () != 0)) {
             //  Skip the remaining frames and try the next message
             while (msg.flags () & ZMQ_MSG_MORE) {
                 rc = recv_reply_pipe (msg);
-                errno_assert (rc == 0);
+                // errno_assert (rc == 0);
             }
             continue;
         }
@@ -343,7 +343,7 @@ int req_session_t::push_msg (msg: &mut ZmqMessage)
 {
     //  Ignore commands, they are processed by the engine and should not
     //  affect the state machine.
-    if (unlikely (msg.flags () & ZMQ_MSG_COMMAND))
+    if ( (msg.flags () & ZMQ_MSG_COMMAND))
         return 0;
 
     switch (_state) {

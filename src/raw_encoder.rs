@@ -33,11 +33,11 @@
 // #include "msg.hpp"
 pub struct raw_encoder_t  : public encoder_base_t<raw_encoder_t>
 {
-// public:
+//
     raw_encoder_t (bufsize_: usize);
     ~raw_encoder_t ();
 
-  // private:
+  //
     void raw_message_ready ();
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (raw_encoder_t)

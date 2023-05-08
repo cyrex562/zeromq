@@ -40,15 +40,15 @@
 // #include "wire.hpp"
 // #include "stdint.hpp"
 // #include "macros.hpp"
-pub struct pgm_sender_t  : public io_object_t, public i_engine
+pub struct pgm_sender_t  : public ZmqIoObject, public ZmqEngineInterface
 {
-// public:
+//
     pgm_sender_t (ZmqThread *parent_, options: &ZmqOptions);
     ~pgm_sender_t ();
 
     int init (udp_encapsulation_: bool, network_: &str);
 
-    //  i_engine interface implementation.
+    //  ZmqIEngine interface implementation.
     bool has_handshake_stage () { return false; };
     void plug (ZmqThread *io_thread_, ZmqSessionBase *session_);
     void terminate ();
@@ -62,7 +62,7 @@ pub struct pgm_sender_t  : public io_object_t, public i_engine
     void out_event ();
     void timer_event (token: i32);
 
-  // private:
+  //
     //  Unplug the engine from the session.
     void unplug ();
 
@@ -115,7 +115,7 @@ let mut msg = ZmqMessage::default();
 
 pgm_sender_t::pgm_sender_t (ZmqThread *parent_,
                                  options: &ZmqOptions) :
-    io_object_t (parent_),
+    ZmqIoObject (parent_),
     has_tx_timer (false),
     has_rx_timer (false),
     session (null_mut()),
@@ -132,7 +132,7 @@ pgm_sender_t::pgm_sender_t (ZmqThread *parent_,
     write_size (0)
 {
     int rc = msg.init ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 }
 
 int pgm_sender_t::init (udp_encapsulation_: bool, network_: &str)
@@ -143,7 +143,7 @@ int pgm_sender_t::init (udp_encapsulation_: bool, network_: &str)
 
     out_buffer_size = pgm_socket.get_max_tsdu_size ();
     out_buffer =  malloc (out_buffer_size);
-    alloc_assert (out_buffer);
+    // alloc_assert (out_buffer);
 
     return rc;
 }
@@ -211,7 +211,7 @@ void pgm_sender_t::restart_output ()
 
 bool pgm_sender_t::restart_input ()
 {
-    zmq_assert (false);
+    // zmq_assert (false);
     return true;
 }
 
@@ -223,7 +223,7 @@ const EndpointUriPair &pgm_sender_t::get_endpoint () const
 pgm_sender_t::~pgm_sender_t ()
 {
     int rc = msg.close ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     if (out_buffer) {
         free (out_buffer);
@@ -297,7 +297,7 @@ void pgm_sender_t::out_event ()
     if (nbytes == write_size)
         write_size = 0;
     else {
-        zmq_assert (nbytes == 0);
+        // zmq_assert (nbytes == 0);
 
         if (errno == ENOMEM) {
             // Stop polling handle and wait for tx timeout
@@ -306,7 +306,7 @@ void pgm_sender_t::out_event ()
             reset_pollout (handle);
             has_tx_timer = true;
         } else
-            errno_assert (errno == EBUSY);
+            // errno_assert (errno == EBUSY);
     }
 }
 
@@ -322,7 +322,7 @@ void pgm_sender_t::timer_event (token: i32)
         set_pollout (handle);
         out_event ();
     } else
-        zmq_assert (false);
+        // zmq_assert (false);
 }
 
 // #endif

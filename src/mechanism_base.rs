@@ -29,7 +29,11 @@
 
 // #include "precompiled.hpp"
 
+use bincode::options;
+use libc::{EPROTO};
+use crate::defines::ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED;
 use crate::mechanism::ZmqMechanism;
+use crate::message::ZmqMessage;
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 
@@ -47,67 +51,66 @@ pub session: ZmqSessionBase,
 
 impl ZmqMechanismBase {
     // ZmqMechanismBase (ZmqSessionBase *session_, options: &ZmqOptions);
-    pub fn new(options: &mut ZmqOptions, session: &mut ZmqSessionBase) -> Self {
-        Self {
+    pub fn new(session: &mut ZmqSessionBase, options: &mut ZmqOptions) -> Self {
+        let out = Self {
+            mechanism: ZmqMechanism::new(options),
             session: session.clone(),
-            mechanism: ZmqMechanism::new(options)
+        };
+        out
         }
-    }
 
     // int check_basic_command_structure (msg: &mut ZmqMessage) const;
+    pub fn check_basic_command_structure (&mut self, msg: &mut ZmqMessage) -> i32
+    {
+        if msg.size () <= 1
+            || msg.size () <= ((msg.data()))[0] as usize {
+            session.get_socket().event_handshake_failed_protocol (
+                session.get_endpoint (),
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED);
+            errno = EPROTO;
+            return -1;
+        }
+        return 0;
+    }
 
     // void handle_error_reason (error_reason_: *const c_char, error_reason_len_: usize);
-
+    pub fn handle_error_reason (&mut self, error_reason_: &str, error_reason_len_: usize)
+    {
+        let mut status_code_len = 3;
+        let mut zero_digit = '0';
+        let mut significant_digit_index = 0;
+        let mut first_zero_digit_index = 1;
+        let mut second_zero_digit_index = 2;
+        let factor: i32 = 100;
+        if (error_reason_len_ == status_code_len
+            && error_reason_[first_zero_digit_index] == zero_digit
+            && error_reason_[second_zero_digit_index] == zero_digit
+            && error_reason_[significant_digit_index] >= '3'
+            && error_reason_[significant_digit_index] <= '5') {
+            // it is a ZAP error status code (300, 400 or 500), so emit an authentication failure event
+            session.get_socket ().event_handshake_failed_auth (
+                session.get_endpoint (),
+                (error_reason_[significant_digit_index] - zero_digit) * factor);
+        } else {
+            // this is a violation of the ZAP protocol
+            // TODO zmq_assert in this case?
+        }
+    }
     // bool zap_required () const;
-}
+    pub fn zap_required (&mut self) -> bool
+    {
+        return !self.options.zap_domain.is_empty();
+    }
+} // impl ZmqMechanismBase
 
 // ZmqMechanismBase::ZmqMechanismBase (ZmqSessionBase *const session_,
 //                                          options: &ZmqOptions) :
 //     ZmqMechanism (options_), session (session_)
 // {
-// Self {
-//
-// }
 // }
 
-int ZmqMechanismBase::check_basic_command_structure (msg: &mut ZmqMessage) const
-{
-    if (msg.size () <= 1
-        || msg.size () <= (static_cast<uint8_t *> (msg.data ()))[0]) {
-        session.get_socket ()->event_handshake_failed_protocol (
-          session.get_endpoint (),
-          ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED);
-        errno = EPROTO;
-        return -1;
-    }
-    return 0;
-}
 
-void ZmqMechanismBase::handle_error_reason (error_reason_: &str,
-                                                 error_reason_len_: usize)
-{
-    const size_t status_code_len = 3;
-    const char zero_digit = '0';
-    const size_t significant_digit_index = 0;
-    const size_t first_zero_digit_index = 1;
-    const size_t second_zero_digit_index = 2;
-    let factor: i32 = 100;
-    if (error_reason_len_ == status_code_len
-        && error_reason_[first_zero_digit_index] == zero_digit
-        && error_reason_[second_zero_digit_index] == zero_digit
-        && error_reason_[significant_digit_index] >= '3'
-        && error_reason_[significant_digit_index] <= '5') {
-        // it is a ZAP error status code (300, 400 or 500), so emit an authentication failure event
-        session.get_socket ()->event_handshake_failed_auth (
-          session.get_endpoint (),
-          (error_reason_[significant_digit_index] - zero_digit) * factor);
-    } else {
-        // this is a violation of the ZAP protocol
-        // TODO zmq_assert in this case?
-    }
-}
 
-bool ZmqMechanismBase::zap_required () const
-{
-    return !options.zap_domain.is_empty();
-}
+
+
+

@@ -33,28 +33,22 @@
 // #include "macros.hpp"
 // #include "stdint.hpp"
 
-namespace zmq
-{
-pub struct ZmqMessage;
-
 //  Interface to be implemented by message decoder.
-pub struct i_decoder
-{
-// public:
-    virtual ~i_decoder () ZMQ_DEFAULT;
-
-    virtual void get_buffer (unsigned char **data, size: *mut usize) = 0;
-
-    virtual void resize_buffer (size_t) = 0;
+pub trait ZmqDecoderInterface {
+    //
+    //     virtual ~ZmqDecoderInterface () ZMQ_DEFAULT;
+    //     virtual void get_buffer (unsigned char **data, size: *mut usize) = 0;
+    fn get_buffer(&mut self, data: &mut [u8], size: &mut usize);
+    // virtual void resize_buffer (size_t) = 0;
+    fn resize_buffer(&mut self, size: usize);
     //  Decodes data pointed to by data.
     //  When a message is decoded, 1 is returned.
     //  When the decoder needs more data, 0 is returned.
     //  On error, -1 is returned and errno is set accordingly.
-    virtual int
-    decode (const data: &mut [u8], size: usize, size_t &processed_) = 0;
-
-    virtual ZmqMessage *msg () = 0;
-};
+    // virtual int decode (const data: &mut [u8], size: usize, size_t &processed_) = 0;
+    fn decode(data: &[u8], size: usize, processed: &usize);
+    // virtual ZmqMessage *msg () = 0;
+    fn msg() -> &mut ZmqMessage;
 }
 
 // #endif

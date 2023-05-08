@@ -93,7 +93,7 @@ struct test_events_t : i_poll_events
 
     AtomicCounter in_events, timer_events;
 
-  // private:
+  //
     ZmqFileDesc _fd;
     Poller &poller;
     Poller::handle_t _handle;
@@ -249,7 +249,7 @@ void test_add_fd_with_pending_failing_connect ()
     value: i32;
     int value_len = mem::size_of::<value>();
     TEST_ASSERT_EQUAL_INT (0, getsockopt (connect_socket, SOL_SOCKET, SO_ERROR,
-                                          reinterpret_cast<char *> (&value),
+                                           (&value),
                                           &value_len));
     TEST_ASSERT_EQUAL_INT (WSAECONNREFUSED, value);
 

@@ -60,7 +60,7 @@ struct i_poll_events;
 //  kqueue interface.
 pub struct kqueue_t  : public WorkerPollerBase
 {
-// public:
+//
     typedef void *handle_t;
 
     kqueue_t (const ThreadCtx &ctx);
@@ -77,7 +77,7 @@ pub struct kqueue_t  : public WorkerPollerBase
 
     static int max_fds ();
 
-  // private:
+  //
     //  Main event loop.
     void loop () ;
 
@@ -117,7 +117,7 @@ kqueue_t::kqueue_t (const ThreadCtx &ctx) :
 {
     //  Create event queue
     kqueue_fd = kqueue ();
-    errno_assert (kqueue_fd != -1);
+    // errno_assert (kqueue_fd != -1);
 // #ifdef HAVE_FORK
     pid = getpid ();
 // #endif
@@ -136,7 +136,7 @@ void kqueue_t::kevent_add (fd: ZmqFileDesc, short filter_, udata_: *mut c_void)
 
     EV_SET (&ev, fd, filter_, EV_ADD, 0, 0, (kevent_udata_t) udata_);
     int rc = kevent (kqueue_fd, &ev, 1, null_mut(), 0, null_mut());
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 }
 
 void kqueue_t::kevent_delete (fd: ZmqFileDesc, short filter_)
@@ -145,15 +145,15 @@ void kqueue_t::kevent_delete (fd: ZmqFileDesc, short filter_)
 
     EV_SET (&ev, fd, filter_, EV_DELETE, 0, 0, 0);
     int rc = kevent (kqueue_fd, &ev, 1, null_mut(), 0, null_mut());
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
 }
 
 kqueue_t::handle_t kqueue_t::add_fd (fd: ZmqFileDesc,
                                                i_poll_events *reactor_)
 {
     check_thread ();
-    ZmqPollEntry *pe = new (std::nothrow) ZmqPollEntry;
-    alloc_assert (pe);
+    ZmqPollEntry *pe =  ZmqPollEntry;
+    // alloc_assert (pe);
 
     pe.fd = fd;
     pe.flag_pollin = 0;
@@ -183,7 +183,7 @@ void kqueue_t::set_pollin (handle_t handle_)
 {
     check_thread ();
     ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
-    if (likely (!pe.flag_pollin)) {
+    if ( (!pe.flag_pollin)) {
         pe.flag_pollin = true;
         kevent_add (pe.fd, EVFILT_READ, pe);
     }
@@ -193,7 +193,7 @@ void kqueue_t::reset_pollin (handle_t handle_)
 {
     check_thread ();
     ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
-    if (likely (pe.flag_pollin)) {
+    if ( (pe.flag_pollin)) {
         pe.flag_pollin = false;
         kevent_delete (pe.fd, EVFILT_READ);
     }
@@ -203,7 +203,7 @@ void kqueue_t::set_pollout (handle_t handle_)
 {
     check_thread ();
     ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
-    if (likely (!pe.flag_pollout)) {
+    if ( (!pe.flag_pollout)) {
         pe.flag_pollout = true;
         kevent_add (pe.fd, EVFILT_WRITE, pe);
     }
@@ -213,7 +213,7 @@ void kqueue_t::reset_pollout (handle_t handle_)
 {
     check_thread ();
     ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
-    if (likely (pe.flag_pollout)) {
+    if ( (pe.flag_pollout)) {
         pe.flag_pollout = false;
         kevent_delete (pe.fd, EVFILT_WRITE);
     }
@@ -248,14 +248,14 @@ void kqueue_t::loop ()
         int n = kevent (kqueue_fd, null_mut(), 0, &ev_buf[0], max_io_events,
                         timeout ? &ts : null_mut());
 // #ifdef HAVE_FORK
-        if (unlikely (pid != getpid ())) {
+        if ( (pid != getpid ())) {
             //printf("kqueue_t::loop aborting on forked child %d\n", getpid());
             // simply exit the loop in a forked process.
             return;
         }
 // #endif
         if (n == -1) {
-            errno_assert (errno == EINTR);
+            // errno_assert (errno == EINTR);
             continue;
         }
 

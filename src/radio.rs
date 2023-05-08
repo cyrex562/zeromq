@@ -37,7 +37,7 @@
 // #include "msg.hpp"
 pub struct radio_t  : public ZmqSocketBase
 {
-// public:
+//
     radio_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~radio_t ();
 
@@ -54,7 +54,7 @@ pub struct radio_t  : public ZmqSocketBase
     int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
     void xpipe_terminated (pipe: &mut ZmqPipe);
 
-  // private:
+  //
     //  List of all subscriptions mapped to corresponding pipes.
     typedef std::multimap<std::string, ZmqPipe *> subscriptions_t;
     subscriptions_t _subscriptions;
@@ -73,7 +73,7 @@ pub struct radio_t  : public ZmqSocketBase
 };
 pub struct radio_session_t  : public ZmqSessionBase
 {
-// public:
+//
     radio_session_t (ZmqThread *io_thread_,
                      connect_: bool,
                      socket: *mut ZmqSocketBase,
@@ -86,7 +86,7 @@ pub struct radio_session_t  : public ZmqSessionBase
     int pull_msg (msg: &mut ZmqMessage);
     void reset ();
 
-  // private:
+  //
     enum
     {
         group,
@@ -101,7 +101,7 @@ pub struct radio_session_t  : public ZmqSessionBase
 radio_t::radio_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_, true), _lossy (true)
 {
-    options.type = ZMQ_RADIO;
+    options.type_ = ZMQ_RADIO;
 }
 
 radio_t::~radio_t ()
@@ -115,7 +115,7 @@ void radio_t::xattach_pipe (pipe: &mut ZmqPipe,
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
 
-    zmq_assert (pipe);
+    // zmq_assert (pipe);
 
     //  Don't delay pipe termination as there is no one
     //  to receive the delimiter.
@@ -298,15 +298,15 @@ int radio_session_t::push_msg (msg: &mut ZmqMessage)
         else
             return ZmqSessionBase::push_msg (msg);
 
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
 
         //  Set the group
         rc = join_leave_msg.set_group (group, group_length);
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
 
         //  Close the current command
         rc = msg.close ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
 
         //  Push the join or leave command
         *msg = join_leave_msg;
@@ -327,7 +327,7 @@ int radio_session_t::pull_msg (msg: &mut ZmqMessage)
 
         //  First frame is the group
         rc = msg.init_size (length);
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
         msg.set_flags (ZMQ_MSG_MORE);
         memcpy (msg.data (), group, length);
 

@@ -52,7 +52,7 @@ void tune_vmci_buffer_size (ZmqContext *context_,
 // #if defined ZMQ_HAVE_WINDOWS
         wsa_assert (rc != SOCKET_ERROR);
 // #else
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
 // #endif
     }
 
@@ -62,7 +62,7 @@ void tune_vmci_buffer_size (ZmqContext *context_,
 // #if defined ZMQ_HAVE_WINDOWS
         wsa_assert (rc != SOCKET_ERROR);
 // #else
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
 // #endif
     }
 
@@ -72,7 +72,7 @@ void tune_vmci_buffer_size (ZmqContext *context_,
 // #if defined ZMQ_HAVE_WINDOWS
         wsa_assert (rc != SOCKET_ERROR);
 // #else
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
 // #endif
     }
 }
@@ -95,7 +95,7 @@ void tune_vmci_connect_timeout (ZmqContext *context_,
 // #if defined ZMQ_HAVE_WINDOWS
     wsa_assert (rc != SOCKET_ERROR);
 // #else
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 // #endif
 }
 

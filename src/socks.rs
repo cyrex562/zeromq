@@ -51,14 +51,14 @@ struct socks_greeting_t
 };
 pub struct socks_greeting_encoder_t
 {
-// public:
+//
     socks_greeting_encoder_t ();
     void encode (const socks_greeting_t &greeting_);
     int output (ZmqFileDesc fd);
     bool has_pending_data () const;
     void reset ();
 
-  // private:
+  //
     _bytes_encoded: usize;
     _bytes_written: usize;
     uint8_t buf[2 + UINT8_MAX];
@@ -72,14 +72,14 @@ struct socks_choice_t
 };
 pub struct socks_choice_decoder_t
 {
-// public:
+//
     socks_choice_decoder_t ();
     int input (ZmqFileDesc fd);
     bool message_ready () const;
     socks_choice_t decode ();
     void reset ();
 
-  // private:
+  //
     unsigned char buf[2];
     _bytes_read: usize;
 };
@@ -95,14 +95,14 @@ struct socks_basic_auth_request_t
 };
 pub struct socks_basic_auth_request_encoder_t
 {
-// public:
+//
     socks_basic_auth_request_encoder_t ();
     void encode (const socks_basic_auth_request_t &req_);
     int output (ZmqFileDesc fd);
     bool has_pending_data () const;
     void reset ();
 
-  // private:
+  //
     _bytes_encoded: usize;
     _bytes_written: usize;
     uint8_t buf[1 + 1 + UINT8_MAX + 1 + UINT8_MAX];
@@ -115,14 +115,14 @@ struct socks_auth_response_t
 };
 pub struct socks_auth_response_decoder_t
 {
-// public:
+//
     socks_auth_response_decoder_t ();
     int input (ZmqFileDesc fd);
     bool message_ready () const;
     socks_auth_response_t decode ();
     void reset ();
 
-  // private:
+  //
     int8_t buf[2];
     _bytes_read: usize;
 };
@@ -137,14 +137,14 @@ struct socks_request_t
 };
 pub struct socks_request_encoder_t
 {
-// public:
+//
     socks_request_encoder_t ();
     void encode (const socks_request_t &req_);
     int output (ZmqFileDesc fd);
     bool has_pending_data () const;
     void reset ();
 
-  // private:
+  //
     _bytes_encoded: usize;
     _bytes_written: usize;
     uint8_t buf[4 + UINT8_MAX + 1 + 2];
@@ -161,14 +161,14 @@ struct socks_response_t
 };
 pub struct socks_response_decoder_t
 {
-// public:
+//
     socks_response_decoder_t ();
     int input (ZmqFileDesc fd);
     bool message_ready () const;
     socks_response_t decode ();
     void reset ();
 
-  // private:
+  //
     int8_t buf[4 + UINT8_MAX + 1 + 2];
     _bytes_read: usize;
 };
@@ -209,7 +209,7 @@ int socks_greeting_encoder_t::output (ZmqFileDesc fd)
     let rc: i32 =
       tcp_write (fd, buf + _bytes_written, _bytes_encoded - _bytes_written);
     if (rc > 0)
-        _bytes_written += static_cast<size_t> (rc);
+        _bytes_written +=  (rc);
     return rc;
 }
 
@@ -233,10 +233,10 @@ socks_choice_decoder_t::socks_choice_decoder_t () : _bytes_read (0)
 
 int socks_choice_decoder_t::input (ZmqFileDesc fd)
 {
-    zmq_assert (_bytes_read < 2);
+    // zmq_assert (_bytes_read < 2);
     let rc: i32 = tcp_read (fd, buf + _bytes_read, 2 - _bytes_read);
     if (rc > 0) {
-        _bytes_read += static_cast<size_t> (rc);
+        _bytes_read +=  (rc);
         if (buf[0] != 0x05)
             return -1;
     }
@@ -250,7 +250,7 @@ bool socks_choice_decoder_t::message_ready () const
 
 socks_choice_t socks_choice_decoder_t::decode ()
 {
-    zmq_assert (message_ready ());
+    // zmq_assert (message_ready ());
     return socks_choice_t (buf[1]);
 }
 
@@ -264,8 +264,8 @@ socks_basic_auth_request_t::socks_basic_auth_request_t (
   const std::string &username_, password_: &str) :
     username (username_), password (password_)
 {
-    zmq_assert (username_.size () <= UINT8_MAX);
-    zmq_assert (password_.size () <= UINT8_MAX);
+    // zmq_assert (username_.size () <= UINT8_MAX);
+    // zmq_assert (password_.size () <= UINT8_MAX);
 }
 
 
@@ -295,7 +295,7 @@ int socks_basic_auth_request_encoder_t::output (ZmqFileDesc fd)
     let rc: i32 =
       tcp_write (fd, buf + _bytes_written, _bytes_encoded - _bytes_written);
     if (rc > 0)
-        _bytes_written += static_cast<size_t> (rc);
+        _bytes_written +=  (rc);
     return rc;
 }
 
@@ -322,10 +322,10 @@ socks_auth_response_decoder_t::socks_auth_response_decoder_t () :
 
 int socks_auth_response_decoder_t::input (ZmqFileDesc fd)
 {
-    zmq_assert (_bytes_read < 2);
+    // zmq_assert (_bytes_read < 2);
     let rc: i32 = tcp_read (fd, buf + _bytes_read, 2 - _bytes_read);
     if (rc > 0) {
-        _bytes_read += static_cast<size_t> (rc);
+        _bytes_read +=  (rc);
         if (buf[0] != 0x01)
             return -1;
     }
@@ -339,7 +339,7 @@ bool socks_auth_response_decoder_t::message_ready () const
 
 socks_auth_response_t socks_auth_response_decoder_t::decode ()
 {
-    zmq_assert (message_ready ());
+    // zmq_assert (message_ready ());
     return socks_auth_response_t (buf[1]);
 }
 
@@ -354,7 +354,7 @@ socks_request_t::socks_request_t (uint8_t command_,
                                        uint16_t port_) :
     command (command_), hostname (ZMQ_MOVE (hostname_)), port (port_)
 {
-    zmq_assert (hostname.size () <= UINT8_MAX);
+    // zmq_assert (hostname.size () <= UINT8_MAX);
 }
 
 socks_request_encoder_t::socks_request_encoder_t () :
@@ -364,7 +364,7 @@ socks_request_encoder_t::socks_request_encoder_t () :
 
 void socks_request_encoder_t::encode (const socks_request_t &req_)
 {
-    zmq_assert (req_.hostname.size () <= UINT8_MAX);
+    // zmq_assert (req_.hostname.size () <= UINT8_MAX);
 
     unsigned char *ptr = buf;
     *ptr+= 1 = 0x05;
@@ -417,7 +417,7 @@ int socks_request_encoder_t::output (ZmqFileDesc fd)
     let rc: i32 =
       tcp_write (fd, buf + _bytes_written, _bytes_encoded - _bytes_written);
     if (rc > 0)
-        _bytes_written += static_cast<size_t> (rc);
+        _bytes_written +=  (rc);
     return rc;
 }
 
@@ -450,7 +450,7 @@ int socks_response_decoder_t::input (ZmqFileDesc fd)
         n = 5 - _bytes_read;
     else {
         const uint8_t atyp = buf[3];
-        zmq_assert (atyp == 0x01 || atyp == 0x03 || atyp == 0x04);
+        // zmq_assert (atyp == 0x01 || atyp == 0x03 || atyp == 0x04);
         if (atyp == 0x01)
             n = 3 + 2;
         else if (atyp == 0x03)
@@ -460,7 +460,7 @@ int socks_response_decoder_t::input (ZmqFileDesc fd)
     }
     let rc: i32 = tcp_read (fd, buf + _bytes_read, n);
     if (rc > 0) {
-        _bytes_read += static_cast<size_t> (rc);
+        _bytes_read +=  (rc);
         if (buf[0] != 0x05)
             return -1;
         if (_bytes_read >= 2)
@@ -484,7 +484,7 @@ bool socks_response_decoder_t::message_ready () const
         return false;
 
     const uint8_t atyp = buf[3];
-    zmq_assert (atyp == 0x01 || atyp == 0x03 || atyp == 0x04);
+    // zmq_assert (atyp == 0x01 || atyp == 0x03 || atyp == 0x04);
     if (atyp == 0x01)
         return _bytes_read == 10;
     if (atyp == 0x03)
@@ -495,7 +495,7 @@ bool socks_response_decoder_t::message_ready () const
 
 socks_response_t socks_response_decoder_t::decode ()
 {
-    zmq_assert (message_ready ());
+    // zmq_assert (message_ready ());
     return socks_response_t (buf[1], "", 0);
 }
 

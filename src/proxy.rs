@@ -102,13 +102,13 @@ capture (class capture_: *mut ZmqSocketBase, msg: &mut ZmqMessage int more_ = 0)
     if (capture_) {
         ZmqMessage ctrl;
         int rc = ctrl.init ();
-        if (unlikely (rc < 0))
+        if ( (rc < 0))
             return -1;
         rc = ctrl.copy (*msg);
-        if (unlikely (rc < 0))
+        if ( (rc < 0))
             return -1;
         rc = capture_.send (&ctrl, more_ ? ZMQ_SNDMORE : 0);
-        if (unlikely (rc < 0))
+        if ( (rc < 0))
             return -1;
     }
     return 0;
@@ -131,7 +131,7 @@ pub struct capture_: *mut ZmqSocketBase,
         while (true) {
             int rc = from_.recv (msg, ZMQ_DONTWAIT);
             if (rc < 0) {
-                if (likely (errno == EAGAIN && i > 0))
+                if ( (errno == EAGAIN && i > 0))
                     return 0; // End of burst
 
                 return -1;
@@ -141,16 +141,16 @@ pub struct capture_: *mut ZmqSocketBase,
 
             moresz = sizeof more;
             rc = from_.getsockopt (ZMQ_RCVMORE, &more, &moresz);
-            if (unlikely (rc < 0))
+            if ( (rc < 0))
                 return -1;
 
             //  Copy message to capture socket if any
             rc = capture (capture_, msg, more);
-            if (unlikely (rc < 0))
+            if ( (rc < 0))
                 return -1;
 
             rc = to_.send (msg, more ? ZMQ_SNDMORE : 0);
-            if (unlikely (rc < 0))
+            if ( (rc < 0))
                 return -1;
 
             if (more == 0)
@@ -262,12 +262,12 @@ let mut msg = ZmqMessage::default();
     //  On Windows this blows up default stack of 1 MB and aborts the program.
     //  I wanted to use std::shared_ptr here as the best solution but that requires C+= 111...
     socket_poller_t *poller_all =
-      new (std::nothrow) socket_poller_t; //  Poll for everything.
-    socket_poller_t *poller_in = new (std::nothrow)
+       socket_poller_t; //  Poll for everything.
+    socket_poller_t *poller_in =
       socket_poller_t; //  Poll only 'ZMQ_POLLIN' on all sockets. Initial blocking poll in loop.
-    socket_poller_t *poller_control = new (std::nothrow)
+    socket_poller_t *poller_control =
       socket_poller_t; //  Poll only for 'ZMQ_POLLIN' on 'control_', when proxy is paused.
-    socket_poller_t *poller_receive_blocked = new (std::nothrow)
+    socket_poller_t *poller_receive_blocked =
       socket_poller_t; //  All except 'ZMQ_POLLIN' on 'frontend_'.
 
     //  If frontend_==backend_ 'poller_send_blocked' and 'poller_receive_blocked' are the same, 'ZMQ_POLLIN' is ignored.
@@ -284,13 +284,13 @@ let mut msg = ZmqMessage::default();
       null_mut(); //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'backend_'.
 
     if (frontend_ != backend_) {
-        poller_send_blocked = new (std::nothrow)
+        poller_send_blocked =
           socket_poller_t; //  All except 'ZMQ_POLLIN' on 'backend_'.
-        poller_both_blocked = new (std::nothrow)
+        poller_both_blocked =
           socket_poller_t; //  All except 'ZMQ_POLLIN' on both 'frontend_' and 'backend_'.
-        poller_frontend_only = new (std::nothrow)
+        poller_frontend_only =
           socket_poller_t; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'frontend_'.
-        poller_backend_only = new (std::nothrow)
+        poller_backend_only =
           socket_poller_t; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'backend_'.
         frontend_equal_to_backend = false;
     } else
@@ -418,7 +418,7 @@ let mut msg = ZmqMessage::default();
             rc = control_.recv (&msg, 0);
             CHECK_RC_EXIT_ON_FAILURE ();
             rc = control_.getsockopt (ZMQ_RCVMORE, &more, &moresz);
-            if (unlikely (rc < 0) || more) {
+            if ( (rc < 0) || more) {
                 PROXY_CLEANUP ();
                 return close_and_return (&msg, -1);
             }
@@ -447,7 +447,7 @@ let mut msg = ZmqMessage::default();
                     } else {
                         //  This is an API error, we assert
                         puts ("E: invalid command sent to proxy");
-                        zmq_assert (false);
+                        // zmq_assert (false);
                     }
                 }
             }
@@ -577,7 +577,7 @@ let mut msg = ZmqMessage::default();
     while (state != terminated) {
         //  Wait while there are either requests or replies to process.
         rc = zmq_poll (&items[0], qt_poll_items, -1);
-        if (unlikely (rc < 0))
+        if ( (rc < 0))
             return close_and_return (&msg, -1);
 
         //  Get the pollout separately because when combining this with pollin it maxes the CPU
@@ -585,7 +585,7 @@ let mut msg = ZmqMessage::default();
         //  POLLOUT is only checked when frontend and backend sockets are not the same.
         if (frontend_ != backend_) {
             rc = zmq_poll (&itemsout[0], 2, 0);
-            if (unlikely (rc < 0)) {
+            if ( (rc < 0)) {
                 return close_and_return (&msg, -1);
             }
         }
@@ -593,17 +593,17 @@ let mut msg = ZmqMessage::default();
         //  Process a control command if any
         if (control_ && items[2].revents & ZMQ_POLLIN) {
             rc = control_.recv (&msg, 0);
-            if (unlikely (rc < 0))
+            if ( (rc < 0))
                 return close_and_return (&msg, -1);
 
             moresz = sizeof more;
             rc = control_.getsockopt (ZMQ_RCVMORE, &more, &moresz);
-            if (unlikely (rc < 0) || more)
+            if ( (rc < 0) || more)
                 return close_and_return (&msg, -1);
 
             //  Copy message to capture socket if any
             rc = capture (capture_, &msg);
-            if (unlikely (rc < 0))
+            if ( (rc < 0))
                 return close_and_return (&msg, -1);
 
             if (msg.size () == 5 && memcmp (msg.data (), "PAUSE", 5) == 0)
@@ -618,12 +618,12 @@ let mut msg = ZmqMessage::default();
                     && memcmp (msg.data (), "STATISTICS", 10) == 0) {
                     rc =
                       reply_stats (control_, &frontend_stats, &backend_stats);
-                    if (unlikely (rc < 0))
+                    if ( (rc < 0))
                         return close_and_return (&msg, -1);
                 } else {
                     //  This is an API error, we assert
                     puts ("E: invalid command sent to proxy");
-                    zmq_assert (false);
+                    // zmq_assert (false);
                 }
             }
         }
@@ -632,7 +632,7 @@ let mut msg = ZmqMessage::default();
             && (frontend_ == backend_ || itemsout[1].revents & ZMQ_POLLOUT)) {
             rc = forward (frontend_, &frontend_stats, backend_, &backend_stats,
                           capture_, &msg);
-            if (unlikely (rc < 0))
+            if ( (rc < 0))
                 return close_and_return (&msg, -1);
         }
         //  Process a reply
@@ -641,7 +641,7 @@ let mut msg = ZmqMessage::default();
             && itemsout[0].revents & ZMQ_POLLOUT) {
             rc = forward (backend_, &backend_stats, frontend_, &frontend_stats,
                           capture_, &msg);
-            if (unlikely (rc < 0))
+            if ( (rc < 0))
                 return close_and_return (&msg, -1);
         }
     }

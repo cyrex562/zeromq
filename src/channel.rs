@@ -1,4 +1,4 @@
-use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
+use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket_base::{ZmqContext, ZmqSocketBase};
@@ -10,7 +10,7 @@ use libc::socket;
 pub struct ZmqChannel
 //: public ZmqSocketBase
 {
-    // public:
+    //
     //     channel_t (ZmqContext *parent_, uint32_t tid, sid_: i32);
     //     ~channel_t ();
     //
@@ -26,7 +26,7 @@ pub struct ZmqChannel
     //     void xwrite_activated (ZmqPipe *pipe_);
     //     void xpipe_terminated (ZmqPipe *pipe_);
 
-    // private:
+    //
     //   ZmqPipe *pipe;
 
     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (channel_t)
@@ -121,12 +121,12 @@ impl ZmqSocketBaseOps for ZmqChannel {
     fn xrecv(&mut self, skt_base: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         //  Deallocate old content of the message.
         let mut rc = msg.close();
-        errno_assert(rc == 0);
+        // errno_assert(rc == 0);
 
         if (self.pipe.is_none()) {
             //  Initialise the output parameter to be a 0-byte message.
             rc = msg.init2();
-            errno_assert(rc == 0);
+            // errno_assert(rc == 0);
             return Err(anyhow!("error EAGAIN"));
         }
 
@@ -148,7 +148,7 @@ impl ZmqSocketBaseOps for ZmqChannel {
         if (!read) {
             //  Initialise the output parameter to be a 0-byte message.
             rc = msg.init2();
-            errno_assert(rc == 0);
+            // errno_assert(rc == 0);
             return Err(anyhow!("EAGAIN"));
             // errno = EAGAIN;
             // return -1;

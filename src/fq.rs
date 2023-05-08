@@ -33,12 +33,12 @@
 // #include "err.hpp"
 // #include "msg.hpp"
 
-use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
+use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::pipe::ZmqPipe;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqFq {
-    // public:
+    //
     //     ZmqFq ();
     //     ~ZmqFq ();
     //
@@ -50,7 +50,7 @@ pub struct ZmqFq {
     //     int recvpipe (msg: &mut ZmqMessage ZmqPipe **pipe);
     //     bool has_in ();
 
-    // private:
+    //
     //  Inbound pipes.
     // typedef array_t<ZmqPipe, 1> pipes_t;
     // pipes_t pipes;

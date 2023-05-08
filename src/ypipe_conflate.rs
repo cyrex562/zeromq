@@ -42,7 +42,7 @@ use crate::ypipe_base::YpipeBase;
 #[derive(Default, Debug, Clone)]
 pub struct YpipeConflate<T> {
     pub base: YpipeBase<T>,
-    // protected:
+    //
     //     dbuffer_t<T> dbuffer;
     pub dbuffer: VecDeque<T>,
     pub reader_awake: bool,
@@ -50,7 +50,7 @@ pub struct YpipeConflate<T> {
 }
 
 impl YpipeConflate<T> {
-    // public:
+    //
     //  Initialises the pipe.
     // YpipeConflate () : reader_awake (false) {}
     pub fn new<T>() -> Self {

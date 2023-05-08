@@ -52,7 +52,7 @@ type thread_fn = fn(&mut[u8]);
 //  destruction begins, otherwise it can access half-destructed object.
 pub struct thread_t
 {
-// public:
+//
     thread_t () :
         _tfn (null_mut()),
         _arg (null_mut()),
@@ -102,7 +102,7 @@ pub struct thread_t
     _arg: *mut c_void;
     char _name[16];
 
-  // private:
+  //
     _started: bool
 
 // #ifdef ZMQ_HAVE_WINDOWS
@@ -338,7 +338,7 @@ static void *thread_routine (arg_: &mut [u8])
     //  disallow any signal handling in the I/O thread.
     sigset_t signal_set;
     int rc = sigfillset (&signal_set);
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
     rc = pthread_sigmask (SIG_BLOCK, &signal_set, null_mut());
     posix_assert (rc);
 // #endif
@@ -443,7 +443,7 @@ void thread_t::
         // maximum priority.
         rc = nice (-20);
 
-        errno_assert (rc != -1);
+        // errno_assert (rc != -1);
         // IMPORTANT: EPERM is typically returned for unprivileged processes: that's because
         //            CAP_SYS_NICE capability is required or RLIMIT_NICE resource limit should be changed to avoid EPERM!
     }

@@ -49,14 +49,14 @@
 // #if !defined // ZMQ_NON_COPYABLE_NOR_MOVABLE
 // #if defined ZMQ_HAVE_NOEXCEPT
 // #define // ZMQ_NON_COPYABLE_NOR_MOVABLE(classname)                                \
-// public:                                                                      \
+//                                                                       \
 pub structname (const classname &) = delete;                                    \
 pub structname &operator= (const classname &) = delete;                         \
 pub structname (classname &&) = delete;                                         \
 pub structname &operator= (classname &&) = delete;
 // #else
 // #define // ZMQ_NON_COPYABLE_NOR_MOVABLE(classname)                                \
-  // private:                                                                     \
+  //                                                                      \
 pub structname (const classname &);                                             \
 pub structname &operator= (const classname &);
 // #endif

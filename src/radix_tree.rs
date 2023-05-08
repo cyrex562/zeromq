@@ -118,7 +118,7 @@ namespace zmq
 {
 pub struct radix_tree_t
 {
-// public:
+//
     radix_tree_t ();
     ~radix_tree_t ();
 
@@ -140,7 +140,7 @@ pub struct radix_tree_t
     //  Retrieve size of the radix tree. Note this is a multithread safe function.
     size_t size () const;
 
-  // private:
+  //
     match_result_t
     match (const key_: &mut [u8], key_size_: usize, is_lookup_: bool) const;
 
@@ -210,13 +210,13 @@ void node_t::set_first_bytes (const unsigned char *bytes_)
 
 unsigned char node_t::first_byte_at (index_: usize)
 {
-    zmq_assert (index_ < edgecount ());
+    // zmq_assert (index_ < edgecount ());
     return first_bytes ()[index_];
 }
 
 void node_t::set_first_byte_at (index_: usize, unsigned char byte_)
 {
-    zmq_assert (index_ < edgecount ());
+    // zmq_assert (index_ < edgecount ());
     first_bytes ()[index_] = byte_;
 }
 
@@ -232,7 +232,7 @@ void node_t::set_node_pointers (const unsigned char *pointers_)
 
 node_t node_t::node_at (index_: usize)
 {
-    zmq_assert (index_ < edgecount ());
+    // zmq_assert (index_ < edgecount ());
 
     unsigned char *data;
     memcpy (&data, node_pointers () + index_ * sizeof (void *), mem::size_of::<data>());
@@ -241,7 +241,7 @@ node_t node_t::node_at (index_: usize)
 
 void node_t::set_node_at (index_: usize, node_t node_)
 {
-    zmq_assert (index_ < edgecount ());
+    // zmq_assert (index_ < edgecount ());
     memcpy (node_pointers () + index_ * sizeof (void *), &node_._data,
             sizeof (node_._data));
 }
@@ -270,7 +270,7 @@ void node_t::resize (prefix_length_: usize, edgecount_: usize)
                              + edgecount_ * (1 + sizeof (void *));
     unsigned char *new_data =
        (realloc (_data, node_size));
-    zmq_assert (new_data);
+    // zmq_assert (new_data);
     _data = new_data;
     set_prefix_length (static_cast<u32> (prefix_length_));
     set_edgecount (static_cast<u32> (edgecount_));
@@ -282,7 +282,7 @@ node_t make_node (refcount_: usize, prefix_length_: usize, edgecount_: usize)
                              + edgecount_ * (1 + sizeof (void *));
 
     unsigned char *data =  (malloc (node_size));
-    zmq_assert (data);
+    // zmq_assert (data);
 
     node_t node (data);
     node.set_refcount (static_cast<u32> (refcount_));
@@ -330,7 +330,7 @@ match_result_t radix_tree_t::match (const key_: &mut [u8],
                                          key_size_: usize,
                                          bool is_lookup_ = false) const
 {
-    zmq_assert (key_);
+    // zmq_assert (key_);
 
     // Node we're currently at in the traversal and its predecessors.
     node_t current_node = _root;
@@ -510,8 +510,8 @@ bool radix_tree_t::add (const key_: &mut [u8], key_size_: usize)
         return true;
     }
 
-    zmq_assert (key_bytes_matched == key_size_);
-    zmq_assert (prefix_bytes_matched == current_node.prefix_length ());
+    // zmq_assert (key_bytes_matched == key_size_);
+    // zmq_assert (prefix_bytes_matched == current_node.prefix_length ());
 
     _size.add (1);
     current_node.set_refcount (current_node.refcount () + 1);
@@ -579,7 +579,7 @@ bool radix_tree_t::rm (const key_: &mut [u8], key_size_: usize)
         // Removing this node leaves the parent with one child.
         // If the parent doesn't hold a key or if it isn't the root,
         // we can merge it with its single child node.
-        zmq_assert (edge_index < 2);
+        // zmq_assert (edge_index < 2);
         node_t other_child = parent_node.node_at (!edge_index);
 
         // Make room for the child node's prefix and edges. We need to
@@ -607,7 +607,7 @@ bool radix_tree_t::rm (const key_: &mut [u8], key_size_: usize)
     // This is a leaf node that doesn't leave its parent with one
     // outgoing edge. Remove the outgoing edge to this node from the
     // parent.
-    zmq_assert (outgoing_edges == 0);
+    // zmq_assert (outgoing_edges == 0);
 
     // Replace the edge to the current node with the last edge. An
     // edge consists of a byte and a pointer to the next node. First
@@ -662,7 +662,7 @@ visit_keys (node_t node_,
                std::back_inserter (buffer_));
 
     if (node_.refcount () > 0) {
-        zmq_assert (!buffer_.empty ());
+        // zmq_assert (!buffer_.empty ());
         func_ (&buffer_[0], buffer_.size (), arg_);
     }
 

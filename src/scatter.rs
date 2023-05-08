@@ -35,11 +35,11 @@
 // #include "msg.hpp"
 pub struct scatter_t  : public ZmqSocketBase
 {
-// public:
+//
     scatter_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~scatter_t ();
 
-  protected:
+
     //  Overrides of functions from ZmqSocketBase.
     void xattach_pipe (pipe: &mut ZmqPipe,
                        subscribe_to_all_: bool,
@@ -49,7 +49,7 @@ pub struct scatter_t  : public ZmqSocketBase
     void xwrite_activated (pipe: &mut ZmqPipe);
     void xpipe_terminated (pipe: &mut ZmqPipe);
 
-  // private:
+  //
     //  Load balancer managing the outbound pipes.
     lb_t load_balance;
 
@@ -59,7 +59,7 @@ pub struct scatter_t  : public ZmqSocketBase
 scatter_t::scatter_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_, true)
 {
-    options.type = ZMQ_SCATTER;
+    options.type_ = ZMQ_SCATTER;
 }
 
 scatter_t::~scatter_t ()
@@ -77,7 +77,7 @@ void scatter_t::xattach_pipe (pipe: &mut ZmqPipe,
     //  to receive the delimiter.
     pipe.set_nodelay ();
 
-    zmq_assert (pipe);
+    // zmq_assert (pipe);
     load_balance.attach (pipe);
 }
 

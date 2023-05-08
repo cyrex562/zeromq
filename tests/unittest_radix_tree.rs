@@ -228,7 +228,7 @@ void return_key (data: &mut [u8], size: usize, arg_: &mut [u8])
       reinterpret_cast<std::vector<std::string> *> (arg_);
     key: String;
     for (size_t i = 0; i < size; += 1i)
-        key.push_back (static_cast<char> (data[i]));
+        key.push_back ( (data[i]));
     vec.push_back (key);
 }
 

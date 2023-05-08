@@ -69,7 +69,7 @@
 // #endif
 pub struct ws_connecter_t  : public stream_connecter_base_t
 {
-// public:
+//
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
     ws_connecter_t (ZmqThread *io_thread_,
@@ -81,10 +81,10 @@ pub struct ws_connecter_t  : public stream_connecter_base_t
                     tls_hostname_: &str);
     ~ws_connecter_t ();
 
-  protected:
+
     void create_engine (fd: ZmqFileDesc, local_address_: &str);
 
-  // private:
+  //
     //  ID of the timer used to check the connect timeout, must be different from stream_connecter_base_t::reconnect_timer_id.
     enum
     {
@@ -142,7 +142,7 @@ pub struct ZmqSessionBase *session_,
 
 ws_connecter_t::~ws_connecter_t ()
 {
-    zmq_assert (!_connect_timer_started);
+    // zmq_assert (!_connect_timer_started);
 }
 
 void ws_connecter_t::process_term (linger: i32)
@@ -214,7 +214,7 @@ void ws_connecter_t::start_connecting ()
     else if (rc == -1 && errno == EINPROGRESS) {
         _handle = add_fd (_s);
         set_pollout (_handle);
-        _socket.event_connect_delayed (
+        self._socket.event_connect_delayed (
           make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
 
         //  add userspace connect timeout
@@ -239,7 +239,7 @@ void ws_connecter_t::add_connect_timer ()
 
 int ws_connecter_t::open ()
 {
-    zmq_assert (_s == retired_fd);
+    // zmq_assert (_s == retired_fd);
 
     TcpAddress tcp_addr;
     _s = tcp_open_socket (_addr.address, options, false, true,
@@ -287,12 +287,12 @@ ZmqFileDesc ws_connecter_t::connect ()
 // #endif
 
     let rc: i32 = getsockopt (_s, SOL_SOCKET, SO_ERROR,
-                               reinterpret_cast<char *> (&err), &len);
+                                (&err), &len);
 
     //  Assert if the error was caused by 0MQ bug.
     //  Networking problems are OK. No need to assert.
 // #ifdef ZMQ_HAVE_WINDOWS
-    zmq_assert (rc == 0);
+    // zmq_assert (rc == 0);
     if (err != 0) {
         if (err == WSAEBADF || err == WSAENOPROTOOPT || err == WSAENOTSOCK
             || err == WSAENOBUFS) {
@@ -308,10 +308,10 @@ ZmqFileDesc ws_connecter_t::connect ()
     if (err != 0) {
         errno = err;
 // #if !defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
-        errno_assert (errno != EBADF && errno != ENOPROTOOPT
+        // errno_assert (errno != EBADF && errno != ENOPROTOOPT
                       && errno != ENOTSOCK && errno != ENOBUFS);
 // #else
-        errno_assert (errno != ENOPROTOOPT && errno != ENOTSOCK
+        // errno_assert (errno != ENOPROTOOPT && errno != ENOTSOCK
                       && errno != ENOBUFS);
 // #endif
         return retired_fd;
@@ -338,20 +338,20 @@ void ws_connecter_t::create_engine (fd: ZmqFileDesc,
                                              endpoint_type_connect);
 
     //  Create the engine object for this connection.
-    i_engine *engine = null_mut();
+    ZmqEngineInterface *engine = null_mut();
     if (_wss) {
 // #ifdef ZMQ_HAVE_WSS
-        engine = new (std::nothrow)
-          wss_engine_t (fd, options, endpoint_pair, *_addr.resolved.ws_addr,
+        engine =
+          WssEngine (fd, options, endpoint_pair, *_addr.resolved.ws_addr,
                         true, null_mut(), _hostname);
 // #else
         LIBZMQ_UNUSED (_hostname);
         assert (false);
 // #endif
     } else
-        engine = new (std::nothrow) ws_engine_t (
+        engine =  ZmqWsEngine (
           fd, options, endpoint_pair, *_addr.resolved.ws_addr, true);
-    alloc_assert (engine);
+    // alloc_assert (engine);
 
     //  Attach the engine to the corresponding session object.
     send_attach (_session, engine);
@@ -359,5 +359,5 @@ void ws_connecter_t::create_engine (fd: ZmqFileDesc,
     //  Shut the connecter down.
     terminate ();
 
-    _socket.event_connected (endpoint_pair, fd);
+    self._socket.event_connected (endpoint_pair, fd);
 }

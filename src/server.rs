@@ -40,7 +40,7 @@
 //  TODO: This class uses O(n) scheduling. Rewrite it to use O(1) algorithm.
 pub struct server_t : public ZmqSocketBase
 {
-// public:
+//
     server_t (ZmqContext *parent_, tid: u32, sid_: i32);
     ~server_t ();
 
@@ -56,7 +56,7 @@ pub struct server_t : public ZmqSocketBase
     void xwrite_activated (pipe: &mut ZmqPipe);
     void xpipe_terminated (pipe: &mut ZmqPipe);
 
-  // private:
+  //
     //  Fair queueing object for inbound pipes.
     ZmqFq fair_queue;
 
@@ -81,14 +81,14 @@ server_t::server_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     ZmqSocketBase (parent_, tid, sid_, true),
     _next_routing_id (generate_random ())
 {
-    options.type = ZMQ_SERVER;
+    options.type_ = ZMQ_SERVER;
     options.can_send_hello_msg = true;
     options.can_recv_disconnect_msg = true;
 }
 
 server_t::~server_t ()
 {
-    zmq_assert (_out_pipes.empty ());
+    // zmq_assert (_out_pipes.empty ());
 }
 
 void server_t::xattach_pipe (pipe: &mut ZmqPipe,
@@ -98,7 +98,7 @@ void server_t::xattach_pipe (pipe: &mut ZmqPipe,
     LIBZMQ_UNUSED (subscribe_to_all_);
     LIBZMQ_UNUSED (locally_initiated_);
 
-    zmq_assert (pipe);
+    // zmq_assert (pipe);
 
     u32 routing_id = _next_routing_id+= 1;
     if (!routing_id)
@@ -109,7 +109,7 @@ void server_t::xattach_pipe (pipe: &mut ZmqPipe,
     outpipe_t outpipe = {pipe, true};
     const bool ok =
       _out_pipes.ZMQ_MAP_INSERT_OR_EMPLACE (routing_id, outpipe).second;
-    zmq_assert (ok);
+    // zmq_assert (ok);
 
     fair_queue.attach (pipe);
 }
@@ -118,7 +118,7 @@ void server_t::xpipe_terminated (pipe: &mut ZmqPipe)
 {
     const out_pipes_t::iterator it =
       _out_pipes.find (pipe.get_server_socket_routing_id ());
-    zmq_assert (it != _out_pipes.end ());
+    // zmq_assert (it != _out_pipes.end ());
     _out_pipes.erase (it);
     fair_queue.pipe_terminated (pipe);
 }
@@ -136,8 +136,8 @@ void server_t::xwrite_activated (pipe: &mut ZmqPipe)
         if (it.second.pipe == pipe)
             break;
 
-    zmq_assert (it != _out_pipes.end ());
-    zmq_assert (!it.second.active);
+    // zmq_assert (it != _out_pipes.end ());
+    // zmq_assert (!it.second.active);
     it.second.active = true;
 }
 
@@ -165,19 +165,19 @@ int server_t::xsend (msg: &mut ZmqMessage)
 
     //  Message might be delivered over inproc, so we reset routing id
     int rc = msg.reset_routing_id ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     const bool ok = it.second.pipe.write (msg);
-    if (unlikely (!ok)) {
+    if ( (!ok)) {
         // Message failed to send - we must close it ourselves.
         rc = msg.close ();
-        errno_assert (rc == 0);
+        // errno_assert (rc == 0);
     } else
         it.second.pipe.flush ();
 
     //  Detach the message from the data buffer.
     rc = msg.init ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 
     return 0;
 }
@@ -203,7 +203,7 @@ int server_t::xrecv (msg: &mut ZmqMessage)
     if (rc != 0)
         return rc;
 
-    zmq_assert (pipe != null_mut());
+    // zmq_assert (pipe != null_mut());
 
     const u32 routing_id = pipe.get_server_socket_routing_id ();
     msg.set_routing_id (routing_id);

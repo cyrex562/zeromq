@@ -236,9 +236,9 @@
       <File RelativePath="..\..\..\..\src\gssapi_client.hpp" />
       <File RelativePath="..\..\..\..\src\gssapi_mechanism_base.hpp" />
       <File RelativePath="..\..\..\..\src\gssapi_server.hpp" />
-      <File RelativePath="..\..\..\..\src\i_decoder.hpp" />
+      <File RelativePath="..\..\..\..\src\ZmqDecoderInterface.hpp" />
       <File RelativePath="..\..\..\..\src\i_encoder.hpp" />
-      <File RelativePath="..\..\..\..\src\i_engine.hpp" />
+      <File RelativePath="..\..\..\..\src\ZmqIEngine.hpp" />
       <File RelativePath="..\..\..\..\src\imailbox.hpp" />
       <File RelativePath="..\..\..\..\src\io_object.hpp" />
       <File RelativePath="..\..\..\..\src\io_thread.hpp" />

@@ -31,10 +31,13 @@
 
 // #include <new>
 
+use std::mem;
+use libc::EINTR;
 use crate::command::ZmqCommand;
 use crate::context::ZmqContext;
+use crate::devpoll::Poller;
 use crate::endpoint::{EndpointUriPair, ZmqEndpoint};
-use crate::mailbox::mailbox_t;
+use crate::mailbox::ZmqMailbox;
 use crate::object::ZmqObject;
 use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
@@ -46,12 +49,11 @@ use crate::socket_base::ZmqSocketBase;
 // #include "err.hpp"
 // #include "ctx.hpp"
 // pub struct ZmqThread  : public ZmqObject, public i_poll_events
-#[derive(Default,Debug,Clone)]
-pub struct ZmqThread
-{
-  // private:
+#[derive(Default, Debug, Clone)]
+pub struct ZmqThread {
+    //
     //  I/O thread accesses incoming commands via this mailbox.
-    pub mailbox: Option<mailbox_t>,
+    pub mailbox: Option<ZmqMailbox>,
     //  Handle associated with mailbox' file descriptor.
     pub mailbox_handle: Option<handle_t>,
     //  I/O multiplexing is performed using a poller object.
@@ -63,10 +65,10 @@ pub struct ZmqThread
 }
 
 impl ZmqThread {
-    // public:
+    //
     // ZmqThread (ctx: &mut ZmqContext, tid: u32);
     // ZmqObject (ctx, tid),
-    pub fn new (ctx: &mut ZmqContext, tid: u32) -> Self {
+    pub fn new(ctx: &mut ZmqContext, tid: u32) -> Self {
         let mut out = Self {
             mailbox: None,
             poller: Poller::new(ctx),
@@ -74,10 +76,11 @@ impl ZmqThread {
             ctx: ctx.clone(),
             tid: 0,
 
-        }
+        };
         if out.mailbox.get_fd() != retired_fd {
-            out.mailbox_handle = out.poller.add_fd(out.mailbox.get_fd(), self);
-            out.poller.set_pollin(out.mailbox_handle);
+            out.poller.add_fd(out.mailbox.get_fd(), &mut out);
+            out.mailbox_handle = out.mailbox.get_fd();
+            out.poller.set_pollin(&out.mailbox_handle);
         }
         out
     }
@@ -99,27 +102,78 @@ impl ZmqThread {
 
     //  Launch the physical thread.
     // void start ();
+    pub fn start(&mut self) {
+        let mut name: String = String::new();
+        // snprintf (name, mem::size_of::<name>(), "IO/%u",
+        //           get_tid () - ZmqContext::REAPER_TID - 1);
+        name = format!("IO/{}", get_tid() - ZmqContext::REAPER_TID - 1);
+        //  Start the underlying I/O thread.
+        self.poller.start(name);
+    }
 
     //  Ask underlying thread to stop.
     // void stop ();
+    pub fn stop(&mut self) {
+        self.send_stop();
+    }
 
     //  Returns mailbox associated with this I/O thread.
     // mailbox_t *get_mailbox ();
+    pub fn get_mailbox(&mut self) -> &mut Mailbox {
+        return &mut self.mailbox;
+    }
 
     //  i_poll_events implementation.
     // void in_event ();
+    pub fn in_event(&mut self) {
+        //  TODO: Do we want to limit number of commands I/O thread can
+        //  process in a single go?
+
+        let mut cmd: ZmqCommand = ZmqCommand::default();
+        let rc = mailbox.recv(&cmd, 0);
+
+        while (rc == 0 || errno == EINTR) {
+            if (rc == 0) {
+                cmd.destination.process_command(&cmd);
+            }
+            rc = mailbox.recv(&cmd, 0);
+        }
+
+        // errno_assert (rc != 0 && errno == EAGAIN);
+    }
+
     // void out_event ();
+    pub fn out_event(&mut self) {
+        //  We are never polling for POLLOUT here. This function is never called.
+        // zmq_assert (false);
+    }
+
     // void timer_event (id_: i32);
+    pub fn timer_event(&mut self) {
+        //  No timers here. This function is never called.
+        // zmq_assert (false);
+    }
 
     //  Used by io_objects to retrieve the associated poller object.
     // Poller *get_poller () const;
+    pub fn get_poller(&mut self) -> &mut Poller {
+        // zmq_assert (poller);
+        return &mut self.poller;
+    }
 
     //  Command handlers.
     // void process_stop ();
+    pub fn process_stop(&mut self) {
+        // zmq_assert (mailbox_handle);
+        self.poller.rm_fd(self.mailbox_handle.unwrap());
+        self.poller.stop();
+    }
 
     //  Returns load experienced by the I/O thread.
     // int get_load () const;
-
+    pub fn get_load(&mut self) {
+        return self.poller.get_load();
+    }
 }
 
 impl ZmqObject for ZmqThread {
@@ -203,7 +257,7 @@ impl ZmqObject for ZmqThread {
         todo!()
     }
 
-    fn send_attach(&mut self, destination: &mut ZmqSessionbase, engine: &mut i_engine, inc_seqnum: bool) {
+    fn send_attach(&mut self, destination: &mut ZmqSessionbase, engine: &mut ZmqEngineInterface, inc_seqnum: bool) {
         todo!()
     }
 
@@ -283,7 +337,7 @@ impl ZmqObject for ZmqThread {
         todo!()
     }
 
-    fn process_attached(&mut self, engine: &mut i_engine) {
+    fn process_attached(&mut self, engine: &mut ZmqEngineInterface) {
         todo!()
     }
 
@@ -361,74 +415,25 @@ impl ZmqObject for ZmqThread {
 }
 
 
+// ZmqThread::~ZmqThread ()
+// {
+//     LIBZMQ_DELETE (poller);
+// }
 
-ZmqThread::~ZmqThread ()
-{
-    LIBZMQ_DELETE (poller);
-}
 
-void ZmqThread::start ()
-{
-    char name[16] = "";
-    snprintf (name, mem::size_of::<name>(), "IO/%u",
-              get_tid () - ZmqContext::REAPER_TID - 1);
-    //  Start the underlying I/O thread.
-    poller.start (name);
-}
 
-void ZmqThread::stop ()
-{
-    send_stop ();
-}
 
-mailbox_t *ZmqThread::get_mailbox ()
-{
-    return &mailbox;
-}
 
-int ZmqThread::get_load () const
-{
-    return poller.get_load ();
-}
 
-void ZmqThread::in_event ()
-{
-    //  TODO: Do we want to limit number of commands I/O thread can
-    //  process in a single go?
 
-    ZmqCommand cmd;
-    int rc = mailbox.recv (&cmd, 0);
 
-    while (rc == 0 || errno == EINTR) {
-        if (rc == 0)
-            cmd.destination.process_command (cmd);
-        rc = mailbox.recv (&cmd, 0);
-    }
 
-    errno_assert (rc != 0 && errno == EAGAIN);
-}
 
-void ZmqThread::out_event ()
-{
-    //  We are never polling for POLLOUT here. This function is never called.
-    zmq_assert (false);
-}
 
-void ZmqThread::timer_event
-{
-    //  No timers here. This function is never called.
-    zmq_assert (false);
-}
 
-Poller *ZmqThread::get_poller () const
-{
-    zmq_assert (poller);
-    return poller;
-}
 
-void ZmqThread::process_stop ()
-{
-    zmq_assert (mailbox_handle);
-    poller.rm_fd (mailbox_handle);
-    poller.stop ();
-}
+
+
+
+
+

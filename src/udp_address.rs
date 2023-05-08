@@ -52,7 +52,7 @@ use crate::ip_resolver::{IpResolver, IpResolverOptions};
 #[derive(Default,Debug,Clone)]
 pub struct UdpAddress
 {
-// public:
+//
 //     UdpAddress ();
 //     virtual ~UdpAddress ();
     // int resolve (name: &str, bind: bool, ipv6: bool);=
@@ -63,7 +63,7 @@ pub struct UdpAddress
     // const ip_addr_t *bind_addr () const;
     // int bind_if () const;
     // const ip_addr_t *target_addr () const;
-  // private:
+  //
   //   ip_addr_t bind_address;
     pub bind_address: IpAddr,
     // bind_interface: i32;

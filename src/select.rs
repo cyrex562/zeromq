@@ -56,7 +56,7 @@
 // #include <climits>
 pub struct select_t  : public WorkerPollerBase
 {
-// public:
+//
     typedef ZmqFileDesc handle_t;
 
     select_t (const ThreadCtx &ctx);
@@ -73,7 +73,7 @@ pub struct select_t  : public WorkerPollerBase
 
     static int max_fds ();
 
-  // private:
+  //
     //  Main event loop.
     void loop () ;
 
@@ -185,7 +185,7 @@ select_t::~select_t ()
 select_t::handle_t select_t::add_fd (fd: ZmqFileDesc, i_poll_events *events_)
 {
     check_thread ();
-    zmq_assert (fd != retired_fd);
+    // zmq_assert (fd != retired_fd);
 
     FdEntry fd_entry;
     fd_entry.fd = fd;
@@ -278,7 +278,7 @@ int select_t::try_retire_fd_entry (
         return 0;
 
     FdEntry &fd_entry = *fd_entry_it;
-    zmq_assert (fd_entry.fd != retired_fd);
+    // zmq_assert (fd_entry.fd != retired_fd);
 
     if (family_entry_it_ != _current_family_entry_it) {
         //  Family is not currently being iterated and can be safely
@@ -325,7 +325,7 @@ void select_t::rm_fd (handle_t handle_)
       find_fd_entry_by_handle (_family_entry.fd_entries, handle_);
     assert (fd_entry_it != _family_entry.fd_entries.end ());
 
-    zmq_assert (fd_entry_it.fd != retired_fd);
+    // zmq_assert (fd_entry_it.fd != retired_fd);
     fd_entry_it.fd = retired_fd;
     _family_entry.fds_set.remove_fd (handle_);
 
@@ -341,7 +341,7 @@ void select_t::rm_fd (handle_t handle_)
 
     _family_entry.has_retired = true;
 // #endif
-    zmq_assert (retired == 1);
+    // zmq_assert (retired == 1);
     adjust_load (-1);
 }
 
@@ -421,7 +421,7 @@ void select_t::loop ()
 // #else
         if (_family_entry.fd_entries.empty ()) {
 // #endif
-            zmq_assert (get_load () == 0);
+            // zmq_assert (get_load () == 0);
 
             if (timeout == 0)
                 break;
@@ -499,7 +499,7 @@ void select_t::loop ()
             rc = WSAWaitForMultipleEvents (4, wsa_events.events, FALSE,
                                            timeout ? timeout : INFINITE, FALSE);
             wsa_assert (rc !=  WSA_WAIT_FAILED);
-            zmq_assert (rc != WSA_WAIT_IO_COMPLETION);
+            // zmq_assert (rc != WSA_WAIT_IO_COMPLETION);
 
             if (rc == WSA_WAIT_TIMEOUT)
                 continue;
@@ -544,7 +544,7 @@ void select_t::select_family_entry (family_entry_t &family_entry_,
     wsa_assert (rc != SOCKET_ERROR);
 // #else
     if (rc == -1) {
-        errno_assert (errno == EINTR);
+        // errno_assert (errno == EINTR);
         return;
     }
 // #endif
@@ -691,7 +691,7 @@ u_short select_t::determine_fd_family (ZmqFileDesc fd)
     int type_length = mem::size_of::<int>();
 
     int rc = getsockopt (fd, SOL_SOCKET, SO_TYPE,
-                         reinterpret_cast<char *> (&type), &type_length);
+                          (&type), &type_length);
 
     if (rc == 0) {
         if (type == SOCK_DGRAM)

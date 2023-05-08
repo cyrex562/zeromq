@@ -37,13 +37,13 @@
 raw_decoder_t::raw_decoder_t (bufsize_: usize) : allocator (bufsize_, 1)
 {
     let rc: i32 = in_progress.init ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 }
 
 raw_decoder_t::~raw_decoder_t ()
 {
     let rc: i32 = in_progress.close ();
-    errno_assert (rc == 0);
+    // errno_assert (rc == 0);
 }
 
 void raw_decoder_t::get_buffer (unsigned char **data, size: *mut usize)
@@ -68,17 +68,17 @@ int raw_decoder_t::decode (data: &[u8],
         allocator.release ();
     }
 
-    errno_assert (rc != -1);
+    // errno_assert (rc != -1);
     bytes_used_ = size;
     return 1;
 }
-pub struct raw_decoder_t  : public i_decoder
+pub struct raw_decoder_t  : public ZmqDecoderInterface
 {
-// public:
+//
     raw_decoder_t (bufsize_: usize);
     ~raw_decoder_t ();
 
-    //  i_decoder interface.
+    //  ZmqDecoderInterface interface.
 
     void get_buffer (unsigned char **data, size: *mut usize);
 
@@ -88,7 +88,7 @@ pub struct raw_decoder_t  : public i_decoder
 
     void resize_buffer (size_t) {}
 
-  // private:
+  //
     ZmqMessage in_progress;
 
     shared_message_memory_allocator allocator;

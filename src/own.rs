@@ -42,13 +42,13 @@ use std::sync::atomic::Ordering;
 // pub struct ZmqOwn : public ZmqObject
 #[derive(Default, Debug, Clone)]
 pub struct ZmqOwn {
-    // public:
+    //
     //  Note that the owner is unspecified in the constructor.
     //  It'll be supplied later on when the object is plugged in.
-    // protected:
+    //
     //  Socket options associated with this object.
     pub options: ZmqOptions,
-    // private:
+    //
     //  Handlers for incoming commands.
     //  True if termination was already initiated. If so, we can destroy
     //  the object if there are no more child objects or pending term acks.
@@ -82,9 +82,9 @@ impl ZmqOwn {
     // processed_seqnum (0),
     // _owner (null_mut()),
     // term_acks (0)
-    pub fn new(parent: &mut ZmqContext, tid: u32) -> Self {
+    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32) -> Self {
         Self {
-            options: Default::default(),
+            options: options.clone(),
             terminating: false,
             sent_seqnum: AtomicCounter::new(),
             processed_seqnum: 0,
@@ -310,9 +310,9 @@ impl ZmqOwn {
 }
 
 impl ZmqObject for ZmqOwn {
-    fn get_ctx(&self) -> &ZmqContext {
-        &self.ctx
-    }
+    // fn get_ctx(&self) -> &ZmqContext {
+    //     &self.ctx
+    // }
 
     fn get_ctx_mut(&mut self) -> &mut ZmqContext {
         &mut self.ctx
@@ -322,9 +322,9 @@ impl ZmqObject for ZmqOwn {
         self.ctx = ctx.clone();
     }
 
-    fn get_tid(&self) -> u32 {
-        self.tid
-    }
+    // fn get_tid(&self) -> u32 {
+    //     self.tid
+    // }
 
     fn set_tid(&mut self, tid: u32) {
         self.tid = tid

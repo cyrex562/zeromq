@@ -71,8 +71,8 @@ pub enum ZmqCurveClientState {
 
 // pub struct curve_client_t  : public curve_mechanism_base_t
 pub struct ZmqCurveClient {
-    // public:
-    // private:
+    //
+    //
     //  Current FSM state
     // state_t _state;
     pub state: ZmqCurveClientState,
