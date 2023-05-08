@@ -49,10 +49,8 @@ use crate::zap_client::ZmqZapClientCommonHandshakeState::{
 
 const zap_reply_frame_count: usize = 7;
 
-// const char zap_version[] = "1.0";
-const zap_version: &'static str = "1.0";
-// const size_t zap_version_len = mem::size_of::<zap_version>() - 1;
-const id: &str = "1";
+// const char zap_version[] = "1.0"; const zap_version: &'static str = "1.0";
+// const size_t zap_version_len = mem::size_of::<zap_version>() - 1; const id: &str = "1";
 
 // const size_t id_len = mem::size_of::<id>() - 1;
 
@@ -415,7 +413,12 @@ impl ZmqZapClientCommonHandshake {
     // _zap_reply_ok_state (zap_reply_ok_state_)
     // {
     // }
-    pub fn new() -> Self {
+    pub fn new(
+        session: &mut ZmqSessionBase,
+        peer_address: &str,
+        options: &mut ZmqOptions,
+        sending_ready: ZmqZapClientCommonHandshakeState,
+    ) -> Self {
         Self {
             ..Default::default()
         }

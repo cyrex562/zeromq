@@ -183,7 +183,7 @@ impl ZmqObject for ZmqThread {
         todo!()
     }
 
-    fn send_bind(&mut self, destination: &mut ZmqOwn, pipe: &mut ZmqPipe, inc_seqnum: bool) {
+    fn send_bind(&mut self, destination: &mut ZmqSocketBase, pipe: &mut ZmqPipe, inc_seqnum: bool) {
         todo!()
     }
 

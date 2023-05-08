@@ -55,6 +55,9 @@
 //  Buffer management is done by an allocator policy.
 // template <typename T, typename A = c_single_allocator>
 
+use crate::allocator::Allocator;
+use crate::utils::copy_bytes;
+
 pub trait i_decoder {}
 
 #[derive(Default, Debug, Clone)]
@@ -83,7 +86,7 @@ pub struct DecoderBase<T: Allocator> {
     buf: Vec<u8>, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (DecoderBase)
 }
 
-impl DecoderBase {
+impl DecoderBase<T> {
     // explicit DecoderBase (const buf_size_: usize) :
     // next (null_mut()), read_pos (null_mut()), to_read (0), allocator (buf_size_)
     // {
@@ -121,7 +124,7 @@ impl DecoderBase {
             return;
         }
 
-        *data = self.buf;
+        *data = self.buf.clone();
         *size = self.allocator.size();
     }
 
@@ -160,7 +163,7 @@ impl DecoderBase {
             // Only copy when destination address is different from the
             // current address in the buffer.
             if (read_pos != data + bytes_used_) {
-                memcpy(read_pos, data + bytes_used_, to_copy);
+                copy_bytes(read_pos, 0, data, bytes_used_, to_copy);
             }
 
             read_pos += to_copy;
@@ -193,8 +196,8 @@ impl DecoderBase {
 
     //  This function should be called from derived class to read data
     //  from the buffer and schedule next state machine action.
-    pub fn next_step(&mut self, read_pos_: usize, to_read_: usize, next_: usize) {
-        self.read_pos = read_pos_;
+    pub fn next_step(&mut self, read_pos_: &mut Vec<u8>, to_read_: usize, next_: usize) {
+        self.read_pos = read_pos_.clone();
         self.to_read = to_read_;
         self.next = next_;
     }

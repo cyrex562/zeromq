@@ -1,13 +1,15 @@
 use std::ptr::null_mut;
+
 use crate::context::ZmqContext;
+use crate::fd::ZmqFileDesc;
 use crate::ipc_address::IpcAddress;
+use crate::platform_socket::{ZmqSockaddr, ZmqSockaddrStorage};
 use crate::tcp_address::TcpAddress;
 use crate::tipc_address::TipcAddress;
 use crate::udp_address::UdpAddress;
 use crate::vmci_address::VmciAddress;
 use crate::ws_address::WsAddress;
 use crate::wss_address::WssAddress;
-use crate::platform_socket::{ZmqSockaddrStorage, ZmqSockaddr};
 
 pub const protocol_name_inproc: &str = "inproc";
 pub const protocol_name_tcp: &str = "tcp";
@@ -21,10 +23,9 @@ pub const protocol_name_ipc: &str = "ipc";
 pub const protocol_name_tipc: &str = "tipc";
 pub const protocol_name_vmci: &str = "vmci";
 
-pub enum SocketEnd
-{
+pub enum SocketEnd {
     SocketEndLocal,
-    SocketEndRemote
+    SocketEndRemote,
 }
 
 pub union ZmqAddressResolved {
@@ -38,15 +39,14 @@ pub union ZmqAddressResolved {
     pub vmci_addr: *mut VmciAddress,
 }
 
-#[derive(Default,Debug,Clone)]
-pub struct Address
-{
+#[derive(Default, Debug, Clone)]
+pub struct Address<'a> {
     // const std::string protocol;
     pub protocol: String,
     // const std::string address;
     pub address: String,
     // ctx_t *const parent;
-    pub parent: &ZmqContext,
+    pub parent: &'a ZmqContext,
     //  Protocol specific resolved address
     //  All members must be pointers to allow for consistent initialization
     pub resolved: ZmqAddressResolved,
@@ -61,13 +61,12 @@ impl Address {
             protocol: String::from(protocol),
             address: String::from(address),
             parent,
-            resolved: ZmqAddressResolved{dummy: null_mut()}
+            resolved: ZmqAddressResolved { dummy: null_mut() },
         }
     }
 
     pub fn from_sockaddr(sa: &mut ZmqSockaddr) -> Self {
         let mut addr = Self::default();
-
     }
 }
 
@@ -92,7 +91,6 @@ impl ToString for Address {
         s
     }
 }
-
 
 // int Address::to_string (std::string &addr_) const
 // {
@@ -131,10 +129,11 @@ impl ToString for Address {
 //     return -1;
 // }
 
-pub fn get_socket_address (fd: ZmqFileDesc,
-                           socket_end: SocketEnd,
-                           ss: *mut ZmqSockaddrStorage) -> anyhow::Result<usize>
-{
+pub fn get_socket_address(
+    fd: ZmqFileDesc,
+    socket_end: SocketEnd,
+    ss: *mut ZmqSockaddrStorage,
+) -> anyhow::Result<usize> {
     // // usize sl = static_cast<usize> (sizeof (*ss_));
     // let mut sl = mem::size_of::<ZmqSockaddrStorage>();
 
@@ -148,8 +147,7 @@ pub fn get_socket_address (fd: ZmqFileDesc,
     todo!()
 }
 
-pub fn get_socket_name(fd: ZmqFileDesc, socket_end: SocketEnd) -> anyhow::Result<String>
-{
+pub fn get_socket_name(fd: ZmqFileDesc, socket_end: SocketEnd) -> anyhow::Result<String> {
     // // struct sockaddr_storage ss;
     // let mut ss: ZmqSockaddrStorage = ZmqSockaddrStorage{};
     // let mut sl: usize = get_socket_address (fd, socket_end, &ss);

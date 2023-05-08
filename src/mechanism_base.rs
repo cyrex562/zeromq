@@ -30,6 +30,7 @@
 // #include "precompiled.hpp"
 
 use crate::mechanism::ZmqMechanism;
+use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 
 // #include "mechanism_base.hpp"
@@ -46,8 +47,11 @@ pub session: ZmqSessionBase,
 
 impl ZmqMechanismBase {
     // ZmqMechanismBase (ZmqSessionBase *session_, options: &ZmqOptions);
-    pub fn new() -> Self {
-
+    pub fn new(options: &mut ZmqOptions, session: &mut ZmqSessionBase) -> Self {
+        Self {
+            session: session.clone(),
+            mechanism: ZmqMechanism::new(options)
+        }
     }
 
     // int check_basic_command_structure (msg: &mut ZmqMessage) const;
@@ -57,11 +61,14 @@ impl ZmqMechanismBase {
     // bool zap_required () const;
 }
 
-ZmqMechanismBase::ZmqMechanismBase (ZmqSessionBase *const session_,
-                                         options: &ZmqOptions) :
-    ZmqMechanism (options_), session (session_)
-{
-}
+// ZmqMechanismBase::ZmqMechanismBase (ZmqSessionBase *const session_,
+//                                          options: &ZmqOptions) :
+//     ZmqMechanism (options_), session (session_)
+// {
+// Self {
+//
+// }
+// }
 
 int ZmqMechanismBase::check_basic_command_structure (msg: &mut ZmqMessage) const
 {

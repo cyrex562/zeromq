@@ -49,16 +49,16 @@ use crate::curve_client_tools::{
     produce_initiate,
 };
 use crate::curve_mechanism_base::ZmqCurveMechanismBase;
-use crate::mechanism::ZmqMechanismStatus;
-use crate::mechanism_base::ZmqMechanismBase;
-use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
-use crate::session_base::ZmqSessionBase;
 use crate::defines::{
     ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC, ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA,
     ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR,
     ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_READY, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
 };
+use crate::mechanism::ZmqMechanismStatus;
+use crate::mechanism_base::ZmqMechanismBase;
+use crate::message::ZmqMessage;
+use crate::options::ZmqOptions;
+use crate::session_base::ZmqSessionBase;
 
 pub enum ZmqCurveClientState {
     send_hello,
@@ -108,7 +108,7 @@ impl ZmqCurveClient {
         downgrade_sub: bool,
     ) -> Self {
         Self {
-            mechanism_base: ZmqMechanismBase::new(session, options),
+            mechanism_base: ZmqMechanismBase::new(options, session),
             curve_mechanism_base: ZmqCurveMechanismBase::new(
                 session,
                 options,

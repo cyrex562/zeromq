@@ -35,8 +35,19 @@
 // pub struct ZmqDealer : public ZmqSocketBase
 
 use std::collections::VecDeque;
+use std::mem;
+use std::ptr::null_mut;
 
+use anyhow::bail;
+
+use crate::context::ZmqContext;
+use crate::defines::ZMQ_DEALER;
 use crate::lb::lb_t;
+use crate::message::ZmqMessage;
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::socket_base::ZmqSocketBase;
+use crate::utils::copy_bytes;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqDealer {
@@ -68,7 +79,7 @@ impl ZmqDealer {
         let mut out = Self::default();
         let mut base = ZmqSocketBase::new2(options, parent, tid, sid_);
 
-        options.type_ = ZMQ_DEALER;
+        options.type_ = ZMQ_DEALER as i32;
         options.can_send_hello_msg = true;
         options.can_recv_hiccup_msg = true;
         out
@@ -94,11 +105,11 @@ impl ZmqDealer {
         // zmq_assert (pipe);
 
         if (self, probe_router) {
-            let probe_msg: ZmqMessage = ZmqMessage::default();
-            probe_msg.init()?;
+            let mut probe_msg: ZmqMessage = ZmqMessage::default();
+            probe_msg.init2()?;
             // errno_assert (rc == 0);
 
-            rc = pipe.write(&probe_msg);
+            rc = pipe.write(&mut probe_msg);
             // zmq_assert (rc) is not applicable here, since it is not a bug.
             LIBZMQ_UNUSED(rc);
 
@@ -141,17 +152,17 @@ impl ZmqDealer {
 
         // errno = EINVAL;
         // return -1;
-        return anyhow!("EINVAL");
+        bail!("EINVAL")
     }
 
     // int xsend (msg: &mut ZmqMessage) ;
     pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32 {
-        return sendpipe(msg, null_mut());
+        return self.sendpipe(msg, null_mut());
     }
 
     // int xrecv (msg: &mut ZmqMessage) ;
     pub fn xrecv(&mut self, msg: &mut ZmqMessage) -> i32 {
-        return recvpipe(msg, null_mut());
+        return self.recvpipe(msg, null_mut());
     }
 
     // bool xhas_in () ;

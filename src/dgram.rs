@@ -27,7 +27,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use anyhow::bail;
+use libc::{EAGAIN, EINVAL};
+
 use crate::content::ZmqContent;
+use crate::context::ZmqContext;
+use crate::defines::ZMQ_DGRAM;
+use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::socket_base::ZmqSocketBase;
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"
@@ -38,12 +47,12 @@ use crate::content::ZmqContent;
 // #include "likely.hpp"
 // #include "err.hpp"
 #[derive(Copy, Clone, Debug)]
-pub struct ZmqDgram {
+pub struct ZmqDgram<'a> {
     // public:
 
     // private:
     // ZmqPipe *pipe;
-    pub pipe: *mut ZmqPipe,
+    pub pipe: Option<&'a mut ZmqPipe>,
 
     //  If true, more outgoing message parts are expected.
     pub _more_out: bool,
@@ -60,13 +69,13 @@ impl ZmqDgram {
     //     options.type = ZMQ_DGRAM;
     //     options.raw_socket = true;
     // }
-    pub fn new(parent_: &mut ZmqContent, tid: u32, sid_: i32) -> Self {
-        let mut socket_base = ZmqSocketBase::new(parent_, tid, sid_);
+    pub fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
+        let mut socket_base = ZmqSocketBase::new(parent_, options, tid, sid_, false);
         socket_base.options.type_ = ZMQ_DGRAM;
         socket_base.options.raw_socket = true;
         Self {
             socket_base,
-            pipe: null_mut(),
+            pipe: None,
             _more_out: false,
         }
     }
@@ -94,20 +103,19 @@ impl ZmqDgram {
 
         //  ZMQ_DGRAM socket can only be connected to a single peer.
         //  The socket rejects any further connection requests.
-        if (self.pipe == null_mut()) {
-            self.pipe = pipe;
+        if (self.pipe == None) {
+            self.pipe = Some(pipe);
         } else {
             pipe.terminate(false);
         }
     }
 
     // int xsend (msg: &mut ZmqMessage);
-    pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32 {
+    pub fn xsend(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         // If there's no out pipe, just drop it.
-        if (!self.pipe) {
-            let rc: i32 = msg.close();
+        if self.pipe.is_none() {
+            msg.close()?;
             // errno_assert (rc == 0);
-            return -1;
         }
 
         //  If this is the first part of the message it's the ID of the
@@ -115,20 +123,20 @@ impl ZmqDgram {
         if (!self._more_out) {
             if (!(msg.flags() & ZMQ_MSG_MORE)) {
                 errno = EINVAL;
-                return -1;
+                bail!("EINVAL");
             }
         } else {
             //  dgram messages are two part only, reject part if more is set
             if (msg.flags() & ZMQ_MSG_MORE) {
                 errno = EINVAL;
-                return -1;
+                bail!("EINVAL");
             }
         }
 
         // Push the message into the pipe.
         if (!unsafe { self.pipe.write(msg) }) {
             errno = EAGAIN;
-            return -1;
+            bail!("EAGAIN");
         }
 
         if (!(msg.flags() & ZMQ_MSG_MORE)) {
@@ -139,21 +147,21 @@ impl ZmqDgram {
         self._more_out = !self._more_out;
 
         //  Detach the message from the data buffer.
-        let rc: i32 = msg.init();
-        errno_assert(rc == 0);
+        msg.init2()?;
+        // errno_assert(rc == 0);
 
-        return 0;
+        Ok(())
     }
 
     // int xrecv (msg: &mut ZmqMessage);
-    pub fn xrecv(msg: &mut ZmqMessage) -> i32 {
+    pub fn xrecv(&mut self, msg: &mut ZmqMessage) -> i32 {
         //  Deallocate old content of the message.
-        let rc = msg.close();
+        let mut rc = msg.close();
         // errno_assert (rc == 0);
 
-        if (!self.pipe || !self.pipe.read(msg)) {
+        if (self.pipe.is_none() || !self.pipe.unwrap().read(msg)) {
             //  Initialise the output parameter to be a 0-byte message.
-            rc = msg.init();
+            msg.init2();
             errno_assert(rc == 0);
 
             errno = EAGAIN;
@@ -165,11 +173,11 @@ impl ZmqDgram {
 
     // bool xhas_in ();
     pub fn xhas_in(&mut self) -> bool {
-        if (!self.pipe) {
+        if (self.pipe.is_none()) {
             return false;
         }
 
-        return self.pipe.check_read();
+        return self.pipe.unwrap().check_read();
     }
 
     // bool xhas_out ();
@@ -191,12 +199,12 @@ impl ZmqDgram {
     // void xpipe_terminated (pipe: &mut ZmqPipe);
     pub fn xpipe_terminated(&mut self, pipe: &mut ZmqPipe) {
         if (pipe == self.pipe) {
-            self.pipe = null_mut();
+            self.pipe = None;
         }
     }
 
     pub fn xhas_out(&mut self) -> bool {
-        if (!self.pipe) {
+        if (self.pipe.is_none()) {
             return false;
         }
 

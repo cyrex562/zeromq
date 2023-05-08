@@ -30,8 +30,23 @@
 // #include "precompiled.hpp"
 // #include <string.h>
 
+use std::collections::HashSet;
+use std::sync::atomic::Ordering;
+
+use libc::{EFAULT, EINVAL, ENOTSUP};
+
+use crate::address::Address;
+use crate::context::ZmqContext;
+use crate::defines::{ZMQ_DISH, ZMQ_GROUP_MAX_LENGTH};
+use crate::dish::DishSessionState::{body, group};
+use crate::dist::ZmqDist;
 use crate::fq::{self, ZmqFq};
+use crate::io_thread::ZmqThread;
+use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
 use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::session_base::ZmqSessionBase;
+use crate::socket_base::ZmqSocketBase;
 use crate::utils::copy_bytes;
 
 // #include "macros.hpp"
@@ -74,7 +89,7 @@ impl ZmqDish {
     // ZmqSocketBase (parent_, tid, sid_, true), _has_message (false)
     pub fn new(parent_: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
         let mut options = ZmqOptions::default();
-        options.type_ = ZMQ_DISH;
+        options.type_ = ZMQ_DISH as i32;
 
         //  When socket is being closed down we don't want to wait till pending
         //  subscription commands are sent to the wire.
@@ -84,7 +99,7 @@ impl ZmqDish {
             ..Default::default()
         };
 
-        let rc: i32 = out._message.init();
+        out._message.init2();
         // errno_assert (rc == 0);
         out
     }
@@ -127,7 +142,8 @@ impl ZmqDish {
         //  If there's already a message prepared by a previous call to zmq_poll,
         //  return it straight ahead.
         if (self._has_message) {
-            let rc: i32 = msg = self._message;
+            // TODO
+            // let rc: i32 = msg = self._message;
 
             // errno_assert (rc == 0);
             self._has_message = false;
@@ -187,23 +203,23 @@ impl ZmqDish {
         }
 
         //  User cannot join same group twice
-        if (!self._subscriptions.insert(group).second) {
+        if (!self._subscriptions.insert(group_.to_string()).second) {
             errno = EINVAL;
             return -1;
         }
         let mut msg = ZmqMessage::default();
-        let rc = msg.init_join();
+        let mut rc = msg.init_join();
         // errno_assert (rc == 0);
 
         rc = msg.set_group(group_);
         // errno_assert (rc == 0);
 
         let mut err = 0;
-        rc = _dist.send_to_all(&msg);
+        rc = self._dist.send_to_all(&mut msg);
         if (rc != 0) {
             err = errno;
         }
-        let rc2: i32 = msg.close();
+        msg.close();
         // errno_assert (rc2 == 0);
         if (rc != 0) {
             errno = err;
@@ -212,7 +228,7 @@ impl ZmqDish {
     }
 
     // int xleave (group_: &str);
-    pub fn xleave(group_: &str) -> i32 {
+    pub fn xleave(&mut self, group_: &str) -> i32 {
         // const std::string group = std::string (group_);
 
         if (group_.len() > ZMQ_GROUP_MAX_LENGTH) {
@@ -220,23 +236,23 @@ impl ZmqDish {
             return -1;
         }
 
-        if (0 == self._subscriptions.erase(group)) {
+        if (0 == self._subscriptions.erase(group_)) {
             errno = EINVAL;
             return -1;
         }
         let mut msg = ZmqMessage::default();
-        let rc = msg.init_leave();
+        let mut rc = msg.init_leave();
         // errno_assert (rc == 0);
 
         rc = msg.set_group(group_);
         // errno_assert (rc == 0);
 
-        let err = 0;
-        rc = self._dist.send_to_all(&msg);
+        let mut err = 0;
+        rc = self._dist.send_to_all(&mut msg);
         if (rc != 0) {
             err = errno;
         }
-        let rc2: i32 = msg.close();
+        msg.close();
         // errno_assert (rc2 == 0);
         if (rc != 0) {
             errno = err;
@@ -273,14 +289,14 @@ impl ZmqDish {
         // it != end; += 1it)
         for it in _subscriptions.iter() {
             let mut msg = ZmqMessage::default();
-            let rc = msg.init_join();
+            let mut rc = msg.init_join();
             // errno_assert (rc == 0);
 
             rc = msg.set_group(it.c_str());
             // errno_assert (rc == 0);
 
             //  Send it to the pipe.
-            pipe.write(&msg);
+            pipe.write(&mut msg);
         }
 
         pipe.flush();
@@ -335,7 +351,7 @@ impl DishSession {
 
     // int push_msg (msg: &mut ZmqMessage);
 
-    pub fn push_msg(msg: &mut ZmqMessage) -> i32 {
+    pub fn push_msg(&mut self, msg: &mut ZmqMessage) -> i32 {
         if (self._state == group) {
             if ((msg.flags() & ZMQ_MSG_MORE) != ZMQ_MSG_MORE) {
                 errno = EFAULT;
@@ -347,10 +363,10 @@ impl DishSession {
                 return -1;
             }
 
-            self._group_msg = *msg;
+            self._group_msg = msg.clone();
             self._state = body;
 
-            let rc: i32 = msg.init();
+            msg.init2();
             // errno_assert (rc == 0);
             return 0;
         }
@@ -361,11 +377,11 @@ impl DishSession {
         }
 
         //  Set the message group
-        rc = msg.set_group(self._group_msg.data(), self._group_msg.size());
+        rc = msg.set_group2(self._group_msg.data(), self._group_msg.size());
         // errno_assert (rc == 0);
 
         //  We set the group, so we don't need the group_msg anymore
-        rc = self._group_msg.close();
+        self._group_msg.close();
         // errno_assert (rc == 0);
         // has_group:
         //  Thread safe socket doesn't support multipart messages
@@ -375,7 +391,7 @@ impl DishSession {
         }
 
         //  Push message to dish socket
-        rc = ZmqSessionBase::push_msg(msg);
+        rc = self.push_msg(msg);
 
         if (rc == 0) {
             self._state = group;
@@ -385,8 +401,8 @@ impl DishSession {
     }
 
     // int pull_msg (msg: &mut ZmqMessage);
-    pub fn pull_msg(msg: &mut ZmqMessage) -> i32 {
-        let rc = ZmqSessionBase::pull_msg(msg);
+    pub fn pull_msg(&mut self, msg: &mut ZmqMessage) -> i32 {
+        let rc = self.socket_base.pull_msg(msg);
 
         if (rc != 0) {
             return rc;
@@ -396,28 +412,34 @@ impl DishSession {
             return rc;
         }
 
-        let group_length: i32 = msg.group().len();
+        let group_length: i32 = msg.group().len() as i32;
 
-        let mut command: ZmqMessage;
+        let mut command: ZmqMessage = ZmqMessage::default();
         let mut offset: i32;
 
         if (msg.is_join()) {
-            rc = command.init_size(group_length + 5);
+            rc = command.init_size((group_length + 5) as usize);
             errno_assert(rc == 0);
             offset = 5;
-            copy_bytes(command.data(), 0, b"\x04JOIN", 0, 5);
+            copy_bytes(command.data_mut(), 0, b"\x04JOIN", 0, 5);
         } else {
-            rc = command.init_size(group_length + 6);
+            rc = command.init_size((group_length + 6) as usize);
             errno_assert(rc == 0);
             offset = 6;
-            copy_bytes(command.data(), 0, b"\x05LEAVE", 0, 6);
+            copy_bytes(command.data_mut(), 0, b"\x05LEAVE", 0, 6);
         }
 
         command.set_flags(ZMQ_MSG_COMMAND);
-        let command_data = (command.data());
+        let mut command_data = (command.data_mut());
 
         //  Copy the group
-        copy_bytes(command_data, offset, msg.group(), 0, group_length);
+        copy_bytes(
+            command_data,
+            offset,
+            msg.group().as_bytes(),
+            0,
+            group_length,
+        );
 
         //  Close the join message
         rc = msg.close();

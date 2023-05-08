@@ -146,7 +146,7 @@ pub fn process_handshake_command (&mut self, msg: &mut ZmqMessage) -> anyhow::Re
             rc = process_initiate (msg);
             break;
         _ =>
-            //  TODO see comment in curve_server_t::process_handshake_command
+            //  TODO see comment in ZmqCurveServer::process_handshake_command
             session.get_socket ().event_handshake_failed_protocol (
               session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNSPECIFIED);
             errno = EPROTO;

@@ -1,10 +1,12 @@
+use std::fmt::{Display, Formatter};
+
+use libc::c_void;
+
 use crate::endpoint::EndpointUriPair;
 use crate::object::ZmqObject;
 use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
-use libc::c_void;
-use std::fmt::{Display, Formatter};
 
 pub enum CommandType {
     stop,
@@ -67,8 +69,8 @@ pub struct ActivateWriteCommandArgs {
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct HiccupCommandArgs {
-    pub pipe: &mut [u8],
+pub struct HiccupCommandArgs<'a> {
+    pub pipe: &'a mut [u8],
 }
 
 #[derive(Default, Debug, Clone)]
@@ -124,7 +126,7 @@ pub struct DoneCommandArgs {}
 pub struct ReapedCommandArgs {}
 
 #[derive(Default, Debug, Clone)]
-pub union ArgsUnion {
+pub union ArgsUnion<'a> {
     //  Sent to I/O thread to let it know that it should
     //  terminate itself.
     pub stop: StopCommandArgs,
@@ -147,7 +149,7 @@ pub union ArgsUnion {
     //  Sent by pipe reader to writer after creating a new inpipe.
     //  The parameter is actually of type ZmqPipe::upipe_t, however,
     //  its definition is private so we'll have to do with void*.
-    pub hiccup: HiccupCommandArgs,
+    pub hiccup: HiccupCommandArgs<'a>,
     //  Sent by pipe reader to pipe writer to ask it to terminate
     //  its end of the pipe.
     pub pipe_term: PipeTermCommandArgs,
@@ -183,11 +185,11 @@ pub union ArgsUnion {
 
 //  This structure defines the commands that can be sent between threads.
 #[derive(Default, Debug, Clone)]
-pub struct ZmqCommand {
+pub struct ZmqCommand<'a> {
     pub cmd_type: CommandType,
     //  Object to process the command.
     // object_t *destination;
     pub destination: ZmqObject,
     //
-    pub args: ArgsUnion,
+    pub args: ArgsUnion<'a>,
 }

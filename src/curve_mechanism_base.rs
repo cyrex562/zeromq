@@ -27,7 +27,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 // #include "precompiled.hpp"
 // #include "curve_mechanism_base.hpp"
 // #include "msg.hpp"
@@ -46,39 +45,43 @@
 // #endif
 
 use std::mem;
+
 use anyhow::anyhow;
+
 use crate::config::CRYPTO_BOX_NONCEBYTES;
 use crate::curve_encoding::{ZmqCurveEncoding, ZmqNonce};
+use crate::defines::{
+    ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_SEQUENCE, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE,
+    ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
+};
 use crate::mechanism_base::ZmqMechanismBase;
-use crate::message::{CANCEL_CMD_NAME, CANCEL_CMD_NAME_SIZE, SUB_CMD_NAME, SUB_CMD_NAME_SIZE, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZmqMessage};
+use crate::message::{
+    ZmqMessage, CANCEL_CMD_NAME, CANCEL_CMD_NAME_SIZE, SUB_CMD_NAME, SUB_CMD_NAME_SIZE,
+    ZMQ_MSG_COMMAND, ZMQ_MSG_MORE,
+};
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 use crate::utils::copy_bytes;
-use crate::defines::{ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_SEQUENCE, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND};
-
-
-
 
 pub type ZmqNonce = u64;
 
 //  Right now, we only transport the lower two bit flags of ZmqMessage, so they
 //  are binary identical, and we can just use a bitmask to select them. If we
 //  happened to add more flags, this might change.
-pub const flag_mask: u8 = ZMQ_MSG_MORE | ZMQ_MSG_COMMAND;
-pub const flags_len: usize = 1;
-pub const nonce_prefix_len: usize = 16;
-pub const message_command: &[u8] = b"\x07MESSAGE";
-pub const message_command_len: usize = message_command.len();
-pub const message_header_len: usize = message_command_len + mem::size_of::<ZmqNonce>();
+pub const FLAG_MASK: u8 = ZMQ_MSG_MORE | ZMQ_MSG_COMMAND;
+pub const FLAGS_LEN: usize = 1;
+pub const NONCE_PREFIX_LEN: usize = 16;
+pub const MESSAGE_COMMAND: &[u8] = b"\x07MESSAGE";
+pub const MESSAGE_COMMAND_LEN: usize = MESSAGE_COMMAND.len();
+pub const MESSAGE_HDR_LEN: usize = MESSAGE_COMMAND_LEN + mem::size_of::<ZmqNonce>();
 
 // #ifndef ZMQ_USE_LIBSODIUM
 pub const CRYPTO_BOX_MACBYTES: usize = 16;
 
 // pub struct curve_mechanism_base_t: public virtual mechanism_base_t,
 // public ZmqCurveEncoding
-#[derive(Default,Debug,Clone)]
-pub struct ZmqCurveMechanismBase
-{
+#[derive(Default, Debug, Clone)]
+pub struct ZmqCurveMechanismBase {
     // public:
     // curve_mechanism_base_t (ZmqSessionBase *session_,
     // const ZmqOptions & options_,
@@ -93,7 +96,6 @@ pub struct ZmqCurveMechanismBase
     pub curve_encoding: ZmqCurveEncoding,
 }
 
-
 impl ZmqCurveMechanismBase {
     // ZmqCurveMechanismBase::ZmqCurveMechanismBase (
     // ZmqSessionBase *session_,
@@ -105,45 +107,54 @@ impl ZmqCurveMechanismBase {
     // ZmqCurveEncoding (
     // encode_nonce_prefix_, decode_nonce_prefix_, downgrade_sub_)
     // {}
-    pub fn new(session: &mut ZmqSessionBase,
-    options: &ZmqOptions,
-    encode_nonce_prefix: &str,
-    decode_nonce_prefix: &str,
-    downgrade_sub: bool) -> Self {
+    pub fn new(
+        session: &mut ZmqSessionBase,
+        options: &ZmqOptions,
+        encode_nonce_prefix: &str,
+        decode_nonce_prefix: &str,
+        downgrade_sub: bool,
+    ) -> Self {
         Self {
-            mechanism_base: ZmqMechanismBase::new2(session,options),
-            curve_encoding: ZmqCurveEncoding::new(encode_nonce_prefix, decode_nonce_prefix, downgrade_sub)
+            mechanism_base: ZmqMechanismBase::new2(session, options),
+            curve_encoding: ZmqCurveEncoding::new(
+                encode_nonce_prefix,
+                decode_nonce_prefix,
+                downgrade_sub,
+            ),
         }
     }
 
-    pub fn encode (&mut self, msg: & mut ZmqMessage) -> anyhow::Result<()>
-    {
-        self.curve_encoding.encode (msg)
+    pub fn encode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+        self.curve_encoding.encode(msg)
     }
 
-    pub fn decode (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
-    {
+    pub fn decode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         check_basic_command_structure(msg)?;
-    // if (rc == - 1)
-    // return - 1;
+        // if (rc == - 1)
+        // return - 1;
 
-    // error_event_code: i32;
+        // error_event_code: i32;
         let mut error_event_code = 0u32;
-    match self.curve_encoding.decode (msg, &mut error_event_code) {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            self.mechanism_base.session.get_socket().event_handshake_failed_protocol(self.mechanism_base.session.get_endpoint(), event_error_code);
-            Err(anyhow!("decode failed: {}", e))
+        match self.curve_encoding.decode(msg, &mut error_event_code) {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                self.mechanism_base
+                    .session
+                    .get_socket()
+                    .event_handshake_failed_protocol(
+                        self.mechanism_base.session.get_endpoint(),
+                        event_error_code,
+                    );
+                Err(anyhow!("decode failed: {}", e))
+            }
         }
-    }
-    // if ( - 1 == rc) {
-    // session.get_socket () -> event_handshake_failed_protocol (
-    // session.get_endpoint (), error_event_code);
-    // }
-    //
-    // return rc;
+        // if ( - 1 == rc) {
+        // session.get_socket () -> event_handshake_failed_protocol (
+        // session.get_endpoint (), error_event_code);
+        // }
+        //
+        // return rc;
     }
 }
-
 
 // #endif

@@ -4,13 +4,7 @@ use anyhow::bail;
 use chrono::{DateTime, Local, NaiveTime};
 use libc::EINVAL;
 
-pub fn copy_bytes(
-    dest: &mut [u8],
-    dest_offset: usize,
-    src: &[u8],
-    src_offset: usize,
-    count: usize,
-) {
+pub fn copy_bytes(dest: &mut [u8], dest_offset: i32, src: &[u8], src_offset: usize, count: i32) {
     for i in 0..count {
         dest[dest_offset + i] = src[src_offset + i]
     }

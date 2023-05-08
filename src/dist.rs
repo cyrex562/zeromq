@@ -34,6 +34,10 @@
 // #include "msg.hpp"
 // #include "likely.hpp"
 
+use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
+use crate::pipe::PipeState::active;
+use crate::pipe::ZmqPipe;
+
 //  Class manages a set of outbound pipes. It sends each messages to
 //  each of them.
 #[derive(Default, Debug, Clone)]
@@ -99,8 +103,8 @@ impl ZmqDist {
             self.eligible += 1;
         } else {
             self.pipes.push_back(pipe);
-            self.pipes.swap(active, self.pipes.size() - 1);
-            active += 1;
+            self.pipes.swap(self.active, self.pipes.size() - 1);
+            self.active += 1;
             self.eligible += 1;
         }
     }
@@ -108,7 +112,7 @@ impl ZmqDist {
     //     //  Checks if this pipe is present in the distributor.
     //     bool has_pipe (pipe: &mut ZmqPipe);
     pub fn has_pipe(&mut self, pipe: &mut ZmqPipe) -> bool {
-        let mut claimed_index = self.pipes.index(pipe);
+        // let mut claimed_index = self.pipes.index(pipe);
 
         // If pipe claims to be outside the available index space it can't be in the distributor.
         if (claimed_index >= self.pipes.size()) {
@@ -126,17 +130,17 @@ impl ZmqDist {
     //     void match (pipe: &mut ZmqPipe);
     pub fn mark_matching(&mut self, pipe: &mut ZmqPipe) {
         //  If pipe is already matching do nothing.
-        if (self.pipes.index(pipe) < self.matching) {
-            return;
-        }
+        // if (self.pipes.index(pipe) < self.matching) {
+        //     return;
+        // }
 
         //  If the pipe isn't eligible, ignore it.
-        if (self.pipes.index(pipe) >= self.eligible) {
-            return;
-        }
+        // if (self.pipes.index(pipe) >= self.eligible) {
+        //     return;
+        // }
 
         //  Mark the pipe as matching.
-        self.pipes.swap(self.pipes.index(pipe), self.matching);
+        // self.pipes.swap(self.pipes.index(pipe), self.matching);
         self.matching += 1;
     }
 
@@ -154,7 +158,8 @@ impl ZmqDist {
         // to the beginning of the queue.
         // for (pipes_t::size_type i = prev_matching; i < eligible; += 1i)
         for i in prev_matching..self.eligible {
-            self.pipes.swap(i, self.matching += 1);
+            self.matching += 1;
+            self.pipes.swap(i, self.matching);
         }
     }
 
@@ -169,18 +174,18 @@ impl ZmqDist {
     pub fn pipe_terminated(&mut self, pipe: &mut ZmqPipe) {
         //  Remove the pipe from the list; adjust number of matching, active and/or
         //  eligible pipes accordingly.
-        if (self.pipes.index(pipe) < self.matching) {
-            self.pipes.swap(self.pipes.index(pipe), self.matching - 1);
-            self.matching -= 1;
-        }
-        if (self.pipes.index(pipe) < active) {
-            self.pipes.swap(self.pipes.index(pipe), active - 1);
-            active -= 1;
-        }
-        if (self.pipes.index(pipe) < self.eligible) {
-            self.pipes.swap(self.pipes.index(pipe), self.eligible - 1);
-            self.eligible -= 1;
-        }
+        // if (self.pipes.index(pipe) < self.matching) {
+        //     self.pipes.swap(self.pipes.index(pipe), self.matching - 1);
+        //     self.matching -= 1;
+        // }
+        // if (self.pipes.index(pipe) < active) {
+        //     self.pipes.swap(self.pipes.index(pipe), active - 1);
+        //     active -= 1;
+        // }
+        // if (self.pipes.index(pipe) < self.eligible) {
+        //     self.pipes.swap(self.pipes.index(pipe), self.eligible - 1);
+        //     self.eligible -= 1;
+        // }
 
         self.pipes.erase(pipe);
     }
@@ -190,7 +195,7 @@ impl ZmqDist {
     pub fn activated(&mut self, pipe: &mut ZmqPipe) {
         //  Move the pipe from passive to eligible state.
         if (self.eligible < self.pipes.size()) {
-            self.pipes.swap(self.pipes.index(pipe), self.eligible);
+            // self.pipes.swap(self.pipes.index(pipe), self.eligible);
             self.eligible += 1;
         }
 
@@ -210,7 +215,7 @@ impl ZmqDist {
     }
 
     //     static bool has_out ();
-    pub fn send_to_matching(msg: &mut ZmqMessage) -> i32 {
+    pub fn send_to_matching(&mut self, msg: &mut ZmqMessage) -> i32 {
         //  Is this end of a multipart message?
         let msg_more = (msg.flags() & ZMQ_MSG_MORE) != 0;
 
@@ -242,7 +247,7 @@ impl ZmqDist {
         if (self.matching == 0) {
             let mut rc = msg.close();
             // errno_assert (rc == 0);
-            rc = msg.init();
+            rc = msg.init2();
             // errno_assert (rc == 0);
             return;
         }
@@ -250,13 +255,13 @@ impl ZmqDist {
         if (msg.is_vsm()) {
             // for (pipes_t::size_type i = 0; i < matching;)
             for i in 0..self.matching {
-                if (!self.write(self.pipes[i], msg)) {
-                    //  Use same index again because entry will have been removed.
-                } else {
-                    i += 1;
-                }
+                // if (!self.write(self.pipes[i], msg)) {
+                //     //  Use same index again because entry will have been removed.
+                // } else {
+                //     i += 1;
+                // }
             }
-            let mut rc = msg.init();
+            let mut rc = msg.init2();
             // errno_assert (rc == 0);
             return;
         }
@@ -269,20 +274,20 @@ impl ZmqDist {
         let mut failed = 0;
         // for (pipes_t::size_type i = 0; i < matching;)
         for i in 0..self.matching {
-            if (!self.write(self.pipes[i], msg)) {
-                failed += 1;
-                //  Use same index again because entry will have been removed.
-            } else {
-                i += 1;
-            }
+            // if (!self.write(self.pipes[i], msg)) {
+            //     failed += 1;
+            //     //  Use same index again because entry will have been removed.
+            // } else {
+            //     i += 1;
+            // }
         }
-        if (unlikely(failed)) {
+        if (failed) {
             msg.rm_refs(failed);
         }
 
         //  Detach the original message from the data buffer. Note that we don't
         //  close the message. That's because we've already used all the references.
-        let rc: i32 = msg.init();
+        msg.init2();
         // errno_assert (rc == 0);
     }
 
@@ -290,11 +295,11 @@ impl ZmqDist {
         return true;
     }
 
-    pub fn write(pipe: &mut ZmqPipe, msg: &mut ZmqMessage) -> bool {
+    pub fn write(&mut self, pipe: &mut ZmqPipe, msg: &mut ZmqMessage) -> bool {
         if (!pipe.write(msg)) {
-            self.pipes.swap(self.pipes.index(pipe), self.matching - 1);
+            // self.pipes.swap(self.pipes.index(pipe), self.matching - 1);
             self.matching -= 1;
-            self.pipes.swap(self.pipes.index(pipe), self.active - 1);
+            // self.pipes.swap(self.pipes.index(pipe), self.active - 1);
             self.active -= 1;
             self.pipes.swap(self.active, self.eligible - 1);
             self.eligible -= 1;

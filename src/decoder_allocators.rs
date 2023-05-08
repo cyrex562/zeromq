@@ -1,6 +1,8 @@
+use std::ffi::c_void;
 use std::rc::Rc;
 
 use crate::{content::ZmqContent, message::MAX_VSM_SIZE};
+use crate::atomic_counter::AtomicCounter;
 
 #[derive(Default, Debug, Clone)]
 pub struct c_single_allocator {
@@ -68,8 +70,7 @@ pub struct shared_message_memory_allocator {
     pub max_counters: usize,
 }
 
-//
-impl shared_message_memory_allocator {
+// impl shared_message_memory_allocator {
     // public:
     // explicit shared_message_memory_allocator (std::bufsize_: usize);
     // shared_message_memory_allocator::shared_message_memory_allocator (
@@ -103,7 +104,7 @@ impl shared_message_memory_allocator {
     //         max_counters (max_messages_)
     //     {
     //     }
-    pub fn with_size_and_msg_cnt(in_size: usize, max_messages: usize) {
+    pub fn with_size_and_msg_cnt(in_size: usize, max_messages: usize) -> Self {
         Self {
             buf: Rc::new(vec![]),
             buf_size: 0,
@@ -143,9 +144,7 @@ impl shared_message_memory_allocator {
         if (self.buf.is_empty()) {
             // allocate memory for reference counters together with reception buffer
             // std::size_t const allocationsize =
-            let allocationSize: usize = self.max_size
-                + max_counters * std::mem::<ZmqContent>()
-                + std::mem::size_of::<AtomicCounter>();
+            let allocationSize: usize = self.max_size + max_counters * std::mem::<ZmqContent>() + std::mem::size_of::<AtomicCounter>();
             // max_size + sizeof (AtomicCounter)
             // + max_counters * sizeof (ZmqMessage::ZmqContent);
             // buf =  (std::malloc (allocationsize));
@@ -165,7 +164,7 @@ impl shared_message_memory_allocator {
         self.buf_size = self.max_size;
         // msg_content = reinterpret_cast<ZmqMessage::ZmqContent *> (
         // buf + mem::size_of::<AtomicCounter>() + max_size);
-        self.msg_content = Some(bincode::deserialize(self.buf.as_slice()));
+        self.msg_content = Some(bincode::deserialize(self.buf.as_slice()).unwrap());
         return &mut self.buf;
     }
 

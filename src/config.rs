@@ -30,9 +30,7 @@
 // #ifndef __ZMQ_CONFIG_HPP_INCLUDED__
 // #define __ZMQ_CONFIG_HPP_INCLUDED__
 
-
 //  Compile-time settings.
-
 
 //  Number of new messages in message pipe needed to trigger new memory
 //  allocation. Setting this parameter to 256 decreases the impact of
@@ -83,24 +81,24 @@ pub const CLOCK_PRECISION: i32 = 1000000;
 pub const SIGNALER_PORT: i32 = 0;
 
 // #define crypto_box_SECRETKEYBYTES 32
-pub const CRYPTO_BOX_SECRETKEYBYTES: u32 = 32;
+pub const CRYPTO_BOX_SECRETKEYBYTES: usize = 32;
 // #define crypto_box_BOXZEROBYTES 16
-pub const CRYPTO_BOX_BOXZEROBYTES: u32 = 16;
+pub const CRYPTO_BOX_BOXZEROBYTES: usize = 16;
 // #define crypto_box_NONCEBYTES 24
-pub const CRYPTO_BOX_NONCEBYTES: u32 = 24;
+pub const CRYPTO_BOX_NONCEBYTES: usize = 24;
 // #define crypto_box_ZEROBYTES 32
-pub const CRYPTO_BOX_ZEROBYTES: u32 = 32;
+pub const CRYPTO_BOX_ZEROBYTES: usize = 32;
 // #define crypto_box_PUBLICKEYBYTES 32
-pub const CRYPTO_BOX_PUBLICKEYBYTES: u32 = 32;
+pub const CRYPTO_BOX_PUBLICKEYBYTES: usize = 32;
 // #define crypto_box_BEFORENMBYTES 32
-pub const CRYPTO_BOX_BEFORENMBYTES: u32 = 32;
+pub const CRYPTO_BOX_BEFORENMBYTES: usize = 32;
 // #define crypto_secretbox_KEYBYTES 32
-pub const CRYPTO_SECRETBOX_KEYBYTES: u32 = 32;
+pub const CRYPTO_SECRETBOX_KEYBYTES: usize = 32;
 // #define crypto_secretbox_NONCEBYTES 24
-pub const CRYPTO_SECRETBOX_NONCEBYTES: u32 = 24;
+pub const CRYPTO_SECRETBOX_NONCEBYTES: usize = 24;
 // #define crypto_secretbox_ZEROBYTES 32
-pub const CRYPTO_SECRETBOX_ZEROBYTES: u32 = 32;
+pub const CRYPTO_SECRETBOX_ZEROBYTES: usize = 32;
 // #define crypto_secretbox_BOXZEROBYTES 16
-pub const CRYPTO_SECRETBOX_BOXZEROBYTES: u32 = 16;
+pub const CRYPTO_SECRETBOX_BOXZEROBYTES: usize = 16;
 
 // #endif

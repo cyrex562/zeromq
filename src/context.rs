@@ -1,21 +1,24 @@
-use std::{mem, process};
 use std::collections::{HashMap, HashSet};
 use std::intrinsics::unlikely;
 use std::mem::size_of;
 use std::ptr::null_mut;
 use std::sync::Mutex;
+use std::{mem, process};
 
 use anyhow::{anyhow, bail};
 use libc::{
-    EADDRINUSE, ECONNREFUSED, EINTR, EINVAL, EMFILE, ENOENT, ENOMEM, F_SETFD, FD_CLOEXEC, getpid,
-    pid_t,
+    getpid, pid_t, EADDRINUSE, ECONNREFUSED, EINTR, EINVAL, EMFILE, ENOENT, ENOMEM, FD_CLOEXEC,
+    F_SETFD,
 };
 use serde::{Deserialize, Serialize};
 
-use anyhow;
-
 use crate::atomic_counter::AtomicCounter;
 use crate::command::ZmqCommand;
+use crate::defines::{
+    ZmqMessage, ZMQ_BLOCKY, ZMQ_IO_THREADS, ZMQ_IO_THREADS_DFLT, ZMQ_IPV6, ZMQ_MAX_MSGSZ,
+    ZMQ_MAX_SOCKETS, ZMQ_MAX_SOCKETS_DFLT, ZMQ_MESSAGE_SIZE, ZMQ_PAIR, ZMQ_SOCKET_LIMIT,
+    ZMQ_ZERO_COPY_RECV,
+};
 use crate::endpoint::ZmqEndpoint;
 use crate::i_mailbox::i_mailbox;
 use crate::io_thread::ZmqThread;
@@ -28,11 +31,6 @@ use crate::pipe::ZmqPipe;
 use crate::reaper::reaper_t;
 use crate::socket_base::ZmqSocketBase;
 use crate::thread_ctx::ThreadCtx;
-use crate::defines::{
-    ZMQ_BLOCKY, ZMQ_IO_THREADS, ZMQ_IO_THREADS_DFLT, ZMQ_IPV6, ZMQ_MAX_MSGSZ, ZMQ_MAX_SOCKETS,
-    ZMQ_MAX_SOCKETS_DFLT, ZMQ_MESSAGE_SIZE, ZMQ_PAIR, ZMQ_SOCKET_LIMIT, ZMQ_ZERO_COPY_RECV,
-    ZmqMessage,
-};
 
 //  Context object encapsulates all the global state associated with
 //  the library.
@@ -318,8 +316,8 @@ impl ZmqContext {
             self.slot_sync.unlock();
 
             //  Wait till reaper thread closes all the sockets.
-            let cmd = ZmqCommand::default();
-            let rc = self.term_mailbox.recv(&cmd, -1);
+            let mut cmd = ZmqCommand::default();
+            let rc = self.term_mailbox.recv(&mut cmd, -1);
             if rc == -1 && errno == EINTR {
                 return Ok(-1);
             }
@@ -577,7 +575,7 @@ impl ZmqContext {
         // for (int i = term_and_reaper_threads_count;
         //      i != ios + term_and_reaper_threads_count; i+= 1)
         for i in term_and_reaper_threads_count..ios + term_and_reaper_threads_count {
-            let io_thread = ZmqThread::new(self, i);
+            let io_thread = ZmqThread::new(self, i as u32);
             if !io_thread {
                 errno = ENOMEM;
                 // goto fail_cleanup_reaper;
@@ -586,7 +584,7 @@ impl ZmqContext {
                 // delete io_thread;
                 // goto fail_cleanup_reaper;
             }
-            self.io_threads.push_back(io_thread);
+            self.io_threads.push_back(&io_thread);
             self.slots[i] = io_thread.get_mailbox();
             io_thread.start();
         }
@@ -719,7 +717,7 @@ impl ZmqContext {
         endpoint: &mut ZmqEndpoint,
     ) -> anyhow::Result<()> {
         // scoped_lock_t locker (_endpoints_sync);
-        match self.endpoints.insert(addr, endpoint) {
+        match self.endpoints.insert(addr.to_string(), endpoint.clone()) {
             Some(_) => Ok(()),
             Err(e) => Err(anyhow!("failed to insert enpoint: {}", e)),
         }
@@ -910,7 +908,7 @@ impl ZmqContext {
         if (!bind_options.recv_routing_id) {
             // ZmqMessage msg;
             let mut msg = ZmqMessage::default();
-            let ok = pending_connection.bind_pipe.read(&msg);
+            let ok = pending_connection.bind_pipe.read(&mut msg);
             // zmq_assert(ok);
             let rc = msg.close();
             // errno_assert(rc == 0);
@@ -919,19 +917,19 @@ impl ZmqContext {
         if !get_effective_conflate_option(&pending_connection.endpoint.options) {
             pending_connection
                 .connect_pipe
-                .set_hwms_boost(bind_options.sndhwm, bind_options.rcvhwm);
+                .set_hwms_boost(bind_options.sndhwm as u32, bind_options.rcvhwm as u32);
             pending_connection.bind_pipe.set_hwms_boost(
-                pending_connection.endpoint.options.sndhwm,
-                pending_connection.endpoint.options.rcvhwm,
+                pending_connection.endpoint.options.sndhwm as u32,
+                pending_connection.endpoint.options.rcvhwm as u32,
             );
 
             pending_connection.connect_pipe.set_hwms(
-                pending_connection.endpoint.options.rcvhwm,
-                pending_connection.endpoint.options.sndhwm,
+                pending_connection.endpoint.options.rcvhwm as u32,
+                pending_connection.endpoint.options.sndhwm as u32,
             );
             pending_connection
                 .bind_pipe
-                .set_hwms(bind_options.rcvhwm, bind_options.sndhwm);
+                .set_hwms(bind_options.rcvhwm as u32, bind_options.sndhwm as u32);
         } else {
             pending_connection.connect_pipe.set_hwms(-1, -1);
             pending_connection.bind_pipe.set_hwms(-1, -1);
@@ -948,8 +946,8 @@ impl ZmqContext {
         if (side == BIND_SIDE) {
             let mut cmd = ZmqCommand::default();
             cmd.cmd_type = ZmqCommand::bind;
-            cmd.args.bind.pipe = &mut pending_connection.bind_pipe.clone();
-            bind_socket.process_command(cmd);
+            cmd.args.bind.pipe = pending_connection.bind_pipe.clone();
+            bind_socket.process_command(&cmd);
             bind_socket.send_inproc_connected(&mut pending_connection.endpoint.socket);
         } else {
             pending_connection.connect_pipe.send_bind(
@@ -973,7 +971,7 @@ impl ZmqContext {
         // #ifdef ZMQ_BUILD_DRAFT_API
         //  If set, send the hello msg of the bind socket to the pending connection.
         if (bind_options.can_send_hello_msg && bind_options.hello_msg.size() > 0) {
-            send_hello_msg(&mut pending_connection.bind_pipe, bind_options);
+            self.send_hello_msg(&mut pending_connection.bind_pipe, bind_options);
         }
         // #endif
     }

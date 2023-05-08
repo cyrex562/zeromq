@@ -32,16 +32,21 @@
 
 // #ifdef ZMQ_HAVE_CURVE
 
+use anyhow::bail;
+use libc::EFAULT;
+
 use crate::config::{
     CRYPTO_BOX_BOXZEROBYTES, CRYPTO_BOX_NONCEBYTES, CRYPTO_BOX_PUBLICKEYBYTES,
     CRYPTO_BOX_SECRETKEYBYTES, CRYPTO_BOX_ZEROBYTES, CRYPTO_SECRETBOX_BOXZEROBYTES,
-    CRYPTO_SECRETBOX_NONCEBYTES, CRYPTO_SECRETBOX_ZEROBYTES,
+    CRYPTO_SECRETBOX_KEYBYTES, CRYPTO_SECRETBOX_NONCEBYTES, CRYPTO_SECRETBOX_ZEROBYTES,
 };
-use crate::curve_mechanism_base::ZmqCurveMechanismBase;
+use crate::curve_mechanism_base::{ZmqCurveMechanismBase, CRYPTO_BOX_MACBYTES};
+use crate::defines::ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND;
 use crate::message::ZmqMessage;
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
-use crate::zap_client::ZmqZapClientCommonHandshake;
+use crate::utils::{copy_bytes, get_u64, put_u64};
+use crate::zap_client::{ZmqZapClient, ZmqZapClientCommonHandshake};
 
 // #include "msg.hpp"
 // #include "session_base.hpp"
@@ -49,36 +54,36 @@ use crate::zap_client::ZmqZapClientCommonHandshake;
 // #include "curve_server.hpp"
 // #include "wire.hpp"
 // #include "secure_allocator.hpp"
-// pub struct curve_server_t  : public ZmqZapClientCommonHandshake,
+// pub struct ZmqCurveServer  : public ZmqZapClientCommonHandshake,
 //                                  public ZmqCurveMechanismBase
 #[derive(Default, Debug, Clone)]
-pub struct curve_server_t {
+pub struct ZmqCurveServer {
     pub zap_client_common_handshake: ZmqZapClientCommonHandshake,
     pub curve_mechanism_base: ZmqCurveMechanismBase,
 
     // private:
     //  Our secret key (s)
-    pub _secret_key: [u8; CRYPTO_BOX_SECRETKEYBYTES],
+    pub _secret_key: [u8; CRYPTO_BOX_SECRETKEYBYTES as usize],
     //  Our short-term public key (S')
-    pub cn_public: [u8; CRYPTO_BOX_PUBLICKEYBYTES],
+    pub cn_public: [u8; CRYPTO_BOX_PUBLICKEYBYTES as usize],
     //  Our short-term secret key (s')
-    pub cn_secret: [u8; CRYPTO_BOX_SECRETKEYBYTES],
+    pub cn_secret: [u8; CRYPTO_BOX_SECRETKEYBYTES as usize],
     //  Client's short-term public key (C')
-    pub cn_client: [u8; CRYPTO_BOX_PUBLICKEYBYTES],
+    pub cn_client: [u8; CRYPTO_BOX_PUBLICKEYBYTES as usize],
     //  Key used to produce cookie
-    pub _cookie_key: [u8; CRYPTO_SECRETBOX_KEYBYTES],
+    pub _cookie_key: [u8; CRYPTO_SECRETBOX_KEYBYTES as usize],
 }
 
-impl curve_server_t {
+impl ZmqCurveServer {
     // public:
-    // curve_server_t (ZmqSessionBase *session_,
+    // ZmqCurveServer (ZmqSessionBase *session_,
     //                 const std::string &peer_address_,
     //                 options: &ZmqOptions,
     //                 const downgrade_sub_: bool);
     pub fn new(
         session: &mut ZmqSessionBase,
         peer_address: &str,
-        options: &ZmqOptions,
+        options: &mut ZmqOptions,
         downgrade_sub: bool,
     ) -> Self {
         let mut mechanism_base = Self {
@@ -86,7 +91,7 @@ impl curve_server_t {
                 session,
                 peer_address,
                 options,
-                sending_ready,
+                ZmqZapClientCommonHandshakeState::sending_ready,
             ),
             curve_mechanism_base: ZmqCurveMechanismBase::new(
                 session,
@@ -109,7 +114,7 @@ impl curve_server_t {
         mechanism_base
     }
 
-    // ~curve_server_t ();
+    // ~ZmqCurveServer ();
 
     // mechanism implementation
     // int next_handshake_command (msg: &mut ZmqMessage);
@@ -120,14 +125,14 @@ impl curve_server_t {
             sending_welcome => {
                 rc = produce_welcome(msg);
                 if (rc == 0) {
-                    state = waiting_for_initiate;
+                    state = ZmqZapClientCommonHandshakeState::waiting_for_initiate;
                 }
             }
             // break;
             sending_ready => {
                 rc = produce_ready(msg);
                 if (rc == 0) {
-                    state = ready;
+                    state = ZmqZapClientCommonHandshakeState::ready;
                 }
             }
             // break;
@@ -180,7 +185,7 @@ impl curve_server_t {
         // int rc = 0;
 
         //  If we are not ready yet, return EAGAIN.
-        if (state != ready) {
+        if (state != ZmqZapClientCommonHandshakeState::ready) {
             // errno = EAGAIN;
             // rc = -1;
             bail!("EAGAIN")
@@ -198,7 +203,7 @@ impl curve_server_t {
         // int rc = 0;
 
         //  If we are not ready yet, return EAGAIN.
-        if (state != ready) {
+        if (state != ZmqZapClientCommonHandshakeState::ready) {
             // errno = EAGAIN;
             // rc = -1;
             bail!("EAGAIN")
@@ -241,19 +246,19 @@ impl curve_server_t {
             bail!("EPROTO");
         }
 
-        copy_bytes(self.cn_client, 0, hello, 80, 32);
+        copy_bytes(&mut self.cn_client, 0, hello, 80, 32);
 
         let mut hello_nonce: [u8; CRYPTO_BOX_NONCEBYTES] = [0; CRYPTO_BOX_NONCEBYTES];
         let mut hello_plaintext: [u8; 80] = [0; 80];
         let mut hello_box: [u8; 80 + CRYPTO_BOX_MACBYTES] = [0; 80 + CRYPTO_BOX_MACBYTES];
 
-        copy_bytes(hello_nonce, 0, b"CurveZMQHELLO---", 0, 16);
+        copy_bytes(&mut hello_nonce, 0, b"CurveZMQHELLO---", 0, 16);
 
-        copy_bytes(hello_nonce, 16, hello, 112, 8);
+        copy_bytes(&mut hello_nonce, 16, hello, 112, 8);
 
         set_peer_nonce(get_u64(hello, 112));
 
-        copy_bytes(hello_box, CRYPTO_BOX_BOXZEROBYTES, hello, 120, 80);
+        copy_bytes(&mut hello_box, CRYPTO_BOX_BOXZEROBYTES, hello, 120, 80);
 
         match crypto_box_open(
             &hello_plaintext[0],
@@ -285,9 +290,11 @@ impl curve_server_t {
     // int produce_welcome (msg: &mut ZmqMessage);
     pub fn produce_welcome(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         // int rc = 0;
-        let cookie_none: [u8; CRYPTO_SECRETBOX_NONCEBYTES] = [0; CRYPTO_SECRETBOX_NONCEBYTES];
-        let cookie_plaintext: [u8; CRYPTO_SECRETBOX_ZEROBYTES] = [0; CRYPTO_SECRETBOX_ZEROBYTES];
-        let cookie_ciphertext: [u8; CRYPTO_SECRETBOX_ZEROBYTES + 80];
+        let mut cookie_none: [u8; CRYPTO_SECRETBOX_NONCEBYTES] = [0; CRYPTO_SECRETBOX_NONCEBYTES];
+        let mut cookie_plaintext: [u8; CRYPTO_SECRETBOX_ZEROBYTES] =
+            [0; CRYPTO_SECRETBOX_ZEROBYTES];
+        let mut cookie_ciphertext: [u8; CRYPTO_SECRETBOX_ZEROBYTES + 80] =
+            [0; CRYPTO_SECRETBOX_ZEROBYTES + 80];
         copy_bytes(cookie_nonce, 0, b"COOKIE--", 0, 8);
         self._cookie_key = [0; CRYPTO_SECRETBOX_KEYBYTES];
         randombytes(self._cookie_key, CRYPTO_SECRETBOX_KEYBYTES);
@@ -301,30 +308,31 @@ impl curve_server_t {
         );
 
         let welcome_none: [u8; CRYPTO_BOX_NONCEBYTES] = [0; CRYPTO_BOX_NONCEBYTES];
-        let welcome_plaintext: [u8; CRYPTO_BOX_ZEROBYTES + 128] = [0; CRYPTO_BOX_ZEROBYTES + 128];
-        let welcome_ciphertext: [u8; CRYPTO_BOX_ZEROBYTES + 144] = [u8; CRYPTO_BOX_ZEROBYTES + 14];
+        let mut welcome_plaintext: [u8; CRYPTO_BOX_ZEROBYTES + 128] =
+            [0; CRYPTO_BOX_ZEROBYTES + 128];
+        let welcome_ciphertext: [u8; CRYPTO_BOX_ZEROBYTES + 144] = [0; CRYPTO_BOX_ZEROBYTES + 144];
         copy_bytes(welcome_nonce, 0, b"WELCOME-", 0, 8);
         randombytes(weclome_nonce + 8, CRYPTO_BOX_NONCEBYTES - 8);
 
         copy_bytes(
-            welcome_plaintext,
+            &mut welcome_plaintext,
             CRYPTO_BOX_BOXZEROBYTES,
-            self.cn_public,
+            &self.cn_public,
             0,
             32,
         );
         copy_bytes(
-            welcom_plaintext,
+            &mut welcome_plaintext,
             CRYPTO_BOX_BOXZEROBYTES + 32,
             cookie_nonce,
             8,
             16,
         );
         copy_bytes(
-            welcome_plaintext,
+            &mut welcome_plaintext,
             CRYPTO_BOX_BOXZEROBYTES + 48,
-            cookie_ciphertext + CRYPTO_SECRETBOX_BOXZEROBYTES,
-            0,
+            &cookie_ciphertext,
+            CRYPTO_SECRETBOX_BOXZEROBYTES,
             80,
         );
 
@@ -343,7 +351,7 @@ impl curve_server_t {
         copy_bytes(
             welcome,
             24,
-            welcome_ciphertext,
+            &welcome_ciphertext,
             CRYPTO_BOX_BOXZEROBYTES,
             144,
         );
@@ -352,7 +360,11 @@ impl curve_server_t {
     }
 
     // int process_initiate (msg: &mut ZmqMessage);
-    pub fn process_initiate(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+    pub fn process_initiate(
+        &mut self,
+        options: &mut ZmqOptions,
+        msg: &mut ZmqMessage,
+    ) -> anyhow::Result<()> {
         check_basic_command_structure(msg)?;
 
         let initiate_size = msg.len();
@@ -386,11 +398,17 @@ impl curve_server_t {
         let mut cookie_box: [u8; CRYPTO_SECRETBOX_BOXZEROBYTES + 80] =
             [0; CRYPTO_SECRETBOX_BOXZEROBYTES + 80];
 
-        copy_bytes(cookie_box, CRYPTO_SECRETBOX_BOXZEROBYTES, initiate, 25, 80);
+        copy_bytes(
+            &mut cookie_box,
+            CRYPTO_SECRETBOX_BOXZEROBYTES,
+            initiate,
+            25,
+            80,
+        );
 
-        copy_bytes(cookie_nonce, b"COOKIE--", 0, 8);
+        copy_bytes(&mut cookie_nonce, 0, b"COOKIE--", 0, 8);
 
-        copy_bytes(cookie_nonce, 8, initiate, 9, 16);
+        copy_bytes(&mut cookie_nonce, 8, initiate, 9, 16);
 
         match crypto_secretbox_open(
             cookie_plaintext,
@@ -411,8 +429,8 @@ impl curve_server_t {
             }
         };
 
-        if cookie_plaintext[CRYPTO_SECRETBOX_ZEROBYTES] == self.cn_client
-            || cookie_plaintext[CRYPTO_SECRETBOX_ZEROBYTES + 32] == self.cn_client
+        if cookie_plaintext[CRYPTO_SECRETBOX_ZEROBYTES..] == self.cn_client
+            || cookie_plaintext[CRYPTO_SECRETBOX_ZEROBYTES + 32..] == self.cn_client
         {
             session.get_socket().event_handshake_failed_protocol(
                 session.get_endpoint(),
@@ -427,8 +445,10 @@ impl curve_server_t {
         let clen = msg.len() - 113 + CRYPTO_BOX_BOXZEROBYTES;
 
         let mut initiate_nonce: [u8; CRYPTO_BOX_NONCEBYTES] = [0; CRYPTO_BOX_NONCEBYTES];
-        let mut initiate_plaintext: [u8; CRYPTO_BOX_ZEROBYTES + clen] =
-            [0; CRYPTO_BOX_ZEROBYTES + clen];
+        // let mut initiate_plaintext: [u8; CRYPTO_BOX_ZEROBYTES + clen] =
+        //     [0; CRYPTO_BOX_ZEROBYTES + clen];
+        let mut initiate_plaintext: Vec<u8> = Vec::with_capacity(CRYPTO_BOX_ZEROBYTES + clen);
+
         copy_bytes(
             initiate_box,
             CRYPTO_BOX_BOXZEROBYTES,
@@ -437,9 +457,9 @@ impl curve_server_t {
             clen - CRYPTO_BOX_BOXZEROBYTES,
         );
 
-        copy_bytes(initiate_nonce, b"CurveZMQINITIATE", 0, 16);
-        copy_bytes(initiate_nonce, 16, initiate, 105, 8);
-        set_peer_nonce(get_u64(initiate + 105));
+        copy_bytes(&mut initiate_nonce, 0, b"CurveZMQINITIATE", 0, 16);
+        copy_bytes(&mut initiate_nonce, 16, initiate, 105, 8);
+        set_peer_nonce(get_u64(initiate, 105));
 
         let client_key = &initiate_plaintext[CRYPTO_BOX_BOXZEROBYTES];
 
@@ -464,23 +484,24 @@ impl curve_server_t {
             }
         };
 
-        let vouch_nonce: [u8; CRYPTO_BOX_NONCEBYTES] = [0; CRYPTO_BOX_NONCEBYTES];
-        let vouch_plaintext: [u8; CRYPTO_BOX_ZEROBYTES + 64] = [0; CRYPTO_BOX_ZEROBYTES + 64];
-        let vouch_box: [u8; CRYPTO_BOX_BOXZEROBYTES + 80] = [0; CRYPTO_BOX_BOXZEROBYTES + 80];
+        let mut vouch_nonce: [u8; CRYPTO_BOX_NONCEBYTES] = [0; CRYPTO_BOX_NONCEBYTES];
+        let mut vouch_plaintext: [u8; CRYPTO_BOX_ZEROBYTES + 64] = [0; CRYPTO_BOX_ZEROBYTES + 64];
+        let mut vouch_box: [u8; CRYPTO_BOX_BOXZEROBYTES + 80] = [0; CRYPTO_BOX_BOXZEROBYTES + 80];
 
         copy_bytes(
-            vouch_box,
+            &mut vouch_box,
             CRYPTO_BOX_BOXZEROBYTES,
-            initiate_plaintext,
+            initiate_plaintext.as_slice(),
             CRYPTO_BOX_ZEROBYTES + 48,
             80,
         );
 
-        copy_bytes(vouch_nonce, 0, b"VOUCH---", 0, 8);
+        copy_bytes(&mut vouch_nonce, 0, b"VOUCH---", 0, 8);
 
         copy_bytes(
-            vouch_nonce + 8,
-            initiate_plaintext,
+            &mut vouch_nonce,
+            8,
+            initiate_plaintext.as_slice(),
             CRYPTO_BOX_ZEROBYTES + 32,
             16,
         );
@@ -506,7 +527,7 @@ impl curve_server_t {
             }
         };
 
-        if vouch_plaintext[CRYPTO_BOX_ZEROBYTES] != self.cn_client {
+        if vouch_plaintext[CRYPTO_BOX_ZEROBYTES..] != self.cn_client {
             session.get_socket().event_handshake_failed_protocol(
                 session.get_endpoint(),
                 ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
@@ -546,7 +567,7 @@ impl curve_server_t {
         }
 
         parse_metadata(
-            initiate_plaintext,
+            &initiate_plaintext,
             CRYPTO_BOX_ZEROBYTES + 128,
             clen - CRYPTO_BOX_ZEROBYTES - 128,
         )
@@ -558,20 +579,22 @@ impl curve_server_t {
         let metadata_len = self.basic_properties_len;
         let mut ready_nonce: [u8; CRYPTO_BOX_NONCEBYTES] = [0; CRYPTO_BOX_NONCEBYTES];
 
-        let ready_plaintext: [u8; CRYPTO_BOX_ZEROBYTES + metadata_len] =
-            [0; CRYPTO_BOX_ZEROBYTES + metadata_len];
+        // let ready_plaintext: [u8; CRYPTO_BOX_ZEROBYTES + metadata_len] =
+        //     [0; CRYPTO_BOX_ZEROBYTES + metadata_len];
+        let mut ready_plaintext: Vec<u8> = Vec::with_capacity(CRYPTO_BOX_ZEROBYTES + metadata_len);
 
         // let ptr = &ready_plaintext[CRYPO_BOX_ZEROBYTES];
-        let ptr: usize = 0;
+        let mut ptr: usize = 0;
         ptr += add_basic_properties(ready_plaintext, ptr, metadata_len);
-        copy_bytes(ready_nonce, 0, b"CurveZMQREADY---", 0, 16);
-        put_u64(ready_nonce + 16, get_and_inc_nonce());
+        copy_bytes(&mut ready_nonce, 0, b"CurveZMQREADY---", 0, 16);
+        put_u64(&mut ready_nonce, 16, get_and_inc_nonce());
 
         let len = CRYPTO_BOX_BOXZEROBYTES + 16 + metadata_len;
-        let mut ready_box: [u8; len] = [0; len];
+        // let mut ready_box: [u8; len] = [0; len];
+        let mut read_box: Vec<u8> = Vec::with_capacity(len);
         cyrpto_box_afternm(
             ready_box,
-            ready_plaintext,
+            &ready_plaintext,
             metadata_len + CRYPTO_BOX_ZEROBYTES,
             ready_nonce,
             get_precom_buffer(),
@@ -581,7 +604,7 @@ impl curve_server_t {
 
         let ready = msg.data_mut();
         copy_bytes(ready, 0, b"\x05READY", 0, 6);
-        copy_bytes(ready, 6, ready_nonce, 16, 8);
+        copy_bytes(ready, 6, &ready_nonce, 16, 8);
         copy_bytes(
             ready,
             14,
@@ -598,18 +621,23 @@ impl curve_server_t {
         msg.init_size(6 + 1 + expected_status_code_len)?;
         let msg_data = msg.data_mut();
         copy_bytes(msg_data, 0, b"\x05ERROR", 0, 6);
-        msg_data[6] = expected_status_code_len;
+        msg_data[6] = expected_status_code_len as u8;
         copy_bytes(msg_data, 7, status_code, 0, expected_status_code_len);
         Ok(())
     }
 
     // void send_zap_request (const key_: &mut [u8]);
     pub fn send_zap_request(&mut self, key: &mut [u8]) {
-        ZmqZapClient::send_zap_request(b"CURVE", 5, key_, CRYPTO_BOX_PUBLICKEYBYTES);
+        self.zap_client_common_handshake.send_zap_request(
+            b"CURVE",
+            5,
+            key_,
+            CRYPTO_BOX_PUBLICKEYBYTES,
+        );
     }
 }
 
-// curve_server_t::curve_server_t (ZmqSessionBase *session_,
+// ZmqCurveServer::ZmqCurveServer (ZmqSessionBase *session_,
 //                                      const std::string &peer_address_,
 //                                      options: &ZmqOptions,
 //                                      const downgrade_sub_: bool) :
@@ -633,11 +661,11 @@ impl curve_server_t {
 //     zmq_assert (rc == 0);
 // }
 
-// curve_server_t::~curve_server_t ()
+// ZmqCurveServer::~ZmqCurveServer ()
 // {
 // }
 
-// int curve_server_t::next_handshake_command (msg: &mut ZmqMessage)
+// int ZmqCurveServer::next_handshake_command (msg: &mut ZmqMessage)
 // {
 //     int rc = 0;
 
@@ -665,7 +693,7 @@ impl curve_server_t {
 //     return rc;
 // }
 
-// int curve_server_t::process_handshake_command (msg: &mut ZmqMessage)
+// int ZmqCurveServer::process_handshake_command (msg: &mut ZmqMessage)
 // {
 //     int rc = 0;
 
@@ -699,19 +727,19 @@ impl curve_server_t {
 //     return rc;
 // }
 
-// int curve_server_t::encode (msg: &mut ZmqMessage)
+// int ZmqCurveServer::encode (msg: &mut ZmqMessage)
 // {
 //     zmq_assert (state == ready);
 //     return ZmqCurveMechanismBase::encode (msg);
 // }
 
-// int curve_server_t::decode (msg: &mut ZmqMessage)
+// int ZmqCurveServer::decode (msg: &mut ZmqMessage)
 // {
 //     zmq_assert (state == ready);
 //     return ZmqCurveMechanismBase::decode (msg);
 // }
 
-// int curve_server_t::process_hello (msg: &mut ZmqMessage)
+// int ZmqCurveServer::process_hello (msg: &mut ZmqMessage)
 // {
 //     int rc = check_basic_command_structure (msg);
 //     if (rc == -1)
@@ -777,7 +805,7 @@ impl curve_server_t {
 //     return rc;
 // }
 
-// int curve_server_t::produce_welcome (msg: &mut ZmqMessage)
+// int ZmqCurveServer::produce_welcome (msg: &mut ZmqMessage)
 // {
 //     uint8_t cookie_nonce[CRYPTO_SECRETBOX_NONCEBYTES];
 //     std::vector<uint8_t, secure_allocator_t<uint8_t> > cookie_plaintext (
@@ -850,7 +878,7 @@ impl curve_server_t {
 //     return 0;
 // }
 
-// int curve_server_t::process_initiate (msg: &mut ZmqMessage)
+// int ZmqCurveServer::process_initiate (msg: &mut ZmqMessage)
 // {
 //     int rc = check_basic_command_structure (msg);
 //     if (rc == -1)
@@ -1013,7 +1041,7 @@ impl curve_server_t {
 //                            clen - CRYPTO_BOX_ZEROBYTES - 128);
 // }
 
-// int curve_server_t::produce_ready (msg: &mut ZmqMessage)
+// int ZmqCurveServer::produce_ready (msg: &mut ZmqMessage)
 // {
 //     const size_t metadata_length = basic_properties_len ();
 //     uint8_t ready_nonce[CRYPTO_BOX_NONCEBYTES];
@@ -1054,7 +1082,7 @@ impl curve_server_t {
 //     return 0;
 // }
 
-// int curve_server_t::produce_error (msg: &mut ZmqMessage) const
+// int ZmqCurveServer::produce_error (msg: &mut ZmqMessage) const
 // {
 //     const size_t expected_status_code_length = 3;
 //     zmq_assert (status_code.length () == 3);
@@ -1067,7 +1095,7 @@ impl curve_server_t {
 //     return 0;
 // }
 
-// void curve_server_t::send_zap_request (const key_: &mut [u8])
+// void ZmqCurveServer::send_zap_request (const key_: &mut [u8])
 // {
 //     ZmqZapClient::send_zap_request ("CURVE", 5, key_,
 //                                     CRYPTO_BOX_PUBLICKEYBYTES);
