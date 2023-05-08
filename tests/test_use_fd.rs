@@ -97,7 +97,7 @@ void test_client_server (pre_allocate_sock_fun_t pre_allocate_sock_fun_)
 let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 1));
 
-    char *data = static_cast<char *> (zmq_msg_data (&msg));
+    char *data =  (zmq_msg_data (&msg));
     data[0] = 1;
 
     int rc = zmq_msg_send (&msg, sc, ZMQ_SNDMORE);
@@ -119,7 +119,7 @@ let mut msg = ZmqMessage::default();
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 1));
 
-    data = static_cast<char *> (zmq_msg_data (&msg));
+    data =  (zmq_msg_data (&msg));
     data[0] = 2;
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_set_routing_id (&msg, routing_id));

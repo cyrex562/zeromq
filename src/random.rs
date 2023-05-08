@@ -59,8 +59,8 @@ void seed_random ()
 u32 generate_random ()
 {
     //  Compensate for the fact that rand() returns signed integer.
-    const u32 low = static_cast<u32> (rand ());
-    u32 high = static_cast<u32> (rand ());
+    const u32 low =  (rand ());
+    u32 high =  (rand ());
     high <<= (mem::size_of::<int>() * 8 - 1);
     return high | low;
 }

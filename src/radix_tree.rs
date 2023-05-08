@@ -272,8 +272,8 @@ void node_t::resize (prefix_length_: usize, edgecount_: usize)
        (realloc (_data, node_size));
     // zmq_assert (new_data);
     _data = new_data;
-    set_prefix_length (static_cast<u32> (prefix_length_));
-    set_edgecount (static_cast<u32> (edgecount_));
+    set_prefix_length ( (prefix_length_));
+    set_edgecount ( (edgecount_));
 }
 
 node_t make_node (refcount_: usize, prefix_length_: usize, edgecount_: usize)
@@ -285,9 +285,9 @@ node_t make_node (refcount_: usize, prefix_length_: usize, edgecount_: usize)
     // zmq_assert (data);
 
     node_t node (data);
-    node.set_refcount (static_cast<u32> (refcount_));
-    node.set_prefix_length (static_cast<u32> (prefix_length_));
-    node.set_edgecount (static_cast<u32> (edgecount_));
+    node.set_refcount ( (refcount_));
+    node.set_prefix_length ( (prefix_length_));
+    node.set_edgecount ( (edgecount_));
     return node;
 }
 
@@ -669,7 +669,7 @@ visit_keys (node_t node_,
     for (size_t i = 0, edgecount = node_.edgecount (); i < edgecount; += 1i) {
         visit_keys (node_.node_at (i), buffer_, func_, arg_);
     }
-    buffer_.resize (static_cast<u32> (buffer_.size () - prefix_length));
+    buffer_.resize ( (buffer_.size () - prefix_length));
 }
 
 void radix_tree_t::apply (

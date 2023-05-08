@@ -97,7 +97,7 @@ let mut msg = ZmqMessage::default();
 let mut msg = ZmqMessage::default();
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 1));
 
-        char *data = static_cast<char *> (zmq_msg_data (&msg));
+        char *data =  (zmq_msg_data (&msg));
         data[0] = 2;
 
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_set_routing_id (&msg, routing_id));

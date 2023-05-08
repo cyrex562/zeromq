@@ -2247,7 +2247,7 @@ impl ZmqSocketBase {
                     //  Send event and value in first frame
                     // const uint16_t event = static_cast<uint16_t> (event_);
                     let event = event_ as u16;
-                    // const u32 value = static_cast<u32> (values_[0]);
+                    // const u32 value =  (values_[0]);
                     let value = values_[0] as u32;
                     zmq_msg_init_size(
                         &mut raw_msg,

@@ -68,7 +68,7 @@ use libc::{EAGAIN, memcmp, memcpy, memset};
 use crate::curve_server::curve_server_t;
 use crate::endpoint::EndpointUriPair;
 use crate::fd::ZmqFileDesc;
-use crate::gssapi_client::gssapi_client_t;
+use crate::gssapi_client::ZmqGssApiClient;
 use crate::gssapi_server::gssapi_server_t;
 use crate::message::{ZMQ_MSG_CANCEL, ZMQ_MSG_COMMAND, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZMQ_MSG_ROUTING_ID, ZMQ_MSG_SUBSCRIBE, ZmqMessage};
 use crate::options::ZmqOptions;
@@ -520,7 +520,7 @@ impl ZmqZmtpEngine {
             if (self._options.as_server) {
                 self._mechanism = gssapi_server_t::new(session(), self._peer_address, self._options);
             } else {
-                self._mechanism = gssapi_client_t::new(session(), self._options);
+                self._mechanism = ZmqGssApiClient::new(session(), self._options);
             }
             // alloc_assert (self._mechanism);
         }

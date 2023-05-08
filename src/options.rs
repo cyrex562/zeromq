@@ -1,5 +1,12 @@
-use crate::tcp_address::TcpAddressMask;
-use crate::utils::copy_bytes;
+use std::collections::{HashMap, HashSet};
+use std::ffi::{CStr, CString};
+use std::mem;
+use std::ptr::null_mut;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+use anyhow::{anyhow, bail};
+use libc::{c_void, gid_t, memcpy, pid_t, uid_t, EINVAL};
+
 use crate::defines::{
     ZMQ_AFFINITY, ZMQ_BACKLOG, ZMQ_BINDTODEVICE, ZMQ_BUSY_POLL, ZMQ_CONFLATE, ZMQ_CONNECT_TIMEOUT,
     ZMQ_CURVE, ZMQ_CURVE_PUBLICKEY, ZMQ_CURVE_SECRETKEY, ZMQ_CURVE_SERVER, ZMQ_CURVE_SERVERKEY,
@@ -22,14 +29,9 @@ use crate::defines::{
     ZMQ_WSS_HOSTNAME, ZMQ_WSS_KEY_PEM, ZMQ_WSS_TRUST_PEM, ZMQ_WSS_TRUST_SYSTEM, ZMQ_ZAP_DOMAIN,
     ZMQ_ZAP_ENFORCE_DOMAIN,
 };
+use crate::tcp_address::TcpAddressMask;
+use crate::utils::copy_bytes;
 use crate::utils::zmq_z85_encode;
-use anyhow::{anyhow, bail};
-use libc::{c_void, gid_t, memcpy, pid_t, uid_t, EINVAL};
-use std::collections::{HashMap, HashSet};
-use std::ffi::{CStr, CString};
-use std::mem;
-use std::ptr::null_mut;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqOptions {
@@ -856,8 +858,8 @@ impl ZmqOptions {
             ZMQ_GSSAPI_PRINCIPAL_NAMETYPE => {
                 if is_int
                     && (value == ZMQ_GSSAPI_NT_HOSTBASED
-                    || value == ZMQ_GSSAPI_NT_USER_NAME
-                    || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL)
+                        || value == ZMQ_GSSAPI_NT_USER_NAME
+                        || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL)
                 {
                     self.gss_principal_nt = value;
                     return Ok(());
@@ -867,8 +869,8 @@ impl ZmqOptions {
             ZMQ_GSSAPI_SERVICE_PRINCIPAL_NAMETYPE => {
                 if is_int
                     && (value == ZMQ_GSSAPI_NT_HOSTBASED
-                    || value == ZMQ_GSSAPI_NT_USER_NAME
-                    || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL)
+                        || value == ZMQ_GSSAPI_NT_USER_NAME
+                        || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL)
                 {
                     self.gss_service_principal_nt = value;
                     return Ok(());
@@ -1665,10 +1667,10 @@ pub fn get_effective_conflate_option(options: &ZmqOptions) -> bool {
     // conflate is only effective for some socket types
     return options.conflate
         && (options.type_ == ZMQ_DEALER
-        || options.type_ == ZMQ_PULL
-        || options.type_ == ZMQ_PUSH
-        || options.type_ == ZMQ_PUB
-        || options.type_ == ZMQ_SUB);
+            || options.type_ == ZMQ_PULL
+            || options.type_ == ZMQ_PUSH
+            || options.type_ == ZMQ_PUB
+            || options.type_ == ZMQ_SUB);
 }
 
 // int do_getsockopt (opt_val: *mut c_void,
@@ -1728,7 +1730,7 @@ pub fn sockopt_invalid() -> i32 {
 //     // unsafe { libc::memcpy(opt_val, value_, value_len_); }
 //     // opt_val.clone_from_slice(&val_in[0..val_in_len]);
 //     // TODO why is the remaining memory null-ed?
-//     // libc::memset (static_cast<char *> (opt_val) + value_len_, 0,
+//     // libc::memset ( (opt_val) + value_len_, 0,
 //     //         *opt_val_len - value_len_);
 //     // *opt_val_len = val_in_len;
 //     copy_bytes(opt_val, 0, val_in, 0, val_in.len());

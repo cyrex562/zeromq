@@ -52,6 +52,7 @@
 //  state machine actions.
 
 use crate::message::ZmqMessage;
+use crate::utils::copy_bytes;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqBaseEncoder {
@@ -108,7 +109,7 @@ impl ZmqBaseEncoder {
     //  The function returns a batch of binary data. The data
     //  are filled to a supplied buffer. If no buffer is supplied (data
     //  points to NULL) decoder object will provide buffer of its own.
-    pub fn encode(&mut self, data: &mut Option<&mut [u8]>, size: usize) -> usize {
+    pub fn encode(&mut self, data: &mut Option<&mut [u8]>, size: usize) -> Option<&mut [u8]> {
         //
         // unsigned char *buffer = !*data ? buf : *data;
         let buffer = if data.is_some() {
@@ -120,7 +121,7 @@ impl ZmqBaseEncoder {
         let buffer_size = if data.is_some() { size } else { self.buf_size };
 
         if (self.in_progress.is_none()) {
-            return 0;
+            return None;
         }
 
         let mut pos = 0;
@@ -150,25 +151,31 @@ impl ZmqBaseEncoder {
             //  As a consequence, large messages being sent won't block
             //  other engines running in the same I/O thread for excessive
             //  amounts of time.
-            if (!pos && data.is_none() && self.to_write >= buffersize) {
+            if (pos == 0 && data.is_none() && self.to_write >= buffersize) {
                 // *data = write_pos;
                 pos = to_write;
                 self.write_pos = 0;
                 self.to_write = 0;
-                return self.buf[pos..].as_mut();
+                return Some(self.buf[pos..].as_mut());
             }
 
             //  Copy data to the buffer. If the buffer is full, return.
             let to_copy = usize::min(self.to_write, buffersize - pos);
             // memcpy (buffer + pos, write_pos, to_copy);
-            copy_bytes(buffer, pos, self.buf, self.write_pos, to_copy);
+            copy_bytes(
+                buffer,
+                pos as i32,
+                self.buf.as_slice(),
+                self.write_pos,
+                to_copy as i32,
+            );
             pos += to_copy;
             self.write_pos += to_copy;
             self.to_write -= to_copy;
         }
 
         *data = Some(buffer);
-        return pos;
+        return Some(&mut self.buf[pos..]);
     }
 
     pub fn load_msg(&mut self, msg: &mut ZmqMessage) {
@@ -184,7 +191,13 @@ impl ZmqBaseEncoder {
 
     //  This function should be called from derived class to write the data
     //  to the buffer and schedule next state machine action.
-    pub fn next_step(write_pos_: usize, to_write_: usize, next_: step_t, new_msg_flag_: bool) {
+    pub fn next_step(
+        &mut self,
+        write_pos_: usize,
+        to_write_: usize,
+        next_: step_t,
+        new_msg_flag_: bool,
+    ) {
         self.write_pos = write_pos_;
         to_write = to_write_;
         self.next = next_;

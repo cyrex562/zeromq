@@ -274,7 +274,7 @@ int tcp_read (ZmqFileDesc s_, data: &mut [u8], size: usize)
 // #ifdef ZMQ_HAVE_WINDOWS
 
     let rc: i32 =
-      recv (s_, static_cast<char *> (data), static_cast<int> (size), 0);
+      recv (s_,  (data), static_cast<int> (size), 0);
 
     //  If not a single byte can be read from the socket in non-blocking mode
     //  we'll get an error (this may happen during the speculative read).
@@ -296,7 +296,7 @@ int tcp_read (ZmqFileDesc s_, data: &mut [u8], size: usize)
 
 // #else
 
-    const ssize_t rc = recv (s_, static_cast<char *> (data), size, 0);
+    const ssize_t rc = recv (s_,  (data), size, 0);
 
     //  Several errors are OK. When speculative read is being done we may not
     //  be able to read a single byte from the socket. Also, SIGSTOP issued

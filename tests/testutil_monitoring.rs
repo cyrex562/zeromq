@@ -46,7 +46,7 @@ let mut msg = ZmqMessage::default();
         const uint8_t *const data =
           static_cast<const uint8_t *> (zmq_msg_data (&msg));
         const size_t size = zmq_msg_size (&msg);
-        *address_ = static_cast<char *> (malloc (size + 1));
+        *address_ =  (malloc (size + 1));
         memcpy (*address_, data, size);
         (*address_)[size] = 0;
     }

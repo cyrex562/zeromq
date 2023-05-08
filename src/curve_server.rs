@@ -1088,7 +1088,7 @@ impl ZmqCurveServer {
 //     zmq_assert (status_code.length () == 3);
 //     let rc: i32 = msg.init_size (6 + 1 + expected_status_code_length);
 //     zmq_assert (rc == 0);
-//     char *msg_data = static_cast<char *> (msg.data ());
+//     char *msg_data =  (msg.data ());
 //     memcpy (msg_data, "\5ERROR", 6);
 //     msg_data[6] = expected_status_code_length;
 //     memcpy (msg_data + 7, status_code, expected_status_code_length);

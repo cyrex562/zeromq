@@ -1,11 +1,11 @@
 use std::mem;
 
+use crate::sockaddr::ZmqSockaddr;
 use anyhow::bail;
 use chrono::{DateTime, Local, NaiveTime};
 use libc::EINVAL;
 use windows::Win32::Networking::WinSock;
-use windows::Win32::Networking::WinSock::{ADDRESS_FAMILY, SOCKADDR, socklen_t};
-use crate::sockaddr::ZmqSockaddr;
+use windows::Win32::Networking::WinSock::{socklen_t, ADDRESS_FAMILY, SOCKADDR};
 
 pub fn copy_bytes(dest: &mut [u8], dest_offset: i32, src: &[u8], src_offset: usize, count: i32) {
     for i in 0..count {
@@ -252,7 +252,7 @@ pub fn zmq_curve_public(z85_public_key_: &mut [u8], z85_secret_key_: &str) -> an
     // #endif
 }
 
-pub fn zmq_getnameinfo(sa: &ZmqSockaddr) -> anyhow::Result<(i32,String)> {
+pub fn zmq_getnameinfo(sa: &ZmqSockaddr) -> anyhow::Result<(i32, String)> {
     #[cfg(windows)]
     {
         let sock_addr = SOCKADDR {
@@ -261,10 +261,12 @@ pub fn zmq_getnameinfo(sa: &ZmqSockaddr) -> anyhow::Result<(i32,String)> {
         };
         let sock_len = socklen_t(sa.socklen() as i32);
 
-        let mut pnodebuf: [u8;256] = [0;256];
+        let mut pnodebuf: [u8; 256] = [0; 256];
         let mut hname = String::new();
         let mut result = 0i32;
-        unsafe { result = WinSock::getnameinfo(&sock_addr, sock_len, Some(&mut pnodebuf), None, 0); };
+        unsafe {
+            result = WinSock::getnameinfo(&sock_addr, sock_len, Some(&mut pnodebuf), None, 0);
+        };
         if result == 0 {
             hname = String::from_utf8_lossy(&pnodebuf).into();
         }
@@ -277,14 +279,26 @@ pub fn zmq_getnameinfo(sa: &ZmqSockaddr) -> anyhow::Result<(i32,String)> {
             sa_data: sa.data[0..14].into(),
         };
         let sock_len = socklen_t(sa.socklen() as i32);
-        let host: [c_char;256] = [0;256];
+        let host: [c_char; 256] = [0; 256];
         let host_len = host.len() as socklen_t;
-        let serv: [c_char;256] = [0;256];
+        let serv: [c_char; 256] = [0; 256];
         let srv_len = serv.len() as socklen_t;
         let mut result = 0i32;
-        unsafe { result = libc::getnameinfo(&sock_addr, sock_len, host.as_ptr(), host_len, serv.as_ptr(), srv_len, 0); };
+        unsafe {
+            result = libc::getnameinfo(
+                &sock_addr,
+                sock_len,
+                host.as_ptr(),
+                host_len,
+                serv.as_ptr(),
+                srv_len,
+                0,
+            );
+        };
         if result == 0 {
-            let hname = unsafe { CStr::from_ptr(host.as_ptr()) }.to_string_lossy().into();
+            let hname = unsafe { CStr::from_ptr(host.as_ptr()) }
+                .to_string_lossy()
+                .into();
         }
         Ok((result, hname))
     }

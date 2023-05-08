@@ -499,7 +499,7 @@ impl IpResolver {
     // // #ifdef ZMQ_HAVE_WINDOWS_UWP
     //     char *buffer = (char *) malloc (1024);
     // // #else
-    //     char *buffer = static_cast<char *> (malloc (IF_MAX_STRING_SIZE));
+    //     char *buffer =  (malloc (IF_MAX_STRING_SIZE));
     // // #endif
     //     alloc_assert (buffer);
     //
@@ -524,7 +524,7 @@ impl IpResolver {
     //     const int buffer_len =
     //       WideCharToMultiByte (CP_UTF8, 0, src_, -1, NULL, 0, NULL, 0);
     //
-    //     char *buffer = static_cast<char *> (malloc (buffer_len));
+    //     char *buffer =  (malloc (buffer_len));
     //     alloc_assert (buffer);
     //
     //     rc =

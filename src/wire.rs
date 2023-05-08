@@ -69,10 +69,10 @@ inline uint16_t get_uint16 (const unsigned char *buffer_)
 
 inline u32 get_uint32 (const unsigned char *buffer_)
 {
-    return ((static_cast<u32> (buffer_[0])) << 24)
-           | ((static_cast<u32> (buffer_[1])) << 16)
-           | ((static_cast<u32> (buffer_[2])) << 8)
-           | (static_cast<u32> (buffer_[3]));
+    return (( (buffer_[0])) << 24)
+           | (( (buffer_[1])) << 16)
+           | (( (buffer_[2])) << 8)
+           | ( (buffer_[3]));
 }
 
 // inline void put_uint64 (unsigned char *buffer_, u64 value_)

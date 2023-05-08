@@ -48,7 +48,7 @@ void test_peer ()
 let mut msg = ZmqMessage::default();
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 1));
 
-        char *data = static_cast<char *> (zmq_msg_data (&msg));
+        char *data =  (zmq_msg_data (&msg));
         data[0] = 1;
 
         TEST_ASSERT_SUCCESS_ERRNO (
@@ -76,7 +76,7 @@ let mut msg = ZmqMessage::default();
 let mut msg = ZmqMessage::default();
         TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, 1));
 
-        char *data = static_cast<char *> (zmq_msg_data (&msg));
+        char *data =  (zmq_msg_data (&msg));
         data[0] = 2;
 
         TEST_ASSERT_SUCCESS_ERRNO (

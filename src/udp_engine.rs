@@ -453,7 +453,7 @@ void udp_engine_t::sockaddr_to_msg (msg: &mut ZmqMessage
 
     //  use memcpy instead of strcpy/strcat, since this is more efficient when
     //  we already know the lengths, which we calculated above
-    char *address = static_cast<char *> (msg.data ());
+    char *address =  (msg.data ());
     memcpy (address, name, name_len);
     address += name_len;
     *address+= 1 = ':';
@@ -524,7 +524,7 @@ void udp_engine_t::out_event ()
         size: usize;
 
         if (self._options.raw_socket) {
-            rc = resolve_raw_address (static_cast<char *> (group_msg.data ()),
+            rc = resolve_raw_address ( (group_msg.data ()),
                                       group_size);
 
             //  We discard the message if address is not valid

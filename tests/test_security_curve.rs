@@ -290,9 +290,9 @@ static u64 host_to_network (u64 value_)
 
     // Check the endianness
     if (* (&num) == num) {
-        const u32 high_part = htonl (static_cast<u32> (value_ >> 32));
+        const u32 high_part = htonl ( (value_ >> 32));
         const u32 low_part =
-          htonl (static_cast<u32> (value_ & 0xFFFFFFFFLL));
+          htonl ( (value_ & 0xFFFFFFFFLL));
 
         return (static_cast<u64> (low_part) << 32) | high_part;
     }

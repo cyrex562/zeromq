@@ -275,7 +275,7 @@ radio_session_t::~radio_session_t ()
 int radio_session_t::push_msg (msg: &mut ZmqMessage)
 {
     if (msg.flags () & ZMQ_MSG_COMMAND) {
-        char *command_data = static_cast<char *> (msg.data ());
+        char *command_data =  (msg.data ());
         const size_t data_size = msg.size ();
 
         group_length: i32;

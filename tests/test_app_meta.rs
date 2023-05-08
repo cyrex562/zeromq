@@ -109,7 +109,7 @@ let mut msg = ZmqMessage::default();
     rc = zmq_msg_init_size (&msg, 1);
     TEST_ASSERT_EQUAL_INT (0, rc);
 
-    char *data = static_cast<char *> (zmq_msg_data (&msg));
+    char *data =  (zmq_msg_data (&msg));
     data[0] = 1;
 
     rc = zmq_msg_send (&msg, req_sock, 0);

@@ -168,7 +168,7 @@ int plain_server_t::process_hello (msg: &mut ZmqMessage)
     if (rc == -1)
         return -1;
 
-    const char *ptr = static_cast<char *> (msg.data ());
+    const char *ptr =  (msg.data ());
     size_t bytes_left = msg.size ();
 
     if (bytes_left < hello_prefix_len
@@ -284,7 +284,7 @@ void plain_server_t::produce_error (msg: &mut ZmqMessage) const
     let rc: i32 = msg.init_size (error_prefix_len + status_code_len_size
                                     + expected_status_code_len);
     // zmq_assert (rc == 0);
-    char *msg_data = static_cast<char *> (msg.data ());
+    char *msg_data =  (msg.data ());
     memcpy (msg_data, error_prefix, error_prefix_len);
     msg_data[error_prefix_len] = expected_status_code_len;
     memcpy (msg_data + error_prefix_len + status_code_len_size,

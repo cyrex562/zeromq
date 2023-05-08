@@ -115,7 +115,7 @@ void test_roundtrip_large ()
 let mut msg = ZmqMessage::default();
     msg.init_size (2048);
     for (size_t pos = 0; pos < 2048; pos += 32) {
-        memcpy (static_cast<char *> (msg.data ()) + pos,
+        memcpy ( (msg.data ()) + pos,
                 "0123456789ABCDEF0123456789ABCDEF", 32);
     }
 

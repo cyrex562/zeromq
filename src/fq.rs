@@ -113,10 +113,10 @@ impl ZmqFq {
     }
 
     pub fn recv(&mut self, msg: &mut ZmqMessage) -> i32 {
-        return self.recvpipe(msg, &mut None);
+        return self.recvpipe(msg, None);
     }
 
-    pub fn recvpipe(&mut self, msg: &mut ZmqMessage, pipe: &mut Option<ZmqPipe>) -> i32 {
+    pub fn recvpipe(&mut self, msg: &mut ZmqMessage, pipe: Option<&mut ZmqPipe>) -> i32 {
         //  Deallocate old content of the message.
         let mut rc = msg.close();
         // errno_assert (rc == 0);
@@ -132,7 +132,7 @@ impl ZmqFq {
             //  the 'current' pointer.
             if (fetched) {
                 if (pipe.is_some()) {
-                    pipe.replace(self.pipes[self._current].clone()) // = pipes[_current];
+                    pipe.unwrap().replace(self.pipes[self._current].clone()) // = pipes[_current];
                 }
                 self.more = (msg.flags() & ZMQ_MSG_MORE) != 0;
                 if (!self.more) {

@@ -41,7 +41,7 @@
 // #include "wire.hpp"
 
 // #include <gssapi/gssapi.h>
-pub struct gssapi_server_t  : public gssapi_ZmqMechanismBase,
+pub struct gssapi_server_t  : public ZmqGssApiMechanismBase,
                                   public ZmqZapClient
 {
 //
@@ -92,7 +92,7 @@ gssapi_server_t::gssapi_server_t (ZmqSessionBase *session_,
                                        const std::string &peer_address_,
                                        options: &ZmqOptions) :
     ZmqMechanismBase (session_, options_),
-    gssapi_ZmqMechanismBase (session_, options_),
+    ZmqGssApiMechanismBase (session_, options_),
     ZmqZapClient (session_, peer_address_, options_),
     session (session_),
     peer_address (peer_address_),
@@ -101,9 +101,9 @@ gssapi_server_t::gssapi_server_t (ZmqSessionBase *session_,
 {
     maj_stat = GSS_S_CONTINUE_NEEDED;
     if (!options_.gss_principal.empty ()) {
-        const std::string::size_type principal_size =
+         principal_size =
           options_.gss_principal.size ();
-        principal_name = static_cast<char *> (malloc (principal_size + 1));
+        principal_name =  (malloc (principal_size + 1));
         assert (principal_name);
         memcpy (principal_name, options_.gss_principal,
                 principal_size + 1);

@@ -58,13 +58,13 @@ static void do_check (sb_: *mut c_void, sc_: *mut c_void, msg_size_: usize)
 
     send_count = recv_count = num_messages;
 
-    char *ref_msg = static_cast<char *> (malloc (msg_size_));
+    char *ref_msg =  (malloc (msg_size_));
     TEST_ASSERT_NOT_NULL (ref_msg);
     memset (ref_msg, msg_val, msg_size_);
 
     // zmq_sendiov(3) as a single multi-part send
     struct iovec send_iov[num_messages];
-    char *buf = static_cast<char *> (malloc (msg_size_ * num_messages));
+    char *buf =  (malloc (msg_size_ * num_messages));
 
     for (int i = 0; i < num_messages; i+= 1) {
         send_iov[i].iov_base = &buf[i * msg_size_];

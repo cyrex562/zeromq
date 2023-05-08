@@ -1,7 +1,11 @@
 use crate::context::ZmqContext;
+use crate::defines::ZMQ_GATHER;
 use crate::fq::ZmqFq;
-use crate::proxy::ZmqSocketBase;
+use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
+
 
 #[derive(Default,Debug,Clone)]
 pub struct ZmqGather
@@ -30,67 +34,79 @@ pub struct ZmqGather
 
 impl ZmqGather {
 
-    pub fn new(parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
+    pub fn new(parent: &mut ZmqContext, options: &mut ZmqOptions, tid: u32, sid_: i32) -> Self
     {
         // :
         //     ZmqSocketBase (parent_, tid, sid_, true)
         // options.type = ZMQ_GATHER;
         let mut out = Self {
-            socket_base: ZmqSocketBase::new()
             ..Default::default()
         };
-        out.socket_base.
-    }
-}
-
-
-
-ZmqGather::~ZmqGather ()
-{
-}
-
-void ZmqGather::xattach_pipe (pipe: &mut ZmqPipe,
-                                  subscribe_to_all_: bool,
-                                  locally_initiated_: bool)
-{
-    LIBZMQ_UNUSED (subscribe_to_all_);
-    LIBZMQ_UNUSED (locally_initiated_);
-
-    // zmq_assert (pipe);
-    fair_queue.attach (pipe);
-}
-
-void ZmqGather::xread_activated (pipe: &mut ZmqPipe)
-{
-    fair_queue.activated (pipe);
-}
-
-void ZmqGather::xpipe_terminated (pipe: &mut ZmqPipe)
-{
-    fair_queue.pipe_terminated (pipe);
-}
-
-int ZmqGather::xrecv (msg: &mut ZmqMessage)
-{
-    int rc = fair_queue.recvpipe (msg, null_mut());
-
-    // Drop any messages with more flag
-    while (rc == 0 && msg.flags () & ZMQ_MSG_MORE) {
-        // drop all frames of the current multi-frame message
-        rc = fair_queue.recvpipe (msg, null_mut());
-
-        while (rc == 0 && msg.flags () & ZMQ_MSG_MORE)
-            rc = fair_queue.recvpipe (msg, null_mut());
-
-        // get the new message
-        if (rc == 0)
-            rc = fair_queue.recvpipe (msg, null_mut());
+        options.type_ = ZMQ_GATHER as i32;
+        out
     }
 
-    return rc;
+    pub fn xattach_pipe (&mut self, pipe: &mut ZmqPipe,
+                         subscribe_to_all_: bool,
+                         locally_initiated_: bool)
+    {
+        // LIBZMQ_UNUSED (subscribe_to_all_);
+        // LIBZMQ_UNUSED (locally_initiated_);
+
+        // zmq_assert (pipe);
+        self.fair_queue.attach (pipe);
+    }
+
+    pub fn xread_activated (&mut self, pipe: &mut ZmqPipe)
+    {
+        self.fair_queue.activated (pipe);
+    }
+
+    pub fn xpipe_terminated (&mut self, pipe: &mut ZmqPipe)
+    {
+        self.fair_queue.pipe_terminated (pipe);
+    }
+
+    pub fn xrecv (&mut self, msg: &mut ZmqMessage) -> i32
+    {
+        let rc = self.fair_queue.recvpipe (msg, None);
+
+        // Drop any messages with more flag
+        while (rc == 0 && msg.flags () & ZMQ_MSG_MORE != 0) {
+            // drop all frames of the current multi-frame message
+            rc = self.fair_queue.recvpipe (msg, None);
+
+            while (rc == 0 && msg.flags () & ZMQ_MSG_MORE != 0 {
+                rc = self.fair_queue.recvpipe(msg, None);
+            }
+
+            // get the new message
+            if (rc == 0) {
+                rc = self.fair_queue.recvpipe(msg, None);
+            }
+        }
+
+        return rc;
+    }
+
+    pub fn xhas_in (&mut self) -> bool
+    {
+        return self.fair_queue.has_in ();
+    }
+
 }
 
-bool ZmqGather::xhas_in ()
-{
-    return fair_queue.has_in ();
-}
+
+
+// ZmqGather::~ZmqGather ()
+// {
+// }
+
+
+
+
+
+
+
+
+
