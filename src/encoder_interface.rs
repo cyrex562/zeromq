@@ -33,26 +33,26 @@
 // #include "macros.hpp"
 // #include "stdint.hpp"
 
-namespace zmq
-{
 //  Forward declaration
-pub struct ZmqMessage;
+// pub struct ZmqMessage;
 
 //  Interface to be implemented by message encoder.
 
-struct ZmqBaseEncoder
-{
-    virtual ~ZmqBaseEncoder () ZMQ_DEFAULT;
+use crate::message::ZmqMessage;
 
+pub trait ZmqBaseEncoder {
+    // virtual ~ZmqBaseEncoder () ZMQ_DEFAULT;
     //  The function returns a batch of binary data. The data
     //  are filled to a supplied buffer. If no buffer is supplied (data
     //  is NULL) encoder will provide buffer of its own.
     //  Function returns 0 when a new message is required.
-    virtual size_t encode (unsigned char **data, size: usize) = 0;
+
+    fn encode(&mut self, data: &mut &mut [u8], size: usize) -> usize;
 
     //  Load a new message into encoder.
-    virtual void load_msg (msg: &mut ZmqMessage) = 0;
-};
+    // virtual void load_msg (msg: &mut ZmqMessage) = 0;
+
+    fn load_msg(&mut self, msg: &mut ZmqMessage);
 }
 
 // #endif

@@ -295,8 +295,8 @@ void plain_server_t::send_zap_request (const std::string &username_,
                                             password_: &str)
 {
     const uint8_t *credentials[] = {
-      reinterpret_cast<const uint8_t *> (username_.c_str ()),
-      reinterpret_cast<const uint8_t *> (password_.c_str ())};
+       (username_.c_str ()),
+       (password_.c_str ())};
     size_t credentials_sizes[] = {username_.size (), password_.size ()};
     pub const plain_mechanism_name: &str = "PLAIN";
     ZmqZapClient::send_zap_request (

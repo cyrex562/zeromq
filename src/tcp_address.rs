@@ -256,17 +256,17 @@ impl TcpAddressMask {
         if ss.is_ipv6() {
             // zmq_assert (ss_len_ == sizeof (struct sockaddr_in6));
             ss.ip().
-            their_bytes = reinterpret_cast<const uint8_t *> (
+            their_bytes =  (
               &((reinterpret_cast<const struct sockaddr_in6 *> (ss.))
                   ->sin6_addr));
-            our_bytes = reinterpret_cast<const uint8_t *> (
+            our_bytes =  (
               &self.network_address.ipv6.sin6_addr);
             mask = sizeof (struct in6_addr) * 8;
         } else {
             // zmq_assert (ss_len_ == sizeof (struct sockaddr_in));
-            their_bytes = reinterpret_cast<const uint8_t *> (&(
+            their_bytes =  (&(
               (reinterpret_cast<const struct sockaddr_in *> (ss.))->sin_addr));
-            our_bytes = reinterpret_cast<const uint8_t *> (
+            our_bytes =  (
               &self.network_address.ipv4.sin_addr);
             mask = sizeof (struct in_addr) * 8;
         }
