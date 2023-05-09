@@ -355,7 +355,7 @@ ZmqFileDesc ipc_listener_t::accept ()
 // #endif
 
     const ZmqFileDesc sock =
-      ::accept (_s, reinterpret_cast<struct sockaddr *> (&ss), &ss_len);
+      ::accept (_s, (&ss), &ss_len);
 // #endif
     if (sock == retired_fd) {
 // #if defined ZMQ_HAVE_WINDOWS

@@ -54,7 +54,7 @@
 // #include <TargetConditionals.h>
 // #endif
 
-int tune_tcp_socket (ZmqFileDesc s_)
+int tune_tcp_socket (s_: ZmqFileDesc)
 {
     //  Disable Nagle's algorithm. We are doing data batching on 0MQ level,
     //  so using Nagle wouldn't improve throughput in anyway, but it would
@@ -95,7 +95,7 @@ int set_tcp_receive_buffer (ZmqFileDesc sockfd_, bufsize_: i32)
     return rc;
 }
 
-int tune_tcp_keepalives (ZmqFileDesc s_,
+int tune_tcp_keepalives (s_: ZmqFileDesc,
                               keepalive_: i32,
                               keepalive_cnt_: i32,
                               keepalive_idle_: i32,
@@ -210,7 +210,7 @@ int tune_tcp_maxrt (ZmqFileDesc sockfd_, timeout: i32)
 // #endif
 }
 
-int tcp_write (ZmqFileDesc s_, const data: &mut [u8], size: usize)
+int tcp_write (s_: ZmqFileDesc, const data: &mut [u8], size: usize)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
 
@@ -269,7 +269,7 @@ int tcp_write (ZmqFileDesc s_, const data: &mut [u8], size: usize)
 // #endif
 }
 
-int tcp_read (ZmqFileDesc s_, data: &mut [u8], size: usize)
+int tcp_read (s_: ZmqFileDesc, data: &mut [u8], size: usize)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
 

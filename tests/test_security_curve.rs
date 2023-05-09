@@ -299,7 +299,7 @@ static u64 host_to_network (u64 value_)
     return value_;
 }
 
-template <size_t N> void send_command (ZmqFileDesc s_, char (&command_)[N])
+template <size_t N> void send_command (s_: ZmqFileDesc, char (&command_)[N])
 {
     if (N < 256) {
         send (s_, "\x04");

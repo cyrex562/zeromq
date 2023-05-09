@@ -127,7 +127,7 @@ vmci_listener_t::get_socket_name (fd: ZmqFileDesc,
         return std::string ();
     }
 
-    const VmciAddress addr (reinterpret_cast<struct sockaddr *> (&ss), sl,
+    const VmciAddress addr ((&ss), sl,
                                this.get_ctx ());
     address_string: String;
     addr.to_string (address_string);

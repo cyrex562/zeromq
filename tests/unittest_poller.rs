@@ -54,7 +54,7 @@ void test_start_empty ()
 }
 // #endif
 
-struct test_events_t : i_poll_events
+struct test_events_t : ZmqPollEventsInterface
 {
     test_events_t (fd: ZmqFileDesc, Poller &poller_) :
         _fd (fd),

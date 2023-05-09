@@ -54,7 +54,7 @@
 // #define kevent_udata_t void *
 // #endif
 
-struct i_poll_events;
+struct ZmqPollEventsInterface;
 
 //  Implements socket polling mechanism using the BSD-specific
 //  kqueue interface.
@@ -67,7 +67,7 @@ pub struct kqueue_t  : public WorkerPollerBase
     ~kqueue_t () ;
 
     //  "poller" concept.
-    handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
+    handle_t add_fd (fd: ZmqFileDesc, ZmqPollEventsInterface *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -95,7 +95,7 @@ pub struct kqueue_t  : public WorkerPollerBase
         ZmqFileDesc fd;
         flag_pollin: bool
         flag_pollout: bool
-        i_poll_events *reactor;
+        ZmqPollEventsInterface *reactor;
     };
 
     //  List of retired event sources.
@@ -149,7 +149,7 @@ void kqueue_t::kevent_delete (fd: ZmqFileDesc, short filter_)
 }
 
 kqueue_t::handle_t kqueue_t::add_fd (fd: ZmqFileDesc,
-                                               i_poll_events *reactor_)
+                                               ZmqPollEventsInterface *reactor_)
 {
     check_thread ();
     ZmqPollEntry *pe =  ZmqPollEntry;

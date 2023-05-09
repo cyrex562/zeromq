@@ -27,24 +27,24 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::command::ZmqCommand;
-use crate::ypipe::Ypipe;
 use std::sync::Mutex;
+
+use crate::command::ZmqCommand;
 use crate::fd::ZmqFileDesc;
 use crate::pipe::PipeState::active;
 use crate::signaler::ZmqSignaler;
+use crate::ypipe::Ypipe;
 
 pub const COMMAND_PIPE_GRANULARITY: i32 = 16;
 
 // #include "precompiled.hpp"
 // #include "mailbox.hpp"
 // #include "err.hpp"
-#[derive(Default,Debug,Clone)]
-//   : public i_mailbox
-pub struct ZmqMailbox
-{
-//
-  //
+#[derive(Default, Debug, Clone)]
+//   : public ZmqMailboxInterface
+pub struct ZmqMailbox {
+    //
+    //
     //  The pipe to store actual commands.
     // typedef Ypipe<ZmqCommand, command_pipe_granularity> cpipe_t;
     // cpipe_t cpipe;
@@ -64,15 +64,13 @@ pub struct ZmqMailbox
     //  True if the underlying pipe is active, ie. when we are allowed to
     //  read commands from it.
     pub active: bool,
-
     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_t)
 }
 
 impl ZmqMailbox {
     // mailbox_t ();
     // mailbox_t::mailbox_t ()
-    pub fn new() -> Self
-    {
+    pub fn new() -> Self {
         //  Get the pipe into passive state. That way, if the users starts by
         //  polling on the associated file descriptor it will get woken up when
         //  new command is posted. const bool ok = cpipe.check_read ();
@@ -97,22 +95,20 @@ impl ZmqMailbox {
 
     // ZmqFileDesc get_fd () const;
     // ZmqFileDesc mailbox_t::get_fd () const
-    pub fn get_fd(&mut self) -> ZmqFileDesc
-    {
-    return self.signaler.get_fd ();
+    pub fn get_fd(&mut self) -> ZmqFileDesc {
+        return self.signaler.get_fd();
     }
 
     // void send (const ZmqCommand &cmd);
-    pub fn send(&mut self, cmd: &ZmqCommand) -> anyhow::Result<()>
-    {
+    pub fn send(&mut self, cmd: &ZmqCommand) -> anyhow::Result<()> {
         // sync.lock ();
         let guard = self.sync.lock()?;
-        self.cpipe.write (cmd, false);
-        let ok = self.cpipe.flush ();
+        self.cpipe.write(cmd, false);
+        let ok = self.cpipe.flush();
         //sync.unlock ();
         std::mem::drop(guard);
 
-        if ( ! ok) {
+        if (!ok) {
             self.signaler.send();
         }
 
@@ -123,7 +119,9 @@ impl ZmqMailbox {
     pub fn recv(&mut self, cmd: &mut ZmqCommand, timeout: i32) -> anyhow::Result<()> {
         //  Try to get the command straight away.
         if (active) {
-            if (self.cpipe.read(cmd)) { return Ok(()) }
+            if (self.cpipe.read(cmd)) {
+                return Ok(());
+            }
 
             //  If there are no more commands available, switch into passive state.
             self.active = false;
@@ -149,18 +147,17 @@ impl ZmqMailbox {
         Ok(())
     }
 
-// bool valid () const;
-    pub fn valid (&mut self) -> bool {
-        self.signaler.valid ()
+    // bool valid () const;
+    pub fn valid(&mut self) -> bool {
+        self.signaler.valid()
     }
 
     // #ifdef HAVE_FORK
     // close the file descriptors in the signaller. This is used in a forked
     // child process to close the file descriptors so that they do not interfere
     // with the context in the parent process.
-    pub fn forked (&mut self)
-    {
-        self.signaler.forked ();
+    pub fn forked(&mut self) {
+        self.signaler.forked();
     }
     // #endif
 }

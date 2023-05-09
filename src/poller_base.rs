@@ -39,8 +39,8 @@ pub struct poller_base_t
 
     // Methods from the poller concept.
     int get_load () const;
-    void add_timer (timeout: i32, i_poll_events *sink_, id_: i32);
-    void cancel_timer (i_poll_events *sink_, id_: i32);
+    void add_timer (timeout: i32, ZmqPollEventsInterface *sink_, id_: i32);
+    void cancel_timer (ZmqPollEventsInterface *sink_, id_: i32);
 
 
     //  Called by individual poller implementations to manage the load.
@@ -57,7 +57,7 @@ pub struct poller_base_t
     //  List of active timers.
     struct timer_info_t
     {
-        i_poll_events *sink;
+        ZmqPollEventsInterface *sink;
         id: i32;
     };
     typedef std::multimap<u64, timer_info_t> timers_t;
@@ -122,14 +122,14 @@ void poller_base_t::adjust_load (amount_: i32)
         _load.sub (-amount_);
 }
 
-void poller_base_t::add_timer (timeout: i32, i_poll_events *sink_, id_: i32)
+void poller_base_t::add_timer (timeout: i32, ZmqPollEventsInterface *sink_, id_: i32)
 {
     u64 expiration = _clock.now_ms () + timeout;
     timer_info_t info = {sink_, id_};
     _timers.insert (timers_t::value_type (expiration, info));
 }
 
-void poller_base_t::cancel_timer (i_poll_events *sink_, id_: i32)
+void poller_base_t::cancel_timer (ZmqPollEventsInterface *sink_, id_: i32)
 {
     //  Complexity of this operation is O(n). We assume it is rarely used.
     for (timers_t::iterator it = _timers.begin (), end = _timers.end ();

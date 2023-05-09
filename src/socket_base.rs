@@ -28,7 +28,7 @@ use crate::defines::{
 };
 use crate::endpoint::{EndpointUriPair, make_unconnected_bind_endpoint_pair, ZmqEndpoint};
 use crate::endpoint::EndpointType::endpoint_type_none;
-use crate::i_mailbox::i_mailbox;
+use crate::ZmqMailboxInterface::ZmqMailboxInterface;
 use crate::io_thread::ZmqThread;
 use crate::ipc_address::IpcAddress;
 use crate::ipc_listener::ipc_listener_t;
@@ -83,8 +83,8 @@ pub struct ZmqSocketBase {
     pub destroyed: bool,
 
     //  Socket's mailbox object.
-    // i_mailbox *mailbox;
-    pub mailbox: Option<i_mailbox>,
+    // ZmqMailboxInterface *mailbox;
+    pub mailbox: Option<ZmqMailboxInterface>,
 
     //  List of attached pipes.
     // typedef array_t<ZmqPipe, 3> pipes_t;
@@ -575,9 +575,9 @@ impl ZmqSocketBase {
     // }
 
     //  Returns the mailbox associated with this socket.
-    // i_mailbox *get_mailbox () const;
-    // i_mailbox *get_mailbox () const
-    pub fn get_mailbox(&mut self) -> Option<i_mailbox> {
+    // ZmqMailboxInterface *get_mailbox () const;
+    // ZmqMailboxInterface *get_mailbox () const
+    pub fn get_mailbox(&mut self) -> Option<ZmqMailboxInterface> {
         return self.mailbox.clone();
     }
 

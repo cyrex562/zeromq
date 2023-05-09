@@ -33,25 +33,21 @@
 // #include "macros.hpp"
 // #include "stdint.hpp"
 
-namespace zmq
-{
 //  Interface to be implemented by mailbox.
-pub struct i_mailbox
-{
-//
-    virtual ~i_mailbox () ZMQ_DEFAULT;
+pub trait ZmqMailboxInterface {
+    //
+    //     virtual ~ZmqMailboxInterface () ZMQ_DEFAULT;
+    // virtual void send (const ZmqCommand &cmd) = 0;
+    fn send(&mut self, cmd: &ZmqCommand);
+    // virtual int recv (cmd: &mut ZmqCommand timeout: i32) = 0;
+    fn recv(&mut self, cmd: &mut ZmqCommand, timeout: i32) -> i32;
 
-    virtual void send (const ZmqCommand &cmd) = 0;
-    virtual int recv (cmd: &mut ZmqCommand timeout: i32) = 0;
-
-
-// #ifdef HAVE_FORK
+    // #ifdef HAVE_FORK
     // close the file descriptors in the signaller. This is used in a forked
     // child process to close the file descriptors so that they do not interfere
     // with the context in the parent process.
-    virtual void forked () = 0;
-// #endif
-};
+    // virtual void forked () = 0;
+    // #endif
 }
 
 // #endif

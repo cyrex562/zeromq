@@ -33,7 +33,7 @@
 // #include "err.hpp"
 
 // #include <algorithm>
-pub struct mailbox_safe_t  : public i_mailbox
+pub struct mailbox_safe_t  : public ZmqMailboxInterface
 {
 //
     mailbox_safe_t (mutex_t *sync_);

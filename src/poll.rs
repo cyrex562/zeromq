@@ -50,7 +50,7 @@ pub struct poll_t  : public WorkerPollerBase
 
     //  "poller" concept.
     //  These methods may only be called from an event callback; add_fd may also be called before start.
-    handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
+    handle_t add_fd (fd: ZmqFileDesc, ZmqPollEventsInterface *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -69,7 +69,7 @@ pub struct poll_t  : public WorkerPollerBase
     struct FdEntry
     {
         ZmqFileDesc index;
-        i_poll_events *events;
+        ZmqPollEventsInterface *events;
     };
 
     //  This table stores data for registered descriptors.
@@ -98,7 +98,7 @@ poll_t::~poll_t ()
     stop_worker ();
 }
 
-poll_t::handle_t poll_t::add_fd (fd: ZmqFileDesc, i_poll_events *events_)
+poll_t::handle_t poll_t::add_fd (fd: ZmqFileDesc, ZmqPollEventsInterface *events_)
 {
     check_thread ();
     // zmq_assert (fd != retired_fd);

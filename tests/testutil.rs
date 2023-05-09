@@ -294,7 +294,7 @@ int is_ipv6_available ()
         if (rc != 0)
             ipv6 = 0;
         else {
-            rc = bind (fd, reinterpret_cast<struct sockaddr *> (&test_addr),
+            rc = bind (fd, (&test_addr),
                        mem::size_of::<test_addr>());
             if (rc != 0)
                 ipv6 = 0;

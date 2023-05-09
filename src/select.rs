@@ -63,7 +63,7 @@ pub struct select_t  : public WorkerPollerBase
     ~select_t () ;
 
     //  "poller" concept.
-    handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
+    handle_t add_fd (fd: ZmqFileDesc, ZmqPollEventsInterface *events_);
     void rm_fd (handle_t handle_);
     void set_pollin (handle_t handle_);
     void reset_pollin (handle_t handle_);
@@ -94,7 +94,7 @@ pub struct select_t  : public WorkerPollerBase
     struct FdEntry
     {
         ZmqFileDesc fd;
-        i_poll_events *events;
+        ZmqPollEventsInterface *events;
     };
     typedef std::vector<FdEntry> fd_entries_t;
 
@@ -182,7 +182,7 @@ select_t::~select_t ()
     stop_worker ();
 }
 
-select_t::handle_t select_t::add_fd (fd: ZmqFileDesc, i_poll_events *events_)
+select_t::handle_t select_t::add_fd (fd: ZmqFileDesc, ZmqPollEventsInterface *events_)
 {
     check_thread ();
     // zmq_assert (fd != retired_fd);

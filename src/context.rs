@@ -23,7 +23,7 @@ use crate::defines::{
     ZMQ_ZERO_COPY_RECV,
 };
 use crate::endpoint::ZmqEndpoint;
-use crate::i_mailbox::i_mailbox;
+use crate::ZmqMailboxInterface::ZmqMailboxInterface;
 use crate::io_thread::ZmqThread;
 use crate::mailbox::ZmqMailbox;
 use crate::message::ZmqMessage;
@@ -120,8 +120,8 @@ pub struct ZmqContext {
     pub io_threads: Vec<ZmqThread>,
 
     //  Array of pointers to mailboxes for both application and I/O threads.
-    // std::vector<i_mailbox *> _slots;
-    pub slots: Vec<*mut i_mailbox>,
+    // std::vector<ZmqMailboxInterface *> _slots;
+    pub slots: Vec<*mut ZmqMailboxInterface>,
 
     //  Mailbox for zmq_ctx_term thread.
     // mailbox_t _term_mailbox;

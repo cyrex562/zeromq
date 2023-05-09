@@ -32,7 +32,7 @@
 // #include "reaper.hpp"
 // #include "socket_base.hpp"
 // #include "err.hpp"
-pub struct reaper_t  : public ZmqObject, public i_poll_events
+pub struct reaper_t  : public ZmqObject, public ZmqPollEventsInterface
 {
 //
     reaper_t (ctx: &mut ZmqContext, tid: u32);

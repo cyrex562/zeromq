@@ -57,7 +57,7 @@ pub struct FdEntry {
     // short events;
     pub events: i16,
     // i_poll_events *reactor;
-    pub reactor: i_poll_events,
+    pub reactor: ZmqPollEventsInterface,
     // valid: bool
     pub valid: bool,
     // accepted: bool
@@ -102,7 +102,7 @@ impl DevPoll {
 
     //  "poller" concept.
     // handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
-    pub fn add_fd(&mut self, fd: &ZmqHandle, reactor_: &mut i_poll_events) -> ZmqHandle {
+    pub fn add_fd(&mut self, fd: &ZmqHandle, reactor_: &mut ZmqPollEventsInterface) -> ZmqHandle {
         check_thread();
         //  If the file descriptor table is too small expand it.
         let sz = self.fd_table.size();

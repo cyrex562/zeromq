@@ -29,13 +29,11 @@ mod err;
 mod fd;
 mod fq;
 mod gather;
-
 mod decoder_interface;
 mod gssapi_client;
 mod gssapi_mechanism_base;
 mod gssapi_server;
-mod i_mailbox;
-mod i_poll_events;
+mod poll_events_interface;
 mod inprocs;
 mod io_object;
 mod io_thread;
@@ -117,7 +115,6 @@ mod timers;
 mod tipc_address;
 mod tipc_connecter;
 mod tipc_listener;
-
 mod content;
 mod defines;
 mod encoder_interface;
@@ -160,3 +157,4 @@ mod ypipe_base;
 mod ypipe_conflate;
 mod zap_client;
 mod zmtp_engine;
+mod mailbox_interface;

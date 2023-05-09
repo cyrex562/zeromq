@@ -163,6 +163,7 @@ use libc::{
     ECONNREFUSED, ECONNRESET, EFAULT, EHOSTUNREACH, EINTR, EINVAL, EMFILE, EMSGSIZE, ENETDOWN,
     ENETRESET, ENETUNREACH, ENOBUFS, ENOTCONN, ENOTSOCK, EPROTONOSUPPORT, ETIMEDOUT,
 };
+use windows::Win32::Networking::WinSock::WSA_ERROR;
 
 pub fn errno_to_string(errno_: i32) -> &'static str {
     match (errno_) {
@@ -396,7 +397,7 @@ pub fn wsa_error_no(no_: i32, wsae_wouldblock_string_: &str) -> &str {
 //     zmq_assert (rc);
 // }
 
-pub fn wsa_error_to_errno(errcode_: i32) -> i32 {
+pub fn wsa_error_to_errno(errcode_: WSA_ERROR) -> i32 {
     match (errcode_) {
         //  10004 - Interrupted system call.
         WSAEINTR => {

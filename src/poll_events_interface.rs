@@ -32,24 +32,24 @@
 
 // #include "macros.hpp"
 
-namespace zmq
-{
+// namespace zmq
+// {
 // Virtual interface to be exposed by object that want to be notified
 // about events on file descriptors.
 
-struct i_poll_events
+pub trait ZmqPollEventsInterface
 {
-    virtual ~i_poll_events () ZMQ_DEFAULT;
-
+    // virtual ~i_poll_events () ZMQ_DEFAULT;
     // Called by I/O thread when file descriptor is ready for reading.
-    virtual void in_event () = 0;
-
+    // virtual void in_event () = 0;
+    fn in_event(&mut self);
     // Called by I/O thread when file descriptor is ready for writing.
-    virtual void out_event () = 0;
-
+    // virtual void out_event () = 0;
+    fn out_event(&mut self);
     // Called when timer expires.
-    virtual void timer_event (id_: i32) = 0;
-};
+    // virtual void timer_event (id_: i32) = 0;
+    fn timer_event(&mut self, id: i32);
 }
+// }
 
 // #endif

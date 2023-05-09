@@ -141,7 +141,7 @@ int tipc_listener_t::set_local_address (addr_: &str)
             goto error;
 
         address =
-          TipcAddress (reinterpret_cast<struct sockaddr *> (&ss), sl);
+          TipcAddress ((&ss), sl);
     }
 
 
@@ -187,7 +187,7 @@ ZmqFileDesc tipc_listener_t::accept ()
     ZmqFileDesc sock = ::accept (_s, (struct sockaddr *) &ss, (int *) &ss_len);
 // #else
     ZmqFileDesc sock =
-      ::accept (_s, reinterpret_cast<struct sockaddr *> (&ss), &ss_len);
+      ::accept (_s, (&ss), &ss_len);
 // #endif
     if (sock == -1) {
         // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK

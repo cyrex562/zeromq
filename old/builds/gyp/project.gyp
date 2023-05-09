@@ -115,7 +115,7 @@
         '../../src/ZmqDecoderInterface.hpp',
         '../../src/i_encoder.hpp',
         '../../src/ZmqIEngine.hpp',
-        '../../src/i_mailbox.hpp',
+        '../../src/ZmqMailboxInterface.hpp',
         '../../src/i_poll_events.hpp',
         '../../src/io_object.cpp',
         '../../src/io_object.hpp',

@@ -39,7 +39,7 @@ use crate::io_thread::ZmqThread;
 #[derive(Default,Debug,Clone)]
 pub struct ZmqIoObject
 {
-    pub i_poll_events: i_poll_events,
+    pub ZmqPollEventsInterface: ZmqPollEventsInterface,
     pub poller: ZmqHandle,
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (io_object_t)
 }
@@ -52,7 +52,7 @@ impl ZmqIoObject {
 //     if (io_thread_)
 //         plug (io_thread_);
         let mut out = Self {
-            i_poll_events: Default::default(),
+            ZmqPollEventsInterface: Default::default(),
             poller: ZmqHandle::default(),
         };
         if io_thread_.is_some() {
