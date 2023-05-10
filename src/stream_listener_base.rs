@@ -87,7 +87,7 @@ stream_listener_base_t::stream_listener_base_t (
     ZmqOwn (io_thread_, options_),
     ZmqIoObject (io_thread_),
     _s (retired_fd),
-    _handle (static_cast<handle_t> (null_mut())),
+    _handle ( (null_mut())),
     self._socket (socket)
 {
 }
@@ -114,7 +114,7 @@ void stream_listener_base_t::process_plug ()
 void stream_listener_base_t::process_term (linger: i32)
 {
     rm_fd (_handle);
-    _handle = static_cast<handle_t> (null_mut());
+    _handle =  (null_mut());
     close ();
     ZmqOwn::process_term (linger);
 }

@@ -43,6 +43,26 @@
 // #include "ipc_address.hpp"
 // #include "session_base.hpp"
 
+use crate::address::SocketEnd::SocketEndLocal;
+use crate::address::{get_socket_name, Address};
+use crate::address_family::AF_UNIX;
+use crate::defines::ZMQ_RECONNECT_STOP_AFTER_DISCONNECT;
+use crate::err::wsa_error_to_errno;
+use crate::fd::ZmqFileDesc;
+use crate::io_thread::ZmqThread;
+use crate::ip::{open_socket, unblock_socket};
+use crate::ops::zmq_errno;
+use crate::options::ZmqOptions;
+use crate::session_base::ZmqSessionBase;
+use crate::stream_connecter_base::StreamConnecterBase;
+use libc::{
+    c_char, close, connect, getsockopt, open, ECONNREFUSED, EHOSTUNREACH, EINPROGRESS, EINTR,
+    ENETDOWN, ENETUNREACH, ENOPROTOOPT, ETIMEDOUT,
+};
+use windows::Win32::Networking::WinSock::{
+    WSAGetLastError, SOCK_STREAM, SOL_SOCKET, SO_ERROR, WSAEINPROGRESS, WSAEWOULDBLOCK,
+};
+
 // #ifdef _MSC_VER
 // #include <afunix.h>
 // #else
@@ -51,165 +71,188 @@
 // #include <sys/socket.h>
 // #include <sys/un.h>
 // #endif
-pub struct ipc_connecter_t  : public stream_connecter_base_t
-{
-//
+pub struct IpcConnecter<'a> {
+    // : public stream_connecter_base_t
+    pub stream_connecter_base: StreamConnecterBase<'a>,
+}
+
+impl IpcConnecter {
+    //
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
-    ipc_connecter_t (ZmqThread *io_thread_,
-                     ZmqSessionBase *session_,
-                     options: &ZmqOptions,
-                     Address *addr_,
-                     delayed_start_: bool);
+    // IpcConnecter (ZmqThread *io_thread_,
+    //                 ZmqSessionBase *session_,
+    //              options: &ZmqOptions,
+    //                 Address *addr_,
+    //              delayed_start_: bool);
+    pub fn new(
+        io_thread_: &mut ZmqThread,
+        session: &mut ZmqSessionBase,
+        options: &ZmqOptions,
+        addr: &mut Address,
+        delayed_start_: bool,
+    ) -> Self {
+        // stream_connecter_base_t (
+        //       io_thread_, session_, options_, addr_, delayed_start_)
+        // zmq_assert (_addr.protocol == protocol_name::ipc);
+        Self {
+            stream_connecter_base: Default::default(),
+        }
+    }
 
-  //
+    //
     //  Handlers for I/O events.
-    void out_event ();
+    // void out_event ();
+    pub fn out_event(&mut self) {
+        // let fd = unsafe { connect() };
+        rm_handle();
+
+        //  Handle the error condition by attempt to reconnect.
+        if (fd == retired_fd) {
+            unsafe { close(fd) };
+            add_reconnect_timer();
+            return;
+        }
+
+        create_engine(fd, get_socket_name(fd as ZmqFileDesc, SocketEndLocal));
+    }
 
     //  Internal function to start the actual connection establishment.
-    void start_connecting ();
+    // void start_connecting ();
+
+    pub fn start_connecting(&mut self) {
+        //  Open the connecting socket.
+        // let rc: i32 = unsafe { open() };
+
+        //  Connect may succeed in synchronous manner.
+        if (rc == 0) {
+            _handle = add_fd(_s);
+            out_event();
+        }
+        //  Connection establishment may be delayed. Poll for its completion.
+        else if (rc == -1 && errno == EINPROGRESS) {
+            _handle = add_fd(_s);
+            set_pollout(_handle);
+            self._socket.event_connect_delayed(
+                make_unconnected_connect_endpoint_pair(_endpoint),
+                zmq_errno(),
+            );
+
+            // TODO, tcp_connecter_t adds a connect timer in this case; maybe this
+            // should be done here as well (and then this could be pulled up to
+            // stream_connecter_base_t).
+        }
+        //stop connecting after called zmq_disconnect
+        else if (rc == -1
+            && (self.options.reconnect_stop & ZMQ_RECONNECT_STOP_AFTER_DISCONNECT)
+            && errno == ECONNREFUSED
+            && self._socket.is_disconnected())
+        {
+            if (_s != retired_fd) {
+                // unsafe { close() };
+            }
+        }
+        //  Handle any other error condition by eventual reconnect.
+        else {
+            if (_s != retired_fd) {
+                // close();
+            }
+            add_reconnect_timer();
+        }
+    }
+
+    pub fn open(&mut self) -> i32 {
+        // zmq_assert (_s == retired_fd);
+
+        //  Create the socket.
+        self._s = open_socket(AF_UNIX as i32, SOCK_STREAM as i32, 0);
+        if (_s == retired_fd) {
+            return -1;
+        }
+
+        //  Set the non-blocking flag.
+        unblock_socket(_s);
+
+        //  Connect to the remote peer.
+        let rc: i32 = ::connect(
+            _s,
+            _addr.resolved.ipc_addr.addr(),
+            _addr.resolved.ipc_addr.addrlen(),
+        );
+
+        //  Connect was successful immediately.
+        if (rc == 0) {
+            return 0;
+        }
+
+        //  Translate other error codes indicating asynchronous connect has been
+        //  launched to a uniform EINPROGRESS.
+        // #ifdef ZMQ_HAVE_WINDOWS
+        if cfg!(target_os = "windows") {
+            let last_error = unsafe { WSAGetLastError() };
+            if (last_error == WSAEINPROGRESS || last_error == WSAEWOULDBLOCK) {
+                errno = EINPROGRESS;
+            } else {
+                errno = wsa_error_to_errno(last_error);
+            }
+        }
+        // #else
+        else {
+            if (rc == -1 && errno == EINTR) {
+                errno = EINPROGRESS;
+            }
+        }
+        // #endif
+
+        //  Forward the error.
+        return -1;
+    }
 
     //  Open IPC connecting socket. Returns -1 in case of error,
     //  0 if connect was successful immediately. Returns -1 with
     //  EAGAIN errno if async connect was launched.
-    int open ();
+    // int open ();
 
     //  Get the file descriptor of newly created connection. Returns
     //  retired_fd if the connection was unsuccessful.
-    ZmqFileDesc connect ();
+    // ZmqFileDesc connect ();
+    pub fn connect(&mut self) {
+        //  Following code should handle both Berkeley-derived socket
+        //  implementations and Solaris.
+        let mut err = 0;
+        let mut len = 4;
+        let rc: i32 = unsafe {
+            getsockopt(
+                _s,
+                SOL_SOCKET,
+                SO_ERROR,
+                (&mut err.to_le_bytes() as &mut c_char),
+                &mut len,
+            )
+        };
+        if (rc == -1) {
+            if (errno == ENOPROTOOPT) {
+                errno = 0;
+            }
+            err = errno;
+        }
+        if (err != 0) {
+            //  Assert if the error was caused by 0MQ bug.
+            //  Networking problems are OK. No need to assert.
+            errno = err;
+            // errno_assert (errno == ECONNREFUSED || errno == ECONNRESET
+            // || errno == ETIMEDOUT || errno == EHOSTUNREACH
+            //     || errno == ENETUNREACH || errno == ENETDOWN);
+
+            return retired_fd;
+        }
+
+        let result = _s;
+        _s = retired_fd;
+        return result;
+    }
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (ipc_connecter_t)
-};
-
-ipc_connecter_t::ipc_connecter_t (class ZmqThread *io_thread_,
-pub struct ZmqSessionBase *session_,
-                                       options: &ZmqOptions,
-                                       Address *addr_,
-                                       delayed_start_: bool) :
-    stream_connecter_base_t (
-      io_thread_, session_, options_, addr_, delayed_start_)
-{
-    // zmq_assert (_addr.protocol == protocol_name::ipc);
-}
-
-void ipc_connecter_t::out_event ()
-{
-    const ZmqFileDesc fd = connect ();
-    rm_handle ();
-
-    //  Handle the error condition by attempt to reconnect.
-    if (fd == retired_fd) {
-        close ();
-        add_reconnect_timer ();
-        return;
-    }
-
-    create_engine (fd, get_socket_name<IpcAddress> (fd, SocketEndLocal));
-}
-
-void ipc_connecter_t::start_connecting ()
-{
-    //  Open the connecting socket.
-    let rc: i32 = open ();
-
-    //  Connect may succeed in synchronous manner.
-    if (rc == 0) {
-        _handle = add_fd (_s);
-        out_event ();
-    }
-
-    //  Connection establishment may be delayed. Poll for its completion.
-    else if (rc == -1 && errno == EINPROGRESS) {
-        _handle = add_fd (_s);
-        set_pollout (_handle);
-        self._socket.event_connect_delayed (
-          make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
-
-        // TODO, tcp_connecter_t adds a connect timer in this case; maybe this
-        // should be done here as well (and then this could be pulled up to
-        // stream_connecter_base_t).
-    }
-    //stop connecting after called zmq_disconnect
-    else if (rc == -1
-             && (options.reconnect_stop & ZMQ_RECONNECT_STOP_AFTER_DISCONNECT)
-             && errno == ECONNREFUSED && self._socket.is_disconnected ()) {
-        if (_s != retired_fd)
-            close ();
-    }
-
-    //  Handle any other error condition by eventual reconnect.
-    else {
-        if (_s != retired_fd)
-            close ();
-        add_reconnect_timer ();
-    }
-}
-
-int ipc_connecter_t::open ()
-{
-    // zmq_assert (_s == retired_fd);
-
-    //  Create the socket.
-    _s = open_socket (AF_UNIX, SOCK_STREAM, 0);
-    if (_s == retired_fd)
-        return -1;
-
-    //  Set the non-blocking flag.
-    unblock_socket (_s);
-
-    //  Connect to the remote peer.
-    let rc: i32 = ::connect (_s, _addr.resolved.ipc_addr.addr (),
-                              _addr.resolved.ipc_addr.addrlen ());
-
-    //  Connect was successful immediately.
-    if (rc == 0)
-        return 0;
-
-        //  Translate other error codes indicating asynchronous connect has been
-        //  launched to a uniform EINPROGRESS.
-// #ifdef ZMQ_HAVE_WINDOWS
-    let last_error: i32 = WSAGetLastError ();
-    if (last_error == WSAEINPROGRESS || last_error == WSAEWOULDBLOCK)
-        errno = EINPROGRESS;
-    else
-        errno = wsa_error_to_errno (last_error);
-// #else
-    if (rc == -1 && errno == EINTR) {
-        errno = EINPROGRESS;
-    }
-// #endif
-
-    //  Forward the error.
-    return -1;
-}
-
-ZmqFileDesc ipc_connecter_t::connect ()
-{
-    //  Following code should handle both Berkeley-derived socket
-    //  implementations and Solaris.
-    int err = 0;
-    ZmqSocklen len = static_cast<ZmqSocklen> (mem::size_of::<err>());
-    let rc: i32 = getsockopt (_s, SOL_SOCKET, SO_ERROR,
-                                (&err), &len);
-    if (rc == -1) {
-        if (errno == ENOPROTOOPT)
-            errno = 0;
-        err = errno;
-    }
-    if (err != 0) {
-        //  Assert if the error was caused by 0MQ bug.
-        //  Networking problems are OK. No need to assert.
-        errno = err;
-        // errno_assert (errno == ECONNREFUSED || errno == ECONNRESET
-                      || errno == ETIMEDOUT || errno == EHOSTUNREACH
-                      || errno == ENETUNREACH || errno == ENETDOWN);
-
-        return retired_fd;
-    }
-
-    const ZmqFileDesc result = _s;
-    _s = retired_fd;
-    return result;
 }
 
 // #endif

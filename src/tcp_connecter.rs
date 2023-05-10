@@ -61,7 +61,7 @@
 // #ifdef __APPLE__
 // #include <TargetConditionals.h>
 // #endif
-pub struct tcp_connecter_t  : public stream_connecter_base_t
+pub struct tcp_connecter_t  : public StreamConnecterBase
 {
 //
     //  If 'delayed_start' is true connecter first waits for a while,
@@ -116,7 +116,7 @@ pub struct ZmqSessionBase *session_,
                                        options: &ZmqOptions,
                                        Address *addr_,
                                        delayed_start_: bool) :
-    stream_connecter_base_t (
+    StreamConnecterBase (
       io_thread_, session_, options_, addr_, delayed_start_),
     _connect_timer_started (false)
 {
@@ -135,7 +135,7 @@ void tcp_connecter_t::process_term (linger: i32)
         _connect_timer_started = false;
     }
 
-    stream_connecter_base_t::process_term (linger);
+    StreamConnecterBase::process_term (linger);
 }
 
 void tcp_connecter_t::out_event ()
@@ -179,7 +179,7 @@ void tcp_connecter_t::timer_event (id_: i32)
         close ();
         add_reconnect_timer ();
     } else
-        stream_connecter_base_t::timer_event (id_);
+        StreamConnecterBase::timer_event (id_);
 }
 
 void tcp_connecter_t::start_connecting ()

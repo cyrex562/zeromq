@@ -51,7 +51,7 @@
 // #ifdef ZMQ_HAVE_VXWORKS
 // #include <sockLib.h>
 // #endif
-pub struct tipc_connecter_t  : public stream_connecter_base_t
+pub struct tipc_connecter_t  : public StreamConnecterBase
 {
 //
     //  If 'delayed_start' is true connecter first waits for a while,
@@ -86,7 +86,7 @@ pub struct ZmqSessionBase *session_,
                                          options: &ZmqOptions,
                                          Address *addr_,
                                          delayed_start_: bool) :
-    stream_connecter_base_t (
+    StreamConnecterBase (
       io_thread_, session_, options_, addr_, delayed_start_)
 {
     // zmq_assert (_addr.protocol == "tipc");

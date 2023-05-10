@@ -43,237 +43,259 @@
 
 // #include <limits>
 
-stream_connecter_base_t::stream_connecter_base_t (
-  ZmqThread *io_thread_,
-  ZmqSessionBase *session_,
-  options: &ZmqOptions,
-  Address *addr_,
-  delayed_start_: bool) :
-    ZmqOwn (io_thread_, options_),
-    ZmqIoObject (io_thread_),
-    _addr (addr_),
-    _s (retired_fd),
-    _handle (static_cast<handle_t> (null_mut())),
-    self._socket (session_.get_socket ()),
-    _delayed_start (delayed_start_),
-    _reconnect_timer_started (false),
-    _current_reconnect_ivl (options.reconnect_ivl),
-    _session (session_)
-{
-    // zmq_assert (_addr);
-    _addr.to_string (_endpoint);
-    // TODO the return value is unused! what if it fails? if this is impossible
-    // or does not matter, change such that endpoint in initialized using an
-    // initializer, and make endpoint const
-}
+use crate::address::Address;
+use crate::defines::ZmqHandle;
+use crate::endpoint::EndpointType::endpoint_type_connect;
+use crate::endpoint::EndpointUriPair;
+use crate::fd::ZmqFileDesc;
+use crate::io_object::ZmqIoObject;
+use crate::io_thread::ZmqThread;
+use crate::options::ZmqOptions;
+use crate::own::ZmqOwn;
+use crate::proxy::ZmqSocketBase;
+use crate::raw_engine::raw_engine_t;
+use crate::session_base::ZmqSessionBase;
+use crate::zmtp_engine::ZmqZmtpEngine;
+use libc::{c_int, close};
+use windows::Win32::Networking::WinSock::{closesocket, SOCKET_ERROR};
 
-stream_connecter_base_t::~stream_connecter_base_t ()
-{
-    // zmq_assert (!_reconnect_timer_started);
-    // zmq_assert (!_handle);
-    // zmq_assert (_s == retired_fd);
-}
+// enum
+// {
+//     reconnect_timer_id = 1
+// };
 
-void stream_connecter_base_t::process_plug ()
-{
-    if (_delayed_start)
-        add_reconnect_timer ();
-    else
-        start_connecting ();
-}
-
-void stream_connecter_base_t::process_term (linger: i32)
-{
-    if (_reconnect_timer_started) {
-        cancel_timer (reconnect_timer_id);
-        _reconnect_timer_started = false;
-    }
-
-    if (_handle) {
-        rm_handle ();
-    }
-
-    if (_s != retired_fd)
-        close ();
-
-    ZmqOwn::process_term (linger);
-}
-
-void stream_connecter_base_t::add_reconnect_timer ()
-{
-    if (options.reconnect_ivl > 0) {
-        let interval: i32 = get_new_reconnect_ivl ();
-        add_timer (interval, reconnect_timer_id);
-        self._socket.event_connect_retried (
-          make_unconnected_connect_endpoint_pair (_endpoint), interval);
-        _reconnect_timer_started = true;
-    }
-}
-
-int stream_connecter_base_t::get_new_reconnect_ivl ()
-{
-    //  TODO should the random jitter be really based on the configured initial
-    //  reconnect interval options.reconnect_ivl, or better on the
-    //  _current_reconnect_ivl?
-
-    //  The new interval is the current interval + random value.
-    let random_jitter: i32 = generate_random () % options.reconnect_ivl;
-    let interval: i32 =
-      _current_reconnect_ivl < std::numeric_limits<int>::max () - random_jitter
-        ? _current_reconnect_ivl + random_jitter
-        : std::numeric_limits<int>::max ();
-
-    //  Only change the new current reconnect interval if the maximum reconnect
-    //  interval was set and if it's larger than the reconnect interval.
-    if (options.reconnect_ivl_max > 0
-        && options.reconnect_ivl_max > options.reconnect_ivl) {
-        //  Calculate the next interval
-        _current_reconnect_ivl =
-          _current_reconnect_ivl < std::numeric_limits<int>::max () / 2
-            ? std::min (_current_reconnect_ivl * 2, options.reconnect_ivl_max)
-            : options.reconnect_ivl_max;
-    }
-
-    return interval;
-}
-
-void stream_connecter_base_t::rm_handle ()
-{
-    rm_fd (_handle);
-    _handle = static_cast<handle_t> (null_mut());
-}
-
-void stream_connecter_base_t::close ()
-{
-    // TODO before, this was an assertion for _s != retired_fd, but this does not match usage of close
-    if (_s != retired_fd) {
-// #ifdef ZMQ_HAVE_WINDOWS
-        let rc: i32 = closesocket (_s);
-        wsa_assert (rc != SOCKET_ERROR);
-// #else
-        let rc: i32 = ::close (_s);
-        // errno_assert (rc == 0);
-// #endif
-        self._socket.event_closed (
-          make_unconnected_connect_endpoint_pair (_endpoint), _s);
-        _s = retired_fd;
-    }
-}
-
-void stream_connecter_base_t::in_event ()
-{
-    //  We are not polling for incoming data, so we are actually called
-    //  because of error here. However, we can get error on out event as well
-    //  on some platforms, so we'll simply handle both events in the same way.
-    out_event ();
-}
-
-void stream_connecter_base_t::create_engine (
-  fd: ZmqFileDesc, local_address_: &str)
-{
-    const endpoint_uri_pair_t endpoint_pair (local_address_, _endpoint,
-                                             endpoint_type_connect);
-
-    //  Create the engine object for this connection.
-    ZmqEngineInterface *engine;
-    if (options.raw_socket)
-        engine =  raw_engine_t (fd, options, endpoint_pair);
-    else
-        engine =  ZmqZmtpEngine (fd, options, endpoint_pair);
-    // alloc_assert (engine);
-
-    //  Attach the engine to the corresponding session object.
-    send_attach (_session, engine);
-
-    //  Shut the connecter down.
-    terminate ();
-
-    self._socket.event_connected (endpoint_pair, fd);
-}
-
-void stream_connecter_base_t::timer_event (id_: i32)
-{
-    // zmq_assert (id_ == reconnect_timer_id);
-    _reconnect_timer_started = false;
-    start_connecting ();
-}
-pub struct stream_connecter_base_t : public ZmqOwn, public ZmqIoObject
-{
-//
-    //  If 'delayed_start' is true connecter first waits for a while,
-    //  then starts connection process.
-    stream_connecter_base_t (ZmqThread *io_thread_,
-                             ZmqSessionBase *session_,
-                             options: &ZmqOptions,
-                             Address *addr_,
-                             delayed_start_: bool);
-
-    ~stream_connecter_base_t () ;
-
-
-    //  Handlers for incoming commands.
-    void process_plug () ;
-    void process_term (linger: i32) ;
-
-    //  Handlers for I/O events.
-    void in_event () ;
-    void timer_event (id_: i32) ;
-
-    //  Internal function to create the engine after connection was established.
-    virtual void create_engine (fd: ZmqFileDesc, local_address_: &str);
-
-    //  Internal function to add a reconnect timer
-    void add_reconnect_timer ();
-
-    //  Removes the handle from the poller.
-    void rm_handle ();
-
-    //  Close the connecting socket.
-    void close ();
-
+#[derive(Default, Debug, Clone)]
+pub struct StreamConnecterBase<'a> {
+    // : public ZmqOwn, public ZmqIoObject
+    pub own: ZmqOwn,
+    pub io_object: ZmqIoObject,
     //  Address to connect to. Owned by ZmqSessionBase.
     //  It is non-const since some parts may change during opening.
-    Address *const _addr;
-
+    // Address *const _addr;
+    pub _addr: &'a Address(a),
     //  Underlying socket.
-    ZmqFileDesc _s;
-
+    // ZmqFileDesc _s;
+    pub _s: ZmqFileDesc,
     //  Handle corresponding to the listening socket, if file descriptor is
     //  registered with the poller, or NULL.
-    handle_t _handle;
-
+    // handle_t _handle;
+    pub _handle: Option<ZmqHandle>,
     // String representation of endpoint to connect to
-    _endpoint: String;
-
+    pub _endpoint: String,
     // Socket
-    ZmqSocketBase *const self._socket;
-
-  //
+    // ZmqSocketBase *const self._socket;
+    pub _socket: &'a ZmqSocketBase,
     //  ID of the timer used to delay the reconnection.
-    enum
-    {
-        reconnect_timer_id = 1
-    };
+    // virtual void start_connecting () = 0;
+    pub start_connecting: Option<fn()>,
+    //  If true, connecter is waiting a while before trying to connect.
+    pub _delayed_start: bool,
+    //  True iff a timer has been started.
+    pub _reconnect_timer_started: bool,
+    //  Current reconnect ivl, updated for backoff strategy
+    pub _current_reconnect_ivl: i32,
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_connecter_base_t)
+    //  Reference to the session we belong to.
+    pub _session: &'a ZmqSessionBase,
+}
+
+impl StreamConnecterBase {
+    //
+    //  If 'delayed_start' is true connecter first waits for a while,
+    //  then starts connection process.
+    // StreamConnecterBase (ZmqThread *io_thread_,
+    //                     ZmqSessionBase *session_,
+    //                     options: &ZmqOptions,
+    //                     Address *addr_,
+    //                     delayed_start_: bool);
+    pub fn new(
+        io_thread_: &mut ZmqThread,
+        session_: &mut ZmqSessionBase,
+        options: &ZmqOptions,
+        addr_: &mut Address,
+        delayed_start_: bool,
+    ) -> Self {
+        // ZmqOwn (io_thread_, options_),
+        //     ZmqIoObject (io_thread_),
+        //     _addr (addr_),
+        //     _s (retired_fd),
+        //     _handle (static_cast<handle_t> (null_mut())),
+        //     self._socket (session_.get_socket ()),
+        //     _delayed_start (delayed_start_),
+        //     _reconnect_timer_started (false),
+        //     _current_reconnect_ivl (options.reconnect_ivl),
+        //     _session (session_)
+        // zmq_assert (_addr);
+        // _addr.to_string (_endpoint);
+        // TODO the return value is unused! what if it fails? if this is impossible
+        // or does not matter, change such that endpoint in initialized using an
+        // initializer, and make endpoint const
+        Self {
+            own: ZmqOwn::default(),
+            io_object: ZmqIoObject::new(Some(io_thread_.clone())),
+            _addr: &Default::default(),
+            _s: 0,
+            _handle: None,
+            _endpoint: "".to_string(),
+            _socket: session_.get_socket(),
+            start_connecting: None,
+            _delayed_start: delayed_start_,
+            _reconnect_timer_started: false,
+            _current_reconnect_ivl: options.reconnect_ivl,
+            _session: session_,
+        }
+    }
+
+    // ~StreamConnecterBase () ;
+    // StreamConnecterBase::~StreamConnecterBase ()
+    // {
+    // // zmq_assert (!_reconnect_timer_started);
+    // // zmq_assert (!_handle);
+    // // zmq_assert (_s == retired_fd);
+    // }
+
+    //  Handlers for incoming commands.
+    // void process_plug () ;
+    pub fn process_plug(&mut self) {
+        if (_delayed_start) {
+            self.add_reconnect_timer();
+        } else {
+            self.start_connecting();
+        }
+    }
+
+    // void process_term (linger: i32) ;
+    pub fn process_term(&mut self, linger: i32) {
+        if (self._reconnect_timer_started) {
+            self.cancel_timer(self.reconnect_timer_id);
+            self._reconnect_timer_started = false;
+            if (_handle) {
+                rm_handle();
+            }
+        }
+
+        if (self._s != retired_fd) {
+            self.close();
+        }
+
+        self.own.process_term(linger);
+    }
+
+    //  Handlers for I/O events.
+    // void in_event () ;
+
+    // void timer_event (id_: i32) ;
+
+    //  Internal function to create the engine after connection was established.
+    // virtual void create_engine (fd: ZmqFileDesc, local_address_: &str);
+
+    //  Internal function to add a reconnect timer
+    // void add_reconnect_timer ();
+    pub fn add_reconnect_timer(&mut self) {
+        if (self.options.reconnect_ivl > 0) {
+            let interval: i32 = self.get_new_reconnect_ivl();
+            self.add_timer(interval, reconnect_timer_id);
+            self._socket.event_connect_retried(
+                self.make_unconnected_connect_endpoint_pair(_endpoint),
+                interval,
+            );
+            self._reconnect_timer_started = true;
+        }
+    }
+
+    //  Removes the handle from the poller.
+    // void rm_handle ();
+    pub fn rm_handle(&mut self) {
+        self.rm_fd(self._handle);
+        self._handle = None;
+    }
+
+    //  Close the connecting socket.
+    // void close ();
+    pub fn close(&mut self) {
+        // TODO before, this was an assertion for _s != retired_fd, but this does not match usage of close
+        if (self._s != retired_fd) {
+            // #ifdef ZMQ_HAVE_WINDOWS
+            let rc: i32 = unsafe { closesocket(_s) };
+            wsa_assert(rc != SOCKET_ERROR);
+            // #else
+            let rc: i32 = unsafe { close(self._s as c_int) };
+            // errno_assert (rc == 0);
+            // #endif
+            self._socket
+                .event_closed(make_unconnected_connect_endpoint_pair(_endpoint), _s);
+            _s = retired_fd;
+        }
+    }
 
     //  Internal function to return a reconnect backoff delay.
     //  Will modify the current_reconnect_ivl used for next call
     //  Returns the currently used interval
-    int get_new_reconnect_ivl ();
+    // int get_new_reconnect_ivl ();
+    pub fn get_new_reconnect_ivl(&mut self) -> i32 {
+        //  TODO should the random jitter be really based on the configured initial
+        //  reconnect interval options.reconnect_ivl, or better on the
+        //  _current_reconnect_ivl?
 
-    virtual void start_connecting () = 0;
+        //  The new interval is the current interval + random value.
+        let random_jitter: i32 = generate_random() % self.options.reconnect_ivl;
+        let interval: i32 = if self._current_reconnect_ivl < i32::MAX - random_jitter {
+            self._current_reconnect_ivl + random_jitter
+        } else {
+            i32::MAX
+        };
 
-    //  If true, connecter is waiting a while before trying to connect.
-    const _delayed_start: bool
+        //  Only change the new current reconnect interval if the maximum reconnect
+        //  interval was set and if it's larger than the reconnect interval.
+        if (self.options.reconnect_ivl_max > 0
+            && self.options.reconnect_ivl_max > self.options.reconnect_ivl)
+        {
+            //  Calculate the next interval
+            self._current_reconnect_ivl = if self._current_reconnect_ivl < i32::MAX / 2 {
+                i32::min(
+                    self._current_reconnect_ivl * 2,
+                    self.options.reconnect_ivl_max,
+                )
+            } else {
+                self.options.reconnect_ivl_max
+            };
+        }
 
-    //  True iff a timer has been started.
-    _reconnect_timer_started: bool
+        return interval;
+    }
 
-    //  Current reconnect ivl, updated for backoff strategy
-    _current_reconnect_ivl: i32;
+    pub fn in_event(&mut self) {
+        //  We are not polling for incoming data, so we are actually called
+        //  because of error here. However, we can get error on out event as well
+        //  on some platforms, so we'll simply handle both events in the same way.
+        self.out_event();
+    }
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (stream_connecter_base_t)
+    pub fn create_engine(&mut self, fd: ZmqFileDesc, local_address_: &str) {
+        let mut endpoint_pair =
+            EndpointUriPair::new(local_address_, _endpoint, endpoint_type_connect);
 
+        //  Create the engine object for this connection.
+        let mut engine = ZmqEngineInterface::default();
+        if (self.options.raw_socket) {
+            engine = raw_engine_t::new(fd, self.options, endpoint_pair);
+        } else {
+            engine = ZmqZmtpEngine::new(fd, self.options, endpoint_pair);
+        }
+        // alloc_assert (engine);
 
-    //  Reference to the session we belong to.
-    ZmqSessionBase *const _session;
-};
+        //  Attach the engine to the corresponding session object.
+        send_attach(_session, engine);
+
+        //  Shut the connecter down.
+        terminate();
+
+        self._socket.event_connected(&endpoint_pair, fd);
+    }
+
+    pub fn timer_event(&mut self, id_: i32) {
+        // zmq_assert (id_ == reconnect_timer_id);
+        self._reconnect_timer_started = false;
+        self.start_connecting();
+    }
+}

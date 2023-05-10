@@ -132,7 +132,7 @@ udp_engine_t::udp_engine_t (options: &ZmqOptions) :
     _plugged (false),
     _fd (-1),
     _session (null_mut()),
-    _handle (static_cast<handle_t> (null_mut())),
+    _handle ( (null_mut())),
     address (null_mut()),
     self._options (options_),
     _send_enabled (false),
@@ -225,7 +225,7 @@ void udp_engine_t::plug (ZmqThread *io_thread_, ZmqSessionBase *session_)
             /// XXX fixme ?
             _out_address = reinterpret_cast<sockaddr *> (&_raw_address);
             _out_address_len =
-              static_cast<ZmqSocklen> (mem::size_of::<sockaddr_in>());
+               (mem::size_of::<sockaddr_in>());
         }
     }
 
@@ -605,7 +605,7 @@ void udp_engine_t::in_event ()
 {
     sockaddr_storage in_address;
     ZmqSocklen in_addrlen =
-      static_cast<ZmqSocklen> (mem::size_of::<sockaddr_storage>());
+       (mem::size_of::<sockaddr_storage>());
 
     let nbytes: i32 =
       recvfrom (_fd, _in_buffer, MAX_UDP_MSG, 0,

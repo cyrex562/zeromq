@@ -50,7 +50,7 @@
 // #include <sockLib.h>
 // #endif
 // #endif
-pub struct socks_connecter_t  : public stream_connecter_base_t
+pub struct socks_connecter_t  : public StreamConnecterBase
 {
 //
     //  If 'delayed_start' is true connecter first waits for a while,
@@ -146,7 +146,7 @@ pub struct ZmqSessionBase *session_,
                                            Address *addr_,
                                            Address *proxy_addr_,
                                            delayed_start_: bool) :
-    stream_connecter_base_t (
+    StreamConnecterBase (
       io_thread_, session_, options_, addr_, delayed_start_),
     _proxy_addr (proxy_addr_),
     _auth_method (socks_no_auth_required),
