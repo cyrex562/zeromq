@@ -1009,7 +1009,7 @@ impl ZmqOptions {
             // #ifdef ZMQ_HAVE_WSS
             ZMQ_WSS_KEY_PEM => {
                 // TODO: check if valid certificate
-                // wss_key_pem = std::string((char *) opt_val, opt_val_len);
+                // wss_key_pem = std::string( opt_val, opt_val_len);
                 unsafe {
                     self.wss_key_pem =
                         String::from_raw_parts(opt_val as *mut u8, opt_val_len, opt_val_len + 1);

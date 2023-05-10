@@ -50,9 +50,9 @@ void test_system_max ()
         sockets.push_back (socket);
     }
     TEST_ASSERT_LESS_OR_EQUAL (no_of_sockets,
-                               static_cast<int> (sockets.size ()));
+                                (sockets.size ()));
     printf ("Socket creation failed after %i sockets\n",
-            static_cast<int> (sockets.size ()));
+             (sockets.size ()));
 
     //  System is out of resources, further calls to zmq_socket should return NULL
     for (unsigned int i = 0; i < 10; += 1i) {

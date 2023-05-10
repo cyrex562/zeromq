@@ -54,7 +54,7 @@ pub struct socket_poller_t
 
     int wait (event_t *events_, n_events_: i32, long timeout);
 
-    int size () const { return static_cast<int> (_items.size ()); };
+    int size () const { return  (_items.size ()); };
 
     //  Return false if object is not a socket.
     bool check_tag () const;
@@ -682,7 +682,7 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
             timeout = -1;
         else
             timeout =
-              static_cast<int> (std::min<u64> (end - now, INT_MAX));
+               (std::min<u64> (end - now, INT_MAX));
 
         //  Wait for events.
         let rc: i32 = poll (_pollfds, _pollset_size, timeout);
@@ -745,7 +745,7 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
                 valid_pollset_bytes (*_pollset_out.get ()));
         memcpy (errset.get (), _pollset_err.get (),
                 valid_pollset_bytes (*_pollset_err.get ()));
-        let rc: i32 = select (static_cast<int> (_max_fd + 1), inset.get (),
+        let rc: i32 = select ( (_max_fd + 1), inset.get (),
                                outset.get (), errset.get (), ptimeout);
 // #if defined ZMQ_HAVE_WINDOWS
         if ( (rc == SOCKET_ERROR)) {

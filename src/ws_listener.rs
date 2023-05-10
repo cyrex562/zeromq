@@ -199,7 +199,7 @@ int ws_listener_t::create_socket (addr_: &str)
     wsa_assert (rc != SOCKET_ERROR);
 #elif defined ZMQ_HAVE_VXWORKS
     rc =
-      setsockopt (_s, SOL_SOCKET, SO_REUSEADDR, (char *) &flag, mem::size_of::<int>());
+      setsockopt (_s, SOL_SOCKET, SO_REUSEADDR,  &flag, mem::size_of::<int>());
     // errno_assert (rc == 0);
 // #else
     rc = setsockopt (_s, SOL_SOCKET, SO_REUSEADDR, &flag, mem::size_of::<int>());

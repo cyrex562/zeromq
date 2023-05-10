@@ -35,108 +35,129 @@
 
 // #include "err.hpp"
 
+use crate::utils::copy_bytes;
+use libc::{sockaddr, sockaddr_un, socklen_t, AF_UNIX, EINVAL, ENAMETOOLONG};
+
 // #include <string>
-pub struct IpcAddress
-{
-//
-    IpcAddress ();
-    IpcAddress (const sockaddr *sa_, socklen_t sa_len_);
-    ~IpcAddress ();
+#[derive(Default, Debug, Clone)]
+pub struct IpcAddress {
+    // struct sockaddr_un address;
+    pub address: sockaddr_un,
+    // socklen_t _addrlen;
+    pub addrlen: socklen_t,
+}
+
+impl IpcAddress {
+    //
+    // IpcAddress ();
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    // IpcAddress (const sockaddr *sa_, socklen_t sa_len_);
+    pub fn new2(sa_: &sockaddr, sa_len_: socklen_t) -> Self {
+        // zmq_assert (sa_ && sa_len_ > 0);
+        // _addrlen (sa_len_)
+        // memset (&address, 0, sizeof address);
+        // if (sa_.sa_family == AF_UNIX) {
+        //     memcpy(&address, sa_, sa_len_);
+        // }
+        Self {
+            addrlen: sa_len_,
+            address: sa_.clone() as sockaddr_un,
+        }
+    }
+
+    // ~IpcAddress ();
 
     //  This function sets up the address for UNIX domain transport.
-    int resolve (path_: &str);
+    // int resolve (path_: &str);
+    pub fn resolve(&mut self, path_: &str) -> i32 {
+        let path_len = path_.len();
+        if (path_len >= self.address.sun_path.len()) {
+            errno = ENAMETOOLONG;
+            return -1;
+        }
+        if (path_[0] == '@' && !path_[1]) {
+            errno = EINVAL;
+            return -1;
+        }
+
+        address.sun_family = AF_UNIX;
+        copy_bytes(
+            address.sun_path,
+            0,
+            path_.as_bytes(),
+            0,
+            (path_len + 1) as i32,
+        );
+        /* Abstract sockets start with 0 */
+        if (path_[0] == '@') {
+            *address.sun_path = 0;
+        }
+
+        _addrlen = (offsetof(sockaddr_un, sun_path) + path_len);
+        return 0;
+    }
 
     //  The opposite to resolve()
-    int to_string (std::string &addr_) const;
+    // int to_string (std::string &addr_) const;
 
-    const sockaddr *addr () const;
-    socklen_t addrlen () const;
+    pub fn to_string(&mut self, addr_: &str) -> i32 {
+        if (address.sun_family != AF_UNIX) {
+            addr_.clear();
+            return -1;
+        }
 
-  //
-    struct sockaddr_un address;
-    socklen_t _addrlen;
+        let prefix = "ipc://";
+        // char buf[sizeof prefix + sizeof address.sun_path];
+        // char *pos = buf;
+        // memcpy (pos, prefix, sizeof prefix - 1);
+        let mut buf = String::new();
+        buf += prefix;
+        let mut buf_pos = prefix.len();
+        let src_pos = address.sun_path;
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (IpcAddress)
-};
-
-IpcAddress::IpcAddress ()
-{
-    memset (&address, 0, sizeof address);
-}
-
-IpcAddress::IpcAddress (const sockaddr *sa_, socklen_t sa_len_) :
-    _addrlen (sa_len_)
-{
-    // zmq_assert (sa_ && sa_len_ > 0);
-
-    memset (&address, 0, sizeof address);
-    if (sa_.sa_family == AF_UNIX)
-        memcpy (&address, sa_, sa_len_);
-}
-
-IpcAddress::~IpcAddress ()
-{
-}
-
-int IpcAddress::resolve (path_: &str)
-{
-    const size_t path_len = strlen (path_);
-    if (path_len >= sizeof address.sun_path) {
-        errno = ENAMETOOLONG;
-        return -1;
-    }
-    if (path_[0] == '@' && !path_[1]) {
-        errno = EINVAL;
-        return -1;
+        if (!address.sun_path[0] && address.sun_path[1]) {
+            // *pos+= 1 = '@';
+            buf[buf_pos] = '@';
+            src_pos += 1;
+            buf_pos += 1;
+        }
+        // according to http://man7.org/linux/man-pages/man7/unix.7.html, NOTES
+        // section, address.sun_path might not always be null-terminated; therefore,
+        // we calculate the length based of addrlen
+        // TODO:
+        // let src_len =
+        // strnlen (src_pos, _addrlen - offsetof (sockaddr_un, sun_path)
+        //     - (src_pos - address.sun_path));
+        // copy_bytes (pos, src_pos, src_len);
+        // addr_.assign (buf, pos - buf + src_len);
+        return 0;
     }
 
-    address.sun_family = AF_UNIX;
-    memcpy (address.sun_path, path_, path_len + 1);
-    /* Abstract sockets start with 0 */
-    if (path_[0] == '@')
-        *address.sun_path = 0;
+    // const sockaddr *addr () const;
 
-    _addrlen =
-       (offsetof (sockaddr_un, sun_path) + path_len);
-    return 0;
+    // socklen_t addrlen () const;
 }
 
-int IpcAddress::to_string (std::string &addr_) const
-{
-    if (address.sun_family != AF_UNIX) {
-        addr_.clear ();
-        return -1;
-    }
+// IpcAddress::IpcAddress ()
+// {
+//     memset (&address, 0, sizeof address);
+// }
 
-    const char prefix[] = "ipc://";
-    char buf[sizeof prefix + sizeof address.sun_path];
-    char *pos = buf;
-    memcpy (pos, prefix, sizeof prefix - 1);
-    pos += sizeof prefix - 1;
-    const char *src_pos = address.sun_path;
-    if (!address.sun_path[0] && address.sun_path[1]) {
-        *pos+= 1 = '@';
-        src_pos+= 1;
-    }
-    // according to http://man7.org/linux/man-pages/man7/unix.7.html, NOTES
-    // section, address.sun_path might not always be null-terminated; therefore,
-    // we calculate the length based of addrlen
-    const size_t src_len =
-      strnlen (src_pos, _addrlen - offsetof (sockaddr_un, sun_path)
-                          - (src_pos - address.sun_path));
-    memcpy (pos, src_pos, src_len);
-    addr_.assign (buf, pos - buf + src_len);
-    return 0;
-}
+// IpcAddress::~IpcAddress ()
+// {
+// }
 
-const sockaddr *IpcAddress::addr () const
-{
-    return reinterpret_cast<const sockaddr *> (&address);
-}
-
-socklen_t IpcAddress::addrlen () const
-{
-    return _addrlen;
-}
+// const sockaddr *IpcAddress::addr () const
+// {
+//     return reinterpret_cast<const sockaddr *> (&address);
+// }
+//
+// socklen_t IpcAddress::addrlen () const
+// {
+//     return _addrlen;
+// }
 
 // #endif

@@ -48,7 +48,7 @@ void tune_vmci_buffer_size (ZmqContext *context_,
 
     if (default_size_ != 0) {
         int rc = setsockopt (sockfd_, family, SO_VMCI_BUFFER_SIZE,
-                             (char *) &default_size_, sizeof default_size_);
+                              &default_size_, sizeof default_size_);
 // #if defined ZMQ_HAVE_WINDOWS
         wsa_assert (rc != SOCKET_ERROR);
 // #else
@@ -58,7 +58,7 @@ void tune_vmci_buffer_size (ZmqContext *context_,
 
     if (min_size_ != 0) {
         int rc = setsockopt (sockfd_, family, SO_VMCI_BUFFER_SIZE,
-                             (char *) &min_size_, sizeof min_size_);
+                              &min_size_, sizeof min_size_);
 // #if defined ZMQ_HAVE_WINDOWS
         wsa_assert (rc != SOCKET_ERROR);
 // #else
@@ -68,7 +68,7 @@ void tune_vmci_buffer_size (ZmqContext *context_,
 
     if (max_size_ != 0) {
         int rc = setsockopt (sockfd_, family, SO_VMCI_BUFFER_SIZE,
-                             (char *) &max_size_, sizeof max_size_);
+                              &max_size_, sizeof max_size_);
 // #if defined ZMQ_HAVE_WINDOWS
         wsa_assert (rc != SOCKET_ERROR);
 // #else
@@ -91,7 +91,7 @@ void tune_vmci_connect_timeout (ZmqContext *context_,
     assert (family != -1);
 
     int rc = setsockopt (sockfd_, family, SO_VMCI_CONNECT_TIMEOUT,
-                         (char *) &timeout, sizeof timeout);
+                          &timeout, sizeof timeout);
 // #if defined ZMQ_HAVE_WINDOWS
     wsa_assert (rc != SOCKET_ERROR);
 // #else

@@ -644,7 +644,7 @@ impl ZmqContext {
     self .empty_slots.pop_back();
 
     //  Generate new unique socket ID.
-    // const int sid = (static_cast<int> (max_socket_id.add (1))) + 1;
+    // const int sid = ( (max_socket_id.add (1))) + 1;
     let sid = max_socket_id.add(1) + 1;
 
     //  Create the socket and register its mailbox.

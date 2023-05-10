@@ -45,7 +45,7 @@ extern "C" int LLVMFuzzerTestOneInput (data: &[u8], size: usize)
 {
     //  This test might create socket files, so move to /tmp to avoid clobbering
     //  the working directory with random filenames
-    char *pwd = (char *) malloc (PATH_MAX + 1);
+    char *pwd =  malloc (PATH_MAX + 1);
     TEST_ASSERT_NOT_NULL (pwd);
     TEST_ASSERT_NOT_NULL (getcwd (pwd, PATH_MAX + 1));
     TEST_ASSERT_SUCCESS_ERRNO (chdir ("/tmp"));

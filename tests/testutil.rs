@@ -581,7 +581,7 @@ int fuzzer_corpus_encode (dirname: *const c_char,
             continue;
 
         char *filename =
-          (char *) malloc (strlen (dirname) + strlen (ent.d_name) + 2);
+           malloc (strlen (dirname) + strlen (ent.d_name) + 2);
         TEST_ASSERT_NOT_NULL (filename);
         strcpy (filename, dirname);
         strcat (filename, "/");

@@ -258,7 +258,7 @@ void socks_connecter_t::out_event ()
       || _status == sending_basic_auth_request || _status == sending_request);
 
     if (_status == waiting_for_proxy_connection) {
-        let rc: i32 = static_cast<int> (check_proxy_connection ());
+        let rc: i32 =  (check_proxy_connection ());
         if (rc == -1)
             // error ();
         else {

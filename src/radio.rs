@@ -286,11 +286,11 @@ int radio_session_t::push_msg (msg: &mut ZmqMessage)
 
         //  Set the msg type to either JOIN or LEAVE
         if (data_size >= 5 && memcmp (command_data, "\4JOIN", 5) == 0) {
-            group_length = static_cast<int> (data_size) - 5;
+            group_length =  (data_size) - 5;
             group = command_data + 5;
             rc = join_leave_msg.init_join ();
         } else if (data_size >= 6 && memcmp (command_data, "\5LEAVE", 6) == 0) {
-            group_length = static_cast<int> (data_size) - 6;
+            group_length =  (data_size) - 6;
             group = command_data + 6;
             rc = join_leave_msg.init_leave ();
         }
@@ -323,7 +323,7 @@ int radio_session_t::pull_msg (msg: &mut ZmqMessage)
             return rc;
 
         const char *group = _pending_msg.group ();
-        let length: i32 = static_cast<int> (strlen (group));
+        let length: i32 =  (strlen (group));
 
         //  First frame is the group
         rc = msg.init_size (length);

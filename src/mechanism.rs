@@ -48,7 +48,7 @@ use crate::defines::{
     ZMQ_PAIR, ZMQ_PEER, ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_RADIO, ZMQ_REP, ZMQ_REQ, ZMQ_ROUTER,
     ZMQ_SCATTER, ZMQ_SERVER, ZMQ_SUB, ZMQ_XPUB, ZMQ_XSUB,
 };
-use crate::message::{ZmqMessage, ZMQ_MSG_ROUTING_ID};
+use crate::message::{ZMQ_MSG_ROUTING_ID, ZmqMessage};
 use crate::options::ZmqOptions;
 use crate::utils::{copy_bytes, get_u32, put_u32};
 
@@ -130,7 +130,7 @@ pub fn socket_type_string(socket_type_: i32) -> String {
     // static const size_t names_count = mem::size_of::<names>() / sizeof (names[0]);
     let names_count = names.len();
     // zmq_assert (socket_type_ >= 0
-    // && socket_type_ < static_cast<int> (names_count));
+    // && socket_type_ <  (names_count));
     return String::from(names[socket_type_]);
 }
 
@@ -274,10 +274,7 @@ impl ZmqMechanism {
         );
 
         //  Add identity (aka routing id) property
-        if (self.options.type_ == ZMQ_REQ
-            || self.options.type_ == ZMQ_DEALER
-            || self.options.type_ == ZMQ_ROUTER)
-        {
+        if (self.options.type_ == ZMQ_REQ || self.options.type_ == ZMQ_DEALER || self.options.type_ == ZMQ_ROUTER) {
             ptr += add_property(
                 ptr,
                 ptr_capacity_ - (ptr - ptr_),
@@ -357,16 +354,11 @@ impl ZmqMechanism {
             meta_len += property_len(first.len(), second.len());
         }
 
-        return property_len(ZMTP_PROPERTY_SOCKET_TYPE.len(), socket_type.len())
-            + meta_len
-            + if self.options.type_ == ZMQ_REQ
-                || self.options.type_ == ZMQ_DEALER
-                || self.options.type_ == ZMQ_ROUTER
-            {
-                property_len(ZMTP_PROPERTY_IDENTITY.len(), self.options.routing_id_size)
-            } else {
-                0
-            };
+        return property_len(ZMTP_PROPERTY_SOCKET_TYPE.len(), socket_type.len()) + meta_len + if self.options.type_ == ZMQ_REQ || self.options.type_ == ZMQ_DEALER || self.options.type_ == ZMQ_ROUTER {
+            property_len(ZMTP_PROPERTY_IDENTITY.len(), self.options.routing_id_size)
+        } else {
+            0
+        };
     }
 
     pub fn parse_metadata(
@@ -417,11 +409,9 @@ impl ZmqMechanism {
                 self.property(name, value, value_length)?;
             }
             if zap_flag_ {
-                self.zap_properties
-                    .insert((&name).clone(), String::from_utf8_lossy(value).to_string());
+                self.zap_properties.insert((&name).clone(), String::from_utf8_lossy(value).to_string());
             } else {
-                self.zmtp_properties
-                    .insert((&name).clone(), String::from_utf8_lossy(value).to_string());
+                self.zmtp_properties.insert((&name).clone(), String::from_utf8_lossy(value).to_string());
             }
         }
         if (bytes_left > 0) {
@@ -438,14 +428,10 @@ impl ZmqMechanism {
             ZMQ_REQ => type_.eq(socket_type_rep) || type_.eq(socket_type_router),
             ZMQ_REP => type_.eq(socket_type_req) || type_.eq(socket_type_dealer),
             ZMQ_DEALER => {
-                type_.eq(socket_type_rep)
-                    || type_.eq(socket_type_dealer)
-                    || type_.eq(socket_type_router)
+                type_.eq(socket_type_rep) || type_.eq(socket_type_dealer) || type_.eq(socket_type_router)
             }
             ZMQ_ROUTER => {
-                type_.eq(socket_type_req)
-                    || type_.eq(socket_type_dealer)
-                    || type_.eq(socket_type_router)
+                type_.eq(socket_type_req) || type_.eq(socket_type_dealer) || type_.eq(socket_type_router)
             }
             ZMQ_PUSH => type_.eq(socket_type_pull),
             ZMQ_PULL => type_.eq(socket_type_push),
@@ -472,26 +458,20 @@ trait ZmqMechanismOps {
     // virtual ~ZmqMechanism ();
 
     //  Prepare next handshake command that is to be sent to the peer.
-    // virtual int next_handshake_command (msg: &mut ZmqMessage) = 0;
-    fn next_handshake_command(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>;
+    // virtual int next_handshake_command (msg: &mut ZmqMessage) = 0; fn next_handshake_command(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>;
 
     //  Process the handshake command received from the peer.
-    // virtual int process_handshake_command (msg: &mut ZmqMessage) = 0;
-    fn process_handshake_command(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>;
+    // virtual int process_handshake_command (msg: &mut ZmqMessage) = 0; fn process_handshake_command(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>;
 
-    // virtual int encode (ZmqMessage *) { return 0; }
-    fn encode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>;
+    // virtual int encode (ZmqMessage *) { return 0; } fn encode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>;
 
-    // virtual int decode (ZmqMessage *) { return 0; }
-    fn decode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>;
+    // virtual int decode (ZmqMessage *) { return 0; } fn decode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>;
 
     //  Notifies mechanism about availability of ZAP message.
-    // virtual int zap_msg_available () { return 0; }
-    fn zap_msg_available(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>;
+    // virtual int zap_msg_available () { return 0; } fn zap_msg_available(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>;
 
     //  Returns the status of this mechanism.
-    // virtual status_t status () const = 0;
-    fn status(&mut self) -> ZmqMechanismStatus;
+    // virtual status_t status () const = 0; fn status(&mut self) -> ZmqMechanismStatus;
 
     //  This is called by parse_property method whenever it
     //  parses a new property. The function should return 0
@@ -504,8 +484,7 @@ trait ZmqMechanismOps {
     // property (const std::string &name, const value_: *mut c_void, length_: usize);
     // int ZmqMechanism::property (const std::string & /* name */,
     // const void * /* value_ */,
-    // size_t /* length_ */)
-    fn property(&mut self, name: &str, value: &[u8], length: usize) -> anyhow::Result<()> {
+    // size_t /* length_ */) fn property(&mut self, name: &str, value: &[u8], length: usize) -> anyhow::Result<()> {
         //  Default implementation does not check
         //  property values and returns 0 to signal success.
         Ok(())

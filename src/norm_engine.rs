@@ -86,7 +86,7 @@ pub struct NormRxStreamState
 
         // These are used to feed data to decoder
         // and its underlying "msg" buffer
-        char *AccessBuffer () { return (char *) (buffer_ptr + buffer_count); }
+        char *AccessBuffer () { return  (buffer_ptr + buffer_count); }
         size_t GetBytesNeeded () const { return buffer_size - buffer_count; }
         void IncrementBufferCount (count: usize) { buffer_count += count; }
         ZmqMessage *AccessMsg () { return zmq_decoder.msg (); }

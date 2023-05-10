@@ -65,11 +65,16 @@
 
 use std::mem;
 use std::ptr::null_mut;
+
 use bincode::options;
-use libc::{EAGAIN, ECONNRESET, EPIPE, EPROTO, size_t};
-use windows::Win32::Networking::WinSock::{PF_UNIX, socklen_t, SOL_SOCKET};
+use libc::{size_t, EAGAIN, ECONNRESET, EPIPE, EPROTO};
+use windows::Win32::Networking::WinSock::{socklen_t, PF_UNIX, SOL_SOCKET};
+
 use crate::decoder::ZmqDecoderInterface;
-use crate::defines::{ZMQ_MSG_PROPERTY_PEER_ADDRESS, ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT, ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED, ZmqHandle};
+use crate::defines::{
+    ZmqHandle, ZMQ_MSG_PROPERTY_PEER_ADDRESS, ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT,
+    ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED,
+};
 use crate::encoder::ZmqBaseEncoder;
 use crate::endpoint::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
@@ -77,13 +82,12 @@ use crate::fd::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 use crate::io_thread::ZmqThread;
 use crate::mechanism::ZmqMechanismStatus::{error, ready};
-use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_CREDENTIAL, ZmqMessage};
+use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_CREDENTIAL};
 use crate::metadata::ZmqMetadata;
 use crate::options::ZmqOptions;
 use crate::socket_base::ZmqSocketBase;
 use crate::utils::copy_bytes;
 use crate::zmtp_engine::{ZmqMechanism, ZmqSessionBase};
-
 
 // enum
 // {
@@ -99,8 +103,7 @@ pub const handshake_timer_id: u8 = 0x40;
 
 // : public io_object_t, public ZmqIEngine
 #[derive(Default, Debug, Clone)]
-pub struct ZmqStreamEngineBase
-{
+pub struct ZmqStreamEngineBase {
     pub io_object: ZmqIoObject,
     pub engine_interface: ZmqEngineInterface,
     // const ZmqOptions _options;
@@ -161,22 +164,19 @@ pub struct ZmqStreamEngineBase
     //  Indicate if engine has an handshake stage, if it does, engine must call session.engine_ready
     //  when handshake is completed.
     pub _has_handshake_stage: bool,
-
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqStreamEngineBase)
 }
 
-impl ZmqDecoderInterface for ZmqStreamEngineBase
-{}
+impl ZmqDecoderInterface for ZmqStreamEngineBase {}
 
 impl ZmqStreamEngineBase {
     // bool in_event_internal ();
 
-    pub fn in_event_internal(&mut self) -> bool
-    {
+    pub fn in_event_internal(&mut self) -> bool {
         // zmq_assert (!_io_error);
 
         //  If still handshaking, receive and process the greeting message.
-        if ((self._handshaking)) {
+        if (self._handshaking) {
             if (self.handshake()) {
                 //  Handshaking was successful.
                 //  Switch into the normal message flow.
@@ -194,7 +194,6 @@ impl ZmqStreamEngineBase {
                 return false;
             }
         }
-
 
         // zmq_assert (_decoder);
 
@@ -226,8 +225,8 @@ impl ZmqStreamEngineBase {
             }
 
             //  Adjust input size
-            self._insize = rc;//static_cast<size_t> (rc);
-            // Adjust buffer size to received bytes
+            self._insize = rc; //static_cast<size_t> (rc);
+                               // Adjust buffer size to received bytes
             self._decoder.resize_buffer(self._insize);
         }
 
@@ -265,8 +264,7 @@ impl ZmqStreamEngineBase {
 
     //  Unplug the engine from the session.
     // void unplug ();
-    pub fn unplug(&mut self)
-    {
+    pub fn unplug(&mut self) {
         // zmq_assert (_plugged);
         self._plugged = false;
 
@@ -305,8 +303,7 @@ impl ZmqStreamEngineBase {
 
     // void mechanism_ready ();
 
-    pub fn mechanism_ready(&mut self)
-    {
+    pub fn mechanism_ready(&mut self) {
         if (self._options.heartbeat_interval > 0 && !self._has_heartbeat_timer) {
             add_timer(self._options.heartbeat_interval, heartbeat_ivl_timer_id);
             self._has_heartbeat_timer = true;
@@ -376,11 +373,11 @@ impl ZmqStreamEngineBase {
             self._has_handshake_timer = false;
         }
 
-        self._socket.event_handshake_succeeded(&mut self._options, &self._endpoint_uri_pair, 0);
+        self._socket
+            .event_handshake_succeeded(&mut self._options, &self._endpoint_uri_pair, 0);
     }
 
-    pub fn pull_and_encode(&mut self, msg: &mut ZmqMessage) -> i32
-    {
+    pub fn pull_and_encode(&mut self, msg: &mut ZmqMessage) -> i32 {
         // zmq_assert (_mechanism != null_mut());
 
         if (self._session.pull_msg(msg) == -1) {
@@ -391,7 +388,6 @@ impl ZmqStreamEngineBase {
         }
         return 0;
     }
-
 
     // ZmqStreamEngineBase (fd: ZmqFileDesc,
     // options: &ZmqOptions,
@@ -436,7 +432,12 @@ impl ZmqStreamEngineBase {
     // //  Put the socket into non-blocking mode.
     // unblock_socket (_s);
     // }
-    pub fn new(fd: ZmqFileDesc, options: &mut ZmqOptions, endpoint_uri_pair: &EndpointUriPair, has_handshake_stage: bool) -> Self {
+    pub fn new(
+        fd: ZmqFileDesc,
+        options: &mut ZmqOptions,
+        endpoint_uri_pair: &EndpointUriPair,
+        has_handshake_stage: bool,
+    ) -> Self {
         let mut out = Self {
             _options: options.clone(),
             _endpoint_uri_pair: endpoint_uri_pair.clone(),
@@ -453,11 +454,12 @@ impl ZmqStreamEngineBase {
     // ~ZmqStreamEngineBase () ;
 
     //  ZmqIEngine interface implementation.
-    pub fn has_handshake_stage(&self) -> bool { self._has_handshake_stage }
+    pub fn has_handshake_stage(&self) -> bool {
+        self._has_handshake_stage
+    }
 
     // void plug (ZmqThread *io_thread_, ZmqSessionBase *session_) ;
-    pub fn plug(&mut self, io_thread_: &mut ZmqThread, session: &mut ZmqSessionBase)
-    {
+    pub fn plug(&mut self, io_thread_: &mut ZmqThread, session: &mut ZmqSessionBase) {
         // zmq_assert (!_plugged);
         self._plugged = true;
 
@@ -476,16 +478,14 @@ impl ZmqStreamEngineBase {
     }
 
     // void terminate () ;
-    pub fn terminate(&mut self)
-    {
+    pub fn terminate(&mut self) {
         self.unplug();
         // delete this;
     }
 
     // bool restart_input () ;
 
-    pub fn restart_input(&mut self) -> bool
-    {
+    pub fn restart_input(&mut self) -> bool {
         // zmq_assert (_input_stopped);
         // zmq_assert (_session != null_mut());
         // zmq_assert (_decoder != null_mut());
@@ -538,15 +538,13 @@ impl ZmqStreamEngineBase {
         return true;
     }
 
-
     // void restart_output () ;
-    pub fn restart_output(&mut self)
-    {
-        if ((self._io_error)) {
+    pub fn restart_output(&mut self) {
+        if (self._io_error) {
             return;
         }
 
-        if ((self._output_stopped)) {
+        if (self._output_stopped) {
             self.set_pollout();
             self._output_stopped = false;
         }
@@ -559,8 +557,7 @@ impl ZmqStreamEngineBase {
     }
 
     // void zap_msg_available () ;
-    pub fn zap_msg_available(&mut self)
-    {
+    pub fn zap_msg_available(&mut self) {
         // zmq_assert (_mechanism != null_mut());
 
         let rc: i32 = self._mechanism.zap_msg_available();
@@ -579,15 +576,13 @@ impl ZmqStreamEngineBase {
     }
 
     // const endpoint_uri_pair_t &get_endpoint () const ;
-    pub fn get_endpoint(&self) -> &EndpointUriPair
-    {
+    pub fn get_endpoint(&self) -> &EndpointUriPair {
         &self._endpoint_uri_pair
     }
 
     //  i_poll_events interface implementation.
     // void in_event () ;
-    pub fn in_event(&mut self)
-    {
+    pub fn in_event(&mut self) {
         // ignore errors
         let res = self.in_event_internal();
         LIBZMQ_UNUSED(res);
@@ -595,8 +590,7 @@ impl ZmqStreamEngineBase {
 
     // void out_event () ;
 
-    pub fn out_event(&mut self)
-    {
+    pub fn out_event(&mut self) {
         // zmq_assert (!_io_error);
 
         //  If write buffer is empty, try to read new data from the encoder.
@@ -604,7 +598,7 @@ impl ZmqStreamEngineBase {
             //  Even when we stop polling as soon as there is no
             //  data to send, the poller may invoke out_event one
             //  more time due to 'speculative write' optimisation.
-            if ((self._encoder == null_mut())) {
+            if (self._encoder == null_mut()) {
                 // zmq_assert (_handshaking);
                 return;
             }
@@ -626,7 +620,10 @@ impl ZmqStreamEngineBase {
                 self._encoder.load_msg(&mut self._tx_msg);
                 // TODO
                 // unsigned char *bufptr = _outpos + _outsize;
-                let n = self._encoder.encode(&mut Some(bufptr), (self._options.out_batch_size - self._outsize) as usize);
+                let n = self._encoder.encode(
+                    &mut Some(bufptr),
+                    (self._options.out_batch_size - self._outsize) as usize,
+                );
                 // zmq_assert (n > 0);
                 if (self._outpos == 0) {
                     self._outpos = bufptr;
@@ -663,15 +660,14 @@ impl ZmqStreamEngineBase {
 
         //  If we are still handshaking and there are no data
         //  to send, stop polling for output.
-        if ((self._handshaking)) {
+        if (self._handshaking) {
             if (self._outsize == 0) {
                 reset_pollout();
             }
         }
     }
 
-
-// void timer_event (id_: i32) ;
+    // void timer_event (id_: i32) ;
 
     // typedef ZmqMetadata::dict_t properties_t;
 
@@ -682,8 +678,7 @@ impl ZmqStreamEngineBase {
     // virtual void error (ZmqErrorReason reason_);
 
     // int next_handshake_command (msg: &mut ZmqMessage);
-    pub fn next_handshake_command(&mut self, msg: &mut ZmqMessage) -> i32
-    {
+    pub fn next_handshake_command(&mut self, msg: &mut ZmqMessage) -> i32 {
         // zmq_assert (_mechanism != null_mut());
 
         if (self._mechanism.status() == ready) {
@@ -704,8 +699,7 @@ impl ZmqStreamEngineBase {
     }
 
     // int process_handshake_command (msg: &mut ZmqMessage);
-    pub fn process_handshake_command(&mut self, msg: &mut ZmqMessage) -> i32
-    {
+    pub fn process_handshake_command(&mut self, msg: &mut ZmqMessage) -> i32 {
         // zmq_assert (_mechanism != null_mut());
         let rc: i32 = self._mechanism.process_handshake_command(msg);
         if (rc == 0) {
@@ -792,8 +786,7 @@ impl ZmqStreamEngineBase {
         &mut self._socket
     }
 
-    pub fn write_credential(&mut self, msg: &mut ZmqMessage) -> i32
-    {
+    pub fn write_credential(&mut self, msg: &mut ZmqMessage) -> i32 {
         // zmq_assert (_mechanism != null_mut());
         // zmq_assert (_session != null_mut());
 
@@ -815,9 +808,7 @@ impl ZmqStreamEngineBase {
         return decode_and_push(msg);
     }
 
-
-    pub fn decode_and_push(&mut self, msg: &mut ZmqMessage) -> i32
-    {
+    pub fn decode_and_push(&mut self, msg: &mut ZmqMessage) -> i32 {
         // zmq_assert (_mechanism != null_mut());
 
         if (self._mechanism.decode(msg) == -1) {
@@ -850,8 +841,7 @@ impl ZmqStreamEngineBase {
         return 0;
     }
 
-    pub fn push_one_then_decode_and_push(&mut self, msg: &mut ZmqMessage) -> i32
-    {
+    pub fn push_one_then_decode_and_push(&mut self, msg: &mut ZmqMessage) -> i32 {
         let rc: i32 = self._session.push_msg(msg);
         if (rc == 0) {
             self._process_msg = self.decode_and_push;
@@ -859,19 +849,15 @@ impl ZmqStreamEngineBase {
         return rc;
     }
 
-    pub fn pull_msg_from_session(&mut self, msg: &mut ZmqMessage) -> i32
-    {
+    pub fn pull_msg_from_session(&mut self, msg: &mut ZmqMessage) -> i32 {
         return self._session.pull_msg(msg);
     }
 
-    pub fn push_msg_to_session(&mut self, msg: &mut ZmqMessage) -> i32
-    {
+    pub fn push_msg_to_session(&mut self, msg: &mut ZmqMessage) -> i32 {
         return self._session.push_msg(msg);
     }
 
-
-    pub fn error(&mut self, reason_: ZmqErrorReason)
-    {
+    pub fn error(&mut self, reason_: ZmqErrorReason) {
         // zmq_assert (_session);
 
         if (self._options.router_notify & ZMQ_NOTIFY_DISCONNECT) != 0 && !self._handshaking {
@@ -888,32 +874,38 @@ impl ZmqStreamEngineBase {
         // protocol errors have been signaled already at the point where they occurred
         if (reason_ != protocol_error
             && (self._mechanism == null_mut()
-            || self._mechanism.status() == ZmqMechanism::handshaking)) {
+                || self._mechanism.status() == ZmqMechanism::handshaking))
+        {
             let err: i32 = errno;
-            self._socket.event_handshake_failed_no_detail(&mut self._options, &self._endpoint_uri_pair, err);
+            self._socket.event_handshake_failed_no_detail(
+                &mut self._options,
+                &self._endpoint_uri_pair,
+                err,
+            );
             // special case: connecting to non-ZMTP process which immediately drops connection,
             // or which never responds with greeting, should be treated as a protocol error
             // (i.e. stop reconnect)
             if (((reason_ == connection_error) || (reason_ == timeout_error))
-                && (self._options.reconnect_stop
-                & ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED) != 0) {
+                && (self._options.reconnect_stop & ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED) != 0)
+            {
                 reason_ = protocol_error;
             }
         }
 
-        self._socket.event_disconnected(&mut self._options, &self._endpoint_uri_pair, self._s);
+        self._socket
+            .event_disconnected(&mut self._options, &self._endpoint_uri_pair, self._s);
         self._session.flush();
         self._session.engine_error(
             !self._handshaking
                 && (self._mechanism == null_mut()
-                || self._mechanism.status() != ZmqMechanism::handshaking),
-            reason_);
+                    || self._mechanism.status() != ZmqMechanism::handshaking),
+            reason_,
+        );
         unplug();
         // delete this;
     }
 
-    pub fn set_handshake_timer(&mut self)
-    {
+    pub fn set_handshake_timer(&mut self) {
         // zmq_assert (!_has_handshake_timer);
 
         if (self._options.handshake_ivl > 0) {
@@ -922,8 +914,7 @@ impl ZmqStreamEngineBase {
         }
     }
 
-    pub fn init_properties(&mut self, properties_: &mut properties_t) -> bool
-    {
+    pub fn init_properties(&mut self, properties_: &mut properties_t) -> bool {
         if (self._peer_address.empty()) {
             return false;
         }
@@ -931,16 +922,14 @@ impl ZmqStreamEngineBase {
 
         //  Private property to support deprecated SRCFD
         // std::ostringstream stream;
-        // stream << static_cast<int> (_s);
+        // stream <<  (_s);
         // std::string fd_string = stream.str ();
         fd_string = format!("{}", self._s);
-        properties_.ZMQ_MAP_INSERT_OR_EMPLACE(std::string("__fd"),
-                                              ZMQ_MOVE(fd_string));
+        properties_.ZMQ_MAP_INSERT_OR_EMPLACE(std::string("__fd"), ZMQ_MOVE(fd_string));
         return true;
     }
 
-    pub fn timer_event(&mut self, id_: i32)
-    {
+    pub fn timer_event(&mut self, id_: i32) {
         if (id_ == handshake_timer_id) {
             _has_handshake_timer = false;
             //  handshake timer expired before handshake completed, so engine fail
@@ -961,8 +950,7 @@ impl ZmqStreamEngineBase {
         }
     }
 
-    pub fn read(&mut self, data: &mut [u8], size: usize) -> i32
-    {
+    pub fn read(&mut self, data: &mut [u8], size: usize) -> i32 {
         let rc: i32 = tcp_read(self._s, data, size);
 
         if (rc == 0) {
@@ -974,21 +962,19 @@ impl ZmqStreamEngineBase {
         return rc;
     }
 
-    pub fn write(&mut self, data: &mut [u8], size: usize) -> i32
-    {
+    pub fn write(&mut self, data: &mut [u8], size: usize) -> i32 {
         return tcp_write(self._s, data, size);
     }
 }
 
-pub fn get_peer_address(s_: ZmqFileDesc) -> String
-{
+pub fn get_peer_address(s_: ZmqFileDesc) -> String {
     let mut peer_address: String = String::new();
 
     let family: i32 = get_peer_ip_address(s_, &peer_address);
     if (family == 0) {
         peer_address.clear();
     }
-// #if defined ZMQ_HAVE_SO_PEERCRED
+    // #if defined ZMQ_HAVE_SO_PEERCRED
     else if (cfg!(so_peer_cred) && family == PF_UNIX) {
         // struct ucred cred;
         #[cfg(feature = "so_peer_cred")]
@@ -1024,11 +1010,10 @@ pub fn get_peer_address(s_: ZmqFileDesc) -> String
             // }
         }
     }
-// #endif
+    // #endif
 
     return peer_address;
 }
-
 
 // ZmqStreamEngineBase::~ZmqStreamEngineBase ()
 // {
@@ -1066,47 +1051,3 @@ pub fn get_peer_address(s_: ZmqFileDesc) -> String
 //     LIBZMQ_DELETE (_decoder);
 //     LIBZMQ_DELETE (_mechanism);
 // }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

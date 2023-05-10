@@ -49,9 +49,9 @@
 void seed_random ()
 {
 // #if defined ZMQ_HAVE_WINDOWS
-    let pid: i32 = static_cast<int> (GetCurrentProcessId ());
+    let pid: i32 =  (GetCurrentProcessId ());
 // #else
-    int pid = static_cast<int> (getpid ());
+    int pid =  (getpid ());
 // #endif
     srand (static_cast<unsigned int> (clock_t::now_us () + pid));
 }

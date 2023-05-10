@@ -70,7 +70,7 @@ int tune_tcp_socket (s_: ZmqFileDesc)
 // #ifdef ZMQ_HAVE_OPENVMS
     //  Disable delayed acknowledgements as they hurt latency significantly.
     int nodelack = 1;
-    rc = setsockopt (s_, IPPROTO_TCP, TCP_NODELACK, (char *) &nodelack,
+    rc = setsockopt (s_, IPPROTO_TCP, TCP_NODELACK,  &nodelack,
                      mem::size_of::<int>());
     assert_success_or_recoverable (s_, rc);
 // #endif
@@ -214,7 +214,7 @@ int tcp_write (s_: ZmqFileDesc, const data: &mut [u8], size: usize)
 {
 // #ifdef ZMQ_HAVE_WINDOWS
 
-    let nbytes: i32 = send (s_, (char *) data, static_cast<int> (size), 0);
+    let nbytes: i32 = send (s_,  data,  (size), 0);
 
     //  If not a single byte can be written to the socket in non-blocking mode
     //  we'll get an error (this may happen during the speculative write).
@@ -264,7 +264,7 @@ int tcp_write (s_: ZmqFileDesc, const data: &mut [u8], size: usize)
         return -1;
     }
 
-    return static_cast<int> (nbytes);
+    return  (nbytes);
 
 // #endif
 }
@@ -274,7 +274,7 @@ int tcp_read (s_: ZmqFileDesc, data: &mut [u8], size: usize)
 // #ifdef ZMQ_HAVE_WINDOWS
 
     let rc: i32 =
-      recv (s_,  (data), static_cast<int> (size), 0);
+      recv (s_,  (data),  (size), 0);
 
     //  If not a single byte can be read from the socket in non-blocking mode
     //  we'll get an error (this may happen during the speculative read).
@@ -312,7 +312,7 @@ int tcp_read (s_: ZmqFileDesc, data: &mut [u8], size: usize)
             errno = EAGAIN;
     }
 
-    return static_cast<int> (rc);
+    return  (rc);
 
 // #endif
 }

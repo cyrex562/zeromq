@@ -441,11 +441,11 @@ void udp_engine_t::sockaddr_to_msg (msg: &mut ZmqMessage
 
     char port[6];
     let port_len: i32 =
-      sprintf (port, "%d", static_cast<int> (ntohs (addr_.sin_port)));
+      sprintf (port, "%d",  (ntohs (addr_.sin_port)));
     // zmq_assert (port_len > 0);
 
     const size_t name_len = strlen (name);
-    let size: i32 = static_cast<int> (name_len) + 1 /* colon */
+    let size: i32 =  (name_len) + 1 /* colon */
                      + port_len + 1;                 //  terminating NUL
     let rc: i32 = msg.init_size (size);
     // errno_assert (rc == 0);
@@ -470,7 +470,7 @@ int udp_engine_t::resolve_raw_address (name: &str, length_: usize)
 
     // Find delimiter, cannot use memrchr as it is not supported on windows
     if (length_ != 0) {
-        int chars_left = static_cast<int> (length_);
+        int chars_left =  (length_);
         const char *current_char = name + length_;
         do {
             if (*(--current_char) == ':') {
@@ -557,7 +557,7 @@ void udp_engine_t::out_event ()
         // errno_assert (rc == 0);
 
 // #ifdef ZMQ_HAVE_WINDOWS
-        rc = sendto (_fd, _out_buffer, static_cast<int> (size), 0, _out_address,
+        rc = sendto (_fd, _out_buffer,  (size), 0, _out_address,
                      _out_address_len);
 #elif defined ZMQ_HAVE_VXWORKS
         rc = sendto (_fd, reinterpret_cast<caddr_t> (_out_buffer), size, 0,

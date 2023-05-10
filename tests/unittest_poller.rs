@@ -224,7 +224,7 @@ void test_add_fd_with_pending_failing_connect ()
                                     reinterpret_cast<const sockaddr *> (&addr),
                                     mem::size_of::<addr>()));
 
-    int addr_len = static_cast<int> (mem::size_of::<addr>());
+    int addr_len =  (mem::size_of::<addr>());
     TEST_ASSERT_EQUAL_INT (0, getsockname (bind_socket,
                                            reinterpret_cast<sockaddr *> (&addr),
                                            &addr_len));

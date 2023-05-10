@@ -227,7 +227,7 @@ void socks_server_task (socks_server: *mut c_void,
             int err = 0;
             int request_atype = buffer[3];
             if (request_atype == 0x1) /* ATYPE IPv4 */ {
-                recvall (client, (char *) &naddr, 4);
+                recvall (client,  &naddr, 4);
                 fprintf (stderr,
                          "socks_server: received address (addr: 0x%x)\n",
                          ntohl (naddr));
@@ -265,7 +265,7 @@ void socks_server_task (socks_server: *mut c_void,
             } else {
                 err = 0x8; /* ATYPE not supported */
             }
-            recvall (client, (char *) &nport, 2);
+            recvall (client,  &nport, 2);
             fprintf (stderr, "socks_server: received port (port: %d)\n",
                      ntohs (nport));
             if (err == 0) {
@@ -297,7 +297,7 @@ void socks_server_task (socks_server: *mut c_void,
             buffer[3] = request_atype;
             sendall (client, buffer, 4);
             if (request_atype == 0x1) /* ATYPE IPv4 */ {
-                sendall (client, (char *) &bind_naddr, 4);
+                sendall (client,  &bind_naddr, 4);
             } else if (request_atype == 0x3) {
                 /* This is just for testing reply with a hostname,
                    normally a resolved address is passed in return to connect. */
@@ -311,7 +311,7 @@ void socks_server_task (socks_server: *mut c_void,
                 nipv6local[15] = 1;
                 sendall (client, nipv6local, sizeof nipv6local);
             }
-            sendall (client, (char *) &bind_nport, 2);
+            sendall (client,  &bind_nport, 2);
             fprintf (stderr, "socks_server: replied to request (err: 0x%x)\n",
                      err);
             if (err != 0)

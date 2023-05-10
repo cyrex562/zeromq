@@ -161,7 +161,7 @@ void send_array_expect_success (socket: *mut c_void,
                                 flags: i32)
 {
     let rc: i32 = zmq_send (socket, array_, SIZE, flags);
-    TEST_ASSERT_EQUAL_INT (static_cast<int> (SIZE), rc);
+    TEST_ASSERT_EQUAL_INT ( (SIZE), rc);
 }
 
 // Receives a message via a libzmq socket, and expects the operation to be
@@ -184,7 +184,7 @@ void recv_array_expect_success (socket: *mut c_void,
 
     let rc: i32 = TEST_ASSERT_SUCCESS_ERRNO (
       zmq_recv (socket, buffer, mem::size_of::<buffer>(), flags));
-    TEST_ASSERT_EQUAL_INT (static_cast<int> (SIZE), rc);
+    TEST_ASSERT_EQUAL_INT ( (SIZE), rc);
     TEST_ASSERT_EQUAL_UINT8_ARRAY (array_, buffer, SIZE);
 }
 

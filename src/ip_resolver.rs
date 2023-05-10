@@ -3,8 +3,10 @@ use std::mem;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::ptr::null_mut;
 use std::str::FromStr;
-use libc::{AI_NUMERICHOST, AI_PASSIVE, AI_V4MAPPED, c_uint, close, EAI_BADFLAGS, EINVAL, ENODEV, ENOMEM, free, if_nametoindex, malloc, SOCK_STREAM, strcmp};
+use libc::{AI_NUMERICHOST, AI_PASSIVE, AI_V4MAPPED, c_uint, close, EAI_BADFLAGS, EINVAL, ENODEV, ENOMEM, free, getaddrinfo, if_nametoindex, malloc, SOCK_STREAM, strcmp};
+#[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{AI_NUMERICHOST, AI_PASSIVE, AI_V4MAPPED, freeaddrinfo, SOCK_DGRAM, SOCK_STREAM, WSAHOST_NOT_FOUND};
+use windows::Win32::Networking::WinSock::ADDRINFOA;
 use crate::address_family::{AF_INET, AF_INET6};
 use crate::network_address::{NetworkAddress, NetworkAddressFamily};
 use crate::unix_sockaddr::{addrinfo, sockaddr_in};
@@ -277,14 +279,15 @@ impl IpResolver {
 
         //  Resolve the literal address. Some of the error info is lost in case
         //  of error, however, there's no way to report EAI errors via errno.
-        let rc = do_getaddrinfo (addr_, null_mut(), &req, &res);
+        // do_getaddrinfo (addr_, null_mut(), &req, &res);
+        do_getaddrinfo (addr_, "");
 
         // Some OS do have AI_V4MAPPED defined but it is not supported in getaddrinfo()
         // returning EAI_BADFLAGS. Detect this and retry
-        if rc == EAI_BADFLAGS && (req.ai_flags & AI_V4MAPPED) != 0 {
-            req.ai_flags &= !AI_V4MAPPED;
-            rc = do_getaddrinfo (addr_, null_mut(), &req, &res);
-        }
+        // if rc == EAI_BADFLAGS && (req.ai_flags & AI_V4MAPPED) != 0 {
+        //     req.ai_flags &= !AI_V4MAPPED;
+        //     rc = do_getaddrinfo (addr_, null_mut(), &req, &res);
+        // }
 
         //  Resolve specific case on Windows platform when using IPv4 address
         //  with ZMQ_IPv6 socket option.
@@ -325,6 +328,7 @@ impl IpResolver {
     // #include <sys/sockio.h>
 
     //  On Solaris platform, network interface name can be queried by ioctl.
+    #[cfg(target_os = "solaris")]
     pub fn resolve_nic_name (ip_addr_: &mut NetworkAddress, nic_: &str) -> i32
     {
         //  Create a socket.
@@ -332,39 +336,43 @@ impl IpResolver {
         // errno_assert (fd != -1);
 
         //  Retrieve number of interfaces.
-        lifnum ifn;
+        let ifn: lifnum;
         ifn.lifn_family = AF_INET;
         ifn.lifn_flags = 0;
-        int rc = ioctl (fd, SIOCGLIFNUM, (char *) &ifn);
+        let rc = ioctl (fd, SIOCGLIFNUM, &ifn);
         // errno_assert (rc != -1);
 
         //  Allocate memory to get interface names.
-        const size_t ifr_size = sizeof (struct lifreq) * ifn.lifn_count;
-        char *ifr = (char *) malloc (ifr_size);
+        let ifr_size =  mem::size_of::<lifreq>() * ifn.lifn_count;
+        // char *ifr =  malloc (ifr_size);
+        let ifr = String::with_capacity(ifr_size);
         // alloc_assert (ifr);
 
         //  Retrieve interface names.
-        lifconf ifc;
+        let ifc:lifconf;
         ifc.lifc_family = AF_INET;
         ifc.lifc_flags = 0;
         ifc.lifc_len = ifr_size;
         ifc.lifc_buf = ifr;
-        rc = ioctl (fd, SIOCGLIFCONF, (char *) &ifc);
+        rc = ioctl (fd, SIOCGLIFCONF,  &ifc);
         // errno_assert (rc != -1);
 
         //  Find the interface with the specified name and AF_INET family.
-        bool found = false;
+        let found: bool = false;
         lifreq *ifrp = ifc.lifc_req;
-        for (int n = 0; n <  (ifc.lifc_len / mem::size_of::<lifreq>()); n+= 1, ifrp+= 1) {
+        // for (int n = 0; n <  (ifc.lifc_len / mem::size_of::<lifreq>()); n+= 1, ifrp+= 1)
+        for n in 0..(ifc.lifc_len / mem::size_of::<lifreq>())
+        {
             if (!strcmp (nic_, ifrp.lifr_name)) {
-                rc = ioctl (fd, SIOCGLIFADDR, (char *) ifrp);
+                rc = ioctl (fd, SIOCGLIFADDR,  ifrp);
                 // errno_assert (rc != -1);
                 if (ifrp.lifr_addr.ss_family == AF_INET) {
-                    ip_addr_.ipv4 = *(sockaddr_in *) &ifrp.lifr_addr;
+                    ip_addr_.ipv4 = &ifrp.lifr_addr;
                     found = true;
                     break;
                 }
             }
+            ifrp += 1;
         }
 
         //  Clean-up.
@@ -497,7 +505,7 @@ impl IpResolver {
     //                                             char **dest_) const
     // {
     // // #ifdef ZMQ_HAVE_WINDOWS_UWP
-    //     char *buffer = (char *) malloc (1024);
+    //     char *buffer =  malloc (1024);
     // // #else
     //     char *buffer =  (malloc (IF_MAX_STRING_SIZE));
     // // #endif
@@ -539,18 +547,19 @@ impl IpResolver {
     //     return 0;
     // }
 
+    #[cfg(target_os = "windows")]
     pub fn resolve_nic_name (ip_addr_: &NetworkAddress, nic_: &str)
     {
         rc: i32;
-        bool found = false;
+        let mut found = false;
         let max_attempts: i32 = 10;
 
-        int iterations = 0;
+        let mut iterations = 0;
         IP_ADAPTER_ADDRESSES *addresses;
-        unsigned long out_buf_len = mem::size_of::<IP_ADAPTER_ADDRESSES>();
+        let mut out_buf_len = mem::size_of::<IP_ADAPTER_ADDRESSES>();
 
-        do {
-            addresses = static_cast<IP_ADAPTER_ADDRESSES *> (malloc (out_buf_len));
+        loop {
+            addresses =  (malloc (out_buf_len));
             // alloc_assert (addresses);
 
             rc =
@@ -565,11 +574,14 @@ impl IpResolver {
                 break;
             }
             iterations+= 1;
-        } while ((rc == ERROR_BUFFER_OVERFLOW) && (iterations < max_attempts));
+            if  !((rc == ERROR_BUFFER_OVERFLOW) && (iterations < max_attempts)) {break;}
+        }
 
         if (rc == 0) {
-            for (const IP_ADAPTER_ADDRESSES *current_addresses = addresses;
-                 current_addresses; current_addresses = current_addresses.Next) {
+            // for (const IP_ADAPTER_ADDRESSES *current_addresses = addresses;
+            //      current_addresses; current_addresses = current_addresses.Next)
+            for address in addresses
+            {
                 char *if_name = null_mut();
                 char *if_friendly_name = null_mut();
 
@@ -582,31 +594,38 @@ impl IpResolver {
                 if (((str_rc1 == 0) && (!strcmp (nic_, if_name)))
                     || ((str_rc2 == 0) && (!strcmp (nic_, if_friendly_name)))) {
                     //  Iterate over all unicast addresses bound to the current network interface
-                    for (const IP_ADAPTER_UNICAST_ADDRESS *current_unicast_address =
-                           current_addresses.FirstUnicastAddress;
-                         current_unicast_address;
-                         current_unicast_address = current_unicast_address.Next) {
-                        const ADDRESS_FAMILY family =
+                    // for (const IP_ADAPTER_UNICAST_ADDRESS *current_unicast_address =
+                    //        current_addresses.FirstUnicastAddress;
+                    //      current_unicast_address;
+                    //      current_unicast_address = current_unicast_address.Next)
+                    for current_unicast_address in current_addresses.FirstUnicastAddress
+                    {
+                        let family =
                           current_unicast_address.Address.lpSockaddr.sa_family;
 
-                        if (family == (self._options.ipv6 () ? AF_INET6 : AF_INET)) {
+                        if (family == (if self._options.ipv () { AF_INET6 } else { AF_INET }))
+                        {
                             memcpy (
                               ip_addr_, current_unicast_address.Address.lpSockaddr,
-                              (family == AF_INET) ? sizeof (struct sockaddr_in)
-                                                  : sizeof (struct sockaddr_in6));
+                              if (family == AF_INET) { mem::size_of::<sockaddr_in>() } else {
+                                  mem::sizeof::<sockaddr_in6>()});
+
                             found = true;
                             break;
                         }
                     }
 
-                    if (found)
+                    if (found) {
                         break;
+                    }
                 }
 
-                if (str_rc1 == 0)
-                    free (if_name);
-                if (str_rc2 == 0)
-                    free (if_friendly_name);
+                if (str_rc1 == 0) {
+                    free(if_name);
+                }
+                if (str_rc2 == 0) {
+                    free(if_friendly_name);
+                }
             }
 
             free (addresses);
@@ -622,10 +641,11 @@ impl IpResolver {
     // #else
 
     //  On other platforms we assume there are no sane interface names.
-    pub fn resolve_nic_name (ip_addr_t *ip_addr_, nic_: &str) -> i32
+    #[cfg(not(target_os = "windows"))]
+    pub fn resolve_nic_name (ip_addr_: ip_addr_t, nic_: &str) -> i32
     {
-        LIBZMQ_UNUSED (ip_addr_);
-        LIBZMQ_UNUSED (nic_);
+        // LIBZMQ_UNUSED (ip_addr_);
+        // LIBZMQ_UNUSED (nic_);
 
         errno = ENODEV;
         return -1;
@@ -633,22 +653,16 @@ impl IpResolver {
 
     // #endif
 
-    pub fn do_getaddrinfo (node_: &str,
-                                            service_: &str,
-                                            const struct addrinfo *hints_,
-                                            struct addrinfo **res_) -> i32
+    pub fn do_getaddrinfo (node_: &str, service_: &str, hints_: &addrinfo, &mut &mut res_: addrinfo) -> i32
     {
-        return getaddrinfo (node_, service_, hints_, res_);
+        // return unsafe { getaddrinfo(node_, service_, hints_, res_) };
+        0
     }
 
-    pub fn do_freeaddrinfo (struct addrinfo *res_)
+    pub fn do_freeaddrinfo (res_: &addrinfo)
     {
-        freeaddrinfo (res_);
+        unsafe { freeaddrinfo(Some(res_ as *ADDRINFOA)) };
     }
-
-
-
-
 
 }
 
