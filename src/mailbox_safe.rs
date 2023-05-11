@@ -32,133 +32,162 @@
 // #include "clock.hpp"
 // #include "err.hpp"
 
-// #include <algorithm>
-pub struct mailbox_safe_t  : public ZmqMailboxInterface
-{
-//
-    mailbox_safe_t (mutex_t *sync_);
-    ~mailbox_safe_t ();
+use libc::EAGAIN;
+use crate::command::ZmqCommand;
+use crate::mailbox_interface::ZmqMailboxInterface;
+use crate::signaler::ZmqSignaler;
+use crate::ypipe::Ypipe;
 
-    void send (const ZmqCommand &cmd);
-    int recv (cmd: &mut ZmqCommand timeout: i32);
+// #include <algorithm>
+pub struct ZmqMailboxSafe {
+    // : public ZmqMailboxInterface
+//
+// #endif
+    //
+    //  The pipe to store actual commands.
+    // typedef Ypipe<ZmqCommand, command_pipe_granularity> cpipe_t;
+    // cpipe_t cpipe;
+    //   pub cpipe: Ypipe<ZmqCommand, command_pipe_granularity>,
+    //  Condition variable to pass signals from writer thread to reader thread.
+    // condition_variable_t _cond_var;
+    pub _cond_var: condition_variable_t,
+    //  Synchronize access to the mailbox from receivers and senders
+    // mutex_t *const sync;
+    pub sync: *mut mutex_t,
+    // std::vector<ZmqSignaler *> _signalers;
+    pub _signalers: Vec<ZmqSignaler>,
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqMailboxSafe)
+}
+
+impl ZmqMailboxInterface for ZmqMailboxSafe {
+    fn send(&mut self, cmd: &ZmqCommand) {
+        todo!()
+    }
+
+    fn recv(&mut self, cmd: &mut ZmqCommand, timeout: i32) -> i32 {
+        todo!()
+    }
+}
+
+impl ZmqMailboxSafe {
+    // ZmqMailboxSafe (mutex_t *sync_);
+    pub fn new(sync_: &mut mutex_t) -> Self {
+        // : sync (sync_)
+        //  Get the pipe into passive state. That way, if the users starts by
+        //  polling on the associated file descriptor it will get woken up when
+        //  new command is posted.
+        // const bool ok = cpipe.check_read ();
+        // zmq_assert (!ok);
+        Self {
+            sync: sync_,
+            // cpipe: cpipe_t::new(),
+            _cond_var: condition_variable_t::new(),
+            _signalers: vec![],
+        }
+    }
+
+
+    // ~ZmqMailboxSafe ();
+
+    // void send (const ZmqCommand &cmd);
+
+    // int recv (cmd: &mut ZmqCommand timeout: i32);
 
     // Add signaler to mailbox which will be called when a message is ready
-    void add_signaler (ZmqSignaler *signaler_);
-    void remove_signaler (ZmqSignaler *signaler_);
-    void clear_signalers ();
+    // void add_signaler (ZmqSignaler *signaler_);
+    pub fn add_signaler(&mut self, signaler: &mut ZmqSignaler) {
+        sel_signalers.push_back(signaler_);
+    }
 
-// #ifdef HAVE_FORK
+    // void remove_signaler (ZmqSignaler *signaler_);
+
+    // void clear_signalers ();
+
+    // #ifdef HAVE_FORK
     // close the file descriptors in the signaller. This is used in a forked
     // child process to close the file descriptors so that they do not interfere
     // with the context in the parent process.
-    void forked ()
-    {
+    pub fn forked() {
         // TODO: call fork on the condition variable
     }
-// #endif
 
-  //
-    //  The pipe to store actual commands.
-    typedef Ypipe<ZmqCommand, command_pipe_granularity> cpipe_t;
-    cpipe_t cpipe;
-
-    //  Condition variable to pass signals from writer thread to reader thread.
-    condition_variable_t _cond_var;
-
-    //  Synchronize access to the mailbox from receivers and senders
-    mutex_t *const sync;
-
-    std::vector<ZmqSignaler *> _signalers;
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_safe_t)
-};
-
-mailbox_safe_t::mailbox_safe_t (mutex_t *sync_) : sync (sync_)
-{
-    //  Get the pipe into passive state. That way, if the users starts by
-    //  polling on the associated file descriptor it will get woken up when
-    //  new command is posted.
-    const bool ok = cpipe.check_read ();
-    // zmq_assert (!ok);
-}
-
-mailbox_safe_t::~mailbox_safe_t ()
-{
-    //  TODO: Retrieve and deallocate commands inside the cpipe.
-
-    // Work around problem that other threads might still be in our
-    // send() method, by waiting on the mutex before disappearing.
-    sync.lock ();
-    sync.unlock ();
-}
-
-void mailbox_safe_t::add_signaler (ZmqSignaler *signaler_)
-{
-    _signalers.push_back (signaler_);
-}
-
-void mailbox_safe_t::remove_signaler (ZmqSignaler *signaler_)
-{
-    // TODO: make a copy of array and signal outside the lock
-    const std::vector<ZmqSignaler *>::iterator end = _signalers.end ();
-    const std::vector<ZmqSignaler *>::iterator it =
-      std::find (_signalers.begin (), end, signaler_);
-
-    if (it != end)
-        _signalers.erase (it);
-}
-
-void mailbox_safe_t::clear_signalers ()
-{
-    _signalers.clear ();
-}
-
-void mailbox_safe_t::send (const ZmqCommand &cmd)
-{
-    sync.lock ();
-    cpipe.write (cmd, false);
-    const bool ok = cpipe.flush ();
-
-    if (!ok) {
-        _cond_var.broadcast ();
-
-        for (std::vector<ZmqSignaler *>::iterator it = _signalers.begin (),
-                                                 end = _signalers.end ();
-             it != end; += 1it) {
-            (*it)->send ();
-        }
+    pub fn remove_signaler(&mut self, signaler_: &mut ZmqSignaler) {
+        // TODO: make a copy of array and signal outside the lock
+        // const std::vector<ZmqSignaler *>::iterator end = _signalers.end ();
+        // const std::vector<ZmqSignaler *>::iterator it =
+        //   std::find (_signalers.begin (), end, signaler_);
+        // if (it != end) {
+        //     _signalers.erase(it);
+        // }
     }
 
-    sync.unlock ();
-}
+    pub fn clear_signalers(&mut self) {
+        self._signalers.clear();
+    }
 
-int mailbox_safe_t::recv (cmd: &mut ZmqCommand timeout: i32)
-{
-    //  Try to get the command straight away.
-    if (cpipe.read (cmd))
-        return 0;
 
-    //  If the timeout is zero, it will be quicker to release the lock, giving other a chance to send a command
-    //  and immediately relock it.
-    if (timeout == 0) {
-        sync.unlock ();
-        sync.lock ();
-    } else {
-        //  Wait for signal from the command sender.
-        let rc: i32 = _cond_var.wait (sync, timeout);
-        if (rc == -1) {
-            // errno_assert (errno == EAGAIN || errno == EINTR);
+    pub fn send(&mut self, cmd: &ZmqCommand) {
+        sync.lock();
+        // cpipe.write (cmd, false);
+        // let ok = cpipe.flush ();
+
+        if (!ok) {
+            _cond_var.broadcast();
+
+            // for (std::vector<ZmqSignaler *>::iterator it = _signalers.begin (),
+            //                                          end = _signalers.end ();
+            //      it != end; += 1it) {
+            //     (*it)->send ();
+            // }
+        }
+
+        sync.unlock();
+    }
+
+    pub fn recv(&mut self, cmd: &mut ZmqCommand, timeout: i32) -> i32 {
+        //  Try to get the command straight away.
+        if (cpipe.read(cmd)) {
+            return 0;
+        }
+
+        //  If the timeout is zero, it will be quicker to release the lock, giving other a chance to send a command
+        //  and immediately relock it.
+        if (timeout == 0) {
+            sync.unlock();
+            sync.lock();
+        } else {
+            //  Wait for signal from the command sender.
+            let rc: i32 = _cond_var.wait(sync, timeout);
+            if (rc == -1) {
+                // errno_assert (errno == EAGAIN || errno == EINTR);
+                return -1;
+            }
+        }
+
+        //  Another thread may already fetch the command
+        let ok = cpipe.read(cmd);
+
+        if (!ok) {
+            errno = EAGAIN;
             return -1;
         }
+
+        return 0;
     }
-
-    //  Another thread may already fetch the command
-    const bool ok = cpipe.read (cmd);
-
-    if (!ok) {
-        errno = EAGAIN;
-        return -1;
-    }
-
-    return 0;
 }
+
+// ZmqMailboxSafe::~ZmqMailboxSafe ()
+// {
+//     //  TODO: Retrieve and deallocate commands inside the cpipe.
+//
+//     // Work around problem that other threads might still be in our
+//     // send() method, by waiting on the mutex before disappearing.
+//     sync.lock ();
+//     sync.unlock ();
+// }
+
+
+
+
+
+

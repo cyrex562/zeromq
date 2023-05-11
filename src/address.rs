@@ -46,7 +46,7 @@ pub struct Address<'a> {
     // const std::string address;
     pub address: String,
     // ctx_t *const parent;
-    pub parent: &'a ZmqContext,
+    pub parent: ZmqContext,
     //  Protocol specific resolved address
     //  All members must be pointers to allow for consistent initialization
     pub resolved: ZmqAddressResolved,
@@ -60,8 +60,8 @@ impl Address {
         Self {
             protocol: String::from(protocol),
             address: String::from(address),
-            parent,
-            resolved: ZmqAddressResolved { dummy: null_mut() },
+            parent: parent.clone(),
+            resolved: ZmqAddressResolved{dummy: null_mut()}
         }
     }
 

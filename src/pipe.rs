@@ -1397,3 +1397,34 @@ let mut msg = ZmqMessage::default();
         flush ();
     }
 }
+
+
+pub fn pipe_index(pipe: &ZmqPipe, pipes: &[ZmqPipe]) -> i32 {
+    let mut index = -1;
+    for p in pipes.iter() {
+        index += 1;
+        if p == pipe {
+            return index;
+        }
+    }
+    return -1;
+}
+
+pub fn pipe_erase(pipe: &ZmqPipe, pipes: &[ZmqPipe]) -> bool {
+    let pipe_idx = pipe_index(pipe, pipes);
+    if pipe_idx == -1 {
+        return false;
+    }
+
+    pipes[pipe_idx] = ZmqPipe::default();
+}
+
+pub fn pipe_swap(idx1: usize, idx2: usize, pipes: &mut [ZmqPipe]) -> bool {
+    if idx1 >= pipes.len() || idx2 >= pipes.len() {
+        return false;
+    }
+    let tmp = pipes[idx1].clone();
+    pipes[idx1] = pipes[idx2].clone();
+    pipes[idx2] = tmp;
+    return true;
+}

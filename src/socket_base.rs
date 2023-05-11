@@ -33,7 +33,7 @@ use crate::io_thread::ZmqIoThread;
 use crate::ipc_address::IpcAddress;
 use crate::ipc_listener::IpcListener;
 use crate::mailbox::ZmqMailbox;
-use crate::mailbox_safe::mailbox_safe_t;
+use crate::mailbox_safe::ZmqMailboxSafe;
 use crate::message::{routing_id, ZMQ_MSG_MORE, ZmqMessage};
 use crate::object::ZmqObject;
 use crate::ops::{
@@ -459,7 +459,7 @@ impl ZmqSocketBase {
         options.zero_copy = parent_.get(ZMQ_ZERO_COPY_RECV) != 0;
 
         if out.thread_safe {
-            out.mailbox = mailbox_safe_t::new(&out.sync);
+            out.mailbox = ZmqMailboxSafe::new(&out.sync);
             // zmq_assert (mailbox);
         } else {
             let mut m = ZmqMailbox::new();
@@ -1235,7 +1235,7 @@ impl ZmqSocketBase {
         // zmq_assert (_thread_safe);
 
         // scoped_lock_t sync_lock (sync);
-        // (static_cast<mailbox_safe_t *> (mailbox))->add_signaler (s_);
+        // (static_cast<ZmqMailboxSafe *> (mailbox))->add_signaler (s_);
         self.mailbox.add_signaler(s_);
     }
 
@@ -1244,7 +1244,7 @@ impl ZmqSocketBase {
         // zmq_assert (_thread_safe);
 
         // scoped_lock_t sync_lock (sync);
-        // (static_cast<mailbox_safe_t *> (mailbox))->remove_signaler (s_);
+        // (static_cast<ZmqMailboxSafe *> (mailbox))->remove_signaler (s_);
         self.mailbox.remove_signaler(s_);
     }
 
