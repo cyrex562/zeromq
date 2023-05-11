@@ -69,7 +69,7 @@ use crate::io_object::ZmqIoObject;
 use crate::io_thread::ZmqIoThread;
 use crate::ipc_connecter::IpcConnecter;
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID};
-use crate::norm_engine::norm_engine_t;
+use crate::norm_engine::NormEngine;
 use crate::object::ZmqObject;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
 use crate::own::ZmqOwn;
@@ -946,7 +946,7 @@ impl ZmqSessionBase {
             //  exists with NORM anyway.
             if (options.type_ == ZMQ_PUB || options.type_ == ZMQ_XPUB) {
                 //  NORM sender.
-                let norm_sender = norm_engine_t::new(io_thread, options);
+                let norm_sender = NormEngine::new(io_thread, options);
                 // alloc_assert (norm_sender);
 
                 let rc = norm_sender.init(_addr.address, true, false);
@@ -957,7 +957,7 @@ impl ZmqSessionBase {
                 // ZMQ_SUB or ZMQ_XSUB
 
                 //  NORM receiver.
-                let norm_receiver = norm_engine_t::new(io_thread, options);
+                let norm_receiver = NormEngine::new(io_thread, options);
                 // alloc_assert (norm_receiver);
 
                 let rc = norm_receiver.init(_addr.address, false, true);
