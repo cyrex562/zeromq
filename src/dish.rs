@@ -41,7 +41,7 @@ use crate::defines::{ZMQ_DISH, ZMQ_GROUP_MAX_LENGTH};
 use crate::dish::DishSessionState::{body, group};
 use crate::dist::ZmqDist;
 use crate::fq::{self, ZmqFq};
-use crate::io_thread::ZmqThread;
+use crate::io_thread::ZmqIoThread;
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
@@ -317,12 +317,12 @@ pub struct DishSession {
 }
 
 impl DishSession {
-    // DishSession (ZmqThread *io_thread_,
+    // DishSession (ZmqIoThread *io_thread_,
     //     connect_: bool,
     //     socket: *mut ZmqSocketBase,
     //     options: &ZmqOptions,
     //     Address *addr_);
-    // DishSession::DishSession (ZmqThread *io_thread_,
+    // DishSession::DishSession (ZmqIoThread *io_thread_,
     //     connect_: bool,
     //     ZmqSocketBase *socket,
     //     options: &ZmqOptions,
@@ -330,7 +330,7 @@ impl DishSession {
     // ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),
     // _state (group)
     pub fn new(
-        io_thread: &mut ZmqThread,
+        io_thread: &mut ZmqIoThread,
         connect_: bool,
         socket: &mut ZmqSocketbase,
         options: &mut ZmqOptions,

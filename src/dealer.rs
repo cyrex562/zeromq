@@ -42,7 +42,7 @@ use anyhow::bail;
 
 use crate::context::ZmqContext;
 use crate::defines::ZMQ_DEALER;
-use crate::lb::lb_t;
+use crate::lb::LoadBalancer;
 use crate::message::ZmqMessage;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
@@ -59,8 +59,8 @@ pub struct ZmqDealer {
     // ZmqFq fair_queue;
     pub fair_queue: VecDeque<ZmqMessage>,
 
-    // lb_t load_balance;
-    pub load_balance: lb_t,
+    // LoadBalancer load_balance;
+    pub load_balance: LoadBalancer,
 
     // if true, send an empty message to every connected router peer
     pub probe_router: bool, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqDealer)

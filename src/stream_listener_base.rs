@@ -42,7 +42,7 @@
 pub struct stream_listener_base_t : public ZmqOwn, public ZmqIoObject
 {
 //
-    stream_listener_base_t (ZmqThread *io_thread_,
+    stream_listener_base_t (ZmqIoThread *io_thread_,
                             socket: *mut ZmqSocketBase,
                             options: &ZmqOptions);
     ~stream_listener_base_t () ;
@@ -81,7 +81,7 @@ pub struct stream_listener_base_t : public ZmqOwn, public ZmqIoObject
 };
 
 stream_listener_base_t::stream_listener_base_t (
-  ZmqThread *io_thread_,
+  ZmqIoThread *io_thread_,
   socket: *mut ZmqSocketBase,
   options: &ZmqOptions) :
     ZmqOwn (io_thread_, options_),
@@ -152,7 +152,7 @@ void stream_listener_base_t::create_engine (ZmqFileDesc fd)
 
     //  Choose I/O thread to run connecter in. Given that we are already
     //  running in an I/O thread, there must be at least one available.
-    ZmqThread *io_thread = choose_io_thread (options.affinity);
+    ZmqIoThread *io_thread = choose_io_thread (options.affinity);
     // zmq_assert (io_thread);
 
     //  Create and launch a session object.

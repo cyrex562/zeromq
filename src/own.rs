@@ -29,7 +29,7 @@
 
 use crate::atomic_counter::AtomicCounter;
 use crate::context::ZmqContext;
-use crate::io_thread::ZmqThread;
+use crate::io_thread::ZmqIoThread;
 use crate::object::ZmqObject;
 use crate::options::ZmqOptions;
 use bincode::options;
@@ -95,8 +95,8 @@ impl ZmqOwn {
     }
 
     //  The object is living within I/O thread.
-    // ZmqOwn (ZmqThread *io_thread_, options: &ZmqOptions);
-    // ZmqOwn::ZmqOwn (ZmqThread *io_thread_, const ZmqOptions & options_):
+    // ZmqOwn (ZmqIoThread *io_thread_, options: &ZmqOptions);
+    // ZmqOwn::ZmqOwn (ZmqIoThread *io_thread_, const ZmqOptions & options_):
     // ZmqObject (io_thread_),
     // options (options_),
     // terminating (false),
@@ -104,7 +104,7 @@ impl ZmqOwn {
     // processed_seqnum (0),
     // _owner (null_mut()),
     // term_acks (0)
-    pub fn new2(io_thread: &mut ZmqThread, options: &ZmqOptions) -> Self {
+    pub fn new2(io_thread: &mut ZmqIoThread, options: &ZmqOptions) -> Self {
         Self {
             options: Default::default(),
             terminating: false,

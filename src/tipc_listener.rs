@@ -54,10 +54,10 @@
 // #else
 // #include <linux/tipc.h>
 // #endif
-pub struct tipc_listener_t  : public stream_listener_base_t
+pub struct tIpcListener  : public stream_listener_base_t
 {
 //
-    tipc_listener_t (ZmqThread *io_thread_,
+    tIpcListener (ZmqIoThread *io_thread_,
                      socket: *mut ZmqSocketBase,
                      options: &ZmqOptions);
 
@@ -80,17 +80,17 @@ pub struct tipc_listener_t  : public stream_listener_base_t
     // Address to listen on
     TipcAddress address;
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (tipc_listener_t)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (tIpcListener)
 };
 
-tipc_listener_t::tipc_listener_t (ZmqThread *io_thread_,
+tIpcListener::tIpcListener (ZmqIoThread *io_thread_,
                                        ZmqSocketBase *socket,
                                        options: &ZmqOptions) :
     stream_listener_base_t (io_thread_, socket, options_)
 {
 }
 
-void tipc_listener_t::in_event ()
+void tIpcListener::in_event ()
 {
     ZmqFileDesc fd = accept ();
 
@@ -107,13 +107,13 @@ void tipc_listener_t::in_event ()
 }
 
 std::string
-tipc_listener_t::get_socket_name (fd: ZmqFileDesc,
+tIpcListener::get_socket_name (fd: ZmqFileDesc,
                                        SocketEnd socket_end_) const
 {
     return get_socket_name<TipcAddress> (fd, socket_end_);
 }
 
-int tipc_listener_t::set_local_address (addr_: &str)
+int tIpcListener::set_local_address (addr_: &str)
 {
     // Convert str to address struct
     int rc = address.resolve (addr_);
@@ -174,7 +174,7 @@ error:
     return -1;
 }
 
-ZmqFileDesc tipc_listener_t::accept ()
+ZmqFileDesc tIpcListener::accept ()
 {
     //  Accept one connection and deal with different failure modes.
     //  The situation where connection cannot be accepted due to insufficient

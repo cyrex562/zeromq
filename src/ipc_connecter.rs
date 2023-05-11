@@ -49,7 +49,7 @@ use crate::address_family::AF_UNIX;
 use crate::defines::ZMQ_RECONNECT_STOP_AFTER_DISCONNECT;
 use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
-use crate::io_thread::ZmqThread;
+use crate::io_thread::ZmqIoThread;
 use crate::ip::{open_socket, unblock_socket};
 use crate::ops::zmq_errno;
 use crate::options::ZmqOptions;
@@ -80,13 +80,13 @@ impl IpcConnecter {
     //
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
-    // IpcConnecter (ZmqThread *io_thread_,
+    // IpcConnecter (ZmqIoThread *io_thread_,
     //                 ZmqSessionBase *session_,
     //              options: &ZmqOptions,
     //                 Address *addr_,
     //              delayed_start_: bool);
     pub fn new(
-        io_thread_: &mut ZmqThread,
+        io_thread_: &mut ZmqIoThread,
         session: &mut ZmqSessionBase,
         options: &ZmqOptions,
         addr: &mut Address,

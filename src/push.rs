@@ -51,7 +51,7 @@ pub struct push_t  : public ZmqSocketBase
 
   //
     //  Load balancer managing the outbound pipes.
-    lb_t load_balance;
+    LoadBalancer load_balance;
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (push_t)
 };

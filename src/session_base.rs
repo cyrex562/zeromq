@@ -66,7 +66,7 @@ use crate::dish::DishSession;
 use crate::endpoint::{EndpointUriPair, ZmqEndpoint};
 use crate::engine_interface::ZmqEngineInterface;
 use crate::io_object::ZmqIoObject;
-use crate::io_thread::ZmqThread;
+use crate::io_thread::ZmqIoThread;
 use crate::ipc_connecter::IpcConnecter;
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID};
 use crate::norm_engine::norm_engine_t;
@@ -126,8 +126,8 @@ pub struct ZmqSessionBase {
     pub socket: ZmqSocketBase,
     //  I/O thread the session is living in. It will be used to plug in
     //  the engines into the same thread.
-    // ZmqThread *_io_thread;
-    pub io_thread: ZmqThread,
+    // ZmqIoThread *_io_thread;
+    pub io_thread: ZmqIoThread,
     //  ID of the linger timer
     //  True is linger timer is running.
     pub has_linger_timer: bool,
@@ -145,7 +145,7 @@ pub struct ZmqSessionBase {
 }
 
 impl ZmqSessionBase {
-    // ZmqSessionBase::ZmqSessionBase (class ZmqThread *io_thread_,
+    // ZmqSessionBase::ZmqSessionBase (class ZmqIoThread *io_thread_,
     //                                  active_: bool,
     // pub struct ZmqSocketBase *socket_,
     //                                      options: &ZmqOptions,
@@ -170,7 +170,7 @@ impl ZmqSessionBase {
     // }
     pub fn new(
         zmq_ctx: &mut ZmqContext,
-        io_thread: &mut ZmqThread,
+        io_thread: &mut ZmqIoThread,
         active_: bool,
         socket: &mut ZmqSocketBase,
         options: &mut ZmqOptions,
@@ -197,14 +197,14 @@ impl ZmqSessionBase {
 
     //
     //  Create a session of the particular type.
-    // static ZmqSessionBase *create (ZmqThread *io_thread_,
+    // static ZmqSessionBase *create (ZmqIoThread *io_thread_,
     // active_: bool,
     // socket_: *mut ZmqSocketBase,
     // options: &ZmqOptions,
     // Address *addr_);
     pub fn create(
         ctx: &mut ZmqContext,
-        io_thread: &mut ZmqThread,
+        io_thread: &mut ZmqIoThread,
         active_: bool,
         socket: &mut ZmqSocketBase,
         options: &mut ZmqOptions,
@@ -445,7 +445,7 @@ impl ZmqSessionBase {
     }
 
     //
-    // ZmqSessionBase (ZmqThread *io_thread_,
+    // ZmqSessionBase (ZmqIoThread *io_thread_,
     // active_: bool,
     // socket_: *mut ZmqSocketBase,
     // options: &ZmqOptions,
@@ -984,7 +984,7 @@ pub struct ZmqHelloMsgSession {
 
 impl ZmqHelloMsgSession {
     //
-    // hello_msg_session_t (ZmqThread *io_thread_,
+    // hello_msg_session_t (ZmqIoThread *io_thread_,
     // connect_: bool,
     // socket_: *mut ZmqSocketBase,
     // options: &ZmqOptions,
@@ -998,7 +998,7 @@ impl ZmqHelloMsgSession {
     // void reset ();
     pub fn new(
         ctx: &mut ZmqContext,
-        io_thread_: &mut ZmqThread,
+        io_thread_: &mut ZmqIoThread,
         connect_: bool,
         socket: &mut ZmqSocketBase,
         options: &mut ZmqOptions,

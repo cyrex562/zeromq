@@ -66,7 +66,7 @@ pub struct udp_engine_t  : public ZmqIoObject, public ZmqEngineInterface
 
     //  ZmqIEngine interface implementation.
     //  Plug the engine to the session.
-    void plug (ZmqThread *io_thread_, class ZmqSessionBase *session_);
+    void plug (ZmqIoThread *io_thread_, class ZmqSessionBase *session_);
 
     //  Terminate and deallocate the engine. Note that 'detached'
     //  events are not fired on termination.
@@ -174,7 +174,7 @@ int udp_engine_t::init (Address *address_, send_: bool, recv_: bool)
     return 0;
 }
 
-void udp_engine_t::plug (ZmqThread *io_thread_, ZmqSessionBase *session_)
+void udp_engine_t::plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_)
 {
     // zmq_assert (!_plugged);
     _plugged = true;

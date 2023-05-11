@@ -43,14 +43,14 @@
 pub struct pgm_sender_t  : public ZmqIoObject, public ZmqEngineInterface
 {
 //
-    pgm_sender_t (ZmqThread *parent_, options: &ZmqOptions);
+    pgm_sender_t (ZmqIoThread *parent_, options: &ZmqOptions);
     ~pgm_sender_t ();
 
     int init (udp_encapsulation_: bool, network_: &str);
 
     //  ZmqIEngine interface implementation.
     bool has_handshake_stage () { return false; };
-    void plug (ZmqThread *io_thread_, ZmqSessionBase *session_);
+    void plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_);
     void terminate ();
     bool restart_input ();
     void restart_output ();
@@ -113,7 +113,7 @@ let mut msg = ZmqMessage::default();
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (pgm_sender_t)
 };
 
-pgm_sender_t::pgm_sender_t (ZmqThread *parent_,
+pgm_sender_t::pgm_sender_t (ZmqIoThread *parent_,
                                  options: &ZmqOptions) :
     ZmqIoObject (parent_),
     has_tx_timer (false),
@@ -148,7 +148,7 @@ int pgm_sender_t::init (udp_encapsulation_: bool, network_: &str)
     return rc;
 }
 
-void pgm_sender_t::plug (ZmqThread *io_thread_, ZmqSessionBase *session_)
+void pgm_sender_t::plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_)
 {
     LIBZMQ_UNUSED (io_thread_);
     //  Allocate 2 fds for PGM socket.

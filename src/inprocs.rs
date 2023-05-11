@@ -2,13 +2,13 @@ use crate::pipe::ZmqPipe;
 use std::collections::HashMap;
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
-pub struct inprocs_t {
+pub struct ZmqInprocs {
     // typedef std::multimap<std::string, ZmqPipe *> map_t;
     //         map_t _inprocs;
     pub _inprocs: HashMap<String, ZmqPipe>,
 }
 
-impl inprocs_t {
+impl ZmqInprocs {
     // void emplace (endpoint_uri_: *const c_char, pipe_: &mut ZmqPipe);
     pub fn emplace(&mut self, endpoint_uri_: &str, pipe: &mut ZmqPipe) {
         // self._inprocs.ZMQ_MAP_INSERT_OR_EMPLACE (endpoint_uri_), pipe_);

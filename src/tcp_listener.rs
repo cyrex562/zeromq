@@ -61,7 +61,7 @@
 pub struct tcp_listener_t  : public stream_listener_base_t
 {
 //
-    tcp_listener_t (ZmqThread *io_thread_,
+    tcp_listener_t (ZmqIoThread *io_thread_,
                     socket: *mut ZmqSocketBase,
                     options: &ZmqOptions);
 
@@ -89,7 +89,7 @@ pub struct tcp_listener_t  : public stream_listener_base_t
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (tcp_listener_t)
 };
 
-tcp_listener_t::tcp_listener_t (ZmqThread *io_thread_,
+tcp_listener_t::tcp_listener_t (ZmqIoThread *io_thread_,
                                      ZmqSocketBase *socket,
                                      options: &ZmqOptions) :
     stream_listener_base_t (io_thread_, socket, options_)

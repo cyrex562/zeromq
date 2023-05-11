@@ -49,7 +49,7 @@ use crate::endpoint::EndpointType::endpoint_type_connect;
 use crate::endpoint::EndpointUriPair;
 use crate::fd::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
-use crate::io_thread::ZmqThread;
+use crate::io_thread::ZmqIoThread;
 use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
 use crate::proxy::ZmqSocketBase;
@@ -103,13 +103,13 @@ impl StreamConnecterBase {
     //
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
-    // StreamConnecterBase (ZmqThread *io_thread_,
+    // StreamConnecterBase (ZmqIoThread *io_thread_,
     //                     ZmqSessionBase *session_,
     //                     options: &ZmqOptions,
     //                     Address *addr_,
     //                     delayed_start_: bool);
     pub fn new(
-        io_thread_: &mut ZmqThread,
+        io_thread_: &mut ZmqIoThread,
         session_: &mut ZmqSessionBase,
         options: &ZmqOptions,
         addr_: &mut Address,

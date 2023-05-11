@@ -30,7 +30,8 @@
 use std::ptr::null_mut;
 use crate::defines::ZmqHandle;
 use crate::fd::ZmqFileDesc;
-use crate::io_thread::ZmqThread;
+use crate::io_thread::ZmqIoThread;
+use crate::poll_events_interface::ZmqPollEventsInterface;
 
 // #include "precompiled.hpp"
 // #include "io_object.hpp"
@@ -39,21 +40,21 @@ use crate::io_thread::ZmqThread;
 #[derive(Default,Debug,Clone)]
 pub struct ZmqIoObject
 {
-    pub ZmqPollEventsInterface: ZmqPollEventsInterface,
-    pub poller: ZmqHandle,
+    // pub ZmqPollEventsInterface: ZmqPollEventsInterface,
+    pub poller: Option<ZmqHandle>,
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (io_object_t)
 }
 
 impl ZmqIoObject {
-    // ZmqIoObject (ZmqThread *io_thread_ = null_mut());
-    pub fn new(io_thread_: Option<ZmqThread>) -> Self
+    // ZmqIoObject (ZmqIoThread *io_thread_ = null_mut());
+    pub fn new(io_thread_: Option<ZmqIoThread>) -> Self
     {
 // : poller (null_mut())
 //     if (io_thread_)
 //         plug (io_thread_);
         let mut out = Self {
-            ZmqPollEventsInterface: Default::default(),
-            poller: ZmqHandle::default(),
+            // ZmqPollEventsInterface: Default::default(),
+            poller: None,
         };
         if io_thread_.is_some() {
             out.plug(&mut io_thread_.unwrap());
@@ -66,8 +67,8 @@ impl ZmqIoObject {
 
     //  When migrating an object from one I/O thread to another, first
     //  unplug it, then migrate it, then plug it to the new thread.
-    // void plug (ZmqThread *io_thread_);
-    pub fn plug (&mut self, io_thread: &mut ZmqThread)
+    // void plug (ZmqIoThread *io_thread_);
+    pub fn plug (&mut self, io_thread: &mut ZmqIoThread)
     {
         // zmq_assert (io_thread_);
         // zmq_assert (!poller);
@@ -133,21 +134,24 @@ impl ZmqIoObject {
         self.poller.cancel_timer (self, id_);
     }
 
+}
+
+impl ZmqPollEventsInterface for ZmqIoObject {
     //  i_poll_events interface implementation.
     // void in_event () ;
-    pub fn in_event (&mut self)
+    fn in_event (&mut self)
     {
         // zmq_assert (false);
     }
 
     // void out_event () ;
-    pub fn out_event (&mut self)
+    fn out_event (&mut self)
     {
         // zmq_assert (false);
     }
 
     // void timer_event (id_: i32) ;
-    pub fn timer_event(&mut self, id_: i32)
+    fn timer_event(&mut self, id_: i32)
     {
     // zmq_assert (false);
     }

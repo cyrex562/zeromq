@@ -24,7 +24,7 @@ use crate::defines::{
 };
 use crate::endpoint::ZmqEndpoint;
 use crate::ZmqMailboxInterface::ZmqMailboxInterface;
-use crate::io_thread::ZmqThread;
+use crate::io_thread::ZmqIoThread;
 use crate::mailbox::ZmqMailbox;
 use crate::message::ZmqMessage;
 use crate::object::ZmqObject;
@@ -64,8 +64,8 @@ pub const ZMQ_CTX_TAG_VALUE_BAD: u32 = 0xdeadbeef;
 // // typedef std::vector<uint32_t> empty_slots_t;
 // pub type empty_slots_s = Vec<u32>;
 //
-// // typedef std::vector<ZmqThread *> io_threads_t;
-// pub type io_threads_t = Vec<ZmqThread>;
+// // typedef std::vector<ZmqIoThread *> io_threads_t;
+// pub type io_threads_t = Vec<ZmqIoThread>;
 //
 // // typedef std::map<std::string, endpoint_t> endpoints_t;
 // pub type endpoints_t = HashMap<String,ZmqEndpoint>;
@@ -117,7 +117,7 @@ pub struct ZmqContext {
     //  I/O threads.
 
     // io_threads_t _io_threads;
-    pub io_threads: Vec<ZmqThread>,
+    pub io_threads: Vec<ZmqIoThread>,
 
     //  Array of pointers to mailboxes for both application and I/O threads.
     // std::vector<ZmqMailboxInterface *> _slots;
@@ -578,7 +578,7 @@ impl ZmqContext {
         // for (int i = term_and_reaper_threads_count;
         //      i != ios + term_and_reaper_threads_count; i+= 1)
         for i in term_and_reaper_threads_count..ios + term_and_reaper_threads_count {
-            let io_thread = ZmqThread::new(self, i);
+            let io_thread = ZmqIoThread::new(self, i);
             if !io_thread {
                 errno = ENOMEM;
                 // goto fail_cleanup_reaper;
@@ -688,16 +688,16 @@ pub fn send_command(&mut self, tid: u32, command_: &mut ZmqCommand) {
     self.slots[tid].send(command_);
 }
 
-// ZmqThread *ZmqContext::choose_io_thread (u64 affinity_)
-pub fn choose_io_thread(&mut self, affinity: u64) -> Option<ZmqThread> {
+// ZmqIoThread *ZmqContext::choose_io_thread (u64 affinity_)
+pub fn choose_io_thread(&mut self, affinity: u64) -> Option<ZmqIoThread> {
     if self.io_threads.empty() {
         return None;
     }
 
     //  Find the I/O thread with minimum load.
     let mut min_load = -1;
-    // ZmqThread *selected_io_thread = NULL;
-    let mut selected_io_thread: Option<ZmqThread> = None;
+    // ZmqIoThread *selected_io_thread = NULL;
+    let mut selected_io_thread: Option<ZmqIoThread> = None;
     // for (io_threads_t::size_type i = 0, size = _io_threads.size (); i != size;
     //      i+= 1)
     for i in 0..self.io_threads.len() {
@@ -1080,7 +1080,7 @@ pub fn get_vmci_socket_family(&mut self) -> i32 {
 //  Returns the I/O thread that is the least busy at the moment.
 //  Affinity specifies which I/O threads are eligible (0 = all).
 //  Returns NULL if no I/O thread is available.
-// ZmqThread *choose_io_thread (uint64_t affinity_);
+// ZmqIoThread *choose_io_thread (uint64_t affinity_);
 
 //  Returns reaper thread object.
 // object_t *get_reaper () const;

@@ -136,20 +136,22 @@ use std::ffi::c_void;
 use std::mem;
 use std::ptr::null_mut;
 
-use libc::{accept, AF_UNIX, c_char, connect, EFD_CLOEXEC, EINVAL, eventfd, F_GETFL, F_SETFD, F_SETFL, fcntl, FD_CLOEXEC, IPV6_TCLASS, listen, mkdtemp, mkstemp, O_NONBLOCK, rmdir, SO_BINDTODEVICE, SO_PRIORITY, SOCK_CLOEXEC, sockaddr_un, socket, socklen_t, unlink};
+use libc::{accept, AF_UNIX, c_char, connect, EFD_CLOEXEC, EINVAL, eventfd, F_GETFL, F_SETFD, F_SETFL, fcntl, FD_CLOEXEC, IPV6_TCLASS, listen, mkdtemp, mkstemp, O_NONBLOCK, rmdir, SO_BINDTODEVICE, SO_PRIORITY, SOCK_CLOEXEC, sockaddr, sockaddr_un, socket, socklen_t, unlink};
 #[cfg(target_os = "windows")]
 use windows::core::PSTR;
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::{BOOL, ERROR_ACCESS_DENIED, FALSE, GetLastError, HANDLE, HANDLE_FLAG_INHERIT, HANDLE_FLAGS, MAX_PATH, SetHandleInformation, TRUE};
+use windows::Win32::Foundation::CloseHandle;
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{FIONBIO, getnameinfo, ioctlsocket, IP_TOS, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_TCP, IPV6_V6ONLY, NI_MAXHOST, NI_NUMERICHOST, setsockopt, SOCKADDR, SOCKET, SOCKET_ERROR, SOL_SOCKET, TCP_NODELAY, WSA_FLAG_NO_HANDLE_INHERIT, WSA_FLAG_OVERLAPPED, WSACleanup, WSADATA, WSAEFAULT, WSAEINPROGRESS, WSAENOTSOCK, WSAGetLastError, WSANOTINITIALISED, WSAStartup};
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{AF_INET, bind, getsockname, getsockopt, htonl, htons, INADDR_LOOPBACK, INVALID_SOCKET, SO_ERROR, SO_REUSEADDR, SOCK_STREAM};
-use windows::Win32::Networking::WinSock::closesocket;
+use windows::Win32::Networking::WinSock::{AF_UNIX, closesocket, recv, send, SEND_RECV_FLAGS, socklen_t};
 #[cfg(target_os = "windows")]
 use windows::Win32::Security::{InitializeSecurityDescriptor, PSECURITY_DESCRIPTOR, SECURITY_ATTRIBUTES, SECURITY_DESCRIPTOR, SetSecurityDescriptorDacl};
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::{CreateEventA, CreateMutexA, EVENT_MODIFY_STATE, INFINITE, OpenEventA, WaitForSingleObject};
+use windows::Win32::System::Threading::{ReleaseMutex, SetEvent};
 
 use crate::address::get_socket_address;
 use crate::address::SocketEnd::SocketEndRemote;
@@ -578,87 +580,91 @@ pub fn make_fdpair_tcpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
 
     //  Listen for incoming connections.
     if (rc != SOCKET_ERROR) {
-        rc = listen(listener, 1);
+        rc = unsafe { listen(listener, 1) };
     }
 
     //  Connect writer to the listener.
     if (rc != SOCKET_ERROR) {
-        rc = connect(*w_, (&addr));
+        rc = unsafe { connect(*w_, (&addr), addr.len()) };
     }
 
     //  Accept connection from writer.
     if (rc != SOCKET_ERROR) {
         //  Set TCP_NODELAY on writer socket.
-        tune_socket(*w_);
+        tune_socket(*w_ as SOCKET);
 
-        *r_ = accept(listener, null_mut(), null_mut());
+        *r_ = unsafe { accept(listener, null_mut(), null_mut()) };
     }
 
     //  Send/receive large chunk to work around TCP slow start
     //  This code is a workaround for #1608
-    if (*r_ != INVALID_SOCKET) {
+    if *r_ as SOCKET != INVALID_SOCKET {
         let mut dummy_size = 1024 * 1024; //  1M to overload default receive buffer
         // unsigned char *dummy =
         //    (malloc (dummy_size));
         // wsa_assert (dummy);
         let dummy: Vec<u8> = Vec::with_capacity(dummy_size as usize);
 
-        let still_to_send = (dummy_size);
-        let still_to_recv = (dummy_size);
+        let mut still_to_send = (dummy_size);
+        let mut still_to_recv = (dummy_size);
         while (still_to_send || still_to_recv) {
             nbytes: i32;
             if (still_to_send > 0) {
-                nbytes = ::send(
-                    *w_,
-                    (dummy + dummy_size - still_to_send),
-                    still_to_send, 0);
+                nbytes = unsafe {
+                    send(
+                        *w_,
+                        (&dummy[dummy_size - still_to_send..]),
+                        0 as SEND_RECV_FLAGS)
+                };
                 wsa_assert(nbytes != SOCKET_ERROR);
                 still_to_send -= nbytes;
             }
-            nbytes = ::recv(
-                *r_,
-                (dummy + dummy_size - still_to_recv),
-                still_to_recv, 0);
+            nbytes = unsafe {
+                recv(
+                    *r_,
+                    (&mut dummy[dummy_size - still_to_recv..]),
+                    0 as SEND_RECV_FLAGS)
+            };
             wsa_assert(nbytes != SOCKET_ERROR);
             still_to_recv -= nbytes;
         }
-        free(dummy);
+        // free(dummy);
     }
 
     //  Save errno if error occurred in bind/listen/connect/accept.
-    let mut saved_errno = 0;
-    if (*r_ == INVALID_SOCKET) {
-        saved_errno = WSAGetLastError();
+    let mut saved_errno = WSAERROR::default();
+    if (*r_ as SOCKET == INVALID_SOCKET) {
+        saved_errno = unsafe { WSAGetLastError() };
     }
 
     //  We don't need the listening socket anymore. Close it.
-    rc = closesocket(listener);
+    rc = unsafe { closesocket(listener) };
     // wsa_assert (rc != SOCKET_ERROR);
 
     if (sync != null_mut()) {
         //  Exit the critical section.
-        let brc: BOOL = TRUE;
+        let mut brc: BOOL = TRUE;
         if (signaler_port == event_signaler_port) {
-            brc = SetEvent(sync);
+            brc = unsafe { SetEvent(sync) };
         } else {
-            brc = ReleaseMutex(sync);
+            brc = unsafe { ReleaseMutex(sync) };
         }
         // win_assert (brc != 0);
 
         //  Release the kernel object
-        brc = CloseHandle(sync);
+        brc = unsafe { CloseHandle(sync) };
         // win_assert (brc != 0);
     }
 
-    if (*r_ != INVALID_SOCKET) {
+    if (*r_ as SOCKET != INVALID_SOCKET) {
         make_socket_noninheritable(*r_);
         return 0;
     }
     //  Cleanup writer if connection failed
-    if (*w_ != INVALID_SOCKET) {
-        rc = closesocket(*w_);
+    if (*w_ as SOCKET != INVALID_SOCKET) {
+        rc = unsafe { closesocket(*w_) };
         // wsa_assert (rc != SOCKET_ERROR);
-        *w_ = INVALID_SOCKET;
+        *w_ as SOCKET = INVALID_SOCKET;
     }
     //  Set errno from saved value
     let errno = wsa_error_to_errno(saved_errno);
@@ -708,7 +714,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         let mut ipc_fallback_on_tcpip = true;
 
         //  Create a listening socket. const SOCKET
-        listener = open_socket(AF_UNIX, SOCK_STREAM as i32, 0);
+        listener = open_socket(AF_UNIX as i32, SOCK_STREAM as i32, 0);
         if (listener == retired_fd) {
             //  This may happen if the library was built on a system supporting AF_UNIX, but the system running doesn't support it.
             // TODO
@@ -745,11 +751,11 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
             // goto error_closelistener;
         }
 
-        rc = unsafe { getsockname(listener, (&mut lcladdr as SOCKADDR), &mut lcladdr_len) };
+        rc = unsafe { getsockname(listener, (&mut lcladdr as &mut SOCKADDR), &mut lcladdr_len) };
         // wsa_assert(rc != -1);
 
         //  Create the client socket.
-        *w_ = open_socket(AF_UNIX, SOCK_STREAM as i32, 0);
+        *w_ = open_socket(AF_UNIX as i32, SOCK_STREAM as i32, 0);
         if (*w_ == -1) {
             let last_wsa_err = unsafe { WSAGetLastError() };
             errno = wsa_error_to_errno(last_wsa_err);
@@ -758,7 +764,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
 
         //  Connect to the remote peer.
         rc = unsafe {
-            connect(*w_, (&mut lcladdr as SOCKADDR), lcladdr_len)
+            connect(*w_, (& lcladdr as &sockaddr), lcladdr_len)
         };
         if (rc == -1) {
             // goto error_closeclient;

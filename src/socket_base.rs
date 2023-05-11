@@ -29,9 +29,9 @@ use crate::defines::{
 use crate::endpoint::{EndpointUriPair, make_unconnected_bind_endpoint_pair, ZmqEndpoint};
 use crate::endpoint::EndpointType::endpoint_type_none;
 use crate::ZmqMailboxInterface::ZmqMailboxInterface;
-use crate::io_thread::ZmqThread;
+use crate::io_thread::ZmqIoThread;
 use crate::ipc_address::IpcAddress;
-use crate::ipc_listener::ipc_listener_t;
+use crate::ipc_listener::IpcListener;
 use crate::mailbox::ZmqMailbox;
 use crate::mailbox_safe::mailbox_safe_t;
 use crate::message::{routing_id, ZMQ_MSG_MORE, ZmqMessage};
@@ -53,7 +53,7 @@ use crate::socket_base_ops::ZmqSocketBaseOps;
 use crate::tcp_address::TcpAddress;
 use crate::tcp_listener::tcp_listener_t;
 use crate::tipc_address::TipcAddress;
-use crate::tipc_listener::tipc_listener_t;
+use crate::tipc_listener::tIpcListener;
 use crate::udp_address::UdpAddress;
 use crate::vmci_address::VmciAddress;
 use crate::vmci_listener::vmci_listener_t;
@@ -202,7 +202,7 @@ impl ZmqObject for ZmqSocketBase {
         todo!()
     }
 
-    fn choose_io_thread(&mut self, affinity: u64) -> Option<ZmqThread> {
+    fn choose_io_thread(&mut self, affinity: u64) -> Option<ZmqIoThread> {
         todo!()
     }
 
@@ -872,7 +872,7 @@ impl ZmqSocketBase {
 
         // #if defined ZMQ_HAVE_IPC
         if protocol == protocol_name::ipc {
-            let listener = ipc_listener_t::new(io_thread, this, options);
+            let listener = IpcListener::new(io_thread, this, options);
             // alloc_assert (listener);
             if listener.set_local_address(address.c_str()).is_err() {
                 // LIBZMQ_DELETE (listener);
@@ -894,7 +894,7 @@ impl ZmqSocketBase {
         // #endif
         // #if defined ZMQ_HAVE_TIPC
         if protocol == protocol_name::tipc {
-            listener = tipc_listener_t::new(io_thread, this, options);
+            listener = tIpcListener::new(io_thread, this, options);
             // alloc_assert (listener);
             if listener.set_local_address(address.c_str()).is_err() {
                 event_bind_failed(make_unconnected_bind_endpoint_pair(&address), zmq_errno());

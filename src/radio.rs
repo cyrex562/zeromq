@@ -74,7 +74,7 @@ pub struct radio_t  : public ZmqSocketBase
 pub struct radio_session_t  : public ZmqSessionBase
 {
 //
-    radio_session_t (ZmqThread *io_thread_,
+    radio_session_t (ZmqIoThread *io_thread_,
                      connect_: bool,
                      socket: *mut ZmqSocketBase,
                      options: &ZmqOptions,
@@ -258,7 +258,7 @@ bool radio_t::xhas_in ()
     return false;
 }
 
-radio_session_t::radio_session_t (ZmqThread *io_thread_,
+radio_session_t::radio_session_t (ZmqIoThread *io_thread_,
                                        connect_: bool,
                                        ZmqSocketBase *socket,
                                        options: &ZmqOptions,

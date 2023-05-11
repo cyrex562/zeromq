@@ -68,7 +68,7 @@
 pub struct ws_listener_t  : public stream_listener_base_t
 {
 //
-    ws_listener_t (ZmqThread *io_thread_,
+    ws_listener_t (ZmqIoThread *io_thread_,
                    socket: *mut ZmqSocketBase,
                    options: &ZmqOptions,
                    wss_: bool);
@@ -105,7 +105,7 @@ pub struct ws_listener_t  : public stream_listener_base_t
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (ws_listener_t)
 };
 
-ws_listener_t::ws_listener_t (ZmqThread *io_thread_,
+ws_listener_t::ws_listener_t (ZmqIoThread *io_thread_,
                                    ZmqSocketBase *socket,
                                    options: &ZmqOptions,
                                    wss_: bool) :
@@ -362,7 +362,7 @@ void ws_listener_t::create_engine (ZmqFileDesc fd)
 
     //  Choose I/O thread to run connecter in. Given that we are already
     //  running in an I/O thread, there must be at least one available.
-    ZmqThread *io_thread = choose_io_thread (options.affinity);
+    ZmqIoThread *io_thread = choose_io_thread (options.affinity);
     // zmq_assert (io_thread);
 
     //  Create and launch a session object.

@@ -80,7 +80,7 @@ use crate::endpoint::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::fd::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
-use crate::io_thread::ZmqThread;
+use crate::io_thread::ZmqIoThread;
 use crate::mechanism::ZmqMechanismStatus::{error, ready};
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_CREDENTIAL};
 use crate::metadata::ZmqMetadata;
@@ -458,8 +458,8 @@ impl ZmqStreamEngineBase {
         self._has_handshake_stage
     }
 
-    // void plug (ZmqThread *io_thread_, ZmqSessionBase *session_) ;
-    pub fn plug(&mut self, io_thread_: &mut ZmqThread, session: &mut ZmqSessionBase) {
+    // void plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_) ;
+    pub fn plug(&mut self, io_thread_: &mut ZmqIoThread, session: &mut ZmqSessionBase) {
         // zmq_assert (!_plugged);
         self._plugged = true;
 

@@ -93,7 +93,7 @@ enum ZmtpRevisions
     ZMTP_3_x = 3,
 }
 
-pub struct ZmqThread;
+pub struct ZmqIoThread;
 
 pub struct ZmqSessionBase;
 

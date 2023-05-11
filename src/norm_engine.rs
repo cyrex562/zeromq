@@ -18,7 +18,7 @@
 pub struct norm_engine_t  : public ZmqIoObject, public ZmqEngineInterface
 {
 //
-    norm_engine_t (ZmqThread *parent_, options: &ZmqOptions);
+    norm_engine_t (ZmqIoThread *parent_, options: &ZmqOptions);
     ~norm_engine_t () ;
 
     // create NORM instance, session, etc
@@ -29,7 +29,7 @@ pub struct norm_engine_t  : public ZmqIoObject, public ZmqEngineInterface
 
     //  ZmqIEngine interface implementation.
     //  Plug the engine to the session.
-    void plug (ZmqThread *io_thread_,
+    void plug (ZmqIoThread *io_thread_,
 pub struct ZmqSessionBase *session_) ;
 
     //  Terminate and deallocate the engine. Note that 'detached'
@@ -200,7 +200,7 @@ struct norm_wrapper_thread_args_t
 DWORD WINAPI normWrapperThread (LPVOID lpParam);
 // #endif
 
-norm_engine_t::norm_engine_t (ZmqThread *parent_,
+norm_engine_t::norm_engine_t (ZmqIoThread *parent_,
                                    options: &ZmqOptions) :
     ZmqIoObject (parent_),
     zmq_session (null_mut()),
@@ -407,7 +407,7 @@ void norm_engine_t::shutdown ()
     }
 } // end norm_engine_t::shutdown()
 
-void norm_engine_t::plug (ZmqThread *io_thread_,
+void norm_engine_t::plug (ZmqIoThread *io_thread_,
                                ZmqSessionBase *session_)
 {
 // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER

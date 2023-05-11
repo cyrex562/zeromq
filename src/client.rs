@@ -35,7 +35,7 @@ use crate::content::ZmqContent;
 use crate::context::ZmqContext;
 use crate::defines::ZMQ_CLIENT;
 use crate::fq::ZmqFq;
-use crate::lb::lb_t;
+use crate::lb::LoadBalancer;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
@@ -55,8 +55,8 @@ pub struct ZmqClient {
     //  the outbound pipes.
     // ZmqFq fair_queue;
     pub fq: ZmqFq,
-    // lb_t load_balance;
-    pub lb: lb_t,
+    // LoadBalancer load_balance;
+    pub lb: LoadBalancer,
     pub base: ZmqSocketBase, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (client_t)
 }
 
@@ -79,7 +79,7 @@ impl ZmqClient {
         options.can_recv_hiccup_msg = true;
         Self {
             fq: ZmqFq::Default(),
-            lb: lb_t::Default(),
+            lb: LoadBalancer::Default(),
             base: ZmqSocketBase::new(parent, options, tid, sid, true),
         }
     }

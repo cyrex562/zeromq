@@ -83,7 +83,7 @@ pub struct req_t  : public ZmqDealer
 pub struct req_session_t  : public ZmqSessionBase
 {
 //
-    req_session_t (ZmqThread *io_thread_,
+    req_session_t (ZmqIoThread *io_thread_,
                    connect_: bool,
                    socket: *mut ZmqSocketBase,
                    options: &ZmqOptions,
@@ -325,7 +325,7 @@ int req_t::recv_reply_pipe (msg: &mut ZmqMessage)
     }
 }
 
-req_session_t::req_session_t (ZmqThread *io_thread_,
+req_session_t::req_session_t (ZmqIoThread *io_thread_,
                                    connect_: bool,
                                    ZmqSocketBase *socket,
                                    options: &ZmqOptions,

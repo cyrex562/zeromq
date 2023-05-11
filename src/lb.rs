@@ -34,65 +34,79 @@
 // #include "msg.hpp"
 
 
+use crate::pipe::ZmqPipe;
+
 //  This class manages a set of outbound pipes. On send it load balances
 //  messages fairly among the pipes.
-pub struct lb_t
+pub struct LoadBalancer
 {
-//
-    lb_t ();
-    ~lb_t ();
+    //  List of outbound pipes.
+    // typedef array_t<ZmqPipe, 2> pipes_t;
+    // pipes_t pipes;
+    pub pipes: [ZmqPipe; 2],
+    //  Number of active pipes. All the active pipes are located at the
+    //  beginning of the pipes array.
+    // pipes_t::size_type active;
+    pub active: usize,
+    //  Points to the last pipe that the most recent message was sent to.
+    // pipes_t::size_type _current;
+    pub _current: usize,
+    //  True if last we are in the middle of a multipart message.
+    pub more: bool,
+    //  True if we are dropping current message.
+    pub _dropping: bool,
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (LoadBalancer)
+}
 
-    void attach (pipe: &mut ZmqPipe);
-    void activated (pipe: &mut ZmqPipe);
-    void pipe_terminated (pipe: &mut ZmqPipe);
+impl LoadBalancer {
+    // LoadBalancer ();
+    pub fn new ()  ->Self
+    {
+        // : active (0), _current (0), more (false), _dropping (false)
+        Self {
+            pipes: [ZmqPipe::default(), ZmqPipe::default()],
+            active: 0,
+            _current: 0,
+            more: false,
+            _dropping: false
+        }
+    }
 
-    int send (msg: &mut ZmqMessage);
+    // ~LoadBalancer ();
+
+    // void attach (pipe: &mut ZmqPipe);
+    pub fn attach (&mut self, pipe: &mut ZmqPipe)
+    {
+        self.pipes.push_back (pipe);
+        self.activated (pipe);
+    }
+
+    // void activated (pipe: &mut ZmqPipe);
+
+    // void pipe_terminated (pipe: &mut ZmqPipe);
+
+    // int send (msg: &mut ZmqMessage);
 
     //  Sends a message and stores the pipe that was used in pipe_.
     //  It is possible for this function to return success but keep pipe_
     //  unset if the rest of a multipart message to a terminated pipe is
     //  being dropped. For the first frame, this will never happen.
-    int sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe);
+    // int sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe);
 
-    bool has_out ();
-
-  //
-    //  List of outbound pipes.
-    typedef array_t<ZmqPipe, 2> pipes_t;
-    pipes_t pipes;
-
-    //  Number of active pipes. All the active pipes are located at the
-    //  beginning of the pipes array.
-    pipes_t::size_type active;
-
-    //  Points to the last pipe that the most recent message was sent to.
-    pipes_t::size_type _current;
-
-    //  True if last we are in the middle of a multipart message.
-    more: bool
-
-    //  True if we are dropping current message.
-    _dropping: bool
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (lb_t)
-};
-
-lb_t::lb_t () : active (0), _current (0), more (false), _dropping (false)
-{
+    // bool has_out ();
 }
 
-lb_t::~lb_t ()
-{
-    // zmq_assert (pipes.empty ());
-}
 
-void lb_t::attach (pipe: &mut ZmqPipe)
-{
-    pipes.push_back (pipe);
-    activated (pipe);
-}
 
-void lb_t::pipe_terminated (pipe: &mut ZmqPipe)
+
+// LoadBalancer::~LoadBalancer ()
+// {
+//     // zmq_assert (pipes.empty ());
+// }
+
+
+
+void LoadBalancer::pipe_terminated (pipe: &mut ZmqPipe)
 {
     const pipes_t::size_type index = pipes.index (pipe);
 
@@ -112,19 +126,19 @@ void lb_t::pipe_terminated (pipe: &mut ZmqPipe)
     pipes.erase (pipe);
 }
 
-void lb_t::activated (pipe: &mut ZmqPipe)
+void LoadBalancer::activated (pipe: &mut ZmqPipe)
 {
     //  Move the pipe to the list of active pipes.
     pipes.swap (pipes.index (pipe), active);
     active+= 1;
 }
 
-int lb_t::send (msg: &mut ZmqMessage)
+int LoadBalancer::send (msg: &mut ZmqMessage)
 {
     return sendpipe (msg, null_mut());
 }
 
-int lb_t::sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
+int LoadBalancer::sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
 {
     //  Drop the message if required. If we are at the end of the message
     //  switch back to non-dropping mode.
@@ -201,7 +215,7 @@ int lb_t::sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe)
     return 0;
 }
 
-bool lb_t::has_out ()
+bool LoadBalancer::has_out ()
 {
     //  If one part of the message was already written we can definitely
     //  write the rest of the message.

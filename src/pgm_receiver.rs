@@ -41,7 +41,7 @@
 // #include "wire.hpp"
 // #include "err.hpp"
 
-pgm_receiver_t::pgm_receiver_t (class ZmqThread *parent_,
+pgm_receiver_t::pgm_receiver_t (class ZmqIoThread *parent_,
                                      options: &ZmqOptions) :
     ZmqIoObject (parent_),
     has_rx_timer (false),
@@ -64,7 +64,7 @@ int pgm_receiver_t::init (udp_encapsulation_: bool, network_: &str)
     return pgm_socket.init (udp_encapsulation_, network_);
 }
 
-void pgm_receiver_t::plug (ZmqThread *io_thread_,
+void pgm_receiver_t::plug (ZmqIoThread *io_thread_,
                                 ZmqSessionBase *session_)
 {
     LIBZMQ_UNUSED (io_thread_);
@@ -313,14 +313,14 @@ let mut msg = ZmqMessage::default();
 pub struct pgm_receiver_t  : public ZmqIoObject, public ZmqEngineInterface
 {
 //
-    pgm_receiver_t (ZmqThread *parent_, options: &ZmqOptions);
+    pgm_receiver_t (ZmqIoThread *parent_, options: &ZmqOptions);
     ~pgm_receiver_t ();
 
     int init (udp_encapsulation_: bool, network_: &str);
 
     //  ZmqIEngine interface implementation.
     bool has_handshake_stage () { return false; };
-    void plug (ZmqThread *io_thread_, ZmqSessionBase *session_);
+    void plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_);
     void terminate ();
     bool restart_input ();
     void restart_output ();
