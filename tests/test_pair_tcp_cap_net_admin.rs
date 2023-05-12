@@ -41,8 +41,8 @@ void set_sockopt_bind_to_device (socket: *mut c_void)
       zmq_setsockopt (socket, ZMQ_BINDTODEVICE, &device, mem::size_of::<device>() - 1));
 }
 
-//  TODO this is duplicated from test_pair_tcp
-void test_pair_tcp (extra_func_t extra_func_ = null_mut())
+//  TODO this is duplicated from test_ZmqPaircp
+void test_ZmqPaircp (extra_func_t extra_func_ = null_mut())
 {
     void *sb = test_context_socket (ZMQ_PAIR);
 
@@ -70,9 +70,9 @@ void test_pair_tcp (extra_func_t extra_func_ = null_mut())
     test_context_socket_close (sb);
 }
 
-void test_pair_tcp_bind_to_device ()
+void test_ZmqPaircp_bind_to_device ()
 {
-    test_pair_tcp (set_sockopt_bind_to_device);
+    test_ZmqPaircp (set_sockopt_bind_to_device);
 }
 
 int main ()
@@ -80,7 +80,7 @@ int main ()
     setup_test_environment ();
 
     UNITY_BEGIN ();
-    RUN_TEST (test_pair_tcp_bind_to_device);
+    RUN_TEST (test_ZmqPaircp_bind_to_device);
 
     return UNITY_END ();
 }

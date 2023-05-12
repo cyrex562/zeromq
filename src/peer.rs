@@ -27,6 +27,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use bincode::options;
+use libc::EFAULT;
+use crate::context::ZmqContext;
+use crate::defines::ZMQ_PEER;
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::server::server_t;
+
 // #include "precompiled.hpp"
 // #include "macros.hpp"
 // #include "peer.hpp"
@@ -35,54 +43,67 @@
 // #include "random.hpp"
 // #include "likely.hpp"
 // #include "err.hpp"
-pub struct peer_t  : public server_t
-{
-//
-    peer_t (ZmqContext *parent_, tid: u32, sid_: i32);
+#[derive(Default, Debug, Clone)]
+pub struct ZmqPeer {
+    //   : public server_t
+    pub server: server_t,
+    // u32 _peer_last_routing_id;
+    pub peer_last_routing_id: u32,
 
-    //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe: &mut ZmqPipe,
-                       subscribe_to_all_: bool,
-                       locally_initiated_: bool);
-
-    u32 connect_peer (endpoint_uri_: &str);
-
-  //
-    u32 _peer_last_routing_id;
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (peer_t)
-};
-
-peer_t::peer_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
-    server_t (parent_, tid, sid_)
-{
-    options.type_ = ZMQ_PEER;
-    options.can_send_hello_msg = true;
-    options.can_recv_disconnect_msg = true;
-    options.can_recv_hiccup_msg = true;
 }
 
-u32 peer_t::connect_peer (endpoint_uri_: &str)
-{
-    scoped_optional_lock_t sync_lock (&sync);
+impl ZmqPeer {
+    // ZmqPeer (ZmqContext *parent_, tid: u32, sid_: i32);
+    pub fn new(&mut options: ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
 
-    // connect_peer cannot work with immediate enabled
-    if (options.immediate == 1) {
-        errno = EFAULT;
-        return 0;
+    {
+        options.type_ = ZMQ_PEER;
+        options.can_send_hello_msg = true;
+        options.can_recv_disconnect_msg = true;
+        options.can_recv_hiccup_msg = true;
+        options.can_recv_routing_id = true;
+// server_t (parent_, tid, sid_) -> Self
+        Self {
+            server: server_t::new(parent, tid, sid_),
+            ..Default::default()
+        }
     }
 
-    int rc = ZmqSocketBase::connect_internal (endpoint_uri_);
-    if (rc != 0)
-        return 0;
+    //  Overrides of functions from ZmqSocketBase.
+    // void xattach_pipe (pipe: &mut ZmqPipe,
+    // subscribe_to_all_: bool,
+    // locally_initiated_: bool);
+    pub fn xattach_pipe(&mut self, pipe: &mut ZmqPipe,
+                        subscribe_to_all_: bool,
+                        locally_initiated_: bool) {
+        self.server.xattach_pipe(pipe, subscribe_to_all_, locally_initiated_);
+        self._peer_last_routing_id = pipe.get_server_socket_routing_id();
+    }
 
-    return _peer_last_routing_id;
+    // u32 connect_peer (endpoint_uri_: &str);
+    pub fn connect_peer(&mut self, endpoint_uri_: &str) -> u32 {
+        let mut sync_lock = scoped_optional_lock_t::new(&sync);
+
+        // connect_peer cannot work with immediate enabled
+        if options.immediate == 1 {
+            errno = EFAULT;
+            return 0;
+        }
+
+        let rc = self.server.connect_internal(endpoint_uri_);
+        if rc != 0 {
+            return 0;
+        }
+
+        return _peer_last_routing_id;
+    }
+
+
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqPeer)
 }
 
-void peer_t::xattach_pipe (pipe: &mut ZmqPipe,
-                                subscribe_to_all_: bool,
-                                locally_initiated_: bool)
-{
-    server_t::xattach_pipe (pipe, subscribe_to_all_, locally_initiated_);
-    _peer_last_routing_id = pipe.get_server_socket_routing_id ();
-}
+
+
+
+
+

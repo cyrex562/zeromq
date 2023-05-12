@@ -49,80 +49,81 @@
 // #ifndef MSG_ERRQUEUE
 // #define MSG_ERRQUEUE 0x2000
 // #endif
+
+use crate::options::ZmqOptions;
+
+#[derive(Default,Debug,Clone)]
 pub struct pgm_socket_t
 {
-//
+    //  OpenPGM transport.
+    // pgm_sock_t *sock;
+    pub sock: pgm_sock_t,
+    pub last_rx_status: i32,
+    pub last_tx_status: i32,
+    //  Associated socket options.
+    // ZmqOptions options;
+    pub options: ZmqOptions,
+    //  true when pgm_socket should create receiving side.
+    pub receiver: bool,
+    //  Array of pgm_msgv_t structures to store received data
+    //  from the socket (pgm_transport_recvmsgv).
+    // pgm_msgv_t *pgm_msgv;
+    pub pgm_msgv: pgm_msgv_t,
+    //  Size of pgm_msgv array.
+    pub pgm_msgv_len: usize,
+    // How many bytes were read from pgm socket.
+    pub nbytes_rec: usize,
+    //  How many bytes were processed from last pgm socket read.
+    pub nbytes_processed: usize,
+    //  How many messages from pgm_msgv were already sent up.
+    pub pgm_msgv_processed: usize,
+}
+
+impl pgm_socket_t {
     //  If receiver_ is true PGM transport is not generating SPM packets.
-    pgm_socket_t (receiver_: bool, options: &ZmqOptions);
+    // pgm_socket_t (receiver_: bool, options: &ZmqOptions);
 
     //  Closes the transport.
-    ~pgm_socket_t ();
+    // ~pgm_socket_t ();
 
     //  Initialize PGM network structures (GSI, GSRs).
-    int init (udp_encapsulation_: bool, network_: &str);
+    // int init (udp_encapsulation_: bool, network_: &str);
 
     //  Resolve PGM socket address.
-    static int init_address (network_: &str,
-                             struct pgm_addrinfo_t **addr,
-                             uint16_t *port_number);
+    // static int init_address (network_: &str,
+    //                          struct pgm_addrinfo_t **addr,
+    //                          uint16_t *port_number);
 
     //   Get receiver fds and store them into user allocated memory.
-    void get_receiver_fds (ZmqFileDesc *receive_fd_, ZmqFileDesc *waiting_pipe_fd_);
+    // void get_receiver_fds (ZmqFileDesc *receive_fd_, ZmqFileDesc *waiting_pipe_fd_);
 
     //   Get sender and receiver fds and store it to user allocated
     //   memory. Receive fd is used to process NAKs from peers.
-    void get_sender_fds (ZmqFileDesc *send_fd_,
-                         ZmqFileDesc *receive_fd_,
-                         ZmqFileDesc *rdata_notify_fd_,
-                         ZmqFileDesc *pending_notify_fd_);
+    // void get_sender_fds (ZmqFileDesc *send_fd_,
+    //                      ZmqFileDesc *receive_fd_,
+    //                      ZmqFileDesc *rdata_notify_fd_,
+    //                      ZmqFileDesc *pending_notify_fd_);
 
     //  Send data as one APDU, transmit window owned memory.
-    size_t send (data: &mut [u8], data_len_: usize);
+    // size_t send (data: &mut [u8], data_len_: usize);
 
     //  Returns max tsdu size without fragmentation.
-    size_t get_max_tsdu_size ();
+    // size_t get_max_tsdu_size ();
 
     //  Receive data from pgm socket.
-    ssize_t receive (data: *mut *mut c_void const pgm_tsi_t **tsi_);
+    // ssize_t receive (data: *mut *mut c_void const pgm_tsi_t **tsi_);
 
-    long get_rx_timeout ();
-    long get_tx_timeout ();
+    // long get_rx_timeout ();
+    // long get_tx_timeout ();
 
     //  POLLIN on sender side should mean NAK or SPMR receiving.
     //  process_upstream function is used to handle such a situation.
-    void process_upstream ();
+    // void process_upstream ();
 
-  //
+    //
     //  Compute size of the buffer based on rate and recovery interval.
-    int compute_sqns (tpdu_: i32);
-
-    //  OpenPGM transport.
-    pgm_sock_t *sock;
-
-    last_rx_status: i32, last_tx_status;
-
-    //  Associated socket options.
-    ZmqOptions options;
-
-    //  true when pgm_socket should create receiving side.
-    receiver: bool
-
-    //  Array of pgm_msgv_t structures to store received data
-    //  from the socket (pgm_transport_recvmsgv).
-    pgm_msgv_t *pgm_msgv;
-
-    //  Size of pgm_msgv array.
-    pgm_msgv_len: usize;
-
-    // How many bytes were read from pgm socket.
-    nbytes_rec: usize;
-
-    //  How many bytes were processed from last pgm socket read.
-    nbytes_processed: usize;
-
-    //  How many messages from pgm_msgv were already sent up.
-    pgm_msgv_processed: usize;
-};
+    // int compute_sqns (tpdu_: i32);
+}
 
 pgm_socket_t::pgm_socket_t (receiver_: bool, options: &ZmqOptions) :
     sock (null_mut()),

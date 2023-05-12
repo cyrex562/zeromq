@@ -8,6 +8,7 @@ use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
 use anyhow::anyhow;
 use std::ptr::null_mut;
+use crate::engine_interface::ZmqEngineInterface;
 
 // #[derive(Default,Debug,Clone)]
 // pub struct object_t {
@@ -23,11 +24,9 @@ use std::ptr::null_mut;
 // }
 
 pub trait ZmqObject {
-    //  Context provides access to the global state. fn get_ctx(&self) -> &ZmqContext;
-    fn get_ctx_mut(&mut self) -> &mut ZmqContext;
+    //  Context provides access to the global state. fn get_ctx(&self) -> &ZmqContext; fn get_ctx_mut(&mut self) -> &mut ZmqContext;
     fn set_ctx(&mut self, ctx: &mut ZmqContext);
-    //  Thread ID of the thread the object belongs to. fn get_tid(&self) -> u32;
-    fn set_tid(&mut self, tid: u32);
+    //  Thread ID of the thread the object belongs to. fn get_tid(&self) -> u32; fn set_tid(&mut self, tid: u32);
     fn process_command(&mut self, cmd: &ZmqCommand) {
         match cmd.cmd_type {
             CommandType::stop => {}
@@ -79,7 +78,7 @@ pub trait ZmqObject {
 
     // void pend_connection (const std::string &addr_,
     //                       const endpoint_t &endpoint_,
-    //                       ZmqPipe **pipes_); fn pend_connection(&mut self, addr: &str, endpoint: &ZmqEndpoint, pipes: &[ZmqPipe]) {
+    //                       ZmqPipe **pipes_) fn pend_connection(&mut self, addr: &str, endpoint: &ZmqEndpoint, pipes: &[ZmqPipe]) {
         self.get_ctx().pend_connection(addr, endpoint, pipes);
     }
 
@@ -200,7 +199,7 @@ pub trait ZmqObject {
     // void send_pipe_peer_stats (ZmqPipe *destination_,
     //                            queue_count_: u64,
     //                            ZmqOwn *socket_base,
-    //                            endpoint_uri_pair_t *endpoint_pair_); fn send_pipe_peer_stats(
+    //                            endpoint_uri_ZmqPair *endpoint_pair_); fn send_pipe_peer_stats(
         &mut self,
         destination: &mut ZmqPipe,
         queue_count: u64,
@@ -219,7 +218,7 @@ pub trait ZmqObject {
     // void send_pipe_stats_publish (ZmqOwn *destination_,
     //                               outbound_queue_count_: u64,
     //                               inbound_queue_count_: u64,
-    //                               endpoint_uri_pair_t *endpoint_pair_); fn send_pipe_stats_publish(
+    //                               endpoint_uri_ZmqPair *endpoint_pair_); fn send_pipe_stats_publish(
         &mut self,
         destination: &mut ZmqOwn,
         outbound_queue_count: u64,
@@ -354,7 +353,7 @@ pub trait ZmqObject {
 
     // virtual void process_pipe_peer_stats (queue_count_: u64,
     //                                       ZmqOwn *socket_base_,
-    //                                       endpoint_uri_pair_t *endpoint_pair_); fn process_pipe_peer_stats(
+    //                                       endpoint_uri_ZmqPair *endpoint_pair_); fn process_pipe_peer_stats(
         &mut self,
         queue_count: u64,
         socket_base: &mut ZmqOwn,
@@ -366,7 +365,7 @@ pub trait ZmqObject {
     // virtual void
     // process_pipe_stats_publish (outbound_queue_count_: u64,
     //                             inbound_queue_count_: u64,
-    //                             endpoint_uri_pair_t *endpoint_pair_); fn process_pipe_stats_publish(
+    //                             endpoint_uri_ZmqPair *endpoint_pair_); fn process_pipe_stats_publish(
         &mut self,
         outbound_queue_count: u64,
         inbound_queue_count: u64,
@@ -411,14 +410,14 @@ pub trait ZmqObject {
         unimplemented!()
     }
 
-    // virtual void process_conn_failed (); fn process_conn_failed(&mut self) {
+    // virtual void process_conn_failed fn process_conn_failed(&mut self) {
         unimplemented!()
     }
 
     //  Special handler called after a command that requires a seqnum
     //  was processed. The implementation should catch up with its counter
     //  of processed commands here.
-    // virtual void process_seqnum (); fn process_seqnum(&mut self) {
+    // virtual void process_seqnum fn process_seqnum(&mut self) {
         unimplemented!()
     }
 

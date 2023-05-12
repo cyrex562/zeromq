@@ -50,7 +50,7 @@ void set_sockopt_fastpath (socket: *mut c_void)
 }
 // #endif
 
-void test_pair_tcp (extra_func_t extra_func_ = null_mut())
+void test_ZmqPaircp (extra_func_t extra_func_ = null_mut())
 {
     void *sb = test_context_socket (ZMQ_PAIR);
 
@@ -72,12 +72,12 @@ void test_pair_tcp (extra_func_t extra_func_ = null_mut())
     test_context_socket_close (sb);
 }
 
-void test_pair_tcp_regular ()
+void test_ZmqPaircp_regular ()
 {
-    test_pair_tcp ();
+    test_ZmqPaircp ();
 }
 
-void test_pair_tcp_connect_by_name ()
+void test_ZmqPaircp_connect_by_name ()
 {
     // all other tcp test cases bind to a loopback wildcard address, then
     // retrieve the bound endpoint, which is numerical, and use that to
@@ -108,9 +108,9 @@ void test_pair_tcp_connect_by_name ()
 
 
 // #ifdef ZMQ_BUILD_DRAFT
-void test_pair_tcp_fastpath ()
+void test_ZmqPaircp_fastpath ()
 {
-    test_pair_tcp (set_sockopt_fastpath);
+    test_ZmqPaircp (set_sockopt_fastpath);
 }
 // #endif
 
@@ -148,10 +148,10 @@ int main ()
     setup_test_environment ();
 
     UNITY_BEGIN ();
-    RUN_TEST (test_pair_tcp_regular);
-    RUN_TEST (test_pair_tcp_connect_by_name);
+    RUN_TEST (test_ZmqPaircp_regular);
+    RUN_TEST (test_ZmqPaircp_connect_by_name);
 // #ifdef ZMQ_BUILD_DRAFT
-    RUN_TEST (test_pair_tcp_fastpath);
+    RUN_TEST (test_ZmqPaircp_fastpath);
 // #endif
 // #ifdef _WIN32
     RUN_TEST (test_io_completion_port);

@@ -46,7 +46,7 @@ pub struct ws_decoder_t
 {
 //
     ws_decoder_t (bufsize_: usize,
-                  i64 maxmsgsize_,
+                  maxmsgsize_: i64,
                   zero_copy_: bool,
                   must_mask_: bool);
     ~ws_decoder_t ();
@@ -80,7 +80,7 @@ pub struct ws_decoder_t
 };
 
 ws_decoder_t::ws_decoder_t (bufsize_: usize,
-                                 i64 maxmsgsize_,
+                                 maxmsgsize_: i64,
                                  zero_copy_: bool,
                                  must_mask_: bool) :
     DecoderBase<ws_decoder_t, shared_message_memory_allocator> (bufsize_),
@@ -142,7 +142,7 @@ int ws_decoder_t::size_first_byte_ready (unsigned char const *read_from_)
     if (is_masked != _must_mask) // wrong mask value
         return -1;
 
-    _size = static_cast<u64> (_tmpbuf[0] & 0x7F);
+    _size =  (_tmpbuf[0] & 0x7F);
 
     if (_size < 126) {
         if (_must_mask)
@@ -235,7 +235,7 @@ int ws_decoder_t::size_ready (unsigned char const *read_pos_)
 {
     //  Message size must not exceed the maximum allowed size.
     if (_max_msg_size >= 0)
-        if ( (_size > static_cast<u64> (_max_msg_size))) {
+        if ( (_size >  (_max_msg_size))) {
             errno = EMSGSIZE;
             return -1;
         }
@@ -267,7 +267,7 @@ int ws_decoder_t::size_ready (unsigned char const *read_pos_)
         // increase buffer ref count
         // if the message will be a large message, pass a valid refcnt memory location as well
         rc = in_progress.init (
-          const_cast<unsigned char *> (read_pos_),  (_size),
+           (read_pos_),  (_size),
           shared_message_memory_allocator::call_dec_ref, allocator.buffer (),
           allocator.provide_content ());
 

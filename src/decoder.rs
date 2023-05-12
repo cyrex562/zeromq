@@ -61,7 +61,7 @@ use crate::utils::copy_bytes;
 pub trait i_decoder {}
 
 #[derive(Default, Debug, Clone)]
-pub struct DecoderBase<T: Allocator> {
+pub struct DecoderBase {
     // public:
 
     // private:
@@ -86,7 +86,7 @@ pub struct DecoderBase<T: Allocator> {
     buf: Vec<u8>, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (DecoderBase)
 }
 
-impl DecoderBase<T> {
+impl DecoderBase {
     // explicit DecoderBase (const buf_size_: usize) :
     // next (null_mut()), read_pos (null_mut()), to_read (0), allocator (buf_size_)
     // {
@@ -163,7 +163,7 @@ impl DecoderBase<T> {
             // Only copy when destination address is different from the
             // current address in the buffer.
             if (read_pos != data + bytes_used_) {
-                copy_bytes(read_pos, 0, data, bytes_used_, to_copy);
+                copy_bytes(read_pos, 0, data, bytes_used_, to_copy as i32);
             }
 
             read_pos += to_copy;
@@ -196,7 +196,7 @@ impl DecoderBase<T> {
 
     //  This function should be called from derived class to read data
     //  from the buffer and schedule next state machine action.
-    pub fn next_step(&mut self, read_pos_: &mut Vec<u8>, to_read_: usize, next_: usize) {
+    pub fn next_step(&mut self, read_pos_: &mut [u8], to_read_: usize, next_: usize) {
         self.read_pos = read_pos_.clone();
         self.to_read = to_read_;
         self.next = next_;

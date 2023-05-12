@@ -69,7 +69,7 @@ pub struct stream_listener_base_t : public ZmqOwn, public ZmqIoObject
     ZmqFileDesc _s;
 
     //  Handle corresponding to the listening socket.
-    handle_t _handle;
+    let mut _handle: ZmqHandle;
 
     //  Socket the listener belongs to.
     ZmqSocketBase *_socket;
@@ -139,7 +139,7 @@ int stream_listener_base_t::close ()
 
 void stream_listener_base_t::create_engine (ZmqFileDesc fd)
 {
-    const endpoint_uri_pair_t endpoint_pair (
+    const endpoint_uri_ZmqPair endpoint_pair (
       get_socket_name (fd, SocketEndLocal),
       get_socket_name (fd, SocketEndRemote), endpoint_type_bind);
 

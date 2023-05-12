@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::address::Address;
 use crate::clock::clock_t;
 use crate::command::ZmqCommand;
-use crate::context::ZmqContext;
+use crate::context::{choose_io_thread, unregister_endpoint, ZmqContext};
 use crate::cpu_time::get_cpu_tick_counter;
 use crate::defines::{
     ZMQ_BLOCKY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED,
@@ -26,13 +26,17 @@ use crate::defines::{
     ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB,
     ZMQ_ZERO_COPY_RECV,
 };
+use crate::devpoll::Poller;
 use crate::endpoint::{EndpointUriPair, make_unconnected_bind_endpoint_pair, ZmqEndpoint};
 use crate::endpoint::EndpointType::endpoint_type_none;
+use crate::engine_interface::ZmqEngineInterface;
+use crate::fd::ZmqFileDesc;
 use crate::ZmqMailboxInterface::ZmqMailboxInterface;
 use crate::io_thread::ZmqIoThread;
 use crate::ipc_address::IpcAddress;
 use crate::ipc_listener::IpcListener;
 use crate::mailbox::ZmqMailbox;
+use crate::mailbox_interface::ZmqMailboxInterface;
 use crate::mailbox_safe::ZmqMailboxSafe;
 use crate::message::{routing_id, ZMQ_MSG_MORE, ZmqMessage};
 use crate::object::ZmqObject;
@@ -43,10 +47,10 @@ use crate::ops::{
 use crate::options::{
     bool_to_vec, get_effective_conflate_option, i32_to_vec, str_to_vec, ZmqOptions,
 };
-use crate::out_pipe::out_pipe_t;
+use crate::out_pipe::ZmqOutPipe;
 use crate::own::ZmqOwn;
 use crate::pgm_socket::pgm_socket_t;
-use crate::pipe::ZmqPipe;
+use crate::pipe::{send_hello_msg, ZmqPipe};
 use crate::session_base::ZmqSessionBase;
 use crate::signaler::ZmqSignaler;
 use crate::socket_base_ops::ZmqSocketBaseOps;
@@ -496,7 +500,7 @@ impl ZmqSocketBase {
     //     // ZmqSocketBase *s = NULL;
     //     match type_ {
     //         ZMQ_PAIR => { s = Self::new(parent_, tid, sid_); }
-    //             // s = new (std::nothrow) pair_t (parent_, tid, sid_);
+    //             // s = new (std::nothrow) ZmqPair (parent_, tid, sid_);
     //             // break;
     //         ZMQ_PUB =>{}
     //             // s = new (std::nothrow) pub_t (parent_, tid, sid_);
@@ -553,7 +557,7 @@ impl ZmqSocketBase {
     //             s = new (std::nothrow) ZmqDgram (parent_, tid, sid_);
     //             break;
     //         ZMQ_PEER =>
-    //             s = new (std::nothrow) peer_t (parent_, tid, sid_);
+    //             s = new (std::nothrow) ZmqPeer (parent_, tid, sid_);
     //             break;
     //         ZMQ_CHANNEL =>
     //             s = new (std::nothrow) channel_t (parent_, tid, sid_);
@@ -1515,7 +1519,7 @@ impl ZmqSocketBase {
         endpoint_uri_pair_: &EndpointUriPair,
         fd: ZmqFileDesc,
     ) {
-        // u64 values[1] = {static_cast<u64> (fd)};
+        // u64 values[1] = { (fd)};
         let values: [u64; 1] = [fd];
         self.event(
             options,
@@ -1534,7 +1538,7 @@ impl ZmqSocketBase {
         endpoint_uri_pair_: &EndpointUriPair,
         err_: i32,
     ) {
-        // u64 values[1] = {static_cast<u64> (err_)};
+        // u64 values[1] = { (err_)};
         let values: [u64; 1] = [err_ as u64];
         self.event(
             options,
@@ -1553,7 +1557,7 @@ impl ZmqSocketBase {
         endpoint_uri_pair_: &EndpointUriPair,
         interval_: i32,
     ) {
-        // u64 values[1] = {static_cast<u64> (interval_)};
+        // u64 values[1] = { (interval_)};
         let values: [u64; 1] = [interval_ as u64];
         self.event(
             options,
@@ -1572,7 +1576,7 @@ impl ZmqSocketBase {
         endpoint_uri_pair_: &EndpointUriPair,
         fd: ZmqFileDesc,
     ) {
-        // u64 values[1] = {static_cast<u64> (fd)};
+        // u64 values[1] = { (fd)};
         let values: [u64; 1] = [fd];
         self.event(
             options,
@@ -1591,7 +1595,7 @@ impl ZmqSocketBase {
         endpoint_uri_pair_: &EndpointUriPair,
         err_: i32,
     ) {
-        // u64 values[1] = {static_cast<u64> (err_)};
+        // u64 values[1] = { (err_)};
         let values: [u64; 1] = [err_ as u64];
 
         self.event(
@@ -1611,7 +1615,7 @@ impl ZmqSocketBase {
         endpoint_uri_pair_: &EndpointUriPair,
         fd: ZmqFileDesc,
     ) {
-        // u64 values[1] = {static_cast<u64> (fd)};
+        // u64 values[1] = { (fd)};
         let values: [u64; 1] = [fd];
         self.event(
             options,
@@ -1630,7 +1634,7 @@ impl ZmqSocketBase {
         endpoint_uri_pair_: &EndpointUriPair,
         err_: i32,
     ) {
-        // u64 values[1] = {static_cast<u64> (err_)};
+        // u64 values[1] = { (err_)};
         let values: [u64; 1] = [err_ as u64];
         self.event(
             options,
@@ -1649,7 +1653,7 @@ impl ZmqSocketBase {
         endpoint_uri_pair_: &EndpointUriPair,
         fd: ZmqFileDesc,
     ) {
-        // u64 values[1] = {static_cast<u64> (fd)};
+        // u64 values[1] = { (fd)};
         let values: [u64; 1] = [fd];
         self.event(
             options,
@@ -1668,7 +1672,7 @@ impl ZmqSocketBase {
         enpoint_uri_pair_: &EndpointUriPair,
         err_: i32,
     ) {
-        // u64 values[1] = {static_cast<u64> (err_)};
+        // u64 values[1] = { (err_)};
         let values: [u64; 1] = [err_ as u64];
         self.event(
             options,
@@ -1687,7 +1691,7 @@ impl ZmqSocketBase {
         endpoint_uri_pair_: &EndpointUriPair,
         fd: ZmqFileDesc,
     ) {
-        // u64 values[1] = {static_cast<u64> (fd)};
+        // u64 values[1] = { (fd)};
         let values: [u64; 1] = [fd];
         self.event(
             options,
@@ -1706,7 +1710,7 @@ impl ZmqSocketBase {
         endpoint_uri_pair: &EndpointUriPair,
         err_: i32,
     ) {
-        // u64 values[1] = {static_cast<u64> (err_)};
+        // u64 values[1] = { (err_)};
         let values: [u64; 1] = [err_ as u64];
         self.event(
             options,
@@ -1725,7 +1729,7 @@ impl ZmqSocketBase {
         endpoint_uri_pair_: &EndpointUriPair,
         err_: i32,
     ) {
-        // u64 values[1] = {static_cast<u64> (err_)};
+        // u64 values[1] = { (err_)};
         let values: [u64; 1] = [err_ as u64];
         self.event(
             options,
@@ -1745,7 +1749,7 @@ impl ZmqSocketBase {
         endpoint_uri_pair_: &EndpointUriPair,
         err_: i32,
     ) {
-        // u64 values[1] = {static_cast<u64> (err_)};
+        // u64 values[1] = { (err_)};
         let values: [u64; 1] = [err_ as u64];
         self.event(
             options,
@@ -1765,7 +1769,7 @@ impl ZmqSocketBase {
         endpoint_uri_pair_: &EndpointUriPair,
         err_: i32,
     ) {
-        // u64 values[1] = {static_cast<u64> (err_)};
+        // u64 values[1] = { (err_)};
         let values: [u64; 1] = [err_ as u64];
         self.event(
             options,
@@ -2692,9 +2696,9 @@ pub struct routing_socket_base_t {
     // own methods
     //
     //  Outbound pipes indexed by the peer IDs.
-    // typedef std::map<Blob, out_pipe_t> out_pipes_t;
+    // typedef std::map<Blob, ZmqOutPipe> out_pipes_t;
     // out_pipes_t _out_pipes;
-    pub _out_pipes: HashMap<Blob, out_pipe_t>,
+    pub _out_pipes: HashMap<Blob, ZmqOutPipe>,
     pub base: ZmqSocketBase,
     // Next assigned name on a zmq_connect() call used by ROUTER and STREAM socket types
     // std::string _connect_routing_id;
@@ -2780,7 +2784,7 @@ impl routing_socket_base_t {
     // void add_out_pipe (Blob routing_id_, pipe_: &mut ZmqPipe);
     pub fn add_out_pipe(&mut self, routing_id_: Blob, pipe: &mut ZmqPipe) {
         //  Add the record into output pipes lookup table
-        let outpipe = out_pipe_t::new(pipe, true);
+        let outpipe = ZmqOutPipe::new(pipe, true);
         let ok = self._out_pipes.ZMQ_MAP_INSERT_OR_EMPLACE(routing_id_, outpipe).second;
         // zmq_assert (ok);
     }
@@ -2790,8 +2794,8 @@ impl routing_socket_base_t {
         return 0 != _out_pipes.count(routing_id_);
     }
 
-    // out_pipe_t *lookup_out_pipe (const Blob &routing_id_);
-    pub fn lookup_out_pipe(&mut self, routing_id_: &mut Blob) -> Option<out_pipe_t> {
+    // ZmqOutPipe *lookup_out_pipe (const Blob &routing_id_);
+    pub fn lookup_out_pipe(&mut self, routing_id_: &mut Blob) -> Option<ZmqOutPipe> {
         // TODO we could probably avoid constructor a temporary Blob to call this function
         // out_pipes_t::iterator it = _out_pipes.find (routing_id_);
         // return it == _out_pipes.end () ? null_mut() : &it.second;
@@ -2802,7 +2806,7 @@ impl routing_socket_base_t {
         None
     }
 
-    // const out_pipe_t *lookup_out_pipe (const Blob &routing_id_) const;
+    // const ZmqOutPipe *lookup_out_pipe (const Blob &routing_id_) const;
 
     // void erase_out_pipe (const pipe_: &mut ZmqPipe);
     pub fn erase_out_pipe(&mut self, pipe: &mut ZmqPipe) {
@@ -2810,14 +2814,14 @@ impl routing_socket_base_t {
         // zmq_assert (erased);
     }
 
-    // out_pipe_t try_erase_out_pipe (const Blob &routing_id_);
-    pub fn try_erase_out_pipe(&mut self, routing_id_: &mut Blob) -> Option<out_pipe_t> {
+    // ZmqOutPipe try_erase_out_pipe (const Blob &routing_id_);
+    pub fn try_erase_out_pipe(&mut self, routing_id_: &mut Blob) -> Option<ZmqOutPipe> {
         // const out_pipes_t::iterator it = _out_pipes.find (routing_id_);
         let result = self._out_pipes.remove(routing_id_);
         //     if result.is_some() {
         //
         //     }
-        //     out_pipe_t res = {null_mut(), false};
+        //     ZmqOutPipe res = {null_mut(), false};
         // if (it != _out_pipes.end ()) {
         // res = it.second;
         // _out_pipes.erase (it);

@@ -207,7 +207,7 @@ pub struct ZmqWsEngine {
 impl ZmqWsEngine {
     // ZmqWsEngine (fd: ZmqFileDesc,
     //              options: &ZmqOptions,
-    //              const endpoint_uri_pair_t &endpoint_uri_pair_,
+    //              const endpoint_uri_ZmqPair &endpoint_uri_pair_,
     //              const WsAddress &address_,
     //              client_: bool);
     pub fn new(fd: ZmqFileDesc,

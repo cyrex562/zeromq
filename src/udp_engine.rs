@@ -85,7 +85,7 @@ pub struct udp_engine_t  : public ZmqIoObject, public ZmqEngineInterface
     void in_event ();
     void out_event ();
 
-    const endpoint_uri_pair_t &get_endpoint () const;
+    const endpoint_uri_ZmqPair &get_endpoint () const;
 
   //
     int resolve_raw_address (name: &str, length_: usize);
@@ -107,13 +107,13 @@ pub struct udp_engine_t  : public ZmqIoObject, public ZmqEngineInterface
     //  Function to handle network issues.
     void // error (ZmqErrorReason reason_);
 
-    const endpoint_uri_pair_t _empty_endpoint;
+    const endpoint_uri_ZmqPair _empty_endpoint;
 
     _plugged: bool
 
     ZmqFileDesc _fd;
     ZmqSessionBase *_session;
-    handle_t _handle;
+    let mut _handle: ZmqHandle;
     Address *address;
 
     ZmqOptions self._options;
@@ -545,7 +545,7 @@ void udp_engine_t::out_event ()
             size = group_size + body_size + 1;
 
             // TODO: check if larger than maximum size
-            _out_buffer[0] = static_cast<unsigned char> (group_size);
+            _out_buffer[0] =  (group_size);
             memcpy (_out_buffer + 1, group_msg.data (), group_size);
             memcpy (_out_buffer + 1 + group_size, body_msg.data (), body_size);
         }
@@ -583,7 +583,7 @@ void udp_engine_t::out_event ()
     }
 }
 
-const endpoint_uri_pair_t &udp_engine_t::get_endpoint () const
+const endpoint_uri_ZmqPair &udp_engine_t::get_endpoint () const
 {
     return _empty_endpoint;
 }

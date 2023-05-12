@@ -71,7 +71,7 @@ use std::ptr::null_mut;
 use libc::{atoi, c_char, c_void, EFAULT, EINTR, EINVAL, ENOMEM, ENOTSOCK, ENOTSUP, INT_MAX};
 use crate::context::ZmqContext;
 use crate::ctx_hdr::ZmqContext;
-use crate::peer::peer_t;
+use crate::peer::ZmqPeer;
 use crate::socket_base::ZmqSocketBase;
 use crate::defines::{zmq_free_fn, ZMQ_IO_THREADS, ZmqMessage, ZMQ_PAIR, ZMQ_PEER, ZMQ_SNDMORE, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH, ZMQ_MORE, ZMQ_SRCFD, ZMQ_SHARED};
 use anyhow::{anyhow, bail};
@@ -368,7 +368,7 @@ return - 1;}
 
 pub fn zmq_connect_peer (s_: &mut [u8], addr_: &str) -> u32
 {
-    let mut s: *mut peer_t = s_ as *mut peer_t;
+    let mut s: *mut ZmqPeer = s_ as *mut ZmqPeer;
     if !s_ || !s.check_tag () {
         errno = ENOTSOCK;
         return 0;

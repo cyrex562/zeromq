@@ -47,7 +47,7 @@ impl c_single_allocator {
     // void resize (std::new_size: usize) { LIBZMQ_UNUSED (new_size); }
 }
 
-// This allocator allocates a reference counted buffer which is used by v2_decoder_t
+// This allocator allocates a reference counted buffer which is used by ZmqV2Decoder
 // to use zero-copy msg::init_data to create messages with memory from this buffer as
 // data storage.
 //

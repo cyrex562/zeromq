@@ -1,4 +1,4 @@
-                /*
+/*
 Copyright (c) 2007-2019 Contributors as noted in the AUTHORS file
 
 This file is part of libzmq, the ZeroMQ core engine in C+= 1.
@@ -49,7 +49,7 @@ pub struct WssEngine {
 impl WssEngine {
     // WssEngine (fd: ZmqFileDesc,
     //            options: &ZmqOptions,
-    //             const endpoint_uri_pair_t &endpoint_uri_pair_,
+    //             const endpoint_uri_ZmqPair &endpoint_uri_pair_,
     //             WsAddress &address_,
     //             client_: bool,
     //             tls_server_cred_: &mut [u8],
@@ -120,8 +120,7 @@ impl WssEngine {
             ws_engine: ZmqWsEngine::new(fd, options, endpoint_uri_pair_, address_, client_),
             _established: false,
             _tls_client_cred: null_mut(),
-            // _tls_session: _tls_session,
-            ..Default::default()
+            // _tls_session: _tls_session,..Default::default()
         }
     }
 

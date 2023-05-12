@@ -286,7 +286,7 @@ int router_t::xsend (msg: &mut ZmqMessage)
             //  Find the pipe associated with the routing id stored in the prefix.
             //  If there's no such pipe just silently ignore the message, unless
             //  router_mandatory is set.
-            out_pipe_t *out_pipe = lookup_out_pipe (
+            ZmqOutPipe *out_pipe = lookup_out_pipe (
               Blob ( (msg.data ()),
                       msg.size (), ReferenceTag ()));
 
@@ -522,7 +522,7 @@ int router_t::get_peer_state (const routing_id_: &mut [u8],
     const Blob routing_id_blob (
        (const_cast<void *> (routing_id_)),
       routing_id_size_, ReferenceTag ());
-    const out_pipe_t *out_pipe = lookup_out_pipe (routing_id_blob);
+    const ZmqOutPipe *out_pipe = lookup_out_pipe (routing_id_blob);
     if (!out_pipe) {
         errno = EHOSTUNREACH;
         return -1;
@@ -576,7 +576,7 @@ let mut msg = ZmqMessage::default();
 
             //  Try to remove an existing routing id entry to allow the new
             //  connection to take the routing id.
-            const out_pipe_t *const existing_outpipe =
+            const ZmqOutPipe *const existing_outpipe =
               lookup_out_pipe (routing_id);
 
             if (existing_outpipe) {

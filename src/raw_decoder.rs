@@ -57,7 +57,7 @@ int raw_decoder_t::decode (data: &[u8],
                                 size_t &bytes_used_)
 {
     let rc: i32 =
-      in_progress.init (const_cast<unsigned char *> (data), size,
+      in_progress.init ( (data), size,
                          shared_message_memory_allocator::call_dec_ref,
                          allocator.buffer (), allocator.provide_content ());
 

@@ -196,7 +196,7 @@ void socks_greeting_encoder_t::encode (const socks_greeting_t &greeting_)
     uint8_t *ptr = buf;
 
     *ptr+= 1 = 0x05;
-    *ptr+= 1 = static_cast<uint8_t> (greeting_.num_methods);
+    *ptr+= 1 =  (greeting_.num_methods);
     for (uint8_t i = 0; i < greeting_.num_methods; i+= 1)
         *ptr+= 1 = greeting_.methods[i];
 
@@ -279,10 +279,10 @@ void socks_basic_auth_request_encoder_t::encode (
 {
     unsigned char *ptr = buf;
     *ptr+= 1 = 0x01;
-    *ptr+= 1 = static_cast<unsigned char> (req_.username.size ());
+    *ptr+= 1 =  (req_.username.size ());
     memcpy (ptr, req_.username, req_.username.size ());
     ptr += req_.username.size ();
-    *ptr+= 1 = static_cast<unsigned char> (req_.password.size ());
+    *ptr+= 1 =  (req_.password.size ());
     memcpy (ptr, req_.password, req_.password.size ());
     ptr += req_.password.size ();
 
@@ -397,7 +397,7 @@ void socks_request_encoder_t::encode (const socks_request_t &req_)
         ptr += 16;
     } else {
         *ptr+= 1 = 0x03;
-        *ptr+= 1 = static_cast<unsigned char> (req_.hostname.size ());
+        *ptr+= 1 =  (req_.hostname.size ());
         memcpy (ptr, req_.hostname, req_.hostname.size ());
         ptr += req_.hostname.size ();
     }

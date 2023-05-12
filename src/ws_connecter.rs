@@ -334,7 +334,7 @@ bool ws_connecter_t::tune_socket (const ZmqFileDesc fd)
 void ws_connecter_t::create_engine (fd: ZmqFileDesc,
                                          local_address_: &str)
 {
-    const endpoint_uri_pair_t endpoint_pair (local_address_, _endpoint,
+    const endpoint_uri_ZmqPair endpoint_pair (local_address_, _endpoint,
                                              endpoint_type_connect);
 
     //  Create the engine object for this connection.

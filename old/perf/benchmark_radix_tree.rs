@@ -90,7 +90,7 @@ int main ()
     for (std::size_t i = 0; i < nkeys; += 1i) {
         unsigned char *key = new unsigned char[key_length];
         for (std::size_t j = 0; j < key_length; j+= 1)
-            key[j] = static_cast<unsigned char> (chars[rng () % chars_len]);
+            key[j] =  (chars[rng () % chars_len]);
         input_set.emplace_back (key);
     }
     for (std::size_t i = 0; i < nqueries; += 1i)

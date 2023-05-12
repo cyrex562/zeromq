@@ -34,78 +34,103 @@
 // #include "likely.hpp"
 // #include "wire.hpp"
 
+use std::ptr::null_mut;
+use libc::{size_t, uint8_t};
+use crate::decoder_allocators::size;
+use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
+use crate::v2_protocol::v2_protocol_t;
+
 // #include <limits.h>
-pub struct v2_encoder_t  : public encoder_base_t<v2_encoder_t>
+#[derive(Default,Debug,Clone)]
+pub struct ZmqV2Encoder
 {
-//
-    v2_encoder_t (bufsize_: usize);
-    ~v2_encoder_t ();
-
-  //
-    void size_ready ();
-    void message_ready ();
-
+    // : public encoder_base_t<ZmqV2Encoder>
+    pub encoder_base: EncoderBase,
     //  flags byte + size byte (or 8 bytes) + sub/cancel byte
-    unsigned char _tmp_buf[10];
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (v2_encoder_t)
-};
-
-v2_encoder_t::v2_encoder_t (bufsize_: usize) :
-    encoder_base_t<v2_encoder_t> (bufsize_)
-{
-    //  Write 0 bytes to the batch and go to message_ready state.
-    next_step (null_mut(), 0, &v2_encoder_t::message_ready, true);
+    // unsigned char _tmp_buf[10];
+    pub _tmp_buf: [u8; 10],
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqV2Encoder)
 }
 
-v2_encoder_t::~v2_encoder_t ()
-{
-}
+impl ZmqV2Encoder {
 
-void v2_encoder_t::message_ready ()
-{
-    //  Encode flags.
-    size_t size = in_progress ().size ();
-    size_t header_size = 2; // flags byte + size byte
-    unsigned char &protocol_flags = _tmp_buf[0];
-    protocol_flags = 0;
-    if (in_progress ().flags () & ZMQ_MSG_MORE)
-        protocol_flags |= v2_protocol_t::more_flag;
-    if (in_progress ().size () > UCHAR_MAX)
-        protocol_flags |= v2_protocol_t::large_flag;
-    if (in_progress ().flags () & ZMQ_MSG_COMMAND)
-        protocol_flags |= v2_protocol_t::command_flag;
-    if (in_progress ().is_subscribe () || in_progress ().is_cancel ())
-        += 1size;
+    // ZmqV2Encoder (bufsize_: usize);
+    pub fn new(bufsize_: usize) ->Self
 
-    //  Encode the message length. For messages less then 256 bytes,
-    //  the length is encoded as 8-bit unsigned integer. For larger
-    //  messages, 64-bit unsigned integer in network byte order is used.
-    if ( (size > UCHAR_MAX)) {
-        put_uint64 (_tmp_buf + 1, size);
-        header_size = 9; // flags byte + size 8 bytes
-    } else {
-        _tmp_buf[1] = static_cast<uint8_t> (size);
+    {
+        // encoder_base_t<ZmqV2Encoder> (bufsize_)
+        let mut out = Self {
+            encoder_base: EncoderBase::new(bufsize_),
+            _tmp_buf: [0; 10],
+        };
+        //  Write 0 bytes to the batch and go to message_ready state.
+        out.encoder_base.next_step (null_mut(), 0, out.message_ready(), true);
+        out
     }
 
-    //  Encode the subscribe/cancel byte. This is done in the encoder as
-    //  opposed to when the subscribe message is created to allow different
-    //  protocol behaviour on the wire in the v3.1 and legacy encoders.
-    //  It results in the work being done multiple times in case the sub
-    //  is sending the subscription/cancel to multiple pubs, but it cannot
-    //  be avoided. This processing can be moved to xsub once support for
-    //  ZMTP < 3.1 is dropped.
-    if (in_progress ().is_subscribe ())
-        _tmp_buf[header_size+= 1] = 1;
-    else if (in_progress ().is_cancel ())
-        _tmp_buf[header_size+= 1] = 0;
+    // void message_ready ();
+    pub fn message_ready (&mut self)
+    {
+        //  Encode flags.
+        let size = in_progress ().size ();
+        let mut header_size = 2; // flags byte + size byte
+        let mut protocol_flags = _tmp_buf[0];
+        protocol_flags = 0;
+        if (in_progress ().flags () & ZMQ_MSG_MORE) {
+            protocol_flags |= v2_protocol_t::more_flag;
+        }
+        if (in_progress ().size () > UCHAR_MAX) {
+            protocol_flags |= v2_protocol_t::large_flag;
+        }
+        if (in_progress ().flags () & ZMQ_MSG_COMMAND) {
+            protocol_flags |= v2_protocol_t::command_flag;
+        }
+        if (in_progress ().is_subscribe () || in_progress ().is_cancel ()) {
+            size += 1;
+        }
 
-    next_step (_tmp_buf, header_size, &v2_encoder_t::size_ready, false);
+        //  Encode the message length. For messages less then 256 bytes,
+        //  the length is encoded as 8-bit unsigned integer. For larger
+        //  messages, 64-bit unsigned integer in network byte order is used.
+        if ( (size > UCHAR_MAX)) {
+            put_uint64 (_tmp_buf + 1, size);
+            header_size = 9; // flags byte + size 8 bytes
+        } else {
+           self. _tmp_buf[1] =  (size);
+        }
+
+        //  Encode the subscribe/cancel byte. This is done in the encoder as
+        //  opposed to when the subscribe message is created to allow different
+        //  protocol behaviour on the wire in the v3.1 and legacy encoders.
+        //  It results in the work being done multiple times in case the sub
+        //  is sending the subscription/cancel to multiple pubs, but it cannot
+        //  be avoided. This processing can be moved to xsub once support for
+        //  ZMTP < 3.1 is dropped.
+        if (in_progress ().is_subscribe ()) {
+            _tmp_buf[header_size += 1] = 1;
+        }
+        else if (in_progress ().is_cancel ()) {
+            _tmp_buf[header_size += 1] = 0;
+        }
+
+        next_step (_tmp_buf, header_size, &ZmqV2Encoder::size_ready, false);
+    }
+
+    // void size_ready ();
+    pub fn size_ready (&mut self)
+    {
+        //  Write message body into the buffer.
+        next_step (in_progress ().data (), in_progress ().size (),
+                   &ZmqV2Encoder::message_ready, true);
+    }
+    // ~ZmqV2Encoder ();
+
+
 }
 
-void v2_encoder_t::size_ready ()
-{
-    //  Write message body into the buffer.
-    next_step (in_progress ().data (), in_progress ().size (),
-               &v2_encoder_t::message_ready, true);
-}
+
+
+// ZmqV2Encoder::~ZmqV2Encoder ()
+// {
+// }
+

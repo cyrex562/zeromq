@@ -19,9 +19,9 @@ pub struct EndpointUriPair {
 }
 
 impl EndpointUriPair {
-    // endpoint_uri_pair_t () : local_type (endpoint_type_none) {}
+    // endpoint_uri_ZmqPair () : local_type (endpoint_type_none) {}
 
-    // endpoint_uri_pair_t (const std::string &local,
+    // endpoint_uri_ZmqPair (const std::string &local,
     //                      const std::string &remote,
     //                      endpoint_type_t local_type) :
     //     local (local), remote (remote), local_type (local_type)
@@ -47,22 +47,22 @@ impl EndpointUriPair {
 }
 
 
-// endpoint_uri_pair_t
+// endpoint_uri_ZmqPair
 // make_unconnected_connect_endpoint_pair (const std::string &endpoint_);
-// endpoint_uri_pair_t
+// endpoint_uri_ZmqPair
 // make_unconnected_connect_endpoint_pair (const std::string &endpoint_)
 pub fn make_unconnected_connected_endpoint_pair(endpoint: &str) -> EndpointUriPair {
-    // return endpoint_uri_pair_t (std::string (), endpoint_,
+    // return endpoint_uri_ZmqPair (std::string (), endpoint_,
     //                             endpoint_type_connect);
     EndpointUriPair::new("", endpoint, EndpointType::endpoint_type_connect)
 }
 
-// endpoint_uri_pair_t
+// endpoint_uri_ZmqPair
 // make_unconnected_bind_endpoint_pair (const std::string &endpoint_);
-// endpoint_uri_pair_t
+// endpoint_uri_ZmqPair
 // make_unconnected_bind_endpoint_pair (const std::string &endpoint_)
 pub fn make_unconnected_bind_endpoint_pair(endpoint: &str) -> EndpointUriPair {
-    // return endpoint_uri_pair_t (endpoint_, std::string (), endpoint_type_bind);
+    // return endpoint_uri_ZmqPair (endpoint_, std::string (), endpoint_type_bind);
     EndpointUriPair::new(endpoint, "", EndpointType::endpoint_type_bind)
 }
 

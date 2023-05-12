@@ -33,6 +33,17 @@
 
 // #include <stdlib.h>
 
+use crate::defines::ZmqHandle;
+use crate::endpoint::EndpointUriPair;
+use crate::engine_interface::ZmqEngineInterface;
+use crate::io_object::ZmqIoObject;
+use crate::io_thread::ZmqIoThread;
+use crate::message::ZmqMessage;
+use crate::options::ZmqOptions;
+use crate::pgm_socket::pgm_socket_t;
+use crate::session_base::ZmqSessionBase;
+use crate::v1_encoder::ZmqV1Encoder;
+
 // #include "io_thread.hpp"
 // #include "pgm_sender.hpp"
 // #include "session_base.hpp"
@@ -40,100 +51,159 @@
 // #include "wire.hpp"
 // #include "stdint.hpp"
 // #include "macros.hpp"
-pub struct pgm_sender_t  : public ZmqIoObject, public ZmqEngineInterface
+
+// enum
+// {
+//     tx_timer_id = 0xa0,
+//     rx_timer_id = 0xa1
+// };
+pub const tx_timer_id: u8 = 0xa0;
+pub const rx_timer_id: u8 = 0xa1;
+
+#[derive(Default,Clone,Debug)]
+pub struct pgm_sender_t
 {
-//
-    pgm_sender_t (ZmqIoThread *parent_, options: &ZmqOptions);
-    ~pgm_sender_t ();
-
-    int init (udp_encapsulation_: bool, network_: &str);
-
-    //  ZmqIEngine interface implementation.
-    bool has_handshake_stage () { return false; };
-    void plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_);
-    void terminate ();
-    bool restart_input ();
-    void restart_output ();
-    void zap_msg_available () {}
-    const EndpointUriPair &get_endpoint () const;
-
-    //  i_poll_events interface implementation.
-    void in_event ();
-    void out_event ();
-    void timer_event (token: i32);
-
-  //
-    //  Unplug the engine from the session.
-    void unplug ();
-
+    // : public ZmqIoObject, public ZmqEngineInterface
+    pub io_object: ZmqIoObject,
     //  TX and RX timeout timer ID's.
-    enum
-    {
-        tx_timer_id = 0xa0,
-        rx_timer_id = 0xa1
-    };
-
-    const EndpointUriPair _empty_endpoint;
-
+    // const EndpointUriPair _empty_endpoint;
+    pub _empty_endpoint: EndpointUriPair,
     //  Timers are running.
-    has_tx_timer: bool
-    has_rx_timer: bool
-
-    ZmqSessionBase *session;
-
+    pub has_tx_timer: bool,
+    pub has_rx_timer: bool,
+    // ZmqSessionBase *session;
+    pub session: ZmqSessionBase,
     //  Message encoder.
-    v1_encoder_t encoder;
-let mut msg = ZmqMessage::default();
-
+    // v1_encoder_t encoder;
+    pub encoder: ZmqV1Encoder,
+// let mut msg = ZmqMessage::default();
+    pub msg: ZmqMessage,
     //  Keeps track of message boundaries.
-    more_flag: bool
-
+    pub more_flag: bool,
     //  PGM socket.
-    pgm_socket_t pgm_socket;
-
+    pub pgm_socket: pgm_socket_t,
     //  Socket options.
-    ZmqOptions options;
-
+    pub options: ZmqOptions,
     //  Poll handle associated with PGM socket.
-    handle_t handle;
-    handle_t uplink_handle;
-    handle_t rdata_notify_handle;
-    handle_t pending_notify_handle;
-
+    pub handle: ZmqHandle,
+    pub uplink_handle: ZmqHandle,
+    pub rdata_notify_handle: ZmqHandle,
+    pub pending_notify_handle: ZmqHandle,
     //  Output buffer from pgm_socket.
-    unsigned char *out_buffer;
-
+    // unsigned char *out_buffer;
+    pub out_buffer: Vec<u8>,
     //  Output buffer size.
-    out_buffer_size: usize;
-
+    pub out_buffer_size: usize,
     //  Number of bytes in the buffer to be written to the socket.
     //  If zero, there are no data to be sent.
-    write_size: usize;
-
+    pub write_size: usize,
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (pgm_sender_t)
-};
-
-pgm_sender_t::pgm_sender_t (ZmqIoThread *parent_,
-                                 options: &ZmqOptions) :
-    ZmqIoObject (parent_),
-    has_tx_timer (false),
-    has_rx_timer (false),
-    session (null_mut()),
-    encoder (0),
-    more_flag (false),
-    pgm_socket (false, options_),
-    options (options_),
-    handle ( (null_mut())),
-    uplink_handle ( (null_mut())),
-    rdata_notify_handle ( (null_mut())),
-    pending_notify_handle ( (null_mut())),
-    out_buffer (null_mut()),
-    out_buffer_size (0),
-    write_size (0)
-{
-    int rc = msg.init ();
-    // errno_assert (rc == 0);
 }
+
+impl ZmqEngineInterface for pgm_sender_t {
+    fn has_handshake_state(&self) -> bool {
+        todo!()
+    }
+
+    fn plug(&mut self, io_thread: &mut ZmqIoThread, session: &mut ZmqSessionBase) {
+        todo!()
+    }
+
+    fn terminate(&mut self) {
+        todo!()
+    }
+
+    fn restart_input(&mut self) -> bool {
+        todo!()
+    }
+
+    fn restart_output(&mut self) {
+        todo!()
+    }
+
+    fn zap_msg_available(&mut self) {
+        todo!()
+    }
+
+    fn get_endpoint(&mut self) -> &EndpointUriPair {
+        todo!()
+    }
+}
+
+impl pgm_sender_t {
+    // pgm_sender_t (parent_: &mut ZmqIoThread, options: &ZmqOptions);
+    pub fn new (parent_: &mut ZmqIoThread, options: &ZmqOptions) -> Self
+    {
+        // ZmqIoObject (parent_),
+        //     has_tx_timer (false),
+        //     has_rx_timer (false),
+        //     session (null_mut()),
+        //     encoder (0),
+        //     more_flag (false),
+        //     pgm_socket (false, options_),
+        //     options (options_),
+        //     handle ( (null_mut())),
+        //     uplink_handle ( (null_mut())),
+        //     rdata_notify_handle ( (null_mut())),
+        //     pending_notify_handle ( (null_mut())),
+        //     out_buffer (null_mut()),
+        //     out_buffer_size (0),
+        //     write_size (0)
+        let mut out = Self {
+            io_object: Default::default(),
+            _empty_endpoint: Default::default(),
+            has_tx_timer: false,
+            has_rx_timer: false,
+            session: Default::default(),
+            encoder: ZmqV1Encoder,
+            msg: Default::default(),
+            more_flag: false,
+            pgm_socket: (),
+            options: Default::default(),
+            handle: 0,
+            uplink_handle: 0,
+            rdata_notify_handle: 0,
+            pending_notify_handle: 0,
+            out_buffer: vec![],
+            out_buffer_size: 0,
+            write_size: 0,
+        };
+        out.msg.init2();
+        // errno_assert (rc == 0);
+        out
+    }
+
+    // ~pgm_sender_t ();
+
+    // int init (udp_encapsulation_: bool, network_: &str);
+
+    //  ZmqIEngine interface implementation.
+    // bool has_handshake_stage () { return false; };
+
+    // void plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_);
+
+    // void terminate ();
+
+    // bool restart_input ();
+
+    // void restart_output ();
+
+    // void zap_msg_available () {}
+
+    // const EndpointUriPair &get_endpoint () const;
+
+    //  i_poll_events interface implementation.
+    // void in_event ();
+
+    // void out_event ();
+
+    // void timer_event (token: i32);
+
+    //  Unplug the engine from the session.
+    // void unplug ();
+}
+
+
 
 int pgm_sender_t::init (udp_encapsulation_: bool, network_: &str)
 {

@@ -88,7 +88,7 @@ void v3_1_encoder_t::message_ready ()
         put_uint64 (_tmp_buf + 1, size);
         header_size = 9; // flags byte + size 8 bytes
     } else {
-        _tmp_buf[1] = static_cast<uint8_t> (size);
+        _tmp_buf[1] =  (size);
     }
 
     //  Encode the sub/cancel command string. This is done in the encoder as

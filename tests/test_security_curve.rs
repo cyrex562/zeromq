@@ -294,7 +294,7 @@ static u64 host_to_network (u64 value_)
         const u32 low_part =
           htonl ( (value_ & 0xFFFFFFFFLL));
 
-        return (static_cast<u64> (low_part) << 32) | high_part;
+        return ( (low_part) << 32) | high_part;
     }
     return value_;
 }

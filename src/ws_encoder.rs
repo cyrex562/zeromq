@@ -95,11 +95,11 @@ void ws_encoder_t::message_ready ()
         size+= 1;
 
     if (size <= 125)
-        _tmp_buf[offset+= 1] |= static_cast<unsigned char> (size & 127);
+        _tmp_buf[offset+= 1] |=  (size & 127);
     else if (size <= 0xFFFF) {
         _tmp_buf[offset+= 1] |= 126;
-        _tmp_buf[offset+= 1] = static_cast<unsigned char> ((size >> 8) & 0xFF);
-        _tmp_buf[offset+= 1] = static_cast<unsigned char> (size & 0xFF);
+        _tmp_buf[offset+= 1] =  ((size >> 8) & 0xFF);
+        _tmp_buf[offset+= 1] =  (size & 0xFF);
     } else {
         _tmp_buf[offset+= 1] |= 127;
         put_uint64 (_tmp_buf + offset, size);

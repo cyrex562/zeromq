@@ -314,7 +314,7 @@ i64 get_monitor_event_v2 (monitor_: *mut c_void,
 }
 
 void expect_monitor_event_v2 (monitor_: *mut c_void,
-                              i64 expected_event_,
+                              expected_event_: i64,
                               expected_local_address_: *const c_char,
                               expected_remote_address_: &str)
 {

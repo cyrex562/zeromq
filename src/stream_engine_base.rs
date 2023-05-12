@@ -132,7 +132,7 @@ pub struct ZmqStreamEngineBase {
     //  True iff the engine doesn't have any message to encode.
     pub _output_stopped: bool,
     //  Representation of the connected endpoints.
-    // const endpoint_uri_pair_t _endpoint_uri_pair;
+    // const endpoint_uri_ZmqPair _endpoint_uri_pair;
     pub _endpoint_uri_pair: EndpointUriPair,
     //  ID of the handshake timer
     //  True is linger timer is running.
@@ -226,7 +226,7 @@ impl ZmqStreamEngineBase {
 
             //  Adjust input size
             self._insize = rc; //static_cast<size_t> (rc);
-                               // Adjust buffer size to received bytes
+            // Adjust buffer size to received bytes
             self._decoder.resize_buffer(self._insize);
         }
 
@@ -373,8 +373,7 @@ impl ZmqStreamEngineBase {
             self._has_handshake_timer = false;
         }
 
-        self._socket
-            .event_handshake_succeeded(&mut self._options, &self._endpoint_uri_pair, 0);
+        self._socket.event_handshake_succeeded(&mut self._options, &self._endpoint_uri_pair, 0);
     }
 
     pub fn pull_and_encode(&mut self, msg: &mut ZmqMessage) -> i32 {
@@ -391,12 +390,12 @@ impl ZmqStreamEngineBase {
 
     // ZmqStreamEngineBase (fd: ZmqFileDesc,
     // options: &ZmqOptions,
-    // const endpoint_uri_pair_t &endpoint_uri_pair_,
+    // const endpoint_uri_ZmqPair &endpoint_uri_pair_,
     // has_handshake_stage_: bool);
     // ZmqStreamEngineBase::ZmqStreamEngineBase (
     // fd: ZmqFileDesc,
     // options: &ZmqOptions,
-    // const endpoint_uri_pair_t &endpoint_uri_pair_,
+    // const endpoint_uri_ZmqPair &endpoint_uri_pair_,
     // has_handshake_stage_: bool) :
     // _options (options_),
     // _inpos (null_mut()),
@@ -575,7 +574,7 @@ impl ZmqStreamEngineBase {
         }
     }
 
-    // const endpoint_uri_pair_t &get_endpoint () const ;
+    // const endpoint_uri_ZmqPair &get_endpoint () const ;
     pub fn get_endpoint(&self) -> &EndpointUriPair {
         &self._endpoint_uri_pair
     }
@@ -872,10 +871,7 @@ impl ZmqStreamEngineBase {
         }
 
         // protocol errors have been signaled already at the point where they occurred
-        if (reason_ != protocol_error
-            && (self._mechanism == null_mut()
-                || self._mechanism.status() == ZmqMechanism::handshaking))
-        {
+        if (reason_ != protocol_error && (self._mechanism == null_mut() || self._mechanism.status() == ZmqMechanism::handshaking)) {
             let err: i32 = errno;
             self._socket.event_handshake_failed_no_detail(
                 &mut self._options,
@@ -885,20 +881,15 @@ impl ZmqStreamEngineBase {
             // special case: connecting to non-ZMTP process which immediately drops connection,
             // or which never responds with greeting, should be treated as a protocol error
             // (i.e. stop reconnect)
-            if (((reason_ == connection_error) || (reason_ == timeout_error))
-                && (self._options.reconnect_stop & ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED) != 0)
-            {
+            if (((reason_ == connection_error) || (reason_ == timeout_error)) && (self._options.reconnect_stop & ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED) != 0) {
                 reason_ = protocol_error;
             }
         }
 
-        self._socket
-            .event_disconnected(&mut self._options, &self._endpoint_uri_pair, self._s);
+        self._socket.event_disconnected(&mut self._options, &self._endpoint_uri_pair, self._s);
         self._session.flush();
         self._session.engine_error(
-            !self._handshaking
-                && (self._mechanism == null_mut()
-                    || self._mechanism.status() != ZmqMechanism::handshaking),
+            !self._handshaking && (self._mechanism == null_mut() || self._mechanism.status() != ZmqMechanism::handshaking),
             reason_,
         );
         unplug();

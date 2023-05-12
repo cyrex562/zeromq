@@ -164,11 +164,11 @@ void plain_client_t::produce_hello (msg: &mut ZmqMessage) const
     memcpy (ptr, hello_prefix, hello_prefix_len);
     ptr += hello_prefix_len;
 
-    *ptr+= 1 = static_cast<unsigned char> (username.length ());
+    *ptr+= 1 =  (username.length ());
     memcpy (ptr, username, username.length ());
     ptr += username.length ();
 
-    *ptr+= 1 = static_cast<unsigned char> (password.length ());
+    *ptr+= 1 =  (password.length ());
     memcpy (ptr, password, password.length ());
 }
 

@@ -72,7 +72,7 @@ i64 get_monitor_event_v2 (monitor_: *mut c_void,
                               char **remote_address_);
 
 void expect_monitor_event_v2 (monitor_: *mut c_void,
-                              i64 expected_event_,
+                              expected_event_: i64,
                               const char *expected_local_address_ = null_mut(),
                               const char *expected_remote_address_ = null_mut());
 

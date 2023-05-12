@@ -341,7 +341,7 @@ ZmqFileDesc ws_listener_t::accept ()
 
 void ws_listener_t::create_engine (ZmqFileDesc fd)
 {
-    const endpoint_uri_pair_t endpoint_pair (
+    const endpoint_uri_ZmqPair endpoint_pair (
       get_socket_name (fd, SocketEndLocal),
       get_socket_name (fd, SocketEndRemote), endpoint_type_bind);
 

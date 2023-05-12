@@ -98,7 +98,7 @@ int stream_t::xsend (msg: &mut ZmqMessage)
             //  Find the pipe associated with the routing id stored in the prefix.
             //  If there's no such pipe return an error
 
-            out_pipe_t *out_pipe = lookup_out_pipe (
+            ZmqOutPipe *out_pipe = lookup_out_pipe (
               Blob ( (msg.data ()),
                       msg.size (), ReferenceTag ()));
 
@@ -291,7 +291,7 @@ void stream_t::identify_peer (pipe: &mut ZmqPipe, locally_initiated_: bool)
         routing_id.set (buffer, sizeof buffer);
         memcpy (options.routing_id, routing_id.data (), routing_id.size ());
         options.routing_id_size =
-          static_cast<unsigned char> (routing_id.size ());
+           (routing_id.size ());
     }
     pipe.set_router_socket_routing_id (routing_id);
     add_out_pipe (ZMQ_MOVE (routing_id), pipe);

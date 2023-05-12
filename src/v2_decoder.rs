@@ -38,161 +38,201 @@
 // #include "wire.hpp"
 // #include "err.hpp"
 
+use libc::{EMSGSIZE, ENOMEM};
+use crate::decoder::DecoderBase;
+use crate::decoder_allocators::shared_message_memory_allocator;
+use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZmqMessage};
+use crate::v2_protocol::v2_protocol_t;
+
 //  Decoder for ZMTP/2.x framing protocol. Converts data stream into messages.
 //  The class has to inherit from shared_message_memory_allocator because
 //  the base class calls allocate in its constructor.
-pub struct v2_decoder_t
-    : public DecoderBase<v2_decoder_t, shared_message_memory_allocator>
+#[derive(Default,Debug,Clone)]
+pub struct ZmqV2Decoder
 {
-//
-    v2_decoder_t (bufsize_: usize, i64 maxmsgsize_, zero_copy_: bool);
-    ~v2_decoder_t ();
+    //: public DecoderBase<ZmqV2Decoder, shared_message_memory_allocator>
+    pub decoder_base: DecoderBase,
+    //  Maximum message size
+    // unsigned char _tmpbuf[8];
+    pub _tmpbuf: [u8; 8],
+    // unsigned char _msg_flags;
+    pub _msg_flags: u8,
+    // ZmqMessage in_progress;
+    pub in_progress: ZmqMessage,
+    pub _zero_copy: bool,
+    // const i64 _max_msg_size;
+    pub _max_msg_size: i64,
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqV2Decoder)
+}
+
+impl ZmqV2Decoder {
+    // ZmqV2Decoder (bufsize_: usize, maxmsgsize_: i64, zero_copy_: bool);
+    pub fn new (bufsize_: usize,
+                maxmsgsize_: i64,
+                zero_copy_: bool) ->Self
+    {
+// DecoderBase<ZmqV2Decoder, shared_message_memory_allocator> (bufsize_),
+//     _msg_flags (0),
+//     _zero_copy (zero_copy_),
+//     _max_msg_size (maxmsgsize_)
+//         int rc = in_progress.init ();
+        // errno_assert (rc == 0);
+
+        let mut out = Self {
+            decoder_base: DecoderBase::new(bufsize_),
+            _msg_flags: 0,
+            _zero_copy: zero_copy_,
+            _max_msg_size: maxmsgsize_,
+            in_progress: ZmqMessage::default(),
+            ..Default::default()
+        };
+        out.in_progress.init2();
+        //  At the beginning, read one byte and go to flags_ready state.
+        out.decoder_base.next_step (&mut out._tmpbuf, 1, out.flags_ready() as usize);
+        //
+        out
+    }
+
+    // ~ZmqV2Decoder ();
 
     //  ZmqDecoderInterface interface.
-    ZmqMessage *msg () { return &in_progress; }
+    // ZmqMessage *msg () { return &in_progress; }
 
-  //
-    int flags_ready (unsigned char const *);
-    int one_byte_size_ready (unsigned char const *);
-    int eight_byte_size_ready (unsigned char const *);
-    int message_ready (unsigned char const *);
+    //
+    // int flags_ready (unsigned char const *);
+    pub fn flags_ready (&mut self) -> i32
+    {
+        self._msg_flags = 0;
+        if (self._tmpbuf[0] & v2_protocol_t::more_flag) {
+            self._msg_flags |= ZMQ_MSG_MORE;
+        }
+        if (self._tmpbuf[0] & v2_protocol_t::command_flag) == 1 {
+            self._msg_flags |= ZMQ_MSG_COMMAND;
+        }
 
-    int size_ready (size: u64, unsigned char const *);
+        //  The payload length is either one or eight bytes,
+        //  depending on whether the 'large' bit is set.
+        // TODO
+        // if (self._tmpbuf[0] & v2_protocol_t::large_flag) {
+        //     self.decoder_base.next_step(&mut self._tmpbuf, 8, self.eight_byte_size_ready() as usize);
+        // }
+        // else{
+        // self.decoder_base.next_step(&mut self._tmpbuf, 1, self.one_byte_size_ready() as usize);
+        //}
 
-    unsigned char _tmpbuf[8];
-    unsigned char _msg_flags;
-    ZmqMessage in_progress;
+        return 0;
+    }
 
-    const _zero_copy: bool
-    const i64 _max_msg_size;
+    // int one_byte_size_ready (unsigned char const *);
+    pub fn one_byte_size_ready (&mut self, read_from: &[u8]) -> i32
+    {
+        return self.size_ready(self._tmpbuf[0] as u64, read_from);
+    }
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (v2_decoder_t)
-};
+    // int eight_byte_size_ready (unsigned char const *);
+    pub fn eight_byte_size_ready (&mut self, read_from_: &[u8]) -> i32
+    {
+        //  The payload size is encoded as 64-bit unsigned integer.
+        //  The most significant byte comes first.
+        let msg_size = get_uint64 (_tmpbuf);
 
-v2_decoder_t::v2_decoder_t (bufsize_: usize,
-                                 i64 maxmsgsize_,
-                                 zero_copy_: bool) :
-    DecoderBase<v2_decoder_t, shared_message_memory_allocator> (bufsize_),
-    _msg_flags (0),
-    _zero_copy (zero_copy_),
-    _max_msg_size (maxmsgsize_)
-{
-    int rc = in_progress.init ();
-    // errno_assert (rc == 0);
+        return self.size_ready (msg_size, read_from_);
+    }
 
-    //  At the beginning, read one byte and go to flags_ready state.
-    next_step (_tmpbuf, 1, &v2_decoder_t::flags_ready);
-}
+    // int message_ready (unsigned char const *);
 
-v2_decoder_t::~v2_decoder_t ()
-{
-    let rc: i32 = in_progress.close ();
-    // errno_assert (rc == 0);
-}
+    // int size_ready (size: u64, unsigned char const *);
 
-int v2_decoder_t::flags_ready (unsigned char const *)
-{
-    _msg_flags = 0;
-    if (_tmpbuf[0] & v2_protocol_t::more_flag)
-        _msg_flags |= ZMQ_MSG_MORE;
-    if (_tmpbuf[0] & v2_protocol_t::command_flag)
-        _msg_flags |= ZMQ_MSG_COMMAND;
+    pub fn size_ready (&mut self, msg_size_: u64, read_pos_: &[u8]) -> i32
+    {
+        //  Message size must not exceed the maximum allowed size.
+        if (self._max_msg_size >= 0) {
+            if ((msg_size_ > (self._max_msg_size) as u64)) {
+                errno = EMSGSIZE;
+                return -1;
+            }
+        }
 
-    //  The payload length is either one or eight bytes,
-    //  depending on whether the 'large' bit is set.
-    if (_tmpbuf[0] & v2_protocol_t::large_flag)
-        next_step (_tmpbuf, 8, &v2_decoder_t::eight_byte_size_ready);
-    else
-        next_step (_tmpbuf, 1, &v2_decoder_t::one_byte_size_ready);
-
-    return 0;
-}
-
-int v2_decoder_t::one_byte_size_ready (unsigned char const *read_from_)
-{
-    return size_ready (_tmpbuf[0], read_from_);
-}
-
-int v2_decoder_t::eight_byte_size_ready (unsigned char const *read_from_)
-{
-    //  The payload size is encoded as 64-bit unsigned integer.
-    //  The most significant byte comes first.
-    const u64 msg_size = get_uint64 (_tmpbuf);
-
-    return size_ready (msg_size, read_from_);
-}
-
-int v2_decoder_t::size_ready (msg_size_: u64,
-                                   unsigned char const *read_pos_)
-{
-    //  Message size must not exceed the maximum allowed size.
-    if (_max_msg_size >= 0)
-        if ( (msg_size_ > static_cast<u64> (_max_msg_size))) {
+        //  Message size must fit into size_t data type.
+        if ( (msg_size_ !=  (msg_size_))) {
             errno = EMSGSIZE;
             return -1;
         }
 
-    //  Message size must fit into size_t data type.
-    if ( (msg_size_ !=  (msg_size_))) {
-        errno = EMSGSIZE;
-        return -1;
-    }
+        let mut rc = in_progress.close ();
+        // assert (rc == 0);
 
-    int rc = in_progress.close ();
-    assert (rc == 0);
+        // the current message can exceed the current buffer. We have to copy the buffer
+        // data into a new message and complete it in the next receive.
 
-    // the current message can exceed the current buffer. We have to copy the buffer
-    // data into a new message and complete it in the next receive.
+        // shared_message_memory_allocator &allocator = get_allocator ();
+        if ( (!self._zero_copy
+            || msg_size_ >  (
+            allocator.data () + allocator.size () - read_pos_))) {
+            // a new message has started, but the size would exceed the pre-allocated arena
+            // this happens every time when a message does not fit completely into the buffer
+            rc = self.in_progress.init_size ((msg_size_) as usize);
+        } else {
+            // construct message using n bytes from the buffer as storage
+            // increase buffer ref count
+            // if the message will be a large message, pass a valid refcnt memory location as well
+            // TODO
+            // rc =
+            //     self.in_progress.init ( (read_pos_),
+            //                            (msg_size_),
+            //                            shared_message_memory_allocator::call_dec_ref,
+            //                            allocator.buffer (), allocator.provide_content ());
 
-    shared_message_memory_allocator &allocator = get_allocator ();
-    if ( (!_zero_copy
-                  || msg_size_ >  (
-                       allocator.data () + allocator.size () - read_pos_))) {
-        // a new message has started, but the size would exceed the pre-allocated arena
-        // this happens every time when a message does not fit completely into the buffer
-        rc = in_progress.init_size ( (msg_size_));
-    } else {
-        // construct message using n bytes from the buffer as storage
-        // increase buffer ref count
-        // if the message will be a large message, pass a valid refcnt memory location as well
-        rc =
-          in_progress.init (const_cast<unsigned char *> (read_pos_),
-                              (msg_size_),
-                             shared_message_memory_allocator::call_dec_ref,
-                             allocator.buffer (), allocator.provide_content ());
-
-        // For small messages, data has been copied and refcount does not have to be increased
-        if (in_progress.is_zcmsg ()) {
-            allocator.advance_content ();
-            allocator.inc_ref ();
+            // For small messages, data has been copied and refcount does not have to be increased
+            if (self.in_progress.is_zcmsg ()) {
+                // allocator.advance_content ();
+                // allocator.inc_ref ();
+            }
         }
+
+        if ( (rc)) {
+            // errno_assert (errno == ENOMEM);
+            rc = in_progress.init ();
+            // errno_assert (rc == 0);
+            errno = ENOMEM;
+            return -1;
+        }
+
+        self.in_progress.set_flags (_msg_flags);
+        // this sets read_pos to
+        // the message data address if the data needs to be copied
+        // for small message / messages exceeding the current buffer
+        // or
+        // to the current start address in the buffer because the message
+        // was constructed to use n bytes from the address passed as argument
+        self.decoder_base.next_step (in_progress.data (), in_progress.size (),
+                   self.message_ready() as usize);
+
+        return 0;
     }
 
-    if ( (rc)) {
-        // errno_assert (errno == ENOMEM);
-        rc = in_progress.init ();
-        // errno_assert (rc == 0);
-        errno = ENOMEM;
-        return -1;
+    pub fn message_ready (&mut self) -> i32
+    {
+        //  Message is completely read. Signal this to the caller
+        //  and prepare to decode next message.
+        self.decoder_base.next_step (_tmpbuf, 1, self.flags_ready() as usize);
+        return 1;
     }
-
-    in_progress.set_flags (_msg_flags);
-    // this sets read_pos to
-    // the message data address if the data needs to be copied
-    // for small message / messages exceeding the current buffer
-    // or
-    // to the current start address in the buffer because the message
-    // was constructed to use n bytes from the address passed as argument
-    next_step (in_progress.data (), in_progress.size (),
-               &v2_decoder_t::message_ready);
-
-    return 0;
 }
 
-int v2_decoder_t::message_ready (unsigned char const *)
-{
-    //  Message is completely read. Signal this to the caller
-    //  and prepare to decode next message.
-    next_step (_tmpbuf, 1, &v2_decoder_t::flags_ready);
-    return 1;
-}
+
+
+// ZmqV2Decoder::~ZmqV2Decoder ()
+// {
+//     let rc: i32 = in_progress.close ();
+//     // errno_assert (rc == 0);
+// }
+
+
+
+
+
+
+
+
+

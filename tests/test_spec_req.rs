@@ -213,7 +213,7 @@ void test_req_only_listens_to_current_peer_inproc ()
     test_req_only_listens_to_current_peer (bind_inproc);
 }
 
-void test_req_only_listens_to_current_peer_tcp ()
+void test_req_only_listens_to_current_ZmqPeercp ()
 {
     test_req_only_listens_to_current_peer (bind_tcp);
 }
@@ -246,7 +246,7 @@ int main ()
     // TODO PH: this test is still failing; disabled for now to allow build to
     // complete.
     // RUN_TEST (test_req_only_listens_to_current_peer_inproc);
-    // RUN_TEST (test_req_only_listens_to_current_peer_tcp);
+    // RUN_TEST (test_req_only_listens_to_current_ZmqPeercp);
 
     return UNITY_END ();
 }

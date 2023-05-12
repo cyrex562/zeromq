@@ -453,7 +453,7 @@ pub fn tune_socket(socket: SOCKET) {
 }
 
 #[cfg(windows)]
-pub fn make_fdpair_tcpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
+pub fn make_fdZmqPaircpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
 // #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
     //  Windows CE does not manage security attributes
     let mut sd: PSECURITY_DESCRIPTOR = PSECURITY_DESCRIPTOR::default();
@@ -764,7 +764,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
 
         //  Connect to the remote peer.
         rc = unsafe {
-            connect(*w_, (& lcladdr as &sockaddr), lcladdr_len)
+            connect(*w_, (&lcladdr as &sockaddr), lcladdr_len)
         };
         if (rc == -1) {
             // goto error_closeclient;
@@ -822,7 +822,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         // TODO: maybe remember this decision permanently?
 // #endif
     }
-    return make_fdpair_tcpip(r_, w_);
+    return make_fdZmqPaircpip(r_, w_);
 // #elif defined ZMQ_HAVE_OPENVMS
     if cfg!(target_os="vms") {
         //  Whilst OpenVMS supports socketpair - it maps to AF_INET only.  Further,

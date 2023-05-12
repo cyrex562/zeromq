@@ -27,129 +27,162 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use std::ptr::null_mut;
+use bincode::options;
+use libc::{EAGAIN, pipe};
+use crate::context::ZmqContext;
+use crate::defines::ZMQ_PAIR;
+use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::socket_base::ZmqSocketBase;
+
 // #include "precompiled.hpp"
 // #include "macros.hpp"
 // #include "pair.hpp"
 // #include "err.hpp"
 // #include "pipe.hpp"
 // #include "msg.hpp"
-pub struct pair_t  : public ZmqSocketBase
-{
+#[derive(Default, Debug, Clone)]
+pub struct ZmqPair<'a> {
+    //   : public ZmqSocketBase
+    pub socket_base: ZmqSocketBase,
 //
-    pair_t (ZmqContext *parent_, tid: u32, sid_: i32);
-    ~pair_t ();
+
+
+    //
+    //   ZmqPipe *pipe;
+    pipe: Option<&'a mut ZmqPipe>,
+
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqPair)
+}
+
+impl ZmqPair {
+    // ZmqPair (ZmqContext *parent_, tid: u32, sid_: i32);
+    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
+
+    {
+        // ZmqSocketBase (parent_, tid, sid_), pipe (null_mut())
+        // options.type_ = ZMQ_PAIR;
+        Self {
+            socket_base: ZmqSocketBase::new(parent, options, tid, sid_, false),
+            pipe: None,
+        }
+    }
+
+    // ~ZmqPair ();
 
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe: &mut ZmqPipe,
-                       subscribe_to_all_: bool,
-                       locally_initiated_: bool);
-    int xsend (msg: &mut ZmqMessage);
-    int xrecv (msg: &mut ZmqMessage);
-    bool xhas_in ();
-    bool xhas_out ();
-    void xread_activated (pipe: &mut ZmqPipe);
-    void xwrite_activated (pipe: &mut ZmqPipe);
-    void xpipe_terminated (pipe: &mut ZmqPipe);
+    // void xattach_pipe (pipe: &mut ZmqPipe,
+    // subscribe_to_all_: bool,
+    // locally_initiated_: bool);
+    pub fn xattach_pipe(&mut self, pipe: &mut ZmqPipe,
+                        subscribe_to_all_: bool,
+                        locally_initiated_: bool) {
+        // LIBZMQ_UNUSED (subscribe_to_all_);
+        // LIBZMQ_UNUSED (locally_initiated_);
 
-  //
-    ZmqPipe *pipe;
+        // zmq_assert (pipe != null_mut());
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (pair_t)
-};
-
-pair_t::pair_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
-    ZmqSocketBase (parent_, tid, sid_), pipe (null_mut())
-{
-    options.type_ = ZMQ_PAIR;
-}
-
-pair_t::~pair_t ()
-{
-    // zmq_assert (!pipe);
-}
-
-void pair_t::xattach_pipe (pipe: &mut ZmqPipe,
-                                subscribe_to_all_: bool,
-                                locally_initiated_: bool)
-{
-    LIBZMQ_UNUSED (subscribe_to_all_);
-    LIBZMQ_UNUSED (locally_initiated_);
-
-    // zmq_assert (pipe != null_mut());
-
-    //  ZMQ_PAIR socket can only be connected to a single peer.
-    //  The socket rejects any further connection requests.
-    if (pipe == null_mut())
-        pipe = pipe;
-    else
-        pipe.terminate (false);
-}
-
-void pair_t::xpipe_terminated (pipe: &mut ZmqPipe)
-{
-    if (pipe == pipe) {
-        pipe = null_mut();
-    }
-}
-
-void pair_t::xread_activated (ZmqPipe *)
-{
-    //  There's just one pipe. No lists of active and inactive pipes.
-    //  There's nothing to do here.
-}
-
-void pair_t::xwrite_activated (ZmqPipe *)
-{
-    //  There's just one pipe. No lists of active and inactive pipes.
-    //  There's nothing to do here.
-}
-
-int pair_t::xsend (msg: &mut ZmqMessage)
-{
-    if (!pipe || !pipe.write (msg)) {
-        errno = EAGAIN;
-        return -1;
+        //  ZMQ_PAIR socket can only be connected to a single peer.
+        //  The socket rejects any further connection requests.
+        if (pipe.is_none()) {
+            self.pipe = Some(pipe);
+        } else {
+            self.pipe.terminate(false);
+        }
     }
 
-    if (!(msg.flags () & ZMQ_MSG_MORE))
-        pipe.flush ();
 
-    //  Detach the original message from the data buffer.
-    let rc: i32 = msg.init ();
-    // errno_assert (rc == 0);
+    // int xsend (msg: &mut ZmqMessage);
+    pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32 {
+        if (!pipe || !pipe.write(msg)) {
+            errno = EAGAIN;
+            return -1;
+        }
 
-    return 0;
-}
+        if (!(msg.flags() & ZMQ_MSG_MORE)) {
+            pipe.flush();
+        }
 
-int pair_t::xrecv (msg: &mut ZmqMessage)
-{
-    //  Deallocate old content of the message.
-    int rc = msg.close ();
-    // errno_assert (rc == 0);
-
-    if (!pipe || !pipe.read (msg)) {
-        //  Initialise the output parameter to be a 0-byte message.
-        rc = msg.init ();
+        //  Detach the original message from the data buffer.
+        msg.init2();
         // errno_assert (rc == 0);
 
-        errno = EAGAIN;
-        return -1;
+        return 0;
     }
-    return 0;
+
+    // int xrecv (msg: &mut ZmqMessage);
+    pub fn xrecv(&mut self, msg: &mut ZmqMessage) -> i32 {
+        //  Deallocate old content of the message.
+        let rc = msg.close();
+        // errno_assert (rc == 0);
+
+        if (!pipe || !pipe.read(msg)) {
+            //  Initialise the output parameter to be a 0-byte message.
+            msg.init2();
+            // errno_assert (rc == 0);
+
+            errno = EAGAIN;
+            return -1;
+        }
+        return 0;
+    }
+
+    // bool xhas_in ();
+    pub fn xhas_in() -> bool {
+        if (!pipe) {
+            return false;
+        }
+
+        return pipe.check_read();
+    }
+
+    // bool xhas_out ();
+    pub fn xhas_out() -> bool {
+        if (!pipe) {
+            return false;
+        }
+
+        return pipe.check_write();
+    }
+
+    // void xread_activated (pipe: &mut ZmqPipe);
+    pub fn xread_activated(&mut self) {
+        //  There's just one pipe. No lists of active and inactive pipes.
+        //  There's nothing to do here.
+    }
+
+    // void xwrite_activated (pipe: &mut ZmqPipe);
+    pub fn xwrite_activated(&mut self) {
+        //  There's just one pipe. No lists of active and inactive pipes.
+        //  There's nothing to do here.
+    }
+
+    // void xpipe_terminated (pipe: &mut ZmqPipe);
+    pub fn xpipe_terminated(&mut self, pipe: &mut ZmqPipe) {
+        if self.pipe.unwrap() == pipe {
+            self.pipe = None;
+        }
+    }
 }
 
-bool pair_t::xhas_in ()
-{
-    if (!pipe)
-        return false;
 
-    return pipe.check_read ();
-}
+// ZmqPair::~ZmqPair ()
+// {
+//     // zmq_assert (!pipe);
+// }
 
-bool pair_t::xhas_out ()
-{
-    if (!pipe)
-        return false;
 
-    return pipe.check_write ();
-}
+
+
+
+
+
+
+
+
+
+
+
+

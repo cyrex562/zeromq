@@ -301,7 +301,7 @@ void test_missing_subscriptions ()
     msleep (SETTLE_TIME);
 
     // proxy now reroutes and confirms subscriptions
-    const uint8_t subscription1[] = {1, static_cast<uint8_t> (topic1[0])};
+    const uint8_t subscription1[] = {1,  (topic1[0])};
     recv_array_expect_success (xpub_proxy, subscription1, ZMQ_DONTWAIT);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (xpub_proxy, ZMQ_SUBSCRIBE, topic1, 1));
@@ -315,7 +315,7 @@ void test_missing_subscriptions ()
     // wait
     msleep (SETTLE_TIME);
 
-    const uint8_t subscription2[] = {1, static_cast<uint8_t> (topic2[0])};
+    const uint8_t subscription2[] = {1,  (topic2[0])};
     recv_array_expect_success (xpub_proxy, subscription2, ZMQ_DONTWAIT);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (xpub_proxy, ZMQ_SUBSCRIBE, topic2, 1));

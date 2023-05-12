@@ -76,10 +76,10 @@ use crate::plain_client::plain_client_t;
 use crate::plain_server::plain_server_t;
 use crate::stream_engine_base::ZmqStreamEngineBase;
 use crate::utils::{cmp_bytes, copy_bytes, set_bytes};
-use crate::v1_decoder::v1_decoder_t;
-use crate::v1_encoder::v1_encoder_t;
-use crate::v2_decoder::v2_decoder_t;
-use crate::v2_encoder::v2_encoder_t;
+use crate::v1_decoder::ZmqV1Decoder;
+use crate::v1_encoder::ZmqV1Encoder;
+use crate::v2_decoder::ZmqV2Decoder;
+use crate::v2_encoder::ZmqV2Encoder;
 use crate::v3_1_encoder::v3_1_encoder_t;
 use crate::defines::{ZMQ_CURVE, ZMQ_GSSAPI, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH, ZMQ_PUB, ZMQ_XPUB};
 use crate::zmtp_engine::ZmtpRevisions::ZMTP_2_0;
@@ -124,7 +124,7 @@ pub struct ZmqZmtpEngine
 //
 //     ZmqZmtpEngine (fd: ZmqFileDesc,
 //                    options: &ZmqOptions,
-//                    const endpoint_uri_pair_t &endpoint_uri_pair_);
+//                    const endpoint_uri_ZmqPair &endpoint_uri_pair_);
 //     ~ZmqZmtpEngine ();
 //
 //
@@ -187,7 +187,7 @@ impl ZmqZmtpEngine {
     // ZmqZmtpEngine::ZmqZmtpEngine (
     //   fd: ZmqFileDesc,
     //   options: &ZmqOptions,
-    //   const endpoint_uri_pair_t &endpoint_uri_pair_) :
+    //   const endpoint_uri_ZmqPair &endpoint_uri_pair_) :
     //     ZmqStreamEngineBase (fd, options_, endpoint_uri_pair_, true),
     //     _greeting_size (v2_greeting_size),
     //     _greeting_bytes_read (0),
@@ -395,10 +395,10 @@ impl ZmqZmtpEngine {
             return false;
         }
 
-        self._encoder = v1_encoder_t::new(self._options.out_batch_size);
+        self._encoder = ZmqV1Encoder::new(self._options.out_batch_size);
         // alloc_assert (_encoder);
 
-        self._decoder = v1_decoder_t::new(self._options.in_batch_size, self._options.maxmsgsize);
+        self._decoder = ZmqV1Decoder::new(self._options.in_batch_size, self._options.maxmsgsize);
         // alloc_assert (_decoder);
 
         //  We have already sent the message header.
@@ -452,10 +452,10 @@ impl ZmqZmtpEngine {
             return false;
         }
 
-        self._encoder = v1_encoder_t::new(self._options.out_batch_size);
+        self._encoder = ZmqV1Encoder::new(self._options.out_batch_size);
         // alloc_assert (self._encoder);
 
-        self._decoder = v1_decoder_t::new(self._options.in_batch_size, self._options.maxmsgsize);
+        self._decoder = ZmqV1Decoder::new(self._options.in_batch_size, self._options.maxmsgsize);
         // alloc_assert (self._decoder);
 
         return true;
@@ -469,10 +469,10 @@ impl ZmqZmtpEngine {
             return false;
         }
 
-        self._encoder = v2_encoder_t::new(self._options.out_batch_size);
+        self._encoder = ZmqV2Encoder::new(self._options.out_batch_size);
         // alloc_assert (self._encoder);
 
-        self._decoder = v2_decoder_t::new(
+        self._decoder = ZmqV2Decoder::new(
             self._options.in_batch_size, self._options.maxmsgsize, self._options.zero_copy);
         // alloc_assert (self._decoder);
 
@@ -541,10 +541,10 @@ impl ZmqZmtpEngine {
 
     pub fn handshake_v3_0(&mut self) -> bool
     {
-        self._encoder = v2_encoder_t::new(self._options.out_batch_size);
+        self._encoder = ZmqV2Encoder::new(self._options.out_batch_size);
         // alloc_assert (self._encoder);
 
-        self._decoder = v2_decoder_t::new(
+        self._decoder = ZmqV2Decoder::new(
             self._options.in_batch_size, self._options.maxmsgsize, self._options.zero_copy);
         // alloc_assert (self._decoder);
 
@@ -556,7 +556,7 @@ impl ZmqZmtpEngine {
         self._encoder = v3_1_encoder_t::new(self._options.out_batch_size);
         // alloc_assert (self._encoder);
 
-        self._decoder = v2_decoder_t::new(
+        self._decoder = ZmqV2Decoder::new(
             self._options.in_batch_size, self._options.maxmsgsize, self._options.zero_copy);
         // alloc_assert (self._decoder);
 
