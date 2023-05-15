@@ -30,8 +30,8 @@ use crate::defines::{
     ZMQ_ZAP_ENFORCE_DOMAIN,
 };
 use crate::tcp_address::TcpAddressMask;
-use crate::utils::copy_bytes;
 use crate::utils::zmq_z85_encode;
+use crate::utils::{copy_bytes, zmq_z85_decode};
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqOptions {

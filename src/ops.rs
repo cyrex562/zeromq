@@ -1005,7 +1005,7 @@ int zmq_poll (ZmqPollItem *items_, nitems_: i32, long timeout)
     optimized_fd_set_t pollset_err (nitems_);
     FD_ZERO (pollset_err.get ());
 
-    ZmqFileDesc maxfd = 0;
+     let mut maxfd: ZmqFileDesc = 0;
 
     //  Build the fd_sets for passing to select ().
     for (int i = 0; i != nitems_; i+= 1) {

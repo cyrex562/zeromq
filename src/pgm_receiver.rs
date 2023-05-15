@@ -46,8 +46,10 @@ use std::ffi::c_void;
 use std::intrinsics::offset;
 use std::mem;
 use std::ptr::null_mut;
+
 use bincode::options;
-use libc::{EAGAIN, EBUSY, ENOMEM, size_t, ssize_t, uint16_t};
+use libc::{size_t, ssize_t, uint16_t, EAGAIN, EBUSY, ENOMEM};
+
 use crate::defines::ZmqHandle;
 use crate::endpoint::{EndpointType, EndpointUriPair};
 use crate::engine_interface::ZmqEngineInterface;
@@ -68,7 +70,8 @@ use crate::v1_decoder::ZmqV1Decoder;
 // };
 pub const rx_timer_id: u8 = 0xa1;
 
-pub const _empty_endpoint: EndpointUriPair = EndpointUriPair::new("", "", EndpointType::endpoint_type_none);
+pub const _empty_endpoint: EndpointUriPair =
+    EndpointUriPair::new("", "", EndpointType::endpoint_type_none);
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqPeerInfo {
@@ -93,7 +96,6 @@ pub struct ZmqPeerInfo {
 //     }
 // }
 
-
 #[derive(Default, Debug, Clone)]
 pub struct ZmqPgmReceiver {
     // : public ZmqIoObject, public ZmqEngineInterface
@@ -108,7 +110,7 @@ pub struct ZmqPgmReceiver {
     // peers_t peers;
     pub peers: HashMap<pgm_tsi_t, ZmqPeerInfo>,
     //  PGM socket.
-    pub pgm_socket_t: pgm_socket,
+    pub PgmSocket: pgm_socket,
     //  Socket options.
     pub options: ZmqOptions,
     //  Associated session.
@@ -125,7 +127,7 @@ pub struct ZmqPgmReceiver {
     //  Poll handle associated with engine PGM waiting pipe.
     // handle_t pipe_handle;
     pub pipe_handle: Option<ZmqHandle>,
-// ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqPgmReceiver)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqPgmReceiver)
 }
 
 impl ZmqEngineInterface for ZmqPgmReceiver {
@@ -160,8 +162,7 @@ impl ZmqEngineInterface for ZmqPgmReceiver {
 
 impl ZmqPgmReceiver {
     // ZmqPgmReceiver (parent_: &mut ZmqIoThread, options: &ZmqOptions);
-    pub fn new(parent: &mut ZmqIoThread,
-               options: &ZmqOptions) -> Self {
+    pub fn new(parent: &mut ZmqIoThread, options: &ZmqOptions) -> Self {
         // : ZmqIoObject (parent_),
         //     has_rx_timer (false),
         //     pgm_socket (true, options_),
@@ -174,7 +175,7 @@ impl ZmqPgmReceiver {
             zmq_options: options.clone(),
             has_rx_timer: false,
             peers: HashMap::new(),
-            pgm_socket_t: pgm_socket::new(true, options),
+            PgmSocket: pgm_socket::new(true, options),
             options: options.clone(),
             session: ZmqSessionBase::default(),
             active_tsi: None,
@@ -271,7 +272,6 @@ impl ZmqPgmReceiver {
 
         session = null_mut();
     }
-
 
     pub fn restart_input(&mut self) -> bool {
         // zmq_assert (session != null_mut());
@@ -386,7 +386,9 @@ impl ZmqPgmReceiver {
             if (!it.second.joined) {
                 //  There is no beginning of the message in current packet.
                 //  Ignore the data.
-                if (offset == 0xffff) { continue; }
+                if (offset == 0xffff) {
+                    continue;
+                }
 
                 // zmq_assert (offset <= insize);
                 // zmq_assert (it.second.decoder == null_mut());
@@ -431,10 +433,14 @@ impl ZmqPgmReceiver {
         while insize > 0 {
             let mut n = 0usize;
             let rc = decoder.decode(inpos, insize, n);
-            if rc == -1 { return -1; }
+            if rc == -1 {
+                return -1;
+            }
             inpos += n;
             insize -= n;
-            if (rc == 0) { break; }
+            if (rc == 0) {
+                break;
+            }
             rc = self.session.push_msg(decoder.msg());
             if (rc == -1) {
                 // errno_assert (errno == EAGAIN); return - 1;

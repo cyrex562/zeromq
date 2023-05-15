@@ -1,6 +1,7 @@
 use crate::command::{CommandType, ZmqCommand};
 use crate::context::ZmqContext;
 use crate::endpoint::{EndpointUriPair, ZmqEndpoint};
+use crate::engine_interface::ZmqEngineInterface;
 use crate::io_thread::ZmqIoThread;
 use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
@@ -8,7 +9,6 @@ use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
 use anyhow::anyhow;
 use std::ptr::null_mut;
-use crate::engine_interface::ZmqEngineInterface;
 
 // #[derive(Default,Debug,Clone)]
 // pub struct object_t {
@@ -56,11 +56,11 @@ pub trait ZmqObject {
 
     //  Using following function, socket is able to access global
     //  repository of inproc endpoints.
-    // int register_endpoint (addr_: *const c_char, const endpoint_t &endpoint_); fn register_endpoint(&mut self, addr: &str, endpoint: &mut ZmqEndpoint) -> anyhow::Result<()> {
+    fn register_endpoint(&mut self, addr: &str, endpoint: &mut ZmqEndpoint) -> anyhow::Result<()> {
         self.get_ctx().register_endpoint(addr, endpoint)
     }
 
-    // int unregister_endpoint (const std::string &addr_, ZmqSocketBase *socket_); fn unregister_endpoint(
+    fn unregister_endpoint(
         &mut self,
         addr: &str,
         sock_base: &mut ZmqSocketBase,
@@ -68,35 +68,33 @@ pub trait ZmqObject {
         return self.get_ctx().unregister_endpoint(addr, sock_base);
     }
 
-    // void unregister_endpoints (ZmqSocketBase *socket_); fn unregister_endpoints(&mut self, sock_base: &mut ZmqSocketBase) {
+    fn unregister_endpoints(&mut self, sock_base: &mut ZmqSocketBase) {
         self.get_ctx().unregister_endpoints(sock_base);
     }
 
-    // endpoint_t find_endpoint (addr_: *const c_char) const; fn find_endpoint(&self, addr: &str) -> Option<ZmqEndpoint> {
+    fn find_endpoint(&self, addr: &str) -> Option<ZmqEndpoint> {
         return self.get_ctx().find_endpoint(addr);
     }
 
-    // void pend_connection (const std::string &addr_,
-    //                       const endpoint_t &endpoint_,
-    //                       ZmqPipe **pipes_) fn pend_connection(&mut self, addr: &str, endpoint: &ZmqEndpoint, pipes: &[ZmqPipe]) {
+    fn pend_connection(&mut self, addr: &str, endpoint: &ZmqEndpoint, pipes: &[ZmqPipe]) {
         self.get_ctx().pend_connection(addr, endpoint, pipes);
     }
 
-    // void connect_pending (addr_: *const c_char, ZmqSocketBase *bind_socket_); fn connect_pending(&self, addr: &str, bind_socket: &mut ZmqSocketBase) {
+    fn connect_pending(&self, addr: &str, bind_socket: &mut ZmqSocketBase) {
         self.get_ctx().connect_pending(addr, bind_socket);
     }
 
-    // void destroy_socket (ZmqSocketBase *socket_); fn destroy_socket(&mut self, socket: &mut ZmqSocketBase) {
+    fn destroy_socket(&mut self, socket: &mut ZmqSocketBase) {
         // unimplemented!()
         self.get_ctx().destroy_socket(socket);
     }
 
     //  Logs an message.
-    // void log (format_: *const c_char, ...); fn log(msg: &str) {
+    fn log(msg: &str) {
         unimplemented!()
     }
 
-    // void send_inproc_connected (ZmqSocketBase *socket_); fn send_inproc_connected(&mut self, socket: &mut ZmqSocketBase) {
+    fn send_inproc_connected(&mut self, socket: &mut ZmqSocketBase) {
         // ZmqCommand cmd;
         let mut cmd = ZmqCommand::default();
         cmd.destination = socket;
@@ -104,9 +102,7 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_bind (ZmqOwn *destination_,
-    //                 ZmqPipe *pipe_,
-    //                 bool inc_seqnum_ = true); fn send_bind(&mut self, destination: &mut ZmqOwn, pipe: &mut ZmqPipe, inc_seqnum: bool) {
+    fn send_bind(&mut self, destination: &mut ZmqOwn, pipe: &mut ZmqPipe, inc_seqnum: bool) {
         if (inc_seqnum) {
             destination.inc_seqnum();
         }
@@ -119,13 +115,13 @@ pub trait ZmqObject {
     }
 
     //  Chooses least loaded I/O thread.
-    // ZmqIoThread *choose_io_thread (uint64_t affinity_) const; fn choose_io_thread(&mut self, affinity: u64) -> Option<ZmqIoThread> {
+    fn choose_io_thread(&mut self, affinity: u64) -> Option<ZmqIoThread> {
         self.get_ctx().choose_io_thread(affinity)
     }
 
     //  Derived object can use these functions to send commands
     //  to other objects.
-    // void send_stop (); fn send_stop(&mut self) {
+    fn send_stop(&mut self) {
         //  'stop' command goes always from administrative thread to
         //  the current object.
         let mut cmd = ZmqCommand::default();
@@ -134,18 +130,18 @@ pub trait ZmqObject {
         self.get_ctx().send_command(self.get_tid(), &mut cmd);
     }
 
-    // void send_plug (ZmqOwn *destination_, bool inc_seqnum_ = true); fn send_plug(&mut self, destination: &mut ZmqOwn, inc_seqnum: bool) {
+    fn send_plug(&mut self, destination: &mut ZmqOwn, inc_seqnum: bool) {
         if (inc_seqnum_) {
             destination.inc_seqnum();
         }
 
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = ZmqCommand::plug;
+        cmd.cmd_type = CommandType::plug;
         self.send_command(&mut cmd);
     }
 
-    // void send_own (ZmqOwn *destination_, ZmqOwn *object_); fn send_own(&mut self, destination: &mut ZmqOwn, object: &mut ZmqOwn) {
+    fn send_own(&mut self, destination: &mut ZmqOwn, object: &mut ZmqOwn) {
         destination.inc_seqnum();
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
@@ -154,9 +150,7 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_attach (ZmqSessionBase *destination_,
-    //                   ZmqIEngine *engine_,
-    //                   bool inc_seqnum_ = true); fn send_attach(
+    fn send_attach(
         &mut self,
         destination: &mut ZmqSessionbase,
         engine: &mut ZmqEngineInterface,
@@ -173,14 +167,14 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_activate_read (ZmqPipe *destination_); fn send_activate_read(&mut self, destination: &mut ZmqPipe) {
+    fn send_activate_read(&mut self, destination: &mut ZmqPipe) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::activate_read;
         self.send_command(&mut cmd);
     }
 
-    // void send_activate_write (ZmqPipe *destination_, uint64_t msgs_read_); fn send_activate_write(&mut self, destination: &mut ZmqPipe, msgs_read: u64) {
+    fn send_activate_write(&mut self, destination: &mut ZmqPipe, msgs_read: u64) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::activate_write;
@@ -188,7 +182,7 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_hiccup (ZmqPipe *destination_, pipe_: *mut c_void); fn send_hiccup(&mut self, destination: &mut ZmqPipe, pipe: &mut [u8]) {
+    fn send_hiccup(&mut self, destination: &mut ZmqPipe, pipe: &mut [u8]) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::hiccup;
@@ -196,10 +190,7 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_pipe_peer_stats (ZmqPipe *destination_,
-    //                            queue_count_: u64,
-    //                            ZmqOwn *socket_base,
-    //                            endpoint_uri_ZmqPair *endpoint_pair_); fn send_pipe_peer_stats(
+    fn send_pipe_peer_stats(
         &mut self,
         destination: &mut ZmqPipe,
         queue_count: u64,
@@ -215,10 +206,7 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_pipe_stats_publish (ZmqOwn *destination_,
-    //                               outbound_queue_count_: u64,
-    //                               inbound_queue_count_: u64,
-    //                               endpoint_uri_ZmqPair *endpoint_pair_); fn send_pipe_stats_publish(
+    fn send_pipe_stats_publish(
         &mut self,
         destination: &mut ZmqOwn,
         outbound_queue_count: u64,
@@ -234,21 +222,21 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_pipe_term (ZmqPipe *destination_); fn send_pipe_term(&mut self, destination: &mut ZmqPipe) {
+    fn send_pipe_term(&mut self, destination: &mut ZmqPipe) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::pipe_term;
         self.send_command(&mut cmd);
     }
 
-    // void send_pipe_term_ack (ZmqPipe *destination_); fn send_pipe_term_ack(&mut self, destination: &mut ZmqPipe) {
+    fn send_pipe_term_ack(&mut self, destination: &mut ZmqPipe) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::pipe_term_ack;
         self.send_command(&mut cmd);
     }
 
-    // void send_pipe_hwm (ZmqPipe *destination_, inhwm_: i32, outhwm_: i32); fn send_pipe_hwm(&mut self, destination: &mut ZmqPipe, inhwm: i32, outhwm: i32) {
+    fn send_pipe_hwm(&mut self, destination: &mut ZmqPipe, inhwm: i32, outhwm: i32) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::pipe_hwm;
@@ -257,7 +245,7 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_term_req (ZmqOwn *destination_, ZmqOwn *object_); fn send_term_req(&mut self, destination: &mut ZmqOwn, object: &mut ZmqOwn) {
+    fn send_term_req(&mut self, destination: &mut ZmqOwn, object: &mut ZmqOwn) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::term_req;
@@ -265,7 +253,7 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_term (ZmqOwn *destination_, linger_: i32); fn send_term(&mut self, destination: &mut ZmqOwn, linger: i32) {
+    fn send_term(&mut self, destination: &mut ZmqOwn, linger: i32) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::term;
@@ -273,14 +261,14 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_term_ack (ZmqOwn *destination_); fn send_term_ack(&mut self, destination: &mut ZmqOwn) {
+    fn send_term_ack(&mut self, destination: &mut ZmqOwn) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::term_ack;
         self.send_command(&mut cmd);
     }
 
-    // void send_term_endpoint (ZmqOwn *destination_, std::string *endpoint_); fn send_term_endpoint(&mut self, destination: &mut ZmqOwn, endpoint: &str) {
+    fn send_term_endpoint(&mut self, destination: &mut ZmqOwn, endpoint: &str) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::term_endpoint;
@@ -288,7 +276,7 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_reap (ZmqSocketBase *socket_); fn send_reap(&mut self, socket: &mut ZmqSocketBase) {
+    fn send_reap(&mut self, socket: &mut ZmqSocketBase) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = self.get_ctx().get_reaper().unwrap();
         cmd.cmd_type = CommandType::reap;
@@ -296,21 +284,21 @@ pub trait ZmqObject {
         self.send_command(&mut cmd);
     }
 
-    // void send_reaped (); fn send_reaped(&mut self) {
+    fn send_reaped(&mut self) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = self.ctx.get_reaper().unwrap();
         cmd.cmd_type = CommandType::reaped;
         self.send_command(&mut cmd);
     }
 
-    // void send_done (); fn send_done(&mut self) {
+    fn send_done(&mut self) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = null_mut();
         cmd.cmd_type = CommandType::done;
         self.ctx.send_command(ZmqContext::TERM_TID, cmd);
     }
 
-    // void send_conn_failed (ZmqSessionBase *destination_); fn send_conn_failed(&mut self, destination: &mut ZmqSessionBase) {
+    fn send_conn_failed(&mut self, destination: &mut ZmqSessionBase) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = destination;
         cmd.cmd_type = CommandType::conn_failed;
@@ -319,41 +307,39 @@ pub trait ZmqObject {
 
     //  These handlers can be overridden by the derived objects. They are
     //  called when command arrives from another thread.
-    // virtual void process_stop (); fn process_stop(&mut self) {
+    fn process_stop(&mut self) {
         unimplemented!()
     }
 
-    // virtual void process_plug (); fn process_plug(&mut self) {
+    fn process_plug(&mut self) {
         unimplemented!()
     }
 
-    // virtual void process_own (ZmqOwn *object_); fn process_own(&mut self, object: &mut ZmqOwn) {
+    fn process_own(&mut self, object: &mut ZmqOwn) {
         unimplemented!()
     }
 
-    // virtual void process_attach (ZmqIEngine *engine_); fn process_attached(&mut self, engine: &mut ZmqEngineInterface) {
+    fn process_attached(&mut self, engine: &mut ZmqEngineInterface) {
         unimplemented!()
     }
 
-    // virtual void process_bind (ZmqPipe *pipe_); fn process_bind(&mut self, pipe: &mut ZmqPipe) {
+    fn process_bind(&mut self, pipe: &mut ZmqPipe) {
         unimplemented!()
     }
 
-    // virtual void process_activate_read (); fn process_activate_read(&mut self) {
+    fn process_activate_read(&mut self) {
         unimplemented!()
     }
 
-    // virtual void process_activate_write (uint64_t msgs_read_); fn process_activate_write(&mut self, msgs_read: u64) {
+    fn process_activate_write(&mut self, msgs_read: u64) {
         unimplemented!()
     }
 
-    // virtual void process_hiccup (pipe_: *mut c_void); fn process_hiccup(&mut self, pipe: &mut [u8]) {
+    fn process_hiccup(&mut self, pipe: &mut [u8]) {
         unimplemented!()
     }
 
-    // virtual void process_pipe_peer_stats (queue_count_: u64,
-    //                                       ZmqOwn *socket_base_,
-    //                                       endpoint_uri_ZmqPair *endpoint_pair_); fn process_pipe_peer_stats(
+    fn process_pipe_peer_stats(
         &mut self,
         queue_count: u64,
         socket_base: &mut ZmqOwn,
@@ -362,10 +348,7 @@ pub trait ZmqObject {
         unimplemented!()
     }
 
-    // virtual void
-    // process_pipe_stats_publish (outbound_queue_count_: u64,
-    //                             inbound_queue_count_: u64,
-    //                             endpoint_uri_ZmqPair *endpoint_pair_); fn process_pipe_stats_publish(
+    fn process_pipe_stats_publish(
         &mut self,
         outbound_queue_count: u64,
         inbound_queue_count: u64,
@@ -374,54 +357,54 @@ pub trait ZmqObject {
         unimplemented!()
     }
 
-    // virtual void process_pipe_term (); fn process_pipe_term(&mut self) {
+    fn process_pipe_term(&mut self) {
         unimplemented!()
     }
 
-    // virtual void process_pipe_term_ack (); fn process_pipe_term_ack(&mut self) {
+    fn process_pipe_term_ack(&mut self) {
         unimplemented!()
     }
 
-    // virtual void process_pipe_hwm (inhwm_: i32, outhwm_: i32); fn process_pipe_hwm(&mut self, inhwm: i32, outhwm: i32) {
+    fn process_pipe_hwm(&mut self, inhwm: i32, outhwm: i32) {
         unimplemented!()
     }
 
-    // virtual void process_term_req (ZmqOwn *object_); fn process_term_req(&mut self, object: &mut ZmqOwn) {
+    fn process_term_req(&mut self, object: &mut ZmqOwn) {
         unimplemented!()
     }
 
-    // virtual void process_term (linger_: i32); fn process_term(&mut self, linger: i32) {
+    fn process_term(&mut self, linger: i32) {
         unimplemented!()
     }
 
-    // virtual void process_term_ack (); fn process_term_ack(&mut self) {
+    fn process_term_ack(&mut self) {
         unimplemented!()
     }
 
-    // virtual void process_term_endpoint (std::string *endpoint_); fn process_term_endpoint(&mut self, endpoint: &str) {
+    fn process_term_endpoint(&mut self, endpoint: &str) {
         unimplemented!()
     }
 
-    // virtual void process_reap (ZmqSocketBase *socket_); fn process_reap(&mut self, socket: &mut ZmqSocketBase) {
+    fn process_reap(&mut self, socket: &mut ZmqSocketBase) {
         unimplemented!()
     }
 
-    // virtual void process_reaped (); fn process_reaped(&mut self) {
+    fn process_reaped(&mut self) {
         unimplemented!()
     }
 
-    // virtual void process_conn_failed fn process_conn_failed(&mut self) {
+    fn process_conn_failed(&mut self) {
         unimplemented!()
     }
 
     //  Special handler called after a command that requires a seqnum
     //  was processed. The implementation should catch up with its counter
     //  of processed commands here.
-    // virtual void process_seqnum fn process_seqnum(&mut self) {
+    fn process_seqnum(&mut self) {
         unimplemented!()
     }
 
-    // void send_command (const command_t &cmd); fn send_command(&mut self, cmd: &mut ZmqCommand) -> anyhow::Result<()> {
+    fn send_command(&mut self, cmd: &mut ZmqCommand) -> anyhow::Result<()> {
         match (cmd.cmd_type) {
             CommandType::activate_read => self.process_activate_read(),
             CommandType::activate_write => {

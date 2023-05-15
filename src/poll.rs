@@ -129,7 +129,7 @@ poll_t::handle_t poll_t::add_fd (fd: ZmqFileDesc, ZmqPollEventsInterface *events
 void poll_t::rm_fd (handle_t handle_)
 {
     check_thread ();
-    ZmqFileDesc index = fd_table[handle_].index;
+     let mut index: ZmqFileDesc = fd_table[handle_].index;
     // zmq_assert (index != retired_fd);
 
     //  Mark the fd as unused.
@@ -144,28 +144,28 @@ void poll_t::rm_fd (handle_t handle_)
 void poll_t::set_pollin (handle_t handle_)
 {
     check_thread ();
-    ZmqFileDesc index = fd_table[handle_].index;
+     let mut index: ZmqFileDesc = fd_table[handle_].index;
     pollset[index].events |= POLLIN;
 }
 
 void poll_t::reset_pollin (handle_t handle_)
 {
     check_thread ();
-    ZmqFileDesc index = fd_table[handle_].index;
+     let mut index: ZmqFileDesc = fd_table[handle_].index;
     pollset[index].events &= ~((short) POLLIN);
 }
 
 void poll_t::set_pollout (handle_t handle_)
 {
     check_thread ();
-    ZmqFileDesc index = fd_table[handle_].index;
+     let mut index: ZmqFileDesc = fd_table[handle_].index;
     pollset[index].events |= POLLOUT;
 }
 
 void poll_t::reset_pollout (handle_t handle_)
 {
     check_thread ();
-    ZmqFileDesc index = fd_table[handle_].index;
+     let mut index: ZmqFileDesc = fd_table[handle_].index;
     pollset[index].events &= ~((short) POLLOUT);
 }
 

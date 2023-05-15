@@ -90,7 +90,7 @@ vmci_listener_t::vmci_listener_t (ZmqIoThread *io_thread_,
 
 void vmci_listener_t::in_event ()
 {
-    ZmqFileDesc fd = accept ();
+     let mut fd: ZmqFileDesc = accept ();
 
     //  If connection was reset by the peer in the meantime, just ignore it.
     if (fd == retired_fd) {
@@ -206,7 +206,7 @@ ZmqFileDesc vmci_listener_t::accept ()
     //  The situation where connection cannot be accepted due to insufficient
     //  resources is considered valid and treated by ignoring the connection.
     // zmq_assert (_s != retired_fd);
-    ZmqFileDesc sock = ::accept (_s, null_mut(), null_mut());
+     let mut sock: ZmqFileDesc = ::accept (_s, null_mut(), null_mut());
 
 // #ifdef ZMQ_HAVE_WINDOWS
     if (sock == INVALID_SOCKET) {

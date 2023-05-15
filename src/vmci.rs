@@ -38,7 +38,7 @@
 // #include <vmci_sockets.h>
 
 void tune_vmci_buffer_size (ZmqContext *context_,
-                                 ZmqFileDesc sockfd_,
+                                 sockfd_: &mut ZmqFileDesc,
                                  default_size_: u64,
                                  min_size_: u64,
                                  u64 max_size_)
@@ -79,11 +79,11 @@ void tune_vmci_buffer_size (ZmqContext *context_,
 
 // #if defined ZMQ_HAVE_WINDOWS
 void tune_vmci_connect_timeout (ZmqContext *context_,
-                                     ZmqFileDesc sockfd_,
+                                     sockfd_: &mut ZmqFileDesc,
                                      DWORD timeout)
 // #else
 void tune_vmci_connect_timeout (ZmqContext *context_,
-                                     ZmqFileDesc sockfd_,
+                                     sockfd_: &mut ZmqFileDesc,
                                      struct timeval timeout)
 // #endif
 {
@@ -109,7 +109,7 @@ ZmqFileDesc vmci_open_socket (address_: &str,
         return retired_fd;
 
     //  Create the socket.
-    ZmqFileDesc s = open_socket (out_vmci_addr_.family (), SOCK_STREAM, 0);
+     let mut s: ZmqFileDesc = open_socket (out_vmci_addr_.family (), SOCK_STREAM, 0);
 
     if (s == retired_fd) {
         return retired_fd;

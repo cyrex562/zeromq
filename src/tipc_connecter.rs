@@ -94,7 +94,7 @@ pub struct ZmqSessionBase *session_,
 
 void tipc_connecter_t::out_event ()
 {
-    ZmqFileDesc fd = connect ();
+     let mut fd: ZmqFileDesc = connect ();
     rm_handle ();
 
     //  Handle the error condition by attempt to reconnect.
@@ -196,7 +196,7 @@ ZmqFileDesc tipc_connecter_t::connect ()
 
         return retired_fd;
     }
-    ZmqFileDesc result = _s;
+     let mut result: ZmqFileDesc = _s;
     _s = retired_fd;
     return result;
 }

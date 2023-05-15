@@ -143,7 +143,7 @@ pub fn zmq_z85_encode(dest_: &mut [u8], data: &[u8], size: usize) -> Option<Stri
     return Some(String::from_utf8_lossy(dest_).into());
 }
 
-pub fn zmq_z85_decode(dest_: &mut [u8], string_: &str) -> anyhow::Result<[u8]> {
+pub fn zmq_z85_decode(dest_: &mut [u8], string_: &[u8]) -> anyhow::Result<[u8]> {
     let mut byte_nbr = 0;
     let mutchar_nbr = 0;
     let mut value = 0;
@@ -163,7 +163,7 @@ pub fn zmq_z85_decode(dest_: &mut [u8], string_: &str) -> anyhow::Result<[u8]> {
         }
         value *= 85;
         let index = string_[char_nbr += 1] - 32;
-        if (index >= mem::size_of::<decoder>()) {
+        if (index >= decoder.len()) {
             //  Invalid z85 encoding, character outside range
             // goto error_inval;
             bail!("Invalid z85 encoding, character outside range")
@@ -190,7 +190,7 @@ pub fn zmq_z85_decode(dest_: &mut [u8], string_: &str) -> anyhow::Result<[u8]> {
         bai!("invalid")
     }
     // assert (byte_nbr == strlen (string_) * 4 / 5);
-    return dest_;
+    return Ok(dest_.clone());
 
     // error_inval:
     //     errno = EINVAL;
@@ -235,7 +235,7 @@ pub fn zmq_curve_public(z85_public_key_: &mut [u8], z85_secret_key_: &str) -> an
 
     // if (zmq_z85_decode (&mut secret_key, z85_secret_key_) == null_mut())
     //     return -1;
-    zmq_z85_decode(&mut secret_key, z85_secret_key_)?;
+    zmq_z85_decode(&mut secret_key, z85_secret_key_.as_bytes())?;
 
     // Return codes are suppressed as none of these can actually fail.
     crypto_scalarmult_base(public_key, secret_key);

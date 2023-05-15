@@ -177,7 +177,7 @@ impl ZmqMechanism {
             0,
             self.routing_id.as_slice(),
             0,
-            self.routing_id.len(),
+            self.routing_id.len() as i32,
         );
         msg.set_flags(ZMQ_MSG_ROUTING_ID);
         Ok(())
@@ -241,7 +241,7 @@ impl ZmqMechanism {
         // ptr_ += name_len_size;
         // memcpy (ptr_, name, name_len);
         let mut dst_off = name_len_size;
-        copy_bytes(ptr_, name_len_size, name.as_ref(), 0, name_len);
+        copy_bytes(ptr_, name_len_size as i32, name.as_ref(), 0, name_len as i32);
 
         // ptr_ += name_len;
         dst_off += name_len;
@@ -251,7 +251,7 @@ impl ZmqMechanism {
         // ptr_ += value_len_size;
         dst_off += value_len_size;
         // memcpy (ptr_, value_, value_len_);
-        copy_bytes(ptr_, dst_off, value_, 0, value_len_);
+        copy_bytes(ptr_, dst_off as i32, value_, 0, value_len_ as i32);
 
         return total_len;
     }
@@ -319,7 +319,7 @@ impl ZmqMechanism {
 
         //  Add prefix
         // memcpy (ptr, prefix_, prefix_len_);
-        copy_bytes(ptr, 0, prefix_.as_ref(), 0, prefix_len_);
+        copy_bytes(ptr, 0, prefix_.as_ref(), 0, prefix_len_ as i32);
         ptr += prefix_len_;
 
         self.add_basic_properties(ptr, command_size - ptr - msg.data().as_ref());
@@ -487,6 +487,6 @@ trait ZmqMechanismOps {
     // size_t /* length_ */) fn property(&mut self, name: &str, value: &[u8], length: usize) -> anyhow::Result<()> {
         //  Default implementation does not check
         //  property values and returns 0 to signal success.
-        Ok(())
-    }
+        // Ok(())
+    // }
 }

@@ -77,7 +77,7 @@ int tune_tcp_socket (s_: ZmqFileDesc)
     return rc;
 }
 
-int set_tcp_send_buffer (ZmqFileDesc sockfd_, bufsize_: i32)
+int set_tcp_send_buffer (sockfd_: &mut ZmqFileDesc, bufsize_: i32)
 {
     let rc: i32 =
       setsockopt (sockfd_, SOL_SOCKET, SO_SNDBUF,
@@ -86,7 +86,7 @@ int set_tcp_send_buffer (ZmqFileDesc sockfd_, bufsize_: i32)
     return rc;
 }
 
-int set_tcp_receive_buffer (ZmqFileDesc sockfd_, bufsize_: i32)
+int set_tcp_receive_buffer (sockfd_: &mut ZmqFileDesc, bufsize_: i32)
 {
     let rc: i32 =
       setsockopt (sockfd_, SOL_SOCKET, SO_RCVBUF,
@@ -184,7 +184,7 @@ int tune_tcp_keepalives (s_: ZmqFileDesc,
     return 0;
 }
 
-int tune_tcp_maxrt (ZmqFileDesc sockfd_, timeout: i32)
+int tune_tcp_maxrt (sockfd_: &mut ZmqFileDesc, timeout: i32)
 {
     if (timeout <= 0)
         return 0;
@@ -341,7 +341,7 @@ void tcp_tune_loopback_fast_path (const ZmqFileDesc socket)
 // #endif
 }
 
-void tune_tcp_busy_poll (ZmqFileDesc socket, busy_poll_: i32)
+void tune_tcp_busy_poll (socket: &mut ZmqFileDesc, busy_poll_: i32)
 {
 // #if defined(ZMQ_HAVE_BUSY_POLL)
     if (busy_poll_ > 0) {
@@ -368,7 +368,7 @@ ZmqFileDesc tcp_open_socket (address_: &str,
         return retired_fd;
 
     //  Create the socket.
-    ZmqFileDesc s = open_socket (out_tcp_addr_.family (), SOCK_STREAM, IPPROTO_TCP);
+     let mut s: ZmqFileDesc = open_socket (out_tcp_addr_.family (), SOCK_STREAM, IPPROTO_TCP);
 
     //  IPv6 address family not supported, try automatic downgrade to IPv4.
     if (s == retired_fd && fallback_to_ipv4_

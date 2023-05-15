@@ -84,8 +84,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::io::Read;
 use std::ptr::{hash, null_mut};
+
 use bincode::options;
 use libc::{EAGAIN, ECONNRESET, memcpy, memset, strcmp};
+
 use crate::curve_server::curve_server_t;
 use crate::defines::{ZMQ_CURVE, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED};
 use crate::endpoint::EndpointUriPair;
@@ -95,7 +97,7 @@ use crate::mechanism::ZmqMechanismStatus::error;
 use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZMQ_MSG_ROUTING_ID, ZmqMessage};
 use crate::null_mechanism::ZmqNullMechanism;
 use crate::options::ZmqOptions;
-use crate::plain_client::plain_client_t;
+use crate::plain_client::PlainClient;
 use crate::plain_server::plain_server_t;
 use crate::stream_engine_base::{heartbeat_ivl_timer_id, heartbeat_timeout_timer_id, ZmqStreamEngineBase};
 use crate::utils::{copy_bytes, set_bytes};
@@ -393,7 +395,7 @@ impl ZmqWsEngine {
             if (self._options.as_server) {
                 self._mechanism = plain_server_t::new(session(), self._peer_address, self._options);
             } else {
-                self._mechanism = plain_client_t::new(session(), self._options);
+                self._mechanism = PlainClient::new(session(), self._options);
             }
             // alloc_assert (_mechanism);
             return true;

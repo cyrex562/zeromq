@@ -475,7 +475,7 @@ void select_t::loop ()
                        family_entry.fd_entries.begin ();
                      fd_entry_it != family_entry.fd_entries.end ();
                      += 1fd_entry_it) {
-                    ZmqFileDesc fd = fd_entry_it.fd;
+                     let mut fd: ZmqFileDesc = fd_entry_it.fd;
 
                     //  http://stackoverflow.com/q/35043420/188530
                     if (FD_ISSET (fd, &family_entry.fds_set.read)

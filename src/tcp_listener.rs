@@ -232,7 +232,7 @@ ZmqFileDesc tcp_listener_t::accept ()
     socklen_t ss_len = mem::size_of::<ss>();
 // #endif
 // #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
-    ZmqFileDesc sock = ::accept4 (_s, (&ss),
+     let mut sock: ZmqFileDesc = ::accept4 (_s, (&ss),
                            &ss_len, SOCK_CLOEXEC);
 // #else
     const ZmqFileDesc sock =

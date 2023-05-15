@@ -33,14 +33,17 @@
 
 // #include <stdlib.h>
 
+use std::ptr::null_mut;
+use libc::{EBUSY, ENOMEM};
 use crate::defines::ZmqHandle;
 use crate::endpoint::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
+use crate::fd::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 use crate::io_thread::ZmqIoThread;
 use crate::message::ZmqMessage;
 use crate::options::ZmqOptions;
-use crate::pgm_socket::pgm_socket_t;
+use crate::pgm_socket::PgmSocket;
 use crate::session_base::ZmqSessionBase;
 use crate::v1_encoder::ZmqV1Encoder;
 
@@ -60,8 +63,8 @@ use crate::v1_encoder::ZmqV1Encoder;
 pub const tx_timer_id: u8 = 0xa0;
 pub const rx_timer_id: u8 = 0xa1;
 
-#[derive(Default,Clone,Debug)]
-pub struct pgm_sender_t
+#[derive(Default, Clone, Debug)]
+pub struct pgm_sender_t<'a>
 {
     // : public ZmqIoObject, public ZmqEngineInterface
     pub io_object: ZmqIoObject,
@@ -76,12 +79,12 @@ pub struct pgm_sender_t
     //  Message encoder.
     // v1_encoder_t encoder;
     pub encoder: ZmqV1Encoder,
-// let mut msg = ZmqMessage::default();
+    // let mut msg = ZmqMessage::default();
     pub msg: ZmqMessage,
     //  Keeps track of message boundaries.
     pub more_flag: bool,
     //  PGM socket.
-    pub pgm_socket: pgm_socket_t,
+    pub pgm_socket: PgmSocket<'a>,
     //  Socket options.
     pub options: ZmqOptions,
     //  Poll handle associated with PGM socket.
@@ -132,7 +135,7 @@ impl ZmqEngineInterface for pgm_sender_t {
 
 impl pgm_sender_t {
     // pgm_sender_t (parent_: &mut ZmqIoThread, options: &ZmqOptions);
-    pub fn new (parent_: &mut ZmqIoThread, options: &ZmqOptions) -> Self
+    pub fn new(parent_: &mut ZmqIoThread, options: &ZmqOptions) -> Self
     {
         // ZmqIoObject (parent_),
         //     has_tx_timer (false),
@@ -158,7 +161,7 @@ impl pgm_sender_t {
             encoder: ZmqV1Encoder,
             msg: Default::default(),
             more_flag: false,
-            pgm_socket: (),
+            pgm_socket: PgmSocket::default(),
             options: Default::default(),
             handle: 0,
             uplink_handle: 0,
@@ -176,223 +179,218 @@ impl pgm_sender_t {
     // ~pgm_sender_t ();
 
     // int init (udp_encapsulation_: bool, network_: &str);
+    pub fn init(&mut self, udp_encapsulation_: bool, network_: &str) -> i32
+    {
+        let rc = pgm_socket.init(udp_encapsulation_, network_);
+        if (rc != 0) {
+            return rc;
+        }
 
+        out_buffer_size = pgm_socket.get_max_tsdu_size();
+        todo!();
+        // out_buffer =  malloc (out_buffer_size);
+        // alloc_assert (out_buffer);
+
+        return rc;
+    }
     //  ZmqIEngine interface implementation.
     // bool has_handshake_stage () { return false; };
 
     // void plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_);
+    pub fn plug(&mut self, io_thread_: &mut ZmqIoThread, session_: &mut ZmqSessionBase)
+    {
+        // LIBZMQ_UNUSED (io_thread_);
+        //  Allocate 2 fds for PGM socket.
+        let mut downlink_socket_fd: ZmqFileDesc = retired_fd;
+        let mut uplink_socket_fd: ZmqFileDesc = retired_fd;
+        let mut rdata_notify_fd: ZmqFileDesc = retired_fd;
+        let mut pending_notify_fd: ZmqFileDesc = retired_fd;
+
+        session = session_;
+
+        //  Fill fds from PGM transport and add them to the poller.
+        pgm_socket.get_sender_fds(&downlink_socket_fd, &uplink_socket_fd,
+                                  &rdata_notify_fd, &pending_notify_fd);
+
+        handle = add_fd(downlink_socket_fd);
+        uplink_handle = add_fd(uplink_socket_fd);
+        rdata_notify_handle = add_fd(rdata_notify_fd);
+        pending_notify_handle = add_fd(pending_notify_fd);
+
+        //  Set POLLIN. We will never want to stop polling for uplink = we never
+        //  want to stop processing NAKs.
+        set_pollin(uplink_handle);
+        set_pollin(rdata_notify_handle);
+        set_pollin(pending_notify_handle);
+
+        //  Set POLLOUT for downlink_socket_handle.
+        set_pollout(handle);
+    }
 
     // void terminate ();
+    pub fn terminate(&mut self)
+    {
+        self.unplug();
+        // delete this;
+    }
 
     // bool restart_input ();
+    pub fn restart_input(&mut self) -> bool
+    {
+        // zmq_assert (false);
+        return true;
+    }
 
     // void restart_output ();
+    pub fn restart_output(&mut self)
+    {
+        set_pollout(handle);
+        out_event();
+    }
 
     // void zap_msg_available () {}
 
     // const EndpointUriPair &get_endpoint () const;
+    pub fn get_endpoint(&self) -> &EndpointUriPair
+    {
+        return &self._empty_endpoint;
+    }
 
     //  i_poll_events interface implementation.
     // void in_event ();
+    pub fn in_event(&mut self)
+    {
+        if (has_rx_timer) {
+            cancel_timer(rx_timer_id);
+            has_rx_timer = false;
+        }
+
+        //  In-event on sender side means NAK or SPMR receiving from some peer.
+        pgm_socket.process_upstream();
+        if (errno == ENOMEM || errno == EBUSY) {
+            let timeout = pgm_socket.get_rx_timeout();
+            add_timer(timeout, rx_timer_id);
+            has_rx_timer = true;
+        }
+    }
 
     // void out_event ();
+
+    pub fn out_event(&mut self)
+    {
+        todo!()
+        //     //  POLLOUT event from send socket. If write buffer is empty,
+        //     //  try to read new data from the encoder.
+        //     if (write_size == 0) {
+        //         //  First two bytes (sizeof uint16_t) are used to store message
+        //         //  offset in following steps. Note that by passing our buffer to
+        //         //  the get data function we prevent it from returning its own buffer.
+        //         unsigned char *bf = out_buffer + mem::size_of::<uint16_t>();
+        //         size_t bfsz = out_buffer_size - mem::size_of::<uint16_t>();
+        //         uint16_t offset = 0xffff;
+        //
+        //         size_t bytes = encoder.encode (&bf, bfsz);
+        //         while (bytes < bfsz) {
+        //             if (!more_flag && offset == 0xffff)
+        //             offset = static_cast<uint16_t> (bytes);
+        //             int rc = session.pull_msg (&msg);
+        //             if (rc == -1)
+        //             break;
+        //             more_flag = msg.flags () & ZMQ_MSG_MORE;
+        //             encoder.load_msg (&msg);
+        //             bf = out_buffer + mem::size_of::<uint16_t>() + bytes;
+        //             bytes += encoder.encode (&bf, bfsz - bytes);
+        //         }
+        //
+        //         //  If there are no data to write stop polling for output.
+        //         if (bytes == 0) {
+        //             reset_pollout (handle);
+        //             return;
+        //         }
+        //
+        //         write_size = mem::size_of::<uint16_t>() + bytes;
+        //
+        //         //  Put offset information in the buffer.
+        //         put_uint16 (out_buffer, offset);
+        //     }
+        //
+        //     if (has_tx_timer) {
+        //         cancel_timer (tx_timer_id);
+        //         set_pollout (handle);
+        //         has_tx_timer = false;
+        //     }
+        //
+        //     //  Send the data.
+        //     size_t nbytes = pgm_socket.send (out_buffer, write_size);
+        //
+        //     //  We can write either all data or 0 which means rate limit reached.
+        //     if (nbytes == write_size)
+        //     write_size = 0;
+        //     else {
+        //     // zmq_assert (nbytes == 0);
+        //
+        //     if (errno == ENOMEM) {
+        //         // Stop polling handle and wait for tx timeout
+        //         const long timeout = pgm_socket.get_tx_timeout ();
+        //         add_timer (timeout, tx_timer_id);
+        //         reset_pollout (handle);
+        //         has_tx_timer = true;
+        //     } else
+        //     // errno_assert (errno == EBUSY);
+        // }
+    }
+
 
     // void timer_event (token: i32);
 
     //  Unplug the engine from the session.
     // void unplug ();
-}
-
-
-
-int pgm_sender_t::init (udp_encapsulation_: bool, network_: &str)
-{
-    int rc = pgm_socket.init (udp_encapsulation_, network_);
-    if (rc != 0)
-        return rc;
-
-    out_buffer_size = pgm_socket.get_max_tsdu_size ();
-    out_buffer =  malloc (out_buffer_size);
-    // alloc_assert (out_buffer);
-
-    return rc;
-}
-
-void pgm_sender_t::plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_)
-{
-    LIBZMQ_UNUSED (io_thread_);
-    //  Allocate 2 fds for PGM socket.
-    ZmqFileDesc downlink_socket_fd = retired_fd;
-    ZmqFileDesc uplink_socket_fd = retired_fd;
-    ZmqFileDesc rdata_notify_fd = retired_fd;
-    ZmqFileDesc pending_notify_fd = retired_fd;
-
-    session = session_;
-
-    //  Fill fds from PGM transport and add them to the poller.
-    pgm_socket.get_sender_fds (&downlink_socket_fd, &uplink_socket_fd,
-                               &rdata_notify_fd, &pending_notify_fd);
-
-    handle = add_fd (downlink_socket_fd);
-    uplink_handle = add_fd (uplink_socket_fd);
-    rdata_notify_handle = add_fd (rdata_notify_fd);
-    pending_notify_handle = add_fd (pending_notify_fd);
-
-    //  Set POLLIN. We will never want to stop polling for uplink = we never
-    //  want to stop processing NAKs.
-    set_pollin (uplink_handle);
-    set_pollin (rdata_notify_handle);
-    set_pollin (pending_notify_handle);
-
-    //  Set POLLOUT for downlink_socket_handle.
-    set_pollout (handle);
-}
-
-void pgm_sender_t::unplug ()
-{
-    if (has_rx_timer) {
-        cancel_timer (rx_timer_id);
-        has_rx_timer = false;
-    }
-
-    if (has_tx_timer) {
-        cancel_timer (tx_timer_id);
-        has_tx_timer = false;
-    }
-
-    rm_fd (handle);
-    rm_fd (uplink_handle);
-    rm_fd (rdata_notify_handle);
-    rm_fd (pending_notify_handle);
-    session = null_mut();
-}
-
-void pgm_sender_t::terminate ()
-{
-    unplug ();
-    delete this;
-}
-
-void pgm_sender_t::restart_output ()
-{
-    set_pollout (handle);
-    out_event ();
-}
-
-bool pgm_sender_t::restart_input ()
-{
-    // zmq_assert (false);
-    return true;
-}
-
-const EndpointUriPair &pgm_sender_t::get_endpoint () const
-{
-    return _empty_endpoint;
-}
-
-pgm_sender_t::~pgm_sender_t ()
-{
-    int rc = msg.close ();
-    // errno_assert (rc == 0);
-
-    if (out_buffer) {
-        free (out_buffer);
-        out_buffer = null_mut();
-    }
-}
-
-void pgm_sender_t::in_event ()
-{
-    if (has_rx_timer) {
-        cancel_timer (rx_timer_id);
-        has_rx_timer = false;
-    }
-
-    //  In-event on sender side means NAK or SPMR receiving from some peer.
-    pgm_socket.process_upstream ();
-    if (errno == ENOMEM || errno == EBUSY) {
-        const long timeout = pgm_socket.get_rx_timeout ();
-        add_timer (timeout, rx_timer_id);
-        has_rx_timer = true;
-    }
-}
-
-void pgm_sender_t::out_event ()
-{
-    //  POLLOUT event from send socket. If write buffer is empty,
-    //  try to read new data from the encoder.
-    if (write_size == 0) {
-        //  First two bytes (sizeof uint16_t) are used to store message
-        //  offset in following steps. Note that by passing our buffer to
-        //  the get data function we prevent it from returning its own buffer.
-        unsigned char *bf = out_buffer + mem::size_of::<uint16_t>();
-        size_t bfsz = out_buffer_size - mem::size_of::<uint16_t>();
-        uint16_t offset = 0xffff;
-
-        size_t bytes = encoder.encode (&bf, bfsz);
-        while (bytes < bfsz) {
-            if (!more_flag && offset == 0xffff)
-                offset = static_cast<uint16_t> (bytes);
-            int rc = session.pull_msg (&msg);
-            if (rc == -1)
-                break;
-            more_flag = msg.flags () & ZMQ_MSG_MORE;
-            encoder.load_msg (&msg);
-            bf = out_buffer + mem::size_of::<uint16_t>() + bytes;
-            bytes += encoder.encode (&bf, bfsz - bytes);
+    pub fn unplug(&mut self)
+    {
+        if (has_rx_timer) {
+            cancel_timer(rx_timer_id);
+            has_rx_timer = false;
         }
 
-        //  If there are no data to write stop polling for output.
-        if (bytes == 0) {
-            reset_pollout (handle);
-            return;
+        if (has_tx_timer) {
+            cancel_timer(tx_timer_id);
+            has_tx_timer = false;
         }
 
-        write_size = mem::size_of::<uint16_t>() + bytes;
-
-        //  Put offset information in the buffer.
-        put_uint16 (out_buffer, offset);
+        rm_fd(handle);
+        rm_fd(uplink_handle);
+        rm_fd(rdata_notify_handle);
+        rm_fd(pending_notify_handle);
+        session = null_mut();
     }
 
-    if (has_tx_timer) {
-        cancel_timer (tx_timer_id);
-        set_pollout (handle);
-        has_tx_timer = false;
-    }
-
-    //  Send the data.
-    size_t nbytes = pgm_socket.send (out_buffer, write_size);
-
-    //  We can write either all data or 0 which means rate limit reached.
-    if (nbytes == write_size)
-        write_size = 0;
-    else {
-        // zmq_assert (nbytes == 0);
-
-        if (errno == ENOMEM) {
-            // Stop polling handle and wait for tx timeout
-            const long timeout = pgm_socket.get_tx_timeout ();
-            add_timer (timeout, tx_timer_id);
-            reset_pollout (handle);
-            has_tx_timer = true;
-        } else
-            // errno_assert (errno == EBUSY);
-    }
-}
-
-void pgm_sender_t::timer_event (token: i32)
-{
-    //  Timer cancels on return by poller_base.
-    if (token == rx_timer_id) {
-        has_rx_timer = false;
-        in_event ();
-    } else if (token == tx_timer_id) {
-        // Restart polling handle and retry sending
-        has_tx_timer = false;
-        set_pollout (handle);
-        out_event ();
-    } else
+    pub fn timer_event(&mut self, token: i32)
+    {
+        //  Timer cancels on return by poller_base.
+        if (token == rx_timer_id) {
+            has_rx_timer = false;
+            in_event();
+        } else if (token == tx_timer_id) {
+            // Restart polling handle and retry sending
+            has_tx_timer = false;
+            set_pollout(handle);
+            out_event();
+        } else {}
         // zmq_assert (false);
+    }
 }
+
+
+// pgm_sender_t::~pgm_sender_t ()
+// {
+//     int rc = msg.close ();
+//     // errno_assert (rc == 0);
+//
+//     if (out_buffer) {
+//         free (out_buffer);
+//         out_buffer = null_mut();
+//     }
+// }
+
 
 // #endif

@@ -49,7 +49,7 @@ use crate::options::{
 };
 use crate::out_pipe::ZmqOutPipe;
 use crate::own::ZmqOwn;
-use crate::pgm_socket::pgm_socket_t;
+use crate::pgm_socket::PgmSocket;
 use crate::pipe::{send_hello_msg, ZmqPipe};
 use crate::session_base::ZmqSessionBase;
 use crate::signaler::ZmqSignaler;
@@ -2103,7 +2103,7 @@ impl ZmqSocketBase {
         else if protocol == protocol_name::pgm || protocol == protocol_name::epgm {
             let mut res = pgm_addrinfo_t::new();
             let mut port_number = 0u16;
-            pgm_socket_t::init_address(&address, &mut res, &port_number)?;
+            PgmSocket::init_address(&address, &mut res, &port_number)?;
             // if (res != null_mut()) {
             //     pgm_freeaddrinfo(res);
             // }

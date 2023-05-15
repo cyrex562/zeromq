@@ -92,7 +92,7 @@ tIpcListener::tIpcListener (ZmqIoThread *io_thread_,
 
 void tIpcListener::in_event ()
 {
-    ZmqFileDesc fd = accept ();
+     let mut fd: ZmqFileDesc = accept ();
 
     //  If connection was reset by the peer in the meantime, just ignore it.
     //  TODO: Handle specific errors like ENFILE/EMFILE etc.
@@ -184,9 +184,9 @@ ZmqFileDesc tIpcListener::accept ()
 
     // zmq_assert (_s != retired_fd);
 // #ifdef ZMQ_HAVE_VXWORKS
-    ZmqFileDesc sock = ::accept (_s, (struct sockaddr *) &ss, (int *) &ss_len);
+     let mut sock: ZmqFileDesc = ::accept (_s, (struct sockaddr *) &ss, (int *) &ss_len);
 // #else
-    ZmqFileDesc sock =
+     let mut sock: ZmqFileDesc =
       ::accept (_s, (&ss), &ss_len);
 // #endif
     if (sock == -1) {

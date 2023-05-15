@@ -33,6 +33,8 @@
 // #include "macros.hpp"
 // #include "stdint.hpp"
 
+use crate::command::ZmqCommand;
+
 //  Interface to be implemented by mailbox.
 pub trait ZmqMailboxInterface {
     //
