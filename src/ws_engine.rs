@@ -98,7 +98,7 @@ use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZMQ_MSG_ROUTIN
 use crate::null_mechanism::ZmqNullMechanism;
 use crate::options::ZmqOptions;
 use crate::plain_client::PlainClient;
-use crate::plain_server::plain_server_t;
+use crate::plain_server::PlainServer;
 use crate::stream_engine_base::{heartbeat_ivl_timer_id, heartbeat_timeout_timer_id, ZmqStreamEngineBase};
 use crate::utils::{copy_bytes, set_bytes};
 use crate::ws_address::WsAddress;
@@ -393,7 +393,7 @@ impl ZmqWsEngine {
             return true;
         } else if (self._options.mechanism == ZMQ_PLAIN && ("ZWS2.0/PLAIN" == protocol_)) {
             if (self._options.as_server) {
-                self._mechanism = plain_server_t::new(session(), self._peer_address, self._options);
+                self._mechanism = PlainServer::new(session(), self._peer_address, self._options);
             } else {
                 self._mechanism = PlainClient::new(session(), self._options);
             }

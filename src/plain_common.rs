@@ -30,24 +30,23 @@
 // #ifndef __ZMQ_PLAIN_COMMON_HPP_INCLUDED__
 // #define __ZMQ_PLAIN_COMMON_HPP_INCLUDED__
 
-namespace zmq
-{
-const char hello_prefix[] = "\x05HELLO";
-const size_t hello_prefix_len = mem::size_of::<hello_prefix>() - 1;
 
-const char welcome_prefix[] = "\x07WELCOME";
-const size_t welcome_prefix_len = mem::size_of::<welcome_prefix>() - 1;
+pub const hello_prefix: &[u8;6]= b"\x05HELLO";
+// const size_t hello_prefix_len = mem::size_of::<hello_prefix>() - 1;
 
-const char initiate_prefix[] = "\x08INITIATE";
-const size_t initiate_prefix_len = mem::size_of::<initiate_prefix>() - 1;
+pub const welcome_prefix: &[u8;8] = b"\x07WELCOME";
+// const size_t welcome_prefix_len = mem::size_of::<welcome_prefix>() - 1;
 
-const char ready_prefix[] = "\x05READY";
-const size_t ready_prefix_len = mem::size_of::<ready_prefix>() - 1;
+pub const initiate_prefix: &[u8;9] = b"\x08INITIATE";
+// const size_t initiate_prefix_len = mem::size_of::<initiate_prefix>() - 1;
 
-const char error_prefix[] = "\x05ERROR";
-const size_t error_prefix_len = mem::size_of::<error_prefix>() - 1;
+pub const ready_prefix: &[u8;6] = b"\x05READY";
+// const size_t ready_prefix_len = mem::size_of::<ready_prefix>() - 1;
 
-const size_t brief_len_size = mem::size_of::<char>();
-}
+pub const error_prefix: &[u8;6] = b"\x05ERROR";
+// const size_t error_prefix_len = mem::size_of::<error_prefix>() - 1;
+
+pub const brief_len_size: usize = 1;
+
 
 // #endif

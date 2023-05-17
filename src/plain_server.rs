@@ -38,10 +38,10 @@
 // #include "wire.hpp"
 // #include "plain_common.hpp"
 
-//     plain_server_t (ZmqSessionBase *session_,
+//     PlainServer (ZmqSessionBase *session_,
 //                     const std::string &peer_address_,
 //                     options: &ZmqOptions);
-//     ~plain_server_t ();
+//     ~PlainServer ();
 
 //     // mechanism implementation
 //     int next_handshake_command (msg: &mut ZmqMessage);
@@ -59,28 +59,41 @@
 //                            password_: &str);
 // };
 
-pub enum plain_server_state_t {
+use std::mem;
+use anyhow::bail;
+use libc::{EFAULT, EPROTO};
+use crate::defines::{ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND, ZMQ_PROTOCOL_ERROR_ZMTP_UNSPECIFIED};
+use crate::mechanism_base::ZmqMechanismBase;
+use crate::message::ZmqMessage;
+use crate::options::ZmqOptions;
+use crate::plain_common::{error_prefix, hello_prefix, initiate_prefix, ready_prefix, welcome_prefix};
+use crate::session_base::ZmqSessionBase;
+use crate::utils::{cmp_bytes, copy_bytes, ptr_advance};
+use crate::zap_client::{ZmqZapClient, ZmqZapClientCommonHandshake};
+
+#[derive(Debug)]
+pub enum PlainServerState {
     plain_server_state_ready,
     plain_server_state_waiting_for_zap_reply,
     plain_server_state_error,
 }
 
-pub struct plain_server_t {
+pub struct PlainServer {
     mechanism_base: ZmqMechanismBase,
     ZmqZapClientCommonHandshake: ZmqZapClientCommonHandshake,
-    state: plain_server_state_t,
+    state: PlainServerState,
     username: String,
     password: String,
     peer_address: String,
     options: ZmqOptions,
 }
 
-impl plain_server_t {
-    pub fn new(session: &ZmqSessionBase, peer_address: &str, options: &ZmqOptions) -> Self {
+impl PlainServer {
+    pub fn new(session: &mut ZmqSessionBase, peer_address: &str, options: &mut ZmqOptions) -> Self {
         Self {
             mechanism_base: ZmqMechanismBase::new(session, options),
-            ZmqZapClientCommonHandshake: ZmqZapClientCommonHandshake::new(session, peer_address, options, Self::produce_welcome),
-            state: plain_server_state_t::plain_server_state_ready,
+            ZmqZapClientCommonHandshake: ZmqZapClientCommonHandshake::new(session, peer_address, options, ZmqZapClientCommonHandshakeState::ready),
+            state: PlainServerState::plain_server_state_ready,
             username: String::new(),
             password: String::new(),
             peer_address: String::from(peer_address),
@@ -88,218 +101,212 @@ impl plain_server_t {
         }
     }
 
-    pub fn next_handshake_command (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
-{
-    match (self.state) {
-        sending_welcome =>{
-            self.produce_welcome (msg);
-            self.state = waiting_for_initiate;}
-        sending_ready =>{
-            self.produce_ready (msg);
-            self.state = ready;
-        }
-        sending_error =>{
-            self.produce_error (msg);
-            self.state = error_sent;}
+    pub fn next_handshake_command(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+        match (&self.state) {
+            sending_welcome => {
+                self.produce_welcome(msg);
+                self.state = waiting_for_initiate;
+            }
+            sending_ready => {
+                self.produce_ready(msg);
+                self.state = PlainServerState::plain_server_state_ready;
+            }
+            sending_error => {
+                self.produce_error(msg);
+                self.state = error_sent;
+            }
 
-        _ =>{
-            // errno = EAGAIN;
-            // rc = -1;
-            bail!("unhandled state: {}", self.state);
+            _ => {
+                // errno = EAGAIN;
+                // rc = -1;
+                bail!("unhandled state: {:?}", self.state);
+            }
         }
+        Ok(())
     }
-    Ok(())
-}
-}
 
-// plain_server_t::plain_server_t (ZmqSessionBase *session_,
-//                                      const std::string &peer_address_,
-//                                      options: &ZmqOptions) :
-//     ZmqMechanismBase (session_, options_),
-//     ZmqZapClientCommonHandshake (
-//       session_, peer_address_, options_, sending_welcome)
-// {
-//     //  Note that there is no point to PLAIN if ZAP is not set up to handle the
-//     //  username and password, so if ZAP is not configured it is considered a
-//     //  failure.
-//     //  Given this is a backward-incompatible change, it's behind a socket
-//     //  option disabled by default.
-//     if (options.zap_enforce_domain)
-//         zmq_assert (zap_required ());
-// }
+    pub fn process_handshake_command (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
+    {
+        let mut rc = 0;
 
-// plain_server_t::~plain_server_t ()
-// {
-// }
+        match (&self.state) {
+            waiting_for_hello => {
+                rc = process_hello(msg);
+            }
+            waiting_for_initiate => {
+                rc = process_initiate(msg);
+            }
+            _ => {
+                //  TODO see comment in ZmqCurveServer::process_handshake_command
+                session.get_socket().event_handshake_failed_protocol(
+                    session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZMTP_UNSPECIFIED);
+                errno = EPROTO;
+                rc = -1;
+            }
+        }
+        if rc == 0 {
+            msg.close ()?;
+            // errno_assert (rc == 0);
+            msg.init2 ()?;
+            // errno_assert (rc == 0);
+            Ok(())
+        }
+        bail!("error")
+
+    }
 
 
+    pub fn process_hello (&mut self, msg: &mut ZmqMessage) -> i32
+    {
+        let mut rc = check_basic_command_structure (msg);
+        if (rc == -1) {
+            return -1;
+        }
 
-pub fn process_handshake_command (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
-{
-    int rc = 0;
+        let mut ptr =  (msg.data_mut());
+        let mut bytes_left = msg.size ();
 
-    switch (state) {
-        case waiting_for_hello:
-            rc = process_hello (msg);
-            break;
-        case waiting_for_initiate:
-            rc = process_initiate (msg);
-            break;
-        _ =>
-            //  TODO see comment in ZmqCurveServer::process_handshake_command
+        if (bytes_left < hello_prefix_len
+            || cmp_bytes (ptr, 0, hello_prefix, 0, hello_prefix.len()) != 0) {
             session.get_socket ().event_handshake_failed_protocol (
-              session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNSPECIFIED);
+                session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
             errno = EPROTO;
-            rc = -1;
-            break;
+            return -1;
+        }
+        ptr += hello_prefix_len;
+        bytes_left -= hello_prefix_len;
+
+        if (bytes_left < 1) {
+            //  PLAIN I: invalid PLAIN client, did not send username
+            session.get_socket ().event_handshake_failed_protocol (
+                session.get_endpoint (),
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
+            errno = EPROTO;
+            return -1;
+        }
+        let username_length = ptr[0];
+        //+= 1;
+        ptr = ptr_advance(ptr, 1);
+        bytes_left -= mem::size_of_val(&username_length);
+
+        if bytes_left < username_length as usize {
+            //  PLAIN I: invalid PLAIN client, sent malformed username
+            session.get_socket().event_handshake_failed_protocol (
+                session.get_endpoint (),
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
+            errno = EPROTO;
+            return -1;
+        }
+        // let username = std::string (ptr, username_length);
+        let username = String::from_utf8_lossy(ptr[..username_length]).to_string();
+        ptr += username_length;
+        bytes_left -= username_length;
+        if bytes_left < 1 {
+            //  PLAIN I: invalid PLAIN client, did not send password
+            session.get_socket ().event_handshake_failed_protocol (
+                session.get_endpoint (),
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
+            errno = EPROTO;
+            return -1;
+        }
+
+        let password_length = ptr[0]; //*ptr+= 1;
+        ptr = ptr_advance(ptr,1);
+        bytes_left -= mem::size_of_val(&password_length);
+        if bytes_left != password_length as usize {
+            //  PLAIN I: invalid PLAIN client, sent malformed password or
+            //  extraneous data
+            session.get_socket ().event_handshake_failed_protocol (
+                session.get_endpoint (),
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
+            errno = EPROTO;
+            return -1;
+        }
+
+        let password = String::from_utf8_lossy(&ptr[..password_length]);
+
+        //  Use ZAP protocol (RFC 27) to authenticate the user.
+        rc = session.zap_connect ();
+        if rc != 0 {
+            session.get_socket ().event_handshake_failed_no_detail (
+                session.get_endpoint (), EFAULT);
+            return -1;
+        }
+
+        send_zap_request (username, password);
+        state = waiting_for_zap_reply;
+
+        //  TODO actually, it is quite unlikely that we can read the ZAP
+        //  reply already, but removing this has some strange side-effect
+        //  (probably because the pipe's in_active flag is true until a read
+        //  is attempted)
+        return if receive_and_process_zap_reply () == -1 { -1 } else { 0 };
     }
-    if (rc == 0) {
-        rc = msg.close ();
+
+    pub fn produce_welcome (&mut self, msg: &mut ZmqMessage)
+    {
+        let rc: i32 = msg.init_size (welcome_prefix_len);
         // errno_assert (rc == 0);
-        rc = msg.init ();
-        // errno_assert (rc == 0);
-    }
-    return rc;
-}
-
-int plain_server_t::process_hello (msg: &mut ZmqMessage)
-{
-    int rc = check_basic_command_structure (msg);
-    if (rc == -1)
-        return -1;
-
-    const char *ptr =  (msg.data ());
-    size_t bytes_left = msg.size ();
-
-    if (bytes_left < hello_prefix_len
-        || memcmp (ptr, hello_prefix, hello_prefix_len) != 0) {
-        session.get_socket ()->event_handshake_failed_protocol (
-          session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
-        errno = EPROTO;
-        return -1;
-    }
-    ptr += hello_prefix_len;
-    bytes_left -= hello_prefix_len;
-
-    if (bytes_left < 1) {
-        //  PLAIN I: invalid PLAIN client, did not send username
-        session.get_socket ()->event_handshake_failed_protocol (
-          session.get_endpoint (),
-          ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
-        errno = EPROTO;
-        return -1;
-    }
-    const uint8_t username_length = *ptr+= 1;
-    bytes_left -= mem::size_of::<username_length>();
-
-    if (bytes_left < username_length) {
-        //  PLAIN I: invalid PLAIN client, sent malformed username
-        session.get_socket ()->event_handshake_failed_protocol (
-          session.get_endpoint (),
-          ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
-        errno = EPROTO;
-        return -1;
-    }
-    const std::string username = std::string (ptr, username_length);
-    ptr += username_length;
-    bytes_left -= username_length;
-    if (bytes_left < 1) {
-        //  PLAIN I: invalid PLAIN client, did not send password
-        session.get_socket ()->event_handshake_failed_protocol (
-          session.get_endpoint (),
-          ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
-        errno = EPROTO;
-        return -1;
+        copy_bytes (msg.data_mut(), 0, welcome_prefix, 0, welcome_prefix.len() as i32);
     }
 
-    const uint8_t password_length = *ptr+= 1;
-    bytes_left -= mem::size_of::<password_length>();
-    if (bytes_left != password_length) {
-        //  PLAIN I: invalid PLAIN client, sent malformed password or
-        //  extraneous data
-        session.get_socket ()->event_handshake_failed_protocol (
-          session.get_endpoint (),
-          ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
-        errno = EPROTO;
-        return -1;
+    pub fn process_initiate (&mut self, msg: &mut ZmqMessage) -> i32
+    {
+        let ptr =  (msg.data_mut());
+        let mut bytes_left = msg.size ();
+
+        if (bytes_left < initiate_prefix_len
+            || cmp_bytes (ptr, 0,  initiate_prefix, 0, initiate_prefix_len) != 0) {
+            session.get_socket ().event_handshake_failed_protocol (
+                session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
+            errno = EPROTO;
+            return -1;
+        }
+        let rc: i32 = parse_metadata (ptr + initiate_prefix_len,
+                                      bytes_left - initiate_prefix_len);
+        if (rc == 0) {
+            state = sending_ready;
+        }
+        return rc;
     }
 
-    const std::string password = std::string (ptr, password_length);
-
-    //  Use ZAP protocol (RFC 27) to authenticate the user.
-    rc = session.zap_connect ();
-    if (rc != 0) {
-        session.get_socket ()->event_handshake_failed_no_detail (
-          session.get_endpoint (), EFAULT);
-        return -1;
+    pub fn produce_ready (&mut self, msg: &mut ZmqMessage)
+    {
+        make_command_with_basic_properties (msg, ready_prefix, ready_prefix_len);
     }
 
-    send_zap_request (username, password);
-    state = waiting_for_zap_reply;
-
-    //  TODO actually, it is quite unlikely that we can read the ZAP
-    //  reply already, but removing this has some strange side-effect
-    //  (probably because the pipe's in_active flag is true until a read
-    //  is attempted)
-    return receive_and_process_zap_reply () == -1 ? -1 : 0;
-}
-
-void plain_server_t::produce_welcome (msg: &mut ZmqMessage)
-{
-    let rc: i32 = msg.init_size (welcome_prefix_len);
-    // errno_assert (rc == 0);
-    memcpy (msg.data (), welcome_prefix, welcome_prefix_len);
-}
-
-int plain_server_t::process_initiate (msg: &mut ZmqMessage)
-{
-    const unsigned char *ptr =  (msg.data ());
-    const size_t bytes_left = msg.size ();
-
-    if (bytes_left < initiate_prefix_len
-        || memcmp (ptr, initiate_prefix, initiate_prefix_len) != 0) {
-        session.get_socket ()->event_handshake_failed_protocol (
-          session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
-        errno = EPROTO;
-        return -1;
+    pub fn produce_error (&mut self, msg: &mut ZmqMessage)
+    {
+        let mut expected_status_code_len = 3;
+        // zmq_assert (status_code.length ()
+        //             ==  (expected_status_code_len));
+        let status_code_len_size = mem::size_of::<expected_status_code_len>();
+        let rc: i32 = msg.init_size (error_prefix_len + status_code_len_size
+            + expected_status_code_len);
+        // zmq_assert (rc == 0);
+        let msg_data =  (msg.data_mut());
+        copy_bytes(msg_data, 0,error_prefix, 0,error_prefix_len);
+        msg_data[error_prefix_len] = expected_status_code_len;
+        copy_bytes (msg_data + error_prefix_len + status_code_len_size,0,
+                    status_code, 0,status_code.length ());
     }
-    let rc: i32 = parse_metadata (ptr + initiate_prefix_len,
-                                   bytes_left - initiate_prefix_len);
-    if (rc == 0)
-        state = sending_ready;
-    return rc;
-}
 
-void plain_server_t::produce_ready (msg: &mut ZmqMessage) const
-{
-    make_command_with_basic_properties (msg, ready_prefix, ready_prefix_len);
-}
+    pub fn send_zap_request ( &mut self, username_: &str, password_: &str)
+    {
+        let credentials: [&str;2] = [
+            username_,
+            password_];
+        let credentials_sizes: [usize;2] = [username_.len(), password_.len()];
+        let plain_mechanism_name: &str = "PLAIN";
+        self.zap_client.send_zap_request (
+            plain_mechanism_name, mem::size_of::<plain_mechanism_name>() - 1, credentials,
+            credentials_sizes, mem::size_of::<credentials>() / sizeof (credentials[0]));
+    }
+} // impl plain server
 
-void plain_server_t::produce_error (msg: &mut ZmqMessage) const
-{
-    const char expected_status_code_len = 3;
-    // zmq_assert (status_code.length ()
-                ==  (expected_status_code_len));
-    const size_t status_code_len_size = mem::size_of::<expected_status_code_len>();
-    let rc: i32 = msg.init_size (error_prefix_len + status_code_len_size
-                                    + expected_status_code_len);
-    // zmq_assert (rc == 0);
-    char *msg_data =  (msg.data ());
-    memcpy (msg_data, error_prefix, error_prefix_len);
-    msg_data[error_prefix_len] = expected_status_code_len;
-    memcpy (msg_data + error_prefix_len + status_code_len_size,
-            status_code, status_code.length ());
-}
 
-void plain_server_t::send_zap_request (const std::string &username_,
-                                            password_: &str)
-{
-    const uint8_t *credentials[] = {
-       (username_.c_str ()),
-       (password_.c_str ())};
-    size_t credentials_sizes[] = {username_.size (), password_.size ()};
-    pub const plain_mechanism_name: &str = "PLAIN";
-    ZmqZapClient::send_zap_request (
-      plain_mechanism_name, mem::size_of::<plain_mechanism_name>() - 1, credentials,
-      credentials_sizes, mem::size_of::<credentials>() / sizeof (credentials[0]));
-}
+
+
+
+
+

@@ -73,7 +73,7 @@ use crate::gssapi_server::ZmqGssApiServer;
 use crate::message::{ZMQ_MSG_CANCEL, ZMQ_MSG_COMMAND, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZMQ_MSG_ROUTING_ID, ZMQ_MSG_SUBSCRIBE, ZmqMessage};
 use crate::options::ZmqOptions;
 use crate::plain_client::PlainClient;
-use crate::plain_server::plain_server_t;
+use crate::plain_server::PlainServer;
 use crate::stream_engine_base::ZmqStreamEngineBase;
 use crate::utils::{cmp_bytes, copy_bytes, set_bytes};
 use crate::v1_decoder::ZmqV1Decoder;
@@ -492,7 +492,7 @@ impl ZmqZmtpEngine {
                          b"PLAIN\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 0, 20)
             == 0) {
             if (self._options.as_server) {
-                self._mechanism = plain_server_t::new(session(), self._peer_address, self._options);
+                self._mechanism = PlainServer::new(session(), self._peer_address, self._options);
             } else {
                 self._mechanism = PlainClient::new(session(), self._options);
             }

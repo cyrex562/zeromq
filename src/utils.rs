@@ -303,3 +303,7 @@ pub fn zmq_getnameinfo(sa: &ZmqSockaddr) -> anyhow::Result<(i32, String)> {
         Ok((result, hname))
     }
 }
+
+pub fn ptr_advance(a: &mut [u8], offset: usize) -> &mut [u8] {
+    &mut a[offset..]
+}
