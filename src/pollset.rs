@@ -41,7 +41,7 @@
 // #include "err.hpp"
 // #include "config.hpp"
 // #include "i_poll_events.hpp"
-pub struct pollset_t  : public poller_base_t
+pub struct pollset_t  : public PollerBase
 {
 //
     typedef void *handle_t;
