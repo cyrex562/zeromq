@@ -6,7 +6,7 @@
 #
 
 # results for TCP:
-INPUT_FILE_PUSHPULL_TCP_THROUGHPUT="results/pushpull_tcp_thr_results.csv"
+INPUT_FILE_PUSHZmqPullCP_THROUGHPUT="results/pushZmqPullcp_thr_results.csv"
 INPUT_FILE_REQREP_TCP_LATENCY="results/reqrep_tcp_lat_results.csv"
 TCP_LINK_GPBS=100
 
@@ -67,7 +67,7 @@ def plot_latency(csv_filename, title):
 
 # main
 
-plot_throughput(INPUT_FILE_PUSHPULL_TCP_THROUGHPUT, 'ZeroMQ PUSH/PULL socket throughput, TCP transport', is_tcp=True)
+plot_throughput(INPUT_FILE_PUSHZmqPullCP_THROUGHPUT, 'ZeroMQ PUSH/PULL socket throughput, TCP transport', is_tcp=True)
 plot_throughput(INPUT_FILE_PUSHPULL_INPROC_THROUGHPUT, 'ZeroMQ PUSH/PULL socket throughput, INPROC transport')
 plot_throughput(INPUT_FILE_PUBSUBPROXY_INPROC_THROUGHPUT, 'ZeroMQ PUB/SUB PROXY socket throughput, INPROC transport')
 plot_latency(INPUT_FILE_REQREP_TCP_LATENCY, 'ZeroMQ REQ/REP socket latency, TCP transport')

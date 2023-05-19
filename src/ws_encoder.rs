@@ -36,7 +36,7 @@
 // #include "random.hpp"
 
 // #include <limits.h>
-pub struct ws_encoder_t  : public encoder_base_t<ws_encoder_t>
+pub struct ws_encoder_t  : public EncoderBase<ws_encoder_t>
 {
 //
     ws_encoder_t (bufsize_: usize, must_mask_: bool);
@@ -56,7 +56,7 @@ pub struct ws_encoder_t  : public encoder_base_t<ws_encoder_t>
 };
 
 ws_encoder_t::ws_encoder_t (bufsize_: usize, must_mask_: bool) :
-    encoder_base_t<ws_encoder_t> (bufsize_), _must_mask (must_mask_)
+    EncoderBase<ws_encoder_t> (bufsize_), _must_mask (must_mask_)
 {
     //  Write 0 bytes to the batch and go to message_ready state.
     next_step (null_mut(), 0, &ws_encoder_t::message_ready, true);

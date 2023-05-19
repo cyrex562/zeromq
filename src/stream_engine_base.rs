@@ -75,7 +75,7 @@ use crate::defines::{
     ZmqHandle, ZMQ_MSG_PROPERTY_PEER_ADDRESS, ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT,
     ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED,
 };
-use crate::encoder::ZmqBaseEncoder;
+use crate::encoder::EncoderBase;
 use crate::endpoint::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::fd::ZmqFileDesc;
@@ -117,7 +117,7 @@ pub struct ZmqStreamEngineBase {
     // _outsize: usize;
     pub _outsize: usize,
     // ZmqBaseEncoder *_encoder;
-    pub _encoder: ZmqBaseEncoder,
+    pub _encoder: EncoderBase,
     // ZmqMechanism *_mechanism;
     pub _mechanism: ZmqMechanism,
     // int (ZmqStreamEngineBase::*_next_msg) (msg: &mut ZmqMessage);

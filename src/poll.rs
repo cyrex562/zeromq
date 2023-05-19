@@ -64,8 +64,8 @@ pub struct poll_t {
     // fd_table_t fd_table;
     pub fd_table: Vec<FdEntry>,
     //  Pollset to pass to the poll function.
-    // typedef std::vector<pollfd> pollset_t;
-    // pollset_t pollset;
+    // typedef std::vector<pollfd> PollSet;
+    // PollSet pollset;
     pub pollset: Vec<pollfd>,
     //  If true, there's at least one retired event source.
     retired: bool,
@@ -213,7 +213,7 @@ impl poll_t {
                 continue;
             }
 
-            // for (pollset_t::size_type i = 0; i != pollset.size (); i+= 1)
+            // for (PollSet::size_type i = 0; i != pollset.size (); i+= 1)
             for i in 0..pollset.len() {
                 // zmq_assert (!(pollset[i].revents & POLLNVAL));
                 if (pollset[i].fd == retired_fd) {

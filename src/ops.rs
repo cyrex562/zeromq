@@ -998,11 +998,11 @@ int zmq_poll (ZmqPollItem *items_, nitems_: i32, long timeout)
     //  TODO since this function is called by a client, we could return errno EINVAL/ENOMEM/... here
     // zmq_assert (nitems_ <= FD_SETSIZE);
 
-    optimized_fd_set_t pollset_in (nitems_);
+    OptimizedFdSet pollset_in (nitems_);
     FD_ZERO (pollset_in.get ());
-    optimized_fd_set_t pollset_out (nitems_);
+    OptimizedFdSet pollset_out (nitems_);
     FD_ZERO (pollset_out.get ());
-    optimized_fd_set_t pollset_err (nitems_);
+    OptimizedFdSet pollset_err (nitems_);
     FD_ZERO (pollset_err.get ());
 
      let mut maxfd: ZmqFileDesc = 0;
@@ -1038,9 +1038,9 @@ int zmq_poll (ZmqPollItem *items_, nitems_: i32, long timeout)
         }
     }
 
-    optimized_fd_set_t inset (nitems_);
-    optimized_fd_set_t outset (nitems_);
-    optimized_fd_set_t errset (nitems_);
+    OptimizedFdSet inset (nitems_);
+    OptimizedFdSet outset (nitems_);
+    OptimizedFdSet errset (nitems_);
 // #endif
 
     bool first_pass = true;
@@ -1268,12 +1268,12 @@ struct zmq_poll_select_fds_t_
         FD_ZERO (pollset_err.get ());
     }
 
-    optimized_fd_set_t pollset_in;
-    optimized_fd_set_t pollset_out;
-    optimized_fd_set_t pollset_err;
-    optimized_fd_set_t inset;
-    optimized_fd_set_t outset;
-    optimized_fd_set_t errset;
+    OptimizedFdSet pollset_in;
+    OptimizedFdSet pollset_out;
+    OptimizedFdSet pollset_err;
+    OptimizedFdSet inset;
+    OptimizedFdSet outset;
+    OptimizedFdSet errset;
     ZmqFileDesc maxfd;
 };
 

@@ -40,7 +40,7 @@
 
 use crate::message::ZmqMessage;
 
-pub trait ZmqBaseEncoder {
+pub trait EncoderBase {
     // virtual ~ZmqBaseEncoder () ZMQ_DEFAULT;
     //  The function returns a batch of binary data. The data
     //  are filled to a supplied buffer. If no buffer is supplied (data

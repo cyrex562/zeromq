@@ -78,7 +78,7 @@ use crate::pgm_sender::pgm_sender_t;
 use crate::pipe::PipeState::active;
 use crate::pipe::ZmqPipe;
 use crate::proxy::ZmqSocketBase;
-use crate::radio::radio_session_t;
+use crate::radio::RadioSession;
 use crate::req::req_session_t;
 use crate::socks_connecter::socks_connecter_t;
 use crate::tcp_connecter::tcp_connecter_t;
@@ -214,7 +214,7 @@ impl ZmqSessionBase {
         let mut s = ZmqSessionBase::default();
         match (options.type_) {
             ZMQ_REQ => s = req_session_t::new(io_thread_, active_, socket, options_, addr_),
-            ZMQ_RADIO => s = radio_session_t::new(io_thread_, active_, socket, options_, addr_),
+            ZMQ_RADIO => s = RadioSession::new(io_thread_, active_, socket, options_, addr_),
             ZMQ_DISH => s = DishSession(io_thread_, active_, socket, options_, addr_),
             ZMQ_DEALER | ZMQ_ROUTER | ZMQ_XPUB | ZMQ_XSUB | ZMQ_REP | ZMQ_PUB | ZMQ_SUB | ZMQ_PUSH | ZMQ_PULL | ZMQ_PAIR | ZMQ_STREAM | ZMQ_SERVER | ZMQ_CLIENT | ZMQ_GATHER | ZMQ_SCATTER | ZMQ_DGRAM | ZMQ_PEER | ZMQ_CHANNEL => {
                 // #ifdef ZMQ_BUILD_DRAFT_API

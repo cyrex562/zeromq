@@ -35,7 +35,7 @@
 // #include "wire.hpp"
 
 // #include <limits.h>
-pub struct v3_1_encoder_t  : public encoder_base_t<v3_1_encoder_t>
+pub struct v3_1_encoder_t  : public EncoderBase<v3_1_encoder_t>
 {
 //
     v3_1_encoder_t (bufsize_: usize);
@@ -51,7 +51,7 @@ pub struct v3_1_encoder_t  : public encoder_base_t<v3_1_encoder_t>
 };
 
 v3_1_encoder_t::v3_1_encoder_t (bufsize_: usize) :
-    encoder_base_t<v3_1_encoder_t> (bufsize_)
+    EncoderBase<v3_1_encoder_t> (bufsize_)
 {
     //  Write 0 bytes to the batch and go to message_ready state.
     next_step (null_mut(), 0, &v3_1_encoder_t::message_ready, true);

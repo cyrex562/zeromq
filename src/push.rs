@@ -27,76 +27,95 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use crate::context::ZmqContext;
+use crate::defines::ZMQ_PUSH;
+use crate::lb::LoadBalancer;
+use crate::message::ZmqMessage;
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::socket_base::ZmqSocketBase;
+
 // #include "precompiled.hpp"
 // #include "macros.hpp"
 // #include "push.hpp"
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-pub struct push_t  : public ZmqSocketBase
-{
-//
-    push_t (ZmqContext *parent_, tid: u32, sid_: i32);
-    ~push_t ();
-
-
+pub struct ZmqPush {
+    // : public ZmqSocketBase
+    pub socket_base: ZmqSocketBase,
+    //     ZmqPush (ZmqContext *parent_, tid: u32, sid_: i32);
+//     ~ZmqPush ();
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe: &mut ZmqPipe,
-                       subscribe_to_all_: bool,
-                       locally_initiated_: bool);
-    int xsend (msg: &mut ZmqMessage);
-    bool xhas_out ();
-    void xwrite_activated (pipe: &mut ZmqPipe);
-    void xpipe_terminated (pipe: &mut ZmqPipe);
-
-  //
+    // void xattach_pipe (pipe: &mut ZmqPipe,
+    //                    subscribe_to_all_: bool,
+    //                    locally_initiated_: bool);
+    // int xsend (msg: &mut ZmqMessage);
+    // bool xhas_out ();
+    // void xwrite_activated (pipe: &mut ZmqPipe);
+    // void xpipe_terminated (pipe: &mut ZmqPipe);
     //  Load balancer managing the outbound pipes.
-    LoadBalancer load_balance;
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (push_t)
-};
-
-push_t::push_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
-    ZmqSocketBase (parent_, tid, sid_)
-{
-    options.type_ = ZMQ_PUSH;
+    // LoadBalancer load_balance;
+    pub load_balance: LoadBalancer,
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqPush)
 }
 
-push_t::~push_t ()
-{
+impl ZmqPush {
+    pub fn new(options: &mut ZmqOptions,
+               parent: &mut ZmqContext,
+               tid: u32,
+               sid_: i32) -> Self
+
+    {
+        let mut out = Self {
+            socket_base: ZmqSocketBase::new(parent, options, tid, sid_, false),
+            load_balance: LoadBalancer::default(),
+        };
+        // ZmqSocketBase (parent_, tid, sid_)
+        out.socket_base.options.type_ = ZMQ_PUSH as i32;
+        out
+    }
+
+    pub fn xattach_pipe(&mut self, pipe: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
+        // LIBZMQ_UNUSED (subscribe_to_all_);
+        // LIBZMQ_UNUSED (locally_initiated_);
+
+        //  Don't delay pipe termination as there is no one
+        //  to receive the delimiter.
+        pipe.set_nodelay();
+
+        // zmq_assert (pipe);
+        self.load_balance.attach(pipe);
+    }
+
+    pub fn xwrite_activated(&mut self, pipe: &mut ZmqPipe) {
+        load_balance.activated(pipe);
+    }
+
+    pub fn xpipe_terminated(&mut self, pipe: &mut ZmqPipe) {
+        load_balance.pipe_terminated(pipe);
+    }
+
+    pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32 {
+        return load_balance.send(msg);
+    }
+
+    pub fn xhas_out() -> bool {
+        return load_balance.has_out();
+    }
 }
 
-void push_t::xattach_pipe (pipe: &mut ZmqPipe,
-                                subscribe_to_all_: bool,
-                                locally_initiated_: bool)
-{
-    LIBZMQ_UNUSED (subscribe_to_all_);
-    LIBZMQ_UNUSED (locally_initiated_);
 
-    //  Don't delay pipe termination as there is no one
-    //  to receive the delimiter.
-    pipe.set_nodelay ();
+// ZmqPush::~ZmqPush ()
+// {
+// }
 
-    // zmq_assert (pipe);
-    load_balance.attach (pipe);
-}
 
-void push_t::xwrite_activated (pipe: &mut ZmqPipe)
-{
-    load_balance.activated (pipe);
-}
 
-void push_t::xpipe_terminated (pipe: &mut ZmqPipe)
-{
-    load_balance.pipe_terminated (pipe);
-}
 
-int push_t::xsend (msg: &mut ZmqMessage)
-{
-    return load_balance.send (msg);
-}
 
-bool push_t::xhas_out ()
-{
-    return load_balance.has_out ();
-}
+
+
+
+
+

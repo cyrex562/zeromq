@@ -27,35 +27,41 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use crate::encoder::EncoderBase;
+
 // #include "precompiled.hpp"
 // #include "encoder.hpp"
 // #include "raw_encoder.hpp"
 // #include "msg.hpp"
-pub struct raw_encoder_t  : public encoder_base_t<raw_encoder_t>
-{
+pub struct RawEncoder {
+    //  : public encoder_base_t<RawEncoder>
+    pub encoder_base: EncoderBase,
 //
-    raw_encoder_t (bufsize_: usize);
-    ~raw_encoder_t ();
+//     RawEncoder (bufsize_: usize);
+//     ~RawEncoder ();
+    //   void raw_message_ready ();
 
-  //
-    void raw_message_ready ();
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (raw_encoder_t)
-};
-
-raw_encoder_t::raw_encoder_t (bufsize_: usize) :
-    encoder_base_t<raw_encoder_t> (bufsize_)
-{
-    //  Write 0 bytes to the batch and go to message_ready state.
-    next_step (null_mut(), 0, &raw_encoder_t::raw_message_ready, true);
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (RawEncoder)
 }
 
-raw_encoder_t::~raw_encoder_t ()
-{
-}
+impl RawEncoder {
+    pub fn new(bufsize_: usize) -> Self {
+        // : encoder_base_t<RawEncoder> (bufsize_)
+        //  Write 0 bytes to the batch and go to message_ready state.
+        // next_step (null_mut(), 0, & RawEncoder::raw_message_ready, true);
+        let mut out = Self {
+            encoder_base: EncoderBase::new(bufsize_),
+        };
 
-void raw_encoder_t::raw_message_ready ()
-{
-    next_step (in_progress ().data (), in_progress ().size (),
-               &raw_encoder_t::raw_message_ready, true);
+        out
+    }
+
+    // RawEncoder::~RawEncoder ()
+    // {}
+
+    pub fn raw_message_ready(&mut self) {
+        todo!()
+        // next_step (in_progress ().data (), in_progress ().size (),
+        // & RawEncoder::raw_message_ready, true);
+    }
 }

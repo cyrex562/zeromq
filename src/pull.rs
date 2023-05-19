@@ -34,65 +34,76 @@
 // #include "msg.hpp"
 // #include "pipe.hpp"
 
-pull_t::pull_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
-    ZmqSocketBase (parent_, tid, sid_)
-{
-    options.type_ = ZMQ_PULL;
-}
+use crate::context::ZmqContext;
+use crate::defines::ZMQ_PULL;
+use crate::message::ZmqMessage;
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::socket_base::ZmqSocketBase;
 
-pull_t::~pull_t ()
-{
-}
-
-void pull_t::xattach_pipe (pipe: &mut ZmqPipe,
-                                subscribe_to_all_: bool,
-                                locally_initiated_: bool)
-{
-    LIBZMQ_UNUSED (subscribe_to_all_);
-    LIBZMQ_UNUSED (locally_initiated_);
-
-    // zmq_assert (pipe);
-    fair_queue.attach (pipe);
-}
-
-void pull_t::xread_activated (pipe: &mut ZmqPipe)
-{
-    fair_queue.activated (pipe);
-}
-
-void pull_t::xpipe_terminated (pipe: &mut ZmqPipe)
-{
-    fair_queue.pipe_terminated (pipe);
-}
-
-int pull_t::xrecv (msg: &mut ZmqMessage)
-{
-    return fair_queue.recv (msg);
-}
-
-bool pull_t::xhas_in ()
-{
-    return fair_queue.has_in ();
-}
-pub struct pull_t  : public ZmqSocketBase
-{
-//
-    pull_t (ZmqContext *parent_, tid: u32, sid_: i32);
-    ~pull_t ();
-
-
+#[derive(Default, Debug, Clone)]
+pub struct ZmqPull {
+    //: public ZmqSocketBase
+//     ZmqPull (ZmqContext *parent_, tid: u32, sid_: i32);
+//     ~ZmqPull ();
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe: &mut ZmqPipe,
-                       subscribe_to_all_: bool,
-                       locally_initiated_: bool);
-    int xrecv (msg: &mut ZmqMessage);
-    bool xhas_in ();
-    void xread_activated (pipe: &mut ZmqPipe);
-    void xpipe_terminated (pipe: &mut ZmqPipe);
-
-  //
+    // void xattach_pipe (pipe: &mut ZmqPipe,
+    //                    subscribe_to_all_: bool,
+    //                    locally_initiated_: bool);
+    // int xrecv (msg: &mut ZmqMessage);
+    // bool xhas_in ();
+    // void xread_activated (pipe: &mut ZmqPipe);
+    // void xpipe_terminated (pipe: &mut ZmqPipe);
     //  Fair queueing object for inbound pipes.
-    ZmqFq fair_queue;
+    // ZmqFq fair_queue;
+    pub fair_queue: VecDeque<ZmqPipe>,
+    pub socket_base: ZmqSocketbase,
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqPull)
+}
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (pull_t)
-};
+impl ZmqPull {
+    // ZmqPull::ZmqPull (parent: &mut ZmqContext, tid: u32, sid_: i32) :
+    // ZmqSocketBase (parent_, tid, sid_)
+    // {
+    // options.type_ = ZMQ_PULL;
+    // }
+    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
+        let mut out = Self {
+            socket_base: ZmqSocketBase::new(parent, options, tid, sid_, false),
+            fair_queue: VecDeque::new(),
+        };
+        out.socket_base.options.type_ = ZMQ_PULL;
+        out
+    }
+
+    // ZmqPull::~ZmqPull ()
+    // {
+    // }
+
+    pub fn xattach_pipe(&mut self,
+                        pipe: &mut ZmqPipe,
+                        subscribe_to_all_: bool,
+                        locally_initiated_: bool) {
+        // LIBZMQ_UNUSED (subscribe_to_all_);
+        // LIBZMQ_UNUSED (locally_initiated_);
+        // zmq_assert (pipe);
+        self.fair_queue.attach(pipe);
+    }
+
+    pub fn xread_activated(&mut self, pipe: &mut ZmqPipe) {
+        self.fair_queue.activated(pipe);
+    }
+
+    pub fn xpipe_terminated(&mut self, pipe: &mut ZmqPipe) {
+        self.fair_queue.pipe_terminated(pipe);
+    }
+
+    pub fn xrecv(&mut self, msg: &mut ZmqMessage) -> i32 {
+        return self.fair_queue.recv(msg);
+    }
+
+    pub fn xhas_in(&mut self) {
+        return self.fair_queue.has_in();
+    }
+}
+

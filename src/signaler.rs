@@ -11,7 +11,7 @@ use windows::Win32::Networking::WinSock::{
 
 use crate::fd::ZmqFileDesc;
 use crate::mechanism::ZmqMechanismStatus::error;
-use crate::polling_util::optimized_fd_set_t;
+use crate::polling_util::OptimizedFdSet;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqSignaler {
@@ -199,7 +199,7 @@ impl ZmqSignaler {
         // #elif defined ZMQ_POLL_BASED_ON_SELECT
         // #[cfg(feature = "select")]
         // {
-        // fds: optimized_fd_set_t = optimized_fd_set_t {}; //(1);
+        // fds: OptimizedFdSet = OptimizedFdSet {}; //(1);
         // FD_ZERO(fds.get());
         // FD_SET(_r, fds.get());
         // let mut timeout: libc::timeval = libc::timeval {

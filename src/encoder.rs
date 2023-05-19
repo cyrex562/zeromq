@@ -55,7 +55,7 @@ use crate::message::ZmqMessage;
 use crate::utils::copy_bytes;
 
 #[derive(Default, Debug, Clone)]
-pub struct ZmqBaseEncoder {
+pub struct EncoderBase {
     //
     //  Where to get the data to write from.
     // unsigned char *write_pos;
@@ -83,7 +83,7 @@ pub struct ZmqBaseEncoder {
     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (encoder_base_t)
 }
 
-impl ZmqBaseEncoder {
+impl EncoderBase {
     //
     // explicit encoder_base_t (bufsize_: usize) :
     // write_pos (0),

@@ -96,10 +96,10 @@ raw_engine_t::~raw_engine_t ()
 void raw_engine_t::plug_internal ()
 {
     // no handshaking for raw sock, instantiate raw encoder and decoders
-    _encoder =  raw_encoder_t (self._options.out_batch_size);
+    _encoder =  RawEncoder (self._options.out_batch_size);
     // alloc_assert (_encoder);
 
-    _decoder =  raw_decoder_t (self._options.in_batch_size);
+    _decoder =  RawDecoder (self._options.in_batch_size);
     // alloc_assert (_decoder);
 
     _next_msg = &raw_engine_t::pull_msg_from_session;

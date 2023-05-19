@@ -54,12 +54,12 @@ typedef struct
     u64 bytes_in;
     u64 msg_out;
     u64 bytes_out;
-} zmq_socket_stats_t;
+} ZmqSocketStats;
 
 typedef struct
 {
-    zmq_socket_stats_t frontend;
-    zmq_socket_stats_t backend;
+    ZmqSocketStats frontend;
+    ZmqSocketStats backend;
 } zmq_proxy_stats_t;
 
 void *g_clients_pkts_out = null_mut();

@@ -37,274 +37,290 @@
 // #include <algorithm>
 // #include <new>
 
-// #include "macros.hpp"
-// #include "err.hpp"
-// #include "config.hpp"
-// #include "i_poll_events.hpp"
-pub struct pollset_t  : public PollerBase
-{
-//
-    typedef void *handle_t;
+use libc::{epoll_ctl, POLLERR, POLLHUP, POLLIN, POLLOUT};
+use crate::fd::ZmqFileDesc;
+use crate::poll_events_interface::ZmqPollEventsInterface;
+use crate::poller_base::PollerBase;
+use crate::thread_ctx::ThreadCtx;
+use crate::zmtp_engine::ZmqIoThread;
 
-    pollset_t (const ThreadCtx &ctx);
-    ~pollset_t () ;
+struct ZmqPollEntry {
+    // ZmqFileDesc fd;
+    pub fd: ZmqFileDesc,
+    pub flag_pollin: bool,
+    pub flag_pollout: bool,
+    // ZmqPollEventsInterface *events;
+    pub events: ZmqPollEventsInterface,
+}
 
+pub struct PollSet<'a> {
+    // : public PollerBase
+    pub poller_base: PollerBase,
+    //
+//     typedef void *handle_t;
+//     PollSet (const ThreadCtx &ctx);
+//     ~PollSet () ;
     //  "poller" concept.
-    handle_t add_fd (fd: ZmqFileDesc, ZmqPollEventsInterface *events_);
-    void rm_fd (handle_t handle_);
-    void set_pollin (handle_t handle_);
-    void reset_pollin (handle_t handle_);
-    void set_pollout (handle_t handle_);
-    void reset_pollout (handle_t handle_);
-    void start ();
-    void stop ();
-
-    static int max_fds ();
-
-  //
+    // handle_t add_fd (fd: ZmqFileDesc, ZmqPollEventsInterface *events_);
+    // void rm_fd (handle_t handle_);
+    // void set_pollin (handle_t handle_);
+    // void reset_pollin (handle_t handle_);
+    // void set_pollout (handle_t handle_);
+    // void reset_pollout (handle_t handle_);
+    // void start ();
+    // void stop ();
+    // static int max_fds ();
     //  Main worker thread routine.
-    static void worker_routine (arg_: &mut [u8]);
-
+    // static void worker_routine (arg_: &mut [u8]);
     //  Main event loop.
-    void loop () ;
-
+    // void loop () ;
     // Reference to ZMQ context.
-    const ThreadCtx &ctx;
-
+    // const ThreadCtx &ctx;
+    pub ctx: &'a ThreadCtx,
     //  Main pollset file descriptor
-    ::pollset_t pollset_fd;
-
-    struct ZmqPollEntry
-    {
-        ZmqFileDesc fd;
-        flag_pollin: bool
-        flag_pollout: bool
-        ZmqPollEventsInterface *events;
-    };
-
+    pub pollset_fd: ZmqFileDesc,
     //  List of retired event sources.
-    typedef std::vector<ZmqPollEntry *> retired_t;
-    retired_t retired;
-
+    // typedef std::vector<ZmqPollEntry *> retired_t;
+    // retired_t retired;
+    pub retired: Vec<ZmqPollEntry>,
     //  This table stores data for registered descriptors.
-    typedef std::vector<ZmqPollEntry *> fd_table_t;
-    fd_table_t fd_table;
-
+    // typedef std::vector<ZmqPollEntry *> fd_table_t;
+    // fd_table_t fd_table;
+    pub fd_table: Vec<ZmqPollEntry>,
     //  If true, thread is in the process of shutting down.
-    stopping: bool
-
+    pub stopping: bool,
     //  Handle of the physical thread doing the I/O work.
-    thread_t worker;
+    // thread_t worker;
+    pub worker: ZmqIoThread,
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (pollset_t)
-};
-
-pollset_t::pollset_t (const ThreadCtx &ctx) :
-    ctx (ctx), stopping (false)
-{
-    pollset_fd = pollset_create (-1);
-    // errno_assert (pollset_fd != -1);
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (PollSet)
 }
 
-pollset_t::~pollset_t ()
-{
-    //  Wait till the worker thread exits.
-    worker.stop ();
-
-    pollset_destroy (pollset_fd);
-    for (retired_t::iterator it = retired.begin (); it != retired.end (); += 1it)
-        LIBZMQ_DELETE (*it);
-}
-
-pollset_t::handle_t pollset_t::add_fd (fd: ZmqFileDesc,
-                                                 ZmqPollEventsInterface *events_)
-{
-    ZmqPollEntry *pe =  ZmqPollEntry;
-    // alloc_assert (pe);
-
-    pe.fd = fd;
-    pe.flag_pollin = false;
-    pe.flag_pollout = false;
-    pe.events = events_;
-
-    struct poll_ctl pc;
-    pc.fd = fd;
-    pc.cmd = PS_ADD;
-    pc.events = 0;
-
-    int rc = pollset_ctl (pollset_fd, &pc, 1);
-    // errno_assert (rc != -1);
-
-    //  Increase the load metric of the thread.
-    adjust_load (1);
-
-    if (fd >= fd_table.size ()) {
-        fd_table.resize (fd + 1, null_mut());
-    }
-    fd_table[fd] = pe;
-    return pe;
-}
-
-void pollset_t::rm_fd (handle_t handle_)
-{
-    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
-
-    struct poll_ctl pc;
-    pc.fd = pe.fd;
-    pc.cmd = PS_DELETE;
-    pc.events = 0;
-    pollset_ctl (pollset_fd, &pc, 1);
-
-    fd_table[pe.fd] = null_mut();
-
-    pe.fd = retired_fd;
-    retired.push_back (pe);
-
-    //  Decrease the load metric of the thread.
-    adjust_load (-1);
-}
-
-void pollset_t::set_pollin (handle_t handle_)
-{
-    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
-    if ( (!pe.flag_pollin)) {
-        struct poll_ctl pc;
-        pc.fd = pe.fd;
-        pc.cmd = PS_MOD;
-        pc.events = POLLIN;
-
-        let rc: i32 = pollset_ctl (pollset_fd, &pc, 1);
-        // errno_assert (rc != -1);
-
-        pe.flag_pollin = true;
-    }
-}
-
-void pollset_t::reset_pollin (handle_t handle_)
-{
-    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
-    if ( (!pe.flag_pollin)) {
-        return;
-    }
-
-    struct poll_ctl pc;
-    pc.fd = pe.fd;
-    pc.events = 0;
-
-    pc.cmd = PS_DELETE;
-    int rc = pollset_ctl (pollset_fd, &pc, 1);
-
-    if (pe.flag_pollout) {
-        pc.events = POLLOUT;
-        pc.cmd = PS_MOD;
-        rc = pollset_ctl (pollset_fd, &pc, 1);
-        // errno_assert (rc != -1);
-    }
-
-    pe.flag_pollin = false;
-}
-
-void pollset_t::set_pollout (handle_t handle_)
-{
-    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
-    if ( (!pe.flag_pollout)) {
-        struct poll_ctl pc;
-        pc.fd = pe.fd;
-        pc.cmd = PS_MOD;
-        pc.events = POLLOUT;
-
-        let rc: i32 = pollset_ctl (pollset_fd, &pc, 1);
-        // errno_assert (rc != -1);
-
-        pe.flag_pollout = true;
-    }
-}
-
-void pollset_t::reset_pollout (handle_t handle_)
-{
-    ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
-    if ( (!pe.flag_pollout)) {
-        return;
-    }
-
-    struct poll_ctl pc;
-    pc.fd = pe.fd;
-    pc.events = 0;
-
-    pc.cmd = PS_DELETE;
-    int rc = pollset_ctl (pollset_fd, &pc, 1);
-    // errno_assert (rc != -1);
-
-    if (pe.flag_pollin) {
-        pc.cmd = PS_MOD;
-        pc.events = POLLIN;
-        rc = pollset_ctl (pollset_fd, &pc, 1);
-        // errno_assert (rc != -1);
-    }
-    pe.flag_pollout = false;
-}
-
-void pollset_t::start ()
-{
-    ctx.start_thread (worker, worker_routine, this);
-}
-
-void pollset_t::stop ()
-{
-    stopping = true;
-}
-
-int pollset_t::max_fds ()
-{
-    return -1;
-}
-
-void pollset_t::loop ()
-{
-    struct pollfd polldata_array[max_io_events];
-
-    while (!stopping) {
-        //  Execute any due timers.
-        int timeout =  execute_timers ();
-
-        //  Wait for events.
-        int n = pollset_poll (pollset_fd, polldata_array, max_io_events,
-                              timeout ? timeout : -1);
-        if (n == -1) {
-            // errno_assert (errno == EINTR);
-            continue;
+impl PollSet {
+    pub fn new(ctx: &ThreadCtx) -> Self {
+        Self {
+            poller_base: PollerBase::new(),
+            pollset_fd: pollset_create(-1),
+            retired: Vec::new(),
+            fd_table: Vec::new(),
+            worker: ZmqIoThread::new(),
+            ctx: ctx,
+            stopping: false,
         }
+    }
 
-        for (int i = 0; i < n; i+= 1) {
-            ZmqPollEntry *pe = fd_table[polldata_array[i].fd];
-            if (!pe)
-                continue;
+    pub fn add_fd(&mut self, fd: ZmqFileDesc,
+                  events_: &mut ZmqPollEventsInterface) -> ZmqFileDesc {
+        let pe = ZmqPollEntry::default();
+        // alloc_assert (pe);
 
-            if (pe.fd == retired_fd)
+        pe.fd = fd;
+        pe.flag_pollin = false;
+        pe.flag_pollout = false;
+        pe.events = events_;
+
+        // TODO
+        // let pc = epoll_ctl(pollset_fd, EPOLL_CTL_ADD, fd, &mut pe.events);
+        // pc.fd = fd;
+        // pc.cmd = PS_ADD;
+        // pc.events = 0;
+
+        let rc = pollset_ctl(pollset_fd, &pc, 1);
+        // errno_assert (rc != -1);
+
+        //  Increase the load metric of the thread.
+        adjust_load(1);
+
+        // if fd >= fd_table.size () {
+        //     fd_table.resize (fd + 1, null_mut());
+        // }
+        // fd_table[fd] = pe;
+        return pe;
+    }
+
+    pub fn rm_fd(&mut self, handle_: ZmqFileDesc) {
+        // ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
+        // TODO
+        // struct poll_ctl pc;
+        // pc.fd = pe.fd;
+        // pc.cmd = PS_DELETE;
+        // pc.events = 0;
+        pollset_ctl(pollset_fd, &pc, 1);
+
+        fd_table[pe.fd] = null_mut();
+
+        pe.fd = retired_fd;
+        retired.push_back(pe);
+
+        //  Decrease the load metric of the thread.
+        adjust_load(-1);
+    }
+
+    pub fn set_pollin(&mut self, handle_: ZmqFileDesc) {
+        // TODO
+        // ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
+        // if ( (!pe.flag_pollin)) {
+        //     struct poll_ctl pc;
+        //     pc.fd = pe.fd;
+        //     pc.cmd = PS_MOD;
+        //     pc.events = POLLIN;
+        //
+        //     let rc: i32 = pollset_ctl (pollset_fd, &pc, 1);
+        //     // errno_assert (rc != -1);
+        //
+        //     pe.flag_pollin = true;
+        // }
+    }
+
+    pub fn reset_pollin(&mut self, handle_: ZmqFileDesc) {
+        // ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
+        // if ( (!pe.flag_pollin)) {
+        //     return;
+        // }
+
+        // struct poll_ctl pc;
+        // pc.fd = pe.fd;
+        // pc.events = 0;
+        //
+        // pc.cmd = PS_DELETE;
+        // let rc = pollset_ctl (pollset_fd, &pc, 1);
+        //
+        // if (pe.flag_pollout) {
+        //     pc.events = POLLOUT;
+        //     pc.cmd = PS_MOD;
+        //     rc = pollset_ctl (pollset_fd, &pc, 1);
+        //     // errno_assert (rc != -1);
+        // }
+        //
+        // pe.flag_pollin = false;
+    }
+
+    pub fn set_pollout(&mut self, handle_: ZmqFileDesc) {
+        // ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
+        // if ( (!pe.flag_pollout)) {
+        //     struct poll_ctl pc;
+        //     pc.fd = pe.fd;
+        //     pc.cmd = PS_MOD;
+        //     pc.events = POLLOUT;
+        //
+        //     let rc: i32 = pollset_ctl (pollset_fd, &pc, 1);
+        //     // errno_assert (rc != -1);
+        //
+        //     pe.flag_pollout = true;
+        // }
+    }
+
+    pub fn reset_pollout(&mut self, handle_: ZmqFileDesc) {
+        // ZmqPollEntry *pe = (ZmqPollEntry *) handle_;
+        // if ( (!pe.flag_pollout)) {
+        //     return;
+        // }
+        //
+        // struct poll_ctl pc;
+        // pc.fd = pe.fd;
+        // pc.events = 0;
+        //
+        // pc.cmd = PS_DELETE;
+        // int rc = pollset_ctl (pollset_fd, &pc, 1);
+        // // errno_assert (rc != -1);
+        //
+        // if (pe.flag_pollin) {
+        //     pc.cmd = PS_MOD;
+        //     pc.events = POLLIN;
+        //     rc = pollset_ctl (pollset_fd, &pc, 1);
+        //     // errno_assert (rc != -1);
+        // }
+        // pe.flag_pollout = false;
+    }
+
+    pub fn start(&mut self) {
+        ctx.start_thread(worker, worker_routine, this);
+    }
+
+    pub fn stop(&mut self) {
+        stopping = true;
+    }
+
+    pub fn max_fds(&mut self) -> i32 {
+        return -1;
+    }
+
+
+    pub fn loop_(&mut self) {
+        // struct pollfd
+        // polldata_array[max_io_events];
+
+        while !stopping {
+            //  Execute any due timers.
+            let timeout = execute_timers();
+
+            //  Wait for events.
+            let n = pollset_poll(pollset_fd, polldata_array, max_io_events,
+                                 if timeout { timeout } else { -1 });
+            if (n == -1) {
+                // errno_assert (errno == EINTR);
                 continue;
-            if (polldata_array[i].revents & (POLLERR | POLLHUP))
-                pe.events.in_event ();
-            if (pe.fd == retired_fd)
-                continue;
-            if (polldata_array[i].revents & POLLOUT)
-                pe.events.out_event ();
-            if (pe.fd == retired_fd)
-                continue;
-            if (polldata_array[i].revents & POLLIN)
-                pe.events.in_event ();
+            }
+
+            // for (int i = 0; i < n; i+= 1)
+            for i in 0..n {
+                // ZmqPollEntry *pe = fd_table[polldata_array[i].fd];
+                if (!pe) {
+                    continue;
+                }
+
+                if (pe.fd == retired_fd) {
+                    continue;
+                }
+                if (polldata_array[i].revents & (POLLERR | POLLHUP)) {
+                    pe.events.in_event();
+                }
+                if (pe.fd == retired_fd) {
+                    continue;
+                }
+                if (polldata_array[i].revents & POLLOUT) {
+                    pe.events.out_event();
+                }
+                if (pe.fd == retired_fd) {
+                    continue;
+                }
+                if (polldata_array[i].revents & POLLIN) {
+                    pe.events.in_event();
+                }
+            }
+
+            //  Destroy retired event sources.
+            // for (retired_t::iterator it = retired.begin (); it != retired.end ();
+            // += 1it)
+            // LIBZMQ_DELETE (*it);
+            for retired in self.retired {
+                LIBZMQ_DELETE(retired);
+            }
+            retired.clear();
         }
+    }
 
-        //  Destroy retired event sources.
-        for (retired_t::iterator it = retired.begin (); it != retired.end ();
-             += 1it)
-            LIBZMQ_DELETE (*it);
-        retired.clear ();
+    pub fn worker_routine(&mut self, arg_: &mut [u8]) {
+        // ((PollSet *) arg_)->loop ();
     }
 }
 
-void pollset_t::worker_routine (arg_: &mut [u8])
-{
-    ((pollset_t *) arg_)->loop ();
-}
+// PollSet::PollSet (const ThreadCtx &ctx) :
+//     ctx (ctx), stopping (false)
+// {
+//     pollset_fd = pollset_create (-1);
+//     // errno_assert (pollset_fd != -1);
+// }
+
+// PollSet::~PollSet ()
+// {
+//     //  Wait till the worker thread exits.
+//     worker.stop ();
+//
+//     pollset_destroy (pollset_fd);
+//     for (retired_t::iterator it = retired.begin (); it != retired.end (); += 1it)
+//         LIBZMQ_DELETE (*it);
+// }
+
 
 // #endif

@@ -121,9 +121,9 @@ pub struct socket_poller_t
 // #if defined ZMQ_POLL_BASED_ON_POLL
     pollfd *_pollfds;
 #elif defined ZMQ_POLL_BASED_ON_SELECT
-    resizable_optimized_fd_set_t _pollset_in;
-    resizable_optimized_fd_set_t _pollset_out;
-    resizable_optimized_fd_set_t _pollset_err;
+    ResizableOptimizedFdSet _pollset_in;
+    ResizableOptimizedFdSet _pollset_out;
+    ResizableOptimizedFdSet _pollset_err;
     ZmqFileDesc _max_fd;
 // #endif
 
@@ -718,9 +718,9 @@ int socket_poller_t::wait (socket_poller_t::event_t *events_,
 
     bool first_pass = true;
 
-    optimized_fd_set_t inset (_pollset_size);
-    optimized_fd_set_t outset (_pollset_size);
-    optimized_fd_set_t errset (_pollset_size);
+    OptimizedFdSet inset (_pollset_size);
+    OptimizedFdSet outset (_pollset_size);
+    OptimizedFdSet errset (_pollset_size);
 
     while (true) {
         //  Compute the timeout for the subsequent poll.

@@ -117,7 +117,7 @@ THROUGHPUT_CSV_HEADER_LINE="# message_size,message_count,PPS[msg/s],throughput[M
 # PUSH/PULL TCP throughput CSV file:
 TEST_ENDPOINT="$LOCAL_TEST_ENDPOINT"
 generate_output_file "local_thr" "remote_thr" \
-    "pushpull_tcp_thr_results" \
+    "pushZmqPullcp_thr_results" \
     "1000000" \
     "$THROUGHPUT_CSV_HEADER_LINE"
 

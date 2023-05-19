@@ -521,10 +521,10 @@ impl ZmqSocketBase {
     //             s = new (std::nothrow) router_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_PULL =>
-    //             s = new (std::nothrow) pull_t (parent_, tid, sid_);
+    //             s = new (std::nothrow) ZmqPull (parent_, tid, sid_);
     //             break;
     //         ZMQ_PUSH =>
-    //             s = new (std::nothrow) push_t (parent_, tid, sid_);
+    //             s = new (std::nothrow) ZmqPush (parent_, tid, sid_);
     //             break;
     //         ZMQ_XPUB =>
     //             s = new (std::nothrow) XPub (parent_, tid, sid_);
@@ -542,7 +542,7 @@ impl ZmqSocketBase {
     //             s = new (std::nothrow) client_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_RADIO =>
-    //             s = new (std::nothrow) radio_t (parent_, tid, sid_);
+    //             s = new (std::nothrow) ZmqRadio (parent_, tid, sid_);
     //             break;
     //         ZMQ_DISH =>
     //             s = new (std::nothrow) ZmqDish (parent_, tid, sid_);

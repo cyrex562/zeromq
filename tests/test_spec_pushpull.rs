@@ -400,17 +400,17 @@ def_test_spec_pushpull (inproc, "inproc://a")
 
     UNITY_BEGIN ();
     RUN_TEST (test_spec_pushpull_inproc_push_round_robin_out);
-    RUN_TEST (test_spec_pushpull_tcp_push_round_robin_out);
+    RUN_TEST (test_spec_pushZmqPullcp_push_round_robin_out);
     RUN_TEST (test_spec_pushpull_inproc_pull_fair_queue_in);
-    RUN_TEST (test_spec_pushpull_tcp_pull_fair_queue_in);
+    RUN_TEST (test_spec_pushZmqPullcp_pull_fair_queue_in);
     RUN_TEST (test_spec_pushpull_inproc_push_block_on_send_no_peers);
-    RUN_TEST (test_spec_pushpull_tcp_push_block_on_send_no_peers);
+    RUN_TEST (test_spec_pushZmqPullcp_push_block_on_send_no_peers);
     // TODO Tests disabled until libzmq does this properly
     //RUN_TEST (test_spec_pushpull_inproc_destroy_queue_on_disconnect);
-    //RUN_TEST (test_spec_pushpull_tcp_destroy_queue_on_disconnect);
+    //RUN_TEST (test_spec_pushZmqPullcp_destroy_queue_on_disconnect);
     RUN_TEST (test_spec_pushpull_inproc_push_multipart_atomic_drop_block);
     RUN_TEST (test_spec_pushpull_inproc_push_multipart_atomic_drop_non_block);
-    RUN_TEST (test_spec_pushpull_tcp_push_multipart_atomic_drop_block);
-    RUN_TEST (test_spec_pushpull_tcp_push_multipart_atomic_drop_non_block);
+    RUN_TEST (test_spec_pushZmqPullcp_push_multipart_atomic_drop_block);
+    RUN_TEST (test_spec_pushZmqPullcp_push_multipart_atomic_drop_non_block);
     return UNITY_END ();
 }
