@@ -34,6 +34,7 @@
 // #include "msg.hpp"
 // #include "pipe.hpp"
 
+use std::collections::VecDeque;
 use crate::context::ZmqContext;
 use crate::defines::ZMQ_PULL;
 use crate::message::ZmqMessage;

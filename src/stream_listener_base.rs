@@ -145,7 +145,7 @@ void stream_listener_base_t::create_engine (ZmqFileDesc fd)
 
     ZmqEngineInterface *engine;
     if (options.raw_socket)
-        engine =  raw_engine_t (fd, options, endpoint_pair);
+        engine =  RawEngine (fd, options, endpoint_pair);
     else
         engine =  ZmqZmtpEngine (fd, options, endpoint_pair);
     // alloc_assert (engine);

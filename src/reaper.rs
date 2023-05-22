@@ -27,167 +27,217 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use libc::{EAGAIN, EINTR};
+use crate::command::ZmqCommand;
+use crate::context::ZmqContext;
+use crate::defines::ZmqHandle;
+use crate::devpoll::Poller;
+use crate::mailbox::ZmqMailbox;
+use crate::object::ZmqObject;
+use crate::poll_events_interface::ZmqPollEventsInterface;
+use crate::socket_base::ZmqSocketBase;
+
 // #include "precompiled.hpp"
 // #include "macros.hpp"
 // #include "reaper.hpp"
 // #include "socket_base.hpp"
 // #include "err.hpp"
-pub struct reaper_t  : public ZmqObject, public ZmqPollEventsInterface
-{
-//
-    reaper_t (ctx: &mut ZmqContext, tid: u32);
-    ~reaper_t ();
+pub struct ZmqReaper {
+    // : public ZmqObject
+    // pub object: ZmqObject,
+    // public ZmqPollEventsInterface
 
-    ZmqMailbox *get_mailbox ();
+    // ZmqReaper (ctx: &mut ZmqContext, tid: u32);
 
-    void start ();
-    void stop ();
+    // ~ZmqReaper ();
+
+    // ZmqMailbox *get_mailbox ();
+
+    // void start ();
+
+    // void stop ();
 
     //  i_poll_events implementation.
-    void in_event ();
-    void out_event ();
-    void timer_event (id_: i32);
 
-  //
+    // void in_event ();
+
+    // void out_event ();
+
+    // void timer_event (id_: i32);
+
     //  Command handlers.
-    void process_stop ();
-    void process_reap (ZmqSocketBase *socket);
-    void process_reaped ();
+    // void process_stop ();
+
+    // void process_reap (ZmqSocketBase *socket);
+
+    // void process_reaped ();
 
     //  Reaper thread accesses incoming commands via this mailbox.
-    ZmqMailbox mailbox;
-
+    // ZmqMailbox mailbox;
+    pub mailbox: ZmqMailbox,
     //  Handle associated with mailbox' file descriptor.
-    Poller::handle_t mailbox_handle;
-
+    // Poller::handle_t mailbox_handle;
+    pub mailbox_handle: ZmqHandle,
     //  I/O multiplexing is performed using a poller object.
-    Poller *poller;
-
+    // Poller *poller;
+    pub poller: Poller,
     //  Number of sockets being reaped at the moment.
-    self._sockets: i32;
-
+    pub _sockets: i32,
     //  If true, we were already asked to terminate.
-    terminating: bool
-
+    pub terminating: bool,
 // #ifdef HAVE_FORK
     // the process that created this context. Used to detect forking.
-    pid_t _pid;
+    // pid_t _pid;
 // #endif
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (reaper_t)
-};
-
-reaper_t::reaper_t (class ctx: &mut ZmqContext, tid: u32) :
-    ZmqObject (ctx, tid),
-    mailbox_handle (static_cast<Poller::handle_t> (null_mut())),
-    poller (null_mut()),
-    self._sockets (0),
-    terminating (false)
-{
-    if (!mailbox.valid ())
-        return;
-
-    poller =  Poller (*ctx);
-    // alloc_assert (poller);
-
-    if (mailbox.get_fd () != retired_fd) {
-        mailbox_handle = poller.add_fd (mailbox.get_fd (), this);
-        poller.set_pollin (mailbox_handle);
-    }
-
-// #ifdef HAVE_FORK
-    _pid = getpid ();
-// #endif
 }
 
-reaper_t::~reaper_t ()
-{
-    LIBZMQ_DELETE (poller);
-}
+impl ZmqReaper {
+    pub fn new(ctx: &mut ZmqContext, tid: u32) -> Self {
+        //  :
+        //     ZmqObject (ctx, tid),
+        //     mailbox_handle (static_cast<Poller::handle_t> (null_mut())),
+        //     poller (null_mut()),
+        //     self._sockets (0),
+        //     terminating (false)
+        let mut out = Self {
+            mailbox: Default::default(),
+            mailbox_handle: 0,
+            poller: Poller::new(ctx),
+            _sockets: 0,
+            terminating: false,
+        };
 
-ZmqMailbox *reaper_t::get_mailbox ()
-{
-    return &mailbox;
-}
+        // if (!mailbox.valid ()) {
+        //     return;
+        // }
 
-void reaper_t::start ()
-{
-    // zmq_assert (mailbox.valid ());
+        // poller =  Poller (*ctx);
+        // alloc_assert (poller);
 
-    //  Start the thread.
-    poller.start ("Reaper");
-}
-
-void reaper_t::stop ()
-{
-    if (get_mailbox ().valid ()) {
-        send_stop ();
-    }
-}
-
-void reaper_t::in_event ()
-{
-    while (true) {
-// #ifdef HAVE_FORK
-        if ( (_pid != getpid ())) {
-            //printf("reaper_t::in_event return in child process %d\n", getpid());
-            return;
+        if (out.mailbox.get_fd() != retired_fd) {
+            out.mailbox_handle = out.poller.add_fd(mailbox.get_fd(), &mut out);
+            out.poller.set_pollin(&out.mailbox_handle);
         }
+
+// #ifdef HAVE_FORK
+//         _pid = getpid ();
+// #endif
+        out
+    }
+
+    pub fn start(&mut self) {
+        // zmq_assert (mailbox.valid ());
+
+        //  Start the thread.
+        self.poller.start("Reaper");
+    }
+
+    pub fn stop(&mut self) {
+        if (self.mailbox.valid()) {
+            send_stop();
+        }
+    }
+
+    pub fn in_event() {
+        loop {
+// #ifdef HAVE_FORK
+//         if ( (_pid != getpid ())) {
+//             //printf("reaper_t::in_event return in child process %d\n", getpid());
+//             return;
+//         }
 // #endif
 
-        //  Get the next command. If there is none, exit.
-        ZmqCommand cmd;
-        let rc: i32 = mailbox.recv (&cmd, 0);
-        if (rc != 0 && errno == EINTR)
-            continue;
-        if (rc != 0 && errno == EAGAIN)
-            break;
-        // errno_assert (rc == 0);
+            //  Get the next command. If there is none, exit.
+            let mut cmd = ZmqCommand::default();
+            let rc: i32 = mailbox.recv(&cmd, 0);
+            if (rc != 0 && errno == EINTR) {
+                continue;
+            }
+            if (rc != 0 && errno == EAGAIN) {
+                break;
+            }
+            // errno_assert (rc == 0);
 
-        //  Process the command.
-        cmd.destination.process_command (cmd);
+            //  Process the command.
+            cmd.destination.process_command(&cmd);
+        }
+    }
+
+    pub fn process_stop(&mut self) {
+        terminating = true;
+
+        //  If there are no sockets being reaped finish immediately.
+        if (!self._sockets) {
+            send_done();
+            self.poller.rm_fd(mailbox_handle);
+            self.poller.stop();
+        }
+    }
+
+    pub fn process_reap(&mut self, socket: &mut ZmqSocketBase) {
+        //  Add the socket to the poller.
+        socket.start_reaping(poller);
+        self._sockets += 1;
+    }
+
+    pub fn process_reaped(&mut self) {
+        self._sockets -= 1;
+
+        //  If reaped was already asked to terminate and there are no more sockets,
+        //  finish immediately.
+        if (!self._sockets && terminating) {
+            send_done();
+            poller.rm_fd(mailbox_handle);
+            poller.stop();
+        }
     }
 }
 
-void reaper_t::out_event ()
-{
-    // zmq_assert (false);
-}
-
-void reaper_t::timer_event
-{
-    // zmq_assert (false);
-}
-
-void reaper_t::process_stop ()
-{
-    terminating = true;
-
-    //  If there are no sockets being reaped finish immediately.
-    if (!_sockets) {
-        send_done ();
-        poller.rm_fd (mailbox_handle);
-        poller.stop ();
+impl ZmqObject for ZmqReaper {
+    fn set_ctx(&mut self, ctx: &mut ZmqContext) {
+        todo!()
     }
 }
 
-void reaper_t::process_reap (ZmqSocketBase *socket)
-{
-    //  Add the socket to the poller.
-    socket.start_reaping (poller);
+impl ZmqPollEventsInterface for ZmqReaper {
+    fn in_event(&mut self) {
+        todo!()
+    }
 
-    += 1_sockets;
-}
+    fn out_event(&mut self) {
+        todo!()
+    }
 
-void reaper_t::process_reaped ()
-{
-    --_sockets;
-
-    //  If reaped was already asked to terminate and there are no more sockets,
-    //  finish immediately.
-    if (!_sockets && terminating) {
-        send_done ();
-        poller.rm_fd (mailbox_handle);
-        poller.stop ();
+    fn timer_event(&mut self, id: i32) {
+        todo!()
     }
 }
+
+// ZmqReaper::~ZmqReaper ()
+// {
+//     LIBZMQ_DELETE (poller);
+// }
+
+// ZmqMailbox *ZmqReaper::get_mailbox () -> &mut ZmqMailbox
+// {
+//     return &mailbox;
+// }
+
+
+// void ZmqReaper::out_event ()
+// {
+//     // zmq_assert (false);
+// }
+
+// void ZmqReaper::timer_event
+// {
+//     // zmq_assert (false);
+// }
+
+
+
+
+
+

@@ -84,6 +84,7 @@
 
 // Control socket messages
 
+use std::ptr::null_mut;
 use libc::EAGAIN;
 use crate::defines::{ZMQ_DONTWAIT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_RCVMORE, ZMQ_SNDMORE};
 use crate::message::ZmqMessage;
@@ -113,7 +114,7 @@ pub fn capture (options: &mut ZmqOptions, capture_: &mut ZmqSocketBase, msg: &mu
     //  Copy message to capture socket if any
     if capture_ {
         let mut ctrl = ZmqMessage::default();
-        let mut rc = ctrl.init ();
+        let mut rc = ctrl.init2();
         if rc < 0 {
             return -1;
         }
@@ -122,7 +123,7 @@ pub fn capture (options: &mut ZmqOptions, capture_: &mut ZmqSocketBase, msg: &mu
         //     return -1;
         // }
         ctrl = msg.clone();
-        rc = capture_.send (&mut ctrl, options, if more_ { ZMQ_SNDMORE } else { 0 });
+        capture_.send (&mut ctrl, options, if more_ { ZMQ_SNDMORE } else { 0 });
         if rc < 0 {
             return -1;
         }
@@ -130,7 +131,7 @@ pub fn capture (options: &mut ZmqOptions, capture_: &mut ZmqSocketBase, msg: &mu
     return 0;
 }
 
-pub fn forward(options: &mut ZmqOptions, from_: &mut ZmqSocketBase, from_stats_: &mut ZmqSocketStats, to_: &mut ZmqSocketBase, to_stats: &mut ZmqSocketStats, capture: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> i32
+pub fn forward(options: &mut ZmqOptions, from_: &mut ZmqSocketBase, from_stats_: &mut ZmqSocketStats, to_: &mut ZmqSocketBase, to_stats: &mut ZmqSocketStats, capture: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()>
 {
     // Forward a burst of messages
     // for (unsigned int i = 0; i < proxy_burst_size; i+= 1)
@@ -142,33 +143,21 @@ pub fn forward(options: &mut ZmqOptions, from_: &mut ZmqSocketBase, from_stats_:
 
         // Forward all the parts of one message
         loop {
-            let rc = from_.recv (msg, options, ZMQ_DONTWAIT as i32);
-            if rc < 0 {
-                if errno == EAGAIN && i > 0 {
-                    return 0; // End of burst
-                }
-
-                return -1;
-            }
+            from_.recv (msg, options, ZMQ_DONTWAIT as i32)?;
 
             complete_msg_size += msg.size ();
 
             moresz = 4;
-            rc = from_.getsockopt (options, ZMQ_RCVMORE as i32);
-            if rc < 0 {
-                return -1;
-            }
+            from_.getsockopt (options, ZMQ_RCVMORE as i32)?;
 
             //  Copy message to capture socket if any
-            rc = capture::new(capture_, msg, &more);
-            if rc < 0 {
-                return -1;
-            }
+            rc = capture::new(capture, msg, &more);
+            // if rc < 0 {
+            //     return -1;
+            // }
 
-            rc = to_.send (msg, options, if more { ZMQ_SNDMORE } else { 0 });
-            if rc < 0 {
-                return -1;
-            }
+            to_.send (msg, options, if more { ZMQ_SNDMORE } else { 0 })?;
+
 
             if more == 0 {
                 break;
@@ -182,7 +171,7 @@ pub fn forward(options: &mut ZmqOptions, from_: &mut ZmqSocketBase, from_stats_:
         to_stats_.bytes_out += &complete_msg_size;
     }
 
-    return 0;
+    Ok(())
 }
 
 pub fn loop_and_send_multipart_stat (options: &mut ZmqOptions,
@@ -195,7 +184,7 @@ pub fn loop_and_send_multipart_stat (options: &mut ZmqOptions,
 let mut msg = ZmqMessage::default();
 
     //  VSM of 8 bytes can't fail to init
-    msg.init_size (mem::size_of::<u64>());
+    msg.init_size (8);
     copy_bytes(msg.data_mut(), 0, stat_.bytes, 0, 8);
 
     //  if the first message is handed to the pipe successfully then the HWM

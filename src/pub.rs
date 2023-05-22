@@ -27,58 +27,68 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use crate::context::ZmqContext;
+use crate::defines::ZMQ_PUB;
+use crate::message::ZmqMessage;
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::xpub::XPub;
+
 // #include "precompiled.hpp"
 // #include "pub.hpp"
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-pub struct pub_t  : public XPub
-{
-//
-    pub_t (ZmqContext *parent_, tid: u32, sid_: i32);
-    ~pub_t ();
+pub struct ZmqPub {
+    pub xpub: XPub,
+    // ZmqPub (ZmqContext *parent_, tid: u32, sid_: i32);
+
+    // ~ZmqPub ();
 
     //  Implementations of virtual functions from ZmqSocketBase.
-    void xattach_pipe (pipe: &mut ZmqPipe,
-                       bool subscribe_to_all_ = false,
-                       bool locally_initiated_ = false);
-    int xrecv (msg: &mut ZmqMessage);
-    bool xhas_in ();
+    // void xattach_pipe (pipe: &mut ZmqPipe,
+    //                    bool subscribe_to_all_ = false,
+    //                    bool locally_initiated_ = false);
+
+    // int xrecv (msg: &mut ZmqMessage);
+
+    // bool xhas_in ();
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (pub_t)
-};
-
-pub_t::pub_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
-    XPub (parent_, tid, sid_)
-{
-    options.type_ = ZMQ_PUB;
 }
 
-pub_t::~pub_t ()
-{
-}
+impl ZmqPub {
+    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
+        // : XPub (parent_, tid, sid_)
+        let mut out = Self {
+            xpub: XPub::new(parent, options, tid, sid),
+        };
+        out.xpub.options.type_ = ZMQ_PUB;
+        out
+    }
 
-void pub_t::xattach_pipe (pipe: &mut ZmqPipe,
-                               subscribe_to_all_: bool,
-                               locally_initiated_: bool)
-{
-    // zmq_assert (pipe);
+    // ZmqPub::~ZmqPub ()
+    // {}
 
-    //  Don't delay pipe termination as there is no one
-    //  to receive the delimiter.
-    pipe.set_nodelay ();
+    pub fn xattach_pipe(&mut self, pipe: &mut ZmqPipe,
+                        subscribe_to_all_: bool,
+                        locally_initiated_: bool) {
+        // zmq_assert (pipe);
 
-    XPub::xattach_pipe (pipe, subscribe_to_all_, locally_initiated_);
-}
+        //  Don't delay pipe termination as there is no one
+        //  to receive the delimiter.
+        pipe.set_nodelay();
 
-int pub_t::xrecv (class ZmqMessage *)
-{
-    //  Messages cannot be received from PUB socket.
-    errno = ENOTSUP;
-    return -1;
-}
+        self.xpub.xattach_pipe(self.xpub.options, pipe, subscribe_to_all_, locally_initiated_);
+    }
 
-bool pub_t::xhas_in ()
-{
-    return false;
+    pub fn xrecv(&mut self, msg: &mut ZmqMessage) -> i32 {
+        //  Messages cannot be received from PUB socket.
+        // errno = ENOTSUP; return - 1;
+        unimplemented!()
+    }
+
+    pub fn xhas_in() -> bool {
+        return false;
+    }
 }

@@ -53,7 +53,7 @@ use crate::io_thread::ZmqIoThread;
 use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
 use crate::proxy::ZmqSocketBase;
-use crate::raw_engine::raw_engine_t;
+use crate::raw_engine::RawEngine;
 use crate::session_base::ZmqSessionBase;
 use crate::zmtp_engine::ZmqZmtpEngine;
 use libc::{c_int, close};
@@ -278,7 +278,7 @@ impl StreamConnecterBase {
         //  Create the engine object for this connection.
         let mut engine = ZmqEngineInterface::default();
         if (self.options.raw_socket) {
-            engine = raw_engine_t::new(fd, self.options, endpoint_pair);
+            engine = RawEngine::new(fd, self.options, endpoint_pair);
         } else {
             engine = ZmqZmtpEngine::new(fd, self.options, endpoint_pair);
         }

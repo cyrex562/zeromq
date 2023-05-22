@@ -31,7 +31,7 @@ use crate::object::ZmqObject;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
 use crate::pending_connection::PendingConnection;
 use crate::pipe::ZmqPipe;
-use crate::reaper::reaper_t;
+use crate::reaper::ZmqReaper;
 use crate::socket_base::ZmqSocketBase;
 use crate::thread_ctx::ThreadCtx;
 
@@ -112,7 +112,7 @@ pub struct ZmqContext {
 
     //  The reaper thread.
     // reaper_t *_reaper;
-    pub reaper: Option<reaper_t>,
+    pub reaper: Option<ZmqReaper>,
 
     //  I/O threads.
 
@@ -560,7 +560,7 @@ impl ZmqContext {
         self.slots[TERM_TID] = &self.term_mailbox;
 
         //  Create the reaper thread.
-        self.reaper = reaper_t::new(self, REAPER_TID);
+        self.reaper = ZmqReaper::new(self, REAPER_TID);
         if self.reaper.is_none() {
             errno = ENOMEM;
             // goto fail_cleanup_slots;
@@ -679,7 +679,7 @@ pub fn destroy_socket(&mut self, socket: &mut ZmqSocketBase) {
 }
 
 // object_t *ZmqContext::get_reaper () const
-pub fn get_reaper(&mut self) -> Option<reaper_t> {
+pub fn get_reaper(&mut self) -> Option<ZmqReaper> {
     return self.reaper.clone();
 }
 

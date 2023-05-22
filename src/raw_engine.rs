@@ -40,6 +40,15 @@
 // #include <new>
 // #include <sstream>
 
+use crate::endpoint::EndpointUriPair;
+use crate::fd::ZmqFileDesc;
+use crate::message::ZmqMessage;
+use crate::metadata::ZmqMetadata;
+use crate::options::ZmqOptions;
+use crate::raw_decoder::RawDecoder;
+use crate::raw_encoder::RawEncoder;
+use crate::stream_engine_base::ZmqStreamEngineBase;
+
 // #include "raw_engine.hpp"
 // #include "io_thread.hpp"
 // #include "session_base.hpp"
@@ -62,95 +71,111 @@
 // #include "tcp.hpp"
 // #include "likely.hpp"
 // #include "wire.hpp"
-pub struct raw_engine_t  : public ZmqStreamEngineBase
+pub struct RawEngine
 {
+    // : public ZmqStreamEngineBase
+    pub stream_engine_base: ZmqStreamEngineBase,
 //
-    raw_engine_t (fd: ZmqFileDesc,
-                  options: &ZmqOptions,
-                  const EndpointUriPair &endpoint_uri_pair_);
-    ~raw_engine_t ();
-
-
-    void // error (ZmqErrorReason reason_);
-    void plug_internal ();
-    bool handshake ();
-
-  //
-    int push_raw_ZmqMessageo_session (msg: &mut ZmqMessage);
+//     RawEngine (fd: ZmqFileDesc, options: &ZmqOptions, const EndpointUriPair &endpoint_uri_pair_);
+//     ~RawEngine ();
+//     void // error (ZmqErrorReason reason_);
+//     void plug_internal ();
+//     bool handshake ();
+//     int push_raw_ZmqMessageo_session (msg: &mut ZmqMessage);
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (raw_engine_t)
-};
-
-raw_engine_t::raw_engine_t (
-  fd: ZmqFileDesc,
-  options: &ZmqOptions,
-  const EndpointUriPair &endpoint_uri_pair_) :
-    ZmqStreamEngineBase (fd, options_, endpoint_uri_pair_, false)
-{
 }
 
-raw_engine_t::~raw_engine_t ()
-{
-}
+impl RawEngine {
+    pub fn new (
+        fd: ZmqFileDesc,
+        options: &mut ZmqOptions,
+        endpoint_uri_pair_: &EndpointUriPair) -> Self
 
-void raw_engine_t::plug_internal ()
-{
-    // no handshaking for raw sock, instantiate raw encoder and decoders
-    _encoder =  RawEncoder (self._options.out_batch_size);
-    // alloc_assert (_encoder);
-
-    _decoder =  RawDecoder (self._options.in_batch_size);
-    // alloc_assert (_decoder);
-
-    _next_msg = &raw_engine_t::pull_msg_from_session;
-    _process_msg = static_cast<int (ZmqStreamEngineBase::*) (ZmqMessage *)> (
-      &raw_engine_t::push_raw_ZmqMessageo_session);
-
-    properties_t properties;
-    if (init_properties (properties)) {
-        //  Compile metadata.
-        // zmq_assert (_metadata == null_mut());
-        _metadata =  ZmqMetadata (properties);
-        // alloc_assert (_metadata);
+    {
+// ZmqStreamEngineBase (fd, options_, endpoint_uri_pair_, false)
+        Self {
+            stream_engine_base: ZmqStreamEngineBase::new(fd,options,endpoint_uri_pair_, false),
+        }
     }
 
-    if (self._options.raw_notify) {
-        //  For raw sockets, send an initial 0-length message to the
-        // application so that it knows a peer has connected.
-        ZmqMessage connector;
-        connector.init ();
-        push_raw_ZmqMessageo_session (&connector);
-        connector.close ();
-        session ().flush ();
+
+    pub fn plug_internal (&mut self)
+    {
+        // no handshaking for raw sock, instantiate raw encoder and decoders
+        self._encoder =  RawEncoder (self._options.out_batch_size);
+        // alloc_assert (_encoder);
+
+        self._decoder =  RawDecoder (self._options.in_batch_size);
+        // alloc_assert (_decoder);
+
+        self._next_msg = self.stream_engine_base.pull_msg_from_session;
+        self._process_msg = self.push_raw_msg_to_session;
+
+        // properties_t properties;
+        let mut properties: properties_t = properties_t::Default();
+        if init_properties (properties) {
+            //  Compile metadata.
+            // zmq_assert (_metadata == null_mut());
+            self._metadata =  ZmqMetadata::new (properties);
+            // alloc_assert (_metadata);
+        }
+
+        if self._options.raw_notify {
+            //  For raw sockets, send an initial 0-length message to the
+            // application so that it knows a peer has connected.
+            // ZmqMessage connector;
+            let mut connector = ZmqMessage::default();
+            connector.init2();
+            push_raw_msg_to_session (&connector);
+            connector.close ();
+            session ().flush ();
+        }
+
+        set_pollin ();
+        set_pollout ();
+        //  Flush all the data that may have been already received downstream.
+        in_event ();
     }
 
-    set_pollin ();
-    set_pollout ();
-    //  Flush all the data that may have been already received downstream.
-    in_event ();
-}
-
-bool raw_engine_t::handshake ()
-{
-    return true;
-}
-
-void raw_engine_t::// error (ZmqErrorReason reason_)
-{
-    if (self._options.raw_socket && self._options.raw_notify) {
-        //  For raw sockets, send a final 0-length message to the application
-        //  so that it knows the peer has been disconnected.
-        ZmqMessage terminator;
-        terminator.init ();
-        push_raw_ZmqMessageo_session (&terminator);
-        terminator.close ();
+    pub fn handshake (&mut self) -> bool
+    {
+        return true;
     }
-    ZmqStreamEngineBase::// error (reason_);
+
+    pub fn error(&mut self, reason_: ZmqErrorReason)
+    {
+        if self._options.raw_socket && self._options.raw_notify {
+            //  For raw sockets, send a final 0-length message to the application
+            //  so that it knows the peer has been disconnected.
+            let mut terminator = ZmqMessage::default();// terminator;
+            terminator.init2();
+            push_raw_ZmqMessageo_session (&terminator);
+            terminator.close ();
+        }
+        // ZmqStreamEngineBase::// error (reason_);
+        self.stream_engine_base.error(reason_);
+    }
+
+    pub fn push_raw_msg_to_session (&mut self, msg: &mut ZmqMessage)->i32
+    {
+        if (self._metadata && self._metadata != msg.metadata ()) {
+            msg.set_metadata(_metadata);
+        }
+        return self.stream_engine_base.push_msg_to_session (msg);
+    }
 }
 
-int raw_engine_t::push_raw_ZmqMessageo_session (msg: &mut ZmqMessage)
-{
-    if (_metadata && _metadata != msg.metadata ())
-        msg.set_metadata (_metadata);
-    return push_ZmqMessageo_session (msg);
-}
+
+
+// RawEngine::~RawEngine ()
+// {
+// }
+
+
+
+
+
+
+
+
