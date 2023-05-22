@@ -212,13 +212,14 @@ impl ZmqReq {
         while (sewlf._message_begins) {
             //  If enabled, the first frame must have the correct request_id.
             if (_request_id_frames_enabled) {
-                int rc = recv_reply_pipe (msg);
-                if (rc != 0)
-                return rc;
+                let rc = recv_reply_pipe (msg);
+                if (rc != 0) {
+                    return rc;
+                }
 
                 if ( (!(msg.flags () & ZMQ_MSG_MORE)
-                    || msg.size () != mem::size_of::<_request_id>()
-                    || *static_cast<u32 *> (msg.data ())
+                    || msg.size () != 4
+                    ||  (msg.data ())
                     != _request_id)) {
                     //  Skip the remaining frames and try the next message
                     while (msg.flags () & ZMQ_MSG_MORE) {
@@ -231,13 +232,14 @@ impl ZmqReq {
 
             //  The next frame must be 0.
             // TODO: Failing this check should also close the connection with the peer!
-            int rc = recv_reply_pipe (msg);
-            if (rc != 0)
-            return rc;
+            let rc = recv_reply_pipe (msg);
+            if rc != 0 {
+                return rc;
+            }
 
-            if ( (!(msg.flags () & ZMQ_MSG_MORE) || msg.size () != 0)) {
+            if !(msg.flags () & ZMQ_MSG_MORE) || msg.size () != 0 {
                 //  Skip the remaining frames and try the next message
-                while (msg.flags () & ZMQ_MSG_MORE) {
+                while msg.flags () & ZMQ_MSG_MORE {
                     rc = recv_reply_pipe (msg);
                     // errno_assert (rc == 0);
                 }
@@ -248,8 +250,9 @@ impl ZmqReq {
         }
 
         let rc: i32 = recv_reply_pipe (msg);
-        if (rc != 0)
-        return rc;
+        if (rc != 0) {
+            return rc;
+        }
 
         //  If the reply is fully received, flip the FSM into request-sending state.
         if (!(msg.flags () & ZMQ_MSG_MORE)) {
@@ -260,6 +263,24 @@ impl ZmqReq {
         return 0;
     }
 
+    pub fn xhas_in (&mut self) -> bool
+    {
+        //  TODO: Duplicates should be removed here.
+
+        if !self._receiving_reply {
+            return false;
+        }
+
+        return self.dealer.xhas_in ();
+    }
+
+    pub fn xhas_out (&mut self) -> bool
+    {
+        if (_receiving_reply && _strict)
+        return false;
+
+        return ZmqDealer::xhas_out ();
+    }
 }
 
 pub enum ReqSessionState
@@ -296,23 +317,9 @@ impl ReqSession {
 
 
 
-bool ZmqReq::xhas_in ()
-{
-    //  TODO: Duplicates should be removed here.
 
-    if (!_receiving_reply)
-        return false;
 
-    return ZmqDealer::xhas_in ();
-}
 
-bool ZmqReq::xhas_out ()
-{
-    if (_receiving_reply && _strict)
-        return false;
-
-    return ZmqDealer::xhas_out ();
-}
 
 int ZmqReq::xsetsockopt (option_: i32,
                              const optval_: &mut [u8],
