@@ -27,13 +27,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use std::ptr::null_mut;
+use anyhow::anyhow;
+use libc::EFAULT;
+use crate::address::Address;
 use crate::context::ZmqContext;
 use crate::dealer::ZmqDealer;
 use crate::defines::ZMQ_REQ;
-use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
+use crate::io_thread::ZmqIoThread;
+use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZmqMessage};
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
+use crate::socket_base::ZmqSocketBase;
 use crate::utils::copy_bytes;
 
 // #include "precompiled.hpp"
@@ -210,9 +216,9 @@ impl ZmqReq {
         }
 
         //  Skip messages until one with the right first frames is found.
-        while (sewlf._message_begins) {
+        while (self._message_begins) {
             //  If enabled, the first frame must have the correct request_id.
-            if (_request_id_frames_enabled) {
+            if _request_id_frames_enabled {
                 let rc = recv_reply_pipe (msg);
                 if (rc != 0) {
                     return rc;
@@ -291,9 +297,10 @@ impl ZmqReq {
     {
         let is_int = (optvallen_ == 4);
         let mut value = 0;
-        if (is_int) {
-            copy_bytes(&mut value, 0,optval_, 0,4);
-        }
+        // TODO
+        // if (is_int) {
+        //     copy_bytes(&mut value, 0,optval_, 0,4);
+        // }
 
         match (option_) {
             ZMQ_REQ_CORRELATE => {
@@ -317,6 +324,28 @@ impl ZmqReq {
         }
 
         return self.dealer.xsetsockopt (option_, optval_, optvallen_);
+    }
+
+    pub fn xpipe_terminated (&mut self, pipe: &mut ZmqPipe)
+    {
+        if (_reply_pipe == pipe) {
+            _reply_pipe = null_mut();
+        }
+        self.dealer.xpipe_terminated (pipe);
+    }
+
+    pub fn recv_reply_pipe (&mut self, msg: &mut ZmqMessage) -> i32
+    {
+        loop{
+           let mut pipe: *mut ZmqPipe = null_mut();
+            let rc: i32 = self.dealer.recvpipe (msg, &mut pipe);
+            if (rc != 0) {
+                return rc;
+            }
+            if (!_reply_pipe || pipe == _reply_pipe) {
+                return 0;
+            }
+        }
     }
 }
 
@@ -349,93 +378,91 @@ pub struct ReqSession
 }
 
 impl ReqSession {
+    pub fn new(
+        ctx: &mut ZmqContext,
+        io_thread: &mut ZmqIoThread,
+               connect_: bool,
+               socket: &mut ZmqSocketBase,
+               options: &mut ZmqOptions,
+               addr: &mut Address) -> Self
 
-}
+    {
+//     ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),
+//     _state (bottom)
+        Self {
+            session_base: ZmqSessionBase::new(ctx, io_thread,connect_, socket,options,addr),
+        }
+    }
 
+    pub fn push_msg (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
+    {
+        //  Ignore commands, they are processed by the engine and should not
+        //  affect the state machine.
+        if ( (msg.flags () & ZMQ_MSG_COMMAND)) {
+            return Ok(());
+        }
 
+        match (_state) {
+            ReqSessionState::bottom => {
+                if (msg.flags() == ZMQ_MSG_MORE) {
+                    //  In case option ZMQ_CORRELATE is on, allow request_id to be
+                    //  transferred as first frame (would be too cumbersome to check
+                    //  whether the option is actually on or not).
+                    if (msg.size() == 4) {
+                        _state = ReqSessionState::request_id;
+                        return self.session_base.push_msg(msg);
+                    }
+                    if (msg.size() == 0) {
+                        _state = ReqSessionState::body;
+                        return self.session_base.push_msg(msg);
+                    }
+                }
+            }
 
+            ReqSessionState::request_id => {
+                if (msg.flags() == ZMQ_MSG_MORE && msg.size() == 0) {
+                    _state = ReqSessionState::body;
+                    return self.session_base.push_msg(msg);
+                }
+            }
 
+            ReqSessionState::body => {
+                if msg.flags() == ZMQ_MSG_MORE {
+                    return self.session_base.push_msg(msg);
+                }
+                if msg.flags() == 0 {
+                    _state = ReqSessionState::bottom;
+                    return self.session_base.push_msg(msg);
+                }
+            }
 
+        }
+        errno = EFAULT;
+        return Err(anyhow!("EFAULT"));
+    }
 
-
-
-void ZmqReq::xpipe_terminated (pipe: &mut ZmqPipe)
-{
-    if (_reply_pipe == pipe)
-        _reply_pipe = null_mut();
-    ZmqDealer::xpipe_terminated (pipe);
-}
-
-int ZmqReq::recv_reply_pipe (msg: &mut ZmqMessage)
-{
-    while (true) {
-        ZmqPipe *pipe = null_mut();
-        let rc: i32 = ZmqDealer::recvpipe (msg, &pipe);
-        if (rc != 0)
-            return rc;
-        if (!_reply_pipe || pipe == _reply_pipe)
-            return 0;
+    pub fn reset (&mut self)
+    {
+        self.session_base.reset ();
+        _state = ReqSessionState::bottom;
     }
 }
 
-ReqSession::ReqSession (ZmqIoThread *io_thread_,
-                                   connect_: bool,
-                                   ZmqSocketBase *socket,
-                                   options: &ZmqOptions,
-                                   Address *addr_) :
-    ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),
-    _state (bottom)
-{
-}
 
-ReqSession::~ReqSession ()
-{
-}
 
-int ReqSession::push_msg (msg: &mut ZmqMessage)
-{
-    //  Ignore commands, they are processed by the engine and should not
-    //  affect the state machine.
-    if ( (msg.flags () & ZMQ_MSG_COMMAND))
-        return 0;
 
-    switch (_state) {
-        case bottom:
-            if (msg.flags () == ZMQ_MSG_MORE) {
-                //  In case option ZMQ_CORRELATE is on, allow request_id to be
-                //  transferred as first frame (would be too cumbersome to check
-                //  whether the option is actually on or not).
-                if (msg.size () == mem::size_of::<u32>()) {
-                    _state = request_id;
-                    return ZmqSessionBase::push_msg (msg);
-                }
-                if (msg.size () == 0) {
-                    _state = body;
-                    return ZmqSessionBase::push_msg (msg);
-                }
-            }
-            break;
-        case request_id:
-            if (msg.flags () == ZMQ_MSG_MORE && msg.size () == 0) {
-                _state = body;
-                return ZmqSessionBase::push_msg (msg);
-            }
-            break;
-        case body:
-            if (msg.flags () == ZMQ_MSG_MORE)
-                return ZmqSessionBase::push_msg (msg);
-            if (msg.flags () == 0) {
-                _state = bottom;
-                return ZmqSessionBase::push_msg (msg);
-            }
-            break;
-    }
-    errno = EFAULT;
-    return -1;
-}
 
-void ReqSession::reset ()
-{
-    ZmqSessionBase::reset ();
-    _state = bottom;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

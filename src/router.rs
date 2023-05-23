@@ -37,411 +37,453 @@
 // #include "err.hpp"
 
 
+use std::collections::{HashSet, VecDeque};
+use bincode::options;
+use libc::{EAGAIN, EHOSTUNREACH, EINVAL};
+use crate::context::ZmqContext;
+use crate::defines::{ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT, ZMQ_ROUTER};
+use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::socket_base::routing_socket_base_t;
+
 //  TODO: This class uses O(n) scheduling. Rewrite it to use O(1) algorithm.
-pub struct router_t : public routing_socket_base_t
+#[derive(Default,Debug,Clone)]
+pub struct ZmqRouter<'a>
 {
+    // : public routing_socket_base_t
+    pub routing_socket_base: routing_socket_base_t,
 //
-    router_t (ZmqContext *parent_, tid: u32, sid_: i32);
-    ~router_t () ;
-
+//     router_t (ZmqContext *parent_, tid: u32, sid_: i32);
+    // ~router_t () ;
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe: &mut ZmqPipe,
-                       subscribe_to_all_: bool,
-                       locally_initiated_: bool) ;
-    int
-    xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize) ;
-    int xsend (msg: &mut ZmqMessage) ;
-    int xrecv (msg: &mut ZmqMessage) ;
-    bool xhas_in () ;
-    bool xhas_out () ;
-    void xread_activated (pipe: &mut ZmqPipe) ;
-    void xpipe_terminated (pipe: &mut ZmqPipe) ;
-    int get_peer_state (const routing_id_: &mut [u8],
-                        routing_id_size_: usize) const ;
-
-
+    // void xattach_pipe (pipe: &mut ZmqPipe,
+    //                    subscribe_to_all_: bool,
+    //                    locally_initiated_: bool) ;
+    // int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize) ;
+    // int xsend (msg: &mut ZmqMessage) ;
+    // int xrecv (msg: &mut ZmqMessage) ;
+    // bool xhas_in () ;
+    // bool xhas_out () ;
+    // void xread_activated (pipe: &mut ZmqPipe) ;
+    // void xpipe_terminated (pipe: &mut ZmqPipe) ;
+    // int get_peer_state (const routing_id_: &mut [u8],
+    //                     routing_id_size_: usize) const ;
     //  Rollback any message parts that were sent but not yet flushed.
-    int rollback ();
-
-  //
+    // int rollback ();
     //  Receive peer id and update lookup map
-    bool identify_peer (pipe: &mut ZmqPipe, locally_initiated_: bool);
-
+    // bool identify_peer (pipe: &mut ZmqPipe, locally_initiated_: bool);
     //  Fair queueing object for inbound pipes.
-    ZmqFq fair_queue;
-
+    // ZmqFq fair_queue;
+    pub fair_queue: VecDeque<ZmqMessage>,
     //  True iff there is a message held in the pre-fetch buffer.
-    _prefetched: bool
-
+    pub _prefetched: bool,
     //  If true, the receiver got the message part with
     //  the peer's identity.
-    _routing_id_sent: bool
-
+    pub _routing_id_sent: bool,
     //  Holds the prefetched identity.
-    ZmqMessage _prefetched_id;
-
+    // ZmqMessage _prefetched_id;
+    pub _prefetched_id: ZmqMessage,
     //  Holds the prefetched message.
-    ZmqMessage _prefetched_msg;
-
+    // ZmqMessage _prefetched_msg;
+    pub _prefetched_msg: ZmqMessage,
     //  The pipe we are currently reading from
-    ZmqPipe *_current_in;
-
+    // ZmqPipe *_current_in;
+    pub _current_in: Option<&'a ZmqPipe>,
     //  Should current_in should be terminate after all parts received?
-    _terminate_current_in: bool
-
+    pub _terminate_current_in: bool,
     //  If true, more incoming message parts are expected.
-    _more_in: bool
-
+    pub _more_in: bool,
     //  We keep a set of pipes that have not been identified yet.
-    std::set<ZmqPipe *> _anonymous_pipes;
-
+    // std::set<ZmqPipe *> _anonymous_pipes;
+    pub _anonymous_pipes: HashSet<ZmqPipe>,
     //  The pipe we are currently writing to.
-    ZmqPipe *_current_out;
-
+    // ZmqPipe *_current_out;
+    pub _current_out: Option<&'a ZmqPipe>,
     //  If true, more outgoing message parts are expected.
-    _more_out: bool
-
+    pub _more_out: bool,
     //  Routing IDs are generated. It's a simple increment and wrap-over
     //  algorithm. This value is the next ID to use (if not used already).
-    u32 _next_integral_routing_id;
-
+    pub _next_integral_routing_id: u32,
     // If true, report EAGAIN to the caller instead of silently dropping
     // the message targeting an unknown peer.
-    _mandatory: bool
-    _raw_socket: bool
-
+    pub _mandatory: bool,
+    pub _raw_socket: bool,
     // if true, send an empty message to every connected router peer
-    probe_router: bool
-
+    pub probe_router: bool,
     // If true, the router will reassign an identity upon encountering a
     // name collision. The new pipe will take the identity, the old pipe
     // will be terminated.
     _handover: bool
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (router_t)
-};
-
-router_t::router_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
-    routing_socket_base_t (parent_, tid, sid_),
-    _prefetched (false),
-    _routing_id_sent (false),
-    _current_in (null_mut()),
-    _terminate_current_in (false),
-    _more_in (false),
-    _current_out (null_mut()),
-    _more_out (false),
-    _next_integral_routing_id (generate_random ()),
-    _mandatory (false),
-    //  raw_socket functionality in ROUTER is deprecated
-    _raw_socket (false),
-    probe_router (false),
-    _handover (false)
-{
-    options.type_ = ZMQ_ROUTER;
-    options.recv_routing_id = true;
-    options.raw_socket = false;
-    options.can_send_hello_msg = true;
-    options.can_recv_disconnect_msg = true;
-
-    _prefetched_id.init ();
-    _prefetched_msg.init ();
 }
 
-router_t::~router_t ()
-{
-    // zmq_assert (_anonymous_pipes.empty ());
-    _prefetched_id.close ();
-    _prefetched_msg.close ();
-}
+impl ZmqRouter {
+    pub fn new (options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
 
-void router_t::xattach_pipe (pipe: &mut ZmqPipe,
-                                  subscribe_to_all_: bool,
-                                  locally_initiated_: bool)
-{
-    LIBZMQ_UNUSED (subscribe_to_all_);
+    {
+        //  routing_socket_base_t (parent_, tid, sid_),
+        //     _prefetched (false),
+        //     _routing_id_sent (false),
+        //     _current_in (null_mut()),
+        //     _terminate_current_in (false),
+        //     _more_in (false),
+        //     _current_out (null_mut()),
+        //     _more_out (false),
+        //     _next_integral_routing_id (generate_random ()),
+        //     _mandatory (false),
+        //     //  raw_socket functionality in ROUTER is deprecated
+        //     _raw_socket (false),
+        //     probe_router (false),
+        //     _handover (false)
+        options.type_ = ZMQ_ROUTER as i32;
+        options.recv_routing_id = true;
+        options.raw_socket = false;
+        options.can_send_hello_msg = true;
+        options.can_recv_disconnect_msg = true;
 
-    // zmq_assert (pipe);
-
-    if (probe_router) {
-        ZmqMessage probe_msg;
-        int rc = probe_msg.init ();
-        // errno_assert (rc == 0);
-
-        rc = pipe.write (&probe_msg);
-        // zmq_assert (rc) is not applicable here, since it is not a bug.
-        LIBZMQ_UNUSED (rc);
-
-        pipe.flush ();
-
-        rc = probe_msg.close ();
-        // errno_assert (rc == 0);
+        // _prefetched_id.init ();
+        // _prefetched_msg.init ();
+        Self {
+            routing_socket_base: routing_socket_base_t::new(parent, options, tid, sid_),
+            fair_queue: Default::default(),
+            _prefetched: false,
+            _routing_id_sent: false,
+            _prefetched_id: Default::default(),
+            _prefetched_msg: Default::default(),
+            _current_in: None,
+            _terminate_current_in: false,
+            _more_in:false,
+            _anonymous_pipes: Default::default(),
+            _current_out: None,
+            _more_out: false,
+            _next_integral_routing_id: 0,
+            _mandatory: false,
+            _raw_socket: false,
+            probe_router: false,
+            _handover: false
+        }
     }
 
-    const bool routing_id_ok = identify_peer (pipe, locally_initiated_);
-    if (routing_id_ok)
-        fair_queue.attach (pipe);
-    else
-        _anonymous_pipes.insert (pipe);
-}
 
-int router_t::xsetsockopt (option_: i32,
-                                const optval_: &mut [u8],
-                                optvallen_: usize)
-{
-    const bool is_int = (optvallen_ == mem::size_of::<int>());
-    int value = 0;
-    if (is_int)
-        memcpy (&value, optval_, mem::size_of::<int>());
+    pub fn xattach_pipe (&mut self, pipe: &mut ZmqPipe,
+                         subscribe_to_all_: bool,
+                         locally_initiated_: bool)
+    {
+        // LIBZMQ_UNUSED (subscribe_to_all_);
 
-    switch (option_) {
-        case ZMQ_ROUTER_RAW:
-            if (is_int && value >= 0) {
-                _raw_socket = (value != 0);
-                if (_raw_socket) {
-                    options.recv_routing_id = false;
-                    options.raw_socket = true;
+        // zmq_assert (pipe);
+
+        if (probe_router) {
+            let mut probe_msg: ZmqMessage = ZmqMessage::new();
+            probe_msg.init2 ();
+            // errno_assert (rc == 0);
+
+            rc = pipe.write (&mut probe_msg);
+            // zmq_assert (rc) is not applicable here, since it is not a bug.
+            LIBZMQ_UNUSED (rc);
+
+            pipe.flush ();
+
+            rc = probe_msg.close ();
+            // errno_assert (rc == 0);
+        }
+
+        let routing_id_ok = identify_peer (pipe, locally_initiated_);
+        if (routing_id_ok) {
+            fair_queue.attach(pipe);
+        }
+        else {
+            _anonymous_pipes.insert(pipe);
+        }
+    }
+
+
+    pub fn xsetsockopt (&mut self, option_: i32,
+                        optval_: &mut [u8],
+                        optvallen_: usize) -> i32
+    {
+        let is_int = (optvallen_ == 4);
+        let mut  value = 0;
+        // TODO
+        // if (is_int) {
+        //     memcpy(&value, optval_, mem::size_of::<int>());
+        // }
+
+        match (option_) {
+            ZMQ_ROUTER_RAW => {
+                if (is_int && value >= 0) {
+                    _raw_socket = (value != 0);
+                    if (_raw_socket) {
+                        options.recv_routing_id = false;
+                        options.raw_socket = true;
+                    }
+                    return 0;
                 }
-                return 0;
             }
-            break;
 
-        case ZMQ_ROUTER_MANDATORY:
-            if (is_int && value >= 0) {
-                _mandatory = (value != 0);
-                return 0;
-            }
-            break;
 
-        case ZMQ_PROBE_ROUTER:
-            if (is_int && value >= 0) {
-                probe_router = (value != 0);
-                return 0;
+            ZMQ_ROUTER_MANDATORY=> {
+                if (is_int && value >= 0) {
+                    _mandatory = (value != 0);
+                    return 0;
+                }
             }
-            break;
 
-        case ZMQ_ROUTER_HANDOVER:
-            if (is_int && value >= 0) {
-                _handover = (value != 0);
-                return 0;
+
+            ZMQ_PROBE_ROUTER => {
+                if (is_int && value >= 0) {
+                    probe_router = (value != 0);
+                    return 0;
+                }
             }
-            break;
+
+
+            ZMQ_ROUTER_HANDOVER => {
+                if (is_int && value >= 0) {
+                    _handover = (value != 0);
+                    return 0;
+                }
+            }
+
 
 // #ifdef ZMQ_BUILD_DRAFT_API
-        case ZMQ_ROUTER_NOTIFY:
-            if (is_int && value >= 0
-                && value <= (ZMQ_NOTIFY_CONNECT | ZMQ_NOTIFY_DISCONNECT)) {
-                options.router_notify = value;
-                return 0;
+            ZMQ_ROUTER_NOTIFY=> {
+                if (is_int && value >= 0 && value <= (ZMQ_NOTIFY_CONNECT | ZMQ_NOTIFY_DISCONNECT)) {
+                    options.router_notify = value;
+                    return 0;
+                }
             }
-            break;
+
 // #endif
 
-        _ =>
-            return routing_socket_base_t::xsetsockopt (option_, optval_,
-                                                       optvallen_);
-    }
-    errno = EINVAL;
-    return -1;
-}
-
-
-void router_t::xpipe_terminated (pipe: &mut ZmqPipe)
-{
-    if (0 == _anonymous_pipes.erase (pipe)) {
-        erase_out_pipe (pipe);
-        fair_queue.pipe_terminated (pipe);
-        pipe.rollback ();
-        if (pipe == _current_out)
-            _current_out = null_mut();
-    }
-}
-
-void router_t::xread_activated (pipe: &mut ZmqPipe)
-{
-    const std::set<ZmqPipe *>::iterator it = _anonymous_pipes.find (pipe);
-    if (it == _anonymous_pipes.end ())
-        fair_queue.activated (pipe);
-    else {
-        const bool routing_id_ok = identify_peer (pipe, false);
-        if (routing_id_ok) {
-            _anonymous_pipes.erase (it);
-            fair_queue.attach (pipe);
-        }
-    }
-}
-
-int router_t::xsend (msg: &mut ZmqMessage)
-{
-    //  If this is the first part of the message it's the ID of the
-    //  peer to send the message to.
-    if (!_more_out) {
-        // zmq_assert (!_current_out);
-
-        //  If we have malformed message (prefix with no subsequent message)
-        //  then just silently ignore it.
-        //  TODO: The connections should be killed instead.
-        if (msg.flags () & ZMQ_MSG_MORE) {
-            _more_out = true;
-
-            //  Find the pipe associated with the routing id stored in the prefix.
-            //  If there's no such pipe just silently ignore the message, unless
-            //  router_mandatory is set.
-            ZmqOutPipe *out_pipe = lookup_out_pipe (
-              Blob ( (msg.data ()),
-                      msg.size (), ReferenceTag ()));
-
-            if (out_pipe) {
-                _current_out = out_pipe.pipe;
-
-                // Check whether pipe is closed or not
-                if (!_current_out.check_write ()) {
-                    // Check whether pipe is full or not
-                    const bool pipe_full = !_current_out.check_hwm ();
-                    out_pipe.active = false;
-                    _current_out = null_mut();
-
-                    if (_mandatory) {
-                        _more_out = false;
-                        if (pipe_full)
-                            errno = EAGAIN;
-                        else
-                            errno = EHOSTUNREACH;
-                        return -1;
-                    }
-                }
-            } else if (_mandatory) {
-                _more_out = false;
-                errno = EHOSTUNREACH;
-                return -1;
+            _ => {
+                return self.routing_socket_base.xsetsockopt(option_, optval_,
+                                                            optvallen_);
             }
         }
-
-        int rc = msg.close ();
-        // errno_assert (rc == 0);
-        rc = msg.init ();
-        // errno_assert (rc == 0);
-        return 0;
+        errno = EINVAL;
+        return -1;
     }
 
-    //  Ignore the MORE flag for raw-sock or assert?
-    if (options.raw_socket)
-        msg.reset_flags (ZMQ_MSG_MORE);
+    pub fn xpipe_terminated (&mut self, pipe: &mut ZmqPipe)
+    {
+        if (0 == _anonymous_pipes.erase (pipe)) {
+            erase_out_pipe (pipe);
+            fair_queue.pipe_terminated (pipe);
+            pipe.rollback ();
+            if (pipe == _current_out) {
+                _current_out = None;
+            }
+        }
+    }
 
-    //  Check whether this is the last part of the message.
-    _more_out = (msg.flags () & ZMQ_MSG_MORE) != 0;
+    pub fn xread_activated (&mut self, pipe: &mut ZmqPipe)
+    {
+        let it = _anonymous_pipes.find (pipe);
+        if (it == _anonymous_pipes.end ()) {
+            fair_queue.activated(pipe);
+        }
+        else {
+            let routing_id_ok = identify_peer (pipe, false);
+            if (routing_id_ok) {
+                _anonymous_pipes.erase (it);
+                fair_queue.attach (pipe);
+            }
+        }
+    }
 
-    //  Push the message into the pipe. If there's no out pipe, just drop it.
-    if (_current_out) {
-        // Close the remote connection if user has asked to do so
-        // by sending zero length message.
-        // Pending messages in the pipe will be dropped (on receiving term- ack)
-        if (_raw_socket && msg.size () == 0) {
-            _current_out.terminate (false);
-            int rc = msg.close ();
-            // errno_assert (rc == 0);
-            rc = msg.init ();
-            // errno_assert (rc == 0);
-            _current_out = null_mut();
+
+    pub fn xrecv (&mut self, msg: &mut ZmqMessage) -> i32
+    {
+        if (_prefetched) {
+            if (!_routing_id_sent) {
+                // let rc: i32 = msg.move (_prefetched_id);
+                // errno_assert (rc == 0);
+                _routing_id_sent = true;
+            } else {
+                // let rc: i32 = msg.move (_prefetched_msg);
+                // errno_assert (rc == 0);
+                _prefetched = false;
+            }
+            _more_in = (msg.flags () & ZMQ_MSG_MORE) != 0;
+
+            if (!_more_in) {
+                if (_terminate_current_in) {
+                    _current_in.terminate (true);
+                    _terminate_current_in = false;
+                }
+                _current_in = None;
+            }
             return 0;
         }
 
-        const bool ok = _current_out.write (msg);
-        if ( (!ok)) {
-            // Message failed to send - we must close it ourselves.
-            let rc: i32 = msg.close ();
-            // errno_assert (rc == 0);
-            // HWM was checked before, so the pipe must be gone. Roll back
-            // messages that were piped, for example REP labels.
-            _current_out.rollback ();
-            _current_out = null_mut();
-        } else {
-            if (!_more_out) {
-                _current_out.flush ();
-                _current_out = null_mut();
-            }
+        let mut pipe: ZmqPipe = ZmqPipe::default();
+        // let mut pipe = null_mut();
+        // fair_queue.recvpipe (msg, &pipe);
+
+        //  It's possible that we receive peer's routing id. That happens
+        //  after reconnection. The current implementation assumes that
+        //  the peer always uses the same routing id.
+        while (rc == 0 && msg.is_routing_id ()) {
+            rc = fair_queue.recvpipe(msg, &pipe);
         }
-    } else {
-        let rc: i32 = msg.close ();
-        // errno_assert (rc == 0);
-    }
 
-    //  Detach the message from the data buffer.
-    let rc: i32 = msg.init ();
-    // errno_assert (rc == 0);
+        if (rc != 0) {
+            return -1;
+        }
 
-    return 0;
-}
+        // zmq_assert (pipe != null_mut());
 
-int router_t::xrecv (msg: &mut ZmqMessage)
-{
-    if (_prefetched) {
-        if (!_routing_id_sent) {
-            let rc: i32 = msg.move (_prefetched_id);
+        //  If we are in the middle of reading a message, just return the next part.
+        if (_more_in) {
+            _more_in = (msg.flags () & ZMQ_MSG_MORE) != 0;
+
+            if (!_more_in) {
+                if (_terminate_current_in) {
+                    _current_in.terminate (true);
+                    _terminate_current_in = false;
+                }
+                _current_in = None;
+            }
+        } else {
+            //  We are at the beginning of a message.
+            //  Keep the message part we have in the prefetch buffer
+            //  and return the ID of the peer instead.
+            // rc = _prefetched_msg.move (*msg);
             // errno_assert (rc == 0);
+            _prefetched = true;
+            _current_in = pipe;
+
+            let routing_id = pipe.get_routing_id ();
+            rc = msg.init_size (routing_id.size ());
+            // errno_assert (rc == 0);
+            // TODO
+            // memcpy (msg.data (), routing_id.data (), routing_id.size ());
+            msg.set_flags (ZMQ_MSG_MORE);
+            if (_prefetched_msg.metadata ()) {
+                msg.set_metadata(_prefetched_msg.metadata());
+            }
             _routing_id_sent = true;
-        } else {
-            let rc: i32 = msg.move (_prefetched_msg);
-            // errno_assert (rc == 0);
-            _prefetched = false;
         }
-        _more_in = (msg.flags () & ZMQ_MSG_MORE) != 0;
 
-        if (!_more_in) {
-            if (_terminate_current_in) {
-                _current_in.terminate (true);
-                _terminate_current_in = false;
-            }
-            _current_in = null_mut();
-        }
         return 0;
     }
 
-    ZmqPipe *pipe = null_mut();
-    int rc = fair_queue.recvpipe (msg, &pipe);
 
-    //  It's possible that we receive peer's routing id. That happens
-    //  after reconnection. The current implementation assumes that
-    //  the peer always uses the same routing id.
-    while (rc == 0 && msg.is_routing_id ())
-        rc = fair_queue.recvpipe (msg, &pipe);
+    pub fn xsend (&mut self, msg: &mut ZmqMessage) -> i32
+    {
+        //  If this is the first part of the message it's the ID of the
+        //  peer to send the message to.
+        if (!_more_out) {
+            // zmq_assert (!_current_out);
 
-    if (rc != 0)
-        return -1;
+            //  If we have malformed message (prefix with no subsequent message)
+            //  then just silently ignore it.
+            //  TODO: The connections should be killed instead.
+            if (msg.flags () & ZMQ_MSG_MORE) {
+                _more_out = true;
 
-    // zmq_assert (pipe != null_mut());
+                //  Find the pipe associated with the routing id stored in the prefix.
+                //  If there's no such pipe just silently ignore the message, unless
+                //  router_mandatory is set.
+                ZmqOutPipe *out_pipe = lookup_out_pipe (
+                    Blob ( (msg.data ()),
+                           msg.size (), ReferenceTag ()));
 
-    //  If we are in the middle of reading a message, just return the next part.
-    if (_more_in) {
-        _more_in = (msg.flags () & ZMQ_MSG_MORE) != 0;
+                if (out_pipe) {
+                    _current_out = out_pipe.pipe;
 
-        if (!_more_in) {
-            if (_terminate_current_in) {
-                _current_in.terminate (true);
-                _terminate_current_in = false;
+                    // Check whether pipe is closed or not
+                    if (!_current_out.check_write ()) {
+                        // Check whether pipe is full or not
+                        let pipe_full = !_current_out.check_hwm ();
+                        out_pipe.active = false;
+                        _current_out = None;
+
+                        if (_mandatory) {
+                            _more_out = false;
+                            if (pipe_full) {
+                                errno = EAGAIN;
+                            }
+                            else {
+                                errno = EHOSTUNREACH;
+                            }
+                            return -1;
+                        }
+                    }
+                } else if (_mandatory) {
+                    _more_out = false;
+                    errno = EHOSTUNREACH;
+                    return -1;
+                }
             }
-            _current_in = null_mut();
-        }
-    } else {
-        //  We are at the beginning of a message.
-        //  Keep the message part we have in the prefetch buffer
-        //  and return the ID of the peer instead.
-        rc = _prefetched_msg.move (*msg);
-        // errno_assert (rc == 0);
-        _prefetched = true;
-        _current_in = pipe;
 
-        const Blob &routing_id = pipe.get_routing_id ();
-        rc = msg.init_size (routing_id.size ());
+            msg.close ();
+            // errno_assert (rc == 0);
+            rc = msg.init2 ();
+            // errno_assert (rc == 0);
+            return 0;
+        }
+
+        //  Ignore the MORE flag for raw-sock or assert?
+        if (options.raw_socket) {
+            msg.reset_flags(ZMQ_MSG_MORE);
+        }
+
+        //  Check whether this is the last part of the message.
+        _more_out = (msg.flags () & ZMQ_MSG_MORE) != 0;
+
+        //  Push the message into the pipe. If there's no out pipe, just drop it.
+        if (_current_out) {
+            // Close the remote connection if user has asked to do so
+            // by sending zero length message.
+            // Pending messages in the pipe will be dropped (on receiving term- ack)
+            if (_raw_socket && msg.size () == 0) {
+                _current_out.terminate (false);
+                msg.close ();
+                // errno_assert (rc == 0);
+                rc = msg.init2 ();
+                // errno_assert (rc == 0);
+                _current_out = None;
+                return 0;
+            }
+
+            let ok = _current_out.write (msg);
+            if ( (!ok)) {
+                // Message failed to send - we must close it ourselves.
+                msg.close ();
+                // errno_assert (rc == 0);
+                // HWM was checked before, so the pipe must be gone. Roll back
+                // messages that were piped, for example REP labels.
+                _current_out.rollback ();
+                _current_out = None;
+            } else {
+                if (!_more_out) {
+                    _current_out.flush ();
+                    _current_out = None;
+                }
+            }
+        } else {
+            msg.close ();
+            // errno_assert (rc == 0);
+        }
+
+        //  Detach the message from the data buffer.
+        msg.init2 ();
         // errno_assert (rc == 0);
-        memcpy (msg.data (), routing_id.data (), routing_id.size ());
-        msg.set_flags (ZMQ_MSG_MORE);
-        if (_prefetched_msg.metadata ())
-            msg.set_metadata (_prefetched_msg.metadata ());
-        _routing_id_sent = true;
+
+        return 0;
     }
 
-    return 0;
 }
+
+
+
+
+
+
 
 int router_t::rollback ()
 {

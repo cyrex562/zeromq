@@ -35,12 +35,12 @@
 use crate::context::ZmqContext;
 use crate::defines::ZMQ_REP;
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
-use crate::router::router_t;
+use crate::router::ZmqRouter;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqRep {
     // : public router_t
-    pub router: router_t,
+    pub router: ZmqRouter,
     //
     // ZmqRep (ZmqContext *parent_, tid: u32, sid_: i32);
 
@@ -69,7 +69,7 @@ pub struct ZmqRep {
 impl ZmqRep {
     pub fn new(parent: &mut ZmqContext, tid: u32, sid: i32) -> Self {
         let mut out = Self {
-            router: router_t::new(parent, tid, sid),
+            router: ZmqRouter::new(parent, tid, sid),
             _sending_reply: false,
             _request_begins: true,
         };
@@ -87,7 +87,7 @@ impl ZmqRep {
         let more = (msg.flags() & ZMQ_MSG_MORE) != 0;
 
 //  Push message to the reply pipe.
-        let rc: i32 = router_t::xsend(msg);
+        let rc: i32 = ZmqRouter::xsend(msg);
         if (rc != 0) {
             return rc;
         }
@@ -121,7 +121,7 @@ impl ZmqRep {
                     bottom = (msg.size() == 0);
 
 //  Push it to the reply pipe.
-                    rc = router_t::xsend(msg);
+                    rc = ZmqRouter::xsend(msg);
 // errno_assert (rc == 0);
 
                     if (bottom) {
@@ -130,7 +130,7 @@ impl ZmqRep {
                 } else {
 //  If the traceback stack is malformed, discard anything
 //  already sent to pipe (we're at end of invalid message).
-                    rc = router_t::rollback();
+                    rc = ZmqRouter::rollback();
 // errno_assert (rc == 0);
                 }
             }
@@ -138,7 +138,7 @@ impl ZmqRep {
         }
 
 //  Get next message part to return to the user.
-        let rc: i32 = router_t::xrecv(msg);
+        let rc: i32 = ZmqRouter::xrecv(msg);
         if (rc != 0) {
             return rc;
         }
