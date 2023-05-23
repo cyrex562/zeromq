@@ -34,6 +34,7 @@ use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
+use crate::utils::copy_bytes;
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"
@@ -217,7 +218,7 @@ impl ZmqReq {
                     return rc;
                 }
 
-                if ( (!(msg.flags () & ZMQ_MSG_MORE)
+                if ( (!(msg.flags () & ZMQ_MSG_MORE) == 0
                     || msg.size () != 4
                     ||  (msg.data ())
                     != _request_id)) {
@@ -237,7 +238,7 @@ impl ZmqReq {
                 return rc;
             }
 
-            if !(msg.flags () & ZMQ_MSG_MORE) || msg.size () != 0 {
+            if !(msg.flags () & ZMQ_MSG_MORE) == 1 || msg.size () != 0 {
                 //  Skip the remaining frames and try the next message
                 while msg.flags () & ZMQ_MSG_MORE {
                     rc = recv_reply_pipe (msg);
@@ -276,10 +277,46 @@ impl ZmqReq {
 
     pub fn xhas_out (&mut self) -> bool
     {
-        if (_receiving_reply && _strict)
-        return false;
+        if (_receiving_reply && _strict) {
+            return false;
+        }
 
-        return ZmqDealer::xhas_out ();
+        return self.dealer.xhas_out ();
+    }
+
+
+    pub fn xsetsockopt (&mut self, option_: i32,
+                        optval_: &mut [u8],
+                        optvallen_: usize) -> i32
+    {
+        let is_int = (optvallen_ == 4);
+        let mut value = 0;
+        if (is_int) {
+            copy_bytes(&mut value, 0,optval_, 0,4);
+        }
+
+        match (option_) {
+            ZMQ_REQ_CORRELATE => {
+                if (is_int && value >= 0) {
+                    _request_id_frames_enabled = (value != 0);
+                    return 0;
+                }
+            }
+
+
+            ZMQ_REQ_RELAXED => {
+                if (is_int && value >= 0) {
+                    _strict = (value == 0);
+                    return 0;
+                }
+            }
+
+
+            _ => {}
+
+        }
+
+        return self.dealer.xsetsockopt (option_, optval_, optvallen_);
     }
 }
 
@@ -321,36 +358,6 @@ impl ReqSession {
 
 
 
-int ZmqReq::xsetsockopt (option_: i32,
-                             const optval_: &mut [u8],
-                             optvallen_: usize)
-{
-    const bool is_int = (optvallen_ == mem::size_of::<int>());
-    int value = 0;
-    if (is_int)
-        memcpy (&value, optval_, mem::size_of::<int>());
-
-    switch (option_) {
-        case ZMQ_REQ_CORRELATE:
-            if (is_int && value >= 0) {
-                _request_id_frames_enabled = (value != 0);
-                return 0;
-            }
-            break;
-
-        case ZMQ_REQ_RELAXED:
-            if (is_int && value >= 0) {
-                _strict = (value == 0);
-                return 0;
-            }
-            break;
-
-        _ =>
-            break;
-    }
-
-    return ZmqDealer::xsetsockopt (option_, optval_, optvallen_);
-}
 
 void ZmqReq::xpipe_terminated (pipe: &mut ZmqPipe)
 {
