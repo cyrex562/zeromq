@@ -826,7 +826,7 @@ static int zmq_poller_poll (ZmqPollItem *items_, nitems_: i32, long timeout)
     // implement zmq_poll on top of zmq_poller
     rc: i32;
     ZmqPollerEvent *events;
-    socket_poller_t poller;
+    ZmqSocketPoller poller;
     events =  ZmqPollerEvent[nitems_];
     // alloc_assert (events);
 
@@ -1524,7 +1524,7 @@ int zmq_ppoll (ZmqPollItem *items_,
 
 void *zmq_poller_new (void)
 {
-    socket_poller_t *poller =  socket_poller_t;
+    ZmqSocketPoller *poller =  ZmqSocketPoller;
     if (!poller) {
         errno = ENOMEM;
     }
@@ -1534,8 +1534,8 @@ void *zmq_poller_new (void)
 int zmq_poller_destroy (void **poller_p_)
 {
     if (poller_p_) {
-        const socket_poller_t *const poller =
-          static_cast<const socket_poller_t *> (*poller_p_);
+        const ZmqSocketPoller *const poller =
+          static_cast<const ZmqSocketPoller *> (*poller_p_);
         if (poller && poller.check_tag ()) {
             delete poller;
             *poller_p_ = null_mut();
@@ -1550,7 +1550,7 @@ int zmq_poller_destroy (void **poller_p_)
 static int check_poller (void *const poller_)
 {
     if (!poller_
-        || !(static_cast<socket_poller_t *> (poller_))->check_tag ()) {
+        || !(static_cast<ZmqSocketPoller *> (poller_))->check_tag ()) {
         errno = EFAULT;
         return -1;
     }
@@ -1599,7 +1599,7 @@ int zmq_poller_size (poller_: *mut c_void)
     if (-1 == check_poller (poller_))
         return -1;
 
-    return (static_cast<socket_poller_t *> (poller_))->size ();
+    return (static_cast<ZmqSocketPoller *> (poller_))->size ();
 }
 
 int zmq_poller_add (poller_: &mut [u8], s_: &mut [u8], user_data_: &mut [u8], short events_)
@@ -1610,7 +1610,7 @@ int zmq_poller_add (poller_: &mut [u8], s_: &mut [u8], user_data_: &mut [u8], sh
 
     let mut socket: *mut ZmqSocketBase =  static_cast<ZmqSocketBase *> (s_);
 
-    return (static_cast<socket_poller_t *> (poller_))
+    return (static_cast<ZmqSocketPoller *> (poller_))
       ->add (socket, user_data_, events_);
 }
 
@@ -1623,7 +1623,7 @@ int zmq_poller_add_fd (poller_: &mut [u8],
         || -1 == check_events (events_))
         return -1;
 
-    return (static_cast<socket_poller_t *> (poller_))
+    return (static_cast<ZmqSocketPoller *> (poller_))
       ->add_fd (fd, user_data_, events_);
 }
 
@@ -1637,7 +1637,7 @@ int zmq_poller_modify (poller_: &mut [u8], s_: &mut [u8], short events_)
     const ZmqSocketBase *const socket =
       static_cast<const ZmqSocketBase *> (s_);
 
-    return (static_cast<socket_poller_t *> (poller_))
+    return (static_cast<ZmqSocketPoller *> (poller_))
       ->modify (socket, events_);
 }
 
@@ -1647,7 +1647,7 @@ int zmq_poller_modify_fd (poller_: &mut [u8], fd: ZmqFileDesc, short events_)
         || -1 == check_events (events_))
         return -1;
 
-    return (static_cast<socket_poller_t *> (poller_))
+    return (static_cast<ZmqSocketPoller *> (poller_))
       ->modify_fd (fd, events_);
 }
 
@@ -1658,7 +1658,7 @@ int zmq_poller_remove (poller_: &mut [u8], s_: *mut c_void)
 
     let mut socket: *mut ZmqSocketBase =  static_cast<ZmqSocketBase *> (s_);
 
-    return (static_cast<socket_poller_t *> (poller_))->remove (socket);
+    return (static_cast<ZmqSocketPoller *> (poller_))->remove (socket);
 }
 
 int zmq_poller_remove_fd (poller_: &mut [u8], ZmqFileDesc fd)
@@ -1666,7 +1666,7 @@ int zmq_poller_remove_fd (poller_: &mut [u8], ZmqFileDesc fd)
     if (-1 == check_poller_fd_registration_args (poller_, fd))
         return -1;
 
-    return (static_cast<socket_poller_t *> (poller_))->remove_fd (fd);
+    return (static_cast<ZmqSocketPoller *> (poller_))->remove_fd (fd);
 }
 
 int zmq_poller_wait (poller_: &mut [u8], ZmqPollerEvent *event_, long timeout)
@@ -1701,8 +1701,8 @@ int zmq_poller_wait_all (poller_: &mut [u8],
     }
 
     let rc: i32 =
-      (static_cast<socket_poller_t *> (poller_))
-        ->wait (reinterpret_cast<socket_poller_t::event_t *> (events_),
+      (static_cast<ZmqSocketPoller *> (poller_))
+        ->wait (reinterpret_cast<ZmqSocketPoller::event_t *> (events_),
                 n_events_, timeout);
 
     return rc;
@@ -1711,11 +1711,11 @@ int zmq_poller_wait_all (poller_: &mut [u8],
 int zmq_poller_fd (poller_: &mut [u8], ZmqFileDesc *fd)
 {
     if (!poller_
-        || !(static_cast<socket_poller_t *> (poller_)->check_tag ())) {
+        || !(static_cast<ZmqSocketPoller *> (poller_)->check_tag ())) {
         errno = EFAULT;
         return -1;
     }
-    return static_cast<socket_poller_t *> (poller_)->signaler_fd (fd);
+    return static_cast<ZmqSocketPoller *> (poller_)->signaler_fd (fd);
 }
 
 //  Peer-specific state

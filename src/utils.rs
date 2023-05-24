@@ -304,6 +304,6 @@ pub fn zmq_getnameinfo(sa: &ZmqSockaddr) -> anyhow::Result<(i32, String)> {
     }
 }
 
-pub fn ptr_advance(a: &mut [u8], offset: usize) -> &mut [u8] {
+pub fn advance_ptr(a: &mut [u8], offset: usize) -> &mut [u8] {
     &mut a[offset..]
 }

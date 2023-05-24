@@ -37,7 +37,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 // This is our server task.
 // It runs a proxy with a single REP socket as both frontend and backend.
 
-void server_task (void * /*unused_*/)
+void ZmqServerask (void * /*unused_*/)
 {
     char my_endpoint[MAX_SOCKET_STRING];
     void *rep = zmq_socket (get_test_context (), ZMQ_REP);
@@ -62,7 +62,7 @@ void server_task (void * /*unused_*/)
 // waits for the server to finish.
 void test_proxy_single_socket ()
 {
-    void *server_thread = zmq_threadstart (&server_task, null_mut());
+    void *ZmqServerhread = zmq_threadstart (&ZmqServerask, null_mut());
 
     // Control socket receives terminate command from main over inproc
     void *control = test_context_socket (ZMQ_REP);
@@ -88,7 +88,7 @@ void test_proxy_single_socket ()
     test_context_socket_close (req);
     free (my_endpoint);
 
-    zmq_threadclose (server_thread);
+    zmq_threadclose (ZmqServerhread);
 }
 
 int main (void)

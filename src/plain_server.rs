@@ -68,7 +68,7 @@ use crate::message::ZmqMessage;
 use crate::options::ZmqOptions;
 use crate::plain_common::{error_prefix, hello_prefix, initiate_prefix, ready_prefix, welcome_prefix};
 use crate::session_base::ZmqSessionBase;
-use crate::utils::{cmp_bytes, copy_bytes, ptr_advance};
+use crate::utils::{cmp_bytes, copy_bytes, advance_ptr};
 use crate::zap_client::{ZmqZapClient, ZmqZapClientCommonHandshake};
 
 #[derive(Debug)]
@@ -186,7 +186,7 @@ impl PlainServer {
         }
         let username_length = ptr[0];
         //+= 1;
-        ptr = ptr_advance(ptr, 1);
+        ptr = advance_ptr(ptr, 1);
         bytes_left -= mem::size_of_val(&username_length);
 
         if bytes_left < username_length as usize {
@@ -211,7 +211,7 @@ impl PlainServer {
         }
 
         let password_length = ptr[0]; //*ptr+= 1;
-        ptr = ptr_advance(ptr,1);
+        ptr = advance_ptr(ptr, 1);
         bytes_left -= mem::size_of_val(&password_length);
         if bytes_left != password_length as usize {
             //  PLAIN I: invalid PLAIN client, sent malformed password or

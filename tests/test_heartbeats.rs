@@ -212,14 +212,14 @@ static void prep_server_socket (set_heartbeats_: i32,
 // This checks for a broken TCP connection (or, in this case a stuck one
 // where the peer never responds to PINGS). There should be an accepted event
 // then a disconnect event.
-static void test_heartbeat_timeout (server_type_: i32, mock_ping_: i32)
+static void test_heartbeat_timeout (ZmqServerype_: i32, mock_ping_: i32)
 {
     rc: i32;
     char my_endpoint[MAX_SOCKET_STRING];
 
     server: *mut c_void, *server_mon;
     prep_server_socket (!mock_ping_, 0, &server, &server_mon, my_endpoint,
-                        MAX_SOCKET_STRING, server_type_);
+                        MAX_SOCKET_STRING, ZmqServerype_);
 
     ZmqFileDesc s = connect_socket (my_endpoint);
 
@@ -247,14 +247,14 @@ static void test_heartbeat_timeout (server_type_: i32, mock_ping_: i32)
 // to a server that is not doing any heartbeating. Then we sleep,
 // if the server disconnects the client, then we know the TTL did
 // its thing correctly.
-static void test_heartbeat_ttl (client_type_: i32, server_type_: i32)
+static void test_heartbeat_ttl (client_type_: i32, ZmqServerype_: i32)
 {
     rc: i32, value;
     char my_endpoint[MAX_SOCKET_STRING];
 
     server: *mut c_void, *server_mon, *client;
     prep_server_socket (0, 0, &server, &server_mon, my_endpoint,
-                        MAX_SOCKET_STRING, server_type_);
+                        MAX_SOCKET_STRING, ZmqServerype_);
 
     client = test_context_socket (client_type_);
 
@@ -290,14 +290,14 @@ static void test_heartbeat_ttl (client_type_: i32, server_type_: i32)
 // exchanged normally. There should be an accepted event on the server,
 // and then no event afterwards.
 static void
-test_heartbeat_notimeout (is_curve_: i32, client_type_: i32, server_type_: i32)
+test_heartbeat_notimeout (is_curve_: i32, client_type_: i32, ZmqServerype_: i32)
 {
     rc: i32;
     char my_endpoint[MAX_SOCKET_STRING];
 
     server: *mut c_void, *server_mon;
     prep_server_socket (1, is_curve_, &server, &server_mon, my_endpoint,
-                        MAX_SOCKET_STRING, server_type_);
+                        MAX_SOCKET_STRING, ZmqServerype_);
 
     void *client = test_context_socket (client_type_);
     if (is_curve_)

@@ -138,25 +138,25 @@ pub struct ZmqSocketBase {
 }
 
 impl ZmqObject for ZmqSocketBase {
-    fn get_ctx(&self) -> &ZmqContext {
-        todo!()
-    }
+    // fn get_ctx(&self) -> &ZmqContext {
+    //     todo!()
+    // }
 
-    fn get_ctx_mut(&mut self) -> &mut ZmqContext {
-        todo!()
-    }
+    // fn get_ctx_mut(&mut self) -> &mut ZmqContext {
+    //     todo!()
+    // }
 
     fn set_ctx(&mut self, ctx: &mut ZmqContext) {
         todo!()
     }
 
-    fn get_tid(&self) -> u32 {
-        todo!()
-    }
+    // fn get_tid(&self) -> u32 {
+    //     todo!()
+    // }
 
-    fn set_tid(&mut self, tid: u32) {
-        todo!()
-    }
+    // fn set_tid(&mut self, tid: u32) {
+    //     todo!()
+    // }
 
     fn process_command(&mut self, cmd: &ZmqCommand) {
         todo!()
@@ -463,7 +463,7 @@ impl ZmqSocketBase {
         options.zero_copy = parent_.get(ZMQ_ZERO_COPY_RECV) != 0;
 
         if out.thread_safe {
-            out.mailbox = ZmqMailboxSafe::new(&out.sync);
+            out.mailbox = Some(ZmqMailboxSafe::new(&mut out.sync));
             // zmq_assert (mailbox);
         } else {
             let mut m = ZmqMailbox::new();
@@ -536,7 +536,7 @@ impl ZmqSocketBase {
     //             s = new (std::nothrow) stream_t (parent_, tid, sid_);
     //             break;
     //         ZMQ_SERVER =>
-    //             s = new (std::nothrow) server_t (parent_, tid, sid_);
+    //             s = new (std::nothrow) ZmqServer (parent_, tid, sid_);
     //             break;
     //         ZMQ_CLIENT =>
     //             s = new (std::nothrow) client_t (parent_, tid, sid_);
@@ -706,7 +706,7 @@ impl ZmqSocketBase {
     }
 
     // int bind (endpoint_uri_: *const c_char);
-    pub fn bind(&mut self, options: &mut ZmqOptions, endpoint_uri_: &str) -> anyhow::Result<()> {
+    pub fn bind(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, endpoint_uri_: &str) -> anyhow::Result<()> {
         // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : NULL);
 
         // if (unlikely (_ctx_terminated)) {
@@ -778,7 +778,7 @@ impl ZmqSocketBase {
             // alloc_assert (paddr);
             let mut paddr = Address::new(&protocol, &address, self.get_ctx_mut());
 
-            paddr.resolved.udp_addr = UdpAddress::new();
+            paddr.resolved.udp_addr = &mut UdpAddress::new();
             // alloc_assert (paddr.resolved.udp_addr);
             paddr.resolved.udp_addr.resolve(&address, true, options.ipv6)?;
             // if rc != 0 {
@@ -786,7 +786,7 @@ impl ZmqSocketBase {
             //     return -1;
             // }
 
-            let mut session = ZmqSessionBase::create(&mut io_thread.unwrap(), true, this, options, &mut paddr)?;
+            let mut session = ZmqSessionBase::create(ctx, &mut io_thread.unwrap(), true, this, options, &mut paddr)?;
             // errno_assert (session);
 
             //  Create a bi-directional pipe.
@@ -818,7 +818,7 @@ impl ZmqSocketBase {
 
         //  Remaining transports require to be run in an I/O thread, so at this
         //  point we'll choose one.
-        let io_thread = choose_io_thread(options.affinity);
+        let mut io_thread = self.choose_io_thread(options.affinity);
         if !io_thread {
             // errno = EMTHREAD;
             // return -1;
@@ -826,7 +826,7 @@ impl ZmqSocketBase {
         }
 
         if protocol == protocol_name::tcp {
-            let mut listener = tcp_listener_t::new(io_thread, this, options);
+            let mut listener = tcp_listener_t::new(&mut io_thread, this, options);
             // alloc_assert (listener);
             if listener.set_local_address(address.c_str()).is_err() {
                 // LIBZMQ_DELETE (listener);
@@ -849,10 +849,10 @@ impl ZmqSocketBase {
         // #ifdef ZMQ_HAVE_WS
         // #ifdef ZMQ_HAVE_WSS
         if protocol == protocol_name::ws || protocol == protocol_name::wss {
-            let listener = ws_listener_t::new(io_thread, self, options, protocol == protocol_name::wss);
+            let listener = ws_listener_t::new(&mut io_thread, self, options, protocol == protocol_name::wss);
             // #else
             //     if protocol == protocol_name::ws {
-            let listener = ws_listener_t::new(io_thread, self, options, false);
+            let listener = ws_listener_t::new(&mut io_thread, self, options, false);
             // #endif
             //         alloc_assert (listener);
             if listener.set_local_address(address.c_str()).is_err() {
@@ -876,7 +876,7 @@ impl ZmqSocketBase {
 
         // #if defined ZMQ_HAVE_IPC
         if protocol == protocol_name::ipc {
-            let listener = IpcListener::new(io_thread, this, options);
+            let mut listener = IpcListener::new(&mut io_thread.unwrap(), this, options);
             // alloc_assert (listener);
             if listener.set_local_address(address.c_str()).is_err() {
                 // LIBZMQ_DELETE (listener);
@@ -898,7 +898,7 @@ impl ZmqSocketBase {
         // #endif
         // #if defined ZMQ_HAVE_TIPC
         if protocol == protocol_name::tipc {
-            listener = tIpcListener::new(io_thread, this, options);
+            listener = tIpcListener::new(&mut io_thread, this, options);
             // alloc_assert (listener);
             if listener.set_local_address(address.c_str()).is_err() {
                 event_bind_failed(make_unconnected_bind_endpoint_pair(&address), zmq_errno());
@@ -920,7 +920,7 @@ impl ZmqSocketBase {
         // #endif
         // #if defined ZMQ_HAVE_VMCI
         if protocol == protocol_name::vmci {
-            let listener = vmci_listener_t::new(io_thread, this, options);
+            let listener = vmci_listener_t::new(&mut io_thread, this, options);
             // alloc_assert (listener);
             if listener.set_local_address(address.c_str()).is_err() {
                 // LIBZMQ_DELETE (listener);
@@ -968,7 +968,7 @@ impl ZmqSocketBase {
 
         //  Process pending commands, if any, since there could be pending unprocessed process_own()'s
         //  (from launch_child() for example) we're asked to terminate now.
-        let rc: i32 = process_commands(0, false);
+        self.process_commands(0, false);
         // if (unlikely (rc != 0)) {
         //     return -1;
         // }
@@ -984,7 +984,7 @@ impl ZmqSocketBase {
 
         // Disconnect an inproc socket
         if uri_protocol == protocol_name::inproc {
-            return if unregister_endpoint(endpoint_uri_str, self) == 0 {
+            return if self.unregister_endpoint(&endpoint_uri_str, self) == 0 {
                 0
             } else {
                 self._inprocs.erase_pipes(&endpoint_uri_str)
@@ -992,7 +992,7 @@ impl ZmqSocketBase {
         }
 
         let resolved_endpoint_uri = if uri_protocol == protocol_name::tcp {
-            resolve_tcp_addr(endpoint_uri_str, uri_path.c_str())
+            self.resolve_tcp_addr(options, &mut endpoint_uri_str, uri_path.c_str())
         } else {
             endpoint_uri_str
         };
@@ -1302,7 +1302,7 @@ impl ZmqSocketBase {
     // void start_reaping (Poller *poller_);
     pub fn start_reaping(&mut self, poller_: &mut Poller) {
         //  Plug the socket to the reaper thread.
-        self.poller = poller_.clone();
+        self.poller = Some(poller_.clone());
 
         let fd: ZmqFileDesc;
 
@@ -1311,7 +1311,7 @@ impl ZmqSocketBase {
         } else {
             // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
-            self.reaper_signaler = ZmqSignaler::default(); //new (std::nothrow) ZmqSignaler ();
+            self.reaper_signaler = Some(ZmqSignaler::default()); //new (std::nothrow) ZmqSignaler ();
             // zmq_assert (_reaper_signaler);
 
             //  Add signaler to the safe mailbox
@@ -1520,7 +1520,7 @@ impl ZmqSocketBase {
         fd: ZmqFileDesc,
     ) {
         // u64 values[1] = { (fd)};
-        let values: [u64; 1] = [fd];
+        let values: [u64; 1] = [fd as u64];
         self.event(
             options,
             endpoint_uri_pair_,
@@ -1577,7 +1577,7 @@ impl ZmqSocketBase {
         fd: ZmqFileDesc,
     ) {
         // u64 values[1] = { (fd)};
-        let values: [u64; 1] = [fd];
+        let values: [u64; 1] = [fd as u64];
         self.event(
             options,
             endpoint_uri_pair_,
@@ -1616,7 +1616,7 @@ impl ZmqSocketBase {
         fd: ZmqFileDesc,
     ) {
         // u64 values[1] = { (fd)};
-        let values: [u64; 1] = [fd];
+        let values: [u64; 1] = [fd as u64];
         self.event(
             options,
             endpoint_uri_pair_,
@@ -1654,7 +1654,7 @@ impl ZmqSocketBase {
         fd: ZmqFileDesc,
     ) {
         // u64 values[1] = { (fd)};
-        let values: [u64; 1] = [fd];
+        let values: [u64; 1] = [fd as u64];
         self.event(
             options,
             endpoint_uri_pair_,
@@ -1692,7 +1692,7 @@ impl ZmqSocketBase {
         fd: ZmqFileDesc,
     ) {
         // u64 values[1] = { (fd)};
-        let values: [u64; 1] = [fd];
+        let values: [u64; 1] = [fd as u64];
         self.event(
             options,
             endpoint_uri_pair_,
@@ -1938,7 +1938,7 @@ impl ZmqSocketBase {
 
                 //  If set, send the hello msg of the peer to the local socket.
                 if peer.options.can_send_hello_msg && peer.options.hello_msg.size() > 0 {
-                    send_hello_msg(&new_pipes[1], peer.options);
+                    send_hello_msg(&mut new_pipes[1], peer.options);
                 }
 
                 if peer.options.can_recv_disconnect_msg && peer.options.disconnect_msg.size() > 0 {
@@ -2103,7 +2103,8 @@ impl ZmqSocketBase {
         else if protocol == protocol_name::pgm || protocol == protocol_name::epgm {
             let mut res = pgm_addrinfo_t::new();
             let mut port_number = 0u16;
-            PgmSocket::init_address(&address, &mut res, &port_number)?;
+           // TODO
+            // PgmSocket::init_address(&address, &mut res, &port_number)?;
             // if (res != null_mut()) {
             //     pgm_freeaddrinfo(res);
             // }
@@ -2147,7 +2148,7 @@ impl ZmqSocketBase {
         // #endif
 
         //  Create session.
-        let mut session = ZmqSessionBase::create(&mut io_thread, true, self, options, &mut paddr);
+        let mut session = ZmqSessionBase::create(ctx, &mut io_thread, true, self, options, &mut paddr);
         // errno_assert (session);
 
         //  PGM does not support subscription forwarding; ask for all data to be
@@ -2165,7 +2166,7 @@ impl ZmqSocketBase {
         //     const bool subscribe_to_all = protocol == protocol_name::udp;
         // // #endif
         //     ZmqPipe *newpipe = null_mut();
-        let mut newpipe = ZmqPipe::new();
+        let mut newpipe = ZmqPipe::default();
 
         if options.immediate != 1 || subscribe_to_all {
             //  Create a bi-directional pipe.
@@ -2349,7 +2350,7 @@ impl ZmqSocketBase {
     pub fn add_endpoint(
         &mut self,
         endpoint_pair: &EndpointUriPair,
-        endpoint: &mut ZmqOwn,
+        endpoint: &mut ZmqSessionBase,
         pipe: &mut ZmqPipe,
     ) {
         //  Activate the session. Make it a child of this socket.
@@ -2360,7 +2361,7 @@ impl ZmqSocketBase {
         );
 
         if pipe != null_mut() {
-            pipe.set_endpoint_pair(endpoint_pair);
+            pipe.set_endpoint_pair(endpoint_pair.clone());
         }
     }
 
@@ -2434,7 +2435,7 @@ impl ZmqSocketBase {
         protocol_: &str,
     ) -> anyhow::Result<()> {
         //  First check out whether the protocol is something we are aware of.
-        if protocol_ != protocol_name::inproc
+        if protocol_ != protocol_name::inproc {
             // #if defined ZMQ_HAVE_IPC && protocol_ != protocol_name::ipc
             // #endif && protocol_ != protocol_name::tcp
             // #ifdef ZMQ_HAVE_WS && protocol_ != protocol_name::ws
@@ -2462,6 +2463,7 @@ impl ZmqSocketBase {
         // #if defined ZMQ_HAVE_OPENPGM || defined ZMQ_HAVE_NORM
         // #if defined ZMQ_HAVE_OPENPGM && defined ZMQ_HAVE_NORM
         if (protocol_ == protocol_name::pgm || protocol_ == protocol_name::epgm || protocol_ == protocol_name::norm)
+        {
             // #elif defined ZMQ_HAVE_OPENPGM
             //     if ((protocol_ == protocol_name::pgm || protocol_ == protocol_name::epgm)
             // #else // defined ZMQ_HAVE_NORM
@@ -2649,7 +2651,7 @@ impl ZmqSocketBase {
         if option_ == ZMQ_SNDHWM || option_ == ZMQ_RCVHWM {
             // for (pipes_t::size_type i = 0, size = pipes.size (); i != size; += 1i)
             for pipe in self.pipes.iter_mut() {
-                pipe.set_hwms(options.rcvhwm, options.sndhwm);
+                pipe.set_hwms(options.rcvhwm as u32, options.sndhwm as u32);
                 pipe.send_hwms_to_peer(options.sndhwm, options.rcvhwm);
             }
         }

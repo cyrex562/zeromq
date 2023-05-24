@@ -65,7 +65,7 @@
 
 use std::mem;
 use libc::{EAGAIN, memcmp, memcpy, memset};
-use crate::curve_server::curve_server_t;
+use crate::curve_server::curve_ZmqServer;
 use crate::endpoint::EndpointUriPair;
 use crate::fd::ZmqFileDesc;
 use crate::gssapi_client::ZmqGssApiClient;
@@ -504,7 +504,7 @@ impl ZmqZmtpEngine {
                          b"CURVE\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 0, 20)
             == 0) {
             if (self._options.as_server) {
-                self._mechanism = curve_server_t::new(
+                self._mechanism = curve_ZmqServer::new(
                     session(), self._peer_address, self._options, downgrade_sub_);
             } else {
                 self._mechanism = curve_client_t::new(session(), self._options, downgrade_sub_);

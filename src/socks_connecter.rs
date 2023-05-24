@@ -97,9 +97,9 @@ pub struct socks_connecter_t  : public StreamConnecterBase
     //  Internal function to start the actual connection establishment.
     void start_connecting ();
 
-    static int process_server_response (const socks_choice_t &response_);
-    static int process_server_response (const socks_response_t &response_);
-    static int process_server_response (const socks_auth_response_t &response_);
+    static int process_server_response (const ZmqSocksChoice &response_);
+    static int process_server_response (const ZmqSocksResponse &response_);
+    static int process_server_response (const ZmqSocksAuthResponse &response_);
 
     static int parse_address (const std::string &address_,
                               std::string &hostname_,
@@ -118,12 +118,12 @@ pub struct socks_connecter_t  : public StreamConnecterBase
     //  retired_fd if the connection was unsuccessful.
     ZmqFileDesc check_proxy_connection () const;
 
-    socks_greeting_encoder_t _greeting_encoder;
-    socks_choice_decoder_t _choice_decoder;
-    socks_basic_auth_request_encoder_t _basic_auth_request_encoder;
-    socks_auth_response_decoder_t _auth_response_decoder;
-    socks_request_encoder_t _request_encoder;
-    socks_response_decoder_t _response_decoder;
+    ZmqSocksGreetingEncoder _greeting_encoder;
+    ZmqSocksChoiceDecoder _choice_decoder;
+    ZmqSocksBasicAuthRequestEncoder _basic_auth_request_encoder;
+    ZmqSocksAuthResponseDecoder _auth_response_decoder;
+    ZmqSocksRequestEncoder _request_encoder;
+    ZmqSocksResponseDecoder _response_decoder;
 
     //  SOCKS address; owned by this connecter.
     Address *_proxy_addr;
@@ -186,7 +186,7 @@ void socks_connecter_t::in_event ()
         if (rc == 0 || rc == -1)
             // error ();
         else if (_choice_decoder.message_ready ()) {
-            const socks_choice_t choice = _choice_decoder.decode ();
+            const ZmqSocksChoice choice = _choice_decoder.decode ();
             rc = process_server_response (choice);
             if (rc == -1)
                 // error ();
@@ -202,7 +202,7 @@ void socks_connecter_t::in_event ()
         if (rc == 0 || rc == -1)
             // error ();
         else if (_auth_response_decoder.message_ready ()) {
-            const socks_auth_response_t auth_response =
+            const ZmqSocksAuthResponse auth_response =
               _auth_response_decoder.decode ();
             rc = process_server_response (auth_response);
             if (rc == -1)
@@ -216,7 +216,7 @@ void socks_connecter_t::in_event ()
         if (rc == 0 || rc == -1)
             // error ();
         else if (_response_decoder.message_ready ()) {
-            const socks_response_t response = _response_decoder.decode ();
+            const ZmqSocksResponse response = _response_decoder.decode ();
             rc = process_server_response (response);
             if (rc == -1)
                 // error ();
@@ -233,7 +233,7 @@ void socks_connecter_t::in_event ()
 
     if (expected_status == sending_basic_auth_request) {
         _basic_auth_request_encoder.encode (
-          socks_basic_auth_request_t (_auth_username, _auth_password));
+          ZmqSocksBasicAuthRequest (_auth_username, _auth_password));
         reset_pollin (_handle);
         set_pollout (_handle);
         _status = sending_basic_auth_request;
@@ -243,7 +243,7 @@ void socks_connecter_t::in_event ()
         if (parse_address (_addr.address, hostname, port) == -1)
             // error ();
         else {
-            _request_encoder.encode (socks_request_t (1, hostname, port));
+            _request_encoder.encode (ZmqSocksRequest (1, hostname, port));
             reset_pollin (_handle);
             set_pollout (_handle);
             _status = sending_request;
@@ -262,7 +262,7 @@ void socks_connecter_t::out_event ()
         if (rc == -1)
             // error ();
         else {
-            _greeting_encoder.encode (socks_greeting_t (_auth_method));
+            _greeting_encoder.encode (ZmqSocksGreeting (_auth_method));
             _status = sending_greeting;
         }
     } else if (_status == sending_greeting) {
@@ -328,7 +328,7 @@ void socks_connecter_t::start_connecting ()
 }
 
 int socks_connecter_t::process_server_response (
-  const socks_choice_t &response_)
+  const ZmqSocksChoice &response_)
 {
     return response_.method == socks_no_auth_required
                || response_.method == socks_basic_auth
@@ -337,13 +337,13 @@ int socks_connecter_t::process_server_response (
 }
 
 int socks_connecter_t::process_server_response (
-  const socks_response_t &response_)
+  const ZmqSocksResponse &response_)
 {
     return response_.response_code == 0 ? 0 : -1;
 }
 
 int socks_connecter_t::process_server_response (
-  const socks_auth_response_t &response_)
+  const ZmqSocksAuthResponse &response_)
 {
     return response_.response_code == 0 ? 0 : -1;
 }

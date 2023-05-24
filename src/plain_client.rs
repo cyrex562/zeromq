@@ -43,7 +43,7 @@ use crate::message::ZmqMessage;
 use crate::options::ZmqOptions;
 use crate::plain_client::PlainClientState::{error_command_received, sending_initiate, waiting_for_ready, waiting_for_welcome};
 use crate::session_base::ZmqSessionBase;
-use crate::utils::{cmp_bytes, copy_bytes, ptr_advance};
+use crate::utils::{cmp_bytes, copy_bytes, advance_ptr};
 
 // #include "msg.hpp"
 // #include "err.hpp"
@@ -183,18 +183,18 @@ impl PlainClient {
         let mut ptr =  (msg.data_mut());
         copy_bytes(ptr, 0, hello_prefix, 0, hello_prefix_len);
         // ptr += hello_prefix_len;
-        ptr = ptr_advance(ptr, hello_prefix_len);
+        ptr = advance_ptr(ptr, hello_prefix_len);
 
         // *ptr+= 1 =  (username.length ());
         copy_bytes(ptr, 0, username.length(), 0, 1);
-        ptr = ptr_advance(ptr, 1);
+        ptr = advance_ptr(ptr, 1);
         // memcpy (ptr, username, username.length ());
         copy_bytes(ptr, 0, username, 0, username.length());
-        ptr = ptr_advance(ptr, username.length ());
+        ptr = advance_ptr(ptr, username.length ());
 
         // *ptr+= 1 =  (password.length ());
         copy_bytes(ptr, 0, password.length(), 0, 1);
-        ptr = ptr_advance(ptr, 1);
+        ptr = advance_ptr(ptr, 1);
 
         copy_bytes(ptr, 0, password, 0,password.length ());
     }

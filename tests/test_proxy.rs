@@ -189,7 +189,7 @@ static void client_task (db_: *mut c_void)
 
 static void server_worker (void * /*unused_*/);
 
-void server_task (void * /*unused_*/)
+void ZmqServerask (void * /*unused_*/)
 {
     // Frontend socket talks to clients over TCP
     char my_endpoint[MAX_SOCKET_STRING];
@@ -432,7 +432,7 @@ void test_proxy ()
         databags[i].id = i;
         threads[i] = zmq_threadstart (&client_task, &databags[i]);
     }
-    threads[QT_CLIENTS] = zmq_threadstart (&server_task, null_mut());
+    threads[QT_CLIENTS] = zmq_threadstart (&ZmqServerask, null_mut());
     msleep (500); // Run for 500 ms then quit
 
     if (is_verbose)

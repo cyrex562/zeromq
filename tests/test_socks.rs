@@ -114,7 +114,7 @@ void *setup_socks_server (char *socks_server_address,
     return (void *) (intptr_t) server_fd;
 }
 
-void socks_server_task (socks_server: *mut c_void,
+void socks_ZmqServerask (socks_server: *mut c_void,
                         username: *const c_char,
                         password: *const c_char,
                         max_client_connect: i32)
@@ -381,7 +381,7 @@ void socks_server_task (socks_server: *mut c_void,
 
 void socks_server_no_auth (socks_server: *mut c_void)
 {
-    socks_server_task (socks_server, null_mut(), null_mut(), 1);
+    socks_ZmqServerask (socks_server, null_mut(), null_mut(), 1);
 }
 
 void socks_server_no_auth_delay (socks_server: *mut c_void)
@@ -389,12 +389,12 @@ void socks_server_no_auth_delay (socks_server: *mut c_void)
     fprintf (stderr, "socks_server: delay no auth socks server start\n");
     // Enough delay to have client connecting before proxy listens
     msleep (SETTLE_TIME * 10);
-    socks_server_task (socks_server, null_mut(), null_mut(), 1);
+    socks_ZmqServerask (socks_server, null_mut(), null_mut(), 1);
 }
 
 void socks_server_basic_auth (socks_server: *mut c_void)
 {
-    socks_server_task (socks_server, "someuser", "somepass", 1);
+    socks_ZmqServerask (socks_server, "someuser", "somepass", 1);
 }
 
 void socks_server_basic_auth_delay (socks_server: *mut c_void)
@@ -402,12 +402,12 @@ void socks_server_basic_auth_delay (socks_server: *mut c_void)
     fprintf (stderr, "socks_server: delay basic auth socks server start\n");
     // Enough delay to have client connecting before proxy listens
     msleep (SETTLE_TIME * 10);
-    socks_server_task (socks_server, "someuser", "somepass", 1);
+    socks_ZmqServerask (socks_server, "someuser", "somepass", 1);
 }
 
 void socks_server_basic_auth_no_pass (socks_server: *mut c_void)
 {
-    socks_server_task (socks_server, "someuser", null_mut(), 1);
+    socks_ZmqServerask (socks_server, "someuser", null_mut(), 1);
 }
 
 void *setup_push_server (char *connect_address, connect_address_size: i32)

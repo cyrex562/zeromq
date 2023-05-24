@@ -28,19 +28,19 @@ pub enum SocketEnd {
     SocketEndRemote,
 }
 
-pub union ZmqAddressResolved {
-    pub dummy: *mut libc::c_void,
-    pub tcp_addr: *mut TcpAddress,
-    pub udp_addr: *mut UdpAddress,
-    pub ws_addr: *mut WsAddress,
-    pub wss_addr: *mut WssAddress,
-    pub ipc_addr: *mut IpcAddress,
-    pub tipc_addr: *mut TipcAddress,
-    pub vmci_addr: *mut VmciAddress,
-}
+// pub union ZmqAddressResolved {
+//     pub dummy: *mut libc::c_void,
+//     pub tcp_addr: *mut TcpAddress,
+//     pub udp_addr: *mut UdpAddress,
+//     pub ws_addr: *mut WsAddress,
+//     pub wss_addr: *mut WssAddress,
+//     pub ipc_addr: *mut IpcAddress,
+//     pub tipc_addr: *mut TipcAddress,
+//     pub vmci_addr: *mut VmciAddress,
+// }
 
 #[derive(Default, Debug, Clone)]
-pub struct Address<'a> {
+pub struct Address<'a, T> {
     // const std::string protocol;
     pub protocol: String,
     // const std::string address;
@@ -49,10 +49,10 @@ pub struct Address<'a> {
     pub parent: ZmqContext,
     //  Protocol specific resolved address
     //  All members must be pointers to allow for consistent initialization
-    pub resolved: ZmqAddressResolved,
+    pub resolved: T,
 }
 
-impl Address {
+impl Address<T> {
     // address_t (const std::string &protocol_,
     //     const std::string &address_,
     //     ctx_t *parent_);
@@ -61,7 +61,7 @@ impl Address {
             protocol: String::from(protocol),
             address: String::from(address),
             parent: parent.clone(),
-            resolved: ZmqAddressResolved{dummy: null_mut()}
+            resolved: ZmqAddressResolved { dummy: null_mut() },
         }
     }
 
@@ -70,7 +70,7 @@ impl Address {
     }
 }
 
-impl ToString for Address {
+impl ToString for Address<T> {
     fn to_string(&self) -> String {
         let mut s = String::new();
         match self.protocol {

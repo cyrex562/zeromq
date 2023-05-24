@@ -88,7 +88,7 @@ use std::ptr::{hash, null_mut};
 use bincode::options;
 use libc::{EAGAIN, ECONNRESET, memcpy, memset, strcmp};
 
-use crate::curve_server::curve_server_t;
+use crate::curve_server::curve_ZmqServer;
 use crate::defines::{ZMQ_CURVE, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED};
 use crate::endpoint::EndpointUriPair;
 use crate::fd::ZmqFileDesc;
@@ -403,7 +403,7 @@ impl ZmqWsEngine {
 // #ifdef ZMQ_HAVE_CURVE
         else if (self._options.mechanism == ZMQ_CURVE && ("ZWS2.0/CURVE" == protocol_)) {
             if (self._options.as_server) {
-                self._mechanism = curve_server_t(session(), self._peer_address, self._options, false);
+                self._mechanism = curve_ZmqServer(session(), self._peer_address, self._options, false);
             } else {
                 self._mechanism = curve_client_t(session(), self._options, false);
             }

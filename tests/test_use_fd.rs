@@ -154,7 +154,7 @@ void test_ZmqPaircp ()
     test_pair (pre_allocate_sock_tcp);
 }
 
-void test_client_server_tcp ()
+void test_client_ZmqServercp ()
 {
 // #if defined(ZMQ_SERVER) && defined(ZMQ_CLIENT)
     test_client_server (pre_allocate_sock_tcp);
@@ -201,7 +201,7 @@ int main ()
     UNITY_BEGIN ();
     RUN_TEST (test_req_rep_tcp);
     RUN_TEST (test_ZmqPaircp);
-    RUN_TEST (test_client_server_tcp);
+    RUN_TEST (test_client_ZmqServercp);
 
     RUN_TEST (test_req_rep_ipc);
     RUN_TEST (test_pair_ipc);

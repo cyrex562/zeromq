@@ -39,7 +39,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 // but there is no pull on the other side, previously the proxy blocks
 // in writing to the backend, preventing the proxy from terminating
 
-void server_task (void * /*unused_*/)
+void ZmqServerask (void * /*unused_*/)
 {
     char my_endpoint[MAX_SOCKET_STRING];
     // Frontend socket talks to main process
@@ -73,7 +73,7 @@ void server_task (void * /*unused_*/)
 // waits for the server to terminate.
 void test_proxy_terminate ()
 {
-    void *thread = zmq_threadstart (&server_task, null_mut());
+    void *thread = zmq_threadstart (&ZmqServerask, null_mut());
 
     // Control socket receives terminate command from main over inproc
     void *control = test_context_socket (ZMQ_REP);

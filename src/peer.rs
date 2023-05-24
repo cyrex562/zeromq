@@ -33,7 +33,7 @@ use crate::context::ZmqContext;
 use crate::defines::ZMQ_PEER;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::server::server_t;
+use crate::server::ZmqServer;
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"
@@ -45,8 +45,8 @@ use crate::server::server_t;
 // #include "err.hpp"
 #[derive(Default, Debug, Clone)]
 pub struct ZmqPeer {
-    //   : public server_t
-    pub server: server_t,
+    //   : public ZmqServer
+    pub server: ZmqServer,
     // u32 _peer_last_routing_id;
     pub peer_last_routing_id: u32,
 
@@ -62,9 +62,9 @@ impl ZmqPeer {
         options.can_recv_disconnect_msg = true;
         options.can_recv_hiccup_msg = true;
         options.can_recv_routing_id = true;
-// server_t (parent_, tid, sid_) -> Self
+// ZmqServer (parent_, tid, sid_) -> Self
         Self {
-            server: server_t::new(parent, tid, sid_),
+            server: ZmqServer::new(parent, tid, sid_),
             ..Default::default()
         }
     }
