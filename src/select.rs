@@ -32,14 +32,14 @@
 // #if defined ZMQ_IOTHREAD_POLLER_USE_SELECT
 
 // #if defined ZMQ_HAVE_WINDOWS
-#elif defined ZMQ_HAVE_HPUX
-// #include <sys/param.h>
-// #include <sys/types.h>
-// #include <sys/time.h>
-#elif defined ZMQ_HAVE_OPENVMS
-// #include <sys/types.h>
-// #include <sys/time.h>
-#elif defined ZMQ_HAVE_VXWORKS
+// #elif defined ZMQ_HAVE_HPUX
+// // #include <sys/param.h>
+// // #include <sys/types.h>
+// // #include <sys/time.h>
+// #elif defined ZMQ_HAVE_OPENVMS
+// // #include <sys/types.h>
+// // #include <sys/time.h>
+// #elif defined ZMQ_HAVE_VXWORKS
 // #include <sys/types.h>
 // #include <sys/time.h>
 // #include <strings.h>
@@ -51,138 +51,149 @@
 // #include "config.hpp"
 // #include "i_poll_events.hpp"
 
+use std::collections::HashMap;
+use windows::Win32::Networking::WinSock::FD_SET;
+use crate::fd::ZmqFileDesc;
+use crate::poll_events_interface::ZmqPollEventsInterface;
+use crate::poller_base::WorkerPollerBase;
+use crate::thread_ctx::ThreadCtx;
+
+//  Internal state.
+#[derive(Default,Debug,Clone)]
+struct fds_set_t
+{
+    // fds_set_t ();
+    // fds_set_t (const fds_set_t &other_);
+    // fds_set_t &operator= (const fds_set_t &other_);
+    //  Convenience method to descriptor from all sets.
+    // void remove_fd (const ZmqFileDesc &fd);
+
+    // fd_set read;
+    pub read: fd_set,
+    // fd_set write;
+    pub write: fd_set,
+    // fd_set error;
+    pub error: fd_set,
+}
+
+#[derive(Default,Debug,Clone)]
+struct FdEntry
+{
+    // ZmqFileDesc fd;
+    fd: ZmqFileDesc,
+    // ZmqPollEventsInterface *events;
+}
+
+#[derive(Default,Debug,Clone)]
+struct family_entry_t
+{
+    // family_entry_t ();
+    // fd_entries_t fd_entries;
+    fd_entries: Vec<FdEntry>,
+    // fds_set_t fds_set;
+    fds_set: fds_set_t,
+    has_retired: bool
+}
+
+#[derive(Default,Debug,Clone)]
+struct wsa_events_t
+{
+    // wsa_events_t ();
+    // ~wsa_events_t ();
+
+    //  read, write, error and readwrite
+    pub events: [WSAEVENT;4];
+}
+
+// static const size_t fd_family_cache_size = 8;
+const fd_family_cache_size: usize = 8;
+
 // #include <algorithm>
 // #include <limits>
 // #include <climits>
-pub struct select_t  : public WorkerPollerBase
+pub struct ZmqSelect<'a>
 {
-//
-    typedef ZmqFileDesc handle_t;
+// : public WorkerPollerBase
+pub base: WorkerPollerBase<'a>,
+//     typedef ZmqFileDesc handle_t;
 
-    select_t (const ThreadCtx &ctx);
-    ~select_t () ;
-
+    // ZmqSelect (const ThreadCtx &ctx);
+    // ~ZmqSelect () ;
+    //
     //  "poller" concept.
-    handle_t add_fd (fd: ZmqFileDesc, ZmqPollEventsInterface *events_);
-    void rm_fd (handle_t handle_);
-    void set_pollin (handle_t handle_);
-    void reset_pollin (handle_t handle_);
-    void set_pollout (handle_t handle_);
-    void reset_pollout (handle_t handle_);
-    void stop ();
-
-    static int max_fds ();
-
-  //
+    // handle_t add_fd (fd: ZmqFileDesc, ZmqPollEventsInterface *events_);
+    // void rm_fd (handle_t handle_);
+    // void set_pollin (handle_t handle_);
+    // void reset_pollin (handle_t handle_);
+    // void set_pollout (handle_t handle_);
+    // void reset_pollout (handle_t handle_);
+    // void stop ();
+    // static int max_fds ();
     //  Main event loop.
-    void loop () ;
-
-    //  Internal state.
-    struct fds_set_t
-    {
-        fds_set_t ();
-        fds_set_t (const fds_set_t &other_);
-        fds_set_t &operator= (const fds_set_t &other_);
-        //  Convenience method to descriptor from all sets.
-        void remove_fd (const ZmqFileDesc &fd);
-
-        fd_set read;
-        fd_set write;
-        fd_set error;
-    };
-
-    struct FdEntry
-    {
-        ZmqFileDesc fd;
-        ZmqPollEventsInterface *events;
-    };
-    typedef std::vector<FdEntry> fd_entries_t;
-
-    void trigger_events (const fd_entries_t &fd_entries_,
-                         const fds_set_t &local_fds_set_,
-                         event_count_: i32);
-
-    struct family_entry_t
-    {
-        family_entry_t ();
-
-        fd_entries_t fd_entries;
-        fds_set_t fds_set;
-        has_retired: bool
-    };
-
-    void select_family_entry (family_entry_t &family_entry_,
-                              max_fd_: i32,
-                              use_timeout_: bool,
-                              struct timeval &tv_);
-
+    // void loop () ;
+    // void trigger_events (const fd_entries_t &fd_entries_,
+    //                          const fds_set_t &local_fds_set_,
+    //                          event_count_: i32);
+    // typedef std::vector<FdEntry> fd_entries_t;
+    // void select_family_entry (family_entry_t &family_entry_,
+    //                           max_fd_: i32,
+    //                           use_timeout_: bool,
+    //                           struct timeval &tv_);
+    // int try_retire_fd_entry (family_entries_t::iterator family_entry_it_,
+    //                              ZmqFileDesc &handle_);
+    // u_short get_fd_family (ZmqFileDesc fd);
+    // static u_short determine_fd_family (ZmqFileDesc fd);
+    // void cleanup_retired ();
+    //     bool cleanup_retired (family_entry_t &family_entry_);
+    //  Checks if an FdEntry is retired.
+    // static bool is_retired_fd (const FdEntry &entry_);
+    // static fd_entries_t::iterator
+    //     find_fd_entry_by_handle (fd_entries_t &fd_entries_, handle_t handle_);
 // #if defined ZMQ_HAVE_WINDOWS
-    typedef std::map<u_short, family_entry_t> family_entries_t;
-
-    struct wsa_events_t
-    {
-        wsa_events_t ();
-        ~wsa_events_t ();
-
-        //  read, write, error and readwrite
-        WSAEVENT events[4];
-    };
-
-    family_entries_t _family_entries;
+//     typedef std::map<u_short, family_entry_t> family_entries_t;
+    // family_entries_t _family_entries;
+    pub _family_entires: HashMap<u16,family_entry_t>,
     // See loop for details.
-    family_entries_t::iterator _current_family_entry_it;
-
-    int try_retire_fd_entry (family_entries_t::iterator family_entry_it_,
-                             ZmqFileDesc &handle_);
-
-    static const size_t fd_family_cache_size = 8;
-    std::pair<ZmqFileDesc, u_short> _fd_family_cache[fd_family_cache_size];
-
-    u_short get_fd_family (ZmqFileDesc fd);
-
+    // family_entries_t::iterator _current_family_entry_it;
+    // std::pair<ZmqFileDesc, u_short> _fd_family_cache[fd_family_cache_size];
+    pub _fd_family_cache: [(ZmqFileDesc,u16);fd_family_cache_size],
     //  Socket's family or AF_UNSPEC on error.
-    static u_short determine_fd_family (ZmqFileDesc fd);
 // #else
     //  on non-Windows, we can treat all fds as one family
-    family_entry_t _family_entry;
-    ZmqFileDesc _max_fd;
+    // family_entry_t _family_entry;
+    pub _family_entry: family_entry_t,
+    // ZmqFileDesc _max_fd;
+    pub _max_fd: ZmqFileDesc,
 // #endif
+}
 
-    void cleanup_retired ();
-    bool cleanup_retired (family_entry_t &family_entry_);
+// typedef ZmqSelect Poller;
 
-    //  Checks if an FdEntry is retired.
-    static bool is_retired_fd (const FdEntry &entry_);
-
-    static fd_entries_t::iterator
-    find_fd_entry_by_handle (fd_entries_t &fd_entries_, handle_t handle_);
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (select_t)
-};
-
-typedef select_t Poller;
-
-select_t::select_t (const ThreadCtx &ctx) :
-    WorkerPollerBase (ctx),
+impl ZmqSelect {
+    pub fn new(ctx: &ThreadCtx) -> Self
+    {
+        //     WorkerPollerBase (ctx),
+        // // #if defined ZMQ_HAVE_WINDOWS
+        //     //  Fine as long as map is not cleared.
+        //     _current_family_entry_it (_family_entries.end ())
+        // // #else
+        //     _max_fd (retired_fd)
+        // // #endif
 // #if defined ZMQ_HAVE_WINDOWS
-    //  Fine as long as map is not cleared.
-    _current_family_entry_it (_family_entries.end ())
-// #else
-    _max_fd (retired_fd)
-// #endif
-{
-// #if defined ZMQ_HAVE_WINDOWS
-    for (size_t i = 0; i < fd_family_cache_size; += 1i)
+        for (size_t i = 0; i < fd_family_cache_size; += 1i)
         _fd_family_cache[i] = std::make_pair (retired_fd, 0);
 // #endif
+        Self {
+            base: WorkerPollerBase::new(ctx),
+            _family_entires: Default::default(),
+            _fd_family_cache: [(retired_fd,0);fd_family_cache_size],
+            _family_entry: Default::default(),
+            _max_fd: 0,
+        }
+    }
 }
 
-select_t::~select_t ()
-{
-    stop_worker ();
-}
-
-select_t::handle_t select_t::add_fd (fd: ZmqFileDesc, ZmqPollEventsInterface *events_)
+pub fn add_fd (fd: ZmqFileDesc, events_: &mut ZmqPollEventsInterface) -> ZmqFileDesc
 {
     check_thread ();
     // zmq_assert (fd != retired_fd);
@@ -193,7 +204,7 @@ select_t::handle_t select_t::add_fd (fd: ZmqFileDesc, ZmqPollEventsInterface *ev
 
 // #if defined ZMQ_HAVE_WINDOWS
     u_short family = get_fd_family (fd);
-    wsa_assert (family != AF_UNSPEC);
+    // wsa_assert (family != AF_UNSPEC);
     family_entry_t &family_entry = _family_entries[family];
 // #else
     family_entry_t &family_entry = _family_entry;
@@ -202,8 +213,9 @@ select_t::handle_t select_t::add_fd (fd: ZmqFileDesc, ZmqPollEventsInterface *ev
     FD_SET (fd, &family_entry.fds_set.error);
 
 // #if !defined ZMQ_HAVE_WINDOWS
-    if (fd > _max_fd)
+    if (fd > _max_fd) {
         _max_fd = fd;
+    }
 // #endif
 
     adjust_load (1);
@@ -211,8 +223,8 @@ select_t::handle_t select_t::add_fd (fd: ZmqFileDesc, ZmqPollEventsInterface *ev
     return fd;
 }
 
-select_t::fd_entries_t::iterator
-select_t::find_fd_entry_by_handle (fd_entries_t &fd_entries_,
+ZmqSelect::fd_entries_t::iterator
+ZmqSelect::find_fd_entry_by_handle (fd_entries_t &fd_entries_,
                                         handle_t handle_)
 {
     fd_entries_t::iterator fd_entry_it;
@@ -224,7 +236,7 @@ select_t::find_fd_entry_by_handle (fd_entries_t &fd_entries_,
     return fd_entry_it;
 }
 
-void select_t::trigger_events (const fd_entries_t &fd_entries_,
+void ZmqSelect::trigger_events (const fd_entries_t &fd_entries_,
                                     const fds_set_t &local_fds_set_,
                                     event_count_: i32)
 {
@@ -266,7 +278,7 @@ void select_t::trigger_events (const fd_entries_t &fd_entries_,
 }
 
 // #if defined ZMQ_HAVE_WINDOWS
-int select_t::try_retire_fd_entry (
+int ZmqSelect::try_retire_fd_entry (
   family_entries_t::iterator family_entry_it_, ZmqFileDesc &handle_)
 {
     family_entry_t &family_entry = family_entry_it_.second;
@@ -287,7 +299,7 @@ int select_t::try_retire_fd_entry (
         family_entry.fd_entries.erase (fd_entry_it);
     } else {
         //  Otherwise mark removed entries as retired. It will be cleaned up
-        //  at the end of the iteration. See select_t::loop
+        //  at the end of the iteration. See ZmqSelect::loop
         fd_entry.fd = retired_fd;
         family_entry.has_retired = true;
     }
@@ -296,7 +308,7 @@ int select_t::try_retire_fd_entry (
 }
 // #endif
 
-void select_t::rm_fd (handle_t handle_)
+void ZmqSelect::rm_fd (handle_t handle_)
 {
     check_thread ();
     int retired = 0;
@@ -345,7 +357,7 @@ void select_t::rm_fd (handle_t handle_)
     adjust_load (-1);
 }
 
-void select_t::set_pollin (handle_t handle_)
+void ZmqSelect::set_pollin (handle_t handle_)
 {
     check_thread ();
 // #if defined ZMQ_HAVE_WINDOWS
@@ -358,7 +370,7 @@ void select_t::set_pollin (handle_t handle_)
     FD_SET (handle_, &family_entry.fds_set.read);
 }
 
-void select_t::reset_pollin (handle_t handle_)
+void ZmqSelect::reset_pollin (handle_t handle_)
 {
     check_thread ();
 // #if defined ZMQ_HAVE_WINDOWS
@@ -371,7 +383,7 @@ void select_t::reset_pollin (handle_t handle_)
     FD_CLR (handle_, &family_entry.fds_set.read);
 }
 
-void select_t::set_pollout (handle_t handle_)
+void ZmqSelect::set_pollout (handle_t handle_)
 {
     check_thread ();
 // #if defined ZMQ_HAVE_WINDOWS
@@ -384,7 +396,7 @@ void select_t::set_pollout (handle_t handle_)
     FD_SET (handle_, &family_entry.fds_set.write);
 }
 
-void select_t::reset_pollout (handle_t handle_)
+void ZmqSelect::reset_pollout (handle_t handle_)
 {
     check_thread ();
 // #if defined ZMQ_HAVE_WINDOWS
@@ -397,18 +409,18 @@ void select_t::reset_pollout (handle_t handle_)
     FD_CLR (handle_, &family_entry.fds_set.write);
 }
 
-void select_t::stop ()
+void ZmqSelect::stop ()
 {
     check_thread ();
     //  no-op... thread is stopped when no more fds or timers are registered
 }
 
-int select_t::max_fds ()
+int ZmqSelect::max_fds ()
 {
     return FD_SETSIZE;
 }
 
-void select_t::loop ()
+void ZmqSelect::loop ()
 {
     while (true) {
         //  Execute any due timers.
@@ -526,7 +538,7 @@ void select_t::loop ()
     }
 }
 
-void select_t::select_family_entry (family_entry_t &family_entry_,
+void ZmqSelect::select_family_entry (family_entry_t &family_entry_,
                                          const max_fd_: i32,
                                          const use_timeout_: bool,
                                          struct timeval &tv_)
@@ -554,14 +566,14 @@ void select_t::select_family_entry (family_entry_t &family_entry_,
     cleanup_retired (family_entry_);
 }
 
-select_t::fds_set_t::fds_set_t ()
+ZmqSelect::fds_set_t::fds_set_t ()
 {
     FD_ZERO (&read);
     FD_ZERO (&write);
     FD_ZERO (&error);
 }
 
-select_t::fds_set_t::fds_set_t (const fds_set_t &other_)
+ZmqSelect::fds_set_t::fds_set_t (const fds_set_t &other_)
 {
 // #if defined ZMQ_HAVE_WINDOWS
     // On Windows we don't need to copy the whole fd_set.
@@ -584,8 +596,8 @@ select_t::fds_set_t::fds_set_t (const fds_set_t &other_)
 // #endif
 }
 
-select_t::fds_set_t &
-select_t::fds_set_t::operator= (const fds_set_t &other_)
+ZmqSelect::fds_set_t &
+ZmqSelect::fds_set_t::operator= (const fds_set_t &other_)
 {
 // #if defined ZMQ_HAVE_WINDOWS
     // On Windows we don't need to copy the whole fd_set.
@@ -609,14 +621,14 @@ select_t::fds_set_t::operator= (const fds_set_t &other_)
     return *this;
 }
 
-void select_t::fds_set_t::remove_fd (const ZmqFileDesc &fd)
+void ZmqSelect::fds_set_t::remove_fd (const ZmqFileDesc &fd)
 {
     FD_CLR (fd, &read);
     FD_CLR (fd, &write);
     FD_CLR (fd, &error);
 }
 
-bool select_t::cleanup_retired (family_entry_t &family_entry_)
+bool ZmqSelect::cleanup_retired (family_entry_t &family_entry_)
 {
     if (family_entry_.has_retired) {
         family_entry_.has_retired = false;
@@ -628,7 +640,7 @@ bool select_t::cleanup_retired (family_entry_t &family_entry_)
     return family_entry_.fd_entries.is_empty();
 }
 
-void select_t::cleanup_retired ()
+void ZmqSelect::cleanup_retired ()
 {
 // #ifdef _WIN32
     for (family_entries_t::iterator it = _family_entries.begin ();
@@ -643,18 +655,18 @@ void select_t::cleanup_retired ()
 // #endif
 }
 
-bool select_t::is_retired_fd (const FdEntry &entry_)
+bool ZmqSelect::is_retired_fd (const FdEntry &entry_)
 {
     return entry_.fd == retired_fd;
 }
 
-select_t::family_entry_t::family_entry_t () : has_retired (false)
+ZmqSelect::family_entry_t::family_entry_t () : has_retired (false)
 {
 }
 
 
 // #if defined ZMQ_HAVE_WINDOWS
-u_short select_t::get_fd_family (ZmqFileDesc fd)
+u_short ZmqSelect::get_fd_family (ZmqFileDesc fd)
 {
     // cache the results of determine_fd_family, as this is frequently called
     // for the same sockets, and determine_fd_family is expensive
@@ -681,7 +693,7 @@ u_short select_t::get_fd_family (ZmqFileDesc fd)
     return res.second;
 }
 
-u_short select_t::determine_fd_family (ZmqFileDesc fd)
+u_short ZmqSelect::determine_fd_family (ZmqFileDesc fd)
 {
     //  Use sockaddr_storage instead of sockaddr to accommodate different structure sizes
     sockaddr_storage addr = {0};
@@ -709,7 +721,7 @@ u_short select_t::determine_fd_family (ZmqFileDesc fd)
     return AF_UNSPEC;
 }
 
-select_t::wsa_events_t::wsa_events_t ()
+ZmqSelect::wsa_events_t::wsa_events_t ()
 {
     events[0] = WSACreateEvent ();
     wsa_assert (events[0] != WSA_INVALID_EVENT);
@@ -721,7 +733,7 @@ select_t::wsa_events_t::wsa_events_t ()
     wsa_assert (events[3] != WSA_INVALID_EVENT);
 }
 
-select_t::wsa_events_t::~wsa_events_t ()
+ZmqSelect::wsa_events_t::~wsa_events_t ()
 {
     wsa_assert (WSACloseEvent (events[0]));
     wsa_assert (WSACloseEvent (events[1]));

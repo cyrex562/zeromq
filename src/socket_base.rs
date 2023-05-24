@@ -551,7 +551,7 @@ impl ZmqSocketBase {
     //             s = new (std::nothrow) ZmqGather (parent_, tid, sid_);
     //             break;
     //         ZMQ_SCATTER =>
-    //             s = new (std::nothrow) scatter_t (parent_, tid, sid_);
+    //             s = new (std::nothrow) ZmqScatter (parent_, tid, sid_);
     //             break;
     //         ZMQ_DGRAM =>
     //             s = new (std::nothrow) ZmqDgram (parent_, tid, sid_);

@@ -27,82 +27,95 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use libc::EINVAL;
+use crate::context::ZmqContext;
+use crate::defines::ZMQ_SCATTER;
+use crate::lb::LoadBalancer;
+use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::socket_base::ZmqSocketBase;
+
 // #include "precompiled.hpp"
 // #include "macros.hpp"
 // #include "scatter.hpp"
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-pub struct scatter_t  : public ZmqSocketBase
-{
-//
-    scatter_t (ZmqContext *parent_, tid: u32, sid_: i32);
-    ~scatter_t ();
-
-
+#[derive(Default, Debug, Clone)]
+pub struct ZmqScatter {
+    // : public ZmqSocketBase
+    pub socket_base: ZmqSocketBase,
+    //     ZmqScatter (ZmqContext *parent_, tid: u32, sid_: i32);
+//     ~ZmqScatter ();
     //  Overrides of functions from ZmqSocketBase.
-    void xattach_pipe (pipe: &mut ZmqPipe,
-                       subscribe_to_all_: bool,
-                       locally_initiated_: bool);
-    int xsend (msg: &mut ZmqMessage);
-    bool xhas_out ();
-    void xwrite_activated (pipe: &mut ZmqPipe);
-    void xpipe_terminated (pipe: &mut ZmqPipe);
-
-  //
+    // void xattach_pipe (pipe: &mut ZmqPipe,
+    //                    subscribe_to_all_: bool,
+    //                    locally_initiated_: bool);
+    // int xsend (msg: &mut ZmqMessage);
+    // bool xhas_out ();
+    // void xwrite_activated (pipe: &mut ZmqPipe);
+    // void xpipe_terminated (pipe: &mut ZmqPipe);
     //  Load balancer managing the outbound pipes.
-    LoadBalancer load_balance;
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (scatter_t)
-};
-
-scatter_t::scatter_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
-    ZmqSocketBase (parent_, tid, sid_, true)
-{
-    options.type_ = ZMQ_SCATTER;
+    pub load_balance: LoadBalancer,
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqScatter)
 }
 
-scatter_t::~scatter_t ()
-{
-}
+impl ZmqScatter {
+    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
 
-void scatter_t::xattach_pipe (pipe: &mut ZmqPipe,
-                                   subscribe_to_all_: bool,
-                                   locally_initiated_: bool)
-{
-    LIBZMQ_UNUSED (subscribe_to_all_);
-    LIBZMQ_UNUSED (locally_initiated_);
-
-    //  Don't delay pipe termination as there is no one
-    //  to receive the delimiter.
-    pipe.set_nodelay ();
-
-    // zmq_assert (pipe);
-    load_balance.attach (pipe);
-}
-
-void scatter_t::xwrite_activated (pipe: &mut ZmqPipe)
-{
-    load_balance.activated (pipe);
-}
-
-void scatter_t::xpipe_terminated (pipe: &mut ZmqPipe)
-{
-    load_balance.pipe_terminated (pipe);
-}
-
-int scatter_t::xsend (msg: &mut ZmqMessage)
-{
-    //  SCATTER sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg.flags () & ZMQ_MSG_MORE) {
-        errno = EINVAL;
-        return -1;
+    {
+        // ZmqSocketBase (parent_, tid, sid_, true)
+        options.type_ = ZMQ_SCATTER as i32;
+        Self {
+            socket_base: ZmqSocketBase::new(parent, options, tid, sid, false),
+            load_balance: LoadBalancer::new(),
+        }
     }
 
-    return load_balance.send (msg);
+
+    pub fn xattach_pipe(&mut self, pipe: &mut ZmqPipe,
+                        subscribe_to_all_: bool,
+                        locally_initiated_: bool) {
+        // LIBZMQ_UNUSED (subscribe_to_all_);
+        // LIBZMQ_UNUSED (locally_initiated_);
+
+        //  Don't delay pipe termination as there is no one
+        //  to receive the delimiter.
+        pipe.set_nodelay();
+
+        // zmq_assert (pipe);
+        load_balance.attach(pipe);
+    }
+
+    pub fn xwrite_activated(&mut self, pipe: &mut ZmqPipe) {
+        load_balance.activated(pipe);
+    }
+
+    pub fn xpipe_terminated(pipe: &mut ZmqPipe) {
+        load_balance.pipe_terminated(pipe);
+    }
+
+    pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32 {
+        //  SCATTER sockets do not allow multipart data (ZMQ_SNDMORE)
+        if (msg.flags() & ZMQ_MSG_MORE) {
+            errno = EINVAL;
+            return -1;
+        }
+
+        return load_balance.send(msg);
+    }
+
+    pub fn xhas_out(&mut self) -> bool {
+        return load_balance.has_out();
+    }
 }
 
-bool scatter_t::xhas_out ()
-{
-    return load_balance.has_out ();
-}
+
+
+
+
+
+
+
+
