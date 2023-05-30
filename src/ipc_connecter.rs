@@ -44,7 +44,7 @@
 // #include "session_base.hpp"
 
 use crate::address::SocketEnd::SocketEndLocal;
-use crate::address::{get_socket_name, Address};
+use crate::address::{get_socket_name, ZmqAddress};
 use crate::address_family::AF_UNIX;
 use crate::defines::ZMQ_RECONNECT_STOP_AFTER_DISCONNECT;
 use crate::err::wsa_error_to_errno;
@@ -89,7 +89,7 @@ impl IpcConnecter {
         io_thread_: &mut ZmqIoThread,
         session: &mut ZmqSessionBase,
         options: &ZmqOptions,
-        addr: &mut Address,
+        addr: &mut ZmqAddress,
         delayed_start_: bool,
     ) -> Self {
         // stream_connecter_base_t (
@@ -138,16 +138,12 @@ impl IpcConnecter {
                 zmq_errno(),
             );
 
-            // TODO, tcp_connecter_t adds a connect timer in this case; maybe this
+            // TODO, ZmqTcpConnector adds a connect timer in this case; maybe this
             // should be done here as well (and then this could be pulled up to
             // stream_connecter_base_t).
         }
         //stop connecting after called zmq_disconnect
-        else if (rc == -1
-            && (self.options.reconnect_stop & ZMQ_RECONNECT_STOP_AFTER_DISCONNECT)
-            && errno == ECONNREFUSED
-            && self._socket.is_disconnected())
-        {
+        else if (rc == -1 && (self.options.reconnect_stop & ZMQ_RECONNECT_STOP_AFTER_DISCONNECT) && errno == ECONNREFUSED && self._socket.is_disconnected()) {
             if (_s != retired_fd) {
                 // unsafe { close() };
             }

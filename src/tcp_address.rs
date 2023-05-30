@@ -1,9 +1,12 @@
+use std::mem;
 use std::net::SocketAddr;
 use std::ptr::null_mut;
 use crate::address_family::{AF_INET, AF_INET6};
 use crate::ip_resolver::{IpResolver, IpResolverOptions};
 use libc;
-use libc::EINVAL;
+use libc::{EINVAL, memcmp};
+use crate::unix_sockaddr::{in6_addr, in_addr};
+use crate::utils::cmp_bytes;
 
 pub const ipv4_prefix: &'static str = "tcp://";
 pub const ipv4_suffix: &'static str = ":";
@@ -43,7 +46,7 @@ impl TcpAddress {
     //     memset (&address, 0, mem::size_of::<address>());
     //     memset (&_source_address, 0, mem::size_of::<_source_address>());
     // }
-    
+
     // TcpAddress (const sockaddr *sa_, socklen_t sa_len_) :
     // _has_src_addr (false)
     // {
@@ -58,7 +61,7 @@ impl TcpAddress {
     //              && sa_len_ >= static_cast<socklen_t> (sizeof (address.ipv6)))
     //         memcpy (&address.ipv6, sa_, sizeof (address.ipv6));
     // }
-    
+
     pub fn resolve(&mut self, name: &mut str, local: bool, ipv6: bool) -> i32 {
         // Test the ';' to know if we have a source address in name
         // const char *src_delimiter = strrchr (name, ';');
@@ -86,7 +89,8 @@ impl TcpAddress {
             //   .ipv6 (ipv6)
             //   .expect_port (true);
             let mut src_resolver = IpResolver::new(&src_resolver_opts);
-            let rc =  src_resolver.resolve (&mut self.src_addr.unwrap(), src_name);
+            // TODO
+            // let rc =  src_resolver.resolve (&mut self.src_addr.unwrap(), src_name);
             if rc != 0 {
                 return -1;
             }
@@ -113,7 +117,8 @@ impl TcpAddress {
         let mut resolver = IpResolver::new(&resolver_opts);
 
         // return resolver.resolve (&address, name);
-        return resolver.resolve(&mut self.addr, name);
+        // TODO
+        // return resolver.resolve(&mut self.addr, name);
     }
 
     pub fn as_string(&mut self, addr_: &mut String) -> i32 {
@@ -147,14 +152,13 @@ impl TcpAddress {
     }
 }
 
-#[derive(Default,Debug,Clone)]
-pub struct TcpAddressMask
-{
-  //
-  //   tcp_address_mask_t ();
-  //
-  //   ip_addr_t _network_address;
-  pub network_address: SocketAddr,
+#[derive(Default, Debug, Clone)]
+pub struct TcpAddressMask {
+    //
+    //   tcp_address_mask_t ();
+    //
+    //   ip_addr_t _network_address;
+    pub network_address: SocketAddr,
     // int _address_mask;
     pub address_mask: i32,
 }
@@ -175,8 +179,8 @@ impl TcpAddressMask {
         let mut delimiter = name.find('/');
         if delimiter.is_some() {
             addr_str = &name[..delimiter.unwrap()];
-            mask_str = &name[delimiter.unwrap()+1..];
-            if mask_str.is_empty () {
+            mask_str = &name[delimiter.unwrap() + 1..];
+            if mask_str.is_empty() {
                 errno = EINVAL;
                 return -1;
             }
@@ -202,16 +206,17 @@ impl TcpAddressMask {
         // IpResolver resolver (resolver_opts);
         let mut resolver = IpResolver::new(&resolver_opts);
 
-        let rc = resolver.resolve (&mut self.network_address, addr_str);
+        // TODO
+        // let rc = resolver.resolve (&mut self.network_address, addr_str);
         if (rc != 0) {
             return rc;
         }
 
         // Parse the cidr mask number.
         let full_mask_ipv4 = 32;
-          // sizeof (_network_address.ipv4.sin_addr) * CHAR_BIT;
+        // sizeof (_network_address.ipv4.sin_addr) * CHAR_BIT;
         let full_mask_ipv6 = 128;
-        if (mask_str.empty ()) {
+        if (mask_str.empty()) {
             // _address_mask = _network_address.family () == AF_INET6 ? full_mask_ipv6
             //                                                        : full_mask_ipv4;
             self.address_mask = if self.network_address.is_ipv4() {
@@ -221,13 +226,9 @@ impl TcpAddressMask {
             };
         } else if mask_str == "0" {
             self.address_mask = 0;
-        }
-        else {
+        } else {
             let mask = i32::from(mask_str);
-            if (mask < 1)
-                || (self.network_address.family () == AF_INET6 && mask > full_mask_ipv6)
-                || (self.network_address.family () != AF_INET6
-                    && mask > full_mask_ipv4) {
+            if (mask < 1) || (self.network_address.family() == AF_INET6 && mask > full_mask_ipv6) || (self.network_address.family() != AF_INET6 && mask > full_mask_ipv4) {
                 errno = EINVAL;
                 return -1;
             }
@@ -238,63 +239,57 @@ impl TcpAddressMask {
     }
 
     // bool match_address (const struct sockaddr *ss_, socklen_t ss_len_) const;
-    pub fn match_address (&mut self, ss: &SocketAddr) -> bool
-{
-    // zmq_assert (self.address_mask != -1 && ss_ != NULL
-    //             && ss_len_
-    //                  >= static_cast<socklen_t> (sizeof (struct sockaddr)));
+    pub fn match_address(&mut self, ss: &SocketAddr) -> bool {
+        // zmq_assert (self.address_mask != -1 && ss_ != NULL
+        //             && ss_len_
+        //                  >= static_cast<socklen_t> (sizeof (struct sockaddr)));
 
-    if ss.is_ipv4() != self.network_address.is_ipv4() {
-        return false;
-    }
-
-    if self.address_mask > 0 {
-        let mut mask = 0i32;
-        // const uint8_t *our_bytes, *their_bytes;
-        let their_bytes: *mut u8 = null_mut();
-        let out_butes: *mut u8 = null_mut();
-        if ss.is_ipv6() {
-            // zmq_assert (ss_len_ == sizeof (struct sockaddr_in6));
-            ss.ip().
-            their_bytes =  (
-              &((reinterpret_cast<const struct sockaddr_in6 *> (ss.))
-                  ->sin6_addr));
-            our_bytes =  (
-              &self.network_address.ipv6.sin6_addr);
-            mask = sizeof (struct in6_addr) * 8;
-        } else {
-            // zmq_assert (ss_len_ == sizeof (struct sockaddr_in));
-            their_bytes =  (&(
-              (reinterpret_cast<const struct sockaddr_in *> (ss.))->sin_addr));
-            our_bytes =  (
-              &self.network_address.ipv4.sin_addr);
-            mask = sizeof (struct in_addr) * 8;
-        }
-        if (self.address_mask < mask) {
-            mask = self.address_mask;
-        }
-
-        let full_bytes = mask / 8;
-        if (memcmp (our_bytes, their_bytes, full_bytes) != 0) {
+        if ss.is_ipv4() != self.network_address.is_ipv4() {
             return false;
         }
 
-        let last_byte_bits = 0xffU << (8 - mask % 8);
-        if (last_byte_bits) {
-            if ((their_bytes[full_bytes] & last_byte_bits)
-                != (our_bytes[full_bytes] & last_byte_bits)) {
-                return false;
+        if self.address_mask > 0 {
+            let mut mask = 0i32;
+            // const uint8_t *our_bytes, *their_bytes;
+            let mut their_bytes: *mut u8 = null_mut();
+            let out_butes: *mut u8 = null_mut();
+            if ss.is_ipv6() {
+                // zmq_assert (ss_len_ == sizeof (struct sockaddr_in6));
+                ss.ip().their_bytes = &ss.sin6_addr;
+                our_bytes = (
+                    &self.network_address.ipv6.sin6_addr);
+                mask = (mem::size_of::<in6_addr>() * 8) as i32;
+            } else {
+                // zmq_assert (ss_len_ == sizeof (struct sockaddr_in));
+                // TODO
+                // their_bytes =  &ss.sin_addr;
+                our_bytes = (
+                    &self.network_address.ipv4.sin_addr);
+                mask = mem::sizeof::<in_addr> * 8;
+            }
+            if (self.address_mask < mask) {
+                mask = self.address_mask;
+            }
+
+            let full_bytes = mask / 8;
+            // TODO
+            // if (cmp_bytes (our_bytes, 0, their_bytes, 0,full_bytes) != 0) {
+            //     return false;
+            // }
+
+            let last_byte_bits = 0xff << (8 - mask % 8);
+            if (last_byte_bits) {
+                if ((their_bytes[full_bytes] & last_byte_bits) != (our_bytes[full_bytes] & last_byte_bits)) {
+                    return false;
+                }
             }
         }
+
+        return true;
     }
-
-    return true;
 }
 
-}
-
-pub fn make_address_string(hbuf_: &str, port_: u16,ipv6_prefix: &str, ipv6_suffix: &str) -> String
-{
+pub fn make_address_string(hbuf_: &str, port_: u16, ipv6_prefix: &str, ipv6_suffix: &str) -> String {
     let mut max_port_str_length = 5usize;
     // char buf[NI_MAXHOST + sizeof ipv6_prefix_ + sizeof ipv6_suffix_
     //          + max_port_str_length];
@@ -303,7 +298,8 @@ pub fn make_address_string(hbuf_: &str, port_: u16,ipv6_prefix: &str, ipv6_suffi
     // char *pos = buf;
     // memcpy (pos, ipv6_prefix_, sizeof ipv6_prefix_ - 1);
     buf += ipv6_prefix;
-    pos += ipv6_prefix.len(); - 1;
+    pos += ipv6_prefix.len();
+    -1;
     // pos += sizeof ipv6_prefix_ - 1;
     // const size_t hbuf_len = strlen (hbuf_);
     let mut hbuf_len = hbuf_.len();

@@ -35,6 +35,25 @@
 
 // #include <new>
 
+use std::ptr::null_mut;
+use bincode::options;
+use libc::{c_char, close, connect, ECONNREFUSED, EINPROGRESS, EINTR, ENOBUFS, ENOTSOCK, getsockopt, open, timeval};
+use windows::Win32::Networking::WinSock::{SO_ERROR, socklen_t, SOL_SOCKET, WSAEBADF, WSAEINPROGRESS, WSAENOBUFS, WSAENOPROTOOPT, WSAENOTSOCK, WSAEWOULDBLOCK, WSAGetLastError};
+use crate::address::SocketEnd::SocketEndLocal;
+use crate::address::{get_socket_address, SocketEnd, ZmqAddress};
+use crate::defines::ZMQ_RECONNECT_STOP_CONN_REFUSED;
+use crate::err::wsa_error_to_errno;
+use crate::fd::ZmqFileDesc;
+use crate::io_thread::ZmqIoThread;
+use crate::ip::unblock_socket;
+use crate::ops::zmq_errno;
+use crate::options::ZmqOptions;
+use crate::session_base::ZmqSessionBase;
+use crate::stream_connecter_base::StreamConnecterBase;
+use crate::v3_1_encoder::ZmqV31Encoder;
+use crate::vmci::{tune_vmci_buffer_size, tune_vmci_connect_timeout, vmci_open_socket};
+use crate::vmci_address::ZmqVmciAddress;
+
 // #include "io_thread.hpp"
 // #include "platform.hpp"
 // #include "random.hpp"
@@ -44,313 +63,304 @@
 // #include "vmci_address.hpp"
 // #include "vmci.hpp"
 // #include "session_base.hpp"
-pub struct vmci_connecter_t  : public StreamConnecterBase
-{
-//
+
+// enum
+// {
+//     connect_timer_id = 2
+// };
+pub const connect_timer_id: i32 = 2;
+
+pub struct ZmqVmciConnecter<'a> {
+    // : public StreamConnecterBase
+    pub stream_connecter_base: StreamConnecterBase<'a>,
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
-    vmci_connecter_t (ZmqIoThread *io_thread_,
-                      ZmqSessionBase *session_,
-                      options: &ZmqOptions,
-                      Address *addr_,
-                      delayed_start_: bool);
-    ~vmci_connecter_t ();
-
-
-    std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
-
-  //
+    // ZmqVmciConnecter (ZmqIoThread *io_thread_,
+    //                   ZmqSessionBase *session_,
+    //                   options: &ZmqOptions,
+    //                   Address *addr_,
+    //                   delayed_start_: bool);
+    // ~ZmqVmciConnecter ();
+    // std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
     //  ID of the timer used to check the connect timeout, must be different from stream_connecter_base_t::reconnect_timer_id.
-    enum
-    {
-        connect_timer_id = 2
-    };
-
     //  Handlers for incoming commands.
-    void process_term (linger: i32);
-
+    // void process_term (linger: i32);
     //  Handlers for I/O events.
-    void in_event ();
-    void out_event ();
-    void timer_event (id_: i32);
-
+    // void in_event ();
+    // void out_event ();
+    // void timer_event (id_: i32);
     //  Internal function to start the actual connection establishment.
-    void start_connecting ();
-
+    // void start_connecting ();
     //  Internal function to add a connect timer
-    void add_connect_timer ();
-
+    // void add_connect_timer ();
     //  Internal function to return a reconnect backoff delay.
     //  Will modify the current_reconnect_ivl used for next call
     //  Returns the currently used interval
-    int get_new_reconnect_ivl ();
-
+    // int get_new_reconnect_ivl ();
     //  Open VMCI connecting socket. Returns -1 in case of error,
     //  0 if connect was successful immediately. Returns -1 with
     //  EAGAIN errno if async connect was launched.
-    int open ();
-
+    // int open ();
     //  Get the file descriptor of newly created connection. Returns
     //  retired_fd if the connection was unsuccessful.
-    ZmqFileDesc connect ();
-
+    // ZmqFileDesc connect ();
     //  True iff a timer has been started.
-    _connect_timer_started: bool
+    pub _connect_timer_started: bool,
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (vmci_connecter_t)
-};
-
-vmci_connecter_t::vmci_connecter_t (class ZmqIoThread *io_thread_,
-pub struct ZmqSessionBase *session_,
-                                         options: &ZmqOptions,
-                                         Address *addr_,
-                                         delayed_start_: bool) :
-    StreamConnecterBase (
-      io_thread_, session_, options_, addr_, delayed_start_),
-    _connect_timer_started (false)
-{
-    // zmq_assert (_addr.protocol == protocol_name::vmci);
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqVmciConnecter)
 }
 
-vmci_connecter_t::~vmci_connecter_t ()
-{
-    // zmq_assert (!_connect_timer_started);
-}
+impl ZmqVmciConnecter {
+    // ZmqVmciConnecter::ZmqVmciConnecter (class ZmqIoThread *io_thread_,
+// pub struct ZmqSessionBase *session_,
+//                                          options: &ZmqOptions,
+//                                          Address *addr_,
+//                                          delayed_start_: bool) :
+//     StreamConnecterBase (
+//       io_thread_, session_, options_, addr_, delayed_start_),
+//     _connect_timer_started (false)
+// {
+//     // zmq_assert (_addr.protocol == protocol_name::vmci);
+// }
+    pub fn new(io_thread_: &mut ZmqIoThread, session_: &mut ZmqSessionBase, options: &mut ZmqOptions, addr: &mut ZmqVmciAddress, delayed_start: bool) -> Self {
+        let mut out = Self {
+            stream_connecter_base: Default::default(),
+            _connect_timer_started: false,
+        };
 
-void vmci_connecter_t::process_term (linger: i32)
-{
-    if (_connect_timer_started) {
-        cancel_timer (connect_timer_id);
-        _connect_timer_started = false;
+        out.stream_connecter_base = StreamConnecterBase::new(io_thread_, session_, options, addr, delayed_start);
+        out._connect_timer_started = false;
+        out
     }
 
-    StreamConnecterBase::process_term (linger);
-}
+    pub fn process_term(&mut self, linger: i32) {
+        if (_connect_timer_started) {
+            cancel_timer(connect_timer_id);
+            _connect_timer_started = false;
+        }
 
-void vmci_connecter_t::in_event ()
-{
-    //  We are not polling for incoming data, so we are actually called
-    //  because of error here. However, we can get error on out event as well
-    //  on some platforms, so we'll simply handle both events in the same way.
-    out_event ();
-}
-
-void vmci_connecter_t::out_event ()
-{
-    if (_connect_timer_started) {
-        cancel_timer (connect_timer_id);
-        _connect_timer_started = false;
+        self.stream_connecter_base.process_term(linger);
     }
 
-    //  TODO this is still very similar to (t)ipc_connecter_t, maybe the
-    //  differences can be factored out
-
-    rm_handle ();
-
-    const ZmqFileDesc fd = connect ();
-
-    if (fd == retired_fd
-        && ((options.reconnect_stop & ZMQ_RECONNECT_STOP_CONN_REFUSED)
-            && errno == ECONNREFUSED)) {
-        send_conn_failed (_session);
-        close ();
-        terminate ();
-        return;
+    pub fn in_event(&mut self) {
+        //  We are not polling for incoming data, so we are actually called
+        //  because of error here. However, we can get error on out event as well
+        //  on some platforms, so we'll simply handle both events in the same way.
+        out_event();
     }
 
-    //  Handle the error condition by attempt to reconnect.
-    if (fd == retired_fd) {
-        close ();
-        add_reconnect_timer ();
-        return;
-    }
+    pub fn out_event(&mut self) {
+        if (_connect_timer_started) {
+            cancel_timer(connect_timer_id);
+            _connect_timer_started = false;
+        }
 
-    tune_vmci_buffer_size (this.get_ctx (), fd, options.vmci_buffer_size,
-                           options.vmci_buffer_min_size,
-                           options.vmci_buffer_max_size);
+        //  TODO this is still very similar to (t)ipc_connecter_t, maybe the
+        //  differences can be factored out
 
-    if (options.vmci_connect_timeout > 0) {
+        rm_handle();
+
+        let mut fd = self.connect();
+
+        if (fd == retired_fd && ((options.reconnect_stop & ZMQ_RECONNECT_STOP_CONN_REFUSED) && errno == ECONNREFUSED)) {
+            send_conn_failed(_session);
+            self.close();
+            terminate();
+            return;
+        }
+
+        //  Handle the error condition by attempt to reconnect.
+        if (fd == retired_fd) {
+            self.close();
+            add_reconnect_timer();
+            return;
+        }
+
+        tune_vmci_buffer_size(this.get_ctx(), &mut fd, options.vmci_buffer_size,
+                              options.vmci_buffer_min_size,
+                              options.vmci_buffer_max_size);
+
+        if (options.vmci_connect_timeout > 0) {
 // #if defined ZMQ_HAVE_WINDOWS
-        tune_vmci_connect_timeout (this.get_ctx (), fd,
-                                   options.vmci_connect_timeout);
+            tune_vmci_connect_timeout(this.get_ctx(), &mut fd,
+                                      options.vmci_connect_timeout);
 // #else
-        struct timeval timeout = {0, options.vmci_connect_timeout * 1000};
-        tune_vmci_connect_timeout (this.get_ctx (), fd, timeout);
+//         let timeout = timeval{ tv_sec: 0, tv_usec: options.vmci_connect_timeout * 1000 };
+//         tune_vmci_connect_timeout (this.get_ctx (), &mut fd, timeout.tv_usec as u32);
 // #endif
+        }
+
+        create_engine(
+            fd, self.connecter.get_socket_name(fd, SocketEndLocal));
     }
 
-    create_engine (
-      fd, vmci_connecter_t::get_socket_name (fd, SocketEndLocal));
-}
+    pub fn get_socket_name(&mut self, fd: ZmqFileDesc, socket_end_: SocketEnd) -> String {
+        // TODO
+        // struct sockaddr_storage ss;
+        // const ZmqSocklen sl = get_socket_address (fd, socket_end_, &ss);
+        // if (sl == 0) {
+        //     return std::string ();
+        // }
 
-std::string
-vmci_connecter_t::get_socket_name (fd: ZmqFileDesc,
-                                        SocketEnd socket_end_) const
-{
-    struct sockaddr_storage ss;
-    const ZmqSocklen sl = get_socket_address (fd, socket_end_, &ss);
-    if (sl == 0) {
-        return std::string ();
+        let mut addr = ZmqVmciAddress::new3(&ss, sl,
+                                            self.stream_connecter_base.ctx);
+        let mut address_string: String = String::new();
+        addr.to_string(&address_string);
+        return address_string;
     }
 
-    const VmciAddress addr ((&ss), sl,
-                               this.get_ctx ());
-    address_string: String;
-    addr.to_string (address_string);
-    return address_string;
-}
-
-void vmci_connecter_t::timer_event (id_: i32)
-{
-    if (id_ == connect_timer_id) {
-        _connect_timer_started = false;
-        rm_handle ();
-        close ();
-        add_reconnect_timer ();
-    } else
-        StreamConnecterBase::timer_event (id_);
-}
-
-void vmci_connecter_t::start_connecting ()
-{
-    //  Open the connecting socket.
-    let rc: i32 = open ();
-
-    //  Connect may succeed in synchronous manner.
-    if (rc == 0) {
-        _handle = add_fd (_s);
-        out_event ();
+    pub fn timer_event(&mut self, id_: i32) {
+        if (id_ == connect_timer_id) {
+            _connect_timer_started = false;
+            rm_handle();
+            self.close();
+            add_reconnect_timer();
+        } else {
+            self.stream_connecter_base.timer_event(id_);
+        }
     }
 
-    //  Connection establishment may be delayed. Poll for its completion.
-    else if (rc == -1 && errno == EINPROGRESS) {
-        _handle = add_fd (_s);
-        set_pollout (_handle);
-        self._socket.event_connect_delayed (
-          make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
+    pub fn start_connecting(&mut self) {
+        //  Open the connecting socket.
+        let rc: i32 = self.open();
 
-        //  add userspace connect timeout
-        add_connect_timer ();
+        //  Connect may succeed in synchronous manner.
+        if (rc == 0) {
+            _handle = add_fd(_s);
+            out_event();
+        }
+
+        //  Connection establishment may be delayed. Poll for its completion.
+        else if (rc == -1 && errno == EINPROGRESS) {
+            _handle = add_fd(_s);
+            set_pollout(_handle);
+            self._socket.event_connect_delayed(
+                make_unconnected_connect_endpoint_pair(_endpoint), zmq_errno());
+
+            //  add userspace connect timeout
+            add_connect_timer();
+        }
+
+        //  Handle any other error condition by eventual reconnect.
+        else {
+            if (_s != retired_fd) {
+                self.close();
+            }
+            add_reconnect_timer();
+        }
     }
 
-    //  Handle any other error condition by eventual reconnect.
-    else {
-        if (_s != retired_fd)
-            close ();
-        add_reconnect_timer ();
-    }
-}
-
-void vmci_connecter_t::add_connect_timer ()
-{
-    if (options.connect_timeout > 0) {
-        add_timer (options.connect_timeout, connect_timer_id);
-        _connect_timer_started = true;
-    }
-}
-
-int vmci_connecter_t::open ()
-{
-    // zmq_assert (_s == retired_fd);
-
-    //  Resolve the address
-    if (_addr.resolved.vmci_addr != null_mut()) {
-        LIBZMQ_DELETE (_addr.resolved.vmci_addr);
+    pub fn add_connect_timer(&mut self) {
+        if (options.connect_timeout > 0) {
+            add_timer(options.connect_timeout, connect_timer_id);
+            _connect_timer_started = true;
+        }
     }
 
-    _addr.resolved.vmci_addr =
-       VmciAddress (this.get_ctx ());
-    // alloc_assert (_addr.resolved.vmci_addr);
-    _s = vmci_open_socket (_addr.address, options,
-                           _addr.resolved.vmci_addr);
-    if (_s == retired_fd) {
-        //  TODO we should emit some event in this case!
+    pub fn open(&mut self) -> i32 {
+        // zmq_assert (_s == retired_fd);
 
-        LIBZMQ_DELETE (_addr.resolved.vmci_addr);
+        //  Resolve the address
+        if (_addr.resolved.vmci_addr != null_mut()) {
+            LIBZMQ_DELETE(_addr.resolved.vmci_addr);
+        }
+
+        _addr.resolved.vmci_addr = ZmqVmciAddress(this.get_ctx());
+        // alloc_assert (_addr.resolved.vmci_addr);
+        _s = vmci_open_socket(_addr.address, self.options,
+                              _addr.resolved.vmci_addr);
+        if (_s == retired_fd) {
+            //  TODO we should emit some event in this case!
+
+            LIBZMQ_DELETE(_addr.resolved.vmci_addr);
+            return -1;
+        }
+        // zmq_assert (_addr.resolved.vmci_addr != null_mut());
+
+        // Set the socket to non-blocking mode so that we get async connect().
+        unblock_socket(_s);
+
+        let vmci_addr = _addr.resolved.vmci_addr;
+
+        let mut rc: i32;
+
+        //  Connect to the remote peer.
+// #if defined ZMQ_HAVE_VXWORKS
+//     rc = connect (_s, (sockaddr *) vmci_addr.addr (), vmci_addr.addrlen ());
+// #else
+        unsafe { rc = connect(_s, vmci_addr.addr(), vmci_addr.addrlen()); }
+// #endif
+        //  Connect was successful immediately.
+        if (rc == 0) {
+            return 0;
+        }
+
+        //  Translate error codes indicating asynchronous connect has been
+        //  launched to a uniform EINPROGRESS.
+// #ifdef ZMQ_HAVE_WINDOWS
+        let last_error: i32 = unsafe { WSAGetLastError() as i32 };
+        if (last_error == WSAEINPROGRESS || last_error == WSAEWOULDBLOCK) {
+            errno = EINPROGRESS;
+        } else {
+            // errno = wsa_error_to_errno(last_error);
+        }
+// #else
+        if (errno == EINTR) {
+            errno = EINPROGRESS;
+        }
+// #endif
         return -1;
     }
-    // zmq_assert (_addr.resolved.vmci_addr != null_mut());
 
-    // Set the socket to non-blocking mode so that we get async connect().
-    unblock_socket (_s);
-
-    const VmciAddress *const vmci_addr = _addr.resolved.vmci_addr;
-
-    rc: i32;
-
-    //  Connect to the remote peer.
-// #if defined ZMQ_HAVE_VXWORKS
-    rc = ::connect (_s, (sockaddr *) vmci_addr.addr (), vmci_addr.addrlen ());
-// #else
-    rc = ::connect (_s, vmci_addr.addr (), vmci_addr.addrlen ());
-// #endif
-    //  Connect was successful immediately.
-    if (rc == 0) {
-        return 0;
-    }
-
-    //  Translate error codes indicating asynchronous connect has been
-    //  launched to a uniform EINPROGRESS.
-// #ifdef ZMQ_HAVE_WINDOWS
-    let last_error: i32 = WSAGetLastError ();
-    if (last_error == WSAEINPROGRESS || last_error == WSAEWOULDBLOCK)
-        errno = EINPROGRESS;
-    else
-        errno = wsa_error_to_errno (last_error);
-// #else
-    if (errno == EINTR)
-        errno = EINPROGRESS;
-// #endif
-    return -1;
-}
-
-ZmqFileDesc vmci_connecter_t::connect ()
-{
-    //  Async connect has finished. Check whether an error occurred
-    int err = 0;
+    pub fn connect(&mut self) -> ZmqFileDesc {
+        //  Async connect has finished. Check whether an error occurred
+        let mut err = 0;
 // #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
-    int len = sizeof err;
+        let mut len = 4;
 // #else
-    socklen_t len = sizeof err;
+        let mut len = 4;
 // #endif
 
-    let rc: i32 = getsockopt (_s, SOL_SOCKET, SO_ERROR,
-                                (&err), &len);
+        let rc: i32 = unsafe {
+            getsockopt(_s, SOL_SOCKET, SO_ERROR,
+                       (&mut err) as *mut c_char, &mut len)
+        };
 
-    //  Assert if the error was caused by 0MQ bug.
-    //  Networking problems are OK. No need to assert.
+        //  Assert if the error was caused by 0MQ bug.
+        //  Networking problems are OK. No need to assert.
 // #ifdef ZMQ_HAVE_WINDOWS
-    // zmq_assert (rc == 0);
-    if (err != 0) {
-        if (err == WSAEBADF || err == WSAENOPROTOOPT || err == WSAENOTSOCK
-            || err == WSAENOBUFS) {
-            wsa_assert_no (err);
+        // zmq_assert (rc == 0);
+        if (err != 0) {
+            if (err == WSAEBADF || err == WSAENOPROTOOPT || err == WSAENOTSOCK || err == WSAENOBUFS) {
+                wsa_assert_no(err);
+            }
+            // errno = wsa_error_to_errno (err);
+            return retired_fd;
         }
-        errno = wsa_error_to_errno (err);
-        return retired_fd;
-    }
 // #else
-    //  Following code should handle both Berkeley-derived socket
-    //  implementations and Solaris.
-    if (rc == -1)
-        err = errno;
-    if (err != 0) {
-        errno = err;
+        //  Following code should handle both Berkeley-derived socket
+        //  implementations and Solaris.
+        if (rc == -1) {
+            err = errno;
+        }
+        if (err != 0) {
+            errno = err;
 // #if !defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
-        // errno_assert (errno != EBADF && errno != ENOPROTOOPT
-                      && errno != ENOTSOCK && errno != ENOBUFS);
+            // errno_assert (errno != EBADF && errno != ENOPROTOOPT
+            //               && errno != ENOTSOCK && errno != ENOBUFS);
 // #else
-        // errno_assert (errno != ENOPROTOOPT && errno != ENOTSOCK
-                      && errno != ENOBUFS);
+            // errno_assert (errno != ENOPROTOOPT && errno != ENOTSOCK
+            //               && errno != ENOBUFS);
 // #endif
-        return retired_fd;
-    }
+            return retired_fd;
+        }
 // #endif
 
-    //  Return the newly connected socket.
-    const ZmqFileDesc result = _s;
-    _s = retired_fd;
-    return result;
+        //  Return the newly connected socket.
+        let result = _s;
+        _s = retired_fd;
+        return result;
+    }
 }
 
 // #endif

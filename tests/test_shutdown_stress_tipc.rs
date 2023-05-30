@@ -60,7 +60,7 @@ void test_shutdown_stress_tipc ()
     s1: *mut c_void;
     i: i32;
     j: i32;
-    pthread_t threads[THREAD_COUNT];
+    pZmqThread threads[THREAD_COUNT];
 
     for (j = 0; j != 10; j+= 1) {
         //  Check the shutdown with many parallel I/O threads.

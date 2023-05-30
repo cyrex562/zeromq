@@ -9,7 +9,7 @@ use anyhow::{anyhow, bail};
 use libc::{c_void, EAGAIN, EINTR, EINVAL};
 use serde::{Deserialize, Serialize};
 
-use crate::address::Address;
+use crate::address::ZmqAddress;
 use crate::clock::clock_t;
 use crate::command::ZmqCommand;
 use crate::context::{choose_io_thread, unregister_endpoint, ZmqContext};
@@ -55,12 +55,12 @@ use crate::session_base::ZmqSessionBase;
 use crate::signaler::ZmqSignaler;
 use crate::socket_base_ops::ZmqSocketBaseOps;
 use crate::tcp_address::TcpAddress;
-use crate::tcp_listener::tcp_listener_t;
-use crate::tipc_address::TipcAddress;
-use crate::tipc_listener::tIpcListener;
+use crate::tcp_listener::TcpListener;
+use crate::tipc_address::ZmqTipcAddress;
+use crate::tipc_listener::ZmqTipcListener;
 use crate::udp_address::UdpAddress;
-use crate::vmci_address::VmciAddress;
-use crate::vmci_listener::vmci_listener_t;
+use crate::vmci_address::ZmqVmciAddress;
+use crate::vmci_listener::ZmqVmciListener;
 use crate::ws_address::WsAddress;
 use crate::ws_listener::ws_listener_t;
 use crate::wss_address::WssAddress;
@@ -506,7 +506,7 @@ impl ZmqSocketBase {
     //             // s = new (std::nothrow) pub_t (parent_, tid, sid_);
     //             // break;
     //         ZMQ_SUB =>
-    //             s = new (std::nothrow) sub_t (parent_, tid, sid_);
+    //             s = new (std::nothrow) ZmqSub (parent_, tid, sid_);
     //             break;
     //         ZMQ_REQ =>
     //             s = new (std::nothrow) req_t (parent_, tid, sid_);
@@ -533,7 +533,7 @@ impl ZmqSocketBase {
     //             s = new (std::nothrow) XSub (parent_, tid, sid_);
     //             break;
     //         ZMQ_STREAM =>
-    //             s = new (std::nothrow) stream_t (parent_, tid, sid_);
+    //             s = new (std::nothrow) ZmqStream (parent_, tid, sid_);
     //             break;
     //         ZMQ_SERVER =>
     //             s = new (std::nothrow) ZmqServer (parent_, tid, sid_);
@@ -776,7 +776,7 @@ impl ZmqSocketBase {
             // Address *paddr =
             //   new (std::nothrow) Address (protocol, address, this->get_ctx ());
             // alloc_assert (paddr);
-            let mut paddr = Address::new(&protocol, &address, self.get_ctx_mut());
+            let mut paddr = ZmqAddress::new(&protocol, &address, self.get_ctx_mut());
 
             paddr.resolved.udp_addr = &mut UdpAddress::new();
             // alloc_assert (paddr.resolved.udp_addr);
@@ -826,7 +826,7 @@ impl ZmqSocketBase {
         }
 
         if protocol == protocol_name::tcp {
-            let mut listener = tcp_listener_t::new(&mut io_thread, this, options);
+            let mut listener = TcpListener::new(&mut io_thread, this, options);
             // alloc_assert (listener);
             if listener.set_local_address(address.c_str()).is_err() {
                 // LIBZMQ_DELETE (listener);
@@ -898,7 +898,7 @@ impl ZmqSocketBase {
         // #endif
         // #if defined ZMQ_HAVE_TIPC
         if protocol == protocol_name::tipc {
-            listener = tIpcListener::new(&mut io_thread, this, options);
+            listener = ZmqTipcListener::new(&mut io_thread, this, options);
             // alloc_assert (listener);
             if listener.set_local_address(address.c_str()).is_err() {
                 event_bind_failed(make_unconnected_bind_endpoint_pair(&address), zmq_errno());
@@ -920,7 +920,7 @@ impl ZmqSocketBase {
         // #endif
         // #if defined ZMQ_HAVE_VMCI
         if protocol == protocol_name::vmci {
-            let listener = vmci_listener_t::new(&mut io_thread, this, options);
+            let listener = ZmqVmciListener::new(&mut io_thread, this, options);
             // alloc_assert (listener);
             if listener.set_local_address(address.c_str()).is_err() {
                 // LIBZMQ_DELETE (listener);
@@ -1981,7 +1981,7 @@ impl ZmqSocketBase {
         //     return -1;
         // }
 
-        let mut paddr = Address::new(&protocol, &address, self.get_ctx_mut());
+        let mut paddr = ZmqAddress::new(&protocol, &address, self.get_ctx_mut());
         // alloc_assert (paddr);
 
         //  Resolve address (if needed by the protocol)
@@ -2103,7 +2103,7 @@ impl ZmqSocketBase {
         else if protocol == protocol_name::pgm || protocol == protocol_name::epgm {
             let mut res = pgm_addrinfo_t::new();
             let mut port_number = 0u16;
-           // TODO
+            // TODO
             // PgmSocket::init_address(&address, &mut res, &port_number)?;
             // if (res != null_mut()) {
             //     pgm_freeaddrinfo(res);
@@ -2115,7 +2115,7 @@ impl ZmqSocketBase {
         // #endif
         // #if defined ZMQ_HAVE_TIPC
         else if protocol == protocol_name::tipc {
-            paddr.resolved.tipc_addr = TipcAddress::new();
+            paddr.resolved.tipc_addr = ZmqTipcAddress::new();
             // alloc_assert(paddr.resolved.tipc_addr);
             paddr.resolved.tipc_addr.resolve(address.c_str())?;
             // if (rc != 0) {
@@ -2137,7 +2137,7 @@ impl ZmqSocketBase {
         // #endif
         // #if defined ZMQ_HAVE_VMCI
         else if protocol == protocol_name::vmci {
-            paddr.resolved.vmci_addr = VmciAddress::new(&self.get_ctx());
+            paddr.resolved.vmci_addr = ZmqVmciAddress::new(&self.get_ctx());
             // alloc_assert (paddr.resolved.vmci_addr);
             paddr.resolved.vmci_addr.resolve(&address)?;
             // if (rc != 0) {
@@ -2462,8 +2462,7 @@ impl ZmqSocketBase {
         //  bi-directional messaging patterns (socket types).
         // #if defined ZMQ_HAVE_OPENPGM || defined ZMQ_HAVE_NORM
         // #if defined ZMQ_HAVE_OPENPGM && defined ZMQ_HAVE_NORM
-        if (protocol_ == protocol_name::pgm || protocol_ == protocol_name::epgm || protocol_ == protocol_name::norm)
-        {
+        if (protocol_ == protocol_name::pgm || protocol_ == protocol_name::epgm || protocol_ == protocol_name::norm) {
             // #elif defined ZMQ_HAVE_OPENPGM
             //     if ((protocol_ == protocol_name::pgm || protocol_ == protocol_name::epgm)
             // #else // defined ZMQ_HAVE_NORM

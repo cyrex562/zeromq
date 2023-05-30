@@ -54,7 +54,7 @@ typedef struct
 static zmtp_greeting_t greeting = {
   {0xFF, 0, 0, 0, 0, 0, 0, 0, 1, 0x7F}, {3, 1}, {'N', 'U', 'L', 'L'}, 0, {0}};
 
-static void test_stream_to_dealer ()
+static void test_ZmqStreamo_dealer ()
 {
     rc: i32;
     char my_endpoint[MAX_SOCKET_STRING];
@@ -211,7 +211,7 @@ static void test_stream_to_dealer ()
 }
 
 
-static void test_stream_to_stream ()
+static void test_ZmqStreamo_stream ()
 {
     char my_endpoint[MAX_SOCKET_STRING];
     //  Set-up our context and sockets
@@ -297,7 +297,7 @@ int main ()
     setup_test_environment ();
 
     UNITY_BEGIN ();
-    RUN_TEST (test_stream_to_dealer);
-    RUN_TEST (test_stream_to_stream);
+    RUN_TEST (test_ZmqStreamo_dealer);
+    RUN_TEST (test_ZmqStreamo_stream);
     return UNITY_END ();
 }

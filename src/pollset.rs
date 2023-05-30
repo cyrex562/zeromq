@@ -90,7 +90,7 @@ pub struct PollSet<'a> {
     //  If true, thread is in the process of shutting down.
     pub stopping: bool,
     //  Handle of the physical thread doing the I/O work.
-    // thread_t worker;
+    // ZmqThread worker;
     pub worker: ZmqIoThread,
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (PollSet)

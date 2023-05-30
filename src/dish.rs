@@ -35,7 +35,7 @@ use std::sync::atomic::Ordering;
 
 use libc::{EFAULT, EINVAL, ENOTSUP};
 
-use crate::address::Address;
+use crate::address::ZmqAddress;
 use crate::context::ZmqContext;
 use crate::defines::{ZMQ_DISH, ZMQ_GROUP_MAX_LENGTH};
 use crate::dish::DishSessionState::{body, group};
@@ -334,7 +334,7 @@ impl DishSession {
         connect_: bool,
         socket: &mut ZmqSocketbase,
         options: &mut ZmqOptions,
-        addr: &mut Address,
+        addr: &mut ZmqAddress,
     ) -> Self {
         DishSession {
             session_base: ZmqSessionBase::new(io_thread, connect_, socket, options, addr),

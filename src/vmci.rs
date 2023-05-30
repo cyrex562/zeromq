@@ -37,79 +37,95 @@
 // #include <cassert>
 // #include <vmci_sockets.h>
 
-void tune_vmci_buffer_size (ZmqContext *context_,
-                                 sockfd_: &mut ZmqFileDesc,
-                                 default_size_: u64,
-                                 min_size_: u64,
-                                 u64 max_size_)
-{
-    int family = context_.get_vmci_socket_family ();
-    assert (family != -1);
+use std::os::raw::c_void;
+use libc::{c_char, c_int, setsockopt, SOCKET};
+use windows::Win32::Networking::WinSock::{SOCK_STREAM, SOCKET_ERROR};
+use crate::context::ZmqContext;
+use crate::fd::ZmqFileDesc;
+use crate::ip::open_socket;
+use crate::options::ZmqOptions;
+use crate::vmci_address::ZmqVmciAddress;
 
-    if (default_size_ != 0) {
-        int rc = setsockopt (sockfd_, family, SO_VMCI_BUFFER_SIZE,
-                              &default_size_, sizeof default_size_);
+pub fn tune_vmci_buffer_size(context: &mut ZmqContext,
+                             sockfd_: &mut ZmqFileDesc,
+                             default_size_: u64,
+                             min_size_: u64,
+                             max_size_: u64) {
+    let family = context_.get_vmci_socket_family();
+    // assert (family != -1);
+
+    unsafe {
+        if (default_size_ != 0) {
+            let rc = setsockopt(sockfd_ as SOCKET, family, SO_VMCI_BUFFER_SIZE,
+                                (&default_size_) as *const c_char, 8);
 // #if defined ZMQ_HAVE_WINDOWS
-        wsa_assert (rc != SOCKET_ERROR);
+//         wsa_assert (rc != SOCKET_ERROR);
 // #else
-        // errno_assert (rc == 0);
+            // errno_assert (rc == 0);
 // #endif
+        }
     }
 
-    if (min_size_ != 0) {
-        int rc = setsockopt (sockfd_, family, SO_VMCI_BUFFER_SIZE,
-                              &min_size_, sizeof min_size_);
+    unsafe {
+        if (min_size_ != 0) {
+            let rc = setsockopt(sockfd_ as SOCKET, family, SO_VMCI_BUFFER_SIZE,
+                                &min_size_ as *const c_char, 8);
 // #if defined ZMQ_HAVE_WINDOWS
-        wsa_assert (rc != SOCKET_ERROR);
+            wsa_assert(rc != SOCKET_ERROR);
 // #else
-        // errno_assert (rc == 0);
+            // errno_assert (rc == 0);
 // #endif
+        }
     }
 
-    if (max_size_ != 0) {
-        int rc = setsockopt (sockfd_, family, SO_VMCI_BUFFER_SIZE,
-                              &max_size_, sizeof max_size_);
+    unsafe {
+        if (max_size_ != 0) {
+            let rc = setsockopt(sockfd_ as SOCKET, family, SO_VMCI_BUFFER_SIZE,
+                                &max_size_ as *const c_char, 8);
 // #if defined ZMQ_HAVE_WINDOWS
-        wsa_assert (rc != SOCKET_ERROR);
+//             wsa_assert(rc != SOCKET_ERROR);
 // #else
-        // errno_assert (rc == 0);
+            // errno_assert (rc == 0);
 // #endif
+        }
     }
 }
 
 // #if defined ZMQ_HAVE_WINDOWS
-void tune_vmci_connect_timeout (ZmqContext *context_,
-                                     sockfd_: &mut ZmqFileDesc,
-                                     DWORD timeout)
+pub fn tune_vmci_connect_timeout(context_: &mut ZmqContext,
+                                 sockfd_: &mut ZmqFileDesc,
+                                 timeout: u32) {
 // #else
-void tune_vmci_connect_timeout (ZmqContext *context_,
-                                     sockfd_: &mut ZmqFileDesc,
-                                     struct timeval timeout)
-// #endif
-{
-    int family = context_.get_vmci_socket_family ();
-    assert (family != -1);
+// void tune_vmci_connect_timeout (ZmqContext *context_,
+//                                      sockfd_: &mut ZmqFileDesc,
+//                                      struct timeval timeout)
+// #endif {
+    let family = context_.get_vmci_socket_family();
+    // assert(family != -1);
 
-    int rc = setsockopt (sockfd_, family, SO_VMCI_CONNECT_TIMEOUT,
-                          &timeout, sizeof timeout);
+    let rc = unsafe {
+        // TODO
+        // setsockopt(sockfd_, family, SO_VMCI_CONNECT_TIMEOUT,
+        //            &timeout, sizeof timeout)
+    };
 // #if defined ZMQ_HAVE_WINDOWS
-    wsa_assert (rc != SOCKET_ERROR);
+//     wsa_assert (rc != SOCKET_ERROR);
 // #else
     // errno_assert (rc == 0);
 // #endif
 }
 
-ZmqFileDesc vmci_open_socket (address_: &str,
-                                 options: &ZmqOptions,
-                                 VmciAddress *out_vmci_addr_)
-{
+pub fn vmci_open_socket(address_: &str,
+                        options: &ZmqOptions,
+                        out_vmc_addr: &mut ZmqVmciAddress) -> ZmqFileDesc {
     //  Convert the textual address into address structure.
-    int rc = out_vmci_addr_.resolve (address_);
-    if (rc != 0)
+    let rc = out_vmci_addr_.resolve(address_);
+    if (rc != 0) {
         return retired_fd;
+    }
 
     //  Create the socket.
-     let mut s: ZmqFileDesc = open_socket (out_vmci_addr_.family (), SOCK_STREAM, 0);
+    let mut s: ZmqFileDesc = open_socket(out_vmci_addr_.family(), SOCK_STREAM as i32, 0);
 
     if (s == retired_fd) {
         return retired_fd;

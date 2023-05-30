@@ -160,6 +160,7 @@ use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
 use crate::ipc_address::IpcAddress;
 use crate::platform_socket::ZmqSockaddrStorage;
+use crate::tcp::tcp_tune_loopback_fast_path;
 use crate::unix_sockaddr::sockaddr_in;
 
 // #ifndef ZMQ_HAVE_WINDOWS
@@ -434,22 +435,23 @@ pub fn shutdown_network() {
 
 // #if defined ZMQ_HAVE_OPENPGM
     //  Shut down the OpenPGM library.
-    if (pgm_shutdown() != TRUE) {}
+    if pgm_shutdown() != TRUE {}
     // zmq_assert (false);
 // #endif
 }
 
 // #if defined ZMQ_HAVE_WINDOWS
 #[cfg(windows)]
-pub fn tune_socket(socket: SOCKET) {
+pub fn tune_socket(socket: SOCKET) -> anyhow::Result<()> {
     let mut tcp_nodelay = 1;
     let rc: i32 = unsafe {
         setsockopt(socket, IPPROTO_TCP as i32, TCP_NODELAY,
                    Some(&tcp_nodelay.to_le_bytes()))
     };
-    wsa_assert(rc != SOCKET_ERROR);
+    // wsa_assert(rc != SOCKET_ERROR);
 
-    tcp_tune_loopback_fast_path(socket);
+    tcp_tune_loopback_fast_path(socket as ZmqFileDesc);
+    Ok(())
 }
 
 #[cfg(windows)]

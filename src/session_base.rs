@@ -55,7 +55,7 @@ use bincode::options;
 use libc::{pipe, ECONNREFUSED};
 use windows::Win32::Networking::WinSock::{recv, send};
 
-use crate::address::Address;
+use crate::address::ZmqAddress;
 use crate::context::{choose_io_thread, find_endpoint, ZmqContext};
 use crate::defines::{
     ZMQ_CHANNEL, ZMQ_CLIENT, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_GATHER, ZMQ_NULL, ZMQ_PAIR,
@@ -80,11 +80,11 @@ use crate::pipe::ZmqPipe;
 use crate::proxy::ZmqSocketBase;
 use crate::radio::RadioSession;
 use crate::req::ReqSession;
-use crate::socks_connecter::socks_connecter_t;
-use crate::tcp_connecter::tcp_connecter_t;
-use crate::tipc_connecter::tipc_connecter_t;
-use crate::udp_engine::udp_engine_t;
-use crate::vmci_connecter::vmci_connecter_t;
+use crate::socks_connecter::ZmqSocksConnector;
+use crate::tcp_connecter::ZmqTcpConnector;
+use crate::tipc_connecter::ZmqTipcConnecter;
+use crate::udp_engine::ZmqUdpEngine;
+use crate::vmci_connecter::ZmqVmciConnecter;
 use crate::ws_connecter::ws_connecter_t;
 
 // enum
@@ -133,7 +133,7 @@ pub struct ZmqSessionBase {
     pub has_linger_timer: bool,
     //  Protocol and address to use when connecting.
     // Address *_addr;
-    pub addr: Address,
+    pub addr: ZmqAddress,
     // #ifdef ZMQ_HAVE_WSS
     //  TLS handshake, we need to take a copy when the session is created,
     //  in order to maintain the value at the creation time
@@ -174,7 +174,7 @@ impl ZmqSessionBase {
         active_: bool,
         socket: &mut ZmqSocketBase,
         options: &mut ZmqOptions,
-        addr: &mut Address,
+        addr: &mut ZmqAddress,
     ) -> Self {
         let mut own = ZmqOwn::new(options, zmq_ctx, io_thread.tid);
         let mut io_object = ZmqIoObject::new(Some(io_thread.clone()));
@@ -208,7 +208,7 @@ impl ZmqSessionBase {
         active_: bool,
         socket: &mut ZmqSocketBase,
         options: &mut ZmqOptions,
-        addr: &mut Address,
+        addr: Option<&mut ZmqAddress>,
     ) -> anyhow::Result<Self> {
         // ZmqSessionBase *s = null_mut();
         let mut s = ZmqSessionBase::default();
@@ -803,13 +803,13 @@ impl ZmqSessionBase {
         ZmqOwn * connecter = null_mut();
         if (_addr.protocol == protocol_name::tcp) {
             if (!options.socks_proxy_address.empty()) {
-                let mut proxy_address = Address::new(
+                let mut proxy_address = ZmqAddress::new(
                     protocol_name::tcp,
                     self.options.socks_proxy_address,
                     this.get_ctx(),
                 );
                 // alloc_assert (proxy_address);
-                connecter = socks_connecter_t::new(io_thread, this, options, _addr, proxy_address, wait_);
+                connecter = ZmqSocksConnector::new(io_thread, this, options, _addr, proxy_address, wait_);
                 // alloc_assert (connecter);
                 if (!options.socks_proxy_username.empty()) {
                     (connecter).set_auth_method_basic(
@@ -818,7 +818,7 @@ impl ZmqSessionBase {
                     );
                 }
             } else {
-                connecter = tcp_connecter_t::new(io_thread, this, options, _addr, wait_);
+                connecter = ZmqTcpConnector::new(io_thread, this, options, _addr, wait_);
             }
         }
         // #if defined ZMQ_HAVE_IPC
@@ -828,12 +828,12 @@ impl ZmqSessionBase {
         // #endif
         // #if defined ZMQ_HAVE_TIPC
         else if (_addr.protocol == protocol_name::tipc) {
-            connecter = tipc_connecter_t::new(io_thread, this, options, _addr, wait_);
+            connecter = ZmqTipcConnecter::new(io_thread, this, options, _addr, wait_);
         }
         // #endif
         // #if defined ZMQ_HAVE_VMCI
         else if (_addr.protocol == protocol_name::vmci) {
-            connecter = vmci_connecter_t::new(io_thread, this, options, _addr, wait_);
+            connecter = ZmqVmciConnecter::new(io_thread, this, options, _addr, wait_);
         }
         // #endif
         // #if defined ZMQ_HAVE_WS
@@ -856,7 +856,7 @@ impl ZmqSessionBase {
             // zmq_assert (options.type == ZMQ_DISH || options.type == ZMQ_RADIO
             // || options.type_ == ZMQ_DGRAM);
 
-            udp_engine_t * engine = udp_engine_t::new(options);
+            ZmqUdpEngine * engine = ZmqUdpEngine::new(options);
             // alloc_assert (engine);
 
             let mut recv = false;
@@ -981,7 +981,7 @@ impl ZmqHelloMsgSession {
         connect_: bool,
         socket: &mut ZmqSocketBase,
         options: &mut ZmqOptions,
-        addr_: &mut Address,
+        addr_: &mut ZmqAddress,
     ) -> Self {
         //  :
         //     ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),

@@ -45,6 +45,24 @@
 // #include "socket_base.hpp"
 // #include "address.hpp"
 
+use std::mem;
+use bincode::options;
+use libc::{accept, bind, close, ECONNABORTED, EINTR, EINVAL, EMFILE, ENFILE, ENOBUFS, EPROTO, listen};
+use windows::Win32::Networking::WinSock::{SOCK_STREAM, socklen_t};
+use crate::address::{get_socket_address, get_socket_name, SocketEnd};
+use crate::address::SocketEnd::SocketEndLocal;
+use crate::address_family::AF_TIPC;
+use crate::endpoint::make_unconnected_bind_endpoint_pair;
+use crate::fd::ZmqFileDesc;
+use crate::io_thread::ZmqIoThread;
+use crate::ip::open_socket;
+use crate::mechanism::ZmqMechanismStatus::error;
+use crate::ops::zmq_errno;
+use crate::options::ZmqOptions;
+use crate::socket_base::ZmqSocketBase;
+use crate::stream_listener_base::ZmqStreamListenerBase;
+use crate::tipc_address::ZmqTipcAddress;
+
 // #include <unistd.h>
 // #include <sys/socket.h>
 // #include <fcntl.h>
@@ -54,150 +72,171 @@
 // #else
 // #include <linux/tipc.h>
 // #endif
-pub struct tIpcListener  : public stream_listener_base_t
+pub struct ZmqTipcListener
 {
-//
-    tIpcListener (ZmqIoThread *io_thread_,
-                     socket: *mut ZmqSocketBase,
-                     options: &ZmqOptions);
-
+// : public ZmqStreamListenerBase
+    pub stream_listener_base: ZmqStreamListenerBase,
+    // ZmqTipcListener (ZmqIoThread *io_thread_,
+    //                  socket: *mut ZmqSocketBase,
+    //                  options: &ZmqOptions);
     //  Set address to listen on.
-    int set_local_address (addr_: &str);
-
-
-    std::string get_socket_name (fd: ZmqFileDesc,
-                                 SocketEnd socket_end_) const ;
-
+    // int set_local_address (addr_: &str);
+    // std::string get_socket_name (fd: ZmqFileDesc,
+    //                              SocketEnd socket_end_) const ;
   //
     //  Handlers for I/O events.
-    void in_event () ;
+    // void in_event () ;
 
     //  Accept the new connection. Returns the file descriptor of the
     //  newly created connection. The function may return retired_fd
     //  if the connection was dropped while waiting in the listen backlog.
-    ZmqFileDesc accept ();
+    // ZmqFileDesc accept ();
 
     // Address to listen on
-    TipcAddress address;
+    // ZmqTipcAddress address;
+    pub address: ZmqTipcAddress,
 
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (tIpcListener)
-};
-
-tIpcListener::tIpcListener (ZmqIoThread *io_thread_,
-                                       ZmqSocketBase *socket,
-                                       options: &ZmqOptions) :
-    stream_listener_base_t (io_thread_, socket, options_)
-{
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqTipcListener)
 }
 
-void tIpcListener::in_event ()
-{
-     let mut fd: ZmqFileDesc = accept ();
+impl ZmqTipcListener {
 
-    //  If connection was reset by the peer in the meantime, just ignore it.
-    //  TODO: Handle specific errors like ENFILE/EMFILE etc.
-    if (fd == retired_fd) {
-        self._socket.event_accept_failed (
-          make_unconnected_bind_endpoint_pair (_endpoint), zmq_errno ());
-        return;
+    // ZmqTipcListener::ZmqTipcListener (ZmqIoThread *io_thread_,
+    //                                        ZmqSocketBase *socket,
+    //                                        options: &ZmqOptions) :
+    //     ZmqStreamListenerBase (io_thread_, socket, options_)
+    // {
+    // }
+    pub fn new(io_thread_: &mut ZmqIoThread, socket: &mut ZmqSocketBase, options: &mut ZmqOptions) -> Self {
+        Self {
+                stream_listener_base: ZmqStreamListenerBase {
+                    own: Default::default(),
+                    io_object: Default::default(),
+                    _s: 0,
+                    _handle: None,
+                    _socket: socket.clone(),
+                    _endpoint: "".to_string(),
+                },
+            address: ZmqTipcAddress { _random: false, address: () },
+        }
     }
 
-    //  Create the engine object for this connection.
-    create_engine (fd);
-}
+    pub fn in_event (&mut self)
+    {
+         let mut fd: ZmqFileDesc = self.accept ();
 
-std::string
-tIpcListener::get_socket_name (fd: ZmqFileDesc,
-                                       SocketEnd socket_end_) const
-{
-    return get_socket_name<TipcAddress> (fd, socket_end_);
-}
+        //  If connection was reset by the peer in the meantime, just ignore it.
+        //  TODO: Handle specific errors like ENFILE/EMFILE etc.
+        if (fd == retired_fd) {
+            self._socket.event_accept_failed (
+              make_unconnected_bind_endpoint_pair (_endpoint), zmq_errno ());
+            return;
+        }
 
-int tIpcListener::set_local_address (addr_: &str)
-{
-    // Convert str to address struct
-    int rc = address.resolve (addr_);
-    if (rc != 0)
-        return -1;
-
-    // Cannot bind non-random Port Identity
-    const sockaddr_tipc *const a =
-      reinterpret_cast<const sockaddr_tipc *> (address.addr ());
-    if (!address.is_random () && a.addrtype == TIPC_ADDR_ID) {
-        errno = EINVAL;
-        return -1;
+        //  Create the engine object for this connection.
+        create_engine (fd);
     }
 
-    //  Create a listening socket.
-    _s = open_socket (AF_TIPC, SOCK_STREAM, 0);
-    if (_s == retired_fd)
-        return -1;
-
-    // If random Port Identity, update address object to reflect the assigned address
-    if (address.is_random ()) {
-        struct sockaddr_storage ss;
-        const ZmqSocklen sl = get_socket_address (_s, SocketEndLocal, &ss);
-        if (sl == 0)
-            goto error;
-
-        address =
-          TipcAddress ((&ss), sl);
+    pub fn get_socket_name (&mut self, fd: ZmqFileDesc,
+                                           socket_end_: SocketEnd) -> String
+    {
+        return get_socket_name(fd, socket_end_).unwrap();
     }
 
+    pub fn set_local_address (&mut self, addr_: &str) -> i32
+    {
+        // Convert str to address struct
+        let rc = address.resolve (addr_);
+        if (rc != 0) {
+            return -1;
+        }
 
-    address.to_string (_endpoint);
+        // Cannot bind non-random Port Identity
+        let a = (address.addr ());
+        if (!address.is_random () && a.addrtype == TIPC_ADDR_ID) {
+            errno = EINVAL;
+            return -1;
+        }
 
-    //  Bind the socket to tipc name
-    if (address.is_service ()) {
-// #ifdef ZMQ_HAVE_VXWORKS
-        rc = bind (_s, (sockaddr *) address.addr (), address.addrlen ());
-// #else
-        rc = bind (_s, address.addr (), address.addrlen ());
-// #endif
-        if (rc != 0)
-            goto error;
+        //  Create a listening socket.
+        _s = open_socket (AF_TIPC as i32, SOCK_STREAM as i32, 0);
+        if (_s == retired_fd) {
+            return -1;
+        }
+
+        // If random Port Identity, update address object to reflect the assigned address
+        if (address.is_random ()) {
+            let ss = sockaddr_storage{};
+            let sl = get_socket_address (_s, SocketEndLocal, &mut ss).unwrap();
+            if (sl == 0) {
+                // goto
+                // error;
+            }
+
+            self.address = ZmqTipcAddress::new2((&ss), sl as socklen_t);
+        }
+
+
+        self.address.to_string (_endpoint);
+
+        //  Bind the socket to tipc name
+        if (address.is_service ()) {
+    // #ifdef ZMQ_HAVE_VXWORKS
+    //         rc = bind (_s,  address.addr (), address.addrlen ());
+    // #else
+            unsafe { rc = bind(_s, address.addr(), address.addrlen()); }
+    // #endif
+            if (rc != 0) {
+                // goto
+                // error;
+            }
+        }
+
+        //  Listen for incoming connections.
+        unsafe { rc = listen(_s, options.backlog); }
+        if (rc != 0) {
+            // goto
+            // error;
+        }
+
+        self._socket.event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
+                                  _s);
+        return 0;
+
+    // error:
+    //     int err = errno;
+    //     close ();
+    //     errno = err;
+    //     return -1;
     }
 
-    //  Listen for incoming connections.
-    rc = listen (_s, options.backlog);
-    if (rc != 0)
-        goto error;
+    pub fn accept (&mut self) -> ZmqFileDesc
+    {
+        //  Accept one connection and deal with different failure modes.
+        //  The situation where connection cannot be accepted due to insufficient
+        //  resources is considered valid and treated by ignoring the connection.
+        let mut ss = sockaddr_storage{};
+        // socklen_t ss_len = mem::size_of::<ss>();
+        let mut ss_len = mem::size_of_val(&ss);
 
-    self._socket.event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
-                              _s);
-    return 0;
-
-error:
-    int err = errno;
-    close ();
-    errno = err;
-    return -1;
-}
-
-ZmqFileDesc tIpcListener::accept ()
-{
-    //  Accept one connection and deal with different failure modes.
-    //  The situation where connection cannot be accepted due to insufficient
-    //  resources is considered valid and treated by ignoring the connection.
-    struct sockaddr_storage ss = {};
-    socklen_t ss_len = mem::size_of::<ss>();
-
-    // zmq_assert (_s != retired_fd);
-// #ifdef ZMQ_HAVE_VXWORKS
-     let mut sock: ZmqFileDesc = ::accept (_s, (struct sockaddr *) &ss, (int *) &ss_len);
-// #else
-     let mut sock: ZmqFileDesc =
-      ::accept (_s, (&ss), &ss_len);
-// #endif
-    if (sock == -1) {
-        // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK
-                      || errno == ENOBUFS || errno == EINTR
-                      || errno == ECONNABORTED || errno == EPROTO
-                      || errno == EMFILE || errno == ENFILE);
-        return retired_fd;
+        // zmq_assert (_s != retired_fd);
+    // #ifdef ZMQ_HAVE_VXWORKS
+    //      let mut sock: ZmqFileDesc = accept (_s, &ss, &ss_len);
+    // #else
+         let mut sock: ZmqFileDesc =
+          ::accept (_s, (&ss), &ss_len);
+    // #endif
+        if (sock == -1) {
+            // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK
+            //               || errno == ENOBUFS || errno == EINTR
+            //               || errno == ECONNABORTED || errno == EPROTO
+            //               || errno == EMFILE || errno == ENFILE);
+            return retired_fd;
+        }
+        /*FIXME Accept filters?*/
+        return sock;
     }
-    /*FIXME Accept filters?*/
-    return sock;
+
 }
 
 // #endif

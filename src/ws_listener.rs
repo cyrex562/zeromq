@@ -65,7 +65,7 @@
 // #ifdef ZMQ_HAVE_OPENVMS
 // #include <ioctl.h>
 // #endif
-pub struct ws_listener_t  : public stream_listener_base_t
+pub struct ws_listener_t  : public ZmqStreamListenerBase
 {
 //
     ws_listener_t (ZmqIoThread *io_thread_,
@@ -109,7 +109,7 @@ ws_listener_t::ws_listener_t (ZmqIoThread *io_thread_,
                                    ZmqSocketBase *socket,
                                    options: &ZmqOptions,
                                    wss_: bool) :
-    stream_listener_base_t (io_thread_, socket, options_), _wss (wss_)
+    ZmqStreamListenerBase (io_thread_, socket, options_), _wss (wss_)
 {
 // #ifdef ZMQ_HAVE_WSS
     if (_wss) {

@@ -47,12 +47,12 @@ void handler (timer_id_: i32, arg_: &mut [u8])
 
 int sleep_and_execute (timers_: *mut c_void)
 {
-    int timeout = zmq_timers_timeout (timers_);
+    int timeout = zmq_ZmqTimersimeout (timers_);
 
     //  Sleep methods are inaccurate, so we sleep in a loop until time arrived
     while (timeout > 0) {
         msleep (timeout);
-        timeout = zmq_timers_timeout (timers_);
+        timeout = zmq_ZmqTimersimeout (timers_);
     }
 
     return zmq_timers_execute (timers_);
@@ -93,8 +93,8 @@ void test_null_timer_pointers ()
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
                                zmq_timers_reset (&timers, dummy_timer_id));
 
-    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_timers_timeout (timers));
-    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_timers_timeout (&timers));
+    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_ZmqTimersimeout (timers));
+    TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_ZmqTimersimeout (&timers));
 
     TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_timers_execute (timers));
     TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_timers_execute (&timers));
@@ -134,7 +134,7 @@ void test_corner_cases ()
     TEST_ASSERT_FAILURE_ERRNO (EINVAL, zmq_timers_cancel (timers, timer_id));
 
     //  timeout without any timers active
-    TEST_ASSERT_FAILURE_ERRNO (EINVAL, zmq_timers_timeout (timers));
+    TEST_ASSERT_FAILURE_ERRNO (EINVAL, zmq_ZmqTimersimeout (timers));
 
     //  cleanup
     TEST_ASSERT_SUCCESS_ERRNO (zmq_timers_destroy (&timers));
@@ -161,7 +161,7 @@ void test_timers ()
     }
 
     //  Wait half the time and check again
-    long timeout = TEST_ASSERT_SUCCESS_ERRNO (zmq_timers_timeout (timers));
+    long timeout = TEST_ASSERT_SUCCESS_ERRNO (zmq_ZmqTimersimeout (timers));
     msleep (timeout / 2);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_timers_execute (timers));
     if (zmq_stopwatch_intermediate (stopwatch) < full_timeout) {
@@ -174,7 +174,7 @@ void test_timers ()
     timer_invoked = false;
 
     //  Wait half the time and check again
-    timeout = TEST_ASSERT_SUCCESS_ERRNO (zmq_timers_timeout (timers));
+    timeout = TEST_ASSERT_SUCCESS_ERRNO (zmq_ZmqTimersimeout (timers));
     msleep (timeout / 2);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_timers_execute (timers));
     if (zmq_stopwatch_intermediate (stopwatch) < 2 * full_timeout) {
@@ -201,7 +201,7 @@ void test_timers ()
     timer_invoked = false;
 
     // cancel timer
-    timeout = TEST_ASSERT_SUCCESS_ERRNO (zmq_timers_timeout (timers));
+    timeout = TEST_ASSERT_SUCCESS_ERRNO (zmq_ZmqTimersimeout (timers));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_timers_cancel (timers, timer_id));
     msleep (timeout * 2);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_timers_execute (timers));

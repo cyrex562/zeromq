@@ -5,9 +5,9 @@ use crate::fd::ZmqFileDesc;
 use crate::ipc_address::IpcAddress;
 use crate::platform_socket::{ZmqSockaddr, ZmqSockaddrStorage};
 use crate::tcp_address::TcpAddress;
-use crate::tipc_address::TipcAddress;
+use crate::tipc_address::ZmqTipcAddress;
 use crate::udp_address::UdpAddress;
-use crate::vmci_address::VmciAddress;
+use crate::vmci_address::ZmqVmciAddress;
 use crate::ws_address::WsAddress;
 use crate::wss_address::WssAddress;
 
@@ -35,12 +35,12 @@ pub enum SocketEnd {
 //     pub ws_addr: *mut WsAddress,
 //     pub wss_addr: *mut WssAddress,
 //     pub ipc_addr: *mut IpcAddress,
-//     pub tipc_addr: *mut TipcAddress,
-//     pub vmci_addr: *mut VmciAddress,
+//     pub tipc_addr: *mut ZmqTipcAddress,
+//     pub vmci_addr: *mut ZmqVmciAddress,
 // }
 
 #[derive(Default, Debug, Clone)]
-pub struct Address<'a, T> {
+pub struct ZmqAddress<'a, T> {
     // const std::string protocol;
     pub protocol: String,
     // const std::string address;
@@ -52,7 +52,7 @@ pub struct Address<'a, T> {
     pub resolved: T,
 }
 
-impl Address<T> {
+impl ZmqAddress<T> {
     // address_t (const std::string &protocol_,
     //     const std::string &address_,
     //     ctx_t *parent_);
@@ -70,7 +70,7 @@ impl Address<T> {
     }
 }
 
-impl ToString for Address<T> {
+impl ToString for ZmqAddress<T> {
     fn to_string(&self) -> String {
         let mut s = String::new();
         match self.protocol {

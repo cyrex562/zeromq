@@ -1735,7 +1735,7 @@ int zmq_socket_get_peer_state (s_: &mut [u8],
 
 void *zmq_timers_new (void)
 {
-    timers_t *timers =  timers_t;
+    ZmqTimers *timers =  ZmqTimers;
     // alloc_assert (timers);
     return timers;
 }
@@ -1743,11 +1743,11 @@ void *zmq_timers_new (void)
 int zmq_timers_destroy (void **timers_p_)
 {
     void *timers = *timers_p_;
-    if (!timers || !(static_cast<timers_t *> (timers))->check_tag ()) {
+    if (!timers || !(static_cast<ZmqTimers *> (timers))->check_tag ()) {
         errno = EFAULT;
         return -1;
     }
-    delete (static_cast<timers_t *> (timers));
+    delete (static_cast<ZmqTimers *> (timers));
     *timers_p_ = null_mut();
     return 0;
 }
@@ -1757,64 +1757,64 @@ int zmq_timers_add (timers_: &mut [u8],
                     zmq_timer_fn handler_,
                     arg_: &mut [u8])
 {
-    if (!timers_ || !(static_cast<timers_t *> (timers_))->check_tag ()) {
+    if (!timers_ || !(static_cast<ZmqTimers *> (timers_))->check_tag ()) {
         errno = EFAULT;
         return -1;
     }
 
-    return (static_cast<timers_t *> (timers_))
+    return (static_cast<ZmqTimers *> (timers_))
       ->add (interval_, handler_, arg_);
 }
 
 int zmq_timers_cancel (timers_: &mut [u8], timer_id_: i32)
 {
-    if (!timers_ || !(static_cast<timers_t *> (timers_))->check_tag ()) {
+    if (!timers_ || !(static_cast<ZmqTimers *> (timers_))->check_tag ()) {
         errno = EFAULT;
         return -1;
     }
 
-    return (static_cast<timers_t *> (timers_))->cancel (timer_id_);
+    return (static_cast<ZmqTimers *> (timers_))->cancel (timer_id_);
 }
 
 int zmq_timers_set_interval (timers_: &mut [u8], timer_id_: i32, interval_: usize)
 {
-    if (!timers_ || !(static_cast<timers_t *> (timers_))->check_tag ()) {
+    if (!timers_ || !(static_cast<ZmqTimers *> (timers_))->check_tag ()) {
         errno = EFAULT;
         return -1;
     }
 
-    return (static_cast<timers_t *> (timers_))
+    return (static_cast<ZmqTimers *> (timers_))
       ->set_interval (timer_id_, interval_);
 }
 
 int zmq_timers_reset (timers_: &mut [u8], timer_id_: i32)
 {
-    if (!timers_ || !(static_cast<timers_t *> (timers_))->check_tag ()) {
+    if (!timers_ || !(static_cast<ZmqTimers *> (timers_))->check_tag ()) {
         errno = EFAULT;
         return -1;
     }
 
-    return (static_cast<timers_t *> (timers_))->reset (timer_id_);
+    return (static_cast<ZmqTimers *> (timers_))->reset (timer_id_);
 }
 
-long zmq_timers_timeout (timers_: *mut c_void)
+long zmq_ZmqTimersimeout (timers_: *mut c_void)
 {
-    if (!timers_ || !(static_cast<timers_t *> (timers_))->check_tag ()) {
+    if (!timers_ || !(static_cast<ZmqTimers *> (timers_))->check_tag ()) {
         errno = EFAULT;
         return -1;
     }
 
-    return (static_cast<timers_t *> (timers_))->timeout ();
+    return (static_cast<ZmqTimers *> (timers_))->timeout ();
 }
 
 int zmq_timers_execute (timers_: *mut c_void)
 {
-    if (!timers_ || !(static_cast<timers_t *> (timers_))->check_tag ()) {
+    if (!timers_ || !(static_cast<ZmqTimers *> (timers_))->check_tag ()) {
         errno = EFAULT;
         return -1;
     }
 
-    return (static_cast<timers_t *> (timers_))->execute ();
+    return (static_cast<ZmqTimers *> (timers_))->execute ();
 }
 
 //  The proxy functionality

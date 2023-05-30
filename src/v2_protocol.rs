@@ -30,20 +30,26 @@
 // #ifndef __ZMQ_V2_PROTOCOL_HPP_INCLUDED__
 // #define __ZMQ_V2_PROTOCOL_HPP_INCLUDED__
 
-namespace zmq
-{
+// namespace zmq
+// {
 //  Definition of constants for ZMTP/2.0 transport protocol.
-pub struct v2_protocol_t
-{
-//
-    //  Message flags.
-    enum
-    {
-        more_flag = 1,
-        large_flag = 2,
-        command_flag = 4
-    };
-};
+// pub struct v2_protocol_t
+// {
+// //
+//     //  Message flags.
+//     enum
+//     {
+//         more_flag = 1,
+//         large_flag = 2,
+//         command_flag = 4
+//     };
+// };
+// }
+
+pub enum v2_protocol_msg_flag {
+    more_flag = 1,
+    large_flag = 2,
+    command_flag = 4
 }
 
 // #endif

@@ -110,7 +110,7 @@ int main (argc: i32, char *argv[])
 // #if defined ZMQ_HAVE_WINDOWS
     HANDLE local_thread;
 // #else
-    pthread_t local_thread;
+    pZmqThread local_thread;
 // #endif
     ctx: *mut c_void;
     s: *mut c_void;

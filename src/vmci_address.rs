@@ -37,168 +37,223 @@
 // #include <string>
 // #include <sstream>
 
+use std::mem;
+use std::net::SocketAddr;
+use std::ptr::null_mut;
+use libc::{EINVAL, ENODEV, ERANGE, memcpy, memset, strrchr, strtoul};
+use windows::s;
+use windows::Win32::Networking::WinSock::sa_family_t;
+use crate::context::ZmqContext;
+
 // #include "err.hpp"
-pub struct VmciAddress
+pub struct ZmqVmciAddress
 {
 //
-    VmciAddress ();
-    VmciAddress (ZmqContext *parent_);
-    VmciAddress (const sockaddr *sa, socklen_t sa_len, ZmqContext *parent_);
+//     ZmqVmciAddress ();
+//     ZmqVmciAddress (ZmqContext *parent_);
+//     ZmqVmciAddress (const sockaddr *sa, socklen_t sa_len, ZmqContext *parent_);
 
     //  This function sets up the address for VMCI transport.
-    int resolve (path_: &str);
+    // int resolve (path_: &str);
 
     //  The opposite to resolve()
-    int to_string (std::string &addr_) const;
+    // int to_string (std::string &addr_) const;
 
 // #if defined ZMQ_HAVE_WINDOWS
-    unsigned short family () const;
+//     unsigned short family () const;
 // #else
-    sa_family_t family () const;
+//     sa_family_t family () const;
 // #endif
-    const sockaddr *addr () const;
-    socklen_t addrlen () const;
+//     const sockaddr *addr () const;
+//     socklen_t addrlen () const;
 
   //
-    struct sockaddr_vm address;
-    ZmqContext *parent;
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (VmciAddress)
-};
-
-VmciAddress::VmciAddress ()
-{
-    memset (&address, 0, sizeof address);
+  //   struct sockaddr_vm address;
+    pub address: sockaddr_vm,
+    // qContext *parent;
+    pub parent: ZmqContext,
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqVmciAddress)
 }
 
-VmciAddress::VmciAddress (ZmqContext *parent_) : parent (parent_)
-{
-    memset (&address, 0, sizeof address);
-}
+impl ZmqVmciAddress {
 
-VmciAddress::VmciAddress (const sockaddr *sa,
-                                     socklen_t sa_len,
-                                     ZmqContext *parent_) :
-    parent (parent_)
-{
-    // zmq_assert (sa && sa_len > 0);
-
-    memset (&address, 0, sizeof address);
-    if (sa.sa_family == parent.get_vmci_socket_family ())
-        memcpy (&address, sa, sa_len);
-}
-
-int VmciAddress::resolve (path_: &str)
-{
-    //  Find the ':' at end that separates address from the port number.
-    const char *delimiter = strrchr (path_, ':');
-    if (!delimiter) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    //  Separate the address/port.
-    std::string addr_str (path_, delimiter - path_);
-    std::string port_str (delimiter + 1);
-
-    unsigned int cid = VMADDR_CID_ANY;
-    unsigned int port = VMADDR_PORT_ANY;
-
-    if (!addr_str.length ()) {
-        errno = EINVAL;
-        return -1;
-    } else if (addr_str == "@") {
-        cid = VMCISock_GetLocalCID ();
-
-        if (cid == VMADDR_CID_ANY) {
-            errno = ENODEV;
-            return -1;
+    // ZmqVmciAddress::ZmqVmciAddress ()
+    pub fn new() -> Self
+    {
+        // memset (&address, 0, sizeof address);
+        Self {
+            address: sockaddr_vm {
+                svm_family: 0,
+                svm_reserved1: 0,
+                svm_port: 0,
+                svm_cid: 0,
+                svm_zero: [0; 4],
+            },
+            parent: ZmqContext::new(),
         }
-    } else if (addr_str != "*" && addr_str != "-1") {
-        const char *begin = addr_str;
-        char *end = null_mut();
-        unsigned long l = strtoul (begin, &end, 10);
+    }
 
-        if ((l == 0 && end == begin) || (l == ULONG_MAX && errno == ERANGE)
-            || l > UINT_MAX) {
-            errno = EINVAL;
-            return -1;
+    // ZmqVmciAddress::ZmqVmciAddress (ZmqContext *parent_) : parent (parent_)
+    // {
+    //     memset (&address, 0, sizeof address);
+    // }
+    pub fn new2(parent_: &mut ZmqContext) -> Self
+    {
+        Self {
+            address: sockaddr_vm {
+                svm_family: 0,
+                svm_reserved1: 0,
+                svm_port: 0,
+                svm_cid: 0,
+                svm_zero: [0; 4],
+            },
+            parent: parent_.clone(),
         }
-
-        cid = static_cast<unsigned int> (l);
     }
 
-    if (!port_str.length ()) {
-        errno = EINVAL;
-        return -1;
-    } else if (port_str != "*" && port_str != "-1") {
-        const char *begin = port_str;
-        char *end = null_mut();
-        unsigned long l = strtoul (begin, &end, 10);
+    // ZmqVmciAddress::ZmqVmciAddress (const sockaddr *sa,
+    //                                      socklen_t sa_len,
+    //                                      ZmqContext *parent_) :
+    //     parent (parent_)
+    pub fn new3(sa: &SocketAddr, sa_len: usize, parent_: &mut ZmqContext) -> Self
+    {
+        // zmq_assert (sa && sa_len > 0);
 
-        if ((l == 0 && end == begin) || (l == ULONG_MAX && errno == ERANGE)
-            || l > UINT_MAX) {
-            errno = EINVAL;
-            return -1;
+        // memset (&address, 0, sizeof address);
+        // if (sa.sa_family == parent.get_vmci_socket_family ())
+        //     memcpy (&address, sa, sa_len);
+        Self {
+            address: sockaddr_vm {
+                svm_family: 0,
+                svm_reserved1: 0,
+                svm_port: 0,
+                svm_cid: 0,
+                svm_zero: [0; 4],
+            },
+            parent: parent_.clone(),
         }
-
-        port = static_cast<unsigned int> (l);
     }
 
-    address.svm_family =
-      static_cast<sa_family_t> (parent.get_vmci_socket_family ());
-    address.svm_cid = cid;
-    address.svm_port = port;
+    pub fn resolve (path_: &str) -> i32
+    {
+        //  Find the ':' at end that separates address from the port number.
+        // const char *delimiter = strrchr (path_, ':');
+        // if (!delimiter) {
+        //     errno = EINVAL;
+        //     return -1;
+        // }
+        //
+        // //  Separate the address/port.
+        // std::string addr_str (path_, delimiter - path_);
+        // std::string port_str (delimiter + 1);
+        //
+        // unsigned int cid = VMADDR_CID_ANY;
+        // unsigned int port = VMADDR_PORT_ANY;
+        //
+        // if (!addr_str.length ()) {
+        //     errno = EINVAL;
+        //     return -1;
+        // } else if (addr_str == "@") {
+        //     cid = VMCISock_GetLocalCID ();
+        //
+        //     if (cid == VMADDR_CID_ANY) {
+        //         errno = ENODEV;
+        //         return -1;
+        //     }
+        // } else if (addr_str != "*" && addr_str != "-1") {
+        //     const char *begin = addr_str;
+        //     char *end = null_mut();
+        //     unsigned long l = strtoul (begin, &end, 10);
+        //
+        //     if ((l == 0 && end == begin) || (l == ULONG_MAX && errno == ERANGE)
+        //         || l > UINT_MAX) {
+        //         errno = EINVAL;
+        //         return -1;
+        //     }
+        //
+        //     cid = static_cast<unsigned int> (l);
+        // }
+        //
+        // if (!port_str.length ()) {
+        //     errno = EINVAL;
+        //     return -1;
+        // } else if (port_str != "*" && port_str != "-1") {
+        //     const char *begin = port_str;
+        //     char *end = null_mut();
+        //     unsigned long l = strtoul (begin, &end, 10);
+        //
+        //     if ((l == 0 && end == begin) || (l == ULONG_MAX && errno == ERANGE)
+        //         || l > UINT_MAX) {
+        //         errno = EINVAL;
+        //         return -1;
+        //     }
+        //
+        //     port = static_cast<unsigned int> (l);
+        // }
+        //
+        // address.svm_family =
+        //   static_cast<sa_family_t> (parent.get_vmci_socket_family ());
+        // address.svm_cid = cid;
+        // address.svm_port = port;
+        todo!();
 
-    return 0;
-}
-
-int VmciAddress::to_string (std::string &addr_) const
-{
-    if (address.svm_family != parent.get_vmci_socket_family ()) {
-        addr_.clear ();
-        return -1;
+        return 0;
     }
 
-    std::stringstream s;
-
-    s << "vmci://";
-
-    if (address.svm_cid == VMADDR_CID_ANY) {
-        s << "*";
-    } else {
-        s << address.svm_cid;
+    pub fn to_string (&mut self, addr_: &str) -> i32
+    {
+        // if (address.svm_family != parent.get_vmci_socket_family ()) {
+        //     addr_.clear ();
+        //     return -1;
+        // }
+        //
+        // std::stringstream s;
+        //
+        // s << "vmci://";
+        //
+        // if (address.svm_cid == VMADDR_CID_ANY) {
+        //     s << "*";
+        // } else {
+        //     s << address.svm_cid;
+        // }
+        //
+        // s << ":";
+        //
+        // if (address.svm_port == VMADDR_PORT_ANY) {
+        //     s << "*";
+        // } else {
+        //     s << address.svm_port;
+        // }
+        //
+        // addr_ = s.str ();
+        // return 0;
+        todo!()
     }
 
-    s << ":";
-
-    if (address.svm_port == VMADDR_PORT_ANY) {
-        s << "*";
-    } else {
-        s << address.svm_port;
+    // const sockaddr *ZmqVmciAddress::addr () const
+    pub fn addr (&self) -> &SocketAddr
+    {
+        // return reinterpret_cast<const sockaddr *> (&address);
+        todo!()
     }
 
-    addr_ = s.str ();
-    return 0;
-}
+    // socklen_t ZmqVmciAddress::addrlen () const
+    pub fn addrlen (&self) -> usize
+    {
+        // return  (sizeof address);
+        mem::size_of_val(self.address)
+    }
 
-const sockaddr *VmciAddress::addr () const
-{
-    return reinterpret_cast<const sockaddr *> (&address);
-}
+    // #if defined ZMQ_HAVE_WINDOWS
+    // unsigned short ZmqVmciAddress::family () const
+    // #else
+    // sa_family_t ZmqVmciAddress::family () const
+    // #endif
+    pub fn family(&mut self) -> u16
+    {
+        return parent.get_vmci_socket_family ();
+    }
 
-socklen_t VmciAddress::addrlen () const
-{
-    return  (sizeof address);
-}
+    // #endif
 
-// #if defined ZMQ_HAVE_WINDOWS
-unsigned short VmciAddress::family () const
-// #else
-sa_family_t VmciAddress::family () const
-// #endif
-{
-    return parent.get_vmci_socket_family ();
 }
-
-// #endif

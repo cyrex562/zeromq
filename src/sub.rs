@@ -27,71 +27,86 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use bincode::options;
+use libc::{EINVAL, ENOTSUP};
+use crate::context::ZmqContext;
+use crate::decoder_allocators::data;
+use crate::defines::{ZMQ_SUB, ZMQ_UNSUBSCRIBE};
+use crate::message::{close_and_return, ZmqMessage};
+use crate::options::ZmqOptions;
+use crate::xsub::XSub;
+
 // #include "precompiled.hpp"
 // #include "sub.hpp"
 // #include "msg.hpp"
-pub struct sub_t  : public XSub
+pub struct ZmqSub
 {
-//
-    sub_t (ZmqContext *parent_, tid: u32, sid_: i32);
-    ~sub_t ();
+// : public XSub
+pub xsub: XSub,
+//     ZmqSub (ZmqContext *parent_, tid: u32, sid_: i32);
+//     ~ZmqSub ();
+//     int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
+//     int xsend (msg: &mut ZmqMessage);
+//     bool xhas_out ();
 
-
-    int xsetsockopt (option_: i32, const optval_: &mut [u8], optvallen_: usize);
-    int xsend (msg: &mut ZmqMessage);
-    bool xhas_out ();
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (sub_t)
-};
-
-sub_t::sub_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
-    XSub (parent_, tid, sid_)
-{
-    options.type_ = ZMQ_SUB;
-
-    //  Switch filtering messages on (as opposed to XSUB which where the
-    //  filtering is off).
-    options.filter = true;
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqSub)
 }
 
-sub_t::~sub_t ()
-{
-}
+impl ZmqSub {
+    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
 
-int sub_t::xsetsockopt (option_: i32,
-                             const optval_: &mut [u8],
-                             optvallen_: usize)
-{
-    if (option_ != ZMQ_SUBSCRIBE && option_ != ZMQ_UNSUBSCRIBE) {
-        errno = EINVAL;
+    {
+        // XSub (parent_, tid, sid_)
+        options.type_ = ZMQ_SUB as i32;
+        //  Switch filtering messages on (as opposed to XSUB which where the
+        //  filtering is off).
+        options.filter = true;
+        Self {
+            xsub: XSub::new(parent, tid, sid_),
+        }
+    }
+
+    // ZmqSub::~ZmqSub ()
+    // {
+    // }
+
+    pub fn xsetsockopt (&mut self,
+                        option_: i32,
+                        optval_: &mut [u8],
+                        optvallen_: usize) -> i32
+    {
+        if option_ != ZMQ_SUBSCRIBE && option_ != ZMQ_UNSUBSCRIBE {
+            errno = EINVAL;
+            return -1;
+        }
+
+        //  Create the subscription message.
+    let mut msg = ZmqMessage::default();
+        rc: i32;
+        let data = (optval_);
+        if option_ == ZMQ_SUBSCRIBE {
+            rc = msg.init_subscribe (optvallen_, data);
+        } else {
+            rc = msg.init_cancel (optvallen_, data);
+        }
+        // errno_assert (rc == 0);
+
+        //  Pass it further on in the stack.
+        rc = self.xsub.xsend (&mut msg);
+        return close_and_return (&mut msg, rc);
+    }
+
+    pub fn xsend (&mut self, msg: &mut ZmqMessage) -> i32
+    {
+        //  Override the XSUB's send.
+        errno = ENOTSUP;
         return -1;
     }
 
-    //  Create the subscription message.
-let mut msg = ZmqMessage::default();
-    rc: i32;
-    const unsigned char *data = static_cast<const unsigned char *> (optval_);
-    if (option_ == ZMQ_SUBSCRIBE) {
-        rc = msg.init_subscribe (optvallen_, data);
-    } else {
-        rc = msg.init_cancel (optvallen_, data);
+    pub fn xhas_out (&mut self) -> bool
+    {
+        //  Override the XSUB's send.
+        return false;
     }
-    // errno_assert (rc == 0);
 
-    //  Pass it further on in the stack.
-    rc = XSub::xsend (&msg);
-    return close_and_return (&msg, rc);
-}
-
-int sub_t::xsend (ZmqMessage *)
-{
-    //  Override the XSUB's send.
-    errno = ENOTSUP;
-    return -1;
-}
-
-bool sub_t::xhas_out ()
-{
-    //  Override the XSUB's send.
-    return false;
 }

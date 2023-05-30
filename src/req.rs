@@ -30,7 +30,7 @@
 use std::ptr::null_mut;
 use anyhow::anyhow;
 use libc::EFAULT;
-use crate::address::Address;
+use crate::address::ZmqAddress;
 use crate::context::ZmqContext;
 use crate::dealer::ZmqDealer;
 use crate::defines::ZMQ_REQ;
@@ -381,10 +381,10 @@ impl ReqSession {
     pub fn new(
         ctx: &mut ZmqContext,
         io_thread: &mut ZmqIoThread,
-               connect_: bool,
-               socket: &mut ZmqSocketBase,
-               options: &mut ZmqOptions,
-               addr: &mut Address) -> Self
+        connect_: bool,
+        socket: &mut ZmqSocketBase,
+        options: &mut ZmqOptions,
+        addr: &mut ZmqAddress) -> Self
 
     {
 //     ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),

@@ -60,9 +60,8 @@ use crate::socket_base::ZmqSocketBase;
 // #include "socket_base.hpp"
 // #include "address.hpp"
 #[derive(Debug, Clone, Default)]
-pub struct IpcListener<'a>
-{
-    // : public stream_listener_base_t
+pub struct IpcListener<'a> {
+    // : public ZmqStreamListenerBase
     pub stream_listener_base: StreamListenerBase,
 
     //  True, if the underlying file for UNIX domain socket exists.
@@ -87,10 +86,9 @@ impl IpcListener {
     //             options: &ZmqOptions);
     pub fn new(io_thread: &mut ZmqIoThread,
                socket: &mut ZmqSocketBase,
-               options: &ZmqOptions) -> Self
-    {
+               options: &ZmqOptions) -> Self {
         // :
-        //     stream_listener_base_t (io_thread_, socket, options_), _has_file (false)
+        //     ZmqStreamListenerBase (io_thread_, socket, options_), _has_file (false)
         Self {
             stream_listener_base: StreamListenerBase::new(io_thread, socket, options),
             _has_file: false,
@@ -103,8 +101,7 @@ impl IpcListener {
     //  Set address to listen on.
     // int set_local_address (addr_: &str);
 
-    pub fn set_local_address(&mut self, addr_: &str) -> i32
-    {
+    pub fn set_local_address(&mut self, addr_: &str) -> i32 {
         //  Create addr on stack for auto-cleanup
         // std::string addr (addr_);
 
@@ -191,8 +188,7 @@ impl IpcListener {
 
 
     // std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
-    pub fn get_socket_name(&mut self, fd: ZmqFileDesc, socket_end_: SocketEnd) -> String
-    {
+    pub fn get_socket_name(&mut self, fd: ZmqFileDesc, socket_end_: SocketEnd) -> String {
         return get_socket_name(fd, socket_end_).unwrap();
     }
 
@@ -200,8 +196,7 @@ impl IpcListener {
     //  Handlers for I/O events.
     // void in_event ();
 
-    pub fn in_event(&mut self)
-    {
+    pub fn in_event(&mut self) {
         let fd = self.accept();
 
         //  If connection was reset by the peer in the meantime, just ignore it.
@@ -222,11 +217,8 @@ impl IpcListener {
 //     bool filter (ZmqFileDesc sock_);
 // #endif
 
-    pub fn filter(&mut self, sock_: ZmqFileDesc) -> bool
-    {
-        if (self.options.ipc_uid_accept_filters.is_empty()
-            && self.options.ipc_pid_accept_filters.is_empty()
-            && self.options.ipc_gid_accept_filters.empty()) {
+    pub fn filter(&mut self, sock_: ZmqFileDesc) -> bool {
+        if (self.options.ipc_uid_accept_filters.is_empty() && self.options.ipc_pid_accept_filters.is_empty() && self.options.ipc_gid_accept_filters.empty()) {
             return true;
         }
 
@@ -239,12 +231,7 @@ impl IpcListener {
                 return false;
             }
         }
-        if (self.options.ipc_uid_accept_filters.find(cred.uid)
-            != self.options.ipc_uid_accept_filters.end()
-            || self.options.ipc_gid_accept_filters.find(cred.gid)
-            != self.options.ipc_gid_accept_filters.end()
-            || self.options.ipc_pid_accept_filters.find(cred.pid)
-            != self.options.ipc_pid_accept_filters.end()) {
+        if (self.options.ipc_uid_accept_filters.find(cred.uid) != self.options.ipc_uid_accept_filters.end() || self.options.ipc_gid_accept_filters.find(cred.gid) != self.options.ipc_gid_accept_filters.end() || self.options.ipc_pid_accept_filters.find(cred.pid) != self.options.ipc_pid_accept_filters.end()) {
             return true;
         }
 
@@ -261,17 +248,14 @@ impl IpcListener {
         //     it = options.ipc_gid_accept_filters.begin (),
         //     end = options.ipc_gid_accept_filters.end ();
         //     it != end; it+= 1)
-        for opt in self.options.ipc_gid_accept_filters.iter()
-        {
+        for opt in self.options.ipc_gid_accept_filters.iter() {
             if (!(gr = getgrgid(opt))) {
                 continue;
             }
             // for (char **mem = gr.gr_mem; *mem; mem+= 1)
-            for mem in gr.gr_mem.iter()
-            {
+            for mem in gr.gr_mem.iter() {
                 // if (!strcmp (*mem, pw.pw_name))
-                if mem != pw.pw_name
-                {
+                if mem != pw.pw_name {
                     return true;
                 }
             }
@@ -282,8 +266,7 @@ impl IpcListener {
 
     // int close ();
 
-    pub fn close(&mut self) -> i32
-    {
+    pub fn close(&mut self) -> i32 {
         // zmq_assert (_s != retired_fd);
         let mut fd_for_event = self._s;
 // #ifdef ZMQ_HAVE_WINDOWS
@@ -328,8 +311,7 @@ impl IpcListener {
     //  if the connection was dropped while waiting in the listen backlog.
     // ZmqFileDesc accept ();
 
-    pub fn accept(&mut self) -> ZmqFileDesc
-    {
+    pub fn accept(&mut self) -> ZmqFileDesc {
         //  Accept one connection and deal with different failure modes.
         //  The situation where connection cannot be accepted due to insufficient
         //  resources is considered valid and treated by ignoring the connection.

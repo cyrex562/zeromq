@@ -31,7 +31,7 @@
 // #include <string.h>
 
 use libc::{EAGAIN, EINVAL, ENOTSUP};
-use crate::address::Address;
+use crate::address::ZmqAddress;
 use crate::context::ZmqContext;
 use crate::defines::{ZMQ_RADIO, ZMQ_XPUB_NODROP};
 use crate::dist::ZmqDist;
@@ -295,7 +295,7 @@ impl RadioSession {
                connect_: bool,
                socket: &mut ZmqSocketBase,
                options: &mut ZmqOptions,
-               addr_: &mut Address) -> Self
+               addr_: &mut ZmqAddress) -> Self
 
     {
         // ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),

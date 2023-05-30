@@ -38,11 +38,10 @@ use libc::clock_t;
 use crate::io_thread::ZmqIoThread;
 use crate::poll_events_interface::ZmqPollEventsInterface;
 use crate::thread_ctx::ThreadCtx;
-use crate::timers::timers_t;
+use crate::timers::ZmqTimers;
 
-#[derive(Default,Debug,Clone)]
-struct timer_info_t
-{
+#[derive(Default, Debug, Clone)]
+struct timer_info_t {
     // ZmqPollEventsInterface *sink;
     pub sink: ZmqPollEventsInterface,
     // id: i32;
@@ -55,8 +54,8 @@ pub struct PollerBase {
     // clock_t _clock;
     pub _clock: clock_t,
     //  List of active timers.
-    // typedef std::multimap<u64, timer_info_t> timers_t;
-    // timers_t _timers;
+    // typedef std::multimap<u64, timer_info_t> ZmqTimers;
+    // ZmqTimers _timers;
     pub _timers: HashMap<u64, timer_info_t>,
     //  Load of the poller. Currently the number of file descriptors
     //  registered.
@@ -79,35 +78,29 @@ impl PollerBase {
     //  Executes any timers that are due. Returns number of milliseconds
     //  to wait to match the next timer or 0 meaning "no timers".
     // u64 execute_timers ();
-    pub fn get_load (&mut self)
-    {
-        return self._load.get ();
+    pub fn get_load(&mut self) {
+        return self._load.get();
     }
 
-    pub fn adjust_load (&mut self, amount_: i32)
-    {
+    pub fn adjust_load(&mut self, amount_: i32) {
         if (amount_ > 0) {
             self._load.add(amount_);
-        }
-        else if (amount_ < 0) {
+        } else if (amount_ < 0) {
             self._load.sub(-amount_);
         }
     }
 
-    pub fn add_timer (&mut self, timeout: i32, sink_: &mut ZmqPollEventsInterface, id_: i32)
-    {
-        let expiration = self._clock.now_ms () + timeout;
-        let info = timer_info_t{sink: sink_, id: id_};
+    pub fn add_timer(&mut self, timeout: i32, sink_: &mut ZmqPollEventsInterface, id_: i32) {
+        let expiration = self._clock.now_ms() + timeout;
+        let info = timer_info_t { sink: sink_, id: id_ };
         self._timers.insert(expiration, info);
     }
 
-    pub fn cancel_timer (&mut self, sink_: &mut ZmqPollEventsInterface, id_: i32)
-    {
+    pub fn cancel_timer(&mut self, sink_: &mut ZmqPollEventsInterface, id_: i32) {
         //  Complexity of this operation is O(n). We assume it is rarely used.
-        // for (timers_t::iterator it = _timers.begin (), end = _timers.end ();
+        // for (ZmqTimers::iterator it = _timers.begin (), end = _timers.end ();
         //      it != end; += 1it)
-        for it in self._timers
-        {
+        for it in self._timers {
             if it.1.sink == sink_ && it.1.id == id_ {
                 self._timers.erase(it);
                 return;
@@ -124,20 +117,19 @@ impl PollerBase {
         //  As soon as that is resolved an 'assert (false)' should be put here.
     }
 
-    pub fn execute_timers (&mut self) -> u64
-    {
+    pub fn execute_timers(&mut self) -> u64 {
         //  Fast track.
-        if self._timers.empty () {
+        if self._timers.empty() {
             return 0;
         }
 
         //  Get the current time.
-        let current = self._clock.now_ms ();
+        let current = self._clock.now_ms();
 
         //  Execute the timers that are already due.
         let mut res = 0;
         let mut timer_temp = timer_info_t::default();
-        // timers_t::iterator it;
+        // ZmqTimers::iterator it;
 
         for it in self._timers {
             // it = _timers.begin();
@@ -167,15 +159,14 @@ impl PollerBase {
 }
 
 //  Base class for a poller with a single worker thread.
-pub struct WorkerPollerBase<'a>
-{
+pub struct WorkerPollerBase<'a> {
     //  : public PollerBase
     pub poller_base: PollerBase,
     // Reference to ZMQ context.
     // const ThreadCtx &ctx;
     pub ctx: &'a ThreadCtx,
     //  Handle of the physical thread doing the I/O work.
-    // thread_t _worker;
+    // ZmqThread _worker;
     pub _worker: ZmqIoThread<'a>,
 }
 
@@ -203,26 +194,22 @@ impl WorkerPollerBase {
         }
     }
 
-    pub fn stop_worker (&mut self)
-    {
-        self._worker.stop ();
+    pub fn stop_worker(&mut self) {
+        self._worker.stop();
     }
 
-    pub fn start (&mut self, name: &str)
-    {
+    pub fn start(&mut self, name: &str) {
         // zmq_assert (get_load () > 0);
-        ctx.start_thread (_worker, worker_routine, this, name);
+        ctx.start_thread(_worker, worker_routine, this, name);
     }
 
-    pub fn check_thread (&mut self)
-    {
+    pub fn check_thread(&mut self) {
 // #ifndef NDEBUG
         // zmq_assert (!_worker.get_started () || _worker.is_current_thread ());
 // #endif
     }
 
-    pub fn worker_routine (&mut self, arg_: &mut [u8])
-    {
+    pub fn worker_routine(&mut self, arg_: &mut [u8]) {
         // ( (arg_))->loop ();
     }
 }

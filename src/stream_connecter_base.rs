@@ -43,7 +43,7 @@
 
 // #include <limits>
 
-use crate::address::Address;
+use crate::address::ZmqAddress;
 use crate::defines::ZmqHandle;
 use crate::endpoint::EndpointType::endpoint_type_connect;
 use crate::endpoint::EndpointUriPair;
@@ -72,7 +72,7 @@ pub struct StreamConnecterBase<'a> {
     //  Address to connect to. Owned by ZmqSessionBase.
     //  It is non-const since some parts may change during opening.
     // Address *const _addr;
-    pub _addr: &'a Address(a),
+    pub _addr: &'a ZmqAddress(a),
     //  Underlying socket.
     // ZmqFileDesc _s;
     pub _s: ZmqFileDesc,
@@ -112,7 +112,7 @@ impl StreamConnecterBase {
         io_thread_: &mut ZmqIoThread,
         session_: &mut ZmqSessionBase,
         options: &ZmqOptions,
-        addr_: &mut Address,
+        addr_: &mut ZmqAddress,
         delayed_start_: bool,
     ) -> Self {
         // ZmqOwn (io_thread_, options_),

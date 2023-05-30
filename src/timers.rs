@@ -31,217 +31,268 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #include "timers.hpp"
 // #include "err.hpp"
 
+use std::collections::{HashMap, HashSet};
+use std::ptr::null_mut;
+use libc::{clock_t, EFAULT, EINVAL};
+
+pub struct timer_t {
+    pub timer_id: i32,
+    pub interval: usize,
+    // ZmqTimersimer_fn *handler;
+    pub handler: ZmqTimersFn,
+    pub arg: Vec<u8>,
+}
+
+
 // #include <algorithm>
-pub struct timers_t
-{
+pub struct ZmqTimers {
 //
-    timers_t ();
-    ~timers_t ();
+//     ZmqTimers ();
+//     ~ZmqTimers ();
 
     //  Add timer to the set, timer repeats forever, or until cancel is called.
     //  Returns a timer_id that is used to cancel the timer.
     //  Returns -1 if there was an error.
-    int add (interval_: usize, timers_timer_fn handler_, arg_: &mut [u8]);
+    // int add (interval_: usize, ZmqTimersimer_fn handler_, arg_: &mut [u8]);
 
     //  Set the interval of the timer.
     //  This method is slow, cancelling exsting and adding a new timer yield better performance.
     //  Returns 0 on success and -1 on error.
-    int set_interval (timer_id_: i32, interval_: usize);
+    // int set_interval (timer_id_: i32, interval_: usize);
 
     //  Reset the timer.
     //  This method is slow, cancelling exsting and adding a new timer yield better performance.
     //  Returns 0 on success and -1 on error.
-    int reset (timer_id_: i32);
+    // int reset (timer_id_: i32);
 
     //  Cancel a timer.
     //  Returns 0 on success and -1 on error.
-    int cancel (timer_id_: i32);
+    // int cancel (timer_id_: i32);
 
     //  Returns the time in millisecond until the next timer.
     //  Returns -1 if no timer is due.
-    long timeout ();
+    // long timeout ();
 
     //  Execute timers.
     //  Return 0 if all succeed and -1 if error.
-    int execute ();
+    // int execute ();
 
     //  Return false if object is not a timers class.
-    bool check_tag () const;
+    // bool check_tag () const;
 
-  //
+    //
     //  Used to check whether the object is a timers class.
-    u32 _tag;
-
-    _next_timer_id: i32;
-
+    // u32 _tag;
+    pub _tag: u32,
+    // _next_timer_id: i32;
+    pub _next_timer_id: i32,
     //  Clock instance.
-    clock_t _clock;
+    // clock_t _clock;
+    pub _clock: clock_t,
 
-    typedef struct timer_t
-    {
-        timer_id: i32;
-        interval: usize;
-        timers_timer_fn *handler;
-        arg: *mut c_void;
-    } timer_t;
+    // typedef std::multimap<u64, timer_t> timersmap_t;
+    // timersmap_t _timers;
+    pub _timers: HashMap<u64, timer_t>,
 
-    typedef std::multimap<u64, timer_t> timersmap_t;
-    timersmap_t _timers;
+    // typedef std::set<int> cancelled_ZmqTimers;
+    // cancelled_ZmqTimers _cancelled_timers;
+    pub _cancelled_timers: HashSet<i32>,
 
-    typedef std::set<int> cancelled_timers_t;
-    cancelled_timers_t _cancelled_timers;
+    // struct match_by_id;
 
-    struct match_by_id;
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (timers_t)
-};
-
-timers_t::timers_t () : _tag (0xCAFEDADA), _next_timer_id (0)
-{
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqTimers)
 }
 
-timers_t::~timers_t ()
-{
-    //  Mark the timers as dead
-    _tag = 0xdeadbeef;
-}
+// pub struct match_by_id
+// {
+// match_by_id (timer_id_: i32) : _timer_id (timer_id_) {}
+//
+// bool operator() (timersmap_t::value_type const &entry_) const
+// {
+// return entry_.second.timer_id == _timer_id;
+// }
+//
+// impl match_by_id {
+//
+// }
+//
+// //
+// _timer_id: i32;
+// };
 
-bool timers_t::check_tag () const
-{
-    return _tag == 0xCAFEDADA;
-}
-
-int timers_t::add (interval_: usize, timers_timer_fn handler_, arg_: &mut [u8])
-{
-    if (handler_ == null_mut()) {
-        errno = EFAULT;
-        return -1;
+impl ZmqTimers {
+    // ZmqTimers::ZmqTimers () : _tag (0xCAFEDADA), _next_timer_id (0)
+    pub fn new() -> Self {
+        Self {
+            _tag: 0xCAFEDADA,
+            _next_timer_id: 0,
+            _clock: 0,
+            _timers: Default::default(),
+            _cancelled_timers: Default::default(),
+        }
     }
 
-    u64 when = _clock.now_ms () + interval_;
-    timer_t timer = {+= 1_next_timer_id, interval_, handler_, arg_};
-    _timers.insert (timersmap_t::value_type (when, timer));
-
-    return timer.timer_id;
-}
-
-struct timers_t::match_by_id
-{
-    match_by_id (timer_id_: i32) : _timer_id (timer_id_) {}
-
-    bool operator() (timersmap_t::value_type const &entry_) const
-    {
-        return entry_.second.timer_id == _timer_id;
+    // bool ZmqTimers::check_tag () const
+    pub fn check_tag(&mut self) -> bool {
+        return self._tag == 0xCAFEDADA;
     }
 
-  //
-    _timer_id: i32;
-};
+    // int ZmqTimers::add (interval_: usize, ZmqTimersimer_fn handler_, arg_: &mut [u8])
+    pub fn add(&mut self, interval_: usize, handler_: ZmqTimersFn, arg_: &mut [u8]) -> i32 {
+        if (handler_ == null_mut()) {
+            errno = EFAULT;
+            return -1;
+        }
 
-int timers_t::cancel (timer_id_: i32)
-{
-    // check first if timer exists at all
-    if (_timers.end ()
-        == std::find_if (_timers.begin (), _timers.end (),
-                         match_by_id (timer_id_))) {
-        errno = EINVAL;
-        return -1;
+        let mut when = _clock.now_ms() + interval_;
+        // timer_t timer = {+= 1_next_timer_id, interval_, handler_, arg_};
+        let mut timer = timer_t {
+            timer_id: self._next_timer_id,
+            interval: interval_,
+            handler: handler_,
+            arg: arg_.to_vec(),
+        };
+        // self._timers.insert (timersmap_t::value_type (when, timer));
+        self._timers.insert(when, timer);
+
+        return timer.timer_id.clone();
     }
 
-    // check if timer was already canceled
-    if (_cancelled_timers.count (timer_id_)) {
-        errno = EINVAL;
-        return -1;
-    }
+    pub fn cancel(&mut self, timer_id_: i32) -> i32 {
+        // check first if timer exists at all
+        // if (_timers.end ()
+        //     == std::find_if (_timers.begin (), _timers.end (),
+        //                      match_by_id (timer_id_))) {
+        //     errno = EINVAL;
+        //     return -1;
+        // }
+        for timer in self._timers {
+            if timer.1.timer_id == timer_id_ {
+                return -1;
+            }
+        }
 
-    _cancelled_timers.insert (timer_id_);
+        // check if timer was already canceled
+        if (self._cancelled_timers.count(timer_id_)) {
+            errno = EINVAL;
+            return -1;
+        }
 
-    return 0;
-}
-
-int timers_t::set_interval (timer_id_: i32, interval_: usize)
-{
-    const timersmap_t::iterator end = _timers.end ();
-    const timersmap_t::iterator it =
-      std::find_if (_timers.begin (), end, match_by_id (timer_id_));
-    if (it != end) {
-        timer_t timer = it.second;
-        timer.interval = interval_;
-        u64 when = _clock.now_ms () + interval_;
-        _timers.erase (it);
-        _timers.insert (timersmap_t::value_type (when, timer));
+        self._cancelled_timers.insert(timer_id_);
 
         return 0;
     }
 
-    errno = EINVAL;
-    return -1;
-}
+    pub fn set_interval(&mut self, timer_id_: i32, interval_: usize) -> i32 {
+        // const timersmap_t::iterator end = _timers.end ();
+        // const timersmap_t::iterator it =
+        //   std::find_if (_timers.begin (), end, match_by_id (timer_id_));
+        for timer in self._timers.iter_mut() {
+            if timer.1.timer_id == timer_id {
+                timer.1.interval = interval_;
+                let mut when = _clock.now_ms() + interval_;
+                self._timers.erase(timer.0);
+                self._timers.insert(when, timer.1.clone());
+                return 0;
+            }
+        }
 
-int timers_t::reset (timer_id_: i32)
-{
-    const timersmap_t::iterator end = _timers.end ();
-    const timersmap_t::iterator it =
-      std::find_if (_timers.begin (), end, match_by_id (timer_id_));
-    if (it != end) {
-        timer_t timer = it.second;
-        u64 when = _clock.now_ms () + timer.interval;
-        _timers.erase (it);
-        _timers.insert (timersmap_t::value_type (when, timer));
+        errno = EINVAL;
+        return -1;
+    }
+
+    pub fn reset(&mut self, timer_id_: i32) -> i32 {
+        // const timersmap_t::iterator end = _timers.end ();
+        // const timersmap_t::iterator it =
+        //   std::find_if (_timers.begin (), end, match_by_id (timer_id_));
+        for timer in self._timers.iter_mut() {
+            if timer.1.timer_id == timer_id {
+                let mut when = _clock.now_ms() + timer.1.interval;
+                self._timers.erase(timer.0);
+                self._timers.insert(when, timer.1.clone());
+                return 0;
+            }
+        }
+
+        errno = EINVAL;
+        return -1;
+    }
+
+    pub fn timeout(&mut self) -> i32 {
+        let now = _clock.now_ms();
+        let mut res = -1;
+
+        // const timersmap_t::iterator begin = _timers.begin ();
+        // const timersmap_t::iterator end = _timers.end ();
+        // timersmap_t::iterator it = begin;
+        // for (; it != end; += 1it) {
+        //     if (0 == _cancelled_timers.erase (it.second.timer_id)) {
+        //         //  Live timer, lets return the timeout
+        //         res = std::max (static_cast<long> (it.first - now), 0l);
+        //         break;
+        //     }
+        // }
+        for timer in self._timers.iter_mut() {
+            if timer.1.timer_id == timer_id {
+                if 0 == _cancelled_timers.erase(timer.1.timer_id) {
+                    //  Live timer, lets return the timeout
+                    res = i32::max((timer.0 - now), 0);
+                    break;
+                }
+            }
+        }
+
+        //  Remove timed-out timers
+        // self._timers.erase (begin, it);
+
+        return res;
+    }
+
+    pub fn execute(&mut self) -> i32 {
+        let now = _clock.now_ms();
+
+        // const timersmap_t::iterator begin = _timers.begin ();
+        // const timersmap_t::iterator end = _timers.end ();
+        // timersmap_t::iterator it = _timers.begin ();
+        // for (; it != end; += 1it) {
+        //     if (0 == _cancelled_timers.erase (it.second.timer_id)) {
+        //         //  Timer is not cancelled
+        //
+        //         //  Map is ordered, if we have to wait for current timer we can stop.
+        //         if (it.first > now)
+        //             break;
+        //
+        //         const timer_t &timer = it.second;
+        //
+        //         timer.handler (timer.timer_id, timer.arg);
+        //
+        //         _timers.insert (
+        //           timersmap_t::value_type (now + timer.interval, timer));
+        //     }
+        // }
+        for timer in self._timers.iter_mut() {
+            if timer.1.timer_id == timer_id {
+                if 0 == _cancelled_timers.erase(timer.1.timer_id) {
+                    //  Timer is not cancelled
+
+                    //  Map is ordered, if we have to wait for current timer we can stop.
+                    if (timer.0 > now) {
+                        break;
+                    }
+
+                    let timer = timer.1.clone();
+
+                    timer.handler(timer.timer_id, timer.arg);
+
+                    self._timers.insert(
+                        now + timer.interval, timer);
+                }
+            }
+        }
+        // TODO
+        // _timers.erase (begin, it);
 
         return 0;
     }
-
-    errno = EINVAL;
-    return -1;
 }
 
-long timers_t::timeout ()
-{
-    const u64 now = _clock.now_ms ();
-    long res = -1;
-
-    const timersmap_t::iterator begin = _timers.begin ();
-    const timersmap_t::iterator end = _timers.end ();
-    timersmap_t::iterator it = begin;
-    for (; it != end; += 1it) {
-        if (0 == _cancelled_timers.erase (it.second.timer_id)) {
-            //  Live timer, lets return the timeout
-            res = std::max (static_cast<long> (it.first - now), 0l);
-            break;
-        }
-    }
-
-    //  Remove timed-out timers
-    _timers.erase (begin, it);
-
-    return res;
-}
-
-int timers_t::execute ()
-{
-    const u64 now = _clock.now_ms ();
-
-    const timersmap_t::iterator begin = _timers.begin ();
-    const timersmap_t::iterator end = _timers.end ();
-    timersmap_t::iterator it = _timers.begin ();
-    for (; it != end; += 1it) {
-        if (0 == _cancelled_timers.erase (it.second.timer_id)) {
-            //  Timer is not cancelled
-
-            //  Map is ordered, if we have to wait for current timer we can stop.
-            if (it.first > now)
-                break;
-
-            const timer_t &timer = it.second;
-
-            timer.handler (timer.timer_id, timer.arg);
-
-            _timers.insert (
-              timersmap_t::value_type (now + timer.interval, timer));
-        }
-    }
-    _timers.erase (begin, it);
-
-    return 0;
-}
