@@ -432,7 +432,7 @@ impl ZmqMessage {
         return 0;
     }
 
-    pub fn init_data(&mut self, data: &mut [u8], size: usize, hint: &mut [u8]) -> i32 {
+    pub fn init_data(&mut self, data: &mut [u8], size: usize, hint: Option<&mut [u8]>) -> anyhow::Result<()> {
         //  If data is NULL and size is not 0, a segfault
         //  would occur once the data is accessed
         // zmq_assert (data != NULL || size == 0);
@@ -469,7 +469,7 @@ impl ZmqMessage {
         //     _u.content->hint = hint;
         //     new (&_u.content->refcnt) AtomicCounter ();
         // }
-        return 0;
+        Ok(())
     }
 
     pub fn init_delimiter(&mut self) -> io32 {

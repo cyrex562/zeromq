@@ -62,7 +62,7 @@ use crate::udp_address::UdpAddress;
 use crate::vmci_address::ZmqVmciAddress;
 use crate::vmci_listener::ZmqVmciListener;
 use crate::ws_address::WsAddress;
-use crate::ws_listener::ws_listener_t;
+use crate::ws_listener::ZmqWsListener;
 use crate::wss_address::WssAddress;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
@@ -786,7 +786,7 @@ impl ZmqSocketBase {
             //     return -1;
             // }
 
-            let mut session = ZmqSessionBase::create(ctx, &mut io_thread.unwrap(), true, this, options, &mut paddr)?;
+            let mut session = ZmqSessionBase::create(ctx, &mut io_thread.unwrap(), true, this, options, Some(&mut paddr))?;
             // errno_assert (session);
 
             //  Create a bi-directional pipe.
@@ -818,12 +818,7 @@ impl ZmqSocketBase {
 
         //  Remaining transports require to be run in an I/O thread, so at this
         //  point we'll choose one.
-        let mut io_thread = self.choose_io_thread(options.affinity);
-        if !io_thread {
-            // errno = EMTHREAD;
-            // return -1;
-            bail!("EMTHREAD")
-        }
+        let mut io_thread = self.choose_io_thread(options.affinity).expect("EMTHREAD");
 
         if protocol == protocol_name::tcp {
             let mut listener = TcpListener::new(&mut io_thread, this, options);
@@ -849,10 +844,10 @@ impl ZmqSocketBase {
         // #ifdef ZMQ_HAVE_WS
         // #ifdef ZMQ_HAVE_WSS
         if protocol == protocol_name::ws || protocol == protocol_name::wss {
-            let listener = ws_listener_t::new(&mut io_thread, self, options, protocol == protocol_name::wss);
+            let listener = ZmqWsListener::new(&mut io_thread, self, options, protocol == protocol_name::wss);
             // #else
             //     if protocol == protocol_name::ws {
-            let listener = ws_listener_t::new(&mut io_thread, self, options, false);
+            let mut listener = ZmqWsListener::new(&mut io_thread, self, options, false);
             // #endif
             //         alloc_assert (listener);
             if listener.set_local_address(address.c_str()).is_err() {
@@ -920,7 +915,7 @@ impl ZmqSocketBase {
         // #endif
         // #if defined ZMQ_HAVE_VMCI
         if protocol == protocol_name::vmci {
-            let listener = ZmqVmciListener::new(&mut io_thread, this, options);
+            let mut listener = ZmqVmciListener::new(&mut io_thread, this, options);
             // alloc_assert (listener);
             if listener.set_local_address(address.c_str()).is_err() {
                 // LIBZMQ_DELETE (listener);
@@ -951,7 +946,7 @@ impl ZmqSocketBase {
     }
 
     // int term_endpoint (endpoint_uri_: *const c_char);
-    pub fn term_endpoint(&mut self, options: &mut ZmqOptions, endpoint_uri_: &str) -> i32 {
+    pub fn term_endpoint(&mut self, options: &mut ZmqOptions, endpoint_uri_: &str) -> anyhow::Result<()> {
         // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
         //  Check whether the context hasn't been shut down yet.
@@ -968,7 +963,7 @@ impl ZmqSocketBase {
 
         //  Process pending commands, if any, since there could be pending unprocessed process_own()'s
         //  (from launch_child() for example) we're asked to terminate now.
-        self.process_commands(0, false);
+        self.process_commands(0, false)?;
         // if (unlikely (rc != 0)) {
         //     return -1;
         // }
@@ -976,23 +971,19 @@ impl ZmqSocketBase {
         //  Parse endpoint_uri_ string.
         let mut uri_protocol = String::new();
         let mut uri_path = String::new();
-        if parse_uri(endpoint_uri_, uri_protocol, uri_path) || check_protocol(&uri_protocol) {
-            return -1;
-        }
+        parse_uri(endpoint_uri_, uri_protocol, uri_path)?;
+        check_protocol(&uri_protocol)?;
 
         let mut endpoint_uri_str = String::from(endpoint_uri_);
 
         // Disconnect an inproc socket
         if uri_protocol == protocol_name::inproc {
-            return if self.unregister_endpoint(&endpoint_uri_str, self) == 0 {
-                0
-            } else {
-                self._inprocs.erase_pipes(&endpoint_uri_str)
-            };
+            self.unregister_endpoint(&endpoint_uri_str, self)?;
+            self._inprocs.erase_pipes(&endpoint_uri_str)?;
         }
 
         let resolved_endpoint_uri = if uri_protocol == protocol_name::tcp {
-            self.resolve_tcp_addr(options, &mut endpoint_uri_str, uri_path.c_str())
+            self.resolve_tcp_addr(options, &mut endpoint_uri_str, uri_path.c_str())?;
         } else {
             endpoint_uri_str
         };
@@ -1005,7 +996,7 @@ impl ZmqSocketBase {
         //     return -1;
         // }
         if self.endpoints.is_empty() {
-            return -1;
+            bail!("no endpoints");
         }
 
         // for (endpoints_t::iterator it = range.first; it != range.second; += 1it) {
@@ -1015,16 +1006,16 @@ impl ZmqSocketBase {
         //     term_child (it->second.first);
         // }
         for (_, pipe) in self.endpoints.values_mut() {
-            pipe.terminate(false);
+            pipe.terminate(false)?;
         }
         // _endpoints.erase (range.first, range.second);
-        self.endpoints.clear();
+        self.endpoints.clear()?;
 
         if options.reconnect_stop & ZMQ_RECONNECT_STOP_AFTER_DISCONNECT {
             self.disconnected = true;
         }
 
-        return 0;
+        Ok(())
     }
 
     // int send (msg: &mut ZmqMessage flags: i32);
@@ -1504,7 +1495,7 @@ impl ZmqSocketBase {
         }
 
         //  Spawn the monitor socket endpoint
-        rc = zmq_bind(options, self._monitor_socket, endpoint);
+        rc = zmq_bind(ctx, options, self._monitor_socket, endpoint);
         if (rc == -1) {
             self.stop_monitor(options, false);
         }
@@ -2137,7 +2128,7 @@ impl ZmqSocketBase {
         // #endif
         // #if defined ZMQ_HAVE_VMCI
         else if protocol == protocol_name::vmci {
-            paddr.resolved.vmci_addr = ZmqVmciAddress::new(&self.get_ctx());
+            paddr.resolved.vmci_addr = ZmqVmciAddress::new2(&mut self.get_ctx());
             // alloc_assert (paddr.resolved.vmci_addr);
             paddr.resolved.vmci_addr.resolve(&address)?;
             // if (rc != 0) {
@@ -2148,7 +2139,7 @@ impl ZmqSocketBase {
         // #endif
 
         //  Create session.
-        let mut session = ZmqSessionBase::create(ctx, &mut io_thread, true, self, options, &mut paddr);
+        let mut session = ZmqSessionBase::create(ctx, &mut io_thread, true, self, options, Some(&mut paddr));
         // errno_assert (session);
 
         //  PGM does not support subscription forwarding; ask for all data to be

@@ -65,7 +65,7 @@ use crate::ip::{assert_success_or_recoverable, bind_to_device, enable_ipv4_mappi
 use crate::options::ZmqOptions;
 use crate::tcp_address::TcpAddress;
 
-pub fn tune_tcp_socket (s_: ZmqFileDesc) -> i32
+pub fn tune_tcp_socket (s_: &mut ZmqFileDesc) -> i32
 {
     //  Disable Nagle's algorithm. We are doing data batching on 0MQ level,
     //  so using Nagle wouldn't improve throughput in anyway, but it would

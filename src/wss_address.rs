@@ -31,35 +31,47 @@
 // #include <string>
 // #include <sstream>
 
+use std::net::SocketAddr;
+use windows::Win32::Networking::WinSock::socklen_t;
+use crate::ws_address::WsAddress;
+
 // #include "wss_address.hpp"
-pub struct WssAddress : public WsAddress
+pub struct WssAddress
 {
+    // : public WsAddress
+
     pub ws_address: WsAddress,
 
 }
 
 impl WssAddress {
-    // WssAddress ();
-    // WssAddress (const sockaddr *sa_, socklen_t sa_len_);
-    //  The opposite to resolve()
-    // int to_string (std::string &addr_) const;
+    // WssAddress::WssAddress () : WsAddress ()
+    pub fn new() -> Self
+    {
+        Self {
+            ws_address: Default::default(),
+        }
+    }
+
+    pub fn new2(sa_: &mut SocketAddr, sa_len_: socklen_t) -> Self
+
+    {
+        // WsAddress (sa_, sa_len_)
+        Self {
+            ws_address: WsAddress::new2(sa_)
+        }
+    }
+
+    pub fn to_string(&mut self, addr_: &mut String) -> i32
+    {
+        // std::ostringstream os;
+        // os << std::string ("wss://") << host () << std::string (":")
+        //    << address.port () << path ();
+        // addr_ = os.str ();
+        //
+        // return 0;
+        todo!()
+    }
 }
 
-WssAddress::WssAddress () : WsAddress ()
-{
-}
 
-WssAddress::WssAddress (const sockaddr *sa_, socklen_t sa_len_) :
-    WsAddress (sa_, sa_len_)
-{
-}
-
-int WssAddress::to_string (std::string &addr_) const
-{
-    std::ostringstream os;
-    os << std::string ("wss://") << host () << std::string (":")
-       << address.port () << path ();
-    addr_ = os.str ();
-
-    return 0;
-}

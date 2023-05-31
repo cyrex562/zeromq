@@ -61,7 +61,7 @@ use crate::sockaddr::ZmqSockaddr;
 use crate::utils::zmq_getnameinfo;
 
 // #include <limits.h>
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct WsAddress
 {
     address: ZmqIpAddress,
@@ -97,7 +97,7 @@ impl WsAddress {
     }
 
 
-    pub fn new2(sa_: &mut ZmqSockaddr) -> Self
+    pub fn new2(sa_: &mut SocketAddr) -> Self
     {
         // zmq_assert (sa_ && sa_len_ > 0);
         // _path = std::string ("");
@@ -106,21 +106,19 @@ impl WsAddress {
             ..Default::default()
         };
         // memset (&address, 0, mem::size_of::<address>());
-        if (sa_.sa_family == AF_INET){
+        if (sa_.sa_family == AF_INET) {
             // memcpy ( &address.ipv4, sa_, sizeof (address.ipv4));
             out.address.set_ipv4_address_from_u32(sa_.sin_addr());
             let ip4 = Ipv4Addr::from(sa_.sin_addr());
             let si4 = SocketAddrV4::new(ip4, sa_.port);
             socket_addr = SocketAddr::V4(si4);
-        }
-        else if (sa_.sa_family == AF_INET6){
+        } else if (sa_.sa_family == AF_INET6) {
             // memcpy ( & address.ipv6, sa_, sizeof (address.ipv6));
             out.address.set_ipv6_address_from_u128(sa_.sin6_addr());
             let ip6 = Ipv6Addr::from(sa_.sin6_addr());
             let si6 = SocketAddrV6::new(ip6, sa_.port, sa_.flowinfo, sa_.scope_id);
             socket_addr = SocketAddr::V6(si6);
-        }
-        else {
+        } else {
             // zmq_assert (false);
         }
 
@@ -128,7 +126,7 @@ impl WsAddress {
         // getnameinfo (&socket_addr, 0);
         out._host = String::from("localhost");
 
-        let gni_result = zmq_getnameinfo(sa_ );
+        let gni_result = zmq_getnameinfo(sa_);
         if gni_result.is_ok() {
             out._host = gni_result.unwrap().1;
         }
@@ -137,7 +135,7 @@ impl WsAddress {
     }
 
 
-    pub fn resolve (name: &str, local_: bool, ipv6: bool) -> i32
+    pub fn resolve(name: &str, local_: bool, ipv6: bool) -> i32
     {
         //  find the host part, It's important to use str*r*chr to only get
         //  the latest colon since IPv6 addresses use colons as delemiters.
@@ -156,70 +154,78 @@ impl WsAddress {
         }
 
         // find the path part, which is optional
-        delim = strrchr (name, '/');
+        // TODO
+        // delim = strrchr (name, '/');
         host_name: String;
         if (delim) {
-            _path = std::string (delim);
+            _path = std::string(delim);
             // remove the path, otherwise resolving the port will fail with wildcard
-            host_name = std::string (name, delim - name);
+            host_name = std::string(name, delim - name);
         } else {
-            _path = std::string ("/");
+            _path = std::string("/");
             host_name = name;
         }
 
-        IpResolverOptions resolver_opts;
-        resolver_opts.bindable (local_)
-            .allow_dns (!local_)
-            .allow_nic_name (local_)
-            .ipv6 (ipv6)
-            .allow_path (true)
-            .expect_port (true);
+        let resolver_opts: IpResolverOptions = IpResolverOptions {
+            bindable: false,
+            allow_nic_name: false,
+            ipv6,
+            expect_port: false,
+            allow_dns: false,
+            allow_path: false,
+        };
+        resolver_opts.bindable(local_)
+            .allow_dns(!local_)
+            .allow_nic_name(local_)
+            .ipv6(ipv6)
+            .allow_path(true)
+            .expect_port(true);
 
-        IpResolver resolver (resolver_opts);
+        let mut resolver = IpResolver::new(&resolver_opts);
 
-        return resolver.resolve (&address, host_name.c_str ());
+        return resolver.resolve(&mut address, host_name.c_str());
     }
 
 
+    pub fn to_string(addr_: &mut str) -> i32
+    {
+        // std::ostringstream os;
+        // os << std::string ("ws://") << host () << std::string (":")
+        //    << address.port () << _path;
+        // addr_ = os.str ();
+        //
+        // return 0;
+        todo!()
+    }
+
+    // const sockaddr *WsAddress::addr () const
+    // {
+    //     return address.as_sockaddr ();
+    // }
+
+    // socklen_t WsAddress::addrlen () const
+    // {
+    //     return address.sockaddr_len ();
+    // }
+
+    // const char *WsAddress::host () const
+    // {
+    //     return _host;
+    // }
+
+    // const char *WsAddress::path () const
+    // {
+    //     return _path;
+    // }
+
+    // #if defined ZMQ_HAVE_WINDOWS
+    // unsigned short WsAddress::family () const
+    // // #else
+    // sa_family_t WsAddress::family () const
+    // // #endif
+    // {
+    //     return address.family ();
+    // }
 }
 
 
-
-int WsAddress::to_string (std::string &addr_) const
-{
-    std::ostringstream os;
-    os << std::string ("ws://") << host () << std::string (":")
-       << address.port () << _path;
-    addr_ = os.str ();
-
-    return 0;
-}
-
-const sockaddr *WsAddress::addr () const
-{
-    return address.as_sockaddr ();
-}
-
-socklen_t WsAddress::addrlen () const
-{
-    return address.sockaddr_len ();
-}
-
-const char *WsAddress::host () const
-{
-    return _host;
-}
-
-const char *WsAddress::path () const
-{
-    return _path;
-}
-
-// #if defined ZMQ_HAVE_WINDOWS
-unsigned short WsAddress::family () const
-// #else
-sa_family_t WsAddress::family () const
-// #endif
-{
-    return address.family ();
-}

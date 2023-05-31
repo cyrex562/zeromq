@@ -85,7 +85,7 @@ use crate::tcp_connecter::ZmqTcpConnector;
 use crate::tipc_connecter::ZmqTipcConnecter;
 use crate::udp_engine::ZmqUdpEngine;
 use crate::vmci_connecter::ZmqVmciConnecter;
-use crate::ws_connecter::ws_connecter_t;
+use crate::ws_connecter::ZmqWsConnecter;
 
 // enum
 // {
@@ -838,12 +838,12 @@ impl ZmqSessionBase {
         // #endif
         // #if defined ZMQ_HAVE_WS
         else if (_addr.protocol == protocol_name::ws) {
-            connecter = ws_connecter_t::new(io_thread, this, options, _addr, wait_, false, std::string());
+            connecter = ZmqWsConnecter::new(io_thread, this, options, _addr, wait_, false, std::string());
         }
         // #endif
         // #if defined ZMQ_HAVE_WSS
         else if (_addr.protocol == protocol_name::wss) {
-            connecter = ws_connecter_t::new(io_thread, this, options, _addr, wait_, true, _wss_hostname);
+            connecter = ZmqWsConnecter::new(io_thread, this, options, _addr, wait_, true, _wss_hostname);
         }
         // #endif
         if (connecter != null_mut()) {

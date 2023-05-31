@@ -60,7 +60,7 @@ impl WssEngine {
                endpoint_uri_pair_: &mut EndpointUriPair,
                address_: &mut WsAddress,
                client_: bool,
-               tls_server_cred_: &mut [u8],
+               tls_server_cred_: Option<&mut [u8]>,
                hostname_: &str) -> Self {
 // ZmqWsEngine (fd, options_, endpoint_uri_pair_, address_, client_),
 //     _established (false),
@@ -121,6 +121,7 @@ impl WssEngine {
             _established: false,
             _tls_client_cred: null_mut(),
             // _tls_session: _tls_session,..Default::default()
+            gnutls_session_t: (),
         }
     }
 

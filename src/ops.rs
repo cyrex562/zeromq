@@ -65,7 +65,6 @@
 // #endif
 // #endif
 
-use std::intrinsics::// zmq_assert;
 use std::mem;
 use std::ptr::null_mut;
 use libc::{atoi, c_char, c_void, EFAULT, EINTR, EINVAL, ENOMEM, ENOTSOCK, ENOTSUP, INT_MAX};
@@ -77,6 +76,8 @@ use crate::defines::{zmq_free_fn, ZMQ_IO_THREADS, ZmqMessage, ZMQ_PAIR, ZMQ_PEER
 use anyhow::{anyhow, bail};
 use bincode::options;
 use serde::Serialize;
+use crate::err::errno_to_string;
+use crate::ip::{initialize_network, shutdown_network};
 use crate::message::{ZMQ_MSG_MORE, ZMQ_MSG_SHARED, ZmqMessage};
 use crate::options::ZmqOptions;
 
@@ -92,7 +93,7 @@ pub fn zmq_version (major_: *mut u32, minor_: *mut u32, patch_: *mut u32)
 
 pub fn zmq_strerror (errnum_: i32) -> String
 {
-    return errno_to_string (errnum_);
+    return errno_to_string (errnum_).to_string();
 }
 
 pub fn zmq_errno () -> i32
@@ -307,63 +308,67 @@ pub fn zmq_setsockopt(options: &mut ZmqOptions,
     s.setsockopt(options, opt_kind, opt_val, opt_val_len)
 }
 
-pub fn zmq_getsockopt (options: &mut ZmqOptions, in_bytes: &[u8], opt_kind: i32, opt_val: &mut [u8], opt_val_len: *mut usize) -> anyhow::Result<()>
+pub fn zmq_getsockopt (options: &mut ZmqOptions, in_bytes: &[u8], opt_kind: i32, opt_val: &mut [u8], opt_val_len: *mut usize) -> anyhow::Result<Vec<u8>>
 {
     let mut s: ZmqSocketBase = as_socket_base_t (in_bytes)?;
     // if (!s) {
     //     return -1;
     // }
-    Ok(s.getsockopt (options, opt_kind, opt_val)?)
+    Ok(s.getsockopt (options, opt_kind)?)
 }
 
-pub fn zmq_socket_monitor_versioned(
-  s_: &mut [u8], addr_: &str, events_: u64, event_version_: i32, type_: i32) -> i32
+pub fn zmq_socket_monitor_versioned(options: &mut ZmqOptions,
+  s_: &mut [u8], addr_: &str, events_: u64, event_version_: i32, type_: i32) -> anyhow::Result<()>
 {
     let mut s: *mut ZmqSocketBase = as_socket_base_t (s_);
     if !s {
-        return -1;
+        bail!("failed to get zmq socket base")
     }
-    return s.monitor (addr_, events_, event_version_, type_);
+    if s.monitor (options, addr_, events_, event_version_, type_).is_ok() {
+        Ok(())
+    }
+    bail!("monitor failed")
 }
 
-pub fn zmq_socket_monitor (s_: &mut [u8], addr_: &str, events_: u64) -> i32
+pub fn zmq_socket_monitor (options: &mut ZmqOptions, s_: &mut [u8], addr_: &str, events_: u64) -> anyhow::Result<()>
 {
-    return zmq_socket_monitor_versioned (s_, addr_, events_, 1, ZMQ_PAIR);
+    zmq_socket_monitor_versioned (options, s_, addr_, events_, 1, ZMQ_PAIR)
 }
 
-pub fn zmq_join (s_: &mut [u8], group_: &str) -> i32
+pub fn zmq_join (s_: &mut [u8], group_: &str) -> anyhow::Result<()>
 {
     let mut s: *mut ZmqSocketBase = as_socket_base_t (s_);
     if !s {
-        return -1;
+        bail!("failed to get socket base")
     }
-    return s.join (group_);
+    s.join (group_)
 }
 
-pub fn zmq_leave (s_: &mut [u8], group_: &str) -> i32
+pub fn zmq_leave (s_: &mut [u8], group_: &str) -> anyhow::Result<()>
 {
     let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if !s {
-        return -1;
+        bail!("failed to get socket base")
     }
     return s.leave (group_);
 }
 
-pub fn zmq_bind (options: &mut ZmqOptions, s_: &mut [u8], addr_: &str) -> anyhow::Result<()>
+pub fn zmq_bind (ctx: &mut ZmqContext, options: &mut ZmqOptions, s_: &mut [u8], addr_: &str) -> anyhow::Result<()>
 {
     let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s) {
-        return Err(anyhow!("failed to create socketbase"));
+       bail!("failed to create socketbase");
     }
-    return s.bind (options, addr_);
+    return s.bind (ctx, options, addr_);
 }
 
-pub fn zmq_connect (s_: &mut [u8], addr_: &str) -> i32
+pub fn zmq_connect (options: &mut ZmqOptions, s_: &mut [u8], addr_: &str) -> anyhow::Result<()>
 {
     let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s){
-return - 1;}
-    return s.connect (addr_);
+        bail!("failed to create socketbase");
+    }
+    s.connect (options, addr_)
 }
 
 pub fn zmq_connect_peer (s_: &mut [u8], addr_: &str) -> u32
@@ -389,94 +394,87 @@ pub fn zmq_connect_peer (s_: &mut [u8], addr_: &str) -> u32
 }
 
 
-pub fn zmq_unbind (s_: &mut [u8], addr_: &str) -> i32
+pub fn zmq_unbind (options: &mut ZmqOptions, s_: &mut [u8], addr_: &str) -> anyhow::Result<()>
 {
     let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if (!s) {
-        return -1;
+        bail!("failed to create socketbase");
     }
-    return s.term_endpoint (addr_);
+     s.term_endpoint (options, addr_)
 }
 
-pub fn zmq_disconnect (s_: &mut [u8], addr_: &str) -> i32
+pub fn zmq_disconnect (options: &mut ZmqOptions, s_: &mut [u8], addr_: &str) -> anyhow::Result<()>
 {
     let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
     if !s {
-        return -1;
+        bail!("failed to create socketbase");
     }
-    return s.term_endpoint (addr_);
+     s.term_endpoint (options, addr_)
 }
 
 // Sending functions.
 
-pub fn s_sendmsg(s_: *mut ZmqSocketBase, msg: *mut ZmqMessage, flags: i32) -> i32 {
+pub fn s_sendmsg(s_: &mut ZmqSocketBase, msg: &mut ZmqMessage, flags: i32) -> anyhow::Result<(i32)> {
     let mut sz: usize = zmq_msg_size(msg);
-    let rc = s_.send(msg, flags);
-    if // zmq_assert(rc < 0) {
-        return -1;
-    }
+    s_.send(msg, flags)?;
 
     //  This is what I'd like to do, my C+= 1 fu is too weak -- PH 2016/02/09
     //  int max_msgsz = s_->parent->get (ZMQ_MAX_MSGSZ);
-    let max_msgsz: usize = INT_MAX as usize;
+    let max_msgsz: usize = i32::MAX as usize;
 
     //  Truncate returned size to INT_MAX to avoid overflow to negative values
-    return if sz < max_msgsz { sz } else { max_msgsz } as i32;
+    Ok(if sz < max_msgsz { sz } else { max_msgsz } as i32)
 }
 
 //   To be deprecated once zmq_msg_send() is stable
-pub fn zmq_sendmsg (s_: &mut [u8], msg: *mut ZmqMessage, flags: i32) -> i32
+pub fn zmq_sendmsg (s_: &mut [u8], msg: &mut ZmqMessage, flags: i32) -> anyhow::Result<()>
 {
-    return zmq_msg_send (msg, s_, flags);
+    zmq_msg_send (msg, s_, flags)
 }
 
-pub fn zmq_send (s_: &mut [u8], buf: &mut [u8], len_: usize, flags: i32) -> i32
+pub fn zmq_send (s_: &mut [u8], buf: &mut [u8], len_: usize, flags: i32) -> anyhow::Result<()>
 {
-    let mut s: *mut ZmqSocketBase =  as_socket_base_t (s_);
+    let mut s: ZmqSocketBase =  as_socket_base_t (s_)?;
     if (!s) {
-        return -1;
+        bail!("failed to create socketbase")
     }
     let mut msg: ZmqMessage = ZmqMessage::default();
-    let mut rc = zmq_msg_init_buffer (&mut msg, buf, len_);
-    if // zmq_assert (rc < 0) {
-        return -1;
-    }
+    zmq_msg_init_buffer (&mut msg, buf, len_)?;
 
-    rc = s_sendmsg (s, &mut msg, flags);
-    if // zmq_assert (rc < 0) {
-        let err = errno;
-        let rc2 = zmq_msg_close (&msg);
-        // errno_assert (rc2 == 0);
-        errno = err;
-        return -1;
-    }
+    s_sendmsg (&mut s, &mut msg, flags)?;
+    // if // zmq_assert (rc < 0) {
+    //     let err = errno;
+    //     let rc2 = zmq_msg_close (&msg);
+    //     // errno_assert (rc2 == 0);
+    //     errno = err;
+    //     return -1;
+    // }
     //  Note the optimisation here. We don't close the msg object as it is
     //  empty anyway. This may change when implementation of zmq_ZmqMessage changes.
-    return rc;
+    Ok(())
 }
 
-pub fn zmq_send_const(s_: &mut [u8], buf: &mut [u8], len_: usize, flags: i32) -> i32 {
-    let mut s: *mut ZmqSocketBase = as_socket_base_t(s_);
-    if (!s) {
-        return -1;
-    }
-    let mut msg: ZmqMessage = ZmqMessage { _x: [0; 64] };
-    let rc = zmq_msg_init_data(&msg, buf as &mut [u8], len_, null_mut(), null_mut());
-    if rc != 0 {
-        return -1;
-    }
+pub fn zmq_send_const(s_: &mut [u8], buf: &mut [u8], len_: usize, flags: i32) -> anyhow::Result<()> {
+    let mut s = as_socket_base_t(s_)?;
 
-    rc = s_sendmsg(s, &mut msg, flags);
-    if // zmq_assert(rc < 0) {
-        let err = errno;
-        let rc2 = zmq_msg_close(&msg);
-        // errno_assert(rc2 == 0);
-        errno = err;
-        return -1;
-    }
+    let mut msg: ZmqMessage = ZmqMessage::default();
+    zmq_msg_init_data(&mut msg, buf as &mut [u8], len_, None)?;
+    // if rc != 0 {
+    //     return -1;
+    // }
+
+    s_sendmsg(s, &mut msg, flags)?;
+    // if // zmq_assert(rc < 0) {
+    //     let err = errno;
+    //     let rc2 = zmq_msg_close(&msg);
+    //     // errno_assert(rc2 == 0);
+    //     errno = err;
+    //     return -1;
+    // }
     //  Note the optimisation here. We don't close the msg object as it is
     //  empty anyway. This may change when implementation of zmq_ZmqMessage changes.
-    return rc;
+    // return rc;
+    Ok(())
 }
 
 
@@ -498,8 +496,8 @@ pub fn zmq_sendiov (s_: &mut [u8], a_: *mut iovec, count: usize, mut flags: i32)
         return -1;
     }
 
-    let mut rc = 0;
-    let mut msg: ZmqMessage = ZmqMessage{_x: [0;64]};
+    // let mut rc = 0;
+    let mut msg = ZmqMessage::default();
 
     // for (size_t i = 0; i < count; += 1i)
     for i in 0 .. count
@@ -673,17 +671,14 @@ pub fn zmq_msg_init_buffer (msg: &mut ZmqMessage,
 pub fn zmq_msg_init_data(msg: &mut ZmqMessage,
                          data: &mut [u8],
                          size: usize,
-                         hint: &mut [u8]) -> i32 {
-    return msg.init_data(data, size, hint);
+                         hint: Option<&mut [u8]>) -> anyhow::Result<()> {
+    msg.init_data(data, size, hint)
 }
 
-pub fn zmq_msg_send (msg: &mut ZmqMessage, s_: &mut [u8], flags: i32) -> i32
+pub fn zmq_msg_send (msg: &mut ZmqMessage, s_: &mut [u8], flags: i32) -> anyhow::Result<()>
 {
-    let mut s =  as_socket_base_t (s_);
-    if !s {
-        return -1;
-    }
-    return s_sendmsg (s, msg, flags);
+    let mut s =  as_socket_base_t (s_)?;
+    s_sendmsg (s, msg, flags)
 }
 
 pub fn zmq_msg_recv (msg: &mut ZmqMessage, s_: &mut [u8], flags: i32) -> i32
@@ -700,31 +695,31 @@ pub fn zmq_msg_close (msg: &mut ZmqMessage) -> i32
     return (msg as *mut ZmqMessage).close();
 }
 
-pub fn zmq_msg_move (dest_: *mut ZmqMessage, src_: *mut ZmqMessage)
-{
-    todo!()
-    // TODO: convert raw message to ZmqMessage and move from source to dest
-    // return (dest_ as *mut ZmqMessage).move(src_ as *mut ZmqMessage);
-}
+// pub fn zmq_msg_move (dest_: *mut ZmqMessage, src_: *mut ZmqMessage)
+// {
+//     todo!()
+//     // TODO: convert raw message to ZmqMessage and move from source to dest
+//     // return (dest_ as *mut ZmqMessage).move(src_ as *mut ZmqMessage);
+// }
 
-pub fn zmq_msg_copy (dest_: &mut ZmqMessage, src_: &mut ZmqMessage) -> i32
-{
-    // return (reinterpret_cast<ZmqMessage *> (dest_))
-    //   ->copy (*reinterpret_cast<ZmqMessage *> (src_));
-    dest_ = src_;
-    return 0;
-}
+// pub fn zmq_msg_copy (dest_: &mut ZmqMessage, src_: &mut ZmqMessage) -> i32
+// {
+//     // return (reinterpret_cast<ZmqMessage *> (dest_))
+//     //   ->copy (*reinterpret_cast<ZmqMessage *> (src_));
+//     dest_ = src_;
+//     return 0;
+// }
 
-pub fn zmq_msg_data (msg: &mut ZmqMessage) -> Vec<u8>
-{
-    // return (msg as *mut zmq_ZmqMessage).data ();
-    msg.data()
-}
+// pub fn zmq_msg_data (msg: &mut ZmqMessage) -> Vec<u8>
+// {
+//     // return (msg as *mut zmq_ZmqMessage).data ();
+//     msg.data()
+// }
 
-pub fn zmq_msg_size (msg: & ZmqMessage) -> usize
-{
-    msg.size()
-}
+// pub fn zmq_msg_size (msg: &ZmqMessage) -> usize
+// {
+//     msg.size()
+// }
 
 pub fn zmq_msg_more (msg: &ZmqMessage) -> i32
 {

@@ -102,8 +102,8 @@ use crate::plain_server::PlainServer;
 use crate::stream_engine_base::{heartbeat_ivl_timer_id, heartbeat_timeout_timer_id, ZmqStreamEngineBase};
 use crate::utils::{copy_bytes, set_bytes};
 use crate::ws_address::WsAddress;
-use crate::ws_decoder::ws_decoder_t;
-use crate::ws_encoder::ws_encoder_t;
+use crate::ws_decoder::ZmqWsDecoder;
+use crate::ws_encoder::ZmqWsEncoder;
 use crate::ws_engine::ws_client_handshake_state::{client_handshake_complete, client_handshake_end_line_cr, client_handshake_error, client_handshake_initial, client_header_field_begin_name, client_header_field_colon, client_header_field_cr, client_header_field_name, client_header_field_value, client_header_field_value_trailing_space, response_line_cr, response_line_H, response_line_HT, response_line_HTT, response_line_HTTP, response_line_HTTP_slash, response_line_HTTP_slash_1, response_line_HTTP_slash_1_dot, response_line_HTTP_slash_1_dot_1, response_line_HTTP_slash_1_dot_1_space, response_line_p, response_line_pr, response_line_pro, response_line_prot, response_line_proto, response_line_protoc, response_line_protoco, response_line_protocol, response_line_protocols, response_line_s, response_line_status_1, response_line_status_10, response_line_status_101, response_line_status_101_space, response_line_sw, response_line_swi, response_line_swit, response_line_switc, response_line_switch, response_line_switchi, response_line_switchin, response_line_switching, response_line_switching_space};
 use crate::ws_engine::ws_server_handshake_state::{handshake_complete, handshake_end_line_cr, handshake_error, handshake_initial, header_field_begin_name, header_field_colon, header_field_cr, header_field_name, header_field_value, header_field_value_trailing_space, request_line_cr, request_line_G, request_line_GE, request_line_GET, request_line_GET_space, request_line_H, request_line_HT, request_line_HTT, request_line_HTTP, request_line_HTTP_slash, request_line_HTTP_slash_1, request_line_HTTP_slash_1_dot, request_line_HTTP_slash_1_dot_1, request_line_resource, request_line_resource_space};
 
@@ -426,10 +426,10 @@ impl ZmqWsEngine {
         }
 
         if (complete) {
-            self._encoder = ws_encoder_t::new(self._options.out_batch_size, self._client);
+            self._encoder = ZmqWsEncoder::new(self._options.out_batch_size, self._client);
             // alloc_assert (_encoder);
 
-            self._decoder = ws_decoder_t::new(self._options.in_batch_size, self._options.maxmsgsize,
+            self._decoder = ZmqWsDecoder::new(self._options.in_batch_size, self._options.maxmsgsize,
                                               self._options.zero_copy, !self._client);
             // alloc_assert (_decoder);
 
