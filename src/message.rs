@@ -4,12 +4,14 @@
 use crate::atomic_counter::AtomicCounter;
 use crate::content::ZmqContent;
 use crate::defines::ZMQ_GROUP_MAX_LENGTH;
+use crate::err::ZmqError;
 use crate::metadata::ZmqMetadata;
 use anyhow::anyhow;
 use libc::{c_long, EINVAL};
 use serde::{Deserialize, Serialize};
 use std::mem;
 use std::mem::size_of;
+use crate::utils::copy_bytes;
 
 // enum
 //     {
@@ -236,7 +238,7 @@ pub struct ZmqMessage {
     pub routing_id: u32,
     // pub group: ZmqMsgGrp
     pub group_type: u8,
-    pub group: [u8; 15],
+    pub group: String,
 }
 
 impl ZmqMessage {
@@ -355,7 +357,7 @@ impl ZmqMessage {
         Ok(())
     }
 
-    pub fn init_size(&mut self, size: usize) -> i32 {
+    pub fn init_size(&mut self, size: usize) -> anyhow::Result<()> {
         if size <= MAX_VSM_SIZE {
             self.metadata = None;
             self.msg_type = TYPE_VSM;
@@ -388,21 +390,15 @@ impl ZmqMessage {
             // self._u.content.hint = NULL;
             // new (&self._u.content->refcnt) AtomicCounter ();
         }
-        return 0;
+        Ok(())
     }
 
-    pub fn init_buffer(&mut self, buf_: &mut [u8], size: usize) -> i32 {
-        let rc: i32 = self.init_size(size);
-        // if (unlikely (rc < 0)) {
-        //     return -1;
-        // }
-        if size {
-            // NULL and zero size is allowed
-            // assert (NULL != buf_);
-            // TODO
-            // memcpy (data (), buf_, size);
+    pub fn init_buffer(&mut self, buf_: &mut [u8], size: usize) -> anyhow::Result<()> {
+        self.init_size(size)?;
+        if size > 0 {
+            copy_bytes(self.data_mut(), 0, buf_, size);
         }
-        return 0;
+        Ok(())
     }
 
     pub fn init_external_storage(
@@ -432,7 +428,12 @@ impl ZmqMessage {
         return 0;
     }
 
-    pub fn init_data(&mut self, data: &mut [u8], size: usize, hint: Option<&mut [u8]>) -> anyhow::Result<()> {
+    pub fn init_data(
+        &mut self,
+        data: &mut [u8],
+        size: usize,
+        hint: Option<&mut [u8]>,
+    ) -> anyhow::Result<()> {
         //  If data is NULL and size is not 0, a segfault
         //  would occur once the data is accessed
         // zmq_assert (data != NULL || size == 0);
@@ -706,6 +707,10 @@ impl ZmqMessage {
         return self.flags;
     }
 
+    pub fn flag_set(&self, flag: u8) -> bool {
+        self.flags & flag == 1
+    }
+
     pub fn set_flags(&mut self, flags: u8) {
         self.flags |= flags;
     }
@@ -882,17 +887,16 @@ impl ZmqMessage {
     //     return true;
     // }
 
-    pub fn get_routing_id(&self) -> u32 {
-        return self.routing_id;
-    }
+    // pub fn get_routing_id(&self) -> u32 {
+    //     return self.routing_id;
+    // }
 
-    pub fn set_routing_id(&mut self, routing_id_: u32) -> i32 {
+    pub fn set_routing_id(&mut self, routing_id_: u32) -> anyhow::Result<()> {
         if routing_id_ {
             self.routing_id = routing_id_;
-            return 0;
+            Ok(())
         }
-        errno = EINVAL;
-        return -1;
+        Err(anyhow!("invalid routing id"))
     }
 
     pub fn reset_routing_id(&mut self) -> i32 {

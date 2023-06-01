@@ -163,6 +163,7 @@ use libc::{
     ECONNREFUSED, ECONNRESET, EFAULT, EHOSTUNREACH, EINTR, EINVAL, EMFILE, EMSGSIZE, ENETDOWN,
     ENETRESET, ENETUNREACH, ENOBUFS, ENOTCONN, ENOTSOCK, EPROTONOSUPPORT, ETIMEDOUT,
 };
+use thiserror::Error;
 use windows::Win32::Networking::WinSock::WSA_ERROR;
 
 pub fn errno_to_string(errno_: i32) -> &'static str {
@@ -672,3 +673,70 @@ pub fn wsa_error_to_errno(errcode_: WSA_ERROR) -> i32 {
 // }
 
 // #endif
+
+// #[derive(Debug)]
+// pub struct ZmqError(String);
+//
+// impl std::fmt::Display for ZmqError {
+//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+//         write!(f, "ZmqError: {}", self.0)
+//     }
+// }
+//
+// impl std::error::Error for ZmqError {}
+
+#[derive(Error, Debug)]
+pub enum ZmqError {
+    #[error("Failed to shutdown context")]
+    ShutdownContextFailed(String),
+    #[error("Failed to set context property")]
+    SetContextPropertyFailed(String),
+    #[error("Failed to get context property")]
+    GetContextPropertyFailed(String),
+    #[error("Failed to deserialize ZmqSocketBase")]
+    DeserializeZmqSocketBaseFailed(String),
+    #[error("Failed to serialize ZmqSocketBase")]
+    SerializeZmqSocketBaseFailed(String),
+    #[error("Check tag failed")]
+    CheckTagFailed(String),
+    #[error("Failed to close socket")]
+    CloseSocketFailed(String),
+    #[error("Failed to get socket option")]
+    GetSocketOptionFailed(String),
+    #[error("Failed to join group")]
+    JoinGroupFailed(String),
+    #[error("Failed to leave group")]
+    LeaveGroupFailed(String),
+    #[error("Failed to bind socket")]
+    BindSocketFailed(String),
+    #[error("Failed to connect socket")]
+    ConnectSocketFailed(String),
+    #[error("Invalid Peer")]
+    InvalidPeer(String),
+    #[error("Failed to connect peer socket")]
+    ConnectPeerSocketFailed(String),
+    #[error("Failed to deserialize ZmqPeer")]
+    DeserializeZmqPeerFailed(String),
+    #[error("Unsupported Socket Type")]
+    UnsupportedSocketType(String),
+    #[error("Failed to terminate endpoint")]
+    TerminateEndpointFailed(String),
+    #[error("Failed to send message")]
+    SendMessageFailed(String),
+    #[error("Failed to initialize message")]
+    InitializeMessageFailed(String),
+    #[error("Failed to close message")]
+    CloseMessageFailed(String),
+    #[error("Failed to allocate memory")]
+    MallocFailed(String),
+    #[error("Failed to get message")]
+    GetMessageFailed(String),
+    #[error("Invalid message property")]
+    InvalidMessageProperty(String),
+    #[error("Failed to set message property")]
+    SetMessagePropertyFailed(String),
+    #[error("Poll Failed")]
+    PollFailed(String), 
+    #[error("Invalid Argument/Input/Parameter")]
+    InvalidInput(String)
+}
