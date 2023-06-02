@@ -235,7 +235,7 @@ pub fn proxy(options: &mut ZmqOptions,
              frontend_: &mut ZmqSocketBase,
              backend_: &mut ZmqSocketBase,
              capture_: &mut ZmqSocketBase,
-             control_: &mut ZmqSocketBase) -> i32 {
+             control_: Option<&mut ZmqSocketBase>) -> i32 {
     let mut msg = ZmqMessage::default();
     msg.init2();
     // if (rc != 0)

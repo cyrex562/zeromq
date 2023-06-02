@@ -37,6 +37,7 @@
 
 use std::mem;
 use std::ptr::null_mut;
+use anyhow::anyhow;
 use libc::{clock_t, EAGAIN, EFAULT, EINTR, EINVAL, EMFILE, ENOMEM, ENOTSOCK, ENOTSUP, free, INT_MAX, malloc, memcpy, size_t, timeval};
 use windows::Win32::Networking::WinSock::{FD_SET, POLLIN, POLLOUT, POLLPRI, select, SOCKET_ERROR, WSAGetLastError};
 use windows::Win32::System::Threading::Sleep;
@@ -56,7 +57,7 @@ struct ZmqItem {
     // ZmqFileDesc fd;
     pub fd: ZmqFileDesc,
     // user_data: *mut c_void;
-    pub user_data: Vec<u8>,
+    pub user_data: Option<Vec<u8>>,
     // short events;
     pub events: i16,
     // #if defined ZMQ_POLL_BASED_ON_POLL
@@ -187,37 +188,33 @@ impl ZmqSocketPoller {
         return _tag == 0xCAFEBABE;
     }
 
-    pub fn signaler_fd(&mut self, fd: &mut ZmqFileDesc) -> i32 {
-        if (signaler) {
-            *fd = signaler.get_fd();
-            return 0;
+    pub fn signaler_fd(&mut self) -> anyhow::Result<ZmqFileDesc> {
+        if (self.signaler) {
+            Ok(self.signaler.get_fd())
         }
         // Only thread-safe socket types are guaranteed to have a signaler.
-        errno = EINVAL;
-        return -1;
+        Err(anyhow!("EINVAL"))
     }
 
 
     pub fn add(&mut self, socket: &mut ZmqSocketBase,
-               user_data_: &mut [u8],
-               events_: i16) -> i32 {
-        if find_if2(_items.begin(), _items.end(), socket, &is_socket) != _items.end() {
-            errno = EINVAL;
-            return -1;
+               user_data_: Option<&mut [u8]>,
+               events_: i16) -> anyhow::Result<()> {
+        if find_if2(_items.begin(), _items.end(), socket, &is_socket) != _items.end()
+        {
+            return Err(anyhow!("EINVAL"));
         }
 
         if (is_thread_safe(socket)) {
             if (signaler == null_mut()) {
                 signaler = ZmqSignaler();
                 if (!signaler) {
-                    errno = ENOMEM;
-                    return -1;
+                    return Err(anyhow!("ENOMEM"));
                 }
                 if (!signaler.valid()) {
                     // delete signaler;
                     // signaler = null_mut();
-                    errno = EMFILE;
-                    return -1;
+                    return Err(anyhow!("EMFILE"));
                 }
             }
 
@@ -237,11 +234,11 @@ impl ZmqSocketPoller {
 
         self._need_rebuild = true;
 
-        return 0;
+        Ok(())
     }
 
 
-    pub fn add_fd(&mut self, fd: ZmqFileDesc, user_data_: &mut [u8], events_: i16) -> i32 {
+    pub fn add_fd(&mut self, fd: ZmqFileDesc, user_data_: Option<&mut [u8]>, events_: i16) -> i32 {
         if (find_if2(_items.begin(), _items.end(), fd, &is_fd) != _items.end()) {
             errno = EINVAL;
             return -1;
@@ -266,18 +263,19 @@ impl ZmqSocketPoller {
         return 0;
     }
 
-    pub fn modify(&mut self, socket: &ZmqSocketBase, events_: i16) -> i16 {
+    pub fn modify(&mut self, socket: &ZmqSocketBase, events_: i16) -> anyhow::Result<()> {
         let it = find_if2(_items.begin(), _items.end(), socket, &is_socket);
 
         if (it == _items.end()) {
-            errno = EINVAL;
-            return -1;
+            // errno = EINVAL;
+            // return -1;
+            return Err(anyhow!("EINVAL"));
         }
 
         it.events = events_;
         _need_rebuild = true;
 
-        return 0;
+        Ok(())
     }
 
     pub fn modify_fd(&mut self, fd: ZmqFileDesc, events_: i16) -> i32 {

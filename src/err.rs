@@ -736,7 +736,35 @@ pub enum ZmqError {
     #[error("Failed to set message property")]
     SetMessagePropertyFailed(String),
     #[error("Poll Failed")]
-    PollFailed(String), 
+    PollFailed(String),
     #[error("Invalid Argument/Input/Parameter")]
-    InvalidInput(String)
+    InvalidInput(String),
+    #[error("Invalid Event(s)")]
+    InvalidEvent(String),
+    #[error("Invalid File Descriptor")]
+    InvalidFileDescriptor(String),
+    #[error("Select Failed")]
+    SelectFailed(String),
+    #[error("Failed to add item to poller")]
+    AddItemToPollerFailed(String),
+    #[error("Failed to modify poller item")]
+    ModifyPollerItemFailed(String),
+    #[error("Failed to remove item from poller")]
+    RemoveItemFromPollerFailed(String),
+    #[error("Poller wait failed")]
+    PollerWaitFailed(String),
+    #[error("Failed to get socket peer state")]
+    GetSocketPeerStateFailed(String),
+    #[error("Failed to add timer")]
+    AddTimerFailed(String),
+    #[error("Failed to cancel timer")]
+    CancelTimerFailed(String),
+    #[error("Failed to set timer interval")]
+    SetTimerIntervalFailed(String),
+    #[error("Failed to reset timer")]
+    ResetTimerFailed(String),
+    #[error("Failed to execute timer")]
+    ExecuteTimerFailed(String),
+    #[error("Proxy failed")]
+    ProxyFailed(String),
 }
