@@ -9,10 +9,15 @@ use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
-use libc::EINTR;
+use libc::{EINTR, EINVAL};
 use std::collections::HashSet;
 use std::sync::Mutex;
 use std::{mem, thread};
+use crate::defines::ZMQ_THREAD_SCHED_POLICY;
+use crate::defines::ZMQ_THREAD_NAME_PREFIX;
+use crate::defines::ZMQ_THREAD_PRIORITY;
+use crate::defines::ZMQ_THREAD_AFFINITY_CPU_ADD;
+use crate::defines::ZMQ_THREAD_AFFINITY_CPU_REMOVE;
 
 pub const DEFAULT_PRIORITY: i32 = 100;
 pub const DEFAULT_OPTIONS: i32 = 0;
@@ -32,26 +37,26 @@ pub struct ZmqThreadContext {
     //
     //  Synchronisation of access to context options.
     // mutex_t _opt_sync;
-    pub _opt_sync: Mutex<u8>,
+    pub opt_sync: Mutex<u8>,
     //
     //  Thread parameters.
-    pub _thread_priority: i32,
-    pub _thread_sched_policy: i32,
+    pub thread_priority: i32,
+    pub thread_sched_policy: i32,
     // std::set<int> _thread_affinity_cpus;
-    pub _thread_affinity_cpus: HashSet<i32>,
+    pub thread_affinity_cpus: HashSet<i32>,
     // std::string _thread_name_prefix;
-    pub _thread_name_prefix: String,
+    pub thread_name_prefix: String,
     // DWORD _type;
-    pub _type: u32,
+    pub type_: u32,
     // LPCSTR _name;
-    pub _name: String,
+    pub name: String,
     // DWORD _thread_id;
-    pub _thread_id: u32,
+    pub thread_id: u32,
     // DWORD _flags;
-    pub _flags: u32,
-    pub _tfn: Option<thread_fn>,
-    pub _arg: Vec<u8>,
-    pub _started: bool,
+    pub flags: u32,
+    pub tfn: Option<thread_fn>,
+    pub arg: Vec<u8>,
+    pub started: bool,
     pub thread_join_handle: Option<thread::JoinHandle<()>>,
 }
 
@@ -63,18 +68,18 @@ impl ZmqThreadContext {
             mailbox_handle: None,
             // ctx: ctx,
             tid: 0,
-            _opt_sync: Mutex::new(0),
-            _thread_priority: 0,
-            _thread_sched_policy: 0,
-            _thread_affinity_cpus: Default::default(),
-            _thread_name_prefix: "".to_string(),
-            _type: 0,
-            _name: "".to_string(),
-            _thread_id: 0,
-            _flags: 0,
-            _tfn: None,
-            _arg: vec![],
-            _started: false,
+            opt_sync: Mutex::new(0),
+            thread_priority: 0,
+            thread_sched_policy: 0,
+            thread_affinity_cpus: Default::default(),
+            thread_name_prefix: "".to_string(),
+            type_: 0,
+            name: "".to_string(),
+            thread_id: 0,
+            flags: 0,
+            tfn: None,
+            arg: vec![],
+            started: false,
             thread_join_handle: None,
         };
         // TODO
@@ -109,9 +114,9 @@ impl ZmqThreadContext {
         //  Start the underlying I/O thread.
         if self.poller.is_some() {
             self.poller.as_mut().unwrap().start(name);
-        } else if self._tfn.is_some() {
+        } else if self.tfn.is_some() {
             self.thread_join_handle = Some(thread::spawn(move || {
-                self._tfn.unwrap()(self._arg.clone());
+                self.tfn.unwrap()(self.arg.clone());
             }));
         }
     }
@@ -125,7 +130,7 @@ impl ZmqThreadContext {
     pub fn stop(&mut self) {
         if self.poller.is_some() {
             self.send_stop();
-        } else if self._tfn.is_some() && self.thread_join_handle.is_some() {
+        } else if self.tfn.is_some() && self.thread_join_handle.is_some() {
             self.thread_join_handle
                 .unwrap()
                 .join()
@@ -139,10 +144,6 @@ impl ZmqThreadContext {
         scheduling_policy_: i32,
         affinity_cps_: &HashSet<i32>,
     ) {
-        // not implemented
-        // LIBZMQ_UNUSED (priority_);
-        // LIBZMQ_UNUSED (scheduling_policy_);
-        // LIBZMQ_UNUSED (affinity_cpus_);
         unimplemented!("setSchedulingParameters")
     }
 
@@ -180,80 +181,33 @@ impl ZmqThreadContext {
 
     //  Command handlers.
     pub fn process_stop(&mut self) {
-        // zmq_assert (mailbox_handle);
         self.poller.rm_fd(&self.mailbox_handle.unwrap());
         self.poller.stop();
     }
 
     //  Returns load experienced by the I/O thread.
-    pub fn get_load(&mut self) {
-        return self.poller.base.get_load();
+    pub fn get_load(&mut self) -> u64 {
+        self.poller.unwrap().base.base.get_load()
     }
 
     pub fn set(&mut self, option_: i32, opt_val: &mut [u8], optvallen_: usize) -> i32 {
-        // const bool is_int = (optvallen_ == sizeof );
-        let mut value = 0;
-        // if (is_int) {
-        //     memcpy(&value, optval_, sizeof);
-        // }
-
         match (option_) {
             ZMQ_THREAD_SCHED_POLICY => {
-                // if (is_int && value >= 0) {
-                //     scoped_lock_t
-                //     locker(_opt_sync);
-                //     _thread_sched_policy = value;
-                //     return 0;
-                // }
+                self.thread_sched_policy = i32::from_le_bytes(opt_val.clone())
             }
-
             ZMQ_THREAD_AFFINITY_CPU_ADD => {
-                // if (is_int && value >= 0) {
-                //     scoped_lock_t
-                //     locker(_opt_sync);
-                //     _thread_affinity_cpus.insert(value);
-                //     return 0;
-                // }
+                self.thread_affinity_cpus.insert(i32::from_le_bytes(opt_val.clone()));
             }
-
             ZMQ_THREAD_AFFINITY_CPU_REMOVE => {
-                // if (is_int && value >= 0) {
-                //     scoped_lock_t
-                //     locker(_opt_sync);
-                //     if (0 == _thread_affinity_cpus.erase(value)) {
-                //         errno = EINVAL;
-                //         return -1;
-                //     }
-                //     return 0;
-                // }
+                self.thread_affinity_cpus.remove(&i32::from_le_bytes(opt_val.clone()))
             }
 
             ZMQ_THREAD_PRIORITY => {
-                // if (is_int && value >= 0) {
-                //     scoped_lock_t
-                //     locker(_opt_sync);
-                //     _thread_priority = value;
-                //     return 0;
-                // }
+                self.thread_priority = i32::from_le_bytes(opt_val.clone());
             }
 
             ZMQ_THREAD_NAME_PREFIX => {
-                // start_thread() allows max 16 chars for thread name
-                if (is_int) {
-                    // std::ostringstream
-                    // s;
-                    // s << value;
-                    // scoped_lock_t
-                    // locker(_opt_sync);
-                    // _thread_name_prefix = s.str();
-                    return 0;
-                } else if (optvallen_ > 0 && optvallen_ <= 16) {
-                    // scoped_lock_t
-                    // locker(_opt_sync);
-                    // _thread_name_prefix.assign(static_cast < const char * > (optval_),
-                    //                            optvallen_);
-                    return 0;
-                }
+                self.thread_name_prefix = String::from_utf8(opt_val.to_vec()).unwrap();
             }
             _ => {}
         }
@@ -262,42 +216,21 @@ impl ZmqThreadContext {
         return -1;
     }
 
-    pub fn get(&mut self, option_: i32) -> anyhow::Result<Vec<u8>> {
-        // let is_int = (*optvallen_ == sizeof );
-        // int *value = static_cast<int *> (optval_);
-
-        match option_ {
+    pub fn get(&mut self, opt: i32) -> anyhow::Result<Vec<u8>> {
+        match opt {
             ZMQ_THREAD_SCHED_POLICY => {
-                // if (is_int) {
-                //     scoped_lock_t
-                //     locker(_opt_sync);
-                //     *value = _thread_sched_policy;
-                //     return 0;
-                // }
-                return Ok(());
+                let tsc = self.thread_sched_policy;
+                let tsc_bytes = tsc.to_le_bytes();
+                return Ok(tsc_bytes.to_vec());
             }
 
             ZMQ_THREAD_NAME_PREFIX => {
-                // if (is_int) {
-                //     scoped_lock_t
-                //     locker(_opt_sync);
-                //     *value = atoi(_thread_name_prefix.c_str());
-                //     return 0;
-                // } else if (*optvallen_ >= _thread_name_prefix.size()) {
-                //     scoped_lock_t
-                //     locker(_opt_sync);
-                //     memcpy(optval_, _thread_name_prefix.data(),
-                //            _thread_name_prefix.size());
-                //     return 0;
-                // }
-                return Ok(());
+                let tnp = self.thread_name_prefix.clone();
+                return Ok(tnp.into_bytes());
             }
 
             _ => {}
         }
-
-        // errno = EINVAL;
-        // return -1;
         Err(anyhow::anyhow!("EINVAL"))
     }
 }

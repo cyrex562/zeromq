@@ -539,7 +539,7 @@ pub fn zmq_recv(s_: &mut [u8], buf: &mut [u8], len_: usize, flags: i32) -> Resul
     })?;
 
     //  An oversized message is silently truncated.
-    let to_copy = if (nbytes) < len_ as i32 { nbytes } else { len_ };
+    let to_copy: usize = if (nbytes) < len_ as i32 { nbytes } else { len_ } as usize;
 
     //  We explicitly allow a null buffer argument if len is zero
     if to_copy {

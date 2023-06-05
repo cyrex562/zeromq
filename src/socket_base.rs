@@ -738,7 +738,7 @@ impl ZmqSocketBase {
         if protocol == protocol_name::inproc {
             // const ZmqEndpoint endpoint = {this, options};
             let mut endpoint: ZmqEndpoint = ZmqEndpoint::default();
-            endpoint.options = options.clone();
+            endpoint.context = options.clone();
             self.register_endpoint(endpoint_uri_, &mut endpoint)?;
             self.connect_pending(endpoint_uri_, this);
             self.last_endpoint.assign(endpoint_uri_);

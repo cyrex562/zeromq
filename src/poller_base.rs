@@ -77,7 +77,7 @@ impl PollerBase {
     //  Executes any timers that are due. Returns number of milliseconds
     //  to wait to match the next timer or 0 meaning "no timers".
     // u64 execute_timers ();
-    pub fn get_load(&mut self) {
+    pub fn get_load(&mut self) -> u64 {
         return self._load.get();
     }
 
@@ -161,15 +161,15 @@ impl PollerBase {
 }
 
 //  Base class for a poller with a single worker thread.
-pub struct WorkerPollerBase<'a> {
+pub struct WorkerPollerBase {
     //  : public PollerBase
-    pub poller_base: PollerBase,
+    pub base: PollerBase,
     // Reference to ZMQ context.
     // const ThreadCtx &ctx;
-    pub ctx: &'a ThreadCtx,
+    // pub ctx: &'a ThreadCtx,
     //  Handle of the physical thread doing the I/O work.
     // ZmqThread _worker;
-    pub _worker: ZmqThreadContext<'a>,
+    // pub _worker: ZmqThreadContext<'a>,
 }
 
 impl WorkerPollerBase {
@@ -190,7 +190,7 @@ impl WorkerPollerBase {
     //     virtual void loop () = 0;
     pub fn new(ctx: &ThreadCtx) -> Self {
         Self {
-            poller_base: Default::default(),
+            base: Default::default(),
             ctx,
             _worker: Default::default(),
         }

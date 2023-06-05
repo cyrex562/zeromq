@@ -1,3 +1,4 @@
+use crate::context::ZmqContext;
 use crate::socket_base::ZmqSocketBase;
 use crate::options::ZmqOptions;
 
@@ -74,5 +75,5 @@ pub struct ZmqEndpoint {
     // ZmqSocketBase *socket;
     pub socket: ZmqSocketBase,
     // ZmqOptions options;
-    pub options: ZmqOptions,
+    pub context: ZmqContext,
 }
