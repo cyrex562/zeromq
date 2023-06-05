@@ -27,20 +27,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use std::ptr::null_mut;
-use anyhow::anyhow;
-use libc::EFAULT;
 use crate::address::ZmqAddress;
 use crate::context::ZmqContext;
 use crate::dealer::ZmqDealer;
 use crate::defines::ZMQ_REQ;
-use crate::io_thread::ZmqIoThread;
-use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZmqMessage};
+use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
+use crate::thread_context::ZmqThreadContext;
 use crate::utils::copy_bytes;
+use anyhow::anyhow;
+use libc::EFAULT;
+use std::ptr::null_mut;
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"
@@ -50,9 +50,8 @@ use crate::utils::copy_bytes;
 // #include "wire.hpp"
 // #include "random.hpp"
 // #include "likely.hpp"
-#[derive(Default,Debug,Clone)]
-pub struct ZmqReq
-{
+#[derive(Default, Debug, Clone)]
+pub struct ZmqReq {
     //   : public ZmqDealer
     pub dealer: ZmqDealer,
     // ZmqReq (ZmqContext *parent_, tid: u32, sid_: i32);
@@ -76,7 +75,7 @@ pub struct ZmqReq
     //  frames from other pipes.
     // int recv_reply_pipe (msg: &mut ZmqMessage);
 
-  //
+    //
     //  If true, request was already sent and reply wasn't received yet or
     //  was received partially.
     pub _receiving_reply: bool,
@@ -96,21 +95,18 @@ pub struct ZmqReq
     //  reply_pipe's connection instead of failing if a previous request is
     //  still pending.
     pub _strict: bool,
-
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (req_t)
 }
 
 impl ZmqReq {
-    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
-
-    {
-// ZmqDealer (parent_, tid, sid_),
-//     _receiving_reply (false),
-//     _message_begins (true),
-//     _reply_pipe (null_mut()),
-//     _request_id_frames_enabled (false),
-//     _request_id (generate_random ()),
-//     _strict (true)
+    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
+        // ZmqDealer (parent_, tid, sid_),
+        //     _receiving_reply (false),
+        //     _message_begins (true),
+        //     _reply_pipe (null_mut()),
+        //     _request_id_frames_enabled (false),
+        //     _request_id (generate_random ()),
+        //     _strict (true)
         let mut out = Self {
             dealer: ZmqDealer::new(options, parent, tid, sid),
             _receiving_reply: false,
@@ -124,9 +120,7 @@ impl ZmqReq {
         out
     }
 
-
-    pub fn xsend (&mut self, msg: &mut ZmqMessage) -> i32
-    {
+    pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32 {
         //  If we've sent a request and we still haven't got the reply,
         //  we can't send another request unless the strict option is disabled.
         if (self._receiving_reply) {
@@ -144,14 +138,14 @@ impl ZmqReq {
             self._reply_pipe = None;
 
             if (self._request_id_frames_enabled) {
-                self._request_id+= 1;
+                self._request_id += 1;
 
                 let mut id: ZmqMessage = ZmqMessage::default();
-                id.init_size (4);
+                id.init_size(4);
                 // memcpy (id.data (), &_request_id, mem::size_of::<u32>());
                 id.data_mut() = &mut self._request_id.to_le_bytes();
                 // errno_assert (rc == 0);
-                id.set_flags (ZMQ_MSG_MORE);
+                id.set_flags(ZMQ_MSG_MORE);
 
                 // TODO
                 // rc = self.dealer.sendpipe (&mut id, &self._reply_pipe);
@@ -163,9 +157,9 @@ impl ZmqReq {
             let mut bottom = ZmqMessage::default();
             bottom.init2();
             // errno_assert (rc == 0);
-            bottom.set_flags (ZMQ_MSG_MORE);
+            bottom.set_flags(ZMQ_MSG_MORE);
 
-            rc = self.dealer.sendpipe (&mut bottom, &mut _reply_pipe);
+            rc = self.dealer.sendpipe(&mut bottom, &mut _reply_pipe);
             if (rc != 0) {
                 return -1;
             }
@@ -183,17 +177,17 @@ impl ZmqReq {
             loop {
                 rc = drop.init2();
                 // errno_assert (rc == 0);
-                rc = self.dealer.xrecv (&mut drop);
+                rc = self.dealer.xrecv(&mut drop);
                 if (rc != 0) {
                     break;
                 }
-                drop.close ();
+                drop.close();
             }
         }
 
-        let more = (msg.flags () & ZMQ_MSG_MORE) != 0;
+        let more = (msg.flags() & ZMQ_MSG_MORE) != 0;
 
-        self.dealer.xsend (msg);
+        self.dealer.xsend(msg);
         // if (rc != 0)
         // return rc;
 
@@ -206,9 +200,7 @@ impl ZmqReq {
         return 0;
     }
 
-
-    pub fn xrecv(&mut self, msg: &mut ZmqMessage) -> i32
-    {
+    pub fn xrecv(&mut self, msg: &mut ZmqMessage) -> i32 {
         //  If request wasn't send, we can't wait for reply.
         if (self._receiving_reply) {
             errno = EFSM;
@@ -219,18 +211,18 @@ impl ZmqReq {
         while (self._message_begins) {
             //  If enabled, the first frame must have the correct request_id.
             if _request_id_frames_enabled {
-                let rc = recv_reply_pipe (msg);
+                let rc = recv_reply_pipe(msg);
                 if (rc != 0) {
                     return rc;
                 }
 
-                if ( (!(msg.flags () & ZMQ_MSG_MORE) == 0
-                    || msg.size () != 4
-                    ||  (msg.data ())
-                    != _request_id)) {
+                if (!(msg.flags() & ZMQ_MSG_MORE) == 0
+                    || msg.size() != 4
+                    || (msg.data()) != _request_id)
+                {
                     //  Skip the remaining frames and try the next message
-                    while (msg.flags () & ZMQ_MSG_MORE) {
-                        rc = recv_reply_pipe (msg);
+                    while (msg.flags() & ZMQ_MSG_MORE) {
+                        rc = recv_reply_pipe(msg);
                         // errno_assert (rc == 0);
                     }
                     continue;
@@ -239,15 +231,15 @@ impl ZmqReq {
 
             //  The next frame must be 0.
             // TODO: Failing this check should also close the connection with the peer!
-            let rc = recv_reply_pipe (msg);
+            let rc = recv_reply_pipe(msg);
             if rc != 0 {
                 return rc;
             }
 
-            if !(msg.flags () & ZMQ_MSG_MORE) == 1 || msg.size () != 0 {
+            if !(msg.flags() & ZMQ_MSG_MORE) == 1 || msg.size() != 0 {
                 //  Skip the remaining frames and try the next message
-                while msg.flags () & ZMQ_MSG_MORE {
-                    rc = recv_reply_pipe (msg);
+                while msg.flags() & ZMQ_MSG_MORE {
+                    rc = recv_reply_pipe(msg);
                     // errno_assert (rc == 0);
                 }
                 continue;
@@ -256,13 +248,13 @@ impl ZmqReq {
             _message_begins = false;
         }
 
-        let rc: i32 = recv_reply_pipe (msg);
+        let rc: i32 = recv_reply_pipe(msg);
         if (rc != 0) {
             return rc;
         }
 
         //  If the reply is fully received, flip the FSM into request-sending state.
-        if (!(msg.flags () & ZMQ_MSG_MORE)) {
+        if (!(msg.flags() & ZMQ_MSG_MORE)) {
             _receiving_reply = false;
             _message_begins = true;
         }
@@ -270,31 +262,25 @@ impl ZmqReq {
         return 0;
     }
 
-    pub fn xhas_in (&mut self) -> bool
-    {
+    pub fn xhas_in(&mut self) -> bool {
         //  TODO: Duplicates should be removed here.
 
         if !self._receiving_reply {
             return false;
         }
 
-        return self.dealer.xhas_in ();
+        return self.dealer.xhas_in();
     }
 
-    pub fn xhas_out (&mut self) -> bool
-    {
+    pub fn xhas_out(&mut self) -> bool {
         if (_receiving_reply && _strict) {
             return false;
         }
 
-        return self.dealer.xhas_out ();
+        return self.dealer.xhas_out();
     }
 
-
-    pub fn xsetsockopt (&mut self, option_: i32,
-                        optval_: &mut [u8],
-                        optvallen_: usize) -> i32
-    {
+    pub fn xsetsockopt(&mut self, option_: i32, optval_: &mut [u8], optvallen_: usize) -> i32 {
         let is_int = (optvallen_ == 4);
         let mut value = 0;
         // TODO
@@ -310,7 +296,6 @@ impl ZmqReq {
                 }
             }
 
-
             ZMQ_REQ_RELAXED => {
                 if (is_int && value >= 0) {
                     _strict = (value == 0);
@@ -318,27 +303,23 @@ impl ZmqReq {
                 }
             }
 
-
             _ => {}
-
         }
 
-        return self.dealer.xsetsockopt (option_, optval_, optvallen_);
+        return self.dealer.xsetsockopt(option_, optval_, optvallen_);
     }
 
-    pub fn xpipe_terminated (&mut self, pipe: &mut ZmqPipe)
-    {
+    pub fn xpipe_terminated(&mut self, pipe: &mut ZmqPipe) {
         if (_reply_pipe == pipe) {
             _reply_pipe = null_mut();
         }
-        self.dealer.xpipe_terminated (pipe);
+        self.dealer.xpipe_terminated(pipe);
     }
 
-    pub fn recv_reply_pipe (&mut self, msg: &mut ZmqMessage) -> i32
-    {
-        loop{
-           let mut pipe: *mut ZmqPipe = null_mut();
-            let rc: i32 = self.dealer.recvpipe (msg, &mut pipe);
+    pub fn recv_reply_pipe(&mut self, msg: &mut ZmqMessage) -> i32 {
+        loop {
+            let mut pipe: *mut ZmqPipe = null_mut();
+            let rc: i32 = self.dealer.recvpipe(msg, &mut pipe);
             if (rc != 0) {
                 return rc;
             }
@@ -349,17 +330,15 @@ impl ZmqReq {
     }
 }
 
-pub enum ReqSessionState
-{
+pub enum ReqSessionState {
     bottom,
     request_id,
-    body
+    body,
 }
 
-#[derive(Default,Debug,Clone)]
-pub struct ReqSession
-{
-// : public ZmqSessionBase
+#[derive(Default, Debug, Clone)]
+pub struct ReqSession {
+    // : public ZmqSessionBase
     pub session_base: ZmqSessionBase,
     // ReqSession (ZmqIoThread *io_thread_,
     //                connect_: bool,
@@ -380,25 +359,23 @@ pub struct ReqSession
 impl ReqSession {
     pub fn new(
         ctx: &mut ZmqContext,
-        io_thread: &mut ZmqIoThread,
+        io_thread: &mut ZmqThreadContext,
         connect_: bool,
         socket: &mut ZmqSocketBase,
         options: &mut ZmqOptions,
-        addr: &mut ZmqAddress) -> Self
-
-    {
-//     ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),
-//     _state (bottom)
+        addr: &mut ZmqAddress,
+    ) -> Self {
+        //     ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),
+        //     _state (bottom)
         Self {
-            session_base: ZmqSessionBase::new(ctx, io_thread,connect_, socket,options,addr),
+            session_base: ZmqSessionBase::new(ctx, io_thread, connect_, socket, options, addr),
         }
     }
 
-    pub fn push_msg (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
-    {
+    pub fn push_msg(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         //  Ignore commands, they are processed by the engine and should not
         //  affect the state machine.
-        if ( (msg.flags () & ZMQ_MSG_COMMAND)) {
+        if (msg.flags() & ZMQ_MSG_COMMAND) {
             return Ok(());
         }
 
@@ -435,34 +412,13 @@ impl ReqSession {
                     return self.session_base.push_msg(msg);
                 }
             }
-
         }
         errno = EFAULT;
         return Err(anyhow!("EFAULT"));
     }
 
-    pub fn reset (&mut self)
-    {
-        self.session_base.reset ();
+    pub fn reset(&mut self) {
+        self.session_base.reset();
         _state = ReqSessionState::bottom;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -80,12 +80,12 @@ use crate::endpoint::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::fd::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
-use crate::io_thread::ZmqIoThread;
 use crate::mechanism::ZmqMechanismStatus::{error, ready};
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_CREDENTIAL};
 use crate::metadata::ZmqMetadata;
 use crate::options::ZmqOptions;
 use crate::socket_base::ZmqSocketBase;
+use crate::thread_context::ZmqThreadContext;
 use crate::utils::copy_bytes;
 use crate::zmtp_engine::{ZmqMechanism, ZmqSessionBase};
 
@@ -226,7 +226,7 @@ impl ZmqStreamEngineBase {
 
             //  Adjust input size
             self._insize = rc; //static_cast<size_t> (rc);
-            // Adjust buffer size to received bytes
+                               // Adjust buffer size to received bytes
             self._decoder.resize_buffer(self._insize);
         }
 
@@ -373,7 +373,8 @@ impl ZmqStreamEngineBase {
             self._has_handshake_timer = false;
         }
 
-        self._socket.event_handshake_succeeded(&mut self._options, &self._endpoint_uri_pair, 0);
+        self._socket
+            .event_handshake_succeeded(&mut self._options, &self._endpoint_uri_pair, 0);
     }
 
     pub fn pull_and_encode(&mut self, msg: &mut ZmqMessage) -> i32 {
@@ -458,7 +459,7 @@ impl ZmqStreamEngineBase {
     }
 
     // void plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_) ;
-    pub fn plug(&mut self, io_thread_: &mut ZmqIoThread, session: &mut ZmqSessionBase) {
+    pub fn plug(&mut self, io_thread_: &mut ZmqThreadContext, session: &mut ZmqSessionBase) {
         // zmq_assert (!_plugged);
         self._plugged = true;
 
@@ -871,7 +872,10 @@ impl ZmqStreamEngineBase {
         }
 
         // protocol errors have been signaled already at the point where they occurred
-        if (reason_ != protocol_error && (self._mechanism == null_mut() || self._mechanism.status() == ZmqMechanism::handshaking)) {
+        if (reason_ != protocol_error
+            && (self._mechanism == null_mut()
+                || self._mechanism.status() == ZmqMechanism::handshaking))
+        {
             let err: i32 = errno;
             self._socket.event_handshake_failed_no_detail(
                 &mut self._options,
@@ -881,15 +885,20 @@ impl ZmqStreamEngineBase {
             // special case: connecting to non-ZMTP process which immediately drops connection,
             // or which never responds with greeting, should be treated as a protocol error
             // (i.e. stop reconnect)
-            if (((reason_ == connection_error) || (reason_ == timeout_error)) && (self._options.reconnect_stop & ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED) != 0) {
+            if (((reason_ == connection_error) || (reason_ == timeout_error))
+                && (self._options.reconnect_stop & ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED) != 0)
+            {
                 reason_ = protocol_error;
             }
         }
 
-        self._socket.event_disconnected(&mut self._options, &self._endpoint_uri_pair, self._s);
+        self._socket
+            .event_disconnected(&mut self._options, &self._endpoint_uri_pair, self._s);
         self._session.flush();
         self._session.engine_error(
-            !self._handshaking && (self._mechanism == null_mut() || self._mechanism.status() != ZmqMechanism::handshaking),
+            !self._handshaking
+                && (self._mechanism == null_mut()
+                    || self._mechanism.status() != ZmqMechanism::handshaking),
             reason_,
         );
         unplug();

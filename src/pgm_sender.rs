@@ -33,19 +33,19 @@
 
 // #include <stdlib.h>
 
-use std::ptr::null_mut;
-use libc::{EBUSY, ENOMEM};
 use crate::defines::ZmqHandle;
 use crate::endpoint::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::fd::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
-use crate::io_thread::ZmqIoThread;
 use crate::message::ZmqMessage;
 use crate::options::ZmqOptions;
 use crate::pgm_socket::PgmSocket;
 use crate::session_base::ZmqSessionBase;
+use crate::thread_context::ZmqThreadContext;
 use crate::v1_encoder::ZmqV1Encoder;
+use libc::{EBUSY, ENOMEM};
+use std::ptr::null_mut;
 
 // #include "io_thread.hpp"
 // #include "pgm_sender.hpp"
@@ -64,8 +64,7 @@ pub const tx_timer_id: u8 = 0xa0;
 pub const rx_timer_id: u8 = 0xa1;
 
 #[derive(Default, Clone, Debug)]
-pub struct pgm_sender_t<'a>
-{
+pub struct pgm_sender_t<'a> {
     // : public ZmqIoObject, public ZmqEngineInterface
     pub io_object: ZmqIoObject,
     //  TX and RX timeout timer ID's.
@@ -108,7 +107,7 @@ impl ZmqEngineInterface for pgm_sender_t {
         todo!()
     }
 
-    fn plug(&mut self, io_thread: &mut ZmqIoThread, session: &mut ZmqSessionBase) {
+    fn plug(&mut self, io_thread: &mut ZmqThreadContext, session: &mut ZmqSessionBase) {
         todo!()
     }
 
@@ -135,8 +134,7 @@ impl ZmqEngineInterface for pgm_sender_t {
 
 impl pgm_sender_t {
     // pgm_sender_t (parent_: &mut ZmqIoThread, options: &ZmqOptions);
-    pub fn new(parent_: &mut ZmqIoThread, options: &ZmqOptions) -> Self
-    {
+    pub fn new(parent_: &mut ZmqThreadContext, options: &ZmqOptions) -> Self {
         // ZmqIoObject (parent_),
         //     has_tx_timer (false),
         //     has_rx_timer (false),
@@ -179,8 +177,7 @@ impl pgm_sender_t {
     // ~pgm_sender_t ();
 
     // int init (udp_encapsulation_: bool, network_: &str);
-    pub fn init(&mut self, udp_encapsulation_: bool, network_: &str) -> i32
-    {
+    pub fn init(&mut self, udp_encapsulation_: bool, network_: &str) -> i32 {
         let rc = pgm_socket.init(udp_encapsulation_, network_);
         if (rc != 0) {
             return rc;
@@ -197,8 +194,7 @@ impl pgm_sender_t {
     // bool has_handshake_stage () { return false; };
 
     // void plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_);
-    pub fn plug(&mut self, io_thread_: &mut ZmqIoThread, session_: &mut ZmqSessionBase)
-    {
+    pub fn plug(&mut self, io_thread_: &mut ZmqThreadContext, session_: &mut ZmqSessionBase) {
         // LIBZMQ_UNUSED (io_thread_);
         //  Allocate 2 fds for PGM socket.
         let mut downlink_socket_fd: ZmqFileDesc = retired_fd;
@@ -209,8 +205,12 @@ impl pgm_sender_t {
         session = session_;
 
         //  Fill fds from PGM transport and add them to the poller.
-        pgm_socket.get_sender_fds(&downlink_socket_fd, &uplink_socket_fd,
-                                  &rdata_notify_fd, &pending_notify_fd);
+        pgm_socket.get_sender_fds(
+            &downlink_socket_fd,
+            &uplink_socket_fd,
+            &rdata_notify_fd,
+            &pending_notify_fd,
+        );
 
         handle = add_fd(downlink_socket_fd);
         uplink_handle = add_fd(uplink_socket_fd);
@@ -228,22 +228,19 @@ impl pgm_sender_t {
     }
 
     // void terminate ();
-    pub fn terminate(&mut self)
-    {
+    pub fn terminate(&mut self) {
         self.unplug();
         // delete this;
     }
 
     // bool restart_input ();
-    pub fn restart_input(&mut self) -> bool
-    {
+    pub fn restart_input(&mut self) -> bool {
         // zmq_assert (false);
         return true;
     }
 
     // void restart_output ();
-    pub fn restart_output(&mut self)
-    {
+    pub fn restart_output(&mut self) {
         set_pollout(handle);
         out_event();
     }
@@ -251,15 +248,13 @@ impl pgm_sender_t {
     // void zap_msg_available () {}
 
     // const EndpointUriPair &get_endpoint () const;
-    pub fn get_endpoint(&self) -> &EndpointUriPair
-    {
+    pub fn get_endpoint(&self) -> &EndpointUriPair {
         return &self._empty_endpoint;
     }
 
     //  i_poll_events interface implementation.
     // void in_event ();
-    pub fn in_event(&mut self)
-    {
+    pub fn in_event(&mut self) {
         if (has_rx_timer) {
             cancel_timer(rx_timer_id);
             has_rx_timer = false;
@@ -276,8 +271,7 @@ impl pgm_sender_t {
 
     // void out_event ();
 
-    pub fn out_event(&mut self)
-    {
+    pub fn out_event(&mut self) {
         todo!()
         //     //  POLLOUT event from send socket. If write buffer is empty,
         //     //  try to read new data from the encoder.
@@ -340,13 +334,11 @@ impl pgm_sender_t {
         // }
     }
 
-
     // void timer_event (token: i32);
 
     //  Unplug the engine from the session.
     // void unplug ();
-    pub fn unplug(&mut self)
-    {
+    pub fn unplug(&mut self) {
         if (has_rx_timer) {
             cancel_timer(rx_timer_id);
             has_rx_timer = false;
@@ -364,8 +356,7 @@ impl pgm_sender_t {
         session = null_mut();
     }
 
-    pub fn timer_event(&mut self, token: i32)
-    {
+    pub fn timer_event(&mut self, token: i32) {
         //  Timer cancels on return by poller_base.
         if (token == rx_timer_id) {
             has_rx_timer = false;
@@ -375,11 +366,11 @@ impl pgm_sender_t {
             has_tx_timer = false;
             set_pollout(handle);
             out_event();
-        } else {}
+        } else {
+        }
         // zmq_assert (false);
     }
 }
-
 
 // pgm_sender_t::~pgm_sender_t ()
 // {
@@ -391,6 +382,5 @@ impl pgm_sender_t {
 //         out_buffer = null_mut();
 //     }
 // }
-
 
 // #endif

@@ -58,17 +58,11 @@
 // #endif
 // #endif
 
-use std::mem;
-use std::ptr::null_mut;
-use bincode::options;
-use libc::{bind, close, connect, ECONNREFUSED, EINPROGRESS, EINTR, ENOBUFS, ENOTSOCK, getsockopt, open, setsockopt};
-use windows::Win32::Networking::WinSock::{SO_ERROR, SO_REUSEADDR, SOCKET_ERROR, socklen_t, SOL_SOCKET, WSA_ERROR, WSAEBADF, WSAEINPROGRESS, WSAENOBUFS, WSAENOPROTOOPT, WSAENOTSOCK, WSAEWOULDBLOCK, WSAGetLastError};
-use crate::address::{ZmqAddress, get_socket_name};
 use crate::address::SocketEnd::SocketEndLocal;
+use crate::address::{get_socket_name, ZmqAddress};
 use crate::defines::ZMQ_RECONNECT_STOP_CONN_REFUSED;
 use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
-use crate::io_thread::ZmqIoThread;
 use crate::ip::{tune_socket, unblock_socket};
 use crate::ops::zmq_errno;
 use crate::options::ZmqOptions;
@@ -76,6 +70,18 @@ use crate::session_base::ZmqSessionBase;
 use crate::stream_connecter_base::StreamConnecterBase;
 use crate::tcp::{tcp_open_socket, tune_tcp_keepalives, tune_tcp_maxrt, tune_tcp_socket};
 use crate::tcp_address::TcpAddress;
+use crate::thread_context::ZmqThreadContext;
+use bincode::options;
+use libc::{
+    bind, close, connect, getsockopt, open, setsockopt, ECONNREFUSED, EINPROGRESS, EINTR, ENOBUFS,
+    ENOTSOCK,
+};
+use std::mem;
+use std::ptr::null_mut;
+use windows::Win32::Networking::WinSock::{
+    socklen_t, WSAGetLastError, SOCKET_ERROR, SOL_SOCKET, SO_ERROR, SO_REUSEADDR, WSAEBADF,
+    WSAEINPROGRESS, WSAENOBUFS, WSAENOPROTOOPT, WSAENOTSOCK, WSAEWOULDBLOCK, WSA_ERROR,
+};
 
 // enum
 // {
@@ -123,19 +129,25 @@ pub struct ZmqTcpConnector<'a> {
 }
 
 impl ZmqTcpConnector {
-    pub fn new(io_thread_: &mut ZmqIoThread,
-               session_: &mut ZmqSessionBase,
-               options: &ZmqOptions,
-               addr_: &mut ZmqAddress<TcpAddress>,
-               delayed_start_: bool) -> Self
-
-    {
+    pub fn new(
+        io_thread_: &mut ZmqThreadContext,
+        session_: &mut ZmqSessionBase,
+        options: &ZmqOptions,
+        addr_: &mut ZmqAddress<TcpAddress>,
+        delayed_start_: bool,
+    ) -> Self {
         // StreamConnecterBase (
         //           io_thread_, session_, options_, addr_, delayed_start_),
         //         _connect_timer_started (false)
         // zmq_assert (_addr.protocol == protocol_name::tcp);
         Self {
-            stream_connecter_base: StreamConnecterBase(io_thread_, session_, options, addr_, delayed_start_),
+            stream_connecter_base: StreamConnecterBase(
+                io_thread_,
+                session_,
+                options,
+                addr_,
+                delayed_start_,
+            ),
             _connect_timer_started: false,
         }
     }
@@ -162,7 +174,9 @@ impl ZmqTcpConnector {
 
         let fd = self.stream_connecter_base.connect();
 
-        if fd == retired_fd && ((options.reconnect_stop & ZMQ_RECONNECT_STOP_CONN_REFUSED) && errno == ECONNREFUSED) {
+        if fd == retired_fd
+            && ((options.reconnect_stop & ZMQ_RECONNECT_STOP_CONN_REFUSED) && errno == ECONNREFUSED)
+        {
             send_conn_failed(_session);
             self.stream_connecter_base.close();
             terminate();
@@ -199,18 +213,18 @@ impl ZmqTcpConnector {
             _handle = add_fd(_s);
             out_event();
         }
-
         //  Connection establishment may be delayed. Poll for its completion.
         else if (rc == -1 && errno == EINPROGRESS) {
             _handle = add_fd(_s);
             set_pollout(_handle);
             self._socket.event_connect_delayed(
-                make_unconnected_connect_endpoint_pair(_endpoint), zmq_errno());
+                make_unconnected_connect_endpoint_pair(_endpoint),
+                zmq_errno(),
+            );
 
             //  add userspace connect timeout
             add_connect_timer();
         }
-
         //  Handle any other error condition by eventual reconnect.
         else {
             if (_s != retired_fd) {
@@ -237,8 +251,13 @@ impl ZmqTcpConnector {
 
         _addr.resolved.tcp_addr = TcpAddress();
         // alloc_assert (_addr.resolved.tcp_addr);
-        _s = tcp_open_socket(_addr.address, self.options, false, true,
-                             _addr.resolved.tcp_addr);
+        _s = tcp_open_socket(
+            _addr.address,
+            self.options,
+            false,
+            true,
+            _addr.resolved.tcp_addr,
+        );
         if (_s == retired_fd) {
             //  TODO we should emit some event in this case!
 
@@ -261,8 +280,7 @@ impl ZmqTcpConnector {
             let mut flag = 1;
             // #ifdef ZMQ_HAVE_WINDOWS
             unsafe {
-                rc = setsockopt(_s, SOL_SOCKET, SO_REUSEADDR,
-                                (&flag), 4);
+                rc = setsockopt(_s, SOL_SOCKET, SO_REUSEADDR, (&flag), 4);
             }
             wsa_assert(rc != SOCKET_ERROR);
             // #elif defined ZMQ_HAVE_VXWORKS
@@ -282,7 +300,9 @@ impl ZmqTcpConnector {
             //                       tcp_addr.src_addrlen());
             //         }
             // #else
-            unsafe { rc = bind(_s, tcp_addr.src_addr(), tcp_addr.src_addrlen()); }
+            unsafe {
+                rc = bind(_s, tcp_addr.src_addr(), tcp_addr.src_addrlen());
+            }
             // #endif
             if (rc == -1) {
                 return -1;
@@ -293,7 +313,9 @@ impl ZmqTcpConnector {
         // #if defined ZMQ_HAVE_VXWORKS
         //     rc = ::connect (_s, (sockaddr *) tcp_addr.addr (), tcp_addr.addrlen ());
         // #else
-        unsafe { rc = connect(_s, tcp_addr.addr(), tcp_addr.addrlen()); }
+        unsafe {
+            rc = connect(_s, tcp_addr.addr(), tcp_addr.addrlen());
+        }
         // #endif
         //  Connect was successful immediately.
         if rc == 0 {
@@ -368,9 +390,15 @@ impl ZmqTcpConnector {
     }
 
     pub fn tune_socket(&mut self, mut fd: ZmqFileDesc) -> bool {
-        let rc: i32 = tune_tcp_socket(fd) | tune_tcp_keepalives(
-            fd, options.tcp_keepalive, options.tcp_keepalive_cnt,
-            options.tcp_keepalive_idle, options.tcp_keepalive_intvl) | tune_tcp_maxrt(&mut fd, options.tcp_maxrt);
+        let rc: i32 = tune_tcp_socket(fd)
+            | tune_tcp_keepalives(
+                fd,
+                options.tcp_keepalive,
+                options.tcp_keepalive_cnt,
+                options.tcp_keepalive_idle,
+                options.tcp_keepalive_intvl,
+            )
+            | tune_tcp_maxrt(&mut fd, options.tcp_maxrt);
         return rc == 0;
     }
 }

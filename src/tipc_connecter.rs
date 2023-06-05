@@ -54,7 +54,7 @@ use crate::address::{ZmqAddress, get_socket_name};
 use crate::address::SocketEnd::SocketEndLocal;
 use crate::address_family::AF_TIPC;
 use crate::fd::ZmqFileDesc;
-use crate::io_thread::ZmqIoThread;
+use crate::thread_context::ZmqThreadContext;
 use crate::ip::{open_socket, unblock_socket};
 use crate::ops::zmq_errno;
 use crate::options::ZmqOptions;
@@ -110,7 +110,7 @@ impl ZmqTipcConnecter {
     // {
     //     // zmq_assert (_addr.protocol == "tipc");
     // }
-    pub fn new(io_thread: &mut ZmqIoThread, session: &mut ZmqSessionBase, options: &mut ZmqOptions, addr: &mut ZmqAddress<ZmqTipcAddress>, delayed_start: bool) -> Self {
+    pub fn new(io_thread: &mut ZmqThreadContext, session: &mut ZmqSessionBase, options: &mut ZmqOptions, addr: &mut ZmqAddress<ZmqTipcAddress>, delayed_start: bool) -> Self {
         Self {
             stream_connecter_base: StreamConnecterBase {
                 own: Default::default(),

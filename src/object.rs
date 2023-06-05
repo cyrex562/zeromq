@@ -2,11 +2,11 @@ use crate::command::{CommandType, ZmqCommand};
 use crate::context::ZmqContext;
 use crate::endpoint::{EndpointUriPair, ZmqEndpoint};
 use crate::engine_interface::ZmqEngineInterface;
-use crate::io_thread::ZmqIoThread;
 use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
+use crate::thread_context::ZmqThreadContext;
 use anyhow::anyhow;
 use std::ptr::null_mut;
 
@@ -115,7 +115,7 @@ pub trait ZmqObject {
     }
 
     //  Chooses least loaded I/O thread.
-    fn choose_io_thread(&mut self, affinity: u64) -> Option<ZmqIoThread> {
+    fn choose_io_thread(&mut self, affinity: u64) -> Option<ZmqThreadContext> {
         self.get_ctx().choose_io_thread(affinity)
     }
 

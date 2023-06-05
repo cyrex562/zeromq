@@ -55,18 +55,15 @@
 // #endif
 // #endif
 
-use std::mem;
-use bincode::options;
-use libc::{accept, bind, c_int, close, ECONNABORTED, EINVAL, EMFILE, ENFILE, ENOBUFS, ENOMEM, EPROTO, listen, memset, setsockopt};
-use windows::Win32::Networking::WinSock::{closesocket, SO_REUSEADDR, SOCKET_ERROR, socklen_t, SOL_SOCKET, WSAECONNRESET, WSAEMFILE, WSAENOBUFS, WSAEWOULDBLOCK, WSAGetLastError};
-use crate::address::{get_socket_name, SocketEnd};
 use crate::address::SocketEnd::SocketEndLocal;
+use crate::address::{get_socket_name, SocketEnd};
 use crate::decoder_allocators::size;
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
-use crate::io_thread::ZmqIoThread;
-use crate::ip::{make_socket_noninheritable, set_ip_type_of_service, set_nosigpipe, set_socket_priority};
+use crate::ip::{
+    make_socket_noninheritable, set_ip_type_of_service, set_nosigpipe, set_socket_priority,
+};
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::ops::zmq_errno;
 use crate::options::ZmqOptions;
@@ -74,6 +71,17 @@ use crate::socket_base::ZmqSocketBase;
 use crate::stream_listener_base::ZmqStreamListenerBase;
 use crate::tcp::{tcp_open_socket, tune_tcp_keepalives, tune_tcp_maxrt, tune_tcp_socket};
 use crate::tcp_address::TcpAddress;
+use crate::thread_context::ZmqThreadContext;
+use bincode::options;
+use libc::{
+    accept, bind, c_int, close, listen, memset, setsockopt, ECONNABORTED, EINVAL, EMFILE, ENFILE,
+    ENOBUFS, ENOMEM, EPROTO,
+};
+use std::mem;
+use windows::Win32::Networking::WinSock::{
+    closesocket, socklen_t, WSAGetLastError, SOCKET_ERROR, SOL_SOCKET, SO_REUSEADDR, WSAECONNRESET,
+    WSAEMFILE, WSAENOBUFS, WSAEWOULDBLOCK,
+};
 
 // #ifdef ZMQ_HAVE_OPENVMS
 // #include <ioctl.h>
@@ -81,9 +89,9 @@ use crate::tcp_address::TcpAddress;
 pub struct TcpListener {
     //  : public ZmqStreamListenerBase
     pub stream_listener_base: ZmqStreamListenerBase,
-//     TcpListener (ZmqIoThread *io_thread_,
-//                     socket: *mut ZmqSocketBase,
-//                     options: &ZmqOptions);
+    //     TcpListener (ZmqIoThread *io_thread_,
+    //                     socket: *mut ZmqSocketBase,
+    //                     options: &ZmqOptions);
 
     //  Set address to listen on.
     // int set_local_address (addr_: &str);
@@ -103,16 +111,15 @@ pub struct TcpListener {
     //  Address to listen on.
     // TcpAddress address;
     pub address: TcpAddress,
-
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (TcpListener)
 }
 
 impl TcpListener {
-    pub fn new(io_thread: &mut ZmqIoThread,
-               socket: &mut ZmqSocketBase,
-               options: &mut ZmqOptions) -> TcpListener
-
-    {
+    pub fn new(
+        io_thread: &mut ZmqThreadContext,
+        socket: &mut ZmqSocketBase,
+        options: &mut ZmqOptions,
+    ) -> TcpListener {
         // ZmqStreamListenerBase (io_thread_, socket, options_)
         Self {
             stream_listener_base: ZmqStreamListenerBase::new(io_thread, socket, options),
@@ -127,19 +134,24 @@ impl TcpListener {
         //  If connection was reset by the peer in the meantime, just ignore it.
         //  TODO: Handle specific errors like ENFILE/EMFILE etc.
         if (fd == retired_fd) {
-            self._socket.event_accept_failed(
-                make_unconnected_bind_endpoint_pair(_endpoint), zmq_errno());
+            self._socket
+                .event_accept_failed(make_unconnected_bind_endpoint_pair(_endpoint), zmq_errno());
             return;
         }
 
         let mut rc = tune_tcp_socket(fd);
-        rc = rc | tune_tcp_keepalives(
-            fd, options.tcp_keepalive, options.tcp_keepalive_cnt,
-            options.tcp_keepalive_idle, options.tcp_keepalive_intvl);
+        rc = rc
+            | tune_tcp_keepalives(
+                fd,
+                options.tcp_keepalive,
+                options.tcp_keepalive_cnt,
+                options.tcp_keepalive_idle,
+                options.tcp_keepalive_intvl,
+            );
         rc = rc | tune_tcp_maxrt(fd, options.tcp_maxrt);
         if (rc != 0) {
-            self._socket.event_accept_failed(
-                make_unconnected_bind_endpoint_pair(_endpoint), zmq_errno());
+            self._socket
+                .event_accept_failed(make_unconnected_bind_endpoint_pair(_endpoint), zmq_errno());
             return;
         }
 
@@ -147,9 +159,7 @@ impl TcpListener {
         create_engine(fd);
     }
 
-    pub fn get_socket_name(&mut self,
-                           fd: ZmqFileDesc,
-                           socket_end_: SocketEnd) -> String {
+    pub fn get_socket_name(&mut self, fd: ZmqFileDesc, socket_end_: SocketEnd) -> String {
         return get_socket_name(fd, socket_end_).unwrap();
     }
 
@@ -172,8 +182,7 @@ impl TcpListener {
         //  different between listener and connecter with a src address.
         //  is this intentional?
         unsafe {
-            rc = setsockopt(_s, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
-                            (&flag), 4);
+            rc = setsockopt(_s, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (&flag), 4);
         }
         wsa_assert(rc != SOCKET_ERROR);
         // #elif defined ZMQ_HAVE_VXWORKS
@@ -189,11 +198,15 @@ impl TcpListener {
         // #if defined ZMQ_HAVE_VXWORKS
         //     rc = bind (_s, (sockaddr *) address.addr (), address.addrlen ());
         // #else
-        unsafe { rc = bind(_s, address.addr(), address.addrlen()); }
+        unsafe {
+            rc = bind(_s, address.addr(), address.addrlen());
+        }
         // #endif
         // #ifdef ZMQ_HAVE_WINDOWS
         if (rc == SOCKET_ERROR) {
-            unsafe { errno = wsa_error_to_errno(WSAGetLastError()); }
+            unsafe {
+                errno = wsa_error_to_errno(WSAGetLastError());
+            }
             // goto error;
         }
         // #else
@@ -204,10 +217,14 @@ impl TcpListener {
         // #endif
 
         //  Listen for incoming connections.
-        unsafe { rc = listen(_s, options.backlog); }
+        unsafe {
+            rc = listen(_s, options.backlog);
+        }
         // #ifdef ZMQ_HAVE_WINDOWS
         if (rc == SOCKET_ERROR) {
-            unsafe { errno = wsa_error_to_errno(WSAGetLastError()); }
+            unsafe {
+                errno = wsa_error_to_errno(WSAGetLastError());
+            }
             // goto error;
         }
         // #else
@@ -240,8 +257,8 @@ impl TcpListener {
 
         _endpoint = get_socket_name(_s, SocketEndLocal);
 
-        self._socket.event_listening(make_unconnected_bind_endpoint_pair(_endpoint),
-                                     _s);
+        self._socket
+            .event_listening(make_unconnected_bind_endpoint_pair(_endpoint), _s);
         return 0;
     }
 
@@ -260,8 +277,7 @@ impl TcpListener {
         let mut ss_len: c_int = mem::size_of::<ss>() as c_int;
         // #endif
         // #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
-        let mut sock: ZmqFileDesc = ::accept4(_s, (&ss),
-                                              &ss_len, SOCK_CLOEXEC);
+        let mut sock: ZmqFileDesc = ::accept4(_s, (&ss), &ss_len, SOCK_CLOEXEC);
         // #else
         let sock = unsafe { accept(_s, (&mut ss), &mut ss_len) };
         // #endif
@@ -291,8 +307,7 @@ impl TcpListener {
             //        size = options.tcp_accept_filters.size ();
             //      i != size; += 1i)
             for i in 0..options.tcp_accept_filters.len() {
-                if (options.tcp_accept_filters[i].match_address(
-                    (&ss), ss_len)) {
+                if (options.tcp_accept_filters[i].match_address((&ss), ss_len)) {
                     matched = true;
                     break;
                 }

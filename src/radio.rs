@@ -35,7 +35,7 @@ use crate::address::ZmqAddress;
 use crate::context::ZmqContext;
 use crate::defines::{ZMQ_RADIO, ZMQ_XPUB_NODROP};
 use crate::dist::ZmqDist;
-use crate::io_thread::ZmqIoThread;
+use crate::thread_context::ZmqThreadContext;
 use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZmqMessage};
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
@@ -291,7 +291,7 @@ pub struct RadioSession
 
 impl RadioSession {
     pub fn new(ctx: &mut ZmqContext,
-               io_thread_: &mut ZmqIoThread,
+               io_thread_: &mut ZmqThreadContext,
                connect_: bool,
                socket: &mut ZmqSocketBase,
                options: &mut ZmqOptions,

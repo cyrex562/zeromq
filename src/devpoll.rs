@@ -41,17 +41,17 @@
 // #include <limits.h>
 // #include <algorithm>
 
-use std::ffi::CString;
-use libc::{EINTR, O_RDWR, open, write};
-use windows::Win32::Networking::WinSock::{POLLERR, POLLHUP, POLLIN, POLLOUT};
 use crate::context::ZmqContext;
 use crate::defines::ZmqHandle;
 use crate::fd::ZmqFileDesc;
 use crate::poller_base::WorkerPollerBase;
 use crate::thread_ctx::ThreadCtx;
+use libc::{open, write, EINTR, O_RDWR};
+use std::ffi::CString;
+use windows::Win32::Networking::WinSock::{POLLERR, POLLHUP, POLLIN, POLLOUT};
 
 // typedef DevPoll Poller;
-pub type Poller = DevPoll;
+pub type ZmqPoller = DevPoll;
 
 pub struct FdEntry {
     // short events;
@@ -76,7 +76,7 @@ pub struct DevPoll {
     pub pending_list: Vec<ZmqFileDesc>,
     //  Pollset manipulation function.
     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (DevPoll)
-    pub worker_poller_base: WorkerPollerBase,
+    pub base: WorkerPollerBase,
 }
 
 impl DevPoll {
@@ -84,10 +84,12 @@ impl DevPoll {
     // DevPoll::DevPoll (const ThreadCtx &ctx) :
     // WorkerPollerBase (ctx)
     pub fn new(ctx: &mut ZmqContext) -> Self {
-        unsafe { devpoll_fd = open(CString::from(String::from("/dev/poll")).into_raw(), O_RDWR); }
+        unsafe {
+            devpoll_fd = open(CString::from(String::from("/dev/poll")).into_raw(), O_RDWR);
+        }
         // errno_assert (devpoll_fd != -1);
         Self {
-            worker_poller_base: WorkerPollerBase::new(ctx),
+            base: WorkerPollerBase::new(ctx),
             ..Default::default()
         }
     }

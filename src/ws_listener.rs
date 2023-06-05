@@ -62,17 +62,14 @@
 // #endif
 // #endif
 
-use libc::{bind, listen, setsockopt};
-use windows::Win32::Networking::WinSock::{SO_REUSEADDR, SOCKET_ERROR, SOL_SOCKET, WSAGetLastError};
-use crate::address::{get_socket_name, SocketEnd};
 use crate::address::SocketEnd::{SocketEndLocal, SocketEndRemote};
+use crate::address::{get_socket_name, SocketEnd};
 use crate::context::choose_io_thread;
 use crate::endpoint::EndpointType::endpoint_type_bind;
-use crate::endpoint::{EndpointUriPair, make_unconnected_bind_endpoint_pair};
+use crate::endpoint::{make_unconnected_bind_endpoint_pair, EndpointUriPair};
 use crate::engine_interface::ZmqEngineInterface;
 use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
-use crate::io_thread::ZmqIoThread;
 use crate::ip::make_socket_noninheritable;
 use crate::ops::zmq_errno;
 use crate::options::ZmqOptions;
@@ -81,32 +78,35 @@ use crate::socket_base::ZmqSocketBase;
 use crate::stream_listener_base::ZmqStreamListenerBase;
 use crate::tcp::{tcp_open_socket, tune_tcp_maxrt, tune_tcp_socket};
 use crate::tcp_address::TcpAddress;
+use crate::thread_context::ZmqThreadContext;
 use crate::ws_address::WsAddress;
 use crate::ws_engine::ZmqWsEngine;
 use crate::wss_engine::WssEngine;
+use libc::{bind, listen, setsockopt};
+use windows::Win32::Networking::WinSock::{
+    WSAGetLastError, SOCKET_ERROR, SOL_SOCKET, SO_REUSEADDR,
+};
 
 // #ifdef ZMQ_HAVE_OPENVMS
 // #include <ioctl.h>
 // #endif
-pub struct ZmqWsListener
-{
-// : public ZmqStreamListenerBase
+pub struct ZmqWsListener {
+    // : public ZmqStreamListenerBase
     pub base: ZmqStreamListenerBase,
-//     ZmqWsListener (ZmqIoThread *io_thread_,
-//                    socket: *mut ZmqSocketBase,
-//                    options: &ZmqOptions,
-//                    wss_: bool);
+    //     ZmqWsListener (ZmqIoThread *io_thread_,
+    //                    socket: *mut ZmqSocketBase,
+    //                    options: &ZmqOptions,
+    //                    wss_: bool);
 
     // ~ZmqWsListener ();
 
     //  Set address to listen on.
     // int set_local_address (addr_: &str);
 
-
     // std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
     // void create_engine (ZmqFileDesc fd);
 
-  //
+    //
     //  Handlers for I/O events.
     // void in_event ();
 
@@ -123,29 +123,28 @@ pub struct ZmqWsListener
     pub address: WsAddress,
 
     pub _wss: bool,
-// #ifdef ZMQ_HAVE_WSS
-    pub  _tls_cred: gnutls_certificate_credentials_t,
-// #endif
+    // #ifdef ZMQ_HAVE_WSS
+    pub _tls_cred: gnutls_certificate_credentials_t,
+    // #endif
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqWsListener)
 }
 
 impl ZmqWsListener {
-
-    pub fn new(io_thread_: &mut ZmqIoThread,
-                                       socket: &mut ZmqSocketBase,
-                                       options: &mut ZmqOptions,
-                                       wss_: bool) -> Self
-
-    {
+    pub fn new(
+        io_thread_: &mut ZmqThreadContext,
+        socket: &mut ZmqSocketBase,
+        options: &mut ZmqOptions,
+        wss_: bool,
+    ) -> Self {
         let mut out = Self {
             base: ZmqStreamListenerBase::new(io_thread_, socket, options),
             address: Default::default(),
             _wss: false,
             _tls_cred: (),
         };
-    // ZmqStreamListenerBase (io_thread_, socket, options_), _wss (wss_)
-    // #ifdef ZMQ_HAVE_WSS
+        // ZmqStreamListenerBase (io_thread_, socket, options_), _wss (wss_)
+        // #ifdef ZMQ_HAVE_WSS
         if (_wss) {
             // TODO
             // int rc = gnutls_certificate_allocate_credentials (&_tls_cred);
@@ -161,7 +160,7 @@ impl ZmqWsListener {
         }
 
         out
-    // #endif
+        // #endif
     }
 
     // ZmqWsListener::~ZmqWsListener ()
@@ -172,130 +171,136 @@ impl ZmqWsListener {
     // // #endif
     // }
 
-    pub fn in_event (&mut self)
-    {
-        let mut fd = self.accept ();
+    pub fn in_event(&mut self) {
+        let mut fd = self.accept();
 
         //  If connection was reset by the peer in the meantime, just ignore it.
         //  TODO: Handle specific errors like ENFILE/EMFILE etc.
         if (fd == retired_fd) {
-            self._socket.event_accept_failed (
-              make_unconnected_bind_endpoint_pair (_endpoint), zmq_errno ());
+            self._socket
+                .event_accept_failed(make_unconnected_bind_endpoint_pair(_endpoint), zmq_errno());
             return;
         }
 
-        let mut rc = tune_tcp_socket (&mut fd);
-        rc = rc | tune_tcp_maxrt (&mut fd, self.options.tcp_maxrt);
+        let mut rc = tune_tcp_socket(&mut fd);
+        rc = rc | tune_tcp_maxrt(&mut fd, self.options.tcp_maxrt);
         if (rc != 0) {
-            self._socket.event_accept_failed (
-              make_unconnected_bind_endpoint_pair (_endpoint), zmq_errno ());
+            self._socket
+                .event_accept_failed(make_unconnected_bind_endpoint_pair(_endpoint), zmq_errno());
             return;
         }
 
         //  Create the engine object for this connection.
-        create_engine (fd);
+        create_engine(fd);
     }
 
-    pub fn get_socket_name (&mut self, fd: ZmqFileDesc, socket_end_: SocketEnd) -> String
-    {
+    pub fn get_socket_name(&mut self, fd: ZmqFileDesc, socket_end_: SocketEnd) -> String {
         socket_name: String;
 
-    // #ifdef ZMQ_HAVE_WSS
+        // #ifdef ZMQ_HAVE_WSS
         if (_wss) {
             socket_name = get_socket_name(fd, socket_end_);
-        }
-        else {
+        } else {
             // #endif
             socket_name = get_socket_name(fd, socket_end_);
         }
 
-        return socket_name + address.path ();
+        return socket_name + address.path();
     }
 
-    pub fn create_socket (&mut self, addr_: &mut str) -> i32
-    {
+    pub fn create_socket(&mut self, addr_: &mut str) -> i32 {
         // TcpAddress address;
         let mut address: TcpAddress = TcpAddress::default();
-        _s = tcp_open_socket (addr_, self.options, true, true, &mut address);
+        _s = tcp_open_socket(addr_, self.options, true, true, &mut address);
         if (_s == retired_fd) {
             return -1;
         }
 
         //  TODO why is this only done for the listener?
-        make_socket_noninheritable (_s);
+        make_socket_noninheritable(_s);
 
         //  Allow reusing of the address.
-        let mut  flag = 1;
+        let mut flag = 1;
         let mut rc = 0i32;
-    // #ifdef ZMQ_HAVE_WINDOWS
+        // #ifdef ZMQ_HAVE_WINDOWS
         //  TODO this was changed for Windows from SO_REUSEADDRE to
         //  SE_EXCLUSIVEADDRUSE by 0ab65324195ad70205514d465b03d851a6de051c,
         //  so the comment above is no longer correct; also, now the settings are
         //  different between listener and connecter with a src address.
         //  is this intentional?
         unsafe {
-            rc = setsockopt(_s, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
-                            (&flag), 4);
+            rc = setsockopt(_s, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (&flag), 4);
         }
         // wsa_assert (rc != SOCKET_ERROR);
-    // #elif defined ZMQ_HAVE_VXWORKS
-    //     rc =
-    //       setsockopt (_s, SOL_SOCKET, SO_REUSEADDR,  &flag, mem::size_of::<int>());
+        // #elif defined ZMQ_HAVE_VXWORKS
+        //     rc =
+        //       setsockopt (_s, SOL_SOCKET, SO_REUSEADDR,  &flag, mem::size_of::<int>());
         // errno_assert (rc == 0);
-    // #else
-        unsafe { rc = setsockopt(_s, SOL_SOCKET, SO_REUSEADDR, &flag, 4); }
+        // #else
+        unsafe {
+            rc = setsockopt(_s, SOL_SOCKET, SO_REUSEADDR, &flag, 4);
+        }
         // errno_assert (rc == 0);
-    // #endif
+        // #endif
 
         //  Bind the socket to the network interface and port.
-    // #if defined ZMQ_HAVE_VXWORKS
-        unsafe { rc = bind(_s, address.addr(), address.addrlen()); }
-    // #else
-        unsafe { rc = bind(_s, address.addr(), address.addrlen()); }
-    // #endif
-    // #ifdef ZMQ_HAVE_WINDOWS
+        // #if defined ZMQ_HAVE_VXWORKS
+        unsafe {
+            rc = bind(_s, address.addr(), address.addrlen());
+        }
+        // #else
+        unsafe {
+            rc = bind(_s, address.addr(), address.addrlen());
+        }
+        // #endif
+        // #ifdef ZMQ_HAVE_WINDOWS
         if (rc == SOCKET_ERROR) {
-            unsafe { errno = wsa_error_to_errno(WSAGetLastError()); }
+            unsafe {
+                errno = wsa_error_to_errno(WSAGetLastError());
+            }
             // goto error;
         }
-    // #else
+        // #else
         if (rc != 0) {
             // goto
             // error;
         }
-    // #endif
+        // #endif
 
         //  Listen for incoming connections.
-        unsafe { rc = listen(_s, self.options.backlog); }
-    // #ifdef ZMQ_HAVE_WINDOWS
+        unsafe {
+            rc = listen(_s, self.options.backlog);
+        }
+        // #ifdef ZMQ_HAVE_WINDOWS
         if (rc == SOCKET_ERROR) {
-            unsafe { errno = wsa_error_to_errno(WSAGetLastError()); }
+            unsafe {
+                errno = wsa_error_to_errno(WSAGetLastError());
+            }
             // goto error;
         }
-    // #else
+        // #else
         if (rc != 0) {
             // goto
             // error;
         }
-    // #endif
+        // #endif
 
         return 0;
 
-    // error:
-    //     let err: i32 = errno;
-    //     close ();
-    //     errno = err;
-    //     return -1;
+        // error:
+        //     let err: i32 = errno;
+        //     close ();
+        //     errno = err;
+        //     return -1;
     }
 
-    pub fn set_local_address (&mut self, addr_: &str) -> i32
-    {
+    pub fn set_local_address(&mut self, addr_: &str) -> i32 {
         if (self.options.use_fd != -1) {
             //  in this case, the addr_ passed is not used and ignored, since the
             //  socket was already created by the application
             _s = self.options.use_fd;
         } else {
-            let rc: i32 = address.resolve (addr_, true, self.options.ipv6);
+            let rc: i32 = address.resolve(addr_, true, self.options.ipv6);
             if (rc != 0) {
                 return -1;
             }
@@ -310,120 +315,125 @@ impl ZmqWsListener {
             //     host_address = addr_;
             // }
 
-            if (create_socket (host_address) == -1) {
+            if (create_socket(host_address) == -1) {
                 return -1;
             }
         }
 
-        _endpoint = get_socket_name (_s, SocketEndLocal);
+        _endpoint = get_socket_name(_s, SocketEndLocal);
 
-        self._socket.event_listening (make_unconnected_bind_endpoint_pair (_endpoint),
-                                  _s);
+        self._socket
+            .event_listening(make_unconnected_bind_endpoint_pair(_endpoint), _s);
         return 0;
     }
 
-    pub fn accept (&mut self) -> ZmqFileDesc
-    {
+    pub fn accept(&mut self) -> ZmqFileDesc {
         //  The situation where connection cannot be accepted due to insufficient
         //  resources is considered valid and treated by ignoring the connection.
         //  Accept one connection and deal with different failure modes.
         // zmq_assert (_s != retired_fd);
 
-    //     struct sockaddr_storage ss;
-    //     memset (&ss, 0, mem::size_of::<ss>());
-    // // #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
-    //     int ss_len = mem::size_of::<ss>();
-    // // #else
-    //     socklen_t ss_len = mem::size_of::<ss>();
-    // // #endif
-    // // #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
-    //      let mut sock: ZmqFileDesc = ::accept4 (_s, (&ss),
-    //                            &ss_len, SOCK_CLOEXEC);
-    // // #else
-    //     const ZmqFileDesc sock =
-    //       ::accept (_s, (&ss), &ss_len);
-    // // #endif
-    //
-    //     if (sock == retired_fd) {
-    // // #if defined ZMQ_HAVE_WINDOWS
-    //         let last_error: i32 = WSAGetLastError ();
-    //         wsa_assert (last_error == WSAEWOULDBLOCK || last_error == WSAECONNRESET
-    //                     || last_error == WSAEMFILE || last_error == WSAENOBUFS);
-    // #elif defined ZMQ_HAVE_ANDROID
-    //         // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
-    //                       || errno == ECONNABORTED || errno == EPROTO
-    //                       || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE
-    //                       || errno == ENFILE || errno == EINVAL);
-    // // #else
-    //         // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
-    //                       || errno == ECONNABORTED || errno == EPROTO
-    //                       || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE
-    //                       || errno == ENFILE);
-    // // #endif
-    //         return retired_fd;
-    //     }
-    //
-    //     make_socket_noninheritable (sock);
-    //
-    //     if (set_nosigpipe (sock)) {
-    // // #ifdef ZMQ_HAVE_WINDOWS
-    //         let rc: i32 = closesocket (sock);
-    //         wsa_assert (rc != SOCKET_ERROR);
-    // // #else
-    //         int rc = ::close (sock);
-    //         // errno_assert (rc == 0);
-    // // #endif
-    //         return retired_fd;
-    //     }
-    //
-    //     // Set the IP Type-Of-Service priority for this client socket
-    //     if (options.tos != 0)
-    //         set_ip_type_of_service (sock, options.tos);
-    //
-    //     // Set the protocol-defined priority for this client socket
-    //     if (options.priority != 0)
-    //         set_socket_priority (sock, options.priority);
-    //
-    //     return sock;
+        //     struct sockaddr_storage ss;
+        //     memset (&ss, 0, mem::size_of::<ss>());
+        // // #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
+        //     int ss_len = mem::size_of::<ss>();
+        // // #else
+        //     socklen_t ss_len = mem::size_of::<ss>();
+        // // #endif
+        // // #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
+        //      let mut sock: ZmqFileDesc = ::accept4 (_s, (&ss),
+        //                            &ss_len, SOCK_CLOEXEC);
+        // // #else
+        //     const ZmqFileDesc sock =
+        //       ::accept (_s, (&ss), &ss_len);
+        // // #endif
+        //
+        //     if (sock == retired_fd) {
+        // // #if defined ZMQ_HAVE_WINDOWS
+        //         let last_error: i32 = WSAGetLastError ();
+        //         wsa_assert (last_error == WSAEWOULDBLOCK || last_error == WSAECONNRESET
+        //                     || last_error == WSAEMFILE || last_error == WSAENOBUFS);
+        // #elif defined ZMQ_HAVE_ANDROID
+        //         // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
+        //                       || errno == ECONNABORTED || errno == EPROTO
+        //                       || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE
+        //                       || errno == ENFILE || errno == EINVAL);
+        // // #else
+        //         // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
+        //                       || errno == ECONNABORTED || errno == EPROTO
+        //                       || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE
+        //                       || errno == ENFILE);
+        // // #endif
+        //         return retired_fd;
+        //     }
+        //
+        //     make_socket_noninheritable (sock);
+        //
+        //     if (set_nosigpipe (sock)) {
+        // // #ifdef ZMQ_HAVE_WINDOWS
+        //         let rc: i32 = closesocket (sock);
+        //         wsa_assert (rc != SOCKET_ERROR);
+        // // #else
+        //         int rc = ::close (sock);
+        //         // errno_assert (rc == 0);
+        // // #endif
+        //         return retired_fd;
+        //     }
+        //
+        //     // Set the IP Type-Of-Service priority for this client socket
+        //     if (options.tos != 0)
+        //         set_ip_type_of_service (sock, options.tos);
+        //
+        //     // Set the protocol-defined priority for this client socket
+        //     if (options.priority != 0)
+        //         set_socket_priority (sock, options.priority);
+        //
+        //     return sock;
         todo!()
     }
 
-    pub fn create_engine (&mut self, fd: ZmqFileDesc)
-    {
-        let mut endpoint_pair = EndpointUriPair::new (
-          &get_socket_name (fd, SocketEndLocal).unwrap(),
-          &get_socket_name (fd, SocketEndRemote).unwrap(), endpoint_type_bind);
+    pub fn create_engine(&mut self, fd: ZmqFileDesc) {
+        let mut endpoint_pair = EndpointUriPair::new(
+            &get_socket_name(fd, SocketEndLocal).unwrap(),
+            &get_socket_name(fd, SocketEndRemote).unwrap(),
+            endpoint_type_bind,
+        );
 
         // ZmqEngineInterface *engine = null_mut();
         let mut engine: ZmqEngineInterface;
         if (_wss) {
             // #ifdef ZMQ_HAVE_WSS
-            engine = WssEngine::new(fd, self.options, &mut endpoint_pair, address, false, _tls_cred,
-                                    std::string());
+            engine = WssEngine::new(
+                fd,
+                self.options,
+                &mut endpoint_pair,
+                address,
+                false,
+                _tls_cred,
+                std::string(),
+            );
             // #else
             // zmq_assert (false);
             // #endif
+        } else {
+            engine = ZmqWsEngine::new(fd, self.options, &mut endpoint_pair, address, false);
         }
-            else {
-                engine =
-                    ZmqWsEngine::new(fd, self.options, &mut endpoint_pair, address, false);
-            }
 
         // alloc_assert (engine);
 
         //  Choose I/O thread to run connecter in. Given that we are already
         //  running in an I/O thread, there must be at least one available.
-        let io_thread = self.choose_io_thread (self.options.affinity).unwrap();
+        let io_thread = self.choose_io_thread(self.options.affinity).unwrap();
         // zmq_assert (io_thread);
 
         //  Create and launch a session object.
-        let mut session = ZmqSessionBase::create (self.ctx, io_thread, false, self._socket, self.options, None);
+        let mut session =
+            ZmqSessionBase::create(self.ctx, io_thread, false, self._socket, self.options, None);
         // errno_assert (session);
-        session.inc_seqnum ();
-        launch_child (&session);
-        send_attach (session, engine, false);
+        session.inc_seqnum();
+        launch_child(&session);
+        send_attach(session, engine, false);
 
-        self._socket.event_accepted (endpoint_pair, fd);
+        self._socket.event_accepted(endpoint_pair, fd);
     }
-
 }

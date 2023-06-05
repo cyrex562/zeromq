@@ -41,12 +41,12 @@ use crate::defines::{ZMQ_DISH, ZMQ_GROUP_MAX_LENGTH};
 use crate::dish::DishSessionState::{body, group};
 use crate::dist::ZmqDist;
 use crate::fq::{self, ZmqFq};
-use crate::io_thread::ZmqIoThread;
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
+use crate::thread_context::ZmqThreadContext;
 use crate::utils::copy_bytes;
 
 // #include "macros.hpp"
@@ -330,7 +330,7 @@ impl DishSession {
     // ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),
     // _state (group)
     pub fn new(
-        io_thread: &mut ZmqIoThread,
+        io_thread: &mut ZmqThreadContext,
         connect_: bool,
         socket: &mut ZmqSocketbase,
         options: &mut ZmqOptions,

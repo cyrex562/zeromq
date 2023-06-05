@@ -36,21 +36,26 @@
 
 // #include <string.h>
 
-use std::mem;
-use std::ptr::null_mut;
-use libc::{accept, bind, c_int, close, getsockopt, listen, rmdir, unlink};
-use windows::Win32::Networking::WinSock::{closesocket, SOCK_STREAM, SOCKET_ERROR, SOL_SOCKET, WSA_ERROR, WSAECONNRESET, WSAEMFILE, WSAENOBUFS, WSAEWOULDBLOCK, WSAGetLastError};
 use crate::address::{get_socket_name, SocketEnd};
 use crate::address_family::AF_UNIX;
 use crate::dish::DishSessionState::group;
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::fd::ZmqFileDesc;
-use crate::io_thread::ZmqIoThread;
-use crate::ip::{create_ipc_wildcard_address, make_socket_noninheritable, open_socket, set_nosigpipe};
+use crate::ip::{
+    create_ipc_wildcard_address, make_socket_noninheritable, open_socket, set_nosigpipe,
+};
 use crate::ipc_address::IpcAddress;
 use crate::ops::zmq_errno;
 use crate::options::ZmqOptions;
 use crate::socket_base::ZmqSocketBase;
+use crate::thread_context::ZmqThreadContext;
+use libc::{accept, bind, c_int, close, getsockopt, listen, rmdir, unlink};
+use std::mem;
+use std::ptr::null_mut;
+use windows::Win32::Networking::WinSock::{
+    closesocket, WSAGetLastError, SOCKET_ERROR, SOCK_STREAM, SOL_SOCKET, WSAECONNRESET, WSAEMFILE,
+    WSAENOBUFS, WSAEWOULDBLOCK, WSA_ERROR,
+};
 
 // #include "ipc_address.hpp"
 // #include "io_thread.hpp"
@@ -75,7 +80,6 @@ pub struct IpcListener<'a> {
     pub _filename: String,
 
     pub options: &'a ZmqOptions,
-
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (IpcListener)
 }
 
@@ -84,9 +88,11 @@ impl IpcListener {
     // IpcListener (ZmqIoThread *io_thread_,
     //             socket: *mut ZmqSocketBase,
     //             options: &ZmqOptions);
-    pub fn new(io_thread: &mut ZmqIoThread,
-               socket: &mut ZmqSocketBase,
-               options: &ZmqOptions) -> Self {
+    pub fn new(
+        io_thread: &mut ZmqThreadContext,
+        socket: &mut ZmqSocketBase,
+        options: &ZmqOptions,
+    ) -> Self {
         // :
         //     ZmqStreamListenerBase (io_thread_, socket, options_), _has_file (false)
         Self {
@@ -155,10 +161,7 @@ impl IpcListener {
             }
 
             //  Bind the socket to the file path.
-            rc = unsafe {
-                bind(_s, (address.addr()),
-                     address.addrlen())
-            };
+            rc = unsafe { bind(_s, (address.addr()), address.addrlen()) };
             if (rc != 0) {
                 // goto
                 // error;
@@ -175,8 +178,8 @@ impl IpcListener {
         self._filename = addr.clone();
         self._has_file = true;
 
-        self._socket.event_listening(make_unconnected_bind_endpoint_pair(self._endpoint),
-                                     self._s);
+        self._socket
+            .event_listening(make_unconnected_bind_endpoint_pair(self._endpoint), self._s);
         return 0;
 
         // error:
@@ -185,7 +188,6 @@ impl IpcListener {
         // errno = err;
         // return -1;
     }
-
 
     // std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
     pub fn get_socket_name(&mut self, fd: ZmqFileDesc, socket_end_: SocketEnd) -> String {
@@ -202,8 +204,8 @@ impl IpcListener {
         //  If connection was reset by the peer in the meantime, just ignore it.
         //  TODO: Handle specific errors like ENFILE/EMFILE etc.
         if (fd == retired_fd) {
-            self._socket.event_accept_failed(
-                make_unconnected_bind_endpoint_pair(_endpoint), zmq_errno());
+            self._socket
+                .event_accept_failed(make_unconnected_bind_endpoint_pair(_endpoint), zmq_errno());
             return;
         }
 
@@ -213,12 +215,15 @@ impl IpcListener {
 
     //  Filter new connections if the OS provides a mechanism to get
     //  the credentials of the peer process.  Called from accept().
-// #if defined ZMQ_HAVE_SO_PEERCRED || defined ZMQ_HAVE_LOCAL_PEERCRED
-//     bool filter (ZmqFileDesc sock_);
-// #endif
+    // #if defined ZMQ_HAVE_SO_PEERCRED || defined ZMQ_HAVE_LOCAL_PEERCRED
+    //     bool filter (ZmqFileDesc sock_);
+    // #endif
 
     pub fn filter(&mut self, sock_: ZmqFileDesc) -> bool {
-        if (self.options.ipc_uid_accept_filters.is_empty() && self.options.ipc_pid_accept_filters.is_empty() && self.options.ipc_gid_accept_filters.empty()) {
+        if (self.options.ipc_uid_accept_filters.is_empty()
+            && self.options.ipc_pid_accept_filters.is_empty()
+            && self.options.ipc_gid_accept_filters.empty())
+        {
             return true;
         }
 
@@ -231,7 +236,13 @@ impl IpcListener {
                 return false;
             }
         }
-        if (self.options.ipc_uid_accept_filters.find(cred.uid) != self.options.ipc_uid_accept_filters.end() || self.options.ipc_gid_accept_filters.find(cred.gid) != self.options.ipc_gid_accept_filters.end() || self.options.ipc_pid_accept_filters.find(cred.pid) != self.options.ipc_pid_accept_filters.end()) {
+        if (self.options.ipc_uid_accept_filters.find(cred.uid)
+            != self.options.ipc_uid_accept_filters.end()
+            || self.options.ipc_gid_accept_filters.find(cred.gid)
+                != self.options.ipc_gid_accept_filters.end()
+            || self.options.ipc_pid_accept_filters.find(cred.pid)
+                != self.options.ipc_pid_accept_filters.end())
+        {
             return true;
         }
 
@@ -263,19 +274,20 @@ impl IpcListener {
         return false;
     }
 
-
     // int close ();
 
     pub fn close(&mut self) -> i32 {
         // zmq_assert (_s != retired_fd);
         let mut fd_for_event = self._s;
-// #ifdef ZMQ_HAVE_WINDOWS
+        // #ifdef ZMQ_HAVE_WINDOWS
         let mut rc = unsafe { closesocket(_s) };
         wsa_assert(rc != SOCKET_ERROR);
-// #else
-        unsafe { rc = close(_s); }
+        // #else
+        unsafe {
+            rc = close(_s);
+        }
         // errno_assert (rc == 0);
-// #endif
+        // #endif
 
         self._s = retired_fd;
 
@@ -285,7 +297,9 @@ impl IpcListener {
                 //  unlink in open since 656cdb959a7482c45db979c1d08ede585d12e315;
                 //  however, we must at least remove the file before removing the
                 //  directory, otherwise it will always fail
-                unsafe { rc = unlink(_filename.c_str()); }
+                unsafe {
+                    rc = unlink(_filename.c_str());
+                }
 
                 if (rc == 0) {
                     rc = ::rmdir(_tmp_socket_dirname.c_str());
@@ -295,16 +309,17 @@ impl IpcListener {
 
             if (rc != 0) {
                 self._socket.event_close_failed(
-                    make_unconnected_bind_endpoint_pair(_endpoint), zmq_errno());
+                    make_unconnected_bind_endpoint_pair(_endpoint),
+                    zmq_errno(),
+                );
                 return -1;
             }
         }
 
-        self._socket.event_closed(make_unconnected_bind_endpoint_pair(_endpoint),
-                                  fd_for_event);
+        self._socket
+            .event_closed(make_unconnected_bind_endpoint_pair(_endpoint), fd_for_event);
         return 0;
     }
-
 
     //  Accept the new connection. Returns the file descriptor of the
     //  newly created connection. The function may return retired_fd
@@ -316,31 +331,31 @@ impl IpcListener {
         //  The situation where connection cannot be accepted due to insufficient
         //  resources is considered valid and treated by ignoring the connection.
         // zmq_assert (_s != retired_fd);
-// #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
+        // #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
         let mut sock = accept4(_s, null_mut(), null_mut(), SOCK_CLOEXEC);
         // #else
         // struct sockaddr_storage ss;
         let ss: sockaddr_storage = sockaddr_storage::new();
         // memset (&ss, 0, mem::size_of::<ss>());
-// #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
+        // #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
         let ss_len = mem::size_of::<ss>();
-// #else
+        // #else
         let mut ss_len = mem::size_of::<ss>() as c_int;
-// #endif
+        // #endif
 
         let sock = unsafe { accept(_s, (&mut ss), &mut ss_len) };
-// #endif
+        // #endif
         unsafe {
             if (sock == retired_fd) {
-// #if defined ZMQ_HAVE_WINDOWS
+                // #if defined ZMQ_HAVE_WINDOWS
                 let last_error: WSA_ERROR = WSAGetLastError();
                 // wsa_assert(last_error == WSAEWOULDBLOCK || last_error == WSAECONNRESET
                 //     || last_error == WSAEMFILE || last_error == WSAENOBUFS);
-// #else
+                // #else
                 // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
                 // || errno == ECONNABORTED || errno == EPROTO
                 //     || errno == ENFILE);
-// #endif
+                // #endif
                 return retired_fd;
             }
         }
@@ -348,7 +363,7 @@ impl IpcListener {
         make_socket_noninheritable(sock);
 
         // IPC accept() filters
-// #if defined ZMQ_HAVE_SO_PEERCRED || defined ZMQ_HAVE_LOCAL_PEERCRED
+        // #if defined ZMQ_HAVE_SO_PEERCRED || defined ZMQ_HAVE_LOCAL_PEERCRED
         unsafe {
             if (!filter(sock)) {
                 let rc = close(sock as c_int);
@@ -356,17 +371,17 @@ impl IpcListener {
                 return retired_fd;
             }
         }
-// #endif
+        // #endif
 
         unsafe {
             if (set_nosigpipe(sock)) {
-// #ifdef ZMQ_HAVE_WINDOWS
+                // #ifdef ZMQ_HAVE_WINDOWS
                 let rc: i32 = closesocket(sock);
                 // wsa_assert(rc != SOCKET_ERROR);
-// #else
+                // #else
                 let rc = close(sock as c_int);
                 // errno_assert (rc == 0);
-// #endif
+                // #endif
                 return retired_fd;
             }
         }
@@ -374,7 +389,6 @@ impl IpcListener {
         return sock;
     }
 }
-
 
 // #if defined ZMQ_HAVE_SO_PEERCRED
 //

@@ -45,25 +45,28 @@
 // #include "socket_base.hpp"
 // #include "vmci.hpp"
 
-use std::ptr::null_mut;
-use bincode::options;
-use libc::{accept, close, ECONNABORTED, EMFILE, ENFILE, ENOBUFS, ENOMEM, EPROTO};
-use windows::s;
-use windows::Win32::Foundation::{BOOL, HANDLE_FLAG_INHERIT, SetHandleInformation};
-use windows::Win32::Networking::WinSock::{INVALID_SOCKET, SOCK_STREAM, SOCKET_ERROR, WSAECONNRESET, WSAEMFILE, WSAENOBUFS, WSAEWOULDBLOCK, WSAGetLastError};
 use crate::address::{get_socket_address, SocketEnd};
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
-use crate::io_thread::ZmqIoThread;
 use crate::ip::open_socket;
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::ops::zmq_errno;
 use crate::options::ZmqOptions;
 use crate::socket_base::ZmqSocketBase;
 use crate::stream_listener_base::ZmqStreamListenerBase;
+use crate::thread_context::ZmqThreadContext;
 use crate::vmci::{tune_vmci_buffer_size, tune_vmci_connect_timeout};
 use crate::vmci_address::ZmqVmciAddress;
+use bincode::options;
+use libc::{accept, close, ECONNABORTED, EMFILE, ENFILE, ENOBUFS, ENOMEM, EPROTO};
+use std::ptr::null_mut;
+use windows::s;
+use windows::Win32::Foundation::{SetHandleInformation, BOOL, HANDLE_FLAG_INHERIT};
+use windows::Win32::Networking::WinSock::{
+    WSAGetLastError, INVALID_SOCKET, SOCKET_ERROR, SOCK_STREAM, WSAECONNRESET, WSAEMFILE,
+    WSAENOBUFS, WSAEWOULDBLOCK,
+};
 
 // #if defined ZMQ_HAVE_WINDOWS
 // #include "windows.hpp"
@@ -74,14 +77,13 @@ use crate::vmci_address::ZmqVmciAddress;
 pub struct ZmqVmciListener {
     // : public ZmqStreamListenerBase
     pub stream_listener_base: ZmqStreamListenerBase,
-//
-//     ZmqVmciListener (ZmqIoThread *io_thread_,
-//                      socket: *mut ZmqSocketBase,
-//                      options: &ZmqOptions);
+    //
+    //     ZmqVmciListener (ZmqIoThread *io_thread_,
+    //                      socket: *mut ZmqSocketBase,
+    //                      options: &ZmqOptions);
 
     //  Set address to listen on.
     // int set_local_address (addr_: &str);
-
 
     // std::string get_socket_name (fd: ZmqFileDesc, SocketEnd socket_end_) const;
 
@@ -98,16 +100,19 @@ pub struct ZmqVmciListener {
 
     //  Address to listen on.
     pub address: ZmqVmciAddress,
-
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqVmciListener)
 }
 
 impl ZmqVmciListener {
     // ZmqVmciListener::ZmqVmciListener (ZmqIoThread *io_thread_,
-//                                        ZmqSocketBase *socket,
-//                                        options: &ZmqOptions) :
-//     ZmqStreamListenerBase (io_thread_, socket, options_)
-    pub fn new(io_thread_: &mut ZmqIoThread, socket: &mut ZmqSocketBase, options: &ZmqOptions) -> ZmqVmciListener {
+    //                                        ZmqSocketBase *socket,
+    //                                        options: &ZmqOptions) :
+    //     ZmqStreamListenerBase (io_thread_, socket, options_)
+    pub fn new(
+        io_thread_: &mut ZmqThreadContext,
+        socket: &mut ZmqSocketBase,
+        options: &ZmqOptions,
+    ) -> ZmqVmciListener {
         Self {
             stream_listener_base: ZmqStreamListenerBase {
                 own: Default::default(),
@@ -117,7 +122,10 @@ impl ZmqVmciListener {
                 _socket: socket.clone(),
                 _endpoint: "".to_string(),
             },
-            address: ZmqVmciAddress { address: (), parent: Default::default() },
+            address: ZmqVmciAddress {
+                address: (),
+                parent: Default::default(),
+            },
         }
     }
 
@@ -126,31 +134,33 @@ impl ZmqVmciListener {
 
         //  If connection was reset by the peer in the meantime, just ignore it.
         if (fd == retired_fd) {
-            self._socket.event_accept_failed(
-                make_unconnected_bind_endpoint_pair(_endpoint), zmq_errno());
+            self._socket
+                .event_accept_failed(make_unconnected_bind_endpoint_pair(_endpoint), zmq_errno());
             return;
         }
 
-        tune_vmci_buffer_size(this.get_ctx(), &mut fd, options.vmci_buffer_size,
-                              options.vmci_buffer_min_size,
-                              options.vmci_buffer_max_size);
+        tune_vmci_buffer_size(
+            this.get_ctx(),
+            &mut fd,
+            options.vmci_buffer_size,
+            options.vmci_buffer_min_size,
+            options.vmci_buffer_max_size,
+        );
 
         if (options.vmci_connect_timeout > 0) {
-// #if defined ZMQ_HAVE_WINDOWS
-            tune_vmci_connect_timeout(this.get_ctx(), &mut fd,
-                                      options.vmci_connect_timeout);
-// #else
-//         struct timeval timeout = {0, options.vmci_connect_timeout * 1000};
-//         tune_vmci_connect_timeout (this.get_ctx (), fd, timeout);
-// #endif
+            // #if defined ZMQ_HAVE_WINDOWS
+            tune_vmci_connect_timeout(this.get_ctx(), &mut fd, options.vmci_connect_timeout);
+            // #else
+            //         struct timeval timeout = {0, options.vmci_connect_timeout * 1000};
+            //         tune_vmci_connect_timeout (this.get_ctx (), fd, timeout);
+            // #endif
         }
 
         //  Create the engine object for this connection.
         create_engine(fd);
     }
 
-    pub fn get_socket_name(&mut self, fd: ZmqFileDesc,
-                           socket_end_: SocketEnd) -> String {
+    pub fn get_socket_name(&mut self, fd: ZmqFileDesc, socket_end_: SocketEnd) -> String {
         // TODO
         // struct sockaddr_storage ss;
         // const ZmqSocklen sl = get_socket_address (fd, socket_end_, &ss);
@@ -177,60 +187,64 @@ impl ZmqVmciListener {
         }
 
         //  Create a listening socket.
-        _s = open_socket(this.get_ctx().get_vmci_socket_family(), SOCK_STREAM as i32, 0);
-// #ifdef ZMQ_HAVE_WINDOWS
+        _s = open_socket(
+            this.get_ctx().get_vmci_socket_family(),
+            SOCK_STREAM as i32,
+            0,
+        );
+        // #ifdef ZMQ_HAVE_WINDOWS
         if (s == INVALID_SOCKET) {
             // errno = wsa_error_to_errno (WSAGetLastError ());
             return -1;
         }
-// #if !defined _WIN32_WCE
+        // #if !defined _WIN32_WCE
         //  On Windows, preventing sockets to be inherited by child processes.
         // BOOL brc = SetHandleInformation ((HANDLE) _s, HANDLE_FLAG_INHERIT, 0);
         // win_assert (brc);
-// #endif
-// #else
-//     if (_s == -1) {
-//         return -1;
-//     }
-// #endif
+        // #endif
+        // #else
+        //     if (_s == -1) {
+        //         return -1;
+        //     }
+        // #endif
 
         address.to_string(_endpoint);
 
         //  Bind the socket.
         rc = self.bind(_s, address.addr(), address.addrlen());
-// #ifdef ZMQ_HAVE_WINDOWS
+        // #ifdef ZMQ_HAVE_WINDOWS
         if (rc == SOCKET_ERROR) {
             // errno = wsa_error_to_errno (WSAGetLastError ());
             // goto error;
         }
-// #else
+        // #else
         if (rc != 0) {}
         // goto error;
-// #endif
+        // #endif
 
         //  Listen for incoming connections.
         rc = self.listen(_s, options.backlog);
-// #ifdef ZMQ_HAVE_WINDOWS
+        // #ifdef ZMQ_HAVE_WINDOWS
         if (rc == SOCKET_ERROR) {
             // errno = wsa_error_to_errno (WSAGetLastError ());
             // goto error;
         }
-// #else
+        // #else
         if (rc != 0) {
             // goto
             // error;
         }
-// #endif
+        // #endif
 
-        self._socket.event_listening(make_unconnected_bind_endpoint_pair(_endpoint),
-                                     _s);
+        self._socket
+            .event_listening(make_unconnected_bind_endpoint_pair(_endpoint), _s);
         return 0;
 
-// error:
-//     int err = errno;
-//     close ();
-//     errno = err;
-//     return -1;
+        // error:
+        //     int err = errno;
+        //     close ();
+        //     errno = err;
+        //     return -1;
     }
 
     pub fn accept() -> ZmqFileDesc {
@@ -240,7 +254,7 @@ impl ZmqVmciListener {
         // zmq_assert (_s != retired_fd);
         let mut sock: ZmqFileDesc = unsafe { accept(_s, null_mut(), null_mut()) };
 
-// #ifdef ZMQ_HAVE_WINDOWS
+        // #ifdef ZMQ_HAVE_WINDOWS
         if sock == INVALID_SOCKET as usize {
             // wsa_assert (WSAGetLastError () == WSAEWOULDBLOCK
             //             || WSAGetLastError () == WSAECONNRESET
@@ -248,12 +262,12 @@ impl ZmqVmciListener {
             //             || WSAGetLastError () == WSAENOBUFS);
             return retired_fd;
         }
-// #if !defined _WIN32_WCE
+        // #if !defined _WIN32_WCE
         //  On Windows, preventing sockets to be inherited by child processes.
         // let brc = SetHandleInformation ((HANDLE) sock, HANDLE_FLAG_INHERIT, 0);
         // win_assert (brc);
-// #endif
-// #else
+        // #endif
+        // #else
         if sock == -1 {
             // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
             //               || errno == ECONNABORTED || errno == EPROTO
@@ -261,17 +275,17 @@ impl ZmqVmciListener {
             //               || errno == ENFILE);
             return retired_fd;
         }
-// #endif
+        // #endif
 
         //  Race condition can cause socket not to be closed (if fork happens
         //  between accept and this point).
-// #ifdef FD_CLOEXEC
+        // #ifdef FD_CLOEXEC
         let rc = fcntl(sock, F_SETFD, FD_CLOEXEC);
         // errno_assert (rc != -1);
-// #endif
+        // #endif
 
         return sock;
     }
 
-// #endif
+    // #endif
 }

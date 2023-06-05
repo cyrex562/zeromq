@@ -6,12 +6,12 @@ use crate::content::ZmqContent;
 use crate::defines::ZMQ_GROUP_MAX_LENGTH;
 use crate::err::ZmqError;
 use crate::metadata::ZmqMetadata;
+use crate::utils::copy_bytes;
 use anyhow::anyhow;
 use libc::{c_long, EINVAL};
 use serde::{Deserialize, Serialize};
 use std::mem;
 use std::mem::size_of;
-use crate::utils::copy_bytes;
 
 // enum
 //     {
@@ -329,21 +329,16 @@ impl ZmqMessage {
         size: usize,
         hint: &mut [u8],
         content: Option<&mut ZmqContent>,
-    ) -> i32 {
+    ) -> anyhow::Result<()> {
         if size < MAX_VSM_SIZE {
-            let rc: i32 = self.init_size(size);
-
-            if (rc != -1) {
-                // TODO:
-                // memcpy (data (), data, size);
-                return 0;
-            }
-            return -1;
+            self.init_size(size)?;
+            copy_bytes(self.data_mut(), 0, data, 0, size);
+            return Ok(());
         }
         if content.is_some() {
             return self.init_external_storage(content.unwrap(), data, size, hint);
         }
-        return self.init_data(data, size, hint);
+        self.init_data(data, size, Some(hint))
     }
 
     pub fn init2(&mut self) -> anyhow::Result<()> {
@@ -396,7 +391,7 @@ impl ZmqMessage {
     pub fn init_buffer(&mut self, buf_: &mut [u8], size: usize) -> anyhow::Result<()> {
         self.init_size(size)?;
         if size > 0 {
-            copy_bytes(self.data_mut(), 0, buf_, size);
+            copy_bytes(self.data_mut(), 0, buf_, 0, size);
         }
         Ok(())
     }
@@ -407,7 +402,7 @@ impl ZmqMessage {
         data: &mut [u8],
         size: usize,
         hint: &mut [u8],
-    ) -> i32 {
+    ) -> anyhow::Result<()> {
         // zmq_assert (NULL != data);
         // zmq_assert (NULL != content);
 
@@ -425,7 +420,7 @@ impl ZmqMessage {
         // new (&_u.content->refcnt) AtomicCounter ();
         self.content.refcnt = AtomicCounter::new();
 
-        return 0;
+        Ok(())
     }
 
     pub fn init_data(

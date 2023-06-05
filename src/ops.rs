@@ -78,6 +78,7 @@ use crate::defines::{zmq_free_fn, ZMQ_IO_THREADS, ZmqMessage, ZMQ_PAIR, ZMQ_PEER
 use anyhow::{anyhow, bail};
 use bincode::options;
 use serde::Serialize;
+#[cfg(windows)]
 use windows::Win32::Networking::WinSock::{FD_SET, POLLIN, POLLOUT, POLLPRI, select, SOCKET_ERROR, TIMEVAL, WSAGetLastError};
 use crate::err::{errno_to_string, wsa_error_to_errno, ZmqError};
 use crate::err::ZmqError::{AddItemToPollerFailed, AddTimerFailed, BindSocketFailed, CancelTimerFailed, CheckTagFailed, CloseMessageFailed, CloseSocketFailed, ConnectPeerSocketFailed, ConnectSocketFailed, DeserializeZmqPeerFailed, DeserializeZmqSocketBaseFailed, ExecuteTimerFailed, GetContextPropertyFailed, GetMessageFailed, GetSocketOptionFailed, GetSocketPeerStateFailed, InitializeMessageFailed, InvalidEvent, InvalidFileDescriptor, InvalidInput, InvalidMessageProperty, InvalidPeer, JoinGroupFailed, LeaveGroupFailed, MallocFailed, ModifyPollerItemFailed, PollerWaitFailed, PollFailed, ProxyFailed, RemoveItemFromPollerFailed, ResetTimerFailed, SelectFailed, SendMessageFailed, SerializeZmqSocketBaseFailed, SetContextPropertyFailed, SetMessagePropertyFailed, SetTimerIntervalFailed, ShutdownContextFailed, TerminateEndpointFailed, UnsupportedSocketType};

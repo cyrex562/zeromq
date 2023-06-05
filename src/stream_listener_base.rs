@@ -34,26 +34,26 @@
 // #include "zmtp_engine.hpp"
 // #include "raw_engine.hpp"
 
-use std::ptr::null_mut;
-use bincode::options;
-use libc::close;
-use windows::Win32::Networking::WinSock::{closesocket, SOCKET_ERROR};
 use crate::address::get_socket_name;
 use crate::address::SocketEnd::{SocketEndLocal, SocketEndRemote};
 use crate::context::choose_io_thread;
 use crate::defines::ZmqHandle;
 use crate::endpoint::EndpointType::endpoint_type_bind;
-use crate::endpoint::{EndpointUriPair, make_unconnected_bind_endpoint_pair};
+use crate::endpoint::{make_unconnected_bind_endpoint_pair, EndpointUriPair};
 use crate::fd::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
-use crate::io_thread::ZmqIoThread;
 use crate::object::ZmqObject;
 use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
 use crate::raw_engine::RawEngine;
 use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
+use crate::thread_context::ZmqThreadContext;
 use crate::zmtp_engine::ZmqZmtpEngine;
+use bincode::options;
+use libc::close;
+use std::ptr::null_mut;
+use windows::Win32::Networking::WinSock::{closesocket, SOCKET_ERROR};
 
 // #ifndef ZMQ_HAVE_WINDOWS
 // #include <unistd.h>
@@ -89,17 +89,15 @@ pub struct ZmqStreamListenerBase {
     pub _socket: ZmqSocketBase,
     // String representation of endpoint to bind to
     pub _endpoint: String,
-
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqStreamListenerBase)
 }
 
 impl ZmqStreamListenerBase {
     pub fn new(
-        io_thread: &mut ZmqIoThread,
+        io_thread: &mut ZmqThreadContext,
         socket: &mut ZmqSocketBase,
-        options: &mut ZmqOptions) -> Self
-
-    {
+        options: &mut ZmqOptions,
+    ) -> Self {
         //   ZmqOwn (io_thread_, options_),
         //         ZmqIoObject (io_thread_),
         //         _s (retired_fd),
@@ -150,7 +148,8 @@ impl ZmqStreamListenerBase {
         let rc: i32 = ::close(_s);
         // errno_assert (rc == 0);
         // #endif
-        self._socket.event_closed(options, &make_unconnected_bind_endpoint_pair(_endpoint), _s);
+        self._socket
+            .event_closed(options, &make_unconnected_bind_endpoint_pair(_endpoint), _s);
         _s = retired_fd;
 
         return 0;
@@ -159,7 +158,9 @@ impl ZmqStreamListenerBase {
     pub fn create_engine(&mut self, options: &mut ZmqOptions, fd: ZmqFileDesc) {
         let endpoint_pair = EndpointUriPair::new(
             &get_socket_name(fd, SocketEndLocal).unwrap(),
-            &get_socket_name(fd, SocketEndRemote).unwrap(), endpoint_type_bind);
+            &get_socket_name(fd, SocketEndRemote).unwrap(),
+            endpoint_type_bind,
+        );
 
         let mut engine = ZmqEngineInterface::default();
         if (options.raw_socket) {
@@ -175,7 +176,14 @@ impl ZmqStreamListenerBase {
         // zmq_assert (io_thread);
 
         //  Create and launch a session object.
-        let session = ZmqSessionBase::create(&mut self.own.ctx, io_thread, false, &mut self._socket, options, None);
+        let session = ZmqSessionBase::create(
+            &mut self.own.ctx,
+            io_thread,
+            false,
+            &mut self._socket,
+            options,
+            None,
+        );
         // errno_assert (session);
         session.inc_seqnum();
         launch_child(session);
@@ -184,4 +192,3 @@ impl ZmqStreamListenerBase {
         self._socket.event_accepted(options, &endpoint_pair, fd);
     }
 }
-

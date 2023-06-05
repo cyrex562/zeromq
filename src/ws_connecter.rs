@@ -68,8 +68,6 @@
 // #include <TargetConditionals.h>
 // #endif
 
-use libc::{c_char, c_int, connect, EINPROGRESS, EINTR, getsockopt};
-use windows::Win32::Networking::WinSock::{SO_ERROR, SOL_SOCKET, WSA_ERROR, WSAEBADF, WSAEINPROGRESS, WSAENOBUFS, WSAENOPROTOOPT, WSAENOTSOCK, WSAEWOULDBLOCK, WSAGetLastError};
 use crate::address::get_socket_name;
 use crate::address::SocketEnd::SocketEndLocal;
 use crate::endpoint::EndpointType::endpoint_type_connect;
@@ -77,7 +75,6 @@ use crate::endpoint::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
-use crate::io_thread::ZmqIoThread;
 use crate::ip::{tune_socket, unblock_socket};
 use crate::ops::zmq_errno;
 use crate::options::ZmqOptions;
@@ -85,16 +82,21 @@ use crate::session_base::ZmqSessionBase;
 use crate::stream_connecter_base::StreamConnecterBase;
 use crate::tcp::{tcp_open_socket, tune_tcp_maxrt, tune_tcp_socket};
 use crate::tcp_address::TcpAddress;
+use crate::thread_context::ZmqThreadContext;
 use crate::ws_address::WsAddress;
 use crate::ws_engine::ZmqWsEngine;
 use crate::wss_engine::WssEngine;
+use libc::{c_char, c_int, connect, getsockopt, EINPROGRESS, EINTR};
+use windows::Win32::Networking::WinSock::{
+    WSAGetLastError, SOL_SOCKET, SO_ERROR, WSAEBADF, WSAEINPROGRESS, WSAENOBUFS, WSAENOPROTOOPT,
+    WSAENOTSOCK, WSAEWOULDBLOCK, WSA_ERROR,
+};
 
 pub const connect_timer_id: i32 = 2;
 
-pub struct ZmqWsConnecter<'a>
-{
-//: public StreamConnecterBase
-pub base: StreamConnecterBase<'a>,
+pub struct ZmqWsConnecter<'a> {
+    //: public StreamConnecterBase
+    pub base: StreamConnecterBase<'a>,
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
     // ZmqWsConnecter (ZmqIoThread *io_thread_,
@@ -105,10 +107,9 @@ pub base: StreamConnecterBase<'a>,
     //                 wss_: bool,
     //                 tls_hostname_: &str);
     // ~ZmqWsConnecter ();
-        // void create_engine (fd: ZmqFileDesc, local_address_: &str);
-  //
+    // void create_engine (fd: ZmqFileDesc, local_address_: &str);
+    //
     //  ID of the timer used to check the connect timeout, must be different from stream_connecter_base_t::reconnect_timer_id.
-
 
     //  Handlers for incoming commands.
     // void process_term (linger: i32);
@@ -145,7 +146,6 @@ pub base: StreamConnecterBase<'a>,
 }
 
 impl ZmqWsConnecter {
-
     // ZmqWsConnecter::ZmqWsConnecter (class ZmqIoThread *io_thread_,
     // pub struct ZmqSessionBase *session_,
     //                                      options: &ZmqOptions,
@@ -160,9 +160,17 @@ impl ZmqWsConnecter {
     //     _hostname (tls_hostname_)
     // {
     // }
-    pub fn new(io_thread_: &mut ZmqIoThread, session: &mut ZmqSessionBase, options: &mut ZmqOptions, addr: &mut WsAddress, delayed_start: bool, wss: bool, tls_hostname: &str) -> Self{
+    pub fn new(
+        io_thread_: &mut ZmqThreadContext,
+        session: &mut ZmqSessionBase,
+        options: &mut ZmqOptions,
+        addr: &mut WsAddress,
+        delayed_start: bool,
+        wss: bool,
+        tls_hostname: &str,
+    ) -> Self {
         Self {
-            base: StreamConnecterBase::new(io_thread, session, options, addr, delayed_start ),
+            base: StreamConnecterBase::new(io_thread, session, options, addr, delayed_start),
             _connect_timer_started: false,
             _wss: false,
             _hostname: "".to_string(),
@@ -174,122 +182,113 @@ impl ZmqWsConnecter {
     //     // zmq_assert (!_connect_timer_started);
     // }
 
-    pub fn process_term (&mut self, linger: i32)
-    {
+    pub fn process_term(&mut self, linger: i32) {
         if (_connect_timer_started) {
-            cancel_timer (connect_timer_id);
+            cancel_timer(connect_timer_id);
             _connect_timer_started = false;
         }
 
-        self.base.process_term (linger);
+        self.base.process_term(linger);
     }
 
-    pub fn out_event (&mut self)
-    {
+    pub fn out_event(&mut self) {
         if (_connect_timer_started) {
-            cancel_timer (connect_timer_id);
+            cancel_timer(connect_timer_id);
             _connect_timer_started = false;
         }
 
         //  TODO this is still very similar to (t)ipc_connecter_t, maybe the
         //  differences can be factored out
 
-        rm_handle ();
+        rm_handle();
 
-        let mut fd = self.connect ();
+        let mut fd = self.connect();
 
         //  Handle the error condition by attempt to reconnect.
-        if (fd == retired_fd || !self.tune_socket (&mut fd)) {
-            self.close ();
-            add_reconnect_timer ();
+        if (fd == retired_fd || !self.tune_socket(&mut fd)) {
+            self.close();
+            add_reconnect_timer();
             return;
         }
 
         if (_wss) {
             // #ifdef ZMQ_HAVE_WSS
-            create_engine(fd,
-                          get_socket_name (fd, SocketEndLocal));
+            create_engine(fd, get_socket_name(fd, SocketEndLocal));
         }
-    // #else
-    //         assert (false);
-    // #endif
+        // #else
+        //         assert (false);
+        // #endif
         else {
-            create_engine(fd,
-                          get_socket_name (fd, SocketEndLocal));
+            create_engine(fd, get_socket_name(fd, SocketEndLocal));
         }
     }
 
-    pub fn timer_event (&mut self, d_: i32)
-    {
+    pub fn timer_event(&mut self, d_: i32) {
         if (id_ == connect_timer_id) {
             _connect_timer_started = false;
-            rm_handle ();
-            self.close ();
-            add_reconnect_timer ();
+            rm_handle();
+            self.close();
+            add_reconnect_timer();
         } else {
             self.base.timer_event(id_);
         }
     }
 
-    pub fn start_connecting (&mut self)
-    {
+    pub fn start_connecting(&mut self) {
         //  Open the connecting socket.
-        let rc: i32 = self.open ();
+        let rc: i32 = self.open();
 
         //  Connect may succeed in synchronous manner.
         if (rc == 0) {
-            _handle = add_fd (_s);
-            out_event ();
+            _handle = add_fd(_s);
+            out_event();
         }
-
         //  Connection establishment may be delayed. Poll for its completion.
         else if (rc == -1 && errno == EINPROGRESS) {
-            _handle = add_fd (_s);
-            set_pollout (_handle);
-            self._socket.event_connect_delayed (
-              make_unconnected_connect_endpoint_pair (_endpoint), zmq_errno ());
+            _handle = add_fd(_s);
+            set_pollout(_handle);
+            self._socket.event_connect_delayed(
+                make_unconnected_connect_endpoint_pair(_endpoint),
+                zmq_errno(),
+            );
 
             //  add userspace connect timeout
-            add_connect_timer ();
+            add_connect_timer();
         }
-
         //  Handle any other error condition by eventual reconnect.
         else {
             if (_s != retired_fd) {
                 self.close();
             }
-            add_reconnect_timer ();
+            add_reconnect_timer();
         }
     }
 
-    pub fn add_connect_timer (&mut self)
-    {
+    pub fn add_connect_timer(&mut self) {
         if (self.options.connect_timeout > 0) {
-            add_timer (self.options.connect_timeout, connect_timer_id);
+            add_timer(self.options.connect_timeout, connect_timer_id);
             _connect_timer_started = true;
         }
     }
 
-    pub fn open (&mut self) -> i32
-    {
+    pub fn open(&mut self) -> i32 {
         // zmq_assert (_s == retired_fd);
 
         let mut tcp_addr = TcpAddress::default();
-        _s = tcp_open_socket (_addr.address, self.options, false, true,
-                              &mut tcp_addr);
+        _s = tcp_open_socket(_addr.address, self.options, false, true, &mut tcp_addr);
         if (_s == retired_fd) {
             return -1;
         }
 
         // Set the socket to non-blocking mode so that we get async connect().
-        unblock_socket (_s);
+        unblock_socket(_s);
 
         //  Connect to the remote peer.
-    // #ifdef ZMQ_HAVE_VXWORKS
-    //     let rc = connect (_s,  tcp_addr.addr (), tcp_addr.addrlen ());
-    // #else
+        // #ifdef ZMQ_HAVE_VXWORKS
+        //     let rc = connect (_s,  tcp_addr.addr (), tcp_addr.addrlen ());
+        // #else
         let rc: i32 = unsafe { connect(_s, tcp_addr.addr(), tcp_addr.addrlen()) };
-    // #endif
+        // #endif
         //  Connect was successful immediately.
         if (rc == 0) {
             return 0;
@@ -297,50 +296,53 @@ impl ZmqWsConnecter {
 
         //  Translate error codes indicating asynchronous connect has been
         //  launched to a uniform EINPROGRESS.
-    // #ifdef ZMQ_HAVE_WINDOWS
+        // #ifdef ZMQ_HAVE_WINDOWS
         let last_error: i32 = unsafe { WSAGetLastError() } as i32;
         if last_error == WSAEINPROGRESS || last_error == WSAEWOULDBLOCK {
             errno = EINPROGRESS;
-        }
-        else {
+        } else {
             errno = wsa_error_to_errno(last_error as WSA_ERROR);
         }
-    // #else
+        // #else
         if (errno == EINTR) {
             errno = EINPROGRESS;
         }
-    // #endif
+        // #endif
         return -1;
     }
 
-    pub fn connect (&mut self) -> ZmqFileDesc
-    {
+    pub fn connect(&mut self) -> ZmqFileDesc {
         //  Async connect has finished. Check whether an error occurred
         let mut err = 0;
-    // #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
-    //     int len = sizeof err;
-    // #else
-    //     socklen_t len = sizeof err;
-    // #endif
+        // #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
+        //     int len = sizeof err;
+        // #else
+        //     socklen_t len = sizeof err;
+        // #endif
         let mut len = 4usize;
 
         let rc: i32 = unsafe {
-            getsockopt(_s, SOL_SOCKET, SO_ERROR,
-                       (&mut err) as *mut c_char, &mut (len as c_int))
+            getsockopt(
+                _s,
+                SOL_SOCKET,
+                SO_ERROR,
+                (&mut err) as *mut c_char,
+                &mut (len as c_int),
+            )
         };
 
         //  Assert if the error was caused by 0MQ bug.
         //  Networking problems are OK. No need to assert.
-    // #ifdef ZMQ_HAVE_WINDOWS
+        // #ifdef ZMQ_HAVE_WINDOWS
         // zmq_assert (rc == 0);
         if (err != 0) {
-            if (err == WSAEBADF || err == WSAENOPROTOOPT || err == WSAENOTSOCK
-                || err == WSAENOBUFS) {
-                wsa_assert_no (err);
+            if (err == WSAEBADF || err == WSAENOPROTOOPT || err == WSAENOTSOCK || err == WSAENOBUFS)
+            {
+                wsa_assert_no(err);
             }
             return retired_fd;
         }
-    // #else
+        // #else
         //  Following code should handle both Berkeley-derived socket
         //  implementations and Solaris.
         if (rc == -1) {
@@ -348,16 +350,16 @@ impl ZmqWsConnecter {
         }
         if (err != 0) {
             errno = err;
-    // #if !defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
+            // #if !defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
             // errno_assert (errno != EBADF && errno != ENOPROTOOPT
             //               && errno != ENOTSOCK && errno != ENOBUFS);
-    // #else
+            // #else
             // errno_assert (errno != ENOPROTOOPT && errno != ENOTSOCK
             //               && errno != ENOBUFS);
-    // #endif
+            // #endif
             return retired_fd;
         }
-    // #endif
+        // #endif
 
         //  Return the newly connected socket.
         let result = _s;
@@ -365,41 +367,49 @@ impl ZmqWsConnecter {
         return result;
     }
 
-    pub fn tune_socket (&mut self, fd: &mut ZmqFileDesc) -> bool
-    {
-        let rc: i32 =
-          tune_tcp_socket (fd) | tune_tcp_maxrt (fd, self.options.tcp_maxrt);
+    pub fn tune_socket(&mut self, fd: &mut ZmqFileDesc) -> bool {
+        let rc: i32 = tune_tcp_socket(fd) | tune_tcp_maxrt(fd, self.options.tcp_maxrt);
         return rc == 0;
     }
 
-    pub fn create_engine (&mut self, fd: ZmqFileDesc, local_address_: &str)
-    {
-        let mut endpoint_pair = EndpointUriPair::new(local_address_, _endpoint, endpoint_type_connect);
+    pub fn create_engine(&mut self, fd: ZmqFileDesc, local_address_: &str) {
+        let mut endpoint_pair =
+            EndpointUriPair::new(local_address_, _endpoint, endpoint_type_connect);
 
         //  Create the engine object for this connection.
         let mut engine: ZmqEngineInterface = ZmqEngineInterface::new();
         if (_wss) {
-    // #ifdef ZMQ_HAVE_WSS
-            engine =
-              WssEngine::new(fd, self.options, &mut endpoint_pair, *_addr.resolved.ws_addr,
-                            true, None, _hostname);
-    // #else
-    //         LIBZMQ_UNUSED (_hostname);
-    //         assert (false);
-    // #endif
+            // #ifdef ZMQ_HAVE_WSS
+            engine = WssEngine::new(
+                fd,
+                self.options,
+                &mut endpoint_pair,
+                *_addr.resolved.ws_addr,
+                true,
+                None,
+                _hostname,
+            );
+        // #else
+        //         LIBZMQ_UNUSED (_hostname);
+        //         assert (false);
+        // #endif
         } else {
             engine = ZmqWsEngine::new(
-                fd, self.options, &endpoint_pair, *_addr.resolved.ws_addr, true);
+                fd,
+                self.options,
+                &endpoint_pair,
+                *_addr.resolved.ws_addr,
+                true,
+            );
         }
         // alloc_assert (engine);
 
         //  Attach the engine to the corresponding session object.
-        send_attach (_session, engine);
+        send_attach(_session, engine);
 
         //  Shut the connecter down.
-        terminate ();
+        terminate();
 
-        self._socket.event_connected (endpoint_pair, fd);
+        self._socket.event_connected(endpoint_pair, fd);
     }
-
 }

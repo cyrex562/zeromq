@@ -36,8 +36,8 @@
 //  Abstract interface to be implemented by various engines.
 
 use crate::endpoint::EndpointUriPair;
-use crate::io_thread::ZmqIoThread;
 use crate::session_base::ZmqSessionBase;
+use crate::thread_context::ZmqThreadContext;
 
 enum ZmqErrorReason {
     protocol_error,
@@ -55,7 +55,7 @@ pub trait ZmqEngineInterface {
 
     //  Plug the engine to the session.
     // virtual void plug (ZmqIoThread *io_thread_, pub struct ZmqSessionBase *session_) = 0;
-    fn plug(&mut self, io_thread: &mut ZmqIoThread, session: &mut ZmqSessionBase);
+    fn plug(&mut self, io_thread: &mut ZmqThreadContext, session: &mut ZmqSessionBase);
 
     //  Terminate and deallocate the engine. Note that 'detached'
     //  events are not fired on termination.

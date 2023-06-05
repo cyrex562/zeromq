@@ -4,12 +4,12 @@ use libc::c_void;
 
 use crate::endpoint::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
-use crate::io_thread::ZmqIoThread;
 use crate::object::ZmqObject;
 use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
+use crate::thread_context::ZmqThreadContext;
 
 pub enum CommandType {
     stop,
@@ -215,7 +215,7 @@ impl ZmqEngineInterface for ZmqCommand {
         todo!()
     }
 
-    fn plug(&mut self, io_thread: &mut ZmqIoThread, session: &mut ZmqSessionBase) {
+    fn plug(&mut self, io_thread: &mut ZmqThreadContext, session: &mut ZmqSessionBase) {
         todo!()
     }
 

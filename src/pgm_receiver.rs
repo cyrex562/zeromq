@@ -55,11 +55,11 @@ use crate::endpoint::{EndpointType, EndpointUriPair};
 use crate::engine_interface::ZmqEngineInterface;
 use crate::fd::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
-use crate::io_thread::ZmqIoThread;
 use crate::message::ZmqMessage;
 use crate::options::ZmqOptions;
 use crate::pgm_socket;
 use crate::session_base::ZmqSessionBase;
+use crate::thread_context::ZmqThreadContext;
 use crate::utils::{decoder, get_u16};
 use crate::v1_decoder::ZmqV1Decoder;
 
@@ -135,7 +135,7 @@ impl ZmqEngineInterface for ZmqPgmReceiver {
         todo!()
     }
 
-    fn plug(&mut self, io_thread: &mut ZmqIoThread, session: &mut ZmqSessionBase) {
+    fn plug(&mut self, io_thread: &mut ZmqThreadContext, session: &mut ZmqSessionBase) {
         todo!()
     }
 
@@ -162,7 +162,7 @@ impl ZmqEngineInterface for ZmqPgmReceiver {
 
 impl ZmqPgmReceiver {
     // ZmqPgmReceiver (parent_: &mut ZmqIoThread, options: &ZmqOptions);
-    pub fn new(parent: &mut ZmqIoThread, options: &ZmqOptions) -> Self {
+    pub fn new(parent: &mut ZmqThreadContext, options: &ZmqOptions) -> Self {
         // : ZmqIoObject (parent_),
         //     has_rx_timer (false),
         //     pgm_socket (true, options_),
@@ -209,7 +209,7 @@ impl ZmqPgmReceiver {
     // void drop_subscriptions ();
 
     // void plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_);
-    pub fn plug(&mut self, io_thread: &mut ZmqIoThread, session_: &mut ZmqSessionBase) {
+    pub fn plug(&mut self, io_thread: &mut ZmqThreadContext, session_: &mut ZmqSessionBase) {
         // LIBZMQ_UNUSED (io_thread_);
         //  Retrieve PGM fds and start polling.
         let socket_fd = retired_fd;

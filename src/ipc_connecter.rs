@@ -49,12 +49,12 @@ use crate::address_family::AF_UNIX;
 use crate::defines::ZMQ_RECONNECT_STOP_AFTER_DISCONNECT;
 use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
-use crate::io_thread::ZmqIoThread;
 use crate::ip::{open_socket, unblock_socket};
 use crate::ops::zmq_errno;
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 use crate::stream_connecter_base::StreamConnecterBase;
+use crate::thread_context::ZmqThreadContext;
 use libc::{
     c_char, close, connect, getsockopt, open, ECONNREFUSED, EHOSTUNREACH, EINPROGRESS, EINTR,
     ENETDOWN, ENETUNREACH, ENOPROTOOPT, ETIMEDOUT,
@@ -86,7 +86,7 @@ impl IpcConnecter {
     //                 Address *addr_,
     //              delayed_start_: bool);
     pub fn new(
-        io_thread_: &mut ZmqIoThread,
+        io_thread_: &mut ZmqThreadContext,
         session: &mut ZmqSessionBase,
         options: &ZmqOptions,
         addr: &mut ZmqAddress,
@@ -143,7 +143,11 @@ impl IpcConnecter {
             // stream_connecter_base_t).
         }
         //stop connecting after called zmq_disconnect
-        else if (rc == -1 && (self.options.reconnect_stop & ZMQ_RECONNECT_STOP_AFTER_DISCONNECT) && errno == ECONNREFUSED && self._socket.is_disconnected()) {
+        else if (rc == -1
+            && (self.options.reconnect_stop & ZMQ_RECONNECT_STOP_AFTER_DISCONNECT)
+            && errno == ECONNREFUSED
+            && self._socket.is_disconnected())
+        {
             if (_s != retired_fd) {
                 // unsafe { close() };
             }

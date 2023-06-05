@@ -29,9 +29,9 @@
 
 use crate::atomic_counter::AtomicCounter;
 use crate::context::ZmqContext;
-use crate::io_thread::ZmqIoThread;
 use crate::object::ZmqObject;
 use crate::options::ZmqOptions;
+use crate::thread_context::ZmqThreadContext;
 use bincode::options;
 use std::sync::atomic::Ordering;
 
@@ -104,7 +104,7 @@ impl ZmqOwn {
     // processed_seqnum (0),
     // _owner (null_mut()),
     // term_acks (0)
-    pub fn new2(io_thread: &mut ZmqIoThread, options: &ZmqOptions) -> Self {
+    pub fn new2(io_thread: &mut ZmqThreadContext, options: &ZmqOptions) -> Self {
         Self {
             options: Default::default(),
             terminating: false,

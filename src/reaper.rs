@@ -27,15 +27,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use libc::{EAGAIN, EINTR};
 use crate::command::ZmqCommand;
 use crate::context::ZmqContext;
 use crate::defines::ZmqHandle;
-use crate::devpoll::Poller;
+use crate::devpoll::ZmqPoller;
 use crate::mailbox::ZmqMailbox;
 use crate::object::ZmqObject;
 use crate::poll_events_interface::ZmqPollEventsInterface;
 use crate::socket_base::ZmqSocketBase;
+use libc::{EAGAIN, EINTR};
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"
@@ -80,15 +80,15 @@ pub struct ZmqReaper {
     pub mailbox_handle: ZmqHandle,
     //  I/O multiplexing is performed using a poller object.
     // Poller *poller;
-    pub poller: Poller,
+    pub poller: ZmqPoller,
     //  Number of sockets being reaped at the moment.
     pub _sockets: i32,
     //  If true, we were already asked to terminate.
     pub terminating: bool,
-// #ifdef HAVE_FORK
+    // #ifdef HAVE_FORK
     // the process that created this context. Used to detect forking.
     // pid_t _pid;
-// #endif
+    // #endif
 
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (reaper_t)
 }
@@ -104,7 +104,7 @@ impl ZmqReaper {
         let mut out = Self {
             mailbox: Default::default(),
             mailbox_handle: 0,
-            poller: Poller::new(ctx),
+            poller: ZmqPoller::new(ctx),
             _sockets: 0,
             terminating: false,
         };
@@ -121,9 +121,9 @@ impl ZmqReaper {
             out.poller.set_pollin(&out.mailbox_handle);
         }
 
-// #ifdef HAVE_FORK
-//         _pid = getpid ();
-// #endif
+        // #ifdef HAVE_FORK
+        //         _pid = getpid ();
+        // #endif
         out
     }
 
@@ -142,12 +142,12 @@ impl ZmqReaper {
 
     pub fn in_event() {
         loop {
-// #ifdef HAVE_FORK
-//         if ( (_pid != getpid ())) {
-//             //printf("reaper_t::in_event return in child process %d\n", getpid());
-//             return;
-//         }
-// #endif
+            // #ifdef HAVE_FORK
+            //         if ( (_pid != getpid ())) {
+            //             //printf("reaper_t::in_event return in child process %d\n", getpid());
+            //             return;
+            //         }
+            // #endif
 
             //  Get the next command. If there is none, exit.
             let mut cmd = ZmqCommand::default();
@@ -225,7 +225,6 @@ impl ZmqPollEventsInterface for ZmqReaper {
 //     return &mailbox;
 // }
 
-
 // void ZmqReaper::out_event ()
 // {
 //     // zmq_assert (false);
@@ -235,9 +234,3 @@ impl ZmqPollEventsInterface for ZmqReaper {
 // {
 //     // zmq_assert (false);
 // }
-
-
-
-
-
-

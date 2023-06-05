@@ -32,13 +32,13 @@
 // #include "i_poll_events.hpp"
 // #include "err.hpp"
 
-use std::collections::HashMap;
-use std::sync::atomic::AtomicU64;
-use libc::clock_t;
-use crate::io_thread::ZmqIoThread;
 use crate::poll_events_interface::ZmqPollEventsInterface;
+use crate::thread_context::ZmqThreadContext;
 use crate::thread_ctx::ThreadCtx;
 use crate::timers::ZmqTimers;
+use libc::clock_t;
+use std::collections::HashMap;
+use std::sync::atomic::AtomicU64;
 
 #[derive(Default, Debug, Clone)]
 struct timer_info_t {
@@ -61,14 +61,13 @@ pub struct PollerBase {
     //  registered.
     // AtomicCounter _load;
     pub _load: AtomicU64,
-
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (poller_base_t)
 }
 
 impl PollerBase {
     //
-//     PollerBase () ZMQ_DEFAULT;
-//     virtual ~PollerBase ();
+    //     PollerBase () ZMQ_DEFAULT;
+    //     virtual ~PollerBase ();
     // Methods from the poller concept.
     // int get_load () const;
     // void add_timer (timeout: i32, ZmqPollEventsInterface *sink_, id_: i32);
@@ -92,7 +91,10 @@ impl PollerBase {
 
     pub fn add_timer(&mut self, timeout: i32, sink_: &mut ZmqPollEventsInterface, id_: i32) {
         let expiration = self._clock.now_ms() + timeout;
-        let info = timer_info_t { sink: sink_, id: id_ };
+        let info = timer_info_t {
+            sink: sink_,
+            id: id_,
+        };
         self._timers.insert(expiration, info);
     }
 
@@ -167,7 +169,7 @@ pub struct WorkerPollerBase<'a> {
     pub ctx: &'a ThreadCtx,
     //  Handle of the physical thread doing the I/O work.
     // ZmqThread _worker;
-    pub _worker: ZmqIoThread<'a>,
+    pub _worker: ZmqThreadContext<'a>,
 }
 
 impl WorkerPollerBase {
@@ -184,8 +186,8 @@ impl WorkerPollerBase {
     // void stop_worker ();
     //  Main worker thread routine.
     // static void worker_routine (arg_: &mut [u8]);
-//
-//     virtual void loop () = 0;
+    //
+    //     virtual void loop () = 0;
     pub fn new(ctx: &ThreadCtx) -> Self {
         Self {
             poller_base: Default::default(),
@@ -204,15 +206,12 @@ impl WorkerPollerBase {
     }
 
     pub fn check_thread(&mut self) {
-// #ifndef NDEBUG
+        // #ifndef NDEBUG
         // zmq_assert (!_worker.get_started () || _worker.is_current_thread ());
-// #endif
+        // #endif
     }
 
     pub fn worker_routine(&mut self, arg_: &mut [u8]) {
         // ( (arg_))->loop ();
     }
 }
-
-
-
