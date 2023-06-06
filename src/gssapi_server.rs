@@ -43,12 +43,13 @@
 use std::ptr::null_mut;
 
 use libc::{EAGAIN, EPROTO};
+use crate::context::ZmqContext;
 
 use crate::defines::ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND;
 use crate::gssapi_mechanism_base::ZmqGssApiMechanismBase;
 use crate::mechanism::ZmqMechanismStatus;
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
+
 use crate::session_base::ZmqSessionBase;
 use crate::zap_client::ZmqZapClient;
 
@@ -84,7 +85,7 @@ impl ZmqGssApiServer {
     // ZmqGssApiServer (ZmqSessionBase *session_, const std::string &peer_address,
     // options: &ZmqOptions);
 
-    pub fn new(session: &mut ZmqSessionBase, peer_address: &str, options: &mut ZmqOptions) -> Self {
+    pub fn new(ctx: &mut ZmqContext, session: &mut ZmqSessionBase, peer_address: &str) -> Self {
         // ZmqMechanismBase (session_, options_),
         //     ZmqGssApiMechanismBase (session_, options_),
         //     ZmqZapClient (session_, peer_address_, options_),
@@ -93,8 +94,8 @@ impl ZmqGssApiServer {
         //     self.state (recv_next_token),
         //     self.security_context_established (false)
         let mut out = Self {
-            mechanism_base: ZmqGssApiMechanismBase::new(session, options),
-            zap_client: ZmqZapClient(session, peer_address, options),
+            mechanism_base: ZmqGssApiMechanismBase::new(session, ctx),
+            zap_client: ZmqZapClient(session, peer_address, ctx),
             session: session,
             state: GssApiServerState::recv_next_token,
             security_context_established: false,
@@ -107,7 +108,7 @@ impl ZmqGssApiServer {
             // assert (principal_name);
             // memcpy (principal_name, options_.gss_principal,
             // principal_size + 1);
-            principal_name = options.gss_principal.clone();
+            principal_name = ctx.gss_principal.clone();
             let name_type = convert_nametype(options_.gss_principal_nt);
             if (acquire_credentials(&out.mechanism_base.principal_name, &cred, name_type) != 0) {
                 out.mechanism_base.maj_stat = GSS_S_FAILURE;

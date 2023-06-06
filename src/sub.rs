@@ -33,7 +33,7 @@ use crate::context::ZmqContext;
 use crate::decoder_allocators::data;
 use crate::defines::{ZMQ_SUB, ZMQ_UNSUBSCRIBE};
 use crate::message::{close_and_return, ZmqMessage};
-use crate::options::ZmqOptions;
+
 use crate::xsub::XSub;
 
 // #include "precompiled.hpp"
@@ -53,14 +53,14 @@ pub xsub: XSub,
 }
 
 impl ZmqSub {
-    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
+    pub fn new(ctx: &mut ZmqContext, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
 
     {
         // XSub (parent_, tid, sid_)
-        options.type_ = ZMQ_SUB as i32;
+        ctx.type_ = ZMQ_SUB as i32;
         //  Switch filtering messages on (as opposed to XSUB which where the
         //  filtering is off).
-        options.filter = true;
+        ctx.filter = true;
         Self {
             xsub: XSub::new(parent, tid, sid_),
         }

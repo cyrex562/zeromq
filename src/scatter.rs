@@ -32,7 +32,7 @@ use crate::context::ZmqContext;
 use crate::defines::ZMQ_SCATTER;
 use crate::lb::LoadBalancer;
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
-use crate::options::ZmqOptions;
+
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 
@@ -62,7 +62,7 @@ pub struct ZmqScatter {
 }
 
 impl ZmqScatter {
-    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
+    pub fn new(options: &mut ZmqContext, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
 
     {
         // ZmqSocketBase (parent_, tid, sid_, true)

@@ -40,7 +40,7 @@ use crate::mechanism::{ZmqMechanism, ZmqMechanismStatus};
 use crate::mechanism::ZmqMechanismStatus::ready;
 use crate::mechanism_base::ZmqMechanismBase;
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
+
 use crate::plain_client::PlainClientState::{error_command_received, sending_initiate, waiting_for_ready, waiting_for_welcome};
 use crate::session_base::ZmqSessionBase;
 use crate::utils::{cmp_bytes, copy_bytes, advance_ptr};
@@ -71,9 +71,9 @@ pub struct PlainClient
 
 impl PlainClient {
     // PlainClient (ZmqSessionBase *session_, options: &ZmqOptions);
-    pub fn new(session: &mut ZmqSessionBase, options: &mut ZmqOptions) -> Self {
+    pub fn new(session: &mut ZmqSessionBase, options: &mut ZmqContext) -> Self {
         Self {
-            mechanism_base: ZmqMechanismBase::new(session, options),
+            mechanism_base: ZmqMechanismBase::new(options, session),
             _state: PlainClientState::sending_hello,
         }
     }

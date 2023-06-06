@@ -55,7 +55,7 @@ pub struct OwnCommandArgs {
 
 #[derive(Default, Debug, Clone)]
 pub struct AttachCommandArgs {
-    pub engine: *mut ZmqEngineInterface,
+    // pub engine: *mut ZmqEngineInterface,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -128,63 +128,63 @@ pub struct DoneCommandArgs {}
 #[derive(Default, Debug, Clone)]
 pub struct ReapedCommandArgs {}
 
-#[derive(Default, Debug, Clone)]
-pub union ArgsUnion<'a> {
-    //  Sent to I/O thread to let it know that it should
-    //  terminate itself.
-    pub stop: StopCommandArgs,
-    //  Sent to I/O object to make it register with its I/O thread.
-    pub plug: PlugCommandArgs,
-    //  Sent to socket to let it know about the newly created object.
-    pub own: OwnCommandArgs,
-    //  Attach the engine to the session. If engine is NULL, it informs
-    //  session that the connection have failed.
-    pub attach: AttachCommandArgs,
-    //  Sent from session to socket to establish pipe(s) between them.
-    //  Caller have used inc_seqnum beforehand sending the command.
-    pub bind: BindCommandArgs,
-    //  Sent by pipe writer to inform dormant pipe reader that there
-    //  are messages in the pipe.
-    pub activate_read: ActivateReadCommandArgs,
-    //  Sent by pipe reader to inform pipe writer about how many
-    //  messages it has read so far.
-    pub activate_write: ActivateWriteCommandArgs,
-    //  Sent by pipe reader to writer after creating a new inpipe.
-    //  The parameter is actually of type ZmqPipe::upipe_t, however,
-    //  its definition is private so we'll have to do with void*.
-    pub hiccup: HiccupCommandArgs<'a>,
-    //  Sent by pipe reader to pipe writer to ask it to terminate
-    //  its end of the pipe.
-    pub pipe_term: PipeTermCommandArgs,
-    //  Pipe writer acknowledges pipe_term command.
-    pub pipe_term_ack: PipeTermAckCommandArgs,
-    //  Sent by one of pipe to another part for modify hwm
-    pub pipe_hwm: PipeHwmCommandArgs,
-    //  Sent by I/O object ot the socket to request the shutdown of
-    //  the I/O object.
-    pub term_req: TermReqCommandArgs,
-    //  Sent by socket to I/O object to start its shutdown.
-    pub term: TermCommandArgs,
-    //  Sent by I/O object to the socket to acknowledge it has
-    //  shut down.
-    pub term_ack: TermAckCommandArgs,
-    //  Sent by session_base (I/O thread) to socket (application thread)
-    //  to ask to disconnect the endpoint.
-    pub term_endpoint: TermEndpointCommandArgs,
-    //  Transfers the ownership of the closed socket
-    //  to the reaper thread.
-    pub reap: ReapCommandArgs,
-    //  Closed socket notifies the reaper that it's already deallocated.
-    pub reaped: ReapedCommandArgs,
-    //  Send application-side pipe count and ask to send monitor event
-    pub pipe_peer_stats: PipePeerStatsCommandArgs,
-    //  Collate application thread and I/O thread pipe counts and endpoints
-    //  and send as event
-    pub pip_stats_publish: PipeStatsPublishCommandArgs,
-    //  Sent by reaper thread to the term thread when all the sockets
-    //  are successfully deallocated.
-    pub done: DoneCommandArgs,
-}
+// #[derive(Default, Debug, Clone)]
+// pub union ArgsUnion<'a> {
+//     //  Sent to I/O thread to let it know that it should
+//     //  terminate itself.
+//     pub stop: StopCommandArgs,
+//     //  Sent to I/O object to make it register with its I/O thread.
+//     pub plug: PlugCommandArgs,
+//     //  Sent to socket to let it know about the newly created object.
+//     pub own: OwnCommandArgs,
+//     //  Attach the engine to the session. If engine is NULL, it informs
+//     //  session that the connection have failed.
+//     pub attach: AttachCommandArgs,
+//     //  Sent from session to socket to establish pipe(s) between them.
+//     //  Caller have used inc_seqnum beforehand sending the command.
+//     pub bind: BindCommandArgs,
+//     //  Sent by pipe writer to inform dormant pipe reader that there
+//     //  are messages in the pipe.
+//     pub activate_read: ActivateReadCommandArgs,
+//     //  Sent by pipe reader to inform pipe writer about how many
+//     //  messages it has read so far.
+//     pub activate_write: ActivateWriteCommandArgs,
+//     //  Sent by pipe reader to writer after creating a new inpipe.
+//     //  The parameter is actually of type ZmqPipe::upipe_t, however,
+//     //  its definition is private so we'll have to do with void*.
+//     pub hiccup: HiccupCommandArgs<'a>,
+//     //  Sent by pipe reader to pipe writer to ask it to terminate
+//     //  its end of the pipe.
+//     pub pipe_term: PipeTermCommandArgs,
+//     //  Pipe writer acknowledges pipe_term command.
+//     pub pipe_term_ack: PipeTermAckCommandArgs,
+//     //  Sent by one of pipe to another part for modify hwm
+//     pub pipe_hwm: PipeHwmCommandArgs,
+//     //  Sent by I/O object ot the socket to request the shutdown of
+//     //  the I/O object.
+//     pub term_req: TermReqCommandArgs,
+//     //  Sent by socket to I/O object to start its shutdown.
+//     pub term: TermCommandArgs,
+//     //  Sent by I/O object to the socket to acknowledge it has
+//     //  shut down.
+//     pub term_ack: TermAckCommandArgs,
+//     //  Sent by session_base (I/O thread) to socket (application thread)
+//     //  to ask to disconnect the endpoint.
+//     pub term_endpoint: TermEndpointCommandArgs,
+//     //  Transfers the ownership of the closed socket
+//     //  to the reaper thread.
+//     pub reap: ReapCommandArgs,
+//     //  Closed socket notifies the reaper that it's already deallocated.
+//     pub reaped: ReapedCommandArgs,
+//     //  Send application-side pipe count and ask to send monitor event
+//     pub pipe_peer_stats: PipePeerStatsCommandArgs,
+//     //  Collate application thread and I/O thread pipe counts and endpoints
+//     //  and send as event
+//     pub pip_stats_publish: PipeStatsPublishCommandArgs,
+//     //  Sent by reaper thread to the term thread when all the sockets
+//     //  are successfully deallocated.
+//     pub done: DoneCommandArgs,
+// }
 
 //  This structure defines the commands that can be sent between threads.
 #[derive(Default, Debug, Clone)]
@@ -192,10 +192,10 @@ pub struct ZmqCommand {
     pub cmd_type: CommandType,
     //  Object to process the command.
     // object_t *destination;
-    pub destination: ZmqObject,
+    pub destination: ZmqOwn,
     //
     // pub args: ArgsUnion<'a>,
-    pub object: Option<Own>,
+    pub object: Option<ZmqOwn>,
     pub pipe: Option<ZmqPipe>,
     pub msgs_read: u64,
     pub inhwm: i32,

@@ -31,7 +31,7 @@ use crate::context::ZmqContext;
 use crate::defines::ZMQ_PUSH;
 use crate::lb::LoadBalancer;
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
+
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 
@@ -61,7 +61,7 @@ pub struct ZmqPush {
 }
 
 impl ZmqPush {
-    pub fn new(options: &mut ZmqOptions,
+    pub fn new(options: &mut ZmqContext,
                parent: &mut ZmqContext,
                tid: u32,
                sid_: i32) -> Self

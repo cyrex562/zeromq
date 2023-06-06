@@ -1,6 +1,5 @@
 extern crate core;
 
-mod address;
 mod address_family;
 mod allocator;
 mod atomic_counter;

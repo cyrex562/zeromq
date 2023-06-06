@@ -2,7 +2,6 @@ use crate::context::ZmqContext;
 use crate::defines::ZMQ_GATHER;
 use crate::fq::ZmqFq;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
-use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 
@@ -30,7 +29,7 @@ pub struct ZmqGather {
 }
 
 impl ZmqGather {
-    pub fn new(parent: &mut ZmqContext, options: &mut ZmqOptions, tid: u32, sid_: i32) -> Self {
+    pub fn new(parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
         // :
         //     ZmqSocketBase (parent_, tid, sid_, true)
         // options.type = ZMQ_GATHER;

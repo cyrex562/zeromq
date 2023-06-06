@@ -59,10 +59,11 @@ use std::ptr::null_mut;
 use libc::{c_int, close, EAFNOSUPPORT, EAGAIN, EFAULT, EINTR, EISCONN, EMSGSIZE, ENOMEM, ENOTSOCK, EOPNOTSUPP, EWOULDBLOCK, setsockopt, ssize_t};
 use windows::Win32::Networking::WinSock::{closesocket, IPPROTO_TCP, recv, send, SEND_RECV_FLAGS, SIO_KEEPALIVE_VALS, SIO_LOOPBACK_FAST_PATH, SO_KEEPALIVE, SO_RCVBUF, SO_SNDBUF, SOCK_STREAM, SOCKET_ERROR, SOL_SOCKET, tcp_keepalive, TCP_KEEPALIVE, TCP_KEEPCNT, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_MAXRT, TCP_NODELAY, WSA_ERROR, WSAECONNABORTED, WSAECONNREFUSED, WSAECONNRESET, WSAEHOSTUNREACH, WSAENETDOWN, WSAENETRESET, WSAENOBUFS, WSAENOTCONN, WSAEOPNOTSUPP, WSAETIMEDOUT, WSAEWOULDBLOCK, WSAGetLastError};
 use crate::address_family::{AF_INET, AF_INET6};
+use crate::context::ZmqContext;
 use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
 use crate::ip::{assert_success_or_recoverable, bind_to_device, enable_ipv4_mapping, open_socket, set_ip_type_of_service, set_socket_priority};
-use crate::options::ZmqOptions;
+
 use crate::tcp_address::TcpAddress;
 
 pub fn tune_tcp_socket (s_: &mut ZmqFileDesc) -> i32
@@ -399,10 +400,10 @@ pub fn tune_tcp_busy_poll (socket: &mut ZmqFileDesc, busy_poll_: i32)
 }
 
 pub fn tcp_open_socket (address_: &mut str,
-                                options: &ZmqOptions,
-                                local_: bool,
-                                fallback_to_ipv4_: bool,
-                                out_tcp_addr_: &mut TcpAddress) -> ZmqFileDesc
+                        ctx: &ZmqContext,
+                        local_: bool,
+                        fallback_to_ipv4_: bool,
+                        out_tcp_addr_: &mut TcpAddress) -> ZmqFileDesc
 {
     //  Convert the textual address into address structure.
     let mut rc = out_tcp_addr_.resolve (address_, local_, options_.ipv6);

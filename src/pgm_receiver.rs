@@ -49,6 +49,7 @@ use std::ptr::null_mut;
 
 use bincode::options;
 use libc::{size_t, ssize_t, uint16_t, EAGAIN, EBUSY, ENOMEM};
+use crate::context::ZmqContext;
 
 use crate::defines::ZmqHandle;
 use crate::endpoint::{EndpointType, EndpointUriPair};
@@ -56,7 +57,7 @@ use crate::engine_interface::ZmqEngineInterface;
 use crate::fd::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
+
 use crate::pgm_socket;
 use crate::session_base::ZmqSessionBase;
 use crate::thread_context::ZmqThreadContext;
@@ -100,7 +101,7 @@ pub struct ZmqPeerInfo {
 pub struct ZmqPgmReceiver {
     // : public ZmqIoObject, public ZmqEngineInterface
     pub zmq_io_object: ZmqIoObject,
-    pub zmq_options: ZmqOptions,
+    // pub zmq_options: ZmqContext,
     //  RX timer is running.
     pub has_rx_timer: bool,
     //  If joined is true we are already getting messages from the peer.
@@ -112,7 +113,7 @@ pub struct ZmqPgmReceiver {
     //  PGM socket.
     pub PgmSocket: pgm_socket,
     //  Socket options.
-    pub options: ZmqOptions,
+    // pub options: ZmqOptions,
     //  Associated session.
     pub session: ZmqSessionBase,
     pub active_tsi: Option<pgm_tsi_t>,
@@ -162,7 +163,7 @@ impl ZmqEngineInterface for ZmqPgmReceiver {
 
 impl ZmqPgmReceiver {
     // ZmqPgmReceiver (parent_: &mut ZmqIoThread, options: &ZmqOptions);
-    pub fn new(parent: &mut ZmqThreadContext, options: &ZmqOptions) -> Self {
+    pub fn new(parent: &mut ZmqThreadContext, options: &ZmqContext) -> Self {
         // : ZmqIoObject (parent_),
         //     has_rx_timer (false),
         //     pgm_socket (true, options_),
@@ -172,11 +173,11 @@ impl ZmqPgmReceiver {
         //     insize (0)
         Self {
             zmq_io_object: ZmqIoObject::new(Some(parent.clone())),
-            zmq_options: options.clone(),
+            // zmq_options: options.clone(),
             has_rx_timer: false,
             peers: HashMap::new(),
             PgmSocket: pgm_socket::new(true, options),
-            options: options.clone(),
+            // options: options.clone(),
             session: ZmqSessionBase::default(),
             active_tsi: None,
             insize: 0,

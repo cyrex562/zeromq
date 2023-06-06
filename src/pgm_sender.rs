@@ -39,13 +39,14 @@ use crate::engine_interface::ZmqEngineInterface;
 use crate::fd::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
+
 use crate::pgm_socket::PgmSocket;
 use crate::session_base::ZmqSessionBase;
 use crate::thread_context::ZmqThreadContext;
 use crate::v1_encoder::ZmqV1Encoder;
 use libc::{EBUSY, ENOMEM};
 use std::ptr::null_mut;
+use crate::context::ZmqContext;
 
 // #include "io_thread.hpp"
 // #include "pgm_sender.hpp"
@@ -85,7 +86,7 @@ pub struct pgm_sender_t<'a> {
     //  PGM socket.
     pub pgm_socket: PgmSocket<'a>,
     //  Socket options.
-    pub options: ZmqOptions,
+    // pub options: ZmqOptions,
     //  Poll handle associated with PGM socket.
     pub handle: ZmqHandle,
     pub uplink_handle: ZmqHandle,
@@ -134,7 +135,7 @@ impl ZmqEngineInterface for pgm_sender_t {
 
 impl pgm_sender_t {
     // pgm_sender_t (parent_: &mut ZmqIoThread, options: &ZmqOptions);
-    pub fn new(parent_: &mut ZmqThreadContext, options: &ZmqOptions) -> Self {
+    pub fn new(parent_: &mut ZmqThreadContext, options: &ZmqContext) -> Self {
         // ZmqIoObject (parent_),
         //     has_tx_timer (false),
         //     has_rx_timer (false),
@@ -160,7 +161,7 @@ impl pgm_sender_t {
             msg: Default::default(),
             more_flag: false,
             pgm_socket: PgmSocket::default(),
-            options: Default::default(),
+            // options: Default::default(),
             handle: 0,
             uplink_handle: 0,
             rdata_notify_handle: 0,

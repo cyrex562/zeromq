@@ -34,7 +34,6 @@ use crate::content::ZmqContent;
 use crate::context::ZmqContext;
 use crate::defines::ZMQ_DGRAM;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
-use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 
@@ -69,8 +68,8 @@ impl ZmqDgram {
     //     options.type = ZMQ_DGRAM;
     //     options.raw_socket = true;
     // }
-    pub fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
-        let mut socket_base = ZmqSocketBase::new(parent_, options, tid, sid_, false);
+    pub fn new(parent_: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
+        let mut socket_base = ZmqSocketBase::new(parent_,  tid, sid_, false);
         socket_base.options.type_ = ZMQ_DGRAM;
         socket_base.options.raw_socket = true;
         Self {

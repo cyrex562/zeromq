@@ -42,6 +42,7 @@ use std::collections::HashMap;
 use std::mem;
 
 use anyhow::anyhow;
+use crate::context::ZmqContext;
 
 use crate::defines::{
     ZMQ_CHANNEL, ZMQ_CLIENT, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_GATHER, ZMQ_MSG_PROPERTY_USER_ID,
@@ -49,7 +50,7 @@ use crate::defines::{
     ZMQ_SCATTER, ZMQ_SERVER, ZMQ_SUB, ZMQ_XPUB, ZMQ_XSUB,
 };
 use crate::message::{ZMQ_MSG_ROUTING_ID, ZmqMessage};
-use crate::options::ZmqOptions;
+
 use crate::utils::{copy_bytes, get_u32, put_u32};
 
 pub enum ZmqMechanismStatus {
@@ -137,7 +138,7 @@ pub fn socket_type_string(socket_type_: i32) -> String {
 pub struct ZmqMechanism {
     //
     // const ZmqOptions options;
-    pub options: ZmqOptions,
+    // pub options: ZmqOptions,
     //
     //  Properties received from ZMTP peer.
     // ZmqMetadata::dict_t _zmtp_properties;
@@ -153,9 +154,9 @@ pub struct ZmqMechanism {
 
 impl ZmqMechanism {
     // ZmqMechanism (options: &ZmqOptions);
-    pub fn new(options: &ZmqOptions) -> Self {
+    pub fn new(ctx: &mut ZmqContext) -> Self {
         Self {
-            options: options.clone(),
+            // options: options.clone(),
             zmtp_properties: HashMap::new(),
             zap_properties: HashMap::new(),
             routing_id: vec![],

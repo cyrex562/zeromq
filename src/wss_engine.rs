@@ -29,9 +29,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::ptr::null_mut;
 use libc::{EAGAIN, EINTR, EINVAL, EPIPE, ssize_t};
+use crate::context::ZmqContext;
 use crate::endpoint::EndpointUriPair;
 use crate::fd::ZmqFileDesc;
-use crate::options::ZmqOptions;
+
 use crate::ws_address::WsAddress;
 use crate::ws_engine::ZmqWsEngine;
 
@@ -56,7 +57,7 @@ impl WssEngine {
     //             hostname_: &str)
 
     pub fn new(fd: ZmqFileDesc,
-               options: &mut ZmqOptions,
+               ctx: &mut ZmqContext,
                endpoint_uri_pair_: &mut EndpointUriPair,
                address_: &mut WsAddress,
                client_: bool,
@@ -117,7 +118,7 @@ impl WssEngine {
         gnutls_set_default_priority(_tls_session);
         gnutls_transport_set_int(_tls_session, fd);
         Self {
-            ws_engine: ZmqWsEngine::new(fd, options, endpoint_uri_pair_, address_, client_),
+            ws_engine: ZmqWsEngine::new(fd, ctx, endpoint_uri_pair_, address_, client_),
             _established: false,
             _tls_client_cred: null_mut(),
             // _tls_session: _tls_session,..Default::default()

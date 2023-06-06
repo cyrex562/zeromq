@@ -42,7 +42,7 @@ use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
 use crate::ip::unblock_socket;
 use crate::ops::zmq_errno;
-use crate::options::ZmqOptions;
+
 use crate::session_base::ZmqSessionBase;
 use crate::stream_connecter_base::StreamConnecterBase;
 use crate::thread_context::ZmqThreadContext;
@@ -59,6 +59,7 @@ use windows::Win32::Networking::WinSock::{
     socklen_t, WSAGetLastError, SOL_SOCKET, SO_ERROR, WSAEBADF, WSAEINPROGRESS, WSAENOBUFS,
     WSAENOPROTOOPT, WSAENOTSOCK, WSAEWOULDBLOCK,
 };
+use crate::context::ZmqContext;
 
 // #include "io_thread.hpp"
 // #include "platform.hpp"
@@ -130,7 +131,7 @@ impl ZmqVmciConnecter {
     pub fn new(
         io_thread_: &mut ZmqThreadContext,
         session_: &mut ZmqSessionBase,
-        options: &mut ZmqOptions,
+        ctx: &mut ZmqContext,
         addr: &mut ZmqVmciAddress,
         delayed_start: bool,
     ) -> Self {
@@ -140,7 +141,7 @@ impl ZmqVmciConnecter {
         };
 
         out.stream_connecter_base =
-            StreamConnecterBase::new(io_thread_, session_, options, addr, delayed_start);
+            StreamConnecterBase::new(io_thread_, session_, ctx, addr, delayed_start);
         out._connect_timer_started = false;
         out
     }

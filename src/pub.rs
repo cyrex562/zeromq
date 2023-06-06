@@ -30,7 +30,7 @@
 use crate::context::ZmqContext;
 use crate::defines::ZMQ_PUB;
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
+
 use crate::pipe::ZmqPipe;
 use crate::xpub::XPub;
 
@@ -58,10 +58,10 @@ pub struct ZmqPub {
 }
 
 impl ZmqPub {
-    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
+    pub fn new(options: &mut ZmqContext, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
         // : XPub (parent_, tid, sid_)
         let mut out = Self {
-            xpub: XPub::new(parent, options, tid, sid),
+            xpub: XPub::new(parent, tid, sid),
         };
         out.xpub.options.type_ = ZMQ_PUB;
         out

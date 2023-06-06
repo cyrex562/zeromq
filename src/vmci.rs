@@ -43,7 +43,7 @@ use windows::Win32::Networking::WinSock::{SOCK_STREAM, SOCKET_ERROR};
 use crate::context::ZmqContext;
 use crate::fd::ZmqFileDesc;
 use crate::ip::open_socket;
-use crate::options::ZmqOptions;
+
 use crate::vmci_address::ZmqVmciAddress;
 
 pub fn tune_vmci_buffer_size(context: &mut ZmqContext,
@@ -116,7 +116,7 @@ pub fn tune_vmci_connect_timeout(context_: &mut ZmqContext,
 }
 
 pub fn vmci_open_socket(address_: &str,
-                        options: &ZmqOptions,
+                        ctx: &ZmqContext,
                         out_vmc_addr: &mut ZmqVmciAddress) -> ZmqFileDesc {
     //  Convert the textual address into address structure.
     let rc = out_vmci_addr_.resolve(address_);

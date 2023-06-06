@@ -44,7 +44,7 @@ use crate::endpoint::EndpointUriPair;
 use crate::fd::ZmqFileDesc;
 use crate::message::ZmqMessage;
 use crate::metadata::ZmqMetadata;
-use crate::options::ZmqOptions;
+
 use crate::raw_decoder::RawDecoder;
 use crate::raw_encoder::RawEncoder;
 use crate::stream_engine_base::ZmqStreamEngineBase;
@@ -89,7 +89,7 @@ pub struct RawEngine
 impl RawEngine {
     pub fn new (
         fd: ZmqFileDesc,
-        options: &mut ZmqOptions,
+        options: &mut ZmqContext,
         endpoint_uri_pair_: &EndpointUriPair) -> Self
 
     {

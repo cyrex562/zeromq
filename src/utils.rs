@@ -313,3 +313,43 @@ pub fn zmq_getnameinfo(sa: &ZmqSockaddr) -> anyhow::Result<(i32, String)> {
 pub fn advance_ptr(a: &mut [u8], offset: usize) -> &mut [u8] {
     &mut a[offset..]
 }
+
+pub fn encode_base64(in_: &mut [u8], in_len_: i32, out_: &str, out_len_: i32) -> i32 {
+    let base64enc_tab: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    let mut io = 0;
+    let mut v = 0;
+    let mut rem = 0;
+
+    // for (int ii = 0; ii < in_len_; ii+= 1)
+    for ii in 0..in_len_ {
+        let ch = in_[ii];
+        v = (v << 8) | ch;
+        rem += 8;
+        while (rem >= 6) {
+            rem -= 6;
+            if (io >= out_len_) {
+                return -1;
+            } /* truncation is failure */
+            out_[io += 1] = base64enc_tab[(v >> rem) & 63];
+        }
+    }
+    if (rem) {
+        v <<= (6 - rem);
+        if (io >= out_len_) {
+            return -1;
+        } /* truncation is failure */
+        out_[io += 1] = base64enc_tab[v & 63];
+    }
+    while (io & 3) {
+        if (io >= out_len_) {
+            return -1;
+        } /* truncation is failure */
+        out_[io += 1] = '=';
+    }
+    if (io >= out_len_) {
+        return -1;
+    } /* no room for null terminator */
+    out_[io] = 0;
+    return io;
+}

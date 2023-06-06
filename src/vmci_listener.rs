@@ -52,7 +52,7 @@ use crate::fd::ZmqFileDesc;
 use crate::ip::open_socket;
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::ops::zmq_errno;
-use crate::options::ZmqOptions;
+
 use crate::socket_base::ZmqSocketBase;
 use crate::stream_listener_base::ZmqStreamListenerBase;
 use crate::thread_context::ZmqThreadContext;
@@ -67,6 +67,7 @@ use windows::Win32::Networking::WinSock::{
     WSAGetLastError, INVALID_SOCKET, SOCKET_ERROR, SOCK_STREAM, WSAECONNRESET, WSAEMFILE,
     WSAENOBUFS, WSAEWOULDBLOCK,
 };
+use crate::context::ZmqContext;
 
 // #if defined ZMQ_HAVE_WINDOWS
 // #include "windows.hpp"
@@ -111,7 +112,7 @@ impl ZmqVmciListener {
     pub fn new(
         io_thread_: &mut ZmqThreadContext,
         socket: &mut ZmqSocketBase,
-        options: &ZmqOptions,
+        ctx: &ZmqContext,
     ) -> ZmqVmciListener {
         Self {
             stream_listener_base: ZmqStreamListenerBase {

@@ -31,7 +31,7 @@ use bincode::options;
 use libc::EFAULT;
 use crate::context::ZmqContext;
 use crate::defines::ZMQ_PEER;
-use crate::options::ZmqOptions;
+
 use crate::pipe::ZmqPipe;
 use crate::server::ZmqServer;
 
@@ -54,7 +54,7 @@ pub struct ZmqPeer {
 
 impl ZmqPeer {
     // ZmqPeer (ZmqContext *parent_, tid: u32, sid_: i32);
-    pub fn new(&mut options: ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
+    pub fn new(&mut options: ZmqContext, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
 
     {
         options.type_ = ZMQ_PEER;

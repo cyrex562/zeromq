@@ -44,7 +44,7 @@ use libc::{EAGAIN, EHOSTUNREACH, EINVAL};
 use crate::context::ZmqContext;
 use crate::defines::{ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT, ZMQ_POLLOUT, ZMQ_ROUTER};
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
-use crate::options::ZmqOptions;
+
 use crate::pipe::ZmqPipe;
 use crate::socket_base::routing_socket_base_t;
 use crate::utils::put_u32;
@@ -121,7 +121,7 @@ pub struct ZmqRouter<'a> {
 }
 
 impl ZmqRouter {
-    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
+    pub fn new(options: &mut ZmqContext, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
 
     {
         //  routing_socket_base_t (parent_, tid, sid_),

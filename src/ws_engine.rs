@@ -87,8 +87,8 @@ use std::ptr::{hash, null_mut};
 
 use bincode::options;
 use libc::{EAGAIN, ECONNRESET, memcpy, memset, strcmp};
+use crate::context::ZmqContext;
 
-use crate::curve_server::curve_ZmqServer;
 use crate::defines::{ZMQ_CURVE, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED};
 use crate::endpoint::EndpointUriPair;
 use crate::fd::ZmqFileDesc;
@@ -96,7 +96,6 @@ use crate::mechanism::ZmqMechanism;
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZMQ_MSG_ROUTING_ID, ZmqMessage};
 use crate::null_mechanism::ZmqNullMechanism;
-use crate::options::ZmqOptions;
 use crate::plain_client::PlainClient;
 use crate::plain_server::PlainServer;
 use crate::stream_engine_base::{heartbeat_ivl_timer_id, heartbeat_timeout_timer_id, ZmqStreamEngineBase};
@@ -185,12 +184,12 @@ enum ws_client_handshake_state {
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqWsEngine {
-    pub stream_engine_base: ZmqStreamEngineBase,
+    pub base: ZmqStreamEngineBase,
     pub _client: bool,
     pub address: WsAddress,
     pub _client_handshake_state: ws_client_handshake_state,
     pub _server_handshake_state: ws_server_handshake_state,
-    pub _read_buffer: [u8; WS_BUFFER_SIZE],
+    pub _read_buffer: String,
     pub _write_buffer: Vec<u8>,
     //[u8;WS_BUFFER_SIZE],
     pub _header_name: String,
@@ -199,8 +198,8 @@ pub struct ZmqWsEngine {
     pub _header_value_position: i32,
     pub _header_upgrade_websocket: bool,
     pub _header_connection_upgrade: bool,
-    pub _websocket_protocol: [u8; 256],
-    pub _websocket_key: Vec<u8>,
+    pub _websocket_protocol: String,
+    pub _websocket_key: String,
     pub _websocket_accept: String,
     pub _heartbeat_timeout: i32,
     pub _close_msg: ZmqMessage,
@@ -213,7 +212,7 @@ impl ZmqWsEngine {
     //              const WsAddress &address_,
     //              client_: bool);
     pub fn new(fd: ZmqFileDesc,
-               options: &mut ZmqOptions,
+               ctx: &mut ZmqContext,
                endpoint_uri_pair_: &EndpointUriPair,
                address_: &mut WsAddress,
                client_: bool) -> Self {
@@ -228,7 +227,7 @@ impl ZmqWsEngine {
         //     _header_connection_upgrade (false),
         //     _heartbeat_timeout (0)
         let mut out = Self {
-            stream_engine_base: ZmqStreamEngineBase::new(fd, options, endpoint_uri_pair_, true),
+            base: ZmqStreamEngineBase::new(fd, ctx, endpoint_uri_pair_, true),
             _client: client_,
             address: address_.clone(),
             _client_handshake_state: ws_client_handshake_state::client_handshake_initial,
@@ -240,10 +239,12 @@ impl ZmqWsEngine {
             _heartbeat_timeout: 0,
             ..Default::default()
         };
-        set_bytes(&mut out._websocket_key, 0, 0, MAX_HEADER_VALUE_LENGTH + 1);
+        // set_bytes(&mut out._websocket_key, 0, 0, MAX_HEADER_VALUE_LENGTH + 1);
+        out._websocket_key.clear();
         // set_bytes(&mut out._websocket_accept.as_bytes_mut(), 0, 0, MAX_HEADER_VALUE_LENGTH + 1);
         out._websocket_accept.clear();
-        set_bytes(&mut out._websocket_protocol, 0, 0, 256);
+        // set_bytes(&mut out._websocket_protocol, 0, 0, 256);
+        out._websocket_protocol.clear();
 
         out._next_msg = &ZmqWsEngine::next_handshake_command;
         out._process_msg = &ZmqWsEngine::process_handshake_command;
@@ -322,7 +323,7 @@ impl ZmqWsEngine {
             else {
                 // Avoid uninitialized variable error breaking UWP build
                 protocol = "";
-                assert(false);
+                // assert(false);
             }
 
             let mut nonce: [u8; 16] = [0; 16];
@@ -338,8 +339,14 @@ impl ZmqWsEngine {
             // assert (size > 0);
 
             self._write_buffer = format!(
-                "GET {} HTTP/1.1\r\n" + "Host: {}\r\n" + "Upgrade: websocket\r\n" + "Connection: Upgrade\r\n" + "Sec-WebSocket-Key: {}\r\n" + "Sec-WebSocket-Protocol: {}\r\n" + "Sec-WebSocket-Version: 13\r\n\r\n",
-                address.path(), address.host(), self._websocket_key, protocol).into_bytes();
+                "GET {} HTTP/1.1\r\n\
+                 Host: {}\r\n\
+                 Upgrade: websocket\r\n\
+                 Connection: Upgrade\r\n\
+                 Sec-WebSocket-Key: {}\r\n\
+                 Sec-WebSocket-Protocol: {}\r\n\
+                 Sec-WebSocket-Version: 13\r\n\r\n",
+                self.address.path(), address.host(), self._websocket_key, protocol).into_bytes();
             // assert (size > 0 && size < WS_BUFFER_SIZE);
             // TODO:
             // self._outpos = self._write_buffer;
@@ -360,20 +367,20 @@ impl ZmqWsEngine {
             // errno_assert (rc == 0);
         }
 
-        self._process_msg = push_msg_to_session;
+        self._process_msg = self.base.push_msg_to_session;
 
         return 0;
     }
 
 
-    pub fn select_protocol(&mut self, options: &mut ZmqOptions, protocol_: &str) -> bool {
+    pub fn select_protocol(&mut self, ctx: &mut ZmqContext, protocol_: &str) -> bool {
         if (self._options.mechanism == ZMQ_NULL && "ZWS2.0" == protocol_) {
             self._next_msg = (&ZmqWsEngine::routing_id_msg);
             self._process_msg = (&ZmqWsEngine::process_routing_id_msg);
 
             // No mechanism in place, enabling heartbeat
-            if (self._options.heartbeat_interval > 0 && !_has_heartbeat_timer) {
-                add_timer(self._options.heartbeat_interval, heartbeat_ivl_timer_id);
+            if (self._options.heartbeat_interval > 0 && !self._has_heartbeat_timer) {
+                self.add_timer(self._options.heartbeat_interval, heartbeat_ivl_timer_id);
                 self._has_heartbeat_timer = true;
             }
 
@@ -435,12 +442,10 @@ impl ZmqWsEngine {
     }
 
 
-    pub fn server_handshake(&mut self) -> bool {
+    pub fn server_handshake(&mut self) -> anyhow::Result<()> {
         let nbytes = self.read(&mut self._read_buffer, WS_BUFFER_SIZE)?;
         if (nbytes == -1) {
-            if (errno != EAGAIN) {}
-            // error (ZmqIEngine::connection_error);
-            return false;
+            return Err(anyhow::Error::msg("read error"));
         }
 
         self._inpos = self._read_buffer;
@@ -704,13 +709,15 @@ impl ZmqWsEngine {
                             // assert (accept_key_len > 0);
                             self._websocket_accept[accept_key_len] = 0;
 
-                            self._write_buffer = format!(                                                        "HTTP/1.1 101 Switching Protocols\r\n" \
-                                                        "Upgrade: websocket\r\n" \
-                                                        "Connection: Upgrade\r\n" \
-                                                        "Sec-WebSocket-Accept: %s\r\n" \
-                                                        "Sec-WebSocket-Protocol: %s\r\n" \
-                                                        "\r\n",
-                                                        self._websocket_accept, self._websocket_protocol).into_bytes();
+                            self._write_buffer = format!(
+                                "HTTP/1.1 101 Switching Protocols\r\n\
+                                 Upgrade: websocket\r\n\
+                                 Connection: Upgrade\r\n\
+                                 Sec-WebSocket-Accept: {}\r\n\
+                                 Sec-WebSocket-Protocol: {}\r\n\
+                                 \r\n",
+                                self._websocket_accept,
+                                self._websocket_protocol).into_bytes();
                             // assert(written >= 0 && written < WS_BUFFER_SIZE);
                             // TODO
                             // self._outpos = self._write_buffer;
@@ -1254,45 +1261,7 @@ impl ZmqWsEngine {
     }
 
 
-    pub fn encode_base64(in_: &mut [u8], in_len_: i32, out_: &str, out_len_: i32) -> i32 {
-        let base64enc_tab: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-        let mut io = 0;
-        let mut v = 0;
-        let mut rem = 0;
-
-        // for (int ii = 0; ii < in_len_; ii+= 1)
-        for ii in 0..in_len_ {
-            let ch = in_[ii];
-            v = (v << 8) | ch;
-            rem += 8;
-            while (rem >= 6) {
-                rem -= 6;
-                if (io >= out_len_) {
-                    return -1;
-                } /* truncation is failure */
-                out_[io += 1] = base64enc_tab[(v >> rem) & 63];
-            }
-        }
-        if (rem) {
-            v <<= (6 - rem);
-            if (io >= out_len_) {
-                return -1;
-            } /* truncation is failure */
-            out_[io += 1] = base64enc_tab[v & 63];
-        }
-        while (io & 3) {
-            if (io >= out_len_) {
-                return -1;
-            } /* truncation is failure */
-            out_[io += 1] = '=';
-        }
-        if (io >= out_len_) {
-            return -1;
-        } /* no room for null terminator */
-        out_[io] = 0;
-        return io;
-    }
 } // impl ws_engine
 
 // static int

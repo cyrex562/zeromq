@@ -31,10 +31,11 @@
 
 use bincode::options;
 use libc::{EPROTO};
+use crate::context::ZmqContext;
 use crate::defines::ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED;
 use crate::mechanism::ZmqMechanism;
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
+
 use crate::session_base::ZmqSessionBase;
 
 // #include "mechanism_base.hpp"
@@ -51,9 +52,9 @@ pub session: ZmqSessionBase,
 
 impl ZmqMechanismBase {
     // ZmqMechanismBase (ZmqSessionBase *session_, options: &ZmqOptions);
-    pub fn new(session: &mut ZmqSessionBase, options: &mut ZmqOptions) -> Self {
+    pub fn new(ctx: &mut ZmqContext, session: &mut ZmqSessionBase) -> Self {
         let out = Self {
-            mechanism: ZmqMechanism::new(options),
+            mechanism: ZmqMechanism::new(ctx),
             session: session.clone(),
         };
         out

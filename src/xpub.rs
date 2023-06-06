@@ -44,9 +44,9 @@ use crate::defines::{
     ZMQ_XPUB_VERBOSER, ZMQ_XPUB_WELCOME_MSG,
 };
 use crate::dist::ZmqDist;
-use crate::message::ZMQ_MSG_MORE;
+use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
 use crate::metadata::ZmqMetadata;
-use crate::options::ZmqOptions;
+
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 use crate::utils::copy_bytes;
@@ -117,7 +117,7 @@ pub struct XPub {
 impl XPub {
     //
     // XPub (ZmqContext *parent_, tid: u32, sid_: i32);
-    pub fn new(parent: &mut ZmqContext, options: &mut ZmqOptions, tid: u32, sid_: i32) -> Self {
+    pub fn new(parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
         // ZmqSocketBase (parent_, tid, sid_),
         // _verbose_subs (false),
         // _verbose_unsubs (false),
@@ -133,13 +133,13 @@ impl XPub {
         //     _last_pipe = null_mut();
         //     options.type = ZMQ_XPUB;
         //     _welcome_msg.init ();
-        let base = ZmqSocketBase::new(parent, options, tid, sid_, false);
+        let base = ZmqSocketBase::new(parent,  tid, sid_, false);
         options.type_ = ZMQ_XPUB as i32;
         let mut out = Self {
             base: base,
             ..Default::default()
         };
-        out._welcome_msg.init();
+        out._welcome_msg.init2();
         out
     }
 
@@ -149,7 +149,7 @@ impl XPub {
     // void xattach_pipe (pipe: &mut ZmqPipe,
     pub fn xattach_pipe(
         &mut self,
-        options: &mut ZmqOptions,
+        ctx: &mut ZmqContext,
         pipe: &mut ZmqPipe,
         subscribe_to_all_: bool,
         locally_initiated_: bool,
@@ -179,7 +179,7 @@ impl XPub {
 
         //  The pipe is active when attached. Let's read the subscriptions from
         //  it, if any.
-        self.xread_activated(options, pipe);
+        self.xread_activated(ctx, pipe);
     }
 
     // bool subscribe_to_all_ = false,
@@ -187,7 +187,7 @@ impl XPub {
     // bool locally_initiated_ = false) ;
 
     // int xsend (msg: &mut ZmqMessage) ;
-    pub fn xsend(&mut self, options: &mut ZmqOptions, msg: &mut ZmqMessage) -> i32 {
+    pub fn xsend(&mut self, ctx: &mut ZmqContext, msg: &mut ZmqMessage) -> i32 {
         let msg_more = (msg.flags() & ZMQ_MSG_MORE) != 0;
 
         //  For the first part of multi-part message, find the matching pipes.
@@ -208,7 +208,7 @@ impl XPub {
                     .match_((msg.data()), msg.size(), mark_as_matching, self);
             }
             // If inverted matching is used, reverse the selection now
-            if (options.invert_matching) {
+            if (ctx.invert_matching) {
                 self._dist.reverse_match();
             }
         }
@@ -289,7 +289,7 @@ impl XPub {
 
     // void xread_activated (pipe: &mut ZmqPipe) ;
 
-    pub fn xread_activated(&mut self, options: &mut ZmqOptions, pipe: &mut ZmqPipe) {
+    pub fn xread_activated(&mut self, ctx: &mut ZmqContext, pipe: &mut ZmqPipe) {
         //  There are some subscriptions waiting. Let's process them.
         let mut msg = ZmqMessage::default();
         while (pipe.read(&mut msg)) {
@@ -348,7 +348,7 @@ impl XPub {
                 //  If the request was a new subscription, or the subscription
                 //  was removed, or verbose mode or manual mode are enabled, store it
                 //  so that it can be passed to the user on next recv call.
-                if (self._manual || (options.type_ == ZMQ_XPUB && notify)) {
+                if (self._manual || (ctx.type_ == ZMQ_XPUB && notify)) {
                     //  ZMTP 3.1 hack: we need to support sub/cancel commands, but
                     //  we can't give them back to userspace as it would be an API
                     //  breakage since the payload of the message is completely
@@ -374,7 +374,7 @@ impl XPub {
                     self._pending_metadata.push_back(metadata);
                     self._pending_flags.push_back(0);
                 }
-            } else if (options.type_ != ZMQ_PUB) {
+            } else if (ctx.type_ != ZMQ_PUB) {
                 //  Process user message coming upstream from xsub socket,
                 //  but not if the type is PUB, which never processes user
                 //  messages

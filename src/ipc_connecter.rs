@@ -51,7 +51,7 @@ use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
 use crate::ip::{open_socket, unblock_socket};
 use crate::ops::zmq_errno;
-use crate::options::ZmqOptions;
+
 use crate::session_base::ZmqSessionBase;
 use crate::stream_connecter_base::StreamConnecterBase;
 use crate::thread_context::ZmqThreadContext;
@@ -62,6 +62,7 @@ use libc::{
 use windows::Win32::Networking::WinSock::{
     WSAGetLastError, SOCK_STREAM, SOL_SOCKET, SO_ERROR, WSAEINPROGRESS, WSAEWOULDBLOCK,
 };
+use crate::context::ZmqContext;
 
 // #ifdef _MSC_VER
 // #include <afunix.h>
@@ -86,9 +87,9 @@ impl IpcConnecter {
     //                 Address *addr_,
     //              delayed_start_: bool);
     pub fn new(
+        ctx: &mut ZmqContext,
         io_thread_: &mut ZmqThreadContext,
         session: &mut ZmqSessionBase,
-        options: &ZmqOptions,
         addr: &mut ZmqAddress,
         delayed_start_: bool,
     ) -> Self {

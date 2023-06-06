@@ -65,7 +65,7 @@ use libc::{EFAULT, EPROTO};
 use crate::defines::{ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND, ZMQ_PROTOCOL_ERROR_ZMTP_UNSPECIFIED};
 use crate::mechanism_base::ZmqMechanismBase;
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
+
 use crate::plain_common::{error_prefix, hello_prefix, initiate_prefix, ready_prefix, welcome_prefix};
 use crate::session_base::ZmqSessionBase;
 use crate::utils::{cmp_bytes, copy_bytes, advance_ptr};
@@ -85,14 +85,14 @@ pub struct PlainServer {
     username: String,
     password: String,
     peer_address: String,
-    options: ZmqOptions,
+    // options: ZmqOptions,
 }
 
 impl PlainServer {
-    pub fn new(session: &mut ZmqSessionBase, peer_address: &str, options: &mut ZmqOptions) -> Self {
+    pub fn new(session: &mut ZmqSessionBase, peer_address: &str, options: &mut ZmqContext) -> Self {
         Self {
-            mechanism_base: ZmqMechanismBase::new(session, options),
-            ZmqZapClientCommonHandshake: ZmqZapClientCommonHandshake::new(session, peer_address, options, ZmqZapClientCommonHandshakeState::ready),
+            mechanism_base: ZmqMechanismBase::new(options, session),
+            ZmqZapClientCommonHandshake: ZmqZapClientCommonHandshake::new(options, session, peer_address, ZmqZapClientCommonHandshakeState::ready),
             state: PlainServerState::plain_server_state_ready,
             username: String::new(),
             password: String::new(),

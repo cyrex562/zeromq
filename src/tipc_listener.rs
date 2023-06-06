@@ -53,7 +53,7 @@ use crate::fd::ZmqFileDesc;
 use crate::ip::open_socket;
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::ops::zmq_errno;
-use crate::options::ZmqOptions;
+
 use crate::socket_base::ZmqSocketBase;
 use crate::stream_listener_base::ZmqStreamListenerBase;
 use crate::thread_context::ZmqThreadContext;
@@ -64,6 +64,7 @@ use libc::{
 };
 use std::mem;
 use windows::Win32::Networking::WinSock::{socklen_t, SOCK_STREAM};
+use crate::context::ZmqContext;
 
 // #include <unistd.h>
 // #include <sys/socket.h>
@@ -109,7 +110,7 @@ impl ZmqTipcListener {
     pub fn new(
         io_thread_: &mut ZmqThreadContext,
         socket: &mut ZmqSocketBase,
-        options: &mut ZmqOptions,
+        ctx: &mut ZmqContext,
     ) -> Self {
         Self {
             stream_listener_base: ZmqStreamListenerBase {

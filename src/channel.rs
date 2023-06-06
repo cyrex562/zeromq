@@ -1,35 +1,14 @@
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
-use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::socket_base::{ZmqContext, ZmqSocketBase};
+use crate::socket_base::{ZmqSocketBase};
 use crate::socket_base_ops::ZmqSocketBaseOps;
 use anyhow::anyhow;
 use libc::socket;
+use crate::context::ZmqContext;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqChannel
-//: public ZmqSocketBase
 {
-    //
-    //     channel_t (ZmqContext *parent_, uint32_t tid, sid_: i32);
-    //     ~channel_t ();
-    //
-    //     //  Overrides of functions from ZmqSocketBase.
-    //     void xattach_pipe (ZmqPipe *pipe_,
-    //                        bool subscribe_to_all_,
-    //                        bool locally_initiated_);
-    //     int xsend (ZmqMessage *msg);
-    //     int xrecv (ZmqMessage *msg);
-    //     bool xhas_in ();
-    //     bool xhas_out ();
-    //     void xread_activated (ZmqPipe *pipe_);
-    //     void xwrite_activated (ZmqPipe *pipe_);
-    //     void xpipe_terminated (ZmqPipe *pipe_);
-
-    //
-    //   ZmqPipe *pipe;
-
-    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (channel_t)
     pipe: Option<ZmqPipe>,
     base: ZmqSocketBase,
 }
@@ -112,7 +91,7 @@ impl ZmqSocketBaseOps for ZmqChannel {
         self.pipe.flush();
 
         //  Detach the original message from the data buffer.
-        let rc: i32 = msg.init2();
+        msg.init2()?;
         // errno_assert (rc == 0);
 
         Ok(())
@@ -131,11 +110,11 @@ impl ZmqSocketBaseOps for ZmqChannel {
         }
 
         // Drop any messages with more flag
-        let read = self.pipe.unwrap().read(msg);
-        while (read && msg.flags() & ZMQ_MSG_MORE) {
+        let mut read = self.pipe.unwrap().read(msg);
+        while read && msg.flags_set(ZMQ_MSG_MORE) {
             // drop all frames of the current multi-frame message
             read = self.pipe.unwrap().read(msg);
-            while (read && msg.flags() & ZMQ_MSG_MORE) {
+            while read && msg.flags_set(ZMQ_MSG_MORE) {
                 read = self.pipe.unwrap().read(msg);
             }
 

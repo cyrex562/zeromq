@@ -36,14 +36,14 @@
 
 use crate::address::get_socket_name;
 use crate::address::SocketEnd::{SocketEndLocal, SocketEndRemote};
-use crate::context::choose_io_thread;
+use crate::context::{choose_io_thread, ZmqContext};
 use crate::defines::ZmqHandle;
 use crate::endpoint::EndpointType::endpoint_type_bind;
 use crate::endpoint::{make_unconnected_bind_endpoint_pair, EndpointUriPair};
 use crate::fd::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 use crate::object::ZmqObject;
-use crate::options::ZmqOptions;
+
 use crate::own::ZmqOwn;
 use crate::raw_engine::RawEngine;
 use crate::session_base::ZmqSessionBase;
@@ -96,7 +96,7 @@ impl ZmqStreamListenerBase {
     pub fn new(
         io_thread: &mut ZmqThreadContext,
         socket: &mut ZmqSocketBase,
-        options: &mut ZmqOptions,
+        options: &mut ZmqContext,
     ) -> Self {
         //   ZmqOwn (io_thread_, options_),
         //         ZmqIoObject (io_thread_),
@@ -130,14 +130,14 @@ impl ZmqStreamListenerBase {
         set_pollin(_handle);
     }
 
-    pub fn process_term(&mut self, options: &mut ZmqOptions, linger: i32) {
+    pub fn process_term(&mut self, options: &mut ZmqContext, linger: i32) {
         rm_fd(_handle);
         _handle = (null_mut());
         self.close(options);
         self.own.process_term(linger);
     }
 
-    pub fn close(&mut self, options: &mut ZmqOptions) -> i32 {
+    pub fn close(&mut self, options: &mut ZmqContext) -> i32 {
         // TODO this is identical to stream_connector_base_t::close
 
         // zmq_assert (_s != retired_fd);
@@ -155,7 +155,7 @@ impl ZmqStreamListenerBase {
         return 0;
     }
 
-    pub fn create_engine(&mut self, options: &mut ZmqOptions, fd: ZmqFileDesc) {
+    pub fn create_engine(&mut self, ctx: &mut ZmqContext, fd: ZmqFileDesc) {
         let endpoint_pair = EndpointUriPair::new(
             &get_socket_name(fd, SocketEndLocal).unwrap(),
             &get_socket_name(fd, SocketEndRemote).unwrap(),
@@ -163,16 +163,16 @@ impl ZmqStreamListenerBase {
         );
 
         let mut engine = ZmqEngineInterface::default();
-        if (options.raw_socket) {
-            engine = RawEngine(fd, options, endpoint_pair);
+        if (ctx.raw_socket) {
+            engine = RawEngine(fd, ctx, endpoint_pair);
         } else {
-            engine = ZmqZmtpEngine(fd, options, endpoint_pair);
+            engine = ZmqZmtpEngine(fd, ctx, endpoint_pair);
         }
         // alloc_assert (engine);
 
         //  Choose I/O thread to run connecter in. Given that we are already
         //  running in an I/O thread, there must be at least one available.
-        let io_thread = self.choose_io_thread(options.affinity);
+        let io_thread = self.choose_io_thread(ctx.affinity);
         // zmq_assert (io_thread);
 
         //  Create and launch a session object.
@@ -181,7 +181,7 @@ impl ZmqStreamListenerBase {
             io_thread,
             false,
             &mut self._socket,
-            options,
+            ctx,
             None,
         );
         // errno_assert (session);
@@ -189,6 +189,6 @@ impl ZmqStreamListenerBase {
         launch_child(session);
         send_attach(&session, engine, false);
 
-        self._socket.event_accepted(options, &endpoint_pair, fd);
+        self._socket.event_accepted(ctx, &endpoint_pair, fd);
     }
 }

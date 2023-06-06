@@ -39,7 +39,7 @@ use crate::defines::{
 use crate::mechanism::ZmqMechanismStatus::{error, handshaking, ready};
 use crate::mechanism_base::ZmqMechanismBase;
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
+
 use crate::session_base::ZmqSessionBase;
 use crate::utils::{cmp_bytes, copy_bytes};
 use crate::zap_client::ZmqZapClient;
@@ -89,7 +89,7 @@ impl ZmqNullMechanism {
     pub fn new(
         session: &mut ZmqSessionBase,
         peer_address_: &str,
-        options: &mut ZmqOptions,
+        options: &mut ZmqContext,
     ) -> ZmqNullMechanism {
         // ZmqMechanismBase (session_, options_),
         // ZmqZapClient (session_, peer_address_, options_),
@@ -100,8 +100,8 @@ impl ZmqNullMechanism {
         // _zap_request_sent (false),
         // _zap_reply_received (false)
         let mut out = Self {
-            zap_client: ZmqZapClient::new(session, peer_address_, options),
-            mechanism_base: ZmqMechanismBase::new(session, options),
+            zap_client: ZmqZapClient::new(options, session, peer_address_),
+            mechanism_base: ZmqMechanismBase::new(options, session),
             ..Default::default()
         };
         out

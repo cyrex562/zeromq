@@ -7,15 +7,17 @@ use std::{mem, process};
 
 use anyhow::{anyhow, bail};
 use libc::{
-    getpid, gid_t, pid_t, uid_t, EADDRINUSE, ECONNREFUSED, EINTR, EINVAL, EMFILE, ENOENT, ENOMEM,
-    FD_CLOEXEC, F_SETFD,
+    getpid, EADDRINUSE, ECONNREFUSED, EINTR, EINVAL, EMFILE, ENOENT, ENOMEM,
 };
+
+#[cfg(not(windows))]
+use libc::{getgid, getuid, setgid, setuid, gid_t, pid_t, uid_t, F_SETFD, FD_CLOEXEC};
+
 use serde::{Deserialize, Serialize};
 
-use crate::atomic_counter::AtomicCounter;
 use crate::command::ZmqCommand;
 use crate::defines::{
-    ZmqMessage, ZMQ_BLOCKY, ZMQ_IO_THREADS, ZMQ_IO_THREADS_DFLT, ZMQ_IPV6, ZMQ_MAX_MSGSZ,
+    ZMQ_BLOCKY, ZMQ_IO_THREADS, ZMQ_IO_THREADS_DFLT, ZMQ_IPV6, ZMQ_MAX_MSGSZ,
     ZMQ_MAX_SOCKETS, ZMQ_MAX_SOCKETS_DFLT, ZMQ_MESSAGE_SIZE, ZMQ_PAIR, ZMQ_SOCKET_LIMIT,
     ZMQ_ZERO_COPY_RECV,
 };
@@ -24,28 +26,13 @@ use crate::mailbox::ZmqMailbox;
 use crate::mailbox_interface::ZmqMailboxInterface;
 use crate::message::ZmqMessage;
 use crate::object::ZmqObject;
-use crate::options::{CURVE_KEYSIZE, get_effective_conflate_option};
 use crate::pending_connection::PendingConnection;
 use crate::pipe::ZmqPipe;
 use crate::reaper::ZmqReaper;
 use crate::socket_base::ZmqSocketBase;
 use crate::tcp_address::TcpAddressMask;
 use crate::thread_context::ZmqThreadContext;
-use crate::thread_ctx::ThreadCtx;
-use crate::ZmqMailboxInterface::ZmqMailboxInterface;
 
-//  Context object encapsulates all the global state associated with
-//  the library.
-
-// enum tid_type {
-//     term_tid = 0,
-//     reaper_tid = 1,
-// }
-
-// enum side {
-//     connect_side,
-//     bind_side,
-// }
 
 pub const CONNECT_SIDE: i32 = 0;
 pub const BIND_SIDE: i32 = 1;
@@ -64,7 +51,7 @@ pub const ZMQ_CTX_TAG_VALUE_BAD: u32 = 0xdeadbeef;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ZmqContext {
-    pub thread_ctx: ThreadCtx,
+    pub thread_ctx: ZmqThreadContext,
     //  Used to check whether the object is a context.
     pub tag: u32,
     //  Sockets belonging to this context. We need the list so that
@@ -355,7 +342,7 @@ impl ZmqContext {
             reaper: None,
             threads: vec![],
             slots: vec![],
-            term_mailbox: ZmqMailbox,
+            term_mailbox: Default::default(),
             endpoints: Default::default(),
             pending_connections: Default::default(),
             endpoints_sync: Mutex::new(0),
@@ -380,7 +367,6 @@ impl ZmqContext {
             can_recv_disconnect_msg: false,
             hiccup_msg: vec![],
             can_recv_hiccup_msg: false,
-            pid: process: id(),
             sndhwm: 0,
             rcvhwm: 0,
             affinity: 0,
@@ -458,6 +444,7 @@ impl ZmqContext {
             vmci_sync: Mutex::new(0),
             out_batch_size: 0,
             busy_poll: 0,
+            pid: 0,
         }
     }
 
@@ -538,13 +525,15 @@ impl ZmqContext {
         self.slot_sync.unlock();
 
         // #ifdef ZMQ_HAVE_VMCI
+        #[cfg(target_feature="vmci")]
+        {
         let _ = self.vmci_sync.lock().expect("TODO: panic message");
 
         VMCISock_ReleaseAFValueFd(self.vmci_fd);
         self.vmci_family = -1;
         self.vmci_fd = -1;
 
-        self.vmci_sync.unlock();
+        self.vmci_sync.unlock();}
         // #endif
 
         //  Deallocate the resources.
@@ -770,10 +759,7 @@ impl ZmqContext {
 
         //  Create the reaper thread.
         self.reaper = Some(ZmqReaper::new(self, REAPER_TID));
-        if self.reaper.is_none() {
-            errno = ENOMEM;
-            // goto fail_cleanup_slots;
-        }
+
         if !self.reaper.get_mailbox().valid() {
             //     goto
             //     fail_cleanup_reaper;

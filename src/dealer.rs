@@ -44,7 +44,6 @@ use crate::context::ZmqContext;
 use crate::defines::ZMQ_DEALER;
 use crate::lb::LoadBalancer;
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 use crate::utils::copy_bytes;
@@ -71,17 +70,16 @@ impl ZmqDealer {
     // ZmqDealer (ZmqContext *parent_, tid: u32, sid_: i32);
     // ZmqSocketBase (parent_, tid, sid_), probe_router (false)
     pub fn new(
-        options: &mut ZmqOptions,
-        parent: &mut ZmqContext,
+        ctx: &mut ZmqContext,
         tid: u32,
         sid_: i32,
     ) -> ZmqDealer {
         let mut out = Self::default();
-        let mut base = ZmqSocketBase::new2(options, parent, tid, sid_);
+        let mut base = ZmqSocketBase::new(ctx, tid, sid_, false);
 
-        options.type_ = ZMQ_DEALER as i32;
-        options.can_send_hello_msg = true;
-        options.can_recv_hiccup_msg = true;
+        ctx.type_ = ZMQ_DEALER as i32;
+        ctx.can_send_hello_msg = true;
+        ctx.can_recv_hiccup_msg = true;
         out
     }
 

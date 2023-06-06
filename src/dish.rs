@@ -42,7 +42,6 @@ use crate::dish::DishSessionState::{body, group};
 use crate::dist::ZmqDist;
 use crate::fq::{self, ZmqFq};
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
-use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
@@ -88,12 +87,11 @@ impl ZmqDish {
     // ZmqDish::ZmqDish (parent: &mut ZmqContext, tid: u32, sid_: i32) :
     // ZmqSocketBase (parent_, tid, sid_, true), _has_message (false)
     pub fn new(parent_: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
-        let mut options = ZmqOptions::default();
-        options.type_ = ZMQ_DISH as i32;
+        parent_.type_ = ZMQ_DISH as i32;
 
         //  When socket is being closed down we don't want to wait till pending
         //  subscription commands are sent to the wire.
-        options.linger.store(0, Ordering::Relaxed);
+        parent_.linger.store(0, Ordering::Relaxed);
 
         let mut out = Self {
             ..Default::default()
@@ -333,11 +331,11 @@ impl DishSession {
         io_thread: &mut ZmqThreadContext,
         connect_: bool,
         socket: &mut ZmqSocketbase,
-        options: &mut ZmqOptions,
+        ctx: &mut ZmqContext,
         addr: &mut ZmqAddress,
     ) -> Self {
         DishSession {
-            session_base: ZmqSessionBase::new(io_thread, connect_, socket, options, addr),
+            session_base: ZmqSessionBase::new(cx, io_thread, connect_, socket, addr),
             _group_msg: ZmqMessage::default(),
         }
     }

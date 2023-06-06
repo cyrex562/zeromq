@@ -40,10 +40,10 @@ use crate::config::{
     CRYPTO_BOX_SECRETKEYBYTES, CRYPTO_BOX_ZEROBYTES, CRYPTO_SECRETBOX_BOXZEROBYTES,
     CRYPTO_SECRETBOX_KEYBYTES, CRYPTO_SECRETBOX_NONCEBYTES, CRYPTO_SECRETBOX_ZEROBYTES,
 };
+use crate::context::ZmqContext;
 use crate::curve_mechanism_base::{ZmqCurveMechanismBase, CRYPTO_BOX_MACBYTES};
 use crate::defines::ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND;
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 use crate::utils::{copy_bytes, get_u64, put_u64};
 use crate::zap_client::{ZmqZapClient, ZmqZapClientCommonHandshake};
@@ -83,24 +83,24 @@ impl ZmqCurveServer {
     pub fn new(
         session: &mut ZmqSessionBase,
         peer_address: &str,
-        options: &mut ZmqOptions,
+        ctx: &mut ZmqContext,
         downgrade_sub: bool,
     ) -> Self {
         let mut mechanism_base = Self {
             zap_client_common_handshake: ZmqZapClientCommonHandshake::new(
+                ctx,
                 session,
                 peer_address,
-                options,
                 ZmqZapClientCommonHandshakeState::sending_ready,
             ),
             curve_mechanism_base: ZmqCurveMechanismBase::new(
+                ctx,
                 session,
-                options,
                 "CurveZMQMESSAGES",
                 "CurveZMQMESSAGEC",
                 downgrade_sub,
             ),
-            _secret_key: options.curve_secret_key,
+            _secret_key: ctx.curve_secret_key,
             cn_public: [0; CRYPTO_BOX_PUBLICKEYBYTES],
             cn_secret: [0; CRYPTO_BOX_SECRETKEYBYTES],
             cn_client: todo!(),
@@ -108,7 +108,7 @@ impl ZmqCurveServer {
         };
         cyrpto_box_keypair(
             mechanism_base._secret_key,
-            options.curve_secret_key,
+            ctx.curve_secret_key,
             CRYPTO_BOX_SECRETKEYBYTES,
         );
         mechanism_base
@@ -362,7 +362,7 @@ impl ZmqCurveServer {
     // int process_initiate (msg: &mut ZmqMessage);
     pub fn process_initiate(
         &mut self,
-        options: &mut ZmqOptions,
+        ctx: &mut ZmqContext,
         msg: &mut ZmqMessage,
     ) -> anyhow::Result<()> {
         check_basic_command_structure(msg)?;
@@ -540,10 +540,10 @@ impl ZmqCurveServer {
 
         crypto_box_beforenm(get_writable_precom_buffer(), self.cn_client, self.cn_secret)?;
 
-        if zap_required() || !options.zap_enforce_domain {
+        if zap_required() || !ctx.zap_enforce_domain {
             match session.zap_connect() {
                 Ok(_) => {
-                    if options.zap_enforce_domain == false {
+                    if ctx.zap_enforce_domain == false {
                         sewlf.state = sending_ready;
                     } else {
                         send_zap_request(client_key);

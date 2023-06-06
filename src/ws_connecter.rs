@@ -77,7 +77,7 @@ use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
 use crate::ip::{tune_socket, unblock_socket};
 use crate::ops::zmq_errno;
-use crate::options::ZmqOptions;
+
 use crate::session_base::ZmqSessionBase;
 use crate::stream_connecter_base::StreamConnecterBase;
 use crate::tcp::{tcp_open_socket, tune_tcp_maxrt, tune_tcp_socket};
@@ -91,6 +91,7 @@ use windows::Win32::Networking::WinSock::{
     WSAGetLastError, SOL_SOCKET, SO_ERROR, WSAEBADF, WSAEINPROGRESS, WSAENOBUFS, WSAENOPROTOOPT,
     WSAENOTSOCK, WSAEWOULDBLOCK, WSA_ERROR,
 };
+use crate::context::ZmqContext;
 
 pub const connect_timer_id: i32 = 2;
 
@@ -163,14 +164,14 @@ impl ZmqWsConnecter {
     pub fn new(
         io_thread_: &mut ZmqThreadContext,
         session: &mut ZmqSessionBase,
-        options: &mut ZmqOptions,
+        ctx: &mut ZmqContext,
         addr: &mut WsAddress,
         delayed_start: bool,
         wss: bool,
         tls_hostname: &str,
     ) -> Self {
         Self {
-            base: StreamConnecterBase::new(io_thread, session, options, addr, delayed_start),
+            base: StreamConnecterBase::new(io_thread, session, ctx, addr, delayed_start),
             _connect_timer_started: false,
             _wss: false,
             _hostname: "".to_string(),

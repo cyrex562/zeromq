@@ -49,7 +49,7 @@ use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
 use crate::ip::unblock_socket;
 use crate::ops::zmq_errno;
-use crate::options::ZmqOptions;
+
 use crate::session_base::ZmqSessionBase;
 use crate::socks::{
     ZmqSocksAuthResponseDecoder, ZmqSocksBasicAuthRequestEncoder, ZmqSocksChoiceDecoder,
@@ -76,6 +76,7 @@ use windows::Win32::Networking::WinSock::{
     WSAECONNREFUSED, WSAEHOSTUNREACH, WSAEINPROGRESS, WSAEINVAL, WSAENETDOWN, WSAENETUNREACH,
     WSAETIMEDOUT, WSAEWOULDBLOCK, WSA_ERROR,
 };
+use crate::context::ZmqContext;
 
 // #ifndef ZMQ_HAVE_WINDOWS
 // #include <unistd.h>
@@ -173,7 +174,7 @@ impl ZmqSocksConnector {
     pub fn new(
         io_thread_: &mut ZmqThreadContext,
         session: &mut ZmqSessionBase,
-        options: &ZmqOptions,
+        options: &ZmqContext,
         addr_: &mut ZmqAddress<TcpAddress>,
         proxy_addr_: &mut ZmqAddress<TcpAddress>,
         delayed_start_: bool,

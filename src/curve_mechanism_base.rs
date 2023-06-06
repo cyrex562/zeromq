@@ -49,6 +49,7 @@ use std::mem;
 use anyhow::anyhow;
 
 use crate::config::CRYPTO_BOX_NONCEBYTES;
+use crate::context::ZmqContext;
 use crate::curve_encoding::{ZmqCurveEncoding, ZmqNonce};
 use crate::defines::{
     ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_SEQUENCE, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE,
@@ -59,7 +60,6 @@ use crate::message::{
     ZmqMessage, CANCEL_CMD_NAME, CANCEL_CMD_NAME_SIZE, SUB_CMD_NAME, SUB_CMD_NAME_SIZE,
     ZMQ_MSG_COMMAND, ZMQ_MSG_MORE,
 };
-use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 use crate::utils::copy_bytes;
 
@@ -108,14 +108,14 @@ impl ZmqCurveMechanismBase {
     // encode_nonce_prefix_, decode_nonce_prefix_, downgrade_sub_)
     // {}
     pub fn new(
+        ctx: &mut ZmqContext,
         session: &mut ZmqSessionBase,
-        options: &ZmqOptions,
         encode_nonce_prefix: &str,
         decode_nonce_prefix: &str,
         downgrade_sub: bool,
     ) -> Self {
         Self {
-            mechanism_base: ZmqMechanismBase::new2(session, options),
+            mechanism_base: ZmqMechanismBase::new(ctx, session),
             curve_encoding: ZmqCurveEncoding::new(
                 encode_nonce_prefix,
                 decode_nonce_prefix,

@@ -47,11 +47,11 @@ use crate::defines::{
 };
 use crate::mechanism_base::ZmqMechanismBase;
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
-use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 use crate::utils::{cmp_bytes, copy_bytes, put_u32};
 use libc::EPROTO;
 use std::ptr::null_mut;
+use crate::context::ZmqContext;
 
 /// Commonalities between clients and servers are captured here.
 /// For example, clients and servers both need to produce and
@@ -103,7 +103,7 @@ pub struct ZmqGssApiMechanismBase {
 impl ZmqGssApiMechanismBase {
     // ZmqGssApiMechanismBase (ZmqSessionBase *session_,
     // options: &ZmqOptions);
-    pub fn new(session_: &mut ZmqSessionBase, options: &ZmqOptions) -> Self {
+    pub fn new(session_: &mut ZmqSessionBase, ctx: &ZmqContext) -> Self {
         // ZmqMechanismBase (session_, options_),
         //     send_tok (),
         //     recv_tok (),

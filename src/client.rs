@@ -37,7 +37,6 @@ use crate::defines::ZMQ_CLIENT;
 use crate::fq::ZmqFq;
 use crate::lb::LoadBalancer;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
-use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 use crate::socket_base_ops::ZmqSocketBaseOps;

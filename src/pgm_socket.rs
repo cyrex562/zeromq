@@ -57,13 +57,14 @@ use libc::{c_long, EBUSY, EINVAL, ENOMEM};
 use windows::Win32::Foundation::FALSE;
 use windows::Win32::Networking::WinSock::{IPPROTO_PGM, IPPROTO_UDP, sa_family_t, SO_RCVBUF, SO_SNDBUF, SOCK_SEQPACKET, SOL_SOCKET};
 use crate::address_family::{AF_INET6, AF_UNSPEC};
+use crate::context::ZmqContext;
 use crate::fd::ZmqFileDesc;
-use crate::options::ZmqOptions;
+
 use crate::unix_sockaddr::sockaddr_in6;
 use crate::utils::copy_bytes;
 
 #[derive(Default,Debug,Clone)]
-pub struct PgmSocket<'a>
+pub struct PgmSocket
 {
     //  OpenPGM transport.
     // pgm_sock_t *sock;
@@ -72,7 +73,7 @@ pub struct PgmSocket<'a>
     pub last_tx_status: i32,
     //  Associated socket options.
     // ZmqOptions options;
-    pub options: &'a ZmqOptions,
+    // pub options: &'a ZmqOptions,
     //  true when pgm_socket should create receiving side.
     pub receiver: bool,
     //  Array of pgm_msgv_t structures to store received data
@@ -92,7 +93,7 @@ pub struct PgmSocket<'a>
 impl PgmSocket {
     //  If receiver_ is true PGM transport is not generating SPM packets.
     // PgmSocket (receiver_: bool, options: &ZmqOptions);
-    pub fn new(receiver_: bool, options: &ZmqOptions) -> Self
+    pub fn new(receiver_: bool, options: &ZmqContext) -> Self
 
     {
 //     sock (null_mut()),
@@ -107,7 +108,6 @@ impl PgmSocket {
             sock: (),
             last_rx_status: 0,
             last_tx_status: 0,
-            options: options,
             receiver: receiver_,
             pgm_msgv: (),
             pgm_msgv_len: 0,

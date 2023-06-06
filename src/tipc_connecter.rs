@@ -51,7 +51,7 @@ use crate::address_family::AF_TIPC;
 use crate::fd::ZmqFileDesc;
 use crate::ip::{open_socket, unblock_socket};
 use crate::ops::zmq_errno;
-use crate::options::ZmqOptions;
+
 use crate::session_base::ZmqSessionBase;
 use crate::stream_connecter_base::StreamConnecterBase;
 use crate::thread_context::ZmqThreadContext;
@@ -64,6 +64,7 @@ use std::mem;
 use std::os::raw::c_void;
 use windows::s;
 use windows::Win32::Networking::WinSock::{socklen_t, SOCK_STREAM, SOL_SOCKET, SO_ERROR};
+use crate::context::ZmqContext;
 
 // #include <unistd.h>
 // #include <sys/types.h>
@@ -115,7 +116,7 @@ impl ZmqTipcConnecter {
     pub fn new(
         io_thread: &mut ZmqThreadContext,
         session: &mut ZmqSessionBase,
-        options: &mut ZmqOptions,
+        ctx: &mut ZmqContext,
         addr: &mut ZmqAddress<ZmqTipcAddress>,
         delayed_start: bool,
     ) -> Self {

@@ -44,6 +44,7 @@ use anyhow::anyhow;
 use libc::EPROTO;
 
 use crate::config::{CRYPTO_BOX_BOXZEROBYTES, CRYPTO_BOX_NONCEBYTES, CRYPTO_BOX_ZEROBYTES};
+use crate::context::ZmqContext;
 use crate::curve_client_tools::{
     is_handshake_command_error, is_handshake_command_ready, is_handshake_command_welcome,
     produce_initiate,
@@ -57,7 +58,6 @@ use crate::defines::{
 use crate::mechanism::ZmqMechanismStatus;
 use crate::mechanism_base::ZmqMechanismBase;
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 
 pub enum ZmqCurveClientState {
@@ -104,23 +104,23 @@ impl ZmqCurveClient {
     // }
     pub fn new(
         session: &mut ZmqSessionBase,
-        options: &mut ZmqOptions,
+        ctx: &mut ZmqContext,
         downgrade_sub: bool,
     ) -> Self {
         Self {
-            mechanism_base: ZmqMechanismBase::new(options, session),
+            mechanism_base: ZmqMechanismBase::new(session, ctx),
             curve_mechanism_base: ZmqCurveMechanismBase::new(
+                ctx,
                 session,
-                options,
                 "CurveZMQMESSAGEC",
                 "CurveZMQMESSAGES",
                 downgrade_sub,
             ),
             state: ZmqCurveClientState::send_hello,
             tools: ZmqCurveClientTools::new(
-                options.curve_public_key,
-                options.curve_secret_key,
-                options.curve_server_key,
+                ctx.curve_public_key,
+                ctx.curve_secret_key,
+                ctx.curve_server_key,
             ),
         }
     }

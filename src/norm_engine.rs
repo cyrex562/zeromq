@@ -18,7 +18,7 @@ use crate::fd::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 use crate::ip::make_fdpair;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
-use crate::options::ZmqOptions;
+
 use crate::session_base::ZmqSessionBase;
 use crate::thread_context::ZmqThreadContext;
 use crate::v2_decoder::ZmqV2Decoder;
@@ -34,6 +34,7 @@ use windows::Win32::Networking::WinSock::{closesocket, recv, send, shutdown, SOC
 use windows::Win32::System::Threading::{
     CreateThread, GetExitCodeThread, WaitForSingleObject, INFINITE,
 };
+use crate::context::ZmqContext;
 
 // enum
 // {
@@ -109,7 +110,7 @@ pub struct NormEngine<'a> {
     // ZmqSessionBase *zmq_session;
     pub zmq_session: Option<&'a ZmqSessionBase>,
     // ZmqOptions options;
-    pub options: &'a ZmqOptions,
+    // pub options: &'a ZmqOptions,
     // NormInstanceHandle norm_instance;
     pub norm_instance: NormInstanceHandle,
     // handle_t norm_descriptor_handle;
@@ -159,7 +160,7 @@ pub struct NormEngine<'a> {
 
 impl NormEngine {
     //     NormEngine (parent_: &mut ZmqIoThread, options: &ZmqOptions);
-    pub fn new(parent: &mut ZmqThreadContext, options: &ZmqOptions) -> Self {
+    pub fn new(ctx: &ZmqContext, parent: &mut ZmqThreadContext) -> Self {
         // ZmqIoObject (parent_),
         //     zmq_session (null_mut()),
         //     options (options_),
@@ -179,7 +180,7 @@ impl NormEngine {
         let mut out = Self {
             io_object: ZmqIoObject::new(Some(parent.clone())),
             zmq_session: None,
-            options: options,
+            options: ctx,
             norm_instance: NORM_INSTANCE_INVALID,
             norm_session: NORM_SESSION_INVALID,
             is_sender: false,

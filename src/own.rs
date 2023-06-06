@@ -30,7 +30,7 @@
 use crate::atomic_counter::AtomicCounter;
 use crate::context::ZmqContext;
 use crate::object::ZmqObject;
-use crate::options::ZmqOptions;
+
 use crate::thread_context::ZmqThreadContext;
 use bincode::options;
 use std::sync::atomic::Ordering;
@@ -47,7 +47,7 @@ pub struct ZmqOwn {
     //  It'll be supplied later on when the object is plugged in.
     //
     //  Socket options associated with this object.
-    pub options: ZmqOptions,
+    // pub options: ZmqOptions,
     //
     //  Handlers for incoming commands.
     //  True if termination was already initiated. If so, we can destroy
@@ -67,7 +67,7 @@ pub struct ZmqOwn {
     //  Number of events we have to get before we can destroy the object.
     pub term_acks: u32,
     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqOwn)
-    pub ctx: ZmqContext,
+    // pub ctx: ZmqContext,
     pub tid: u32,
 }
 
@@ -82,14 +82,14 @@ impl ZmqOwn {
     // processed_seqnum (0),
     // _owner (null_mut()),
     // term_acks (0)
-    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32) -> Self {
+    pub fn new(ctx: &mut ZmqContext, parent: &mut ZmqContext, tid: u32) -> Self {
         Self {
-            options: options.clone(),
+            // options: ctx.clone(),
             terminating: false,
             sent_seqnum: AtomicCounter::new(),
             processed_seqnum: 0,
             term_acks: 0,
-            ctx: ZmqContext,
+            // ctx: ZmqContext,
             tid: tid,
         }
     }
@@ -104,14 +104,14 @@ impl ZmqOwn {
     // processed_seqnum (0),
     // _owner (null_mut()),
     // term_acks (0)
-    pub fn new2(io_thread: &mut ZmqThreadContext, options: &ZmqOptions) -> Self {
+    pub fn new2(io_thread: &mut ZmqThreadContext, options: &ZmqContext) -> Self {
         Self {
-            options: Default::default(),
+            // options: Default::default(),
             terminating: false,
             sent_seqnum: AtomicCounter::new(),
             processed_seqnum: 0,
             term_acks: 0,
-            ctx: ZmqContext,
+            // ctx: options,
             tid: 0,
         }
     }

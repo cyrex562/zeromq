@@ -66,7 +66,7 @@ use crate::ip::{
 };
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::ops::zmq_errno;
-use crate::options::ZmqOptions;
+
 use crate::socket_base::ZmqSocketBase;
 use crate::stream_listener_base::ZmqStreamListenerBase;
 use crate::tcp::{tcp_open_socket, tune_tcp_keepalives, tune_tcp_maxrt, tune_tcp_socket};
@@ -82,6 +82,7 @@ use windows::Win32::Networking::WinSock::{
     closesocket, socklen_t, WSAGetLastError, SOCKET_ERROR, SOL_SOCKET, SO_REUSEADDR, WSAECONNRESET,
     WSAEMFILE, WSAENOBUFS, WSAEWOULDBLOCK,
 };
+use crate::context::ZmqContext;
 
 // #ifdef ZMQ_HAVE_OPENVMS
 // #include <ioctl.h>
@@ -118,11 +119,11 @@ impl TcpListener {
     pub fn new(
         io_thread: &mut ZmqThreadContext,
         socket: &mut ZmqSocketBase,
-        options: &mut ZmqOptions,
+        ctx: &mut ZmqContext,
     ) -> TcpListener {
         // ZmqStreamListenerBase (io_thread_, socket, options_)
         Self {
-            stream_listener_base: ZmqStreamListenerBase::new(io_thread, socket, options),
+            stream_listener_base: ZmqStreamListenerBase::new(io_thread, socket, ctx),
             address: Default::default(),
         }
     }

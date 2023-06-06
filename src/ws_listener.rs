@@ -64,7 +64,7 @@
 
 use crate::address::SocketEnd::{SocketEndLocal, SocketEndRemote};
 use crate::address::{get_socket_name, SocketEnd};
-use crate::context::choose_io_thread;
+use crate::context::{choose_io_thread, ZmqContext};
 use crate::endpoint::EndpointType::endpoint_type_bind;
 use crate::endpoint::{make_unconnected_bind_endpoint_pair, EndpointUriPair};
 use crate::engine_interface::ZmqEngineInterface;
@@ -72,7 +72,7 @@ use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
 use crate::ip::make_socket_noninheritable;
 use crate::ops::zmq_errno;
-use crate::options::ZmqOptions;
+
 use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
 use crate::stream_listener_base::ZmqStreamListenerBase;
@@ -134,11 +134,11 @@ impl ZmqWsListener {
     pub fn new(
         io_thread_: &mut ZmqThreadContext,
         socket: &mut ZmqSocketBase,
-        options: &mut ZmqOptions,
+        ctx: &mut ZmqContext,
         wss_: bool,
     ) -> Self {
         let mut out = Self {
-            base: ZmqStreamListenerBase::new(io_thread_, socket, options),
+            base: ZmqStreamListenerBase::new(io_thread_, socket, ctx),
             address: Default::default(),
             _wss: false,
             _tls_cred: (),

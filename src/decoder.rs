@@ -55,7 +55,6 @@
 //  Buffer management is done by an allocator policy.
 // template <typename T, typename A = c_single_allocator>
 
-use crate::allocator::Allocator;
 use crate::utils::copy_bytes;
 
 pub trait i_decoder {}
@@ -81,7 +80,7 @@ pub struct DecoderBase {
 
     //  The duffer for data to decode.
     // A allocator;
-    allocator: T,
+    // allocator: T,
     // unsigned char *buf;
     buf: Vec<u8>, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (DecoderBase)
 }
@@ -97,7 +96,7 @@ impl DecoderBase {
             next: 0,
             read_pos: vec![],
             to_read: 0,
-            allocator: Allocator::new(),
+            // allocator: Allocator::new(),
             buf: vec![],
         };
         out
@@ -119,8 +118,8 @@ impl DecoderBase {
         //  other engines running in the same I/O thread for excessive
         //  amounts of time.
         if (self.to_read >= self.allocator.size()) {
-            *data = self.buf[read_pos..];
-            *size = to_read;
+            *data = self.buf[self.read_pos..];
+            *size = self.to_read;
             return;
         }
 
@@ -140,13 +139,13 @@ impl DecoderBase {
         //  In case of zero-copy simply adjust the pointers, no copying
         //  is required. Also, run the state machine in case all the data
         //  were processed.
-        if (data == read_pos) {
-            zmq_assert(size <= to_read);
-            read_pos += size;
-            to_read -= size;
+        if (data == self.read_pos) {
+            // zmq_assert(size <= to_read);
+            self.read_pos += size;
+            self.to_read -= size;
             bytes_used_ = size;
 
-            while (!to_read) {
+            while (!self.to_read) {
                 let rc: i32 = 0;
                 // TODO
                 // (static_cast<T *> (this)->*next) (data + bytes_used_);
@@ -159,19 +158,19 @@ impl DecoderBase {
 
         while (bytes_used_ < size) {
             //  Copy the data from buffer to the message.
-            let to_copy = usize::min(to_read, size - bytes_used_);
+            let to_copy = usize::min(self.to_read, size - bytes_used_);
             // Only copy when destination address is different from the
             // current address in the buffer.
-            if (read_pos != data + bytes_used_) {
-                copy_bytes(read_pos, 0, data, bytes_used_, to_copy as i32);
+            if (self.read_pos != data + bytes_used_) {
+                copy_bytes(self.read_pos.as_mut_slice(), 0, data, bytes_used_, to_copy);
             }
 
-            read_pos += to_copy;
-            to_read -= to_copy;
+            self.read_pos += to_copy;
+            self.to_read -= to_copy;
             bytes_used_ += to_copy;
             //  Try to get more space in the message to fill in.
             //  If none is available, return.
-            while (to_read == 0) {
+            while (self.to_read == 0) {
                 // pass current address in the buffer
                 let rc: i32 = 0;
                 // TODO
@@ -203,9 +202,9 @@ impl DecoderBase {
     }
 
     // A &get_allocator () { return allocator; }
-    pub fn get_allocator(&mut self) -> &mut T {
-        &mut self.allocator
-    }
+    // pub fn get_allocator(&mut self) -> &mut T {
+    //     &mut self.allocator
+    // }
 }
 // }
 

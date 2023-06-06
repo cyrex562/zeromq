@@ -49,7 +49,7 @@ use crate::endpoint::EndpointType::endpoint_type_connect;
 use crate::endpoint::EndpointUriPair;
 use crate::fd::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
-use crate::options::ZmqOptions;
+
 use crate::own::ZmqOwn;
 use crate::proxy::ZmqSocketBase;
 use crate::raw_engine::RawEngine;
@@ -58,6 +58,7 @@ use crate::thread_context::ZmqThreadContext;
 use crate::zmtp_engine::ZmqZmtpEngine;
 use libc::{c_int, close};
 use windows::Win32::Networking::WinSock::{closesocket, SOCKET_ERROR};
+use crate::context::ZmqContext;
 
 // enum
 // {
@@ -111,7 +112,7 @@ impl StreamConnecterBase {
     pub fn new(
         io_thread_: &mut ZmqThreadContext,
         session_: &mut ZmqSessionBase,
-        options: &ZmqOptions,
+        ctx: &ZmqContext,
         addr_: &mut ZmqAddress,
         delayed_start_: bool,
     ) -> Self {
@@ -141,7 +142,7 @@ impl StreamConnecterBase {
             start_connecting: None,
             _delayed_start: delayed_start_,
             _reconnect_timer_started: false,
-            _current_reconnect_ivl: options.reconnect_ivl,
+            _current_reconnect_ivl: ctx.reconnect_ivl,
             _session: session_,
         }
     }

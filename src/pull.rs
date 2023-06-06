@@ -38,7 +38,7 @@ use std::collections::VecDeque;
 use crate::context::ZmqContext;
 use crate::defines::ZMQ_PULL;
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
+
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 
@@ -68,7 +68,7 @@ impl ZmqPull {
     // {
     // options.type_ = ZMQ_PULL;
     // }
-    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
+    pub fn new(options: &mut ZmqContext, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
         let mut out = Self {
             socket_base: ZmqSocketBase::new(parent, options, tid, sid_, false),
             fair_queue: VecDeque::new(),

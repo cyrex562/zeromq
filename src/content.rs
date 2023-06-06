@@ -1,4 +1,5 @@
-use crate::atomic_counter::AtomicCounter;
+use std::sync::atomic::AtomicU64;
+use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct ZmqContent {
@@ -6,5 +7,5 @@ pub struct ZmqContent {
     pub size: usize,
     // msg_free_fn: *ffn;
     pub hint: Vec<u8>,
-    pub refcnt: AtomicCounter,
+    pub refcnt: AtomicU64,
 }

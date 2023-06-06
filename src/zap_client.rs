@@ -31,6 +31,7 @@
 
 use anyhow::bail;
 use libc::{EAGAIN, EPROTO};
+use crate::context::ZmqContext;
 
 use crate::defines::{
     ZMQ_PROTOCOL_ERROR_ZAP_BAD_REQUEST_ID, ZMQ_PROTOCOL_ERROR_ZAP_BAD_VERSION,
@@ -40,7 +41,7 @@ use crate::defines::{
 use crate::mechanism::ZmqMechanism;
 use crate::mechanism_base::ZmqMechanismBase;
 use crate::message::{close_and_return, ZmqMessage, ZMQ_MSG_MORE};
-use crate::options::ZmqOptions;
+
 use crate::session_base::ZmqSessionBase;
 use crate::utils::{cmp_bytes, copy_bytes};
 use crate::zap_client::ZmqZapClientCommonHandshakeState::{
@@ -84,14 +85,14 @@ pub struct ZmqZapClient {
     //  Status code as received from ZAP handler
     // status_code: String;
     pub status_code: String,
-    pub mechanism_base: ZmqMechanismBase,
+    pub base: ZmqMechanismBase,
 }
 
 impl ZmqZapClient {
-    pub fn new(session: &ZmqSessionBase, peer_address_: &str, options: &ZmqOptions) -> Self {
+    pub fn new(ctx: &ZmqContext, session: &ZmqSessionBase, peer_address_: &str) -> Self {
         // ZmqMechanismBase (session_, options_), peer_address (peer_address_)
         Self {
-            mechanism_base: ZmqMechanismBase::new2(session, options),
+            base: ZmqMechanismBase::new(ctx, session),
             peer_address: peer_address_.to_string(),
             ..Default::default()
         }
@@ -115,7 +116,7 @@ impl ZmqZapClient {
 
     pub fn send_zap_request2(
         &mut self,
-        options: &mut ZmqOptions,
+        ctx: &mut ZmqContext,
         mechanism_: &str,
         mechanism_length_: usize,
         credentials_: &mut Vec<Vec<u8>>,
@@ -158,14 +159,14 @@ impl ZmqZapClient {
         // errno_assert (rc == 0);
 
         //  Domain frame
-        rc = msg.init_size(options.zap_domain.length());
+        rc = msg.init_size(ctx.zap_domain.length());
         // errno_assert (rc == 0);
         copy_bytes(
             msg.data_mut(),
             0,
-            options.zap_domain.as_bytes(),
+            ctx.zap_domain.as_bytes(),
             0,
-            options.zap_domain.length(),
+            ctx.zap_domain.length(),
         );
         msg.set_flags(ZMQ_MSG_MORE);
         rc = session.write_zap_msg(&msg);
@@ -180,14 +181,14 @@ impl ZmqZapClient {
         // errno_assert (rc == 0);
 
         //  Routing id frame
-        rc = msg.init_size(options.routing_id_size);
+        rc = msg.init_size(ctx.routing_id_size);
         // errno_assert (rc == 0);
         copy_bytes(
             msg.data_mut(),
             0,
-            &options.routing_id,
+            &ctx.routing_id,
             0,
-            options.routing_id_size,
+            ctx.routing_id_size,
         );
         msg.set_flags(ZMQ_MSG_MORE);
         rc = session.write_zap_msg(&msg);
@@ -414,9 +415,9 @@ impl ZmqZapClientCommonHandshake {
     // {
     // }
     pub fn new(
+        ctx: &mut ZmqContext,
         session: &mut ZmqSessionBase,
         peer_address: &str,
-        options: &mut ZmqOptions,
         sending_ready: ZmqZapClientCommonHandshakeState,
     ) -> Self {
         Self {

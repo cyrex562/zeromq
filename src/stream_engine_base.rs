@@ -69,6 +69,7 @@ use std::ptr::null_mut;
 use bincode::options;
 use libc::{size_t, EAGAIN, ECONNRESET, EPIPE, EPROTO};
 use windows::Win32::Networking::WinSock::{socklen_t, PF_UNIX, SOL_SOCKET};
+use crate::context::ZmqContext;
 
 use crate::decoder::ZmqDecoderInterface;
 use crate::defines::{
@@ -83,7 +84,7 @@ use crate::io_object::ZmqIoObject;
 use crate::mechanism::ZmqMechanismStatus::{error, ready};
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_CREDENTIAL};
 use crate::metadata::ZmqMetadata;
-use crate::options::ZmqOptions;
+
 use crate::socket_base::ZmqSocketBase;
 use crate::thread_context::ZmqThreadContext;
 use crate::utils::copy_bytes;
@@ -107,7 +108,7 @@ pub struct ZmqStreamEngineBase {
     pub io_object: ZmqIoObject,
     pub engine_interface: ZmqEngineInterface,
     // const ZmqOptions _options;
-    pub _options: ZmqOptions,
+    // pub _options: ZmqOptions,
     // unsigned char *_inpos;
     pub _inpos: usize,
     pub _insize: usize,
@@ -434,12 +435,12 @@ impl ZmqStreamEngineBase {
     // }
     pub fn new(
         fd: ZmqFileDesc,
-        options: &mut ZmqOptions,
+        ctx: &mut ZmqContext,
         endpoint_uri_pair: &EndpointUriPair,
         has_handshake_stage: bool,
     ) -> Self {
         let mut out = Self {
-            _options: options.clone(),
+            // _options: ctx.clone(),
             _endpoint_uri_pair: endpoint_uri_pair.clone(),
             _peer_address: get_peer_address(fd),
             _s: fd,

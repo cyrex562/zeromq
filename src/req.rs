@@ -32,7 +32,7 @@ use crate::context::ZmqContext;
 use crate::dealer::ZmqDealer;
 use crate::defines::ZMQ_REQ;
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
-use crate::options::ZmqOptions;
+
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
@@ -99,7 +99,7 @@ pub struct ZmqReq {
 }
 
 impl ZmqReq {
-    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
+    pub fn new(options: &mut ZmqContext, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
         // ZmqDealer (parent_, tid, sid_),
         //     _receiving_reply (false),
         //     _message_begins (true),
@@ -108,7 +108,7 @@ impl ZmqReq {
         //     _request_id (generate_random ()),
         //     _strict (true)
         let mut out = Self {
-            dealer: ZmqDealer::new(options, parent, tid, sid),
+            dealer: ZmqDealer::new(parent, tid, sid),
             _receiving_reply: false,
             _message_begins: false,
             _reply_pipe: None,
@@ -362,7 +362,7 @@ impl ReqSession {
         io_thread: &mut ZmqThreadContext,
         connect_: bool,
         socket: &mut ZmqSocketBase,
-        options: &mut ZmqOptions,
+        options: &mut ZmqContext,
         addr: &mut ZmqAddress,
     ) -> Self {
         //     ZmqSessionBase (io_thread_, connect_, socket, options_, addr_),

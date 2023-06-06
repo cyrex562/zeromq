@@ -66,13 +66,14 @@
 use std::mem;
 use bincode::options;
 use libc::{EAGAIN, memcmp, memcpy, memset};
+use crate::context::ZmqContext;
 use crate::curve_server::curve_ZmqServer;
 use crate::endpoint::EndpointUriPair;
 use crate::fd::ZmqFileDesc;
 use crate::gssapi_client::ZmqGssApiClient;
 use crate::gssapi_server::ZmqGssApiServer;
 use crate::message::{ZMQ_MSG_CANCEL, ZMQ_MSG_COMMAND, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZMQ_MSG_ROUTING_ID, ZMQ_MSG_SUBSCRIBE, ZmqMessage};
-use crate::options::ZmqOptions;
+
 use crate::plain_client::PlainClient;
 use crate::plain_server::PlainServer;
 use crate::stream_engine_base::{heartbeat_timeout_timer_id, heartbeat_ttl_timer_id, ZmqStreamEngineBase};
@@ -183,7 +184,7 @@ impl ZmqZmtpEngine {
     //     _greeting_bytes_read (0),
     //     _subscription_required (false),
     //     _heartbeat_timeout (0)
-    pub fn new(fd: ZmqFileDesc, options: &ZmqOptions, endpoint_uri_pair: EndpointUriPair) -> Self {
+    pub fn new(fd: ZmqFileDesc, ctx: &ZmqContext, endpoint_uri_pair: EndpointUriPair) -> Self {
         let mut out = Self { ..Default::default() };
 
         // TODO
@@ -201,10 +202,10 @@ impl ZmqZmtpEngine {
         rc = out._routing_id_msg.init2();
         // errno_assert (rc == 0);
 
-        if (options.heartbeat_interval > 0) {
-            out._heartbeat_timeout = options.heartbeat_timeout;
+        if (ctx.heartbeat_interval > 0) {
+            out._heartbeat_timeout = ctx.heartbeat_timeout;
             if (out._heartbeat_timeout == -1) {
-                out._heartbeat_timeout = options.heartbeat_interval;
+                out._heartbeat_timeout = ctx.heartbeat_interval;
             }
         }
 
@@ -458,7 +459,7 @@ impl ZmqZmtpEngine {
     }
 
 
-    pub fn handshake_v3_x(&mut self, options: &mut ZmqOptions, downgrade_sub_: bool) -> bool {
+    pub fn handshake_v3_x(&mut self, ctx: &mut ZmqContext, downgrade_sub_: bool) -> bool {
         if self._options.mechanism == ZMQ_NULL && cmp_bytes(&self._greeting_recv, 12, b"NULL\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
                                                             0, 20) == 0 {
             // TODO
@@ -489,7 +490,7 @@ impl ZmqZmtpEngine {
         else if (self._options.mechanism == ZMQ_GSSAPI && cmp_bytes(&self._greeting_recv, 12,
                                                                     b"GSSAPI\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 0, 20) == 0) {
             if (self._options.as_server) {
-                self._mechanism = ZmqGssApiServer::new(session(), self._peer_address, self._options);
+                self._mechanism = ZmqGssApiServer::new(self._options, session(), self._peer_address);
             } else {
                 self._mechanism = ZmqGssApiClient::new(session(), self._options);
             }
@@ -510,7 +511,7 @@ impl ZmqZmtpEngine {
         return true;
     }
 
-    pub fn handshake_v3_0(&mut self, options: &mut ZmqOptions) -> bool {
+    pub fn handshake_v3_0(&mut self, ctx: &mut ZmqContext) -> bool {
         self._encoder = ZmqV2Encoder::new(self._options.out_batch_size);
         // alloc_assert (self._encoder);
 
@@ -518,10 +519,10 @@ impl ZmqZmtpEngine {
             self._options.in_batch_size, self._options.maxmsgsize, self._options.zero_copy);
         // alloc_assert (self._decoder);
 
-        return self.handshake_v3_x(options, true);
+        return self.handshake_v3_x(ctx, true);
     }
 
-    pub fn handshake_v3_1(&mut self, options: &mut ZmqOptions) -> bool {
+    pub fn handshake_v3_1(&mut self, ctx: &mut ZmqContext) -> bool {
         self._encoder = ZmqV31Encoder::new(self._options.out_batch_size);
         // alloc_assert (self._encoder);
 
@@ -529,7 +530,7 @@ impl ZmqZmtpEngine {
             self._options.in_batch_size, self._options.maxmsgsize, self._options.zero_copy);
         // alloc_assert (self._decoder);
 
-        return self.handshake_v3_x(options, false);
+        return self.handshake_v3_x(ctx, false);
     }
 
     pub fn routing_id_msg(&mut self, msg: &mut ZmqMessage) -> i32 {

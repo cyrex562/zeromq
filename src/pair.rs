@@ -33,7 +33,7 @@ use libc::{EAGAIN, pipe};
 use crate::context::ZmqContext;
 use crate::defines::ZMQ_PAIR;
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
-use crate::options::ZmqOptions;
+
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 
@@ -59,7 +59,7 @@ pub struct ZmqPair<'a> {
 
 impl ZmqPair {
     // ZmqPair (ZmqContext *parent_, tid: u32, sid_: i32);
-    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
+    pub fn new(options: &mut ZmqContext, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self
 
     {
         // ZmqSocketBase (parent_, tid, sid_), pipe (null_mut())

@@ -1,6 +1,5 @@
 use crate::context::ZmqContext;
 use crate::socket_base::ZmqSocketBase;
-use crate::options::ZmqOptions;
 
 pub enum EndpointType {
     endpoint_type_none,

@@ -35,7 +35,7 @@ use crate::context::ZmqContext;
 use crate::defines::{ZMQ_RADIO, ZMQ_XPUB_NODROP};
 use crate::dist::ZmqDist;
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
-use crate::options::ZmqOptions;
+
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
@@ -62,7 +62,7 @@ pub struct ZmqRadio {
 }
 
 impl ZmqRadio {
-    pub fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
+    pub fn new(options: &mut ZmqContext, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
         // ZmqSocketBase (parent_, tid, sid_, true), _lossy (true)
         let mut out = Self {
             _subscriptions: HashMap::new(),
@@ -239,7 +239,7 @@ impl RadioSession {
         io_thread_: &mut ZmqThreadContext,
         connect_: bool,
         socket: &mut ZmqSocketBase,
-        options: &mut ZmqOptions,
+        options: &mut ZmqContext,
         addr_: &mut UdpAddress,
     ) -> Self {
         Self {

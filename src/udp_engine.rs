@@ -62,7 +62,7 @@ use crate::io_object::ZmqIoObject;
 use crate::ip::{assert_success_or_recoverable, bind_to_device, open_socket, unblock_socket};
 use crate::mechanism::name_len;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
-use crate::options::ZmqOptions;
+
 use crate::pgm_receiver::_empty_endpoint;
 use crate::session_base::ZmqSessionBase;
 use crate::thread_context::ZmqThreadContext;

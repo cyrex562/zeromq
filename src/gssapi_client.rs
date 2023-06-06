@@ -43,6 +43,7 @@
 use std::ptr::null_mut;
 
 use libc::{EAGAIN, EPROTO};
+use crate::context::ZmqContext;
 
 use crate::curve_client_tools::produce_initiate;
 use crate::defines::ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND;
@@ -51,7 +52,6 @@ use crate::gssapi_client::ZmqGssApiClientState::{
 };
 use crate::mechanism::ZmqMechanism;
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 use crate::utils::copy_bytes;
 
@@ -89,7 +89,7 @@ pub struct ZmqGssApiClient<'a> {
 
 impl ZmqGssApiClient {
     // ZmqGssApiClient (ZmqSessionBase *session_, options: &ZmqOptions);
-    pub fn new(session_: &mut ZmqSessionBase, options: &ZmqOptions) -> Self {
+    pub fn new(session_: &mut ZmqSessionBase, ctx: &ZmqContext) -> Self {
         let mut out = Self::default();
         // ZmqMechanismBase (session_, options_),
         //     ZmqGssApiMechanismBase (session_, options_),

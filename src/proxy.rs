@@ -88,7 +88,7 @@ use std::ptr::null_mut;
 use libc::EAGAIN;
 use crate::defines::{ZMQ_DONTWAIT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_RCVMORE, ZMQ_SNDMORE};
 use crate::message::ZmqMessage;
-use crate::options::ZmqOptions;
+
 use crate::socket_base::ZmqSocketBase;
 use crate::socket_poller::ZmqSocketPoller;
 use crate::utils::{cmp_bytes, copy_bytes};
@@ -108,7 +108,7 @@ pub struct ZmqSocketStats {
 
 // Utility functions
 
-pub fn capture(options: &mut ZmqOptions, capture_: &mut ZmqSocketBase, msg: &mut ZmqMessage, more_: i32) -> i32 {
+pub fn capture(options: &mut ZmqContext, capture_: &mut ZmqSocketBase, msg: &mut ZmqMessage, more_: i32) -> i32 {
     //  Copy message to capture socket if any
     if capture_ {
         let mut ctrl = ZmqMessage::default();
@@ -129,7 +129,7 @@ pub fn capture(options: &mut ZmqOptions, capture_: &mut ZmqSocketBase, msg: &mut
     return 0;
 }
 
-pub fn forward(options: &mut ZmqOptions, from_: &mut ZmqSocketBase, from_stats_: &mut ZmqSocketStats, to_: &mut ZmqSocketBase, to_stats: &mut ZmqSocketStats, capture: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+pub fn forward(options: &mut ZmqContext, from_: &mut ZmqSocketBase, from_stats_: &mut ZmqSocketStats, to_: &mut ZmqSocketBase, to_stats: &mut ZmqSocketStats, capture: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()> {
     // Forward a burst of messages
     // for (unsigned int i = 0; i < proxy_burst_size; i+= 1)
     for i in 0..proxy_burst_size {
@@ -170,7 +170,7 @@ pub fn forward(options: &mut ZmqOptions, from_: &mut ZmqSocketBase, from_stats_:
     Ok(())
 }
 
-pub fn loop_and_send_multipart_stat(options: &mut ZmqOptions,
+pub fn loop_and_send_multipart_stat(options: &mut ZmqContext,
                                     control_: &mut ZmqSocketBase,
                                     stat_: u64,
                                     first_: bool,
@@ -195,7 +195,7 @@ pub fn loop_and_send_multipart_stat(options: &mut ZmqOptions,
     return rc;
 }
 
-pub fn reply_stats(options: &mut ZmqOptions,
+pub fn reply_stats(options: &mut ZmqContext,
                    control_: &mut ZmqSocketBase,
                    frontend_stats_: &ZmqSocketStats,
                    backend_stats_: &ZmqSocketStats) -> i32 {
@@ -231,7 +231,7 @@ enum ProxyState {
 }
 // #ifdef ZMQ_HAVE_POLLER
 
-pub fn proxy(options: &mut ZmqOptions,
+pub fn proxy(options: &mut ZmqContext,
              frontend_: &mut ZmqSocketBase,
              backend_: &mut ZmqSocketBase,
              capture_: &mut ZmqSocketBase,

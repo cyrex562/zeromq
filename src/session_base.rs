@@ -70,7 +70,6 @@ use crate::ipc_connecter::IpcConnecter;
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID};
 use crate::norm_engine::NormEngine;
 use crate::object::ZmqObject;
-use crate::options::{get_effective_conflate_option, ZmqOptions};
 use crate::own::ZmqOwn;
 use crate::pgm_receiver::ZmqPgmReceiver;
 use crate::pgm_sender::pgm_sender_t;
@@ -173,7 +172,6 @@ impl ZmqSessionBase {
         io_thread: &mut ZmqThreadContext,
         active_: bool,
         socket: &mut ZmqSocketBase,
-        options: &mut ZmqOptions,
         addr: &mut ZmqAddress,
     ) -> Self {
         let mut own = ZmqOwn::new(options, zmq_ctx, io_thread.tid);
@@ -207,7 +205,7 @@ impl ZmqSessionBase {
         io_thread: &mut ZmqThreadContext,
         active_: bool,
         socket: &mut ZmqSocketBase,
-        options: &mut ZmqOptions,
+        options: &mut ZmqContext,
         addr: Option<&mut ZmqAddress>,
     ) -> anyhow::Result<Self> {
         // ZmqSessionBase *s = null_mut();
@@ -542,7 +540,7 @@ impl ZmqSessionBase {
         return self._socket;
     }
 
-    pub fn process_plug(&mut self, options: &mut ZmqOptions) {
+    pub fn process_plug(&mut self, options: &mut ZmqContext) {
         if (self.active) {
             self.start_connecting(options, false);
         }
@@ -809,7 +807,7 @@ impl ZmqSessionBase {
         }
     }
 
-    pub fn start_connecting(&mut self, options: &mut ZmqOptions, wait_: bool) {
+    pub fn start_connecting(&mut self, options: &mut ZmqContext, wait_: bool) {
         // zmq_assert (active);
 
         //  Choose I/O thread to run connecter in. Given that we are already
@@ -842,7 +840,7 @@ impl ZmqSessionBase {
         }
         // #if defined ZMQ_HAVE_IPC
         else if (_addr.protocol == protocol_name::ipc) {
-            connecter = IpcConnecter::new(io_thread, this, options, _addr, wait_);
+            connecter = IpcConnecter::new(options, io_thread, this, _addr, wait_);
         }
         // #endif
         // #if defined ZMQ_HAVE_TIPC
@@ -946,7 +944,7 @@ impl ZmqSessionBase {
             //  exists with NORM anyway.
             if (options.type_ == ZMQ_PUB || options.type_ == ZMQ_XPUB) {
                 //  NORM sender.
-                let norm_sender = NormEngine::new(io_thread, options);
+                let norm_sender = NormEngine::new(options, io_thread);
                 // alloc_assert (norm_sender);
 
                 let rc = norm_sender.init(_addr.address, true, false);
@@ -957,7 +955,7 @@ impl ZmqSessionBase {
                 // ZMQ_SUB or ZMQ_XSUB
 
                 //  NORM receiver.
-                let norm_receiver = NormEngine::new(io_thread, options);
+                let norm_receiver = NormEngine::new(options, io_thread);
                 // alloc_assert (norm_receiver);
 
                 let rc = norm_receiver.init(_addr.address, false, true);
@@ -1001,7 +999,7 @@ impl ZmqHelloMsgSession {
         io_thread_: &mut ZmqThreadContext,
         connect_: bool,
         socket: &mut ZmqSocketBase,
-        options: &mut ZmqOptions,
+        options: &mut ZmqContext,
         addr_: &mut ZmqAddress,
     ) -> Self {
         //  :

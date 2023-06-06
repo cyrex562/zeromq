@@ -88,7 +88,7 @@ use crate::err::{errno_to_string, wsa_error_to_errno, ZmqError};
 use crate::fd::ZmqFileDesc;
 use crate::ip::{initialize_network, shutdown_network};
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE, ZMQ_MSG_SHARED};
-use crate::options::ZmqOptions;
+
 use crate::peer::ZmqPeer;
 use crate::poll_item::ZmqPollItem;
 use crate::poller_event::ZmqPollerEvent;
@@ -328,7 +328,7 @@ pub fn zmq_close(s_: &mut [u8]) -> Result<(), ZmqError> {
 }
 
 pub fn zmq_setsockopt(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     in_bytes: &[u8],
     opt_kind: i32,
     opt_val: &[u8],
@@ -339,7 +339,7 @@ pub fn zmq_setsockopt(
 }
 
 pub fn zmq_getsockopt(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     in_bytes: &[u8],
     opt_kind: u8,
     opt_val: &mut [u8],
@@ -356,7 +356,7 @@ pub fn zmq_getsockopt(
 }
 
 pub fn zmq_socket_monitor_versioned(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     s_: &mut [u8],
     addr_: &str,
     events_: u64,
@@ -374,7 +374,7 @@ pub fn zmq_socket_monitor_versioned(
 }
 
 pub fn zmq_socket_monitor(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     s_: &mut [u8],
     addr_: &str,
     events_: u64,
@@ -402,7 +402,7 @@ pub fn zmq_leave(s_: &mut [u8], group_: &str) -> Result<(), ZmqError> {
 
 pub fn zmq_bind(
     ctx: &mut ZmqContext,
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     s_: &mut [u8],
     addr_: &str,
 ) -> Result<(), ZmqError> {
@@ -414,7 +414,7 @@ pub fn zmq_bind(
     }
 }
 
-pub fn zmq_connect(options: &mut ZmqOptions, s_: &mut [u8], addr_: &str) -> Result<(), ZmqError> {
+pub fn zmq_connect(options: &mut ZmqContext, s_: &mut [u8], addr_: &str) -> Result<(), ZmqError> {
     let mut s: ZmqSocketBase = as_socket_base(s_)?;
     match s.connect(options, addr_) {
         Ok(_) => Ok(()),
@@ -447,7 +447,7 @@ pub fn zmq_connect_peer(s_: &mut [u8], addr_: &str) -> Result<(), ZmqError> {
     }
 }
 
-pub fn zmq_unbind(options: &mut ZmqOptions, s_: &mut [u8], addr_: &str) -> Result<(), ZmqError> {
+pub fn zmq_unbind(options: &mut ZmqContext, s_: &mut [u8], addr_: &str) -> Result<(), ZmqError> {
     let mut s: ZmqSocketBase = as_socket_base(s_)?;
     match s.term_endpoint(options, addr_) {
         Ok(_) => Ok(()),
@@ -459,7 +459,7 @@ pub fn zmq_unbind(options: &mut ZmqOptions, s_: &mut [u8], addr_: &str) -> Resul
 }
 
 pub fn zmq_disconnect(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     s_: &mut [u8],
     addr_: &str,
 ) -> Result<(), ZmqError> {
@@ -476,7 +476,7 @@ pub fn zmq_disconnect(
 // Sending functions.
 
 pub fn s_sendmsg(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     s_: &mut ZmqSocketBase,
     msg: &mut ZmqMessage,
     flags: i32,
@@ -494,7 +494,7 @@ pub fn s_sendmsg(
 
 //   To be deprecated once zmq_msg_send() is stable
 pub fn zmq_sendmsg(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     s_: &mut [u8],
     msg: &mut ZmqMessage,
     flags: i32,
@@ -503,7 +503,7 @@ pub fn zmq_sendmsg(
 }
 
 pub fn zmq_send(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     s_: &mut [u8],
     buf: &mut [u8],
     len_: usize,
@@ -519,7 +519,7 @@ pub fn zmq_send(
 }
 
 pub fn zmq_send_const(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     s_: &mut [u8],
     buf: &mut [u8],
     len_: usize,
@@ -542,7 +542,7 @@ pub fn zmq_send_const(
 // ZMQ_SNDMORE bit switched off.
 //
 pub fn zmq_sendiov(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     s_: &mut [u8],
     a_: &mut iovec,
     count: usize,
@@ -572,7 +572,7 @@ pub fn zmq_sendiov(
 // Receiving functions.
 
 pub fn s_recvmsg(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     s_: &mut ZmqSocketBase,
     msg: &mut ZmqMessage,
     flags: i32,
@@ -598,7 +598,7 @@ pub fn s_recvmsg(
 
 //   To be deprecated once zmq_msg_recv() is stable
 pub fn zmq_recvmsg(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     s_: &mut [u8],
     msg: &mut ZmqMessage,
     flags: i32,
@@ -612,7 +612,7 @@ pub fn zmq_recv(s_: &mut [u8], buf: &mut [u8], len: usize, flags: i32) -> Result
     let mut msg: ZmqMessage = ZmqMessage::default();
     zmq_msg_init(&mut msg)?;
 
-    let nbytes = s_recvmsg(options: &mut ZmqOptions, &mut s, &mut msg, flags).map_err(|e| {
+    let nbytes = s_recvmsg(options: &mut ZmqContext, &mut s, &mut msg, flags).map_err(|e| {
         zmq_msg_close(&mut msg)?;
         e
     })?;
@@ -646,7 +646,7 @@ pub fn zmq_recv(s_: &mut [u8], buf: &mut [u8], len: usize, flags: i32) -> Result
 // TODO: this function has no man page
 //
 pub fn zmq_recviov(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     s_: &mut [u8],
     a_: &mut [iovec],
     count: &mut usize,
@@ -746,7 +746,7 @@ pub fn zmq_msg_init_data(
 }
 
 pub fn zmq_msg_send(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     msg: &mut ZmqMessage,
     s_: &mut [u8],
     flags: i32,
@@ -756,7 +756,7 @@ pub fn zmq_msg_send(
 }
 
 pub fn zmq_msg_recv(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     msg: &mut ZmqMessage,
     s_: &mut [u8],
     flags: i32,
@@ -970,7 +970,7 @@ pub fn zmq_poller_poll(items: &mut [ZmqPollItem], timeout: i32) -> Result<i32, Z
 // #endif // ZMQ_HAVE_POLLER
 
 pub fn zmq_poll(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     items_: &mut [ZmqPollItem],
     timeout: i32,
 ) -> Result<i32, ZmqError> {
@@ -1376,7 +1376,7 @@ impl zmq_poll_select_fds_t_ {
 }
 
 pub fn zmq_poll_build_select_fds_(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     items: &mut [ZmqPollItem],
     rc: &mut i32,
 ) -> zmq_poll_select_fds_t_ {
@@ -1475,7 +1475,7 @@ pub fn zmq_poll_select_set_timeout_(
 // }
 
 pub fn zmq_poll_select_check_events_(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     items_: &mut [ZmqPollItem],
     fds: &mut zmq_poll_select_fds_t_,
     nevents: &mut i32,
@@ -1588,7 +1588,7 @@ pub fn zmq_poll_must_break_loop_(
 // #else
 // Windows has no sigset_t
 pub fn zmq_ppoll(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     items_: &mut [ZmqPollItem],
     nitems_: i32,
     timeout: i32,
@@ -1957,7 +1957,7 @@ pub fn zmq_timers_execute(timers_: &mut ZmqTimers) -> Result<(), ZmqError> {
 
 //  The proxy functionality
 pub fn zmq_proxy(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     frontend_: &mut ZmqSocketBase,
     backend_: &mut ZmqSocketBase,
     capture_: &mut ZmqSocketBase,
@@ -1969,7 +1969,7 @@ pub fn zmq_proxy(
 }
 
 pub fn zmq_proxy_steerable(
-    options: &mut ZmqOptions,
+    options: &mut ZmqContext,
     frontend_: &mut ZmqSocketBase,
     backend_: &mut ZmqSocketBase,
     capture_: &mut ZmqSocketBase,

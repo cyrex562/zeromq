@@ -58,7 +58,7 @@ use crate::endpoint::EndpointUriPair;
 use crate::object::ZmqObject;
 use crate::ypipe_base::YpipeBase;
 use crate::message::{ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID, ZmqMessage};
-use crate::options::ZmqOptions;
+
 use crate::own::ZmqOwn;
 use crate::pipe::PipeState::{active, delimiter_received, term_ack_sent, term_req_sent1, term_req_sent2, waiting_for_delimiter};
 use crate::socket_base::ZmqSocketBase;
@@ -876,7 +876,7 @@ impl i_pipe_events for ZmqPipe {
 // }
 
 
-pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqOptions) {
+pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqContext) {
     // ZmqMessage hello;
     let mut hello = ZmqMessage::default();
     let rc: i32 = hello.init_buffer(&mut options_.hello_msg[0], options_.hello_msg.size());

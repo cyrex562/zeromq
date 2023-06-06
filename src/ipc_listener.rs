@@ -46,7 +46,7 @@ use crate::ip::{
 };
 use crate::ipc_address::IpcAddress;
 use crate::ops::zmq_errno;
-use crate::options::ZmqOptions;
+
 use crate::socket_base::ZmqSocketBase;
 use crate::thread_context::ZmqThreadContext;
 use libc::{accept, bind, c_int, close, getsockopt, listen, rmdir, unlink};
@@ -56,6 +56,7 @@ use windows::Win32::Networking::WinSock::{
     closesocket, WSAGetLastError, SOCKET_ERROR, SOCK_STREAM, SOL_SOCKET, WSAECONNRESET, WSAEMFILE,
     WSAENOBUFS, WSAEWOULDBLOCK, WSA_ERROR,
 };
+use crate::context::ZmqContext;
 
 // #include "ipc_address.hpp"
 // #include "io_thread.hpp"
@@ -65,7 +66,7 @@ use windows::Win32::Networking::WinSock::{
 // #include "socket_base.hpp"
 // #include "address.hpp"
 #[derive(Debug, Clone, Default)]
-pub struct IpcListener<'a> {
+pub struct IpcListener {
     // : public ZmqStreamListenerBase
     pub stream_listener_base: StreamListenerBase,
 
@@ -79,7 +80,7 @@ pub struct IpcListener<'a> {
     //  Name of the file associated with the UNIX domain address.
     pub _filename: String,
 
-    pub options: &'a ZmqOptions,
+    // pub options: &'a ZmqOptions,
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (IpcListener)
 }
 
@@ -89,18 +90,18 @@ impl IpcListener {
     //             socket: *mut ZmqSocketBase,
     //             options: &ZmqOptions);
     pub fn new(
+        ctx: &mut ZmqContext,
         io_thread: &mut ZmqThreadContext,
         socket: &mut ZmqSocketBase,
-        options: &ZmqOptions,
     ) -> Self {
         // :
         //     ZmqStreamListenerBase (io_thread_, socket, options_), _has_file (false)
         Self {
-            stream_listener_base: StreamListenerBase::new(io_thread, socket, options),
+            stream_listener_base: StreamListenerBase::new(io_thread, socket, ctx),
             _has_file: false,
             _tmp_socket_dirname: String::new(),
             _filename: String::new(),
-            options: options,
+            // options: options,
         }
     }
 
