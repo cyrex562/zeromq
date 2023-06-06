@@ -422,7 +422,7 @@ impl ZmqGssApiMechanismBase {
 
     pub fn produce_ready(&mut self, msg: &mut ZmqMessage) -> i32
     {
-        make_command_with_basic_properties(msg, b"\5READY", 6);
+        make_command_with_basic_properties(msg, b"\x05READY", 6);
 
         if (do_encryption) {
             return encode_message(msg);

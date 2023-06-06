@@ -238,7 +238,7 @@ impl ZmqTipcConnecter {
             //  Networking problems are OK. No need to assert.
             errno = err;
             // errno_assert (errno == ECONNREFUSED || errno == ECONNRESET
-            || errno == ETIMEDOUT || errno == EHOSTUNREACH || errno == ENETUNREACH || errno == ENETDOWN);
+            // || errno == ETIMEDOUT || errno == EHOSTUNREACH || errno == ENETUNREACH || errno == ENETDOWN);
 
             return retired_fd;
         }

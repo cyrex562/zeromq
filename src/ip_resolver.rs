@@ -661,7 +661,8 @@ impl IpResolver {
 
     pub fn do_freeaddrinfo (res_: &addrinfo)
     {
-        unsafe { freeaddrinfo(Some(res_ as *ADDRINFOA)) };
+        // unsafe { freeaddrinfo(Some(res_ as *ADDRINFOA)) };
+        unimplemented!("do_freeaddrinfo")
     }
 
 }

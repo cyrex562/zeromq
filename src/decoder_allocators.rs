@@ -70,7 +70,7 @@ pub struct shared_message_memory_allocator {
     pub max_counters: usize,
 }
 
-// impl shared_message_memory_allocator {
+impl shared_message_memory_allocator {
     // public:
     // explicit shared_message_memory_allocator (std::bufsize_: usize);
     // shared_message_memory_allocator::shared_message_memory_allocator (

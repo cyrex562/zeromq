@@ -487,7 +487,7 @@ pub fn make_fdZmqPaircpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
     //  Use problematic Event implementation for compatibility if using old port 5905.
     //  Otherwise use Mutex implementation.
     let event_signaler_port: i32 = 5905;
-    let val = "Global\\zmq-signaler-port-sync".to_string().as_ptr() as * c_void;
+    let val = "Global\\zmq-signaler-port-sync".to_string().as_ptr();
 
     if (signaler_port == event_signaler_port) {
 // #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
@@ -674,7 +674,7 @@ pub fn make_fdZmqPaircpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
 }
 // #endif
 
-#[cfg ! (not(target_os = "windows"))]
+#[cfg(not(target_os = "windows"))]
 pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
 // #if defined ZMQ_HAVE_EVENTFD
     if cfg!(feature="eventfd") {

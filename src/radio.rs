@@ -351,13 +351,11 @@ impl RadioSession {
         return self.session_base.push_msg (msg);
     }
 
-    pub fn pull_msg (&mut self, msg: &mut ZmqMessage) -> i32
+    pub fn pull_msg (&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
     {
         if _state == RadioSessionState::group {
-            int rc = self.session_base.pull_msg (&mut _pending_msg);
-            if (rc != 0) {
-                return rc;
-            }
+            self.session_base.pull_msg (&mut _pending_msg)?;
+
 
             let group = _pending_msg.group ();
             let length: i32 =  group.len();
@@ -370,11 +368,11 @@ impl RadioSession {
 
             //  Next status is the body
             _state = RadioSessionState::body;
-            return 0;
+            return Ok(())
         }
         *msg = _pending_msg;
         _state = RadioSessionState::group;
-        return 0;
+        Ok(())
     }
 
     pub fn reset (&mut self)

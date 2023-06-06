@@ -72,17 +72,17 @@ impl ZmqGather {
         let rc = self.fair_queue.recvpipe (msg, None);
 
         // Drop any messages with more flag
-        while (rc == 0 && msg.flags () & ZMQ_MSG_MORE != 0) {
+        while rc == 0 && msg.flags () & ZMQ_MSG_MORE != 0 {
             // drop all frames of the current multi-frame message
-            rc = self.fair_queue.recvpipe (msg, None);
+            self.fair_queue.recvpipe (msg, None)?;
 
-            while (rc == 0 && msg.flags () & ZMQ_MSG_MORE != 0 {
-                rc = self.fair_queue.recvpipe(msg, None);
+            while rc == 0 && msg.flags () & ZMQ_MSG_MORE != 0 {
+                self.fair_queue.recvpipe(msg, None)?;
             }
 
             // get the new message
-            if (rc == 0) {
-                rc = self.fair_queue.recvpipe(msg, None);
+            if rc == 0 {
+                self.fair_queue.recvpipe(msg, None)?;
             }
         }
 

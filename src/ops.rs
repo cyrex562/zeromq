@@ -185,11 +185,6 @@ pub fn zmq_ctx_set_ext(ctx_raw: &mut [u8],
                        option: i32,
                        optval: &mut [u8]) -> Result<(), ZmqError>
 {
-    // if !ctx || !(ctx as *mut ZmqContext).check_tag () {
-    //     errno = EFAULT;
-    //     return -1;
-    // }
-    // return (ctx as *mut ZmqContext).set(option_, optval_, optvallen_);
     if ctx_raw.len() == 0 {
         bail!("context buffer is empty")
     }
@@ -578,7 +573,7 @@ pub fn zmq_recviov(options: &mut ZmqOptions, s_: &mut [u8], a_: &mut [iovec], co
     for i in 0..recvmore
     {
         let mut msg = ZmqMessage::default();
-        let mut rc = zmq_msg_init(&mut msg);
+        zmq_msg_init(&mut msg)?;
         // errno_assert (rc == 0);
 
         let nbytes = s_recvmsg(options, &mut s, &mut msg, flags).map_err(|e| {
@@ -594,7 +589,7 @@ pub fn zmq_recviov(options: &mut ZmqOptions, s_: &mut [u8], a_: &mut [iovec], co
 
         unsafe {
             libc::memcpy(a_[i].iov_base,
-                         zmq_msg_data(&msg) as * c_void,
+                         zmq_msg_data(&msg) as *const c_void,
                          a_[i].iov_len);
         }
         // Assume zmq_socket ZMQ_RVCMORE is properly set.

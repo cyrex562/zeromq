@@ -53,18 +53,17 @@
 
 use std::collections::HashMap;
 use std::mem;
-use libc::{memcpy, timeval};
+use libc::{memcpy, sockaddr, timeval};
 use windows::Win32::Foundation::FALSE;
 use windows::Win32::Networking::WinSock::{FD_ACCEPT, FD_CLOSE, FD_CONNECT, FD_READ, FD_SET, FD_SETSIZE, FD_WRITE, select, SO_TYPE, SOCK_DGRAM, SOCKET_ERROR, SOL_SOCKET, WSA_WAIT_FAILED, WSA_WAIT_TIMEOUT, WSACloseEvent, WSACreateEvent, WSAEventSelect, WSAWaitForMultipleEvents};
 use windows::Win32::System::Threading::INFINITE;
 use crate::address_family::AF_UNSPEC;
-use crate::decoder_allocators::size;
 use crate::defines::ZmqHandle;
 use crate::fd::ZmqFileDesc;
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::poll_events_interface::ZmqPollEventsInterface;
 use crate::poller_base::WorkerPollerBase;
-use crate::thread_ctx::ThreadCtx;
+use crate::thread_context::ZmqThreadContext;
 use crate::utils::copy_bytes;
 
 //  Internal state.
@@ -155,25 +154,25 @@ pub struct ZmqSelect<'a> {
 // #if defined ZMQ_HAVE_WINDOWS
 //     typedef std::map<u_short, family_entry_t> family_entries_t;
     // family_entries_t _family_entries;
-    pub _family_entires: HashMap<u16, family_entry_t>,
+    pub family_entires: HashMap<u16, family_entry_t>,
     // See loop for details.
     // family_entries_t::iterator _current_family_entry_it;
     // std::pair<ZmqFileDesc, u_short> _fd_family_cache[fd_family_cache_size];
-    pub _fd_family_cache: [(ZmqFileDesc, u16); fd_family_cache_size],
+    pub fd_family_cache: [(ZmqFileDesc, u16); fd_family_cache_size],
     //  Socket's family or AF_UNSPEC on error.
 // #else
     //  on non-Windows, we can treat all fds as one family
     // family_entry_t _family_entry;
-    pub _family_entry: family_entry_t,
+    pub family_entry: family_entry_t,
     // ZmqFileDesc _max_fd;
-    pub _max_fd: ZmqFileDesc,
+    pub max_fd: ZmqFileDesc,
 // #endif
 }
 
 // typedef ZmqSelect Poller;
 
 impl ZmqSelect {
-    pub fn new(ctx: &ThreadCtx) -> Self {
+    pub fn new(ctx: &ZmqThreadContext) -> Self {
         //     WorkerPollerBase (ctx),
         // // #if defined ZMQ_HAVE_WINDOWS
         //     //  Fine as long as map is not cleared.
@@ -189,10 +188,10 @@ impl ZmqSelect {
 // #endif
         Self {
             base: WorkerPollerBase::new(ctx),
-            _family_entires: Default::default(),
-            _fd_family_cache: [(retired_fd, 0); fd_family_cache_size],
-            _family_entry: Default::default(),
-            _max_fd: 0,
+            family_entires: Default::default(),
+            fd_family_cache: [(retired_fd, 0); fd_family_cache_size],
+            family_entry: Default::default(),
+            max_fd: 0,
         }
     }
 
@@ -656,7 +655,7 @@ impl ZmqSelect {
 
     pub fn determine_fd_family(&mut self, fd: ZmqFileDesc) -> u16 {
         //  Use sockaddr_storage instead of sockaddr to accommodate different structure sizes
-        let addr = sockaddr_storage { 0 };
+        let addr = sockaddr_storage { 0: sockaddr { 0: 0 } };
         // let addr_size = sizeof addr;
 
         // TODO
