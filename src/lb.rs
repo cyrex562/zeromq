@@ -33,11 +33,11 @@
 // #include "err.hpp"
 // #include "msg.hpp"
 
-
-use std::ptr::null_mut;
-use libc::EAGAIN;
-use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
+use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::pipe::{pipe_erase, pipe_index, pipe_swap, ZmqPipe};
+use anyhow::anyhow;
+use libc::EAGAIN;
+use std::ptr::null_mut;
 
 //  This class manages a set of outbound pipes. On send it load balances
 //  messages fairly among the pipes.
@@ -88,7 +88,6 @@ impl LoadBalancer {
         self.active += 1;
     }
 
-
     // void pipe_terminated (pipe: &mut ZmqPipe);
     pub fn pipe_terminated(&mut self, pipe: &mut ZmqPipe) {
         let index = pipe_index(pipe, &self.pipes);
@@ -122,7 +121,11 @@ impl LoadBalancer {
     //  being dropped. For the first frame, this will never happen.
     // int sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe);
 
-    pub fn sendpipe(&mut self, msg: &mut ZmqMessage, pipe: &mut &mut [ZmqPipe]) -> i32 {
+    pub fn sendpipe(
+        &mut self,
+        msg: &mut ZmqMessage,
+        pipe: Option<&mut &mut [ZmqPipe]>,
+    ) -> anyhow::Result<()> {
         //  Drop the message if required. If we are at the end of the message
         //  switch back to non-dropping mode.
         if (self._dropping) {
@@ -133,7 +136,7 @@ impl LoadBalancer {
             // errno_assert (rc == 0);
             msg.init2();
             // errno_assert (rc == 0);
-            return 0;
+            return Ok(());
         }
 
         while (self.active > 0) {
@@ -166,7 +169,7 @@ impl LoadBalancer {
                 self._dropping = (msg.flags() & ZMQ_MSG_MORE) != 0;
                 more = false;
                 errno = EAGAIN;
-                return -2;
+                return Err(anyhow!("EAGAIN"));
             }
 
             self.active -= 1;
@@ -180,7 +183,7 @@ impl LoadBalancer {
         //  If there are no pipes we cannot send the message.
         if (self.active == 0) {
             errno = EAGAIN;
-            return -1;
+            return Err(anyhow!("EAGAIN"));
         }
 
         //  If it's final part of the message we can flush it downstream and
@@ -198,7 +201,7 @@ impl LoadBalancer {
         msg.init2();
         // errno_assert (rc == 0);
 
-        return 0;
+        Ok(())
     }
 
     // bool has_out ();
@@ -230,5 +233,3 @@ impl LoadBalancer {
 // {
 //     // zmq_assert (pipes.empty ());
 // }
-
-

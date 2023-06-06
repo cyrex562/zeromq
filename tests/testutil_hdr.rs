@@ -130,16 +130,16 @@ enum
     retired_fd = (ZmqFileDesc) (~0)
 };
 // #else
-enum
-#if _MSC_VER >= 1800
-  : zmq_fd_t
+// enum
+// #if _MSC_VER >= 1800
+//   : zmq_fd_t
 // #endif
-{
+// {
     retired_fd = INVALID_SOCKET
-};
+// };
 // #endif
 // #else
-enum
+// enum
 {
     retired_fd = -1
 };

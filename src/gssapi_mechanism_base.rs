@@ -40,23 +40,25 @@
 // #include "gssapi_mechanism_base.hpp"
 // #include "wire.hpp"
 
-
-use std::ptr::null_mut;
-use libc::EPROTO;
-use crate::defines::{ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC, ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_INITIATE, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND};
+use crate::defines::{
+    ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC, ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA,
+    ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_INITIATE,
+    ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
+};
 use crate::mechanism_base::ZmqMechanismBase;
-use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZmqMessage};
+use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 use crate::utils::{cmp_bytes, copy_bytes, put_u32};
+use libc::EPROTO;
+use std::ptr::null_mut;
 
 /// Commonalities between clients and servers are captured here.
 /// For example, clients and servers both need to produce and
 /// process context-level GSSAPI tokens (via INITIATE commands)
 /// and per-message GSSAPI tokens (via MESSAGE commands).
 #[derive(Default, Debug, Clone)]
-pub struct ZmqGssApiMechanismBase
-{
+pub struct ZmqGssApiMechanismBase {
     //
     // public virtual ZmqMechanismBase
     pub mechanism_base: ZmqMechanismBase,
@@ -101,8 +103,7 @@ pub struct ZmqGssApiMechanismBase
 impl ZmqGssApiMechanismBase {
     // ZmqGssApiMechanismBase (ZmqSessionBase *session_,
     // options: &ZmqOptions);
-    pub fn new(session_: &mut ZmqSessionBase, options: &ZmqOptions) -> Self
-    {
+    pub fn new(session_: &mut ZmqSessionBase, options: &ZmqOptions) -> Self {
         // ZmqMechanismBase (session_, options_),
         //     send_tok (),
         //     recv_tok (),
@@ -130,7 +131,6 @@ impl ZmqGssApiMechanismBase {
 
     // ~ZmqGssApiMechanismBase ()  = 0;
 
-
     //  Produce a context-level GSSAPI token (INITIATE command)
     //  during security context initialization.
     // int produce_initiate (msg: &mut ZmqMessage data: &mut [u8], data_len_: usize);
@@ -148,8 +148,7 @@ impl ZmqGssApiMechanismBase {
     //  Encode a per-message GSSAPI token (MESSAGE command) using
     //  the established security context.
     // int encode_message (msg: &mut ZmqMessage);
-    pub fn encode_message(&mut self, msg: &mut ZmqMessage) -> i32
-    {
+    pub fn encode_message(&mut self, msg: &mut ZmqMessage) -> i32 {
         // Wrap the token value
         let mut state: i32;
         let mut plaintext: gss_buffer_desc;
@@ -169,13 +168,26 @@ impl ZmqGssApiMechanismBase {
         let mut plaintext_buffer: Vec<u8> = Vec::with_capacity(msg.len() + 1);
 
         plaintext_buffer[0] = flags;
-        copy_bytes(plaintext_buffer.as_mut_slice(), 1, msg.data(), 0, msg.size() as i32);
+        copy_bytes(
+            plaintext_buffer.as_mut_slice(),
+            1,
+            msg.data(),
+            0,
+            msg.size() as i32,
+        );
 
         plaintext.value = plaintext_buffer;
         plaintext.length = msg.size() + 1;
 
-        maj_stat = gss_wrap(&min_stat, context, 1, GSS_C_QOP_DEFAULT, &plaintext,
-                            &state, &wrapped);
+        maj_stat = gss_wrap(
+            &min_stat,
+            context,
+            1,
+            GSS_C_QOP_DEFAULT,
+            &plaintext,
+            &state,
+            &wrapped,
+        );
 
         // zmq_assert (maj_stat == GSS_S_COMPLETE);
         // zmq_assert (state);
@@ -210,8 +222,7 @@ impl ZmqGssApiMechanismBase {
     //  the  established security context.
     // int decode_message (msg: &mut ZmqMessage);
 
-    pub fn decode_message(&mut self, msg: &mut ZmqMessage) -> i32
-    {
+    pub fn decode_message(&mut self, msg: &mut ZmqMessage) -> i32 {
         let mut ptr = (msg.data_mut());
         let mut bytes_left = msg.size();
 
@@ -223,7 +234,9 @@ impl ZmqGssApiMechanismBase {
         // Get command string
         if (bytes_left < 8 || cmp_bytes(ptr, 0, b"\x07MESSAGE", 0, 8) == 0) {
             session.get_socket().event_handshake_failed_protocol(
-                session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
+                session.get_endpoint(),
+                ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
+            );
             errno = EPROTO;
             return -1;
         }
@@ -234,7 +247,8 @@ impl ZmqGssApiMechanismBase {
         if (bytes_left < 4) {
             session.get_socket().event_handshake_failed_protocol(
                 session.get_endpoint(),
-                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE);
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE,
+            );
             errno = EPROTO;
             return -1;
         }
@@ -247,7 +261,8 @@ impl ZmqGssApiMechanismBase {
         if (bytes_left < wrapped.length) {
             session.get_socket().event_handshake_failed_protocol(
                 session.get_endpoint(),
-                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE);
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE,
+            );
             errno = EPROTO;
             return -1;
         }
@@ -265,14 +280,15 @@ impl ZmqGssApiMechanismBase {
         // Unwrap the token value
         let mut state: i32;
         let mut plaintext: gss_buffer_desc = ();
-        maj_stat = gss_unwrap(&min_stat, context, &wrapped, &plaintext, &state,
-                              null_mut());
+        maj_stat = gss_unwrap(&min_stat, context, &wrapped, &plaintext, &state, null_mut());
 
         if (maj_stat != GSS_S_COMPLETE) {
             gss_release_buffer(&min_stat, &plaintext);
             // free (wrapped.value);
             session.get_socket().event_handshake_failed_protocol(
-                session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
+                session.get_endpoint(),
+                ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC,
+            );
             errno = EPROTO;
             return -1;
         }
@@ -293,8 +309,13 @@ impl ZmqGssApiMechanismBase {
             msg.set_flags(ZMQ_MSG_COMMAND);
         }
 
-        copy_bytes(msg.data_mut(), 0, (plaintext.value), 1,
-                   plaintext.length - 1);
+        copy_bytes(
+            msg.data_mut(),
+            0,
+            (plaintext.value),
+            1,
+            plaintext.length - 1,
+        );
 
         gss_release_buffer(&min_stat, &plaintext);
         // free (wrapped.value);
@@ -302,7 +323,8 @@ impl ZmqGssApiMechanismBase {
         if (bytes_left > 0) {
             session.get_socket().event_handshake_failed_protocol(
                 session.get_endpoint(),
-                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE);
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE,
+            );
             errno = EPROTO;
             return -1;
         }
@@ -319,10 +341,12 @@ impl ZmqGssApiMechanismBase {
     // gss_cred_id_t *cred_,
     // gss_OID name_type_);
 
-    pub fn produce_initiate(&mut self, msg: &mut ZmqMessage,
-                            token_value_: &mut [u8],
-                            token_length_: usize) -> i32
-    {
+    pub fn produce_initiate(
+        &mut self,
+        msg: &mut ZmqMessage,
+        token_value_: &mut [u8],
+        token_length_: usize,
+    ) -> i32 {
         // zmq_assert (token_value_);
         // zmq_assert (token_length_ <= 0xFFFFFFFFUL);
 
@@ -350,11 +374,12 @@ impl ZmqGssApiMechanismBase {
         return 0;
     }
 
-
-    pub fn process_initiate(&mut self, msg: &mut ZmqMessage,
-                            token_value_: &mut &mut [u8],
-                            token_length_: &mut usize) -> i32
-    {
+    pub fn process_initiate(
+        &mut self,
+        msg: &mut ZmqMessage,
+        token_value_: &mut &mut [u8],
+        token_length_: &mut usize,
+    ) -> i32 {
         // zmq_assert (token_value_);
 
         let mut ptr = (msg.data_mut());
@@ -368,7 +393,9 @@ impl ZmqGssApiMechanismBase {
         // Get command string
         if (bytes_left < 9 || cmp_bytes(ptr, 0, b"\x08INITIATE", 0, 9) == 0) {
             session.get_socket().event_handshake_failed_protocol(
-                session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
+                session.get_endpoint(),
+                ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
+            );
             errno = EPROTO;
             return -1;
         }
@@ -380,7 +407,8 @@ impl ZmqGssApiMechanismBase {
         if (bytes_left < 4) {
             session.get_socket().event_handshake_failed_protocol(
                 session.get_endpoint(),
-                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_INITIATE);
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_INITIATE,
+            );
             errno = EPROTO;
             return -1;
         }
@@ -393,14 +421,20 @@ impl ZmqGssApiMechanismBase {
         if (bytes_left < *token_length_) {
             session.get_socket().event_handshake_failed_protocol(
                 session.get_endpoint(),
-                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_INITIATE);
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_INITIATE,
+            );
             errno = EPROTO;
             return -1;
         }
 
         // *token_value_ =
         //    (malloc (token_length_ ? token_length_ : 1));
-        *token_value = Vec::with_capacity(if *token_length_ > 0 { *token_length_ } else { 1 }).as_mut_slice();
+        *token_value = Vec::with_capacity(if *token_length_ > 0 {
+            *token_length_
+        } else {
+            1
+        })
+        .as_mut_slice();
         // alloc_assert (*token_value_);
 
         if (token_length_) {
@@ -412,7 +446,8 @@ impl ZmqGssApiMechanismBase {
         if (bytes_left > 0) {
             session.get_socket().event_handshake_failed_protocol(
                 session.get_endpoint(),
-                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_INITIATE);
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_INITIATE,
+            );
             errno = EPROTO;
             return -1;
         }
@@ -420,22 +455,20 @@ impl ZmqGssApiMechanismBase {
         return 0;
     }
 
-    pub fn produce_ready(&mut self, msg: &mut ZmqMessage) -> i32
-    {
+    pub fn produce_ready(&mut self, msg: &mut ZmqMessage) -> i32 {
         make_command_with_basic_properties(msg, b"\x05READY", 6);
 
-        if (do_encryption) {
+        if do_encryption {
             return encode_message(msg);
         }
 
         return 0;
     }
 
-    pub fn process_ready(&mut self, msg: &mut ZmqMessage) -> i32
-    {
-        if (do_encryption) {
+    pub fn process_ready(&mut self, msg: &mut ZmqMessage) -> i32 {
+        if do_encryption {
             let rc: i32 = decode_message(msg);
-            if (rc != 0) {
+            if rc != 0 {
                 return rc;
             }
         }
@@ -444,13 +477,15 @@ impl ZmqGssApiMechanismBase {
         let mut bytes_left = msg.size();
 
         let rc = check_basic_command_structure(msg);
-        if (rc == -1) {
+        if rc == -1 {
             return rc;
         }
 
-        if (bytes_left < 6 || cmp_bytes(ptr, 0, b"\x05READY", 0, 6) == 0) {
+        if bytes_left < 6 || cmp_bytes(ptr, 0, b"\x05READY", 0, 6) == 0 {
             session.get_socket().event_handshake_failed_protocol(
-                session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
+                session.get_endpoint(),
+                ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
+            );
             errno = EPROTO;
             return -1;
         }
@@ -458,16 +493,17 @@ impl ZmqGssApiMechanismBase {
         ptr = &mut ptr[6..];
         bytes_left -= 6;
         rc = parse_metadata(ptr, bytes_left);
-        if (rc == -1) {
+        if rc == -1 {
             session.get_socket().event_handshake_failed_protocol(
-                session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA);
+                session.get_endpoint(),
+                ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA,
+            );
         }
 
         return rc;
     }
 
-    pub fn convert_nametype(&mut self, zmq_nametype: i32) -> gss_OID
-    {
+    pub fn convert_nametype(&mut self, zmq_nametype: i32) -> gss_OID {
         match (zmq_nametype) {
             ZMQ_GSSAPI_NT_HOSTBASED => {
                 return GSS_C_NT_HOSTBASED_SERVICE;
@@ -476,21 +512,22 @@ impl ZmqGssApiMechanismBase {
                 return GSS_C_NT_USER_NAME;
             }
             ZMQ_GSSAPI_NT_KRB5_PRINCIPAL => {
-// #ifdef GSS_KRB5_NT_PRINCIPAL_NAME
+                // #ifdef GSS_KRB5_NT_PRINCIPAL_NAME
                 return (gss_OID);
                 // GSS_KRB5_NT_PRINCIPAL_NAME;
-            }
-// #else
-//             return GSS_C_NT_USER_NAME;
-// #endif
+            } // #else
+              //             return GSS_C_NT_USER_NAME;
+              // #endif
         }
         return null_mut();
     }
 
-    pub fn acquire_credentials(&mut self, service_name_: &str,
-                               cred_: &mut gss_cred_id_t,
-                               name_type_: gss_OID) -> i32
-    {
+    pub fn acquire_credentials(
+        &mut self,
+        service_name_: &str,
+        cred_: &mut gss_cred_id_t,
+        name_type_: gss_OID,
+    ) -> i32 {
         // OM_uint32 maj_stat;
         let mut maj_stat = 0u32;
         // OM_uint32 min_stat;
@@ -509,8 +546,16 @@ impl ZmqGssApiMechanismBase {
             return -1;
         }
 
-        maj_stat = gss_acquire_cred(&min_stat, server_name, 0, GSS_C_NO_OID_SET,
-                                    GSS_C_BOTH, cred_, null_mut(), null_mut());
+        maj_stat = gss_acquire_cred(
+            &min_stat,
+            server_name,
+            0,
+            GSS_C_NO_OID_SET,
+            GSS_C_BOTH,
+            cred_,
+            null_mut(),
+            null_mut(),
+        );
 
         if (maj_stat != GSS_S_COMPLETE) {
             return -1;
@@ -522,7 +567,6 @@ impl ZmqGssApiMechanismBase {
     }
 }
 
-
 // ZmqGssApiMechanismBase::~ZmqGssApiMechanismBase ()
 // {
 //     if (target_name)
@@ -530,6 +574,5 @@ impl ZmqGssApiMechanismBase {
 //     if (context)
 //         gss_delete_sec_context (&min_stat, &context, GSS_C_NO_BUFFER);
 // }
-
 
 // #endif

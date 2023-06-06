@@ -193,15 +193,15 @@ pub struct ZmqWsEngine {
     pub _read_buffer: [u8; WS_BUFFER_SIZE],
     pub _write_buffer: Vec<u8>,
     //[u8;WS_BUFFER_SIZE],
-    pub _header_name: [u8; MAX_HEADER_NAME_LENGTH + 1],
+    pub _header_name: String,
     pub _header_name_position: i32,
-    pub _header_value: [u8; MAX_HEADER_VALUE_LENGTH + 1],
+    pub _header_value: String,
     pub _header_value_position: i32,
     pub _header_upgrade_websocket: bool,
     pub _header_connection_upgrade: bool,
     pub _websocket_protocol: [u8; 256],
-    pub _websocket_key: [u8; MAX_HEADER_VALUE_LENGTH + 1],
-    pub _websocket_accept: [u8; MAX_HEADER_VALUE_LENGTH + 1],
+    pub _websocket_key: Vec<u8>,
+    pub _websocket_accept: String,
     pub _heartbeat_timeout: i32,
     pub _close_msg: ZmqMessage,
 }
@@ -241,7 +241,8 @@ impl ZmqWsEngine {
             ..Default::default()
         };
         set_bytes(&mut out._websocket_key, 0, 0, MAX_HEADER_VALUE_LENGTH + 1);
-        set_bytes(&mut out._websocket_accept, 0, 0, MAX_HEADER_VALUE_LENGTH + 1);
+        // set_bytes(&mut out._websocket_accept.as_bytes_mut(), 0, 0, MAX_HEADER_VALUE_LENGTH + 1);
+        out._websocket_accept.clear();
         set_bytes(&mut out._websocket_protocol, 0, 0, 256);
 
         out._next_msg = &ZmqWsEngine::next_handshake_command;
@@ -295,15 +296,13 @@ impl ZmqWsEngine {
         in_event();
     }
 
-    pub fn routing_id_msg(&mut self, msg: &mut ZmqMessage) -> i32 {
-        let rc: i32 = msg.init_size(self._options.routing_id_size);
-        // errno_assert (rc == 0);
-        if (self._options.routing_id_size > 0) {
+    pub fn routing_id_msg(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+        msg.init_size(self._options.routing_id_size)?;
+        if self._options.routing_id_size > 0 {
             copy_bytes(msg.data_mut(), 0, self._options.routing_id, 0, self._options.routing_id_size);
         }
         self._next_msg = &ZmqWsEngine::pull_msg_from_session;
-
-        return 0;
+        Ok(())
     }
 
 
@@ -335,18 +334,12 @@ impl ZmqWsEngine {
             *(p + 2) = generate_random();
             *(p + 3) = generate_random();
 
-            let mut size = encode_base64(nonce, 16, self._websocket_key, MAX_HEADER_VALUE_LENGTH);
+            let mut size = encode_base64(nonce, 16, self._websocket_key.clone(), MAX_HEADER_VALUE_LENGTH);
             // assert (size > 0);
 
             self._write_buffer = format!(
-          "GET {} HTTP/1.1\r\n" \
-          "Host: {}\r\n" \
-          "Upgrade: websocket\r\n" \
-          "Connection: Upgrade\r\n" \  
-          "Sec-WebSocket-Key: {}\r\n" \
-          "Sec-WebSocket-Protocol: {}\r\n" \
-          "Sec-WebSocket-Version: 13\r\n\r\n",
-          address.path(), address.host(), self._websocket_key, protocol).into_bytes();
+                "GET {} HTTP/1.1\r\n" + "Host: {}\r\n" + "Upgrade: websocket\r\n" + "Connection: Upgrade\r\n" + "Sec-WebSocket-Key: {}\r\n" + "Sec-WebSocket-Protocol: {}\r\n" + "Sec-WebSocket-Version: 13\r\n\r\n",
+                address.path(), address.host(), self._websocket_key, protocol).into_bytes();
             // assert (size > 0 && size < WS_BUFFER_SIZE);
             // TODO:
             // self._outpos = self._write_buffer;
@@ -643,27 +636,30 @@ impl ZmqWsEngine {
                             self._header_upgrade_websocket = ("websocket" == self._header_value);
                         } else if (("connection" == self._header_name)) {
                             char * rest = null_mut();
-                            char * element = strtok_r(self._header_value, ",", &rest);
-                            while (element != null_mut()) {
-                                while (*element == ' ') {
+                            // char * element = strtok_r(self._header_value, ",", &rest);
+                            let mut element = self._header_value.rfind(',').expect("no comma found");
+                            while element != self._header_value.len() {
+                                while self._header_value[element] == ' ' {
                                     element += 1;
                                 }
-                                if (("upgrade" == element)) {
+                                if self._header_value[element..].contains("upgrade") {
                                     self._header_connection_upgrade = true;
                                 }
-                                element = strtok_r(null_mut(), ",", &rest);
+                                element = self._header_value[element..].rfind(",").expect("no comma found");
                             }
-                        } else if (("Sec-WebSocket-Key" == self._header_name)) {
-                            strcpy_s(self._websocket_key, self._header_value);
-                        } else if (("Sec-WebSocket-Protocol" == self._header_name)) {
+                        } else if "Sec-WebSocket-Key" == self._header_name {
+                            // strcpy_s(self._websocket_key, self._header_value);
+                            self._websocket_key = self._header_value.clone().into_bytes();
+                        } else if "Sec-WebSocket-Protocol" == self._header_name {
                             // Currently only the ZWS2.0 is supported
                             // Sec-WebSocket-Protocol can appear multiple times or be a comma separated list
                             // if _websocket_protocol is already set we skip the check
-                            if (self._websocket_protocol[0] == 0) {
+                            if self._websocket_protocol[0] == 0 {
                                 char * rest = null_mut();
-                                char * p = strtok_r(self._header_value, ",", &rest);
-                                while (p != null_mut()) {
-                                    if (*p == ' ') {
+                                // char * p = strtok_r(self._header_value, ",", &rest);
+                                let mut p = self._header_value.rfind(",").expect("no comma found");
+                                while p != self._header_value.len() {
+                                    if self._header_value[p] == ' ' {
                                         p += 1;
                                     }
 
@@ -671,7 +667,8 @@ impl ZmqWsEngine {
                                         strcpy_s(self._websocket_protocol, p);
                                     }
 
-                                    p = strtok_r(null_mut(), ",", &rest);
+                                    // p = strtok_r(null_mut(), ",", &rest);
+                                    p = self._header_value[p..].rfind(",").expect("no comma found");
                                 }
                             }
                         }
@@ -702,7 +699,7 @@ impl ZmqWsEngine {
                             compute_accept_key(&self._websocket_key, &hash);
 
                             let accept_key_len: i32 = encode_base64(
-                                hash, SHA_DIGEST_LENGTH, self._websocket_accept,
+                                hash, SHA_DIGEST_LENGTH, self._websocket_accept.clone(),
                                 MAX_HEADER_VALUE_LENGTH);
                             // assert (accept_key_len > 0);
                             self._websocket_accept[accept_key_len] = 0;
@@ -1093,13 +1090,13 @@ impl ZmqWsEngine {
                         } else if (("connection" == self._header_name)) {
                             self._header_connection_upgrade = ("upgrade" == self._header_value);
                         } else if (("Sec-WebSocket-Accept" == self._header_name)) {
-                            self._websocket_accept = self._header_value;
+                            self._websocket_accept = self._header_value.clone();
                         } else if (("Sec-WebSocket-Protocol" == self._header_name)) {
                             if (self._mechanism) {
                                 self._client_handshake_state = client_handshake_error;
                             }
-                            if (select_protocol(self._header_value)) {
-                                strcpy_s(self._websocket_protocol, self._header_value);
+                            if (select_protocol(self._header_value.clone())) {
+                                strcpy_s(self._websocket_protocol, self._header_value.clone());
                             }
                         }
                         self._client_handshake_state = client_header_field_cr;

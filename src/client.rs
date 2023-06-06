@@ -73,14 +73,14 @@ impl ZmqClient {
     //     options.can_send_hello_msg = true;
     //     options.can_recv_hiccup_msg = true;
     //     }
-    pub fn new(parent: &mut ZmqContext, options: &mut ZmqOptions, tid: u32, sid: i32) -> Self {
-        options.type_ = ZMQ_CLIENT;
-        options.can_send_hello_msg = true;
-        options.can_recv_hiccup_msg = true;
+    pub fn new(parent: &mut ZmqContext, tid: u32, sid: i32) -> Self {
+        parent.type_ = ZMQ_CLIENT;
+        parent.can_send_hello_msg = true;
+        parent.can_recv_hiccup_msg = true;
         Self {
             fq: ZmqFq::Default(),
             lb: LoadBalancer::Default(),
-            base: ZmqSocketBase::new(parent, options, tid, sid, true),
+            base: ZmqSocketBase::new(parent, tid, sid, true),
         }
     }
 
@@ -120,29 +120,30 @@ impl ZmqSocketBaseOps for ZmqClient {
                 "EINVAL: client sockets do not allow multipart dart (ZMQ_SNDMORE)"
             ));
         }
-        return self.lb.sendpipe(msg, null_mut());
+        self.lb.sendpipe(msg, None)
     }
 
     //     int xrecv (msg: &mut ZmqMessage);
     fn xrecv(&mut self, skt_base: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()> {
-        let mut rc = self.fq.recvpipe(msg, null_mut());
+        let mut rc = self.fq.recvpipe(msg, None);
 
         // Drop any messages with more flag
-        while (rc == 0 && (msg.flags() & ZMQ_MSG_MORE) != 0) {
+        while msg.flags() & ZMQ_MSG_MORE != 0 {
             // drop all frames of the current multi-frame message
-            rc = self.fq.recvpipe(msg, null_mut());
+            self.fq.recvpipe(msg, None)?;
 
-            while (rc == 0 && (msg.flags() & ZMQ_MSG_MORE) != 0) {
-                rc = self.fq.recvpipe(msg, null_mut());
+            while msg.flags() & ZMQ_MSG_MORE != 0 {
+                self.fq.recvpipe(msg, None)?;
             }
 
             // get the new message
-            if (rc == 0) {
-                rc = fair_queue.recvpipe(msg, null_mut());
-            }
+            // if (rc == 0) {
+            //     fair_queue.recvpipe(msg, null_mut());
+            // }
+            self.fq.recvpipe(msg, None)?;
         }
 
-        return rc;
+        Ok(())
     }
 
     //     bool xhas_in ();

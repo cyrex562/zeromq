@@ -136,21 +136,43 @@ use std::ffi::c_void;
 use std::mem;
 use std::ptr::null_mut;
 
-use libc::{accept, AF_UNIX, c_char, connect, EFD_CLOEXEC, EINVAL, eventfd, F_GETFL, F_SETFD, F_SETFL, fcntl, FD_CLOEXEC, IPV6_TCLASS, listen, mkdtemp, mkstemp, O_NONBLOCK, rmdir, SO_BINDTODEVICE, SO_PRIORITY, SOCK_CLOEXEC, sockaddr, sockaddr_un, socket, socklen_t, unlink};
+use libc::{
+    accept, c_char, connect, eventfd, fcntl, listen, mkdtemp, mkstemp, rmdir, sockaddr,
+    sockaddr_un, socket, socklen_t, unlink, AF_UNIX, EFD_CLOEXEC, EINVAL, FD_CLOEXEC, F_GETFL,
+    F_SETFD, F_SETFL, IPV6_TCLASS, O_NONBLOCK, SOCK_CLOEXEC, SO_BINDTODEVICE, SO_PRIORITY,
+};
 #[cfg(target_os = "windows")]
 use windows::core::PSTR;
-#[cfg(target_os = "windows")]
-use windows::Win32::Foundation::{BOOL, ERROR_ACCESS_DENIED, FALSE, GetLastError, HANDLE, HANDLE_FLAG_INHERIT, HANDLE_FLAGS, MAX_PATH, SetHandleInformation, TRUE};
 use windows::Win32::Foundation::CloseHandle;
 #[cfg(target_os = "windows")]
-use windows::Win32::Networking::WinSock::{FIONBIO, getnameinfo, ioctlsocket, IP_TOS, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_TCP, IPV6_V6ONLY, NI_MAXHOST, NI_NUMERICHOST, setsockopt, SOCKADDR, SOCKET, SOCKET_ERROR, SOL_SOCKET, TCP_NODELAY, WSA_FLAG_NO_HANDLE_INHERIT, WSA_FLAG_OVERLAPPED, WSACleanup, WSADATA, WSAEFAULT, WSAEINPROGRESS, WSAENOTSOCK, WSAGetLastError, WSANOTINITIALISED, WSAStartup};
+use windows::Win32::Foundation::{
+    GetLastError, SetHandleInformation, BOOL, ERROR_ACCESS_DENIED, FALSE, HANDLE, HANDLE_FLAGS,
+    HANDLE_FLAG_INHERIT, MAX_PATH, TRUE,
+};
 #[cfg(target_os = "windows")]
-use windows::Win32::Networking::WinSock::{AF_INET, bind, getsockname, getsockopt, htonl, htons, INADDR_LOOPBACK, INVALID_SOCKET, SO_ERROR, SO_REUSEADDR, SOCK_STREAM};
-use windows::Win32::Networking::WinSock::{AF_UNIX, closesocket, recv, send, SEND_RECV_FLAGS, socklen_t};
+use windows::Win32::Networking::WinSock::{
+    bind, getsockname, getsockopt, htonl, htons, AF_INET, INADDR_LOOPBACK, INVALID_SOCKET,
+    SOCK_STREAM, SO_ERROR, SO_REUSEADDR,
+};
+use windows::Win32::Networking::WinSock::{
+    closesocket, recv, send, socklen_t, AF_UNIX, SEND_RECV_FLAGS,
+};
 #[cfg(target_os = "windows")]
-use windows::Win32::Security::{InitializeSecurityDescriptor, PSECURITY_DESCRIPTOR, SECURITY_ATTRIBUTES, SECURITY_DESCRIPTOR, SetSecurityDescriptorDacl};
+use windows::Win32::Networking::WinSock::{
+    getnameinfo, ioctlsocket, setsockopt, WSACleanup, WSAGetLastError, WSAStartup, FIONBIO,
+    IPPROTO_IP, IPPROTO_IPV6, IPPROTO_TCP, IPV6_V6ONLY, IP_TOS, NI_MAXHOST, NI_NUMERICHOST,
+    SOCKADDR, SOCKET, SOCKET_ERROR, SOL_SOCKET, TCP_NODELAY, WSADATA, WSAEFAULT, WSAEINPROGRESS,
+    WSAENOTSOCK, WSANOTINITIALISED, WSA_FLAG_NO_HANDLE_INHERIT, WSA_FLAG_OVERLAPPED,
+};
 #[cfg(target_os = "windows")]
-use windows::Win32::System::Threading::{CreateEventA, CreateMutexA, EVENT_MODIFY_STATE, INFINITE, OpenEventA, WaitForSingleObject};
+use windows::Win32::Security::{
+    InitializeSecurityDescriptor, SetSecurityDescriptorDacl, PSECURITY_DESCRIPTOR,
+    SECURITY_ATTRIBUTES, SECURITY_DESCRIPTOR,
+};
+#[cfg(target_os = "windows")]
+use windows::Win32::System::Threading::{
+    CreateEventA, CreateMutexA, OpenEventA, WaitForSingleObject, EVENT_MODIFY_STATE, INFINITE,
+};
 use windows::Win32::System::Threading::{ReleaseMutex, SetEvent};
 
 use crate::address::get_socket_address;
@@ -165,7 +187,7 @@ use crate::unix_sockaddr::sockaddr_in;
 
 // #ifndef ZMQ_HAVE_WINDOWS
 // Acceptable temporary directory environment variables
-pub const tmp_env_vars: [&'static str; 3] = ["TMPDIR", "TEMPDIR", "TMP", ];
+pub const tmp_env_vars: [&'static str; 3] = ["TMPDIR", "TEMPDIR", "TMP"];
 // #endif
 
 pub fn open_socket(domain_: i32, mut type_: i32, protocol_: i32) -> ZmqFileDesc {
@@ -173,25 +195,35 @@ pub fn open_socket(domain_: i32, mut type_: i32, protocol_: i32) -> ZmqFileDesc 
 
     //  Setting this option result in sane behaviour when exec() functions
     //  are used. Old sockets are closed and don't block TCP ports etc.
-// #if defined ZMQ_HAVE_SOCK_CLOEXEC
+    // #if defined ZMQ_HAVE_SOCK_CLOEXEC
     type_ |= SOCK_CLOEXEC;
-// #endif
+    // #endif
 
-// #if defined ZMQ_HAVE_WINDOWS && defined WSA_FLAG_NO_HANDLE_INHERIT
+    // #if defined ZMQ_HAVE_WINDOWS && defined WSA_FLAG_NO_HANDLE_INHERIT
     // if supported, create socket with WSA_FLAG_NO_HANDLE_INHERIT, such that
     // the race condition in making it non-inheritable later is avoided
-    #[cfg(target_os = "windows")] let s = WSASocket(domain_, type_, protocol_, null_mut(), 0, WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT);
+    #[cfg(target_os = "windows")]
+    let s = WSASocket(
+        domain_,
+        type_,
+        protocol_,
+        null_mut(),
+        0,
+        WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT,
+    );
 
-// #else
-    #[cfg(target_os = "linux")] let s = unsafe { socket(domain_, type_, protocol_) };
+    // #else
+    #[cfg(target_os = "linux")]
+    let s = unsafe { socket(domain_, type_, protocol_) };
 
-// #endif
+    // #endif
     if (s == retired_fd) {
-// #ifdef ZMQ_HAVE_WINDOWS
-        #[cfg(windows)]{
+        // #ifdef ZMQ_HAVE_WINDOWS
+        #[cfg(windows)]
+        {
             unsafe { errno = wsa_error_to_errno(WSAGetLastError()) };
         }
-// #endif
+        // #endif
         return retired_fd;
     }
 
@@ -205,18 +237,18 @@ pub fn open_socket(domain_: i32, mut type_: i32, protocol_: i32) -> ZmqFileDesc 
 }
 
 pub fn unblock_socket(s: ZmqFileDesc) {
-// #if defined ZMQ_HAVE_WINDOWS
+    // #if defined ZMQ_HAVE_WINDOWS
     if cfg!(windows) {
         let mut nonblock = 1u32;
         let rc: i32 = unsafe { ioctlsocket(s_, FIONBIO, &mut nonblock) };
         // wsa_assert(rc != SOCKET_ERROR);
     }
-// #elif defined ZMQ_HAVE_OPENVMS || defined ZMQ_HAVE_VXWORKS
-//
-//     int nonblock = 1;
-//     int rc = ioctl (s_, FIONBIO, &nonblock);
+    // #elif defined ZMQ_HAVE_OPENVMS || defined ZMQ_HAVE_VXWORKS
+    //
+    //     int nonblock = 1;
+    //     int rc = ioctl (s_, FIONBIO, &nonblock);
     // errno_assert (rc != -1);
-// #else
+    // #else
     else {
         let mut flags = unsafe { fcntl(s_, F_GETFL, 0) };
         if (flags == -1) {
@@ -225,29 +257,33 @@ pub fn unblock_socket(s: ZmqFileDesc) {
         let rc = unsafe { fcntl(s_, F_SETFL, flags | O_NONBLOCK) };
     }
     // errno_assert (rc != -1);
-// #endif
+    // #endif
 }
 
 pub fn enable_ipv4_mapping(s_: ZmqFileDesc) {
     // LIBZMQ_UNUSED (s_);
 
-// #if defined IPV6_V6ONLY && !defined ZMQ_HAVE_OPENBSD                           \
-//   && !defined ZMQ_HAVE_DRAGONFLY
-// #ifdef ZMQ_HAVE_WINDOWS
-//     DWORD flag = 0;
-// #else
+    // #if defined IPV6_V6ONLY && !defined ZMQ_HAVE_OPENBSD                           \
+    //   && !defined ZMQ_HAVE_DRAGONFLY
+    // #ifdef ZMQ_HAVE_WINDOWS
+    //     DWORD flag = 0;
+    // #else
     let mut flag = 0u32;
-// #endif
+    // #endif
     let rc: i32 = unsafe {
-        setsockopt(s_, IPPROTO_IPV6 as i32, IPV6_V6ONLY,
-                   Some(&flag.to_le_bytes()))
+        setsockopt(
+            s_,
+            IPPROTO_IPV6 as i32,
+            IPV6_V6ONLY,
+            Some(&flag.to_le_bytes()),
+        )
     };
-// #ifdef ZMQ_HAVE_WINDOWS
-//     wsa_assert (rc != SOCKET_ERROR);
-// #else
+    // #ifdef ZMQ_HAVE_WINDOWS
+    //     wsa_assert (rc != SOCKET_ERROR);
+    // #else
     // errno_assert (rc == 0);
-// #endif
-// #endif
+    // #endif
+    // #endif
 }
 
 pub fn get_peer_ip_address(sockfd_: ZmqFileDesc, mut ip_addr_: &str) -> i32 {
@@ -257,7 +293,7 @@ pub fn get_peer_ip_address(sockfd_: ZmqFileDesc, mut ip_addr_: &str) -> i32 {
 
     unsafe {
         if (addrlen.is_err() == 0) {
-// #ifdef ZMQ_HAVE_WINDOWS
+            // #ifdef ZMQ_HAVE_WINDOWS
             if cfg!(windows) {
                 let last_error = WSAGetLastError();
                 // wsa_assert(last_error != WSANOTINITIALISED && last_error != WSAEFAULT
@@ -266,9 +302,9 @@ pub fn get_peer_ip_address(sockfd_: ZmqFileDesc, mut ip_addr_: &str) -> i32 {
             }
             // # elif! defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
             // errno_assert (errno != EBADF && errno != EFAULT && errno != ENOTSOCK);
-// #else
+            // #else
             // errno_assert (errno != EFAULT && errno != ENOTSOCK);
-// #endif
+            // #endif
             return 0;
         }
     }
@@ -278,10 +314,7 @@ pub fn get_peer_ip_address(sockfd_: ZmqFileDesc, mut ip_addr_: &str) -> i32 {
         sa_family: ss.ss_family,
         sa_data: (ss as SOCKADDR).sa_data,
     };
-    let rc = unsafe {
-        getnameinfo(&sa, addrlen, Some(&mut host),
-                    None, 0)
-    };
+    let rc = unsafe { getnameinfo(&sa, addrlen, Some(&mut host), None, 0) };
     if (rc != 0) {
         return 0;
     }
@@ -299,23 +332,25 @@ pub fn get_peer_ip_address(sockfd_: ZmqFileDesc, mut ip_addr_: &str) -> i32 {
 }
 
 pub fn set_ip_type_of_service(s_: ZmqFileDesc, iptos_: i32) {
-    let mut rc = unsafe {
-        setsockopt(s_, IPPROTO_IP as i32, IP_TOS,
-                   Some(&iptos_.to_le_bytes()))
-    };
+    let mut rc = unsafe { setsockopt(s_, IPPROTO_IP as i32, IP_TOS, Some(&iptos_.to_le_bytes())) };
 
-// #ifdef ZMQ_HAVE_WINDOWS
-//     wsa_assert (rc != SOCKET_ERROR);
-// #else
+    // #ifdef ZMQ_HAVE_WINDOWS
+    //     wsa_assert (rc != SOCKET_ERROR);
+    // #else
     // errno_assert (rc == 0);
-// #endif
+    // #endif
 
     //  Windows and Hurd do not support IPV6_TCLASS
-// #if !defined(ZMQ_HAVE_WINDOWS) && defined(IPV6_TCLASS)
-    #[cfg(not(target_os = "windows"))] {
+    // #if !defined(ZMQ_HAVE_WINDOWS) && defined(IPV6_TCLASS)
+    #[cfg(not(target_os = "windows"))]
+    {
         rc = unsafe {
-            setsockopt(s_, IPPROTO_IPV6 as i32, IPV6_TCLASS,
-                       Some(&iptos_.to_le_bytes()), )
+            setsockopt(
+                s_,
+                IPPROTO_IPV6 as i32,
+                IPV6_TCLASS,
+                Some(&iptos_.to_le_bytes()),
+            )
         };
     }
 
@@ -324,21 +359,18 @@ pub fn set_ip_type_of_service(s_: ZmqFileDesc, iptos_: i32) {
     if (rc == -1) {
         // errno_assert (errno == ENOPROTOOPT || errno == EINVAL);
     }
-// #endif
+    // #endif
 }
 
 pub fn set_socket_priority(s_: ZmqFileDesc, priority_: i32) {
-// #ifdef ZMQ_HAVE_SO_PRIORITY
-    let rc = unsafe {
-        setsockopt(s_, SOL_SOCKET, SO_PRIORITY,
-                   Some(&priority_.to_le_bytes()))
-    };
+    // #ifdef ZMQ_HAVE_SO_PRIORITY
+    let rc = unsafe { setsockopt(s_, SOL_SOCKET, SO_PRIORITY, Some(&priority_.to_le_bytes())) };
     // errno_assert (rc == 0);
-// #endif
+    // #endif
 }
 
 pub fn set_nosigpipe(s_: ZmqFileDesc) -> i32 {
-// #ifdef SO_NOSIGPIPE
+    // #ifdef SO_NOSIGPIPE
     //  Make sure that SIGPIPE signal is not generated when writing to a
     //  connection that was already closed by the peer.
     //  As per POSIX spec, EINVAL will be returned if the socket was valid but
@@ -350,18 +382,22 @@ pub fn set_nosigpipe(s_: ZmqFileDesc) -> i32 {
         return -1;
     }
     // errno_assert (rc == 0);
-// #else
+    // #else
     LIBZMQ_UNUSED(s_);
-// #endif
+    // #endif
 
     return 0;
 }
 
 pub fn bind_to_device(s_: ZmqFileDesc, bound_device_: &str) -> i32 {
-// #ifdef ZMQ_HAVE_SO_BINDTODEVICE
+    // #ifdef ZMQ_HAVE_SO_BINDTODEVICE
     let rc = unsafe {
-        setsockopt(s_, SOL_SOCKET, SO_BINDTODEVICE,
-                   Some(bound_device_.as_bytes()))
+        setsockopt(
+            s_,
+            SOL_SOCKET,
+            SO_BINDTODEVICE,
+            Some(bound_device_.as_bytes()),
+        )
     };
     if (rc != 0) {
         assert_success_or_recoverable(s_, rc);
@@ -369,17 +405,17 @@ pub fn bind_to_device(s_: ZmqFileDesc, bound_device_: &str) -> i32 {
     }
     return 0;
 
-// #else
-//     LIBZMQ_UNUSED (s_);
-//     LIBZMQ_UNUSED (bound_device_);
-//
-//     errno = ENOTSUP;
-//     return -1;
-// #endif
+    // #else
+    //     LIBZMQ_UNUSED (s_);
+    //     LIBZMQ_UNUSED (bound_device_);
+    //
+    //     errno = ENOTSUP;
+    //     return -1;
+    // #endif
 }
 
 pub fn initialize_network() -> bool {
-// #if defined ZMQ_HAVE_OPENPGM
+    // #if defined ZMQ_HAVE_OPENPGM
 
     //  Init PGM transport. Ensure threading and timer are enabled. Find PGM
     //  protocol ID. Note that if you want to use gettimeofday and sleep for
@@ -400,9 +436,9 @@ pub fn initialize_network() -> bool {
         //  PGM_ERROR_DOMAIN_ENGINE: WSAStartup errors or missing WSARecvMsg.
         // zmq_assert (false);
     }
-// #endif
+    // #endif
 
-// #ifdef ZMQ_HAVE_WINDOWS
+    // #ifdef ZMQ_HAVE_WINDOWS
     //  Initialise Windows sockets. Note that WSAStartup can be called multiple
     //  times given that WSACleanup will be called for each WSAStartup.
     if cfg!(windows) {
@@ -421,23 +457,24 @@ pub fn initialize_network() -> bool {
         // zmq_assert (LOBYTE (wsa_data.wVersion) == 2
         // &&HIBYTE(wsa_data.wVersion) == 2);
     }
-// #endif
+    // #endif
 
     return true;
 }
 
 pub fn shutdown_network() {
-// #ifdef ZMQ_HAVE_WINDOWS
+    // #ifdef ZMQ_HAVE_WINDOWS
     //  On Windows, uninitialise socket layer.
-    #[cfg(windows)] let rc: i32 = unsafe { WSACleanup() };
+    #[cfg(windows)]
+    let rc: i32 = unsafe { WSACleanup() };
     // wsa_assert (rc != SOCKET_ERROR);
-// #endif
+    // #endif
 
-// #if defined ZMQ_HAVE_OPENPGM
+    // #if defined ZMQ_HAVE_OPENPGM
     //  Shut down the OpenPGM library.
     if pgm_shutdown() != TRUE {}
     // zmq_assert (false);
-// #endif
+    // #endif
 }
 
 // #if defined ZMQ_HAVE_WINDOWS
@@ -445,8 +482,12 @@ pub fn shutdown_network() {
 pub fn tune_socket(socket: SOCKET) -> anyhow::Result<()> {
     let mut tcp_nodelay = 1;
     let rc: i32 = unsafe {
-        setsockopt(socket, IPPROTO_TCP as i32, TCP_NODELAY,
-                   Some(&tcp_nodelay.to_le_bytes()))
+        setsockopt(
+            socket,
+            IPPROTO_TCP as i32,
+            TCP_NODELAY,
+            Some(&tcp_nodelay.to_le_bytes()),
+        )
     };
     // wsa_assert(rc != SOCKET_ERROR);
 
@@ -456,7 +497,7 @@ pub fn tune_socket(socket: SOCKET) -> anyhow::Result<()> {
 
 #[cfg(windows)]
 pub fn make_fdZmqPaircpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
-// #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
+    // #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
     //  Windows CE does not manage security attributes
     let mut sd: PSECURITY_DESCRIPTOR = PSECURITY_DESCRIPTOR::default();
     let mut sa: SECURITY_ATTRIBUTES = SECURITY_ATTRIBUTES {
@@ -467,12 +508,16 @@ pub fn make_fdZmqPaircpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
     // memset (&sd, 0, sizeof sd);
     // memset (&sa, 0, sizeof sa);
 
-    unsafe { InitializeSecurityDescriptor(sd, SECURITY_DESCRIPTOR_REVISION); }
-    unsafe { SetSecurityDescriptorDacl(sd, TRUE, None, FALSE); }
+    unsafe {
+        InitializeSecurityDescriptor(sd, SECURITY_DESCRIPTOR_REVISION);
+    }
+    unsafe {
+        SetSecurityDescriptorDacl(sd, TRUE, None, FALSE);
+    }
 
     sa.nLength = mem::size_of::<SECURITY_ATTRIBUTES>() as u32;
     sa.lpSecurityDescriptor = sd.0;
-// #endif
+    // #endif
 
     //  This function has to be in a system-wide critical section so that
     //  two instances of the library don't accidentally create signaler
@@ -487,40 +532,35 @@ pub fn make_fdZmqPaircpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
     //  Use problematic Event implementation for compatibility if using old port 5905.
     //  Otherwise use Mutex implementation.
     let event_signaler_port: i32 = 5905;
-    let val = "Global\\zmq-signaler-port-sync".to_string().as_ptr();
+    let val = "Global\\zmq-signaler-port-sync".to_string().as_ptr() as *const c_void;
 
     if (signaler_port == event_signaler_port) {
-// #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
+        // #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
         sync = unsafe { CreateEventA(Some(&sa), FALSE, TRUE, val).unwrap() };
-// #else
-        sync = unsafe {
-            CreateEventA(None, FALSE, TRUE, val).unwrap()
-        };
-// #endif
+        // #else
+        sync = unsafe { CreateEventA(None, FALSE, TRUE, val).unwrap() };
+        // #endif
         let mut last_err = unsafe { GetLastError() };
         if (sync == 0 && last_err == ERROR_ACCESS_DENIED) {
-            sync = unsafe {
-                OpenEventA(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE,
-                           val).unwrap()
-            };
+            sync = unsafe { OpenEventA(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, val).unwrap() };
         }
 
         // win_assert (sync != null_mut());
     } else if (signaler_port != 0) {
         let mutex_name: [u8; MAX_PATH as usize] = [0; MAX_PATH];
-// #ifdef __MINGW32__
-//         _snwprintf (mutex_name, MAX_PATH, L"Global\\zmq-signaler-port-%d",
-//                     signaler_port);
-// #else
-//         swprintf (mutex_name, MAX_PATH, L"Global\\zmq-signaler-port-%d",
-//                   signaler_port);
-// #endif
+        // #ifdef __MINGW32__
+        //         _snwprintf (mutex_name, MAX_PATH, L"Global\\zmq-signaler-port-%d",
+        //                     signaler_port);
+        // #else
+        //         swprintf (mutex_name, MAX_PATH, L"Global\\zmq-signaler-port-%d",
+        //                   signaler_port);
+        // #endif
 
-// #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
+        // #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
         sync = unsafe { CreateMutexA(Some(&sa), FALSE, mutex_name).unwrap() };
-// #else
+        // #else
         sync = unsafe { CreateMutexA(None, FALSE, mutex_name).unwrap() };
-// #endif
+        // #endif
         last_err = unsafe { GetLastError() };
         if (sync == null_mut() && last_err == ERROR_ACCESS_DENIED) {
             sync = unsafe { OpenMutexA(SYNCHRONIZE, FALSE, mutex_name) };
@@ -542,8 +582,12 @@ pub fn make_fdZmqPaircpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
     //  Set SO_REUSEADDR and TCP_NODELAY on listening socket.
     let mut so_reuseaddr: BOOL = TRUE;
     let mut rc = unsafe {
-        setsockopt(listener, SOL_SOCKET, SO_REUSEADDR,
-                   Some(&so_reuseaddr.to_le_bytes()))
+        setsockopt(
+            listener,
+            SOL_SOCKET,
+            SO_REUSEADDR,
+            Some(&so_reuseaddr.to_le_bytes()),
+        )
     };
     wsa_assert(rc != SOCKET_ERROR);
 
@@ -567,17 +611,12 @@ pub fn make_fdZmqPaircpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
     }
 
     //  Bind listening socket to signaler port.
-    rc = unsafe {
-        bind(listener, (&addr), addr.len())
-    };
+    rc = unsafe { bind(listener, (&addr), addr.len()) };
 
     if (rc != SOCKET_ERROR && signaler_port == 0) {
         //  Retrieve ephemeral port number
         let addrlen = addr.len();
-        rc = unsafe {
-            getsockname(listener, (&mut addr),
-                        &mut addrlen)
-        };
+        rc = unsafe { getsockname(listener, (&mut addr), &mut addrlen) };
     }
 
     //  Listen for incoming connections.
@@ -602,9 +641,9 @@ pub fn make_fdZmqPaircpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
     //  This code is a workaround for #1608
     if *r_ as SOCKET != INVALID_SOCKET {
         let mut dummy_size = 1024 * 1024; //  1M to overload default receive buffer
-        // unsigned char *dummy =
-        //    (malloc (dummy_size));
-        // wsa_assert (dummy);
+                                          // unsigned char *dummy =
+                                          //    (malloc (dummy_size));
+                                          // wsa_assert (dummy);
         let dummy: Vec<u8> = Vec::with_capacity(dummy_size as usize);
 
         let mut still_to_send = (dummy_size);
@@ -616,7 +655,8 @@ pub fn make_fdZmqPaircpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
                     send(
                         *w_,
                         (&dummy[dummy_size - still_to_send..]),
-                        0 as SEND_RECV_FLAGS)
+                        0 as SEND_RECV_FLAGS,
+                    )
                 };
                 wsa_assert(nbytes != SOCKET_ERROR);
                 still_to_send -= nbytes;
@@ -625,7 +665,8 @@ pub fn make_fdZmqPaircpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
                 recv(
                     *r_,
                     (&mut dummy[dummy_size - still_to_recv..]),
-                    0 as SEND_RECV_FLAGS)
+                    0 as SEND_RECV_FLAGS,
+                )
             };
             wsa_assert(nbytes != SOCKET_ERROR);
             still_to_recv -= nbytes;
@@ -676,16 +717,16 @@ pub fn make_fdZmqPaircpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
 
 #[cfg(not(target_os = "windows"))]
 pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
-// #if defined ZMQ_HAVE_EVENTFD
-    if cfg!(feature="eventfd") {
+    // #if defined ZMQ_HAVE_EVENTFD
+    if cfg!(feature = "eventfd") {
         let mut flags = 0;
         let mut flags = 0;
-// #if defined ZMQ_HAVE_EVENTFD_CLOEXEC
+        // #if defined ZMQ_HAVE_EVENTFD_CLOEXEC
         //  Setting this option result in sane behaviour when exec() functions
         //  are used. Old sockets are closed and don't block TCP ports, avoid
         //  leaks, etc.
         flags |= EFD_CLOEXEC;
-// #endif
+        // #endif
         let fd = unsafe { eventfd(0, flags) };
         if (fd == -1) {
             // errno_assert (errno == ENFILE || errno == EMFILE);
@@ -698,10 +739,9 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         return 0;
     }
 
-
-// #elif defined ZMQ_HAVE_WINDOWS
-// #ifdef ZMQ_HAVE_IPC
-    if cfg!(target_os="windows") {
+    // #elif defined ZMQ_HAVE_WINDOWS
+    // #ifdef ZMQ_HAVE_IPC
+    if cfg!(target_os = "windows") {
         let mut address: IpcAddress = IpcAddress::default();
         let mut dirname = String::new();
         let mut filename = String::new();
@@ -732,10 +772,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         }
 
         //  Bind the socket to the file path.
-        rc = unsafe {
-            bind(listener, (address.addr()),
-                 address.addrlen())
-        };
+        rc = unsafe { bind(listener, (address.addr()), address.addrlen()) };
         if (rc != 0) {
             let last_wsa_err = unsafe { WSAGetLastError() };
             errno = wsa_error_to_errno(last_wsa_err);
@@ -765,9 +802,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         }
 
         //  Connect to the remote peer.
-        rc = unsafe {
-            connect(*w_, (&lcladdr as &sockaddr), lcladdr_len)
-        };
+        rc = unsafe { connect(*w_, (&lcladdr as &sockaddr), lcladdr_len) };
         if (rc == -1) {
             // goto error_closeclient;
         }
@@ -822,11 +857,11 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         // try_tcpip:
         // try to fallback to TCP/IP
         // TODO: maybe remember this decision permanently?
-// #endif
+        // #endif
     }
     return make_fdZmqPaircpip(r_, w_);
-// #elif defined ZMQ_HAVE_OPENVMS
-    if cfg!(target_os="vms") {
+    // #elif defined ZMQ_HAVE_OPENVMS
+    if cfg!(target_os = "vms") {
         //  Whilst OpenVMS supports socketpair - it maps to AF_INET only.  Further,
         //  it does not set the socket options TCP_NODELAY and TCP_NODELACK which
         //  can lead to performance problems.
@@ -889,8 +924,8 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
 
         return 0;
     }
-// #elif defined ZMQ_HAVE_VXWORKS
-    if cfg!(target_os="vxworks") {
+    // #elif defined ZMQ_HAVE_VXWORKS
+    if cfg!(target_os = "vxworks") {
         // struct sockaddr_in
         // lcladdr;
         // memset(&lcladdr, 0, sizeof lcladdr);
@@ -943,84 +978,79 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         //
         // return 0;
     }
-// #else
+    // #else
     else {
-//         // All other implementations support socketpair()
-//         int
-//         sv[2];
-//         int type = SOCK_STREAM;
-//         //  Setting this option result in sane behaviour when exec() functions
-//         //  are used. Old sockets are closed and don't block TCP ports, avoid
-//         //  leaks, etc.
-// // #if defined ZMQ_HAVE_SOCK_CLOEXEC type |= SOCK_CLOEXEC;
-// // #endif
-//         int
-//         rc = socketpair(AF_UNIX, type , 0, sv);
-//         if (rc == -1) {
-//             // errno_assert (errno == ENFILE || errno == EMFILE);
-//             *w_ = *r_ = -1;
-//             return -1;
-//         } else {
-//             make_socket_noninheritable(sv[0]);
-//             make_socket_noninheritable(sv[1]);
-//
-//             *w_ = sv[0];
-//             *r_ = sv[1];
-//             return 0;
-//         }
+        //         // All other implementations support socketpair()
+        //         int
+        //         sv[2];
+        //         int type = SOCK_STREAM;
+        //         //  Setting this option result in sane behaviour when exec() functions
+        //         //  are used. Old sockets are closed and don't block TCP ports, avoid
+        //         //  leaks, etc.
+        // // #if defined ZMQ_HAVE_SOCK_CLOEXEC type |= SOCK_CLOEXEC;
+        // // #endif
+        //         int
+        //         rc = socketpair(AF_UNIX, type , 0, sv);
+        //         if (rc == -1) {
+        //             // errno_assert (errno == ENFILE || errno == EMFILE);
+        //             *w_ = *r_ = -1;
+        //             return -1;
+        //         } else {
+        //             make_socket_noninheritable(sv[0]);
+        //             make_socket_noninheritable(sv[1]);
+        //
+        //             *w_ = sv[0];
+        //             *r_ = sv[1];
+        //             return 0;
+        //         }
     }
     return 0;
-// #endif
+    // #endif
 }
 
 pub fn make_socket_noninheritable(sock_: ZmqFileDesc) {
-// #if defined ZMQ_HAVE_WINDOWS && !defined _WIN32_WCE                            \
-//   && !defined ZMQ_HAVE_WINDOWS_UWP
+    // #if defined ZMQ_HAVE_WINDOWS && !defined _WIN32_WCE                            \
+    //   && !defined ZMQ_HAVE_WINDOWS_UWP
     //  On Windows, preventing sockets to be inherited by child processes.
-    let brc = unsafe {
-        SetHandleInformation((sock_),
-                             HANDLE_FLAG_INHERIT as u32, 0 as HANDLE_FLAGS)
-    };
+    let brc =
+        unsafe { SetHandleInformation((sock_), HANDLE_FLAG_INHERIT as u32, 0 as HANDLE_FLAGS) };
     // win_assert (brc);
-// #elif (!defined ZMQ_HAVE_SOCK_CLOEXEC || !defined HAVE_ACCEPT4)                \
-//   && defined FD_CLOEXEC
+    // #elif (!defined ZMQ_HAVE_SOCK_CLOEXEC || !defined HAVE_ACCEPT4)                \
+    //   && defined FD_CLOEXEC
     //  If there 's no SOCK_CLOEXEC, let's try the second best option.
     //  Race condition can cause socket not to be closed (if fork happens
     //  between accept and this point).
     let rc: i32 = unsafe { fcntl(sock_, F_SETFD, FD_CLOEXEC) };
     // errno_assert (rc != -1);
-// #else
-//     LIBZMQ_UNUSED (sock_);
-// #endif
+    // #else
+    //     LIBZMQ_UNUSED (sock_);
+    // #endif
 }
 
 pub fn assert_success_or_recoverable(s_: ZmqFileDesc, rc_: i32) {
-// #ifdef ZMQ_HAVE_WINDOWS
+    // #ifdef ZMQ_HAVE_WINDOWS
     if (rc_ != SOCKET_ERROR) {
         return;
     }
-// #else
+    // #else
     if (rc_ != -1) {
         return;
     }
-// #endif
+    // #endif
 
     //  Check whether an error occurred
     let mut err = 0;
-// #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
+    // #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
     let mut len = 4;
-// #else
-//     socklen_t len = sizeof err;
-// #endif
+    // #else
+    //     socklen_t len = sizeof err;
+    // #endif
 
-    let rc = unsafe {
-        getsockopt(s_, SOL_SOCKET, SO_ERROR,
-                   (&mut err as PSTR), &mut len)
-    };
+    let rc = unsafe { getsockopt(s_, SOL_SOCKET, SO_ERROR, (&mut err as PSTR), &mut len) };
 
     //  Assert if the error was caused by 0MQ bug.
     //  Networking problems are OK. No need to assert.
-// #ifdef ZMQ_HAVE_WINDOWS
+    // #ifdef ZMQ_HAVE_WINDOWS
     // zmq_assert (rc == 0);
     if (err != 0) {
         // wsa_assert (err == WSAECONNREFUSED || err == WSAECONNRESET
@@ -1030,7 +1060,7 @@ pub fn assert_success_or_recoverable(s_: ZmqFileDesc, rc_: i32) {
         //             || err == WSAENETRESET || err == WSAEACCES
         //             || err == WSAEINVAL || err == WSAEADDRINUSE);
     }
-// #else
+    // #else
     //  Following code should handle both Berkeley-derived socket
     //  implementations and Solaris.
     if (rc == -1) {
@@ -1044,7 +1074,7 @@ pub fn assert_success_or_recoverable(s_: ZmqFileDesc, rc_: i32) {
         //               || errno == ENETUNREACH || errno == ENETDOWN
         //               || errno == ENETRESET || errno == EINVAL);
     }
-// #endif
+    // #endif
 }
 
 // #ifdef ZMQ_HAVE_IPC
@@ -1066,7 +1096,7 @@ pub fn assert_success_or_recoverable(s_: ZmqFileDesc, rc_: i32) {
 // #endif
 
 pub fn create_ipc_wildcard_address(path_: &mut str, file_: &mut str) -> i32 {
-// #if defined ZMQ_HAVE_WINDOWS
+    // #if defined ZMQ_HAVE_WINDOWS
     let mut buffer: [u8; MAX_PATH as usize] = [0; MAX_PATH as usize];
 
     {
@@ -1089,7 +1119,7 @@ pub fn create_ipc_wildcard_address(path_: &mut str, file_: &mut str) -> i32 {
     *file_ = path_ + "/socket";
 
     // free (tmp);
-// #else
+    // #else
     let mut tmp_path: String = String::new();
 
     // If TMPDIR, TEMPDIR, or TMP are available and are directories, create
@@ -1121,7 +1151,7 @@ pub fn create_ipc_wildcard_address(path_: &mut str, file_: &mut str) -> i32 {
     // std::vector<char> buffer (tmp_path.length () + 1);
     // memcpy (&buffer[0], tmp_path, tmp_path.length () + 1);
 
-// #if defined HAVE_MKDTEMP
+    // #if defined HAVE_MKDTEMP
     // Create the directory.  POSIX requires that mkdtemp() creates the
     // directory with 0700 permissions, meaning the only possible race
     // with socket creation could be the same user.  However, since
@@ -1134,8 +1164,8 @@ pub fn create_ipc_wildcard_address(path_: &mut str, file_: &mut str) -> i32 {
 
     path_.assign(&buffer[0]);
     *file_ = path_ + "/socket";
-// #else
-//     LIBZMQ_UNUSED (path_);
+    // #else
+    //     LIBZMQ_UNUSED (path_);
     let fd = unsafe { mkstemp(&mut buffer[0] as *mut c_char) };
     if (fd == -1) {
         return -1;
@@ -1143,8 +1173,8 @@ pub fn create_ipc_wildcard_address(path_: &mut str, file_: &mut str) -> i32 {
     // ::close (fd);
 
     file_.assign(&buffer[0]);
-// #endif
-// #endif
+    // #endif
+    // #endif
 
     return 0;
 }

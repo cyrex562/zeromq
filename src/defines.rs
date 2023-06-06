@@ -1,12 +1,9 @@
-use libc::c_void;
 use crate::fd::ZmqFileDesc;
+use libc::c_void;
 
 //   Version macros for compile-time API version detection
-// #define ZMQ_VERSION_MAJOR 4
 pub const ZMQ_VERSION_MAJOR: u32 = 4;
-// #define ZMQ_VERSION_MINOR 3
 pub const ZMQ_VERSION_MINOR: u32 = 4;
-// #define ZMQ_VERSION_PATCH 5
 pub const ZMQ_VERSION_PATCH: u32 = 5;
 
 // #define ZMQ_MAKE_VERSION(major, minor, patch)                                  \
@@ -14,6 +11,7 @@ pub const ZMQ_VERSION_PATCH: u32 = 5;
 // #define ZMQ_VERSION                                                            \
 //     ZMQ_MAKE_VERSION (ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH)
 
+pub const retired_fd: i32 = -1;
 
 // ****************************************************************************
 //   0MQ errors.
@@ -102,12 +100,10 @@ pub const ZMQ_THREAD_AFFINITY_CPU_REMOVE: u8 = 8;
 pub const ZMQ_THREAD_NAME_PREFIX: u8 = 9;
 
 //   Default for new contexts
-pub const ZMQ_IO_THREADS_DFLT: i32 =  1;
+pub const ZMQ_IO_THREADS_DFLT: i32 = 1;
 pub const ZMQ_MAX_SOCKETS_DFLT: i32 = 1023;
 pub const ZMQ_THREAD_PRIORITY_DFLT: i32 = -1;
 pub const ZMQ_THREAD_SCHED_POLICY_DFLT: i32 = -1;
-
-
 
 // ****************************************************************************
 //   0MQ message definition.
@@ -360,21 +356,20 @@ pub const ZMQ_STREAMER: u8 = 1;
 pub const ZMQ_FORWARDER: u8 = 2;
 pub const ZMQ_QUEUE: u8 = 3;
 
-
 pub type zmq_timer_fn = fn(timer_id: i32, arg: &mut [u8]);
 
-pub type zmq_thread_fn = fn(&mut[u8]);
+pub type zmq_thread_fn = fn(&mut [u8]);
 
 //  DRAFT Socket types.
-pub const ZMQ_SERVER: u8 = 12;
-pub const ZMQ_CLIENT: u8 = 13;
-pub const ZMQ_RADIO: u8 = 14;
-pub const ZMQ_DISH: u8 = 15;
-pub const ZMQ_GATHER: u8 = 16;
-pub const ZMQ_SCATTER: u8 = 17;
-pub const ZMQ_DGRAM: u8 = 18;
+pub const ZMQ_SERVER: i32 = 12;
+pub const ZMQ_CLIENT: i32 = 13;
+pub const ZMQ_RADIO: i32 = 14;
+pub const ZMQ_DISH: i32 = 15;
+pub const ZMQ_GATHER: i32 = 16;
+pub const ZMQ_SCATTER: i32 = 17;
+pub const ZMQ_DGRAM: i32 = 18;
 pub const ZMQ_PEER: i32 = 19;
-pub const ZMQ_CHANNEL: u8 = 20;
+pub const ZMQ_CHANNEL: i32 = 20;
 
 //  DRAFT Socket options.
 pub const ZMQ_ZAP_ENFORCE_DOMAIN: u8 = 93;

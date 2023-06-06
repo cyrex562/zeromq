@@ -15,9 +15,9 @@ use crate::command::ZmqCommand;
 use crate::context::{choose_io_thread, unregister_endpoint, ZmqContext};
 use crate::cpu_time::get_cpu_tick_counter;
 use crate::defines::{
-    ZMQ_BLOCKY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENTS,
-    ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSED,
-    ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_CONNECT_DELAYED,
+    retired_fd, ZMQ_BLOCKY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT,
+    ZMQ_EVENTS, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_BIND_FAILED,
+    ZMQ_EVENT_CLOSED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_CONNECT_DELAYED,
     ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH,
     ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL,
     ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED,
@@ -431,13 +431,7 @@ impl ZmqSocketBase {
     //     _thread_safe (thread_safe_),
     //     _reaper_signaler (null_mut()),
     //     _monitor_sync ()
-    pub fn new(
-        parent: &mut ZmqContext,
-        options: &mut ZmqOptions,
-        tid: u32,
-        sid_: i32,
-        thread_safe_: bool,
-    ) -> Self {
+    pub fn new(parent: &mut ZmqContext, tid: u32, sid_: i32, thread_safe_: bool) -> Self {
         let mut out = Self::default();
         out._tag = 0xbaddecafu32;
         out.ctx_terminated = false;
@@ -454,13 +448,13 @@ impl ZmqSocketBase {
         out.sync = Mutex::new(0);
         out.handle = None;
 
-        options.socket_id = sid_;
-        options.ipv6 = (parent_.get(ZMQ_IPV6) != 0);
-        options.linger.store(
+        parent.socket_id = sid_;
+        parent.ipv6 = (parent_.get(ZMQ_IPV6) != 0);
+        parent.linger.store(
             if parent.get(ZMQ_BLOCKY) { -1 } else { 0 },
             Ordering::Relaxed,
         );
-        options.zero_copy = parent_.get(ZMQ_ZERO_COPY_RECV) != 0;
+        parent.zero_copy = parent_.get(ZMQ_ZERO_COPY_RECV) != 0;
 
         if out.thread_safe {
             out.mailbox = Some(ZmqMailboxSafe::new(&mut out.sync));

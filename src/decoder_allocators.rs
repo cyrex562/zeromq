@@ -1,8 +1,8 @@
 use std::ffi::c_void;
 use std::rc::Rc;
 
-use crate::{content::ZmqContent, message::MAX_VSM_SIZE};
 use crate::atomic_counter::AtomicCounter;
+use crate::{content::ZmqContent, message::MAX_VSM_SIZE};
 
 #[derive(Default, Debug, Clone)]
 pub struct c_single_allocator {
@@ -144,7 +144,9 @@ impl shared_message_memory_allocator {
         if (self.buf.is_empty()) {
             // allocate memory for reference counters together with reception buffer
             // std::size_t const allocationsize =
-            let allocationSize: usize = self.max_size + max_counters * std::mem::<ZmqContent>() + std::mem::size_of::<AtomicCounter>();
+            let allocationSize: usize = self.max_size
+                + max_counters * std::mem::<ZmqContent>()
+                + std::mem::size_of::<AtomicCounter>();
             // max_size + sizeof (AtomicCounter)
             // + max_counters * sizeof (ZmqMessage::ZmqContent);
             // buf =  (std::malloc (allocationsize));

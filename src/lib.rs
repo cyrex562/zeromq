@@ -130,8 +130,6 @@ mod vmci;
 mod vmci_address;
 mod vmci_connecter;
 mod vmci_listener;
-mod windows;
-mod wire;
 mod ws_address;
 mod ws_connecter;
 mod ws_decoder;

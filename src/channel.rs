@@ -35,10 +35,10 @@ pub struct ZmqChannel
 }
 
 impl ZmqChannel {
-    pub fn new(parent: &mut ZmqContext, options: &mut ZmqOptions, tid: u32, sid: i32) -> Self {
+    pub fn new(parent: &mut ZmqContext, tid: u32, sid: i32) -> Self {
         let mut out = Self {
             pipe: Default::default(),
-            base: ZmqSocketBase::new(parent, options, tid, sid, true),
+            base: ZmqSocketBase::new(parent, tid, sid, true),
         };
 
         out

@@ -45,22 +45,25 @@
 // #include "tipc_address.hpp"
 // #include "session_base.hpp"
 
-use std::mem;
-use std::os::raw::c_void;
-use libc::{c_char, c_int, close, connect, EHOSTUNREACH, EINPROGRESS, EINTR, EINVAL, ENETDOWN, ENETUNREACH, ETIMEDOUT, getsockopt, open};
-use windows::s;
-use windows::Win32::Networking::WinSock::{SO_ERROR, SOCK_STREAM, socklen_t, SOL_SOCKET};
-use crate::address::{ZmqAddress, get_socket_name};
 use crate::address::SocketEnd::SocketEndLocal;
+use crate::address::{get_socket_name, ZmqAddress};
 use crate::address_family::AF_TIPC;
 use crate::fd::ZmqFileDesc;
-use crate::thread_context::ZmqThreadContext;
 use crate::ip::{open_socket, unblock_socket};
 use crate::ops::zmq_errno;
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 use crate::stream_connecter_base::StreamConnecterBase;
+use crate::thread_context::ZmqThreadContext;
 use crate::tipc_address::ZmqTipcAddress;
+use libc::{
+    c_char, c_int, close, connect, getsockopt, open, EHOSTUNREACH, EINPROGRESS, EINTR, EINVAL,
+    ENETDOWN, ENETUNREACH, ETIMEDOUT,
+};
+use std::mem;
+use std::os::raw::c_void;
+use windows::s;
+use windows::Win32::Networking::WinSock::{socklen_t, SOCK_STREAM, SOL_SOCKET, SO_ERROR};
 
 // #include <unistd.h>
 // #include <sys/types.h>
@@ -71,7 +74,6 @@ use crate::tipc_address::ZmqTipcAddress;
 pub struct ZmqTipcConnecter<'a> {
     // : public StreamConnecterBase
     pub stream_connecter_base: StreamConnecterBase<'a>,
-
     //  If 'delayed_start' is true connecter first waits for a while,
     //  then starts connection process.
     // ZmqTipcConnecter (ZmqIoThread *io_thread_,
@@ -110,7 +112,13 @@ impl ZmqTipcConnecter {
     // {
     //     // zmq_assert (_addr.protocol == "tipc");
     // }
-    pub fn new(io_thread: &mut ZmqThreadContext, session: &mut ZmqSessionBase, options: &mut ZmqOptions, addr: &mut ZmqAddress<ZmqTipcAddress>, delayed_start: bool) -> Self {
+    pub fn new(
+        io_thread: &mut ZmqThreadContext,
+        session: &mut ZmqSessionBase,
+        options: &mut ZmqOptions,
+        addr: &mut ZmqAddress<ZmqTipcAddress>,
+        delayed_start: bool,
+    ) -> Self {
         Self {
             stream_connecter_base: StreamConnecterBase {
                 own: Default::default(),
@@ -127,10 +135,8 @@ impl ZmqTipcConnecter {
                 _current_reconnect_ivl: 0,
 
                 // options: options,
-
-
                 _session: session,
-            }
+            },
         }
     }
 
@@ -141,7 +147,9 @@ impl ZmqTipcConnecter {
 
         //  Handle the error condition by attempt to reconnect.
         if (fd == retired_fd) {
-            unsafe { close(fd as c_int); }
+            unsafe {
+                close(fd as c_int);
+            }
             add_reconnect_timer();
             return;
         }
@@ -158,19 +166,21 @@ impl ZmqTipcConnecter {
             _handle = add_fd(_s);
             out_event();
         }
-
         //  Connection establishment may be delayed. Poll for its completion.
         else if rc == -1 && errno == EINPROGRESS {
             _handle = add_fd(_s);
             set_pollout(_handle);
             self._socket.event_connect_delayed(
-                make_unconnected_connect_endpoint_pair(_endpoint), zmq_errno());
+                make_unconnected_connect_endpoint_pair(_endpoint),
+                zmq_errno(),
+            );
         }
-
         //  Handle any other error condition by eventual reconnect.
         else {
             if (_s != retired_fd) {
-                unsafe { close(_s); }
+                unsafe {
+                    close(_s);
+                }
             }
             add_reconnect_timer();
         }
@@ -198,8 +208,11 @@ impl ZmqTipcConnecter {
         //                         addr.resolved.tipc_addr.addrlen ());
         // #else
         let mut rc = unsafe {
-            connect(_s, _addr.resolved.tipc_addr.addr(),
-                    _addr.resolved.tipc_addr.addrlen())
+            connect(
+                _s,
+                _addr.resolved.tipc_addr.addr(),
+                _addr.resolved.tipc_addr.addrlen(),
+            )
         };
         // #endif
         //  Connect was successful immediately.
@@ -221,15 +234,9 @@ impl ZmqTipcConnecter {
         //  Following code should handle both Berkeley-derived socket
         //  implementations and Solaris.
         let mut err = 0;
-        // #ifdef ZMQ_HAVE_VXWORKS
         let mut len = 4;
-        // #else
-        let mut len = 4;
-        // #endif
-        let mut rc = unsafe {
-            getsockopt(_s, SOL_SOCKET, SO_ERROR,
-                       (&err as *mut c_char), &mut len)
-        };
+        let mut rc =
+            unsafe { getsockopt(_s, SOL_SOCKET, SO_ERROR, (&err as *mut c_char), &mut len) };
         if (rc == -1) {
             err = errno;
         }
