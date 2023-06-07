@@ -1,6 +1,7 @@
 use std::ffi::c_void;
 use crate::fd::ZmqFileDesc;
-use crate::defines::zmq_fd_t;
+use crate::socket::ZmqSocket;
+
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqPollItem {

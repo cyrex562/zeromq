@@ -68,7 +68,7 @@ pub struct PollSet<'a> {
     // void set_pollout (handle_t handle_);
     // void reset_pollout (handle_t handle_);
     // void start ();
-    // void stop ();
+    // void Stop ();
     // static int max_fds ();
     //  Main worker thread routine.
     // static void worker_routine (arg_: &mut [u8]);
@@ -315,7 +315,7 @@ impl PollSet {
 // PollSet::~PollSet ()
 // {
 //     //  Wait till the worker thread exits.
-//     worker.stop ();
+//     worker.Stop ();
 //
 //     pollset_destroy (pollset_fd);
 //     for (retired_t::iterator it = retired.begin (); it != retired.end (); += 1it)

@@ -45,7 +45,7 @@ char connect_address[MAX_SOCKET_STRING];
 void test_fork ()
 {
 // #if !defined(ZMQ_HAVE_WINDOWS)
-    //  Create and bind pull socket to receive messages
+    //  Create and Bind pull socket to receive messages
     void *pull = test_context_socket (ZMQ_PULL);
     bind_loopback_ipv4 (pull, connect_address, sizeof connect_address);
 

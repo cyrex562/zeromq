@@ -44,7 +44,7 @@ pub trait EncoderBase {
     // virtual ~ZmqBaseEncoder () ZMQ_DEFAULT;
     //  The function returns a batch of binary data. The data
     //  are filled to a supplied buffer. If no buffer is supplied (data
-    //  is NULL) encoder will provide buffer of its own.
+    //  is NULL) encoder will provide buffer of its Own.
     //  Function returns 0 when a new message is required.
 
     fn encode(&mut self, data: &mut &mut [u8], size: usize) -> usize;

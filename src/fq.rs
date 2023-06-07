@@ -42,7 +42,7 @@ pub struct ZmqFq {
     //     ZmqFq ();
     //     ~ZmqFq ();
     //
-    //     void attach (pipe: &mut ZmqPipe);
+    //     void Attach (pipe: &mut ZmqPipe);
     //     void activated (pipe: &mut ZmqPipe);
     //     void pipe_terminated (pipe: &mut ZmqPipe);
     //

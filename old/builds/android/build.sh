@@ -42,7 +42,7 @@ export CI_CONFIG_QUIET="${CI_CONFIG_QUIET:-no}"
 export CURVE="${CURVE:-}"
 
 # By default, dependencies will be cloned to /tmp/tmp-deps.
-# If you have your own source tree for LIBSODIUM, uncomment
+# If you have your Own source tree for LIBSODIUM, uncomment
 # the line below, and provide its absolute path:
 #    export LIBSODIUM_ROOT="<absolute_path_to_LIBSODIUM_source_tree>"
 

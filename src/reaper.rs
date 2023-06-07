@@ -34,7 +34,7 @@ use crate::devpoll::ZmqPoller;
 use crate::mailbox::ZmqMailbox;
 use crate::object::ZmqObject;
 use crate::poll_events_interface::ZmqPollEventsInterface;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use libc::{EAGAIN, EINTR};
 
 // #include "precompiled.hpp"
@@ -55,7 +55,7 @@ pub struct ZmqReaper {
 
     // void start ();
 
-    // void stop ();
+    // void Stop ();
 
     //  i_poll_events implementation.
 
@@ -81,7 +81,7 @@ pub struct ZmqReaper {
     //  I/O multiplexing is performed using a poller object.
     // Poller *poller;
     pub poller: ZmqPoller,
-    //  Number of sockets being reaped at the moment.
+    //  Number of sockets being Reaped at the moment.
     pub _sockets: i32,
     //  If true, we were already asked to terminate.
     pub terminating: bool,
@@ -168,7 +168,7 @@ impl ZmqReaper {
     pub fn process_stop(&mut self) {
         terminating = true;
 
-        //  If there are no sockets being reaped finish immediately.
+        //  If there are no sockets being Reaped finish immediately.
         if (!self._sockets) {
             send_done();
             self.poller.rm_fd(mailbox_handle);
@@ -176,7 +176,7 @@ impl ZmqReaper {
         }
     }
 
-    pub fn process_reap(&mut self, socket: &mut ZmqSocketBase) {
+    pub fn process_reap(&mut self, socket: &mut ZmqSocket) {
         //  Add the socket to the poller.
         socket.start_reaping(poller);
         self._sockets += 1;
@@ -185,7 +185,7 @@ impl ZmqReaper {
     pub fn process_reaped(&mut self) {
         self._sockets -= 1;
 
-        //  If reaped was already asked to terminate and there are no more sockets,
+        //  If Reaped was already asked to terminate and there are no more sockets,
         //  finish immediately.
         if (!self._sockets && terminating) {
             send_done();

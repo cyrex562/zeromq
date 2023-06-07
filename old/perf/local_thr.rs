@@ -51,7 +51,7 @@ let mut msg = ZmqMessage::default();
     int curve = 0;
 
     if (argc != 4 && argc != 5) {
-        printf ("usage: local_thr <bind-to> <message-size> <message-count> "
+        printf ("usage: local_thr <Bind-to> <message-size> <message-count> "
                 "[<enable_curve>]\n");
         return 1;
     }

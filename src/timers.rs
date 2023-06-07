@@ -258,7 +258,7 @@ impl ZmqTimers {
         //     if (0 == _cancelled_timers.erase (it.second.timer_id)) {
         //         //  Timer is not cancelled
         //
-        //         //  Map is ordered, if we have to wait for current timer we can stop.
+        //         //  Map is ordered, if we have to wait for current timer we can Stop.
         //         if (it.first > now)
         //             break;
         //
@@ -275,7 +275,7 @@ impl ZmqTimers {
                 if 0 == _cancelled_timers.erase(timer.1.timer_id) {
                     //  Timer is not cancelled
 
-                    //  Map is ordered, if we have to wait for current timer we can stop.
+                    //  Map is ordered, if we have to wait for current timer we can Stop.
                     if (timer.0 > now) {
                         break;
                     }

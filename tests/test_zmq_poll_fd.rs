@@ -84,3 +84,51 @@ int main ()
     RUN_TEST (test_poll_fd);
     return UNITY_END ();
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::c_void;
+    use tokio::net;
+    use crate::fd::ZmqFileDesc;
+    use crate::socket_base::ZmqSocketBase;
+
+    #[test]
+    fn test_poll_fd() {
+        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
+
+        let mut flag = 1;
+        // TEST_ASSERT_SUCCESS_ERRNO (
+        //   setsockopt (recv_socket, SOL_SOCKET, SO_REUSEADDR, &flag, mem::size_of::<int>()));
+        // TODO: set SO_REUSEADDR on socket
+
+        struct sockaddr_in saddr = bind_bsd_socket (recv_socket);
+
+        void *sb = test_context_socket (ZMQ_REP);
+
+        TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (sb, "tcp://127.0.0.1:*"));
+
+        ZmqPollItem pollitems[] = {
+          {sb, 0, ZMQ_POLLIN, 0},
+          {null_mut(), recv_socket, ZMQ_POLLIN, 0},
+        };
+
+        int send_socket = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        TEST_ASSERT_NOT_EQUAL (-1, send_socket);
+
+        char buf[10];
+        memset (buf, 1, 10);
+
+        TEST_ASSERT_SUCCESS_ERRNO (sendto (
+          send_socket, buf, 10, 0, (struct sockaddr *) &saddr, mem::size_of::<saddr>()));
+
+        TEST_ASSERT_EQUAL (1, zmq_poll (pollitems, 2, 1));
+        TEST_ASSERT_BITS_LOW (ZMQ_POLLIN, pollitems[0].revents);
+        TEST_ASSERT_BITS_HIGH (ZMQ_POLLIN, pollitems[1].revents);
+
+        test_context_socket_close (sb);
+
+        close (send_socket);
+        close (recv_socket);
+}

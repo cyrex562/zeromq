@@ -66,24 +66,8 @@
 // #endif
 
 use crate::context::ZmqContext;
-use crate::ctx_hdr::ZmqContext;
-use crate::defines::{
-    zmq_free_fn, zmq_timer_fn, ZmqMessage, ZMQ_EVENTS, ZMQ_FD, ZMQ_IO_THREADS, ZMQ_MORE, ZMQ_PAIR,
-    ZMQ_PEER, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI, ZMQ_SHARED, ZMQ_SNDMORE,
-    ZMQ_SRCFD, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH,
-};
-use crate::err::ZmqError::{
-    AddItemToPollerFailed, AddTimerFailed, BindSocketFailed, CancelTimerFailed, CheckTagFailed,
-    CloseMessageFailed, CloseSocketFailed, ConnectPeerSocketFailed, ConnectSocketFailed,
-    DeserializeZmqPeerFailed, DeserializeZmqSocketBaseFailed, ExecuteTimerFailed,
-    GetContextPropertyFailed, GetMessageFailed, GetSocketOptionFailed, GetSocketPeerStateFailed,
-    InitializeMessageFailed, InvalidEvent, InvalidFileDescriptor, InvalidInput,
-    InvalidMessageProperty, InvalidPeer, JoinGroupFailed, LeaveGroupFailed, MallocFailed,
-    ModifyPollerItemFailed, PollFailed, PollerWaitFailed, ProxyFailed, RemoveItemFromPollerFailed,
-    ResetTimerFailed, SelectFailed, SendMessageFailed, SerializeZmqSocketBaseFailed,
-    SetContextPropertyFailed, SetMessagePropertyFailed, SetTimerIntervalFailed,
-    ShutdownContextFailed, TerminateEndpointFailed, UnsupportedSocketType,
-};
+use crate::defines::{zmq_timer_fn, ZMQ_EVENTS, ZMQ_FD, ZMQ_IO_THREADS, ZMQ_MORE, ZMQ_PAIR, ZMQ_PEER, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI, ZMQ_SHARED, ZMQ_SNDMORE, ZMQ_SRCFD, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH, retired_fd};
+use crate::err::ZmqError::{AddItemToPollerFailed, AddTimerFailed, BindSocketFailed, CancelTimerFailed, CheckTagFailed, CloseMessageFailed, CloseSocketFailed, ConnectPeerSocketFailed, ConnectSocketFailed, DeserializeZmqPeerFailed, DeserializeZmqSocketBaseFailed, ExecuteTimerFailed, GetContextPropertyFailed, GetMessageFailed, GetSocketOptionFailed, GetSocketPeerStateFailed, InitializeMessageFailed, InvalidEvent, InvalidFileDescriptor, InvalidInput, InvalidMessageProperty, InvalidPeer, JoinGroupFailed, LeaveGroupFailed, MallocFailed, ModifyPollerItemFailed, PollFailed, PollerWaitFailed, ProxyFailed, RemoveItemFromPollerFailed, ResetTimerFailed, SelectFailed, SendMessageFailed, SerializeZmqSocketBaseFailed, SetContextPropertyFailed, SetMessagePropertyFailed, SetTimerIntervalFailed, ShutdownContextFailed, TerminateEndpointFailed, UnsupportedSocketType, ReceiveMessageFailed};
 use crate::err::{errno_to_string, wsa_error_to_errno, ZmqError};
 use crate::fd::ZmqFileDesc;
 use crate::ip::{initialize_network, shutdown_network};
@@ -94,17 +78,19 @@ use crate::poll_item::ZmqPollItem;
 use crate::poller_event::ZmqPollerEvent;
 use crate::polling_util::{compute_timeout, OptimizedFdSet};
 use crate::proxy::proxy;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::socket_poller::ZmqSocketPoller;
 use crate::timers::ZmqTimers;
 use crate::utils::copy_bytes;
 use anyhow::{anyhow, bail};
 use bincode::options;
 use libc::{
-    atoi, c_char, c_long, c_void, clock_t, fd_set, iovec, poll, pollfd, pselect, select, sigset_t,
-    suseconds_t, time_t, timespec, timeval, EFAULT, EINTR, EINVAL, ENOMEM, ENOTSOCK, ENOTSUP,
-    INT_MAX, POLLIN, POLLOUT, POLLPRI,
+    atoi, c_char, c_long, c_void, clock_t,
+    time_t, timespec, timeval, EFAULT, EINTR, EINVAL, ENOMEM, ENOTSOCK, ENOTSUP,
+    INT_MAX,
 };
+#[cfg(target_os = "linux")]
+use libc::{fd_set, iovec, poll, pollfd, pselect, select, sigset_t, suseconds_t, POLLIN, POLLOUT, POLLPRI};
 use serde::Serialize;
 use std::error::Error;
 use std::ptr::null_mut;
@@ -114,6 +100,7 @@ use std::{mem, thread, time};
 use windows::Win32::Networking::WinSock::{
     select, WSAGetLastError, FD_SET, POLLIN, POLLOUT, POLLPRI, SOCKET_ERROR, TIMEVAL,
 };
+use windows::Win32::Networking::WinSock::{SOCKET, WSAPoll, WSAPOLLFD};
 
 pub fn zmq_version(major_: *mut u32, minor_: *mut u32, patch_: *mut u32) {
     unsafe {
@@ -188,7 +175,7 @@ pub fn zmq_ctx_shutdown(ctx_raw: &mut [u8]) -> Result<(), ZmqError> {
     }
     match ctx.shutdown() {
         Ok(_) => Ok(()),
-        Err(e) => ShutdownContextFailed(fmt!("failed to shutdown context: {}", e)),
+        Err(e) => ShutdownContextFailed(format!("failed to shutdown context: {}", e)),
     }
 }
 
@@ -212,7 +199,7 @@ pub fn zmq_ctx_set_ext(ctx_raw: &mut [u8], option: i32, optval: &mut [u8]) -> Re
 
     match ctx.set(option, optval, optval.len()) {
         Ok(_) => Ok(()),
-        Err(e) => SetContextPropertyFailed(fmt!("failed to set context property: {}", e)),
+        Err(e) => SetContextPropertyFailed(format!("failed to set context property: {}", e)),
     }
 }
 
@@ -231,7 +218,7 @@ pub fn zmq_ctx_get(ctx_raw: &mut [u8], opt_kind: i32) -> Result<i32, ZmqError> {
     }
     match ctx.option_i32(opt_kind) {
         Ok(v) => Ok(v),
-        Err(e) => GetContextPropertyFailed(fmt!("failed to get context property: {}", e)),
+        Err(e) => GetContextPropertyFailed(format!("failed to get context property: {}", e)),
     }
 }
 
@@ -250,7 +237,7 @@ pub fn zmq_ctx_get_ext(ctx_raw: &mut [u8], opt_kind: i32) -> Result<Vec<u8>, Zmq
     }
     match ctx.option_bytes(opt_kind) {
         Ok(v) => Ok(v),
-        Err(e) => GetContextPropertyFailed(fmt!("failed to get context property: {}", e)),
+        Err(e) => GetContextPropertyFailed(format!("failed to get context property: {}", e)),
     }
 }
 
@@ -275,7 +262,7 @@ pub fn zmq_ctx_destroy(ctx: &mut [u8]) -> Result<(), ZmqError> {
 
 // Sockets
 
-pub fn as_socket_base(in_bytes: &[u8]) -> Result<ZmqSocketBase, ZmqError> {
+pub fn as_socket_base(in_bytes: &[u8]) -> Result<ZmqSocket, ZmqError> {
     // ZmqSocketBase *s = static_cast<ZmqSocketBase *> (s_);
     // let mut s: *mut ZmqSocketBase = s_ as *mut ZmqSocketBase;
     // if s_.is_null() || !s.check_tag () {
@@ -283,9 +270,9 @@ pub fn as_socket_base(in_bytes: &[u8]) -> Result<ZmqSocketBase, ZmqError> {
     //     return null_mut();
     // }
     // return s;
-    let mut out: ZmqSocketBase = bincode::deserialize(in_bytes)?;
+    let mut out: ZmqSocket = bincode::deserialize(in_bytes)?;
     if out.check_tag() == false {
-        return Err(DeserializeZmqSocketBaseFailed(fmt!("ENOTSOCK")));
+        return Err(DeserializeZmqSocketBaseFailed(format!("ENOTSOCK")));
     }
     Ok(out)
 }
@@ -293,7 +280,7 @@ pub fn as_socket_base(in_bytes: &[u8]) -> Result<ZmqSocketBase, ZmqError> {
 pub fn as_zmq_peer(in_bytes: &[u8]) -> Result<ZmqPeer, ZmqError> {
     let mut out: ZmqPeer = bincode::deserialize(in_bytes)?;
     if out.check_tag() == false {
-        return Err(DeserializeZmqPeerFailed(fmt!("ENOTSOCK")));
+        return Err(DeserializeZmqPeerFailed(format!("ENOTSOCK")));
     }
     Ok(out)
 }
@@ -309,10 +296,10 @@ pub fn zmq_socket(ctx: &mut [u8], type_: i32) -> Result<Vec<u8>, ZmqError> {
     // }
     // let mut ctx: *mut ZmqContext = ctx as *mut ZmqContext;
     // let mut s: *mut ZmqSocketBase = ctx.create_socket(type_);
-    let s: ZmqSocketBase = ctx.create_socket(type_).unwrap();
+    let s: ZmqSocket = ctx.create_socket(type_).unwrap();
     match bincode::serialize(&s) {
         Ok(v) => Ok(v),
-        Err(e) => Err(SerializeZmqSocketBaseFailed(fmt!(
+        Err(e) => Err(SerializeZmqSocketBaseFailed(format!(
             "failed to serialize socket: {}",
             e
         ))),
@@ -320,10 +307,10 @@ pub fn zmq_socket(ctx: &mut [u8], type_: i32) -> Result<Vec<u8>, ZmqError> {
 }
 
 pub fn zmq_close(s_: &mut [u8]) -> Result<(), ZmqError> {
-    let mut s: ZmqSocketBase = as_socket_base(s_)?;
+    let mut s: ZmqSocket = as_socket_base(s_)?;
     match s.close() {
         Ok(_) => Ok(()),
-        Err(e) => Err(CloseSocketFailed(fmt!("failed to close socket: {}", e))),
+        Err(e) => Err(CloseSocketFailed(format!("failed to close socket: {}", e))),
     }
 }
 
@@ -334,21 +321,21 @@ pub fn zmq_setsockopt(
     opt_val: &[u8],
     opt_val_len: usize,
 ) -> anyhow::Result<()> {
-    let mut s: ZmqSocketBase = as_socket_base(in_bytes)?;
+    let mut s: ZmqSocket = as_socket_base(in_bytes)?;
     s.setsockopt(options, opt_kind, opt_val, opt_val_len)
 }
 
 pub fn zmq_getsockopt(
     options: &mut ZmqContext,
-    in_bytes: &[u8],
+    in_sock: &mut ZmqSocket,
     opt_kind: u8,
     opt_val: &mut [u8],
-    opt_val_len: *mut usize,
+    opt_val_len: &mut usize,
 ) -> Result<Vec<u8>, ZmqError> {
-    let mut s: ZmqSocketBase = as_socket_base(in_bytes)?;
-    match s.getsockopt(options, opt_kind as i32) {
+    // let mut s: ZmqSocketBase = as_socket_base(in_sock)?;
+    match in_sock.getsockopt(options, opt_kind as i32) {
         Ok(v) => Ok(v),
-        Err(e) => Err(GetSocketOptionFailed(fmt!(
+        Err(e) => Err(GetSocketOptionFailed(format!(
             "failed to get socket option: {}",
             e
         ))),
@@ -363,7 +350,7 @@ pub fn zmq_socket_monitor_versioned(
     event_version_: i32,
     type_: i32,
 ) -> Result<(), ZmqError> {
-    let mut s: ZmqSocketBase = as_socket_base(s_)?;
+    let mut s: ZmqSocket = as_socket_base(s_)?;
 
     if s.monitor(options, addr_, events_, event_version_, type_)
         .is_ok()
@@ -383,42 +370,41 @@ pub fn zmq_socket_monitor(
 }
 
 pub fn zmq_join(s_: &mut [u8], group_: &str) -> Result<(), ZmqError> {
-    let mut s: ZmqSocketBase = as_socket_base(s_)?;
+    let mut s: ZmqSocket = as_socket_base(s_)?;
 
     match s.join(group_) {
         Ok(_) => Ok(()),
-        Err(e) => Err(JoinGroupFailed(fmt!("failed to join group: {}", e))),
+        Err(e) => Err(JoinGroupFailed(format!("failed to join group: {}", e))),
     }
 }
 
 pub fn zmq_leave(s_: &mut [u8], group_: &str) -> Result<(), ZmqError> {
-    let mut s: ZmqSocketBase = as_socket_base(s_)?;
+    let mut s: ZmqSocket = as_socket_base(s_)?;
 
     match s.leave(group_) {
         Ok(_) => Ok(()),
-        Err(e) => Err(LeaveGroupFailed(fmt!("failed to leave group: {}", e))),
+        Err(e) => Err(LeaveGroupFailed(format!("failed to leave group: {}", e))),
     }
 }
 
 pub fn zmq_bind(
     ctx: &mut ZmqContext,
-    options: &mut ZmqContext,
-    s_: &mut [u8],
+    s_: &mut ZmqSocket,
     addr_: &str,
 ) -> Result<(), ZmqError> {
-    let mut s: ZmqSocketBase = as_socket_base(s_)?;
+    let mut s: ZmqSocket = as_socket_base(s_)?;
 
     match s.bind(ctx, options, addr_) {
         Ok(_) => Ok(()),
-        Err(e) => Err(BindSocketFailed(fmt!("failed to bind socket: {}", e))),
+        Err(e) => Err(BindSocketFailed(format!("failed to Bind socket: {}", e))),
     }
 }
 
-pub fn zmq_connect(options: &mut ZmqContext, s_: &mut [u8], addr_: &str) -> Result<(), ZmqError> {
-    let mut s: ZmqSocketBase = as_socket_base(s_)?;
+pub fn zmq_connect(options: &mut ZmqContext, s_: &mut ZmqSocket, addr_: &str) -> Result<(), ZmqError> {
+    let mut s: ZmqSocket = as_socket_base(s_)?;
     match s.connect(options, addr_) {
         Ok(_) => Ok(()),
-        Err(e) => Err(ConnectSocketFailed(fmt!("failed to connect socket: {}", e))),
+        Err(e) => Err(ConnectSocketFailed(format!("failed to connect socket: {}", e))),
     }
 }
 
@@ -426,7 +412,7 @@ pub fn zmq_connect_peer(s_: &mut [u8], addr_: &str) -> Result<(), ZmqError> {
     let mut s: ZmqPeer = as_zmq_peer(s_)?;
 
     let mut socket_type: i32 = 0i32;
-    let mut socket_type_size = mem::sizeof::<socket_type>();
+    let mut socket_type_size = mem::size_of_val(&socket_type);
     if s.getsockopt(ZMQ_TYPE, &socket_type, &socket_type_size)
         .is_err()
     {
@@ -440,7 +426,7 @@ pub fn zmq_connect_peer(s_: &mut [u8], addr_: &str) -> Result<(), ZmqError> {
 
     match s.connect_peer(addr_) {
         Ok(_) => Ok(()),
-        Err(e) => Err(ConnectPeerSocketFailed(fmt!(
+        Err(e) => Err(ConnectPeerSocketFailed(format!(
             "failed to connect peer socket: {}",
             e
         ))),
@@ -448,10 +434,10 @@ pub fn zmq_connect_peer(s_: &mut [u8], addr_: &str) -> Result<(), ZmqError> {
 }
 
 pub fn zmq_unbind(options: &mut ZmqContext, s_: &mut [u8], addr_: &str) -> Result<(), ZmqError> {
-    let mut s: ZmqSocketBase = as_socket_base(s_)?;
+    let mut s: ZmqSocket = as_socket_base(s_)?;
     match s.term_endpoint(options, addr_) {
         Ok(_) => Ok(()),
-        Err(e) => Err(TerminateEndpointFailed(fmt!(
+        Err(e) => Err(TerminateEndpointFailed(format!(
             "failed to terminate socket endpoint: {}",
             e
         ))),
@@ -463,10 +449,10 @@ pub fn zmq_disconnect(
     s_: &mut [u8],
     addr_: &str,
 ) -> Result<(), ZmqError> {
-    let mut s: ZmqSocketBase = as_socket_base(s_)?;
+    let mut s: ZmqSocket = as_socket_base(s_)?;
     match s.term_endpoint(options, addr_) {
         Ok(_) => Ok(()),
-        Err(e) => Err(TerminateEndpointFailed(fmt!(
+        Err(e) => Err(TerminateEndpointFailed(format!(
             "failed to terminate socket endpoint: {}",
             e
         ))),
@@ -477,11 +463,11 @@ pub fn zmq_disconnect(
 
 pub fn s_sendmsg(
     options: &mut ZmqContext,
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     msg: &mut ZmqMessage,
     flags: i32,
 ) -> Result<i32, ZmqError> {
-    let mut sz: usize = zmq_msg_size(msg);
+    let mut sz: usize = msg.size();
     s_.send(msg, options, flags)?;
 
     //  This is what I'd like to do, my C+= 1 fu is too weak -- PH 2016/02/09
@@ -509,7 +495,7 @@ pub fn zmq_send(
     len_: usize,
     flags: i32,
 ) -> Result<(), ZmqError> {
-    let mut s: ZmqSocketBase = as_socket_base(s_)?;
+    let mut s: ZmqSocket = as_socket_base(s_)?;
     let mut msg: ZmqMessage = ZmqMessage::default();
     zmq_msg_init_buffer(&mut msg, buf, len_)?;
     match s_sendmsg(options, &mut s, &mut msg, flags) {
@@ -541,6 +527,7 @@ pub fn zmq_send_const(
 // a single multi-part message, i.e. the last message has
 // ZMQ_SNDMORE bit switched off.
 //
+#[cfg(not(windows))]
 pub fn zmq_sendiov(
     options: &mut ZmqContext,
     s_: &mut [u8],
@@ -548,7 +535,7 @@ pub fn zmq_sendiov(
     count: usize,
     mut flags: i32,
 ) -> Result<(), ZmqError> {
-    let mut s: ZmqSocketBase = as_socket_base(s_)?;
+    let mut s: ZmqSocket = as_socket_base(s_)?;
 
     // let mut rc = 0;
     let mut msg = ZmqMessage::default();
@@ -573,14 +560,14 @@ pub fn zmq_sendiov(
 
 pub fn s_recvmsg(
     options: &mut ZmqContext,
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     msg: &mut ZmqMessage,
     flags: i32,
 ) -> Result<usize, ZmqError> {
     match s_.recv(msg, options, flags) {
         Ok(_) => (),
         Err(e) => {
-            return Err(ReceiveMessageFailed(fmt!(
+            return Err(ReceiveMessageFailed(format!(
                 "failed to receive message: {}",
                 e
             )));
@@ -588,7 +575,7 @@ pub fn s_recvmsg(
     }
 
     //  Truncate returned size to INT_MAX to avoid overflow to negative values
-    let sz = zmq_msg_size(msg);
+    let sz = msg.size();
     return if sz < usize::MAX {
         Ok(sz)
     } else {
@@ -607,7 +594,7 @@ pub fn zmq_recvmsg(
 }
 
 pub fn zmq_recv(s_: &mut [u8], buf: &mut [u8], len: usize, flags: i32) -> Result<usize, ZmqError> {
-    let mut s: ZmqSocketBase = as_socket_base(s_)?;
+    let mut s: ZmqSocket = as_socket_base(s_)?;
 
     let mut msg: ZmqMessage = ZmqMessage::default();
     zmq_msg_init(&mut msg)?;
@@ -623,7 +610,7 @@ pub fn zmq_recv(s_: &mut [u8], buf: &mut [u8], len: usize, flags: i32) -> Result
     //  We explicitly allow a null buffer argument if len is zero
     if to_copy {
         // assert (buf);
-        copy_bytes(buf, 0, zmq_msg_data(&msg), 0, to_copy);
+        copy_bytes(buf, 0, msg.data(), 0, to_copy);
     }
     zmq_msg_close(&mut msg)?;
     Ok(nbytes)
@@ -645,6 +632,7 @@ pub fn zmq_recv(s_: &mut [u8], buf: &mut [u8], len: usize, flags: i32) -> Result
 // function may be freed using free().
 // TODO: this function has no man page
 //
+#[cfg(not(windows))]
 pub fn zmq_recviov(
     options: &mut ZmqContext,
     s_: &mut [u8],
@@ -652,7 +640,7 @@ pub fn zmq_recviov(
     count: &mut usize,
     flags: i32,
 ) -> Result<i32, ZmqError> {
-    let mut s: ZmqSocketBase = as_socket_base(s_)?;
+    let mut s: ZmqSocket = as_socket_base(s_)?;
     let mut nread = 0;
     let mut recvmore = true;
 
@@ -702,14 +690,14 @@ pub fn zmq_recviov(
 pub fn zmq_msg_init(msg: &mut ZmqMessage) -> Result<(), ZmqError> {
     match msg.init2() {
         Ok(_) => Ok(()),
-        Err(e) => Err(InitializeMessageFailed(fmt!("zmq_msg_init failed: {}", e))),
+        Err(e) => Err(InitializeMessageFailed(format!("zmq_msg_init failed: {}", e))),
     }
 }
 
 pub fn zmq_msg_init_size(msg: &mut ZmqMessage, size: usize) -> Result<(), ZmqError> {
     match msg.init_size(size) {
         Ok(_) => Ok(()),
-        Err(e) => Err(InitializeMessageFailed(fmt!(
+        Err(e) => Err(InitializeMessageFailed(format!(
             "zmq_msg_init_size failed: {}",
             e
         ))),
@@ -723,7 +711,7 @@ pub fn zmq_msg_init_buffer(
 ) -> Result<(), ZmqError> {
     match msg.init_buffer(buf, size) {
         Ok(_) => Ok(()),
-        Err(e) => Err(InitializeMessageFailed(fmt!(
+        Err(e) => Err(InitializeMessageFailed(format!(
             "zmq_msg_init_buffer failed: {}",
             e
         ))),
@@ -738,7 +726,7 @@ pub fn zmq_msg_init_data(
 ) -> Result<(), ZmqError> {
     match msg.init_data(data, size, hint) {
         Ok(_) => Ok(()),
-        Err(e) => Err(InitializeMessageFailed(fmt!(
+        Err(e) => Err(InitializeMessageFailed(format!(
             "zmq_msg_init_data failed: {}",
             e
         ))),
@@ -761,14 +749,14 @@ pub fn zmq_msg_recv(
     s_: &mut [u8],
     flags: i32,
 ) -> Result<usize, ZmqError> {
-    let mut s: ZmqSocketBase = as_socket_base(s_)?;
+    let mut s: ZmqSocket = as_socket_base(s_)?;
     return s_recvmsg(options, &mut s, msg, flags);
 }
 
 pub fn zmq_msg_close(msg: &mut ZmqMessage) -> Result<(), ZmqError> {
     match msg.close() {
         Ok(_) => Ok(()),
-        Err(e) => Err(CloseMessageFailed(fmt!("zmq_msg_close failed: {}", e))),
+        Err(e) => Err(CloseMessageFailed(format!("zmq_msg_close failed: {}", e))),
     }
 }
 
@@ -841,7 +829,7 @@ pub fn zmq_msg_set(msg: &mut ZmqMessage, a: i32, b: i32) -> Result<(), ZmqError>
 pub fn zmq_msg_set_routing_id(msg: &mut ZmqMessage, routing_id: u32) -> Result<(), ZmqError> {
     match msg.set_routing_id(routing_id) {
         Ok(_) => Ok(()),
-        Err(e) => Err(SetMessagePropertyFailed(fmt!(
+        Err(e) => Err(SetMessagePropertyFailed(format!(
             "zmq_msg_set_routing_id failed: {}",
             e
         ))),
@@ -855,7 +843,7 @@ pub fn zmq_msg_routing_id(msg: &mut ZmqMessage) -> u32 {
 pub fn zmq_msg_set_group(msg: &mut ZmqMessage, group_: &str) -> Result<(), ZmqError> {
     match msg.set_group(group_) {
         Ok(_) => Ok(()),
-        Err(e) => Err(SetMessagePropertyFailed(fmt!(
+        Err(e) => Err(SetMessagePropertyFailed(format!(
             "zmq_msg_set_group failed: {}",
             e
         ))),
@@ -903,22 +891,22 @@ pub fn zmq_poller_poll(items: &mut [ZmqPollItem], timeout: i32) -> Result<i32, Z
             //  Poll item is a 0MQ socket.
             for j in 0..i {
                 // Check for repeat entries
-                if items_[j].socket == items_[i].socket {
+                if items[j].socket == items[i].socket {
                     repeat_items = true;
                     modify = true;
                     e |= items[j].events;
                 }
             }
             if modify {
-                zmq_poller_modify(&mut poller, items[i].socket, e)?;
+                zmq_poller_modify(&mut poller, &mut items[i].socket, e)?;
             } else {
-                zmq_poller_add(&mut poller, items[i].socket, None, e)?;
+                zmq_poller_add(&mut poller, &mut items[i].socket, None, e)?;
             }
         } else {
             //  Poll item is a raw file descriptor.
             for j in 0..i {
                 // Check for repeat entries
-                if !items[j].socket && items[j].fd == items[i].fd {
+                if items[j].fd == items[i].fd {
                     repeat_items = true;
                     modify = true;
                     e |= items[j].events;
@@ -945,8 +933,7 @@ pub fn zmq_poller_poll(items: &mut [ZmqPollItem], timeout: i32) -> Result<i32, Z
     for i in 0..items.len() {
         // for (int j = j_start; j < found_events; += 1j)
         for j in j_start..found_events {
-            if (items[i].socket && items[i].socket == events[j].socket)
-                || (!(items[i].socket || &events[j].socket) && items[i].fd == events[j].fd)
+            if items[i].socket == events[j].socket || items[i].fd == events[j].fd
             {
                 items[i].revents = &events[j].events & items[i].events;
                 if !repeat_items {
@@ -979,18 +966,20 @@ pub fn zmq_poll(
     // otherwise fall back to the previous implementation as it's faster.
     for i in 0..items_.len() {
         if (items_[i].socket) {
-            let mut s: *mut ZmqSocketBase = as_socket_base_t(items_[i].socket);
-            if (s) {
-                if (s.is_thread_safe()) {
-                    return zmq_poller_poll(items_, timeout);
-                }
-            } else {
-                //as_socket_base_t returned null_mut() : socket is invalid
-                return Err(PollFailed("invalid socket".to_string()));
+            let mut s = &mut items_[i].socket;
+            if (s.is_thread_safe()) {
+                return zmq_poller_poll(items_, timeout);
             }
+            // if (s) {
+            //
+            // } else {
+            //     return Err(PollFailed("invalid socket".to_string()));
+            // }
         }
     }
     // #endif // ZMQ_HAVE_POLLER
+
+
     // #if defined ZMQ_POLL_BASED_ON_POLL || defined ZMQ_POLL_BASED_ON_SELECT
     if (items_.len() < 0) {
         return Err(PollFailed("invalid number of items".to_string()));
@@ -1003,10 +992,17 @@ pub fn zmq_poll(
     }
 
     // clock_t clock;
+    let mut clock = clock_t::default();
     // u64 now = 0;
+    let mut now = 0u64;
     // u64 end = 0;
+    let mut end = 0u64;
     // #if defined ZMQ_POLL_BASED_ON_POLL
     //     fast_vector_t<pollfd, ZMQ_POLLITEMS_DFLT> pollfds (nitems_);
+
+    #[cfg(windows)]
+    let mut pollfds: Vec<WSAPOLLFD> = Vec::with_capacity(items_.len());
+    #[cfg(not(windows))]
     let mut pollfds: Vec<pollfd> = Vec::with_capacity(items_.len());
 
     //  Build pollset for poll () system call.
@@ -1014,10 +1010,10 @@ pub fn zmq_poll(
         //  If the poll item is a 0MQ socket, we poll on the file descriptor
         //  retrieved by the ZMQ_FD socket option.
         if (items_[i].socket) {
-            let mut zmq_fd_size = sizeof::<ZmqFileDesc>();
+            let mut zmq_fd_size = mem::size_of::<ZmqFileDesc>();
             zmq_getsockopt(
                 options,
-                items_[i].socket,
+                &mut items_[i].socket,
                 ZMQ_FD,
                 &mut pollfds[i].fd as &mut [u8],
                 &mut zmq_fd_size,
@@ -1028,7 +1024,7 @@ pub fn zmq_poll(
         //  Else, the poll item is a raw file descriptor. Just convert the
         //  events to normal POLLIN/POLLOUT for poll ().
         else {
-            pollfds[i].fd = items_[i].fd;
+            pollfds[i].fd = items_[i].fd as SOCKET;
             pollfds[i].events = (if items_[i].events & ZMQ_POLLIN == 1 {
                 POLLIN
             } else {
@@ -1050,9 +1046,9 @@ pub fn zmq_poll(
     //  TODO since this function is called by a client, we could return errno EINVAL/ENOMEM/... here
     // zmq_assert (nitems_ <= FD_SETSIZE);
 
-    let mut pollset_in: Vec<fd_set> = Vec::with_capacity(items_.len());
-    let mut pollset_out: Vec<fd_set> = Vec::with_capacity(items_.len());
-    let mut pollset_err: Vec<fd_set> = Vec::with_capacity(items_.len());
+    let mut pollset_in: Vec<FD_SET> = Vec::with_capacity(items_.len());
+    let mut pollset_out: Vec<FD_SET> = Vec::with_capacity(items_.len());
+    let mut pollset_err: Vec<FD_SET> = Vec::with_capacity(items_.len());
 
     let mut maxfd: ZmqFileDesc = 0;
 
@@ -1061,18 +1057,18 @@ pub fn zmq_poll(
         //  If the poll item is a 0MQ socket we are interested in input on the
         //  notification file descriptor retrieved by the ZMQ_FD socket option.
         if (items_[i].socket) {
-            let zmq_fd_size = sizeof::<ZmqFileDesc>();
+            let mut zmq_fd_size = mem::size_of::<ZmqFileDesc>();
             let mut notify_fd: ZmqFileDesc = 0;
             zmq_getsockopt(
                 options,
-                items_[i].socket,
+                &mut items_[i].socket,
                 ZMQ_FD,
                 &mut notify_fd as &mut [u8],
                 &mut zmq_fd_size,
             )?;
             if (items_[i].events) {
                 // FD_SET (notify_fd, pollset_in.get ());
-                pollset_in.push(notify_fd as fd_set);
+                pollset_in.push(notify_fd as FD_SET);
                 if (maxfd < notify_fd) {
                     maxfd = notify_fd;
                 }
@@ -1083,15 +1079,15 @@ pub fn zmq_poll(
         else {
             if (items_[i].events & ZMQ_POLLIN) {
                 // FD_SET(items_[i].fd, pollset_in.get());
-                pollset_in.push(items_[i].fd as fd_set);
+                pollset_in.push(items_[i].fd as FD_SET);
             }
             if (items_[i].events & ZMQ_POLLOUT) {
                 // FD_SET(items_[i].fd, pollset_out.get());
-                pollset_out.push(items_[i].fd as fd_set);
+                pollset_out.push(items_[i].fd as FD_SET);
             }
             if (items_[i].events & ZMQ_POLLERR) {
                 // FD_SET(items_[i].fd, pollset_err.get());
-                pollset_err.push(items_[i].fd as fd_set);
+                pollset_err.push(items_[i].fd as FD_SET);
             }
             if (maxfd < items_[i].fd) {
                 maxfd = items_[i].fd;
@@ -1100,11 +1096,11 @@ pub fn zmq_poll(
     }
 
     // OptimizedFdSet inset (nitems_);
-    let mut inset: Vec<fd_set> = Vec::with_capacity(items_.len());
+    let mut inset: Vec<FD_SET> = Vec::with_capacity(items_.len());
     // OptimizedFdSet outset (nitems_);
-    let mut outset: Vec<fd_set> = Vec::with_capacity(items_.len());
+    let mut outset: Vec<FD_SET> = Vec::with_capacity(items_.len());
     // OptimizedFdSet errset (nitems_);
-    let mut errset: Vec<fd_set> = Vec::with_capacity(items_.len());
+    let mut errset: Vec<FD_SET> = Vec::with_capacity(items_.len());
     // #endif
 
     let mut first_pass = true;
@@ -1119,11 +1115,11 @@ pub fn zmq_poll(
         //  Wait for events.
         unsafe {
             {
-                let rc: i32 = poll(&mut pollfds[0], nitems_, timeout);
-                if rc == -1 && errno == EINTR {
+                // let rc: i32 = poll(&mut pollfds[0], nitems_, timeout);
+                let rc = WSAPoll(pollfds.as_mut_ptr(), items_.len() as u32, timeout);
+                if rc == SOCKET_ERROR{
                     return Err(PollFailed("call to poll failed".to_string()));
                 }
-                // errno_assert (rc >= 0);
             }
         }
         //  Check for the events.
@@ -1138,7 +1134,7 @@ pub fn zmq_poll(
                 let mut zmq_events = 0;
                 zmq_getsockopt(
                     options,
-                    items_[i].socket,
+                    &mut items_[i].socket,
                     ZMQ_EVENTS,
                     &mut zmq_events as &mut [u8],
                     &mut zmq_events_size,
@@ -1179,7 +1175,7 @@ pub fn zmq_poll(
             tv_sec: 0,
             tv_usec: 0,
         };
-        let mut ptimeout: *mut timeval = &mut timeval;
+        let mut ptimeout: *mut timeval = &mut timeout;
         if (first_pass) {
             timeout.tv_sec = 0;
             timeout.tv_usec = 0;
@@ -1187,8 +1183,8 @@ pub fn zmq_poll(
         } else if (timeout < 0) {
             ptimeout = null_mut();
         } else {
-            timeout.tv_sec = ((end - now) / 1000);
-            timeout.tv_usec = ((end - now) % 1000 * 1000);
+            timeout.tv_sec = ((end - now) / 1000) as c_long;
+            timeout.tv_usec = ((end - now) % 1000 * 1000) as c_long;
             ptimeout = &mut timeout;
         }
 
@@ -1217,8 +1213,8 @@ pub fn zmq_poll(
                         Some(ptimeout as *const TIMEVAL),
                     );
                     if (rc == SOCKET_ERROR) {
-                        errno = wsa_error_to_errno(WSAGetLastError());
-                        wsa_assert(errno == ENOTSOCK);
+                        // errno = wsa_error_to_errno(WSAGetLastError());
+                        // wsa_assert(errno == ENOTSOCK);
                         return Err(PollFailed("call to select failed".to_string()));
                     }
                 }
@@ -1241,7 +1237,7 @@ pub fn zmq_poll(
                         return Err(PollFailed("call to select failed".to_string()));
                     }
                 }
-                // #endi
+                // #endif
                 break;
             }
         }
@@ -1258,7 +1254,7 @@ pub fn zmq_poll(
                 let mut zmq_events = 0u32;
                 zmq_getsockopt(
                     options,
-                    items_[i].socket,
+                    &mut items_[i].socket,
                     ZMQ_EVENTS,
                     &mut zmq_events as &mut [u8],
                     &mut zmq_events_size,
@@ -1272,17 +1268,17 @@ pub fn zmq_poll(
             }
             //  Else, the poll item is a raw file descriptor, simply convert
             //  the events to ZmqPollItem-style format.
-            else {
-                if FD_ISSET(items_[i].fd, inset.pop()) {
-                    items_[i].revents |= ZMQ_POLLIN;
-                }
-                if FD_ISSET(items_[i].fd, outset.pop()) {
-                    items_[i].revents |= ZMQ_POLLOUT;
-                }
-                if FD_ISSET(items_[i].fd, errset.pop()) {
-                    items_[i].revents |= ZMQ_POLLERR;
-                }
-            }
+            // else {
+            //     if FD_ISSET(items_[i].fd, inset.pop()) {
+            //         items_[i].revents |= ZMQ_POLLIN;
+            //     }
+            //     if FD_ISSET(items_[i].fd, outset.pop()) {
+            //         items_[i].revents |= ZMQ_POLLOUT;
+            //     }
+            //     if FD_ISSET(items_[i].fd, errset.pop()) {
+            //         items_[i].revents |= ZMQ_POLLERR;
+            //     }
+            // }
 
             if (items_[i].revents) {
                 nevents += 1;
@@ -1352,12 +1348,12 @@ pub fn zmq_poll_check_items_(items_: &mut [ZmqPollItem], timeout: i32) -> Result
 }
 
 struct zmq_poll_select_fds_t_ {
-    pub pollset_in: Vec<fd_set>,
-    pub pollset_out: Vec<fd_set>,
-    pub pollset_err: Vec<fd_set>,
-    pub inset: Vec<fd_set>,
-    pub outset: Vec<fd_set>,
-    pub errset: Vec<fd_set>,
+    pub pollset_in: Vec<FD_SET>,
+    pub pollset_out: Vec<FD_SET>,
+    pub pollset_err: Vec<FD_SET>,
+    pub inset: Vec<FD_SET>,
+    pub outset: Vec<FD_SET>,
+    pub errset: Vec<FD_SET>,
     pub maxfd: ZmqFileDesc,
 }
 
@@ -1394,7 +1390,7 @@ pub fn zmq_poll_build_select_fds_(
         //  If the poll item is a 0MQ socket we are interested in input on the
         //  notification file descriptor retrieved by the ZMQ_FD socket option.
         if (items_[i].socket) {
-            let mut zmq_fd_size = sizeof::<ZmqFileDesc>();
+            let mut zmq_fd_size = mem::size_of::<ZmqFileDesc>();
             let mut notify_fd: ZmqFileDesc = 0;
             zmq_getsockopt(
                 options,
@@ -1492,7 +1488,7 @@ pub fn zmq_poll_select_check_events_(
             let mut zmq_events = 0u32;
             zmq_getsockopt(
                 options,
-                items_[i].socket,
+                &mut items_[i].socket,
                 ZMQ_EVENTS,
                 &mut zmq_events as &mut [u8],
                 &mut zmq_events_size,
@@ -1702,14 +1698,14 @@ pub fn check_poller(poller_: &mut ZmqSocketPoller) -> Result<(), ZmqError> {
 pub fn check_events(events_: i16) -> Result<(), ZmqError> {
     if (events_ & !(ZMQ_POLLIN | ZMQ_POLLOUT | ZMQ_POLLERR | ZMQ_POLLPRI)) {
         // errno = EINVAL;
-        return Err(InvalidEvent(fmt!("invalid events value: {}", events_)));
+        return Err(InvalidEvent(format!("invalid events value: {}", events_)));
     }
     Ok(())
 }
 
 pub fn check_poller_registration_args(
     poller_: &mut ZmqSocketPoller,
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
 ) -> Result<(), ZmqError> {
     check_poller(poller_)?;
 
@@ -1726,7 +1722,7 @@ pub fn check_poller_fd_registration_args(
 ) -> Result<(), ZmqError> {
     check_poller(poller_)?;
 
-    if (fd == retired_fd) {
+    if (fd == retired_fd as usize) {
         return Err(InvalidFileDescriptor(String::from("retired_fd")));
     }
 
@@ -1740,7 +1736,7 @@ pub fn zmq_poller_size(poller_: &mut ZmqSocketPoller) -> Result<usize, ZmqError>
 
 pub fn zmq_poller_add(
     poller_: &mut ZmqSocketPoller,
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     user_data_: Option<&mut [u8]>,
     events_: i16,
 ) -> Result<(), ZmqError> {
@@ -1769,7 +1765,7 @@ pub fn zmq_poller_add_fd(
 
 pub fn zmq_poller_modify(
     poller_: &mut ZmqSocketPoller,
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     events_: i16,
 ) -> Result<(), ZmqError> {
     check_poller_registration_args(poller_, s_)?;
@@ -1795,7 +1791,7 @@ pub fn zmq_poller_modify_fd(
 
 pub fn zmq_poller_remove(
     poller_: &mut ZmqSocketPoller,
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
 ) -> Result<(), ZmqError> {
     check_poller_registration_args(poller_, s_)?;
     match poller_.remove(s_) {
@@ -1867,7 +1863,7 @@ pub fn zmq_poller_fd(poller_: &mut ZmqSocketPoller) -> Result<ZmqFileDesc, ZmqEr
 //  Peer-specific state
 
 pub fn zmq_socket_get_peer_state(
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     routing_id_: &mut [u8],
     routing_id_size_: usize,
 ) -> Result<i32, ZmqError> {
@@ -1958,9 +1954,9 @@ pub fn zmq_timers_execute(timers_: &mut ZmqTimers) -> Result<(), ZmqError> {
 //  The proxy functionality
 pub fn zmq_proxy(
     options: &mut ZmqContext,
-    frontend_: &mut ZmqSocketBase,
-    backend_: &mut ZmqSocketBase,
-    capture_: &mut ZmqSocketBase,
+    frontend_: &mut ZmqSocket,
+    backend_: &mut ZmqSocket,
+    capture_: &mut ZmqSocket,
 ) -> Result<(), ZmqError> {
     match proxy(options, frontend_, backend_, capture_, None) {
         Ok(_) => Ok(()),
@@ -1970,10 +1966,10 @@ pub fn zmq_proxy(
 
 pub fn zmq_proxy_steerable(
     options: &mut ZmqContext,
-    frontend_: &mut ZmqSocketBase,
-    backend_: &mut ZmqSocketBase,
-    capture_: &mut ZmqSocketBase,
-    control_: Option<&mut ZmqSocketBase>,
+    frontend_: &mut ZmqSocket,
+    backend_: &mut ZmqSocket,
+    capture_: &mut ZmqSocket,
+    control_: Option<&mut ZmqSocket>,
 ) -> Result<(), ZmqError> {
     match proxy(options, (frontend_), (backend_), (capture_), (control_)) {
         Ok(_) => Ok(()),
@@ -2037,7 +2033,7 @@ pub fn zmq_has(capability_: &str) -> bool {
     unimplemented!()
 }
 
-pub fn zmq_socket_monitor_pipes_stats(s_: &mut ZmqSocketBase) -> Result<(), ZmqError> {
+pub fn zmq_socket_monitor_pipes_stats(s_: &mut ZmqSocket) -> Result<(), ZmqError> {
     match s_.query_pipes_stats() {
         Ok(_) => Ok(()),
         Err(e) => Err(QueryPipesStatsFailed(e.to_string())),

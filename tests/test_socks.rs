@@ -306,7 +306,7 @@ void socks_ZmqServerask (socks_server: *mut c_void,
                 strcpy (buffer, "localhost");
                 sendall (client, buffer, strlen ("localhost"));
             } else if (request_atype == 0x4) {
-                /* We simulate a bind to ::1, though the actual connection is IPv4 */
+                /* We simulate a Bind to ::1, though the actual connection is IPv4 */
                 char nipv6local[16] = {0};
                 nipv6local[15] = 1;
                 sendall (client, nipv6local, sizeof nipv6local);
@@ -614,7 +614,7 @@ void test_socks_bind_before_connect (void)
 
     void *socks =
       setup_socks_server (socks_server_address, sizeof socks_server_address);
-    // Will do a bind before connect when connecting to proxy
+    // Will do a Bind before connect when connecting to proxy
     strcpy (socks_address_bind_before_connect, "127.0.0.1:0;");
     strcat (socks_address_bind_before_connect, socks_server_address);
     void *push = setup_push_server (connect_address, sizeof connect_address);

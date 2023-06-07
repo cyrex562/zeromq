@@ -80,7 +80,7 @@ static void test_stream_handshake_timeout_accept ()
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_connect (dealer_mon, "inproc://monitor-dealer"));
 
-    // bind dealer socket to accept connection from non-sending stream socket
+    // Bind dealer socket to accept connection from non-sending stream socket
     bind_loopback_ipv4 (dealer, my_endpoint, sizeof my_endpoint);
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (stream, my_endpoint));

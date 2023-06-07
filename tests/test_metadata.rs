@@ -90,7 +90,7 @@ void test_metadata ()
     setup_test_context ();
 
     //  Spawn ZAP handler
-    //  We create and bind ZAP socket in main thread to avoid case
+    //  We create and Bind ZAP socket in main thread to avoid case
     //  where child thread does not start up fast enough.
     void *handler = zmq_socket (get_test_context (), ZMQ_REP);
     TEST_ASSERT_NOT_NULL (handler);
@@ -133,7 +133,7 @@ void test_router_prefetch_metadata ()
     setup_test_context ();
 
     //  Spawn ZAP handler
-    //  We create and bind ZAP socket in main thread to avoid case
+    //  We create and Bind ZAP socket in main thread to avoid case
     //  where child thread does not start up fast enough.
     void *handler = zmq_socket (get_test_context (), ZMQ_REP);
     TEST_ASSERT_NOT_NULL (handler);

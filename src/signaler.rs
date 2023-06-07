@@ -490,7 +490,7 @@ pub fn close_wait_ms(fd: i32, max_ms_: u32) -> i32 {
 //         int rc = setsockopt (_w, SOL_SOCKET, SO_LINGER,
 //                              reinterpret_cast<const char *> (&so_linger),
 //                              sizeof so_linger);
-//         //  Only check shutdown if WSASTARTUP was previously done
+//         //  Only check shutdown if WSASTARTUP was previously Done
 //         if (rc == 0 || WSAGetLastError () != WSANOTINITIALISED) {
 //             wsa_assert (rc != SOCKET_ERROR);
 //             rc = closesocket (_w);

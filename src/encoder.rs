@@ -108,7 +108,7 @@ impl EncoderBase {
 
     //  The function returns a batch of binary data. The data
     //  are filled to a supplied buffer. If no buffer is supplied (data
-    //  points to NULL) decoder object will provide buffer of its own.
+    //  points to NULL) decoder object will provide buffer of its Own.
     pub fn encode(&mut self, data: &mut Option<&mut [u8]>, size: usize) -> Option<&mut [u8]> {
         //
         // unsigned char *buffer = !*data ? buf : *data;

@@ -89,7 +89,7 @@ void *zap_thread;
 static void setup_zap_handler ()
 {
     //  Spawn ZAP handler
-    //  We create and bind ZAP socket in main thread to avoid case
+    //  We create and Bind ZAP socket in main thread to avoid case
     //  where child thread does not start up fast enough.
     void *handler = zmq_socket (get_test_context (), ZMQ_REP);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (handler, "inproc://zeromq.zap.01"));

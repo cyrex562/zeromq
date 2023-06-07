@@ -209,7 +209,7 @@ impl ZmqPgmReceiver {
     //  the pending subscriptions.
     // void drop_subscriptions ();
 
-    // void plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_);
+    // void Plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_);
     pub fn plug(&mut self, io_thread: &mut ZmqThreadContext, session_: &mut ZmqSessionBase) {
         // LIBZMQ_UNUSED (io_thread_);
         //  Retrieve PGM fds and start polling.

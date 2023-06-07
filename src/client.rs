@@ -38,7 +38,7 @@ use crate::fq::ZmqFq;
 use crate::lb::LoadBalancer;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::socket_base_ops::ZmqSocketBaseOps;
 
 // #include "precompiled.hpp"
@@ -56,7 +56,7 @@ pub struct ZmqClient {
     pub fq: ZmqFq,
     // LoadBalancer load_balance;
     pub lb: LoadBalancer,
-    pub base: ZmqSocketBase, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (client_t)
+    pub base: ZmqSocket, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (client_t)
 }
 
 impl ZmqClient {
@@ -79,7 +79,7 @@ impl ZmqClient {
         Self {
             fq: ZmqFq::Default(),
             lb: LoadBalancer::Default(),
-            base: ZmqSocketBase::new(parent, tid, sid, true),
+            base: ZmqSocket::new(parent, tid, sid, true),
         }
     }
 
@@ -95,7 +95,7 @@ impl ZmqSocketBaseOps for ZmqClient {
     //                        locally_initiated_: bool);
     fn xattach_pipe(
         &mut self,
-        skt_base: &mut ZmqSocketBase,
+        skt_base: &mut ZmqSocket,
         pipe: &mut ZmqPipe,
         subscribe_to_all: bool,
         locally_initiated: bool,
@@ -110,7 +110,7 @@ impl ZmqSocketBaseOps for ZmqClient {
     }
 
     //     int xsend (msg: &mut ZmqMessage);
-    fn xsend(&mut self, skt_base: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+    fn xsend(&mut self, skt_base: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         //  CLIENT sockets do not allow multipart data (ZMQ_SNDMORE)
         if (msg.flags() & ZMQ_MSG_MORE) {
             // errno = EINVAL;
@@ -123,7 +123,7 @@ impl ZmqSocketBaseOps for ZmqClient {
     }
 
     //     int xrecv (msg: &mut ZmqMessage);
-    fn xrecv(&mut self, skt_base: &mut ZmqSocketBase, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+    fn xrecv(&mut self, skt_base: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         let mut rc = self.fq.recvpipe(msg, None);
 
         // Drop any messages with more flag
@@ -146,27 +146,27 @@ impl ZmqSocketBaseOps for ZmqClient {
     }
 
     //     bool xhas_in ();
-    fn xhas_in(&mut self, skt_base: &mut ZmqSocketBase) -> bool {
+    fn xhas_in(&mut self, skt_base: &mut ZmqSocket) -> bool {
         return self.fq.has_in();
     }
 
     //     bool xhas_out ();
-    fn xhas_out(&mut self, skt_base: &mut ZmqSocketBase) -> bool {
+    fn xhas_out(&mut self, skt_base: &mut ZmqSocket) -> bool {
         return self.lb.has_out();
     }
 
     //     void xread_activated (pipe_: &mut ZmqPipe);
-    fn xread_activated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut ZmqPipe) {
+    fn xread_activated(&mut self, skt_base: &mut ZmqSocket, pipe: &mut ZmqPipe) {
         self.fq.activated(pipe);
     }
 
     //     void xwrite_activated (pipe_: &mut ZmqPipe);
-    fn xwrite_activated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut ZmqPipe) {
+    fn xwrite_activated(&mut self, skt_base: &mut ZmqSocket, pipe: &mut ZmqPipe) {
         self.lb.activated(pipe);
     }
 
     //     void xpipe_terminated (pipe_: &mut ZmqPipe);
-    fn xpipe_terminated(&mut self, skt_base: &mut ZmqSocketBase, pipe: &mut ZmqPipe) {
+    fn xpipe_terminated(&mut self, skt_base: &mut ZmqSocket, pipe: &mut ZmqPipe) {
         self.fq.pipe_terminated(pipe);
         self.lb.pipe_terminated(pipe);
     }

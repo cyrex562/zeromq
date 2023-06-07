@@ -41,7 +41,7 @@ void test (address: &str)
     //  set router socket options
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (router, ZMQ_HELLO_MSG, "H", 1));
 
-    //  bind router
+    //  Bind router
     test_bind (router, address, my_endpoint, MAX_SOCKET_STRING);
 
     //  Create a dealer
@@ -81,7 +81,7 @@ void test_inproc_late_bind ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (client, ZMQ_HELLO_MSG, "H", 1));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, address));
 
-    //  bind server after the dealer
+    //  Bind server after the dealer
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (server, address));
 
     // Receive the welcome message from server

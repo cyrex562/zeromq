@@ -85,7 +85,7 @@ use crate::mechanism::ZmqMechanismStatus::{error, ready};
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_CREDENTIAL};
 use crate::metadata::ZmqMetadata;
 
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::thread_context::ZmqThreadContext;
 use crate::utils::copy_bytes;
 use crate::zmtp_engine::{ZmqMechanism, ZmqSessionBase};
@@ -161,7 +161,7 @@ pub struct ZmqStreamEngineBase {
     pub _session: Option<ZmqSessionBase>,
     //  Socket
     // ZmqSocketBase *_socket;
-    pub _socket: ZmqSocketBase,
+    pub _socket: ZmqSocket,
     //  Indicate if engine has an handshake stage, if it does, engine must call session.engine_ready
     //  when handshake is completed.
     pub _has_handshake_stage: bool,
@@ -198,7 +198,7 @@ impl ZmqStreamEngineBase {
 
         // zmq_assert (_decoder);
 
-        //  If there has been an I/O error, stop polling.
+        //  If there has been an I/O error, Stop polling.
         if (self._input_stopped) {
             rm_fd(self._handle);
             self._io_error = true;
@@ -459,7 +459,7 @@ impl ZmqStreamEngineBase {
         self._has_handshake_stage
     }
 
-    // void plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_) ;
+    // void Plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_) ;
     pub fn plug(&mut self, io_thread_: &mut ZmqThreadContext, session: &mut ZmqSessionBase) {
         // zmq_assert (!_plugged);
         self._plugged = true;
@@ -596,7 +596,7 @@ impl ZmqStreamEngineBase {
 
         //  If write buffer is empty, try to read new data from the encoder.
         if (!self._outsize) {
-            //  Even when we stop polling as soon as there is no
+            //  Even when we Stop polling as soon as there is no
             //  data to send, the poller may invoke out_event one
             //  more time due to 'speculative write' optimisation.
             if (self._encoder == null_mut()) {
@@ -632,7 +632,7 @@ impl ZmqStreamEngineBase {
                 self._outsize += n;
             }
 
-            //  If there is no data to send, stop polling for output.
+            //  If there is no data to send, Stop polling for output.
             if (self._outsize == 0) {
                 self._output_stopped = true;
                 reset_pollout();
@@ -648,7 +648,7 @@ impl ZmqStreamEngineBase {
         // TODO
         // let nbytes: i32 = write (self._outpos, self._outsize);
 
-        //  IO error has occurred. We stop waiting for output events.
+        //  IO error has occurred. We Stop waiting for output events.
         //  The engine is not terminated until we detect input error;
         //  this is necessary to prevent losing incoming messages.
         if (nbytes == -1) {
@@ -660,7 +660,7 @@ impl ZmqStreamEngineBase {
         self._outsize -= nbytes;
 
         //  If we are still handshaking and there are no data
-        //  to send, stop polling for output.
+        //  to send, Stop polling for output.
         if (self._handshaking) {
             if (self._outsize == 0) {
                 reset_pollout();
@@ -783,7 +783,7 @@ impl ZmqStreamEngineBase {
     }
 
     // ZmqSocketBase *socket () { return _socket; }
-    pub fn socket(&mut self) -> &mut ZmqSocketBase {
+    pub fn socket(&mut self) -> &mut ZmqSocket {
         &mut self._socket
     }
 
@@ -885,7 +885,7 @@ impl ZmqStreamEngineBase {
             );
             // special case: connecting to non-ZMTP process which immediately drops connection,
             // or which never responds with greeting, should be treated as a protocol error
-            // (i.e. stop reconnect)
+            // (i.e. Stop reconnect)
             if (((reason_ == connection_error) || (reason_ == timeout_error))
                 && (self._options.reconnect_stop & ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED) != 0)
             {

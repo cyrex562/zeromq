@@ -32,7 +32,7 @@ NOTE: this API method is deprecated in favor of zmq_msg_recv(3).
 Multi-part messages
 ~~~~~~~~~~~~~~~~~~~
 A 0MQ message is composed of 1 or more message parts. Each message
-part is an independent 'zmq_ZmqMessage' in its own right. 0MQ ensures atomic
+part is an independent 'zmq_ZmqMessage' in its Own right. 0MQ ensures atomic
 delivery of messages: peers shall receive either all _message parts_ of a
 message or none at all. The total number of message parts is unlimited except
 by available memory.

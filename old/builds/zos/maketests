@@ -11,7 +11,7 @@
 
 set -e    # Stop on errors
 
-VERBOSE="${VERBOSE:-}"    # Set to non-empty for already done status
+VERBOSE="${VERBOSE:-}"    # Set to non-empty for already Done status
 export VERBOSE
 
 # Figure out where we are

@@ -707,7 +707,7 @@ pub enum ZmqError {
     JoinGroupFailed(String),
     #[error("Failed to leave group")]
     LeaveGroupFailed(String),
-    #[error("Failed to bind socket")]
+    #[error("Failed to Bind socket")]
     BindSocketFailed(String),
     #[error("Failed to connect socket")]
     ConnectSocketFailed(String),
@@ -767,4 +767,6 @@ pub enum ZmqError {
     ExecuteTimerFailed(String),
     #[error("Proxy failed")]
     ProxyFailed(String),
+    #[error("Failed to receive message")]
+    ReceiveMessageFailed(String),
 }

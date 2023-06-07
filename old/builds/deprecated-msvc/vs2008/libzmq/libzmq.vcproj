@@ -140,7 +140,7 @@
       <File RelativePath="..\..\..\..\src\null_mechanism.cpp" />
       <File RelativePath="..\..\..\..\src\object.cpp" />
       <File RelativePath="..\..\..\..\src\options.cpp" />
-      <File RelativePath="..\..\..\..\src\own.cpp" />
+      <File RelativePath="..\..\..\..\src\Own.cpp" />
       <File RelativePath="..\..\..\..\src\pair.cpp" />
       <File RelativePath="..\..\..\..\src\pgm_receiver.cpp" />
       <File RelativePath="..\..\..\..\src\pgm_sender.cpp" />
@@ -263,7 +263,7 @@
       <File RelativePath="..\..\..\..\src\null_mechanism.hpp" />
       <File RelativePath="..\..\..\..\src\object.hpp" />
       <File RelativePath="..\..\..\..\src\options.hpp" />
-      <File RelativePath="..\..\..\..\src\own.hpp" />
+      <File RelativePath="..\..\..\..\src\Own.hpp" />
       <File RelativePath="..\..\..\..\src\pair.hpp" />
       <File RelativePath="..\..\..\..\src\pgm_receiver.hpp" />
       <File RelativePath="..\..\..\..\src\pgm_sender.hpp" />

@@ -35,7 +35,7 @@ use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
 
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::thread_context::ZmqThreadContext;
 use crate::utils::copy_bytes;
 use anyhow::anyhow;
@@ -168,7 +168,7 @@ impl ZmqReq {
             self._message_begins = false;
 
             // Eat all currently available messages before the request is fully
-            // sent. This is done to avoid:
+            // sent. This is Done to avoid:
             //   REQ sends request to A, A replies, B replies too.
             //   A's reply was first and matches, that is used.
             //   An hour later REQ sends a request to B. B's old reply is used.
@@ -361,7 +361,7 @@ impl ReqSession {
         ctx: &mut ZmqContext,
         io_thread: &mut ZmqThreadContext,
         connect_: bool,
-        socket: &mut ZmqSocketBase,
+        socket: &mut ZmqSocket,
         options: &mut ZmqContext,
         addr: &mut ZmqAddress,
     ) -> Self {

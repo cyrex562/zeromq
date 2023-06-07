@@ -107,7 +107,7 @@ void test_connect_before_bind ()
     // Queue up some data
     send_string_expect_success (connect_socket, "foobar", 0);
 
-    // Now bind
+    // Now Bind
     void *bind_socket = test_context_socket (ZMQ_PAIR);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (bind_socket, "inproc://cbb"));
 
@@ -128,7 +128,7 @@ void test_connect_before_bind_pub_sub ()
     // Queue up some data, this will be dropped
     send_string_expect_success (connect_socket, "before", 0);
 
-    // Now bind
+    // Now Bind
     void *bind_socket = test_context_socket (ZMQ_SUB);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (bind_socket, ZMQ_SUBSCRIBE, "", 0));
@@ -179,7 +179,7 @@ void test_multiple_connects ()
         send_string_expect_success (connect_socket[i], "foobar", 0);
     }
 
-    // Now bind
+    // Now Bind
     void *bind_socket = test_context_socket (ZMQ_PULL);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (bind_socket, "inproc://multiple"));
 
@@ -206,7 +206,7 @@ void test_multiple_threads ()
         threads[i] = zmq_threadstart (&pusher, null_mut());
     }
 
-    // Now bind
+    // Now Bind
     void *bind_socket = test_context_socket (ZMQ_PULL);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (bind_socket, "inproc://sink"));
 

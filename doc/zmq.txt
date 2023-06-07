@@ -152,7 +152,7 @@ in linkzmq:zmq_poller[3].
 Transports
 ~~~~~~~~~~
 A 0MQ socket can use multiple different underlying transport mechanisms.
-Each transport mechanism is suited to a particular purpose and has its own
+Each transport mechanism is suited to a particular purpose and has its Own
 advantages and drawbacks.
 
 The following transport mechanisms are provided:

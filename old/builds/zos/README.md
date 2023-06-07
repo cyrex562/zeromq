@@ -132,8 +132,8 @@ library).
 If `SIGPIPE` is required for normal operation it is recommended that
 the application install a signal handler that flags the signal was
 received, and allows the application main loop to determine if it
-was received for one of its own file descriptors -- and ignores it if it
-none of the applications own file descriptors seems to have changed.
+was received for one of its Own file descriptors -- and ignores it if it
+none of the applications Own file descriptors seems to have changed.
 
 Linking to the `libzmq.a` static library will pull in substantially
 all of the library code, which will add about 4MB to the application
@@ -292,7 +292,7 @@ functionaity is enabled on z/OS UNIX System Services by defining:
 
     _OPEN_THREADS=3
 
-which is done in the `cxxall` script.  (The "3" value exposes later
+which is Done in the `cxxall` script.  (The "3" value exposes later
 pthreads functionality like `pthread_atfork`, although ZeroMQ does not
 currently use all these features.)
 
@@ -382,7 +382,7 @@ be defined, but not all of them include `pthread.h`, and the value
 `NI_MAXHOST` is not defined on z/OS UNIX System Services -- the 1025
 value is the conventional value on other platforms).
 
-Having done this the Makefiles can be used to compile individual files
+Having Done this the Makefiles can be used to compile individual files
 if desired, eg:
 
     cd src

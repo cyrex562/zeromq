@@ -42,7 +42,7 @@ void test_busy_poll ()
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (socket, ZMQ_BUSY_POLL, &busy_poll, mem::size_of::<int>()));
 
-    //  bind socket
+    //  Bind socket
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (socket, "tcp://127.0.0.1:*"));
 
     //  Clean up.

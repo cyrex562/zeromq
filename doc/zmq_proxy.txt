@@ -22,7 +22,7 @@ in the opposite direction. The direction is conceptual only; the proxy is fully
 symmetric and there is no technical difference between frontend and backend.
 
 Before calling _zmq_proxy()_ you must set any socket options, and connect or
-bind both frontend and backend sockets. The two conventional proxy models are:
+Bind both frontend and backend sockets. The two conventional proxy models are:
 
 _zmq_proxy()_ runs in the current thread and returns only if/when the current
 context is closed.

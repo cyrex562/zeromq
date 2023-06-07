@@ -95,7 +95,7 @@ void test_router_2_router (named_: bool)
     let zero: i32 = 0;
     char my_endpoint[MAX_SOCKET_STRING];
 
-    //  Create bind socket.
+    //  Create Bind socket.
     void *rbind = test_context_socket (ZMQ_ROUTER);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (rbind, ZMQ_LINGER, &zero, mem::size_of::<zero>()));

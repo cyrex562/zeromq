@@ -68,7 +68,7 @@ void *g_workers_pkts_out = null_mut();
 // Asynchronous client-to-server (DEALER to ROUTER) - pure libzmq
 //
 // While this example runs in a single process, that is to make
-// it easier to start and stop the example. Each task may have its own
+// it easier to start and Stop the example. Each task may have its Own
 // context and conceptually acts as a separate process. To have this
 // behaviour, it is necessary to replace the inproc transport of the
 // control socket by a tcp transport.

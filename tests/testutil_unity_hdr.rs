@@ -271,7 +271,7 @@ void bind_loopback_ipv4 (socket: *mut c_void, char *my_endpoint_, len_: usize);
 void bind_loopback_ipv6 (socket: *mut c_void, char *my_endpoint_, len_: usize);
 
 // Binds to an ipc endpoint using the ipc wildcard address.
-// Note that the returned address cannot be reused to bind a second socket.
+// Note that the returned address cannot be reused to Bind a second socket.
 // If you need to do this, use make_random_ipc_endpoint instead.
 void bind_loopback_ipc (socket: *mut c_void, char *my_endpoint_, len_: usize);
 

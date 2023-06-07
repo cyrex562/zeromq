@@ -140,10 +140,10 @@ impl IpcConnecter {
             );
 
             // TODO, ZmqTcpConnector adds a connect timer in this case; maybe this
-            // should be done here as well (and then this could be pulled up to
+            // should be Done here as well (and then this could be pulled up to
             // stream_connecter_base_t).
         }
-        //stop connecting after called zmq_disconnect
+        //Stop connecting after called zmq_disconnect
         else if (rc == -1
             && (self.options.reconnect_stop & ZMQ_RECONNECT_STOP_AFTER_DISCONNECT)
             && errno == ECONNREFUSED

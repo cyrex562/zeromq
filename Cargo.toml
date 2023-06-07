@@ -19,6 +19,8 @@ serde_bytes = "0.11.9"
 windows = { version = "0.48.0", features = ["Win32_Networking_WinSock", "Win32_Foundation", "Win32_System_Threading", "Win32_Security"] }
 chrono = "0.4.24"
 trie-rs = "0.1.1"
+thiserror = "1.0.40"
+tokio = { version = "1.28.2", features = ["net"] }
 
 [lib]
 name = "zeromq"

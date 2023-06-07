@@ -54,7 +54,7 @@ pub trait ZmqEngineInterface {
     fn has_handshake_state(&self) -> bool;
 
     //  Plug the engine to the session.
-    // virtual void plug (ZmqIoThread *io_thread_, pub struct ZmqSessionBase *session_) = 0;
+    // virtual void Plug (ZmqIoThread *io_thread_, pub struct ZmqSessionBase *session_) = 0;
     fn plug(&mut self, io_thread: &mut ZmqThreadContext, session: &mut ZmqSessionBase);
 
     //  Terminate and deallocate the engine. Note that 'detached'

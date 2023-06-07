@@ -44,7 +44,7 @@ use crate::fq::{self, ZmqFq};
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::thread_context::ZmqThreadContext;
 use crate::utils::copy_bytes;
 
@@ -79,7 +79,7 @@ pub struct ZmqDish {
     pub _message: ZmqMessage,
 
     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqDish)
-    pub socket_base: ZmqSocketBase,
+    pub socket_base: ZmqSocket,
 }
 
 impl ZmqDish {

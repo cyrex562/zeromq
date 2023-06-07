@@ -331,7 +331,7 @@ void test_missing_subscriptions ()
     // wait
     msleep (SETTLE_TIME);
 
-    // let publisher send 2 msgs, each with its own topic_buff
+    // let publisher send 2 msgs, each with its Own topic_buff
     send_string_expect_success (pub, topic1, ZMQ_SNDMORE);
     send_string_expect_success (pub, payload, 0);
     send_string_expect_success (pub, topic2, ZMQ_SNDMORE);

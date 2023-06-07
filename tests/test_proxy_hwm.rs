@@ -333,7 +333,7 @@ static void proxy_thread_main (pvoid_: *mut c_void)
 
     lower_hwm (frontend_xsub);
 
-    // bind FRONTEND
+    // Bind FRONTEND
     rc = zmq_bind (frontend_xsub, cfg.frontend_endpoint);
     assert (rc == 0);
 
@@ -352,7 +352,7 @@ static void proxy_thread_main (pvoid_: *mut c_void)
 
     lower_hwm (backend_xpub);
 
-    // bind BACKEND
+    // Bind BACKEND
     rc = zmq_bind (backend_xpub, cfg.backend_endpoint);
     assert (rc == 0);
 
@@ -364,7 +364,7 @@ static void proxy_thread_main (pvoid_: *mut c_void)
       ZMQ_REP); // this one is used by the proxy to receive&reply to commands
     assert (control_rep);
 
-    // bind CONTROL
+    // Bind CONTROL
     rc = zmq_bind (control_rep, cfg.control_endpoint);
     assert (rc == 0);
 

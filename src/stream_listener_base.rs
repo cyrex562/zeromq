@@ -47,7 +47,7 @@ use crate::object::ZmqObject;
 use crate::own::ZmqOwn;
 use crate::raw_engine::RawEngine;
 use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::thread_context::ZmqThreadContext;
 use crate::zmtp_engine::ZmqZmtpEngine;
 use bincode::options;
@@ -86,8 +86,8 @@ pub struct ZmqStreamListenerBase {
     pub _handle: Option<ZmqHandle>,
     //  Socket the listener belongs to.
     // ZmqSocketBase *_socket;
-    pub _socket: ZmqSocketBase,
-    // String representation of endpoint to bind to
+    pub _socket: ZmqSocket,
+    // String representation of endpoint to Bind to
     pub _endpoint: String,
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqStreamListenerBase)
 }
@@ -95,7 +95,7 @@ pub struct ZmqStreamListenerBase {
 impl ZmqStreamListenerBase {
     pub fn new(
         io_thread: &mut ZmqThreadContext,
-        socket: &mut ZmqSocketBase,
+        socket: &mut ZmqSocket,
         options: &mut ZmqContext,
     ) -> Self {
         //   ZmqOwn (io_thread_, options_),

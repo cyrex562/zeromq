@@ -198,7 +198,7 @@ void test_case_4 ()
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (req, ENDPOINT_0));
 
-    //  Setup ROUTER socket as server but do not bind it just yet
+    //  Setup ROUTER socket as server but do not Bind it just yet
     void *router = test_context_socket (ZMQ_ROUTER);
 
     //  Send two requests

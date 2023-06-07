@@ -27,16 +27,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::atomic_counter::AtomicCounter;
 use crate::context::ZmqContext;
 use crate::object::ZmqObject;
 
 use crate::thread_context::ZmqThreadContext;
 use bincode::options;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 // #include "precompiled.hpp"
-// #include "own.hpp"
+// #include "Own.hpp"
 // #include "err.hpp"
 // #include "io_thread.hpp"
 // pub struct ZmqOwn : public ZmqObject
@@ -51,10 +50,10 @@ pub struct ZmqOwn {
     //
     //  Handlers for incoming commands.
     //  True if termination was already initiated. If so, we can destroy
-    //  the object if there are no more child objects or pending term acks.
+    //  the object if there are no more child objects or pending Term acks.
     pub terminating: bool,
     //  Sequence number of the last command sent to this object.
-    pub sent_seqnum: AtomicCounter,
+    pub sent_seqnum: AtomicU64,
     //  Sequence number of the last command processed by this object.
     pub processed_seqnum: u64,
     //  Socket owning this object. It's responsible for shutting down
@@ -72,7 +71,7 @@ pub struct ZmqOwn {
 }
 
 impl ZmqOwn {
-    //  The object is not living within an I/O thread. It has it's own
+    //  The object is not living within an I/O thread. It has it's Own
     //  thread outside of 0MQ infrastructure.
     // ZmqOwn (ZmqContext *parent_, tid: u32);
     // ZmqOwn::ZmqOwn (parent: &mut ZmqContext, tid: u32):
@@ -86,7 +85,7 @@ impl ZmqOwn {
         Self {
             // options: ctx.clone(),
             terminating: false,
-            sent_seqnum: AtomicCounter::new(),
+            sent_seqnum: AtomicU64::new(),
             processed_seqnum: 0,
             term_acks: 0,
             // ctx: ZmqContext,
@@ -280,7 +279,7 @@ impl ZmqOwn {
         self.unregister_term_ack();
     }
 
-    //  Check whether all the pending term acks were delivered.
+    //  Check whether all the pending Term acks were delivered.
     //  If so, deallocate this object.
     // void check_term_acks ();
     pub fn check_term_acks(&mut self) {
@@ -309,24 +308,3 @@ impl ZmqOwn {
     }
 }
 
-impl ZmqObject for ZmqOwn {
-    // fn get_ctx(&self) -> &ZmqContext {
-    //     &self.ctx
-    // }
-
-    fn get_ctx_mut(&mut self) -> &mut ZmqContext {
-        &mut self.ctx
-    }
-
-    fn set_ctx(&mut self, ctx: &mut ZmqContext) {
-        self.ctx = ctx.clone();
-    }
-
-    // fn get_tid(&self) -> u32 {
-    //     self.tid
-    // }
-
-    fn set_tid(&mut self, tid: u32) {
-        self.tid = tid
-    }
-}

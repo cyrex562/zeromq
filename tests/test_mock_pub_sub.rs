@@ -157,7 +157,7 @@ static void test_mock_pub_sub (sub_command_: bool, mock_pub_: bool)
         rc = zmq_setsockopt (server, ZMQ_SUBSCRIBE, "A", 1);
         TEST_ASSERT_EQUAL_INT (0, rc);
         //  SUB binds, let its state machine run
-        //  Because zeromq attach the pipe after the handshake, we need more time here before we can run the state-machine
+        //  Because zeromq Attach the pipe after the handshake, we need more time here before we can run the state-machine
         msleep (1);
         zmq_recv (server, buffer, 16, ZMQ_DONTWAIT);
 

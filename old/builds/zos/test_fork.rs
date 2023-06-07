@@ -41,7 +41,7 @@ int main (void)
     void *ctx = zmq_ctx_new ();
     assert (ctx);
 
-    //  Create and bind pull socket to receive messages
+    //  Create and Bind pull socket to receive messages
     void *pull = zmq_socket (ctx, ZMQ_PULL);
     assert (pull);
     int rc = zmq_bind (pull, address);

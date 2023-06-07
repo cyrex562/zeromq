@@ -8,7 +8,7 @@ use crate::object::ZmqObject;
 use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use libc::{EINTR, EINVAL};
 use std::collections::HashSet;
 use std::sync::Mutex;
@@ -102,7 +102,7 @@ impl ZmqThreadContext {
     // }
     // }
 
-    //  Clean-up. If the thread was started, it's necessary to call 'stop'
+    //  Clean-up. If the thread was started, it's necessary to call 'Stop'
     //  before invoking destructor. Otherwise the destructor would hang up.
     //  Launch the physical thread.
     // void start ();
@@ -125,8 +125,8 @@ impl ZmqThreadContext {
         thread::current().id() == self.thread_join_handle.unwrap().thread().id()
     }
 
-    //  Ask underlying thread to stop.
-    // void stop ();
+    //  Ask underlying thread to Stop.
+    // void Stop ();
     pub fn stop(&mut self) {
         if self.poller.is_some() {
             self.send_stop();

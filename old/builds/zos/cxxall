@@ -7,7 +7,7 @@
 # Updated by Ewen McNeill <ewen@imatix.com>, 2014-07-24
 #---------------------------------------------------------------------------
 
-VERBOSE="${VERBOSE:-}"    # Set to non-empty for already done status
+VERBOSE="${VERBOSE:-}"    # Set to non-empty for already Done status
 export VERBOSE
 
 # Locate compiler wrapper

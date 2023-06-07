@@ -42,7 +42,7 @@ int test_defaults (send_hwm_: i32, msg_cnt_: i32, endpoint: &str)
 {
     char pub_endpoint[SOCKET_STRING_LEN];
 
-    // Set up and bind XPUB socket
+    // Set up and Bind XPUB socket
     void *pub_socket = test_context_socket (ZMQ_XPUB);
     test_bind (pub_socket, endpoint, pub_endpoint, sizeof pub_endpoint);
 
@@ -110,7 +110,7 @@ int test_blocking (send_hwm_: i32, msg_cnt_: i32, endpoint: &str)
 {
     char pub_endpoint[SOCKET_STRING_LEN];
 
-    // Set up bind socket
+    // Set up Bind socket
     void *pub_socket = test_context_socket (ZMQ_XPUB);
     test_bind (pub_socket, endpoint, pub_endpoint, sizeof pub_endpoint);
 
@@ -189,7 +189,7 @@ void test_reset_hwm ()
     int hwm = 11024;
     char my_endpoint[SOCKET_STRING_LEN];
 
-    // Set up bind socket
+    // Set up Bind socket
     void *pub_socket = test_context_socket (ZMQ_PUB);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (pub_socket, ZMQ_SNDHWM, &hwm, mem::size_of::<hwm>()));

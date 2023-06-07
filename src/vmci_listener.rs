@@ -53,7 +53,7 @@ use crate::ip::open_socket;
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::ops::zmq_errno;
 
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::stream_listener_base::ZmqStreamListenerBase;
 use crate::thread_context::ZmqThreadContext;
 use crate::vmci::{tune_vmci_buffer_size, tune_vmci_connect_timeout};
@@ -111,7 +111,7 @@ impl ZmqVmciListener {
     //     ZmqStreamListenerBase (io_thread_, socket, options_)
     pub fn new(
         io_thread_: &mut ZmqThreadContext,
-        socket: &mut ZmqSocketBase,
+        socket: &mut ZmqSocket,
         ctx: &ZmqContext,
     ) -> ZmqVmciListener {
         Self {

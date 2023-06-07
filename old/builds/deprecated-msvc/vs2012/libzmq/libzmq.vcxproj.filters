@@ -79,7 +79,7 @@
     <ClCompile Include="..\..\..\..\src\options.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\own.cpp">
+    <ClCompile Include="..\..\..\..\src\Own.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\pair.cpp">
@@ -378,7 +378,7 @@
     <ClInclude Include="..\..\..\..\src\options.hpp">
       <Filter>src\include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\src\own.hpp">
+    <ClInclude Include="..\..\..\..\src\Own.hpp">
       <Filter>src\include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\pair.hpp">

@@ -40,7 +40,7 @@ void test ()
     //  Create a server
     void *server = test_context_socket (ZMQ_SERVER);
 
-    //  bind server
+    //  Bind server
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (server, "tcp://127.0.0.1:*"));
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_getsockopt (server, ZMQ_LAST_ENDPOINT, address, &addr_length));
@@ -59,7 +59,7 @@ void test ()
     // Kill the server
     test_context_socket_close (server);
 
-    // Receive the hiccup message
+    // Receive the Hiccup message
     recv_string_expect_success (client, "HICCUP", 0);
 
     //  Clean up.

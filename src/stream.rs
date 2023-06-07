@@ -44,7 +44,7 @@ use libc::{EAGAIN, EHOSTUNREACH, memcpy, pipe};
 use crate::context::ZmqContext;
 use crate::decoder_allocators::buffer;
 use crate::options::set_opt_bool;
-use crate::socket_base::routing_socket_base_t;
+use crate::socket::routing_socket_base_t;
 use crate::defines::{ZMQ_STREAM, ZMQ_STREAM_NOTIFY};
 use crate::fq::ZmqFq;
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
@@ -128,7 +128,7 @@ impl ZmqStream {
     pub fn xpipe_terminated(&mut self, pipe: &mut ZmqPipe) {
         erase_out_pipe(pipe);
         fair_queue.pipe_terminated(pipe);
-        // TODO router_t calls pipe_->rollback() here; should this be done here as
+        // TODO router_t calls pipe_->rollback() here; should this be Done here as
         // well? then xpipe_terminated could be pulled up to routing_socket_base_t
         if (pipe == _current_out) {
             _current_out = null_mut();
@@ -190,7 +190,7 @@ impl ZmqStream {
         if (_current_out) {
             // Close the remote connection if user has asked to do so
             // by sending zero length message.
-            // Pending messages in the pipe will be dropped (on receiving term- ack)
+            // Pending messages in the pipe will be dropped (on receiving Term- ack)
             if (msg.size() == 0) {
                 _current_out.terminate(false);
                 msg.close();

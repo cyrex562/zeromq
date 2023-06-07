@@ -3,7 +3,7 @@ use crate::defines::ZMQ_GATHER;
 use crate::fq::ZmqFq;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqGather {
@@ -24,7 +24,7 @@ pub struct ZmqGather {
     //
     //  Fair queueing object for inbound pipes.
     pub fair_queue: ZmqFq,
-    pub socket_base: ZmqSocketBase,
+    pub socket_base: ZmqSocket,
     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqGather)
 }
 

@@ -4,7 +4,7 @@ LIBS=-lws2_32 -lIphlpapi -lsodium
 
 OBJS = ctx.o reaper.o dist.o err.o \
 	clock.o metadata.o random.o \
-	object.o own.o \
+	object.o Own.o \
 	io_object.o io_thread.o \
 	lb.o fq.o \
 	address.o tcp_address.o ipc_address.o \

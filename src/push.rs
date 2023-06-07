@@ -33,7 +33,7 @@ use crate::lb::LoadBalancer;
 use crate::message::ZmqMessage;
 
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"
@@ -43,7 +43,7 @@ use crate::socket_base::ZmqSocketBase;
 // #include "msg.hpp"
 pub struct ZmqPush {
     // : public ZmqSocketBase
-    pub socket_base: ZmqSocketBase,
+    pub socket_base: ZmqSocket,
     //     ZmqPush (ZmqContext *parent_, tid: u32, sid_: i32);
 //     ~ZmqPush ();
     //  Overrides of functions from ZmqSocketBase.
@@ -68,7 +68,7 @@ impl ZmqPush {
 
     {
         let mut out = Self {
-            socket_base: ZmqSocketBase::new(parent, options, tid, sid_, false),
+            socket_base: ZmqSocket::new(parent, options, tid, sid_, false),
             load_balance: LoadBalancer::default(),
         };
         // ZmqSocketBase (parent_, tid, sid_)

@@ -34,7 +34,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 void test_probe_router_router ()
 {
-    //  Create server and bind to endpoint
+    //  Create server and Bind to endpoint
     void *server = test_context_socket (ZMQ_ROUTER);
 
     char my_endpoint[MAX_SOCKET_STRING];
@@ -71,7 +71,7 @@ void test_probe_router_router ()
 
 void test_probe_router_dealer ()
 {
-    //  Create server and bind to endpoint
+    //  Create server and Bind to endpoint
     void *server = test_context_socket (ZMQ_ROUTER);
 
     char my_endpoint[MAX_SOCKET_STRING];

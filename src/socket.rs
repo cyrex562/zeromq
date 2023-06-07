@@ -14,18 +14,7 @@ use crate::clock::clock_t;
 use crate::command::ZmqCommand;
 use crate::context::{choose_io_thread, unregister_endpoint, ZmqContext};
 use crate::cpu_time::get_cpu_tick_counter;
-use crate::defines::{
-    retired_fd, ZMQ_BLOCKY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT,
-    ZMQ_EVENTS, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_BIND_FAILED,
-    ZMQ_EVENT_CLOSED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_CONNECT_DELAYED,
-    ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH,
-    ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL,
-    ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED,
-    ZMQ_EVENT_PIPES_STATS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN,
-    ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT,
-    ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB,
-    ZMQ_ZERO_COPY_RECV,
-};
+use crate::defines::{retired_fd, ZMQ_BLOCKY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENTS, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB, ZMQ_ZERO_COPY_RECV, ZmqHandle};
 use crate::devpoll::ZmqPoller;
 use crate::endpoint::EndpointType::endpoint_type_none;
 use crate::endpoint::{make_unconnected_bind_endpoint_pair, EndpointUriPair, ZmqEndpoint};
@@ -60,10 +49,9 @@ use crate::vmci_listener::ZmqVmciListener;
 use crate::ws_address::WsAddress;
 use crate::ws_listener::ZmqWsListener;
 use crate::wss_address::WssAddress;
-use crate::ZmqMailboxInterface::ZmqMailboxInterface;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub struct ZmqSocketBase {
+pub struct ZmqSocket {
     pub own: ZmqOwn,
     // Mutex for synchronize access to the socket in thread safe mode
     pub sync: Mutex<u8>,
@@ -85,7 +73,7 @@ pub struct ZmqSocketBase {
 
     //  Socket's mailbox object.
     // ZmqMailboxInterface *mailbox;
-    pub mailbox: Option<ZmqMailboxInterface>,
+    // pub mailbox: Option<ZmqMailboxInterface>,
 
     //  List of attached pipes.
     // typedef array_t<ZmqPipe, 3> pipes_t;
@@ -96,7 +84,7 @@ pub struct ZmqSocketBase {
     // Poller *poller;
     pub poller: Option<ZmqPoller>,
     // Poller::handle_t _handle;
-    pub handle: Option<handle_t>,
+    pub handle: Option<ZmqHandle>,
 
     //  Timestamp of when commands were processed the last time.
     pub last_tsc: u64,
@@ -134,276 +122,7 @@ pub struct ZmqSocketBase {
     pub disconnected: bool,
 }
 
-impl ZmqObject for ZmqSocketBase {
-    // fn get_ctx(&self) -> &ZmqContext {
-    //     todo!()
-    // }
-
-    // fn get_ctx_mut(&mut self) -> &mut ZmqContext {
-    //     todo!()
-    // }
-
-    fn set_ctx(&mut self, ctx: &mut ZmqContext) {
-        todo!()
-    }
-
-    // fn get_tid(&self) -> u32 {
-    //     todo!()
-    // }
-
-    // fn set_tid(&mut self, tid: u32) {
-    //     todo!()
-    // }
-
-    fn process_command(&mut self, cmd: &ZmqCommand) {
-        todo!()
-    }
-
-    fn register_endpoint(&mut self, addr: &str, endpoint: &mut ZmqEndpoint) -> anyhow::Result<()> {
-        todo!()
-    }
-
-    fn unregister_endpoint(
-        &mut self,
-        addr: &str,
-        sock_base: &mut ZmqSocketBase,
-    ) -> anyhow::Result<()> {
-        todo!()
-    }
-
-    fn unregister_endpoints(&mut self, sock_base: &mut ZmqSocketBase) {
-        todo!()
-    }
-
-    fn find_endpoint(&self, addr: &str) -> Option<ZmqEndpoint> {
-        todo!()
-    }
-
-    fn pend_connection(&mut self, addr: &str, endpoint: &ZmqEndpoint, pipes: &[ZmqPipe]) {
-        todo!()
-    }
-
-    fn connect_pending(&self, addr: &str, bind_socket: &mut ZmqSocketBase) {
-        todo!()
-    }
-
-    fn destroy_socket(&mut self, socket: &mut ZmqSocketBase) {
-        todo!()
-    }
-
-    fn log(msg: &str) {
-        todo!()
-    }
-
-    fn send_inproc_connected(&mut self, socket: &mut ZmqSocketBase) {
-        todo!()
-    }
-
-    fn send_bind(&mut self, destination: &mut ZmqSocketBase, pipe: &mut ZmqPipe, inc_seqnum: bool) {
-        todo!()
-    }
-
-    fn choose_io_thread(&mut self, affinity: u64) -> Option<ZmqThreadContext> {
-        todo!()
-    }
-
-    fn send_stop(&mut self) {
-        todo!()
-    }
-
-    fn send_plug(&mut self, destination: &mut ZmqOwn, inc_seqnum: bool) {
-        todo!()
-    }
-
-    fn send_own(&mut self, destination: &mut ZmqOwn, object: &mut ZmqOwn) {
-        todo!()
-    }
-
-    fn send_attach(
-        &mut self,
-        destination: &mut ZmqSessionbase,
-        engine: &mut ZmqEngineInterface,
-        inc_seqnum: bool,
-    ) {
-        todo!()
-    }
-
-    fn send_activate_read(&mut self, destination: &mut ZmqPipe) {
-        todo!()
-    }
-
-    fn send_activate_write(&mut self, destination: &mut ZmqPipe, msgs_read: u64) {
-        todo!()
-    }
-
-    fn send_hiccup(&mut self, destination: &mut ZmqPipe, pipe: &mut [u8]) {
-        todo!()
-    }
-
-    fn send_pipe_peer_stats(
-        &mut self,
-        destination: &mut ZmqPipe,
-        queue_count: u64,
-        socket_base: &mut ZmqOwn,
-        endpoint_pair: &mut EndpointUriPair,
-    ) {
-        todo!()
-    }
-
-    fn send_pipe_stats_publish(
-        &mut self,
-        destination: &mut ZmqOwn,
-        outbound_queue_count: u64,
-        inbound_queue_count: u64,
-        endpoint_pair: &mut EndpointUriPair,
-    ) {
-        todo!()
-    }
-
-    fn send_pipe_term(&mut self, destination: &mut ZmqPipe) {
-        todo!()
-    }
-
-    fn send_pipe_term_ack(&mut self, destination: &mut ZmqPipe) {
-        todo!()
-    }
-
-    fn send_pipe_hwm(&mut self, destination: &mut ZmqPipe, inhwm: i32, outhwm: i32) {
-        todo!()
-    }
-
-    fn send_term_req(&mut self, destination: &mut ZmqOwn, object: &mut ZmqOwn) {
-        todo!()
-    }
-
-    fn send_term(&mut self, destination: &mut ZmqOwn, linger: i32) {
-        todo!()
-    }
-
-    fn send_term_ack(&mut self, destination: &mut ZmqOwn) {
-        todo!()
-    }
-
-    fn send_term_endpoint(&mut self, destination: &mut ZmqOwn, endpoint: &str) {
-        todo!()
-    }
-
-    fn send_reap(&mut self, socket: &mut ZmqSocketBase) {
-        todo!()
-    }
-
-    fn send_reaped(&mut self) {
-        todo!()
-    }
-
-    fn send_done(&mut self) {
-        todo!()
-    }
-
-    fn send_conn_failed(&mut self, destination: &mut ZmqSessionBase) {
-        todo!()
-    }
-
-    fn process_stop(&mut self) {
-        todo!()
-    }
-
-    fn process_plug(&mut self) {
-        todo!()
-    }
-
-    fn process_own(&mut self, object: &mut ZmqOwn) {
-        todo!()
-    }
-
-    fn process_attached(&mut self, engine: &mut ZmqEngineInterface) {
-        todo!()
-    }
-
-    fn process_bind(&mut self, pipe: &mut ZmqPipe) {
-        todo!()
-    }
-
-    fn process_activate_read(&mut self) {
-        todo!()
-    }
-
-    fn process_activate_write(&mut self, msgs_read: u64) {
-        todo!()
-    }
-
-    fn process_hiccup(&mut self, pipe: &mut [u8]) {
-        todo!()
-    }
-
-    fn process_pipe_peer_stats(
-        &mut self,
-        queue_count: u64,
-        socket_base: &mut ZmqOwn,
-        endpoint_pair: &mut EndpointUriPair,
-    ) {
-        todo!()
-    }
-
-    fn process_pipe_stats_publish(
-        &mut self,
-        outbound_queue_count: u64,
-        inbound_queue_count: u64,
-        endpoint_pair: &mut EndpointUriPair,
-    ) {
-        todo!()
-    }
-
-    fn process_pipe_term(&mut self) {
-        todo!()
-    }
-
-    fn process_pipe_term_ack(&mut self) {
-        todo!()
-    }
-
-    fn process_pipe_hwm(&mut self, inhwm: i32, outhwm: i32) {
-        todo!()
-    }
-
-    fn process_term_req(&mut self, object: &mut ZmqOwn) {
-        todo!()
-    }
-
-    fn process_term(&mut self, linger: i32) {
-        todo!()
-    }
-
-    fn process_term_ack(&mut self) {
-        todo!()
-    }
-
-    fn process_term_endpoint(&mut self, endpoint: &str) {
-        todo!()
-    }
-
-    fn process_reap(&mut self, socket: &mut ZmqSocketBase) {
-        todo!()
-    }
-
-    fn process_reaped(&mut self) {
-        todo!()
-    }
-
-    fn process_conn_failed(&mut self) {
-        todo!()
-    }
-
-    fn process_seqnum(&mut self) {
-        todo!()
-    }
-
-    fn send_command(&mut self, cmd: &mut ZmqCommand) -> anyhow::Result<()> {
-        todo!()
-    }
-}
-
-impl ZmqSocketBase {
+impl ZmqSocket {
     // ZmqSocketBase (ZmqContext *parent_,
     //                uint32_t tid,
     //                sid_: i32,
@@ -446,12 +165,12 @@ impl ZmqSocketBase {
         out.handle = None;
 
         parent.socket_id = sid_;
-        parent.ipv6 = (parent_.get(ZMQ_IPV6) != 0);
+        parent.ipv6 = (parent.get(ZMQ_IPV6) != 0);
         parent.linger.store(
             if parent.get(ZMQ_BLOCKY) { -1 } else { 0 },
             Ordering::Relaxed,
         );
-        parent.zero_copy = parent_.get(ZMQ_ZERO_COPY_RECV) != 0;
+        parent.zero_copy = parent.get(ZMQ_ZERO_COPY_RECV) != 0;
 
         if out.thread_safe {
             out.mailbox = Some(ZmqMailboxSafe::new(&mut out.sync));
@@ -460,7 +179,7 @@ impl ZmqSocketBase {
             let mut m = ZmqMailbox::new();
             // zmq_assert (m);
 
-            if m.get_fd() != retired_fd {
+            if m.get_fd() != retired_fd as usize {
                 out.mailbox = Some(m);
             } else {
                 // LIBZMQ_DELETE (m);
@@ -578,10 +297,10 @@ impl ZmqSocketBase {
 
     //  Interrupt blocking call if the socket is stuck in one.
     //  This function can be called from a different thread!
-    // void stop ();
+    // void Stop ();
     pub fn stop(&mut self) {
         //  Called by ctx when it is terminated (zmq_ctx_term).
-        //  'stop' command is sent from the threads that called zmq_ctx_term to
+        //  'Stop' command is sent from the threads that called zmq_ctx_term to
         //  the thread owning the socket. This way, blocking call in the
         //  owner thread can be interrupted.
         self.send_stop();
@@ -697,7 +416,7 @@ impl ZmqSocketBase {
         options.getsockopt(opt_kind)
     }
 
-    // int bind (endpoint_uri_: *const c_char);
+    // int Bind (endpoint_uri_: *const c_char);
     pub fn bind(
         &mut self,
         ctx: &mut ZmqContext,
@@ -730,7 +449,7 @@ impl ZmqSocketBase {
             // const ZmqEndpoint endpoint = {this, options};
             let mut endpoint: ZmqEndpoint = ZmqEndpoint::default();
             endpoint.context = options.clone();
-            self.register_endpoint(endpoint_uri_, &mut endpoint)?;
+            ctx.register_endpoint(endpoint_uri_, &mut endpoint)?;
             self.connect_pending(endpoint_uri_, this);
             self.last_endpoint.assign(endpoint_uri_);
             options.connected = true;
@@ -748,7 +467,7 @@ impl ZmqSocketBase {
             // // #else // defined ZMQ_HAVE_NORM
             //     if (protocol == protocol_name::norm) {
             // #endif
-            //  For convenience's sake, bind can be used interchangeable with
+            //  For convenience's sake, Bind can be used interchangeable with
             //  connect for PGM, EPGM, NORM transports.
             self.connect(options, endpoint_uri_)?;
             options.connected = true;
@@ -953,7 +672,7 @@ impl ZmqSocketBase {
         // #endif
 
         // zmq_assert (false);
-        bail!("bind failed")
+        bail!("Bind failed")
     }
 
     // int connect (endpoint_uri_: *const c_char);
@@ -962,7 +681,7 @@ impl ZmqSocketBase {
         self.connect_internal(options, endpoint_uri_)
     }
 
-    // int term_endpoint (endpoint_uri_: *const c_char);
+    // int TermEndpoint (endpoint_uri_: *const c_char);
     pub fn term_endpoint(
         &mut self,
         options: &mut ZmqContext,
@@ -1391,7 +1110,7 @@ impl ZmqSocketBase {
         if (options.immediate == 1) {
             pipe.terminate(false);
         } else {
-            // Notify derived sockets of the hiccup
+            // Notify derived sockets of the Hiccup
             ops.xhiccuped(pipe);
         }
     }
@@ -1518,7 +1237,7 @@ impl ZmqSocketBase {
         }
 
         //  Spawn the monitor socket endpoint
-        rc = zmq_bind(ctx, options, self._monitor_socket, endpoint);
+        rc = zmq_bind(ctx, self._monitor_socket, endpoint);
         if (rc == -1) {
             self.stop_monitor(options, false);
         }
@@ -1801,10 +1520,10 @@ impl ZmqSocketBase {
     /*
      * There are 2 pipes per connection, and the inbound one _must_ be queried from
      * the I/O thread. So ask the outbound pipe, in the application thread, to send
-     * a message (pipe_peer_stats) to its peer. The message will carry the outbound
+     * a message (PipePeerStats) to its peer. The message will carry the outbound
      * pipe stats and endpoint, and the reference to the socket object.
-     * The inbound pipe on the I/O thread will then add its own stats and endpoint,
-     * and write back a message to the socket object (pipe_stats_publish) which
+     * The inbound pipe on the I/O thread will then add its Own stats and endpoint,
+     * and write back a message to the socket object (PipeStatsPublish) which
      * will raise an event with the data.
      */
     pub fn query_pipes_stats(&mut self) -> anyhow::Result<()> {
@@ -1894,7 +1613,7 @@ impl ZmqSocketBase {
             };
 
             //  Create a bi-directional pipe to connect the peers.
-            let mut parents: [&mut ZmqSocketBase; 2] = [
+            let mut parents: [&mut ZmqSocket; 2] = [
                 self,
                 if peer.socket == null_mut() {
                     self
@@ -2217,7 +1936,7 @@ impl ZmqSocketBase {
 
         if options.immediate != 1 || subscribe_to_all {
             //  Create a bi-directional pipe.
-            let mut parents: [&mut ZmqSocketBase; 2] = [self, session];
+            let mut parents: [&mut ZmqSocket; 2] = [self, session];
             let mut new_pipes: [ZmqPipe; 2] = [ZmqPipe::default(), ZmqPipe::default()];
 
             let conflate = get_effective_conflate_option(options);
@@ -2477,7 +2196,7 @@ impl ZmqSocketBase {
     }
 
     //  Check whether transport protocol, as specified in connect or
-    //  bind, is available and compatible with the socket type.
+    //  Bind, is available and compatible with the socket type.
     // int check_protocol (protocol_: &str) const;
 
     pub fn check_protocol(
@@ -2746,19 +2465,23 @@ impl ZmqSocketBase {
         }
         return endpoint_uri_pair_.clone();
     }
+
+    pub fn register_endpoint(&mut self, ctx: &mut ZmqContext, addr: &str, endpoint: &mut ZmqEndpoint) -> anyhow::Result<()> {
+
+    }
 } // impl ZmqSocketBase
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct routing_socket_base_t {
     //
     // methods from ZmqSocketBase
-    // own methods
+    // Own methods
     //
     //  Outbound pipes indexed by the peer IDs.
     // typedef std::map<Blob, ZmqOutPipe> out_pipes_t;
     // out_pipes_t _out_pipes;
     pub _out_pipes: HashMap<Blob, ZmqOutPipe>,
-    pub base: ZmqSocketBase,
+    pub base: ZmqSocket,
     // Next assigned name on a zmq_connect() call used by ROUTER and STREAM socket types
     // std::string _connect_routing_id;
     pub _connect_routing_id: String,
@@ -2775,7 +2498,7 @@ impl routing_socket_base_t {
     pub fn new(parent_: &mut ZmqContext, options: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
         Self {
             _out_pipes: HashMap::new(),
-            base: ZmqSocketBase::new(parent_, options, tid, sid_, false),
+            base: ZmqSocket::new(parent_, options, tid, sid_, false),
             _connect_routing_id: String::new(),
         }
     }

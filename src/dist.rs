@@ -92,7 +92,7 @@ impl ZmqDist {
     }
 
     //     //  Adds the pipe to the distributor object.
-    //     void attach (pipe: &mut ZmqPipe);
+    //     void Attach (pipe: &mut ZmqPipe);
     pub fn attach(&mut self, pipe: &mut ZmqPipe) {
         //  If we are in the middle of sending a message, we'll add new pipe
         //  into the list of eligible pipes. Otherwise we add it to the list

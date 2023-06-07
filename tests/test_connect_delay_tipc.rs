@@ -104,7 +104,7 @@ void test_send_one_connected_one_unconnected_with_delay ()
     // This time we will do the same thing, connect two pipes,
     // one of which will succeed in connecting to a bound
     // receiver, the other of which will fail. However, we will
-    // also set the delay attach on connect flag, which should
+    // also set the delay Attach on connect flag, which should
     // cause the pipe attachment to be delayed until the connection
     // succeeds.
 

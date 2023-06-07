@@ -330,7 +330,7 @@ pub fn is_handshake_command_error(msg_data_: &[u8], msg_size_: usize) -> bool {
 //     memcpy (secret_key, curve_secret_key_, CRYPTO_BOX_SECRETKEYBYTES);
 //     memcpy (server_key, curve_server_key_, CRYPTO_BOX_PUBLICKEYBYTES);
 //
-//     //  Generate short-term key pair
+//     //  Generate short-Term key pair
 //     memset (cn_secret, 0, CRYPTO_BOX_SECRETKEYBYTES);
 //     memset (cn_public, 0, CRYPTO_BOX_PUBLICKEYBYTES);
 //     rc = crypto_box_keypair (cn_public, cn_secret);
@@ -369,16 +369,16 @@ pub fn is_handshake_command_error(msg_data_: &[u8], msg_size_: usize) -> bool {
 //  Our secret key (c)
 // uint8_t secret_key[CRYPTO_BOX_SECRETKEYBYTES];
 
-//  Our short-term public key (C')
+//  Our short-Term public key (C')
 // uint8_t cn_public[CRYPTO_BOX_PUBLICKEYBYTES];
 
-//  Our short-term secret key (c')
+//  Our short-Term secret key (c')
 // uint8_t cn_secret[CRYPTO_BOX_SECRETKEYBYTES];
 
 //  Server's public key (S)
 // uint8_t server_key[CRYPTO_BOX_PUBLICKEYBYTES];
 
-//  Server's short-term public key (S')
+//  Server's short-Term public key (S')
 // uint8_t cn_server[CRYPTO_BOX_PUBLICKEYBYTES];
 
 //  Cookie received from server

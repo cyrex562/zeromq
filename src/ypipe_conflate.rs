@@ -27,7 +27,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//  Adapter for dbuffer, to plug it in instead of a queue for the sake
+//  Adapter for dbuffer, to Plug it in instead of a queue for the sake
 //  of implementing the conflate socket option, which, if set, makes
 //  the receiving side to discard all incoming messages but the last one.
 //

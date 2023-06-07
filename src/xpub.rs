@@ -48,7 +48,7 @@ use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
 use crate::metadata::ZmqMetadata;
 
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::utils::copy_bytes;
 use crate::ZmqDecoderInterface::ZmqMessage;
 
@@ -60,7 +60,7 @@ use crate::ZmqDecoderInterface::ZmqMessage;
 // #include "generic_mtrie_impl.hpp"
 // : public ZmqSocketBase
 pub struct XPub {
-    pub base: ZmqSocketBase,
+    pub base: ZmqSocket,
     //  List of all subscriptions mapped to corresponding pipes.
     // mtrie_t _subscriptions;
     pub _subscriptions: TrieBuilder<Vec<u8>>,
@@ -133,7 +133,7 @@ impl XPub {
         //     _last_pipe = null_mut();
         //     options.type = ZMQ_XPUB;
         //     _welcome_msg.init ();
-        let base = ZmqSocketBase::new(parent,  tid, sid_, false);
+        let base = ZmqSocket::new(parent, tid, sid_, false);
         options.type_ = ZMQ_XPUB as i32;
         let mut out = Self {
             base: base,

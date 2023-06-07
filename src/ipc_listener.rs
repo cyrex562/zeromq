@@ -47,7 +47,7 @@ use crate::ip::{
 use crate::ipc_address::IpcAddress;
 use crate::ops::zmq_errno;
 
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::thread_context::ZmqThreadContext;
 use libc::{accept, bind, c_int, close, getsockopt, listen, rmdir, unlink};
 use std::mem;
@@ -92,7 +92,7 @@ impl IpcListener {
     pub fn new(
         ctx: &mut ZmqContext,
         io_thread: &mut ZmqThreadContext,
-        socket: &mut ZmqSocketBase,
+        socket: &mut ZmqSocket,
     ) -> Self {
         // :
         //     ZmqStreamListenerBase (io_thread_, socket, options_), _has_file (false)
@@ -121,7 +121,7 @@ impl IpcListener {
 
         //  Get rid of the file associated with the UNIX domain socket that
         //  may have been left behind by the previous run of the application.
-        //  MUST NOT unlink if the FD is managed by the user, or it will stop
+        //  MUST NOT unlink if the FD is managed by the user, or it will Stop
         //  working after the first client connects. The user will take care of
         //  cleaning up the file after the service is stopped.
         if (self.options.use_fd == -1) {

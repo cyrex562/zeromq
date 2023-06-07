@@ -101,7 +101,7 @@ pub struct ZmqUdpEngine {
 
     //  ZmqIEngine interface implementation.
     //  Plug the engine to the session.
-    // void plug (ZmqIoThread *io_thread_, class ZmqSessionBase *session_);
+    // void Plug (ZmqIoThread *io_thread_, class ZmqSessionBase *session_);
 
     //  Terminate and deallocate the engine. Note that 'detached'
     //  events are not fired on termination.
@@ -272,11 +272,11 @@ impl ZmqUdpEngine {
             let multicast = udp_addr.is_mcast();
 
             if multicast {
-                //  Multicast addresses should be allowed to bind to more than
+                //  Multicast addresses should be allowed to Bind to more than
                 //  one port as all ports should receive the message
                 rc = rc | set_udp_reuse_port(self._fd, true);
 
-                //  In multicast we should bind ANY and use the mreq struct to
+                //  In multicast we should Bind ANY and use the mreq struct to
                 //  specify the interface
                 any.set_port(bind_addr.port());
 
@@ -371,7 +371,7 @@ impl ZmqUdpEngine {
             let bind_if = addr_.bind_if();
 
             if bind_if > 0 {
-                //  If a bind interface is provided we tell the
+                //  If a Bind interface is provided we tell the
                 //  kernel to use it to send multicast packets
                 unsafe {
                     rc = setsockopt(s_, IPPROTO_IPV6 as c_int, IPV6_MULTICAST_IF, (&bind_if), 4);

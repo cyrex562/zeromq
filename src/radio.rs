@@ -38,7 +38,7 @@ use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
 
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::thread_context::ZmqThreadContext;
 use crate::udp_address::UdpAddress;
 use crate::utils::{cmp_bytes, copy_bytes};
@@ -238,7 +238,7 @@ impl RadioSession {
         ctx: &mut ZmqContext,
         io_thread_: &mut ZmqThreadContext,
         connect_: bool,
-        socket: &mut ZmqSocketBase,
+        socket: &mut ZmqSocket,
         options: &mut ZmqContext,
         addr_: &mut UdpAddress,
     ) -> Self {

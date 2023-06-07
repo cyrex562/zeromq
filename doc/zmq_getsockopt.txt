@@ -95,7 +95,7 @@ Applicable socket types:: all, when using TCP transports.
 ZMQ_CURVE_PUBLICKEY: Retrieve current CURVE public key
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Retrieves the current long term public key for the socket. You can
+Retrieves the current long Term public key for the socket. You can
 provide either a 32 byte buffer, to retrieve the binary key value, or
 a 41 byte buffer, to retrieve the key in a printable Z85 format.
 NOTE: to fetch a printable key, the buffer must be 41 bytes large
@@ -111,7 +111,7 @@ Applicable socket types:: all, when using TCP transport
 ZMQ_CURVE_SECRETKEY: Retrieve current CURVE secret key
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Retrieves the current long term secret key for the socket. You can
+Retrieves the current long Term secret key for the socket. You can
 provide either a 32 byte buffer, to retrieve the binary key value, or
 a 41 byte buffer, to retrieve the key in a printable Z85 format.
 NOTE: to fetch a printable key, the buffer must be 41 bytes large
@@ -301,9 +301,9 @@ This option name is now deprecated. Use ZMQ_ROUTING_ID instead.
 ZMQ_IDENTITY remains as an alias for now.
 
 
-ZMQ_IMMEDIATE: Retrieve attach-on-connect value
+ZMQ_IMMEDIATE: Retrieve Attach-on-connect value
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Retrieve the state of the attach on connect value. If set to `1`, will delay the
+Retrieve the state of the Attach on connect value. If set to `1`, will delay the
 attachment of a pipe on connect until the underlying connection has completed.
 This will cause the socket to block if there are no other connections, but will
 prevent queues from filling on pipes awaiting connection.
@@ -638,12 +638,12 @@ Default value:: 0 (only use ZMQ_RECONNECT_IVL)
 Applicable socket types:: all, only for connection-oriented transport
 
 
-ZMQ_RECONNECT_STOP: Retrieve condition where reconnection will stop
+ZMQ_RECONNECT_STOP: Retrieve condition where reconnection will Stop
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The 'ZMQ_RECONNECT_STOP' option shall retrieve the conditions under which
-automatic reconnection will stop.
+automatic reconnection will Stop.
 
-The 'ZMQ_RECONNECT_STOP_CONN_REFUSED' option will stop reconnection when 0MQ
+The 'ZMQ_RECONNECT_STOP_CONN_REFUSED' option will Stop reconnection when 0MQ
 receives the ECONNREFUSED return code from the connect.  This indicates that
 there is no code bound to the specified endpoint.
 

@@ -281,7 +281,7 @@ pub fn tcp_write (s_: ZmqFileDesc, data: &mut [u8], size: usize) -> i32
 // #else
 //     let nbytes = send (s_, (data), size, 0);
 //
-//     //  Several errors are OK. When speculative write is being done we may not
+//     //  Several errors are OK. When speculative write is being Done we may not
 //     //  be able to write a single byte from the socket. Also, SIGSTOP issued
 //     //  by a debugging tool can result in EINTR error.
 //     if (nbytes == -1
@@ -337,7 +337,7 @@ pub fn tcp_read (s_: ZmqFileDesc, data: &mut [u8], size: usize) -> i32
 
 //     const ssize_t rc = recv (s_,  (data), size, 0);
 //
-//     //  Several errors are OK. When speculative read is being done we may not
+//     //  Several errors are OK. When speculative read is being Done we may not
 //     //  be able to read a single byte from the socket. Also, SIGSTOP issued
 //     //  by a debugging tool can result in EINTR error.
 //     if (rc == -1) {

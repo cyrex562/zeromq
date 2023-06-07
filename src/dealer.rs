@@ -45,12 +45,12 @@ use crate::defines::ZMQ_DEALER;
 use crate::lb::LoadBalancer;
 use crate::message::ZmqMessage;
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::utils::copy_bytes;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqDealer {
-    pub socket_base: ZmqSocketBase,
+    pub socket_base: ZmqSocket,
 
     //
     //  Messages are fair-queued from inbound pipes. And load-balanced to
@@ -75,7 +75,7 @@ impl ZmqDealer {
         sid_: i32,
     ) -> ZmqDealer {
         let mut out = Self::default();
-        let mut base = ZmqSocketBase::new(ctx, tid, sid_, false);
+        let mut base = ZmqSocket::new(ctx, tid, sid_, false);
 
         ctx.type_ = ZMQ_DEALER as i32;
         ctx.can_send_hello_msg = true;

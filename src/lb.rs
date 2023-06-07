@@ -75,7 +75,7 @@ impl LoadBalancer {
 
     // ~LoadBalancer ();
 
-    // void attach (pipe: &mut ZmqPipe);
+    // void Attach (pipe: &mut ZmqPipe);
     pub fn attach(&mut self, pipe: &mut ZmqPipe) {
         self.pipes.push_back(pipe);
         self.activated(pipe);

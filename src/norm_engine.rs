@@ -390,7 +390,7 @@ impl NormEngine {
 
     //  ZmqIEngine interface implementation.
     //  Plug the engine to the session.
-    // void plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_) ;
+    // void Plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_) ;
     pub fn plug(&mut self, io_thread: &mut ZmqThreadContext, session: &mut ZmqSessionBase) {
         // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
         let mut threadArgs = NormWrapperThreadArgs::default();
@@ -670,7 +670,7 @@ impl NormEngine {
                         // msg completed
                         // Complete message decoded, move this stream to msg_ready_list
                         // to push the message up to the session below.  Note the stream
-                        // will be returned to the "rx_ready_list" after that's done
+                        // will be returned to the "rx_ready_list" after that's Done
                         rx_ready_list.Remove(*rxState);
 
                         msg_ready_list.Append(*rxState);

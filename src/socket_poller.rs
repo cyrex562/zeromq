@@ -48,12 +48,12 @@ use crate::poller_event;
 use crate::poller_event::ZmqPollerEvent;
 use crate::polling_util::{OptimizedFdSet, ResizableOptimizedFdSet};
 use crate::signaler::ZmqSignaler;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 
 #[derive(Default, Debug, Clone)]
 struct ZmqItem {
     // ZmqSocketBase *socket;
-    pub socket: Option<ZmqSocketBase>,
+    pub socket: Option<ZmqSocket>,
     // ZmqFileDesc fd;
     pub fd: ZmqFileDesc,
     // user_data: *mut c_void;
@@ -143,7 +143,7 @@ pub struct ZmqSocketPoller {
 }
 
 impl ZmqSocketPoller {
-    pub fn is_socket(&mut self, item: &ZmqItem, socket: &mut ZmqSocketBase) -> bool {
+    pub fn is_socket(&mut self, item: &ZmqItem, socket: &mut ZmqSocket) -> bool {
         return item.socket == Some(socket.clone());
     }
 
@@ -151,7 +151,7 @@ impl ZmqSocketPoller {
         return item.socket.is_some() && item.fd == fd;
     }
 
-    pub fn is_thread_safe(&mut self, socket: &ZmqSocketBase) -> bool {
+    pub fn is_thread_safe(&mut self, socket: &ZmqSocket) -> bool {
         // do not use getsockopt here, since that would fail during context termination
         return socket.is_thread_safe();
     }
@@ -197,7 +197,7 @@ impl ZmqSocketPoller {
     }
 
 
-    pub fn add(&mut self, socket: &mut ZmqSocketBase,
+    pub fn add(&mut self, socket: &mut ZmqSocket,
                user_data_: Option<&mut [u8]>,
                events_: i16) -> anyhow::Result<()> {
         if find_if2(_items.begin(), _items.end(), socket, &is_socket) != _items.end()
@@ -263,7 +263,7 @@ impl ZmqSocketPoller {
         return 0;
     }
 
-    pub fn modify(&mut self, socket: &ZmqSocketBase, events_: i16) -> anyhow::Result<()> {
+    pub fn modify(&mut self, socket: &ZmqSocket, events_: i16) -> anyhow::Result<()> {
         let it = find_if2(_items.begin(), _items.end(), socket, &is_socket);
 
         if (it == _items.end()) {
@@ -292,7 +292,7 @@ impl ZmqSocketPoller {
         return 0;
     }
 
-    pub fn remove(&mut self, socket: &mut ZmqSocketBase) -> i32 {
+    pub fn remove(&mut self, socket: &mut ZmqSocket) -> i32 {
         let it = find_if2(_items.begin(), _items.end(), socket, &is_socket);
 
         if (it == _items.end()) {

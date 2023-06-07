@@ -1,7 +1,6 @@
 //  Check whether the sizes of public representation of the message (zmq_ZmqMessage)
 //  and private representation of the message (ZmqMessage) match.
 
-use crate::atomic_counter::AtomicCounter;
 use crate::content::ZmqContent;
 use crate::defines::ZMQ_GROUP_MAX_LENGTH;
 use crate::err::ZmqError;
@@ -12,6 +11,7 @@ use libc::{c_long, EINVAL};
 use serde::{Deserialize, Serialize};
 use std::mem;
 use std::mem::size_of;
+use std::sync::atomic::AtomicU64;
 
 // enum
 //     {
@@ -73,6 +73,16 @@ pub const GROUP_TYPE_SHORT: u8 = 0;
 pub const GROUP_TYPE_LONG: u8 = 1;
 // }
 
+
+pub enum MessageType {
+    Base,
+    Vsm,
+    Lmsg,
+    Zclmsg,
+    Cmsg,
+    Delimiter,
+}
+
 #[derive(Default, Debug, Clone)]
 pub struct LongGroup {
     pub group: [u8; ZMQ_GROUP_MAX_LENGTH + 1],
@@ -91,121 +101,12 @@ pub struct GroupLgroup {
     pub content: *mut c_long,
 }
 
-#[derive(Default, Debug, Clone)]
-pub union ZmqMsgGrp {
-    pub type_: u8,
-    pub sgroup: GroupSgroup,
-    pub lgroup: GroupLgroup,
-}
-
-#[derive(Default, Debug, Clone)]
-pub struct MsgUnionBase {
-    pub metadata: Option<ZmqMetadata>,
-    pub unused: [u8; ZMQ_MSG_SIZE - size_of::<*mut ZmqMetadata>()
-        + 2
-        + size_of::<u32>()
-        + size_of::<ZmqMsgGrp>()],
-    pub type_: u8,
-    pub flags: u8,
-    pub routing_id: u32,
-    pub group: ZmqMsgGrp,
-}
-
-#[derive(Default, Debug, Clone)]
-pub struct MsgUnionVsm {
-    pub metadata: Option<ZmqMetadata>,
-    pub data: [u8; MAX_VSM_SIZE],
-    pub size: usize,
-    pub type_: u8,
-    pub flags: u8,
-    pub routing_id: u32,
-    pub group: ZmqMsgGrp,
-}
-
-#[derive(Default, Debug, Clone)]
-pub struct MsgUnionLmsg {
-    pub metadata: Option<ZmqMetadata>,
-    pub content: ZmqContent,
-    pub unused: [u8; size_of::<*mut ZmqMetadata>()
-        + size_of::<*mut ZmqContent>()
-        + 2
-        + size_of::<u32>()
-        + size_of::<ZmqMsgGrp>()],
-    pub type_: u8,
-    pub flags: u8,
-    pub routing_id: u32,
-    pub group: ZmqMsgGrp,
-}
-
-#[derive(Default, Debug, Clone)]
-pub struct MsgUnionZclmsg {
-    pub metadata: Option<ZmqMetadata>,
-    pub content: ZmqContent,
-    pub unused: [u8; size_of::<*mut ZmqMetadata>()
-        + size_of::<*mut ZmqContent>()
-        + 2
-        + size_of::<u32>()
-        + size_of::<ZmqMsgGrp>()],
-    pub type_: u8,
-    pub flags: u8,
-    pub routing_id: u32,
-    pub group: ZmqMsgGrp,
-}
-
-#[derive(Default, Debug, Clone)]
-pub struct Cmsg {
-    pub metadata: Option<ZmqMetadata>,
-    pub content: ZmqContent,
-    pub data: Vec<u8>,
-    pub size: usize,
-    pub unused: [u8; size_of::<ZmqMetadata>()
-        + size_of::<ZmqContent>()
-        + 2
-        + size_of::<u32>()
-        + size_of::<ZmqMsgGrp>()],
-    pub type_: u8,
-    pub flags: u8,
-    pub routing_id: u32,
-    pub group: ZmqMsgGrp,
-}
-
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub struct DelimiterMsg {
-    pub metadata: Option<ZmqMetadata>,
-    pub unused: [u8; size_of::<ZmqMetadata>()
-        + size_of::<ZmqContent>()
-        + 2
-        + size_of::<u32>()
-        + size_of::<ZmqMsgGrp>()],
-    pub type_: u8,
-    pub flags: u8,
-    pub routing_id: u32,
-    pub group: ZmqMsgGrp,
-}
-
-//  Note that fields shared between different message types are not
-//  moved to the parent class (ZmqMessage). This way we get tighter packing
-//  of the data. Shared fields can be accessed via 'base' member of
-//  the union.
-#[derive(Default, Debug, Clone)]
-pub union MsgUnion {
-    pub base: MsgUnionBase,
-    pub vsm: MsgUnionVsm,
-    pub lmsg: MsgUnionLmsg,
-    pub zclmsg: MsgUnionZclmsg,
-    pub cmsg: Cmsg,
-    pub delimiter: DelimiterMsg,
-    pub raw: [u8; 64],
-}
-
-pub enum MessageType {
-    Base,
-    Vsm,
-    Lmsg,
-    Zclmsg,
-    Cmsg,
-    Delimiter,
-}
+// #[derive(Default, Debug, Clone)]
+// pub union ZmqMsgGrp {
+//     pub type_: u8,
+//     pub sgroup: GroupSgroup,
+//     pub lgroup: GroupLgroup,
+// }
 
 pub const CANCEL_CMD_NAME: &[u8] = b"\x06CANCEL";
 pub const SUB_CMD_NAME: &[u8] = b"\x09SUBSCRIBE";
@@ -236,9 +137,12 @@ pub struct ZmqMessage {
     pub msg_type: u8,
     pub flags: u8,
     pub routing_id: u32,
-    // pub group: ZmqMsgGrp
     pub group_type: u8,
     pub group: String,
+    pub type_: u8,
+    pub refcnt: AtomicU64,
+    pub sgroup: GroupSgroup,
+    pub lgroup: GroupLgroup,
 }
 
 impl ZmqMessage {
@@ -418,7 +322,7 @@ impl ZmqMessage {
         // self._u.content->ffn = ffn_;
         self.content.hint = hint.clone();
         // new (&_u.content->refcnt) AtomicCounter ();
-        self.content.refcnt = AtomicCounter::new();
+        self.content.refcnt = AtomicU64::new(0);
 
         Ok(())
     }
@@ -468,7 +372,7 @@ impl ZmqMessage {
         Ok(())
     }
 
-    pub fn init_delimiter(&mut self) -> io32 {
+    pub fn init_delimiter(&mut self) -> i32 {
         self.metadata = None;
         self.msg_type = TYPE_DELIMITER;
         self.flags = 0;
@@ -498,43 +402,23 @@ impl ZmqMessage {
         return 0;
     }
 
-    pub fn init_subscribe(&mut self, size: usize, topic: &mut [u8]) -> i32 {
-        let rc = self.init_size(size);
-        if (rc == 0) {
-            self.set_flags(subscribe);
-
-            //  We explicitly allow a NULL subscription with size zero
-            if (size) {
-                // assert (topic);
-                // TODO:
-                // memcpy (data (), topic, size);
-            }
-        }
-        return rc;
+    pub fn init_subscribe(&mut self, size: usize, topic: &mut [u8]) -> anyhow::Result<()>
+    {
+        self.init_size(size)?;
+        self.set_flags(ZMQ_MSG_SUBSCRIBE);
+        copy_bytes(self.data_mut(), 0, topic, 0, size);
+        return Ok(());
     }
 
-    pub fn init_cancel(&mut self, size: usize, topic: &mut [u8]) -> i32 {
-        let rc = self.init_size(size);
-        if rc == 0 {
-            self.set_flags(cancel);
-
-            //  We explicitly allow a NULL subscription with size zero
-            if size {
-                // assert (topic);
-                // TODO
-                // memcpy (data (), topic, size);
-            }
-        }
-        return rc;
+    pub fn init_cancel(&mut self, size: usize, topic: &mut [u8]) -> anyhow::Result<()> {
+        self.init_size(size)?;
+        self.set_flags(ZMQ_MSG_CANCEL);
+        copy_bytes(self.data_mut(), 0, topic, 0, size);
+        Ok(())
     }
 
     pub fn close(&mut self) -> anyhow::Result<()> {
-        //  Check the validity of the message.
-        // if (unlikely (!check ())) {
-        //     errno = EFAULT;
-        //     return -1;
-        // }
-
+        self.check()?;
         if self.msg_type == TYPE_LMSG {
             //  If the content is not shared, or if it is shared and the reference
             //  count has dropped to zero, deallocate it.
@@ -903,7 +787,8 @@ impl ZmqMessage {
         if self.group_type == GROUP_TYPE_LONG {
             return self.lgroup.content.group;
         }
-        return String::from_utf8_lossy(&self.group).into_string();
+        // return String::from_utf8_lossy(&self.group).into_string();
+        self.group.clone()
     }
 
     pub fn set_group(&mut self, group_: &str) -> i32 {

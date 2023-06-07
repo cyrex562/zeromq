@@ -81,7 +81,7 @@ NOTE: Server-client is still in draft phase.
 ZMQ_CLIENT
 ^^^^^^^^^^
 A 'ZMQ_CLIENT' socket talks to a 'ZMQ_SERVER' socket. Either peer can connect,
-though the usual and recommended model is to bind the 'ZMQ_SERVER' and connect
+though the usual and recommended model is to Bind the 'ZMQ_SERVER' and connect
 the 'ZMQ_CLIENT'.
 
 If the 'ZMQ_CLIENT' socket has established a connection, linkzmq:zmq_send[3]
@@ -440,7 +440,7 @@ Peer-to-peer pattern
 ~~~~~~~~~~~~~~~~~~~~~~
 
 The peer-to-peer pattern is used to connect a peer to multiple peers.
-Peer can both connect and bind and mix both of them with the same socket.
+Peer can both connect and Bind and mix both of them with the same socket.
 The peer-to-peer pattern is useful to build peer-to-peer networks (e.g zyre, bitcoin, torrent)
 where a peer can both accept connections from other peers or connect to them.
 

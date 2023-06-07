@@ -94,7 +94,7 @@ mod server;
 mod session_base;
 mod signaler;
 mod sockaddr;
-mod socket_base;
+mod socket;
 mod socket_base_ops;
 mod socket_poller;
 mod socks;

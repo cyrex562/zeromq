@@ -456,11 +456,11 @@ Exch $R1 ; st=haystack,old$R1, $R1=needle
   ; $R5=tmp
   loop:
     StrCpy $R5 $R2 $R3 $R4
-    StrCmp $R5 $R1 done
-    StrCmp $R5 "" done
+    StrCmp $R5 $R1 Done
+    StrCmp $R5 "" Done
     IntOp $R4 $R4 + 1
     Goto loop
-done:
+Done:
   StrCpy $R1 $R2 "" $R4
   Pop $R5
   Pop $R4
@@ -753,16 +753,16 @@ Function un.onInit
   StrCmp $1 "Admin" 0 +3
     SetShellVarContext all
     ;MessageBox MB_OK 'User "$0" is in the Admin group'
-    Goto done
+    Goto Done
   StrCmp $1 "Power" 0 +3
     SetShellVarContext all
     ;MessageBox MB_OK 'User "$0" is in the Power Users group'
-    Goto done
+    Goto Done
     
   noLM:
     ;Get installation folder from registry if available
 
-  done:
+  Done:
     
 FunctionEnd
 
@@ -929,18 +929,18 @@ Function .onInit
     SetShellVarContext all
     ;MessageBox MB_OK 'User "$0" is in the Admin group'
     StrCpy $SV_ALLUSERS "AllUsers"
-    Goto done
+    Goto Done
   StrCmp $1 "Power" 0 +3
     SetShellVarContext all
     ;MessageBox MB_OK 'User "$0" is in the Power Users group'
     StrCpy $SV_ALLUSERS "AllUsers"
-    Goto done
+    Goto Done
     
   noLM:
     StrCpy $SV_ALLUSERS "AllUsers"
     ;Get installation folder from registry if available
 
-  done:
+  Done:
   StrCmp $SV_ALLUSERS "AllUsers" 0 +3
     StrCmp "$IS_DEFAULT_INSTALLDIR" "1" 0 +2
       StrCpy $INSTDIR "$PROGRAMFILES\@CPACK_PACKAGE_INSTALL_DIRECTORY@"

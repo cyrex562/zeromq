@@ -138,7 +138,7 @@ impl PollerBase {
 
             //  If we have to wait to execute the item, same will be true for
             //  all the following items because multimap is sorted. Thus we can
-            //  stop checking the subsequent timers.
+            //  Stop checking the subsequent timers.
             if it.0 > current {
                 res = it.0 - current;
                 break;

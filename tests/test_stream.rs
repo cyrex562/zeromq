@@ -114,7 +114,7 @@ static void test_ZmqStreamo_dealer ()
     //  Second frame is greeting signature
     recv_array_expect_success (stream, greeting.signature, 0);
 
-    //  Send our own protocol greeting
+    //  Send our Own protocol greeting
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_send (&routing_id, stream, ZMQ_SNDMORE));
     TEST_ASSERT_EQUAL_INT (
       mem::size_of::<greeting>(), TEST_ASSERT_SUCCESS_ERRNO (

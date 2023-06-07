@@ -75,7 +75,7 @@ use crate::pgm_receiver::ZmqPgmReceiver;
 use crate::pgm_sender::pgm_sender_t;
 use crate::pipe::PipeState::active;
 use crate::pipe::ZmqPipe;
-use crate::proxy::ZmqSocketBase;
+use crate::proxy::ZmqSocket;
 use crate::radio::RadioSession;
 use crate::req::ReqSession;
 use crate::socks_connecter::ZmqSocksConnector;
@@ -122,8 +122,8 @@ pub struct ZmqSessionBase {
     pub engine: Option<ZmqEngineInterface>,
     //  The socket the session belongs to.
     // ZmqSocketBase *_socket;
-    pub socket: ZmqSocketBase,
-    //  I/O thread the session is living in. It will be used to plug in
+    pub socket: ZmqSocket,
+    //  I/O thread the session is living in. It will be used to Plug in
     //  the engines into the same thread.
     // ZmqIoThread *_io_thread;
     pub io_thread: ZmqThreadContext,
@@ -171,7 +171,7 @@ impl ZmqSessionBase {
         zmq_ctx: &mut ZmqContext,
         io_thread: &mut ZmqThreadContext,
         active_: bool,
-        socket: &mut ZmqSocketBase,
+        socket: &mut ZmqSocket,
         addr: &mut ZmqAddress,
     ) -> Self {
         let mut own = ZmqOwn::new(options, zmq_ctx, io_thread.tid);
@@ -204,7 +204,7 @@ impl ZmqSessionBase {
         ctx: &mut ZmqContext,
         io_thread: &mut ZmqThreadContext,
         active_: bool,
-        socket: &mut ZmqSocketBase,
+        socket: &mut ZmqSocket,
         options: &mut ZmqContext,
         addr: Option<&mut ZmqAddress>,
     ) -> anyhow::Result<Self> {
@@ -536,7 +536,7 @@ impl ZmqSessionBase {
         // zmq_assert (false);
     }
 
-    pub fn get_socket(&mut self) -> &mut ZmqSocketBase {
+    pub fn get_socket(&mut self) -> &mut ZmqSocket {
         return self._socket;
     }
 
@@ -635,12 +635,12 @@ impl ZmqSessionBase {
             // zmq_assert (!pipe);
             pipe = pipes[0];
 
-            //  The endpoints strings are not set on bind, set them here so that
+            //  The endpoints strings are not set on Bind, set them here so that
             //  events can use them.
             pipes[0].set_endpoint_pair(_engine.get_endpoint());
             pipes[1].set_endpoint_pair(_engine.get_endpoint());
 
-            //  Ask socket to plug into the remote end of the pipe.
+            //  Ask socket to Plug into the remote end of the pipe.
             send_bind(self._socket, pipes[1]);
         }
     }
@@ -649,7 +649,7 @@ impl ZmqSessionBase {
         //  Engine is dead. Let's forget about it.
         _engine = null_mut();
 
-        //  Remove any half-done messages from the pipes.
+        //  Remove any half-Done messages from the pipes.
         if (pipe) {
             clean_pipes();
 
@@ -663,7 +663,7 @@ impl ZmqSessionBase {
                 pipe.send_disconnect_msg();
             }
 
-            //  Only send hiccup message if socket was connected and handshake was completed
+            //  Only send Hiccup message if socket was connected and handshake was completed
             if (active_
                 && handshaked_
                 && options.can_recv_hiccup_msg
@@ -712,7 +712,7 @@ impl ZmqSessionBase {
     pub fn process_term(&mut self, linger: i32) {
         // zmq_assert (!_pending);
 
-        //  If the termination of the pipe happens before the term command is
+        //  If the termination of the pipe happens before the Term command is
         //  delivered there's nothing much to do. We can proceed with the
         //  standard termination immediately.
         if (!pipe && !_zap_pipe && _terminating_pipes.empty()) {
@@ -796,7 +796,7 @@ impl ZmqSessionBase {
             send_term_endpoint(self._socket, ep);
         }
 
-        //  For subscriber sockets we hiccup the inbound pipe, which will cause
+        //  For subscriber sockets we Hiccup the inbound pipe, which will cause
         //  the socket object to resend all the subscriptions.
         if (self.pipe.is_some()
             && (self.options.type_ == ZMQ_SUB
@@ -998,7 +998,7 @@ impl ZmqHelloMsgSession {
         ctx: &mut ZmqContext,
         io_thread_: &mut ZmqThreadContext,
         connect_: bool,
-        socket: &mut ZmqSocketBase,
+        socket: &mut ZmqSocket,
         options: &mut ZmqContext,
         addr_: &mut ZmqAddress,
     ) -> Self {

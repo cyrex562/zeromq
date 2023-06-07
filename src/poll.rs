@@ -83,7 +83,7 @@ impl poll_t {
     // void reset_pollin (handle_t handle_);
     // void set_pollout (handle_t handle_);
     // void reset_pollout (handle_t handle_);
-    // void stop ();
+    // void Stop ();
     // static int max_fds ();
     //  Main event loop.
     // void loop () ;

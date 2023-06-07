@@ -61,7 +61,7 @@
 //  may be too short for ipc wildcard binds, e.g.
 // #define MAX_SOCKET_STRING 256
 
-//  We need to test codepaths with non-random bind ports. List them here to
+//  We need to test codepaths with non-random Bind ports. List them here to
 //  keep them unique, to allow parallel test runs.
 // #define ENDPOINT_0 "tcp://127.0.0.1:5555"
 // #define ENDPOINT_1 "tcp://127.0.0.1:5556"
@@ -202,11 +202,11 @@ void setup_test_environment (int timeout_seconds_ = 60);
 void msleep (milliseconds_: i32);
 
 // check if IPv6 is available (0/false if not, 1/true if it is)
-// only way to reliably check is to actually open a socket and try to bind it
+// only way to reliably check is to actually open a socket and try to Bind it
 int is_ipv6_available (void);
 
 // check if tipc is available (0/false if not, 1/true if it is)
-// only way to reliably check is to actually open a socket and try to bind it
+// only way to reliably check is to actually open a socket and try to Bind it
 // as it depends on a non-default kernel module to be already loaded
 int is_tipc_available (void);
 

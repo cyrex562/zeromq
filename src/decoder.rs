@@ -52,7 +52,7 @@
 //  This class implements the state machine that parses the incoming buffer.
 //  Derived class should implement individual state machine actions.
 //
-//  Buffer management is done by an allocator policy.
+//  Buffer management is Done by an allocator policy.
 // template <typename T, typename A = c_single_allocator>
 
 use crate::utils::copy_bytes;

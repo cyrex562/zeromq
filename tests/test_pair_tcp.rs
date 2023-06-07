@@ -79,7 +79,7 @@ void test_ZmqPaircp_regular ()
 
 void test_ZmqPaircp_connect_by_name ()
 {
-    // all other tcp test cases bind to a loopback wildcard address, then
+    // all other tcp test cases Bind to a loopback wildcard address, then
     // retrieve the bound endpoint, which is numerical, and use that to
     // connect. this test cases specifically uses "localhost" to connect
     // to ensure that names are correctly resolved

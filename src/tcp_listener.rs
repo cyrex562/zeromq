@@ -67,7 +67,7 @@ use crate::ip::{
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::ops::zmq_errno;
 
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::stream_listener_base::ZmqStreamListenerBase;
 use crate::tcp::{tcp_open_socket, tune_tcp_keepalives, tune_tcp_maxrt, tune_tcp_socket};
 use crate::tcp_address::TcpAddress;
@@ -118,7 +118,7 @@ pub struct TcpListener {
 impl TcpListener {
     pub fn new(
         io_thread: &mut ZmqThreadContext,
-        socket: &mut ZmqSocketBase,
+        socket: &mut ZmqSocket,
         ctx: &mut ZmqContext,
     ) -> TcpListener {
         // ZmqStreamListenerBase (io_thread_, socket, options_)
@@ -170,7 +170,7 @@ impl TcpListener {
             return -1;
         }
 
-        //  TODO why is this only done for the listener?
+        //  TODO why is this only Done for the listener?
         make_socket_noninheritable(_s);
 
         //  Allow reusing of the address.
@@ -197,7 +197,7 @@ impl TcpListener {
 
         //  Bind the socket to the network interface and port.
         // #if defined ZMQ_HAVE_VXWORKS
-        //     rc = bind (_s, (sockaddr *) address.addr (), address.addrlen ());
+        //     rc = Bind (_s, (sockaddr *) address.addr (), address.addrlen ());
         // #else
         unsafe {
             rc = bind(_s, address.addr(), address.addrlen());

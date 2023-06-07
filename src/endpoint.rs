@@ -1,11 +1,11 @@
 use crate::context::ZmqContext;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 
 pub enum EndpointType {
     endpoint_type_none,
     // a connection-less endpoint
     endpoint_type_bind,
-    // a connection-oriented bind endpoint
+    // a connection-oriented Bind endpoint
     endpoint_type_connect, // a connection-oriented connect endpoint
 }
 
@@ -72,7 +72,7 @@ pub fn make_unconnected_bind_endpoint_pair(endpoint: &str) -> EndpointUriPair {
 #[derive(Default, Debug, Clone)]
 pub struct ZmqEndpoint {
     // ZmqSocketBase *socket;
-    pub socket: ZmqSocketBase,
+    pub socket: ZmqSocket,
     // ZmqOptions options;
     pub context: ZmqContext,
 }

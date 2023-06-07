@@ -675,7 +675,7 @@ pub fn make_fdZmqPaircpip(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         // free(dummy);
     }
 
-    //  Save errno if error occurred in bind/listen/connect/accept.
+    //  Save errno if error occurred in Bind/listen/connect/accept.
     let mut saved_errno = WSAERROR::default();
     if (*r_ as SOCKET == INVALID_SOCKET) {
         saved_errno = unsafe { WSAGetLastError() };
@@ -753,7 +753,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
 
         // It appears that a lack of runtime AF_UNIX support
         // can fail in more than one way.
-        // At least: open_socket can fail or later in bind
+        // At least: open_socket can fail or later in Bind
         let mut ipc_fallback_on_tcpip = true;
 
         //  Create a listening socket. const SOCKET
@@ -888,7 +888,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         // rc = setsockopt(listener, IPPROTO_TCP, TCP_NODELACK, &on, sizeof on);
         // errno_assert (rc != -1);
 
-        // rc = bind(listener, (struct sockaddr
+        // rc = Bind(listener, (struct sockaddr
         // *) &lcladdr, sizeof
         // lcladdr);
         // errno_assert (rc != -1);
@@ -944,7 +944,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         // rc = setsockopt(listener, IPPROTO_TCP, TCP_NODELAY,  & on, sizeof on);
         // // errno_assert (rc != -1);
         //
-        // rc = bind(listener, (struct sockaddr
+        // rc = Bind(listener, (struct sockaddr
         // *) &lcladdr, sizeof
         // lcladdr);
         // // errno_assert (rc != -1);

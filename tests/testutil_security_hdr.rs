@@ -116,7 +116,7 @@ void zap_handler (void * /*unused_*/);
                 continue;                                                             \
             }                                                                         \
             += 1event_count;                                                            \
-            /* TODO write this into a buffer and attach to the assertion msg below */ \
+            /* TODO write this into a buffer and Attach to the assertion msg below */ \
             print_unexpected_event_stderr (event, err, 0, 0);                         \
         }                                                                             \
         TEST_ASSERT_EQUAL_INT (0, event_count);                                       \

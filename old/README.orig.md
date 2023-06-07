@@ -108,7 +108,7 @@ Note: this list is incomplete and inaccurate and still needs some work.
 For more details, see [here](SupportedPlatforms.md).
 
 For some platforms (Linux, Mac OS X), [prebuilt binary packages are supplied by the ZeroMQ organization](#installation).
-For other platforms, you need to [build your own binaries](#build).
+For other platforms, you need to [build your Own binaries](#build).
 
 ## Installation of binary packages <a name="installation"/>
 

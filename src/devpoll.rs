@@ -176,7 +176,7 @@ impl DevPoll {
         self.devpoll_ctl(handle_, self.fd_table[handle_].events);
     }
 
-    // void stop ();
+    // void Stop ();
     pub fn stop(&mut self) {
         check_thread();
     }

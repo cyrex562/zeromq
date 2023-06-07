@@ -54,7 +54,7 @@ pub struct UdpAddress {
     //
 //     UdpAddress ();
 //     virtual ~UdpAddress ();
-    // int resolve (name: &str, bind: bool, ipv6: bool);=
+    // int resolve (name: &str, Bind: bool, ipv6: bool);=
     //  The opposite to resolve()
     // virtual int to_string (std::string &addr_);
     // int family () const;
@@ -169,8 +169,8 @@ impl UdpAddress {
         } else {
             //  If we don't have an explicit interface specifier then the URL is
             //  ambiguous: if the target address is multicast then it's the
-            //  destination address and the bind address is ANY, if it's unicast
-            //  then it's the bind address when 'bind' is true and the destination
+            //  destination address and the Bind address is ANY, if it's unicast
+            //  then it's the Bind address when 'Bind' is true and the destination
             //  otherwise
             if (self.is_multicast || !bind) {
                 self.bind_address = if self.target_address.is_ipv4() {
@@ -182,9 +182,9 @@ impl UdpAddress {
                 self.bind_address.set_port(port);
                 self.bind_interface = 0;
             } else {
-                //  If we were asked for a bind socket and the address
+                //  If we were asked for a Bind socket and the address
                 //  provided was not multicast then it was really meant as
-                //  a bind address and the target_address is useless.
+                //  a Bind address and the target_address is useless.
                 self.bind_address = target_address;
             }
         }
@@ -195,7 +195,7 @@ impl UdpAddress {
         }
 
         //  For IPv6 multicast we *must* have an interface index since we can't
-        //  bind by address.
+        //  Bind by address.
         if (ipv6 && is_multicast && bind_interface < 0) {
             errno = ENODEV;
             return -1;

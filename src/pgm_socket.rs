@@ -173,7 +173,7 @@ impl PgmSocket {
     }
 
 
-    //  Create, bind and connect PGM socket.
+    //  Create, Bind and connect PGM socket.
     pub fn init (&mut self, udp_encapsulation_: bool, network_: &str) -> i32
     {
         //  Can not open transport before destroying old one.

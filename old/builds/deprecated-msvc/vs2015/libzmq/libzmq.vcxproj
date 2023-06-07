@@ -121,7 +121,7 @@
     <ClInclude Include="..\..\..\..\src\mutex.hpp" />
     <ClInclude Include="..\..\..\..\src\object.hpp" />
     <ClInclude Include="..\..\..\..\src\options.hpp" />
-    <ClInclude Include="..\..\..\..\src\own.hpp" />
+    <ClInclude Include="..\..\..\..\src\Own.hpp" />
     <ClInclude Include="..\..\..\..\src\pair.hpp" />
     <ClInclude Include="..\..\..\..\src\pgm_receiver.hpp" />
     <ClInclude Include="..\..\..\..\src\pgm_sender.hpp" />
@@ -215,7 +215,7 @@
     <ClCompile Include="..\..\..\..\src\null_mechanism.cpp" />
     <ClCompile Include="..\..\..\..\src\object.cpp" />
     <ClCompile Include="..\..\..\..\src\options.cpp" />
-    <ClCompile Include="..\..\..\..\src\own.cpp" />
+    <ClCompile Include="..\..\..\..\src\Own.cpp" />
     <ClCompile Include="..\..\..\..\src\pair.cpp" />
     <ClCompile Include="..\..\..\..\src\pgm_receiver.cpp" />
     <ClCompile Include="..\..\..\..\src\pgm_sender.cpp" />

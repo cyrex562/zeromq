@@ -46,7 +46,7 @@ use crate::defines::{ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT, ZMQ_POLLOUT, ZMQ
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
 
 use crate::pipe::ZmqPipe;
-use crate::socket_base::routing_socket_base_t;
+use crate::socket::routing_socket_base_t;
 use crate::utils::put_u32;
 
 //  TODO: This class uses O(n) scheduling. Rewrite it to use O(1) algorithm.
@@ -428,7 +428,7 @@ impl ZmqRouter {
         if (_current_out) {
             // Close the remote connection if user has asked to do so
             // by sending zero length message.
-            // Pending messages in the pipe will be dropped (on receiving term- ack)
+            // Pending messages in the pipe will be dropped (on receiving Term- ack)
             if (_raw_socket && msg.size() == 0) {
                 _current_out.terminate(false);
                 msg.close();

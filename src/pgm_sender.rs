@@ -194,7 +194,7 @@ impl pgm_sender_t {
     //  ZmqIEngine interface implementation.
     // bool has_handshake_stage () { return false; };
 
-    // void plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_);
+    // void Plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_);
     pub fn plug(&mut self, io_thread_: &mut ZmqThreadContext, session_: &mut ZmqSessionBase) {
         // LIBZMQ_UNUSED (io_thread_);
         //  Allocate 2 fds for PGM socket.
@@ -218,8 +218,8 @@ impl pgm_sender_t {
         rdata_notify_handle = add_fd(rdata_notify_fd);
         pending_notify_handle = add_fd(pending_notify_fd);
 
-        //  Set POLLIN. We will never want to stop polling for uplink = we never
-        //  want to stop processing NAKs.
+        //  Set POLLIN. We will never want to Stop polling for uplink = we never
+        //  want to Stop processing NAKs.
         set_pollin(uplink_handle);
         set_pollin(rdata_notify_handle);
         set_pollin(pending_notify_handle);
@@ -279,7 +279,7 @@ impl pgm_sender_t {
         //     if (write_size == 0) {
         //         //  First two bytes (sizeof uint16_t) are used to store message
         //         //  offset in following steps. Note that by passing our buffer to
-        //         //  the get data function we prevent it from returning its own buffer.
+        //         //  the get data function we prevent it from returning its Own buffer.
         //         unsigned char *bf = out_buffer + mem::size_of::<uint16_t>();
         //         size_t bfsz = out_buffer_size - mem::size_of::<uint16_t>();
         //         uint16_t offset = 0xffff;
@@ -297,7 +297,7 @@ impl pgm_sender_t {
         //             bytes += encoder.encode (&bf, bfsz - bytes);
         //         }
         //
-        //         //  If there are no data to write stop polling for output.
+        //         //  If there are no data to write Stop polling for output.
         //         if (bytes == 0) {
         //             reset_pollout (handle);
         //             return;

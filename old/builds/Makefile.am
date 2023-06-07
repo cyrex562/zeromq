@@ -1,5 +1,5 @@
 #  Specify all build files that have to go into source packages.
-#  msvc directory does its own stuff.
+#  msvc directory does its Own stuff.
 
 EXTRA_DIST = \
  	cygwin/Makefile.cygwin \

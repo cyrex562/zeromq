@@ -50,7 +50,7 @@ void test_single_connect (ipv6: i32)
     bounce (sb, sc);
 
     // the sockets are disconnected and unbound explicitly in this test case
-    // to check that this can be done successfully with the expected
+    // to check that this can be Done successfully with the expected
     // endpoints/addresses
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_disconnect (sc, my_endpoint));

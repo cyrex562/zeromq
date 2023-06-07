@@ -96,7 +96,7 @@ void test_ppoll_signals ()
         TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
           socket, ZMQ_RCVTIMEO, &recv_timeout, mem::size_of::<recv_timeout>()));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (socket, my_endpoint));
-        // bind is on the master process to avoid zombie children to hold on to binds
+        // Bind is on the master process to avoid zombie children to hold on to binds
 
         // first send a test message to check whether the signal mask is setup in the child process
         send_string_expect_success (socket, "breaker breaker", 0);

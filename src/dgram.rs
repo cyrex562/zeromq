@@ -35,7 +35,7 @@ use crate::context::ZmqContext;
 use crate::defines::ZMQ_DGRAM;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"
@@ -57,7 +57,7 @@ pub struct ZmqDgram<'a> {
     pub _more_out: bool,
 
     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqDgram)
-    pub socket_base: ZmqSocketBase,
+    pub socket_base: ZmqSocket,
 }
 
 impl ZmqDgram {
@@ -69,7 +69,7 @@ impl ZmqDgram {
     //     options.raw_socket = true;
     // }
     pub fn new(parent_: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
-        let mut socket_base = ZmqSocketBase::new(parent_,  tid, sid_, false);
+        let mut socket_base = ZmqSocket::new(parent_, tid, sid_, false);
         socket_base.options.type_ = ZMQ_DGRAM;
         socket_base.options.raw_socket = true;
         Self {

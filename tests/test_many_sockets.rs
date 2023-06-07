@@ -74,7 +74,7 @@ void test_zmq_default_max ()
             break;
         sockets.push_back (socket);
     }
-    //  We may stop sooner if system has fewer available sockets
+    //  We may Stop sooner if system has fewer available sockets
     TEST_ASSERT_LESS_OR_EQUAL (ZMQ_MAX_SOCKETS_DFLT, sockets.size ());
 
     //  Further calls to zmq_socket should return NULL

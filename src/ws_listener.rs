@@ -74,7 +74,7 @@ use crate::ip::make_socket_noninheritable;
 use crate::ops::zmq_errno;
 
 use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::stream_listener_base::ZmqStreamListenerBase;
 use crate::tcp::{tcp_open_socket, tune_tcp_maxrt, tune_tcp_socket};
 use crate::tcp_address::TcpAddress;
@@ -133,7 +133,7 @@ pub struct ZmqWsListener {
 impl ZmqWsListener {
     pub fn new(
         io_thread_: &mut ZmqThreadContext,
-        socket: &mut ZmqSocketBase,
+        socket: &mut ZmqSocket,
         ctx: &mut ZmqContext,
         wss_: bool,
     ) -> Self {
@@ -216,7 +216,7 @@ impl ZmqWsListener {
             return -1;
         }
 
-        //  TODO why is this only done for the listener?
+        //  TODO why is this only Done for the listener?
         make_socket_noninheritable(_s);
 
         //  Allow reusing of the address.

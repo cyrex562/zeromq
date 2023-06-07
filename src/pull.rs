@@ -40,7 +40,7 @@ use crate::defines::ZMQ_PULL;
 use crate::message::ZmqMessage;
 
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqPull {
@@ -70,7 +70,7 @@ impl ZmqPull {
     // }
     pub fn new(options: &mut ZmqContext, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
         let mut out = Self {
-            socket_base: ZmqSocketBase::new(parent, options, tid, sid_, false),
+            socket_base: ZmqSocket::new(parent, options, tid, sid_, false),
             fair_queue: VecDeque::new(),
         };
         out.socket_base.options.type_ = ZMQ_PULL;

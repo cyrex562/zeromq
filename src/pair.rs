@@ -35,7 +35,7 @@ use crate::defines::ZMQ_PAIR;
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
 
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"
@@ -46,7 +46,7 @@ use crate::socket_base::ZmqSocketBase;
 #[derive(Default, Debug, Clone)]
 pub struct ZmqPair<'a> {
     //   : public ZmqSocketBase
-    pub socket_base: ZmqSocketBase,
+    pub socket_base: ZmqSocket,
 //
 
 
@@ -65,7 +65,7 @@ impl ZmqPair {
         // ZmqSocketBase (parent_, tid, sid_), pipe (null_mut())
         // options.type_ = ZMQ_PAIR;
         Self {
-            socket_base: ZmqSocketBase::new(parent, options, tid, sid_, false),
+            socket_base: ZmqSocket::new(parent, options, tid, sid_, false),
             pipe: None,
         }
     }

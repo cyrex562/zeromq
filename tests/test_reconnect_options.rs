@@ -130,7 +130,7 @@ void reconnect_success ()
                                              SETTLE_TIME);
     assert (rc == -1);
 
-    //  Now re-bind pub socket and wait for re-connect
+    //  Now re-Bind pub socket and wait for re-connect
     pub = test_context_socket (ZMQ_PUB);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (pub, ENDPOINT_0));
     msleep (SETTLE_TIME);
@@ -174,7 +174,7 @@ void reconnect_stop_on_refused ()
     void *sub_mon = test_context_socket (ZMQ_PAIR);
     //  Connect so they'll get events
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sub_mon, "inproc://monitor-sub"));
-    // set option to stop reconnecting on error
+    // set option to Stop reconnecting on error
     int stopReconnectOnError = ZMQ_RECONNECT_STOP_CONN_REFUSED;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (sub, ZMQ_RECONNECT_STOP,
                                                &stopReconnectOnError,
@@ -242,7 +242,7 @@ void reconnect_stop_on_handshake_failed ()
     int handshakeInterval = 1000;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
       sub, ZMQ_HANDSHAKE_IVL, &handshakeInterval, mem::size_of::<handshakeInterval>()));
-    // set option to stop reconnecting on failed handshake
+    // set option to Stop reconnecting on failed handshake
     int stopReconnectOnError = ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (sub, ZMQ_RECONNECT_STOP,
                                                &stopReconnectOnError,

@@ -25,12 +25,12 @@ to that of _zmq_poll()_. See linkzmq:zmq_poll[3] for more on this.
 
 To make full use of _zmq_ppoll()_, a non-NULL pointer to a signal mask must be
 constructed and passed to 'sigmask'. See sigprocmask(2) for more details. When
-this is done, inside the actual _ppoll()_ (or _pselect()_, see note below)
+this is Done, inside the actual _ppoll()_ (or _pselect()_, see note below)
 system call, an atomic operation consisting of three steps is performed:
   1. The current signal mask is replaced by the one pointed to by 'sigmask'.
-  2. The actual _poll()_ call is done.
+  2. The actual _poll()_ call is Done.
   3. The original signal mask is restored.
-Because these operations are done atomically, there is no opportunity for race
+Because these operations are Done atomically, there is no opportunity for race
 conditions in between the calls changing the signal mask and the poll/select
 system call. This means that only during this (atomic) call, we can unblock
 certain signals, so that they can be handled *at that time only*, not outside

@@ -46,7 +46,7 @@ use crate::fq::ZmqFq;
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
 
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 
 #[derive(Default,Debug,Clone)]
 struct ZmqOutpipe
@@ -62,7 +62,7 @@ struct ZmqOutpipe
 pub struct ZmqServer
 {
 // public ZmqSocketBase
-    pub socket_base: ZmqSocketBase,
+    pub socket_base: ZmqSocket,
     // ZmqServer (ZmqContext *parent_, tid: u32, sid_: i32);
     // ~ZmqServer ();
     //  Overrides of functions from ZmqSocketBase.
@@ -101,7 +101,7 @@ impl ZmqServer {
         options.can_recv_disconnect_msg = true;
         options.can_recv_routing_id = true;
         Self {
-            socket_base: ZmqSocketBase::new(parent, options,tid,sid_,false),
+            socket_base: ZmqSocket::new(parent, options, tid, sid_, false),
             fair_queue: Default::default(),
             _out_pipes: Default::default(),
             _next_routing_id: 0,

@@ -42,7 +42,7 @@ enum TestType
 
 void test_defaults ()
 {
-    // Set up bind socket
+    // Set up Bind socket
     void *bind_socket = test_context_socket (ZMQ_PULL);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (bind_socket, "inproc://a"));
 
@@ -78,7 +78,7 @@ int count_msg (send_hwm_: i32, recv_hwm_: i32, TestType test_type_)
     bind_socket: *mut c_void;
     connect_socket: *mut c_void;
     if (test_type_ == BIND_FIRST) {
-        // Set up bind socket
+        // Set up Bind socket
         bind_socket = test_context_socket (ZMQ_PULL);
         TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
           bind_socket, ZMQ_RCVHWM, &recv_hwm_, mem::size_of::<recv_hwm_>()));
@@ -100,7 +100,7 @@ int count_msg (send_hwm_: i32, recv_hwm_: i32, TestType test_type_)
           connect_socket, ZMQ_SNDHWM, &send_hwm_, mem::size_of::<send_hwm_>()));
         TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (connect_socket, "inproc://a"));
 
-        // Set up bind socket
+        // Set up Bind socket
         bind_socket = test_context_socket (ZMQ_PULL);
         TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (
           bind_socket, ZMQ_RCVHWM, &recv_hwm_, mem::size_of::<recv_hwm_>()));
@@ -160,7 +160,7 @@ int test_inproc_connect_and_close_first (send_hwm_: i32, recv_hwm_: i32)
     // Close connect
     test_context_socket_close (connect_socket);
 
-    // Set up bind socket
+    // Set up Bind socket
     void *bind_socket = test_context_socket (ZMQ_PULL);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (bind_socket, ZMQ_RCVHWM, &recv_hwm_, mem::size_of::<recv_hwm_>()));
@@ -181,7 +181,7 @@ int test_inproc_connect_and_close_first (send_hwm_: i32, recv_hwm_: i32)
 
 int test_inproc_bind_and_close_first (send_hwm_: i32, int /* recv_hwm */)
 {
-    // Set up bind socket
+    // Set up Bind socket
     void *bind_socket = test_context_socket (ZMQ_PUSH);
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (bind_socket, ZMQ_SNDHWM, &send_hwm_, mem::size_of::<send_hwm_>()));
@@ -193,10 +193,10 @@ int test_inproc_bind_and_close_first (send_hwm_: i32, int /* recv_hwm */)
            && zmq_send (bind_socket, null_mut(), 0, ZMQ_DONTWAIT) == 0)
         += 1send_count;
 
-    // Close bind
+    // Close Bind
     test_context_socket_close (bind_socket);
 
-    /* TODO Can't currently do connect without then wiring up a bind as things hang, this needs top be fixed.
+    /* TODO Can't currently do connect without then wiring up a Bind as things hang, this needs top be fixed.
     // Set up connect socket
     void *connect_socket = test_context_socket (ZMQ_PULL);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (connect_socket, ZMQ_RCVHWM, &recv_hwm, mem::size_of::<recv_hwm>()));
@@ -267,14 +267,14 @@ void test_finite_both_connect_first ()
 
 void test_infinite_recv_connect_and_close_first ()
 {
-    // Send hwm of 1, send before bind so total that can be queued is 1
+    // Send hwm of 1, send before Bind so total that can be queued is 1
     int count = test_inproc_connect_and_close_first (1, 0);
     TEST_ASSERT_EQUAL_INT (1, count);
 }
 
 void test_infinite_recv_bind_and_close_first ()
 {
-    // Send hwm of 1, send from bind side before connect so total that can be queued should be 1,
+    // Send hwm of 1, send from Bind side before connect so total that can be queued should be 1,
     // however currently all messages get thrown away before the connect.  BUG?
     /*int count = */ test_inproc_bind_and_close_first (1, 0);
     // TEST_ASSERT_EQUAL_INT (1, count);

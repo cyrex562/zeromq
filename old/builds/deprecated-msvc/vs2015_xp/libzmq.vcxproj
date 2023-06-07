@@ -186,7 +186,7 @@
     <ClCompile Include="..\..\..\src\null_mechanism.cpp" />
     <ClCompile Include="..\..\..\src\object.cpp" />
     <ClCompile Include="..\..\..\src\options.cpp" />
-    <ClCompile Include="..\..\..\src\own.cpp" />
+    <ClCompile Include="..\..\..\src\Own.cpp" />
     <ClCompile Include="..\..\..\src\pair.cpp" />
     <ClCompile Include="..\..\..\src\pgm_receiver.cpp" />
     <ClCompile Include="..\..\..\src\pgm_sender.cpp" />

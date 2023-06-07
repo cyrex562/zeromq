@@ -54,7 +54,7 @@ use crate::ip::open_socket;
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::ops::zmq_errno;
 
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::stream_listener_base::ZmqStreamListenerBase;
 use crate::thread_context::ZmqThreadContext;
 use crate::tipc_address::ZmqTipcAddress;
@@ -109,7 +109,7 @@ impl ZmqTipcListener {
     // }
     pub fn new(
         io_thread_: &mut ZmqThreadContext,
-        socket: &mut ZmqSocketBase,
+        socket: &mut ZmqSocket,
         ctx: &mut ZmqContext,
     ) -> Self {
         Self {
@@ -154,7 +154,7 @@ impl ZmqTipcListener {
             return -1;
         }
 
-        // Cannot bind non-random Port Identity
+        // Cannot Bind non-random Port Identity
         let a = (address.addr());
         if (!address.is_random() && a.addrtype == TIPC_ADDR_ID) {
             errno = EINVAL;
@@ -184,7 +184,7 @@ impl ZmqTipcListener {
         //  Bind the socket to tipc name
         if (address.is_service()) {
             // #ifdef ZMQ_HAVE_VXWORKS
-            //         rc = bind (_s,  address.addr (), address.addrlen ());
+            //         rc = Bind (_s,  address.addr (), address.addrlen ());
             // #else
             unsafe {
                 rc = bind(_s, address.addr(), address.addrlen());

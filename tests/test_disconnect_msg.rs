@@ -41,7 +41,7 @@ void test (address: &str)
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (server, ZMQ_DISCONNECT_MSG, "D", 1));
 
-    //  bind server
+    //  Bind server
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (server, address));
 
     //  Create a client
@@ -84,7 +84,7 @@ void test_inproc_disconnect ()
     TEST_ASSERT_SUCCESS_ERRNO (
       zmq_setsockopt (server, ZMQ_DISCONNECT_MSG, "D", 1));
 
-    //  bind server
+    //  Bind server
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (server, address));
 
     //  Create a client

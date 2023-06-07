@@ -61,7 +61,7 @@ use crate::message::{ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID, ZmqMessage};
 
 use crate::own::ZmqOwn;
 use crate::pipe::PipeState::{active, delimiter_received, term_ack_sent, term_req_sent1, term_req_sent2, waiting_for_delimiter};
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 use crate::ypipe::Ypipe;
 
 // int pipepair (ZmqObject *parents_[2],
@@ -79,14 +79,14 @@ pub trait i_pipe_events {
 //  States of the pipe endpoint:
 //  active: common state before any termination begins,
 //  delimiter_received: delimiter was read from pipe before
-//      term command was received,
-//  waiting_for_delimiter: term command was already received
+//      Term command was received,
+//  waiting_for_delimiter: Term command was already received
 //      from the peer but there are still pending messages to read,
 //  term_ack_sent: all pending messages were already read and
 //      all we are waiting for is ack from the peer,
 //  term_req_sent1: 'terminate' was explicitly called by the user,
 //  term_req_sent2: user called 'terminate' and then we've got
-//      term command from the peer as well.
+//      Term command from the peer as well.
 pub enum PipeState {
     active,
     delimiter_received,
@@ -383,11 +383,11 @@ impl ZmqPipe {
         // alloc_assert (_in_pipe);
         _in_active = true;
 
-        //  Notify the peer about the hiccup.
+        //  Notify the peer about the Hiccup.
         send_hiccup(_peer, _in_pipe);
     }
 
-    //  Ensure the pipe won't block on receiving pipe_term.
+    //  Ensure the pipe won't block on receiving PipeTerm.
     pub fn set_nodelay(&mut self) {
         self._delay = false;
     }
@@ -426,7 +426,7 @@ impl ZmqPipe {
         }
         //  If there are pending messages still available, do nothing.
         else if (self._state == PeerState::waiting_for_delimiter) {}
-        //  We've already got delimiter, but not term command yet. We can ignore
+        //  We've already got delimiter, but not Term command yet. We can ignore
         //  the delimiter and ack synchronously terminate as if we were in
         //  active state.
         else if (self._state == PeerState::delimiter_received) {
@@ -472,7 +472,7 @@ impl ZmqPipe {
         self._hwm = out;
     }
 
-    //  Set the boost to high water marks, used by inproc sockets so total hwm are sum of connect and bind sockets watermarks
+    //  Set the boost to high water marks, used by inproc sockets so total hwm are sum of connect and Bind sockets watermarks
     pub fn set_hwms_boost(&mut self, inhwmboost_: i32, outhwmboost_: i32) {
         self._in_hwm_boost = inhwmboost_;
         self._out_hwm_boost = outhwmboost_;
@@ -500,7 +500,7 @@ impl ZmqPipe {
     }
 
     // void send_stats_to_peer (ZmqOwn *socket_base);
-    pub fn send_stats_to_peer(&mut self, socket_base: &mut ZmqSocketBase) {
+    pub fn send_stats_to_peer(&mut self, socket_base: &mut ZmqSocket) {
         // EndpointUriPair *ep = new (std::nothrow) EndpointUriPair (_endpoint_pair);
         let mut ep = EndpointUriPair::default();
         ep = self._endpoint_pair.clone();
@@ -563,7 +563,7 @@ impl ZmqPipe {
         self._out_pipe = (pipe.clone());
         self._out_active = true;
 
-        //  If appropriate, notify the user about the hiccup.
+        //  If appropriate, notify the user about the Hiccup.
         if (self._state == PipeState::active) {
             self._sink.hiccuped(this);
         }
@@ -590,8 +590,8 @@ impl ZmqPipe {
             }
         }
 
-        //  Delimiter happened to arrive before the term command. Now we have the
-        //  term command as well, so we can move straight to term_ack_sent state.
+        //  Delimiter happened to arrive before the Term command. Now we have the
+        //  Term command as well, so we can move straight to term_ack_sent state.
         else if (self._state == PeerState::delimiter_received) {
             self._state = PeerState::term_ack_sent;
             self._out_pipe.clear();
@@ -600,7 +600,7 @@ impl ZmqPipe {
 
         //  This is the case where both ends of the pipe are closed in parallel.
         //  We simply reply to the request by ack and continue waiting for our
-        //  own ack.
+        //  Own ack.
         else if (self._state == PeerState::term_req_sent1) {
             self._state = PeerState::term_req_sent2;
             self._out_pipe.clear();
@@ -1082,7 +1082,7 @@ pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqContext) {
 //     _out_pipe = static_cast<upipe_t *> (pipe);
 //     _out_active = true;
 //
-//     //  If appropriate, notify the user about the hiccup.
+//     //  If appropriate, notify the user about the Hiccup.
 //     if (_state == active)
 //         _sink.hiccuped (this);
 // }
@@ -1107,8 +1107,8 @@ pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqContext) {
 //         }
 //     }
 //
-//     //  Delimiter happened to arrive before the term command. Now we have the
-//     //  term command as well, so we can move straight to term_ack_sent state.
+//     //  Delimiter happened to arrive before the Term command. Now we have the
+//     //  Term command as well, so we can move straight to term_ack_sent state.
 //     else if (_state == delimiter_received) {
 //         _state = term_ack_sent;
 //         _out_pipe = null_mut();
@@ -1117,7 +1117,7 @@ pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqContext) {
 //
 //     //  This is the case where both ends of the pipe are closed in parallel.
 //     //  We simply reply to the request by ack and continue waiting for our
-//     //  own ack.
+//     //  Own ack.
 //     else if (_state == term_req_sent1) {
 //         _state = term_req_sent2;
 //         _out_pipe = null_mut();
@@ -1203,7 +1203,7 @@ pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqContext) {
 //     //  If there are pending messages still available, do nothing.
 //     else if (_state == waiting_for_delimiter) {
 //     }
-//     //  We've already got delimiter, but not term command yet. We can ignore
+//     //  We've already got delimiter, but not Term command yet. We can ignore
 //     //  the delimiter and ack synchronously terminate as if we were in
 //     //  active state.
 //     else if (_state == delimiter_received) {
@@ -1273,7 +1273,7 @@ pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqContext) {
 //     }
 // }
 
-// void ZmqPipe::hiccup ()
+// void ZmqPipe::Hiccup ()
 // {
 //     //  If termination is already under way do nothing.
 //     if (_state != active)
@@ -1291,7 +1291,7 @@ pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqContext) {
 //     alloc_assert (_in_pipe);
 //     _in_active = true;
 //
-//     //  Notify the peer about the hiccup.
+//     //  Notify the peer about the Hiccup.
 //     send_hiccup (_peer, _in_pipe);
 // }
 

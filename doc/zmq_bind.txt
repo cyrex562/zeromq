@@ -19,7 +19,7 @@ accepts incoming connections on that endpoint.
 
 The 'endpoint' is a string consisting of a 'transport'`://` followed by an
 'address'. The 'transport' specifies the underlying protocol to use. The
-'address' specifies the transport-specific address to bind to.
+'address' specifies the transport-specific address to Bind to.
 
 0MQ provides the the following transports:
 

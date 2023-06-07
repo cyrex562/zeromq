@@ -44,7 +44,7 @@
 
 use crate::address::SocketEnd::SocketEndLocal;
 use crate::address::{get_socket_name, ZmqAddress};
-use crate::command::CommandType::bind;
+use crate::command::CommandType::Bind;
 use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
 use crate::ip::unblock_socket;
@@ -451,10 +451,10 @@ impl ZmqSocksConnector {
         // Set a source address for conversations
         if (tcp_addr.has_src_addr()) {
             // #if defined ZMQ_HAVE_VXWORKS
-            //         rc = ::bind (_s, (sockaddr *) tcp_addr.src_addr (),
+            //         rc = ::Bind (_s, (sockaddr *) tcp_addr.src_addr (),
             //                      tcp_addr.src_addrlen ());
             // #else
-            //         rc = bind (_s, tcp_addr.src_addr (), tcp_addr.src_addrlen ());
+            //         rc = Bind (_s, tcp_addr.src_addr (), tcp_addr.src_addrlen ());
             // #endif
             //         if (rc == -1) {
             //             close ();

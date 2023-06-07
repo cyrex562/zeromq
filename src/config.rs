@@ -43,7 +43,7 @@ pub const COMMAND_PIPE_GRANULARITY: i32 = 16;
 //  Determines how often does socket poll for new commands when it
 //  still has unprocessed messages to handle. Thus, if it is set to 100,
 //  socket will process 100 inbound messages before doing the poll.
-//  If there are no unprocessed messages available, poll is done
+//  If there are no unprocessed messages available, poll is Done
 //  immediately. Decreasing the value trades overall latency for more
 //  real-time behaviour (less latency peaks).
 pub const INBOUND_POLL_RATE: i32 = 100;

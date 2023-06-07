@@ -127,7 +127,7 @@ impl IpResolver {
                     return -1;
                 }
             } else if port_str == "0" {
-                //  Using "0" for a bind address is equivalent to using "*". For a
+                //  Using "0" for a Bind address is equivalent to using "*". For a
                 //  connectable address it could be used to connect to port 0.
                 port = 0;
             } else {

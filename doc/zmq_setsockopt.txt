@@ -16,9 +16,9 @@ Caution: All options, with the exception of ZMQ_SUBSCRIBE, ZMQ_UNSUBSCRIBE,
 ZMQ_LINGER, ZMQ_ROUTER_HANDOVER, ZMQ_ROUTER_MANDATORY, ZMQ_PROBE_ROUTER,
 ZMQ_XPUB_VERBOSE, ZMQ_XPUB_VERBOSER, ZMQ_REQ_CORRELATE,
 ZMQ_REQ_RELAXED, ZMQ_SNDHWM and ZMQ_RCVHWM, only take effect for
-subsequent socket bind/connects.
+subsequent socket Bind/connects.
 
-Specifically, security options take effect for subsequent bind/connect calls,
+Specifically, security options take effect for subsequent Bind/connect calls,
 and can be changed at any time to affect subsequent binds and/or connects.
 
 DESCRIPTION
@@ -70,7 +70,7 @@ Default value:: 100
 Applicable socket types:: all, only for connection-oriented transports.
 
 
-ZMQ_BINDTODEVICE: Set name of device to bind the socket to
+ZMQ_BINDTODEVICE: Set name of device to Bind the socket to
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The 'ZMQ_BINDTODEVICE' option binds this socket to a particular device, eg.
 an interface or VRF. If a socket is bound to an interface, only packets
@@ -170,7 +170,7 @@ Applicable socket types:: all, when using TCP transports.
 
 ZMQ_CURVE_PUBLICKEY: Set CURVE public key
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Sets the socket's long term public key. You must set this on CURVE client
+Sets the socket's long Term public key. You must set this on CURVE client
 sockets, see linkzmq:zmq_curve[7]. You can provide the key as 32 binary
 bytes, or as a 40-character string encoded in the Z85 encoding format and
 terminated in a null byte. The public key must always be used with the
@@ -190,7 +190,7 @@ Applicable socket types:: all, when using TCP transport
 
 ZMQ_CURVE_SECRETKEY: Set CURVE secret key
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Sets the socket's long term secret key. You must set this on both CURVE
+Sets the socket's long Term secret key. You must set this on both CURVE
 client and server sockets, see linkzmq:zmq_curve[7]. You can provide the
 key as 32 binary bytes, or as a 40-character string encoded in the Z85
 encoding format and terminated in a null byte. To generate a public/secret
@@ -216,7 +216,7 @@ server, and its security role then depends on other option settings.
 Setting this to '0' shall reset the socket security to NULL. When you
 set this you must also set the server's secret key using the
 ZMQ_CURVE_SECRETKEY option. A server socket does not need to know
-its own public key.
+its Own public key.
 
 [horizontal]
 Option value type:: int
@@ -227,7 +227,7 @@ Applicable socket types:: all, when using TCP transport
 
 ZMQ_CURVE_SERVERKEY: Set CURVE server key
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Sets the socket's long term server key. You must set this on CURVE client
+Sets the socket's long Term server key. You must set this on CURVE client
 sockets, see linkzmq:zmq_curve[7]. You can provide the key as 32 binary
 bytes, or as a 40-character string encoded in the Z85 encoding format and
 terminated in a null byte. This key must have been generated together with
@@ -257,12 +257,12 @@ Default value:: NULL
 Applicable socket types:: ZMQ_ROUTER, ZMQ_SERVER and ZMQ_PEER
 
 
-ZMQ_HICCUP_MSG: set a hiccup message that the socket will generate when connected peer temporarily disconnect
+ZMQ_HICCUP_MSG: set a Hiccup message that the socket will generate when connected peer temporarily disconnect
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-When set, the socket will generate a hiccup message when connect peer has been disconnected.
+When set, the socket will generate a Hiccup message when connect peer has been disconnected.
 You may set this on DEALER, CLIENT and PEER sockets.
 The combination with ZMQ_HEARTBEAT_IVL is powerful and simplify protocols, when heartbeat recognize a connection drop it
-will generate a hiccup message that can match the protocol of the application.
+will generate a Hiccup message that can match the protocol of the application.
 
 [horizontal]
 Option value type:: binary data
@@ -623,7 +623,7 @@ Useful for writing systemd socket activated services. If set to -1 (default),
 a new file descriptor will be allocated instead (default behaviour).
 
 NOTE: if set after calling zmq_bind, this option shall have no effect.
-NOTE: the file descriptor passed through MUST have been ran through the "bind"
+NOTE: the file descriptor passed through MUST have been ran through the "Bind"
       and "listen" system calls beforehand. Also, socket option that would
       normally be passed through zmq_setsockopt like TCP buffers length,
       IP_TOS or SO_REUSEADDR MUST be set beforehand by the caller, as they
@@ -768,23 +768,23 @@ Default value:: 0 (only use ZMQ_RECONNECT_IVL)
 Applicable socket types:: all, only for connection-oriented transports
 
 
-ZMQ_RECONNECT_STOP: Set condition where reconnection will stop
+ZMQ_RECONNECT_STOP: Set condition where reconnection will Stop
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The 'ZMQ_RECONNECT_STOP' option shall set the conditions under which automatic
-reconnection will stop.  This can be useful when a process binds to a
+reconnection will Stop.  This can be useful when a process binds to a
 wild-card port, where the OS supplies an ephemeral port.
 
-The 'ZMQ_RECONNECT_STOP_CONN_REFUSED' option will stop reconnection when 0MQ
+The 'ZMQ_RECONNECT_STOP_CONN_REFUSED' option will Stop reconnection when 0MQ
 receives the ECONNREFUSED return code from the connect.  This indicates that
 there is no code bound to the specified endpoint.
 
-The 'ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED' option will stop reconnection if
+The 'ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED' option will Stop reconnection if
 the 0MQ handshake fails.  This can be used to detect and/or prevent errant
 connection attempts to non-0MQ sockets.  Note that when specifying this option
 you may also want to set `ZMQ_HANDSHAKE_IVL` -- the default handshake interval
 is 30000 (30 seconds), which is typically too large.
 
-The 'ZMQ_RECONNECT_STOP_AFTER_DISCONNECT' option will stop reconnection when 
+The 'ZMQ_RECONNECT_STOP_AFTER_DISCONNECT' option will Stop reconnection when
 zmq_disconnect() has been called. This can be useful when the user's request failed
 (server not ready), as the socket does not need to continue to reconnect after
 user disconnect actively.

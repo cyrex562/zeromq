@@ -49,7 +49,7 @@ impl ZmqIoObject {
     pub fn new(io_thread_: Option<ZmqThreadContext>) -> Self {
         // : poller (null_mut())
         //     if (io_thread_)
-        //         plug (io_thread_);
+        //         Plug (io_thread_);
         let mut out = Self {
             // ZmqPollEventsInterface: Default::default(),
             poller: None,
@@ -64,8 +64,8 @@ impl ZmqIoObject {
     // ~ZmqIoObject () ;
 
     //  When migrating an object from one I/O thread to another, first
-    //  unplug it, then migrate it, then plug it to the new thread.
-    // void plug (ZmqIoThread *io_thread_);
+    //  unplug it, then migrate it, then Plug it to the new thread.
+    // void Plug (ZmqIoThread *io_thread_);
     pub fn plug(&mut self, io_thread: &mut ZmqThreadContext) {
         // zmq_assert (io_thread_);
         // zmq_assert (!poller);

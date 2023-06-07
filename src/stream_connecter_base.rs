@@ -51,7 +51,7 @@ use crate::fd::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 
 use crate::own::ZmqOwn;
-use crate::proxy::ZmqSocketBase;
+use crate::proxy::ZmqSocket;
 use crate::raw_engine::RawEngine;
 use crate::session_base::ZmqSessionBase;
 use crate::thread_context::ZmqThreadContext;
@@ -85,7 +85,7 @@ pub struct StreamConnecterBase<'a> {
     pub _endpoint: String,
     // Socket
     // ZmqSocketBase *const self._socket;
-    pub _socket: &'a ZmqSocketBase,
+    pub _socket: &'a ZmqSocket,
     //  ID of the timer used to delay the reconnection.
     // virtual void start_connecting () = 0;
     pub start_connecting: Option<fn()>,

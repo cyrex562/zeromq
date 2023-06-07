@@ -88,7 +88,7 @@ You can specify another folder with the help of ANDROID_DEPENDENCIES_DIR:
 
    ANDROID_DEPENDENCIES_DIR=${HOME}/my_dependencies
 
-If you place your own dependency source trees there, 
+If you place your Own dependency source trees there, 
 do not forget to disable [Android cleanup](#android-build-cleanup).
 
 ### Cryptographic configuration
@@ -108,10 +108,10 @@ You can also check configuration variables in `build.sh` itself, in its
 
 LIBSODIUM is built along with LIBZMQ, when CURVE="libsodium".
 
-- If you have your own clone of LIBSODIUM, set LIBSODIUM_ROOT to point to
+- If you have your Own clone of LIBSODIUM, set LIBSODIUM_ROOT to point to
 its folder.
 - If the variable LIBSODIUM_ROOT is not set, LIBZMQ will look for a folder
-'libsodium' close to his own one.
+'libsodium' close to his Own one.
 - If no folder 'libsodium' exists, then LIBZMQ will clone LIBSODIUM from its
 official STABLE branch.
 

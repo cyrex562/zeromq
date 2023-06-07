@@ -297,7 +297,7 @@ impl ZmqTcpConnector {
 
             // #if defined ZMQ_HAVE_VXWORKS
             //         unsafe {
-            //             rc = bind(_s, tcp_addr.src_addr(),
+            //             rc = Bind(_s, tcp_addr.src_addr(),
             //                       tcp_addr.src_addrlen());
             //         }
             // #else

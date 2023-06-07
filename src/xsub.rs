@@ -41,7 +41,7 @@ use crate::fq::ZmqFq;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::pipe::ZmqPipe;
 use crate::radix_tree::radix_tree_t;
-use crate::socket_base::{ZmqContext, ZmqSocketBase};
+use crate::socket::{ZmqContext, ZmqSocket};
 
 // #include "macros.hpp"
 // #include "xsub.hpp"
@@ -95,7 +95,7 @@ pub struct XSub {
     pub _only_first_subscribe: bool,
 
     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (XSub)
-    pub socket_base: ZmqSocketBase,
+    pub socket_base: ZmqSocket,
 }
 
 impl XSub {
@@ -126,7 +126,7 @@ impl XSub {
         out._more_recv = false;
         out._process_subscribe = false;
         out._only_first_subscribe = false;
-        let mut base = ZmqSocketBase::default();
+        let mut base = ZmqSocket::default();
         out.socket_base = base;
         out
     }
@@ -222,7 +222,7 @@ impl XSub {
         if msg.is_subscribe() || (size > 0 && *data == 1) {
             //  Process subscribe message
             //  This used to filter out duplicate subscriptions,
-            //  however this is already done on the XPUB side and
+            //  however this is already Done on the XPUB side and
             //  doing it here as well breaks ZMQ_XPUB_VERBOSE
             //  when there are forwarding devices involved.
             if !msg.is_subscribe() {

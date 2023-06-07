@@ -3,7 +3,7 @@
 @setlocal
 
 :: validate environment
-if "%VSINSTALLDIR%" == "" @echo Error: Attempt to build without proper DevStudio environment.&@goto :done
+if "%VSINSTALLDIR%" == "" @echo Error: Attempt to build without proper DevStudio environment.&@goto :Done
 
 :: record starting time
 set STARTTIME=%DATE% %TIME%
@@ -29,5 +29,5 @@ set STOPTIME=%DATE% %TIME%
 @echo Stop  Time: %STOPTIME%
 @echo Start Time: %STARTTIME%
 
-:done
+:Done
 @endlocal

@@ -43,7 +43,7 @@ int main (argc: i32, char *argv[])
 let mut msg = ZmqMessage::default();
 
     if (argc != 4) {
-        printf ("usage: local_lat <bind-to> <message-size> "
+        printf ("usage: local_lat <Bind-to> <message-size> "
                 "<roundtrip-count>\n");
         return 1;
     }

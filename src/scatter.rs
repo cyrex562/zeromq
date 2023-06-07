@@ -34,7 +34,7 @@ use crate::lb::LoadBalancer;
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
 
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket::ZmqSocket;
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"
@@ -45,7 +45,7 @@ use crate::socket_base::ZmqSocketBase;
 #[derive(Default, Debug, Clone)]
 pub struct ZmqScatter {
     // : public ZmqSocketBase
-    pub socket_base: ZmqSocketBase,
+    pub socket_base: ZmqSocket,
     //     ZmqScatter (ZmqContext *parent_, tid: u32, sid_: i32);
 //     ~ZmqScatter ();
     //  Overrides of functions from ZmqSocketBase.
@@ -68,7 +68,7 @@ impl ZmqScatter {
         // ZmqSocketBase (parent_, tid, sid_, true)
         options.type_ = ZMQ_SCATTER as i32;
         Self {
-            socket_base: ZmqSocketBase::new(parent, options, tid, sid, false),
+            socket_base: ZmqSocket::new(parent, options, tid, sid, false),
             load_balance: LoadBalancer::new(),
         }
     }

@@ -64,11 +64,11 @@ pub struct ZmqCurveServer {
     // private:
     //  Our secret key (s)
     pub _secret_key: [u8; CRYPTO_BOX_SECRETKEYBYTES as usize],
-    //  Our short-term public key (S')
+    //  Our short-Term public key (S')
     pub cn_public: [u8; CRYPTO_BOX_PUBLICKEYBYTES as usize],
-    //  Our short-term secret key (s')
+    //  Our short-Term secret key (s')
     pub cn_secret: [u8; CRYPTO_BOX_SECRETKEYBYTES as usize],
-    //  Client's short-term public key (C')
+    //  Client's short-Term public key (C')
     pub cn_client: [u8; CRYPTO_BOX_PUBLICKEYBYTES as usize],
     //  Key used to produce cookie
     pub _cookie_key: [u8; CRYPTO_SECRETBOX_KEYBYTES as usize],
@@ -654,7 +654,7 @@ impl ZmqCurveServer {
 //     //  Fetch our secret key from socket options
 //     memcpy (_secret_key, options_.curve_secret_key, CRYPTO_BOX_SECRETKEYBYTES);
 
-//     //  Generate short-term key pair
+//     //  Generate short-Term key pair
 //     memset (_cn_secret, 0, CRYPTO_BOX_SECRETKEYBYTES);
 //     memset (_cn_public, 0, CRYPTO_BOX_PUBLICKEYBYTES);
 //     rc = crypto_box_keypair (_cn_public, _cn_secret);
@@ -775,7 +775,7 @@ impl ZmqCurveServer {
 //         return -1;
 //     }
 
-//     //  Save client's short-term public key (C')
+//     //  Save client's short-Term public key (C')
 //     memcpy (_cn_client, hello + 80, 32);
 
 //     uint8_t hello_nonce[CRYPTO_BOX_NONCEBYTES];
@@ -991,10 +991,10 @@ impl ZmqCurveServer {
 //         return -1;
 //     }
 
-//     //  What we decrypted must be the client's short-term public key
+//     //  What we decrypted must be the client's short-Term public key
 //     if (memcmp (&vouch_plaintext[CRYPTO_BOX_ZEROBYTES], _cn_client, 32)) {
 //         // TODO this case is very hard to test, as it would require a modified
-//         //  client that knows the server's secret short-term key
+//         //  client that knows the server's secret short-Term key
 
 //         // CURVE I: invalid handshake from client (public key)
 //         session.get_socket ().event_handshake_failed_protocol (
