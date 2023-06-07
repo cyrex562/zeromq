@@ -143,6 +143,7 @@ use libc::{
 };
 #[cfg(target_os = "windows")]
 use windows::core::PSTR;
+#[cfg(target_os = "windows")]
 use windows::Win32::Foundation::CloseHandle;
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::{
@@ -154,6 +155,7 @@ use windows::Win32::Networking::WinSock::{
     bind, getsockname, getsockopt, htonl, htons, AF_INET, INADDR_LOOPBACK, INVALID_SOCKET,
     SOCK_STREAM, SO_ERROR, SO_REUSEADDR,
 };
+#[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{
     closesocket, recv, send, socklen_t, AF_UNIX, SEND_RECV_FLAGS,
 };
@@ -173,10 +175,9 @@ use windows::Win32::Security::{
 use windows::Win32::System::Threading::{
     CreateEventA, CreateMutexA, OpenEventA, WaitForSingleObject, EVENT_MODIFY_STATE, INFINITE,
 };
+#[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::{ReleaseMutex, SetEvent};
 
-use crate::address::get_socket_address;
-use crate::address::SocketEnd::SocketEndRemote;
 #[cfg(target_os = "windows")]
 use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;

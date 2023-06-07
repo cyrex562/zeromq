@@ -1,8 +1,6 @@
 extern crate core;
 
 mod address_family;
-mod allocator;
-mod atomic_counter;
 mod channel;
 mod client;
 mod command;
