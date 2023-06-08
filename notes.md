@@ -291,10 +291,212 @@ zmq_disconnect(socket, "inproc://my_publisher")
 msg: ZmqMessage
 zmq_msg_init_buffer(&mut, "Hello World", 12)
 copy: ZmqMessage
+zmq_msg_init(&mut copy)
+zmq_msg_copy(&mut copy, &msg)
+zmq_msg_close(&mut msg)
+zmq_msg_close(&mut copy)
+```
+
+### zmq_msg_data
+
+* get a pointer to the message content
+
+### zmq_msg_get, zmq_msg_gets
+
+* get a message property
+* properties:
+  * ZMQ_MORE: get indication of whether the message currently being read has more message parts to follow
+  * ZMQ_SRCFD: get the pre-allocated socket file descriptor
+  * ZMQ_SHARED: get indication of whether the message is a shared reference
+
+```pseudo
+msg: ZmqMessage
+loop 
+    zmq_msg_init(&mut msg)
+    zmq_msg_recv(socket, &frame, 0)
+    if zmq_msg_get(&msg, ZMQ_MORE) == 0
+        break
+    zmq_msg_close(&mut msg)
+```
+
+ ### zmq_msg_init, zmq_msg_init_buffer, zmq_msg_init_data, zmq_msg_init_size
+
+* zmq_msg_init: initialize an empty zmq message
+* zmq_msg_init_buffer: initalize a message with buffer copy
+* zmq_msg_init_data: initialize a message with data copy
+* zmq_msg_init_size: initialize a message with size 
+
+* initialize the message referenced by 'msg' to an empty message
+* the functions zmq_msg_init, zmq_msg_init_data, zmq_msg_init_size, and zmq_msg_init_buffer are mutually exclusive
+
+```pseudo
+msg: ZmqMessage
+zmq_msg_init(&mut msg)
+zmq_msg_recv(socket, &msg, 0)
+```
+
+### zmq_msg_more
+
+* indicate if there are more message parts to receive
+* indicates if this is part of a multi-part message, and there are further parts to receive.
+
+```pseudo
+part: ZmqMessage
+loop
+    zmq_msg_init(&mut part)
+    zmq_msg_recv(socket, &part, 0)
+    if zmq_msg_more(&part) == 0
+        break
+    zmq_msg_close(&mut part)
+```
+
+### zmq_msg_move
+
+* move content of a message to another message
+
+### zmq_msg_recv
+
+* receive a message part from a socket
+* receive a message part from the socket referenced by the socket argument and store it in the message referenced by
+  the msg argument. Any content previously present in the message object referenced by msg is completely reset.
+* flags:
+  * ZMQ_DONTWAIT: return immediately if there is no message to receive
+* if the message is a multi-part message, then each message part is received as a separate ZmqMessage object.
+
+```pseudo
+msg: ZmqMessage
+zmq_msg_init(&mut msg)
+zmq_msg_recv(socket, &msg, 0)
+zmq_msg_close(&mut msg)
+```
+
+### zmq_msg_routing_id
+
+* return routing ID for message
+
+### zmq_msg_send
+
+* send a message part on a socket
+* queue the messag referenced by msg to be sent to the socket referenced by the socket argument. The flags argument
+* flags:
+  * ZMQ_DONTWAIT: perform operation in non-blocking mode
+  * ZMQ_SNDMORE: send multi-part message, more parts to follow
+* on success, the message has been queued but not yet sent
+
+```pseudo
+rc = zmq_msg_send (&part1, socket, ZMQ_SNDMORE);
+rc = zmq_msg_send (&part2, socket, ZMQ_SNDMORE);
+rc = zmq_msg_send (&part3, socket, 0);
+```
+
+### zmq_msg_set
+
+* set a message property
+
+### zmq_msg_set_routing_id
+
+* set the message's routing id
+
+### zmq_msg_size
+
+* retrieve the message content size
+
+### zmq_poll
+
+* input/output multiplexing
+* provides mechanism for multiplexing input/output events in a level-triggered fashion over a set of sockets
+* each member of the array pointed to by the items arg is a pollitem structure
+* for each pollitem, zmq_poll examines the socket referenced by the socket field or the standard socket specified by the file descriptor fd
+* if none of the requested events for an item have occurred zmq_pool shall wait for a specified period of time for an event to occur.
+* flags:
+  * ZMQ_POLLIN: at least one message may be received from the socket without blocking
+  * ZMQ_POLLOUT: at least one message may be sent to the socket without blocking
+  * ZMQ_POLLERR: an error condition has occurred on the socket
+  * ZMQ_POLLPRI: no useful for zmq sockets
+
+```pseudo
+items: [ZmqPollItem;2]
+items[0].socket = socket1
+items[0].events = ZMQ_POLLIN
+items[1].socket = None
+items[1].fd = fd
+items[1].events = ZMQ_POLLIN
+zmq_poll(&mut items, 2, -1)
+```
+
+### zmq_ppoll
+
+* input/output multiplexing with a signal mask
+
+```pseudo
+// simple global signal handler for SIGTERM
+static bool sigterm_received = false;
+void handle_sigterm (signum: i32) {
+    sigterm_received = true;
+}
+
+// set up signal mask and install handler for SIGTERM
+sigset_t sigmask, sigmask_without_sigterm;
+sigemptyset(&sigmask);
+sigaddset(&sigmask, SIGTERM);
+sigprocmask(SIG_BLOCK, &sigmask, &sigmask_without_sigterm);
+struct sigaction sa;
+memset(&sa, 0, sizeof(sa));
+sa.sa_handler = handle_sigterm;
+
+// poll
+zmq_pollitem_t items [1];
+// Just one item, which refers to 0MQ socket 'socket' */
+items[0].socket = socket;
+items[0].events = ZMQ_POLLIN;
+// Poll for events indefinitely, but also exit on SIGTERM
+int rc = zmq_poll (items, 2, -1, &sigmask_without_sigterm);
+if (rc < 0 && errno == EINTR && sigterm_received) {
+  // do your SIGTERM business
+} else {
+  // do your non-SIGTERM error handling
+}
+```
+
+### zmq_proxy
+
+* start built-in proxy
+* a proxy connects a frontend socket to a backend socket
+* data flows from frontend to backend
+* 
 
 
 
-## ZMQ Curve crypto
+### zmq_poller_new, zmq_poller_destroy
+
+* manage the lifetime of a poller instance
+
+### zmq_poller_size
+
+* queries the number of sockets or file descriptors registered with a poller
+
+### zmq_poller_add, zmq_poller_modify, zmq_poller_remove
+
+* manages the zmq sockets registered with a poller
+* add: registers a socket with a poller
+* modify: modifies the subscribed events for a socket
+* remove: removes a socket registration completely
+
+### zmq_poller_add_fd, zmq_poller_modify_md, and zmq_poller_remove_fd
+
+* use file descriptors registered with a poller
+
+
+
+## ZMQ Poller
+
+* input/output multiplexing
+* provide a mechanism for application to multiplex input/output events in a level-triggered fashion over a set of sockets
+
+
+## ZMQ Security
+
+### ZMQ Curve crypto
 
 * provides a mechanism for authentication and confidentiality for ZMQ sockets between a client and a server.
 * Intended for use on public netweorks
@@ -331,7 +533,7 @@ secret:
     JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6
 ```
 
-## GSSAPI
+### GSSAPI
 
 * Defines a mechanism for secure authentication and confidentiality for communication between a client and a server. 
 * Uses the Generics Security Service Application Program Interface (GSSAPI) as defined IETF RFC-2743
@@ -342,7 +544,20 @@ secret:
   user.
 * Encryption (the default) can be disabled by setting the ZMQ_GSSAPI_PLAINTEXT option on the client and the server
 
-## ZMQ Inproc
+### Null
+
+* no security or confidentiality
+* the default configuration for ZMQ sockets
+
+### plain
+
+* clear text authentication and confidentiality
+* server sets ZMQ_PLAIN_SERVER option
+* client sets ZMQ_PLAIN_USERNAME and ZMQ_PLAIN_PASSWORD options
+
+## ZMQ transports
+
+### ZMQ Inproc
 
 * local in-process (inter-thread) communication transport
 * passes messages in-mmeory directly between threads sharing a single context
@@ -352,7 +567,7 @@ secret:
 zmq_bind(socket, "inproc://some_name");
 ```
 
-## ZMQ IPC
+### ZMQ IPC
 
 * local inter-process communication transport
 * passess messages between local processes using a system-dependent IPC mechanism
@@ -361,3 +576,12 @@ zmq_bind(socket, "inproc://some_name");
 zmq_bind(socket, "ipc://some_name");
 zmq_connect(socket, "ipc://some_name");
 ```
+
+### ZMQ PGM
+
+* reliable multicast transport using the PGM protocol
+* ZMQ supports both RFC 3208 pgm transport and encapsulated PGM over UDP
+* can only be used with PUB and SUB socket types
+* pgm and epgm transports are rate limited by default
+* pgm transport requires raw socket access
+
