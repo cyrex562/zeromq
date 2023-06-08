@@ -256,7 +256,43 @@ zmq_disconnect(socket, "inproc://my_publisher")
         * ZMQ_VMCI_CONNECT_TIMEOUT: get VMCI connect timeout
         * ZMQ_MULTICAST_LOOP: get multicast loopback
         * ZMQ_ROUTER_NOTIFY: get ROUTER socket notification settings
-        *
+        * ZMQ_ROUTER_BATCH_SIZE: get ROUTER socket batch size
+        * ZMQ_OUT_BATCH_SIZE: get socket batch size for outbound messages
+        * ZMQ_TOPICS_COUNT: number of topic subscriptions received
+
+    ```pseudo
+    sndhwm_size: usize = 0;
+    zmq_getsockopt(socket, ZMQ_SNDHWM, &sndhwm_size, &size_of(sndhwm_size));
+    ```
+
+### zmq_has
+
+* check if ZMQ has a particular capability
+* capability options include:
+    * ipc: the library supports the ipc:// protocol
+    * pgm: the library supports the pgm:// protocol
+    * tipc: the library supports the tipc:// protocol
+    * norm: the library supports the norm:// protocol
+    * curve: the library supports the CURVE security mechanism
+    * gssapi: the library supports the GSSAPI security mechanism
+    * draft_api: the library supports the draft API
+
+### zmq_msg_close
+
+* release a zmq message object
+* informat the infrastructure that any resources associated with the message object can be released
+
+### zmq_msg_copy
+
+* copy the contnet of a message to another message
+* copy the message referenced by 'src' to the message referenced by 'dest'
+
+```pseudo
+msg: ZmqMessage
+zmq_msg_init_buffer(&mut, "Hello World", 12)
+copy: ZmqMessage
+
+
 
 ## ZMQ Curve crypto
 
@@ -293,4 +329,35 @@ server:
 secret:
     8E0BDD697628B91D8F245587EE95C5B04D48963F79259877B49CD9063AEAD3B7
     JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6
+```
+
+## GSSAPI
+
+* Defines a mechanism for secure authentication and confidentiality for communication between a client and a server. 
+* Uses the Generics Security Service Application Program Interface (GSSAPI) as defined IETF RFC-2743
+* To become a server, the app sets the ZMQ_GSSAPI_SERVER option on the socket
+* To become a client, that app sets the ZMQ_GSSAPI_CLIENT option on the socket
+* On the client or server the app may set the ZMQ_GSSAPI_PRINCIPAL option to specify the principal name to use for
+  authentication. If the principal is not specified, the GSSAPI library will use the default principal for the current
+  user.
+* Encryption (the default) can be disabled by setting the ZMQ_GSSAPI_PLAINTEXT option on the client and the server
+
+## ZMQ Inproc
+
+* local in-process (inter-thread) communication transport
+* passes messages in-mmeory directly between threads sharing a single context
+* no I/O threads involved
+
+```pseudo
+zmq_bind(socket, "inproc://some_name");
+```
+
+## ZMQ IPC
+
+* local inter-process communication transport
+* passess messages between local processes using a system-dependent IPC mechanism
+
+```pseudo
+zmq_bind(socket, "ipc://some_name");
+zmq_connect(socket, "ipc://some_name");
 ```
