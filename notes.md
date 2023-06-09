@@ -486,6 +486,165 @@ if (rc < 0 && errno == EINTR && sigterm_received) {
 
 * use file descriptors registered with a poller
 
+### zmq_z85_encode
+
+* encode a binary key as Z85 printable text
+
+### zmq_z85_decode
+
+* decode a binary key from Z85 printable text
+
+### zmq_version
+
+* report 0MQ library version
+
+### zmq_unbind
+
+* stop accepting connections on a socket
+
+### zmq_term
+
+** deprecated **
+
+* terminate a 0MQ context
+
+### zmq_socket
+
+* create a 0MQ socket within the specified context
+* newly created socket is initially unbound and not assoctiated with any endpoints
+* to establish a message flow the socket must first be connected to at least one endpoint or at least one endpoint must be created for accepting connections
+* setup, teardown, reconnect, and delivery are transparent to the ZMQ socket interface
+* thread safe sockets:
+  * ZMQ_CLIENT
+  * ZMQ_SERVER
+  * ZMQ_DISH
+  * ZMQ_RADIO
+  * ZMQ_SCATTER
+  * ZMQ_GATHER
+  * ZMQ_PEER
+  * ZMQ_CHANNEL
+
+* socket types:
+  * client-server: allow a single ZMQ_SERVER server to one or more ZMQ_CLIENT clients. the client always starts the conversation, after which either peer can send messages asynchronouly.
+    * ZMQ_CLIENT
+    * ZMQ_SERVER
+  * radio-dish: one-to-many distrubtion of data from a single publisher to multiple subscribers in a fan-out fashion. Radio-dish uses groups versus pub-sub topics. Dish sockets can join a group. Each message sent by a raddio belongs to a group.
+    * ZMQ_RADIO
+    * ZMQ_DISH
+  * publish-subscribe pattern: one-to-many distribution of data from a single publisher to multiple subscribers in a fan out fashion.
+    * ZMQ_PUB
+    * ZMQ_SUB
+    * ZMQ_XPUB, can receive incoming subscription messages from peers.
+    * ZMQ_XSUB, can send outgoing subscription messages to peers.
+  * pipeline pattern: distributing data to nodes arranged in a pipeline. data always flows down the pipeline and each stage is connected to at least one node. when a stage is connected to multiple nodes, data is round-robined between the connected nodes.
+    * ZMQ_PUSH
+    * ZMQ_PULL
+  * scatter-gather pattern: thread-safe version of the pipeline pattern
+    * ZMQ_SCATTER
+    * ZMQ_GATHER
+  * exclusive pair pattern: connects two sockets exclusively. only one socket can be connected to the other. use for inter-thread communication across the inproc transport
+    * ZMQ_PAIR
+  * peer-to-peer pattern: connect a peer to multiple peers. each peer can send and receive messages.Peers can mix and match connect and bind on the same socket.
+    * ZMQ_PEER
+  * channel pattern: thread-safe version of the exclusive-pair pattern
+    * ZMQ_CHANNEL
+  * native pattern: used for communicating with TCP peers and allows asynchronous requests and replies in either direction
+    * ZMQ_STREAM: send and receive data from a non-0MQ peer.
+  * request-reply pattern: used for sending requests from a ZMQ_REQ client to one or more ZMQ_REP services and receiving a subsequent reply for each request sent. each request is round-robined if connected to multiple services. each reply matched with the last issued request.
+    * ZMQ_REQ
+    * ZMQ_REP
+    * ZMQ_DEALER: each message round-robined among  all connected peers.
+    * ZMQ_ROUTER: prepend a message part containing the routing id of the originating peer before passing to the application. messages are fair-queued from all connected peers.
+
+```pseudo
+void *ctx = zmq_ctx_new ();
+assert (ctx);
+/* Create ZMQ_STREAM socket */
+void *socket = zmq_socket (ctx, ZMQ_STREAM);
+assert (socket);
+int rc = zmq_bind (socket, "tcp://*:8080");
+assert (rc == 0);
+/* Data structure to hold the ZMQ_STREAM routing id */
+uint8_t routing_id [256];
+size_t routing_id_size = 256;
+/* Data structure to hold the ZMQ_STREAM received data */
+uint8_t raw [256];
+size_t raw_size = 256;
+while (1) {
+	/*  Get HTTP request; routing id frame and then request */
+	routing_id_size = zmq_recv (socket, routing_id, 256, 0);
+	assert (routing_id_size > 0);
+	do {
+		raw_size = zmq_recv (socket, raw, 256, 0);
+		assert (raw_size >= 0);
+	} while (raw_size == 256);
+	/* Prepares the response */
+	char http_response [] =
+		"HTTP/1.0 200 OK\r\n"
+		"Content-Type: text/plain\r\n"
+		"\r\n"
+		"Hello, World!";
+	/* Sends the routing id frame followed by the response */
+	zmq_send (socket, routing_id, routing_id_size, ZMQ_SNDMORE);
+	zmq_send (socket, http_response, strlen (http_response), 0);
+	/* Closes the connection by sending the routing id frame followed by a zero response */
+	zmq_send (socket, routing_id, routing_id_size, ZMQ_SNDMORE);
+	zmq_send (socket, 0, 0, 0);
+}
+zmq_close (socket);
+zmq_ctx_destroy (ctx);
+```
+
+### zmq_socket_monitor, zmq_socket_monitor_versioned
+
+* monitor socket events on a socket
+
+### zmq_setsockopt
+
+* set 0MQ socket options
+* ZMQ_AFFINITY: set I/O thread affinity
+* ZMQ_BACKLOG: set maximum length of the queue of outstanding connections
+* ZMQ_BINDTODEVICE: set the network interface for multicast
+* ZMQ_BUSY_POLL: removes delays caused by the interrupt and the resultant context switch
+* ZMQ_CONNECT_RID: assign the next outbound connection id
+* ZMQ_CONNECT_ROUTING_ID: assign the next outbound routing id
+* ZMQ_CONFLATE: keep only last message
+* ZMQ_CONNECT_TIMEOUT: set connect() timeout
+* ZMQ_CURVE_PUBLICKEY: set CURVE public key
+* ZMQ_CURVE_SECRETKEY: set CURVE secret key
+* ZMQ_CURVE_SERVER: set CURVE server role
+* ZMQ_CURVE_SERVERKEY: set CURVE server key
+* ZMQ_DISCONNECT_MSG: set a disconnect message that the socket will generate when accepted after peer disconnect
+* ZMQ_HICCUP_MSG: set a hiccup msg that the socket will generate when connected peer temporarily disconnects
+* ZMQ_GSSAPI_PLAINTEXT: disable GSSAPI encryption
+* ZMQ_GSSAPI_PRINCIPAL: set GSSAPI principal
+* ZMQ_GSSAPI_SERVER: set GSSAPI server role
+* ZMQ_GSSAPI_SERVICE_PRINCIPAL: set GSSAPI service principal
+* ZMQ_GSSAPI_SERVICE_PRINCIPAL_NAMETYPE: set GSSAPI service principal name type
+* ZMQ_GSSAPI_PRINCIPAL_NAMETYPE: set the name type of the GSSAPI principal
+* ZMQ_HANDSHAKE_IVL: set maximum handshake interval
+* ZMQ_HELLO_MSG: set a hello message that will be sent when a new peer connects
+* ZMQ_HEARTBEAT_IVL: set the interval between sending ZMTP heartbeats
+* ZMQ_HEARTBEAT_TIMEOUT: set the timeout for ZMTP heartbeats
+* ZMQ_HEARTBEAT_TTL: set the time-to-live for ZMTP heartbeats
+* ZMQ_IDENTITY: set socket identity
+* ZMQ_IMMEDIATE: queue messages only to completed connections
+* ZMQ_INVERT_MATCHING: invert subscription matching
+* ZMQ_IPV6: enable IPv6 on socket
+* ZMQ_LINGER: set linger period for socket shutdown
+* ZMQ_MAXMSGSIZE: set maximum acceptable inbound message size
+* ZMQ_METADATA: add application metadata properties to a socket
+* ZMQ_MULTICAST_HOPS: set outbound multicast hop limit
+* ZMQ_MULTICAST_MAXTPDU: set maximum outbound multicast datagram size
+* ZMQ_PLAIN_PASSWORD: set PLAIN password
+* ZMQ_PLAIN_SERVER: set PLAIN server role
+* ZMQ_PLAIN_USERNAME: set PLAIN username
+* ZMQ_USE_FD: set the pre-allocated socket file descriptor
+* ZMQ_PRIORITY: set the priority for the specified socket type
+* ZMQ_PROBE_ROUTER: bootstrap connections to ROUTER sockets
+* ZMQ_RATE: set multicast data rate
+* ZMQ_RCVBUF: set kernel receive buffer size
+* ZMQ_RCVHWM: set high water mark for inbound messages
 
 
 ## ZMQ Poller
@@ -585,3 +744,94 @@ zmq_connect(socket, "ipc://some_name");
 * pgm and epgm transports are rate limited by default
 * pgm transport requires raw socket access
 
+### ZMQ VMCI
+
+* transport over virtual machine communication interface
+* passes messages between virtual machines running on the same host, between virtual machine and the host, and within virtual machines
+
+```pseudo
+//  VMCI port 5555 on all available interfaces
+rc = zmq_bind(socket, "vmci://*:5555");
+assert (rc == 0);
+//  VMCI port 5555 on the local loop-back interface on all platforms
+cid = VMCISock_GetLocalCID();
+sprintf(endpoint, "vmci://%d:5555", cid);
+rc = zmq_bind(socket, endpoint);
+assert (rc == 0);
+```
+
+### ZMQ UDP
+
+* UDP multicast and unicast transport
+* UDP transport can only be used with ZMQ_RADIO and ZMQ_DISH socket types
+
+```pseudo
+//  Unicast - UDP port 5555 on all available interfaces
+rc = zmq_bind(dish, "udp://*:5555");
+assert (rc == 0);
+//  Unicast - UDP port 5555 on the local loop-back interface
+rc = zmq_bind(dish, "udp://127.0.0.1:5555");
+assert (rc == 0);
+//  Unicast - UDP port 5555 on interface eth1
+rc = zmq_bind(dish, "udp://eth1:5555");
+assert (rc == 0);
+//  Multicast - UDP port 5555 on a Multicast address
+rc = zmq_bind(dish, "udp://239.0.0.1:5555");
+assert (rc == 0);
+//  Same as above but joining only on interface eth0
+rc = zmq_bind(dish, "udp://eth0;239.0.0.1:5555");
+assert (rc == 0);
+//  Same as above using IPv6 multicast
+rc = zmq_bind(dish, "udp://eth0;[ff02::1]:5555");
+assert (rc == 0);
+
+//  Connecting using an Unicast IP address
+rc = zmq_connect(radio, "udp://192.168.1.1:5555");
+assert (rc == 0);
+//  Connecting using a Multicast address
+rc = zmq_connect(socket, "udp://239.0.0.1:5555);
+assert (rc == 0);
+//  Connecting using a Multicast address using local interface wlan0
+rc = zmq_connect(socket, "udp://wlan0;239.0.0.1:5555);
+assert (rc == 0);
+//  Connecting to IPv6 multicast
+rc = zmq_connect(socket, "udp://[ff02::1]:5555);
+assert (rc == 0);
+```
+
+### 0MQ TIPC
+
+* transport over TIPC
+* TIPC is a cluster communication protocol with a location transparent addressing scheme
+
+
+### 0MQ TCP
+
+* unicast transport using TCP
+* likely first chice
+* the ZMQ HWM system works in concert with the TCP socket buffers at the OS level
+
+```pseudo
+//  TCP port 5555 on all available interfaces
+rc = zmq_bind(socket, "tcp://*:5555");
+assert (rc == 0);
+//  TCP port 5555 on the local loop-back interface on all platforms
+rc = zmq_bind(socket, "tcp://127.0.0.1:5555");
+assert (rc == 0);
+//  TCP port 5555 on the first Ethernet network interface on Linux
+rc = zmq_bind(socket, "tcp://eth0:5555");
+assert (rc == 0);
+
+//  Connecting using an IP address
+rc = zmq_connect(socket, "tcp://192.168.1.1:5555");
+assert (rc == 0);
+//  Connecting using a DNS name
+rc = zmq_connect(socket, "tcp://server1:5555");
+assert (rc == 0);
+//  Connecting using a DNS name and Bind to eth1
+rc = zmq_connect(socket, "tcp://eth1:0;server1:5555");
+assert (rc == 0);
+//  Connecting using a IP address and Bind to an IP address
+rc = zmq_connect(socket, "tcp://192.168.1.17:5555;192.168.1.1:5555");
+assert (rc == 0);
+```
