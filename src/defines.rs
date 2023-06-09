@@ -154,6 +154,8 @@ pub const ZMQ_STREAM: u8 = 11;
 pub const ZMQ_XREQ: u8 = ZMQ_DEALER;
 pub const ZMQ_XREP: u8 = ZMQ_ROUTER;
 
+
+
 //   Socket options.
 pub const ZMQ_AFFINITY: u8 = 4;
 pub const ZMQ_ROUTING_ID: u8 = 5;

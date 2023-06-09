@@ -1,70 +1,3 @@
-/*
-    Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
-
-    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
-
-    libzmq is free software; you can redistribute it and/or modify it under
-    the terms of the GNU Lesser General Public License (LGPL) as published
-    by the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    As a special exception, the Contributors give you permission to link
-    this library with independent modules to produce an executable,
-    regardless of the license terms of these independent modules, and to
-    copy and distribute the resulting executable under terms of your choice,
-    provided that you also meet, for each linked independent module, the
-    terms and conditions of the license of that module. An independent
-    module is a module which is not derived from or based on this library.
-    If you modify this library, you must extend this exception to your
-    version of the library.
-
-    libzmq is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-    License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-// "Tell them I was a writer.
-//  A maker of software.
-//  A humanist. A father.
-//  And many things.
-//  But above all, a writer.
-//  Thank You. :)"
-//  - Pieter Hintjens
-
-// #include "precompiled.hpp"
-// #define ZMQ_TYPE_UNSAFE
-
-// #include "macros.hpp"
-// #include "poller.hpp"
-// #include "peer.hpp"
-
-// #if !defined ZMQ_HAVE_POLLER
-//  On AIX platform, poll.h has to be included first to get consistent
-//  definition of pollfd structure (AIX uses 'reqevents' and 'retnevents'
-//  instead of 'events' and 'revents' and defines macros to map from POSIX-y
-//  names to AIX-specific names).
-// #if defined ZMQ_POLL_BASED_ON_POLL && !defined ZMQ_HAVE_WINDOWS
-// #include <poll.h>
-// #endif
-
-// #include "polling_util.hpp"
-// #endif
-
-// TODO: determine if this is an issue, since zmq.h is being loaded from pch.
-// zmq.h must be included *after* poll.h for AIX to build properly
-//#include "../include/zmq.h"
-
-// #if !defined ZMQ_HAVE_WINDOWS
-// #include <unistd.h>
-// #ifdef ZMQ_HAVE_VXWORKS
-// #include <strings.h>
-// #endif
-// #endif
-
 use crate::context::ZmqContext;
 use crate::defines::{zmq_timer_fn, ZMQ_EVENTS, ZMQ_FD, ZMQ_IO_THREADS, ZMQ_MORE, ZMQ_PAIR, ZMQ_PEER, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI, ZMQ_SHARED, ZMQ_SNDMORE, ZMQ_SRCFD, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH, retired_fd};
 use crate::err::ZmqError::{AddItemToPollerFailed, AddTimerFailed, BindSocketFailed, CancelTimerFailed, CheckTagFailed, CloseMessageFailed, CloseSocketFailed, ConnectPeerSocketFailed, ConnectSocketFailed, DeserializeZmqPeerFailed, DeserializeZmqSocketBaseFailed, ExecuteTimerFailed, GetContextPropertyFailed, GetMessageFailed, GetSocketOptionFailed, GetSocketPeerStateFailed, InitializeMessageFailed, InvalidEvent, InvalidFileDescriptor, InvalidInput, InvalidMessageProperty, InvalidPeer, JoinGroupFailed, LeaveGroupFailed, MallocFailed, ModifyPollerItemFailed, PollFailed, PollerWaitFailed, ProxyFailed, RemoveItemFromPollerFailed, ResetTimerFailed, SelectFailed, SendMessageFailed, SerializeZmqSocketBaseFailed, SetContextPropertyFailed, SetMessagePropertyFailed, SetTimerIntervalFailed, ShutdownContextFailed, TerminateEndpointFailed, UnsupportedSocketType, ReceiveMessageFailed};
@@ -78,7 +11,7 @@ use crate::poll_item::ZmqPollItem;
 use crate::poller_event::ZmqPollerEvent;
 use crate::polling_util::{compute_timeout, OptimizedFdSet};
 use crate::proxy::proxy;
-use crate::socket::ZmqSocket;
+use crate::socket::{ZmqSocket, ZmqSocketOption};
 use crate::socket_poller::ZmqSocketPoller;
 use crate::timers::ZmqTimers;
 use crate::utils::copy_bytes;
@@ -96,6 +29,7 @@ use std::error::Error;
 use std::ptr::null_mut;
 use std::time::Duration;
 use std::{mem, thread, time};
+use windows::s;
 #[cfg(windows)]
 use windows::Win32::Networking::WinSock::{
     select, WSAGetLastError, FD_SET, POLLIN, POLLOUT, POLLPRI, SOCKET_ERROR, TIMEVAL,
@@ -326,14 +260,10 @@ pub fn zmq_setsockopt(
 }
 
 pub fn zmq_getsockopt(
-    options: &mut ZmqContext,
-    in_sock: &mut ZmqSocket,
-    opt_kind: u8,
-    opt_val: &mut [u8],
-    opt_val_len: &mut usize,
+    socket: &mut ZmqSocket,
+    opt_kind: ZmqSocketOption,
 ) -> Result<Vec<u8>, ZmqError> {
-    // let mut s: ZmqSocketBase = as_socket_base(in_sock)?;
-    match in_sock.getsockopt(options, opt_kind as i32) {
+    match socket.getsockopt(opt_kind) {
         Ok(v) => Ok(v),
         Err(e) => Err(GetSocketOptionFailed(format!(
             "failed to get socket option: {}",
@@ -378,31 +308,25 @@ pub fn zmq_join(s_: &mut [u8], group_: &str) -> Result<(), ZmqError> {
     }
 }
 
-pub fn zmq_leave(s_: &mut [u8], group_: &str) -> Result<(), ZmqError> {
-    let mut s: ZmqSocket = as_socket_base(s_)?;
-
-    match s.leave(group_) {
+pub fn zmq_leave(socket: &mut ZmqSocket, group: &str) -> Result<(), ZmqError> {
+    match socket.leave(group) {
         Ok(_) => Ok(()),
         Err(e) => Err(LeaveGroupFailed(format!("failed to leave group: {}", e))),
     }
 }
 
 pub fn zmq_bind(
-    ctx: &mut ZmqContext,
-    s_: &mut ZmqSocket,
-    addr_: &str,
+    sock: &mut ZmqSocket,
+    address: &str,
 ) -> Result<(), ZmqError> {
-    let mut s: ZmqSocket = as_socket_base(s_)?;
-
-    match s.bind(ctx, options, addr_) {
+    match sock.bind(address) {
         Ok(_) => Ok(()),
         Err(e) => Err(BindSocketFailed(format!("failed to Bind socket: {}", e))),
     }
 }
 
-pub fn zmq_connect(options: &mut ZmqContext, s_: &mut ZmqSocket, addr_: &str) -> Result<(), ZmqError> {
-    let mut s: ZmqSocket = as_socket_base(s_)?;
-    match s.connect(options, addr_) {
+pub fn zmq_connect(socket: &mut ZmqSocket, address: &str) -> Result<(), ZmqError> {
+    match socket.connect(address) {
         Ok(_) => Ok(()),
         Err(e) => Err(ConnectSocketFailed(format!("failed to connect socket: {}", e))),
     }
@@ -1009,16 +933,14 @@ pub fn zmq_poll(
     for i in 0..items_.len() {
         //  If the poll item is a 0MQ socket, we poll on the file descriptor
         //  retrieved by the ZMQ_FD socket option.
-        if (items_[i].socket) {
+        if items_[i].socket {
             let mut zmq_fd_size = mem::size_of::<ZmqFileDesc>();
-            zmq_getsockopt(
-                options,
+            let result = zmq_getsockopt(
                 &mut items_[i].socket,
-                ZMQ_FD,
-                &mut pollfds[i].fd as &mut [u8],
-                &mut zmq_fd_size,
+                ZmqSocketOption::ZMQ_FD,
             )?;
-
+            let result_usize = usize::from_le_bytes([result[0], result[1], result[2], result[3]]);
+            pollfds[i].fd = result_usize as SOCKET;
             pollfds[i].events = if items_[i].events { POLLIN } else { 0 };
         }
         //  Else, the poll item is a raw file descriptor. Just convert the
@@ -1060,9 +982,8 @@ pub fn zmq_poll(
             let mut zmq_fd_size = mem::size_of::<ZmqFileDesc>();
             let mut notify_fd: ZmqFileDesc = 0;
             zmq_getsockopt(
-                options,
                 &mut items_[i].socket,
-                ZMQ_FD,
+                ZmqSocketOption::ZMQ_FD,
                 &mut notify_fd as &mut [u8],
                 &mut zmq_fd_size,
             )?;

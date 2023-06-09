@@ -305,9 +305,9 @@ zmq_msg_close(&mut copy)
 
 * get a message property
 * properties:
-  * ZMQ_MORE: get indication of whether the message currently being read has more message parts to follow
-  * ZMQ_SRCFD: get the pre-allocated socket file descriptor
-  * ZMQ_SHARED: get indication of whether the message is a shared reference
+    * ZMQ_MORE: get indication of whether the message currently being read has more message parts to follow
+    * ZMQ_SRCFD: get the pre-allocated socket file descriptor
+    * ZMQ_SHARED: get indication of whether the message is a shared reference
 
 ```pseudo
 msg: ZmqMessage
@@ -319,12 +319,12 @@ loop
     zmq_msg_close(&mut msg)
 ```
 
- ### zmq_msg_init, zmq_msg_init_buffer, zmq_msg_init_data, zmq_msg_init_size
+### zmq_msg_init, zmq_msg_init_buffer, zmq_msg_init_data, zmq_msg_init_size
 
 * zmq_msg_init: initialize an empty zmq message
 * zmq_msg_init_buffer: initalize a message with buffer copy
 * zmq_msg_init_data: initialize a message with data copy
-* zmq_msg_init_size: initialize a message with size 
+* zmq_msg_init_size: initialize a message with size
 
 * initialize the message referenced by 'msg' to an empty message
 * the functions zmq_msg_init, zmq_msg_init_data, zmq_msg_init_size, and zmq_msg_init_buffer are mutually exclusive
@@ -360,7 +360,7 @@ loop
 * receive a message part from the socket referenced by the socket argument and store it in the message referenced by
   the msg argument. Any content previously present in the message object referenced by msg is completely reset.
 * flags:
-  * ZMQ_DONTWAIT: return immediately if there is no message to receive
+    * ZMQ_DONTWAIT: return immediately if there is no message to receive
 * if the message is a multi-part message, then each message part is received as a separate ZmqMessage object.
 
 ```pseudo
@@ -379,8 +379,8 @@ zmq_msg_close(&mut msg)
 * send a message part on a socket
 * queue the messag referenced by msg to be sent to the socket referenced by the socket argument. The flags argument
 * flags:
-  * ZMQ_DONTWAIT: perform operation in non-blocking mode
-  * ZMQ_SNDMORE: send multi-part message, more parts to follow
+    * ZMQ_DONTWAIT: perform operation in non-blocking mode
+    * ZMQ_SNDMORE: send multi-part message, more parts to follow
 * on success, the message has been queued but not yet sent
 
 ```pseudo
@@ -406,13 +406,15 @@ rc = zmq_msg_send (&part3, socket, 0);
 * input/output multiplexing
 * provides mechanism for multiplexing input/output events in a level-triggered fashion over a set of sockets
 * each member of the array pointed to by the items arg is a pollitem structure
-* for each pollitem, zmq_poll examines the socket referenced by the socket field or the standard socket specified by the file descriptor fd
-* if none of the requested events for an item have occurred zmq_pool shall wait for a specified period of time for an event to occur.
+* for each pollitem, zmq_poll examines the socket referenced by the socket field or the standard socket specified by the
+  file descriptor fd
+* if none of the requested events for an item have occurred zmq_pool shall wait for a specified period of time for an
+  event to occur.
 * flags:
-  * ZMQ_POLLIN: at least one message may be received from the socket without blocking
-  * ZMQ_POLLOUT: at least one message may be sent to the socket without blocking
-  * ZMQ_POLLERR: an error condition has occurred on the socket
-  * ZMQ_POLLPRI: no useful for zmq sockets
+    * ZMQ_POLLIN: at least one message may be received from the socket without blocking
+    * ZMQ_POLLOUT: at least one message may be sent to the socket without blocking
+    * ZMQ_POLLERR: an error condition has occurred on the socket
+    * ZMQ_POLLPRI: no useful for zmq sockets
 
 ```pseudo
 items: [ZmqPollItem;2]
@@ -463,9 +465,6 @@ if (rc < 0 && errno == EINTR && sigterm_received) {
 * start built-in proxy
 * a proxy connects a frontend socket to a backend socket
 * data flows from frontend to backend
-* 
-
-
 
 ### zmq_poller_new, zmq_poller_destroy
 
@@ -512,49 +511,62 @@ if (rc < 0 && errno == EINTR && sigterm_received) {
 
 * create a 0MQ socket within the specified context
 * newly created socket is initially unbound and not assoctiated with any endpoints
-* to establish a message flow the socket must first be connected to at least one endpoint or at least one endpoint must be created for accepting connections
+* to establish a message flow the socket must first be connected to at least one endpoint or at least one endpoint must
+  be created for accepting connections
 * setup, teardown, reconnect, and delivery are transparent to the ZMQ socket interface
 * thread safe sockets:
-  * ZMQ_CLIENT
-  * ZMQ_SERVER
-  * ZMQ_DISH
-  * ZMQ_RADIO
-  * ZMQ_SCATTER
-  * ZMQ_GATHER
-  * ZMQ_PEER
-  * ZMQ_CHANNEL
-
-* socket types:
-  * client-server: allow a single ZMQ_SERVER server to one or more ZMQ_CLIENT clients. the client always starts the conversation, after which either peer can send messages asynchronouly.
     * ZMQ_CLIENT
     * ZMQ_SERVER
-  * radio-dish: one-to-many distrubtion of data from a single publisher to multiple subscribers in a fan-out fashion. Radio-dish uses groups versus pub-sub topics. Dish sockets can join a group. Each message sent by a raddio belongs to a group.
-    * ZMQ_RADIO
     * ZMQ_DISH
-  * publish-subscribe pattern: one-to-many distribution of data from a single publisher to multiple subscribers in a fan out fashion.
-    * ZMQ_PUB
-    * ZMQ_SUB
-    * ZMQ_XPUB, can receive incoming subscription messages from peers.
-    * ZMQ_XSUB, can send outgoing subscription messages to peers.
-  * pipeline pattern: distributing data to nodes arranged in a pipeline. data always flows down the pipeline and each stage is connected to at least one node. when a stage is connected to multiple nodes, data is round-robined between the connected nodes.
-    * ZMQ_PUSH
-    * ZMQ_PULL
-  * scatter-gather pattern: thread-safe version of the pipeline pattern
+    * ZMQ_RADIO
     * ZMQ_SCATTER
     * ZMQ_GATHER
-  * exclusive pair pattern: connects two sockets exclusively. only one socket can be connected to the other. use for inter-thread communication across the inproc transport
-    * ZMQ_PAIR
-  * peer-to-peer pattern: connect a peer to multiple peers. each peer can send and receive messages.Peers can mix and match connect and bind on the same socket.
     * ZMQ_PEER
-  * channel pattern: thread-safe version of the exclusive-pair pattern
     * ZMQ_CHANNEL
-  * native pattern: used for communicating with TCP peers and allows asynchronous requests and replies in either direction
-    * ZMQ_STREAM: send and receive data from a non-0MQ peer.
-  * request-reply pattern: used for sending requests from a ZMQ_REQ client to one or more ZMQ_REP services and receiving a subsequent reply for each request sent. each request is round-robined if connected to multiple services. each reply matched with the last issued request.
-    * ZMQ_REQ
-    * ZMQ_REP
-    * ZMQ_DEALER: each message round-robined among  all connected peers.
-    * ZMQ_ROUTER: prepend a message part containing the routing id of the originating peer before passing to the application. messages are fair-queued from all connected peers.
+
+* socket types:
+    * client-server: allow a single ZMQ_SERVER server to one or more ZMQ_CLIENT clients. the client always starts the
+      conversation, after which either peer can send messages asynchronouly.
+        * ZMQ_CLIENT
+        * ZMQ_SERVER
+    * radio-dish: one-to-many distrubtion of data from a single publisher to multiple subscribers in a fan-out fashion.
+      Radio-dish uses groups versus pub-sub topics. Dish sockets can join a group. Each message sent by a raddio belongs
+      to a group.
+        * ZMQ_RADIO
+        * ZMQ_DISH
+    * publish-subscribe pattern: one-to-many distribution of data from a single publisher to multiple subscribers in a
+      fan out fashion.
+        * ZMQ_PUB
+        * ZMQ_SUB
+        * ZMQ_XPUB, can receive incoming subscription messages from peers.
+        * ZMQ_XSUB, can send outgoing subscription messages to peers.
+    * pipeline pattern: distributing data to nodes arranged in a pipeline. data always flows down the pipeline and each
+      stage is connected to at least one node. when a stage is connected to multiple nodes, data is round-robined
+      between the connected nodes.
+        * ZMQ_PUSH
+        * ZMQ_PULL
+    * scatter-gather pattern: thread-safe version of the pipeline pattern
+        * ZMQ_SCATTER
+        * ZMQ_GATHER
+    * exclusive pair pattern: connects two sockets exclusively. only one socket can be connected to the other. use for
+      inter-thread communication across the inproc transport
+        * ZMQ_PAIR
+    * peer-to-peer pattern: connect a peer to multiple peers. each peer can send and receive messages.Peers can mix and
+      match connect and bind on the same socket.
+        * ZMQ_PEER
+    * channel pattern: thread-safe version of the exclusive-pair pattern
+        * ZMQ_CHANNEL
+    * native pattern: used for communicating with TCP peers and allows asynchronous requests and replies in either
+      direction
+        * ZMQ_STREAM: send and receive data from a non-0MQ peer.
+    * request-reply pattern: used for sending requests from a ZMQ_REQ client to one or more ZMQ_REP services and
+      receiving a subsequent reply for each request sent. each request is round-robined if connected to multiple
+      services. each reply matched with the last issued request.
+        * ZMQ_REQ
+        * ZMQ_REP
+        * ZMQ_DEALER: each message round-robined among all connected peers.
+        * ZMQ_ROUTER: prepend a message part containing the routing id of the originating peer before passing to the
+          application. messages are fair-queued from all connected peers.
 
 ```pseudo
 void *ctx = zmq_ctx_new ();
@@ -645,13 +657,132 @@ zmq_ctx_destroy (ctx);
 * ZMQ_RATE: set multicast data rate
 * ZMQ_RCVBUF: set kernel receive buffer size
 * ZMQ_RCVHWM: set high water mark for inbound messages
+* ZMQ_RCVTIMEO: set timeout for receive operation on socket
+* ZMQ_RECONNECT_IVL: set reconnection interval
+* ZMQ_RECONNECT_IVL_MAX: set maximum reconnection interval
+* ZMQ_RECONNECT_STOP: set condition where reconnect will stop
+* ZMQ_RECOVERY_IVL: set multicast recovery interval
+* ZMQ_REQ_CORRELATE: match replies with requests
+* ZMQ_REQ_RELAXED: relax strict alternation between request and reply
+* ZMQ_ROUTER_HANDOVER: handle duplicate client routing ids on ROUTER sockets
+* ZMQ_ROUTER_MANDATORY: accept only routable messages on ROUTER sockets
+* ZMQ_ROUTER_RAW: switch ROUTER socket to raw mode
+* ZMQ_ROUTING_ID: set socket routing ind
+* ZMQ_SNDBUF: set kernel transmit buffer size
+* ZMQ_SNDHWM: set high water mark for outbound messages
+* ZMQ_SNDTIMEO: set timeout for send operation on socket
+* ZMQ_SOCKS_PROXY: set SOCKS proxy address
+* ZMQ_SOCKS_USERNAME: set SOCKS username and select basic authentication
+* ZMQ_SOCKS_PASSWORD: set SOCKS basic authentication password
+* ZMQ_STREAM_NOTIFY: enable connect/disconnect events on a TCP listener
+* ZMQ_SUBSCRIBE: establish message filter
+* ZMQ_TCP_KEEPALIVE: override SO_KEEPALIVE socket option
+* ZMQ_TCP_KEEPALIVE_CNT: override TCP_KEEPCNT socket option
+* ZMQ_TCP_KEEPALIVE_IDLE: override TCP_KEEPIDLE socket option
+* ZMQ_TCP_KEEPALIVE_INTVL: override TCP_KEEPINTVL socket option
+* ZMQ_TCP_MAXRT: set TCP Maximum Retransmit Timeout
+* ZMQ_TOS: set IP type-of-service for socket
+* ZMQ_UNSUBSCRIBE: remove message filter
+* ZMQ_XPUB_VERBOSE: provide all subscription messages on XPUB sockets
+* ZMQ_XPUB_VERBOSER: provide all subscription messages on XPUB sockets
+* ZMQ_XPUB_MANUAL: change the subscription handling to manual
+* ZMQ_XPUB_MANUAL_LAST_VALUE: change the subscription handling to manual
+* ZMQ_XPUB_NODROP: do not silently drop messages if SENDHWM is reached
+* ZMQ_XPUB_WELCOME_MSG: set a welcome message that will be sent to each new subscriber
+* ZMQ_XSUB_VERBOSE_UNSUBSCRIBE: pass duplicate unsubscribe messages to the application
+* ZMQ_ONLY_FIRST_SUBSCRIBE: process only first subscribe/unsubscribe in a multipart message
+* ZMQ_ZAP_DOMAIN: set domain for ZAP authentication
+* ZMQ_ZAP_ENFORCE_DOMAIN: set zap domain handling to strictly adhere to the RFC
+* ZMQ_TCP_ACCEPT_FILTER: assign filters to allow new TCP connections
+* ZMQ_IPC_FILTER_GID: assign group ID filters to allow new IPC connections
+* ZMQ_IPC_FILTER_PID: assign process ID filters to allow new IPC connections
+* ZMQ_IPC_FILTER_UID: assign user ID filters to allow new IPC connections
+* ZMQ_IPV4ONLY: use only IPV4 on the socket
+* ZMQ_VMCI_BUFFER_SIZE: set the buffer size for VMCI connections
+* ZMQ_VMCI_BUFFER_MIN_SIZE: set the minimum buffer size for VMCI connections
+* ZMQ_VMCI_BUFFER_MAX_SIZE: set the maximum buffer size for VMCI connections
+* ZMQ_VMCI_CONNECT_TIMEOUT: set the timeout for VMCI connections
+* ZMQ_MULTICAST_LOOP: control multicast loopback
+* ZMQ_ROUTER_NOTIFY: enable connect/disconnect events on a ROUTER socket
+* ZMQ_IN_BATCH_SIZE: maximal receive batch size
+* ZMQ_OUT_BATCH_SIZE: maximal send batch size
 
+### zmq_sendmsq, zmq_send_const, zmq_send,
+
+* send message part on a socket
+* flags: ZMQ_DONTWAIT, ZMQ_SNDMORE
+* ZMQ_DONTWAIT: perform operation in non-blocking mode
+* ZMQ_SNDMORE: send multi-part message, more parts to follow
+
+### zmq_recvmsg, zmq_recv
+
+* receive a message part from a socket
+* ZMQ_DONTWAIT: perform an operation in a non-blocking manner
+
+### zmq_proxy_steerable
+
+* built-in proxy with control flow
+
+```pseudo
+-------
+.Creating a shared queue proxy
+----
+//  Create frontend, backend and control sockets
+void *frontend = zmq_socket (context, ZMQ_ROUTER);
+assert (frontend);
+void *backend = zmq_socket (context, ZMQ_DEALER);
+assert (backend);
+void *control = zmq_socket (context, ZMQ_SUB);
+assert (control);
+
+//  Bind sockets to TCP ports
+assert (zmq_bind (frontend, "tcp://*:5555") == 0);
+assert (zmq_bind (backend, "tcp://*:5556") == 0);
+assert (zmq_connect (control, "tcp://*:5557") == 0);
+
+// Subscribe to the control socket since we have chosen SUB here
+assert (zmq_setsockopt (control, ZMQ_SUBSCRIBE, "", 0));
+
+//  Start the queue proxy, which runs until ETERM or "TERMINATE" 
+//  received on the control socket
+zmq_proxy_steerable (frontend, backend, NULL, control);
+----
+.Set up a controller in another node, process or whatever
+----
+void *control = zmq_socket (context, ZMQ_PUB);
+assert (control);
+assert (zmq_bind (control, "tcp://*:5557") == 0);
+
+// pause the proxy
+assert (zmq_send (control, "PAUSE", 5, 0) == 0);
+
+// resume the proxy
+assert (zmq_send (control, "RESUME", 6, 0) == 0);
+
+// terminate the proxy
+assert (zmq_send (control, "TERMINATE", 9, 0) == 0);
+
+// check statistics
+assert (zmq_send (control, "STATISTICS", 10, 0) == 0);
+zmq_ZmqMessage stats_msg;
+
+while (1) {
+    assert (zmq_msg_init (&stats_msg) == 0);
+    assert (zmq_recvmsg (control, &stats_msg, 0) == sizeof (uint64_t));
+    assert (rc == sizeof (uint64_t));
+    printf ("Stat: %lu\n", *(unsigned long int *)zmq_msg_data (&stats_msg));
+    if (!zmq_msg_get (&stats_msg, ZMQ_MORE))
+        break;
+    assert (zmq_msg_close (&stats_msg) == 0);
+}
+assert (zmq_msg_close (&stats_msg) == 0);
+```
 
 ## ZMQ Poller
 
 * input/output multiplexing
-* provide a mechanism for application to multiplex input/output events in a level-triggered fashion over a set of sockets
-
+* provide a mechanism for application to multiplex input/output events in a level-triggered fashion over a set of
+  sockets
 
 ## ZMQ Security
 
@@ -694,7 +825,7 @@ secret:
 
 ### GSSAPI
 
-* Defines a mechanism for secure authentication and confidentiality for communication between a client and a server. 
+* Defines a mechanism for secure authentication and confidentiality for communication between a client and a server.
 * Uses the Generics Security Service Application Program Interface (GSSAPI) as defined IETF RFC-2743
 * To become a server, the app sets the ZMQ_GSSAPI_SERVER option on the socket
 * To become a client, that app sets the ZMQ_GSSAPI_CLIENT option on the socket
@@ -747,7 +878,8 @@ zmq_connect(socket, "ipc://some_name");
 ### ZMQ VMCI
 
 * transport over virtual machine communication interface
-* passes messages between virtual machines running on the same host, between virtual machine and the host, and within virtual machines
+* passes messages between virtual machines running on the same host, between virtual machine and the host, and within
+  virtual machines
 
 ```pseudo
 //  VMCI port 5555 on all available interfaces
@@ -803,7 +935,6 @@ assert (rc == 0);
 
 * transport over TIPC
 * TIPC is a cluster communication protocol with a location transparent addressing scheme
-
 
 ### 0MQ TCP
 

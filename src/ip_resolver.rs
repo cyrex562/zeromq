@@ -1,21 +1,26 @@
-use crate::address_family::{AF_INET, AF_INET6};
+use crate::address_family::{AF_INET, AF_INET6, AF_UNSPEC};
 use crate::network_address::{NetworkAddress, NetworkAddressFamily};
-use crate::unix_sockaddr::{addrinfo, sockaddr_in};
+use crate::unix_sockaddr::{addrinfo, in_addr, sockaddr_in, sockaddr_in6};
+#[cfg(target_os = "linux")]
 use libc::{
-    c_uint, close, free, getaddrinfo, if_nametoindex, malloc, strcmp, AI_NUMERICHOST, AI_PASSIVE,
-    AI_V4MAPPED, EAI_BADFLAGS, EINVAL, ENODEV, ENOMEM, SOCK_STREAM,
+    getaddrinfo, if_nametoindex, AI_NUMERICHOST, AI_PASSIVE, AI_V4MAPPED,
 };
+use libc::{c_uint, close, free, malloc, strcmp, EAI_BADFLAGS, EINVAL, ENODEV, ENOMEM, SOCK_STREAM, memcpy, c_char};
 use std::ffi::{CStr, CString};
 use std::mem;
-use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
+use std::os::raw::c_void;
 use std::ptr::null_mut;
 use std::str::FromStr;
-use windows::Win32::Networking::WinSock::ADDRINFOA;
+use anyhow::{anyhow, bail};
+use windows::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
+use windows::Win32::Networking::WinSock::{ADDRINFOA, getaddrinfo, SOCKADDR_IN, SOCKADDR_IN6};
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{
     freeaddrinfo, AI_NUMERICHOST, AI_PASSIVE, AI_V4MAPPED, SOCK_DGRAM, SOCK_STREAM,
     WSAHOST_NOT_FOUND,
 };
+use windows::Win32::NetworkManagement::IpHelper::{GAA_FLAG_SKIP_ANYCAST, GAA_FLAG_SKIP_DNS_SERVER, GAA_FLAG_SKIP_MULTICAST, GetAdaptersAddresses, if_nametoindex, IP_ADAPTER_ADDRESSES_LH};
 
 pub struct IpResolverOptions {
     //
@@ -53,68 +58,32 @@ impl IpResolverOptions {
 }
 
 pub struct IpResolver {
-    // IpResolverOptions _options;
     pub options: IpResolverOptions,
 }
 
 impl IpResolver {
-    //
-    // ip_resolver_t (IpResolverOptions opts_);
-
-    // virtual ~ip_resolver_t (){};
-
-    // int resolve (ip_addr_t *ip_addr_, name: *const c_char);
-
-    //
-    //  Virtual functions that are overridden in tests
-    // virtual int do_getaddrinfo (node_: *const c_char,
-    //                             service_: *const c_char,
-    //                             const struct addrinfo *hints_,
-    //                             struct addrinfo **res_);
-
-    // virtual void do_freeaddrinfo (struct addrinfo *res_);
-
-    // virtual unsigned int do_if_nametoindex (ifname_: *const c_char);
-
-    //
-    // int resolve_nic_name (ip_addr_t *ip_addr_, nic_: *const c_char);
-
-    // int resolve_getaddrinfo (ip_addr_t *ip_addr_, addr_: *const c_char);
-
-    // #if defined ZMQ_HAVE_WINDOWS
-    //     int get_interface_name (unsigned long index_, char **dest_) const;
-
-    //     int wchar_to_utf8 (const WCHAR *src_, char **dest_) const;
-
-    // #endif
-
-    // IpResolver (IpResolverOptions opts_) :
-    //     _options (opts_)
-    // {
-    // }
     pub fn new(opts: &IpResolverOptions) -> Self {
         Self {
             options: (*opts).clone(),
         }
     }
 
-    pub fn resolve(&mut self, in_addr: &mut NetworkAddress, name: &str) -> i32 {
+    pub fn resolve(&mut self, name: &str) -> anyhow::Result<Vec<SocketAddr>> {
         // let mut addr = String::new();
         let mut addr_str: &str = "";
         let mut port = 0u16;
+
+        let mut out: Vec<SocketAddr> = Vec::new();
 
         if self.options.expect_port {
             //  We expect 'addr:port'. It's important to use str*r*chr to only get
             //  the latest colon since IPv6 addresses use colons as delemiters.
             // const char *delim = strrchr (name, ':');
-            let delim = name.find(':');
-
+            let delim = name.rfind(':');
             if delim.is_none() {
-                errno = EINVAL;
-                return -1;
+                bail!("EINVAL");
             }
 
-            // addr = std::string (name, delim - name);
             let addr = &name[..delim.unwrap()];
             let port_str = &name[delim.unwrap() + 1..];
 
@@ -123,8 +92,7 @@ impl IpResolver {
                     //  Resolve wildcard to 0 to allow autoselection of port
                     port = 0;
                 } else {
-                    errno = EINVAL;
-                    return -1;
+                    bail!("EINVAL");
                 }
             } else if port_str == "0" {
                 //  Using "0" for a Bind address is equivalent to using "*". For a
@@ -132,11 +100,9 @@ impl IpResolver {
                 port = 0;
             } else {
                 //  Parse the port number (0 is not a valid port).
-                // port = static_cast<uint16_t> (atoi (port_str.c_str ()));
                 port = u16::from_str(port_str).unwrap();
                 if port == 0 {
-                    errno = EINVAL;
-                    return -1;
+                    bail!("EINVAL");
                 }
             }
         } else {
@@ -146,9 +112,9 @@ impl IpResolver {
 
         // Check if path is allowed in ip address, if allowed it must be truncated
         if self.options.allow_path {
-            let pos = addr_str.find('/');
+            let pos = addr_str.rfind('/');
             if pos.is_some() {
-                addr_str = &addr_str[..pos.unwrap()];
+                addr_str = &addr_str[pos.unwrap()..];
             }
         }
 
@@ -157,24 +123,20 @@ impl IpResolver {
         //  delimiter.
         //  TODO Should we validate that the brackets are present if
         //  'addr' contains ':' ?
-        let mut brackets_length: usize = 2;
-        if addr_str.len() >= brackets_length
-            && addr_str[0] == '['
-            && addr_str[addr_str.len() - 1] == ']'
-        {
-            addr_str = &addr_str[1..addr_str.len() - brackets_length];
+        if addr_str.contains('[') && addr_str.contains(']') {
+            addr_str = addr_str.trim_matches(|c| c == '[' || c == ']');
         }
 
         //  Look for an interface name / zone_id in the address
         //  Reference: https://tools.ietf.org/html/rfc4007
         let mut pos = addr_str.rfind('%');
+
         let mut zone_id = 0u32;
 
         if pos.is_some() {
             let mut if_str = &addr_str[pos.unwrap() + 1..];
             if if_str.is_empty() {
-                errno = EINVAL;
-                return -1;
+                bail!("EINVAL");
             }
             addr_str = &addr_str[0..pos.unwrap()];
             if if_str[0].is_alphabetic {
@@ -184,8 +146,7 @@ impl IpResolver {
             }
 
             if zone_id == 0 {
-                errno = EINVAL;
-                return -1;
+                bail!("EINVAL");
             }
         }
 
@@ -193,138 +154,73 @@ impl IpResolver {
         let mut addr_str = addr_str;
 
         if self.options.bindable && addr_str == "*" {
-            //  Return an ANY address
-            // *ip_addr = ip_addr_t::any (_options.ipv6 () ? AF_INET6 : AF_INET);
+            // TODO: Return an ANY address
 
-            if self.options.ipv6 {
-                *in_addr = NetworkAddress::from(Ipv6Addr::UNSPECIFIED)
-            } else {
-                *in_addr = NetworkAddress::from(Ipv4Addr::UNSPECIFIED);
-            }
+            resolved = true;
         }
 
         if !resolved && self.options.allow_nic_name() {
-            //  Try to resolve the string as a NIC name.
-            let rc = resolve_nic_name(in_addr, addr_str);
-            if rc == 0 {
+            //  Try to resolve the string as a NIC
+            let mut addresses = self.resolve_nic_name(addr_str)?;
+            if addresses.len() > 0 {
                 resolved = true;
-            } else if errno != ENODEV {
-                return rc;
+                for addr in addresses {
+                    out.push(SocketAddr::new(addr, port));
+                }
             }
         }
 
         if !resolved {
-            let rc = resolve_getaddrinfo(in_addr, addr_str);
-
-            if rc != 0 {
-                return rc;
-            }
-            resolved = true;
-        }
-
-        //  Store the port into the structure. We could get 'getaddrinfo' to do it
-        //  for us but since we don't resolve service names it's a bit overkill and
-        //  we'd still have to do it manually when the address is resolved by
-        //  'resolve_nic_name'
-        // in_addr. ->set_port (port);
-        in_addr.port = port;
-
-        // if (in_addr ->family () == AF_INET6)
-        if in_addr.family() == NetworkAddressFamily::Inet6 {
-            // in_addr ->ipv6.sin6_scope_id = zone_id;
-            in_addr.scope_id = zone_id;
-        }
-
-        // assert (resolved == true);
-        return 0;
-    }
-
-    pub fn resolve_getaddrinfo(&mut self, ip_addr: &mut NetworkAddress, addr_: &str) -> i32 {
-        // #if defined ZMQ_HAVE_OPENVMS && defined __ia64
-        //     __addrinfo64 *res = NULL;
-        //     __addrinfo64 req;
-        // #else
-        //     addrinfo *res = NULL;
-        //     addrinfo req;
-        // #endif
-
-        // memset (&req, 0, mem::size_of::<req>());
-
-        //  Choose IPv4 or IPv6 protocol family. Note that IPv6 allows for
-        //  IPv4-in-IPv6 addresses.
-        let mut req = addrinfo::default();
-        req.ai_family = if self.options.ipv6 { AF_INET6 } else { AF_INET } as i32;
-
-        //  Arbitrary, not used in the output, but avoids duplicate results.
-        req.ai_socktype = SOCK_STREAM;
-
-        req.ai_flags = 0;
-
-        if (self._options.bindable()) {
-            req.ai_flags |= AI_PASSIVE;
-        }
-
-        if !_options.allow_dns() {
-            req.ai_flags |= AI_NUMERICHOST;
-        }
-
-        // #if defined AI_V4MAPPED
-        //  In this API we only require IPv4-mapped addresses when
-        //  no native IPv6 interfaces are available (~AI_ALL).
-        //  This saves an additional DNS roundtrip for IPv4 addresses.
-        if req.ai_family == AF_INET6 {
-            req.ai_flags |= AI_V4MAPPED;
-        }
-        // #endif
-
-        //  Resolve the literal address. Some of the error info is lost in case
-        //  of error, however, there's no way to report EAI errors via errno.
-        // do_getaddrinfo (addr_, null_mut(), &req, &res);
-        do_getaddrinfo(addr_, "");
-
-        // Some OS do have AI_V4MAPPED defined but it is not supported in getaddrinfo()
-        // returning EAI_BADFLAGS. Detect this and retry
-        // if rc == EAI_BADFLAGS && (req.ai_flags & AI_V4MAPPED) != 0 {
-        //     req.ai_flags &= !AI_V4MAPPED;
-        //     rc = do_getaddrinfo (addr_, null_mut(), &req, &res);
-        // }
-
-        //  Resolve specific case on Windows platform when using IPv4 address
-        //  with ZMQ_IPv6 socket option.
-        #[cfg(target_os = "windows")]
-        if (req.ai_family == AF_INET6) && (rc == WSAHOST_NOT_FOUND) {
-            req.ai_family = AF_INET as i32;
-            rc = do_getaddrinfo(addr_, null_mut(), &req, &res);
-        }
-
-        if rc {
-            match rc {
-                EAI_MEMORY => errno = ENOMEM,
-                _ => {
-                    if self.options.bindable {
-                        errno = ENODEV;
-                    } else {
-                        errno = EINVAL;
-                    }
+            let mut addresses = self.resolve_getaddrinfo(addr_str)?;
+            if addresses.len() > 0 {
+                resolved = true;
+                for addr in addresses {
+                    out.push(SocketAddr::new(addr, port));
                 }
             }
-            return -1;
         }
-
-        //  Use the first result.
-        // zmq_assert (res != NULL);
-        // zmq_assert (static_cast<size_t> (res->ai_addrlen) <= sizeof (*ip_addr_));
-        // memcpy (ip_addr_, res->ai_addr, res->ai_addrlen);
-        // TODO:
-
-        //  Cleanup getaddrinfo after copying the possibly referenced result.
-        // do_freeaddrinfo (res);
-
-        return 0;
+        Ok(out)
     }
 
-    // #ifdef ZMQ_HAVE_SOLARIS
-    // #include <sys/sockio.h>
+    pub fn resolve_getaddrinfo(&mut self, addr_: &str) -> anyhow::Result<Vec<IpAddr>> {
+        let mut out: Vec<IpAddr> = Vec::new();
+        let addr_info: *mut *mut ADDRINFOA = null_mut();
+        let iresult = unsafe { getaddrinfo(addr_, null_mut(), None, addr_info) };
+        if iresult == 0 {
+            let mut curr_addr_info = unsafe { *addr_info };
+            while curr_addr_info != null_mut() {
+                if curr_addr_info.ai_family == AF_INET {
+                    let sai4 = unsafe { (*curr_addr_info).ai_addr as *mut SOCKADDR_IN };
+                    let ip4_addr = unsafe {
+                        Ipv4Addr::new(
+                            sai4.sin_addr.S_un.S_un_b.s_b1,
+                            sai4.sin_addr.S_un.S_un_b.s_b2,
+                            sai4.sin_addr.S_un.S_un_b.s_b3,
+                            sai4.sin_addr.S_un.S_un_b.s_b4,
+                        )
+                    };
+                    out.push(IpAddr::V4(ip4_addr));
+                } else if curr_addr_info.ai_family == AF_INET6 {
+                    let sai6 = unsafe { (*curr_addr_info).ai_addr as *mut SOCKADDR_IN6 };
+                    let ip6_addr = unsafe {
+                        Ipv6Addr::new(
+                            sai6.sin6_addr.u.Word(0),
+                            sai6.sin6_addr.u.Word(1),
+                            sai6.sin6_addr.u.Word(2),
+                            sai6.sin6_addr.u.Word(3),
+                            sai6.sin6_addr.u.Word(4),
+                            sai6.sin6_addr.u.Word(5),
+                            sai6.sin6_addr.u.Word(6),
+                            sai6.sin6_addr.u.Word(7),
+                        )
+                    };
+                    out.push(IpAddr::V6(ip6_addr));
+                }
+                curr_addr_info = unsafe { (*curr_addr_info).ai_next };
+            }
+        }
+        Ok(out)
+    }
 
     //  On Solaris platform, network interface name can be queried by ioctl.
     #[cfg(target_os = "solaris")]
@@ -545,103 +441,101 @@ impl IpResolver {
     // }
 
     #[cfg(target_os = "windows")]
-    pub fn resolve_nic_name(ip_addr_: &NetworkAddress, nic_: &str) {
-        rc: i32;
-        let mut found = false;
+    pub fn resolve_nic_name(&mut self, nic_name: &str) -> anyhow::Result<Vec<IpAddr>> {
         let max_attempts: i32 = 10;
-
         let mut iterations = 0;
-        IP_ADAPTER_ADDRESSES * addresses;
-        let mut out_buf_len = mem::size_of::<IP_ADAPTER_ADDRESSES>();
+        let mut addresses: *mut IP_ADAPTER_ADDRESSES_LH = null_mut();
+        let mut out_buf_len = mem::size_of::<IP_ADAPTER_ADDRESSES_LH>() as u32;
+        let mut dw_result: u32 = 0;
+
+        let mut out: Vec<IpAddr> = vec![];
 
         loop {
-            addresses = (malloc(out_buf_len));
-            // alloc_assert (addresses);
+            addresses = unsafe { malloc(out_buf_len as usize) as *mut IP_ADAPTER_ADDRESSES_LH };
+            if addresses == null_mut() {
+                return Err(anyhow!("Out of memory"));
+            }
 
-            rc = GetAdaptersAddresses(
-                AF_UNSPEC,
-                GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER,
-                null_mut(),
-                addresses,
-                &out_buf_len,
-            );
-            if (rc == ERROR_BUFFER_OVERFLOW) {
-                free(addresses);
+            unsafe {
+                dw_result = GetAdaptersAddresses(
+                    AF_UNSPEC as u32,
+                    GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER,
+                    None,
+                    Some(addresses),
+                    &mut out_buf_len,
+                );
+            }
+            if (dw_result == ERROR_BUFFER_OVERFLOW as u32) {
+                unsafe { free(addresses as *mut c_void) };
                 addresses = null_mut();
             } else {
                 break;
             }
             iterations += 1;
-            if !((rc == ERROR_BUFFER_OVERFLOW) && (iterations < max_attempts)) {
+            if !((dw_result == ERROR_BUFFER_OVERFLOW as u32) && (iterations < max_attempts)) {
                 break;
             }
         }
 
-        if (rc == 0) {
+        if (dw_result == 0) {
             // for (const IP_ADAPTER_ADDRESSES *current_addresses = addresses;
             //      current_addresses; current_addresses = current_addresses.Next)
-            for address in addresses {
-                char * if_name = null_mut();
-                char * if_friendly_name = null_mut();
+            let mut current_address = addresses;
+            while current_address != null_mut() {
+                let mut if_name_raw = unsafe { CString::from_raw(current_address.AdapterName as *mut c_char) };
+                let mut if_name = if_name_raw.into_string()?;
 
-                let str_rc1: i32 = get_interface_name(current_addresses.IfIndex, &if_name);
-                let str_rc2: i32 = wchar_to_utf8(current_addresses.FriendlyName, &if_friendly_name);
+                let mut if_friendly_name_raw = unsafe { CString::from_raw(current_address.FriendlyName as *mut c_char) };
+                let mut if_friendly_name = if_friendly_name_raw.into_string()?;
 
-                //  Find a network adapter by its "name" or "friendly name"
-                if (((str_rc1 == 0) && (!strcmp(nic_, if_name)))
-                    || ((str_rc2 == 0) && (!strcmp(nic_, if_friendly_name))))
-                {
-                    //  Iterate over all unicast addresses bound to the current network interface
-                    // for (const IP_ADAPTER_UNICAST_ADDRESS *current_unicast_address =
-                    //        current_addresses.FirstUnicastAddress;
-                    //      current_unicast_address;
-                    //      current_unicast_address = current_unicast_address.Next)
-                    for current_unicast_address in current_addresses.FirstUnicastAddress {
-                        let family = current_unicast_address.Address.lpSockaddr.sa_family;
-
-                        if (family
-                            == (if self._options.ipv() {
-                                AF_INET6
-                            } else {
-                                AF_INET
-                            }))
-                        {
-                            memcpy(
-                                ip_addr_,
-                                current_unicast_address.Address.lpSockaddr,
-                                if (family == AF_INET) {
-                                    mem::size_of::<sockaddr_in>()
-                                } else {
-                                    mem::sizeof::<sockaddr_in6>()
-                                },
-                            );
-
-                            found = true;
-                            break;
+                if nic_name == if_name || nic_name == if_friendly_name {
+                    let mut current_unicast_address = unsafe { (*current_address).FirstUnicastAddress };
+                    while current_unicast_address != null_mut() {
+                        let family = current_unicast_address.Address.lpSockaddr.sa_family as i32;
+                        let mut sa: SocketAddr;
+                        if family == AF_INET {
+                            let sai4 = unsafe { (current_unicast_address.Address.lpSockaddr as *mut SOCKADDR_IN) };
+                            let ip4_addr = unsafe {
+                                Ipv4Addr::new(
+                                    sai4.sin_addr.S_un.S_un_b.s_b1,
+                                    sai4.sin_addr.S_un.S_un_b.s_b2,
+                                    sai4.sin_addr.S_un.S_un_b.s_b3,
+                                    sai4.sin_addr.S_un.S_un_b.s_b4,
+                                )
+                            };
+                            let ip_addr = IpAddr::V4(ip4_addr);
+                            out.push(ip_addr)
+                        } else if family == AF_INET6 {
+                            let sai6 = unsafe { (current_unicast_address.Address.lpSockaddr as *mut SOCKADDR_IN6) };
+                            let ip6_addr = unsafe {
+                                Ipv6Addr::new(
+                                    sai6.sin6_addr.u.Word(0),
+                                    sai6.sin6_addr.u.Word(1),
+                                    sai6.sin6_addr.u.Word(2),
+                                    sai6.sin6_addr.u.Word(3),
+                                    sai6.sin6_addr.u.Word(4),
+                                    sai6.sin6_addr.u.Word(5),
+                                    sai6.sin6_addr.u.Word(6),
+                                    sai6.sin6_addr.u.Word(7),
+                                )
+                            };
+                            let ip_addr = IpAddr::V6(ip6_addr);
+                            out.push(ip_addr);
+                        } else {
+                            // bail!("unsupported address family");
                         }
+                        current_unicast_address = unsafe { (*current_unicast_address).Next };
                     }
-
-                    if (found) {
-                        break;
-                    }
+                    break;
                 }
-
-                if (str_rc1 == 0) {
-                    free(if_name);
-                }
-                if (str_rc2 == 0) {
-                    free(if_friendly_name);
-                }
+                current_address = unsafe { (*current_address).Next };
             }
 
-            free(addresses);
+
+            unsafe { free(addresses as *mut c_void) };
         }
 
-        if (!found) {
-            errno = ENODEV;
-            return -1;
-        }
-        return 0;
+        Ok(out)
     }
 
     // #else

@@ -17,7 +17,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::command::{CommandType, ZmqCommand};
 use crate::defines::{ZMQ_BLOCKY, ZMQ_CURVE, ZMQ_DEALER, ZMQ_GSSAPI, ZMQ_GSSAPI_NT_HOSTBASED, ZMQ_GSSAPI_NT_KRB5_PRINCIPAL, ZMQ_GSSAPI_NT_USER_NAME, ZMQ_IO_THREADS, ZMQ_IO_THREADS_DFLT, ZMQ_IPV6, ZMQ_MAX_MSGSZ, ZMQ_MAX_SOCKETS, ZMQ_MAX_SOCKETS_DFLT, ZMQ_MESSAGE_SIZE, ZMQ_NULL, ZMQ_PAIR, ZMQ_PLAIN, ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_SOCKET_LIMIT, ZMQ_SUB, ZMQ_ZERO_COPY_RECV};
-use crate::endpoint::ZmqEndpoint;
+use crate::endpoint::{EndpointUriPair, ZmqEndpoint};
+use crate::engine_interface::ZmqEngineInterface;
 use crate::mailbox::ZmqMailbox;
 use crate::mailbox_interface::ZmqMailboxInterface;
 use crate::message::ZmqMessage;
@@ -26,6 +27,7 @@ use crate::own::ZmqOwn;
 use crate::pending_connection::PendingConnection;
 use crate::pipe::{send_hello_msg, ZmqPipe};
 use crate::reaper::ZmqReaper;
+use crate::session_base::ZmqSessionBase;
 use crate::socket::ZmqSocket;
 use crate::tcp_address::TcpAddressMask;
 use crate::thread_context::ZmqThreadContext;
@@ -2574,7 +2576,7 @@ impl ZmqContext {
         self.send_command(tid, &mut cmd);
     }
 
-    fn send_stop(&mut self, tid: u32) {
+    pub fn send_stop(&mut self, tid: i32) {
         //  'Stop' command goes always from administrative thread to
         //  the current object.
         let mut cmd = ZmqCommand::default();

@@ -40,6 +40,7 @@
 use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;
 use libc::{EINVAL, ENODEV};
+use windows::Win32::NetworkManagement::IpHelper::if_nametoindex;
 use crate::ip_resolver::{IpResolver, IpResolverOptions};
 
 // #ifndef ZMQ_HAVE_WINDOWS
@@ -88,17 +89,17 @@ impl UdpAddress {
         out
     }
 
-    pub fn resolve(&mut self, name: &mut String, bind: bool, ipv6: bool) -> i32 {
+    pub fn resolve(&mut self, name: &str, bind: bool, ipv6: bool) -> anyhow::Result<()> {
         //  No IPv6 support yet
         let has_interface = false;
 
-        address = name;
+        self.address = name.to_string();
 
         //  If we have a semicolon then we should have an interface specifier in the
         //  URL
         // const char *src_delimiter = strrchr (name, ';');
         let src_delimiter = name.find(';');
-        if (src_delimiter.is_some()) {
+        if src_delimiter.is_some() {
             let src_name = name[0..src_delimiter.unwrap()].to_string();
 
             let mut src_resolver_opts: IpResolverOptions = Default::default();
@@ -110,11 +111,7 @@ impl UdpAddress {
 
             let mut src_resolver = IpResolver::new(&src_resolver_opts);
 
-            let rc: i32 = src_resolver.resolve(&mut bind_address, src_name.c_str());
 
-            if (rc != 0) {
-                return -1;
-            }
 
             if (self.bind_address.is_multicast()) {
                 //  It doesn't make sense to have a multicast address as a source

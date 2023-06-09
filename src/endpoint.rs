@@ -70,9 +70,19 @@ pub fn make_unconnected_bind_endpoint_pair(endpoint: &str) -> EndpointUriPair {
 //  are registered as well so that the peer can access them without a need
 //  for synchronisation, handshaking or similar.
 #[derive(Default, Debug, Clone)]
-pub struct ZmqEndpoint {
+pub struct ZmqEndpoint<'a> {
     // ZmqSocketBase *socket;
-    pub socket: ZmqSocket,
+    pub socket: &'a mut ZmqSocket<'a>,
     // ZmqOptions options;
-    pub context: ZmqContext,
+    pub context: &'a mut ZmqContext,
+}
+
+impl <'a> ZmqEndpoint {
+    pub fn new(socket: &'a mut ZmqSocket<'a>, context: &'a mut ZmqContext) -> Self {
+        Self {
+            socket,
+            context,
+        }
+    }
+    
 }
