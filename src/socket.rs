@@ -7,8 +7,9 @@ use std::time;
 
 use anyhow::{anyhow, bail};
 use bincode::options;
-use libc::{c_void, EAGAIN, EINTR, EINVAL};
+use libc::{c_char, c_int, c_void, EAGAIN, EINTR, EINVAL};
 use serde::{Deserialize, Serialize};
+use windows::Win32::Networking::WinSock::socklen_t;
 use crate::address::ZmqAddress;
 
 use crate::command::ZmqCommand;
@@ -52,6 +53,7 @@ use crate::ws_listener::ZmqWsListener;
 use crate::wss_address::WssAddress;
 
 
+#[derive(Debug,Clone)]
 pub enum ZmqSocketOption {
 ZMQ_AFFINITY = 4,
 ZMQ_ROUTING_ID = 5,
@@ -136,10 +138,10 @@ ZMQ_BINDTODEVICE = 92,
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ZmqSocket<'a> {
     pub context: &'a mut ZmqContext,
-
     pub thread_id: i32,
-
-    pub own: ZmqOwn,
+    pub sent_seqnum: u64,
+    pub term_acks: u32,
+    pub fd: ZmqFileDesc,
     // Mutex for synchronize access to the socket in thread safe mode
     pub sync: Mutex<u8>,
     //  Map of open endpoints.
@@ -414,60 +416,67 @@ impl<'a> ZmqSocket<'a>  {
         // if rc == 0 || errno != EINVAL {
         //     return rc;
         // }
+
         if rc.is_ok() {
             return Ok(rc.unwrap());
         }
 
-        if opt_kind == ZMQ_RCVMORE {
-            return bool_to_vec(self.rcvmore);
-            // return self.do_getsockopt_int(opt_val, opt_len, if self.rcvmore { 1 } else { 0 });
-        }
-
-        if opt_kind == ZMQ_FD {
-            if self.thread_safe {
-                // thread safe socket doesn't provide file descriptor
-                return Err(anyhow!(
-                    "thread safe socket doenst provide a file descriptor"
-                ));
+        match opt_kind {
+            ZmqSocketOption::ZMQ_RCVMORE => return bool_to_vec(self.rcvmore),
+            ZmqSocketOption::ZMQ_FD => {
+                if self.thread_safe {
+                    // thread safe socket doesn't provide file descriptor
+                    return Err(anyhow!(
+                        "thread safe socket doenst provide a file descriptor"
+                    ));
+                }
+                return Ok(self.fd.to_le_bytes().to_vec());
             }
-
-            return self.do_getsockopt_fd(opt_val, opt_len, self.mailbox.get_fd());
-        }
-
-        if opt_kind == ZMQ_EVENTS {
-            match self.process_commands(0, false) {
-                Ok(_) => {}
-                Err(e) => {
-                    return Err(anyhow!("failed to process comands: {}", e));
+            ZmqSocketOption::ZMQ_EVENTS => {
+                match self.process_commands(0, false) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        return Err(anyhow!("failed to process comands: {}", e));
+                    }
+                }
+                return if self.has_out() {
+                    i32_to_vec(ZMQ_POLLOUT)
+                } else if self.has_in {
+                    i32_to_vec(ZMQ_POLLIN)
+                } else {
+                    i32_to_vec(0)
                 }
             }
+            ZmqSocketOption::ZMQ_LAST_ENDPOINT => {
+                return str_to_vec(&self.last_endpoint);
+            }
+            ZmqSocketOption::ZMQ_THREAD_SAFE => {
+                return bool_to_vec(self.thread_safe);
+            }
 
-            // if rc != 0 && (errno == EINTR || errno == ETERM) {
-            //     return -1;
-            // }
-            // errno_assert (rc == 0);
+            _ => {
+                return bail!("invalid option: {:?}", opt_kind);
+            }
 
-            // return do_getsockopt_int(
-            //     opt_val,
-            //     opt_len,
-            //     (if self.has_out() { ZMQ_POLLOUT } else { 0 })
-            //         | (if self.has_in() { ZMQ_POLLIN } else { 0 }),
-            // );
-            let result: i32 = ((if self.has_out() { ZMQ_POLLOUT } else { 0i32 }) | (if self.has_in { ZMQ_POLLIN } else { 0i32 }));
-            return i32_to_vec(result);
         }
+    }
 
-        if opt_kind == ZMQ_LAST_ENDPOINT {
-            // return do_getsockopt_string(opt_val, opt_len, &self.last_endpoint);
-            return str_to_vec(&self.last_endpoint);
+    pub fn lower_getsockopt_i32(&mut self, optkind: i32) -> anyhow::Result<i32> {
+        let mut rc = 0i32;
+        let mut out_val: i32 = 0i32;
+        let mut out_len: c_int = mem::size_of::<i32>() as c_int;
+        rc = unsafe {
+            libc::getsockopt(
+                self.fd, libc::SOL_SOCKET,
+                optkind,
+                &mut out_val as *mut i32 as *mut c_char,
+                &mut out_len as *mut c_int,
+            )
+        };
+        if rc != 0 {
+            bail!("failed to getsockopt");
         }
-
-        if opt_kind == ZMQ_THREAD_SAFE {
-            // return do_getsockopt_int(opt_val, opt_len, if self.thread_safe { 1 } else { 0 });
-            return bool_to_vec(self.thread_safe);
-        }
-
-        options.getsockopt(opt_kind)
+        Ok(out_val)
     }
 
     // int Bind (endpoint_uri_: *const c_char);

@@ -135,56 +135,7 @@ impl WsAddress {
     }
 
 
-    pub fn resolve(name: &str, local_: bool, ipv6: bool) -> i32
-    {
-        //  find the host part, It's important to use str*r*chr to only get
-        //  the latest colon since IPv6 addresses use colons as delemiters.
-        // const char *delim = strrchr (name, ':');
-        // if (delim == null_mut()) {
-        //     errno = EINVAL;
-        //     return -1;
-        // }
-        // _host = std::string (name, delim - name);
-        let mut _host = String::from("");
-        let name_only = name.split(":").first();
-        if name_only.is_some() {
-            _host = String::from(name_only.unwrap());
-        } else {
-            return -1;
-        }
 
-        // find the path part, which is optional
-        // TODO
-        // delim = strrchr (name, '/');
-        host_name: String;
-        if (delim) {
-            _path = std::string(delim);
-            // remove the path, otherwise resolving the port will fail with wildcard
-            host_name = std::string(name, delim - name);
-        } else {
-            _path = std::string("/");
-            host_name = name;
-        }
-
-        let resolver_opts: IpResolverOptions = IpResolverOptions {
-            bindable: false,
-            allow_nic_name: false,
-            ipv6,
-            expect_port: false,
-            allow_dns: false,
-            allow_path: false,
-        };
-        resolver_opts.bindable(local_)
-            .allow_dns(!local_)
-            .allow_nic_name(local_)
-            .ipv6(ipv6)
-            .allow_path(true)
-            .expect_port(true);
-
-        let mut resolver = IpResolver::new(&resolver_opts);
-
-        return resolver.resolve(&mut address, host_name.c_str());
-    }
 
 
     pub fn to_string(addr_: &mut str) -> i32
