@@ -56,13 +56,20 @@
 
 use std::mem;
 use std::ptr::null_mut;
-use libc::{c_int, close, EAFNOSUPPORT, EAGAIN, EFAULT, EINTR, EISCONN, EMSGSIZE, ENOMEM, ENOTSOCK, EOPNOTSUPP, EWOULDBLOCK, setsockopt, ssize_t};
-use windows::Win32::Networking::WinSock::{closesocket, IPPROTO_TCP, recv, send, SEND_RECV_FLAGS, SIO_KEEPALIVE_VALS, SIO_LOOPBACK_FAST_PATH, SO_KEEPALIVE, SO_RCVBUF, SO_SNDBUF, SOCK_STREAM, SOCKET_ERROR, SOL_SOCKET, tcp_keepalive, TCP_KEEPALIVE, TCP_KEEPCNT, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_MAXRT, TCP_NODELAY, WSA_ERROR, WSAECONNABORTED, WSAECONNREFUSED, WSAECONNRESET, WSAEHOSTUNREACH, WSAENETDOWN, WSAENETRESET, WSAENOBUFS, WSAENOTCONN, WSAEOPNOTSUPP, WSAETIMEDOUT, WSAEWOULDBLOCK, WSAGetLastError};
+use libc::{accept, bind, c_int, close, EAFNOSUPPORT, EAGAIN, EFAULT, EINTR, EISCONN, EMSGSIZE, ENOMEM, ENOTSOCK, EOPNOTSUPP, EWOULDBLOCK, listen, setsockopt, sockaddr, ssize_t};
+use windows::Win32::Networking::WinSock::{closesocket, IPPROTO_TCP, recv, send, SEND_RECV_FLAGS, SIO_KEEPALIVE_VALS, SIO_LOOPBACK_FAST_PATH, SO_KEEPALIVE, SO_RCVBUF, SO_REUSEADDR, SO_SNDBUF, SOCK_STREAM, SOCKADDR_STORAGE, SOCKET_ERROR, SOL_SOCKET, tcp_keepalive, TCP_KEEPALIVE, TCP_KEEPCNT, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_MAXRT, TCP_NODELAY, WSA_ERROR, WSAECONNABORTED, WSAECONNREFUSED, WSAECONNRESET, WSAEHOSTUNREACH, WSAENETDOWN, WSAENETRESET, WSAENOBUFS, WSAENOTCONN, WSAEOPNOTSUPP, WSAETIMEDOUT, WSAEWOULDBLOCK, WSAGetLastError};
+use std::mem::size_of_val;
+use anyhow::bail;
+use bincode::options;
+use crate::address::{get_socket_name, ZmqSocketEnd};
 use crate::address_family::{AF_INET, AF_INET6};
 use crate::context::ZmqContext;
+use crate::defines::retired_fd;
+use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::err::wsa_error_to_errno;
 use crate::fd::ZmqFileDesc;
-use crate::ip::{assert_success_or_recoverable, bind_to_device, enable_ipv4_mapping, open_socket, set_ip_type_of_service, set_socket_priority};
+use crate::ip::{assert_success_or_recoverable, bind_to_device, enable_ipv4_mapping, make_socket_noninheritable, open_socket, set_ip_type_of_service, set_nosigpipe, set_socket_priority};
+use crate::listener::ZmqListener;
 
 use crate::tcp_address::TcpAddress;
 
@@ -482,4 +489,232 @@ pub fn tcp_open_socket (address_: &mut str,
 //     // errno_assert (rc == 0);
 // // #endif
 //     return retired_fd;
+}
+
+
+pub fn tcp_in_event(listener: &mut ZmqListener) -> anyhow::Result<()> {
+    let mut tcp_sockaddr = sockaddr { sa_family: AF_INET, sa_data: [0; 14] };
+    tcp_sockaddr.sa_data = listener.address.addr_sockaddr.sa_data;
+    let mut tcp_sockaddr_len = size_of_val(&tcp_sockaddr) as c_int;
+    let mut fd = unsafe {
+        accept(listener.fd,
+               &mut listener.address.addr_sockaddr as *mut sockaddr,
+               &mut tcp_sockaddr_len)
+    };
+
+    //  If connection was reset by the peer in the meantime, just ignore it.
+    //  TODO: Handle specific errors like ENFILE/EMFILE etc.
+    if (fd == retired_fd as usize) {
+        listener.socket
+            .event_accept_failed(&make_unconnected_bind_endpoint_pair(&listener.endpoint), zmq_errno());
+        bail!("tcp_in_event failed");
+    }
+
+    let mut rc = tune_tcp_socket(&mut fd);
+    rc = rc
+        | tune_tcp_keepalives(
+        fd,
+        options.tcp_keepalive,
+        options.tcp_keepalive_cnt,
+        options.tcp_keepalive_idle,
+        options.tcp_keepalive_intvl,
+    );
+    rc = rc | tune_tcp_maxrt(&mut fd, options.tcp_maxrt);
+    if (rc != 0) {
+        listener.socket
+            .event_accept_failed(&make_unconnected_bind_endpoint_pair(&listener.endpoint), zmq_errno());
+        bail!("tcp_in_event failed");
+    }
+
+    //  Create the engine object for this connection.
+    listener.create_engine();
+    Ok(())
+}
+
+pub fn tcp_create_socket(listener: &mut ZmqListener, addr_: &mut str) -> anyhow::Result<()> {
+    listener.fd = tcp_open_socket(addr_, listener.socket.context, true, true, &mut listener.address);
+    if (listener.fd == retired_fd as usize) {
+        bail!("tcp_create_socket failed");
+    }
+
+    //  TODO why is this only Done for the listener?
+    make_socket_noninheritable(listener.fd);
+
+    //  Allow reusing of the address.
+    let mut flag = 1;
+    let mut rc = 0i32;
+    // #ifdef ZMQ_HAVE_WINDOWS
+    //  TODO this was changed for Windows from SO_REUSEADDRE to
+    //  SE_EXCLUSIVEADDRUSE by 0ab65324195ad70205514d465b03d851a6de051c,
+    //  so the comment above is no longer correct; also, now the settings are
+    //  different between listener and connecter with a src address.
+    //  is this intentional?
+
+    // unsafe {
+    //     rc = setsockopt(listener.fd, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (&flag), 4);
+    // }
+    // wsa_assert(rc != SOCKET_ERROR);
+    // #elif defined ZMQ_HAVE_VXWORKS
+    //     rc =
+    //       setsockopt (_s, SOL_SOCKET, SO_REUSEADDR,  &flag, mem::size_of::<int>());
+    //     // errno_assert (rc == 0);
+    // // #else
+    unsafe { rc = setsockopt(listener.fd, SOL_SOCKET, SO_REUSEADDR, &flag, 4); }
+    //     // errno_assert (rc == 0);
+    // #endif
+
+    //  Bind the socket to the network interface and port.
+    // #if defined ZMQ_HAVE_VXWORKS
+    //     rc = Bind (_s, (sockaddr *) address.addr (), address.addrlen ());
+    // #else
+    unsafe {
+        rc = bind(listener.fd, listener.address.addr(), listener.address.addrlen());
+    }
+    // #endif
+    // #ifdef ZMQ_HAVE_WINDOWS
+    if (rc == SOCKET_ERROR) {
+        // unsafe {
+        //     errno = wsa_error_to_errno(WSAGetLastError());
+        // }
+        // goto error;
+    }
+    // #else
+    if (rc != 0) {
+        // goto
+        // error;
+    }
+    // #endif
+
+    //  Listen for incoming connections.
+    unsafe {
+        rc = listen(listen.fd, options.backlog);
+    }
+    // #ifdef ZMQ_HAVE_WINDOWS
+    if (rc == SOCKET_ERROR) {
+        // unsafe {
+        //     errno = wsa_error_to_errno(WSAGetLastError());
+        // }
+        // goto error;
+    }
+    // #else
+    if (rc != 0) {
+        // goto
+        // error;
+    }
+    // #endif
+
+    Ok(())
+
+    // TODO
+    // error:
+    //     let err: i32 = errno;
+    //     close ();
+    //     errno = err;
+    //     return -1;
+}
+
+pub fn tcp_set_local_address(listener: &mut ZmqListener, addr: &mut str) -> anyhow::Result<()> {
+    if options.use_fd != -1 {
+        //  in this case, the addr_ passed is not used and ignored, since the
+        //  socket was already created by the application
+        listener.fd = options.use_fd;
+    } else {
+        tcp_create_socket(listener, addr)?;
+    }
+
+    listener.endpoint = get_socket_name(listener.fd, ZmqSocketEnd::SocketEndLocal)?;
+
+    listener.socket
+        .event_listening(&make_unconnected_bind_endpoint_pair(&listener.endpoint), listener.fd);
+    Ok(())
+}
+
+pub fn tcp_accept(listener: &mut ZmqListener) -> anyhow::Result<ZmqFileDesc> {
+    //  The situation where connection cannot be accepted due to insufficient
+    //  resources is considered valid and treated by ignoring the connection.
+    //  Accept one connection and deal with different failure modes.
+    // zmq_assert (_s != retired_fd);
+
+    // struct sockaddr_storage ss;
+    let mut ss = SOCKADDR_STORAGE::default();
+    // memset (&ss, 0, mem::size_of::<ss>());
+    // #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
+    //     let mut ss_len = mem::size_of::<ss>();
+    // #else
+    let mut ss_len: c_int = mem::size_of_val(&ss) as c_int;
+    // #endif
+    // #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
+    // let mut sock: ZmqFileDesc = ::accept4(listener.fd, (&ss), &ss_len, SOCK_CLOEXEC);
+    // #else
+    let sock = unsafe { accept(listener.fd, (&mut ss) as *mut sockaddr, &mut ss_len) };
+    // #endif
+
+    unsafe {
+        if (sock == retired_fd as usize) {
+            // #if defined ZMQ_HAVE_WINDOWS
+            let last_error: i32 = WSAGetLastError() as i32;
+            // wsa_assert(last_error == WSAEWOULDBLOCK || last_error == WSAECONNRESET || last_error == WSAEMFILE || last_error == WSAENOBUFS); # elif
+            // defined
+            // ZMQ_HAVE_ANDROID
+            // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR || errno == ECONNABORTED || errno == EPROTO || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE || errno == ENFILE || errno == EINVAL);
+            // #else
+            // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
+            // || errno == ECONNABORTED || errno == EPROTO || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE || errno == ENFILE);
+            // #endif
+            return Ok(retired_fd as ZmqFileDesc);
+        }
+    }
+
+    make_socket_noninheritable(sock);
+
+    if (!options.tcp_accept_filters.empty()) {
+        let mut matched = false;
+        // for (ZmqOptions::tcp_accept_filters_t::size_type
+        //        i = 0,
+        //        size = options.tcp_accept_filters.size ();
+        //      i != size; += 1i)
+        for i in 0..options.tcp_accept_filters.len() {
+            if (options.tcp_accept_filters[i].match_address((&ss), ss_len)) {
+                matched = true;
+                break;
+            }
+        }
+        unsafe {
+            if (!matched) {
+                // #ifdef ZMQ_HAVE_WINDOWS
+                let rc: i32 = closesocket(sock);
+                // wsa_assert (rc != SOCKET_ERROR);
+                // #else
+                //             int rc = ::close (sock);
+                // errno_assert (rc == 0);
+                // #endif
+                return Ok(retired_fd as ZmqFileDesc);
+            }
+        }
+    }
+
+    unsafe {
+        if (set_nosigpipe(sock)) {
+            // #ifdef ZMQ_HAVE_WINDOWS
+            let rc: i32 = closesocket(sock);
+            // wsa_assert(rc != SOCKET_ERROR);
+            // #else
+            // let rc = ::close(sock);
+            // errno_assert (rc == 0);
+            // #endif
+            return Ok(retired_fd as ZmqFileDesc);
+        }
+    }
+
+    // Set the IP Type-Of-Service priority for this client socket
+    if (options.tos != 0) {
+        set_ip_type_of_service(sock, options.tos);
+    }
+
+    // Set the protocol-defined priority for this client socket
+    if (options.priority != 0) {
+        set_socket_priority(sock, options.priority);
+    }
+
+    return Ok(sock as ZmqFileDesc);
 }

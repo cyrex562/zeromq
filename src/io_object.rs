@@ -46,7 +46,7 @@ pub struct ZmqIoObject {
 
 impl ZmqIoObject {
     // ZmqIoObject (ZmqIoThread *io_thread_ = null_mut());
-    pub fn new(io_thread_: Option<ZmqThreadContext>) -> Self {
+    pub fn new(io_thread_: Option<&mut ZmqThreadContext>) -> Self {
         // : poller (null_mut())
         //     if (io_thread_)
         //         Plug (io_thread_);
@@ -55,7 +55,7 @@ impl ZmqIoObject {
             poller: None,
         };
         if io_thread_.is_some() {
-            out.plug(&mut io_thread_.unwrap());
+            out.plug(io_thread_.unwrap());
         }
 
         out

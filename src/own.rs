@@ -107,7 +107,7 @@ impl ZmqOwn {
         Self {
             // options: Default::default(),
             terminating: false,
-            sent_seqnum: AtomicCounter::new(),
+            sent_seqnum: AtomicU64::new(),
             processed_seqnum: 0,
             term_acks: 0,
             // ctx: options,

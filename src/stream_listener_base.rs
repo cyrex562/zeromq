@@ -37,7 +37,7 @@
 use crate::address::get_socket_name;
 use crate::address::SocketEnd::{SocketEndLocal, SocketEndRemote};
 use crate::context::{choose_io_thread, ZmqContext};
-use crate::defines::ZmqHandle;
+use crate::defines::{retired_fd, ZmqHandle};
 use crate::endpoint::EndpointType::endpoint_type_bind;
 use crate::endpoint::{make_unconnected_bind_endpoint_pair, EndpointUriPair};
 use crate::fd::ZmqFileDesc;
@@ -106,7 +106,7 @@ impl ZmqStreamListenerBase {
         Self {
             own: ZmqOwn::new(options, io_thread.get_ctx_mut(), io_thread.tid),
             io_object: ZmqIoObject::new(io_thread_),
-            _s: retired_fd,
+            _s: retired_fd as ZmqFileDesc,
             _handle: None,
             _socket: socket.clone(),
             _endpoint: String::new(),

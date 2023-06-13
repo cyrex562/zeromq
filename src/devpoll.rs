@@ -45,10 +45,11 @@ use crate::context::ZmqContext;
 use crate::defines::ZmqHandle;
 use crate::fd::ZmqFileDesc;
 use crate::poller_base::WorkerPollerBase;
-use crate::thread_ctx::ThreadCtx;
 use libc::{open, write, EINTR, O_RDWR};
 use std::ffi::CString;
 use windows::Win32::Networking::WinSock::{POLLERR, POLLHUP, POLLIN, POLLOUT};
+use crate::events::ZmqEvents;
+
 
 // typedef DevPoll Poller;
 pub type ZmqPoller = DevPoll;
@@ -57,7 +58,7 @@ pub struct FdEntry {
     // short events;
     pub events: i16,
     // i_poll_events *reactor;
-    pub reactor: ZmqPollEventsInterface,
+    pub reactor: ZmqEvents,
     // valid: bool
     pub valid: bool,
     // accepted: bool
@@ -104,7 +105,7 @@ impl DevPoll {
 
     //  "poller" concept.
     // handle_t add_fd (fd: ZmqFileDesc, i_poll_events *events_);
-    pub fn add_fd(&mut self, fd: &ZmqHandle, reactor_: &mut ZmqPollEventsInterface) -> ZmqHandle {
+    pub fn add_fd(&mut self, fd: &ZmqHandle, reactor_: &mut ZmqEvents) -> ZmqHandle {
         check_thread();
         //  If the file descriptor table is too small expand it.
         let sz = self.fd_table.size();

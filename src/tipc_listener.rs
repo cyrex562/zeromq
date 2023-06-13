@@ -65,6 +65,8 @@ use libc::{
 use std::mem;
 use windows::Win32::Networking::WinSock::{socklen_t, SOCK_STREAM};
 use crate::context::ZmqContext;
+use crate::defines::retired_fd;
+use crate::listener::ZmqListener;
 
 // #include <unistd.h>
 // #include <sys/socket.h>
@@ -128,24 +130,8 @@ impl ZmqTipcListener {
         }
     }
 
-    pub fn in_event(&mut self) {
-        let mut fd: ZmqFileDesc = self.accept();
 
-        //  If connection was reset by the peer in the meantime, just ignore it.
-        //  TODO: Handle specific errors like ENFILE/EMFILE etc.
-        if (fd == retired_fd) {
-            self._socket
-                .event_accept_failed(make_unconnected_bind_endpoint_pair(_endpoint), zmq_errno());
-            return;
-        }
 
-        //  Create the engine object for this connection.
-        create_engine(fd);
-    }
-
-    pub fn get_socket_name(&mut self, fd: ZmqFileDesc, socket_end_: SocketEnd) -> String {
-        return get_socket_name(fd, socket_end_).unwrap();
-    }
 
     pub fn set_local_address(&mut self, addr_: &str) -> i32 {
         // Convert str to address struct
@@ -240,6 +226,24 @@ impl ZmqTipcListener {
         /*FIXME Accept filters?*/
         return sock;
     }
+}
+
+pub fn tipc_in_event(listener: &mut ZmqListener) -> anyhow::Result<()>
+{
+    let mut fd: ZmqFileDesc = tipc_accept(listener);
+
+    //  If connection was reset by the peer in the meantime, just ignore it.
+    //  TODO: Handle specific errors like ENFILE/EMFILE etc.
+    if (fd == retired_fd as usize) {
+        self._socket
+            .event_accept_failed(make_unconnected_bind_endpoint_pair(listener.endpoint), -1);
+        bail!("failed to bind")
+    }
+
+    //  Create the engine object for this connection.
+    listener.create_engine();
+
+    Ok(())
 }
 
 // #endif

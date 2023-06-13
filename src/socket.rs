@@ -8,22 +8,22 @@ use anyhow::{anyhow, bail};
 use bincode::options;
 use libc::{c_char, c_int, c_void, EAGAIN, EINTR, EINVAL};
 use serde::{Deserialize, Serialize};
+use windows::Win32::Networking::WinSock::SOL_SOCKET;
 use crate::address::{sockaddr_tipc, ZmqAddress};
 
 use crate::command::ZmqCommand;
 use crate::context::{bool_to_vec, get_effective_conflate_option, i32_to_vec, str_to_vec, ZmqContext};
 use crate::cpu_time::get_cpu_tick_counter;
-use crate::defines::{retired_fd, ZMQ_BLOCKY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENTS, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB, ZMQ_ZERO_COPY_RECV, ZmqHandle};
+use crate::defines::{retired_fd, ZMQ_BLOCKY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB, ZMQ_ZERO_COPY_RECV, ZmqHandle};
 use crate::devpoll::ZmqPoller;
 use crate::endpoint::EndpointType::endpoint_type_none;
-use crate::endpoint::{make_unconnected_bind_endpoint_pair, EndpointUriPair, ZmqEndpoint};
+use crate::endpoint::{EndpointUriPair, make_unconnected_bind_endpoint_pair, ZmqEndpoint};
 use crate::engine_interface::ZmqEngineInterface;
 use crate::fd::ZmqFileDesc;
-use crate::ipc_listener::IpcListener;
 use crate::mailbox::ZmqMailbox;
 use crate::mailbox_interface::ZmqMailboxInterface;
 use crate::mailbox_safe::ZmqMailboxSafe;
-use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
+use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
 use crate::object::ZmqObject;
 use crate::ops::{
     zmq_bind, zmq_close, zmq_msg_init_size, zmq_msg_send, zmq_setsockopt,
@@ -36,109 +36,24 @@ use crate::pipe::{send_hello_msg, ZmqPipe};
 use crate::session_base::ZmqSessionBase;
 use crate::signaler::ZmqSignaler;
 use crate::socket_base_ops::ZmqSocketBaseOps;
-use crate::tcp_address::TcpAddress;
-use crate::tcp_listener::TcpListener;
+use crate::socket_option::ZmqSocketOption;
 use crate::thread_context::ZmqThreadContext;
-use crate::tipc_address::ZmqTipcAddress;
 use crate::tipc_listener::ZmqTipcListener;
 use crate::transport::ZmqTransport;
-use crate::udp_address::UdpAddress;
-use crate::vmci_address::ZmqVmciAddress;
-use crate::vmci_listener::ZmqVmciListener;
-use crate::ws_address::WsAddress;
 use crate::ws_listener::ZmqWsListener;
-use crate::wss_address::WssAddress;
-
-
-#[derive(Debug, Clone)]
-pub enum ZmqSocketOption {
-    ZMQ_AFFINITY = 4,
-    ZMQ_ROUTING_ID = 5,
-    ZQM_SUBSCRIBE = 6,
-    ZMQ_UNSUBSCRIBE = 7,
-    ZMQ_RATE = 8,
-    ZMQ_RECOVERY_IVL = 9,
-    ZMQ_SNDBUF = 11,
-    ZMQ_RCVBUF = 12,
-    ZMQ_RCVMORE = 13,
-    ZMQ_FD = 14,
-    ZMQ_EVENTS = 15,
-    ZMQ_TYPE = 16,
-    ZMQ_LINGER = 17,
-    ZMQ_RECONNECT_IVL = 18,
-    ZMQ_BACKLOG = 19,
-    ZMQ_RECONNECT_IVL_MAX = 21,
-    ZMQ_MAXMSGSIZE = 22,
-    ZMQ_SNDHWM = 23,
-    ZMQ_RCVHWM = 24,
-    ZMQ_MULTICAST_HOPS = 25,
-    ZMQ_RCVTIMEO = 27,
-    ZMQ_SNDTIMEO = 28,
-    ZMQ_LAST_ENDPOINT = 32,
-    ZMQ_ROUTER_MANDATORY = 33,
-    ZMQ_TCP_KEEPALIVE = 34,
-    ZMQ_TCP_KEEPALIVE_CNT = 35,
-    ZMQ_TCP_KEEPALIVE_IDLE = 36,
-    ZMQ_TCP_KEEPALIVE_INTVL = 37,
-    ZMQ_IMMEDIATE = 39,
-    ZMQ_XPUB_VERBOSE = 40,
-    ZMQ_ROUTER_RAW = 41,
-    ZMQ_IPV6 = 42,
-    ZMQ_MECHANISM = 43,
-    ZMQ_PLAIN_SERVER = 44,
-    ZMQ_PLAIN_USERNAME = 45,
-    ZMQ_PLAIN_PASSWORD = 46,
-    ZMQ_CURVE_SERVER = 47,
-    ZMQ_CURVE_PUBLICKEY = 48,
-    ZMQ_CURVE_SECRETKEY = 49,
-    ZMQ_CURVE_SERVERKEY = 50,
-    ZMQ_PROBE_ROUTER = 51,
-    ZMQ_REQ_CORRELATE = 52,
-    ZMQ_REQ_RELAXED = 53,
-    ZMQ_CONFLATE = 54,
-    ZMQ_ZAP_DOMAIN = 55,
-    ZMQ_ROUTER_HANDOVER = 56,
-    ZMQ_TOS = 57,
-    ZMQ_CONNECT_ROUTING_ID = 61,
-    ZMQ_GSSAPI_SERVER = 62,
-    ZMQ_GSSAPI_PRINCIPAL = 63,
-    ZMQ_GSSAPI_SERVICE_PRINCIPAL = 64,
-    ZMQ_GSSAPI_PLAINTEXT = 65,
-    ZMQ_HANDSHAKE_IVL = 66,
-    ZMQ_SOCKS_USERNAME = 67,
-    ZMQ_SOCKS_PROXY = 68,
-    ZMQ_XPUB_NODROP = 69,
-    ZMQ_BLOCKY = 70,
-    ZMQ_XPUB_MANUAL = 71,
-    ZMQ_XPUB_WELCOME_MSG = 72,
-    ZMQ_STREAM_NOTIFY = 73,
-    ZMQ_INVERT_MATCHING = 74,
-    ZMQ_HEARTBEAT_IVL = 75,
-    ZMQ_HEARTBEAT_TTL = 76,
-    ZMQ_HEARTBEAT_TIMEOUT = 77,
-    ZMQ_XPUB_VERBOSER = 78,
-    ZMQ_CONNECT_TIMEOUT = 79,
-    ZMQ_TCP_MAXRT = 80,
-    ZMQ_THREAD_SAFE = 81,
-    ZMQ_MULTICAST_MAXTPDU = 84,
-    ZMQ_VMCI_BUFFER_SIZE = 85,
-    ZMQ_VMCI_BUFFER_MIN_SIZE = 86,
-    ZMQ_VMCI_BUFFER_MAX_SIZE = 87,
-    ZMQ_VMCI_CONNECT_TIMEOUT = 88,
-    ZMQ_USE_FD = 89,
-    ZMQ_GSSAPI_PRINCIPAL_NAMETYPE = 90,
-    ZMQ_GSSAPI_SERVICE_PRINCIPAL_NAMETYPE = 91,
-    ZMQ_BINDTODEVICE = 92,
-}
 
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ZmqSocket<'a> {
-    pub context: &'a mut ZmqContext,
+    pub context: &'a mut ZmqContext<'a>,
     pub thread_id: i32,
     pub sent_seqnum: u64,
     pub term_acks: u32,
     pub fd: ZmqFileDesc,
+
+    pub destination: ZmqAddress,
+
+
     // Mutex for synchronize access to the socket in thread safe mode
     pub sync: Mutex<u8>,
     //  Map of open endpoints.
@@ -463,7 +378,8 @@ impl<'a> ZmqSocket<'a> {
         let mut out_len: c_int = mem::size_of::<i32>() as c_int;
         rc = unsafe {
             libc::getsockopt(
-                self.fd, libc::SOL_SOCKET,
+                self.fd,
+                SOL_SOCKET,
                 optkind,
                 &mut out_val as *mut i32 as *mut c_char,
                 &mut out_len as *mut c_int,
@@ -1337,7 +1253,6 @@ impl<'a> ZmqSocket<'a> {
     //                       ZmqFileDesc fd);
     pub fn event_listening(
         &mut self,
-        options: &mut ZmqContext,
         endpoint_uri_pair_: &EndpointUriPair,
         fd: ZmqFileDesc,
     ) {
@@ -1376,7 +1291,6 @@ impl<'a> ZmqSocket<'a> {
     //                      ZmqFileDesc fd);
     pub fn event_accepted(
         &mut self,
-        options: &mut ZmqContext,
         endpoint_uri_pair_: &EndpointUriPair,
         fd: ZmqFileDesc,
     ) {
@@ -1395,7 +1309,6 @@ impl<'a> ZmqSocket<'a> {
     //                           err_: i32);
     pub fn event_accept_failed(
         &mut self,
-        options: &mut ZmqContext,
         endpoint_uri_pair_: &EndpointUriPair,
         err_: i32,
     ) {
@@ -1414,14 +1327,13 @@ impl<'a> ZmqSocket<'a> {
     //                    ZmqFileDesc fd);
     pub fn event_closed(
         &mut self,
-        options: &mut ZmqContext,
         endpoint_uri_pair_: &EndpointUriPair,
         fd: ZmqFileDesc,
     ) {
         // u64 values[1] = { (fd)};
         let values: [u64; 1] = [fd as u64];
         self.event(
-            options,
+            self.context,
             endpoint_uri_pair_,
             &values,
             1,
@@ -1433,7 +1345,6 @@ impl<'a> ZmqSocket<'a> {
     //                          err_: i32);
     pub fn event_close_failed(
         &mut self,
-        options: &mut ZmqContext,
         enpoint_uri_pair_: &EndpointUriPair,
         err_: i32,
     ) {
@@ -1973,7 +1884,6 @@ impl<'a> ZmqSocket<'a> {
     //             u64 type_);
     pub fn event(
         &mut self,
-        options: &mut ZmqContext,
         endpoint_uri_pair_: &EndpointUriPair,
         values_: &[u64],
         values_count_: u64,
@@ -1981,7 +1891,7 @@ impl<'a> ZmqSocket<'a> {
     ) {
         // scoped_lock_t lock (_monitor_sync);
         if (self.monitor_events & type_) {
-            self.monitor_event(options, type_, values_, values_count_, endpoint_uri_pair_);
+            self.monitor_event( type_, values_, values_count_, endpoint_uri_pair_);
         }
     }
 
@@ -1992,7 +1902,6 @@ impl<'a> ZmqSocket<'a> {
     //                     const EndpointUriPair &endpoint_uri_pair_) const;
     pub fn monitor_event(
         &mut self,
-        options: &mut ZmqContext,
         event_: u64,
         values_: &[u64],
         values_count_: u64,
@@ -2631,4 +2540,10 @@ pub fn get_sock_opt_zmq_events(sock: &mut ZmqSocket) -> anyhow::Result<u32> {
     ]);
     // let result = ZmqFileDesc::from_raw_fd(result_usize);
     Ok(result_u32)
+}
+
+pub fn get_sock_opt_zmq_routing_id(sock: &mut ZmqSocket) -> anyhow::Result<String> {
+    let mut result_raw = sock.getsockopt(ZmqSocketOption::ZMQ_ROUTING_ID)?;
+    let result = String::from_utf8(result_raw)?;
+    Ok(result)
 }

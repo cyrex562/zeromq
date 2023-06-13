@@ -202,7 +202,6 @@ impl ZmqSessionBase {
     // options: &ZmqOptions,
     // Address *addr_);
     pub fn create(
-        ctx: &mut ZmqContext,
         io_thread: &mut ZmqThreadContext,
         active_: bool,
         socket: &mut ZmqSocket,

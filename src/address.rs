@@ -1,6 +1,8 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use crate::fd::ZmqFileDesc;
 use crate::transport::ZmqTransport;
 
+#[derive(Default,Debug,Clone)]
 pub struct ZmqAddress {
     pub protocol: ZmqTransport,
     pub family: i32,
@@ -17,6 +19,11 @@ pub struct ZmqAddress {
     pub vm_sockaddr: sockaddr_vm,
     pub host: String,
     pub path: String,
+}
+
+pub enum ZmqSocketEnd {
+    SocketEndLocal,
+    SocketEndRemote,
 }
 
 #[cfg(target_os = "windows")]
@@ -597,4 +604,39 @@ impl ZmqAddress {
     //     }
 
     // TODO
+}
+
+pub fn get_socket_address(
+    fd: ZmqFileDesc,
+    socket_end: ZmqSocketEnd,
+    ss: *mut ZmqAddress,
+) -> anyhow::Result<usize> {
+    // // usize sl = static_cast<usize> (sizeof (*ss_));
+    // let mut sl = mem::size_of::<ZmqSockaddrStorage>();
+
+    // if socket_end == SocketEnd::SocketEndLocal {
+    //     unsafe {libc::getsockname(fd, ss, sl)};
+    // } else {
+    //     unsafe {libc::getpeername(fd, ss, sl)}
+    // }
+
+    // Ok(sl as usize)
+    todo!()
+}
+
+pub fn get_socket_name(fd: ZmqFileDesc, socket_end: ZmqSocketEnd) -> anyhow::Result<String> {
+    // // struct sockaddr_storage ss;
+    // let mut ss: ZmqSockaddrStorage = ZmqSockaddrStorage{};
+    // let mut sl: usize = get_socket_address (fd, socket_end, &ss);
+    // if (sl == 0) {
+    //     return String::empty();
+    // }
+
+    // // const T addr (reinterpret_cast<struct sockaddr *> (&ss), sl);
+    // let mut addr = Address::from_sockaddr(ss as ZmqSockaddr);
+    // // std::string address_string;
+    // let mut address_string: String = String::new();
+
+    // return addr.to_string();;
+    todo!()
 }

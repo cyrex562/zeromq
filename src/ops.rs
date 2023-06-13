@@ -1,17 +1,17 @@
 use crate::context::ZmqContext;
-use crate::defines::{zmq_timer_fn, ZMQ_EVENTS, ZMQ_FD, ZMQ_IO_THREADS, ZMQ_MORE, ZMQ_PAIR, ZMQ_PEER, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI, ZMQ_SHARED, ZMQ_SNDMORE, ZMQ_SRCFD, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH, retired_fd};
-use crate::err::ZmqError::{AddItemToPollerFailed, AddTimerFailed, BindSocketFailed, CancelTimerFailed, CheckTagFailed, CloseMessageFailed, CloseSocketFailed, ConnectPeerSocketFailed, ConnectSocketFailed, DeserializeZmqPeerFailed, DeserializeZmqSocketBaseFailed, ExecuteTimerFailed, GetContextPropertyFailed, GetMessageFailed, GetSocketOptionFailed, GetSocketPeerStateFailed, InitializeMessageFailed, InvalidEvent, InvalidFileDescriptor, InvalidInput, InvalidMessageProperty, InvalidPeer, JoinGroupFailed, LeaveGroupFailed, MallocFailed, ModifyPollerItemFailed, PollFailed, PollerWaitFailed, ProxyFailed, RemoveItemFromPollerFailed, ResetTimerFailed, SelectFailed, SendMessageFailed, SerializeZmqSocketBaseFailed, SetContextPropertyFailed, SetMessagePropertyFailed, SetTimerIntervalFailed, ShutdownContextFailed, TerminateEndpointFailed, UnsupportedSocketType, ReceiveMessageFailed, InvalidPollerEventArray, InvalidPollerEventArraySize};
+use crate::defines::{retired_fd, ZMQ_EVENTS, ZMQ_FD, ZMQ_IO_THREADS, ZMQ_MORE, ZMQ_PAIR, ZMQ_PEER, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI, ZMQ_SHARED, ZMQ_SNDMORE, ZMQ_SRCFD, zmq_timer_fn, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH};
+use crate::err::ZmqError::{AddItemToPollerFailed, AddTimerFailed, BindSocketFailed, CancelTimerFailed, CheckTagFailed, CloseMessageFailed, CloseSocketFailed, ConnectPeerSocketFailed, ConnectSocketFailed, DeserializeZmqPeerFailed, DeserializeZmqSocketBaseFailed, ExecuteTimerFailed, GetContextPropertyFailed, GetMessageFailed, GetSocketOptionFailed, GetSocketPeerStateFailed, InitializeMessageFailed, InvalidEvent, InvalidFileDescriptor, InvalidInput, InvalidMessageProperty, InvalidPeer, InvalidPollerEventArray, InvalidPollerEventArraySize, JoinGroupFailed, LeaveGroupFailed, MallocFailed, ModifyPollerItemFailed, PollerWaitFailed, PollFailed, ProxyFailed, ReceiveMessageFailed, RemoveItemFromPollerFailed, ResetTimerFailed, SelectFailed, SendMessageFailed, SerializeZmqSocketBaseFailed, SetContextPropertyFailed, SetMessagePropertyFailed, SetTimerIntervalFailed, ShutdownContextFailed, TerminateEndpointFailed, UnsupportedSocketType};
 use crate::err::{errno_to_string, wsa_error_to_errno, ZmqError};
 use crate::fd::ZmqFileDesc;
 use crate::ip::{initialize_network, shutdown_network};
-use crate::message::{ZmqMessage, ZMQ_MSG_MORE, ZMQ_MSG_SHARED};
+use crate::message::{ZMQ_MSG_MORE, ZMQ_MSG_SHARED, ZmqMessage};
 
 use crate::peer::ZmqPeer;
 use crate::poll_item::ZmqPollItem;
 use crate::poller_event::ZmqPollerEvent;
 use crate::polling_util::{compute_timeout, OptimizedFdSet};
 use crate::proxy::proxy;
-use crate::socket::{get_sock_opt_zmq_events, get_sock_opt_zmq_fd, ZmqSocket, ZmqSocketOption};
+use crate::socket::{get_sock_opt_zmq_events, get_sock_opt_zmq_fd, ZmqSocket};
 use crate::socket_poller::ZmqSocketPoller;
 use crate::timers::ZmqTimers;
 use crate::utils::copy_bytes;
@@ -19,11 +19,11 @@ use anyhow::{anyhow, bail};
 use bincode::options;
 use libc::{
     atoi, c_char, c_long, c_void, clock_t,
-    time_t, timespec, timeval, EFAULT, EINTR, EINVAL, ENOMEM, ENOTSOCK, ENOTSUP,
-    INT_MAX,
+    EFAULT, EINTR, EINVAL, ENOMEM, ENOTSOCK, ENOTSUP, INT_MAX, time_t, timespec,
+    timeval,
 };
 #[cfg(target_os = "linux")]
-use libc::{fd_set, iovec, poll, pollfd, pselect, select, sigset_t, suseconds_t, POLLIN, POLLOUT, POLLPRI};
+use libc::{fd_set, iovec, poll, pollfd, POLLIN, POLLOUT, POLLPRI, pselect, select, sigset_t, suseconds_t};
 use serde::Serialize;
 use std::error::Error;
 use std::ptr::null_mut;
@@ -32,9 +32,10 @@ use std::{mem, thread, time};
 use windows::s;
 #[cfg(windows)]
 use windows::Win32::Networking::WinSock::{
-    select, WSAGetLastError, FD_SET, POLLIN, POLLOUT, POLLPRI, SOCKET_ERROR, TIMEVAL,
+    FD_SET, POLLIN, POLLOUT, POLLPRI, select, SOCKET_ERROR, TIMEVAL, WSAGetLastError,
 };
 use windows::Win32::Networking::WinSock::{SOCKET, WSAPoll, WSAPOLLFD};
+use crate::socket_option::ZmqSocketOption;
 
 pub fn zmq_version(major_: *mut u32, minor_: *mut u32, patch_: *mut u32) {
     unsafe {
