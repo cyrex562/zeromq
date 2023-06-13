@@ -769,4 +769,10 @@ pub enum ZmqError {
     ProxyFailed(String),
     #[error("Failed to receive message")]
     ReceiveMessageFailed(String),
+    #[error("invalid poller event array")]
+    InvalidPollerEventArray(String),
+    #[error("invalid poller event array size")]
+    InvalidPollerEventArraySize(String),
+    #[error("get poller signaler failed")]
+    GetPollerSignalerFailed(String),
 }

@@ -3,21 +3,20 @@ use crate::transport::ZmqTransport;
 
 pub struct ZmqAddress {
     pub protocol: ZmqTransport,
-    pub addr_ip: IpAddr,
+    pub family: i32,
+    pub ip_addr: IpAddr,
     pub addr_sockaddr: SocketAddr,
-    pub srcaddr: SocketAddr,
+    pub src_addr: SocketAddr,
     pub bind_addr: SocketAddr,
     pub tgt_addr: SocketAddr,
     pub bind_interface: i32,
     pub is_multicast: bool,
     pub has_src_addr: bool,
-    pub family: i32,
     pub addr_str: String,
-    pub addr_tipc_sockaddr: sockaddr_tipc,
-    pub addr_vm_sockaddr: sockaddr_vm,
+    pub tipc_sockaddr: sockaddr_tipc,
+    pub vm_sockaddr: sockaddr_vm,
     pub host: String,
     pub path: String,
-
 }
 
 #[cfg(target_os = "windows")]
@@ -38,13 +37,37 @@ pub struct sockaddr_vm {}
 //            };
 
 impl ZmqAddress {
-    pub fn new(protocol: ZmqTransport, ip_addr: Option<IpAddr>, sockaddr: Option<SocketAddr>, addrstr: Option<&str>, tipc_sockaddr: Option<sockaddr_tipc>) -> Self {
+    pub fn new(protocol: ZmqTransport,
+               family: i32,
+               bind_interface: i32,
+               is_multicast: bool,
+               ip_addr: Option<IpAddr>,
+               addr_sockaddr: Option<SocketAddr>,
+               addr_str: Option<&str>,
+                bind_sockaddr: Option<SocketAddr>,
+                src_sockaddr: Option<SocketAddr>,
+                tgt_sockaddr: Option<SocketAddr>,
+                tipc_sockaddr: Option<sockaddr_tipc>,
+                vm_sockaddr: Option<sockaddr_vm>,
+                host: Option<&str>,
+                path: Option<&str>,
+               ) -> Self {
         Self {
             protocol,
-            addr_ip: ip_addr.unwrap_or(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))),
-            addr_sockaddr: sockaddr.unwrap_or(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0)),
-            addr_str: addrstr.unwrap_or("").to_string(),
-            addr_tipc_sockaddr:
+            ip_addr: ip_addr.unwrap_or(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))),
+            addr_sockaddr: addr_sockaddr.unwrap_or(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0)),
+            addr_str: addr_str.unwrap_or("").to_string(),
+            tipc_sockaddr: tipc_sockaddr.unwrap_or(sockaddr_tipc{}).clone(),
+            vm_sockaddr: vm_sockaddr.unwrap_or(sockaddr_vm{}).clone(),
+            host: host.unwrap_or("").to_string(),
+            path: path.unwrap_or("").to_string(),
+            bind_addr: bind_sockaddr.unwrap_or(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0)).clone(),
+            src_addr: src_sockaddr.unwrap_or(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0)).clone(),
+            tgt_addr: tgt_sockaddr.unwrap_or(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0)).clone(),
+            is_multicast,
+            family,
+            bind_interface,
+            has_src_addr: src_sockaddr.is_some(),
         }
     }
 
