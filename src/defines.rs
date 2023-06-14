@@ -1,3 +1,4 @@
+use std::os::windows::raw::HANDLE;
 use crate::fd::ZmqFileDesc;
 use libc::c_void;
 
@@ -432,3 +433,21 @@ pub const ZMQ_EVENT_ALL_V2: u32 = ZMQ_EVENT_ALL_V1 | ZMQ_EVENT_PIPES_STATS;
 // #include "i_poll_events.hpp"
 // typedef ZmqFileDesc handle_t;
 pub type ZmqHandle = ZmqFileDesc;
+
+pub const TIPC_ADDR_ID: i32 = 3;
+
+// norm protocol library https://github.com/aletheia7/norm/blob/master/norm/include/normApi.h
+pub type NormObjectHandle = *const c_void;
+pub type NormInstanceHandle = *const c_void;
+pub type NormSessionHandle = *const c_void;
+pub type NormDescriptor = HANDLE;
+
+// enum
+// {
+pub const heartbeat_ivl_timer_id: u8 = 0x80;
+pub const heartbeat_timeout_timer_id: u8 = 0x81;
+pub const heartbeat_ttl_timer_id: u8 = 0x82;
+
+// enum
+// {
+pub const handshake_timer_id: u8 = 0x40;

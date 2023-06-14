@@ -98,7 +98,6 @@ use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZMQ_MSG_ROUTIN
 use crate::null_mechanism::ZmqNullMechanism;
 use crate::plain_client::PlainClient;
 use crate::plain_server::PlainServer;
-use crate::stream_engine_base::{heartbeat_ivl_timer_id, heartbeat_timeout_timer_id, ZmqStreamEngineBase};
 use crate::utils::{copy_bytes, set_bytes};
 use crate::ws_address::WsAddress;
 use crate::ws_decoder::ZmqWsDecoder;

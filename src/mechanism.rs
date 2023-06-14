@@ -339,7 +339,7 @@ impl ZmqMechanism {
     //     //  is compatible with a given socket type 'type_'.
     //     bool check_socket_type (type_: *const c_char, len_: usize) const;
 
-    fn property_len(&mut self, name: &str, value_len_: usize) -> usize {
+    pub fn property_len(&mut self, name: &str, value_len_: usize) -> usize {
         property_len(name_len(name), value_len_)
     }
 

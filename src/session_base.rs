@@ -68,7 +68,7 @@ use crate::engine_interface::ZmqEngineInterface;
 use crate::io_object::ZmqIoObject;
 use crate::ipc_connecter::IpcConnecter;
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID};
-use crate::norm_engine::NormEngine;
+use crate::norm::NormEngine;
 use crate::object::ZmqObject;
 use crate::own::ZmqOwn;
 use crate::pgm_receiver::ZmqPgmReceiver;
@@ -83,7 +83,7 @@ use crate::tcp_connecter::ZmqTcpConnector;
 use crate::thread_context::ZmqThreadContext;
 use crate::tipc_connecter::ZmqTipcConnecter;
 use crate::transport::ZmqTransport;
-use crate::udp_engine::ZmqUdpEngine;
+use crate::udp::ZmqUdpEngine;
 use crate::vmci_connecter::ZmqVmciConnecter;
 use crate::ws_connecter::ZmqWsConnecter;
 

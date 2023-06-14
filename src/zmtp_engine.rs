@@ -76,7 +76,6 @@ use crate::message::{ZMQ_MSG_CANCEL, ZMQ_MSG_COMMAND, ZMQ_MSG_PING, ZMQ_MSG_PONG
 
 use crate::plain_client::PlainClient;
 use crate::plain_server::PlainServer;
-use crate::stream_engine_base::{heartbeat_timeout_timer_id, heartbeat_ttl_timer_id, ZmqStreamEngineBase};
 use crate::utils::{cmp_bytes, copy_bytes, set_bytes};
 use crate::v1_decoder::ZmqV1Decoder;
 use crate::v1_encoder::ZmqV1Encoder;
