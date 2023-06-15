@@ -9,7 +9,7 @@ use windows::Win32::Networking::WinSock::{
     select, send, FD_SET, POLLIN, SEND_RECV_FLAGS, SOCKET_ERROR,
 };
 
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::polling_util::OptimizedFdSet;
 

@@ -91,7 +91,7 @@ use crate::context::ZmqContext;
 
 use crate::defines::{ZMQ_CURVE, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED};
 use crate::endpoint::EndpointUriPair;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::mechanism::ZmqMechanism;
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZMQ_MSG_ROUTING_ID, ZmqMessage};

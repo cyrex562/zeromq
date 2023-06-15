@@ -39,7 +39,7 @@ use crate::address::SocketEnd::SocketEndLocal;
 use crate::address::{get_socket_address, SocketEnd, ZmqAddress};
 use crate::defines::ZMQ_RECONNECT_STOP_CONN_REFUSED;
 use crate::err::wsa_error_to_errno;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::ip::unblock_socket;
 use crate::ops::zmq_errno;
 

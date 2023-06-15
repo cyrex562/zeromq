@@ -7,10 +7,10 @@ use libc::socket;
 use crate::context::ZmqContext;
 
 #[derive(Default, Debug, Clone)]
-pub struct ZmqChannel
+pub struct ZmqChannel<'a>
 {
     pipe: Option<ZmqPipe>,
-    base: ZmqSocket,
+    base: &'a mut ZmqSocket<'a>,
 }
 
 impl ZmqChannel {

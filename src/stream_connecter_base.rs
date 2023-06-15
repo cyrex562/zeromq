@@ -47,7 +47,7 @@ use crate::address::ZmqAddress;
 use crate::defines::ZmqHandle;
 use crate::endpoint::EndpointType::endpoint_type_connect;
 use crate::endpoint::EndpointUriPair;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 
 use crate::own::ZmqOwn;

@@ -14,7 +14,7 @@
 
 use crate::defines::{NormDescriptor, NormInstanceHandle, ZmqHandle};
 use crate::endpoint::EndpointUriPair;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
 

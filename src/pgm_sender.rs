@@ -36,7 +36,7 @@
 use crate::defines::ZmqHandle;
 use crate::endpoint::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 use crate::message::ZmqMessage;
 

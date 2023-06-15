@@ -38,7 +38,7 @@
 // #include <new>
 
 use libc::{epoll_ctl, POLLERR, POLLHUP, POLLIN, POLLOUT};
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::poll_events_interface::ZmqPollEventsInterface;
 use crate::poller_base::PollerBase;
 use crate::thread_ctx::ThreadCtx;

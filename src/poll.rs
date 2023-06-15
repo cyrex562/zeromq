@@ -44,7 +44,7 @@
 
 use std::thread::Thread;
 use libc::{poll, POLLERR, pollfd, POLLHUP, POLLIN, POLLOUT};
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::poll_events_interface::ZmqPollEventsInterface;
 use crate::poller_base::WorkerPollerBase;
 use crate::thread_ctx::ThreadCtx;

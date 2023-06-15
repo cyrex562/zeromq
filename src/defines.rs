@@ -1,6 +1,5 @@
 use std::os::windows::raw::HANDLE;
-use crate::fd::ZmqFileDesc;
-use libc::c_void;
+use libc::{c_void, SOCKET};
 
 //   Version macros for compile-time API version detection
 pub const ZMQ_VERSION_MAJOR: u32 = 4;
@@ -455,3 +454,8 @@ pub const handshake_timer_id: u8 = 0x40;
 pub const INADDR_ANY: u32 = 0;
 
 pub const MAX_UDP_MSG: usize = 8192;
+
+#[cfg(target_os = "windows")]
+pub type ZmqFileDesc = SOCKET;
+#[cfg(target_os = "linux")]
+pub type ZmqFileDesc = i32;

@@ -43,7 +43,7 @@
 
 use crate::context::ZmqContext;
 use crate::defines::ZmqHandle;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::poller_base::WorkerPollerBase;
 use libc::{open, write, EINTR, O_RDWR};
 use std::ffi::CString;

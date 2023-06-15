@@ -2,7 +2,7 @@ use crate::context::ZmqContext;
 use crate::defines::{retired_fd, ZMQ_EVENTS, ZMQ_FD, ZMQ_IO_THREADS, ZMQ_MORE, ZMQ_PAIR, ZMQ_PEER, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI, ZMQ_SHARED, ZMQ_SNDMORE, ZMQ_SRCFD, zmq_timer_fn, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH};
 use crate::err::ZmqError::{AddItemToPollerFailed, AddTimerFailed, BindSocketFailed, CancelTimerFailed, CheckTagFailed, CloseMessageFailed, CloseSocketFailed, ConnectPeerSocketFailed, ConnectSocketFailed, DeserializeZmqPeerFailed, DeserializeZmqSocketBaseFailed, ExecuteTimerFailed, GetContextPropertyFailed, GetMessageFailed, GetSocketOptionFailed, GetSocketPeerStateFailed, InitializeMessageFailed, InvalidEvent, InvalidFileDescriptor, InvalidInput, InvalidMessageProperty, InvalidPeer, InvalidPollerEventArray, InvalidPollerEventArraySize, JoinGroupFailed, LeaveGroupFailed, MallocFailed, ModifyPollerItemFailed, PollerWaitFailed, PollFailed, ProxyFailed, ReceiveMessageFailed, RemoveItemFromPollerFailed, ResetTimerFailed, SelectFailed, SendMessageFailed, SerializeZmqSocketBaseFailed, SetContextPropertyFailed, SetMessagePropertyFailed, SetTimerIntervalFailed, ShutdownContextFailed, TerminateEndpointFailed, UnsupportedSocketType};
 use crate::err::{errno_to_string, wsa_error_to_errno, ZmqError};
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::ip::{initialize_network, shutdown_network};
 use crate::message::{ZMQ_MSG_MORE, ZMQ_MSG_SHARED, ZmqMessage};
 

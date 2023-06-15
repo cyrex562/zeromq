@@ -1,5 +1,5 @@
 use std::ffi::c_void;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::socket::ZmqSocket;
 
 

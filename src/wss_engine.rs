@@ -31,7 +31,7 @@ use std::ptr::null_mut;
 use libc::{EAGAIN, EINTR, EINVAL, EPIPE, ssize_t};
 use crate::context::ZmqContext;
 use crate::endpoint::EndpointUriPair;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 
 use crate::ws_address::WsAddress;
 use crate::ws_engine::ZmqWsEngine;

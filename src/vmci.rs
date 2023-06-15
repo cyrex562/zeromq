@@ -48,7 +48,7 @@ use crate::address_family::AF_INET;
 use crate::context::ZmqContext;
 use crate::defines::retired_fd;
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::ip::open_socket;
 use crate::listener::ZmqListener;
 use crate::transport::ZmqTransport;

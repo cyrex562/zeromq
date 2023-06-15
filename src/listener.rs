@@ -5,7 +5,7 @@ use crate::defines::{retired_fd, ZmqHandle};
 use crate::endpoint::{EndpointUriPair, make_unconnected_bind_endpoint_pair};
 use crate::endpoint::EndpointType::endpoint_type_bind;
 use crate::engine::ZmqEngine;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 use crate::ip::create_ipc_wildcard_address;
 use crate::ipc::{ipc_accept, ipc_close, ipc_in_event, ipc_resolve_address, ipc_set_local_address};
@@ -91,7 +91,7 @@ impl<'a> ZmqListener<'a> {
             ZmqTransport::ZmqTcp => tcp_create_socket(self, addr),
             ZmqTransport::ZmqWs => ws_create_socket(self, addr),
             _ => bail!("Unsupported protocol"),
-            
+
         }
     }
 

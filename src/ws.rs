@@ -6,7 +6,7 @@ use crate::defines::retired_fd;
 use crate::endpoint::{EndpointUriPair, make_unconnected_bind_endpoint_pair};
 use crate::endpoint::EndpointType::endpoint_type_bind;
 use crate::engine_interface::ZmqEngineInterface;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::ip::make_socket_noninheritable;
 use crate::listener::ZmqListener;
 use crate::session_base::ZmqSessionBase;

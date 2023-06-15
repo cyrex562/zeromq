@@ -28,7 +28,7 @@
 */
 
 use crate::defines::ZmqHandle;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::poll_events_interface::ZmqPollEventsInterface;
 use crate::thread_context::ZmqThreadContext;
 use std::ptr::null_mut;

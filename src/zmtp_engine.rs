@@ -69,7 +69,7 @@ use libc::{EAGAIN, memcmp, memcpy, memset};
 use crate::context::ZmqContext;
 use crate::curve_server::curve_ZmqServer;
 use crate::endpoint::EndpointUriPair;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::gssapi_client::ZmqGssApiClient;
 use crate::gssapi_server::ZmqGssApiServer;
 use crate::message::{ZMQ_MSG_CANCEL, ZMQ_MSG_COMMAND, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZMQ_MSG_ROUTING_ID, ZMQ_MSG_SUBSCRIBE, ZmqMessage};

@@ -30,7 +30,7 @@
 use std::sync::Mutex;
 
 use crate::command::ZmqCommand;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::pipe::PipeState::active;
 use crate::signaler::ZmqSignaler;
 use crate::ypipe::Ypipe;

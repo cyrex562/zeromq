@@ -67,7 +67,7 @@ use crate::context::ZmqContext;
 use crate::defines::retired_fd;
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::err::wsa_error_to_errno;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::ip::{assert_success_or_recoverable, bind_to_device, enable_ipv4_mapping, make_socket_noninheritable, open_socket, set_ip_type_of_service, set_nosigpipe, set_socket_priority};
 use crate::listener::ZmqListener;
 

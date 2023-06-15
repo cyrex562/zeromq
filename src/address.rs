@@ -1,5 +1,5 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::transport::ZmqTransport;
 
 #[derive(Default,Debug,Clone)]

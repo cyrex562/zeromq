@@ -41,7 +41,7 @@
 // #include <sstream>
 
 use crate::endpoint::EndpointUriPair;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::message::ZmqMessage;
 use crate::metadata::ZmqMetadata;
 

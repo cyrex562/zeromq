@@ -57,7 +57,7 @@ use crate::context::ZmqContext;
 use crate::defines::{INADDR_ANY, MAX_UDP_MSG, retired_fd, ZmqHandle};
 use crate::endpoint::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 use crate::ip::{assert_success_or_recoverable, bind_to_device, open_socket, unblock_socket};
 use crate::mechanism::name_len;

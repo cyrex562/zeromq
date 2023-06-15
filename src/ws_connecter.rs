@@ -74,7 +74,7 @@ use crate::endpoint::EndpointType::endpoint_type_connect;
 use crate::endpoint::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::err::wsa_error_to_errno;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::ip::{tune_socket, unblock_socket};
 use crate::ops::zmq_errno;
 

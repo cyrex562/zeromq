@@ -54,7 +54,7 @@
 use crate::address_family::AF_UNSPEC;
 use crate::decoder_allocators::size;
 use crate::defines::ZmqHandle;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::poll_events_interface::ZmqPollEventsInterface;
 use crate::poller_base::WorkerPollerBase;

@@ -19,7 +19,7 @@ use crate::devpoll::ZmqPoller;
 use crate::endpoint::EndpointType::endpoint_type_none;
 use crate::endpoint::{EndpointUriPair, make_unconnected_bind_endpoint_pair, ZmqEndpoint};
 use crate::engine_interface::ZmqEngineInterface;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::mailbox::ZmqMailbox;
 use crate::mailbox_interface::ZmqMailboxInterface;
 use crate::mailbox_safe::ZmqMailboxSafe;

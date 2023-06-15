@@ -58,7 +58,7 @@ use windows::Win32::Foundation::FALSE;
 use windows::Win32::Networking::WinSock::{IPPROTO_PGM, IPPROTO_UDP, sa_family_t, SO_RCVBUF, SO_SNDBUF, SOCK_SEQPACKET, SOL_SOCKET};
 use crate::address_family::{AF_INET6, AF_UNSPEC};
 use crate::context::ZmqContext;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 
 use crate::unix_sockaddr::sockaddr_in6;
 use crate::utils::copy_bytes;

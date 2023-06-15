@@ -180,7 +180,7 @@ use windows::Win32::System::Threading::{ReleaseMutex, SetEvent};
 
 #[cfg(target_os = "windows")]
 use crate::err::wsa_error_to_errno;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::ipc_address::IpcAddress;
 use crate::platform_socket::ZmqSockaddrStorage;
 use crate::tcp::tcp_tune_loopback_fast_path;

@@ -48,7 +48,7 @@
 use crate::address::SocketEnd::SocketEndLocal;
 use crate::address::{get_socket_name, ZmqAddress};
 use crate::address_family::AF_TIPC;
-use crate::fd::ZmqFileDesc;
+use crate::defines::ZmqFileDesc;
 use crate::ip::{open_socket, unblock_socket};
 use crate::ops::zmq_errno;
 
