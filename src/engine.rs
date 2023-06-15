@@ -610,7 +610,7 @@ impl <'a> ZmqEngine <'a> {
     }
 
     // virtual const EndpointUriPair &get_endpoint () const = 0;
-    pub fn get_endpoint(&self) -> &EndpointUriPair {
+    pub fn get_endpoint(&mut self) -> EndpointUriPair {
         match self.address.protocol {
             ZmqTransport::ZmqUdp => udp_get_endpoint(self),
             _ => self.empty_endpoint.clone()

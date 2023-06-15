@@ -451,3 +451,7 @@ pub const heartbeat_ttl_timer_id: u8 = 0x82;
 // enum
 // {
 pub const handshake_timer_id: u8 = 0x40;
+
+pub const INADDR_ANY: u32 = 0;
+
+pub const MAX_UDP_MSG: usize = 8192;
