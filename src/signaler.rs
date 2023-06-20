@@ -11,7 +11,7 @@ use windows::Win32::Networking::WinSock::{
 
 use crate::defines::ZmqFileDesc;
 use crate::mechanism::ZmqMechanismStatus::error;
-use crate::polling_util::OptimizedFdSet;
+use crate::optimized_fd_set::OptimizedFdSet;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqSignaler {

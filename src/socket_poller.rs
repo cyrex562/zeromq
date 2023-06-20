@@ -44,9 +44,9 @@ use windows::Win32::System::Threading::Sleep;
 use crate::defines::{ZMQ_EVENTS, ZMQ_FD, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI};
 use crate::err::wsa_error_to_errno;
 use crate::defines::ZmqFileDesc;
+use crate::optimized_fd_set::{OptimizedFdSet, ResizableOptimizedFdSet};
 use crate::poller_event;
 use crate::poller_event::ZmqPollerEvent;
-use crate::polling_util::{OptimizedFdSet, ResizableOptimizedFdSet};
 use crate::signaler::ZmqSignaler;
 use crate::socket::ZmqSocket;
 

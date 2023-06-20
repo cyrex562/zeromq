@@ -9,7 +9,7 @@ use crate::message::{ZMQ_MSG_MORE, ZMQ_MSG_SHARED, ZmqMessage};
 use crate::peer::ZmqPeer;
 use crate::poll_item::ZmqPollItem;
 use crate::poller_event::ZmqPollerEvent;
-use crate::polling_util::{compute_timeout, OptimizedFdSet};
+use crate::polling_util::compute_timeout;
 use crate::proxy::proxy;
 use crate::socket::{get_sock_opt_zmq_events, get_sock_opt_zmq_fd, ZmqSocket};
 use crate::socket_poller::ZmqSocketPoller;
@@ -35,6 +35,7 @@ use windows::Win32::Networking::WinSock::{
     FD_SET, POLLIN, POLLOUT, POLLPRI, select, SOCKET_ERROR, TIMEVAL, WSAGetLastError,
 };
 use windows::Win32::Networking::WinSock::{SOCKET, WSAPoll, WSAPOLLFD};
+use crate::optimized_fd_set::OptimizedFdSet;
 use crate::socket_option::ZmqSocketOption;
 
 pub fn zmq_version(major_: *mut u32, minor_: *mut u32, patch_: *mut u32) {

@@ -76,7 +76,7 @@ use crate::pgm_sender::pgm_sender_t;
 use crate::pipe::PipeState::active;
 use crate::pipe::ZmqPipe;
 use crate::proxy::ZmqSocket;
-use crate::radio::RadioSession;
+use crate::radio_session::RadioSession;
 use crate::req::ReqSession;
 use crate::socks_connecter::ZmqSocksConnector;
 use crate::tcp_connecter::ZmqTcpConnector;
