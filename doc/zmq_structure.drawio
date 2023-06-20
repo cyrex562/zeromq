@@ -1,4 +1,4 @@
-<mxfile host="Electron" modified="2023-06-20T11:32:15.859Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/21.5.0 Chrome/112.0.5615.204 Electron/24.5.1 Safari/537.36" version="21.5.0" etag="fB0K5EzPIGMeQVnNHVb1" type="device">
+<mxfile host="Electron" modified="2023-06-20T11:53:56.350Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/21.5.0 Chrome/112.0.5615.204 Electron/24.5.1 Safari/537.36" version="21.5.0" etag="05JkzDRP1l2DwKq_xgFl" type="device">
   <diagram id="C5RBs43oDa-KdzZeNtuy" name="Page-1">
     <mxGraphModel dx="1387" dy="901" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
@@ -449,13 +449,13 @@
           <mxGeometry y="148" width="190" height="132" as="geometry" />
         </mxCell>
         <mxCell id="6qAbQGqqdCxAd6zhe32K-17" value="ZmqObject" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
-          <mxGeometry x="3300" y="48" width="160" height="60" as="geometry" />
+          <mxGeometry x="3300" y="48" width="200" height="640" as="geometry" />
         </mxCell>
         <mxCell id="6qAbQGqqdCxAd6zhe32K-19" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=inherit;" vertex="1" parent="6qAbQGqqdCxAd6zhe32K-17">
-          <mxGeometry y="26" width="160" height="8" as="geometry" />
+          <mxGeometry y="26" width="200" height="8" as="geometry" />
         </mxCell>
-        <mxCell id="6qAbQGqqdCxAd6zhe32K-20" value="+ method(type): type" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="6qAbQGqqdCxAd6zhe32K-17">
-          <mxGeometry y="34" width="160" height="26" as="geometry" />
+        <mxCell id="6qAbQGqqdCxAd6zhe32K-20" value="set_ctx()&lt;br&gt;process_command()&lt;br&gt;log()&lt;br&gt;send_own()&lt;br&gt;send_attach()&lt;br&gt;send_activate_read()&lt;br&gt;send_activate_write()&lt;br&gt;send_hiccup&lt;br&gt;send_pipe_peer_stats()&lt;br&gt;send_pipe_stats_publish()&lt;br&gt;send_pipe_term()&lt;br&gt;send_pipe_term_ack()&lt;br&gt;send_pipe_hwm()&lt;br&gt;send_term_req()&lt;br&gt;send_term()&lt;br&gt;send_term_ack()&lt;br&gt;send_term_endpoint()&lt;br&gt;send_reap()&lt;br&gt;send_done()&lt;br&gt;send_conn_failed()&lt;br&gt;process_stop()&lt;br&gt;process_plug()&lt;br&gt;process_own()&lt;br&gt;porocess_attached()&lt;br&gt;process_bind()&lt;br&gt;process_activate_read()&lt;br&gt;process_activate_write()&lt;br&gt;process_hiccup()&lt;br&gt;process_pipe_peer_stats()&lt;br&gt;process_pipe_stats_publish()&lt;br&gt;process_pipe_term()&lt;br&gt;process_pipe_hwm()&lt;br&gt;process_term_req()&lt;br&gt;process_term()&lt;br&gt;process_term_ack()&lt;br&gt;process_term_endpoint()&lt;br&gt;process_reaped()&lt;br&gt;process_reap()&lt;br&gt;process_conn_failed()&lt;br&gt;process_seqnum()&lt;br&gt;send_command()" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="6qAbQGqqdCxAd6zhe32K-17">
+          <mxGeometry y="34" width="200" height="606" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
