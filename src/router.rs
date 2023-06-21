@@ -46,7 +46,7 @@ use crate::defines::{ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT, ZMQ_POLLOUT, ZMQ
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
 
 use crate::pipe::ZmqPipe;
-use crate::socket::routing_socket_base_t;
+use crate::routing_socket::routing_socket_base_t;
 use crate::utils::put_u32;
 
 //  TODO: This class uses O(n) scheduling. Rewrite it to use O(1) algorithm.

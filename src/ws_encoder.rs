@@ -39,7 +39,7 @@ use std::ptr::null_mut;
 use crate::encoder::EncoderBase;
 use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZMQ_MSG_SHARED, ZmqMessage};
 use crate::utils::put_u32;
-use crate::v2_protocol::v2_protocol_msg_flag::{command_flag, more_flag};
+use crate::defines::v2_protocol_msg_flag::{command_flag, more_flag};
 
 // #include <limits.h>
 pub struct ZmqWsEncoder

@@ -1,6 +1,5 @@
 use crate::address_family::{AF_INET, AF_INET6, AF_UNSPEC};
 use crate::network_address::{NetworkAddress, NetworkAddressFamily};
-use crate::unix_sockaddr::{addrinfo, in_addr, sockaddr_in, sockaddr_in6};
 #[cfg(target_os = "linux")]
 use libc::{
     getaddrinfo, if_nametoindex, AI_NUMERICHOST, AI_PASSIVE, AI_V4MAPPED,

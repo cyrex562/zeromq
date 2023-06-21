@@ -42,7 +42,7 @@ use libc::{EMSGSIZE, ENOMEM};
 use crate::decoder::DecoderBase;
 use crate::decoder_allocators::call_dec_ref;
 use crate::message::{ZMQ_MSG_CLOSE_CMD, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZmqMessage};
-use crate::v2_protocol::v2_protocol_msg_flag::{command_flag, more_flag};
+use crate::defines::v2_protocol_msg_flag::{command_flag, more_flag};
 
 //  Decoder for Web socket framing protocol. Converts data stream into messages.
 //  The class has to inherit from shared_message_memory_allocator because

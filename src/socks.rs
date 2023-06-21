@@ -47,7 +47,7 @@ use libc::{memcpy, memset, size_t, uint8_t};
 use windows::Win32::Networking::WinSock::{AI_NUMERICHOST, freeaddrinfo};
 use crate::address_family::{AF_INET, AF_INET6};
 use crate::defines::ZmqFileDesc;
-use crate::unix_sockaddr::addrinfo;
+
 use crate::utils::{copy_bytes, advance_ptr};
 
 #[derive(Default, Debug, Clone)]

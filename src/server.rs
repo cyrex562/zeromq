@@ -44,18 +44,10 @@ use crate::context::ZmqContext;
 use crate::defines::ZMQ_SERVER;
 use crate::fq::ZmqFq;
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
+use crate::outpipe::ZmqOutpipe;
 
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
-
-#[derive(Default,Debug,Clone)]
-struct ZmqOutpipe
-{
-    // ZmqPipe *pipe;
-    pub pipe: ZmqPipe,
-    // active: bool
-    pub active: bool,
-}
 
 //  TODO: This class uses O(n) scheduling. Rewrite it to use O(1) algorithm.
 #[derive(Default,Debug,Clone)]

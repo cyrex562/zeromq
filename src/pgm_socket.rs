@@ -60,7 +60,6 @@ use crate::address_family::{AF_INET6, AF_UNSPEC};
 use crate::context::ZmqContext;
 use crate::defines::ZmqFileDesc;
 
-use crate::unix_sockaddr::sockaddr_in6;
 use crate::utils::copy_bytes;
 
 #[derive(Default,Debug,Clone)]

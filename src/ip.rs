@@ -184,7 +184,6 @@ use crate::defines::ZmqFileDesc;
 use crate::ipc_address::IpcAddress;
 use crate::platform_socket::ZmqSockaddrStorage;
 use crate::tcp::tcp_tune_loopback_fast_path;
-use crate::unix_sockaddr::sockaddr_in;
 
 // #ifndef ZMQ_HAVE_WINDOWS
 // Acceptable temporary directory environment variables

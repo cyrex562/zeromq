@@ -66,7 +66,7 @@ use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::pgm_receiver::_empty_endpoint;
 use crate::session_base::ZmqSessionBase;
 use crate::thread_context::ZmqThreadContext;
-use crate::unix_sockaddr::{in6_addr, in_addr, sockaddr_in};
+
 
 #[cfg(target_os = "linux")]
 use libc::{
