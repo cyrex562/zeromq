@@ -48,7 +48,7 @@ use crate::socket_base_ops::ZmqSocketBaseOps;
 // #include "msg.hpp"
 // pub struct client_t  : public ZmqSocketBase
 #[derive(Default, Debug, Clone)]
-pub struct ZmqClient {
+pub struct ZmqClient<'a> {
     //
     //  Messages are fair-queued from inbound pipes. And load-balanced to
     //  the outbound pipes.
@@ -56,7 +56,7 @@ pub struct ZmqClient {
     pub fq: ZmqFq,
     // LoadBalancer load_balance;
     pub lb: LoadBalancer,
-    pub base: ZmqSocket, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (client_t)
+    pub base: ZmqSocket<'a>, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (client_t)
 }
 
 impl ZmqClient {
