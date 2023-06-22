@@ -46,7 +46,7 @@
 use crate::address::ZmqAddress;
 use crate::defines::ZmqHandle;
 use crate::endpoint::EndpointType::endpoint_type_connect;
-use crate::endpoint::EndpointUriPair;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::defines::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 
@@ -277,7 +277,7 @@ impl StreamConnecterBase {
             EndpointUriPair::new(local_address_, _endpoint, endpoint_type_connect);
 
         //  Create the engine object for this connection.
-        let mut engine = ZmqEngineInterface::default();
+        let mut engine = ZmqEngine::default();
         if (self.options.raw_socket) {
             engine = RawEngine::new(fd, self.options, endpoint_pair);
         } else {

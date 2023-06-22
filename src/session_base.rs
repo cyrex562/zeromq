@@ -52,38 +52,37 @@ use std::ptr::null_mut;
 
 use anyhow::anyhow;
 use bincode::options;
-use libc::{pipe, ECONNREFUSED};
+use libc::{ECONNREFUSED, pipe};
 use windows::Win32::Networking::WinSock::{recv, send};
 
 use crate::address::ZmqAddress;
-use crate::context::{choose_io_thread, find_endpoint, get_effective_conflate_option, ZmqContext};
+use crate::context::{get_effective_conflate_option, ZmqContext};
 use crate::defines::{
     ZMQ_CHANNEL, ZMQ_CLIENT, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_GATHER, ZMQ_NULL, ZMQ_PAIR,
     ZMQ_PEER, ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_RADIO, ZMQ_REP, ZMQ_REQ, ZMQ_ROUTER, ZMQ_SCATTER,
     ZMQ_SERVER, ZMQ_STREAM, ZMQ_SUB, ZMQ_XPUB, ZMQ_XSUB,
 };
 use crate::dish::DishSession;
-use crate::endpoint::{EndpointUriPair, ZmqEndpoint};
+use crate::endpoint::ZmqEndpoint;
+use crate::endpoint_uri::EndpointUriPair;
+use crate::engine::ZmqEngine;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::io_object::ZmqIoObject;
 use crate::ipc_connecter::IpcConnecter;
-use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID};
-use crate::norm::NormEngine;
-use crate::object::ZmqObject;
+use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID, ZmqMessage};
 use crate::own::ZmqOwn;
 use crate::pgm_receiver::ZmqPgmReceiver;
 use crate::pgm_sender::pgm_sender_t;
 use crate::pipe::PipeState::active;
 use crate::pipe::ZmqPipe;
-use crate::proxy::ZmqSocket;
 use crate::radio_session::RadioSession;
 use crate::req::ReqSession;
+use crate::socket::ZmqSocket;
 use crate::socks_connecter::ZmqSocksConnector;
 use crate::tcp_connecter::ZmqTcpConnector;
 use crate::thread_context::ZmqThreadContext;
 use crate::tipc_connecter::ZmqTipcConnecter;
 use crate::transport::ZmqTransport;
-use crate::udp::ZmqUdpEngine;
 use crate::vmci_connecter::ZmqVmciConnecter;
 use crate::ws_connecter::ZmqWsConnecter;
 
@@ -99,7 +98,7 @@ pub const LINGER_TIMER_ID: i32 = 0x20;
 // #include "dish.hpp"
 // pub struct ZmqSessionBase : public ZmqOwn, public io_object_t, public i_pipe_events
 #[derive(Default, Debug, Clone)]
-pub struct ZmqSessionBase {
+pub struct ZmqSessionBase<'a> {
     //  If true, this session (re)connects to the peer. Otherwise, it's
     //  a transient session created by the listener.
     pub active: bool,
@@ -120,10 +119,10 @@ pub struct ZmqSessionBase {
     pub pending: bool,
     //  The protocol I/O engine connected to the session.
     // ZmqIEngine *_engine;
-    pub engine: Option<ZmqEngineInterface>,
+    pub engine: Option<ZmqEngine<'a>>,
     //  The socket the session belongs to.
     // ZmqSocketBase *_socket;
-    pub socket: ZmqSocket,
+    pub socket: &'a mut ZmqSocket<'a>,
     //  I/O thread the session is living in. It will be used to Plug in
     //  the engines into the same thread.
     // ZmqIoThread *_io_thread;
@@ -144,7 +143,7 @@ pub struct ZmqSessionBase {
     pub reset_fn: Option<fn()>,
 }
 
-impl ZmqSessionBase {
+impl <'a> ZmqSessionBase<'a> {
     // ZmqSessionBase::ZmqSessionBase (class ZmqIoThread *io_thread_,
     //                                  active_: bool,
     // pub struct ZmqSocketBase *socket_,
@@ -175,7 +174,7 @@ impl ZmqSessionBase {
         socket: &mut ZmqSocket,
         addr: &mut ZmqAddress,
     ) -> Self {
-        let mut own = ZmqOwn::new(options, zmq_ctx, io_thread.tid);
+        let mut own = ZmqOwn::new( zmq_ctx, io_thread.tid);
         let mut io_object = ZmqIoObject::new(Some(io_thread.clone()));
         Self {
             active: active_,
@@ -552,7 +551,7 @@ impl ZmqSessionBase {
 
         let peer = self.find_endpoint("inproc://zeromq.zap.01");
         if (peer.socket == null_mut()) {
-            errno = ECONNREFUSED;
+            // errno = ECONNREFUSED;
             return -1;
         }
         // zmq_assert (peer.options.type == ZMQ_REP || peer.options.type == ZMQ_ROUTER
@@ -560,7 +559,7 @@ impl ZmqSessionBase {
 
         //  Create a bi-directional pipe that will connect
         //  session with zap socket.
-        let mut parents: [ZmqObject; 2] = [self, peer.socket];
+        let mut parents = (self, peer.socket);
         let mut new_pipes: [ZmqPipe; 2] = [ZmqPipe::default(); 2];
         let mut hwms: [i32; 2] = [0; 2];
         let mut conflates: [bool; 2] = [bool; 2];
@@ -570,13 +569,13 @@ impl ZmqSessionBase {
         //  Attach local end of the pipe to this socket object.
         self._zap_pipe = new_pipes[0].clone();
         self._zap_pipe.set_nodelay();
-        self._zap_pipe.set_event_sink(this);
+        self._zap_pipe.set_event_sink(self);
 
         send_bind(peer.socket, new_pipes[1].clone(), false);
 
         //  Send empty routing id if required by the peer.
         if (peer.options.recv_routing_id) {
-            let mut id: ZmqMessage = ZmqMesssage::default();
+            let mut id = ZmqMessage::default();
             rc = id.init2();
             // errno_assert (rc == 0);
             id.set_flags(ZMQ_MSG_ROUTING_ID);
@@ -592,13 +591,13 @@ impl ZmqSessionBase {
         return (self.options.mechanism != ZMQ_NULL || !self.options.zap_domain.empty());
     }
 
-    pub fn process_attach(&mut self, engine: &mut ZmqEngineInterface) {
+    pub fn process_attach(&mut self, engine: &mut ZmqEngine) {
         // zmq_assert (engine_ != null_mut());
         // zmq_assert (!_engine);
-        self._engine = engine_;
+        self._engine = engine;
 
-        if (!engine_.has_handshake_stage()) {
-            engine_ready();
+        if (!engine.has_handshake_stage()) {
+            self.engine_ready();
         }
 
         //  Plug in the engine.
@@ -608,8 +607,9 @@ impl ZmqSessionBase {
     pub fn engine_ready(&mut self) {
         //  Create the pipe if it does not exist yet.
         if (!pipe && !is_terminating()) {
-            ZmqObject * parents[2] = [self, self._socket];
-            ZmqPipe * pipes[2] = [null_mut(), null_mut()];
+            // ZmqObject * parents[2] = [self, self._socket];
+            // ZmqPipe * pipes[2] = [null_mut(), null_mut()];
+            let mut pipes: [ZmqPipe;2] = [ZmqPipe::default(); 2];
 
             let conflate = get_effective_conflate_option(self.options);
 
@@ -618,7 +618,7 @@ impl ZmqSessionBase {
                 if conflate { -1 } else { options.sndhwm },
             ];
             let conflates: [bool; 2] = [conflate, conflate];
-            let rc: i32 = pipepair(parents, pipes, hwms, conflates);
+            let rc: i32 = pipepair((self,&mut self.socket), pipes, hwms, conflates);
             // errno_assert (rc == 0);
 
             //  Plug the local end of the pipe.
@@ -626,7 +626,7 @@ impl ZmqSessionBase {
 
             //  Remember the local end of the pipe.
             // zmq_assert (!pipe);
-            pipe = pipes[0];
+            pipe = &mut pipes[0];
 
             //  The endpoints strings are not set on Bind, set them here so that
             //  events can use them.

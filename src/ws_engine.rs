@@ -90,7 +90,7 @@ use libc::{EAGAIN, ECONNRESET, memcpy, memset, strcmp};
 use crate::context::ZmqContext;
 
 use crate::defines::{ZMQ_CURVE, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED};
-use crate::endpoint::EndpointUriPair;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::defines::ZmqFileDesc;
 use crate::mechanism::ZmqMechanism;
 use crate::mechanism::ZmqMechanismStatus::error;

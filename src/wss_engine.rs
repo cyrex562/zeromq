@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 use std::ptr::null_mut;
 use libc::{EAGAIN, EINTR, EINVAL, EPIPE, ssize_t};
 use crate::context::ZmqContext;
-use crate::endpoint::EndpointUriPair;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::defines::ZmqFileDesc;
 
 use crate::ws_address::WsAddress;

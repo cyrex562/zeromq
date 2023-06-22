@@ -10,21 +10,24 @@ use libc::{c_char, c_int, c_void, EAGAIN, EINTR, EINVAL};
 use serde::{Deserialize, Serialize};
 use windows::Win32::Networking::WinSock::SOL_SOCKET;
 use crate::address::{sockaddr_tipc, ZmqAddress};
+use crate::channel::channel_xrecv;
+use crate::client::client_xrecv;
 
 use crate::command::ZmqCommand;
 use crate::context::{bool_to_vec, get_effective_conflate_option, i32_to_vec, str_to_vec, ZmqContext};
 use crate::cpu_time::get_cpu_tick_counter;
+use crate::dealer::dealer_xrecv;
 use crate::defines::{retired_fd, ZMQ_BLOCKY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB, ZMQ_ZERO_COPY_RECV, ZmqHandle};
 use crate::devpoll::ZmqPoller;
 use crate::endpoint::EndpointType::endpoint_type_none;
-use crate::endpoint::{EndpointUriPair, make_unconnected_bind_endpoint_pair, ZmqEndpoint};
+use crate::endpoint::{make_unconnected_bind_endpoint_pair, ZmqEndpoint};
 use crate::engine_interface::ZmqEngineInterface;
 use crate::defines::ZmqFileDesc;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::mailbox::ZmqMailbox;
 use crate::mailbox_interface::ZmqMailboxInterface;
 use crate::mailbox_safe::ZmqMailboxSafe;
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
-use crate::object::ZmqObject;
 use crate::ops::{
     zmq_bind, zmq_close, zmq_msg_init_size, zmq_msg_send, zmq_setsockopt,
     zmq_socket,
@@ -40,31 +43,45 @@ use crate::socket_option::ZmqSocketOption;
 use crate::thread_context::ZmqThreadContext;
 use crate::transport::ZmqTransport;
 
+pub enum ZmqSocketType {
+    ZmqPair,
+    ZmqPub,
+    ZmqSub,
+    ZmqReq,
+    ZmqRep,
+    ZmqDealer,
+    ZmqRouter,
+    ZmqPull,
+    ZmqPush,
+    ZmqXPub,
+    ZmqXSub,
+    ZmqServer,
+    ZmqClient,
+    ZmqRadio,
+    ZmqDish,
+    ZmqGather,
+    ZmqScatter,
+    ZmqChannel
+}
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct ZmqSocket<'a> {
+    // the type of socket
+    pub socket_type: ZmqSocketType,
+    // reference to the socket's parent context
     pub context: &'a mut ZmqContext<'a>,
+    //  Map of open endpoints.
+    pub endpoints: HashMap<String, ZmqEndpoint<'a>>,
+    // id of the parent context's thread that performs I/O for this socket
     pub thread_id: i32,
     pub sent_seqnum: u64,
     pub term_acks: u32,
     pub fd: ZmqFileDesc,
-
     pub destination: ZmqAddress,
-
-
-    // Mutex for synchronize access to the socket in thread safe mode
-    pub sync: Mutex<u8>,
-    //  Map of open endpoints.
-    // typedef std::pair<ZmqOwn *, ZmqPipe *> endpoint_pipe_t;
-    // typedef std::multimap<std::string, endpoint_pipe_t> endpoints_t;
-    // endpoints_t _endpoints;
-    pub endpoints: HashMap<String, (ZmqOwn, ZmqPipe)>,
     //  Used to check whether the object is a socket.
-    pub tag: u32,
-
+    // pub tag: u32,
     //  If true, associated context was already terminated.
     pub ctx_terminated: bool,
-
     //  If true, object should have been already destroyed. However,
     //  destruction is delayed while we unwind the stack to the point
     //  where it doesn't intersect the object being destroyed.
@@ -75,9 +92,7 @@ pub struct ZmqSocket<'a> {
     // pub mailbox: Option<ZmqMailboxInterface>,
 
     //  List of attached pipes.
-    // typedef array_t<ZmqPipe, 3> pipes_t;
-    // pipes_t pipes;
-    pub pipes: [ZmqPipe; 3],
+    // pub pipes: Vec<ZmqPipe>,
 
     //  Reaper's poller and handle of this socket within it.
     // Poller *poller;
@@ -124,7 +139,7 @@ pub struct ZmqSocket<'a> {
 impl<'a> ZmqSocket<'a> {
     pub fn new(parent: &mut ZmqContext, thread_id: i32, sock_id: i32, thread_safe: bool) -> Self {
         let mut out = Self::default();
-        out.tag = 0xbaddecafu32;
+        // out.tag = 0xbaddecafu32;
         out.ctx_terminated = false;
         out.destroyed = false;
         out.last_tsc = 0;
@@ -167,9 +182,9 @@ impl<'a> ZmqSocket<'a> {
     }
 
     //  Returns false if object is not a socket.
-    pub fn check_tag(&self) -> bool {
-        return self._tag == 0xbaddecafu32;
-    }
+    // pub fn check_tag(&self) -> bool {
+    //     return self._tag == 0xbaddecafu32;
+    // }
 
     //  Returns whether the socket is thread-safe.
     pub fn is_thread_safe(&self) -> bool {
@@ -271,7 +286,8 @@ impl<'a> ZmqSocket<'a> {
         //  'Stop' command is sent from the threads that called zmq_ctx_term to
         //  the thread owning the socket. This way, blocking call in the
         //  owner thread can be interrupted.
-        self.context.send_stop(self.thread_id);
+        // TODO
+        // self.context.send_stop(self.thread_id);
     }
 
     //  Interface for communication with the API layer.
@@ -416,7 +432,7 @@ impl<'a> ZmqSocket<'a> {
 
         if protocol == ZmqTransport::ZmqInproc {
             // const ZmqEndpoint endpoint = {this, options};
-            let mut endpoint: ZmqEndpoint = ZmqEndpoint::new(self, self.context);
+            let mut endpoint = ZmqEndpoint::new(self);
             self.context.register_endpoint(endpoint_uri, &mut endpoint)?;
             self.connect_pending(endpoint_uri, self);
             self.last_endpoint.assign(endpoint_uri);
@@ -450,18 +466,18 @@ impl<'a> ZmqSocket<'a> {
             }
 
             //  Choose the I/O thread to run the session in.
-            let io_thread = self.choose_io_thread(options.affinity);
+            let io_thread = self.choose_io_thread(options.affinity).unwrap();
             if !io_thread {
                 bail!("EMTHREAD")
             }
 
-            let mut paddr = UdpAddress::new();
+            let mut paddr = ZmqAddress::default();
             paddr.address = address;
-            paddr.resolve(&address, true, options.ipv6)?;
+            paddr.resolve()?;
 
             let mut session = ZmqSessionBase::create(
-                self.context,
-                &mut io_thread.unwrap(),
+
+                &mut io_thread,
                 true,
                 self,
                 Some(&mut paddr),
@@ -469,12 +485,12 @@ impl<'a> ZmqSocket<'a> {
             // errno_assert (session);
 
             //  Create a bi-directional pipe.
-            let mut parents: [Box<dyn ZmqObject>; 2] = [Box::new(self), Box::new(session)];
+            // let mut parents: [Box<dyn ZmqObject>; 2] = [Box::new(self), Box::new(session)];
             let mut new_pipes: [ZmqPipe; 2] = [ZmqPipe::default(), ZmqPipe::default()];
 
             let mut hwms: [i32; 2] = [options.sndhwm, options.rcvhwm];
-            let mut conflates: [nool; 2] = [false, false];
-            self.pipepair(parents, new_pipes, hwms, conflates)?;
+            let mut conflates: [bool; 2] = [false, false];
+            self.pipepair((session, self), new_pipes, hwms, conflates)?;
             // errno_assert (rc == 0);
 
             //  Attach local end of the pipe to the socket object.
@@ -485,7 +501,7 @@ impl<'a> ZmqSocket<'a> {
             session.attach_pipe(&mut new_pipes[1]);
 
             //  Save last endpoint URI
-            paddr.to_string(&self.last_endpoint);
+            paddr.to_string();
 
             //  TODO shouldn't this use _last_endpoint instead of endpoint_uri_? as in the other cases
             let mut ep = EndpointUriPair::new(endpoint_uri, "", endpoint_type_none);
@@ -807,7 +823,6 @@ impl<'a> ZmqSocket<'a> {
     pub fn recv(
         &mut self,
         msg: &mut ZmqMessage,
-        options: &mut ZmqContext,
         flags: i32,
     ) -> anyhow::Result<()> {
         // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
@@ -840,11 +855,19 @@ impl<'a> ZmqSocket<'a> {
             self.ticks = 0;
         }
 
-        //  Get the message.
-        ops.xrecv(msg)?;
-        // if (unlikely (rc != 0 && errno != EAGAIN)) {
-        //     return -1;
-        // }
+        // TODO: figure out where to get the correct pipe from for recv. Check each pipe in the enxpoints?
+        let pipe = self.get_pipe(0);
+
+        match self.socket_type {
+            ZmqSocketType::ZmqChannel => channel_xrecv(self, msg)?,
+            ZmqSocketType::ZmqClient => client_xrecv(self, msg)?,
+            ZmqSocketType::ZmqDealer => dealer_xrecv(self, msg)?,
+            ZmqSocketType::ZmqDgram => dgram_xrecv(self, msg)?,
+            _ => {
+                bail!("unsupported socket type")
+            }
+        }
+
 
         //  If we have the message, return immediately.
         // if (rc == 0) {

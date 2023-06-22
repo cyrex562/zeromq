@@ -48,13 +48,14 @@ use std::mem;
 use std::ptr::null_mut;
 
 use bincode::options;
-use libc::{size_t, ssize_t, uint16_t, EAGAIN, EBUSY, ENOMEM};
+use libc::{EAGAIN, EBUSY, ENOMEM, size_t, ssize_t, uint16_t};
 use crate::context::ZmqContext;
 
 use crate::defines::ZmqHandle;
-use crate::endpoint::{EndpointType, EndpointUriPair};
+use crate::endpoint::EndpointType;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::defines::ZmqFileDesc;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::io_object::ZmqIoObject;
 use crate::message::ZmqMessage;
 

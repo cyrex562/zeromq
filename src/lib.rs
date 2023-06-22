@@ -138,3 +138,4 @@ mod radio_session;
 mod outpipe;
 mod routing_socket;
 mod item;
+mod endpoint_uri;

@@ -68,7 +68,7 @@ use bincode::options;
 use libc::{EAGAIN, memcmp, memcpy, memset};
 use crate::context::ZmqContext;
 use crate::curve_server::curve_ZmqServer;
-use crate::endpoint::EndpointUriPair;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::defines::ZmqFileDesc;
 use crate::gssapi_client::ZmqGssApiClient;
 use crate::gssapi_server::ZmqGssApiServer;

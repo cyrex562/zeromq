@@ -55,7 +55,7 @@ use crate::address::ZmqAddress;
 use crate::address_family::{AF_INET, AF_INET6};
 use crate::context::ZmqContext;
 use crate::defines::{INADDR_ANY, MAX_UDP_MSG, retired_fd, ZmqHandle};
-use crate::endpoint::EndpointUriPair;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::defines::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
