@@ -40,7 +40,7 @@
 // #include <new>
 // #include <sstream>
 
-use crate::endpoint::EndpointUriPair;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::defines::ZmqFileDesc;
 use crate::message::ZmqMessage;
 use crate::metadata::ZmqMetadata;

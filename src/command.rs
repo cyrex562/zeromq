@@ -3,14 +3,12 @@ use std::fmt::{Display, Formatter};
 use libc::c_void;
 use crate::address::ZmqAddress;
 
-use crate::endpoint::EndpointUriPair;
-use crate::engine_interface::ZmqEngineInterface;
-use crate::object::ZmqObject;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
+use crate::reaper::ZmqReaper;
 use crate::session_base::ZmqSessionBase;
 use crate::socket::ZmqSocket;
-use crate::thread_context::ZmqThreadContext;
 
 pub enum CommandType {
     Stop,
@@ -50,18 +48,20 @@ pub struct ZmqCommand<'a> {
     //  Object to process the command.
     pub destination: ZmqAddress,
     pub object: Option<ZmqOwn>,
-    pub pipe: Option<ZmqPipe>,
+    pub pipe: Option<&'a mut ZmqPipe>,
     pub msgs_read: u64,
     pub inhwm: i32,
     pub outhwm: i32,
     pub linger: i32,
     pub endpoint: String,
-    pub socket: Option<ZmqSocket<'a>>,
+    pub socket: Option<&'a mut ZmqSocket<'a>>,
     pub queue_count: u64,
     pub socket_base: Option<ZmqOwn>,
     pub endpoint_pair: EndpointUriPair,
     pub outbound_queue_count: u64,
     pub inbound_queue_count: u64,
+    pub reaper: Option<ZmqReaper>,
+    pub session: Option<&'a mut ZmqSessionBase>
 }
 
 // impl ZmqEngineInterface for ZmqCommand {

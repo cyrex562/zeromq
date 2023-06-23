@@ -28,7 +28,7 @@
 */
 
 use crate::context::ZmqContext;
-use crate::object::ZmqObject;
+// use crate::object::ZmqObject;
 
 use crate::thread_context::ZmqThreadContext;
 use bincode::options;
@@ -85,7 +85,7 @@ impl ZmqOwn {
         Self {
             // options: ctx.clone(),
             terminating: false,
-            sent_seqnum: AtomicU64::new(),
+            sent_seqnum: AtomicU64::new(0),
             processed_seqnum: 0,
             term_acks: 0,
             // ctx: ZmqContext,
@@ -107,7 +107,7 @@ impl ZmqOwn {
         Self {
             // options: Default::default(),
             terminating: false,
-            sent_seqnum: AtomicU64::new(),
+            sent_seqnum: AtomicU64::new(0),
             processed_seqnum: 0,
             term_acks: 0,
             // ctx: options,

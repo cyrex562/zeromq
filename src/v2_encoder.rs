@@ -37,8 +37,8 @@
 use std::ptr::null_mut;
 use libc::{size_t, uint8_t};
 use crate::decoder_allocators::size;
+use crate::encoder::EncoderBase;
 use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
-use crate::v2_protocol::v2_protocol_t;
 
 // #include <limits.h>
 #[derive(Default,Debug,Clone)]

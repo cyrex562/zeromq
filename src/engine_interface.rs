@@ -35,7 +35,7 @@
 
 //  Abstract interface to be implemented by various engines.
 
-use crate::endpoint::EndpointUriPair;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::session_base::ZmqSessionBase;
 use crate::thread_context::ZmqThreadContext;
 

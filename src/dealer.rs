@@ -65,140 +65,111 @@ pub struct ZmqDealer {
     pub probe_router: bool, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqDealer)
 }
 
-impl ZmqDealer {
-    //
-    // ZmqDealer (ZmqContext *parent_, tid: u32, sid_: i32);
-    // ZmqSocketBase (parent_, tid, sid_), probe_router (false)
-    pub fn new(
-        ctx: &mut ZmqContext,
-        tid: u32,
-        sid_: i32,
-    ) -> ZmqDealer {
-        let mut out = Self::default();
-        let mut base = ZmqSocket::new(ctx, tid, sid_, false);
+// pub fn xattach_pipe(
+//
+//     pipe: &mut ZmqPipe,
+//     subscribe_to_all_: bool,
+//     locally_initiated_: bool,
+// ) -> anyhow::Result<()> {
+//     // LIBZMQ_UNUSED (subscribe_to_all_);
+//     // LIBZMQ_UNUSED (locally_initiated_);
+//
+//     // zmq_assert (pipe);
+//
+//     if (self, probe_router) {
+//         let mut probe_msg: ZmqMessage = ZmqMessage::default();
+//         probe_msg.init2()?;
+//         // errno_assert (rc == 0);
+//
+//         rc = pipe.write(&mut probe_msg);
+//         // zmq_assert (rc) is not applicable here, since it is not a bug.
+//         LIBZMQ_UNUSED(rc);
+//
+//         pipe.flush();
+//
+//         rc = probe_msg.close();
+//         // errno_assert(rc == 0);
+//     }
+//
+//     self.fair_queue.attach(pipe);
+//     self.load_balance.attach(pipe);
+//     Ok(())
+// }
 
-        ctx.type_ = ZMQ_DEALER as i32;
-        ctx.can_send_hello_msg = true;
-        ctx.can_recv_hiccup_msg = true;
-        out
+// int xsetsockopt (option_: i32,
+
+//                  const optval_: &mut [u8],
+//                  optvallen_: usize) ;
+
+pub fn dealer_xsetsockopt(sock: &mut ZmqSocket, option_: i32, optval_: &mut [u8], optvallen_: usize) -> anyhow::Result<()> {
+    let is_int = (optvallen_ == mem::size_of::<int>());
+    let mut value = 0;
+    if (is_int) {
+        let mut val_bytes: [u8; 4] = [0; 4];
+        // memcpy (&value, optval_, mem::size_of::<int>());
+        copy_bytes(&mut val_bytes, 0, optval_, 0, 4);
+        value = i32::from_le_bytes(val_bytes);
     }
 
-    // ~ZmqDealer () ;
-
-    //
-    //  Overrides of functions from ZmqSocketBase.
-    // void xattach_pipe (pipe: &mut ZmqPipe,
-    //    subscribe_to_all_: bool,
-    //    locally_initiated_: bool) ;
-
-    pub fn xattach_pipe(
-        &mut self,
-        pipe: &mut ZmqPipe,
-        subscribe_to_all_: bool,
-        locally_initiated_: bool,
-    ) -> anyhow::Result<()> {
-        // LIBZMQ_UNUSED (subscribe_to_all_);
-        // LIBZMQ_UNUSED (locally_initiated_);
-
-        // zmq_assert (pipe);
-
-        if (self, probe_router) {
-            let mut probe_msg: ZmqMessage = ZmqMessage::default();
-            probe_msg.init2()?;
-            // errno_assert (rc == 0);
-
-            rc = pipe.write(&mut probe_msg);
-            // zmq_assert (rc) is not applicable here, since it is not a bug.
-            LIBZMQ_UNUSED(rc);
-
-            pipe.flush();
-
-            rc = probe_msg.close();
-            // errno_assert(rc == 0);
-        }
-
-        self.fair_queue.attach(pipe);
-        self.load_balance.attach(pipe);
-        Ok(())
-    }
-
-    // int xsetsockopt (option_: i32,
-
-    //                  const optval_: &mut [u8],
-    //                  optvallen_: usize) ;
-
-    pub fn xsetsockopt(option_: i32, optval_: &mut [u8], optvallen_: usize) -> anyhow::Result<()> {
-        let is_int = (optvallen_ == mem::size_of::<int>());
-        let mut value = 0;
-        if (is_int) {
-            let mut val_bytes: [u8; 4] = [0; 4];
-            // memcpy (&value, optval_, mem::size_of::<int>());
-            copy_bytes(&mut val_bytes, 0, optval_, 0, 4);
-            value = i32::from_le_bytes(val_bytes);
-        }
-
-        match (option_) {
-            ZMQ_PROBE_ROUTER => {
-                if (is_int && value >= 0) {
-                    probe_router = (value != 0);
-                    return Ok(());
-                }
+    match (option_) {
+        ZMQ_PROBE_ROUTER => {
+            if (is_int && value >= 0) {
+                probe_router = (value != 0);
+                return Ok(());
             }
-            // break;
-            _ => {} // break;
         }
-
-        // errno = EINVAL;
-        // return -1;
-        bail!("EINVAL")
+        // break;
+        _ => {} // break;
     }
 
-    // int xsend (msg: &mut ZmqMessage) ;
-    pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32 {
-        return self.sendpipe(msg, null_mut());
-    }
+    // errno = EINVAL;
+    // return -1;
+    bail!("EINVAL")
+}
 
-    // int xrecv (msg: &mut ZmqMessage) ;
-    pub fn xrecv(&mut self, msg: &mut ZmqMessage) -> i32 {
-        return self.recvpipe(msg, null_mut());
-    }
+// int xsend (msg: &mut ZmqMessage) ;
+pub fn dealer_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
+    return self.sendpipe(msg, null_mut());
+}
 
-    // bool xhas_in () ;
-    pub fn xhas_in(&mut self) -> bool {
-        return self.fair_queue.has_in();
-    }
+// int xrecv (msg: &mut ZmqMessage) ;
+pub fn dealer_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
+    return self.recvpipe(msg, null_mut());
+}
 
-    // bool xhas_out () ;
-    pub fn xhas_out(&mut self) -> bool {
-        return sellf.load_balance.has_out();
-    }
+// bool xhas_in () ;
+pub fn dealer_xhas_in(sock: &mut ZmqSocket,) -> bool {
+    return self.fair_queue.has_in();
+}
 
-    // void xread_activated (pipe: &mut ZmqPipe) ;
-    pub fn xread_activated(&mut self, pipe: &mut ZmqPipe) {
-        self.fair_queue.activated(pipe);
-    }
+// bool xhas_out () ;
+pub fn dealer_xhas_out(sock: &mut ZmqSocket,) -> bool {
+    return load_balance.has_out();
+}
 
-    // void xwrite_activated (pipe: &mut ZmqPipe) ;
-    pub fn xwrite_activated(&mut self, pipe: &mut ZmqPipe) {
-        self.load_balance.activated(pipe);
-    }
+// void xread_activated (pipe: &mut ZmqPipe) ;
+pub fn dealer_xread_activated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    self.fair_queue.activated(pipe);
+}
 
-    // void xpipe_terminated (pipe: &mut ZmqPipe) ;
-    pub fn xpipe_terminated(&mut self, pipe: &mut ZmqPipe) {
-        self.fair_queue.pipe_terminated(pipe);
-        self.load_balance.pipe_terminated(pipe);
-    }
+// void xwrite_activated (pipe: &mut ZmqPipe) ;
+pub fn dealer_xwrite_activated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    self.load_balance.activated(pipe);
+}
 
-    //  Send and recv - knowing which pipe was used.
+// void xpipe_terminated (pipe: &mut ZmqPipe) ;
+pub fn dealer_xpipe_terminated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    self.fair_queue.pipe_terminated(pipe);
+    self.load_balance.pipe_terminated(pipe);
+}
 
-    // int sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe);
-    pub fn sendpipe(&mut self, msg: &mut ZmqMessage, pipe: *mut *mut ZmqPipe) -> i32 {
-        return self.load_balance.sendpipe(msg, pipe);
-    }
+//  Send and recv - knowing which pipe was used.
 
-    pub fn recvpipe(&mut self, msg: &mut ZmqMessage, pipe: *mut *mut ZmqPipe) -> i32 {
-        return self.fair_queue.recvpipe(msg, pipe);
-    }
+// int sendpipe (msg: &mut ZmqMessage ZmqPipe **pipe);
+pub fn dealer_sendpipe(sock: &mut ZmqSocket, msg: &mut ZmqMessage, pipe: *mut *mut ZmqPipe) -> i32 {
+    return self.load_balance.sendpipe(msg, pipe);
+}
 
-    // int recvpipe (msg: &mut ZmqMessage ZmqPipe **pipe);
+pub fn dealer_recvpipe(sock: &mut ZmqSocket, msg: &mut ZmqMessage, pipe: *mut *mut ZmqPipe) -> i32 {
+    return self.fair_queue.recvpipe(msg, pipe);
 }

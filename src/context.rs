@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::mem::size_of;
 use std::ptr::null_mut;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -6,25 +6,22 @@ use std::sync::Mutex;
 use std::{mem, process};
 
 use anyhow::{anyhow, bail};
-use libc::{
-    getpid, EADDRINUSE, ECONNREFUSED, EINTR, EINVAL, EMFILE, ENOENT, ENOMEM,
-};
 
 #[cfg(not(windows))]
-use libc::{getgid, getuid, setgid, setuid, gid_t, pid_t, uid_t, F_SETFD, FD_CLOEXEC};
+use libc::{F_SETFD, FD_CLOEXEC, getgid, getuid, gid_t, pid_t, setgid, setuid, uid_t};
 
 use serde::{Deserialize, Serialize};
 use crate::address::ZmqAddress;
 
 use crate::command::{CommandType, ZmqCommand};
 use crate::defines::{ZMQ_BLOCKY, ZMQ_CURVE, ZMQ_DEALER, ZMQ_GSSAPI, ZMQ_GSSAPI_NT_HOSTBASED, ZMQ_GSSAPI_NT_KRB5_PRINCIPAL, ZMQ_GSSAPI_NT_USER_NAME, ZMQ_IO_THREADS, ZMQ_IO_THREADS_DFLT, ZMQ_IPV6, ZMQ_MAX_MSGSZ, ZMQ_MAX_SOCKETS, ZMQ_MAX_SOCKETS_DFLT, ZMQ_MESSAGE_SIZE, ZMQ_NULL, ZMQ_PAIR, ZMQ_PLAIN, ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_SOCKET_LIMIT, ZMQ_SUB, ZMQ_ZERO_COPY_RECV};
-use crate::endpoint::{EndpointUriPair, ZmqEndpoint};
+use crate::endpoint::ZmqEndpoint;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::engine::ZmqEngine;
-use crate::engine_interface::ZmqEngineInterface;
 use crate::mailbox::ZmqMailbox;
 use crate::mailbox_interface::ZmqMailboxInterface;
 use crate::message::ZmqMessage;
-use crate::object::ZmqObject;
+// use crate::object::ZmqObject;
 use crate::own::ZmqOwn;
 use crate::pending_connection::PendingConnection;
 use crate::pipe::{send_hello_msg, ZmqPipe};
@@ -92,7 +89,7 @@ pub struct ZmqContext<'a> {
     //  Maximum allowed message size
     pub max_msg_sz: i32,
     //  Number of I/O threads to launch.
-    pub io_thread_count: i32,
+    // pub io_thread_count: i32,
     //  Does context wait (possibly forever) on termination?
     pub blocky: bool,
     //  Is IPv6 enabled on this context?
@@ -350,7 +347,7 @@ impl <'a> ZmqContext<'a> {
             max_socket_id: AtomicU64::new(0),
             max_sockets: ZMQ_MAX_SOCKETS_DFLT,
             max_msg_sz: i32::MAX,
-            io_thread_count: ZMQ_IO_THREADS_DFLT,
+            // io_thread_count: ZMQ_IO_THREADS_DFLT,
             blocky: true,
             ipv6: false,
             zero_copy: false,
@@ -593,10 +590,11 @@ impl <'a> ZmqContext<'a> {
                 }
             }
 
+            // set the nuymber of IO threads. TODO: create or delete the necessary nubmer of threads
             ZMQ_IO_THREADS => {
                 if is_int && value >= 0 {
                     // let locker = scoped_lock_t::new(self._opt_sync);
-                    self.io_thread_count = value;
+                    // self.io_thread_count = value;
                     return Ok(());
                 }
             }
@@ -674,7 +672,7 @@ impl <'a> ZmqContext<'a> {
             ZMQ_IO_THREADS => {
                 // scoped_lock_t locker (_opt_sync);
                 // *value = _io_thread_count;
-                out.clone_from_slice(self.io_thread_count.to_le_bytes().as_slice());
+                out.clone_from_slice(self.threads.len().to_le_bytes().as_slice());
                 return Ok(out);
             }
 
@@ -738,7 +736,7 @@ impl <'a> ZmqContext<'a> {
         self._opt_sync.lock();
         let term_and_reaper_threads_count = 2usize;
         let mazmq = self.max_sockets;
-        let ios = self.io_thread_count;
+        let ios = self.threads.len();
         self._opt_sync.unlock();
         let slot_count: usize = (mazmq + ios + term_and_reaper_threads_count) as usize;
         // try {

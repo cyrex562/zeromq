@@ -55,7 +55,7 @@ use crate::address::ZmqAddress;
 use crate::address_family::{AF_INET, AF_INET6};
 use crate::context::ZmqContext;
 use crate::defines::{INADDR_ANY, MAX_UDP_MSG, retired_fd, ZmqHandle};
-use crate::endpoint::EndpointUriPair;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::defines::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
@@ -66,7 +66,7 @@ use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::pgm_receiver::_empty_endpoint;
 use crate::session_base::ZmqSessionBase;
 use crate::thread_context::ZmqThreadContext;
-use crate::unix_sockaddr::{in6_addr, in_addr, sockaddr_in};
+
 
 #[cfg(target_os = "linux")]
 use libc::{

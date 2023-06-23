@@ -48,7 +48,7 @@ use crate::socket_base_ops::ZmqSocketBaseOps;
 // #include "msg.hpp"
 // pub struct client_t  : public ZmqSocketBase
 #[derive(Default, Debug, Clone)]
-pub struct ZmqClient {
+pub struct ZmqClient<'a> {
     //
     //  Messages are fair-queued from inbound pipes. And load-balanced to
     //  the outbound pipes.
@@ -56,118 +56,83 @@ pub struct ZmqClient {
     pub fq: ZmqFq,
     // LoadBalancer load_balance;
     pub lb: LoadBalancer,
-    pub base: ZmqSocket, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (client_t)
+    pub base: ZmqSocket<'a>, // // ZMQ_NON_COPYABLE_NOR_MOVABLE (client_t)
 }
 
-impl ZmqClient {
-    //
-    //     client_t (ZmqContext *parent_, tid: u32, sid_: i32);
-    //     ~client_t ();
-    //
-    //   //
-    //     client_t::client_t (parent: &mut ZmqContext, tid: u32, sid_: i32) :
-    //     ZmqSocketBase (parent_, tid, sid_, true)
-    //     {
-    //     options.type = ZMQ_CLIENT;
-    //     options.can_send_hello_msg = true;
-    //     options.can_recv_hiccup_msg = true;
-    //     }
-    pub fn new(parent: &mut ZmqContext, tid: u32, sid: i32) -> Self {
-        parent.type_ = ZMQ_CLIENT;
-        parent.can_send_hello_msg = true;
-        parent.can_recv_hiccup_msg = true;
-        Self {
-            fq: ZmqFq::Default(),
-            lb: LoadBalancer::Default(),
-            base: ZmqSocket::new(parent, tid, sid, true),
-        }
-    }
+// fn client_xattach_pipe(
+//
+//     sock: &mut ZmqSocket,
+//     pipe: &mut ZmqPipe,
+//     subscribe_to_all: bool,
+//     locally_initiated: bool,
+// ) {
+//     // LIBZMQ_UNUSED(subscribe_to_all_);
+//     // LIBZMQ_UNUSED(locally_initiated_);
+//
+//     // zmq_assert(pipe_);
+//
+//     self.fq.attach(pipe);
+//     self.lb.attach(pipe);
+// }
 
-    // client_t::~client_t ()
-    // {
-    // }
-}
-
-impl ZmqSocketBaseOps for ZmqClient {
-    //     //  Overrides of functions from ZmqSocketBase.
-    //     void xattach_pipe (ZmqPipe *pipe_,
-    //                        subscribe_to_all_: bool,
-    //                        locally_initiated_: bool);
-    fn xattach_pipe(
-        &mut self,
-        skt_base: &mut ZmqSocket,
-        pipe: &mut ZmqPipe,
-        subscribe_to_all: bool,
-        locally_initiated: bool,
-    ) {
-        // LIBZMQ_UNUSED(subscribe_to_all_);
-        // LIBZMQ_UNUSED(locally_initiated_);
-
-        // zmq_assert(pipe_);
-
-        self.fq.attach(pipe);
-        self.lb.attach(pipe);
-    }
-
-    //     int xsend (msg: &mut ZmqMessage);
-    fn xsend(&mut self, skt_base: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
-        //  CLIENT sockets do not allow multipart data (ZMQ_SNDMORE)
-        if (msg.flags() & ZMQ_MSG_MORE) {
-            // errno = EINVAL;
-            // return -1;
-            return Err(anyhow!(
+//     int xsend (msg: &mut ZmqMessage);
+pub fn client_xsend( sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+    //  CLIENT sockets do not allow multipart data (ZMQ_SNDMORE)
+    if (msg.flags() & ZMQ_MSG_MORE) {
+        // errno = EINVAL;
+        // return -1;
+        return Err(anyhow!(
                 "EINVAL: client sockets do not allow multipart dart (ZMQ_SNDMORE)"
             ));
-        }
-        self.lb.sendpipe(msg, None)
     }
+    self.lb.sendpipe(msg, None)
+}
 
-    //     int xrecv (msg: &mut ZmqMessage);
-    fn xrecv(&mut self, skt_base: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
-        let mut rc = self.fq.recvpipe(msg, None);
+//     int xrecv (msg: &mut ZmqMessage);
+pub fn client_xrecv( sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+    let mut rc = self.fq.recvpipe(msg, None);
 
-        // Drop any messages with more flag
+    // Drop any messages with more flag
+    while msg.flags() & ZMQ_MSG_MORE != 0 {
+        // drop all frames of the current multi-frame message
+        self.fq.recvpipe(msg, None)?;
+
         while msg.flags() & ZMQ_MSG_MORE != 0 {
-            // drop all frames of the current multi-frame message
-            self.fq.recvpipe(msg, None)?;
-
-            while msg.flags() & ZMQ_MSG_MORE != 0 {
-                self.fq.recvpipe(msg, None)?;
-            }
-
-            // get the new message
-            // if (rc == 0) {
-            //     fair_queue.recvpipe(msg, null_mut());
-            // }
             self.fq.recvpipe(msg, None)?;
         }
 
-        Ok(())
+        // get the new message
+        // if (rc == 0) {
+        //     fair_queue.recvpipe(msg, null_mut());
+        // }
+        self.fq.recvpipe(msg, None)?;
     }
 
-    //     bool xhas_in ();
-    fn xhas_in(&mut self, skt_base: &mut ZmqSocket) -> bool {
-        return self.fq.has_in();
-    }
+    Ok(())
+}
 
-    //     bool xhas_out ();
-    fn xhas_out(&mut self, skt_base: &mut ZmqSocket) -> bool {
-        return self.lb.has_out();
-    }
+//     bool xhas_in ();
+pub fn client_xhas_in( sock: &mut ZmqSocket) -> bool {
+    return self.fq.has_in();
+}
 
-    //     void xread_activated (pipe_: &mut ZmqPipe);
-    fn xread_activated(&mut self, skt_base: &mut ZmqSocket, pipe: &mut ZmqPipe) {
-        self.fq.activated(pipe);
-    }
+//     bool xhas_out ();
+pub fn client_xhas_out( sock: &mut ZmqSocket) -> bool {
+    return self.lb.has_out();
+}
 
-    //     void xwrite_activated (pipe_: &mut ZmqPipe);
-    fn xwrite_activated(&mut self, skt_base: &mut ZmqSocket, pipe: &mut ZmqPipe) {
-        self.lb.activated(pipe);
-    }
+//     void xread_activated (pipe_: &mut ZmqPipe);
+pub fn client_xread_activated( sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    self.fq.activated(pipe);
+}
 
-    //     void xpipe_terminated (pipe_: &mut ZmqPipe);
-    fn xpipe_terminated(&mut self, skt_base: &mut ZmqSocket, pipe: &mut ZmqPipe) {
-        self.fq.pipe_terminated(pipe);
-        self.lb.pipe_terminated(pipe);
-    }
+//     void xwrite_activated (pipe_: &mut ZmqPipe);
+pub fn client_xwrite_activated( sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    self.lb.activated(pipe);
+}
+
+//     void xpipe_terminated (pipe_: &mut ZmqPipe);
+pub fn client_xpipe_terminated( sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    self.fq.pipe_terminated(pipe);
+    self.lb.pipe_terminated(pipe);
 }

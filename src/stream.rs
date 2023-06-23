@@ -44,7 +44,7 @@ use libc::{EAGAIN, EHOSTUNREACH, memcpy, pipe};
 use crate::context::ZmqContext;
 use crate::decoder_allocators::buffer;
 use crate::options::set_opt_bool;
-use crate::socket::routing_socket_base_t;
+use crate::routing_socket::routing_socket_base_t;
 use crate::defines::{ZMQ_STREAM, ZMQ_STREAM_NOTIFY};
 use crate::fq::ZmqFq;
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};

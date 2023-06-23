@@ -1,6 +1,5 @@
 use crate::command::{CommandType, ZmqCommand};
 use crate::context::ZmqContext;
-use crate::endpoint::{EndpointUriPair, ZmqEndpoint};
 use crate::engine_interface::ZmqEngineInterface;
 use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
@@ -9,853 +8,376 @@ use crate::socket::ZmqSocket;
 use crate::thread_context::ZmqThreadContext;
 use anyhow::anyhow;
 use std::ptr::null_mut;
-
-// #[derive(Default,Debug,Clone)]
-// pub struct object_t {
-//     //  Context provides access to the global state.
-//     // ZmqContext *const _ctx;
-//     ctx: *const ZmqContext,
-//
-//     //  Thread ID of the thread the object belongs to.
-//     // uint32_t _tid;
-//     tid: u32,
-//
-//     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (object_t)
-// }
-
-pub trait ZmqObject {
-    //  Context provides access to the global state. fn get_ctx(&self) -> &ZmqContext; fn get_ctx_mut(&mut self) -> &mut ZmqContext;
-    fn set_ctx(&mut self, ctx: &mut ZmqContext);
-    //  Thread ID of the thread the object belongs to. fn get_tid(&self) -> u32; fn set_tid(&mut self, tid: u32);
-    fn process_command(&mut self, cmd: &ZmqCommand) {
-        match cmd.cmd_type {
-            CommandType::Stop => {}
-            CommandType::Plug => {}
-            CommandType::Own => {}
-            CommandType::Attach => {}
-            CommandType::Bind => {}
-            CommandType::ActivateRead => {}
-            CommandType::ActivateWrite => {}
-            CommandType::Hiccup => {}
-            CommandType::PipeTerm => {}
-            CommandType::PipeTermAck => {}
-            CommandType::PipeHwm => {}
-            CommandType::TermReq => {}
-            CommandType::Term => {}
-            CommandType::TermAck => {}
-            CommandType::TermEndpoint => {}
-            CommandType::Reap => {}
-            CommandType::Reaped => {}
-            CommandType::InprocConnected => {}
-            CommandType::ConnFailed => {}
-            CommandType::PipePeerStats => {}
-            CommandType::PipeStatsPublish => {}
-            CommandType::Done => {}
-        }
-    }
-
-    //  Using following function, socket is able to access global
-    //  repository of inproc endpoints.
-    // fn register_endpoint(&mut self, addr: &str, endpoint: &mut ZmqEndpoint) -> anyhow::Result<()> {
-    //     self.get_ctx().register_endpoint(addr, endpoint)
-    // }
-
-    // fn unregister_endpoint(
-    //     &mut self,
-    //     addr: &str,
-    //     sock_base: &mut ZmqSocket,
-    // ) -> anyhow::Result<()> {
-    //     return self.get_ctx().unregister_endpoint(addr, sock_base);
-    // }
-
-    // fn unregister_endpoints(&mut self, sock_base: &mut ZmqSocket) {
-    //     self.get_ctx().unregister_endpoints(sock_base);
-    // }
-
-    // fn find_endpoint(&self, addr: &str) -> Option<ZmqEndpoint> {
-    //     return self.get_ctx().find_endpoint(addr);
-    // }
-
-    // fn pend_connection(&mut self, addr: &str, endpoint: &ZmqEndpoint, pipes: &[ZmqPipe]) {
-    //     self.get_ctx().pend_connection(addr, endpoint, pipes);
-    // }
-
-    // fn connect_pending(&self, addr: &str, bind_socket: &mut ZmqSocket) {
-    //     self.get_ctx().connect_pending(addr, bind_socket);
-    // }
-
-    // fn destroy_socket(&mut self, socket: &mut ZmqSocket) {
-    //     // unimplemented!()
-    //     self.get_ctx().destroy_socket(socket);
-    // }
-
-    //  Logs an message.
-    fn log(msg: &str) {
-        unimplemented!()
-    }
-
-    // fn send_inproc_connected(&mut self, socket: &mut ZmqSocket) {
-    //     // ZmqCommand cmd;
-    //     let mut cmd = ZmqCommand::default();
-    //     cmd.destination = socket;
-    //     cmd.cmd_type = CommandType::InprocConnected;
-    //     self.send_command(&mut cmd);
-    // }
-
-    // fn send_bind(&mut self, destination: &mut ZmqOwn, pipe: &mut ZmqPipe, inc_seqnum: bool) {
-    //     if (inc_seqnum) {
-    //         destination.inc_seqnum();
-    //     }
-    //
-    //     let mut cmd = ZmqCommand::default();
-    //     cmd.destination = destination;
-    //     cmd.cmd_type = ZmqCommand::bind;
-    //     cmd.args.bind.pipe = pipe.clone();
-    //     self.send_command(&mut cmd);
-    // }
-
-    //  Chooses least loaded I/O thread.
-    // fn choose_io_thread(&mut self, affinity: u64) -> Option<ZmqThreadContext> {
-    //     self.get_ctx().choose_io_thread(affinity)
-    // }
-
-    //  Derived object can use these functions to send commands
-    //  to other objects.
-    // fn send_stop(&mut self) {
-    //     //  'Stop' command goes always from administrative thread to
-    //     //  the current object.
-    //     let mut cmd = ZmqCommand::default();
-    //     cmd.destination = self;
-    //     cmd.cmd_type = ZmqCommand::stop;
-    //     self.get_ctx().send_command(self.get_tid(), &mut cmd);
-    // }
-
-    // fn send_plug(&mut self, destination: &mut ZmqOwn, inc_seqnum: bool) {
-    //     if (inc_seqnum_) {
-    //         destination.inc_seqnum();
-    //     }
-    //
-    //     let mut cmd = ZmqCommand::default();
-    //     cmd.destination = destination;
-    //     cmd.cmd_type = CommandType::Plug;
-    //     self.send_command(&mut cmd);
-    // }
-
-    fn send_own(&mut self, destination: &mut ZmqOwn, object: &mut ZmqOwn) {
-        destination.inc_seqnum();
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = ZmqCommand::own;
-        cmd.args.own.object = object;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_attach(
-        &mut self,
-        destination: &mut ZmqSessionbase,
-        engine: &mut ZmqEngineInterface,
-        inc_seqnum: bool,
-    ) {
-        if (inc_seqnum_) {
-            destination.inc_seqnum();
-        }
-
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = ZmqCommand::attach;
-        cmd.args.attach.engine = engine_;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_activate_read(&mut self, destination: &mut ZmqPipe) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = CommandType::ActivateRead;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_activate_write(&mut self, destination: &mut ZmqPipe, msgs_read: u64) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = CommandType::ActivateWrite;
-        cmd.args.activate_write.msgs_read = msgs_read;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_hiccup(&mut self, destination: &mut ZmqPipe, pipe: &mut [u8]) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = CommandType::Hiccup;
-        cmd.args.hiccup.pipe = pipe;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_pipe_peer_stats(
-        &mut self,
-        destination: &mut ZmqPipe,
-        queue_count: u64,
-        socket_base: &mut ZmqOwn,
-        endpoint_pair: &mut EndpointUriPair,
-    ) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = CommandType::PipePeerStats;
-        cmd.args.pipe_peer_stats.queue_count = queue_count;
-        cmd.args.pipe_peer_stats.socket_base = socket_base;
-        cmd.args.pipe_peer_stats.endpoint_pair = endpoint_pair;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_pipe_stats_publish(
-        &mut self,
-        destination: &mut ZmqOwn,
-        outbound_queue_count: u64,
-        inbound_queue_count: u64,
-        endpoint_pair: &mut EndpointUriPair,
-    ) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = CommandType::PipeStatsPublish;
-        cmd.args.pipe_stats_publish.outbound_queue_count = outbound_queue_count;
-        cmd.args.pipe_stats_publish.inbound_queue_count = inbound_queue_count;
-        cmd.args.pipe_stats_publish.endpoint_pair = endpoint_pair;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_pipe_term(&mut self, destination: &mut ZmqPipe) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = CommandType::PipeTerm;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_pipe_term_ack(&mut self, destination: &mut ZmqPipe) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = CommandType::PipeTermAck;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_pipe_hwm(&mut self, destination: &mut ZmqPipe, inhwm: i32, outhwm: i32) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = CommandType::PipeHwm;
-        cmd.args.pipe_hwm.inhwm = inhwm;
-        cmd.args.pipe_hwm.outhwm = outhwm;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_term_req(&mut self, destination: &mut ZmqOwn, object: &mut ZmqOwn) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = CommandType::TermReq;
-        cmd.args.term_req.object = object;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_term(&mut self, destination: &mut ZmqOwn, linger: i32) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = CommandType::Term;
-        cmd.args.term.linger = linger;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_term_ack(&mut self, destination: &mut ZmqOwn) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = CommandType::TermAck;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_term_endpoint(&mut self, destination: &mut ZmqOwn, endpoint: &str) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = CommandType::TermEndpoint;
-        cmd.args.term_endpoint.endpoint = endpoint.into_string();
-        self.send_command(&mut cmd);
-    }
-
-    fn send_reap(&mut self, socket: &mut ZmqSocket) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = self.get_ctx().get_reaper().unwrap();
-        cmd.cmd_type = CommandType::Reap;
-        cmd.args.reap.socket = socket;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_reaped(&mut self) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = self.ctx.get_reaper().unwrap();
-        cmd.cmd_type = CommandType::Reaped;
-        self.send_command(&mut cmd);
-    }
-
-    fn send_done(&mut self) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = null_mut();
-        cmd.cmd_type = CommandType::Done;
-        self.ctx.send_command(ZmqContext::TERM_TID, cmd);
-    }
-
-    fn send_conn_failed(&mut self, destination: &mut ZmqSessionBase) {
-        let mut cmd = ZmqCommand::default();
-        cmd.destination = destination;
-        cmd.cmd_type = CommandType::ConnFailed;
-        self.send_command(&mut cmd);
-    }
-
-    //  These handlers can be overridden by the derived objects. They are
-    //  called when command arrives from another thread.
-    fn process_stop(&mut self) {
-        unimplemented!()
-    }
-
-    fn process_plug(&mut self) {
-        unimplemented!()
-    }
-
-    fn process_own(&mut self, object: &mut ZmqOwn) {
-        unimplemented!()
-    }
-
-    fn process_attached(&mut self, engine: &mut ZmqEngineInterface) {
-        unimplemented!()
-    }
-
-    fn process_bind(&mut self, pipe: &mut ZmqPipe) {
-        unimplemented!()
-    }
-
-    fn process_activate_read(&mut self) {
-        unimplemented!()
-    }
-
-    fn process_activate_write(&mut self, msgs_read: u64) {
-        unimplemented!()
-    }
-
-    fn process_hiccup(&mut self, pipe: &mut [u8]) {
-        unimplemented!()
-    }
-
-    fn process_pipe_peer_stats(
-        &mut self,
-        queue_count: u64,
-        socket_base: &mut ZmqOwn,
-        endpoint_pair: &mut EndpointUriPair,
-    ) {
-        unimplemented!()
-    }
-
-    fn process_pipe_stats_publish(
-        &mut self,
-        outbound_queue_count: u64,
-        inbound_queue_count: u64,
-        endpoint_pair: &mut EndpointUriPair,
-    ) {
-        unimplemented!()
-    }
-
-    fn process_pipe_term(&mut self) {
-        unimplemented!()
-    }
-
-    fn process_pipe_term_ack(&mut self) {
-        unimplemented!()
-    }
-
-    fn process_pipe_hwm(&mut self, inhwm: i32, outhwm: i32) {
-        unimplemented!()
-    }
-
-    fn process_term_req(&mut self, object: &mut ZmqOwn) {
-        unimplemented!()
-    }
-
-    fn process_term(&mut self, linger: i32) {
-        unimplemented!()
-    }
-
-    fn process_term_ack(&mut self) {
-        unimplemented!()
-    }
-
-    fn process_term_endpoint(&mut self, endpoint: &str) {
-        unimplemented!()
-    }
-
-    fn process_reap(&mut self, socket: &mut ZmqSocket) {
-        unimplemented!()
-    }
-
-    fn process_reaped(&mut self) {
-        unimplemented!()
-    }
-
-    fn process_conn_failed(&mut self) {
-        unimplemented!()
-    }
-
-    //  Special handler called after a command that requires a seqnum
-    //  was processed. The implementation should catch up with its counter
-    //  of processed commands here.
-    fn process_seqnum(&mut self) {
-        unimplemented!()
-    }
-
-    fn send_command(&mut self, cmd: &mut ZmqCommand) -> anyhow::Result<()> {
-        match (cmd.cmd_type) {
-            CommandType::ActivateRead => self.process_activate_read(),
-            CommandType::ActivateWrite => {
-                self.process_activate_write(cmd.args.activate_write.msgs_read)
-            }
-            CommandType::Stop => self.process_stop(),
-            CommandType::Plug => {
-                self.process_plug();
-                self.process_seqnum();
-            }
-
-            CommandType::Own => {
-                self.process_own(&mut cmd.args.own.object);
-                self.process_seqnum();
-            }
-
-            CommandType::Attach => {
-                self.process_attach(cmd.args.attach.engine);
-                self.process_seqnum();
-            }
-
-            CommandType::Bind => {
-                self.process_bind(&mut cmd.args.bind.pipe);
-                self.process_seqnum();
-            }
-
-            CommandType::Hiccup => self.process_hiccup(cmd.args.hiccup.pipe),
-
-            CommandType::PipePeerStats => self.process_pipe_peer_stats(
-                cmd.args.pipe_peer_stats.queue_count,
-                &mut cmd.args.pipe_peer_stats.socket_base,
-                cmd.args.pipe_peer_stats.endpoint_pair,
-            ),
-
-            CommandType::PipeStatsPublish => self.process_pipe_stats_publish(
-                cmd.args.pipe_stats_publish.outbound_queue_count,
-                cmd.args.pipe_stats_publish.inbound_queue_count,
-                cmd.args.pipe_stats_publish.endpoint_pair,
-            ),
-
-            CommandType::PipeTerm => self.process_pipe_term(),
-
-            CommandType::PipeTermAck => self.process_pipe_term_ack(),
-
-            CommandType::PipeHwm => {
-                self.process_pipe_hwm(cmd.args.pipe_hwm.inhwm, cmd.args.pipe_hwm.outhwm)
-            }
-
-            CommandType::TermReq => self.process_term_req(&mut cmd.args.term_req.object),
-
-            CommandType::Term => self.process_term(cmd.args.term.linger),
-
-            CommandType::TermAck => self.process_term_ack(),
-
-            CommandType::TermEndpoint => {
-                self.process_term_endpoint(&mut cmd.args.term_endpoint.endpoint)
-            }
-
-            CommandType::Reap => self.process_reap(&mut cmd.args.reap.socket),
-
-            CommandType::Reaped => self.process_reaped(),
-
-            CommandType::InprocConnected => process_seqnum(),
-
-            CommandType::ConnFailed => process_conn_failed(),
-
-            CommandType::Done => {}
-            _ => {
-                return Err(anyhow!("invalid command type: {}", cmd.cmd_type));
-            }
-        }
-
-        Ok(())
+use crate::endpoint_uri::EndpointUriPair;
+use crate::engine::ZmqEngine;
+
+
+fn obj_process_command(cmd: &ZmqCommand) {
+    match cmd.cmd_type {
+        CommandType::Stop => {}
+        CommandType::Plug => {}
+        CommandType::Own => {}
+        CommandType::Attach => {}
+        CommandType::Bind => {}
+        CommandType::ActivateRead => {}
+        CommandType::ActivateWrite => {}
+        CommandType::Hiccup => {}
+        CommandType::PipeTerm => {}
+        CommandType::PipeTermAck => {}
+        CommandType::PipeHwm => {}
+        CommandType::TermReq => {}
+        CommandType::Term => {}
+        CommandType::TermAck => {}
+        CommandType::TermEndpoint => {}
+        CommandType::Reap => {}
+        CommandType::Reaped => {}
+        CommandType::InprocConnected => {}
+        CommandType::ConnFailed => {}
+        CommandType::PipePeerStats => {}
+        CommandType::PipeStatsPublish => {}
+        CommandType::Done => {}
     }
 }
 
-// int object_t::register_endpoint (addr_: &str,
-//                                       const ZmqEndpoint &endpoint_)
-// {
-//     return _ctx.register_endpoint (addr_, endpoint_);
-// }
 
-// int object_t::unregister_endpoint (const std::string &addr_,
-//                                         ZmqSocketBase *socket_)
-// {
-//     return _ctx.unregister_endpoint (addr_, socket_);
-// }
 
-// void object_t::unregister_endpoints (ZmqSocketBase *socket_)
-// {
-//     return _ctx.unregister_endpoints (socket_);
-// }
+fn obj_send_attach(
 
-// ZmqEndpoint object_t::find_endpoint (addr_: &str) const
-// {
-//     return _ctx.find_endpoint (addr_);
-// }
+    destination: &mut ZmqSessionBase,
+    engine: &mut ZmqEngine,
+    inc_seqnum: bool,
+) {
+    if (inc_seqnum) {
+        destination.inc_seqnum();
+    }
 
-// void object_t::pend_connection (const std::string &addr_,
-//                                      const ZmqEndpoint &endpoint_,
-//                                      ZmqPipe **pipes_)
-// {
-//     _ctx.pend_connection (addr_, endpoint_, pipes_);
-// }
+    let mut cmd = ZmqCommand::default();
+    cmd.session = Some(destination);
+    cmd.cmd_type = ZmqCommand::attach;
+    cmd.args.attach.engine = engine;
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::connect_pending (addr_: &str,
-//                                      ZmqSocketBase *bind_socket_)
-// {
-//     return _ctx.connect_pending (addr_, bind_socket_);
-// }
+fn obj_send_activate_read(pipe: &mut ZmqPipe) {
+    let mut cmd = ZmqCommand::default();
+    cmd.pipe = Some(pipe);
+    cmd.cmd_type = CommandType::ActivateRead;
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::destroy_socket (ZmqSocketBase *socket_)
-// {
-//     _ctx.destroy_socket (socket_);
-// }
+fn obj_send_activate_write(pipe: &mut ZmqPipe, msgs_read: u64) {
+    let mut cmd = ZmqCommand::default();
+    cmd.pipe = Some(pipe);
+    cmd.cmd_type = CommandType::ActivateWrite;
+    cmd.args.activate_write.msgs_read = msgs_read;
+    obj_send_command(&mut cmd);
+}
 
-// ZmqIoThread *object_t::choose_io_thread (u64 affinity_) const
-// {
-//     return _ctx.choose_io_thread (affinity_);
-// }
+fn obj_end_hiccup(pipe_a: &mut ZmqPipe, pipe: &mut [u8]) {
+    let mut cmd = ZmqCommand::default();
+    cmd.pipe = Some(pipe_a);
+    cmd.cmd_type = CommandType::Hiccup;
+    cmd.args.hiccup.pipe = pipe;
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::send_stop ()
-// {
-//     //  'Stop' command goes always from administrative thread to
-//     //  the current object.
-//     ZmqCommand cmd;
-//     cmd.destination = this;
-//     cmd.type = ZmqCommand::Stop;
-//     _ctx.send_command (_tid, cmd);
-// }
+fn obj_send_pipe_peer_stats(
 
-// void object_t::send_plug (ZmqOwn *destination, inc_seqnum_: bool)
-// {
-//     if (inc_seqnum_)
-//         destination.inc_seqnum ();
-//
-//     ZmqCommand cmd;
-//     cmd.destination = destination;
-//     cmd.cmd_type = ZmqCommand::Plug;
-//     send_command (cmd);
-// }
+    pipe: &mut ZmqPipe,
+    queue_count: u64,
+    socket_base: &mut ZmqOwn,
+    endpoint_pair: &mut EndpointUriPair,
+) {
+    let mut cmd = ZmqCommand::default();
+    cmd.pipe = Some(pipe);
+    cmd.cmd_type = CommandType::PipePeerStats;
+    cmd.args.pipe_peer_stats.queue_count = queue_count;
+    cmd.args.pipe_peer_stats.socket_base = socket_base;
+    cmd.args.pipe_peer_stats.endpoint_pair = endpoint_pair;
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::send_own (ZmqOwn *destination, ZmqOwn *object_)
-// {
-//     destination.inc_seqnum ();
-//     ZmqCommand cmd;
-//     cmd.destination = destination;
-//     cmd.cmd_type = ZmqCommand::Own;
-//     cmd.args.Own.object = object_;
-//     send_command (cmd);
-// }
+fn obj_send_pipe_stats_publish(
 
-// void object_t::send_attach (ZmqSessionBase *destination,
-//                                  ZmqIEngine *engine_,
-//                                  inc_seqnum_: bool)
-// {
-//     if (inc_seqnum_)
-//         destination.inc_seqnum ();
-//
-//     ZmqCommand cmd;
-//     cmd.destination = destination;
-//     cmd.cmd_type = ZmqCommand::Attach;
-//     cmd.args.Attach.engine = engine_;
-//     send_command (cmd);
-// }
+    object: &mut ZmqOwn,
+    outbound_queue_count: u64,
+    inbound_queue_count: u64,
+    endpoint_pair: &mut EndpointUriPair,
+) {
+    let mut cmd = ZmqCommand::default();
+    cmd.object = Some(object.clone());
+    cmd.cmd_type = CommandType::PipeStatsPublish;
+    cmd.args.pipe_stats_publish.outbound_queue_count = outbound_queue_count;
+    cmd.args.pipe_stats_publish.inbound_queue_count = inbound_queue_count;
+    cmd.args.pipe_stats_publish.endpoint_pair = endpoint_pair;
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::send_conn_failed (ZmqSessionBase *destination)
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = destination;
-//     cmd.cmd_type = CommandType::ConnFailed;
-//     self.send_command(&cmd);
-// }
+fn obj_send_pipe_term(pipe: &mut ZmqPipe) {
+    let mut cmd = ZmqCommand::default();
+    cmd.pipe = Some(pipe);
+    cmd.cmd_type = CommandType::PipeTerm;
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::send_bind (ZmqOwn *destination_,
-//                                ZmqPipe *pipe_,
-//                                inc_seqnum_: bool)
-// {
-//     if (inc_seqnum_)
-//         destination_.inc_seqnum ();
-//
-//     ZmqCommand cmd;
-//     cmd.destination = destination_;
-//     cmd.type = ZmqCommand::Bind;
-//     cmd.args.Bind.pipe = pipe_;
-//     send_command (cmd);
-// }
+fn obj_send_pipe_term_ack(pipe: &mut ZmqPipe) {
+    let mut cmd = ZmqCommand::default();
+    cmd.pipe = Some(pipe);
+    cmd.cmd_type = CommandType::PipeTermAck;
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::send_activate_read (ZmqPipe *destination)
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = destination;
-//     cmd.cmd_type = ZmqCommand::ActivateRead;
-//     send_command (cmd);
-// }
+fn obj_send_pipe_hwm(pipe: &mut ZmqPipe, inhwm: i32, outhwm: i32) {
+    let mut cmd = ZmqCommand::default();
+    cmd.pipe = Some(pipe);
+    cmd.cmd_type = CommandType::PipeHwm;
+    cmd.args.pipe_hwm.inhwm = inhwm;
+    cmd.args.pipe_hwm.outhwm = outhwm;
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::send_activate_write (ZmqPipe *destination,
-//                                          u64 msgs_read_)
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = destination;
-//     cmd.cmd_type = ZmqCommand::ActivateWrite;
-//     cmd.args.ActivateWrite.msgs_read = msgs_read_;
-//     self.send_command(&cmd);
-// }
+fn obj_send_term_req(object_a: &mut ZmqOwn, object: &mut ZmqOwn) {
+    let mut cmd = ZmqCommand::default();
+    cmd.object = Some(object_a.clone());
+    cmd.cmd_type = CommandType::TermReq;
+    cmd.args.term_req.object = object;
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::send_hiccup (ZmqPipe *destination, pipe: *mut c_void)
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = destination;
-//     cmd.cmd_type = CommandType::Hiccup;
-//     cmd.args.Hiccup.pipe = pipe;
-//     self.send_command(&cmd);
-// }
+fn obj_send_term(object: &mut ZmqOwn, linger: i32) {
+    let mut cmd = ZmqCommand::default();
+    cmd.object = Some(object.clone());
+    cmd.cmd_type = CommandType::Term;
+    cmd.args.term.linger = linger;
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::send_pipe_peer_stats (ZmqPipe *destination,
-//                                           queue_count_: u64,
-//                                           ZmqOwn *socket_base_,
-//                                           EndpointUriPair *endpoint_pair_)
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = destination;
-//     cmd.cmd_type = CommandType::PipePeerStats;
-//     cmd.args.PipePeerStats.queue_count = queue_count_;
-//     cmd.args.PipePeerStats.socket_base = socket_base_;
-//     cmd.args.PipePeerStats.endpoint_pair = endpoint_pair_;
-//     self.send_command(&cmd);
-// }
+fn obj_send_term_ack(object: &mut ZmqOwn) {
+    let mut cmd = ZmqCommand::default();
+    cmd.object = Some(object.clone());
+    cmd.cmd_type = CommandType::TermAck;
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::send_pipe_stats_publish (
-//   ZmqOwn *destination,
-//   outbound_queue_count_: u64,
-//   inbound_queue_count_: u64,
-//   EndpointUriPair *endpoint_pair)
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = destination;
-//     cmd.cmd_type = CommandType::PipeStatsPublish;
-//     cmd.args.PipeStatsPublish.outbound_queue_count = outbound_queue_count_;
-//     cmd.args.PipeStatsPublish.inbound_queue_count = inbound_queue_count_;
-//     cmd.args.PipeStatsPublish.endpoint_pair = endpoint_pair;
-//     self.send_command(&cmd);
-// }
+fn obj_send_term_endpoint(object: &mut ZmqOwn, endpoint: &str) {
+    let mut cmd = ZmqCommand::default();
+    cmd.object = Some(object.clone());
+    cmd.cmd_type = CommandType::TermEndpoint;
+    cmd.args.term_endpoint.endpoint = endpoint.into_string();
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::send_pipe_term (ZmqPipe *destination)
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = destination;
-//     cmd.cmd_type = CommandType::PipeTerm;
-//     self.send_command(&cmd);
-// }
+fn obj_send_reap( socket: &mut ZmqSocket) {
+    let mut cmd = ZmqCommand::default();
+    cmd.reaper = Some(socket.context.get_reaper().unwrap().clone());
+    cmd.cmd_type = CommandType::Reap;
+    cmd.args.reap.socket = socket;
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::send_pipe_term_ack (ZmqPipe *destination)
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = destination;
-//     cmd.cmd_type = CommandType::PipeTermAck;
-//     self.send_command(&cmd);
-// }
+fn obj_send_reaped(ctx: &mut ZmqContext) {
+    let mut cmd = ZmqCommand::default();
+    cmd.reaper = Some(ctx.get_reaper().unwrap().clone());
+    cmd.cmd_type = CommandType::Reaped;
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::send_pipe_hwm (ZmqPipe *destination,
-//                                    inhwm_: i32,
-//                                    outhwm_: i32)
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = destination;
-//     cmd.cmd_type = CommandType::PipeHwm;
-//     cmd.args.PipeHwm.inhwm = inhwm_;
-//     cmd.args.PipeHwm.outhwm = outhwm_;
-//     self.send_command(&cmd);
-// }
+fn obj_send_done(ctx: &mut ZmqContext) {
+    let mut cmd = ZmqCommand::default();
+    // cmd.destination = None;
+    cmd.cmd_type = CommandType::Done;
+    ctx.send_command(ZmqContext::TERM_TID, &mut cmd);
+}
 
-// void object_t::send_term_req (ZmqOwn *destination, ZmqOwn *object)
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = destination;
-//     cmd.cmd_type = CommandType::TermReq;
-//     cmd.args.TermReq.object = object;
-//     self.send_command(&cmd);
-// }
+fn obj_send_conn_failed( destination: &mut ZmqSessionBase) {
+    let mut cmd = ZmqCommand::default();
+    cmd.session = Some(destination);
+    cmd.cmd_type = CommandType::ConnFailed;
+    obj_send_command(&mut cmd);
+}
 
-// void object_t::send_term (ZmqOwn *destination, linger_: i32)
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = destination;
-//     cmd.cmd_type = CommandType::Term;
-//     cmd.args.Term.linger = linger_;
-//     self.send_command(&cmd);
-// }
+//  These handlers can be overridden by the derived objects. They are
+//  called when command arrives from another thread.
+fn obj_process_stop() {
+    unimplemented!()
+}
 
-// void object_t::send_term_ack (ZmqOwn *destination)
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = destination;
-//     cmd.cmd_type = CommandType::TermAck;
-//     self.send_command(&cmd);
-// }
+fn obj_process_plug() {
+    unimplemented!()
+}
 
-// void object_t::send_term_endpoint (ZmqOwn *destination,
-//                                         std::string *endpoint_)
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = destination;
-//     cmd.cmd_type = CommandType::TermEndpoint;
-//     cmd.args.TermEndpoint.endpoint = endpoint_;
-//     self.send_command(&cmd);
-// }
+fn obj_process_own( object: &mut ZmqOwn) {
+    unimplemented!()
+}
 
-// void object_t::send_reap (class ZmqSocketBase *socket)
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = _ctx.get_reaper ();
-//     cmd.cmd_type = CommandType::Reap;
-//     cmd.args.Reap.socket = socket;
-//     self.send_command(&cmd);
-// }
+fn obj_process_attached( engine: &mut ZmqEngine) {
+    unimplemented!()
+}
 
-// void object_t::send_reaped ()
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = _ctx.get_reaper ();
-//     cmd.cmd_type = CommandType::Reaped;
-//     self.send_command(&cmd);
-// }
+fn obj_process_bind( pipe: &mut ZmqPipe) {
+    unimplemented!()
+}
 
-// void object_t::send_inproc_connected (ZmqSocketBase *socket_)
-// {
-//     ZmqCommand cmd;
-//     cmd.destination = socket_;
-//     cmd.type = ZmqCommand::InprocConnected;
-//     send_command (cmd);
-// }
+fn obj_process_activate_read() {
+    unimplemented!()
+}
 
-// void object_t::send_done ()
-// {
-//     let mut cmd = ZmqCommand::default();
-//     cmd.destination = null_mut();
-//     cmd.cmd_type = CommandType::Done;
-//     _ctx.send_command (ZmqContext::TERM_TID, cmd);
-// }
+fn obj_process_activate_write( msgs_read: u64) {
+    unimplemented!()
+}
 
-// void object_t::process_stop ()
-// {
-//     zmq_assert (false);
-// }
+fn obj_process_hiccup( pipe: &mut [u8]) {
+    unimplemented!()
+}
 
-// void object_t::process_plug ()
-// {
-//     zmq_assert (false);
-// }
+fn obj_process_pipe_peer_stats(
 
-// void object_t::process_own (ZmqOwn *)
-// {
-//     zmq_assert (false);
-// }
+    queue_count: u64,
+    socket_base: &mut ZmqOwn,
+    endpoint_pair: &mut EndpointUriPair,
+) {
+    unimplemented!()
+}
 
-// void object_t::process_attach (ZmqIEngine *)
-// {
-//     zmq_assert (false);
-// }
+fn obj_process_pipe_stats_publish(
 
-// void object_t::process_bind (ZmqPipe *)
-// {
-//     zmq_assert (false);
-// }
+    outbound_queue_count: u64,
+    inbound_queue_count: u64,
+    endpoint_pair: &mut EndpointUriPair,
+) {
+    unimplemented!()
+}
 
-// void object_t::process_activate_read ()
-// {
-//     zmq_assert (false);
-// }
 
-// void object_t::process_activate_write (u64)
-// {
-//     zmq_assert (false);
-// }
 
-// void object_t::process_hiccup (void *)
-// {
-//     zmq_assert (false);
-// }
+pub fn obj_process_pipe_term() {
+    unimplemented!()
+}
 
-// void object_t::process_pipe_peer_stats (u64,
-//                                              ZmqOwn *,
-//                                              EndpointUriPair *)
-// {
-//     zmq_assert (false);
-// }
+pub fn obj_process_pipe_term_ack() {
+    unimplemented!()
+}
 
-// void object_t::process_pipe_stats_publish (u64,
-//                                                 u64,
-//                                                 EndpointUriPair *)
-// {
-//     zmq_assert (false);
-// }
+pub fn obj_process_pipe_hwm( inhwm: i32, outhwm: i32) {
+    unimplemented!()
+}
 
-// void object_t::process_pipe_term ()
-// {
-//     zmq_assert (false);
-// }
+pub fn obj_process_term_req( object: &mut ZmqOwn) {
+    unimplemented!()
+}
 
-// void object_t::process_pipe_term_ack ()
-// {
-//     zmq_assert (false);
-// }
+pub fn obj_process_term( linger: i32) {
+    unimplemented!()
+}
 
-// void object_t::process_pipe_hwm (int, int)
-// {
-//     zmq_assert (false);
-// }
+pub fn obj_process_term_ack() {
+    unimplemented!()
+}
 
-// void object_t::process_term_req (ZmqOwn *)
-// {
-//     zmq_assert (false);
-// }
+pub fn obj_process_term_endpoint( endpoint: &str) {
+    unimplemented!()
+}
 
-// void object_t::process_term
-// {
-//     zmq_assert (false);
-// }
+pub fn obj_process_reap( socket: &mut ZmqSocket) {
+    unimplemented!()
+}
 
-// void object_t::process_term_ack ()
-// {
-//     zmq_assert (false);
-// }
+pub fn obj_process_reaped() {
+    unimplemented!()
+}
 
-// void object_t::process_term_endpoint (std::string *)
-// {
-//     zmq_assert (false);
-// }
+pub fn obj_process_conn_failed() {
+    unimplemented!()
+}
 
-// void object_t::process_reap (class ZmqSocketBase *)
-// {
-//     zmq_assert (false);
-// }
+//  Special handler called after a command that requires a seqnum
+//  was processed. The implementation should catch up with its counter
+//  of processed commands here.
+fn obj_process_seqnum() {
+    unimplemented!()
+}
 
-// void object_t::process_reaped ()
-// {
-//     zmq_assert (false);
-// }
+pub fn obj_send_command(cmd: &mut ZmqCommand) -> anyhow::Result<()> {
+    match (cmd.cmd_type) {
+        CommandType::ActivateRead => obj_process_activate_read(),
+        CommandType::ActivateWrite => {
+            obj_process_activate_write(cmd.args.activate_write.msgs_read)
+        }
+        CommandType::Stop => obj_process_stop(),
+        CommandType::Plug => {
+            obj_process_plug();
+            obj_process_seqnum();
+        }
 
-// void object_t::process_seqnum ()
-// {
-//     zmq_assert (false);
-// }
+        CommandType::Own => {
+            obj_process_own(&mut cmd.args.own.object);
+            obj_process_seqnum();
+        }
 
-// void object_t::process_conn_failed ()
-// {
-//     zmq_assert (false);
-// }
+        CommandType::Attach => {
+            obj_process_attached(cmd.args.attach.engine);
+            obj_process_seqnum();
+        }
 
-// void object_t::send_command (const ZmqCommand &cmd)
-// {
-//     self.ctx.send_command (cmd.destination.get_tid (), cmd);
-// }
+        CommandType::Bind => {
+            obj_process_bind(&mut cmd.args.bind.pipe);
+            obj_process_seqnum();
+        }
+
+        CommandType::Hiccup => obj_process_hiccup(cmd.args.hiccup.pipe),
+
+        CommandType::PipePeerStats => obj_process_pipe_peer_stats(
+            cmd.args.pipe_peer_stats.queue_count,
+            &mut cmd.args.pipe_peer_stats.socket_base,
+            cmd.args.pipe_peer_stats.endpoint_pair,
+        ),
+
+        CommandType::PipeStatsPublish => obj_process_pipe_stats_publish(
+            cmd.args.pipe_stats_publish.outbound_queue_count,
+            cmd.args.pipe_stats_publish.inbound_queue_count,
+            cmd.args.pipe_stats_publish.endpoint_pair,
+        ),
+
+        CommandType::PipeTerm => obj_process_pipe_term(),
+
+        CommandType::PipeTermAck => obj_process_pipe_term_ack(),
+
+        CommandType::PipeHwm => {
+            obj_process_pipe_hwm(cmd.args.pipe_hwm.inhwm, cmd.args.pipe_hwm.outhwm)
+        }
+
+        CommandType::TermReq => obj_process_term_req(&mut cmd.args.term_req.object),
+
+        CommandType::Term => obj_process_term(cmd.args.term.linger),
+
+        CommandType::TermAck => obj_process_term_ack(),
+
+        CommandType::TermEndpoint => {
+            obj_process_term_endpoint(&mut cmd.args.term_endpoint.endpoint)
+        }
+
+        CommandType::Reap => obj_process_reap(&mut cmd.args.reap.socket),
+
+        CommandType::Reaped => obj_process_reaped(),
+
+        CommandType::InprocConnected => obj_process_seqnum(),
+
+        CommandType::ConnFailed => obj_process_conn_failed(),
+
+        CommandType::Done => {}
+        _ => {
+            return Err(anyhow!("invalid command type: {}", cmd.cmd_type));
+        }
+    }
+
+    Ok(())
+}
+
+pub fn obj_send_own(obj_a: &mut ZmqOwn, object: &mut ZmqOwn) {
+    obj_a.inc_seqnum();
+    let mut cmd = ZmqCommand::default();
+    cmd.object = Some(obj_a.clone());
+    cmd.cmd_type = ZmqCommand::own;
+    cmd.args.own.object = object;
+    obj_send_command(&mut cmd);
+}

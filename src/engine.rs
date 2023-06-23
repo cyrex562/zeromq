@@ -9,7 +9,7 @@ use crate::address::ZmqAddress;
 use crate::context::ZmqContext;
 use crate::defines::{handshake_timer_id, heartbeat_ivl_timer_id, heartbeat_timeout_timer_id, heartbeat_ttl_timer_id, NormInstanceHandle, NormObjectHandle, NormSessionHandle, ZMQ_MSG_PROPERTY_PEER_ADDRESS, ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT, ZmqHandle};
 use crate::encoder::EncoderBase;
-use crate::endpoint::EndpointUriPair;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::defines::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 use crate::ip::get_peer_ip_address;

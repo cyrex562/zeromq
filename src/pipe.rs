@@ -54,13 +54,13 @@ use std::ptr::null_mut;
 use libc::memcpy;
 use serde::{Deserialize, Serialize};
 use crate::context::ZmqContext;
-use crate::endpoint::EndpointUriPair;
-use crate::object::ZmqObject;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::ypipe_base::YpipeBase;
 use crate::message::{ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID, ZmqMessage};
 
 use crate::own::ZmqOwn;
 use crate::pipe::PipeState::{active, delimiter_received, term_ack_sent, term_req_sent1, term_req_sent2, waiting_for_delimiter};
+use crate::session_base::ZmqSessionBase;
 use crate::socket::ZmqSocket;
 use crate::ypipe::Ypipe;
 
@@ -108,26 +108,26 @@ pub struct ZmqPipe {
     // typedef YpipeBase<ZmqMessage> upipe_t;
     //  Underlying pipes for both directions.
     // upipe_t *_in_pipe;
-    pub _in_pipe: VecDeque<ZmqMessage>,
+    pub in_pipe: VecDeque<ZmqMessage>,
     // upipe_t *_out_pipe;
-    pub _out_pipe: VecDeque<ZmqMessage>,
+    pub out_pipe: VecDeque<ZmqMessage>,
     //  Can the pipe be read from / written to?
-    pub _in_active: bool,
-    pub _out_active: bool,
+    pub in_active: bool,
+    pub out_active: bool,
     //  High watermark for the outbound pipe.
-    pub _hwm: u32,
+    pub hwm: u32,
     //  Low watermark for the inbound pipe.
-    pub _lwm: u32,
+    pub lwm: u32,
     // boosts for high and low watermarks, used with inproc sockets so hwm are sum of send and recv hmws on each side of pipe
-    pub _in_hwm_boost: u32,
-    pub _out_hwm_boost: u32,
+    pub in_hwm_boost: u32,
+    pub out_hwm_boost: u32,
     //  Number of messages read and written so far.
-    pub _msgs_read: u64,
-    pub _msgs_written: u64,
+    pub msgs_read: u64,
+    pub msgs_written: u64,
     //  Last received peer's msgs_read. The actual number in the peer
     //  can be higher at the moment.
     // u64 _peers_msgs_read;
-    pub _peers_msgs_read: u64,
+    pub peers_msgs_read: u64,
     //  The pipe object on the other side of the pipepair.
     // TODO:
     // ZmqPipe *_peer;
@@ -136,16 +136,16 @@ pub struct ZmqPipe {
     //  If true, we receive all the pending inbound messages before
     //  terminating. If false, we terminate immediately when the peer
     //  asks us to.
-    pub _delay: bool,
+    pub delay: bool,
     //  Routing id of the writer. Used uniquely by the reader side.
-    pub _router_socket_routing_id: Vec<u8>,
+    pub router_socket_routing_id: Vec<u8>,
     //  Routing id of the writer. Used uniquely by the reader side.
-    pub _server_socket_routing_id: i32,
-    pub _conflate: bool,
+    pub server_socket_routing_id: i32,
+    pub conflate: bool,
     // The endpoints of this pipe.
-    pub _endpoint_pair: EndpointUriPair,
+    pub endpoint_pair: Vec<EndpointUriPair>,
     // Disconnect msg
-    pub _disconnect_msg: ZmqMessage,
+    pub disconnect_msg: ZmqMessage,
 
     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqPipe)
 }
@@ -156,7 +156,7 @@ impl ZmqPipe {
     // ZmqPipe *pipes_[2],
     // const int hwms_[2],
     // const bool conflate_[2]);
-    pub fn pipepair(&mut self, parents: &[ZmqObject], pipes: &[Self], hwms: &[i32; 2], conflate: &[bool; 2]) -> i32 {
+    pub fn pipepair(&mut self, parents: (&mut ZmqSessionBase, &mut ZmqSocket), pipes: &mut [Self], hwms: &[i32; 2], conflate: &[bool; 2]) -> anyhow::Result<()> {
         //   Creates two pipe objects. These objects are connected by two ypipes,
         //   each to pass messages in one direction.
 
@@ -184,15 +184,15 @@ impl ZmqPipe {
         // }
         // alloc_assert (upipe2);
 
-        self.pipes_[0] = ZmqPipe::new(parents_[0], &mut upipe1, &mut upipe2, hwms_[1], hwms_[0], conflate_[0]);
+        pipes[0] = ZmqPipe::new(parents[0], &mut upipe1, &mut upipe2, hwms[1], hwms[0], conflate[0]);
         // alloc_assert (pipes_[0]);
-        self.pipes_[1] = ZmqPipe::new(parents_[1], &mut upipe2, &mut upipe1, hwms_[0], hwms_[1], conflate_[1]);
+        pipes[1] = ZmqPipe::new(parents[1], &mut upipe2, &mut upipe1, hwms[0], hwms[1], conflate[1]);
         // alloc_assert (pipes_[1]);
 
-        pipes_[0].set_peer(pipes_[1]);
-        pipes_[1].set_peer(pipes_[0]);
+        pipes[0].set_peer(&mut pipes[1]);
+        pipes[1].set_peer(&mut pipes[0]);
 
-        return 0;
+        Ok(())
     }
 
     //
@@ -205,28 +205,28 @@ impl ZmqPipe {
 
     //  Pipe endpoint can store an routing ID to be used by its clients.
     pub fn set_server_socket_routing_id(&mut self, server_socket_routing_id_: u32) {
-        self._server_socket_routing_id = server_socket_routing_id_ as i32;
+        self.server_socket_routing_id = server_socket_routing_id_ as i32;
     }
 
     // u32 get_server_socket_routing_id () const;
     pub fn get_server_socket_routing_id(&mut self) -> u32 {
-        self._server_socket_routing_id as u32
+        self.server_socket_routing_id as u32
     }
 
     //  Pipe endpoint can store an opaque ID to be used by its clients.
     pub fn set_router_socket_routing_id(&mut self, router_socket_routing_id_: &mut Vec<u8>) {
-        self._router_socket_routing_id = router_socket_routing_id_.clone();
+        self.router_socket_routing_id = router_socket_routing_id_.clone();
     }
 
     // const Blob &get_routing_id () const;
     pub fn get_routing_id(&self) -> &Vec<u8> {
-        &self._router_socket_routing_id
+        &self.router_socket_routing_id
     }
 
     //  Returns true if there is at least one message to read in the pipe.
     // bool check_read ();
     pub fn check_read(&mut self) -> bool {
-        if ((!self._in_active)) {
+        if ((!self.in_active)) {
             return false;
         }
         if ((self._state != active && self._state != waiting_for_delimiter)) {
@@ -234,17 +234,17 @@ impl ZmqPipe {
         }
 
         //  Check if there's an item in the pipe.
-        if (!self._in_pipe.check_read()) {
-            self._in_active = false;
+        if (!self.in_pipe.check_read()) {
+            self.in_active = false;
             return false;
         }
 
         //  If the next item in the pipe is message delimiter,
         //  initiate termination process.
-        if (self._in_pipe.probe(is_delimiter)) {
+        if (self.in_pipe.probe(is_delimiter)) {
             // ZmqMessage msg;
             let mut msg = ZmqMessage::default();
-            let ok = self._in_pipe.read(msg);
+            let ok = self.in_pipe.read(msg);
             // zmq_assert (ok);
             self.process_delimiter();
             return false;
@@ -256,7 +256,7 @@ impl ZmqPipe {
     //  Reads a message to the underlying pipe.
     // bool read (msg: &mut ZmqMessage);
     pub fn read(&mut self, msg: &mut ZmqMessage) -> bool {
-        if ((!self._in_active)) {
+        if ((!self.in_active)) {
             return false;
         }
         if ((self._state != active && self._state != waiting_for_delimiter)) {
@@ -264,8 +264,8 @@ impl ZmqPipe {
         }
 
         loop {
-            if (!self._in_pipe.read(msg)) {
-                self._in_active = false;
+            if (!self.in_pipe.read(msg)) {
+                self.in_active = false;
                 return false;
             }
 
@@ -285,7 +285,7 @@ impl ZmqPipe {
         }
 
         if ((msg.flags() & ZMQ_MSG_MORE) == 0 && !msg.is_routing_id()) {
-            self._msgs_read += 1;
+            self.msgs_read += 1;
         }
 
         if (_lwm > 0 && _msgs_read % _lwm == 0) {
@@ -300,14 +300,14 @@ impl ZmqPipe {
     //  function returns false.
     // bool check_write ();
     pub fn check_write(&mut self) -> bool {
-        if ((!self._out_active || self._state != PipeState::active)) {
+        if ((!self.out_active || self._state != PipeState::active)) {
             return false;
         }
 
         let full = !self.check_hwm();
 
         if ((full)) {
-            self._out_active = false;
+            self.out_active = false;
             return false;
         }
 
@@ -325,9 +325,9 @@ impl ZmqPipe {
 
         let more = (msg.flags() & ZMQ_MSG_MORE) != 0;
         let is_routing_id = msg.is_routing_id();
-        self._out_pipe.write(msg, more);
+        self.out_pipe.write(msg, more);
         if (!more && !is_routing_id) {
-            self._msgs_written += 1;
+            self.msgs_written += 1;
         }
 
         return true;
@@ -356,7 +356,7 @@ impl ZmqPipe {
             return;
         }
 
-        if (self._out_pipe.len() > 0 && !self._out_pipe.flush()) {
+        if (self.out_pipe.len() > 0 && !self.out_pipe.flush()) {
             self.send_activate_read(self._peer);
         }
     }
@@ -378,7 +378,7 @@ impl ZmqPipe {
         //     if self._conflate
         //         ?  ( YpipeConflate<ZmqMessage> ())
         // :  Ypipe<ZmqMessage, message_pipe_granularity> ();
-        self._in_pipe.clear();
+        self.in_pipe.clear();
 
         // alloc_assert (_in_pipe);
         _in_active = true;
@@ -389,7 +389,7 @@ impl ZmqPipe {
 
     //  Ensure the pipe won't block on receiving PipeTerm.
     pub fn set_nodelay(&mut self) {
-        self._delay = false;
+        self.delay = false;
     }
 
     //  Ask pipe to terminate. The termination will happen asynchronously
@@ -398,7 +398,7 @@ impl ZmqPipe {
     //  before actual shutdown.
     pub fn terminate(&mut self, delay_: bool) {
         //  Overload the value specified at pipe creation.
-        self._delay = delay_;
+        self.delay = delay_;
 
         //  If terminate was already called, we can ignore the duplicate invocation.
         if (self._state == PeerState::term_req_sent1 || self._state == PeerState::term_req_sent2) {
@@ -417,10 +417,10 @@ impl ZmqPipe {
         }
         //  There are still pending messages available, but the user calls
         //  'terminate'. We can act as if all the pending messages were read.
-        else if (self._state == PeerState::waiting_for_delimiter && !self._delay) {
+        else if (self._state == PeerState::waiting_for_delimiter && !self.delay) {
             //  Drop any unfinished outbound messages.
             self.rollback();
-            self._out_pipe.clear();
+            self.out_pipe.clear();
             self.send_pipe_term_ack(self._peer);
             self._state = PeerState::term_ack_sent;
         }
@@ -439,9 +439,9 @@ impl ZmqPipe {
         }
 
         //  Stop outbound flow of messages.
-        self._out_active = false;
+        self.out_active = false;
 
-        if (self._out_pipe) {
+        if (self.out_pipe) {
             //  Drop any unfinished outbound messages.
             self.rollback();
 
@@ -449,33 +449,33 @@ impl ZmqPipe {
             //  checked; thus the delimiter can be written even when the pipe is full.
             let mut msg = ZmqMessage::default();
             msg.init_delimiter();
-            self._out_pipe.write(&msg, false);
+            self.out_pipe.write(&msg, false);
             self.flush();
         }
     }
 
     //  Set the high water marks.
     pub fn set_hwms(&mut self, inhwm: u32, outhwm: u32) {
-        let mut in_ = inhwm + u32::max(self._in_hwm_boost, 0);
-        let mut out = outhwm + u32::max(self._out_hwm_boost, 0);
+        let mut in_ = inhwm + u32::max(self.in_hwm_boost, 0);
+        let mut out = outhwm + u32::max(self.out_hwm_boost, 0);
 
         // if either send or recv side has hwm <= 0 it means infinite so we should set hwms infinite
-        if (inhwm <= 0 || self._in_hwm_boost == 0) {
+        if (inhwm <= 0 || self.in_hwm_boost == 0) {
             in_ = 0;
         }
 
-        if (outhwm <= 0 || self._out_hwm_boost == 0) {
+        if (outhwm <= 0 || self.out_hwm_boost == 0) {
             out = 0;
         }
 
-        self._lwm = self.compute_lwm(in_ as i32) as u32;
-        self._hwm = out;
+        self.lwm = self.compute_lwm(in_ as i32) as u32;
+        self.hwm = out;
     }
 
     //  Set the boost to high water marks, used by inproc sockets so total hwm are sum of connect and Bind sockets watermarks
     pub fn set_hwms_boost(&mut self, inhwmboost_: i32, outhwmboost_: i32) {
-        self._in_hwm_boost = inhwmboost_;
-        self._out_hwm_boost = outhwmboost_;
+        self.in_hwm_boost = inhwmboost_;
+        self.out_hwm_boost = outhwmboost_;
     }
 
     // send command to peer for notify the change of hwm
@@ -485,37 +485,37 @@ impl ZmqPipe {
 
     //  Returns true if HWM is not reached
     pub fn check_hwm(&mut self) -> bool {
-        let full = self._hwm > 0 && self._msgs_written - self._peers_msgs_read >= u64(self._hwm);
+        let full = self.hwm > 0 && self.msgs_written - self.peers_msgs_read >= u64(self.hwm);
         return !full;
     }
 
     pub fn set_endpoint_pair(&mut self, endpoint_pair: EndpointUriPair) {
-        self._endpoint_pair = endpoint_pair;
+        self.endpoint_pair = endpoint_pair;
     }
 
 
     // const EndpointUriPair &get_endpoint_pair () const;
     pub fn get_endpoint_pair(&mut self) -> &EndpointUriPair {
-        &self._endpoint_pair
+        &self.endpoint_pair
     }
 
     // void send_stats_to_peer (ZmqOwn *socket_base);
     pub fn send_stats_to_peer(&mut self, socket_base: &mut ZmqSocket) {
         // EndpointUriPair *ep = new (std::nothrow) EndpointUriPair (_endpoint_pair);
         let mut ep = EndpointUriPair::default();
-        ep = self._endpoint_pair.clone();
-        self.send_pipe_peer_stats(self._peer, self._msgs_written - self._peers_msgs_read, socket_base, &mut ep);
+        ep = self.endpoint_pair.clone();
+        self.send_pipe_peer_stats(self._peer, self.msgs_written - self.peers_msgs_read, socket_base, &mut ep);
     }
 
     // void send_disconnect_msg ();
     pub fn send_disconnect_msg(&mut self) {
-        if (self._disconnect_msg.size() > 0 && self._out_pipe.is_empty() == false) {
+        if (self.disconnect_msg.size() > 0 && self.out_pipe.is_empty() == false) {
             // Rollback any incomplete message in the pipe, and push the disconnect message.
             self.rollback();
 
-            self._out_pipe.write(&self._disconnect_msg, false);
+            self.out_pipe.write(&self.disconnect_msg, false);
             self.flush();
-            self._disconnect_msg.init2();
+            self.disconnect_msg.init2();
         }
     }
 
@@ -525,8 +525,8 @@ impl ZmqPipe {
 
     //  Command handlers.
     pub fn process_activate_read(&mut self) {
-        if (!self._in_active && (self._state == PipeState::active || self._state == PipeState::waiting_for_delimiter)) {
-            self._in_active = true;
+        if (!self.in_active && (self._state == PipeState::active || self._state == PipeState::waiting_for_delimiter)) {
+            self.in_active = true;
             self._sink.read_activated(this);
         }
     }
@@ -534,7 +534,7 @@ impl ZmqPipe {
     // void process_activate_write (u64 msgs_read) ;
     pub fn process_activate_write(&mut self, msgs_read: u64) {
         //  Remember the peer's message sequence number.
-        self._peers_msgs_read = msgs_read;
+        self.peers_msgs_read = msgs_read;
 
         if (!_out_active && self._state == PipeState::active) {
             self.out_active = true;
@@ -547,11 +547,11 @@ impl ZmqPipe {
         //  Destroy old outpipe. Note that the read end of the pipe was already
         //  migrated to this thread.
         // zmq_assert (_out_pipe);
-        self._out_pipe.flush();
+        self.out_pipe.flush();
         let mut msg = ZmqMessage::default();
-        while (self._out_pipe.read(&mut msg)) {
+        while (self.out_pipe.read(&mut msg)) {
             if (!(self.msg.flags() & ZMQ_MSG_MORE)) {
-                self._msgs_written -= 1;
+                self.msgs_written -= 1;
             }
             let rc: i32 = msg.clsose();
             // errno_assert (rc == 0);
@@ -560,8 +560,8 @@ impl ZmqPipe {
 
         //  Plug in the new outpipe.
         // zmq_assert (pipe);
-        self._out_pipe = (pipe.clone());
-        self._out_active = true;
+        self.out_pipe = (pipe.clone());
+        self.out_active = true;
 
         //  If appropriate, notify the user about the Hiccup.
         if (self._state == PipeState::active) {
@@ -581,11 +581,11 @@ impl ZmqPipe {
         //  Otherwise we'll hang up in waiting_for_delimiter state till all
         //  pending messages are read.
         if (self._state == PeerState::active) {
-            if (self._delay) {
+            if (self.delay) {
                 self._state = PeerState::waiting_for_delimiter;
             } else {
                 self._state = PeerState::term_ack_sent;
-                self._out_pipe.clear();
+                self.out_pipe.clear();
                 self.send_pipe_term_ack(_peer);
             }
         }
@@ -594,7 +594,7 @@ impl ZmqPipe {
         //  Term command as well, so we can move straight to term_ack_sent state.
         else if (self._state == PeerState::delimiter_received) {
             self._state = PeerState::term_ack_sent;
-            self._out_pipe.clear();
+            self.out_pipe.clear();
             self.send_pipe_term_ack(self._peer);
         }
 
@@ -603,7 +603,7 @@ impl ZmqPipe {
         //  Own ack.
         else if (self._state == PeerState::term_req_sent1) {
             self._state = PeerState::term_req_sent2;
-            self._out_pipe.clear();
+            self.out_pipe.clear();
             self.send_pipe_term_ack(self._peer);
         }
     }
@@ -619,7 +619,7 @@ impl ZmqPipe {
         //  the peer before deallocating this side of the pipe.
         //  All the other states are invalid.
         if (self._state == PeerState::term_req_sent1) {
-            self._out_pipe.clear();
+            self.out_pipe.clear();
             self.send_pipe_term_ack(self._peer);
         } else {}
         // zmq_assert (_state == term_ack_sent || _state == term_req_sent2);
@@ -630,9 +630,9 @@ impl ZmqPipe {
         //  hand because ZmqMessage doesn't have automatic destructor. Then deallocate
         //  the ypipe itself.
 
-        if (!self._conflate) {
+        if (!self.conflate) {
             let mut msg = ZmqMessage::default();
-            while (self._in_pipe.read(&msg)) {
+            while (self.in_pipe.read(&msg)) {
                 msg.close()?;
                 // errno_assert (rc == 0);
             }
@@ -659,7 +659,7 @@ impl ZmqPipe {
             self._state = PeerState::delimiter_received;
         } else {
             self.rollback();
-            self._out_pipe.clone();
+            self.out_pipe.clone();
             self.send_pipe_term_ack(self._peer);
             self._state = PeerState::term_ack_sent;
         }
@@ -694,23 +694,23 @@ impl ZmqPipe {
     // _conflate (conflate_)
     pub fn new(parent: &mut ZmqObject, inpipe: &mut VecDeque<ZmqMessage>, outpipe: &mut VecDeque<ZmqMessage>, inhwm: i32, outhwm: i32, conflate: bool) -> Self {
         let mut out = Self {
-            _in_pipe: inpipe.clone(),
-            _out_pipe: outpipe.clone(),
-            _in_active: true,
-            _out_active: true,
-            _hwm: outhwm as u32,
-            _lwm: compute_lwm(inhwm),
-            _in_hwm_boost: -1,
-            _out_hwm_boost: -1,
-            _msgs_read: 0,
-            _msgs_written: 0,
-            _peers_msgs_read: 0,
-            _delay: false,
-            _router_socket_routing_id: vec![],
-            _server_socket_routing_id: 0,
-            _conflate: false,
-            _endpoint_pair: Default::default(),
-            _disconnect_msg: Default::default(),
+            in_pipe: inpipe.clone(),
+            out_pipe: outpipe.clone(),
+            in_active: true,
+            out_active: true,
+            hwm: outhwm as u32,
+            lwm: compute_lwm(inhwm),
+            in_hwm_boost: -1,
+            out_hwm_boost: -1,
+            msgs_read: 0,
+            msgs_written: 0,
+            peers_msgs_read: 0,
+            delay: false,
+            router_socket_routing_id: vec![],
+            server_socket_routing_id: 0,
+            conflate: false,
+            endpoint_pair: Default::default(),
+            disconnect_msg: Default::default(),
         };
         _disconnect_msg.init();
         out
@@ -767,8 +767,8 @@ impl ZmqPipe {
     }
 
     pub fn set_disconnect_msg(&mut self, disconnect_: &mut Vec<u8>) {
-        self._disconnect_msg.close();
-        let rc: i32 = self._disconnect_msg.init_buffer(&mut disconnect_[0..], disconnect_.size());
+        self.disconnect_msg.close();
+        let rc: i32 = self.disconnect_msg.init_buffer(&mut disconnect_[0..], disconnect_.size());
         // errno_assert (rc == 0);
     }
 

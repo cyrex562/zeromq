@@ -44,26 +44,12 @@ use windows::Win32::System::Threading::Sleep;
 use crate::defines::{ZMQ_EVENTS, ZMQ_FD, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI};
 use crate::err::wsa_error_to_errno;
 use crate::defines::ZmqFileDesc;
+use crate::item::ZmqItem;
+use crate::optimized_fd_set::{OptimizedFdSet, ResizableOptimizedFdSet};
 use crate::poller_event;
 use crate::poller_event::ZmqPollerEvent;
-use crate::polling_util::{OptimizedFdSet, ResizableOptimizedFdSet};
 use crate::signaler::ZmqSignaler;
 use crate::socket::ZmqSocket;
-
-#[derive(Default, Debug, Clone)]
-struct ZmqItem {
-    // ZmqSocketBase *socket;
-    pub socket: Option<ZmqSocket>,
-    // ZmqFileDesc fd;
-    pub fd: ZmqFileDesc,
-    // user_data: *mut c_void;
-    pub user_data: Option<Vec<u8>>,
-    // short events;
-    pub events: i16,
-    // #if defined ZMQ_POLL_BASED_ON_POLL
-    pollfd_index: i32,
-// #endif
-}
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqSocketPoller {

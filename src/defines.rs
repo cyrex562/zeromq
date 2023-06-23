@@ -461,3 +461,24 @@ pub type ZmqFileDesc = SOCKET;
 pub type ZmqFileDesc = i32;
 
 pub const signaler_port: i32 = 0;
+pub enum v2_protocol_msg_flag {
+    more_flag = 1,
+    large_flag = 2,
+    command_flag = 4
+}
+
+pub enum ZmqWsProtoOpcode
+{
+    opcode_continuation = 0,
+    opcode_text = 0x01,
+    opcode_binary = 0x02,
+    opcode_close = 0x08,
+    opcode_ping = 0x09,
+    opcode_pong = 0xA
+}
+
+pub enum ZmqWsProtoFlag
+{
+    more_flag = 1,
+    command_flag = 2
+}

@@ -13,7 +13,7 @@
 // #include "v2_protocol.hpp"
 
 use crate::defines::{NormDescriptor, NormInstanceHandle, ZmqHandle};
-use crate::endpoint::EndpointUriPair;
+use crate::endpoint_uri::EndpointUriPair;
 use crate::defines::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};

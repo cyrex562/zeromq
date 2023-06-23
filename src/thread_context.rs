@@ -2,7 +2,7 @@ use crate::command::ZmqCommand;
 use crate::context::ZmqContext;
 use crate::defines::ZmqHandle;
 use crate::devpoll::ZmqPoller;
-use crate::endpoint::{EndpointUriPair, ZmqEndpoint};
+use crate::endpoint::ZmqEndpoint;
 use crate::mailbox::ZmqMailbox;
 use crate::object::ZmqObject;
 use crate::own::ZmqOwn;
@@ -18,6 +18,7 @@ use crate::defines::ZMQ_THREAD_NAME_PREFIX;
 use crate::defines::ZMQ_THREAD_PRIORITY;
 use crate::defines::ZMQ_THREAD_AFFINITY_CPU_ADD;
 use crate::defines::ZMQ_THREAD_AFFINITY_CPU_REMOVE;
+use crate::endpoint_uri::EndpointUriPair;
 
 pub const DEFAULT_PRIORITY: i32 = 100;
 pub const DEFAULT_OPTIONS: i32 = 0;

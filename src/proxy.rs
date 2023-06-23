@@ -91,19 +91,8 @@ use crate::message::ZmqMessage;
 
 use crate::socket::ZmqSocket;
 use crate::socket_poller::ZmqSocketPoller;
+use crate::socket_stats::ZmqSocketStats;
 use crate::utils::{cmp_bytes, copy_bytes};
-
-#[derive(Default, Debug, Clone)]
-pub struct ZmqSocketStats {
-    // u64 msg_in;
-    pub msg_in: u64,
-    // u64 bytes_in;
-    pub bytes_in: u64,
-    // u64 msg_out;
-    pub msg_out: u64,
-    // u64 bytes_out;
-    pub bytes_out: u64,
-}
 
 
 // Utility functions

@@ -1,4 +1,6 @@
 use crate::context::ZmqContext;
+use crate::endpoint_uri::EndpointUriPair;
+use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 
 pub enum EndpointType {
@@ -7,43 +9,6 @@ pub enum EndpointType {
     endpoint_type_bind,
     // a connection-oriented Bind endpoint
     endpoint_type_connect, // a connection-oriented connect endpoint
-}
-
-#[derive(Default, Debug, Clone)]
-pub struct EndpointUriPair {
-    // std::string local, remote;
-    pub local: String,
-    pub remote: String,
-    // endpoint_type_t local_type;
-    pub local_type: EndpointType,
-}
-
-impl EndpointUriPair {
-    // endpoint_uri_ZmqPair () : local_type (endpoint_type_none) {}
-
-    // endpoint_uri_ZmqPair (const std::string &local,
-    //                      const std::string &remote,
-    //                      endpoint_type_t local_type) :
-    //     local (local), remote (remote), local_type (local_type)
-    // {
-    // }
-    pub fn new(local: &str, remote: &str, local_type: EndpointType) -> Self {
-        Self {
-            local: String::from(local),
-            remote: String::from(remote),
-            local_type,
-        }
-    }
-
-    // const std::string &identifier () const
-    pub fn identifier(&self) -> String {
-        // return local_type == endpoint_type_bind ? local : remote;
-        if self.local_type == EndpointType::endpoint_type_bind {
-            self.local.clone()
-        } else {
-            self.remote.clone()
-        }
-    }
 }
 
 
@@ -72,16 +37,17 @@ pub fn make_unconnected_bind_endpoint_pair(endpoint: &str) -> EndpointUriPair {
 #[derive(Default, Debug, Clone)]
 pub struct ZmqEndpoint<'a> {
     // ZmqSocketBase *socket;
+    pub uri: EndpointUriPair,
+    // pub pipe: &'a mut ZmqPipe,
+    pub pipe: ZmqPipe,
     pub socket: &'a mut ZmqSocket<'a>,
-    // ZmqOptions options;
-    pub context: &'a mut ZmqContext,
+
 }
 
-impl <'a> ZmqEndpoint {
-    pub fn new(socket: &'a mut ZmqSocket<'a>, context: &'a mut ZmqContext) -> Self {
+impl <'a> ZmqEndpoint<'a> {
+    pub fn new(socket: &mut ZmqSocket) -> Self {
         Self {
             socket,
-            context,
         }
     }
     

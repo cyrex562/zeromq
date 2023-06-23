@@ -42,7 +42,7 @@ use libc::{EMSGSIZE, ENOMEM};
 use crate::decoder::DecoderBase;
 use crate::decoder_allocators::shared_message_memory_allocator;
 use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZmqMessage};
-use crate::v2_protocol::v2_protocol_t;
+
 
 //  Decoder for ZMTP/2.x framing protocol. Converts data stream into messages.
 //  The class has to inherit from shared_message_memory_allocator because
