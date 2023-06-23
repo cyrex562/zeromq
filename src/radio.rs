@@ -30,195 +30,158 @@
 // #include "precompiled.hpp"
 // #include <string.h>
 
-use crate::address::ZmqAddress;
+
 use crate::context::ZmqContext;
 use crate::defines::{ZMQ_RADIO, ZMQ_XPUB_NODROP};
 use crate::dist::ZmqDist;
-use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZmqMessage};
+use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
 
 use crate::pipe::ZmqPipe;
-use crate::session_base::ZmqSessionBase;
-use crate::socket::ZmqSocket;
-use crate::thread_context::ZmqThreadContext;
-use crate::udp_address::UdpAddress;
-use crate::utils::{cmp_bytes, copy_bytes};
+
+
 use libc::{EAGAIN, EINVAL, ENOTSUP};
 use std::collections::HashMap;
+use crate::socket::ZmqSocket;
 
 // #include "radio.hpp"
 // #include "macros.hpp"
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-#[derive(Default, Debug, Clone)]
-pub struct ZmqRadio {
-    pub _subscriptions: HashMap<String, ZmqPipe>,
-    //  List of udp pipes
-    pub _udp_pipes: Vec<ZmqPipe>,
-    //  Distributor of messages holding the list of outbound pipes.
-    pub _dist: ZmqDist,
-    //  Drop messages if HWM reached, otherwise return with EAGAIN
-    pub _lossy: bool,
-}
+// #[derive(Default, Debug, Clone)]
+// pub struct ZmqRadio {
+//     pub _subscriptions: HashMap<String, ZmqPipe>,
+//     //  List of udp pipes
+//     pub _udp_pipes: Vec<ZmqPipe>,
+//     //  Distributor of messages holding the list of outbound pipes.
+//     pub _dist: ZmqDist,
+//     //  Drop messages if HWM reached, otherwise return with EAGAIN
+//     pub _lossy: bool,
+// }
 
-impl ZmqRadio {
-    pub fn new(options: &mut ZmqContext, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
-        // ZmqSocketBase (parent_, tid, sid_, true), _lossy (true)
-        let mut out = Self {
-            _subscriptions: HashMap::new(),
-            _udp_pipes: vec![],
-            _dist: ZmqDist::default(),
-            _lossy: false,
-        };
-        out.session_base.options.type_ = ZMQ_RADIO;
-        out
-    }
 
-    pub fn xattach_pipe(
-        &mut self,
-        pipe: &mut ZmqPipe,
-        subscribe_to_all_: bool,
-        locally_initiated_: bool,
-    ) {
-        //  Don't delay pipe termination as there is no one
-        //  to receive the delimiter.
-        pipe.set_nodelay();
+pub fn radio_xread_activated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    //  There are some subscriptions waiting. Let's process them.
+    let mut msg = ZmqMessage::default();
+    while pipe.read(&mut msg) {
+        //  Apply the subscription to the trie
+        if msg.is_join() || msg.is_leave() {
+            let group = (msg.group());
 
-        _dist.attach(pipe);
+            if (msg.is_join()) {
+                sock._subscriptions.ZMQ_MAP_INSERT_OR_EMPLACE(ZMQ_MOVE(group), pipe);
+            } else {
+                // std::pair<subscriptions_t::iterator, subscriptions_t::iterator>
+                //     range = _subscriptions.equal_range (group);
 
-        if (subscribe_to_all_) {
-            _udp_pipes.push_back(pipe);
-        }
-        //  The pipe is active when attached. Let's read the subscriptions from
-        //  it, if any.
-        else {
-            xread_activated(pipe);
-        }
-    }
-
-    pub fn xread_activated(&mut self, pipe: &mut ZmqPipe) {
-        //  There are some subscriptions waiting. Let's process them.
-        let mut msg = ZmqMessage::default();
-        while pipe.read(&mut msg) {
-            //  Apply the subscription to the trie
-            if msg.is_join() || msg.is_leave() {
-                let group = (msg.group());
-
-                if (msg.is_join()) {
-                    _subscriptions.ZMQ_MAP_INSERT_OR_EMPLACE(ZMQ_MOVE(group), pipe);
-                } else {
-                    // std::pair<subscriptions_t::iterator, subscriptions_t::iterator>
-                    //     range = _subscriptions.equal_range (group);
-
-                    // for (subscriptions_t::iterator it = range.first;
-                    //     it != range.second; += 1it)
-                    for it in self._subscriptions {
-                        if (it.second == pipe) {
-                            _subscriptions.erase(it);
-                            break;
-                        }
+                // for (subscriptions_t::iterator it = range.first;
+                //     it != range.second; += 1it)
+                for it in sock._subscriptions {
+                    if (it.second == pipe) {
+                        sock._subscriptions.erase(it);
+                        break;
                     }
                 }
             }
-            msg.close();
         }
+        msg.close();
     }
+}
 
-    pub fn xwrite_activated(&mut self, pipe: &mut ZmqPipe) {
-        _dist.activated(pipe);
+pub fn radio_xwrite_activated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    sock._dist.activated(pipe);
+}
+
+pub fn radio_xsetsockopt(
+    sock: &mut ZmqSocket,
+    option_: i32,
+    optval_: &mut [u8],
+    optvallen_: usize,
+) -> anyhow::Result<()> {
+    if option_ == ZMQ_XPUB_NODROP {
+        _lossy = ((optval_) == 0);
+    } else {
+        errno = EINVAL;
+        return Err("ZmqRadio::xsetsockopt".into());
     }
+    return Ok(());
+}
 
-    pub fn xsetsockopt(
-        &mut self,
-        option_: i32,
-        optval_: &mut [u8],
-        optvallen_: usize,
-    ) -> anyhow::Result<()> {
-        if option_ == ZMQ_XPUB_NODROP {
-            _lossy = ((optval_) == 0);
-        } else {
-            errno = EINVAL;
-            return Err("ZmqRadio::xsetsockopt".into());
-        }
-        return Ok(());
-    }
-
-    pub fn xpipe_terminated(&mut self, pipe: &mut ZmqPipe) {
-        // for (subscriptions_t::iterator it = _subscriptions.begin (),
-        //                                end = _subscriptions.end ();
-        //      it != end;)
-        for it in self._subscriptions {
-            if it.second == pipe {
-                // #if __cplusplus >= 201103L || (defined _MSC_VER && _MSC_VER >= 1700)
-                it = _subscriptions.erase(it);
+pub fn radio_xpipe_terminated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    // for (subscriptions_t::iterator it = _subscriptions.begin (),
+    //                                end = _subscriptions.end ();
+    //      it != end;)
+    for it in sock._subscriptions {
+        if it.second == pipe {
+            // #if __cplusplus >= 201103L || (defined _MSC_VER && _MSC_VER >= 1700)
+            it = sock._subscriptions.erase(it);
             // #else
             //             _subscriptions.erase (it+= 1);
             // #endif
-            } else {
-                // += 1it;
-            }
-        }
-
-        {
-            let end = _udp_pipes.end();
-            let it = (_udp_pipes.begin(), end, pipe);
-            if (it != end) {
-                _udp_pipes.erase(it);
-            }
-        }
-
-        _dist.pipe_terminated(pipe);
-    }
-
-    pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32 {
-        //  Radio sockets do not allow multipart data (ZMQ_SNDMORE)
-        if (msg.flags() & ZMQ_MSG_MORE) {
-            errno = EINVAL;
-            return -1;
-        }
-
-        _dist.unmatch();
-
-        let range = _subscriptions.equal_range(std::string(msg.group()));
-
-        // for (subscriptions_t::iterator it = range.first; it != range.second; += 1it)
-        for it in self._subscriptions {
-            // _dist.
-            // match (it.second);
-        }
-
-        // for (udp_pipes_t::iterator it = _udp_pipes.begin (),
-        //                            end = _udp_pipes.end ();
-        //      it != end; += 1it)
-        for it in self._udp_pipes {
-            // _dist.
-            // match (*it);
-        }
-
-        let mut rc = -1;
-        if _lossy || _dist.check_hwm() {
-            if _dist.send_to_matching(msg) == 0 {
-                rc = 0; //  Yay, sent successfully
-            }
         } else {
-            errno = EAGAIN;
+            // += 1it;
         }
-
-        return rc;
     }
 
-    pub fn xhas_out(&mut self) {
-        return _dist.has_out();
+    {
+        let end = sock._udp_pipes.end();
+        let it = (sock._udp_pipes.begin(), end, pipe);
+        if (it != end) {
+            sock._udp_pipes.erase(it);
+        }
     }
 
-    pub fn xrecv(&mut self, msg: &mut ZmqMessage) -> i32 {
-        //  Messages cannot be received from PUB socket.
-        LIBZMQ_UNUSED(msg);
-        errno = ENOTSUP;
+    sock._dist.pipe_terminated(pipe);
+}
+
+pub fn radio_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
+    //  Radio sockets do not allow multipart data (ZMQ_SNDMORE)
+    if msg.flags() & ZMQ_MSG_MORE {
+        errno = EINVAL;
         return -1;
     }
 
-    pub fn xhas_in(&mut self) -> bool {
-        return false;
+    _dist.unmatch();
+
+    let range = _subscriptions.equal_range(std::string(msg.group()));
+
+    // for (subscriptions_t::iterator it = range.first; it != range.second; += 1it)
+    for it in sock._subscriptions {
+        // _dist.
+        // match (it.second);
     }
+
+    // for (udp_pipes_t::iterator it = _udp_pipes.begin (),
+    //                            end = _udp_pipes.end ();
+    //      it != end; += 1it)
+    for it in sock._udp_pipes {
+        // _dist.
+        // match (*it);
+    }
+
+    let mut rc = -1;
+    if _lossy || _dist.check_hwm() {
+        if _dist.send_to_matching(msg) == 0 {
+            rc = 0; //  Yay, sent successfully
+        }
+    } else {
+        errno = EAGAIN;
+    }
+
+    return rc;
+}
+
+pub fn radio_xhas_out(sock: &mut ZmqSocket) {
+    return _dist.has_out();
+}
+
+pub fn radio_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
+    //  Messages cannot be received from PUB socket.
+    LIBZMQ_UNUSED(msg);
+    errno = ENOTSUP;
+    return -1;
+}
+
+pub fn radio_xhas_in(sock: &mut ZmqSocket) -> bool {
+    return false;
 }

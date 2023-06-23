@@ -17,12 +17,14 @@ use crate::command::ZmqCommand;
 use crate::context::{bool_to_vec, get_effective_conflate_option, i32_to_vec, str_to_vec, ZmqContext};
 use crate::cpu_time::get_cpu_tick_counter;
 use crate::dealer::dealer_xrecv;
-use crate::defines::{retired_fd, ZMQ_BLOCKY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB, ZMQ_ZERO_COPY_RECV, ZmqHandle};
+use crate::defines::{retired_fd, TIPC_ADDR_ID, ZMQ_BLOCKY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_IPV6, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZMQ_XPUB, ZMQ_XSUB, ZMQ_ZERO_COPY_RECV, ZmqHandle};
 use crate::devpoll::ZmqPoller;
 use crate::endpoint::EndpointType::endpoint_type_none;
 use crate::endpoint::{make_unconnected_bind_endpoint_pair, ZmqEndpoint};
 use crate::engine_interface::ZmqEngineInterface;
 use crate::defines::ZmqFileDesc;
+use crate::dgram::dgram_xrecv;
+use crate::dish::{dish_xrecv};
 use crate::endpoint_uri::EndpointUriPair;
 use crate::mailbox::ZmqMailbox;
 use crate::mailbox_interface::ZmqMailboxInterface;
@@ -34,15 +36,25 @@ use crate::ops::{
 };
 use crate::out_pipe::ZmqOutPipe;
 use crate::own::ZmqOwn;
+use crate::pair::pair_xrecv;
 use crate::pgm_socket::PgmSocket;
 use crate::pipe::{send_hello_msg, ZmqPipe};
+use crate::pull::pull_xrecv;
+use crate::zmq_pub::{pub_xrecv};
+use crate::radio::radio_xrecv;
+use crate::rep::rep_xrecv;
+use crate::req::req_xrecv;
+use crate::router::router_xrecv;
+use crate::server::server_xrecv;
 use crate::session_base::ZmqSessionBase;
 use crate::signaler::ZmqSignaler;
 use crate::socket_base_ops::ZmqSocketBaseOps;
 use crate::socket_option::ZmqSocketOption;
+use crate::stream::{stream_xrecv, xrecv};
 use crate::thread_context::ZmqThreadContext;
 use crate::transport::ZmqTransport;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ZmqSocketType {
     ZmqPair,
     ZmqPub,
@@ -863,8 +875,18 @@ impl<'a> ZmqSocket<'a> {
             ZmqSocketType::ZmqClient => client_xrecv(self, msg)?,
             ZmqSocketType::ZmqDealer => dealer_xrecv(self, msg)?,
             ZmqSocketType::ZmqDgram => dgram_xrecv(self, msg)?,
+            ZmqSocketType::ZmqDish => dish_xrecv(self, msg)?,
+            ZmqSocketType::ZmqPair => pair_xrecv(self, msg)?,
+            ZmqSocketType::ZmqPub => pub_xrecv(self, msg)?,
+            ZmqSocketType::ZmqPull => pull_xrecv(self, msg)?,
+            ZmqSocketType::ZmqRadio => radio_xrecv(self, msg)?,
+            ZmqSocketType::ZmqRep => rep_xrecv(self, msg)?,
+            ZmqSocketType::ZmqReq => req_xrecv(self, msg)?,
+            ZmqSocketType::ZmqRouter => router_xrecv(self, msg)?,
+            ZmqSocketType::ZmqServer => server_xrecv(self, msg)?,
+            ZmqSocketType::ZmqStream => stream_xrecv(self, msg)?,
             _ => {
-                bail!("unsupported socket type")
+                bail!("unsupported socket type: {:?}", self.socket_type)
             }
         }
 

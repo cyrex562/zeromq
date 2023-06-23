@@ -62,7 +62,7 @@ use crate::defines::{
     ZMQ_PEER, ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_RADIO, ZMQ_REP, ZMQ_REQ, ZMQ_ROUTER, ZMQ_SCATTER,
     ZMQ_SERVER, ZMQ_STREAM, ZMQ_SUB, ZMQ_XPUB, ZMQ_XSUB,
 };
-use crate::dish::DishSession;
+use crate::dish_session::DishSession;
 use crate::endpoint::ZmqEndpoint;
 use crate::endpoint_uri::EndpointUriPair;
 use crate::engine::ZmqEngine;

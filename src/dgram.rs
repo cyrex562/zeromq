@@ -82,7 +82,7 @@ pub struct ZmqDgram<'a> {
 // }
 
 // int xsend (msg: &mut ZmqMessage);
-pub fn xsend(sock: &mut ZmqSock, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+pub fn dgram_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
     // If there's no out pipe, just drop it.
     if self.pipe.is_none() {
         msg.close()?;
@@ -125,7 +125,7 @@ pub fn xsend(sock: &mut ZmqSock, msg: &mut ZmqMessage) -> anyhow::Result<()> {
 }
 
 // int xrecv (msg: &mut ZmqMessage);
-pub fn xrecv(sock: &mut ZmqSock, msg: &mut ZmqMessage) -> i32 {
+pub fn dgram_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
     //  Deallocate old content of the message.
     let mut rc = msg.close();
     // errno_assert (rc == 0);
@@ -133,7 +133,7 @@ pub fn xrecv(sock: &mut ZmqSock, msg: &mut ZmqMessage) -> i32 {
     if (self.pipe.is_none() || !self.pipe.unwrap().read(msg)) {
         //  Initialise the output parameter to be a 0-byte message.
         msg.init2();
-        errno_assert(rc == 0);
+        // errno_assert(rc == 0);
 
         errno = EAGAIN;
         return -1;
@@ -143,7 +143,7 @@ pub fn xrecv(sock: &mut ZmqSock, msg: &mut ZmqMessage) -> i32 {
 }
 
 // bool xhas_in ();
-pub fn xhas_in(sock: &mut ZmqSock,) -> bool {
+pub fn dgram_xhas_in(sock: &mut ZmqSocket,) -> bool {
     if (self.pipe.is_none()) {
         return false;
     }
@@ -154,27 +154,27 @@ pub fn xhas_in(sock: &mut ZmqSock,) -> bool {
 // bool xhas_out ();
 
 // void xread_activated (pipe: &mut ZmqPipe);
-pub fn xread_activated(sock: &mut ZmqSock, pipe: *mut ZmqPipe) {
+pub fn dgram_xread_activated(sock: &mut ZmqSocket, pipe: *mut ZmqPipe) {
     //  There's just one pipe. No lists of active and inactive pipes.
     //  There's nothing to do here.
     unimplemented!("xread_activated")
 }
 
 // void xwrite_activated (pipe: &mut ZmqPipe);
-pub fn xwrite_activated(sock: &mut ZmqSock, pipe: *mut ZmqPipe) {
+pub fn dgram_xwrite_activated(sock: &mut ZmqSocket, pipe: *mut ZmqPipe) {
     //  There's just one pipe. No lists of active and inactive pipes.
     //  There's nothing to do here.
     unimplemented!("xwrite_activated")
 }
 
 // void xpipe_terminated (pipe: &mut ZmqPipe);
-pub fn xpipe_terminated(sock: &mut ZmqSock, pipe: &mut ZmqPipe) {
+pub fn dgram_xpipe_terminated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
     if (pipe == self.pipe) {
         self.pipe = None;
     }
 }
 
-pub fn xhas_out(sock: &mut ZmqSock,) -> bool {
+pub fn dgram_xhas_out(sock: &mut ZmqSocket,) -> bool {
     if (self.pipe.is_none()) {
         return false;
     }

@@ -37,7 +37,7 @@ use libc::EINVAL;
 
 use crate::defines::{ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_XSUB_VERBOSE_UNSUBSCRIBE};
 use crate::dist::ZmqDist;
-use crate::fq::ZmqFq;
+use crate::fair_queue::ZmqFq;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::pipe::ZmqPipe;
 use crate::radix_tree::radix_tree_t;

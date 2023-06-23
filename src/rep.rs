@@ -32,141 +32,131 @@
 // #include "err.hpp"
 // #include "msg.hpp"
 
-use crate::context::ZmqContext;
-use crate::defines::ZMQ_REP;
+
+
 use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
-use crate::router::ZmqRouter;
+use crate::req::ReqSessionState::bottom;
 
-#[derive(Default, Debug, Clone)]
-pub struct ZmqRep {
-    // : public router_t
-    pub router: ZmqRouter,
-    //
-    // ZmqRep (ZmqContext *parent_, tid: u32, sid_: i32);
+use crate::socket::ZmqSocket;
 
-    // ~ZmqRep ();
+// #[derive(Default, Debug, Clone)]
+// pub struct ZmqRep {
+//     // : public router_t
+//     pub router: ZmqRouter,
+//     //
+//     // ZmqRep (ZmqContext *parent_, tid: u32, sid_: i32);
+//
+//     // ~ZmqRep ();
+//
+//     //  Overrides of functions from ZmqSocketBase.
+//     // int xsend (msg: &mut ZmqMessage);
+//
+//     // int xrecv (msg: &mut ZmqMessage);
+//
+//     // bool xhas_in ();
+//
+//     // bool xhas_out ();
+//
+//     //  If true, we are in process of sending the reply. If false we are
+//     //  in process of receiving a request.
+//     pub _sending_reply: bool,
+//
+//     //  If true, we are starting to receive a request. The beginning
+//     //  of the request is the backtrace stack.
+//     pub _request_begins: bool,
+//
+//     // ZMQ_NON_COPYABLE_NOR_MOVABLE (rep_t)
+// }
 
-    //  Overrides of functions from ZmqSocketBase.
-    // int xsend (msg: &mut ZmqMessage);
-
-    // int xrecv (msg: &mut ZmqMessage);
-
-    // bool xhas_in ();
-
-    // bool xhas_out ();
-
-    //  If true, we are in process of sending the reply. If false we are
-    //  in process of receiving a request.
-    pub _sending_reply: bool,
-
-    //  If true, we are starting to receive a request. The beginning
-    //  of the request is the backtrace stack.
-    pub _request_begins: bool,
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (rep_t)
-}
-
-impl ZmqRep {
-    pub fn new(parent: &mut ZmqContext, tid: u32, sid: i32) -> Self {
-        let mut out = Self {
-            router: ZmqRouter::new(parent, tid, sid),
-            _sending_reply: false,
-            _request_begins: true,
-        };
-        out.options.type_ = ZMQ_REP;
-        out
+pub fn rep_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
+//  If we are in the middle of receiving a request, we cannot send reply.
+    if !sock._sending_reply {
+        // errno = EFSM;
+        return -1;
     }
 
-    pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32 {
-//  If we are in the middle of receiving a request, we cannot send reply.
-        if (!_sending_reply) {
-            errno = EFSM;
-            return -1;
-        }
-
-        let more = (msg.flags() & ZMQ_MSG_MORE) != 0;
+    let more = (msg.flags() & ZMQ_MSG_MORE) != 0;
 
 //  Push message to the reply pipe.
-        let rc: i32 = ZmqRouter::xsend(msg);
-        if (rc != 0) {
-            return rc;
-        }
-
-//  If the reply is complete flip the FSM back to request receiving state.
-        if (!more) {
-            _sending_reply = false;
-        }
-
-        return 0;
+    let rc: i32 = sock.router.xsend(msg);
+    if rc != 0 {
+        return rc;
     }
 
-    pub fn xrecv(&mut self, msg: &mut ZmqMessage) -> i32 {
+//  If the reply is complete flip the FSM back to request receiving state.
+    if !more {
+        sock._sending_reply = false;
+    }
+
+    return 0;
+}
+
+pub fn rep_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
 //  If we are in middle of sending a reply, we cannot receive next request.
-        if (_sending_reply) {
-            errno = EFSM;
-            return -1;
-        }
+    if sock._sending_reply {
+        // errno = EFSM;
+        return -1;
+    }
 
 //  First thing to do when receiving a request is to copy all the labels
 //  to the reply pipe.
-        if (_request_begins) {
-            loop {
-                let rc = self.router.xrecv(msg);
-                if (rc != 0) {
-                    return rc;
-                }
+    if sock._request_begins {
+        loop {
+            let rc = sock.router.xrecv(msg);
+            if rc != 0 {
+                return rc;
+            }
 
-                if ((msg.flags() & ZMQ_MSG_MORE)) {
-                    //  Empty message part delimits the traceback stack. const bool
-                    bottom = (msg.size() == 0);
+            if msg.flags() & ZMQ_MSG_MORE {
+                //  Empty message part delimits the traceback stack. const bool
+                let bottom = (msg.size() == 0);
 
 //  Push it to the reply pipe.
-                    rc = ZmqRouter::xsend(msg);
+                rc = sock.router.xsend(msg);
 // errno_assert (rc == 0);
 
-                    if (bottom) {
-                        break;
-                    }
-                } else {
+                if (bottom) {
+                    break;
+                }
+            } else {
 //  If the traceback stack is malformed, discard anything
 //  already sent to pipe (we're at end of invalid message).
-                    rc = ZmqRouter::rollback();
+                rc = sock.router.rollback();
 // errno_assert (rc == 0);
-                }
             }
-            _request_begins = false;
         }
+        sock._request_begins = false;
+    }
 
 //  Get next message part to return to the user.
-        let rc: i32 = ZmqRouter::xrecv(msg);
-        if (rc != 0) {
-            return rc;
-        }
+    let rc: i32 = sock.router.xrecv(msg);
+    if (rc != 0) {
+        return rc;
+    }
 
 //  If whole request is read, flip the FSM to reply-sending state.
-        if (!(msg.flags() & ZMQ_MSG_MORE)) {
-            _sending_reply = true;
-            _request_begins = true;
-        }
-
-        return 0;
+    if !(msg.flags() & ZMQ_MSG_MORE) {
+        sock._sending_reply = true;
+        sock._request_begins = true;
     }
 
-    pub fn xhas_in(&mut self) -> bool {
-        if (_sending_reply) {
-            return false;
-        }
+    return 0;
+}
 
-        return self.router.xhas_in();
+pub fn rep_xhas_in(sock: &mut ZmqSocket) -> bool {
+    if sock._sending_reply {
+        return false;
     }
 
-    pub fn xhas_out(&mut self) -> bool {
-        if (!_sending_reply) {
-            return false;
-        }
+    return sock.router.xhas_in();
+}
 
-        return self.router.xhas_out();
+pub fn rep_xhas_out(sock: &mut ZmqSocket) -> bool {
+    if !sock._sending_reply {
+        return false;
     }
+
+    return sock.router.xhas_out();
 }
 
 

@@ -5,7 +5,7 @@ use std::mem;
 use crate::address::ZmqAddress;
 use crate::address_family::AF_UNIX;
 use crate::defines::retired_fd;
-use crate::dish::DishSessionState::group;
+use crate::dish_session::DishSessionState::group;
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::defines::ZmqFileDesc;
 use crate::ip::{create_ipc_wildcard_address, make_socket_noninheritable, open_socket, set_nosigpipe};
