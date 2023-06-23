@@ -6,6 +6,7 @@ use chrono::{DateTime, Local, NaiveTime};
 use libc::EINVAL;
 use windows::Win32::Networking::WinSock;
 use windows::Win32::Networking::WinSock::{socklen_t, ADDRESS_FAMILY, SOCKADDR};
+use crate::platform_socket::ZmqSockaddr;
 
 pub fn copy_bytes(
     dest: &mut [u8],
@@ -352,4 +353,8 @@ pub fn encode_base64(in_: &mut [u8], in_len_: i32, out_: &str, out_len_: i32) ->
     } /* no room for null terminator */
     out_[io] = 0;
     return io;
+}
+
+pub fn MAKEWORD(a: u8, b: u8) -> u16 {
+    ((a as u16) << 8) | (b as u16)
 }

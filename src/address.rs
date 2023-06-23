@@ -1,5 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use crate::defines::ZmqFileDesc;
+use crate::platform_socket::ZmqSockaddrStorage;
 use crate::transport::ZmqTransport;
 
 #[derive(Default,Debug,Clone)]
@@ -609,7 +610,7 @@ impl ZmqAddress {
 pub fn get_socket_address(
     fd: ZmqFileDesc,
     socket_end: ZmqSocketEnd,
-    ss: *mut ZmqAddress,
+    ss: &mut ZmqSockaddrStorage,
 ) -> anyhow::Result<usize> {
     // // usize sl = static_cast<usize> (sizeof (*ss_));
     // let mut sl = mem::size_of::<ZmqSockaddrStorage>();

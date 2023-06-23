@@ -459,3 +459,5 @@ pub const MAX_UDP_MSG: usize = 8192;
 pub type ZmqFileDesc = SOCKET;
 #[cfg(target_os = "linux")]
 pub type ZmqFileDesc = i32;
+
+pub const signaler_port: i32 = 0;

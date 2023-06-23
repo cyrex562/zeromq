@@ -1,6 +1,6 @@
 use crate::context::ZmqContext;
 use crate::defines::{retired_fd, ZMQ_EVENTS, ZMQ_FD, ZMQ_IO_THREADS, ZMQ_MORE, ZMQ_PAIR, ZMQ_PEER, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI, ZMQ_SHARED, ZMQ_SNDMORE, ZMQ_SRCFD, zmq_timer_fn, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH};
-use crate::err::ZmqError::{AddItemToPollerFailed, AddTimerFailed, BindSocketFailed, CancelTimerFailed, CheckTagFailed, CloseMessageFailed, CloseSocketFailed, ConnectPeerSocketFailed, ConnectSocketFailed, DeserializeZmqPeerFailed, DeserializeZmqSocketBaseFailed, ExecuteTimerFailed, GetContextPropertyFailed, GetMessageFailed, GetSocketOptionFailed, GetSocketPeerStateFailed, InitializeMessageFailed, InvalidEvent, InvalidFileDescriptor, InvalidInput, InvalidMessageProperty, InvalidPeer, InvalidPollerEventArray, InvalidPollerEventArraySize, JoinGroupFailed, LeaveGroupFailed, MallocFailed, ModifyPollerItemFailed, PollerWaitFailed, PollFailed, ProxyFailed, ReceiveMessageFailed, RemoveItemFromPollerFailed, ResetTimerFailed, SelectFailed, SendMessageFailed, SerializeZmqSocketBaseFailed, SetContextPropertyFailed, SetMessagePropertyFailed, SetTimerIntervalFailed, ShutdownContextFailed, TerminateEndpointFailed, UnsupportedSocketType};
+use crate::err::ZmqError::{AddItemToPollerFailed, AddTimerFailed, BindSocketFailed, CancelTimerFailed, CheckTagFailed, CloseMessageFailed, CloseSocketFailed, ConnectPeerSocketFailed, ConnectSocketFailed, DeserializeZmqPeerFailed, DeserializeZmqSocketBaseFailed, ExecuteTimerFailed, GetContextPropertyFailed, GetMessageFailed, GetPollerSignalerFailed, GetSocketOptionFailed, GetSocketPeerStateFailed, GetTimerTimeoutFailed, InitializeMessageFailed, InvalidEvent, InvalidFileDescriptor, InvalidInput, InvalidMessageProperty, InvalidPeer, InvalidPollerEventArray, InvalidPollerEventArraySize, JoinGroupFailed, LeaveGroupFailed, MallocFailed, ModifyPollerItemFailed, PollerWaitFailed, PollFailed, ProxyFailed, QueryPipesStatsFailed, ReceiveMessageFailed, RemoveItemFromPollerFailed, ResetTimerFailed, SelectFailed, SendMessageFailed, SerializeZmqSocketBaseFailed, SetContextPropertyFailed, SetMessagePropertyFailed, SetTimerIntervalFailed, ShutdownContextFailed, TerminateEndpointFailed, UnsupportedSocketType};
 use crate::err::{errno_to_string, wsa_error_to_errno, ZmqError};
 use crate::defines::ZmqFileDesc;
 use crate::ip::{initialize_network, shutdown_network};
@@ -45,17 +45,7 @@ pub fn zmq_version(major_: *mut u32, minor_: *mut u32, patch_: *mut u32) {
     }
 }
 
-// pub fn zmq_strerror (errnum_: i32) -> String
-// {
-//     return errno_to_string (errnum_).to_string();
-// }
-
-// pub fn zmq_errno () -> i32
-// {
-//     return errno;
-// }
-
-pub fn zmq_ctx_new() -> Result<Vec<u8>, ZmqError> {
+pub fn zmq_ctx_new<'a>() -> Result<ZmqContext<'a>, ZmqError> {
     //  We do this before the ctx constructor since its embedded mailbox_t
     //  object needs the network to be up and running (at least on Windows).
     if !initialize_network() {
@@ -67,32 +57,15 @@ pub fn zmq_ctx_new() -> Result<Vec<u8>, ZmqError> {
     if ctx.valid() == false {
         bail!("ctx failed validity check");
     }
-    Ok(bincode::serialize(&ctx).expect("failed to serialize context"))
+    Ok(ctx)
 }
 
-pub fn zmq_ctx_term(ctx_raw: &mut [u8]) -> Result<(), ZmqError> {
-    if ctx_raw.len() == 0 {
-        bail!("context buffer is empty")
-    }
-
-    let mut ctx: ZmqContext = bincode::deserialize(ctx_raw)?;
-
-    if ctx.check_tag() == false {
-        bail!("check tag failed")
-    }
-
-    // if ctx.is_null() == false || !(ctx as *mut ZmqContext).check_tag() {
-    //     errno = EFAULT;
-    //     return -1;
-    // }
-
-    // let rc = (ctx as *mut ZmqContext).terminate();
-    // let en = errno;
-
+pub fn zmq_ctx_term(ctx: &mut ZmqContext) -> Result<(), ZmqError> {
     ctx.terminate.map_err(|e| {
         shutdown_network();
         e
-    })
+    });
+    Ok(())
 }
 
 pub fn zmq_ctx_shutdown(ctx_raw: &mut [u8]) -> Result<(), ZmqError> {
@@ -187,11 +160,11 @@ pub fn zmq_init(io_threads: i32) -> Result<Vec<u8>, ZmqError> {
     bail!("invalid io_threads {}", io_threads)
 }
 
-pub fn zmq_term(ctx: &mut [u8]) -> Result<(), ZmqError> {
+pub fn zmq_term(ctx: &mut ZmqContext) -> Result<(), ZmqError> {
     zmq_ctx_term(ctx)
 }
 
-pub fn zmq_ctx_destroy(ctx: &mut [u8]) -> Result<(), ZmqError> {
+pub fn zmq_ctx_destroy(ctx: &mut ZmqContext) -> Result<(), ZmqError> {
     zmq_ctx_term(ctx)
 }
 
@@ -1761,7 +1734,7 @@ pub fn zmq_poller_fd(poller_: &mut ZmqSocketPoller) -> Result<ZmqFileDesc, ZmqEr
     poller_.check_tag()?;
     match poller_.signaler_fd() {
         Ok(fd) => Ok(fd),
-        Err(e) => Err(GetPollerSignalerFdFailed(e.to_string())),
+        Err(e) => Err(GetPollerSignalerFailed(e.to_string())),
     }
 }
 
@@ -1798,28 +1771,28 @@ pub fn zmq_timers_destroy(timers: &mut ZmqTimers) -> Result<(), ZmqError> {
 }
 
 pub fn zmq_timers_add(
-    timers_: &mut ZmqTimers,
-    interval_: usize,
-    handler_: zmq_timer_fn,
-    arg_: &mut [u8],
+    timers: &mut ZmqTimers,
+    interval: usize,
+    handler: zmq_timer_fn,
+    arg: &mut [u8],
 ) -> Result<(), ZmqError> {
     timers.check_tag()?;
-    match timers.add(interval_, handler_, arg_) {
+    match timers.add(interval, handler, arg) {
         Ok(_) => Ok(()),
         Err(e) => Err(AddTimerFailed(e.to_string())),
     }
 }
 
-pub fn zmq_timers_cancel(timers_: &mut ZmqTimers, timer_id_: i32) -> Result<(), ZmqError> {
+pub fn zmq_timers_cancel(timers: &mut ZmqTimers, timer_id: i32) -> Result<(), ZmqError> {
     timers.check_tag()?;
-    match timers.cancel(timer_id_) {
+    match timers.cancel(timer_id) {
         Ok(_) => Ok(()),
         Err(e) => Err(CancelTimerFailed(e.to_string())),
     }
 }
 
 pub fn zmq_timers_set_interval(
-    timers_: &mut ZmqTimers,
+    timers: &mut ZmqTimers,
     timer_id_: i32,
     interval_: usize,
 ) -> Result<(), ZmqError> {
@@ -1830,16 +1803,16 @@ pub fn zmq_timers_set_interval(
     }
 }
 
-pub fn zmq_timers_reset(timers_: &mut ZmqTimers, timer_id_: i32) -> Result<(), ZmqError> {
+pub fn zmq_timers_reset(timers: &mut ZmqTimers, timer_id: i32) -> Result<(), ZmqError> {
     timers.check_tag()?;
 
-    match timers.reset(timer_id_) {
+    match timers.reset(timer_id) {
         Ok(_) => Ok(()),
         Err(e) => Err(ResetTimerFailed(e.to_string())),
     }
 }
 
-pub fn zmq_timers_timeout(timers_: &mut ZmqTimers) -> Result<i32, ZmqError> {
+pub fn zmq_timers_timeout(timers: &mut ZmqTimers) -> Result<i32, ZmqError> {
     timers.check_tag()?;
 
     match timers.timeout() {
@@ -1848,7 +1821,7 @@ pub fn zmq_timers_timeout(timers_: &mut ZmqTimers) -> Result<i32, ZmqError> {
     }
 }
 
-pub fn zmq_timers_execute(timers_: &mut ZmqTimers) -> Result<(), ZmqError> {
+pub fn zmq_timers_execute(timers: &mut ZmqTimers) -> Result<(), ZmqError> {
     timers.check_tag()?;
     match timers.execute() {
         Ok(_) => Ok(()),

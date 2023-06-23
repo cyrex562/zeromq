@@ -775,4 +775,8 @@ pub enum ZmqError {
     InvalidPollerEventArraySize(String),
     #[error("get poller signaler failed")]
     GetPollerSignalerFailed(String),
+    #[error("get timer timeout failed")]
+    GetTimerTimeoutFailed(String),
+    #[error("query pipes stats failed")]
+    QueryPipesStatsFailed(String),
 }

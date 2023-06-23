@@ -45,7 +45,6 @@ mod mechanism;
 mod mechanism_base;
 mod message;
 mod metadata;
-mod mtrie;
 mod norm;
 mod null_mechanism;
 mod object;
