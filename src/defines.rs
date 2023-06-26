@@ -159,7 +159,7 @@ pub const ZMQ_XREP: u8 = ZMQ_ROUTER;
 //   Socket options.
 pub const ZMQ_AFFINITY: u8 = 4;
 pub const ZMQ_ROUTING_ID: u8 = 5;
-pub const ZQM_SUBSCRIBE: u8 = 6;
+pub const ZMQ_SUBSCRIBE: u8 = 6;
 pub const ZMQ_UNSUBSCRIBE: u8 = 7;
 pub const ZMQ_RATE: u8 = 8;
 pub const ZMQ_RECOVERY_IVL: u8 = 9;
