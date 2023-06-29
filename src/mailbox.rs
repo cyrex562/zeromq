@@ -27,13 +27,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use std::collections::VecDeque;
 use std::sync::Mutex;
 
 use crate::command::ZmqCommand;
 use crate::defines::ZmqFileDesc;
 use crate::pipe::PipeState::active;
 use crate::signaler::ZmqSignaler;
-use crate::ypipe::Ypipe;
 
 pub const COMMAND_PIPE_GRANULARITY: i32 = 16;
 
@@ -42,13 +42,14 @@ pub const COMMAND_PIPE_GRANULARITY: i32 = 16;
 // #include "err.hpp"
 #[derive(Default, Debug, Clone)]
 //   : public ZmqMailboxInterface
-pub struct ZmqMailbox {
+pub struct ZmqMailbox<'a> {
     //
     //
     //  The pipe to store actual commands.
     // typedef Ypipe<ZmqCommand, command_pipe_granularity> cpipe_t;
     // cpipe_t cpipe;
-    pub cpipe: Ypipe<ZmqCommand>,
+    // pub cpipe: Ypipe<ZmqCommand>,
+    pub cpipe: VecDeque<ZmqCommand<'a>>,
 
     //  Signaler to pass signals from writer thread to reader thread.
     pub signaler: ZmqSignaler,
@@ -76,7 +77,7 @@ impl ZmqMailbox {
         //  new command is posted. const bool ok = cpipe.check_read ();
         // zmq_assert ( ! ok); active = false;
         Self {
-            cpipe: Ypipe::new(),
+            cpipe: VecDeque::new(),
             signaler: ZmqSignaler::new(),
             active: false,
             sync: Mutex::new(()),

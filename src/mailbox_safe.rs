@@ -36,7 +36,6 @@ use libc::EAGAIN;
 use crate::command::ZmqCommand;
 use crate::mailbox_interface::ZmqMailboxInterface;
 use crate::signaler::ZmqSignaler;
-use crate::ypipe::Ypipe;
 
 // #include <algorithm>
 pub struct ZmqMailboxSafe {

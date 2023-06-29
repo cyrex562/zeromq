@@ -51,7 +51,9 @@ use crate::zap_client::ZmqZapClientCommonHandshakeState::{
 const zap_reply_frame_count: usize = 7;
 
 // const char zap_version[] = "1.0"; const zap_version: &'static str = "1.0";
+pub const zap_version: &'static str = "1.0";
 // const size_t zap_version_len = mem::size_of::<zap_version>() - 1; const id: &str = "1";
+pub const zap_version_len: usize = zap_version.len();
 
 // const size_t id_len = mem::size_of::<id>() - 1;
 
@@ -89,7 +91,7 @@ pub struct ZmqZapClient {
 }
 
 impl ZmqZapClient {
-    pub fn new(ctx: &ZmqContext, session: &ZmqSessionBase, peer_address_: &str) -> Self {
+    pub fn new(ctx: &mut ZmqContext, session: &mut ZmqSessionBase, peer_address_: &str) -> Self {
         // ZmqMechanismBase (session_, options_), peer_address (peer_address_)
         Self {
             base: ZmqMechanismBase::new(ctx, session),
@@ -100,16 +102,18 @@ impl ZmqZapClient {
 
     pub fn send_zap_request(
         &mut self,
+        ctx: &mut ZmqContext,
         mechanism_: &str,
         mechanism_length_: usize,
         credentials_: &[u8],
-        credentials_size_: usize,
+        credentials_size_: &[usize],
     ) {
-        send_zap_request(
+        self.send_zap_request2(
+            ctx,
             mechanism_,
             mechanism_length_,
-            &credentials_,
-            &credentials_size_,
+            &mut credentials_.to_vec(),
+            &mut credentials_size_.to_vec(),
             1,
         );
     }
@@ -119,7 +123,7 @@ impl ZmqZapClient {
         ctx: &mut ZmqContext,
         mechanism_: &str,
         mechanism_length_: usize,
-        credentials_: &mut Vec<Vec<u8>>,
+        credentials_: &mut Vec<u8>,
         credentials_sizes_: &mut Vec<usize>,
         credentials_count_: usize,
     ) -> anyhow::Result<()> {
@@ -133,11 +137,11 @@ impl ZmqZapClient {
         msg.init2()?;
         // errno_assert (rc == 0);
         msg.set_flags(ZMQ_MSG_MORE);
-        rc = session.write_zap_msg(&msg);
+        self.base.session.write_zap_msg(&mut msg)?;
         // errno_assert (rc == 0);
 
         //  Version frame
-        rc = msg.init_size(zap_version_len);
+        msg.init_size(zap_version_len)?;
         // errno_assert (rc == 0);
         copy_bytes(
             msg.data_mut(),
@@ -147,11 +151,11 @@ impl ZmqZapClient {
             zap_version_len,
         );
         msg.set_flags(ZMQ_MSG_MORE);
-        rc = session.write_zap_msg(&msg);
+        self.base.session.write_zap_msg(&mut msg)?;
         // errno_assert (rc == 0);
 
         //  Request ID frame
-        rc = msg.init_size(id_len);
+        msg.init_size(id_len)?;
         // errno_assert (rc == 0);
         copy_bytes(msg.data_mut(), 0, id.as_bytes(), 0, id_len);
         msg.set_flags(ZMQ_MSG_MORE);

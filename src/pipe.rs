@@ -50,7 +50,6 @@
 use crate::context::ZmqContext;
 use crate::endpoint_uri::EndpointUriPair;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID};
-use crate::ypipe_base::YpipeBase;
 use libc::memcpy;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
