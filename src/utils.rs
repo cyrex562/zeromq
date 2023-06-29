@@ -1,12 +1,13 @@
 use std::mem;
 
-use crate::sockaddr::ZmqSockaddr;
 use anyhow::bail;
 use chrono::{DateTime, Local, NaiveTime};
 use libc::EINVAL;
 use windows::Win32::Networking::WinSock;
 use windows::Win32::Networking::WinSock::{socklen_t, ADDRESS_FAMILY, SOCKADDR};
+
 use crate::platform_socket::ZmqSockaddr;
+use crate::sockaddr::ZmqSockaddr;
 
 pub fn copy_bytes(
     dest: &mut [u8],

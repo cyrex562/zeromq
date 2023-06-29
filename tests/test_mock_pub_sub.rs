@@ -146,7 +146,7 @@ static void test_mock_pub_sub (sub_command_: bool, mock_pub_: bool)
     // Mock a ZMTP 3 client so we can forcibly try sub commands
     mock_handshake (s, sub_command_, mock_pub_);
 
-    // By now everything should report as connected
+    // By now everything should report as Connected
     rc = get_monitor_event (server_mon);
     TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_ACCEPTED, rc);
 

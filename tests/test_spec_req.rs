@@ -224,7 +224,7 @@ int main ()
 
     UNITY_BEGIN ();
 
-    // SHALL route outgoing messages to connected peers using a round-robin
+    // SHALL route outgoing messages to Connected peers using a round-robin
     // strategy.
     RUN_TEST (test_round_robin_out_inproc);
     RUN_TEST (test_round_robin_out_tcp);
@@ -237,7 +237,7 @@ int main ()
     RUN_TEST (test_req_message_format_tcp);
 
     // SHALL block on sending, or return a suitable error, when it has no
-    // connected peers.
+    // Connected peers.
     RUN_TEST (test_block_on_send_no_peers);
 
     // SHALL accept an incoming message only from the last peer that it sent a

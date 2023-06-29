@@ -282,7 +282,7 @@ void socks_ZmqServerask (socks_server: *mut c_void,
                       getsockname (remote, (struct sockaddr *) &ip4addr, &len);
                     TEST_ASSERT_SUCCESS_RAW_ERRNO (res);
                     fprintf (stderr,
-                             "socks_server: connected and bound at: %x:%d\n",
+                             "socks_server: Connected and bound at: %x:%d\n",
                              ntohl (ip4addr.sin_addr.s_addr),
                              ntohs (ip4addr.sin_port));
                     bind_naddr = ip4addr.sin_addr.s_addr;
@@ -437,7 +437,7 @@ void *setup_pull_client (connect_address: *const c_char, socks_proxy: &str)
     }
     res = zmq_connect (pull, connect_address);
     TEST_ASSERT_SUCCESS_ERRNO (res);
-    fprintf (stderr, "pull_client: connected to: %s\n", connect_address);
+    fprintf (stderr, "pull_client: Connected to: %s\n", connect_address);
     return pull;
 }
 
@@ -468,7 +468,7 @@ void *setup_pull_client_with_auth (connect_address: *const c_char,
 
     res = zmq_connect (pull, connect_address);
     TEST_ASSERT_SUCCESS_ERRNO (res);
-    fprintf (stderr, "pull_client: connected to: %s\n", connect_address);
+    fprintf (stderr, "pull_client: Connected to: %s\n", connect_address);
     return pull;
 }
 // #endif

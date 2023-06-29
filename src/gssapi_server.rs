@@ -42,8 +42,8 @@
 
 use std::ptr::null_mut;
 
-use libc::{EAGAIN, EPROTO};
 use crate::context::ZmqContext;
+use libc::{EAGAIN, EPROTO};
 
 use crate::defines::ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND;
 use crate::gssapi_mechanism_base::ZmqGssApiMechanismBase;
@@ -212,7 +212,7 @@ impl ZmqGssApiServer {
 
     // int encode (msg: &mut ZmqMessage) ;
     pub fn encode(&mut self, msg: &mut ZmqMessage) -> i32 {
-        // zmq_assert (self.state == connected);
+        // zmq_assert (self.state == Connected);
 
         if (self.do_encryption) {
             return self.mechanism_base.encode_message(msg);
@@ -223,7 +223,7 @@ impl ZmqGssApiServer {
 
     // int decode (msg: &mut ZmqMessage) ;
     pub fn decode(&mut self, msg: &mut ZmqMessage) -> i32 {
-        // zmq_assert (self.state == connected);
+        // zmq_assert (self.state == Connected);
 
         if (do_encryption) {
             return decode_message(msg);

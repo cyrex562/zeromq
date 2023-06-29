@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::mem::size_of;
 use std::ptr::null_mut;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -8,13 +8,19 @@ use std::{mem, process};
 use anyhow::{anyhow, bail};
 
 #[cfg(not(windows))]
-use libc::{F_SETFD, FD_CLOEXEC, getgid, getuid, gid_t, pid_t, setgid, setuid, uid_t};
+use libc::{getgid, getuid, gid_t, pid_t, setgid, setuid, uid_t, FD_CLOEXEC, F_SETFD};
 
-use serde::{Deserialize, Serialize};
 use crate::address::ZmqAddress;
+use serde::{Deserialize, Serialize};
 
 use crate::command::{CommandType, ZmqCommand};
-use crate::defines::{ZMQ_BLOCKY, ZMQ_CURVE, ZMQ_DEALER, ZMQ_GSSAPI, ZMQ_GSSAPI_NT_HOSTBASED, ZMQ_GSSAPI_NT_KRB5_PRINCIPAL, ZMQ_GSSAPI_NT_USER_NAME, ZMQ_IO_THREADS, ZMQ_IO_THREADS_DFLT, ZMQ_IPV6, ZMQ_MAX_MSGSZ, ZMQ_MAX_SOCKETS, ZMQ_MAX_SOCKETS_DFLT, ZMQ_MESSAGE_SIZE, ZMQ_NULL, ZMQ_PAIR, ZMQ_PLAIN, ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_SOCKET_LIMIT, ZMQ_SUB, ZMQ_ZERO_COPY_RECV};
+use crate::defines::{
+    ZMQ_BLOCKY, ZMQ_CURVE, ZMQ_DEALER, ZMQ_GSSAPI, ZMQ_GSSAPI_NT_HOSTBASED,
+    ZMQ_GSSAPI_NT_KRB5_PRINCIPAL, ZMQ_GSSAPI_NT_USER_NAME, ZMQ_IO_THREADS, ZMQ_IO_THREADS_DFLT,
+    ZMQ_IPV6, ZMQ_MAX_MSGSZ, ZMQ_MAX_SOCKETS, ZMQ_MAX_SOCKETS_DFLT, ZMQ_MESSAGE_SIZE, ZMQ_NULL,
+    ZMQ_PAIR, ZMQ_PLAIN, ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_SOCKET_LIMIT, ZMQ_SUB,
+    ZMQ_ZERO_COPY_RECV,
+};
 use crate::endpoint::ZmqEndpoint;
 use crate::endpoint_uri::EndpointUriPair;
 use crate::engine::ZmqEngine;
@@ -30,7 +36,6 @@ use crate::session_base::ZmqSessionBase;
 use crate::socket::ZmqSocket;
 use crate::thread_context::ZmqThreadContext;
 use crate::utils::zmq_z85_decode;
-
 
 pub const CONNECT_SIDE: i32 = 0;
 pub const BIND_SIDE: i32 = 1;
@@ -83,7 +88,7 @@ pub struct ZmqContext<'a> {
     //  Synchronisation of access to the list of inproc endpoints.
     pub endpoints_sync: Mutex<u8>,
     //  Maximum socket ID.
-    pub max_socket_id: AtomicU64,
+    pub max_socket_id: u64,
     //  Maximum number of sockets that can be opened at the same time.
     pub max_sockets: i32,
     //  Maximum allowed message size
@@ -133,7 +138,7 @@ pub struct ZmqContext<'a> {
     //  Socket type.
     pub type_: i32,
     //  Linger time, in milliseconds.
-    pub linger: AtomicU64,
+    pub linger: u64,
     //  Maximum interval in milliseconds beyond which userspace will
     //  timeout connect().
     //  Default 0 (unused)
@@ -293,7 +298,7 @@ pub struct ZmqContext<'a> {
     pub busy_poll: i32,
 }
 
-impl <'a> ZmqContext<'a> {
+impl<'a> ZmqContext<'a> {
     //  Create the context object.
     // ctx_t ();
 
@@ -344,7 +349,7 @@ impl <'a> ZmqContext<'a> {
             endpoints: Default::default(),
             pending_connections: Default::default(),
             endpoints_sync: Mutex::new(0),
-            max_socket_id: AtomicU64::new(0),
+            max_socket_id: 0,
             max_sockets: ZMQ_MAX_SOCKETS_DFLT,
             max_msg_sz: i32::MAX,
             // io_thread_count: ZMQ_IO_THREADS_DFLT,
@@ -402,11 +407,11 @@ impl <'a> ZmqContext<'a> {
             tcp_keepalive_idle: 0,
             tcp_keepalive_intvl: 0,
             tcp_accept_filters: vec![],
-            #[cfg(target_os="linux")]
+            #[cfg(target_os = "linux")]
             ipc_uid_accept_filters: Default::default(),
-            #[cfg(target_os="linux")]
+            #[cfg(target_os = "linux")]
             ipc_gid_accept_filters: Default::default(),
-            #[cfg(target_os="linux")]
+            #[cfg(target_os = "linux")]
             ipc_pid_accept_filters: Default::default(),
             mechanism: 0,
             as_server: 0,
@@ -523,15 +528,16 @@ impl <'a> ZmqContext<'a> {
         self.slot_sync.unlock();
 
         // #ifdef ZMQ_HAVE_VMCI
-        #[cfg(target_feature="vmci")]
+        #[cfg(target_feature = "vmci")]
         {
-        let _ = self.vmci_sync.lock().expect("TODO: panic message");
+            let _ = self.vmci_sync.lock().expect("TODO: panic message");
 
-        VMCISock_ReleaseAFValueFd(self.vmci_fd);
-        self.vmci_family = -1;
-        self.vmci_fd = -1;
+            VMCISock_ReleaseAFValueFd(self.vmci_fd);
+            self.vmci_family = -1;
+            self.vmci_fd = -1;
 
-        self.vmci_sync.unlock();}
+            self.vmci_sync.unlock();
+        }
         // #endif
 
         //  Deallocate the resources.
@@ -834,7 +840,8 @@ impl <'a> ZmqContext<'a> {
 
         //  Generate new unique socket ID.
         // const int sid = ( (max_socket_id.add (1))) + 1;
-        let sid = self.max_socket_id.add(1) + 1;
+        self.max_socket_id += 1;
+        let sid = self.max_socket_id + 1;
 
         //  Create the socket and register its mailbox.
         let s = ZmqSocket::create(type_, self, slot, sid);
@@ -1141,7 +1148,7 @@ impl <'a> ZmqContext<'a> {
         }
 
         // When a ctx is terminated all pending inproc connection will be
-        // connected, but the socket will already be closed and the pipe will be
+        // Connected, but the socket will already be closed and the pipe will be
         // in waiting_for_delimiter state, which means no more writes can be Done
         // and the routing id write fails and causes an assert. Check if the socket
         // is open before sending.
@@ -1621,7 +1628,9 @@ impl <'a> ZmqContext<'a> {
                 if opt_val_len == 0 && opt_val.is_null() {
                     self.mechanism = ZMQ_NULL as i32;
                     return Ok(());
-                } else if opt_val_len > 0 && opt_val_len <= u8::MAX as usize && opt_val.is_null() == false
+                } else if opt_val_len > 0
+                    && opt_val_len <= u8::MAX as usize
+                    && opt_val.is_null() == false
                 {
                     // self.plain_username.assign(static_cast <const char
                     // * > (opt_val),
@@ -1730,7 +1739,8 @@ impl <'a> ZmqContext<'a> {
             }
 
             ZMQ_GSSAPI_SERVICE_PRINCIPAL => {
-                if opt_val_len > 0 && opt_val_len <= u8::MAX as usize && opt_val.is_empty() == false {
+                if opt_val_len > 0 && opt_val_len <= u8::MAX as usize && opt_val.is_empty() == false
+                {
                     // gss_service_principal.assign((const char
                     // *) opt_val,
                     // opt_val_len);
@@ -1756,8 +1766,8 @@ impl <'a> ZmqContext<'a> {
             ZMQ_GSSAPI_PRINCIPAL_NAMETYPE => {
                 if is_int
                     && (value == ZMQ_GSSAPI_NT_HOSTBASED
-                    || value == ZMQ_GSSAPI_NT_USER_NAME
-                    || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL)
+                        || value == ZMQ_GSSAPI_NT_USER_NAME
+                        || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL)
                 {
                     self.gss_principal_nt = value;
                     return Ok(());
@@ -1767,8 +1777,8 @@ impl <'a> ZmqContext<'a> {
             ZMQ_GSSAPI_SERVICE_PRINCIPAL_NAMETYPE => {
                 if is_int
                     && (value == ZMQ_GSSAPI_NT_HOSTBASED
-                    || value == ZMQ_GSSAPI_NT_USER_NAME
-                    || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL)
+                        || value == ZMQ_GSSAPI_NT_USER_NAME
+                        || value == ZMQ_GSSAPI_NT_KRB5_PRINCIPAL)
                 {
                     self.gss_service_principal_nt = value;
                     return Ok(());
@@ -2065,7 +2075,7 @@ impl <'a> ZmqContext<'a> {
                 // let mut opt_val: Vec<u8> = Vec::with_capacity(self.routing_id_size);
                 // do_getsockopt2(&mut opt_val, &self.routing_id);
                 // return Ok(opt_val);
-                return Ok( self.routing_id.into_bytes())
+                return Ok(self.routing_id.into_bytes());
             }
 
             ZMQ_RATE => {
@@ -2536,12 +2546,18 @@ impl <'a> ZmqContext<'a> {
     pub fn send_inproc_connected(&mut self, tid: u32, socket: &mut ZmqSocket) {
         // ZmqCommand cmd;
         let mut cmd = ZmqCommand::default();
-        cmd.destination =socket.destination.clone();
+        cmd.destination = socket.destination.clone();
         cmd.cmd_type = CommandType::InprocConnected;
         self.send_command(tid, &mut cmd);
     }
 
-    fn send_bind(&mut self, tid: u32, destination: ZmqAddress, pipe: &mut ZmqPipe, inc_seqnum: bool) {
+    fn send_bind(
+        &mut self,
+        tid: u32,
+        destination: ZmqAddress,
+        pipe: &mut ZmqPipe,
+        inc_seqnum: bool,
+    ) {
         if (inc_seqnum) {
             destination.inc_seqnum();
         }
@@ -2721,7 +2737,7 @@ impl <'a> ZmqContext<'a> {
         self.send_command(tid, &mut cmd);
     }
 
-    fn send_reaped(&mut self, tid: u32, ) {
+    fn send_reaped(&mut self, tid: u32) {
         let mut cmd = ZmqCommand::default();
         cmd.destination = self.ctx.get_reaper().unwrap();
         cmd.cmd_type = CommandType::Reaped;
@@ -2741,7 +2757,6 @@ impl <'a> ZmqContext<'a> {
         cmd.cmd_type = CommandType::ConnFailed;
         self.send_command(tid, &mut cmd);
     }
-
 } // impl ZmqContext
 
 pub fn clipped_maxsocket(mut max_requested: i32) -> i32 {
@@ -2759,10 +2774,10 @@ pub fn get_effective_conflate_option(ctx: &ZmqContext) -> bool {
     // conflate is only effective for some socket types
     return ctx.conflate
         && (ctx.type_ == ZMQ_DEALER
-        || ctx.type_ == ZMQ_PULL
-        || ctx.type_ == ZMQ_PUSH
-        || ctx.type_ == ZMQ_PUB
-        || ctx.type_ == ZMQ_SUB);
+            || ctx.type_ == ZMQ_PULL
+            || ctx.type_ == ZMQ_PUSH
+            || ctx.type_ == ZMQ_PUB
+            || ctx.type_ == ZMQ_SUB);
 }
 
 pub fn sockopt_invalid() -> i32 {

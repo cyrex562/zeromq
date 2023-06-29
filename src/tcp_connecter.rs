@@ -60,12 +60,13 @@
 
 use crate::address::SocketEnd::SocketEndLocal;
 use crate::address::{get_socket_name, ZmqAddress};
+use crate::defines::ZmqFileDesc;
 use crate::defines::ZMQ_RECONNECT_STOP_CONN_REFUSED;
 use crate::err::wsa_error_to_errno;
-use crate::defines::ZmqFileDesc;
 use crate::ip::{tune_socket, unblock_socket};
 use crate::ops::zmq_errno;
 
+use crate::context::ZmqContext;
 use crate::session_base::ZmqSessionBase;
 use crate::stream_connecter_base::StreamConnecterBase;
 use crate::tcp::{tcp_open_socket, tune_tcp_keepalives, tune_tcp_maxrt, tune_tcp_socket};
@@ -82,7 +83,6 @@ use windows::Win32::Networking::WinSock::{
     socklen_t, WSAGetLastError, SOCKET_ERROR, SOL_SOCKET, SO_ERROR, SO_REUSEADDR, WSAEBADF,
     WSAEINPROGRESS, WSAENOBUFS, WSAENOPROTOOPT, WSAENOTSOCK, WSAEWOULDBLOCK, WSA_ERROR,
 };
-use crate::context::ZmqContext;
 
 // enum
 // {
@@ -122,7 +122,7 @@ pub struct ZmqTcpConnector<'a> {
     //  Get the file descriptor of newly created connection. Returns
     //  retired_fd if the connection was unsuccessful.
     // ZmqFileDesc connect ();
-    //  Tunes a connected socket.
+    //  Tunes a Connected socket.
     // bool tune_socket (ZmqFileDesc fd);
     //  True iff a timer has been started.
     pub _connect_timer_started: bool,
@@ -384,7 +384,7 @@ impl ZmqTcpConnector {
         }
         // #endif
 
-        //  Return the newly connected socket.
+        //  Return the newly Connected socket.
         let result = _s;
         _s = retired_fd;
         return result;

@@ -53,8 +53,8 @@
 
 use crate::address_family::AF_UNSPEC;
 use crate::decoder_allocators::size;
-use crate::defines::ZmqHandle;
 use crate::defines::ZmqFileDesc;
+use crate::defines::ZmqHandle;
 use crate::mechanism::ZmqMechanismStatus::error;
 use crate::poll_events_interface::ZmqPollEventsInterface;
 use crate::poller_base::WorkerPollerBase;
@@ -341,7 +341,7 @@ impl ZmqSelect {
             retired += try_retire_fd_entry(family_entry_it, handle_);
         } else {
             //  get_fd_family may fail and return AF_UNSPEC if the socket was not
-            //  successfully connected. In that case, we need to look for the
+            //  successfully Connected. In that case, we need to look for the
             //  socket in all family_entries.
             let end = _family_entries.end();
             // for (family_entries_t::iterator family_entry_it =

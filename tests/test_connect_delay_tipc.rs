@@ -38,7 +38,7 @@ void test_send_one_connected_one_unconnected ()
     val: i32;
     // TEST 1.
     // First we're going to attempt to send messages to two
-    // pipes, one connected, the other not. We should see
+    // pipes, one Connected, the other not. We should see
     // the PUSH load balancing to both pipes, and hence half
     // of the messages getting queued, as connect() creates a
     // pipe immediately.
@@ -68,13 +68,13 @@ void test_send_one_connected_one_unconnected ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (from, "tipc://{6555,0}@0.0.0"));
 
     // We send 10 messages, 5 should just get stuck in the queue
-    // for the not-yet-connected pipe
+    // for the not-yet-Connected pipe
     let send_count: i32 = 10;
     for (int i = 0; i < send_count; += 1i) {
         send_string_expect_success (from, "Hello", 0);
     }
 
-    // We now consume from the connected pipe
+    // We now consume from the Connected pipe
     // - we should see just 5
     timeout = SETTLE_TIME;
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -138,7 +138,7 @@ void test_send_one_connected_one_unconnected_with_delay ()
     // Connect to the valid socket
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (from, "tipc://{5560,0}@0.0.0"));
 
-    // Send 10 messages, all should be routed to the connected pipe
+    // Send 10 messages, all should be routed to the Connected pipe
     let send_count: i32 = 10;
     for (int i = 0; i < send_count; += 1i) {
         send_string_expect_success (from, "Hello", 0);
@@ -168,7 +168,7 @@ void test_send_disconnected_with_delay ()
     // TEST 3
     // This time we want to validate that the same blocking behaviour
     // occurs with an existing connection that is broken. We will send
-    // messages to a connected pipe, disconnect and verify the messages
+    // messages to a Connected pipe, disconnect and verify the messages
     // block. Then we reconnect and verify messages flow again.
     void *backend = test_context_socket (ZMQ_DEALER);
     void *frontend = test_context_socket (ZMQ_DEALER);

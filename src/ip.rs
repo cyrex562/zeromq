@@ -93,7 +93,7 @@
 // void enable_ipv4_mapping (ZmqFileDesc s_);
 
 //  Returns string representation of peer's address.
-//  Socket sockfd_ must be connected. Returns true iff successful.
+//  Socket sockfd_ must be Connected. Returns true iff successful.
 // int get_peer_ip_address (ZmqFileDesc sockfd_, std::string &ip_addr_);
 
 // Sets the IP Type-Of-Service for the underlying socket
@@ -132,28 +132,30 @@
 // Create an IPC wildcard path address
 // int create_ipc_wildcard_address (std::string &path_, std::string &file_);
 
+use anyhow::bail;
 use std::ffi::{c_void, CStr, CString};
 use std::mem;
 use std::ptr::null_mut;
-use anyhow::bail;
 
-use libc::{
-    accept, c_char, connect, listen, rmdir, sockaddr, socket, unlink, EINVAL,
-};
+use libc::{accept, c_char, connect, listen, rmdir, sockaddr, socket, unlink, EINVAL};
 
 #[cfg(target_os = "linux")]
-use libc::{eventfd, fcntl, mkdtemp,  mkstemp, sockaddr_un, socklen_t, AF_UNIX, EFD_CLOEXEC, FD_CLOEXEC, F_GETFL,
-           F_SETFD, F_SETFL, IPV6_TCLASS, O_NONBLOCK, SOCK_CLOEXEC, SO_BINDTODEVICE, SO_PRIORITY};
+use libc::{
+    eventfd, fcntl, mkdtemp, mkstemp, sockaddr_un, socklen_t, AF_UNIX, EFD_CLOEXEC, FD_CLOEXEC,
+    F_GETFL, F_SETFD, F_SETFL, IPV6_TCLASS, O_NONBLOCK, SOCK_CLOEXEC, SO_BINDTODEVICE, SO_PRIORITY,
+};
 
+use crate::address::get_socket_address;
+use crate::address::ZmqSocketEnd::SocketEndRemote;
 #[cfg(target_os = "windows")]
 use windows::core::PSTR;
 use windows::s;
+use windows::Win32::Foundation::ERROR_ALREADY_EXISTS;
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::{
-    GetLastError, SetHandleInformation, BOOL, ERROR_ACCESS_DENIED, FALSE, HANDLE, HANDLE_FLAGS,
-    HANDLE_FLAG_INHERIT, MAX_PATH, TRUE, CloseHandle
+    CloseHandle, GetLastError, SetHandleInformation, BOOL, ERROR_ACCESS_DENIED, FALSE, HANDLE,
+    HANDLE_FLAGS, HANDLE_FLAG_INHERIT, MAX_PATH, TRUE,
 };
-use windows::Win32::Foundation::ERROR_ALREADY_EXISTS;
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{
     bind, getsockname, getsockopt, htonl, htons, AF_INET, INADDR_LOOPBACK, INVALID_SOCKET,
@@ -170,28 +172,28 @@ use windows::Win32::Networking::WinSock::{
     SOCKADDR, SOCKET, SOCKET_ERROR, SOL_SOCKET, TCP_NODELAY, WSADATA, WSAEFAULT, WSAEINPROGRESS,
     WSAENOTSOCK, WSANOTINITIALISED, WSA_FLAG_NO_HANDLE_INHERIT, WSA_FLAG_OVERLAPPED,
 };
-use windows::Win32::Networking::WinSock::{WSA_ERROR, WSASocketA};
+use windows::Win32::Networking::WinSock::{WSASocketA, WSA_ERROR};
 #[cfg(target_os = "windows")]
 use windows::Win32::Security::{
     InitializeSecurityDescriptor, SetSecurityDescriptorDacl, PSECURITY_DESCRIPTOR,
     SECURITY_ATTRIBUTES, SECURITY_DESCRIPTOR,
 };
-use windows::Win32::Storage::FileSystem::{CreateDirectoryA, FILE_ACCESS_RIGHTS, GetTempPathA, SYNCHRONIZE};
+use windows::Win32::Storage::FileSystem::{
+    CreateDirectoryA, GetTempPathA, FILE_ACCESS_RIGHTS, SYNCHRONIZE,
+};
 use windows::Win32::System::SystemServices::SECURITY_DESCRIPTOR_REVISION;
+use windows::Win32::System::Threading::SYNCHRONIZATION_ACCESS_RIGHTS;
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::{
     CreateEventA, CreateMutexA, OpenEventA, WaitForSingleObject, EVENT_MODIFY_STATE, INFINITE,
 };
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::{ReleaseMutex, SetEvent};
-use windows::Win32::System::Threading::SYNCHRONIZATION_ACCESS_RIGHTS;
 use windows::Win32::System::WindowsProgramming::OpenMutexA;
-use crate::address::get_socket_address;
-use crate::address::ZmqSocketEnd::SocketEndRemote;
 
+use crate::defines::{retired_fd, signaler_port, ZmqFileDesc};
 #[cfg(target_os = "windows")]
 use crate::err::wsa_error_to_errno;
-use crate::defines::{retired_fd, signaler_port, ZmqFileDesc};
 use crate::platform_socket::ZmqSockaddrStorage;
 use crate::tcp::tcp_tune_loopback_fast_path;
 use crate::unix_sockaddr::sockaddr_in;
@@ -205,7 +207,7 @@ pub const tmp_env_vars: [&'static str; 3] = ["TMPDIR", "TEMPDIR", "TMP"];
 pub fn open_socket(domain_: i32, mut type_: i32, protocol_: i32) -> anyhow::Result<ZmqFileDesc> {
     //  Setting this option result in sane behaviour when exec() functions
     //  are used. Old sockets are closed and don't block TCP ports etc.
-    #[cfg(target_feature="sock_cloexec")]
+    #[cfg(target_feature = "sock_cloexec")]
     {
         type_ |= SOCK_CLOEXEC;
     }
@@ -214,14 +216,16 @@ pub fn open_socket(domain_: i32, mut type_: i32, protocol_: i32) -> anyhow::Resu
     // if supported, create socket with WSA_FLAG_NO_HANDLE_INHERIT, such that
     // the race condition in making it non-inheritable later is avoided
     #[cfg(target_os = "windows")]
-    let s = unsafe{ WSASocketA(
-        domain_,
-        type_,
-        protocol_,
-        None,
-        0,
-        WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT,
-    )};
+    let s = unsafe {
+        WSASocketA(
+            domain_,
+            type_,
+            protocol_,
+            None,
+            0,
+            WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT,
+        )
+    };
 
     // #else
     #[cfg(target_os = "linux")]
@@ -241,8 +245,8 @@ pub fn open_socket(domain_: i32, mut type_: i32, protocol_: i32) -> anyhow::Resu
 
     make_socket_noninheritable(s as ZmqFileDesc);
 
-    //  Socket is not yet connected so EINVAL is not a valid networking error
-    #[cfg(target_feature="nosigpipe")]
+    //  Socket is not yet Connected so EINVAL is not a valid networking error
+    #[cfg(target_feature = "nosigpipe")]
     set_nosigpipe(s as ZmqFileDesc);
     // errno_assert (rc == 0);
 
@@ -375,7 +379,8 @@ pub fn set_ip_type_of_service(s_: ZmqFileDesc, iptos_: i32) {
 }
 
 pub fn set_socket_priority(s_: ZmqFileDesc, priority_: i32) {
-    #[cfg(target_feature = "so_priority")]{
+    #[cfg(target_feature = "so_priority")]
+    {
         let rc = unsafe { setsockopt(s_, SOL_SOCKET, SO_PRIORITY, Some(&priority_.to_le_bytes())) };
     }
 }
@@ -408,7 +413,6 @@ pub fn bind_to_device(s_: ZmqFileDesc, bound_device_: &str) -> anyhow::Result<()
             )
         };
 
-
         if rc != 0 {
             assert_success_or_recoverable(s_, rc);
             return -1;
@@ -424,7 +428,8 @@ pub fn initialize_network() -> bool {
     //  protocol ID. Note that if you want to use gettimeofday and sleep for
     //  openPGM timing, set environment variables PGM_TIMER to "GTOD" and
     //  PGM_SLEEP to "USLEEP".
-    #[cfg(feature = "openpgm")]{
+    #[cfg(feature = "openpgm")]
+    {
         pgm_error_t * pgm_error = null_mut();
         let ok = pgm_init(&pgm_error);
         if (ok != TRUE) {
@@ -477,7 +482,8 @@ pub fn shutdown_network() {
     // wsa_assert (rc != SOCKET_ERROR);
     // #endif
 
-    #[cfg(feature = "openpgm")]{
+    #[cfg(feature = "openpgm")]
+    {
         // #if defined ZMQ_HAVE_OPENPGM
         //  Shut down the OpenPGM library.
         if pgm_shutdown() != TRUE {}
@@ -550,15 +556,21 @@ pub fn make_fdZmqPaircpip(fd_r: &mut ZmqFileDesc, fd_w: &mut ZmqFileDesc) -> i32
         // #endif
         let mut last_err = unsafe { GetLastError() };
         if sync == 0 && last_err == ERROR_ACCESS_DENIED {
-            sync = unsafe { OpenEventA((SYNCHRONIZE | EVENT_MODIFY_STATE as FILE_ACCESS_RIGHTS) as SYNCHRONIZATION_ACCESS_RIGHTS, FALSE, val).unwrap() };
+            sync = unsafe {
+                OpenEventA(
+                    (SYNCHRONIZE | EVENT_MODIFY_STATE as FILE_ACCESS_RIGHTS)
+                        as SYNCHRONIZATION_ACCESS_RIGHTS,
+                    FALSE,
+                    val,
+                )
+                .unwrap()
+            };
         }
 
         // win_assert (sync != null_mut());
     } else if signaler_port != 0 {
         let mut mutex_name_str = format!("Global\\zmq-signaler-port-{}", signaler_port);
-        let mutex_name =
-        unsafe{CString::from_vec_unchecked(mutex_name_str.into_bytes())};
-
+        let mutex_name = unsafe { CString::from_vec_unchecked(mutex_name_str.into_bytes()) };
 
         // #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
         sync = unsafe { CreateMutexA(Some(&sa), FALSE, mutex_name).unwrap() };
@@ -1023,7 +1035,8 @@ pub fn make_socket_noninheritable(sock_: ZmqFileDesc) {
     //  If there 's no SOCK_CLOEXEC, let's try the second best option.
     //  Race condition can cause socket not to be closed (if fork happens
     //  between accept and this point).
-    #[cfg(target_feature="fd_cloexec")]{
+    #[cfg(target_feature = "fd_cloexec")]
+    {
         let rc: i32 = unsafe { fcntl(sock_, F_SETFD, FD_CLOEXEC) };
     }
     // errno_assert (rc != -1);
@@ -1100,9 +1113,12 @@ pub fn assert_success_or_recoverable(s_: ZmqFileDesc, rc_: i32) {
 // }
 // #endif
 
-pub fn create_ipc_wildcard_address(out_path: &mut String, out_file: &mut String) -> anyhow::Result<()> {
+pub fn create_ipc_wildcard_address(
+    out_path: &mut String,
+    out_file: &mut String,
+) -> anyhow::Result<()> {
     // #if defined ZMQ_HAVE_WINDOWS
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     {
         // let mut buffer: [u8; MAX_PATH as usize] = [0; MAX_PATH as usize];
         let mut buffer: [u8; 260] = [0; 260];
@@ -1111,7 +1127,7 @@ pub fn create_ipc_wildcard_address(out_path: &mut String, out_file: &mut String)
             return Err(anyhow::anyhow!("GetTempPathA failed"));
         }
         let create_dir_res = unsafe { CreateDirectoryA(buffer as PSTR, None) };
-        if create_dir_res == false{
+        if create_dir_res == false {
             return Err(anyhow::anyhow!("CreateDirectoryA failed"));
         }
 
@@ -1121,7 +1137,8 @@ pub fn create_ipc_wildcard_address(out_path: &mut String, out_file: &mut String)
     }
     // free (tmp);
     // #else
-    #[cfg(not(target_os="windows"))]{
+    #[cfg(not(target_os = "windows"))]
+    {
         let mut tmp_path: String = String::new();
 
         // If TMPDIR, TEMPDIR, or TMP are available and are directories, create

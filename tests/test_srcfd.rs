@@ -88,7 +88,7 @@ let mut msg = ZmqMessage::default();
                                                 addrlen, host, sizeof host,
                                                 null_mut(), 0, NI_NUMERICHOST));
 
-    // assert it is localhost which connected
+    // assert it is localhost which Connected
     TEST_ASSERT_EQUAL_STRING ("127.0.0.1", host);
 
     test_context_socket_close (rep);

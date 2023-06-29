@@ -61,12 +61,12 @@ use crate::message::ZmqMessage;
 use crate::session_base::ZmqSessionBase;
 
 pub enum ZmqCurveClientState {
-    send_hello,
-    expect_welcome,
-    send_initiate,
-    expect_ready,
-    error_received,
-    connected,
+    SendHello,
+    ExpectWelcome,
+    SendInitiate,
+    ExpectReady,
+    ErrorReceived,
+    Connected,
 }
 
 // pub struct curve_client_t  : public curve_mechanism_base_t
@@ -96,19 +96,15 @@ impl ZmqCurveClient {
     // "CurveZMQMESSAGEC",
     // "CurveZMQMESSAGES",
     // downgrade_sub_),
-    // _state (send_hello),
+    // _state (SendHello),
     // _tools (options_.curve_public_key,
     // options_.curve_secret_key,
     // options_.curve_server_key)
     // {
     // }
-    pub fn new(
-        session: &mut ZmqSessionBase,
-        ctx: &mut ZmqContext,
-        downgrade_sub: bool,
-    ) -> Self {
+    pub fn new(session: &mut ZmqSessionBase, ctx: &mut ZmqContext, downgrade_sub: bool) -> Self {
         Self {
-            mechanism_base: ZmqMechanismBase::new(session, ctx),
+            mechanism_base: ZmqMechanismBase::new(ctx, session),
             curve_mechanism_base: ZmqCurveMechanismBase::new(
                 ctx,
                 session,
@@ -116,11 +112,11 @@ impl ZmqCurveClient {
                 "CurveZMQMESSAGES",
                 downgrade_sub,
             ),
-            state: ZmqCurveClientState::send_hello,
+            state: ZmqCurveClientState::SendHello,
             tools: ZmqCurveClientTools::new(
-                ctx.curve_public_key,
-                ctx.curve_secret_key,
-                ctx.curve_server_key,
+                ctx.curve_public_key.clone(),
+                ctx.curve_secret_key.clone(),
+                ctx.curve_server_key.clone(),
             ),
         }
     }
@@ -134,20 +130,20 @@ impl ZmqCurveClient {
     // int next_handshake_command (msg: &mut ZmqMessage) ;
     pub fn next_handshake_command(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         match self.state {
-            ZmqCurveClientState::send_hello => {
+            ZmqCurveClientState::SendHello => {
                 self.produce_hello(msg)?;
-                self.state = ZmqCurveClientState::expect_welcome;
+                self.state = ZmqCurveClientState::ExpectWelcome;
                 Ok(())
             }
-            // ZmqCurveClientState::expect_welcome => {}
-            ZmqCurveClientState::send_initiate => {
+            // ZmqCurveClientState::ExpectWelcome => {}
+            ZmqCurveClientState::SendInitiate => {
                 self.produce_initiate(msg)?;
-                self.state = ZmqCurveClientState::expect_ready;
+                self.state = ZmqCurveClientState::ExpectReady;
                 Ok(())
             }
-            // ZmqCurveClientState::expect_ready => {}
-            // ZmqCurveClientState::error_received => {}
-            // ZmqCurveClientState::connected => {}
+            // ZmqCurveClientState::ExpectReady => {}
+            // ZmqCurveClientState::ErrorReceived => {}
+            // ZmqCurveClientState::Connected => {}
             _ => Err(anyhow!("EAGAIN")),
         }
     }
@@ -187,22 +183,22 @@ impl ZmqCurveClient {
 
     // int encode (msg: &mut ZmqMessage) ;
     pub fn encode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
-        // zmq_assert (_state == connected);
+        // zmq_assert (_state == Connected);
         self.curve_mechanism_base.encode(msg)
     }
 
     // int decode (msg: &mut ZmqMessage) ;
     pub fn decode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
-        // zmq_assert (_state == connected);
+        // zmq_assert (_state == Connected);
         self.curve_mechanism_base.decode(msg)
     }
 
     // status_t status () const ;
     pub fn status(&mut self) -> ZmqMechanismStatus {
-        if (self.state == ZmqCurveClientState::connected) {
+        if (self.state == ZmqCurveClientState::Connected) {
             return ZmqMechanismStatus::ready;
         }
-        if (self.state == ZmqCurveClientState::error_received) {
+        if (self.state == ZmqCurveClientState::ErrorReceived) {
             return ZmqMechanismStatus::error;
         }
         return ZmqMechanismStatus::handshaking;
@@ -251,7 +247,7 @@ impl ZmqCurveClient {
             .process_welcome(msg_data, msg_size, get_writable_precom_buffer())
         {
             Ok(_) => {
-                self.state = ZmqCurveClientState::send_initiate;
+                self.state = ZmqCurveClientState::SendInitiate;
                 return Ok(());
             }
             Err(e) => {
@@ -271,7 +267,7 @@ impl ZmqCurveClient {
         // return -1;
         // }
         //
-        // _state = send_initiate;
+        // _state = SendInitiate;
         //
         // return 0;
     }
@@ -383,7 +379,7 @@ impl ZmqCurveClient {
         );
 
         if (rc == 0) {
-            self.state = ZmqCurveClientState::connected;
+            self.state = ZmqCurveClientState::Connected;
         } else {
             session.get_socket().event_handshake_failed_protocol(
                 session.get_endpoint(),
@@ -398,8 +394,8 @@ impl ZmqCurveClient {
     }
 
     pub fn process_error(&mut self, msg_data: &[u8], msg_size: usize) -> anyhow::Result<()> {
-        if (self.state != ZmqCurveClientState::expect_welcome
-            && _state != ZmqCurveClientState::expect_ready)
+        if (self.state != ZmqCurveClientState::ExpectWelcome
+            && _state != ZmqCurveClientState::ExpectReady)
         {
             session.get_socket().event_handshake_failed_protocol(
                 session.get_endpoint(),
@@ -430,7 +426,7 @@ impl ZmqCurveClient {
         }
         let error_reason = String::from_utf8_lossy(&msg_data[7..]).to_string();
         handle_error_reason(error_reason, error_reason_len);
-        self.state = ZmqCurveClientState::error_received;
+        self.state = ZmqCurveClientState::ErrorReceived;
         Ok(())
     }
     //     int process_error (const uint8_t *msg_data_, msg_size_: usize);

@@ -307,10 +307,10 @@ pub fn wsa_error_no(no_: i32, wsae_wouldblock_string_: &str) -> &str {
             return "No buffer space available";
         }
         WSAEISCONN => {
-            return "Socket is already connected";
+            return "Socket is already Connected";
         }
         WSAENOTCONN => {
-            return "Socket is not connected";
+            return "Socket is not Connected";
         }
         WSAESHUTDOWN => {
             return "Can't send after socket shutdown";
@@ -508,11 +508,11 @@ pub fn wsa_error_to_errno(errcode_: WSA_ERROR) -> i32 {
         WSAENOBUFS => {
             return ENOBUFS;
         }
-        //  10056 - Socket is already connected.
+        //  10056 - Socket is already Connected.
         WSAEISCONN => {
             return EFAULT;
         }
-        //  10057 - Socket is not connected.
+        //  10057 - Socket is not Connected.
         WSAENOTCONN => {
             return ENOTCONN;
         }
@@ -703,9 +703,9 @@ pub enum ZmqError {
     CloseSocketFailed(String),
     #[error("Failed to get socket option")]
     GetSocketOptionFailed(String),
-    #[error("Failed to join group")]
+    #[error("Failed to join Group")]
     JoinGroupFailed(String),
-    #[error("Failed to leave group")]
+    #[error("Failed to leave Group")]
     LeaveGroupFailed(String),
     #[error("Failed to Bind socket")]
     BindSocketFailed(String),

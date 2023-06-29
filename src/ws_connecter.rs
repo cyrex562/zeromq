@@ -70,14 +70,15 @@
 
 use crate::address::get_socket_name;
 use crate::address::SocketEnd::SocketEndLocal;
+use crate::defines::ZmqFileDesc;
 use crate::endpoint::EndpointType::endpoint_type_connect;
 use crate::endpoint_uri::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::err::wsa_error_to_errno;
-use crate::defines::ZmqFileDesc;
 use crate::ip::{tune_socket, unblock_socket};
 use crate::ops::zmq_errno;
 
+use crate::context::ZmqContext;
 use crate::session_base::ZmqSessionBase;
 use crate::stream_connecter_base::StreamConnecterBase;
 use crate::tcp::{tcp_open_socket, tune_tcp_maxrt, tune_tcp_socket};
@@ -91,7 +92,6 @@ use windows::Win32::Networking::WinSock::{
     WSAGetLastError, SOL_SOCKET, SO_ERROR, WSAEBADF, WSAEINPROGRESS, WSAENOBUFS, WSAENOPROTOOPT,
     WSAENOTSOCK, WSAEWOULDBLOCK, WSA_ERROR,
 };
-use crate::context::ZmqContext;
 
 pub const connect_timer_id: i32 = 2;
 
@@ -134,7 +134,7 @@ pub struct ZmqWsConnecter<'a> {
     //  retired_fd if the connection was unsuccessful.
     // ZmqFileDesc connect ();
 
-    //  Tunes a connected socket.
+    //  Tunes a Connected socket.
     // bool tune_socket (ZmqFileDesc fd);
 
     //  True iff a timer has been started.
@@ -362,7 +362,7 @@ impl ZmqWsConnecter {
         }
         // #endif
 
-        //  Return the newly connected socket.
+        //  Return the newly Connected socket.
         let result = _s;
         _s = retired_fd;
         return result;

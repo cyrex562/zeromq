@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
-use libc::c_void;
 use crate::address::ZmqAddress;
+use libc::c_void;
 
 use crate::endpoint_uri::EndpointUriPair;
 use crate::own::ZmqOwn;
@@ -61,35 +61,5 @@ pub struct ZmqCommand<'a> {
     pub outbound_queue_count: u64,
     pub inbound_queue_count: u64,
     pub reaper: Option<ZmqReaper>,
-    pub session: Option<&'a mut ZmqSessionBase>
+    pub session: Option<&'a mut ZmqSessionBase<'a>>,
 }
-
-// impl ZmqEngineInterface for ZmqCommand {
-//     fn has_handshake_state(&self) -> bool {
-//         todo!()
-//     }
-// 
-//     fn plug(&mut self, io_thread: &mut ZmqThreadContext, session: &mut ZmqSessionBase) {
-//         todo!()
-//     }
-// 
-//     fn terminate(&mut self) {
-//         todo!()
-//     }
-// 
-//     fn restart_input(&mut self) -> bool {
-//         todo!()
-//     }
-// 
-//     fn restart_output(&mut self) {
-//         todo!()
-//     }
-// 
-//     fn zap_msg_available(&mut self) {
-//         todo!()
-//     }
-// 
-//     fn get_endpoint(&mut self) -> &EndpointUriPair {
-//         todo!()
-//     }
-// }

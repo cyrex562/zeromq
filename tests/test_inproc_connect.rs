@@ -272,12 +272,12 @@ let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, sb, 0));
     TEST_ASSERT_EQUAL_INT (1, zmq_msg_more (&msg));
 
-    //  Then the first part of the message body.
+    //  Then the first part of the message Body.
     TEST_ASSERT_EQUAL_INT (
       1, TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, sb, 0)));
     TEST_ASSERT_EQUAL_INT (1, zmq_msg_more (&msg));
 
-    //  And finally, the second part of the message body.
+    //  And finally, the second part of the message Body.
     TEST_ASSERT_EQUAL_INT (
       1, TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_recv (&msg, sb, 0)));
     TEST_ASSERT_EQUAL_INT (0, zmq_msg_more (&msg));

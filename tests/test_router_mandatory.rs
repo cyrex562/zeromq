@@ -211,7 +211,7 @@ void test_basic ()
     send_string_expect_success (dealer, "Hello", 0);
     recv_string_expect_success (router, "X", 0);
 
-    //  Send a message to connected dealer now
+    //  Send a message to Connected dealer now
     //  It should work
     send_string_expect_success (router, "X", ZMQ_SNDMORE);
     send_string_expect_success (router, "Hello", 0);

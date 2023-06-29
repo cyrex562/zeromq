@@ -752,11 +752,11 @@ Function un.onInit
   Pop $1
   StrCmp $1 "Admin" 0 +3
     SetShellVarContext all
-    ;MessageBox MB_OK 'User "$0" is in the Admin group'
+    ;MessageBox MB_OK 'User "$0" is in the Admin Group'
     Goto Done
   StrCmp $1 "Power" 0 +3
     SetShellVarContext all
-    ;MessageBox MB_OK 'User "$0" is in the Power Users group'
+    ;MessageBox MB_OK 'User "$0" is in the Power Users Group'
     Goto Done
     
   noLM:
@@ -927,12 +927,12 @@ Function .onInit
   Pop $1
   StrCmp $1 "Admin" 0 +3
     SetShellVarContext all
-    ;MessageBox MB_OK 'User "$0" is in the Admin group'
+    ;MessageBox MB_OK 'User "$0" is in the Admin Group'
     StrCpy $SV_ALLUSERS "AllUsers"
     Goto Done
   StrCmp $1 "Power" 0 +3
     SetShellVarContext all
-    ;MessageBox MB_OK 'User "$0" is in the Power Users group'
+    ;MessageBox MB_OK 'User "$0" is in the Power Users Group'
     StrCpy $SV_ALLUSERS "AllUsers"
     Goto Done
     

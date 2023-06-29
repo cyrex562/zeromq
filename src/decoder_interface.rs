@@ -33,6 +33,8 @@
 // #include "macros.hpp"
 // #include "stdint.hpp"
 
+use crate::message::ZmqMessage;
+
 //  Interface to be implemented by message decoder.
 pub trait ZmqDecoderInterface {
     //
@@ -48,7 +50,7 @@ pub trait ZmqDecoderInterface {
     // virtual int decode (const data: &mut [u8], size: usize, size_t &processed_) = 0;
     fn decode(data: &[u8], size: usize, processed: &usize);
     // virtual ZmqMessage *msg () = 0;
-    fn msg() -> &mut ZmqMessage;
+    fn msg() -> ZmqMessage;
 }
 
 // #endif

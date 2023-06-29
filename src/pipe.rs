@@ -38,7 +38,6 @@
 // #include "ypipe.hpp"
 // #include "ypipe_conflate.hpp"
 
-
 //  Create a pipepair for bi-directional transfer of messages.
 //  First HWM is for messages passed from first pipe to the second pipe.
 //  Second HWM is for messages passed from second pipe to the first pipe.
@@ -48,18 +47,21 @@
 //  If conflate is true, only the most recently arrived message could be
 //  read (older messages are discarded)
 
+use crate::context::ZmqContext;
+use crate::endpoint_uri::EndpointUriPair;
+use crate::message::{ZmqMessage, ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID};
+use crate::ypipe_base::YpipeBase;
+use libc::memcpy;
+use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::io::Write;
 use std::ptr::null_mut;
-use libc::memcpy;
-use serde::{Deserialize, Serialize};
-use crate::context::ZmqContext;
-use crate::endpoint_uri::EndpointUriPair;
-use crate::ypipe_base::YpipeBase;
-use crate::message::{ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID, ZmqMessage};
 
 use crate::own::ZmqOwn;
-use crate::pipe::PipeState::{active, delimiter_received, term_ack_sent, term_req_sent1, term_req_sent2, waiting_for_delimiter};
+use crate::pipe::PipeState::{
+    active, delimiter_received, term_ack_sent, term_req_sent1, term_req_sent2,
+    waiting_for_delimiter,
+};
 use crate::session_base::ZmqSessionBase;
 use crate::socket::ZmqSocket;
 use crate::ypipe::Ypipe;
@@ -146,7 +148,6 @@ pub struct ZmqPipe {
     pub endpoint_pair: Vec<EndpointUriPair>,
     // Disconnect msg
     pub disconnect_msg: ZmqMessage,
-
     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqPipe)
 }
 
@@ -156,8 +157,14 @@ impl ZmqPipe {
     // ZmqPipe *pipes_[2],
     // const int hwms_[2],
     // const bool conflate_[2]);
-    pub fn pipepair(&mut self, parents: (&mut ZmqSessionBase, &mut ZmqSocket), pipes: &mut [Self], hwms: &[i32; 2], conflate: &[bool; 2]) -> anyhow::Result<()> {
-        //   Creates two pipe objects. These objects are connected by two ypipes,
+    pub fn pipepair(
+        &mut self,
+        parents: (&mut ZmqSessionBase, &mut ZmqSocket),
+        pipes: &mut [Self],
+        hwms: &[i32; 2],
+        conflate: &[bool; 2],
+    ) -> anyhow::Result<()> {
+        //   Creates two pipe objects. These objects are Connected by two ypipes,
         //   each to pass messages in one direction.
 
         // typedef Ypipe<ZmqMessage, message_pipe_granularity> upipe_normal_t;
@@ -184,9 +191,23 @@ impl ZmqPipe {
         // }
         // alloc_assert (upipe2);
 
-        pipes[0] = ZmqPipe::new(parents[0], &mut upipe1, &mut upipe2, hwms[1], hwms[0], conflate[0]);
+        pipes[0] = ZmqPipe::new(
+            parents[0],
+            &mut upipe1,
+            &mut upipe2,
+            hwms[1],
+            hwms[0],
+            conflate[0],
+        );
         // alloc_assert (pipes_[0]);
-        pipes[1] = ZmqPipe::new(parents[1], &mut upipe2, &mut upipe1, hwms[0], hwms[1], conflate[1]);
+        pipes[1] = ZmqPipe::new(
+            parents[1],
+            &mut upipe2,
+            &mut upipe1,
+            hwms[0],
+            hwms[1],
+            conflate[1],
+        );
         // alloc_assert (pipes_[1]);
 
         pipes[0].set_peer(&mut pipes[1]);
@@ -226,10 +247,10 @@ impl ZmqPipe {
     //  Returns true if there is at least one message to read in the pipe.
     // bool check_read ();
     pub fn check_read(&mut self) -> bool {
-        if ((!self.in_active)) {
+        if (!self.in_active) {
             return false;
         }
-        if ((self._state != active && self._state != waiting_for_delimiter)) {
+        if (self._state != active && self._state != waiting_for_delimiter) {
             return false;
         }
 
@@ -256,10 +277,10 @@ impl ZmqPipe {
     //  Reads a message to the underlying pipe.
     // bool read (msg: &mut ZmqMessage);
     pub fn read(&mut self, msg: &mut ZmqMessage) -> bool {
-        if ((!self.in_active)) {
+        if (!self.in_active) {
             return false;
         }
-        if ((self._state != active && self._state != waiting_for_delimiter)) {
+        if (self._state != active && self._state != waiting_for_delimiter) {
             return false;
         }
 
@@ -270,7 +291,7 @@ impl ZmqPipe {
             }
 
             //  If this is a credential, ignore it and receive next message.
-            if ((msg.is_credential())) {
+            if (msg.is_credential()) {
                 msg.close();
                 // zmq_assert (rc == 0);
             } else {
@@ -300,13 +321,13 @@ impl ZmqPipe {
     //  function returns false.
     // bool check_write ();
     pub fn check_write(&mut self) -> bool {
-        if ((!self.out_active || self._state != PipeState::active)) {
+        if (!self.out_active || self._state != PipeState::active) {
             return false;
         }
 
         let full = !self.check_hwm();
 
-        if ((full)) {
+        if (full) {
             self.out_active = false;
             return false;
         }
@@ -319,7 +340,7 @@ impl ZmqPipe {
     //  retains ownership of its message buffer.
     // bool write (const msg: &mut ZmqMessage);
     pub fn write(&mut self, msg: &mut ZmqMessage) -> bool {
-        if ((!check_write())) {
+        if (!check_write()) {
             return false;
         }
 
@@ -425,7 +446,8 @@ impl ZmqPipe {
             self._state = PeerState::term_ack_sent;
         }
         //  If there are pending messages still available, do nothing.
-        else if (self._state == PeerState::waiting_for_delimiter) {}
+        else if (self._state == PeerState::waiting_for_delimiter) {
+        }
         //  We've already got delimiter, but not Term command yet. We can ignore
         //  the delimiter and ack synchronously terminate as if we were in
         //  active state.
@@ -493,7 +515,6 @@ impl ZmqPipe {
         self.endpoint_pair = endpoint_pair;
     }
 
-
     // const EndpointUriPair &get_endpoint_pair () const;
     pub fn get_endpoint_pair(&mut self) -> &EndpointUriPair {
         &self.endpoint_pair
@@ -504,7 +525,12 @@ impl ZmqPipe {
         // EndpointUriPair *ep = new (std::nothrow) EndpointUriPair (_endpoint_pair);
         let mut ep = EndpointUriPair::default();
         ep = self.endpoint_pair.clone();
-        self.send_pipe_peer_stats(self._peer, self.msgs_written - self.peers_msgs_read, socket_base, &mut ep);
+        self.send_pipe_peer_stats(
+            self._peer,
+            self.msgs_written - self.peers_msgs_read,
+            socket_base,
+            &mut ep,
+        );
     }
 
     // void send_disconnect_msg ();
@@ -522,10 +548,12 @@ impl ZmqPipe {
     //
     //  Type of the underlying lock-free pipe.
 
-
     //  Command handlers.
     pub fn process_activate_read(&mut self) {
-        if (!self.in_active && (self._state == PipeState::active || self._state == PipeState::waiting_for_delimiter)) {
+        if (!self.in_active
+            && (self._state == PipeState::active
+                || self._state == PipeState::waiting_for_delimiter))
+        {
             self.in_active = true;
             self._sink.read_activated(this);
         }
@@ -569,7 +597,6 @@ impl ZmqPipe {
         }
     }
 
-
     // void process_pipe_term () ;
     pub fn process_pipe_term(&mut self) {
         // zmq_assert (_state == active || _state == delimiter_received
@@ -589,7 +616,6 @@ impl ZmqPipe {
                 self.send_pipe_term_ack(_peer);
             }
         }
-
         //  Delimiter happened to arrive before the Term command. Now we have the
         //  Term command as well, so we can move straight to term_ack_sent state.
         else if (self._state == PeerState::delimiter_received) {
@@ -597,7 +623,6 @@ impl ZmqPipe {
             self.out_pipe.clear();
             self.send_pipe_term_ack(self._peer);
         }
-
         //  This is the case where both ends of the pipe are closed in parallel.
         //  We simply reply to the request by ack and continue waiting for our
         //  Own ack.
@@ -621,7 +646,8 @@ impl ZmqPipe {
         if (self._state == PeerState::term_req_sent1) {
             self.out_pipe.clear();
             self.send_pipe_term_ack(self._peer);
-        } else {}
+        } else {
+        }
         // zmq_assert (_state == term_ack_sent || _state == term_req_sent2);
 
         //  We'll deallocate the inbound pipe, the peer will deallocate the outbound
@@ -692,7 +718,14 @@ impl ZmqPipe {
     // _delay (true),
     // _server_socket_routing_id (0),
     // _conflate (conflate_)
-    pub fn new(parent: &mut ZmqObject, inpipe: &mut VecDeque<ZmqMessage>, outpipe: &mut VecDeque<ZmqMessage>, inhwm: i32, outhwm: i32, conflate: bool) -> Self {
+    pub fn new(
+        parent: &mut ZmqObject,
+        inpipe: &mut VecDeque<ZmqMessage>,
+        outpipe: &mut VecDeque<ZmqMessage>,
+        inhwm: i32,
+        outhwm: i32,
+        conflate: bool,
+    ) -> Self {
         let mut out = Self {
             in_pipe: inpipe.clone(),
             out_pipe: outpipe.clone(),
@@ -715,7 +748,6 @@ impl ZmqPipe {
         _disconnect_msg.init();
         out
     }
-
 
     //  Pipepair uses this function to let us know about
     //  the peer pipe object.
@@ -759,16 +791,25 @@ impl ZmqPipe {
         return result;
     }
 
-    pub fn process_pipe_peer_stats(&mut self, queue_count: u64,
-                                   socket_base: &mut ZmqOwn,
-                                   endpoint_pair: &mut EndpointUriPair) {
-        send_pipe_stats_publish(socket_base, queue_count,
-                                _msgs_written - _peers_msgs_read, endpoint_pair);
+    pub fn process_pipe_peer_stats(
+        &mut self,
+        queue_count: u64,
+        socket_base: &mut ZmqOwn,
+        endpoint_pair: &mut EndpointUriPair,
+    ) {
+        send_pipe_stats_publish(
+            socket_base,
+            queue_count,
+            _msgs_written - _peers_msgs_read,
+            endpoint_pair,
+        );
     }
 
     pub fn set_disconnect_msg(&mut self, disconnect_: &mut Vec<u8>) {
         self.disconnect_msg.close();
-        let rc: i32 = self.disconnect_msg.init_buffer(&mut disconnect_[0..], disconnect_.size());
+        let rc: i32 = self
+            .disconnect_msg
+            .init_buffer(&mut disconnect_[0..], disconnect_.size());
         // errno_assert (rc == 0);
     }
 
@@ -782,7 +823,6 @@ impl ZmqPipe {
             flush();
         }
     }
-
 
     pub fn pipe_index(&mut self, pipe: &ZmqPipe, pipes: &[ZmqPipe]) -> i32 {
         let mut index = -1;
@@ -831,7 +871,7 @@ impl i_pipe_events for ZmqPipe {
     fn pipe_terminated(&mut self, pipe: &mut ZmqPipe) {
         todo!()
     }
-}// end of impl pipe_t
+} // end of impl pipe_t
 
 // void send_routing_id (pipe: &mut ZmqPipe, options: &ZmqOptions);
 
@@ -842,7 +882,7 @@ impl i_pipe_events for ZmqPipe {
 //                    const int hwms_[2],
 //                    const bool conflate_[2])
 // {
-//     //   Creates two pipe objects. These objects are connected by two ypipes,
+//     //   Creates two pipe objects. These objects are Connected by two ypipes,
 //     //   each to pass messages in one direction.
 //
 //     typedef Ypipe<ZmqMessage, message_pipe_granularity> upipe_normal_t;
@@ -875,7 +915,6 @@ impl i_pipe_events for ZmqPipe {
 //     return 0;
 // }
 
-
 pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqContext) {
     // ZmqMessage hello;
     let mut hello = ZmqMessage::default();
@@ -885,7 +924,6 @@ pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqContext) {
     // zmq_assert (written);
     pipe.flush();
 }
-
 
 // ZmqPipe::~ZmqPipe ()
 // {
@@ -1347,7 +1385,6 @@ pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqContext) {
 //                           ep);
 // }
 
-
 // void ZmqPipe::send_disconnect_msg ()
 // {
 //     if (_disconnect_msg.size () > 0 && _out_pipe) {
@@ -1359,6 +1396,3 @@ pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqContext) {
 //         _disconnect_msg.init ();
 //     }
 // }
-
-
-

@@ -81,14 +81,14 @@ void test_zmq_socket_monitor_null_socket ()
 // #ifdef ZMQ_BUILD_DRAFT_API
 void test_zmq_join_null_socket ()
 {
-    int rc = zmq_join (null_mut(), "group");
+    int rc = zmq_join (null_mut(), "Group");
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (ENOTSOCK, errno); // TODO use EINVAL instead?
 }
 
 void test_zmq_leave_null_socket ()
 {
-    int rc = zmq_leave (null_mut(), "group");
+    int rc = zmq_leave (null_mut(), "Group");
     TEST_ASSERT_EQUAL_INT (-1, rc);
     TEST_ASSERT_EQUAL_INT (ENOTSOCK, errno); // TODO use EINVAL instead?
 }

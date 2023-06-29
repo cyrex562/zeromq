@@ -73,7 +73,6 @@ pub const GROUP_TYPE_SHORT: u8 = 0;
 pub const GROUP_TYPE_LONG: u8 = 1;
 // }
 
-
 pub enum MessageType {
     Base,
     Vsm,
@@ -209,7 +208,7 @@ impl ZmqMessage {
     // uint32_t get_routing_id () const;
     // int set_routing_id (uint32_t routing_id_);
     // int reset_routing_id ();
-    // const char *group () const;
+    // const char *Group () const;
     // int set_group (group_: *const c_char);
     // int set_group (const char *, length_: usize);
     //
@@ -353,8 +352,8 @@ impl ZmqMessage {
         //     _u.metadata = NULL;
         //     _u.type = type_lmsg;
         //     _u.flags = 0;
-        //     _u.group[0] = 0;
-        //     _u.group.type = group_type_short;
+        //     _u.Group[0] = 0;
+        //     _u.Group.type = group_type_short;
         //     _u.routing_id = 0;
         //     _u.content =
         //       static_cast<ZmqContent *> (malloc (mem::size_of::<ZmqContent>()));
@@ -402,8 +401,7 @@ impl ZmqMessage {
         return 0;
     }
 
-    pub fn init_subscribe(&mut self, size: usize, topic: &mut [u8]) -> anyhow::Result<()>
-    {
+    pub fn init_subscribe(&mut self, size: usize, topic: &mut [u8]) -> anyhow::Result<()> {
         self.init_size(size)?;
         self.set_flags(ZMQ_MSG_SUBSCRIBE);
         copy_bytes(self.data_mut(), 0, topic, 0, size);
@@ -523,7 +521,7 @@ impl ZmqMessage {
     //     if (src_._u.metadata != NULL)
     //         src_._u.metadata->add_ref ();
     //
-    //     if (src_._u.group.type == group_type_long)
+    //     if (src_._u.Group.type == group_type_long)
     //         src_._u.lgroup.content->refcnt.add (1);
     //
     //     *this = src_;
@@ -787,7 +785,7 @@ impl ZmqMessage {
         if self.group_type == GROUP_TYPE_LONG {
             return self.lgroup.content.group;
         }
-        // return String::from_utf8_lossy(&self.group).into_string();
+        // return String::from_utf8_lossy(&self.Group).into_string();
         self.group.clone()
     }
 
@@ -810,11 +808,11 @@ impl ZmqMessage {
             // assert (_u.lgroup.content);
             // new (&_u.lgroup.content->refcnt) AtomicCounter ();
             self.lgroup.content.refcnt.set(1);
-            // strncpy (_u.lgroup.content->group, group_, length_);
+            // strncpy (_u.lgroup.content->Group, group_, length_);
             self.lgroup.content.group = group_;
             self.lgroup.content.group[length_] = 0;
         } else {
-            // strncpy (_u.group, group_, length_);
+            // strncpy (_u.Group, group_, length_);
             self.u
                 .group
                 .sgroup

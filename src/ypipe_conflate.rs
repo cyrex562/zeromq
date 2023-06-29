@@ -61,7 +61,7 @@ impl YpipeConflate<T> {
     }
 
     //  Following function (write) deliberately copies uninitialised data
-    //  when used with zmq_msg. Initialising the VSM body for
+    //  when used with zmq_msg. Initialising the VSM Body for
     //  non-VSM messages won't be good for performance.
 
     // #ifdef ZMQ_HAVE_OPENVMS

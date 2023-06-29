@@ -164,7 +164,7 @@ let mut msg = ZmqMessage::default();
     test_context_socket_close_zero_linger (b);
 }
 
-// SHALL block on sending, or return a suitable error, when it has no connected peers.
+// SHALL block on sending, or return a suitable error, when it has no Connected peers.
 void test_block_on_send_no_peers (bind_address_: &str)
 {
     void *sc = test_context_socket (ZMQ_DEALER);

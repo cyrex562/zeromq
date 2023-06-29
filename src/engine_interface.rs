@@ -40,9 +40,9 @@ use crate::session_base::ZmqSessionBase;
 use crate::thread_context::ZmqThreadContext;
 
 enum ZmqErrorReason {
-    protocol_error,
-    connection_error,
-    timeout_error,
+    ProtocolError,
+    ConnectionError,
+    TimeoutError,
 }
 
 pub trait ZmqEngineInterface {

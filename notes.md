@@ -511,7 +511,7 @@ if (rc < 0 && errno == EINTR && sigterm_received) {
 
 * create a 0MQ socket within the specified context
 * newly created socket is initially unbound and not assoctiated with any endpoints
-* to establish a message flow the socket must first be connected to at least one endpoint or at least one endpoint must
+* to establish a message flow the socket must first be Connected to at least one endpoint or at least one endpoint must
   be created for accepting connections
 * setup, teardown, reconnect, and delivery are transparent to the ZMQ socket interface
 * thread safe sockets:
@@ -530,8 +530,8 @@ if (rc < 0 && errno == EINTR && sigterm_received) {
         * ZMQ_CLIENT
         * ZMQ_SERVER
     * radio-dish: one-to-many distrubtion of data from a single publisher to multiple subscribers in a fan-out fashion.
-      Radio-dish uses groups versus pub-sub topics. Dish sockets can join a group. Each message sent by a raddio belongs
-      to a group.
+      Radio-dish uses groups versus pub-sub topics. Dish sockets can join a Group. Each message sent by a raddio belongs
+      to a Group.
         * ZMQ_RADIO
         * ZMQ_DISH
     * publish-subscribe pattern: one-to-many distribution of data from a single publisher to multiple subscribers in a
@@ -541,14 +541,14 @@ if (rc < 0 && errno == EINTR && sigterm_received) {
         * ZMQ_XPUB, can receive incoming subscription messages from peers.
         * ZMQ_XSUB, can send outgoing subscription messages to peers.
     * pipeline pattern: distributing data to nodes arranged in a pipeline. data always flows down the pipeline and each
-      stage is connected to at least one node. when a stage is connected to multiple nodes, data is round-robined
-      between the connected nodes.
+      stage is Connected to at least one node. when a stage is Connected to multiple nodes, data is round-robined
+      between the Connected nodes.
         * ZMQ_PUSH
         * ZMQ_PULL
     * scatter-gather pattern: thread-safe version of the pipeline pattern
         * ZMQ_SCATTER
         * ZMQ_GATHER
-    * exclusive pair pattern: connects two sockets exclusively. only one socket can be connected to the other. use for
+    * exclusive pair pattern: connects two sockets exclusively. only one socket can be Connected to the other. use for
       inter-thread communication across the inproc transport
         * ZMQ_PAIR
     * peer-to-peer pattern: connect a peer to multiple peers. each peer can send and receive messages.Peers can mix and
@@ -560,13 +560,13 @@ if (rc < 0 && errno == EINTR && sigterm_received) {
       direction
         * ZMQ_STREAM: send and receive data from a non-0MQ peer.
     * request-reply pattern: used for sending requests from a ZMQ_REQ client to one or more ZMQ_REP services and
-      receiving a subsequent reply for each request sent. each request is round-robined if connected to multiple
+      receiving a subsequent reply for each request sent. each request is round-robined if Connected to multiple
       services. each reply matched with the last issued request.
         * ZMQ_REQ
         * ZMQ_REP
-        * ZMQ_DEALER: each message round-robined among all connected peers.
+        * ZMQ_DEALER: each message round-robined among all Connected peers.
         * ZMQ_ROUTER: prepend a message part containing the routing id of the originating peer before passing to the
-          application. messages are fair-queued from all connected peers.
+          application. messages are fair-queued from all Connected peers.
 
 ```pseudo
 void *ctx = zmq_ctx_new ();
@@ -627,7 +627,7 @@ zmq_ctx_destroy (ctx);
 * ZMQ_CURVE_SERVER: set CURVE server role
 * ZMQ_CURVE_SERVERKEY: set CURVE server key
 * ZMQ_DISCONNECT_MSG: set a disconnect message that the socket will generate when accepted after peer disconnect
-* ZMQ_HICCUP_MSG: set a hiccup msg that the socket will generate when connected peer temporarily disconnects
+* ZMQ_HICCUP_MSG: set a hiccup msg that the socket will generate when Connected peer temporarily disconnects
 * ZMQ_GSSAPI_PLAINTEXT: disable GSSAPI encryption
 * ZMQ_GSSAPI_PRINCIPAL: set GSSAPI principal
 * ZMQ_GSSAPI_SERVER: set GSSAPI server role
@@ -694,7 +694,7 @@ zmq_ctx_destroy (ctx);
 * ZMQ_ZAP_DOMAIN: set domain for ZAP authentication
 * ZMQ_ZAP_ENFORCE_DOMAIN: set zap domain handling to strictly adhere to the RFC
 * ZMQ_TCP_ACCEPT_FILTER: assign filters to allow new TCP connections
-* ZMQ_IPC_FILTER_GID: assign group ID filters to allow new IPC connections
+* ZMQ_IPC_FILTER_GID: assign Group ID filters to allow new IPC connections
 * ZMQ_IPC_FILTER_PID: assign process ID filters to allow new IPC connections
 * ZMQ_IPC_FILTER_UID: assign user ID filters to allow new IPC connections
 * ZMQ_IPV4ONLY: use only IPV4 on the socket
