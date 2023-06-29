@@ -1,15 +1,19 @@
-use libc::{accept, bind, c_int, close, getsockopt, listen, rmdir, sockaddr, unlink};
-use anyhow::bail;
-use windows::Win32::Networking::WinSock::{closesocket, SOCK_STREAM, SOCKADDR_STORAGE, SOL_SOCKET, WSA_ERROR, WSAGetLastError};
-use std::mem;
 use crate::address::ZmqAddress;
 use crate::address_family::AF_UNIX;
 use crate::defines::retired_fd;
-use crate::dish_session::DishSessionState::group;
-use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::defines::ZmqFileDesc;
-use crate::ip::{create_ipc_wildcard_address, make_socket_noninheritable, open_socket, set_nosigpipe};
+use crate::dish_session::DishSessionState::Group;
+use crate::endpoint::make_unconnected_bind_endpoint_pair;
+use crate::ip::{
+    create_ipc_wildcard_address, make_socket_noninheritable, open_socket, set_nosigpipe,
+};
 use crate::listener::ZmqListener;
+use anyhow::bail;
+use libc::{accept, bind, c_int, close, getsockopt, listen, rmdir, sockaddr, unlink};
+use std::mem;
+use windows::Win32::Networking::WinSock::{
+    closesocket, WSAGetLastError, SOCKADDR_STORAGE, SOCK_STREAM, SOL_SOCKET, WSA_ERROR,
+};
 
 pub fn ipc_resolve_address(addr: &mut ZmqAddress) -> anyhow::Result<String> {
     // TODO: Implement this
@@ -40,7 +44,6 @@ pub fn ipc_resolve_address(addr: &mut ZmqAddress) -> anyhow::Result<String> {
     // return 0;
     todo!()
 }
-
 
 pub fn ipc_set_local_address(listener: &mut ZmqListener, addr: &mut str) -> anyhow::Result<()> {
     //  Create addr on stack for auto-cleanup
@@ -82,7 +85,9 @@ pub fn ipc_set_local_address(listener: &mut ZmqListener, addr: &mut str) -> anyh
             if (!listener.tmp_socket_dirname.is_empty()) {
                 // We need to preserve errno to return to the user
                 // let tmp_errno: i32 = errno;
-                unsafe { rmdir(listener.tmp_socket_dirname.as_ptr() as *const i8); }
+                unsafe {
+                    rmdir(listener.tmp_socket_dirname.as_ptr() as *const i8);
+                }
                 listener.tmp_socket_dirname.clear();
             }
             bail!("failed to open socket")
@@ -109,7 +114,8 @@ pub fn ipc_set_local_address(listener: &mut ZmqListener, addr: &mut str) -> anyh
     listener.has_file = true;
     listener.socket.event_listening(
         &make_unconnected_bind_endpoint_pair(&listener.endpoint),
-        listener.fd);
+        listener.fd,
+    );
 
     // error:
     // let err: i32 = errno;
@@ -120,10 +126,10 @@ pub fn ipc_set_local_address(listener: &mut ZmqListener, addr: &mut str) -> anyh
 }
 
 pub fn ipc_in_event(listener: &mut ZmqListener) -> anyhow::Result<()> {
-
     if listener.fd == retired_fd as usize {
-        listener.socket.event_accept_failed(
-            &make_unconnected_bind_endpoint_pair(&listener.endpoint), -1);
+        listener
+            .socket
+            .event_accept_failed(&make_unconnected_bind_endpoint_pair(&listener.endpoint), -1);
     }
 
     listener.create_engine()?;
@@ -148,20 +154,32 @@ pub fn ipc_filter(listener: &mut ZmqListener, fd: ZmqFileDesc) -> bool {
             return false;
         }
     }
-    if (listener.socket.context.ipc_uid_accept_filters.find(cred.uid)
+    if (listener
+        .socket
+        .context
+        .ipc_uid_accept_filters
+        .find(cred.uid)
         != listener.socket.context.ipc_uid_accept_filters.end()
-        || listener.socket.context.ipc_gid_accept_filters.find(cred.gid)
-        != listener.socket.context.ipc_gid_accept_filters.end()
-        || listener.socket.context.ipc_pid_accept_filters.find(cred.pid)
-        != listener.socket.context.ipc_pid_accept_filters.end())
+        || listener
+            .socket
+            .context
+            .ipc_gid_accept_filters
+            .find(cred.gid)
+            != listener.socket.context.ipc_gid_accept_filters.end()
+        || listener
+            .socket
+            .context
+            .ipc_pid_accept_filters
+            .find(cred.pid)
+            != listener.socket.context.ipc_pid_accept_filters.end())
     {
         return true;
     }
 
     // const struct passwd *pw;
-    let pw: passwd = passwd{};
-    // const struct group *gr;
-    let gr: group = group {  };
+    let pw: passwd = passwd {};
+    // const struct Group *gr;
+    let gr: Group = Group {};
 
     if (!(pw = getpwuid(cred.uid))) {
         return false;
@@ -213,22 +231,25 @@ pub fn ipc_close(listener: &mut ZmqListener) -> anyhow::Result<()> {
             }
 
             if (rc == 0) {
-                unsafe { rc = rmdir(listener.tmp_socket_dirname.c_str()); }
+                unsafe {
+                    rc = rmdir(listener.tmp_socket_dirname.c_str());
+                }
                 listener.tmp_socket_dirname.clear();
             }
         }
 
         if (rc != 0) {
-            listener.socket.event_close_failed(
-                &make_unconnected_bind_endpoint_pair(&listener.endpoint),
-                -1
-            );
+            listener
+                .socket
+                .event_close_failed(&make_unconnected_bind_endpoint_pair(&listener.endpoint), -1);
             bail!("failed to close socket")
         }
     }
 
-    listener._socket
-        .event_closed(make_unconnected_bind_endpoint_pair(&listener.endpoint), fd_for_event);
+    listener._socket.event_closed(
+        make_unconnected_bind_endpoint_pair(&listener.endpoint),
+        fd_for_event,
+    );
     Ok(())
 }
 
@@ -238,7 +259,7 @@ pub fn ipc_accept(listener: &mut ZmqListener) -> anyhow::Result<ZmqFileDesc> {
     //  resources is considered valid and treated by ignoring the connection.
     // zmq_assert (_s != retired_fd);
     // #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
-    #[cfg(target_feature="")]
+    #[cfg(target_feature = "")]
     let mut sock = accept4(listener.fd, null_mut(), null_mut(), SOCK_CLOEXEC);
     // #else
     // struct sockaddr_storage ss;

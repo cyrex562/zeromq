@@ -33,10 +33,10 @@
 // #include <limits>
 // #include <limits.h>
 
-use std::cmp::max;
-use libc::{EMSGSIZE, ENOMEM, EPROTO};
 use crate::decoder::DecoderBase;
-use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
+use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
+use libc::{EMSGSIZE, ENOMEM, EPROTO};
+use std::cmp::max;
 
 // #include "decoder.hpp"
 // #include "v1_decoder.hpp"
@@ -57,9 +57,7 @@ pub struct ZmqV1Decoder {
 
 impl ZmqV1Decoder {
     //     ZmqV1Decoder (bufsize_: usize, maxmsgsize_: i64);
-    pub fn new(bufsize_: usize, maxmsgsize_: i64) -> Self
-
-    {
+    pub fn new(bufsize_: usize, maxmsgsize_: i64) -> Self {
         // DecoderBase<ZmqV1Decoder> (bufsize_), _max_msg_size (maxmsgsize_)
 
         // errno_assert (rc == 0);
@@ -75,7 +73,7 @@ impl ZmqV1Decoder {
         out.in_progress.init2();
         out
     }
-//     ~ZmqV1Decoder ();
+    //     ~ZmqV1Decoder ();
 
     // ZmqMessage *msg () { return &in_progress; }
 
@@ -117,7 +115,7 @@ impl ZmqV1Decoder {
     // int eight_byte_size_ready (unsigned char const *);
     pub fn eight_byte_size_ready(&mut self) -> i32 {
         //  8-byte payload length is read. Allocate the buffer
-        //  for message body and read the message data into it.
+        //  for message Body and read the message data into it.
         let payload_length = get_uint64(_tmpbuf);
 
         //  There has to be at least one byte (the flags) in the message).
@@ -132,13 +130,13 @@ impl ZmqV1Decoder {
             return -1;
         }
 
-// #ifndef __aarch64__
+        // #ifndef __aarch64__
         //  Message size must fit within range of size_t data type.
         if (payload_length - 1 > usize::max) {
             errno = EMSGSIZE;
             return -1;
         }
-// #endif
+        // #endif
 
         let msg_size = (payload_length - 1);
 
@@ -157,14 +155,16 @@ impl ZmqV1Decoder {
         return 0;
     }
 
-
     // int flags_ready (unsigned char const *);
     pub fn flags_ready(&mut self) -> i32 {
         //  Store the flags from the wire into the message structure.
         in_progress.set_flags(_tmpbuf[0] & ZMQ_MSG_MORE);
 
-        next_step(in_progress.data(), in_progress.size(),
-                  &ZmqV1Decoder::message_ready);
+        next_step(
+            in_progress.data(),
+            in_progress.size(),
+            &ZmqV1Decoder::message_ready,
+        );
 
         return 0;
     }
@@ -178,15 +178,8 @@ impl ZmqV1Decoder {
     }
 }
 
-
 // ZmqV1Decoder::~ZmqV1Decoder ()
 // {
 //     let rc: i32 = in_progress.close ();
 //     // errno_assert (rc == 0);
 // }
-
-
-
-
-
-

@@ -54,10 +54,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 use crate::address::ZmqAddress;
 use crate::address_family::{AF_INET, AF_INET6};
 use crate::context::ZmqContext;
-use crate::defines::{INADDR_ANY, MAX_UDP_MSG, retired_fd, ZmqHandle};
+use crate::defines::ZmqFileDesc;
+use crate::defines::{retired_fd, ZmqHandle, INADDR_ANY, MAX_UDP_MSG};
 use crate::endpoint_uri::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
-use crate::defines::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 use crate::ip::{assert_success_or_recoverable, bind_to_device, open_socket, unblock_socket};
 use crate::mechanism::name_len;
@@ -67,26 +67,33 @@ use crate::pgm_receiver::_empty_endpoint;
 use crate::session_base::ZmqSessionBase;
 use crate::thread_context::ZmqThreadContext;
 
-
 #[cfg(target_os = "linux")]
 use libc::{
     in6_addr, in_addr, ip_mreq, ipv6_mreq, sockaddr_storage, socklen_t, INADDR_ANY, SO_REUSEPORT,
 };
 
+use crate::engine::ZmqEngine;
+use anyhow::bail;
 use libc::{
-    atoi, bind, c_char, c_int, c_uint, memcpy, memset,
-    recvfrom, sendto, setsockopt, sockaddr, EINVAL, EWOULDBLOCK,
+    atoi, bind, c_char, c_int, c_uint, memcpy, memset, recvfrom, sendto, setsockopt, sockaddr,
+    EINVAL, EWOULDBLOCK,
 };
 use std::mem;
 use std::net::SocketAddr;
 use std::os::raw::c_void;
 use std::ptr::null_mut;
-use anyhow::bail;
-use windows::Win32::Networking::WinSock::{htons, inet_addr, inet_ntoa, ntohs, WSAGetLastError, INADDR_NONE, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_UDP, IPV6_ADD_MEMBERSHIP, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, IP_ADD_MEMBERSHIP, IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, WSAEWOULDBLOCK, socklen_t, IPPROTO, IP_MREQ, IN_ADDR, IPV6_MREQ, SOCKADDR_STORAGE};
-use crate::engine::ZmqEngine;
+use windows::Win32::Networking::WinSock::{
+    htons, inet_addr, inet_ntoa, ntohs, socklen_t, WSAGetLastError, INADDR_NONE, IN_ADDR, IPPROTO,
+    IPPROTO_IP, IPPROTO_IPV6, IPPROTO_UDP, IPV6_ADD_MEMBERSHIP, IPV6_MREQ, IPV6_MULTICAST_IF,
+    IPV6_MULTICAST_LOOP, IP_ADD_MEMBERSHIP, IP_MREQ, IP_MULTICAST_IF, IP_MULTICAST_LOOP,
+    IP_MULTICAST_TTL, SOCKADDR_STORAGE, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, WSAEWOULDBLOCK,
+};
 
-
-pub fn udp_plug(engine: &mut ZmqEngine, io_thread_: &mut ZmqThreadContext, session_: &mut ZmqSessionBase) {
+pub fn udp_plug(
+    engine: &mut ZmqEngine,
+    io_thread_: &mut ZmqThreadContext,
+    session_: &mut ZmqSessionBase,
+) {
     engine.plugged = true;
     engine.session = Some(session_);
 
@@ -116,16 +123,11 @@ pub fn udp_plug(engine: &mut ZmqEngine, io_thread_: &mut ZmqThreadContext, sessi
 
             if out.is_multicast() {
                 let is_ipv6 = (out.family() == AF_INET6);
-                rc = rc
-                    | udp_set_multicast_loop(engine.fd, is_ipv6, engine.options.multicast_loop);
+                rc = rc | udp_set_multicast_loop(engine.fd, is_ipv6, engine.options.multicast_loop);
 
                 if engine.options.multicast_hops > 0 {
                     rc = rc
-                        | udp_set_multicast_ttl(
-                        engine.fd,
-                        is_ipv6,
-                        engine.options.multicast_hops,
-                    );
+                        | udp_set_multicast_ttl(engine.fd, is_ipv6, engine.options.multicast_hops);
                 }
 
                 rc = rc | udp_set_multicast_iface(engine, engine.fd, is_ipv6, udp_addr);
@@ -202,7 +204,6 @@ pub fn udp_plug(engine: &mut ZmqEngine, io_thread_: &mut ZmqThreadContext, sessi
     }
 }
 
-
 pub fn udp_set_multicast_loop(s_: ZmqFileDesc, is_ipv6_: bool, loop_in: bool) -> i32 {
     let mut level: IPPROTO;
     let mut optname: i32;
@@ -231,12 +232,18 @@ pub fn udp_set_multicast_ttl(s_: ZmqFileDesc, is_ipv6_: bool, hops_: i32) -> i32
         level = IPPROTO_IP;
     }
 
-    let rc: i32 =
-        unsafe { setsockopt(s_, level as c_int, IP_MULTICAST_TTL, (&hops_) as *const c_char, 4) };
+    let rc: i32 = unsafe {
+        setsockopt(
+            s_,
+            level as c_int,
+            IP_MULTICAST_TTL,
+            (&hops_) as *const c_char,
+            4,
+        )
+    };
     assert_success_or_recoverable(s_, rc);
     return rc;
 }
-
 
 pub fn udp_set_multicast_iface(
     engine: &mut ZmqEngine,
@@ -270,16 +277,13 @@ pub fn udp_set_multicast_iface(
     return rc;
 }
 
-
 pub fn udp_set_reuse_address(engine: &mut ZmqEngine, s_: ZmqFileDesc, on_: bool) -> i32 {
     // int on = on_ ? 1 : 0;
     let on = if on_ { 1 } else { 0 };
-    let rc: i32 =
-        unsafe { setsockopt(s_, SOL_SOCKET, SO_REUSEADDR, (&on) as *const c_char, 1) };
+    let rc: i32 = unsafe { setsockopt(s_, SOL_SOCKET, SO_REUSEADDR, (&on) as *const c_char, 1) };
     assert_success_or_recoverable(s_, rc);
     return rc;
 }
-
 
 pub fn udp_set_reuse_port(engine: &mut ZmqEngine, s_: ZmqFileDesc, on_: bool) -> i32 {
     // #ifndef SO_REUSEPORT
@@ -300,16 +304,23 @@ pub fn udp_set_reuse_port(engine: &mut ZmqEngine, s_: ZmqFileDesc, on_: bool) ->
     }
 }
 
-
-pub fn udp_add_membership(engine: &mut ZmqEngine, s_: ZmqFileDesc, addr_: &mut ZmqAddress) -> anyhow::Result<()> {
+pub fn udp_add_membership(
+    engine: &mut ZmqEngine,
+    s_: ZmqFileDesc,
+    addr_: &mut ZmqAddress,
+) -> anyhow::Result<()> {
     let mut mcast_addr = addr_.target_addr();
     let mut rc = 0;
 
     if mcast_addr.family() == AF_INET {
         // struct  mreq;
         let mut mreq = IP_MREQ {
-            imr_multiaddr: IN_ADDR { S_un: Default::default() },
-            imr_interface: IN_ADDR { S_un: Default::default() },
+            imr_multiaddr: IN_ADDR {
+                S_un: Default::default(),
+            },
+            imr_interface: IN_ADDR {
+                S_un: Default::default(),
+            },
         };
         mreq.imr_multiaddr = mcast_addr.ipv4.sin_addr;
         mreq.imr_interface = addr_.bind_addr().ipv4.sin_addr;
@@ -348,7 +359,6 @@ pub fn udp_add_membership(engine: &mut ZmqEngine, s_: ZmqFileDesc, addr_: &mut Z
     Ok(())
 }
 
-
 pub fn udp_terminate(engine: &mut ZmqEngine) {
     // zmq_assert (_plugged);
     engine.plugged = false;
@@ -360,7 +370,6 @@ pub fn udp_terminate(engine: &mut ZmqEngine) {
 
     // delete this;
 }
-
 
 pub fn udp_sockaddr_to_msg(
     engine: &mut ZmqEngine,
@@ -399,7 +408,6 @@ pub fn udp_sockaddr_to_msg(
 
     Ok(())
 }
-
 
 pub fn udp_resolve_raw_address(engine: &mut ZmqEngine, name: &str, length_: usize) -> i32 {
     // // memset (&_raw_address, 0, sizeof _raw_address);
@@ -446,7 +454,6 @@ pub fn udp_resolve_raw_address(engine: &mut ZmqEngine, name: &str, length_: usiz
     todo!()
 }
 
-
 pub fn udp_out_event(engine: &mut ZmqEngine) -> anyhow::Result<()> {
     // ZmqMessage group_msg;
     let mut group_msg: ZmqMessage = Default::default();
@@ -457,7 +464,7 @@ pub fn udp_out_event(engine: &mut ZmqEngine) -> anyhow::Result<()> {
         // ZmqMessage body_msg;
         let mut body_msg: ZmqMessage = Default::default();
         rc = engine.session.pull_msg(&body_msg);
-        //  If there's a group, there should also be a body
+        //  If there's a Group, there should also be a Body
         // errno_assert (rc == 0);
 
         let group_size = group_msg.size();
@@ -465,9 +472,11 @@ pub fn udp_out_event(engine: &mut ZmqEngine) -> anyhow::Result<()> {
         let mut size_: usize;
 
         if engine.options.raw_socket {
-            rc = udp_resolve_raw_address(engine,
-                                         &String::from_utf8(group_msg.data().to_vec())?,
-                                         group_size);
+            rc = udp_resolve_raw_address(
+                engine,
+                &String::from_utf8(group_msg.data().to_vec())?,
+                group_size,
+            );
 
             //  We discard the message if address is not valid
             if rc != 0 {
@@ -502,7 +511,14 @@ pub fn udp_out_event(engine: &mut ZmqEngine) -> anyhow::Result<()> {
 
         // #ifdef ZMQ_HAVE_WINDOWS
         unsafe {
-            rc = sendto(engine.fd, &engine.out_buffer as *const c_char, engine.out_buffer.len() as c_int, 0, &engine.out_address.to_sockaddr(), engine.out_address_len);
+            rc = sendto(
+                engine.fd,
+                &engine.out_buffer as *const c_char,
+                engine.out_buffer.len() as c_int,
+                0,
+                &engine.out_address.to_sockaddr(),
+                engine.out_address_len,
+            );
         }
         // #elif defined ZMQ_HAVE_VXWORKS
         //         unsafe {
@@ -536,7 +552,6 @@ pub fn udp_out_event(engine: &mut ZmqEngine) -> anyhow::Result<()> {
     Ok(())
 }
 
-
 pub fn udp_get_endpoint(engine: &mut ZmqEngine) -> EndpointUriPair {
     return engine.empty_endpoint.clone();
 }
@@ -555,7 +570,6 @@ pub fn udp_restart_output(engine: &mut ZmqEngine) -> anyhow::Result<()> {
     Ok(())
 }
 
-
 pub fn udp_restart_input(engine: &mut ZmqEngine) -> bool {
     if engine.recv_enabled {
         engine.io_thread.set_pollin(engine.handle);
@@ -565,7 +579,12 @@ pub fn udp_restart_input(engine: &mut ZmqEngine) -> bool {
     return true;
 }
 
-pub fn udp_init(engine: &mut ZmqEngine, address_: &mut ZmqAddress, send_: bool, recv_: bool) -> anyhow::Result<()> {
+pub fn udp_init(
+    engine: &mut ZmqEngine,
+    address_: &mut ZmqAddress,
+    send_: bool,
+    recv_: bool,
+) -> anyhow::Result<()> {
     // zmq_assert (address_);
     // zmq_assert (send_ || recv_);
     engine.send_enabled = send_;
@@ -627,7 +646,7 @@ pub fn udp_in_event(engine: &mut ZmqEngine) -> anyhow::Result<()> {
         body_size = nbytes;
         body_offset = 0;
     } else {
-        // TODO in out_event, the group size is an *unsigned* char. what is
+        // TODO in out_event, the Group size is an *unsigned* char. what is
         // the maximum value?
         let group_buffer = engine.in_buffer + 1;
         let group_size: i32 = engine.in_buffer[0];
@@ -646,7 +665,7 @@ pub fn udp_in_event(engine: &mut ZmqEngine) -> anyhow::Result<()> {
         body_size = nbytes - 1 - group_size;
         body_offset = 1 + group_size;
     }
-    // Push group description to session
+    // Push Group description to session
     rc = engine.session.push_msg(&mut msg);
     // errno_assert (rc == 0 || (rc == -1 && errno == EAGAIN));
 
@@ -664,14 +683,14 @@ pub fn udp_in_event(engine: &mut ZmqEngine) -> anyhow::Result<()> {
     // TODO:
     // memcpy (msg.data (), _in_buffer + body_offset, body_size);
 
-    // Push message body to session
+    // Push message Body to session
     engine.session.push_msg(&mut msg).map_err(|x| {
         msg.close();
         engine.session.reset();
         engine.io_thread.reset_pollin(engine.handle);
         return Ok(());
     })?;
-    // Message body doesn't fit in the pipe, drop and reset session state
+    // Message Body doesn't fit in the pipe, drop and reset session state
 
     msg.close()?;
     // errno_assert (rc == 0);

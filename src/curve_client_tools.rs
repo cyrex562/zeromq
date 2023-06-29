@@ -27,29 +27,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// #ifndef __ZMQ_CURVE_CLIENT_TOOLS_HPP_INCLUDED__
-// #define __ZMQ_CURVE_CLIENT_TOOLS_HPP_INCLUDED__
-
-// #ifdef ZMQ_HAVE_CURVE
-
-// #if defined(ZMQ_USE_TWEETNACL)
-// #include "tweetnacl.h"
-// #elif defined(ZMQ_USE_LIBSODIUM)
-// #include "sodium.h"
-// #endif
-
-// #if CRYPTO_BOX_NONCEBYTES != 24 || CRYPTO_BOX_PUBLICKEYBYTES != 32             \
-//   || CRYPTO_BOX_SECRETKEYBYTES != 32 || CRYPTO_BOX_ZEROBYTES != 32             \
-//   || CRYPTO_BOX_BOXZEROBYTES != 16
-// #error "CURVE library not built properly"
-// #endif
-
-// #include "wire.hpp"
-// #include "err.hpp"
-// #include "secure_allocator.hpp"
-
-// #include <vector>
-
 use crate::config::{CRYPTO_BOX_BOXZEROBYTES, CRYPTO_BOX_NONCEBYTES, CRYPTO_BOX_ZEROBYTES};
 use crate::utils::copy_bytes;
 use anyhow::anyhow;

@@ -1,10 +1,10 @@
+use crate::context::ZmqContext;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::pipe::ZmqPipe;
-use crate::socket::{ZmqSocket};
+use crate::socket::ZmqSocket;
 use crate::socket_base_ops::ZmqSocketBaseOps;
 use anyhow::anyhow;
 use libc::socket;
-use crate::context::ZmqContext;
 
 // fn channel_xattach_pipe(
 //
@@ -18,7 +18,7 @@ use crate::context::ZmqContext;
 //
 //     // zmq_assert (pipe_ != null_mut());
 //
-//     //  ZMQ_PAIR socket can only be connected to a single peer.
+//     //  ZMQ_PAIR socket can only be Connected to a single peer.
 //     //  The socket rejects any further connection requests.
 //     // if (pipe == null_mut())
 //     // pipe = pipe_;
@@ -44,14 +44,18 @@ pub fn channel_xwrite_activated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
     unimplemented!()
 }
 
-pub fn channel_xsend(sock: &mut ZmqSocket, pipe: &mut ZmqPipe, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+pub fn channel_xsend(
+    sock: &mut ZmqSocket,
+    pipe: &mut ZmqPipe,
+    msg: &mut ZmqMessage,
+) -> anyhow::Result<()> {
     //  CHANNEL sockets do not allow multipart data (ZMQ_SNDMORE)
     if (msg.flags() & ZMQ_MSG_MORE) {
         // errno = EINVAL;
         // return -1;
         return Err(anyhow!(
-                "invalid state: channel sockets do not allow multipart data"
-            ));
+            "invalid state: channel sockets do not allow multipart data"
+        ));
     }
     pipe.flush();
 

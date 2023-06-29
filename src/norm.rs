@@ -12,18 +12,21 @@
 // #include "session_base.hpp"
 // #include "v2_protocol.hpp"
 
+use crate::defines::ZmqFileDesc;
 use crate::defines::{NormDescriptor, NormInstanceHandle, ZmqHandle};
 use crate::endpoint_uri::EndpointUriPair;
-use crate::defines::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
-use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
+use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 
+use crate::context::ZmqContext;
+use crate::engine::ZmqEngine;
+use crate::norm_stream_state::NormRxStreamState;
 use crate::session_base::ZmqSessionBase;
 use crate::thread_context::ZmqThreadContext;
 use crate::v2_decoder::ZmqV2Decoder;
 use crate::v2_encoder::ZmqV2Encoder;
 use bincode::options;
-use libc::{atoi, EAGAIN, EINVAL, free, size_t, strchr, strncpy, strrchr};
+use libc::{atoi, free, size_t, strchr, strncpy, strrchr, EAGAIN, EINVAL};
 use std::mem;
 use std::os::raw::c_void;
 use std::path::Iter;
@@ -31,11 +34,8 @@ use std::ptr::null_mut;
 use windows::Win32::Foundation::{HANDLE, LPARAM, WAIT_OBJECT_0, WPARAM};
 use windows::Win32::Networking::WinSock::{closesocket, recv, send, shutdown, SOCKET};
 use windows::Win32::System::Threading::{
-    CreateThread, GetExitCodeThread, INFINITE, WaitForSingleObject,
+    CreateThread, GetExitCodeThread, WaitForSingleObject, INFINITE,
 };
-use crate::context::ZmqContext;
-use crate::engine::ZmqEngine;
-use crate::norm_stream_state::NormRxStreamState;
 
 // enum
 // {
@@ -81,7 +81,6 @@ pub struct NormWrapperThreadArgs {
     pub norm_instance_handle: NormInstanceHandle,
 }
 
-
 // DWORD WINAPI normWrapperThread (LPVOID lpParam);
 // #endif
 
@@ -90,8 +89,7 @@ pub struct NormWrapperThreadArgs {
 //     shutdown (); // in case it was not already called
 // }
 
-
-#[cfg(target_feature="norm")]
+#[cfg(target_feature = "norm")]
 pub fn norm_shutdown(engine: &mut ZmqEngine) {
     // TBD - implement a more graceful shutdown option
     if (is_receiver) {
@@ -119,8 +117,7 @@ pub fn norm_shutdown(engine: &mut ZmqEngine) {
     }
 } // end NormEngine::shutdown()
 
-
-#[cfg(target_feature="norm")]
+#[cfg(target_feature = "norm")]
 pub fn norm_init(engine: &mut ZmqEngine, network_: &str, send: bool, recv: bool) -> i32 {
     // Parse the "network_" address int "iface", "addr", and "port"
     // norm endpoint format: [id,][<iface>;]<addr>:<port>
@@ -138,8 +135,7 @@ pub fn norm_init(engine: &mut ZmqEngine, network_: &str, send: bool, recv: bool)
         // strncpy (idText, network_, idLen);
         idText[..idLen].copy_from_slice(&network_[..idLen]);
         // idText[idLen] = 0;
-        let localId =
-            i32::from_str_radix(String::from_utf8_lossy(&idText).as_ref(), 10).unwrap();
+        let localId = i32::from_str_radix(String::from_utf8_lossy(&idText).as_ref(), 10).unwrap();
         ifacePtr += 1;
     } else {
         // ifacePtr = network_;
@@ -153,7 +149,7 @@ pub fn norm_init(engine: &mut ZmqEngine, network_: &str, send: bool, recv: bool)
         if (ifaceLen > 255) {
             ifaceLen = 255;
         } // return error instead?
-        // strncpy (ifaceName, ifacePtr, ifaceLen);
+          // strncpy (ifaceName, ifacePtr, ifaceLen);
         ifaceName[..ifaceLen].copy_from_slice(&ifacePtr[..ifaceLen]);
         ifaceName[ifaceLen] = 0;
         // ifacePtr = ifaceName;
@@ -180,8 +176,7 @@ pub fn norm_init(engine: &mut ZmqEngine, network_: &str, send: bool, recv: bool)
     addr = addrPtr[..addrLen].try_into().unwrap();
     addr[addrLen] = 0;
     portPtr += 1;
-    let portNumber =
-        i32::from_str_radix(String::from_utf8_lossy(portPtr).as_ref(), 10).unwrap();
+    let portNumber = i32::from_str_radix(String::from_utf8_lossy(portPtr).as_ref(), 10).unwrap();
 
     if (NORM_INSTANCE_INVALID == norm_instance) {
         if (NORM_INSTANCE_INVALID == (norm_instance = NormCreateInstance())) {
@@ -212,7 +207,7 @@ pub fn norm_init(engine: &mut ZmqEngine, network_: &str, send: bool, recv: bool)
         // These only apply for multicast sessions
         //NormSetTTL(norm_session, options.multicast_hops);  // ZMQ default is 1
         NormSetTTL(norm_session, 255); // since the ZMQ_MULTICAST_HOPS socket option isn't well-supported
-        NormSetRxPortReuse(norm_session, true); // port reuse doesn't work for non-connected unicast
+        NormSetRxPortReuse(norm_session, true); // port reuse doesn't work for non-Connected unicast
         NormSetLoopback(norm_session, true); // needed when multicast users on same machine
         if (ifacePtr.is_some()) {
             // Note a bad interface may not be caught until sender or receiver start
@@ -254,8 +249,7 @@ pub fn norm_init(engine: &mut ZmqEngine, network_: &str, send: bool, recv: bool)
         NormSetCongestionControl(norm_session, true);
         norm_tx_ready = true;
         is_sender = true;
-        if (NORM_OBJECT_INVALID
-            == (norm_tx_stream = NormStreamOpen(norm_session, 2 * 1024 * 1024)))
+        if (NORM_OBJECT_INVALID == (norm_tx_stream = NormStreamOpen(norm_session, 2 * 1024 * 1024)))
         {
             // errno set by whatever failed
             let savedErrno = errno;
@@ -278,7 +272,11 @@ pub fn norm_init(engine: &mut ZmqEngine, network_: &str, send: bool, recv: bool)
 //  Plug the engine to the session.
 // void Plug (ZmqIoThread *io_thread_, ZmqSessionBase *session_) ;
 #[cfg(target_feature = "norm")]
-pub fn norm_plug(engine: &mut ZmqEngine, io_thread: &mut ZmqThreadContext, session: &mut ZmqSessionBase) {
+pub fn norm_plug(
+    engine: &mut ZmqEngine,
+    io_thread: &mut ZmqThreadContext,
+    session: &mut ZmqSessionBase,
+) {
     // #ifdef ZMQ_USE_NORM_SOCKET_WRAPPER
     let mut threadArgs = NormWrapperThreadArgs::default();
     let rc = make_fdpair(
@@ -317,7 +315,6 @@ pub fn norm_plug(engine: &mut ZmqEngine, io_thread: &mut ZmqThreadContext, sessi
     //         }
     // #endif
 } // end NormEngine::init()
-
 
 //  Terminate and deallocate the engine. Note that 'detached'
 //  events are not fired on termination.
@@ -416,7 +413,7 @@ pub fn norm_in_event(engine: &mut ZmqEngine) {
             NormNodeDelete(event.sender);
         }
         _ => {} // We ignore some NORM events
-        // break;
+                // break;
     }
 } // NormEngine::in_event()
 
@@ -498,8 +495,7 @@ pub fn norm_send_data(engine: &mut ZmqEngine) {
         // Do we have data in our tx_buffer pending
         if (tx_index < tx_len) {
             // We have data in our tx_buffer to send, so write it to the stream
-            tx_index +=
-                NormStreamWrite(norm_tx_stream, tx_buffer + tx_index, tx_len - tx_index);
+            tx_index += NormStreamWrite(norm_tx_stream, tx_buffer + tx_index, tx_len - tx_index);
             if (tx_index < tx_len) {
                 // NORM stream buffer full, wait for NORM_TX_QUEUE_VACANCY
                 norm_tx_ready = false;
@@ -618,8 +614,8 @@ pub fn norm_recv_data(engine: &mut ZmqEngine, object: NormObjectHandle) {
             if !NormStreamRead(stream, rxState.AccessBuffer(), &numBytes) {
                 // broken NORM stream, so re-sync
                 rxState.Init(); // TBD - check result
-                // This will retry syncing, and getting data from this stream
-                // since we don't increment the "it" iterator
+                                // This will retry syncing, and getting data from this stream
+                                // since we don't increment the "it" iterator
                 continue;
             }
             rxState.IncrementBufferCount(numBytes);

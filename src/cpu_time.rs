@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-#[cfg(target_os="unix")]
+#[cfg(target_os = "unix")]
 use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
 
 // now() calls used by SystemTime:
@@ -12,14 +12,13 @@ use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
 // Windows: GetSystemTimePreciseAsFileTime()
 
 pub fn get_cpu_tick_counter() -> anyhow::Result<u64> {
-    #[cfg(target_os="unix")]
+    #[cfg(target_os = "linux")]
     return get_cpu_tick_counter_nix();
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     return get_cpu_tick_counter_win();
-
 }
 
-#[cfg(target_os="unix")]
+#[cfg(target_os = "linux")]
 pub fn get_cpu_tick_counter_nix() -> anyhow::Result<u4> {
     let mut ts: timespec = timespec {
         tv_sec: 0,
@@ -32,8 +31,7 @@ pub fn get_cpu_tick_counter_nix() -> anyhow::Result<u4> {
     return Ok(out);
 }
 
-#[cfg(target_os="windows")]
-pub fn get_cpu_tick_counter_win() -> anyhow::Result<u64>
-{
+#[cfg(target_os = "windows")]
+pub fn get_cpu_tick_counter_win() -> anyhow::Result<u64> {
     unimplemented!()
 }

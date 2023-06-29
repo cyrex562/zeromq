@@ -76,63 +76,63 @@ pub struct ZmqClient<'a> {
 // }
 
 //     int xsend (msg: &mut ZmqMessage);
-pub fn client_xsend( sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+pub fn client_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
     //  CLIENT sockets do not allow multipart data (ZMQ_SNDMORE)
     if (msg.flags() & ZMQ_MSG_MORE) {
         // errno = EINVAL;
         // return -1;
         return Err(anyhow!(
-                "EINVAL: client sockets do not allow multipart dart (ZMQ_SNDMORE)"
-            ));
+            "EINVAL: client sockets do not allow multipart dart (ZMQ_SNDMORE)"
+        ));
     }
-    self.lb.sendpipe(msg, None)
+    sock.lb.sendpipe(msg, None)
 }
 
 //     int xrecv (msg: &mut ZmqMessage);
-pub fn client_xrecv( sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
-    let mut rc = self.fq.recvpipe(msg, None);
+pub fn client_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+    let mut rc = sock.fq.recvpipe(msg, None);
 
     // Drop any messages with more flag
     while msg.flags() & ZMQ_MSG_MORE != 0 {
         // drop all frames of the current multi-frame message
-        self.fq.recvpipe(msg, None)?;
+        sock.fq.recvpipe(msg, None)?;
 
         while msg.flags() & ZMQ_MSG_MORE != 0 {
-            self.fq.recvpipe(msg, None)?;
+            sock.fq.recvpipe(msg, None)?;
         }
 
         // get the new message
         // if (rc == 0) {
         //     fair_queue.recvpipe(msg, null_mut());
         // }
-        self.fq.recvpipe(msg, None)?;
+        sock.fq.recvpipe(msg, None)?;
     }
 
     Ok(())
 }
 
 //     bool xhas_in ();
-pub fn client_xhas_in( sock: &mut ZmqSocket) -> bool {
+pub fn client_xhas_in(sock: &mut ZmqSocket) -> bool {
     return self.fq.has_in();
 }
 
 //     bool xhas_out ();
-pub fn client_xhas_out( sock: &mut ZmqSocket) -> bool {
+pub fn client_xhas_out(sock: &mut ZmqSocket) -> bool {
     return self.lb.has_out();
 }
 
 //     void xread_activated (pipe_: &mut ZmqPipe);
-pub fn client_xread_activated( sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
-    self.fq.activated(pipe);
+pub fn client_xread_activated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    sock.fq.activated(pipe);
 }
 
 //     void xwrite_activated (pipe_: &mut ZmqPipe);
-pub fn client_xwrite_activated( sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
-    self.lb.activated(pipe);
+pub fn client_xwrite_activated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    sock.lb.activated(pipe);
 }
 
 //     void xpipe_terminated (pipe_: &mut ZmqPipe);
-pub fn client_xpipe_terminated( sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
-    self.fq.pipe_terminated(pipe);
-    self.lb.pipe_terminated(pipe);
+pub fn client_xpipe_terminated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    sock.fq.pipe_terminated(pipe);
+    sock.lb.pipe_terminated(pipe);
 }

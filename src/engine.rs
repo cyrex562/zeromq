@@ -1,37 +1,43 @@
-use std::collections::HashMap;
-use std::net::SocketAddr;
-use std::os::raw::c_void;
-use std::ptr::null_mut;
-use anyhow::bail;
-use libc::{c_int, EAGAIN, EPROTO, read, write};
-use windows::Win32::Networking::WinSock::PF_UNIX;
 use crate::address::ZmqAddress;
 use crate::context::ZmqContext;
-use crate::defines::{handshake_timer_id, heartbeat_ivl_timer_id, heartbeat_timeout_timer_id, heartbeat_ttl_timer_id, NormInstanceHandle, NormObjectHandle, NormSessionHandle, ZMQ_MSG_PROPERTY_PEER_ADDRESS, ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT, ZmqHandle};
+use crate::defines::ZmqFileDesc;
+use crate::defines::{
+    handshake_timer_id, heartbeat_ivl_timer_id, heartbeat_timeout_timer_id, heartbeat_ttl_timer_id,
+    NormInstanceHandle, NormObjectHandle, NormSessionHandle, ZmqHandle,
+    ZMQ_MSG_PROPERTY_PEER_ADDRESS, ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT,
+};
 use crate::encoder::EncoderBase;
 use crate::endpoint_uri::EndpointUriPair;
-use crate::defines::ZmqFileDesc;
 use crate::io_object::ZmqIoObject;
 use crate::ip::get_peer_ip_address;
 use crate::mechanism::ZmqMechanism;
 use crate::mechanism::ZmqMechanismStatus::ready;
-use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_CREDENTIAL, ZmqMessage};
+use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_CREDENTIAL};
 use crate::metadata::ZmqMetadata;
 use crate::norm_stream_state::NormRxStreamState;
 use crate::session_base::ZmqSessionBase;
 use crate::socket::ZmqSocket;
+use anyhow::bail;
+use libc::{c_int, read, write, EAGAIN, EPROTO};
+use std::collections::HashMap;
+use std::net::SocketAddr;
+use std::os::raw::c_void;
+use std::ptr::null_mut;
+use windows::Win32::Networking::WinSock::PF_UNIX;
 
 use crate::tcp::{tcp_read, tcp_write};
 use crate::thread_context::ZmqThreadContext;
 use crate::transport::ZmqTransport;
-use crate::udp::{udp_get_endpoint, udp_in_event, udp_init, udp_restart_input, udp_restart_output, udp_terminate};
+use crate::udp::{
+    udp_get_endpoint, udp_in_event, udp_init, udp_restart_input, udp_restart_output, udp_terminate,
+};
 use crate::utils::copy_bytes;
 use crate::v2_decoder::ZmqV2Decoder;
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ZmqEngine<'a> {
     pub plugged: bool,
-    pub session: Option<&'a mut ZmqSessionBase>,
+    pub session: Option<&'a mut ZmqSessionBase<'a>>,
     pub io_object: ZmqIoObject,
     pub handle: ZmqHandle,
     pub fd: ZmqFileDesc,
@@ -40,9 +46,9 @@ pub struct ZmqEngine<'a> {
     pub out_address: ZmqAddress,
     pub recv_enabled: bool,
     pub send_enabled: bool,
-    pub inpos: &'a mut[u8],
+    pub inpos: &'a mut [u8],
     pub insize: usize,
-    pub outpos: &'a mut[u8],
+    pub outpos: &'a mut [u8],
     pub outsize: usize,
     pub encoder: EncoderBase, // zmq_encoder -- Option<ZmqV2Encoder> for norm engine
     pub mechanism: Option<ZmqMechanism>,
@@ -85,8 +91,7 @@ pub struct ZmqEngine<'a> {
     pub out_buffer: Vec<u8>,
 }
 
-impl <'a> ZmqEngine <'a> {
-
+impl<'a> ZmqEngine<'a> {
     pub fn in_event_internal(&mut self) -> bool {
         // zmq_assert (!_io_error);
 
@@ -130,8 +135,8 @@ impl <'a> ZmqEngine <'a> {
                 self.decoder.get_buffer(&self.inpos, &bufsize);
 
                 // TODO
-                let rc: i32 = read(self.fd as c_int, self.inpos as *mut c_void, bufsize);
-                if (rc == -1) {
+                let rc = read(self.fd as c_int, self.inpos as *mut c_void, bufsize);
+                if rc == -1 {
                     // TODO
                     // if (errno != EAGAIN) {
                     //     // error (connection_error);
@@ -142,7 +147,7 @@ impl <'a> ZmqEngine <'a> {
 
                 //  Adjust input size
                 self.insize = rc as usize; //static_cast<size_t> (rc);
-                // Adjust buffer size to received bytes
+                                           // Adjust buffer size to received bytes
                 self.decoder.resize_buffer(self.insize);
             }
         }
@@ -150,23 +155,23 @@ impl <'a> ZmqEngine <'a> {
         let mut rc = 0;
         let mut processed = 0;
 
-        while (self.insize > 0) {
+        while self.insize > 0 {
             rc = self.decoder.decode(self.inpos, self.insize, processed);
             // zmq_assert (processed <= _insize);
             self.inpos += processed;
             self.insize -= processed;
-            if (rc == 0 || rc == -1) {
+            if rc == 0 || rc == -1 {
                 break;
             }
             rc = self.process_msg(self.decoder.msg());
-            if (rc == -1) {
+            if rc == -1 {
                 break;
             }
         }
 
         //  Tear down the connection if we have failed to decode input data
         //  or the session has rejected the message.
-        if (rc == -1) {
+        if rc == -1 {
             // TODO
             // if (errno != EAGAIN) {
             //     // error (protocol_error);
@@ -187,17 +192,17 @@ impl <'a> ZmqEngine <'a> {
         self.plugged = false;
 
         //  Cancel all timers.
-        if (self.has_handshake_timer) {
+        if self.has_handshake_timer {
             self.io_object.cancel_timer(self.handshake_timer_id);
             self.has_handshake_timer = false;
         }
 
-        if (self.has_ttl_timer) {
+        if self.has_ttl_timer {
             self.io_object.cancel_timer(self.heartbeat_ttl_timer_id);
             self.has_ttl_timer = false;
         }
 
-        if (self.has_timeout_timer) {
+        if self.has_timeout_timer {
             self.io_object.cancel_timer(self.heartbeat_timeout_timer_id);
             self.has_timeout_timer = false;
         }
@@ -219,7 +224,10 @@ impl <'a> ZmqEngine <'a> {
 
     pub fn mechanism_ready(&mut self) {
         if (self.options.heartbeat_interval > 0 && !self.has_heartbeat_timer) {
-            self.io_object.add_timer(self.options.heartbeat_interval, heartbeat_ivl_timer_id as i32);
+            self.io_object.add_timer(
+                self.options.heartbeat_interval,
+                heartbeat_ivl_timer_id as i32,
+            );
             self.has_heartbeat_timer = true;
         }
 
@@ -249,7 +257,7 @@ impl <'a> ZmqEngine <'a> {
             connect_notification.init2();
             let rc: i32 = self.session.push_msg(&connect_notification);
             // && errno == EAGAIN
-            if (rc == -1 ) {
+            if (rc == -1) {
                 // If the write is failing at this stage with
                 // an EAGAIN the pipe must be being shut down,
                 // so we can just bail out of the notification.
@@ -337,12 +345,9 @@ impl <'a> ZmqEngine <'a> {
     //  events are not fired on termination.
     // virtual void terminate () = 0;
     pub fn terminate(&mut self) {
-
         match self.address.protocol {
             ZmqTransport::ZmqUdp => udp_terminate(self),
-            _ => {
-                self.unplug()
-            }
+            _ => self.unplug(),
         }
     }
 
@@ -353,7 +358,6 @@ impl <'a> ZmqEngine <'a> {
     //  does not delete itself
     // virtual bool restart_input () = 0;
     pub fn restart_input(&mut self) -> bool {
-
         match self.address.protocol {
             ZmqTransport::ZmqUdp => udp_restart_input(self),
             _ => {}
@@ -387,8 +391,7 @@ impl <'a> ZmqEngine <'a> {
         }
 
         // if (rc == -1 && errno == EAGAIN)
-        if (rc == -1)
-        {
+        if (rc == -1) {
             self.session.flush();
         } else if (self.io_error) {
             // error (connection_error);
@@ -408,7 +411,6 @@ impl <'a> ZmqEngine <'a> {
         }
 
         return true;
-
     }
 
     // pub fn get_endpoint(&self) -> EndpointUriPair {
@@ -419,7 +421,6 @@ impl <'a> ZmqEngine <'a> {
     //  are messages to send available.
     // virtual void restart_output () = 0;
     pub fn restart_output(&mut self) {
-
         match self.address.protocol {
             ZmqTransport::ZmqUdp => udp_restart_output(self),
             _ => {}
@@ -461,7 +462,6 @@ impl <'a> ZmqEngine <'a> {
     }
 
     pub fn in_event(&mut self) {
-
         match self.address.protocol {
             ZmqTransport::ZmqUdp => udp_in_event(self),
             _ => {}
@@ -527,7 +527,7 @@ impl <'a> ZmqEngine <'a> {
         //  limited transmission buffer and thus the actual number of bytes
         //  written should be reasonably modest.
         // TODO
-        let nbytes: i32 = unsafe { write(self.fd as c_int, self._outpos, self._outsize) };
+        let nbytes = unsafe { write(self.fd as c_int, self._outpos, self._outsize) };
 
         //  IO error has occurred. We Stop waiting for output events.
         //  The engine is not terminated until we detect input error;
@@ -613,7 +613,7 @@ impl <'a> ZmqEngine <'a> {
     pub fn get_endpoint(&mut self) -> EndpointUriPair {
         match self.address.protocol {
             ZmqTransport::ZmqUdp => udp_get_endpoint(self),
-            _ => self.empty_endpoint.clone()
+            _ => self.empty_endpoint.clone(),
         }
     }
 
@@ -625,7 +625,7 @@ impl <'a> ZmqEngine <'a> {
         todo!()
     }
 
-    pub fn decode(&mut self, data: &mut[u8], size: usize, processed: &mut usize) {
+    pub fn decode(&mut self, data: &mut [u8], size: usize, processed: &mut usize) {
         todo!()
     }
 
@@ -764,16 +764,18 @@ impl <'a> ZmqEngine <'a> {
         // zmq_assert (!_has_handshake_timer);
 
         if (self._options.handshake_ivl > 0) {
-            self.io_thread.add_timer(self._options.handshake_ivl, handshake_timer_id);
+            self.io_thread
+                .add_timer(self._options.handshake_ivl, handshake_timer_id);
             self._has_handshake_timer = true;
         }
     }
 
-    pub fn init_properties(&mut self, properties_: &mut HashMap<String,String>) -> bool {
+    pub fn init_properties(&mut self, properties_: &mut HashMap<String, String>) -> bool {
         if (self._peer_address.empty()) {
             return false;
         }
-        properties_.ZMQ_MAP_INSERT_OR_EMPLACE((ZMQ_MSG_PROPERTY_PEER_ADDRESS), self.peer_address.clone());
+        properties_
+            .ZMQ_MAP_INSERT_OR_EMPLACE((ZMQ_MSG_PROPERTY_PEER_ADDRESS), self.peer_address.clone());
 
         //  Private property to support deprecated SRCFD
         // std::ostringstream stream;
@@ -792,7 +794,8 @@ impl <'a> ZmqEngine <'a> {
         } else if (id_ == heartbeat_ivl_timer_id) {
             self.next_msg = self.produce_ping_message;
             self.out_event();
-            self.io_thread.add_timer(self._options.heartbeat_interval, heartbeat_ivl_timer_id);
+            self.io_thread
+                .add_timer(self._options.heartbeat_interval, heartbeat_ivl_timer_id);
         } else if (id_ == heartbeat_ttl_timer_id) {
             self.has_ttl_timer = false;
             // error (timeout_error);
@@ -821,18 +824,14 @@ impl <'a> ZmqEngine <'a> {
         return tcp_write(self._s, data, size);
     }
 
-    pub fn produce_ping_msg(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()>
-    {
+    pub fn produce_ping_msg(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         unimplemented!("TODO")
     }
 
-    pub fn init(&mut self, address: &mut ZmqAddress, send: bool, recv: bool) -> anyhow::Result<()>
-    {
+    pub fn init(&mut self, address: &mut ZmqAddress, send: bool, recv: bool) -> anyhow::Result<()> {
         match self.address.protocol {
-            ZmqTransport::ZmqUdp=> {
-                udp_init(self, address, send, recv)
-            }
-            _ => bail!("unsupported protocol")
+            ZmqTransport::ZmqUdp => udp_init(self, address, send, recv),
+            _ => bail!("unsupported protocol"),
         }
     }
 }

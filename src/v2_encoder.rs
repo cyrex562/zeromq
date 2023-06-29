@@ -34,16 +34,15 @@
 // #include "likely.hpp"
 // #include "wire.hpp"
 
-use std::ptr::null_mut;
-use libc::{size_t, uint8_t};
 use crate::decoder_allocators::size;
 use crate::encoder::EncoderBase;
 use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
+use libc::{size_t, uint8_t};
+use std::ptr::null_mut;
 
 // #include <limits.h>
-#[derive(Default,Debug,Clone)]
-pub struct ZmqV2Encoder
-{
+#[derive(Default, Debug, Clone)]
+pub struct ZmqV2Encoder {
     // : public encoder_base_t<ZmqV2Encoder>
     pub encoder_base: EncoderBase,
     //  flags byte + size byte (or 8 bytes) + sub/cancel byte
@@ -53,50 +52,47 @@ pub struct ZmqV2Encoder
 }
 
 impl ZmqV2Encoder {
-
     // ZmqV2Encoder (bufsize_: usize);
-    pub fn new(bufsize_: usize) ->Self
-
-    {
+    pub fn new(bufsize_: usize) -> Self {
         // encoder_base_t<ZmqV2Encoder> (bufsize_)
         let mut out = Self {
             encoder_base: EncoderBase::new(bufsize_),
             _tmp_buf: [0; 10],
         };
         //  Write 0 bytes to the batch and go to message_ready state.
-        out.encoder_base.next_step (null_mut(), 0, out.message_ready(), true);
+        out.encoder_base
+            .next_step(null_mut(), 0, out.message_ready(), true);
         out
     }
 
     // void message_ready ();
-    pub fn message_ready (&mut self)
-    {
+    pub fn message_ready(&mut self) {
         //  Encode flags.
-        let size = in_progress ().size ();
+        let size = in_progress().size();
         let mut header_size = 2; // flags byte + size byte
         let mut protocol_flags = _tmp_buf[0];
         protocol_flags = 0;
-        if (in_progress ().flags () & ZMQ_MSG_MORE) {
+        if (in_progress().flags() & ZMQ_MSG_MORE) {
             protocol_flags |= v2_protocol_t::more_flag;
         }
-        if (in_progress ().size () > UCHAR_MAX) {
+        if (in_progress().size() > UCHAR_MAX) {
             protocol_flags |= v2_protocol_t::large_flag;
         }
-        if (in_progress ().flags () & ZMQ_MSG_COMMAND) {
+        if (in_progress().flags() & ZMQ_MSG_COMMAND) {
             protocol_flags |= v2_protocol_t::command_flag;
         }
-        if (in_progress ().is_subscribe () || in_progress ().is_cancel ()) {
+        if (in_progress().is_subscribe() || in_progress().is_cancel()) {
             size += 1;
         }
 
         //  Encode the message length. For messages less then 256 bytes,
         //  the length is encoded as 8-bit unsigned integer. For larger
         //  messages, 64-bit unsigned integer in network byte order is used.
-        if ( (size > UCHAR_MAX)) {
-            put_uint64 (_tmp_buf + 1, size);
+        if (size > UCHAR_MAX) {
+            put_uint64(_tmp_buf + 1, size);
             header_size = 9; // flags byte + size 8 bytes
         } else {
-           self. _tmp_buf[1] =  (size);
+            self._tmp_buf[1] = (size);
         }
 
         //  Encode the subscribe/cancel byte. This is Done in the encoder as
@@ -106,31 +102,28 @@ impl ZmqV2Encoder {
         //  is sending the subscription/cancel to multiple pubs, but it cannot
         //  be avoided. This processing can be moved to xsub once support for
         //  ZMTP < 3.1 is dropped.
-        if (in_progress ().is_subscribe ()) {
+        if (in_progress().is_subscribe()) {
             _tmp_buf[header_size += 1] = 1;
-        }
-        else if (in_progress ().is_cancel ()) {
+        } else if (in_progress().is_cancel()) {
             _tmp_buf[header_size += 1] = 0;
         }
 
-        next_step (_tmp_buf, header_size, &ZmqV2Encoder::size_ready, false);
+        next_step(_tmp_buf, header_size, &ZmqV2Encoder::size_ready, false);
     }
 
     // void size_ready ();
-    pub fn size_ready (&mut self)
-    {
-        //  Write message body into the buffer.
-        next_step (in_progress ().data (), in_progress ().size (),
-                   &ZmqV2Encoder::message_ready, true);
+    pub fn size_ready(&mut self) {
+        //  Write message Body into the buffer.
+        next_step(
+            in_progress().data(),
+            in_progress().size(),
+            &ZmqV2Encoder::message_ready,
+            true,
+        );
     }
     // ~ZmqV2Encoder ();
-
-
 }
-
-
 
 // ZmqV2Encoder::~ZmqV2Encoder ()
 // {
 // }
-

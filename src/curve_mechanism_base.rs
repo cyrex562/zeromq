@@ -128,7 +128,7 @@ impl ZmqCurveMechanismBase {
         self.curve_encoding.encode(msg)
     }
 
-    pub fn decode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+    pub fn decode(&mut self, ctx: &mut ZmqContext, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         check_basic_command_structure(msg)?;
         // if (rc == - 1)
         // return - 1;
@@ -142,6 +142,7 @@ impl ZmqCurveMechanismBase {
                     .session
                     .get_socket()
                     .event_handshake_failed_protocol(
+                        ctx,
                         self.mechanism_base.session.get_endpoint(),
                         event_error_code,
                     );

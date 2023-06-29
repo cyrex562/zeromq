@@ -30,18 +30,16 @@
 // #include "precompiled.hpp"
 // #include <string.h>
 
-
 use crate::context::ZmqContext;
 use crate::defines::{ZMQ_RADIO, ZMQ_XPUB_NODROP};
 use crate::dist::ZmqDist;
-use crate::message::{ZMQ_MSG_MORE, ZmqMessage};
+use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 
 use crate::pipe::ZmqPipe;
 
-
+use crate::socket::ZmqSocket;
 use libc::{EAGAIN, EINVAL, ENOTSUP};
 use std::collections::HashMap;
-use crate::socket::ZmqSocket;
 
 // #include "radio.hpp"
 // #include "macros.hpp"
@@ -59,7 +57,6 @@ use crate::socket::ZmqSocket;
 //     pub _lossy: bool,
 // }
 
-
 pub fn radio_xread_activated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
     //  There are some subscriptions waiting. Let's process them.
     let mut msg = ZmqMessage::default();
@@ -69,10 +66,11 @@ pub fn radio_xread_activated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
             let group = (msg.group());
 
             if (msg.is_join()) {
-                sock._subscriptions.ZMQ_MAP_INSERT_OR_EMPLACE(ZMQ_MOVE(group), pipe);
+                sock._subscriptions
+                    .ZMQ_MAP_INSERT_OR_EMPLACE(ZMQ_MOVE(group), pipe);
             } else {
                 // std::pair<subscriptions_t::iterator, subscriptions_t::iterator>
-                //     range = _subscriptions.equal_range (group);
+                //     range = _subscriptions.equal_range (Group);
 
                 // for (subscriptions_t::iterator it = range.first;
                 //     it != range.second; += 1it)

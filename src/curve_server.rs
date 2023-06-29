@@ -48,14 +48,6 @@ use crate::session_base::ZmqSessionBase;
 use crate::utils::{copy_bytes, get_u64, put_u64};
 use crate::zap_client::{ZmqZapClient, ZmqZapClientCommonHandshake};
 
-// #include "msg.hpp"
-// #include "session_base.hpp"
-// #include "err.hpp"
-// #include "curve_server.hpp"
-// #include "wire.hpp"
-// #include "secure_allocator.hpp"
-// pub struct ZmqCurveServer  : public ZmqZapClientCommonHandshake,
-//                                  public ZmqCurveMechanismBase
 #[derive(Default, Debug, Clone)]
 pub struct ZmqCurveServer {
     pub zap_client_common_handshake: ZmqZapClientCommonHandshake,
@@ -100,7 +92,14 @@ impl ZmqCurveServer {
                 "CurveZMQMESSAGEC",
                 downgrade_sub,
             ),
-            _secret_key: ctx.curve_secret_key,
+            _secret_key: {
+                let mut out: [u8; CRYPTO_BOX_SECRETKEYBYTES] = [0; CRYPTO_BOX_SECRETKEYBYTES];
+                for i in 0..CRYPTO_BOX_SECRETKEYBYTES {
+                    out[i] = ctx.curve_secret_key[i];
+                }
+                out
+            },
+            // *(ctx.curve_secret_key.as_slice().clone()),
             cn_public: [0; CRYPTO_BOX_PUBLICKEYBYTES],
             cn_secret: [0; CRYPTO_BOX_SECRETKEYBYTES],
             cn_client: todo!(),
@@ -108,7 +107,7 @@ impl ZmqCurveServer {
         };
         cyrpto_box_keypair(
             mechanism_base._secret_key,
-            ctx.curve_secret_key,
+            ctx.curve_secret_key.clone(),
             CRYPTO_BOX_SECRETKEYBYTES,
         );
         mechanism_base
@@ -199,7 +198,7 @@ impl ZmqCurveServer {
     }
 
     // int decode (msg: &mut ZmqMessage);
-    pub fn decode(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+    pub fn decode(&mut self, ctx: &mut ZmqContext, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         // int rc = 0;
 
         //  If we are not ready yet, return EAGAIN.
@@ -211,7 +210,7 @@ impl ZmqCurveServer {
 
         //  Decode the message.
         // rc = ZmqCurveMechanismBase::decode (msg);
-        self.curve_mechanism_base.decode(msg);
+        self.curve_mechanism_base.decode(ctx, msg);
         // return rc;
         Ok(())
     }

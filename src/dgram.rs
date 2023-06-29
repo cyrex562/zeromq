@@ -1,32 +1,3 @@
-/*
-    Copyright (c) 2016 Contributors as noted in the AUTHORS file
-
-    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
-
-    libzmq is free software; you can redistribute it and/or modify it under
-    the terms of the GNU Lesser General Public License (LGPL) as published
-    by the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    As a special exception, the Contributors give you permission to link
-    this library with independent modules to produce an executable,
-    regardless of the license terms of these independent modules, and to
-    copy and distribute the resulting executable under terms of your choice,
-    provided that you also meet, for each linked independent module, the
-    terms and conditions of the license of that module. An independent
-    module is a module which is not derived from or based on this library.
-    If you modify this library, you must extend this exception to your
-    version of the library.
-
-    libzmq is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-    License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
 use anyhow::bail;
 use libc::{EAGAIN, EINVAL};
 
@@ -37,61 +8,24 @@ use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 
-// #include "precompiled.hpp"
-// #include "macros.hpp"
-// #include "dgram.hpp"
-// #include "pipe.hpp"
-// #include "wire.hpp"
-// #include "random.hpp"
-// #include "likely.hpp"
-// #include "err.hpp"
 #[derive(Copy, Clone, Debug)]
 pub struct ZmqDgram<'a> {
-    // public:
-
-    // private:
-    // ZmqPipe *pipe;
     pub pipe: Option<&'a mut ZmqPipe>,
-
-    //  If true, more outgoing message parts are expected.
     pub _more_out: bool,
-
-    // // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqDgram)
-    pub socket_base: ZmqSocket,
+    pub socket_base: ZmqSocket<'a>,
 }
-
-
-// pub fn xattach_pipe(
-//     
-//     pipe: &mut ZmqPipe,
-//     subscribe_to_all_: bool,
-//     locally_initiated_: bool,
-// ) {
-//     // LIBZMQ_UNUSED (subscribe_to_all_);
-//     // LIBZMQ_UNUSED (locally_initiated_);
-// 
-//     // zmq_assert (pipe);
-// 
-//     //  ZMQ_DGRAM socket can only be connected to a single peer.
-//     //  The socket rejects any further connection requests.
-//     if (self.pipe == None) {
-//         self.pipe = Some(pipe);
-//     } else {
-//         pipe.terminate(false);
-//     }
-// }
 
 // int xsend (msg: &mut ZmqMessage);
 pub fn dgram_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
     // If there's no out pipe, just drop it.
-    if self.pipe.is_none() {
+    if sock.pipe.is_none() {
         msg.close()?;
         // errno_assert (rc == 0);
     }
 
     //  If this is the first part of the message it's the ID of the
     //  peer to send the message to.
-    if (!self._more_out) {
+    if (!sock._more_out) {
         if (!(msg.flags() & ZMQ_MSG_MORE)) {
             errno = EINVAL;
             bail!("EINVAL");
@@ -105,17 +39,17 @@ pub fn dgram_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result
     }
 
     // Push the message into the pipe.
-    if (!unsafe { self.pipe.write(msg) }) {
+    if (!unsafe { sock.pipe.write(msg) }) {
         errno = EAGAIN;
         bail!("EAGAIN");
     }
 
     if (!(msg.flags() & ZMQ_MSG_MORE)) {
-        self.pipe.flush();
+        sock.pipe.flush();
     }
 
     // flip the more flag
-    self._more_out = !self._more_out;
+    sock._more_out = !sock._more_out;
 
     //  Detach the message from the data buffer.
     msg.init2()?;
@@ -130,7 +64,7 @@ pub fn dgram_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
     let mut rc = msg.close();
     // errno_assert (rc == 0);
 
-    if (self.pipe.is_none() || !self.pipe.unwrap().read(msg)) {
+    if sock.pipe.is_none() || !sock.pipe.unwrap().read(msg) {
         //  Initialise the output parameter to be a 0-byte message.
         msg.init2();
         // errno_assert(rc == 0);
@@ -143,12 +77,12 @@ pub fn dgram_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
 }
 
 // bool xhas_in ();
-pub fn dgram_xhas_in(sock: &mut ZmqSocket,) -> bool {
-    if (self.pipe.is_none()) {
+pub fn dgram_xhas_in(sock: &mut ZmqSocket) -> bool {
+    if sock.pipe.is_none() {
         return false;
     }
 
-    return self.pipe.unwrap().check_read();
+    return sock.pipe.unwrap().check_read();
 }
 
 // bool xhas_out ();
@@ -169,15 +103,15 @@ pub fn dgram_xwrite_activated(sock: &mut ZmqSocket, pipe: *mut ZmqPipe) {
 
 // void xpipe_terminated (pipe: &mut ZmqPipe);
 pub fn dgram_xpipe_terminated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
-    if (pipe == self.pipe) {
-        self.pipe = None;
+    if pipe == sock.pipe {
+        sock.pipe = None;
     }
 }
 
-pub fn dgram_xhas_out(sock: &mut ZmqSocket,) -> bool {
-    if (self.pipe.is_none()) {
+pub fn dgram_xhas_out(sock: &mut ZmqSocket) -> bool {
+    if sock.pipe.is_none() {
         return false;
     }
 
-    return self.pipe.check_write();
+    return sock.pipe.check_write();
 }

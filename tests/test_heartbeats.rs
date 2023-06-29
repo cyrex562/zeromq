@@ -121,7 +121,7 @@ static void mock_handshake (raw_socket fd, mock_ping_: i32)
         rc = TEST_ASSERT_SUCCESS_RAW_ERRNO (send (fd, buffer, 12, 0));
         TEST_ASSERT_EQUAL_INT (12, rc);
 
-        //  test a larger body that won't fit in a small message and should get
+        //  test a larger Body that won't fit in a small message and should get
         //  truncated
         memset (buffer, 'z', mem::size_of::<buffer>());
         memcpy (buffer, zmtp_ping, 12);
@@ -226,7 +226,7 @@ static void test_heartbeat_timeout (ZmqServerype_: i32, mock_ping_: i32)
     // Mock a ZMTP 3 client so we can forcibly time out a connection
     mock_handshake (s, mock_ping_);
 
-    // By now everything should report as connected
+    // By now everything should report as Connected
     rc = get_monitor_event (server_mon);
     TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_ACCEPTED, rc);
 
@@ -271,7 +271,7 @@ static void test_heartbeat_ttl (client_type_: i32, ZmqServerype_: i32)
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (client, my_endpoint));
 
-    // By now everything should report as connected
+    // By now everything should report as Connected
     rc = get_monitor_event (server_mon);
     TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_ACCEPTED, rc);
 
@@ -307,11 +307,11 @@ test_heartbeat_notimeout (is_curve_: i32, client_type_: i32, ZmqServerype_: i32)
     // Give it a sec to connect and handshake
     msleep (SETTLE_TIME);
 
-    // By now everything should report as connected
+    // By now everything should report as Connected
     rc = get_monitor_event (server_mon);
     TEST_ASSERT_EQUAL_INT (ZMQ_EVENT_ACCEPTED, rc);
 
-    // We should still be connected because pings and pongs are happenin'
+    // We should still be Connected because pings and pongs are happenin'
     rc = get_monitor_event (server_mon);
     // TODO: this fails ~1% of the runs on OBS but it does not seem to be reproducible anywhere else
     if (rc == 512)

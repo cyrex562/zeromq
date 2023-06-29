@@ -34,19 +34,19 @@
 // #include "likely.hpp"
 // #include "wire.hpp"
 
-use std::ptr::null_mut;
-use libc::{memcpy, size_t};
 use crate::decoder_allocators::size;
 use crate::encoder::EncoderBase;
-use crate::message::{CANCEL_CMD_NAME, SUB_CMD_NAME, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZmqMessage};
+use crate::message::{ZmqMessage, CANCEL_CMD_NAME, SUB_CMD_NAME, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
+use libc::{memcpy, size_t};
+use std::ptr::null_mut;
 
 // #include <limits.h>
 pub struct ZmqV31Encoder {
     // : public EncoderBase<ZmqV31Encoder>
     pub encoder_base: EncoderBase,
-//
-//     ZmqV31Encoder (bufsize_: usize);
-//     ~ZmqV31Encoder () ;
+    //
+    //     ZmqV31Encoder (bufsize_: usize);
+    //     ~ZmqV31Encoder () ;
 
     //
     //   void size_ready ();
@@ -54,7 +54,6 @@ pub struct ZmqV31Encoder {
 
     // unsigned char _tmp_buf[9 + ZmqMessage::SUB_CMD_NAME_SIZE];
     pub tmp_buf: Vec<u8>,
-
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqV31Encoder)
 }
 
@@ -84,7 +83,10 @@ impl ZmqV31Encoder {
         if (in_progress().size() > UCHAR_MAX) {
             protocol_flags |= v2_protocol_t::large_flag;
         }
-        if (in_progress().flags() & ZMQ_MSG_COMMAND || in_progress().is_subscribe() || in_progress().is_cancel()) {
+        if (in_progress().flags() & ZMQ_MSG_COMMAND
+            || in_progress().is_subscribe()
+            || in_progress().is_cancel())
+        {
             protocol_flags |= v2_protocol_t::command_flag;
             if (in_progress().is_subscribe()) {
                 size += ZmqMessage::SUB_CMD_NAME_SIZE;
@@ -96,7 +98,7 @@ impl ZmqV31Encoder {
         //  Encode the message length. For messages less then 256 bytes,
         //  the length is encoded as 8-bit unsigned integer. For larger
         //  messages, 64-bit unsigned integer in network byte order is used.
-        if ((size > UCHAR_MAX)) {
+        if (size > UCHAR_MAX) {
             put_uint64(_tmp_buf + 1, size);
             header_size = 9; // flags byte + size 8 bytes
         } else {
@@ -124,8 +126,12 @@ impl ZmqV31Encoder {
     }
 
     pub fn size_ready() {
-        //  Write message body into the buffer.
-        next_step(in_progress().data(), in_progress().size(),
-                  &ZmqV31Encoder::message_ready, true);
+        //  Write message Body into the buffer.
+        next_step(
+            in_progress().data(),
+            in_progress().size(),
+            &ZmqV31Encoder::message_ready,
+            true,
+        );
     }
 }

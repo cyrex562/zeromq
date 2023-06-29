@@ -11,7 +11,6 @@ pub enum EndpointType {
     endpoint_type_connect, // a connection-oriented connect endpoint
 }
 
-
 // endpoint_uri_ZmqPair
 // make_unconnected_connect_endpoint_pair (const std::string &endpoint_);
 // endpoint_uri_ZmqPair
@@ -41,14 +40,14 @@ pub struct ZmqEndpoint<'a> {
     // pub pipe: &'a mut ZmqPipe,
     pub pipe: ZmqPipe,
     pub socket: &'a mut ZmqSocket<'a>,
-
 }
 
-impl <'a> ZmqEndpoint<'a> {
+impl<'a> ZmqEndpoint<'a> {
     pub fn new(socket: &mut ZmqSocket) -> Self {
         Self {
+            uri: Default::default(),
+            pipe: Default::default(),
             socket,
         }
     }
-    
 }

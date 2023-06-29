@@ -41,7 +41,7 @@ void test_immediate_1 ()
     char my_endpoint[MAX_SOCKET_STRING];
     // TEST 1.
     // First we're going to attempt to send messages to two
-    // pipes, one connected, the other not. We should see
+    // pipes, one Connected, the other not. We should see
     // the PUSH load balancing to both pipes, and hence half
     // of the messages getting queued, as connect() creates a
     // pipe immediately.
@@ -68,12 +68,12 @@ void test_immediate_1 ()
     msleep (SETTLE_TIME);
 
     // We send 10 messages, 5 should just get stuck in the queue
-    // for the not-yet-connected pipe
+    // for the not-yet-Connected pipe
     for (int i = 0; i < 10; += 1i) {
         send_string_expect_success (from, "Hello", 0);
     }
 
-    // We now consume from the connected pipe
+    // We now consume from the Connected pipe
     // - we should see just 5
     int timeout = 250;
     TEST_ASSERT_SUCCESS_ERRNO (
@@ -133,7 +133,7 @@ void test_immediate_2 ()
     // Connect to the valid socket
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (from, my_endpoint));
 
-    // Send 10 messages, all should be routed to the connected pipe
+    // Send 10 messages, all should be routed to the Connected pipe
     for (int i = 0; i < 10; += 1i) {
         send_string_expect_success (from, "Hello", 0);
     }
@@ -159,7 +159,7 @@ void test_immediate_3 ()
 {
     // This time we want to validate that the same blocking behaviour
     // occurs with an existing connection that is broken. We will send
-    // messages to a connected pipe, disconnect and verify the messages
+    // messages to a Connected pipe, disconnect and verify the messages
     // block. Then we reconnect and verify messages flow again.
     void *backend = test_context_socket (ZMQ_DEALER);
     void *frontend = test_context_socket (ZMQ_DEALER);

@@ -151,7 +151,7 @@ impl EncoderBase {
             //  As a consequence, large messages being sent won't block
             //  other engines running in the same I/O thread for excessive
             //  amounts of time.
-            if (pos == 0 && data.is_none() && self.to_write >= buffersize) {
+            if pos == 0 && data.is_none() && self.to_write >= buffersize {
                 // *data = write_pos;
                 pos = to_write;
                 self.write_pos = 0;
@@ -162,13 +162,7 @@ impl EncoderBase {
             //  Copy data to the buffer. If the buffer is full, return.
             let to_copy = usize::min(self.to_write, buffersize - pos);
             // memcpy (buffer + pos, write_pos, to_copy);
-            copy_bytes(
-                buffer,
-                pos as i32,
-                self.buf.as_slice(),
-                self.write_pos,
-                to_copy as i32,
-            );
+            copy_bytes(buffer, pos, self.buf.as_slice(), self.write_pos, to_copy);
             pos += to_copy;
             self.write_pos += to_copy;
             self.to_write -= to_copy;

@@ -1,5 +1,5 @@
 use crate::context::ZmqContext;
-use crate::message::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZmqMessage};
+use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
 use crate::session_base::ZmqSessionBase;
 use crate::socket::ZmqSocket;
 use crate::thread_context::ZmqThreadContext;
@@ -58,7 +58,7 @@ impl RadioSession {
 
             // errno_assert (rc == 0);
 
-            //  Set the group
+            //  Set the Group
             rc = join_leave_msg.set_group(group);
             // errno_assert (rc == 0);
 
@@ -80,13 +80,13 @@ impl RadioSession {
             let group = _pending_msg.group();
             let length: usize = group.len();
 
-            //  First frame is the group
+            //  First frame is the Group
             rc = msg.init_size(length as usize);
             // errno_assert (rc == 0);
             msg.set_flags(ZMQ_MSG_MORE);
             copy_bytes(msg.data_mut(), 0, group, 0, length.clone());
 
-            //  Next status is the body
+            //  Next status is the Body
             self._state = RadioSessionState::body;
             return Ok(());
         }

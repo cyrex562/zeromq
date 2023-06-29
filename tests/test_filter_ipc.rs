@@ -109,7 +109,7 @@ gid_t group, supgroup, notgroup;
 
 void init_groups ()
 {
-    // Get the group and supplemental groups of the process owner
+    // Get the Group and supplemental groups of the process owner
     gid_t groups[100];
     int ngroups = getgroups (100, groups);
     TEST_ASSERT_NOT_EQUAL (-1, ngroups);

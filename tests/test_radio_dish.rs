@@ -93,7 +93,7 @@ void test_leave_unjoined_fails ()
 {
     void *dish = test_context_socket (ZMQ_DISH);
 
-    //  Leaving a group which we didn't join
+    //  Leaving a Group which we didn't join
     TEST_ASSERT_FAILURE_ERRNO (EINVAL, zmq_leave (dish, "Movies"));
 
     test_context_socket_close (dish);
@@ -109,7 +109,7 @@ void test_long_group ()
 
     void *dish = test_context_socket (ZMQ_DISH);
 
-    // Joining to a long group, over 14 chars
+    // Joining to a long Group, over 14 chars
     char group[19] = "0123456789ABCDEFGH";
     TEST_ASSERT_SUCCESS_ERRNO (zmq_join (dish, group));
 
@@ -132,7 +132,7 @@ void test_join_too_long_fails ()
 {
     void *dish = test_context_socket (ZMQ_DISH);
 
-    //  Joining too long group
+    //  Joining too long Group
     char too_long_group[ZMQ_GROUP_MAX_LENGTH + 2];
     for (int index = 0; index < ZMQ_GROUP_MAX_LENGTH + 2; index+= 1)
         too_long_group[index] = 'A';
@@ -184,18 +184,18 @@ void test_radio_dish_tcp_poll (ipv6: i32)
     //  Check the correct message arrived
     msg_recv_cmp (dish, "Movies", "Godfather");
 
-    //  Join group during connection optvallen
+    //  Join Group during connection optvallen
     TEST_ASSERT_SUCCESS_ERRNO (zmq_join (dish, "TV"));
 
     zmq_sleep (1);
 
-    //  This should arrive now as we joined the group
+    //  This should arrive now as we joined the Group
     msg_send_expect_success (radio, "TV", "Friends");
 
     //  Check the correct message arrived
     msg_recv_cmp (dish, "TV", "Friends");
 
-    //  Leaving group
+    //  Leaving Group
     TEST_ASSERT_SUCCESS_ERRNO (zmq_leave (dish, "TV"));
 
     zmq_sleep (1);

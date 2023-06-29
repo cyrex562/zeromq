@@ -41,15 +41,16 @@
 // #include <limits.h>
 // #include <algorithm>
 
-use crate::context::ZmqContext;
-use crate::defines::ZmqHandle;
-use crate::defines::ZmqFileDesc;
-use crate::poller_base::WorkerPollerBase;
-use libc::{open, write, EINTR, O_RDWR};
 use std::ffi::CString;
-use windows::Win32::Networking::WinSock::{POLLERR, POLLHUP, POLLIN, POLLOUT};
-use crate::events::ZmqEvents;
 
+use libc::{open, pollfd, write, EINTR, O_RDWR};
+use windows::Win32::Networking::WinSock::{POLLERR, POLLHUP, POLLIN, POLLOUT};
+
+use crate::context::ZmqContext;
+use crate::defines::ZmqFileDesc;
+use crate::defines::ZmqHandle;
+use crate::events::ZmqEvents;
+use crate::poller_base::WorkerPollerBase;
 
 // typedef DevPoll Poller;
 pub type ZmqPoller = DevPoll;
@@ -212,8 +213,8 @@ impl DevPoll {
             //  Execute any due timers.
             let timeout = execute_timers();
 
-            if (self.get_load() == 0) {
-                if (timeout == 0) {
+            if self.get_load() == 0 {
+                if timeout == 0 {
                     break;
                 }
 
@@ -232,7 +233,7 @@ impl DevPoll {
             poll_req.dp_timeout = if timeout { timeout } else { -1 };
             // TODO
             // let n = ioctl (devpoll_fd, DP_POLL, &poll_req);
-            if (n == -1 && errno == EINTR) {
+            if n == -1 && errno == EINTR {
                 continue;
             }
             // errno_assert (n != -1);
@@ -240,22 +241,22 @@ impl DevPoll {
             // for (int i = 0; i < n; i+= 1)
             for i in 0..n {
                 FdEntry * fd_ptr = &fd_table[ev_buf[i].fd];
-                if (!fd_ptr.valid || !fd_ptr.accepted) {
+                if !fd_ptr.valid || !fd_ptr.accepted {
                     continue;
                 }
-                if (ev_buf[i].revents & (POLLERR | POLLHUP)) {
+                if ev_buf[i].revents & (POLLERR | POLLHUP) {
                     fd_ptr.reactor.in_event();
                 }
-                if (!fd_ptr.valid || !fd_ptr.accepted) {
+                if !fd_ptr.valid || !fd_ptr.accepted {
                     continue;
                 }
-                if (ev_buf[i].revents & POLLOUT) {
+                if ev_buf[i].revents & POLLOUT {
                     fd_ptr.reactor.out_event();
                 }
-                if (!fd_ptr.valid || !fd_ptr.accepted) {
+                if !fd_ptr.valid || !fd_ptr.accepted {
                     continue;
                 }
-                if (ev_buf[i].revents & POLLIN) {
+                if ev_buf[i].revents & POLLIN {
                     fd_ptr.reactor.in_event();
                 }
             }

@@ -37,12 +37,13 @@
 
 use crate::address::SocketEnd::SocketEndLocal;
 use crate::address::{get_socket_address, SocketEnd, ZmqAddress};
+use crate::defines::ZmqFileDesc;
 use crate::defines::ZMQ_RECONNECT_STOP_CONN_REFUSED;
 use crate::err::wsa_error_to_errno;
-use crate::defines::ZmqFileDesc;
 use crate::ip::unblock_socket;
 use crate::ops::zmq_errno;
 
+use crate::context::ZmqContext;
 use crate::session_base::ZmqSessionBase;
 use crate::stream_connecter_base::StreamConnecterBase;
 use crate::thread_context::ZmqThreadContext;
@@ -59,7 +60,6 @@ use windows::Win32::Networking::WinSock::{
     socklen_t, WSAGetLastError, SOL_SOCKET, SO_ERROR, WSAEBADF, WSAEINPROGRESS, WSAENOBUFS,
     WSAENOPROTOOPT, WSAENOTSOCK, WSAEWOULDBLOCK,
 };
-use crate::context::ZmqContext;
 
 // #include "io_thread.hpp"
 // #include "platform.hpp"
@@ -380,7 +380,7 @@ impl ZmqVmciConnecter {
         }
         // #endif
 
-        //  Return the newly connected socket.
+        //  Return the newly Connected socket.
         let result = _s;
         _s = retired_fd;
         return result;

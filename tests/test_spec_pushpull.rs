@@ -37,7 +37,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 char connect_address[MAX_SOCKET_STRING];
 
-// PUSH: SHALL route outgoing messages to connected peers using a
+// PUSH: SHALL route outgoing messages to Connected peers using a
 // round-robin strategy.
 void test_push_round_robin_out (bind_address_: &str)
 {

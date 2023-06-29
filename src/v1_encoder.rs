@@ -27,10 +27,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use std::ptr::null_mut;
-use libc::size_t;
 use crate::decoder_allocators::size;
 use crate::message::ZMQ_MSG_MORE;
+use libc::size_t;
+use std::ptr::null_mut;
 
 // #include "precompiled.hpp"
 // #include "encoder.hpp"
@@ -49,16 +49,15 @@ pub struct ZmqV1Encoder {
 
 impl ZmqV1Encoder {
     // ZmqV1Encoder (bufsize_: usize);
-    pub fn new(bufsize_: usize) -> Self
-
-    {
+    pub fn new(bufsize_: usize) -> Self {
         let mut out = Self {
             encoder_base: EncoderBase::new(bufsize_),
             _tmpbuf: [0; 11],
         };
         //  encoder_base_t<ZmqV1Encoder> (bufsize_)
         //  Write 0 bytes to the batch and go to message_ready state.
-        out.encoder_base.next_step(null_mut(), 0, &ZmqV1Encoder::message_ready, true);
+        out.encoder_base
+            .next_step(null_mut(), 0, &ZmqV1Encoder::message_ready, true);
         out
     }
 
@@ -66,15 +65,19 @@ impl ZmqV1Encoder {
 
     // void size_ready ();
     pub fn size_ready(&mut self) {
-        //  Write message body into the buffer.
-        self.encoder_base.next_step(in_progress().data(), in_progress().size(),
-                                    &ZmqV1Encoder::message_ready, true);
+        //  Write message Body into the buffer.
+        self.encoder_base.next_step(
+            in_progress().data(),
+            in_progress().size(),
+            &ZmqV1Encoder::message_ready,
+            true,
+        );
     }
 
     // void message_ready ();
     pub fn message_ready(&mut self) {
         let mut header_size = 2; // flags byte + size byte
-        //  Get the message size.
+                                 //  Get the message size.
         let mut size = in_progress().size();
 
         //  Account for the 'flags' byte.
@@ -111,15 +114,11 @@ impl ZmqV1Encoder {
             _tmpbuf[header_size += 1] = 0;
         }
 
-        self.enccoder_base.next_step(_tmpbuf, header_size, &ZmqV1Encoder::size_ready, false);
+        self.enccoder_base
+            .next_step(_tmpbuf, header_size, &ZmqV1Encoder::size_ready, false);
     }
 }
-
 
 // ZmqV1Encoder::~ZmqV1Encoder ()
 // {
 // }
-
-
-
-
