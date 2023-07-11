@@ -29,7 +29,6 @@
 
 use crate::address::ZmqAddress;
 use crate::context::ZmqContext;
-use crate::dealer::ZmqDealer;
 use crate::defines::ZMQ_REQ;
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
 
@@ -91,13 +90,13 @@ use std::ptr::null_mut;
 // }
 
 
-pub fn req_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
+pub fn req_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
     //  If we've sent a request and we still haven't got the reply,
     //  we can't send another request unless the strict option is disabled.
     if sock._receiving_reply {
         if sock._strict {
-            errno = EFSM;
-            return -1;
+            // errno = EFSM;
+            // return -1;
         }
 
         sock._receiving_reply = false;
@@ -114,7 +113,7 @@ pub fn req_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
             let mut id: ZmqMessage = ZmqMessage::default();
             id.init_size(4);
             // memcpy (id.data (), &_request_id, mem::size_of::<u32>());
-            id.data_mut() = sock: &mut ZmqSocket._request_id.to_le_bytes();
+            id.data_mut() = sock._request_id.to_le_bytes();
             // errno_assert (rc == 0);
             id.set_flags(ZMQ_MSG_MORE);
 
@@ -307,9 +306,9 @@ pub enum ReqSessionState {
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct ReqSession {
+pub struct ReqSession<'a> {
     // : public ZmqSessionBase
-    pub session_base: ZmqSessionBase,
+    pub session_base: ZmqSessionBase<'a>,
     // ReqSession (ZmqIoThread *io_thread_,
     //                connect_: bool,
     //                socket: *mut ZmqSocketBase,
@@ -326,7 +325,7 @@ pub struct ReqSession {
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (req_session_t)
 }
 
-impl ReqSession {
+impl<'a> ReqSession<'a> {
     pub fn new(
         ctx: &mut ZmqContext,
         io_thread: &mut ZmqThreadContext,

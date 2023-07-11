@@ -63,7 +63,6 @@ mod plain_common;
 mod plain_server;
 mod platform_socket;
 mod poll;
-mod poll_events_interface;
 mod poll_item;
 mod poller_base;
 mod poller_event;
