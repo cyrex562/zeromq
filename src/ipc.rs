@@ -1,11 +1,11 @@
 use crate::address::ZmqAddress;
 use crate::address_family::AF_UNIX;
-use crate::defines::retired_fd;
+use crate::defines::RETIRED_FD;
 use crate::defines::ZmqFileDesc;
 use crate::dish_session::DishSessionState::Group;
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::ip::{
-    create_ipc_wildcard_address, make_socket_noninheritable, open_socket, set_nosigpipe,
+    create_ipc_wildcard_address, make_socket_noninheritable, ip_open_socket, set_nosigpipe,
 };
 use crate::listener::ZmqListener;
 use anyhow::bail;
@@ -80,8 +80,8 @@ pub fn ipc_set_local_address(listener: &mut ZmqListener, addr: &mut str) -> anyh
         listener.fd = listener.socket.context.use_fd as ZmqFileDesc;
     } else {
         //  Create a listening socket.
-        listener.fd = open_socket(AF_UNIX as i32, SOCK_STREAM as i32, 0);
-        if (listener.fd == retired_fd as usize) {
+        listener.fd = ip_open_socket(AF_UNIX as i32, SOCK_STREAM as i32, 0);
+        if (listener.fd == RETIRED_FD as usize) {
             if (!listener.tmp_socket_dirname.is_empty()) {
                 // We need to preserve errno to return to the user
                 // let tmp_errno: i32 = errno;
@@ -126,7 +126,7 @@ pub fn ipc_set_local_address(listener: &mut ZmqListener, addr: &mut str) -> anyh
 }
 
 pub fn ipc_in_event(listener: &mut ZmqListener) -> anyhow::Result<()> {
-    if listener.fd == retired_fd as usize {
+    if listener.fd == RETIRED_FD as usize {
         listener
             .socket
             .event_accept_failed(&make_unconnected_bind_endpoint_pair(&listener.endpoint), -1);
@@ -218,7 +218,7 @@ pub fn ipc_close(listener: &mut ZmqListener) -> anyhow::Result<()> {
     // errno_assert (rc == 0);
     // #endif
 
-    listener.fd = retired_fd as ZmqFileDesc;
+    listener.fd = RETIRED_FD as ZmqFileDesc;
 
     if (listener.has_file && listener.options.use_fd == -1) {
         if (!listener.tmp_socket_dirname.is_empty()) {
@@ -274,7 +274,7 @@ pub fn ipc_accept(listener: &mut ZmqListener) -> anyhow::Result<ZmqFileDesc> {
     let sock = unsafe { accept(listener.fd, (&mut ss) as *mut sockaddr, &mut ss_len) };
     // #endif
     unsafe {
-        if (sock == retired_fd as usize) {
+        if (sock == RETIRED_FD as usize) {
             // #if defined ZMQ_HAVE_WINDOWS
             let last_error: WSA_ERROR = WSAGetLastError();
             // wsa_assert(last_error == WSAEWOULDBLOCK || last_error == WSAECONNRESET
@@ -284,7 +284,7 @@ pub fn ipc_accept(listener: &mut ZmqListener) -> anyhow::Result<ZmqFileDesc> {
             // || errno == ECONNABORTED || errno == EPROTO
             //     || errno == ENFILE);
             // #endif
-            return Ok(retired_fd as ZmqFileDesc);
+            return Ok(RETIRED_FD as ZmqFileDesc);
         }
     }
 
@@ -297,7 +297,7 @@ pub fn ipc_accept(listener: &mut ZmqListener) -> anyhow::Result<ZmqFileDesc> {
         if (!ipc_filter(sock)) {
             let rc = close(sock as c_int);
             // errno_assert (rc == 0);
-            return retired_fd;
+            return RETIRED_FD;
         }
     }
     // #endif
@@ -311,7 +311,7 @@ pub fn ipc_accept(listener: &mut ZmqListener) -> anyhow::Result<ZmqFileDesc> {
             let rc = close(sock as c_int);
             // errno_assert (rc == 0);
             // #endif
-            return Ok(retired_fd as ZmqFileDesc);
+            return Ok(RETIRED_FD as ZmqFileDesc);
         }
     }
 

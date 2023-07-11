@@ -71,7 +71,7 @@
 use crate::address::get_socket_name;
 use crate::address::SocketEnd::SocketEndLocal;
 use crate::defines::ZmqFileDesc;
-use crate::endpoint::EndpointType::endpoint_type_connect;
+use crate::endpoint::EndpointType::Connect;
 use crate::endpoint_uri::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::err::wsa_error_to_errno;
@@ -375,7 +375,7 @@ impl ZmqWsConnecter {
 
     pub fn create_engine(&mut self, fd: ZmqFileDesc, local_address_: &str) {
         let mut endpoint_pair =
-            EndpointUriPair::new(local_address_, _endpoint, endpoint_type_connect);
+            EndpointUriPair::new(local_address_, _endpoint, Connect);
 
         //  Create the engine object for this connection.
         let mut engine: ZmqEngine = ZmqEngine::new();

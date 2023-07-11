@@ -1,9 +1,9 @@
 use anyhow::bail;
 use libc::{close, unlink};
 use crate::address::{get_socket_name, ZmqAddress, ZmqSocketEnd};
-use crate::defines::{retired_fd, ZmqHandle};
+use crate::defines::{RETIRED_FD, ZmqHandle};
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
-use crate::endpoint::EndpointType::endpoint_type_bind;
+use crate::endpoint::EndpointType::Bind;
 use crate::engine::ZmqEngine;
 use crate::defines::ZmqFileDesc;
 use crate::endpoint_uri::EndpointUriPair;
@@ -42,7 +42,7 @@ impl<'a> ZmqListener<'a> {
         Self {
             io_object: ZmqIoObject::new(Some(io_thread)),
             socket,
-            fd: retired_fd as ZmqFileDesc,
+            fd: RETIRED_FD as ZmqFileDesc,
             handle: ZmqHandle::default(),
             endpoint: String::new(),
             has_file: false,
@@ -106,7 +106,7 @@ impl<'a> ZmqListener<'a> {
                 let endpoint_pair = EndpointUriPair::new(
                     &get_socket_name(self.fd, ZmqSocketEnd::SocketEndLocal).unwrap(),
                     &get_socket_name(self.fd, ZmqSocketEnd::SocketEndRemote).unwrap(),
-                    endpoint_type_bind,
+                    Bind,
                 );
 
                 let mut engine = ZmqEngine::new();

@@ -49,7 +49,7 @@ use crate::address_family::AF_UNIX;
 use crate::defines::ZMQ_RECONNECT_STOP_AFTER_DISCONNECT;
 use crate::err::wsa_error_to_errno;
 use crate::defines::ZmqFileDesc;
-use crate::ip::{open_socket, unblock_socket};
+use crate::ip::{ip_open_socket, unblock_socket};
 use crate::ops::zmq_errno;
 
 use crate::session_base::ZmqSessionBase;
@@ -166,7 +166,7 @@ impl IpcConnecter {
         // zmq_assert (_s == retired_fd);
 
         //  Create the socket.
-        self._s = open_socket(AF_UNIX as i32, SOCK_STREAM as i32, 0);
+        self._s = ip_open_socket(AF_UNIX as i32, SOCK_STREAM as i32, 0);
         if (_s == retired_fd) {
             return -1;
         }

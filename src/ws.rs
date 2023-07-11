@@ -2,9 +2,9 @@ use anyhow::bail;
 use libc::{bind, listen, setsockopt};
 use windows::Win32::Networking::WinSock::{SO_REUSEADDR, SOCKET_ERROR, SOL_SOCKET};
 use crate::address::{get_socket_name, ZmqAddress, ZmqSocketEnd};
-use crate::defines::retired_fd;
+use crate::defines::RETIRED_FD;
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
-use crate::endpoint::EndpointType::endpoint_type_bind;
+use crate::endpoint::EndpointType::Bind;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::defines::ZmqFileDesc;
 use crate::endpoint_uri::EndpointUriPair;
@@ -20,7 +20,7 @@ pub fn ws_in_event(listener: &mut ZmqListener) -> anyhow::Result<()>{
 
     //  If connection was reset by the peer in the meantime, just ignore it.
     //  TODO: Handle specific errors like ENFILE/EMFILE etc.
-    if (fd == retired_fd as usize) {
+    if (fd == RETIRED_FD as usize) {
         listener.socket
             .event_accept_failed(&make_unconnected_bind_endpoint_pair(&listener.endpoint), -1);
         bail!("accept failed")
@@ -42,7 +42,7 @@ pub fn ws_create_socket(listener: &mut ZmqListener, addr_: &mut str) -> anyhow::
     // TcpAddress address;
     let mut address: ZmqAddress = ZmqAddress::default();
     listener.fd = tcp_open_socket(addr_, listener.socket.context, true, true, &mut address);
-    if (listener.fd == retired_fd as usize) {
+    if (listener.fd == RETIRED_FD as usize) {
         bail!("failed to open socket")
     }
 
@@ -228,7 +228,7 @@ pub fn ws_create_engine(listener: &mut ZmqListener, fd: ZmqFileDesc) -> anyhow::
     let mut endpoint_pair = EndpointUriPair::new(
         &get_socket_name(fd, ZmqSocketEnd::SocketEndLocal).unwrap(),
         &get_socket_name(fd, ZmqSocketEnd::SocketEndRemote).unwrap(),
-        endpoint_type_bind,
+        Bind,
     );
 
     // ZmqEngineInterface *engine = null_mut();

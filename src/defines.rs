@@ -11,7 +11,7 @@ pub const ZMQ_VERSION_PATCH: u32 = 5;
 // #define ZMQ_VERSION                                                            \
 //     ZMQ_MAKE_VERSION (ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH)
 
-pub const retired_fd: i32 = -1;
+pub const RETIRED_FD: i32 = -1;
 
 // ****************************************************************************
 //   0MQ errors.

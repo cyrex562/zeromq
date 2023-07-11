@@ -129,7 +129,7 @@ pub fn req_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<(
         // errno_assert (rc == 0);
         bottom.set_flags(ZMQ_MSG_MORE);
 
-        rc = sock.dealer.sendpipe(&mut bottom, &mut _reply_pipe);
+        sock.sendpipe(&mut bottom, &mut sock.reply_pipe);
         if (rc != 0) {
             return -1;
         }

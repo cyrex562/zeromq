@@ -29,7 +29,7 @@ impl EndpointUriPair {
     // const std::string &identifier () const
     pub fn identifier(&self) -> String {
         // return local_type == endpoint_type_bind ? local : remote;
-        if self.local_type == EndpointType::endpoint_type_bind {
+        if self.local_type == EndpointType::Bind {
             self.local.clone()
         } else {
             self.remote.clone()

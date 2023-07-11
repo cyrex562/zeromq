@@ -1,74 +1,18 @@
-/*
-    Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
-
-    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
-
-    libzmq is free software; you can redistribute it and/or modify it under
-    the terms of the GNU Lesser General Public License (LGPL) as published
-    by the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    As a special exception, the Contributors give you permission to link
-    this library with independent modules to produce an executable,
-    regardless of the license terms of these independent modules, and to
-    copy and distribute the resulting executable under terms of your choice,
-    provided that you also meet, for each linked independent module, the
-    terms and conditions of the license of that module. An independent
-    module is a module which is not derived from or based on this library.
-    If you modify this library, you must extend this exception to your
-    version of the library.
-
-    libzmq is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-    License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-// #include "precompiled.hpp"
-// #include "macros.hpp"
-// #include "ip.hpp"
-// #include "tcp.hpp"
-// #include "err.hpp"
-// #include "options.hpp"
-
-// #if !defined ZMQ_HAVE_WINDOWS
-// #include <fcntl.h>
-// #include <sys/types.h>
-// #include <sys/socket.h>
-// #include <netinet/in.h>
-// #include <netinet/tcp.h>
-// #include <unistd.h>
-// #ifdef ZMQ_HAVE_VXWORKS
-// #include <sockLib.h>
-// #endif
-// #endif
-
-// #if defined ZMQ_HAVE_OPENVMS
-// #include <ioctl.h>
-// #endif
-
-// #ifdef __APPLE__
-// #include <TargetConditionals.h>
-// #endif
-
 use std::mem;
 use std::ptr::null_mut;
-use libc::{accept, bind, c_int, close, EAFNOSUPPORT, EAGAIN, EFAULT, EINTR, EISCONN, EMSGSIZE, ENOMEM, ENOTSOCK, EOPNOTSUPP, EWOULDBLOCK, listen, setsockopt, sockaddr, ssize_t};
+use libc::{accept, bind, c_int, close, EAFNOSUPPORT, EAGAIN, EFAULT, EINTR, EISCONN, EMSGSIZE, ENOMEM, ENOTSOCK, EOPNOTSUPP, EWOULDBLOCK, listen, setsockopt, sockaddr, SOCKET, ssize_t};
 use windows::Win32::Networking::WinSock::{closesocket, IPPROTO_TCP, recv, send, SEND_RECV_FLAGS, SIO_KEEPALIVE_VALS, SIO_LOOPBACK_FAST_PATH, SO_KEEPALIVE, SO_RCVBUF, SO_REUSEADDR, SO_SNDBUF, SOCK_STREAM, SOCKADDR_STORAGE, SOCKET_ERROR, SOL_SOCKET, tcp_keepalive, TCP_KEEPALIVE, TCP_KEEPCNT, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_MAXRT, TCP_NODELAY, WSA_ERROR, WSAECONNABORTED, WSAECONNREFUSED, WSAECONNRESET, WSAEHOSTUNREACH, WSAENETDOWN, WSAENETRESET, WSAENOBUFS, WSAENOTCONN, WSAEOPNOTSUPP, WSAETIMEDOUT, WSAEWOULDBLOCK, WSAGetLastError};
 use std::mem::size_of_val;
 use anyhow::bail;
 use bincode::options;
-use crate::address::{get_socket_name, ZmqSocketEnd};
+use crate::address::{get_socket_name, ZmqAddress, ZmqSocketEnd};
 use crate::address_family::{AF_INET, AF_INET6};
 use crate::context::ZmqContext;
-use crate::defines::retired_fd;
+use crate::defines::RETIRED_FD;
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::err::wsa_error_to_errno;
 use crate::defines::ZmqFileDesc;
-use crate::ip::{assert_success_or_recoverable, bind_to_device, enable_ipv4_mapping, make_socket_noninheritable, open_socket, set_ip_type_of_service, set_nosigpipe, set_socket_priority};
+use crate::ip::{assert_success_or_recoverable, bind_to_device, enable_ipv4_mapping, make_socket_noninheritable, ip_open_socket, set_ip_type_of_service, set_nosigpipe, set_socket_priority};
 use crate::listener::ZmqListener;
 
 use crate::tcp_address::TcpAddress;
@@ -80,7 +24,7 @@ pub fn tune_tcp_socket (s_: &mut ZmqFileDesc) -> i32
     //  hurt latency.
     let mut nodelay = 1;
     let mut rc: i32 = unsafe {
-        setsockopt(s_, IPPROTO_TCP as c_int, TCP_NODELAY,
+        setsockopt(s_ as SOCKET, IPPROTO_TCP as c_int, TCP_NODELAY,
                    (&nodelay), 4)
     };
     // assert_success_or_recoverable (s_, rc);
@@ -90,12 +34,12 @@ pub fn tune_tcp_socket (s_: &mut ZmqFileDesc) -> i32
 
 // #ifdef ZMQ_HAVE_OPENVMS
     //  Disable delayed acknowledgements as they hurt latency significantly.
-    let nodelack = 1;
-    unsafe {
-        rc = setsockopt(s_, IPPROTO_TCP as c_int, TCP_NODELACK, &nodelack,
-                        4);
-    }
-    assert_success_or_recoverable (s_, rc);
+    // let nodelack = 1;
+    // unsafe {
+    //     rc = setsockopt(s_, IPPROTO_TCP as c_int, TCP_NODELACK, &nodelack,
+    //                     4);
+    // }
+    // assert_success_or_recoverable (s_, rc);
 // #endif
     return rc;
 }
@@ -406,39 +350,43 @@ pub fn tune_tcp_busy_poll (socket: &mut ZmqFileDesc, busy_poll_: i32)
 // #endif
 }
 
-pub fn tcp_open_socket (address_: &mut str,
+pub fn tcp_open_socket (address: &mut str,
                         ctx: &ZmqContext,
-                        local_: bool,
-                        fallback_to_ipv4_: bool,
-                        out_tcp_addr_: &mut TcpAddress) -> ZmqFileDesc
+                        local: bool,
+                        fallback_to_ipv4: bool,
+                        out_addr: &mut ZmqAddress) -> anyhow::Result<ZmqFileDesc>
 {
     //  Convert the textual address into address structure.
-    let mut rc = out_tcp_addr_.resolve (address_, local_, options_.ipv6);
-    if (rc != 0) {
-        return retired_fd;
-    }
+    // resolve (address_, local, ctx.ipv6)
+    out_addr.resolve (address)?;
+    let mut out: ZmqFileDesc = RETIRED_FD as ZmqFileDesc;
 
     //  Create the socket.
-     let mut s: ZmqFileDesc = open_socket (out_tcp_addr_.family (), SOCK_STREAM as i32, IPPROTO_TCP as i32);
-
-    //  IPv6 address family not supported, try automatic downgrade to IPv4.
-    if (s == retired_fd && fallback_to_ipv4_
-        && out_tcp_addr_.family () == AF_INET6 && errno == EAFNOSUPPORT
-        && options_.ipv6) {
-        rc = out_tcp_addr_.resolve (address_, local_, false);
-        if (rc != 0) {
-            return retired_fd;
+    match ip_open_socket(out_addr.family (), SOCK_STREAM as i32, IPPROTO_TCP as i32) {
+        Ok(s) => out = s,
+        Err(e) => {
+            
         }
-        s = open_socket (AF_INET as i32, SOCK_STREAM as i32, IPPROTO_TCP as i32);
     }
 
-    if (s == retired_fd) {
-        return retired_fd;
+    //  IPv6 address family not supported, try automatic downgrade to IPv4.
+    if (s == RETIRED_FD && fallback_to_ipv4
+        && out_addr.family () == AF_INET6 && errno == EAFNOSUPPORT
+        && options_.ipv6) {
+        rc = out_addr.resolve (address, local, false);
+        if (rc != 0) {
+            return RETIRED_FD;
+        }
+        s = ip_open_socket(AF_INET as i32, SOCK_STREAM as i32, IPPROTO_TCP as i32);
+    }
+
+    if (s == RETIRED_FD) {
+        return RETIRED_FD;
     }
 
     //  On some systems, IPv4 mapping in IPv6 sockets is disabled by default.
     //  Switch it on in such cases.
-    if (out_tcp_addr_.family () == AF_INET6) {
+    if (out_addr.family () == AF_INET6) {
         enable_ipv4_mapping(s);
     }
 
@@ -504,7 +452,7 @@ pub fn tcp_in_event(listener: &mut ZmqListener) -> anyhow::Result<()> {
 
     //  If connection was reset by the peer in the meantime, just ignore it.
     //  TODO: Handle specific errors like ENFILE/EMFILE etc.
-    if (fd == retired_fd as usize) {
+    if (fd == RETIRED_FD as usize) {
         listener.socket
             .event_accept_failed(&make_unconnected_bind_endpoint_pair(&listener.endpoint), zmq_errno());
         bail!("tcp_in_event failed");
@@ -533,7 +481,7 @@ pub fn tcp_in_event(listener: &mut ZmqListener) -> anyhow::Result<()> {
 
 pub fn tcp_create_socket(listener: &mut ZmqListener, addr_: &mut str) -> anyhow::Result<()> {
     listener.fd = tcp_open_socket(addr_, listener.socket.context, true, true, &mut listener.address);
-    if (listener.fd == retired_fd as usize) {
+    if (listener.fd == RETIRED_FD as usize) {
         bail!("tcp_create_socket failed");
     }
 
@@ -650,7 +598,7 @@ pub fn tcp_accept(listener: &mut ZmqListener) -> anyhow::Result<ZmqFileDesc> {
     // #endif
 
     unsafe {
-        if (sock == retired_fd as usize) {
+        if (sock == RETIRED_FD as usize) {
             // #if defined ZMQ_HAVE_WINDOWS
             let last_error: i32 = WSAGetLastError() as i32;
             // wsa_assert(last_error == WSAEWOULDBLOCK || last_error == WSAECONNRESET || last_error == WSAEMFILE || last_error == WSAENOBUFS); # elif
@@ -661,7 +609,7 @@ pub fn tcp_accept(listener: &mut ZmqListener) -> anyhow::Result<ZmqFileDesc> {
             // errno_assert (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
             // || errno == ECONNABORTED || errno == EPROTO || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE || errno == ENFILE);
             // #endif
-            return Ok(retired_fd as ZmqFileDesc);
+            return Ok(RETIRED_FD as ZmqFileDesc);
         }
     }
 
@@ -688,7 +636,7 @@ pub fn tcp_accept(listener: &mut ZmqListener) -> anyhow::Result<ZmqFileDesc> {
                 //             int rc = ::close (sock);
                 // errno_assert (rc == 0);
                 // #endif
-                return Ok(retired_fd as ZmqFileDesc);
+                return Ok(RETIRED_FD as ZmqFileDesc);
             }
         }
     }
@@ -702,7 +650,7 @@ pub fn tcp_accept(listener: &mut ZmqListener) -> anyhow::Result<ZmqFileDesc> {
             // let rc = ::close(sock);
             // errno_assert (rc == 0);
             // #endif
-            return Ok(retired_fd as ZmqFileDesc);
+            return Ok(RETIRED_FD as ZmqFileDesc);
         }
     }
 

@@ -1,7 +1,7 @@
 use crate::context::ZmqContext;
 use crate::defines::ZmqFileDesc;
 use crate::defines::{
-    retired_fd, zmq_timer_fn, ZMQ_EVENTS, ZMQ_FD, ZMQ_IO_THREADS, ZMQ_MORE, ZMQ_PAIR, ZMQ_PEER,
+    RETIRED_FD, zmq_timer_fn, ZMQ_EVENTS, ZMQ_FD, ZMQ_IO_THREADS, ZMQ_MORE, ZMQ_PAIR, ZMQ_PEER,
     ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI, ZMQ_SHARED, ZMQ_SNDMORE, ZMQ_SRCFD,
     ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH,
 };
@@ -1624,7 +1624,7 @@ pub fn check_poller_fd_registration_args(
 ) -> Result<(), ZmqError> {
     check_poller(poller_)?;
 
-    if (fd == retired_fd as usize) {
+    if (fd == RETIRED_FD as usize) {
         return Err(InvalidFileDescriptor(String::from("retired_fd")));
     }
 
@@ -1722,7 +1722,7 @@ pub fn zmq_poller_wait(
     zmq_poller_wait_all(poller_, event_, 1, timeout)?;
 
     event_.socket = None;
-    event_.fd = retired_fd;
+    event_.fd = RETIRED_FD;
     event_.user_data = None;
     event_.events = 0;
 

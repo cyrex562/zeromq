@@ -73,7 +73,7 @@ use crate::v1_decoder::ZmqV1Decoder;
 pub const rx_timer_id: u8 = 0xa1;
 
 pub const _empty_endpoint: EndpointUriPair =
-    EndpointUriPair::new("", "", EndpointType::endpoint_type_none);
+    EndpointUriPair::new("", "", EndpointType::None);
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqPeerInfo {

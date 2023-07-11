@@ -359,3 +359,11 @@ pub fn encode_base64(in_: &mut [u8], in_len_: i32, out_: &str, out_len_: i32) ->
 pub fn MAKEWORD(a: u8, b: u8) -> u16 {
     ((a as u16) << 8) | (b as u16)
 }
+
+pub fn vec2str(vec: &Vec<u8>) -> String {
+    let mut s = String::new();
+    for i in vec {
+        s.push(*i as char);
+    }
+    s
+}

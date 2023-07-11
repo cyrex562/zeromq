@@ -86,7 +86,7 @@ impl ZmqAddress {
 
     //  This function sets up the address for UNIX domain transport.
     // int resolve (path_: &str);
-    pub fn resolve(&mut self) -> anyhow::Result<String> {
+    pub fn resolve(&mut self, path: &str) -> anyhow::Result<()> {
         // TODO: Implement this
         // let path_len = path_.len();
         // if (path_len >= self.address.sun_path.len()) {

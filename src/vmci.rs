@@ -46,10 +46,10 @@ use std::ptr::null_mut;
 use crate::address::ZmqAddress;
 use crate::address_family::AF_INET;
 use crate::context::ZmqContext;
-use crate::defines::retired_fd;
+use crate::defines::RETIRED_FD;
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::defines::ZmqFileDesc;
-use crate::ip::open_socket;
+use crate::ip::ip_open_socket;
 use crate::listener::ZmqListener;
 use crate::transport::ZmqTransport;
 
@@ -130,14 +130,14 @@ pub fn vmci_open_socket(address_: &str,
     //  Convert the textual address into address structure.
     let rc = out_vmci_addr_.resolve(address_);
     if (rc != 0) {
-        return retired_fd;
+        return RETIRED_FD;
     }
 
     //  Create the socket.
-    let mut s: ZmqFileDesc = open_socket(out_vmci_addr_.family(), SOCK_STREAM as i32, 0);
+    let mut s: ZmqFileDesc = ip_open_socket(out_vmci_addr_.family(), SOCK_STREAM as i32, 0);
 
-    if (s == retired_fd) {
-        return retired_fd;
+    if (s == RETIRED_FD) {
+        return RETIRED_FD;
     }
 
     return s;
@@ -150,7 +150,7 @@ pub fn vmci_in_event(listener: &mut ZmqListener) -> anyhow::Result<()> {
     let mut fd: ZmqFileDesc = vmci_accept(listener)?;
 
     //  If connection was reset by the peer in the meantime, just ignore it.
-    if fd == retired_fd as usize {
+    if fd == RETIRED_FD as usize {
         listener.socket
             .event_accept_failed(&make_unconnected_bind_endpoint_pair(&listener.endpoint), -1);
         bail!("event accept failed")
@@ -189,7 +189,7 @@ pub fn vmci_set_local_address(listener: &mut ZmqListener, addr_: &mut String) ->
     *addr_ = address.resolve()?;
 
     //  Create a listening socket.
-    listener.fd = open_socket(
+    listener.fd = ip_open_socket(
         listener.socket.get_vmci_socket_family(),
         SOCK_STREAM as i32,
         0,
@@ -264,7 +264,7 @@ pub fn vmci_accept(listener: &mut ZmqListener) -> anyhow::Result<ZmqFileDesc> {
         //             || WSAGetLastError () == WSAECONNRESET
         //             || WSAGetLastError () == WSAEMFILE
         //             || WSAGetLastError () == WSAENOBUFS);
-        return Ok(retired_fd as ZmqFileDesc);
+        return Ok(RETIRED_FD as ZmqFileDesc);
     }
     // #if !defined _WIN32_WCE
     //  On Windows, preventing sockets to be inherited by child processes.
@@ -277,7 +277,7 @@ pub fn vmci_accept(listener: &mut ZmqListener) -> anyhow::Result<ZmqFileDesc> {
         //               || errno == ECONNABORTED || errno == EPROTO
         //               || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE
         //               || errno == ENFILE);
-        return Ok(retired_fd as ZmqFileDesc);
+        return Ok(RETIRED_FD as ZmqFileDesc);
     }
     // #endif
 

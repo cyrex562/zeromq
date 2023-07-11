@@ -4,11 +4,12 @@ use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 
 pub enum EndpointType {
-    endpoint_type_none,
     // a connection-less endpoint
-    endpoint_type_bind,
+    None,
     // a connection-oriented Bind endpoint
-    endpoint_type_connect, // a connection-oriented connect endpoint
+    Bind,
+    // a connection-oriented connect endpoint
+    Connect,
 }
 
 // endpoint_uri_ZmqPair
@@ -18,7 +19,7 @@ pub enum EndpointType {
 pub fn make_unconnected_connected_endpoint_pair(endpoint: &str) -> EndpointUriPair {
     // return endpoint_uri_ZmqPair (std::string (), endpoint_,
     //                             endpoint_type_connect);
-    EndpointUriPair::new("", endpoint, EndpointType::endpoint_type_connect)
+    EndpointUriPair::new("", endpoint, EndpointType::Connect)
 }
 
 // endpoint_uri_ZmqPair
@@ -27,7 +28,7 @@ pub fn make_unconnected_connected_endpoint_pair(endpoint: &str) -> EndpointUriPa
 // make_unconnected_bind_endpoint_pair (const std::string &endpoint_)
 pub fn make_unconnected_bind_endpoint_pair(endpoint: &str) -> EndpointUriPair {
     // return endpoint_uri_ZmqPair (endpoint_, std::string (), endpoint_type_bind);
-    EndpointUriPair::new(endpoint, "", EndpointType::endpoint_type_bind)
+    EndpointUriPair::new(endpoint, "", EndpointType::Bind)
 }
 
 //  Information associated with inproc endpoint. Note that endpoint options
@@ -35,10 +36,10 @@ pub fn make_unconnected_bind_endpoint_pair(endpoint: &str) -> EndpointUriPair {
 //  for synchronisation, handshaking or similar.
 #[derive(Default, Debug, Clone)]
 pub struct ZmqEndpoint<'a> {
-    // ZmqSocketBase *socket;
     pub uri: EndpointUriPair,
-    // pub pipe: &'a mut ZmqPipe,
+    // pipe for messages
     pub pipe: ZmqPipe,
+    // The socket this endpoint belongs to.
     pub socket: &'a mut ZmqSocket<'a>,
 }
 

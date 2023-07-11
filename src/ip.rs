@@ -191,7 +191,7 @@ use windows::Win32::System::Threading::{
 use windows::Win32::System::Threading::{ReleaseMutex, SetEvent};
 use windows::Win32::System::WindowsProgramming::OpenMutexA;
 
-use crate::defines::{retired_fd, signaler_port, ZmqFileDesc};
+use crate::defines::{RETIRED_FD, signaler_port, ZmqFileDesc};
 #[cfg(target_os = "windows")]
 use crate::err::wsa_error_to_errno;
 use crate::platform_socket::ZmqSockaddrStorage;
@@ -204,7 +204,7 @@ use crate::utils::MAKEWORD;
 pub const tmp_env_vars: [&'static str; 3] = ["TMPDIR", "TEMPDIR", "TMP"];
 // #endif
 
-pub fn open_socket(domain_: i32, mut type_: i32, protocol_: i32) -> anyhow::Result<ZmqFileDesc> {
+pub fn ip_open_socket(domain: i32, mut type_: i32, protocol: i32) -> anyhow::Result<ZmqFileDesc> {
     //  Setting this option result in sane behaviour when exec() functions
     //  are used. Old sockets are closed and don't block TCP ports etc.
     #[cfg(target_feature = "sock_cloexec")]
@@ -218,9 +218,9 @@ pub fn open_socket(domain_: i32, mut type_: i32, protocol_: i32) -> anyhow::Resu
     #[cfg(target_os = "windows")]
     let s = unsafe {
         WSASocketA(
-            domain_,
+            domain,
             type_,
-            protocol_,
+            protocol,
             None,
             0,
             WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT,
@@ -232,7 +232,7 @@ pub fn open_socket(domain_: i32, mut type_: i32, protocol_: i32) -> anyhow::Resu
     let s = unsafe { socket(domain_, type_, protocol_) };
 
     // #endif
-    if s == retired_fd {
+    if s == RETIRED_FD {
         // #ifdef ZMQ_HAVE_WINDOWS
         // #[cfg(windows)]
         // {
@@ -591,7 +591,7 @@ pub fn make_fdZmqPaircpip(fd_r: &mut ZmqFileDesc, fd_w: &mut ZmqFileDesc) -> i32
     // *r_ = INVALID_SOCKET;
 
     //  Create listening socket.
-    let mut listener = open_socket(AF_INET as i32, SOCK_STREAM as i32, 0)?;
+    let mut listener = ip_open_socket(AF_INET as i32, SOCK_STREAM as i32, 0)?;
     // wsa_assert (listener != INVALID_SOCKET);
 
     //  Set SO_REUSEADDR and TCP_NODELAY on listening socket.
@@ -616,7 +616,7 @@ pub fn make_fdZmqPaircpip(fd_r: &mut ZmqFileDesc, fd_w: &mut ZmqFileDesc) -> i32
     addr.sin_port = unsafe { htons(signaler_port as u16) };
 
     //  Create the writer socket.
-    *fd_w = open_socket(AF_INET as i32, SOCK_STREAM as i32, 0)?;
+    *fd_w = ip_open_socket(AF_INET as i32, SOCK_STREAM as i32, 0)?;
     // wsa_assert (*w_ != INVALID_SOCKET);
 
     if sync != null_mut() {
@@ -771,8 +771,8 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         let mut ipc_fallback_on_tcpip = true;
 
         //  Create a listening socket. const SOCKET
-        listener = open_socket(AF_UNIX as i32, SOCK_STREAM as i32, 0);
-        if (listener == retired_fd) {
+        listener = ip_open_socket(AF_UNIX as i32, SOCK_STREAM as i32, 0);
+        if (listener == RETIRED_FD) {
             //  This may happen if the library was built on a system supporting AF_UNIX, but the system running doesn't support it.
             // TODO
             // goto try_tcpip;
@@ -809,7 +809,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         // wsa_assert(rc != -1);
 
         //  Create the client socket.
-        *w_ = open_socket(AF_UNIX as i32, SOCK_STREAM as i32, 0);
+        *w_ = ip_open_socket(AF_UNIX as i32, SOCK_STREAM as i32, 0);
         if (*w_ == -1) {
             let last_wsa_err = unsafe { WSAGetLastError() };
             errno = wsa_error_to_errno(last_wsa_err);

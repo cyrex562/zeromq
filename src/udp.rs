@@ -55,11 +55,11 @@ use crate::address::ZmqAddress;
 use crate::address_family::{AF_INET, AF_INET6};
 use crate::context::ZmqContext;
 use crate::defines::ZmqFileDesc;
-use crate::defines::{retired_fd, ZmqHandle, INADDR_ANY, MAX_UDP_MSG};
+use crate::defines::{RETIRED_FD, ZmqHandle, INADDR_ANY, MAX_UDP_MSG};
 use crate::endpoint_uri::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::io_object::ZmqIoObject;
-use crate::ip::{assert_success_or_recoverable, bind_to_device, open_socket, unblock_socket};
+use crate::ip::{assert_success_or_recoverable, bind_to_device, ip_open_socket, unblock_socket};
 use crate::mechanism::name_len;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 
@@ -591,12 +591,12 @@ pub fn udp_init(
     engine.recv_enabled = recv_;
     engine.address = address_.clone();
 
-    engine.fd = open_socket(
+    engine.fd = ip_open_socket(
         engine.address.resolved.udp_addr.family(),
         SOCK_DGRAM as i32,
         IPPROTO_UDP as i32,
     );
-    if engine.fd == retired_fd as usize {
+    if engine.fd == RETIRED_FD as usize {
         bail!("failed to open socket")
     }
 

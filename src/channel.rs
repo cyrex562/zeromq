@@ -66,10 +66,11 @@ pub fn channel_xsend(
     Ok(())
 }
 
-pub fn channel_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
+pub fn channel_xrecv(sock: &mut ZmqSocket,
+                     pipe: &mut ZmqPipe,
+                     msg: &mut ZmqMessage) -> anyhow::Result<()> {
     //  Deallocate old content of the message.
-    let mut rc = msg.close();
-    // errno_assert(rc == 0);
+    msg.close()?;
 
     // if (pipe.is_none()) {
     //     //  Initialise the output parameter to be a 0-byte message.
@@ -95,14 +96,10 @@ pub fn channel_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Resu
 
     if (!read) {
         //  Initialise the output parameter to be a 0-byte message.
-        rc = msg.init2();
-        // errno_assert(rc == 0);
+        msg.init2()?;
         return Err(anyhow!("EAGAIN"));
-        // errno = EAGAIN;
-        // return -1;
     }
 
-    // return 0;
     Ok(())
 }
 
