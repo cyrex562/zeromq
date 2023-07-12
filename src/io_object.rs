@@ -1,47 +1,12 @@
-/*
-    Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
-
-    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
-
-    libzmq is free software; you can redistribute it and/or modify it under
-    the terms of the GNU Lesser General Public License (LGPL) as published
-    by the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    As a special exception, the Contributors give you permission to link
-    this library with independent modules to produce an executable,
-    regardless of the license terms of these independent modules, and to
-    copy and distribute the resulting executable under terms of your choice,
-    provided that you also meet, for each linked independent module, the
-    terms and conditions of the license of that module. An independent
-    module is a module which is not derived from or based on this library.
-    If you modify this library, you must extend this exception to your
-    version of the library.
-
-    libzmq is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-    License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
 use crate::defines::ZmqHandle;
 use crate::defines::ZmqFileDesc;
-use crate::poll_events_interface::ZmqPollEventsInterface;
 use crate::thread_context::ZmqThreadContext;
-use std::ptr::null_mut;
 
-// #include "precompiled.hpp"
-// #include "io_object.hpp"
-// #include "io_thread.hpp"
-// #include "err.hpp"
+
 #[derive(Default, Debug, Clone)]
 pub struct ZmqIoObject {
     // pub ZmqPollEventsInterface: ZmqPollEventsInterface,
     pub poller: Option<ZmqHandle>,
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (io_object_t)
 }
 
 impl ZmqIoObject {
@@ -70,7 +35,7 @@ impl ZmqIoObject {
         // zmq_assert (io_thread_);
         // zmq_assert (!poller);
         //  Retrieve the poller from the thread we are running in.
-        self.poller = io_thread_.get_poller();
+        self.poller = io_thread.get_poller();
     }
 
     // void unplug ();
@@ -83,8 +48,8 @@ impl ZmqIoObject {
 
     //  Methods to access underlying poller object.
     // handle_t add_fd (ZmqFileDesc fd);
-    pub fn add_fd(&mut self, fd: ZmqFileDesc) -> handle_t {
-        return self.poller.add_fd(fd, this);
+    pub fn add_fd(&mut self, fd: ZmqFileDesc) -> ZmqFileDesc {
+        return self.poller.add_fd(fd, self);
     }
 
     // void rm_fd (handle_t handle_);
@@ -93,22 +58,22 @@ impl ZmqIoObject {
     }
 
     // void set_pollin (handle_t handle_);
-    pub fn set_pollin(&mut self, handle_: handle_t) {
+    pub fn set_pollin(&mut self, handle_: ZmqFileDesc) {
         self.poller.set_pollin(handle_);
     }
 
     // void reset_pollin (handle_t handle_);
-    pub fn reset_pollin(&mut self, handle_: handle_t) {
+    pub fn reset_pollin(&mut self, handle_: ZmqFileDesc) {
         self.poller.reset_pollin(handle_);
     }
 
     // void set_pollout (handle_t handle_);
-    pub fn set_pollout(&mut self, handle_: handle_t) {
+    pub fn set_pollout(&mut self, handle_: ZmqFileDesc) {
         self.poller.set_pollout(handle_);
     }
 
     // void reset_pollout (handle_t handle_);
-    pub fn reset_pollout(&mut self, handle_: handle_t) {
+    pub fn reset_pollout(&mut self, handle_: ZmqFileDesc) {
         self.poller.reset_pollout(handle_);
     }
 

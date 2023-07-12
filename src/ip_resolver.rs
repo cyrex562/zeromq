@@ -1,10 +1,10 @@
 use crate::address_family::{AF_INET, AF_INET6, AF_UNSPEC};
-use crate::network_address::{NetworkAddress, NetworkAddressFamily};
+
 #[cfg(target_os = "linux")]
 use libc::{
     getaddrinfo, if_nametoindex, AI_NUMERICHOST, AI_PASSIVE, AI_V4MAPPED,
 };
-use libc::{c_uint, close, free, malloc, strcmp, EAI_BADFLAGS, EINVAL, ENODEV, ENOMEM, SOCK_STREAM, memcpy, c_char};
+use libc::{c_uint, close, free, malloc, strcmp, EINVAL, ENODEV, ENOMEM, memcpy, c_char, sockaddr};
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
@@ -13,13 +13,14 @@ use std::ptr::null_mut;
 use std::str::FromStr;
 use anyhow::{anyhow, bail};
 use windows::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
-use windows::Win32::Networking::WinSock::{ADDRINFOA, getaddrinfo, SOCKADDR_IN, SOCKADDR_IN6};
+use windows::Win32::Networking::WinSock::{ADDRINFOA, getaddrinfo, SOCKADDR, SOCKADDR_IN, SOCKADDR_IN6};
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{
     freeaddrinfo, AI_NUMERICHOST, AI_PASSIVE, AI_V4MAPPED, SOCK_DGRAM, SOCK_STREAM,
     WSAHOST_NOT_FOUND,
 };
 use windows::Win32::NetworkManagement::IpHelper::{GAA_FLAG_SKIP_ANYCAST, GAA_FLAG_SKIP_DNS_SERVER, GAA_FLAG_SKIP_MULTICAST, GetAdaptersAddresses, if_nametoindex, IP_ADAPTER_ADDRESSES_LH};
+use crate::zmq_addrinfo::ZmqAddrInfo;
 
 pub struct IpResolverOptions {
     //
@@ -552,17 +553,51 @@ impl IpResolver {
     // #endif
 
     pub fn do_getaddrinfo(
-        node_: &str,
+        node: &str,
         service_: &str,
-        hints_: &addrinfo,
-        &mut &mut res_: addrinfo,
-    ) -> i32 {
+        hints_: Option<&mut ZmqAddrInfo>,
+    ) -> anyhow::Result<Vec<ZmqAddrInfo>> {
         // return unsafe { getaddrinfo(node_, service_, hints_, res_) };
-        0
-    }
+        let mut addrinfo_result: *mut *mut ADDRINFOA = null_mut();
+        let res = unsafe{getaddrinfo(Some(node),
+                                     Some(service_),
+        hints_ as Option<*const ADDRINFOA>,
+        addrinfo_result as *mut *mut ADDRINFOA)};
+        if res != 0 {
+            return Err(anyhow!("getaddrinfo failed"));
+        }
+        let mut out: Vec<ZmqAddrInfo> = Vec::new();
 
-    pub fn do_freeaddrinfo(res_: &addrinfo) {
-        unsafe { freeaddrinfo(Some(res_ as *const ADDRINFOA)) };
+        let mut addrinfo = unsafe { *addrinfo_result };
+        while addrinfo != null_mut() {
+
+            let cn_raw = unsafe { CString::from_raw(*addrinfo.ai_canonname as *mut c_char) };
+            let cn = cn_raw.into_string()?;
+
+            let mut sa = SOCKADDR::default();
+            sa.sa_family = addrinfo.ai_addr.sa_family;
+            for i in 0 .. 14 {
+                sa.sa_data[i] = addrinfo.ai_addr.sa_data[i];
+            }
+
+            let mut ai = ZmqAddrInfo {
+                ai_flags: addrinfo.ai_flags,
+                ai_family: addrinfo.ai_family,
+                ai_socktype: addrinfo.ai_socktype,
+                ai_protocol: addrinfo.ai_protocol,
+                ai_addrlen: addrinfo.ai_addrlen,
+                ai_canonname:cn,
+                ai_addr: sa as sockaddr,
+            };
+            out.push(ai);
+
+
+            addrinfo = unsafe { (*addrinfo).ai_next };
+        }
+
+        unsafe { freeaddrinfo(Some(addrinfo_result as *const ADDRINFOA)) };
+
+        Ok(out)
     }
 }
 

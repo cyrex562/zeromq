@@ -133,11 +133,11 @@
 // int create_ipc_wildcard_address (std::string &path_, std::string &file_);
 
 use anyhow::bail;
-use std::ffi::{c_void, CStr, CString};
+use std::ffi::{c_void, CString};
 use std::mem;
 use std::ptr::null_mut;
 
-use libc::{accept, c_char, connect, listen, rmdir, sockaddr, socket, unlink, EINVAL};
+use libc::{accept, c_char, connect, listen, rmdir, sockaddr, socket, unlink};
 
 #[cfg(target_os = "linux")]
 use libc::{
@@ -149,12 +149,11 @@ use crate::address::get_socket_address;
 use crate::address::ZmqSocketEnd::SocketEndRemote;
 #[cfg(target_os = "windows")]
 use windows::core::PSTR;
-use windows::s;
-use windows::Win32::Foundation::ERROR_ALREADY_EXISTS;
+
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::{
     CloseHandle, GetLastError, SetHandleInformation, BOOL, ERROR_ACCESS_DENIED, FALSE, HANDLE,
-    HANDLE_FLAGS, HANDLE_FLAG_INHERIT, MAX_PATH, TRUE,
+    HANDLE_FLAGS, HANDLE_FLAG_INHERIT,  TRUE,
 };
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{
@@ -163,7 +162,7 @@ use windows::Win32::Networking::WinSock::{
 };
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{
-    closesocket, recv, send, socklen_t, AF_UNIX, SEND_RECV_FLAGS,
+    closesocket, recv, send, AF_UNIX, SEND_RECV_FLAGS,
 };
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{
@@ -172,12 +171,11 @@ use windows::Win32::Networking::WinSock::{
     SOCKADDR, SOCKET, SOCKET_ERROR, SOL_SOCKET, TCP_NODELAY, WSADATA, WSAEFAULT, WSAEINPROGRESS,
     WSAENOTSOCK, WSANOTINITIALISED, WSA_FLAG_NO_HANDLE_INHERIT, WSA_FLAG_OVERLAPPED,
 };
-use windows::Win32::Networking::WinSock::{WSASocketA, WSA_ERROR};
+use windows::Win32::Networking::WinSock::{WSASocketA, WSA_ERROR, SOCKADDR_IN, ADDRESS_FAMILY};
 #[cfg(target_os = "windows")]
 use windows::Win32::Security::{
     InitializeSecurityDescriptor, SetSecurityDescriptorDacl, PSECURITY_DESCRIPTOR,
-    SECURITY_ATTRIBUTES, SECURITY_DESCRIPTOR,
-};
+    SECURITY_ATTRIBUTES, };
 use windows::Win32::Storage::FileSystem::{
     CreateDirectoryA, GetTempPathA, FILE_ACCESS_RIGHTS, SYNCHRONIZE,
 };
@@ -196,7 +194,10 @@ use crate::defines::{RETIRED_FD, signaler_port, ZmqFileDesc};
 use crate::err::wsa_error_to_errno;
 use crate::platform_socket::ZmqSockaddrStorage;
 use crate::tcp::tcp_tune_loopback_fast_path;
+
+#[cfg(target_os = "linux")]
 use crate::unix_sockaddr::sockaddr_in;
+
 use crate::utils::MAKEWORD;
 
 // #ifndef ZMQ_HAVE_WINDOWS
@@ -347,7 +348,7 @@ pub fn get_peer_ip_address(sockfd_: ZmqFileDesc, mut ip_addr_: &str) -> anyhow::
     return Ok(sa.family);
 }
 
-pub fn set_ip_type_of_service(s_: ZmqFileDesc, iptos_: i32) {
+pub fn set_ip_type_of_service(s_: ZmqFileDesc, iptos_: i32) -> anyhow::Result<()> {
     let mut rc = unsafe { setsockopt(s_, IPPROTO_IP as i32, IP_TOS, Some(&iptos_.to_le_bytes())) };
 
     // #ifdef ZMQ_HAVE_WINDOWS
@@ -372,9 +373,9 @@ pub fn set_ip_type_of_service(s_: ZmqFileDesc, iptos_: i32) {
 
     //  If IPv6 is not enabled ENOPROTOOPT will be returned on Linux and
     //  EINVAL on OSX
-    if (rc == -1) {
-        // errno_assert (errno == ENOPROTOOPT || errno == EINVAL);
-    }
+    // if (rc == -1) {
+    //     // errno_assert (errno == ENOPROTOOPT || errno == EINVAL);
+    // }
     // #endif
 }
 
@@ -609,9 +610,12 @@ pub fn make_fdZmqPaircpip(fd_r: &mut ZmqFileDesc, fd_w: &mut ZmqFileDesc) -> i32
     tune_socket(listener as SOCKET)?;
 
     //  Init sockaddr to signaler port.
+    #[cfg(linux)]
     let mut addr: sockaddr_in = sockaddr_in::default();
+    #[cfg(windows)]
+    let mut addr: SOCKADDR_IN = SOCKADDR_IN::default();
     // memset (&addr, 0, sizeof addr);
-    addr.sin_family = AF_INET as i16;
+    addr.sin_family = AF_INET as ADDRESS_FAMILY;
     addr.sin_addr.s_addr = unsafe { htonl(INADDR_LOOPBACK) };
     addr.sin_port = unsafe { htons(signaler_port as u16) };
 

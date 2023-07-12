@@ -63,7 +63,7 @@ use crate::pipe::PipeState::{
 };
 use crate::session_base::ZmqSessionBase;
 use crate::socket::ZmqSocket;
-use crate::ypipe::Ypipe;
+
 
 // int pipepair (ZmqObject *parents_[2],
 // ZmqPipe *pipes_[2],
@@ -261,14 +261,15 @@ impl ZmqPipe {
 
         //  If the next item in the pipe is message delimiter,
         //  initiate termination process.
-        if (self.in_pipe.probe(is_delimiter)) {
-            // ZmqMessage msg;
-            let mut msg = ZmqMessage::default();
-            let ok = self.in_pipe.read(msg);
-            // zmq_assert (ok);
-            self.process_delimiter();
-            return false;
-        }
+        // TODO
+        // if (self.in_pipe.probe(is_delimiter)) {
+        //     // ZmqMessage msg;
+        //     let mut msg = ZmqMessage::default();
+        //     let ok = self.in_pipe.read(msg);
+        //     // zmq_assert (ok);
+        //     self.process_delimiter();
+        //     return false;
+        // }
 
         return true;
     }

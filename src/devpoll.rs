@@ -43,7 +43,9 @@
 
 use std::ffi::CString;
 
+#[cfg(target_os = "linux")]
 use libc::{open, pollfd, write, EINTR, O_RDWR};
+
 use windows::Win32::Networking::WinSock::{POLLERR, POLLHUP, POLLIN, POLLOUT};
 
 use crate::context::ZmqContext;

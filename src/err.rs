@@ -779,4 +779,10 @@ pub enum ZmqError {
     GetTimerTimeoutFailed(String),
     #[error("query pipes stats failed")]
     QueryPipesStatsFailed(String),
+    #[error("in progress")]
+    InProgress(String),
+    #[error("connection refused")]
+    ConnectionRefused(String),
+    #[error("fault")]
+    Fault(String)
 }

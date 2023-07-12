@@ -73,7 +73,7 @@ pub struct StreamConnecterBase<'a> {
     //  Address to connect to. Owned by ZmqSessionBase.
     //  It is non-const since some parts may change during opening.
     // Address *const _addr;
-    pub _addr: &'a ZmqAddress(a),
+    pub _addr: &'a ZmqAddress,
     //  Underlying socket.
     // ZmqFileDesc _s;
     pub _s: ZmqFileDesc,

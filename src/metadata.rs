@@ -1,4 +1,3 @@
-use crate::atomic_counter::AtomicCounter;
 use crate::defines::ZMQ_MSG_PROPERTY_ROUTING_ID;
 use std::collections::HashMap;
 
@@ -9,7 +8,7 @@ use std::collections::HashMap;
 // #include "metadata.hpp"
 pub struct ZmqMetadata {
     pub _dict: HashMap<String, String>,
-    pub _ref_cnt: AtomicCounter,
+    // pub _ref_cnt: AtomicCounter,
     // //
     //   //  Reference counter.
     //   AtomicCounter _ref_cnt;
@@ -25,7 +24,7 @@ impl ZmqMetadata {
     // ZmqMetadata::ZmqMetadata (const dict_t &dict_) : _ref_cnt (1), _dict (dict_)
     pub fn new(dict_: &mut HashMap<String, String>) -> Self {
         Self {
-            _ref_cnt: AtomicCounter::new(),
+            // _ref_cnt: AtomicCounter::new(),
             _dict: dict_.clone(),
         }
     }

@@ -135,3 +135,4 @@ mod routing_socket;
 mod item;
 mod endpoint_uri;
 mod dish_session;
+mod zmq_addrinfo;
