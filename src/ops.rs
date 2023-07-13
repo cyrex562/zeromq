@@ -24,7 +24,6 @@ use crate::ip::{initialize_network, shutdown_network};
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE, ZMQ_MSG_SHARED};
 
 use crate::optimized_fd_set::OptimizedFdSet;
-use crate::peer::ZmqPeer;
 use crate::poll_item::ZmqPollItem;
 use crate::poller_event::ZmqPollerEvent;
 use crate::polling_util::compute_timeout;
@@ -204,13 +203,13 @@ pub fn as_socket_base(in_bytes: &[u8]) -> Result<ZmqSocket, ZmqError> {
     Ok(out)
 }
 
-pub fn as_zmq_peer(in_bytes: &[u8]) -> Result<ZmqPeer, ZmqError> {
-    let mut out: ZmqPeer = bincode::deserialize(in_bytes)?;
-    if out.check_tag() == false {
-        return Err(DeserializeZmqPeerFailed(format!("ENOTSOCK")));
-    }
-    Ok(out)
-}
+// pub fn as_zmq_peer(in_bytes: &[u8]) -> Result<ZmqPeer, ZmqError> {
+//     let mut out: ZmqPeer = bincode::deserialize(in_bytes)?;
+//     if out.check_tag() == false {
+//         return Err(DeserializeZmqPeerFailed(format!("ENOTSOCK")));
+//     }
+//     Ok(out)
+// }
 
 pub fn zmq_socket(ctx: &mut [u8], type_: i32) -> Result<Vec<u8>, ZmqError> {
     let mut ctx: ZmqContext = bincode::deserialize(ctx)?;
@@ -510,8 +509,8 @@ pub fn zmq_recvmsg(
     return zmq_msg_recv(options, msg, s_, flags);
 }
 
-/// receive message from a socket
-/// on success returns a message object
+/// receive message part from a socket
+/// on success returns a message object representing a message part
 /// on error returns a ZmqError variant
 pub fn zmq_recv(ctx: &mut ZmqContext, sock: &mut ZmqSocket, flags: i32) -> Result<ZmqMessage, ZmqError> 
 {
