@@ -68,7 +68,7 @@ pub struct ZmqMailbox<'a> {
     // // ZMQ_NON_COPYABLE_NOR_MOVABLE (mailbox_t)
 }
 
-impl ZmqMailbox {
+impl <'a>ZmqMailbox<'a> {
     // mailbox_t ();
     // mailbox_t::mailbox_t ()
     pub fn new() -> Self {

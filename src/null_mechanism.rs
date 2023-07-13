@@ -33,6 +33,7 @@
 // #include <string.h>
 // #include <stdlib.h>
 
+use crate::context::ZmqContext;
 use crate::defines::{
     ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
 };
@@ -60,8 +61,8 @@ pub const ready_command_name_len: usize = ready_command_name.len();
 // #include "session_base.hpp"
 // #include "null_mechanism.hpp"
 #[derive(Default, Debug, Clone)]
-pub struct ZmqNullMechanism {
-    pub mechanism_base: ZmqMechanismBase,
+pub struct ZmqNullMechanism<'a> {
+    pub mechanism_base: ZmqMechanismBase<'a>,
     pub zap_client: ZmqZapClient,
     pub _ready_command_sent: bool,
     pub _error_command_sent: bool,
@@ -76,7 +77,7 @@ pub struct ZmqNullMechanism {
     // void send_zap_request ();
 }
 
-impl ZmqNullMechanism {
+impl <'a>ZmqNullMechanism<'a> {
     // ZmqNullMechanism (ZmqSessionBase *session_,
     //                   const std::string &peer_address_,
     //                   options: &ZmqOptions);
@@ -90,7 +91,7 @@ impl ZmqNullMechanism {
         session: &mut ZmqSessionBase,
         peer_address_: &str,
         options: &mut ZmqContext,
-    ) -> ZmqNullMechanism {
+    ) -> ZmqNullMechanism<'a> {
         // ZmqMechanismBase (session_, options_),
         // ZmqZapClient (session_, peer_address_, options_),
         // _ready_command_sent (false),

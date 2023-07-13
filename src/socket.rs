@@ -823,7 +823,8 @@ impl<'a> ZmqSocket<'a> {
     }
 
     // int recv (msg: &mut ZmqMessage flags: i32);
-    pub fn recv(&mut self, msg: &mut ZmqMessage, flags: i32) -> anyhow::Result<()> {
+    pub fn recv(&mut self, ctx: &mut ZmqContext, flags: i32) -> anyhow::Result<ZmqMessage> {
+        let mut out = ZmqMessage::default();
         // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
         //  Check whether the context hasn't been shut down yet.
@@ -857,14 +858,14 @@ impl<'a> ZmqSocket<'a> {
         // TODO: figure out where to get the correct pipe from for recv. Check each pipe in the enxpoints?
         let pipe = self.get_pipe(0);
 
-        self.call_xrecv(msg, pipe);
+        self.call_xrecv(out, pipe);
 
         //  If we have the message, return immediately.
         // if (rc == 0) {
         //     extract_flags (msg);
         //     return 0;
         // }
-        self.extract_flags(msg);
+        self.extract_flags(out);
         // TODO: find condition to exit if message is processed.
 
         //  If the message cannot be fetched immediately, there are two scenarios.
@@ -877,14 +878,14 @@ impl<'a> ZmqSocket<'a> {
             // }
             self.ticks = 0;
 
-            ops.xrecv(msg)?;
+            ops.xrecv(out)?;
             // if rc < 0 {
             //     return rc;
             // }
-            self.extract_flags(msg);
+            self.extract_flags(out);
 
             // return 0;
-            return Ok(());
+            return Ok(out);
         }
 
         //  Compute the time when the timeout should occur.

@@ -78,9 +78,9 @@ pub struct ZmqContext<'a> {
     //  I/O threads.
     pub threads: Vec<ZmqThreadContext>,
     //  Array of pointers to mailboxes for both application and I/O threads.
-    pub slots: Vec<ZmqMailbox>,
+    pub slots: Vec<ZmqMailbox<'a>>,
     //  Mailbox for zmq_ctx_term thread.
-    pub term_mailbox: ZmqMailbox,
+    pub term_mailbox: ZmqMailbox<'a>,
     //  List of inproc endpoints within this context.
     pub endpoints: HashMap<String, ZmqEndpoint<'a>>,
     // List of inproc onnection endpoints pending a Bind
@@ -2851,6 +2851,7 @@ pub fn set_opt_bool(in_opt_bytes: &[u8], out_val: &mut bool) -> anyhow::Result<(
         *out_val = true;
         Ok(())
     }
+    Ok(())
 }
 
 pub fn set_opt_string(in_opt_bytes: &[u8], out_val: &mut String) -> anyhow::Result<()> {

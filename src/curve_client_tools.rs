@@ -70,14 +70,15 @@ pub fn process_welcome(
     // memcpy (welcome_nonce + 8, msg_data_ + 8, 16);
     copy_bytes(&mut welcome_nonce, 8, msg_data_, 8, 16);
 
-    crypto_box_open(
-        &welcome_plaintext[0],
-        welcome_box,
-        welcome_box.len(),
-        welcome_nonce,
-        server_key_,
-        cn_secret_,
-    )?;
+    // TODO
+    // crypto_box_open(
+    //     &welcome_plaintext[0],
+    //     welcome_box,
+    //     welcome_box.len(),
+    //     welcome_nonce,
+    //     server_key_,
+    //     cn_secret_,
+    // )?;
     // if (rc != 0) {
     //     errno = EPROTO;
     //     return -1;

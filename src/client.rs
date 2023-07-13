@@ -39,7 +39,7 @@ use crate::lb::LoadBalancer;
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
-use crate::socket_base_ops::ZmqSocketBaseOps;
+
 
 // #include "precompiled.hpp"
 // #include "macros.hpp"
@@ -113,12 +113,12 @@ pub fn client_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Resul
 
 //     bool xhas_in ();
 pub fn client_xhas_in(sock: &mut ZmqSocket) -> bool {
-    return self.fq.has_in();
+    return sock.fq.has_in();
 }
 
 //     bool xhas_out ();
 pub fn client_xhas_out(sock: &mut ZmqSocket) -> bool {
-    return self.lb.has_out();
+    return sock.lb.has_out();
 }
 
 //     void xread_activated (pipe_: &mut ZmqPipe);

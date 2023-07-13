@@ -42,15 +42,15 @@ use crate::session_base::ZmqSessionBase;
 // #include "session_base.hpp"
 // public mechanism_t
 #[derive(Default,Debug,Clone)]
-pub struct ZmqMechanismBase
+pub struct ZmqMechanismBase<'a>
 {
 pub mechanism: ZmqMechanism,
 // ZmqSessionBase *const session;
-pub session: ZmqSessionBase,
+pub session: ZmqSessionBase<'a>,
 
 }
 
-impl ZmqMechanismBase {
+impl <'a>ZmqMechanismBase<'a> {
     // ZmqMechanismBase (ZmqSessionBase *session_, options: &ZmqOptions);
     pub fn new(ctx: &mut ZmqContext, session: &mut ZmqSessionBase) -> Self {
         let out = Self {

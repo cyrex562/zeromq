@@ -75,7 +75,7 @@ pub struct pgm_sender_t<'a> {
     pub has_tx_timer: bool,
     pub has_rx_timer: bool,
     // ZmqSessionBase *session;
-    pub session: ZmqSessionBase,
+    pub session: ZmqSessionBase<'a>,
     //  Message encoder.
     // v1_encoder_t encoder;
     pub encoder: ZmqV1Encoder,
@@ -103,7 +103,7 @@ pub struct pgm_sender_t<'a> {
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (pgm_sender_t)
 }
 
-impl ZmqEngineInterface for pgm_sender_t {
+impl <'a> ZmqEngineInterface for pgm_sender_t<'a> {
     fn has_handshake_state(&self) -> bool {
         todo!()
     }
@@ -133,7 +133,7 @@ impl ZmqEngineInterface for pgm_sender_t {
     }
 }
 
-impl pgm_sender_t {
+impl <'a>pgm_sender_t<'a> {
     // pgm_sender_t (parent_: &mut ZmqIoThread, options: &ZmqOptions);
     pub fn new(parent_: &mut ZmqThreadContext, options: &ZmqContext) -> Self {
         // ZmqIoObject (parent_),

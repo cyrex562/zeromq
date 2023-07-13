@@ -234,7 +234,7 @@ impl PgmSocket {
                 IPPROTO_PGM,
                 PGM_UDP_ENCAP_UCAST_PORT,
                 &encapsulation_port,
-                mem::size_of::<encapsulation_port>(),
+                mem::size_of_val(&encapsulation_port),
             )) {
                 // goto err_abort;
             }
@@ -243,7 +243,7 @@ impl PgmSocket {
                 IPPROTO_PGM,
                 PGM_UDP_ENCAP_MCAST_PORT,
                 &encapsulation_port,
-                mem::size_of::<encapsulation_port>(),
+                mem::size_of_val(&encapsulation_port),
             )) {
                 // goto err_abort;
             }
@@ -274,7 +274,7 @@ impl PgmSocket {
                     SOL_SOCKET,
                     SO_RCVBUF,
                     &rcvbuf,
-                    mem::size_of::<rcvbuf>(),
+                    4,
                 )) {
                     // goto
                     // err_abort;
@@ -288,7 +288,7 @@ impl PgmSocket {
                     SOL_SOCKET,
                     SO_SNDBUF,
                     &sndbuf,
-                    mem::size_of::<sndbuf>(),
+                    4,
                 )) {
                     // goto
                     // err_abort;
@@ -301,7 +301,7 @@ impl PgmSocket {
                 IPPROTO_PGM,
                 PGM_MTU,
                 &max_tpdu,
-                mem::size_of::<max_tpdu>(),
+                4,
             )) {
                 // goto
                 // err_abort;
@@ -325,55 +325,55 @@ impl PgmSocket {
                 IPPROTO_PGM,
                 PGM_RECV_ONLY,
                 &recv_only,
-                mem::size_of::<recv_only>(),
+                4,
             ) || !pgm_setsockopt(
                 sock,
                 IPPROTO_PGM,
                 PGM_RXW_SQNS,
                 &rxw_sqns,
-                mem::size_of::<rxw_sqns>(),
+                4,
             ) || !pgm_setsockopt(
                 sock,
                 IPPROTO_PGM,
                 PGM_PEER_EXPIRY,
                 &peer_expiry,
-                mem::size_of::<peer_expiry>(),
+                4,
             ) || !pgm_setsockopt(
                 sock,
                 IPPROTO_PGM,
                 PGM_SPMR_EXPIRY,
                 &spmr_expiry,
-                mem::size_of::<spmr_expiry>(),
+                4,
             ) || !pgm_setsockopt(
                 sock,
                 IPPROTO_PGM,
                 PGM_NAK_BO_IVL,
                 &nak_bo_ivl,
-                mem::size_of::<nak_bo_ivl>(),
+                4,
             ) || !pgm_setsockopt(
                 sock,
                 IPPROTO_PGM,
                 PGM_NAK_RPT_IVL,
                 &nak_rpt_ivl,
-                mem::size_of::<nak_rpt_ivl>(),
+                4,
             ) || !pgm_setsockopt(
                 sock,
                 IPPROTO_PGM,
                 PGM_NAK_RDATA_IVL,
                 &nak_rdata_ivl,
-                mem::size_of::<nak_rdata_ivl>(),
+                4,
             ) || !pgm_setsockopt(
                 sock,
                 IPPROTO_PGM,
                 PGM_NAK_DATA_RETRIES,
                 &nak_data_retries,
-                mem::size_of::<nak_data_retries>(),
+                4,
             ) || !pgm_setsockopt(
                 sock,
                 IPPROTO_PGM,
                 PGM_NAK_NCF_RETRIES,
                 &nak_ncf_retries,
-                mem::size_of::<nak_ncf_retries>(),
+                4,
             )) {
                 // goto
                 // err_abort;
@@ -401,31 +401,31 @@ impl PgmSocket {
                 IPPROTO_PGM,
                 PGM_SEND_ONLY,
                 &send_only,
-                mem::size_of::<send_only>(),
+                4,
             ) || !pgm_setsockopt(
                 sock,
                 IPPROTO_PGM,
                 PGM_ODATA_MAX_RTE,
                 &max_rte,
-                mem::size_of::<max_rte>(),
+                4,
             ) || !pgm_setsockopt(
                 sock,
                 IPPROTO_PGM,
                 PGM_TXW_SQNS,
                 &txw_sqns,
-                mem::size_of::<txw_sqns>(),
+                4,
             ) || !pgm_setsockopt(
                 sock,
                 IPPROTO_PGM,
                 PGM_AMBIENT_SPM,
                 &ambient_spm,
-                mem::size_of::<ambient_spm>(),
+                4,
             ) || !pgm_setsockopt(
                 sock,
                 IPPROTO_PGM,
                 PGM_HEARTBEAT_SPM,
                 &heartbeat_spm,
-                mem::size_of::<heartbeat_spm>(),
+                4,
             )) {
                 // goto
                 // err_abort;

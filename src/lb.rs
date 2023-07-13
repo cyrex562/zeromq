@@ -34,7 +34,7 @@
 // #include "msg.hpp"
 
 use crate::message::{ZmqMessage, ZMQ_MSG_MORE};
-use crate::pipe::{pipe_erase, pipe_index, pipe_swap, ZmqPipe};
+use crate::pipe::ZmqPipe;
 use anyhow::anyhow;
 use libc::EAGAIN;
 use std::ptr::null_mut;

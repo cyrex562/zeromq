@@ -505,8 +505,8 @@ pub fn zmq_recvmsg(
     s_: &mut [u8],
     msg: &mut ZmqMessage,
     flags: i32,
-) -> Result<usize, ZmqError> {
-    return zmq_msg_recv(options, msg, s_, flags);
+) -> Result<ZmqMessage, ZmqError> {
+    return zmq_msg_recv(options,  s_, flags);
 }
 
 /// receive message part from a socket
@@ -669,12 +669,10 @@ pub fn zmq_msg_send(
 
 pub fn zmq_msg_recv(
     options: &mut ZmqContext,
-    msg: &mut ZmqMessage,
-    s_: &mut [u8],
+    s_: &mut ZmqSocket,
     flags: i32,
-) -> Result<usize, ZmqError> {
-    let mut s: ZmqSocket = as_socket_base(s_)?;
-    return s_recvmsg(options, &mut s, msg, flags);
+) -> Result<ZmqMessage, ZmqError> {
+    return s_recvmsg(options, s_, flags);
 }
 
 pub fn zmq_msg_close(msg: &mut ZmqMessage) -> Result<(), ZmqError> {

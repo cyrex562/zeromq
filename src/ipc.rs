@@ -5,7 +5,7 @@ use crate::defines::ZmqFileDesc;
 use crate::dish_session::DishSessionState::Group;
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::ip::{
-    create_ipc_wildcard_address, make_socket_noninheritable, ip_open_socket, set_nosigpipe,
+    create_ipc_wildcard_address, make_socket_noninheritable, ip_open_socket, 
 };
 use crate::listener::ZmqListener;
 use anyhow::bail;

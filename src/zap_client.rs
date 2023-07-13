@@ -310,7 +310,7 @@ impl ZmqZapClient {
     }
 }
 
-enum ZmqZapClientCommonHandshakeState {
+pub enum ZmqZapClientCommonHandshakeState {
     waiting_for_hello,
     sending_welcome,
     waiting_for_initiate,

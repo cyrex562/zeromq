@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::pipe::ZmqPipe;
 use std::collections::HashMap;
 
