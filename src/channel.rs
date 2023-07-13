@@ -1,3 +1,4 @@
+use std::ptr::null_mut;
 
 
 pub struct channel_t
@@ -18,6 +19,91 @@ impl channel_t
     }
 
     pub fn xattach_pipe(&mut self, pipe_: *mut pipe_t, subscribe_to_all_: bool, local_initiated_: bool) {
-        if self._pipe 
+        if self._pipe == null_mut() {
+            self._pipe == pipe_;
+        }
+    }
+
+    pub fn xpipe_terminated(&mut self, pipe_: *mut pipe_t) {
+        if self._pipe == pipe_ {
+            self._pipe = null_mut();
+        }
+    }
+
+    pub fn xread_activated(&mut self, pipe: *mut pipe_t)
+    {
+        unimplemented!()
+    }
+
+    pub fn xwrite_activated(&mut self, pipe: *mut pipe_t)
+    {
+        unimplemented!()
+    }
+
+    pub unsafe fn xsend(&mut self, msg: *mut msg_t) -> i32
+    {
+        if msg.flags() & msg_t::more > 0 {
+            return -1;
+        }
+
+        if self._pipe == null_mut() || !self._pipe.write(msg_)
+        {
+            return -1;
+        }
+
+        self._pipe.flush();
+
+        let rc = msg.init();
+
+        return 0;
+
+    }
+
+    pub unsafe fn xrecv(&mut self, msg: *mut msg_t) -> i32
+    {
+        let mut rc = msg.close();
+
+        if (!self._pipe) {
+            rc = msg.init();
+            return -1;
+        }
+
+        let read = self._pipe.read(msg);
+        
+        while(read && msg.flags() & msg_t::more > 0)
+        {
+            read = self._pipe.read(msg);
+            while(read && msg.flags() & msg_t::more > 0)
+            {
+                read = self._pipe.read(msg);
+            }
+
+            if read {
+                read = self._pipe.read(msg_);
+            }
+        }
+
+        if !read {
+            rc = msg.init();
+            return -1;
+        }
+
+        return 0;
+    }
+
+    pub fn xhas_in(&mut self) -> bool
+    {
+        if !self._pipe {
+            return false;
+        }
+        return self._pipe.check_read();
+    }
+
+    pub fn xhas_out(&mut self) -> bool
+    {
+        if !self._pipe {
+            return false;
+        }
+        return self._pipe.check_write();
     }
 }
