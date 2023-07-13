@@ -477,27 +477,27 @@ pub fn zmq_sendiov(
 
 pub fn s_recvmsg(
     options: &mut ZmqContext,
-    s_: &mut ZmqSocket,
-    msg: &mut ZmqMessage,
+    sock: &mut ZmqSocket,
     flags: i32,
-) -> Result<usize, ZmqError> {
-    match s_.recv(msg, options, flags) {
-        Ok(_) => (),
+) -> Result<ZmqMessage, ZmqError> {
+    let msg = match sock.recv(options, flags) {
+        Ok(msg) => msg,
         Err(e) => {
             return Err(ReceiveMessageFailed(format!(
                 "failed to receive message: {}",
                 e
             )));
         }
-    }
+    };
 
     //  Truncate returned size to INT_MAX to avoid overflow to negative values
-    let sz = msg.size();
-    return if sz < usize::MAX {
-        Ok(sz)
-    } else {
-        Ok(usize::MAX)
-    };
+    // let sz = msg.size();
+    // return if sz < usize::MAX {
+    //     Ok(sz)
+    // } else {
+    //     Ok(usize::MAX)
+    // };
+    Ok(msg)
 }
 
 //   To be deprecated once zmq_msg_recv() is stable
@@ -510,27 +510,32 @@ pub fn zmq_recvmsg(
     return zmq_msg_recv(options, msg, s_, flags);
 }
 
-pub fn zmq_recv(s_: &mut [u8], buf: &mut [u8], len: usize, flags: i32) -> Result<usize, ZmqError> {
-    let mut s: ZmqSocket = as_socket_base(s_)?;
+/// receive message from a socket
+/// on success returns a message object
+/// on error returns a ZmqError variant
+pub fn zmq_recv(ctx: &mut ZmqContext, sock: &mut ZmqSocket, flags: i32) -> Result<ZmqMessage, ZmqError> 
+{
+    let msg = s_recvmsg(ctx, sock, flags)?;
+    
+    // let mut msg: ZmqMessage = ZmqMessage::default();
+    // zmq_msg_init(&mut msg)?;
 
-    let mut msg: ZmqMessage = ZmqMessage::default();
-    zmq_msg_init(&mut msg)?;
+    // let nbytes = s_recvmsg(options: &mut ZmqContext, &mut sock, &mut msg, flags).map_err(|e| {
+    //     zmq_msg_close(&mut msg)?;
+    //     e
+    // })?;
 
-    let nbytes = s_recvmsg(options: &mut ZmqContext, &mut s, &mut msg, flags).map_err(|e| {
-        zmq_msg_close(&mut msg)?;
-        e
-    })?;
+    // //  An oversized message is silently truncated.
+    // let to_copy: usize = if (nbytes as usize) < len { nbytes } else { len };
 
-    //  An oversized message is silently truncated.
-    let to_copy: usize = if (nbytes as usize) < len { nbytes } else { len };
-
-    //  We explicitly allow a null buffer argument if len is zero
-    if to_copy {
-        // assert (buf);
-        copy_bytes(buf, 0, msg.data(), 0, to_copy);
-    }
-    zmq_msg_close(&mut msg)?;
-    Ok(nbytes)
+    // //  We explicitly allow a null buffer argument if len is zero
+    // if to_copy {
+    //     // assert (buf);
+    //     copy_bytes(buf, 0, msg.data(), 0, to_copy);
+    // }
+    // zmq_msg_close(&mut msg)?;
+    // Ok(msg)
+    Ok(msg)
 }
 
 // Receive a multi-part message
