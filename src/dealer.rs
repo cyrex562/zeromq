@@ -18,7 +18,7 @@ pub fn dealer_xsetsockopt(
     optval_: &mut [u8],
     optvallen_: usize,
 ) -> anyhow::Result<()> {
-    let is_int = (optvallen_ == mem::size_of::<int>());
+    let is_int = (optvallen_ == 4);
     let mut value = 0;
     if (is_int) {
         let mut val_bytes: [u8; 4] = [0; 4];
@@ -30,7 +30,7 @@ pub fn dealer_xsetsockopt(
     match option_ {
         ZMQ_PROBE_ROUTER => {
             if is_int && value >= 0 {
-                probe_router = (value != 0);
+                sock.probe_router = value != 0;
                 return Ok(());
             }
         }
@@ -60,7 +60,7 @@ pub fn dealer_xhas_in(sock: &mut ZmqSocket) -> bool {
 
 // bool xhas_out () ;
 pub fn dealer_xhas_out(sock: &mut ZmqSocket) -> bool {
-    return load_balance.has_out();
+    return sock.load_balance.has_out();
 }
 
 // void xread_activated (pipe: &mut ZmqPipe) ;

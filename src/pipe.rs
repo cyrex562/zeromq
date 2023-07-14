@@ -191,7 +191,7 @@ impl ZmqPipe {
         // alloc_assert (upipe2);
 
         pipes[0] = ZmqPipe::new(
-            parents[0],
+            // parents[0],
             &mut upipe1,
             &mut upipe2,
             hwms[1],
@@ -200,7 +200,7 @@ impl ZmqPipe {
         );
         // alloc_assert (pipes_[0]);
         pipes[1] = ZmqPipe::new(
-            parents[1],
+            // parents[1],
             &mut upipe2,
             &mut upipe1,
             hwms[0],
@@ -422,38 +422,38 @@ impl ZmqPipe {
         self.delay = delay_;
 
         //  If terminate was already called, we can ignore the duplicate invocation.
-        if (self._state == PeerState::term_req_sent1 || self._state == PeerState::term_req_sent2) {
+        if (self._state == PipeState::term_req_sent1 || self._state == PipeState::term_req_sent2) {
             return;
         }
         //  If the pipe is in the final phase of async termination, it's going to
         //  closed anyway. No need to do anything special here.
-        if (self._state == PeerState::term_ack_sent) {
+        if (self._state == PipeState::term_ack_sent) {
             return;
         }
         //  The simple sync termination case. Ask the peer to terminate and wait
         //  for the ack.
-        if (self._state == PeerState::active) {
+        if (self._state == PipeState::active) {
             self.send_pipe_term(self._peer);
-            self._state = PeerState::term_req_sent1;
+            self._state = PipeState::term_req_sent1;
         }
         //  There are still pending messages available, but the user calls
         //  'terminate'. We can act as if all the pending messages were read.
-        else if (self._state == PeerState::waiting_for_delimiter && !self.delay) {
+        else if (self._state == PipeState::waiting_for_delimiter && !self.delay) {
             //  Drop any unfinished outbound messages.
             self.rollback();
             self.out_pipe.clear();
             self.send_pipe_term_ack(self._peer);
-            self._state = PeerState::term_ack_sent;
+            self._state = PipeState::term_ack_sent;
         }
         //  If there are pending messages still available, do nothing.
-        else if (self._state == PeerState::waiting_for_delimiter) {
+        else if (self._state == PipeState::waiting_for_delimiter) {
         }
         //  We've already got delimiter, but not Term command yet. We can ignore
         //  the delimiter and ack synchronously terminate as if we were in
         //  active state.
-        else if (self._state == PeerState::delimiter_received) {
+        else if (self._state == PipeState::delimiter_received) {
             self.send_pipe_term(self._peer);
-            self._state = PeerState::term_req_sent1;
+            self._state = PipeState::term_req_sent1;
         }
         //  There are no other states.
         else {
@@ -607,27 +607,27 @@ impl ZmqPipe {
         //  pending messages, we can move directly to the term_ack_sent state.
         //  Otherwise we'll hang up in waiting_for_delimiter state till all
         //  pending messages are read.
-        if (self._state == PeerState::active) {
+        if (self._state == PipeState::active) {
             if (self.delay) {
-                self._state = PeerState::waiting_for_delimiter;
+                self._state = PipeState::waiting_for_delimiter;
             } else {
-                self._state = PeerState::term_ack_sent;
+                self._state = PipeState::term_ack_sent;
                 self.out_pipe.clear();
-                self.send_pipe_term_ack(_peer);
+                self.send_pipe_term_ack(self._peer);
             }
         }
         //  Delimiter happened to arrive before the Term command. Now we have the
         //  Term command as well, so we can move straight to term_ack_sent state.
-        else if (self._state == PeerState::delimiter_received) {
-            self._state = PeerState::term_ack_sent;
+        else if (self._state == PipeState::delimiter_received) {
+            self._state = PipeState::term_ack_sent;
             self.out_pipe.clear();
             self.send_pipe_term_ack(self._peer);
         }
         //  This is the case where both ends of the pipe are closed in parallel.
         //  We simply reply to the request by ack and continue waiting for our
         //  Own ack.
-        else if (self._state == PeerState::term_req_sent1) {
-            self._state = PeerState::term_req_sent2;
+        else if (self._state == PipeState::term_req_sent1) {
+            self._state = PipeState::term_req_sent2;
             self.out_pipe.clear();
             self.send_pipe_term_ack(self._peer);
         }
@@ -643,7 +643,7 @@ impl ZmqPipe {
         //  Simply deallocate the pipe. In term_req_sent1 state we have to ack
         //  the peer before deallocating this side of the pipe.
         //  All the other states are invalid.
-        if (self._state == PeerState::term_req_sent1) {
+        if (self._state == PipeState::term_req_sent1) {
             self.out_pipe.clear();
             self.send_pipe_term_ack(self._peer);
         } else {
@@ -681,13 +681,13 @@ impl ZmqPipe {
     pub fn process_delimiter(&mut self) {
         // zmq_assert (_state == active || _state == waiting_for_delimiter);
 
-        if (self._state == PeerState::active) {
-            self._state = PeerState::delimiter_received;
+        if (self._state == PipeState::active) {
+            self._state = PipeState::delimiter_received;
         } else {
             self.rollback();
             self.out_pipe.clone();
             self.send_pipe_term_ack(self._peer);
-            self._state = PeerState::term_ack_sent;
+            self._state = PipeState::term_ack_sent;
         }
     }
 
@@ -719,7 +719,7 @@ impl ZmqPipe {
     // _server_socket_routing_id (0),
     // _conflate (conflate_)
     pub fn new(
-        parent: &mut ZmqObject,
+        // parent: &mut ZmqObject,
         inpipe: &mut VecDeque<ZmqMessage>,
         outpipe: &mut VecDeque<ZmqMessage>,
         inhwm: i32,
@@ -745,7 +745,7 @@ impl ZmqPipe {
             endpoint_pair: Default::default(),
             disconnect_msg: Default::default(),
         };
-        _disconnect_msg.init();
+        out._disconnect_msg.init();
         out
     }
 

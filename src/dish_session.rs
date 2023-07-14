@@ -3,6 +3,7 @@ use crate::context::ZmqContext;
 use crate::defines::ZMQ_GROUP_MAX_LENGTH;
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
 use crate::session_base::ZmqSessionBase;
+use crate::socket::ZmqSocket;
 use crate::thread_context::ZmqThreadContext;
 use crate::utils::copy_bytes;
 use libc::EFAULT;
@@ -17,16 +18,16 @@ pub struct DishSession<'a> {
     pub session_base: ZmqSessionBase<'a>,
 }
 
-impl DishSession {
+impl <'a> DishSession<'a> {
     pub fn new(
         io_thread: &mut ZmqThreadContext,
         connect_: bool,
-        socket: &mut ZmqSocketbase,
+        socket: &mut ZmqSocket<'a>,
         ctx: &mut ZmqContext,
         addr: &mut ZmqAddress,
     ) -> Self {
         DishSession {
-            session_base: ZmqSessionBase::new(cx, io_thread, connect_, socket, addr),
+            session_base: ZmqSessionBase::new(ctx, io_thread, connect_, socket, addr),
             _group_msg: ZmqMessage::default(),
         }
     }
@@ -35,12 +36,12 @@ impl DishSession {
     pub fn push_msg(&mut self, msg: &mut ZmqMessage) -> i32 {
         if self._state == DishSessionState::Group {
             if (msg.flags() & ZMQ_MSG_MORE) != ZMQ_MSG_MORE {
-                errno = EFAULT;
+                // errno = EFAULT;
                 return -1;
             }
 
             if msg.size() > ZMQ_GROUP_MAX_LENGTH {
-                errno = EFAULT;
+                // errno = EFAULT;
                 return -1;
             }
 
@@ -70,7 +71,7 @@ impl DishSession {
         // has_group:
         //  Thread safe socket doesn't support multipart messages
         if (msg.flags() & ZMQ_MSG_MORE) == ZMQ_MSG_MORE {
-            errno = EFAULT;
+            // errno = EFAULT;
             return -1;
         }
 
@@ -103,12 +104,12 @@ impl DishSession {
 
         if msg.is_join() {
             rc = command.init_size((group_length + 5) as usize);
-            errno_assert(rc == 0);
+            // errno_assert(rc == 0);
             offset = 5;
             copy_bytes(command.data_mut(), 0, b"\x04JOIN", 0, 5);
         } else {
             rc = command.init_size((group_length + 6) as usize);
-            errno_assert(rc == 0);
+            // errno_assert(rc == 0);
             offset = 6;
             copy_bytes(command.data_mut(), 0, b"\x05LEAVE", 0, 6);
         }
@@ -127,7 +128,7 @@ impl DishSession {
 
         //  Close the join message
         rc = msg.close();
-        errno_assert(rc == 0);
+        // errno_assert(rc == 0);
 
         *msg = command;
 

@@ -27,20 +27,20 @@ pub fn dgram_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result
     //  peer to send the message to.
     if (!sock._more_out) {
         if (!(msg.flags() & ZMQ_MSG_MORE)) {
-            errno = EINVAL;
+            // errno = EINVAL;
             bail!("EINVAL");
         }
     } else {
         //  dgram messages are two part only, reject part if more is set
         if (msg.flags() & ZMQ_MSG_MORE) {
-            errno = EINVAL;
+            // errno = EINVAL;
             bail!("EINVAL");
         }
     }
 
     // Push the message into the pipe.
     if (!unsafe { sock.pipe.write(msg) }) {
-        errno = EAGAIN;
+        // errno = EAGAIN;
         bail!("EAGAIN");
     }
 
@@ -69,7 +69,7 @@ pub fn dgram_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
         msg.init2();
         // errno_assert(rc == 0);
 
-        errno = EAGAIN;
+        // errno = EAGAIN;
         return -1;
     }
 

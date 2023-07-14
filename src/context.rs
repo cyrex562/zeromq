@@ -84,7 +84,7 @@ pub struct ZmqContext<'a> {
     //  List of inproc endpoints within this context.
     pub endpoints: HashMap<String, ZmqEndpoint<'a>>,
     // List of inproc onnection endpoints pending a Bind
-    pub pending_connections: HashMap<String, PendingConnection>,
+    pub pending_connections: HashMap<String, PendingConnection<'a>>,
     //  Synchronisation of access to the list of inproc endpoints.
     pub endpoints_sync: Mutex<u8>,
     //  Maximum socket ID.

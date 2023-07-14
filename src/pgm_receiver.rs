@@ -99,7 +99,7 @@ pub struct ZmqPeerInfo {
 // }
 
 #[derive(Default, Debug, Clone)]
-pub struct ZmqPgmReceiver {
+pub struct ZmqPgmReceiver<'a> {
     // : public ZmqIoObject, public ZmqEngineInterface
     pub zmq_io_object: ZmqIoObject,
     // pub zmq_options: ZmqContext,
@@ -116,7 +116,7 @@ pub struct ZmqPgmReceiver {
     //  Socket options.
     // pub options: ZmqOptions,
     //  Associated session.
-    pub session: ZmqSessionBase,
+    pub session: ZmqSessionBase<'a>,
     pub active_tsi: Option<pgm_tsi_t>,
     //  Number of bytes not consumed by the decoder due to pipe overflow.
     pub insize: usize,
@@ -132,7 +132,7 @@ pub struct ZmqPgmReceiver {
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqPgmReceiver)
 }
 
-impl ZmqEngineInterface for ZmqPgmReceiver {
+impl <'a> ZmqEngineInterface for ZmqPgmReceiver<'a> {
     fn has_handshake_state(&self) -> bool {
         todo!()
     }
@@ -162,7 +162,7 @@ impl ZmqEngineInterface for ZmqPgmReceiver {
     }
 }
 
-impl ZmqPgmReceiver {
+impl <'a> ZmqPgmReceiver<'a> {
     // ZmqPgmReceiver (parent_: &mut ZmqIoThread, options: &ZmqOptions);
     pub fn new(parent: &mut ZmqThreadContext, options: &ZmqContext) -> Self {
         // : ZmqIoObject (parent_),
@@ -173,7 +173,7 @@ impl ZmqPgmReceiver {
         //     active_tsi (null_mut()),
         //     insize (0)
         Self {
-            zmq_io_object: ZmqIoObject::new(Some(parent.clone())),
+            zmq_io_object: ZmqIoObject::new(Some(parent)),
             // zmq_options: options.clone(),
             has_rx_timer: false,
             peers: HashMap::new(),
