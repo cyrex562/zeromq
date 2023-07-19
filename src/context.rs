@@ -95,6 +95,7 @@ pub struct ZmqContext<'a> {
     pub max_msg_sz: i32,
     //  Number of I/O threads to launch.
     // pub io_thread_count: i32,
+    pub io_thread_count: i32,
     //  Does context wait (possibly forever) on termination?
     pub blocky: bool,
     //  Is IPv6 enabled on this context?

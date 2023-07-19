@@ -157,7 +157,6 @@ impl ZmqPipe {
     // const int hwms_[2],
     // const bool conflate_[2]);
     pub fn pipepair(
-        &mut self,
         parents: (&mut ZmqSessionBase, &mut ZmqSocket),
         pipes: &mut [Self],
         hwms: &[i32; 2],

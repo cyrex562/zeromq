@@ -47,12 +47,12 @@ use std::error::Error;
 use std::ptr::null_mut;
 use std::time::Duration;
 use std::{mem, thread, time};
+#[cfg(target_os="windows")]
 use windows::s;
 #[cfg(windows)]
 use windows::Win32::Networking::WinSock::{
-    select, WSAGetLastError, FD_SET, POLLIN, POLLOUT, POLLPRI, SOCKET_ERROR, TIMEVAL,
+    select, WSAGetLastError, FD_SET, POLLIN, POLLOUT, POLLPRI, SOCKET_ERROR, TIMEVAL, WSAPoll, SOCKET, WSAPOLLFD
 };
-use windows::Win32::Networking::WinSock::{WSAPoll, SOCKET, WSAPOLLFD};
 
 pub fn zmq_version(major_: *mut u32, minor_: *mut u32, patch_: *mut u32) {
     unsafe {
@@ -104,74 +104,75 @@ pub fn zmq_ctx_shutdown(ctx_raw: &mut [u8]) -> Result<(), ZmqError> {
     }
 }
 
-pub fn zmq_ctx_set(ctx_raw: &mut [u8], option_: i32, mut optval_: i32) -> Result<(), ZmqError> {
-    return zmq_ctx_set_ext(ctx_raw, option_, optval_.to_le_bytes().as_mut_slice());
-}
+// pub fn zmq_ctx_set(ctx_raw: &mut [u8], option_: i32, mut optval_: i32) -> Result<(), ZmqError> {
+//     return zmq_ctx_set_ext(ctx_raw, option_, optval_.to_le_bytes().as_mut_slice());
+// }
 
-pub fn zmq_ctx_set_ext(ctx_raw: &mut [u8], option: i32, optval: &mut [u8]) -> Result<(), ZmqError> {
-    // if !ctx || !(ctx as *mut ZmqContext).check_tag () {
-    //   // errno = EFAULT;
-    //     return -1;
-    // }
-    // return (ctx as *mut ZmqContext).set(option_, optval_, optvallen_);
-    if ctx_raw.len() == 0 {
-        bail!("context buffer is empty")
-    }
-    let mut ctx: ZmqContext = bincode::deserialize(ctx_raw)?;
-    if ctx.check_tag() == false {
-        bail!("check tag failed")
-    }
+// pub fn zmq_ctx_set_ext(ctx_raw: &mut [u8], option: i32, optval: &mut [u8]) -> Result<(), ZmqError> {
+//     // if !ctx || !(ctx as *mut ZmqContext).check_tag () {
+//     //     errno = EFAULT;
+//     //     return -1;
+//     // }
+//     // return (ctx as *mut ZmqContext).set(option_, optval_, optvallen_);
+//     if ctx_raw.len() == 0 {
+//         bail!("context buffer is empty")
+//     }
+//     let mut ctx: ZmqContext = bincode::deserialize(ctx_raw)?;
+//     if ctx.check_tag() == false {
+//         bail!("check tag failed")
+//     }
 
-    match ctx.set(option, optval, optval.len()) {
-        Ok(_) => Ok(()),
-        Err(e) => SetContextPropertyFailed(format!("failed to set context property: {}", e)),
-    }
-}
+//     match ctx.set(option, optval, optval.len()) {
+//         Ok(_) => Ok(()),
+//         Err(e) => SetContextPropertyFailed(format!("failed to set context property: {}", e)),
+//     }
+// }
 
-pub fn zmq_ctx_get(ctx_raw: &mut [u8], opt_kind: i32) -> Result<i32, ZmqError> {
-    // if !ctx || !(ctx as *mut ZmqContext).check_tag () {
-    //   // errno = EFAULT;
-    //     return -1;
-    // }
-    // return (ctx as *mut ZmqContext).get (option_);
-    if ctx_raw.len() == 0 {
-        bail!("context buffer is empty")
-    }
-    let mut ctx: ZmqContext = bincode::deserialize(ctx_raw)?;
-    if ctx.check_tag() == false {
-        bail!("check tag failed")
-    }
-    match ctx.option_i32(opt_kind) {
-        Ok(v) => Ok(v),
-        Err(e) => GetContextPropertyFailed(format!("failed to get context property: {}", e)),
-    }
-}
+// pub fn zmq_ctx_get(ctx_raw: &mut [u8], opt_kind: i32) -> Result<i32, ZmqError> {
+//     // if !ctx || !(ctx as *mut ZmqContext).check_tag () {
+//     //     errno = EFAULT;
+//     //     return -1;
+//     // }
+//     // return (ctx as *mut ZmqContext).get (option_);
+//     if ctx_raw.len() == 0 {
+//         bail!("context buffer is empty")
+//     }
+//     let mut ctx: ZmqContext = bincode::deserialize(ctx_raw)?;
+//     if ctx.check_tag() == false {
+//         bail!("check tag failed")
+//     }
+//     match ctx.option_i32(opt_kind) {
+//         Ok(v) => Ok(v),
+//         Err(e) => GetContextPropertyFailed(format!("failed to get context property: {}", e)),
+//     }
+// }
 
-pub fn zmq_ctx_get_ext(ctx_raw: &mut [u8], opt_kind: i32) -> Result<Vec<u8>, ZmqError> {
-    // if !ctx || !(ctx as *mut ZmqContext).check_tag () {
-    //   // errno = EFAULT;
-    //     return -1;
-    // }
-    // return (ctx as *mut ZmqContext).get(option_, optval_, optvallen_);
-    if ctx_raw.len() == 0 {
-        bail!("context buffer is empty")
-    }
-    let mut ctx: ZmqContext = bincode::deserialize(ctx_raw)?;
-    if ctx.check_tag() == false {
-        bail!("check tag failed")
-    }
-    match ctx.option_bytes(opt_kind) {
-        Ok(v) => Ok(v),
-        Err(e) => GetContextPropertyFailed(format!("failed to get context property: {}", e)),
-    }
-}
+// pub fn zmq_ctx_get_ext(ctx_raw: &mut [u8], opt_kind: i32) -> Result<Vec<u8>, ZmqError> {
+//     // if !ctx || !(ctx as *mut ZmqContext).check_tag () {
+//     //     errno = EFAULT;
+//     //     return -1;
+//     // }
+//     // return (ctx as *mut ZmqContext).get(option_, optval_, optvallen_);
+//     if ctx_raw.len() == 0 {
+//         bail!("context buffer is empty")
+//     }
+//     let mut ctx: ZmqContext = bincode::deserialize(ctx_raw)?;
+//     if ctx.check_tag() == false {
+//         bail!("check tag failed")
+//     }
+//     match ctx.option_bytes(opt_kind) {
+//         Ok(v) => Ok(v),
+//         Err(e) => GetContextPropertyFailed(format!("failed to get context property: {}", e)),
+//     }
+// }
 
 //  Stable/legacy context API
 
-pub fn zmq_init(io_threads: i32) -> Result<Vec<u8>, ZmqError> {
+pub fn zmq_init<'a>(io_threads: i32) -> Result<ZmqContext<'a>, ZmqError> {
     if io_threads >= 0 {
         let mut ctx_raw = zmq_ctx_new()?;
-        zmq_ctx_set(ctx_raw.as_mut_slice(), ZMQ_IO_THREADS, io_threads)?;
+        // zmq_ctx_set(ctx_raw.as_mut_slice(), ZMQ_IO_THREADS, io_threads)?;
+        ctx_raw.io_thread_count = io_threads;
         Ok(ctx_raw)
     }
     bail!("invalid io_threads {}", io_threads)
@@ -187,20 +188,20 @@ pub fn zmq_ctx_destroy(ctx: &mut ZmqContext) -> Result<(), ZmqError> {
 
 // Sockets
 
-pub fn as_socket_base(in_bytes: &[u8]) -> Result<ZmqSocket, ZmqError> {
-    // ZmqSocketBase *s = static_cast<ZmqSocketBase *> (s_);
-    // let mut s: *mut ZmqSocketBase = s_ as *mut ZmqSocketBase;
-    // if s_.is_null() || !s.check_tag () {
-    //   // errno = ENOTSOCK;
-    //     return null_mut();
-    // }
-    // return s;
-    let mut out: ZmqSocket = bincode::deserialize(in_bytes)?;
-    if out.check_tag() == false {
-        return Err(DeserializeZmqSocketBaseFailed(format!("ENOTSOCK")));
-    }
-    Ok(out)
-}
+// pub fn as_socket_base(in_bytes: &[u8]) -> Result<ZmqSocket, ZmqError> {
+//     // ZmqSocketBase *s = static_cast<ZmqSocketBase *> (s_);
+//     // let mut s: *mut ZmqSocketBase = s_ as *mut ZmqSocketBase;
+//     // if s_.is_null() || !s.check_tag () {
+//     //     errno = ENOTSOCK;
+//     //     return null_mut();
+//     // }
+//     // return s;
+//     let mut out: ZmqSocket = bincode::deserialize(in_bytes)?;
+//     if out.check_tag() == false {
+//         return Err(DeserializeZmqSocketBaseFailed(format!("ENOTSOCK")));
+//     }
+//     Ok(out)
+// }
 
 // pub fn as_zmq_peer(in_bytes: &[u8]) -> Result<ZmqPeer, ZmqError> {
 //     let mut out: ZmqPeer = bincode::deserialize(in_bytes)?;
@@ -210,11 +211,11 @@ pub fn as_socket_base(in_bytes: &[u8]) -> Result<ZmqSocket, ZmqError> {
 //     Ok(out)
 // }
 
-pub fn zmq_socket(ctx: &mut [u8], type_: i32) -> Result<Vec<u8>, ZmqError> {
-    let mut ctx: ZmqContext = bincode::deserialize(ctx)?;
-    if ctx.check_tag() == false {
-        return Err(CheckTagFailed("check tag failed".to_string()));
-    }
+pub fn zmq_socket<'a>(ctx: &mut ZmqContext, type_: i32) -> Result<ZmqSocket<'a>, ZmqError> {
+    // let mut ctx: ZmqContext = bincode::deserialize(ctx)?;
+    // if ctx.check_tag() == false {
+    //     return Err(CheckTagFailed("check tag failed".to_string()));
+    // }
     // if !ctx || !(ctx as *mut ZmqContext).check_tag() {
     //   // errno = EFAULT;
     //     return null_mut();
@@ -222,32 +223,34 @@ pub fn zmq_socket(ctx: &mut [u8], type_: i32) -> Result<Vec<u8>, ZmqError> {
     // let mut ctx: *mut ZmqContext = ctx as *mut ZmqContext;
     // let mut s: *mut ZmqSocketBase = ctx.create_socket(type_);
     let s: ZmqSocket = ctx.create_socket(type_).unwrap();
-    match bincode::serialize(&s) {
-        Ok(v) => Ok(v),
-        Err(e) => Err(SerializeZmqSocketBaseFailed(format!(
-            "failed to serialize socket: {}",
-            e
-        ))),
-    }
+    // match bincode::serialize(&s) {
+    //     Ok(v) => Ok(v),
+    //     Err(e) => Err(SerializeZmqSocketBaseFailed(format!(
+    //         "failed to serialize socket: {}",
+    //         e
+    //     ))),
+    // }
+    Ok(s)
 }
 
-pub fn zmq_close(s_: &mut [u8]) -> Result<(), ZmqError> {
-    let mut s: ZmqSocket = as_socket_base(s_)?;
-    match s.close() {
+pub fn zmq_close(s_: &mut ZmqSocket) -> Result<(), ZmqError> {
+    // let mut s: ZmqSocket = as_socket_base(s_)?;
+
+    match s_.close() {
         Ok(_) => Ok(()),
         Err(e) => Err(CloseSocketFailed(format!("failed to close socket: {}", e))),
     }
 }
 
 pub fn zmq_setsockopt(
-    options: &mut ZmqContext,
-    in_bytes: &[u8],
+    ctx: &mut ZmqContext,
+    sock: &mut ZmqSocket,
     opt_kind: i32,
     opt_val: &[u8],
     opt_val_len: usize,
 ) -> anyhow::Result<()> {
-    let mut s: ZmqSocket = as_socket_base(in_bytes)?;
-    s.setsockopt(options, opt_kind, opt_val, opt_val_len)
+    // let mut s: ZmqSocket = as_socket_base(in_bytes)?;
+    sock.setsockopt(ctx, opt_kind, opt_val, opt_val_len)
 }
 
 pub fn zmq_getsockopt(
@@ -264,16 +267,16 @@ pub fn zmq_getsockopt(
 }
 
 pub fn zmq_socket_monitor_versioned(
-    options: &mut ZmqContext,
-    s_: &mut [u8],
+    ctx: &mut ZmqContext,
+    sock: &mut ZmqSocket,
     addr_: &str,
     events_: u64,
     event_version_: i32,
     type_: i32,
 ) -> Result<(), ZmqError> {
-    let mut s: ZmqSocket = as_socket_base(s_)?;
+    // let mut s: ZmqSocket = as_socket_base(s_)?;
 
-    if s.monitor(options, addr_, events_, event_version_, type_)
+    if sock.monitor(ctx, addr_, events_, event_version_, type_)
         .is_ok()
     {
         Ok(())
@@ -282,18 +285,18 @@ pub fn zmq_socket_monitor_versioned(
 }
 
 pub fn zmq_socket_monitor(
-    options: &mut ZmqContext,
-    s_: &mut [u8],
+    ctx: &mut ZmqContext,
+    s_: &mut ZmqSocket,
     addr_: &str,
     events_: u64,
 ) -> Result<(), ZmqError> {
-    zmq_socket_monitor_versioned(options, s_, addr_, events_, 1, ZMQ_PAIR)
+    zmq_socket_monitor_versioned(ctx, s_, addr_, events_, 1, ZMQ_PAIR)
 }
 
-pub fn zmq_join(s_: &mut [u8], group_: &str) -> Result<(), ZmqError> {
-    let mut s: ZmqSocket = as_socket_base(s_)?;
+pub fn zmq_join(sock: &mut ZmqSocket, group_: &str) -> Result<(), ZmqError> {
+    // let mut s: ZmqSocket = as_socket_base(s_)?;
 
-    match s.join(group_) {
+    match sock.join(group_) {
         Ok(_) => Ok(()),
         Err(e) => Err(JoinGroupFailed(format!("failed to join Group: {}", e))),
     }
@@ -323,12 +326,12 @@ pub fn zmq_connect(socket: &mut ZmqSocket, address: &str) -> Result<(), ZmqError
     }
 }
 
-pub fn zmq_connect_peer(s_: &mut [u8], addr_: &str) -> Result<(), ZmqError> {
-    let mut s: ZmqPeer = as_zmq_peer(s_)?;
+pub fn zmq_connect_peer(s_: &mut ZmqSocket, addr_: &str) -> Result<(), ZmqError> {
+    // let mut s: ZmqPeer = as_zmq_peer(s_)?;
 
-    let mut socket_type: i32 = 0i32;
-    let mut socket_type_size = mem::size_of_val(&socket_type);
-    if s.getsockopt(ZMQ_TYPE, &socket_type, &socket_type_size)
+    // let mut socket_type: i32 = 0i32;
+    // let mut socket_type_size = mem::size_of_val(&socket_type);
+    if s_.getsockopt(ZMQ_TYPE, &socket_type, &socket_type_size)
         .is_err()
     {
         return Err(GetSocketOptionFailed(
@@ -339,7 +342,7 @@ pub fn zmq_connect_peer(s_: &mut [u8], addr_: &str) -> Result<(), ZmqError> {
         return Err(UnsupportedSocketType("unsupported socket type".to_string()));
     }
 
-    match s.connect_peer(addr_) {
+    match s_.connect_peer(addr_) {
         Ok(_) => Ok(()),
         Err(e) => Err(ConnectPeerSocketFailed(format!(
             "failed to connect peer socket: {}",
@@ -511,10 +514,10 @@ pub fn zmq_recvmsg(
 /// receive message part from a socket
 /// on success returns a message object representing a message part
 /// on error returns a ZmqError variant
-pub fn zmq_recv(ctx: &mut ZmqContext, sock: &mut ZmqSocket, flags: i32) -> Result<ZmqMessage, ZmqError> 
+pub fn zmq_recv(ctx: &mut ZmqContext, sock: &mut ZmqSocket, flags: i32) -> Result<ZmqMessage, ZmqError>
 {
     let msg = s_recvmsg(ctx, sock, flags)?;
-    
+
     // let mut msg: ZmqMessage = ZmqMessage::default();
     // zmq_msg_init(&mut msg)?;
 
