@@ -904,7 +904,8 @@ impl<'a> ZmqSocket<'a> {
             // }
             self.ticks = 0;
 
-            ops.xrecv(out)?;
+            // TODO implement calling xrecv for specific type
+            // xrecv(out)?;
             // if rc < 0 {
             //     return rc;
             // }
@@ -931,7 +932,7 @@ impl<'a> ZmqSocket<'a> {
                 bail!("EAGAIN");
             }
 
-            match self.call_xrecv(msg, pipe)
+            match self.call_xrecv(&mut out, pipe)
             {
                 Ok(()) => {
                     self.ticks = 0;
@@ -953,7 +954,7 @@ impl<'a> ZmqSocket<'a> {
             }
         }
 
-        extract_flags(msg);
+        self.extract_flags(&mut out);
         Ok(())
     }
 
@@ -1022,12 +1023,14 @@ impl<'a> ZmqSocket<'a> {
     //  which events are to be reported from this socket.
     // bool has_in ();
     pub fn has_in(&mut self) -> bool {
-        return ops.xhas_in();
+        // return ops.xhas_in();
+        todo!()
     }
 
     // bool has_out ();
     pub fn has_out(&mut self) -> bool {
-        return ops.xhas_out();
+        // return ops.xhas_out();
+        todo!()
     }
 
     //  Joining and leaving groups
@@ -1035,12 +1038,14 @@ impl<'a> ZmqSocket<'a> {
     pub fn join(&mut self, group_: &str) -> anyhow::Result<()> {
         // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
 
-        ops.xjoin(group_)
+        // ops.xjoin(group_)
+        todo!()
     }
     // int leave (group_: *const c_char);
     pub fn leave(&mut self, group_: &str) -> anyhow::Result<()> {
         // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : null_mut());
-        ops.xleave(group_)
+        // ops.xleave(group_)
+        todo!()
     }
 
     //  Using this function reaper thread ask the socket to register with
@@ -1061,7 +1066,7 @@ impl<'a> ZmqSocket<'a> {
                                                                  // zmq_assert (_reaper_signaler);
 
             //  Add signaler to the safe mailbox
-            fd = _reaper_signaler.get_fd();
+            fd = self.reaper_signaler.get_fd();
             self.mailbox.add_signaler(&self.reaper_signaler);
 
             //  Send a signal to make sure reaper handle existing commands
@@ -1112,12 +1117,14 @@ impl<'a> ZmqSocket<'a> {
     //  i_pipe_events interface implementation.
     // void read_activated (ZmqPipe *pipe_) ;
     pub fn read_activated(&mut self, pipe: &mut ZmqPipe) {
-        ops.xread_activated(pipe);
+        // ops.xread_activated(pipe);
+        todo!()
     }
 
     // void write_activated (ZmqPipe *pipe_) ;
     pub fn write_activated(&mut self, pipe: &mut ZmqPipe) {
-        ops.xwrite_activated(pipe);
+        // ops.xwrite_activated(pipe);
+        todo!()
     }
 
     // void hiccuped (ZmqPipe *pipe_) ;
@@ -1126,14 +1133,16 @@ impl<'a> ZmqSocket<'a> {
             pipe.terminate(false);
         } else {
             // Notify derived sockets of the Hiccup
-            ops.xhiccuped(pipe);
+            // ops.xhiccuped(pipe);
+            todo!()
         }
     }
 
     // void pipe_terminated (ZmqPipe *pipe_) ;
     pub fn pipe_terminated(&mut self, pipe: &mut ZmqPipe) {
         //  Notify the specific socket type about the pipe termination.
-        ops.xpipe_terminated(pipe);
+        // ops.xpipe_terminated(pipe);
+        // TODO
 
         // Remove pipe from inproc pipes
         self._inprocs.erase_pipe(pipe);
@@ -1234,7 +1243,7 @@ impl<'a> ZmqSocket<'a> {
         self.monitor_events = events_ as i64;
         options.monitor_event_version = event_version_;
         //  Create a monitor socket of the specified type.
-        self.monitor_socket = zmq_socket(get_ctx(), type_)?;
+        self.monitor_socket = zmq_socket(self.context, type_)?;
 
         //  Never block context termination on pending event messages
         let mut linger = 0i32;
@@ -1391,7 +1400,7 @@ impl<'a> ZmqSocket<'a> {
 
     // void event_close_failed (const EndpointUriPair &endpoint_uri_pair_,
     //                          err_: i32);
-    pub fn event_close_failed(&mut self,  enpoint_uri_pair_: &EndpointUriPair, err_: i32) {
+    pub fn event_close_failed(&mut self,  endpoint_uri_pair_: &EndpointUriPair, err_: i32) {
         // u64 values[1] = { (err_)};
         let values: [u64; 1] = [err_ as u64];
         self.event(
@@ -1433,7 +1442,7 @@ impl<'a> ZmqSocket<'a> {
         // u64 values[1] = { (err_)};
         let values: [u64; 1] = [err_ as u64];
         self.event(
-            endpoint_uri_pair_,
+            endpoint_uri_pair,
             &values,
             1,
             ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL as u64,
@@ -1650,7 +1659,7 @@ impl<'a> ZmqSocket<'a> {
                 }
 
                 //  Assume the worst, now look for success
-                rc = -1;
+                let rc = -1;
                 //  Did we reach the end of the address safely?
                 if *check.is_null() {
                     //  Do we have a valid port string? (cannot be '*' in connect
@@ -1940,7 +1949,7 @@ impl<'a> ZmqSocket<'a> {
                 if conflate { -1 } else { options.rcvhwm },
             ];
             let conflates: [bool; 2] = [conflate, conflate];
-            rc = pipepair(parents, new_pipes, hwms, conflates);
+            let rc = ZmqPipe::pipepair(parents, &mut new_pipes, &hwms, &conflates);
             // errno_assert(rc == 0);
 
             //  Attach local end of the pipe to the socket object.
@@ -1954,7 +1963,7 @@ impl<'a> ZmqSocket<'a> {
         //  Save last endpoint URI
         self._last_endpoint = paddr.to_string()?;
 
-        add_endpoint(
+        self.add_endpoint(
             make_unconnected_connect_endpoint_pair(endpoint_uri),
             &session,
             newpipe,
@@ -2447,16 +2456,16 @@ impl<'a> ZmqSocket<'a> {
         // socket is Connected or bound, try with both.
         if self.endpoints.find(endpoint_uri_pair_) == self.endpoints.end() {
             // TcpAddress *tcp_addr = new (std::nothrow) TcpAddress ();
-            let mut tcp_addr = TcpAddress::default();
+            let mut tcp_addr = ZmqAddress::default();
             // alloc_assert (tcp_addr);
-            let mut rc = tcp_addr.resolve(tcp_address_, false, options.ipv6);
+            let mut rc = tcp_addr.resolve();
 
             if rc == 0 {
-                tcp_addr.to_string(endpoint_uri_pair_);
+                tcp_addr.to_string();
                 if self.endpoints.find(endpoint_uri_pair_) == self.endpoints.end() {
-                    rc = tcp_addr.resolve(tcp_address_, true, options.ipv6);
+                    rc = tcp_addr.resolve();
                     if rc == 0 {
-                        tcp_addr.to_string(endpoint_uri_pair_);
+                        tcp_addr.to_string();
                     }
                 }
             }
