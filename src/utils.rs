@@ -127,7 +127,7 @@ pub const decoder: [u8; 96] = [
 
 pub fn zmq_z85_encode(dest_: &mut [u8], data: &[u8], size: usize) -> Option<String> {
     if size % 4 != 0 {
-        errno = EINVAL;
+      // errno = EINVAL;
         return None;
     }
     let mut char_nbr = 0;
@@ -201,7 +201,7 @@ pub fn zmq_z85_decode(dest_: &mut [u8], string_: &[u8]) -> anyhow::Result<[u8]> 
     return Ok(dest_.clone());
 
     // error_inval:
-    //     errno = EINVAL;
+    //   // errno = EINVAL;
     //     return null_mut();
 }
 
@@ -254,7 +254,7 @@ pub fn zmq_curve_public(z85_public_key_: &mut [u8], z85_secret_key_: &str) -> an
     //     return 0;
     // // #else
     //     (void) z85_public_key_, (void) z85_secret_key_;
-    //     errno = ENOTSUP;
+    //   // errno = ENOTSUP;
     //     return -1;
     Ok(())
     // #endif

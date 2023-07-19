@@ -131,7 +131,7 @@
 //         }
 
 //         if (self.state != GssApiServerState::send_next_token) {
-//             errno = EAGAIN;
+//           // errno = EAGAIN;
 //             return -1;
 //         }
 
@@ -169,7 +169,7 @@
 //                 session.get_endpoint(),
 //                 ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
 //             );
-//             errno = EPROTO;
+//           // errno = EPROTO;
 //             return -1;
 //         }
 
@@ -254,7 +254,7 @@
 //     // int zap_msg_available () ;
 //     pub fn zap_msg_available(&mut self) -> i32 {
 //         if (self.state != GssApiServerState::expect_zap_reply) {
-//             errno = EFSM;
+//           // errno = EFSM;
 //             return -1;
 //         }
 //         let rc: i32 = receive_and_process_zap_reply();

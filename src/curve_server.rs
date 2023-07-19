@@ -653,7 +653,7 @@
 // //                 state = error_sent;
 // //             break;
 // //         _ =>
-// //             errno = EAGAIN;
+// //           // errno = EAGAIN;
 // //             rc = -1;
 // //             break;
 // //     }
@@ -681,7 +681,7 @@
 // //             // CURVE I: invalid handshake command
 // //             session.get_socket ().event_handshake_failed_protocol (
 // //               session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNSPECIFIED);
-// //             errno = EPROTO;
+// //           // errno = EPROTO;
 // //             rc = -1;
 // //             break;
 // //     }
@@ -718,7 +718,7 @@
 // //     if (size < 6 || memcmp (hello, "\x05HELLO", 6)) {
 // //         session.get_socket ().event_handshake_failed_protocol (
 // //           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
-// //         errno = EPROTO;
+// //       // errno = EPROTO;
 // //         return -1;
 // //     }
 
@@ -726,7 +726,7 @@
 // //         session.get_socket ().event_handshake_failed_protocol (
 // //           session.get_endpoint (),
 // //           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
-// //         errno = EPROTO;
+// //       // errno = EPROTO;
 // //         return -1;
 // //     }
 
@@ -738,7 +738,7 @@
 // //         session.get_socket ().event_handshake_failed_protocol (
 // //           session.get_endpoint (),
 // //           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
-// //         errno = EPROTO;
+// //       // errno = EPROTO;
 // //         return -1;
 // //     }
 
@@ -764,7 +764,7 @@
 // //         // CURVE I: cannot open client HELLO -- wrong server key?
 // //         session.get_socket ().event_handshake_failed_protocol (
 // //           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
-// //         errno = EPROTO;
+// //       // errno = EPROTO;
 // //         return -1;
 // //     }
 
@@ -857,7 +857,7 @@
 // //     if (size < 9 || memcmp (initiate, "\x08INITIATE", 9)) {
 // //         session.get_socket ().event_handshake_failed_protocol (
 // //           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
-// //         errno = EPROTO;
+// //       // errno = EPROTO;
 // //         return -1;
 // //     }
 
@@ -865,7 +865,7 @@
 // //         session.get_socket ().event_handshake_failed_protocol (
 // //           session.get_endpoint (),
 // //           ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_INITIATE);
-// //         errno = EPROTO;
+// //       // errno = EPROTO;
 // //         return -1;
 // //     }
 
@@ -886,7 +886,7 @@
 // //         // CURVE I: cannot open client INITIATE cookie
 // //         session.get_socket ().event_handshake_failed_protocol (
 // //           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
-// //         errno = EPROTO;
+// //       // errno = EPROTO;
 // //         return -1;
 // //     }
 
@@ -900,7 +900,7 @@
 // //         // CURVE I: client INITIATE cookie is not valid
 // //         session.get_socket ().event_handshake_failed_protocol (
 // //           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
-// //         errno = EPROTO;
+// //       // errno = EPROTO;
 // //         return -1;
 // //     }
 
@@ -929,7 +929,7 @@
 // //         // CURVE I: cannot open client INITIATE
 // //         session.get_socket ().event_handshake_failed_protocol (
 // //           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
-// //         errno = EPROTO;
+// //       // errno = EPROTO;
 // //         return -1;
 // //     }
 
@@ -954,7 +954,7 @@
 // //         // CURVE I: cannot open client INITIATE vouch
 // //         session.get_socket ().event_handshake_failed_protocol (
 // //           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC);
-// //         errno = EPROTO;
+// //       // errno = EPROTO;
 // //         return -1;
 // //     }
 
@@ -966,7 +966,7 @@
 // //         // CURVE I: invalid handshake from client (public key)
 // //         session.get_socket ().event_handshake_failed_protocol (
 // //           session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_KEY_EXCHANGE);
-// //         errno = EPROTO;
+// //       // errno = EPROTO;
 // //         return -1;
 // //     }
 

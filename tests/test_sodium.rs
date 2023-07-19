@@ -41,7 +41,7 @@ void tearDown ()
 // There is no way to test for correctness because of the embedded RNG.
 void test__zmq_curve_keypair__always__success (void)
 {
-    errno = 0;
+  // errno = 0;
     char public_key[41] = {0};
     char secret_key[41] = {0};
 
@@ -60,7 +60,7 @@ void test__zmq_curve_public__valid__success ()
     pub const public_key: String = String::from("Yne@$w-vo<fVvi]a<NY6T1ed:M$fCG*[IaLV{hID");
     pub const secret_key: String = String::from("D:)Q[IlAW!ahhC2ac:9*A}h:p?([4%wOTJ%JR%cs");
 
-    errno = 0;
+  // errno = 0;
     char out_public[41] = {0};
 
     let rc: i32 = zmq_curve_public (out_public, secret_key);
@@ -77,7 +77,7 @@ void test__zmq_curve_public__valid__success ()
 // The key length must be evenly divisible by 5 or must fail with EINVAL.
 void test__zmq_curve_public__invalid__failure (secret_: &str)
 {
-    errno = 0;
+  // errno = 0;
     char out_public[41] = {0};
 
     let rc: i32 = zmq_curve_public (out_public, secret_);

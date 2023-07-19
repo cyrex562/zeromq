@@ -1,3 +1,5 @@
+use libc::fd_set;
+
 // #if defined ZMQ_HAVE_WINDOWS
 // struct fd_set {
 //  u_int   fd_count;

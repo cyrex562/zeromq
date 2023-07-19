@@ -274,14 +274,14 @@ impl ZmqWsDecoder {
         //  Message size must not exceed the maximum allowed size.
         if (_max_msg_size >= 0) {
             if ((_size > (_max_msg_size))) {
-                errno = EMSGSIZE;
+              // errno = EMSGSIZE;
                 return -1;
             }
         }
 
         //  Message size must fit into size_t data type.
         if ((_size != (_size))) {
-            errno = EMSGSIZE;
+          // errno = EMSGSIZE;
             return -1;
         }
 
@@ -321,7 +321,7 @@ impl ZmqWsDecoder {
             // errno_assert (errno == ENOMEM);
             rc = in_progress.init();
             // errno_assert (rc == 0);
-            errno = ENOMEM;
+          // errno = ENOMEM;
             return -1;
         }
 

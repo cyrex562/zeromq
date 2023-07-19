@@ -1,6 +1,8 @@
 use anyhow::anyhow;
 #[cfg(target_os = "unix")]
 use libc::{clock_gettime, timespec, CLOCK_MONOTONIC};
+#[cfg(target_os = "linux")]
+use libc::{timespec, CLOCK_MONOTONIC};
 
 // now() calls used by SystemTime:
 // SGX: insecure_time()
@@ -19,7 +21,7 @@ pub fn get_cpu_tick_counter() -> anyhow::Result<u64> {
 }
 
 #[cfg(target_os = "linux")]
-pub fn get_cpu_tick_counter_nix() -> anyhow::Result<u4> {
+pub fn get_cpu_tick_counter_nix() -> anyhow::Result<u64> {
     let mut ts: timespec = timespec {
         tv_sec: 0,
         tv_nsec: 0,

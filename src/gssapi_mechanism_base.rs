@@ -237,7 +237,7 @@
 //                 session.get_endpoint(),
 //                 ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
 //             );
-//             errno = EPROTO;
+//           // errno = EPROTO;
 //             return -1;
 //         }
 //         ptr += 8;
@@ -249,7 +249,7 @@
 //                 session.get_endpoint(),
 //                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE,
 //             );
-//             errno = EPROTO;
+//           // errno = EPROTO;
 //             return -1;
 //         }
 //         let mut wrapped: gss_buffer_desc = ();
@@ -263,7 +263,7 @@
 //                 session.get_endpoint(),
 //                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE,
 //             );
-//             errno = EPROTO;
+//           // errno = EPROTO;
 //             return -1;
 //         }
 //         // TODO: instead of malloc/memcpy, can we just do: wrapped.value = ptr;
@@ -289,7 +289,7 @@
 //                 session.get_endpoint(),
 //                 ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC,
 //             );
-//             errno = EPROTO;
+//           // errno = EPROTO;
 //             return -1;
 //         }
 //         // zmq_assert (state);
@@ -325,7 +325,7 @@
 //                 session.get_endpoint(),
 //                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_MESSAGE,
 //             );
-//             errno = EPROTO;
+//           // errno = EPROTO;
 //             return -1;
 //         }
 
@@ -396,7 +396,7 @@
 //                 session.get_endpoint(),
 //                 ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
 //             );
-//             errno = EPROTO;
+//           // errno = EPROTO;
 //             return -1;
 //         }
 //         // ptr += 9;
@@ -409,7 +409,7 @@
 //                 session.get_endpoint(),
 //                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_INITIATE,
 //             );
-//             errno = EPROTO;
+//           // errno = EPROTO;
 //             return -1;
 //         }
 //         *token_length_ = get_uint32(ptr);
@@ -423,7 +423,7 @@
 //                 session.get_endpoint(),
 //                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_INITIATE,
 //             );
-//             errno = EPROTO;
+//           // errno = EPROTO;
 //             return -1;
 //         }
 
@@ -448,7 +448,7 @@
 //                 session.get_endpoint(),
 //                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_INITIATE,
 //             );
-//             errno = EPROTO;
+//           // errno = EPROTO;
 //             return -1;
 //         }
 
@@ -486,7 +486,7 @@
 //                 session.get_endpoint(),
 //                 ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
 //             );
-//             errno = EPROTO;
+//           // errno = EPROTO;
 //             return -1;
 //         }
 //         // ptr += 6;

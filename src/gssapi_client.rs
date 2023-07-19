@@ -178,7 +178,7 @@
 //         }
 
 //         if (self.state != call_next_init) {
-//             errno = EAGAIN;
+//           // errno = EAGAIN;
 //             return -1;
 //         }
 
@@ -220,7 +220,7 @@
 //                 self.session.get_endpoint(),
 //                 ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
 //             );
-//             errno = EPROTO;
+//           // errno = EPROTO;
 //             return -1;
 //         }
 

@@ -115,7 +115,7 @@ impl<'a> IpcConnecter<'a> {
         return Err(anyhow!("failed to connect"));
     }
 
-    pub fn open(&mut self) -> Result<(), Error> {
+    pub fn open(&mut self) -> Result<(), ZmqError> {
         // zmq_assert (_s == retired_fd);
 
         //  Create the socket.
@@ -148,15 +148,15 @@ impl<'a> IpcConnecter<'a> {
         if cfg!(target_os = "windows") {
             let last_error = unsafe { WSAGetLastError() };
             if (last_error == WSAEINPROGRESS || last_error == WSAEWOULDBLOCK) {
-                errno = EINPROGRESS;
+              // errno = EINPROGRESS;
             } else {
-                errno = wsa_error_to_errno(last_error);
+              // errno = wsa_error_to_errno(last_error);
             }
         }
         // #else
         else {
             if (rc == -1 && errno == EINTR) {
-                errno = EINPROGRESS;
+              // errno = EINPROGRESS;
             }
         }
 
@@ -179,7 +179,7 @@ impl<'a> IpcConnecter<'a> {
     //  Get the file descriptor of newly created connection. Returns
     //  retired_fd if the connection was unsuccessful.
     // ZmqFileDesc connect ();
-    pub fn connect(&mut self) -> Result<ZmqFileDesc, Error> {
+    pub fn connect(&mut self) -> Result<ZmqFileDesc, ZmqError> {
         //  Following code should handle both Berkeley-derived socket
         //  implementations and Solaris.
         let mut err = 0;
@@ -198,15 +198,15 @@ impl<'a> IpcConnecter<'a> {
             let mut errno = 0i32;
             #[cfg(target_os = "linux")]
             {
-                errno = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
+              // errno = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
             }
             #[cfg(target_os = "windows")]
             {
                 let wsa_err = unsafe { WSAGetLastError() };
-                errno = wsa_error_to_errno(wsa_err);
+              // errno = wsa_error_to_errno(wsa_err);
             }
             if errno = ENOPROTOOPT {
-                errno = 0;
+              // errno = 0;
             }
             return Err(anyhow!("failed to get socket options"));
         }

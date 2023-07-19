@@ -192,7 +192,7 @@ impl ZmqTipcConnecter {
 
         // Cannot connect to random tipc addresses
         if (_addr.resolved.tipc_addr.is_random()) {
-            errno = EINVAL;
+          // errno = EINVAL;
             return -1;
         }
         //  Create the socket.
@@ -224,7 +224,7 @@ impl ZmqTipcConnecter {
         //  Translate other error codes indicating asynchronous connect has been
         //  launched to a uniform EINPROGRESS.
         if (rc == -1 && errno == EINTR) {
-            errno = EINPROGRESS;
+          // errno = EINPROGRESS;
             return -1;
         }
         //  Forward the error.
@@ -244,7 +244,7 @@ impl ZmqTipcConnecter {
         if (err != 0) {
             //  Assert if the error was caused by 0MQ bug.
             //  Networking problems are OK. No need to assert.
-            errno = err;
+          // errno = err;
             // errno_assert (errno == ECONNREFUSED || errno == ECONNRESET
             // || errno == ETIMEDOUT || errno == EHOSTUNREACH || errno == ENETUNREACH || errno == ENETDOWN);
 

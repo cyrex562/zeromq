@@ -112,7 +112,7 @@ impl ZmqSignaler {
         // // #if defined(HAVE_FORK)
         //         if (unlikely (pid != getpid ())) {
         //             //printf("Child process %d ZmqSignaler::send returning without sending #2\n", getpid());
-        //             errno = EINTR;
+        //           // errno = EINTR;
         //             break;
         //         }
         // // #endif
@@ -132,7 +132,7 @@ impl ZmqSignaler {
                     unsafe {
                         if (self.pid != getpid()) {
                             //printf("Child process %d ZmqSignaler::send returning without sending #2\n", getpid());
-                            errno = EINTR;
+                          // errno = EINTR;
                             break;
                         }
                     }
@@ -367,7 +367,7 @@ impl ZmqSignaler {
             //     ssize_t nbytes = ::recv (_r,  &dummy, mem::size_of::<dummy>(), 0);
             //     if (nbytes == -1) {
             //         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
-            //             errno = EAGAIN;
+            //           // errno = EAGAIN;
             //             return -1;
             //         }
             //         errno_assert (errno == EAGAIN || errno == EWOULDBLOCK

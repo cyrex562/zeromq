@@ -80,7 +80,7 @@
 //     //     cn_secret_,
 //     // )?;
 //     // if (rc != 0) {
-//     //     errno = EPROTO;
+//     //   // errno = EPROTO;
 //     //     return -1;
 //     // }
 

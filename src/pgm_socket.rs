@@ -141,7 +141,7 @@
 
 //         let mut network = String::new();
 //         // if (port_delim - network_ >=  mem::size_of::<network>() - 1) {
-//         //     errno = EINVAL;
+//         //   // errno = EINVAL;
 //         //     return -1;
 //         // }
 //         // memset (network, 0, mem::size_of::<network>());
@@ -171,7 +171,7 @@
 //         //             && pgm_error.code != PGM_ERROR_SOCKTNOSUPPORT)) {
 //         //         //  User, host, or network configuration or transient error.
 //         //         pgm_error_free (pgm_error);
-//         //         errno = EINVAL;
+//         //       // errno = EINVAL;
 //         //         return -1;
 //         //     }
 //         //
@@ -598,7 +598,7 @@
 //             pgm_error_free(pgm_error);
 //             pgm_error = null_mut();
 //         }
-//         errno = EINVAL;
+//       // errno = EINVAL;
 //         return -1;
 //     }
 
@@ -707,9 +707,9 @@
 //             //             || status == PGM_IO_STATUS_WOULD_BLOCK);
 
 //             if (status == PGM_IO_STATUS_RATE_LIMITED) {
-//                 errno = ENOMEM;
+//               // errno = ENOMEM;
 //             } else {
-//                 errno = EBUSY;
+//               // errno = EBUSY;
 //             }
 //         }
 
@@ -795,7 +795,7 @@
 //         //     nbytes_rec = 0;
 //         //     nbytes_processed = 0;
 //         //     pgm_msgv_processed = 0;
-//         //     errno = EAGAIN;
+//         //   // errno = EAGAIN;
 //         //     return 0;
 //         // }
 //         //
@@ -827,7 +827,7 @@
 //         //         //  In case if no RDATA/ODATA caused POLLIN 0 is
 //         //         //  returned.
 //         //         nbytes_rec = 0;
-//         //         errno = EBUSY;
+//         //       // errno = EBUSY;
 //         //         return 0;
 //         //     }
 //         //
@@ -837,7 +837,7 @@
 //         //
 //         //         //  In case if no RDATA/ODATA caused POLLIN 0 is returned.
 //         //         nbytes_rec = 0;
-//         //         errno = ENOMEM;
+//         //       // errno = ENOMEM;
 //         //         return 0;
 //         //     }
 //         //
@@ -847,7 +847,7 @@
 //         //
 //         //         //  In case if no RDATA/ODATA caused POLLIN 0 is returned.
 //         //         nbytes_rec = 0;
-//         //         errno = EAGAIN;
+//         //       // errno = EAGAIN;
 //         //         return 0;
 //         //     }
 //         //
@@ -860,7 +860,7 @@
 //         //         nbytes_rec = 0;
 //         //
 //         //         //  In case of dala loss -1 is returned.
-//         //         errno = EINVAL;
+//         //       // errno = EINVAL;
 //         //         pgm_free_skb (skb);
 //         //         return -1;
 //         //     }
@@ -915,11 +915,11 @@
 //         // last_rx_status = status;
 //         //
 //         // if (status == PGM_IO_STATUS_TIMER_PENDING)
-//         //     errno = EBUSY;
+//         //   // errno = EBUSY;
 //         // else if (status == PGM_IO_STATUS_RATE_LIMITED)
-//         //     errno = ENOMEM;
+//         //   // errno = ENOMEM;
 //         // else
-//         //     errno = EAGAIN;
+//         //   // errno = EAGAIN;
 //     }
 
 //     pub fn compute_sqns(&mut self, tpdu_: i32) -> i32 {

@@ -33,16 +33,16 @@
 // #include "macros.hpp"
 // #include "stdint.hpp"
 
-use crate::command::ZmqCommand;
+use crate::thread_command::ZmqThreadCommand;
 
 //  Interface to be implemented by mailbox.
 pub trait ZmqMailboxInterface {
     //
     //     virtual ~ZmqMailboxInterface () ZMQ_DEFAULT;
     // virtual void send (const ZmqCommand &cmd) = 0;
-    fn send(&mut self, cmd: &ZmqCommand);
+    fn send(&mut self, cmd: &ZmqThreadCommand);
     // virtual int recv (cmd: &mut ZmqCommand timeout: i32) = 0;
-    fn recv(&mut self, cmd: &mut ZmqCommand, timeout: i32) -> i32;
+    fn recv(&mut self, cmd: &mut ZmqThreadCommand, timeout: i32) -> i32;
 
     // #ifdef HAVE_FORK
     // close the file descriptors in the signaller. This is used in a forked

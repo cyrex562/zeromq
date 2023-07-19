@@ -61,7 +61,7 @@ impl routing_socket_base_t {
             }
             _ => {}
         }
-        errno = EINVAL;
+      // errno = EINVAL;
         return -1;
     }
 

@@ -226,7 +226,7 @@ impl ZmqSocketPoller {
 
     pub fn add_fd(&mut self, fd: ZmqFileDesc, user_data_: Option<&mut [u8]>, events_: i16) -> i32 {
         if (find_if2(_items.begin(), _items.end(), fd, &is_fd) != _items.end()) {
-            errno = EINVAL;
+          // errno = EINVAL;
             return -1;
         }
 
@@ -268,7 +268,7 @@ impl ZmqSocketPoller {
         let it = find_if2(_items.begin(), _items.end(), fd, &is_fd);
 
         if (it == _items.end()) {
-            errno = EINVAL;
+          // errno = EINVAL;
             return -1;
         }
 
@@ -282,7 +282,7 @@ impl ZmqSocketPoller {
         let it = find_if2(_items.begin(), _items.end(), socket, &is_socket);
 
         if (it == _items.end()) {
-            errno = EINVAL;
+          // errno = EINVAL;
             return -1;
         }
 
@@ -300,7 +300,7 @@ impl ZmqSocketPoller {
         let it = find_if2(_items.begin(), _items.end(), fd, &is_fd);
 
         if (it == _items.end()) {
-            errno = EINVAL;
+          // errno = EINVAL;
             return -1;
         }
 
@@ -346,7 +346,7 @@ impl ZmqSocketPoller {
         // _pollfds = static_cast<pollfd *> (malloc (_pollset_size * mem::size_of::<pollfd>()));
 
         if (!_pollfds) {
-            errno = ENOMEM;
+          // errno = ENOMEM;
             _need_rebuild = true;
             return -1;
         }
@@ -589,7 +589,7 @@ impl ZmqSocketPoller {
                 n_events_: i32,
                 mut imeout: i32) -> i32 {
         if (_items.is_empty() && timeout < 0) {
-            errno = EFAULT;
+          // errno = EFAULT;
             return -1;
         }
 
@@ -603,14 +603,14 @@ impl ZmqSocketPoller {
         if ((_pollset_size == 0)) {
             if (timeout < 0) {
                 // Fail instead of trying to sleep forever
-                errno = EFAULT;
+              // errno = EFAULT;
                 return -1;
             }
             // We'll report an error (timed out) as if the list was non-empty and
             // no event occurred within the specified timeout. Otherwise the caller
             // needs to check the return value AND the event to avoid using the
             // nullified event data.
-            errno = EAGAIN;
+          // errno = EAGAIN;
             if (timeout == 0) {
                 return -1;
             }
@@ -622,7 +622,7 @@ impl ZmqSocketPoller {
 //         return -1;
 // #elif defined ZMQ_HAVE_OSX
 //         usleep (timeout * 1000);
-//         errno = EAGAIN;
+//       // errno = EAGAIN;
 //         return -1;
 // #elif defined ZMQ_HAVE_VXWORKS
 //         struct timespec ns_;
@@ -680,7 +680,7 @@ impl ZmqSocketPoller {
                 break;
             }
         }
-        errno = EAGAIN;
+      // errno = EAGAIN;
         return -1;
 
 // #elif defined ZMQ_POLL_BASED_ON_SELECT
@@ -722,7 +722,7 @@ impl ZmqSocketPoller {
 //                                outset.get (), errset.get (), ptimeout);
 // // #if defined ZMQ_HAVE_WINDOWS
 //         if ( (rc == SOCKET_ERROR)) {
-//             errno = wsa_error_to_errno (WSAGetLastError ());
+//           // errno = wsa_error_to_errno (WSAGetLastError ());
 //             wsa_assert (errno == ENOTSOCK);
 //             return -1;
 //         }
@@ -750,13 +750,13 @@ impl ZmqSocketPoller {
 //             break;
 //     }
 //
-//     errno = EAGAIN;
+//   // errno = EAGAIN;
 //     return -1;
 //
 // // #else
 //
 //     //  Exotic platforms that support neither poll() nor select().
-//     errno = ENOTSUP;
+//   // errno = ENOTSUP;
 //     return -1;
 //
 // // #endif

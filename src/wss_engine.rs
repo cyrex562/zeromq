@@ -196,22 +196,22 @@ impl WssEngine {
         }
 
         if (rc == GNUTLS_E_INTERRUPTED) {
-            errno = EINTR;
+          // errno = EINTR;
             return -1;
         }
 
         if (rc == GNUTLS_E_AGAIN) {
-            errno = EAGAIN;
+          // errno = EAGAIN;
             return -1;
         }
 
         if (rc == 0) {
-            errno = EPIPE;
+          // errno = EPIPE;
             return -1;
         }
 
         if (rc < 0) {
-            errno = EINVAL;
+          // errno = EINVAL;
             return -1;
         }
 
@@ -227,7 +227,7 @@ impl WssEngine {
         }
 
         if (rc < 0) {
-            errno = EINVAL;
+          // errno = EINVAL;
             return -1;
         }
 

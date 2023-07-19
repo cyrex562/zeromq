@@ -48,7 +48,7 @@ void test__zmq_z85_encode__valid__success ()
     static const char expected[length + 1] = "HelloWorld";
     char out_encoded[length + 1] = {0};
 
-    errno = 0;
+  // errno = 0;
     TEST_ASSERT_NOT_NULL (zmq_z85_encode (out_encoded, decoded, size));
     TEST_ASSERT_EQUAL_STRING (expected, out_encoded);
     TEST_ASSERT_EQUAL_INT (0, zmq_errno ());
@@ -57,7 +57,7 @@ void test__zmq_z85_encode__valid__success ()
 // Buffer length must be evenly divisible by 4 or must fail with EINVAL.
 void test__zmq_z85_encode__invalid__failure (size: usize)
 {
-    errno = 0;
+  // errno = 0;
     TEST_ASSERT_NULL (zmq_z85_encode (null_mut(), null_mut(), size));
     TEST_ASSERT_EQUAL_INT (EINVAL, zmq_errno ());
 }
@@ -71,7 +71,7 @@ void test__zmq_z85_decode__valid__success ()
     static const char *encoded = "HelloWorld";
     uint8_t out_decoded[size] = {0};
 
-    errno = 0;
+  // errno = 0;
     TEST_ASSERT_NOT_NULL (zmq_z85_decode (out_decoded, encoded));
     TEST_ASSERT_EQUAL_INT (0, zmq_errno ());
     TEST_ASSERT_EQUAL_UINT8_ARRAY (expected, out_decoded, size);
@@ -82,7 +82,7 @@ template <size_t SIZE>
 void test__zmq_z85_decode__invalid__failure (const char (&encoded_)[SIZE])
 {
     uint8_t decoded[SIZE * 4 / 5 + 1];
-    errno = 0;
+  // errno = 0;
     TEST_ASSERT_NULL (zmq_z85_decode (decoded, encoded_));
     TEST_ASSERT_EQUAL_INT (EINVAL, zmq_errno ());
 }

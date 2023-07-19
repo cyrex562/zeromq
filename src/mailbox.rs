@@ -30,7 +30,7 @@
 use std::collections::VecDeque;
 use std::sync::Mutex;
 
-use crate::command::ZmqCommand;
+use crate::thread_command::ZmqThreadCommand;
 use crate::defines::ZmqFileDesc;
 use crate::pipe::PipeState::active;
 use crate::signaler::ZmqSignaler;
@@ -49,7 +49,7 @@ pub struct ZmqMailbox<'a> {
     // typedef Ypipe<ZmqCommand, command_pipe_granularity> cpipe_t;
     // cpipe_t cpipe;
     // pub cpipe: Ypipe<ZmqCommand>,
-    pub cpipe: VecDeque<ZmqCommand<'a>>,
+    pub cpipe: VecDeque<ZmqThreadCommand<'a>>,
 
     //  Signaler to pass signals from writer thread to reader thread.
     pub signaler: ZmqSignaler,
@@ -101,7 +101,7 @@ impl <'a>ZmqMailbox<'a> {
     }
 
     // void send (const ZmqCommand &cmd);
-    pub fn send(&mut self, cmd: &ZmqCommand) -> anyhow::Result<()> {
+    pub fn send(&mut self, cmd: &ZmqThreadCommand) -> anyhow::Result<()> {
         // sync.lock ();
         let guard = self.sync.lock()?;
         self.cpipe.write(cmd, false);
@@ -117,7 +117,7 @@ impl <'a>ZmqMailbox<'a> {
     }
 
     // int recv (cmd: &mut ZmqCommand timeout: i32);
-    pub fn recv(&mut self, cmd: &mut ZmqCommand, timeout: i32) -> anyhow::Result<()> {
+    pub fn recv(&mut self, cmd: &mut ZmqThreadCommand, timeout: i32) -> anyhow::Result<()> {
         //  Try to get the command straight away.
         if (active) {
             if (self.cpipe.read(cmd)) {

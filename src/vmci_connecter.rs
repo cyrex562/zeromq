@@ -318,13 +318,13 @@ impl ZmqVmciConnecter {
         // #ifdef ZMQ_HAVE_WINDOWS
         let last_error: i32 = unsafe { WSAGetLastError() as i32 };
         if (last_error == WSAEINPROGRESS || last_error == WSAEWOULDBLOCK) {
-            errno = EINPROGRESS;
+          // errno = EINPROGRESS;
         } else {
             // errno = wsa_error_to_errno(last_error);
         }
         // #else
         if (errno == EINTR) {
-            errno = EINPROGRESS;
+          // errno = EINPROGRESS;
         }
         // #endif
         return -1;
@@ -368,7 +368,7 @@ impl ZmqVmciConnecter {
             err = errno;
         }
         if (err != 0) {
-            errno = err;
+          // errno = err;
             // #if !defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
             // errno_assert (errno != EBADF && errno != ENOPROTOOPT
             //               && errno != ENOTSOCK && errno != ENOBUFS);

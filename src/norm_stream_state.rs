@@ -3,7 +3,7 @@ use crate::v2_decoder::ZmqV2Decoder;
 
 #[derive(Default, Debug, Clone)]
 pub struct NormRxStreamState<'a> {
-    pub norm_stream: NormObjectHandle,
+    // pub norm_stream: NormObjectHandle,
     // i64 max_msg_size;
     pub max_msg_size: i64,
     pub zero_copy: bool,
@@ -20,7 +20,7 @@ pub struct NormRxStreamState<'a> {
     // NormRxStreamState::List *list;
 }
 
-impl NormRxStreamState {
+impl <'a> NormRxStreamState<'a> {
     // List *AccessList () { return list; }
 
     // NormRxStreamState (NormObjectHandle normStream,
@@ -29,7 +29,7 @@ impl NormRxStreamState {
     // inBatchSize: i32);
     // NormEngine::NormRxStreamState::NormRxStreamState
     pub fn new(
-        normStream: NormObjectHandle,
+        // normStream: NormObjectHandle,
         maxMsgSize: i64,
         zeroCopy: bool,
         inBatchSize: i32,
@@ -49,7 +49,7 @@ impl NormRxStreamState {
         //     next (null_mut()),
         //     list (null_mut())
         Self {
-            norm_stream: normStream,
+            // norm_stream: normStream,
             max_msg_size: maxMsgSize,
             zero_copy: zeroCopy,
             in_batch_size: inBatchSize,
@@ -72,18 +72,18 @@ impl NormRxStreamState {
 
     // bool Init ();
     pub fn Init(&mut self) -> bool {
-        in_sync = false;
-        skip_norm_sync = false;
-        if null_mut() != zmq_decoder {
+        self.in_sync = false;
+        self.skip_norm_sync = false;
+        if null_mut() != self.zmq_decoder {
             // delete
             // zmq_decoder;
         }
-        zmq_decoder = ZmqV2Decoder(in_batch_size, max_msg_size, zero_copy);
+        self.zmq_decoder = ZmqV2Decoder::new(self.in_batch_size, self.max_msg_size, self.zero_copy);
         // alloc_assert (zmq_decoder);
-        return if null_mut() != zmq_decoder {
-            buffer_count = 0;
-            buffer_size = 0;
-            zmq_decoder.get_buffer(&buffer_ptr, &buffer_size);
+        return if null_mut() != self.zmq_decoder {
+            self.buffer_count = 0;
+            self.buffer_size = 0;
+            self.zmq_decoder.get_buffer(&self.buffer_ptr, &self.buffer_size);
             true
         } else {
             false
@@ -121,37 +121,37 @@ impl NormRxStreamState {
     // It returns 1 upon message completion, -1 on error, 1 on msg completion
     pub fn Decode(&mut self) -> i32 {
         // If we have pending bytes to decode, process those first
-        while buffer_count > 0 {
+        while self.buffer_count > 0 {
             // There's pending data for the decoder to decode
             let processed = 0;
 
             // This a bit of a kludgy approach used to weed
             // out the NORM ZMQ message transport "syncFlag" byte
             // from the ZMQ message stream being decoded (but it works!)
-            if skip_norm_sync {
-                buffer_ptr += 1;
-                buffer_count -= 1;
-                skip_norm_sync = false;
+            if self.skip_norm_sync {
+                self.buffer_ptr += 1;
+                self.buffer_count -= 1;
+                self.skip_norm_sync = false;
             }
 
-            let rc = zmq_decoder.decode(buffer_ptr, buffer_count, processed);
-            buffer_ptr += processed;
-            buffer_count -= processed;
+            let rc = self.zmq_decoder.decode(self.buffer_ptr, self.buffer_count, self.processed);
+            self.buffer_ptr += self.processed;
+            self.buffer_count -= self.processed;
             match rc {
                 1 => {
                     // msg completed
-                    if 0 == buffer_count {
-                        buffer_size = 0;
-                        zmq_decoder.get_buffer(&buffer_ptr, &buffer_size);
+                    if 0 == self.buffer_count {
+                        self.buffer_size = 0;
+                        self.zmq_decoder.get_buffer(&self.buffer_ptr, &self.buffer_size);
                     }
-                    skip_norm_sync = true;
+                    self.skip_norm_sync = true;
                     return 1;
                 }
                 -1 => {
                     // decoder error (reset decoder and state variables)
-                    in_sync = false;
-                    skip_norm_sync = false; // will get consumed by norm sync check
-                    Init();
+                    self.in_sync = false;
+                    self.skip_norm_sync = false; // will get consumed by norm sync check
+                    // Init();
                     // break;
                 }
                 0 => {} // need more data, keep decoding until buffer exhausted
@@ -159,9 +159,9 @@ impl NormRxStreamState {
             }
         }
         // Reset buffer pointer/count for next read
-        buffer_count = 0;
-        buffer_size = 0;
-        zmq_decoder.get_buffer(&buffer_ptr, &buffer_size);
+        self.buffer_count = 0;
+        self.buffer_size = 0;
+        self.zmq_decoder.get_buffer(&self.buffer_ptr, &self.buffer_size);
         return 0; //  need more data
     } // end NormEngine::NormRxStreamState::Decode()
 

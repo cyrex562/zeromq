@@ -54,7 +54,7 @@ impl ZmqIoObject {
 
     // void rm_fd (handle_t handle_);
     pub fn rm_fd(&mut self, handle: ZmqHandle) {
-        self.poller.rm_fd(handle_);
+        self.poller.rm_fd(handle);
     }
 
     // void set_pollin (handle_t handle_);
@@ -86,11 +86,7 @@ impl ZmqIoObject {
     pub fn cancel_timer(&mut self, id_: i32) {
         self.poller.cancel_timer(self, id_);
     }
-}
 
-impl ZmqPollEventsInterface for ZmqIoObject {
-    //  i_poll_events interface implementation.
-    // void in_event () ;
     fn in_event(&mut self) {
         // zmq_assert (false);
     }
@@ -106,6 +102,3 @@ impl ZmqPollEventsInterface for ZmqIoObject {
     }
 }
 
-// ZmqIoObject::~ZmqIoObject ()
-// {
-// }

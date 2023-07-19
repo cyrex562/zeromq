@@ -1,22 +1,22 @@
 use std::collections::{HashMap, HashSet};
 use std::mem::size_of;
 use std::ptr::null_mut;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::Ordering;
 use std::sync::Mutex;
 use std::{mem, process};
 
 use anyhow::{anyhow, bail};
 
 #[cfg(not(windows))]
-use libc::{getgid, getuid, gid_t, pid_t, setgid, setuid, uid_t, FD_CLOEXEC, F_SETFD};
+use libc::{  gid_t, pid_t,   uid_t};
 
 use crate::address::ZmqAddress;
 use serde::{Deserialize, Serialize};
 
-use crate::command::{CommandType, ZmqCommand};
+use crate::thread_command::{ThreadCommandType, ZmqThreadCommand};
 use crate::defines::{
     ZMQ_BLOCKY, ZMQ_CURVE, ZMQ_DEALER, ZMQ_GSSAPI, ZMQ_GSSAPI_NT_HOSTBASED,
-    ZMQ_GSSAPI_NT_KRB5_PRINCIPAL, ZMQ_GSSAPI_NT_USER_NAME, ZMQ_IO_THREADS, ZMQ_IO_THREADS_DFLT,
+    ZMQ_GSSAPI_NT_KRB5_PRINCIPAL, ZMQ_GSSAPI_NT_USER_NAME, ZMQ_IO_THREADS, 
     ZMQ_IPV6, ZMQ_MAX_MSGSZ, ZMQ_MAX_SOCKETS, ZMQ_MAX_SOCKETS_DFLT, ZMQ_MESSAGE_SIZE, ZMQ_NULL,
     ZMQ_PAIR, ZMQ_PLAIN, ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_SOCKET_LIMIT, ZMQ_SUB,
     ZMQ_ZERO_COPY_RECV,
@@ -517,7 +517,7 @@ impl<'a> ZmqContext<'a> {
             self.slot_sync.unlock();
 
             //  Wait till reaper thread closes all the sockets.
-            let mut cmd = ZmqCommand::default();
+            let mut cmd = ZmqThreadCommand::default();
             self.term_mailbox.recv(&mut cmd, -1)?;
 
             // errno_assert(rc == 0);
@@ -750,7 +750,7 @@ impl<'a> ZmqContext<'a> {
         //     _empty_slots.reserve (slot_count - term_and_reaper_threads_count);
         // }
         // catch (const std::bad_alloc &) {
-        //     errno = ENOMEM;
+        //   // errno = ENOMEM;
         //     return false;
         // }
         self.slots.reserve(slot_count);
@@ -880,7 +880,7 @@ impl<'a> ZmqContext<'a> {
     }
 
     // void ZmqContext::send_command (uint32_t tid, const ZmqCommand &command_)
-    pub fn send_command(&mut self, tid: u32, command_: &mut ZmqCommand) {
+    pub fn send_command(&mut self, tid: u32, command_: &mut ZmqThreadCommand) {
         self.slots[tid].send(command_);
     }
 
@@ -931,7 +931,7 @@ impl<'a> ZmqContext<'a> {
 
         // const endpoints_t::iterator it = _endpoints.find (addr_);
         // if (it == _endpoints.end () || it->second.socket != socket_) {
-        //     errno = ENOENT;
+        //   // errno = ENOENT;
         //     return -1;
         // }
 
@@ -1134,8 +1134,8 @@ impl<'a> ZmqContext<'a> {
         // #endif
 
         if (side == BIND_SIDE) {
-            let mut cmd = ZmqCommand::default();
-            cmd.cmd_type = ZmqCommand::bind;
+            let mut cmd = ZmqThreadCommand::default();
+            cmd.cmd_type = ZmqThreadCommand::bind;
             cmd.args.bind.pipe = &mut pending_connection.bind_pipe.clone();
             bind_socket.process_command(&cmd);
             bind_socket.send_inproc_connected(&mut pending_connection.endpoint.socket);
@@ -2538,16 +2538,16 @@ impl<'a> ZmqContext<'a> {
         //     zmq_assert(false);
         // }
         // #endif
-        //         errno = EINVAL;
+        //       // errno = EINVAL;
         //         return -1;
         Err(anyhow!("EINVAL"))
     }
 
     pub fn send_inproc_connected(&mut self, tid: u32, socket: &mut ZmqSocket) {
         // ZmqCommand cmd;
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = socket.destination.clone();
-        cmd.cmd_type = CommandType::InprocConnected;
+        cmd.cmd_type = ThreadCommandType::InprocConnected;
         self.send_command(tid, &mut cmd);
     }
 
@@ -2562,10 +2562,10 @@ impl<'a> ZmqContext<'a> {
             destination.inc_seqnum();
         }
 
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
 
         cmd.destination = destination.clone();
-        cmd.cmd_type = ZmqCommand::bind;
+        cmd.cmd_type = ZmqThreadCommand::bind;
         cmd.args.bind.pipe = pipe.clone();
         self.send_command(tid, &mut cmd);
     }
@@ -2573,9 +2573,9 @@ impl<'a> ZmqContext<'a> {
     pub fn send_stop(&mut self, destination: ZmqAddress, tid: i32) {
         //  'Stop' command goes always from administrative thread to
         //  the current object.
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = ZmqCommand::stop;
+        cmd.cmd_type = ZmqThreadCommand::stop;
         self.get_ctx().send_command(tid, &mut cmd);
     }
 
@@ -2585,17 +2585,17 @@ impl<'a> ZmqContext<'a> {
         //     destination.inc_seqnum();
         // }
 
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = CommandType::Plug;
+        cmd.cmd_type = ThreadCommandType::Plug;
         self.send_command(tid, &mut cmd);
     }
 
     fn send_own(&mut self, tid: u32, destination: ZmqAddress, object: &mut ZmqOwn) {
         destination.inc_seqnum();
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = ZmqCommand::own;
+        cmd.cmd_type = ZmqThreadCommand::own;
         cmd.args.own.object = object;
         self.send_command(tid, &mut cmd);
     }
@@ -2611,32 +2611,32 @@ impl<'a> ZmqContext<'a> {
             destination.inc_seqnum();
         }
 
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = ZmqCommand::attach;
+        cmd.cmd_type = ZmqThreadCommand::attach;
         cmd.args.attach.engine = engine;
         self.send_command(tid, &mut cmd);
     }
 
     fn send_activate_read(&mut self, tid: u32, destination: ZmqAddress) {
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = CommandType::ActivateRead;
+        cmd.cmd_type = ThreadCommandType::ActivateRead;
         self.send_command(tid, &mut cmd);
     }
 
-    fn send_activate_write(&mut self, tid: u32, destination: ZmqAddress, msgs_read: u64) {
-        let mut cmd = ZmqCommand::default();
+    pub fn send_activate_write(&mut self, tid: u32, destination: ZmqAddress, msgs_read: u64) {
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = CommandType::ActivateWrite;
+        cmd.cmd_type = ThreadCommandType::ActivateWrite;
         cmd.args.activate_write.msgs_read = msgs_read;
         self.send_command(tid, &mut cmd);
     }
 
-    fn send_hiccup(&mut self, tid: u32, destination: ZmqAddress, pipe: &mut [u8]) {
-        let mut cmd = ZmqCommand::default();
+    pub fn send_hiccup(&mut self, tid: u32, destination: ZmqAddress, pipe: &mut [u8]) {
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = CommandType::Hiccup;
+        cmd.cmd_type = ThreadCommandType::Hiccup;
         cmd.args.hiccup.pipe = pipe;
         self.send_command(tid, &mut cmd);
     }
@@ -2649,16 +2649,16 @@ impl<'a> ZmqContext<'a> {
         socket_base: &mut ZmqOwn,
         endpoint_pair: &mut EndpointUriPair,
     ) {
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = CommandType::PipePeerStats;
+        cmd.cmd_type = ThreadCommandType::PipePeerStats;
         cmd.args.pipe_peer_stats.queue_count = queue_count;
         cmd.args.pipe_peer_stats.socket_base = socket_base;
         cmd.args.pipe_peer_stats.endpoint_pair = endpoint_pair;
         self.send_command(tid, &mut cmd);
     }
 
-    fn send_pipe_stats_publish(
+    pub fn send_pipe_stats_publish(
         &mut self,
         tid: u32,
         destination: ZmqAddress,
@@ -2666,9 +2666,9 @@ impl<'a> ZmqContext<'a> {
         inbound_queue_count: u64,
         endpoint_pair: &mut EndpointUriPair,
     ) {
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = CommandType::PipeStatsPublish;
+        cmd.cmd_type = ThreadCommandType::PipeStatsPublish;
         cmd.args.pipe_stats_publish.outbound_queue_count = outbound_queue_count;
         cmd.args.pipe_stats_publish.inbound_queue_count = inbound_queue_count;
         cmd.args.pipe_stats_publish.endpoint_pair = endpoint_pair;
@@ -2676,88 +2676,102 @@ impl<'a> ZmqContext<'a> {
     }
 
     fn send_pipe_term(&mut self, tid: u32, destination: ZmqAddress) {
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = CommandType::PipeTerm;
+        cmd.cmd_type = ThreadCommandType::PipeTerm;
         self.send_command(tid, &mut cmd);
     }
 
     fn send_pipe_term_ack(&mut self, tid: u32, destination: ZmqAddress) {
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = CommandType::PipeTermAck;
+        cmd.cmd_type = ThreadCommandType::PipeTermAck;
         self.send_command(tid, &mut cmd);
     }
 
     fn send_pipe_hwm(&mut self, tid: u32, destination: ZmqAddress, inhwm: i32, outhwm: i32) {
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = CommandType::PipeHwm;
+        cmd.cmd_type = ThreadCommandType::PipeHwm;
         cmd.args.pipe_hwm.inhwm = inhwm;
         cmd.args.pipe_hwm.outhwm = outhwm;
         self.send_command(tid, &mut cmd);
     }
 
     fn send_term_req(&mut self, tid: u32, destination: ZmqAddress, object: &mut ZmqOwn) {
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = CommandType::TermReq;
+        cmd.cmd_type = ThreadCommandType::TermReq;
         cmd.args.term_req.object = object;
         self.send_command(tid, &mut cmd);
     }
 
     fn send_term(&mut self, tid: u32, destination: ZmqAddress, linger: i32) {
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = CommandType::Term;
+        cmd.cmd_type = ThreadCommandType::Term;
         cmd.args.term.linger = linger;
         self.send_command(tid, &mut cmd);
     }
 
     fn send_term_ack(&mut self, tid: u32, destination: ZmqAddress) {
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = CommandType::TermAck;
+        cmd.cmd_type = ThreadCommandType::TermAck;
         self.send_command(tid, &mut cmd);
     }
 
     fn send_term_endpoint(&mut self, tid: u32, destination: ZmqAddress, endpoint: &str) {
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = destination;
-        cmd.cmd_type = CommandType::TermEndpoint;
+        cmd.cmd_type = ThreadCommandType::TermEndpoint;
         cmd.args.term_endpoint.endpoint = endpoint.into_string();
         self.send_command(tid, &mut cmd);
     }
 
     fn send_reap(&mut self, tid: u32, socket: &mut ZmqSocket) {
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = self.get_ctx().get_reaper().unwrap();
-        cmd.cmd_type = CommandType::Reap;
+        cmd.cmd_type = ThreadCommandType::Reap;
         cmd.args.reap.socket = socket;
         self.send_command(tid, &mut cmd);
     }
 
     fn send_reaped(&mut self, tid: u32) {
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = self.ctx.get_reaper().unwrap();
-        cmd.cmd_type = CommandType::Reaped;
+        cmd.cmd_type = ThreadCommandType::Reaped;
         self.send_command(tid, &mut cmd);
     }
 
     fn send_done(&mut self) {
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = ZmqAddress::default();
-        cmd.cmd_type = CommandType::Done;
+        cmd.cmd_type = ThreadCommandType::Done;
         self.ctx.send_command(ZmqContext::TERM_TID, cmd);
     }
 
     fn send_conn_failed(&mut self, tid: u32, destination: &mut ZmqSessionBase) {
-        let mut cmd = ZmqCommand::default();
+        let mut cmd = ZmqThreadCommand::default();
         cmd.destination = ZmqAddress::default();
-        cmd.cmd_type = CommandType::ConnFailed;
+        cmd.cmd_type = ThreadCommandType::ConnFailed;
         self.send_command(tid, &mut cmd);
     }
-} // impl ZmqContext
+}
+
+fn set_opt_gid_hash_set(opt_val: &[u8], ipc_gid_accept_filters: &mut HashSet<u32>) -> Result<(), anyhow::Error> {
+    todo!()
+}
+
+fn set_opt_pid_hash_set(opt_val: &[u8], ipc_pid_accept_filters: &mut HashSet<i32>) -> Result<(), anyhow::Error> {
+    todo!()
+}
+
+fn set_opt_uid_hash_set(opt_val: &[u8], ipc_uid_accept_filters: &mut HashSet<u32>) -> Result<(), anyhow::Error> {
+    todo!()
+} 
+
+
 
 pub fn clipped_maxsocket(mut max_requested: i32) -> i32 {
     // TODO

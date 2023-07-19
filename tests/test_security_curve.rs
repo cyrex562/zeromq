@@ -511,14 +511,14 @@ void test_curve_security_invalid_keysize (ctx: *mut c_void)
     //  Check return codes for invalid buffer sizes
     void *client = zmq_socket (ctx, ZMQ_DEALER);
     TEST_ASSERT_NOT_NULL (client);
-    errno = 0;
+  // errno = 0;
     int rc =
       zmq_setsockopt (client, ZMQ_CURVE_SERVERKEY, valid_server_public, 123);
     assert (rc == -1 && errno == EINVAL);
-    errno = 0;
+  // errno = 0;
     rc = zmq_setsockopt (client, ZMQ_CURVE_PUBLICKEY, valid_client_public, 123);
     assert (rc == -1 && errno == EINVAL);
-    errno = 0;
+  // errno = 0;
     rc = zmq_setsockopt (client, ZMQ_CURVE_SECRETKEY, valid_client_secret, 123);
     assert (rc == -1 && errno == EINVAL);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_close (client));

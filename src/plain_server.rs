@@ -140,7 +140,7 @@ impl PlainServer {
                 //  TODO see comment in ZmqCurveServer::process_handshake_command
                 session.get_socket().event_handshake_failed_protocol(
                     session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZMTP_UNSPECIFIED);
-                errno = EPROTO;
+              // errno = EPROTO;
                 rc = -1;
             }
         }
@@ -170,7 +170,7 @@ impl PlainServer {
             || cmp_bytes (ptr, 0, hello_prefix, 0, hello_prefix.len()) != 0) {
             session.get_socket ().event_handshake_failed_protocol (
                 session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
-            errno = EPROTO;
+          // errno = EPROTO;
             return -1;
         }
         ptr += hello_prefix_len;
@@ -181,7 +181,7 @@ impl PlainServer {
             session.get_socket ().event_handshake_failed_protocol (
                 session.get_endpoint (),
                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
-            errno = EPROTO;
+          // errno = EPROTO;
             return -1;
         }
         let username_length = ptr[0];
@@ -194,7 +194,7 @@ impl PlainServer {
             session.get_socket().event_handshake_failed_protocol (
                 session.get_endpoint (),
                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
-            errno = EPROTO;
+          // errno = EPROTO;
             return -1;
         }
         // let username = std::string (ptr, username_length);
@@ -206,7 +206,7 @@ impl PlainServer {
             session.get_socket ().event_handshake_failed_protocol (
                 session.get_endpoint (),
                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
-            errno = EPROTO;
+          // errno = EPROTO;
             return -1;
         }
 
@@ -219,7 +219,7 @@ impl PlainServer {
             session.get_socket ().event_handshake_failed_protocol (
                 session.get_endpoint (),
                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_HELLO);
-            errno = EPROTO;
+          // errno = EPROTO;
             return -1;
         }
 
@@ -259,7 +259,7 @@ impl PlainServer {
             || cmp_bytes (ptr, 0,  initiate_prefix, 0, initiate_prefix_len) != 0) {
             session.get_socket ().event_handshake_failed_protocol (
                 session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
-            errno = EPROTO;
+          // errno = EPROTO;
             return -1;
         }
         let rc: i32 = parse_metadata (ptr + initiate_prefix_len,

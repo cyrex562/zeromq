@@ -4,22 +4,25 @@ use crate::address_family::{AF_INET, AF_INET6, AF_UNSPEC};
 use libc::{
     getaddrinfo, if_nametoindex, AI_NUMERICHOST, AI_PASSIVE, AI_V4MAPPED,
 };
-use libc::{c_uint, close, free, malloc, strcmp, EINVAL, ENODEV, ENOMEM, memcpy, c_char, sockaddr};
+use libc::{c_void, c_uint, close, free, malloc, strcmp, EINVAL, ENODEV, ENOMEM, memcpy, c_char, sockaddr};
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
-use std::os::raw::c_void;
 use std::ptr::null_mut;
 use std::str::FromStr;
 use anyhow::{anyhow, bail};
+
+#[cfg(target_os = "windows")]
 use windows::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
-use windows::Win32::Networking::WinSock::{ADDRINFOA, getaddrinfo, SOCKADDR, SOCKADDR_IN, SOCKADDR_IN6};
+
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{
     freeaddrinfo, AI_NUMERICHOST, AI_PASSIVE, AI_V4MAPPED, SOCK_DGRAM, SOCK_STREAM,
-    WSAHOST_NOT_FOUND,
+    WSAHOST_NOT_FOUND,ADDRINFOA,getaddrinfo,SOCKADDR,SOCKADDR_IN,SOCKADDR_IN6
 };
+#[cfg(target_os="windows")]
 use windows::Win32::NetworkManagement::IpHelper::{GAA_FLAG_SKIP_ANYCAST, GAA_FLAG_SKIP_DNS_SERVER, GAA_FLAG_SKIP_MULTICAST, GetAdaptersAddresses, if_nametoindex, IP_ADAPTER_ADDRESSES_LH};
+
 use crate::zmq_addrinfo::ZmqAddrInfo;
 
 pub struct IpResolverOptions {
@@ -183,43 +186,8 @@ impl IpResolver {
     }
 
     pub fn resolve_getaddrinfo(&mut self, addr_: &str) -> anyhow::Result<Vec<IpAddr>> {
-        let mut out: Vec<IpAddr> = Vec::new();
-        let addr_info: *mut *mut ADDRINFOA = null_mut();
-        let iresult = unsafe { getaddrinfo(addr_, null_mut(), None, addr_info) };
-        if iresult == 0 {
-            let mut curr_addr_info = unsafe { *addr_info };
-            while curr_addr_info != null_mut() {
-                if curr_addr_info.ai_family == AF_INET {
-                    let sai4 = unsafe { (*curr_addr_info).ai_addr as *mut SOCKADDR_IN };
-                    let ip4_addr = unsafe {
-                        Ipv4Addr::new(
-                            sai4.sin_addr.S_un.S_un_b.s_b1,
-                            sai4.sin_addr.S_un.S_un_b.s_b2,
-                            sai4.sin_addr.S_un.S_un_b.s_b3,
-                            sai4.sin_addr.S_un.S_un_b.s_b4,
-                        )
-                    };
-                    out.push(IpAddr::V4(ip4_addr));
-                } else if curr_addr_info.ai_family == AF_INET6 {
-                    let sai6 = unsafe { (*curr_addr_info).ai_addr as *mut SOCKADDR_IN6 };
-                    let ip6_addr = unsafe {
-                        Ipv6Addr::new(
-                            sai6.sin6_addr.u.Word(0),
-                            sai6.sin6_addr.u.Word(1),
-                            sai6.sin6_addr.u.Word(2),
-                            sai6.sin6_addr.u.Word(3),
-                            sai6.sin6_addr.u.Word(4),
-                            sai6.sin6_addr.u.Word(5),
-                            sai6.sin6_addr.u.Word(6),
-                            sai6.sin6_addr.u.Word(7),
-                        )
-                    };
-                    out.push(IpAddr::V6(ip6_addr));
-                }
-                curr_addr_info = unsafe { (*curr_addr_info).ai_next };
-            }
-        }
-        Ok(out)
+        #[cfg(target_os="windows")]
+        resolve_win(addr_)
     }
 
     //  On Solaris platform, network interface name can be queried by ioctl.
@@ -273,7 +241,7 @@ impl IpResolver {
         close(fd);
 
         if (!found) {
-            errno = ENODEV;
+          // errno = ENODEV;
             return -1;
         }
         return 0;
@@ -291,7 +259,7 @@ impl IpResolver {
     // // #if defined ZMQ_HAVE_AIX || defined ZMQ_HAVE_HPUX
     //     // IPv6 support not implemented for AIX or HP/UX.
     //     if (_options.ipv6 ()) {
-    //         errno = ENODEV;
+    //       // errno = ENODEV;
     //         return -1;
     //     }
     // // #endif
@@ -313,7 +281,7 @@ impl IpResolver {
     //     close (sd);
     //
     //     if (rc == -1) {
-    //         errno = ENODEV;
+    //       // errno = ENODEV;
     //         return -1;
     //     }
     //
@@ -324,7 +292,7 @@ impl IpResolver {
     //                 (family == AF_INET) ? sizeof (struct sockaddr_in)
     //                                     : sizeof (struct sockaddr_in6));
     //     } else {
-    //         errno = ENODEV;
+    //       // errno = ENODEV;
     //         return -1;
     //     }
     //
@@ -357,7 +325,7 @@ impl IpResolver {
     //
     //     if (rc != 0 && ((errno == EINVAL) || (errno == EOPNOTSUPP))) {
     //         // Windows Subsystem for Linux compatibility
-    //         errno = ENODEV;
+    //       // errno = ENODEV;
     //         return -1;
     //     }
     //     errno_assert (rc == 0);
@@ -384,7 +352,7 @@ impl IpResolver {
     //     freeifaddrs (ifa);
     //
     //     if (!found) {
-    //         errno = ENODEV;
+    //       // errno = ENODEV;
     //         return -1;
     //     }
     //     return 0;
@@ -542,11 +510,10 @@ impl IpResolver {
 
     //  On other platforms we assume there are no sane interface names.
     #[cfg(not(target_os = "windows"))]
-    pub fn resolve_nic_name(ip_addr_: ip_addr_t, nic_: &str) -> i32 {
+    pub fn resolve_nic_name(ip_addr_: IpAddr, nic_: &str) -> i32 {
         // LIBZMQ_UNUSED (ip_addr_);
         // LIBZMQ_UNUSED (nic_);
-
-        errno = ENODEV;
+        // errno = ENODEV;
         return -1;
     }
 
@@ -558,47 +525,95 @@ impl IpResolver {
         hints_: Option<&mut ZmqAddrInfo>,
     ) -> anyhow::Result<Vec<ZmqAddrInfo>> {
         // return unsafe { getaddrinfo(node_, service_, hints_, res_) };
-        let mut addrinfo_result: *mut *mut ADDRINFOA = null_mut();
-        let res = unsafe{getaddrinfo(Some(node),
-                                     Some(service_),
-        hints_ as Option<*const ADDRINFOA>,
-        addrinfo_result as *mut *mut ADDRINFOA)};
-        if res != 0 {
-            return Err(anyhow!("getaddrinfo failed"));
-        }
-        let mut out: Vec<ZmqAddrInfo> = Vec::new();
-
-        let mut addrinfo = unsafe { *addrinfo_result };
-        while addrinfo != null_mut() {
-
-            let cn_raw = unsafe { CString::from_raw(*addrinfo.ai_canonname as *mut c_char) };
-            let cn = cn_raw.into_string()?;
-
-            let mut sa = SOCKADDR::default();
-            sa.sa_family = addrinfo.ai_addr.sa_family;
-            for i in 0 .. 14 {
-                sa.sa_data[i] = addrinfo.ai_addr.sa_data[i];
-            }
-
-            let mut ai = ZmqAddrInfo {
-                ai_flags: addrinfo.ai_flags,
-                ai_family: addrinfo.ai_family,
-                ai_socktype: addrinfo.ai_socktype,
-                ai_protocol: addrinfo.ai_protocol,
-                ai_addrlen: addrinfo.ai_addrlen,
-                ai_canonname:cn,
-                ai_addr: sa as sockaddr,
-            };
-            out.push(ai);
-
-
-            addrinfo = unsafe { (*addrinfo).ai_next };
-        }
-
-        unsafe { freeaddrinfo(Some(addrinfo_result as *const ADDRINFOA)) };
-
-        Ok(out)
+        #[cfg(target_os = "windows")]
+        do_getaddrinfo_win(node, service_, hints_)?
     }
+}
+
+#[cfg(target_os="windows")]
+fn do_getaddrinfo_win(node: &str, service_: &str, hints_: Option<&mut ZmqAddrInfo>) -> Result<Vec<ZmqAddrInfo>, anyhow::Error> {
+    let mut addrinfo_result: *mut *mut ADDRINFOA = null_mut();
+    let res = unsafe{getaddrinfo(Some(node),
+                                 Some(service_),
+    hints_ as Option<*const ADDRINFOA>,
+    addrinfo_result as *mut *mut ADDRINFOA)};
+    if res != 0 {
+        return Err(anyhow!("getaddrinfo failed"));
+    }
+    let mut out: Vec<ZmqAddrInfo> = Vec::new();
+
+    let mut addrinfo = unsafe { *addrinfo_result };
+    while addrinfo != null_mut() {
+
+        let cn_raw = unsafe { CString::from_raw(*addrinfo.ai_canonname as *mut c_char) };
+        let cn = cn_raw.into_string()?;
+
+        let mut sa = SOCKADDR::default();
+        sa.sa_family = addrinfo.ai_addr.sa_family;
+        for i in 0 .. 14 {
+            sa.sa_data[i] = addrinfo.ai_addr.sa_data[i];
+        }
+
+        let mut ai = ZmqAddrInfo {
+            ai_flags: addrinfo.ai_flags,
+            ai_family: addrinfo.ai_family,
+            ai_socktype: addrinfo.ai_socktype,
+            ai_protocol: addrinfo.ai_protocol,
+            ai_addrlen: addrinfo.ai_addrlen,
+            ai_canonname:cn,
+            ai_addr: sa as sockaddr,
+        };
+        out.push(ai);
+
+
+        addrinfo = unsafe { (*addrinfo).ai_next };
+    }
+
+    unsafe { freeaddrinfo(Some(addrinfo_result as *const ADDRINFOA)) };
+
+    Ok(out)
+}
+
+#[cfg(target_os="windows")]
+fn resolve_win(addr_: &str) -> Result<Vec<IpAddr>, anyhow::Error> {
+    let mut out: Vec<IpAddr> = Vec::new();
+        
+    let addr_info: *mut *mut ADDRINFOA = null_mut();
+    let iresult = unsafe { getaddrinfo(addr_, null_mut(), None, addr_info) };
+    if iresult == 0 {
+        let mut curr_addr_info = unsafe { *addr_info };
+        while curr_addr_info != null_mut() {
+            if curr_addr_info.ai_family == AF_INET {
+                let sai4 = unsafe { (*curr_addr_info).ai_addr as *mut SOCKADDR_IN };
+                let ip4_addr = unsafe {
+                    Ipv4Addr::new(
+                        sai4.sin_addr.S_un.S_un_b.s_b1,
+                        sai4.sin_addr.S_un.S_un_b.s_b2,
+                        sai4.sin_addr.S_un.S_un_b.s_b3,
+                        sai4.sin_addr.S_un.S_un_b.s_b4,
+                    )
+                };
+                out.push(IpAddr::V4(ip4_addr));
+            } else if curr_addr_info.ai_family == AF_INET6 {
+                let sai6 = unsafe { (*curr_addr_info).ai_addr as *mut SOCKADDR_IN6 };
+                let ip6_addr = unsafe {
+                    Ipv6Addr::new(
+                        sai6.sin6_addr.u.Word(0),
+                        sai6.sin6_addr.u.Word(1),
+                        sai6.sin6_addr.u.Word(2),
+                        sai6.sin6_addr.u.Word(3),
+                        sai6.sin6_addr.u.Word(4),
+                        sai6.sin6_addr.u.Word(5),
+                        sai6.sin6_addr.u.Word(6),
+                        sai6.sin6_addr.u.Word(7),
+                    )
+                };
+                out.push(IpAddr::V6(ip6_addr));
+            }
+            curr_addr_info = unsafe { (*curr_addr_info).ai_next };
+        }
+    }
+    Ok(out)
 }
 
 //  Construct an "ANY" address for the given family

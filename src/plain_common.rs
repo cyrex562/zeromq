@@ -33,18 +33,23 @@
 
 pub const hello_prefix: &[u8;6]= b"\x05HELLO";
 // const size_t hello_prefix_len = mem::size_of::<hello_prefix>() - 1;
+pub const hello_prefix_len: usize = 5;
 
 pub const welcome_prefix: &[u8;8] = b"\x07WELCOME";
 // const size_t welcome_prefix_len = mem::size_of::<welcome_prefix>() - 1;
+pub const welcome_prefix_len: usize = 7;
 
 pub const initiate_prefix: &[u8;9] = b"\x08INITIATE";
 // const size_t initiate_prefix_len = mem::size_of::<initiate_prefix>() - 1;
+pub const initiate_prefix_len: usize = 8;
 
 pub const ready_prefix: &[u8;6] = b"\x05READY";
 // const size_t ready_prefix_len = mem::size_of::<ready_prefix>() - 1;
+pub const ready_prefix_len: usize = 5;
 
 pub const error_prefix: &[u8;6] = b"\x05ERROR";
 // const size_t error_prefix_len = mem::size_of::<error_prefix>() - 1;
+pub const error_prefix_len: usize = 5;
 
 pub const brief_len_size: usize = 1;
 

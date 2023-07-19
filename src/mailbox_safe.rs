@@ -1,44 +1,10 @@
-/*
-    Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
-
-    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
-
-    libzmq is free software; you can redistribute it and/or modify it under
-    the terms of the GNU Lesser General Public License (LGPL) as published
-    by the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    As a special exception, the Contributors give you permission to link
-    this library with independent modules to produce an executable,
-    regardless of the license terms of these independent modules, and to
-    copy and distribute the resulting executable under terms of your choice,
-    provided that you also meet, for each linked independent module, the
-    terms and conditions of the license of that module. An independent
-    module is a module which is not derived from or based on this library.
-    If you modify this library, you must extend this exception to your
-    version of the library.
-
-    libzmq is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-    License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-// #include "precompiled.hpp"
-// #include "mailbox_safe.hpp"
-// #include "clock.hpp"
-// #include "err.hpp"
-
 use libc::EAGAIN;
-use crate::command::ZmqCommand;
+use crate::thread_command::ZmqThreadCommand;
 use crate::mailbox_interface::ZmqMailboxInterface;
 use crate::signaler::ZmqSignaler;
 
 // #include <algorithm>
-pub struct ZmqMailboxSafe {
+pub struct ZmqMailboxSafe<'a> {
     // : public ZmqMailboxInterface
 //
 // #endif
@@ -47,30 +13,23 @@ pub struct ZmqMailboxSafe {
     // typedef Ypipe<ZmqCommand, command_pipe_granularity> cpipe_t;
     // cpipe_t cpipe;
     //   pub cpipe: Ypipe<ZmqCommand, command_pipe_granularity>,
+    pub cpipe: Vec<ZmqThreadCommand<'a>>,
     //  Condition variable to pass signals from writer thread to reader thread.
     // condition_variable_t _cond_var;
-    pub _cond_var: condition_variable_t,
+    // pub _cond_var: condition_variable_t,
     //  Synchronize access to the mailbox from receivers and senders
     // mutex_t *const sync;
-    pub sync: *mut mutex_t,
+    // pub sync: *mut mutex_t,
     // std::vector<ZmqSignaler *> _signalers;
     pub _signalers: Vec<ZmqSignaler>,
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqMailboxSafe)
 }
 
-impl ZmqMailboxInterface for ZmqMailboxSafe {
-    fn send(&mut self, cmd: &ZmqCommand) {
-        todo!()
-    }
-
-    fn recv(&mut self, cmd: &mut ZmqCommand, timeout: i32) -> i32 {
-        todo!()
-    }
-}
-
-impl ZmqMailboxSafe {
+impl <'a> ZmqMailboxSafe<'a> {
     // ZmqMailboxSafe (mutex_t *sync_);
-    pub fn new(sync_: &mut mutex_t) -> Self {
+    pub fn new(
+        // sync_: &mut mutex_t
+    ) -> Self {
         // : sync (sync_)
         //  Get the pipe into passive state. That way, if the users starts by
         //  polling on the associated file descriptor it will get woken up when
@@ -78,10 +37,11 @@ impl ZmqMailboxSafe {
         // const bool ok = cpipe.check_read ();
         // zmq_assert (!ok);
         Self {
-            sync: sync_,
+            // sync: sync_,
             // cpipe: cpipe_t::new(),
-            _cond_var: condition_variable_t::new(),
+            // _cond_var: condition_variable_t::new(),
             _signalers: vec![],
+            ..Default::default()
         }
     }
 
@@ -94,8 +54,9 @@ impl ZmqMailboxSafe {
 
     // Add signaler to mailbox which will be called when a message is ready
     // void add_signaler (ZmqSignaler *signaler_);
-    pub fn add_signaler(&mut self, signaler: &mut ZmqSignaler) {
-        sel_signalers.push_back(signaler_);
+    pub fn add_signaler(&mut self, signaler_: &mut ZmqSignaler) {
+        // sel_signalers.push_back(signaler_);
+        todo!()
     }
 
     // void remove_signaler (ZmqSignaler *signaler_);
@@ -125,13 +86,14 @@ impl ZmqMailboxSafe {
     }
 
 
-    pub fn send(&mut self, cmd: &ZmqCommand) {
-        sync.lock();
+    pub fn send(&mut self, cmd: &ZmqThreadCommand) {
+        // sync.lock();
+        
         // cpipe.write (cmd, false);
         // let ok = cpipe.flush ();
-
+        let ok = false;
         if (!ok) {
-            _cond_var.broadcast();
+            // self._cond_var.broadcast();
 
             // for (std::vector<ZmqSignaler *>::iterator it = _signalers.begin (),
             //                                          end = _signalers.end ();
@@ -140,23 +102,24 @@ impl ZmqMailboxSafe {
             // }
         }
 
-        sync.unlock();
+        // sync.unlock();
     }
 
-    pub fn recv(&mut self, cmd: &mut ZmqCommand, timeout: i32) -> i32 {
+    pub fn recv(&mut self, cmd: &mut ZmqThreadCommand, timeout: i32) -> i32 {
         //  Try to get the command straight away.
-        if (cpipe.read(cmd)) {
+        if (self.cpipe.read(cmd)) {
             return 0;
         }
 
         //  If the timeout is zero, it will be quicker to release the lock, giving other a chance to send a command
         //  and immediately relock it.
         if (timeout == 0) {
-            sync.unlock();
-            sync.lock();
+            // sync.unlock();
+            // sync.lock();
         } else {
             //  Wait for signal from the command sender.
-            let rc: i32 = _cond_var.wait(sync, timeout);
+            // let rc: i32 = _cond_var.wait(sync, timeout);
+            let rc = 0i32;
             if (rc == -1) {
                 // errno_assert (errno == EAGAIN || errno == EINTR);
                 return -1;
@@ -164,10 +127,10 @@ impl ZmqMailboxSafe {
         }
 
         //  Another thread may already fetch the command
-        let ok = cpipe.read(cmd);
+        let ok = self.cpipe.read(cmd);
 
         if (!ok) {
-            errno = EAGAIN;
+            // errno = EAGAIN;
             return -1;
         }
 

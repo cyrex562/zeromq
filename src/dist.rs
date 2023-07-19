@@ -61,7 +61,7 @@ impl ZmqDist {
         //  If we are in the middle of sending a message, we'll add new pipe
         //  into the list of eligible pipes. Otherwise we add it to the list
         //  of active pipes.
-        if (self.more) {
+        if self.more {
             self.pipes.push_back(pipe);
             self.pipes.swap(self.eligible, self.pipes.size() - 1);
             self.eligible += 1;
@@ -77,6 +77,14 @@ impl ZmqDist {
     //     bool has_pipe (pipe: &mut ZmqPipe);
     pub fn has_pipe(&mut self, pipe: &mut ZmqPipe) -> bool {
         // let mut claimed_index = self.pipes.index(pipe);
+
+        let mut claimed_index: isize = -1;
+        for i in 0..self.pipes.len() {
+            if self.pipes[i] == pipe {
+                claimed_index = i as isize;
+                break;
+            }
+        }
 
         // If pipe claims to be outside the available index space it can't be in the distributor.
         if claimed_index >= self.pipes.size() {

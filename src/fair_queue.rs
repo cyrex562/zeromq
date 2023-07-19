@@ -64,8 +64,8 @@ impl ZmqFq {
         if (index < self.active) {
             self.active -= 1;
             self.pipes.swap(index, self.active);
-            if (_current == self.active) {
-                _current = 0;
+            if (self._current == self.active) {
+                self._current = 0;
             }
             self.pipes.erase(pipe);
         }
@@ -73,7 +73,7 @@ impl ZmqFq {
 
     pub fn activated(&mut self, pipe: &mut ZmqPipe) {
         //  Move the pipe to the list of active pipes.
-        pipes.swap(pipes.index(pipe), self.active);
+        self.pipes.swap(self.pipes.index(pipe), self.active);
         self.active += 1;
     }
 
@@ -128,7 +128,7 @@ impl ZmqFq {
 
     pub fn has_in(&mut self) -> bool {
         //  There are subsequent parts of the partly-read message available.
-        if (more) {
+        if (self.more) {
             return true;
         }
 

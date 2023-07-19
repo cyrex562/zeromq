@@ -67,7 +67,7 @@ pub struct EncoderBase {
     //  Next step. If set to NULL, it means that associated data stream
     //  is dead.
     // step_t next;
-    pub next: step_t,
+    // pub next: step_t,
 
     pub new_msg_flag: bool,
 
@@ -151,16 +151,16 @@ impl EncoderBase {
             //  As a consequence, large messages being sent won't block
             //  other engines running in the same I/O thread for excessive
             //  amounts of time.
-            if pos == 0 && data.is_none() && self.to_write >= buffersize {
+            if pos == 0 && data.is_none() && self.to_write >= buffer_size {
                 // *data = write_pos;
-                pos = to_write;
+                pos = self.to_write;
                 self.write_pos = 0;
                 self.to_write = 0;
                 return Some(self.buf[pos..].as_mut());
             }
 
             //  Copy data to the buffer. If the buffer is full, return.
-            let to_copy = usize::min(self.to_write, buffersize - pos);
+            let to_copy = usize::min(self.to_write, buffer_size - pos);
             // memcpy (buffer + pos, write_pos, to_copy);
             copy_bytes(buffer, pos, self.buf.as_slice(), self.write_pos, to_copy);
             pos += to_copy;
@@ -189,12 +189,12 @@ impl EncoderBase {
         &mut self,
         write_pos_: usize,
         to_write_: usize,
-        next_: step_t,
+        // next_: step_t,
         new_msg_flag_: bool,
     ) {
         self.write_pos = write_pos_;
-        to_write = to_write_;
-        self.next = next_;
+        self.to_write = to_write_;
+        // self.next = next_;
         self.new_msg_flag = new_msg_flag_;
     }
 

@@ -10,7 +10,7 @@ use crate::reaper::ZmqReaper;
 use crate::session_base::ZmqSessionBase;
 use crate::socket::ZmqSocket;
 
-pub enum CommandType {
+pub enum ThreadCommandType {
     Stop,
     Plug,
     Own,
@@ -35,7 +35,7 @@ pub enum CommandType {
     Done,
 }
 
-impl Display for CommandType {
+impl Display for ThreadCommandType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
@@ -43,8 +43,8 @@ impl Display for CommandType {
 
 //  This structure defines the commands that can be sent between threads.
 #[derive(Default, Debug, Clone)]
-pub struct ZmqCommand<'a> {
-    pub cmd_type: CommandType,
+pub struct ZmqThreadCommand<'a> {
+    pub cmd_type: ThreadCommandType,
     //  Object to process the command.
     pub destination: ZmqAddress,
     pub object: Option<ZmqOwn>,

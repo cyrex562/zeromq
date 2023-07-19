@@ -3,7 +3,7 @@ extern crate core;
 mod address_family;
 mod channel;
 mod client;
-mod command;
+mod thread_command;
 mod config;
 mod content;
 mod context;

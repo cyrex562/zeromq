@@ -43,7 +43,6 @@
 
 use std::collections::HashMap;
 use std::ffi::c_void;
-use std::intrinsics::offset;
 use std::mem;
 use std::ptr::null_mut;
 
@@ -51,7 +50,7 @@ use bincode::options;
 use libc::{EAGAIN, EBUSY, ENOMEM, size_t, ssize_t, uint16_t};
 use crate::context::ZmqContext;
 
-use crate::defines::ZmqHandle;
+use crate::defines::{ZmqHandle, RETIRED_FD};
 use crate::endpoint::EndpointType;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::defines::ZmqFileDesc;
@@ -110,14 +109,14 @@ pub struct ZmqPgmReceiver<'a> {
     //  beginning of a message.
     // typedef std::map<pgm_tsi_t, ZmqPeerInfo, tsi_comp> peers_t;
     // peers_t peers;
-    pub peers: HashMap<pgm_tsi_t, ZmqPeerInfo>,
+    // pub peers: HashMap<pgm_tsi_t, ZmqPeerInfo>,
     //  PGM socket.
-    pub PgmSocket: pgm_socket,
+    // pub PgmSocket: pgm_socket,
     //  Socket options.
     // pub options: ZmqOptions,
     //  Associated session.
     pub session: ZmqSessionBase<'a>,
-    pub active_tsi: Option<pgm_tsi_t>,
+    // pub active_tsi: Option<pgm_tsi_t>,
     //  Number of bytes not consumed by the decoder due to pipe overflow.
     pub insize: usize,
     //  Pointer to data still waiting to be processed by the decoder.
@@ -176,11 +175,11 @@ impl <'a> ZmqPgmReceiver<'a> {
             zmq_io_object: ZmqIoObject::new(Some(parent)),
             // zmq_options: options.clone(),
             has_rx_timer: false,
-            peers: HashMap::new(),
-            PgmSocket: pgm_socket::new(true, options),
+            // peers: HashMap::new(),
+            // PgmSocket: pgm_socket::new(true, options),
             // options: options.clone(),
             session: ZmqSessionBase::default(),
-            active_tsi: None,
+            // active_tsi: None,
             insize: 0,
             inpos: null_mut(),
             socket_handle: None,
@@ -214,17 +213,18 @@ impl <'a> ZmqPgmReceiver<'a> {
     pub fn plug(&mut self, io_thread: &mut ZmqThreadContext, session_: &mut ZmqSessionBase) {
         // LIBZMQ_UNUSED (io_thread_);
         //  Retrieve PGM fds and start polling.
-        let socket_fd = retired_fd;
-        let waiting_pipe_fd = retired_fd;
-        pgm_socket.get_receiver_fds(&socket_fd, &waiting_pipe_fd);
-        socket_handle = add_fd(socket_fd);
-        pipe_handle = add_fd(waiting_pipe_fd);
-        set_pollin(pipe_handle);
-        set_pollin(socket_handle);
-        session = session_;
+        // let socket_fd = RETIRED_FD;
+        // let waiting_pipe_fd = RETIRED_FD;
+        // pgm_socket.get_receiver_fds(&socket_fd, &waiting_pipe_fd);
+        // socket_handle = add_fd(socket_fd);
+        // pipe_handle = add_fd(waiting_pipe_fd);
+        // set_pollin(pipe_handle);
+        // set_pollin(socket_handle);
+        // session = session_;
 
         //  If there are any subscriptions already queued in the session, drop them.
-        self.drop_subscriptions();
+        // self.drop_subscriptions();
+        todo!()
     }
 
     // void terminate ();
@@ -256,61 +256,63 @@ impl <'a> ZmqPgmReceiver<'a> {
     pub fn unplug(&mut self) {
         //  Delete decoders.
         // for (peers_t::iterator it = peers.begin (), end = peers.end (); it != end; += 1it)
-        for peer in self.peers {
-            if peer.second.decoder != null_mut() {
-                LIBZMQ_DELETE(it.second.decoder);
-            }
-        }
-        self.peers.clear();
-        self.active_tsi = None;
+        // for peer in self.peers {
+        //     if peer.second.decoder != null_mut() {
+        //         LIBZMQ_DELETE(it.second.decoder);
+        //     }
+        // }
+        // self.peers.clear();
+        // self.active_tsi = None;
 
-        if (has_rx_timer) {
-            cancel_timer(rx_timer_id);
-            has_rx_timer = false;
-        }
+        // if (has_rx_timer) {
+        //     cancel_timer(rx_timer_id);
+        //     has_rx_timer = false;
+        // }
 
-        rm_fd(socket_handle);
-        rm_fd(pipe_handle);
+        // rm_fd(socket_handle);
+        // rm_fd(pipe_handle);
 
-        session = null_mut();
+        // session = null_mut();
+        todo!()
     }
 
     pub fn restart_input(&mut self) -> bool {
         // zmq_assert (session != null_mut());
         // zmq_assert (active_tsi != null_mut());
 
-        let it = peers.find(*active_tsi);
+        // let it = peers.find(*active_tsi);
         // zmq_assert (it != peers.end ());
         // zmq_assert (it.second.joined);
 
         //  Push the pending message into the session.
-        let rc = session.push_msg(it.second.decoder.msg());
+        // let rc = session.push_msg(it.second.decoder.msg());
         // errno_assert (rc == 0);
 
-        if (insize > 0) {
-            rc = process_input(it.second.decoder);
-            if (rc == -1) {
-                //  HWM reached; we will try later.
-                if (errno == EAGAIN) {
-                    session.flush();
-                    return true;
-                }
-                //  Data error. Delete message decoder, mark the
-                //  peer as not joined and drop remaining data.
-                it.second.joined = false;
-                LIBZMQ_DELETE(it.second.decoder);
-                insize = 0;
-            }
-        }
+        // if (insize > 0) {
+        //     rc = process_input(it.second.decoder);
+        //     if (rc == -1) {
+        //         //  HWM reached; we will try later.
+        //         if (errno == EAGAIN) {
+        //             session.flush();
+        //             return true;
+        //         }
+        //         //  Data error. Delete message decoder, mark the
+        //         //  peer as not joined and drop remaining data.
+        //         it.second.joined = false;
+        //         LIBZMQ_DELETE(it.second.decoder);
+        //         insize = 0;
+        //     }
+        // }
 
         //  Resume polling.
-        set_pollin(pipe_handle);
-        set_pollin(socket_handle);
+        // set_pollin(pipe_handle);
+        // set_pollin(socket_handle);
 
-        active_tsi = null_mut();
-        in_event();
+        // active_tsi = null_mut();
+        // in_event();
 
-        return true;
+        // return true;
+        todo!()
     }
 
     pub fn get_endpoint(&mut self) -> EndpointUriPair {
@@ -320,135 +322,137 @@ impl <'a> ZmqPgmReceiver<'a> {
     pub fn in_event(&mut self) {
         // If active_tsi is not null, there is a pending restart_input.
         // Keep the internal state as is so that restart_input would process the right data
-        if (active_tsi) {
-            return;
-        }
+        // if (active_tsi) {
+        //     return;
+        // }
 
         // Read data from the underlying pgm_socket. const pgm_tsi_t * tsi = null_mut();
 
-        if (has_rx_timer) {
-            cancel_timer(rx_timer_id);
-            has_rx_timer = false;
-        }
+        // if (has_rx_timer) {
+        //     cancel_timer(rx_timer_id);
+        //     has_rx_timer = false;
+        // }
 
         //  TODO: This loop can effectively block other engines in the same I/O
         //  thread in the case of high load.
-        loop {
-            //  Get new batch of data.
-            //  Note the workaround made not to break strict-aliasing rules.
-            let mut insize = 0;
-            let mut tmp: *mut c_void = null_mut();
-            let mut received = pgm_socket.receive(&tmp, &tsi);
+        // loop {
+        //     //  Get new batch of data.
+        //     //  Note the workaround made not to break strict-aliasing rules.
+        //     let mut insize = 0;
+        //     let mut tmp: *mut c_void = null_mut();
+        //     let mut received = pgm_socket.receive(&tmp, &tsi);
 
-            //  No data to process. This may happen if the packet received is
-            //  neither ODATA nor ODATA.
-            if received == 0 {
-                if errno == ENOMEM || errno == EBUSY {
-                    let timeout = pgm_socket.get_rx_timeout();
-                    add_timer(timeout, rx_timer_id);
-                    has_rx_timer = true;
-                }
-                break;
-            }
+        //     //  No data to process. This may happen if the packet received is
+        //     //  neither ODATA nor ODATA.
+        //     if received == 0 {
+        //         if errno == ENOMEM || errno == EBUSY {
+        //             let timeout = pgm_socket.get_rx_timeout();
+        //             add_timer(timeout, rx_timer_id);
+        //             has_rx_timer = true;
+        //         }
+        //         break;
+        //     }
 
-            //  Find the peer based on its TSI.
-            let it = peers.find(*tsi);
+        //     //  Find the peer based on its TSI.
+        //     let it = peers.find(*tsi);
 
-            //  Data loss. Delete decoder and mark the peer as disjoint.
-            if received == -1 {
-                if it != peers.end() {
-                    it.second.joined = false;
-                    if it.second.decoder != null_mut() {
-                        LIBZMQ_DELETE(it.second.decoder);
-                    }
-                }
-                break;
-            }
+        //     //  Data loss. Delete decoder and mark the peer as disjoint.
+        //     if received == -1 {
+        //         if it != peers.end() {
+        //             it.second.joined = false;
+        //             if it.second.decoder != null_mut() {
+        //                 LIBZMQ_DELETE(it.second.decoder);
+        //             }
+        //         }
+        //         break;
+        //     }
 
-            //  New peer. Add it to the list of know but unjoint peers.
-            if (it == peers.end()) {
-                // let peer_info = ZmqPeerInfo{false, null_mut()};
-                let peer_info = ZmqPeerInfo {
-                    joined: false,
-                    decoder: None,
-                };
-                it = peers.ZMQ_MAP_INSERT_OR_EMPLACE(*tsi, peer_info).first;
-            }
+        //     //  New peer. Add it to the list of know but unjoint peers.
+        //     if (it == peers.end()) {
+        //         // let peer_info = ZmqPeerInfo{false, null_mut()};
+        //         let peer_info = ZmqPeerInfo {
+        //             joined: false,
+        //             decoder: None,
+        //         };
+        //         it = peers.ZMQ_MAP_INSERT_OR_EMPLACE(*tsi, peer_info).first;
+        //     }
 
-            insize = (received);
-            inpos = tmp;
+        //     insize = (received);
+        //     inpos = tmp;
 
-            //  Read the offset of the fist message in the current packet.
-            // zmq_assert (insize >= mem::size_of::<uint16_t>());
-            // let offset = get_u16 (self.inpos);
-            inpos += mem::size_of::<u16>();
-            insize -= mem::size_of::<u16>();
+        //     //  Read the offset of the fist message in the current packet.
+        //     // zmq_assert (insize >= mem::size_of::<uint16_t>());
+        //     // let offset = get_u16 (self.inpos);
+        //     inpos += mem::size_of::<u16>();
+        //     insize -= mem::size_of::<u16>();
 
-            //  Join the stream if needed.
-            if (!it.second.joined) {
-                //  There is no beginning of the message in current packet.
-                //  Ignore the data.
-                if (offset == 0xffff) {
-                    continue;
-                }
+        //     //  Join the stream if needed.
+        //     if (!it.second.joined) {
+        //         //  There is no beginning of the message in current packet.
+        //         //  Ignore the data.
+        //         if (offset == 0xffff) {
+        //             continue;
+        //         }
 
-                // zmq_assert (offset <= insize);
-                // zmq_assert (it.second.decoder == null_mut());
+        //         // zmq_assert (offset <= insize);
+        //         // zmq_assert (it.second.decoder == null_mut());
 
-                //  We have to move data to the beginning of the first message.
-                inpos += offset;
-                insize -= offset;
+        //         //  We have to move data to the beginning of the first message.
+        //         inpos += offset;
+        //         insize -= offset;
 
-                //  Mark the stream as joined.
-                it.second.joined = true;
+        //         //  Mark the stream as joined.
+        //         it.second.joined = true;
 
-                //  Create and connect decoder for the peer.
-                it.second.decoder = ZmqV1Decoder(0, options.maxmsgsize);
-                // alloc_assert (it.second.decoder);
-            }
+        //         //  Create and connect decoder for the peer.
+        //         it.second.decoder = ZmqV1Decoder(0, options.maxmsgsize);
+        //         // alloc_assert (it.second.decoder);
+        //     }
 
-            let rc = process_input(it.second.decoder);
-            if (rc == -1) {
-                if (errno == EAGAIN) {
-                    active_tsi = tsi;
+        //     let rc = process_input(it.second.decoder);
+        //     if (rc == -1) {
+        //         if (errno == EAGAIN) {
+        //             active_tsi = tsi;
 
-                    //  Stop polling.
-                    reset_pollin(pipe_handle);
-                    reset_pollin(socket_handle);
+        //             //  Stop polling.
+        //             reset_pollin(pipe_handle);
+        //             reset_pollin(socket_handle);
 
-                    break;
-                }
+        //             break;
+        //         }
 
-                it.second.joined = false;
-                LIBZMQ_DELETE(it.second.decoder);
-                insize = 0;
-            }
-        }
+        //         it.second.joined = false;
+        //         LIBZMQ_DELETE(it.second.decoder);
+        //         insize = 0;
+        //     }
+        // }
 
         //  Flush any messages decoder may have produced.
-        session.flush();
+        // session.flush();
+        todo!()
     }
 
     pub fn process_input(&mut self, decoder: &mut ZmqV1Decoder) -> i32 {
         // zmq_assert (session != null_mut());
 
-        while insize > 0 {
-            let mut n = 0usize;
-            let rc = decoder.decode(inpos, insize, n);
-            if rc == -1 {
-                return -1;
-            }
-            inpos += n;
-            insize -= n;
-            if (rc == 0) {
-                break;
-            }
-            rc = self.session.push_msg(decoder.msg());
-            if (rc == -1) {
-                // errno_assert (errno == EAGAIN); return - 1;
-            }
-        }
-        return 0;
+        // while insize > 0 {
+        //     let mut n = 0usize;
+        //     let rc = decoder.decode(inpos, insize, n);
+        //     if rc == -1 {
+        //         return -1;
+        //     }
+        //     inpos += n;
+        //     insize -= n;
+        //     if (rc == 0) {
+        //         break;
+        //     }
+        //     rc = self.session.push_msg(decoder.msg());
+        //     if (rc == -1) {
+        //         // errno_assert (errno == EAGAIN); return - 1;
+        //     }
+        // }
+        // return 0;
+        todo!()
     }
 
     pub fn timer_event(&mut self, token: i32) {

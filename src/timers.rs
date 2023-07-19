@@ -140,7 +140,7 @@ impl ZmqTimers {
     // int ZmqTimers::add (interval_: usize, ZmqTimersimer_fn handler_, arg_: &mut [u8])
     pub fn add(&mut self, interval_: usize, handler_: ZmqTimersFn, arg_: &mut [u8]) -> i32 {
         if (handler_ == null_mut()) {
-            errno = EFAULT;
+          // errno = EFAULT;
             return -1;
         }
 
@@ -163,7 +163,7 @@ impl ZmqTimers {
         // if (_timers.end ()
         //     == std::find_if (_timers.begin (), _timers.end (),
         //                      match_by_id (timer_id_))) {
-        //     errno = EINVAL;
+        //   // errno = EINVAL;
         //     return -1;
         // }
         for timer in self._timers {
@@ -174,7 +174,7 @@ impl ZmqTimers {
 
         // check if timer was already canceled
         if (self._cancelled_timers.count(timer_id_)) {
-            errno = EINVAL;
+          // errno = EINVAL;
             return -1;
         }
 
@@ -197,7 +197,7 @@ impl ZmqTimers {
             }
         }
 
-        errno = EINVAL;
+      // errno = EINVAL;
         return -1;
     }
 
@@ -214,7 +214,7 @@ impl ZmqTimers {
             }
         }
 
-        errno = EINVAL;
+      // errno = EINVAL;
         return -1;
     }
 

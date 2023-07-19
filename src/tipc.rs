@@ -117,7 +117,7 @@ pub fn tipc_set_local_address(listener: &mut ZmqListener, addr: &mut String) -> 
     // error:
     //     int err = errno;
     //     close ();
-    //     errno = err;
+    //   // errno = err;
     //     return -1;
     Ok(())
 }

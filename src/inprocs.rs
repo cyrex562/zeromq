@@ -24,7 +24,7 @@ impl ZmqInprocs {
         // const std::pair<map_t::iterator, map_t::iterator> range =
         //   _inprocs.equal_range (endpoint_uri_str_);
         // if (range.first == range.second) {
-        //     errno = ENOENT;
+        //   // errno = ENOENT;
         //     return -1;
         // }
         if self._inprocs.is_empty() {

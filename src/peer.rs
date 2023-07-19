@@ -55,7 +55,7 @@ pub fn peer_xattach_pipe(sock: &mut ZmqSocket, pipe: &mut ZmqPipe,
 }
 
 // u32 connect_peer (endpoint_uri_: &str);
-pub fn connect_peer(sock: &mut ZmqSocket, endpoint_uri_: &str) -> Result<i32,Error> {
+pub fn connect_peer(sock: &mut ZmqSocket, endpoint_uri_: &str) -> Result<i32,ZmqError> {
     // let mut sync_lock = scoped_optional_lock_t::new(&sync);
 
     // connect_peer cannot work with immediate enabled

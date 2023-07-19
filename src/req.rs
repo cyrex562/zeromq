@@ -173,7 +173,7 @@ pub fn req_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<(
 pub fn req_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
     //  If request wasn't send, we can't wait for reply.
     if (sock._receiving_reply) {
-        errno = EFSM;
+      // errno = EFSM;
         return -1;
     }
 
@@ -382,7 +382,7 @@ impl<'a> ReqSession<'a> {
                 }
             }
         }
-        errno = EFAULT;
+      // errno = EFAULT;
         return Err(anyhow!("EFAULT"));
     }
 

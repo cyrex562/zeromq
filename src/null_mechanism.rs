@@ -37,7 +37,7 @@ use crate::context::ZmqContext;
 use crate::defines::{
     ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
 };
-use crate::mechanism::ZmqMechanismStatus::{error, handshaking, ready};
+use crate::mechanism::ZmqMechanismStatus::{error, handshaking, ready, self};
 use crate::mechanism_base::ZmqMechanismBase;
 use crate::message::ZmqMessage;
 
@@ -109,45 +109,46 @@ impl <'a>ZmqNullMechanism<'a> {
     }
 
     pub fn next_handshake_command(&mut self, msg: &mut ZmqMessage) -> i32 {
-        if (_ready_command_sent || _error_command_sent) {
-            errno = EAGAIN;
+        if (self._ready_command_sent || self._error_command_sent) {
+            // errno = EAGAIN;
             return -1;
         }
 
-        if (zap_required() && !_zap_reply_received) {
-            if (_zap_request_sent) {
-                errno = EAGAIN;
+        if (self.zap_required() && !self._zap_reply_received) {
+            if (self.
+                _zap_request_sent) {
+                // errno = EAGAIN;
                 return -1;
             }
             //  Given this is a backward-incompatible change, it's behind a socket
             //  option disabled by default.
-            let rc = session.zap_connect();
+            let rc = self.session.zap_connect();
             if (rc == -1 && options.zap_enforce_domain) {
-                session
+                self.session
                     .get_socket()
-                    .event_handshake_failed_no_detail(session.get_endpoint(), EFAULT);
+                    .event_handshake_failed_no_detail(self.session.get_endpoint(), EFAULT);
                 return -1;
             }
             if (rc == 0) {
-                send_zap_request();
-                _zap_request_sent = true;
+                self.send_zap_request();
+                self._zap_request_sent = true;
 
                 //  TODO actually, it is quite unlikely that we can read the ZAP
                 //  reply already, but removing this has some strange side-effect
                 //  (probably because the pipe's in_active flag is true until a read
                 //  is attempted)
-                rc = receive_and_process_zap_reply();
+                rc = self.receive_and_process_zap_reply();
                 if (rc != 0) {
                     return -1;
                 }
 
-                _zap_reply_received = true;
+                self._zap_reply_received = true;
             }
         }
 
-        if (_zap_reply_received && status_code != "200") {
-            _error_command_sent = true;
-            if (status_code != "300") {
+        if (self._zap_reply_received && self.status_code != "200") {
+            self._error_command_sent = true;
+            if (self.status_code != "300") {
                 let status_code_len = 3;
                 let rc: i32 =
                     msg.init_size(error_command_name_len + error_reason_len_size + status_code_len);
@@ -177,51 +178,51 @@ impl <'a>ZmqNullMechanism<'a> {
                 copy_bytes(
                     msg_data,
                     offset as i32,
-                    status_code,
+                    self.status_code,
                     0,
                     status_code_len as i32,
                 );
                 return 0;
             }
-            errno = EAGAIN;
+            // errno = EAGAIN;
             return -1;
         }
 
-        make_command_with_basic_properties(msg, ready_command_name, ready_command_name_len);
+        self.make_command_with_basic_properties(msg, ready_command_name, ready_command_name_len);
 
-        _ready_command_sent = true;
+        self._ready_command_sent = true;
 
         return 0;
     }
 
     pub fn process_handshake_command(&mut self, msg: &mut ZmqMessage) -> i32 {
-        if (_ready_command_received || _error_command_received) {
-            session.get_socket().event_handshake_failed_protocol(
-                session.get_endpoint(),
+        if (self._ready_command_received || self._error_command_received) {
+            self.session.get_socket().event_handshake_failed_protocol(
+                self.session.get_endpoint(),
                 ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
             );
-            errno = EPROTO;
+            // errno = EPROTO;
             return -1;
         }
 
-        let cmd_data = (msg.data());
+        let cmd_data = (msg.data_mut());
         let data_size = msg.size();
 
         let mut rc = 0;
         if (data_size >= ready_command_name_len
             && cmp_bytes(cmd_data, 0, ready_command_name, 0, ready_command_name_len) != 0)
         {
-            rc = process_ready_command(cmd_data, data_size);
+            rc = self.process_ready_command(cmd_data, data_size);
         } else if (data_size >= error_command_name_len
             && cmp_bytes(cmd_data, 0, error_command_name, 0, error_command_name_len) != 0)
         {
-            rc = process_error_command(cmd_data, data_size);
+            rc = self.process_error_command(cmd_data, data_size);
         } else {
-            session.get_socket().event_handshake_failed_protocol(
-                session.get_endpoint(),
+            self.session.get_socket().event_handshake_failed_protocol(
+                self.session.get_endpoint(),
                 ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
             );
-            errno = EPROTO;
+            // errno = EPROTO;
             rc = -1;
         }
 
@@ -235,8 +236,8 @@ impl <'a>ZmqNullMechanism<'a> {
     }
 
     pub fn process_ready_command(&mut self, cmd_data_: &mut [u8], data_size_: usize) -> i32 {
-        _ready_command_received = true;
-        return parse_metadata(
+        self._ready_command_received = true;
+        return self.parse_metadata(
             cmd_data_ + ready_command_name_len,
             data_size_ - ready_command_name_len,
         );
@@ -245,48 +246,49 @@ impl <'a>ZmqNullMechanism<'a> {
     pub fn process_error_command(&mut self, cmd_data_: &mut [u8], data_size_: usize) -> i32 {
         let fixed_prefix_size = error_command_name_len + error_reason_len_size;
         if (data_size_ < fixed_prefix_size) {
-            session.get_socket().event_handshake_failed_protocol(
-                session.get_endpoint(),
+            self.session.get_socket().event_handshake_failed_protocol(
+                self.session.get_endpoint(),
                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR,
             );
 
-            errno = EPROTO;
+          // errno = EPROTO;
             return -1;
         }
         let error_reason_len = (cmd_data_[error_command_name_len]);
         if (error_reason_len > (data_size_ - fixed_prefix_size) as u8) {
-            session.get_socket().event_handshake_failed_protocol(
-                session.get_endpoint(),
+            self.session.get_socket().event_handshake_failed_protocol(
+                self.session.get_endpoint(),
                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR,
             );
 
-            errno = EPROTO;
+          // errno = EPROTO;
             return -1;
         }
         let error_reason = (cmd_data_) + fixed_prefix_size;
-        handle_error_reason(error_reason, error_reason_len);
-        _error_command_received = true;
+        self.handle_error_reason(error_reason, error_reason_len);
+        self._error_command_received = true;
         return 0;
     }
-    pub fn zap_msg_available() -> i32 {
-        if (_zap_reply_received) {
-            errno = EFSM;
+    
+    pub fn zap_msg_available(&mut self) -> i32 {
+        if (self._zap_reply_received) {
+          // errno = EFSM;
             return -1;
         }
-        let rc: i32 = receive_and_process_zap_reply();
+        let rc: i32 = self.receive_and_process_zap_reply();
         if (rc == 0) {
-            _zap_reply_received = true;
+            self._zap_reply_received = true;
         }
         return if rc == -1 { -1 } else { 0 };
     }
 
-    pub fn status(&mut self) -> status_t {
-        if (_ready_command_sent && _ready_command_received) {
+    pub fn status(&mut self) -> ZmqMechanismStatus {
+        if self._ready_command_sent && self._ready_command_received {
             return ready;
         }
 
-        let command_sent = _ready_command_sent || _error_command_sent;
-        let command_received = _ready_command_received || _error_command_received;
+        let command_sent = self._ready_command_sent || self._error_command_sent;
+        let command_received = self._ready_command_received || self._error_command_received;
         return if command_sent && command_received {
             error
         } else {
@@ -295,7 +297,7 @@ impl <'a>ZmqNullMechanism<'a> {
     }
 
     pub fn send_zap_request(&mut self) {
-        send_zap_request("NULL", 4, null_mut(), null_mut(), 0);
+        self.zap_client.send_zap_request("NULL", 4, null_mut(), null_mut(), 0);
     }
 } // impl ZmqNullMechanism
 

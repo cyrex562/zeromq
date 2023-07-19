@@ -162,7 +162,7 @@ pub fn norm_init(engine: &mut ZmqEngine, network_: &str, send: bool, recv: bool)
     // Finally, parse IP address and port number
     let portPtr = addrPtr.find(':'); // strrchr (addrPtr, ':');
     if (portPtr.is_some()) {
-        errno = EINVAL;
+      // errno = EINVAL;
         return -1;
     }
 
@@ -197,7 +197,7 @@ pub fn norm_init(engine: &mut ZmqEngine, network_: &str, send: bool, recv: bool)
         let savedErrno = errno;
         NormDestroyInstance(norm_instance);
         norm_instance = NORM_INSTANCE_INVALID;
-        errno = savedErrno;
+      // errno = savedErrno;
         return -1;
     }
     // There's many other useful NORM options that could be applied here
@@ -227,7 +227,7 @@ pub fn norm_init(engine: &mut ZmqEngine, network_: &str, send: bool, recv: bool)
             NormDestroyInstance(norm_instance); // session gets closed, too
             norm_session = NORM_SESSION_INVALID;
             norm_instance = NORM_INSTANCE_INVALID;
-            errno = savedErrno;
+          // errno = savedErrno;
             return -1;
         }
         is_receiver = true;
@@ -243,7 +243,7 @@ pub fn norm_init(engine: &mut ZmqEngine, network_: &str, send: bool, recv: bool)
             NormDestroyInstance(norm_instance); // session gets closed, too
             norm_session = NORM_SESSION_INVALID;
             norm_instance = NORM_INSTANCE_INVALID;
-            errno = savedErrno;
+          // errno = savedErrno;
             return -1;
         }
         NormSetCongestionControl(norm_session, true);
@@ -256,7 +256,7 @@ pub fn norm_init(engine: &mut ZmqEngine, network_: &str, send: bool, recv: bool)
             NormDestroyInstance(norm_instance); // session gets closed, too
             norm_session = NORM_SESSION_INVALID;
             norm_instance = NORM_INSTANCE_INVALID;
-            errno = savedErrno;
+          // errno = savedErrno;
             return -1;
         }
     }

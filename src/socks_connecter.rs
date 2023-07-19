@@ -44,7 +44,7 @@
 
 use crate::address::SocketEnd::SocketEndLocal;
 use crate::address::{get_socket_name, ZmqAddress};
-use crate::command::CommandType::Bind;
+use crate::thread_command::ThreadCommandType::Bind;
 use crate::err::wsa_error_to_errno;
 use crate::defines::ZmqFileDesc;
 use crate::ip::unblock_socket;
@@ -477,14 +477,14 @@ impl ZmqSocksConnector {
         // #ifdef ZMQ_HAVE_WINDOWS
         let last_error: WSA_ERROR = unsafe { WSAGetLastError() };
         if (last_error == WSAEINPROGRESS || last_error == WSAEWOULDBLOCK) {
-            errno = EINPROGRESS;
+          // errno = EINPROGRESS;
         } else {
             // errno = wsa_error_to_errno (last_error);
             // close ();
         }
         // #else
         if (errno == EINTR) {
-            errno = EINPROGRESS;
+          // errno = EINPROGRESS;
         }
         // #endif
         return -1;
@@ -530,7 +530,7 @@ impl ZmqSocksConnector {
             err = errno;
         }
         if (err != 0) {
-            errno = err;
+          // errno = err;
             // errno_assert (errno == ECONNREFUSED || errno == ECONNRESET
             // || errno == ETIMEDOUT || errno == EHOSTUNREACH
             //     || errno == ENETUNREACH || errno == ENETDOWN
@@ -560,7 +560,7 @@ pub fn parse_address(address_: &str, hostname_: &mut str, mut port_: u16) -> i32
     //  Find the ':' at end that separates address from the port number.
     let idx = address_.rfind(':');
     if (idx == std::string::npos) {
-        errno = EINVAL;
+      // errno = EINVAL;
         return -1;
     }
 
@@ -576,7 +576,7 @@ pub fn parse_address(address_: &str, hostname_: &mut str, mut port_: u16) -> i32
     //  Parse the port number (0 is not a valid port).
     port_ = u16::from_str_radix(port_str, 10).unwrap();
     if (port_ == 0) {
-        errno = EINVAL;
+      // errno = EINVAL;
         return -1;
     }
     return 0;

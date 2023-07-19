@@ -1,4 +1,4 @@
-use crate::command::ZmqCommand;
+use crate::thread_command::ZmqThreadCommand;
 use crate::context::ZmqContext;
 use crate::defines::ZmqHandle;
 use crate::devpoll::ZmqPoller;
@@ -159,7 +159,7 @@ impl ZmqThreadContext {
         //  TODO: Do we want to limit number of commands I/O thread can
         //  process in a single go?
 
-        let mut cmd: ZmqCommand = ZmqCommand::default();
+        let mut cmd: ZmqThreadCommand = ZmqThreadCommand::default();
         let rc = mailbox.recv(&cmd, 0);
 
         while (rc == 0 || errno == EINTR) {
@@ -213,7 +213,7 @@ impl ZmqThreadContext {
             _ => {}
         }
 
-        errno = EINVAL;
+      // errno = EINVAL;
         return -1;
     }
 

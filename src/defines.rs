@@ -1,5 +1,9 @@
+#[cfg(target_os = "windows")]
 use std::os::windows::raw::HANDLE;
-use libc::{c_void, SOCKET};
+#[cfg(target_os = "windows")]
+use libc::{SOCKET, c_void};
+#[cfg(target_os = "linux")]
+use libc::{c_void, socket};
 
 //   Version macros for compile-time API version detection
 pub const ZMQ_VERSION_MAJOR: u32 = 4;
@@ -439,7 +443,7 @@ pub const TIPC_ADDR_ID: i32 = 3;
 pub type NormObjectHandle = *const c_void;
 pub type NormInstanceHandle = *const c_void;
 pub type NormSessionHandle = *const c_void;
-pub type NormDescriptor = HANDLE;
+pub type NormDescriptor = ZmqHandle;
 
 // enum
 // {

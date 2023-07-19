@@ -125,7 +125,7 @@ pub fn ws_create_socket(listener: &mut ZmqListener, addr_: &mut str) -> anyhow::
     // error:
     //     let err: i32 = errno;
     //     close ();
-    //     errno = err;
+    //   // errno = err;
     //     return -1;
 }
 

@@ -247,7 +247,7 @@ pub fn vmci_set_local_address(listener: &mut ZmqListener, addr_: &mut String) ->
     // error:
     //     int err = errno;
     //     close ();
-    //     errno = err;
+    //   // errno = err;
     //     return -1;
 }
 

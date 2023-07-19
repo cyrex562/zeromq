@@ -56,7 +56,7 @@ use crate::socket::ZmqSocket;
 
 pub fn pair_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
     if (!pipe || !pipe.write(msg)) {
-        errno = EAGAIN;
+      // errno = EAGAIN;
         return -1;
     }
 
@@ -82,7 +82,7 @@ pub fn pair_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
         msg.init2();
         // errno_assert (rc == 0);
 
-        errno = EAGAIN;
+      // errno = EAGAIN;
         return -1;
     }
     return 0;
@@ -122,8 +122,8 @@ pub fn pair_xwrite_activated(sock: &mut ZmqSocket) {
 
 // void xpipe_terminated (pipe: &mut ZmqPipe);
 pub fn pair_xpipe_terminated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
-    if self.pipe.unwrap() == pipe {
-        self.pipe = None;
+    if sock.pipe.unwrap() == pipe {
+        sock.pipe = None;
     }
 }
 

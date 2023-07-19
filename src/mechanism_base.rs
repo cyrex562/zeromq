@@ -61,21 +61,22 @@ impl <'a>ZmqMechanismBase<'a> {
         }
 
     // int check_basic_command_structure (msg: &mut ZmqMessage) const;
-    pub fn check_basic_command_structure (&mut self, msg: &mut ZmqMessage) -> i32
+    pub fn check_basic_command_structure (&mut self, ctx: &mut ZmqContext, msg: &mut ZmqMessage) -> i32
     {
         if msg.size () <= 1
             || msg.size () <= ((msg.data()))[0] as usize {
-            session.get_socket().event_handshake_failed_protocol (
-                session.get_endpoint (),
+            self.session.get_socket().event_handshake_failed_protocol (
+                ctx,
+                self.session.get_endpoint (),
                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED);
-            errno = EPROTO;
+            // errno = EPROTO;
             return -1;
         }
         return 0;
     }
 
     // void handle_error_reason (error_reason_: *const c_char, error_reason_len_: usize);
-    pub fn handle_error_reason (&mut self, error_reason_: &str, error_reason_len_: usize)
+    pub fn handle_error_reason (&mut self, ctx: &mut ZmqContext, error_reason_: &str, error_reason_len_: usize)
     {
         let mut status_code_len = 3;
         let mut zero_digit = '0';
@@ -89,8 +90,9 @@ impl <'a>ZmqMechanismBase<'a> {
             && error_reason_[significant_digit_index] >= '3'
             && error_reason_[significant_digit_index] <= '5') {
             // it is a ZAP error status code (300, 400 or 500), so emit an authentication failure event
-            session.get_socket ().event_handshake_failed_auth (
-                session.get_endpoint (),
+            self.session.get_socket ().event_handshake_failed_auth (
+                ctx,
+                self.session.get_endpoint (),
                 (error_reason_[significant_digit_index] - zero_digit) * factor);
         } else {
             // this is a violation of the ZAP protocol

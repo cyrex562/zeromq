@@ -27,7 +27,6 @@ use crate::optimized_fd_set::OptimizedFdSet;
 use crate::poll_item::ZmqPollItem;
 use crate::poller_event::ZmqPollerEvent;
 use crate::polling_util::compute_timeout;
-use crate::proxy::proxy;
 use crate::socket::{get_sock_opt_zmq_events, get_sock_opt_zmq_fd, ZmqSocket};
 use crate::socket_option::ZmqSocketOption;
 use crate::socket_poller::ZmqSocketPoller;
@@ -88,7 +87,7 @@ pub fn zmq_ctx_term(ctx: &mut ZmqContext) -> Result<(), ZmqError> {
 
 pub fn zmq_ctx_shutdown(ctx_raw: &mut [u8]) -> Result<(), ZmqError> {
     // if (!ctx || !(ctx as *mut ZmqContext).check_tag ()) {
-    //     errno = EFAULT;
+    //   // errno = EFAULT;
     //     return -1;
     // }
     // return (ctx as *mut ZmqContext).shutdown ();
@@ -111,7 +110,7 @@ pub fn zmq_ctx_set(ctx_raw: &mut [u8], option_: i32, mut optval_: i32) -> Result
 
 pub fn zmq_ctx_set_ext(ctx_raw: &mut [u8], option: i32, optval: &mut [u8]) -> Result<(), ZmqError> {
     // if !ctx || !(ctx as *mut ZmqContext).check_tag () {
-    //     errno = EFAULT;
+    //   // errno = EFAULT;
     //     return -1;
     // }
     // return (ctx as *mut ZmqContext).set(option_, optval_, optvallen_);
@@ -131,7 +130,7 @@ pub fn zmq_ctx_set_ext(ctx_raw: &mut [u8], option: i32, optval: &mut [u8]) -> Re
 
 pub fn zmq_ctx_get(ctx_raw: &mut [u8], opt_kind: i32) -> Result<i32, ZmqError> {
     // if !ctx || !(ctx as *mut ZmqContext).check_tag () {
-    //     errno = EFAULT;
+    //   // errno = EFAULT;
     //     return -1;
     // }
     // return (ctx as *mut ZmqContext).get (option_);
@@ -150,7 +149,7 @@ pub fn zmq_ctx_get(ctx_raw: &mut [u8], opt_kind: i32) -> Result<i32, ZmqError> {
 
 pub fn zmq_ctx_get_ext(ctx_raw: &mut [u8], opt_kind: i32) -> Result<Vec<u8>, ZmqError> {
     // if !ctx || !(ctx as *mut ZmqContext).check_tag () {
-    //     errno = EFAULT;
+    //   // errno = EFAULT;
     //     return -1;
     // }
     // return (ctx as *mut ZmqContext).get(option_, optval_, optvallen_);
@@ -192,7 +191,7 @@ pub fn as_socket_base(in_bytes: &[u8]) -> Result<ZmqSocket, ZmqError> {
     // ZmqSocketBase *s = static_cast<ZmqSocketBase *> (s_);
     // let mut s: *mut ZmqSocketBase = s_ as *mut ZmqSocketBase;
     // if s_.is_null() || !s.check_tag () {
-    //     errno = ENOTSOCK;
+    //   // errno = ENOTSOCK;
     //     return null_mut();
     // }
     // return s;
@@ -217,7 +216,7 @@ pub fn zmq_socket(ctx: &mut [u8], type_: i32) -> Result<Vec<u8>, ZmqError> {
         return Err(CheckTagFailed("check tag failed".to_string()));
     }
     // if !ctx || !(ctx as *mut ZmqContext).check_tag() {
-    //     errno = EFAULT;
+    //   // errno = EFAULT;
     //     return null_mut();
     // }
     // let mut ctx: *mut ZmqContext = ctx as *mut ZmqContext;
@@ -1559,7 +1558,7 @@ pub fn zmq_ppoll(
 
     return Ok(nevents);
     // #else
-    //     errno = ENOTSUP;
+    //   // errno = ENOTSUP;
     //     return -1;
     // #endif // ZMQ_HAVE_PPOLL
 }
@@ -1588,7 +1587,7 @@ pub fn zmq_poller_destroy(poller: &mut ZmqSocketPoller) -> i32 {
 pub fn check_poller(poller_: &mut ZmqSocketPoller) -> Result<(), ZmqError> {
     // if (!poller_
     //     || !(static_cast<ZmqSocketPoller *> (poller_))->check_tag ()) {
-    //     errno = EFAULT;
+    //   // errno = EFAULT;
     //     return -1;
     // }
     //
@@ -1783,7 +1782,7 @@ pub fn zmq_timers_new() -> ZmqTimers {
 pub fn zmq_timers_destroy(timers: &mut ZmqTimers) -> Result<(), ZmqError> {
     // void *timers = *timers_p_;
     // if (!timers || !(static_cast<ZmqTimers *> (timers))->check_tag ()) {
-    //     errno = EFAULT;
+    //   // errno = EFAULT;
     //     return -1;
     // }
     // delete (static_cast<ZmqTimers *> (timers));

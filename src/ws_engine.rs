@@ -1207,14 +1207,14 @@ impl ZmqWsEngine {
         self._next_msg = (
             &ZmqWsEngine::close_connection_after_close);
 
-        errno = EAGAIN;
+      // errno = EAGAIN;
         return -1;
     }
 
     pub fn close_connection_after_close(&mut self, msg: &mut ZmqMessage) -> i32 {
         // LIBZMQ_UNUSED (msg);
         // error (connection_error);
-        errno = ECONNRESET;
+      // errno = ECONNRESET;
         return -1;
     }
 

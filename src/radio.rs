@@ -99,7 +99,7 @@ pub fn radio_xsetsockopt(
     if option_ == ZMQ_XPUB_NODROP {
         _lossy = ((optval_) == 0);
     } else {
-        errno = EINVAL;
+      // errno = EINVAL;
         return Err("ZmqRadio::xsetsockopt".into());
     }
     return Ok(());
@@ -135,7 +135,7 @@ pub fn radio_xpipe_terminated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
 pub fn radio_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
     //  Radio sockets do not allow multipart data (ZMQ_SNDMORE)
     if msg.flags() & ZMQ_MSG_MORE {
-        errno = EINVAL;
+      // errno = EINVAL;
         return -1;
     }
 
@@ -163,7 +163,7 @@ pub fn radio_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
             rc = 0; //  Yay, sent successfully
         }
     } else {
-        errno = EAGAIN;
+      // errno = EAGAIN;
     }
 
     return rc;
@@ -176,7 +176,7 @@ pub fn radio_xhas_out(sock: &mut ZmqSocket) {
 pub fn radio_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
     //  Messages cannot be received from PUB socket.
     LIBZMQ_UNUSED(msg);
-    errno = ENOTSUP;
+  // errno = ENOTSUP;
     return -1;
 }
 

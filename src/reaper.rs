@@ -27,7 +27,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::command::ZmqCommand;
+use crate::thread_command::ZmqThreadCommand;
 use crate::context::ZmqContext;
 use crate::defines::ZmqHandle;
 use crate::devpoll::ZmqPoller;
@@ -150,7 +150,7 @@ impl ZmqReaper {
             // #endif
 
             //  Get the next command. If there is none, exit.
-            let mut cmd = ZmqCommand::default();
+            let mut cmd = ZmqThreadCommand::default();
             let rc: i32 = mailbox.recv(&cmd, 0);
             if (rc != 0 && errno == EINTR) {
                 continue;

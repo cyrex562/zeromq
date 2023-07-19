@@ -276,7 +276,7 @@ impl ZmqPipe {
 
     //  Reads a message to the underlying pipe.
     // bool read (msg: &mut ZmqMessage);
-    pub fn read(&mut self, msg: &mut ZmqMessage) -> bool {
+    pub fn read(&mut self, ctx: &mut ZmqContext, msg: &mut ZmqMessage) -> bool {
         if (!self.in_active) {
             return false;
         }
@@ -309,8 +309,8 @@ impl ZmqPipe {
             self.msgs_read += 1;
         }
 
-        if (_lwm > 0 && _msgs_read % _lwm == 0) {
-            send_activate_write(_peer, _msgs_read);
+        if (self._lwm > 0 && self._msgs_read % self._lwm == 0) {
+            ctx.send_activate_write(0,self._peer, self._msgs_read);
         }
 
         return true;
@@ -340,7 +340,7 @@ impl ZmqPipe {
     //  retains ownership of its message buffer.
     // bool write (const msg: &mut ZmqMessage);
     pub fn write(&mut self, msg: &mut ZmqMessage) -> bool {
-        if (!check_write()) {
+        if (!self.check_write()) {
             return false;
         }
 
@@ -359,8 +359,8 @@ impl ZmqPipe {
     pub fn rollback(&mut self) -> anyhow::Result<()> {
         //  Remove incomplete message from the outbound pipe.
         let mut msg = ZmqMessage::default();
-        if (_out_pipe) {
-            while (_out_pipe.unwrite(&msg)) {
+        if (self._out_pipe) {
+            while (self._out_pipe.unwrite(&msg)) {
                 // zmq_assert (msg.flags () & ZMQ_MSG_MORE);
                 msg.close()?;
                 // errno_assert (rc == 0);
@@ -385,9 +385,9 @@ impl ZmqPipe {
     //  Temporarily disconnects the inbound message stream and drops
     //  all the messages on the fly. Causes 'hiccuped' event to be generated
     //  in the peer.
-    pub fn hiccup(&mut self) {
+    pub fn hiccup(&mut self, ctx: &mut ZmqContext) {
         //  If termination is already under way do nothing.
-        if (_state != PipeState::active) {
+        if (self._state != PipeState::active) {
             return;
         }
 
@@ -402,10 +402,10 @@ impl ZmqPipe {
         self.in_pipe.clear();
 
         // alloc_assert (_in_pipe);
-        _in_active = true;
+        self._in_active = true;
 
         //  Notify the peer about the Hiccup.
-        send_hiccup(_peer, _in_pipe);
+        ctx.send_hiccup(0, self._peer, self._in_pipe);
     }
 
     //  Ensure the pipe won't block on receiving PipeTerm.
@@ -507,7 +507,7 @@ impl ZmqPipe {
 
     //  Returns true if HWM is not reached
     pub fn check_hwm(&mut self) -> bool {
-        let full = self.hwm > 0 && self.msgs_written - self.peers_msgs_read >= u64(self.hwm);
+        let full = self.hwm > 0 && self.msgs_written - self.peers_msgs_read >= self.hwm;
         return !full;
     }
 
@@ -555,7 +555,7 @@ impl ZmqPipe {
                 || self._state == PipeState::waiting_for_delimiter))
         {
             self.in_active = true;
-            self._sink.read_activated(this);
+            self._sink.read_activated(self);
         }
     }
 
@@ -564,14 +564,14 @@ impl ZmqPipe {
         //  Remember the peer's message sequence number.
         self.peers_msgs_read = msgs_read;
 
-        if (!_out_active && self._state == PipeState::active) {
+        if (!self._out_active && self._state == PipeState::active) {
             self.out_active = true;
-            self._sink.write_activated(this);
+            self._sink.write_activated(self);
         }
     }
 
     // void process_hiccup (pipe: *mut c_void) ;
-    pub fn process_hiccup(&mut self, pipe: &mut VecDec<ZmqMessage>) {
+    pub fn process_hiccup(&mut self, pipe: &mut VecDeque<ZmqMessage>) {
         //  Destroy old outpipe. Note that the read end of the pipe was already
         //  migrated to this thread.
         // zmq_assert (_out_pipe);
@@ -593,7 +593,7 @@ impl ZmqPipe {
 
         //  If appropriate, notify the user about the Hiccup.
         if (self._state == PipeState::active) {
-            self._sink.hiccuped(this);
+            self._sink.hiccuped(self);
         }
     }
 
@@ -637,7 +637,7 @@ impl ZmqPipe {
     pub fn process_pipe_term_ack(&mut self) -> anyhow::Result<()> {
         //  Notify the user that all the references to the pipe should be dropped.
         // zmq_assert (_sink);
-        self._sink.pipe_terminated(this);
+        self._sink.pipe_terminated(self);
 
         //  In term_ack_sent and term_req_sent2 states there's nothing to do.
         //  Simply deallocate the pipe. In term_req_sent1 state we have to ack
@@ -732,7 +732,6 @@ impl ZmqPipe {
             in_active: true,
             out_active: true,
             hwm: outhwm as u32,
-            lwm: compute_lwm(inhwm),
             in_hwm_boost: -1,
             out_hwm_boost: -1,
             msgs_read: 0,
@@ -744,7 +743,9 @@ impl ZmqPipe {
             conflate: false,
             endpoint_pair: Default::default(),
             disconnect_msg: Default::default(),
+            ..Default::default()
         };
+        out.lwm = out.compute_lwm(inhwm);
         out._disconnect_msg.init();
         out
     }
@@ -752,7 +753,7 @@ impl ZmqPipe {
     //  Pipepair uses this function to let us know about
     //  the peer pipe object.
     // void set_peer (ZmqPipe *peer_);
-    pub fn set_peer(&mut self, peer: &mut Self) {
+    pub fn set_peer(&mut self, peer_: &mut Self) {
         //  Peer can be set once only.
         // zmq_assert (!_peer);
         self._peer = peer_;
@@ -793,14 +794,16 @@ impl ZmqPipe {
 
     pub fn process_pipe_peer_stats(
         &mut self,
+        ctx: &mut ZmqContext,
         queue_count: u64,
         socket_base: &mut ZmqOwn,
         endpoint_pair: &mut EndpointUriPair,
     ) {
-        send_pipe_stats_publish(
+        ctx.send_pipe_stats_publish(
+            0,
             socket_base,
             queue_count,
-            _msgs_written - _peers_msgs_read,
+            self._msgs_written - self._peers_msgs_read,
             endpoint_pair,
         );
     }
@@ -814,13 +817,13 @@ impl ZmqPipe {
     }
 
     pub fn send_hiccup_msg(&mut self, hiccup_: &mut Vec<u8>) {
-        if (!hiccup_.is_empty() && _out_pipe) {
+        if (!hiccup_.is_empty() && self._out_pipe) {
             let mut msg = ZmqMessage::default();
             let rc: i32 = msg.init_buffer(hiccup_, hiccup_.size());
             // errno_assert (rc == 0);
 
-            _out_pipe.write(msg, false);
-            flush();
+            self._out_pipe.write(msg, false);
+            self.flush();
         }
     }
 
@@ -836,7 +839,7 @@ impl ZmqPipe {
     }
 
     pub fn pipe_erase(&mut self, pipe: &ZmqPipe, pipes: &[ZmqPipe]) -> bool {
-        let pipe_idx = pipe_index(pipe, pipes);
+        let pipe_idx = self.pipe_index(pipe, pipes);
         if pipe_idx == -1 {
             return false;
         }
@@ -853,9 +856,7 @@ impl ZmqPipe {
         pipes[idx2] = tmp;
         return true;
     }
-}
 
-impl i_pipe_events for ZmqPipe {
     fn read_activated(&mut self, pipe: &mut ZmqPipe) {
         todo!()
     }
@@ -871,7 +872,7 @@ impl i_pipe_events for ZmqPipe {
     fn pipe_terminated(&mut self, pipe: &mut ZmqPipe) {
         todo!()
     }
-} // end of impl pipe_t
+}
 
 // void send_routing_id (pipe: &mut ZmqPipe, options: &ZmqOptions);
 
@@ -915,7 +916,7 @@ impl i_pipe_events for ZmqPipe {
 //     return 0;
 // }
 
-pub fn send_hello_msg(pipe: &mut ZmqPipe, options: &ZmqContext) {
+pub fn send_hello_msg(pipe: &mut ZmqPipe, options_: &ZmqContext) {
     // ZmqMessage hello;
     let mut hello = ZmqMessage::default();
     let rc: i32 = hello.init_buffer(&mut options_.hello_msg[0], options_.hello_msg.size());

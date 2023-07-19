@@ -427,7 +427,7 @@ pub fn udp_resolve_raw_address(engine: &mut ZmqEngine, name: &str, length_: usiz
     // }
     //
     // if (!delimiter) {
-    //     errno = EINVAL;
+    //   // errno = EINVAL;
     //     return -1;
     // }
     //
@@ -437,7 +437,7 @@ pub fn udp_resolve_raw_address(engine: &mut ZmqEngine, name: &str, length_: usiz
     // //  Parse the port number (0 is not a valid port).
     // const uint16_t port = static_cast<uint16_t> (atoi (port_str.c_str ()));
     // if (port == 0) {
-    //     errno = EINVAL;
+    //   // errno = EINVAL;
     //     return -1;
     // }
     //
@@ -446,7 +446,7 @@ pub fn udp_resolve_raw_address(engine: &mut ZmqEngine, name: &str, length_: usiz
     // _raw_address.sin_addr.s_addr = inet_addr (addr_str.c_str ());
     //
     // if (_raw_address.sin_addr.s_addr == INADDR_NONE) {
-    //     errno = EINVAL;
+    //   // errno = EINVAL;
     //     return -1;
     // }
     //

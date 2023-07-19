@@ -99,7 +99,7 @@ impl ZmqScatter {
     pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32 {
         //  SCATTER sockets do not allow multipart data (ZMQ_SNDMORE)
         if (msg.flags() & ZMQ_MSG_MORE) {
-            errno = EINVAL;
+          // errno = EINVAL;
             return -1;
         }
 

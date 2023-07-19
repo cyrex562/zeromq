@@ -258,7 +258,7 @@ pub fn router_xsetsockopt(
                 .xsetsockopt(option_, optval_, optvallen_);
         }
     }
-    errno = EINVAL;
+  // errno = EINVAL;
     return -1;
 }
 
@@ -391,16 +391,16 @@ pub fn router_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
                     if (_mandatory) {
                         sock._more_out = false;
                         if (pipe_full) {
-                            errno = EAGAIN;
+                          // errno = EAGAIN;
                         } else {
-                            errno = EHOSTUNREACH;
+                          // errno = EHOSTUNREACH;
                         }
                         return -1;
                     }
                 }
             } else if (_mandatory) {
                 sock._more_out = false;
-                errno = EHOSTUNREACH;
+              // errno = EHOSTUNREACH;
                 return -1;
             }
         }
@@ -548,7 +548,7 @@ pub fn get_peer_state(
     //    routing_id_size_, ReferenceTag ());
     let out_pipe = lookup_out_pipe(routing_id_blob);
     if (!out_pipe) {
-        errno = EHOSTUNREACH;
+      // errno = EHOSTUNREACH;
         return -1;
     }
 

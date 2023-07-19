@@ -235,7 +235,7 @@ impl ZmqMechanism {
         value_len_: usize,
     ) -> usize {
         let name_len = name_len(name);
-        lettotal_len = property_len(name_len, value_len_);
+        let total_len = property_len(name_len, value_len_);
         // zmq_assert (total_len <= ptr_capacity_);
 
         // *ptr_ = static_cast<unsigned char> (name_len);
@@ -276,7 +276,7 @@ impl ZmqMechanism {
 
         //  Add identity (aka routing id) property
         if (self.options.type_ == ZMQ_REQ || self.options.type_ == ZMQ_DEALER || self.options.type_ == ZMQ_ROUTER) {
-            ptr += add_property(
+            ptr += self.add_property(
                 ptr,
                 ptr_capacity_ - (ptr - ptr_),
                 ZMTP_PROPERTY_IDENTITY,
@@ -290,7 +290,7 @@ impl ZmqMechanism {
         //     end = options.app_metadata.end ();
         //     it != end; += 1it)
         for (first, second) in self.options.app_metadata.iter() {
-            ptr += add_property(
+            ptr += self.add_property(
                 ptr,
                 ptr_capacity_ - (ptr - ptr_),
                 first,
@@ -399,9 +399,9 @@ impl ZmqMechanism {
             bytes_left -= value_length;
 
             if (name == ZMTP_PROPERTY_IDENTITY && self.options.recv_routing_id) {
-                set_peer_routing_id(value, value_length);
+                self.set_peer_routing_id(value, value_length);
             } else if (name == ZMTP_PROPERTY_SOCKET_TYPE) {
-                if (!check_socket_type(value, value_length)) {
+                if (!self.check_socket_type(value)) {
                     // errno = EINVAL;
                     // return -1;
                     return Err(anyhow!("EINVAL"));

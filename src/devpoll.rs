@@ -2,8 +2,8 @@
 
 use std::ffi::CString;
 
-use libc::O_RDWR;
-use libc::open;
+#[cfg(target_os="windows")]
+use libc::{open,O_RDWR};
 
 pub const POLLREMOVE: i16 = 0x2000;
 

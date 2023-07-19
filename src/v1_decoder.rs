@@ -87,12 +87,12 @@ impl ZmqV1Decoder {
         } else {
             //  There has to be at least one byte (the flags) in the message).
             if (!*_tmpbuf) {
-                errno = EPROTO;
+              // errno = EPROTO;
                 return -1;
             }
 
             if (_max_msg_size >= 0 && (*_tmpbuf - 1) > _max_msg_size) {
-                errno = EMSGSIZE;
+              // errno = EMSGSIZE;
                 return -1;
             }
 
@@ -103,7 +103,7 @@ impl ZmqV1Decoder {
                 // errno_assert (errno == ENOMEM);
                 rc = in_progress.init();
                 // errno_assert (rc == 0);
-                errno = ENOMEM;
+              // errno = ENOMEM;
                 return -1;
             }
 
@@ -120,20 +120,20 @@ impl ZmqV1Decoder {
 
         //  There has to be at least one byte (the flags) in the message).
         if (payload_length == 0) {
-            errno = EPROTO;
+          // errno = EPROTO;
             return -1;
         }
 
         //  Message size must not exceed the maximum allowed size.
         if (_max_msg_size >= 0 && payload_length - 1 > (_max_msg_size)) {
-            errno = EMSGSIZE;
+          // errno = EMSGSIZE;
             return -1;
         }
 
         // #ifndef __aarch64__
         //  Message size must fit within range of size_t data type.
         if (payload_length - 1 > usize::max) {
-            errno = EMSGSIZE;
+          // errno = EMSGSIZE;
             return -1;
         }
         // #endif
@@ -147,7 +147,7 @@ impl ZmqV1Decoder {
             // errno_assert (errno == ENOMEM);
             rc = in_progress.init();
             // errno_assert (rc == 0);
-            errno = ENOMEM;
+          // errno = ENOMEM;
             return -1;
         }
 

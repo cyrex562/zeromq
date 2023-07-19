@@ -132,11 +132,11 @@ pub fn stream_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
                 if (!sock._current_out.check_write()) {
                     out_pipe.active = false;
                     sock._current_out = null_mut();
-                    errno = EAGAIN;
+                  // errno = EAGAIN;
                     return -1;
                 }
             } else {
-                errno = EHOSTUNREACH;
+              // errno = EHOSTUNREACH;
                 return -1;
             }
         }

@@ -2,9 +2,9 @@ use crate::defines::ZmqFileDesc;
 use crate::socket::ZmqSocket;
 
 #[derive(Default, Debug, Clone)]
-pub struct ZmqItem {
+pub struct ZmqItem<'a> {
     // ZmqSocketBase *socket;
-    pub socket: Option<ZmqSocket>,
+    pub socket: Option<ZmqSocket<'a>>,
     // ZmqFileDesc fd;
     pub fd: ZmqFileDesc,
     // user_data: *mut c_void;

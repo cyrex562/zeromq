@@ -273,11 +273,11 @@ pub fn tcp_read (s_: ZmqFileDesc, data: &mut [u8], size: usize) -> i32
         if rc == SOCKET_ERROR {
             let last_error: WSA_ERROR = WSAGetLastError();
             if last_error == WSAEWOULDBLOCK {
-                errno = EAGAIN;
+              // errno = EAGAIN;
             } else {
                 wsa_assert(
                     last_error == WSAENETDOWN || last_error == WSAENETRESET || last_error == WSAECONNABORTED || last_error == WSAETIMEDOUT || last_error == WSAECONNRESET || last_error == WSAECONNREFUSED || last_error == WSAENOTCONN || last_error == WSAENOBUFS);
-                errno = wsa_error_to_errno(last_error);
+              // errno = wsa_error_to_errno(last_error);
             }
         }
     }
@@ -299,7 +299,7 @@ pub fn tcp_read (s_: ZmqFileDesc, data: &mut [u8], size: usize) -> i32
 //         // errno_assert (errno != EFAULT && errno != ENOMEM && errno != ENOTSOCK);
 // // #endif
 //         if (errno == EWOULDBLOCK || errno == EINTR)
-//             errno = EAGAIN;
+//           // errno = EAGAIN;
 //     }
 //
 //     return  (rc);
@@ -522,7 +522,7 @@ pub fn tcp_create_socket(listener: &mut ZmqListener, addr_: &mut str) -> anyhow:
     // #ifdef ZMQ_HAVE_WINDOWS
     if (rc == SOCKET_ERROR) {
         // unsafe {
-        //     errno = wsa_error_to_errno(WSAGetLastError());
+        //   // errno = wsa_error_to_errno(WSAGetLastError());
         // }
         // goto error;
     }
@@ -540,7 +540,7 @@ pub fn tcp_create_socket(listener: &mut ZmqListener, addr_: &mut str) -> anyhow:
     // #ifdef ZMQ_HAVE_WINDOWS
     if (rc == SOCKET_ERROR) {
         // unsafe {
-        //     errno = wsa_error_to_errno(WSAGetLastError());
+        //   // errno = wsa_error_to_errno(WSAGetLastError());
         // }
         // goto error;
     }
@@ -557,7 +557,7 @@ pub fn tcp_create_socket(listener: &mut ZmqListener, addr_: &mut str) -> anyhow:
     // error:
     //     let err: i32 = errno;
     //     close ();
-    //     errno = err;
+    //   // errno = err;
     //     return -1;
 }
 

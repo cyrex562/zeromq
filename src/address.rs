@@ -16,8 +16,8 @@ pub struct ZmqAddress {
     pub is_multicast: bool,
     pub has_src_addr: bool,
     pub addr_str: String,
-    pub tipc_sockaddr: sockaddr_tipc,
-    pub vm_sockaddr: sockaddr_vm,
+    #[cfg(target_feature="tipc")]pub tipc_sockaddr: sockaddr_tipc,
+    #[cfg(target_feature="vmci")]pub vm_sockaddr: sockaddr_vm,
     pub host: String,
     pub path: String,
 }
@@ -55,8 +55,8 @@ impl ZmqAddress {
                 bind_sockaddr: Option<SocketAddr>,
                 src_sockaddr: Option<SocketAddr>,
                 tgt_sockaddr: Option<SocketAddr>,
-                tipc_sockaddr: Option<sockaddr_tipc>,
-                vm_sockaddr: Option<sockaddr_vm>,
+                #[cfg(target_feature="tipc")]tipc_sockaddr: Option<sockaddr_tipc>,
+                #[cfg(target_feature="vmci")]vm_sockaddr: Option<sockaddr_vm>,
                 host: Option<&str>,
                 path: Option<&str>,
                ) -> Self {
@@ -65,8 +65,8 @@ impl ZmqAddress {
             ip_addr: ip_addr.unwrap_or(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))),
             addr_sockaddr: addr_sockaddr.unwrap_or(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0)),
             addr_str: addr_str.unwrap_or("").to_string(),
-            tipc_sockaddr: tipc_sockaddr.unwrap_or(sockaddr_tipc{}).clone(),
-            vm_sockaddr: vm_sockaddr.unwrap_or(sockaddr_vm{}).clone(),
+            #[cfg(target_feature="tipc")]tipc_sockaddr: tipc_sockaddr.unwrap_or(sockaddr_tipc{}).clone(),
+            #[cfg(target_feature="vmci")]vm_sockaddr: vm_sockaddr.unwrap_or(sockaddr_vm{}).clone(),
             host: host.unwrap_or("").to_string(),
             path: path.unwrap_or("").to_string(),
             bind_addr: bind_sockaddr.unwrap_or(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0)).clone(),
@@ -90,11 +90,11 @@ impl ZmqAddress {
         // TODO: Implement this
         // let path_len = path_.len();
         // if (path_len >= self.address.sun_path.len()) {
-        //     errno = ENAMETOOLONG;
+        //   // errno = ENAMETOOLONG;
         //     return -1;
         // }
         // if (path_[0] == '@' && !path_[1]) {
-        //     errno = EINVAL;
+        //   // errno = EINVAL;
         //     return -1;
         // }
         //
@@ -270,7 +270,7 @@ impl ZmqAddress {
     //
     //             if (self.bind_address.is_multicast()) {
     //                 //  It doesn't make sense to have a multicast address as a source
-    //                 errno = EINVAL;
+    //               // errno = EINVAL;
     //                 return -1;
     //             }
     //
@@ -313,7 +313,7 @@ impl ZmqAddress {
     //             //  If we have an interface specifier then the target address must be a
     //             //  multicast address
     //             if (!self.is_multicast) {
-    //                 errno = EINVAL;
+    //               // errno = EINVAL;
     //                 return -1;
     //             }
     //
@@ -342,14 +342,14 @@ impl ZmqAddress {
     //         }
     //
     //         if (bind_address.family() != target_address.family()) {
-    //             errno = EINVAL;
+    //           // errno = EINVAL;
     //             return -1;
     //         }
     //
     //         //  For IPv6 multicast we *must* have an interface index since we can't
     //         //  Bind by address.
     //         if (ipv6 && is_multicast && bind_interface < 0) {
-    //             errno = ENODEV;
+    //           // errno = ENODEV;
     //             return -1;
     //         }
     //
@@ -362,7 +362,7 @@ impl ZmqAddress {
     //         //  Find the ':' at end that separates address from the port number.
     //         // const char *delimiter = strrchr (path_, ':');
     //         // if (!delimiter) {
-    //         //     errno = EINVAL;
+    //         //   // errno = EINVAL;
     //         //     return -1;
     //         // }
     //         //
@@ -374,13 +374,13 @@ impl ZmqAddress {
     //         // unsigned int port = VMADDR_PORT_ANY;
     //         //
     //         // if (!addr_str.length ()) {
-    //         //     errno = EINVAL;
+    //         //   // errno = EINVAL;
     //         //     return -1;
     //         // } else if (addr_str == "@") {
     //         //     cid = VMCISock_GetLocalCID ();
     //         //
     //         //     if (cid == VMADDR_CID_ANY) {
-    //         //         errno = ENODEV;
+    //         //       // errno = ENODEV;
     //         //         return -1;
     //         //     }
     //         // } else if (addr_str != "*" && addr_str != "-1") {
@@ -390,7 +390,7 @@ impl ZmqAddress {
     //         //
     //         //     if ((l == 0 && end == begin) || (l == ULONG_MAX && errno == ERANGE)
     //         //         || l > UINT_MAX) {
-    //         //         errno = EINVAL;
+    //         //       // errno = EINVAL;
     //         //         return -1;
     //         //     }
     //         //
@@ -398,7 +398,7 @@ impl ZmqAddress {
     //         // }
     //         //
     //         // if (!port_str.length ()) {
-    //         //     errno = EINVAL;
+    //         //   // errno = EINVAL;
     //         //     return -1;
     //         // } else if (port_str != "*" && port_str != "-1") {
     //         //     const char *begin = port_str;
@@ -407,7 +407,7 @@ impl ZmqAddress {
     //         //
     //         //     if ((l == 0 && end == begin) || (l == ULONG_MAX && errno == ERANGE)
     //         //         || l > UINT_MAX) {
-    //         //         errno = EINVAL;
+    //         //       // errno = EINVAL;
     //         //         return -1;
     //         //     }
     //         //
@@ -430,7 +430,7 @@ impl ZmqAddress {
     //         //  the latest colon since IPv6 addresses use colons as delemiters.
     //         // const char *delim = strrchr (name, ':');
     //         // if (delim == null_mut()) {
-    //         //     errno = EINVAL;
+    //         //   // errno = EINVAL;
     //         //     return -1;
     //         // }
     //         // _host = std::string (name, delim - name);

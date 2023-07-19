@@ -76,7 +76,7 @@ impl ZmqSub {
                         optvallen_: usize) -> i32
     {
         if option_ != ZMQ_SUBSCRIBE && option_ != ZMQ_UNSUBSCRIBE {
-            errno = EINVAL;
+          // errno = EINVAL;
             return -1;
         }
 
@@ -99,7 +99,7 @@ impl ZmqSub {
     pub fn xsend (&mut self, msg: &mut ZmqMessage) -> i32
     {
         //  Override the XSUB's send.
-        errno = ENOTSUP;
+      // errno = ENOTSUP;
         return -1;
     }
 

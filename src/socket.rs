@@ -13,7 +13,7 @@ use libc::{c_char, c_int, c_void, EAGAIN, EINTR, EINVAL};
 use serde::{Deserialize, Serialize};
 use windows::Win32::Networking::WinSock::SOL_SOCKET;
 
-use crate::command::ZmqCommand;
+use crate::thread_command::ZmqThreadCommand;
 use crate::context::{
     bool_to_vec, get_effective_conflate_option, i32_to_vec, str_to_vec, ZmqContext,
 };
@@ -272,7 +272,7 @@ impl<'a> ZmqSocket<'a> {
     //             s = new (std::nothrow) channel_t (parent_, tid, sid_);
     //             break;
     //         _ =>
-    //             errno = EINVAL;
+    //           // errno = EINVAL;
     //             return NULL;
     //     }
     //
@@ -316,7 +316,7 @@ impl<'a> ZmqSocket<'a> {
         // };
 
         // if (unlikely (_ctx_terminated)) {
-        //     errno = ETERM;
+        //   // errno = ETERM;
         //     return -1;
         // }
 
@@ -339,7 +339,7 @@ impl<'a> ZmqSocket<'a> {
         //     null_mut()
         // };
         // if (unlikely (_ctx_terminated)) {
-        //     errno = ETERM;
+        //   // errno = ETERM;
         //     return -1;
         // }
 
@@ -416,7 +416,7 @@ impl<'a> ZmqSocket<'a> {
         // scoped_optional_lock_t sync_lock (_thread_safe ? &sync : NULL);
 
         // if (unlikely (_ctx_terminated)) {
-        //     errno = ETERM;
+        //   // errno = ETERM;
         //     return -1;
         // }
 
@@ -658,13 +658,13 @@ impl<'a> ZmqSocket<'a> {
 
         //  Check whether the context hasn't been shut down yet.
         // if (unlikely (_ctx_terminated)) {
-        //     errno = ETERM;
+        //   // errno = ETERM;
         //     return -1;
         // }
 
         //  Check whether endpoint address passed to the function is valid.
         // if (unlikely (!endpoint_uri_)) {
-        //     errno = EINVAL;
+        //   // errno = EINVAL;
         //     return -1;
         // }
 
@@ -699,7 +699,7 @@ impl<'a> ZmqSocket<'a> {
         // const std::pair<endpoints_t::iterator, endpoints_t::iterator> range =
         //   _endpoints.equal_range (resolved_endpoint_uri);
         // if (range.first == range.second) {
-        //     errno = ENOENT;
+        //   // errno = ENOENT;
         //     return -1;
         // }
         if self.endpoints.is_empty() {
@@ -736,13 +736,13 @@ impl<'a> ZmqSocket<'a> {
 
         //  Check whether the context hasn't been shut down yet.
         // if (unlikely (_ctx_terminated)) {
-        //     errno = ETERM;
+        //   // errno = ETERM;
         //     return -1;
         // }
 
         //  Check whether message passed to the function is valid.
         // if (unlikely (!msg || !msg.check ())) {
-        //     errno = EFAULT;
+        //   // errno = EFAULT;
         //     return -1;
         // }
 
@@ -829,13 +829,13 @@ impl<'a> ZmqSocket<'a> {
 
         //  Check whether the context hasn't been shut down yet.
         // if (unlikely (_ctx_terminated)) {
-        //     errno = ETERM;
+        //   // errno = ETERM;
         //     return -1;
         // }
 
         //  Check whether message passed to the function is valid.
         // if (unlikely (!msg || !msg.check ())) {
-        //     errno = EFAULT;
+        //   // errno = EFAULT;
         //     return -1;
         // }
 
@@ -1525,7 +1525,7 @@ impl<'a> ZmqSocket<'a> {
     // int connect_internal (endpoint_uri_: *const c_char);
     pub fn connect_internal(&mut self, endpoint_uri: &str) -> anyhow::Result<()> {
         // if (unlikely (_ctx_terminated)) {
-        //     errno = ETERM;
+        //   // errno = ETERM;
         //     return -1;
         // }
 
@@ -1672,7 +1672,7 @@ impl<'a> ZmqSocket<'a> {
         //  Choose the I/O thread to run the session in.
         let mut io_thread = self.choose_io_thread(options.affinity)?;
         // if (!io_thread) {
-        //     errno = EMTHREAD;
+        //   // errno = EMTHREAD;
         //     return -1;
         // }
 
@@ -2198,7 +2198,7 @@ impl<'a> ZmqSocket<'a> {
             // #else // defined ZMQ_HAVE_NORM
             //     if (protocol_ == protocol_name::norm
             // #endif && options.type_ != ZMQ_PUB && options.type_ != ZMQ_SUB && options.type_ != ZMQ_XPUB && options.type_ != ZMQ_XSUB {
-            errno = ENOCOMPATPROTO;
+          // errno = ENOCOMPATPROTO;
             bail!("no compatible protocol found for pub/xpub/sub/xsub");
         }
         // #endif
@@ -2275,7 +2275,7 @@ impl<'a> ZmqSocket<'a> {
         }
 
         //  Check whether there are any commands pending for this thread.
-        let mut cmd: ZmqCommand = ZmqCommand::default();
+        let mut cmd: ZmqThreadCommand = ZmqThreadCommand::default();
         self.mailbox.recv(&cmd, timeout)?;
         // if (rc != 0 && errno == EINTR) {
         //     return -1;

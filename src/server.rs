@@ -162,7 +162,7 @@ pub fn server_xsend (sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32
 {
     //  SERVER sockets do not allow multipart data (ZMQ_SNDMORE)
     if msg.flags () & ZMQ_MSG_MORE {
-        errno = EINVAL;
+      // errno = EINVAL;
         return -1;
     }
     //  Find the pipe associated with the routing stored in the message.
@@ -172,11 +172,11 @@ pub fn server_xsend (sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32
     if it !=sock._out_pipes.end () {
         if !it.second.pipe.check_write () {
             it.second.active = false;
-            errno = EAGAIN;
+          // errno = EAGAIN;
             return -1;
         }
     } else {
-        errno = EHOSTUNREACH;
+      // errno = EHOSTUNREACH;
         return -1;
     }
 

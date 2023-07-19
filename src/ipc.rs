@@ -5,8 +5,13 @@ use crate::defines::ZmqFileDesc;
 use crate::dish_session::DishSessionState::Group;
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::ip::{
-    create_ipc_wildcard_address, make_socket_noninheritable, ip_open_socket, 
+    create_ipc_wildcard_address, make_socket_noninheritable, ip_open_socket
 };
+#[cfg(target_feature="nosigpipe")]
+use crate::ip::{
+    set_nosigpipe
+};
+
 use crate::listener::ZmqListener;
 use anyhow::bail;
 use libc::{accept, bind, c_int, close, getsockopt, listen, rmdir, sockaddr, unlink};
@@ -19,11 +24,11 @@ pub fn ipc_resolve_address(addr: &mut ZmqAddress) -> anyhow::Result<String> {
     // TODO: Implement this
     // let path_len = path_.len();
     // if (path_len >= self.address.sun_path.len()) {
-    //     errno = ENAMETOOLONG;
+    //   // errno = ENAMETOOLONG;
     //     return -1;
     // }
     // if (path_[0] == '@' && !path_[1]) {
-    //     errno = EINVAL;
+    //   // errno = EINVAL;
     //     return -1;
     // }
     //
@@ -138,6 +143,8 @@ pub fn ipc_in_event(listener: &mut ZmqListener) -> anyhow::Result<()> {
 
 #[cfg(not(windows))]
 pub fn ipc_filter(listener: &mut ZmqListener, fd: ZmqFileDesc) -> bool {
+    use libc::{ucred, SO_PEERCRED, passwd, getpwuid};
+
     if (listener.socket.context.ipc_uid_accept_filters.is_empty()
         && listener.socket.context.ipc_pid_accept_filters.is_empty()
         && listener.socket.context.ipc_gid_accept_filters.empty())
@@ -147,7 +154,7 @@ pub fn ipc_filter(listener: &mut ZmqListener, fd: ZmqFileDesc) -> bool {
 
     // struct ucred cred;
     let mut cred: ucred = ucred::new();
-    let mut size = mem::size_of::<cred>() as c_int;
+    let mut size = mem::size_of::<ucred>() as c_int;
 
     unsafe {
         if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &mut cred, &mut size)) {
@@ -177,11 +184,11 @@ pub fn ipc_filter(listener: &mut ZmqListener, fd: ZmqFileDesc) -> bool {
     }
 
     // const struct passwd *pw;
-    let pw: passwd = passwd {};
+    let pw = passwd { pw_name: todo!(), pw_passwd: todo!(), pw_uid: todo!(), pw_gid: todo!(), pw_gecos: todo!(), pw_dir: todo!(), pw_shell: todo!() };
     // const struct Group *gr;
-    let gr: Group = Group {};
+    let gr = Group {};
 
-    if (!(pw = getpwuid(cred.uid))) {
+    if !(pw = unsafe { getpwuid(cred.uid) }) {
         return false;
     }
 
@@ -294,14 +301,15 @@ pub fn ipc_accept(listener: &mut ZmqListener) -> anyhow::Result<ZmqFileDesc> {
     // #if defined ZMQ_HAVE_SO_PEERCRED || defined ZMQ_HAVE_LOCAL_PEERCRED
     #[cfg(not(windows))]
     unsafe {
-        if (!ipc_filter(sock)) {
+        if !ipc_filter(sock, 0) {
             let rc = close(sock as c_int);
             // errno_assert (rc == 0);
-            return RETIRED_FD;
+            return Ok(RETIRED_FD);
         }
     }
     // #endif
 
+    #[cfg(target_feature="nosigpipe")]
     unsafe {
         if (set_nosigpipe(sock)) {
             // #ifdef ZMQ_HAVE_WINDOWS
