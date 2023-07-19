@@ -1,3 +1,5 @@
+use crate::defines::ZmqFileDesc;
+
 #[derive(Debug, Clone)]
 pub enum ZmqSocketOption {
     ZMQ_AFFINITY = 4,
@@ -8,9 +10,9 @@ pub enum ZmqSocketOption {
     ZMQ_RECOVERY_IVL = 9,
     ZMQ_SNDBUF = 11,
     ZMQ_RCVBUF = 12,
-    ZMQ_RCVMORE = 13,
-    ZMQ_FD = 14,
-    ZMQ_EVENTS = 15,
+    ZMQ_RCVMORE(bool),
+    ZMQ_FD(ZmqFileDesc),
+    ZMQ_EVENTS(i32),
     ZMQ_TYPE = 16,
     ZMQ_LINGER = 17,
     ZMQ_RECONNECT_IVL = 18,
@@ -22,7 +24,7 @@ pub enum ZmqSocketOption {
     ZMQ_MULTICAST_HOPS = 25,
     ZMQ_RCVTIMEO = 27,
     ZMQ_SNDTIMEO = 28,
-    ZMQ_LAST_ENDPOINT = 32,
+    ZMQ_LAST_ENDPOINT(String),
     ZMQ_ROUTER_MANDATORY = 33,
     ZMQ_TCP_KEEPALIVE = 34,
     ZMQ_TCP_KEEPALIVE_CNT = 35,
@@ -67,7 +69,7 @@ pub enum ZmqSocketOption {
     ZMQ_XPUB_VERBOSER = 78,
     ZMQ_CONNECT_TIMEOUT = 79,
     ZMQ_TCP_MAXRT = 80,
-    ZMQ_THREAD_SAFE = 81,
+    ZMQ_THREAD_SAFE(bool),
     ZMQ_MULTICAST_MAXTPDU = 84,
     ZMQ_VMCI_BUFFER_SIZE = 85,
     ZMQ_VMCI_BUFFER_MIN_SIZE = 86,
