@@ -1,94 +1,11 @@
-/*
-    Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
-
-    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
-
-    libzmq is free software; you can redistribute it and/or modify it under
-    the terms of the GNU Lesser General Public License (LGPL) as published
-    by the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    As a special exception, the Contributors give you permission to link
-    this library with independent modules to produce an executable,
-    regardless of the license terms of these independent modules, and to
-    copy and distribute the resulting executable under terms of your choice,
-    provided that you also meet, for each linked independent module, the
-    terms and conditions of the license of that module. An independent
-    module is a module which is not derived from or based on this library.
-    If you modify this library, you must extend this exception to your
-    version of the library.
-
-    libzmq is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-    License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-// #include "precompiled.hpp"
-
-// #include <stddef.h>
-// #include "poller.hpp"
-// #include "proxy.hpp"
-// #include "likely.hpp"
-// #include "msg.hpp"
-
-// #if defined ZMQ_POLL_BASED_ON_POLL && !defined ZMQ_HAVE_WINDOWS                \
-//   && !defined ZMQ_HAVE_AIX
-// #include <poll.h>
-// #endif
-
-// These headers end up pulling in zmq.h somewhere in their include
-// dependency chain
-// #include "socket_base.hpp"
-// #include "err.hpp"
-
-// #ifdef ZMQ_HAVE_POLLER
-
-// #include "socket_poller.hpp"
-
-// int proxy (class ZmqSocketBase *frontend_,
-// pub struct ZmqSocketBase *backend_,
-// pub struct ZmqSocketBase *capture_,
-// pub struct ZmqSocketBase *control_ =
-//              null_mut()); // backward compatibility without this argument
-
-//  Macros for repetitive code.
-
-//  PROXY_CLEANUP() must not be used before these variables are initialized.
-// #define PROXY_CLEANUP()                                                        \
-//     do {                                                                       \
-//         delete poller_all;                                                     \
-//         delete poller_in;                                                      \
-//         delete poller_control;                                                 \
-//         delete poller_receive_blocked;                                         \
-//         delete poller_send_blocked;                                            \
-//         delete poller_both_blocked;                                            \
-//         delete poller_frontend_only;                                           \
-//         delete poller_backend_only;                                            \
-//     } while (false)
-
-
-// #define CHECK_RC_EXIT_ON_FAILURE()                                             \
-//     do {                                                                       \
-//         if (rc < 0) {                                                          \
-//             PROXY_CLEANUP ();                                                  \
-//             return close_and_return (&msg, -1);                                \
-//         }                                                                      \
-//     } while (false)
-
-// #endif //  ZMQ_HAVE_POLLER
-
-
-// Control socket messages
-
 use std::ptr::null_mut;
 use libc::EAGAIN;
+use crate::config::PROXY_BURST_SIZE;
+use crate::context::ZmqContext;
 use crate::defines::{ZMQ_DONTWAIT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_RCVMORE, ZMQ_SNDMORE};
 use crate::message::ZmqMessage;
 
+use crate::poller_event::ZmqPollerEvent;
 use crate::socket::ZmqSocket;
 use crate::socket_poller::ZmqSocketPoller;
 use crate::socket_stats::ZmqSocketStats;
@@ -110,7 +27,7 @@ pub fn capture(options: &mut ZmqContext, capture_: &mut ZmqSocket, msg: &mut Zmq
         //     return -1;
         // }
         ctrl = msg.clone();
-        capture_.send(&mut ctrl, options, if more_ { ZMQ_SNDMORE } else { 0 });
+        capture_.send(&mut ctrl,  if more_ { ZMQ_SNDMORE } else { 0 });
         if rc < 0 {
             return -1;
         }
@@ -121,27 +38,28 @@ pub fn capture(options: &mut ZmqContext, capture_: &mut ZmqSocket, msg: &mut Zmq
 pub fn forward(options: &mut ZmqContext, from_: &mut ZmqSocket, from_stats_: &mut ZmqSocketStats, to_: &mut ZmqSocket, to_stats: &mut ZmqSocketStats, capture: &mut ZmqSocket, msg: &mut ZmqMessage) -> anyhow::Result<()> {
     // Forward a burst of messages
     // for (unsigned int i = 0; i < proxy_burst_size; i+= 1)
-    for i in 0..proxy_burst_size {
+    for i in 0..PROXY_BURST_SIZE {
         let mut more = 0i32;
         let mut moresz = 0usize;
         let mut complete_msg_size = 0usize;
 
         // Forward all the parts of one message
         loop {
-            from_.recv(msg, options, ZMQ_DONTWAIT as i32)?;
+            *msg = from_.recv(  ZMQ_DONTWAIT as i32)?;
 
             complete_msg_size += msg.size();
 
             moresz = 4;
-            from_.getsockopt(options, ZMQ_RCVMORE as i32)?;
+            from_.getsockopt( ZMQ_RCVMORE as i32)?;
 
             //  Copy message to capture socket if any
-            rc = capture::new(capture, msg, &more);
+            // TODO
+            // let rc = capture::new(capture, msg, &more);
             // if rc < 0 {
             //     return -1;
             // }
 
-            to_.send(msg, options, if more { ZMQ_SNDMORE } else { 0 })?;
+            to_.send(msg,  if more { ZMQ_SNDMORE } else { 0 })?;
 
 
             if more == 0 {
@@ -152,8 +70,8 @@ pub fn forward(options: &mut ZmqContext, from_: &mut ZmqSocket, from_stats_: &mu
         // A multipart message counts as 1 packet:
         from_stats_.msg_in += 1;
         from_stats_.bytes_in += complete_msg_size;
-        to_stats_.msg_out += 1;
-        to_stats_.bytes_out += &complete_msg_size;
+        to_stats.msg_out += 1;
+        to_stats.bytes_out += &complete_msg_size;
     }
 
     Ok(())
@@ -164,7 +82,7 @@ pub fn loop_and_send_multipart_stat(options: &mut ZmqContext,
                                     stat_: u64,
                                     first_: bool,
                                     more_: bool) -> i32 {
-    rc: i32;
+    let mut rc: i32 = 0;
     let mut msg = ZmqMessage::default();
 
     //  VSM of 8 bytes can't fail to init
@@ -175,8 +93,8 @@ pub fn loop_and_send_multipart_stat(options: &mut ZmqContext,
     //  is not full, which means failures are due to interrupts (on Windows pipes
     //  are TCP sockets), so keep retrying
     loop {
-        rc = control_.send(&mut msg, options, if more_ { ZMQ_SNDMORE } else { 0 });
-        if !(!first_.clone() && rc != 0 && errno == EAGAIN) {
+        rc = control_.send(&mut msg,  if more_ { ZMQ_SNDMORE } else { 0 });
+        if !(!first_.clone() && rc != 0) {
             break;
         }
     }
@@ -214,9 +132,9 @@ pub fn reply_stats(options: &mut ZmqContext,
 }
 
 enum ProxyState {
-    active,
-    paused,
-    terminated,
+    Active,
+    Paused,
+    Terminated,
 }
 // #ifdef ZMQ_HAVE_POLLER
 
@@ -237,7 +155,7 @@ pub fn proxy(options: &mut ZmqContext,
     // size_t moresz = mem::size_of::<more>();
     let mut moresz = 4usize;
     //  Proxy can be in these three states
-    let mut state: ProxyState = ProxyState::active;
+    let mut state: ProxyState = ProxyState::Active;
 
     let mut frontend_equal_to_backend = false;
     let mut frontend_in = false;
@@ -246,7 +164,7 @@ pub fn proxy(options: &mut ZmqContext,
     let mut backend_out = false;
     let mut control_in = false;
     // ZmqSocketPoller::event_t events[3];
-    let mut events: [event_t; 3] = [event_t::default(); 3];
+    let mut events: [ZmqPollerEvent; 3] = [ZmqPollerEvent::default(); 3];
     // ZmqSocketStats frontend_stats;
     let mut frontend_stats = ZmqSocketStats::default();
     // ZmqSocketStats backend_stats;
@@ -272,112 +190,112 @@ pub fn proxy(options: &mut ZmqContext,
     // ZmqSocketPoller *poller_backend_only = null_mut(); //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'backend_'.
 
     if frontend_ != backend_ {
-        poller_send_blocked = ZmqSocketPoller::default(); //  All except 'ZMQ_POLLIN' on 'backend_'.
-        poller_both_blocked = ZmqSocketPoller::default(); //  All except 'ZMQ_POLLIN' on both 'frontend_' and 'backend_'.
-        poller_frontend_only = ZmqSocketPoller::default(); //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'frontend_'.
-        poller_backend_only = ZmqSocketPoller::default(); //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'backend_'.
+        // poller_send_blocked = ZmqSocketPoller::default(); //  All except 'ZMQ_POLLIN' on 'backend_'.
+        // poller_both_blocked = ZmqSocketPoller::default(); //  All except 'ZMQ_POLLIN' on both 'frontend_' and 'backend_'.
+        // poller_frontend_only = ZmqSocketPoller::default(); //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'frontend_'.
+        // poller_backend_only = ZmqSocketPoller::default(); //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'backend_'.
         frontend_equal_to_backend = false;
     } else {
         frontend_equal_to_backend = true;
     }
 
-    if poller_all == null_mut() || poller_in == null_mut() || poller_control == null_mut() || poller_receive_blocked == null_mut() || ((poller_send_blocked == null_mut() || poller_both_blocked == null_mut()) && !frontend_equal_to_backend) {
-        // PROXY_CLEANUP ();
-        // return close_and_return (&msg, -1);
-        return -1;
-    }
+    // if poller_all == null_mut() || poller_in == null_mut() || poller_control == null_mut() || poller_receive_blocked == null_mut() || ((poller_send_blocked == null_mut() || poller_both_blocked == null_mut()) && !frontend_equal_to_backend) {
+    //     // PROXY_CLEANUP ();
+    //     // return close_and_return (&msg, -1);
+    //     return -1;
+    // }
 
     let poller_wait = poller_in; //  Poller for blocking wait, initially all 'ZMQ_POLLIN'.
 
     //  Register 'frontend_' and 'backend_' with pollers.
-    rc = poller_all.add(frontend_, null_mut(), ZMQ_POLLIN | ZMQ_POLLOUT); //  Everything.
-    CHECK_RC_EXIT_ON_FAILURE();
+    let rc = poller_all.add(frontend_, null_mut(), ZMQ_POLLIN | ZMQ_POLLOUT); //  Everything.
+    // CHECK_RC_EXIT_ON_FAILURE();
     rc = poller_in.add(frontend_, null_mut(), ZMQ_POLLIN); //  All 'ZMQ_POLLIN's.
-    CHECK_RC_EXIT_ON_FAILURE();
+    // CHECK_RC_EXIT_ON_FAILURE();
 
     if frontend_equal_to_backend {
         //  If frontend_==backend_ 'poller_send_blocked' and 'poller_receive_blocked' are the same,
         //  so we don't need 'poller_send_blocked'. We need only 'poller_receive_blocked'.
         //  We also don't need 'poller_both_blocked', no need to initialize it.
         rc = poller_receive_blocked.add(frontend_, null_mut(), ZMQ_POLLOUT);
-        CHECK_RC_EXIT_ON_FAILURE();
+        // CHECK_RC_EXIT_ON_FAILURE();
     } else {
         rc = poller_all.add(backend_, null_mut(),
                             ZMQ_POLLIN | ZMQ_POLLOUT); //  Everything.
-        CHECK_RC_EXIT_ON_FAILURE();
+        // CHECK_RC_EXIT_ON_FAILURE();
         rc = poller_in.add(backend_, null_mut(), ZMQ_POLLIN); //  All 'ZMQ_POLLIN's.
-        CHECK_RC_EXIT_ON_FAILURE();
-        rc = poller_both_blocked.add(
-            frontend_, null_mut(), ZMQ_POLLOUT); //  Waiting only for 'ZMQ_POLLOUT'.
-        CHECK_RC_EXIT_ON_FAILURE();
-        rc = poller_both_blocked.add(
-            backend_, null_mut(), ZMQ_POLLOUT); //  Waiting only for 'ZMQ_POLLOUT'.
-        CHECK_RC_EXIT_ON_FAILURE();
-        rc = poller_send_blocked.add(
-            backend_, null_mut(),
-            ZMQ_POLLOUT); //  All except 'ZMQ_POLLIN' on 'backend_'.
-        CHECK_RC_EXIT_ON_FAILURE();
-        rc = poller_send_blocked.add(
-            frontend_, null_mut(),
-            ZMQ_POLLIN | ZMQ_POLLOUT); //  All except 'ZMQ_POLLIN' on 'backend_'.
-        CHECK_RC_EXIT_ON_FAILURE();
+        // CHECK_RC_EXIT_ON_FAILURE();
+        // rc = poller_both_blocked.add(
+        //     frontend_, null_mut(), ZMQ_POLLOUT); //  Waiting only for 'ZMQ_POLLOUT'.
+        // CHECK_RC_EXIT_ON_FAILURE();
+        // rc = poller_both_blocked.add(
+        //     backend_, null_mut(), ZMQ_POLLOUT); //  Waiting only for 'ZMQ_POLLOUT'.
+        // CHECK_RC_EXIT_ON_FAILURE();
+        // rc = poller_send_blocked.add(
+        //     backend_, null_mut(),
+        //     ZMQ_POLLOUT); //  All except 'ZMQ_POLLIN' on 'backend_'.
+        // CHECK_RC_EXIT_ON_FAILURE();
+        // rc = poller_send_blocked.add(
+        //     frontend_, null_mut(),
+        //     ZMQ_POLLIN | ZMQ_POLLOUT); //  All except 'ZMQ_POLLIN' on 'backend_'.
+        // CHECK_RC_EXIT_ON_FAILURE();
         rc = poller_receive_blocked.add(
             frontend_, null_mut(),
             ZMQ_POLLOUT); //  All except 'ZMQ_POLLIN' on 'frontend_'.
-        CHECK_RC_EXIT_ON_FAILURE();
+        // CHECK_RC_EXIT_ON_FAILURE();
         rc = poller_receive_blocked.add(
             backend_, null_mut(),
             ZMQ_POLLIN | ZMQ_POLLOUT); //  All except 'ZMQ_POLLIN' on 'frontend_'.
-        CHECK_RC_EXIT_ON_FAILURE();
-        rc = poller_frontend_only.add(frontend_, null_mut(), ZMQ_POLLIN | ZMQ_POLLOUT);
-        CHECK_RC_EXIT_ON_FAILURE();
-        rc = poller_backend_only.add(backend_, null_mut(), ZMQ_POLLIN | ZMQ_POLLOUT);
-        CHECK_RC_EXIT_ON_FAILURE();
+        // CHECK_RC_EXIT_ON_FAILURE();
+        // rc = poller_frontend_only.add(frontend_, null_mut(), ZMQ_POLLIN | ZMQ_POLLOUT);
+        // CHECK_RC_EXIT_ON_FAILURE();
+        // rc = poller_backend_only.add(backend_, null_mut(), ZMQ_POLLIN | ZMQ_POLLOUT);
+        // CHECK_RC_EXIT_ON_FAILURE();
     }
 
     //  Register 'control_' with pollers.
     if (control_ != null_mut()) {
         rc = poller_all.add(control_, null_mut(), ZMQ_POLLIN);
-        CHECK_RC_EXIT_ON_FAILURE();
+        // CHECK_RC_EXIT_ON_FAILURE();
         rc = poller_in.add(control_, null_mut(), ZMQ_POLLIN);
-        CHECK_RC_EXIT_ON_FAILURE();
+        // CHECK_RC_EXIT_ON_FAILURE();
         rc = poller_control.add(
             control_, null_mut(),
             ZMQ_POLLIN); //  When proxy is paused we wait only for ZMQ_POLLIN on 'control_' socket.
-        CHECK_RC_EXIT_ON_FAILURE();
+        // CHECK_RC_EXIT_ON_FAILURE();
         rc = poller_receive_blocked.add(control_, null_mut(), ZMQ_POLLIN);
-        CHECK_RC_EXIT_ON_FAILURE();
+        // CHECK_RC_EXIT_ON_FAILURE();
         if (!frontend_equal_to_backend.clone()) {
-            rc = poller_send_blocked.add(control_, null_mut(), ZMQ_POLLIN);
-            CHECK_RC_EXIT_ON_FAILURE();
-            rc = poller_both_blocked.add(control_, null_mut(), ZMQ_POLLIN);
-            CHECK_RC_EXIT_ON_FAILURE();
-            rc = poller_frontend_only.add(control_, null_mut(), ZMQ_POLLIN);
-            CHECK_RC_EXIT_ON_FAILURE();
-            rc = poller_backend_only.add(control_, null_mut(), ZMQ_POLLIN);
-            CHECK_RC_EXIT_ON_FAILURE();
+            // rc = poller_send_blocked.add(control_, null_mut(), ZMQ_POLLIN);
+            // CHECK_RC_EXIT_ON_FAILURE();
+            // rc = poller_both_blocked.add(control_, null_mut(), ZMQ_POLLIN);
+            // CHECK_RC_EXIT_ON_FAILURE();
+            // rc = poller_frontend_only.add(control_, null_mut(), ZMQ_POLLIN);
+            // CHECK_RC_EXIT_ON_FAILURE();
+            // rc = poller_backend_only.add(control_, null_mut(), ZMQ_POLLIN);
+            // CHECK_RC_EXIT_ON_FAILURE();
         }
     }
 
     let mut request_processed = false;
     let mut reply_processed = false;
 
-    while state != ProxyState::terminated {
+    while state != ProxyState::Terminated {
         //  Blocking wait initially only for 'ZMQ_POLLIN' - 'poller_wait' points to 'poller_in'.
         //  If one of receiving end's queue is full ('ZMQ_POLLOUT' not available),
         //  'poller_wait' is pointed to 'poller_receive_blocked', 'poller_send_blocked' or 'poller_both_blocked'.
         rc = poller_wait.wait(events, 3, -1);
-        if rc < 0 && errno == EAGAIN {
+        if rc < 0 {
             rc = 0;
         }
-        CHECK_RC_EXIT_ON_FAILURE();
+        // CHECK_RC_EXIT_ON_FAILURE();
 
         //  Some of events waited for by 'poller_wait' have arrived, now poll for everything without blocking.
         rc = poller_all.wait(events, 3, 0);
-        if rc < 0 && errno == EAGAIN {
+        if rc < 0{
             rc = 0;
         }
-        CHECK_RC_EXIT_ON_FAILURE();
+        // CHECK_RC_EXIT_ON_FAILURE();
 
         //  Process events.
         // for (int i = 0; i < rc; i+= 1)
@@ -401,7 +319,7 @@ pub fn proxy(options: &mut ZmqContext,
         //  Process a control command if any.
         if control_in {
             rc = control_.recv(&mut msg, options, 0);
-            CHECK_RC_EXIT_ON_FAILURE();
+            // CHECK_RC_EXIT_ON_FAILURE();
             rc = control_.getsockopt(options, ZMQ_RCVMORE as i32);
             if (rc < 0) || more != 0 {
                 // PROXY_CLEANUP ();
@@ -411,22 +329,22 @@ pub fn proxy(options: &mut ZmqContext,
 
             //  Copy message to capture socket if any.
             rc = capture(options, capture_, &mut msg, more.clone());
-            CHECK_RC_EXIT_ON_FAILURE();
+            // CHECK_RC_EXIT_ON_FAILURE();
 
             if msg.size() == 5 && cmp_bytes(msg.data(), 0, b"PAUSE", 0, 5) == 0 {
-                state = ProxyState::paused;
+                state = ProxyState::Paused;
                 poller_wait = poller_control;
             } else if msg.size() == 6 && cmp_bytes(msg.data(), 0, b"RESUME", 0, 6) == 0 {
-                state = ProxyState::active;
+                state = ProxyState::Active;
                 poller_wait = poller_in;
             } else {
                 if msg.size() == 9 && cmp_bytes(msg.data(), 0, b"TERMINATE", 0, 9) == 0 {
-                    state = ProxyState::terminated;
+                    state = ProxyState::Terminated;
                 } else {
                     if msg.size() == 10 && cmp_bytes(msg.data(), 0, b"STATISTICS", 0, 10) == 0 {
                         rc = reply_stats(options, control_, &frontend_stats,
                                          &backend_stats);
-                        CHECK_RC_EXIT_ON_FAILURE();
+                        // CHECK_RC_EXIT_ON_FAILURE();
                     } else {
                         //  This is an API error, we assert
                         // puts ("E: invalid command sent to proxy");
@@ -437,13 +355,13 @@ pub fn proxy(options: &mut ZmqContext,
             control_in = false;
         }
 
-        if state == ProxyState::active {
+        if state == ProxyState::Active {
             //  Process a request, 'ZMQ_POLLIN' on 'frontend_' and 'ZMQ_POLLOUT' on 'backend_'.
             //  In case of frontend_==backend_ there's no 'ZMQ_POLLOUT' event.
             if frontend_in.clone() && (backend_out.clone() || frontend_equal_to_backend.clone()) {
                 rc = forward(options, frontend_, &mut frontend_stats, backend_,
                              &mut backend_stats, capture_, &mut msg);
-                CHECK_RC_EXIT_ON_FAILURE();
+                // CHECK_RC_EXIT_ON_FAILURE();
                 request_processed = true;
                 frontend_in = false;
                 backend_out = false;
@@ -458,7 +376,7 @@ pub fn proxy(options: &mut ZmqContext,
             if (backend_in.clone() && frontend_out.clone()) {
                 rc = forward(options, backend_, &mut backend_stats, frontend_,
                              &mut frontend_stats, capture_, &mut msg);
-                CHECK_RC_EXIT_ON_FAILURE();
+                // CHECK_RC_EXIT_ON_FAILURE();
                 reply_processed = true;
                 backend_in = false;
                 frontend_out = false;
@@ -471,18 +389,18 @@ pub fn proxy(options: &mut ZmqContext,
                 //  Enable corresponding 'ZMQ_POLLIN' for blocking wait if any was disabled.
                 if poller_wait != poller_in {
                     if request_processed { //  'frontend_' -> 'backend_'
-                        if poller_wait == poller_both_blocked {
-                            poller_wait = poller_send_blocked;
-                        } else if poller_wait == poller_receive_blocked || poller_wait == poller_frontend_only {
-                            poller_wait = poller_in;
-                        }
+                        // if poller_wait == poller_both_blocked {
+                        //     poller_wait = poller_send_blocked;
+                        // } else if poller_wait == poller_receive_blocked || poller_wait == poller_frontend_only {
+                        //     poller_wait = poller_in;
+                        // }
                     }
                     if reply_processed { //  'backend_' -> 'frontend_'
-                        if poller_wait == poller_both_blocked {
-                            poller_wait = poller_receive_blocked;
-                        } else if poller_wait == poller_send_blocked || poller_wait == poller_backend_only {
-                            poller_wait = poller_in;
-                        }
+                        // if poller_wait == poller_both_blocked {
+                        //     poller_wait = poller_receive_blocked;
+                        // } else if poller_wait == poller_send_blocked || poller_wait == poller_backend_only {
+                        //     poller_wait = poller_in;
+                        // }
                     }
                 }
             } else {
@@ -495,13 +413,13 @@ pub fn proxy(options: &mut ZmqContext,
                         // If frontend_in and frontend_out are true, obviously backend_in and backend_out are both false.
                         // In that case we need to wait for both 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' only on 'backend_'.
                         // We'll never get here in case of frontend_==backend_ because then frontend_out will always be false.
-                        poller_wait = poller_backend_only;
+                        // poller_wait = poller_backend_only;
                     } else {
-                        if poller_wait == poller_send_blocked {
-                            poller_wait = poller_both_blocked;
-                        } else if poller_wait == poller_in {
-                            poller_wait = poller_receive_blocked;
-                        }
+                        // if poller_wait == poller_send_blocked {
+                        //     poller_wait = poller_both_blocked;
+                        // } else if poller_wait == poller_in {
+                        //     poller_wait = poller_receive_blocked;
+                        // }
                     }
                 }
                 if (backend_in) {
@@ -510,19 +428,19 @@ pub fn proxy(options: &mut ZmqContext,
                     if (backend_out) {
                         // If backend_in and backend_out are true, obviously frontend_in and frontend_out are both false.
                         // In that case we need to wait for both 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' only on 'frontend_'.
-                        poller_wait = poller_frontend_only;
+                        // poller_wait = poller_frontend_only;
                     } else {
-                        if (poller_wait == poller_receive_blocked) {
-                            poller_wait = poller_both_blocked;
-                        } else if (poller_wait == poller_in) {
-                            poller_wait = poller_send_blocked;
-                        }
+                        // if (poller_wait == poller_receive_blocked) {
+                        //     poller_wait = poller_both_blocked;
+                        // } else if (poller_wait == poller_in) {
+                        //     poller_wait = poller_send_blocked;
+                        // }
                     }
                 }
             }
         }
     }
-    PROXY_CLEANUP();
+    // PROXY_CLEANUP();
     // return close_and_return (&msg, 0);
     return 0;
 }

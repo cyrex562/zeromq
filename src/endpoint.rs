@@ -16,7 +16,7 @@ pub enum EndpointType {
 // make_unconnected_connect_endpoint_pair (const std::string &endpoint_);
 // endpoint_uri_ZmqPair
 // make_unconnected_connect_endpoint_pair (const std::string &endpoint_)
-pub fn make_unconnected_connected_endpoint_pair(endpoint: &str) -> EndpointUriPair {
+pub fn make_unconnected_connect_endpoint_pair(endpoint: &str) -> EndpointUriPair {
     // return endpoint_uri_ZmqPair (std::string (), endpoint_,
     //                             endpoint_type_connect);
     EndpointUriPair::new("", endpoint, EndpointType::Connect)
