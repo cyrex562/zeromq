@@ -43,20 +43,35 @@
 //  typedef ZmqFileDesc handle_t;
 
 use std::thread::Thread;
+#[cfg(target_os = "linux")]
 use libc::{poll, POLLERR, pollfd, POLLHUP, POLLIN, POLLOUT};
 use crate::defines::ZmqFileDesc;
-use crate::poll_events_interface::ZmqPollEventsInterface;
 use crate::poller_base::WorkerPollerBase;
-use crate::thread_ctx::ThreadCtx;
+use crate::poller_event::ZmqPollerEvent;
+
+
+// struct pollfd
+//   {
+//     int fd;                        /* File descriptor to poll.  */
+//     short int events;                /* Types of events poller cares about.  */
+//     short int revents;                /* Types of events that actually occurred.  */
+//   };
+#[cfg(target_os = "windows")]
+pub struct pollfd {
+    pub fd: ZmqFileDesc,
+    pub events: i16,
+    pub revents: i16,
+}
+
 
 #[derive(Default, Debug, Clone)]
 struct FdEntry {
     pub index: ZmqFileDesc,
-    pub events: Vec<ZmqPollEventsInterface>,
+    pub events: Vec<ZmqPollerEvent>,
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct poll_t {
+pub struct ZmqPoll {
     // : public WorkerPollerBase
     pub worker_poller_base: WorkerPollerBase,
     //  This table stores data for registered descriptors.
@@ -72,7 +87,7 @@ pub struct poll_t {
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (poll_t)
 }
 
-impl poll_t {
+impl ZmqPoll {
     // poll_t (const ThreadCtx &ctx);
     // ~poll_t ();
     //  "poller" concept.
@@ -89,7 +104,7 @@ impl poll_t {
     // void loop () ;
     // void cleanup_retired ();
 
-    pub fn new(ctx: &ThreadCtx) -> Self {
+    pub fn new(ctx: &ZmqThreadContext) -> Self {
         Self {
             worker_poller_base: WorkerPollerBase::new(ctx),
             fd_table: vec![],

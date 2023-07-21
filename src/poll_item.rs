@@ -4,9 +4,9 @@ use crate::socket::ZmqSocket;
 
 
 #[derive(Default, Debug, Clone)]
-pub struct ZmqPollItem {
+pub struct ZmqPollItem<'a> {
     // socket: *mut c_void;
-    pub socket: ZmqSocket,
+    pub socket: ZmqSocket<'a>,
     // zmq_fd_t fd;
     pub fd: ZmqFileDesc,
     // short events;

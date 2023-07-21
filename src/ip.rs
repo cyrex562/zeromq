@@ -1,141 +1,9 @@
-/*
-    Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
-
-    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
-
-    libzmq is free software; you can redistribute it and/or modify it under
-    the terms of the GNU Lesser General Public License (LGPL) as published
-    by the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    As a special exception, the Contributors give you permission to link
-    this library with independent modules to produce an executable,
-    regardless of the license terms of these independent modules, and to
-    copy and distribute the resulting executable under terms of your choice,
-    provided that you also meet, for each linked independent module, the
-    terms and conditions of the license of that module. An independent
-    module is a module which is not derived from or based on this library.
-    If you modify this library, you must extend this exception to your
-    version of the library.
-
-    libzmq is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-    License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-// #include "precompiled.hpp"
-// #include "ip.hpp"
-// #include "err.hpp"
-// #include "macros.hpp"
-// #include "config.hpp"
-// #include "address.hpp"
-
-// #if !defined ZMQ_HAVE_WINDOWS
-// #include <fcntl.h>
-// #include <sys/types.h>
-// #include <sys/socket.h>
-// #include <sys/stat.h>
-// #include <netdb.h>
-// #include <netinet/in.h>
-// #include <netinet/tcp.h>
-// #include <stdlib.h>
-// #include <unistd.h>
-
-// #include <vector>
-// #else
-// #include "tcp.hpp"
-// #ifdef ZMQ_HAVE_IPC
-// #include "ipc_address.hpp"
-// #endif
-
-// #include <direct.h>
-
-// #define rmdir _rmdir
-// #define unlink _unlink
-// #endif
-
-// #if defined ZMQ_HAVE_OPENVMS || defined ZMQ_HAVE_VXWORKS
-// #include <ioctl.h>
-// #endif
-
-// #if defined ZMQ_HAVE_VXWORKS
-// #include <unistd.h>
-// #include <sockLib.h>
-// #include <ioLib.h>
-// #endif
-
-// #if defined ZMQ_HAVE_EVENTFD
-// #include <sys/eventfd.h>
-// #endif
-
-// #if defined ZMQ_HAVE_OPENPGM
-// #ifdef ZMQ_HAVE_WINDOWS
-// #define __PGM_WININT_H__
-// #endif
-
-// #include <pgm/pgm.h>
-// #endif
-
-// #ifdef __APPLE__
-// #include <TargetConditionals.h>
-// #endif
-
-// ZmqFileDesc open_socket (domain_: i32, type_: i32, protocol_: i32);
-
-//  Sets the socket into non-blocking mode.
-// void unblock_socket (ZmqFileDesc s_);
-
-//  Enable IPv4-mapping of addresses in case it is disabled by default.
-// void enable_ipv4_mapping (ZmqFileDesc s_);
-
-//  Returns string representation of peer's address.
-//  Socket sockfd_ must be Connected. Returns true iff successful.
-// int get_peer_ip_address (ZmqFileDesc sockfd_, std::string &ip_addr_);
-
-// Sets the IP Type-Of-Service for the underlying socket
-// void set_ip_type_of_service (ZmqFileDesc s_, iptos_: i32);
-
-// Sets the protocol-defined priority for the underlying socket
-// void set_socket_priority (ZmqFileDesc s_, priority_: i32);
-
-// Sets the SO_NOSIGPIPE option for the underlying socket.
-// Return 0 on success, -1 if the connection has been closed by the peer
-// int set_nosigpipe (ZmqFileDesc s_);
-
-// Binds the underlying socket to the given device, eg. VRF or interface
-// int bind_to_device (ZmqFileDesc s_, bound_device_: &str);
-
-// Initialize network subsystem. May be called multiple times. Each call must be matched by a call to shutdown_network.
-// bool initialize_network ();
-
-// Shutdown network subsystem. Must be called once for each call to initialize_network before terminating.
-// void shutdown_network ();
-
-// Creates a pair of sockets (using SIGNALER_PORT on OS using TCP sockets).
-// Returns -1 if we could not make the socket pair successfully
-// int make_fdpair (ZmqFileDesc *r_, ZmqFileDesc *w_);
-
-// Makes a socket non-inheritable to child processes.
-// Asserts on any failure.
-// void make_socket_noninheritable (ZmqFileDesc sock_);
-
-//  Asserts that:
-//  - an internal 0MQ error did not occur,
-//  - and, if a socket error occurred, it can be recovered from.
-// void assert_success_or_recoverable (ZmqFileDesc s_, rc_: i32);
-
-// #ifdef ZMQ_HAVE_IPC
-// Create an IPC wildcard path address
-// int create_ipc_wildcard_address (std::string &path_, std::string &file_);
-
 use anyhow::bail;
+use windows::Win32::Networking::WinSock::{listen, connect, SOCKADDR_UN};
 use std::mem;
 use std::ptr::null_mut;
 
+#[cfg(target_os = "linux")]
 use libc::{accept, c_char, connect, listen, rmdir, sockaddr, socket, unlink, setsockopt, IPPROTO_IPV6, IPV6_V6ONLY, IPPROTO_IP, getnameinfo, NI_MAXHOST, IP_TOS, getsockopt, SOL_SOCKET, SO_ERROR};
 
 #[cfg(target_os = "linux")]
@@ -272,15 +140,8 @@ pub fn unblock_socket(s: ZmqFileDesc) {
 }
 
 pub fn enable_ipv4_mapping(s_: ZmqFileDesc) {
-    // LIBZMQ_UNUSED (s_);
-
-    // #if defined IPV6_V6ONLY && !defined ZMQ_HAVE_OPENBSD                           \
-    //   && !defined ZMQ_HAVE_DRAGONFLY
-    // #ifdef ZMQ_HAVE_WINDOWS
-    //     DWORD flag = 0;
-    // #else
     let mut flag = 0u32;
-    // #endif
+    #[cfg(target_os="linux")]{
     let rc: i32 = unsafe {
         setsockopt(
             s_,
@@ -289,13 +150,21 @@ pub fn enable_ipv4_mapping(s_: ZmqFileDesc) {
             Some(&flag.to_le_bytes()),
             4
         )
+    };}
+
+    #[cfg(target_os="windows")]{
+    let rc: i32 = unsafe {
+        setsockopt(
+            s_,
+            IPPROTO_IPV6 as i32,
+            IPV6_V6ONLY,
+            Some(&flag.to_le_bytes()),
+        )
     };
-    // #ifdef ZMQ_HAVE_WINDOWS
-    //     wsa_assert (rc != SOCKET_ERROR);
-    // #else
-    // errno_assert (rc == 0);
-    // #endif
-    // #endif
+        if rc != 0 {
+            bail!("failed to set IPV6_V6ONLY, rc={}", rc);
+        }
+    }
 }
 
 pub fn get_peer_ip_address(sockfd_: ZmqFileDesc, mut ip_addr_: &str) -> anyhow::Result<()> {
@@ -322,46 +191,60 @@ pub fn get_peer_ip_address(sockfd_: ZmqFileDesc, mut ip_addr_: &str) -> anyhow::
     }
 
     let mut host: [u8; NI_MAXHOST as usize] = [0; NI_MAXHOST];
+    let mut rc = 0i32;
+    let mut family = 0u16;
     #[cfg(target_os="windows")]
-    {let sa = SOCKADDR {
-        sa_family: ss.ss_family,
-        sa_data: (ss as SOCKADDR).sa_data,
-    };
-    let rc = unsafe { getnameinfo(&sa, addrlen, Some(&mut host), None, 0) };}
-    #[cfg(target_os="linux")]
-    let sa = sockaddr{
-        sa_family: todo!(),
-        sa_data: todo!(),
-    };
-    let rc = unsafe { getnameinfo(sa, addrlen, host, NI_MAXHOST, null_mut(), 0, 0)};
-    
+    {
+        let sa = SOCKADDR {
+            sa_family: ss.ss_family,
+            sa_data: (ss as SOCKADDR).sa_data,
+        };
+        rc = unsafe { getnameinfo(&sa, addrlen, Some(&mut host), None, 0) };
+        family = ss.ss_family as u16;
+    }
+
+    #[cfg(target_os="linux")]{
+        let sa = sockaddr{
+            sa_family: todo!(),
+            sa_data: todo!(),
+        };
+        rc = unsafe { getnameinfo(sa, addrlen, host, NI_MAXHOST, null_mut(), 0, 0)};
+        family = sa.family;
+    }
+
     if rc != 0 {
         return Ok(());
     }
 
     ip_addr_ = host.into();
 
+    // TODO
     // union
     // {
     //     struct sockaddr sa;
     //     struct sockaddr_storage sa_stor;
     // } u;
-
     // u.sa_stor = ss;
-    return Ok(sa.family);
+    // return Ok(family);
+    Ok(())
 }
 
 pub fn set_ip_type_of_service(s_: ZmqFileDesc, iptos_: i32) -> anyhow::Result<()> {
-    let mut rc = unsafe { setsockopt(s_, IPPROTO_IP as i32, IP_TOS, Some(&iptos_.to_le_bytes()),4) };
 
-    // #ifdef ZMQ_HAVE_WINDOWS
-    //     wsa_assert (rc != SOCKET_ERROR);
-    // #else
-    // errno_assert (rc == 0);
-    // #endif
+    let mut rc = 0i32;
+    #[cfg(target_os="linux")]
+    {
+        rc = unsafe { setsockopt(s_, IPPROTO_IP as i32, IP_TOS, Some(&iptos_.to_le_bytes()),4) };
+    }
+    #[cfg(target_os="windows")]
+    {
+        rc = unsafe { setsockopt(s_, IPPROTO_IP as i32, IP_TOS, Some(&iptos_.to_le_bytes())) };
+    }
+    if rc !=0 {
+        bail!("failed to set IP_TOS, rc={}", rc);
+    }
 
     //  Windows and Hurd do not support IPV6_TCLASS
-    // #if !defined(ZMQ_HAVE_WINDOWS) && defined(IPV6_TCLASS)
     #[cfg(not(target_os = "windows"))]
     {
         rc = unsafe {
@@ -375,12 +258,14 @@ pub fn set_ip_type_of_service(s_: ZmqFileDesc, iptos_: i32) -> anyhow::Result<()
         };
     }
 
+    
     //  If IPv6 is not enabled ENOPROTOOPT will be returned on Linux and
     //  EINVAL on OSX
+    // TODO
     // if (rc == -1) {
     //     // errno_assert (errno == ENOPROTOOPT || errno == EINVAL);
     // }
-    // #endif
+
     Ok(())
 }
 
@@ -520,6 +405,11 @@ pub fn tune_socket(socket: SOCKET) -> anyhow::Result<()> {
 pub fn make_fdZmqPaircpip(fd_r: &mut ZmqFileDesc, fd_w: &mut ZmqFileDesc) -> i32 {
     // #if !defined _WIN32_WCE && !defined ZMQ_HAVE_WINDOWS_UWP
     //  Windows CE does not manage security attributes
+
+    use std::ffi::CString;
+
+    use libc::c_void;
+    use windows::Win32::Networking::WinSock::accept;
     let mut sd: PSECURITY_DESCRIPTOR = PSECURITY_DESCRIPTOR::default();
     let mut sa: SECURITY_ATTRIBUTES = SECURITY_ATTRIBUTES {
         nLength: 0,
@@ -615,14 +505,12 @@ pub fn make_fdZmqPaircpip(fd_r: &mut ZmqFileDesc, fd_w: &mut ZmqFileDesc) -> i32
     tune_socket(listener as SOCKET)?;
 
     //  Init sockaddr to signaler port.
-    #[cfg(linux)]
-    let mut addr: sockaddr_in = sockaddr_in::default();
-    #[cfg(windows)]
     let mut addr: SOCKADDR_IN = SOCKADDR_IN::default();
-    // memset (&addr, 0, sizeof addr);
     addr.sin_family = AF_INET as ADDRESS_FAMILY;
     addr.sin_addr.s_addr = unsafe { htonl(INADDR_LOOPBACK) };
     addr.sin_port = unsafe { htons(signaler_port as u16) };
+    // memset (&addr, 0, sizeof addr);
+
 
     //  Create the writer socket.
     *fd_w = ip_open_socket(AF_INET as i32, SOCK_STREAM as i32, 0)?;
@@ -650,7 +538,7 @@ pub fn make_fdZmqPaircpip(fd_r: &mut ZmqFileDesc, fd_w: &mut ZmqFileDesc) -> i32
 
     //  Connect writer to the listener.
     if rc != SOCKET_ERROR {
-        rc = unsafe { connect(*fd_w, &addr as *const sockaddr, addr.len()) };
+        rc = unsafe { connect(*fd_w, &addr as *const SOCKADDR, addr.len()) };
     }
 
     //  Accept connection from writer.
@@ -658,7 +546,7 @@ pub fn make_fdZmqPaircpip(fd_r: &mut ZmqFileDesc, fd_w: &mut ZmqFileDesc) -> i32
         //  Set TCP_NODELAY on writer socket.
         tune_socket(*fd_w as SOCKET)?;
 
-        *fd_r = unsafe { accept(listener, null_mut(), null_mut()) };
+        *fd_r = unsafe { accept(listener, None, None) };
     }
 
     //  Send/receive large chunk to work around TCP slow start
@@ -742,9 +630,6 @@ pub fn make_fdZmqPaircpip(fd_r: &mut ZmqFileDesc, fd_w: &mut ZmqFileDesc) -> i32
 
 pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
     // #if defined ZMQ_HAVE_EVENTFD
-
-    use libc::{SOCK_STREAM, bind, getsockname};
-
     use crate::address::ZmqAddress;
     if cfg!(feature = "eventfd") {
         let mut flags = 0;
@@ -774,8 +659,8 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         let mut address: ZmqAddress = ZmqAddress::default();
         let mut dirname = String::new();
         let mut filename = String::new();
-        let mut lcladdr: sockaddr_un = sockaddr_un::default();
-        let mut lcaddr_len = mem::size_of::<sockaddr_un>() as socklen_t;
+        let mut lcladdr: SOCKADDR_UN = SOCKADDR_UN::default();
+        let mut lcaddr_len = mem::size_of::<SOCKADDR_UN>();
         let mut rc = 0;
         let mut saved_errno = 0;
 
@@ -786,7 +671,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
 
         //  Create a listening socket. const SOCKET
         let listener = ip_open_socket(AF_UNIX as i32, SOCK_STREAM as i32, 0);
-        if (listener == RETIRED_FD) {
+        if listener == RETIRED_FD {
             //  This may happen if the library was built on a system supporting AF_UNIX, but the system running doesn't support it.
             // TODO
             // goto try_tcpip;
@@ -795,8 +680,8 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         create_ipc_wildcard_address(&mut dirname, &mut filename);
 
         //  Initialise the address structure.
-        rc = address.resolve(filename.c_str());
-        if (rc != 0) {
+        rc = address.resolve_ipc_address(filename.c_str());
+        if rc != 0 {
             // goto error_closelistener;
         }
 
@@ -824,8 +709,13 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         }
 
         #[cfg(target_os="windows")]
-        rc = unsafe { getsockname(listener, (&mut lcladdr as &mut SOCKADDR), &mut lcladdr_len) };
+        {
+            rc = unsafe { getsockname(listener, (&mut lcladdr as &mut SOCKADDR), &mut lcladdr_len) };
+        }
         #[cfg(target_os="linux")]
+        {
+            rc = unsafe { getsockname(listener, (&mut lcladdr as &mut sockaddr), &mut lcladdr_len) };
+        }
 
         // wsa_assert(rc != -1);
 
@@ -839,7 +729,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
 
         //  Connect to the remote peer.
         rc = unsafe { connect(*w_, (&lcladdr as &sockaddr), lcladdr_len) };
-        if (rc == -1) {
+        if rc == -1 {
             // goto error_closeclient;
         }
 

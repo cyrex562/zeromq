@@ -69,7 +69,7 @@ use crate::message::ZmqMessage;
 use crate::plain_common::{error_prefix, hello_prefix, initiate_prefix, ready_prefix, welcome_prefix};
 use crate::session_base::ZmqSessionBase;
 use crate::utils::{cmp_bytes, copy_bytes, advance_ptr};
-use crate::zap_client::{ZmqZapClient, ZmqZapClientCommonHandshake};
+use crate::zap_client::{ZmqZapClient, ZmqZapClientCommonHandshake, ZmqZapClientCommonHandshakeState};
 
 #[derive(Debug)]
 pub enum PlainServerState {
@@ -78,8 +78,8 @@ pub enum PlainServerState {
     plain_server_state_error,
 }
 
-pub struct PlainServer {
-    mechanism_base: ZmqMechanismBase,
+pub struct PlainServer<'a> {
+    mechanism_base: ZmqMechanismBase<'a>,
     ZmqZapClientCommonHandshake: ZmqZapClientCommonHandshake,
     state: PlainServerState,
     username: String,
@@ -88,7 +88,7 @@ pub struct PlainServer {
     // options: ZmqOptions,
 }
 
-impl PlainServer {
+impl <'a>PlainServer<'a> {
     pub fn new(session: &mut ZmqSessionBase, peer_address: &str, options: &mut ZmqContext) -> Self {
         Self {
             mechanism_base: ZmqMechanismBase::new(options, session),
@@ -97,7 +97,7 @@ impl PlainServer {
             username: String::new(),
             password: String::new(),
             peer_address: String::from(peer_address),
-            options: options.clone(),
+            // options: options.clone(),
         }
     }
 
@@ -280,7 +280,7 @@ impl PlainServer {
         let mut expected_status_code_len = 3;
         // zmq_assert (status_code.length ()
         //             ==  (expected_status_code_len));
-        let status_code_len_size = mem::size_of::<expected_status_code_len>();
+        let status_code_len_size = 4usize;
         let rc: i32 = msg.init_size (error_prefix_len + status_code_len_size
             + expected_status_code_len);
         // zmq_assert (rc == 0);
@@ -299,8 +299,8 @@ impl PlainServer {
         let credentials_sizes: [usize;2] = [username_.len(), password_.len()];
         let plain_mechanism_name: &str = "PLAIN";
         self.zap_client.send_zap_request (
-            plain_mechanism_name, mem::size_of::<plain_mechanism_name>() - 1, credentials,
-            credentials_sizes, mem::size_of::<credentials>() / sizeof (credentials[0]));
+            plain_mechanism_name, plain_mechanism_name.len() - 1, credentials,
+            credentials_sizes, credentials.len() / sizeof (credentials[0].len()));
     }
 } // impl plain server
 

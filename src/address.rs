@@ -177,6 +177,9 @@ impl ZmqAddress {
     //     }
 
     // TODO: TIPC
+    pub fn resolve_ipc_address(&mut self, name: &str) -> i32 {
+        todo!()
+    }
     //  pub fn resolve(&mut self, name: &str) -> i32 {
     //         let mut type_ = 0;
     //         let mut lower = 0;
@@ -641,3 +644,4 @@ pub fn get_socket_name(fd: ZmqFileDesc, socket_end: ZmqSocketEnd) -> anyhow::Res
     // return addr.to_string();;
     todo!()
 }
+

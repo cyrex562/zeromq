@@ -9,7 +9,7 @@ use crate::defines::ZmqFileDesc;
 use crate::endpoint_uri::EndpointUriPair;
 use crate::io_object::ZmqIoObject;
 use crate::ip::create_ipc_wildcard_address;
-use crate::ipc::{ipc_accept, ipc_close, ipc_in_event, ipc_resolve_address, ipc_set_local_address, ipc_filter};
+use crate::ipc::{ipc_accept, ipc_close, ipc_in_event, ipc_resolve_address, ipc_set_local_address};
 use crate::session_base::ZmqSessionBase;
 use crate::socket::ZmqSocket;
 use crate::tcp::{tcp_accept, tcp_create_socket, tcp_in_event, tcp_set_local_address};

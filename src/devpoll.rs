@@ -33,12 +33,12 @@ pub struct FdEntry {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct DevPoll {
+pub struct DevPoll<'a> {
     //  File descriptor referring to "/dev/poll" pseudo-device.
     pub devpoll_fd: ZmqFileDesc,
     pub fd_table: Vec<FdEntry>,
     pub pending_list: Vec<ZmqFileDesc>,
-    pub base: WorkerPollerBase,
+    pub base: WorkerPollerBase<'a>,
 }
 
 impl DevPoll {

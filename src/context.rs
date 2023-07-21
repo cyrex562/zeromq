@@ -449,6 +449,7 @@ impl<'a> ZmqContext<'a> {
             out_batch_size: 0,
             busy_poll: 0,
             pid: 0,
+            ..Default::default()
         }
     }
 
@@ -1099,7 +1100,7 @@ impl<'a> ZmqContext<'a> {
         if (!bind_context.recv_routing_id) {
             // ZmqMessage msg;
             let mut msg = ZmqMessage::default();
-            let ok = pending_connection.bind_pipe.read(&mut msg);
+            let ok = pending_connection.bind_pipe.read(self, &mut msg);
             // zmq_assert(ok);
             let rc = msg.close();
             // errno_assert(rc == 0);

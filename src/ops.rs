@@ -34,7 +34,7 @@ use crate::utils::copy_bytes;
 use anyhow::bail;
 
 use libc::{
-    c_long, c_void, clock_t, timespec, timeval, FD_SET,
+    c_long, c_void, clock_t, timespec, timeval,
 };
 #[cfg(target_os = "linux")]
 use libc::{
@@ -45,8 +45,7 @@ use libc::{
 use std::ptr::null_mut;
 use std::time::Duration;
 use std::{mem, thread, time};
-#[cfg(target_os="windows")]
-use windows::s;
+
 #[cfg(windows)]
 use windows::Win32::Networking::WinSock::{
     select, WSAGetLastError, FD_SET, POLLIN, POLLOUT, POLLPRI, SOCKET_ERROR, TIMEVAL, WSAPoll, SOCKET, WSAPOLLFD
@@ -83,20 +82,20 @@ pub fn zmq_ctx_term(ctx: &mut ZmqContext) -> Result<(), ZmqError> {
     Ok(())
 }
 
-pub fn zmq_ctx_shutdown(ctx_raw: &mut [u8]) -> Result<(), ZmqError> {
+pub fn zmq_ctx_shutdown(ctx_raw: &mut ZmqContext) -> Result<(), ZmqError> {
     // if (!ctx || !(ctx as *mut ZmqContext).check_tag ()) {
     //   // errno = EFAULT;
     //     return -1;
     // }
     // return (ctx as *mut ZmqContext).shutdown ();
-    if ctx_raw.len() == 0 {
-        bail!("context buffer is empty")
-    }
-    let mut ctx: ZmqContext = bincode::deserialize(ctx_raw)?;
-    if ctx.check_tag() == false {
-        bail!("check tag failed")
-    }
-    match ctx.shutdown() {
+    // if ctx_raw.len() == 0 {
+    //     bail!("context buffer is empty")
+    // }
+    // let mut ctx: ZmqContext = bincode::deserialize(ctx_raw)?;
+    // if ctx.check_tag() == false {
+    //     bail!("check tag failed")
+    // }
+    match ctx_raw.shutdown() {
         Ok(_) => Ok(()),
         Err(e) => ShutdownContextFailed(format!("failed to shutdown context: {}", e)),
     }

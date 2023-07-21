@@ -32,9 +32,9 @@
 // #include "i_poll_events.hpp"
 // #include "err.hpp"
 
-use crate::poll_events_interface::ZmqPollEventsInterface;
+
+use crate::poller_event::ZmqPollerEvent;
 use crate::thread_context::ZmqThreadContext;
-use crate::thread_ctx::ThreadCtx;
 use crate::timers::ZmqTimers;
 use libc::clock_t;
 use std::collections::HashMap;
@@ -43,7 +43,7 @@ use std::sync::atomic::AtomicU64;
 #[derive(Default, Debug, Clone)]
 struct timer_info_t {
     // ZmqPollEventsInterface *sink;
-    pub sink: ZmqPollEventsInterface,
+    pub sink: Vec<ZmqPollerEvent>,
     // id: i32;
     pub id: i32,
 }
@@ -161,18 +161,19 @@ impl PollerBase {
 }
 
 //  Base class for a poller with a single worker thread.
-pub struct WorkerPollerBase {
+pub struct WorkerPollerBase<'a> {
     //  : public PollerBase
     pub base: PollerBase,
     // Reference to ZMQ context.
     // const ThreadCtx &ctx;
+    pub ctx: &'a mut ZmqThreadContext,
     // pub ctx: &'a ThreadCtx,
     //  Handle of the physical thread doing the I/O work.
     // ZmqThread _worker;
     // pub _worker: ZmqThreadContext<'a>,
 }
 
-impl WorkerPollerBase {
+impl <'a>WorkerPollerBase<'a> {
     // WorkerPollerBase (const ThreadCtx &ctx);
     // Methods from the poller concept.
     // void start (const char *name = null_mut());
@@ -188,7 +189,7 @@ impl WorkerPollerBase {
     // static void worker_routine (arg_: &mut [u8]);
     //
     //     virtual void loop () = 0;
-    pub fn new(ctx: &ThreadCtx) -> Self {
+    pub fn new(ctx: &mut ZmqThreadContext) -> Self {
         Self {
             base: Default::default(),
             ctx,
