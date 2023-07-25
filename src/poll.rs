@@ -42,13 +42,13 @@
 // #include "i_poll_events.hpp"
 //  typedef ZmqFileDesc handle_t;
 
-use std::thread::Thread;
-#[cfg(target_os = "linux")]
-use libc::{poll, POLLERR, pollfd, POLLHUP, POLLIN, POLLOUT};
 use crate::defines::ZmqFileDesc;
 use crate::poller_base::WorkerPollerBase;
 use crate::poller_event::ZmqPollerEvent;
-
+use crate::thread_context::ZmqThreadContext;
+#[cfg(target_os = "linux")]
+use libc::{poll, pollfd, POLLERR, POLLHUP, POLLIN, POLLOUT};
+use std::thread::Thread;
 
 // struct pollfd
 //   {
@@ -63,7 +63,6 @@ pub struct pollfd {
     pub revents: i16,
 }
 
-
 #[derive(Default, Debug, Clone)]
 struct FdEntry {
     pub index: ZmqFileDesc,
@@ -71,9 +70,9 @@ struct FdEntry {
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct ZmqPoll {
+pub struct ZmqPoll<'a> {
     // : public WorkerPollerBase
-    pub worker_poller_base: WorkerPollerBase,
+    pub worker_poller_base: WorkerPollerBase<'a>,
     //  This table stores data for registered descriptors.
     // typedef std::vector<FdEntry> fd_table_t;
     // fd_table_t fd_table;
@@ -113,16 +112,20 @@ impl ZmqPoll {
         }
     }
 
-    pub fn add_fd(&mut self, fd: ZmqFileDesc, events_: &mut [ZmqPollEventsInterface]) -> ZmqFileDesc {
+    pub fn add_fd(
+        &mut self,
+        fd: ZmqFileDesc,
+        events_: &mut [ZmqPollEventsInterface],
+    ) -> ZmqFileDesc {
         check_thread();
         // zmq_assert (fd != retired_fd);
 
         //  If the file descriptor table is too small expand it.
-        let sz = fd_table.size();
+        let sz = self.fd_table.size();
         if (sz <= fd) {
-            fd_table.resize(fd + 1);
+            self.fd_table.resize(fd + 1);
             while sz != (fd_table_t::size_type)(fd + 1) {
-                fd_table[sz].index = retired_fd;
+                self.fd_table[sz].index = retired_fd;
                 // += 1sz;
                 sz += 1;
             }
@@ -133,14 +136,14 @@ impl ZmqPoll {
             events: 0,
             revents: 0,
         };
-        pollset.push_back(pfd);
+        self.pollset.push_back(pfd);
         // zmq_assert (fd_table[fd].index == retired_fd);
 
-        fd_table[fd].index = pollset.size() - 1;
-        fd_table[fd].events = events_;
+        self.fd_table[fd].index = self.pollset.size() - 1;
+        self.fd_table[fd].events = events_;
 
         //  Increase the load metric of the thread.
-        adjust_load(1);
+        self.adjust_load(1);
 
         return fd;
     }
@@ -192,7 +195,6 @@ impl ZmqPoll {
         return -1;
     }
 
-
     pub fn loop_(&mut self) {
         while (true) {
             //  Execute any due timers.
@@ -214,8 +216,11 @@ impl ZmqPoll {
             //  Wait for events.
             let mut rc = 0i32;
             unsafe {
-                rc = poll(&mut pollset[0], (pollset.size()),
-                          if timeout { timeout } else { -1 });
+                rc = poll(
+                    &mut pollset[0],
+                    (pollset.size()),
+                    if timeout { timeout } else { -1 },
+                );
             }
             if (rc == -1) {
                 // errno_assert (errno == EINTR);
@@ -271,6 +276,5 @@ impl ZmqPoll {
 }
 
 // typedef poll_t Poller;
-
 
 // #endif

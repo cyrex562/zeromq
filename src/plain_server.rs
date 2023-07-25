@@ -346,13 +346,14 @@ impl<'a> PlainServer<'a> {
         let msg_data = (msg.data_mut());
         copy_bytes(msg_data, 0, error_prefix, 0, error_prefix_len);
         msg_data[error_prefix_len] = expected_status_code_len as u8;
-        copy_bytes(
-            msg_data + error_prefix_len + status_code_len_size,
-            0,
-            status_code,
-            0,
-            status_code.length(),
-        );
+        // TODO
+        // copy_bytes(
+        //     msg_data + error_prefix_len + status_code_len_size,
+        //     0,
+        //     status_code,
+        //     0,
+        //     status_code.length(),
+        // );
         Ok(())
     }
 

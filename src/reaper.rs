@@ -27,13 +27,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use crate::thread_command::ZmqThreadCommand;
 use crate::context::ZmqContext;
 use crate::defines::ZmqHandle;
 use crate::devpoll::ZmqPoller;
 use crate::mailbox::ZmqMailbox;
-use crate::object::ZmqObject;
-use crate::poll_events_interface::ZmqPollEventsInterface;
+use crate::thread_command::ZmqThreadCommand;
+// use crate::poll_events_interface::ZmqPollEventsInterface;
 use crate::socket::ZmqSocket;
 use libc::{EAGAIN, EINTR};
 

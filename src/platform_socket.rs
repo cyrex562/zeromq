@@ -1,5 +1,5 @@
 #[cfg(target_os = "linux")]
-use crate::libc::{sockaddr, sockaddr_storage};
+use libc::{sockaddr, sockaddr_storage};
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{SOCKADDR, SOCKADDR_STORAGE};
 

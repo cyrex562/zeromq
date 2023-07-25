@@ -39,7 +39,7 @@ pub struct DevPoll<'a> {
     pub base: WorkerPollerBase<'a>,
 }
 
-impl DevPoll {
+impl<'a> DevPoll<'a> {
     pub fn new(ctx: &mut ZmqContext) -> Self {
         let devpoll_fd =
             unsafe { open(CString::from(String::from("/dev/poll")).into_raw(), O_RDWR) };

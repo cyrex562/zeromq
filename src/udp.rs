@@ -45,6 +45,8 @@ pub type IpMreq = ip_mreq;
 pub type Ipv6Mreq = ipv6_mreq;
 #[cfg(target_os = "linux")]
 pub type InAddr = in_addr;
+#[cfg(target_os = "linux")]
+pub type SockAddrStorage = sockaddr_storage;
 
 pub fn udp_plug(
     engine: &mut ZmqEngine,
@@ -572,17 +574,17 @@ pub fn udp_init(
 }
 
 pub fn udp_in_event(engine: &mut ZmqEngine) -> anyhow::Result<()> {
-    let mut in_address = SOCKADDR_STORAGE::default();
-    let in_addrlen = (mem::size_of::<SOCKADDR_STORAGE>());
+    let mut in_address = SockAddrStorage::default();
+    let in_addrlen = (mem::size_of::<SockAddrStorage>());
 
     let nbytes = unsafe {
         recvfrom(
             engine.fd,
             engine.in_buffer,
-            MAX_UDP_MSG as c_int,
+            MAX_UDP_MSG as size_t,
             0,
-            (&mut in_address) as *mut SOCKADDR_STORAGE as *mut sockaddr,
-            &mut (in_addrlen as c_int) as *mut c_int,
+            (&mut in_address) as *mut SockAddrStorage as *mut sockaddr,
+            &mut (in_addrlen as c_int) as *mut socklen_t,
         )
     };
 
@@ -624,7 +626,7 @@ pub fn udp_in_event(engine: &mut ZmqEngine) -> anyhow::Result<()> {
         // memcpy (msg.data (), group_buffer, group_size);
 
         //  This doesn't fit, just ignore
-        if nbytes - 1 < group_size {
+        if nbytes - 1 < group_size as isize {
             return Ok(());
         }
 
@@ -660,5 +662,5 @@ pub fn udp_in_event(engine: &mut ZmqEngine) -> anyhow::Result<()> {
 
     msg.close()?;
     // errno_assert (rc == 0);
-    self.session.flush()?;
+    engine.session.flush()?;
 }
