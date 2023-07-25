@@ -32,8 +32,8 @@
 // #include "i_poll_events.hpp"
 // #include "err.hpp"
 
-
 use crate::poller_event::ZmqPollerEvent;
+use crate::pollset::ZmqPollEvents;
 use crate::thread_context::ZmqThreadContext;
 use crate::timers::ZmqTimers;
 use libc::clock_t;
@@ -89,16 +89,16 @@ impl PollerBase {
         }
     }
 
-    pub fn add_timer(&mut self, timeout: i32, sink_: &mut ZmqPollEventsInterface, id_: i32) {
+    pub fn add_timer(&mut self, timeout: i32, sink_: &mut [ZmqPollerEvent], id_: i32) {
         let expiration = self._clock.now_ms() + timeout;
         let info = timer_info_t {
-            sink: sink_,
+            sink: sink_.to_vec(),
             id: id_,
         };
         self._timers.insert(expiration, info);
     }
 
-    pub fn cancel_timer(&mut self, sink_: &mut ZmqPollEventsInterface, id_: i32) {
+    pub fn cancel_timer(&mut self, sink_: &mut ZmqPollEvents, id_: i32) {
         //  Complexity of this operation is O(n). We assume it is rarely used.
         // for (ZmqTimers::iterator it = _timers.begin (), end = _timers.end ();
         //      it != end; += 1it)
@@ -173,7 +173,7 @@ pub struct WorkerPollerBase<'a> {
     // pub _worker: ZmqThreadContext<'a>,
 }
 
-impl <'a>WorkerPollerBase<'a> {
+impl<'a> WorkerPollerBase<'a> {
     // WorkerPollerBase (const ThreadCtx &ctx);
     // Methods from the poller concept.
     // void start (const char *name = null_mut());
@@ -193,7 +193,7 @@ impl <'a>WorkerPollerBase<'a> {
         Self {
             base: Default::default(),
             ctx,
-            _worker: Default::default(),
+            // _worker: Default::default(),
         }
     }
 
@@ -203,7 +203,8 @@ impl <'a>WorkerPollerBase<'a> {
 
     pub fn start(&mut self, name: &str) {
         // zmq_assert (get_load () > 0);
-        ctx.start_thread(_worker, worker_routine, this, name);
+        // TODO
+        // self.ctx.start_thread(_worker, worker_routine, this, name);
     }
 
     pub fn check_thread(&mut self) {

@@ -41,11 +41,11 @@ use crate::socket::ZmqSocket;
 // #include "pipe.hpp"
 // #include "err.hpp"
 // #include "msg.hpp"
-pub struct ZmqPush {
+pub struct ZmqPush<'a> {
     // : public ZmqSocketBase
-    pub socket_base: ZmqSocket,
+    pub socket_base: ZmqSocket<'a>,
     //     ZmqPush (ZmqContext *parent_, tid: u32, sid_: i32);
-//     ~ZmqPush ();
+    //     ~ZmqPush ();
     //  Overrides of functions from ZmqSocketBase.
     // void xattach_pipe (pipe: &mut ZmqPipe,
     //                    subscribe_to_all_: bool,
@@ -60,15 +60,10 @@ pub struct ZmqPush {
     // ZMQ_NON_COPYABLE_NOR_MOVABLE (ZmqPush)
 }
 
-impl ZmqPush {
-    pub fn new(options: &mut ZmqContext,
-               parent: &mut ZmqContext,
-               tid: u32,
-               sid_: i32) -> Self
-
-    {
+impl<'a> ZmqPush<'a> {
+    pub fn new(options: &mut ZmqContext, parent: &mut ZmqContext, tid: u32, sid_: i32) -> Self {
         let mut out = Self {
-            socket_base: ZmqSocket::new(parent, options, tid, sid_, false),
+            socket_base: ZmqSocket::new(parent, tid as i32, sid_, false),
             load_balance: LoadBalancer::default(),
         };
         // ZmqSocketBase (parent_, tid, sid_)
@@ -76,7 +71,12 @@ impl ZmqPush {
         out
     }
 
-    pub fn xattach_pipe(&mut self, pipe: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
+    pub fn xattach_pipe(
+        &mut self,
+        pipe: &mut ZmqPipe,
+        subscribe_to_all_: bool,
+        locally_initiated_: bool,
+    ) {
         // LIBZMQ_UNUSED (subscribe_to_all_);
         // LIBZMQ_UNUSED (locally_initiated_);
 
@@ -89,33 +89,22 @@ impl ZmqPush {
     }
 
     pub fn xwrite_activated(&mut self, pipe: &mut ZmqPipe) {
-        load_balance.activated(pipe);
+        self.load_balance.activated(pipe);
     }
 
     pub fn xpipe_terminated(&mut self, pipe: &mut ZmqPipe) {
-        load_balance.pipe_terminated(pipe);
+        self.load_balance.pipe_terminated(pipe);
     }
 
     pub fn xsend(&mut self, msg: &mut ZmqMessage) -> i32 {
-        return load_balance.send(msg);
+        return self.load_balance.send(msg);
     }
 
-    pub fn xhas_out() -> bool {
-        return load_balance.has_out();
+    pub fn xhas_out(&mut self) -> bool {
+        return self.load_balance.has_out();
     }
 }
-
 
 // ZmqPush::~ZmqPush ()
 // {
 // }
-
-
-
-
-
-
-
-
-
-

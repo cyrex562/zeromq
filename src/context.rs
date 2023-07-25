@@ -8,18 +8,16 @@ use std::{mem, process};
 use anyhow::{anyhow, bail};
 
 #[cfg(not(windows))]
-use libc::{  gid_t, pid_t,   uid_t};
+use libc::{gid_t, pid_t, uid_t};
 
 use crate::address::ZmqAddress;
 use serde::{Deserialize, Serialize};
 
-use crate::thread_command::{ThreadCommandType, ZmqThreadCommand};
 use crate::defines::{
     ZMQ_BLOCKY, ZMQ_CURVE, ZMQ_DEALER, ZMQ_GSSAPI, ZMQ_GSSAPI_NT_HOSTBASED,
-    ZMQ_GSSAPI_NT_KRB5_PRINCIPAL, ZMQ_GSSAPI_NT_USER_NAME, ZMQ_IO_THREADS, 
-    ZMQ_IPV6, ZMQ_MAX_MSGSZ, ZMQ_MAX_SOCKETS, ZMQ_MAX_SOCKETS_DFLT, ZMQ_MESSAGE_SIZE, ZMQ_NULL,
-    ZMQ_PAIR, ZMQ_PLAIN, ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_SOCKET_LIMIT, ZMQ_SUB,
-    ZMQ_ZERO_COPY_RECV,
+    ZMQ_GSSAPI_NT_KRB5_PRINCIPAL, ZMQ_GSSAPI_NT_USER_NAME, ZMQ_IO_THREADS, ZMQ_IPV6, ZMQ_MAX_MSGSZ,
+    ZMQ_MAX_SOCKETS, ZMQ_MAX_SOCKETS_DFLT, ZMQ_MESSAGE_SIZE, ZMQ_NULL, ZMQ_PAIR, ZMQ_PLAIN,
+    ZMQ_PUB, ZMQ_PULL, ZMQ_PUSH, ZMQ_SOCKET_LIMIT, ZMQ_SUB, ZMQ_ZERO_COPY_RECV,
 };
 use crate::endpoint::ZmqEndpoint;
 use crate::endpoint_uri::EndpointUriPair;
@@ -27,6 +25,7 @@ use crate::engine::ZmqEngine;
 use crate::mailbox::ZmqMailbox;
 use crate::mailbox_interface::ZmqMailboxInterface;
 use crate::message::ZmqMessage;
+use crate::thread_command::{ThreadCommandType, ZmqThreadCommand};
 // use crate::object::ZmqObject;
 use crate::own::ZmqOwn;
 use crate::pending_connection::PendingConnection;
@@ -74,7 +73,7 @@ pub struct ZmqContext<'a> {
     //  a memory barrier to ensure that all CPU cores see the same data.
     pub slot_sync: Mutex<u8>,
     //  The reaper thread.
-    pub reaper: Option<ZmqReaper>,
+    pub reaper: Option<ZmqReaper<'a>>,
     //  I/O threads.
     pub threads: Vec<ZmqThreadContext>,
     //  Array of pointers to mailboxes for both application and I/O threads.
@@ -2761,19 +2760,26 @@ impl<'a> ZmqContext<'a> {
     }
 }
 
-fn set_opt_gid_hash_set(opt_val: &[u8], ipc_gid_accept_filters: &mut HashSet<u32>) -> Result<(), anyhow::Error> {
+fn set_opt_gid_hash_set(
+    opt_val: &[u8],
+    ipc_gid_accept_filters: &mut HashSet<u32>,
+) -> Result<(), anyhow::Error> {
     todo!()
 }
 
-fn set_opt_pid_hash_set(opt_val: &[u8], ipc_pid_accept_filters: &mut HashSet<i32>) -> Result<(), anyhow::Error> {
+fn set_opt_pid_hash_set(
+    opt_val: &[u8],
+    ipc_pid_accept_filters: &mut HashSet<i32>,
+) -> Result<(), anyhow::Error> {
     todo!()
 }
 
-fn set_opt_uid_hash_set(opt_val: &[u8], ipc_uid_accept_filters: &mut HashSet<u32>) -> Result<(), anyhow::Error> {
+fn set_opt_uid_hash_set(
+    opt_val: &[u8],
+    ipc_uid_accept_filters: &mut HashSet<u32>,
+) -> Result<(), anyhow::Error> {
     todo!()
-} 
-
-
+}
 
 pub fn clipped_maxsocket(mut max_requested: i32) -> i32 {
     // TODO

@@ -40,6 +40,7 @@
 // #include <new>
 // #include <sstream>
 
+use crate::context::ZmqContext;
 use crate::defines::ZmqFileDesc;
 use crate::endpoint_uri::EndpointUriPair;
 use crate::message::ZmqMessage;
@@ -72,7 +73,7 @@ use crate::raw_encoder::RawEncoder;
 // #include "wire.hpp"
 pub struct RawEngine {
     // : public ZmqStreamEngineBase
-    pub stream_engine_base: ZmqStreamEngineBase,
+    // pub stream_engine_base: ZmqStreamEngineBase,
     //
     //     RawEngine (fd: ZmqFileDesc, options: &ZmqOptions, const EndpointUriPair &endpoint_uri_pair_);
     //     ~RawEngine ();
@@ -92,7 +93,7 @@ impl RawEngine {
     ) -> Self {
         // ZmqStreamEngineBase (fd, options_, endpoint_uri_pair_, false)
         Self {
-            stream_engine_base: ZmqStreamEngineBase::new(fd, options, endpoint_uri_pair_, false),
+            // stream_engine_base: ZmqStreamEngineBase::new(fd, options, endpoint_uri_pair_, false),
         }
     }
 

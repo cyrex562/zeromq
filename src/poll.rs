@@ -42,9 +42,10 @@
 // #include "i_poll_events.hpp"
 //  typedef ZmqFileDesc handle_t;
 
-use crate::defines::ZmqFileDesc;
+use crate::defines::{ZmqFileDesc, RETIRED_FD};
 use crate::poller_base::WorkerPollerBase;
 use crate::poller_event::ZmqPollerEvent;
+use crate::pollset::ZmqPollEvents;
 use crate::thread_context::ZmqThreadContext;
 #[cfg(target_os = "linux")]
 use libc::{poll, pollfd, POLLERR, POLLHUP, POLLIN, POLLOUT};
@@ -72,7 +73,7 @@ struct FdEntry {
 #[derive(Default, Debug, Clone)]
 pub struct ZmqPoll<'a> {
     // : public WorkerPollerBase
-    pub worker_poller_base: WorkerPollerBase<'a>,
+    pub base: WorkerPollerBase<'a>,
     //  This table stores data for registered descriptors.
     // typedef std::vector<FdEntry> fd_table_t;
     // fd_table_t fd_table;
@@ -103,32 +104,29 @@ impl ZmqPoll {
     // void loop () ;
     // void cleanup_retired ();
 
-    pub fn new(ctx: &ZmqThreadContext) -> Self {
+    pub fn new(ctx: &mut ZmqThreadContext) -> Self {
         Self {
-            worker_poller_base: WorkerPollerBase::new(ctx),
+            base: WorkerPollerBase::new(ctx),
             fd_table: vec![],
             pollset: vec![],
             retired: false,
         }
     }
 
-    pub fn add_fd(
-        &mut self,
-        fd: ZmqFileDesc,
-        events_: &mut [ZmqPollEventsInterface],
-    ) -> ZmqFileDesc {
-        check_thread();
+    pub fn add_fd(&mut self, fd: ZmqFileDesc, events_: &mut [ZmqPollEvents]) -> ZmqFileDesc {
+        self.base.check_thread();
         // zmq_assert (fd != retired_fd);
 
         //  If the file descriptor table is too small expand it.
         let sz = self.fd_table.size();
         if (sz <= fd) {
-            self.fd_table.resize(fd + 1);
-            while sz != (fd_table_t::size_type)(fd + 1) {
-                self.fd_table[sz].index = retired_fd;
-                // += 1sz;
-                sz += 1;
-            }
+            // self.fd_table.resize(fd + 1);
+            // while sz != (fd_table_t::size_type)(fd + 1) {
+            //     self.fd_table[sz].index = retired_fd;
+            //     // += 1sz;
+            //     sz += 1;
+            // }
+            self.fd_table.resize((fd + 1) as usize, FdEntry::default());
         }
 
         let pfd = pollfd {
@@ -149,45 +147,45 @@ impl ZmqPoll {
     }
 
     pub fn rm_fd(&mut self, handle_: ZmqFileDesc) {
-        check_thread();
-        let mut index: ZmqFileDesc = fd_table[handle_].index;
+        self.base.check_thread();
+        let mut index: ZmqFileDesc = self.fd_table[handle_].index;
         // zmq_assert (index != retired_fd);
 
         //  Mark the fd as unused.
-        pollset[index].fd = retired_fd;
-        fd_table[handle_].index = retired_fd;
-        retired = true;
+        self.pollset[index].fd = RETIRED_FD;
+        self.fd_table[handle_].index = RETIRED_FD;
+        self.retired = true;
 
         //  Decrease the load metric of the thread.
-        adjust_load(-1);
+        self.adjust_load(-1);
     }
 
     pub fn set_pollin(&mut self, handle_: ZmqFileDesc) {
-        check_thread();
-        let mut index: ZmqFileDesc = fd_table[handle_].index;
-        pollset[index].events |= POLLIN;
+        self.base.check_thread();
+        let mut index: ZmqFileDesc = self.fd_table[handle_].index;
+        self.pollset[index].events |= POLLIN;
     }
 
     pub fn reset_pollin(&mut self, handle_: ZmqFileDesc) {
-        check_thread();
-        let mut index: ZmqFileDesc = fd_table[handle_].index;
-        pollset[index].events &= !(POLLIN);
+        self.base.check_thread();
+        let mut index: ZmqFileDesc = self.fd_table[handle_].index;
+        self.pollset[index].events &= !(POLLIN);
     }
 
     pub fn set_pollout(&mut self, handle_: ZmqFileDesc) {
-        check_thread();
-        let mut index: ZmqFileDesc = fd_table[handle_].index;
-        pollset[index].events |= POLLOUT;
+        self.base.check_thread();
+        let mut index: ZmqFileDesc = self.fd_table[handle_].index;
+        self.pollset[index].events |= POLLOUT;
     }
 
     pub fn reset_pollout(&mut self, handle_: ZmqFileDesc) {
-        check_thread();
-        let mut index: ZmqFileDesc = fd_table[handle_].index;
-        pollset[index].events &= !(POLLOUT);
+        self.base.check_thread();
+        let mut index: ZmqFileDesc = self.fd_table[handle_].index;
+        self.pollset[index].events &= !(POLLOUT);
     }
 
     pub fn stop(&mut self) {
-        check_thread();
+        self.base.check_thread();
         //  no-op... thread is stopped when no more fds or timers are registered
     }
 
@@ -196,16 +194,16 @@ impl ZmqPoll {
     }
 
     pub fn loop_(&mut self) {
-        while (true) {
+        loop {
             //  Execute any due timers.
-            let timeout = execute_timers();
+            let timeout = self.base.execute_timers();
 
-            cleanup_retired();
+            self.cleanup_retired();
 
-            if (pollset.empty()) {
+            if self.pollset.empty() {
                 // zmq_assert (get_load () == 0);
 
-                if (timeout == 0) {
+                if timeout == 0 {
                     break;
                 }
 
@@ -217,8 +215,8 @@ impl ZmqPoll {
             let mut rc = 0i32;
             unsafe {
                 rc = poll(
-                    &mut pollset[0],
-                    (pollset.size()),
+                    &mut self.pollset[0],
+                    (self.pollset.size()),
                     if timeout { timeout } else { -1 },
                 );
             }
@@ -234,25 +232,25 @@ impl ZmqPoll {
             }
 
             // for (PollSet::size_type i = 0; i != pollset.size (); i+= 1)
-            for i in 0..pollset.len() {
+            for i in 0..self.pollset.len() {
                 // zmq_assert (!(pollset[i].revents & POLLNVAL));
-                if (pollset[i].fd == retired_fd) {
+                if (self.pollset[i].fd == RETIRED_FD) {
                     continue;
                 }
-                if (pollset[i].revents & (POLLERR | POLLHUP)) {
-                    fd_table[pollset[i].fd].events.in_event();
+                if (self.pollset[i].revents & (POLLERR | POLLHUP)) {
+                    self.fd_table[self.pollset[i].fd].events.in_event();
                 }
-                if (pollset[i].fd == retired_fd) {
+                if (self.pollset[i].fd == RETIRED_FD) {
                     continue;
                 }
-                if (pollset[i].revents & POLLOUT) {
-                    fd_table[pollset[i].fd].events.out_event();
+                if (self.pollset[i].revents & POLLOUT) {
+                    self.fd_table[self.pollset[i].fd].events.out_event();
                 }
-                if (pollset[i].fd == retired_fd) {
+                if (self.pollset[i].fd == RETIRED_FD) {
                     continue;
                 }
-                if (pollset[i].revents & POLLIN) {
-                    fd_table[pollset[i].fd].events.in_event();
+                if (self.pollset[i].revents & POLLIN) {
+                    self.fd_table[self.pollset[i].fd].events.in_event();
                 }
             }
         }
@@ -260,17 +258,17 @@ impl ZmqPoll {
 
     pub fn cleanup_retired(&mut self) {
         //  Clean up the pollset and update the fd_table accordingly.
-        if (retired) {
+        if (self.retired) {
             let mut i = 0;
-            while (i < pollset.size()) {
-                if (pollset[i].fd == retired_fd) {
-                    pollset.erase(pollset.begin() + i);
+            while (i < self.pollset.size()) {
+                if (self.pollset[i].fd == RETIRED_FD) {
+                    self.pollset.erase(self.pollset.begin() + i);
                 } else {
-                    fd_table[pollset[i].fd].index = i;
+                    self.fd_table[self.pollset[i].fd].index = i;
                     i += 1;
                 }
             }
-            retired = false;
+            self.retired = false;
         }
     }
 }

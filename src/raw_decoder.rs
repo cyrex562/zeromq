@@ -34,25 +34,25 @@
 // #include "raw_decoder.hpp"
 // #include "err.hpp"
 
-use crate::decoder_interface::ZmqDecoderInterface;
+// use crate::decoder_interface::ZmqDecoderInterface;
 use crate::message::ZmqMessage;
 
 pub struct RawDecoder {
     // : public ZmqDecoderInterface
-    pub decoder_interface: ZmqDecoderInterface,
+    // pub decoder_interface: ZmqDecoderInterface,
     //
-// RawDecoder (bufsize_: usize);
-// ~RawDecoder ();
-//  ZmqDecoderInterface interface.
-// void get_buffer (unsigned char **data, size: *mut usize);
-// int decode (const data: &mut [u8], size: usize, size_t &bytes_used_);
-// ZmqMessage *msg () { return &in_progress; }
-// void resize_buffer (size_t) {}
-// ZmqMessage in_progress;
+    // RawDecoder (bufsize_: usize);
+    // ~RawDecoder ();
+    //  ZmqDecoderInterface interface.
+    // void get_buffer (unsigned char **data, size: *mut usize);
+    // int decode (const data: &mut [u8], size: usize, size_t &bytes_used_);
+    // ZmqMessage *msg () { return &in_progress; }
+    // void resize_buffer (size_t) {}
+    // ZmqMessage in_progress;
     pub in_progress: ZmqMessage,
-// shared_message_memory_allocator allocator;
+    // shared_message_memory_allocator allocator;
 
-// ZMQ_NON_COPYABLE_NOR_MOVABLE (RawDecoder)
+    // ZMQ_NON_COPYABLE_NOR_MOVABLE (RawDecoder)
 }
 
 impl RawDecoder {
@@ -62,7 +62,7 @@ impl RawDecoder {
         // errno_assert (rc == 0);
         Self {
             in_progress: ZmqMessage::new(),
-            decoder_interface: ZmqDecoderInterface::new(),
+            // decoder_interface: ZmqDecoderInterface::new(),
         }
     }
 
@@ -78,15 +78,15 @@ impl RawDecoder {
 
     pub fn decode(&mut self, data: &[u8], size: usize, bytes_used_: &mut usize) -> i32 {
         todo!();
-            //     let rc: i32 = self.in_progress.init ( (data), size,
-            // shared_message_memory_allocator::call_dec_ref,
-            // allocator.buffer (), allocator.provide_content ());
+        //     let rc: i32 = self.in_progress.init ( (data), size,
+        // shared_message_memory_allocator::call_dec_ref,
+        // allocator.buffer (), allocator.provide_content ());
 
-            // if the buffer serves as memory for a zero-copy message, release it
-            // and allocate a new buffer in get_buffer for the next decode if (in_progress.is_zcmsg ()) {
-            // allocator.advance_content (); allocator.release ();
+        // if the buffer serves as memory for a zero-copy message, release it
+        // and allocate a new buffer in get_buffer for the next decode if (in_progress.is_zcmsg ()) {
+        // allocator.advance_content (); allocator.release ();
 
-            // errno_assert (rc != -1); * bytes_used_ = size;
+        // errno_assert (rc != -1); * bytes_used_ = size;
         return 1;
     }
 }

@@ -1,3 +1,4 @@
+use crate::address::ZmqAddress;
 use crate::context::ZmqContext;
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
 use crate::session_base::ZmqSessionBase;
@@ -10,44 +11,44 @@ pub enum RadioSessionState {
     body,
 }
 
-pub struct RadioSession {
-    pub session_base: ZmqSessionBase,
+pub struct RadioSession<'a> {
+    pub session_base: ZmqSessionBase<'a>,
     pub _pending_msg: ZmqMessage,
 }
 
-impl RadioSession {
+impl<'a> RadioSession<'a> {
     pub fn new(
         ctx: &mut ZmqContext,
         io_thread_: &mut ZmqThreadContext,
         connect_: bool,
         socket: &mut ZmqSocket,
         options: &mut ZmqContext,
-        addr_: &mut UdpAddress,
+        addr_: &mut ZmqAddress,
     ) -> Self {
         Self {
-            session_base: ZmqSessionBase::new(ctx, io_thread_, connect_, socket, options, addr_),
+            session_base: ZmqSessionBase::new(ctx, io_thread_, connect_, socket, addr_),
             _pending_msg: ZmqMessage::new(),
         }
     }
 
-    pub fn push_msg(&mut self, msg: &mut ZmqMessage) -> i32 {
+    pub fn push_msg(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
         if (msg.flags() & ZMQ_MSG_COMMAND) {
-            char * command_data = (msg.data());
+            let command_data = (msg.data());
             let data_size = msg.size();
 
-            group_length: i32;
+            let mut group_length: i32;
             let mut group: String = String::new();
 
             let mut join_leave_msg: ZmqMessage = ZmqMessage::default();
-            rc: i32;
+            let mut rc: i32;
 
             //  Set the msg type to either JOIN or LEAVE
             if data_size >= 5 && cmp_bytes(command_data, 0, b"\x04JOIN", 0, 5) == 0 {
-                group_length = (data_size) - 5;
+                group_length = ((data_size) - 5) as i32;
                 group = command_data + 5;
                 rc = join_leave_msg.init_join();
             } else if data_size >= 6 && cmp_bytes(command_data, 0, b"\x05LEAVE", 0, 6) == 0 {
-                group_length = (data_size) - 6;
+                group_length = ((data_size) - 6) as i32;
                 group = command_data + 6;
                 rc = join_leave_msg.init_leave();
             }
@@ -59,11 +60,11 @@ impl RadioSession {
             // errno_assert (rc == 0);
 
             //  Set the Group
-            rc = join_leave_msg.set_group(group);
+            rc = join_leave_msg.set_group(&group);
             // errno_assert (rc == 0);
 
             //  Close the current command
-            rc = msg.close();
+            msg.close()?;
             // errno_assert (rc == 0);
 
             //  Push the join or leave command
@@ -74,29 +75,29 @@ impl RadioSession {
     }
 
     pub fn pull_msg(&mut self, msg: &mut ZmqMessage) -> anyhow::Result<()> {
-        if _state == RadioSessionState::group {
-            self.session_base.pull_msg(&mut _pending_msg)?;
+        if self._state == RadioSessionState::group {
+            self.session_base.pull_msg(&mut self._pending_msg)?;
 
-            let group = _pending_msg.group();
+            let group = self._pending_msg.group();
             let length: usize = group.len();
 
             //  First frame is the Group
-            rc = msg.init_size(length as usize);
+            msg.init_size(length as usize)?;
             // errno_assert (rc == 0);
             msg.set_flags(ZMQ_MSG_MORE);
-            copy_bytes(msg.data_mut(), 0, group, 0, length.clone());
+            copy_bytes(msg.data_mut(), 0, group.as_bytes(), 0, length.clone());
 
             //  Next status is the Body
             self._state = RadioSessionState::body;
             return Ok(());
         }
-        *msg = self._pending_msg;
+        *msg = self._pending_msg.clone();
         self._state = RadioSessionState::group;
         Ok(())
     }
 
     pub fn reset(&mut self) {
         self.session_base.reset();
-        _state = RadioSessionState::group;
+        self._state = RadioSessionState::group;
     }
 }

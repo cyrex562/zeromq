@@ -1,105 +1,26 @@
-/*
-    Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
-
-    This file is part of libzmq, the ZeroMQ core engine in C+= 1.
-
-    libzmq is free software; you can redistribute it and/or modify it under
-    the terms of the GNU Lesser General Public License (LGPL) as published
-    by the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    As a special exception, the Contributors give you permission to link
-    this library with independent modules to produce an executable,
-    regardless of the license terms of these independent modules, and to
-    copy and distribute the resulting executable under terms of your choice,
-    provided that you also meet, for each linked independent module, the
-    terms and conditions of the license of that module. An independent
-    module is a module which is not derived from or based on this library.
-    If you modify this library, you must extend this exception to your
-    version of the library.
-
-    libzmq is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-    License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+use libc::{EAGAIN, EINTR};
 
 use crate::context::ZmqContext;
-use crate::defines::ZmqHandle;
+use crate::defines::{ZmqHandle, RETIRED_FD};
 use crate::devpoll::ZmqPoller;
 use crate::mailbox::ZmqMailbox;
 use crate::thread_command::ZmqThreadCommand;
-// use crate::poll_events_interface::ZmqPollEventsInterface;
-use crate::socket::ZmqSocket;
-use libc::{EAGAIN, EINTR};
 
-// #include "precompiled.hpp"
-// #include "macros.hpp"
-// #include "reaper.hpp"
-// #include "socket_base.hpp"
-// #include "err.hpp"
-pub struct ZmqReaper {
-    // : public ZmqObject
-    // pub object: ZmqObject,
-    // public ZmqPollEventsInterface
-
-    // ZmqReaper (ctx: &mut ZmqContext, tid: u32);
-
-    // ~ZmqReaper ();
-
-    // ZmqMailbox *get_mailbox ();
-
-    // void start ();
-
-    // void Stop ();
-
-    //  i_poll_events implementation.
-
-    // void in_event ();
-
-    // void out_event ();
-
-    // void timer_event (id_: i32);
-
-    //  Command handlers.
-    // void process_stop ();
-
-    // void process_reap (ZmqSocketBase *socket);
-
-    // void process_reaped ();
-
+pub struct ZmqReaper<'a> {
     //  Reaper thread accesses incoming commands via this mailbox.
-    // ZmqMailbox mailbox;
-    pub mailbox: ZmqMailbox,
+    pub mailbox: ZmqMailbox<'a>,
     //  Handle associated with mailbox' file descriptor.
-    // Poller::handle_t mailbox_handle;
     pub mailbox_handle: ZmqHandle,
     //  I/O multiplexing is performed using a poller object.
-    // Poller *poller;
-    pub poller: ZmqPoller,
+    pub poller: ZmqPoller<'a>,
     //  Number of sockets being Reaped at the moment.
     pub _sockets: i32,
     //  If true, we were already asked to terminate.
     pub terminating: bool,
-    // #ifdef HAVE_FORK
-    // the process that created this context. Used to detect forking.
-    // pid_t _pid;
-    // #endif
-
-    // ZMQ_NON_COPYABLE_NOR_MOVABLE (reaper_t)
 }
 
 impl ZmqReaper {
     pub fn new(ctx: &mut ZmqContext, tid: u32) -> Self {
-        //  :
-        //     ZmqObject (ctx, tid),
-        //     mailbox_handle (static_cast<Poller::handle_t> (null_mut())),
-        //     poller (null_mut()),
-        //     self._sockets (0),
-        //     terminating (false)
         let mut out = Self {
             mailbox: Default::default(),
             mailbox_handle: 0,
@@ -107,22 +28,10 @@ impl ZmqReaper {
             _sockets: 0,
             terminating: false,
         };
-
-        // if (!mailbox.valid ()) {
-        //     return;
-        // }
-
-        // poller =  Poller (*ctx);
-        // alloc_assert (poller);
-
-        if (out.mailbox.get_fd() != retired_fd) {
-            out.mailbox_handle = out.poller.add_fd(mailbox.get_fd(), &mut out);
+        if out.mailbox.get_fd() != RETIRED_FD {
+            out.mailbox_handle = out.poller.add_fd(&out.mailbox.get_fd(), &mut out);
             out.poller.set_pollin(&out.mailbox_handle);
         }
-
-        // #ifdef HAVE_FORK
-        //         _pid = getpid ();
-        // #endif
         out
     }
 

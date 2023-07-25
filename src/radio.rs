@@ -60,14 +60,15 @@ use std::collections::HashMap;
 pub fn radio_xread_activated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
     //  There are some subscriptions waiting. Let's process them.
     let mut msg = ZmqMessage::default();
-    while pipe.read(&mut msg) {
+    while pipe.read(sock.context, &mut msg) {
         //  Apply the subscription to the trie
         if msg.is_join() || msg.is_leave() {
             let group = (msg.group());
 
             if (msg.is_join()) {
-                sock._subscriptions
-                    .ZMQ_MAP_INSERT_OR_EMPLACE(ZMQ_MOVE(group), pipe);
+                // TODO
+                // sock._subscriptions
+                //     .ZMQ_MAP_INSERT_OR_EMPLACE(ZMQ_MOVE(group), pipe);
             } else {
                 // std::pair<subscriptions_t::iterator, subscriptions_t::iterator>
                 //     range = _subscriptions.equal_range (Group);
@@ -97,9 +98,9 @@ pub fn radio_xsetsockopt(
     optvallen_: usize,
 ) -> anyhow::Result<()> {
     if option_ == ZMQ_XPUB_NODROP {
-        _lossy = ((optval_) == 0);
+        sock._lossy = ((optval_) == 0);
     } else {
-      // errno = EINVAL;
+        // errno = EINVAL;
         return Err("ZmqRadio::xsetsockopt".into());
     }
     return Ok(());
@@ -135,13 +136,13 @@ pub fn radio_xpipe_terminated(sock: &mut ZmqSocket, pipe: &mut ZmqPipe) {
 pub fn radio_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
     //  Radio sockets do not allow multipart data (ZMQ_SNDMORE)
     if msg.flags() & ZMQ_MSG_MORE {
-      // errno = EINVAL;
+        // errno = EINVAL;
         return -1;
     }
 
-    _dist.unmatch();
+    sock._dist.unmatch();
 
-    let range = _subscriptions.equal_range(std::string(msg.group()));
+    let range = sock._subscriptions.equal_range(msg.group());
 
     // for (subscriptions_t::iterator it = range.first; it != range.second; += 1it)
     for it in sock._subscriptions {
@@ -158,25 +159,25 @@ pub fn radio_xsend(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
     }
 
     let mut rc = -1;
-    if _lossy || _dist.check_hwm() {
-        if _dist.send_to_matching(msg) == 0 {
+    if sock._lossy || sock._dist.check_hwm() {
+        if sock._dist.send_to_matching(msg) == 0 {
             rc = 0; //  Yay, sent successfully
         }
     } else {
-      // errno = EAGAIN;
+        // errno = EAGAIN;
     }
 
     return rc;
 }
 
 pub fn radio_xhas_out(sock: &mut ZmqSocket) {
-    return _dist.has_out();
+    return sock._dist.has_out();
 }
 
 pub fn radio_xrecv(sock: &mut ZmqSocket, msg: &mut ZmqMessage) -> i32 {
     //  Messages cannot be received from PUB socket.
-    LIBZMQ_UNUSED(msg);
-  // errno = ENOTSUP;
+    // LIBZMQ_UNUSED(msg);
+    // errno = ENOTSUP;
     return -1;
 }
 
