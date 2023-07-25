@@ -1,61 +1,8 @@
-/*
-Copyright (c) 2007-2016 Contributors as noted in the AUTHORS file
-
-This file is part of libzmq, the ZeroMQ core engine in C+= 1.
-
-libzmq is free software; you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License (LGPL) as published
-by the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
-
-As a special exception, the Contributors give you permission to link
-this library with independent modules to produce an executable,
-regardless of the license terms of these independent modules, and to
-copy and distribute the resulting executable under terms of your choice,
-provided that you also meet, for each linked independent module, the
-terms and conditions of the license of that module. An independent
-module is a module which is not derived from or based on this library.
-If you modify this library, you must extend this exception to your
-version of the library.
-
-libzmq is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-License for more details.
-
-You should have received a copy of the GNU Lesser General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-// #include "precompiled.hpp"
-
-// #if !defined ZMQ_HAVE_WINDOWS
-// #include <sys/types.h>
-// #include <unistd.h>
-// #include <sys/socket.h>
-// #include <netinet/in.h>
-// #include <arpa/inet.h>
-// #ifdef ZMQ_HAVE_VXWORKS
-// #include <sockLib.h>
-// #endif
-// #endif
-
-// #include "udp_address.hpp"
-// #include "udp_engine.hpp"
-// #include "session_base.hpp"
-// #include "err.hpp"
-// #include "ip.hpp"
-
-//  OSX uses a different name for this socket option
-// #ifndef IPV6_ADD_MEMBERSHIP
-// #define IPV6_ADD_MEMBERSHIP IPV6_JOIN_GROUP
-// #endif
-
 use crate::address::ZmqAddress;
 use crate::address_family::{AF_INET, AF_INET6};
 use crate::context::ZmqContext;
 use crate::defines::ZmqFileDesc;
-use crate::defines::{RETIRED_FD, ZmqHandle, INADDR_ANY, MAX_UDP_MSG};
+use crate::defines::{ZmqHandle, INADDR_ANY, MAX_UDP_MSG, RETIRED_FD};
 use crate::endpoint_uri::EndpointUriPair;
 use crate::engine_interface::ZmqEngineInterface;
 use crate::io_object::ZmqIoObject;
@@ -68,26 +15,36 @@ use crate::session_base::ZmqSessionBase;
 use crate::thread_context::ZmqThreadContext;
 
 #[cfg(target_os = "linux")]
-use libc::{
-    in6_addr, in_addr, ip_mreq, ipv6_mreq, sockaddr_storage, socklen_t, INADDR_ANY, SO_REUSEPORT,
-};
+use libc::{in6_addr, in_addr, ip_mreq, ipv6_mreq, sockaddr_storage, socklen_t, SO_REUSEPORT};
 
 use crate::engine::ZmqEngine;
 use anyhow::bail;
 use libc::{
-    atoi, bind, c_char, c_int, c_uint, memcpy, memset, recvfrom, sendto, setsockopt, sockaddr,
-    EINVAL, EWOULDBLOCK,
+    atoi, bind, c_char, c_int, c_uint, memcpy, memset, recvfrom, sendto, setsockopt, size_t,
+    sockaddr, sockaddr_in, EINVAL, EWOULDBLOCK,
 };
 use std::mem;
 use std::net::SocketAddr;
 use std::os::raw::c_void;
 use std::ptr::null_mut;
+#[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{
     htons, inet_addr, inet_ntoa, ntohs, socklen_t, WSAGetLastError, INADDR_NONE, IN_ADDR, IPPROTO,
     IPPROTO_IP, IPPROTO_IPV6, IPPROTO_UDP, IPV6_ADD_MEMBERSHIP, IPV6_MREQ, IPV6_MULTICAST_IF,
     IPV6_MULTICAST_LOOP, IP_ADD_MEMBERSHIP, IP_MREQ, IP_MULTICAST_IF, IP_MULTICAST_LOOP,
     IP_MULTICAST_TTL, SOCKADDR_STORAGE, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, WSAEWOULDBLOCK,
 };
+#[cfg(target_os = "linux")]
+type IPPROTO = u8;
+
+pub const IPPROTO_IPV6: IPPROTO = 41;
+pub const IPPROTO_IP: IPPROTO = 0;
+#[cfg(target_os = "linux")]
+pub type IpMreq = ip_mreq;
+#[cfg(target_os = "linux")]
+pub type Ipv6Mreq = ipv6_mreq;
+#[cfg(target_os = "linux")]
+pub type InAddr = in_addr;
 
 pub fn udp_plug(
     engine: &mut ZmqEngine,
@@ -218,8 +175,8 @@ pub fn udp_set_multicast_loop(s_: ZmqFileDesc, is_ipv6_: bool, loop_in: bool) ->
 
     // int loop = loop_ ? 1 : 0;
     let loop_ = if loop_in { 1 } else { 0 };
-    let rc: i32 = unsafe { setsockopt(s_, level as c_int, optname, (&loop_ as *const c_char), 1) };
-    assert_success_or_recoverable(s_, rc);
+    let rc: i32 = unsafe { setsockopt(s_, level as c_int, optname, (&loop_ as *const c_void), 1) };
+    // assert_success_or_recoverable(s_, rc);
     return rc;
 }
 
@@ -237,7 +194,7 @@ pub fn udp_set_multicast_ttl(s_: ZmqFileDesc, is_ipv6_: bool, hops_: i32) -> i32
             s_,
             level as c_int,
             IP_MULTICAST_TTL,
-            (&hops_) as *const c_char,
+            (&hops_) as *const c_void,
             4,
         )
     };
@@ -280,7 +237,7 @@ pub fn udp_set_multicast_iface(
 pub fn udp_set_reuse_address(engine: &mut ZmqEngine, s_: ZmqFileDesc, on_: bool) -> i32 {
     // int on = on_ ? 1 : 0;
     let on = if on_ { 1 } else { 0 };
-    let rc: i32 = unsafe { setsockopt(s_, SOL_SOCKET, SO_REUSEADDR, (&on) as *const c_char, 1) };
+    let rc: i32 = unsafe { setsockopt(s_, SOL_SOCKET, SO_REUSEADDR, (&on) as *const c_void, 1) };
     assert_success_or_recoverable(s_, rc);
     return rc;
 }
@@ -293,7 +250,7 @@ pub fn udp_set_reuse_port(engine: &mut ZmqEngine, s_: ZmqFileDesc, on_: bool) ->
     #[cfg(target_os = "linux")]
     {
         let on = if on_ { 1 } else { 0 };
-        let rc = unsafe { setsockopt(s_, SOL_SOCKET, SO_REUSEPORT, (&on) as *const c_char, 1) };
+        let rc = unsafe { setsockopt(s_, SOL_SOCKET, SO_REUSEPORT, (&on) as *const c_void, 1) };
         assert_success_or_recoverable(s_, rc);
         return rc;
         // #endif
@@ -314,12 +271,18 @@ pub fn udp_add_membership(
 
     if mcast_addr.family() == AF_INET {
         // struct  mreq;
-        let mut mreq = IP_MREQ {
-            imr_multiaddr: IN_ADDR {
+        let mut mreq = IpMreq {
+            imr_multiaddr: InAddr {
+                #[cfg(target_os = "windows")]
                 S_un: Default::default(),
+                #[cfg(target_os = "linux")]
+                s_addr: INADDR_ANY,
             },
-            imr_interface: IN_ADDR {
+            imr_interface: InAddr {
+                #[cfg(target_os = "windows")]
                 S_un: Default::default(),
+                #[cfg(target_os = "linux")]
+                s_addr: INADDR_ANY,
             },
         };
         mreq.imr_multiaddr = mcast_addr.ipv4.sin_addr;
@@ -330,13 +293,16 @@ pub fn udp_add_membership(
                 s_,
                 IPPROTO_IP as i32,
                 IP_ADD_MEMBERSHIP,
-                (&mreq) as *const c_char,
-                mem::size_of::<IP_MREQ>() as c_int,
+                (&mreq) as *const c_void,
+                mem::size_of::<IpMreq>() as socklen_t,
             );
         }
     } else if mcast_addr.family() == AF_INET6 {
         // struct ipv6_mreq mreq;
-        let mut mreq: IPV6_MREQ = IPV6_MREQ::default();
+        let mut mreq: Ipv6Mreq = Ipv6Mreq {
+            ipv6mr_multiaddr: in6_addr { s6_addr: [0; 16] },
+            ipv6mr_interface: 0,
+        };
         let iface: i32 = addr_.bind_if();
 
         // zmq_assert (iface >= -1);
@@ -349,8 +315,8 @@ pub fn udp_add_membership(
                 s_,
                 IPPROTO_IPV6 as i32,
                 IPV6_ADD_MEMBERSHIP,
-                (&mreq) as *const c_char,
-                mem::size_of::<IPV6_MREQ>() as c_int,
+                (&mreq) as *const c_void,
+                mem::size_of::<Ipv6Mreq>() as socklen_t,
             );
         }
     }
@@ -513,8 +479,8 @@ pub fn udp_out_event(engine: &mut ZmqEngine) -> anyhow::Result<()> {
         unsafe {
             rc = sendto(
                 engine.fd,
-                &engine.out_buffer as *const c_char,
-                engine.out_buffer.len() as c_int,
+                &engine.out_buffer as *const c_void,
+                engine.out_buffer.len() as size_t,
                 0,
                 &engine.out_address.to_sockaddr(),
                 engine.out_address_len,
@@ -540,7 +506,7 @@ pub fn udp_out_event(engine: &mut ZmqEngine) -> anyhow::Result<()> {
             // #else
             #[cfg(target_os = "linux")]
             if rc != EWOULDBLOCK {
-                assert_success_or_recoverable(_fd, rc);
+                assert_success_or_recoverable(engine.fd, rc);
                 // error (connection_error);
             }
             // #endif
@@ -595,7 +561,7 @@ pub fn udp_init(
         engine.address.resolved.udp_addr.family(),
         SOCK_DGRAM as i32,
         IPPROTO_UDP as i32,
-    );
+    )?;
     if engine.fd == RETIRED_FD as usize {
         bail!("failed to open socket")
     }

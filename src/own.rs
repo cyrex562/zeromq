@@ -81,7 +81,7 @@ impl ZmqOwn {
     // processed_seqnum (0),
     // _owner (null_mut()),
     // term_acks (0)
-    pub fn new(ctx: &mut ZmqContext, parent: &mut ZmqContext, tid: u32) -> Self {
+    pub fn new(ctx: &mut ZmqContext, tid: u32) -> Self {
         Self {
             // options: ctx.clone(),
             terminating: false,
@@ -89,7 +89,7 @@ impl ZmqOwn {
             processed_seqnum: 0,
             term_acks: 0,
             // ctx: ZmqContext,
-            tid: tid,
+            tid,
         }
     }
 
@@ -307,4 +307,3 @@ impl ZmqOwn {
         // delete this;
     }
 }
-
