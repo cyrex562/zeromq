@@ -1,9 +1,7 @@
-
-
 use std::ffi::CString;
 
-#[cfg(target_os="windows")]
-use libc::{open,O_RDWR};
+#[cfg(target_os = "windows")]
+use libc::{open, O_RDWR};
 
 pub const POLLREMOVE: i16 = 0x2000;
 
@@ -19,7 +17,7 @@ use crate::events::ZmqEvents;
 use crate::poller_base::WorkerPollerBase;
 
 // typedef DevPoll Poller;
-pub type ZmqPoller = DevPoll;
+pub type ZmqPoller<'a> = DevPoll<'a>;
 
 pub struct FdEntry {
     // short events;
@@ -43,29 +41,27 @@ pub struct DevPoll<'a> {
 
 impl DevPoll {
     pub fn new(ctx: &mut ZmqContext) -> Self {
-        let devpoll_fd = unsafe {
-            open(CString::from(String::from("/dev/poll")).into_raw(), O_RDWR)
-        };
+        let devpoll_fd =
+            unsafe { open(CString::from(String::from("/dev/poll")).into_raw(), O_RDWR) };
         // errno_assert (devpoll_fd != -1);
         Self {
-            base: WorkerPollerBase::new(ctx),
+            base: WorkerPollerBase::new(&mut ctx.thread_ctx),
             devpoll_fd,
             ..Default::default()
         }
     }
 
-    
     pub fn add_fd(&mut self, fd: &ZmqHandle, reactor_: &mut ZmqEvents) -> ZmqHandle {
         self.base.check_thread();
         //  If the file descriptor table is too small expand it.
         let sz = self.fd_table.size();
-        if (sz <= fd) {
-            self.fd_table.resize(fd + 1, FdEntry::default());
-            while (sz != (fd + 1)) {
-                self.fd_table[sz].valid = false;
-                sz += 1;
-            }
-        }
+        // if (sz <= fd) {
+        //     self.fd_table.resize(fd + 1, FdEntry::default());
+        //     while sz != (fd + 1) {
+        //         self.fd_table[sz].valid = false;
+        //         sz += 1;
+        //     }
+        // }
 
         // zmq_assert (!fd_table[fd].valid);
 
@@ -83,7 +79,6 @@ impl DevPoll {
         return fd.clone();
     }
 
-    
     pub fn rm_fd(&mut self, handle_: &ZmqHandle) {
         self.base.check_thread();
         // zmq_assert (fd_table[handle_].valid);
@@ -95,7 +90,6 @@ impl DevPoll {
         self.adjust_load(-1);
     }
 
-    
     pub fn set_pollin(&mut self, handle_: &ZmqHandle) {
         self.base.check_thread();
         self.devpoll_ctl(handle_, POLLREMOVE);
@@ -103,7 +97,6 @@ impl DevPoll {
         self.devpoll_ctl(handle_, self.fd_table[handle_].events);
     }
 
-    
     pub fn reset_pollin(&mut self, handle_: &ZmqHandle) {
         self.base.check_thread();
         self.devpoll_ctl(handle_, POLLREMOVE);
@@ -111,7 +104,6 @@ impl DevPoll {
         self.devpoll_ctl(handle_, self.fd_table[handle_].events);
     }
 
-    
     pub fn set_pollout(&mut self, handle_: &ZmqHandle) {
         self.base.check_thread();
         self.devpoll_ctl(handle_, POLLREMOVE);
@@ -145,7 +137,6 @@ impl DevPoll {
         // let rc = unsafe { write(self.devpoll_fd, &pfd, pfd.len()) };
         // // zmq_assert (rc == pfd.len());
     }
-
 
     pub fn loop_fn(&mut self) {
         loop {

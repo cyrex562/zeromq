@@ -72,7 +72,7 @@ use crate::ipc_connecter::IpcConnecter;
 use crate::message::{ZmqMessage, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID};
 use crate::own::ZmqOwn;
 use crate::pgm_receiver::ZmqPgmReceiver;
-use crate::pgm_sender::pgm_sender_t;
+// use crate::pgm_sender::pgm_sender_t;
 use crate::pipe::PipeState::active;
 use crate::pipe::ZmqPipe;
 use crate::radio_session::RadioSession;
@@ -92,10 +92,6 @@ use crate::ws_connecter::ZmqWsConnecter;
 // };
 pub const LINGER_TIMER_ID: i32 = 0x20;
 
-// #include "ctx.hpp"
-// #include "req.hpp"
-// #include "radio.hpp"
-// #include "dish.hpp"
 // pub struct ZmqSessionBase : public ZmqOwn, public io_object_t, public i_pipe_events
 #[derive(Default, Debug, Clone)]
 pub struct ZmqSessionBase<'a> {
@@ -184,7 +180,7 @@ impl<'a> ZmqSessionBase<'a> {
             incomplete_in: false,
             pending: false,
             engine: None,
-            socket: socket.clone(),
+            socket: socket,
             io_thread: io_thread.clone(),
             has_linger_timer: false,
             addr: addr.clone(),

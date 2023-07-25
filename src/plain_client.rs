@@ -33,18 +33,27 @@
 // #include <string>
 // #include <limits.h>
 
-use libc::{EAGAIN, EPROTO};
 use crate::context::ZmqContext;
-use crate::defines::{ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_WELCOME, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND};
-use crate::mechanism::{ZmqMechanism, ZmqMechanismStatus};
+use crate::defines::{
+    ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR,
+    ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_WELCOME, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
+};
 use crate::mechanism::ZmqMechanismStatus::ready;
+use crate::mechanism::{ZmqMechanism, ZmqMechanismStatus};
 use crate::mechanism_base::ZmqMechanismBase;
 use crate::message::ZmqMessage;
+use libc::{EAGAIN, EPROTO};
 
-use crate::plain_client::PlainClientState::{error_command_received, sending_initiate, waiting_for_ready, waiting_for_welcome};
-use crate::plain_common::{welcome_prefix_len, welcome_prefix, ready_prefix_len, ready_prefix, error_prefix_len, error_prefix};
+use crate::plain_client::PlainClientState::{
+    error_command_received, sending_initiate, waiting_for_ready, waiting_for_welcome,
+};
+use crate::plain_common::{
+    brief_len_size, error_prefix, error_prefix_len, hello_prefix, hello_prefix_len,
+    initiate_prefix, initiate_prefix_len, ready_prefix, ready_prefix_len, welcome_prefix,
+    welcome_prefix_len,
+};
 use crate::session_base::ZmqSessionBase;
-use crate::utils::{cmp_bytes, copy_bytes, advance_ptr};
+use crate::utils::{advance_ptr, cmp_bytes, copy_bytes};
 
 // #include "msg.hpp"
 // #include "err.hpp"
@@ -52,25 +61,23 @@ use crate::utils::{cmp_bytes, copy_bytes, advance_ptr};
 // #include "session_base.hpp"
 // #include "plain_common.hpp"
 
-pub enum PlainClientState
-{
+pub enum PlainClientState {
     sending_hello,
     waiting_for_welcome,
     sending_initiate,
     waiting_for_ready,
     error_command_received,
-    ready
+    ready,
 }
 
-#[derive(Default,Debug,Clone)]
-pub struct PlainClient<'a>
-{
-// : public ZmqMechanismBase
+#[derive(Default, Debug, Clone)]
+pub struct PlainClient<'a> {
+    // : public ZmqMechanismBase
     pub mechanism_base: ZmqMechanismBase<'a>,
     pub _state: PlainClientState,
 }
 
-impl <'a>PlainClient<'a> {
+impl<'a> PlainClient<'a> {
     // PlainClient (ZmqSessionBase *session_, options: &ZmqOptions);
     pub fn new(session: &mut ZmqSessionBase, options: &mut ZmqContext) -> Self {
         Self {
@@ -83,35 +90,29 @@ impl <'a>PlainClient<'a> {
 
     // mechanism implementation
     // int next_handshake_command (msg: &mut ZmqMessage);
-    pub fn next_handshake_command (&mut self, msg: &mut ZmqMessage) -> i32
-    {
+    pub fn next_handshake_command(&mut self, msg: &mut ZmqMessage) -> i32 {
         let mut rc = 0;
 
         match (&self._state) {
-            sending_hello=> {
+            sending_hello => {
                 self.produce_hello(msg);
                 self._state = PlainClientState::waiting_for_welcome;
             }
-        sending_initiate=> {
-            self.produce_initiate(msg);
-            self._state = PlainClientState::waiting_for_ready;
+            sending_initiate => {
+                self.produce_initiate(msg);
+                self._state = PlainClientState::waiting_for_ready;
+            }
+            _ => {
+                // errno = EAGAIN;
+                rc = -1;
+            }
         }
-        _ => {
-          // errno = EAGAIN;
-            rc = -1;
-        }
-    }
         return rc;
     }
-
-
-
-
 
     // void produce_hello (msg: &mut ZmqMessage) const;
 
     // void produce_initiate (msg: &mut ZmqMessage) const;
-
 
     // int process_welcome (const cmd_data_: &mut [u8], data_size_: usize);
 
@@ -119,35 +120,35 @@ impl <'a>PlainClient<'a> {
 
     // int process_error (const cmd_data_: &mut [u8], data_size_: usize);
 
-// int process_handshake_command (msg: &mut ZmqMessage);
-    pub fn process_handshake_command (&mut self, msg: &mut ZmqMessage) -> i32
-    {
-        let cmd_data =
-            (msg.data_mut ());
-        let data_size = msg.size ();
+    // int process_handshake_command (msg: &mut ZmqMessage);
+    pub fn process_handshake_command(&mut self, ctx: &mut ZmqContext, msg: &mut ZmqMessage) -> i32 {
+        let cmd_data = (msg.data_mut());
+        let data_size = msg.size();
 
         let mut rc = 0;
         if data_size >= welcome_prefix_len
-            && !cmp_bytes (cmd_data, 0, welcome_prefix, 0, welcome_prefix_len) == 0 {
+            && !cmp_bytes(cmd_data, 0, welcome_prefix, 0, welcome_prefix_len) == 0
+        {
             rc = self.process_welcome(cmd_data, data_size);
-        }
-        else if data_size >= ready_prefix_len
-            && !cmp_bytes (cmd_data, 0, ready_prefix, 0, ready_prefix_len) == 0 {
+        } else if data_size >= ready_prefix_len
+            && !cmp_bytes(cmd_data, 0, ready_prefix, 0, ready_prefix_len) == 0
+        {
             rc = self.process_ready(cmd_data, data_size);
-        }
-        else if data_size >= error_prefix_len
-            && !cmp_bytes (cmd_data, 0,error_prefix, 0,error_prefix_len) == 0 {
-            rc = self.process_error(cmd_data, data_size);
-        }
-        else {
-            self.session.get_socket ().event_handshake_failed_protocol (
-                self.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
-          // errno = EPROTO;
+        } else if data_size >= error_prefix_len
+            && !cmp_bytes(cmd_data, 0, error_prefix, 0, error_prefix_len) == 0
+        {
+            rc = self.process_error(ctx, cmd_data, data_size);
+        } else {
+            self.session.get_socket().event_handshake_failed_protocol(
+                self.session.get_endpoint(),
+                ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
+            );
+            // errno = EPROTO;
             rc = -1;
         }
 
         if (rc == 0) {
-            msg.close ();
+            msg.close();
             // errno_assert (rc == 0);
             msg.init2();
             // errno_assert (rc == 0);
@@ -157,31 +158,31 @@ impl <'a>PlainClient<'a> {
     }
 
     // status_t status () const;
-    pub fn status (&mut self) -> ZmqMechanismStatus
-    {
+    pub fn status(&mut self) -> ZmqMechanismStatus {
         return match &self._state {
             ready => ZmqMechanismStatus::ready,
             error_command_received => ZmqMechanismStatus::error,
             _ => ZmqMechanismStatus::handshaking,
-        }
+        };
     }
 
-    pub fn produce_hello (&mut self, msg: &mut ZmqMessage)
-    {
+    pub fn produce_hello(&mut self, msg: &mut ZmqMessage) {
         let username = self.options.plain_username;
         // zmq_assert (username.length () <= UCHAR_MAX);
 
         let password = self.options.plain_password;
         // zmq_assert (password.length () <= UCHAR_MAX);
 
-        let command_size = hello_prefix_len + brief_len_size
-            + username.length () + brief_len_size
-            + password.length ();
+        let command_size = hello_prefix_len
+            + brief_len_size
+            + username.length()
+            + brief_len_size
+            + password.length();
 
-        let rc: i32 = msg.init_size (command_size);
+        msg.init_size(command_size)?;
         // errno_assert (rc == 0);
 
-        let mut ptr =  (msg.data_mut());
+        let mut ptr = (msg.data_mut());
         copy_bytes(ptr, 0, hello_prefix, 0, hello_prefix_len);
         // ptr += hello_prefix_len;
         ptr = advance_ptr(ptr, hello_prefix_len);
@@ -191,95 +192,120 @@ impl <'a>PlainClient<'a> {
         ptr = advance_ptr(ptr, 1);
         // memcpy (ptr, username, username.length ());
         copy_bytes(ptr, 0, username, 0, username.length());
-        ptr = advance_ptr(ptr, username.length ());
+        ptr = advance_ptr(ptr, username.length());
 
         // *ptr+= 1 =  (password.length ());
         copy_bytes(ptr, 0, password.length(), 0, 1);
         ptr = advance_ptr(ptr, 1);
 
-        copy_bytes(ptr, 0, password, 0,password.length ());
+        copy_bytes(ptr, 0, password, 0, password.length());
     }
 
-    pub fn process_welcome (&mut self, cmd_data_: &mut [u8], data_size_: usize) -> i32
-    {
+    pub fn process_welcome(&mut self, cmd_data_: &mut [u8], data_size_: usize) -> i32 {
         // LIBZMQ_UNUSED (cmd_data_);
 
-        if (self._state != waiting_for_welcome) {
-            session.get_socket ().event_handshake_failed_protocol (
-                session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
-          // errno = EPROTO;
+        if self._state != waiting_for_welcome {
+            self.session.get_socket().event_handshake_failed_protocol(
+                self.session.get_endpoint(),
+                ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
+            );
+            // errno = EPROTO;
             return -1;
         }
-        if (data_size_ != welcome_prefix_len) {
-            session.get_socket ().event_handshake_failed_protocol (
-                session.get_endpoint (),
-                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_WELCOME);
-          // errno = EPROTO;
+        if data_size_ != welcome_prefix_len {
+            self.session.get_socket().event_handshake_failed_protocol(
+                self.session.get_endpoint(),
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_WELCOME,
+            );
+            // errno = EPROTO;
             return -1;
         }
         self._state = sending_initiate;
         return 0;
     }
 
-    pub fn produce_initiate (&mut self, msg: &mut ZmqMessage)
-    {
-        make_command_with_basic_properties (msg, initiate_prefix,
-                                            initiate_prefix_len);
+    pub fn produce_initiate(&mut self, msg: &mut ZmqMessage) {
+        self.session
+            .make_command_with_basic_properties(msg, initiate_prefix, initiate_prefix_len);
     }
 
-    pub fn process_ready (&mut self, cmd_data_: &mut [u8], data_size_: usize) -> i32
-    {
-        if (_state != waiting_for_ready) {
-            session.get_socket ().event_handshake_failed_protocol (
-                session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
-          // errno = EPROTO;
+    pub fn process_ready(&mut self, cmd_data_: &mut [u8], data_size_: usize) -> i32 {
+        if self._state != waiting_for_ready {
+            self.mechanism_base
+                .session
+                .get_socket()
+                .event_handshake_failed_protocol(
+                    self.mechanism_base.session.get_endpoint(),
+                    ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND as i32,
+                );
+            // errno = EPROTO;
             return -1;
         }
-        let rc: i32 = parse_metadata (cmd_data_ + ready_prefix_len,
-                                      data_size_ - ready_prefix_len);
-        if (rc == 0) {
+        let rc: i32 = self
+            .mechanism_base
+            .parse_metadata(cmd_data_ + ready_prefix_len, data_size_ - ready_prefix_len);
+        if rc == 0 {
             self._state = PlainClientState::ready;
-        }
-        else {
-            session.get_socket().event_handshake_failed_protocol(
-                session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA);
+        } else {
+            self.mechanism_base
+                .session
+                .get_socket()
+                .event_handshake_failed_protocol(
+                    self.mechanism_base.session.get_endpoint(),
+                    ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA as i32,
+                );
         }
 
         return rc;
     }
 
-    pub fn process_error (&mut self, cmd_data_: &mut [u8], data_size_: usize) -> i32
-    {
-        if (_state != waiting_for_welcome && _state != waiting_for_ready) {
-            session.get_socket ().event_handshake_failed_protocol (
-                session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
-          // errno = EPROTO;
+    pub fn process_error(
+        &mut self,
+        ctx: &mut ZmqContext,
+        cmd_data_: &mut [u8],
+        data_size_: usize,
+    ) -> i32 {
+        if (self._state != waiting_for_welcome && self._state != waiting_for_ready) {
+            self.mechanism_base
+                .session
+                .get_socket()
+                .event_handshake_failed_protocol(
+                    self.mechanism_base.session.get_endpoint(),
+                    ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND as i32,
+                );
+            // errno = EPROTO;
             return -1;
         }
         let start_of_error_reason = error_prefix_len + brief_len_size;
         if (data_size_ < start_of_error_reason) {
-            session.get_socket ().event_handshake_failed_protocol (
-                session.get_endpoint (),
-                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR);
-          // errno = EPROTO;
+            self.mechanism_base
+                .session
+                .get_socket()
+                .event_handshake_failed_protocol(
+                    self.mechanism_base.session.get_endpoint(),
+                    ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR as i32,
+                );
+            // errno = EPROTO;
             return -1;
         }
-        let error_reason_len =
-            (cmd_data_[error_prefix_len]);
-        if (error_reason_len > data_size_ - start_of_error_reason) {
-            session.get_socket ().event_handshake_failed_protocol (
-                session.get_endpoint (),
-                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR);
-          // errno = EPROTO;
+        let error_reason_len = (cmd_data_[error_prefix_len]);
+        if error_reason_len > (data_size_ - start_of_error_reason) as u8 {
+            self.mechanism_base
+                .session
+                .get_socket()
+                .event_handshake_failed_protocol(
+                    self.mechanism_base.session.get_endpoint(),
+                    ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR as i32,
+                );
+            // errno = EPROTO;
             return -1;
         }
-        let error_reason =
-            (cmd_data_) + start_of_error_reason;
-        handle_error_reason (error_reason, error_reason_len);
-        _state = error_command_received;
+        let error_reason = (cmd_data_) + start_of_error_reason;
+        self.mechanism_base
+            .handle_error_reason(ctx, error_reason, error_reason_len as usize);
+        self._state = error_command_received;
         return 0;
     }
-
 } // end of impl plain_client
 
 // PlainClient::PlainClient (ZmqSessionBase *const session_,
@@ -291,19 +317,3 @@ impl <'a>PlainClient<'a> {
 // PlainClient::~PlainClient ()
 // {
 // }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -29,28 +29,22 @@
 
 // #include "precompiled.hpp"
 
-use bincode::options;
-use libc::{EPROTO};
 use crate::context::ZmqContext;
 use crate::defines::ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED;
 use crate::mechanism::ZmqMechanism;
 use crate::message::ZmqMessage;
-
 use crate::session_base::ZmqSessionBase;
 
 // #include "mechanism_base.hpp"
 // #include "session_base.hpp"
 // public mechanism_t
-#[derive(Default,Debug,Clone)]
-pub struct ZmqMechanismBase<'a>
-{
-pub mechanism: ZmqMechanism,
-// ZmqSessionBase *const session;
-pub session: ZmqSessionBase<'a>,
-
+#[derive(Default, Debug, Clone)]
+pub struct ZmqMechanismBase<'a> {
+    pub mechanism: ZmqMechanism,
+    pub session: ZmqSessionBase<'a>,
 }
 
-impl <'a>ZmqMechanismBase<'a> {
+impl<'a> ZmqMechanismBase<'a> {
     // ZmqMechanismBase (ZmqSessionBase *session_, options: &ZmqOptions);
     pub fn new(ctx: &mut ZmqContext, session: &mut ZmqSessionBase) -> Self {
         let out = Self {
@@ -58,17 +52,20 @@ impl <'a>ZmqMechanismBase<'a> {
             session: session.clone(),
         };
         out
-        }
+    }
 
     // int check_basic_command_structure (msg: &mut ZmqMessage) const;
-    pub fn check_basic_command_structure (&mut self, ctx: &mut ZmqContext, msg: &mut ZmqMessage) -> i32
-    {
-        if msg.size () <= 1
-            || msg.size () <= ((msg.data()))[0] as usize {
-            self.session.get_socket().event_handshake_failed_protocol (
+    pub fn check_basic_command_structure(
+        &mut self,
+        ctx: &mut ZmqContext,
+        msg: &mut ZmqMessage,
+    ) -> i32 {
+        if msg.size() <= 1 || msg.size() <= (msg.data())[0] as usize {
+            self.session.get_socket().event_handshake_failed_protocol(
                 ctx,
-                self.session.get_endpoint (),
-                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED);
+                self.session.get_endpoint(),
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED,
+            );
             // errno = EPROTO;
             return -1;
         }
@@ -76,8 +73,12 @@ impl <'a>ZmqMechanismBase<'a> {
     }
 
     // void handle_error_reason (error_reason_: *const c_char, error_reason_len_: usize);
-    pub fn handle_error_reason (&mut self, ctx: &mut ZmqContext, error_reason_: &str, error_reason_len_: usize)
-    {
+    pub fn handle_error_reason(
+        &mut self,
+        ctx: &mut ZmqContext,
+        error_reason_: &str,
+        error_reason_len_: usize,
+    ) {
         let mut status_code_len = 3;
         let mut zero_digit = '0';
         let mut significant_digit_index = 0;
@@ -88,20 +89,21 @@ impl <'a>ZmqMechanismBase<'a> {
             && error_reason_[first_zero_digit_index] == zero_digit
             && error_reason_[second_zero_digit_index] == zero_digit
             && error_reason_[significant_digit_index] >= '3'
-            && error_reason_[significant_digit_index] <= '5') {
+            && error_reason_[significant_digit_index] <= '5')
+        {
             // it is a ZAP error status code (300, 400 or 500), so emit an authentication failure event
-            self.session.get_socket ().event_handshake_failed_auth (
+            self.session.get_socket().event_handshake_failed_auth(
                 ctx,
-                self.session.get_endpoint (),
-                (error_reason_[significant_digit_index] - zero_digit) * factor);
+                self.session.get_endpoint(),
+                (error_reason_[significant_digit_index] - zero_digit) * factor,
+            );
         } else {
             // this is a violation of the ZAP protocol
             // TODO zmq_assert in this case?
         }
     }
     // bool zap_required () const;
-    pub fn zap_required (&mut self) -> bool
-    {
+    pub fn zap_required(&mut self) -> bool {
         return !self.options.zap_domain.is_empty();
     }
 } // impl ZmqMechanismBase
@@ -111,9 +113,3 @@ impl <'a>ZmqMechanismBase<'a> {
 //     ZmqMechanism (options_), session (session_)
 // {
 // }
-
-
-
-
-
-

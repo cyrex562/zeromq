@@ -12,9 +12,9 @@ use windows::Win32::Networking::WinSock::FD_SET;
 //       due to alignment bytes for the latter.
 
 #[cfg(target_os="windows")]
-type FdSet = FD_SET;
+pub type FdSet = FD_SET;
 #[cfg(target_os="linux")]
-type FdSet = fd_set;
+pub type FdSet = fd_set;
 
 
 

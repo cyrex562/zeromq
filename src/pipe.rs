@@ -64,7 +64,6 @@ use crate::pipe::PipeState::{
 use crate::session_base::ZmqSessionBase;
 use crate::socket::ZmqSocket;
 
-
 // int pipepair (ZmqObject *parents_[2],
 // ZmqPipe *pipes_[2],
 // const int hwms_[2],
@@ -216,7 +215,7 @@ impl ZmqPipe {
 
     //
     //  Specifies the object to send events to.
-    pub fn set_event_sink(&mut self, sink: &mut i_pipe_events) {
+    pub fn set_event_sink(&mut self, sink: &mut Self) {
         // Sink can be set once only.
         // zmq_assert (!_sink);
         self._sink = sink;
@@ -309,7 +308,7 @@ impl ZmqPipe {
         }
 
         if (self._lwm > 0 && self._msgs_read % self._lwm == 0) {
-            ctx.send_activate_write(0,self._peer, self._msgs_read);
+            ctx.send_activate_write(0, self._peer, self._msgs_read);
         }
 
         return true;
@@ -495,8 +494,8 @@ impl ZmqPipe {
 
     //  Set the boost to high water marks, used by inproc sockets so total hwm are sum of connect and Bind sockets watermarks
     pub fn set_hwms_boost(&mut self, inhwmboost_: i32, outhwmboost_: i32) {
-        self.in_hwm_boost = inhwmboost_;
-        self.out_hwm_boost = outhwmboost_;
+        self.in_hwm_boost = inhwmboost_ as u32;
+        self.out_hwm_boost = outhwmboost_ as u32;
     }
 
     // send command to peer for notify the change of hwm
@@ -506,24 +505,24 @@ impl ZmqPipe {
 
     //  Returns true if HWM is not reached
     pub fn check_hwm(&mut self) -> bool {
-        let full = self.hwm > 0 && self.msgs_written - self.peers_msgs_read >= self.hwm;
+        let full = self.hwm > 0 && self.msgs_written - self.peers_msgs_read >= self.hwm as u64;
         return !full;
     }
 
     pub fn set_endpoint_pair(&mut self, endpoint_pair: EndpointUriPair) {
-        self.endpoint_pair = endpoint_pair;
+        self.endpoint_pair[0] = endpoint_pair;
     }
 
     // const EndpointUriPair &get_endpoint_pair () const;
     pub fn get_endpoint_pair(&mut self) -> &EndpointUriPair {
-        &self.endpoint_pair
+        &self.endpoint_pair[0]
     }
 
     // void send_stats_to_peer (ZmqOwn *socket_base);
     pub fn send_stats_to_peer(&mut self, socket_base: &mut ZmqSocket) {
         // EndpointUriPair *ep = new (std::nothrow) EndpointUriPair (_endpoint_pair);
         let mut ep = EndpointUriPair::default();
-        ep = self.endpoint_pair.clone();
+        ep = self.endpoint_pair[0].clone();
         self.send_pipe_peer_stats(
             self._peer,
             self.msgs_written - self.peers_msgs_read,
@@ -744,7 +743,7 @@ impl ZmqPipe {
             disconnect_msg: Default::default(),
             ..Default::default()
         };
-        out.lwm = out.compute_lwm(inhwm);
+        out.lwm = out.compute_lwm(inhwm) as u32;
         out._disconnect_msg.init();
         out
     }
@@ -798,27 +797,27 @@ impl ZmqPipe {
         socket_base: &mut ZmqOwn,
         endpoint_pair: &mut EndpointUriPair,
     ) {
-        ctx.send_pipe_stats_publish(
-            0,
-            socket_base,
-            queue_count,
-            self._msgs_written - self._peers_msgs_read,
-            endpoint_pair,
-        );
+        // ctx.send_pipe_stats_publish(
+        //     0,
+        //     socket_base,
+        //     queue_count,
+        //     self._msgs_written - self._peers_msgs_read,
+        //     endpoint_pair,
+        // );
+        todo!()
     }
 
-    pub fn set_disconnect_msg(&mut self, disconnect_: &mut Vec<u8>) {
-        self.disconnect_msg.close();
-        let rc: i32 = self
-            .disconnect_msg
-            .init_buffer(&mut disconnect_[0..], disconnect_.size());
+    pub fn set_disconnect_msg(&mut self, disconnect_: &mut Vec<u8>) -> anyhow::Result<()> {
+        self.disconnect_msg.close()?;
+        self.disconnect_msg
+            .init_buffer(&mut disconnect_[0..], disconnect_.size())?;
         // errno_assert (rc == 0);
     }
 
     pub fn send_hiccup_msg(&mut self, hiccup_: &mut Vec<u8>) {
         if (!hiccup_.is_empty() && self._out_pipe) {
             let mut msg = ZmqMessage::default();
-            let rc: i32 = msg.init_buffer(hiccup_, hiccup_.size());
+            msg.init_buffer(hiccup_, hiccup_.size())?;
             // errno_assert (rc == 0);
 
             self._out_pipe.write(msg, false);
@@ -915,10 +914,10 @@ impl ZmqPipe {
 //     return 0;
 // }
 
-pub fn send_hello_msg(pipe: &mut ZmqPipe, options_: &ZmqContext) {
+pub fn send_hello_msg(pipe: &mut ZmqPipe, options_: &mut ZmqContext) {
     // ZmqMessage hello;
     let mut hello = ZmqMessage::default();
-    let rc: i32 = hello.init_buffer(&mut options_.hello_msg[0], options_.hello_msg.size());
+    hello.init_buffer(&mut options_.hello_msg, options_.hello_msg.size())?;
     // errno_assert (rc == 0);
     let written = pipe.write(&mut hello);
     // zmq_assert (written);

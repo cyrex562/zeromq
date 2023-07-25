@@ -1,15 +1,21 @@
 use anyhow::bail;
-use windows::Win32::Networking::WinSock::{listen, connect, SOCKADDR_UN};
+use std::ffi::c_void;
+
 use std::mem;
 use std::ptr::null_mut;
-
-#[cfg(target_os = "linux")]
-use libc::{accept, c_char, connect, listen, rmdir, sockaddr, socket, unlink, setsockopt, IPPROTO_IPV6, IPV6_V6ONLY, IPPROTO_IP, getnameinfo, NI_MAXHOST, IP_TOS, getsockopt, SOL_SOCKET, SO_ERROR};
+#[cfg(target_os = "windows")]
+use windows::Win32::Networking::WinSock::{connect, listen, SOCKADDR_UN};
 
 #[cfg(target_os = "linux")]
 use libc::{
-    eventfd, fcntl, mkdtemp, mkstemp, sockaddr_un, socklen_t, AF_UNIX, EFD_CLOEXEC, 
-    F_GETFL, F_SETFL, IPV6_TCLASS, O_NONBLOCK
+    accept, c_char, connect, getnameinfo, getsockopt, listen, rmdir, setsockopt, sockaddr, socket,
+    unlink, IPPROTO_IP, IPPROTO_IPV6, IPV6_V6ONLY, IP_TOS, NI_MAXHOST, SOL_SOCKET, SO_ERROR,
+};
+
+#[cfg(target_os = "linux")]
+use libc::{
+    eventfd, fcntl, mkdtemp, mkstemp, sockaddr_un, socklen_t, AF_UNIX, EFD_CLOEXEC, F_GETFL,
+    F_SETFL, IPV6_TCLASS, O_NONBLOCK,
 };
 
 use crate::address::get_socket_address;
@@ -20,44 +26,46 @@ use windows::core::PSTR;
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::{
     CloseHandle, GetLastError, SetHandleInformation, BOOL, ERROR_ACCESS_DENIED, FALSE, HANDLE,
-    HANDLE_FLAGS, HANDLE_FLAG_INHERIT,  TRUE,
+    HANDLE_FLAGS, HANDLE_FLAG_INHERIT, TRUE,
 };
 
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{
-    getnameinfo, ioctlsocket, setsockopt, WSACleanup, WSAGetLastError, WSAStartup, FIONBIO,
-    IPPROTO_IP, IPPROTO_IPV6, IPPROTO_TCP, IPV6_V6ONLY, IP_TOS, NI_MAXHOST, NI_NUMERICHOST,
-    SOCKADDR, SOCKET, SOCKET_ERROR, SOL_SOCKET, TCP_NODELAY, WSADATA, WSAEFAULT, WSAEINPROGRESS,
-    WSAENOTSOCK, WSANOTINITIALISED, WSA_FLAG_NO_HANDLE_INHERIT, WSA_FLAG_OVERLAPPED,WSASocketA, WSA_ERROR, SOCKADDR_IN, ADDRESS_FAMILY,closesocket, recv, send, AF_UNIX, SEND_RECV_FLAGS, bind, getsockname, getsockopt, htonl, htons, AF_INET, INADDR_LOOPBACK, INVALID_SOCKET,
-    SOCK_STREAM, SO_ERROR, SO_REUSEADDR,
+    bind, closesocket, getnameinfo, getsockname, getsockopt, htonl, htons, ioctlsocket, recv, send,
+    setsockopt, WSACleanup, WSAGetLastError, WSASocketA, WSAStartup, ADDRESS_FAMILY, AF_INET,
+    AF_UNIX, FIONBIO, INADDR_LOOPBACK, INVALID_SOCKET, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_TCP,
+    IPV6_V6ONLY, IP_TOS, NI_MAXHOST, NI_NUMERICHOST, SEND_RECV_FLAGS, SOCKADDR, SOCKADDR_IN,
+    SOCKET, SOCKET_ERROR, SOCK_STREAM, SOL_SOCKET, SO_ERROR, SO_REUSEADDR, TCP_NODELAY, WSADATA,
+    WSAEFAULT, WSAEINPROGRESS, WSAENOTSOCK, WSANOTINITIALISED, WSA_ERROR,
+    WSA_FLAG_NO_HANDLE_INHERIT, WSA_FLAG_OVERLAPPED,
 };
 
 #[cfg(target_os = "windows")]
 use windows::Win32::Security::{
     InitializeSecurityDescriptor, SetSecurityDescriptorDacl, PSECURITY_DESCRIPTOR,
-    SECURITY_ATTRIBUTES, };
+    SECURITY_ATTRIBUTES,
+};
 #[cfg(target_os = "windows")]
 use windows::Win32::Storage::FileSystem::{
     CreateDirectoryA, GetTempPathA, FILE_ACCESS_RIGHTS, SYNCHRONIZE,
 };
 
-#[cfg(target_os="windows")]
+#[cfg(target_os = "windows")]
 use windows::Win32::System::SystemServices::SECURITY_DESCRIPTOR_REVISION;
 
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::{
-    CreateEventA, CreateMutexA, OpenEventA, WaitForSingleObject, EVENT_MODIFY_STATE, INFINITE, SYNCHRONIZATION_ACCESS_RIGHTS,ReleaseMutex, SetEvent
+    CreateEventA, CreateMutexA, OpenEventA, ReleaseMutex, SetEvent, WaitForSingleObject,
+    EVENT_MODIFY_STATE, INFINITE, SYNCHRONIZATION_ACCESS_RIGHTS,
 };
 #[cfg(target_os = "windows")]
 use windows::Win32::System::WindowsProgramming::OpenMutexA;
 
-use crate::defines::{RETIRED_FD, signaler_port, ZmqFileDesc};
+use crate::defines::{signaler_port, ZmqFileDesc, RETIRED_FD};
 #[cfg(target_os = "windows")]
 use crate::err::wsa_error_to_errno;
 use crate::platform_socket::ZmqSockaddrStorage;
 use crate::tcp::tcp_tune_loopback_fast_path;
-
-
 
 use crate::utils::MAKEWORD;
 
@@ -141,26 +149,29 @@ pub fn unblock_socket(s: ZmqFileDesc) {
 
 pub fn enable_ipv4_mapping(s_: ZmqFileDesc) {
     let mut flag = 0u32;
-    #[cfg(target_os="linux")]{
-    let rc: i32 = unsafe {
-        setsockopt(
-            s_,
-            IPPROTO_IPV6 as i32,
-            IPV6_V6ONLY,
-            Some(&flag.to_le_bytes()),
-            4
-        )
-    };}
+    #[cfg(target_os = "linux")]
+    {
+        let rc: i32 = unsafe {
+            setsockopt(
+                s_,
+                IPPROTO_IPV6 as i32,
+                IPV6_V6ONLY,
+                &flag.to_le_bytes() as *const c_void,
+                4,
+            )
+        };
+    }
 
-    #[cfg(target_os="windows")]{
-    let rc: i32 = unsafe {
-        setsockopt(
-            s_,
-            IPPROTO_IPV6 as i32,
-            IPV6_V6ONLY,
-            Some(&flag.to_le_bytes()),
-        )
-    };
+    #[cfg(target_os = "windows")]
+    {
+        let rc: i32 = unsafe {
+            setsockopt(
+                s_,
+                IPPROTO_IPV6 as i32,
+                IPV6_V6ONLY,
+                Some(&flag.to_le_bytes()),
+            )
+        };
         if rc != 0 {
             bail!("failed to set IPV6_V6ONLY, rc={}", rc);
         }
@@ -174,13 +185,13 @@ pub fn get_peer_ip_address(sockfd_: ZmqFileDesc, mut ip_addr_: &str) -> anyhow::
     unsafe {
         if addrlen.is_err() == 0 {
             // #ifdef ZMQ_HAVE_WINDOWS
-            #[cfg(target_os="windows")]
-             {
+            #[cfg(target_os = "windows")]
+            {
                 let last_error = WSAGetLastError();
                 // wsa_assert(last_error != WSANOTINITIALISED && last_error != WSAEFAULT
                 //     && last_error != WSAEINPROGRESS
                 //     && last_error != WSAENOTSOCK);
-                }
+            }
             // # elif! defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
             // errno_assert (errno != EBADF && errno != EFAULT && errno != ENOTSOCK);
             // #else
@@ -193,7 +204,7 @@ pub fn get_peer_ip_address(sockfd_: ZmqFileDesc, mut ip_addr_: &str) -> anyhow::
     let mut host: [u8; NI_MAXHOST as usize] = [0; NI_MAXHOST];
     let mut rc = 0i32;
     let mut family = 0u16;
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     {
         let sa = SOCKADDR {
             sa_family: ss.ss_family,
@@ -203,12 +214,23 @@ pub fn get_peer_ip_address(sockfd_: ZmqFileDesc, mut ip_addr_: &str) -> anyhow::
         family = ss.ss_family as u16;
     }
 
-    #[cfg(target_os="linux")]{
-        let sa = sockaddr{
+    #[cfg(target_os = "linux")]
+    {
+        let sa = sockaddr {
             sa_family: todo!(),
             sa_data: todo!(),
         };
-        rc = unsafe { getnameinfo(sa, addrlen, host, NI_MAXHOST, null_mut(), 0, 0)};
+        rc = unsafe {
+            getnameinfo(
+                &sa,
+                addrlen as socklen_t,
+                &mut host as *mut c_char,
+                NI_MAXHOST,
+                null_mut(),
+                0,
+                0,
+            )
+        };
         family = sa.family;
     }
 
@@ -230,17 +252,24 @@ pub fn get_peer_ip_address(sockfd_: ZmqFileDesc, mut ip_addr_: &str) -> anyhow::
 }
 
 pub fn set_ip_type_of_service(s_: ZmqFileDesc, iptos_: i32) -> anyhow::Result<()> {
-
     let mut rc = 0i32;
-    #[cfg(target_os="linux")]
+    #[cfg(target_os = "linux")]
     {
-        rc = unsafe { setsockopt(s_, IPPROTO_IP as i32, IP_TOS, Some(&iptos_.to_le_bytes()),4) };
+        rc = unsafe {
+            setsockopt(
+                s_,
+                IPPROTO_IP as i32,
+                IP_TOS,
+                &iptos_.to_le_bytes() as *const c_void,
+                4,
+            )
+        };
     }
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     {
         rc = unsafe { setsockopt(s_, IPPROTO_IP as i32, IP_TOS, Some(&iptos_.to_le_bytes())) };
     }
-    if rc !=0 {
+    if rc != 0 {
         bail!("failed to set IP_TOS, rc={}", rc);
     }
 
@@ -252,13 +281,12 @@ pub fn set_ip_type_of_service(s_: ZmqFileDesc, iptos_: i32) -> anyhow::Result<()
                 s_,
                 IPPROTO_IPV6 as i32,
                 IPV6_TCLASS,
-                Some(&iptos_.to_le_bytes()),
-                4
+                &iptos_.to_le_bytes() as *const c_void,
+                4,
             )
         };
     }
 
-    
     //  If IPv6 is not enabled ENOPROTOOPT will be returned on Linux and
     //  EINVAL on OSX
     // TODO
@@ -329,7 +357,7 @@ pub fn initialize_network() -> bool {
             if (pgm_error.domain == PGM_ERROR_DOMAIN_TIME && (pgm_error.code == PGM_ERROR_FAILED)) {
                 //  Failed to access RTC or HPET device.
                 pgm_error_free(pgm_error);
-              // errno = EINVAL;
+                // errno = EINVAL;
                 return false;
             }
 
@@ -342,7 +370,8 @@ pub fn initialize_network() -> bool {
     // #ifdef ZMQ_HAVE_WINDOWS
     //  Initialise Windows sockets. Note that WSAStartup can be called multiple
     //  times given that WSACleanup will be called for each WSAStartup.
-    #[cfg(target_os="windows")] {
+    #[cfg(target_os = "windows")]
+    {
         let version_requested = MAKEWORD(2, 2);
         let mut wsa_data = WSADATA {
             wVersion: 0,
@@ -511,7 +540,6 @@ pub fn make_fdZmqPaircpip(fd_r: &mut ZmqFileDesc, fd_w: &mut ZmqFileDesc) -> i32
     addr.sin_port = unsafe { htons(signaler_port as u16) };
     // memset (&addr, 0, sizeof addr);
 
-
     //  Create the writer socket.
     *fd_w = ip_open_socket(AF_INET as i32, SOCK_STREAM as i32, 0)?;
     // wsa_assert (*w_ != INVALID_SOCKET);
@@ -627,7 +655,6 @@ pub fn make_fdZmqPaircpip(fd_r: &mut ZmqFileDesc, fd_w: &mut ZmqFileDesc) -> i32
 }
 // #endif
 
-
 pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
     // #if defined ZMQ_HAVE_EVENTFD
     use crate::address::ZmqAddress;
@@ -654,7 +681,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
 
     // #elif defined ZMQ_HAVE_WINDOWS
     // #ifdef ZMQ_HAVE_IPC
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     {
         let mut address: ZmqAddress = ZmqAddress::default();
         let mut dirname = String::new();
@@ -688,10 +715,11 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         //  Bind the socket to the file path.
         rc = unsafe { bind(listener, (address.addr()), address.addrlen()) };
         if rc != 0 {
-            #[cfg(target_os="windows")]{
-            let last_wsa_err = unsafe { WSAGetLastError() };
-          // errno = wsa_error_to_errno(last_wsa_err);
-        }
+            #[cfg(target_os = "windows")]
+            {
+                let last_wsa_err = unsafe { WSAGetLastError() };
+                // errno = wsa_error_to_errno(last_wsa_err);
+            }
             // goto  error_closelistener;
         }
         // if we got here, ipc should be working,
@@ -701,20 +729,23 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         //  Listen for incoming connections.
         rc = unsafe { listen(listener, 1) };
         if (rc != 0) {
-            #[cfg(target_os="windows")]{
-            let last_wsa_err = unsafe { WSAGetLastError() };
-          // errno = wsa_error_to_errno(last_wsa_err);
-        }
+            #[cfg(target_os = "windows")]
+            {
+                let last_wsa_err = unsafe { WSAGetLastError() };
+                // errno = wsa_error_to_errno(last_wsa_err);
+            }
             // goto error_closelistener;
         }
 
-        #[cfg(target_os="windows")]
+        #[cfg(target_os = "windows")]
         {
-            rc = unsafe { getsockname(listener, (&mut lcladdr as &mut SOCKADDR), &mut lcladdr_len) };
+            rc =
+                unsafe { getsockname(listener, (&mut lcladdr as &mut SOCKADDR), &mut lcladdr_len) };
         }
-        #[cfg(target_os="linux")]
+        #[cfg(target_os = "linux")]
         {
-            rc = unsafe { getsockname(listener, (&mut lcladdr as &mut sockaddr), &mut lcladdr_len) };
+            rc =
+                unsafe { getsockname(listener, (&mut lcladdr as &mut sockaddr), &mut lcladdr_len) };
         }
 
         // wsa_assert(rc != -1);
@@ -723,7 +754,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         *w_ = ip_open_socket(AF_UNIX as i32, SOCK_STREAM as i32, 0);
         if (*w_ == -1) {
             let last_wsa_err = unsafe { WSAGetLastError() };
-          // errno = wsa_error_to_errno(last_wsa_err);
+            // errno = wsa_error_to_errno(last_wsa_err);
             // goto error_closelistener;
         }
 
@@ -786,10 +817,10 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         // #endif
         return make_fdZmqPaircpip(r_, w_);
     }
-    
+
     // #elif defined ZMQ_HAVE_OPENVMS
-    // if cfg!(target_os = "vms") 
-    #[cfg(target_os="vms")]
+    // if cfg!(target_os = "vms")
+    #[cfg(target_os = "vms")]
     {
         //  Whilst OpenVMS supports socketpair - it maps to AF_INET only.  Further,
         //  it does not set the socket options TCP_NODELAY and TCP_NODELACK which
@@ -854,8 +885,8 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         return 0;
     }
     // #elif defined ZMQ_HAVE_VXWORKS
-    // if cfg!(target_os = "vxworks") 
-    #[cfg(target_os="vxworks")]
+    // if cfg!(target_os = "vxworks")
+    #[cfg(target_os = "vxworks")]
     {
         // struct sockaddr_in
         // lcladdr;
@@ -910,7 +941,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         // return 0;
     }
     // #else
-    #[cfg(target_os="linux")] 
+    #[cfg(target_os = "linux")]
     {
         //         // All other implementations support socketpair()
         //         int
@@ -937,7 +968,7 @@ pub fn make_fdpair(r_: &mut ZmqFileDesc, w_: &mut ZmqFileDesc) -> i32 {
         //         }
         return 0;
     }
-    
+
     // #endif
 }
 
@@ -945,8 +976,9 @@ pub fn make_socket_noninheritable(sock_: ZmqFileDesc) {
     // #if defined ZMQ_HAVE_WINDOWS && !defined _WIN32_WCE                            \
     //   && !defined ZMQ_HAVE_WINDOWS_UWP
     //  On Windows, preventing sockets to be inherited by child processes.
-    #[cfg(target_os="windows")]
-    let brc = unsafe { SetHandleInformation((sock_), HANDLE_FLAG_INHERIT as u32, 0 as HANDLE_FLAGS) };
+    #[cfg(target_os = "windows")]
+    let brc =
+        unsafe { SetHandleInformation((sock_), HANDLE_FLAG_INHERIT as u32, 0 as HANDLE_FLAGS) };
     // win_assert (brc);
     // #elif (!defined ZMQ_HAVE_SOCK_CLOEXEC || !defined HAVE_ACCEPT4)                \
     //   && defined FD_CLOEXEC
@@ -965,12 +997,12 @@ pub fn make_socket_noninheritable(sock_: ZmqFileDesc) {
 
 pub fn assert_success_or_recoverable(s_: ZmqFileDesc, rc_: i32) {
     // #ifdef ZMQ_HAVE_WINDOWS
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     if rc_ != SOCKET_ERROR {
         return;
     }
     // #else
-    #[cfg(not(target_os="windows"))]
+    #[cfg(not(target_os = "windows"))]
     if rc_ != -1 {
         return;
     }
@@ -1117,4 +1149,3 @@ pub fn create_ipc_wildcard_address(
     }
     Ok(())
 }
-
