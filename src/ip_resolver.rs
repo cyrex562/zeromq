@@ -1,15 +1,26 @@
+use std::{io, os};
+use std::ffi::{c_char, CString};
 use crate::utils::copy_bytes;
 use anyhow::bail;
-use libc::{
-    addrinfo, getaddrinfo, in6_addr, sa_family_t, sockaddr, sockaddr_in, sockaddr_in6, AF_INET,
-    AF_INET6, AI_NUMERICHOST, AI_PASSIVE, EAI_MEMORY, INADDR_ANY, SOCK_STREAM,
-};
+use libc::{addrinfo, getaddrinfo, in6_addr, sa_family_t, sockaddr, sockaddr_in, sockaddr_in6, AF_INET, AF_INET6, AI_NUMERICHOST, AI_PASSIVE, EAI_MEMORY, INADDR_ANY, SOCK_STREAM, ifaddrs, getifaddrs, ECONNREFUSED, EINVAL, EOPNOTSUPP, freeifaddrs, if_indextoname, freeaddrinfo, if_nametoindex};
 use std::ptr::null_mut;
+use std::thread::sleep;
+use windows::Win32::NetworkManagement::IpHelper::IP_ADAPTER_ADDRESSES_LH;
 
 pub union ip_addr_t {
     pub generic: sockaddr,
     pub ipv4: sockaddr_in,
     pub ipv6: sockaddr_in6,
+}
+
+impl ip_addr_t {
+    pub fn set_port(&mut self, port_: u16) {
+        if self.family() == AF_INET6 {
+            self.ipv6.sin6_port = port_.to_be();
+        } else {
+            self.ipv4.sin_port = port_.to_be();
+        }
+    }
 }
 
 pub const in6addr_any: in6_addr = in6_addr { s6_addr: [0; 16] };
@@ -35,19 +46,19 @@ pub fn IN6_IS_ADDR_MULTICAST(a: *const u8) -> bool {
 
 impl ip_addr_t {
     pub fn family(&mut self) -> i32 {
-        self.generic.sa_family as i32
+        self.generic.sa_family.clone() as i32
     }
 
     pub fn is_multicast(&mut self) -> bool {
         if self.family() == AF_INET {
             return IN_MULTICAST(self.ipv4.sin_addr.s_addr.to_be());
         }
-        return IN6_IS_ADDR_MULTICAST(&self.ipv6.sin6_addr.s6_addr as *const u8) != 0;
+        return IN6_IS_ADDR_MULTICAST(&self.ipv6.sin6_addr.s6_addr as *const u8) != false;
     }
 
     pub fn port(&mut self) -> u16 {
         if self.family() == AF_INET6 {
-            self.ipv6.sin6_port.to_be()
+            return self.ipv6.sin6_port.to_be();
         }
         self.ipv4.sin_port.to_be()
     }
@@ -69,7 +80,7 @@ impl ip_addr_t {
         if family_ == AF_INET {
             addr.ipv4.sin_family = AF_INET as sa_family_t;
             addr.ipv4.sin_addr.s_addr = INADDR_ANY.to_be();
-        } else if (family_ == AF_INET6) {
+        } else if family_ == AF_INET6 {
             addr.ipv6.sin6_family = AF_INET6 as sa_family_t;
             copy_bytes(
                 &in6addr_any.s6_addr,
@@ -139,27 +150,28 @@ impl ip_resolver_options_t {
     }
 
     pub fn get_bindable(&mut self) -> bool {
-        self._bindable_wanted
+        self._bindable_wanted.clone()
     }
 
     pub fn get_allow_nic_name(&mut self) -> bool {
-        self._nic_name_allowed
+        self._nic_name_allowed.clone()
     }
 
     pub fn get_ipv6(&mut self) -> bool {
-        self._ipv6_wanted
+        self._ipv6_wanted.clone()
     }
 
     pub fn get_expect_port(&mut self) -> bool {
-        self._port_expected
+        self._port_expected.clone()
     }
 
     pub fn get_allow_dns(&mut self) -> bool {
-        self._dns_allowed
+        self._dns_allowed.clone()
     }
 
     pub fn get_allow_path(&mut self) -> bool {
-        self._path_allowed
+        self._path_allowed.clone()
+
     }
 }
 
@@ -206,14 +218,15 @@ impl ip_resolver_t {
         if self._options.get_allow_path() {
             let pos = addr.find("/");
             match pos {
-                Ok(sz) => {
+                Some(sz) => {
                     addr = addr[0..sz].to_string();
                 }
+                None => {}
             }
         }
 
         let brackets_length = 2;
-        if (addr.len() >= brackets_length && addr[0] == "[" && addr[addr.len() - 1] == "]") {
+        if (addr.len() >= brackets_length) && addr.starts_with("[") && addr.ends_with("]") {
             addr = addr[1..addr.len() - 2].to_string();
         }
 
@@ -223,7 +236,7 @@ impl ip_resolver_t {
             let if_str = addr[pos.unwrap()..].to_string();
             addr = addr[0..pos.unwrap()].to_string();
             let chars = if_str.chars().collect::<Vec<char>>();
-            let x = chars[0];
+            let x = &chars[0];
             if x.is_alphanumeric() {
                 zone_id = do_if_nametoindex(&if_str)?;
             } else {
@@ -325,12 +338,136 @@ impl ip_resolver_t {
             rc = do_getaddrinfo(addr_, NULL, &req, &res);
         }
 
-        if rc == EAI_MEMORY {
-            bail!("out of memory");
-        } else if rc != 0 && self._options.get_bindable() {
-            bail!("enodev");
-        } else {
-            bail!("einval")
+        if rc != 0 {
+            if rc == EAI_MEMORY {
+                bail!("out of memory");
+            } else if rc != 0 && self._options.get_bindable() {
+                bail!("enodev");
+            } else {
+                bail!("einval")
+            }
         }
+
+        // copy_bytes(res.ai_addr, 0, res.ai_addrlen, ip_addr_, 0, ip_addr_.sockaddr_len())?;
+        ip_addr_.generic = *res.ai_addr;
+
+        do_freeaddrinfo(&mut res);
+
+        Ok(())
+    }
+
+    #[cfg(target_os = "linux")]
+    pub unsafe fn resolve_nic_name(&mut self, ip_addr_: &mut ip_addr_t, nic_: &str) -> anyhow::Result<()>
+    {
+        let mut ifa: *mut ifaddrs = null_mut();
+        let mut rc = 0i32;
+        let max_attempts = 10;
+        let backoff_msec = 1;
+        for i in 0 .. max_attempts {
+            rc = getifaddrs(&mut ifa);
+            let errno = io::Error::last_os_error().raw_os_error().unwrap();
+            if rc == 0 || rc < 0 && errno == ECONNREFUSED {
+                break;
+            }
+            sleep(std::time::Duration::from_millis(backoff_msec.clone()));
+        }
+
+        let errno = io::Error::last_os_error().raw_os_error().unwrap();
+        if rc != 0 && errno == EINVAL || errno == EOPNOTSUPP {
+            bail!("enodev");
+        }
+
+        let mut found = false;
+        let mut ifp = ifa;
+        while ifp != null_mut() {
+            if (*ifp).ifa_addr == null_mut() {
+                continue;
+            }
+
+            let family = (*ifp).ifa_addr.as_mut().unwrap().sa_family.clone() as i32;
+            let if_nic_name = CString::from_raw((*ifp).ifa_name).into_string().unwrap();
+            if family == (if self._options.get_ipv6() { AF_INET6} else {AF_INET}) && nic_ == if_nic_name {
+
+               let match_sockaddr = (*ifp).ifa_addr.as_mut().unwrap();
+                (*ip_addr_).generic = *match_sockaddr;
+
+                found = true;
+                break;
+            }
+            ifp = (*ifp).ifa_next;
+        }
+
+        freeifaddrs(ifa);
+
+        if found == false {
+            bail!("enodev");
+        }
+
+        Ok(())
+    }
+
+    #[cfg(target_os = "windows")]
+    pub fn get_interface_name(&mut self, index_: u32, dest: &mut String) -> anyhow::Result<()> {
+        let result = if_indextoname(index_, dest.as_mut_ptr());
+    }
+
+    #[cfg(target_os = "windows")]
+    pub fn resolve_nic_name(&mut self, ip_addr_: &mut ip_addr_t, nic_: &mut String) -> anyhow::Result<()>
+    {
+        let mut rc = 0i32;
+        let mut found = false;
+        let max_attempts = 10;
+        let mut iterations = 0;
+        let addresses: *mut IP_ADAPTER_ADDRESSES = null_mut();
+        while rc == ERROR_BUFFER_OVERFLOW && iterations < max_attempts {
+            rc = GetAdaptersAddresses(
+                AF_UNSPEC,
+                GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER,
+                null_mut(),
+                addresses,
+                &mut out_buf_len,
+            );
+            iterations += 1;
+        }
+
+        let current_addresses = addresses;
+        while current_addresses != null_mut() {
+            let mut if_name: *mut c_char = null_mut();
+            let mut if_friendly_name: *mut c_char = null_mut();
+            let mut str_rc1 = self.get_interface_name((*current_addresses).IfIndex, &mut if_name);
+            let mut str_rc2 = current_addresses.FriendlyName;
+            current_addresses = current_addresses.as_mut().unwrap().Next;
+            if (str_rc1 == 0 && nic_ == if_name) || (str_rc2 == 0 && nic_ == if_friendly_name) {
+                let mut if_addr: *mut IP_ADAPTER_UNICAST_ADDRESS = null_mut();
+                if_addr = current_addresses.as_mut().unwrap().FirstUnicastAddress;
+                while if_addr != null_mut() {
+                    let family = if_addr.as_mut().unwrap().Address.lpSockaddr.as_mut().unwrap().sa_family.clone() as i32;
+                    if family == (if self._options.get_ipv6() { AF_INET6} else {AF_INET}) {
+                        let match_sockaddr = if_addr.as_mut().unwrap().Address.lpSockaddr.as_mut().unwrap();
+                        (*ip_addr_).generic = *match_sockaddr;
+                        found = true;
+                        break;
+                    }
+                    if_addr = if_addr.as_mut().unwrap().Next;
+                }
+            }
+        }
+    }
+
+    pub unsafe fn do_getaddrinfo(&mut self, node: &mut String, service: &mut String, hints: &mut addrinfo, res: *mut *mut addrinfo) -> anyhow::Result<()>
+    {
+        getaddrinfo(node.as_mut_ptr() as *mut c_char, service.as_mut_ptr() as *mut c_char, hints, res);
+        Ok(())
+    }
+
+    pub unsafe fn do_freeaddrinfo(&mut self, res: *mut addrinfo) -> anyhow::Result<()> {
+        freeaddrinfo(res);
+        Ok(())
+    }
+
+    pub unsafe fn do_if_nametoindex(ifname_: &mut String) -> anyhow::Result<()>
+    {
+        if_nametoindex(ifname_.as_mut_ptr() as *mut c_char);
+        Ok(())
     }
 }
