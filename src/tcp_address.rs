@@ -1,10 +1,10 @@
+use std::ffi::c_void;
+use std::mem;
 use crate::ip_resolver::{ip_addr_t, ip_resolver_options_t, ip_resolver_t};
 use anyhow::bail;
-use libc::{
-    c_char, getnameinfo, sockaddr, sockaddr_in, sockaddr_in6, socklen_t, AF_INET, AF_INET6,
-    NI_MAXHOST, NI_NUMERICHOST,
-};
+use libc::{c_char, getnameinfo, sockaddr, sockaddr_in, sockaddr_in6, socklen_t, AF_INET, AF_INET6, NI_MAXHOST, NI_NUMERICHOST, in6_addr, in_addr, size_t};
 use std::ops::Index;
+use std::ptr::null_mut;
 use windows::Win32::Networking::WinSock::sa_family_t;
 
 #[derive(Default, Debug, Clone)]
@@ -192,6 +192,56 @@ impl tcp_address_mask_t {
         let mut resolver = ip_resolver_t::new(&mut resolver_opts);
         resolver.resolve(&mut self._network_address, addr_str.as_str())?;
 
+        let full_mask_ipv4 = 32;
+        let full_mask_ipv6 = 128;
+
+        if mask_str.len() == 0 {
+            self._address_mask = 0;
+        } else {
+            let mask = mask_str.parse::<i32>().unwrap();
+            if mask < 1 || (self._network_address.family() == AF_INET6 && mask > full_mask_ipv6) || (self._network_address.family() != AF_INET6 && mask > full_mask_ipv4) {
+                bail!("invalid address mask")
+            }
+            self._address_mask = mask;
+        }
+
         Ok(())
+    }
+
+    pub unsafe fn match_address(&mut self, ss_: &sockaddr, ss_len_: socklen_t) -> bool {
+        if ss_.sa_family != self._network_address.family() as u16 {
+            return false;
+        }
+
+        if self._address_mask > 0 {
+            let mut mask = 0i32;
+            let mut our_bytes: *mut u8 = null_mut();
+            let mut their_bytes: *mut u8 = null_mut();
+            if ss_.sa_family == AF_INET6 as u16 {
+                their_bytes = ss_.sa_data[0..16].as_mut_ptr() as *mut u8;
+                our_bytes = (*self._network_address.as_sockaddr()).sa_data[0..16].as_mut_ptr() as *mut u8;
+                mask = (mem::size_of::<in6_addr>() * 8) as i32;
+            } else {
+                their_bytes = ss_.sa_data[0..4].as_mut_ptr() as *mut u8;
+                our_bytes = (*self._network_address.as_sockaddr()).sa_data[0..4].as_mut_ptr() as *mut u8;
+                mask = (mem::size_of::<in_addr>() * 8) as i32;
+            }
+            if self._address_mask < mask
+            {
+                mask = self._address_mask;
+            }
+
+            let full_bytes = mask / 8;
+            if libc::memcmp(our_bytes as *const c_void, their_bytes as *const c_void, full_bytes as size_t) != 0 {
+                return false;
+            }
+
+            let last_byte_bits = 0xff << (8 - (mask.clone() % 8));
+            if last_byte_bits > 0 && (*(their_bytes + full_bytes.clone() )& last_byte_bits) != (*(our_bytes + full_bytes.clone()) & last_byte_bits.clone()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
