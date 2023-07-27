@@ -2,6 +2,8 @@ use std::ptr::null_mut;
 
 use libc::c_void;
 use windows::Win32::{Networking::WinSock::{socklen_t, SOCKADDR_STORAGE}, };
+use crate::tcp_address::tcp_address_t;
+use crate::udp_address::udp_address_t;
 
 
 pub type zmq_socklen_t = socklen_t;
@@ -17,11 +19,11 @@ pub union AddressUnion
     pub dummy: *mut c_void,
     pub tcp_addr: *mut tcp_address_t,
     pub udp_addr: *mut udp_address_t,
-    pub ws_addr: *mut ws_address_t,
-    pub wss_addr: *mut wss_address_t,
+    // pub ws_addr: *mut ws_address_t,
+    // pub wss_addr: *mut wss_address_t,
     pub ipc_addr: *mut ipc_address_t,
-    pub tipc_addr: *mut tipc_address_t,
-    pub vmci_addr: *mut vmci_address_t,
+    // pub tipc_addr: *mut tipc_address_t,
+    // pub vmci_addr: *mut vmci_address_t,
 }
 
 impl std::fmt::Debug for AddressUnion {
@@ -66,8 +68,8 @@ impl address_t
     fn new(protocol_: &mut String, address_: &mut String, parent_: *mut ctx_t) -> Self
     {
         Self {
-            protocol: protocol_,
-            address: address_,
+            protocol: (*protocol_).clone(),
+            address: (*address_).clone(),
             parent: parent_,
             resolved: AddressUnion{dummy: null_mut()},
         }

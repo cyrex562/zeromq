@@ -1,5 +1,6 @@
 use std::{io, os};
 use std::ffi::{c_char, CString};
+use std::fmt::{Debug, Display, Formatter};
 use crate::utils::copy_bytes;
 use anyhow::bail;
 use libc::{addrinfo, getaddrinfo, in6_addr, sa_family_t, sockaddr, sockaddr_in, sockaddr_in6, AF_INET, AF_INET6, AI_NUMERICHOST, AI_PASSIVE, EAI_MEMORY, INADDR_ANY, SOCK_STREAM, ifaddrs, getifaddrs, ECONNREFUSED, EINVAL, EOPNOTSUPP, freeifaddrs, if_indextoname, freeaddrinfo, if_nametoindex};
@@ -7,11 +8,87 @@ use std::ptr::null_mut;
 use std::thread::sleep;
 use windows::Win32::NetworkManagement::IpHelper::IP_ADAPTER_ADDRESSES_LH;
 
+
 pub union ip_addr_t {
     pub generic: sockaddr,
     pub ipv4: sockaddr_in,
     pub ipv6: sockaddr_in6,
 }
+
+impl Clone for ip_addr_t {
+    fn clone(&self) -> Self {
+        let mut out = Self {
+           generic: sockaddr{
+               sa_family: self.generic.sa_family.clone(),
+               sa_data: [0;14]
+           }
+        };
+
+        unsafe {
+            for i in 0..14 {
+                out.generic.sa_data[i] = self.generic.sa_data[i.clone()].clone();
+            }
+        }
+
+        unsafe {
+            if out.generic.sa_family == AF_INET6 as u16 {
+                out.ipv6.sin6_family = self.ipv6.sin6_family.clone();
+                out.ipv6.sin6_port = self.ipv6.sin6_port.clone();
+                out.ipv6.sin6_flowinfo = self.ipv6.sin6_flowinfo.clone();
+                for i in 0..16 {
+                    out.ipv6.sin6_addr.s6_addr[i] = self.ipv6.sin6_addr.s6_addr[i.clone()].clone();
+                }
+                out.ipv6.sin6_scope_id = self.ipv6.sin6_scope_id.clone();
+            } else if out.generic.sa_family == AF_INET as u16 {
+                out.ipv4.sin_family = self.ipv4.sin_family.clone();
+                out.ipv4.sin_port = self.ipv4.sin_port.clone();
+                out.ipv4.sin_addr.s_addr = self.ipv4.sin_addr.s_addr.clone();
+            } else {}
+        }
+
+        out
+    }
+}
+
+impl Debug for ip_addr_t {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ip_addr_t {{ generic: {}, ipv4: {}, ipv6: {} }}", sockaddr_to_str(&self.generic), sockaddr_in_to_str(&self.ipv4), sockaddr_in6_to_str(&self.ipv6))
+    }
+}
+
+pub fn sockaddr_to_str(sa: &sockaddr) -> String {
+    let mut out = String::new();
+    out += format!("sockaddr {{ sa_family: {}", sa.sa_family).as_str();
+    out += ", sa_data: [";
+    for i in 0 .. 14 {
+        out += format!(" {:02x}", sa.sa_data[i]).as_str();
+    }
+    out += " ] }}";
+    out
+}
+
+pub fn sockaddr_in_to_str(sa: &sockaddr_in) -> String {
+    let mut out = String::new();
+    out += format!("sockaddr_in {{ sin_family: {}", sa.sin_family).as_str();
+    out += format!(", sin_port: {}", sa.sin_port).as_str();
+    out += format!(", sin_addr: {} }}", sa.sin_addr.s_addr).as_str();
+    out
+}
+
+pub fn sockaddr_in6_to_str(sa: &sockaddr_in6) -> String {
+    let mut out = String::new();
+    out += format!("sockaddr_in6 {{ sin6_family: {}", sa.sin6_family).as_str();
+    out += format!(", sin6_port: {}", sa.sin6_port).as_str();
+    out += format!(", sin6_flowinfo: {}", sa.sin6_flowinfo).as_str();
+    out += ", sin6_addr: [";
+    for i in 0 .. 16 {
+        out += format!(" {:02x}", sa.sin6_addr.s6_addr[i]).as_str();
+    }
+    out += " ]";
+    out += format!(", sin6_scope_id: {} }}", sa.sin6_scope_id).as_str();
+    out
+}
+
 
 impl ip_addr_t {
     pub fn set_port(&mut self, port_: u16) {
@@ -23,16 +100,31 @@ impl ip_addr_t {
     }
 }
 
+impl Display for ip_addr_t {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ip_addr_t {{ generic: {}, ipv4: {}, ipv6: {} }}", sockaddr_to_str(&self.generic), sockaddr_in_to_str(&self.ipv4), sockaddr_in6_to_str(&self.ipv6))
+    }
+}
+
 pub const in6addr_any: in6_addr = in6_addr { s6_addr: [0; 16] };
 
 impl Default for ip_addr_t {
     fn default() -> Self {
-        Self {
+        let mut out = Self {
             generic: sockaddr {
                 sa_family: 0,
                 sa_data: [0; 14],
             },
+        };
+
+        unsafe {
+            out.ipv6.sin6_family = 0;
+            out.ipv6.sin6_port = 0;
+            out.ipv6.sin6_flowinfo = 0;
+            out.ipv6.sin6_addr.s6_addr = [0; 16];
         }
+
+        out
     }
 }
 

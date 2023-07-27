@@ -4,6 +4,7 @@ mod ip_resolver;
 mod socket_base;
 mod tcp_address;
 mod utils;
+mod udp_address;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
