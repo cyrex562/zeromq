@@ -21,7 +21,7 @@ pub union AddressUnion
     pub udp_addr: *mut udp_address_t,
     // pub ws_addr: *mut ws_address_t,
     // pub wss_addr: *mut wss_address_t,
-    pub ipc_addr: *mut ipc_address_t,
+    // pub ipc_addr: *mut ipc_address_t,
     // pub tipc_addr: *mut tipc_address_t,
     // pub vmci_addr: *mut vmci_address_t,
 }
