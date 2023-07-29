@@ -18,3 +18,7 @@ pub fn copy_bytes(
 
     Ok(())
 }
+
+pub fn get_errno() -> i32 {
+    std::io::Error::last_os_error().raw_os_error().unwrap()
+}

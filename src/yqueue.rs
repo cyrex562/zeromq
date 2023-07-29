@@ -7,7 +7,7 @@ pub struct chunk_t<T, const N: usize> {
     pub next: *mut c_void, // really chunk_t
 }
 
-pub struct yqueue_t<T, const N: usize>
+pub struct yqueue_t<T: Clone + PartialEq, const N: usize>
 {
     pub _begin_chunk: *mut chunk_t<T,N>,
     pub _begin_pos: usize,
@@ -18,12 +18,12 @@ pub struct yqueue_t<T, const N: usize>
     pub _spare_chunk: *mut chunk_t<T,N>,
 }
 
-impl <T, const N: usize>yqueue_t<T,N>
+impl <T: Clone + PartialEq , const N: usize>yqueue_t<T,N>
 {
-    pub fn new() -> Self
+    pub unsafe fn new() -> Self
     {
         let mut out = Self {
-            _begin_chunk: allocate_chunk(),
+            _begin_chunk: Self::allocate_chunk(),
             _begin_pos: 0,
             _back_chunk: null_mut(),
             _back_pos: 0,
@@ -39,12 +39,20 @@ impl <T, const N: usize>yqueue_t<T,N>
         &(*self._begin_chunk).values[self._begin_pos as usize]
     }
 
+    pub unsafe fn front_mut(&mut self) -> *mut T {
+        &mut (*self._begin_chunk).values[self._begin_pos as usize]
+    }
+
     pub unsafe fn back(&mut self) -> &T {
         &(*self._back_chunk).values[self._back_pos as usize]
     }
 
     pub unsafe fn back_mut(&mut self) -> &mut T {
         &mut (*self._back_chunk).values[self._back_pos as usize]
+    }
+
+    pub unsafe fn set_back(&mut self, value_: &mut T) {
+        (*self._back_chunk).values[self._back_pos as usize] = value_.clone();
     }
 
     pub unsafe fn push(&mut self) {
@@ -61,7 +69,7 @@ impl <T, const N: usize>yqueue_t<T,N>
             (*self._end_chunk).next = sc as *mut c_void;
             (*sc).prev = self._end_chunk as *mut c_void;
         } else {
-            (*self._end_chunk).next = allocate_chunk();
+            (*self._end_chunk).next = Self::allocate_chunk() as *mut c_void;
            (*((* self._end_chunk).next as *mut chunk_t<T,N>)).prev = self._end_chunk as *mut c_void;
         }
 

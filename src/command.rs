@@ -138,6 +138,23 @@ pub union args_t
 
 pub struct command_t
 {
-    pub destination: *mut object_t
+    pub destination: *mut object_t,
     pub args: args_t,
+}
+
+impl Clone for command_t
+{
+    fn clone(&self) -> Self {
+        command_t {
+            destination: self.destination,
+            args: self.args,
+        }
+    }
+}
+
+impl PartialEq for command_t
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.destination == other.destination
+    }
 }
