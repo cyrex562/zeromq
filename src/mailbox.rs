@@ -2,6 +2,7 @@ use crate::command::command_t;
 use crate::i_mailbox::i_mailbox;
 use crate::ypipe::ypipe_t;
 use crate::config::command_pipe_granularity;
+use crate::singaler::signaler_t;
 
 #[derive()]
 pub struct mailbox_t
