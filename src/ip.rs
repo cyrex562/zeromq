@@ -40,6 +40,7 @@ pub unsafe fn make_fdpair_tcpip(r_: *mut fd_t, w_: *mut fd_t) -> i32 {
 
     let mut sync: HANDLE = null_mut();
     let event_signaler_port: i32 = 5905;
+    let lpname = PCWSTR::
     if signaler_port == event_signaler_port {
         sync = CreateEventW(&mut sa, FALSE, TRUE, "Global\\zmq-signaler-port-sync").unwrap();
     }

@@ -19,7 +19,7 @@ pub fn copy_bytes(
     Ok(())
 }
 
-pub unsafe fn copy_bytes_void(
+pub unsafe fn copy_void(
     src: *const c_void,
     src_offset: usize,
     src_count: usize,

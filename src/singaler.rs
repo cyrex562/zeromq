@@ -1,5 +1,6 @@
 use libc::EAGAIN;
 use crate::fd::fd_t;
+use crate::ip::make_fdpair;
 use crate::utils::get_errno;
 
 pub struct signaler_t
@@ -13,7 +14,7 @@ impl signaler_t
     pub fn new() -> Self {
         let mut out = Self {
           _r: 0,
-            _W: 0
+            _w: 0
         };
         let mut rc = make_fdpair(&mut out._r, &mut out._w);
         if rc == 0 {
