@@ -1,4 +1,7 @@
 use std::ptr::null_mut;
+use crate::ctx::ctx_t;
+use crate::options::options_t;
+use crate::socket_base::socket_base_t;
 
 
 pub struct channel_t
