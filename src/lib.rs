@@ -23,6 +23,7 @@ mod fd;
 mod defines;
 mod ip;
 mod options;
+mod array;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
