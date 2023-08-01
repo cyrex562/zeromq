@@ -26,6 +26,7 @@ mod options;
 mod array;
 mod atomic_counter;
 mod atomic_ptr;
+mod blob;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
