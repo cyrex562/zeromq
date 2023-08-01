@@ -24,6 +24,7 @@ mod defines;
 mod ip;
 mod options;
 mod array;
+mod atomic_counter;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
