@@ -1,4 +1,5 @@
 use crate::blob::blob_t;
+use crate::endpoint::endpoint_uri_pair_t;
 use crate::ypipe_base::ypipe_base_t;
 
 pub trait i_pipe_events
@@ -7,7 +8,6 @@ pub trait i_pipe_events
     fn write_activated(&self, pipe_: pipe_t);
     fn hiccuped(&self, pipe_: pipe_t);
     fn pipe_terminated(&self, pipe_: pipe_t);
-
 }
 
 pub enum pipe_state
