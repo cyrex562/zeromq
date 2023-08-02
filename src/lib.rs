@@ -28,6 +28,7 @@ mod atomic_counter;
 mod atomic_ptr;
 mod blob;
 mod pipe;
+mod endpoint;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
