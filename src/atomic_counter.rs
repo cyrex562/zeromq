@@ -13,7 +13,7 @@ impl atomic_counter_t
         }
     }
 
-    pub fn set(value_: i32) {
+    pub fn set(&mut self, value_: i32) {
         self._value.store(value_, Ordering::Relaxed);
     }
 

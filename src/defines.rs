@@ -118,7 +118,7 @@ pub const ZMQ_CURVE: u32 = 2;
 pub const ZMQ_GSSAPI: u32 = 3;
 
 /*  RADIO-DISH protocol                                                       */
-pub const ZMQ_GROUP_MAX_LENGTH: u32 = 255;
+pub const ZMQ_GROUP_MAX_LENGTH: usize = 255;
 
 /*  Deprecated options and aliases                                            */
 pub const ZMQ_IDENTITY: u32 = ZMQ_ROUTING_ID;
