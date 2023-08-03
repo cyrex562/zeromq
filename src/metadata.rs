@@ -1,14 +1,13 @@
 use std::collections::HashMap;
 use crate::atomic_counter::atomic_counter_t;
 
-pub struct metadata_t
-{
+pub struct metadata_t {
     pub _ref_cnt: atomic_counter_t,
-    pub _dict: HashMap<String,String>,
+    pub _dict: HashMap<String, String>,
 }
 
 impl metadata_t {
-    pub fn new(dict_: &HashMap<String,String>) -> Self {
+    pub fn new(dict_: &HashMap<String, String>) -> Self {
         Self {
             _ref_cnt: atomic_counter_t::new(1),
             _dict: dict_.clone(),

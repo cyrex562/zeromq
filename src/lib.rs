@@ -31,6 +31,8 @@ mod pipe;
 mod endpoint;
 mod msg;
 mod metadata;
+mod ypipe_conflate;
+mod dbuffer;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

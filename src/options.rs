@@ -11,14 +11,13 @@ use crate::utils::{copy_bytes, copy_void};
 pub const CURVE_KEYSIZE: usize = 32;
 pub const CURVE_KEYSIZE_Z85: usize = 40;
 
-#[derive(Debug,Clone)]
-pub struct options_t
-{
+#[derive(Debug, Clone)]
+pub struct options_t {
     pub affinity: u64,
     pub sndhwm: i32,
     pub rcvhwm: i32,
     pub routing_id_size: u8,
-    pub routing_id: [u8;256],
+    pub routing_id: [u8; 256],
     pub rate: i32,
     pub recovery_ivl: i32,
     pub multicast_hops: i32,
@@ -58,9 +57,9 @@ pub struct options_t
     pub zap_domain: String,
     pub plain_username: String,
     pub plain_password: String,
-    pub curve_public_key: [u8;CURVE_KEYSIZE],
-    pub curve_secret_key: [u8;CURVE_KEYSIZE],
-    pub curve_server_key: [u8;CURVE_KEYSIZE],
+    pub curve_public_key: [u8; CURVE_KEYSIZE],
+    pub curve_secret_key: [u8; CURVE_KEYSIZE],
+    pub curve_server_key: [u8; CURVE_KEYSIZE],
     pub gss_principal: String,
     pub gss_service_principal: String,
     pub gss_principal_nt: i32,
@@ -82,7 +81,7 @@ pub struct options_t
     pub out_batch_size: i32,
     pub zero_copy: bool,
     pub router_notify: i32,
-    pub app_metadata: HashMap< String,String>,
+    pub app_metadata: HashMap<String, String>,
     pub monitor_event_version: i32,
     pub wss_key_pem: String,
     pub wss_cert_pem: String,
@@ -103,68 +102,67 @@ pub struct options_t
     pub norm_num_parity: i32,
     pub norm_num_autoparity: i32,
     pub norm_push_enable: bool,
-    pub busy_poll: i32
+    pub busy_poll: i32,
 }
 
 pub const default_hwm: i32 = 1000;
 
-impl options_t
-{
+impl options_t {
     pub fn new() -> Self {
-        let mut out = Self{
+        let mut out = Self {
             sndhwm: default_hwm,
-          rcvhwm: default_hwm,
-          rate: 100,
+            rcvhwm: default_hwm,
+            rate: 100,
             recovery_ivl: 10000,
-          multicast_hops: 1,
-          multicast_maxtpdu: 1500,
-          sndbuf: -1,
-          rcvbuf: -1,
-          type_: -1,
-          linger: 0,
-          reconnect_ivl: 100,
-          backlog: 100,
+            multicast_hops: 1,
+            multicast_maxtpdu: 1500,
+            sndbuf: -1,
+            rcvbuf: -1,
+            type_: -1,
+            linger: 0,
+            reconnect_ivl: 100,
+            backlog: 100,
             maxmsgsize: -1,
-          rcvtimeo: -1,
-          sndtimeo: -1,
-          ipv6: false,
-          filter: false,
-          invert_matching: false,
-          recv_routing_id: false,
+            rcvtimeo: -1,
+            sndtimeo: -1,
+            ipv6: false,
+            filter: false,
+            invert_matching: false,
+            recv_routing_id: false,
             raw_socket: false,
             raw_notify: false,
             tcp_keepalive: -1,
-          tcp_keepalive_cnt: -1,
-          tcp_keepalive_idle: -1,
+            tcp_keepalive_cnt: -1,
+            tcp_keepalive_idle: -1,
             tcp_keepalive_intvl: -1,
-          mechanism: ZMQ_NULL,
-          gss_principal_nt: ZMQ_GSSAPI_NT_HOSTBASED,
+            mechanism: ZMQ_NULL,
+            gss_principal_nt: ZMQ_GSSAPI_NT_HOSTBASED,
             gss_service_principal_nt: ZMQ_GSSAPI_NT_HOSTBASED,
             gss_plaintext: false,
-          conflate: false,
-          handshake_ivl: 30000,
-          connected: false,
-          heartbeat_timeout: -1,
-          use_fd: -1,
-          zap_enforce_domain: false,
-          loopback_fastpath: true,
+            conflate: false,
+            handshake_ivl: 30000,
+            connected: false,
+            heartbeat_timeout: -1,
+            use_fd: -1,
+            zap_enforce_domain: false,
+            loopback_fastpath: true,
             multicast_loop: true,
             in_batch_size: 8192,
-          out_batch_size: 8192,
-          zero_copy: true,
-          monitor_event_version: 1,
-          wss_trust_system: false,
-          can_send_hello_msg: false,
-          can_recv_disconnect_msg: false,
-          can_recv_hiccup_msg: false,
-          norm_mode: ZMQ_NORM,
+            out_batch_size: 8192,
+            zero_copy: true,
+            monitor_event_version: 1,
+            wss_trust_system: false,
+            can_send_hello_msg: false,
+            can_recv_disconnect_msg: false,
+            can_recv_hiccup_msg: false,
+            norm_mode: ZMQ_NORM,
             norm_unicast_nacks: false,
-          norm_buffer_size: 2048,
-          norm_segment_size: 1400,
-          norm_block_size: 16,
-          norm_num_parity: 4,
-          norm_push_enable: false,
-          ..Default::default()
+            norm_buffer_size: 2048,
+            norm_segment_size: 1400,
+            norm_block_size: 16,
+            norm_num_parity: 4,
+            norm_push_enable: false,
+            ..Default::default()
         };
         out
     }
@@ -172,15 +170,14 @@ impl options_t
     pub const CURVE_KEYSIZE_Z85_1: usize = CURVE_KEYSIZE_Z85 + 1;
     pub const deciseconds_per_millisecond: u32 = 100;
 
-    pub unsafe fn set_curve_key(&mut self, destination: &mut [u8], optval_: *const c_void, optvallen_: size_t) -> i32
-    {
+    pub unsafe fn set_curve_key(&mut self, destination: &mut [u8], optval_: *const c_void, optvallen_: size_t) -> i32 {
         match optvallen_ {
             CURVE_KEYSIZE => {
                 libc::memcpy(destination.as_mut_ptr() as *mut c_void, optval_, optvallen_);
                 self.mechanism = ZMQ_CURVE;
                 return 0;
-            },
-            CURVE_KEYSIZE_Z85_1 =>  {
+            }
+            CURVE_KEYSIZE_Z85_1 => {
                 let s = std::str::from_utf8_unchecked(std::slice::from_raw_parts(optval_ as *const u8, optvallen_ as usize));
                 if zmq_z85_decode(destination.as_mut_ptr() as *mut c_void, s) {
                     self.mechanism = ZMQ_CURVE;
@@ -188,7 +185,7 @@ impl options_t
                 }
             }
             CURVE_KEYSIZE_Z85 => {
-               let mut z85_key: [i8;CURVE_KEYSIZE_Z85_1] = [0;CURVE_KEYSIZE_Z85_1];
+                let mut z85_key: [i8; CURVE_KEYSIZE_Z85_1] = [0; CURVE_KEYSIZE_Z85_1];
                 libc::memcpy(z85_key.as_mut_ptr() as *mut c_void, optval_, optvallen_);
                 z85_key[CURVE_KEYSIZE_Z85] = 0;
                 if zmq_z85_decode(destination.as_mut_ptr() as *mut c_void, z85_key.as_ptr() as *const i8) {
@@ -223,7 +220,7 @@ impl options_t
                 }
             }
             ZMQ_AFFINITY => {
-               return do_setsockopt(optval_, optvallen_, &self.affinity);
+                return do_setsockopt(optval_, optvallen_, &self.affinity);
             }
             ZMQ_ROUTING_ID => {
                 if optvallen_ > 0 && optvallen_ <= u8::MAX as usize {
@@ -247,82 +244,82 @@ impl options_t
                 }
             }
             ZMQ_SNDBUF => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.sndbuf = value;
                     return 0;
                 }
             }
             ZMQ_RCVBUF => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.rcvbuf = value;
                     return 0;
                 }
             }
             ZMQ_TOS => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.tos = value;
                     return 0;
                 }
             }
             ZMQ_LINGER => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.linger = value as u64;
                     return 0;
                 }
             }
             ZMQ_CONNECT_TIMEOUT => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.connect_timeout = value;
                     return 0;
                 }
             }
             ZMQ_TCP_MAXRT => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.tcp_maxrt = value;
                     return 0;
                 }
             }
             ZMQ_RECONNECT_STOP => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.reconnect_stop = value;
                     return 0;
                 }
             }
             ZMQ_RECONNECT_IVL => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.reconnect_ivl = value;
                     return 0;
                 }
             }
             ZMQ_BACKLOG => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.backlog = value;
                     return 0;
                 }
             }
             ZMQ_MAXMSGSIZE => {
-                return do_setsockopt(optval_, optvallen_, &self.maxmsgsize)
+                return do_setsockopt(optval_, optvallen_, &self.maxmsgsize);
             }
             ZMQ_MULTICAST_HOPS => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.multicast_hops = value;
                     return 0;
                 }
             }
             ZMQ_MULTICAST_MAXTPDU => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.multicast_maxtpdu = value;
                     return 0;
                 }
             }
             ZMQ_RCVTIMEO => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.rcvtimeo = value;
                     return 0;
                 }
             }
             ZMQ_SNDTIMEO => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.sndtimeo = value;
                     return 0;
                 }
@@ -336,18 +333,17 @@ impl options_t
                 }
                 return rc;
             }
-            ZMQ_IPV6=> {
+            ZMQ_IPV6 => {
                 return do_setsockopt_int_as_bool_relaxed(optval_, optvallen_, &mut self.ipv6);
             }
-            ZMQ_SOCKS_PROXY=> {
+            ZMQ_SOCKS_PROXY => {
                 return do_setsockopt_string_allow_empty_relaxed(optval_, optvallen_, &mut self.socks_proxy_address, usize::MAX);
             }
             ZMQ_SOCKS_USERNAME => {
                 if optval_ == ptr::null() || optvallen_ == 0 {
                     self.socks_proxy_username.clear();
                     return 0;
-                }
-                else {
+                } else {
                     return do_setsockopt_string_allow_empty_relaxed(optval_, optvallen_, &mut self.socks_proxy_username, 255);
                 }
             }
@@ -355,35 +351,34 @@ impl options_t
                 if optval_ == ptr::null() || optvallen_ == 0 {
                     self.socks_proxy_password.clear();
                     return 0;
-                }
-                else {
+                } else {
                     return do_setsockopt_string_allow_empty_relaxed(optval_, optvallen_, &mut self.socks_proxy_password, 255);
                 }
             }
             ZMQ_TCP_KEEPALIVE => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.tcp_keepalive = value;
                     return 0;
                 }
-            },
+            }
             ZMQ_TCP_KEEPALIVE_CNT => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.tcp_keepalive_cnt = value;
                     return 0;
                 }
-            },
+            }
             ZMQ_TCP_KEEPALIVE_IDLE => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.tcp_keepalive_idle = value;
                     return 0;
                 }
-            },
+            }
             ZMQ_TCP_KEEPALIVE_INTVL => {
-                if is_int && value >=0 {
+                if is_int && value >= 0 {
                     self.tcp_keepalive_intvl = value;
                     return 0;
                 }
-            },
+            }
             ZMQ_IMMEDIATE => {
                 if is_int && value == 0 || value == 1 {
                     self.immediate = value;
@@ -399,8 +394,7 @@ impl options_t
                         self.tcp_accept_filters.clear();
                     } else {
                         let mut mask: tcp_address_mask_t = tcp_address_mask_t::default();
-                        if mask.resolve(filter_str.as_str(), self.ipv6).is_ok()
-                        {
+                        if mask.resolve(filter_str.as_str(), self.ipv6).is_ok() {
                             self.tcp_accept_filters.push(mask);
                             rc = 0;
                         }
@@ -559,8 +553,7 @@ impl options_t
         return -1;
     }
 
-    pub unsafe fn getsockopt(&mut self, option_: i32, optval_: *mut c_void, optvallen_: *mut size_t) -> i32
-    {
+    pub unsafe fn getsockopt(&mut self, option_: i32, optval_: *mut c_void, optvallen_: *mut size_t) -> i32 {
         let is_int = *optvallen_ == std::mem::size_of::<i32>();
         let value: *mut i32 = optval_ as *mut i32;
         match option_ as u32 {
@@ -586,7 +579,7 @@ impl options_t
             ZMQ_ROUTING_ID => {
                 return do_getsockopt(optval_, optvallen_, &self.routing_id);
             }
-            
+
             _ => {
                 return -1;
             }
@@ -596,8 +589,7 @@ impl options_t
     }
 }
 
-pub fn get_effective_conflate_option(options: &options_t) -> bool
-{
+pub fn get_effective_conflate_option(options: &options_t) -> bool {
     return options.conflate && (options.type_ == ZMQ_DEALER || options.type_ == ZMQ_PULL || options.type_ == ZMQ_PUSH || options.type_ == ZMQ_PUB || options.type_ == ZMQ_SUB);
 }
 
@@ -643,7 +635,7 @@ pub unsafe fn do_setsockopt_int_as_bool_strict(optval_: *const c_void, optvallen
     }
     if value == 0 || value == 1 {
         *out_value_ = (value != 0);
-        return 0
+        return 0;
     }
     return sockopt_invalid();
 }
@@ -686,8 +678,7 @@ pub unsafe fn do_setsockopt_string_allow_empty_relaxed(
 }
 
 
-pub unsafe fn do_setsockopt_set<T: Eq + Hash>(optval_: *const c_void, optvallen_: size_t, set_: &mut HashSet<T>)
-{
+pub unsafe fn do_setsockopt_set<T: Eq + Hash>(optval_: *const c_void, optvallen_: size_t, set_: &mut HashSet<T>) {
     if optvallen_ == 0 && optval_ == std::ptr::null() {
         set_.clear();
         return;

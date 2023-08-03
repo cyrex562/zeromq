@@ -172,6 +172,7 @@ pub union msg_u {
     pub delimiter: delimiter,
 }
 
+#[derive(Clone, Copy)]
 pub struct msg_t {
     pub refcnt: *mut atomic_counter_t,
     pub _u: msg_u,

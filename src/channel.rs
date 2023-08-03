@@ -1,5 +1,7 @@
 use std::ptr::null_mut;
 use crate::ctx::ctx_t;
+use crate::defines::ZMQ_CHANNEL;
+use crate::msg::msg_t;
 use crate::options::options_t;
 use crate::socket_base::socket_base_t;
 
@@ -14,7 +16,7 @@ impl channel_t
 {
     pub fn new(options: &mut options_t, parent: *mut ctx_t, tid_: u32, sid_: i32) -> Self
     {
-        options.type_ = ZMQ_CHANNEL;
+        options.type_ = ZMQ_CH+ANNEL;
         Self {
             base: socket_base_t::new(parent, tid_, sid_, true),
             _pipe: null_mut(),
