@@ -30,6 +30,7 @@ mod blob;
 mod pipe;
 mod endpoint;
 mod msg;
+mod metadata;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
