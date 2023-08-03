@@ -1,5 +1,5 @@
 use std::ptr::null_mut;
-use crate::msg::msg_t;
+use crate::mutex::mutex_t;
 
 pub struct dbuffer_t<T: Copy + Default>
 {
@@ -11,7 +11,7 @@ pub struct dbuffer_t<T: Copy + Default>
 }
 
 impl <T: Copy + Default>dbuffer_t<T>{
-    pub fn new()
+    pub fn new() -> Self
     {
         let mut out = Self {
             _storage: [T::default();2],
@@ -23,7 +23,7 @@ impl <T: Copy + Default>dbuffer_t<T>{
 
         out._back = &mut out._storage[0];
         out._front = &mut out._storage[1];
-
+        out
     }
 
     pub unsafe fn write(&mut self, value_: &mut T) {
