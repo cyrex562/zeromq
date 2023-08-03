@@ -2,7 +2,7 @@ use std::ptr::null_mut;
 use crate::ypipe_base::ypipe_base_t;
 use crate::yqueue::yqueue_t;
 
-pub struct ypipe_t<T: Clone + PartialEq, const N: usize> {
+pub struct ypipe_t<T: Clone + PartialEq + Default, const N: usize> {
     pub base: ypipe_base_t<T>,
     pub _queue: yqueue_t<T,N>,
     pub _w: *mut T,
@@ -11,7 +11,7 @@ pub struct ypipe_t<T: Clone + PartialEq, const N: usize> {
     pub _c: *mut T
 }
 
-impl <T: Clone + PartialEq, const N: usize> ypipe_t<T,N>
+impl <T: Clone + PartialEq + Default, const N: usize> ypipe_t<T,N>
 {
     pub unsafe fn new() -> Self {
         let mut out = Self  {
