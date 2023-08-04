@@ -3,6 +3,7 @@ use crate::ctx::ctx_t;
 use crate::defines::ZMQ_CHANNEL;
 use crate::msg::msg_t;
 use crate::options::options_t;
+use crate::pipe::pipe_t;
 use crate::socket_base::socket_base_t;
 
 
@@ -16,7 +17,7 @@ impl channel_t
 {
     pub fn new(options: &mut options_t, parent: *mut ctx_t, tid_: u32, sid_: i32) -> Self
     {
-        options.type_ = ZMQ_CH+ANNEL;
+        options.type_ = ZMQ_CHANNEL;
         Self {
             base: socket_base_t::new(parent, tid_, sid_, true),
             _pipe: null_mut(),
@@ -51,14 +52,14 @@ impl channel_t
             return -1;
         }
 
-        if self._pipe == null_mut() || !self._pipe.write(msg_)
+        if self._pipe == null_mut() || !(*self._pipe).write(msg)
         {
             return -1;
         }
 
         self._pipe.flush();
 
-        let rc = msg.init();
+        let rc = (*msg).init2();
 
         return 0;
 
@@ -66,30 +67,30 @@ impl channel_t
 
     pub unsafe fn xrecv(&mut self, msg: *mut msg_t) -> i32
     {
-        let mut rc = msg.close();
+        let mut rc = (*msg).close();
 
         if (!self._pipe) {
-            rc = msg.init();
+            rc = (*msg).init2();
             return -1;
         }
 
-        let read = self._pipe.read(msg);
+        let mut read = (*self._pipe).read(msg);
         
-        while(read && msg.flags() & msg_t::more > 0)
+        while read && msg.flags() & msg_t::more > 0
         {
-            read = self._pipe.read(msg);
-            while(read && msg.flags() & msg_t::more > 0)
+            read = (*self._pipe).read(msg);
+            while read && msg.flags() & msg_t::more > 0
             {
-                read = self._pipe.read(msg);
+                read = (*self._pipe).read(msg);
             }
 
             if read {
-                read = self._pipe.read(msg_);
+                read = (*self._pipe).read(msg);
             }
         }
 
         if !read {
-            rc = msg.init();
+            rc = (*msg).init2();
             return -1;
         }
 

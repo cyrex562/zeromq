@@ -111,6 +111,7 @@ int zmq::channel_t::xrecv (msg_t *msg_)
         errno = EAGAIN;
         return -1;
     }
+    .
 
     return 0;
 }

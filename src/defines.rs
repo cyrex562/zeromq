@@ -110,7 +110,7 @@ pub const ZMQ_DONTWAIT: u32 = 1;
 pub const ZMQ_SNDMORE: u32 = 2;
 
 /*  Security mechanisms                                                       */
-pub const ZMQ_NULL: u32 = 0;
+pub const ZMQ_NULL: i32 = 0;
 pub const ZMQ_PLAIN: u32 = 1;
 pub const ZMQ_CURVE: u32 = 2;
 pub const ZMQ_GSSAPI: u32 = 3;
@@ -134,7 +134,7 @@ pub const ZMQ_ROUTER_BEHAVIOR: u32 = ZMQ_ROUTER_MANDATORY;
 /*  Deprecated Message options                                                */
 pub const ZMQ_SRCFD: u32 = 2;
 
-pub const ZMQ_GSSAPI_NT_HOSTBASED: u32 = 0;
+pub const ZMQ_GSSAPI_NT_HOSTBASED: i32 = 0;
 pub const ZMQ_GSSAPI_NT_USER_NAME: u32 = 1;
 pub const ZMQ_GSSAPI_NT_KRB5_PRINCIPAL: u32 = 2;
 
@@ -205,7 +205,7 @@ pub const ZMQ_GATHER: u32 = 16;
 pub const ZMQ_SCATTER: u32 = 17;
 pub const ZMQ_DGRAM: u32 = 18;
 pub const ZMQ_PEER: u32 = 19;
-pub const ZMQ_CHANNEL: u32 = 20;
+pub const ZMQ_CHANNEL: i8 = 20;
 
 /*  DRAFT Socket options.                                                     */
 pub const ZMQ_ZAP_ENFORCE_DOMAIN: u32 = 93;
