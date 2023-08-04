@@ -34,6 +34,15 @@ impl endpoint_uri_pair_t
         }
     }
 
+    pub fn new3(pair: &mut endpoint_uri_pair_t) -> Self
+    {
+        Self {
+            local: pair.local.clone(),
+            remote: pair.remote.clone(),
+            local_type: pair.local_type.clone(),
+        }
+    }
+
     pub fn identifier(&self) -> &String {
         if self.local_type == endpoint_type_t::endpoint_type_bind {
             &self.local

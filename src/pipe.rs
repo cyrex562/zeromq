@@ -10,6 +10,7 @@ use crate::ypipe::ypipe_t;
 use crate::ypipe_base::ypipe_base_t;
 use crate::defines::message_pipe_granularity;
 use crate::options::options_t;
+use crate::own::own_t;
 use crate::pipe::pipe_state::{active, delimiter_received, term_ack_sent, term_req_sent1, term_req_sent2, waiting_for_delimiter};
 use crate::ypipe_conflate::ypipe_conflate_t;
 
@@ -17,7 +18,7 @@ pub trait i_pipe_events {
     fn read_activated(&self, pipe_: &mut pipe_t);
     fn write_activated(&self, pipe_: &mut pipe_t);
     fn hiccuped(&self, pipe_: &mut pipe_t);
-    fn pipe_terminated(&self, pipe_: pipe_t);
+    fn pipe_terminated(&self, pipe_: &mut pipe_t);
 }
 
 pub enum pipe_state {
@@ -232,7 +233,7 @@ impl pipe_t {
     {
         self._out_pipe.flush();
         let mut msg: msg_t = msg_t::new();
-        while self._out_pipe.read(&mut msg) {
+        while (*self._out_pipe).read(&mut msg) {
             if msg.flags & more == 0 {
                 self._msgs_written -= 1
             }
@@ -279,7 +280,7 @@ impl pipe_t {
 
         if !self._conflate {
             let msg = msg_t::new();
-            while self._in_pipe.read(&msg) {
+            while (*self._in_pipe).read(&msg) {
                 msg.close()
             }
         }
@@ -296,7 +297,7 @@ impl pipe_t {
     pub unsafe fn terminate(&mut self, delay_: bool) {
         self._delay = delay_;
 
-        if self._state == term_req_sent1 | self._state == term_req_sent2 {
+        if self._state == term_req_sent1 || self._state == term_req_sent2 {
             return;
         }
 
@@ -327,7 +328,7 @@ impl pipe_t {
             self.rollback();
             let mut msg = msg_t::new();
             msg.init_delimiter();
-            self._out_pipe.write(&mut msg, false);
+            (*self._out_pipe).write(&mut msg, false);
             self.flush()
         }
     }
@@ -336,11 +337,101 @@ impl pipe_t {
         msg_.is_delimiter()
     }
 
-    pub unsafe fn compute_lwm(&mut self, hwm_: i32) -> i32 {
+    pub fn compute_lwm(&mut self, hwm_: i32) -> i32 {
         (hwm_ + 1) / 2
     }
 
-    
+    pub unsafe fn process_delimiter(&mut self) {
+        if self._state == active {
+            self._state = delimiter_received;
+        } else {
+            self.rollback();
+            self._out_pipe = null_mut();
+            self._base.send_pipe_term_ack(self._peer);
+            self._state = term_ack_sent;
+        }
+    }
+
+    pub unsafe fn hiccup(&mut self) {
+        if self._state != active {
+            return;
+        }
+        if self._conflate == true {
+             self._in_pipe: ypipe_conflate_t<msg_t> = ypipe_conflate_t::new()
+        } else {
+             self._in_pipe: ypipe_t<msg_t, message_pipe_granularity> = ypipe_t::new()
+        };
+        self._in_active = true;
+        self._base.send_hiccup(self._peer, self._in_pipe);
+    }
+
+    pub fn set_hwms(&mut self, inhwm_: i32, outhwm_: i32) {
+        let mut in_ = inhwm_ + i32::max(self._in_hwm_boost, 0);
+        let mut out_ = outhwm_ + i32::max(self._out_hwm_boost, 0);
+
+        if inhwm_ <= 0 || self._in_hwm_boost == 0 {
+            in_ = 0;
+        }
+        if outhwm_ <= 0 || self._out_hwm_boost == 0 {
+            out_ = 0;
+        }
+
+        self._lwm == self.compute_lwm(in_);
+        self._hwm = out_;
+    }
+
+    pub fn set_hwms_boost(&mut self, inhwmboost_: i32, outhwmboost_: i32) {
+        self._in_hwm_boost = inhwmboost_;
+        self._out_hwm_boost = outhwmboost_;
+    }
+
+    pub fn check_hwm(&mut self) -> bool {
+        let full = self._hwm >= 0 && self._msgs_written - self._peers_msgs_read >= self._hwm as u64;
+        !full
+    }
+
+    pub fn send_hwms_to_peer(&mut self, inhwm_: i32, outhwm_: i32) {
+        self._base.send_pipe_hwm(self._peer, inhwm_, outhwm_);
+    }
+
+    pub fn set_endpoint_pair(&mut self, endpoint_pair_: endpoint_uri_pair_t)
+    {
+        self._endpoint_pair = endpoint_pair_;
+    }
+
+    pub fn send_stats_to_peer(&mut self, socket_base_: *mut own_t)
+    {
+        let mut ep = endpoint_uri_pair_t::new3(&mut self._endpoint_pair);
+        self._base.send_pipe_peer_stats(self._peer, self._msgs_written - self._peers_msgs_read, socket_base_, ep);
+    }
+
+    pub fn process_pipe_peer_stats(&mut self, queue_count_: u64, socket_base_: *mut own_t, endpoint_pair_: *mut endpoint_uri_pair_t){
+        self._base.send_pipe_stats_publish(socket_base_, queue_count_, self._msgs_written - self._peers_msgs_read, endpoint_pair_);
+    }
+
+    pub unsafe fn send_disconnect_msg(&mut self) {
+        if self._disconnect_msg.size() > 0 && self._out_pipe != null_mut() {
+            self.rollback();
+            (*self._out_pipe).write(self._disconnect_msg, false);
+            self.flush();
+            self._disconnect_msg.init2()
+        }
+    }
+
+    pub unsafe fn set_disconnect_msg2(&mut self, disconnect: &mut Vec<u8>) {
+        self._disconnect_msg.close();
+        let rc = self._disconnect_msg.init_buffer(disconnect.as_mut_ptr() as *const c_void, disconnect.len());
+    }
+
+    pub unsafe fn send_hiccup_msg(&mut self, hiccup: &mut Vec<u8>) {
+        if hiccup.is_empty() == false && self._out_pipe != null_mut() {
+            let mut msg: msg_t = msg_t::new();
+            let rc = msg.init_buffer(hiccup.as_mut_ptr() as *const c_void, hiccup.len());
+            (*self._out_pipe).write(&mut msg, false);
+            self.flush();
+        }
+    }
+
 }
 
 type upipe_normal_t = ypipe_t<msg_t, message_pipe_granularity>;
@@ -380,13 +471,13 @@ pub unsafe fn send_routing_id(pipe_: *mut pipe_t, options_: &options_t) {
     let mut rc = id.init_size(options_.routing_id_size);
     libc::memcpy(id.data(), &options_.routing_id as *const c_void, options_.routing_id_size as size_t);
     id.set_flags(routing_id);
-    let mut written = *pipe_.write(&mut id);
-    pipe_.flush();
+    let mut written = (*pipe_).write(&mut id);
+    (*pipe_).flush();
 }
 
 pub unsafe fn send_hello_msg(pipe_: *mut pipe_t, options_: &options_t)
 {
     let mut hello_msg = msg_t::new();
     let rc = hello_msg.init_buffer(&options_.hello_msg[0], options_.hello_msg.size());
-    let written = *pipe_.write(&mut hello_msg);
+    let written = (*pipe_).write(&mut hello_msg);
 }
