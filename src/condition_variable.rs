@@ -1,0 +1,1 @@
+pub type condition_variable_t = Mutex<()>;
