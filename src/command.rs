@@ -1,46 +1,38 @@
-use std::ffi::c_void;
 use crate::object::object_t;
 use crate::own::own_t;
 use crate::socket_base::socket_base_t;
+use std::ffi::c_void;
 
-pub enum type_t
-{
+pub enum type_t {
     stop,
-plug,
-own,
-attach,
-bind,
-activate_read,
-activate_write,
-hiccup,
-pipe_term,
-pipe_term_ack,
-pipe_hwm,
-term_req,
-term,
-term_ack,
-term_endpoint,
-reap,
-reaped,
-inproc_connected,
-conn_failed,
-pipe_peer_stats,
-pipe_stats_publish,
-done
+    plug,
+    own,
+    attach,
+    bind,
+    activate_read,
+    activate_write,
+    hiccup,
+    pipe_term,
+    pipe_term_ack,
+    pipe_hwm,
+    term_req,
+    term,
+    term_ack,
+    term_endpoint,
+    reap,
+    reaped,
+    inproc_connected,
+    conn_failed,
+    pipe_peer_stats,
+    pipe_stats_publish,
+    done,
 }
 
-pub struct args_t_stop
-{
+pub struct args_t_stop {}
 
-}
+pub struct args_t_plug {}
 
-pub struct args_t_plug
-{
-
-}
-
-pub struct args_t_own
-{
+pub struct args_t_own {
     pub object: *mut own_t,
 }
 
@@ -52,16 +44,14 @@ pub struct args_t_bind {
     pub pipe: *mut pipe_t,
 }
 
-pub struct args_t_activate_read {
-    
-}
+pub struct args_t_activate_read {}
 
 pub struct args_t_activate_write {
     pub msgs_read: u64,
 }
 
 pub struct args_t_hiccup {
-    pub pipe: *mut c_void
+    pub pipe: *mut c_void,
 }
 
 pub struct args_t_pipe_term {}
@@ -74,16 +64,14 @@ pub struct args_t_pipe_hwm {
 }
 
 pub struct args_t_term_req {
-    pub object:  *mut own_t,
+    pub object: *mut own_t,
 }
 
 pub struct args_t_term {
     pub linger: i32,
 }
 
-pub struct args_t_term_ack {
-    
-}
+pub struct args_t_term_ack {}
 
 pub struct args_t_term_endpoint {
     endpoint: *mut String,
@@ -95,7 +83,7 @@ pub struct args_t_reap {
 
 pub struct args_t_reaped {}
 
-pub struct args_t_pipe_peer_stats{
+pub struct args_t_pipe_peer_stats {
     pub queue_count: u64,
     pub socket_base: *mut own_t,
     pub endpoint_pair: *mut endpoint_uri_pair_t,
@@ -107,13 +95,9 @@ pub struct args_t_pipe_stats_publish {
     pub endpoint_pair: *mut endpoint_uri_pair_t,
 }
 
-pub struct args_t_done {
-    
-}
+pub struct args_t_done {}
 
-
-pub union args_t
-{
+pub union args_t {
     pub stop: args_t_stop,
     pub plug: args_t_plug,
     pub own: args_t_own,
@@ -136,14 +120,12 @@ pub union args_t
     pub done: args_t_done,
 }
 
-pub struct command_t
-{
+pub struct command_t {
     pub destination: *mut object_t,
     pub args: args_t,
 }
 
-impl Clone for command_t
-{
+impl Clone for command_t {
     fn clone(&self) -> Self {
         command_t {
             destination: self.destination,
@@ -152,8 +134,7 @@ impl Clone for command_t
     }
 }
 
-impl PartialEq for command_t
-{
+impl PartialEq for command_t {
     fn eq(&self, other: &Self) -> bool {
         self.destination == other.destination
     }
