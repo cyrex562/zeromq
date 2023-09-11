@@ -125,6 +125,15 @@ pub struct command_t {
     pub args: args_t,
 }
 
+impl command_t {
+    pub fn new() -> Self {
+        Self {
+            destination: std::ptr::null_mut(),
+            args: args_t { stop: args_t_stop {} },
+        }
+    }
+}
+
 impl Clone for command_t {
     fn clone(&self) -> Self {
         command_t {
