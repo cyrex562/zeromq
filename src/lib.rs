@@ -26,6 +26,7 @@ mod object;
 mod options;
 mod own;
 mod pipe;
+mod session_base;
 mod singaler;
 mod socket_base;
 mod tcp_address;

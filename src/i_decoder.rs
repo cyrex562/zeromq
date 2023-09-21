@@ -1,3 +1,5 @@
+#![allow(non_camel_case_types)]
+
 use crate::msg::msg_t;
 use libc::size_t;
 
