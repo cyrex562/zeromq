@@ -1,4 +1,8 @@
+#![allow(non_camel_case_types)]
+
+use crate::defines::handle_t;
 use crate::i_poll_events::i_poll_events;
+use crate::mailbox::mailbox_t;
 use crate::object::object_t;
 
 pub struct io_thread_t

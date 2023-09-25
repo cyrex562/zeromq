@@ -27,7 +27,7 @@ name = "zeromq"
 path = "src/lib.rs"
 
 [features]
-default = ["poll", "fork"]
+default = ["select", "fork"]
 vmci = []
 poll = []
 select = []

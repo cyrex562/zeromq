@@ -35,6 +35,10 @@ mod ypipe;
 mod ypipe_base;
 mod ypipe_conflate;
 mod yqueue;
+mod reaper;
+mod select;
+mod poller_base;
+mod thread;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

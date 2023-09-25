@@ -1,6 +1,8 @@
-pub struct i_poll_events
+#![allow(non_camel_case_types)]
+
+pub trait i_poll_events
 {
-    pub in_event: fn(),
-    pub out_event: fn(),
-    pub timer_event: fn(id_: i32),
+    fn in_event(&mut self);
+    fn out_event(&mut self);
+    fn timer_event(&mut self, id_: i32);
 }

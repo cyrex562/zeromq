@@ -1,5 +1,15 @@
+#![allow(non_camel_case_types)]
+#![allow(non_upper_case_globals)]
+
 use std::{collections::{HashMap, HashSet}, sync::Mutex};
 use crate::{socket_base::socket_base_t, command::command_t};
+use crate::atomic_counter::atomic_counter_t;
+use crate::i_mailbox::i_mailbox;
+use crate::mailbox::mailbox_t;
+use crate::mutex::mutex_t;
+use crate::options::options_t;
+use crate::pipe::pipe_t;
+use crate::reaper::reaper_t;
 
 pub const ZMQ_CTX_TAG_VALUE_GOOD: u32 = 0xCAFEBABE;
 pub const ZMQ_CTX_TAG_VALUE_BAD: u32 = 0xDEADBEEF;
@@ -58,10 +68,10 @@ pub struct ctx_t
     pub _io_threads: io_threads_t,
     pub _slots: Vec<*mut i_mailbox>,
     pub _term_mailbox: mailbox_t,
-    pub _endpoints: HashMap<String, enpoint_t>,
+    pub _endpoints: HashMap<String, endpoint_t>,
     pub _pending_connections: HashMap<String, pending_connection_t>,
     pub _endpoints_sync: mutex_t,
-    pub max_socket_id: aomic_counter_t,
+    pub max_socket_id: atomic_counter_t,
     pub _max_sockets: i32,
     pub _max_msgsz: i32,
     pub _io_thread_count: i32,
@@ -91,7 +101,7 @@ impl ctx_t {
             _endpoints: HashMap::new(),
             _pending_connections: HashMap::new(),
             _endpoints_sync: mutex_t::new(),
-            max_socket_id: aomic_counter_t::new(),
+            max_socket_id: atomic_counter_t::new(),
             _max_sockets: 0,
             _max_msgsz: 0,
             _io_thread_count: 0,
