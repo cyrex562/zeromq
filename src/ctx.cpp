@@ -536,7 +536,8 @@ void zmq::thread_ctx_t::start_thread (thread_t &thread_,
     char namebuf[16] = "";
     snprintf (namebuf, sizeof (namebuf), "%s%sZMQbg%s%s",
               _thread_name_prefix.empty () ? "" : _thread_name_prefix.c_str (),
-              _thread_name_prefix.empty () ? "" : "/", name_ ? "/" : "",
+              _thread_name_prefix.empty () ? "" : "/", 
+              name_ ? "/" : "",
               name_ ? name_ : "");
     thread_.start (tfn_, arg_, namebuf);
 }

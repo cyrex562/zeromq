@@ -1,19 +1,24 @@
+#![allow(non_camel_case_types)]
 
+use crate::endpoint::endpoint_uri_pair_t;
+use crate::io_thread::io_thread_t;
 
-pub enum error_reason_t
-{
+pub enum error_reason_t {
     protocol_error,
     connection_error,
     timeout_error,
 }
+pub trait i_engine {
+    fn has_handshake_stage(&mut self) -> bool;
+    fn plug(&mut self, io_thread_: *mut io_thread_t, session_: *mut session_base_t);
 
-pub struct i_engine
-{
-    pub has_handshake_stage: fn() -> bool,
-pub plug: fn(io_thread: *mut io_thread_t, session_: *mut session_base_t),
-pub terminate: fn(),
-pub restart_input: fn() -> bool,
-pub restart_output: fn(),
-pub zap_msg_available: fn(),
-pub get_endpoint: fn() -> &mut endpoint_uri_t
+    fn terminate(&mut self);
+
+    fn restart_input(&mut self);
+
+    fn restart_output(&mut self);
+
+    fn zap_msg_available(&mut self);
+
+    fn get_endpoint(&mut self) -> &mut endpoint_uri_pair_t;
 }

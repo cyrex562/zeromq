@@ -1,5 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::ffi::c_void;
+use crate::atomic_counter::atomic_counter_t;
+use crate::object::object_t;
+use crate::options::options_t;
 
 pub struct own_t
 {

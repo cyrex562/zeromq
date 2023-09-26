@@ -1,7 +1,17 @@
 use std::collections::HashMap;
 use std::ffi::c_void;
 use libc::clock_t;
+use crate::array::array_item_t;
+use crate::defines::handle_t;
+use crate::i_mailbox::i_mailbox;
+use crate::i_poll_events::i_poll_events;
+use crate::mutex::mutex_t;
+use crate::own::own_t;
+use crate::pipe::i_pipe_events;
+use crate::poller::poller_t;
+use crate::singaler::signaler_t;
 
+#[derive(PartialEq)]
 pub struct socket_base_t
 {
     pub own: own_t,

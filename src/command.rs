@@ -1,7 +1,12 @@
+#![allow(non_camel_case_types)]
+
 use crate::object::object_t;
 use crate::own::own_t;
 use crate::socket_base::socket_base_t;
 use std::ffi::c_void;
+use crate::endpoint::endpoint_uri_pair_t;
+use crate::i_engine::i_engine;
+use crate::pipe::pipe_t;
 
 pub enum type_t {
     stop,
@@ -123,6 +128,7 @@ pub union args_t {
 pub struct command_t {
     pub destination: *mut object_t,
     pub args: args_t,
+    pub type_: type_t,
 }
 
 impl command_t {
@@ -130,6 +136,7 @@ impl command_t {
         Self {
             destination: std::ptr::null_mut(),
             args: args_t { stop: args_t_stop {} },
+            type_: type_t::stop,
         }
     }
 }
@@ -138,7 +145,8 @@ impl Clone for command_t {
     fn clone(&self) -> Self {
         command_t {
             destination: self.destination,
-            args: self.args,
+            args: self.args.clone(),
+            type_: self.type_.clone(),
         }
     }
 }
