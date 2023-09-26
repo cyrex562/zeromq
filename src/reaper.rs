@@ -3,6 +3,7 @@
 use crate::defines::handle_t;
 use crate::i_poll_events::i_poll_events;
 use crate::mailbox::mailbox_t;
+use crate::poller::poller_t;
 
 pub struct reaper_t {
     pub _mailbox: mailbox_t,

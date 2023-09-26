@@ -1,15 +1,21 @@
 #![allow(non_camel_case_types)]
 #![allow(non_upper_case_globals)]
 
-use std::{collections::{HashMap, HashSet}, sync::Mutex};
+use std::{collections::{HashMap, HashSet}, ptr, sync::Mutex};
+use std::ptr::null_mut;
 use crate::{socket_base::socket_base_t, command::command_t};
 use crate::atomic_counter::atomic_counter_t;
 use crate::i_mailbox::i_mailbox;
+use crate::io_thread::io_thread_t;
 use crate::mailbox::mailbox_t;
+use crate::msg::msg_t;
 use crate::mutex::mutex_t;
 use crate::options::options_t;
 use crate::pipe::pipe_t;
+use crate::poller::max_fds;
 use crate::reaper::reaper_t;
+
+pub type io_threads_t = Vec<*mut io_thread_t>;
 
 pub const ZMQ_CTX_TAG_VALUE_GOOD: u32 = 0xCAFEBABE;
 pub const ZMQ_CTX_TAG_VALUE_BAD: u32 = 0xDEADBEEF;
@@ -48,12 +54,11 @@ pub enum side {
     bind_side,
 }
 
-pub fn clipped_maxsocket(mut max_requested_: i32) {
-    // TODO
+pub fn clipped_maxsocket(mut max_requested_: i32) -> i32 {
     if max_requested_ > max_fds() && max_fds() != -1 {
         max_requested_ = max_fds() - 1;
     }
-    return max_requested_
+    max_requested_
 }
 
 pub struct ctx_t
@@ -94,14 +99,14 @@ impl ctx_t {
             _empty_slots: Vec::new(),
             _starting: false,
             _slot_sync: mutex_t::new(),
-            _reaper: ptr::null_mut(),
+            _reaper: null_mut(),
             _io_threads: io_threads_t::new(),
             _slots: Vec::new(),
             _term_mailbox: mailbox_t::new(),
             _endpoints: HashMap::new(),
             _pending_connections: HashMap::new(),
             _endpoints_sync: mutex_t::new(),
-            max_socket_id: atomic_counter_t::new(),
+            max_socket_id: atomic_counter_t::new(0),
             _max_sockets: 0,
             _max_msgsz: 0,
             _io_thread_count: 0,
@@ -109,7 +114,7 @@ impl ctx_t {
             _ipv6: false,
             _zero_copy: false,
             #[cfg(feature="fork")]
-            _pid: 0,
+            _pid: 0, // TODO getpid()
             _vmci_fd: 0,
             _vmci_family: 0,
             _vmci_sync: Mutex::new(()),
@@ -236,5 +241,65 @@ impl ctx_t {
 
     pub fn get_zero_copy_recv(&mut self) -> bool {
         self._zero_copy
+    }
+
+    pub fn start(&mut self) -> bool {
+        self._opt_sync.lock();
+        let term_and_reaper_threads_count = 2;
+        let mazmq = self._max_sockets;
+        let ios = self._io_thread_count;
+        self._opt_sync.unlock();
+        let slot_count = mazmq + ios + term_and_reaper_threads_count;
+        self._slots.reserve((slot_count - term_and_reaper_threads_count) as usize);
+        self._slots[term_tid] = &self._term_mailbox;
+        self._reaper = reaper_t::new(self, reaper_tid);
+        self._slots[reaper_tid] = &self._reaper.get_mailbox();
+        self._reaper.start();
+        self._slots.resize(slot_count as usize, null_mut());
+
+        for i in term_and_reaper_threads_count .. ios + term_and_reaper_threads_count {
+            let io_thread = io_thread_t::new(self, i);
+            // if io_thread.get_mailbox().valid() == false{}
+            self._io_threads.push(&mut io_thread);
+            self._slots[i] = &io_thread.get_mailbox();
+            io_thread.start();
+        }
+
+        for i in self._slots.len() - 1 .. ios + term_and_reaper_threads_count {
+            self._empty_slots.push(i as u32);
+        }
+
+        self._starting = false;
+        return true;
+
+        // self._reaper.stop();
+        // self._reaper = null_mut();
+
+        // selff._slots.clear()
+    }
+
+    pub fn create_socket(&mut self, type_: i32) -> *mut socket_base_t {
+        if self._terminating {
+            return null_mut();
+        }
+
+        if self._starting {
+            if !self.start() {
+                return null_mut();
+            }
+        }
+
+        if self._empty_slots.empty() {
+            return null_mut();
+        }
+
+        let slot = self._empty_slots[-1];
+        self._empty_slots.pop();
+        let sid = max_socket_id.add(1) + 1;
+
+        let s = socket_base_t::new(self, sid, slot, type_);
+        self._sockets.push(s);
+        self._slots[slot] = s.get_mailbox();
+        return &mut s;
     }
 }

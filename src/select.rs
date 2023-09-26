@@ -54,5 +54,4 @@ pub struct select_t {
     pub _max_fd: fd_t,
 }
 
-#[cfg(target_feature="select")]
-pub type poller_t = select_t;
+// #[cfg(target_feature="select")]
