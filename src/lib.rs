@@ -41,6 +41,7 @@ mod poller_base;
 mod thread;
 mod poller;
 mod clock;
+mod io_object;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

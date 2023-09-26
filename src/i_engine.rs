@@ -10,7 +10,7 @@ pub enum error_reason_t {
 }
 pub trait i_engine {
     fn has_handshake_stage(&mut self) -> bool;
-    fn plug(&mut self, io_thread_: *mut io_thread_t, session_: *mut session_base_t);
+    fn plug(&mzut self, io_thread_: *mut io_thread_t, session_: *mut session_base_t);
 
     fn terminate(&mut self);
 

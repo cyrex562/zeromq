@@ -26,12 +26,21 @@ impl io_thread_t{
         self.object.send_stop();
     }
 
-    pub fn get_mailbox(&mut self) -> mailbox_t {
-        return self._mailbox;
+    pub fn get_mailbox(&mut self) -> *mut mailbox_t {
+        return &mut self._mailbox;
     }
 
     pub fn get_load(&mut self) -> i32 {
         return self._poller.get_load();
+    }
+
+    pub fn get_poller(&mut self) -> *mut poller_t {
+        return self._poller;
+    }
+
+    pub fn process_stop(&mut self) {
+        self._poller.rm_fd(self._mailbox_handle);
+        self._poller.stop();
     }
 }
 
@@ -43,8 +52,9 @@ impl i_poll_events for io_thread_t {
         let rc = self._mailbox.recv(&mut cmd, 0);
         while rc == 0 {
             if rc == 0 {
-                cmd.destination._ctx.process_command(&mut cmd);
+                cmd.destination.process_command(&mut cmd);
             }
+            rc = self._mailbox.recv(&mut cmd, 0);
         }
     }
 
