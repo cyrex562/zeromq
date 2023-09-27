@@ -3,6 +3,7 @@
 
 use std::ffi::c_void;
 use std::os::windows::raw::HANDLE;
+use windows::Win32::Networking::WinSock::sa_family_t;
 
 #[cfg(target_os = "windows")]
 #[cfg(target_arch = "x86_64")]
@@ -342,3 +343,12 @@ pub struct sigset_t {
 //    22     unsigned long sa_flags;
 //    23     __sigrestore_t sa_restorer;
 //    24 };
+
+
+// struct sockaddr_storage {
+//            sa_family_t     ss_family;      /* Address family */
+//        };
+#[derive(Default,Debug,Clone)]
+pub struct sockaddr_storage {
+    pub ss_family: sa_family_t,
+}

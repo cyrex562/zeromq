@@ -44,6 +44,11 @@ mod clock;
 mod io_object;
 mod decoder;
 mod decoder_allocators;
+mod encoder;
+mod i_encoder;
+mod err;
+mod fq;
+mod generic_mtrie;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

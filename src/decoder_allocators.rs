@@ -5,10 +5,34 @@ use std::ptr::null_mut;
 use crate::atomic_counter::atomic_counter_t;
 use crate::msg::{content_t, max_vsm_size};
 
-pub struct c_single_allocator
-{
+pub trait allocator {
+    unsafe fn allocate(&mut self) -> *mut u8;
+    unsafe fn deallocate(&mut self);
+    unsafe fn size(&self) -> usize;
+    unsafe fn resize(&mut self, new_size_: usize);
+}
+
+pub struct c_single_allocator {
     pub _buf_size: usize,
     pub _buf: *mut u8,
+}
+
+impl allocator for c_single_allocator {
+    unsafe fn allocate(&mut self) -> *mut u8 {
+        self._buf
+    }
+
+    unsafe fn deallocate(&mut self) {
+        unimplemented!()
+    }
+
+    unsafe fn size(&self) -> usize {
+        self._buf_size
+    }
+
+    unsafe fn resize(&mut self, new_size_: usize) {
+        unimplemented!()
+    }
 }
 
 impl c_single_allocator {
@@ -18,26 +42,9 @@ impl c_single_allocator {
             _buf: alloc_zeroed(Layout::from_size_align_unchecked(buf_size_, mem::align_of::<u8>())),
         }
     }
-
-    pub unsafe fn allocate(&mut self) -> *mut u8 {
-        self._buf
-    }
-
-    pub unsafe fn deallocate() {
-        unimplemented!()
-    }
-
-    pub unsafe fn size(&self) -> usize {
-        self._buf_size
-    }
-
-    pub unsafe fn resize(&mut self, new_size_: usize) {
-        unimplemented!()
-    }
 }
 
-pub struct shared_message_memory_allocator
-{
+pub struct shared_message_memory_allocator {
     pub _buf: *mut u8,
     pub _buf_size: usize,
     pub _max_size: usize,
@@ -45,33 +52,8 @@ pub struct shared_message_memory_allocator
     pub _max_counters: usize,
 }
 
-impl shared_message_memory_allocator {
-    pub unsafe fn new(bufsize_: usize, max_messages_: usize) -> Self
-    {
-        Self {
-            _buf: null_mut(),
-            _buf_size: 0,
-            _max_size: bufsize_,
-            _msg_content: null_mut(),
-            _max_counters: max_messages_,
-        }
-    }
-
-    pub unsafe fn new2(bufsize_: usize) -> Self
-    {
-        let mut out = Self {
-            _buf: null_mut(),
-            _buf_size: 0,
-            _max_size: bufsize_,
-            _msg_content: null_mut(),
-            _max_counters: 0,
-        };
-
-        out._max_counters = ((out._max_size + max_vsm_size - 1) / max_vsm_size);
-        out
-    }
-
-    pub unsafe fn allocate(&mut self) -> *mut u8 {
+impl allocator for shared_message_memory_allocator {
+    unsafe fn allocate(&mut self) -> *mut u8 {
         if self._buf != null_mut() {
             let c = self._buf as *mut atomic_counter_t;
             (*c).sub(1);
@@ -94,13 +76,47 @@ impl shared_message_memory_allocator {
         self._buf.add(mem::size_of::<atomic_counter_t>())
     }
 
-    pub unsafe fn deallocate(&mut self) {
+    unsafe fn deallocate(&mut self) {
         let c = self._buf as *mut atomic_counter_t;
         (*c).sub(1);
         if (*c).get() == 0 {
             dealloc(self._buf, Layout::from_size_align_unchecked(self._max_size + mem::size_of::<atomic_counter_t>() + self._max_counters * mem::size_of::<content_t>(), mem::align_of::<u8>()));
         }
     }
+
+    unsafe fn size(&mut self) -> usize {
+        self._buf_size
+    }
+
+    unsafe fn resize(&mut self, new_size_: usize) {
+        self._buf_size = new_size_;
+    }
+}
+
+impl shared_message_memory_allocator {
+    pub unsafe fn new(bufsize_: usize, max_messages_: usize) -> Self {
+        Self {
+            _buf: null_mut(),
+            _buf_size: 0,
+            _max_size: bufsize_,
+            _msg_content: null_mut(),
+            _max_counters: max_messages_,
+        }
+    }
+
+    pub unsafe fn new2(bufsize_: usize) -> Self {
+        let mut out = Self {
+            _buf: null_mut(),
+            _buf_size: 0,
+            _max_size: bufsize_,
+            _msg_content: null_mut(),
+            _max_counters: 0,
+        };
+
+        out._max_counters = ((out._max_size + max_vsm_size - 1) / max_vsm_size);
+        out
+    }
+
 
     pub unsafe fn release(&mut self) -> *mut u8 {
         let b = self._buf;
@@ -129,13 +145,6 @@ impl shared_message_memory_allocator {
         }
     }
 
-    pub unsafe fn size(&mut self) -> usize {
-        self._buf_size
-    }
-
-    pub unsafe fn resize(&mut self, new_size_: usize) {
-        self._buf_size = new_size_;
-    }
 
     pub unsafe fn data(&mut self) -> *mut u8 {
         self._buf.add(mem::size_of::<atomic_counter_t>())
