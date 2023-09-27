@@ -1,3 +1,5 @@
+#![allow(non_camel_case_types)]
+
 use std::ffi::{c_char, c_void};
 use std::ptr::{null, null_mut};
 use libc::{ENOMEM, free, malloc, memcpy, size_t};

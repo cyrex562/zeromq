@@ -42,6 +42,8 @@ mod thread;
 mod poller;
 mod clock;
 mod io_object;
+mod decoder;
+mod decoder_allocators;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

@@ -8,15 +8,14 @@ use crate::mailbox::mailbox_t;
 use crate::object::object_t;
 use crate::poller::poller_t;
 
-pub struct io_thread_t
-{
+pub struct io_thread_t {
     pub object: object_t,
     pub _mailbox: mailbox_t,
     pub _mailbox_handle: handle_t,
     pub _poller: *mut poller_t,
 }
 
-impl io_thread_t{
+impl io_thread_t {
     pub fn start(&mut self) {
         let name = format!("IO/{}", self.object.get_tid() - reaper_tid - 1);
         self._poller.start(name);
@@ -43,7 +42,6 @@ impl io_thread_t{
         self._poller.stop();
     }
 }
-
 
 
 impl i_poll_events for io_thread_t {
