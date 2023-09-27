@@ -49,6 +49,7 @@ mod i_encoder;
 mod err;
 mod fq;
 mod generic_mtrie;
+mod lb;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

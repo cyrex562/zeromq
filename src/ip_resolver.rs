@@ -1,3 +1,5 @@
+#![allow(non_camel_case_types)]
+
 use std::{io, os};
 use std::ffi::{c_char, CString};
 use std::fmt::{Debug, Display, Formatter};
@@ -6,6 +8,7 @@ use anyhow::bail;
 use libc::{addrinfo, getaddrinfo, in6_addr, sa_family_t, sockaddr, sockaddr_in, sockaddr_in6, AF_INET, AF_INET6, AI_NUMERICHOST, AI_PASSIVE, EAI_MEMORY, INADDR_ANY, SOCK_STREAM, ifaddrs, getifaddrs, ECONNREFUSED, EINVAL, EOPNOTSUPP, freeifaddrs, if_indextoname, freeaddrinfo, if_nametoindex};
 use std::ptr::null_mut;
 use std::thread::sleep;
+use windows::Win32::Networking::WinSock::AF_INET6;
 use windows::Win32::NetworkManagement::IpHelper::IP_ADAPTER_ADDRESSES_LH;
 
 
