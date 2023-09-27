@@ -3,13 +3,13 @@ use std::mem;
 use std::mem::size_of_val;
 use std::net::SocketAddr;
 use std::ptr::null_mut;
-use libc::{setsockopt, SOCKET};
-use windows::Win32::Foundation::{BOOL, ERROR_ACCESS_DENIED, FALSE, GetLastError, HANDLE, INVALID_HANDLE_VALUE, MAX_PATH, TRUE};
-use windows::Win32::Networking::WinSock::{AF_INET, getnameinfo, INVALID_SOCKET, ioctlsocket, IP_TOS, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_TCP, IPV6_V6ONLY, NI_MAXHOST, NI_NUMERICHOST, SO_REUSEADDR, SOCK_STREAM, SOCKADDR, SOL_SOCKET, TCP_NODELAY, WSACleanup, WSADATA, WSAStartup};
+use libc::{bind, listen, setsockopt, SOCKET};
+use windows::Win32::Foundation::{BOOL, ERROR_ACCESS_DENIED, FALSE, GetLastError, HANDLE, HANDLE_FLAG_INHERIT, HANDLE_FLAGS, INVALID_HANDLE_VALUE, MAX_PATH, SetHandleInformation, TRUE};
+use windows::Win32::Networking::WinSock::{accept, AF_INET, connect, getnameinfo, getsockname, INADDR_LOOPBACK, INVALID_SOCKET, ioctlsocket, IP_TOS, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_TCP, IPV6_V6ONLY, NI_MAXHOST, NI_NUMERICHOST, send, SO_REUSEADDR, SOCK_STREAM, SOCKADDR, SOCKADDR_IN, SOCKET_ERROR, SOL_SOCKET, TCP_NODELAY, WSACleanup, WSADATA, WSAStartup};
 use windows::Win32::Security::{InitializeSecurityDescriptor, SECURITY_ATTRIBUTES, SECURITY_DESCRIPTOR, SetSecurityDescriptorDacl};
 use windows::Win32::Storage::FileSystem::{FILE_ACCESS_RIGHTS, SYNCHRONIZE};
 use windows::Win32::System::SystemServices::SECURITY_DESCRIPTOR_REVISION;
-use windows::Win32::System::Threading::{CreateEventA, CreateMutexA, EVENT_MODIFY_STATE, OpenEventA, SYNCHRONIZATION_ACCESS_RIGHTS};
+use windows::Win32::System::Threading::{CreateEventA, CreateMutexA, EVENT_MODIFY_STATE, INFINITE, OpenEventA, ReleaseMutex, SetEvent, SYNCHRONIZATION_ACCESS_RIGHTS, WaitForSingleObject};
 use windows::Win32::System::WindowsProgramming::OpenMutexA;
 use crate::address::socket_end_t::socket_end_remote;
 use crate::defines::{signaler_port, sockaddr_storage};
@@ -159,10 +159,119 @@ pub unsafe fn make_fdpair_tcpip(r_: *mut fd_t, w_: *mut fd_t) -> i32 {
         let mut listener = SOCKET::default();
         listener = open_socket(AF_INET as i32, SOCK_STREAM as i32, 0) as SOCKET;
         let mut so_reuseaddr: BOOL = 1;
-        let rc = setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &so_reuseaddr as *const c_char, mem::size_of_val(&so_reuseaddr) as c_int);
+        let mut rc = setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &so_reuseaddr as *const c_char, mem::size_of_val(&so_reuseaddr) as c_int);
         tune_socket(listener);
 
         let mut addr = SOCKADDR_IN::default();
+        addr.sin_family = AF_INET as u16;
+        addr.sin_addr.s_addr = INADDR_LOOPBACK;
+        addr.sin_port = signaler_port as u16;
 
+        *w_ = open_socket(AF_INET as i32, SOCK_STREAM as i32, 0);
+
+        if sync != INVALID_HANDLE_VALUE {
+            let dwrc = WaitForSingleObject(sync, INFINITE);
+        }
+
+        rc = bind(listener, &addr, mem::size_of_val(&addr) as i32);
+
+        if rc != SOCKET_ERROR && signaler_port == 0 {
+            let addrlen = mem::size_of_val(&addr) as i32;
+            rc = getsockname(listener, &mut addr as *mut SOCKADDR_IN as *mut SOCKADDR, &mut addrlen);
+        }
+
+        if rc != SOCKET_ERROR {
+            rc = listen(listener, 1);
+        }
+
+        if rc != SOCKET_ERROR {
+            rc = connect(*w_, &addr as *const SOCKADDR_IN as *const SOCKADDR, mem::size_of_val(&addr) as i32);
+        }
+
+        if rc != SOCKET_ERROR {
+            tune_socket(*w_);
+            *r_ = accept(listener, null_mut(), null_mut()) as fd_t;
+        }
+
+        if *r_ != INVALID_SOCKET {
+            let dummy_size = 1024 * 1024;
+            let mut dummy = vec![0u8; dummy_size];
+            let mut still_to_send = dummy_size;
+            let mut still_to_recv = dummy_size;
+            while still_to_send || still_to_recv {
+                let mut nbytes = 0i32;
+                if still_to_send > 0 {
+                    nbytes = send(*w_, &dummy[dummy_size - still_to_send..], 0);
+                    if nbytes > 0 {
+                        still_to_send -= nbytes;
+                    }
+                }
+                nbytes = recv(*r_, &dummy[dummy_size - still_to_recv], 0);
+                still_to_recv -= nbytes;
+            }
+        }
+
+        rc = closesocket(listener);
+
+        if sync != INVALID_HANDLE_VALUE {
+            if signaler_port == event_signaler_port {
+                let result = SetEvent(sync);
+            } else {
+                let result = ReleaseMutex(sync);
+            }
+
+            let result = CloseHandle(sync);
+        }
+
+        if *r_ != INVALID_SOCKET {
+            make_socket_noninheritable(*r_);
+            return 0;
+        }
+
+        if *w_ != INVALID_SOCKET {
+            let result = closesocket(*w_);
+            *w_ = INVALID_SOCKET;
+        }
+
+        return -1
+    }
+}
+
+pub unsafe fn make_fdpair(r_: *mut fd_t, w_: *mut fd_t) -> i32
+{
+    let mut rc = 0;
+    let mut pipefd: [fd_t; 2] = [0; 2];
+    #[cfg(target_os="windows")]
+    {
+        return make_fdpair_tcpip(r_, w_);
+    }
+    #[cfg(not(target_os="windows"))]
+    {
+        let sv: [i32;2] = [0;2];
+        let rc = socketpair(AF_UNIX, SOCK_STREAM, 0, sv);
+        if rc == -1 {
+            *w_ = -1;
+            *r_ = -1;
+            return -1;
+        } else {
+            make_socket_noninheritable(sv[0]);
+            make_socket_noninheritable(sv[1]);
+            *w_ = sv[0];
+            *r_ = sv[1];
+            return 0;
+        }
+    }
+    return -1;
+}
+
+pub unsafe fn make_socket_noninheritable(sock_: fd_t)
+{
+    #[cfg(target_os="windows")]
+    {
+        let brc = SetHandleInformation(sock_ as HANDLE, HANDLE_FLAG_INHERIT as u32, 0 as HANDLE_FLAGS);
+    }
+    #[cfg(not(target_os="windows"))]
+    {
+        // FD_CLOEXEC code ommitted
     }
 }
