@@ -1,3 +1,5 @@
+#![allow(non_upper_case_globals)]
+
 pub const command_pipe_granularity: usize = 16;
 pub const message_pipe_granularity: usize = 256;
 pub const inbound_poll_rate: u32 = 100;

@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use crate::atomic_counter::atomic_counter_t;
 
+pub type dict_t = HashMap<String, String>;
+
 pub struct metadata_t {
     pub _ref_cnt: atomic_counter_t,
     pub _dict: HashMap<String, String>,

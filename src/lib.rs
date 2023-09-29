@@ -50,6 +50,10 @@ mod err;
 mod fq;
 mod generic_mtrie;
 mod lb;
+mod mailbox_safe;
+mod condition_variable;
+mod mechanism_base;
+mod mechanism;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

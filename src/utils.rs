@@ -107,3 +107,12 @@ pub unsafe fn zmq_z85_decode(dest_: *mut u8, string_: *const c_char) -> *mut u8 
     }
     return dest_;
 }
+
+pub fn put_u32(ptr: *mut u8, value: u32) {
+    unsafe {
+        *ptr = (value >> 24) as u8;
+        *ptr.add(1) = (value >> 16) as u8;
+        *ptr.add(2) = (value >> 8) as u8;
+        *ptr.add(3) = value as u8;
+    }
+}
