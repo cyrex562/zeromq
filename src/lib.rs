@@ -54,6 +54,8 @@ mod mailbox_safe;
 mod condition_variable;
 mod mechanism_base;
 mod mechanism;
+mod mtrie;
+mod polling_util;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

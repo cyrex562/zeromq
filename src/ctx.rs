@@ -340,7 +340,7 @@ impl ctx_t {
         return true;
     }
 
-    pub fn send_command(&mut self, tid_: u32, command_: &mut command_t) {
+    pub fn send_command(&mut self, tid_: u32, command_: &command_t) {
         self._slots[tid_ as usize].send(command_);
     }
 

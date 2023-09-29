@@ -79,7 +79,7 @@ pub struct args_t_term {
 pub struct args_t_term_ack {}
 
 pub struct args_t_term_endpoint {
-    endpoint: *mut String,
+    pub endpoint: String,
 }
 
 pub struct args_t_reap {
