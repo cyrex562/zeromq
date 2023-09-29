@@ -4,7 +4,7 @@ use crate::defines::{ZMQ_DEALER, ZMQ_REQ, ZMQ_ROUTER};
 use crate::metadata::dict_t;
 use crate::msg::{msg_t, routing_id};
 use crate::options::options_t;
-use crate::utils::put_u32;
+use crate::utils::{get_u32, put_u32};
 
 pub enum status_t{
     handshaking,
@@ -113,12 +113,12 @@ impl mechanism_t  {
 
     pub unsafe fn add_basic_properties(&mut self, ptr_: *mut u8, ptr_capacity_: usize) -> usize {
         let mut ptr = ptr_;
-        let socket_type = self.socket_type_string(self.options.socket_type);
+        let socket_type = self.socket_type_string(self.options.type_ as i32);
         ptr = ptr.add(
             self.add_property(ptr, ptr_capacity_, ZMTP_PROPERTY_SOCKET_TYPE.as_ptr() as *mut u8, socket_type as *mut c_void, libc::strlen(socket_type.as_ptr() as *mut c_char)) as usize
         );
 
-        if self.options.type_ == ZMQ_REQ || self.options.type_ == ZMQ_DEALER || self.options.type_ == ZMQ_ROUTER {
+        if self.options.type_ == ZMQ_REQ as i8 || self.options.type_ == ZMQ_DEALER as i8 || self.options.type_ == ZMQ_ROUTER as i8 {
             ptr = ptr.add(
                 self.add_property(ptr, ptr_capacity_, ZMTP_PROPERTY_IDENTITY.as_ptr() as *mut u8, self._routing_id.data() as *mut c_void, self._routing_id.size()) as usize
             );
@@ -142,19 +142,170 @@ impl mechanism_t  {
         return self.property_len(ZMTP_PROPERTY_SOCKET_TYPE.as_ptr() as *mut c_char, socket_type.len()) + meta_len + if self.options.type_ == ZMQ_REQ as i8 || self.options.type_ == ZMQ_DEALER as i8 || self.options.type_ == ZMQ_ROUTER as i8 { self.property_len(ZMTP_PROPERTY_IDENTITY.as_ptr() as *mut c_char, self._routing_id.size()) } else { 0 };
     }
 
-    pub fn make_command_with_basic_properties(msg_: *mut msg_t, prefix: *mut c_char, prefix_len_: usize){
-        unimplemented!()
+    pub unsafe fn make_command_with_basic_properties(&mut self, msg_: *mut msg_t, prefix_: *mut c_char, prefix_len_: usize){
+        let command_size = prefix_len_ + self.basic_properties_len ();
+        let rc = (*msg_).init_size (command_size);
+        // errno_assert (rc == 0);
+
+        let mut ptr = ((*msg_).data ());
+
+        //  Add prefix
+        libc::memcpy (ptr, prefix_ as *const c_void, prefix_len_);
+        ptr = ptr.add(prefix_len_);
+
+        self.add_basic_properties (
+            ptr as *mut u8, command_size - (ptr.offset_from((*msg_).data())));
     }
 
-    pub fn parse_metadata(ptr_: *mut u8, length_: usize, zap_flag_: bool) -> i32 {
-        unimplemented!()
+    pub unsafe fn parse_metadata(&mut self, mut ptr_: *mut u8, length_: usize, zap_flag_: bool) -> i32 {
+        let mut bytes_left = length_;
+
+        while (bytes_left > 1) {
+            let name_length = (*ptr_);
+            ptr_ = ptr_.add(name_len_size as usize);
+            bytes_left -= name_len_size;
+            if (bytes_left < name_length as usize) {
+                break;
+            }
+
+            let name = String::from(ptr_);
+                // std::string (reinterpret_cast<const char *> (ptr_), name_length);
+            ptr_ = ptr_.add(name_length as usize);
+            bytes_left -= name_length;
+            if (bytes_left < value_len_size as usize) {
+                break;
+            }
+
+            let value_length = get_u32 (ptr_);
+            ptr_ = ptr_.add(value_len_size as usize);
+            bytes_left -= value_len_size;
+            if (bytes_left < value_length as usize) {
+                break;
+            }
+
+            let value = ptr_;
+            ptr_ = ptr_.add(value_length as usize);
+            bytes_left -= value_length;
+
+            if name == ZMTP_PROPERTY_IDENTITY && self.options.recv_routing_id {
+                self.set_peer_routing_id(value as *mut c_void, value_length as usize);
+            }
+            else if name == ZMTP_PROPERTY_SOCKET_TYPE {
+                if !self.check_socket_type (&String::from(value as *mut c_char),
+                                            value_length as usize) {
+                    // errno = EINVAL;
+                    return -1;
+                }
+            } else {
+                let rc = self.property (&name, value as *const c_void, value_length as usize);
+                if rc == -1 {
+                    return -1;
+                }
+            }
+            // if (zap_flag_  _zap_properties : _zmtp_properties)
+            // .ZMQ_MAP_INSERT_OR_EMPLACE (
+            //     name,
+            //     std::string (reinterpret_cast<const char *> (value), value_length));
+            if zap_flag_ {
+                self._zap_properties.insert(name.clone(), String::from(value));
+            } else {
+                self._zmtp_properties.insert(name.clone(), String::from(value));
+            }
+        }
+        if bytes_left > 0 {
+            // errno = EPROTO;
+            return -1;
+        }
+        return 0;
     }
 
-    pub fn check_socket_type(&mut self, type_: *mut c_char, len_: usize) -> bool {
-        unimplemented!()
+    pub fn property(&mut self, name: &str, value_: *const c_void, length_: usize) -> i32 {
+        0
+    }
+
+    pub fn check_socket_type(&mut self, type_: &str, len_: usize) -> bool {
+        match (self.options.type_) {
+            ZMQ_REQ => {
+                return strequals(type_, len_, socket_type_rep)
+                    || strequals(type_, len_, socket_type_router);
+            },
+            ZMQ_REP => {
+                return strequals(type_, len_, socket_type_req)
+                    || strequals(type_, len_, socket_type_dealer);
+            },
+            ZMQ_DEALER => {
+                return strequals(type_, len_, socket_type_rep)
+                    || strequals(type_, len_, socket_type_dealer)
+                    || strequals(type_, len_, socket_type_router);
+            },
+            ZMQ_ROUTER => {
+                return strequals(type_, len_, socket_type_req)
+                    || strequals(type_, len_, socket_type_dealer)
+                    || strequals(type_, len_, socket_type_router); },
+            ZMQ_PUSH => {
+                return strequals(type_, len_, socket_type_pull); },
+            ZMQ_PULL => {
+                return strequals(type_, len_, socket_type_push);
+            },
+            ZMQ_PUB => {
+                return strequals(type_, len_, socket_type_sub)
+                    || strequals(type_, len_, socket_type_xsub);
+            },
+            ZMQ_SUB => {
+                return strequals(type_, len_, socket_type_pub)
+                    || strequals(type_, len_, socket_type_xpub);
+            },
+            ZMQ_XPUB => {
+                return strequals(type_, len_, socket_type_sub)
+                    || strequals(type_, len_, socket_type_xsub);
+            },
+            ZMQ_XSUB => {
+                return strequals(type_, len_, socket_type_pub)
+                    || strequals(type_, len_, socket_type_xpub);
+            },
+            ZMQ_PAIR => {
+                return strequals(type_, len_, socket_type_pair);
+            },
+            // #ifdef ZMQ_BUILD_DRAFT_API
+            ZMQ_SERVER => {
+                return strequals(type_, len_, socket_type_client);
+            },
+            ZMQ_CLIENT => {
+                return strequals(type_, len_, socket_type_server);
+            },
+            ZMQ_RADIO => {
+                return strequals(type_, len_, socket_type_dish);
+            },
+            ZMQ_DISH => {
+                return strequals(type_, len_, socket_type_radio);
+            },
+            ZMQ_GATHER => {
+                return strequals(type_, len_, socket_type_scatter);
+            },
+            ZMQ_SCATTER => {
+                return strequals(type_, len_, socket_type_gather);
+            },
+            ZMQ_DGRAM => {
+                return strequals(type_, len_, socket_type_dgram);
+            },
+            ZMQ_PEER => {
+                return strequals(type_, len_, socket_type_peer);
+            },
+            ZMQ_CHANNEL => {
+                return strequals(type_, len_, socket_type_channel);
+            },
+            // #endif
+            // default:
+            // break;
+        }
+        return false;
     }
 
 
+}
+
+pub fn strequals(a: &str, c: usize, b: &str,) -> bool {
+    a == b
 }
 
 pub fn property_len(name_len_: usize, value_len_: usize) -> usize {

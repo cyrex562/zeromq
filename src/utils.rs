@@ -116,3 +116,9 @@ pub fn put_u32(ptr: *mut u8, value: u32) {
         *ptr.add(3) = value as u8;
     }
 }
+
+pub unsafe fn get_u32(ptr: *mut u8) -> u32 {
+
+    let u32_bytes:[u8;4] = [*ptr,*ptr.add(1), *ptr.add(2), *ptr.add(3)];
+    u32::from_le_bytes(u32_bytes)
+}
