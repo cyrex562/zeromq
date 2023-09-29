@@ -61,6 +61,17 @@ pub trait mechanism_ops {
 }
 
 impl mechanism_t  {
+
+    pub fn new(options: &options_t) -> Self {
+        Self {
+            options: options.clone(),
+            _zmtp_properties: dict_t::new(),
+            _zap_properties: dict_t::new(),
+            _user_id: blob_t::new(),
+            _routing_id: blob_t::new()
+        }
+    }
+
     pub fn set_peer_routing_id(&mut self, id_ptr: *mut c_void, id_size_: usize)
     {
         self._routing_id.set(id_ptr as *mut u8, id_size_);
