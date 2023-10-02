@@ -57,7 +57,10 @@ mod mechanism;
 mod mtrie;
 mod polling_util;
 mod proxy;
+<<<<<<< Updated upstream
 mod socket_poller;
+=======
+>>>>>>> Stashed changes
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
