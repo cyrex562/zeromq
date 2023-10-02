@@ -56,6 +56,8 @@ mod mechanism_base;
 mod mechanism;
 mod mtrie;
 mod polling_util;
+mod proxy;
+mod socket_poller;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
