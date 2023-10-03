@@ -1,6 +1,8 @@
 use std::ffi::c_char;
 use anyhow::bail;
 use libc::c_void;
+use crate::defines::fd_t;
+use crate::select::{fd_set, fds_set_t};
 
 pub fn copy_bytes(
     src: &[u8],
@@ -121,4 +123,19 @@ pub unsafe fn get_u32(ptr: *mut u8) -> u32 {
 
     let u32_bytes:[u8;4] = [*ptr,*ptr.add(1), *ptr.add(2), *ptr.add(3)];
     u32::from_le_bytes(u32_bytes)
+}
+
+pub fn is_retired_fd(x: fd_t) -> bool {
+    x == -1
+}
+
+pub fn FD_ISSET(fd: fd_t, fds: &fd_set) -> bool {
+    let mut i = 0;
+    while i < fds.len() {
+        if fds[i] == fd {
+            return true;
+        }
+        i += 1;
+    }
+    false
 }
