@@ -5,7 +5,7 @@ use crate::defines::ZMQ_FD;
 use crate::fd::fd_t;
 use crate::polling_util::resizable_optimized_fd_set_t;
 use crate::select::fd_set;
-use crate::singaler::signaler_t;
+use crate::signaler::signaler_t;
 use crate::socket_base::socket_base_t;
 
 pub type event_t = zmq_poller_event_t;

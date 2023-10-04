@@ -394,7 +394,7 @@ impl pipe_t {
         self._base.send_pipe_hwm(self._peer, inhwm_, outhwm_);
     }
 
-    pub fn set_endpoint_pair(&mut self, endpoint_pair_: endpoint_uri_pair_t)
+    pub fn set_endpoint_pair(&mut self, endpoint_pair_: &mut endpoint_uri_pair_t)
     {
         self._endpoint_pair = endpoint_pair_;
     }

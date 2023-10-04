@@ -26,7 +26,7 @@ mod object;
 mod options;
 mod own;
 mod pipe;
-mod singaler;
+mod signaler;
 mod socket_base;
 mod tcp_address;
 mod udp_address;
@@ -61,6 +61,7 @@ mod socket_poller;
 mod radix_tree;
 mod random;
 mod session_base;
+mod tcp;
 
 
 pub fn add(left: usize, right: usize) -> usize {

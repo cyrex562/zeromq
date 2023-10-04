@@ -8,7 +8,7 @@ use crate::i_mailbox::i_mailbox;
 use crate::ypipe::ypipe_t;
 use crate::config::command_pipe_granularity;
 use crate::mutex::mutex_t;
-use crate::singaler::signaler_t;
+use crate::signaler::signaler_t;
 
 type cpipe_t = ypipe_t<command_t, command_pipe_granularity>;
 
