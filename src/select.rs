@@ -4,8 +4,9 @@ use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::ffi::{c_char, c_int};
 use std::mem::size_of_val;
+// use std::os::windows::raw::HANDLE;
 use libc::{getsockname, getsockopt, rand, sockaddr, SOCKET, timeval};
-use windows::Win32::Foundation::FALSE;
+use windows::Win32::Foundation::{FALSE, HANDLE};
 use windows::Win32::Networking::WinSock::{AF_INET, AF_INET6, AF_UNSPEC, FD_ACCEPT, FD_CLOSE, FD_CONNECT, FD_READ, FD_SET, FD_WRITE, select, SO_TYPE, SOCK_DGRAM, SOCKADDR_STORAGE, SOCKET_ERROR, SOL_SOCKET, TIMEVAL, WSA_WAIT_TIMEOUT, WSAEventSelect, WSAWaitForMultipleEvents};
 use windows::Win32::System::Threading::INFINITE;
 use crate::ctx::thread_ctx_t;
@@ -114,7 +115,7 @@ impl<'a> select_t<'a> {
             #[cfg(target_os = "windows")]
             _family_entries: HashMap::new(),
             #[cfg(target_os = "windows")]
-            _fd_family_cache: [(0, 0); fd_family_cache_size],
+            _fd_family_cache: [(-1 as fd_t, 0); fd_family_cache_size],
             #[cfg(not(target_os = "windows"))]
             _family_entry: family_entry_t {
                 fd_entries: Vec::new(),
@@ -143,7 +144,7 @@ impl<'a> select_t<'a> {
 
         #[cfg(target_os = "windows")]
         {
-            out._current_family_entry_it = out._family_entries.iter();
+            out._current_family_entry_it = out._family_entries.iter().first().unwrap().1;
             for i in 0..fd_family_cache_size {
                 out._fd_family_cache[i].0 = -1 as fd_t;
             }
@@ -264,7 +265,7 @@ impl<'a> select_t<'a> {
             } else {
                 // let end = self._family_entries.iter().last().unwrap().1
                 for it in self._family_entries.iter_mut() {
-                    retired = unsafe { self.try_retire_fd_entry(it, &handle_) };
+                    retired = unsafe { self.try_retire_fd_entry(it.1, &handle_) };
                     if retired != 0 {
                         break;
                     }
@@ -362,7 +363,7 @@ impl<'a> select_t<'a> {
             // int timeout = static_cast<int> (execute_timers ());
             let timeout = self.execute_timers();
 
-            self.cleanup_retired();
+            self.cleanup_retired_2();
 
             let mut entries_condition: bool = false;
             #[cfg(target_os = "windows")]
@@ -440,22 +441,25 @@ impl<'a> select_t<'a> {
                             //  http://stackoverflow.com/q/35043420/188530
                             if (FD_ISSET(fd, &family_entry.fds_set.read) && FD_ISSET(fd, &family_entry.fds_set.write)) {
                                 rc = WSAEventSelect(fd, wsa_events.events[3],
-                                                    FD_READ | FD_ACCEPT | FD_CLOSE | FD_WRITE | FD_CONNECT);
-                            } else if (FD_ISSET(fd, &family_entry.fds_set.read))
-                            rc = WSAEventSelect(fd, wsa_events.events[0],
-                                                FD_READ | FD_ACCEPT | FD_CLOSE);
-                            else if (FD_ISSET(fd, &family_entry.fds_set.write))
-                            rc = WSAEventSelect(fd, wsa_events.events[1],
-                                                FD_WRITE | FD_CONNECT);
-                            else
-                            rc = 0;
+                                                    (FD_READ | FD_ACCEPT | FD_CLOSE | FD_WRITE | FD_CONNECT) as i32);
+                            } else if (FD_ISSET(fd, &family_entry.fds_set.read)) {
+                                rc = WSAEventSelect(fd, wsa_events.events[0],
+                                                    (FD_READ | FD_ACCEPT | FD_CLOSE) as i32);
+                            }
+                            else if (FD_ISSET(fd, &family_entry.fds_set.write)) {
+                                rc = WSAEventSelect(fd, wsa_events.events[1],
+                                                    (FD_WRITE | FD_CONNECT) as i32);
+                            }
+                            else {
+                                rc = 0;
+                            }
 
                             // wsa_assert(rc != SOCKET_ERROR);
                         }
                     }
 
-                    rc = WSAWaitForMultipleEvents(4, wsa_events.events, FALSE,
-                                                  if timeout { timeout } else { INFINITE }, FALSE);
+                    rc = WSAWaitForMultipleEvents(&wsa_events.events as &[HANDLE], FALSE,
+                                                  if timeout { timeout } else { INFINITE }, FALSE) as i32;
                     // wsa_assert(rc != (int) WSA_WAIT_FAILED);
                     // zmq_assert(rc != WSA_WAIT_IO_COMPLETION);
 
@@ -475,10 +479,10 @@ impl<'a> select_t<'a> {
                     if (use_wsa_events) {
                         //  There is no reason to wait again after WSAWaitForMultipleEvents.
                         //  Simply collect what is ready. struct timeval
-                        // tv_nodelay = { 0, 0 };
-                        self.select_family_entry(family_entry, 0, true, tv_nodelay);
+                        let mut tv_nodelay = TIMEVAL::default();
+                        self.select_family_entry(family_entry, 0, true, &tv_nodelay as &mut timeval);
                     } else {
-                        self.select_family_entry(family_entry, 0, timeout > 0, tv);
+                        // self.select_family_entry(family_entry, 0, timeout > 0, tv);
                     }
                 }
             }
@@ -557,14 +561,14 @@ impl<'a> select_t<'a> {
             if (entry.0 == fd_) {
                 return entry.1;
             }
-            if (entry.0 == retired_fd) {
+            if entry.0 == retired_fd as fd_t {
                 break;
             }
         }
 
         // std::pair<fd_t, u_short> res =
         //   std::make_pair (fd_, determine_fd_family (fd_));
-        let res = { fd_, self.determine_fd_family(fd_) };
+        let res = (fd_, self.determine_fd_family(fd_) );
         if (i < fd_family_cache_size) {
             self._fd_family_cache[i] = res;
         } else {
@@ -573,7 +577,7 @@ impl<'a> select_t<'a> {
             self._fd_family_cache[rand() % fd_family_cache_size] = res;
         }
 
-        return res.second;
+        return res.1;
     }
 
     #[cfg(target_os = "windows")]

@@ -60,6 +60,7 @@ mod proxy;
 mod socket_poller;
 mod radix_tree;
 mod random;
+mod session_base;
 
 
 pub fn add(left: usize, right: usize) -> usize {

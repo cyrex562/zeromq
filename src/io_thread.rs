@@ -45,7 +45,7 @@ impl io_thread_t {
 
 
 impl i_poll_events for io_thread_t {
-    fn in_event(&mut self) {
+    unsafe fn in_event(&mut self) {
         let mut cmd = command_t::new();
         let rc = self._mailbox.recv(&mut cmd, 0);
         while rc == 0 {
