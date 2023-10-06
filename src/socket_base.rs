@@ -7,18 +7,22 @@ use crate::address::address_t;
 use crate::array::{array_item_t, array_t};
 use crate::blob::blob_t;
 use crate::ctx::ctx_t;
-use crate::defines::{handle_t, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_EVENTS, ZMQ_FD, ZMQ_LAST_ENDPOINT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVMORE, ZMQ_REQ, ZMQ_SUB, ZMQ_THREAD_SAFE};
+use crate::defines::{handle_t, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_EVENTS, ZMQ_FD, ZMQ_LAST_ENDPOINT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE};
+use crate::endpoint::{endpoint_uri_pair_t, make_unconnected_connect_endpoint_pair};
 use crate::fq::pipes_t;
 use crate::i_mailbox::i_mailbox;
 use crate::i_poll_events::i_poll_events;
 use crate::mailbox::mailbox_t;
 use crate::mailbox_safe::mailbox_safe_t;
 use crate::mutex::mutex_t;
-use crate::options::do_getsockopt;
+use crate::object::object_t;
+use crate::options::{do_getsockopt, get_effective_conflate_option};
 use crate::own::own_t;
-use crate::pipe::{i_pipe_events, pipe_t};
+use crate::pipe::{i_pipe_events, pipe_t, pipepair};
 use crate::poller::poller_t;
+use crate::session_base::session_base_t;
 use crate::signaler::signaler_t;
+use crate::tcp_address::tcp_address_t;
 use crate::udp_address::udp_address_t;
 use crate::utils::get_errno;
 
@@ -248,7 +252,7 @@ impl socket_base_t {
     }
 
     pub unsafe fn attach_pipe(&mut self, pipe_: *mut pipe_t, subscribe_to_all_: bool, locally_initiated_: bool) {
-        (*pipe_).set_event_sink(self)
+        (*pipe_).set_event_sink(self);
         self._pipes.push_back(pipe_);
         self.xattach_pipe(pipe_, subscribe_to_all_, locally_initiated_);
 
@@ -274,14 +278,14 @@ impl socket_base_t {
     }
 
     pub unsafe fn getsockopt(&mut self, option_: i32, optval_: *mut c_void, optvallen_: *mut usize) -> i32 {
-        if ((self._ctx_terminated)) {
+        if (self._ctx_terminated) {
             // errno = ETERM;
             return -1;
         }
 
         //  First, check whether specific socket type overloads the option.
         let mut rc = self.xgetsockopt (option_, optval_, optvallen_);
-        if (rc == 0 || get_errno() != EINVAL) {
+        if rc == 0 || get_errno() != EINVAL {
             return rc;
         }
 
@@ -354,7 +358,7 @@ impl socket_base_t {
         }
 
         if protocol == "udp" {
-            if !self.own.options.type_ == ZMQ_DGRAM || !self.own.options.type_ == ZMQ_DISH {
+            if !self.own.options.type_ == ZMQ_DGRAM as i8 || !self.own.options.type_ == ZMQ_DISH as i8 {
                 return -1;
             }
 
@@ -373,7 +377,7 @@ impl socket_base_t {
         return 0;
     }
 
-    pub fn connect(&mut self, endpoint_uri_: &str) -> i32 {
+    pub unsafe fn connect(&mut self, endpoint_uri_: &str) -> i32 {
         self.connect_internal(endpoint_uri_)
     }
 
@@ -499,10 +503,10 @@ impl socket_base_t {
     //         return 0;
     //     }
         let is_single_connect =
-          (self.own.options.type_ == ZMQ_DEALER || self.own.options.type_ == ZMQ_SUB
-           || self.own.options.type_ == ZMQ_PUB || self.own.options.type_ == ZMQ_REQ);
+          (self.own.options.type_ == ZMQ_DEALER as i8 || self.own.options.type_ == ZMQ_SUB as i8
+           || self.own.options.type_ == ZMQ_PUB as i8 || self.own.options.type_ == ZMQ_REQ as i8);
         if ((is_single_connect)) {
-            if (0 != self._endpoints.count (endpoint_uri_)) {
+            if (0 != self._endpoints.count ()) {
                 // There is no valid use for multiple connects for SUB-PUB nor
                 // DEALER-ROUTER nor REQ-REP. Multiple connects produces
                 // nonsensical results.
@@ -563,7 +567,7 @@ impl socket_base_t {
                 return -1;
             }
             //  Defer resolution until a socket is opened
-            paddr->resolved.tcp_addr = NULL;
+            paddr.resolved.tcp_addr = null_mut();
         }
     // // #ifdef ZMQ_HAVE_WS
     // // #ifdef ZMQ_HAVE_WSS
@@ -670,9 +674,8 @@ impl socket_base_t {
     // #endif
 
         //  Create session.
-        session_base_t *session =
-          session_base_t::create (io_thread, true, this, options, paddr);
-        errno_assert (session);
+        let mut session = session_base_t::create (io_thread, true, self, &self.own.options, &mut paddr);
+        // errno_assert (session);
 
         //  PGM does not support subscription forwarding; ask for all data to be
         //  sent to this pipe. (same for NORM, currently?)
@@ -688,37 +691,241 @@ impl socket_base_t {
     //     const bool subscribe_to_all =
     //       protocol == protocol_name::norm || protocol == protocol_name::udp;
     // #else
-        const bool subscribe_to_all = protocol == protocol_name::udp;
+        let subscribe_to_all = protocol == "udp";
     // #endif
-        pipe_t *newpipe = NULL;
+    //     pipe_t *newpipe = NULL;
+        let mut newpipe: *mut pipe_t = null_mut();
 
-        if (options.immediate != 1 || subscribe_to_all) {
+        if self.own.options.immediate != 1 || subscribe_to_all {
             //  Create a bi-directional pipe.
-            object_t *parents[2] = {this, session};
-            pipe_t *new_pipes[2] = {NULL, NULL};
+            // object_t *parents[2] = {this, session};
+            let mut parents: [*mut object_t;2] = [&mut self as *mut object_t, session as *mut object_t];
+            // pipe_t *new_pipes[2] = {NULL, NULL};
+            let mut new_pipes: [*mut pipe_t;2] = [null_mut(),null_mut()];
 
-            const bool conflate = get_effective_conflate_option (options);
+            let conflate = get_effective_conflate_option (&self.own.options);
 
-            int hwms[2] = {conflate ? -1 : options.sndhwm,
-                           conflate ? -1 : options.rcvhwm};
-            bool conflates[2] = {conflate, conflate};
-            rc = pipepair (parents, new_pipes, hwms, conflates);
-            errno_assert (rc == 0);
+            let mut hwms: [i32;2] = [
+                if conflate { -1 } else { self.own.options.sndhwm },
+                if conflate { -1 } else { self.own.options.rcvhwm }
+            ];
+            let mut conflates: [bool;2] = [conflate, conflate];
+            rc = pipepair (parents, &mut new_pipes, hwms, conflates);
+            // errno_assert (rc == 0);
 
             //  Attach local end of the pipe to the socket object.
-            attach_pipe (new_pipes[0], subscribe_to_all, true);
+            self.attach_pipe (new_pipes[0], subscribe_to_all, true);
             newpipe = new_pipes[0];
 
             //  Attach remote end of the pipe to the session object later on.
-            session->attach_pipe (new_pipes[1]);
+            session.attach_pipe (new_pipes[1]);
         }
 
         //  Save last endpoint URI
-        paddr->to_string (_last_endpoint);
+        self._last_endpoint= paddr.to_string ();
 
-        add_endpoint (make_unconnected_connect_endpoint_pair (endpoint_uri_),
-                      static_cast<own_t *> (session), newpipe);
+        self.add_endpoint (make_unconnected_connect_endpoint_pair (endpoint_uri_),
+                      (session), newpipe);
         return 0;
+    }
+
+    pub unsafe fn resolve_tcp_addr(&mut self, endpoint_uri_pair_: &mut String, tcp_address_: &mut String) -> String
+    {
+        // The resolved last_endpoint is used as a key in the endpoints map.
+        // The address passed by the user might not match in the TCP case due to
+        // IPv4-in-IPv6 mapping (EG: tcp://[::ffff:127.0.0.1]:9999), so try to
+        // resolve before giving up. Given at this stage we don't know whether a
+        // socket is connected or bound, try with both.
+        if self._endpoints.find (endpoint_uri_pair_) == self._endpoints.end () {
+            // tcp_address_t *tcp_addr = new (std::nothrow) tcp_address_t ();
+            // alloc_assert (tcp_addr);
+            let mut tcp_addr = tcp_address_t::new();
+            let mut rc = tcp_addr.resolve (tcp_address_, false, self.own.options.ipv6);
+
+            if rc == 0 {
+                tcp_addr.to_string (endpoint_uri_pair_);
+                if self._endpoints.find (endpoint_uri_pair_) == self._endpoints.end () {
+                    rc = tcp_addr.resolve (tcp_address_, true, self.own.options.ipv6);
+                    if rc == 0 {
+                        tcp_addr.to_string (endpoint_uri_pair_);
+                    }
+                }
+            }
+            // LIBZMQ_DELETE (tcp_addr);
+        }
+        return endpoint_uri_pair_.clone();
+    }
+
+    pub unsafe fn add_endpoint(&mut self, endpoint_pair_: &mut endpoint_uri_pair_t, endpoint_: *mut own_t, pipe_: *mut pipe_t)
+    {
+        //  Activate the session. Make it a child of this socket.
+        self.launch_child (endpoint_);
+        self._endpoints.insert (endpoint_pair_.identifier (),
+                                              endpoint_pipe_t (endpoint_, pipe_));
+
+        if (pipe_ != null_mut()) {
+            (*pipe_).set_endpoint_pair(endpoint_pair_);
+        }
+    }
+
+    pub unsafe fn term_endpoint(&mut self, endpoint_uri_: &str) -> i32
+    {
+        //  Check whether the context hasn't been shut down yet.
+        if ((self._ctx_terminated)) {
+            // errno = ETERM;
+            return -1;
+        }
+
+        //  Check whether endpoint address passed to the function is valid.
+        if ((!endpoint_uri_)) {
+            // errno = EINVAL;
+            return -1;
+        }
+
+        //  Process pending commands, if any, since there could be pending unprocessed process_own()'s
+        //  (from launch_child() for example) we're asked to terminate now.
+        let rc = self.process_commands (0, false);
+        if ((rc != 0)) {
+            return -1;
+        }
+
+        //  Parse endpoint_uri_ string.
+        // std::string uri_protocol;
+        let mut uri_protocol = String::new();
+        // std::string uri_path;
+        let mut uri_path = String::new();
+        if (self.parse_uri (endpoint_uri_, &mut uri_protocol, &mut uri_path)
+            || self.check_protocol (&uri_protocol)) {
+            return -1;
+        }
+
+        let mut endpoint_uri_str = (endpoint_uri_).to_string();
+
+        // Disconnect an inproc socket
+        // if (uri_protocol == protocol_name::inproc) {
+        //     return unregister_endpoint (endpoint_uri_str, this) == 0
+        //         ? 0
+        //         : _inprocs.erase_pipes (endpoint_uri_str);
+        // }
+
+        let resolved_endpoint_uri = if uri_protocol == "tcp" { resolve_tcp_addr(endpoint_uri_str, uri_path.c_str()) } else { endpoint_uri_str };
+
+        //  Find the endpoints range (if any) corresponding to the endpoint_uri_pair_ string.
+        // const std::pair<endpoints_t::iterator, endpoints_t::iterator> range =
+        // _endpoints.equal_range (resolved_endpoint_uri);
+        // if (range.first == range.second) {
+        //     errno = ENOENT;
+        //     return -1;
+        // }
+
+        // for (endpoints_t::iterator it = range.first; it != range.second; ++it) {
+        // //  If we have an associated pipe, terminate it.
+        // if (it->second.second != NULL)
+        // it->second.second->terminate (false);
+        // term_child (it->second.first);
+        for it in self._endpoints.iter_mut() {
+            if it.0 == resolved_endpoint_uri {
+                it.1.terminate(false);
+                self.term_child(it.1)
+            }
+        }
+        self._endpoints.remove(&resolved_endpoint_uri);
+
+        // _endpoints.erase (range.first, range.second);
+
+        if (self.own.options.reconnect_stop & ZMQ_RECONNECT_STOP_AFTER_DISCONNECT) {
+            self._disconnected = true;
+        }
+
+        return 0;
+    }
+
+    pub unsafe fn send(&mut self, msg_: *mut msg_t, flags_: i32) -> i32
+    {
+        //  Check whether the context hasn't been shut down yet.
+        if ((self._ctx_terminated)) {
+            // errno = ETERM;
+            return -1;
+        }
+
+        //  Check whether message passed to the function is valid.
+        if ( (!msg_ || !msg_.check ())) {
+            errno = EFAULT;
+            return -1;
+        }
+
+        //  Process pending commands, if any.
+        let rc = self.process_commands (0, true);
+        if ( (rc != 0)) {
+            return -1;
+        }
+
+        //  Clear any user-visible flags that are set on the message.
+        msg_.reset_flags (more);
+
+        //  At this point we impose the flags on the message.
+        if (flags_ & ZMQ_SNDMORE) {
+            msg_.set_flags(more);
+        }
+
+        msg_.reset_metadata ();
+
+        //  Try to send the message using method in each socket class
+        rc = self.xsend (msg_);
+        if (rc == 0) {
+            return 0;
+        }
+        //  Special case for ZMQ_PUSH: -2 means pipe is dead while a
+        //  multi-part send is in progress and can't be recovered, so drop
+        //  silently when in blocking mode to keep backward compatibility.
+        if (unlikely (rc == -2)) {
+            if (!((flags_ & ZMQ_DONTWAIT) || options.sndtimeo == 0)) {
+                rc = msg_->close ();
+                errno_assert (rc == 0);
+                rc = msg_->init ();
+                errno_assert (rc == 0);
+                return 0;
+            }
+        }
+        if (unlikely (errno != EAGAIN)) {
+            return -1;
+        }
+
+        //  In case of non-blocking send we'll simply propagate
+        //  the error - including EAGAIN - up the stack.
+        if ((flags_ & ZMQ_DONTWAIT) || options.sndtimeo == 0) {
+            return -1;
+        }
+
+        //  Compute the time when the timeout should occur.
+        //  If the timeout is infinite, don't care.
+        int timeout = options.sndtimeo;
+        const uint64_t end = timeout < 0 ? 0 : (_clock.now_ms () + timeout);
+
+        //  Oops, we couldn't send the message. Wait for the next
+        //  command, process it and try to send the message again.
+        //  If timeout is reached in the meantime, return EAGAIN.
+        while (true) {
+            if (unlikely (process_commands (timeout, false) != 0)) {
+                return -1;
+            }
+            rc = xsend (msg_);
+            if (rc == 0)
+            break;
+            if (unlikely (errno != EAGAIN)) {
+                return -1;
+            }
+            if (timeout > 0) {
+                timeout = static_cast<int> (end - _clock.now_ms ());
+                if (timeout <= 0) {
+                    errno = EAGAIN;
+                    return -1;
+                }
+            }
+        }
+
+        return 0;
+
     }
 }
 
