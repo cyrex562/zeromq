@@ -7,7 +7,7 @@ use crate::address::address_t;
 use crate::array::{array_item_t, array_t};
 use crate::blob::blob_t;
 use crate::ctx::ctx_t;
-use crate::defines::{handle_t, ZMQ_DGRAM, ZMQ_DISH, ZMQ_EVENTS, ZMQ_FD, ZMQ_LAST_ENDPOINT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_RCVMORE, ZMQ_THREAD_SAFE};
+use crate::defines::{handle_t, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_EVENTS, ZMQ_FD, ZMQ_LAST_ENDPOINT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVMORE, ZMQ_REQ, ZMQ_SUB, ZMQ_THREAD_SAFE};
 use crate::fq::pipes_t;
 use crate::i_mailbox::i_mailbox;
 use crate::i_poll_events::i_poll_events;
@@ -19,6 +19,7 @@ use crate::own::own_t;
 use crate::pipe::{i_pipe_events, pipe_t};
 use crate::poller::poller_t;
 use crate::signaler::signaler_t;
+use crate::udp_address::udp_address_t;
 use crate::utils::get_errno;
 
 pub type endpoint_pipe_t = (*mut own_t, *mut pipe_t);
@@ -369,6 +370,354 @@ impl socket_base_t {
 
         }
 
+        return 0;
+    }
+
+    pub fn connect(&mut self, endpoint_uri_: &str) -> i32 {
+        self.connect_internal(endpoint_uri_)
+    }
+
+    pub unsafe fn connect_internal(&mut self, endpoint_uri_: &str) -> i32
+    {
+         if ((self._ctx_terminated)) {
+            // errno = ETERM;
+            return -1;
+        }
+
+        //  Process pending commands, if any.
+        let mut rc = self.process_commands (0, false);
+        if ( (rc != 0)) {
+            return -1;
+        }
+
+        //  Parse endpoint_uri_ string.
+        // std::string protocol;
+        let mut protocol = String::new();
+        let mut address = String::new();
+        // std::string address;
+        if (self.parse_uri (endpoint_uri_, &mut protocol, &mut address)
+            || self.check_protocol (&protocol)) {
+            return -1;
+        }
+
+    //     if (protocol == protocol_name::inproc) {
+    //         //  TODO: inproc connect is specific with respect to creating pipes
+    //         //  as there's no 'reconnect' functionality implemented. Once that
+    //         //  is in place we should follow generic pipe creation algorithm.
+    //
+    //         //  Find the peer endpoint.
+    //         const endpoint_t peer = find_endpoint (endpoint_uri_);
+    //
+    //         // The total HWM for an inproc connection should be the sum of
+    //         // the binder's HWM and the connector's HWM.
+    //         const int sndhwm = peer.socket == NULL ? options.sndhwm
+    //                            : options.sndhwm != 0 && peer.options.rcvhwm != 0
+    //                              ? options.sndhwm + peer.options.rcvhwm
+    //                              : 0;
+    //         const int rcvhwm = peer.socket == NULL ? options.rcvhwm
+    //                            : options.rcvhwm != 0 && peer.options.sndhwm != 0
+    //                              ? options.rcvhwm + peer.options.sndhwm
+    //                              : 0;
+    //
+    //         //  Create a bi-directional pipe to connect the peers.
+    //         object_t *parents[2] = {this, peer.socket == NULL ? this : peer.socket};
+    //         pipe_t *new_pipes[2] = {NULL, NULL};
+    //
+    //         const bool conflate = get_effective_conflate_option (options);
+    //
+    //         int hwms[2] = {conflate ? -1 : sndhwm, conflate ? -1 : rcvhwm};
+    //         bool conflates[2] = {conflate, conflate};
+    //         rc = pipepair (parents, new_pipes, hwms, conflates);
+    //         if (!conflate) {
+    //             new_pipes[0]->set_hwms_boost (peer.options.sndhwm,
+    //                                           peer.options.rcvhwm);
+    //             new_pipes[1]->set_hwms_boost (options.sndhwm, options.rcvhwm);
+    //         }
+    //
+    //         // errno_assert (rc == 0);
+    //
+    //         if (!peer.socket) {
+    //             //  The peer doesn't exist yet so we don't know whether
+    //             //  to send the routing id message or not. To resolve this,
+    //             //  we always send our routing id and drop it later if
+    //             //  the peer doesn't expect it.
+    //             send_routing_id (new_pipes[0], options);
+    //
+    // // #ifdef ZMQ_BUILD_DRAFT_API
+    //             //  If set, send the hello msg of the local socket to the peer.
+    //             if (options.can_send_hello_msg && options.hello_msg.size () > 0) {
+    //                 send_hello_msg (new_pipes[0], options);
+    //             }
+    // // #endif
+    //
+    //             const endpoint_t endpoint = {this, options};
+    //             pend_connection (std::string (endpoint_uri_), endpoint, new_pipes);
+    //         } else {
+    //             //  If required, send the routing id of the local socket to the peer.
+    //             if (peer.options.recv_routing_id) {
+    //                 send_routing_id (new_pipes[0], options);
+    //             }
+    //
+    //             //  If required, send the routing id of the peer to the local socket.
+    //             if (options.recv_routing_id) {
+    //                 send_routing_id (new_pipes[1], peer.options);
+    //             }
+    //
+    // // #ifdef ZMQ_BUILD_DRAFT_API
+    //             //  If set, send the hello msg of the local socket to the peer.
+    //             if (options.can_send_hello_msg && options.hello_msg.size () > 0) {
+    //                 send_hello_msg (new_pipes[0], options);
+    //             }
+    //
+    //             //  If set, send the hello msg of the peer to the local socket.
+    //             if (peer.options.can_send_hello_msg
+    //                 && peer.options.hello_msg.size () > 0) {
+    //                 send_hello_msg (new_pipes[1], peer.options);
+    //             }
+    //
+    //             if (peer.options.can_recv_disconnect_msg
+    //                 && peer.options.disconnect_msg.size () > 0)
+    //                 new_pipes[0]->set_disconnect_msg (peer.options.disconnect_msg);
+    // // #endif
+    //
+    //             //  Attach remote end of the pipe to the peer socket. Note that peer's
+    //             //  seqnum was incremented in find_endpoint function. We don't need it
+    //             //  increased here.
+    //             send_bind (peer.socket, new_pipes[1], false);
+    //         }
+    //
+    //         //  Attach local end of the pipe to this socket object.
+    //         attach_pipe (new_pipes[0], false, true);
+    //
+    //         // Save last endpoint URI
+    //         _last_endpoint.assign (endpoint_uri_);
+    //
+    //         // remember inproc connections for disconnect
+    //         _inprocs.emplace (endpoint_uri_, new_pipes[0]);
+    //
+    //         options.connected = true;
+    //         return 0;
+    //     }
+        let is_single_connect =
+          (self.own.options.type_ == ZMQ_DEALER || self.own.options.type_ == ZMQ_SUB
+           || self.own.options.type_ == ZMQ_PUB || self.own.options.type_ == ZMQ_REQ);
+        if ((is_single_connect)) {
+            if (0 != self._endpoints.count (endpoint_uri_)) {
+                // There is no valid use for multiple connects for SUB-PUB nor
+                // DEALER-ROUTER nor REQ-REP. Multiple connects produces
+                // nonsensical results.
+                return 0;
+            }
+        }
+
+        //  Choose the I/O thread to run the session in.
+        let mut io_thread = self.choose_io_thread (self.own.options.affinity);
+        if (!io_thread) {
+            // errno = EMTHREAD;
+            return -1;
+        }
+
+        // address_t *paddr = new (std::nothrow) address_t (protocol, address, this->get_ctx ());
+        // alloc_assert (paddr);
+        let mut paddr = address_t::new(protocol, address, self.get_ctx());
+
+        //  Resolve address (if needed by the protocol)
+        if (protocol == "tcp") {
+            //  Do some basic sanity checks on tcp:// address syntax
+            //  - hostname starts with digit or letter, with embedded '-' or '.'
+            //  - IPv6 address may contain hex chars and colons.
+            //  - IPv6 link local address may contain % followed by interface name / zone_id
+            //    (Reference: https://tools.ietf.org/html/rfc4007)
+            //  - IPv4 address may contain decimal digits and dots.
+            //  - Address must end in ":port" where port is *, or numeric
+            //  - Address may contain two parts separated by ':'
+            //  Following code is quick and dirty check to catch obvious errors,
+            //  without trying to be fully accurate.
+            // const char *check = address.c_str ();
+            let check = address.clone();
+            // if (isalnum (*check) || isxdigit (*check) || *check == '['
+            //     || *check == ':') {
+            //     check++;
+            //     while (isalnum (*check) || isxdigit (*check) || *check == '.'
+            //            || *check == '-' || *check == ':' || *check == '%'
+            //            || *check == ';' || *check == '[' || *check == ']'
+            //            || *check == '_' || *check == '*') {
+            //         check++;
+            //     }
+            // }
+            //  Assume the worst, now look for success
+            rc = -1;
+            //  Did we reach the end of the address safely?
+            // if (*check == 0) {
+            //     //  Do we have a valid port string? (cannot be '*' in connect
+            //     check = strrchr (address.c_str (), ':');
+            //     if (check) {
+            //         check++;
+            //         if (*check && (isdigit (*check)))
+            //             rc = 0; //  Valid
+            //     }
+            // }
+            if (rc == -1) {
+                // errno = EINVAL;
+                // LIBZMQ_DELETE (paddr);
+                return -1;
+            }
+            //  Defer resolution until a socket is opened
+            paddr->resolved.tcp_addr = NULL;
+        }
+    // // #ifdef ZMQ_HAVE_WS
+    // // #ifdef ZMQ_HAVE_WSS
+    //     else if (protocol == protocol_name::ws || protocol == protocol_name::wss) {
+    //         if (protocol == protocol_name::wss) {
+    //             paddr->resolved.wss_addr = new (std::nothrow) wss_address_t ();
+    //             alloc_assert (paddr->resolved.wss_addr);
+    //             rc = paddr->resolved.wss_addr->resolve (address.c_str (), false,
+    //                                                     options.ipv6);
+    //         } else
+    // // #else
+    //     else if (protocol == protocol_name::ws) {
+    // #endif
+    //         {
+    //             paddr->resolved.ws_addr = new (std::nothrow) ws_address_t ();
+    //             alloc_assert (paddr->resolved.ws_addr);
+    //             rc = paddr->resolved.ws_addr->resolve (address.c_str (), false,
+    //                                                    options.ipv6);
+    //         }
+    //
+    //         if (rc != 0) {
+    //             // LIBZMQ_DELETE (paddr);
+    //             return -1;
+    //         }
+    //     }
+    // #endif
+
+    // #if defined ZMQ_HAVE_IPC
+    //     else if (protocol == protocol_name::ipc) {
+    //         paddr->resolved.ipc_addr = new (std::nothrow) ipc_address_t ();
+    //         alloc_assert (paddr->resolved.ipc_addr);
+    //         int rc = paddr->resolved.ipc_addr->resolve (address.c_str ());
+    //         if (rc != 0) {
+    //             LIBZMQ_DELETE (paddr);
+    //             return -1;
+    //         }
+    //     }
+    // #endif
+
+        if (protocol == "udp") {
+            if (self.own.options.type_ != ZMQ_RADIO) {
+                // errno = ENOCOMPATPROTO;
+                // LIBZMQ_DELETE (paddr);
+                return -1;
+            }
+
+            paddr.resolved.udp_addr = udp_address_t::new(); //new (std::nothrow) udp_address_t ();
+            // alloc_assert (paddr->resolved.udp_addr);
+            rc = paddr.resolved.udp_addr.resolve (address, false,
+                                                    self.own.options.ipv6);
+            if (rc != 0) {
+                // LIBZMQ_DELETE (paddr);
+                return -1;
+            }
+        }
+
+        // TBD - Should we check address for ZMQ_HAVE_NORM???
+
+    // #ifdef ZMQ_HAVE_OPENPGM
+    //     if (protocol == protocol_name::pgm || protocol == protocol_name::epgm) {
+    //         struct pgm_addrinfo_t *res = NULL;
+    //         uint16_t port_number = 0;
+    //         int rc =
+    //           pgm_socket_t::init_address (address.c_str (), &res, &port_number);
+    //         if (res != NULL)
+    //             pgm_freeaddrinfo (res);
+    //         if (rc != 0 || port_number == 0) {
+    //             return -1;
+    //         }
+    //     }
+    // #endif
+    // #if defined ZMQ_HAVE_TIPC
+    //     else if (protocol == protocol_name::tipc) {
+    //         paddr->resolved.tipc_addr = new (std::nothrow) tipc_address_t ();
+    //         alloc_assert (paddr->resolved.tipc_addr);
+    //         int rc = paddr->resolved.tipc_addr->resolve (address.c_str ());
+    //         if (rc != 0) {
+    //             LIBZMQ_DELETE (paddr);
+    //             return -1;
+    //         }
+    //         const sockaddr_tipc *const saddr =
+    //           reinterpret_cast<const sockaddr_tipc *> (
+    //             paddr->resolved.tipc_addr->addr ());
+    //         // Cannot connect to random Port Identity
+    //         if (saddr->addrtype == TIPC_ADDR_ID
+    //             && paddr->resolved.tipc_addr->is_random ()) {
+    //             LIBZMQ_DELETE (paddr);
+    //             errno = EINVAL;
+    //             return -1;
+    //         }
+    //     }
+    // #endif
+    // #if defined ZMQ_HAVE_VMCI
+    //     else if (protocol == protocol_name::vmci) {
+    //         paddr->resolved.vmci_addr =
+    //           new (std::nothrow) vmci_address_t (this->get_ctx ());
+    //         alloc_assert (paddr->resolved.vmci_addr);
+    //         int rc = paddr->resolved.vmci_addr->resolve (address.c_str ());
+    //         if (rc != 0) {
+    //             LIBZMQ_DELETE (paddr);
+    //             return -1;
+    //         }
+    //     }
+    // #endif
+
+        //  Create session.
+        session_base_t *session =
+          session_base_t::create (io_thread, true, this, options, paddr);
+        errno_assert (session);
+
+        //  PGM does not support subscription forwarding; ask for all data to be
+        //  sent to this pipe. (same for NORM, currently?)
+    // #if defined ZMQ_HAVE_OPENPGM && defined ZMQ_HAVE_NORM
+    //     const bool subscribe_to_all =
+    //       protocol == protocol_name::pgm || protocol == protocol_name::epgm
+    //       || protocol == protocol_name::norm || protocol == protocol_name::udp;
+    // #elif defined ZMQ_HAVE_OPENPGM
+    //     const bool subscribe_to_all = protocol == protocol_name::pgm
+    //                                   || protocol == protocol_name::epgm
+    //                                   || protocol == protocol_name::udp;
+    // #elif defined ZMQ_HAVE_NORM
+    //     const bool subscribe_to_all =
+    //       protocol == protocol_name::norm || protocol == protocol_name::udp;
+    // #else
+        const bool subscribe_to_all = protocol == protocol_name::udp;
+    // #endif
+        pipe_t *newpipe = NULL;
+
+        if (options.immediate != 1 || subscribe_to_all) {
+            //  Create a bi-directional pipe.
+            object_t *parents[2] = {this, session};
+            pipe_t *new_pipes[2] = {NULL, NULL};
+
+            const bool conflate = get_effective_conflate_option (options);
+
+            int hwms[2] = {conflate ? -1 : options.sndhwm,
+                           conflate ? -1 : options.rcvhwm};
+            bool conflates[2] = {conflate, conflate};
+            rc = pipepair (parents, new_pipes, hwms, conflates);
+            errno_assert (rc == 0);
+
+            //  Attach local end of the pipe to the socket object.
+            attach_pipe (new_pipes[0], subscribe_to_all, true);
+            newpipe = new_pipes[0];
+
+            //  Attach remote end of the pipe to the session object later on.
+            session->attach_pipe (new_pipes[1]);
+        }
+
+        //  Save last endpoint URI
+        paddr->to_string (_last_endpoint);
+
+        add_endpoint (make_unconnected_connect_endpoint_pair (endpoint_uri_),
+                      static_cast<own_t *> (session), newpipe);
         return 0;
     }
 }
