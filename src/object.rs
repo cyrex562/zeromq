@@ -9,6 +9,7 @@ use crate::io_thread::io_thread_t;
 use crate::options::options_t;
 use crate::own::own_t;
 use crate::pipe::pipe_t;
+use crate::session_base::session_base_t;
 use crate::socket_base::socket_base_t;
 
 pub struct object_t<'a> {
@@ -192,59 +193,59 @@ impl object_t {
 
     pub fn send_stop(&mut self) {
         let mut cmd = command_t::new();
-        cmd.destination = self;
+        cmd.destination = Some(self);
         cmd.type_ = type_t::stop;
         self._ctx.send_command(self._tid, &mut cmd);
     }
 
-    pub unsafe fn send_plug(&mut self, destination_: *mut own_t, inc_seqnum_: bool) {
+    pub unsafe fn send_plug(&mut self, destination_: &mut own_t, inc_seqnum_: bool) {
         if (inc_seqnum_) {
             destination_.inc_seqnum();
         }
 
         let mut cmd = command_t::new();
-        cmd.destination = destination_;
+        cmd.destination = Some(destination_);
         cmd.type_ = type_t::plug;
         self.send_command(&cmd);
     }
 
-    pub unsafe fn send_own(&mut self, destination_: *mut own_t, object_: *mut own_t) {
+    pub unsafe fn send_own(&mut self, destination_: &mut own_t, object_: &mut own_t) {
         destination_.inc_seqnum();
         let mut cmd = command_t::new();
-        cmd.destination = destination_;
+        cmd.destination = Some(destination_);
         cmd.type_ = type_t::own;
         cmd.args.own.object = object_;
         self.send_command(&mut cmd);
     }
 
-    pub unsafe fn send_attach(&mut self, destination_: *mut session_base_t, engine_: *mut dyn i_engine, inc_seqnum_: bool) {
+    pub unsafe fn send_attach(&mut self, destination_: &mut session_base_t, engine_: &mut dyn i_engine, inc_seqnum_: bool) {
         if (inc_seqnum_) {
             destination_.inc_seqnum();
         }
 
         let mut cmd = command_t::new();
-        cmd.destination = destination_;
+        cmd.destination = Some(destination_);
         cmd.type_ = type_t::attach;
         cmd.args.attach.engine = engine_;
         self.send_command(&mut cmd);
     }
 
-    pub unsafe fn send_conn_failed(&mut self, destination_: *mut session_base_t) {
+    pub unsafe fn send_conn_failed(&mut self, destination_: &mut session_base_t) {
         let mut cmd = command_t::new();
-        cmd.destination = destination_;
+        cmd.destination = Some(destination_);
         cmd.type_ = type_t::conn_failed;
         self.send_command(&cmd);
     }
 
-    pub unsafe fn send_bind(&mut self, destination_: *mut own_t,
-                            pipe_: *mut pipe_t,
+    pub unsafe fn send_bind(&mut self, destination_: &mut own_t,
+                            pipe_: &mut pipe_t,
                             inc_seqnum_: bool) {
         if (inc_seqnum_) {
             destination_.inc_seqnum();
         }
 
         let mut cmd = command_t::new();
-        cmd.destination = destination_;
+        cmd.destination = Some(destination_);
         cmd.type_ = type_t::bind;
         cmd.args.bind.pipe = pipe_;
         self.send_command(&cmd);
@@ -252,7 +253,7 @@ impl object_t {
 
     pub unsafe fn send_activate_read(&mut self, destination_: &mut pipe_t) {
         let mut cmd = command_t::new();
-        cmd.destination = destination_;
+        cmd.destination = Some(destination_);
         cmd.type_ = type_t::activate_read;
         self.send_command(&cmd);
     }
@@ -260,27 +261,27 @@ impl object_t {
     pub unsafe fn send_activate_write(&mut self, destination_: &mut pipe_t,
                                       msgs_read_: u64) {
         let mut cmd = command_t::new();
-        cmd.destination = destination_;
+        cmd.destination = Some(destination_);
         cmd.type_ = type_t::activate_write;
         cmd.args.activate_write.msgs_read = msgs_read_;
         self.send_command(&cmd);
     }
 
-    pub unsafe fn send_hiccup(&mut self, destination_: &mut pipe_t, pipe_: *mut c_void) {
+    pub unsafe fn send_hiccup(&mut self, destination_: &mut pipe_t, pipe_: &mut pipe_t) {
         let mut cmd = command_t::new();
-        cmd.destination = destination_;
+        cmd.destination = Some(destination_);
         cmd.type_ = type_t::hiccup;
         cmd.args.hiccup.pipe = pipe_;
         self.send_command(&cmd);
     }
 
     pub unsafe fn send_pipe_peer_stats(&mut self,
-                                       destination_: *mut pipe_t,
+                                       destination_: &mut pipe_t,
                                        queue_count_: u64,
-                                       socket_base_: *mut own_t,
-                                       endpoint_pair_: *mut endpoint_uri_pair_t) {
+                                       socket_base_: &mut own_t,
+                                       endpoint_pair_: &mut endpoint_uri_pair_t) {
         let mut cmd = command_t::new();
-        cmd.destination = destination_;
+        cmd.destination = Some(destination_);
         cmd.type_ = type_t::pipe_peer_stats;
         cmd.args.pipe_peer_stats.queue_count = queue_count_;
         cmd.args.pipe_peer_stats.socket_base = socket_base_;
@@ -289,12 +290,12 @@ impl object_t {
     }
 
     pub unsafe fn send_pipe_stats_publish(&mut self,
-        destination_: *mut own_t,
+        destination_: &mut own_t,
         outbound_queue_count_: u64,
         inbound_queue_count_: u64,
-        endpoint_pair_: *mut endpoint_uri_pair_t) {
+        endpoint_pair_: &mut endpoint_uri_pair_t) {
         let mut cmd = command_t::new();
-        cmd.destination = destination_;
+        cmd.destination = Some(destination_);
         cmd.type_ = type_t::pipe_stats_publish;
         cmd.args.pipe_stats_publish.outbound_queue_count = outbound_queue_count_;
         cmd.args.pipe_stats_publish.inbound_queue_count = inbound_queue_count_;
@@ -302,10 +303,10 @@ impl object_t {
         self.send_command(&cmd);
     }
 
-    pub unsafe fn send_pipe_term (&mut self, destination_: *mut pipe_t)
+    pub unsafe fn send_pipe_term (&mut self, destination_: &mut pipe_t)
     {
         let mut cmd = command_t::new();
-        cmd.destination = destination_;
+        cmd.destination = Some(destination_);
         cmd.type_ = type_t::pipe_term;
         self.send_command (&cmd);
     }
@@ -313,7 +314,7 @@ impl object_t {
     pub unsafe fn send_pipe_term_ack (&mut self, destination_: &mut pipe_t)
     {
         let mut cmd = command_t::new();
-        cmd.destination = destination_;
+        cmd.destination = Some(destination_);
         cmd.type_ = type_t::pipe_term_ack;
         self.send_command (&cmd);
     }
@@ -331,7 +332,7 @@ impl object_t {
     pub unsafe fn send_reap (&mut self, socket_: *mut socket_base_t)
     {
         let mut cmd = command_t::new();
-        cmd.destination = self._ctx.get_reaper ();
+        cmd.destination = Some(self._ctx.get_reaper ());
         cmd.type_ = type_t::reap;
         cmd.args.reap.socket = socket_;
         self.send_command (&cmd);

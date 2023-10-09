@@ -79,7 +79,7 @@ impl address_t
         }
     }
 
-    pub fn to_string(&mut self, addr_: &mut String) -> i32 {
+    pub fn to_string(&mut self) -> String {
 
         return -1;
     }

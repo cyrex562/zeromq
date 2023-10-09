@@ -252,7 +252,7 @@ impl<'a> select_t<'a> {
         1
     }
 
-    pub fn rm_fd(&mut self, handle_: handle_t) {
+    pub fn rm_fd(&mut self, handle_: &mut handle_t) {
         self._worker_poller_base.check_thread();
         let mut retired = 0;
 
@@ -293,7 +293,7 @@ impl<'a> select_t<'a> {
         self._worker_poller_base._poller_base.adjust_load(-1);
     }
 
-    pub fn set_pollin(&mut self, handle_: handle_t) {
+    pub fn set_pollin(&mut self, handle_: &mut handle_t) {
         self._worker_poller_base.check_thread();
         let mut family_entry: &mut family_entry_t;
         #[cfg(target_os = "windows")]

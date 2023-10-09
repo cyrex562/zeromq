@@ -319,7 +319,7 @@ impl session_base_t {
     }
 
     pub unsafe fn process_attach(&mut self, engine_: &mut dyn i_engine) {
-        self._engine = engine_;
+        self._engine = Some(engine_);
 
         if !((*engine_).has_handshake_stage()) {
             self.engine_ready();
@@ -344,7 +344,7 @@ impl session_base_t {
 
             // bool conflates[2] = {conflate, conflate};
             let conflates: [bool; 2] = [conflate, conflate];
-            let mut rc = pipepair(parents, &mut pipes, hwms, conflates);
+            let mut rc = pipepair(parents, &mut pipes.unwrap(), hwms, conflates);
             // errno_assert (rc == 0);
 
             //  Plug the local end of the pipe.
@@ -366,7 +366,7 @@ impl session_base_t {
 
     pub unsafe fn engine_error(&mut self, handshaked_: bool, reason_: error_reason_t) {
         //  Engine is dead. Let's forget about it.
-        self._engine = null_mut();
+        self._engine = None;
 
         //  Remove any half-done messages from the pipes.
         if (self._pipe != null_mut()) {
@@ -490,12 +490,12 @@ impl session_base_t {
             // #ifdef ZMQ_HAVE_NORM
             //         && _addr->protocol != protocol_name::norm
             // #endif
-        && (*self._addr).protocol != udp)
+        && (*self._addr).protocol != "udp")
         {
             self._pipe.hiccup();
             self._pipe.terminate(false);
-            self._terminating_pipes.insert(self._pipe);
-            self._pipe = null_mut();
+            self._terminating_pipes.insert(self._pipe.unwrap());
+            self._pipe = None;
 
             if (self._has_linger_timer) {
                 self.cancel_timer(_linger_timer_id);
@@ -517,7 +517,7 @@ impl session_base_t {
 
         //  For subscriber sockets we hiccup the inbound pipe, which will cause
         //  the socket object to resend all the subscriptions.
-        if (self._pipe && (self.own.options.type_ == ZMQ_SUB || self.own.options.type_ == ZMQ_XSUB || self.own.options.type_ == ZMQ_DISH)){
+        if (self._pipe.is_some() && (self.own.options.type_ == ZMQ_SUB || self.own.options.type_ == ZMQ_XSUB || self.own.options.type_ == ZMQ_DISH)){
     self._pipe.hiccup();}
     }
 
@@ -535,7 +535,7 @@ impl session_base_t {
                 // address_t *proxy_address = new (std::nothrow)
                 //   address_t (protocol_name::tcp, options.socks_proxy_address,
                 //              this->get_ctx ());
-                let proxy_address = address_t::new2(tcp, &mut self.own.options.socks_proxy_address, self.get_ctx());
+                let proxy_address = address_t::new2("tcp", &mut self.own.options.socks_proxy_address, self.get_ctx());
                 // alloc_assert (proxy_address);
                 // connecter = new (std::nothrow) socks_connecter_t (
                 //   io_thread, this, options, _addr, proxy_address, wait_);
@@ -588,7 +588,7 @@ impl session_base_t {
             return;
         }
 
-        if (self._addr.protocol == udp) {
+        if (self._addr.protocol == "udp") {
             // zmq_assert (options.type == ZMQ_DISH || options.type == ZMQ_RADIO
             //             || options.type == ZMQ_DGRAM);
 
@@ -694,15 +694,19 @@ impl session_base_t {
     }
 }
 
-pub struct hello_msg_session_t {
-    pub session_base_t: session_base_t,
+pub struct hello_msg_session_t<'a> {
+    pub session_base_t: session_base_t<'a>,
     pub _hello_sent: bool,
     pub _hello_received: bool,
     pub _new_pipe: bool,
 }
 
 impl hello_msg_session_t {
-    pub unsafe fn new(io_thread_: *mut io_thread_t, connect_: bool, socket_: *mut socket_base_t, options: &options_t, addr_: *mut address_t) -> Self {
+    pub unsafe fn new(io_thread_: &mut io_thread_t,
+                      connect_: bool,
+                      socket_: &mut socket_base_t,
+                      options: &options_t,
+                      addr_: address_t) -> Self {
         Self {
             session_base_t: session_base_t::new(io_thread_, connect_, socket_, options, addr_),
             _hello_sent: false,
@@ -711,8 +715,8 @@ impl hello_msg_session_t {
         }
     }
 
-    pub unsafe fn pull_msg(&mut self, msg_: *mut msg_t) -> i32 {
-        if (self._new_pipe != null_mut()) {
+    pub unsafe fn pull_msg(&mut self, msg_: &mut msg_t) -> i32 {
+        if self._new_pipe != null_mut() {
             self._new_pipe = false;
             // let rc = init_buffer(&self.options.hello_msg[0], self.options.hello_msg.len();
             return 0;

@@ -256,16 +256,16 @@ impl pipe_t {
             } else {
                 self._state = term_ack_sent;
                 self._out_pipe = None;
-                self._base.send_pipe_term_ack(self._peer);
+                self._base.send_pipe_term_ack(self._peer.unwrap());
             }
         } else if self._state == delimiter_received {
             self._state = term_ack_sent;
             self._out_pipe = None;
-            self._base.send_pipe_term_ack(self._peer);
+            self._base.send_pipe_term_ack(self._peer.unwrap());
         } else if self._state == term_req_sent1 {
             self._state = term_req_sent2;
             self._out_pipe = None;
-            self._base.send_pipe_term_ack(self._peer);
+            self._base.send_pipe_term_ack(self._peer.unwrap());
         }
     }
 
@@ -273,8 +273,8 @@ impl pipe_t {
     {
         self._sink.pipe_terminated(self);
         if self._state == term_req_sent1 {
-           self._out_pipe = null_mut();
-            self._base.send_pipe_term_ack(self._peer);
+           self._out_pipe = None;
+            self._base.send_pipe_term_ack(self._peer.unwrap());
         } else {
 
         }
@@ -307,18 +307,18 @@ impl pipe_t {
         }
 
         if self._state == active {
-            self._base.send_pipe_term(self._peer);
+            self._base.send_pipe_term(self._peer.unwrap());
             self._state = term_req_sent1;
         }
         else if self._state == waiting_for_delimiter && self._delay == false {
             self.rollback();
-            self._out_pipe = null_mut();
-            self._base.send_pipe_term_ack(self._peer);
+            self._out_pipe = None;
+            self._base.send_pipe_term_ack(self._peer.unwrap());
             self._state = term_ack_sent;
         }
         else if self._state == waiting_for_delimiter {}
         else if self._state == delimiter_received {
-            self._base.send_pipe_term(self._peer);
+            self._base.send_pipe_term(self._peer.unwrap());
             self._state = term_req_sent1;
         }
         else {
@@ -347,8 +347,8 @@ impl pipe_t {
             self._state = delimiter_received;
         } else {
             self.rollback();
-            self._out_pipe = null_mut();
-            self._base.send_pipe_term_ack(self._peer);
+            self._out_pipe = None;
+            self._base.send_pipe_term_ack(self._peer.unwrap());
             self._state = term_ack_sent;
         }
     }
@@ -358,12 +358,12 @@ impl pipe_t {
             return;
         }
         if self._conflate == true {
-             self._in_pipe: ypipe_conflate_t<msg_t> = ypipe_conflate_t::new()
+             self._in_pipe = ypipe_conflate_t::new()
         } else {
-             self._in_pipe: ypipe_t<msg_t, message_pipe_granularity> = ypipe_t::new()
+             self._in_pipe = ypipe_t::new()
         };
         self._in_active = true;
-        self._base.send_hiccup(self._peer, self._in_pipe);
+        self._base.send_hiccup(self._peer.unwrap(), self._in_pipe.unwrap());
     }
 
     pub fn set_hwms(&mut self, inhwm_: i32, outhwm_: i32) {
@@ -400,13 +400,13 @@ impl pipe_t {
         self._endpoint_pair = endpoint_pair_;
     }
 
-    pub fn send_stats_to_peer(&mut self, socket_base_: *mut own_t)
+    pub unsafe fn send_stats_to_peer(&mut self, socket_base_: &mut own_t)
     {
         let mut ep = endpoint_uri_pair_t::new3(&mut self._endpoint_pair);
-        self._base.send_pipe_peer_stats(self._peer, self._msgs_written - self._peers_msgs_read, socket_base_, ep);
+        self._base.send_pipe_peer_stats(self._peer.unwrap(), self._msgs_written - self._peers_msgs_read, socket_base_, &mut ep);
     }
 
-    pub fn process_pipe_peer_stats(&mut self, queue_count_: u64, socket_base_: *mut own_t, endpoint_pair_: *mut endpoint_uri_pair_t){
+    pub fn process_pipe_peer_stats(&mut self, queue_count_: u64, socket_base_: &mut own_t, endpoint_pair_: &mut endpoint_uri_pair_t){
         self._base.send_pipe_stats_publish(socket_base_, queue_count_, self._msgs_written - self._peers_msgs_read, endpoint_pair_);
     }
 
@@ -440,26 +440,26 @@ type upipe_conflate_t = ypipe_conflate_t<msg_t>;
 
 
 pub unsafe fn pipepair(parents_: [&mut object_t; 2],
-                pipes_: &mut [&mut pipe_t; 2],
+                pipes_: &mut [Option<&mut pipe_t>; 2],
                 hwms_: [i32; 2],
                 conflate_: [bool; 2],
 ) -> i32 {
-    let mut upipe1: *mut upipe_t;
+    let mut upipe1: upipe_t;
     if conflate_[0] == true {
-        upipe1 = &mut upipe_conflate_t::new() as *mut upipe_t;
+        upipe1 = upipe_conflate_t::new();
     } else {
-        upipe1 = &mut upipe_normal_t::new() as *mut upipe_t;
+        upipe1 = upipe_normal_t::new();
     }
 
-    let upipe2: *mut upipe_t;
+    let mut upipe2: upipe_t;
     if conflate_[1] == true {
-        upipe2 = &mut upipe_conflate_t::new() as *mut upipe_t;
+        upipe2 = upipe_conflate_t::new();
     } else {
-        upipe2 = &mut upipe_normal_t::new() as *mut upipe_t;
+        upipe2 = upipe_normal_t::new();
     }
 
-    pipes_[0] = &mut pipe_t::new(parents_[0], upipe1, upipe2, hwms_[1], hwms_[0], conflate_[0]) as *mut pipe_t;
-    pipes_[1] = &mut pipe_t::new(parents_[1], upipe2, upipe1, hwms_[0], hwms_[1], conflate_[1]) as *mut pipe_t;
+    pipes_[0] = Some(&mut pipe_t::new(parents_[0], &mut upipe1, &mut upipe2, hwms_[1], hwms_[0], conflate_[0]));
+    pipes_[1] = Some(&mut pipe_t::new(parents_[1], &mut upipe2, &mut upipe1, hwms_[0], hwms_[1], conflate_[1]));
 
     pipes_[0].set_peer(pipes_[1]);
     pipes_[1].set_peer(pipes_[0]);
