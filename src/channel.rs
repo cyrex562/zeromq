@@ -15,7 +15,7 @@ pub struct channel_t
 
 impl channel_t
 {
-    pub fn new(options: &mut options_t, parent: *mut ctx_t, tid_: u32, sid_: i32) -> Self
+    pub unsafe fn new(options: &mut options_t, parent: *mut ctx_t, tid_: u32, sid_: i32) -> Self
     {
         options.type_ = ZMQ_CHANNEL;
         Self {

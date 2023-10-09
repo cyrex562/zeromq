@@ -62,6 +62,8 @@ mod radix_tree;
 mod random;
 mod session_base;
 mod tcp;
+mod client;
+mod dealer;
 
 
 pub fn add(left: usize, right: usize) -> usize {

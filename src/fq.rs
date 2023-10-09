@@ -51,7 +51,7 @@ impl fq_t {
         self.recvpipe(msg_, null_mut())
     }
 
-    pub unsafe fn recvpipe(&mut self, msg_: *mut msg_t, pipe_: *mut *mut pipe_t) -> i32 {
+    pub unsafe fn recvpipe(&mut self, msg_: *mut msg_t, pipe_: &mut Option<&mut pipe_t>) -> i32 {
         let mut rc = (*msg_).close();
 
         while self._active > 0 {

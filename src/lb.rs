@@ -55,7 +55,7 @@ impl lb_t {
         self.sendpipe(msg_, null_mut())
     }
 
-    pub unsafe fn sendpipe(&mut self, msg_: *mut msg_t, pipe_: *mut *mut pipe_t) -> i32 {
+    pub unsafe fn sendpipe(&mut self, msg_: &mut msg_t, pipe_: &mut Option<&mut pipe_t>) -> i32 {
         if self._dropping {
             self._more = msg_.flags() & msg_t::MORE != 0;
             self._dropping = self._more;
