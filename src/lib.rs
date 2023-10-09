@@ -62,6 +62,8 @@ mod radix_tree;
 mod random;
 mod session_base;
 mod tcp;
+mod tcp_connecter;
+mod stream;
 mod client;
 mod dealer;
 

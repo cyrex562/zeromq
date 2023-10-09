@@ -20,9 +20,9 @@ pub enum socket_end_t
 
 pub union AddressUnion
 {
-    pub dummy: *mut c_void,
-    pub tcp_addr: *mut tcp_address_t,
-    pub udp_addr: *mut udp_address_t,
+    //pub dummy: *mut c_void,
+    pub tcp_addr: tcp_address_t,
+    pub udp_addr: udp_address_t,
     // pub ws_addr: *mut ws_address_t,
     // pub wss_addr: *mut wss_address_t,
     // pub ipc_addr: *mut ipc_address_t,
@@ -69,7 +69,7 @@ impl Default for address_t
 
 impl address_t
 {
-    fn new(protocol_: &mut String, address_: &mut String, parent_: *mut ctx_t) -> Self
+    pub fn new(protocol_: &mut String, address_: &mut String, parent_: *mut ctx_t) -> Self
     {
         Self {
             protocol: (*protocol_).clone(),
@@ -79,7 +79,7 @@ impl address_t
         }
     }
 
-    fn to_string(&mut self, addr_: &mut String) -> i32 {
+    pub fn to_string(&mut self, addr_: &mut String) -> i32 {
 
         return -1;
     }

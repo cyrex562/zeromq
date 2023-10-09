@@ -658,4 +658,24 @@ impl wsa_events_t {
     }
 }
 
+// void FD_CLR(int fd, fd_set *fdset)
+// pub unsafe fn FD_CLR(fd: i32, fdset: *mut fd_set) {
+//     unimplemented!()
+// }
+//
+// Clears the bit for the file descriptor fd in the file descriptor set fdset.
+// int FD_ISSET(int fd, fd_set *fdset)
+//
+// Returns a non-zero value if the bit for the file descriptor fd is set in the file descriptor set by fdset, and 0 otherwise.
+// void FD_SET(int fd, fd_set *fdset)
+//
+// Sets the bit for the file descriptor fd in the file descriptor set fdset.
+// void FD_ZERO(fd_set *fdset)
+pub fn FD_ZERO(fdset: *mut fd_set)
+{
+    unimplemented!()
+}
+
+
+
 // #[cfg(target_feature="select")]

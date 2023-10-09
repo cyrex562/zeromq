@@ -11,17 +11,17 @@ use crate::own::own_t;
 use crate::pipe::pipe_t;
 use crate::socket_base::socket_base_t;
 
-pub struct object_t {
-    pub _ctx: *const ctx_t,
+pub struct object_t<'a> {
+    pub _ctx: &'a mut ctx_t<'a>,
     pub _tid: u32,
 }
 
 impl object_t {
-    pub fn new(ctx_: *mut ctx_t, tid_: u32) -> Self {
+    pub fn new(ctx_: &mut ctx_t, tid_: u32) -> Self {
         Self { _ctx: ctx_, _tid: tid_ }
     }
 
-    pub unsafe fn new2(parent: *mut Self) -> Self {
+    pub unsafe fn new2(parent: &mut Self) -> Self {
         Self { _ctx: (*parent)._ctx, _tid: (*parent)._tid }
     }
 
@@ -159,19 +159,22 @@ impl object_t {
         self._ctx.register_endpoint(addr_, endpoint_, options)
     }
 
-    pub fn unregister_endpoint(&mut self, addr_: &str, socket_: *mut socket_base_t) {
+    pub fn unregister_endpoint(&mut self, addr_: &str, socket_: &mut socket_base_t) {
         self._ctx.unregister_endpoint(addr_);
     }
 
-    pub fn unregister_endpoints(&mut self, socket_: *mut socket_base_t) {
+    pub fn unregister_endpoints(&mut self, socket_: &mut socket_base_t) {
         self._ctx.unregister_endpoints(socket_);
     }
 
-    pub fn find_endpoint(&mut self, addr_: &str) -> *mut endpoint_t {
-        self._ctx.find_endpoint(addr_)
+    pub fn find_endpoint(&mut self, addr_: &str) -> &mut endpoint_t {
+        self._ctx.find_endpoint(addr_) as &mut endpoint_t
     }
 
-    pub unsafe fn pend_connection(&mut self, addr_: &str, endpoint_: &endpoint_t, pipes_: *mut *mut pipe_t) {
+    pub unsafe fn pend_connection(&mut self,
+                                  addr_: &str,
+                                  endpoint_: &endpoint_t,
+                                  pipes_: &mut [&mut pipe_t]) {
         self._ctx.pend_connection(addr_, endpoint_, pipes_);
     }
 
@@ -247,14 +250,14 @@ impl object_t {
         self.send_command(&cmd);
     }
 
-    pub unsafe fn send_activate_read(&mut self, destination_: *mut pipe_t) {
+    pub unsafe fn send_activate_read(&mut self, destination_: &mut pipe_t) {
         let mut cmd = command_t::new();
         cmd.destination = destination_;
         cmd.type_ = type_t::activate_read;
         self.send_command(&cmd);
     }
 
-    pub unsafe fn send_activate_write(&mut self, destination_: *mut pipe_t,
+    pub unsafe fn send_activate_write(&mut self, destination_: &mut pipe_t,
                                       msgs_read_: u64) {
         let mut cmd = command_t::new();
         cmd.destination = destination_;
@@ -263,7 +266,7 @@ impl object_t {
         self.send_command(&cmd);
     }
 
-    pub unsafe fn send_hiccup(&mut self, destination_: *mut pipe_t, pipe_: *mut c_void) {
+    pub unsafe fn send_hiccup(&mut self, destination_: &mut pipe_t, pipe_: *mut c_void) {
         let mut cmd = command_t::new();
         cmd.destination = destination_;
         cmd.type_ = type_t::hiccup;
@@ -307,7 +310,7 @@ impl object_t {
         self.send_command (&cmd);
     }
 
-    pub unsafe fn send_pipe_term_ack (&mut self, destination_: *mut pipe_t)
+    pub unsafe fn send_pipe_term_ack (&mut self, destination_: &mut pipe_t)
     {
         let mut cmd = command_t::new();
         cmd.destination = destination_;
@@ -315,7 +318,7 @@ impl object_t {
         self.send_command (&cmd);
     }
 
-    pub unsafe fn send_term_endpoint (&mut self, destination_: *mut own_t,
+    pub unsafe fn send_term_endpoint (&mut self, destination_: &mut own_t,
                                         endpoint_: &str)
     {
         let mut cmd = command_t::new();

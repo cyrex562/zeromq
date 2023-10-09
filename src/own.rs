@@ -6,27 +6,27 @@ use crate::io_thread::io_thread_t;
 use crate::object::object_t;
 use crate::options::options_t;
 
-pub struct own_t
+pub struct own_t<'a>
 {
-    pub object: object_t,
+    pub object: object_t<'a>,
     pub options: options_t,
     pub _terminating: bool,
     pub _sent_seqnum: atomic_counter_t,
     pub _processed_seqnum: u64,
-    pub _owner: *mut own_t, // really own_t
-    pub _owned: HashSet<*mut own_t>,
+    pub _owner: Option<&'a mut own_t<'a>>, // really own_t
+    pub _owned: HashSet<&'a mut own_t<'a>>,
     pub _term_acks: i32,
 }
 
 impl own_t {
-    pub fn new(parent_: *mut ctx_t, tid_: u32) -> own_t {
+    pub fn new(parent_: &mut ctx_t, tid_: u32) -> own_t {
         own_t {
             object: object_t::new(parent_, tid_),
             options: options_t::new(),
             _terminating: false,
             _sent_seqnum: atomic_counter_t::new(0),
             _processed_seqnum: 0,
-            _owner: std::ptr::null_mut(),
+            _owner: None,
             _owned: HashSet::new(),
             _term_acks: 0,
         }
@@ -39,14 +39,14 @@ impl own_t {
             _terminating: false,
             _sent_seqnum: atomic_counter_t::new(0),
             _processed_seqnum: 0,
-            _owner: std::ptr::null_mut(),
+            _owner: None,
             _owned: HashSet::new(),
             _term_acks: 0,
         }
     }
     
-    pub fn set_owner(&mut self, owner_: *mut Self) {
-        self._owner = owner_;
+    pub fn set_owner(&mut self, owner_: &mut Self) {
+        self._owner = Some(owner_);
     }
     
     pub fn inc_seqnum(&mut self) {
@@ -101,11 +101,11 @@ impl own_t {
         self.send_term (object_, self.options.linger.load ());
     }
     
-    pub fn process_own (&mut self, object_: *mut own_t)
+    pub fn process_own (&mut self, object_: &mut own_t)
     {
         //  If the object is already being shut down, new owned objects are
         //  immediately asked to terminate. Note that linger is set to zero.
-        if (self._terminating) {
+        if self._terminating {
             self.register_term_acks (1);
             self.send_term (object_, 0);
             return;
@@ -119,13 +119,13 @@ impl own_t {
     {
         //  If termination is already underway, there's no point
         //  in starting it anew.
-        if (self._terminating) {
+        if self._terminating {
             return;
         }
     
         //  As for the root of the ownership tree, there's no one to terminate it,
         //  so it has to terminate itself.
-        if (!self._owner) {
+        if self._owner.is_none() {
             self.process_term (self.options.linger.load ());
             return;
         }

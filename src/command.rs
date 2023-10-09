@@ -37,16 +37,16 @@ pub struct args_t_stop {}
 
 pub struct args_t_plug {}
 
-pub struct args_t_own {
-    pub object: *mut own_t,
+pub struct args_t_own<'a> {
+    pub object: &'a mut own_t,
 }
 
-pub struct args_t_attach {
-    pub engine: *mut i_engine,
+pub struct args_t_attach<'a> {
+    pub engine: &'a mut dyn i_engine,
 }
 
-pub struct args_t_bind {
-    pub pipe: *mut pipe_t,
+pub struct args_t_bind<'a> {
+    pub pipe: &'a mut pipe_t<'a>,
 }
 
 pub struct args_t_activate_read {}
@@ -102,12 +102,12 @@ pub struct args_t_pipe_stats_publish {
 
 pub struct args_t_done {}
 
-pub union args_t {
+pub union args_t<'a> {
     pub stop: args_t_stop,
     pub plug: args_t_plug,
-    pub own: args_t_own,
-    pub attach: args_t_attach,
-    pub bind: args_t_bind,
+    pub own: args_t_own<'a>,
+    pub attach: args_t_attach<'a>,
+    pub bind: args_t_bind<'a>,
     pub activate_read: args_t_activate_read,
     pub activate_write: args_t_activate_write,
     pub hiccup: args_t_hiccup,
@@ -125,31 +125,22 @@ pub union args_t {
     pub done: args_t_done,
 }
 
-pub struct command_t {
-    pub destination: *mut object_t,
-    pub args: args_t,
+pub struct command_t<'a> {
+    pub destination: Option<&'a mut object_t>,
+    pub args: args_t<'a>,
     pub type_: type_t,
 }
 
 impl command_t {
     pub fn new() -> Self {
         Self {
-            destination: std::ptr::null_mut(),
+            destination: None,
             args: args_t { stop: args_t_stop {} },
             type_: type_t::stop,
         }
     }
 }
 
-impl Clone for command_t {
-    fn clone(&self) -> Self {
-        command_t {
-            destination: self.destination,
-            args: self.args.clone(),
-            type_: self.type_.clone(),
-        }
-    }
-}
 
 impl PartialEq for command_t {
     fn eq(&self, other: &Self) -> bool {

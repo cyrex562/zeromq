@@ -43,10 +43,10 @@ pub struct thread_ctx_t {
 pub const term_tid: i32 = 0;
 pub const reaper_tid: i32 = 1;
 
-pub struct pending_connection_t {
+pub struct pending_connection_t<'a> {
     pub endpoint: endpoint_t,
-    pub connect_pipe: *mut pipe_t,
-    pub bind_pipe: *mut pipe_t,
+    pub connect_pipe: &'a mut pipe_t<'a>,
+    pub bind_pipe: &'a mut pipe_t<'a>,
 }
 
 pub enum side {
@@ -61,7 +61,7 @@ pub fn clipped_maxsocket(mut max_requested_: i32) -> i32 {
     max_requested_
 }
 
-pub struct ctx_t {
+pub struct ctx_t<'a> {
     pub _thread_ctx: thread_ctx_t,
     pub _tag: u32,
     pub _sockets: Vec<socket_base_t>,
@@ -71,10 +71,10 @@ pub struct ctx_t {
     pub _slot_sync: mutex_t,
     pub _reaper: *mut reaper_t,
     pub _io_threads: io_threads_t,
-    pub _slots: Vec<*mut i_mailbox>,
+    pub _slots: Vec<&'a mut dyn i_mailbox>,
     pub _term_mailbox: mailbox_t,
     pub _endpoints: HashMap<String, endpoint_t>,
-    pub _pending_connections: HashMap<String, pending_connection_t>,
+    pub _pending_connections: HashMap<String, pending_connection_t<'a>>,
     pub _endpoints_sync: mutex_t,
     pub max_socket_id: atomic_counter_t,
     pub _max_sockets: i32,
@@ -135,14 +135,14 @@ impl ctx_t {
         self._term_mailbox.valid()
     }
 
-    pub fn terminate(&mut self) -> i32 {
+    pub unsafe fn terminate(&mut self) -> i32 {
         self._slot_sync.lock();
 
         let save_terminating = self._terminating;
         self._terminating = false;
         for p in self._pending_connections {
-            let s: *mut socket_base_t = self.create_socket(ZMQ_PAIR as i32);
-            s.bind(p.0);
+            let mut s = self.create_socket(ZMQ_PAIR as i32).unwrap();
+            s.bind(&p.0);
             s.close();
         }
         self._terminating = save_terminating;
@@ -173,7 +173,7 @@ impl ctx_t {
         return 0;
     }
 
-    pub fn shutdown(&mut self) -> i32 {
+    pub unsafe fn shutdown(&mut self) -> i32 {
         let mut locker = scoped_lock_t::new(&mut self._slot_sync);
         if !self._terminating {
             self._terminating = true;
@@ -246,7 +246,7 @@ impl ctx_t {
         self._zero_copy
     }
 
-    pub fn start(&mut self) -> bool {
+    pub unsafe fn start(&mut self) -> bool {
         self._opt_sync.lock();
         let term_and_reaper_threads_count = 2;
         let mazmq = self._max_sockets;
@@ -258,7 +258,7 @@ impl ctx_t {
         self._reaper = reaper_t::new(self, reaper_tid);
         self._slots[reaper_tid] = &self._reaper.get_mailbox();
         self._reaper.start();
-        self._slots.resize(slot_count as usize, null_mut());
+        self._slots.reserve(slot_count);
 
         for i in term_and_reaper_threads_count..ios + term_and_reaper_threads_count {
             let io_thread = io_thread_t::new(self, i);
@@ -281,29 +281,29 @@ impl ctx_t {
         // selff._slots.clear()
     }
 
-    pub fn create_socket(&mut self, type_: i32) -> *mut socket_base_t {
+    pub unsafe fn create_socket(&mut self, type_: i32) -> Option<&mut socket_base_t> {
         if self._terminating {
-            return null_mut();
+            return None;
         }
 
         if self._starting {
             if !self.start() {
-                return null_mut();
+                return None;
             }
         }
 
         if self._empty_slots.empty() {
-            return null_mut();
+            return None;
         }
 
         let slot = self._empty_slots[-1];
         self._empty_slots.pop();
         let sid = self.max_socket_id.add(1) + 1;
 
-        let s = socket_base_t::new(self, sid, slot, type_);
+        let mut s = socket_base_t::new(self, sid, slot, type_);
         self._sockets.push(s);
         self._slots[slot] = s.get_mailbox();
-        return &mut s;
+        return Some(&mut s);
     }
 
     pub unsafe fn destroy_socket(&mut self, socket_: *mut socket_base_t) {
@@ -357,7 +357,7 @@ impl ctx_t {
         return result;
     }
 
-    pub fn register_endpoint(&mut self, addr_: &str, socket_: *mut socket_base_t, options_: &mut options_t) -> i32 {
+    pub fn register_endpoint(&mut self, addr_: &str, socket_: &mut socket_base_t, options_: &mut options_t) -> i32 {
         let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         let mut endpoint = endpoint_t::new();
         endpoint.socket = socket_;
@@ -394,7 +394,7 @@ impl ctx_t {
         return endpoint.unwrap().socket;
     }
 
-    pub unsafe fn pend_connection(&mut self, addr_: &str, endpoint_: &endpoint_t, pipes_: *mut *mut pipe_t) -> i32 {
+    pub unsafe fn pend_connection(&mut self, addr_: &str, endpoint_: &endpoint_t, pipes_: &mut [&mut pipe_t]) -> i32 {
         let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         let mut pending_connection = pending_connection_t::new();
         pending_connection.endpoint = endpoint_.clone();
