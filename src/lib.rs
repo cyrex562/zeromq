@@ -66,6 +66,8 @@ mod tcp_connecter;
 mod stream;
 mod client;
 mod dealer;
+mod dgram;
+mod dish;
 
 
 pub fn add(left: usize, right: usize) -> usize {
