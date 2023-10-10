@@ -253,16 +253,16 @@ impl dish_session_t {
         if msg_.is_join() {
             rc = command_.init_size(group_length + 5);
             offset = 5;
-            libc::memcpy(command_.data(), "\x04JOIN", 5);
+            libc::memcpy(command_.data(), "\x04JOIN".as_ptr() as *const c_void, 5);
         } else {
             rc = command_.init_size(group_length + 6);
             offset = 6;
-            libc::memcpy(command_.data(), "\x05LEAVE", 6);
+            libc::memcpy(command_.data(), "\x05LEAVE".as_ptr() as *const c_void, 6);
         }
 
         command_.set_flags(command);
         let mut command_data = command_.data();
-        libc::memcpy(command_data.add(offset), msg_.group().as_ptr() as *const c_void, group_len);
+        libc::memcpy(command_data.add(offset), msg_.group().as_ptr() as *const c_void, group_length);
 
         rc = msg_.close();
 
