@@ -534,6 +534,14 @@ impl msg_t {
         return self._u.base.flags;
     }
 
+    pub unsafe fn flag_set(&self, flag_: u8) -> bool {
+        return self._u.base.flags & flag_ != 0;
+    }
+
+    pub unsafe fn flag_clear(&self, flag_: u8) -> bool {
+        return self._u.base.flags & flag_ == 0;
+    }
+
     pub unsafe fn set_flags(&mut self, flags_: u8) {
         self._u.base.flags |= flags_;
     }
@@ -541,6 +549,14 @@ impl msg_t {
     pub unsafe fn reset_flags(&mut self, flags_: u8) {
         self._u.base.flags &= !flags_;
     }
+
+    // pub unsafe fn set_flags(&mut self, flags_: u8) {
+    //     self._u.base.flags |= flags_;
+    // }
+    //
+    // pub unsafe fn reset_flags(&mut self, flags_: u8) {
+    //     self._u.base.flags &= !flags_;
+    // }
 
     pub unsafe fn metadata(&mut self) -> *mut metadata_t {
         return self._u.base.metadata;
