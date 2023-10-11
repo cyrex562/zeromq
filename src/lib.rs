@@ -70,6 +70,8 @@ mod dgram;
 mod dish;
 mod dist;
 mod gather;
+mod zap_client;
+mod null_mechanism;
 
 
 pub fn add(left: usize, right: usize) -> usize {

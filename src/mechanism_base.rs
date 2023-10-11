@@ -2,6 +2,8 @@ use std::ffi::c_void;
 use crate::defines::ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED;
 use crate::mechanism::{mechanism_ops, mechanism_t, status_t};
 use crate::msg::msg_t;
+use crate::options::options_t;
+use crate::session_base::session_base_t;
 
 pub struct mechanism_base_t
 {
@@ -11,7 +13,7 @@ pub struct mechanism_base_t
 
 impl mechanism_base_t
 {
-    pub fn new(session_: *mut session_base_t, options: &options_t) -> Self
+    pub fn new(session_: &mut session_base_t, options: &options_t) -> Self
     {
         Self {
             session: session_,
