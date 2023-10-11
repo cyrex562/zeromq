@@ -72,6 +72,8 @@ mod dist;
 mod gather;
 mod zap_client;
 mod null_mechanism;
+mod pair;
+mod server;
 
 
 pub fn add(left: usize, right: usize) -> usize {
