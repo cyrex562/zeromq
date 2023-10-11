@@ -69,6 +69,7 @@ mod dealer;
 mod dgram;
 mod dish;
 mod dist;
+mod gather;
 
 
 pub fn add(left: usize, right: usize) -> usize {
