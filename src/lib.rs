@@ -74,6 +74,9 @@ mod zap_client;
 mod null_mechanism;
 mod pair;
 mod server;
+mod peer;
+mod r#pub;
+mod xpub;
 
 
 pub fn add(left: usize, right: usize) -> usize {

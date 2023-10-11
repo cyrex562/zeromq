@@ -55,7 +55,7 @@ impl <T>generic_mtrie_t<T>
         }
     }
 
-    pub unsafe fn add(&mut self, mut prefix_: prefix_t, mut size_: usize, pipe: *mut T) -> bool
+    pub unsafe fn add(&mut self, mut prefix_: Option<prefix_t>, mut size_: usize, pipe: *mut T) -> bool
     {
         let mut it = self;
         while size_ {
@@ -66,7 +66,7 @@ impl <T>generic_mtrie_t<T>
                     it._min = c;
                     it._count = 1;
                     it._next.node = null_mut();
-                } else if (it._count == 1) {
+                } else if it._count == 1 {
                     let oldc = it._min;
                     let oldp = it._next.node;
                     it._count = ((if it._min < c { c - it._min } else { it._min - c }) + 1) as u16;
