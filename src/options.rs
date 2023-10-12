@@ -29,7 +29,7 @@ pub struct options_t {
     pub rcvbuf: i32,
     pub tos: i32,
     pub priority: i32,
-    pub type_: i8,
+    pub type_: u32,
     pub linger: u64,
     pub connect_timeout: i32,
     pub tcp_maxrt: i32,

@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: MPL-2.0 */
+ /* SPDX-License-Identifier: MPL-2.0 */
 
 #ifndef __ZMQ_BLOB_HPP_INCLUDED__
 #define __ZMQ_BLOB_HPP_INCLUDED__

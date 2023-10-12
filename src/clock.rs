@@ -14,8 +14,8 @@ pub struct clock_t
 impl clock_t {
     pub fn new() -> Self {
         Self {
-            last_tsc: rdtsc(),
-            last_time: now_us() / usecs_per_msec,
+            last_tsc: self.rdtsc(),
+            last_time: self.now_us() / usecs_per_msec,
         }
     }
 
@@ -47,6 +47,18 @@ impl clock_t {
         if tsc - self.last_tsc < (clock_precision / 2) && tsc >= self.last_tsc {
             return self.last_time;
         }
+
+        self.last_tsc = tsc;
+        #[cfg(target_os = "windows")]
+        {
+            self.last_time = self.now_us() / usecs_per_msec;
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            self.last_time = self.now_us() / usecs_per_msec;
+        }
+
+        return self.last_time;
     }
 
 }

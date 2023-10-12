@@ -23,6 +23,7 @@ impl <const I: i32>array_item_t<I>
     }
 }
 
+#[derive(Default,Debug,Clone)]
 pub struct array_t<T, const I: i32> {
     pub items: Vec<*mut T>
 }

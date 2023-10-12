@@ -1,3 +1,10 @@
+#![allow(non_camel_case_types)]
+#![allow(non_upper_case_globals)]
+
+use std::ffi::c_void;
+use std::os::windows::raw::HANDLE;
+use windows::Win32::Networking::WinSock::sa_family_t;
+
 #[cfg(target_os = "windows")]
 #[cfg(target_arch = "x86_64")]
 pub type zmq_fd_t = u64;
@@ -304,3 +311,44 @@ pub const clock_precision: u32 = 1000000;
 //  socket used port 5905 instead of letting the OS choose a free port.
 //  https://github.com/zeromq/libzmq/issues/1542
 pub const signaler_port: u32 = 0;
+
+pub  type handle_t = *mut c_void;
+
+pub type fd_t = handle_t;
+
+pub type WSAEVENT = HANDLE;
+
+
+//     9 #define _NSIG       64
+pub const _NSIG: u32 = 64;
+
+//    10 #define _NSIG_BPW   32v
+pub const _NSIG_BPW: u32 = 32;
+//    11 #define _NSIG_WORDS (_NSIG / _NSIG_BPW)
+pub const _NSIG_WORDS: u32 = _NSIG / _NSIG_BPW;
+//    12
+//    13 typedef unsigned long old_sigset_t;     /* at least 32 bits */
+pub type old_sigset_t = u32;
+//    14
+//    15 typedef struct {
+//    16     unsigned long sig[_NSIG_WORDS];
+//    17 } sigset_t;
+pub struct sigset_t {
+    pub sig: [u32; _NSIG_WORDS as usize],
+}
+//    18
+//    19 struct old_sigaction {
+//    20     __sighandler_t sa_handler;
+//    21     old_sigset_t sa_mask;
+//    22     unsigned long sa_flags;
+//    23     __sigrestore_t sa_restorer;
+//    24 };
+
+
+// struct sockaddr_storage {
+//            sa_family_t     ss_family;      /* Address family */
+//        };
+#[derive(Default,Debug,Clone)]
+pub struct sockaddr_storage {
+    pub ss_family: sa_family_t,
+}

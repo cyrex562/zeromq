@@ -32,13 +32,14 @@ pub enum pipe_state {
 
 pub type upipe_t = ypipe_base_t<msg_t>;
 
-pub struct pipe_t {
-    pub _base: *mut object_t,
+#[derive(Default,Debug,Clone)]
+pub struct pipe_t<'a> {
+    pub _base: &'a mut object_t<'a>,
     pub _array_item_1: array_item_t<1>,
     pub _array_item_2: array_item_t<2>,
     pub _array_item_3: array_item_t<3>,
-    pub _in_pipe: *mut upipe_t,
-    pub _out_pipe: *mut upipe_t,
+    pub _in_pipe: Option<&'a mut upipe_t>,
+    pub _out_pipe: Option<&'a mut upipe_t>,
     pub _in_active: bool,
     pub _out_active: bool,
     pub _hwm: i32,
@@ -48,8 +49,8 @@ pub struct pipe_t {
     pub _msgs_read: u64,
     pub _msgs_written: u64,
     pub _peers_msgs_read: u64,
-    pub _peer: *mut pipe_t,
-    pub _sink: *mut dyn i_pipe_events,
+    pub _peer: Option<&'a mut pipe_t<'a>>,
+    pub _sink: Option<&'a mut dyn i_pipe_events>,
     pub _state: pipe_state,
     pub _delay: bool,
     pub _router_socket_routing_id: blob_t,
@@ -61,14 +62,14 @@ pub struct pipe_t {
 
 impl pipe_t {
 
-    fn new(parent_: *mut object_t, inpipe_: *mut upipe_t, outpipe_: *mut upipe_t, inhwm_: i32, outhwm_: i32, conflate_: bool) -> Self {
+    fn new(parent_: &mut object_t, inpipe_: &mut upipe_t, outpipe_: &mut upipe_t, inhwm_: i32, outhwm_: i32, conflate_: bool) -> Self {
         Self {
             _base: parent_,
             _array_item_1: array_item_t::new(),
             _array_item_2: array_item_t::new(),
             _array_item_3: array_item_t::new(),
-            _in_pipe: null_mut(),
-            _out_pipe: null_mut(),
+            _in_pipe: None,
+            _out_pipe: None,
             _in_active: false,
             _out_active: false,
             _hwm: 0,
@@ -78,8 +79,8 @@ impl pipe_t {
             _msgs_read: 0,
             _msgs_written: 0,
             _peers_msgs_read: 0,
-            _peer: null_mut(),
-            _sink: null_mut(),
+            _peer: None,
+            _sink: None,
             _state: pipe_state::active,
             _delay: false,
             _router_socket_routing_id: blob_t::new(),
@@ -90,12 +91,12 @@ impl pipe_t {
         }
     }
 
-    pub fn set_peer(&mut self, peer_: *mut pipe_t){
-        self._peer = peer_;
+    pub fn set_peer(&mut self, peer_: &mut pipe_t){
+        self._peer = Some(peer_);
     }
 
-    pub fn set_event_sink(&mut self, sink_: *mut dyn i_pipe_events){
-        self._sink = sink_;
+    pub fn set_event_sink(&mut self, sink_: &mut dyn i_pipe_events){
+        self._sink = Some(sink_);
     }
 
     pub fn set_server_socket_router_id(&mut self, server_socket_routing_id_: u32) {
@@ -126,7 +127,7 @@ impl pipe_t {
         return true;
     }
 
-    pub unsafe fn read(&mut self, msg_: *mut msg_t) -> bool {
+    pub unsafe fn read(&mut self, msg_: &mut msg_t) -> bool {
         if self._in_active == false {
             return false;
         }
@@ -135,13 +136,13 @@ impl pipe_t {
         }
 
         loop {
-            if (*self._in_pipe).read(msg_) == false {
+            if (self._in_pipe).read(msg_) == false {
                 self._in_active = false;
                 return false;
             }
 
             if msg_.is_credential() {
-                (*msg_).close()
+                (msg_).close()
             } else {
                 break;
             }
@@ -158,7 +159,7 @@ impl pipe_t {
         }
 
         if self._lwm > 0 && self._msgs_read % self._lwm == 0 {
-            self._base.send_activate_write(self._peer, self._msgs_read);
+            self._base.send_activate_write(self._peer.unwrap(), self._msgs_read);
         }
 
         return true;
@@ -178,7 +179,7 @@ impl pipe_t {
         return true;
     }
 
-    pub unsafe fn write(&mut self, msg_: *mut msg_t) -> bool {
+    pub unsafe fn write(&mut self, msg_: &mut msg_t) -> bool {
         if self.check_write() == false {
             return false;
         }
@@ -210,7 +211,7 @@ impl pipe_t {
         }
 
         if self._out_pipe != null_mut() && (*self._out_pipe).flush() == 0 {
-            self._base.send_activate_read(self._peer);
+            self._base.send_activate_read(self._peer.unwrap());
         }
     }
 
@@ -229,18 +230,18 @@ impl pipe_t {
         }
     }
 
-    pub unsafe fn process_hiccup(&mut self, pipe_: *mut c_void)
+    pub unsafe fn process_hiccup(&mut self, pipe_: &mut pipe_t)
     {
         self._out_pipe.flush();
         let mut msg: msg_t = msg_t::new();
-        while (*self._out_pipe).read(&mut msg) {
+        while (self._out_pipe).read(&mut msg) {
             if msg.flags & more == 0 {
                 self._msgs_written -= 1
             }
             msg.close();
         }
 
-        self._out_pipe = pipe_ as *mut upipe_t;
+        self._out_pipe = Some(pipe_ );
         self._out_active = true;
 
         if self._state == active {
@@ -254,17 +255,17 @@ impl pipe_t {
                 self._state = waiting_for_delimiter;
             } else {
                 self._state = term_ack_sent;
-                self._out_pipe = null_mut();
-                self._base.send_pipe_term_ack(self._peer);
+                self._out_pipe = None;
+                self._base.send_pipe_term_ack(self._peer.unwrap());
             }
         } else if self._state == delimiter_received {
             self._state = term_ack_sent;
-            self._out_pipe = null_mut();
-            self._base.send_pipe_term_ack(self._peer);
+            self._out_pipe = None;
+            self._base.send_pipe_term_ack(self._peer.unwrap());
         } else if self._state == term_req_sent1 {
             self._state = term_req_sent2;
-            self._out_pipe = null_mut();
-            self._base.send_pipe_term_ack(self._peer);
+            self._out_pipe = None;
+            self._base.send_pipe_term_ack(self._peer.unwrap());
         }
     }
 
@@ -272,8 +273,8 @@ impl pipe_t {
     {
         self._sink.pipe_terminated(self);
         if self._state == term_req_sent1 {
-           self._out_pipe = null_mut();
-            self._base.send_pipe_term_ack(self._peer);
+           self._out_pipe = None;
+            self._base.send_pipe_term_ack(self._peer.unwrap());
         } else {
 
         }
@@ -306,18 +307,18 @@ impl pipe_t {
         }
 
         if self._state == active {
-            self._base.send_pipe_term(self._peer);
+            self._base.send_pipe_term(self._peer.unwrap());
             self._state = term_req_sent1;
         }
         else if self._state == waiting_for_delimiter && self._delay == false {
             self.rollback();
-            self._out_pipe = null_mut();
-            self._base.send_pipe_term_ack(self._peer);
+            self._out_pipe = None;
+            self._base.send_pipe_term_ack(self._peer.unwrap());
             self._state = term_ack_sent;
         }
         else if self._state == waiting_for_delimiter {}
         else if self._state == delimiter_received {
-            self._base.send_pipe_term(self._peer);
+            self._base.send_pipe_term(self._peer.unwrap());
             self._state = term_req_sent1;
         }
         else {
@@ -346,8 +347,8 @@ impl pipe_t {
             self._state = delimiter_received;
         } else {
             self.rollback();
-            self._out_pipe = null_mut();
-            self._base.send_pipe_term_ack(self._peer);
+            self._out_pipe = None;
+            self._base.send_pipe_term_ack(self._peer.unwrap());
             self._state = term_ack_sent;
         }
     }
@@ -357,12 +358,12 @@ impl pipe_t {
             return;
         }
         if self._conflate == true {
-             self._in_pipe: ypipe_conflate_t<msg_t> = ypipe_conflate_t::new()
+             self._in_pipe = ypipe_conflate_t::new()
         } else {
-             self._in_pipe: ypipe_t<msg_t, message_pipe_granularity> = ypipe_t::new()
+             self._in_pipe = ypipe_t::new()
         };
         self._in_active = true;
-        self._base.send_hiccup(self._peer, self._in_pipe);
+        self._base.send_hiccup(self._peer.unwrap(), self._in_pipe.unwrap());
     }
 
     pub fn set_hwms(&mut self, inhwm_: i32, outhwm_: i32) {
@@ -399,13 +400,13 @@ impl pipe_t {
         self._endpoint_pair = endpoint_pair_;
     }
 
-    pub fn send_stats_to_peer(&mut self, socket_base_: *mut own_t)
+    pub unsafe fn send_stats_to_peer(&mut self, socket_base_: &mut own_t)
     {
         let mut ep = endpoint_uri_pair_t::new3(&mut self._endpoint_pair);
-        self._base.send_pipe_peer_stats(self._peer, self._msgs_written - self._peers_msgs_read, socket_base_, ep);
+        self._base.send_pipe_peer_stats(self._peer.unwrap(), self._msgs_written - self._peers_msgs_read, socket_base_, &mut ep);
     }
 
-    pub fn process_pipe_peer_stats(&mut self, queue_count_: u64, socket_base_: *mut own_t, endpoint_pair_: *mut endpoint_uri_pair_t){
+    pub fn process_pipe_peer_stats(&mut self, queue_count_: u64, socket_base_: &mut own_t, endpoint_pair_: &mut endpoint_uri_pair_t){
         self._base.send_pipe_stats_publish(socket_base_, queue_count_, self._msgs_written - self._peers_msgs_read, endpoint_pair_);
     }
 
@@ -438,27 +439,27 @@ type upipe_normal_t = ypipe_t<msg_t, message_pipe_granularity>;
 type upipe_conflate_t = ypipe_conflate_t<msg_t>;
 
 
-pub unsafe fn pipepair(parents_: [*mut object_t; 2],
-                pipes_: &mut [*mut pipe_t; 2],
+pub unsafe fn pipepair(parents_: [&mut object_t; 2],
+                pipes_: &mut [Option<&mut pipe_t>; 2],
                 hwms_: [i32; 2],
                 conflate_: [bool; 2],
 ) -> i32 {
-    let mut upipe1: *mut upipe_t;
+    let mut upipe1: upipe_t;
     if conflate_[0] == true {
-        upipe1 = &mut upipe_conflate_t::new() as *mut upipe_t;
+        upipe1 = upipe_conflate_t::new();
     } else {
-        upipe1 = &mut upipe_normal_t::new() as *mut upipe_t;
+        upipe1 = upipe_normal_t::new();
     }
 
-    let upipe2: *mut upipe_t;
+    let mut upipe2: upipe_t;
     if conflate_[1] == true {
-        upipe2 = &mut upipe_conflate_t::new() as *mut upipe_t;
+        upipe2 = upipe_conflate_t::new();
     } else {
-        upipe2 = &mut upipe_normal_t::new() as *mut upipe_t;
+        upipe2 = upipe_normal_t::new();
     }
 
-    pipes_[0] = &mut pipe_t::new(parents_[0], upipe1, upipe2, hwms_[1], hwms_[0], conflate_[0]) as *mut pipe_t;
-    pipes_[1] = &mut pipe_t::new(parents_[1], upipe2, upipe1, hwms_[0], hwms_[1], conflate_[1]) as *mut pipe_t;
+    pipes_[0] = Some(&mut pipe_t::new(parents_[0], &mut upipe1, &mut upipe2, hwms_[1], hwms_[0], conflate_[0]));
+    pipes_[1] = Some(&mut pipe_t::new(parents_[1], &mut upipe2, &mut upipe1, hwms_[0], hwms_[1], conflate_[1]));
 
     pipes_[0].set_peer(pipes_[1]);
     pipes_[1].set_peer(pipes_[0]);

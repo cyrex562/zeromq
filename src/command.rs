@@ -37,16 +37,16 @@ pub struct args_t_stop {}
 
 pub struct args_t_plug {}
 
-pub struct args_t_own {
-    pub object: *mut own_t,
+pub struct args_t_own<'a> {
+    pub object: &'a mut own_t<'a>,
 }
 
-pub struct args_t_attach {
-    pub engine: *mut dyn i_engine,
+pub struct args_t_attach<'a> {
+    pub engine: &'a mut dyn i_engine,
 }
 
-pub struct args_t_bind {
-    pub pipe: *mut pipe_t,
+pub struct args_t_bind<'a> {
+    pub pipe: &'a mut pipe_t<'a>,
 }
 
 pub struct args_t_activate_read {}
@@ -55,8 +55,8 @@ pub struct args_t_activate_write {
     pub msgs_read: u64,
 }
 
-pub struct args_t_hiccup {
-    pub pipe: *mut c_void,
+pub struct args_t_hiccup<'a> {
+    pub pipe: &'a mut pipe_t<'a>,
 }
 
 pub struct args_t_pipe_term {}
@@ -68,8 +68,8 @@ pub struct args_t_pipe_hwm {
     pub outhwm: i32,
 }
 
-pub struct args_t_term_req {
-    pub object: *mut own_t,
+pub struct args_t_term_req<'a> {
+    pub object: &'a mut own_t<'a>,
 }
 
 pub struct args_t_term {
@@ -79,77 +79,68 @@ pub struct args_t_term {
 pub struct args_t_term_ack {}
 
 pub struct args_t_term_endpoint {
-    endpoint: *mut String,
+    pub endpoint: String,
 }
 
-pub struct args_t_reap {
-    pub socket: *mut socket_base_t,
+pub struct args_t_reap<'a> {
+    pub socket: &'a mut socket_base_t<'a>,
 }
 
 pub struct args_t_reaped {}
 
-pub struct args_t_pipe_peer_stats {
+pub struct args_t_pipe_peer_stats<'a> {
     pub queue_count: u64,
-    pub socket_base: *mut own_t,
+    pub socket_base: &'a mut own_t<'a>,
     pub endpoint_pair: *mut endpoint_uri_pair_t,
 }
 
-pub struct args_t_pipe_stats_publish {
+pub struct args_t_pipe_stats_publish<'a> {
     pub outbound_queue_count: u64,
     pub inbound_queue_count: u64,
-    pub endpoint_pair: *mut endpoint_uri_pair_t,
+    pub endpoint_pair: &'a mut endpoint_uri_pair_t,
 }
 
 pub struct args_t_done {}
 
-pub union args_t {
+pub union args_t<'a> {
     pub stop: args_t_stop,
     pub plug: args_t_plug,
-    pub own: args_t_own,
-    pub attach: args_t_attach,
-    pub bind: args_t_bind,
+    pub own: args_t_own<'a>,
+    pub attach: args_t_attach<'a>,
+    pub bind: args_t_bind<'a>,
     pub activate_read: args_t_activate_read,
     pub activate_write: args_t_activate_write,
-    pub hiccup: args_t_hiccup,
+    pub hiccup: args_t_hiccup<'a>,
     pub pipe_term: args_t_pipe_term,
     pub pipe_term_ack: args_t_pipe_term_ack,
     pub pipe_hwm: args_t_pipe_hwm,
-    pub term_req: args_t_term_req,
+    pub term_req: args_t_term_req<'a>,
     pub term: args_t_term,
     pub term_ack: args_t_term_ack,
     pub term_endpoint: args_t_term_endpoint,
-    pub reap: args_t_reap,
+    pub reap: args_t_reap<'a>,
     pub reaped: args_t_reaped,
-    pub pipe_peer_stats: args_t_pipe_peer_stats,
-    pub pipe_stats_publish: args_t_pipe_stats_publish,
+    pub pipe_peer_stats: args_t_pipe_peer_stats<'a>,
+    pub pipe_stats_publish: args_t_pipe_stats_publish<'a>,
     pub done: args_t_done,
 }
 
-pub struct command_t {
-    pub destination: *mut object_t,
+pub struct command_t<'a> {
+    pub destination: Option<&'a mut object_t<'a>>,
+    pub args: args_t<'a>,
     pub type_: type_t,
-    pub args: args_t,
 }
 
 impl command_t {
     pub fn new() -> Self {
         Self {
-            destination: std::ptr::null_mut(),
-            type_: type_t::stop,
+            destination: None,
             args: args_t { stop: args_t_stop {} },
+            type_: type_t::stop,
         }
     }
 }
 
-impl Clone for command_t {
-    fn clone(&self) -> Self {
-        Self {
-            destination: self.destination,
-            type_: self.type_.clone(),
-            args: self.args.clone(),
-        }
-    }
-}
 
 impl PartialEq for command_t {
     fn eq(&self, other: &Self) -> bool {

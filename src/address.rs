@@ -1,7 +1,11 @@
+#![allow(non_camel_case_types)]
+
 use std::ptr::null_mut;
 
 use libc::c_void;
 use windows::Win32::{Networking::WinSock::{socklen_t, SOCKADDR_STORAGE}, };
+use crate::ctx::ctx_t;
+use crate::fd::fd_t;
 use crate::tcp_address::tcp_address_t;
 use crate::udp_address::udp_address_t;
 
@@ -16,9 +20,9 @@ pub enum socket_end_t
 
 pub union AddressUnion
 {
-    pub dummy: *mut c_void,
-    pub tcp_addr: *mut tcp_address_t,
-    pub udp_addr: *mut udp_address_t,
+    //pub dummy: *mut c_void,
+    pub tcp_addr: tcp_address_t,
+    pub udp_addr: udp_address_t,
     // pub ws_addr: *mut ws_address_t,
     // pub wss_addr: *mut wss_address_t,
     // pub ipc_addr: *mut ipc_address_t,
@@ -43,7 +47,7 @@ pub struct address_t
 
 impl Clone for address_t {
     fn clone(&self) -> Self {
-        Self { protocol: self.protocol.clone(), address: self.address.clone(), parent: self.parent.clone(), resolved: self.resolved }
+        Self { protocol: self.protocol.clone(), address: self.address.clone(), parent: self.parent.clone(), resolved: self.resolved.clone() }
     }
 }
 
@@ -65,7 +69,7 @@ impl Default for address_t
 
 impl address_t
 {
-    fn new(protocol_: &mut String, address_: &mut String, parent_: *mut ctx_t) -> Self
+    pub fn new(protocol_: &mut String, address_: &mut String, parent_: *mut ctx_t) -> Self
     {
         Self {
             protocol: (*protocol_).clone(),
@@ -75,7 +79,7 @@ impl address_t
         }
     }
 
-    fn to_string(addr_: &mut String) -> i32 {
+    pub fn to_string(&mut self) -> String {
 
         return -1;
     }
