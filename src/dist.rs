@@ -52,7 +52,8 @@ impl dist_t {
             return;
         }
 
-        self._pipes.swap(self._pipes.index(pipe_).unwrap(), self._matching);
+        self._pipes
+            .swap(self._pipes.index(pipe_).unwrap(), self._matching);
         self._matching += 1;
     }
 
@@ -71,15 +72,18 @@ impl dist_t {
 
     pub fn pipe_terminated(&mut self, pipe_: &mut pipe_t) {
         if (self._pipes.index(pipe_).unwrap() < self._matching) {
-            self._pipes.swap(self._pipes.index(pipe_).unwrap(), self._matching - 1);
+            self._pipes
+                .swap(self._pipes.index(pipe_).unwrap(), self._matching - 1);
             self._matching -= 1;
         }
         if (self._pipes.index(pipe_).unwrap() < self._active) {
-            self._pipes.swap(self._pipes.index(pipe_).unwrwap(), self._active - 1);
+            self._pipes
+                .swap(self._pipes.index(pipe_).unwrwap(), self._active - 1);
             self._active -= 1;
         }
         if (self._pipes.index(pipe_).unwrap() < self._eligible) {
-            self._pipes.swap(self._pipes.index(pipe_).unwrap(), self._eligible - 1);
+            self._pipes
+                .swap(self._pipes.index(pipe_).unwrap(), self._eligible - 1);
             self._eligible -= 1;
         }
 
@@ -89,7 +93,8 @@ impl dist_t {
     pub fn activated(&mut self, pipe_: &mut pipe_t) {
         //  Move the pipe from passive to eligible state.
         if (self._eligible < self._pipes.size()) {
-            self._pipes.swap(self._pipes.index(pipe_).unwrap(), self._eligible);
+            self._pipes
+                .swap(self._pipes.index(pipe_).unwrap(), self._eligible);
             self._eligible += 1;
         }
 
@@ -162,7 +167,7 @@ impl dist_t {
                 // i += 1;
             }
         }
-        if ((failed)) {
+        if (failed) {
             msg_.rm_refs(failed);
         }
 
@@ -180,9 +185,11 @@ impl dist_t {
     pub unsafe fn write(&mut self, pipe_: &mut pipe_t, msg_: &mut msg_t) -> bool {
         let mut rc = pipe_.write(msg_);
         if rc == -1 {
-            self._pipes.swap(self._pipes.index(pipe_).unwrap(), self._matching - 1);
+            self._pipes
+                .swap(self._pipes.index(pipe_).unwrap(), self._matching - 1);
             self._matching -= 1;
-            self._pipes.swap(self._pipes.index(pipe_).unwrap(), self._active - 1);
+            self._pipes
+                .swap(self._pipes.index(pipe_).unwrap(), self._active - 1);
             self._active -= 1;
             self._pipes.swap(self._active, self._eligible - 1);
             self._eligible -= 1;

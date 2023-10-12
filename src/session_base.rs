@@ -1,12 +1,10 @@
 #![allow(non_camel_case_types)]
 
-use std::collections::HashSet;
-use std::ptr::null_mut;
 use crate::address::address_t;
 use crate::defines::{ZMQ_DGRAM, ZMQ_DISH, ZMQ_NULL, ZMQ_RADIO, ZMQ_SUB, ZMQ_XSUB};
 use crate::endpoint::endpoint_uri_pair_t;
-use crate::i_engine::{error_reason_t, i_engine};
 use crate::i_engine::error_reason_t::timeout_error;
+use crate::i_engine::{error_reason_t, i_engine};
 use crate::io_object::io_object_t;
 use crate::io_thread::io_thread_t;
 use crate::msg::{command, more, msg_t};
@@ -15,6 +13,8 @@ use crate::options::{get_effective_conflate_option, options_t};
 use crate::own::own_t;
 use crate::pipe::{i_pipe_events, pipe_t, pipepair};
 use crate::socket_base::socket_base_t;
+use std::collections::HashSet;
+use std::ptr::null_mut;
 
 pub struct session_base_t<'a> {
     pub own: own_t<'a>,
@@ -81,7 +81,13 @@ impl i_pipe_events for session_base_t {
 // }
 
 impl session_base_t {
-    pub unsafe fn create(io_thread_: &mut io_thread_t, active_: bool, socket_: &mut socket_base_t, options_: &options_t, addr_: address_t) -> session_base_t {
+    pub unsafe fn create(
+        io_thread_: &mut io_thread_t,
+        active_: bool,
+        socket_: &mut socket_base_t,
+        options_: &options_t,
+        addr_: address_t,
+    ) -> session_base_t {
         // let mut s: *mut session_base_t = null_mut();
         let mut s = session_base_t::default();
         match options_.type_ {
@@ -105,7 +111,13 @@ impl session_base_t {
         return s;
     }
 
-    pub unsafe fn new(io_thread_: &mut io_thread_t, active_: bool, socket_: &mut socket_base_t, options_: &options_t, addr_: address_t) -> Self {
+    pub unsafe fn new(
+        io_thread_: &mut io_thread_t,
+        active_: bool,
+        socket_: &mut socket_base_t,
+        options_: &options_t,
+        addr_: address_t,
+    ) -> Self {
         Self {
             own: own_t::new2(io_thread_, options_),
             io_object: io_object_t::new(io_thread_),
@@ -222,7 +234,11 @@ impl session_base_t {
             self.terminate();
         }
 
-        if self._pending && self._pipe == null_mut() && self._zap_pipe == null_mut() && self._terminating_pipes.len() == 0 {
+        if self._pending
+            && self._pipe == null_mut()
+            && self._zap_pipe == null_mut()
+            && self._terminating_pipes.len() == 0
+        {
             self._pending = false;
             self.io_object.signal();
         }
@@ -261,7 +277,7 @@ impl session_base_t {
         unimplemented!()
     }
 
-    pub fn get_socket(&mut self) -> *mut socket_base_t {
+    pub fn get_socket(&mut self) -> &mut socket_base_t {
         return self._socket;
     }
 
@@ -332,7 +348,8 @@ impl session_base_t {
         //  Create the pipe if it does not exist yet.
         if (self._pipe.is_none() && !self.is_terminating()) {
             // object_t *parents[2] = {this, _socket};
-            let parents: [&mut object_t; 2] = [self as &mut object_t, self._socket as &mut object_t];
+            let parents: [&mut object_t; 2] =
+                [self as &mut object_t, self._socket as &mut object_t];
             // pipe_t *pipes[2] = {NULL, NULL};
             let mut pipes: [Option<&mut pipe_t>; 2] = [None, None];
 
@@ -340,7 +357,18 @@ impl session_base_t {
 
             // int hwms[2] = {conflate ? -1 : options.rcvhwm,
             //                conflate ? -1 : options.sndhwm};
-            let hwms: [i32; 2] = [if conflate { -1 } else { self.own.options.rcvhwm }, if conflate { -1 } else { self.own.options.sndhwm }];
+            let hwms: [i32; 2] = [
+                if conflate {
+                    -1
+                } else {
+                    self.own.options.rcvhwm
+                },
+                if conflate {
+                    -1
+                } else {
+                    self.own.options.sndhwm
+                },
+            ];
 
             // bool conflates[2] = {conflate, conflate};
             let conflates: [bool; 2] = [conflate, conflate];
@@ -373,13 +401,22 @@ impl session_base_t {
             self.clean_pipes();
 
             //  Only send disconnect message if socket was accepted and handshake was completed
-            if (!self._active && handshaked_ && self.own.options.can_recv_disconnect_msg && !self.own.options.disconnect_msg.empty()) {
-                self._pipe.set_disconnect_msg(&mut self.own.options.disconnect_msg);
+            if (!self._active
+                && handshaked_
+                && self.own.options.can_recv_disconnect_msg
+                && !self.own.options.disconnect_msg.empty())
+            {
+                self._pipe
+                    .set_disconnect_msg(&mut self.own.options.disconnect_msg);
                 self._pipe.send_disconnect_msg();
             }
 
             //  Only send hiccup message if socket was connected and handshake was completed
-            if (self._active && handshaked_ && self.own.options.can_recv_hiccup_msg && !self.own.options.hiccup_msg.empty()) {
+            if (self._active
+                && handshaked_
+                && self.own.options.can_recv_hiccup_msg
+                && !self.own.options.hiccup_msg.empty())
+            {
                 self._pipe.send_hiccup_msg(&mut self.own.options.hiccup_msg);
             }
         }
@@ -408,8 +445,7 @@ impl session_base_t {
                 } else {
                     self.terminate();
                 }
-            }
-            // break;
+            } // break;
         }
 
         //  Just in case there's only a delimiter in the pipe.
@@ -517,8 +553,13 @@ impl session_base_t {
 
         //  For subscriber sockets we hiccup the inbound pipe, which will cause
         //  the socket object to resend all the subscriptions.
-        if (self._pipe.is_some() && (self.own.options.type_ == ZMQ_SUB || self.own.options.type_ == ZMQ_XSUB || self.own.options.type_ == ZMQ_DISH)){
-    self._pipe.hiccup();}
+        if (self._pipe.is_some()
+            && (self.own.options.type_ == ZMQ_SUB
+                || self.own.options.type_ == ZMQ_XSUB
+                || self.own.options.type_ == ZMQ_DISH))
+        {
+            self._pipe.hiccup();
+        }
     }
 
     pub unsafe fn start_connecting(&mut self, wait_: bool) {
@@ -535,7 +576,11 @@ impl session_base_t {
                 // address_t *proxy_address = new (std::nothrow)
                 //   address_t (protocol_name::tcp, options.socks_proxy_address,
                 //              this->get_ctx ());
-                let proxy_address = address_t::new2("tcp", &mut self.own.options.socks_proxy_address, self.get_ctx());
+                let proxy_address = address_t::new2(
+                    "tcp",
+                    &mut self.own.options.socks_proxy_address,
+                    self.get_ctx(),
+                );
                 // alloc_assert (proxy_address);
                 // connecter = new (std::nothrow) socks_connecter_t (
                 //   io_thread, this, options, _addr, proxy_address, wait_);
@@ -549,7 +594,8 @@ impl session_base_t {
             } else {
                 // connecter = new (std::nothrow)
                 //   tcp_connecter_t (io_thread, this, options, _addr, wait_);
-                connecter = tcp_connecter_t::new2(io_thread, self, &self.own.options, self._addr, wait_);
+                connecter =
+                    tcp_connecter_t::new2(io_thread, self, &self.own.options, self._addr, wait_);
             }
         }
         // #if defined ZMQ_HAVE_IPC
@@ -602,10 +648,10 @@ impl session_base_t {
             if (self.own.options.type_ == ZMQ_RADIO) {
                 send = true;
                 recv = false;
-            } else if (self.own.options. type_ == ZMQ_DISH) {
+            } else if (self.own.options.type_ == ZMQ_DISH) {
                 send = false;
                 recv = true;
-            } else if (self.own.options. type_ == ZMQ_DGRAM) {
+            } else if (self.own.options.type_ == ZMQ_DGRAM) {
                 send = true;
                 recv = true;
             }
@@ -702,11 +748,13 @@ pub struct hello_msg_session_t<'a> {
 }
 
 impl hello_msg_session_t {
-    pub unsafe fn new(io_thread_: &mut io_thread_t,
-                      connect_: bool,
-                      socket_: &mut socket_base_t,
-                      options: &options_t,
-                      addr_: address_t) -> Self {
+    pub unsafe fn new(
+        io_thread_: &mut io_thread_t,
+        connect_: bool,
+        socket_: &mut socket_base_t,
+        options: &options_t,
+        addr_: address_t,
+    ) -> Self {
         Self {
             session_base_t: session_base_t::new(io_thread_, connect_, socket_, options, addr_),
             _hello_sent: false,

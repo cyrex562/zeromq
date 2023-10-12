@@ -1,10 +1,10 @@
+use crate::defines::*;
+use crate::tcp_address::tcp_address_mask_t;
+use libc::{c_void, size_t};
 use std::char::decode_utf16;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::ptr;
-use libc::{c_void, size_t};
-use crate::defines::*;
-use crate::tcp_address::tcp_address_mask_t;
 
 use crate::utils::{copy_bytes, copy_void, zmq_z85_decode};
 
@@ -108,8 +108,6 @@ pub struct options_t {
     pub busy_poll: i32,
 }
 
-
-
 impl options_t {
     pub fn new() -> Self {
         let mut out = Self {
@@ -170,9 +168,12 @@ impl options_t {
         out
     }
 
-
-
-    pub unsafe fn set_curve_key(&mut self, destination: &mut [u8], optval_: *const c_void, optvallen_: size_t) -> i32 {
+    pub unsafe fn set_curve_key(
+        &mut self,
+        destination: &mut [u8],
+        optval_: *const c_void,
+        optvallen_: size_t,
+    ) -> i32 {
         match optvallen_ {
             CURVE_KEYSIZE => {
                 libc::memcpy(destination.as_mut_ptr() as *mut c_void, optval_, optvallen_);
@@ -180,7 +181,10 @@ impl options_t {
                 return 0;
             }
             CURVE_KEYSIZE_Z85_1 => {
-                let s = std::str::from_utf8_unchecked(std::slice::from_raw_parts(optval_ as *const u8, optvallen_ as usize));
+                let s = std::str::from_utf8_unchecked(std::slice::from_raw_parts(
+                    optval_ as *const u8,
+                    optvallen_ as usize,
+                ));
                 if zmq_z85_decode(destination.as_mut_ptr(), s.as_ptr() as *const i8) {
                     self.mechanism = ZMQ_CURVE as i32;
                     return 0;
@@ -201,7 +205,12 @@ impl options_t {
         return -1;
     }
 
-    pub unsafe fn setsockopt(&mut self, option_: i32, optval_: *const c_void, optvallen_: size_t) -> i32 {
+    pub unsafe fn setsockopt(
+        &mut self,
+        option_: i32,
+        optval_: *const c_void,
+        optvallen_: size_t,
+    ) -> i32 {
         let is_int = optvallen_ == std::mem::size_of::<i32>();
         let mut value = 0i32;
         if is_int {
@@ -229,7 +238,11 @@ impl options_t {
                     self.routing_id_size = optvallen_ as u8;
                     let routing_id_ref = &mut self.routing_id;
                     let routing_id_ptr = routing_id_ref as *mut u8;
-                    libc::memcpy(routing_id_ptr as *mut c_void, optval_, self.routing_id_size as size_t);
+                    libc::memcpy(
+                        routing_id_ptr as *mut c_void,
+                        optval_,
+                        self.routing_id_size as size_t,
+                    );
                     return 0;
                 }
             }
@@ -339,14 +352,24 @@ impl options_t {
                 return do_setsockopt_int_as_bool_relaxed(optval_, optvallen_, &mut self.ipv6);
             }
             ZMQ_SOCKS_PROXY => {
-                return do_setsockopt_string_allow_empty_relaxed(optval_, optvallen_, &mut self.socks_proxy_address, usize::MAX);
+                return do_setsockopt_string_allow_empty_relaxed(
+                    optval_,
+                    optvallen_,
+                    &mut self.socks_proxy_address,
+                    usize::MAX,
+                );
             }
             ZMQ_SOCKS_USERNAME => {
                 if optval_ == ptr::null() || optvallen_ == 0 {
                     self.socks_proxy_username.clear();
                     return 0;
                 } else {
-                    return do_setsockopt_string_allow_empty_relaxed(optval_, optvallen_, &mut self.socks_proxy_username, 255);
+                    return do_setsockopt_string_allow_empty_relaxed(
+                        optval_,
+                        optvallen_,
+                        &mut self.socks_proxy_username,
+                        255,
+                    );
                 }
             }
             ZMQ_SOCKS_PASSWORD => {
@@ -354,7 +377,12 @@ impl options_t {
                     self.socks_proxy_password.clear();
                     return 0;
                 } else {
-                    return do_setsockopt_string_allow_empty_relaxed(optval_, optvallen_, &mut self.socks_proxy_password, 255);
+                    return do_setsockopt_string_allow_empty_relaxed(
+                        optval_,
+                        optvallen_,
+                        &mut self.socks_proxy_password,
+                        255,
+                    );
                 }
             }
             ZMQ_TCP_KEEPALIVE => {
@@ -390,7 +418,11 @@ impl options_t {
             ZMQ_TCP_ACCEPT_FILTER => {
                 let mut filter_str = String::new();
                 let mut rc = do_setsockopt_string_allow_empty_relaxed(
-                    optval_, optvallen_, &mut filter_str, u8::MAX as size_t);
+                    optval_,
+                    optvallen_,
+                    &mut filter_str,
+                    u8::MAX as size_t,
+                );
                 if rc == 0 {
                     if filter_str.is_empty() {
                         self.tcp_accept_filters.clear();
@@ -415,8 +447,15 @@ impl options_t {
                 if optvallen_ == 0 && optval_ == ptr::null() {
                     self.mechanism = ZMQ_NULL as i32;
                     return 0;
-                } else if optvallen_ > 0 && optvallen_ <= u8::MAX as size_t && optval_ != ptr::null() {
-                    self.plain_username = String::from_raw_parts(optval_ as *mut u8, optvallen_ as usize, optvallen_ as usize);
+                } else if optvallen_ > 0
+                    && optvallen_ <= u8::MAX as size_t
+                    && optval_ != ptr::null()
+                {
+                    self.plain_username = String::from_raw_parts(
+                        optval_ as *mut u8,
+                        optvallen_ as usize,
+                        optvallen_ as usize,
+                    );
                     self.as_server = 0;
                     self.mechanism = ZMQ_PLAIN as i32;
                     return 0;
@@ -426,15 +465,27 @@ impl options_t {
                 if optvallen_ == 0 && optval_ == ptr::null() {
                     self.mechanism = ZMQ_NULL as i32;
                     return 0;
-                } else if optvallen_ > 0 && optvallen_ <= u8::MAX as size_t && optval_ != ptr::null() {
-                    self.plain_password = String::from_raw_parts(optval_ as *mut u8, optvallen_ as usize, optvallen_ as usize);
+                } else if optvallen_ > 0
+                    && optvallen_ <= u8::MAX as size_t
+                    && optval_ != ptr::null()
+                {
+                    self.plain_password = String::from_raw_parts(
+                        optval_ as *mut u8,
+                        optvallen_ as usize,
+                        optvallen_ as usize,
+                    );
                     self.as_server = 0;
                     self.mechanism = ZMQ_PLAIN as i32;
                     return 0;
                 }
             }
             ZMQ_ZAP_DOMAIN => {
-                return do_setsockopt_string_allow_empty_relaxed(optval_, optvallen_, &mut self.zap_domain, 255);
+                return do_setsockopt_string_allow_empty_relaxed(
+                    optval_,
+                    optvallen_,
+                    &mut self.zap_domain,
+                    255,
+                );
             }
             ZMQ_CONFLATE => {
                 return do_setsockopt_int_as_bool_relaxed(optval_, optvallen_, &mut self.conflate);
@@ -446,7 +497,11 @@ impl options_t {
                 }
             }
             ZMQ_INVERT_MATCHING => {
-                return do_setsockopt_int_as_bool_relaxed(optval_, optvallen_, &mut self.invert_matching);
+                return do_setsockopt_int_as_bool_relaxed(
+                    optval_,
+                    optvallen_,
+                    &mut self.invert_matching,
+                );
             }
             ZMQ_HEARTBEAT_IVL => {
                 if is_int && value >= 0 {
@@ -474,18 +529,35 @@ impl options_t {
                 }
             }
             ZMQ_BINDTODEVICE => {
-                return do_setsockopt_string_allow_empty_relaxed(optval_, optvallen_, &mut self.bound_device, 255);
+                return do_setsockopt_string_allow_empty_relaxed(
+                    optval_,
+                    optvallen_,
+                    &mut self.bound_device,
+                    255,
+                );
             }
             ZMQ_ZAP_ENFORCE_DOMAIN => {
-                return do_setsockopt_int_as_bool_relaxed(optval_, optvallen_, &mut self.zap_enforce_domain);
+                return do_setsockopt_int_as_bool_relaxed(
+                    optval_,
+                    optvallen_,
+                    &mut self.zap_enforce_domain,
+                );
             }
             ZMQ_LOOPBACK_FASTPATH => {
-                return do_setsockopt_int_as_bool_relaxed(optval_, optvallen_, &mut self.loopback_fastpath);
+                return do_setsockopt_int_as_bool_relaxed(
+                    optval_,
+                    optvallen_,
+                    &mut self.loopback_fastpath,
+                );
             }
             ZMQ_METADATA => {
                 if optvallen_ > 0 && !is_int {
                     let mut s = String::new();
-                    s = String::from_raw_parts(optval_ as *mut u8, optvallen_ as usize, optvallen_ as usize);
+                    s = String::from_raw_parts(
+                        optval_ as *mut u8,
+                        optvallen_ as usize,
+                        optvallen_ as usize,
+                    );
                     let pos = s.find(':');
                     if pos.is_some() {
                         let (key, value) = s.split_at(pos.unwrap());
@@ -520,7 +592,8 @@ impl options_t {
             ZMQ_HELLO_MSG => {
                 if optvallen_ > 0 {
                     let bytes = optval_ as *mut u8;
-                    self.hello_msg = Vec::from_raw_parts(bytes, optvallen_ as usize, optvallen_ as usize);
+                    self.hello_msg =
+                        Vec::from_raw_parts(bytes, optvallen_ as usize, optvallen_ as usize);
                 } else {
                     self.hello_msg = Vec::new();
                 }
@@ -528,7 +601,8 @@ impl options_t {
             ZMQ_DISCONNECT_MSG => {
                 if optvallen_ > 0 {
                     let bytes = optval_ as *mut u8;
-                    self.disconnect_msg = Vec::from_raw_parts(bytes, optvallen_ as usize, optvallen_ as usize);
+                    self.disconnect_msg =
+                        Vec::from_raw_parts(bytes, optvallen_ as usize, optvallen_ as usize);
                 } else {
                     self.disconnect_msg = Vec::new();
                 }
@@ -542,7 +616,8 @@ impl options_t {
             ZMQ_HICCUP_MSG => {
                 if optvallen_ > 0 {
                     let bytes = optval_ as *mut u8;
-                    self.hiccup_msg = Vec::from_raw_parts(bytes, optvallen_ as usize, optvallen_ as usize);
+                    self.hiccup_msg =
+                        Vec::from_raw_parts(bytes, optvallen_ as usize, optvallen_ as usize);
                 } else {
                     self.hiccup_msg = Vec::new();
                 }
@@ -555,7 +630,12 @@ impl options_t {
         return -1;
     }
 
-    pub unsafe fn getsockopt(&mut self, option_: i32, optval_: *mut c_void, optvallen_: *mut size_t) -> i32 {
+    pub unsafe fn getsockopt(
+        &mut self,
+        option_: i32,
+        optval_: *mut c_void,
+        optvallen_: *mut size_t,
+    ) -> i32 {
         let is_int = *optvallen_ == std::mem::size_of::<i32>();
         let value: *mut i32 = optval_ as *mut i32;
         match option_ as u32 {
@@ -864,21 +944,38 @@ impl options_t {
 }
 
 pub fn get_effective_conflate_option(options: &options_t) -> bool {
-    return options.conflate && (options.type_ == ZMQ_DEALER as i8 || options.type_ == ZMQ_PULL as i8 || options.type_ == ZMQ_PUSH as i8 || options.type_ == ZMQ_PUB as i8 || options.type_ == ZMQ_SUB as i8);
+    return options.conflate
+        && (options.type_ == ZMQ_DEALER as i8
+            || options.type_ == ZMQ_PULL as i8
+            || options.type_ == ZMQ_PUSH as i8
+            || options.type_ == ZMQ_PUB as i8
+            || options.type_ == ZMQ_SUB as i8);
 }
 
-pub unsafe fn do_getsockopt<T>(optval_: *mut c_void, optvallen_: *const size_t, value_: T) -> i32
-
-{
+pub unsafe fn do_getsockopt<T>(optval_: &mut [u8], optvallen_: *const size_t, value_: T) -> i32 {
     todo!()
     // do_getsockopt4(optval_,*optvallen_, &value_, std::mem::size_of::<T>())
 }
 
-pub unsafe fn do_getsockopt2(optval_: *mut c_void, optvallen_: *const size_t, value_: &String) -> i32 {
-    do_getsockopt3(optval_, optvallen_, (value_.as_ptr()) as *const c_void, value_.len() + 1)
+pub unsafe fn do_getsockopt2(
+    optval_: *mut c_void,
+    optvallen_: *const size_t,
+    value_: &String,
+) -> i32 {
+    do_getsockopt3(
+        optval_,
+        optvallen_,
+        (value_.as_ptr()) as *const c_void,
+        value_.len() + 1,
+    )
 }
 
-pub unsafe fn do_getsockopt3(optval_: *mut c_void, optvallen_: *const size_t, value: *const c_void, value_len: size_t) -> i32 {
+pub unsafe fn do_getsockopt3(
+    optval_: *mut c_void,
+    optvallen_: *const size_t,
+    value: *const c_void,
+    value_len: size_t,
+) -> i32 {
     if *optvallen_ < value_len {
         return -1;
     }
@@ -887,7 +984,11 @@ pub unsafe fn do_getsockopt3(optval_: *mut c_void, optvallen_: *const size_t, va
     return 0;
 }
 
-pub unsafe fn do_setsockopt<T>(optval_: *const c_void, optvallen_: size_t, out_value_: *const T) -> i32 {
+pub unsafe fn do_setsockopt<T>(
+    optval_: *const c_void,
+    optvallen_: size_t,
+    out_value_: *const T,
+) -> i32 {
     if optvallen_ != std::mem::size_of::<T>() {
         return -1;
     }
@@ -902,7 +1003,11 @@ pub fn sockopt_invalid() -> i32 {
     return -1;
 }
 
-pub unsafe fn do_setsockopt_int_as_bool_strict(optval_: *const c_void, optvallen_: size_t, out_value_: *mut bool) -> i32 {
+pub unsafe fn do_setsockopt_int_as_bool_strict(
+    optval_: *const c_void,
+    optvallen_: size_t,
+    out_value_: *mut bool,
+) -> i32 {
     let value = -1;
     if do_setsockopt(optval_, optvallen_, &value) == -1 {
         return -1;
@@ -914,7 +1019,11 @@ pub unsafe fn do_setsockopt_int_as_bool_strict(optval_: *const c_void, optvallen
     return sockopt_invalid();
 }
 
-pub unsafe fn do_setsockopt_int_as_bool_relaxed(optval_: *const c_void, optvallen_: size_t, out_value_: &mut bool) -> i32 {
+pub unsafe fn do_setsockopt_int_as_bool_relaxed(
+    optval_: *const c_void,
+    optvallen_: size_t,
+    out_value_: &mut bool,
+) -> i32 {
     let mut value = -1;
     if do_setsockopt(optval_, optvallen_, &value) == -1 {
         return -1;
@@ -923,14 +1032,23 @@ pub unsafe fn do_setsockopt_int_as_bool_relaxed(optval_: *const c_void, optvalle
     return 0;
 }
 
-pub unsafe fn do_setsockopt_string_allow_empty_strict(optval_: *const c_void, optvallen_: size_t, out_value: &mut String, max_len: size_t) -> i32 {
+pub unsafe fn do_setsockopt_string_allow_empty_strict(
+    optval_: *const c_void,
+    optvallen_: size_t,
+    out_value: &mut String,
+    max_len: size_t,
+) -> i32 {
     if optval_ == std::ptr::null() {
         out_value.clear();
         return 0;
     }
 
     if optval_ != std::ptr::null() && optvallen_ > 0 && optvallen_ <= max_len {
-        *out_value = std::str::from_utf8_unchecked(std::slice::from_raw_parts(optval_ as *const u8, optvallen_)).to_string();
+        *out_value = std::str::from_utf8_unchecked(std::slice::from_raw_parts(
+            optval_ as *const u8,
+            optvallen_,
+        ))
+        .to_string();
         return 0;
     }
 
@@ -944,15 +1062,22 @@ pub unsafe fn do_setsockopt_string_allow_empty_relaxed(
     max_len: size_t,
 ) -> i32 {
     if optvallen > 0 && optvallen <= max_len {
-        *out_value_ = std::str::from_utf8_unchecked(std::slice::from_raw_parts(optval_ as *const u8, optvallen)).to_string();
+        *out_value_ = std::str::from_utf8_unchecked(std::slice::from_raw_parts(
+            optval_ as *const u8,
+            optvallen,
+        ))
+        .to_string();
         return 0;
     }
 
     return sockopt_invalid();
 }
 
-
-pub unsafe fn do_setsockopt_set<T: Eq + Hash>(optval_: *const c_void, optvallen_: size_t, set_: &mut HashSet<T>) {
+pub unsafe fn do_setsockopt_set<T: Eq + Hash>(
+    optval_: *const c_void,
+    optvallen_: size_t,
+    set_: &mut HashSet<T>,
+) {
     if optvallen_ == 0 && optval_ == std::ptr::null() {
         set_.clear();
         return;
@@ -965,5 +1090,3 @@ pub unsafe fn do_setsockopt_set<T: Eq + Hash>(optval_: *const c_void, optvallen_
     // }
     todo!()
 }
-
-

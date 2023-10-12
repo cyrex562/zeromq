@@ -1,13 +1,13 @@
 #![allow(non_camel_case_types)]
 
-use std::ffi::{c_char, c_void};
-use std::ptr::{null, null_mut};
-use libc::{ENOMEM, free, malloc, memcpy, size_t};
-use windows::s;
 use crate::atomic_counter::atomic_counter_t;
 use crate::defines::ZMQ_GROUP_MAX_LENGTH;
 use crate::metadata::metadata_t;
 use crate::msg::group_type_t::{group_type_long, group_type_short};
+use libc::{free, malloc, memcpy, size_t, ENOMEM};
+use std::ffi::{c_char, c_void};
+use std::ptr::{null, null_mut};
+use windows::s;
 
 pub const cancel_cmd_name: &'static str = "\x06CANCEL";
 pub const sub_cmd_name: &'static str = "\x09SUBSCRIBE";
@@ -17,9 +17,9 @@ pub const CMD_TYPE_MASK: u8 = 0x1c;
 pub type msg_free_fn = fn(*mut c_void, *mut c_void);
 
 pub struct content_t {
-    pub data: *mut c_void,
+    pub data: *mut u8,
     pub size: size_t,
-    pub hint: *mut c_void,
+    pub hint: *mut u8,
     pub refcnt: atomic_counter_t,
     pub ffn: Option<msg_free_fn>,
 }
@@ -145,7 +145,7 @@ pub struct zclmsg {
 #[derive(Clone, Copy)]
 pub struct cmsg {
     pub metadata: *mut metadata_t,
-    pub data: *mut c_void,
+    pub data: *mut u8,
     pub size: size_t,
     pub unused: [u8; msg_t_size - metadata_t_ptr_size + void_ptr_size + 2 + 4 + group_t_size],
     pub type_: u8,
@@ -193,7 +193,14 @@ impl msg_t {
         self._u.base.type_ >= type_min && self._u.base.type_ <= type_max
     }
 
-    pub unsafe fn init(&mut self, data_: *mut c_void, size_: size_t, ffn_: msg_free_fn, hint_: *mut c_void, content_: *mut content_t) -> i32 {
+    pub unsafe fn init(
+        &mut self,
+        data_: *mut c_void,
+        size_: size_t,
+        ffn_: msg_free_fn,
+        hint_: *mut c_void,
+        content_: *mut content_t,
+    ) -> i32 {
         if size_ < max_vsm_size {
             let rc = self.init_size(size_);
             if rc != -1 {
@@ -236,14 +243,15 @@ impl msg_t {
             self._u.lmsg.group.sgroup.group[0] = 0;
             self._u.lmsg.content = null_mut();
             if std::mem::size_of::<content_t>() + size_ > size_ {
-                self._u.lmsg.content = libc::malloc(std::mem::size_of::<content_t>() + size_) as *mut content_t;
+                self._u.lmsg.content =
+                    libc::malloc(std::mem::size_of::<content_t>() + size_) as *mut content_t;
             }
             if self._u.lmsg.content == null_mut() {
                 return -1;
             }
 
             (*self._u.lmsg.content).data = self._u.lmsg.content.add(1) as *mut c_void;
-           (* self._u.lmsg.content).size = size_;
+            (*self._u.lmsg.content).size = size_;
             (*self._u.lmsg.content).ffn = None;
             (*self._u.lmsg.content).hint = null_mut();
             (*self._u.lmsg.content).refcnt = atomic_counter_t::new(0);
@@ -262,7 +270,14 @@ impl msg_t {
         return 0;
     }
 
-    pub unsafe fn init_external_storage(&mut self, content_: *mut content_t, data_: *mut c_void, size_: size_t, ffn_: msg_free_fn, hint_: *mut c_void) -> i32 {
+    pub unsafe fn init_external_storage(
+        &mut self,
+        content_: *mut content_t,
+        data_: *mut c_void,
+        size_: size_t,
+        ffn_: msg_free_fn,
+        hint_: *mut c_void,
+    ) -> i32 {
         self._u.zclmsg.metadata = null_mut();
         self._u.zclmsg.type_ = type_zclmsg;
         self._u.zclmsg.flags = 0;
@@ -281,7 +296,13 @@ impl msg_t {
         return 0;
     }
 
-    pub unsafe fn init_data(&mut self, data_: *mut c_void, size_: size_t, ffn_: Option<msg_free_fn>, hint_: *mut c_void) -> i32 {
+    pub unsafe fn init_data(
+        &mut self,
+        data_: *mut c_void,
+        size_: size_t,
+        ffn_: Option<msg_free_fn>,
+        hint_: *mut c_void,
+    ) -> i32 {
         if ffn_.is_none() {
             self._u.cmsg.metadata = null_mut();
             self._u.cmsg.type_ = type_cmsg;
@@ -298,7 +319,8 @@ impl msg_t {
             self._u.lmsg.group.sgroup.group[0] = 0;
             self._u.lmsg.group.type_ = group_type_short as u8;
             self._u.lmsg.routing_id = 0;
-            self._u.lmsg.content = libc::malloc(std::mem::size_of::<content_t>() + size_) as *mut content_t;
+            self._u.lmsg.content =
+                libc::malloc(std::mem::size_of::<content_t>() + size_) as *mut content_t;
             if (self._u.lmsg.content != null_mut()) {
                 // errno = ENOMEM;
                 return -1;
@@ -377,24 +399,31 @@ impl msg_t {
             return -1;
         }
 
-        if self._u.base.type_ == type_lmsg && (!self._u.lmsg.flags & shared == 0) || ((*self._u.lmsg.content).refcnt.sub(1) != 0) {
+        if self._u.base.type_ == type_lmsg && (!self._u.lmsg.flags & shared == 0)
+            || ((*self._u.lmsg.content).refcnt.sub(1) != 0)
+        {
             // _u.lmsg.content->refcnt.~atomic_counter_t ();
             if (*self._u.lmsg.content).ffn.is_some() {
-                (*self._u.lmsg.content).ffn.unwrap()((*self._u.lmsg.content).data, (*self._u.lmsg.content).hint);
+                (*self._u.lmsg.content).ffn.unwrap()(
+                    (*self._u.lmsg.content).data,
+                    (*self._u.lmsg.content).hint,
+                );
             }
             libc::free(self._u.lmsg.content as *mut c_void);
         }
 
-        if self.is_zcmsg() && (!(self._u.zclmsg.flags & shared != 0)
-
-            || !(*self._u.zclmsg.content).refcnt.sub(1) != 0) {
+        if self.is_zcmsg()
+            && (!(self._u.zclmsg.flags & shared != 0)
+                || !(*self._u.zclmsg.content).refcnt.sub(1) != 0)
+        {
             //  We used "placement new" operator to initialize the reference
             //  counter so we call the destructor explicitly now.
             // _u.zclmsg.content->refcnt.~atomic_counter_t ();
 
-           ( *self._u.zclmsg.content).ffn.unwrap()(
-               (*self._u.zclmsg.content).data,
-               (*self._u.zclmsg.content).hint);
+            (*self._u.zclmsg.content).ffn.unwrap()(
+                (*self._u.zclmsg.content).data,
+                (*self._u.zclmsg.content).hint,
+            );
         }
 
         if self._u.base.metadata != null_mut() {
@@ -405,7 +434,9 @@ impl msg_t {
             self._u.base.metadata = null_mut();
         }
 
-        if self._u.base.group.type_ == group_type_long as u8 && (!(*self._u.base.group.lgroup.content).refcnt.sub(1) != 0) {
+        if self._u.base.group.type_ == group_type_long as u8
+            && (!(*self._u.base.group.lgroup.content).refcnt.sub(1) != 0)
+        {
             //  We used "placement new" operator to initialize the reference
             //  counter so we call the destructor explicitly now.
             // self._u.base.group.lgroup.content.refcnt.~atomic_counter_t ();
@@ -456,7 +487,7 @@ impl msg_t {
         }
 
         if src_._u.base.metadata != null_mut() {
-           ( *src_._u.base.metadata).add_ref();
+            (*src_._u.base.metadata).add_ref();
         }
 
         if src_._u.base.group.type_ == group_type_long as u8 {
@@ -468,10 +499,10 @@ impl msg_t {
         return 0;
     }
 
-    pub unsafe fn data(&mut self) -> *mut c_void {
+    pub unsafe fn data(&mut self) -> *mut u8 {
         match self._u.base.type_ {
             type_vsm => {
-                return (&mut self._u.vsm.data as *mut u8) as *mut c_void;
+                return &mut self._u.vsm.data as *mut u8;
             }
             type_lmsg => {
                 return (*self._u.lmsg.content).data;
@@ -670,14 +701,19 @@ impl msg_t {
             return true;
         }
 
-        if self._u.base.type_ != type_zclmsg && self._u.base.type_ != type_lmsg || !(self._u.base.flags & shared != 0) {
+        if self._u.base.type_ != type_zclmsg && self._u.base.type_ != type_lmsg
+            || !(self._u.base.flags & shared != 0)
+        {
             self.close();
             return false;
         }
         if self._u.base.type_ == type_lmsg && !((*self._u.lmsg.content).refcnt.sub(refs_) == 0) {
             // u.lmsg.content->refcnt.~atomic_counter_t ();
-            if (*self._u.lmsg.content).ffn.is_some(){
-                (*self._u.lmsg.content).ffn.unwrap()((*self._u.lmsg.content).hint, (*self._u.lmsg.content).data);
+            if (*self._u.lmsg.content).ffn.is_some() {
+                (*self._u.lmsg.content).ffn.unwrap()(
+                    (*self._u.lmsg.content).hint,
+                    (*self._u.lmsg.content).data,
+                );
             }
 
             return false;
@@ -685,7 +721,10 @@ impl msg_t {
 
         if self.is_zcmsg() && !((*self._u.zclmsg.content).refcnt.sub(refs_) == 0) {
             if (*self._u.zclmsg.content).ffn.is_some() {
-                (*self._u.zclmsg.content).ffn.unwrap()((*self._u.zclmsg.content).hint, (*self._u.zclmsg.content).data);
+                (*self._u.zclmsg.content).ffn.unwrap()(
+                    (*self._u.zclmsg.content).hint,
+                    (*self._u.zclmsg.content).data,
+                );
             }
 
             return false;
@@ -709,9 +748,15 @@ impl msg_t {
 
     pub unsafe fn group(&self) -> String {
         if self._u.base.group.type_ == group_type_long as u8 {
-            return String::from_utf8_lossy(&(*self._u.base.group.lgroup.content).group[0..ZMQ_GROUP_MAX_LENGTH]).to_string();
+            return String::from_utf8_lossy(
+                &(*self._u.base.group.lgroup.content).group[0..ZMQ_GROUP_MAX_LENGTH],
+            )
+            .to_string();
         } else {
-            return String::from_utf8_lossy(&self._u.base.group.sgroup.group[0..ZMQ_GROUP_MAX_LENGTH]).to_string();
+            return String::from_utf8_lossy(
+                &self._u.base.group.sgroup.group[0..ZMQ_GROUP_MAX_LENGTH],
+            )
+            .to_string();
         }
     }
 
@@ -729,13 +774,21 @@ impl msg_t {
 
         if length_ > 14 {
             self._u.base.group.lgroup.type_ = group_type_long as u8;
-            self._u.base.group.lgroup.content = libc::malloc(std::mem::size_of::<long_group_t>()) as *mut long_group_t;
+            self._u.base.group.lgroup.content =
+                libc::malloc(std::mem::size_of::<long_group_t>()) as *mut long_group_t;
             (*self._u.base.group.lgroup.content).refcnt.set(1);
-            libc::strncpy((&mut (*self._u.base.group.lgroup.content).group as *mut u8) as *mut c_char,
-                          group_.as_ptr() as *const c_char, length_);
+            libc::strncpy(
+                (&mut (*self._u.base.group.lgroup.content).group as *mut u8) as *mut c_char,
+                group_.as_ptr() as *const c_char,
+                length_,
+            );
             (*self._u.base.group.lgroup.content).group[length_] = 0;
         } else {
-            libc::strncpy(&mut self._u.base.group.sgroup.group as *mut u8 as *mut c_char, group_.as_ptr() as *const c_char, length_);
+            libc::strncpy(
+                &mut self._u.base.group.sgroup.group as *mut u8 as *mut c_char,
+                group_.as_ptr() as *const c_char,
+                length_,
+            );
             self._u.base.group.sgroup.group[length_] = 0;
         }
 

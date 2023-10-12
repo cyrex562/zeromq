@@ -25,7 +25,7 @@ impl fq_t {
         }
     }
 
-    pub fn attach(&mut self, pipe_: *mut pipe_t) {
+    pub fn attach(&mut self, pipe_: &mut pipe_t) {
         self._pipes.push_back(pipe_);
         self._pipes.swap(self._active, self._pipes.size() - 1);
         self._active += 1;

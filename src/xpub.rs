@@ -6,7 +6,7 @@ use crate::blob::blob_t;
 use crate::ctx::ctx_t;
 use crate::defines::{ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_PUB, ZMQ_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_UNSUBSCRIBE, ZMQ_XPUB, ZMQ_XPUB_MANUAL, ZMQ_XPUB_MANUAL_LAST_VALUE, ZMQ_XPUB_NODROP, ZMQ_XPUB_VERBOSE, ZMQ_XPUB_VERBOSER, ZMQ_XPUB_WELCOME_MSG};
 use crate::dist::dist_t;
-use crate::generic_mtrie::generic_mtrie_t;
+use crate::generic_mtrie::{generic_mtrie_t, prefix_t};
 use crate::metadata::metadata_t;
 use crate::msg::{more, msg_t};
 use crate::mtrie::mtrie_t;
@@ -223,7 +223,7 @@ impl xpub_t {
 
                     let data = (self._welcome_msg.data());
                     libc::memcpy(data, optval_.as_ptr() as *const c_void, optvallen_);
-                } else self._welcome_msg.init();
+                } else { self._welcome_msg.init(); }
             } else {
                 // errno = EINVAL;
                 return -1;
@@ -239,5 +239,154 @@ impl xpub_t {
         return -1;
     }
 
+    pub fn stub(&mut self, data_: &mut prefix_t, size_: usize, arg_: &mut [u8])
+    {
+        unimplemented!()
+    }
 
+    pub fn xpipe_terminated(&mut self pipe_: &mut pipe_t) {
+        if (self._manual) {
+            //  Remove the pipe from the trie and send corresponding manual
+            //  unsubscriptions upstream.
+            self._manual_subscriptions.rm (pipe_, self.send_unsubscription, self, false);
+            //  Remove pipe without actually sending the message as it was taken
+            //  care of by the manual call above. subscriptions is the real mtrie,
+            //  so the pipe must be removed from there or it will be left over.
+            self._subscriptions.rm (pipe_, self.stub, None, false);
+
+            // In case the pipe is currently set as last we must clear it to prevent
+            // subscriptions from being re-added.
+            if (pipe_ == self._last_pipe) {
+                self._last_pipe = None;
+            }
+        } else {
+            //  Remove the pipe from the trie. If there are topics that nobody
+            //  is interested in anymore, send corresponding unsubscriptions
+            //  upstream.
+            self._subscriptions.rm (pipe_, self.send_unsubscription, self, !self._verbose_unsubs);
+        }
+
+        self._dist.pipe_terminated (pipe_);
+    }
+
+    pub fn mark_as_matching(&mut self, pipe_: &mut pipe_t, other: &mut Self) {
+        other._dist.match_(pipe_);
+    }
+
+    pub fn mark_last_pipe_as_matching(&mut self, pipe_: &mut pipe_t, other_: &mut Self)
+    {
+        if other_._last_pipe.unwrap() == pipe_ {
+            other_._dist.match_(pipe_);
+        }
+    }
+
+    pub unsafe fn xsend(&mut self, options: &mut options_t, msg_: &mut msg_t) -> i32 {
+        let mut msg_more = msg_.flag_set(more) != 0;
+
+        //  For the first part of multi-part message, find the matching pipes.
+        if !self._more_send {
+            // Ensure nothing from previous failed attempt to send is left matched
+            self._dist.unmatch ();
+
+            if self._manual && self._last_pipe.is_some() && self._send_last_pipe {
+                self._subscriptions.match_((msg_.data ()),
+                                      msg_.size (), self.mark_last_pipe_as_matching,
+                                      self);
+                self._last_pipe = None;
+            } else{
+                self._subscriptions.match_ ((msg_.data ()),
+                                      msg_.size (), self.mark_as_matching, self);}
+            // If inverted matching is used, reverse the selection now
+            if options.invert_matching {
+                self._dist.reverse_match ();
+            }
+        }
+
+        let mut rc = -1; //  Assume we fail
+        if (self._lossy || self._dist.check_hwm ()) {
+            if (self._dist.send_to_matching (msg_) == 0) {
+                //  If we are at the end of multi-part message we can mark
+                //  all the pipes as non-matching.
+                if (!msg_more) {
+                    self._dist.unmatch();
+                }
+                self._more_send = msg_more;
+                rc = 0; //  Yay, sent successfully
+            }
+        } else {
+            // errno = EAGAIN;
+        }
+        return rc;
+    }
+
+    pub fn xhas_out(&mut self) -> bool {
+        self._dist.has_out()
+    }
+
+    pub unsafe fn xrecv(&mut self, msg_: &mut msg_t) -> i32 {
+        //  If there is at least one
+        if (self._pending_data.empty ()) {
+            // errno = EAGAIN;
+            return -1;
+        }
+
+        // User is reading a message, set last_pipe and remove it from the deque
+        if (self._manual && !self._pending_pipes.empty ()) {
+            self._last_pipe = self._pending_pipes.front ();
+            self._pending_pipes.pop_front ();
+
+            // If the distributor doesn't know about this pipe it must have already
+            // been terminated and thus we can't allow manual subscriptions.
+            if self._last_pipe != None && !self._dist.has_pipe (self._last_pipe) {
+                self._last_pipe = None;
+            }
+        }
+
+        let mut rc = msg_.close ();
+        // errno_assert (rc == 0);
+        rc = msg_.init_size (self._pending_data.front ().size ());
+        // errno_assert (rc == 0);
+        libc::memcpy (msg_.data (), self._pending_data.front ().data (),
+                self._pending_data.front ().size ());
+
+        // set metadata only if there is some
+        let metadata = self._pending_metadata.front ();
+        if  metadata.is_some() {
+            msg_.set_metadata (metadata);
+            // Remove ref corresponding to vector placement
+            metadata.drop_ref ();
+        }
+
+        msg_.set_flags (self._pending_flags.front ());
+        self._pending_data.pop_front ();
+        self._pending_metadata.pop_front ();
+        self._pending_flags.pop_front ();
+        return 0;
+    }
+
+    pub fn xhas_in(&mut self) -> bool {
+        !self._pending_data.empty()
+    }
+    
+    pub unsafe fn send_unsubscription(&mut self, data_: prefix_t, size_: usize, other_: &mut Self)
+    {
+        if (other_.options.type_ != ZMQ_PUB) {
+            //  Place the unsubscription to the queue of pending (un)subscriptions
+            //  to be retrieved by the user later on.
+            // blob_t unsub (size_ + 1);
+            let unsub = blob_t::new2(size_ + 1);    
+            unsub.data ()[0] = 0;
+            if (size_ > 0) {
+                libc::memcpy(unsub.data().add(1), data_, size_);
+            }
+            other_._pending_data.ZMQ_PUSH_OR_EMPLACE_BACK ((unsub));
+            other_._pending_metadata.push_back (None);
+            other_._pending_flags.push_back (0);
+    
+            if (other_._manual) {
+                other_._last_pipe = None;
+                other_._pending_pipes.push_back (None);
+            }
+        }
+    }
 }
