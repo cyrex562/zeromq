@@ -125,6 +125,19 @@ pub unsafe fn get_u32(ptr: *mut u8) -> u32 {
     u32::from_le_bytes(u32_bytes)
 }
 
+pub fn put_u64(ptr: *mut u8, value: u64) {
+    unsafe {
+        *ptr = (value >> 56) as u8;
+        *ptr.add(1) = (value >> 48) as u8;
+        *ptr.add(2) = (value >> 40) as u8;
+        *ptr.add(3) = (value >> 32) as u8;
+        *ptr.add(4) = (value >> 24) as u8;
+        *ptr.add(5) = (value >> 16) as u8;
+        *ptr.add(6) = (value >> 8) as u8;
+        *ptr.add(7) = value as u8;
+    }
+}
+
 pub fn is_retired_fd(x: fd_t) -> bool {
     x == -1
 }

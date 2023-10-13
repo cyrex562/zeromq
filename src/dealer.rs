@@ -33,7 +33,7 @@ impl dealer_t {
 
     pub unsafe fn xattach_pipe(&mut self, pipe_: &mut pipe_t, subscribe_to_all_: bool, locally_initiated_: bool)
     {
-        if (self._probe_router) {
+        if self._probe_router {
             // msg_t probe_msg;
             let probe_msg = msg_t::new ();
             let rc = probe_msg.init ();
