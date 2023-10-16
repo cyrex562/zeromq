@@ -39,7 +39,7 @@ impl xpub_t {
     pub unsafe fn new(options: &mut options_t, parent_: &mut ctx_t, tid_: u32, sid_: i32) -> Self {
         options.type_ = ZMQ_XPUB;
         let mut out = Self {
-            socket_base: socket_base_t::new(parent_, tid_, sid_),
+            socket_base: socket_base_t::new(parent_, tid_, sid_, false),
             _subscriptions: generic_mtrie_t::new(),
             _manual_subscriptions: generic_mtrie_t::new(),
             _dist: dist_t::new(),
@@ -71,7 +71,7 @@ impl xpub_t {
         if self._welcome_msg.size() > 0 {
             let mut copy: msg_t = msg_t::new();
             copy.init2();
-            copy.copy(&self._welcome_msg);
+            copy.copy(&mut self._welcome_msg);
             let ok = pipe_.write(&mut copy);
             pipe_.flush();
         }
@@ -179,7 +179,7 @@ impl xpub_t {
             }
 
             msg.close();
-        }
+        }}
 
         pub unsafe fn xwrite_activated(&mut self, pipe_: &mut pipe_t) {
             self._dist.activated(pipe_)
