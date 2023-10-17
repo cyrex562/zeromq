@@ -2,7 +2,7 @@ use crate::ctx::ctx_t;
 use crate::defines::ZMQ_CLIENT;
 use crate::fq::fq_t;
 use crate::lb::lb_t;
-use crate::msg::{more, msg_t};
+use crate::msg::{MSG_MORE, msg_t};
 use crate::options::options_t;
 use crate::pipe::pipe_t;
 use crate::socket_base::socket_base_t;
@@ -35,7 +35,7 @@ impl client_t {
 
     pub unsafe fn xsend(&mut self, msg_: &mut msg_t) -> i32
     {
-        if msg_.flags() & more != 0 {
+        if msg_.flags() & MSG_MORE != 0 {
             return -1;
         }
         self._lb.sendpipe(msg_, &mut None)
@@ -44,9 +44,9 @@ impl client_t {
     pub unsafe fn xrecv(&mut self, msg_: &mut msg_t) -> i32 {
         let mut rc = self._fq.recvpipe(msg_, &mut None);
 
-        while rc == 0 && msg_.flags() & more > 0 {
+        while rc == 0 && msg_.flags() & MSG_MORE > 0 {
             rc = self._fq.recvpipe(msg_, &mut None) ;
-            while rc == 0 && msg_.flags() & more > 0 {
+            while rc == 0 && msg_.flags() & MSG_MORE > 0 {
                 rc = self._fq.recvpipe(msg_, &mut None);
             }
 

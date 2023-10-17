@@ -1,5 +1,5 @@
 use crate::array::array_t;
-use crate::msg::{more, msg_t};
+use crate::msg::{MSG_MORE, msg_t};
 use crate::pipe::pipe_t;
 
 pub type pipes_t = array_t<pipe_t, 2>;
@@ -113,7 +113,7 @@ impl dist_t {
 
     pub unsafe fn send_to_matching(&mut self, msg_: &mut msg_t) -> i32 {
         //  Is this end of a multipart message?
-        let msg_more = msg_.flag_set(more);
+        let msg_more = msg_.flag_set(MSG_MORE);
 
         //  Push the message to matching pipes.
         self.distribute(msg_);
@@ -195,7 +195,7 @@ impl dist_t {
             self._eligible -= 1;
             return false;
         }
-        if msg_.flag_clear(more) {
+        if msg_.flag_clear(MSG_MORE) {
             for i in 0..self._matching {
                 if self._pipes[i].check_hwm() {
                     return false;

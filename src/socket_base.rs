@@ -17,7 +17,7 @@ use crate::i_mailbox::i_mailbox;
 use crate::i_poll_events::i_poll_events;
 use crate::mailbox::mailbox_t;
 use crate::mailbox_safe::mailbox_safe_t;
-use crate::msg::{more, msg_t};
+use crate::msg::{MSG_MORE, msg_t};
 use crate::mutex::mutex_t;
 use crate::object::object_t;
 use crate::options::{do_getsockopt, get_effective_conflate_option, options_t};
@@ -851,11 +851,11 @@ impl socket_base_t {
         }
 
         //  Clear any user-visible flags that are set on the message.
-        msg_.reset_flags(more);
+        msg_.reset_flags(MSG_MORE);
 
         //  At this point we impose the flags on the message.
         if (flags_ & ZMQ_SNDMORE) {
-            msg_.set_flags(more);
+            msg_.set_flags(MSG_MORE);
         }
 
         msg_.reset_metadata();
@@ -1325,7 +1325,7 @@ impl socket_base_t {
         };
 
         //  Remove MORE flag.
-        self._rcvmore = (msg_.flags() & more) != 0;
+        self._rcvmore = (msg_.flags() & MSG_MORE) != 0;
     }
 
     pub unsafe fn monitor(&mut self, endpoint_: &str, events_: u64, event_version_: i32, type_: i32) -> i32 {

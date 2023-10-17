@@ -11,7 +11,7 @@ use crate::io_object::io_object_t;
 use crate::io_thread::io_thread_t;
 use crate::mechanism::mechanism_t;
 use crate::metadata::metadata_t;
-use crate::msg::{command, msg_t};
+use crate::msg::{MSG_COMMAND, msg_t};
 use crate::options::options_t;
 use crate::session_base::session_base_t;
 use crate::socket_base::socket_base_t;
@@ -381,7 +381,7 @@ impl stream_engine_base_t {
         let rc = self._mechanism.next_handshake_command(msg_);
 
         if (rc == 0) {
-            msg_.set_flags(command);
+            msg_.set_flags(MSG_COMMAND);
         }
 
         return rc;
@@ -541,7 +541,7 @@ impl stream_engine_base_t {
             self.cancel_timer(heartbeat_ttl_timer_id);
         }
 
-        if msg_.flag_set(command) {
+        if msg_.flag_set(MSG_COMMAND) {
             self.process_command_message(msg_);
         }
 

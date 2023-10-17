@@ -7,7 +7,7 @@ use crate::ctx::ctx_t;
 use crate::defines::{ZMQ_DISH, ZMQ_GROUP_MAX_LENGTH};
 use crate::fq::fq_t;
 use crate::io_thread::io_thread_t;
-use crate::msg::{command, more, msg_t};
+use crate::msg::{MSG_COMMAND, MSG_MORE, msg_t};
 use crate::options::options_t;
 use crate::pipe::pipe_t;
 use crate::session_base::session_base_t;
@@ -198,7 +198,7 @@ impl dish_session_t {
 
     pub unsafe fn push_msg(&mut self, msg_: &mut msg_t) -> i32 {
         if self._state == dish_session_state_t::group {
-            if msg_.flags() & more != more {
+            if msg_.flags() & MSG_MORE != MSG_MORE {
                 return -1;
             }
 
@@ -222,7 +222,7 @@ impl dish_session_t {
 
         let mut rc = self._group_msg.close();
 
-        if msg_.flags() & more != more {
+        if msg_.flags() & MSG_MORE != MSG_MORE {
             return -1;
         }
 
@@ -260,7 +260,7 @@ impl dish_session_t {
             libc::memcpy(command_.data(), "\x05LEAVE".as_ptr() as *const c_void, 6);
         }
 
-        command_.set_flags(command);
+        command_.set_flags(MSG_COMMAND);
         let mut command_data = command_.data();
         libc::memcpy(command_data.add(offset), msg_.group().as_ptr() as *const c_void, group_length);
 

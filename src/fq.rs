@@ -2,7 +2,7 @@
 
 use std::ptr::null_mut;
 use crate::array::array_t;
-use crate::msg::{more, msg_t};
+use crate::msg::{MSG_MORE, msg_t};
 use crate::pipe::pipe_t;
 
 pub type pipes_t = array_t<pipe_t, 1>;
@@ -61,7 +61,7 @@ impl fq_t {
                 if pipe_ != null_mut() {
                     *pipe_ = self._pipes[self._current];
                 }
-                self._more = msg_.flags() & more != 0;
+                self._more = msg_.flags() & MSG_MORE != 0;
                 if !self._more {
                     self._current = self._current + 1 % self._active;
                 }

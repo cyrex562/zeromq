@@ -1,6 +1,6 @@
 use crate::ctx::ctx_t;
 use crate::defines::ZMQ_PAIR;
-use crate::msg::{more, msg_t};
+use crate::msg::{MSG_MORE, msg_t};
 use crate::options::options_t;
 use crate::pipe::pipe_t;
 use crate::socket_base::socket_base_t;
@@ -48,7 +48,7 @@ impl pair_t {
             return -1;
         }
 
-        if msg_.flag_clear(more) == true{
+        if msg_.flag_clear(MSG_MORE) == true{
         self._pipeflush ();}
 
         //  Detach the original message from the data buffer.

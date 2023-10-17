@@ -1,7 +1,7 @@
 use crate::ctx::ctx_t;
 use crate::defines::{ZMQ_RADIO, ZMQ_XPUB_NODROP};
 use crate::dist::dist_t;
-use crate::msg::{command, more, msg_t};
+use crate::msg::{MSG_COMMAND, MSG_MORE, msg_t};
 use crate::options::options_t;
 use crate::pipe::pipe_t;
 use crate::session_base::session_base_t;
@@ -125,7 +125,7 @@ impl radio_t {
     pub unsafe fn xsend(&mut self, msg_: &mut msg_t) -> i32 {
         //  Radio sockets do not allow multipart data (ZMQ_SNDMORE)
         // if (msg_->flags () & msg_t::more)
-        if msg_.flag_set(more)
+        if msg_.flag_set(MSG_MORE)
         {
             // errno = EINVAL;
             return -1;
@@ -197,7 +197,7 @@ impl radio_session_t {
     }
 
     pub unsafe fn push_msg(&mut self, msg_: &mut msg_t) -> i32 {
-        if msg_.flag_set(command) {
+        if msg_.flag_set(MSG_COMMAND) {
             let mut command_data = msg_.data();
             let data_size = msg_.size ();
 
@@ -254,7 +254,7 @@ impl radio_session_t {
             //  First frame is the group
             rc = msg_.init_size (length);
             // errno_assert (rc == 0);
-            msg_.set_flags (more);
+            msg_.set_flags (MSG_MORE);
             libc::memcpy (msg_.data () as *mut c_void, group.as_ptr() as *const c_void, length);
     
             //  Next status is the body

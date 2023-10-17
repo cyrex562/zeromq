@@ -8,7 +8,7 @@ use crate::defines::{ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_PUB, ZMQ_SUBSCRIBE, ZMQ_TOPIC
 use crate::dist::dist_t;
 use crate::generic_mtrie::{generic_mtrie_t, prefix_t};
 use crate::metadata::metadata_t;
-use crate::msg::{more, msg_t};
+use crate::msg::{MSG_MORE, msg_t};
 use crate::mtrie::mtrie_t;
 use crate::options::{do_getsockopt, options_t};
 use crate::pipe::pipe_t;
@@ -94,7 +94,7 @@ impl xpub_t {
             let mut notify = false;
 
             let mut first_part = !self._more_recv;
-            self._more_recv = msg.flag_set(more);
+            self._more_recv = msg.flag_set(MSG_MORE);
 
             if (first_part || self._process_subscribe) {
                 //  Apply the subscription to the trie
@@ -281,7 +281,7 @@ impl xpub_t {
     }
 
     pub unsafe fn xsend(&mut self, options: &mut options_t, msg_: &mut msg_t) -> i32 {
-        let mut msg_more = msg_.flag_set(more) != 0;
+        let mut msg_more = msg_.flag_set(MSG_MORE) != 0;
 
         //  For the first part of multi-part message, find the matching pipes.
         if !self._more_send {

@@ -2,7 +2,7 @@ use std::ffi::c_void;
 use crate::defines::{ZMQ_PROTOCOL_ERROR_ZAP_BAD_REQUEST_ID, ZMQ_PROTOCOL_ERROR_ZAP_BAD_VERSION, ZMQ_PROTOCOL_ERROR_ZAP_INVALID_METADATA, ZMQ_PROTOCOL_ERROR_ZAP_INVALID_STATUS_CODE, ZMQ_PROTOCOL_ERROR_ZAP_MALFORMED_REPLY, ZMQ_PROTOCOL_ERROR_ZAP_UNSPECIFIED};
 use crate::mechanism;
 use crate::mechanism_base::mechanism_base_t;
-use crate::msg::{more, msg_t};
+use crate::msg::{MSG_MORE, msg_t};
 use crate::options::options_t;
 use crate::session_base::session_base_t;
 use crate::zap_client::zap_client_state::{error_sent, ready, sending_error};
@@ -139,7 +139,7 @@ impl zap_client_t {
                 // return close_and_return (msg, -1);
                 return -1;
             }
-            if msg[i].flags_set(more) == (if i < zap_reply_frame_count - 1 { 0 } else { more })
+            if msg[i].flags_set(MSG_MORE) == (if i < zap_reply_frame_count - 1 { 0 } else { MSG_MORE })
             {
                 self.mechanism_base.session.get_socket().event_handshake_failed_protocol (
                   self.mechanism_base.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_MALFORMED_REPLY);

@@ -3,7 +3,7 @@ use std::mem::size_of;
 use libc::EAGAIN;
 use crate::defines::{fd_t, ZMQ_CURVE, ZMQ_GSSAPI, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH, ZMQ_PUB, ZMQ_XPUB};
 use crate::endpoint::endpoint_uri_pair_t;
-use crate::msg::{cancel, msg_t, ping, ping_cmd_name_size, pong, routing_id, subscribe};
+use crate::msg::{MSG_CANCEL, msg_t, MSG_PING, ping_cmd_name_size, MSG_PONG, MSG_ROUTING_ID, MSG_SUBSCRIBE};
 use crate::null_mechanism::null_mechanism_t;
 use crate::options::options_t;
 use crate::stream_engine_base::{heartbeat_timeout_timer_id, heartbeat_ttl_timer_id, stream_engine_base_t};
@@ -439,7 +439,7 @@ impl zmtp_engine_t {
     pub unsafe fn process_routing_id_msg(&mut self, msg_: &mut msg_t) -> i32
     {
         if (self._options.recv_routing_id) {
-            msg_.set_flags (routing_id);
+            msg_.set_flags (MSG_ROUTING_ID);
             let mut rc = self.session ().push_msg (msg_);
             // errno_assert (rc == 0);
         } else {
@@ -573,19 +573,19 @@ impl zmtp_engine_t {
           (msg_.data()) + 1;
         if (cmd_name_size == ping_name_size
             && libc::memcmp (cmd_name, "PING", cmd_name_size) == 0) {
-            msg_.set_flags(ping);
+            msg_.set_flags(MSG_PING);
         }
         if (cmd_name_size == ping_name_size
             && libc::memcmp (cmd_name, "PONG", cmd_name_size) == 0) {
-            msg_ .set_flags(pong);
+            msg_ .set_flags(MSG_PONG);
         }
         if (cmd_name_size == sub_name_size
             && libc::memcmp (cmd_name, "SUBSCRIBE", cmd_name_size) == 0) {
-            msg_.set_flags(subscribe);
+            msg_.set_flags(MSG_SUBSCRIBE);
         }
         if (cmd_name_size == cancel_name_size
             && libc::memcmp (cmd_name, "CANCEL", cmd_name_size) == 0) {
-            msg_.set_flags(cancel);
+            msg_.set_flags(MSG_CANCEL);
         }
 
         if (msg_.is_ping () || msg_.is_pong ()){

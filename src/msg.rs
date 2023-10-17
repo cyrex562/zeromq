@@ -24,16 +24,16 @@ pub struct content_t {
     pub ffn: Option<msg_free_fn>,
 }
 
-pub const more: u8 = 1;
-pub const command: u8 = 2;
-pub const ping: u8 = 4;
-pub const pong: u8 = 8;
-pub const subscribe: u8 = 12;
-pub const cancel: u8 = 16;
-pub const close_cmd: u8 = 20;
-pub const credential: u8 = 32;
-pub const routing_id: u8 = 64;
-pub const shared: u8 = 128;
+pub const MSG_MORE: u8 = 1;
+pub const MSG_COMMAND: u8 = 2;
+pub const MSG_PING: u8 = 4;
+pub const MSG_PONG: u8 = 8;
+pub const MSG_SUBSCRIBE: u8 = 12;
+pub const MSG_CANCEL: u8 = 16;
+pub const MSG_CLOSE_CMD: u8 = 20;
+pub const MSG_CREDENTIAL: u8 = 32;
+pub const MSG_ROUTING_ID: u8 = 64;
+pub const MSG_SHARED: u8 = 128;
 
 pub const msg_t_size: usize = 64;
 
@@ -174,7 +174,7 @@ pub union msg_u {
     pub delimiter: delimiter,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Default, Clone, Copy)]
 pub struct msg_t {
     pub refcnt: *mut atomic_counter_t,
     pub _u: msg_u,
@@ -182,11 +182,11 @@ pub struct msg_t {
 
 impl msg_t {
     pub unsafe fn is_subscribe(&self) -> bool {
-        self._u.base.flags & CMD_TYPE_MASK == subscribe
+        self._u.base.flags & CMD_TYPE_MASK == MSG_SUBSCRIBE
     }
 
     pub unsafe fn is_cancel(&self) -> bool {
-        self._u.base.flags & CMD_TYPE_MASK == cancel
+        self._u.base.flags & CMD_TYPE_MASK == MSG_CANCEL
     }
 
     pub unsafe fn check(&self) -> bool {
@@ -369,7 +369,7 @@ impl msg_t {
     pub unsafe fn init_subscribe(&mut self, size_: size_t, topic_: *mut u8) -> i32 {
         let rc = self.init_size(size_);
         if (rc == 0) {
-            self.set_flags(subscribe);
+            self.set_flags(MSG_SUBSCRIBE);
 
             //  We explicitly allow a NULL subscription with size zero
             if size_ != 0 {
@@ -383,7 +383,7 @@ impl msg_t {
     pub unsafe fn init_cancel(&mut self, size_: size_t, topic_: *mut u8) -> i32 {
         let rc = self.init_size(size_);
         if (rc == 0) {
-            self.set_flags(cancel);
+            self.set_flags(MSG_CANCEL);
 
             //  We explicitly allow a NULL subscription with size zero
             if (size_ != 0) {
@@ -399,7 +399,7 @@ impl msg_t {
             return -1;
         }
 
-        if self._u.base.type_ == type_lmsg && (!self._u.lmsg.flags & shared == 0)
+        if self._u.base.type_ == type_lmsg && (!self._u.lmsg.flags & MSG_SHARED == 0)
             || ((*self._u.lmsg.content).refcnt.sub(1) != 0)
         {
             // _u.lmsg.content->refcnt.~atomic_counter_t ();
@@ -413,7 +413,7 @@ impl msg_t {
         }
 
         if self.is_zcmsg()
-            && (!(self._u.zclmsg.flags & shared != 0)
+            && (!(self._u.zclmsg.flags & MSG_SHARED != 0)
                 || !(*self._u.zclmsg.content).refcnt.sub(1) != 0)
         {
             //  We used "placement new" operator to initialize the reference
@@ -478,10 +478,10 @@ impl msg_t {
         let mut initial_shared_refcnt = atomic_counter_t::new(2);
 
         if src_.is_lmsg() || src_.is_zcmsg() {
-            if src_.flags() & shared != 0 {
+            if src_.flags() & MSG_SHARED != 0 {
                 src_.refcnt.add(1);
             } else {
-                src_.set_flags(shared as u8);
+                src_.set_flags(MSG_SHARED as u8);
                 (*src_.refcnt).set(initial_shared_refcnt.get())
             }
         }
@@ -606,11 +606,11 @@ impl msg_t {
     }
 
     pub unsafe fn is_routing_id(&self) -> bool {
-        return self._u.base.flags & routing_id == routing_id as u8;
+        return self._u.base.flags & MSG_ROUTING_ID == MSG_ROUTING_ID as u8;
     }
 
     pub unsafe fn is_credential(&self) -> bool {
-        return self._u.base.flags & credential == credential as u8;
+        return self._u.base.flags & MSG_CREDENTIAL == MSG_CREDENTIAL as u8;
     }
 
     pub unsafe fn is_delimiter(&self) -> bool {
@@ -642,21 +642,21 @@ impl msg_t {
     }
 
     pub unsafe fn is_ping(&self) -> bool {
-        return self._u.base.flags & CMD_TYPE_MASK == ping as u8;
+        return self._u.base.flags & CMD_TYPE_MASK == MSG_PING as u8;
     }
 
     pub unsafe fn is_poing(&self) -> bool {
-        return self._u.base.flags & CMD_TYPE_MASK == pong as u8;
+        return self._u.base.flags & CMD_TYPE_MASK == MSG_PONG as u8;
     }
 
     pub unsafe fn is_close_cmd(&self) -> bool {
-        return self._u.base.flags & CMD_TYPE_MASK == close_cmd as u8;
+        return self._u.base.flags & CMD_TYPE_MASK == MSG_CLOSE_CMD as u8;
     }
 
     pub unsafe fn command_body_size(&mut self) -> size_t {
         if self.is_ping() || self.is_poing() {
             return self.size() - ping_cmd_name_size as usize;
-        } else if !((self.flags() & command) != 0) && (self.is_subscribe() || self.is_cancel()) {
+        } else if !((self.flags() & MSG_COMMAND) != 0) && (self.is_subscribe() || self.is_cancel()) {
             return self.size();
         } else if self.is_subscribe() {
             return self.size() - sub_cmd_name_size as usize;
@@ -670,7 +670,7 @@ impl msg_t {
         let mut data: *mut u8 = null_mut();
         if self.is_ping() || self.is_poing() {
             data = self.data().add(ping_cmd_name_size as usize) as *mut u8;
-        } else if !(self.flags() & command != 0) && (self.is_subscribe() || self.is_cancel()) {
+        } else if !(self.flags() & MSG_COMMAND != 0) && (self.is_subscribe() || self.is_cancel()) {
             data = self.data() as *mut u8;
         } else if self.is_subscribe() {
             data = self.data().add(sub_cmd_name_size as usize) as *mut u8;
@@ -687,11 +687,11 @@ impl msg_t {
         }
 
         if self._u.base.type_ == type_lmsg || self.is_zcmsg() {
-            if self._u.base.flags & shared != 0 {
+            if self._u.base.flags & MSG_SHARED != 0 {
                 self.refcnt().add(refs_ as usize);
             } else {
                 (*self.refcnt()).set(refs_ + 1);
-                self._u.base.flags |= shared
+                self._u.base.flags |= MSG_SHARED
             }
         }
     }
@@ -702,7 +702,7 @@ impl msg_t {
         }
 
         if self._u.base.type_ != type_zclmsg && self._u.base.type_ != type_lmsg
-            || !(self._u.base.flags & shared != 0)
+            || !(self._u.base.flags & MSG_SHARED != 0)
         {
             self.close();
             return false;

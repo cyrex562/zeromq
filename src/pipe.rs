@@ -4,7 +4,7 @@ use libc::size_t;
 use crate::array::array_item_t;
 use crate::blob::blob_t;
 use crate::endpoint::endpoint_uri_pair_t;
-use crate::msg::{more, msg_t, routing_id};
+use crate::msg::{MSG_MORE, msg_t, MSG_ROUTING_ID};
 use crate::object::object_t;
 use crate::ypipe::ypipe_t;
 use crate::ypipe_base::ypipe_base_t;
@@ -154,7 +154,7 @@ impl pipe_t {
             return false;
         }
 
-        if !(msg_.flags() & more > 0) && !msg_.is_routing_id() {
+        if !(msg_.flags() & MSG_MORE > 0) && !msg_.is_routing_id() {
             self._msgs_read += 1;
         }
 
@@ -184,12 +184,12 @@ impl pipe_t {
             return false;
         }
 
-        let more = msg_.flags() & more > 0;
+        let MSG_MORE = msg_.flags() & MSG_MORE > 0;
 
         let is_routing_id = msg_.is_routing_id();
 
-        (*self._out_pipe).write(*msg_, more);
-        if (more != 0 && !is_routing_id) {
+        (*self._out_pipe).write(*msg_, MSG_MORE);
+        if (MSG_MORE != 0 && !is_routing_id) {
             self._msgs_written += 1;
         }
 
@@ -235,7 +235,7 @@ impl pipe_t {
         self._out_pipe.flush();
         let mut msg: msg_t = msg_t::new();
         while (self._out_pipe).read(&mut msg) {
-            if msg.flags & more == 0 {
+            if msg.flags & MSG_MORE == 0 {
                 self._msgs_written -= 1
             }
             msg.close();
@@ -471,7 +471,7 @@ pub unsafe fn send_routing_id(pipe_: *mut pipe_t, options_: &options_t) {
     let mut id = msg_t::new();
     let mut rc = id.init_size(options_.routing_id_size);
     libc::memcpy(id.data(), &options_.routing_id as *const c_void, options_.routing_id_size as size_t);
-    id.set_flags(routing_id);
+    id.set_flags(MSG_ROUTING_ID);
     let mut written = (*pipe_).write(&mut id);
     (*pipe_).flush();
 }

@@ -138,6 +138,11 @@ pub fn put_u64(ptr: *mut u8, value: u64) {
     }
 }
 
+pub fn get_u64(ptr: &[u8]) -> u64 {
+    let u64_bytes:[u8;8] = [ptr[0],ptr[1],ptr[2],ptr[3],ptr[4],ptr[5],ptr[6],ptr[7]];
+    u64::from_le_bytes(u64_bytes)
+}
+
 pub fn is_retired_fd(x: fd_t) -> bool {
     x == -1
 }

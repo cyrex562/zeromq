@@ -7,7 +7,7 @@ use crate::i_engine::error_reason_t::timeout_error;
 use crate::i_engine::{error_reason_t, i_engine};
 use crate::io_object::io_object_t;
 use crate::io_thread::io_thread_t;
-use crate::msg::{command, more, msg_t};
+use crate::msg::{MSG_COMMAND, MSG_MORE, msg_t};
 use crate::object::object_t;
 use crate::options::{get_effective_conflate_option, options_t};
 use crate::own::own_t;
@@ -149,12 +149,12 @@ impl session_base_t {
             return -1;
         }
 
-        self._incomplete_in = msg_.flags() & more != 0;
+        self._incomplete_in = msg_.flags() & MSG_MORE != 0;
         return 0;
     }
 
     pub unsafe fn push_msg(&mut self, msg_: &mut msg_t) -> i32 {
-        if (msg_).flags() & command != 0 && !msg_.is_subscribe() && !msg_.is_cancel() {
+        if (msg_).flags() & MSG_COMMAND != 0 && !msg_.is_subscribe() && !msg_.is_cancel() {
             return 0;
         }
         if self._pipe != null_mut() && (self._pipe).write(msg_) {
@@ -177,7 +177,7 @@ impl session_base_t {
             return -1;
         }
 
-        if msg_.flags() & more == 0 {
+        if msg_.flags() & MSG_MORE == 0 {
             self._zap_pipe.flush()
         }
 

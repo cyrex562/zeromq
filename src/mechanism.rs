@@ -2,7 +2,7 @@ use std::ffi::{c_char, c_void};
 use crate::blob::blob_t;
 use crate::defines::{ZMQ_DEALER, ZMQ_REQ, ZMQ_ROUTER};
 use crate::metadata::dict_t;
-use crate::msg::{msg_t, routing_id};
+use crate::msg::{msg_t, MSG_ROUTING_ID};
 use crate::options::options_t;
 use crate::utils::{get_u32, put_u32};
 
@@ -80,7 +80,7 @@ impl mechanism_t  {
     pub unsafe fn peer_routing_id(&mut self, msg_: *mut msg_t) {
         let rc = (*msg_).init_size(self._routing_id.size());
         libc::memcpy((*msg_).data(), self._routing_id.data() as *const c_void, self._routing_id.size());
-        (*msg_).set_flags(routing_id);
+        (*msg_).set_flags(MSG_ROUTING_ID);
     }
 
     pub fn set_user_id(&mut self, user_id_: *mut c_void, size_: usize) {

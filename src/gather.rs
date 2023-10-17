@@ -1,7 +1,7 @@
 use crate::ctx::ctx_t;
 use crate::defines::ZMQ_GATHER;
 use crate::fq::fq_t;
-use crate::msg::{more, msg_t};
+use crate::msg::{MSG_MORE, msg_t};
 use crate::options::options_t;
 use crate::socket_base::socket_base_t;
 
@@ -35,11 +35,11 @@ impl gather_t {
         let mut rc = self._fq.recvpipe (msg_, &mut None);
 
         // Drop any messages with more flag
-        while rc == 0 && msg_.flag_set(more) {
+        while rc == 0 && msg_.flag_set(MSG_MORE) {
             // drop all frames of the current multi-frame message
             rc = self._fq.recvpipe (msg_, &mut None);
 
-            while rc == 0 && msg_.flag_set(more) {
+            while rc == 0 && msg_.flag_set(MSG_MORE) {
                 rc = self._fq.recvpipe(msg_, &mut None);
             }
 

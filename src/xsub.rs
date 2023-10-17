@@ -4,7 +4,7 @@ use crate::defines::{
 };
 use crate::dist::dist_t;
 use crate::fq::fq_t;
-use crate::msg::{more, msg_t};
+use crate::msg::{MSG_MORE, msg_t};
 use crate::options::{do_getsockopt, options_t};
 use crate::pipe::pipe_t;
 use crate::radix_tree::radix_tree_t;
@@ -127,7 +127,7 @@ impl xsub_t {
         let mut data = (msg_.data());
 
         let first_part = !self._more_send;
-        self._more_send = msg_.flag_set(more);
+        self._more_send = msg_.flag_set(MSG_MORE);
 
         if (first_part) {
             self._process_subscribe = !self._only_first_subscribe;
@@ -185,7 +185,7 @@ impl xsub_t {
             let rc = msg_.move (self._message);
             // errno_assert (rc == 0);
             self._has_message = false;
-            self._more_recv = msg_.flag_set(more);
+            self._more_recv = msg_.flag_set(MSG_MORE);
             return 0;
         }
 
@@ -205,13 +205,13 @@ impl xsub_t {
             //  Check whether the message matches at least one subscription.
             //  Non-initial parts of the message are passed
             if (self._more_recv || !self.options.filter || self.match_(msg_)) {
-                self._more_recv = msg_.flag_set(more);
+                self._more_recv = msg_.flag_set(MSG_MORE);
                 return 0;
             }
 
             //  Message doesn't match. Pop any remaining parts of the message
             //  from the pipe.
-            while msg_.flag_set(more) {
+            while msg_.flag_set(MSG_MORE) {
                 rc = self._fq.recv (msg_);
                 // errno_assert (rc == 0);
             }

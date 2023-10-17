@@ -1,4 +1,4 @@
-use crate::msg::{more, msg_t};
+use crate::msg::{MSG_MORE, msg_t};
 use crate::pipe::pipe_t;
 use crate::socket_base::socket_base_t;
 
@@ -53,13 +53,13 @@ impl dgram_t {
         //  If this is the first part of the message it's the ID of the
         //  peer to send the message to.
         if (!self._more_out) {
-            if (!(msg_.flags() & more != 0)) {
+            if (!(msg_.flags() & MSG_MORE != 0)) {
                 // errno = EINVAL;
                 return -1;
             }
         } else {
             //  dgram messages are two part only, reject part if more is set
-            if (msg_.flags() & more) {
+            if (msg_.flags() & MSG_MORE) {
                 // errno = EINVAL;
                 return -1;
             }
@@ -71,7 +71,7 @@ impl dgram_t {
             return -1;
         }
 
-        if (!(msg_.flags() & more))
+        if (!(msg_.flags() & MSG_MORE))
         self._pipe.flush();
 
         // flip the more flag
