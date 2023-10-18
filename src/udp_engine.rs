@@ -1,15 +1,18 @@
+use std::ffi::c_void;
 use std::intrinsics::size_of;
 use std::mem::size_of_val;
-use libc::{bind, sockaddr};
-use windows::Win32::Networking::WinSock::{AF_INET, AF_INET6, IP_ADD_MEMBERSHIP, IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_UDP, IPV6_ADD_MEMBERSHIP, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, setsockopt, SO_REUSEADDR, SOCK_DGRAM, SOCKADDR_IN, SOL_SOCKET};
+use libc::{bind, sendto, sockaddr};
+use windows::Win32::Networking::WinSock::{AF_INET, AF_INET6, INADDR_NONE, IP_ADD_MEMBERSHIP, IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_UDP, IPV6_ADD_MEMBERSHIP, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, setsockopt, SO_REUSEADDR, SOCK_DGRAM, SOCKADDR_IN, SOL_SOCKET, WSAEWOULDBLOCK, WSAGetLastError};
 use crate::address::address_t;
 use crate::defines::handle_t;
+use crate::endpoint::endpoint_uri_pair_t;
 use crate::fd::{fd_t, retired_fd};
 use crate::i_engine::error_reason_t;
 use crate::io_object::io_object_t;
 use crate::io_thread::io_thread_t;
 use crate::ip::{open_socket, unblock_socket};
 use crate::ip_resolver::ip_addr_t;
+use crate::msg::{MSG_MORE, msg_t};
 use crate::options::options_t;
 use crate::session_base::session_base_t;
 use crate::udp_address::udp_address_t;
@@ -334,8 +337,205 @@ impl udp_engine_t {
         self.rm_fd (self._handle);
 
         //  Disconnect from I/O threads poller object.
-        io_object_t::unplug ();
+        self.io_object.unplug ();
 
-        delete this;
+        // delete this;
+    }
+
+    // void zmq::udp_engine_t::sockaddr_to_msg (zmq::msg_t *msg_, const sockaddr_in *addr_)
+    pub unsafe fn sockaddr_to_msg(&mut self, msg_: &mut msg_t, addr_: &SOCKADDR_IN
+    {
+        let name = (addr_.sin_addr.to_string ());
+
+        // char port[6];
+        let mut port: String = String::new();
+        // const int port_len =
+        //   snprintf (port, 6, "%d", static_cast<int> (ntohs (addr_->sin_port)));
+        port = addr_.sin_port.to_string();
+        let port_len = port.len();
+        // zmq_assert (port_len > 0 && port_len < 6);
+
+        // const size_t name_len = strlen (name);
+        let name_len = name.len();
+        let size =  (name_len) + 1 /* colon */
+                         + port_len + 1;                 //  terminating NUL
+        let rc = msg_.init_size (size);
+        // errno_assert (rc == 0);
+        msg_.set_flags (MSG_MORE);
+
+        //  use memcpy instead of strcpy/strcat, since this is more efficient when
+        //  we already know the lengths, which we calculated above
+        let address = (msg_.data ());
+        libc::memcpy (address, name.as_ptr() as *const c_void, name_len);
+        address = address.add(name_len);
+        // *address++ = ':';
+        address[0] = ':';
+        address = address.add(1);
+        libc::memcpy(address, port.as_ptr() as * const c_void, (port_len));
+        address = address.add(port_len);
+        // *address = 0;
+    }
+
+    // int zmq::udp_engine_t::resolve_raw_address (const char *name_, size_t length_)
+    pub unsafe fn resolve_raw_address(&mut self, name_: &str, length_: usize) -> i32
+    {
+        // memset (&_raw_address, 0, sizeof _raw_address);
+        libc::memset(&self._raw_address, 0, size_of::<SOCKADDR_IN>());
+
+        // const char *delimiter = NULL;
+        let mut delimiter: *const char = std::ptr::null();
+
+        // Find delimiter, cannot use memrchr as it is not supported on windows
+        if (length_ != 0) {
+            let mut chars_left = (length_);
+            let current_char = &name_[length_..];
+            loop {
+
+                // if (*(--current_char) == ':') {
+                //     delimiter = current_char;
+                //     break;
+                // }
+                todo!();
+                chars_left -= 1;
+                if chars_left == 0 {
+                    break;
+                }
+                if chars_left == 0 { break; }
+                chars_left -= 1;
+            }
+        }
+
+        if (!delimiter) {
+            // errno = EINVAL;
+            return -1;
+        }
+
+        // const std::string addr_str (name_, delimiter - name_);
+
+        // const std::string port_str (delimiter + 1, name_ + length_ - delimiter - 1);
+
+
+        //  Parse the port number (0 is not a valid port).
+        let port = u16::from_str_radix (port_str, 10).unwrap();
+        if (port == 0) {
+            // errno = EINVAL;
+            return -1;
+        }
+
+        self._raw_address.sin_family = AF_INET;
+        self._raw_address.sin_port = htons (port);
+        self._raw_address.sin_addr.s_addr = inet_addr (addr_str.c_str ());
+
+        if (self._raw_address.sin_addr.s_addr == INADDR_NONE) {
+            // errno = EINVAL;
+            return -1;
+        }
+
+        return 0;
+    }
+
+
+    // void zmq::udp_engine_t::out_event ()
+    pub unsafe fn out_event(&mut self)
+    {
+
+        // msg_t group_msg;
+        let mut group_msg == msg_t::new();
+        let mut rc = self._session.pull_msg (&group_msg);
+        // errno_assert (rc == 0 || (rc == -1 && errno == EAGAIN));
+
+        if (rc == 0) {
+            // msg_t body_msg;
+            let mut body_msg = msg_t::new();
+            rc = self._session.pull_msg (&body_msg);
+            //  If there's a group, there should also be a body
+            // errno_assert (rc == 0);
+
+            let group_size = group_msg.size ();
+            let body_size = body_msg.size ();
+            // size_t size;
+            let mut size = 0usize;
+
+            if (self._options.raw_socket) {
+                rc = self.resolve_raw_address ((group_msg.data ()),
+                                          group_size);
+
+                //  We discard the message if address is not valid
+                if (rc != 0) {
+                    rc = group_msg.close ();
+                    // errno_assert (rc == 0);
+
+                    rc = body_msg.close ();
+                    // errno_assert (rc == 0);
+
+                    return;
+                }
+
+                size = body_size;
+
+                libc::memcpy (self._out_buffer, body_msg.data (), body_size);
+            } else {
+                size = group_size + body_size + 1;
+
+                // TODO: check if larger than maximum size
+                self._out_buffer[0] = (group_size);
+               libc::memcpy (self._out_buffer + 1, group_msg.data (), group_size);
+                libc::memcpy (self._out_buffer + 1 + group_size, body_msg.data (), body_size);
+            }
+
+            rc = group_msg.close ();
+            // errno_assert (rc == 0);
+
+            body_msg.close ();
+            // errno_assert (rc == 0);
+
+    // #ifdef ZMQ_HAVE_WINDOWS
+            #[cfg(target_os="windows")]
+            {
+                rc = sendto(self._fd, self._out_buffer, (size), 0, self._out_address,
+                            self._out_address_len);
+            }
+    // #elif defined ZMQ_HAVE_VXWORKS
+    //         rc = sendto (_fd, reinterpret_cast<caddr_t> (_out_buffer), size, 0,
+    //                      (sockaddr *) _out_address, _out_address_len);
+    // #else
+            #[cfg(not(target_os="windows"))]
+            {
+                rc = sendto (self._fd, self._out_buffer, size, 0, self._out_address, self._out_address_len);
+            }
+    // #endif
+            if (rc < 0) {
+    // #ifdef ZMQ_HAVE_WINDOWS
+                #[cfg(target_os="windows")]
+                {
+                    if (WSAGetLastError() != WSAEWOULDBLOCK) {
+                        // assert_success_or_recoverable(_fd, rc);
+                        // error(connection_error);
+                    }
+                }
+    // #endif
+            }
+        } else {
+            self.reset_pollout (self._handle);
+        }
+    }
+
+    // const zmq::endpoint_uri_pair_t &zmq::udp_engine_t::get_endpoint () const
+    pub unsafe fn get_endpoint(&mut self) -> endpoint_uri_pair_t
+    {
+        return self._empty_endpoint;
+    }
+
+    // void zmq::udp_engine_t::restart_output ()
+    pub unsafe fn restart_output(&mut self){
+        //  If we don't support send we just drop all messages
+        if (!self._send_enabled) {
+            let mut msg: msg_t = msg_t::new();
+            while (self._session.pull_msg (&msg) == 0)
+                msg.close ();
+        } else {
+            self.set_pollout (self._handle);
+            self.out_event ();
+        }
     }
 }
