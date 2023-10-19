@@ -1,8 +1,8 @@
 use std::ffi::c_void;
 use std::intrinsics::size_of;
 use std::mem::size_of_val;
-use libc::{bind, sendto, sockaddr};
-use windows::Win32::Networking::WinSock::{AF_INET, AF_INET6, INADDR_NONE, IP_ADD_MEMBERSHIP, IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_UDP, IPV6_ADD_MEMBERSHIP, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, setsockopt, SO_REUSEADDR, SOCK_DGRAM, SOCKADDR_IN, SOL_SOCKET, WSAEWOULDBLOCK, WSAGetLastError};
+use libc::{bind, EWOULDBLOCK, recvfrom, sendto, sockaddr};
+use windows::Win32::Networking::WinSock::{AF_INET, AF_INET6, INADDR_NONE, IP_ADD_MEMBERSHIP, IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_UDP, IPV6_ADD_MEMBERSHIP, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, setsockopt, SO_REUSEADDR, SOCK_DGRAM, SOCKADDR_IN, SOCKADDR_STORAGE, SOL_SOCKET, WSAEWOULDBLOCK, WSAGetLastError};
 use crate::address::address_t;
 use crate::defines::handle_t;
 use crate::endpoint::endpoint_uri_pair_t;
@@ -537,5 +537,112 @@ impl udp_engine_t {
             self.set_pollout (self._handle);
             self.out_event ();
         }
+    }
+
+    // void zmq::udp_engine_t::in_event ()
+    pub unsafe fn in_event(&mut self)
+    {
+        // sockaddr_storage in_address;
+        let mut in_address = SOCKADDR_STORAGE::default();
+        let in_addrlen = (size_of_val(&sockaddr_storage));
+
+        let nbytes = recvfrom (self._fd, self._in_buffer, MAX_UDP_MSG, 0,
+                    (&in_address), &in_addrlen);
+
+        if (nbytes < 0) {
+    // #ifdef ZMQ_HAVE_WINDOWS
+            #[cfg(target_os="windows")]
+            {
+                if (WSAGetLastError() != WSAEWOULDBLOCK) {
+                    assert_success_or_recoverable(_fd, nbytes);
+                    error(connection_error);
+                }
+            }
+    // #else
+            #[cfg(not(target_os="windows"))]
+            {
+            if (nbytes != EWOULDBLOCK) {
+                // assert_success_or_recoverable (_fd, nbytes); error (connection_error);
+            }
+            }
+    // #endif
+            return;
+        }
+
+        let mut rc = 0i32;
+        let mut body_size = 0u32;
+        let mut body_offset = 0u32
+        let mut msg = msg_t::default();
+
+        if (self._options.raw_socket) {
+            // zmq_assert (in_address.ss_family == AF_INET);
+            self.sockaddr_to_msg (&msg, (&in_address));
+
+            body_size = nbytes;
+            body_offset = 0;
+        } else {
+            // TODO in out_event, the group size is an *unsigned* char. what is
+            // the maximum value?
+            let group_buffer = self._in_buffer[1..];
+            let group_size = self._in_buffer[0];
+
+            rc = msg.init_size (group_size);
+            // errno_assert (rc == 0);
+            msg.set_flags (MSG_MORE);
+            libc::memcpy (msg.data (), group_buffer, group_size);
+
+            //  This doesn't fit, just ignore
+            if (nbytes - 1 < group_size) {
+                return;
+            }
+
+            body_size = nbytes - 1 - group_size;
+            body_offset = 1 + group_size;
+        }
+        // Push group description to session
+        rc = self._session.push_msg (&mut msg);
+        // errno_assert (rc == 0 || (rc == -1 && errno == EAGAIN));
+
+        //  Group description message doesn't fit in the pipe, drop
+        if (rc != 0) {
+            rc = msg.close ();
+            // errno_assert (rc == 0);
+
+            self.reset_pollin (self._handle);
+            return;
+        }
+
+        rc = msg.close ();
+        // errno_assert (rc == 0);
+        rc = msg.init_size (body_size);
+        // errno_assert (rc == 0);
+        libc::memcpy (msg.data (), self._in_buffer[body_offset..], body_size);
+
+        // Push message body to session
+        rc = self._session.push_msg (&mut msg);
+        // Message body doesn't fit in the pipe, drop and reset session state
+        if (rc != 0) {
+            rc = msg.close ();
+            // errno_assert (rc == 0);
+
+            self._session.reset ();
+            self.reset_pollin (self._handle);
+            return;
+        }
+
+        rc = msg.close ();
+        // errno_assert (rc == 0);
+        self._session.flush ();
+    }
+
+    // bool zmq::udp_engine_t::restart_input ()
+    pub unsafe fn restart_input(&mut self) -> bool
+    {
+        if (self._recv_enabled) {
+            self.set_pollin (self._handle);
+            self.in_event ();
+        }
+
+        return true;
     }
 }

@@ -78,8 +78,16 @@ mod tcp;
 mod tcp_address;
 mod tcp_connecter;
 mod thread;
+mod trie;
 mod udp_address;
+mod udp_engine;
 mod utils;
+mod v1_decoder;
+mod v1_encoder;
+mod v2_decoder;
+mod v2_encoder;
+mod v2_protocol;
+mod v3_1_encoder;
 mod xpub;
 mod xsub;
 mod ypipe;
@@ -88,13 +96,6 @@ mod ypipe_conflate;
 mod yqueue;
 mod zap_client;
 mod zmtp_engine;
-mod v1_decoder;
-mod v1_encoder;
-mod v2_decoder;
-mod v2_encoder;
-mod v2_protocol;
-mod v3_1_encoder;
-mod udp_engine;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
