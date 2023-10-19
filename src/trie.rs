@@ -13,6 +13,20 @@ pub struct trie_t {
     pub _live_nodes: u16,
 }
 
+impl trie_t {
+    pub fn new() -> Self {
+        trie_t {
+            _next: trie_next {
+                node: std::ptr::null_mut(),
+            },
+            _refcnt: 0,
+            _min: 0,
+            _count: 0,
+            _live_nodes: 0,
+        }
+    }
+}
+
 pub struct trie_with_size_t {
     pub _num_prefixes: atomic_counter_t,
     pub _trie: trie_t,
@@ -56,5 +70,9 @@ impl trie_with_size_t {
 
     pub unsafe fn apply(&mut self, func: fn(&mut [u8], usize, &mut [u8]), arg: &mut [u8]) {
         self._trie.apply(func, arg)
+    }
+
+    pub unsafe fn num_prefixes(&mut self) -> u32 {
+        self._num_prefixes.get()
     }
 }
