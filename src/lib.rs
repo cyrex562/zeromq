@@ -96,6 +96,11 @@ mod ypipe_conflate;
 mod yqueue;
 mod zap_client;
 mod zmtp_engine;
+mod timers;
+mod tcp_listener;
+mod rep;
+mod req;
+mod router;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
