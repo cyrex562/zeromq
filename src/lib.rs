@@ -101,6 +101,11 @@ mod tcp_listener;
 mod rep;
 mod req;
 mod router;
+mod scatter;
+mod sub;
+mod zmq_draft;
+mod zmq_utils;
+mod zmq_ops;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
