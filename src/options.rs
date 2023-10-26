@@ -205,16 +205,11 @@ impl ZmqOptions {
         return -1;
     }
 
-    pub unsafe fn setsockopt(
-        &mut self,
-        option_: i32,
-        optval_: *const c_void,
-        optvallen_: size_t,
-    ) -> i32 {
+    pub unsafe fn setsockopt(&mut self, option_: i32, optval_: &[u8], optvallen_: size_t) -> i32 {
         let is_int = optvallen_ == std::mem::size_of::<i32>();
         let mut value = 0i32;
         if is_int {
-            libc::memcpy(&mut value as *mut i32 as *mut c_void, optval_, optvallen_);
+            value = u32::from_le_bytes(optval_.try_into().unwrap()) as i32;
         }
 
         match option_ as u32 {
@@ -238,11 +233,12 @@ impl ZmqOptions {
                     self.routing_id_size = optvallen_ as u8;
                     let routing_id_ref = &mut self.routing_id;
                     let routing_id_ptr = routing_id_ref as *mut u8;
-                    libc::memcpy(
-                        routing_id_ptr as *mut c_void,
-                        optval_,
-                        self.routing_id_size as size_t,
-                    );
+                    copy_bytes(optval_, 0, optvallen_, routing_id_ref, 0);
+                    // libc::memcpy(
+                    //     routing_id_ptr as *mut c_void,
+                    //     optval_,
+                    //     self.routing_id_size as size_t,
+                    // );
                     return 0;
                 }
             }
@@ -952,7 +948,7 @@ pub fn get_effective_conflate_option(options: &ZmqOptions) -> bool {
             || options.type_ == ZMQ_SUB as i8);
 }
 
-pub unsafe fn do_getsockopt<T>(optval_: &mut [u8], optvallen_: *const size_t, value_: T) -> i32 {
+pub unsafe fn do_getsockopt<T>(value_: T) -> Result<[u8], ZmqError> {
     todo!()
     // do_getsockopt4(optval_,*optvallen_, &value_, std::mem::size_of::<T>())
 }
@@ -984,11 +980,8 @@ pub unsafe fn do_getsockopt3(
     return 0;
 }
 
-pub unsafe fn do_setsockopt<T>(
-    optval_: *const c_void,
-    optvallen_: size_t,
-    out_value_: *const T,
-) -> i32 {
+// TODO
+pub unsafe fn do_setsockopt<T>(optval_: &[u8], optvallen_: size_t, out_value_: *const T) -> i32 {
     if optvallen_ != std::mem::size_of::<T>() {
         return -1;
     }

@@ -13,7 +13,7 @@ pub struct ZmqYPipe<T: Clone + PartialEq + Default, const N: usize> {
 
 impl <T: Clone + PartialEq + Default, const N: usize> ZmqYPipe<T,N>
 {
-    pub unsafe fn new() -> Self {
+    pub fn new() -> Self {
         let mut out = Self  {
             base: ZmqYPipeBase::new(),
             _queue: YQueue::new(),

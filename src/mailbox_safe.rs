@@ -20,7 +20,7 @@ pub struct ZmqMailboxSafe {
 }
 
 impl ZmqMailboxSafe {
-    pub unsafe fn new() -> ZmqMailboxSafe {
+    pub fn new() -> ZmqMailboxSafe {
 
         Self {
             _cpipe: ZmqCPipe::new(),

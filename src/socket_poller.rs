@@ -476,7 +476,7 @@ impl ZmqSocketPoller {
         return 1;
     }
 
-    pub unsafe fn wait(&mut self, events_: *mut ZmqEvent, n_events_: i32, timeout_: i32) -> i32 {
+    pub unsafe fn wait(&mut self, events_: t ZmqEvent, n_events_: i32, timeout_: i32) -> i32 {
         if (self._items.empty() && timeout_ < 0) {
             // errno = EFAULT;
             return -1;
