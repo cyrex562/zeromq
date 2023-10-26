@@ -109,6 +109,7 @@ mod zmq_draft;
 mod zmq_ops;
 mod zmq_utils;
 mod zmtp_engine;
+mod poll;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

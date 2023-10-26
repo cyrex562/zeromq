@@ -1,20 +1,25 @@
 use std::intrinsics::size_of;
-use std::os::raw::c_void;
+use std::os::raw::{c_long, c_void};
 
-use libc::{EINTR, iovec, timespec, timeval};
+use libc::{EINTR, time_t, timespec, timeval};
+
+#[cfg(not(target_os="windows"))]
+use libc::iovec;
+
 use windows::Win32::Networking::WinSock::{POLLIN, POLLOUT, POLLPRI};
 use windows::Win32::System::Threading::{INFINITE, Sleep};
 
 use crate::clock::ZmqClock;
 use crate::ctx::ZmqContext;
-use crate::defines::{ZMQ_EVENTS, ZMQ_FD, ZMQ_IO_THREADS, ZMQ_MORE, ZMQ_PAIR, ZMQ_PEER, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI, ZMQ_SNDMORE, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH};
+use crate::defines::{RETIRED_FD, ZMQ_EVENTS, ZMQ_FD, ZMQ_IO_THREADS, ZMQ_MORE, ZMQ_PAIR, ZMQ_PEER, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI, ZMQ_SNDMORE, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH, ZmqFd, ZmqPollFd};
 use crate::err::ZmqError;
 use crate::err::ZmqError::{InvalidContext, SocketError};
 use crate::ip::{initialize_network, shutdown_network};
 use crate::msg::{MSG_MORE, MSG_SHARED};
 use crate::options::ZmqOptions;
+use crate::poll::zmq_poll_int;
 use crate::poller_event::ZmqPollerEvent;
-use crate::polling_util::{OptimizedFdSet, valid_pollset_bytes};
+use crate::polling_util::{compute_timeout, OptimizedFdSet, valid_pollset_bytes};
 use crate::pollitem::ZmqPollitem;
 use crate::raw_msg::ZmqRawMsg;
 use crate::select::{FD_SET, FD_ZERO};
@@ -903,8 +908,9 @@ pub unsafe fn zmq_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> R
     let mut end = 0u64;
 // #if defined ZMQ_POLL_BASED_ON_POLL
 //     zmq::fast_vector_t<pollfd, ZMQ_POLLITEMS_DFLT> pollfds (nitems_);
+     let pollfds: Vec<ZmqPollFd> = vec![];
     #[cfg(feature = "poll")]{
-        let pollfds: Vec<pollfd> = vec![];
+
 
         //  Build pollset for poll () system call.
         // for (int i = 0; i != nitems_; i++)
@@ -912,11 +918,14 @@ pub unsafe fn zmq_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> R
             //  If the poll item is a 0MQ socket, we poll on the file descriptor
             //  retrieved by the ZMQ_FD socket option.
             if (items_[i].socket) {
-                let zmq_fd_size = size_of::<fd_t>();
-                if zmq_getsockopt(items_[i].socket, ZMQ_FD, &pollfds[i].fd,
-                                  &zmq_fd_size) == -1 {
-                    return -1;
-                }
+                let zmq_fd_size = size_of::<ZmqFd>();
+                let fd_bytes = zmq_getsockopt(items_[i].socket, ZMQ_FD)?;
+                let fd = u32::from_le_bytes([fd_bytes[0],fd_bytes[1],fd_bytes[2],fd_bytes[3]]);
+                pollfds[i].fd = fd;
+                // if zmq_getsockopt(items_[i].socket, ZMQ_FD, &pollfds[i].fd,
+                //                   &zmq_fd_size) == -1 {
+                //     return -1;
+                // }
                 pollfds[i].events = if items_[i].events { POLLIN } else { 0 };
             }
             //  Else, the poll item is a raw file descriptor. Just convert the
@@ -937,13 +946,13 @@ pub unsafe fn zmq_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> R
         // zmq::optimized_fd_set_t pollset_in (nitems_);
         let pollset_in = OptimizedFdSet::new(nitems_);
         // FD_ZERO (pollset_in.get ());
-        FD_ZERO(pollset_in.get())
+        FD_ZERO(pollset_in.get());
         let pollset_out = OptimizedFdSet::new(nitems_);
         FD_ZERO(pollset_out.get());
         let pollset_err = OptimizedFdSet::new(nitems_);
         FD_ZERO(pollset_err.get());
 
-        let maxfd: fd_t = 0;
+        let maxfd: ZmqFd = 0;
 
         //  Build the fd_sets for passing to select ().
         // for (int i = 0; i != nitems_; i++)
@@ -951,12 +960,15 @@ pub unsafe fn zmq_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> R
             //  If the poll item is a 0MQ socket we are interested in input on the
             //  notification file descriptor retrieved by the ZMQ_FD socket option.
             if (items_[i].socket) {
-                let zmq_fd_size = size_of::<fd_t>();
-                let mut notify_fd: fd_t = 0;
-                if (zmq_getsockopt(items_[i].socket, ZMQ_FD, &notify_fd,
-                                   &zmq_fd_size) == -1) {
-                    return -1;
-                }
+                let zmq_fd_size = size_of::<ZmqFd>();
+                let mut notify_fd: ZmqFd = 0;
+
+                // if (zmq_getsockopt(items_[i].socket, ZMQ_FD, &notify_fd,
+                //                    &zmq_fd_size) == -1) {
+                //     return -1;
+                // }
+                let fd_bytes = zmq_getsockopt(items_[i].socket, ZMQ_FD)?;
+                notify_fd = u32::from_le_bytes([fd_bytes[0],fd_bytes[1],fd_bytes[2],fd_bytes[3]]);
                 if (items_[i].events) {
                     FD_SET(notify_fd, pollset_in.get());
                     if (maxfd < notify_fd) {
@@ -984,7 +996,7 @@ pub unsafe fn zmq_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> R
 
         let mut inset = OptimizedFdSet::new(nitems_);
         let mut outset = OptimizedFdSet::new(nitems_);
-        let mut errset = optimized_fd_set_t::new(nitems_);
+        let mut errset = OptimizedFdSet::new(nitems_);
     }
 // #endif
 
@@ -1001,10 +1013,10 @@ pub unsafe fn zmq_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> R
 
             //  Wait for events.
             {
-                let rc = poll(&pollfds[0], nitems_, timeout);
-                if (rc == -1 && errno == EINTR) {
-                    return -1;
-                }
+                zmq_poll_int(pollfds[0], nitems_ as u32, timeout as u32)?;
+                // if (rc == -1 && errno == EINTR) {
+                //     return -1;
+                // }
                 // errno_assert (rc >= 0);
             }
             //  Check for the events.
@@ -1017,30 +1029,32 @@ pub unsafe fn zmq_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> R
                 if (items_[i].socket) {
                     let mut zmq_events_size = 4;
                     let mut zmq_events: u32 = 0;
-                    if (zmq_getsockopt(items_[i].socket, ZMQ_EVENTS, &zmq_events,
-                                       &zmq_events_size) == -1) {
-                        return -1;
-                    }
-                    if ((items_[i].events & ZMQ_POLLOUT) && (zmq_events & ZMQ_POLLOUT)) {
+                    // if (zmq_getsockopt(items_[i].socket, ZMQ_EVENTS, &zmq_events,
+                    //                    &zmq_events_size) == -1) {
+                    //     return -1;
+                    // }
+                    let zmq_events_bytes = zmq_getsockopt(items_[i].socket, ZMQ_EVENTS)?;
+                    zmq_events = u32::from_le_bytes([zmq_events_bytes[0],zmq_events_bytes[1],zmq_events_bytes[2],zmq_events_bytes[3]]);
+                    if (items_[i].events & ZMQ_POLLOUT) && (zmq_events & ZMQ_POLLOUT) {
                         items_[i].revents |= ZMQ_POLLOUT;
                     }
-                    if ((items_[i].events & ZMQ_POLLIN) && (zmq_events & ZMQ_POLLIN)) {
+                    if (items_[i].events & ZMQ_POLLIN) && (zmq_events & ZMQ_POLLIN) {
                         items_[i].revents |= ZMQ_POLLIN;
                     }
                 }
                 //  Else, the poll item is a raw file descriptor, simply convert
                 //  the events to zmq_pollitem_t-style format.
                 else {
-                    if (pollfds[i].revents & POLLIN) {
+                    if pollfds[i].revents & POLLIN {
                         items_[i].revents |= ZMQ_POLLIN;
                     }
-                    if (pollfds[i].revents & POLLOUT) {
+                    if pollfds[i].revents & POLLOUT {
                         items_[i].revents |= ZMQ_POLLOUT;
                     }
-                    if (pollfds[i].revents & POLLPRI) {
+                    if pollfds[i].revents & POLLPRI {
                         items_[i].revents |= ZMQ_POLLPRI;
                     }
-                    if (pollfds[i].revents & ~(POLLIN | POLLOUT | POLLPRI)){
+                    if pollfds[i].revents & !(POLLIN | POLLOUT | POLLPRI){
                         items_[i].revents |= ZMQ_POLLERR;
                     }
                 }
@@ -1078,8 +1092,7 @@ pub unsafe fn zmq_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> R
 // #if defined ZMQ_HAVE_WINDOWS
                 #[cfg(target_os = "windows")]
                 {
-                    int
-                    rc = select(0, inset.get(), outset.get(), errset.get(), ptimeout);
+                    let rc = select(0, inset.get(), outset.get(), errset.get(), ptimeout);
                     if (unlikely(rc == SOCKET_ERROR)) {
                         errno = zmq::wsa_error_to_errno(WSAGetLastError());
                         wsa_assert(errno == ENOTSOCK);
@@ -1135,7 +1148,7 @@ pub unsafe fn zmq_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> R
                 }
 
                 if (items_[i].revents) {
-                    nevents + +;
+                    nevents += 1;
                 }
             }
         }
@@ -1181,27 +1194,27 @@ pub unsafe fn zmq_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> R
         }
     }
 
-    return nevents;
+    return Ok(nevents as usize);
 // #else
     //  Exotic platforms that support neither poll() nor select().
     // errno = ENOTSUP;
-    return -1;
+    // return -1;
 // #endif
 }
 
-pub unsafe fn zmq_poll_check_items_(items_: &mut ZmqPollitem, nitems_: i32, timeout_: i32) -> i32 {
-    if ((nitems_ < 0)) {
+pub unsafe fn zmq_poll_check_items_(poll_items: &mut [ZmqPollitem], num_items: i32, timeout_: i32) -> i32 {
+    if num_items < 0 {
         // errno = EINVAL;
         return -1;
     }
-    if (unlikely(nitems_ == 0)) {
-        if (timeout_ == 0) {
+    if num_items == 0 {
+        if timeout_ == 0 {
             return 0;
         }
 // #if defined ZMQ_HAVE_WINDOWS
         #[cfg(target_os = "windows")]
         {
-            Sleep(if timeout_ > 0 { timeout_ } else { INFINITE });
+            Sleep(if timeout_ > 0 { timeout_ } else { INFINITE } as u32);
             return 0;
         }
 // #elif defined ZMQ_HAVE_VXWORKS
@@ -1216,7 +1229,7 @@ pub unsafe fn zmq_poll_check_items_(items_: &mut ZmqPollitem, nitems_: i32, time
         }
 // #endif
     }
-    if (!items_) {
+    if (!poll_items) {
         // errno = EFAULT;
         return -1;
     }
@@ -1251,7 +1264,7 @@ pub struct zmq_poll_select_fds_t_ {
     // zmq::optimized_fd_set_t errset;
     pub errset: OptimizedFdSet,
     // zmq::fd_t maxfd;
-    pub maxfd: fd_t,
+    pub maxfd: ZmqFd,
 }
 
 // zmq_poll_select_fds_t_
@@ -1270,14 +1283,16 @@ pub unsafe fn zmq_poll_build_select_fds_(items_: &[ZmqPollitem], nitems_: i32, r
         //  If the poll item is a 0MQ socket we are interested in input on the
         //  notification file descriptor retrieved by the ZMQ_FD socket option.
         if (items_[i].socket) {
-            let zmq_fd_size = size_of::<fd_t>();
+            let zmq_fd_size = size_of::<ZmqFd>();
             // zmq::fd_t notify_fd;
-            let mut notify_fd: fd_t;
-            if (zmq_getsockopt(items_[i].socket, ZMQ_FD, &notify_fd,
-                               &zmq_fd_size) == -1) {
-                rc = -1;
-                return fds;
-            }
+            let mut notify_fd: ZmqFd;
+            // if (zmq_getsockopt(items_[i].socket, ZMQ_FD, &notify_fd,
+            //                    &zmq_fd_size) == -1) {
+            //     rc = -1;
+            //     return fds;
+            // }
+            let fd_bytes = zmq_getsockopt(items_[i].socket, ZMQ_FD)?;
+            notify_fd = u32::from_le_bytes([fd_bytes[0],fd_bytes[1],fd_bytes[2],fd_bytes[3]]);
             if (items_[i].events) {
                 FD_SET(notify_fd, fds.pollset_in.get());
                 if (fds.maxfd < notify_fd) {
@@ -1303,25 +1318,26 @@ pub unsafe fn zmq_poll_build_select_fds_(items_: &[ZmqPollitem], nitems_: i32, r
         }
     }
 
-    rc = 0;
+    *rc = 0;
     return fds;
 }
 
 // timeval *zmq_poll_select_set_timeout_ (
 //   long timeout_, bool first_pass, uint64_t now, uint64_t end, timeval &timeout)
-pub unsafe fn zmq_poll_select_set_timeout_(timeout_: i32, first_pass: bool, now: u64, end: u64, timeout: &timeval) -> &mut timeval {
+pub unsafe fn zmq_poll_select_set_timeout_(timeout_: i32, first_pass: bool, now: u64, end: u64, timeout: &mut timeval) -> &mut timeval {
     // timeval *ptimeout;
     let ptimeout: &mut timeval;
     if (first_pass) {
         timeout.tv_sec = 0;
         timeout.tv_usec = 0;
-        ptimeout = &timeout;
-    } else if (timeout_ < 0)
-    ptimeout = None;
+        ptimeout = timeout;
+    } else if (timeout_ < 0) {
+        ptimeout = &mut timeval{ tv_sec: 0, tv_usec: 0 };
+    }
     else {
-        timeout.tv_sec = ((end - now) / 1000);
-        timeout.tv_usec = ((end - now) % 1000 * 1000);
-        ptimeout = &timeout;
+        timeout.tv_sec = ((end - now) / 1000) as c_long;
+        timeout.tv_usec = ((end - now) % 1000 * 1000) as c_long;
+        ptimeout = timeout;
     }
     return ptimeout;
 }
@@ -1329,18 +1345,24 @@ pub unsafe fn zmq_poll_select_set_timeout_(timeout_: i32, first_pass: bool, now:
 // timespec *zmq_poll_select_set_timeout_2 (
 //   long timeout_, bool first_pass, uint64_t now, uint64_t end, timespec &timeout)
 pub unsafe fn zmq_poll_select_set_timeout_2(
-    timeout_: i32, first_pass: bool, now: u64, end: u64, timeout: &timespec) -> &mut timespec {
-    timespec * ptimeout;
+    timeout_: i32,
+    first_pass: bool,
+    now: u64,
+    end: u64,
+    timeout: &mut timespec) -> &mut timespec {
+    // timespec * ptimeout;
+    let mut ptimeout: &mut timespec;
     if (first_pass) {
         timeout.tv_sec = 0;
         timeout.tv_nsec = 0;
-        ptimeout = &timeout;
-    } else if (timeout_ < 0)
-    ptimeout = NULL;
+        ptimeout = timeout;
+    } else if (timeout_ < 0) {
+        ptimeout = &mut timespec{ tv_sec: 0, tv_nsec: 0 };
+    }
     else {
-        timeout.tv_sec = ((end - now) / 1000);
-        timeout.tv_nsec = ((end - now) % 1000 * 1000000);
-        ptimeout = &timeout;
+        timeout.tv_sec = ((end - now) / 1000) as time_t;
+        timeout.tv_nsec = ((end - now) % 1000 * 1000000) as c_long;
+        ptimeout = timeout;
     }
     return ptimeout;
 }
@@ -1351,7 +1373,7 @@ pub unsafe fn zmq_poll_select_set_timeout_2(
 //                                    zmq_poll_select_fds_t_ &fds,
 //                                    int &nevents)
 pub unsafe fn zmq_poll_select_check_events_(
-    items_: &[ZmqPollitem, nitems_: i32, fds: &mut zmq_poll_select_fds_t_, nevents: &mut i32) -> i32 {
+    items_: &[ZmqPollitem], nitems_: i32, fds: &mut zmq_poll_select_fds_t_, nevents: &mut i32) -> i32 {
 //  Check for the events.
 // for (int i = 0; i != nitems_; i++)
     for i in 0..nitems_ {
@@ -1362,10 +1384,12 @@ pub unsafe fn zmq_poll_select_check_events_(
         if (items_[i].socket) {
             let zmq_events_size = 4;
             let zmq_events: u32;
-            if (zmq_getsockopt(items_[i].socket, ZMQ_EVENTS, &zmq_events,
-                               &zmq_events_size) == -1) {
-                return -1;
-            }
+            // if (zmq_getsockopt(items_[i].socket, ZMQ_EVENTS, &zmq_events,
+            //                    &zmq_events_size) == -1) {
+            //     return -1;
+            // }
+            let zmq_events_bytes = zmq_getsockopt(items_[i].socket, ZMQ_EVENTS)?;
+            zmq_events = u32::from_le_bytes([zmq_events_bytes[0],zmq_events_bytes[1],zmq_events_bytes[2],zmq_events_bytes[3]]);
             if ((items_[i].events & ZMQ_POLLOUT) & &(zmq_events & ZMQ_POLLOUT)) {
                 items_[i].revents |= ZMQ_POLLOUT;
             }
@@ -1388,14 +1412,14 @@ pub unsafe fn zmq_poll_select_check_events_(
         }
 
         if (items_[i].revents) {
-            nevents += 1;
+            *nevents += 1;
         }
     }
 
     return 0;
 }
 
-pub unsafe fn zmq_poll_must_break_loop_(timeout_: i32, nevents: i32, first_pass: &bool, clock: *mut ZmqClock, now: &mut u64, end: &mut u64) -> bool
+pub unsafe fn zmq_poll_must_break_loop_(timeout_: i32, nevents: i32, first_pass: &mut bool, clock: &mut ZmqClock, now: &mut u64, end: &mut u64) -> bool
 
 {
     //  If timeout is zero, exit immediately whether there are events or not.
@@ -1412,7 +1436,7 @@ pub unsafe fn zmq_poll_must_break_loop_(timeout_: i32, nevents: i32, first_pass:
     //  If timeout is infinite we can just loop until we get some events.
     if (timeout_ < 0) {
         if (first_pass) {
-            first_pass = false;
+            *first_pass = false;
         }
         return false;
     }
@@ -1422,17 +1446,17 @@ pub unsafe fn zmq_poll_must_break_loop_(timeout_: i32, nevents: i32, first_pass:
     //  first pass have taken negligible time). We also compute the time
     //  when the polling should time out.
     if (first_pass) {
-        now = clock.now_ms();
-        end = now + timeout_;
-        if (now == end) {
+        *now = clock.now_ms();
+        *end = *now + timeout_;
+        if now == end {
             return true;
         }
-        first_pass = false;
+        *first_pass = false;
         return false;
     }
 
     //  Find out whether timeout have expired.
-    now = clock.now_ms();
+    *now = clock.now_ms();
     if (now >= end) {
         return true;
     }
@@ -1453,14 +1477,15 @@ pub unsafe fn zmq_poll_must_break_loop_(timeout_: i32, nevents: i32, first_pass:
 //                long timeout_,
 //                const void *sigmask_)
 // #endif
-pub unsafe fn zmq_ppoll(items_: &mut ZmqPollitem, nitems_: i32, timeout_: i32, sigmask_: &sigset_t) -> i32 {
+#[cfg(not(target_os="windows"))]
+pub unsafe fn zmq_ppoll(items_: &mut [ZmqPollitem], nitems_: i32, timeout_: i32, sigmask_: &sigset_t) -> i32 {
 // #ifdef ZMQ_HAVE_PPOLL
     let mut rc = zmq_poll_check_items_(items_, nitems_, timeout_);
     if (rc <= 0) {
         return rc;
     }
 
-    let mut clock: ZmqClock = ;
+    let mut clock: ZmqClock;
     let mut now = 0;
     let mut end = 0;
     let fds = zmq_poll_build_select_fds_(items_, nitems_, rc);
@@ -1540,7 +1565,7 @@ pub unsafe fn zmq_poller_destroy(poller_p_: &mut ZmqSocketPoller) -> i32 {
 }
 
 // static int check_poller (void *const poller_)
-pub unsafe fn check_poller(poller_: &ZmqSocketPoller) -> i32 {
+pub unsafe fn check_poller(poller_: &mut ZmqSocketPoller) -> Result<(),ZmqError> {
     // if (!poller_
     //     || !(static_cast<zmq::socket_poller_t *> (poller_))->check_tag ()) {
     //     errno = EFAULT;
@@ -1549,9 +1574,9 @@ pub unsafe fn check_poller(poller_: &ZmqSocketPoller) -> i32 {
     //
     // return 0;
     if !poller_.check_tag() {
-        return -1;
+        return Err(SocketError("poller check_tag failed"));
     } else {
-        return 0;
+        return Ok(());
     }
 }
 
@@ -1565,8 +1590,8 @@ pub unsafe fn check_events(events_: i16) -> i32 {
 }
 
 // static int check_poller_registration_args (void *const poller_, void *const s_)
-pub unsafe fn check_poller_registration_args(poller_: &ZmqSocketPoller, s_: &mut ZmqSocketBase) -> i32 {
-    if (-1 == check_poller(poller_)) {
+pub unsafe fn check_poller_registration_args(poller: &mut ZmqSocketPoller, sock: &mut ZmqSocketBase) -> i32 {
+    if -1 == check_poller(poller) {
         return -1;
     }
 
@@ -1574,7 +1599,7 @@ pub unsafe fn check_poller_registration_args(poller_: &ZmqSocketPoller, s_: &mut
     //     errno = ENOTSOCK;
     //     return -1;
     // }
-    if !s_.check_tag() {
+    if !sock.check_tag() {
         return -1;
     }
 
@@ -1583,12 +1608,12 @@ pub unsafe fn check_poller_registration_args(poller_: &ZmqSocketPoller, s_: &mut
 
 // static int check_poller_fd_registration_args (void *const poller_,
 //                                               const zmq::fd_t fd_)
-pub unsafe fn check_poller_fd_registration_args(poller_: &ZmqSocketPoller, fd_: fd_t) -> i32 {
-    if (-1 == check_poller(poller_)) {
+pub unsafe fn check_poller_fd_registration_args(poller_: &mut ZmqSocketPoller, fd_: ZmqFd) -> i32 {
+    if -1 == check_poller(poller_) {
         return -1;
     }
 
-    if (fd_ == retired_fd) {
+    if fd_ == RETIRED_FD {
         // errno = EBADF;
         return -1;
     }
@@ -1597,8 +1622,8 @@ pub unsafe fn check_poller_fd_registration_args(poller_: &ZmqSocketPoller, fd_: 
 }
 
 // int zmq_poller_size (void *poller_)
-pub unsafe fn zmq_poller_size(poller_: &ZmqSocketPoller) -> i32 {
-    if (-1 == check_poller(poller_)) {
+pub unsafe fn zmq_poller_size(poller_: &mut ZmqSocketPoller) -> i32 {
+    if -1 == check_poller(poller_) {
         return -1;
     }
 
@@ -1607,8 +1632,8 @@ pub unsafe fn zmq_poller_size(poller_: &ZmqSocketPoller) -> i32 {
 }
 
 // int zmq_poller_add (void *poller_, void *s_, void *user_data_, short events_)
-pub unsafe fn zmq_poller_add(poller_: &ZmqSocketPoller, s_: &mut ZmqSocketBase, user_data_: &mut [u8], events_: i16) -> i32 {
-    if (-1 == check_poller_registration_args(poller_, s_) || -1 == check_events(events_)) {
+pub unsafe fn zmq_poller_add(poller_: &mut ZmqSocketPoller, s_: &mut ZmqSocketBase, user_data_: &mut [u8], events_: i16) -> i32 {
+    if -1 == check_poller_registration_args(poller_, s_) || -1 == check_events(events_) {
         return -1;
     }
 
@@ -1616,14 +1641,14 @@ pub unsafe fn zmq_poller_add(poller_: &ZmqSocketPoller, s_: &mut ZmqSocketBase, 
 
     // return (static_cast<zmq::socket_poller_t *> (poller_))
     //   ->add (socket, user_data_, events_);
-    poller_.add(socket, user_data, events_)
+    poller_.add(s_, user_data_, events_)
 }
 
 // int zmq_poller_add_fd (void *poller_,
 //                        zmq::fd_t fd_,
 //                        void *user_data_,
 //                        short events_)
-pub unsafe fn zmq_poller_add_fd(poller_: &ZmqSocketPoller, fd_: fd_t, user_data_: &mut [u8], events_: i16) -> i32 {
+pub unsafe fn zmq_poller_add_fd(poller_: &mut ZmqSocketPoller, fd_: ZmqFd, user_data_: &mut [u8], events_: i16) -> i32 {
     if (-1 == check_poller_fd_registration_args(poller_, fd_) || -1 == check_events(events_)) {
         return -1;
     }
@@ -1634,8 +1659,8 @@ pub unsafe fn zmq_poller_add_fd(poller_: &ZmqSocketPoller, fd_: fd_t, user_data_
 }
 
 // int zmq_poller_modify (void *poller_, void *s_, short events_)
-pub unsafe fn zmq_poller_modify(poller_: &ZmqSocketPoller, s_: &mut ZmqSocketBase, events_: i16) -> i32 {
-    if (-1 == check_poller_registration_args(poller_, s_) || -1 == check_events(events_)) {
+pub unsafe fn zmq_poller_modify(poller_: &mut ZmqSocketPoller, s_: &mut ZmqSocketBase, events_: i16) -> i32 {
+    if -1 == check_poller_registration_args(poller_, s_) || -1 == check_events(events_) {
         return -1;
     }
 
@@ -1648,7 +1673,7 @@ pub unsafe fn zmq_poller_modify(poller_: &ZmqSocketPoller, s_: &mut ZmqSocketBas
 }
 
 // int zmq_poller_modify_fd (void *poller_, zmq::fd_t fd_, short events_)
-pub unsafe fn zmq_poller_modify_fd(poller_: &mut ZmqSocketPoller, fd_: fd_t, events_: i16) -> i32 {
+pub unsafe fn zmq_poller_modify_fd(poller_: &mut ZmqSocketPoller, fd_: ZmqFd, events_: i16) -> i32 {
     if (-1 == check_poller_fd_registration_args(poller_, fd_) || -1 == check_events(events_)) {
         return -1;
     }
@@ -1671,7 +1696,7 @@ pub unsafe fn zmq_poller_remove(poller_: &mut ZmqSocketPoller, s_: &mut ZmqSocke
 }
 
 // int zmq_poller_remove_fd (void *poller_, zmq::fd_t fd_)
-pub unsafe fn zmq_poller_remove_fd(poller_: &mut ZmqSocketPoller, fd_: fd_t) -> i32 {
+pub unsafe fn zmq_poller_remove_fd(poller_: &mut ZmqSocketPoller, fd_: ZmqFd) -> i32 {
     if (-1 == check_poller_fd_registration_args(poller_, fd_)) {
         return -1;
     }
@@ -1681,10 +1706,10 @@ pub unsafe fn zmq_poller_remove_fd(poller_: &mut ZmqSocketPoller, fd_: fd_t) -> 
 }
 
 // int zmq_poller_wait (void *poller_, zmq_poller_event_t *event_, long timeout_)
-puib unsafe fn zmq_poller_wait(poller_: &mut ZmqSocketPoller, event_: &mut ZmqPollerEvent, timeout_: i32) -> i32 {
-    let rc = zmq_poller_wait_all(poller_, event_, 1, timeout_);
+pub unsafe fn zmq_poller_wait(poller_: &mut ZmqSocketPoller, event_: &mut ZmqPollerEvent, timeout_: i32) -> i32 {
+    let rc = zmq_poller_wait_all(poller_, &mut [event_.clone()], 1, timeout_);
 
-    if (rc < 0 && event_) {
+    if (rc < 0) {
         // event_->socket = NULL;
         // event_->fd = zmq::retired_fd;
         // event_->user_data = NULL;
@@ -1699,7 +1724,7 @@ puib unsafe fn zmq_poller_wait(poller_: &mut ZmqSocketPoller, event_: &mut ZmqPo
 //                          int n_events_,
 //                          long timeout_)
 pub unsafe fn zmq_poller_wait_all(poller_: &mut ZmqSocketPoller, events_: &mut [ZmqPollerEvent], n_events_: i32, timeout_: i32) -> Result<usize, ZmqError> {
-    if (-1 == check_poller(poller_)) {
+    if -1 == check_poller(poller_) {
         return -1;
     }
 

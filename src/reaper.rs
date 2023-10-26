@@ -2,7 +2,7 @@ use crate::command::ZmqCommand;
 use crate::ctx::ZmqContext;
 use crate::defines::ZmqHandle;
 use crate::endpoint::ZmqEndpointUriPair;
-use crate::fd::retired_fd;
+use crate::defines::RETIRED_FD;
 use crate::i_engine::IEngine;
 use crate::i_poll_events::IPollEvents;
 use crate::mailbox::ZmqMailbox;
@@ -70,7 +70,7 @@ impl ZmqReaper {
             _pid: 0,
             _object: ZmqObject::new(ctx_, tid_),
         };
-        if out._mailbox.get_fd() != retired_fd {
+        if out._mailbox.get_fd() != RETIRED_FD {
             (*out._poller).add(out._mailbox.get_fd(), &mut out);
             out._sockets += 1;
             out._poller.set_pollin(out._mailbox_handle);

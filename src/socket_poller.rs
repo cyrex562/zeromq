@@ -4,7 +4,7 @@ use libc::EINTR;
 use windows::Win32::Networking::WinSock::{FD_SET, POLLIN, POLLOUT, POLLPRI};
 use windows::Win32::System::Threading::{INFINITE, Sleep};
 use crate::clock::ZmqClock;
-use crate::defines::{ZMQ_FD, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI};
+use crate::defines::{ZMQ_FD, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI, ZmqFd};
 use crate::fd::fd_t;
 use crate::polling_util::ResizableOptimizedFdSetT;
 use crate::select::{fd_set, FD_SET, FD_ZERO, FD_CLR};
@@ -75,8 +75,8 @@ impl ZmqSocketPoller {
         return -1;
     }
 
-    pub fn add(&mut self, socket_: *mut ZmqSocketBase,
-               user_data_: *mut c_void,
+    pub fn add(&mut self, socket_: &mut ZmqSocketBase,
+               user_data_: &[u8],
                events_: i16) -> i32 {
         // if (find_if2 (self._items.begin (), _items.end (), socket_, &is_socket)
         //     != _items.end ()) {
@@ -84,7 +84,7 @@ impl ZmqSocketPoller {
         //     return -1;
         // }
 
-        if is_thread_safe(*socket_) {
+        if is_thread_safe(socket_) {
             if self._signaler == null_mut() {
                 self._signaler = &mut ZmqSignaler::new();
                 if !self._signaler {
@@ -124,7 +124,7 @@ impl ZmqSocketPoller {
         return 0;
     }
 
-    pub fn add_fd(&mut self, fd_: fd_t, user_data_: *mut c_void, events_: i16) -> i32 {
+    pub fn add_fd(&mut self, fd_: ZmqFd, user_data_: &[u8], events_: i16) -> i32 {
         //      if (find_if2 (_items.begin (), _items.end (), fd_, &is_fd)
         //     != _items.end ()) {
         //     errno = EINVAL;

@@ -3,7 +3,7 @@ use crate::address::socket_end_t::{socket_end_local, socket_end_remote};
 use crate::defines::{ZmqFd, ZmqHandle};
 use crate::endpoint::ZmqEndpointType::endpoint_type_bind;
 use crate::endpoint::{ZmqEndpointUriPair, make_unconnected_connect_endpoint_pair};
-use crate::fd::retired_fd;
+use crate::defines::RETIRED_FD;
 use crate::i_engine::IEngine;
 use crate::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
@@ -31,7 +31,7 @@ impl ZmqStreamListenerBase {
         Self {
             own: ZmqOwn::new2(io_thread_, options_),
             io_object: IoObject::new(io_thread_),
-            _s: retired_fd,
+            _s: RETIRED_FD,
             _handle: null_mut(),
             _socket: socket_,
             _endpoint: "".to_string(),
@@ -69,7 +69,7 @@ impl ZmqStreamListenerBase {
         }
         self._socket
             .event_closed(make_unconnected_connect_endpoint_pair(self._endpoint));
-        self._s = retired_fd
+        self._s = RETIRED_FD
     }
 
     pub unsafe fn create_engine(&mut self, fd_: ZmqFd) {

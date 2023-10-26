@@ -5,7 +5,7 @@ use crate::address::{ZmqAddress, get_socket_name};
 use crate::address::socket_end_t::socket_end_local;
 use crate::defines::ZMQ_RECONNECT_STOP_CONN_REFUSED;
 use crate::endpoint::make_unconnected_connect_endpoint_pair;
-use crate::fd::retired_fd;
+use crate::defines::RETIRED_FD;
 use crate::io_thread::ZmqIoThread;
 use crate::ip::{tune_socket, unblock_socket};
 use crate::options::ZmqOptions;
@@ -56,7 +56,7 @@ impl ZmqTcpConnecter
 
         let fd = self.connect ();
 
-        if (fd == retired_fd
+        if (fd == RETIRED_FD
             && ((self.options.reconnect_stop & ZMQ_RECONNECT_STOP_CONN_REFUSED)
                 && errno == ECONNREFUSED)) {
             self.send_conn_failed (self._session);
@@ -66,7 +66,7 @@ impl ZmqTcpConnecter
         }
 
         //  Handle the Error condition by attempt to reconnect.
-        if (fd == retired_fd || !tune_socket (fd)) {
+        if (fd == RETIRED_FD || !tune_socket (fd)) {
             self.close ();
             self.add_reconnect_timer ();
             return;
@@ -113,7 +113,7 @@ impl ZmqTcpConnecter
 
         //  Handle any other Error condition by eventual reconnect.
         else {
-            if (self._s != retired_fd) {
+            if (self._s != RETIRED_FD) {
                 self.close();
             }
             self.add_reconnect_timer ();
@@ -144,7 +144,7 @@ impl ZmqTcpConnecter
         // alloc_assert (_addr->resolved.tcp_addr);
         self._s = tcp_open_socket (self._addr.address.c_str (), self.options, false, true,
                               self._addr.resolved.tcp_addr);
-        if (self._s == retired_fd) {
+        if (self._s == RETIRED_FD) {
             //  TODO we should emit some event in this case!
 
             // LIBZMQ_DELETE (_addr->resolved.tcp_addr);

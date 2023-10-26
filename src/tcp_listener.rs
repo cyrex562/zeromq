@@ -2,9 +2,9 @@ use std::mem::size_of_val;
 use windows::Win32::Networking::WinSock::{setsockopt, SOCKET_ERROR, SOL_SOCKET};
 use crate::address::{get_socket_name, socket_end_t};
 use crate::address::socket_end_t::socket_end_local;
-use crate::defines::SockaddrStorage;
+use crate::defines::{RETIRED_FD, SockaddrStorage};
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
-use crate::fd::{fd_t, retired_fd};
+use crate::fd::fd_t;
 use crate::io_thread::ZmqIoThread;
 use crate::ip::{make_socket_noninheritable, set_ip_type_of_service, set_nosigpipe, set_socket_priority};
 use crate::options::ZmqOptions;
@@ -33,7 +33,7 @@ impl ZmqTcpListener {
 
         //  If connection was reset by the peer in the meantime, just ignore it.
         //  TODO: Handle specific errors like ENFILE/EMFILE etc.
-        if (fd == retired_fd) {
+        if (fd == RETIRED_FD) {
             self._socket.event_accept_failed (
               make_unconnected_bind_endpoint_pair (self._endpoint), zmq_errno ());
             return;
@@ -67,7 +67,7 @@ impl ZmqTcpListener {
     pub unsafe fn create_socket(&mut self, addr_: &str) -> i32
     {
         self._s = tcp_open_socket (addr_, self.options, true, true, &self._address);
-        if (self._s == retired_fd) {
+        if (self._s == RETIRED_FD) {
             return -1;
         }
 
@@ -191,7 +191,7 @@ impl ZmqTcpListener {
         let sock = libc::accept (self._s, (&ss), &ss_len);
     // #endif
 
-        if (sock == retired_fd) {
+        if (sock == RETIRED_FD) {
     // #if defined ZMQ_HAVE_WINDOWS
     //         const int last_error = WSAGetLastError ();
     //         // wsa_assert (last_error == WSAEWOULDBLOCK || last_error == WSAECONNRESET
@@ -207,7 +207,7 @@ impl ZmqTcpListener {
     //         //               || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE
     //         //               || errno == ENFILE);
     // #endif
-            return retired_fd;
+            return RETIRED_FD;
         }
 
         make_socket_noninheritable (sock);
@@ -239,7 +239,7 @@ impl ZmqTcpListener {
                 }
                 // errno_assert (rc == 0);
     // #endif
-                return retired_fd;
+                return RETIRED_FD;
             }
         }
 
@@ -258,7 +258,7 @@ impl ZmqTcpListener {
             }
             // errno_assert (rc == 0);
     // #endif
-            return retired_fd;
+            return RETIRED_FD;
         }
 
         // Set the IP Type-Of-Service priority for this client socket

@@ -1,12 +1,12 @@
 use std::ffi::c_void;
 use std::intrinsics::size_of;
 use std::mem::size_of_val;
-use libc::{bind, EWOULDBLOCK, recvfrom, sendto, sockaddr};
+use libc::{bind, recvfrom, sendto, sockaddr};
 use windows::Win32::Networking::WinSock::{AF_INET, AF_INET6, INADDR_NONE, IP_ADD_MEMBERSHIP, IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_UDP, IPV6_ADD_MEMBERSHIP, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, setsockopt, SO_REUSEADDR, SOCK_DGRAM, SOCKADDR_IN, SOCKADDR_STORAGE, SOL_SOCKET, WSAEWOULDBLOCK, WSAGetLastError};
 use crate::address::ZmqAddress;
-use crate::defines::ZmqHandle;
+use crate::defines::{RETIRED_FD, ZmqHandle};
 use crate::endpoint::ZmqEndpointUriPair;
-use crate::fd::{fd_t, retired_fd};
+use crate::fd::fd_t;
 use crate::i_engine::ErrorReason;
 use crate::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
@@ -61,7 +61,7 @@ impl ZmqUdpEngine {
 
         self._fd = open_socket (self._address.resolved.udp_addr.family (), SOCK_DGRAM,
                            IPPROTO_UDP);
-        if (self._fd == retired_fd) {
+        if (self._fd == RETIRED_FD) {
             return -1;
         }
 

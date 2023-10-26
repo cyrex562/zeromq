@@ -3,7 +3,8 @@ use std::mem::size_of;
 use std::ptr::null_mut;
 use libc::{EAFNOSUPPORT, setsockopt, SOCKET};
 use windows::Win32::Networking::WinSock::{AF_INET, AF_INET6, closesocket, IPPROTO_TCP, recv, send, SIO_KEEPALIVE_VALS, SIO_LOOPBACK_FAST_PATH, SO_RCVBUF, SO_SNDBUF, SOCK_STREAM, SOCKET_ERROR, SOL_SOCKET, tcp_keepalive, TCP_NODELAY, WSAECONNABORTED, WSAECONNRESET, WSAEHOSTUNREACH, WSAENETDOWN, WSAENETRESET, WSAENOBUFS, WSAEOPNOTSUPP, WSAETIMEDOUT, WSAEWOULDBLOCK, WSAGetLastError};
-use crate::fd::{fd_t, retired_fd};
+use crate::defines::RETIRED_FD;
+use crate::fd::fd_t;
 use crate::ip::{bind_to_device, enable_ipv4_mapping, open_socket, set_ip_type_of_service, set_socket_priority};
 
 pub unsafe fn tune_tcp_socket(s_: fd_t) -> i32 {
@@ -350,25 +351,25 @@ pub unsafe fn tcp_open_socket (address_: &str,
     //  Convert the textual address into address structure.
     let rc = out_tcp_addr_.resolve (address_, local_, options_.ipv6);
     if (rc != 0) {
-        return retired_fd;
+        return RETIRED_FD;
     }
 
     //  Create the socket.
     let s = open_socket (out_tcp_addr_.family (), SOCK_STREAM, IPPROTO_TCP);
 
     //  IPv6 address family not supported, try automatic downgrade to IPv4.
-    if (s == retired_fd && fallback_to_ipv4_
+    if (s == RETIRED_FD && fallback_to_ipv4_
         && out_tcp_addr_.family () == AF_INET6 && get_errno == EAFNOSUPPORT
         && options_.ipv6) {
         rc = out_tcp_addr_.resolve (address_, local_, false);
         if (rc != 0) {
-            return retired_fd;
+            return RETIRED_FD;
         }
         s = open_socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
     }
 
-    if (s == retired_fd) {
-        return retired_fd;
+    if (s == RETIRED_FD) {
+        return RETIRED_FD;
     }
 
     //  On some systems, IPv4 mapping in IPv6 sockets is disabled by default.
@@ -425,5 +426,5 @@ pub unsafe fn tcp_open_socket (address_: &str,
         errno_assert(rc == 0);
     }
 // #endif
-    return retired_fd;
+    return RETIRED_FD;
 }

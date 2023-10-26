@@ -7,6 +7,8 @@ use crate::fd::fd_t;
 use crate::ip::{make_fdpair, unblock_socket};
 use crate::utils::get_errno;
 
+pub struct
+
 pub struct ZmqSignaler {
     pub _w: fd_t,
     pub _r: fd_t,

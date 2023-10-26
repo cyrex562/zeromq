@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 use std::os::windows::raw::HANDLE;
-use windows::Win32::Networking::WinSock::sa_family_t;
+use windows::Win32::Networking::WinSock::{sa_family_t, WSAPOLLFD};
 
 #[cfg(target_os = "windows")]
 #[cfg(target_arch = "x86_64")]
@@ -621,3 +621,10 @@ pub const ZMQ_CURRENT_EVENT_VERSION_DRAFT: u32 = 2;
 
 pub const ZMQ_EVENT_ALL_V1: u32 = ZMQ_EVENT_ALL;
 pub const ZMQ_EVENT_ALL_V2: u32 = ZMQ_EVENT_ALL_V1 | ZMQ_EVENT_PIPES_STATS;
+
+pub const RETIRED_FD: i32 = -1;
+
+#[cfg(target_os="windows")]
+pub type ZmqPollFd = WSAPOLLFD;
+#[cfg(not(target_os="windows"))]
+pub type ZmqPollFd = pollfd;

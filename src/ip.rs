@@ -1,31 +1,30 @@
 use crate::address::socket_end_t::socket_end_remote;
-use crate::defines::{SockaddrStorage, SIGNALER_PORT};
-use crate::fd::{fd_t, retired_fd};
+use crate::defines::{RETIRED_FD, SIGNALER_PORT};
+use crate::fd::fd_t;
 use libc::{bind, listen, setsockopt, SOCKET};
 use std::ffi::{c_char, c_int, c_ulong, c_void};
 use std::mem;
 use std::mem::size_of_val;
-use std::net::SocketAddr;
 use std::ptr::null_mut;
 use windows::Win32::Foundation::{
-    GetLastError, SetHandleInformation, BOOL, ERROR_ACCESS_DENIED, FALSE, HANDLE, HANDLE_FLAGS,
-    HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE, MAX_PATH, TRUE,
+    BOOL, ERROR_ACCESS_DENIED, FALSE, GetLastError, HANDLE, HANDLE_FLAG_INHERIT, HANDLE_FLAGS,
+    INVALID_HANDLE_VALUE, SetHandleInformation, TRUE,
 };
 use windows::Win32::Networking::WinSock::{
-    accept, connect, getnameinfo, getsockname, ioctlsocket, send, WSACleanup, WSAStartup, AF_INET,
-    INADDR_LOOPBACK, INVALID_SOCKET, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_TCP, IPV6_V6ONLY, IP_TOS,
-    NI_MAXHOST, NI_NUMERICHOST, SOCKADDR, SOCKADDR_IN, SOCKET_ERROR, SOCK_STREAM, SOL_SOCKET,
-    SO_REUSEADDR, TCP_NODELAY, WSADATA,
+    accept, AF_INET, connect, getnameinfo, getsockname, INADDR_LOOPBACK, INVALID_SOCKET, ioctlsocket, IP_TOS,
+    IPPROTO_IP, IPPROTO_IPV6, IPPROTO_TCP, IPV6_V6ONLY, NI_MAXHOST, NI_NUMERICHOST, send,
+    SO_REUSEADDR, SOCK_STREAM, SOCKADDR, SOCKADDR_IN, SOCKET_ERROR, SOL_SOCKET, TCP_NODELAY,
+    WSACleanup, WSADATA, WSAStartup,
 };
 use windows::Win32::Security::{
-    InitializeSecurityDescriptor, SetSecurityDescriptorDacl, SECURITY_ATTRIBUTES,
-    SECURITY_DESCRIPTOR,
+    InitializeSecurityDescriptor, SECURITY_ATTRIBUTES, SECURITY_DESCRIPTOR,
+    SetSecurityDescriptorDacl,
 };
-use windows::Win32::Storage::FileSystem::{FILE_ACCESS_RIGHTS, SYNCHRONIZE};
+use windows::Win32::Storage::FileSystem::SYNCHRONIZE;
 use windows::Win32::System::SystemServices::SECURITY_DESCRIPTOR_REVISION;
 use windows::Win32::System::Threading::{
-    CreateEventA, CreateMutexA, OpenEventA, ReleaseMutex, SetEvent, WaitForSingleObject,
-    EVENT_MODIFY_STATE, INFINITE, SYNCHRONIZATION_ACCESS_RIGHTS,
+    CreateEventA, CreateMutexA, EVENT_MODIFY_STATE, INFINITE, OpenEventA, ReleaseMutex,
+    SetEvent, SYNCHRONIZATION_ACCESS_RIGHTS, WaitForSingleObject,
 };
 use windows::Win32::System::WindowsProgramming::OpenMutexA;
 
@@ -37,8 +36,8 @@ pub fn open_socket(domain_: i32, type_: i32, protocol_: i32) -> fd_t {
     #[cfg(not(target_os = "windows"))]
     let s: fd_t = unsafe { socket(domain_, type_, protocol_) };
 
-    if s == retired_fd {
-        return retired_fd;
+    if s == RETIRED_FD {
+        return RETIRED_FD;
     }
 
     make_socket_noninheritable(s);

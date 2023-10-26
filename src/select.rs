@@ -11,7 +11,7 @@ use windows::Win32::Networking::WinSock::{AF_INET, AF_INET6, AF_UNSPEC, FD_ACCEP
 use windows::Win32::System::Threading::INFINITE;
 use crate::ctx::ZmqThreadCtx;
 use crate::defines::{ZmqFd, ZmqHandle, WSAEVENT};
-use crate::fd::retired_fd;
+use crate::defines::RETIRED_FD;
 use crate::i_poll_events::IPollEvents;
 use crate::poller_base::ZmqWorkerPollerBase;
 use crate::utils::{FD_ISSET, is_retired_fd};
@@ -72,7 +72,7 @@ pub fn FD_SET(fd: ZmqFd, fds: &mut fd_set) {
         if fds[i] == fd {
             return;
         }
-        if fds[i] == retired_fd {
+        if fds[i] == RETIRED_FD {
             fds[i] = fd;
             fds.fd_count += 1;
             return;
@@ -85,7 +85,7 @@ pub fn FD_CLR(fd: ZmqFd, fds: &mut fd_set) {
     let mut i = 0;
     while i < fds.len() {
         if fds[i] == fd {
-            fds[i] = retired_fd;
+            fds[i] = RETIRED_FD;
             fds.fd_count -= 1;
             return;
         }
@@ -280,7 +280,7 @@ impl<'a> ZmqSelect<'a> {
             retired += 1;
 
             if handle_ == self._max_fd {
-                self._max_fd = retired_fd;
+                self._max_fd = RETIRED_FD;
                 for fd_entry_it in self._family_entry.fd_entries.iter() {
                     if fd_entry_it.fd > self._max_fd {
                         self._max_fd = fd_entry_it.fd;
@@ -561,7 +561,7 @@ impl<'a> ZmqSelect<'a> {
             if (entry.0 == fd_) {
                 return entry.1;
             }
-            if entry.0 == retired_fd as ZmqFd {
+            if entry.0 == RETIRED_FD as ZmqFd {
                 break;
             }
         }

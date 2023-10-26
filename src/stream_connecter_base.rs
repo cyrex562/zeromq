@@ -3,7 +3,7 @@ use crate::address::ZmqAddress;
 use crate::defines::{ZmqFd, ZmqHandle};
 use crate::endpoint::{ZmqEndpointUriPair, make_unconnected_connect_endpoint_pair};
 use crate::endpoint::ZmqEndpointType::endpoint_type_connect;
-use crate::fd::retired_fd;
+use crate::defines::RETIRED_FD;
 use crate::i_engine::IEngine;
 use crate::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
@@ -34,7 +34,7 @@ impl ZmqStreamConnecterBase {
             own: ZmqOwn::new2(io_thread_, options_),
             io_object: IoObject::new(io_thread_),
             _addr: addr_,
-            _s: retired_fd,
+            _s: RETIRED_FD,
             _handle: null_mut(),
             _endpoint: "".to_string(),
             _socket: session_.get_socket(),
@@ -63,7 +63,7 @@ impl ZmqStreamConnecterBase {
             self.rm_handle();
         }
 
-        if self._s != retired_fd {
+        if self._s != RETIRED_FD {
             self.close();
         }
 
@@ -131,7 +131,7 @@ impl ZmqStreamConnecterBase {
             libc::close(self._s);
         }
         self._socket.event_closed(make_unconnected_connect_endpoint_pair(self._endpoint));
-        self._s = retired_fd
+        self._s = RETIRED_FD
     }
     
     pub unsafe fn in_event(&mut self)
