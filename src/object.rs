@@ -397,7 +397,7 @@ impl object_ops for ZmqObject {
         todo!()
     }
 
-    fn process_hiccup(&mut self, pipe_: *mut c_void) {
+    fn process_hiccup(&mut self, pipe_: &mut ZmqPipe) {
         todo!()
     }
 

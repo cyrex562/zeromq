@@ -23,7 +23,7 @@ use crate::{command::ZmqCommand, socket_base::ZmqSocketBase};
 pub type io_threads_t<'a> = Vec<&'a mut ZmqIoThread>;
 
 #[cfg(target_os = "windows")]
-pub type pid_t = i32;
+pub type ZmqPid = i32;
 
 pub struct Endpoint<'a> {
     pub socket: &'a mut ZmqSocketBase<'a>,
@@ -82,7 +82,7 @@ pub struct ZmqContext<'a> {
     pub _ipv6: bool,
     pub _zero_copy: bool,
     #[cfg(feature = "fork")]
-    pub _pid: pid_t,
+    pub _pid: ZmqPid,
     #[cfg(feature = "vmci")]
     pub _vmci_fd: i32,
     #[cfg(feature = "vmci")]

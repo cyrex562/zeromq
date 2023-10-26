@@ -1,7 +1,6 @@
 
 
-use std::collections::{HashMap, HashSet};
-use std::ffi::c_void;
+use std::collections::{HashSet};
 use crate::atomic_counter::ZmqAtomicCounter;
 use crate::ctx::ZmqContext;
 use crate::io_thread::ZmqIoThread;
@@ -12,12 +11,12 @@ pub struct ZmqOwn<'a>
 {
     pub object: ZmqObject<'a>,
     pub options: ZmqOptions,
-    pub _terminating: bool,
-    pub _sent_seqnum: ZmqAtomicCounter,
-    pub _processed_seqnum: u64,
-    pub _owner: Option<&'a mut ZmqOwn<'a>>, // really own_t
-    pub _owned: HashSet<&'a mut ZmqOwn<'a>>,
-    pub _term_acks: i32,
+    pub terminating: bool,
+    pub sent_seqnum: ZmqAtomicCounter,
+    pub processed_seqnum: u64,
+    pub owner: Option<&'a mut ZmqOwn<'a>>, // really own_t
+    pub owned: HashSet<&'a mut ZmqOwn<'a>>,
+    pub term_acks: i32,
 }
 
 impl ZmqOwn {
@@ -25,12 +24,12 @@ impl ZmqOwn {
         ZmqOwn {
             object: ZmqObject::new(parent_, tid_),
             options: ZmqOptions::new(),
-            _terminating: false,
-            _sent_seqnum: ZmqAtomicCounter::new(0),
-            _processed_seqnum: 0,
-            _owner: None,
-            _owned: HashSet::new(),
-            _term_acks: 0,
+            terminating: false,
+            sent_seqnum: ZmqAtomicCounter::new(0),
+            processed_seqnum: 0,
+            owner: None,
+            owned: HashSet::new(),
+            term_acks: 0,
         }
     }
     
@@ -38,27 +37,27 @@ impl ZmqOwn {
         Self {
             object: ZmqObject::new2(&mut (*io_thread_).object),
             options: ZmqOptions::new(),
-            _terminating: false,
-            _sent_seqnum: ZmqAtomicCounter::new(0),
-            _processed_seqnum: 0,
-            _owner: None,
-            _owned: HashSet::new(),
-            _term_acks: 0,
+            terminating: false,
+            sent_seqnum: ZmqAtomicCounter::new(0),
+            processed_seqnum: 0,
+            owner: None,
+            owned: HashSet::new(),
+            term_acks: 0,
         }
     }
     
     pub fn set_owner(&mut self, owner_: &mut Self) {
-        self._owner = Some(owner_);
+        self.owner = Some(owner_);
     }
     
     pub fn inc_seqnum(&mut self) {
-        self._sent_seqnum.inc();
+        self.sent_seqnum.inc();
     }
     
     pub fn process_seqnum (&mut self)
     {
         //  Catch up with counter of processed commands.
-        self._processed_seqnum += 1;
+        self.processed_seqnum += 1;
     
         //  We may have caught up and still have pending terms acks.
         self.check_term_acks ();
@@ -85,13 +84,13 @@ impl ZmqOwn {
     {
         //  When shutting down we can ignore termination requests from owned
         //  objects. The termination request was already sent to the object.
-        if (self._terminating) {
+        if (self.terminating) {
             return;
         }
     
         //  If not found, we assume that termination request was already sent to
         //  the object so we can safely ignore the request.
-        if (0 == self._owned.erase (object_)) {
+        if (0 == self.owned.erase (object_)) {
             return;
         }
     
@@ -107,38 +106,38 @@ impl ZmqOwn {
     {
         //  If the object is already being shut down, new owned objects are
         //  immediately asked to terminate. Note that linger is set to zero.
-        if self._terminating {
+        if self.terminating {
             self.register_term_acks (1);
             self.send_term (object_, 0);
             return;
         }
     
         //  Store the reference to the owned object.
-        self._owned.insert (object_);
+        self.owned.insert (object_);
     }
     
     pub fn terminate (&mut self)
     {
         //  If termination is already underway, there's no point
         //  in starting it anew.
-        if self._terminating {
+        if self.terminating {
             return;
         }
     
         //  As for the root of the ownership tree, there's no one to terminate it,
         //  so it has to terminate itself.
-        if self._owner.is_none() {
+        if self.owner.is_none() {
             self.process_term (self.options.linger.load ());
             return;
         }
     
         //  If I am an owned object, I'll ask my owner to terminate me.
-        self.send_term_req (self._owner, self);
+        self.send_term_req (self.owner, self);
     }
     
     pub fn is_terminating (&mut self) -> bool
     {
-        return self._terminating;
+        return self.terminating;
     }
     
     pub fn process_term (&mut self, linger_: i32)
@@ -149,27 +148,27 @@ impl ZmqOwn {
         //  Send termination request to all owned objects.
         // for (owned_t::iterator it = _owned.begin (), end = _owned.end (); it != end;
         //      ++it)
-        for it in self._owned.iter() {
+        for it in self.owned.iter() {
             self.send_term(*it, linger_);
         }
-        self.register_term_acks ((self._owned.size ()));
-        self._owned.clear ();
+        self.register_term_acks ((self.owned.size ()));
+        self.owned.clear ();
     
         //  Start termination process and check whether by chance we cannot
         //  terminate immediately.
-        self._terminating = true;
+        self.terminating = true;
         self.check_term_acks ();
     }
     
     pub fn register_term_acks (&mut self, count_: i32)
     {
-        self._term_acks += count_;
+        self.term_acks += count_;
     }
     
     pub fn unregister_term_ack (&mut self)
     {
         // zmq_assert (_term_acks > 0);
-        self._term_acks -= 1;
+        self.term_acks -= 1;
     
         //  This may be a last ack we are waiting for before termination...
         self.check_term_acks ();
@@ -182,15 +181,15 @@ impl ZmqOwn {
     
     pub fn check_term_acks (&mut self)
     {
-        if (self._terminating && self._processed_seqnum == self._sent_seqnum.get() as u64
-            && self._term_acks == 0) {
+        if self.terminating && self.processed_seqnum == self.sent_seqnum.get() as u64
+            && self.term_acks == 0 {
             //  Sanity check. There should be no Active children at this point.
             // zmq_assert (_owned.empty ());
     
             //  The root object has nobody to confirm the termination to.
             //  Other nodes will confirm the termination to the owner.
-            if (self._owner) {
-                self.send_term_ack(self._owner);
+            if self.owner {
+                self.send_term_ack(self.owner);
             }
     
             //  Deallocate the resources.
