@@ -1,5 +1,3 @@
-#![allow(non_camel_case_types)]
-#![allow(non_upper_case_globals)]
 
 use std::ffi::c_void;
 use std::os::windows::raw::HANDLE;
@@ -7,7 +5,7 @@ use windows::Win32::Networking::WinSock::sa_family_t;
 
 #[cfg(target_os = "windows")]
 #[cfg(target_arch = "x86_64")]
-pub type zmq_fd_t = u64;
+pub type ZmqFd = u64;
 #[cfg(target_os = "windows")]
 #[cfg(target_arch = "x86")]
 pub type zmq_fd_t = u32;
@@ -267,10 +265,10 @@ pub const ZMQ_ZERO_COPY_RECV: u32 = 10;
 //  Number of new messages in message pipe needed to trigger new memory
 //  allocation. Setting this parameter to 256 decreases the impact of
 //  memory allocation by approximately 99.6%
-pub const message_pipe_granularity: usize = 256;
+pub const MESSAGE_PIPE_GRANULARITY: usize = 256;
 
 //  Commands in pipe per allocation event.
-pub const command_pipe_granularity: u32 = 16;
+pub const COMMAND_PIPE_GRANULARITY: u32 = 16;
 
 //  Determines how often does socket poll for new commands when it
 //  still has unprocessed messages to handle. Thus, if it is set to 100,
@@ -278,31 +276,31 @@ pub const command_pipe_granularity: u32 = 16;
 //  If there are no unprocessed messages available, poll is done
 //  immediately. Decreasing the value trades overall latency for more
 //  real-time behaviour (less latency peaks).
-pub const inbound_poll_rate: u32 = 100;
+pub const INBOUND_POLL_RATE: u32 = 100;
 
 //  Maximal delta between high and low watermark.
-pub const max_wm_delta: u32 = 1024;
+pub const MAX_WM_DELTA: u32 = 1024;
 
 //  Maximum number of events the I/O thread can process in one go.
-pub const max_io_events: u32 = 256;
+pub const MAX_IO_EVENTS: u32 = 256;
 
 //  Maximal batch size of packets forwarded by a ZMQ proxy.
 //  Increasing this value improves throughput at the expense of
 //  latency and fairness.
-pub const proxy_burst_size: u32 = 1000;
+pub const PROXY_BURST_SIZE: u32 = 1000;
 
 //  Maximal delay to process command in API thread (in CPU ticks).
 //  3,000,000 ticks equals to 1 - 2 milliseconds on current CPUs.
 //  Note that delay is only applied when there is continuous stream of
 //  messages to process. If not so, commands are processed immediately.
-pub const max_command_delay: u32 = 3000000;
+pub const MAX_COMMAND_DELAY: u32 = 3000000;
 
 //  Low-precision clock precision in CPU ticks. 1ms. Value of 1000000
 //  should be OK for CPU frequencies above 1GHz. If should work
 //  reasonably well for CPU frequencies above 500MHz. For lower CPU
 //  frequencies you may consider lowering this value to get best
 //  possible latencies.
-pub const clock_precision: u32 = 1000000;
+pub const CLOCK_PRECISION: u32 = 1000000;
 
 //  On some OSes the signaler has to be emulated using a TCP
 //  connection. In such cases following port is used.
@@ -310,11 +308,11 @@ pub const clock_precision: u32 = 1000000;
 //  global mutex. The original implementation of a Windows signaler
 //  socket used port 5905 instead of letting the OS choose a free port.
 //  https://github.com/zeromq/libzmq/issues/1542
-pub const signaler_port: u32 = 0;
+pub const SIGNALER_PORT: u32 = 0;
 
-pub  type handle_t = *mut c_void;
+pub  type ZmqHandle = *mut c_void;
 
-pub type fd_t = handle_t;
+pub type ZmqFd = ZmqHandle;
 
 pub type WSAEVENT = HANDLE;
 
@@ -328,12 +326,12 @@ pub const _NSIG_BPW: u32 = 32;
 pub const _NSIG_WORDS: u32 = _NSIG / _NSIG_BPW;
 //    12
 //    13 typedef unsigned long old_sigset_t;     /* at least 32 bits */
-pub type old_sigset_t = u32;
+pub type OldSigset = u32;
 //    14
 //    15 typedef struct {
 //    16     unsigned long sig[_NSIG_WORDS];
 //    17 } sigset_t;
-pub struct sigset_t {
+pub struct Sigset {
     pub sig: [u32; _NSIG_WORDS as usize],
 }
 //    18
@@ -349,6 +347,9 @@ pub struct sigset_t {
 //            sa_family_t     ss_family;      /* Address family */
 //        };
 #[derive(Default,Debug,Clone)]
-pub struct sockaddr_storage {
+pub struct SockaddrStorage {
     pub ss_family: sa_family_t,
 }
+
+pub const ZMQ_CTX_TAG_VALUE_GOOD: u32 = 0xCAFEBABE;
+pub const ZMQ_CTX_TAG_VALUE_BAD: u32 = 0xDEADBEEF;

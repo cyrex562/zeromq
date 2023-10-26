@@ -101,7 +101,7 @@ let mut msg = ZmqMessage::default();
     data[0] = 1;
 
     int rc = zmq_msg_send (&msg, sc, ZMQ_SNDMORE);
-    // TODO which error code is expected?
+    // TODO which Error code is expected?
     TEST_ASSERT_EQUAL_INT (-1, rc);
 
     rc = zmq_msg_send (&msg, sc, 0);
@@ -125,7 +125,7 @@ let mut msg = ZmqMessage::default();
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_set_routing_id (&msg, routing_id));
 
     rc = zmq_msg_send (&msg, sb, ZMQ_SNDMORE);
-    // TODO which error code is expected?
+    // TODO which Error code is expected?
     TEST_ASSERT_EQUAL_INT (-1, rc);
 
     rc = zmq_msg_send (&msg, sb, 0);

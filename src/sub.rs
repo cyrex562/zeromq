@@ -1,19 +1,19 @@
-use crate::ctx::ctx_t;
+use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_SUB, ZMQ_SUBSCRIBE, ZMQ_UNSUBSCRIBE};
-use crate::msg::{close_and_return, msg_t};
-use crate::options::options_t;
-use crate::xsub::xsub_t;
+use crate::msg::{close_and_return, ZmqMsg};
+use crate::options::ZmqOptions;
+use crate::xsub::ZmqXSub;
 
-pub struct sub_t<'a> {
-    pub xsub: xsub_t<'a>,
+pub struct ZmqSub<'a> {
+    pub xsub: ZmqXSub<'a>,
 }
 
-impl sub_t {
-    pub unsafe fn new(options: &mut options_t, parent_: &mut ctx_t, tid_: u32, sid_: i32) -> Self {
+impl ZmqSub {
+    pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
         options.type_ = ZMQ_SUB;
         options.filter = true;
         Self {
-            xsub: xsub_t::new(options, parent_, tid_, sid_),
+            xsub: ZmqXSub::new(options, parent_, tid_, sid_),
         }
     }
 
@@ -25,7 +25,7 @@ impl sub_t {
 
         //  Create the subscription message.
         // msg_t msg;
-        let mut msg = msg_t::default();
+        let mut msg = ZmqMsg::default();
         // int rc;
         let mut rc = 0i32;
         let data = (optval_);
@@ -37,12 +37,12 @@ impl sub_t {
         // errno_assert (rc == 0);
 
         //  Pass it further on in the stack.
-        rc = xsub_t::xsend(&mut msg);
+        rc = ZmqXSub::xsend(&mut msg);
         return close_and_return(&mut msg, rc);
     }
 
     // int zmq::sub_t::xsend (msg_t *)
-    pub unsafe fn xsend(&mut self, msg: &mut msg_t) -> i32 {
+    pub unsafe fn xsend(&mut self, msg: &mut ZmqMsg) -> i32 {
         //  Override the XSUB's send.
         // errno = ENOTSUP;
         return -1;

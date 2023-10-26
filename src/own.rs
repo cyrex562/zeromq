@@ -1,32 +1,32 @@
-#![allow(non_camel_case_types)]
+
 
 use std::collections::{HashMap, HashSet};
 use std::ffi::c_void;
-use crate::atomic_counter::atomic_counter_t;
-use crate::ctx::ctx_t;
-use crate::io_thread::io_thread_t;
-use crate::object::object_t;
-use crate::options::options_t;
+use crate::atomic_counter::ZmqAtomicCounter;
+use crate::ctx::ZmqContext;
+use crate::io_thread::ZmqIoThread;
+use crate::object::ZmqObject;
+use crate::options::ZmqOptions;
 
-pub struct own_t<'a>
+pub struct ZmqOwn<'a>
 {
-    pub object: object_t<'a>,
-    pub options: options_t,
+    pub object: ZmqObject<'a>,
+    pub options: ZmqOptions,
     pub _terminating: bool,
-    pub _sent_seqnum: atomic_counter_t,
+    pub _sent_seqnum: ZmqAtomicCounter,
     pub _processed_seqnum: u64,
-    pub _owner: Option<&'a mut own_t<'a>>, // really own_t
-    pub _owned: HashSet<&'a mut own_t<'a>>,
+    pub _owner: Option<&'a mut ZmqOwn<'a>>, // really own_t
+    pub _owned: HashSet<&'a mut ZmqOwn<'a>>,
     pub _term_acks: i32,
 }
 
-impl own_t {
-    pub fn new(parent_: &mut ctx_t, tid_: u32) -> own_t {
-        own_t {
-            object: object_t::new(parent_, tid_),
-            options: options_t::new(),
+impl ZmqOwn {
+    pub fn new(parent_: &mut ZmqContext, tid_: u32) -> ZmqOwn {
+        ZmqOwn {
+            object: ZmqObject::new(parent_, tid_),
+            options: ZmqOptions::new(),
             _terminating: false,
-            _sent_seqnum: atomic_counter_t::new(0),
+            _sent_seqnum: ZmqAtomicCounter::new(0),
             _processed_seqnum: 0,
             _owner: None,
             _owned: HashSet::new(),
@@ -34,12 +34,12 @@ impl own_t {
         }
     }
     
-    pub unsafe fn new2(io_thread_: *mut io_thread_t, options_: &options_t) -> Self {
+    pub unsafe fn new2(io_thread_: *mut ZmqIoThread, options_: &ZmqOptions) -> Self {
         Self {
-            object: object_t::new2(&mut (*io_thread_).object),
-            options: options_t::new(),
+            object: ZmqObject::new2(&mut (*io_thread_).object),
+            options: ZmqOptions::new(),
             _terminating: false,
-            _sent_seqnum: atomic_counter_t::new(0),
+            _sent_seqnum: ZmqAtomicCounter::new(0),
             _processed_seqnum: 0,
             _owner: None,
             _owned: HashSet::new(),
@@ -64,7 +64,7 @@ impl own_t {
         self.check_term_acks ();
     }
     
-    pub unsafe fn launch_child (&mut self, object_: *mut own_t)
+    pub unsafe fn launch_child (&mut self, object_: *mut ZmqOwn)
     {
         //  Specify the owner of the object.
         (*object_).set_owner (self);
@@ -76,12 +76,12 @@ impl own_t {
         self.send_own (self, object_);
     }
     
-    pub fn term_child(&mut self, object_: *mut own_t)
+    pub fn term_child(&mut self, object_: *mut ZmqOwn)
     {
         self.process_term_req (object_);
     }
     
-    pub fn process_term_req (&mut self, object_: *mut own_t)
+    pub fn process_term_req (&mut self, object_: *mut ZmqOwn)
     {
         //  When shutting down we can ignore termination requests from owned
         //  objects. The termination request was already sent to the object.
@@ -103,7 +103,7 @@ impl own_t {
         self.send_term (object_, self.options.linger.load ());
     }
     
-    pub fn process_own (&mut self, object_: &mut own_t)
+    pub fn process_own (&mut self, object_: &mut ZmqOwn)
     {
         //  If the object is already being shut down, new owned objects are
         //  immediately asked to terminate. Note that linger is set to zero.
@@ -184,7 +184,7 @@ impl own_t {
     {
         if (self._terminating && self._processed_seqnum == self._sent_seqnum.get() as u64
             && self._term_acks == 0) {
-            //  Sanity check. There should be no active children at this point.
+            //  Sanity check. There should be no Active children at this point.
             // zmq_assert (_owned.empty ());
     
             //  The root object has nobody to confirm the termination to.

@@ -1,20 +1,20 @@
-use crate::decoder::decoder_base_t;
-use crate::msg::msg_t;
+use crate::decoder::ZmqDecoderBase;
+use crate::msg::ZmqMsg;
 use crate::utils::get_u64;
 
-pub struct v1_decoder_t {
-    pub decoder_base: decoder_base_t<v1_decoder_t>,
+pub struct V1Decoder {
+    pub decoder_base: ZmqDecoderBase<V1Decoder>,
     pub _tmpbuf: [u8;8],
-    pub _in_progress: msg_t,
+    pub _in_progress: ZmqMsg,
     pub _max_msg_size: i64,
 }
 
-impl v1_decoder_t {
+impl V1Decoder {
     pub fn new(bufsize: usize, max_msg_size: i64) -> Self {
         let mut out = Self {
-            decoder_base: decoder_base_t::new(bufsize),
+            decoder_base: ZmqDecoderBase::new(bufsize),
             _tmpbuf: [0;8],
-            _in_progress: msg_t::default(),
+            _in_progress: ZmqMsg::default(),
             _max_msg_size: 0,
         };
 
@@ -30,7 +30,7 @@ impl v1_decoder_t {
         //  Otherwise allocate the buffer for message data and read the
         //  message data into it.
         if (*self._tmpbuf == u8::MAX) {
-            self.next_step(self._tmpbuf, 8, &v1_decoder_t::eight_byte_size_ready);
+            self.next_step(self._tmpbuf, 8, &V1Decoder::eight_byte_size_ready);
         }
         else {
             //  There has to be at least one byte (the flags) in the message).
@@ -55,12 +55,12 @@ impl v1_decoder_t {
                 return -1;
             }
 
-            self.next_step (self._tmpbuf, 1, &v1_decoder_t::flags_ready);
+            self.next_step (self._tmpbuf, 1, &V1Decoder::flags_ready);
         }
         return 0;
     }
 
-    pub fn msg(&mut self) -> &mut msg_t {
+    pub fn msg(&mut self) -> &mut ZmqMsg {
         self._in_progress.refm()
     }
 
@@ -104,7 +104,7 @@ impl v1_decoder_t {
             return -1;
         }
 
-        self.next_step (self._tmpbuf, 1, &v1_decoder_t::flags_ready);
+        self.next_step (self._tmpbuf, 1, &V1Decoder::flags_ready);
         return 0;
     }
 
@@ -112,10 +112,10 @@ impl v1_decoder_t {
     pub unsafe fn flags_ready(&mut self, buf: &[u8]) -> i32
     {
         //  Store the flags from the wire into the message structure.
-        self._in_progress.set_flags (self._tmpbuf[0] & msg_t::more);
+        self._in_progress.set_flags (self._tmpbuf[0] & ZmqMsg::more);
 
         self.next_step (self._in_progress.data (), self._in_progress.size (),
-                   &v1_decoder_t::message_ready);
+                   &V1Decoder::message_ready);
 
         return 0;
     }
@@ -125,7 +125,7 @@ impl v1_decoder_t {
     {
         //  Message is completely read. Push it further and start reading
         //  new message. (in_progress is a 0-byte message after this point.)
-        self.next_step (self._tmpbuf, 1, &v1_decoder_t::one_byte_size_ready);
+        self.next_step (self._tmpbuf, 1, &V1Decoder::one_byte_size_ready);
         return 1;
     }
 }

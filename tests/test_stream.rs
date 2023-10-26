@@ -146,7 +146,7 @@ static void test_ZmqStreamo_dealer ()
                                   22);
     TEST_ASSERT_EQUAL_INT8_ARRAY (buffer + 84, "\10Identity\0\0\0\0", 13);
 
-    //  Announce we are ready
+    //  Announce we are Ready
     memcpy (buffer, "\4\51\5READY", 8);
     memcpy (buffer + 8, "\13Socket-Type\0\0\0\6ROUTER", 22);
     memcpy (buffer + 30, "\10Identity\0\0\0\0", 13);

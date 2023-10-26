@@ -1,26 +1,26 @@
-use crate::msg::{MSG_MORE, msg_t};
-use crate::pipe::pipe_t;
-use crate::socket_base::socket_base_t;
+use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::pipe::ZmqPipe;
+use crate::socket_base::ZmqSocketBase;
 
-pub struct dgram_t<'a> {
-    pub socket_base: socket_base_t<'a>,
-    pub _pipe: Option<&'a mut pipe_t<'a>>,
+pub struct ZmqDgram<'a> {
+    pub socket_base: ZmqSocketBase<'a>,
+    pub _pipe: Option<&'a mut ZmqPipe<'a>>,
     pub _more_out: bool,
 }
 
-impl dgram_t {
+impl ZmqDgram {
     pub unsafe fn new(options: &mut options_t,
                       parent_: &mut ctx_t,
                       tid_: u32,
-                      sid_: i32) -> dgram_t {
-        dgram_t {
-            socket_base: socket_base_t::new(parent_, tid_, sid_, false),
+                      sid_: i32) -> ZmqDgram {
+        ZmqDgram {
+            socket_base: ZmqSocketBase::new(parent_, tid_, sid_, false),
             _pipe: None,
             _more_out: false,
         }
     }
 
-    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut pipe_t, subscribe_to_all: bool, locally_initiated: bool) {
+    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut ZmqPipe, subscribe_to_all: bool, locally_initiated: bool) {
         if self._pipe.is_none() {
             self._pipe = Some(pipe_);
         } else {
@@ -28,21 +28,21 @@ impl dgram_t {
         }
     }
 
-    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
         if self._pipe.is_some() && self._pipe.unwrap() == pipe_ {
             self._pipe = None;
         }
     }
 
-    pub unsafe fn xread_activated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xread_activated(&mut self, pipe_: &mut ZmqPipe) {
         unimplemented!()
     }
 
-    pub unsafe fn xwrite_activated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xwrite_activated(&mut self, pipe_: &mut ZmqPipe) {
         unimplemented!()
     }
 
-    pub unsafe fn xsend(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
         // If there's no out pipe, just drop it.
         if (!self._pipe) {
             let mut rc = msg_.close();
@@ -84,7 +84,7 @@ impl dgram_t {
         return 0;
     }
 
-    pub unsafe fn xrecv(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xrecv(&mut self, msg_: &mut ZmqMsg) -> i32 {
         //  Deallocate old content of the message.
         let mut rc = msg_.close();
         // errno_assert (rc == 0);

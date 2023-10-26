@@ -12,7 +12,7 @@ use windows::Win32::System::SystemServices::SECURITY_DESCRIPTOR_REVISION;
 use windows::Win32::System::Threading::{CreateEventA, CreateMutexA, EVENT_MODIFY_STATE, INFINITE, OpenEventA, ReleaseMutex, SetEvent, SYNCHRONIZATION_ACCESS_RIGHTS, WaitForSingleObject};
 use windows::Win32::System::WindowsProgramming::OpenMutexA;
 use crate::address::socket_end_t::socket_end_remote;
-use crate::defines::{signaler_port, sockaddr_storage};
+use crate::defines::{SIGNALER_PORT, SockaddrStorage};
 use crate::fd::{fd_t, retired_fd};
 
 pub fn open_socket(domain_: i32, type_: i32, protocol_: i32) -> fd_t
@@ -136,7 +136,7 @@ pub unsafe fn make_fdpair_tcpip(r_: *mut fd_t, w_: *mut fd_t) -> i32 {
 
     let sync: HANDLE = 0;
     let event_signaler_port = 5905;
-    if signaler_port == event_signaler_port {
+    if SIGNALER_PORT == event_signaler_port {
         let mut sync = CreateEventA(Some(&sa), FALSE, TRUE, "Global\\zmq-signaler-port-sync").unwrap();
 
         if sync == INVALID_HANDLE_VALUE && GetLastError() == ERROR_ACCESS_DENIED {
@@ -144,10 +144,10 @@ pub unsafe fn make_fdpair_tcpip(r_: *mut fd_t, w_: *mut fd_t) -> i32 {
             sync = OpenEventA(desired_access, FALSE, "Global\\zmq-signaler-port-sync").unwrap();
         }
     }
-    else if signaler_port != 0 {
+    else if SIGNALER_PORT != 0 {
         // let mutex_name: [u8; MAX_PATH] = [0; MAX_PATH];
-        // let rc = snprintf(mutex_name, MAX_PATH, "Global\\zmq-signaler-port-sync-%u", signaler_port);
-        let mux_name = format!("Global\\zmq-signaler-port-sync-{}", signaler_port);
+        // let rc = snprintf(mutex_name, MAX_PATH, "Global\\zmq-signaler-port-sync-%u", SIGNALER_PORT);
+        let mux_name = format!("Global\\zmq-signaler-port-sync-{}", SIGNALER_PORT);
         let mutex_name = mux_name.as_ptr() as *const c_char;
         let mut sync = CreateMutexA(Some(&sa), FALSE, mutex_name).unwrap();
         if sync == INVALID_HANDLE_VALUE && GetLastError() == ERROR_ACCESS_DENIED {
@@ -165,7 +165,7 @@ pub unsafe fn make_fdpair_tcpip(r_: *mut fd_t, w_: *mut fd_t) -> i32 {
         let mut addr = SOCKADDR_IN::default();
         addr.sin_family = AF_INET as u16;
         addr.sin_addr.s_addr = INADDR_LOOPBACK;
-        addr.sin_port = signaler_port as u16;
+        addr.sin_port = SIGNALER_PORT as u16;
 
         *w_ = open_socket(AF_INET as i32, SOCK_STREAM as i32, 0);
 
@@ -175,7 +175,7 @@ pub unsafe fn make_fdpair_tcpip(r_: *mut fd_t, w_: *mut fd_t) -> i32 {
 
         rc = bind(listener, &addr, mem::size_of_val(&addr) as i32);
 
-        if rc != SOCKET_ERROR && signaler_port == 0 {
+        if rc != SOCKET_ERROR && SIGNALER_PORT == 0 {
             let addrlen = mem::size_of_val(&addr) as i32;
             rc = getsockname(listener, &mut addr as *mut SOCKADDR_IN as *mut SOCKADDR, &mut addrlen);
         }
@@ -214,7 +214,7 @@ pub unsafe fn make_fdpair_tcpip(r_: *mut fd_t, w_: *mut fd_t) -> i32 {
         rc = closesocket(listener);
 
         if sync != INVALID_HANDLE_VALUE {
-            if signaler_port == event_signaler_port {
+            if SIGNALER_PORT == event_signaler_port {
                 let result = SetEvent(sync);
             } else {
                 let result = ReleaseMutex(sync);

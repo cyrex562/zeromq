@@ -44,7 +44,7 @@ int get_monitor_event_with_timeout (monitor_: *mut c_void,
 
 //  Read one event off the monitor socket; return value and address
 //  by reference, if not null, and event number by value. Returns -1
-//  in case of error.
+//  in case of Error.
 int get_monitor_event (monitor_: *mut c_void, value_: *mut i32, char **address_);
 
 void expect_monitor_event (monitor_: *mut c_void, expected_event_: i32);

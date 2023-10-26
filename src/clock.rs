@@ -1,21 +1,21 @@
 
 
-pub const usecs_per_msec: u64 = 1000;
-pub const nsecs_per_usec: u64 = 1000;
-pub const usecs_per_sec: u64 = 1000000;
-pub const clock_precision: u64 = 1000000;
+pub const USECS_PER_MSEC: u64 = 1000;
+pub const NSECS_PER_USEC: u64 = 1000;
+pub const USECS_PER_SEC: u64 = 1000000;
+pub const CLOCK_PRECISION: u64 = 1000000;
 
-pub struct clock_t
+pub struct ZmqClock
 {
     pub last_tsc: u64,
     pub last_time: u64,
 }
 
-impl clock_t {
+impl ZmqClock {
     pub fn new() -> Self {
         Self {
             last_tsc: self.rdtsc(),
-            last_time: self.now_us() / usecs_per_msec,
+            last_time: self.now_us() / USECS_PER_MSEC,
         }
     }
 
@@ -41,21 +41,21 @@ impl clock_t {
         let tsc = self.rdtsc();
 
         if !tsc {
-            self.now_us() / usecs_per_msec;
+            self.now_us() / USECS_PER_MSEC;
         }
 
-        if tsc - self.last_tsc < (clock_precision / 2) && tsc >= self.last_tsc {
+        if tsc - self.last_tsc < (CLOCK_PRECISION / 2) && tsc >= self.last_tsc {
             return self.last_time;
         }
 
         self.last_tsc = tsc;
         #[cfg(target_os = "windows")]
         {
-            self.last_time = self.now_us() / usecs_per_msec;
+            self.last_time = self.now_us() / USECS_PER_MSEC;
         }
         #[cfg(not(target_os = "windows"))]
         {
-            self.last_time = self.now_us() / usecs_per_msec;
+            self.last_time = self.now_us() / USECS_PER_MSEC;
         }
 
         return self.last_time;

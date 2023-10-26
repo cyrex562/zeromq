@@ -62,7 +62,7 @@ platform updates. For travis-ci, refer to https://changelog.travis-ci.com/ regar
 | xUbuntu 18.04                | x86, amd64                 | ?                    | autotools    |         |
 | xUbuntu 18.10                | x86, amd64                 | ?                    | autotools    |         |
 
-### Supported platforms with known active users
+### Supported platforms with known Active users
 
 At the time of writing, no explicit reports have been available. Please report your experiences by opening a PR
 adding an entry or moving an entry from the section below.
@@ -79,7 +79,7 @@ case of a released version.
 | Windows 10     | ARM64             | Visual Studio 2019   | CMake        | 2021/11/15 git-2375ca8b |         |
 | Windows 10     | ARM64             | clang                | CMake        | 2021/11/15 git-2375ca8b |         |
 
-### Supported platforms without known active users
+### Supported platforms without known Active users
 
 Note: this list is incomplete and inaccurate and still needs some work.
 

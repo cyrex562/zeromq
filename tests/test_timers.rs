@@ -128,12 +128,12 @@ void test_corner_cases ()
       zmq_timers_add (timers, dummy_interval, handler, null_mut()));
 
     //  attempt to cancel timer twice
-    //  TODO should this case really be an error? canceling twice could be allowed
+    //  TODO should this case really be an Error? canceling twice could be allowed
     TEST_ASSERT_SUCCESS_ERRNO (zmq_timers_cancel (timers, timer_id));
 
     TEST_ASSERT_FAILURE_ERRNO (EINVAL, zmq_timers_cancel (timers, timer_id));
 
-    //  timeout without any timers active
+    //  timeout without any timers Active
     TEST_ASSERT_FAILURE_ERRNO (EINVAL, zmq_ZmqTimersimeout (timers));
 
     //  cleanup

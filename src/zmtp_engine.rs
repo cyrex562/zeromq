@@ -1,49 +1,49 @@
 use std::cmp::min;
 use std::mem::size_of;
 use libc::EAGAIN;
-use crate::defines::{fd_t, ZMQ_CURVE, ZMQ_GSSAPI, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH, ZMQ_PUB, ZMQ_XPUB};
-use crate::endpoint::endpoint_uri_pair_t;
-use crate::msg::{MSG_CANCEL, msg_t, MSG_PING, ping_cmd_name_size, MSG_PONG, MSG_ROUTING_ID, MSG_SUBSCRIBE};
-use crate::null_mechanism::null_mechanism_t;
-use crate::options::options_t;
-use crate::stream_engine_base::{heartbeat_timeout_timer_id, heartbeat_ttl_timer_id, stream_engine_base_t};
+use crate::defines::{ZmqFd, ZMQ_CURVE, ZMQ_GSSAPI, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH, ZMQ_PUB, ZMQ_XPUB};
+use crate::endpoint::ZmqEndpointUriPair;
+use crate::msg::{MSG_CANCEL, ZmqMsg, MSG_PING, ping_cmd_name_size, MSG_PONG, MSG_ROUTING_ID, MSG_SUBSCRIBE};
+use crate::null_mechanism::ZmqNullMechanism;
+use crate::options::ZmqOptions;
+use crate::stream_engine_base::{HEARTBEAT_TIMEOUT_TIMER_ID, HEARTBEAT_TTL_TIMER_ID, ZmqStreamEngineBase};
 use crate::utils::{get_errno, put_u64};
 
 pub const ZMTP_1_0: i32 = 0;
 pub const ZMTP_2_0: i32 = 1;
 pub const ZMTP_3_x: i32 = 3;
 
-pub const signature_size: usize = 10;
-pub const v2_greeting_size: usize = 12;
+pub const SIGNATURE_SIZE: usize = 10;
+pub const V2_GREETING_SIZE: usize = 12;
 
-pub const v3_greeting_size: usize = 64;
+pub const V3_GREETING_SIZE: usize = 64;
 
-pub const revision_pos: usize = 10;
-pub const minor_pos: usize = 11;
+pub const REVISION_POS: usize = 10;
+pub const MINOR_POS: usize = 11;
 
 
-pub struct zmtp_engine_t<'a> {
-    pub stream_engine_base: stream_engine_base_t<'a>,
-    pub _routing_id_msg: msg_t,
-    pub _pong_msg: msg_t,
+pub struct ZmtpEngine<'a> {
+    pub stream_engine_base: ZmqStreamEngineBase<'a>,
+    pub _routing_id_msg: ZmqMsg,
+    pub _pong_msg: ZmqMsg,
     pub _greeting_size: usize,
-    pub _greeting_recv: [u8;v3_greeting_size],
-    pub _greeting_send: [u8;v3_greeting_size],
+    pub _greeting_recv: [u8; V3_GREETING_SIZE],
+    pub _greeting_send: [u8; V3_GREETING_SIZE],
     pub _greeting_bytes_read: u32,
     pub _subscription_required: bool,
     pub _heartbeat_timeout: i32,
 }
 
-impl zmtp_engine_t {
-    pub unsafe fn new(fd_: fd_t, options_: &options_t, endpoint_uri_pair_: &endpoint_uri_pair_t) -> Self
+impl ZmtpEngine {
+    pub unsafe fn new(fd_: ZmqFd, options_: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair) -> Self
     {
         let mut out = Self {
-            stream_engine_base: stream_engine_base_t::new(fd_,options_,endpoint_uri_pair_,true),
-            _routing_id_msg: msg_t::default(),
-            _pong_msg: msg_t::default(),
-            _greeting_size: v2_greeting_size,
-            _greeting_recv: [0;v3_greeting_size],
-            _greeting_send: [0;v3_greeting_size],
+            stream_engine_base: ZmqStreamEngineBase::new(fd_, options_, endpoint_uri_pair_, true),
+            _routing_id_msg: ZmqMsg::default(),
+            _pong_msg: ZmqMsg::default(),
+            _greeting_size: V2_GREETING_SIZE,
+            _greeting_recv: [0; V3_GREETING_SIZE],
+            _greeting_send: [0; V3_GREETING_SIZE],
             _greeting_bytes_read: 0,
             _subscription_required: false,
             _heartbeat_timeout: 0,
@@ -93,8 +93,8 @@ impl zmtp_engine_t {
         }
         let unversioned = rc != 0;
 
-        if !(self.select_handshake_fun (unversioned, self._greeting_recv[revision_pos],
-                                        self._greeting_recv[minor_pos])) () {
+        if !(self.select_handshake_fun (unversioned, self._greeting_recv[REVISION_POS],
+                                        self._greeting_recv[MINOR_POS])) () {
             return false;
         }
 
@@ -113,7 +113,7 @@ impl zmtp_engine_t {
                                 self._greeting_size - self._greeting_bytes_read);
             if (n == -1) {
                 if (get_errno() != EAGAIN) {
-                    // error(connection_error);
+                    // Error(ConnectionError);
                 }
                 return -1;
             }
@@ -128,7 +128,7 @@ impl zmtp_engine_t {
                 break;
             }
 
-            if (self._greeting_bytes_read < signature_size) {
+            if (self._greeting_bytes_read < SIGNATURE_SIZE) {
                 continue;
             }
 
@@ -149,22 +149,22 @@ impl zmtp_engine_t {
 
     pub unsafe fn receive_greeting_versioned(&mut self) {
         //  Send the major version number.
-        if (self._outpos + self._outsize == self._greeting_send + signature_size) {
+        if (self._outpos + self._outsize == self._greeting_send + SIGNATURE_SIZE) {
             if (self._outsize == 0) {
                 self.set_pollout();
             }
             self._outpos[self._outsize += 1] = 3; //  Major version number
         }
 
-        if (self._greeting_bytes_read > signature_size) {
-            if (self._outpos + self._outsize == self._greeting_send + signature_size + 1) {
+        if (self._greeting_bytes_read > SIGNATURE_SIZE) {
+            if (self._outpos + self._outsize == self._greeting_send + SIGNATURE_SIZE + 1) {
                 if (self._outsize == 0) {
                     self.set_pollout();
                 }
 
                 //  Use ZMTP/2.0 to talk to older peers.
-                if (self._greeting_recv[revision_pos] == ZMTP_1_0
-                    || self._greeting_recv[revision_pos] == ZMTP_2_0) {
+                if (self._greeting_recv[REVISION_POS] == ZMTP_1_0
+                    || self._greeting_recv[REVISION_POS] == ZMTP_2_0) {
                     self._outpos[self._outsize] = self._options.type_ ;
                     self._outsize += 1;
                 }
@@ -193,7 +193,7 @@ impl zmtp_engine_t {
                     self._outsize += 20;
                     libc::memset (self._outpos + self._outsize, 0, 32);
                     self._outsize += 32;
-                    self._greeting_size = v3_greeting_size;
+                    self._greeting_size = V3_GREETING_SIZE;
                 }
             }
         }
@@ -205,23 +205,23 @@ impl zmtp_engine_t {
     {
         //  Is the peer using ZMTP/1.0 with no revision number?
         if (unversioned_) {
-            return &zmtp_engine_t::handshake_v1_0_unversioned;
+            return &ZmtpEngine::handshake_v1_0_unversioned;
         }
         match (revision_) {
             ZMTP_1_0 =>
-                return &zmtp_engine_t::handshake_v1_0,
+                return &ZmtpEngine::handshake_v1_0,
             ZMTP_2_0 =>
-                return &zmtp_engine_t::handshake_v2_0,
+                return &ZmtpEngine::handshake_v2_0,
             ZMTP_3_x => {
                 match (minor_) {
-                    0 => return &zmtp_engine_t::handshake_v3_0,
+                    0 => return &ZmtpEngine::handshake_v3_0,
                     _ => {
-                        return &zmtp_engine_t::handshake_v3_1;
+                        return &ZmtpEngine::handshake_v3_1;
                     }
                 }
             },
             _ =>
-                return &zmtp_engine_t::handshake_v3_1
+                return &ZmtpEngine::handshake_v3_1
         }
     }
 
@@ -231,7 +231,7 @@ impl zmtp_engine_t {
         //  We send and receive rest of routing id message
         if (self.session ().zap_enabled ()) {
             // reject ZMTP 1.0 connections if ZAP is enabled
-            // error (protocol_error);
+            // Error (ProtocolError);
             return false;
         }
 
@@ -278,7 +278,7 @@ impl zmtp_engine_t {
 
         //  We are sending our routing id now and the next message
         //  will come from the socket.
-        self._next_msg = &zmtp_engine_t::pull_msg_from_session;
+        self._next_msg = &ZmtpEngine::pull_msg_from_session;
 
         //  We are expecting routing id message.
         // _process_msg = static_cast<int (stream_engine_base_t::*) (msg_t *)> (
@@ -293,7 +293,7 @@ impl zmtp_engine_t {
     {
         if (self.session ().zap_enabled ()) {
             // reject ZMTP 1.0 connections if ZAP is enabled
-            // error (protocol_error);
+            // Error (ProtocolError);
             return false;
         }
 
@@ -314,7 +314,7 @@ impl zmtp_engine_t {
     {
         if (self.session().zap_enabled ()) {
             // reject ZMTP 2.0 connections if ZAP is enabled
-            // error (protocol_error);
+            // Error (ProtocolError);
             return false;
         }
 
@@ -340,7 +340,7 @@ impl zmtp_engine_t {
             // _mechanism = new (std::nothrow)
             //   null_mechanism_t (session (), _peer_address, _options);
             // alloc_assert (_mechanism);
-            self._mechanism = null_mechanism_t::new(self.session(), self._peer_address, self._options);
+            self._mechanism = ZmqNullMechanism::new(self.session(), self._peer_address, self._options);
         }
     //     else if (_options.mechanism == ZMQ_PLAIN
     //                && memcmp (_greeting_recv + 12,
@@ -386,7 +386,7 @@ impl zmtp_engine_t {
             self.socket ().event_handshake_failed_protocol (
               self.session ().get_endpoint (),
               ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH);
-            // error (protocol_error);
+            // Error (ProtocolError);
             return false;
         }
         self._next_msg = self.next_handshake_command;
@@ -424,19 +424,19 @@ impl zmtp_engine_t {
     }
 
     // int zmq::zmtp_engine_t::routing_id_msg (msg_t *msg_)
-    pub unsafe fn routing_id_msg(&mut self, msg_: &msg_t) -> i32
+    pub unsafe fn routing_id_msg(&mut self, msg_: &ZmqMsg) -> i32
     {
         let rc = msg_.init_size (self._options.routing_id_size);
         // errno_assert (rc == 0);
         if (self._options.routing_id_size > 0) {
             libc::memcpy(msg_.data(), self._options.routing_id, self._options.routing_id_size);
         }
-        self._next_msg = &zmtp_engine_t::pull_msg_from_session;
+        self._next_msg = &ZmtpEngine::pull_msg_from_session;
         return 0;
     }
 
     // int zmq::zmtp_engine_t::process_routing_id_msg (msg_t *msg_)
-    pub unsafe fn process_routing_id_msg(&mut self, msg_: &mut msg_t) -> i32
+    pub unsafe fn process_routing_id_msg(&mut self, msg_: &mut ZmqMsg) -> i32
     {
         if (self._options.recv_routing_id) {
             msg_.set_flags (MSG_ROUTING_ID);
@@ -451,7 +451,7 @@ impl zmtp_engine_t {
 
         if (self._subscription_required) {
             // msg_t subscription;
-            let mut subscription: msg_t;
+            let mut subscription: ZmqMsg;
 
             //  Inject the subscription message, so that also
             //  ZMQ 2.x peers receive published messages.
@@ -469,7 +469,7 @@ impl zmtp_engine_t {
     }
 
     // int zmq::zmtp_engine_t::produce_ping_message (msg_t *msg_)
-    pub unsafe fn produce_ping_message(&mut self, msg_: &mut msg_t) -> i32
+    pub unsafe fn produce_ping_message(&mut self, msg_: &mut ZmqMsg) -> i32
     {
         // 16-bit TTL + \4PING == 7
         let ping_ttl_len = ping_cmd_name_size + 2;
@@ -477,18 +477,18 @@ impl zmtp_engine_t {
 
         let rc = msg_.init_size (ping_ttl_len);
         // errno_assert (rc == 0);
-        msg_.set_flags (msg_t::command);
+        msg_.set_flags (ZmqMsg::command);
         // Copy in the command message
-        libc::memcpy (msg_.data (), "\4PING", msg_t::ping_cmd_name_size);
+        libc::memcpy (msg_.data (), "\4PING", ZmqMsg::ping_cmd_name_size);
 
         let ttl_val = (self._options.heartbeat_ttl.to_be () as u16);
-        libc::memcpy ((msg_.data ()) + msg_t::ping_cmd_name_size,
-                &ttl_val, size_of::<ttl_val>());
+        libc::memcpy ((msg_.data ()) + ZmqMsg::ping_cmd_name_size,
+                      &ttl_val, size_of::<ttl_val>());
 
         rc = self._mechanism.encode (msg_);
-        self._next_msg = &zmtp_engine_t::pull_and_encode;
+        self._next_msg = &ZmtpEngine::pull_and_encode;
         if (!self._has_timeout_timer && self._heartbeat_timeout > 0) {
-            self.add_timer (self._heartbeat_timeout, heartbeat_timeout_timer_id);
+            self.add_timer (self._heartbeat_timeout, HEARTBEAT_TIMEOUT_TIMER_ID);
             self._has_timeout_timer = true;
         }
         return rc;
@@ -496,7 +496,7 @@ impl zmtp_engine_t {
 
 
     // int zmq::zmtp_engine_t::produce_pong_message (msg_t *msg_)
-    pub unsafe fn produce_pong_msg(&mut self, msg_: &mut msg_t) -> i32
+    pub unsafe fn produce_pong_msg(&mut self, msg_: &mut ZmqMsg) -> i32
     {
         // zmq_assert (_mechanism != NULL);
 
@@ -509,7 +509,7 @@ impl zmtp_engine_t {
     }
 
     // int zmq::zmtp_engine_t::process_heartbeat_message (msg_t *msg_)
-    pub unsafe fn process_heartbeat_message(&mut self, msg_: &mut msg_t) -> i32
+    pub unsafe fn process_heartbeat_message(&mut self, msg_: &mut ZmqMsg) -> i32
     {
         if (msg_.is_ping ()) {
             // 16-bit TTL + \4PING == 7
@@ -528,7 +528,7 @@ impl zmtp_engine_t {
             remote_heartbeat_ttl *= 100;
 
             if (!self._has_ttl_timer && remote_heartbeat_ttl > 0) {
-                self.add_timer (remote_heartbeat_ttl, heartbeat_ttl_timer_id);
+                self.add_timer (remote_heartbeat_ttl, HEARTBEAT_TTL_TIMER_ID);
                 self._has_ttl_timer = true;
             }
 
@@ -540,10 +540,10 @@ impl zmtp_engine_t {
             let context_len =
               min(msg_.size () - ping_ttl_len, ping_max_ctx_len);
             let rc =
-              self._pong_msg.init_size (msg_t::ping_cmd_name_size + context_len);
+              self._pong_msg.init_size (ZmqMsg::ping_cmd_name_size + context_len);
             // errno_assert (rc == 0);
-            self._pong_msg.set_flags (msg_t::command);
-            libc::memcpy (self._pong_msg.data (), "\4PONG", msg_t::ping_cmd_name_size);
+            self._pong_msg.set_flags (ZmqMsg::command);
+            libc::memcpy (self._pong_msg.data (), "\4PONG", ZmqMsg::ping_cmd_name_size);
             if (context_len > 0)
                 libc::memcpy (self._pong_msg.data ())
                           + ping_cmd_name_size,
@@ -558,7 +558,7 @@ impl zmtp_engine_t {
     }
 
     // int zmq::zmtp_engine_t::process_command_message (msg_t *msg_)
-    pub unsafe fn process_command_message(&mut self, msg_: &mut msg_t) -> i32
+    pub unsafe fn process_command_message(&mut self, msg_: &mut ZmqMsg) -> i32
     {
         let cmd_name_size = (msg_.data ()));
         let ping_name_size = ping_cmd_name_size - 1;

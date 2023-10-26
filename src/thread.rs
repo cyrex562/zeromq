@@ -1,4 +1,4 @@
-#![allow(non_camel_case_types)]
+
 
 use std::collections::HashSet;
 use std::ffi::{c_char, c_void};
@@ -14,11 +14,11 @@ pub const DEFAULT_PRIORITY: u32 = 100;
 pub const DEFAULT_OPTIONS: u32 = 0;
 pub const DEFAULT_STACK_SIZE: u32 = 4000;
 
-pub type thread_fn = fn(*mut c_void);
+pub type ZmqThreadFn = fn(*mut c_void);
 
-pub struct thread_t {
+pub struct ZmqThread {
     pub _arg: *mut c_void,
-    pub _tfn: thread_fn,
+    pub _tfn: ZmqThreadFn,
     pub _name: [c_char; 16],
     pub _started: bool,
     #[cfg(target_os = "windows")]
@@ -40,20 +40,20 @@ pub struct thread_info_t {
     pub _flags: u32,
 }
 
-impl thread_t {
+impl ZmqThread {
     pub fn get_started(&self) -> bool {
         self._started
     }
 
     pub fn thread_routine(arg_: *mut c_void)
     {
-        let self_ = unsafe { &mut *(arg_ as *mut thread_t) };
+        let self_ = unsafe { &mut *(arg_ as *mut ZmqThread) };
         self_.apply_scheduling_parameters();
         self_.apply_thread_name();
         self_._tfn(self_._arg);
     }
 
-    pub unsafe fn start(&mut self, tfn_: thread_fn, arg: *mut c_void, name: *const c_char) {
+    pub unsafe fn start(&mut self, tfn_: ZmqThreadFn, arg: *mut c_void, name: *const c_char) {
         self._tfn = tfn_;
         self._arg = arg;
         if name != null_mut() {
@@ -69,7 +69,7 @@ impl thread_t {
         self._builder = thread::Builder::new().stack_size(stack);
 
         let handle = self._builder.spawn(move || {
-            thread_t::thread_routine(self as *mut c_void);
+            ZmqThread::thread_routine(self as *mut c_void);
         }).unwrap();
         self._started = true;
         self._join_handle = handle;

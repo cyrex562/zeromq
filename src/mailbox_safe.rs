@@ -1,40 +1,40 @@
-#![allow(non_camel_case_types)]
-#![allow(non_camel_case_types)]
+
+
 
 use std::ptr::null_mut;
-use crate::command::command_t;
-use crate::condition_variable::condition_variable_t;
-use crate::i_mailbox::i_mailbox;
-use crate::ypipe::ypipe_t;
-use crate::config::command_pipe_granularity;
-use crate::mutex::mutex_t;
-use crate::signaler::signaler_t;
+use crate::command::ZmqCommand;
+use crate::condition_variable::ZmqConditionVariable;
+use crate::i_mailbox::IMailbox;
+use crate::ypipe::ZmqYPipe;
+use crate::config::COMMAND_PIPE_GRANULARITY;
+use crate::mutex::ZmqMutex;
+use crate::signaler::ZmqSignaler;
 
-type cpipe_t = ypipe_t<command_t, command_pipe_granularity>;
+type ZmqCPipe = ZmqYPipe<ZmqCommand, COMMAND_PIPE_GRANULARITY>;
 
-pub struct mailbox_safe_t {
-    pub _cpipe: cpipe_t,
-    pub _cond_var: condition_variable_t,
-    pub _sync: *mut mutex_t,
-    pub _signalers: Vec<*mut signaler_t>,
+pub struct ZmqMailboxSafe {
+    pub _cpipe: ZmqCPipe,
+    pub _cond_var: ZmqConditionVariable,
+    pub _sync: *mut ZmqMutex,
+    pub _signalers: Vec<*mut ZmqSignaler>,
 }
 
-impl mailbox_safe_t {
-    pub unsafe fn new() -> mailbox_safe_t {
+impl ZmqMailboxSafe {
+    pub unsafe fn new() -> ZmqMailboxSafe {
 
         Self {
-            _cpipe: cpipe_t::new(),
-            _cond_var: condition_variable_t::new(),
+            _cpipe: ZmqCPipe::new(),
+            _cond_var: ZmqConditionVariable::new(),
             _sync: null_mut(),
             _signalers: Vec::new(),
         }
     }
 
-    pub fn add_signaler(&mut self, signaler_: *mut signaler_t) {
+    pub fn add_signaler(&mut self, signaler_: *mut ZmqSignaler) {
         self._signalers.push(signaler_);
     }
 
-    pub fn remove_signaler(&mut self, signaler_: *mut signaler_t) {
+    pub fn remove_signaler(&mut self, signaler_: *mut ZmqSignaler) {
         let index = self._signalers.iter().position(|&x| x == signaler_).unwrap();
         self._signalers.remove(index);
     }
@@ -46,8 +46,8 @@ impl mailbox_safe_t {
 
 }
 
-impl i_mailbox for mailbox_safe_t {
-    fn send(&mut self, cmd_: &mut command_t) {
+impl IMailbox for ZmqMailboxSafe {
+    fn send(&mut self, cmd_: &mut ZmqCommand) {
         self._sync.lock();
         self._cpipe.write(cmd_, false);
         let ok = self._cpipe.flush();
@@ -62,7 +62,7 @@ impl i_mailbox for mailbox_safe_t {
         self._sync.unlock();
     }
 
-    unsafe fn recv(&mut self, cmd_: &mut command_t, timeout_: i32) -> i32 {
+    unsafe fn recv(&mut self, cmd_: &mut ZmqCommand, timeout_: i32) -> i32 {
         if self._cpipe.read(cmd) {
             return 0;
         }

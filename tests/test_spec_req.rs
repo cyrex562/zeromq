@@ -236,7 +236,7 @@ int main ()
     RUN_TEST (test_req_message_format_inproc);
     RUN_TEST (test_req_message_format_tcp);
 
-    // SHALL block on sending, or return a suitable error, when it has no
+    // SHALL block on sending, or return a suitable Error, when it has no
     // Connected peers.
     RUN_TEST (test_block_on_send_no_peers);
 

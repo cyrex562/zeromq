@@ -1,36 +1,36 @@
 use crate::address::get_socket_name;
 use crate::address::socket_end_t::{socket_end_local, socket_end_remote};
-use crate::defines::{fd_t, handle_t};
-use crate::endpoint::endpoint_type_t::endpoint_type_bind;
-use crate::endpoint::{endpoint_uri_pair_t, make_unconnected_connect_endpoint_pair};
+use crate::defines::{ZmqFd, ZmqHandle};
+use crate::endpoint::ZmqEndpointType::endpoint_type_bind;
+use crate::endpoint::{ZmqEndpointUriPair, make_unconnected_connect_endpoint_pair};
 use crate::fd::retired_fd;
-use crate::i_engine::i_engine;
-use crate::io_object::io_object_t;
-use crate::io_thread::io_thread_t;
-use crate::options::options_t;
-use crate::own::own_t;
-use crate::session_base::session_base_t;
-use crate::socket_base::socket_base_t;
+use crate::i_engine::IEngine;
+use crate::io_object::IoObject;
+use crate::io_thread::ZmqIoThread;
+use crate::options::ZmqOptions;
+use crate::own::ZmqOwn;
+use crate::session_base::ZmqSessionBase;
+use crate::socket_base::ZmqSocketBase;
 use std::ptr::null_mut;
 
-pub struct stream_listener_base_t<'a> {
-    pub own: own_t<'a>,
-    pub io_object: io_object_t,
-    pub _s: fd_t,
-    pub _handle: handle_t,
-    pub _socket: &'a mut socket_base_t<'a>,
+pub struct ZmqStreamListenerBase<'a> {
+    pub own: ZmqOwn<'a>,
+    pub io_object: IoObject,
+    pub _s: ZmqFd,
+    pub _handle: ZmqHandle,
+    pub _socket: &'a mut ZmqSocketBase<'a>,
     pub _endpoint: String,
 }
 
-impl stream_listener_base_t {
+impl ZmqStreamListenerBase {
     pub fn new(
-        io_thread_: &mut io_thread_t,
-        socket_: &mut socket_base_t,
-        options_: &options_t,
+        io_thread_: &mut ZmqIoThread,
+        socket_: &mut ZmqSocketBase,
+        options_: &ZmqOptions,
     ) -> Self {
         Self {
-            own: own_t::new2(io_thread_, options_),
-            io_object: io_object_t::new(io_thread_),
+            own: ZmqOwn::new2(io_thread_, options_),
+            io_object: IoObject::new(io_thread_),
             _s: retired_fd,
             _handle: null_mut(),
             _socket: socket_,
@@ -72,15 +72,15 @@ impl stream_listener_base_t {
         self._s = retired_fd
     }
 
-    pub unsafe fn create_engine(&mut self, fd_: fd_t) {
-        let endpoint_pair = endpoint_uri_pair_t::new(
+    pub unsafe fn create_engine(&mut self, fd_: ZmqFd) {
+        let endpoint_pair = ZmqEndpointUriPair::new(
             get_socket_name(fd_, socket_end_local),
             get_socket_name(fd_, socket_end_remote),
             endpoint_type_bind,
         );
 
         // i_engine *engine;
-        let mut engine: dyn i_engine;
+        let mut engine: dyn IEngine;
         if (self.options.raw_socket) {
             engine = raw_engine_t::new(fd_, self.options, endpoint_pair);
         } else {
@@ -95,7 +95,7 @@ impl stream_listener_base_t {
 
         //  Create and launch a session object.
         let mut session =
-            session_base_t::create(io_thread, false, self._socket, self.options, None);
+            ZmqSessionBase::create(io_thread, false, self._socket, self.options, None);
         // errno_assert (session);
         session.inc_seqnum();
         self.launch_child(session);

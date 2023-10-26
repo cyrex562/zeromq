@@ -1,40 +1,40 @@
 use libc::option;
-use crate::ctx::ctx_t;
+use crate::ctx::ZmqContext;
 use crate::defines::ZMQ_PUSH;
-use crate::lb::lb_t;
-use crate::msg::msg_t;
-use crate::options::options_t;
-use crate::pipe::pipe_t;
-use crate::socket_base::socket_base_t;
+use crate::load_balancer::ZmqLoadBalancer;
+use crate::msg::ZmqMsg;
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::socket_base::ZmqSocketBase;
 
-pub struct push_t<'a> {
-    pub socket_base: socket_base_t<'a>,
-    pub _lb: lb_t,
+pub struct ZmqPush<'a> {
+    pub socket_base: ZmqSocketBase<'a>,
+    pub _lb: ZmqLoadBalancer,
 }
 
-impl push_t {
-    pub unsafe fn new(options: &mut options_t, parent_: &mut ctx_t, tid_: u32, sid: i32) -> Self {
+impl ZmqPush {
+    pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid: i32) -> Self {
         options.type_ = ZMQ_PUSH;
         Self {
-            socket_base: socket_base_t::new(parent_, tid_, sid, false),
-            _lb: lb_t::new(),
+            socket_base: ZmqSocketBase::new(parent_, tid_, sid, false),
+            _lb: ZmqLoadBalancer::new(),
         }
     }
     
-    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut pipe_t, subscribe_to_all_: bool, locally_initiated_: bool) {
+    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
         pipe_.set_nodelay();
         self._lb.attach(pipe_);
     }
     
-    pub unsafe fn xwrite_activated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xwrite_activated(&mut self, pipe_: &mut ZmqPipe) {
         self._lb.activated(pipe_)
     }
     
-    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
         self._lb.pipe_terminated(pipe_);
     }
     
-    pub unsafe fn xsend(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
         self._lb.send(msg_)
     }
     

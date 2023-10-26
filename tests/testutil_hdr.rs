@@ -164,7 +164,7 @@ void expect_bounce_fail (server_: *mut c_void, client_: *mut c_void);
 
 //  Receive 0MQ string from socket and convert into C string
 //  Caller must free returned string. Returns NULL if the context
-//  is being terminated.
+//  is being Terminated.
 char *s_recv (socket: *mut c_void);
 
 bool streq (lhs: *const c_char, rhs: &str);
@@ -173,14 +173,14 @@ bool strneq (lhs: *const c_char, rhs: &str);
 extern const char *SEQ_END;
 
 //  Sends a message composed of frames that are C strings or null frames.
-//  The list must be terminated by SEQ_END.
+//  The list must be Terminated by SEQ_END.
 //  Example: s_send_seq (req, "ABC", 0, "DEF", SEQ_END);
 
 void s_send_seq (socket: *mut c_void, ...);
 
 //  Receives message a number of frames long and checks that the frames have
 //  the given data which can be either C strings or 0 for a null frame.
-//  The list must be terminated by SEQ_END.
+//  The list must be Terminated by SEQ_END.
 //  Example: s_recv_seq (rep, "ABC", 0, "DEF", SEQ_END);
 
 void s_recv_seq (socket: *mut c_void, ...);

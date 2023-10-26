@@ -60,20 +60,20 @@ let mut msg = ZmqMessage::default();
 
     s = zmq_socket (ctx, ZMQ_PUSH);
     if (!s) {
-        printf ("error in zmq_socket: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_socket: %s\n", zmq_strerror (errno));
         exit (1);
     }
 
     rc = zmq_connect (s, "inproc://thr_test");
     if (rc != 0) {
-        printf ("error in zmq_connect: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_connect: %s\n", zmq_strerror (errno));
         exit (1);
     }
 
     for (i = 0; i != message_count; i+= 1) {
         rc = zmq_msg_init_size (&msg, message_size);
         if (rc != 0) {
-            printf ("error in zmq_msg_init_size: %s\n", zmq_strerror (errno));
+            printf ("Error in zmq_msg_init_size: %s\n", zmq_strerror (errno));
             exit (1);
         }
 // #if defined ZMQ_MAKE_VALGRIND_HAPPY
@@ -82,19 +82,19 @@ let mut msg = ZmqMessage::default();
 
         rc = zmq_sendmsg (s, &msg, 0);
         if (rc < 0) {
-            printf ("error in zmq_sendmsg: %s\n", zmq_strerror (errno));
+            printf ("Error in zmq_sendmsg: %s\n", zmq_strerror (errno));
             exit (1);
         }
         rc = zmq_msg_close (&msg);
         if (rc != 0) {
-            printf ("error in zmq_msg_close: %s\n", zmq_strerror (errno));
+            printf ("Error in zmq_msg_close: %s\n", zmq_strerror (errno));
             exit (1);
         }
     }
 
     rc = zmq_close (s);
     if (rc != 0) {
-        printf ("error in zmq_close: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_close: %s\n", zmq_strerror (errno));
         exit (1);
     }
 
@@ -132,39 +132,39 @@ let mut msg = ZmqMessage::default();
 
     ctx = zmq_init (1);
     if (!ctx) {
-        printf ("error in zmq_init: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_init: %s\n", zmq_strerror (errno));
         return -1;
     }
 
     s = zmq_socket (ctx, ZMQ_PULL);
     if (!s) {
-        printf ("error in zmq_socket: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_socket: %s\n", zmq_strerror (errno));
         return -1;
     }
 
     rc = zmq_bind (s, "inproc://thr_test");
     if (rc != 0) {
-        printf ("error in zmq_bind: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_bind: %s\n", zmq_strerror (errno));
         return -1;
     }
 
 // #if defined ZMQ_HAVE_WINDOWS
     local_thread = (HANDLE) _beginthreadex (null_mut(), 0, worker, ctx, 0, null_mut());
     if (local_thread == 0) {
-        printf ("error in _beginthreadex\n");
+        printf ("Error in _beginthreadex\n");
         return -1;
     }
 // #else
     rc = pthread_create (&local_thread, null_mut(), worker, ctx);
     if (rc != 0) {
-        printf ("error in pthread_create: %s\n", zmq_strerror (rc));
+        printf ("Error in pthread_create: %s\n", zmq_strerror (rc));
         return -1;
     }
 // #endif
 
     rc = zmq_msg_init (&msg);
     if (rc != 0) {
-        printf ("error in zmq_msg_init: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_msg_init: %s\n", zmq_strerror (errno));
         return -1;
     }
 
@@ -173,7 +173,7 @@ let mut msg = ZmqMessage::default();
 
     rc = zmq_recvmsg (s, &msg, 0);
     if (rc < 0) {
-        printf ("error in zmq_recvmsg: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_recvmsg: %s\n", zmq_strerror (errno));
         return -1;
     }
     if (zmq_msg_size (&msg) != message_size) {
@@ -186,7 +186,7 @@ let mut msg = ZmqMessage::default();
     for (i = 0; i != message_count - 1; i+= 1) {
         rc = zmq_recvmsg (s, &msg, 0);
         if (rc < 0) {
-            printf ("error in zmq_recvmsg: %s\n", zmq_strerror (errno));
+            printf ("Error in zmq_recvmsg: %s\n", zmq_strerror (errno));
             return -1;
         }
         if (zmq_msg_size (&msg) != message_size) {
@@ -201,38 +201,38 @@ let mut msg = ZmqMessage::default();
 
     rc = zmq_msg_close (&msg);
     if (rc != 0) {
-        printf ("error in zmq_msg_close: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_msg_close: %s\n", zmq_strerror (errno));
         return -1;
     }
 
 // #if defined ZMQ_HAVE_WINDOWS
     DWORD rc2 = WaitForSingleObject (local_thread, INFINITE);
     if (rc2 == WAIT_FAILED) {
-        printf ("error in WaitForSingleObject\n");
+        printf ("Error in WaitForSingleObject\n");
         return -1;
     }
     BOOL rc3 = CloseHandle (local_thread);
     if (rc3 == 0) {
-        printf ("error in CloseHandle\n");
+        printf ("Error in CloseHandle\n");
         return -1;
     }
 // #else
     rc = pthread_join (local_thread, null_mut());
     if (rc != 0) {
-        printf ("error in pthread_join: %s\n", zmq_strerror (rc));
+        printf ("Error in pthread_join: %s\n", zmq_strerror (rc));
         return -1;
     }
 // #endif
 
     rc = zmq_close (s);
     if (rc != 0) {
-        printf ("error in zmq_close: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_close: %s\n", zmq_strerror (errno));
         return -1;
     }
 
     rc = zmq_ctx_term (ctx);
     if (rc != 0) {
-        printf ("error in zmq_ctx_term: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_ctx_term: %s\n", zmq_strerror (errno));
         return -1;
     }
 

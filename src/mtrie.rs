@@ -1,4 +1,4 @@
-use crate::pipe::pipe_t;
-use crate::generic_mtrie::generic_mtrie_t;
+use crate::pipe::ZmqPipe;
+use crate::generic_mtrie::GenericMtrie;
 
-pub type mtrie_t = generic_mtrie_t<pipe_t>;
+pub type ZmqMtrie = GenericMtrie<ZmqPipe>;

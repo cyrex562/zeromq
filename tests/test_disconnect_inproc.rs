@@ -34,7 +34,7 @@
 
 SETUP_TEARDOWN_TESTCONTEXT
 
-/// Initialize a zeromq message with a given null-terminated string
+/// Initialize a zeromq message with a given null-Terminated string
 // #define ZMQ_PREPARE_STRING(msg, data, size)                                    \
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init (&msg));                           \
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_init_size (&msg, size + 1));            \

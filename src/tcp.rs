@@ -202,7 +202,7 @@ pub unsafe fn tcp_write(s_: fd_t, data_: *const c_void, size_: usize) -> i32 {
         let nbytes = send(s_, data_, (size_), 0);
 
         //  If not a single byte can be written to the socket in non-blocking mode
-        //  we'll get an error (this may happen during the speculative write).
+        //  we'll get an Error (this may happen during the speculative write).
         let last_error = WSAGetLastError();
         if nbytes == SOCKET_ERROR && last_error == WSAEWOULDBLOCK {
             return 0;
@@ -230,7 +230,7 @@ pub unsafe fn tcp_write(s_: fd_t, data_: *const c_void, size_: usize) -> i32 {
 
         //  Several errors are OK. When speculative write is being done we may not
         //  be able to write a single byte from the socket. Also, SIGSTOP issued
-        //  by a debugging tool can result in EINTR error.
+        //  by a debugging tool can result in EINTR Error.
         if (nbytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
             return 0;
         }
@@ -263,7 +263,7 @@ pub unsafe fn tcp_read(s_: fd_t, data_: *mut c_void, size_: usize) -> i32 {
         let rc = recv(s_, (data_), (size_), 0);
 
         //  If not a single byte can be read from the socket in non-blocking mode
-        //  we'll get an error (this may happen during the speculative read).
+        //  we'll get an Error (this may happen during the speculative read).
         if (rc == SOCKET_ERROR) {
             let last_error = WSAGetLastError();
             if (last_error == WSAEWOULDBLOCK) {
@@ -287,7 +287,7 @@ pub unsafe fn tcp_read(s_: fd_t, data_: *mut c_void, size_: usize) -> i32 {
 
         //  Several errors are OK. When speculative read is being done we may not
         //  be able to read a single byte from the socket. Also, SIGSTOP issued
-        //  by a debugging tool can result in EINTR error.
+        //  by a debugging tool can result in EINTR Error.
         if (rc == -1) {
 // #if !defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
 //         errno_assert (errno != EBADF && errno != EFAULT && errno != ENOMEM

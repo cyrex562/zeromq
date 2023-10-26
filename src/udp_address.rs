@@ -1,18 +1,18 @@
 use std::ffi::c_char;
 use anyhow::bail;
 use libc::if_nametoindex;
-use crate::ip_resolver::{ip_addr_t, ip_resolver_options_t, ip_resolver_t};
+use crate::ip_resolver::{ZmqIpAddress, ip_resolver_options_t, ip_resolver_t};
 
 #[derive(Default,Debug,Clone)]
-pub struct udp_address_t {
-    pub _bind_address: ip_addr_t,
+pub struct UdpAddress {
+    pub _bind_address: ZmqIpAddress,
     pub _bind_interface: i32,
-    pub _target_address: ip_addr_t,
+    pub _target_address: ZmqIpAddress,
     pub _is_multicast: bool,
     pub _address: String,
 }
 
-impl udp_address_t {
+impl UdpAddress {
     pub fn new() -> Self {
         Self {
             ..Default::default()
@@ -76,7 +76,7 @@ impl udp_address_t {
 
             self._bind_address.set_port(port);
         } else if self._is_multicast.clone() || !bind_.clone() {
-            self._bind_address = ip_addr_t::any(self._target_address.family())?;
+            self._bind_address = ZmqIpAddress::any(self._target_address.family())?;
             self._bind_address.set_port(port);
             self._bind_interface = 0;
         } else {
@@ -102,7 +102,7 @@ impl udp_address_t {
         self._is_multicast.clone()
     }
 
-    pub fn bind_addr(&mut self) -> *mut ip_addr_t {
+    pub fn bind_addr(&mut self) -> *mut ZmqIpAddress {
         &mut self._bind_address
     }
 
@@ -110,7 +110,7 @@ impl udp_address_t {
         self._bind_interface.clone()
     }
 
-    pub fn target_addr(&mut self) -> *mut ip_addr_t {
+    pub fn target_addr(&mut self) -> *mut ZmqIpAddress {
         &mut self._target_address
     }
 

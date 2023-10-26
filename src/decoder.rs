@@ -1,24 +1,24 @@
-#![allow(non_camel_case_types)]
+
 
 use std::ffi::c_void;
 use std::ptr::null_mut;
 use libc::size_t;
-use crate::i_decoder::i_decoder;
-use crate::msg::msg_t;
-use crate::decoder_allocators::{allocator, c_single_allocator};
+use crate::i_decoder::IDecoder;
+use crate::msg::ZmqMsg;
+use crate::decoder_allocators::{ZmqAllocator, ZmqCSingleAllocator};
 
-pub type step_t = fn(*mut u8) -> i32;
+pub type StepFn = fn(&mut [u8]) -> i32;
 
-pub struct decoder_base_t<T, A: allocator> {
-    pub _next: Option<step_t>,
-    pub _read_pos: *mut u8,
+pub struct ZmqDecoderBase<T, A: ZmqAllocator> {
+    pub _next: Option<StepFn>,
+    pub _read_pos: usize,
     pub _to_read: usize,
     pub _allocator: A,
-    pub _buf: *mut u8,
+    pub _buf: Vec<u8>,
 
 }
 
-impl <T, A: allocator> decoder_base_t <T, A> {
+impl <T, A: ZmqAllocator> ZmqDecoderBase<T, A> {
     pub fn new(buf_size_: usize) -> Self {
         let mut out = Self {
             _next: None,
@@ -31,8 +31,8 @@ impl <T, A: allocator> decoder_base_t <T, A> {
         out
     }
 
-    pub fn next_step(&mut self, read_pos_: *mut c_void, to_read_: usize, next_: step_t) {
-        self._read_pos = read_pos_ as *mut u8;
+    pub fn next_step(&mut self, read_pos_: usize, to_read_: usize, next_: StepFn) {
+        self._read_pos = read_pos_;
         self._to_read = to_read_;
         self._next = Some(next_);
     }
@@ -42,9 +42,11 @@ impl <T, A: allocator> decoder_base_t <T, A> {
     }
 }
 
-impl<T,A: allocator> i_decoder for decoder_base_t<T, A> {
-    unsafe fn get_buffer(&mut self, data_: *mut *mut u8, size_: *mut usize) {
-        self._buf = self._allocator.allocate();
+impl<T,A: ZmqAllocator> IDecoder for ZmqDecoderBase<T, A> {
+    unsafe fn get_buffer(&mut self) -> Vec<u8>
+    {
+        // self._buf = self._allocator.allocate();
+        self._buf = vec![];
         if self._to_read >= self._allocator.size() {
             *data_ = self._read_pos;
             *size_ = self._to_read;
@@ -89,7 +91,7 @@ impl<T,A: allocator> i_decoder for decoder_base_t<T, A> {
         return 0;
     }
 
-    fn msg(&mut self) -> *mut msg_t {
+    fn msg(&mut self) -> &mut ZmqMsg {
         todo!()
     }
 }

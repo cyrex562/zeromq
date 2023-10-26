@@ -1,17 +1,18 @@
-use crate::encoder::encoder_base_t;
+use crate::encoder::ZmqEncoderBase;
 use crate::msg::{cancel_cmd_name, cancel_cmd_name_size, MSG_COMMAND, MSG_MORE, sub_cmd_name, sub_cmd_name_size};
 use crate::utils::put_u64;
-use crate::v2_protocol::{command_flag, large_flag, more_flag};
+use crate::v2_protocol::{COMMAND_FLAG, LARGE_FLAG, MORE_FLAG};
 
-pub struct v3_1_encoder_t {
-    pub encoder_base: encoder_base_t<v3_1_encoder_t>,
+pub struct V31Encoder
+{
+    pub encoder_base: ZmqEncoderBase<V31Decoder>,
     pub _tmp_buf: Vec<u8>,
 }
 
-impl v3_1_encoder_t {
+impl V31Decoder {
     pub fn new(bufsize_: usize) -> Self {
         let mut out = Self {
-            encoder_base: encoder_base_t::new(bufsize_),
+            encoder_base: ZmqEncoderBase::new(bufsize_),
             _tmp_buf: vec![0; 11],
         };
         out.next_step(None, 0, out.message_ready, true);
@@ -26,20 +27,20 @@ impl v3_1_encoder_t {
         let mut protocol_flags = &mut self._tmp_buf[0];
         *protocol_flags = 0;
         if (self.in_progress().flags() & MSG_MORE) {
-            *protocol_flags |= more_flag;
+            *protocol_flags |= MORE_FLAG;
         }
         if (self.in_progress().flags() & MSG_COMMAND || self.in_progress().is_subscribe() || self.in_progress().is_cancel()) {
-            *protocol_flags |= command_flag;
+            *protocol_flags |= COMMAND_FLAG;
             if (self.in_progress().is_subscribe()) {
                 size += sub_cmd_name_size;
             } else if (self.in_progress().is_cancel()) {
                 size += cancel_cmd_name_size;
             }
         }
-        // Calculate large_flag after command_flag. Subscribe or cancel commands
+        // Calculate LARGE_FLAG after COMMAND_FLAG. Subscribe or cancel commands
         // increase the message size.
         if (size > u8::MAX) {
-            *protocol_flags |= large_flag;
+            *protocol_flags |= LARGE_FLAG;
         }
 
         //  Encode the message length. For messages less then 256 bytes,

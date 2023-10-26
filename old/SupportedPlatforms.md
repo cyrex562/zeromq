@@ -4,8 +4,8 @@ The degree to which this support is tested varies.
 Platforms are currently assigned to one of the following categories:
 - supported platforms with primary CI (travis-ci.org, appveyor.com): https://travis-ci.org/zeromq/libzmq, https://ci.appveyor.com/project/zeromq/libzmq
 - supported platforms with secondary CI (openSUSE Build Service): https://build.opensuse.org/project/subprojects/network:messaging:zeromq
-- supported platforms with known active users
-- supported platforms without known active users
+- supported platforms with known Active users
+- supported platforms without known Active users
 - unsupported platforms
 
 Supported platforms with primary CI
@@ -19,14 +19,13 @@ Supported platforms with secondary CI
 - these are monitored periodically by the project maintainers, and efforts are made to fix any broken builds or tests in a timely manner
 - it is a precondition for a release that no builds or tests of these platforms are broken
 
-Supported platforms with known active users
+Supported platforms with known Active users
 - have recently been reported to the maintainers (e.g. via pull requests modifying this document) as having working builds and possibly tests
 
-Supported platforms without known active users
+Supported platforms without known Active users
 - have some platform-specific code within libzmq, but it is not known if it is still working
 - have been reported to the maintainers as having working builds and possibly tests only significant time/changes ago 
 - or are assumed to work due to similarity to the above platforms
 
 Unsupported platforms
 - are either reported to be non-working for some reason that is not trivial to fix or are explicitly missing some required platform-specific code
-

@@ -212,7 +212,7 @@ void test_case_4 ()
     bounce (router);
     bounce (router);
 
-    //  Read the expected correlated reply. As the ZMQ_REQ_CORRELATE is active,
+    //  Read the expected correlated reply. As the ZMQ_REQ_CORRELATE is Active,
     //  the expected answer is "TO_BE_ANSWERED", not "TO_BE_DISCARDED".
     s_recv_seq (req, "TO_BE_ANSWERED", SEQ_END);
 

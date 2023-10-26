@@ -526,7 +526,7 @@ void call_poller_wait_empty_with_timeout_fails (poller_: *mut c_void,
                                                 void * /*socket*/)
 {
     ZmqPollerEvent event;
-    // waiting on poller with no registered sockets should report error
+    // waiting on poller with no registered sockets should report Error
     TEST_ASSERT_FAILURE_ERRNO (EAGAIN, zmq_poller_wait (poller_, &event, 0));
 }
 
@@ -534,7 +534,7 @@ void call_poller_wait_empty_without_timeout_fails (poller_: *mut c_void,
                                                    void * /*socket*/)
 {
     ZmqPollerEvent event;
-    //  this would never be able to return since no socket was registered, and should yield an error
+    //  this would never be able to return since no socket was registered, and should yield an Error
     TEST_ASSERT_FAILURE_ERRNO (EFAULT, zmq_poller_wait (poller_, &event, -1));
 }
 
@@ -558,7 +558,7 @@ void call_poller_wait_all_empty_with_timeout_fails (poller_: *mut c_void,
                                                     void * /*socket*/)
 {
     ZmqPollerEvent event;
-    //  this would never be able to return since no socket was registered, and should yield an error
+    //  this would never be able to return since no socket was registered, and should yield an Error
     TEST_ASSERT_FAILURE_ERRNO (EFAULT,
                                zmq_poller_wait_all (poller_, &event, 0, -1));
 }

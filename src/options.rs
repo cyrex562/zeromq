@@ -15,7 +15,7 @@ pub const CURVE_KEYSIZE_Z85_1: usize = CURVE_KEYSIZE_Z85 + 1;
 pub const deciseconds_per_millisecond: u32 = 100;
 
 #[derive(Debug, Clone)]
-pub struct options_t {
+pub struct ZmqOptions {
     pub affinity: u64,
     pub sndhwm: i32,
     pub rcvhwm: i32,
@@ -108,7 +108,7 @@ pub struct options_t {
     pub busy_poll: i32,
 }
 
-impl options_t {
+impl ZmqOptions {
     pub fn new() -> Self {
         let mut out = Self {
             sndhwm: default_hwm,
@@ -943,7 +943,7 @@ impl options_t {
     }
 }
 
-pub fn get_effective_conflate_option(options: &options_t) -> bool {
+pub fn get_effective_conflate_option(options: &ZmqOptions) -> bool {
     return options.conflate
         && (options.type_ == ZMQ_DEALER as i8
             || options.type_ == ZMQ_PULL as i8

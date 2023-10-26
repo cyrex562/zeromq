@@ -2,11 +2,11 @@ use std::ffi::c_void;
 use libc::EFAULT;
 use crate::defines::{ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR, ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND};
 use crate::mechanism;
-use crate::mechanism::status_t::{error, handshaking, ready};
-use crate::msg::msg_t;
-use crate::options::options_t;
-use crate::session_base::session_base_t;
-use crate::zap_client::zap_client_t;
+use crate::mechanism::MechanismStatus::{Error, Handshaking, Ready};
+use crate::msg::ZmqMsg;
+use crate::options::ZmqOptions;
+use crate::session_base::ZmqSessionBase;
+use crate::zap_client::ZapClient;
 
 pub const error_command_name: &'static str = "\x05ERROR";
 pub const error_command_name_len: usize = 6;
@@ -15,8 +15,8 @@ pub const error_reason_len_size: usize = 1;
 pub const ready_command_name: &'static str = "\x05READY";
 pub const ready_command_name_len: usize = 6;
 
-pub struct null_mechanism_t {
-    pub zap_client: zap_client_t,
+pub struct ZmqNullMechanism {
+    pub zap_client: ZapClient,
     pub _ready_command_sent: bool,
     pub _error_command_sent: bool,
     pub _ready_command_received: bool,
@@ -25,10 +25,10 @@ pub struct null_mechanism_t {
     pub _zap_reply_received: bool,
 }
 
-impl null_mechanism_t {
-    pub fn new(session_: &mut session_base_t, peer_address_: &str, options_: &mut options_t) -> null_mechanism_t {
-        let mut out = null_mechanism_t {
-            zap_client: zap_client_t::new(session_, peer_address_, options_),
+impl ZmqNullMechanism {
+    pub fn new(session_: &mut ZmqSessionBase, peer_address_: &str, options_: &mut ZmqOptions) -> ZmqNullMechanism {
+        let mut out = ZmqNullMechanism {
+            zap_client: ZapClient::new(session_, peer_address_, options_),
             _ready_command_sent: false,
             _error_command_sent: false,
             _ready_command_received: false,
@@ -40,7 +40,7 @@ impl null_mechanism_t {
         out
     }
 
-    pub unsafe fn next_handshake_command(&mut self, options: &options_t, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn next_handshake_command(&mut self, options: &ZmqOptions, msg_: &mut ZmqMsg) -> i32 {
         if (self._ready_command_sent || self._error_command_sent) {
             // errno = EAGAIN;
             return -1;
@@ -103,7 +103,7 @@ impl null_mechanism_t {
         return 0;
     }
 
-    pub unsafe fn process_handshake_command(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn process_handshake_command(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if (self._ready_command_received || self._error_command_received) {
             self.zap_client.mechanism_base.session.get_socket().event_handshake_failed_protocol(
                 self.zap_client.mechanism_base.session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND);
@@ -179,17 +179,17 @@ impl null_mechanism_t {
         return if rc == -1 { -1 } else { 0 };
     }
 
-    pub unsafe fn status(&mut self) -> mechanism::status_t {
+    pub unsafe fn status(&mut self) -> mechanism::MechanismStatus {
         if (self._ready_command_sent && self._ready_command_received) {
-            return ready;
+            return Ready;
         }
 
         let command_sent = self._ready_command_sent || self._error_command_sent;
         let command_received = self._ready_command_received || self._error_command_received;
-        return if command_sent && command_received { error } else { handshaking };
+        return if command_sent && command_received { Error } else { Handshaking };
     }
 
-    pub unsafe fn send_zap_request(&mut self, options: &mut options_t) {
+    pub unsafe fn send_zap_request(&mut self, options: &mut ZmqOptions) {
         self.zap_client.send_zap_request(options, "NULL", &[]);
     }
 }

@@ -1,5 +1,5 @@
 
-pub struct mutex_t
+pub struct ZmqMutex
 {
     pub _mutex: std::sync::Mutex<bool>,
     // pthread_mutex_t _mutex;
@@ -7,7 +7,7 @@ pub struct mutex_t
 
 }
 
-impl mutex_t {
+impl ZmqMutex {
     pub fn new() -> Self {
         Self {
             _mutex: std::sync::Mutex::new(false),
@@ -42,11 +42,11 @@ impl mutex_t {
 }
 
 pub struct scoped_lock_t<'a> {
-    pub _mutex: &'a mut mutex_t,
+    pub _mutex: &'a mut ZmqMutex,
 }
 
 impl <'a>scoped_lock_t<'a> {
-    pub fn new(mutex: &mut mutex_t) -> Self {
+    pub fn new(mutex: &mut ZmqMutex) -> Self {
         Self {
             _mutex: mutex,
         }
@@ -54,11 +54,11 @@ impl <'a>scoped_lock_t<'a> {
 }
 
 pub struct scoped_optional_lock_t {
-    pub _mutex: *mut mutex_t,
+    pub _mutex: *mut ZmqMutex,
 }
 
 impl scoped_optional_lock_t {
-    pub fn new(mutex: *mut mutex_t) -> Self {
+    pub fn new(mutex: *mut ZmqMutex) -> Self {
         Self {
             _mutex: mutex,
         }

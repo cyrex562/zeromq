@@ -1,3 +1,3 @@
-pub const more_flag: u8 = 1;
-pub const large_flag: u8 = 2;
-pub const command_flag: u8 = 4;
+pub const MORE_FLAG: u8 = 1;
+pub const LARGE_FLAG: u8 = 2;
+pub const COMMAND_FLAG: u8 = 4;

@@ -1,42 +1,42 @@
 use std::collections::HashMap;
-use crate::ctx::ctx_t;
+use crate::ctx::ZmqContext;
 use crate::defines::ZMQ_SERVER;
-use crate::fq::fq_t;
-use crate::msg::{MSG_MORE, msg_t};
-use crate::options::options_t;
-use crate::pipe::pipe_t;
-use crate::socket_base::socket_base_t;
+use crate::fair_queue::ZmqFairQueue;
+use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::socket_base::ZmqSocketBase;
 
-pub struct outpipe_t<'a> {
-    pub pipe: &'a mut pipe_t<'a>,
+pub struct ZmqOutpipe<'a> {
+    pub pipe: &'a mut ZmqPipe<'a>,
     pub active: bool,
 }
 
-pub type out_pipes_t = HashMap<u32, outpipe_t>;
+pub type ZmqOutPipes = HashMap<u32, ZmqOutpipe>;
 
-pub struct server_t<'a> {
-    pub socket_base: socket_base_t<'a>,
-    pub _fq: fq_t,
+pub struct ZmqServer<'a> {
+    pub socket_base: ZmqSocketBase<'a>,
+    pub _fq: ZmqFairQueue,
     //  Acceptable inbound pipes.
-    pub _out_pipes: out_pipes_t,
+    pub _out_pipes: ZmqOutPipes,
     //  Outbound pipes indexed by peer id.
     pub _next_routing_id: u32, //  Next routing id to assign.
 }
 
-impl server_t {
-    pub unsafe fn new(options: &mut options_t, parent_: &mut ctx_t, tid_: u32, sid_: i32) -> server_t {
+impl ZmqServer {
+    pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> ZmqServer {
         options.type_ = ZMQ_SERVER;
         options.can_send_hello_msg = true;
         options.can_recv_disconnect_msg = true;
         Self {
-            socket_base: socket_base_t::new(parent_, tid_, sid_),
-            _fq: fq_t::default(),
-            _out_pipes: out_pipes_t::default(),
+            socket_base: ZmqSocketBase::new(parent_, tid_, sid_),
+            _fq: ZmqFairQueue::default(),
+            _out_pipes: ZmqOutPipes::default(),
             _next_routing_id: 0,
         }
     }
 
-    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut pipe_t, subscribe_to_all_: bool, locally_initiated_: bool) {
+    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
         let mut routing_id = self._next_routing_id += 1;
         if (!routing_id) {
             routing_id = self._next_routing_id += 1;
@@ -45,7 +45,7 @@ impl server_t {
         pipe_.set_server_socket_routing_id(routing_id);
         //  Add the record into output pipes lookup table
         // outpipe_t outpipe = {pipe_, true};
-        let outpipe = outpipe_t {
+        let outpipe = ZmqOutpipe {
             pipe: pipe_,
             active: true,
         };
@@ -55,7 +55,7 @@ impl server_t {
         self._fq.attach(pipe_);
     }
 
-    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
         // const out_pipes_t::iterator it = _out_pipes.find (pipe_->get_server_socket_routing_id ());
         let it = self._out_pipes.find(pipe_.get_server_socket_routing_id());
         // zmq_assert (it != _out_pipes.end ());
@@ -66,14 +66,14 @@ impl server_t {
         self._fq.pipe_terminated(pipe_);
     }
 
-    pub unsafe fn xread_activated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xread_activated(&mut self, pipe_: &mut ZmqPipe) {
         self._fq.read_activated(pipe_);
     }
 
-    pub unsafe fn xwrite_activated(&mut self, pipe: &mut pipe_t) {
+    pub unsafe fn xwrite_activated(&mut self, pipe: &mut ZmqPipe) {
         let end = self._out_pipes.iter_mut().last().unwrap();
 
-        let mut it: (&u32, &mut outpipe_t);
+        let mut it: (&u32, &mut ZmqOutpipe);
         for i in 0..self._out_pipes.len() {
             it = self._out_pipes.iter_mut().nth(i).unwrap();
             if it.1.pipe == pipe {
@@ -83,7 +83,7 @@ impl server_t {
         }
     }
 
-    pub unsafe fn xsend(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
         //  SERVER sockets do not allow multipart data (ZMQ_SNDMORE)
         if msg_.flag_set(MSG_MORE) {
             // errno = EINVAL;
@@ -122,9 +122,9 @@ impl server_t {
         return 0;
     }
 
-    pub unsafe fn xrecv(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xrecv(&mut self, msg_: &mut ZmqMsg) -> i32 {
         // pipe_t *pipe = NULL;
-        let mut pipe= pipe_t::default();
+        let mut pipe= ZmqPipe::default();
         let mut rc = self._fq.recvpipe (msg_, &mut Some(&mut pipe));
 
         // Drop any messages with more flag

@@ -1,9 +1,9 @@
-#![allow(non_camel_case_types)]
 
-use crate::atomic_counter::atomic_counter_t;
+
+use crate::atomic_counter::ZmqAtomicCounter;
 use crate::defines::ZMQ_GROUP_MAX_LENGTH;
-use crate::metadata::metadata_t;
-use crate::msg::group_type_t::{group_type_long, group_type_short};
+use crate::metadata::ZmqMetadata;
+use crate::msg::ZmqGroupType::{group_type_long, group_type_short};
 use libc::{free, malloc, memcpy, size_t, ENOMEM};
 use std::ffi::{c_char, c_void};
 use std::ptr::{null, null_mut};
@@ -14,14 +14,15 @@ pub const sub_cmd_name: &'static str = "\x09SUBSCRIBE";
 
 pub const CMD_TYPE_MASK: u8 = 0x1c;
 
-pub type msg_free_fn = fn(*mut c_void, *mut c_void);
+pub type MsgFreeFn = fn(*mut c_void, *mut c_void);
 
-pub struct content_t {
-    pub data: *mut u8,
+#[derive(Default,Debug,Clone)]
+pub struct ZmqContent {
+    pub data: Vec<u8>,
     pub size: size_t,
-    pub hint: *mut u8,
-    pub refcnt: atomic_counter_t,
-    pub ffn: Option<msg_free_fn>,
+    pub hint: Vec<u8>,
+    pub refcnt: ZmqAtomicCounter,
+    pub ffn: Option<MsgFreeFn>,
 }
 
 pub const MSG_MORE: u8 = 1;
@@ -41,7 +42,7 @@ pub const ping_cmd_name_size: i32 = 5;
 pub const cancel_cmd_name_size: i32 = 7;
 pub const sub_cmd_name_size: i32 = 10;
 
-pub const max_vsm_size: usize = msg_t_size - 3 + 16 + 4 + std::mem::size_of::<*mut metadata_t>();
+pub const max_vsm_size: usize = msg_t_size - 3 + 16 + 4 + std::mem::size_of::<*mut ZmqMetadata>();
 
 pub const type_min: u8 = 101;
 pub const type_vsm: u8 = 101;
@@ -53,19 +54,19 @@ pub const type_join: u8 = 106;
 pub const type_leave: u8 = 107;
 pub const type_max: u8 = 107;
 
-pub const metadata_t_ptr_size: usize = std::mem::size_of::<*mut metadata_t>();
-pub const content_t_ptr_size: usize = std::mem::size_of::<*mut content_t>();
-pub const group_t_size: usize = std::mem::size_of::<group_t>();
+pub const metadata_t_ptr_size: usize = std::mem::size_of::<*mut ZmqMetadata>();
+pub const content_t_ptr_size: usize = std::mem::size_of::<*mut ZmqContent>();
+pub const group_t_size: usize = std::mem::size_of::<ZmqGroup>();
 pub const void_ptr_size: usize = std::mem::size_of::<*mut c_void>();
 pub const size_t_size: usize = std::mem::size_of::<size_t>();
 
 #[repr(u8)]
-pub enum group_type_t {
+pub enum ZmqGroupType {
     group_type_short = 0,
     group_type_long = 1,
 }
 
-impl From<u8> for group_type_t {
+impl From<u8> for ZmqGroupType {
     fn from(value: u8) -> Self {
         match value {
             0 => group_type_short,
@@ -75,112 +76,112 @@ impl From<u8> for group_type_t {
     }
 }
 
-pub struct long_group_t {
+pub struct ZmqLongGroup {
     pub group: [u8; ZMQ_GROUP_MAX_LENGTH + 1],
-    pub refcnt: atomic_counter_t,
+    pub refcnt: ZmqAtomicCounter,
 }
 
 #[derive(Copy, Clone)]
-pub struct sgroup {
+pub struct ZmqSGroup {
     pub type_: u8,
     pub group: [u8; 15],
 }
 
 #[derive(Copy, Clone)]
-pub struct lgroup {
+pub struct ZmqLGroup {
     pub type_: u8,
-    pub content: *mut long_group_t,
+    pub content: *mut ZmqLongGroup,
 }
 
 #[derive(Copy, Clone)]
-pub union group_t {
+pub union ZmqGroup {
     pub type_: u8,
-    pub sgroup: sgroup,
-    pub lgroup: lgroup,
+    pub sgroup: ZmqSGroup,
+    pub lgroup: ZmqLGroup,
 }
 
 #[derive(Clone, Copy)]
-pub struct base {
-    pub metadata: *mut metadata_t,
+pub struct ZmqBase {
+    pub metadata: *mut ZmqMetadata,
     pub unused: [u8; metadata_t_ptr_size + 2 + 4 + group_t_size],
     pub type_: u8,
     pub flags: u8,
     pub routing_id: u32,
-    pub group: group_t,
+    pub group: ZmqGroup,
 }
 
 #[derive(Clone, Copy)]
-pub struct vsm {
-    pub metadata: *mut metadata_t,
+pub struct ZmqVsm {
+    pub metadata: *mut ZmqMetadata,
     pub data: [u8; max_vsm_size],
     pub size: u8,
     pub type_: u8,
     pub flags: u8,
     pub routing_id: u32,
-    pub group: group_t,
+    pub group: ZmqGroup,
 }
 
 #[derive(Clone, Copy)]
-pub struct lmsg {
-    pub metadata: *mut metadata_t,
-    pub content: *mut content_t,
+pub struct ZmqLMsg {
+    pub metadata: *mut ZmqMetadata,
+    pub content: *mut ZmqContent,
     pub unused: [u8; msg_t_size - metadata_t_ptr_size + content_t_ptr_size + 2 + 4 + group_t_size],
     pub type_: u8,
     pub flags: u8,
     pub routing_id: u32,
-    pub group: group_t,
+    pub group: ZmqGroup,
 }
 
 #[derive(Clone, Copy)]
-pub struct zclmsg {
-    pub metadata: *mut metadata_t,
-    pub content: *mut content_t,
+pub struct ZmqZclMsg {
+    pub metadata: *mut ZmqMetadata,
+    pub content: *mut ZmqContent,
     pub unused: [u8; msg_t_size - metadata_t_ptr_size + content_t_ptr_size + 2 + 4 + group_t_size],
     pub type_: u8,
     pub flags: u8,
     pub routing_id: u32,
-    pub group: group_t,
+    pub group: ZmqGroup,
 }
 
 #[derive(Clone, Copy)]
-pub struct cmsg {
-    pub metadata: *mut metadata_t,
+pub struct ZmqCMsg {
+    pub metadata: *mut ZmqMetadata,
     pub data: *mut u8,
     pub size: size_t,
     pub unused: [u8; msg_t_size - metadata_t_ptr_size + void_ptr_size + 2 + 4 + group_t_size],
     pub type_: u8,
     pub flags: u8,
     pub routing_id: u32,
-    pub group: group_t,
+    pub group: ZmqGroup,
 }
 
 #[derive(Clone, Copy)]
-pub struct delimiter {
-    pub metadata: *mut metadata_t,
+pub struct ZmqDelimiter {
+    pub metadata: *mut ZmqMetadata,
     pub unused: [u8; msg_t_size - metadata_t_ptr_size + 2 + 4 + group_t_size],
     pub type_: u8,
     pub flags: u8,
     pub routing_id: u32,
-    pub group: group_t,
+    pub group: ZmqGroup,
 }
 
 #[derive(Clone, Copy)]
-pub union msg_u {
-    pub base: base,
+pub union ZmqMsgU {
+    pub base: ZmqBase,
     pub vsm: vsm,
-    pub lmsg: lmsg,
-    pub zclmsg: zclmsg,
-    pub cmsg: cmsg,
-    pub delimiter: delimiter,
+    pub lmsg: ZmqLMsg,
+    pub zclmsg: ZmqZclMsg,
+    pub cmsg: ZmqCMsg,
+    pub delimiter: ZmqDelimiter,
 }
 
 #[derive(Default, Clone, Copy)]
-pub struct msg_t {
-    pub refcnt: *mut atomic_counter_t,
-    pub _u: msg_u,
+pub struct ZmqMsg {
+    pub refcnt: *mut ZmqAtomicCounter,
+    pub _u: ZmqMsgU,
 }
 
-impl msg_t {
+impl ZmqMsg {
     pub unsafe fn is_subscribe(&self) -> bool {
         self._u.base.flags & CMD_TYPE_MASK == MSG_SUBSCRIBE
     }
@@ -197,9 +198,9 @@ impl msg_t {
         &mut self,
         data_: *mut c_void,
         size_: size_t,
-        ffn_: msg_free_fn,
+        ffn_: MsgFreeFn,
         hint_: *mut c_void,
-        content_: *mut content_t,
+        content_: *mut ZmqContent,
     ) -> i32 {
         if size_ < max_vsm_size {
             let rc = self.init_size(size_);
@@ -242,9 +243,9 @@ impl msg_t {
             self._u.lmsg.group.type_ = group_type_short as u8;
             self._u.lmsg.group.sgroup.group[0] = 0;
             self._u.lmsg.content = null_mut();
-            if std::mem::size_of::<content_t>() + size_ > size_ {
+            if std::mem::size_of::<ZmqContent>() + size_ > size_ {
                 self._u.lmsg.content =
-                    libc::malloc(std::mem::size_of::<content_t>() + size_) as *mut content_t;
+                    libc::malloc(std::mem::size_of::<ZmqContent>() + size_) as *mut ZmqContent;
             }
             if self._u.lmsg.content == null_mut() {
                 return -1;
@@ -254,7 +255,7 @@ impl msg_t {
             (*self._u.lmsg.content).size = size_;
             (*self._u.lmsg.content).ffn = None;
             (*self._u.lmsg.content).hint = null_mut();
-            (*self._u.lmsg.content).refcnt = atomic_counter_t::new(0);
+            (*self._u.lmsg.content).refcnt = ZmqAtomicCounter::new(0);
         }
         return 0;
     }
@@ -272,10 +273,10 @@ impl msg_t {
 
     pub unsafe fn init_external_storage(
         &mut self,
-        content_: *mut content_t,
+        content_: *mut ZmqContent,
         data_: *mut c_void,
         size_: size_t,
-        ffn_: msg_free_fn,
+        ffn_: MsgFreeFn,
         hint_: *mut c_void,
     ) -> i32 {
         self._u.zclmsg.metadata = null_mut();
@@ -291,7 +292,7 @@ impl msg_t {
         (*self._u.zclmsg.content).ffn = Some(ffn_);
         (*self._u.zclmsg.content).hint = hint_;
         // new (&_u.zclmsg.content->refcnt) zmq::atomic_counter_t ();
-        (*self._u.zclmsg.content).refcnt = atomic_counter_t::new(0);
+        (*self._u.zclmsg.content).refcnt = ZmqAtomicCounter::new(0);
 
         return 0;
     }
@@ -300,7 +301,7 @@ impl msg_t {
         &mut self,
         data_: *mut c_void,
         size_: size_t,
-        ffn_: Option<msg_free_fn>,
+        ffn_: Option<MsgFreeFn>,
         hint_: *mut c_void,
     ) -> i32 {
         if ffn_.is_none() {
@@ -320,7 +321,7 @@ impl msg_t {
             self._u.lmsg.group.type_ = group_type_short as u8;
             self._u.lmsg.routing_id = 0;
             self._u.lmsg.content =
-                libc::malloc(std::mem::size_of::<content_t>() + size_) as *mut content_t;
+                libc::malloc(std::mem::size_of::<ZmqContent>() + size_) as *mut ZmqContent;
             if (self._u.lmsg.content != null_mut()) {
                 // errno = ENOMEM;
                 return -1;
@@ -331,7 +332,7 @@ impl msg_t {
             (*self._u.lmsg.content).ffn = ffn_;
             (*self._u.lmsg.content).hint = hint_;
             // new (&_u.lmsg.content.refcnt) zmq::atomic_counter_t ();
-            (*self._u.lmsg.content).refcnt = atomic_counter_t::new(0);
+            (*self._u.lmsg.content).refcnt = ZmqAtomicCounter::new(0);
         }
         return 0;
     }
@@ -447,7 +448,7 @@ impl msg_t {
         return 0;
     }
 
-    pub unsafe fn move_(&mut self, src_: &mut msg_t) -> i32 {
+    pub unsafe fn move_(&mut self, src_: &mut ZmqMsg) -> i32 {
         if !src_.check() {
             return -1;
         }
@@ -465,7 +466,7 @@ impl msg_t {
         return 0;
     }
 
-    pub unsafe fn copy(&mut self, src_: &mut msg_t) -> i32 {
+    pub unsafe fn copy(&mut self, src_: &mut ZmqMsg) -> i32 {
         if !src_.check() {
             return -1;
         }
@@ -475,7 +476,7 @@ impl msg_t {
             return rc;
         }
 
-        let mut initial_shared_refcnt = atomic_counter_t::new(2);
+        let mut initial_shared_refcnt = ZmqAtomicCounter::new(2);
 
         if src_.is_lmsg() || src_.is_zcmsg() {
             if src_.flags() & MSG_SHARED != 0 {
@@ -589,11 +590,11 @@ impl msg_t {
     //     self._u.base.flags &= !flags_;
     // }
 
-    pub unsafe fn metadata(&mut self) -> *mut metadata_t {
+    pub unsafe fn metadata(&mut self) -> *mut ZmqMetadata {
         return self._u.base.metadata;
     }
 
-    pub unsafe fn set_metadata(&mut self, metadata_: *mut metadata_t) {
+    pub unsafe fn set_metadata(&mut self, metadata_: *mut ZmqMetadata) {
         (*metadata_).add_ref();
         self._u.base.metadata = metadata_;
     }
@@ -775,7 +776,7 @@ impl msg_t {
         if length_ > 14 {
             self._u.base.group.lgroup.type_ = group_type_long as u8;
             self._u.base.group.lgroup.content =
-                libc::malloc(std::mem::size_of::<long_group_t>()) as *mut long_group_t;
+                libc::malloc(std::mem::size_of::<ZmqLongGroup>()) as *mut ZmqLongGroup;
             (*self._u.base.group.lgroup.content).refcnt.set(1);
             libc::strncpy(
                 (&mut (*self._u.base.group.lgroup.content).group as *mut u8) as *mut c_char,
@@ -795,19 +796,19 @@ impl msg_t {
         return 0;
     }
 
-    pub unsafe fn refcnt(&mut self) -> *mut atomic_counter_t {
+    pub unsafe fn refcnt(&mut self) -> *mut ZmqAtomicCounter {
         return &mut (*self._u.base.metadata)._ref_cnt;
     }
 }
 
-pub unsafe fn close_and_return(mut msg_: *mut msg_t, echo_: i32) -> i32 {
+pub unsafe fn close_and_return(mut msg_: *mut ZmqMsg, echo_: i32) -> i32 {
     // let err: i32 = errno();
     let rc = (*msg_).close();
     // errno = err;
     return echo_;
 }
 
-pub unsafe fn close_and_return2(msg_: &mut [msg_t], count_: i32, echo_: i32) -> i32 {
+pub unsafe fn close_and_return2(msg_: &mut [ZmqMsg], count_: i32, echo_: i32) -> i32 {
     for i in 0..count_ {
         close_and_return(&mut msg_[i as usize], 0);
     }

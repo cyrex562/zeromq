@@ -1,16 +1,16 @@
 use std::ptr::null_mut;
-use crate::defines::handle_t;
+use crate::defines::ZmqHandle;
 use crate::fd::fd_t;
-use crate::i_poll_events::i_poll_events;
-use crate::io_thread::io_thread_t;
-use crate::poller::poller_t;
+use crate::i_poll_events::IPollEvents;
+use crate::io_thread::ZmqIoThread;
+use crate::poller::ZmqPoller;
 
-pub struct io_object_t {
-    pub _poller: *mut poller_t,
+pub struct IoObject {
+    pub _poller: *mut ZmqPoller,
 }
 
-impl io_object_t {
-    pub fn new(io_thread_: *mut io_thread_t) -> Self {
+impl IoObject {
+    pub fn new(io_thread_: *mut ZmqIoThread) -> Self {
         let mut out = Self {
             _poller: null_mut(),
         };
@@ -20,7 +20,7 @@ impl io_object_t {
         out
     }
 
-    pub fn plug(&mut self, io_thread_: *mut io_thread_t) {
+    pub fn plug(&mut self, io_thread_: *mut ZmqIoThread) {
         self._poller = unsafe { (*io_thread_)._poller };
     }
 
@@ -28,27 +28,27 @@ impl io_object_t {
         self._poller = null_mut();
     }
 
-    pub fn add_fd(&mut self, fd_: fd_t) -> handle_t {
+    pub fn add_fd(&mut self, fd_: fd_t) -> ZmqHandle {
         self._poller.add_fd(fd_, self)
     }
 
-    pub fn rm_fd(&mut self, handle_: handle_t) {
+    pub fn rm_fd(&mut self, handle_: ZmqHandle) {
         self._poller.rm_fd(handle_)
     }
 
-    pub fn set_pollin(&mut self, handle_: handle_t) {
+    pub fn set_pollin(&mut self, handle_: ZmqHandle) {
         self._poller.set_poll_in(handle_)
     }
 
-    pub fn reset_pollin(&mut self, handle_: handle_t) {
+    pub fn reset_pollin(&mut self, handle_: ZmqHandle) {
         self._poller.reset_pollin(handle_)
     }
 
-    pub fn set_pollout(&mut self, handle_: handle_t) {
+    pub fn set_pollout(&mut self, handle_: ZmqHandle) {
         self._poller.set_poll_out(handle_)
     }
 
-    pub fn reset_pollout(&mut self, handle_: handle_t) {
+    pub fn reset_pollout(&mut self, handle_: ZmqHandle) {
         self._poller.reset_pollout(handle_)
     }
 
@@ -61,7 +61,7 @@ impl io_object_t {
     }
 }
 
-impl i_poll_events for io_object_t {
+impl IPollEvents for IoObject {
     fn in_event(&mut self) {
         todo!()
     }

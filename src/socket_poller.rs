@@ -3,48 +3,48 @@ use std::ptr::null_mut;
 use libc::EINTR;
 use windows::Win32::Networking::WinSock::{FD_SET, POLLIN, POLLOUT, POLLPRI};
 use windows::Win32::System::Threading::{INFINITE, Sleep};
-use crate::clock::clock_t;
+use crate::clock::ZmqClock;
 use crate::defines::{ZMQ_FD, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI};
 use crate::fd::fd_t;
-use crate::polling_util::resizable_optimized_fd_set_t;
+use crate::polling_util::ResizableOptimizedFdSetT;
 use crate::select::{fd_set, FD_SET, FD_ZERO, FD_CLR};
-use crate::signaler::signaler_t;
-use crate::socket_base::socket_base_t;
+use crate::signaler::ZmqSignaler;
+use crate::socket_base::ZmqSocketBase;
 use crate::utils::FD_ISSET;
 
-pub type event_t = zmq_poller_event_t;
+pub type ZmqEvent = zmq_poller_event_t;
 
-pub struct item_t {
-    pub socket: *mut socket_base_t,
+pub struct ZmqItem {
+    pub socket: *mut ZmqSocketBase,
     pub fd: fd_t,
     pub user_data: *mut c_void,
     pub events: i16,
     pub pollfd_index: i32,
 }
 
-pub type items_t = Vec<item_t>;
+pub type ZmqItems = Vec<ZmqItem>;
 
-pub struct socket_poller_t {
+pub struct ZmqSocketPoller {
     pub _tag: u32,
-    pub _signaler: *mut signaler_t,
-    pub _items: items_t,
+    pub _signaler: *mut ZmqSignaler,
+    pub _items: ZmqItems,
     pub _need_rebuild: bool,
     pub _use_signaler: bool,
     pub _pollset_size: i32,
     #[cfg(feature = "poll")]
     pub _pollfds: *mut pollfd,
     #[cfg(feature = "select")]
-    pub _pollset_in: resizable_optimized_fd_set_t,
+    pub _pollset_in: ResizableOptimizedFdSetT,
     #[cfg(feature = "select")]
-    pub _pollset_out: resizable_optimized_fd_set_t,
+    pub _pollset_out: ResizableOptimizedFdSetT,
     #[cfg(feature = "select")]
-    pub _pollset_err: resizable_optimized_fd_set_t,
+    pub _pollset_err: ResizableOptimizedFdSetT,
     #[cfg(feature = "select")]
     pub _max_fd: fd_t,
 }
 
 
-impl socket_poller_t {
+impl ZmqSocketPoller {
     pub fn new() -> Self {
         Self {
             _tag: 0xdeadbeef,
@@ -75,7 +75,7 @@ impl socket_poller_t {
         return -1;
     }
 
-    pub fn add(&mut self, socket_: *mut socket_base_t,
+    pub fn add(&mut self, socket_: *mut ZmqSocketBase,
                user_data_: *mut c_void,
                events_: i16) -> i32 {
         // if (find_if2 (self._items.begin (), _items.end (), socket_, &is_socket)
@@ -86,7 +86,7 @@ impl socket_poller_t {
 
         if is_thread_safe(*socket_) {
             if self._signaler == null_mut() {
-                self._signaler = &mut signaler_t::new();
+                self._signaler = &mut ZmqSignaler::new();
                 if !self._signaler {
                     // errno = ENOMEM;
                     return -1;
@@ -102,7 +102,7 @@ impl socket_poller_t {
             socket_.add_signaler(self._signaler);
         }
 
-        let mut item: item_t = item_t {
+        let mut item: ZmqItem = ZmqItem {
             socket_,
             0,
             user_data_,
@@ -131,7 +131,7 @@ impl socket_poller_t {
         //     return -1;
         // }
 
-        let mut item: item_t = item_t {
+        let mut item: ZmqItem = ZmqItem {
             null_mut(),
             fd_,
             user_data_,
@@ -153,7 +153,7 @@ impl socket_poller_t {
         return 0;
     }
 
-    pub fn modify(&mut self, socket_: *mut socket_base_t, events_: i16) -> i32 {
+    pub fn modify(&mut self, socket_: *mut ZmqSocketBase, events_: i16) -> i32 {
         // let it = items_t. const items_t::iterator it =
         // find_if2 (_items.begin (), _items.end (), socket_, &is_socket);
 
@@ -346,7 +346,7 @@ impl socket_poller_t {
 
 // return 0; }
 
-    pub fn zero_trail_events(&mut self, events_: *mut event_t, n_events_: i32, found_: i32) {
+    pub fn zero_trail_events(&mut self, events_: *mut ZmqEvent, n_events_: i32, found_: i32) {
         // for (i32 i = found_; i < n_events_; ++i) {
         //     events_[i].socket = NULL;
         //     events_[i].fd = 0;
@@ -362,9 +362,9 @@ impl socket_poller_t {
     }
 
     #[cfg(feature = "poll")]
-    pub unsafe fn check_events(&mut self, events_: *mut event_t, n_events_: i32) -> i32
+    pub unsafe fn check_events(&mut self, events_: *mut ZmqEvent, n_events_: i32) -> i32
     #[cfg(feature = "select")]
-    pub unsafe fn check_events(&mut self, events_: *mut event_t, n_events_: i32, inset_: &mut fd_set, outset_: &mut fd_set, errset_: &mut fd_set) -> i32 {
+    pub unsafe fn check_events(&mut self, events_: *mut ZmqEvent, n_events_: i32, inset_: &mut fd_set, outset_: &mut fd_set, errset_: &mut fd_set) -> i32 {
         int
         found = 0;
         // for (items_t::iterator it = _items.begin (), end = _items.end ();
@@ -441,7 +441,7 @@ impl socket_poller_t {
         return found;
     }
 
-    pub fn adjust_timeout(&mut self, clock_: &mut clock_t, timeout_: i32, now_: &mut u64, end_: &mut u64, first_pass_: &mut bool) -> i32 {
+    pub fn adjust_timeout(&mut self, clock_: &mut ZmqClock, timeout_: i32, now_: &mut u64, end_: &mut u64, first_pass_: &mut bool) -> i32 {
         //  If socket_poller_t::timeout is zero, exit immediately whether there
         //  are events or not.
         if (timeout_ == 0) {
@@ -476,7 +476,7 @@ impl socket_poller_t {
         return 1;
     }
 
-    pub unsafe fn wait(&mut self, events_: *mut event_t, n_events_: i32, timeout_: i32) -> i32 {
+    pub unsafe fn wait(&mut self, events_: *mut ZmqEvent, n_events_: i32, timeout_: i32) -> i32 {
         if (self._items.empty() && timeout_ < 0) {
             // errno = EFAULT;
             return -1;
@@ -495,7 +495,7 @@ impl socket_poller_t {
                 // errno = EFAULT;
                 return -1;
             }
-            // We'll report an error (timed out) as if the list was non-empty and
+            // We'll report an Error (timed out) as if the list was non-empty and
             // no event occurred within the specified timeout. Otherwise the caller
             // needs to check the return value AND the event to avoid using the
             // nullified event data.
@@ -531,7 +531,7 @@ impl socket_poller_t {
 
         // #if defined ZMQ_POLL_BASED_ON_POLL
         #[cfg(feature = "poll")]{
-            let mut clock = clock_t::default();
+            let mut clock = ZmqClock::default();
             let mut now = 0u64;
             let mut end = 0u64;
 
@@ -582,7 +582,7 @@ impl socket_poller_t {
         #[cfg(feature = "select")]
         {
             // zmq::clock_t clock;
-            let mut clock = clock_t::default();
+            let mut clock = ZmqClock::default();
             // uint64_t now = 0;
             let mut now = 0u64;
             // uint64_t end = 0;
@@ -674,7 +674,7 @@ impl socket_poller_t {
     }
 } // impl socket_poller_t
 
-pub fn is_thread_safe(socket_: &mut socket_base_t) -> bool {
+pub fn is_thread_safe(socket_: &mut ZmqSocketBase) -> bool {
     // do not use getsockopt here, since that would fail during context termination
     return socket_.is_thread_safe();
 }

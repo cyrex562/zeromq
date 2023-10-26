@@ -134,7 +134,7 @@ void zap_handler_generic (zap_protocol_t zap_protocol_,
     TEST_ASSERT_NOT_NULL (handler);
     TEST_ASSERT_SUCCESS_ERRNO (zmq_bind (handler, "inproc://zeromq.zap.01"));
 
-    //  Signal main thread that we are ready
+    //  Signal main thread that we are Ready
     send_string_expect_success (control, "GO", 0);
 
     ZmqPollItem items[] = {

@@ -1,11 +1,11 @@
 use std::sync::atomic::{AtomicI32, Ordering};
 
-pub struct atomic_counter_t
+pub struct ZmqAtomicCounter
 {
     pub _value: AtomicI32,
 }
 
-impl atomic_counter_t
+impl ZmqAtomicCounter
 {
     pub fn new(value_: i32) -> Self {
         Self {

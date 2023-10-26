@@ -1,26 +1,26 @@
-use crate::ctx::ctx_t;
+use crate::ctx::ZmqContext;
 use crate::defines::ZMQ_PAIR;
-use crate::msg::{MSG_MORE, msg_t};
-use crate::options::options_t;
-use crate::pipe::pipe_t;
-use crate::socket_base::socket_base_t;
+use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::socket_base::ZmqSocketBase;
 
-pub struct pair_t<'a> {
-    pub socket_base: socket_base_t<'a>,
-    pub _pipe: Option<&'a mut pipe_t<'a>>,
+pub struct ZmqPair<'a> {
+    pub socket_base: ZmqSocketBase<'a>,
+    pub _pipe: Option<&'a mut ZmqPipe<'a>>,
 }
 
-impl pair_t {
-    pub unsafe fn new(options: &mut options_t, parent_: &mut ctx_t, tid_: u32, sid_: i32) -> pair_t {
+impl ZmqPair {
+    pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> ZmqPair {
         let mut out = Self {
-            socket_base: socket_base_t::new(parent_, tid_, sid_),
-            _pipe: pipe_t::default(),
+            socket_base: ZmqSocketBase::new(parent_, tid_, sid_),
+            _pipe: ZmqPipe::default(),
         };
         options.type_ = ZMQ_PAIR;
         out
     }
 
-    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut pipe_t, subscribe_to_all_: bool, locally_initiated_: bool) {
+    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
         if self._pipe.is_none() {
             self._pipe = Some(pipe_);
         } else {
@@ -28,21 +28,21 @@ impl pair_t {
         }
     }
 
-    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
         if pipe_ == self._pipe {
             self._pipe = None;
         }
     }
 
-    pub unsafe fn xread_activated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xread_activated(&mut self, pipe_: &mut ZmqPipe) {
         unimplemented!()
     }
 
-    pub unsafe fn xwrite_activated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xwrite_activated(&mut self, pipe_: &mut ZmqPipe) {
         unimplemented!()
     }
 
-    pub unsafe fn xsend(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if (!self._pipe || !self._pipe.write (msg_)) {
             // errno = EAGAIN;
             return -1;
@@ -58,7 +58,7 @@ impl pair_t {
         return 0;
     }
 
-    pub unsafe fn xrecv(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xrecv(&mut self, msg_: &mut ZmqMsg) -> i32 {
         //  Deallocate old content of the message.
         let rc = msg_.close ();
         // errno_assert (rc == 0);

@@ -1,32 +1,32 @@
-#![allow(non_camel_case_types)]
+
 
 #[derive(PartialEq)]
-pub enum endpoint_type_t
+pub enum ZmqEndpointType
 {
     endpoint_type_none,
     endpoint_type_bind,
     endpoint_type_connect,
 }
 
-pub struct endpoint_uri_pair_t
+pub struct ZmqEndpointUriPair
 {
     pub local: String,
     pub remote: String,
-    pub local_type: endpoint_type_t,
+    pub local_type: ZmqEndpointType,
 }
 
-impl endpoint_uri_pair_t
+impl ZmqEndpointUriPair
 {
     pub fn new() -> Self
     {
         Self {
             local: String::new(),
             remote: String::new(),
-            local_type: endpoint_type_t::endpoint_type_none,
+            local_type: ZmqEndpointType::endpoint_type_none,
         }
     }
 
-    pub fn new2(local_: &str, remote_: &str, local_type_: endpoint_type_t) -> Self
+    pub fn new2(local_: &str, remote_: &str, local_type_: ZmqEndpointType) -> Self
     {
         Self {
             local: local_.to_string(),
@@ -35,7 +35,7 @@ impl endpoint_uri_pair_t
         }
     }
 
-    pub fn new3(pair: &mut endpoint_uri_pair_t) -> Self
+    pub fn new3(pair: &mut ZmqEndpointUriPair) -> Self
     {
         Self {
             local: pair.local.clone(),
@@ -45,7 +45,7 @@ impl endpoint_uri_pair_t
     }
 
     pub fn identifier(&self) -> &String {
-        if self.local_type == endpoint_type_t::endpoint_type_bind {
+        if self.local_type == ZmqEndpointType::endpoint_type_bind {
             &self.local
         } else {
             &self.remote
@@ -53,12 +53,12 @@ impl endpoint_uri_pair_t
     }
 }
 
-pub fn make_unconnected_connect_endpoint_pair(endpoint_: &str) -> endpoint_uri_pair_t
+pub fn make_unconnected_connect_endpoint_pair(endpoint_: &str) -> ZmqEndpointUriPair
 {
-    endpoint_uri_pair_t::new2("", endpoint_, endpoint_type_t::endpoint_type_connect)
+    ZmqEndpointUriPair::new2("", endpoint_, ZmqEndpointType::endpoint_type_connect)
 }
 
-pub fn make_unconnected_bind_endpoint_pair(endpoint_: &str) -> endpoint_uri_pair_t
+pub fn make_unconnected_bind_endpoint_pair(endpoint_: &str) -> ZmqEndpointUriPair
 {
-    endpoint_uri_pair_t::new2(endpoint_, "", endpoint_type_t::endpoint_type_bind)
+    ZmqEndpointUriPair::new2(endpoint_, "", ZmqEndpointType::endpoint_type_bind)
 }

@@ -1,38 +1,35 @@
-#![allow(non_camel_case_types)]
+
 #![allow(non_upper_case_globals)]
 
-use std::{collections::{HashMap, HashSet}, ptr, sync::Mutex};
+use std::{collections::{HashMap, HashSet}, sync::Mutex};
 use std::ffi::c_void;
 use std::ptr::null_mut;
-use crate::{socket_base::socket_base_t, command::command_t};
-use crate::atomic_counter::atomic_counter_t;
-use crate::defines::ZMQ_PAIR;
-use crate::i_mailbox::i_mailbox;
-use crate::io_thread::io_thread_t;
-use crate::mailbox::mailbox_t;
-use crate::msg::msg_t;
-use crate::mutex::{mutex_t, scoped_lock_t};
-use crate::options::{get_effective_conflate_option, options_t};
-use crate::pipe::{pipe_t, send_routing_id};
+use crate::{command::ZmqCommand, socket_base::ZmqSocketBase};
+use crate::atomic_counter::ZmqAtomicCounter;
+use crate::defines::{ZMQ_CTX_TAG_VALUE_GOOD, ZMQ_PAIR};
+use crate::i_mailbox::IMailbox;
+use crate::io_thread::ZmqIoThread;
+use crate::mailbox::ZmqMailbox;
+use crate::msg::ZmqMsg;
+use crate::mutex::{scoped_lock_t, ZmqMutex};
+use crate::options::{get_effective_conflate_option, ZmqOptions};
+use crate::pipe::{send_routing_id, ZmqPipe};
 use crate::poller::max_fds;
-use crate::reaper::reaper_t;
-use crate::thread::{thread_fn, thread_t};
+use crate::reaper::ZmqReaper;
+use crate::thread::{ZmqThread, ZmqThreadFn};
 
-pub type io_threads_t = Vec<*mut io_thread_t>;
-
-pub const ZMQ_CTX_TAG_VALUE_GOOD: u32 = 0xCAFEBABE;
-pub const ZMQ_CTX_TAG_VALUE_BAD: u32 = 0xDEADBEEF;
+pub type io_threads_t<'a> = Vec<&'a mut ZmqIoThread>;
 
 #[cfg(target_os = "windows")]
 pub type pid_t = i32;
 
-pub struct endpoint_t {
-    pub socket: *mut socket_base_t,
-    pub options: options_t,
+pub struct Endpoint<'a> {
+    pub socket: &'a mut ZmqSocketBase<'a>,
+    pub options: ZmqOptions,
 }
 
-pub struct thread_ctx_t {
-    pub _opt_sync: mutex_t,
+pub struct ZmqThreadCtx {
+    pub _opt_sync: ZmqMutex,
     pub _thread_priority: i32,
     pub _thread_sched_policy: i32,
     pub _thread_affinity_cpus: HashSet<i32>,
@@ -44,9 +41,9 @@ pub const term_tid: i32 = 0;
 pub const reaper_tid: i32 = 1;
 
 pub struct pending_connection_t<'a> {
-    pub endpoint: endpoint_t,
-    pub connect_pipe: &'a mut pipe_t<'a>,
-    pub bind_pipe: &'a mut pipe_t<'a>,
+    pub endpoint: Endpoint,
+    pub connect_pipe: &'a mut ZmqPipe<'a>,
+    pub bind_pipe: &'a mut ZmqPipe<'a>,
 }
 
 pub enum side {
@@ -61,22 +58,22 @@ pub fn clipped_maxsocket(mut max_requested_: i32) -> i32 {
     max_requested_
 }
 
-pub struct ctx_t<'a> {
-    pub _thread_ctx: thread_ctx_t,
+pub struct ZmqContext<'a> {
+    pub _thread_ctx: ZmqThreadCtx,
     pub _tag: u32,
-    pub _sockets: Vec<socket_base_t>,
+    pub _sockets: Vec<ZmqSocketBase>,
     pub _empty_slots: Vec<u32>,
     pub _starting: bool,
     pub _terminating: bool,
-    pub _slot_sync: mutex_t,
-    pub _reaper: *mut reaper_t,
+    pub _slot_sync: ZmqMutex,
+    pub _reaper: &'a mut ZmqReaper,
     pub _io_threads: io_threads_t,
-    pub _slots: Vec<&'a mut dyn i_mailbox>,
-    pub _term_mailbox: mailbox_t,
-    pub _endpoints: HashMap<String, endpoint_t>,
+    pub _slots: Vec<&'a mut dyn IMailbox>,
+    pub _term_mailbox: ZmqMailbox,
+    pub _endpoints: HashMap<String, Endpoint>,
     pub _pending_connections: HashMap<String, pending_connection_t<'a>>,
-    pub _endpoints_sync: mutex_t,
-    pub max_socket_id: atomic_counter_t,
+    pub _endpoints_sync: ZmqMutex,
+    pub max_socket_id: ZmqAtomicCounter,
     pub _max_sockets: i32,
     pub _max_msgsz: i32,
     pub _io_thread_count: i32,
@@ -91,27 +88,27 @@ pub struct ctx_t<'a> {
     pub _vmci_family: i32,
     #[cfg(feature = "vmci")]
     pub _vmci_sync: Mutex<()>,
-    pub _opt_sync: mutex_t,
+    pub _opt_sync: ZmqMutex,
 }
 
-impl ctx_t {
+impl ZmqContext {
     pub fn new() -> Self {
         Self {
-            _thread_ctx: thread_ctx_t::new(),
+            _thread_ctx: ZmqThreadCtx::new(),
             _tag: 0,
             _sockets: Vec::new(),
             _empty_slots: Vec::new(),
             _starting: false,
             _terminating: false,
-            _slot_sync: mutex_t::new(),
+            _slot_sync: ZmqMutex::new(),
             _reaper: null_mut(),
             _io_threads: io_threads_t::new(),
             _slots: Vec::new(),
-            _term_mailbox: mailbox_t::new(),
+            _term_mailbox: ZmqMailbox::new(),
             _endpoints: HashMap::new(),
             _pending_connections: HashMap::new(),
-            _endpoints_sync: mutex_t::new(),
-            max_socket_id: atomic_counter_t::new(0),
+            _endpoints_sync: ZmqMutex::new(),
+            max_socket_id: ZmqAtomicCounter::new(0),
             _max_sockets: 0,
             _max_msgsz: 0,
             _io_thread_count: 0,
@@ -123,7 +120,7 @@ impl ctx_t {
             _vmci_fd: 0,
             _vmci_family: 0,
             _vmci_sync: Mutex::new(()),
-            _opt_sync: mutex_t::new(),
+            _opt_sync: ZmqMutex::new(),
         }
     }
 
@@ -161,7 +158,7 @@ impl ctx_t {
             }
             self._slot_sync.unlock();
 
-            let mut cmd = command_t::new();
+            let mut cmd = ZmqCommand::new();
             let rc = self._term_mailbox.recv(&cmd, -1);
             // TODO: && errno == EINTR
             if rc == -1 {
@@ -239,7 +236,7 @@ impl ctx_t {
     }
 
     pub fn get_msg_t_sz(&mut self) -> usize {
-        std::mem::size_of::<msg_t>()
+        std::mem::size_of::<ZmqMsg>()
     }
 
     pub fn get_zero_copy_recv(&mut self) -> bool {
@@ -255,13 +252,13 @@ impl ctx_t {
         let slot_count = mazmq + ios + term_and_reaper_threads_count;
         self._slots.reserve((slot_count - term_and_reaper_threads_count) as usize);
         self._slots[term_tid] = &self._term_mailbox;
-        self._reaper = reaper_t::new(self, reaper_tid);
+        self._reaper = ZmqReaper::new(self, reaper_tid);
         self._slots[reaper_tid] = &self._reaper.get_mailbox();
         self._reaper.start();
         self._slots.reserve(slot_count);
 
         for i in term_and_reaper_threads_count..ios + term_and_reaper_threads_count {
-            let io_thread = io_thread_t::new(self, i);
+            let io_thread = ZmqIoThread::new(self, i);
             // if io_thread.get_mailbox().valid() == false{}
             self._io_threads.push(&mut io_thread);
             self._slots[i] = &io_thread.get_mailbox();
@@ -281,7 +278,7 @@ impl ctx_t {
         // selff._slots.clear()
     }
 
-    pub unsafe fn create_socket(&mut self, type_: i32) -> Option<&mut socket_base_t> {
+    pub unsafe fn create_socket(&mut self, type_: i32) -> Option<&mut ZmqSocketBase> {
         if self._terminating {
             return None;
         }
@@ -300,13 +297,13 @@ impl ctx_t {
         self._empty_slots.pop();
         let sid = self.max_socket_id.add(1) + 1;
 
-        let mut s = socket_base_t::new(self, sid, slot, type_);
+        let mut s = ZmqSocketBase::new(self, sid, slot, type_);
         self._sockets.push(s);
         self._slots[slot] = s.get_mailbox();
         return Some(&mut s);
     }
 
-    pub unsafe fn destroy_socket(&mut self, socket_: *mut socket_base_t) {
+    pub unsafe fn destroy_socket(&mut self, socket_: &mut ZmqSocketBase) {
         let mut locker = scoped_lock_t::new(&mut self._slot_sync);
         let slot = (*socket_).get_slot();
         self._slots[slot] = null_mut();
@@ -324,11 +321,11 @@ impl ctx_t {
         }
     }
 
-    pub fn get_reaper(&mut self) -> *mut reaper_t {
+    pub fn get_reaper(&mut self) -> &mut ZmqReaper {
         self._reaper
     }
 
-    pub unsafe fn start_thread(&mut self, thread_: &mut thread_t, tfn_: thread_fn, arg_: *mut c_void, name_: &str) -> bool {
+    pub unsafe fn start_thread(&mut self, thread_: &mut ZmqThread, tfn_: ZmqThreadFn, arg_: & [u8], name_: &str) -> bool {
         let thread_name = format!("{}{}ZMQbg{}{}",
                                   if self._thread_ctx._thread_name_prefix.is_empty() { "" } else { &self._thread_ctx._thread_name_prefix },
                                   if self._thread_ctx._thread_name_prefix.is_empty() { "" } else { "/" },
@@ -340,11 +337,11 @@ impl ctx_t {
         return true;
     }
 
-    pub fn send_command(&mut self, tid_: u32, command_: &command_t) {
+    pub fn send_command(&mut self, tid_: u32, command_: &ZmqCommand) {
         self._slots[tid_ as usize].send(command_);
     }
 
-    pub fn choose_io_thread(&mut self, affinity_: u64) -> *mut io_thread_t {
+    pub fn choose_io_thread(&mut self, affinity_: u64) -> *mut ZmqIoThread {
         let mut min_load = 0x7fffffff;
         let mut result = null_mut();
         for i in 0..self._io_threads.len() {
@@ -357,9 +354,9 @@ impl ctx_t {
         return result;
     }
 
-    pub fn register_endpoint(&mut self, addr_: &str, socket_: &mut socket_base_t, options_: &mut options_t) -> i32 {
+    pub fn register_endpoint(&mut self, addr_: &str, socket_: &mut ZmqSocketBase, options_: &mut ZmqOptions) -> i32 {
         let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
-        let mut endpoint = endpoint_t::new();
+        let mut endpoint = Endpoint::new();
         endpoint.socket = socket_;
         endpoint.options = options_.clone();
         self._endpoints.insert(addr_.to_string(), endpoint);
@@ -372,7 +369,7 @@ impl ctx_t {
         return 0;
     }
 
-    pub fn unregister_endpoints(&mut self, socket_: *mut socket_base_t) {
+    pub fn unregister_endpoints(&mut self, socket_: &mut ZmqSocketBase) {
         let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         let mut to_remove = Vec::new();
         for i in self._endpoints {
@@ -385,7 +382,7 @@ impl ctx_t {
         }
     }
 
-    pub fn find_endpoint(&mut self, addr_: &str) -> *mut socket_base_t {
+    pub fn find_endpoint(&mut self, addr_: &str) -> &mut ZmqSocketBase {
         let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         let mut endpoint = self._endpoints.get(addr_);
         if endpoint.is_none() {
@@ -394,7 +391,7 @@ impl ctx_t {
         return endpoint.unwrap().socket;
     }
 
-    pub unsafe fn pend_connection(&mut self, addr_: &str, endpoint_: &endpoint_t, pipes_: &mut [&mut pipe_t]) -> i32 {
+    pub unsafe fn pend_connection(&mut self, addr_: &str, endpoint_: &Endpoint, pipes_: &mut [&mut ZmqPipe]) -> i32 {
         let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         let mut pending_connection = pending_connection_t::new();
         pending_connection.endpoint = endpoint_.clone();
@@ -417,7 +414,7 @@ impl ctx_t {
         return 0;
     }
 
-    pub unsafe fn connect_pending(&mut self, addr_: &str, bind_socket_: *mut socket_base_t) {
+    pub unsafe fn connect_pending(&mut self, addr_: &str, bind_socket_: &mut ZmqSocketBase) {
         let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         for k in self._pending_connections.keys() {
             if k == addr_ {
@@ -431,15 +428,15 @@ impl ctx_t {
 
     pub unsafe fn connect_inproc_sockets(
         &mut self,
-        bind_socket_: *mut socket_base_t,
-        bind_options_: &options_t,
+        bind_socket_: &mut ZmqSocketBase,
+        bind_options_: &ZmqOptions,
         pending_connection_: &mut pending_connection_t,
         side_: side,
     ) {
         bind_socket_.inc_seqnum();
         pending_connection_.bind_pipe.set_tid(bind_socket_.get_tid());
         if !bind_options_.recv_routing_id {
-            let mut msg = msg_t::new();
+            let mut msg = ZmqMsg::new();
             let ok = pending_connection_.bind_pipe.read2(&msg);
             let rc = msg.close();
         }
@@ -461,8 +458,8 @@ impl ctx_t {
         }
 
         if side_ == side::bind_side {
-            let mut cmd = command_t::new();
-            cmd.type_ = command_t::bind;
+            let mut cmd = ZmqCommand::new();
+            cmd.type_ = ZmqCommand::bind;
             cmd.args.bind.pipe = pending_connection_.bind_pipe;
             bind_socket_.process_command(cmd);
             bind_socket_.send_inproc_connected(

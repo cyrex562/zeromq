@@ -174,7 +174,7 @@ void reconnect_stop_on_refused ()
     void *sub_mon = test_context_socket (ZMQ_PAIR);
     //  Connect so they'll get events
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (sub_mon, "inproc://monitor-sub"));
-    // set option to Stop reconnecting on error
+    // set option to Stop reconnecting on Error
     int stopReconnectOnError = ZMQ_RECONNECT_STOP_CONN_REFUSED;
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (sub, ZMQ_RECONNECT_STOP,
                                                &stopReconnectOnError,

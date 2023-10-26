@@ -88,7 +88,7 @@ void test_get_peer_state ()
       zmq_setsockopt (dealer2, ZMQ_ROUTING_ID, dealer2_routing_id, 1));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (dealer2, my_endpoint));
 
-    //  Get message from both dealers to know when connection is ready
+    //  Get message from both dealers to know when connection is Ready
     send_string_expect_success (dealer1, "Hello", 0);
     recv_string_expect_success (router, dealer1_routing_id, 0);
     recv_string_expect_success (router, "Hello", 0);
@@ -189,7 +189,7 @@ void test_basic ()
     bind_loopback_ipv4 (router, my_endpoint, sizeof my_endpoint);
 
     //  Send a message to an unknown peer with the default setting
-    //  This will not report any error
+    //  This will not report any Error
     send_string_expect_success (router, "UNKNOWN", ZMQ_SNDMORE);
     send_string_expect_success (router, "DATA", 0);
 
@@ -207,7 +207,7 @@ void test_basic ()
     TEST_ASSERT_SUCCESS_ERRNO (zmq_setsockopt (dealer, ZMQ_ROUTING_ID, "X", 1));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (dealer, my_endpoint));
 
-    //  Get message from dealer to know when connection is ready
+    //  Get message from dealer to know when connection is Ready
     send_string_expect_success (dealer, "Hello", 0);
     recv_string_expect_success (router, "X", 0);
 

@@ -100,12 +100,12 @@ static void do_check (sb_: *mut c_void, sc_: *mut c_void, msg_size_: usize)
     // Test errors - zmq_recviov - null socket
     TEST_ASSERT_FAILURE_ERRNO (ENOTSOCK,
                                zmq_recviov (null_mut(), recv_iov, &recv_count, 0));
-    // Test error - zmq_recviov - invalid receive count
+    // Test Error - zmq_recviov - invalid receive count
     TEST_ASSERT_FAILURE_ERRNO (EINVAL, zmq_recviov (sb_, recv_iov, null_mut(), 0));
     size_t invalid_recv_count = 0;
     TEST_ASSERT_FAILURE_ERRNO (
       EINVAL, zmq_recviov (sb_, recv_iov, &invalid_recv_count, 0));
-    // Test error - zmq_recviov - null iovec
+    // Test Error - zmq_recviov - null iovec
     TEST_ASSERT_FAILURE_ERRNO (EINVAL, zmq_recviov (sb_, null_mut(), &recv_count, 0));
 
     // Test success

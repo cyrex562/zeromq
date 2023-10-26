@@ -3,25 +3,25 @@ use std::mem;
 use std::os::raw::c_void;
 use std::ptr::null_mut;
 
-use crate::atomic_counter::atomic_counter_t;
+use crate::atomic_counter::ZmqAtomicCounter;
 
-pub union trie_next {
-    pub node: *mut trie_t,
-    pub table: *mut *mut trie_t,
+pub union TrieNext {
+    pub node: *mut ZmqTrie,
+    pub table: *mut *mut ZmqTrie,
 }
 
-pub struct trie_t {
-    pub _next: trie_next,
+pub struct ZmqTrie {
+    pub _next: TrieNext,
     pub _refcnt: u32,
     pub _min: u8,
     pub _count: u16,
     pub _live_nodes: u16,
 }
 
-impl trie_t {
+impl ZmqTrie {
     pub fn new() -> Self {
-        trie_t {
-            _next: trie_next {
+        ZmqTrie {
+            _next: TrieNext {
                 node: std::ptr::null_mut(),
             },
             _refcnt: 0,
@@ -55,8 +55,8 @@ impl trie_t {
                 } else {
                     self._min - c
                 }) + 1) as u16;
-                self._next.table = libc::malloc(std::mem::size_of::<*mut trie_t>() * self._count)
-                    as *mut *mut trie_t;
+                self._next.table = libc::malloc(std::mem::size_of::<*mut ZmqTrie>() * self._count)
+                    as *mut *mut ZmqTrie;
                 // static_cast<trie_t **> (malloc (sizeof (trie_t *) * _count));
                 // alloc_assert (_next.table);
                 // for (unsigned short i = 0; i != _count; ++i)
@@ -71,8 +71,8 @@ impl trie_t {
                 self._count = (c - self._min + 1) as u16;
                 self._next.table = libc::realloc(
                     self._next.table as *mut c_void,
-                    std::mem::size_of::<*mut trie_t>() * self._count,
-                ) as *mut *mut trie_t;
+                    std::mem::size_of::<*mut ZmqTrie>() * self._count,
+                ) as *mut *mut ZmqTrie;
                 //static_cast<trie_t **> (        realloc (_next.table, sizeof (trie_t *) * _count));
                 // zmq_assert (_next.table);
                 // for (unsigned short i = old_count; i != _count; i++)
@@ -85,15 +85,15 @@ impl trie_t {
                 self._count = ((self._min + old_count) - c) as u16;
                 self._next.table = libc::realloc(
                     self._next.table as *mut c_void,
-                    std::mem::size_of::<*mut trie_t>() * self._count,
-                ) as *mut *mut trie_t;
+                    std::mem::size_of::<*mut ZmqTrie>() * self._count,
+                ) as *mut *mut ZmqTrie;
                 // static_cast<trie_t **> (
                 // realloc (_next.table, sizeof (trie_t *) * _count));
                 // zmq_assert (_next.table);
                 libc::memmove(
                     self._next.table + self._min - c,
                     self._next.table,
-                    old_count * std::mem::size_of::<*mut trie_t>(),
+                    old_count * std::mem::size_of::<*mut ZmqTrie>(),
                 );
                 // for (unsigned short i = 0; i != _min - c; i++)
                 for i in 0..self._min {
@@ -106,7 +106,7 @@ impl trie_t {
         //  If next node does not exist, create one.
         if (self._count == 1) {
             if (!self._next.node) {
-                self._next.node = &mut trie_t::new(); //new (std::nothrow) trie_t;
+                self._next.node = &mut ZmqTrie::new(); //new (std::nothrow) trie_t;
                                                       // alloc_assert (_next.node);
                                                       // ++_live_nodes;
                 self._live_nodes += 1;
@@ -115,7 +115,7 @@ impl trie_t {
             return self._next.node.add(prefix_ + 1, size_ - 1);
         }
         if (!self._next.table[c - self._min]) {
-            self._next.table[c - self._min] = &mut trie_t::new();
+            self._next.table[c - self._min] = &mut ZmqTrie::new();
             // alloc_assert (_next.table[c - _min]);
             // ++_live_nodes;
             self._live_nodes += 1;
@@ -126,7 +126,7 @@ impl trie_t {
 
     // bool zmq::trie_t::rm (unsigned char *prefix_, size_t size_)
     pub unsafe fn rm(&mut self, prefix_: &str, size_: usize) -> bool {
-        //  TODO: Shouldn't an error be reported if the key does not exist?
+        //  TODO: Shouldn't an Error be reported if the key does not exist?
         if (!size_) {
             if (!self._refcnt) {
                 return false;
@@ -172,7 +172,7 @@ impl trie_t {
                     //  We can switch to using the more compact single-node
                     //  representation since the table only contains one live node
                     // trie_t *node = 0;
-                    let mut node: *mut trie_t = null_mut();
+                    let mut node: *mut ZmqTrie = null_mut();
                     //  Since we always compact the table the pruned node must
                     //  either be the left-most or right-most ptr in the node
                     //  table
@@ -210,15 +210,15 @@ impl trie_t {
 
                     self._count = self._count - (new_min - self._min);
                     self._next.table =
-                        libc::malloc(std::mem::size_of::<*mut trie_t>() * self._count)
-                            as *mut *mut trie_t;
+                        libc::malloc(std::mem::size_of::<*mut ZmqTrie>() * self._count)
+                            as *mut *mut ZmqTrie;
                     // static_cast<trie_t **> (malloc (sizeof (trie_t *) * _count));
                     // alloc_assert (_next.table);
 
                     libc::memmove(
                         self._next.table,
                         old_table + (new_min - self._min),
-                        mem::size_of::<*mut trie_t>() * self._count,
+                        mem::size_of::<*mut ZmqTrie>() * self._count,
                     );
                     // free (old_table);
 
@@ -240,15 +240,15 @@ impl trie_t {
 
                     let old_table = self._next.table;
                     self._next.table =
-                        libc::malloc(std::mem::size_of::<*mut trie_t>() * self._count)
-                            as *mut *mut trie_t;
+                        libc::malloc(std::mem::size_of::<*mut ZmqTrie>() * self._count)
+                            as *mut *mut ZmqTrie;
                     // static_cast<trie_t **> (malloc (sizeof (trie_t *) * _count));
                     // alloc_assert (_next.table);
 
                     libc::memmove(
                         self._next.table,
                         old_table,
-                        mem::size_of::<*mut trie_t>() * self._count,
+                        mem::size_of::<*mut ZmqTrie>() * self._count,
                     );
                     // free (old_table);
                 }
@@ -362,16 +362,16 @@ impl trie_t {
 }
 
 pub struct trie_with_size_t {
-    pub _num_prefixes: atomic_counter_t,
-    pub _trie: trie_t,
+    pub _num_prefixes: ZmqAtomicCounter,
+    pub _trie: ZmqTrie,
 }
 
 impl trie_with_size_t {
     pub fn new() -> Self {
         trie_with_size_t {
-            _num_prefixes: atomic_counter_t::new(),
-            _trie: trie_t {
-                _next: trie_next {
+            _num_prefixes: ZmqAtomicCounter::new(),
+            _trie: ZmqTrie {
+                _next: TrieNext {
                     node: std::ptr::null_mut(),
                 },
                 _refcnt: 0,

@@ -1,23 +1,23 @@
-#![allow(non_camel_case_types)]
+
 
 use std::ptr::null_mut;
 
-use crate::i_encoder::i_encoder;
-use crate::msg::msg_t;
+use crate::i_encoder::IEncoder;
+use crate::msg::ZmqMsg;
 
-pub type step_t = fn();
+pub type StepFn = fn();
 
-pub struct encoder_base_t<T> {
-    pub _write_pos: *mut u8,
+pub struct ZmqEncoderBase<T> {
+    pub _write_pos: usize,
     pub _to_write: usize,
-    pub _next: Option<step_t>,
+    pub _next: Option<StepFn>,
     pub _new_msg_flag: bool,
     pub _buf_size: usize,
-    pub _buf: *mut u8,
-    pub _in_progress: *mut msg_t
+    pub _buf: Vec<u8>,
+    pub _in_progress: *mut ZmqMsg
 }
 
-impl <T> encoder_base_t<T>
+impl <T> ZmqEncoderBase<T>
 {
     pub fn new(buf_size_: usize) -> Self {
         let mut out = Self {
@@ -26,26 +26,26 @@ impl <T> encoder_base_t<T>
             _next: None,
             _new_msg_flag: false,
             _buf_size: buf_size_,
-            _buf: null_mut(),
+            _buf: Vec::with_capacity(buf_size_)),
             _in_progress: null_mut()
         };
-        out._buf = unsafe { libc::malloc(buf_size_) as *mut u8 };
+        // out._buf = unsafe { libc::malloc(buf_size_) as *mut u8 };
         out
     }
     
-    pub fn next_step(&mut self, write_pos_: *mut u8, to_write_: usize, new_msg_flag_: bool, next_: step_t) {
+    pub fn next_step(&mut self, write_pos_: usize, to_write_: usize, new_msg_flag_: bool, next_: StepFn) {
         self._write_pos = write_pos_;
         self._to_write = to_write_;
         self._new_msg_flag = new_msg_flag_;
         self._next = Some(next_);
     }
     
-    pub fn in_progress(&self) -> *mut msg_t {
+    pub fn in_progress(&self) -> *mut ZmqMsg {
         self._in_progress
     }
 }
 
-impl <T> i_encoder for encoder_base_t<T> {
+impl <T> IEncoder for ZmqEncoderBase<T> {
     unsafe fn encode(&mut self, data_: *mut *mut u8, size_: usize) -> usize {
         let buffer = if *data_ != null_mut() { *data_ } else { self._buf };
         let buffersize = if *data_ != null_mut() { size_ } else { self._buf_size };
@@ -82,7 +82,7 @@ impl <T> i_encoder for encoder_base_t<T> {
         return pos;
     }
 
-    fn load_msg(&mut self, msg_: *mut msg_t) {
+    fn load_msg(&mut self, msg_: &mut ZmqMsg) {
         self._in_progress = msg_;
         self._next.unwrap()();
     }

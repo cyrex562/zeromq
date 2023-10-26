@@ -1,34 +1,34 @@
-#![allow(non_camel_case_types)]
+
 
 use std::ffi::c_void;
 use libc::{EAGAIN, EINTR, getpid};
-use crate::command::command_t;
-use crate::ctx::ctx_t;
-use crate::defines::handle_t;
-use crate::endpoint::endpoint_uri_pair_t;
+use crate::command::ZmqCommand;
+use crate::ctx::ZmqContext;
+use crate::defines::ZmqHandle;
+use crate::endpoint::ZmqEndpointUriPair;
 use crate::fd::retired_fd;
-use crate::i_engine::i_engine;
-use crate::i_poll_events::i_poll_events;
-use crate::mailbox::mailbox_t;
-use crate::object::{object_ops, object_t};
-use crate::own::own_t;
-use crate::pipe::pipe_t;
-use crate::poller::poller_t;
-use crate::socket_base::socket_base_t;
+use crate::i_engine::IEngine;
+use crate::i_poll_events::IPollEvents;
+use crate::mailbox::ZmqMailbox;
+use crate::object::{object_ops, ZmqObject};
+use crate::own::ZmqOwn;
+use crate::pipe::ZmqPipe;
+use crate::poller::ZmqPoller;
+use crate::socket_base::ZmqSocketBase;
 use crate::utils::get_errno;
 
-pub struct reaper_t {
-    pub _object: object_t,
-    pub _mailbox: mailbox_t,
-    pub _mailbox_handle: handle_t,
-    pub _poller: *mut poller_t,
+pub struct ZmqReaper {
+    pub _object: ZmqObject,
+    pub _mailbox: ZmqMailbox,
+    pub _mailbox_handle: ZmqHandle,
+    pub _poller: *mut ZmqPoller,
     pub _sockets: i32,
     pub _terminating: bool,
     #[cfg(feature="have_fork")]
     pub _pid: pid_t,
 }
 
-impl i_poll_events for reaper_t {
+impl IPollEvents for ZmqReaper {
     unsafe fn in_event(&mut self) {
         loop {
             #[cfg(feature="have_fork")]
@@ -38,7 +38,7 @@ impl i_poll_events for reaper_t {
                 }
             }
 
-            let mut cmd: command_t = command_t::new();
+            let mut cmd: ZmqCommand = ZmqCommand::new();
             let rc = self._mailbox.recv(&mut cmd);
             if rc != 0 && get_errno() == EINTR {
                 continue;
@@ -60,18 +60,18 @@ impl i_poll_events for reaper_t {
     }
 }
 
-impl reaper_t {
-    pub unsafe fn new(ctx_: *mut ctx_t, tid_: u32) -> Self
+impl ZmqReaper {
+    pub unsafe fn new(ctx_: *mut ZmqContext, tid_: u32) -> Self
     {
         let mut out = Self {
-            _mailbox: mailbox_t::new(ctx_, tid_),
-            _mailbox_handle: 0 as handle_t,
-            _poller: &mut poller_t::new(ctx_, 1),
+            _mailbox: ZmqMailbox::new(ctx_, tid_),
+            _mailbox_handle: 0 as ZmqHandle,
+            _poller: &mut ZmqPoller::new(ctx_, 1),
             _sockets: 0,
             _terminating: false,
             #[cfg(feature="have_fork")]
             _pid: 0,
-            _object: object_t::new(ctx_, tid_)
+            _object: ZmqObject::new(ctx_, tid_)
         };
         if out._mailbox.get_fd() != retired_fd {
             (*out._poller).add(out._mailbox.get_fd(), &mut out);
@@ -82,7 +82,7 @@ impl reaper_t {
         out
     }
 
-    pub unsafe fn get_mailbox(&mut self) -> *mut mailbox_t
+    pub unsafe fn get_mailbox(&mut self) -> *mut ZmqMailbox
     {
         &mut self._mailbox
     }
@@ -100,7 +100,7 @@ impl reaper_t {
     }
 }
 
-impl object_ops for reaper_t {
+impl object_ops for ZmqReaper {
     unsafe fn process_stop(&mut self) {
         self._terminating = true;
         if self._sockets == 0 {
@@ -113,15 +113,15 @@ impl object_ops for reaper_t {
         todo!()
     }
 
-    fn process_own(&mut self, object_: *mut own_t) {
+    fn process_own(&mut self, object_: *mut ZmqOwn) {
         todo!()
     }
 
-    fn process_attach(&mut self, engine_: *mut dyn i_engine) {
+    fn process_attach(&mut self, engine_: *mut dyn IEngine) {
         todo!()
     }
 
-    fn process_bind(&mut self, pipe_: *mut pipe_t) {
+    fn process_bind(&mut self, pipe_: *mut ZmqPipe) {
         todo!()
     }
 
@@ -137,11 +137,11 @@ impl object_ops for reaper_t {
         todo!()
     }
 
-    fn process_pipe_peer_stats(&mut self, queue_count_: u64, socket_base: *mut own_t, endpoint_pair_: *mut endpoint_uri_pair_t) {
+    fn process_pipe_peer_stats(&mut self, queue_count_: u64, socket_base: *mut ZmqOwn, endpoint_pair_: *mut ZmqEndpointUriPair) {
         todo!()
     }
 
-    fn process_pipe_stats_publish(&mut self, outbound_queue_count_: u64, inbound_queue_count: u64, endpoint_pair_: *mut endpoint_uri_pair_t) {
+    fn process_pipe_stats_publish(&mut self, outbound_queue_count_: u64, inbound_queue_count: u64, endpoint_pair_: *mut ZmqEndpointUriPair) {
         todo!()
     }
 
@@ -157,7 +157,7 @@ impl object_ops for reaper_t {
         todo!()
     }
 
-    fn process_pipe_term_req(&mut self, object_: *mut own_t) {
+    fn process_pipe_term_req(&mut self, object_: *mut ZmqOwn) {
         todo!()
     }
 
@@ -173,7 +173,7 @@ impl object_ops for reaper_t {
         todo!()
     }
 
-    unsafe fn process_reap(&mut self, socket_: *mut socket_base_t)
+    unsafe fn process_reap(&mut self, socket_: *mut ZmqSocketBase)
     {
         socket_.start_reaping(self._poller);
         self._sockets += 1;

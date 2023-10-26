@@ -1,22 +1,22 @@
 use std::ptr::null_mut;
-use crate::ypipe_base::ypipe_base_t;
-use crate::yqueue::yqueue_t;
+use crate::ypipe_base::ZmqYPipeBase;
+use crate::yqueue::YQueue;
 
-pub struct ypipe_t<T: Clone + PartialEq + Default, const N: usize> {
-    pub base: ypipe_base_t<T>,
-    pub _queue: yqueue_t<T,N>,
+pub struct ZmqYPipe<T: Clone + PartialEq + Default, const N: usize> {
+    pub base: ZmqYPipeBase<T>,
+    pub _queue: YQueue<T,N>,
     pub _w: *mut T,
     pub _r: *mut T,
     pub _f: *mut T,
     pub _c: *mut T
 }
 
-impl <T: Clone + PartialEq + Default, const N: usize> ypipe_t<T,N>
+impl <T: Clone + PartialEq + Default, const N: usize> ZmqYPipe<T,N>
 {
     pub unsafe fn new() -> Self {
         let mut out = Self  {
-            base: ypipe_base_t::new(),
-            _queue: yqueue_t::new(),
+            base: ZmqYPipeBase::new(),
+            _queue: YQueue::new(),
             _w: std::ptr::null_mut(),
             _r: std::ptr::null_mut(),
             _f: std::ptr::null_mut(),

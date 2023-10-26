@@ -34,7 +34,7 @@ SRC="${TOP}/src"
 # Install pre-generated platform.hpp
 cp -p "${BIN_DIR}/platform.hpp" "${SRC}/platform.hpp"
 
-# Compile all the source (optionally ready for a DLL)
+# Compile all the source (optionally Ready for a DLL)
 if [ "${BUILD_DLL}" = "true" ]; then
   ZCXXFLAGS="${ZCXXFLAGS} -Wc,exportall"
   export ZCXXFLAGS

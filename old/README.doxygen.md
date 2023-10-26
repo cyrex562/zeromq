@@ -14,7 +14,7 @@ There are no instructions on using ZeroMQ within this documentation, only
 the API internals that make up the software.
 
 **Note:** this documentation is generated directly from the source code with
-Doxygen. Since this project is constantly under active development, what you
+Doxygen. Since this project is constantly under Active development, what you
 are about to read may be out of date! If you notice any errors in the
 documentation, or the code comments, then please send a pull request.
 

@@ -1,22 +1,22 @@
 use std::ffi::{c_char, c_void};
-use crate::blob::blob_t;
+use crate::blob::ZmqBlob;
 use crate::defines::{ZMQ_DEALER, ZMQ_REQ, ZMQ_ROUTER};
-use crate::metadata::dict_t;
-use crate::msg::{msg_t, MSG_ROUTING_ID};
-use crate::options::options_t;
+use crate::metadata::ZmqDict;
+use crate::msg::{ZmqMsg, MSG_ROUTING_ID};
+use crate::options::ZmqOptions;
 use crate::utils::{get_u32, put_u32};
 
-pub enum status_t{
-    handshaking,
-    ready,
-    error
+pub enum MechanismStatus {
+    Handshaking,
+    Ready,
+    Error
 }
-pub struct mechanism_t {
-    pub options: options_t,
-    pub _zmtp_properties: dict_t,
-    pub _zap_properties: dict_t,
-    pub _routing_id: blob_t,
-    pub _user_id: blob_t,
+pub struct ZmqMechanism {
+    pub options: ZmqOptions,
+    pub _zmtp_properties: ZmqDict,
+    pub _zap_properties: ZmqDict,
+    pub _routing_id: ZmqBlob,
+    pub _user_id: ZmqBlob,
 }
 
 pub const socket_type_pair: &'static str = "PAIR";
@@ -48,27 +48,27 @@ pub const ZMTP_PROPERTY_SOCKET_TYPE: &'static str = "Socket-Type";
 pub const ZMTP_PROPERTY_IDENTITY: &'static str = "Identity";
 
 pub trait mechanism_ops {
-    fn next_handshake_command(&mut self, msg_: *mut msg_t) -> i32;
-    fn process_handshake_command(&mut self, msg_: *mut msg_t) -> i32;
-    fn encode(&mut self, msg_: *mut msg_t) -> i32 { return 0; }
-    fn decode(&mut self, msg_: *mut msg_t) -> i32 { return 0; }
+    fn next_handshake_command(&mut self, msg_: *mut ZmqMsg) -> i32;
+    fn process_handshake_command(&mut self, msg_: *mut ZmqMsg) -> i32;
+    fn encode(&mut self, msg_: *mut ZmqMsg) -> i32 { return 0; }
+    fn decode(&mut self, msg_: *mut ZmqMsg) -> i32 { return 0; }
 
     fn zap_msg_available(&mut self) -> i32 { return 0; }
 
-    fn status(&mut self) -> status_t;
+    fn status(&mut self) -> MechanismStatus;
 
     fn property(&mut self, name_: &str, value_: *mut c_void, length: usize);
 }
 
-impl mechanism_t  {
+impl ZmqMechanism {
 
-    pub fn new(options: &options_t) -> Self {
+    pub fn new(options: &ZmqOptions) -> Self {
         Self {
             options: options.clone(),
-            _zmtp_properties: dict_t::new(),
-            _zap_properties: dict_t::new(),
-            _user_id: blob_t::new(),
-            _routing_id: blob_t::new()
+            _zmtp_properties: ZmqDict::new(),
+            _zap_properties: ZmqDict::new(),
+            _user_id: ZmqBlob::new(),
+            _routing_id: ZmqBlob::new()
         }
     }
 
@@ -77,7 +77,7 @@ impl mechanism_t  {
         self._routing_id.set(id_ptr as *mut u8, id_size_);
     }
 
-    pub unsafe fn peer_routing_id(&mut self, msg_: *mut msg_t) {
+    pub unsafe fn peer_routing_id(&mut self, msg_: *mut ZmqMsg) {
         let rc = (*msg_).init_size(self._routing_id.size());
         libc::memcpy((*msg_).data(), self._routing_id.data() as *const c_void, self._routing_id.size());
         (*msg_).set_flags(MSG_ROUTING_ID);
@@ -88,15 +88,15 @@ impl mechanism_t  {
         self._zap_properties.insert("user_id".to_string(), self._user_id._data());
     }
 
-    pub fn get_user_id(&mut self) -> blob_t {
+    pub fn get_user_id(&mut self) -> ZmqBlob {
         self._user_id.clone()
     }
 
-    pub fn get_zmtp_properties(&mut self) -> &mut dict_t {
+    pub fn get_zmtp_properties(&mut self) -> &mut ZmqDict {
         return &mut self._zmtp_properties;
     }
 
-    pub fn get_zap_properties(&mut self) -> &mut dict_t {
+    pub fn get_zap_properties(&mut self) -> &mut ZmqDict {
         return &mut self._zap_properties;
     }
 
@@ -153,7 +153,7 @@ impl mechanism_t  {
         return self.property_len(ZMTP_PROPERTY_SOCKET_TYPE.as_ptr() as *mut c_char, socket_type.len()) + meta_len + if self.options.type_ == ZMQ_REQ as i8 || self.options.type_ == ZMQ_DEALER as i8 || self.options.type_ == ZMQ_ROUTER as i8 { self.property_len(ZMTP_PROPERTY_IDENTITY.as_ptr() as *mut c_char, self._routing_id.size()) } else { 0 };
     }
 
-    pub unsafe fn make_command_with_basic_properties(&mut self, msg_: *mut msg_t, prefix_: *mut c_char, prefix_len_: usize){
+    pub unsafe fn make_command_with_basic_properties(&mut self, msg_: *mut ZmqMsg, prefix_: *mut c_char, prefix_len_: usize){
         let command_size = prefix_len_ + self.basic_properties_len ();
         let rc = (*msg_).init_size (command_size);
         // errno_assert (rc == 0);

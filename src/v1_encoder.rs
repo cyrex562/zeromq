@@ -1,17 +1,17 @@
-use crate::encoder::encoder_base_t;
+use crate::encoder::ZmqEncoderBase;
 use crate::msg::MSG_MORE;
 use crate::utils::put_u64;
 
-pub struct v1_encoder_t {
-    pub encoder_base: encoder_base_t<v1_encoder_t>,
+pub struct V1Encoder {
+    pub encoder_base: ZmqEncoderBase<V1Encoder>,
     pub _tmpbuf: [u8;11],
 }
 
-impl v1_encoder_t
+impl V1Encoder
 {
     pub fn new(bufsize_: usize) -> Self {
         let mut out = Self {
-            encoder_base: encoder_base_t::new(bufsize_),
+            encoder_base: ZmqEncoderBase::new(bufsize_),
             _tmpbuf: [0;11],
         };
         out.next_step(None, 0, out.message_ready, true);
@@ -62,6 +62,6 @@ impl v1_encoder_t
             header_size += 1;
         }
 
-        self.next_step (self._tmpbuf, header_size, &v1_encoder_t::size_ready, false);
+        self.next_step (self._tmpbuf, header_size, &V1Encoder::size_ready, false);
     }
 }

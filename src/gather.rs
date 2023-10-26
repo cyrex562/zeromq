@@ -1,21 +1,21 @@
-use crate::ctx::ctx_t;
+use crate::ctx::ZmqContext;
 use crate::defines::ZMQ_GATHER;
-use crate::fq::fq_t;
-use crate::msg::{MSG_MORE, msg_t};
-use crate::options::options_t;
-use crate::socket_base::socket_base_t;
+use crate::fair_queue::ZmqFairQueue;
+use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::options::ZmqOptions;
+use crate::socket_base::ZmqSocketBase;
 
-pub struct gather_t<'a> {
-    pub socket_base: socket_base_t<'a>,
-    pub _fq: fq_t,
+pub struct ZmqGather<'a> {
+    pub socket_base: ZmqSocketBase<'a>,
+    pub _fq: ZmqFairQueue,
 }
 
-impl gather_t {
-    pub unsafe fn new(options: &mut options_t, parent_: &mut ctx_t, tid_: u32, sid_: i32) -> Self {
+impl ZmqGather {
+    pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
         options.type_ = ZMQ_GATHER;
         Self {
-            socket_base: socket_base_t::new(parent_, tid_, sid_, true),
-            _fq: fq_t::new(),
+            socket_base: ZmqSocketBase::new(parent_, tid_, sid_, true),
+            _fq: ZmqFairQueue::new(),
         }
     }
 
@@ -31,7 +31,7 @@ impl gather_t {
         self._fq.pipe_terminated(pipe_);
     }
 
-    pub unsafe fn xrecv(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xrecv(&mut self, msg_: &mut ZmqMsg) -> i32 {
         let mut rc = self._fq.recvpipe (msg_, &mut None);
 
         // Drop any messages with more flag

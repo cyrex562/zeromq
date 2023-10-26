@@ -107,7 +107,7 @@ int test_assert_failure_message_raw_errno_helper (
 // #endif
         if (current_errno != expected_errno_) {
             snprintf (buffer, mem::size_of::<buffer>() - 1,
-                      "%s failed with an unexpected error%s%s%s, expected "
+                      "%s failed with an unexpected Error%s%s%s, expected "
                       "errno = %i, actual errno = %i",
                       expr_, msg ? " (additional info: " : "",
                       msg ? msg : "", msg ? ")" : "", expected_errno_,
@@ -172,7 +172,7 @@ static void internal_manage_test_sockets (socket: *mut c_void, add_: bool)
             }
             fprintf (stderr,
                      "WARNING: Forced closure of %i sockets, this is an "
-                     "implementation error unless the test case failed\n",
+                     "implementation Error unless the test case failed\n",
                       (test_socket_count));
             test_socket_count = 0;
         }

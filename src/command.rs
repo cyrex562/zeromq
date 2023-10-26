@@ -1,14 +1,11 @@
-#![allow(non_camel_case_types)]
+use crate::object::ZmqObject;
+use crate::own::ZmqOwn;
+use crate::socket_base::ZmqSocketBase;
+use crate::endpoint::ZmqEndpointUriPair;
+use crate::i_engine::IEngine;
+use crate::pipe::ZmqPipe;
 
-use crate::object::object_t;
-use crate::own::own_t;
-use crate::socket_base::socket_base_t;
-use std::ffi::c_void;
-use crate::endpoint::endpoint_uri_pair_t;
-use crate::i_engine::i_engine;
-use crate::pipe::pipe_t;
-
-pub enum type_t {
+pub enum ZmqType {
     stop,
     plug,
     own,
@@ -33,116 +30,116 @@ pub enum type_t {
     done,
 }
 
-pub struct args_t_stop {}
+pub struct StopArgs {}
 
-pub struct args_t_plug {}
+pub struct PlugArgs {}
 
-pub struct args_t_own<'a> {
-    pub object: &'a mut own_t<'a>,
+pub struct OwnArgs<'a> {
+    pub object: &'a mut ZmqOwn<'a>,
 }
 
-pub struct args_t_attach<'a> {
-    pub engine: &'a mut dyn i_engine,
+pub struct AttachArgs<'a> {
+    pub engine: &'a mut dyn IEngine,
 }
 
-pub struct args_t_bind<'a> {
-    pub pipe: &'a mut pipe_t<'a>,
+pub struct BindArgs<'a> {
+    pub pipe: &'a mut ZmqPipe<'a>,
 }
 
-pub struct args_t_activate_read {}
+pub struct ActivateReadArgs {}
 
-pub struct args_t_activate_write {
+pub struct ActivateWriteArgs {
     pub msgs_read: u64,
 }
 
-pub struct args_t_hiccup<'a> {
-    pub pipe: &'a mut pipe_t<'a>,
+pub struct HiccupArgs<'a> {
+    pub pipe: &'a mut ZmqPipe<'a>,
 }
 
-pub struct args_t_pipe_term {}
+pub struct PipeTermArgs {}
 
-pub struct args_t_pipe_term_ack {}
+pub struct PipeTermAckArgs {}
 
-pub struct args_t_pipe_hwm {
+pub struct PipeHwmArgs {
     pub inhwm: i32,
     pub outhwm: i32,
 }
 
-pub struct args_t_term_req<'a> {
-    pub object: &'a mut own_t<'a>,
+pub struct TermReqArgs<'a> {
+    pub object: &'a mut ZmqOwn<'a>,
 }
 
-pub struct args_t_term {
+pub struct TermArgs {
     pub linger: i32,
 }
 
-pub struct args_t_term_ack {}
+pub struct TermAckArgs {}
 
-pub struct args_t_term_endpoint {
+pub struct TermEndpointArgs {
     pub endpoint: String,
 }
 
-pub struct args_t_reap<'a> {
-    pub socket: &'a mut socket_base_t<'a>,
+pub struct ReapArgs<'a> {
+    pub socket: &'a mut ZmqSocketBase<'a>,
 }
 
-pub struct args_t_reaped {}
+pub struct ReapedArgs {}
 
-pub struct args_t_pipe_peer_stats<'a> {
+pub struct PipePeerStatsArgs<'a> {
     pub queue_count: u64,
-    pub socket_base: &'a mut own_t<'a>,
-    pub endpoint_pair: *mut endpoint_uri_pair_t,
+    pub socket_base: &'a mut ZmqOwn<'a>,
+    pub endpoint_pair: &'a mut ZmqEndpointUriPair,
 }
 
-pub struct args_t_pipe_stats_publish<'a> {
+pub struct PipeStatsPublishArgs<'a> {
     pub outbound_queue_count: u64,
     pub inbound_queue_count: u64,
-    pub endpoint_pair: &'a mut endpoint_uri_pair_t,
+    pub endpoint_pair: &'a mut ZmqEndpointUriPair,
 }
 
-pub struct args_t_done {}
+pub struct DoneArgs {}
 
-pub union args_t<'a> {
-    pub stop: args_t_stop,
-    pub plug: args_t_plug,
-    pub own: args_t_own<'a>,
-    pub attach: args_t_attach<'a>,
-    pub bind: args_t_bind<'a>,
-    pub activate_read: args_t_activate_read,
-    pub activate_write: args_t_activate_write,
-    pub hiccup: args_t_hiccup<'a>,
-    pub pipe_term: args_t_pipe_term,
-    pub pipe_term_ack: args_t_pipe_term_ack,
-    pub pipe_hwm: args_t_pipe_hwm,
-    pub term_req: args_t_term_req<'a>,
-    pub term: args_t_term,
-    pub term_ack: args_t_term_ack,
-    pub term_endpoint: args_t_term_endpoint,
-    pub reap: args_t_reap<'a>,
-    pub reaped: args_t_reaped,
-    pub pipe_peer_stats: args_t_pipe_peer_stats<'a>,
-    pub pipe_stats_publish: args_t_pipe_stats_publish<'a>,
-    pub done: args_t_done,
+pub union ZmqArgs<'a> {
+    pub stop: StopArgs,
+    pub plug: PlugArgs,
+    pub own: OwnArgs<'a>,
+    pub attach: AttachArgs<'a>,
+    pub bind: BindArgs<'a>,
+    pub activate_read: ActivateReadArgs,
+    pub activate_write: ActivateWriteArgs,
+    pub hiccup: HiccupArgs<'a>,
+    pub pipe_term: PipeTermArgs,
+    pub pipe_term_ack: PipeTermAckArgs,
+    pub pipe_hwm: PipeHwmArgs,
+    pub term_req: TermReqArgs<'a>,
+    pub term: TermArgs,
+    pub term_ack: TermAckArgs,
+    pub term_endpoint: TermEndpointArgs,
+    pub reap: ReapArgs<'a>,
+    pub reaped: ReapedArgs,
+    pub pipe_peer_stats: PipePeerStatsArgs<'a>,
+    pub pipe_stats_publish: PipeStatsPublishArgs<'a>,
+    pub done: DoneArgs,
 }
 
-pub struct command_t<'a> {
-    pub destination: Option<&'a mut object_t<'a>>,
-    pub args: args_t<'a>,
-    pub type_: type_t,
+pub struct ZmqCommand<'a> {
+    pub destination: Option<&'a mut ZmqObject<'a>>,
+    pub args: ZmqArgs<'a>,
+    pub type_: ZmqType,
 }
 
-impl command_t {
+impl ZmqCommand {
     pub fn new() -> Self {
         Self {
             destination: None,
-            args: args_t { stop: args_t_stop {} },
-            type_: type_t::stop,
+            args: ZmqArgs { stop: StopArgs {} },
+            type_: ZmqType::stop,
         }
     }
 }
 
 
-impl PartialEq for command_t {
+impl PartialEq for ZmqCommand {
     fn eq(&self, other: &Self) -> bool {
         self.destination == other.destination
     }

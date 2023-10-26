@@ -55,7 +55,7 @@ void recvall (sock_fd: i32, char *buffer, len: i32)
     while (len - total > 0) {
         res = recv (sock_fd, buffer + total, len - total, 0);
         if (res == -1)
-            fprintf (stderr, "socks_server: error receiving %d bytes: %d %d\n",
+            fprintf (stderr, "socks_server: Error receiving %d bytes: %d %d\n",
                      len, res, errno);
         TEST_ASSERT_SUCCESS_RAW_ERRNO (res);
         TEST_ASSERT (res != 0);
@@ -69,7 +69,7 @@ int recvonce (sock_fd: i32, char *buffer, len: i32)
     res: i32;
     res = recv (sock_fd, buffer, len, 0);
     if (res == -1)
-        fprintf (stderr, "socks_server: error receiving bytes: %d %d\n", res,
+        fprintf (stderr, "socks_server: Error receiving bytes: %d %d\n", res,
                  errno);
     TEST_ASSERT_SUCCESS_RAW_ERRNO (res);
     return res;
@@ -82,7 +82,7 @@ void sendall (sock_fd: i32, char *buffer, len: i32)
     while (len - total > 0) {
         res = send (sock_fd, buffer + total, len - total, 0);
         if (res == -1)
-            fprintf (stderr, "socks_server: error sending %d bytes: %d %d\n",
+            fprintf (stderr, "socks_server: Error sending %d bytes: %d %d\n",
                      len, res, errno);
         TEST_ASSERT_SUCCESS_RAW_ERRNO (res);
         TEST_ASSERT (res != 0);
@@ -183,7 +183,7 @@ void socks_ZmqServerask (socks_server: *mut c_void,
                     buffer[len] = 0;
                     if (strcmp (username, buffer) != 0) {
                         fprintf (stderr,
-                                 "socks_server: error on username check: '%s', "
+                                 "socks_server: Error on username check: '%s', "
                                  "expected: '%s'\n",
                                  buffer, username);
                         err = 1;
@@ -194,7 +194,7 @@ void socks_ZmqServerask (socks_server: *mut c_void,
                     buffer[len] = 0;
                     if (strcmp (password, buffer) != 0) {
                         fprintf (stderr,
-                                 "socks_server: error on password check: '%s', "
+                                 "socks_server: Error on password check: '%s', "
                                  "expected: '%s'\n",
                                  buffer, password);
                         err = 1;
@@ -335,7 +335,7 @@ void socks_ZmqServerask (socks_server: *mut c_void,
                 for (int i = 0; i < 2; i+= 1) {
                     if ((items[i].revents & ZMQ_POLLIN) == 0)
                         continue;
-                    fprintf (stderr, "socks_server: ready to read from fd %d\n",
+                    fprintf (stderr, "socks_server: Ready to read from fd %d\n",
                              items[i].fd);
                     write_fd: i32, read_fd = items[i].fd;
                     if (read_fd == client) {
@@ -347,7 +347,7 @@ void socks_ZmqServerask (socks_server: *mut c_void,
                     fprintf (stderr, "socks_server: read returned: %d\n",
                              nbytes);
                     if (nbytes == 0 || nbytes == -1) {
-                        /* End of stream or error */
+                        /* End of stream or Error */
                         if (read_fd == client) {
                             close (client);
                             client = -1;

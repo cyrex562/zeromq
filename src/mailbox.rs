@@ -1,15 +1,15 @@
-use crate::command::command_t;
-use crate::i_mailbox::i_mailbox;
-use crate::ypipe::ypipe_t;
-use crate::config::command_pipe_granularity;
-use crate::signaler::signaler_t;
+use crate::command::ZmqCommand;
+use crate::i_mailbox::IMailbox;
+use crate::ypipe::ZmqYPipe;
+use crate::config::COMMAND_PIPE_GRANULARITY;
+use crate::signaler::ZmqSignaler;
 
 #[derive()]
-pub struct mailbox_t
+pub struct ZmqMailbox
 {
-    pub interface: i_mailbox,
-    pub _cpipe: ypipe_t<command_t, command_pipe_granularity>,
-    pub _signaler: signaler_t,
+    pub interface: IMailbox,
+    pub _cpipe: ZmqYPipe<ZmqCommand, COMMAND_PIPE_GRANULARITY>,
+    pub _signaler: ZmqSignaler,
     pub _sync: mutex_t, 
     pub _active: bool,
 }

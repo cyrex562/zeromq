@@ -2,27 +2,27 @@ use std::mem::size_of_val;
 use windows::Win32::Networking::WinSock::{setsockopt, SOCKET_ERROR, SOL_SOCKET};
 use crate::address::{get_socket_name, socket_end_t};
 use crate::address::socket_end_t::socket_end_local;
-use crate::defines::sockaddr_storage;
+use crate::defines::SockaddrStorage;
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::fd::{fd_t, retired_fd};
-use crate::io_thread::io_thread_t;
+use crate::io_thread::ZmqIoThread;
 use crate::ip::{make_socket_noninheritable, set_ip_type_of_service, set_nosigpipe, set_socket_priority};
-use crate::options::options_t;
-use crate::socket_base::socket_base_t;
-use crate::stream_listener_base::stream_listener_base_t;
+use crate::options::ZmqOptions;
+use crate::socket_base::ZmqSocketBase;
+use crate::stream_listener_base::ZmqStreamListenerBase;
 use crate::tcp::{tcp_open_socket, tune_tcp_keepalives, tune_tcp_maxrt, tune_tcp_socket};
-use crate::tcp_address::tcp_address_t;
+use crate::tcp_address::ZmqTcpAddress;
 
-pub struct tcp_listener_t<'a> {
-    pub stream_listener_base: stream_listener_base_t<'a>,
-    pub _address: tcp_address_t,
+pub struct ZmqTcpListener<'a> {
+    pub stream_listener_base: ZmqStreamListenerBase<'a>,
+    pub _address: ZmqTcpAddress,
 }
 
-impl tcp_listener_t {
-    pub fn new(io_thread_: &mut io_thread_t, socket_: &mut socket_base_t, options_: &options_t) -> tcp_listener_t {
-        tcp_listener_t {
-            stream_listener_base: stream_listener_base_t::new(io_thread_, socket_, options_),
-            _address: tcp_address_t::default(),
+impl ZmqTcpListener {
+    pub fn new(io_thread_: &mut ZmqIoThread, socket_: &mut ZmqSocketBase, options_: &ZmqOptions) -> ZmqTcpListener {
+        ZmqTcpListener {
+            stream_listener_base: ZmqStreamListenerBase::new(io_thread_, socket_, options_),
+            _address: ZmqTcpAddress::default(),
         }
     }
 
@@ -60,7 +60,7 @@ impl tcp_listener_t {
     //                                       socket_end_t socket_end_) const
     pub fn get_socket_name(&self, fd_: fd_t, socket_end_: socket_end_t) -> String
     {
-        return get_socket_name::<tcp_address_t> (fd_, socket_end_);
+        return get_socket_name::<ZmqTcpAddress> (fd_, socket_end_);
     }
 
     // int zmq::tcp_listener_t::create_socket (const char *addr_)
@@ -112,12 +112,12 @@ impl tcp_listener_t {
         {
             if (rc == SOCKET_ERROR) {
                 // errno = wsa_error_to_errno(WSAGetLastError());
-                // goto error;
+                // goto Error;
             }
         }
     // #else
         if (rc != 0) {}
-            // goto error;
+            // goto Error;
     // #endif
 
         //  Listen for incoming connections.
@@ -128,7 +128,7 @@ impl tcp_listener_t {
         if (rc == SOCKET_ERROR) {
             // errno = wsa_error_to_errno(WSAGetLastError());
             // goto
-            // error;
+            // Error;
         }
     }
     // #else
@@ -136,13 +136,13 @@ impl tcp_listener_t {
         {
             if (rc != 0) {}
             // goto
-            // error;
+            // Error;
         }
     // #endif
 
         return 0;
 
-    // error:
+    // Error:
     //     const int err = errno;
         self.close ();
         // errno = err;
@@ -178,7 +178,7 @@ impl tcp_listener_t {
 
         // struct sockaddr_storage ss;
         // memset (&ss, 0, sizeof (ss));
-        let ss = sockaddr_storage::default();
+        let ss = SockaddrStorage::default();
     // #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
     //     int ss_len = sizeof (ss);
     // #else

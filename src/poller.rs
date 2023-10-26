@@ -1,10 +1,10 @@
-#![allow(non_camel_case_types)]
+
 
 use windows::Win32::Networking::WinSock::FD_SETSIZE;
-use crate::select::select_t;
+use crate::select::ZmqSelect;
 
 #[cfg(feature="select")]
-pub type poller_t = select_t;
+pub type ZmqPoller = ZmqSelect;
 
 #[cfg(feature="select")]
 pub fn max_fds() -> i32 {

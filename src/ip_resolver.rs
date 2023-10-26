@@ -1,4 +1,4 @@
-#![allow(non_camel_case_types)]
+
 
 use std::{io, os};
 use std::ffi::{c_char, CString};
@@ -12,13 +12,13 @@ use windows::Win32::Networking::WinSock::AF_INET6;
 use windows::Win32::NetworkManagement::IpHelper::IP_ADAPTER_ADDRESSES_LH;
 
 
-pub union ip_addr_t {
+pub union ZmqIpAddress {
     pub generic: sockaddr,
     pub ipv4: sockaddr_in,
     pub ipv6: sockaddr_in6,
 }
 
-impl Clone for ip_addr_t {
+impl Clone for ZmqIpAddress {
     fn clone(&self) -> Self {
         let mut out = Self {
            generic: sockaddr{
@@ -53,7 +53,7 @@ impl Clone for ip_addr_t {
     }
 }
 
-impl Debug for ip_addr_t {
+impl Debug for ZmqIpAddress {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "ip_addr_t {{ generic: {}, ipv4: {}, ipv6: {} }}", sockaddr_to_str(&self.generic), sockaddr_in_to_str(&self.ipv4), sockaddr_in6_to_str(&self.ipv6))
     }
@@ -93,7 +93,7 @@ pub fn sockaddr_in6_to_str(sa: &sockaddr_in6) -> String {
 }
 
 
-impl ip_addr_t {
+impl ZmqIpAddress {
     pub fn set_port(&mut self, port_: u16) {
         if self.family() == AF_INET6 {
             self.ipv6.sin6_port = port_.to_be();
@@ -103,7 +103,7 @@ impl ip_addr_t {
     }
 }
 
-impl Display for ip_addr_t {
+impl Display for ZmqIpAddress {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "ip_addr_t {{ generic: {}, ipv4: {}, ipv6: {} }}", sockaddr_to_str(&self.generic), sockaddr_in_to_str(&self.ipv4), sockaddr_in6_to_str(&self.ipv6))
     }
@@ -111,7 +111,7 @@ impl Display for ip_addr_t {
 
 pub const in6addr_any: in6_addr = in6_addr { s6_addr: [0; 16] };
 
-impl Default for ip_addr_t {
+impl Default for ZmqIpAddress {
     fn default() -> Self {
         let mut out = Self {
             generic: sockaddr {
@@ -139,7 +139,7 @@ pub fn IN6_IS_ADDR_MULTICAST(a: *const u8) -> bool {
     unsafe { *a == 0xff }
 }
 
-impl ip_addr_t {
+impl ZmqIpAddress {
     pub fn family(&mut self) -> i32 {
         self.generic.sa_family.clone() as i32
     }
@@ -170,8 +170,8 @@ impl ip_addr_t {
         }
     }
 
-    pub unsafe fn any(family_: i32) -> anyhow::Result<ip_addr_t> {
-        let mut addr = ip_addr_t::default();
+    pub unsafe fn any(family_: i32) -> anyhow::Result<ZmqIpAddress> {
+        let mut addr = ZmqIpAddress::default();
         if family_ == AF_INET {
             addr.ipv4.sin_family = AF_INET as sa_family_t;
             addr.ipv4.sin_addr.s_addr = INADDR_ANY.to_be();
@@ -282,7 +282,7 @@ impl ip_resolver_t {
         }
     }
 
-    pub unsafe fn resolve(&mut self, ip_addr_: &mut ip_addr_t, name: &str) -> anyhow::Result<()> {
+    pub unsafe fn resolve(&mut self, ip_addr_: &mut ZmqIpAddress, name: &str) -> anyhow::Result<()> {
         let mut addr: String = String::new();
         let mut port = 0u16;
 
@@ -346,7 +346,7 @@ impl ip_resolver_t {
         let mut resolved = false;
         let addr_str = addr.clone();
         if self._options.get_bindable() && addr == "*" {
-            *ip_addr_ = ip_addr_t::any(if self._options.get_ipv6() {
+            *ip_addr_ = ZmqIpAddress::any(if self._options.get_ipv6() {
                 AF_INET6
             } else {
                 AF_INET
@@ -374,7 +374,7 @@ impl ip_resolver_t {
 
     pub unsafe fn resolve_getaddrinfo(
         &mut self,
-        ip_addr_: &mut ip_addr_t,
+        ip_addr_: &mut ZmqIpAddress,
         addr_: &str,
     ) -> anyhow::Result<()> {
         let mut res: addrinfo = addrinfo {
@@ -452,7 +452,7 @@ impl ip_resolver_t {
     }
 
     #[cfg(target_os = "linux")]
-    pub unsafe fn resolve_nic_name(&mut self, ip_addr_: &mut ip_addr_t, nic_: &str) -> anyhow::Result<()>
+    pub unsafe fn resolve_nic_name(&mut self, ip_addr_: &mut ZmqIpAddress, nic_: &str) -> anyhow::Result<()>
     {
         let mut ifa: *mut ifaddrs = null_mut();
         let mut rc = 0i32;
@@ -507,7 +507,7 @@ impl ip_resolver_t {
     }
 
     #[cfg(target_os = "windows")]
-    pub fn resolve_nic_name(&mut self, ip_addr_: &mut ip_addr_t, nic_: &mut String) -> anyhow::Result<()>
+    pub fn resolve_nic_name(&mut self, ip_addr_: &mut ZmqIpAddress, nic_: &mut String) -> anyhow::Result<()>
     {
         let mut rc = 0i32;
         let mut found = false;

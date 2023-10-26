@@ -1,21 +1,21 @@
-use crate::array::array_t;
-use crate::msg::{MSG_MORE, msg_t};
-use crate::pipe::pipe_t;
+use crate::array::ZmqArray;
+use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::pipe::ZmqPipe;
 
-pub type pipes_t = array_t<pipe_t, 2>;
+pub type ZmqPipes = ZmqArray<ZmqPipe, 2>;
 
-pub struct dist_t {
-    pub _pipes: pipes_t,
+pub struct ZmqDist {
+    pub _pipes: ZmqPipes,
     pub _matching: usize,
     pub _active: usize,
     pub _eligible: usize,
     pub _more: bool,
 }
 
-impl dist_t {
+impl ZmqDist {
     pub fn new() -> Self {
         Self {
-            _pipes: pipes_t::new(),
+            _pipes: ZmqPipes::new(),
             _matching: 0,
             _active: 0,
             _eligible: 0,
@@ -23,10 +23,10 @@ impl dist_t {
         }
     }
 
-    pub fn attach(&mut self, pipe_: &mut pipe_t) {
+    pub fn attach(&mut self, pipe_: &mut ZmqPipe) {
         //  If we are in the middle of sending a message, we'll add new pipe
         //  into the list of eligible pipes. Otherwise we add it to the list
-        //  of active pipes.
+        //  of Active pipes.
         if (self._more) {
             self._pipes.push_back(pipe_);
             self._pipes.swap(self._eligible, self._pipes.size() - 1);
@@ -39,11 +39,11 @@ impl dist_t {
         }
     }
 
-    pub fn has_pipe(&mut self, pipe_: &mut pipe_t) -> bool {
+    pub fn has_pipe(&mut self, pipe_: &mut ZmqPipe) -> bool {
         self._pipes.has_item(pipe_)
     }
 
-    pub fn match_(&mut self, pipe_: &mut pipe_t) {
+    pub fn match_(&mut self, pipe_: &mut ZmqPipe) {
         if self._pipes.index(pipe_) < self._matching {
             return;
         }
@@ -70,7 +70,7 @@ impl dist_t {
         self._matching = 0;
     }
 
-    pub fn pipe_terminated(&mut self, pipe_: &mut pipe_t) {
+    pub fn pipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
         if (self._pipes.index(pipe_).unwrap() < self._matching) {
             self._pipes
                 .swap(self._pipes.index(pipe_).unwrap(), self._matching - 1);
@@ -90,7 +90,7 @@ impl dist_t {
         self._pipes.erase(pipe_);
     }
 
-    pub fn activated(&mut self, pipe_: &mut pipe_t) {
+    pub fn activated(&mut self, pipe_: &mut ZmqPipe) {
         //  Move the pipe from passive to eligible state.
         if (self._eligible < self._pipes.size()) {
             self._pipes
@@ -99,19 +99,19 @@ impl dist_t {
         }
 
         //  If there's no message being sent at the moment, move it to
-        //  the active state.
+        //  the Active state.
         if (!self._more && self._active < self._pipes.size()) {
             self._pipes.swap(self._eligible - 1, self._active);
             self._active += 1;
         }
     }
 
-    pub unsafe fn send_to_all(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn send_to_all(&mut self, msg_: &mut ZmqMsg) -> i32 {
         self._matching = self._active;
         self.send_to_matching(msg_)
     }
 
-    pub unsafe fn send_to_matching(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn send_to_matching(&mut self, msg_: &mut ZmqMsg) -> i32 {
         //  Is this end of a multipart message?
         let msg_more = msg_.flag_set(MSG_MORE);
 
@@ -128,7 +128,7 @@ impl dist_t {
         return 0;
     }
 
-    pub unsafe fn distribute(&mut self, msg_: &mut msg_t) {
+    pub unsafe fn distribute(&mut self, msg_: &mut ZmqMsg) {
         //  If there are no matching pipes available, simply drop the message.
         if (self._matching == 0) {
             let mut rc = msg_.close();
@@ -182,7 +182,7 @@ impl dist_t {
         true
     }
 
-    pub unsafe fn write(&mut self, pipe_: &mut pipe_t, msg_: &mut msg_t) -> bool {
+    pub unsafe fn write(&mut self, pipe_: &mut ZmqPipe, msg_: &mut ZmqMsg) -> bool {
         let mut rc = pipe_.write(msg_);
         if rc == -1 {
             self._pipes

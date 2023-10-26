@@ -1,7 +1,7 @@
 use std::ffi::c_char;
 use anyhow::bail;
 use libc::c_void;
-use crate::defines::fd_t;
+use crate::defines::ZmqFd;
 use crate::select::{fd_set, fds_set_t};
 
 pub fn copy_bytes(
@@ -143,11 +143,11 @@ pub fn get_u64(ptr: &[u8]) -> u64 {
     u64::from_le_bytes(u64_bytes)
 }
 
-pub fn is_retired_fd(x: fd_t) -> bool {
+pub fn is_retired_fd(x: ZmqFd) -> bool {
     x == -1
 }
 
-pub fn FD_ISSET(fd: fd_t, fds: &fd_set) -> bool {
+pub fn FD_ISSET(fd: ZmqFd, fds: &fd_set) -> bool {
     let mut i = 0;
     while i < fds.len() {
         if fds[i] == fd {

@@ -33,7 +33,7 @@
 SETUP_TEARDOWN_TESTCONTEXT
 
 // DEBUG shouldn't be defined in sources as it will cause a redefined symbol
-// error when it is defined in the build configuration. It appears that the
+// Error when it is defined in the build configuration. It appears that the
 // intent here is to semi-permanently disable DEBUG tracing statements, so the
 // implementation is changed to accommodate that intent.
 //#define DEBUG 0
@@ -68,7 +68,7 @@ void test_router_mandatory_hwm ()
 
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (dealer, my_endpoint));
 
-    //  Get message from dealer to know when connection is ready
+    //  Get message from dealer to know when connection is Ready
     send_string_expect_success (dealer, "Hello", 0);
     recv_string_expect_success (router, "X", 0);
 

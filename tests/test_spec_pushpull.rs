@@ -148,7 +148,7 @@ let mut msg = ZmqMessage::default();
         test_context_socket_close_zero_linger (pushs[peer]);
 }
 
-// PUSH: SHALL block on sending, or return a suitable error, when it has no
+// PUSH: SHALL block on sending, or return a suitable Error, when it has no
 // available peers.
 void test_push_block_on_send_no_peers (bind_address_: &str)
 {
@@ -298,7 +298,7 @@ void test_push_multipart_atomic_drop (bind_address_: *const c_char,
 
     // Reconnect and immediately push a large message into the pipe,
     // if the problem is reproduced the pipe is in the process of being
-    // terminated but still exists (state term_ack_sent) and had already
+    // Terminated but still exists (state TermAckSent) and had already
     // accepted the frame, so with the first frames already gone and
     // unreachable only the last is left, and is stuck in the lb.
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (pull, connect_address));

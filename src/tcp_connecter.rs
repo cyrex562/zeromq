@@ -1,33 +1,33 @@
 use std::ptr::null_mut;
 use libc::{ECONNREFUSED, EINPROGRESS};
 use windows::Win32::Networking::WinSock::{SO_REUSEADDR, SOL_SOCKET};
-use crate::address::{address_t, get_socket_name};
+use crate::address::{ZmqAddress, get_socket_name};
 use crate::address::socket_end_t::socket_end_local;
 use crate::defines::ZMQ_RECONNECT_STOP_CONN_REFUSED;
 use crate::endpoint::make_unconnected_connect_endpoint_pair;
 use crate::fd::retired_fd;
-use crate::io_thread::io_thread_t;
+use crate::io_thread::ZmqIoThread;
 use crate::ip::{tune_socket, unblock_socket};
-use crate::options::options_t;
-use crate::session_base::session_base_t;
-use crate::stream_connecter_base::stream_connecter_base_t;
+use crate::options::ZmqOptions;
+use crate::session_base::ZmqSessionBase;
+use crate::stream_connecter_base::ZmqStreamConnecterBase;
 use crate::tcp::{tcp_open_socket, tune_tcp_keepalives, tune_tcp_maxrt, tune_tcp_socket};
-use crate::tcp_address::tcp_address_t;
+use crate::tcp_address::ZmqTcpAddress;
 
 pub const connect_timer_id: i32 = 2;
-pub struct tcp_connecter_t
+pub struct ZmqTcpConnecter
 {
-    pub stream_connecter_base: stream_connecter_base_t,
+    pub stream_connecter_base: ZmqStreamConnecterBase,
     pub _connect_timer_started: bool,
     _addr:
 }
 
-impl tcp_connecter_t
+impl ZmqTcpConnecter
 {
-    pub fn new(io_thread_: &mut io_thread_t, session_: &mut session_base_t, options_: &options_t, addr_: address_t, delayed_start_: bool) -> Self
+    pub fn new(io_thread_: &mut ZmqIoThread, session_: &mut ZmqSessionBase, options_: &ZmqOptions, addr_: ZmqAddress, delayed_start_: bool) -> Self
     {
         Self {
-            stream_connecter_base: stream_connecter_base_t::new(io_thread_, session_, options_, addr_, delayed_start_),
+            stream_connecter_base: ZmqStreamConnecterBase::new(io_thread_, session_, options_, addr_, delayed_start_),
             _connect_timer_started: false,
         }
     }
@@ -65,14 +65,14 @@ impl tcp_connecter_t
             return;
         }
 
-        //  Handle the error condition by attempt to reconnect.
+        //  Handle the Error condition by attempt to reconnect.
         if (fd == retired_fd || !tune_socket (fd)) {
             self.close ();
             self.add_reconnect_timer ();
             return;
         }
 
-        self.create_engine (fd, get_socket_name::<tcp_address_t> (fd, socket_end_local));
+        self.create_engine (fd, get_socket_name::<ZmqTcpAddress> (fd, socket_end_local));
     }
 
     // void zmq::tcp_connecter_t::timer_event (int id_)
@@ -111,7 +111,7 @@ impl tcp_connecter_t
             self.add_connect_timer ();
         }
 
-        //  Handle any other error condition by eventual reconnect.
+        //  Handle any other Error condition by eventual reconnect.
         else {
             if (self._s != retired_fd) {
                 self.close();
@@ -140,7 +140,7 @@ impl tcp_connecter_t
             // LIBZMQ_DELETE (self._addr.resolved.tcp_addr);
         }
 
-        self._addr.resolved.tcp_addr = tcp_address_t::default();
+        self._addr.resolved.tcp_addr = ZmqTcpAddress::default();
         // alloc_assert (_addr->resolved.tcp_addr);
         self._s = tcp_open_socket (self._addr.address.c_str (), self.options, false, true,
                               self._addr.resolved.tcp_addr);
@@ -204,7 +204,7 @@ impl tcp_connecter_t
             return 0;
         }
 
-        //  Translate error codes indicating asynchronous connect has been
+        //  Translate Error codes indicating asynchronous connect has been
         //  launched to a uniform EINPROGRESS.
     // #ifdef ZMQ_HAVE_WINDOWS
     //     const int last_error = WSAGetLastError ();
@@ -221,7 +221,7 @@ impl tcp_connecter_t
 
     zmq::fd_t zmq::tcp_connecter_t::connect ()
     {
-        //  Async connect has finished. Check whether an error occurred
+        //  Async connect has finished. Check whether an Error occurred
         let mut err = 0;
     // #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
     //     int len = sizeof err;
@@ -232,7 +232,7 @@ impl tcp_connecter_t
         const int rc = getsockopt (_s, SOL_SOCKET, SO_ERROR,
                                    reinterpret_cast<char *> (&err), &len);
 
-        //  Assert if the error was caused by 0MQ bug.
+        //  Assert if the Error was caused by 0MQ bug.
         //  Networking problems are OK. No need to assert.
     // #ifdef ZMQ_HAVE_WINDOWS
     //     zmq_assert (rc == 0);

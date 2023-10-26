@@ -1,28 +1,28 @@
-use crate::decoder::decoder_base_t;
-use crate::decoder_allocators::shared_message_memory_allocator;
-use crate::msg::{MSG_COMMAND, msg_t};
+use crate::decoder::ZmqDecoderBase;
+use crate::decoder_allocators::ZmqSharedMessageMemoryAllocator;
+use crate::msg::{MSG_COMMAND, ZmqMsg};
 use crate::utils::get_u64;
 
-pub struct v2_decoder_t {
-    pub decoder_base: decoder_base_t<v2_decoder_t, shared_message_memory_allocator>,
+pub struct V2Decoder {
+    pub decoder_base: ZmqDecoderBase<V2Decoder, ZmqSharedMessageMemoryAllocator>,
     pub _tmpbuf: [u8; 8],
     pub _msg_flags: u8,
-    pub _in_progress: msg_t,
+    pub _in_progress: ZmqMsg,
     pub _zero_copy: bool,
     pub _max_msg_size: i64,
 }
 
-impl v2_decoder_t {
-    pub fn msg(&mut self) -> &mut msg_t {
+impl V2Decoder {
+    pub fn msg(&mut self) -> &mut ZmqMsg {
         &mut self._in_progress
     }
 
     pub fn new(bufsize_: usize, maxmsgsize_: i64, zero_copy_: bool) -> Self {
         let mut out = Self {
-            decoder_base: decoder_base_t::new(bufsize_),
+            decoder_base: ZmqDecoderBase::new(bufsize_),
             _tmpbuf: [0; 8],
             _msg_flags: 0,
-            _in_progress: msg_t::default(),
+            _in_progress: ZmqMsg::default(),
             _zero_copy: zero_copy_,
             _max_msg_size: maxmsgsize_,
         };
@@ -34,7 +34,7 @@ impl v2_decoder_t {
     pub unsafe fn flags_ready(&mut self, buf: &[u8]) -> i32 {
         self._msg_flags = 0;
         if (self._tmpbuf[0] & more_flag) {
-            self._msg_flags |= msg_t::more;
+            self._msg_flags |= ZmqMsg::more;
         }
         if (self._tmpbuf[0] & command_flag) {
             self._msg_flags |= MSG_COMMAND;
@@ -125,7 +125,7 @@ impl v2_decoder_t {
         // to the current start address in the buffer because the message
         // was constructed to use n bytes from the address passed as argument
         self.next_step(self._in_progress.data(), self._in_progress.size(),
-                       &v2_decoder_t::message_ready);
+                       &V2Decoder::message_ready);
 
         return 0;
     }
@@ -134,7 +134,7 @@ impl v2_decoder_t {
     pub unsafe fn message_ready(&mut self, buf: &[u8]) -> i32 {
         //  Message is completely read. Signal this to the caller
         //  and prepare to decode next message.
-        self.next_step(self._tmpbuf, 1, &v2_decoder_t::flags_ready);
+        self.next_step(self._tmpbuf, 1, &V2Decoder::flags_ready);
         return 1;
     }
 }

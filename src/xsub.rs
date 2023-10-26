@@ -1,39 +1,39 @@
-use crate::ctx::ctx_t;
+use crate::ctx::ZmqContext;
 use crate::defines::{
     ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_XSUB, ZMQ_XSUB_VERBOSE_UNSUBSCRIBE,
 };
-use crate::dist::dist_t;
-use crate::fq::fq_t;
-use crate::msg::{MSG_MORE, msg_t};
-use crate::options::{do_getsockopt, options_t};
-use crate::pipe::pipe_t;
-use crate::radix_tree::radix_tree_t;
-use crate::socket_base::socket_base_t;
+use crate::dist::ZmqDist;
+use crate::fair_queue::ZmqFairQueue;
+use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::options::{do_getsockopt, ZmqOptions};
+use crate::pipe::ZmqPipe;
+use crate::radix_tree::ZmqRadixTree;
+use crate::socket_base::ZmqSocketBase;
 
-pub struct xsub_t<'a> {
-    pub socket_base: socket_base_t<'a>,
-    pub _fq: fq_t,
-    pub _dist: dist_t,
-    pub _subscriptions: radix_tree_t,
+pub struct ZmqXSub<'a> {
+    pub socket_base: ZmqSocketBase<'a>,
+    pub _fq: ZmqFairQueue,
+    pub _dist: ZmqDist,
+    pub _subscriptions: ZmqRadixTree,
     pub _verbose_unsubs: bool,
     pub _has_message: bool,
-    pub _message: msg_t,
+    pub _message: ZmqMsg,
     pub _more_send: bool,
     pub _more_recv: bool,
     pub _process_subscribe: bool,
     pub _only_first_subscribe: bool,
 }
 
-impl xsub_t {
-    pub unsafe fn new(options: &mut options_t, parent_: &mut ctx_t, tid_: u32, sid_: i32) -> Self {
+impl ZmqXSub {
+    pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
         let mut out = Self {
-            socket_base: socket_base_t::new(parent_, tid_, sid_, false),
-            _fq: fq_t::default(),
-            _dist: dist_t::default(),
-            _subscriptions: radix_tree_t::default(),
+            socket_base: ZmqSocketBase::new(parent_, tid_, sid_, false),
+            _fq: ZmqFairQueue::default(),
+            _dist: ZmqDist::default(),
+            _subscriptions: ZmqRadixTree::default(),
             _verbose_unsubs: false,
             _has_message: false,
-            _message: msg_t::default(),
+            _message: ZmqMsg::default(),
             _more_send: false,
             _more_recv: false,
             _process_subscribe: false,
@@ -47,7 +47,7 @@ impl xsub_t {
 
     pub unsafe fn xattach_pipe(
         &mut self,
-        pipe_: &mut pipe_t,
+        pipe_: &mut ZmqPipe,
         subscribe_to_all_: bool,
         locally_initiated_: bool,
     ) {
@@ -59,20 +59,20 @@ impl xsub_t {
         pipe_.flush();
     }
 
-    pub unsafe fn xread_activated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xread_activated(&mut self, pipe_: &mut ZmqPipe) {
         self._fq.activated(pipe_);
     }
 
-    pub unsafe fn xwrite_activated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xwrite_activated(&mut self, pipe_: &mut ZmqPipe) {
         self._dist.activated(pipe_);
     }
 
-    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
         self._fq.terminated(pipe_);
         self._dist.terminated(pipe_);
     }
 
-    pub unsafe fn xhiccuped(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xhiccuped(&mut self, pipe_: &mut ZmqPipe) {
         //  Send all the cached subscriptions to the hiccuped pipe.
         self._subscriptions.apply(self.send_subscription, pipe_);
         pipe_.flush();
@@ -122,7 +122,7 @@ impl xsub_t {
         return -1;
     }
 
-    pub unsafe fn xsend(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
         let mut size = msg_.size();
         let mut data = (msg_.data());
 
@@ -178,7 +178,7 @@ impl xsub_t {
         true
     }
 
-    pub unsafe fn xrecv(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xrecv(&mut self, msg_: &mut ZmqMsg) -> i32 {
         //  If there's already a message prepared by a previous call to zmq_poll,
         //  return it straight ahead.
         if (self._has_message) {
@@ -197,7 +197,7 @@ impl xsub_t {
             let mut rc = self._fq.recv (msg_);
 
             //  If there's no message available, return immediately.
-            //  The same when error occurs.
+            //  The same when Error occurs.
             if (rc != 0) {
                 return -1;
             }
@@ -237,7 +237,7 @@ impl xsub_t {
             let mut rc = self._fq.recv (&mut self._message);
 
             //  If there's no message available, return immediately.
-            //  The same when error occurs.
+            //  The same when Error occurs.
             if (rc != 0) {
                 // errno_assert (errno == EAGAIN);
                 return false;
@@ -251,14 +251,14 @@ impl xsub_t {
 
             //  Message doesn't match. Pop any remaining parts of the message
             //  from the pipe.
-            while (self._message.flags () & msg_t::more) {
+            while (self._message.flags () & ZmqMsg::more) {
                 rc = self._fq.recv (&mut self._message);
                 // errno_assert (rc == 0);
             }
         }
     }
     
-    pub unsafe fn match_(&mut self, msg_: &mut msg_t) -> bool {
+    pub unsafe fn match_(&mut self, msg_: &mut ZmqMsg) -> bool {
         let matching = self._subscriptions.check (
            (msg_.data ()), msg_.size ());
     
@@ -266,10 +266,10 @@ impl xsub_t {
     }
     
     pub unsafe fn send_subscription(&mut self, data_: &mut [u8], size_: usize, arg_: &mut [u8]) {
-        let mut pipe = arg_.as_mut_ptr() as *mut pipe_t;
+        let mut pipe = arg_.as_mut_ptr() as *mut ZmqPipe;
 
         //  Create the subscription message.
-        let mut msg = msg_t::default();
+        let mut msg = ZmqMsg::default();
         let rc = msg.init_subscribe (size_, data_);
         // errno_assert (rc == 0);
     

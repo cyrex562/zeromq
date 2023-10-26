@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 use std::mem;
-use crate::ip_resolver::{ip_addr_t, ip_resolver_options_t, ip_resolver_t};
+use crate::ip_resolver::{ZmqIpAddress, ip_resolver_options_t, ip_resolver_t};
 use anyhow::bail;
 use libc::{c_char, getnameinfo, sockaddr, sockaddr_in, sockaddr_in6, socklen_t, AF_INET, AF_INET6, NI_MAXHOST, NI_NUMERICHOST, in6_addr, in_addr, size_t};
 use std::ops::Index;
@@ -8,18 +8,18 @@ use std::ptr::null_mut;
 use windows::Win32::Networking::WinSock::sa_family_t;
 
 #[derive(Default, Debug, Clone)]
-pub struct tcp_address_t {
-    pub _address: ip_addr_t,
-    pub _source_address: ip_addr_t,
-    pub _has_src_addr: bool,
+pub struct ZmqTcpAddress {
+    pub address: ZmqIpAddress,
+    pub source_address: ZmqIpAddress,
+    pub has_src_addr: bool,
 }
 
-impl tcp_address_t {
+impl ZmqTcpAddress {
     pub fn new() -> Self {
         Self {
-            _address: ip_addr_t::new(),
-            _source_address: ip_addr_t::new(),
-            _has_src_addr: false,
+            address: ZmqIpAddress::new(),
+            source_address: ZmqIpAddress::new(),
+            has_src_addr: false,
         }
     }
 
@@ -29,14 +29,14 @@ impl tcp_address_t {
         };
         if sa_.sa_family == AF_INET && sa_len_ >= 4 {
             let sa_in = sa_ as *const sockaddr_in;
-            out._address = ip_addr_t::new2(&sa_in.sin_addr, 4);
-            out._source_address = ip_addr_t::new2(&sa_in.sin_addr, 4);
-            out._has_src_addr = true;
+            out.address = ZmqIpAddress::new2(&sa_in.sin_addr, 4);
+            out.source_address = ZmqIpAddress::new2(&sa_in.sin_addr, 4);
+            out.has_src_addr = true;
         } else if sa_.sa_family == AF_INET6 && sa_len_ >= 16 {
             let sa_in6 = sa_ as *const sockaddr_in6;
-            out._address = ip_addr_t::new2(&sa_in6.sin6_addr, 16);
-            out._source_address = ip_addr_t::new2(&sa_in6.sin6_addr, 16);
-            out._has_src_addr = true;
+            out.address = ZmqIpAddress::new2(&sa_in6.sin6_addr, 16);
+            out.source_address = ZmqIpAddress::new2(&sa_in6.sin6_addr, 16);
+            out.has_src_addr = true;
         }
         out
     }
@@ -57,9 +57,9 @@ impl tcp_address_t {
 
             let mut src_resolver = ip_resolver_t::new(&mut src_resolver_opts);
 
-            src_resolver.resolve(&mut self._address, name_)?;
+            src_resolver.resolve(&mut self.address, name_)?;
             *name_ = name_[src_delimiter.unwrap() + 1..];
-            self._has_src_addr = true;
+            self.has_src_addr = true;
         }
 
         let mut resolver_opts = ip_resolver_options_t::new();
@@ -71,7 +71,7 @@ impl tcp_address_t {
 
         let mut resolver: ip_resolver_t = ip_resolver_t::new(&mut resolver_opts);
 
-        resolver.resolve(&mut self._address, name_)?;
+        resolver.resolve(&mut self.address, name_)?;
 
         Ok(())
     }
@@ -95,7 +95,7 @@ impl tcp_address_t {
     }
 
     pub unsafe fn to_string(&mut self, addr_: &mut String) -> anyhow::Result<()> {
-        if self._address.family() != AF_INET && self._address.family() != AF_INET6 {
+        if self.address.family() != AF_INET && self.address.family() != AF_INET6 {
             *addr_.clear();
             bail!("invalid address family")
         }
@@ -119,47 +119,47 @@ impl tcp_address_t {
         let ipv4_suffix: &'static str = ":";
         let ipv6_prefix: &'static str = "tcp://[";
         let ipv6_suffix: &'static str = "]:";
-        if self._address.family() == AF_INET6 {
-            *addr_ = self.make_address_string(hbuf, self._address.port(), ipv6_prefix, ipv6_suffix);
+        if self.address.family() == AF_INET6 {
+            *addr_ = self.make_address_string(hbuf, self.address.port(), ipv6_prefix, ipv6_suffix);
         } else {
-            *addr_ = self.make_address_string(hbuf, self._address.port(), ipv4_prefix, ipv4_suffix);
+            *addr_ = self.make_address_string(hbuf, self.address.port(), ipv4_prefix, ipv4_suffix);
         }
         Ok(())
     }
 
     pub fn addr(&mut self) -> *mut sockaddr {
-        self._address.as_sockaddr()
+        self.address.as_sockaddr()
     }
 
     pub fn addrlen(&mut self) -> socklen_t {
-        self._address.len()
+        self.address.len()
     }
 
     pub fn src_addr(&mut self) -> *mut sockaddr {
-        self._source_address.as_sockaddr()
+        self.source_address.as_sockaddr()
     }
 
     pub fn src_addrlen(&mut self) -> socklen_t {
-        self._source_address.len()
+        self.source_address.len()
     }
 
     pub fn has_src_addr(&mut self) -> bool {
-        self._has_src_addr
+        self.has_src_addr
     }
 
     #[cfg(target_os = "windows")]
     pub fn family(&mut self) -> u16 {
-        self._address.family()
+        self.address.family()
     }
     #[cfg(target_os = "linux")]
     pub fn family(&mut self) -> sa_family_t {
-        self._address.family() as sa_family_t
+        self.address.family() as sa_family_t
     }
 }
 
 #[derive(Default, Debug, Clone)]
 pub struct tcp_address_mask_t {
-    pub _network_address: ip_addr_t,
+    pub _network_address: ZmqIpAddress,
     pub _address_mask: i32,
 }
 

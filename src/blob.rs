@@ -1,94 +1,98 @@
 use std::cmp::Ordering;
 use libc::size_t;
 
-pub struct reference_tag_t {
+pub struct ZmqReferenceTag {
 
 }
 
-pub struct blob_t {
-    pub _data: *mut u8,
-    pub _size: usize,
-    pub _owned: bool,
+pub struct ZmqBlob {
+    pub data: Vec<u8>,
+    pub size: usize,
+    pub owned: bool,
 }
 
-impl blob_t {
+impl ZmqBlob {
     pub fn new() -> Self {
-        blob_t {
-            _data: std::ptr::null_mut(),
-            _size: 0,
-            _owned: false,
+        ZmqBlob {
+            data: Vec::new(),
+            size: 0,
+            owned: false,
         }
     }
 
     pub fn new2(size_: size_t) -> Self {
-        let mut out = blob_t {
-            _data: std::ptr::null_mut(),
-            _size: size_,
-            _owned: false,
+        let mut out = ZmqBlob {
+            data: Vec::with_capacity(size_ as usize),
+            size: size_,
+            owned: false,
         };
-        out._data = unsafe { libc::malloc(size_) as *mut u8 };
+        // out.data = unsafe { libc::malloc(size_) as *mut u8 };
         out
     }
 
-    pub fn new3(data_: *mut u8, size_: size_t) -> Self {
-        blob_t {
-            _data: data_,
-            _size: size_,
-            _owned: false,
-        }
+    pub fn new3(data_: &[u8], size_: size_t) -> Self {
+        let mut out = ZmqBlob {
+            data: vec![],
+            size: size_,
+            owned: false,
+        };
+        out.data.extend_from_slice(data_);
+        out
     }
 
     pub fn size(&self) -> usize {
-        self._size
+        self.size
     }
 
-    pub fn data_mut(&self) -> *mut u8 {
-        self._data
+    pub fn data_mut(&mut self) ->&mut [u8] { self.data.as_mut_slice()
     }
 
-    pub fn data(&self) -> *const u8 {
-        self._data
+    pub fn data(&self) -> & [u8] {
+        self.data.as_slice()
     }
 
     pub fn set_deep_copy(&mut self, other_: &Self)
     {
         self.clear();
-        self._data = unsafe { libc::malloc(other_._size) as *mut u8 };
-        self._size = other_._size;
-        self._owned = true;
-        if self._size != 0 && self._data != std::ptr::null_mut() {
+        // self.data = unsafe { libc::malloc(other_.size) as *mut u8 };
+        self.data = Vec::with_capacity(other_.size);
+        self.size = other_.size;
+        self.owned = true;
+        if self.size != 0 && self.data != std::ptr::null_mut() {
             unsafe {
-                std::ptr::copy_nonoverlapping(other_._data, self._data, self._size);
+                std::ptr::copy_nonoverlapping(other_.data, self.data, self.size);
             }
         }
     }
 
-    pub fn set(&mut self, data_: *mut u8, size_: size_t) {
+    pub fn set(&mut self, data_: &mut [u8], size_: size_t) {
         self.clear();
         // self._data = data_;
-        self._data = unsafe { libc::malloc(size_) as *mut u8 };
-        self._size = size_;
-        self._owned = false;
-        if self._size != 0 && self._data != std::ptr::null_mut() {
+        // self.data = unsafe { libc::malloc(size_) as *mut u8 };
+        self.data = Vec::with_capacity(size_ as usize);
+        self.size = size_;
+        self.owned = false;
+        if self.size != 0 && self.data != std::ptr::null_mut() {
             unsafe {
-                std::ptr::copy_nonoverlapping(data_, self._data, self._size);
+                std::ptr::copy_nonoverlapping(data_, self.data, self.size);
             }
         }
     }
 
     pub fn clear(&mut self) {
-        if self._owned && self._data != std::ptr::null_mut() {
-            unsafe {
-                libc::free(self._data as *mut libc::c_void);
-            }
-        }
-        self._data = std::ptr::null_mut();
-        self._size = 0;
-        self._owned = false;
+        // if self.owned && self.data != std::ptr::null_mut() {
+        //     unsafe {
+        //         libc::free(self.data as *mut libc::c_void);
+        //     }
+        // }
+        // self.data = std::ptr::null_mut();
+        self.data.clear();
+        self.size = 0;
+        self.owned = false;
     }
 }
 
-impl PartialEq<Self> for blob_t {
+impl PartialEq<Self> for ZmqBlob {
     fn eq(&self, other: &Self) -> bool {
         todo!()
     }
@@ -98,11 +102,11 @@ impl PartialEq<Self> for blob_t {
     }
 }
 
-impl Eq for blob_t {
+impl Eq for ZmqBlob {
 
 }
 
-impl PartialOrd<Self> for blob_t {
+impl PartialOrd<Self> for ZmqBlob {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         todo!()
     }
@@ -124,7 +128,7 @@ impl PartialOrd<Self> for blob_t {
     }
 }
 
-impl Ord for blob_t {
+impl Ord for ZmqBlob {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         todo!()
     }

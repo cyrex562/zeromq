@@ -1,40 +1,40 @@
-#![allow(non_camel_case_types)]
+
 
 use std::collections::HashSet;
 use std::ffi::c_void;
-use crate::address::address_t;
-use crate::ctx::ctx_t;
+use crate::address::ZmqAddress;
+use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_DISH, ZMQ_GROUP_MAX_LENGTH};
-use crate::fq::fq_t;
-use crate::io_thread::io_thread_t;
-use crate::msg::{MSG_COMMAND, MSG_MORE, msg_t};
-use crate::options::options_t;
-use crate::pipe::pipe_t;
-use crate::session_base::session_base_t;
-use crate::socket_base::socket_base_t;
+use crate::fair_queue::ZmqFairQueue;
+use crate::io_thread::ZmqIoThread;
+use crate::msg::{MSG_COMMAND, MSG_MORE, ZmqMsg};
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::session_base::ZmqSessionBase;
+use crate::socket_base::ZmqSocketBase;
 
-pub type subscriptions_t = HashSet<String>;
+pub type ZmqSubscriptions = HashSet<String>;
 
-pub struct dish_t<'a> {
-    pub socket_base: socket_base_t<'a>,
-    pub _fq: fq_t,
+pub struct ZmqDish<'a> {
+    pub socket_base: ZmqSocketBase<'a>,
+    pub _fq: ZmqFairQueue,
     pub _dist: dist_t,
-    pub _subscriptions: subscriptions_t,
+    pub _subscriptions: ZmqSubscriptions,
     pub _has_message: bool,
-    pub _message: msg_t,
+    pub _message: ZmqMsg,
 }
 
-impl dish_t {
-    pub unsafe fn new(options: &mut options_t, parent_: &mut ctx_t, tid_: u32, sid_: i32) -> Self {
+impl ZmqDish {
+    pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
         options.type_ = ZMQ_DISH;
         options.linger = 0;
         let mut out = Self {
-            socket_base: socket_base_t::new(parent_, tid_, sid_, false),
-            _fq: fq_t::new(),
+            socket_base: ZmqSocketBase::new(parent_, tid_, sid_, false),
+            _fq: ZmqFairQueue::new(),
             _dist: dist_t::new(),
-            _subscriptions: subscriptions_t::new(),
+            _subscriptions: ZmqSubscriptions::new(),
             _has_message: false,
-            _message: msg_t::new(),
+            _message: ZmqMsg::new(),
         };
 
         let rc = out._message.init2();
@@ -42,27 +42,27 @@ impl dish_t {
         out
     }
 
-    pub fn xattach_pipe(&mut self, pipe_: &mut pipe_t, subscribe_to_all_: bool)  {
+    pub fn xattach_pipe(&mut self, pipe_: &mut ZmqPipe, subscribe_to_all_: bool)  {
         self._fq.attach(pipe_);
         self._dist.attach(pipe_);
 
         self.send_subscriptions(pipe_);
     }
 
-    pub fn xread_activated(&mut self, pipe_: &mut pipe_t) {
+    pub fn xread_activated(&mut self, pipe_: &mut ZmqPipe) {
         self._fq.activated(pipe_);
     }
 
-    pub fn xwrite_activated(&mut self, pipe_: &mut pipe_t) {
+    pub fn xwrite_activated(&mut self, pipe_: &mut ZmqPipe) {
         self._dist.activated(pipe_);
     }
 
-    pub fn xpipe_terminated(&mut self, pipe_: &mut pipe_t) {
+    pub fn xpipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
         self._fq.terminated(pipe_);
         self._dist.terminated(pipe_);
     }
 
-    pub fn xhiccuped(&mut self, pipe_: &mut pipe_t) {
+    pub fn xhiccuped(&mut self, pipe_: &mut ZmqPipe) {
         self.send_subscriptions(pipe_)
     }
 
@@ -73,7 +73,7 @@ impl dish_t {
 
         self._subscriptions.insert(group_.to_string());
 
-        let mut msg = msg_t::new();
+        let mut msg = ZmqMsg::new();
         let mut rc = msg.init_join();
 
         rc = msg.set_group(group_);;
@@ -92,7 +92,7 @@ impl dish_t {
 
         self._subscriptions.remove(group_);
 
-        let mut msg = msg_t::new();
+        let mut msg = ZmqMsg::new();
         let mut rc = msg.init_leave();
 
         rc = msg.set_group(group_);;
@@ -104,7 +104,7 @@ impl dish_t {
         rc
     }
 
-    pub fn xsend(&mut self, msg_: &mut msg_t) -> i32 {
+    pub fn xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
         unimplemented!()
     }
 
@@ -112,7 +112,7 @@ impl dish_t {
         true
     }
 
-    pub unsafe fn xrecv(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xrecv(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if self._has_message {
             let mut rc = msg_.move_(self._message);
             self._has_message = false;
@@ -122,7 +122,7 @@ impl dish_t {
         self.xxrecv(msg_)
     }
 
-    pub unsafe fn xxrecv(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xxrecv(&mut self, msg_: &mut ZmqMsg) -> i32 {
         loop {
             let mut rc = self._fq.recv(msg_);
             if rc < 0 {
@@ -157,10 +157,10 @@ impl dish_t {
         true
     }
 
-    pub unsafe fn send_subscriptions(&mut self pipe_: &mut pipe_t)
+    pub unsafe fn send_subscriptions(&mut self pipe_: &mut ZmqPipe)
     {
         for it in self._subscriptions.iter_mut() {
-            let mut msg = msg_t::new();
+            let mut msg = ZmqMsg::new();
             let mut rc = msg.init_join();
 
             rc = msg.set_group(it.as_str());
@@ -180,23 +180,23 @@ pub enum dish_session_state_t {
 }
 
 pub struct dish_session_t<'a> {
-    pub session_base: session_base_t<'a>,
+    pub session_base: ZmqSessionBase<'a>,
     pub _state: dish_session_state_t,
-    pub _group_msg: msg_t,
+    pub _group_msg: ZmqMsg,
 }
 
 impl dish_session_t {
-    pub unsafe fn new(io_thread_: &mut io_thread_t, connect_: bool, socket_: &mut socket_base_t, options_: &mut options_t, addr_: address_t) -> Self {
+    pub unsafe fn new(io_thread_: &mut ZmqIoThread, connect_: bool, socket_: &mut ZmqSocketBase, options_: &mut ZmqOptions, addr_: ZmqAddress) -> Self {
         let mut out = Self {
-            session_base: session_base_t::new(io_thread_, connect_, socket_, options_, addr_),
+            session_base: ZmqSessionBase::new(io_thread_, connect_, socket_, options_, addr_),
             _state: dish_session_state_t::group,
-            _group_msg: msg_t::new(),
+            _group_msg: ZmqMsg::new(),
         };
 
         out
     }
 
-    pub unsafe fn push_msg(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn push_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if self._state == dish_session_state_t::group {
             if msg_.flags() & MSG_MORE != MSG_MORE {
                 return -1;
@@ -234,7 +234,7 @@ impl dish_session_t {
         rc
     }
 
-    pub unsafe fn pull_msg(&mut self, msg_: &mut msg_t) -> i32
+    pub unsafe fn pull_msg(&mut self, msg_: &mut ZmqMsg) -> i32
     {
         let mut rc = self.session_base.pull_msg(msg_);
         if rc != 0 {
@@ -247,7 +247,7 @@ impl dish_session_t {
 
         let group_length = msg_.group().len();
 
-        let mut command_ = msg_t::new();
+        let mut command_ = ZmqMsg::new();
         let mut offset = 0i32;
 
         if msg_.is_join() {

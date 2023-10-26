@@ -53,32 +53,32 @@ let mut msg = ZmqMessage::default();
 
     ctx = zmq_init (1);
     if (!ctx) {
-        printf ("error in zmq_init: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_init: %s\n", zmq_strerror (errno));
         return -1;
     }
 
     s = zmq_socket (ctx, ZMQ_REP);
     if (!s) {
-        printf ("error in zmq_socket: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_socket: %s\n", zmq_strerror (errno));
         return -1;
     }
 
     rc = zmq_bind (s, bind_to);
     if (rc != 0) {
-        printf ("error in zmq_bind: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_bind: %s\n", zmq_strerror (errno));
         return -1;
     }
 
     rc = zmq_msg_init (&msg);
     if (rc != 0) {
-        printf ("error in zmq_msg_init: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_msg_init: %s\n", zmq_strerror (errno));
         return -1;
     }
 
     for (i = 0; i != roundtrip_count; i+= 1) {
         rc = zmq_recvmsg (s, &msg, 0);
         if (rc < 0) {
-            printf ("error in zmq_recvmsg: %s\n", zmq_strerror (errno));
+            printf ("Error in zmq_recvmsg: %s\n", zmq_strerror (errno));
             return -1;
         }
         if (zmq_msg_size (&msg) != message_size) {
@@ -87,14 +87,14 @@ let mut msg = ZmqMessage::default();
         }
         rc = zmq_sendmsg (s, &msg, 0);
         if (rc < 0) {
-            printf ("error in zmq_sendmsg: %s\n", zmq_strerror (errno));
+            printf ("Error in zmq_sendmsg: %s\n", zmq_strerror (errno));
             return -1;
         }
     }
 
     rc = zmq_msg_close (&msg);
     if (rc != 0) {
-        printf ("error in zmq_msg_close: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_msg_close: %s\n", zmq_strerror (errno));
         return -1;
     }
 
@@ -102,13 +102,13 @@ let mut msg = ZmqMessage::default();
 
     rc = zmq_close (s);
     if (rc != 0) {
-        printf ("error in zmq_close: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_close: %s\n", zmq_strerror (errno));
         return -1;
     }
 
     rc = zmq_ctx_term (ctx);
     if (rc != 0) {
-        printf ("error in zmq_ctx_term: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_ctx_term: %s\n", zmq_strerror (errno));
         return -1;
     }
 

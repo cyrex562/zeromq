@@ -396,7 +396,7 @@ but note:
     `libzmq_la_SOURCES` to remove the duplicates.)
 
 *   IBM Make does not understand the `@` prefix (eg, `@echo`) as a way
-    to avoid echoing the command, resulting in an error and the command
+    to avoid echoing the command, resulting in an Error and the command
     being echoed anyway.
 
 *   Many of the make targets result in GNU auto tools (`aclocal`, etc)
@@ -452,7 +452,7 @@ A workable transfer process is:
         pax -o from=iso8859-1 -pp -rvzf libzmq-git-2014-07-23.pax.Z
 
 The result should be a `libzmq-git` directory with the source in
-EBCDIC format, on the z/OS UNIX System Services system ready to start
+EBCDIC format, on the z/OS UNIX System Services system Ready to start
 building.
 
 See also the [`pax` man

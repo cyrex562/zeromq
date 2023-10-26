@@ -1,14 +1,14 @@
 use std::ffi::c_void;
 use crate::defines::{ZMQ_PROTOCOL_ERROR_ZAP_BAD_REQUEST_ID, ZMQ_PROTOCOL_ERROR_ZAP_BAD_VERSION, ZMQ_PROTOCOL_ERROR_ZAP_INVALID_METADATA, ZMQ_PROTOCOL_ERROR_ZAP_INVALID_STATUS_CODE, ZMQ_PROTOCOL_ERROR_ZAP_MALFORMED_REPLY, ZMQ_PROTOCOL_ERROR_ZAP_UNSPECIFIED};
 use crate::mechanism;
-use crate::mechanism_base::mechanism_base_t;
-use crate::msg::{MSG_MORE, msg_t};
-use crate::options::options_t;
-use crate::session_base::session_base_t;
+use crate::mechanism_base::ZmqMechanismBase;
+use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::options::ZmqOptions;
+use crate::session_base::ZmqSessionBase;
 use crate::zap_client::zap_client_state::{error_sent, ready, sending_error};
 
-pub struct zap_client_t {
-    pub mechanism_base: mechanism_base_t,
+pub struct ZapClient {
+    pub mechanism_base: ZmqMechanismBase,
     pub status_code: String,
     pub peer_address: String,
 }
@@ -21,32 +21,32 @@ pub const id: &'static str = "1";
 
 pub const id_len: usize = 1;
 
-impl zap_client_t {
-    pub fn new(session_: &mut session_base_t, peer_address_: &str, options: &options_t) -> Self {
+impl ZapClient {
+    pub fn new(session_: &mut ZmqSessionBase, peer_address_: &str, options: &ZmqOptions) -> Self {
         Self {
-            mechanism_base: mechanism_base_t::new(session_, options),
+            mechanism_base: ZmqMechanismBase::new(session_, options),
             status_code: String::new(),
         }
     }
 
-    pub unsafe fn send_zap_request(&mut self, options: &mut options_t, mechanism_: &str, credentials_: &[u8]) {
+    pub unsafe fn send_zap_request(&mut self, options: &mut ZmqOptions, mechanism_: &str, credentials_: &[u8]) {
         let credential_list = [credentials_];
         self.send_zap_request2(options, mechanism_, &credential_list)
     }
 
-    pub unsafe fn send_zap_request2(&mut self, options: &options_t, mechanism_: &str, credentials_: &[&[u8]]) {
+    pub unsafe fn send_zap_request2(&mut self, options: &ZmqOptions, mechanism_: &str, credentials_: &[&[u8]]) {
         // write_zap_msg cannot fail. It could only fail if the HWM was exceeded,
         // but on the ZAP socket, the HWM is disabled.
 
         // int rc;
         let mut rc = 0i32;
         // msg_t msg;
-        let mut msg = msg_t::new();
+        let mut msg = ZmqMsg::new();
 
         //  Address delimiter frame
         rc = msg.init2 ();
         // errno_assert (rc == 0);
-        msg.set_flags (msg_t::more);
+        msg.set_flags (ZmqMsg::more);
         rc = self.mechanism_base.session.write_zap_msg (&msg);
         // errno_assert (rc == 0);
 
@@ -54,7 +54,7 @@ impl zap_client_t {
         rc = msg.init_size (zap_version_len);
         // errno_assert (rc == 0);
         libc::memcpy (msg.data (), zap_version.as_ptr() as *const c_void, zap_version_len);
-        msg.set_flags (msg_t::more);
+        msg.set_flags (ZmqMsg::more);
         rc = self.mechanism_base.session.write_zap_msg (&msg);
         // errno_assert (rc == 0);
 
@@ -62,7 +62,7 @@ impl zap_client_t {
         rc = msg.init_size (id_len);
         // errno_assert (rc == 0);
         libc::memcpy (msg.data (), id.as_ptr() as *const c_void, id_len);
-        msg.set_flags (msg_t::more);
+        msg.set_flags (ZmqMsg::more);
         rc = self.mechanism_base.session.write_zap_msg (&msg);
         // errno_assert (rc == 0);
 
@@ -71,7 +71,7 @@ impl zap_client_t {
         // errno_assert (rc == 0);
         libc::memcpy (msg.data (), options.zap_domain.as_ptr() as *const c_void, options.zap_domain.length ());
 
-        msg.set_flags (msg_t::more);
+        msg.set_flags (ZmqMsg::more);
         rc = self.mechanism_base.session.write_zap_msg (&msg);
         // errno_assert (rc == 0);
 
@@ -79,7 +79,7 @@ impl zap_client_t {
         rc = msg.init_size (self.peer_address.length ());
         // errno_assert (rc == 0);
        libc::memcpy (msg.data (), self.peer_address.as_ptr() as *const c_void, self.peer_address.length ());
-        msg.set_flags (msg_t::more);
+        msg.set_flags (ZmqMsg::more);
         rc = self.mechanism_base.session.write_zap_msg (&msg);
         // errno_assert (rc == 0);
 
@@ -87,7 +87,7 @@ impl zap_client_t {
         rc = msg.init_size (options.routing_id_size);
         // errno_assert (rc == 0);
         libc::memcpy (msg.data (), options.routing_id as *const c_void, options.routing_id_size as usize);
-        msg.set_flags (msg_t::more);
+        msg.set_flags (ZmqMsg::more);
         rc = self.mechanism_base.session.write_zap_msg (&msg);
         // errno_assert (rc == 0);
 
@@ -96,7 +96,7 @@ impl zap_client_t {
         // errno_assert (rc == 0);
         libc::memcpy (msg.data (), mechanism_, mechanism_.len());
         if (credentials_.len())
-            msg.set_flags (msg_t::more);
+            msg.set_flags (ZmqMsg::more);
         rc = self.mechanism_base.session.write_zap_msg (&msg);
         // errno_assert (rc == 0);
 
@@ -107,7 +107,7 @@ impl zap_client_t {
             rc = msg.init_size (credentials_[i].len());
             // errno_assert (rc == 0);
             if i < credentials_.len() - 1 {
-                msg.set_flags(msg_t::more);
+                msg.set_flags(ZmqMsg::more);
             }
             libc::memcpy (msg.data (), credentials_[i].as_ptr() as *const c_void, credentials_[i].len());
             rc = self.mechanism_base.session.write_zap_msg (&msg);
@@ -118,7 +118,7 @@ impl zap_client_t {
     pub unsafe fn receive_and_process_zap_reply(&mut self) -> i32 {
         let mut rc = 0i32;
         let zap_reply_frame_count = 7;
-        let mut msg: Vec<msg_t> = Vec::with_capacity(zap_reply_frame_count);
+        let mut msg: Vec<ZmqMsg> = Vec::with_capacity(zap_reply_frame_count);
 
         //  Initialize all reply frames
         // for (size_t i = 0; i < zap_reply_frame_count; i++)
@@ -256,27 +256,27 @@ pub enum zap_client_state {
 }
 
 pub struct zap_client_common_handshake_t {
-    pub zap_client: zap_client_t,
+    pub zap_client: ZapClient,
     pub state: zap_client_state,
     pub _zap_reply_ok_state: zap_client_state,
 }
 
 impl zap_client_common_handshake_t {
-    pub fn new(session_: &mut session_base_t, peer_address_: &str, options_: &options_t, zap_reply_ok_state_: zap_client_state) -> Self {
+    pub fn new(session_: &mut ZmqSessionBase, peer_address_: &str, options_: &ZmqOptions, zap_reply_ok_state_: zap_client_state) -> Self {
         Self {
-            zap_client: zap_client_t::new(session_, peer_address_, options_),
+            zap_client: ZapClient::new(session_, peer_address_, options_),
             state: zap_client_state::waiting_for_hello,
         }
     }
 
-    pub fn status(&mut self) -> mechanism::status_t {
+    pub fn status(&mut self) -> mechanism::MechanismStatus {
         if self.state == ready {
-            return mechanism::status_t::ready;
+            return mechanism::MechanismStatus::Ready;
         }
         if self.state == error_sent {
-            return mechanism::status_t::error;
+            return mechanism::MechanismStatus::Error;
         }
-        return mechanism::status_t::handshaking;
+        return mechanism::MechanismStatus::Handshaking;
     }
 
     pub unsafe fn zap_msg_available(&mut self) -> i32 {

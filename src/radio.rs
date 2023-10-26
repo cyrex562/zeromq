@@ -1,41 +1,41 @@
-use crate::ctx::ctx_t;
+use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_RADIO, ZMQ_XPUB_NODROP};
-use crate::dist::dist_t;
-use crate::msg::{MSG_COMMAND, MSG_MORE, msg_t};
-use crate::options::options_t;
-use crate::pipe::pipe_t;
-use crate::session_base::session_base_t;
-use crate::socket_base::socket_base_t;
+use crate::dist::ZmqDist;
+use crate::msg::{MSG_COMMAND, MSG_MORE, ZmqMsg};
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::session_base::ZmqSessionBase;
+use crate::socket_base::ZmqSocketBase;
 use std::collections::HashMap;
-use crate::address::address_t;
-use crate::io_thread::io_thread_t;
+use crate::address::ZmqAddress;
+use crate::io_thread::ZmqIoThread;
 use std::ffi::c_void;
 
-pub type subscriptions_t<'a> = HashMap<String, &'a mut pipe_t<'a>>;
-pub type udp_pipes_t<'a> = Vec<&'a mut pipe_t<'a>>;
-pub struct radio_t<'a> {
-    pub socket_base: socket_base_t<'a>,
-    pub _subscriptions: subscriptions_t<'a>,
-    pub _udp_pipes: udp_pipes_t<'a>,
-    pub _dist: dist_t,
+pub type ZmqSubscriptions<'a> = HashMap<String, &'a mut ZmqPipe<'a>>;
+pub type UdpPipes<'a> = Vec<&'a mut ZmqPipe<'a>>;
+pub struct ZmqRadio<'a> {
+    pub socket_base: ZmqSocketBase<'a>,
+    pub _subscriptions: ZmqSubscriptions<'a>,
+    pub _udp_pipes: UdpPipes<'a>,
+    pub _dist: ZmqDist,
     pub _lossy: bool,
 }
 
-impl radio_t {
-    pub unsafe fn new(options: &mut options_t, parent: &mut ctx_t, tid_: u32, sid_: i32) -> Self {
+impl ZmqRadio {
+    pub unsafe fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
         options.type_ = ZMQ_RADIO;
         Self {
-            socket_base: socket_base_t::new(parent, tid_, sid_, false),
+            socket_base: ZmqSocketBase::new(parent, tid_, sid_, false),
             _subscriptions: Default::default(),
             _udp_pipes: vec![],
-            _dist: dist_t::new(),
+            _dist: ZmqDist::new(),
             _lossy: false,
         }
     }
 
     pub unsafe fn xattach_pipe(
         &mut self,
-        pipe_: &mut pipe_t,
+        pipe_: &mut ZmqPipe,
         subscribe_to_all_: bool,
         locally_initiated_: bool,
     ) {
@@ -48,9 +48,9 @@ impl radio_t {
         }
     }
 
-    pub unsafe fn xread_activated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xread_activated(&mut self, pipe_: &mut ZmqPipe) {
         //  There are some subscriptions waiting. Let's process them.
-        let mut msg = msg_t::new();
+        let mut msg = ZmqMsg::new();
         while pipe_.read(&msg) {
             //  Apply the subscription to the trie
             if (msg.is_join() || msg.is_leave()) {
@@ -76,7 +76,7 @@ impl radio_t {
         }
     }
 
-    pub unsafe fn xwrite_activated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xwrite_activated(&mut self, pipe_: &mut ZmqPipe) {
         self._dist.activated(pipe_)
     }
 
@@ -95,7 +95,7 @@ impl radio_t {
         return 0;
     }
 
-    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
         // for (subscriptions_t::iterator it = _subscriptions.begin (), end = _subscriptions.end (); it != end;)
         for it in self._subscriptions.iter_mut() {
             if (it.1 == pipe_) {
@@ -122,7 +122,7 @@ impl radio_t {
         self._dist.pipe_terminated(pipe_);
     }
 
-    pub unsafe fn xsend(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
         //  Radio sockets do not allow multipart data (ZMQ_SNDMORE)
         // if (msg_->flags () & msg_t::more)
         if msg_.flag_set(MSG_MORE)
@@ -167,7 +167,7 @@ impl radio_t {
         self._dist.has_out()
     }
 
-    pub unsafe fn xrecv(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xrecv(&mut self, msg_: &mut ZmqMsg) -> i32 {
         -1
     }
 
@@ -182,21 +182,21 @@ pub enum radio_session_state {
 }
 
 pub struct radio_session_t<'a> {
-    pub session_base: session_base_t<'a>,
+    pub session_base: ZmqSessionBase<'a>,
     pub _state: radio_session_state,
-    pub _pending_msg: msg_t,
+    pub _pending_msg: ZmqMsg,
 }
 
 impl radio_session_t {
-    pub unsafe fn new(io_thread_: &mut io_thread_t, connect_: bool, socket_: &mut socket_base_t, options_: & options_t, addr_: address_t) -> Self {
+    pub unsafe fn new(io_thread_: &mut ZmqIoThread, connect_: bool, socket_: &mut ZmqSocketBase, options_: &ZmqOptions, addr_: ZmqAddress) -> Self {
         Self {
-            session_base: session_base_t::new(io_thread_, connect_, socket_, options_, addr_),
+            session_base: ZmqSessionBase::new(io_thread_, connect_, socket_, options_, addr_),
             _state: radio_session_state::group,
-            _pending_msg: msg_t::default(),
+            _pending_msg: ZmqMsg::default(),
         }
     }
 
-    pub unsafe fn push_msg(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn push_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if msg_.flag_set(MSG_COMMAND) {
             let mut command_data = msg_.data();
             let data_size = msg_.size ();
@@ -204,7 +204,7 @@ impl radio_session_t {
             let mut group_length = 0usize;
             let mut group = String::new();
 
-            let mut join_leave_msg = msg_t::new();
+            let mut join_leave_msg = ZmqMsg::new();
             let mut rc = 0i32;
 
             //  Set the msg type to either JOIN or LEAVE
@@ -241,7 +241,7 @@ impl radio_session_t {
         return self.session_base.push_msg (msg_);
     }
     
-    pub unsafe fn pull_msg(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn pull_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if (self._state == radio_session_state::group) {
             let mut rc = self.session_base.pull_msg (&mut self._pending_msg);
             if (rc != 0) {

@@ -1,23 +1,23 @@
 use std::ptr::null_mut;
-use crate::mutex::mutex_t;
+use crate::mutex::ZmqMutex;
 
-pub struct dbuffer_t<T: Copy + Default>
+pub struct ZmqDbuffer<T: Copy + Default>
 {
     pub _storage: [T;2],
-    pub _back: *mut T,
-    pub _front: *mut T,
-    pub _sync: mutex_t,
+    pub _back: usize,
+    pub _front: usize,
+    pub _sync: ZmqMutex,
     pub _has_msg: bool,
 }
 
-impl <T: Copy + Default>dbuffer_t<T>{
+impl <T: Copy + Default> ZmqDbuffer<T>{
     pub fn new() -> Self
     {
         let mut out = Self {
             _storage: [T::default();2],
             _back: null_mut(),
             _front: null_mut(),
-            _sync: mutex_t::new(),
+            _sync: ZmqMutex::new(),
             _has_msg: false,
         };
 
@@ -30,7 +30,7 @@ impl <T: Copy + Default>dbuffer_t<T>{
         *self._back = value_.clone();
     }
 
-    pub unsafe fn read(&mut self, value_: *mut T) -> bool {
+    pub unsafe fn read(&mut self, value_: &mut T) -> bool {
         if value_ == null_mut() {
             return false;
         }
@@ -49,7 +49,7 @@ impl <T: Copy + Default>dbuffer_t<T>{
         return self._has_msg;
     }
 
-    pub fn probe(&mut self, func: fn(*mut T)->bool) -> bool {
+    pub fn probe(&mut self, func: fn(&mut T)->bool) -> bool {
         func(self._front)
     }
 }

@@ -49,7 +49,7 @@ void test_with_handover ()
       zmq_setsockopt (dealer_one, ZMQ_ROUTING_ID, "X", 1));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (dealer_one, my_endpoint));
 
-    //  Get message from dealer to know when connection is ready
+    //  Get message from dealer to know when connection is Ready
     char buffer[255];
     send_string_expect_success (dealer_one, "Hello", 0);
 
@@ -62,7 +62,7 @@ void test_with_handover ()
       zmq_setsockopt (ZmqDealerwo, ZMQ_ROUTING_ID, "X", 1));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (ZmqDealerwo, my_endpoint));
 
-    //  Get message from dealer to know when connection is ready
+    //  Get message from dealer to know when connection is Ready
     send_string_expect_success (ZmqDealerwo, "Hello", 0);
 
     recv_string_expect_success (router, "X", 0);
@@ -104,7 +104,7 @@ void test_without_handover ()
       zmq_setsockopt (dealer_one, ZMQ_ROUTING_ID, "X", 1));
     TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (dealer_one, my_endpoint));
 
-    //  Get message from dealer to know when connection is ready
+    //  Get message from dealer to know when connection is Ready
     char buffer[255];
     send_string_expect_success (dealer_one, "Hello", 0);
 

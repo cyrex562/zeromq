@@ -62,21 +62,21 @@ int test_assert_failure_message_raw_errno_helper (
 // TEST_ASSERT_FAILURE_ERRNO, 'expr' must be an expression evaluating
 // to a result in the style of a libzmq API function, i.e. an integer which
 // is non-negative in case of success, and -1 in case of a failure, and sets
-// the value returned by zmq_errno () to the error code.
+// the value returned by zmq_errno () to the Error code.
 // TEST_ASSERT_SUCCESS_RAW_ERRNO and TEST_ASSERT_FAILURE_RAW_ERRNO are similar,
-// but used with the native socket API functions, and expect that the error
+// but used with the native socket API functions, and expect that the Error
 // code can be retrieved in the native way (i.e. WSAGetLastError on Windows,
 // and errno otherwise).
 
 // Asserts that the libzmq API 'expr' is successful. In case of a failure, the
-// assertion message includes the literal 'expr', the error number as
+// assertion message includes the literal 'expr', the Error number as
 // determined by zmq_errno(), and the additional 'msg'.
 // In case of success, the result of the macro is the result of 'expr'.
 // #define TEST_ASSERT_SUCCESS_MESSAGE_ERRNO(expr, msg)                           \
     test_assert_success_message_errno_helper (expr, msg, #expr, __LINE__)
 
 // Asserts that the libzmq API 'expr' is successful. In case of a failure, the
-// assertion message includes the literal 'expr' and the error code.
+// assertion message includes the literal 'expr' and the Error code.
 // A typical use would be:
 //   TEST_ASSERT_SUCCESS_ERRNO (zmq_connect (socket, endpoint));
 // In case of success, the result of the macro is the result of 'expr'.
@@ -87,7 +87,7 @@ int test_assert_failure_message_raw_errno_helper (
     test_assert_success_message_errno_helper (expr, null_mut(), #expr, __LINE__)
 
 // Asserts that the socket API 'expr' is successful. In case of a failure, the
-// assertion message includes the literal 'expr' and the error code.
+// assertion message includes the literal 'expr' and the Error code.
 // A typical use would be:
 //   TEST_ASSERT_SUCCESS_RAW_ERRNO (send (fd, buffer, 64, 0));
 // In case of success, the result of the macro is the result of 'expr'.
@@ -97,7 +97,7 @@ int test_assert_failure_message_raw_errno_helper (
     test_assert_success_message_raw_errno_helper (expr, null_mut(), #expr, __LINE__)
 
 // Asserts that the socket API 'expr' is successful. In case of a failure, the
-// assertion message includes the literal 'expr' and the error code.
+// assertion message includes the literal 'expr' and the Error code.
 // A typical use would be:
 //   TEST_ASSERT_SUCCESS_RAW_ZERO_ERRNO (send (fd, buffer, 64, 0));
 // In case of success, the result of the macro is the result of 'expr'.
@@ -107,18 +107,18 @@ int test_assert_failure_message_raw_errno_helper (
     test_assert_success_message_raw_zero_errno_helper (expr, null_mut(), #expr,      \
                                                        __LINE__)
 
-// Asserts that the socket API 'expr' is not successful, and the error code is
+// Asserts that the socket API 'expr' is not successful, and the Error code is
 // 'error_code'. In case of an unexpected succces, or a failure with an
-// unexpected error code, the assertion message includes the literal 'expr'
-// and, in case of a failure, the actual error code.
+// unexpected Error code, the assertion message includes the literal 'expr'
+// and, in case of a failure, the actual Error code.
 // #define TEST_ASSERT_FAILURE_RAW_ERRNO(error_code, expr)                        \
     test_assert_failure_message_raw_errno_helper (expr, error_code, null_mut(),      \
                                                   #expr, __LINE__)
 
-// Asserts that the libzmq API 'expr' is not successful, and the error code is
+// Asserts that the libzmq API 'expr' is not successful, and the Error code is
 // 'error_code'. In case of an unexpected succces, or a failure with an
-// unexpected error code, the assertion message includes the literal 'expr'
-// and, in case of a failure, the actual error code.
+// unexpected Error code, the assertion message includes the literal 'expr'
+// and, in case of a failure, the actual Error code.
 // #define TEST_ASSERT_FAILURE_ERRNO(error_code, expr)                            \
     {                                                                          \
         int _rc = (expr);                                                      \
@@ -135,7 +135,7 @@ int test_assert_failure_message_raw_errno_helper (
 // options, and might include dropping the message). Otherwise, a Unity test
 // assertion is triggered.
 // 'socket_' must be the libzmq socket to use for sending.
-// 'str_' must be a 0-terminated string.
+// 'str_' must be a 0-Terminated string.
 // 'flags' are as documented by the zmq_send function.
 void send_string_expect_success (socket: *mut c_void, str_: *const c_char, flags: i32);
 
@@ -143,7 +143,7 @@ void send_string_expect_success (socket: *mut c_void, str_: *const c_char, flags
 // successful, and the message to be a given string. Otherwise, a Unity test
 // assertion is triggered.
 // 'socket_' must be the libzmq socket to use for receiving.
-// 'str_' must be a 0-terminated string.
+// 'str_' must be a 0-Terminated string.
 // 'flags' are as documented by the zmq_recv function.
 void recv_string_expect_success (socket: *mut c_void, str_: *const c_char, flags: i32);
 

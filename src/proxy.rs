@@ -1,23 +1,23 @@
 use std::mem::size_of_val;
 use std::ptr::null_mut;
-use crate::config::proxy_burst_size;
+use crate::config::PROXY_BURST_SIZE;
 use crate::defines::{ZMQ_DONTWAIT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_RCVMORE, ZMQ_SNDMORE};
-use crate::msg::msg_t;
-use crate::socket_base::socket_base_t;
-use crate::socket_poller::{event_t, socket_poller_t};
+use crate::msg::ZmqMsg;
+use crate::socket_base::ZmqSocketBase;
+use crate::socket_poller::{ZmqEvent, ZmqSocketPoller};
 
-pub enum proxy_state = {
-active,
-    paused,
-    terminated
+pub enum ProxyState {
+    Active,
+    Paused,
+    Terminated
 }
 
-pub unsafe fn proxy(frontend_: *mut socket_base_t,
-             backend_: *mut socket_base_t,
-             capture_: *mut socket_base_t) -> i32 {
+pub unsafe fn proxy(frontend_: *mut ZmqSocketBase,
+                    backend_: *mut ZmqSocketBase,
+                    capture_: *mut ZmqSocketBase) -> i32 {
     
      // msg_t msg;
-    let mut msg = msg_t::new();
+    let mut msg = ZmqMsg::new();
     let rc = msg.init ();
     if (rc != 0) {
         return -1;
@@ -29,11 +29,11 @@ pub unsafe fn proxy(frontend_: *mut socket_base_t,
     //  Proxy can be in these three states
     // enum
     // {
-    //     active,
-    //     paused,
-    //     terminated
-    // } state = active;
-    let mut state = proxy_state::active;
+    //     Active,
+    //     Paused,
+    //     Terminated
+    // } state = Active;
+    let mut state = ProxyState::Active;
 
     let mut frontend_equal_to_backend = false;
     let mut frontend_in = false;
@@ -41,41 +41,41 @@ pub unsafe fn proxy(frontend_: *mut socket_base_t,
     let mut backend_in = false;
     let mut  backend_out = false;
     // zmq::socket_poller_t::event_t events[3];
-    let mut events: [event_t;3] = [event_t::new(); 3];
+    let mut events: [ZmqEvent;3] = [ZmqEvent::new(); 3];
     
     //  Don't allocate these pollers from stack because they will take more than 900 kB of stack!
     //  On Windows this blows up default stack of 1 MB and aborts the program.
     //  I wanted to use std::shared_ptr here as the best solution but that requires C++11...
     // zmq::socket_poller_t *poller_all = new (std::nothrow) zmq::socket_poller_t; //  Poll for everything.
-    let mut poller_all: *mut socket_poller_t = &mut socket_poller_t::new();
+    let mut poller_all: *mut ZmqSocketPoller = &mut ZmqSocketPoller::new();
     // zmq::socket_poller_t *poller_in = new (std::nothrow) zmq::
     //   socket_poller_t; //  Poll only 'ZMQ_POLLIN' on all sockets. Initial blocking poll in loop.
-    let mut poller_in: *mut socket_poller_t = &mut socket_poller_t::new();
+    let mut poller_in: *mut ZmqSocketPoller = &mut ZmqSocketPoller::new();
     // zmq::socket_poller_t *poller_receive_blocked = new (std::nothrow)zmq::socket_poller_t; //  All except 'ZMQ_POLLIN' on 'frontend_'.
-    let mut poller_receive_blocked: *mut socket_poller_t = &mut socket_poller_t::new();
+    let mut poller_receive_blocked: *mut ZmqSocketPoller = &mut ZmqSocketPoller::new();
 
     //  If frontend_==backend_ 'poller_send_blocked' and 'poller_receive_blocked' are the same, 'ZMQ_POLLIN' is ignored.
     //  In that case 'poller_send_blocked' is not used. We need only 'poller_receive_blocked'.
     //  We also don't need 'poller_both_blocked', 'poller_backend_only' nor 'poller_frontend_only' no need to initialize it.
     //  We save some RAM and time for initialization.
     // zmq::socket_poller_t *poller_send_blocked =      NULL; //  All except 'ZMQ_POLLIN' on 'backend_'.
-    let mut poller_send_blocked: *mut socket_poller_t = null_mut();
+    let mut poller_send_blocked: *mut ZmqSocketPoller = null_mut();
     // zmq::socket_poller_t *poller_both_blocked =      NULL; //  All except 'ZMQ_POLLIN' on both 'frontend_' and 'backend_'.
-    let mut poller_both_blocked: *mut socket_poller_t = null_mut();
+    let mut poller_both_blocked: *mut ZmqSocketPoller = null_mut();
     // zmq::socket_poller_t *poller_frontend_only =      NULL; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'frontend_'.
-    let mut poller_frontend_only: *mut socket_poller_t = null_mut();
+    let mut poller_frontend_only: *mut ZmqSocketPoller = null_mut();
     // zmq::socket_poller_t *poller_backend_only =      NULL; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'backend_'.
-    let mut poller_backend_only: *mut socket_poller_t = null_mut();
+    let mut poller_backend_only: *mut ZmqSocketPoller = null_mut();
 
     if (frontend_ != backend_) {
         // poller_send_blocked = new (std::nothrow)          zmq::socket_poller_t; //  All except 'ZMQ_POLLIN' on 'backend_'.
-        poller_send_blocked = &mut socket_poller_t::new();
+        poller_send_blocked = &mut ZmqSocketPoller::new();
         // poller_both_blocked = new (std::nothrow) zmq::          socket_poller_t; //  All except 'ZMQ_POLLIN' on both 'frontend_' and 'backend_'.
-        poller_both_blocked = &mut socket_poller_t::new();
+        poller_both_blocked = &mut ZmqSocketPoller::new();
         // poller_frontend_only = new (std::nothrow) zmq::          socket_poller_t; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'frontend_'.
-        poller_frontend_only = &mut socket_poller_t::new();
+        poller_frontend_only = &mut ZmqSocketPoller::new();
         // poller_backend_only = new (std::nothrow) zmq::          socket_poller_t; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'backend_'.
-        poller_backend_only = &mut socket_poller_t::new();
+        poller_backend_only = &mut ZmqSocketPoller::new();
         frontend_equal_to_backend = false;
     } else {
         frontend_equal_to_backend = true;
@@ -91,7 +91,7 @@ pub unsafe fn proxy(frontend_: *mut socket_base_t,
     }
 
     // zmq::socket_poller_t *poller_wait =      poller_in; //  Poller for blocking wait, initially all 'ZMQ_POLLIN'.
-    let mut poller_wait: *mut socket_poller_t = poller_in;
+    let mut poller_wait: *mut ZmqSocketPoller = poller_in;
 
     //  Register 'frontend_' and 'backend_' with pollers.
     rc = (*poller_all).add (frontend_, null_mut(), (ZMQ_POLLIN | ZMQ_POLLOUT) as i16); //  Everything.
@@ -144,7 +144,7 @@ pub unsafe fn proxy(frontend_: *mut socket_base_t,
     let mut request_processed = false;
     let mut reply_processed = false;;
 
-    while (state != proxy_state::terminated) {
+    while (state != ProxyState::Terminated) {
         //  Blocking wait initially only for 'ZMQ_POLLIN' - 'poller_wait' points to 'poller_in'.
         //  If one of receiving end's queue is full ('ZMQ_POLLOUT' not available),
         //  'poller_wait' is pointed to 'poller_receive_blocked', 'poller_send_blocked' or 'poller_both_blocked'.
@@ -177,7 +177,7 @@ pub unsafe fn proxy(frontend_: *mut socket_base_t,
             }
         }
 
-        if (state == proxy_state::active) {
+        if (state == ProxyState::Active) {
             //  Process a request, 'ZMQ_POLLIN' on 'frontend_' and 'ZMQ_POLLOUT' on 'backend_'.
             //  In case of frontend_==backend_ there's no 'ZMQ_POLLOUT' event.
             if (frontend_in && (backend_out || frontend_equal_to_backend)) {
@@ -273,11 +273,11 @@ pub unsafe fn proxy(frontend_: *mut socket_base_t,
     return 0;
 }
 
-pub unsafe fn capture (capture_: *mut socket_base_t, msg_: *mut msg_t, more_: i32) -> i32 {
+pub unsafe fn capture (capture_: *mut ZmqSocketBase, msg_: *mut ZmqMsg, more_: i32) -> i32 {
     //  Copy message to capture socket if any
     if (capture_) {
         // zmq::msg_t ctrl;
-        let mut ctrl = msg_t::new ();
+        let mut ctrl = ZmqMsg::new ();
         let rc = ctrl.init ();
         if ( (rc < 0)) {
             return -1;
@@ -294,11 +294,11 @@ pub unsafe fn capture (capture_: *mut socket_base_t, msg_: *mut msg_t, more_: i3
     return 0;
 }
 
-pub unsafe fn forward(from_: *mut socket_base_t, to_: *mut socket_base_t, capture_: *mut socket_base_t, msg_: &mut msg_t) -> i32
+pub unsafe fn forward(from_: *mut ZmqSocketBase, to_: *mut ZmqSocketBase, capture_: *mut ZmqSocketBase, msg_: &mut ZmqMsg) -> i32
 {
     // Forward a burst of messages
-    // for (unsigned int i = 0; i < zmq::proxy_burst_size; i++)
-    for i in 0 .. proxy_burst_size
+    // for (unsigned int i = 0; i < zmq::PROXY_BURST_SIZE; i++)
+    for i in 0 ..PROXY_BURST_SIZE
     {
         let mut more = 0i32;
         let mut moresz = 0usize;

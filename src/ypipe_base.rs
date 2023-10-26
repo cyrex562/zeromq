@@ -1,4 +1,4 @@
-pub struct ypipe_base_t<T> {
+pub struct ZmqYPipeBase<T> {
     pub write: fn(value_: &T, incomplete_: bool),
     pub unwrite: fn(value_: *mut T),
     pub flush: fn(),
@@ -7,7 +7,7 @@ pub struct ypipe_base_t<T> {
     pub probe: fn(&T) -> bool,
 }
 
-impl <T> ypipe_base_t<T> {
+impl <T> ZmqYPipeBase<T> {
     pub fn new() -> Self {
         Self {
             write: |_, _| {},

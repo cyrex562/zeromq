@@ -2,28 +2,28 @@ use std::collections::HashSet;
 
 use libc::MSG_MORE;
 
-use crate::blob::{blob_t, reference_tag_t};
-use crate::ctx::ctx_t;
+use crate::blob::{ZmqBlob, ZmqReferenceTag};
+use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_POLLOUT, ZMQ_PROBE_ROUTER, ZMQ_ROUTER, ZMQ_ROUTER_HANDOVER, ZMQ_ROUTER_MANDATORY, ZMQ_ROUTER_NOTIFY, ZMQ_ROUTER_RAW};
-use crate::fq::fq_t;
-use crate::msg::msg_t;
-use crate::options::options_t;
-use crate::pipe::pipe_t;
-use crate::socket_base::routing_socket_base_t;
+use crate::fair_queue::ZmqFairQueue;
+use crate::msg::ZmqMsg;
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::socket_base::ZmqRoutingSocketBase;
 use crate::utils::put_u32;
 
-pub struct router_t<'a> {
-    pub routing_socket_base: routing_socket_base_t<'a>,
-    pub _fq: fq_t,
+pub struct ZmqRouter<'a> {
+    pub routing_socket_base: ZmqRoutingSocketBase<'a>,
+    pub _fq: ZmqFairQueue,
     pub _prefetched: bool,
     pub _routing_id_sent: bool,
-    pub _prefetched_id: msg_t,
-    pub _prefetched_msg: msg_t,
-    pub _current_in: &'a mut pipe_t<'a>,
+    pub _prefetched_id: ZmqMsg,
+    pub _prefetched_msg: ZmqMsg,
+    pub _current_in: &'a mut ZmqPipe<'a>,
     pub _terminate_current_in: bool,
     pub _more_in: bool,
-    pub _anonymous_pipes: HashSet<&'a mut pipe_t<'a>>,
-    pub _current_out: &'a mut pipe_t<'a>,
+    pub _anonymous_pipes: HashSet<&'a mut ZmqPipe<'a>>,
+    pub _current_out: &'a mut ZmqPipe<'a>,
     pub _more_out: bool,
     pub _next_integral_routing_id: u32,
     pub _mandatory: bool,
@@ -32,16 +32,16 @@ pub struct router_t<'a> {
     pub _handover: bool,
 }
 
-impl router_t {
-    pub unsafe fn new(options: &mut options_t, parent_: &mut ctx_t, tid_: u32, sid_: i32) -> Self {
+impl ZmqRouter {
+    pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
         options.type_ = ZMQ_ROUTER;
         options.recv_routing_id = true;
         options.raw_socket = false;
         options.can_send_hello_msg = true;
         options.can_recv_disconnect_msg = true;
         let mut out = Self {
-            routing_socket_base: routing_socket_base_t::new(parent_, tid_, sid_),
-            _fq: fq_t::default(),
+            routing_socket_base: ZmqRoutingSocketBase::new(parent_, tid_, sid_),
+            _fq: ZmqFairQueue::default(),
             _prefetched: false,
             _routing_id_sent: false,
             _prefetched_id: Default::default(),
@@ -66,14 +66,14 @@ impl router_t {
     // void zmq::router_t::xattach_pipe (pipe_t *pipe_,
     //                               bool subscribe_to_all_,
     //                               bool locally_initiated_)
-    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut pipe_t, subscribe_to_all_: bool, locally_initiated_: bool) {
+    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
         // LIBZMQ_UNUSED (subscribe_to_all_);
 
         // zmq_assert (pipe_);
 
         if (self._probe_router) {
             // msg_t probe_msg;
-            let mut probe_msg = msg_t::default();
+            let mut probe_msg = ZmqMsg::default();
             let mut rc = probe_msg.init2();
             // errno_assert (rc == 0);
 
@@ -98,7 +98,7 @@ impl router_t {
     // int zmq::router_t::xsetsockopt (int option_,
     //                             const void *optval_,
     //                             size_t optvallen_)
-    pub unsafe fn xsetsockopt(&mut self, options: &mut options_t, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+    pub unsafe fn xsetsockopt(&mut self, options: &mut ZmqOptions, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
         // const bool is_int = (optvallen_ == sizeof (int));
         let is_int = optvallen_ == 4;
         let mut value = 0;
@@ -151,8 +151,8 @@ impl router_t {
             // #endif
 
             _ => {
-                return routing_socket_base_t::xsetsockopt(option_, optval_,
-                                                          optvallen_);
+                return ZmqRoutingSocketBase::xsetsockopt(option_, optval_,
+                                                         optvallen_);
             }
         }
         // errno = EINVAL;
@@ -160,7 +160,7 @@ impl router_t {
     }
 
     // void zmq::router_t::xpipe_terminated (pipe_t *pipe_)
-    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
         if 0 == self._anonymous_pipes.erase(pipe_) {
             self.erase_out_pipe(pipe_);
             self._fq.pipe_terminated(pipe_);
@@ -172,7 +172,7 @@ impl router_t {
     }
 
     // void zmq::router_t::xread_activated (pipe_t *pipe_)
-    pub unsafe fn xread_activated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn xread_activated(&mut self, pipe_: &mut ZmqPipe) {
         // const std::set<pipe_t *>::iterator it = _anonymous_pipes.find (pipe_);
         let it = self._anonymous_pipes.iter_mut().find(|&x| *x == pipe_);
         if (it.is_none()) {
@@ -187,7 +187,7 @@ impl router_t {
     }
 
     // int zmq::router_t::xsend (msg_t *msg_)
-    pub unsafe fn xsend(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
         //  If this is the first part of the message it's the ID of the
         //  peer to send the message to.
         if (!self._more_out) {
@@ -203,8 +203,8 @@ impl router_t {
                 //  If there's no such pipe just silently ignore the message, unless
                 //  router_mandatory is set.
                 let mut out_pipe = self.lookup_out_pipe(
-                    blob_t::new3((msg_.data()),
-                                 msg_.size(), reference_tag_t::default()));
+                    ZmqBlob::new3((msg_.data()),
+                                  msg_.size(), ZmqReferenceTag::default()));
 
                 if (out_pipe) {
                     self._current_out = out_pipe.pipe;
@@ -291,7 +291,7 @@ impl router_t {
     }
 
     // int zmq::router_t::xrecv (msg_t *msg_)
-    pub unsafe fn xrecv(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn xrecv(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if (self._prefetched) {
             if (!self._routing_id_sent) {
                 let rc = msg_. move (self._prefetched_id);
@@ -302,7 +302,7 @@ impl router_t {
                 // errno_assert (rc == 0);
                 self._prefetched = false;
             }
-            self._more_in = (msg_.flags() & msg_t::more) != 0;
+            self._more_in = (msg_.flags() & ZmqMsg::more) != 0;
 
             if (!self._more_in) {
                 if (self._terminate_current_in) {
@@ -315,7 +315,7 @@ impl router_t {
         }
 
         // pipe_t *pipe = NULL;
-        let mut pipe: Option<&mut pipe_t> = None;
+        let mut pipe: Option<&mut ZmqPipe> = None;
         let rc = self._fq.recvpipe(msg_, &mut pipe);
 
         //  It's possible that we receive peer's routing id. That happens
@@ -333,7 +333,7 @@ impl router_t {
 
         //  If we are in the middle of reading a message, just return the next part.
         if (self._more_in) {
-            self._more_in = (msg_.flags() & msg_t::more) != 0;
+            self._more_in = (msg_.flags() & ZmqMsg::more) != 0;
 
             if (!self._more_in) {
                 if (self._terminate_current_in) {
@@ -355,7 +355,7 @@ impl router_t {
             rc = msg_.init_size(routing_id.size());
             // errno_assert (rc == 0);
             libc::memcpy(msg_.data(), routing_id.data(), routing_id.size());
-            msg_.set_flags(msg_t::more);
+            msg_.set_flags(ZmqMsg::more);
             if (self._prefetched_msg.metadata()) {
                 msg_.set_metadata(self._prefetched_msg.metadata());
             }
@@ -390,7 +390,7 @@ impl router_t {
 
         //  Try to read the next message.
         //  The message, if read, is kept in the pre-fetch buffer.
-        let mut pipe: Option<&mut pipe_t> = None;
+        let mut pipe: Option<&mut ZmqPipe> = None;
         let rc = self._fq.recvpipe(&self._prefetched_msg, &mut pipe);
 
         //  It's possible that we receive peer's routing id. That happens
@@ -423,13 +423,13 @@ impl router_t {
         return true;
     }
 
-    pub unsafe fn check_pipe_hwm(&mut self, pipe_: &mut pipe_t) -> bool {
+    pub unsafe fn check_pipe_hwm(&mut self, pipe_: &mut ZmqPipe) -> bool {
         return pipe_.check_hwm();
     }
 
     // bool zmq::router_t::xhas_out ()
     pub unsafe fn xhas_out(&mut self) -> bool {
-        //  In theory, ROUTER socket is always ready for writing (except when
+        //  In theory, ROUTER socket is always Ready for writing (except when
         //  MANDATORY is set). Whether actual attempt to write succeeds depends
         //  on which pipe the message is going to be routed to.
 
@@ -446,7 +446,7 @@ impl router_t {
         let mut res = 0;
 
         // TODO remove the const_cast, see comment in lookup_out_pipe
-        let routing_id_blob = blob_t::new3(
+        let routing_id_blob = ZmqBlob::new3(
             routing_id_,
             routing_id_size_);
         let out_pipe = self.lookup_out_pipe(routing_id_blob);
@@ -465,11 +465,11 @@ impl router_t {
     }
 
     // bool zmq::router_t::identify_peer (pipe_t *pipe_, bool locally_initiated_)
-    pub unsafe fn identify_peer(&mut self, options: &mut options_t, pipe_: &mut pipe_t, locally_initiated_: bool) -> bool {
+    pub unsafe fn identify_peer(&mut self, options: &mut ZmqOptions, pipe_: &mut ZmqPipe, locally_initiated_: bool) -> bool {
         // msg_t msg;
-        let mut msg = msg_t::default();
+        let mut msg = ZmqMsg::default();
         // blob_t routing_id;
-        let mut routing_id = blob_t::default();
+        let mut routing_id = ZmqBlob::default();
 
         if locally_initiated_ && self.connect_routing_id_is_set() {
             let connect_routing_id = self.extract_connect_routing_id();
@@ -523,7 +523,7 @@ impl router_t {
                     buf[0] = 0;
                     put_u32(buf.as_mut_ptr().add(1), self._next_integral_routing_id);
                     self._next_integral_routing_id += 1;
-                    let mut new_routing_id = blob_t::new3(buf, 5);
+                    let mut new_routing_id = ZmqBlob::new3(buf, 5);
 
                     let old_pipe = existing_outpipe.pipe;
 

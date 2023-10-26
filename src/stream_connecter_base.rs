@@ -1,38 +1,38 @@
 use std::ptr::null_mut;
-use crate::address::address_t;
-use crate::defines::{fd_t, handle_t};
-use crate::endpoint::{endpoint_uri_pair_t, make_unconnected_connect_endpoint_pair};
-use crate::endpoint::endpoint_type_t::endpoint_type_connect;
+use crate::address::ZmqAddress;
+use crate::defines::{ZmqFd, ZmqHandle};
+use crate::endpoint::{ZmqEndpointUriPair, make_unconnected_connect_endpoint_pair};
+use crate::endpoint::ZmqEndpointType::endpoint_type_connect;
 use crate::fd::retired_fd;
-use crate::i_engine::i_engine;
-use crate::io_object::io_object_t;
-use crate::io_thread::io_thread_t;
-use crate::options::options_t;
-use crate::own::own_t;
-use crate::session_base::session_base_t;
-use crate::socket_base::socket_base_t;
+use crate::i_engine::IEngine;
+use crate::io_object::IoObject;
+use crate::io_thread::ZmqIoThread;
+use crate::options::ZmqOptions;
+use crate::own::ZmqOwn;
+use crate::session_base::ZmqSessionBase;
+use crate::socket_base::ZmqSocketBase;
 
-pub const reconnect_timer_id: i32 = 1;
+pub const RECONNECT_TIMER_ID: i32 = 1;
 
-pub struct stream_connecter_base_t<'a> {
-    pub own: own_t<'a>,
-    pub io_object: io_object_t,
-    pub _addr: address_t,
-    pub _s: fd_t,
-    pub _handle: handle_t,
+pub struct ZmqStreamConnecterBase<'a> {
+    pub own: ZmqOwn<'a>,
+    pub io_object: IoObject,
+    pub _addr: ZmqAddress,
+    pub _s: ZmqFd,
+    pub _handle: ZmqHandle,
     pub _endpoint: String,
-    pub _socket: &'a socket_base_t<'a>,
-    pub _session: &'a session_base_t<'a>,
+    pub _socket: &'a ZmqSocketBase<'a>,
+    pub _session: &'a ZmqSessionBase<'a>,
     pub _delayed_start: bool,
     pub _reconnect_timer_started: bool,
     pub _current_reconnect_ivl: i32,
 }
 
-impl stream_connecter_base_t {
-    pub unsafe fn new(io_thread_: &mut io_thread_t, session_: &mut session_base_t, options_: &options_t, addr_: address_t, delayed_start_: bool) -> Self {
+impl ZmqStreamConnecterBase {
+    pub unsafe fn new(io_thread_: &mut ZmqIoThread, session_: &mut ZmqSessionBase, options_: &ZmqOptions, addr_: ZmqAddress, delayed_start_: bool) -> Self {
         let mut out = Self {
-            own: own_t::new2(io_thread_, options_),
-            io_object: io_object_t::new(io_thread_),
+            own: ZmqOwn::new2(io_thread_, options_),
+            io_object: IoObject::new(io_thread_),
             _addr: addr_,
             _s: retired_fd,
             _handle: null_mut(),
@@ -55,7 +55,7 @@ impl stream_connecter_base_t {
 
     pub fn process_term(&mut self, linger_: i32) {
         if self._reconnect_timer_started {
-            self.cancel_timer(reconnect_timer_id);
+            self.cancel_timer(RECONNECT_TIMER_ID);
             self._reconnect_timer_started = false;
         }
 
@@ -73,7 +73,7 @@ impl stream_connecter_base_t {
     pub unsafe fn add_reconnect_timer(&mut self) {
         if self.options.reconnect_ivl > 0 {
             let interval = self.get_new_reconnect_ivl();
-            self.add_timer(interval, reconnect_timer_id);
+            self.add_timer(interval, RECONNECT_TIMER_ID);
             self._socket.event_connect_retried(
                 make_unconnected_connect_endpoint_pair(self._endpoint), interval
             );
@@ -139,17 +139,17 @@ impl stream_connecter_base_t {
         self.out_event();
     }
     
-    pub unsafe fn create_engine(&mut self, fd_: fd_t, local_address_: &str) {
+    pub unsafe fn create_engine(&mut self, fd_: ZmqFd, local_address_: &str) {
         // const endpoint_uri_pair_t endpoint_pair (local_address_, _endpoint,
         //                                      endpoint_type_connect);
-        let mut endpoint_pair = endpoint_uri_pair_t::new();
+        let mut endpoint_pair = ZmqEndpointUriPair::new();
         endpoint_pair.local = local_address_.to_string();
         endpoint_pair.remote = self._endpoint.clone();
         endpoint_pair.local_type = endpoint_type_connect;
     
         //  Create the engine object for this connection.
         // i_engine *engine;
-        let mut engine: dyn i_engine;
+        let mut engine: dyn IEngine;
         if (self.options.raw_socket) {
             // engine = new (std::nothrow) raw_engine_t (fd_, options, endpoint_pair);}
             engine = raw_engine_t::new(fd_, options, endpoint_pair);
@@ -170,7 +170,7 @@ impl stream_connecter_base_t {
     }
     
     pub fn timer_event(&mut self id_: i32) {
-        if id_ == reconnect_timer_id {
+        if id_ == RECONNECT_TIMER_ID {
             self._reconnect_timer_started = false;
             self.start_connecting();
         }

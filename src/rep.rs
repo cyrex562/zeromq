@@ -1,15 +1,15 @@
 use crate::defines::ZMQ_REP;
-use crate::msg::{MSG_MORE, msg_t};
-use crate::options::options_t;
+use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::options::ZmqOptions;
 
-pub struct rep_t {
+pub struct ZmqRep {
     pub router: router_t,
     pub _sending_reply: bool,
     pub _request_begins: bool,
 }
 
-impl rep_t {
-    pub fn new(options: &mut options_t, ctx: &mut crate::ctx::ctx_t, sid: i32) -> Self {
+impl ZmqRep {
+    pub fn new(options: &mut ZmqOptions, ctx: &mut crate::ctx::ZmqContext, sid: i32) -> Self {
         let router = router_t::new(ctx, tid, sid);
         options.type_ = ZMQ_REP;
         Self {
@@ -19,7 +19,7 @@ impl rep_t {
         }
     }
 
-    pub unsafe fn xsend(&mut self, msg_: &mut msg_t) -> i32
+    pub unsafe fn xsend(&mut self, msg_: &mut ZmqMsg) -> i32
     {
         //  If we are in the middle of receiving a request, we cannot send reply.
         if (!self._sending_reply) {
@@ -44,7 +44,7 @@ impl rep_t {
     }
 
     // int zmq::rep_t::xrecv (msg_t *msg_)
-    pub unsafe fn xrecv(&mut self, msg_: &mut msg_t) -> i32
+    pub unsafe fn xrecv(&mut self, msg_: &mut ZmqMsg) -> i32
     {
         //  If we are in middle of sending a reply, we cannot receive next request.
         if (self._sending_reply) {

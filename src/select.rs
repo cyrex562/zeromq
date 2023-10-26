@@ -1,4 +1,4 @@
-#![allow(non_camel_case_types)]
+
 
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
@@ -9,11 +9,11 @@ use libc::{getsockname, getsockopt, rand, sockaddr, SOCKET, timeval};
 use windows::Win32::Foundation::{FALSE, HANDLE};
 use windows::Win32::Networking::WinSock::{AF_INET, AF_INET6, AF_UNSPEC, FD_ACCEPT, FD_CLOSE, FD_CONNECT, FD_READ, FD_SET, FD_WRITE, select, SO_TYPE, SOCK_DGRAM, SOCKADDR_STORAGE, SOCKET_ERROR, SOL_SOCKET, TIMEVAL, WSA_WAIT_TIMEOUT, WSAEventSelect, WSAWaitForMultipleEvents};
 use windows::Win32::System::Threading::INFINITE;
-use crate::ctx::thread_ctx_t;
-use crate::defines::{fd_t, handle_t, WSAEVENT};
+use crate::ctx::ZmqThreadCtx;
+use crate::defines::{ZmqFd, ZmqHandle, WSAEVENT};
 use crate::fd::retired_fd;
-use crate::i_poll_events::i_poll_events;
-use crate::poller_base::worker_poller_base_t;
+use crate::i_poll_events::IPollEvents;
+use crate::poller_base::ZmqWorkerPollerBase;
 use crate::utils::{FD_ISSET, is_retired_fd};
 
 pub const fd_family_cache_size: usize = 8;
@@ -24,7 +24,7 @@ pub const fd_family_cache_size: usize = 8;
 // } fd_set, FD_SET, *PFD_SET, *LPFD_SET;
 pub struct fd_set {
     pub fd_count: u32,
-    pub fd_array: [fd_t; 64],
+    pub fd_array: [ZmqFd; 64],
 }
 
 
@@ -36,11 +36,11 @@ pub struct fds_set_t {
 }
 
 pub struct fd_entry_t {
-    pub fd: fd_t,
-    pub events: *mut dyn i_poll_events,
+    pub fd: ZmqFd,
+    pub events: *mut dyn IPollEvents,
 }
 
-pub unsafe fn remove_fd_entry(fd_entries_: &mut fd_entries_t, entry: &fd_entry_t) {
+pub unsafe fn remove_fd_entry(fd_entries_: &mut ZmqFdEntries, entry: &fd_entry_t) {
     for i in 0..fd_entries_.len() {
         if fd_entries_[i].fd == entry.fd {
             fd_entries_.remove(i);
@@ -49,24 +49,24 @@ pub unsafe fn remove_fd_entry(fd_entries_: &mut fd_entries_t, entry: &fd_entry_t
     }
 }
 
-pub type fd_entries_t = Vec<fd_entry_t>;
+pub type ZmqFdEntries = Vec<fd_entry_t>;
 
 
 pub struct family_entry_t {
-    pub fd_entries: fd_entries_t,
+    pub fd_entries: ZmqFdEntries,
     pub fds_set: fds_set_t,
     pub has_retired: bool,
 }
 
 #[cfg(target_os = "windows")]
-pub type family_entries_t = HashMap<u16, family_entry_t>;
+pub type ZmqFamilyEntries = HashMap<u16, family_entry_t>;
 
 #[cfg(target_os = "windows")]
-pub struct wsa_events_t {
+pub struct ZmqWsaEvents {
     pub events: [WSAEVENT; 4],
 }
 
-pub fn FD_SET(fd: fd_t, fds: &mut fd_set) {
+pub fn FD_SET(fd: ZmqFd, fds: &mut fd_set) {
     let mut i = 0;
     while i < fds.len() {
         if fds[i] == fd {
@@ -81,7 +81,7 @@ pub fn FD_SET(fd: fd_t, fds: &mut fd_set) {
     }
 }
 
-pub fn FD_CLR(fd: fd_t, fds: &mut fd_set) {
+pub fn FD_CLR(fd: ZmqFd, fds: &mut fd_set) {
     let mut i = 0;
     while i < fds.len() {
         if fds[i] == fd {
@@ -94,28 +94,28 @@ pub fn FD_CLR(fd: fd_t, fds: &mut fd_set) {
 }
 
 
-pub struct select_t<'a> {
-    pub _worker_poller_base: worker_poller_base_t<'a>,
+pub struct ZmqSelect<'a> {
+    pub _worker_poller_base: ZmqWorkerPollerBase<'a>,
     #[cfg(target_os = "windows")]
-    pub _family_entries: family_entries_t,
+    pub _family_entries: ZmqFamilyEntries,
     #[cfg(target_os = "windows")]
-    pub _fd_family_cache: [(fd_t, u16); fd_family_cache_size],
+    pub _fd_family_cache: [(ZmqFd, u16); fd_family_cache_size],
     #[cfg(not(target_os = "windows"))]
     pub _family_entry: family_entry_t,
     #[cfg(not(target_os = "windows"))]
-    pub _max_fd: fd_t,
+    pub _max_fd: ZmqFd,
     #[cfg(target_os = "windows")]
     pub _current_family_entry_it: &'a mut family_entry_t,
 
 }
 
-impl<'a> select_t<'a> {
-    pub fn new(ctx_: &mut thread_ctx_t) -> select_t {
-        let mut out = select_t {
+impl<'a> ZmqSelect<'a> {
+    pub fn new(ctx_: &mut ZmqThreadCtx) -> ZmqSelect {
+        let mut out = ZmqSelect {
             #[cfg(target_os = "windows")]
             _family_entries: HashMap::new(),
             #[cfg(target_os = "windows")]
-            _fd_family_cache: [(-1 as fd_t, 0); fd_family_cache_size],
+            _fd_family_cache: [(-1 as ZmqFd, 0); fd_family_cache_size],
             #[cfg(not(target_os = "windows"))]
             _family_entry: family_entry_t {
                 fd_entries: Vec::new(),
@@ -139,14 +139,14 @@ impl<'a> select_t<'a> {
             _max_fd: 0,
             #[cfg(target_os = "windows")]
             _current_family_entry_it: &mut family_entry_t::new(),
-            _worker_poller_base: worker_poller_base_t::new(ctx_),
+            _worker_poller_base: ZmqWorkerPollerBase::new(ctx_),
         };
 
         #[cfg(target_os = "windows")]
         {
             out._current_family_entry_it = out._family_entries.iter().first().unwrap().1;
             for i in 0..fd_family_cache_size {
-                out._fd_family_cache[i].0 = -1 as fd_t;
+                out._fd_family_cache[i].0 = -1 as ZmqFd;
             }
         }
         #[cfg(not(target_os = "windows"))]
@@ -157,7 +157,7 @@ impl<'a> select_t<'a> {
         out
     }
 
-    pub fn add_fd(&mut self, fd_: fd_t, events_: *mut dyn i_poll_events) -> handle_t {
+    pub fn add_fd(&mut self, fd_: ZmqFd, events_: *mut dyn IPollEvents) -> ZmqHandle {
         self._worker_poller_base.check_thread();
         let mut fd_entry = fd_entry_t {
             fd: fd_,
@@ -188,7 +188,7 @@ impl<'a> select_t<'a> {
         return fd_;
     }
 
-    pub fn find_fd_entry_by_handle(&mut self, fd_entries_: &mut fd_entries_t, handle_: handle_t) -> fd_entry_t {
+    pub fn find_fd_entry_by_handle(&mut self, fd_entries_: &mut ZmqFdEntries, handle_: ZmqHandle) -> fd_entry_t {
         let fd_entry_it = fd_entries_.iter();
         for i in 0..fd_entries_.len() {
             if fd_entry_it[i].fd == handle_ {
@@ -199,7 +199,7 @@ impl<'a> select_t<'a> {
         return fd_entries_.end();
     }
 
-    pub fn trigger_events(&mut self, fd_entries_: &mut fd_entries_t, local_fds_set_: &fds_set_t, mut event_count_: i32) {
+    pub fn trigger_events(&mut self, fd_entries_: &mut ZmqFdEntries, local_fds_set_: &fds_set_t, mut event_count_: i32) {
         for i in 0..fd_entries_.len() {
             if event_count_ <= 0 {
                 break;
@@ -234,9 +234,9 @@ impl<'a> select_t<'a> {
     }
 
     #[cfg(target_os = "windows")]
-    pub unsafe fn try_retire_fd_entry(&mut self, family_entry_it_: &mut family_entry_t, handle_: &fd_t) -> i32 {
+    pub unsafe fn try_retire_fd_entry(&mut self, family_entry_it_: &mut family_entry_t, handle_: &ZmqFd) -> i32 {
         // let family_entry: &mut family_entry_t = family_entry_it_.;
-        let mut fd_entry_it = self.find_fd_entry_by_handle(&mut family_entry_it_.fd_entries, handle_ as handle_t);
+        let mut fd_entry_it = self.find_fd_entry_by_handle(&mut family_entry_it_.fd_entries, handle_ as ZmqHandle);
         if fd_entry_it == family_entry_it_.fd_entries.end() {
             return 0;
         }
@@ -245,14 +245,14 @@ impl<'a> select_t<'a> {
             // family_entry_it_.fd_entries.remove(fd_entry_it);
             remove_fd_entry(&mut family_entry_it_.fd_entries, &fd_entry_it);
         } else {
-            fd_entry_it.fd = -1 as fd_t;
+            fd_entry_it.fd = -1 as ZmqFd;
             family_entry_it_.has_retired = true;
         }
         family_entry_it_.fds_set.remove_fd(handle_);
         1
     }
 
-    pub fn rm_fd(&mut self, handle_: &mut handle_t) {
+    pub fn rm_fd(&mut self, handle_: &mut ZmqHandle) {
         self._worker_poller_base.check_thread();
         let mut retired = 0;
 
@@ -275,7 +275,7 @@ impl<'a> select_t<'a> {
         #[cfg(not(target_os = "windows"))]
         {
             let fd_entry_it = self.find_fd_entry_by_handle(&mut self._family_entry.fd_entries, handle_);
-            fd_entry_it.fd = -1 as fd_t;
+            fd_entry_it.fd = -1 as ZmqFd;
             self._family_entry.fds_set.remove_fd(handle_);
             retired += 1;
 
@@ -293,7 +293,7 @@ impl<'a> select_t<'a> {
         self._worker_poller_base._poller_base.adjust_load(-1);
     }
 
-    pub fn set_pollin(&mut self, handle_: &mut handle_t) {
+    pub fn set_pollin(&mut self, handle_: &mut ZmqHandle) {
         self._worker_poller_base.check_thread();
         let mut family_entry: &mut family_entry_t;
         #[cfg(target_os = "windows")]
@@ -308,7 +308,7 @@ impl<'a> select_t<'a> {
         FD_SET(handle_, &mut family_entry.fds_set.read);
     }
 
-    pub fn reset_pollin(&mut self, handle_: handle_t) {
+    pub fn reset_pollin(&mut self, handle_: ZmqHandle) {
         self._worker_poller_base.check_thread();
         let mut family_entry: &mut family_entry_t;
         #[cfg(target_os = "windows")]
@@ -323,7 +323,7 @@ impl<'a> select_t<'a> {
         FD_CLR(handle_, &mut family_entry.fds_set.read);
     }
 
-    pub fn set_pollout(&mut self, handle_: handle_t) {
+    pub fn set_pollout(&mut self, handle_: ZmqHandle) {
         self._worker_poller_base.check_thread();
         let mut family_entry: &mut family_entry_t;
         #[cfg(target_os = "windows")]
@@ -338,7 +338,7 @@ impl<'a> select_t<'a> {
         FD_SET(handle_, &mut family_entry.fds_set.write);
     }
 
-    pub fn reset_pollout(&mut self, handle_: handle_t) {
+    pub fn reset_pollout(&mut self, handle_: ZmqHandle) {
         self._worker_poller_base.check_thread();
         let mut family_entry: &mut family_entry_t;
         #[cfg(target_os = "windows")]
@@ -423,7 +423,7 @@ impl<'a> select_t<'a> {
 
                     // wsa_events_t
                     // wsa_events;
-                    let wsa_events: wsa_events_t = wsa_events_t { events: [0 as WSAEVENT; 4] };
+                    let wsa_events: ZmqWsaEvents = ZmqWsaEvents { events: [0 as WSAEVENT; 4] };
 
                     // for (family_entries_t::iterator family_entry_it = _family_entries.begin();
                     // family_entry_it != _family_entries.end();
@@ -478,7 +478,7 @@ impl<'a> select_t<'a> {
 
                     if (use_wsa_events) {
                         //  There is no reason to wait again after WSAWaitForMultipleEvents.
-                        //  Simply collect what is ready. struct timeval
+                        //  Simply collect what is Ready. struct timeval
                         let mut tv_nodelay = TIMEVAL::default();
                         self.select_family_entry(family_entry, 0, true, &tv_nodelay as &mut timeval);
                     } else {
@@ -524,7 +524,7 @@ impl<'a> select_t<'a> {
         if family_entry_.has_retired {
             family_entry_.has_retired = false;
             for i in 0..family_entry_.fd_entries.len() {
-                if family_entry_.fd_entries[i].fd == -1 as fd_t {
+                if family_entry_.fd_entries[i].fd == -1 as ZmqFd {
                     family_entry_.fd_entries.remove(i);
                 }
             }
@@ -546,11 +546,11 @@ impl<'a> select_t<'a> {
     }
 
     pub fn is_retired_fd(&mut self, entry_: &fd_entry_t) -> bool {
-        entry_.fd == -1 as fd_t
+        entry_.fd == -1 as ZmqFd
     }
 
     #[cfg(target_os = "windows")]
-    pub unsafe fn get_fd_family(&mut self, fd_: fd_t) -> u16 {
+    pub unsafe fn get_fd_family(&mut self, fd_: ZmqFd) -> u16 {
         // cache the results of determine_fd_family, as this is frequently called
         // for the same sockets, and determine_fd_family is expensive
         // size_t i;
@@ -561,7 +561,7 @@ impl<'a> select_t<'a> {
             if (entry.0 == fd_) {
                 return entry.1;
             }
-            if entry.0 == retired_fd as fd_t {
+            if entry.0 == retired_fd as ZmqFd {
                 break;
             }
         }
@@ -581,7 +581,7 @@ impl<'a> select_t<'a> {
     }
 
     #[cfg(target_os = "windows")]
-    pub unsafe fn determine_fd_family(&mut self, fd_: fd_t) -> u16 {
+    pub unsafe fn determine_fd_family(&mut self, fd_: ZmqFd) -> u16 {
         //  Use sockaddr_storage instead of sockaddr to accommodate different structure sizes
         // sockaddr_storage addr = {0};
         let mut addr = SOCKADDR_STORAGE::default();
@@ -619,9 +619,9 @@ impl<'a> select_t<'a> {
 impl fds_set_t {
     pub fn new() -> Self {
         Self {
-            read: fd_set { fd_count: 0, fd_array: [0 as fd_t; 64] },
-            write: fd_set { fd_count: 0, fd_array: [0 as fd_t; 64] },
-            error: fd_set { fd_count: 0, fd_array: [0 as fd_t; 64] },
+            read: fd_set { fd_count: 0, fd_array: [0 as ZmqFd; 64] },
+            write: fd_set { fd_count: 0, fd_array: [0 as ZmqFd; 64] },
+            error: fd_set { fd_count: 0, fd_array: [0 as ZmqFd; 64] },
         }
     }
 
@@ -633,7 +633,7 @@ impl fds_set_t {
         }
     }
 
-    pub fn remove_fd(&mut self, fd_: &fd_t) {
+    pub fn remove_fd(&mut self, fd_: &ZmqFd) {
         FD_CLR(*fd_, &mut self.read);
         FD_CLR(*fd_, &mut self.write);
         FD_CLR(*fd_, &mut self.error);
@@ -650,7 +650,7 @@ impl family_entry_t {
     }
 }
 
-impl wsa_events_t {
+impl ZmqWsaEvents {
     pub fn new() -> Self {
         Self {
             events: [0 as WSAEVENT; 4],

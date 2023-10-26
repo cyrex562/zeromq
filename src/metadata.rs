@@ -1,17 +1,17 @@
 use std::collections::HashMap;
-use crate::atomic_counter::atomic_counter_t;
+use crate::atomic_counter::ZmqAtomicCounter;
 
-pub type dict_t = HashMap<String, String>;
+pub type ZmqDict = HashMap<String, String>;
 
-pub struct metadata_t {
-    pub _ref_cnt: atomic_counter_t,
+pub struct ZmqMetadata {
+    pub _ref_cnt: ZmqAtomicCounter,
     pub _dict: HashMap<String, String>,
 }
 
-impl metadata_t {
+impl ZmqMetadata {
     pub fn new(dict_: &HashMap<String, String>) -> Self {
         Self {
-            _ref_cnt: atomic_counter_t::new(1),
+            _ref_cnt: ZmqAtomicCounter::new(1),
             _dict: dict_.clone(),
         }
     }

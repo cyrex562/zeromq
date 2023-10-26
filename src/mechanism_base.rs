@@ -1,27 +1,27 @@
 use std::ffi::c_void;
 use crate::defines::ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED;
-use crate::mechanism::{mechanism_ops, mechanism_t, status_t};
-use crate::msg::msg_t;
-use crate::options::options_t;
-use crate::session_base::session_base_t;
+use crate::mechanism::{mechanism_ops, ZmqMechanism, MechanismStatus};
+use crate::msg::ZmqMsg;
+use crate::options::ZmqOptions;
+use crate::session_base::ZmqSessionBase;
 
-pub struct mechanism_base_t
+pub struct ZmqMechanismBase
 {
-    pub session: *const session_base_t,
-    pub mechanism: mechanism_t,
+    pub session: *const ZmqSessionBase,
+    pub mechanism: ZmqMechanism,
 }
 
-impl mechanism_base_t
+impl ZmqMechanismBase
 {
-    pub fn new(session_: &mut session_base_t, options: &options_t) -> Self
+    pub fn new(session_: &mut ZmqSessionBase, options: &ZmqOptions) -> Self
     {
         Self {
             session: session_,
-            mechanism: mechanism_t::new(options)
+            mechanism: ZmqMechanism::new(options)
         }
     }
 
-    pub unsafe fn check_basic_command_structure(&mut self, msg_: *mut msg_t) -> i32 {
+    pub unsafe fn check_basic_command_structure(&mut self, msg_: *mut ZmqMsg) -> i32 {
         if ((*msg_).size () <= 1
             || (*msg_).size () <= ( ((*msg_).data ()))[0]) {
             self.session.get_socket ().event_handshake_failed_protocol (
@@ -46,7 +46,7 @@ impl mechanism_base_t
             && error_reason_.chars().nth(second_zero_digit_index).unwrap() == zero_digit
             && error_reason_.chars().nth(significant_digit_index).unwrap() >= '3'
             && error_reason_.chars().nth(significant_digit_index).unwrap() <= '5' {
-            // it is a ZAP error status code (300, 400 or 500), so emit an authentication failure event
+            // it is a ZAP Error status code (300, 400 or 500), so emit an authentication failure event
             self.session.get_socket ().event_handshake_failed_auth (
                 self.session.get_endpoint (),
                 (error_reason_.chars().nth(significant_digit_index).unwrap() as u8 - zero_digit as u8) * factor);
@@ -61,17 +61,17 @@ impl mechanism_base_t
     }
 }
 
-impl mechanism_ops for mechanism_base_t
+impl mechanism_ops for ZmqMechanismBase
 {
-    fn next_handshake_command(&mut self, msg_: *mut msg_t) -> i32 {
+    fn next_handshake_command(&mut self, msg_: *mut ZmqMsg) -> i32 {
         todo!()
     }
 
-    fn process_handshake_command(&mut self, msg_: *mut msg_t) -> i32 {
+    fn process_handshake_command(&mut self, msg_: *mut ZmqMsg) -> i32 {
         todo!()
     }
 
-    fn status(&mut self) -> status_t {
+    fn status(&mut self) -> MechanismStatus {
         todo!()
     }
 

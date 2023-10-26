@@ -1,32 +1,32 @@
-use crate::defines::fd_t;
-use crate::endpoint::endpoint_uri_pair_t;
-use crate::i_engine::error_reason_t;
-use crate::metadata::metadata_t;
-use crate::msg::msg_t;
-use crate::options::options_t;
-use crate::raw_decoder::raw_decoder_t;
-use crate::raw_encoder::raw_encoder_t;
+use crate::defines::ZmqFd;
+use crate::endpoint::ZmqEndpointUriPair;
+use crate::i_engine::ErrorReason;
+use crate::metadata::ZmqMetadata;
+use crate::msg::ZmqMsg;
+use crate::options::ZmqOptions;
+use crate::raw_decoder::ZmqRawDecoder;
+use crate::raw_encoder::ZmqRawEncoder;
 
-pub struct raw_engine_t {
-    pub stream_engine_base: raw_engine_t,
+pub struct ZmqRawEngine {
+    pub stream_engine_base: ZmqRawEngine,
 }
 
-impl raw_engine_t {
-    pub fn new(fd_: fd_t, options_: &options_t, endpoint_uri_pair_: &endpoint_uri_pair_t) -> Self {
+impl ZmqRawEngine {
+    pub fn new(fd_: ZmqFd, options_: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair) -> Self {
         Self {
-            stream_engine_base: raw_engine_t::new(fd_, options_, endpoint_uri_pair_, false),
+            stream_engine_base: ZmqRawEngine::new(fd_, options_, endpoint_uri_pair_, false),
         }
     }
 
     pub unsafe fn plug_internal(&mut self)
     {
-        // no handshaking for raw sock, instantiate raw encoder and decoders
+        // no Handshaking for raw sock, instantiate raw encoder and decoders
         // _encoder = new (std::nothrow) raw_encoder_t (_options.out_batch_size);
-        let mut _encoder = raw_encoder_t::new(self._options.out_batch_size);
+        let mut _encoder = ZmqRawEncoder::new(self._options.out_batch_size);
         // alloc_assert (_encoder);
 
         // _decoder = new (std::nothrow) raw_decoder_t (_options.in_batch_size);
-        let mut _decoder = raw_decoder_t::new(self._options.in_batch_size);
+        let mut _decoder = ZmqRawDecoder::new(self._options.in_batch_size);
         // alloc_assert (_decoder);
 
         self._next_msg = self.pull_msg_from_session;
@@ -37,7 +37,7 @@ impl raw_engine_t {
         if (self.stream_engine_base.init_properties (properties)) {
             //  Compile metadata.
             // zmq_assert (_metadata == NULL);
-            self.stream_engine_base._metadata = metadata_t::new(properties);
+            self.stream_engine_base._metadata = ZmqMetadata::new(properties);
             // alloc_assert (_metadata);
         }
 
@@ -45,7 +45,7 @@ impl raw_engine_t {
             //  For raw sockets, send an initial 0-length message to the
             // application so that it knows a peer has connected.
             // msg_t connector;
-            let mut connector: msg_t = msg_t::default();
+            let mut connector: ZmqMsg = ZmqMsg::default();
             connector.init2 ();
             self.push_raw_msg_to_session (&connector);
             connector.close ();
@@ -62,12 +62,12 @@ impl raw_engine_t {
         true
     }
 
-    pub unsafe fn error(&mut self, reason_: error_reason_t) {
+    pub unsafe fn error(&mut self, reason_: ErrorReason) {
         if (self._options.raw_socket && self._options.raw_notify) {
             //  For raw sockets, send a final 0-length message to the application
             //  so that it knows the peer has been disconnected.
             // msg_t terminator;
-            let mut terminator = msg_t::new();
+            let mut terminator = ZmqMsg::new();
             terminator.init ();
             self.push_raw_msg_to_session (&terminator);
             terminator.close ();
@@ -75,7 +75,7 @@ impl raw_engine_t {
         self.stream_engine_base.error (reason_);
     }
 
-    pub unsafe fn push_raw_msg_to_session(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn push_raw_msg_to_session(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if (self._metadata && self._metadata != msg_.metadata ()){
             msg_.set_metadata(self._metadata);
         }

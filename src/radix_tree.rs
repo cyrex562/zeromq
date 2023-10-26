@@ -1,15 +1,15 @@
 use std::ffi::c_void;
 use std::mem::size_of;
-use crate::atomic_counter::atomic_counter_t;
+use crate::atomic_counter::ZmqAtomicCounter;
 
-pub struct node_t
+pub struct ZmqNode
 {
     pub _data: *mut u8,
 }
 
-impl node_t {
-    pub fn new(data_: *mut u8) -> node_t {
-        node_t {
+impl ZmqNode {
+    pub fn new(data_: *mut u8) -> ZmqNode {
+        ZmqNode {
             _data: data_,
         }
     }
@@ -74,15 +74,15 @@ impl node_t {
         self.prefix().offset(self.prefix_len() as isize + self.edgecount() as isize * std::mem::size_of::<usize>() as isize) as *mut u8
     }
 
-    pub unsafe fn node_at(&mut self, index_: usize) -> node_t {
-        node_t::new(self.node_pointers().offset(index_ as isize * std::mem::size_of::<usize>() as isize) as *mut u8)
+    pub unsafe fn node_at(&mut self, index_: usize) -> ZmqNode {
+        ZmqNode::new(self.node_pointers().offset(index_ as isize * std::mem::size_of::<usize>() as isize) as *mut u8)
     }
 
-    pub unsafe fn set_node_at(&mut self, index_: usize, node_: node_t) {
+    pub unsafe fn set_node_at(&mut self, index_: usize, node_: ZmqNode) {
         libc::memcpy(self.node_pointers().offset(index_ as isize * std::mem::size_of::<usize>() as isize) as *mut c_void, &node_ as *const c_void, std::mem::size_of::<usize>());
     }
 
-    pub unsafe fn set_edge_at(&mut self, index_: usize, first_byte_: u8, node_: node_t) {
+    pub unsafe fn set_edge_at(&mut self, index_: usize, first_byte_: u8, node_: ZmqNode) {
         self.set_first_byte_at(index_, first_byte_);
         self.set_node_at(index_, node_);
     }
@@ -98,18 +98,18 @@ impl node_t {
     }
 }
 
-pub unsafe fn make_node(refcount_: usize, prefix_length_: usize, edgecount_: usize) -> node_t {
+pub unsafe fn make_node(refcount_: usize, prefix_length_: usize, edgecount_: usize) -> ZmqNode {
     let mut node_size = 3 * 4 + prefix_length_ + edgecount_ * (1 + size_of::<*mut c_void>());
     let mut data = libc::malloc(node_size);
     libc::memset(data, 0, node_size);
-    let mut node = node_t::new(data as *mut u8);
+    let mut node = ZmqNode::new(data as *mut u8);
     node.set_refcount(refcount_ as u32);
     node.set_prefix_len(prefix_length_ as u32);
     node.set_edgecount(edgecount_ as u32);
     node
 }
 
-impl std::cmp::PartialEq for node_t {
+impl std::cmp::PartialEq for ZmqNode {
     fn eq(&self, other: &Self) -> bool {
         self._data == other._data
     }
@@ -121,20 +121,20 @@ impl std::cmp::PartialEq for node_t {
 
 
 
-pub struct match_result_t
+pub struct ZmqMatchResult
 {
     pub _key_bytes_matched: usize,
     pub _prefix_bytes_matched: usize,
     pub _edge_index: usize,
     pub _parent_edge_index: usize,
-    pub _current_node: node_t,
-    pub _parent_node: node_t,
-    pub _grandparent_node: node_t,
+    pub _current_node: ZmqNode,
+    pub _parent_node: ZmqNode,
+    pub _grandparent_node: ZmqNode,
 }
 
-impl match_result_t {
-    pub fn new(key_bytes_matched: usize, prefix_bytes_matched: usize, edge_index: usize, parent_edge_index: usize, current_: node_t, parent_: node_t, grandparent_: node_t) -> Self {
-        match_result_t {
+impl ZmqMatchResult {
+    pub fn new(key_bytes_matched: usize, prefix_bytes_matched: usize, edge_index: usize, parent_edge_index: usize, current_: ZmqNode, parent_: ZmqNode, grandparent_: ZmqNode) -> Self {
+        ZmqMatchResult {
             _key_bytes_matched: key_bytes_matched,
             _prefix_bytes_matched: prefix_bytes_matched,
             _edge_index: edge_index,
@@ -146,22 +146,22 @@ impl match_result_t {
     }
 }
 
-pub struct radix_tree_t
+pub struct ZmqRadixTree
 {
-    pub _root: node_t,
-    pub _size: atomic_counter_t,
+    pub _root: ZmqNode,
+    pub _size: ZmqAtomicCounter,
 }
 
-impl radix_tree_t
+impl ZmqRadixTree
 {
-    pub fn new() -> radix_tree_t {
-        radix_tree_t {
+    pub fn new() -> ZmqRadixTree {
+        ZmqRadixTree {
             _root: unsafe { make_node(0, 0, 0) },
-            _size: atomic_counter_t::new(0),
+            _size: ZmqAtomicCounter::new(0),
         }
     }
 
-    pub unsafe fn matches(&mut self, key_: *const u8, key_size_: usize, is_lookup_: bool) -> match_result_t {
+    pub unsafe fn matches(&mut self, key_: *const u8, key_size_: usize, is_lookup_: bool) -> ZmqMatchResult {
          // Node we're currently at in the traversal and its predecessors.
         let mut current_node = self._root.clone();
         let mut parent_node = current_node;
@@ -230,9 +230,9 @@ impl radix_tree_t
             current_node = next_node;
         }
 
-        return match_result_t::new(key_byte_index, prefix_byte_index, edge_index,
-                               parent_edge_index, current_node, parent_node,
-                               grandparent_node);
+        return ZmqMatchResult::new(key_byte_index, prefix_byte_index, edge_index,
+                                   parent_edge_index, current_node, parent_node,
+                                   grandparent_node);
     }
 
     pub unsafe fn add(&mut self, key_: *const u8, key_size_: usize) -> bool {
@@ -503,7 +503,7 @@ impl radix_tree_t
     }
 }
 
-pub unsafe fn visit_keys(node_: &mut node_t, buffer_: &mut Vec<u8>, visitor: fn(*mut u8, usize, *mut c_void), arg: *mut c_void){
+pub unsafe fn visit_keys(node_: &mut ZmqNode, buffer_: &mut Vec<u8>, visitor: fn(*mut u8, usize, *mut c_void), arg: *mut c_void){
     let prefix_length = node_.prefix_length ();
     buffer_.reserve (buffer_.size () + prefix_length);
     // std::copy (node_.prefix (), node_.prefix () + prefix_length,

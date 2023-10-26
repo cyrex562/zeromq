@@ -2,27 +2,27 @@ use std::ptr::null_mut;
 
 use libc::{EAGAIN, ECONNRESET};
 
-use crate::defines::{fd_t, handle_t, ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED};
-use crate::endpoint::endpoint_uri_pair_t;
-use crate::i_decoder::i_decoder;
-use crate::i_engine::{error_reason_t, i_engine};
-use crate::i_engine::error_reason_t::{connection_error, protocol_error, timeout_error};
-use crate::io_object::io_object_t;
-use crate::io_thread::io_thread_t;
-use crate::mechanism::mechanism_t;
-use crate::metadata::metadata_t;
-use crate::msg::{MSG_COMMAND, msg_t};
-use crate::options::options_t;
-use crate::session_base::session_base_t;
-use crate::socket_base::socket_base_t;
+use crate::defines::{ZmqFd, ZmqHandle, ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED};
+use crate::endpoint::ZmqEndpointUriPair;
+use crate::i_decoder::IDecoder;
+use crate::i_engine::{ErrorReason, IEngine};
+use crate::i_engine::ErrorReason::{ConnectionError, ProtocolError, TimeoutError};
+use crate::io_object::IoObject;
+use crate::io_thread::ZmqIoThread;
+use crate::mechanism::ZmqMechanism;
+use crate::metadata::ZmqMetadata;
+use crate::msg::{MSG_COMMAND, ZmqMsg};
+use crate::options::ZmqOptions;
+use crate::session_base::ZmqSessionBase;
+use crate::socket_base::ZmqSocketBase;
 use crate::utils::get_errno;
 
-pub const handshake_timer_id: i32 = 0x40;
-pub const heartbeat_ivl_timer_id: i32 = 0x80;
-pub const heartbeat_timeout_timer_id: i32 = 0x81;
-pub const heartbeat_ttl_timer_id: i32 = 0x82;
+pub const HANDSHAKE_TIMER_ID: i32 = 0x40;
+pub const HEARTBEAT_IVL_TIMER_ID: i32 = 0x80;
+pub const HEARTBEAT_TIMEOUT_TIMER_ID: i32 = 0x81;
+pub const HEARTBEAT_TTL_TIMER_ID: i32 = 0x82;
 
-pub fn get_peer_address(s_: fd_t) -> String {
+pub fn get_peer_address(s_: ZmqFd) -> String {
     let mut peer_address: String = String::new();
     let family = zmq::get_peer_ip_address(s_, &mut peer_address);
     if family == 0 {
@@ -32,43 +32,43 @@ pub fn get_peer_address(s_: fd_t) -> String {
     peer_address
 }
 
-pub struct stream_engine_base_t<'a> {
-    pub io_object: io_object_t,
+pub struct ZmqStreamEngineBase<'a> {
+    pub io_object: IoObject,
     // pub engine: dyn i_engine,
-    pub _options: options_t,
+    pub _options: ZmqOptions,
     pub _inpos: *mut u8,
     pub _insize: usize,
-    pub _decoder: Option<&'a mut dyn i_decoder>,
-    pub _mechanism: Option<&'a mut mechanism_t>,
-    pub _metadata: Option<&'a mut metadata_t>,
+    pub _decoder: Option<&'a mut dyn IDecoder>,
+    pub _mechanism: Option<&'a mut ZmqMechanism>,
+    pub _metadata: Option<&'a mut ZmqMetadata>,
     pub _input_stopped: bool,
     pub _output_stopped: bool,
-    pub _endpoint_uri_pair: endpoint_uri_pair_t,
+    pub _endpoint_uri_pair: ZmqEndpointUriPair,
     pub _has_handshake_timer: bool,
     pub _has_ttl_timer: bool,
     pub _has_timeout_timer: bool,
     pub _has_heartbeat_timer: bool,
     pub _peer_address: String,
-    pub _s: fd_t,
-    pub _handle: handle_t,
+    pub _s: ZmqFd,
+    pub _handle: ZmqHandle,
     pub _plugged: bool,
-    pub _tx_msg: msg_t,
+    pub _tx_msg: ZmqMsg,
     pub _io_error: bool,
     pub _handshaking: bool,
-    pub _session: Option<&'a mut session_base_t<'a>>,
-    pub _socket: Option<&'a mut socket_base_t<'a>>,
+    pub _session: Option<&'a mut ZmqSessionBase<'a>>,
+    pub _socket: Option<&'a mut ZmqSocketBase<'a>>,
     pub _has_handshake_stage: bool,
 }
 
-impl stream_engine_base_t {
+impl ZmqStreamEngineBase {
     pub fn new(
-        fd_: fd_t,
-        options: &options_t,
-        endpoint_uri_pair: &endpoint_uri_pair_t,
+        fd_: ZmqFd,
+        options: &ZmqOptions,
+        endpoint_uri_pair: &ZmqEndpointUriPair,
         has_handshake_stage: bool,
     ) -> Self {
         let mut out = Self {
-            io_object: io_object_t::new(),
+            io_object: IoObject::new(),
             _options: options,
             _inpos: null_mut(),
             _insize: 0,
@@ -86,7 +86,7 @@ impl stream_engine_base_t {
             _s: fd_,
             _handle: null_mut(),
             _plugged: false,
-            _tx_msg: msg_t::new(),
+            _tx_msg: ZmqMsg::new(),
             _io_error: false,
             _handshaking: false,
             _session: None,
@@ -99,7 +99,7 @@ impl stream_engine_base_t {
         out
     }
 
-    pub unsafe fn plug(&mut self, io_thread_: &mut io_thread_t, session_: &mut session_base_t) {
+    pub unsafe fn plug(&mut self, io_thread_: &mut ZmqIoThread, session_: &mut ZmqSessionBase) {
         self._plugged = true;
         self._session = Some(session_);
         self._socket = Some(session_.socket());
@@ -113,22 +113,22 @@ impl stream_engine_base_t {
         self._plugged = false;
         //  Cancel all timers.
         if (self._has_handshake_timer) {
-            self.cancel_timer(handshake_timer_id);
+            self.cancel_timer(HANDSHAKE_TIMER_ID);
             self._has_handshake_timer = false;
         }
 
         if (self._has_ttl_timer) {
-            self.cancel_timer(heartbeat_ttl_timer_id);
+            self.cancel_timer(HEARTBEAT_TTL_TIMER_ID);
             self._has_ttl_timer = false;
         }
 
         if (self._has_timeout_timer) {
-            self.cancel_timer(heartbeat_timeout_timer_id);
+            self.cancel_timer(HEARTBEAT_TIMEOUT_TIMER_ID);
             self._has_timeout_timer = false;
         }
 
         if (self._has_heartbeat_timer) {
-            self.cancel_timer(heartbeat_ivl_timer_id);
+            self.cancel_timer(HEARTBEAT_IVL_TIMER_ID);
             self._has_heartbeat_timer = false;
         }
         //  Cancel all fd subscriptions.
@@ -151,7 +151,7 @@ impl stream_engine_base_t {
     }
 
     pub unsafe fn in_event_internal(&mut self) -> bool {
-        //  If still handshaking, receive and process the greeting message.
+        //  If still Handshaking, receive and process the greeting message.
         if ((self._handshaking)) {
             if (self.handshake()) {
                 //  Handshaking was successful.
@@ -162,7 +162,7 @@ impl stream_engine_base_t {
                     self._session.engine_ready();
 
                     if (self._has_handshake_timer) {
-                        self.cancel_timer(handshake_timer_id);
+                        self.cancel_timer(HANDSHAKE_TIMER_ID);
                         self._has_handshake_timer = false;
                     }
                 }
@@ -174,7 +174,7 @@ impl stream_engine_base_t {
 
         // zmq_assert (_decoder);
 
-        //  If there has been an I/O error, stop polling.
+        //  If there has been an I/O Error, stop polling.
         if (self._input_stopped) {
             self.rm_fd(self._handle);
             self._io_error = true;
@@ -194,7 +194,7 @@ impl stream_engine_base_t {
 
             if (rc == -1) {
                 if (get_errno() != EAGAIN) {
-                    // error (connection_error);
+                    // Error (ConnectionError);
                     return false;
                 }
                 return true;
@@ -227,7 +227,7 @@ impl stream_engine_base_t {
         //  or the session has rejected the message.
         if (rc == -1) {
             if (get_errno() != EAGAIN) {
-                // error (protocol_error);
+                // Error (ProtocolError);
                 return false;
             }
             self._input_stopped = true;
@@ -254,7 +254,7 @@ impl stream_engine_base_t {
 
             while (self._outsize < (self._options.out_batch_size)) {
                 if ((self._next_msg)(&self._tx_msg) == -1) {
-                    //  ws_engine can cause an engine error and delete it, so
+                    //  ws_engine can cause an engine Error and delete it, so
                     //  bail out immediately to avoid use-after-free
                     if (get_errno() == ECONNRESET) {
                         return;
@@ -287,8 +287,8 @@ impl stream_engine_base_t {
         //  written should be reasonably modest.
         let nbytes = self.write(self._outpos, self._outsize);
 
-        //  IO error has occurred. We stop waiting for output events.
-        //  The engine is not terminated until we detect input error;
+        //  IO Error has occurred. We stop waiting for output events.
+        //  The engine is not Terminated until we detect input Error;
         //  this is necessary to prevent losing incoming messages.
         if (nbytes == -1) {
             self.reset_pollout();
@@ -298,7 +298,7 @@ impl stream_engine_base_t {
         self._outpos += nbytes;
         self._outsize -= nbytes;
 
-        //  If we are still handshaking and there are no data
+        //  If we are still Handshaking and there are no data
         //  to send, stop polling for output.
         if ((self._handshaking)) {
             if (self._outsize == 0) {
@@ -326,7 +326,7 @@ impl stream_engine_base_t {
             if (get_errno() == EAGAIN) {
                 self._session.flush();
             } else {
-                // error (protocol_error);
+                // Error (ProtocolError);
                 return false;
             }
             return true;
@@ -350,10 +350,10 @@ impl stream_engine_base_t {
         if (rc == -1 && get_errno() == EAGAIN) {
             self._session.flush();
         } else if (self._io_error) {
-            // error (connection_error);
+            // Error (ConnectionError);
             return false;
         } else if (rc == -1) {
-            // error (protocol_error);
+            // Error (ProtocolError);
             return false;
         } else {
             self._input_stopped = false;
@@ -369,12 +369,12 @@ impl stream_engine_base_t {
         return true;
     }
 
-    pub unsafe fn next_handshake_command(&mut self msg_: &mut msg_t) -> i32 {
-        if (self._mechanism.status() == mechanism_t::ready) {
+    pub unsafe fn next_handshake_command(&mut self msg_: &mut ZmqMsg) -> i32 {
+        if (self._mechanism.status() == ZmqMechanism::ready) {
             self.mechanism_ready();
             return self.pull_and_encode(msg_);
         }
-        if (self._mechanism.status() == mechanism_t::error) {
+        if (self._mechanism.status() == ZmqMechanism::error) {
             // errno = EPROTO;
             return -1;
         }
@@ -387,12 +387,12 @@ impl stream_engine_base_t {
         return rc;
     }
 
-    pub unsafe fn process_handshake_command(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn process_handshake_command(&mut self, msg_: &mut ZmqMsg) -> i32 {
         let rc = self._mechanism.process_handshake_command(msg_);
         if (rc == 0) {
-            if (self._mechanism.status() == mechanism_t::ready) {
+            if (self._mechanism.status() == ZmqMechanism::ready) {
                 self.mechanism_ready();
-            } else if (self._mechanism.status() == mechanism_t::error) {
+            } else if (self._mechanism.status() == ZmqMechanism::error) {
                 // errno = EPROTO;
                 return -1;
             }
@@ -407,7 +407,7 @@ impl stream_engine_base_t {
     pub unsafe fn zap_msg_available(&mut self) {
         let rc = self._mechanism.zap_msg_available();
         if (rc == -1) {
-            // error (protocol_error);
+            // Error (ProtocolError);
             return;
         }
         if (self._input_stopped) {
@@ -420,13 +420,13 @@ impl stream_engine_base_t {
         }
     }
 
-    pub unsafe fn get_endpoint(&mut self) -> &endpoint_uri_pair_t {
+    pub unsafe fn get_endpoint(&mut self) -> &ZmqEndpointUriPair {
         &self._endpoint_uri_pair
     }
 
     pub unsafe fn mechanism_ready(&mut self) {
         if (self._options.heartbeat_interval > 0 && !self._has_heartbeat_timer) {
-            self.add_timer(self._options.heartbeat_interval, heartbeat_ivl_timer_id);
+            self.add_timer(self._options.heartbeat_interval, HEARTBEAT_IVL_TIMER_ID);
             self._has_heartbeat_timer = true;
         }
 
@@ -437,7 +437,7 @@ impl stream_engine_base_t {
         let mut flush_session = false;
 
         if (self._options.recv_routing_id) {
-            let mut routing_id = msg_t::new();
+            let mut routing_id = ZmqMsg::new();
             self._mechanism.peer_routing_id(&routing_id);
             let rc = self._session.push_msg(&routing_id);
             if (rc == -1 && get_errno() == EAGAIN) {
@@ -451,7 +451,7 @@ impl stream_engine_base_t {
         }
 
         if (self._options.router_notify & ZMQ_NOTIFY_CONNECT) {
-            let mut connect_notification = msg_t::new();
+            let mut connect_notification = ZmqMsg::new();
             connect_notification.init();
             let rc = self._session.push_msg(&connect_notification);
             if (rc == -1 && get_errno() == EAGAIN) {
@@ -468,8 +468,8 @@ impl stream_engine_base_t {
             self._session.flush();
         }
 
-        self._next_msg = &stream_engine_base_t::pull_and_encode;
-        self._process_msg = &stream_engine_base_t::write_credential;
+        self._next_msg = &ZmqStreamEngineBase::pull_and_encode;
+        self._process_msg = &ZmqStreamEngineBase::write_credential;
 
         //  Compile metadata.
         let mut properties = properties_t::default();
@@ -485,26 +485,26 @@ impl stream_engine_base_t {
 
         // zmq_assert (_metadata == NULL);
         if (!properties.empty()) {
-            self._metadata = metadata_t::new(properties);
+            self._metadata = ZmqMetadata::new(properties);
             // alloc_assert (_metadata);
         }
 
         if (self._has_handshake_timer) {
-            self.cancel_timer(handshake_timer_id);
+            self.cancel_timer(HANDSHAKE_TIMER_ID);
             self._has_handshake_timer = false;
         }
 
         self._socket.event_handshake_succeeded(self._endpoint_uri_pair, 0);
     }
 
-    pub unsafe fn write_credential(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn write_credential(&mut self, msg_: &mut ZmqMsg) -> i32 {
         let mut credential = self._mechanism.get_user_id();
         if (credential.size() > 0) {
-            let mut msg = msg_t::default();
+            let mut msg = ZmqMsg::default();
             let rc = msg.init_size(credential.size());
             // zmq_assert (rc == 0);
             libc::memcpy(msg.data(), credential.data(), credential.size());
-            msg.set_flags(msg_t::credential);
+            msg.set_flags(ZmqMsg::credential);
             rc = self._session.push_msg(&msg);
             if (rc == -1) {
                 rc = msg.close();
@@ -512,11 +512,11 @@ impl stream_engine_base_t {
                 return -1;
             }
         }
-        self._process_msg = &stream_engine_base_t::decode_and_push;
+        self._process_msg = &ZmqStreamEngineBase::decode_and_push;
         return self.decode_and_push(msg_);
     }
 
-    pub unsafe fn pull_and_decode(&mut self, msg_: &msg_t) -> i32 {
+    pub unsafe fn pull_and_decode(&mut self, msg_: &ZmqMsg) -> i32 {
         if (self._session.pull_msg(msg_) == -1) {
             return -1;
         }
@@ -526,19 +526,19 @@ impl stream_engine_base_t {
         return 0;
     }
 
-    pub unsafe fn decode_and_push(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn decode_and_push(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if (self._mechanism.decode(msg_) == -1) {
             return -1;
         }
 
         if (self._has_timeout_timer) {
             self._has_timeout_timer = false;
-            self.cancel_timer(heartbeat_timeout_timer_id);
+            self.cancel_timer(HEARTBEAT_TIMEOUT_TIMER_ID);
         }
 
         if (self._has_ttl_timer) {
             self._has_ttl_timer = false;
-            self.cancel_timer(heartbeat_ttl_timer_id);
+            self.cancel_timer(HEARTBEAT_TTL_TIMER_ID);
         }
 
         if msg_.flag_set(MSG_COMMAND) {
@@ -550,57 +550,57 @@ impl stream_engine_base_t {
         }
         if (self._session.push_msg(msg_) == -1) {
             if (get_errno() == EAGAIN) {
-                self._process_msg = &stream_engine_base_t::push_one_then_decode_and_push;
+                self._process_msg = &ZmqStreamEngineBase::push_one_then_decode_and_push;
             }
             return -1;
         }
         return 0;
     }
 
-    pub unsafe fn push_one_then_decode_and_push(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn push_one_then_decode_and_push(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if (self._session.push_msg(msg_) == -1) {
             return -1;
         }
-        self._process_msg = &stream_engine_base_t::decode_and_push;
+        self._process_msg = &ZmqStreamEngineBase::decode_and_push;
         return self.decode_and_push(msg_);
     }
 
-    pub unsafe fn pull_msg_from_session(&mut self, msg_: &msg_t) -> i32 {
+    pub unsafe fn pull_msg_from_session(&mut self, msg_: &ZmqMsg) -> i32 {
         self._session.pull_msg(msg_)
     }
 
-    pub unsafe fn push_msg_to_session(&mut self, msg_: &msg_t) -> i32 {
+    pub unsafe fn push_msg_to_session(&mut self, msg_: &ZmqMsg) -> i32 {
         self._session.push_msg(msg_)
     }
 
-    pub unsafe fn error(&mut self, reason_: error_reason_t) {
+    pub unsafe fn error(&mut self, reason_: ErrorReason) {
         if ((self._options.router_notify & ZMQ_NOTIFY_DISCONNECT) && !self._handshaking) {
             // For router sockets with disconnect notification, rollback
             // any incomplete message in the pipe, and push the disconnect
             // notification message.
             self._session.rollback();
 
-            let mut disconnect_notification = msg_t::new();
+            let mut disconnect_notification = ZmqMsg::new();
             disconnect_notification.init();
             self._session.push_msg(&disconnect_notification);
         }
 
         // protocol errors have been signaled already at the point where they occurred
-        if (reason_ != protocol_error && (self._mechanism.is_none() || self._mechanism.status() == mechanism_t::handshaking)) {
+        if (reason_ != ProtocolError && (self._mechanism.is_none() || self._mechanism.status() == ZmqMechanism::handshaking)) {
             let mut err = get_errno;
             self._socket.event_handshake_failed_no_detail(self._endpoint_uri_pair, err);
             // special case: connecting to non-ZMTP process which immediately drops connection,
-            // or which never responds with greeting, should be treated as a protocol error
+            // or which never responds with greeting, should be treated as a protocol Error
             // (i.e. stop reconnect)
-            if (((reason_ == connection_error) || (reason_ == timeout_error)) && (self._options.reconnect_stop & ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED)) {
-                reason_ = protocol_error;
+            if (((reason_ == ConnectionError) || (reason_ == TimeoutError)) && (self._options.reconnect_stop & ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED)) {
+                reason_ = ProtocolError;
             }
         }
 
         self._socket.event_disconnected(&self._endpoint_uri_pair, self._s);
         self._session.flush();
         self._session.engine_error(
-            !self._handshaking && (self._mechanism.is_none() || self._mechanism.status() != mechanism_t::handshaking),
+            !self._handshaking && (self._mechanism.is_none() || self._mechanism.status() != ZmqMechanism::handshaking),
             reason_);
         self.unplug();
         // delete this;
@@ -608,7 +608,7 @@ impl stream_engine_base_t {
 
     pub unsafe fn set_handshake_timer(&mut self) {
         if (self._options.handshake_ivl > 0) {
-            self.add_timer(self._options.handshake_ivl, handshake_timer_id);
+            self.add_timer(self._options.handshake_ivl, HANDSHAKE_TIMER_ID);
             self._has_handshake_timer = true;
         }
     }
@@ -631,20 +631,20 @@ impl stream_engine_base_t {
     }
 
     pub unsafe fn timer_event(&mut self, id_: i32) {
-        if (id_ == handshake_timer_id) {
+        if (id_ == HANDSHAKE_TIMER_ID) {
             self._has_handshake_timer = false;
             //  handshake timer expired before handshake completed, so engine fail
-            // error (timeout_error);
-        } else if (id_ == heartbeat_ivl_timer_id) {
-            self._next_msg = &stream_engine_base_t::produce_ping_message;
+            // Error (TimeoutError);
+        } else if (id_ == HEARTBEAT_IVL_TIMER_ID) {
+            self._next_msg = &ZmqStreamEngineBase::produce_ping_message;
             self.out_event();
-            self.add_timer(self._options.heartbeat_interval, heartbeat_ivl_timer_id);
-        } else if (id_ == heartbeat_ttl_timer_id) {
+            self.add_timer(self._options.heartbeat_interval, HEARTBEAT_IVL_TIMER_ID);
+        } else if (id_ == HEARTBEAT_TTL_TIMER_ID) {
             self._has_ttl_timer = false;
-            // error (timeout_error);
-        } else if (id_ == heartbeat_timeout_timer_id) {
+            // Error (TimeoutError);
+        } else if (id_ == HEARTBEAT_TIMEOUT_TIMER_ID) {
             self._has_timeout_timer = false;
-            // error (timeout_error);
+            // Error (TimeoutError);
         } else {}
         // There are no other valid timer ids!
         // assert (false);

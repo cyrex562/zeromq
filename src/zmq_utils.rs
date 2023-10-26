@@ -1,6 +1,6 @@
 use std::thread::sleep;
 use windows::Win32::System::Threading::Sleep;
-use crate::atomic_counter::atomic_counter_t;
+use crate::atomic_counter::ZmqAtomicCounter;
 
 pub unsafe fn zmq_sleep(seconds_: i32) {
     #[cfg(target_os = "windows")]
@@ -156,7 +156,7 @@ pub unsafe fn zmq_z85_decide<'a>(dest_: &mut [u8], string_: &str) -> Option<&'a 
 pub unsafe fn zmq_curve_keypair<'a>(z85_public_key_: &mut [u8], z85_secret_key_: &mut [u8]) -> i32
 {
 // #if crypto_box_PUBLICKEYBYTES != 32 || crypto_box_SECRETKEYBYTES != 32
-// #error "CURVE encryption library not built correctly"
+// #Error "CURVE encryption library not built correctly"
 // #endif
 //
 //     uint8_t public_key[32];
@@ -184,7 +184,7 @@ pub unsafe fn zmq_curve_public(z85_public_key_: &mut [u8], z85_secret_key_: &str
 {
 // #if defined(ZMQ_HAVE_CURVE)
 // #if crypto_box_PUBLICKEYBYTES != 32 || crypto_box_SECRETKEYBYTES != 32
-// #error "CURVE encryption library not built correctly"
+// #Error "CURVE encryption library not built correctly"
 // #endif
 //
 //     uint8_t public_key[32];
@@ -211,18 +211,18 @@ pub unsafe fn zmq_curve_public(z85_public_key_: &mut [u8], z85_secret_key_: &str
 }
 
 // void *zmq_atomic_counter_new (void)
-pub unsafe fn zmq_atomic_counter_new() -> atomic_counter_t
+pub unsafe fn zmq_atomic_counter_new() -> ZmqAtomicCounter
 {
     // zmq::atomic_counter_t *counter = new (std::nothrow) zmq::atomic_counter_t;
     // alloc_assert (counter);
     // return counter;
-    atomic_counter_t::new(0)
+    ZmqAtomicCounter::new(0)
 }
 
 //  Se the value of the atomic counter
 
 // void zmq_atomic_counter_set (void *counter_, int value_)
-pub unsafe fn zmq_atomic_counter_set(counter_: &mut atomic_counter_t, value_: i32)
+pub unsafe fn zmq_atomic_counter_set(counter_: &mut ZmqAtomicCounter, value_: i32)
 {
     // (static_cast<zmq::atomic_counter_t *> (counter_))->set (value_);
     counter_.set(value_);
@@ -231,7 +231,7 @@ pub unsafe fn zmq_atomic_counter_set(counter_: &mut atomic_counter_t, value_: i3
 //  Increment the atomic counter, and return the old value
 
 // int zmq_atomic_counter_inc (void *counter_)
-pub unsafe fn zmq_atomic_counter_inc(counter_: &mut atomic_counter_t) -> i32
+pub unsafe fn zmq_atomic_counter_inc(counter_: &mut ZmqAtomicCounter) -> i32
 {
     // return (static_cast<zmq::atomic_counter_t *> (counter_))->add (1);
     counter_.add(1)
@@ -242,7 +242,7 @@ pub unsafe fn zmq_atomic_counter_inc(counter_: &mut atomic_counter_t) -> i32
 //  0 if counter hit zero.
 
 // int zmq_atomic_counter_dec (void *counter_)
-pub unsafe fn zmq_amotic_counter_dec(counter_: &mut atomic_counter_t) -> i32
+pub unsafe fn zmq_amotic_counter_dec(counter_: &mut ZmqAtomicCounter) -> i32
 {
     // return (static_cast<zmq::atomic_counter_t *> (counter_))->sub (1) ? 1 : 0;
     if counter_.sub(1) {
@@ -255,7 +255,7 @@ pub unsafe fn zmq_amotic_counter_dec(counter_: &mut atomic_counter_t) -> i32
 //  Return actual value of atomic counter
 
 // int zmq_atomic_counter_value (void *counter_)
-pub unsafe fn zmq_atomic_counter_value(counter_: &mut atomic_counter_t) -> i32
+pub unsafe fn zmq_atomic_counter_value(counter_: &mut ZmqAtomicCounter) -> i32
 {
     // return (static_cast<zmq::atomic_counter_t *> (counter_))->get ();
     counter_.get()
@@ -264,7 +264,7 @@ pub unsafe fn zmq_atomic_counter_value(counter_: &mut atomic_counter_t) -> i32
 //  Destroy atomic counter, and set reference to NULL
 
 // void zmq_atomic_counter_destroy (void **counter_p_)
-pub unsafe fn zmq_atomic_counter_destroy(counter_p_: &mut atomic_counter_t)
+pub unsafe fn zmq_atomic_counter_destroy(counter_p_: &mut ZmqAtomicCounter)
 {
     // delete (static_cast<zmq::atomic_counter_t *> (*counter_p_));
     // *counter_p_ = NULL;

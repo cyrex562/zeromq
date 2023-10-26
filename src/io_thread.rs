@@ -1,21 +1,21 @@
-#![allow(non_camel_case_types)]
 
-use crate::command::command_t;
+
+use crate::command::ZmqCommand;
 use crate::ctx::reaper_tid;
-use crate::defines::handle_t;
-use crate::i_poll_events::i_poll_events;
-use crate::mailbox::mailbox_t;
-use crate::object::object_t;
-use crate::poller::poller_t;
+use crate::defines::ZmqHandle;
+use crate::i_poll_events::IPollEvents;
+use crate::mailbox::ZmqMailbox;
+use crate::object::ZmqObject;
+use crate::poller::ZmqPoller;
 
-pub struct io_thread_t {
-    pub object: object_t,
-    pub _mailbox: mailbox_t,
-    pub _mailbox_handle: handle_t,
-    pub _poller: *mut poller_t,
+pub struct ZmqIoThread<'a> {
+    pub object: ZmqObject<'a>,
+    pub _mailbox: ZmqMailbox,
+    pub _mailbox_handle: ZmqHandle,
+    pub _poller: *mut ZmqPoller,
 }
 
-impl io_thread_t {
+impl ZmqIoThread {
     pub fn start(&mut self) {
         let name = format!("IO/{}", self.object.get_tid() - reaper_tid - 1);
         self._poller.start(name);
@@ -25,7 +25,7 @@ impl io_thread_t {
         self.object.send_stop();
     }
 
-    pub fn get_mailbox(&mut self) -> *mut mailbox_t {
+    pub fn get_mailbox(&mut self) -> *mut ZmqMailbox {
         return &mut self._mailbox;
     }
 
@@ -33,7 +33,7 @@ impl io_thread_t {
         return self._poller.get_load();
     }
 
-    pub fn get_poller(&mut self) -> *mut poller_t {
+    pub fn get_poller(&mut self) -> *mut ZmqPoller {
         return self._poller;
     }
 
@@ -44,9 +44,9 @@ impl io_thread_t {
 }
 
 
-impl i_poll_events for io_thread_t {
+impl IPollEvents for ZmqIoThread {
     unsafe fn in_event(&mut self) {
-        let mut cmd = command_t::new();
+        let mut cmd = ZmqCommand::new();
         let rc = self._mailbox.recv(&mut cmd, 0);
         while rc == 0 {
             if rc == 0 {

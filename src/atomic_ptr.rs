@@ -16,15 +16,15 @@ pub unsafe fn atomic_cas_ptr(ptr: *mut *mut c_void, oldval: *mut c_void, newval:
     x.is_ok()
 }
 
-pub struct atomic_ptr_t<T>
+pub struct ZmqAtomicPtr<T>
 {
     pub ptr: AtomicPtr<T>
 }
 
-impl <T>atomic_ptr_t<T>
+impl <T> ZmqAtomicPtr<T>
 {
     pub fn new() -> Self {
-        atomic_ptr_t {
+        ZmqAtomicPtr {
             ptr: AtomicPtr::new(std::ptr::null_mut())
         }
     }

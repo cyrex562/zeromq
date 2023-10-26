@@ -509,7 +509,7 @@ static void test_parse_ipv6_port_nobrackets ()
 
     resolver_opts.ipv6 (true).expect_port (true);
 
-    //  Should this be allowed? Seems error-prone but so far ZMQ accepts it.
+    //  Should this be allowed? Seems Error-prone but so far ZMQ accepts it.
     test_resolve (resolver_opts, "abcd:1234::1:0:234:123", "abcd:1234::1:0:234",
                   123);
 }

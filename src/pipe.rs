@@ -1,45 +1,45 @@
 use std::ffi::c_void;
 use std::ptr::null_mut;
 use libc::size_t;
-use crate::array::array_item_t;
-use crate::blob::blob_t;
-use crate::endpoint::endpoint_uri_pair_t;
-use crate::msg::{MSG_MORE, msg_t, MSG_ROUTING_ID};
-use crate::object::object_t;
-use crate::ypipe::ypipe_t;
-use crate::ypipe_base::ypipe_base_t;
-use crate::defines::message_pipe_granularity;
-use crate::options::options_t;
-use crate::own::own_t;
-use crate::pipe::pipe_state::{active, delimiter_received, term_ack_sent, term_req_sent1, term_req_sent2, waiting_for_delimiter};
-use crate::ypipe_conflate::ypipe_conflate_t;
+use crate::array::ArrayItem;
+use crate::blob::ZmqBlob;
+use crate::endpoint::ZmqEndpointUriPair;
+use crate::msg::{MSG_MORE, ZmqMsg, MSG_ROUTING_ID};
+use crate::object::ZmqObject;
+use crate::ypipe::ZmqYPipe;
+use crate::ypipe_base::ZmqYPipeBase;
+use crate::defines::MESSAGE_PIPE_GRANULARITY;
+use crate::options::ZmqOptions;
+use crate::own::ZmqOwn;
+use crate::pipe::ZmqPipeState::{Active, DelimiterReceived, TermAckSent, TermReqSent1, TermReqSent2, WaitingForDelimiter};
+use crate::ypipe_conflate::YPipeConflate;
 
-pub trait i_pipe_events {
-    fn read_activated(&self, pipe_: &mut pipe_t);
-    fn write_activated(&self, pipe_: &mut pipe_t);
-    fn hiccuped(&self, pipe_: &mut pipe_t);
-    fn pipe_terminated(&self, pipe_: &mut pipe_t);
+pub trait IPipeEvents {
+    fn read_activated(&self, pipe_: &mut ZmqPipe);
+    fn write_activated(&self, pipe_: &mut ZmqPipe);
+    fn hiccuped(&self, pipe_: &mut ZmqPipe);
+    fn pipe_terminated(&self, pipe_: &mut ZmqPipe);
 }
 
-pub enum pipe_state {
-    active,
-    delimiter_received,
-    waiting_for_delimiter,
-    term_ack_sent,
-    term_req_sent1,
-    term_req_sent2,
+pub enum ZmqPipeState {
+    Active,
+    DelimiterReceived,
+    WaitingForDelimiter,
+    TermAckSent,
+    TermReqSent1,
+    TermReqSent2,
 }
 
-pub type upipe_t = ypipe_base_t<msg_t>;
+pub type ZmqUpipe = ZmqYPipeBase<ZmqMsg>;
 
 #[derive(Default,Debug,Clone)]
-pub struct pipe_t<'a> {
-    pub _base: &'a mut object_t<'a>,
-    pub _array_item_1: array_item_t<1>,
-    pub _array_item_2: array_item_t<2>,
-    pub _array_item_3: array_item_t<3>,
-    pub _in_pipe: Option<&'a mut upipe_t>,
-    pub _out_pipe: Option<&'a mut upipe_t>,
+pub struct ZmqPipe<'a> {
+    pub _base: &'a mut ZmqObject<'a>,
+    pub _array_item_1: ArrayItem<1>,
+    pub _array_item_2: ArrayItem<2>,
+    pub _array_item_3: ArrayItem<3>,
+    pub _in_pipe: Option<&'a mut ZmqUpipe>,
+    pub _out_pipe: Option<&'a mut ZmqUpipe>,
     pub _in_active: bool,
     pub _out_active: bool,
     pub _hwm: i32,
@@ -49,25 +49,25 @@ pub struct pipe_t<'a> {
     pub _msgs_read: u64,
     pub _msgs_written: u64,
     pub _peers_msgs_read: u64,
-    pub _peer: Option<&'a mut pipe_t<'a>>,
-    pub _sink: Option<&'a mut dyn i_pipe_events>,
-    pub _state: pipe_state,
+    pub _peer: Option<&'a mut ZmqPipe<'a>>,
+    pub _sink: Option<&'a mut dyn IPipeEvents>,
+    pub _state: ZmqPipeState,
     pub _delay: bool,
-    pub _router_socket_routing_id: blob_t,
+    pub _router_socket_routing_id: ZmqBlob,
     pub _server_socket_routing_id: i32,
     pub _conflate: bool,
-    pub _endpoint_pair: endpoint_uri_pair_t,
-    pub _disconnect_msg: msg_t,
+    pub _endpoint_pair: ZmqEndpointUriPair,
+    pub _disconnect_msg: ZmqMsg,
 }
 
-impl pipe_t {
+impl ZmqPipe {
 
-    fn new(parent_: &mut object_t, inpipe_: &mut upipe_t, outpipe_: &mut upipe_t, inhwm_: i32, outhwm_: i32, conflate_: bool) -> Self {
+    fn new(parent_: &mut ZmqObject, inpipe_: &mut ZmqUpipe, outpipe_: &mut ZmqUpipe, inhwm_: i32, outhwm_: i32, conflate_: bool) -> Self {
         Self {
             _base: parent_,
-            _array_item_1: array_item_t::new(),
-            _array_item_2: array_item_t::new(),
-            _array_item_3: array_item_t::new(),
+            _array_item_1: ArrayItem::new(),
+            _array_item_2: ArrayItem::new(),
+            _array_item_3: ArrayItem::new(),
             _in_pipe: None,
             _out_pipe: None,
             _in_active: false,
@@ -81,21 +81,21 @@ impl pipe_t {
             _peers_msgs_read: 0,
             _peer: None,
             _sink: None,
-            _state: pipe_state::active,
+            _state: ZmqPipeState::Active,
             _delay: false,
-            _router_socket_routing_id: blob_t::new(),
+            _router_socket_routing_id: ZmqBlob::new(),
             _server_socket_routing_id: 0,
             _conflate: false,
-            _endpoint_pair: endpoint_uri_pair_t::new(),
-            _disconnect_msg: msg_t::new(),
+            _endpoint_pair: ZmqEndpointUriPair::new(),
+            _disconnect_msg: ZmqMsg::new(),
         }
     }
 
-    pub fn set_peer(&mut self, peer_: &mut pipe_t){
+    pub fn set_peer(&mut self, peer_: &mut ZmqPipe){
         self._peer = Some(peer_);
     }
 
-    pub fn set_event_sink(&mut self, sink_: &mut dyn i_pipe_events){
+    pub fn set_event_sink(&mut self, sink_: &mut dyn IPipeEvents){
         self._sink = Some(sink_);
     }
 
@@ -107,11 +107,11 @@ impl pipe_t {
         return self._server_socket_routing_id as u32;
     }
 
-    pub fn set_router_socket_routing_id(&mut self, router_socket_routing_id_: blob_t) {
+    pub fn set_router_socket_routing_id(&mut self, router_socket_routing_id_: ZmqBlob) {
         self._router_socket_routing_id = router_socket_routing_id_;
     }
 
-    pub fn get_routing_id(&mut self) -> &mut blob_t {
+    pub fn get_routing_id(&mut self) -> &mut ZmqBlob {
         return &mut self._router_socket_routing_id;
     }
 
@@ -120,18 +120,18 @@ impl pipe_t {
             return false;
         }
 
-        if self._state != active && self._state != waiting_for_delimiter {
+        if self._state != Active && self._state != WaitingForDelimiter {
             return false;
         }
 
         return true;
     }
 
-    pub unsafe fn read(&mut self, msg_: &mut msg_t) -> bool {
+    pub unsafe fn read(&mut self, msg_: &mut ZmqMsg) -> bool {
         if self._in_active == false {
             return false;
         }
-        if self._state != active && self._state != waiting_for_delimiter {
+        if self._state != Active && self._state != WaitingForDelimiter {
             return false;
         }
 
@@ -166,7 +166,7 @@ impl pipe_t {
     }
 
     pub fn check_write(&mut self) -> bool {
-        if self._out_active == false || self._state != active {
+        if self._out_active == false || self._state != Active {
             return false;
         }
 
@@ -179,7 +179,7 @@ impl pipe_t {
         return true;
     }
 
-    pub unsafe fn write(&mut self, msg_: &mut msg_t) -> bool {
+    pub unsafe fn write(&mut self, msg_: &mut ZmqMsg) -> bool {
         if self.check_write() == false {
             return false;
         }
@@ -197,7 +197,7 @@ impl pipe_t {
     }
 
     pub unsafe fn rollback(&mut self) {
-        let mut msg: msg_t;
+        let mut msg: ZmqMsg;
         if self._out_pipe {
             while self._out_pipe.unwrite(&msg) {
                 let rc = msg.close();
@@ -206,7 +206,7 @@ impl pipe_t {
     }
 
     pub unsafe fn flush(&mut self) {
-        if self._state == term_ack_sent {
+        if self._state == TermAckSent {
             return;
         }
 
@@ -216,7 +216,7 @@ impl pipe_t {
     }
 
     pub unsafe fn process_activate_read(&mut self) {
-        if self._in_active == false && (self._state == active || self._state == waiting_for_delimiter) {
+        if self._in_active == false && (self._state == Active || self._state == WaitingForDelimiter) {
             self._in_active = true;
             self._sink.read_activated(self);
         }
@@ -224,16 +224,16 @@ impl pipe_t {
 
     pub unsafe fn process_activate_write(&mut self, msgs_read_: u64) {
         self._peers_msgs_read = msgs_read_;
-        if self._out_active == false && self._state == active {
+        if self._out_active == false && self._state == Active {
             self._out_active = true;
             self._sink.write_activated(self);
         }
     }
 
-    pub unsafe fn process_hiccup(&mut self, pipe_: &mut pipe_t)
+    pub unsafe fn process_hiccup(&mut self, pipe_: &mut ZmqPipe)
     {
         self._out_pipe.flush();
-        let mut msg: msg_t = msg_t::new();
+        let mut msg: ZmqMsg = ZmqMsg::new();
         while (self._out_pipe).read(&mut msg) {
             if msg.flags & MSG_MORE == 0 {
                 self._msgs_written -= 1
@@ -244,26 +244,26 @@ impl pipe_t {
         self._out_pipe = Some(pipe_ );
         self._out_active = true;
 
-        if self._state == active {
+        if self._state == Active {
              self._sink.hiccuped(self)
         }
     }
 
     pub unsafe fn process_pipe_term(&mut self) {
-        if self._state == active {
+        if self._state == Active {
             if (self._delay) {
-                self._state = waiting_for_delimiter;
+                self._state = WaitingForDelimiter;
             } else {
-                self._state = term_ack_sent;
+                self._state = TermAckSent;
                 self._out_pipe = None;
                 self._base.send_pipe_term_ack(self._peer.unwrap());
             }
-        } else if self._state == delimiter_received {
-            self._state = term_ack_sent;
+        } else if self._state == DelimiterReceived {
+            self._state = TermAckSent;
             self._out_pipe = None;
             self._base.send_pipe_term_ack(self._peer.unwrap());
-        } else if self._state == term_req_sent1 {
-            self._state = term_req_sent2;
+        } else if self._state == TermReqSent1 {
+            self._state = TermReqSent2;
             self._out_pipe = None;
             self._base.send_pipe_term_ack(self._peer.unwrap());
         }
@@ -272,7 +272,7 @@ impl pipe_t {
     pub unsafe fn process_pipe_term_ack(&mut self)
     {
         self._sink.pipe_terminated(self);
-        if self._state == term_req_sent1 {
+        if self._state == TermReqSent1 {
            self._out_pipe = None;
             self._base.send_pipe_term_ack(self._peer.unwrap());
         } else {
@@ -280,7 +280,7 @@ impl pipe_t {
         }
 
         if !self._conflate {
-            let msg = msg_t::new();
+            let msg = ZmqMsg::new();
             while (*self._in_pipe).read(&msg) {
                 msg.close()
             }
@@ -298,28 +298,28 @@ impl pipe_t {
     pub unsafe fn terminate(&mut self, delay_: bool) {
         self._delay = delay_;
 
-        if self._state == term_req_sent1 || self._state == term_req_sent2 {
+        if self._state == TermReqSent1 || self._state == TermReqSent2 {
             return;
         }
 
-        if self._state == term_ack_sent {
+        if self._state == TermAckSent {
             return;
         }
 
-        if self._state == active {
+        if self._state == Active {
             self._base.send_pipe_term(self._peer.unwrap());
-            self._state = term_req_sent1;
+            self._state = TermReqSent1;
         }
-        else if self._state == waiting_for_delimiter && self._delay == false {
+        else if self._state == WaitingForDelimiter && self._delay == false {
             self.rollback();
             self._out_pipe = None;
             self._base.send_pipe_term_ack(self._peer.unwrap());
-            self._state = term_ack_sent;
+            self._state = TermAckSent;
         }
-        else if self._state == waiting_for_delimiter {}
-        else if self._state == delimiter_received {
+        else if self._state == WaitingForDelimiter {}
+        else if self._state == DelimiterReceived {
             self._base.send_pipe_term(self._peer.unwrap());
-            self._state = term_req_sent1;
+            self._state = TermReqSent1;
         }
         else {
 
@@ -327,14 +327,14 @@ impl pipe_t {
         self._out_active = false;
         if self._out_pipe {
             self.rollback();
-            let mut msg = msg_t::new();
+            let mut msg = ZmqMsg::new();
             msg.init_delimiter();
             (*self._out_pipe).write(&mut msg, false);
             self.flush()
         }
     }
 
-    pub unsafe fn is_delimiter(&mut self, msg_: &mut msg_t) -> bool {
+    pub unsafe fn is_delimiter(&mut self, msg_: &mut ZmqMsg) -> bool {
         msg_.is_delimiter()
     }
 
@@ -343,24 +343,24 @@ impl pipe_t {
     }
 
     pub unsafe fn process_delimiter(&mut self) {
-        if self._state == active {
-            self._state = delimiter_received;
+        if self._state == Active {
+            self._state = DelimiterReceived;
         } else {
             self.rollback();
             self._out_pipe = None;
             self._base.send_pipe_term_ack(self._peer.unwrap());
-            self._state = term_ack_sent;
+            self._state = TermAckSent;
         }
     }
 
     pub unsafe fn hiccup(&mut self) {
-        if self._state != active {
+        if self._state != Active {
             return;
         }
         if self._conflate == true {
-             self._in_pipe = ypipe_conflate_t::new()
+             self._in_pipe = YPipeConflate::new()
         } else {
-             self._in_pipe = ypipe_t::new()
+             self._in_pipe = ZmqYPipe::new()
         };
         self._in_active = true;
         self._base.send_hiccup(self._peer.unwrap(), self._in_pipe.unwrap());
@@ -395,18 +395,18 @@ impl pipe_t {
         self._base.send_pipe_hwm(self._peer, inhwm_, outhwm_);
     }
 
-    pub fn set_endpoint_pair(&mut self, endpoint_pair_: endpoint_uri_pair_t)
+    pub fn set_endpoint_pair(&mut self, endpoint_pair_: ZmqEndpointUriPair)
     {
         self._endpoint_pair = endpoint_pair_;
     }
 
-    pub unsafe fn send_stats_to_peer(&mut self, socket_base_: &mut own_t)
+    pub unsafe fn send_stats_to_peer(&mut self, socket_base_: &mut ZmqOwn)
     {
-        let mut ep = endpoint_uri_pair_t::new3(&mut self._endpoint_pair);
+        let mut ep = ZmqEndpointUriPair::new3(&mut self._endpoint_pair);
         self._base.send_pipe_peer_stats(self._peer.unwrap(), self._msgs_written - self._peers_msgs_read, socket_base_, &mut ep);
     }
 
-    pub fn process_pipe_peer_stats(&mut self, queue_count_: u64, socket_base_: &mut own_t, endpoint_pair_: &mut endpoint_uri_pair_t){
+    pub fn process_pipe_peer_stats(&mut self, queue_count_: u64, socket_base_: &mut ZmqOwn, endpoint_pair_: &mut ZmqEndpointUriPair){
         self._base.send_pipe_stats_publish(socket_base_, queue_count_, self._msgs_written - self._peers_msgs_read, endpoint_pair_);
     }
 
@@ -426,7 +426,7 @@ impl pipe_t {
 
     pub unsafe fn send_hiccup_msg(&mut self, hiccup: &mut Vec<u8>) {
         if hiccup.is_empty() == false && self._out_pipe != null_mut() {
-            let mut msg: msg_t = msg_t::new();
+            let mut msg: ZmqMsg = ZmqMsg::new();
             let rc = msg.init_buffer(hiccup.as_mut_ptr() as *const c_void, hiccup.len());
             (*self._out_pipe).write(&mut msg, false);
             self.flush();
@@ -435,31 +435,31 @@ impl pipe_t {
 
 }
 
-type upipe_normal_t = ypipe_t<msg_t, message_pipe_granularity>;
-type upipe_conflate_t = ypipe_conflate_t<msg_t>;
+type upipe_normal_t = ZmqYPipe<ZmqMsg, MESSAGE_PIPE_GRANULARITY>;
+type upipe_conflate_t = YPipeConflate<ZmqMsg>;
 
 
-pub unsafe fn pipepair(parents_: [&mut object_t; 2],
-                pipes_: &mut [Option<&mut pipe_t>; 2],
-                hwms_: [i32; 2],
-                conflate_: [bool; 2],
+pub unsafe fn pipepair(parents_: [&mut ZmqObject; 2],
+                       pipes_: &mut [Option<&mut ZmqPipe>; 2],
+                       hwms_: [i32; 2],
+                       conflate_: [bool; 2],
 ) -> i32 {
-    let mut upipe1: upipe_t;
+    let mut upipe1: ZmqUpipe;
     if conflate_[0] == true {
         upipe1 = upipe_conflate_t::new();
     } else {
         upipe1 = upipe_normal_t::new();
     }
 
-    let mut upipe2: upipe_t;
+    let mut upipe2: ZmqUpipe;
     if conflate_[1] == true {
         upipe2 = upipe_conflate_t::new();
     } else {
         upipe2 = upipe_normal_t::new();
     }
 
-    pipes_[0] = Some(&mut pipe_t::new(parents_[0], &mut upipe1, &mut upipe2, hwms_[1], hwms_[0], conflate_[0]));
-    pipes_[1] = Some(&mut pipe_t::new(parents_[1], &mut upipe2, &mut upipe1, hwms_[0], hwms_[1], conflate_[1]));
+    pipes_[0] = Some(&mut ZmqPipe::new(parents_[0], &mut upipe1, &mut upipe2, hwms_[1], hwms_[0], conflate_[0]));
+    pipes_[1] = Some(&mut ZmqPipe::new(parents_[1], &mut upipe2, &mut upipe1, hwms_[0], hwms_[1], conflate_[1]));
 
     pipes_[0].set_peer(pipes_[1]);
     pipes_[1].set_peer(pipes_[0]);
@@ -467,8 +467,8 @@ pub unsafe fn pipepair(parents_: [&mut object_t; 2],
     return 0;
 }
 
-pub unsafe fn send_routing_id(pipe_: *mut pipe_t, options_: &options_t) {
-    let mut id = msg_t::new();
+pub unsafe fn send_routing_id(pipe_: *mut ZmqPipe, options_: &ZmqOptions) {
+    let mut id = ZmqMsg::new();
     let mut rc = id.init_size(options_.routing_id_size);
     libc::memcpy(id.data(), &options_.routing_id as *const c_void, options_.routing_id_size as size_t);
     id.set_flags(MSG_ROUTING_ID);
@@ -476,9 +476,9 @@ pub unsafe fn send_routing_id(pipe_: *mut pipe_t, options_: &options_t) {
     (*pipe_).flush();
 }
 
-pub unsafe fn send_hello_msg(pipe_: *mut pipe_t, options_: &options_t)
+pub unsafe fn send_hello_msg(pipe_: *mut ZmqPipe, options_: &ZmqOptions)
 {
-    let mut hello_msg = msg_t::new();
+    let mut hello_msg = ZmqMsg::new();
     let rc = hello_msg.init_buffer(&options_.hello_msg[0], options_.hello_msg.size());
     let written = (*pipe_).write(&mut hello_msg);
 }

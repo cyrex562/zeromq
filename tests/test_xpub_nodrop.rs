@@ -96,7 +96,7 @@ void test ()
     recv_count = 0;
     hwmlimit = hwm;
 
-    //  Send an empty message until we get an error, which must be EAGAIN
+    //  Send an empty message until we get an Error, which must be EAGAIN
     while (zmq_send (pub, "", 0, 0) == 0)
         send_count+= 1;
     TEST_ASSERT_EQUAL_INT (EAGAIN, errno);

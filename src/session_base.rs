@@ -1,50 +1,50 @@
-#![allow(non_camel_case_types)]
 
-use crate::address::address_t;
+
+use crate::address::ZmqAddress;
 use crate::defines::{ZMQ_DGRAM, ZMQ_DISH, ZMQ_NULL, ZMQ_RADIO, ZMQ_SUB, ZMQ_XSUB};
-use crate::endpoint::endpoint_uri_pair_t;
-use crate::i_engine::error_reason_t::timeout_error;
-use crate::i_engine::{error_reason_t, i_engine};
-use crate::io_object::io_object_t;
-use crate::io_thread::io_thread_t;
-use crate::msg::{MSG_COMMAND, MSG_MORE, msg_t};
-use crate::object::object_t;
-use crate::options::{get_effective_conflate_option, options_t};
-use crate::own::own_t;
-use crate::pipe::{i_pipe_events, pipe_t, pipepair};
-use crate::socket_base::socket_base_t;
+use crate::endpoint::ZmqEndpointUriPair;
+use crate::i_engine::ErrorReason::TimeoutError;
+use crate::i_engine::{ErrorReason, IEngine};
+use crate::io_object::IoObject;
+use crate::io_thread::ZmqIoThread;
+use crate::msg::{MSG_COMMAND, MSG_MORE, ZmqMsg};
+use crate::object::ZmqObject;
+use crate::options::{get_effective_conflate_option, ZmqOptions};
+use crate::own::ZmqOwn;
+use crate::pipe::{IPipeEvents, ZmqPipe, pipepair};
+use crate::socket_base::ZmqSocketBase;
 use std::collections::HashSet;
 use std::ptr::null_mut;
 
-pub struct session_base_t<'a> {
-    pub own: own_t<'a>,
-    pub io_object: io_object_t,
+pub struct ZmqSessionBase<'a> {
+    pub own: ZmqOwn<'a>,
+    pub io_object: IoObject,
     pub _active: bool,
-    pub _pipe: Option<&'a mut pipe_t<'a>>,
-    pub _zap_pipe: Option<&'a mut pipe_t<'a>>,
-    pub _terminating_pipes: HashSet<&'a mut pipe_t<'a>>,
+    pub _pipe: Option<&'a mut ZmqPipe<'a>>,
+    pub _zap_pipe: Option<&'a mut ZmqPipe<'a>>,
+    pub _terminating_pipes: HashSet<&'a mut ZmqPipe<'a>>,
     pub _incomplete_in: bool,
     pub _pending: bool,
-    pub _socket: &'a mut socket_base_t<'a>,
-    pub _io_thread: &'a mut io_thread_t,
+    pub _socket: &'a mut ZmqSocketBase<'a>,
+    pub _io_thread: &'a mut ZmqIoThread,
     pub _has_linger_timer: bool,
-    pub _addr: address_t,
-    pub _engine: Option<&'a mut dyn i_engine>,
+    pub _addr: ZmqAddress,
+    pub _engine: Option<&'a mut dyn IEngine>,
 }
 
 pub const _linger_timer_id: i32 = 0x20;
 
-impl i_pipe_events for session_base_t {
-    fn read_activated(&self, pipe: &pipe_t) {
+impl IPipeEvents for ZmqSessionBase {
+    fn read_activated(&self, pipe: &ZmqPipe) {
         unimplemented!()
     }
-    fn write_activated(&self, pipe: &pipe_t) {
+    fn write_activated(&self, pipe: &ZmqPipe) {
         unimplemented!()
     }
-    fn hiccuped(&self, pipe: &pipe_t) {
+    fn hiccuped(&self, pipe: &ZmqPipe) {
         unimplemented!()
     }
-    fn pipe_terminated(&self, pipe: &pipe_t) {
+    fn pipe_terminated(&self, pipe: &ZmqPipe) {
         unimplemented!()
     }
 }
@@ -80,16 +80,16 @@ impl i_pipe_events for session_base_t {
 //     }
 // }
 
-impl session_base_t {
+impl ZmqSessionBase {
     pub unsafe fn create(
-        io_thread_: &mut io_thread_t,
+        io_thread_: &mut ZmqIoThread,
         active_: bool,
-        socket_: &mut socket_base_t,
-        options_: &options_t,
-        addr_: address_t,
-    ) -> session_base_t {
+        socket_: &mut ZmqSocketBase,
+        options_: &ZmqOptions,
+        addr_: ZmqAddress,
+    ) -> ZmqSessionBase {
         // let mut s: *mut session_base_t = null_mut();
-        let mut s = session_base_t::default();
+        let mut s = ZmqSessionBase::default();
         match options_.type_ {
             ZMQ_REQ => {
                 // s = &mut req_session_t::new(io_thread_, active_, socket_, options_, addr_);
@@ -104,7 +104,7 @@ impl session_base_t {
                 if options_.can_send_hello_msg && options_.hello_msg.len() > 0 {
                     // s = &mut hello_session_t::new(io_thread_, active_, socket_, options_, addr_);
                 } else {
-                    s = session_base_t::new(io_thread_, active_, socket_, options_, addr_);
+                    s = ZmqSessionBase::new(io_thread_, active_, socket_, options_, addr_);
                 }
             }
         }
@@ -112,15 +112,15 @@ impl session_base_t {
     }
 
     pub unsafe fn new(
-        io_thread_: &mut io_thread_t,
+        io_thread_: &mut ZmqIoThread,
         active_: bool,
-        socket_: &mut socket_base_t,
-        options_: &options_t,
-        addr_: address_t,
+        socket_: &mut ZmqSocketBase,
+        options_: &ZmqOptions,
+        addr_: ZmqAddress,
     ) -> Self {
         Self {
-            own: own_t::new2(io_thread_, options_),
-            io_object: io_object_t::new(io_thread_),
+            own: ZmqOwn::new2(io_thread_, options_),
+            io_object: IoObject::new(io_thread_),
             _active: active_,
             _pipe: None,
             _zap_pipe: None,
@@ -135,16 +135,16 @@ impl session_base_t {
         }
     }
 
-    pub fn get_endpoint(&mut self) -> &mut endpoint_uri_pair_t {
+    pub fn get_endpoint(&mut self) -> &mut ZmqEndpointUriPair {
         return self.get_endpoint();
     }
 
-    pub fn attach_pipe(&mut self, pipe_: &mut pipe_t) {
+    pub fn attach_pipe(&mut self, pipe_: &mut ZmqPipe) {
         self._pipe = Some(pipe_);
         self._pipe.set_event_risk(self)
     }
 
-    pub unsafe fn pull_msg(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn pull_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if self._pipe == null_mut() || !(self._pipe).read(msg_) {
             return -1;
         }
@@ -153,7 +153,7 @@ impl session_base_t {
         return 0;
     }
 
-    pub unsafe fn push_msg(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn push_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if (msg_).flags() & MSG_COMMAND != 0 && !msg_.is_subscribe() && !msg_.is_cancel() {
             return 0;
         }
@@ -165,14 +165,14 @@ impl session_base_t {
         return -1;
     }
 
-    pub unsafe fn read_zap_msg(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn read_zap_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if self._zap_pipe == null_mut() || !(self._zap_pipe).read(msg_) {
             return -1;
         }
         return 0;
     }
 
-    pub unsafe fn write_zap_msg(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn write_zap_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if self._zap_pipe == null_mut() && !(self._zap_pipe).write(msg_) {
             return -1;
         }
@@ -207,13 +207,13 @@ impl session_base_t {
         self._pipe.flush();
 
         while (self._incomplete_in) {
-            let mut msg = msg_t::new();
+            let mut msg = ZmqMsg::new();
             self.pull_msg(&mut msg);
             msg.close();
         }
     }
 
-    pub unsafe fn pipe_terminated(&mut self, pipe_: &mut pipe_t) {
+    pub unsafe fn pipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
         if pipe_ == self._pipe {
             self._pipe = None;
             if self._has_linger_timer {
@@ -244,7 +244,7 @@ impl session_base_t {
         }
     }
 
-    pub fn read_activated(&mut self, pipe_: &mut pipe_t) {
+    pub fn read_activated(&mut self, pipe_: &mut ZmqPipe) {
         if pipe_ != self._pipe.unwrap() && pipe_ != self._zap_pipe.unwrap() {
             return;
         }
@@ -263,7 +263,7 @@ impl session_base_t {
         }
     }
 
-    pub fn write_activated(&mut self, pipe_: *mut pipe_t) {
+    pub fn write_activated(&mut self, pipe_: *mut ZmqPipe) {
         if self._pipe != pipe_ {
             return;
         }
@@ -273,11 +273,11 @@ impl session_base_t {
         }
     }
 
-    pub fn hiccuped(&mut self, pipe_: *mut pipe_t) {
+    pub fn hiccuped(&mut self, pipe_: *mut ZmqPipe) {
         unimplemented!()
     }
 
-    pub fn get_socket(&mut self) -> &mut socket_base_t {
+    pub fn get_socket(&mut self) -> &mut ZmqSocketBase {
         return self._socket;
     }
 
@@ -303,7 +303,7 @@ impl session_base_t {
         //  Create a bi-directional pipe that will connect
         //  session with zap socket.
         // let mut parents: [*mut object_t;2] = [self, peer.socket];
-        let mut new_pipes: [Option<&mut pipe_t>; 2] = [None, None];
+        let mut new_pipes: [Option<&mut ZmqPipe>; 2] = [None, None];
         let mut hwms: [i32; 2] = [0, 0];
         let mut conflates: [bool; 2] = [false, false];
         // let rc = pipepair (parents, &mut new_pipes, hwms, conflates);
@@ -318,10 +318,10 @@ impl session_base_t {
 
         //  Send empty routing id if required by the peer.
         if (peer.options.recv_routing_id) {
-            let mut id = msg_t::default();
+            let mut id = ZmqMsg::default();
             let rc = id.init();
             // errno_assert (rc == 0);
-            id.set_flags(msg_t::routing_id);
+            id.set_flags(ZmqMsg::routing_id);
             let ok = (*self._zap_pipe).write(id);
             // zmq_assert (ok);
             self._zap_pipe.flush();
@@ -334,7 +334,7 @@ impl session_base_t {
         return self.own.options.mechanism != ZMQ_NULL || !self.own.options.zap_domain.is_empty();
     }
 
-    pub unsafe fn process_attach(&mut self, engine_: &mut dyn i_engine) {
+    pub unsafe fn process_attach(&mut self, engine_: &mut dyn IEngine) {
         self._engine = Some(engine_);
 
         if !((*engine_).has_handshake_stage()) {
@@ -348,10 +348,10 @@ impl session_base_t {
         //  Create the pipe if it does not exist yet.
         if (self._pipe.is_none() && !self.is_terminating()) {
             // object_t *parents[2] = {this, _socket};
-            let parents: [&mut object_t; 2] =
-                [self as &mut object_t, self._socket as &mut object_t];
+            let parents: [&mut ZmqObject; 2] =
+                [self as &mut ZmqObject, self._socket as &mut ZmqObject];
             // pipe_t *pipes[2] = {NULL, NULL};
-            let mut pipes: [Option<&mut pipe_t>; 2] = [None, None];
+            let mut pipes: [Option<&mut ZmqPipe>; 2] = [None, None];
 
             let conflate = get_effective_conflate_option(&self.own.options);
 
@@ -392,7 +392,7 @@ impl session_base_t {
         }
     }
 
-    pub unsafe fn engine_error(&mut self, handshaked_: bool, reason_: error_reason_t) {
+    pub unsafe fn engine_error(&mut self, handshaked_: bool, reason_: ErrorReason) {
         //  Engine is dead. Let's forget about it.
         self._engine = None;
 
@@ -421,12 +421,12 @@ impl session_base_t {
             }
         }
 
-        // zmq_assert (reason_ == i_engine::connection_error
-        //             || reason_ == i_engine::timeout_error
-        //             || reason_ == i_engine::protocol_error);
+        // zmq_assert (reason_ == i_engine::ConnectionError
+        //             || reason_ == i_engine::TimeoutError
+        //             || reason_ == i_engine::ProtocolError);
 
         match (reason_) {
-            timeout_error => {}
+            TimeoutError => {}
             /* FALLTHROUGH */
             connection_error => {
                 if self._active {
@@ -570,13 +570,13 @@ impl session_base_t {
 
         //  Create the connecter object.
         // own_t *connecter = NULL;
-        let mut connecter: *mut own_t = null_mut();
+        let mut connecter: *mut ZmqOwn = null_mut();
         if ((*self._addr).protocol == tcp) {
             if (!self.own.options.socks_proxy_address.empty()) {
                 // address_t *proxy_address = new (std::nothrow)
                 //   address_t (protocol_name::tcp, options.socks_proxy_address,
                 //              this->get_ctx ());
-                let proxy_address = address_t::new2(
+                let proxy_address = ZmqAddress::new2(
                     "tcp",
                     &mut self.own.options.socks_proxy_address,
                     self.get_ctx(),
@@ -741,7 +741,7 @@ impl session_base_t {
 }
 
 pub struct hello_msg_session_t<'a> {
-    pub session_base_t: session_base_t<'a>,
+    pub session_base_t: ZmqSessionBase<'a>,
     pub _hello_sent: bool,
     pub _hello_received: bool,
     pub _new_pipe: bool,
@@ -749,21 +749,21 @@ pub struct hello_msg_session_t<'a> {
 
 impl hello_msg_session_t {
     pub unsafe fn new(
-        io_thread_: &mut io_thread_t,
+        io_thread_: &mut ZmqIoThread,
         connect_: bool,
-        socket_: &mut socket_base_t,
-        options: &options_t,
-        addr_: address_t,
+        socket_: &mut ZmqSocketBase,
+        options: &ZmqOptions,
+        addr_: ZmqAddress,
     ) -> Self {
         Self {
-            session_base_t: session_base_t::new(io_thread_, connect_, socket_, options, addr_),
+            session_base_t: ZmqSessionBase::new(io_thread_, connect_, socket_, options, addr_),
             _hello_sent: false,
             _hello_received: false,
             _new_pipe: true,
         }
     }
 
-    pub unsafe fn pull_msg(&mut self, msg_: &mut msg_t) -> i32 {
+    pub unsafe fn pull_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if self._new_pipe != null_mut() {
             self._new_pipe = false;
             // let rc = init_buffer(&self.options.hello_msg[0], self.options.hello_msg.len();

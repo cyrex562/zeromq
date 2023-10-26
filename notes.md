@@ -26,8 +26,8 @@
   transports
 
 * Following a call to 'zmq_bind' the socket enters a 'mute' state unless or until at least one incoming or outgoing
-  connection is made, at which point the socket enters a 'ready' state. In the mute state the socket blocks or drops
-  messages according to its type. Following a call to 'zmq_connect' the socket enters the 'ready' state.
+  connection is made, at which point the socket enters a 'Ready' state. In the mute state the socket blocks or drops
+  messages according to its type. Following a call to 'zmq_connect' the socket enters the 'Ready' state.
 
 ```pseudocode
 socket = zmq_socket(context, ZMQ_PUB)
@@ -66,8 +66,8 @@ zmq_msg_close(&msg)
 * create outgoing connection from socket
 * connects the 'socket' to an 'endpoint' and then accepts incoming connections on that endpoint
 * connections are performed as needed by ZMQ. A successful call does not mean that a connection was actually established
-* following 'zmq_connect' socket types except 'ZMQ_ROUTER' enter a 'ready' state. 'ZMQ_ROUTER' enters the 'ready' state
-  when handshaking is completed.
+* following 'zmq_connect' socket types except 'ZMQ_ROUTER' enter a 'Ready' state. 'ZMQ_ROUTER' enters the 'Ready' state
+  when Handshaking is completed.
 * for some socket types multiple connection calls dont make sense. In that case the call is silently ignored. This
   behavior applies to ZMQ_DEALER, ZMQ_SUB, ZMQ_PUB, and ZMQ_REQ socket types
 
@@ -82,7 +82,7 @@ zmq_connect(socket, "tcp://address:port")
 **deprecated**
 
 * terminate a zmq context
-* any blocking operations currently in progress on sockets open within 'context' shall return immediately with an error
+* any blocking operations currently in progress on sockets open within 'context' shall return immediately with an Error
   code of ETERM.
 * any further operations other than zmq_close on sockets in the context will fail
 * after interrupting all blocking calls, zmq_ctx_destroy blocks until all sockets open within context have been closed
@@ -413,7 +413,7 @@ rc = zmq_msg_send (&part3, socket, 0);
 * flags:
     * ZMQ_POLLIN: at least one message may be received from the socket without blocking
     * ZMQ_POLLOUT: at least one message may be sent to the socket without blocking
-    * ZMQ_POLLERR: an error condition has occurred on the socket
+    * ZMQ_POLLERR: an Error condition has occurred on the socket
     * ZMQ_POLLPRI: no useful for zmq sockets
 
 ```pseudo
@@ -456,7 +456,7 @@ int rc = zmq_poll (items, 2, -1, &sigmask_without_sigterm);
 if (rc < 0 && errno == EINTR && sigterm_received) {
   // do your SIGTERM business
 } else {
-  // do your non-SIGTERM error handling
+  // do your non-SIGTERM Error handling
 }
 ```
 

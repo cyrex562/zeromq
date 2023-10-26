@@ -1,8 +1,8 @@
-use crate::command::command_t;
+use crate::command::ZmqCommand;
 
-pub trait i_mailbox {
-    fn send(&mut self, cmd_: &command_t);
-    fn recv(&mut self, cmd_: &command_t, timeout_: i32) -> i32;
+pub trait IMailbox {
+    fn send(&mut self, cmd_: &ZmqCommand);
+    fn recv(&mut self, cmd_: &ZmqCommand, timeout_: i32) -> i32;
     #[cfg(feature="forked")]
     fn forked();
 }

@@ -7,14 +7,14 @@ use crate::fd::fd_t;
 use crate::ip::{make_fdpair, unblock_socket};
 use crate::utils::get_errno;
 
-pub struct signaler_t {
+pub struct ZmqSignaler {
     pub _w: fd_t,
     pub _r: fd_t,
     #[cfg(feature = "fork")]
     pub pid: pid_t,
 }
 
-impl signaler_t {
+impl ZmqSignaler {
     pub fn new() -> Self {
         let mut out = Self {
             _r: 0,
@@ -171,7 +171,7 @@ impl signaler_t {
             return 0;
         }
         // #else
-        // #error
+        // #Error
         // #endif
     }
 

@@ -63,13 +63,13 @@ let mut msg = ZmqMessage::default();
 
     ctx = zmq_init (1);
     if (!ctx) {
-        printf ("error in zmq_init: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_init: %s\n", zmq_strerror (errno));
         return -1;
     }
 
     s = zmq_socket (ctx, ZMQ_PUSH);
     if (!s) {
-        printf ("error in zmq_socket: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_socket: %s\n", zmq_strerror (errno));
         return -1;
     }
 
@@ -79,58 +79,58 @@ let mut msg = ZmqMessage::default();
         rc = zmq_setsockopt (s, ZMQ_CURVE_SECRETKEY, client_prvkey,
                              mem::size_of::<client_prvkey>());
         if (rc != 0) {
-            printf ("error in zmq_setsockoopt: %s\n", zmq_strerror (errno));
+            printf ("Error in zmq_setsockoopt: %s\n", zmq_strerror (errno));
             return -1;
         }
 
         rc = zmq_setsockopt (s, ZMQ_CURVE_PUBLICKEY, client_pubkey,
                              mem::size_of::<client_pubkey>());
         if (rc != 0) {
-            printf ("error in zmq_setsockoopt: %s\n", zmq_strerror (errno));
+            printf ("Error in zmq_setsockoopt: %s\n", zmq_strerror (errno));
             return -1;
         }
 
         rc = zmq_setsockopt (s, ZMQ_CURVE_SERVERKEY, server_pubkey,
                              mem::size_of::<server_pubkey>());
         if (rc != 0) {
-            printf ("error in zmq_setsockoopt: %s\n", zmq_strerror (errno));
+            printf ("Error in zmq_setsockoopt: %s\n", zmq_strerror (errno));
             return -1;
         }
     }
 
     rc = zmq_connect (s, connect_to);
     if (rc != 0) {
-        printf ("error in zmq_connect: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_connect: %s\n", zmq_strerror (errno));
         return -1;
     }
 
     for (i = 0; i != message_count; i+= 1) {
         rc = zmq_msg_init_size (&msg, message_size);
         if (rc != 0) {
-            printf ("error in zmq_msg_init_size: %s\n", zmq_strerror (errno));
+            printf ("Error in zmq_msg_init_size: %s\n", zmq_strerror (errno));
             return -1;
         }
         rc = zmq_sendmsg (s, &msg, 0);
         if (rc < 0) {
-            printf ("error in zmq_sendmsg: %s\n", zmq_strerror (errno));
+            printf ("Error in zmq_sendmsg: %s\n", zmq_strerror (errno));
             return -1;
         }
         rc = zmq_msg_close (&msg);
         if (rc != 0) {
-            printf ("error in zmq_msg_close: %s\n", zmq_strerror (errno));
+            printf ("Error in zmq_msg_close: %s\n", zmq_strerror (errno));
             return -1;
         }
     }
 
     rc = zmq_close (s);
     if (rc != 0) {
-        printf ("error in zmq_close: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_close: %s\n", zmq_strerror (errno));
         return -1;
     }
 
     rc = zmq_ctx_term (ctx);
     if (rc != 0) {
-        printf ("error in zmq_ctx_term: %s\n", zmq_strerror (errno));
+        printf ("Error in zmq_ctx_term: %s\n", zmq_strerror (errno));
         return -1;
     }
 

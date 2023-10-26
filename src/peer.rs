@@ -1,28 +1,28 @@
-use crate::ctx::ctx_t;
+use crate::ctx::ZmqContext;
 use crate::defines::ZMQ_PEER;
-use crate::options::options_t;
-use crate::pipe::pipe_t;
-use crate::server::server_t;
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::server::ZmqServer;
 
-pub struct peer_t<'a> {
-    pub server: server_t<'a>,
+pub struct ZmqPeer<'a> {
+    pub server: ZmqServer<'a>,
     pub _peer_last_routing_id: u32,
 }
 
-impl peer_t {
-    pub unsafe fn new(options: &mut options_t, parent_: &mut ctx_t, tid_: u32, sid_: i32) -> Self {
+impl ZmqPeer {
+    pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
         options.type_ = ZMQ_PEER;
         options.can_send_hello_msg = true;
         options.can_recv_disconnect_msg = true;
         options.can_recv_hiccup_msg = true;
 
         Self {
-            server: server_t::new(options, parent_, tid_, sid_),
+            server: ZmqServer::new(options, parent_, tid_, sid_),
             _peer_last_routing_id: 0,
         }
     }
 
-    pub unsafe fn connect_peer(&mut self, options: &mut options_t, endpoint_uri_: &str) -> u32 {
+    pub unsafe fn connect_peer(&mut self, options: &mut ZmqOptions, endpoint_uri_: &str) -> u32 {
         if options.immediate == 1 {
             return 0;
         }
@@ -35,7 +35,7 @@ impl peer_t {
         return self._peer_last_routing_id;
     }
 
-    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut pipe_t, subscribe_to_all_: bool, locally_initiated_: bool) {
+    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
         self.server.xattach_pipe(pipe_, subscribe_to_all_, locally_initiated_);
         self._peer_last_routing_id = pipe_.get_server_socket_routing_id();
     }

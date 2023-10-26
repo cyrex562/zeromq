@@ -165,7 +165,7 @@ void test_filter_with_possibly_nonexistent_pid ()
 // #else
 void test_filter_with_pid_fails ()
 {
-    // Setup of PID filter should fail with operation not supported error
+    // Setup of PID filter should fail with operation not supported Error
     // TODO EINVAL is not ENOTSUP (!)
     run_test<pid_t> (ZMQ_IPC_FILTER_PID, getpid (), EINVAL, 0);
 }

@@ -1,7 +1,7 @@
-use crate::msg::msg_t;
+use crate::msg::ZmqMsg;
 
-pub trait i_encoder {
+pub trait IEncoder {
     fn encode(&mut self, data_: *mut *mut u8, size_: usize);
 
-    fn load_msg(&mut self, msg_: *mut msg_t);
+    fn load_msg(&mut self, msg_: *mut ZmqMsg);
 }

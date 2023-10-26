@@ -46,7 +46,7 @@ SETUP_TEARDOWN_TESTCONTEXT
 
 //  Read one event off the monitor socket; return value and address
 //  by reference, if not null, and event number by value. Returns -1
-//  in case of error.
+//  in case of Error.
 
 static int get_monitor_event (monitor_: *mut c_void)
 {

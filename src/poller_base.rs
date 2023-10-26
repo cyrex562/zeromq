@@ -1,36 +1,36 @@
-#![allow(non_camel_case_types)]
+
 
 use std::collections::HashMap;
 use std::ffi::{c_char, c_void};
 use chrono::{Duration, Utc};
 use libc::clock_t;
-use crate::atomic_counter::atomic_counter_t;
-use crate::ctx::thread_ctx_t;
-use crate::i_poll_events::i_poll_events;
-use crate::thread::thread_t;
+use crate::atomic_counter::ZmqAtomicCounter;
+use crate::ctx::ZmqThreadCtx;
+use crate::i_poll_events::IPollEvents;
+use crate::thread::ZmqThread;
 
-pub struct timer_info_t
+pub struct TimerInfo
 {
-    pub sink: *mut dyn i_poll_events,
+    pub sink: *mut dyn IPollEvents,
     pub id: i32,
 }
 
-pub type timers_t = HashMap<u64, timer_info_t>;
-pub struct poller_base_t
+pub type ZmqTimers = HashMap<u64, TimerInfo>;
+pub struct ZmqPollerBase
 {
     pub _clock: Duration,
-    pub _timers: timers_t,
-    pub _load: atomic_counter_t,
+    pub _timers: ZmqTimers,
+    pub _load: ZmqAtomicCounter,
 }
 
-pub struct worker_poller_base_t<'a>
+pub struct ZmqWorkerPollerBase<'a>
 {
-    pub _poller_base: poller_base_t,
-    pub _active: bool,pub _ctx: &'a mut thread_ctx_t,
-    pub _worker: thread_t,
+    pub _poller_base: ZmqPollerBase,
+    pub _active: bool,pub _ctx: &'a mut ZmqThreadCtx,
+    pub _worker: ZmqThread,
 }
 
-impl poller_base_t {
+impl ZmqPollerBase {
     pub fn get_load(&mut self) -> i32 {
         return self._load.get();
     }
@@ -44,16 +44,16 @@ impl poller_base_t {
         }
     }
 
-    pub fn add_timer(&mut self, timeout_: i32, sink_: *mut dyn i_poll_events,id_: i32) {
+    pub fn add_timer(&mut self, timeout_: i32, sink_: *mut dyn IPollEvents, id_: i32) {
         let expiration = Utc::now() + Duration::milliseconds(timeout_ as i64);
-        let info: timer_info_t = timer_info_t {
+        let info: TimerInfo = TimerInfo {
             sink: sink_,
             id: id_,
         };
         self._timers.insert(expiration.timestamp_millis() as u64, info);
     }
 
-    pub fn cancel_timer(&mut self, sink_: *mut dyn i_poll_events, id_: i32) {
+    pub fn cancel_timer(&mut self, sink_: *mut dyn IPollEvents, id_: i32) {
         let mut to_remove: Vec<u64> = Vec::new();
         for (key, value) in &self._timers {
             if value.sink == sink_ && value.id == id_ {
@@ -90,17 +90,17 @@ impl poller_base_t {
     }
 }
 
-impl <'a> worker_poller_base_t <'a> {
-    pub fn new(ctx_: &mut thread_ctx_t) -> Self {
+impl <'a> ZmqWorkerPollerBase<'a> {
+    pub fn new(ctx_: &mut ZmqThreadCtx) -> Self {
         Self {
-            _poller_base: poller_base_t {
+            _poller_base: ZmqPollerBase {
                 _clock: Duration::milliseconds(0),
-                _timers: timers_t::new(),
-                _load: atomic_counter_t::new(0),
+                _timers: ZmqTimers::new(),
+                _load: ZmqAtomicCounter::new(0),
             },
             _active: false,
             _ctx: ctx_,
-            _worker: thread_t::new(),
+            _worker: ZmqThread::new(),
         }
     }
 
@@ -120,7 +120,7 @@ impl <'a> worker_poller_base_t <'a> {
 
     pub fn worker_routine(arg_: *mut c_void)
     {
-        let worker: &mut worker_poller_base_t = unsafe { &mut *(arg_ as *mut worker_poller_base_t) };
+        let worker: &mut ZmqWorkerPollerBase = unsafe { &mut *(arg_ as *mut ZmqWorkerPollerBase) };
         worker.loop_();
     }
 }

@@ -1,42 +1,42 @@
 use std::cmp;
 use std::collections::{HashMap, HashSet};
-use crate::clock::clock_t;
+use crate::clock::ZmqClock;
 
-pub type timers_timer_fn = fn(i32, &mut [u8]);
+pub type TimersTimerFn = fn(i32, &mut [u8]);
 
-pub struct timer_t<'a> {
+pub struct Timer<'a> {
     pub timer_id: i32,
     pub interval: usize,
-    pub handler: timers_timer_fn,
+    pub handler: TimersTimerFn,
     pub arg: &'a mut [u8],
 }
 
-pub type timersmap_t<'a> = HashMap<u64, timer_t<'a>>;
+pub type TimersMap<'a> = HashMap<u64, Timer<'a>>;
 
-pub type cancelled_timers_t = HashSet<i32>;
+pub type CancelledTimers = HashSet<i32>;
 
-pub struct match_by_id_t {
+pub struct MatchById {
     pub _timer_id: i32,
 }
 
-pub struct timers_t<'a> {
+pub struct Timers<'a> {
     pub _tag: u32;
     pub _next_timer_id: i32,
-    pub _clock: clock_t,
-    pub _timers: timersmap_t<'a>,
-    pub _cancelled_timers: cancelled_timers_t,
-    pub match_by_id: match_by_id_t,
+    pub _clock: ZmqClock,
+    pub _timers: TimersMap<'a>,
+    pub _cancelled_timers: CancelledTimers,
+    pub match_by_id: MatchById,
 }
 
-impl timers_t {
-    pub fn new() -> timers_t<'static> {
-        timers_t {
+impl Timers {
+    pub fn new() -> Timers<'static> {
+        Timers {
             _tag: 0,
             _next_timer_id: 0,
-            _clock: clock_t::new(),
+            _clock: ZmqClock::new(),
             _timers: HashMap::new(),
             _cancelled_timers: HashSet::new(),
-            match_by_id: match_by_id_t { _timer_id: 0 },
+            match_by_id: MatchById { _timer_id: 0 },
         }
     }
 
@@ -44,7 +44,7 @@ impl timers_t {
         self._tag == 0xCAFEDADA
     }
 
-    pub unsafe fn add(&mut self, interval_: i32, handler_: timers_timer_fn, arg_: &mut [u8]) -> i32 {
+    pub unsafe fn add(&mut self, interval_: i32, handler_: TimersTimerFn, arg_: &mut [u8]) -> i32 {
         // if (handler_ == NULL) {
         //     errno = EFAULT;
         //     return -1;
@@ -52,7 +52,7 @@ impl timers_t {
 
         let when = self._clock.now_ms() + interval_;
         self._next_timer_id += 1;
-        let timer = timer_t { timer_id: self._next_timer_id, interval: interval_ as usize, handler: handler_, arg: arg_ };
+        let timer = Timer { timer_id: self._next_timer_id, interval: interval_ as usize, handler: handler_, arg: arg_ };
         self._timers.insert(when, timer);
 
         return timer.timer_id.clone();
