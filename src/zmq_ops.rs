@@ -1,8 +1,9 @@
 use std::intrinsics::size_of;
 use std::os::raw::c_void;
 
-use libc::{EINTR, iovec, MSG_MORE, timespec, timeval};
+use libc::{EINTR, iovec, timespec, timeval};
 use windows::Win32::Networking::WinSock::{POLLIN, POLLOUT, POLLPRI};
+use windows::Win32::System::Threading::{INFINITE, Sleep};
 
 use crate::clock::ZmqClock;
 use crate::ctx::ZmqContext;
@@ -10,7 +11,7 @@ use crate::defines::{ZMQ_EVENTS, ZMQ_FD, ZMQ_IO_THREADS, ZMQ_MORE, ZMQ_PAIR, ZMQ
 use crate::err::ZmqError;
 use crate::err::ZmqError::{InvalidContext, SocketError};
 use crate::ip::{initialize_network, shutdown_network};
-use crate::msg::MSG_SHARED;
+use crate::msg::{MSG_MORE, MSG_SHARED};
 use crate::options::ZmqOptions;
 use crate::poller_event::ZmqPollerEvent;
 use crate::polling_util::{OptimizedFdSet, valid_pollset_bytes};
@@ -266,7 +267,7 @@ pub unsafe fn zmq_setsockopt(options: &mut ZmqOptions, sock: &mut ZmqSocketBase,
 }
 
 // int zmq_getsockopt (void *s_, int option_, void *optval_, size_t *optvallen_)
-pub unsafe fn zmq_getosckopt(sock: &mut ZmqSocketBase, option_: i32) -> Result<[u8], ZmqError> {
+pub unsafe fn zmq_getsockopt(sock: &mut ZmqSocketBase, option_: i32) -> Result<[u8], ZmqError> {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
     //     return -1;
@@ -445,6 +446,7 @@ pub unsafe fn zmq_send_const(sock: &mut ZmqSocketBase, in_buf: &[u8], in_buf_len
 }
 
 // int zmq_sendiov (void *s_, iovec *a_, size_t count_, int flags_)
+#[cfg(not(target_os = "windows"))]
 pub unsafe fn zmq_sendiov(sock: &mut ZmqSocketBase, in_iovecs: &[iovec], count: usize, mut flags: i32) -> Result<usize, ZmqError> {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
@@ -495,7 +497,7 @@ pub unsafe fn s_recvmsg(s_: &mut ZmqSocketBase, msg: &mut ZmqRawMsg, flags_: i32
 }
 
 // int zmq_recvmsg (void *s_, zmq_msg_t *msg, int flags_)
-pub unsafe fn zmq_recvmsg(s_: &mut ZmqSocketBase, msg: &mut ZmqRawMsg, flags_: i32) -> Result<usize,ZmqError> {
+pub unsafe fn zmq_recvmsg(s_: &mut ZmqSocketBase, msg: &mut ZmqRawMsg, flags_: i32) -> Result<usize, ZmqError> {
     return zmq_msg_recv(msg, s_, flags_);
 }
 
@@ -534,6 +536,7 @@ pub unsafe fn zmq_recv(s_: &mut ZmqSocketBase, buf_: &mut [u8], len_: usize, fla
 }
 
 // int zmq_recviov (void *s_, iovec *a_, size_t *count_, int flags_)
+#[cfg(not(target_os = "windows"))]
 pub unsafe fn zmq_recviov(sock: &mut ZmqSocketBase, out_iovecs: &mut Vec<iovec>, iovec_count: &mut usize, flags_: i32) -> Result<usize, ZmqError> {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
@@ -631,7 +634,7 @@ pub unsafe fn zmq_msg_send(msg: &mut ZmqRawMsg, s_: &mut ZmqSocketBase, flags_: 
 }
 
 // int zmq_msg_recv (zmq_msg_t *msg, void *s_, int flags_)
-pub unsafe fn zmq_msg_recv(msg: &mut ZmqRawMsg, s_: &mut ZmqSocketBase, flags_: i32) -> Result<usize,ZmqError> {
+pub unsafe fn zmq_msg_recv(msg: &mut ZmqRawMsg, s_: &mut ZmqSocketBase, flags_: i32) -> Result<usize, ZmqError> {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
     //     return -1;
@@ -666,25 +669,24 @@ pub unsafe fn zmq_msg_size(msg: &mut ZmqRawMsg) -> usize {
     return (msg).size();
 }
 
-pub unsafe fn zmq_msg_more(msg: &mut ZmqRawMsg) -> Result<i32,ZmqError> {
+pub unsafe fn zmq_msg_more(msg: &mut ZmqRawMsg) -> Result<i32, ZmqError> {
     return zmq_msg_get(msg, ZMQ_MORE);
 }
 
 // int zmq_msg_get (const zmq_msg_t *msg, int property_)
-pub unsafe fn zmq_msg_get(msg: &ZmqRawMsg, property_: i32) -> Result<i32,ZmqError> {
+pub unsafe fn zmq_msg_get(msg: &ZmqRawMsg, property_: i32) -> Result<i32, ZmqError> {
     match property_ {
         ZMQ_MORE => {
             // return (((zmq::msg_t *)
             // msg) -> flags() & zmq::msg_t::more) ? 1: 0;
-            return if msg.flags() & MSG_MORE != 0 { Ok(1) } else { Ok(0) }
+            return if msg.flags() & MSG_MORE != 0 { Ok(1) } else { Ok(0) };
         }
         ZMQ_SRCFD => {
             let fd_string = zmq_msg_gets(msg, "__fd");
             // if (fd_string == NULL)
             // return -1;
             // return atoi(fd_string);
-            match i32::from_str_radix(fd_string, 10)
-            {
+            match i32::from_str_radix(fd_string, 10) {
                 Ok(fd) => return Ok(fd),
                 Err(e) => return Err(ZmqError::ParseIntError(e))
             };
@@ -694,8 +696,7 @@ pub unsafe fn zmq_msg_get(msg: &ZmqRawMsg, property_: i32) -> Result<i32,ZmqErro
             // msg) -> is_cmsg())
             // || (((zmq::msg_t *)
             // msg) -> flags() & zmq::msg_t::shared) ? 1: 0;
-            return if msg.is_cmsg() || msg.flags() & MSG_SHARED != 0
-            { Ok(1) } else { Ok(0) }
+            return if msg.is_cmsg() || msg.flags() & MSG_SHARED != 0 { Ok(1) } else { Ok(0) };
         }
         _ => {
             // errno = EINVAL;
@@ -736,7 +737,7 @@ pub unsafe fn zmq_msg_gets(msg: &ZmqRawMsg, property_: &str) -> &'static str {
 pub unsafe fn zmq_poller_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> Result<usize, ZmqError> {
     // implement zmq_poll on top of zmq_poller
     // int rc;
-    let mut rc = 0i32;
+    let mut rc = 0;
     // zmq_poller_event_t *events;
     let mut events: [ZmqPollerEvent; 1024] = [ZmqPollerEvent::default(); 1024];
     // zmq::socket_poller_t poller;
@@ -767,7 +768,7 @@ pub unsafe fn zmq_poller_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i3
             if (modify) {
                 zmq_poller_modify(&poller, items_[i].socket, e)?;
             } else {
-                zmq_poller_add(&poller, items_[i].socket, &mut [0u8;1], e)?;
+                zmq_poller_add(&poller, items_[i].socket, &mut [0u8; 1], e)?;
             }
             // if rc < 0 {
             //     // delete[] events;
@@ -787,7 +788,7 @@ pub unsafe fn zmq_poller_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i3
             if (modify) {
                 zmq_poller_modify_fd(&poller, items_[i].fd, e)?;
             } else {
-                zmq_poller_add_fd(&poller, items_[i].fd, &mut [0u8;1], e)?;
+                zmq_poller_add_fd(&poller, items_[i].fd, &mut [0u8; 1], e)?;
             }
             // if (rc < 0) {
             //     // delete[] events;
@@ -845,7 +846,7 @@ pub unsafe fn zmq_poller_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i3
 
 
 // int zmq_poll (zmq_pollitem_t *items_, int nitems_, long timeout_)
-pub unsafe fn zmq_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> Result<usize,ZmqError> {
+pub unsafe fn zmq_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> Result<usize, ZmqError> {
 // #if defined ZMQ_HAVE_POLLER
     // if poller is present, use that if there is at least 1 thread-safe socket,
     // otherwise fall back to the previous implementation as it's faster.
@@ -876,8 +877,8 @@ pub unsafe fn zmq_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> R
 // #if defined ZMQ_HAVE_WINDOWS
         #[cfg(target_os = "windows")]
         {
-            Sleep(timeout_ > 0? timeout_: INFINITE);
-            return 0;
+            Sleep(if timeout_ > 0 { timeout_ } else { INFINITE } as u32);
+            return Ok(0);
         }
 // #elif defined ZMQ_HAVE_VXWORKS
 //         struct timespec ns_;
@@ -902,233 +903,240 @@ pub unsafe fn zmq_poll(items_: &[ZmqPollitem], nitems_: i32, timeout_: i32) -> R
     let mut end = 0u64;
 // #if defined ZMQ_POLL_BASED_ON_POLL
 //     zmq::fast_vector_t<pollfd, ZMQ_POLLITEMS_DFLT> pollfds (nitems_);
-    let pollfds = Vec < pollfd > ::new();
+    #[cfg(feature = "poll")]{
+        let pollfds: Vec<pollfd> = vec![];
 
-    //  Build pollset for poll () system call.
-    // for (int i = 0; i != nitems_; i++)
-    for i in 0..nitems_ {
-        //  If the poll item is a 0MQ socket, we poll on the file descriptor
-        //  retrieved by the ZMQ_FD socket option.
-        if (items_[i].socket) {
-            let zmq_fd_size = size_of::<fd_t>();
-            if (zmq_getsockopt(items_[i].socket, ZMQ_FD, &pollfds[i].fd,
-                               &zmq_fd_size) == -1) {
-                return -1;
+        //  Build pollset for poll () system call.
+        // for (int i = 0; i != nitems_; i++)
+        for i in 0..nitems_ {
+            //  If the poll item is a 0MQ socket, we poll on the file descriptor
+            //  retrieved by the ZMQ_FD socket option.
+            if (items_[i].socket) {
+                let zmq_fd_size = size_of::<fd_t>();
+                if zmq_getsockopt(items_[i].socket, ZMQ_FD, &pollfds[i].fd,
+                                  &zmq_fd_size) == -1 {
+                    return -1;
+                }
+                pollfds[i].events = if items_[i].events { POLLIN } else { 0 };
             }
-            pollfds[i].events = if items_[i].events { POLLIN } else { 0 };
-        }
-        //  Else, the poll item is a raw file descriptor. Just convert the
-        //  events to normal POLLIN/POLLOUT for poll ().
-        else {
-            pollfds[i].fd = items_[i].fd;
-            pollfds[i].events = (if items_[i].events & ZMQ_POLLIN { POLLIN } else { 0 }) | (if items_[i].events & ZMQ_POLLOUT { POLLOUT } else { 0 }) | (if items_[i].events & ZMQ_POLLPRI { POLLPRI } else { 0 });
+            //  Else, the poll item is a raw file descriptor. Just convert the
+            //  events to normal POLLIN/POLLOUT for poll ().
+            else {
+                pollfds[i].fd = items_[i].fd;
+                pollfds[i].events = (if items_[i].events & ZMQ_POLLIN { POLLIN } else { 0 }) | (if items_[i].events & ZMQ_POLLOUT { POLLOUT } else { 0 }) | (if items_[i].events & ZMQ_POLLPRI { POLLPRI } else { 0 });
+            }
         }
     }
-// #else
-    //  Ensure we do not attempt to select () on more than FD_SETSIZE
-    //  file descriptors.
-    //  TODO since this function is called by a client, we could return errno EINVAL/ENOMEM/... here
-    // zmq_assert (nitems_ <= FD_SETSIZE);
+// #else # [cfg(not(feature = "poll"))
+    {
+        //  Ensure we do not attempt to select () on more than FD_SETSIZE
+        //  file descriptors.
+        //  TODO since this function is called by a client, we could return errno EINVAL/ENOMEM/... here
+        // zmq_assert (nitems_ <= FD_SETSIZE);
 
-    // zmq::optimized_fd_set_t pollset_in (nitems_);
-    let pollset_in = OptimizedFdSet::new(nitems_);
-    // FD_ZERO (pollset_in.get ());
-    FD_ZERO(pollset_in.get())
-    let pollset_out = OptimizedFdSet::new(nitems_);
-    FD_ZERO(pollset_out.get());
-    let pollset_err = OptimizedFdSet::new(nitems_);
-    FD_ZERO(pollset_err.get());
+        // zmq::optimized_fd_set_t pollset_in (nitems_);
+        let pollset_in = OptimizedFdSet::new(nitems_);
+        // FD_ZERO (pollset_in.get ());
+        FD_ZERO(pollset_in.get())
+        let pollset_out = OptimizedFdSet::new(nitems_);
+        FD_ZERO(pollset_out.get());
+        let pollset_err = OptimizedFdSet::new(nitems_);
+        FD_ZERO(pollset_err.get());
 
-    let maxfd: fd_t = 0;
+        let maxfd: fd_t = 0;
 
-    //  Build the fd_sets for passing to select ().
-    // for (int i = 0; i != nitems_; i++)
-    for i in 0..nitems_ {
-        //  If the poll item is a 0MQ socket we are interested in input on the
-        //  notification file descriptor retrieved by the ZMQ_FD socket option.
-        if (items_[i].socket) {
-            let zmq_fd_size = size_of::<fd_t>();
-            let mut notify_fd: fd_t = 0;
-            if (zmq_getsockopt(items_[i].socket, ZMQ_FD, &notify_fd,
-                               &zmq_fd_size) == -1) {
-                return -1;
+        //  Build the fd_sets for passing to select ().
+        // for (int i = 0; i != nitems_; i++)
+        for i in 0..nitems_ {
+            //  If the poll item is a 0MQ socket we are interested in input on the
+            //  notification file descriptor retrieved by the ZMQ_FD socket option.
+            if (items_[i].socket) {
+                let zmq_fd_size = size_of::<fd_t>();
+                let mut notify_fd: fd_t = 0;
+                if (zmq_getsockopt(items_[i].socket, ZMQ_FD, &notify_fd,
+                                   &zmq_fd_size) == -1) {
+                    return -1;
+                }
+                if (items_[i].events) {
+                    FD_SET(notify_fd, pollset_in.get());
+                    if (maxfd < notify_fd) {
+                        maxfd = notify_fd;
+                    }
+                }
             }
-            if (items_[i].events) {
-                FD_SET(notify_fd, pollset_in.get());
-                if (maxfd < notify_fd) {
-                    maxfd = notify_fd;
+            //  Else, the poll item is a raw file descriptor. Convert the poll item
+            //  events to the appropriate fd_sets.
+            else {
+                if (items_[i].events & ZMQ_POLLIN) {
+                    FD_SET(items_[i].fd, pollset_in.get());
+                }
+                if (items_[i].events & ZMQ_POLLOUT) {
+                    FD_SET(items_[i].fd, pollset_out.get());
+                }
+                if (items_[i].events & ZMQ_POLLERR) {
+                    FD_SET(items_[i].fd, pollset_err.get());
+                }
+                if (maxfd < items_[i].fd) {
+                    maxfd = items_[i].fd;
                 }
             }
         }
-        //  Else, the poll item is a raw file descriptor. Convert the poll item
-        //  events to the appropriate fd_sets.
-        else {
-            if (items_[i].events & ZMQ_POLLIN) {
-                FD_SET(items_[i].fd, pollset_in.get());
-            }
-            if (items_[i].events & ZMQ_POLLOUT) {
-                FD_SET(items_[i].fd, pollset_out.get());
-            }
-            if (items_[i].events & ZMQ_POLLERR) {
-                FD_SET(items_[i].fd, pollset_err.get());
-            }
-            if (maxfd < items_[i].fd) {
-                maxfd = items_[i].fd;
-            }
-        }
-    }
 
-    let mut inset = OptimizedFdSet::new(nitems_);
-    let mut outset = OptimizedFdSet::new(nitems_);
-    let mut errset = optimized_fd_set_t::new(nitems_);
+        let mut inset = OptimizedFdSet::new(nitems_);
+        let mut outset = OptimizedFdSet::new(nitems_);
+        let mut errset = optimized_fd_set_t::new(nitems_);
+    }
 // #endif
 
     let mut first_pass = true;
     let mut nevents = 0i32;
 
     loop {
+        #[cfg(feature = "poll")]
+        {
 // #if defined ZMQ_POLL_BASED_ON_POLL
 
-        //  Compute the timeout for the subsequent poll.
-        let timeout = compute_timeout(first_pass, timeout_, now, end);
+            //  Compute the timeout for the subsequent poll.
+            let timeout = compute_timeout(first_pass, timeout_, now, end);
 
-        //  Wait for events.
-        {
-            let rc = poll(&pollfds[0], nitems_, timeout);
-            if (rc == -1 && errno == EINTR) {
-                return -1;
-            }
-            // errno_assert (rc >= 0);
-        }
-        //  Check for the events.
-        // for (int i = 0; i != nitems_; i++)
-        for i in 0..nitems_ {
-            items_[i].revents = 0;
-
-            //  The poll item is a 0MQ socket. Retrieve pending events
-            //  using the ZMQ_EVENTS socket option.
-            if (items_[i].socket) {
-                let mut zmq_events_size = 4;
-                let mut zmq_events: u32 = 0;
-                if (zmq_getsockopt(items_[i].socket, ZMQ_EVENTS, &zmq_events,
-                                   &zmq_events_size) == -1) {
-                    return -1;
-                }
-                if ((items_[i].events & ZMQ_POLLOUT) && (zmq_events & ZMQ_POLLOUT)) {
-                    items_[i].revents |= ZMQ_POLLOUT;
-                }
-                if ((items_[i].events & ZMQ_POLLIN) && (zmq_events & ZMQ_POLLIN)) {
-                    items_[i].revents |= ZMQ_POLLIN;
-                }
-            }
-            //  Else, the poll item is a raw file descriptor, simply convert
-            //  the events to zmq_pollitem_t-style format.
-            else {
-                if (pollfds[i].revents & POLLIN) {
-                    items_[i].revents |= ZMQ_POLLIN;
-                }
-                if (pollfds[i].revents & POLLOUT) {
-                    items_[i].revents |= ZMQ_POLLOUT;
-                }
-                if (pollfds[i].revents & POLLPRI) {
-                    items_[i].revents |= ZMQ_POLLPRI;
-                }
-                if (pollfds[i].revents & ~(POLLIN | POLLOUT | POLLPRI)){
-                    items_[i].revents |= ZMQ_POLLERR;
-                }
-            }
-
-            if (items_[i].revents) {
-                nevents += 1;
-            }
-        }
-
-// #else
-
-        //  Compute the timeout for the subsequent poll.
-        let mut timeout = timeval { tv_sec: 0, tv_usec: 0 };
-        let mut ptimeout: &timeval = &timeout;
-        if (first_pass) {
-            timeout.tv_sec = 0;
-            timeout.tv_usec = 0;
-            ptimeout = &timeout;
-        } else if (timeout_ < 0) {
-            ptimeout = null_mut();
-        } else {
-            timeout.tv_sec = ((end - now) / 1000);
-            timeout.tv_usec = ((end - now) % 1000 * 1000);
-            ptimeout = &timeout;
-        }
-
-        //  Wait for events. Ignore interrupts if there's infinite timeout.
-        loop {
-            libc::memcpy(inset.get(), pollset_in.get(),
-                         valid_pollset_bytes(*pollset_in.get()));
-            libc::memcpy(outset.get(), pollset_out.get(),
-                         valid_pollset_bytes(*pollset_out.get()));
-            libc::memcpy(errset.get(), pollset_err.get(),
-                         valid_pollset_bytes(*pollset_err.get()));
-// #if defined ZMQ_HAVE_WINDOWS
-            #[cfg(target_os = "windows")]
+            //  Wait for events.
             {
-                int
-                rc = select(0, inset.get(), outset.get(), errset.get(), ptimeout);
-                if (unlikely(rc == SOCKET_ERROR)) {
-                    errno = zmq::wsa_error_to_errno(WSAGetLastError());
-                    wsa_assert(errno == ENOTSOCK);
+                let rc = poll(&pollfds[0], nitems_, timeout);
+                if (rc == -1 && errno == EINTR) {
                     return -1;
                 }
+                // errno_assert (rc >= 0);
             }
-// #else
-            #[cfg(not(target_os = "windows"))]{
-                let rc = select(maxfd + 1, inset.get(), outset.get(),
-                                errset.get(), ptimeout);
-                if (unlikely(rc == -1)) {
-                    errno_assert(errno == EINTR || errno == EBADF);
-                    return -1;
+            //  Check for the events.
+            // for (int i = 0; i != nitems_; i++)
+            for i in 0..nitems_ {
+                items_[i].revents = 0;
+
+                //  The poll item is a 0MQ socket. Retrieve pending events
+                //  using the ZMQ_EVENTS socket option.
+                if (items_[i].socket) {
+                    let mut zmq_events_size = 4;
+                    let mut zmq_events: u32 = 0;
+                    if (zmq_getsockopt(items_[i].socket, ZMQ_EVENTS, &zmq_events,
+                                       &zmq_events_size) == -1) {
+                        return -1;
+                    }
+                    if ((items_[i].events & ZMQ_POLLOUT) && (zmq_events & ZMQ_POLLOUT)) {
+                        items_[i].revents |= ZMQ_POLLOUT;
+                    }
+                    if ((items_[i].events & ZMQ_POLLIN) && (zmq_events & ZMQ_POLLIN)) {
+                        items_[i].revents |= ZMQ_POLLIN;
+                    }
+                }
+                //  Else, the poll item is a raw file descriptor, simply convert
+                //  the events to zmq_pollitem_t-style format.
+                else {
+                    if (pollfds[i].revents & POLLIN) {
+                        items_[i].revents |= ZMQ_POLLIN;
+                    }
+                    if (pollfds[i].revents & POLLOUT) {
+                        items_[i].revents |= ZMQ_POLLOUT;
+                    }
+                    if (pollfds[i].revents & POLLPRI) {
+                        items_[i].revents |= ZMQ_POLLPRI;
+                    }
+                    if (pollfds[i].revents & ~(POLLIN | POLLOUT | POLLPRI)){
+                        items_[i].revents |= ZMQ_POLLERR;
+                    }
+                }
+
+                if (items_[i].revents) {
+                    nevents += 1;
                 }
             }
-// #endif
-            break;
         }
-
-        //  Check for the events.
-        // for (int i = 0; i != nitems_; i++)
-        for i in 0..nitems_ {
-            items_[i].revents = 0;
-
-            //  The poll item is a 0MQ socket. Retrieve pending events
-            //  using the ZMQ_EVENTS socket option.
-            if (items_[i].socket) {
-                let zmq_events_size = 4;
-                let mut zmq_events = 0u32;
-                if (zmq_getsockopt(items_[i].socket, ZMQ_EVENTS, &zmq_events,
-                                   &zmq_events_size) == -1) {
-                    return -1;
-                }
-                if ((items_[i].events & ZMQ_POLLOUT) && (zmq_events & ZMQ_POLLOUT)) {
-                    items_[i].revents |= ZMQ_POLLOUT;
-                }
-                if ((items_[i].events & ZMQ_POLLIN) && (zmq_events & ZMQ_POLLIN)) {
-                    items_[i].revents |= ZMQ_POLLIN;
-                }
-            }
-            //  Else, the poll item is a raw file descriptor, simply convert
-            //  the events to zmq_pollitem_t-style format.
-            else {
-                if (FD_ISSET(items_[i].fd, inset.get())) {
-                    items_[i].revents |= ZMQ_POLLIN;
-                }
-                if (FD_ISSET(items_[i].fd, outset.get())) {
-                    items_[i].revents |= ZMQ_POLLOUT;
-                }
-                if (FD_ISSET(items_[i].fd, errset.get())) {
-                    items_[i].revents |= ZMQ_POLLERR;
-                }
+// #else
+        #[cfg(not(feature = "poll"))]{
+            //  Compute the timeout for the subsequent poll.
+            let mut timeout = timeval { tv_sec: 0, tv_usec: 0 };
+            let mut ptimeout: &timeval = &timeout;
+            if (first_pass) {
+                timeout.tv_sec = 0;
+                timeout.tv_usec = 0;
+                ptimeout = &timeout;
+            } else if (timeout_ < 0) {
+                ptimeout = null_mut();
+            } else {
+                timeout.tv_sec = ((end - now) / 1000);
+                timeout.tv_usec = ((end - now) % 1000 * 1000);
+                ptimeout = &timeout;
             }
 
-            if (items_[i].revents) {
-                nevents + +;
+            //  Wait for events. Ignore interrupts if there's infinite timeout.
+            loop {
+                libc::memcpy(inset.get(), pollset_in.get(),
+                             valid_pollset_bytes(*pollset_in.get()));
+                libc::memcpy(outset.get(), pollset_out.get(),
+                             valid_pollset_bytes(*pollset_out.get()));
+                libc::memcpy(errset.get(), pollset_err.get(),
+                             valid_pollset_bytes(*pollset_err.get()));
+// #if defined ZMQ_HAVE_WINDOWS
+                #[cfg(target_os = "windows")]
+                {
+                    int
+                    rc = select(0, inset.get(), outset.get(), errset.get(), ptimeout);
+                    if (unlikely(rc == SOCKET_ERROR)) {
+                        errno = zmq::wsa_error_to_errno(WSAGetLastError());
+                        wsa_assert(errno == ENOTSOCK);
+                        return -1;
+                    }
+                }
+// #else
+                #[cfg(not(target_os = "windows"))]{
+                    let rc = select(maxfd + 1, inset.get(), outset.get(),
+                                    errset.get(), ptimeout);
+                    if (unlikely(rc == -1)) {
+                        errno_assert(errno == EINTR || errno == EBADF);
+                        return -1;
+                    }
+                }
+// #endif
+                break;
+            }
+
+            //  Check for the events.
+            // for (int i = 0; i != nitems_; i++)
+            for i in 0..nitems_ {
+                items_[i].revents = 0;
+
+                //  The poll item is a 0MQ socket. Retrieve pending events
+                //  using the ZMQ_EVENTS socket option.
+                if (items_[i].socket) {
+                    let zmq_events_size = 4;
+                    let mut zmq_events = 0u32;
+                    if (zmq_getsockopt(items_[i].socket, ZMQ_EVENTS, &zmq_events,
+                                       &zmq_events_size) == -1) {
+                        return -1;
+                    }
+                    if ((items_[i].events & ZMQ_POLLOUT) && (zmq_events & ZMQ_POLLOUT)) {
+                        items_[i].revents |= ZMQ_POLLOUT;
+                    }
+                    if ((items_[i].events & ZMQ_POLLIN) && (zmq_events & ZMQ_POLLIN)) {
+                        items_[i].revents |= ZMQ_POLLIN;
+                    }
+                }
+                //  Else, the poll item is a raw file descriptor, simply convert
+                //  the events to zmq_pollitem_t-style format.
+                else {
+                    if (FD_ISSET(items_[i].fd, inset.get())) {
+                        items_[i].revents |= ZMQ_POLLIN;
+                    }
+                    if (FD_ISSET(items_[i].fd, outset.get())) {
+                        items_[i].revents |= ZMQ_POLLOUT;
+                    }
+                    if (FD_ISSET(items_[i].fd, errset.get())) {
+                        items_[i].revents |= ZMQ_POLLERR;
+                    }
+                }
+
+                if (items_[i].revents) {
+                    nevents + +;
+                }
             }
         }
 // #endif
