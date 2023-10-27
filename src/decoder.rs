@@ -1,94 +1,111 @@
-
-
-use std::ffi::c_void;
-use std::ptr::null_mut;
 use libc::size_t;
-use crate::i_decoder::IDecoder;
+use crate::err::ZmqError;
 use crate::msg::ZmqMsg;
-use crate::decoder_allocators::{ZmqAllocator, ZmqCSingleAllocator};
+use crate::raw_decoder::raw_decode;
+
 
 pub type StepFn = fn(&mut [u8]) -> i32;
 
-pub struct ZmqDecoderBase<T, A: ZmqAllocator> {
-    pub _next: Option<StepFn>,
-    pub _read_pos: usize,
-    pub _to_read: usize,
-    pub _allocator: A,
-    pub _buf: Vec<u8>,
-
+pub enum DecoderType {
+    ZmqRawDecoder,
 }
 
-impl <T, A: ZmqAllocator> ZmqDecoderBase<T, A> {
-    pub fn new(buf_size_: usize) -> Self {
+pub struct ZmqDecoderBase {
+    pub next: Option<StepFn>,
+    pub read_pos: usize,
+    pub to_read: usize,
+    // pub allocator: A,
+    pub buf: Vec<u8>,
+    pub _in_progress: ZmqMsg,
+    pub decoder_type: DecoderType,
+}
+
+impl ZmqDecoderBase {
+    pub fn new(buf_size_: usize, decoder_type: DecoderType) -> Self {
         let mut out = Self {
-            _next: None,
-            _read_pos: null_mut(),
-            _to_read: 0,
-            _allocator: A::new(buf_size_),
-            _buf: null_mut(),
+            next: None,
+            read_pos: 0,
+            to_read: 0,
+            // allocator: A::new(buf_size_),
+            buf: Vec::with_capacity(buf_size_),
+            _in_progress: ZmqMsg::default(),
+            decoder_type: decoder_type,
         };
-        out._buf = out._allocator.allocate();
+        // out.buf = out.allocator.allocate();
         out
     }
 
     pub fn next_step(&mut self, read_pos_: usize, to_read_: usize, next_: StepFn) {
-        self._read_pos = read_pos_;
-        self._to_read = to_read_;
-        self._next = Some(next_);
+        self.read_pos = read_pos_;
+        self.to_read = to_read_;
+        self.next = Some(next_);
     }
 
-    pub fn get_allocator(&mut self) -> &mut A {
-        &mut self._allocator
-    }
-}
+    // pub fn get_allocator(&mut self) -> &mut A {
+    //     &mut self.allocator
+    // }
 
-impl<T,A: ZmqAllocator> IDecoder for ZmqDecoderBase<T, A> {
-    unsafe fn get_buffer(&mut self) -> Vec<u8>
-    {
-        // self._buf = self._allocator.allocate();
-        self._buf = vec![];
-        if self._to_read >= self._allocator.size() {
-            *data_ = self._read_pos;
-            *size_ = self._to_read;
-            return;
-        }
-        *data_ = self._buf;
-        *size_ = self._allocator.size();
-    }
-
-    unsafe fn resize_buffer(&mut self, size_: usize) {
-        self._allocator.resize(size_);
+    pub unsafe fn get_buffer(&mut self) -> &Vec<u8> {
+        // // self._buf = self._allocator.allocate();
+        // self.buf = vec![];
+        // // if self.to_read >= self.allocator.size()
+        // if self.to_read >= self.buf.len()
+        // {
+        //     *data_ = self.read_pos;
+        //     *size_ = self.to_read;
+        //     return;
+        // }
+        // *data_ = self.buf;
+        // *size_ = self.buf.len();
+        self.buf.as_ref()
     }
 
-    unsafe fn decode(&mut self, data_: *mut u8, size_: usize, bytes_used: &mut size_t) -> i32 {
+    pub unsafe fn resize_buffer(&mut self, size_: usize) {
+        // self.allocator.resize(size_);
+        self.buf.resize(size_, 0);
+    }
+
+    pub unsafe fn decode(&mut self, data_: &mut [u8], size_: usize, bytes_used: &mut size_t) -> Result<(), ZmqError> {
         *bytes_used = 0;
-        if data_ == self._read_pos {
-            self._read_pos = self._read_pos.add(size_);
-            self._to_read-=size_;
+        if data_ == self.read_pos {
+            self.read_pos = self.read_pos + size_;
+            self.to_read -= size_;
             *bytes_used = size_;
 
-            while self._to_read == 0 {
-               let rc = self._next.unwrap()(data_.add(*bytes_used));
-                if rc != 0 {return rc;}
+            while self.to_read == 0 {
+                let rc = self.next.unwrap()(data_.add(*bytes_used));
+                if rc != 0 { return rc; }
             }
-            return 0;
+            return Ok(());
         }
 
         while *bytes_used < size_ {
-            let to_copy = std::cmp::min(self._to_read, size_ - *bytes_used);
-            unsafe {
-                std::ptr::copy_nonoverlapping(data_.add(*bytes_used), self._read_pos, to_copy);
-            }
-            self._read_pos = self._read_pos.add(to_copy);
-            self._to_read -= to_copy;
+            let to_copy = std::cmp::min(self.to_read, size_ - *bytes_used);
+            // unsafe {
+            //     std::ptr::copy_nonoverlapping(data_.add(*bytes_used), self.read_pos, to_copy);
+            // }
+
+            self.read_pos = self.read_pos + to_copy;
+            self.to_read -= to_copy;
             *bytes_used = *bytes_used + to_copy;
-            if self._to_read == 0 {
-                let rc = self._next.unwrap()(data_.add(*bytes_used));
-                if rc != 0 {return rc;}
+            if self.to_read == 0 {
+                let rc = self.next.unwrap()(data_.add(*bytes_used));
+                if rc != 0 { return rc; }
             }
         }
 
-        return 0;
+        // TODO: call decoder-specific decoder functions here based on set decoder type
+        match self.decoder_type {
+            DecoderType::ZmqRawDecoder => {
+                return match raw_decode(self, data_, bytes_used) {
+                    Ok(_) => { Ok(()) }
+                    Err(e) => { Err(e) }
+                };
+            }
+            _ => {}
+        }
+
+        Ok(())
     }
 
     fn msg(&mut self) -> &mut ZmqMsg {

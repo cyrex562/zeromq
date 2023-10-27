@@ -1,11 +1,11 @@
 use std::ptr::null_mut;
 use crate::mutex::ZmqMutex;
 
-pub struct ZmqDbuffer<T: Copy + Default>
+pub struct ZmqDbuffer<'a, T: Copy + Default>
 {
     pub _storage: [T;2],
-    pub _back: usize,
-    pub _front: usize,
+    pub _back: &'a mut T,
+    pub _front: &'a mut T,
     pub _sync: ZmqMutex,
     pub _has_msg: bool,
 }
@@ -15,8 +15,8 @@ impl <T: Copy + Default> ZmqDbuffer<T>{
     {
         let mut out = Self {
             _storage: [T::default();2],
-            _back: null_mut(),
-            _front: null_mut(),
+            _back: &mut T::default(),
+            _front: &mut T::default(),
             _sync: ZmqMutex::new(),
             _has_msg: false,
         };

@@ -1,10 +1,10 @@
 use std::ptr::null_mut;
 
 use libc::{EAGAIN, ECONNRESET};
+use crate::decoder::ZmqDecoderBase;
 
 use crate::defines::{MSG_COMMAND, ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED, ZmqFd, ZmqHandle};
 use crate::endpoint::ZmqEndpointUriPair;
-use crate::i_decoder::IDecoder;
 use crate::i_engine::{ErrorReason, IEngine};
 use crate::i_engine::ErrorReason::{ConnectionError, ProtocolError, TimeoutError};
 use crate::io_object::IoObject;
@@ -38,7 +38,7 @@ pub struct ZmqStreamEngineBase<'a> {
     pub _options: ZmqOptions,
     pub _inpos: *mut u8,
     pub _insize: usize,
-    pub _decoder: Option<&'a mut dyn IDecoder>,
+    pub _decoder: Option<&'a mut ZmqDecoderBase>,
     pub _mechanism: Option<&'a mut ZmqMechanism>,
     pub _metadata: Option<&'a mut ZmqMetadata>,
     pub _input_stopped: bool,
@@ -52,7 +52,7 @@ pub struct ZmqStreamEngineBase<'a> {
     pub _s: ZmqFd,
     pub _handle: ZmqHandle,
     pub _plugged: bool,
-    pub _tx_msg: ZmqMsg,
+    pub _tx_msg: ZmqMsg<'a>,
     pub _io_error: bool,
     pub _handshaking: bool,
     pub _session: Option<&'a mut ZmqSessionBase<'a>>,

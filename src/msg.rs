@@ -164,8 +164,8 @@ pub union ZmqMsgU {
 }
 
 #[derive(Default, Clone, Copy)]
-pub struct ZmqMsg<'a> {
-    pub refcnt: &'a mut ZmqAtomicCounter,
+pub struct ZmqMsg {
+    pub refcnt: ZmqAtomicCounter,
     // pub _u: ZmqMsgU,
     pub metadata: ZmqMetadata,
     pub content: ZmqContent,
@@ -220,6 +220,20 @@ impl ZmqMsg {
             return self.init_external_storage(content, data, size, free_fn, hint);
         }
         return self.init_data(data, size, Some(free_fn), hint);
+    }
+
+    pub fn init3(&mut self, data: &mut[u8], hint: &mut [u8], content: &mut ZmqContent) -> Result<(), ZmqError>
+    {
+        if data.len() < MAX_VSM_SIZE
+        {
+            self.init_size(data.len())?;
+            self.data.copy_from_slice(data);
+        }
+        if content != ZmqContent::default() {
+            return self.init_external_storage2(content, data, hint);
+        }
+        return self.init_data2(data, hint);
+
     }
 
     pub unsafe fn init2(&mut self) -> Result<(), ZmqError> {
@@ -300,6 +314,27 @@ impl ZmqMsg {
         Ok(())
     }
 
+    pub unsafe fn init_external_storage2(
+        &mut self, content_: &mut ZmqContent, data: &mut [u8], hint: &mut [u8]
+    ) -> Result<(), ZmqError> {
+        self.metadata = ZmqMetadata::default();
+        self.type_ = TYPE_ZCLMSG;
+        self.flags = 0;
+        self.group[0] = 0;
+        self.group_type = GroupTypeShort as u8;
+        self.routing_id = 0;
+
+        self.content = content_.clone();
+        (*self.content).data.clone_from_slice(data);
+        (*self.content).size = data.len();
+        // (*self.content).ffn = Some(ZmqSharedMessageMemoryAllocator::call_dec_ref);
+        (*self.content).hint.clone_from_slice(hint);
+        // new (&_u.zclmsg.content->refcnt) zmq::atomic_counter_t ();
+        (*self.content).refcnt = ZmqAtomicCounter::new(0);
+
+        Ok(())
+    }
+
     pub unsafe fn init_data(
         &mut self,
         data_: &[u8],
@@ -338,6 +373,19 @@ impl ZmqMsg {
             // new (&_u.lmsg.content.refcnt) zmq::atomic_counter_t ();
             (*self.content).refcnt = ZmqAtomicCounter::new(0);
         }
+        Ok(())
+    }
+
+    pub fn init_data2(&mut self, data: &[u8], hint_: &[u8]) -> Result<(), ZmqError>
+    {
+        self.metadata = ZmqMetadata::default();
+            self.type_ = TYPE_CMSG;
+            self.flags = 0;
+            self.data.clone_from_slice(data);
+            self.size = data.len() as u8;
+            self.group[0] = 0;
+            self.group_type = GroupTypeShort as u8;
+            self.routing_id = 0;
         Ok(())
     }
 
@@ -618,7 +666,7 @@ impl ZmqMsg {
         return self.type_ == TYPE_LMSG;
     }
 
-    pub unsafe fn is_zcmsg(&self) -> bool {
+    pub fn is_zcmsg(&self) -> bool {
         return self.type_ == TYPE_ZCLMSG;
     }
 

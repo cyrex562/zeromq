@@ -1,6 +1,7 @@
+use crate::decoder::ZmqDecoderBase;
 use crate::decoder_allocators::{ZmqAllocator, ZmqSharedMessageMemoryAllocator};
-use crate::i_decoder::IDecoder;
-use crate::msg::ZmqMsg;
+use crate::err::ZmqError;
+use crate::msg::{ZmqContent, ZmqMsg};
 
 pub struct ZmqRawDecoder {
     // pub decoder: dyn i_decoder
@@ -40,4 +41,24 @@ impl ZmqRawDecoder {
         *bytes_used = size_;
         1
     }
+}
+
+pub fn raw_decode(decoder: &mut ZmqDecoderBase, data: &mut [u8], bytes_used: &mut usize) -> Result<usize,ZmqError>
+{
+    match decoder._in_progress.init3(
+        data,
+        decoder.buf.as_mut_slice(),
+        &mut ZmqContent::default()
+    ) {
+        Ok(_) => {},
+        Err(e) => {
+            return Err(e);
+        }
+    };
+    if decoder._in_progress.is_zcmsg() {
+        // TODO
+        // decoder._allocator.advance_content();
+        // decoder._allocator.release();
+    }
+    Ok(data.len())
 }
