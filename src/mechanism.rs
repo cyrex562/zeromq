@@ -15,8 +15,8 @@ pub struct ZmqMechanism {
     pub options: ZmqOptions,
     pub _zmtp_properties: ZmqDict,
     pub _zap_properties: ZmqDict,
-    pub _routing_id: ZmqBlob,
-    pub _user_id: ZmqBlob,
+    pub _routing_id: Vec<u8>,
+    pub _user_id: Vec<u8>,
 }
 
 pub const socket_type_pair: &'static str = "PAIR";
@@ -67,8 +67,8 @@ impl ZmqMechanism {
             options: options.clone(),
             _zmtp_properties: ZmqDict::new(),
             _zap_properties: ZmqDict::new(),
-            _user_id: ZmqBlob::new(),
-            _routing_id: ZmqBlob::new()
+            _user_id: vec![],
+            _routing_id: vec![]
         }
     }
 
@@ -88,7 +88,7 @@ impl ZmqMechanism {
         self._zap_properties.insert("user_id".to_string(), self._user_id._data());
     }
 
-    pub fn get_user_id(&mut self) -> ZmqBlob {
+    pub fn get_user_id(&mut self) -> Vec<u8> {
         self._user_id.clone()
     }
 

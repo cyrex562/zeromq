@@ -1,6 +1,6 @@
+use crate::atomic_counter::ZmqAtomicCounter;
 use std::thread::sleep;
 use windows::Win32::System::Threading::Sleep;
-use crate::atomic_counter::ZmqAtomicCounter;
 
 pub unsafe fn zmq_sleep(seconds_: i32) {
     #[cfg(target_os = "windows")]
@@ -38,32 +38,26 @@ pub unsafe fn zmq_threadstart(func_: fn(), arg_: &[u8]) -> &[u8] {
 
 pub unsafe fn zmq_threadclose(thread_: &[u8]) {
     // zmq::thread_t *p_thread = static_cast<zmq::thread_t *> (thread_);
-    // p_thread->stop ();
+    // p_thread->Stop ();
     // LIBZMQ_DELETE (p_thread);
     todo!()
 }
 
 pub const encoder: [&'static str; 85] = [
-    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-    "a", "b", "c", "d", "e", "f", "g", "h", "i", "j",
-    "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
-    "u", "v", "w", "x", "y", "z", "A", "B", "C", "D",
-    "E", "F", "G", "H", "I", "J", "K", "L", "M", "N",
-    "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X",
-    "Y", "Z", ".", "-", ":", "+", "=", "^", "!", "/",
-    "*", "?", "&", "<", ">", "(", ")", "[", "]", "{",
-    "}", "@", "%", "$", "#",
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "g", "h", "i",
+    "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B",
+    "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
+    "V", "W", "X", "Y", "Z", ".", "-", ":", "+", "=", "^", "!", "/", "*", "?", "&", "<", ">", "(",
+    ")", "[", "]", "{", "}", "@", "%", "$", "#",
 ];
 
 pub const decoder: [u8; 96] = [
-    0xFF, 0x44, 0xFF, 0x54, 0x53, 0x52, 0x48, 0xFF, 0x4B, 0x4C, 0x46, 0x41,
-    0xFF, 0x3F, 0x3E, 0x45, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-    0x08, 0x09, 0x40, 0xFF, 0x49, 0x42, 0x4A, 0x47, 0x51, 0x24, 0x25, 0x26,
-    0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32,
-    0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x4D,
-    0xFF, 0x4E, 0x43, 0xFF, 0xFF, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
-    0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C,
-    0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x4F, 0xFF, 0x50, 0xFF, 0xFF
+    0xFF, 0x44, 0xFF, 0x54, 0x53, 0x52, 0x48, 0xFF, 0x4B, 0x4C, 0x46, 0x41, 0xFF, 0x3F, 0x3E, 0x45,
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x40, 0xFF, 0x49, 0x42, 0x4A, 0x47,
+    0x51, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32,
+    0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x4D, 0xFF, 0x4E, 0x43, 0xFF,
+    0xFF, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
+    0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x4F, 0xFF, 0x50, 0xFF, 0xFF,
 ];
 
 // char *zmq_z85_encode (char *dest_, const uint8_t *data_, size_t size_)
@@ -147,72 +141,69 @@ pub unsafe fn zmq_z85_decide<'a>(dest_: &mut [u8], string_: &str) -> Option<&'a 
     // assert (byte_nbr == strlen (string_) * 4 / 5);
     return Some(dest_);
 
-// error_inval:
-//     errno = EINVAL;
-//     return NULL;
+    // error_inval:
+    //     errno = EINVAL;
+    //     return NULL;
 }
 
 // int zmq_curve_keypair (char *z85_public_key_, char *z85_secret_key_)
-pub unsafe fn zmq_curve_keypair<'a>(z85_public_key_: &mut [u8], z85_secret_key_: &mut [u8]) -> i32
-{
-// #if crypto_box_PUBLICKEYBYTES != 32 || crypto_box_SECRETKEYBYTES != 32
-// #Error "CURVE encryption library not built correctly"
-// #endif
-//
-//     uint8_t public_key[32];
-//     uint8_t secret_key[32];
-//
-//     zmq::random_open ();
-//
-//     const int res = crypto_box_keypair (public_key, secret_key);
-//     zmq_z85_encode (z85_public_key_, public_key, 32);
-//     zmq_z85_encode (z85_secret_key_, secret_key, 32);
-//
-//     zmq::random_close ();
-//
-//     return res;
-// #else
-//     (void) z85_public_key_, (void) z85_secret_key_;
-//     errno = ENOTSUP;
-//     return -1;
-// #endif
+pub unsafe fn zmq_curve_keypair<'a>(z85_public_key_: &mut [u8], z85_secret_key_: &mut [u8]) -> i32 {
+    // #if crypto_box_PUBLICKEYBYTES != 32 || crypto_box_SECRETKEYBYTES != 32
+    // #Error "CURVE encryption library not built correctly"
+    // #endif
+    //
+    //     uint8_t public_key[32];
+    //     uint8_t secret_key[32];
+    //
+    //     zmq::random_open ();
+    //
+    //     const int res = crypto_box_keypair (public_key, secret_key);
+    //     zmq_z85_encode (z85_public_key_, public_key, 32);
+    //     zmq_z85_encode (z85_secret_key_, secret_key, 32);
+    //
+    //     zmq::random_close ();
+    //
+    //     return res;
+    // #else
+    //     (void) z85_public_key_, (void) z85_secret_key_;
+    //     errno = ENOTSUP;
+    //     return -1;
+    // #endif
     todo!()
 }
 
 // int zmq_curve_public (char *z85_public_key_, const char *z85_secret_key_)
-pub unsafe fn zmq_curve_public(z85_public_key_: &mut [u8], z85_secret_key_: &str) -> i32
-{
-// #if defined(ZMQ_HAVE_CURVE)
-// #if crypto_box_PUBLICKEYBYTES != 32 || crypto_box_SECRETKEYBYTES != 32
-// #Error "CURVE encryption library not built correctly"
-// #endif
-//
-//     uint8_t public_key[32];
-//     uint8_t secret_key[32];
-//
-//     zmq::random_open ();
-//
-//     if (zmq_z85_decode (secret_key, z85_secret_key_) == NULL)
-//         return -1;
-//
-//     // Return codes are suppressed as none of these can actually fail.
-//     crypto_scalarmult_base (public_key, secret_key);
-//     zmq_z85_encode (z85_public_key_, public_key, 32);
-//
-//     zmq::random_close ();
-//
-//     return 0;
-// #else
-//     (void) z85_public_key_, (void) z85_secret_key_;
-//     errno = ENOTSUP;
-//     return -1;
-// #endif
+pub unsafe fn zmq_curve_public(z85_public_key_: &mut [u8], z85_secret_key_: &str) -> i32 {
+    // #if defined(ZMQ_HAVE_CURVE)
+    // #if crypto_box_PUBLICKEYBYTES != 32 || crypto_box_SECRETKEYBYTES != 32
+    // #Error "CURVE encryption library not built correctly"
+    // #endif
+    //
+    //     uint8_t public_key[32];
+    //     uint8_t secret_key[32];
+    //
+    //     zmq::random_open ();
+    //
+    //     if (zmq_z85_decode (secret_key, z85_secret_key_) == NULL)
+    //         return -1;
+    //
+    //     // Return codes are suppressed as none of these can actually fail.
+    //     crypto_scalarmult_base (public_key, secret_key);
+    //     zmq_z85_encode (z85_public_key_, public_key, 32);
+    //
+    //     zmq::random_close ();
+    //
+    //     return 0;
+    // #else
+    //     (void) z85_public_key_, (void) z85_secret_key_;
+    //     errno = ENOTSUP;
+    //     return -1;
+    // #endif
     todo!()
 }
 
 // void *zmq_atomic_counter_new (void)
-pub unsafe fn zmq_atomic_counter_new() -> ZmqAtomicCounter
-{
+pub unsafe fn zmq_atomic_counter_new() -> ZmqAtomicCounter {
     // zmq::atomic_counter_t *counter = new (std::nothrow) zmq::atomic_counter_t;
     // alloc_assert (counter);
     // return counter;
@@ -222,8 +213,7 @@ pub unsafe fn zmq_atomic_counter_new() -> ZmqAtomicCounter
 //  Se the value of the atomic counter
 
 // void zmq_atomic_counter_set (void *counter_, int value_)
-pub unsafe fn zmq_atomic_counter_set(counter_: &mut ZmqAtomicCounter, value_: i32)
-{
+pub unsafe fn zmq_atomic_counter_set(counter_: &mut ZmqAtomicCounter, value_: i32) {
     // (static_cast<zmq::atomic_counter_t *> (counter_))->set (value_);
     counter_.set(value_);
 }
@@ -231,19 +221,16 @@ pub unsafe fn zmq_atomic_counter_set(counter_: &mut ZmqAtomicCounter, value_: i3
 //  Increment the atomic counter, and return the old value
 
 // int zmq_atomic_counter_inc (void *counter_)
-pub unsafe fn zmq_atomic_counter_inc(counter_: &mut ZmqAtomicCounter) -> i32
-{
+pub unsafe fn zmq_atomic_counter_inc(counter_: &mut ZmqAtomicCounter) -> i32 {
     // return (static_cast<zmq::atomic_counter_t *> (counter_))->add (1);
     counter_.add(1)
 }
-
 
 //  Decrement the atomic counter and return 1 (if counter >= 1), or
 //  0 if counter hit zero.
 
 // int zmq_atomic_counter_dec (void *counter_)
-pub unsafe fn zmq_amotic_counter_dec(counter_: &mut ZmqAtomicCounter) -> i32
-{
+pub unsafe fn zmq_amotic_counter_dec(counter_: &mut ZmqAtomicCounter) -> i32 {
     // return (static_cast<zmq::atomic_counter_t *> (counter_))->sub (1) ? 1 : 0;
     if counter_.sub(1) {
         1
@@ -255,8 +242,7 @@ pub unsafe fn zmq_amotic_counter_dec(counter_: &mut ZmqAtomicCounter) -> i32
 //  Return actual value of atomic counter
 
 // int zmq_atomic_counter_value (void *counter_)
-pub unsafe fn zmq_atomic_counter_value(counter_: &mut ZmqAtomicCounter) -> i32
-{
+pub unsafe fn zmq_atomic_counter_value(counter_: &mut ZmqAtomicCounter) -> i32 {
     // return (static_cast<zmq::atomic_counter_t *> (counter_))->get ();
     counter_.get()
 }
@@ -264,8 +250,7 @@ pub unsafe fn zmq_atomic_counter_value(counter_: &mut ZmqAtomicCounter) -> i32
 //  Destroy atomic counter, and set reference to NULL
 
 // void zmq_atomic_counter_destroy (void **counter_p_)
-pub unsafe fn zmq_atomic_counter_destroy(counter_p_: &mut ZmqAtomicCounter)
-{
+pub unsafe fn zmq_atomic_counter_destroy(counter_p_: &mut ZmqAtomicCounter) {
     // delete (static_cast<zmq::atomic_counter_t *> (*counter_p_));
     // *counter_p_ = NULL;
     todo!()

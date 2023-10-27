@@ -1,17 +1,21 @@
-
-
-use crate::atomic_counter::ZmqAtomicCounter;
-use crate::defines::{CMD_TYPE_MASK, MSG_CANCEL, MSG_CLOSE_CMD, MSG_COMMAND, MSG_CREDENTIAL, MSG_PING, MSG_PONG, MSG_ROUTING_ID, MSG_SHARED, MSG_SUBSCRIBE, ZMQ_GROUP_MAX_LENGTH};
-use crate::metadata::ZmqMetadata;
-use crate::msg::ZmqGroupType::{GroupTypeLong, GroupTypeShort};
-use libc::size_t;
 use std::ffi::{c_char, c_void};
 use std::ptr::null_mut;
+
+use libc::size_t;
+
+use crate::atomic_counter::ZmqAtomicCounter;
+use crate::defines::{
+    CMD_TYPE_MASK, MSG_CANCEL, MSG_CLOSE_CMD, MSG_COMMAND, MSG_CREDENTIAL, MSG_PING, MSG_PONG,
+    MSG_ROUTING_ID, MSG_SHARED, MSG_SUBSCRIBE, ZMQ_GROUP_MAX_LENGTH,
+};
 use crate::err::ZmqError;
+use crate::err::ZmqError::MessageError;
+use crate::metadata::ZmqMetadata;
+use crate::msg::ZmqGroupType::{GroupTypeLong, GroupTypeShort};
 
 pub type MsgFreeFn = fn(&mut [u8], &mut [u8]);
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ZmqContent {
     pub data: Vec<u8>,
     pub size: size_t,
@@ -163,8 +167,8 @@ pub union ZmqMsgU {
 pub struct ZmqMsg<'a> {
     pub refcnt: &'a mut ZmqAtomicCounter,
     // pub _u: ZmqMsgU,
-    pub metadata: &'a mut ZmqMetadata,
-    pub content: &'a mut ZmqContent,
+    pub metadata: ZmqMetadata,
+    pub content: ZmqContent,
     // pub unused: [u8; METADATA_T_PTR_SIZE + 2 + 4 + GROUP_T_SIZE],
     pub type_: u8,
     pub flags: u8,
@@ -201,9 +205,9 @@ impl ZmqMsg {
         free_fn: MsgFreeFn,
         hint: &mut [u8],
         content: &mut ZmqContent,
-    ) -> Result<(),ZmqError> {
+    ) -> Result<(), ZmqError> {
         if size < MAX_VSM_SIZE {
-            let rc = self.init_size(size);
+            self.init_size(size)?;
             // if rc != -1 {
             //     libc::memcpy(self.data(), data_, size_);
             //     return 0;
@@ -212,14 +216,14 @@ impl ZmqMsg {
 
             // return Err();
         }
-        if content != null_mut() {
+        if content != ZmqContent::default() {
             return self.init_external_storage(content, data, size, free_fn, hint);
         }
         return self.init_data(data, size, Some(free_fn), hint);
     }
 
-    pub unsafe fn init2(&mut self) -> Result<(),ZmqError> {
-        self.metadata = &mut ZmqMetadata::default();
+    pub unsafe fn init2(&mut self) -> Result<(), ZmqError> {
+        self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_VSM;
         self.flags = 0;
         self.size = 0;
@@ -229,42 +233,37 @@ impl ZmqMsg {
         return Ok(());
     }
 
-    pub unsafe fn init_size(&mut self, size_: size_t) -> i32 {
+    pub unsafe fn init_size(&mut self, size_: size_t) -> Result<(), ZmqError> {
         if size_ <= MAX_VSM_SIZE {
-            self.metadata = &mut ZmqMetadata::default();
+            self.metadata = ZmqMetadata::default();
             self.type_ = TYPE_VSM;
             self.flags = 0;
             self.size = size_ as u8;
             self.routing_id = 0;
             self.group_type = GroupTypeShort as u8;
         } else {
-            self.metadata = &mut ZmqMetadata::default();
+            self.metadata = ZmqMetadata::default();
             self.type_ = TYPE_LMSG;
             self.flags = 0;
             self.routing_id = 0;
             self.group_type = GroupTypeShort as u8;
             self.group[0] = 0;
-            self.content = &mut ZmqContent::default();
+            self.content = ZmqContent::default();
             if std::mem::size_of::<ZmqContent>() + size_ > size_ {
-                // self.content =
-                //     libc::malloc(std::mem::size_of::<ZmqContent>() + size_) as *mut ZmqContent;
-                self.content = &mut ZmqContent::default();
-            }
-            if self.content == null_mut() {
-                return -1;
+                self.content = ZmqContent::default();
             }
 
-            (*self.content).data = self.content.add(1);
-            (*self.content).size = size_;
-            (*self.content).ffn = None;
-            (*self.content).hint = vec![];
-            (*self.content).refcnt = ZmqAtomicCounter::new(0);
+            (self.content).data = self.content.add(1);
+            (self.content).size = size_;
+            (self.content).ffn = None;
+            (self.content).hint = vec![];
+            (self.content).refcnt = ZmqAtomicCounter::new(0);
         }
-        return 0;
+        Ok(())
     }
 
-    pub unsafe fn init_buffer(&mut self, buf_: &[u8], size_: size_t) -> Result<(),ZmqError> {
-        let rc = self.init_size(size_)?;
+    pub unsafe fn init_buffer(&mut self, buf_: &[u8], size_: size_t) -> Result<(), ZmqError> {
+        self.init_size(size_)?;
         // if rc < 0 {
         //     return -1;
         // }
@@ -282,15 +281,15 @@ impl ZmqMsg {
         size_: size_t,
         ffn_: MsgFreeFn,
         hint: &mut [u8],
-    ) -> Result<(),> {
-        self.metadata = &mut ZmqMetadata::default();
+    ) -> Result<(), ZmqError> {
+        self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_ZCLMSG;
         self.flags = 0;
         self.group[0] = 0;
         self.group_type = GroupTypeShort as u8;
         self.routing_id = 0;
 
-        self.content = content_;
+        self.content = content_.clone();
         (*self.content).data.clone_from_slice(data);
         (*self.content).size = size_;
         (*self.content).ffn = Some(ffn_);
@@ -298,7 +297,7 @@ impl ZmqMsg {
         // new (&_u.zclmsg.content->refcnt) zmq::atomic_counter_t ();
         (*self.content).refcnt = ZmqAtomicCounter::new(0);
 
-        return 0;
+        Ok(())
     }
 
     pub unsafe fn init_data(
@@ -309,7 +308,7 @@ impl ZmqMsg {
         hint_: &[u8],
     ) -> Result<(), ZmqError> {
         if ffn_.is_none() {
-            self.metadata = &mut ZmqMetadata::default();
+            self.metadata = ZmqMetadata::default();
             self.type_ = TYPE_CMSG;
             self.flags = 0;
             self.data.clone_from_slice(data_);
@@ -318,7 +317,7 @@ impl ZmqMsg {
             self.group_type = GroupTypeShort as u8;
             self.routing_id = 0;
         } else {
-            self.metadata = &mut ZmqMetadata::default();
+            self.metadata = ZmqMetadata::default();
             self.type_ = TYPE_LMSG;
             self.flags = 0;
             self.group[0] = 0;
@@ -330,7 +329,7 @@ impl ZmqMsg {
             //     // errno = ENOMEM;
             //     return -1;
             // }
-            self.content = &mut ZmqContent::default();
+            self.content = ZmqContent::default();
 
             (*self.content).data.clone_from_slice(data_);
             (*self.content).size = size_;
@@ -339,11 +338,11 @@ impl ZmqMsg {
             // new (&_u.lmsg.content.refcnt) zmq::atomic_counter_t ();
             (*self.content).refcnt = ZmqAtomicCounter::new(0);
         }
-        return 0;
+        Ok(())
     }
 
     pub unsafe fn init_delimiter(&mut self) -> i32 {
-        self.metadata = &mut ZmqMetadata::default();
+        self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_DELIMITER;
         self.flags = 0;
         self.group[0] = 0;
@@ -353,7 +352,7 @@ impl ZmqMsg {
     }
 
     pub unsafe fn init_join(&mut self) -> i32 {
-        self.metadata = &mut ZmqMetadata::default();
+        self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_JOIN;
         self.flags = 0;
         self.group[0] = 0;
@@ -363,7 +362,7 @@ impl ZmqMsg {
     }
 
     pub unsafe fn init_leave(&mut self) -> i32 {
-        self.metadata = &mut ZmqMetadata::default();
+        self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_LEAVE;
         self.flags = 0;
         self.group[0] = 0;
@@ -372,9 +371,13 @@ impl ZmqMsg {
         return 0;
     }
 
-    pub unsafe fn init_subscribe(&mut self, size_: size_t, topic: &mut[u8]) -> i32 {
-        let rc = self.init_size(size_);
-        if rc == 0 {
+    pub unsafe fn init_subscribe(
+        &mut self,
+        size_: size_t,
+        topic: &mut [u8],
+    ) -> Result<(), ZmqError> {
+        let res = self.init_size(size_);
+        if res.is_ok() {
             self.set_flags(MSG_SUBSCRIBE);
 
             //  We explicitly allow a NULL subscription with size zero
@@ -384,12 +387,12 @@ impl ZmqMsg {
                 self.data_mut().clone_from_slice(topic);
             }
         }
-        return rc;
+        return res;
     }
 
-    pub unsafe fn init_cancel(&mut self, size_: size_t, topic_: &mut [u8]) -> i32 {
+    pub unsafe fn init_cancel(&mut self, size_: size_t, topic_: &mut [u8]) -> Result<(), ZmqError> {
         let rc = self.init_size(size_);
-        if rc == 0 {
+        if rc.is_ok() {
             self.set_flags(MSG_CANCEL);
 
             //  We explicitly allow a NULL subscription with size zero
@@ -402,9 +405,9 @@ impl ZmqMsg {
         return rc;
     }
 
-    pub unsafe fn close(&mut self) -> i32 {
+    pub unsafe fn close(&mut self) -> Result<(), ZmqError> {
         if !self.check() {
-            return -1;
+            return Err(MessageError("msg check failed"));
         }
 
         if self.type_ == TYPE_LMSG && (!self.flags & MSG_SHARED == 0)
@@ -421,8 +424,7 @@ impl ZmqMsg {
         }
 
         if self.is_zcmsg()
-            && (!(self.flags & MSG_SHARED != 0)
-                || !(*self.content).refcnt.sub(1) != 0)
+            && (!(self.flags & MSG_SHARED != 0) || !(*self.content).refcnt.sub(1) != 0)
         {
             //  We used "placement new" operator to initialize the reference
             //  counter so we call the destructor explicitly now.
@@ -439,12 +441,10 @@ impl ZmqMsg {
                 // TODO
                 // LIBZMQ_DELETE (_u.base.metadata);
             }
-            self.metadata = &mut ZmqMetadata::default()
+            self.metadata = ZmqMetadata::default()
         }
 
-        if self.group_type == GroupTypeLong as u8
-            && (!(*self.content).refcnt.sub(1) != 0)
-        {
+        if self.group_type == GroupTypeLong as u8 && (!(*self.content).refcnt.sub(1) != 0) {
             //  We used "placement new" operator to initialize the reference
             //  counter so we call the destructor explicitly now.
             // self.group.lgroup.content.refcnt.~atomic_counter_t ();
@@ -452,103 +452,82 @@ impl ZmqMsg {
         }
 
         self.type_ = 0;
-        return 0;
+        Ok(())
     }
 
-    pub unsafe fn move_(&mut self, src_: &mut ZmqMsg) -> i32 {
+    pub unsafe fn move_(&mut self, src_: &mut ZmqMsg) -> Result<(), ZmqError> {
         if !src_.check() {
-            return -1;
+            return Err(MessageError("msg check failed"));
         }
 
-        let mut rc = self.close();
-        if rc < 0 {
-            return rc;
-        }
+        self.close()?;
 
         // TODO
         // self. = src_.clone();
-        rc = src_.init2();
-        if rc < 0 {
-            return rc;
-        }
-        return 0;
+        src_.init2()?;
+        Ok(())
     }
 
-    pub unsafe fn copy(&mut self, src_: &mut ZmqMsg) -> i32 {
-        if !src_.check() {
-            return -1;
+    pub unsafe fn copy(&mut self, src_msg: &mut ZmqMsg) -> Result<(), ZmqError> {
+        if !src_msg.check() {
+            return Err(MessageError("msg check failed"));
         }
 
-        let mut rc = self.close();
-        if rc < 0 {
-            return rc;
-        }
+        self.close()?;
+        // if rc < 0 {
+        //     return rc;
+        // }
 
         let mut initial_shared_refcnt = ZmqAtomicCounter::new(2);
 
-        if src_.is_lmsg() || src_.is_zcmsg() {
-            if src_.flags() & MSG_SHARED != 0 {
-                src_.refcnt.add(1);
+        if src_msg.is_lmsg() || src_msg.is_zcmsg() {
+            if src_msg.flags() & MSG_SHARED != 0 {
+                src_msg.refcnt.add(1);
             } else {
-                src_.set_flags(MSG_SHARED);
-                (*src_.refcnt).set(initial_shared_refcnt.get())
+                src_msg.set_flags(MSG_SHARED);
+                (*src_msg.refcnt).set(initial_shared_refcnt.get())
             }
         }
 
-        if src_.metadata != null_mut() {
-            (*src_.metadata).add_ref();
+        if src_msg.metadata != null_mut() {
+            (*src_msg.metadata).add_ref();
         }
 
-        if src_.group_type == GroupTypeLong as u8 {
-            (*src_.content).refcnt.add(1);
+        if src_msg.group_type == GroupTypeLong as u8 {
+            (*src_msg.content).refcnt.add(1);
         }
 
         // TODO
         // self._u = src_._u.clone();
+        self = *src_msg.clone();
 
-        return 0;
+        Ok(())
     }
 
     pub unsafe fn data_mut(&mut self) -> &mut [u8] {
         return match self.type_ {
-            TYPE_VSM => {
-                &mut self.data
-            }
-            TYPE_LMSG => {
-                (*self.content).data.as_mut_slice()
-            }
-            TYPE_CMSG => {
-                &mut self.data
-            }
-            TYPE_ZCLMSG => {
-                (*self.content).data.as_mut_slice()
-            }
+            TYPE_VSM => &mut self.data,
+            TYPE_LMSG => (*self.content).data.as_mut_slice(),
+            TYPE_CMSG => &mut self.data,
+            TYPE_ZCLMSG => (*self.content).data.as_mut_slice(),
             _ => {
                 // return self.;
                 &mut [0u8]
             }
-        }
+        };
     }
 
     pub unsafe fn size(&mut self) -> size_t {
         return match self.type_ {
-            TYPE_VSM => {
-                self.size as size_t
-            }
-            TYPE_LMSG => {
-                (*self.content).size
-            }
-            TYPE_CMSG => {
-                self.size as size_t
-            }
-            TYPE_ZCLMSG => {
-                (*self.content).size
-            }
+            TYPE_VSM => self.size as size_t,
+            TYPE_LMSG => (*self.content).size,
+            TYPE_CMSG => self.size as size_t,
+            TYPE_ZCLMSG => (*self.content).size,
             _ => {
                 // return self.size;
                 0
             }
-        }
+        };
     }
 
     pub unsafe fn shrink(&mut self, new_size_: size_t) {
@@ -575,7 +554,7 @@ impl ZmqMsg {
         return self.flags;
     }
 
-    pub unsafe fn flag_set(&self, flag_: u8) -> bool {
+    pub fn flag_set(&self, flag_: u8) -> bool {
         return self.flags & flag_ != 0;
     }
 
@@ -599,23 +578,23 @@ impl ZmqMsg {
     //     self.flags &= !flags_;
     // }
 
-    pub unsafe fn metadata(&mut self) -> *mut ZmqMetadata {
-        return self.metadata;
+    pub unsafe fn metadata(&mut self) -> &mut ZmqMetadata {
+        return &mut self.metadata;
     }
 
     pub unsafe fn set_metadata(&mut self, metadata_: &mut ZmqMetadata) {
-        (*metadata_).add_ref();
-        self.metadata = metadata_;
+        metadata_.add_ref();
+        self.metadata = metadata_.clone();
     }
 
     pub unsafe fn reset_metadata(&mut self) {
-        if self.metadata != null_mut() {
-            (*self.metadata).drop_ref();
-            self.metadata = &mut ZmqMetadata::default();
+        if self.metadata != ZmqMetadata::default() {
+            self.metadata.drop_ref();
+            self.metadata = ZmqMetadata::default();
         }
     }
 
-    pub unsafe fn is_routing_id(&self) -> bool {
+    pub fn is_routing_id(&self) -> bool {
         return self.flags & MSG_ROUTING_ID == MSG_ROUTING_ID;
     }
 
@@ -666,7 +645,8 @@ impl ZmqMsg {
     pub unsafe fn command_body_size(&mut self) -> size_t {
         if self.is_ping() || self.is_poing() {
             return self.size() - PING_CMD_NAME_SIZE as usize;
-        } else if !((self.flags() & MSG_COMMAND) != 0) && (self.is_subscribe() || self.is_cancel()) {
+        } else if !((self.flags() & MSG_COMMAND) != 0) && (self.is_subscribe() || self.is_cancel())
+        {
             return self.size();
         } else if self.is_subscribe() {
             return self.size() - SUB_CMD_NAME_SIZE as usize;
@@ -681,7 +661,7 @@ impl ZmqMsg {
         if self.is_ping() || self.is_poing() {
             data = self.data_mut().add(PING_CMD_NAME_SIZE as usize);
         } else if !(self.flags() & MSG_COMMAND != 0) && (self.is_subscribe() || self.is_cancel()) {
-            data = self.data_mut() ;
+            data = self.data_mut();
         } else if self.is_subscribe() {
             data = self.data_mut().add(SUB_CMD_NAME_SIZE as usize);
         } else if self.is_cancel() {
@@ -698,7 +678,7 @@ impl ZmqMsg {
 
         if self.type_ == TYPE_LMSG || self.is_zcmsg() {
             if self.flags & MSG_SHARED != 0 {
-                self.refcnt().add(refs_ as usize);
+                (*self.refcnt()).add(refs_);
             } else {
                 (*self.refcnt()).set(refs_ + 1);
                 self.flags |= MSG_SHARED
@@ -706,27 +686,25 @@ impl ZmqMsg {
         }
     }
 
-    pub unsafe fn rm_refs(&mut self, refs_: i32) -> bool {
+    pub unsafe fn rm_refs(&mut self, refs_: i32) -> Result<(), ZmqError> {
         if refs_ == 0 {
-            return true;
+            return Ok(());
         }
 
-        if self.type_ != TYPE_ZCLMSG && self.type_ != TYPE_LMSG
-            || !(self.flags & MSG_SHARED != 0)
-        {
-            self.close();
-            return false;
+        if self.type_ != TYPE_ZCLMSG && self.type_ != TYPE_LMSG || !(self.flags & MSG_SHARED != 0) {
+            self.close()?;
+            return Err(MessageError("invalid message type"));
         }
         if self.type_ == TYPE_LMSG && !((*self.content).refcnt.sub(refs_) == 0) {
             // u.lmsg.content->refcnt.~atomic_counter_t ();
-            if (*self.content).ffn.is_some() {
-                (*self.content).ffn.unwrap()(
-                    (*self.content).hint.as_mut_slice(),
-                    (*self.content).data.as_mut_slice(),
+            if (self.content).ffn.is_some() {
+                (self.content).ffn.unwrap()(
+                    (self.content).hint.as_mut_slice(),
+                    (self.content).data.as_mut_slice(),
                 );
             }
 
-            return false;
+            return Err(MessageError("unknown error"));
         }
 
         if self.is_zcmsg() && !((*self.content).refcnt.sub(refs_) == 0) {
@@ -737,10 +715,10 @@ impl ZmqMsg {
                 );
             }
 
-            return false;
+            return Err(MessageError("unknown error"))
         }
 
-        return true;
+        Ok(())
     }
 
     pub unsafe fn get_routing_id(&self) -> i32 {
@@ -765,10 +743,7 @@ impl ZmqMsg {
             // .to_string();
             todo!()
         } else {
-            return String::from_utf8_lossy(
-                &self.group[0..ZMQ_GROUP_MAX_LENGTH],
-            )
-            .to_string();
+            return String::from_utf8_lossy(&self.group[0..ZMQ_GROUP_MAX_LENGTH]).to_string();
         }
     }
 
@@ -786,8 +761,8 @@ impl ZmqMsg {
 
         if length_ > 14 {
             self.group_type = GroupTypeLong as u8;
-            self.content = &mut ZmqContent::default();
-                // libc::malloc(std::mem::size_of::<ZmqLongGroup>()) as *mut ZmqLongGroup;
+            self.content = ZmqContent::default();
+            // libc::malloc(std::mem::size_of::<ZmqLongGroup>()) as *mut ZmqLongGroup;
             (*self.content).refcnt.set(1);
             // TODO
             // libc::strncpy(
@@ -813,16 +788,16 @@ impl ZmqMsg {
     }
 }
 
-pub unsafe fn close_and_return(mut msg_: *mut ZmqMsg, echo_: i32) -> i32 {
+pub unsafe fn close_and_return(mut msg_: *mut ZmqMsg, echo: i32) -> Result<i32, ZmqError> {
     // let err: i32 = errno();
-    let rc = (*msg_).close();
+    (*msg_).close()?;
     // errno = err;
-    return echo_;
+    return Ok(echo);
 }
 
-pub unsafe fn close_and_return2(msg_: &mut [ZmqMsg], count_: i32, echo_: i32) -> i32 {
+pub unsafe fn close_and_return2(msg_: &mut [ZmqMsg], count_: i32, echo_: i32) -> Result<i32,ZmqError> {
     for i in 0..count_ {
-        close_and_return(&mut msg_[i as usize], 0);
+        close_and_return(&mut msg_[i as usize], 0)?;
     }
-    return echo_;
+    return Ok(echo_);
 }

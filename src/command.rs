@@ -1,33 +1,33 @@
-use crate::object::ZmqObject;
-use crate::own::ZmqOwn;
-use crate::socket_base::ZmqSocketBase;
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::i_engine::IEngine;
+use crate::object::ZmqObject;
+use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
+use crate::socket_base::ZmqSocketBase;
 
-pub enum ZmqType {
-    stop,
-    plug,
-    own,
-    attach,
-    bind,
-    activate_read,
-    activate_write,
-    hiccup,
-    pipe_term,
-    pipe_term_ack,
-    pipe_hwm,
-    term_req,
-    term,
-    term_ack,
-    term_endpoint,
-    reap,
-    reaped,
-    inproc_connected,
-    conn_failed,
-    pipe_peer_stats,
-    pipe_stats_publish,
-    done,
+pub enum ZmqCommandType {
+    Stop,
+    Plug,
+    Own,
+    Attach,
+    Bind,
+    ActivateRead,
+    ActivateWrite,
+    Hiccup,
+    PipeTerm,
+    PipeTermAck,
+    PipeHwm,
+    TermReq,
+    Term,
+    TermAck,
+    TermEndpoint,
+    Reap,
+    Reaped,
+    InprocConnected,
+    ConnFailed,
+    PipePeerStats,
+    PipeStatsPublish,
+    Done,
 }
 
 pub struct StopArgs {}
@@ -125,7 +125,7 @@ pub union ZmqArgs<'a> {
 pub struct ZmqCommand<'a> {
     pub destination: Option<&'a mut ZmqObject<'a>>,
     pub args: ZmqArgs<'a>,
-    pub type_: ZmqType,
+    pub type_: ZmqCommandType,
 }
 
 impl ZmqCommand {
@@ -133,11 +133,10 @@ impl ZmqCommand {
         Self {
             destination: None,
             args: ZmqArgs { stop: StopArgs {} },
-            type_: ZmqType::stop,
+            type_: ZmqCommandType::Stop,
         }
     }
 }
-
 
 impl PartialEq for ZmqCommand {
     fn eq(&self, other: &Self) -> bool {

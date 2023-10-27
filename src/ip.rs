@@ -1,4 +1,4 @@
-use crate::address::socket_end_t::socket_end_remote;
+use crate::address::SocketEnd::SocketEndRemote;
 use crate::defines::{RETIRED_FD, SIGNALER_PORT};
 use crate::fd::fd_t;
 use libc::{bind, listen, setsockopt, SOCKET};
@@ -7,24 +7,24 @@ use std::mem;
 use std::mem::size_of_val;
 use std::ptr::null_mut;
 use windows::Win32::Foundation::{
-    BOOL, ERROR_ACCESS_DENIED, FALSE, GetLastError, HANDLE, HANDLE_FLAG_INHERIT, HANDLE_FLAGS,
-    INVALID_HANDLE_VALUE, SetHandleInformation, TRUE,
+    GetLastError, SetHandleInformation, BOOL, ERROR_ACCESS_DENIED, FALSE, HANDLE, HANDLE_FLAGS,
+    HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE, TRUE,
 };
 use windows::Win32::Networking::WinSock::{
-    accept, AF_INET, connect, getnameinfo, getsockname, INADDR_LOOPBACK, INVALID_SOCKET, ioctlsocket, IP_TOS,
-    IPPROTO_IP, IPPROTO_IPV6, IPPROTO_TCP, IPV6_V6ONLY, NI_MAXHOST, NI_NUMERICHOST, send,
-    SO_REUSEADDR, SOCK_STREAM, SOCKADDR, SOCKADDR_IN, SOCKET_ERROR, SOL_SOCKET, TCP_NODELAY,
-    WSACleanup, WSADATA, WSAStartup,
+    accept, connect, getnameinfo, getsockname, ioctlsocket, send, WSACleanup, WSAStartup, AF_INET,
+    INADDR_LOOPBACK, INVALID_SOCKET, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_TCP, IPV6_V6ONLY, IP_TOS,
+    NI_MAXHOST, NI_NUMERICHOST, SOCKADDR, SOCKADDR_IN, SOCKET_ERROR, SOCK_STREAM, SOL_SOCKET,
+    SO_REUSEADDR, TCP_NODELAY, WSADATA,
 };
 use windows::Win32::Security::{
-    InitializeSecurityDescriptor, SECURITY_ATTRIBUTES, SECURITY_DESCRIPTOR,
-    SetSecurityDescriptorDacl,
+    InitializeSecurityDescriptor, SetSecurityDescriptorDacl, SECURITY_ATTRIBUTES,
+    SECURITY_DESCRIPTOR,
 };
 use windows::Win32::Storage::FileSystem::SYNCHRONIZE;
 use windows::Win32::System::SystemServices::SECURITY_DESCRIPTOR_REVISION;
 use windows::Win32::System::Threading::{
-    CreateEventA, CreateMutexA, EVENT_MODIFY_STATE, INFINITE, OpenEventA, ReleaseMutex,
-    SetEvent, SYNCHRONIZATION_ACCESS_RIGHTS, WaitForSingleObject,
+    CreateEventA, CreateMutexA, OpenEventA, ReleaseMutex, SetEvent, WaitForSingleObject,
+    EVENT_MODIFY_STATE, INFINITE, SYNCHRONIZATION_ACCESS_RIGHTS,
 };
 use windows::Win32::System::WindowsProgramming::OpenMutexA;
 
@@ -75,7 +75,7 @@ pub unsafe fn enable_ipv4_mapping(s_: fd_t) {
 pub unsafe fn get_peer_ip_address(sockfd_: fd_t, ip_addr: &str) -> i32 {
     // XXX: This probably needs re-writing
     let mut ss = SOCKADDR::default();
-    let addrlen = get_socket_address(sockfd_, socket_end_remote, &mut ss);
+    let addrlen = get_socket_address(sockfd_, SocketEndRemote, &mut ss);
     let mut host: [u8; NI_MAXHOST as usize] = [0; NI_MAXHOST];
     let mut rc = getnameinfo(
         &ss as *const SOCKADDR,

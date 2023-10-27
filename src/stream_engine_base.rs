@@ -174,7 +174,7 @@ impl ZmqStreamEngineBase {
 
         // zmq_assert (_decoder);
 
-        //  If there has been an I/O Error, stop polling.
+        //  If there has been an I/O Error, Stop polling.
         if (self._input_stopped) {
             self.rm_fd(self._handle);
             self._io_error = true;
@@ -241,7 +241,7 @@ impl ZmqStreamEngineBase {
     pub unsafe fn out_event(&mut self) {
         //  If write buffer is empty, try to read new data from the encoder.
         if (!self._outsize) {
-            //  Even when we stop polling as soon as there is no
+            //  Even when we Stop polling as soon as there is no
             //  data to send, the poller may invoke out_event one
             //  more time due to 'speculative write' optimisation.
             if ((self._encoder.is_none())) {
@@ -272,7 +272,7 @@ impl ZmqStreamEngineBase {
                 self._outsize += n;
             }
 
-            //  If there is no data to send, stop polling for output.
+            //  If there is no data to send, Stop polling for output.
             if (self._outsize == 0) {
                 self._output_stopped = true;
                 self.reset_pollout();
@@ -287,7 +287,7 @@ impl ZmqStreamEngineBase {
         //  written should be reasonably modest.
         let nbytes = self.write(self._outpos, self._outsize);
 
-        //  IO Error has occurred. We stop waiting for output events.
+        //  IO Error has occurred. We Stop waiting for output events.
         //  The engine is not Terminated until we detect input Error;
         //  this is necessary to prevent losing incoming messages.
         if (nbytes == -1) {
@@ -299,7 +299,7 @@ impl ZmqStreamEngineBase {
         self._outsize -= nbytes;
 
         //  If we are still Handshaking and there are no data
-        //  to send, stop polling for output.
+        //  to send, Stop polling for output.
         if ((self._handshaking)) {
             if (self._outsize == 0) {
                 self.reset_pollout();
@@ -591,7 +591,7 @@ impl ZmqStreamEngineBase {
             self._socket.event_handshake_failed_no_detail(self._endpoint_uri_pair, err);
             // special case: connecting to non-ZMTP process which immediately drops connection,
             // or which never responds with greeting, should be treated as a protocol Error
-            // (i.e. stop reconnect)
+            // (i.e. Stop reconnect)
             if (((reason_ == ConnectionError) || (reason_ == TimeoutError)) && (self._options.reconnect_stop & ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED)) {
                 reason_ = ProtocolError;
             }

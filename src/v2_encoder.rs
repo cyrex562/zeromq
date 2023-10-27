@@ -40,17 +40,17 @@ impl V2Encoder {
         //  Encode the message length. For messages less then 256 bytes,
         //  the length is encoded as 8-bit unsigned integer. For larger
         //  messages, 64-bit unsigned integer in network byte order is used.
-        if ((size > u8::MAX)) {
+        if (size > u8::MAX) {
             put_u64(self._tmp_buf + 1, size);
             header_size = 9; // flags byte + size 8 bytes
         } else {
             self._tmp_buf[1] = (size as u8);
         }
 
-        //  Encode the subscribe/cancel byte. This is done in the encoder as
+        //  Encode the subscribe/cancel byte. This is Done in the encoder as
         //  opposed to when the subscribe message is created to allow different
         //  protocol behaviour on the wire in the v3.1 and legacy encoders.
-        //  It results in the work being done multiple times in case the sub
+        //  It results in the work being Done multiple times in case the sub
         //  is sending the subscription/cancel to multiple pubs, but it cannot
         //  be avoided. This processing can be moved to xsub once support for
         //  ZMTP < 3.1 is dropped.
@@ -68,7 +68,11 @@ impl V2Encoder {
     // void zmq::v2_encoder_t::size_ready ()
     pub unsafe fn size_ready(&mut self) {
         //  Write message body into the buffer.
-        self.next_step(self.in_progress().data(), self.in_progress().size(),
-                       &V2Encoder::message_ready, true);
+        self.next_step(
+            self.in_progress().data(),
+            self.in_progress().size(),
+            &V2Encoder::message_ready,
+            true,
+        );
     }
 }

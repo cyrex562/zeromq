@@ -2,7 +2,7 @@ use std::ffi::c_void;
 use std::mem::size_of_val;
 use libc::{c_int, close, EAGAIN, getpid, read, timeval, write};
 use windows::Win32::Networking::WinSock::{POLLIN, recv, select, send, SEND_RECV_FLAGS, SOCKET_ERROR, TIMEVAL, WSAEWOULDBLOCK, WSAGetLastError};
-use crate::ctx::ZmqPid;
+use crate::defines::ZmqPid;
 use crate::fd::fd_t;
 use crate::ip::{make_fdpair, unblock_socket};
 use crate::utils::get_errno;

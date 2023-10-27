@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use libc::MSG_MORE;
 
-use crate::blob::{ZmqBlob, ZmqReferenceTag};
+use crate::blob::{ZmqReferenceTag};
 use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_POLLOUT, ZMQ_PROBE_ROUTER, ZMQ_ROUTER, ZMQ_ROUTER_HANDOVER, ZMQ_ROUTER_MANDATORY, ZMQ_ROUTER_NOTIFY, ZMQ_ROUTER_RAW};
 use crate::fair_queue::ZmqFairQueue;
@@ -14,11 +14,11 @@ use crate::utils::put_u32;
 
 pub struct ZmqRouter<'a> {
     pub routing_socket_base: ZmqRoutingSocketBase<'a>,
-    pub _fq: ZmqFairQueue,
+    pub _fq: ZmqFairQueue<'a>,
     pub _prefetched: bool,
     pub _routing_id_sent: bool,
-    pub _prefetched_id: ZmqMsg,
-    pub _prefetched_msg: ZmqMsg,
+    pub _prefetched_id: ZmqMsg<'a>,
+    pub _prefetched_msg: ZmqMsg<'a>,
     pub _current_in: &'a mut ZmqPipe<'a>,
     pub _terminate_current_in: bool,
     pub _more_in: bool,
@@ -252,7 +252,7 @@ impl ZmqRouter {
         if (self._current_out) {
             // Close the remote connection if user has asked to do so
             // by sending zero length message.
-            // Pending messages in the pipe will be dropped (on receiving term- ack)
+            // Pending messages in the pipe will be dropped (on receiving Term- ack)
             if (self._raw_socket && msg_.size() == 0) {
                 self._current_out.terminate(false);
                 let mut rc = msg_.close();
@@ -469,7 +469,7 @@ impl ZmqRouter {
         // msg_t msg;
         let mut msg = ZmqMsg::default();
         // blob_t routing_id;
-        let mut routing_id = ZmqBlob::default();
+        let mut routing_id = vec![];
 
         if locally_initiated_ && self.connect_routing_id_is_set() {
             let connect_routing_id = self.extract_connect_routing_id();

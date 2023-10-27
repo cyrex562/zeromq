@@ -1,91 +1,90 @@
-use std::ptr::null_mut;
 use crate::ctx::ZmqContext;
-use crate::defines::ZMQ_CHANNEL;
+use crate::defines::{MSG_MORE, ZMQ_CHANNEL};
+use crate::err::ZmqError::PipeError;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
+use std::ptr::null_mut;
 
-
-pub struct ZmqChannel<'a>
-{
+pub struct ZmqChannel<'a> {
     pub base: ZmqSocketBase<'a>,
-    pub _pipe: &'a mut ZmqPipe<'a>,
+    pub pipe: &'a mut ZmqPipe<'a>,
 }
 
-impl ZmqChannel
-{
-    pub unsafe fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid_: u32, sid_: i32) -> Self
-    {
+impl ZmqChannel {
+    pub unsafe fn new(
+        options: &mut ZmqOptions,
+        parent: &mut ZmqContext,
+        tid_: u32,
+        sid_: i32,
+    ) -> Self {
         options.type_ = ZMQ_CHANNEL;
         Self {
             base: ZmqSocketBase::new(parent, tid_, sid_, true),
-            _pipe: null_mut(),
+            pipe: &mut ZmqPipe::default(),
         }
     }
 
-    pub fn xattach_pipe(&mut self, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, local_initiated_: bool) {
-        if self._pipe == null_mut() {
-            self._pipe == pipe_;
+    pub fn xattach_pipe(
+        &mut self,
+        in_pipe: &mut ZmqPipe,
+        _subscribe_to_all: bool,
+        _local_initiated: bool,
+    ) {
+        if self.pipe == null_mut() {
+            self.pipe == in_pipe;
         }
     }
 
-    pub fn xpipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
-        if self._pipe == pipe_ {
-            self._pipe = null_mut();
+    pub fn xpipe_terminated(&mut self, in_pipe: &mut ZmqPipe) {
+        if self.pipe == in_pipe {
+            self.pipe = &mut ZmqPipe::default();
         }
     }
 
-    pub fn xread_activated(&mut self, pipe: &mut ZmqPipe)
-    {
+    pub fn xread_activated(&mut self, pipe: &mut ZmqPipe) {
         unimplemented!()
     }
 
-    pub fn xwrite_activated(&mut self, pipe: &mut ZmqPipe)
-    {
+    pub fn xwrite_activated(&mut self, pipe: &mut ZmqPipe) {
         unimplemented!()
     }
 
-    pub unsafe fn xsend(&mut self, msg: &mut ZmqMsg) -> i32
-    {
-        if msg.flags() & ZmqMsg::more > 0 {
+    pub unsafe fn xsend(&mut self, msg: &mut ZmqMsg) -> i32 {
+        if msg.flag_set(MSG_MORE) {
             return -1;
         }
 
-        if self._pipe == null_mut() || !(*self._pipe).write(msg)
-        {
+        if self.pipe == &mut ZmqPipe::default() || self.pipe.write(msg).is_err() {
             return -1;
         }
 
-        self._pipe.flush();
+        self.pipe.flush();
 
         let rc = (*msg).init2();
 
         return 0;
-
     }
 
-    pub unsafe fn xrecv(&mut self, msg: &mut ZmqMsg) -> i32
-    {
-        let mut rc = (*msg).close();
+    pub unsafe fn xrecv(&mut self, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
+        msg.close()?;
 
-        if (!self._pipe) {
-            rc = (*msg).init2();
-            return -1;
+        if self.pipe = &mut ZmqPipe::default() {
+            (msg).init2()?;
+            return Err(PipeError("pipe is null"));
         }
 
-        let mut read = (*self._pipe).read(msg);
-        
-        while read && msg.flags() & ZmqMsg::more > 0
-        {
-            read = (*self._pipe).read(msg);
-            while read && msg.flags() & ZmqMsg::more > 0
-            {
-                read = (*self._pipe).read(msg);
+        let mut read = (self.pipe).read(msg);
+
+        while read && msg.flags() & ZmqMsg::more > 0 {
+            read = (*self.pipe).read(msg);
+            while read && msg.flags() & ZmqMsg::more > 0 {
+                read = (*self.pipe).read(msg);
             }
 
             if read {
-                read = (*self._pipe).read(msg);
+                read = (*self.pipe).read(msg);
             }
         }
 
@@ -97,19 +96,17 @@ impl ZmqChannel
         return 0;
     }
 
-    pub fn xhas_in(&mut self) -> bool
-    {
-        if !self._pipe {
+    pub fn xhas_in(&mut self) -> bool {
+        if !self.pipe {
             return false;
         }
-        return self._pipe.check_read();
+        return self.pipe.check_read();
     }
 
-    pub fn xhas_out(&mut self) -> bool
-    {
-        if !self._pipe {
+    pub fn xhas_out(&mut self) -> bool {
+        if !self.pipe {
             return false;
         }
-        return self._pipe.check_write();
+        return self.pipe.check_write();
     }
 }

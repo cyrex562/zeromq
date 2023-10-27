@@ -70,7 +70,7 @@ impl ZmqReq {
             self._message_begins = false;
 
             // Eat all currently available messages before the request is fully
-            // sent. This is done to avoid:
+            // sent. This is Done to avoid:
             //   REQ sends request to A, A replies, B replies too.
             //   A's reply was first and matches, that is used.
             //   An hour later REQ sends a request to B. B's old reply is used.
@@ -120,7 +120,10 @@ impl ZmqReq {
                     return rc;
                 }
 
-                if !(msg_.flags() & MSG_MORE) || msg_.size() != size_of_val(&self._request_id) || msg_.data_mut() != self._request_id {
+                if !(msg_.flags() & MSG_MORE)
+                    || msg_.size() != size_of_val(&self._request_id)
+                    || msg_.data_mut() != self._request_id
+                {
                     //  Skip the remaining frames and try the next message
                     while (msg_.flags() & MSG_MORE) {
                         rc = self.recv_reply_pipe(msg_);
@@ -137,7 +140,7 @@ impl ZmqReq {
                 return rc;
             }
 
-            if ((!(msg_.flags() & MSG_MORE) || msg_.size() != 0)) {
+            if (!(msg_.flags() & MSG_MORE) || msg_.size() != 0) {
                 //  Skip the remaining frames and try the next message
                 while (msg_.flags() & ZmqMsg::more) {
                     rc = self.recv_reply_pipe(msg_);
@@ -246,7 +249,13 @@ pub struct req_session_t<'a> {
 }
 
 impl req_session_t {
-    pub fn new(io_thread_: &mut io_thread_t, connect_: bool, socket_: &mut socket_base_t, options_: &ZmqOptions, addr_: address_t) -> Self {
+    pub fn new(
+        io_thread_: &mut io_thread_t,
+        connect_: bool,
+        socket_: &mut socket_base_t,
+        options_: &ZmqOptions,
+        addr_: address_t,
+    ) -> Self {
         Self {
             session_base: ZmqSessionBase::new(io_thread_, connect_, socket_, options_, addr_),
             _state: req_session_state::bottom,
@@ -257,7 +266,7 @@ impl req_session_t {
     pub unsafe fn push_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
         //  Ignore commands, they are processed by the engine and should not
         //  affect the state machine.
-        if ((msg_.flags() & ZmqMsg::command)) {
+        if (msg_.flags() & ZmqMsg::command) {
             return 0;
         }
 

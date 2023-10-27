@@ -137,7 +137,7 @@ impl ZmqXSub {
         if (msg_.is_subscribe() || (size > 0 && *data == 1)) {
             //  Process subscribe message
             //  This used to filter out duplicate subscriptions,
-            //  however this is already done on the XPUB side and
+            //  however this is already Done on the XPUB side and
             //  doing it here as well breaks ZMQ_XPUB_VERBOSE
             //  when there are forwarding devices involved.
             if (!msg_.is_subscribe()) {

@@ -1,7 +1,7 @@
 use std::mem::size_of_val;
 use windows::Win32::Networking::WinSock::{setsockopt, SOCKET_ERROR, SOL_SOCKET};
-use crate::address::{get_socket_name, socket_end_t};
-use crate::address::socket_end_t::socket_end_local;
+use crate::address::{get_socket_name, SocketEnd};
+use crate::address::SocketEnd::SocketEndLocal;
 use crate::defines::{RETIRED_FD, SockaddrStorage};
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::fd::fd_t;
@@ -57,8 +57,8 @@ impl ZmqTcpListener {
 
     // std::string
     // zmq::tcp_listener_t::get_socket_name (zmq::fd_t fd_,
-    //                                       socket_end_t socket_end_) const
-    pub fn get_socket_name(&self, fd_: fd_t, socket_end_: socket_end_t) -> String
+    //                                       SocketEndT socket_end_) const
+    pub fn get_socket_name(&self, fd_: fd_t, socket_end_: SocketEnd) -> String
     {
         return get_socket_name::<ZmqTcpAddress> (fd_, socket_end_);
     }
@@ -71,7 +71,7 @@ impl ZmqTcpListener {
             return -1;
         }
 
-        //  TODO why is this only done for the listener?
+        //  TODO why is this only Done for the listener?
         make_socket_noninheritable (self._s);
 
         //  Allow reusing of the address.
@@ -103,7 +103,7 @@ impl ZmqTcpListener {
 
         //  Bind the socket to the network interface and port.
     // #if defined ZMQ_HAVE_VXWORKS
-    //     rc = bind (_s, (sockaddr *) _address.addr (), _address.addrlen ());
+    //     rc = Bind (_s, (sockaddr *) _address.addr (), _address.addrlen ());
     // #else
         rc = self.bind (self._s, self._address.addr (), self._address.addrlen ());
     // #endif
@@ -161,7 +161,7 @@ impl ZmqTcpListener {
                 return -1;
         }
 
-        self._endpoint = get_socket_name (self._s, socket_end_local);
+        self._endpoint = get_socket_name (self._s, SocketEndLocal);
 
         self._socket.event_listening (make_unconnected_bind_endpoint_pair (self._endpoint),
                                   self._s);

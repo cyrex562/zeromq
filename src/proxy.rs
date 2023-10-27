@@ -1,6 +1,6 @@
 use std::mem::size_of_val;
 use std::ptr::null_mut;
-use crate::config::PROXY_BURST_SIZE;
+use crate::defines::PROXY_BURST_SIZE;
 use crate::defines::{ZMQ_DONTWAIT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_RCVMORE, ZMQ_SNDMORE};
 use crate::msg::ZmqMsg;
 use crate::socket_base::ZmqSocketBase;

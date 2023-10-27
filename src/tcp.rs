@@ -229,7 +229,7 @@ pub unsafe fn tcp_write(s_: fd_t, data_: *const c_void, size_: usize) -> i32 {
     {
         let nbytes = send(s_, (data_), size_, 0);
 
-        //  Several errors are OK. When speculative write is being done we may not
+        //  Several errors are OK. When speculative write is being Done we may not
         //  be able to write a single byte from the socket. Also, SIGSTOP issued
         //  by a debugging tool can result in EINTR Error.
         if (nbytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
@@ -286,7 +286,7 @@ pub unsafe fn tcp_read(s_: fd_t, data_: *mut c_void, size_: usize) -> i32 {
     {
         let rc = recv(s_, (data_), size_, 0);
 
-        //  Several errors are OK. When speculative read is being done we may not
+        //  Several errors are OK. When speculative read is being Done we may not
         //  be able to read a single byte from the socket. Also, SIGSTOP issued
         //  by a debugging tool can result in EINTR Error.
         if (rc == -1) {

@@ -33,7 +33,7 @@ impl ZmqTrie {
 
     // bool zmq::trie_t::add (unsigned char *prefix_, size_t size_)
     pub unsafe fn add(&mut self, prefix_: &str, size_: usize) -> bool {
-        //  We are at the node corresponding to the prefix. We are done.
+        //  We are at the node corresponding to the prefix. We are Done.
         if (!size_) {
             self._refcnt += 1;
             return self._refcnt == 1;
@@ -107,8 +107,8 @@ impl ZmqTrie {
         if (self._count == 1) {
             if (!self._next.node) {
                 self._next.node = &mut ZmqTrie::new(); //new (std::nothrow) trie_t;
-                                                      // alloc_assert (_next.node);
-                                                      // ++_live_nodes;
+                                                       // alloc_assert (_next.node);
+                                                       // ++_live_nodes;
                 self._live_nodes += 1;
                 // zmq_assert (_live_nodes == 1);
             }

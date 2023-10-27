@@ -17,5 +17,9 @@ pub enum ZmqError {
     #[error("poller error")]
     PollerError(&'static str),
     #[error("timer error")]
-    TimerError(&'static str)
+    TimerError(&'static str),
+    #[error("pipe error")]
+    PipeError(&'static str),
+    #[error("message error")]
+    MessageError(&'static str),
 }

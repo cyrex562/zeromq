@@ -1,8 +1,8 @@
 use crate::command::ZmqCommand;
 use crate::ctx::ZmqContext;
 use crate::defines::ZmqHandle;
-use crate::endpoint::ZmqEndpointUriPair;
 use crate::defines::RETIRED_FD;
+use crate::endpoint::ZmqEndpointUriPair;
 use crate::i_engine::IEngine;
 use crate::i_poll_events::IPollEvents;
 use crate::mailbox::ZmqMailbox;
@@ -15,11 +15,12 @@ use crate::utils::get_errno;
 use libc::{getpid, EAGAIN, EINTR};
 use std::ffi::c_void;
 
-pub struct ZmqReaper {
-    pub _object: ZmqObject,
-    pub _mailbox: ZmqMailbox,
+#[derive(Default, Debug, Clone)]
+pub struct ZmqReaper<'a> {
+    pub _object: ZmqObject<'a>,
+    pub _mailbox: ZmqMailbox<'a>,
     pub _mailbox_handle: ZmqHandle,
-    pub _poller: *mut ZmqPoller,
+    pub _poller: &'a mut ZmqPoller,
     pub _sockets: i32,
     pub _terminating: bool,
     #[cfg(feature = "have_fork")]

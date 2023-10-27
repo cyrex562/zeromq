@@ -1,4 +1,4 @@
-
+use std::sync::Mutex;
 
 pub const USECS_PER_MSEC: u64 = 1000;
 pub const NSECS_PER_USEC: u64 = 1000;
@@ -14,13 +14,13 @@ pub struct ZmqClock
 impl ZmqClock {
     pub fn new() -> Self {
         Self {
-            last_tsc: self.rdtsc(),
-            last_time: self.now_us() / USECS_PER_MSEC,
+            last_tsc: Self::rdtsc(),
+            last_time: Self::now_us() / USECS_PER_MSEC,
         }
     }
 
 
-    pub fn rdtsc(&mut self) -> u64 {
+    pub fn rdtsc() -> u64 {
         // TODO on windows __rdtsc()
         // TODO on win for arm __rdpmccntr64()
         // TODO on win for arm 64 some custom assembly + _ReadStatusReg()
@@ -29,7 +29,7 @@ impl ZmqClock {
         unimplemented!();
     }
 
-    pub fn now_us(&mut self) -> u64 {
+    pub fn now_us() -> u64 {
         // TODO get time since system was started in microseconds
         // on windows this function calls QueryPerformanceCounter
         // on linux/osx it queries clock_gettime
@@ -63,9 +63,9 @@ impl ZmqClock {
 
 }
 
-pub type f_compatible_get_tick_count64 = fn() -> u64;
+pub type FCompatibleGetTickCount64 = fn() -> u64;
 
-pub static compatible_get_tick_count64_mutex: Mutex<()> = Mutex::new(());
+pub static COMPATIBLE_GET_TICK_COUNT64_MUTEX: Mutex<()> = Mutex::new(());
 
 pub fn compatible_get_tick_count64() -> u64 {
     // let result = GetTickCount64();
@@ -74,7 +74,7 @@ pub fn compatible_get_tick_count64() -> u64 {
     unimplemented!();
 }
 
-pub fn init_compatible_get_tick_count64() -> f_compatible_get_tick_count64 {
+pub fn init_compatible_get_tick_count64() -> FCompatibleGetTickCount64 {
     // do nothing?
     unimplemented!();
 }

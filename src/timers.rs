@@ -169,7 +169,7 @@ impl Timers {
             if 0 == self._cancelled_timers.remove (&it.1.timer_id) {
                 //  Timer is not cancelled
 
-                //  Map is ordered, if we have to wait for current timer we can stop.
+                //  Map is ordered, if we have to wait for current timer we can Stop.
                 if (it.0 > now) {
                     break;
                 }

@@ -1,7 +1,7 @@
-
-
 use crate::address::ZmqAddress;
-use crate::defines::{MSG_COMMAND, MSG_MORE, ZMQ_DGRAM, ZMQ_DISH, ZMQ_NULL, ZMQ_RADIO, ZMQ_SUB, ZMQ_XSUB};
+use crate::defines::{
+    MSG_COMMAND, MSG_MORE, ZMQ_DGRAM, ZMQ_DISH, ZMQ_NULL, ZMQ_RADIO, ZMQ_SUB, ZMQ_XSUB,
+};
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::i_engine::ErrorReason::TimeoutError;
 use crate::i_engine::{ErrorReason, IEngine};
@@ -11,7 +11,7 @@ use crate::msg::ZmqMsg;
 use crate::object::ZmqObject;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
 use crate::own::ZmqOwn;
-use crate::pipe::{IPipeEvents, pipepair, ZmqPipe};
+use crate::pipe::{pipepair, IPipeEvents, ZmqPipe};
 use crate::socket_base::ZmqSocketBase;
 use std::collections::HashSet;
 use std::ptr::null_mut;
@@ -55,7 +55,7 @@ impl IPipeEvents for ZmqSessionBase {
 //         todo!()
 //     }
 //
-//     fn plug(&mut self, io_thread_: *mut io_thread_t, session_: *mut session_base_t) {
+//     fn Plug(&mut self, io_thread_: *mut io_thread_t, session_: *mut session_base_t) {
 //         todo!()
 //     }
 //
@@ -382,12 +382,12 @@ impl ZmqSessionBase {
             // zmq_assert (!_pipe);
             self._pipe = pipes[0];
 
-            //  The endpoints strings are not set on bind, set them here so that
+            //  The endpoints strings are not set on Bind, set them here so that
             //  events can use them.
             pipes[0].set_endpoint_pair(self._engine.get_endpoint());
             pipes[1].set_endpoint_pair(self._engine.get_endpoint());
 
-            //  Ask socket to plug into the remote end of the pipe.
+            //  Ask socket to Plug into the remote end of the pipe.
             self.send_bind(self._socket, pipes[1]);
         }
     }
@@ -396,7 +396,7 @@ impl ZmqSessionBase {
         //  Engine is dead. Let's forget about it.
         self._engine = None;
 
-        //  Remove any half-done messages from the pipes.
+        //  Remove any half-Done messages from the pipes.
         if (self._pipe != null_mut()) {
             self.clean_pipes();
 
@@ -411,7 +411,7 @@ impl ZmqSessionBase {
                 self._pipe.send_disconnect_msg();
             }
 
-            //  Only send hiccup message if socket was connected and handshake was completed
+            //  Only send Hiccup message if socket was connected and handshake was completed
             if (self._active
                 && handshaked_
                 && self.own.options.can_recv_hiccup_msg
@@ -459,7 +459,7 @@ impl ZmqSessionBase {
     }
 
     pub unsafe fn process_term(&mut self, linger_: i32) {
-        //  If the termination of the pipe happens before the term command is
+        //  If the termination of the pipe happens before the Term command is
         //  delivered there's nothing much to do. We can proceed with the
         //  standard termination immediately.
         if (!self._pipe && !self._zap_pipe && self._terminating_pipes.empty()) {
@@ -551,7 +551,7 @@ impl ZmqSessionBase {
             self.send_term_endpoint(self._socket, ep);
         }
 
-        //  For subscriber sockets we hiccup the inbound pipe, which will cause
+        //  For subscriber sockets we Hiccup the inbound pipe, which will cause
         //  the socket object to resend all the subscriptions.
         if (self._pipe.is_some()
             && (self.own.options.type_ == ZMQ_SUB
@@ -584,7 +584,7 @@ impl ZmqSessionBase {
                 // alloc_assert (proxy_address);
                 // connecter = new (std::nothrow) socks_connecter_t (
                 //   io_thread, this, options, _addr, proxy_address, wait_);
-                // connecter = socks_connecter_t::new2 (io_thread, self, self.own.options, self._addr, proxy_address, wait_);
+                // connecter = socks_connecter_t::new2 (io_thread, self, self.Own.options, self._addr, proxy_address, wait_);
                 // alloc_assert (connecter);
                 if (!self.own.options.socks_proxy_username.empty()) {
                     // reinterpret_cast<socks_connecter_t *> (connecter)

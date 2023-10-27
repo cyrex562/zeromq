@@ -1,103 +1,99 @@
-use std::ptr::null_mut;
 use crate::ypipe_base::ZmqYPipeBase;
 use crate::yqueue::YQueue;
 
-pub struct ZmqYPipe<T: Clone + PartialEq + Default, const N: usize> {
+pub struct ZmqYPipe<'a, T: Clone + PartialEq + Default> {
     pub base: ZmqYPipeBase<T>,
-    pub _queue: YQueue<T,N>,
-    pub _w: *mut T,
-    pub _r: *mut T,
-    pub _f: *mut T,
-    pub _c: *mut T
+    pub queue: YQueue<T>,
+    pub w: &'a mut T,
+    pub r: &'a mut T,
+    pub f: &'a mut T,
+    pub c: &'a mut T,
 }
 
-impl <T: Clone + PartialEq + Default, const N: usize> ZmqYPipe<T,N>
-{
+impl<T: Clone + PartialEq + Default> ZmqYPipe<T> {
     pub fn new() -> Self {
-        let mut out = Self  {
+        let mut out = Self {
             base: ZmqYPipeBase::new(),
-            _queue: YQueue::new(),
-            _w: std::ptr::null_mut(),
-            _r: std::ptr::null_mut(),
-            _f: std::ptr::null_mut(),
-            _c: std::ptr::null_mut()
+            queue: YQueue::new(),
+            w: &mut T::default(),
+            r: &mut T::default(),
+            f: &mut T::default(),
+            c: &mut T::default(),
         };
-        out._queue.push();
-        out._r = out._queue.back_mut();
-        out._w = out._r;
-        out._f = out._r;
-        out._c = out._queue.back_mut();
+        out.queue.push();
+        out.r = out.queue.back_mut().unwrap();
+        out.w = out.r;
+        out.f = out.r;
+        out.c = out.queue.back_mut().unwrap();
         out
     }
 
-    pub unsafe fn write(&mut self, value_: &mut T, incomplete_: bool)
-    {
-        self._queue.set_back(value_);
-        self._queue.push();
+    pub fn write(&mut self, value_: &mut T, incomplete_: bool) {
+        self.queue.set_back(value_);
+        self.queue.push();
         if !incomplete_ {
-            self._f = &mut *self._queue.back_mut();
+            self.f = &mut *self.queue.back_mut();
         }
     }
-    
+
     pub unsafe fn unwrite(&mut self, value_: *mut T) -> bool {
-        if self._f == self._queue.back_mut() {
+        if self.f == self.queue.back_mut() {
             return false;
         }
-        self._queue.unpush();
-        *value_ = self._queue.back().clone();
+        self.queue.unpush();
+        *value_ = self.queue.back().clone();
         return true;
     }
 
     pub fn flush(&mut self) -> bool {
-        if self._w == self._f {
+        if self.w == self.f {
             return true;
         }
 
-        if self._c != self._w {
-            self._c = self._f;
-            self._w = self._f;
+        if self.c != self.w {
+            self.c = self.f;
+            self.w = self.f;
             return false;
         }
 
-        self._w = self._f;
+        self.w = self.f;
         return true;
     }
 
-    pub unsafe fn check_read(&mut self) ->  bool
-    {
-        if self._queue.front_mut() != self._r && self._r != null_mut() {
+    pub fn check_read(&mut self) -> bool {
+        if self.queue.front_mut().unwrap() != self.r && self.r != &mut T::default() {
             return true;
         }
 
-        self._r = self._c;
-        if self._queue.front_mut() == self._r || self._r == null_mut() {
+        self.r = self.c;
+        if self.queue.front_mut().unwrap() == self.r || self.r == &mut T::default() {
             return false;
         }
 
         return true;
     }
 
-    pub unsafe fn read(&mut self, value_: *mut T) -> bool {
+    pub fn read(&mut self, value_: &mut T) -> bool {
         if !self.check_read() {
             return false;
         }
 
-        *value_ = self._queue.front().clone();
-        self._queue.pop();
+        *value_ = self.queue.front().clone();
+        self.queue.pop();
         return true;
     }
-    
-    pub unsafe fn probe(&mut self, func: fn (t: &T)->bool) -> bool {
+
+    pub unsafe fn probe(&mut self, func: fn(t: &T) -> bool) -> bool {
         if !self.check_read() {
             return false;
         }
 
-        if !func(self._queue.front()) {
+        if !func(self.queue.front().unwrap()) {
             return false;
         }
 
         // self._queue.pop();
+        self.queue.pop_back();
         return true;
     }
-
 }

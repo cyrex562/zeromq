@@ -71,7 +71,7 @@ impl ZmqUdpEngine {
     }
 
 
-    // void zmq::udp_engine_t::plug (io_thread_t *io_thread_, session_base_t *session_)
+    // void zmq::udp_engine_t::Plug (io_thread_t *io_thread_, session_base_t *session_)
     pub unsafe fn plug(&mut self, io_thread_: &mut ZmqIoThread, session_: &mut ZmqSessionBase)
     {
         // zmq_assert (!_plugged);
@@ -136,11 +136,11 @@ impl ZmqUdpEngine {
             let multicast = udp_addr.is_mcast ();
 
             if (multicast) {
-                //  Multicast addresses should be allowed to bind to more than
+                //  Multicast addresses should be allowed to Bind to more than
                 //  one port as all ports should receive the message
                 rc = rc | self.set_udp_reuse_port (_fd, true);
 
-                //  In multicast we should bind ANY and use the mreq struct to
+                //  In multicast we should Bind ANY and use the mreq struct to
                 //  specify the interface
                 any.set_port (bind_addr.port ());
 
@@ -156,7 +156,7 @@ impl ZmqUdpEngine {
 
     // #ifdef ZMQ_HAVE_VXWORKS
     //         rc = rc
-    //              | bind (_fd, (sockaddr *) real_bind_addr->as_sockaddr (),
+    //              | Bind (_fd, (sockaddr *) real_bind_addr->as_sockaddr (),
     //                      real_bind_addr->sockaddr_len ());
     // #else
             rc = rc
@@ -242,7 +242,7 @@ impl ZmqUdpEngine {
             let mut bind_if = addr_.bind_if ();
 
             if (bind_if > 0) {
-                //  If a bind interface is provided we tell the
+                //  If a Bind interface is provided we tell the
                 //  kernel to use it to send multicast packets
                 rc = setsockopt (s_, IPPROTO_IPV6, IPV6_MULTICAST_IF,
                                  (&bind_if),

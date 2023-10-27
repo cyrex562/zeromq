@@ -2,7 +2,7 @@ use std::ptr::null_mut;
 use libc::{ECONNREFUSED, EINPROGRESS};
 use windows::Win32::Networking::WinSock::{SO_REUSEADDR, SOL_SOCKET};
 use crate::address::{ZmqAddress, get_socket_name};
-use crate::address::socket_end_t::socket_end_local;
+use crate::address::SocketEnd::SocketEndLocal;
 use crate::defines::ZMQ_RECONNECT_STOP_CONN_REFUSED;
 use crate::endpoint::make_unconnected_connect_endpoint_pair;
 use crate::defines::RETIRED_FD;
@@ -72,7 +72,7 @@ impl ZmqTcpConnecter
             return;
         }
 
-        self.create_engine (fd, get_socket_name::<ZmqTcpAddress> (fd, socket_end_local));
+        self.create_engine (fd, get_socket_name::<ZmqTcpAddress> (fd, SocketEndLocal));
     }
 
     // void zmq::tcp_connecter_t::timer_event (int id_)
@@ -183,7 +183,7 @@ impl ZmqTcpConnecter
     // #endif
 
     // #if defined ZMQ_HAVE_VXWORKS
-    //         rc = ::bind (_s, (sockaddr *) tcp_addr->src_addr (),
+    //         rc = ::Bind (_s, (sockaddr *) tcp_addr->src_addr (),
     //                      tcp_addr->src_addrlen ());
     // #else
             rc = libc::bind (self._s, tcp_addr.src_addr (), tcp_addr.src_addrlen ());

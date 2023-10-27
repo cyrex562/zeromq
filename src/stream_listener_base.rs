@@ -1,9 +1,9 @@
 use crate::address::get_socket_name;
-use crate::address::socket_end_t::{socket_end_local, socket_end_remote};
+use crate::address::SocketEnd::{SocketEndLocal, SocketEndRemote};
+use crate::defines::RETIRED_FD;
 use crate::defines::{ZmqFd, ZmqHandle};
 use crate::endpoint::ZmqEndpointType::endpoint_type_bind;
-use crate::endpoint::{ZmqEndpointUriPair, make_unconnected_connect_endpoint_pair};
-use crate::defines::RETIRED_FD;
+use crate::endpoint::{make_unconnected_connect_endpoint_pair, ZmqEndpointUriPair};
 use crate::i_engine::IEngine;
 use crate::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
@@ -39,7 +39,7 @@ impl ZmqStreamListenerBase {
     }
 
     pub unsafe fn get_local_address(&mut self, addr_: &mut String) -> i32 {
-        *addr_ = get_socket_name(self._s, socket_end_local);
+        *addr_ = get_socket_name(self._s, SocketEndLocal);
         if addr_.is_empty() {
             return -1;
         }
@@ -74,8 +74,8 @@ impl ZmqStreamListenerBase {
 
     pub unsafe fn create_engine(&mut self, fd_: ZmqFd) {
         let endpoint_pair = ZmqEndpointUriPair::new(
-            get_socket_name(fd_, socket_end_local),
-            get_socket_name(fd_, socket_end_remote),
+            get_socket_name(fd_, SocketEndLocal),
+            get_socket_name(fd_, SocketEndRemote),
             endpoint_type_bind,
         );
 

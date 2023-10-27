@@ -1,12 +1,9 @@
-use crate::array::ZmqArray;
-use crate::defines::MSG_MORE;
+use crate::defines::{MSG_MORE, ZmqPipes};
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 
-pub type ZmqPipes = ZmqArray<ZmqPipe, 2>;
-
-pub struct ZmqDist {
-    pub _pipes: ZmqPipes,
+pub struct ZmqDist<'a> {
+    pub _pipes: ZmqPipes<'a>,
     pub _matching: usize,
     pub _active: usize,
     pub _eligible: usize,

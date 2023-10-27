@@ -233,7 +233,7 @@ zmq_disconnect(socket, "inproc://my_publisher")
         * ZMQ_RCVTIMEO: get timeout for receive operation
         * ZMQ_RECONNECT_IVL: get reconnection interval
         * ZMQ_RECONNECT_IVL_MAX: get maximum reconnection interval
-        * ZMQ_RECONNECT_STOP: retrieve condition where reconnection will stop
+        * ZMQ_RECONNECT_STOP: retrieve condition where reconnection will Stop
         * ZMQ_RECOVERY_IVL: get multicast recovery interval
         * ZMQ_ROUTING_ID: get socket routing id
         * ZMQ_SNDBUF: get kernel transmit buffer size
@@ -499,7 +499,7 @@ if (rc < 0 && errno == EINTR && sigterm_received) {
 
 ### zmq_unbind
 
-* stop accepting connections on a socket
+* Stop accepting connections on a socket
 
 ### zmq_term
 
@@ -552,7 +552,7 @@ if (rc < 0 && errno == EINTR && sigterm_received) {
       inter-thread communication across the inproc transport
         * ZMQ_PAIR
     * peer-to-peer pattern: connect a peer to multiple peers. each peer can send and receive messages.Peers can mix and
-      match connect and bind on the same socket.
+      match connect and Bind on the same socket.
         * ZMQ_PEER
     * channel pattern: thread-safe version of the exclusive-pair pattern
         * ZMQ_CHANNEL
@@ -627,7 +627,7 @@ zmq_ctx_destroy (ctx);
 * ZMQ_CURVE_SERVER: set CURVE server role
 * ZMQ_CURVE_SERVERKEY: set CURVE server key
 * ZMQ_DISCONNECT_MSG: set a disconnect message that the socket will generate when accepted after peer disconnect
-* ZMQ_HICCUP_MSG: set a hiccup msg that the socket will generate when Connected peer temporarily disconnects
+* ZMQ_HICCUP_MSG: set a Hiccup msg that the socket will generate when Connected peer temporarily disconnects
 * ZMQ_GSSAPI_PLAINTEXT: disable GSSAPI encryption
 * ZMQ_GSSAPI_PRINCIPAL: set GSSAPI principal
 * ZMQ_GSSAPI_SERVER: set GSSAPI server role
@@ -660,7 +660,7 @@ zmq_ctx_destroy (ctx);
 * ZMQ_RCVTIMEO: set timeout for receive operation on socket
 * ZMQ_RECONNECT_IVL: set reconnection interval
 * ZMQ_RECONNECT_IVL_MAX: set maximum reconnection interval
-* ZMQ_RECONNECT_STOP: set condition where reconnect will stop
+* ZMQ_RECONNECT_STOP: set condition where reconnect will Stop
 * ZMQ_RECOVERY_IVL: set multicast recovery interval
 * ZMQ_REQ_CORRELATE: match replies with requests
 * ZMQ_REQ_RELAXED: relax strict alternation between request and reply
@@ -790,12 +790,12 @@ assert (zmq_msg_close (&stats_msg) == 0);
 
 * provides a mechanism for authentication and confidentiality for ZMQ sockets between a client and a server.
 * Intended for use on public netweorks
-* Sockets must switch between client/server roles; independent of bind/connect direction. Sockets change roles by
+* Sockets must switch between client/server roles; independent of Bind/connect direction. Sockets change roles by
   setting new options. Role changes affect all subsequent zmq_connect and zmq_bind calls
 * Application sets the ZMQ_CURVE_SERVER option on the socket to make it a server socket. The app then sets the
-  ZMQ_CURVE_SECRETYKEY option to provide the socket with its long-term support key.
+  ZMQ_CURVE_SECRETYKEY option to provide the socket with its long-Term support key.
 * Application sets the ZMQ_CURVE_SERVERKEY option on the socket to provide the socket with the public key of the server
-  it is connecting to. The app then sets the ZMQ_CURVE_PUBLICKEY option to provide the socket with its long-term public
+  it is connecting to. The app then sets the ZMQ_CURVE_PUBLICKEY option to provide the socket with its long-Term public
   key.
 * Keys are represented as 32 bytes of binary data or 40 characters of base 85 data. The base 85 encoding is compatible
   with the Z85 functions.

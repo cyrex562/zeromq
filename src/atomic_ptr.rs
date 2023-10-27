@@ -1,5 +1,4 @@
 use std::ffi::c_void;
-use std::ptr::swap;
 use std::sync::atomic::{AtomicPtr, Ordering};
 
 

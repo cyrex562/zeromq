@@ -1,7 +1,5 @@
 use std::ffi::c_void;
 use std::mem::size_of_val;
-use std::ptr::null_mut;
-use crate::blob::ZmqBlob;
 use crate::ctx::ZmqContext;
 use crate::fair_queue::ZmqFairQueue;
 use crate::msg::ZmqMsg;
@@ -112,7 +110,7 @@ impl ZmqStream {
         if self._current_out {
             // Close the remote connection if user has asked to do so
             // by sending zero length message.
-            // Pending messages in the pipe will be dropped (on receiving term- ack)
+            // Pending messages in the pipe will be dropped (on receiving Term- ack)
             if msg_.size() == 0 {
                 self._current_out.terminate(false);
                 let mut rc = msg_.close();
@@ -249,7 +247,7 @@ impl ZmqStream {
         // unsigned char buffer[5];
         let mut buffer: [u8; 5] = [0; 5];
         buffer[0] = 0;
-        let mut routing_id: ZmqBlob = ZmqBlob::new();
+        let mut routing_id: Vec<u8> = vec![];
         if (locally_initiated_ && self.connect_routing_id_is_set()) {
             let mut connect_routing_id = self.extract_connect_routing_id();
             routing_id.set(
