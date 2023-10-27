@@ -1,4 +1,5 @@
-use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::defines::MSG_MORE;
+use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;
 

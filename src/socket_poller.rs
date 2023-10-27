@@ -5,18 +5,18 @@ use windows::Win32::Networking::WinSock::{FD_SET, POLLIN, POLLOUT, POLLPRI};
 use windows::Win32::System::Threading::{INFINITE, Sleep};
 use crate::clock::ZmqClock;
 use crate::defines::{ZMQ_FD, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI, ZmqFd};
-use crate::fd::fd_t;
+use crate::poller_event::ZmqPollerEvent;
 use crate::polling_util::ResizableOptimizedFdSetT;
 use crate::select::{fd_set, FD_SET, FD_ZERO, FD_CLR};
 use crate::signaler::ZmqSignaler;
 use crate::socket_base::ZmqSocketBase;
 use crate::utils::FD_ISSET;
 
-pub type ZmqEvent = zmq_poller_event_t;
+pub type ZmqEvent = ZmqPollerEvent;
 
 pub struct ZmqItem {
-    pub socket: *mut ZmqSocketBase,
-    pub fd: fd_t,
+    pub socket: &'a mut ZmqSocketBase<'a>,
+    pub fd: ZmqFd,
     pub user_data: *mut c_void,
     pub events: i16,
     pub pollfd_index: i32,
@@ -476,7 +476,7 @@ impl ZmqSocketPoller {
         return 1;
     }
 
-    pub unsafe fn wait(&mut self, events_: t ZmqEvent, n_events_: i32, timeout_: i32) -> i32 {
+    pub unsafe fn wait(&mut self, events_: &[ZmqEvent], n_events_: i32, timeout_: i32) -> i32 {
         if (self._items.empty() && timeout_ < 0) {
             // errno = EFAULT;
             return -1;

@@ -1,7 +1,7 @@
 use crate::ctx::ZmqContext;
-use crate::defines::{ZMQ_RADIO, ZMQ_XPUB_NODROP};
+use crate::defines::{MSG_COMMAND, MSG_MORE, ZMQ_RADIO, ZMQ_XPUB_NODROP};
 use crate::dist::ZmqDist;
-use crate::msg::{MSG_COMMAND, MSG_MORE, ZmqMsg};
+use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
@@ -198,7 +198,7 @@ impl radio_session_t {
 
     pub unsafe fn push_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if msg_.flag_set(MSG_COMMAND) {
-            let mut command_data = msg_.data();
+            let mut command_data = msg_.data_mut();
             let data_size = msg_.size ();
 
             let mut group_length = 0usize;
@@ -255,7 +255,7 @@ impl radio_session_t {
             rc = msg_.init_size (length);
             // errno_assert (rc == 0);
             msg_.set_flags (MSG_MORE);
-            libc::memcpy (msg_.data () as *mut c_void, group.as_ptr() as *const c_void, length);
+            libc::memcpy (msg_.data_mut() as *mut c_void, group.as_ptr() as *const c_void, length);
     
             //  Next status is the body
             self._state = radio_session_state::body;

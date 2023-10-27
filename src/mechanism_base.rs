@@ -23,7 +23,7 @@ impl ZmqMechanismBase
 
     pub unsafe fn check_basic_command_structure(&mut self, msg_: *mut ZmqMsg) -> i32 {
         if ((*msg_).size () <= 1
-            || (*msg_).size () <= ( ((*msg_).data ()))[0]) {
+            || (*msg_).size () <= ( ((*msg_).data_mut()))[0]) {
             self.session.get_socket ().event_handshake_failed_protocol (
                 self.session.get_endpoint (),
                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED);

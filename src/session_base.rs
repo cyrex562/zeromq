@@ -1,17 +1,17 @@
 
 
 use crate::address::ZmqAddress;
-use crate::defines::{ZMQ_DGRAM, ZMQ_DISH, ZMQ_NULL, ZMQ_RADIO, ZMQ_SUB, ZMQ_XSUB};
+use crate::defines::{MSG_COMMAND, MSG_MORE, ZMQ_DGRAM, ZMQ_DISH, ZMQ_NULL, ZMQ_RADIO, ZMQ_SUB, ZMQ_XSUB};
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::i_engine::ErrorReason::TimeoutError;
 use crate::i_engine::{ErrorReason, IEngine};
 use crate::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
-use crate::msg::{MSG_COMMAND, MSG_MORE, ZmqMsg};
+use crate::msg::ZmqMsg;
 use crate::object::ZmqObject;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
 use crate::own::ZmqOwn;
-use crate::pipe::{IPipeEvents, ZmqPipe, pipepair};
+use crate::pipe::{IPipeEvents, pipepair, ZmqPipe};
 use crate::socket_base::ZmqSocketBase;
 use std::collections::HashSet;
 use std::ptr::null_mut;

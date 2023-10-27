@@ -1,6 +1,7 @@
 use crate::decoder::ZmqDecoderBase;
 use crate::decoder_allocators::ZmqSharedMessageMemoryAllocator;
-use crate::msg::{MSG_COMMAND, ZmqMsg};
+use crate::defines::MSG_COMMAND;
+use crate::msg::ZmqMsg;
 use crate::utils::get_u64;
 
 pub struct V2Decoder {
@@ -124,7 +125,7 @@ impl V2Decoder {
         // or
         // to the current start address in the buffer because the message
         // was constructed to use n bytes from the address passed as argument
-        self.next_step(self._in_progress.data(), self._in_progress.size(),
+        self.next_step(self._in_progress.data_mut(), self._in_progress.size(),
                        &V2Decoder::message_ready);
 
         return 0;

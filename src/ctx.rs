@@ -20,7 +20,7 @@ use crate::reaper::ZmqReaper;
 use crate::thread::{ZmqThread, ZmqThreadFn};
 use crate::{command::ZmqCommand, socket_base::ZmqSocketBase};
 
-pub type io_threads_t<'a> = Vec<&'a mut ZmqIoThread>;
+pub type io_threads_t<'a> = Vec<&'a mut ZmqIoThread<'a>>;
 
 #[cfg(target_os = "windows")]
 pub type ZmqPid = i32;

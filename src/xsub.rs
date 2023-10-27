@@ -1,10 +1,8 @@
 use crate::ctx::ZmqContext;
-use crate::defines::{
-    ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_XSUB, ZMQ_XSUB_VERBOSE_UNSUBSCRIBE,
-};
+use crate::defines::{MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_XSUB, ZMQ_XSUB_VERBOSE_UNSUBSCRIBE};
 use crate::dist::ZmqDist;
 use crate::fair_queue::ZmqFairQueue;
-use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::msg::ZmqMsg;
 use crate::options::{do_getsockopt, ZmqOptions};
 use crate::pipe::ZmqPipe;
 use crate::radix_tree::ZmqRadixTree;
@@ -124,7 +122,7 @@ impl ZmqXSub {
 
     pub unsafe fn xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
         let mut size = msg_.size();
-        let mut data = (msg_.data());
+        let mut data = (msg_.data_mut());
 
         let first_part = !self._more_send;
         self._more_send = msg_.flag_set(MSG_MORE);
@@ -260,7 +258,7 @@ impl ZmqXSub {
     
     pub unsafe fn match_(&mut self, msg_: &mut ZmqMsg) -> bool {
         let matching = self._subscriptions.check (
-           (msg_.data ()), msg_.size ());
+            (msg_.data_mut()), msg_.size ());
     
         return matching ^ self.options.invert_matching;
     }

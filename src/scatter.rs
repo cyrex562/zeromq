@@ -1,7 +1,7 @@
 use crate::ctx::ZmqContext;
-use crate::defines::ZMQ_SCATTER;
+use crate::defines::{MSG_MORE, ZMQ_SCATTER};
 use crate::load_balancer::ZmqLoadBalancer;
-use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocketBase;

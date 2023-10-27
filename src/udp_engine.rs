@@ -4,7 +4,7 @@ use std::mem::size_of_val;
 use libc::{bind, recvfrom, sendto, sockaddr};
 use windows::Win32::Networking::WinSock::{AF_INET, AF_INET6, INADDR_NONE, IP_ADD_MEMBERSHIP, IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_UDP, IPV6_ADD_MEMBERSHIP, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, setsockopt, SO_REUSEADDR, SOCK_DGRAM, SOCKADDR_IN, SOCKADDR_STORAGE, SOL_SOCKET, WSAEWOULDBLOCK, WSAGetLastError};
 use crate::address::ZmqAddress;
-use crate::defines::{RETIRED_FD, ZmqHandle};
+use crate::defines::{MSG_MORE, RETIRED_FD, ZmqHandle};
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::fd::fd_t;
 use crate::i_engine::ErrorReason;
@@ -12,7 +12,7 @@ use crate::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
 use crate::ip::{open_socket, unblock_socket};
 use crate::ip_resolver::ZmqIpAddress;
-use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 use crate::udp_address::UdpAddress;
@@ -365,7 +365,7 @@ impl ZmqUdpEngine {
 
         //  use memcpy instead of strcpy/strcat, since this is more efficient when
         //  we already know the lengths, which we calculated above
-        let address = (msg_.data ());
+        let address = (msg_.data_mut());
         libc::memcpy (address, name.as_ptr() as *const c_void, name_len);
         address = address.add(name_len);
         // *address++ = ':';
@@ -457,8 +457,8 @@ impl ZmqUdpEngine {
             let mut size = 0usize;
 
             if (self._options.raw_socket) {
-                rc = self.resolve_raw_address ((group_msg.data ()),
-                                          group_size);
+                rc = self.resolve_raw_address ((group_msg.data_mut()),
+                                               group_size);
 
                 //  We discard the message if address is not valid
                 if (rc != 0) {
@@ -479,7 +479,7 @@ impl ZmqUdpEngine {
 
                 // TODO: check if larger than maximum size
                 self._out_buffer[0] = (group_size);
-               libc::memcpy (self._out_buffer + 1, group_msg.data (), group_size);
+               libc::memcpy (self._out_buffer + 1, group_msg.data_mut(), group_size);
                 libc::memcpy (self._out_buffer + 1 + group_size, body_msg.data (), body_size);
             }
 
@@ -589,7 +589,7 @@ impl ZmqUdpEngine {
             rc = msg.init_size (group_size);
             // errno_assert (rc == 0);
             msg.set_flags (MSG_MORE);
-            libc::memcpy (msg.data (), group_buffer, group_size);
+            libc::memcpy (msg.data_mut(), group_buffer, group_size);
 
             //  This doesn't fit, just ignore
             if (nbytes - 1 < group_size) {
@@ -616,7 +616,7 @@ impl ZmqUdpEngine {
         // errno_assert (rc == 0);
         rc = msg.init_size (body_size);
         // errno_assert (rc == 0);
-        libc::memcpy (msg.data (), self._in_buffer[body_offset..], body_size);
+        libc::memcpy (msg.data_mut(), self._in_buffer[body_offset..], body_size);
 
         // Push message body to session
         rc = self._session.push_msg (&mut msg);

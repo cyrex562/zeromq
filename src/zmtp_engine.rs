@@ -1,9 +1,9 @@
 use std::cmp::min;
 use std::mem::size_of;
 use libc::EAGAIN;
-use crate::defines::{ZmqFd, ZMQ_CURVE, ZMQ_GSSAPI, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH, ZMQ_PUB, ZMQ_XPUB};
+use crate::defines::{MSG_CANCEL, MSG_PING, MSG_PONG, MSG_ROUTING_ID, MSG_SUBSCRIBE, ZMQ_CURVE, ZMQ_GSSAPI, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH, ZMQ_PUB, ZMQ_XPUB, ZmqFd};
 use crate::endpoint::ZmqEndpointUriPair;
-use crate::msg::{MSG_CANCEL, ZmqMsg, MSG_PING, ping_cmd_name_size, MSG_PONG, MSG_ROUTING_ID, MSG_SUBSCRIBE};
+use crate::msg::{PING_CMD_NAME_SIZE, ZmqMsg};
 use crate::null_mechanism::ZmqNullMechanism;
 use crate::options::ZmqOptions;
 use crate::stream_engine_base::{HEARTBEAT_TIMEOUT_TIMER_ID, HEARTBEAT_TTL_TIMER_ID, ZmqStreamEngineBase};
@@ -259,8 +259,8 @@ impl ZmtpEngine {
         // zmq_assert (rc == 0);
         rc = self._routing_id_msg.init_size (self._options.routing_id_size);
         // zmq_assert (rc == 0);
-        libc::memcpy (self._routing_id_msg.data (), self._options.routing_id,
-                self._options.routing_id_size);
+        libc::memcpy (self._routing_id_msg.data_mut(), self._options.routing_id,
+                      self._options.routing_id_size);
         self._encoder.load_msg (&self._routing_id_msg);
         let buffer_size = self._encoder.encode (&bufferp, header_size);
         // zmq_assert (buffer_size == header_size);
@@ -429,7 +429,7 @@ impl ZmtpEngine {
         let rc = msg_.init_size (self._options.routing_id_size);
         // errno_assert (rc == 0);
         if (self._options.routing_id_size > 0) {
-            libc::memcpy(msg_.data(), self._options.routing_id, self._options.routing_id_size);
+            libc::memcpy(msg_.data_mut(), self._options.routing_id, self._options.routing_id_size);
         }
         self._next_msg = &ZmtpEngine::pull_msg_from_session;
         return 0;
@@ -458,7 +458,7 @@ impl ZmtpEngine {
             let mut rc = subscription.init_size (1);
             // errno_assert (rc == 0);
             // *static_cast<unsigned char *> (subscription.data ()) = 1;
-            subscription.data()[0] = 1;
+            subscription.data_mut()[0] = 1;
             rc = self.session ().push_msg (&subscription);
             // errno_assert (rc == 0);
         }
@@ -472,17 +472,17 @@ impl ZmtpEngine {
     pub unsafe fn produce_ping_message(&mut self, msg_: &mut ZmqMsg) -> i32
     {
         // 16-bit TTL + \4PING == 7
-        let ping_ttl_len = ping_cmd_name_size + 2;
+        let ping_ttl_len = PING_CMD_NAME_SIZE + 2;
         // zmq_assert (_mechanism != NULL);
 
         let rc = msg_.init_size (ping_ttl_len);
         // errno_assert (rc == 0);
         msg_.set_flags (ZmqMsg::command);
         // Copy in the command message
-        libc::memcpy (msg_.data (), "\4PING", ZmqMsg::ping_cmd_name_size);
+        libc::memcpy (msg_.data_mut(), "\4PING", ZmqMsg::ping_cmd_name_size);
 
         let ttl_val = (self._options.heartbeat_ttl.to_be () as u16);
-        libc::memcpy ((msg_.data ()) + ZmqMsg::ping_cmd_name_size,
+        libc::memcpy ((msg_.data_mut()) + ZmqMsg::ping_cmd_name_size,
                       &ttl_val, size_of::<ttl_val>());
 
         rc = self._mechanism.encode (msg_);
@@ -513,15 +513,15 @@ impl ZmtpEngine {
     {
         if (msg_.is_ping ()) {
             // 16-bit TTL + \4PING == 7
-            let ping_ttl_len = ping_cmd_name_size + 2;
+            let ping_ttl_len = PING_CMD_NAME_SIZE + 2;
             let ping_max_ctx_len = 16;
             let mut remote_heartbeat_ttl = 0;
 
             // Get the remote heartbeat TTL to setup the timer
             libc::memcpy (&remote_heartbeat_ttl,
-                     (msg_.data ())
-                      + ping_cmd_name_size,
-                    ping_ttl_len - ping_cmd_name_size);
+                          (msg_.data_mut())
+                      + PING_CMD_NAME_SIZE,
+                          ping_ttl_len - PING_CMD_NAME_SIZE);
             remote_heartbeat_ttl = (remote_heartbeat_ttl.to_be());
             // The remote heartbeat is in 10ths of a second
             // so we multiply it by 100 to get the timer interval in ms.
@@ -543,11 +543,11 @@ impl ZmtpEngine {
               self._pong_msg.init_size (ZmqMsg::ping_cmd_name_size + context_len);
             // errno_assert (rc == 0);
             self._pong_msg.set_flags (ZmqMsg::command);
-            libc::memcpy (self._pong_msg.data (), "\4PONG", ZmqMsg::ping_cmd_name_size);
+            libc::memcpy (self._pong_msg.data_mut(), "\4PONG", ZmqMsg::ping_cmd_name_size);
             if (context_len > 0)
-                libc::memcpy (self._pong_msg.data ())
-                          + ping_cmd_name_size,
-                        (msg_.data ()) + ping_ttl_len,
+                libc::memcpy (self._pong_msg.data_mut())
+                          + PING_CMD_NAME_SIZE,
+                        (msg_.data_mut()) + ping_ttl_len,
                         context_len);
 
             self._next_msg = self.produce_pong_message;
@@ -560,8 +560,8 @@ impl ZmtpEngine {
     // int zmq::zmtp_engine_t::process_command_message (msg_t *msg_)
     pub unsafe fn process_command_message(&mut self, msg_: &mut ZmqMsg) -> i32
     {
-        let cmd_name_size = (msg_.data ()));
-        let ping_name_size = ping_cmd_name_size - 1;
+        let cmd_name_size = (msg_.data_mut()));
+        let ping_name_size = PING_CMD_NAME_SIZE - 1;
         let sub_name_size = sub_cmd_name_size - 1;
         let cancel_name_size = cancel_cmd_name_size - 1;
         //  Malformed command

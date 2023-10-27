@@ -15,6 +15,6 @@ impl ZmqRawEncoder {
     }
     
     pub unsafe fn raw_message_ready(&mut self) {
-        self.encoder_base.next_step((*self.encoder_base.in_progress()).data(), self.encoder_base.in_progress().size(), true, self.raw_message_ready)
+        self.encoder_base.next_step((*self.encoder_base.in_progress()).data_mut(), self.encoder_base.in_progress().size(), true, self.raw_message_ready)
     }
 }

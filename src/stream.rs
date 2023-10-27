@@ -75,7 +75,7 @@ impl ZmqStream {
                 //  If there's no such pipe return an Error
 
                 let mut out_pipe = lookup_out_pipe(
-                    blob_t((msg_.data()),
+                    blob_t((msg_.data_mut()),
                            msg_.size(), reference_tag_t()));
 
                 if (out_pipe) {
@@ -194,7 +194,7 @@ impl ZmqStream {
             msg_.set_metadata(metadata);
         }
 
-        libc::memcpy(msg_.data(), routing_id.data() as *const c_void, routing_id.size());
+        libc::memcpy(msg_.data_mut(), routing_id.data() as *const c_void, routing_id.size());
         msg_.set_flags(ZmqMsg::more);
 
         self._prefetched = true;
@@ -231,7 +231,7 @@ impl ZmqStream {
             self._prefetched_routing_id.set_metadata(metadata);
         }
 
-        libc::memcpy(self._prefetched_routing_id.data(), routing_id.data() as *const c_void,
+        libc::memcpy(self._prefetched_routing_id.data_mut(), routing_id.data() as *const c_void,
                      routing_id.size());
         self._prefetched_routing_id.set_flags(ZmqMsg::more);
 

@@ -71,7 +71,7 @@ void test_shared_refcounted ()
     // Test ZMQ_SHARED property (case 1, refcounted messages)
     ZmqMessage msg_a;
     TEST_ASSERT_SUCCESS_ERRNO (
-      zmq_msg_init_size (&msg_a, 1024)); // large enough to be a type_lmsg
+      zmq_msg_init_size (&msg_a, 1024)); // large enough to be a TYPE_LMSG
 
     // Message is not shared
     TEST_ASSERT_SUCCESS_ERRNO (zmq_msg_get (&msg_a, ZMQ_SHARED));

@@ -628,3 +628,19 @@ pub const RETIRED_FD: i32 = -1;
 pub type ZmqPollFd = WSAPOLLFD;
 #[cfg(not(target_os="windows"))]
 pub type ZmqPollFd = pollfd;
+
+pub const cancel_cmd_name: &'static str = "\x06CANCEL";
+pub const sub_cmd_name: &'static str = "\x09SUBSCRIBE";
+
+pub const CMD_TYPE_MASK: u8 = 0x1c;
+
+pub const MSG_MORE: u8 = 1;
+pub const MSG_COMMAND: u8 = 2;
+pub const MSG_PING: u8 = 4;
+pub const MSG_PONG: u8 = 8;
+pub const MSG_SUBSCRIBE: u8 = 12;
+pub const MSG_CANCEL: u8 = 16;
+pub const MSG_CLOSE_CMD: u8 = 20;
+pub const MSG_CREDENTIAL: u8 = 32;
+pub const MSG_ROUTING_ID: u8 = 64;
+pub const MSG_SHARED: u8 = 128;

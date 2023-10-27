@@ -1,6 +1,6 @@
 use crate::dealer::ZmqDealer;
-use crate::defines::{ZMQ_REQ, ZMQ_REQ_CORRELATE, ZMQ_REQ_RELAXED};
-use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::defines::{MSG_MORE, ZMQ_REQ, ZMQ_REQ_CORRELATE, ZMQ_REQ_RELAXED};
+use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
@@ -45,7 +45,7 @@ impl ZmqReq {
                 // msg_t id;
                 let mut id = ZmqMsg::default();
                 let mut rc = id.init_size(4);
-                libc::memcpy(id.data(), &self._request_id, 4);
+                libc::memcpy(id.data_mut(), &self._request_id, 4);
                 // errno_assert (rc == 0);
                 id.set_flags(ZmqMsg::more);
 
@@ -120,7 +120,7 @@ impl ZmqReq {
                     return rc;
                 }
 
-                if !(msg_.flags() & MSG_MORE) || msg_.size() != size_of_val(&self._request_id) || msg_.data() != self._request_id {
+                if !(msg_.flags() & MSG_MORE) || msg_.size() != size_of_val(&self._request_id) || msg_.data_mut() != self._request_id {
                     //  Skip the remaining frames and try the next message
                     while (msg_.flags() & MSG_MORE) {
                         rc = self.recv_reply_pipe(msg_);

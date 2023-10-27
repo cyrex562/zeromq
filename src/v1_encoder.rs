@@ -1,5 +1,5 @@
 use crate::encoder::ZmqEncoderBase;
-use crate::msg::MSG_MORE;
+use crate::defines::MSG_MORE;
 use crate::utils::put_u64;
 
 pub struct V1Encoder {

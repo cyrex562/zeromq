@@ -2,7 +2,7 @@ use std::ptr::null_mut;
 
 use libc::{EAGAIN, ECONNRESET};
 
-use crate::defines::{ZmqFd, ZmqHandle, ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED};
+use crate::defines::{MSG_COMMAND, ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED, ZmqFd, ZmqHandle};
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::i_decoder::IDecoder;
 use crate::i_engine::{ErrorReason, IEngine};
@@ -11,7 +11,7 @@ use crate::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
 use crate::mechanism::ZmqMechanism;
 use crate::metadata::ZmqMetadata;
-use crate::msg::{MSG_COMMAND, ZmqMsg};
+use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 use crate::socket_base::ZmqSocketBase;
@@ -503,7 +503,7 @@ impl ZmqStreamEngineBase {
             let mut msg = ZmqMsg::default();
             let rc = msg.init_size(credential.size());
             // zmq_assert (rc == 0);
-            libc::memcpy(msg.data(), credential.data(), credential.size());
+            libc::memcpy(msg.data_mut(), credential.data(), credential.size());
             msg.set_flags(ZmqMsg::credential);
             rc = self._session.push_msg(&msg);
             if (rc == -1) {

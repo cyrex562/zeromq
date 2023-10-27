@@ -14,4 +14,8 @@ pub enum ZmqError {
     ParseIntError(#[from] std::num::ParseIntError),
     #[error("invalid property")]
     InvalidProperty(&'static str),
+    #[error("poller error")]
+    PollerError(&'static str),
+    #[error("timer error")]
+    TimerError(&'static str)
 }

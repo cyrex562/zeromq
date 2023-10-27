@@ -1,5 +1,6 @@
+use crate::defines::{cancel_cmd_name, MSG_COMMAND, MSG_MORE, sub_cmd_name};
 use crate::encoder::ZmqEncoderBase;
-use crate::msg::{cancel_cmd_name, cancel_cmd_name_size, MSG_COMMAND, MSG_MORE, sub_cmd_name, sub_cmd_name_size};
+use crate::msg::{CANCEL_CMD_NAME_SIZE, SUB_CMD_NAME_SIZE};
 use crate::utils::put_u64;
 use crate::v2_protocol::{COMMAND_FLAG, LARGE_FLAG, MORE_FLAG};
 
@@ -32,9 +33,9 @@ impl V31Decoder {
         if (self.in_progress().flags() & MSG_COMMAND || self.in_progress().is_subscribe() || self.in_progress().is_cancel()) {
             *protocol_flags |= COMMAND_FLAG;
             if (self.in_progress().is_subscribe()) {
-                size += sub_cmd_name_size;
+                size += SUB_CMD_NAME_SIZE;
             } else if (self.in_progress().is_cancel()) {
-                size += cancel_cmd_name_size;
+                size += CANCEL_CMD_NAME_SIZE;
             }
         }
         // Calculate LARGE_FLAG after COMMAND_FLAG. Subscribe or cancel commands
@@ -62,12 +63,12 @@ impl V31Decoder {
         //  ZMTP < 3.1 is dropped.
         if (self.in_progress().is_subscribe()) {
             libc::memcpy(self._tmp_buf + header_size, sub_cmd_name,
-                         sub_cmd_name_size);
-            header_size += sub_cmd_name_size;
+                         SUB_CMD_NAME_SIZE);
+            header_size += SUB_CMD_NAME_SIZE;
         } else if (self.in_progress().is_cancel()) {
             libc::memcpy(self._tmp_buf + header_size, cancel_cmd_name,
-                         cancel_cmd_name_size);
-            header_size += cancel_cmd_name_size;
+                         CANCEL_CMD_NAME_SIZE);
+            header_size += CANCEL_CMD_NAME_SIZE;
         }
 
         self.next_step(self._tmp_buf, header_size, self.size_ready, false);

@@ -12,9 +12,9 @@ pub enum ProxyState {
     Terminated
 }
 
-pub unsafe fn proxy(frontend_: *mut ZmqSocketBase,
-                    backend_: *mut ZmqSocketBase,
-                    capture_: *mut ZmqSocketBase) -> i32 {
+pub unsafe fn proxy(frontend_: &mut ZmqSocketBase,
+                    backend_: &mut ZmqSocketBase,
+                    capture_: Option<&mut ZmqSocketBase>) -> i32 {
     
      // msg_t msg;
     let mut msg = ZmqMsg::new();

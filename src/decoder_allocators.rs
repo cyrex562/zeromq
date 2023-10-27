@@ -3,7 +3,7 @@ use std::ffi::c_void;
 use std::mem;
 use std::ptr::null_mut;
 use crate::atomic_counter::ZmqAtomicCounter;
-use crate::msg::{ZmqContent, max_vsm_size};
+use crate::msg::{ZmqContent, MAX_VSM_SIZE};
 
 pub trait ZmqAllocator {
     unsafe fn allocate(&mut self) -> &mut [u8];
@@ -113,7 +113,7 @@ impl ZmqSharedMessageMemoryAllocator {
             _max_counters: 0,
         };
 
-        out._max_counters = ((out._max_size + max_vsm_size - 1) / max_vsm_size);
+        out._max_counters = ((out._max_size + MAX_VSM_SIZE - 1) / MAX_VSM_SIZE);
         out
     }
 

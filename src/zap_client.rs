@@ -1,8 +1,8 @@
 use std::ffi::c_void;
-use crate::defines::{ZMQ_PROTOCOL_ERROR_ZAP_BAD_REQUEST_ID, ZMQ_PROTOCOL_ERROR_ZAP_BAD_VERSION, ZMQ_PROTOCOL_ERROR_ZAP_INVALID_METADATA, ZMQ_PROTOCOL_ERROR_ZAP_INVALID_STATUS_CODE, ZMQ_PROTOCOL_ERROR_ZAP_MALFORMED_REPLY, ZMQ_PROTOCOL_ERROR_ZAP_UNSPECIFIED};
+use crate::defines::{MSG_MORE, ZMQ_PROTOCOL_ERROR_ZAP_BAD_REQUEST_ID, ZMQ_PROTOCOL_ERROR_ZAP_BAD_VERSION, ZMQ_PROTOCOL_ERROR_ZAP_INVALID_METADATA, ZMQ_PROTOCOL_ERROR_ZAP_INVALID_STATUS_CODE, ZMQ_PROTOCOL_ERROR_ZAP_MALFORMED_REPLY, ZMQ_PROTOCOL_ERROR_ZAP_UNSPECIFIED};
 use crate::mechanism;
 use crate::mechanism_base::ZmqMechanismBase;
-use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
 use crate::zap_client::zap_client_state::{error_sent, ready, sending_error};
@@ -161,7 +161,7 @@ impl ZapClient {
 
         //  Version frame
         if msg[1].size () != zap_version_len
-            || libc::memcmp (msg[1].data (), zap_version.as_ptr() as *const c_void, zap_version_len) != 0
+            || libc::memcmp (msg[1].data_mut(), zap_version.as_ptr() as *const c_void, zap_version_len) != 0
         {
             self.mechanism_base.session.get_socket ().event_handshake_failed_protocol (
               self.mechanism_base.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_BAD_VERSION);
@@ -171,7 +171,7 @@ impl ZapClient {
         }
 
         //  Request id frame
-        if (msg[2].size () != id_len || libc::memcmp(msg[2].data (), id.as_ptr() as *const c_void, id_len) != 0) {
+        if (msg[2].size () != id_len || libc::memcmp(msg[2].data_mut(), id.as_ptr() as *const c_void, id_len) != 0) {
             self.mechanism_base.session.get_socket ().event_handshake_failed_protocol (
               self.mechanism_base.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_BAD_REQUEST_ID);
             // errno = EPROTO;
@@ -180,7 +180,7 @@ impl ZapClient {
         }
 
         //  Status code frame, only 200, 300, 400 and 500 are valid status codes
-        let status_code_data = (msg[3].data ());
+        let status_code_data = (msg[3].data_mut());
         if (msg[3].size () != 3 || status_code_data[0] < '2'
             || status_code_data[0] > '5' || status_code_data[1] != '0'
             || status_code_data[2] != '0') {
@@ -192,14 +192,14 @@ impl ZapClient {
         }
 
         //  Save status code
-        self.status_code.assign (msg[3].data ()), 3);
+        self.status_code.assign (msg[3].data_mut()), 3);
 
         //  Save user id
-        self.mechanism_base.set_user_id (msg[5].data (), msg[5].size ());
+        self.mechanism_base.set_user_id (msg[5].data_mut(), msg[5].size ());
 
         //  Process metadata frame
-        rc = self.mechanism_base.parse_metadata ((msg[6].data ()),
-                             msg[6].size (), true);
+        rc = self.mechanism_base.parse_metadata ((msg[6].data_mut()),
+                                                 msg[6].size (), true);
 
         if (rc != 0) {
             self.mechanism_base.session.get_socket ().event_handshake_failed_protocol (

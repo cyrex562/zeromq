@@ -1,14 +1,13 @@
 use std::collections::VecDeque;
 use std::ffi::c_void;
 use std::ptr::null_mut;
-use libc::{EINVAL, memcpy};
 use crate::blob::ZmqBlob;
 use crate::ctx::ZmqContext;
-use crate::defines::{ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_PUB, ZMQ_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_UNSUBSCRIBE, ZMQ_XPUB, ZMQ_XPUB_MANUAL, ZMQ_XPUB_MANUAL_LAST_VALUE, ZMQ_XPUB_NODROP, ZMQ_XPUB_VERBOSE, ZMQ_XPUB_VERBOSER, ZMQ_XPUB_WELCOME_MSG};
+use crate::defines::{MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_PUB, ZMQ_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_UNSUBSCRIBE, ZMQ_XPUB, ZMQ_XPUB_MANUAL, ZMQ_XPUB_MANUAL_LAST_VALUE, ZMQ_XPUB_NODROP, ZMQ_XPUB_VERBOSE, ZMQ_XPUB_VERBOSER, ZMQ_XPUB_WELCOME_MSG};
 use crate::dist::ZmqDist;
 use crate::generic_mtrie::{GenericMtrie, Prefix};
 use crate::metadata::ZmqMetadata;
-use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::msg::ZmqMsg;
 use crate::mtrie::ZmqMtrie;
 use crate::options::{do_getsockopt, ZmqOptions};
 use crate::pipe::ZmqPipe;
@@ -221,7 +220,7 @@ impl ZmqXPub {
                     let rc = self._welcome_msg.init_size(optvallen_);
                     // errno_assert (rc == 0);
 
-                    let data = (self._welcome_msg.data());
+                    let data = (self._welcome_msg.data_mut());
                     libc::memcpy(data, optval_.as_ptr() as *const c_void, optvallen_);
                 } else { self._welcome_msg.init(); }
             } else {
@@ -289,13 +288,13 @@ impl ZmqXPub {
             self._dist.unmatch ();
 
             if self._manual && self._last_pipe.is_some() && self._send_last_pipe {
-                self._subscriptions.match_((msg_.data ()),
-                                      msg_.size (), self.mark_last_pipe_as_matching,
-                                      self);
+                self._subscriptions.match_((msg_.data_mut()),
+                                           msg_.size (), self.mark_last_pipe_as_matching,
+                                           self);
                 self._last_pipe = None;
             } else{
-                self._subscriptions.match_ ((msg_.data ()),
-                                      msg_.size (), self.mark_as_matching, self);}
+                self._subscriptions.match_ ((msg_.data_mut()),
+                                            msg_.size (), self.mark_as_matching, self);}
             // If inverted matching is used, reverse the selection now
             if options.invert_matching {
                 self._dist.reverse_match ();
@@ -346,8 +345,8 @@ impl ZmqXPub {
         // errno_assert (rc == 0);
         rc = msg_.init_size (self._pending_data.front ().size ());
         // errno_assert (rc == 0);
-        libc::memcpy (msg_.data (), self._pending_data.front ().data (),
-                self._pending_data.front ().size ());
+        libc::memcpy (msg_.data_mut(), self._pending_data.front ().data (),
+                      self._pending_data.front ().size ());
 
         // set metadata only if there is some
         let metadata = self._pending_metadata.front ();

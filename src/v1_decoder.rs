@@ -114,8 +114,8 @@ impl V1Decoder {
         //  Store the flags from the wire into the message structure.
         self._in_progress.set_flags (self._tmpbuf[0] & ZmqMsg::more);
 
-        self.next_step (self._in_progress.data (), self._in_progress.size (),
-                   &V1Decoder::message_ready);
+        self.next_step (self._in_progress.data_mut(), self._in_progress.size (),
+                        &V1Decoder::message_ready);
 
         return 0;
     }

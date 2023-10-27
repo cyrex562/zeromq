@@ -83,7 +83,7 @@ impl ZmqNullMechanism {
                 let rc = msg_.init_size(
                     error_command_name_len + error_reason_len_size + status_code_len);
                 // zmq_assert (rc == 0);
-                let mut msg_data = (msg_.data());
+                let mut msg_data = (msg_.data_mut());
                 libc::memcpy(msg_data, error_command_name.as_ptr() as *const c_void, error_command_name_len);
                 msg_data += error_command_name_len;
                 *msg_data = status_code_len;
@@ -112,7 +112,7 @@ impl ZmqNullMechanism {
         }
 
         // const unsigned char *cmd_data = static_cast<unsigned char *> (msg_->data ());
-        let cmd_data = msg_.data();
+        let cmd_data = msg_.data_mut();
         // const size_t data_size = msg_->size ();
         let data_size = msg_.size();
 

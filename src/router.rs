@@ -203,7 +203,7 @@ impl ZmqRouter {
                 //  If there's no such pipe just silently ignore the message, unless
                 //  router_mandatory is set.
                 let mut out_pipe = self.lookup_out_pipe(
-                    ZmqBlob::new3((msg_.data()),
+                    ZmqBlob::new3((msg_.data_mut()),
                                   msg_.size(), ZmqReferenceTag::default()));
 
                 if (out_pipe) {
@@ -354,7 +354,7 @@ impl ZmqRouter {
             let routing_id = pipe.unwrap().get_routing_id();
             rc = msg_.init_size(routing_id.size());
             // errno_assert (rc == 0);
-            libc::memcpy(msg_.data(), routing_id.data(), routing_id.size());
+            libc::memcpy(msg_.data_mut(), routing_id.data(), routing_id.size());
             msg_.set_flags(ZmqMsg::more);
             if (self._prefetched_msg.metadata()) {
                 msg_.set_metadata(self._prefetched_msg.metadata());
@@ -410,7 +410,7 @@ impl ZmqRouter {
         let routing_id = pipe.unwrap().get_routing_id();
         rc = self._prefetched_id.init_size(routing_id.size());
         // errno_assert (rc == 0);
-        libc::memcpy(self._prefetched_id.data(), routing_id.data(), routing_id.size());
+        libc::memcpy(self._prefetched_id.data_mut(), routing_id.data(), routing_id.size());
         self._prefetched_id.set_flags(MSG_MORE);
         if (self._prefetched_msg.metadata()) {
             self._prefetched_id.set_metadata(self._prefetched_msg.metadata());
@@ -502,7 +502,7 @@ impl ZmqRouter {
                 routing_id.set(buf, 5);
                 msg.close();
             } else {
-                routing_id.set((msg.data()),
+                routing_id.set((msg.data_mut()),
                                msg.size());
                 msg.close();
 

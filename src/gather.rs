@@ -1,7 +1,7 @@
 use crate::ctx::ZmqContext;
-use crate::defines::ZMQ_GATHER;
+use crate::defines::{MSG_MORE, ZMQ_GATHER};
 use crate::fair_queue::ZmqFairQueue;
-use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::socket_base::ZmqSocketBase;
 

@@ -1,8 +1,8 @@
 use std::ffi::{c_char, c_void};
 use crate::blob::ZmqBlob;
-use crate::defines::{ZMQ_DEALER, ZMQ_REQ, ZMQ_ROUTER};
+use crate::defines::{MSG_ROUTING_ID, ZMQ_DEALER, ZMQ_REQ, ZMQ_ROUTER};
 use crate::metadata::ZmqDict;
-use crate::msg::{ZmqMsg, MSG_ROUTING_ID};
+use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::utils::{get_u32, put_u32};
 
@@ -79,7 +79,7 @@ impl ZmqMechanism {
 
     pub unsafe fn peer_routing_id(&mut self, msg_: *mut ZmqMsg) {
         let rc = (*msg_).init_size(self._routing_id.size());
-        libc::memcpy((*msg_).data(), self._routing_id.data() as *const c_void, self._routing_id.size());
+        libc::memcpy((*msg_).data_mut(), self._routing_id.data() as *const c_void, self._routing_id.size());
         (*msg_).set_flags(MSG_ROUTING_ID);
     }
 
@@ -158,14 +158,14 @@ impl ZmqMechanism {
         let rc = (*msg_).init_size (command_size);
         // errno_assert (rc == 0);
 
-        let mut ptr = ((*msg_).data ());
+        let mut ptr = ((*msg_).data_mut());
 
         //  Add prefix
         libc::memcpy (ptr, prefix_ as *const c_void, prefix_len_);
         ptr = ptr.add(prefix_len_);
 
         self.add_basic_properties (
-            ptr as *mut u8, command_size - (ptr.offset_from((*msg_).data())));
+            ptr as *mut u8, command_size - (ptr.offset_from((*msg_).data_mut())));
     }
 
     pub unsafe fn parse_metadata(&mut self, mut ptr_: *mut u8, length_: usize, zap_flag_: bool) -> i32 {

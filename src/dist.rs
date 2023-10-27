@@ -1,5 +1,6 @@
 use crate::array::ZmqArray;
-use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::defines::MSG_MORE;
+use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 
 pub type ZmqPipes = ZmqArray<ZmqPipe, 2>;

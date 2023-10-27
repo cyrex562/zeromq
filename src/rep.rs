@@ -1,5 +1,5 @@
-use crate::defines::ZMQ_REP;
-use crate::msg::{MSG_MORE, ZmqMsg};
+use crate::defines::{MSG_MORE, ZMQ_REP};
+use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 
 pub struct ZmqRep {

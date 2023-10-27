@@ -1,6 +1,7 @@
 use std::cmp;
 use std::collections::{HashMap, HashSet};
 use crate::clock::ZmqClock;
+use crate::err::ZmqError;
 
 pub type TimersTimerFn = fn(i32, &mut [u8]);
 
@@ -44,7 +45,7 @@ impl Timers {
         self._tag == 0xCAFEDADA
     }
 
-    pub unsafe fn add(&mut self, interval_: i32, handler_: TimersTimerFn, arg_: &mut [u8]) -> i32 {
+    pub unsafe fn add(&mut self, interval_: i32, handler_: TimersTimerFn, arg_: &mut [u8]) -> Result<i32,ZmqError> {
         // if (handler_ == NULL) {
         //     errno = EFAULT;
         //     return -1;
@@ -55,7 +56,7 @@ impl Timers {
         let timer = Timer { timer_id: self._next_timer_id, interval: interval_ as usize, handler: handler_, arg: arg_ };
         self._timers.insert(when, timer);
 
-        return timer.timer_id.clone();
+        return Ok(timer.timer_id.clone());
     }
 
     // int zmq::timers_t::cancel (int timer_id_)
