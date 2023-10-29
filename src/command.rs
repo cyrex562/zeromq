@@ -3,7 +3,7 @@ use crate::i_engine::IEngine;
 use crate::object::ZmqObject;
 use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket_base::ZmqSocket;
 
 pub enum ZmqCommandType {
     Stop,
@@ -80,7 +80,7 @@ pub struct TermEndpointArgs {
 }
 
 pub struct ReapArgs<'a> {
-    pub socket: &'a mut ZmqSocketBase<'a>,
+    pub socket: &'a mut ZmqSocket<'a>,
 }
 
 pub struct ReapedArgs {}

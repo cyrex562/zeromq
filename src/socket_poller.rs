@@ -9,13 +9,13 @@ use crate::poller_event::ZmqPollerEvent;
 use crate::polling_util::ResizableOptimizedFdSetT;
 use crate::select::{fd_set, FD_SET, FD_ZERO, FD_CLR};
 use crate::signaler::ZmqSignaler;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket_base::ZmqSocket;
 use crate::utils::FD_ISSET;
 
 pub type ZmqEvent = ZmqPollerEvent;
 
 pub struct ZmqItem {
-    pub socket: &'a mut ZmqSocketBase<'a>,
+    pub socket: &'a mut ZmqSocket<'a>,
     pub fd: ZmqFd,
     pub user_data: *mut c_void,
     pub events: i16,
@@ -75,7 +75,7 @@ impl ZmqSocketPoller {
         return -1;
     }
 
-    pub fn add(&mut self, socket_: &mut ZmqSocketBase,
+    pub fn add(&mut self, socket_: &mut ZmqSocket,
                user_data_: &[u8],
                events_: i16) -> i32 {
         // if (find_if2 (self._items.begin (), _items.end (), socket_, &is_socket)
@@ -153,7 +153,7 @@ impl ZmqSocketPoller {
         return 0;
     }
 
-    pub fn modify(&mut self, socket_: *mut ZmqSocketBase, events_: i16) -> i32 {
+    pub fn modify(&mut self, socket_: *mut ZmqSocket, events_: i16) -> i32 {
         // let it = items_t. const items_t::iterator it =
         // find_if2 (_items.begin (), _items.end (), socket_, &is_socket);
 
@@ -674,7 +674,7 @@ impl ZmqSocketPoller {
     }
 } // impl socket_poller_t
 
-pub fn is_thread_safe(socket_: &mut ZmqSocketBase) -> bool {
+pub fn is_thread_safe(socket_: &mut ZmqSocket) -> bool {
     // do not use getsockopt here, since that would fail during context termination
     return socket_.is_thread_safe();
 }

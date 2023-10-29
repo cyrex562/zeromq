@@ -24,7 +24,7 @@ use crate::polling_util::{compute_timeout, valid_pollset_bytes, OptimizedFdSet};
 use crate::pollitem::ZmqPollitem;
 use crate::proxy::proxy;
 use crate::select::{FD_SET, FD_ZERO};
-use crate::socket_base::ZmqSocketBase;
+use crate::socket_base::ZmqSocket;
 use crate::socket_poller::ZmqSocketPoller;
 use crate::timers::{Timers, TimersTimerFn};
 use crate::utils::{get_errno, FD_ISSET};
@@ -238,7 +238,7 @@ pub fn zmq_ctx_destroy(ctx_: &mut ZmqContext) -> Result<(), ZmqError> {
 }
 
 // static zmq::socket_base_t *as_socket_base_t (void *s_)
-pub fn as_socket_base_t<'a>(s_: &mut ZmqSocketBase) -> Option<&'a mut ZmqSocketBase> {
+pub fn as_socket_base_t<'a>(s_: &mut ZmqSocket) -> Option<&'a mut ZmqSocket> {
     // zmq::socket_base_t *s = static_cast<zmq::socket_base_t *> (s_);
     // if (!s_ || !s->check_tag ()) {
     //     errno = ENOTSOCK;
@@ -252,7 +252,7 @@ pub fn as_socket_base_t<'a>(s_: &mut ZmqSocketBase) -> Option<&'a mut ZmqSocketB
     return Some(s_);
 }
 
-pub unsafe fn zmq_socket<'a>(ctx_: &mut ZmqContext, type_: i32) -> Result<ZmqSocketBase, ZmqError> {
+pub unsafe fn zmq_socket<'a>(ctx_: &mut ZmqContext, type_: i32) -> Result<ZmqSocket, ZmqError> {
     // if (!ctx_ || !(static_cast<zmq::ctx_t *> (ctx_))->check_tag ())
     if ctx_.check_tag() == false {
         // errno = EFAULT;
@@ -265,7 +265,7 @@ pub unsafe fn zmq_socket<'a>(ctx_: &mut ZmqContext, type_: i32) -> Result<ZmqSoc
 }
 
 // int zmq_close (void *s_)
-pub unsafe fn zmq_close(s_: &mut ZmqSocketBase) -> i32 {
+pub unsafe fn zmq_close(s_: &mut ZmqSocket) -> i32 {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
     //     return -1;
@@ -275,7 +275,7 @@ pub unsafe fn zmq_close(s_: &mut ZmqSocketBase) -> i32 {
 
 pub unsafe fn zmq_setsockopt(
     options: &mut ZmqOptions,
-    sock: &mut ZmqSocketBase,
+    sock: &mut ZmqSocket,
     option_: i32,
     optval_: &[u8],
     optvallen_: usize,
@@ -288,7 +288,7 @@ pub unsafe fn zmq_setsockopt(
 }
 
 // int zmq_getsockopt (void *s_, int option_, void *optval_, size_t *optvallen_)
-pub unsafe fn zmq_getsockopt(sock: &mut ZmqSocketBase, option_: u32) -> Result<[u8], ZmqError> {
+pub unsafe fn zmq_getsockopt(sock: &mut ZmqSocket, option_: u32) -> Result<[u8], ZmqError> {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
     //     return -1;
@@ -299,7 +299,7 @@ pub unsafe fn zmq_getsockopt(sock: &mut ZmqSocketBase, option_: u32) -> Result<[
 // int zmq_socket_monitor_versioned (
 //   void *s_, const char *addr_, uint64_t events_, int event_version_, int type_)
 pub unsafe fn zmq_socket_monitor_versioned(
-    sock: &mut ZmqSocketBase,
+    sock: &mut ZmqSocket,
     addr: &str,
     events: u64,
     event_version: i32,
@@ -313,12 +313,12 @@ pub unsafe fn zmq_socket_monitor_versioned(
 }
 
 // int zmq_socket_monitor (void *s_, const char *addr_, int events_)
-pub unsafe fn zmq_socket_monitor(sock: &mut ZmqSocketBase, addr_: &str, events_: i32) -> i32 {
+pub unsafe fn zmq_socket_monitor(sock: &mut ZmqSocket, addr_: &str, events_: i32) -> i32 {
     return zmq_socket_monitor_versioned(sock, addr_, events_ as u64, 1, ZMQ_PAIR as i32);
 }
 
 // int zmq_join (void *s_, const char *group_)
-pub unsafe fn zmq_join(s_: &mut ZmqSocketBase, group_: &str) -> i32 {
+pub unsafe fn zmq_join(s_: &mut ZmqSocket, group_: &str) -> i32 {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
     //     return -1;
@@ -327,7 +327,7 @@ pub unsafe fn zmq_join(s_: &mut ZmqSocketBase, group_: &str) -> i32 {
 }
 
 // int zmq_leave (void *s_, const char *group_)
-pub unsafe fn zmq_leave(s_: &mut ZmqSocketBase, group_: &str) -> i32 {
+pub unsafe fn zmq_leave(s_: &mut ZmqSocket, group_: &str) -> i32 {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
     //     return -1;
@@ -336,7 +336,7 @@ pub unsafe fn zmq_leave(s_: &mut ZmqSocketBase, group_: &str) -> i32 {
 }
 
 // int zmq_bind (void *s_, const char *addr_)
-pub unsafe fn zmq_bind(s_: &mut ZmqSocketBase, addr_: &str) -> Result<(), ZmqError> {
+pub unsafe fn zmq_bind(s_: &mut ZmqSocket, addr_: &str) -> Result<(), ZmqError> {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
     //     return -1;
@@ -345,7 +345,7 @@ pub unsafe fn zmq_bind(s_: &mut ZmqSocketBase, addr_: &str) -> Result<(), ZmqErr
 }
 
 // int zmq_connect (void *s_, const char *addr_)
-pub unsafe fn zmq_connect(s_: &mut ZmqSocketBase, addr_: &str) -> i32 {
+pub unsafe fn zmq_connect(s_: &mut ZmqSocket, addr_: &str) -> i32 {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
     //     return -1;
@@ -354,7 +354,7 @@ pub unsafe fn zmq_connect(s_: &mut ZmqSocketBase, addr_: &str) -> i32 {
 }
 
 // uint32_t zmq_connect_peer (void *s_, const char *addr_)
-pub unsafe fn zmq_connect_peer(sock: &mut ZmqSocketBase, addr_: &str) -> Result<(), ZmqError> {
+pub unsafe fn zmq_connect_peer(sock: &mut ZmqSocket, addr_: &str) -> Result<(), ZmqError> {
     // zmq::peer_t *s = static_cast<zmq::peer_t *> (s_);
     // if (!s_ || !s->check_tag ()) {
     //     errno = ENOTSOCK;
@@ -383,7 +383,7 @@ pub unsafe fn zmq_connect_peer(sock: &mut ZmqSocketBase, addr_: &str) -> Result<
 }
 
 // int zmq_unbind (void *s_, const char *addr_)
-pub unsafe fn unbind(s_: &mut ZmqSocketBase, addr_: &str) -> i32 {
+pub unsafe fn unbind(s_: &mut ZmqSocket, addr_: &str) -> i32 {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
 
     // if (!s)
@@ -392,7 +392,7 @@ pub unsafe fn unbind(s_: &mut ZmqSocketBase, addr_: &str) -> i32 {
 }
 
 // int zmq_disconnect (void *s_, const char *addr_)
-pub unsafe fn zmq_disconnect(s_: &mut ZmqSocketBase, addr_: &str) -> i32 {
+pub unsafe fn zmq_disconnect(s_: &mut ZmqSocket, addr_: &str) -> i32 {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
     //     return -1;
@@ -402,7 +402,7 @@ pub unsafe fn zmq_disconnect(s_: &mut ZmqSocketBase, addr_: &str) -> i32 {
 // static inline int
 // s_sendmsg (zmq::socket_base_t *s_, zmq_msg_t *msg, int flags_)
 pub unsafe fn s_sendmsg(
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     msg: &mut ZmqMsg,
     flags_: i32,
 ) -> Result<usize, ZmqError> {
@@ -422,7 +422,7 @@ pub unsafe fn s_sendmsg(
 
 // int zmq_sendmsg (void *s_, zmq_msg_t *msg, int flags_)
 pub unsafe fn zmq_sendmsq(
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     msg: &mut ZmqMsg,
     flags_: i32,
 ) -> Result<usize, ZmqError> {
@@ -430,7 +430,7 @@ pub unsafe fn zmq_sendmsq(
 }
 
 // int zmq_send (void *s_, const void *buf_, size_t len_, int flags_)
-pub unsafe fn zmq_send(sock: &mut ZmqSocketBase, buf_: &[u8], len_: usize, flags_: i32) -> i32 {
+pub unsafe fn zmq_send(sock: &mut ZmqSocket, buf_: &[u8], len_: usize, flags_: i32) -> i32 {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
     //     return -1;
@@ -456,7 +456,7 @@ pub unsafe fn zmq_send(sock: &mut ZmqSocketBase, buf_: &[u8], len_: usize, flags
 
 // int zmq_send_const (void *s_, const void *buf_, size_t len_, int flags_)
 pub unsafe fn zmq_send_const(
-    sock: &mut ZmqSocketBase,
+    sock: &mut ZmqSocket,
     in_buf: &[u8],
     in_buf_len: usize,
     flags: i32,
@@ -487,7 +487,7 @@ pub unsafe fn zmq_send_const(
 // int zmq_sendiov (void *s_, iovec *a_, size_t count_, int flags_)
 #[cfg(not(target_os = "windows"))]
 pub unsafe fn zmq_sendiov(
-    sock: &mut ZmqSocketBase,
+    sock: &mut ZmqSocket,
     in_iovecs: &[iovec],
     count: usize,
     mut flags: i32,
@@ -537,7 +537,7 @@ pub unsafe fn zmq_sendiov(
 
 // static int s_recvmsg (zmq::socket_base_t *s_, zmq_msg_t *msg, int flags_)
 pub unsafe fn s_recvmsg(
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     msg: &mut ZmqMsg,
     flags_: i32,
 ) -> Result<usize, ZmqError> {
@@ -554,7 +554,7 @@ pub unsafe fn s_recvmsg(
 
 // int zmq_recvmsg (void *s_, zmq_msg_t *msg, int flags_)
 pub unsafe fn zmq_recvmsg(
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     msg: &mut ZmqMsg,
     flags_: i32,
 ) -> Result<usize, ZmqError> {
@@ -563,7 +563,7 @@ pub unsafe fn zmq_recvmsg(
 
 // int zmq_recv (void *s_, void *buf_, size_t len_, int flags_)
 pub unsafe fn zmq_recv(
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     buf_: &mut [u8],
     len_: usize,
     flags_: i32,
@@ -603,7 +603,7 @@ pub unsafe fn zmq_recv(
 // int zmq_recviov (void *s_, iovec *a_, size_t *count_, int flags_)
 #[cfg(not(target_os = "windows"))]
 pub unsafe fn zmq_recviov(
-    sock: &mut ZmqSocketBase,
+    sock: &mut ZmqSocket,
     out_iovecs: &mut Vec<iovec>,
     iovec_count: &mut usize,
     flags_: i32,
@@ -706,7 +706,7 @@ pub unsafe fn zmq_msg_init_data(
 // int zmq_msg_send (zmq_msg_t *msg, void *s_, int flags_)
 pub unsafe fn zmq_msg_send(
     msg: &mut ZmqMsg,
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     flags_: i32,
 ) -> Result<usize, ZmqError> {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
@@ -718,7 +718,7 @@ pub unsafe fn zmq_msg_send(
 // int zmq_msg_recv (zmq_msg_t *msg, void *s_, int flags_)
 pub unsafe fn zmq_msg_recv(
     msg: &mut ZmqMsg,
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     flags_: i32,
 ) -> Result<usize, ZmqError> {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
@@ -1789,7 +1789,7 @@ pub unsafe fn check_events(events_: i16) -> i32 {
 // static int check_poller_registration_args (void *const poller_, void *const s_)
 pub unsafe fn check_poller_registration_args(
     poller: &mut ZmqSocketPoller,
-    sock: &mut ZmqSocketBase,
+    sock: &mut ZmqSocket,
 ) -> i32 {
     if -1 == check_poller(poller) {
         return -1;
@@ -1834,7 +1834,7 @@ pub unsafe fn zmq_poller_size(poller_: &mut ZmqSocketPoller) -> i32 {
 // int zmq_poller_add (void *poller_, void *s_, void *user_data_, short events_)
 pub unsafe fn zmq_poller_add(
     poller_: &mut ZmqSocketPoller,
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     user_data_: &mut [u8],
     events_: i16,
 ) -> i32 {
@@ -1871,7 +1871,7 @@ pub unsafe fn zmq_poller_add_fd(
 // int zmq_poller_modify (void *poller_, void *s_, short events_)
 pub unsafe fn zmq_poller_modify(
     poller_: &mut ZmqSocketPoller,
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     events_: i16,
 ) -> i32 {
     if -1 == check_poller_registration_args(poller_, s_) || -1 == check_events(events_) {
@@ -1898,7 +1898,7 @@ pub unsafe fn zmq_poller_modify_fd(poller_: &mut ZmqSocketPoller, fd_: ZmqFd, ev
 }
 
 // int zmq_poller_remove (void *poller_, void *s_)
-pub unsafe fn zmq_poller_remove(poller_: &mut ZmqSocketPoller, s_: &mut ZmqSocketBase) -> i32 {
+pub unsafe fn zmq_poller_remove(poller_: &mut ZmqSocketPoller, s_: &mut ZmqSocket) -> i32 {
     if (-1 == check_poller_registration_args(poller_, s_)) {
         return -1;
     }
@@ -1985,7 +1985,7 @@ pub unsafe fn zmq_poller_fd(poller_: &mut ZmqSocketPoller, fd_: &mut zmq_fd_t) -
 //                                const void *routing_id_,
 //                                size_t routing_id_size_)
 pub unsafe fn zmq_socket_get_peer_state(
-    s_: &mut ZmqSocketBase,
+    s_: &mut ZmqSocket,
     routing_id_: &c_void,
     routing_id_size_: usize,
 ) -> i32 {
@@ -2123,9 +2123,9 @@ pub unsafe fn zmq_timers_execute(timers_: &mut Timers) -> i32 {
 
 // int zmq_proxy (void *frontend_, void *backend_, void *capture_)
 pub unsafe fn zmq_proxy(
-    frontend_: &mut ZmqSocketBase,
-    backend_: &mut ZmqSocketBase,
-    capture_: &mut ZmqSocketBase,
+    frontend_: &mut ZmqSocket,
+    backend_: &mut ZmqSocket,
+    capture_: &mut ZmqSocket,
 ) -> i32 {
     if (!frontend_ || !backend_) {
         // errno = EFAULT;
@@ -2139,10 +2139,10 @@ pub unsafe fn zmq_proxy(
 //                          void *capture_,
 //                          void *control_)
 pub unsafe fn zmq_proxy_steerable(
-    frontend_: &mut ZmqSocketBase,
-    backend_: &mut ZmqSocketBase,
-    capture_: &mut ZmqSocketBase,
-    control_: &mut ZmqSocketBase,
+    frontend_: &mut ZmqSocket,
+    backend_: &mut ZmqSocket,
+    capture_: &mut ZmqSocket,
+    control_: &mut ZmqSocket,
 ) -> i32 {
     // if (!frontend_ || !backend_ || !control_) {
     //     errno = EFAULT;
@@ -2170,8 +2170,8 @@ pub unsafe fn zmq_proxy_steerable(
 // int zmq_device (int /* type */, void *frontend_, void *backend_)
 pub unsafe fn zmq_device(
     type_: i32,
-    frontend_: &mut ZmqSocketBase,
-    backend_: &mut ZmqSocketBase,
+    frontend_: &mut ZmqSocket,
+    backend_: &mut ZmqSocket,
 ) -> i32 {
     return proxy((frontend_), (backend_), None);
 }
@@ -2224,7 +2224,7 @@ pub unsafe fn zmq_has(capability_: &str) -> i32 {
 }
 
 // int zmq_socket_monitor_pipes_stats (void *s_)
-pub unsafe fn zmq_socket_monitor_pipes_stats(s_: &mut ZmqSocketBase) -> i32 {
+pub unsafe fn zmq_socket_monitor_pipes_stats(s_: &mut ZmqSocket) -> i32 {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
     //     return -1;

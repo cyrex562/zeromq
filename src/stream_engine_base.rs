@@ -14,7 +14,7 @@ use crate::metadata::ZmqMetadata;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket_base::ZmqSocket;
 use crate::utils::get_errno;
 
 pub const HANDSHAKE_TIMER_ID: i32 = 0x40;
@@ -56,7 +56,7 @@ pub struct ZmqStreamEngineBase<'a> {
     pub _io_error: bool,
     pub _handshaking: bool,
     pub _session: Option<&'a mut ZmqSessionBase<'a>>,
-    pub _socket: Option<&'a mut ZmqSocketBase<'a>>,
+    pub _socket: Option<&'a mut ZmqSocket<'a>>,
     pub _has_handshake_stage: bool,
 }
 

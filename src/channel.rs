@@ -4,11 +4,11 @@ use crate::err::ZmqError::PipeError;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket_base::ZmqSocket;
 use std::ptr::null_mut;
 
 pub struct ZmqChannel<'a> {
-    pub base: ZmqSocketBase<'a>,
+    pub base: ZmqSocket<'a>,
     pub pipe: &'a mut ZmqPipe<'a>,
 }
 
@@ -21,7 +21,7 @@ impl ZmqChannel {
     ) -> Self {
         options.type_ = ZMQ_CHANNEL;
         Self {
-            base: ZmqSocketBase::new(parent, tid_, sid_, true),
+            base: ZmqSocket::new(parent, tid_, sid_, true),
             pipe: &mut ZmqPipe::default(),
         }
     }

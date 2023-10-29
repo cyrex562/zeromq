@@ -10,7 +10,7 @@ use crate::io_thread::ZmqIoThread;
 use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
 use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket_base::ZmqSocket;
 
 pub const RECONNECT_TIMER_ID: i32 = 1;
 
@@ -21,7 +21,7 @@ pub struct ZmqStreamConnecterBase<'a> {
     pub _s: ZmqFd,
     pub _handle: ZmqHandle,
     pub _endpoint: String,
-    pub _socket: &'a ZmqSocketBase<'a>,
+    pub _socket: &'a ZmqSocket<'a>,
     pub _session: &'a ZmqSessionBase<'a>,
     pub _delayed_start: bool,
     pub _reconnect_timer_started: bool,

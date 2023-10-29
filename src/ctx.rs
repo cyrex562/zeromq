@@ -18,12 +18,12 @@ use crate::pipe::{send_routing_id, ZmqPipe};
 use crate::poller::max_fds;
 use crate::reaper::ZmqReaper;
 use crate::thread::{ZmqThread, ZmqThreadFn};
-use crate::{command::ZmqCommand, socket_base::ZmqSocketBase};
+use crate::{command::ZmqCommand, socket_base::ZmqSocket};
 
 pub type io_threads_t<'a> = Vec<&'a mut ZmqIoThread<'a>>;
 
 pub struct Endpoint<'a> {
-    pub socket: &'a mut ZmqSocketBase<'a>,
+    pub socket: &'a mut ZmqSocket<'a>,
     pub options: ZmqOptions,
 }
 
@@ -59,7 +59,7 @@ pub fn clipped_maxsocket(mut max_requested_: i32) -> i32 {
 pub struct ZmqContext<'a> {
     pub _thread_ctx: ZmqThreadCtx,
     pub _tag: u32,
-    pub sockets: Vec<ZmqSocketBase<'a>>,
+    pub sockets: Vec<ZmqSocket<'a>>,
     pub _empty_slots: Vec<u32>,
     pub _starting: bool,
     pub _terminating: bool,
@@ -277,7 +277,7 @@ impl ZmqContext {
         // selff._slots.clear()
     }
 
-    pub fn create_socket(&mut self, type_: i32) -> Result<&mut ZmqSocketBase, ZmqError> {
+    pub fn create_socket(&mut self, type_: i32) -> Result<&mut ZmqSocket, ZmqError> {
         if self._terminating {
             return Err(ZmqError::SocketError("Context is terminating"));
         }
@@ -297,13 +297,13 @@ impl ZmqContext {
         let sid = self.max_socket_id.add(1) + 1;
 
         // TODO create socket of type_
-        let mut s = ZmqSocketBase::new(self, sid as u32, slot as i32, false);
+        let mut s = ZmqSocket::new(self, sid as u32, slot as i32, false);
         self.sockets.push(s);
         self.slots[slot] = s.get_mailbox();
         return Ok(&mut s);
     }
 
-    pub unsafe fn destroy_socket(&mut self, socket_: &mut ZmqSocketBase) {
+    pub unsafe fn destroy_socket(&mut self, socket_: &mut ZmqSocket) {
         let mut locker = scoped_lock_t::new(&mut self._slot_sync);
         let slot = (*socket_).get_slot();
         self.slots[slot] = null_mut();
@@ -372,7 +372,7 @@ impl ZmqContext {
     pub fn register_endpoint(
         &mut self,
         addr_: &str,
-        socket_: &mut ZmqSocketBase,
+        socket_: &mut ZmqSocket,
         options_: &mut ZmqOptions,
     ) -> i32 {
         let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
@@ -389,7 +389,7 @@ impl ZmqContext {
         return 0;
     }
 
-    pub fn unregister_endpoints(&mut self, socket_: &mut ZmqSocketBase) {
+    pub fn unregister_endpoints(&mut self, socket_: &mut ZmqSocket) {
         let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         let mut to_remove = Vec::new();
         for i in self._endpoints {
@@ -402,7 +402,7 @@ impl ZmqContext {
         }
     }
 
-    pub fn find_endpoint(&mut self, addr_: &str) -> Option<&mut ZmqSocketBase> {
+    pub fn find_endpoint(&mut self, addr_: &str) -> Option<&mut ZmqSocket> {
         let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         let mut endpoint = self._endpoints.get(addr_);
         if endpoint.is_none() {
@@ -445,7 +445,7 @@ impl ZmqContext {
         return 0;
     }
 
-    pub unsafe fn connect_pending(&mut self, addr_: &str, bind_socket_: &mut ZmqSocketBase) {
+    pub unsafe fn connect_pending(&mut self, addr_: &str, bind_socket_: &mut ZmqSocket) {
         let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         for k in self._pending_connections.keys() {
             if k == addr_ {
@@ -459,7 +459,7 @@ impl ZmqContext {
 
     pub unsafe fn connect_inproc_sockets(
         &mut self,
-        bind_socket_: &mut ZmqSocketBase,
+        bind_socket_: &mut ZmqSocket,
         bind_options_: &ZmqOptions,
         pending_connection_: &mut PendingConnection,
         side_: Side,

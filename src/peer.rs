@@ -3,6 +3,7 @@ use crate::defines::ZMQ_PEER;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::server::ZmqServer;
+use crate::socket_base::ZmqSocket;
 
 pub struct ZmqPeer<'a> {
     pub server: ZmqServer<'a>,
@@ -22,21 +23,24 @@ impl ZmqPeer {
         }
     }
 
-    pub unsafe fn connect_peer(&mut self, options: &mut ZmqOptions, endpoint_uri_: &str) -> u32 {
-        if options.immediate == 1 {
-            return 0;
-        }
 
-        let rc = self.server.socket_base.connect_internal(endpoint_uri_);
-        if rc != 0 {
-            return 0;
-        }
+}
 
-        return self._peer_last_routing_id;
+
+pub fn peer_connect_peer(socket: &mut ZmqSocket, options: &mut ZmqOptions, endpoint_uri_: &str) -> u32 {
+    if options.immediate == 1 {
+        return 0;
     }
 
-    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
-        self.server.xattach_pipe(pipe_, subscribe_to_all_, locally_initiated_);
-        self._peer_last_routing_id = pipe_.get_server_socket_routing_id();
+    let rc = socket.server.socket_base.connect_internal(endpoint_uri_);
+    if rc != 0 {
+        return 0;
     }
+
+    return socket.server._peer_last_routing_id;
+}
+
+pub fn peer_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
+    socket.server.xattach_pipe(pipe_, subscribe_to_all_, locally_initiated_);
+    socket.server._peer_last_routing_id = pipe_.get_server_socket_routing_id();
 }

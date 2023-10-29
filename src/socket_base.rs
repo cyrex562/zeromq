@@ -7,15 +7,17 @@ use libc::{clock_t, EAGAIN, EINTR};
 
 use crate::address::ZmqAddress;
 use crate::array::ArrayItem;
+use crate::client::{client_xhas_in, client_xsend};
 use crate::command::ZmqCommand;
 use crate::ctx::ZmqContext;
-use crate::defines::{MSG_MORE, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_LISTENING, ZMQ_EVENTS, ZMQ_FD, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZmqHandle};
+use crate::dealer::dealer_xsetsockopt;
+use crate::defines::{MSG_MORE, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_LISTENING, ZMQ_EVENTS, ZMQ_FD, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZmqHandle, ZmqPipes};
 use crate::endpoint::{make_unconnected_connect_endpoint_pair, ZmqEndpointUriPair};
 use crate::err::ZmqError;
 use crate::err::ZmqError::{InvalidContext, SocketError};
-use crate::fair_queue::ZmqPipes;
-use crate::i_mailbox::IMailbox;
+use crate::fair_queue::{ZmqFairQueue, ZmqPipes};
 use crate::i_poll_events::IPollEvents;
+use crate::load_balancer::ZmqLoadBalancer;
 use crate::mailbox::ZmqMailbox;
 use crate::msg::ZmqMsg;
 use crate::mutex::ZmqMutex;
@@ -34,6 +36,28 @@ pub type ZmqEndpointPipe<'a> = (&'a mut ZmqOwn<'a>, &'a mut ZmqPipe<'a>);
 pub type ZmqEndpoints<'a> = HashMap<String, ZmqEndpointPipe<'a>>;
 
 pub type ZmqMap<'a> = HashMap<String, &'a mut ZmqPipe<'a>>;
+
+pub enum ZmqSocketType {
+    Client,
+    Dealer,
+    Dgram,
+    Dish,
+    Gather,
+    Pair,
+    Peer,
+    Pub,
+    Pull,
+    Push,
+    Radio,
+    Rep,
+    Req,
+    Router,
+    Scatter,
+    Server,
+    Sub,
+    Xpub,
+    Xsub,
+}
 
 #[derive(Default)]
 pub struct ZmqInprocs<'a> {
@@ -58,13 +82,13 @@ impl ZmqInprocs {
 }
 
 #[derive(PartialEq)]
-pub struct ZmqSocketBase<'a> {
+pub struct ZmqSocket<'a> {
     pub own: ZmqOwn<'a>,
     pub array_item: ArrayItem<1>,
     pub poll_events: dyn IPollEvents,
     pub pipe_events: dyn IPipeEvents,
     pub mailbox: ZmqMailbox<'a>,
-    pub pipes: ZmqPipes,
+    pub pipes: ZmqPipes<'a>,
     pub poller: Option<&'a mut ZmqPoller>,
     pub handle: Option<&'a mut ZmqHandle>,
     pub last_tsc: u64,
@@ -84,9 +108,75 @@ pub struct ZmqSocketBase<'a> {
     pub tag: u32,
     pub ctx_terminated: bool,
     pub destroyed: bool,
+    pub _fq: ZmqFairQueue<'a>,
+    pub _lb: ZmqLoadBalancer,
+    pub socket_type: ZmqSocketType,
+    pub _probe_router: bool,
+    pub _pipe: Option<&'a mut ZmqPipe<'a>>,
+    pub _more_out: bool,
+    pub _subscriptions: ZmqSubscriptions,
+    pub _has_message: bool,
+    pub _message: ZmqMsg,
+    pub _matching: usize,
+    pub _pipes: ZmqPipes<'a>,
+    pub _active: usize,
+    pub _eligible: usize,
+    pub _more: bool,
+    pub _dist: ZmqDist<'a>,
+    // pub server: ZmqServer<'a>,
+    pub _lossy: bool,
+    pub _udp_pipes: UdpPipes<'a>,
+    pub _sending_reply: bool,
+    pub _request_begins: bool,
+    // pub router: ZmqRouter<'a>,
+    pub _request_id: u32,
+    pub _strict: bool,
+    pub _prefetched: bool,
+    pub _prefetched_id: ZmqMsg<'a>,
+    pub _prefetched_msg: ZmqMsg<'a>,
+    pub _current_in: &'a mut ZmqPipe<'a>,
+    pub _terminate_current_in: bool,
+    pub _more_in: bool,
+    pub _anonymous_pipes: HashSet<&'a mut ZmqPipe<'a>>,
+    pub _current_out: &'a mut ZmqPipe<'a>,
+    pub _more_out: bool,
+    pub _next_integral_routing_id: u32,
+    pub _mandatory: bool,
+    pub _raw_socket: bool,
+    pub _probe_router: bool,
+    pub _handover: bool,
+    pub routing_socket_base: ZmqRoutingSocketBase<'a>,
+    pub _next_routing_id: u32,
+    pub _out_pipes: ZmqOutPipes,
+        pub subscriptions: ZmqMtrie,
+    pub manual_subscriptions: ZmqMtrie,
+    pub dist: ZmqDist<'a>,
+    pub verbose_unsubs: bool,
+    pub more_send: bool,
+    pub more_recv: bool,
+    pub process_subscribe: bool,
+    pub only_first_subscribe: bool,
+    pub lossy: bool,
+    pub manual: bool,
+    pub send_last_pipe: bool,
+    pub last_pipe: Option<&'a mut ZmqPipe<'a>>,
+    pub pending_pipes: VecDeque<&'a mut ZmqPipe<'a>>,
+    pub welcome_msg: ZmqMsg<'a>,
+    pub pending_data: VecDeque<Vec<u8>>,
+    pub pending_metadata: VecDeque<&'a mut ZmqMetadata>,
+    pub pending_flags: VecDeque<u8>,
+        pub _dist: ZmqDist,
+    // pub _subscriptions: ZmqRadixTree,
+    pub _verbose_unsubs: bool,
+    // pub _has_message: bool,
+    // pub _message: ZmqMsg,
+    pub _more_send: bool,
+    pub _more_recv: bool,
+    pub _process_subscribe: bool,
+    pub _only_first_subscribe: bool,
 }
 
-impl ZmqSocketBase {
+impl ZmqSocket {
     pub fn check_tag(&self) -> bool {
         return self.tag == 0xbaddecaf;
     }
@@ -185,7 +275,7 @@ impl ZmqSocketBase {
             poll_events: null_mut(),
             pipe_events: null_mut(),
             mailbox: ZmqMailbox::default(),
-            pipes: [ZmqPipe::default; 2],
+            pipes: [ZmqPipe::default(); 2],
             poller: None,
             handle: None,
             last_tsc: 0,
@@ -257,7 +347,13 @@ impl ZmqSocketBase {
     pub unsafe fn attach_pipe(&mut self, mut pipe: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
         pipe.set_event_sink(self);
         self.pipes.push_back(pipe);
-        self.xattach_pipe(&pipe, subscribe_to_all_, locally_initiated_);
+        // self.xattach_pipe(&pipe, subscribe_to_all_, locally_initiated_);
+        match self.socket_type {
+            ZmqSocketType::Client => {
+                client_xattach_pipe(self, &mut pipe, subscribe_to_all_, locally_initiated_);
+            }
+        }
+
 
         if self.is_terminating() {
             self.register_term_acks(1);
@@ -269,7 +365,17 @@ impl ZmqSocketBase {
         if self.ctx_terminated {
             return Err(InvalidContext("Context was terminated"));
         }
-        self.xsetsockopt(option_, optval_, optvallen_)?;
+        // self.xsetsockopt(option_, optval_, optvallen_)?;
+
+        match self.socket_type {
+            ZmqSocketType::Client => {
+                client_xsetsockopt(self, option_, optval_, optvallen_);
+            },
+            ZmqSocketType::Dealer => {
+                dealer_xsetsockopt(self, option_, optval_, optvallen_);
+            },
+        }
+
         self.own.options.setsockopt(option_, optval_, optvallen_)?;
         self.update_pipe_options(options, option_)?;
         Ok(())
@@ -852,7 +958,10 @@ impl ZmqSocketBase {
         msg_.reset_metadata();
 
         //  Try to send the message using method in each socket class
-        rc = self.xsend(msg_);
+        // rc = self.xsend(msg_);
+        match self.socket_type {
+            ZmqSocketType::Client => client_xsend(self, msg_),
+        }
         if (rc == 0) {
             return 0;
         }
@@ -939,7 +1048,10 @@ impl ZmqSocketBase {
         }
 
         //  Get the message.
-        let mut rc = self.xrecv(msg_);
+        // let mut rc = self.xrecv(msg_);
+        match self.socket_type {
+            ZmqSocketType::Client => client_xrecv(self, msg_),
+        }
         if ((rc != 0 && get_errno() != EAGAIN)) {
             return -1;
         }
@@ -1024,11 +1136,17 @@ impl ZmqSocketBase {
     }
 
     pub fn has_in(&mut self) -> bool {
-        self.xhas_in()
+        match self.socket_type {
+            ZmqSocketType::Client => client_xhas_in(self),
+        }
     }
 
     pub fn has_out(&mut self) -> bool {
-        self.xhas_out()
+
+        // self.xhas_out()
+        match self.socket_type {
+            ZmqSocketType::Client => client_xhas_out(self),
+        }
     }
 
     pub unsafe fn start_reaping(&mut self, poller_: &mut ZmqPoller) {
@@ -1272,16 +1390,26 @@ impl ZmqSocketBase {
     }
 
     pub unsafe fn read_activated(&mut self, pipe_: *mut ZmqPipe) {
-        self.xread_activated(pipe_);
+        // self.xread_activated(pipe_);
+        match self.socket_type {
+            ZmqSocketType::Client => client_xread_activated(self, pipe_),
+        }
     }
 
     pub unsafe fn write_activated(&mut self, pipe_: *mut ZmqPipe) {
-        self.xwrite_activated(pipe_);
+        // self.xwrite_activated(pipe_);
+        match self.socket_type {
+            ZmqSocketType::Client => client_xwrite_activated(self, pipe_),
+        }
     }
 
     pub unsafe fn pipe_terminated(&mut self, pipe_: *mut ZmqPipe) {
         //  Notify the specific socket type about the pipe termination.
-        self.xpipe_terminated(pipe_);
+        // self.xpipe_terminated(pipe_);
+
+        match self.socket_type {
+            ZmqSocketType::Client => client_xpipe_terminated(self, pipe_),
+        }
 
         // Remove pipe from inproc pipes
         self.inprocs.erase_pipe(pipe_);
@@ -1569,7 +1697,7 @@ impl ZmqSocketBase {
 impl ZmqRoutingSocketBase {
     pub unsafe fn new(parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
         Self {
-            base: ZmqSocketBase::new(parent_, tid_, sid_, false),
+            base: ZmqSocket::new(parent_, tid_, sid_, false),
             _out_pipes: HashMap::new(),
             _connect_routing_id: String::new(),
         }
@@ -1651,7 +1779,7 @@ pub struct out_pipe_t<'a> {
 }
 
 pub struct ZmqRoutingSocketBase<'a> {
-    pub base: ZmqSocketBase<'a>,
+    pub base: ZmqSocket<'a>,
     pub _out_pipes: HashMap<Vec<u8>, out_pipe_t<'a>>,
     pub _connect_routing_id: String,
 }

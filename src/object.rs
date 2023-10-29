@@ -8,7 +8,7 @@ use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
 use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket_base::ZmqSocket;
 use std::ffi::c_void;
 use std::ptr::null_mut;
 
@@ -152,11 +152,11 @@ impl ZmqObject {
         self.context.register_endpoint(addr, endpoint, options)
     }
 
-    pub fn unregister_endpoint(&mut self, addr: &str, socket: &mut ZmqSocketBase) {
+    pub fn unregister_endpoint(&mut self, addr: &str, socket: &mut ZmqSocket) {
         self.context.unregister_endpoint(addr);
     }
 
-    pub fn unregister_endpoints(&mut self, socket: &mut ZmqSocketBase) {
+    pub fn unregister_endpoints(&mut self, socket: &mut ZmqSocket) {
         self.context.unregister_endpoints(socket);
     }
 
@@ -173,11 +173,11 @@ impl ZmqObject {
         self.context.pend_connection(addr, endpoint, pipes);
     }
 
-    pub unsafe fn connect_pending(&mut self, addr: &str, bind_socket: *mut ZmqSocketBase) {
+    pub unsafe fn connect_pending(&mut self, addr: &str, bind_socket: *mut ZmqSocket) {
         self.context.connect_pending(addr, bind_socket);
     }
 
-    pub unsafe fn destroy_socket(&mut self, socket: *mut ZmqSocketBase) {
+    pub unsafe fn destroy_socket(&mut self, socket: *mut ZmqSocket) {
         self.context.destroy_socket(socket);
     }
 
@@ -330,7 +330,7 @@ impl ZmqObject {
         self.send_command(&cmd);
     }
 
-    pub unsafe fn send_reap(&mut self, socket: *mut ZmqSocketBase) {
+    pub unsafe fn send_reap(&mut self, socket: *mut ZmqSocket) {
         let mut cmd = ZmqCommand::new();
         cmd.destination = Some(self.context.get_reaper());
         cmd.type_ = ZmqCommandType::Reap;
@@ -345,7 +345,7 @@ impl ZmqObject {
         self.send_command(&cmd);
     }
 
-    pub unsafe fn send_inproc_connected(&mut self, socket: *mut ZmqSocketBase) {
+    pub unsafe fn send_inproc_connected(&mut self, socket: *mut ZmqSocket) {
         let mut cmd = ZmqCommand::new();
         cmd.destination = socket;
         cmd.type_ = ZmqCommandType::InprocConnected;
@@ -443,7 +443,7 @@ impl object_ops for ZmqObject {
         todo!()
     }
 
-    fn process_reap(&mut self, socket_: *mut ZmqSocketBase) {
+    fn process_reap(&mut self, socket_: *mut ZmqSocket) {
         todo!()
     }
 
@@ -503,7 +503,7 @@ pub trait object_ops {
 
     fn process_term_endpoint(&mut self, endpoint_: &str);
 
-    fn process_reap(&mut self, socket_: *mut ZmqSocketBase);
+    fn process_reap(&mut self, socket_: *mut ZmqSocket);
 
     fn process_reaped(&mut self);
 

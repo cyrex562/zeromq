@@ -6,11 +6,11 @@ use crate::load_balancer::ZmqLoadBalancer;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket_base::ZmqSocket;
 
 pub struct ZmqDealer<'a>
 {
-    pub socket_base: ZmqSocketBase<'a>,
+    pub socket_base: ZmqSocket<'a>,
     pub _fq: ZmqFairQueue,
     pub _lb: ZmqLoadBalancer,
     pub _probe_router: bool,
@@ -24,80 +24,82 @@ impl ZmqDealer {
         options.can_recv_hiccup_msg = true;
         
         Self {
-            socket_base: ZmqSocketBase::new(parent_, tid_, sid_, false),
+            socket_base: ZmqSocket::new(parent_, tid_, sid_, false),
             _fq: ZmqFairQueue::default(),
             _lb: ZmqLoadBalancer::default(),
             _probe_router: false,
         }
     }
 
-    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool)
-    {
-        if self._probe_router {
-            // msg_t probe_msg;
-            let probe_msg = ZmqMsg::new ();
-            let rc = probe_msg.init ();
-            // errno_assert (rc == 0);
 
-            rc = pipe_.write (&probe_msg);
-            // zmq_assert (rc) is not applicable here, since it is not a bug.
-            // LIBZMQ_UNUSED (rc);
+}
 
-            pipe_.flush ();
+pub fn dealer_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool)
+{
+    if socket._probe_router {
+        // msg_t probe_msg;
+        let probe_msg = ZmqMsg::new ();
+        let rc = probe_msg.init ();
+        // errno_assert (rc == 0);
 
-            rc = probe_msg.close ();
-            // errno_assert (rc == 0);
-        }
+        rc = pipe_.write (&probe_msg);
+        // zmq_assert (rc) is not applicable here, since it is not a bug.
+        // LIBZMQ_UNUSED (rc);
 
-        self._fq.attach (pipe_);
-        self._lb.attach (pipe_);
+        pipe_.flush ();
+
+        rc = probe_msg.close ();
+        // errno_assert (rc == 0);
     }
 
-    pub unsafe fn xsetsockopt(&mut self, option_: i32, optval_: &[u8], optvallen_: usize) -> i32
-    {
-        let is_int = optvallen_ == 4;
-        let mut value: u32 = u32::from_le_bytes(optval_[0..4].try_into().unwrap());
+    socket._fq.attach (pipe_);
+    socket._lb.attach (pipe_);
+}
 
-        if (option_ == ZMQ_PROBE_ROUTER) {
-            self._probe_router = value != 0;
-            return 0;
-        }
-        else {
-            return -1;
-        }
+pub fn dealer_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32
+{
+    let is_int = optvallen_ == 4;
+    let mut value: u32 = u32::from_le_bytes(optval_[0..4].try_into().unwrap());
 
-        // self.socket_base.xsetsockopt (option_, optval_, optvallen_)
+    if option_ == ZMQ_PROBE_ROUTER {
+        socket._probe_router = value != 0;
+        return 0;
+    }
+    else {
+        return -1;
     }
 
-    pub unsafe fn xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
-        self.sendpipe(msg_, &mut None)
-    }
+    socket.xsetsockopt (option_, optval_, optvallen_)
+}
 
-    pub unsafe fn xrecv(&mut self, msg_: &mut ZmqMsg) -> i32 {
-        self.recvpipe(msg_, &mut None)
-    }
+pub fn dealer_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+    socket.sendpipe(msg_, &mut None)
+}
 
-    pub fn xhas_in(&mut self) -> bool {
-        self._fq.has_in()
-    }
+pub fn dealer_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+    socket.recvpipe(msg_, &mut None)
+}
 
-    pub unsafe fn xhas_out(&mut self) -> bool {
-        self._lb.has_out()
-    }
+pub fn dealer_xhas_in(socket: &mut ZmqSocket) -> bool {
+    socket._fq.has_in()
+}
 
-    pub fn xread_activated(&mut self, pipe_: &mut ZmqPipe) {
-        self._fq.activated(pipe_)
-    }
+pub fn dealer_xhas_out(socket: &mut ZmqSocket) -> bool {
+    socket._lb.has_out()
+}
 
-    pub fn xwrite_activated(&mut self, pipe_: &mut ZmqPipe) {
-        self._lb.activated(pipe_)
-    }
+pub fn dealer_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+    socket._fq.activated(pipe_)
+}
 
-    pub unsafe fn sendpipe(&mut self, msg_: &mut ZmqMsg, pipe_: &mut Option<&mut ZmqPipe>) -> i32 {
-        self._lb.sendpipe(msg_, pipe_)
-    }
+pub fn dealer_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+    socket._lb.activated(pipe_)
+}
 
-    pub unsafe fn recvpipe(&mut self, msg_: &mut ZmqMsg, pipe_: &mut Option<&mut ZmqPipe>) -> i32 {
-        self._fq.recvpipe(msg_, pipe_)
-    }
+pub unsafe fn dealer_sendpipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg, pipe_: &mut Option<&mut ZmqPipe>) -> i32 {
+    socket._lb.sendpipe(msg_, pipe_)
+}
+
+pub unsafe fn dealer_recvpipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg, pipe_: &mut Option<&mut ZmqPipe>) -> i32 {
+    socket._fq.recvpipe(msg_, pipe_)
 }

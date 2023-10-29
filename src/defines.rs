@@ -4,6 +4,7 @@ use libc::pid_t;
 use libc::pollfd;
 use std::ffi::c_void;
 use std::sync::Mutex;
+use std::collections::HashSet;
 // #[cfg(target_os="windows")]
 // use windows::Win32::Networking::WinSock::sa_family_t;
 
@@ -687,3 +688,10 @@ pub type ZmqPid = pid_t;
 pub const MORE_FLAG: u8 = 1;
 pub const LARGE_FLAG: u8 = 2;
 pub const COMMAND_FLAG: u8 = 4;
+
+pub type ZmqSubscriptions = HashSet<String>;
+
+pub enum dish_session_state_t {
+    group,
+    body
+}

@@ -5,19 +5,19 @@ use crate::load_balancer::ZmqLoadBalancer;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket_base::ZmqSocket;
 
 pub struct ZmqClient<'a>
 {
-    pub socket_base: ZmqSocketBase<'a>,
-    pub _fq: ZmqFairQueue,
+    pub socket_base: ZmqSocket<'a>,
+    pub _fq: ZmqFairQueue<'a>,
     pub _lb: ZmqLoadBalancer,
 }
 
 impl ZmqClient {
     pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
         let mut out = Self {
-            socket_base: ZmqSocketBase::new(parent_, tid_, sid_, true),
+            socket_base: ZmqSocket::new(parent_, tid_, sid_, true),
             _fq: ZmqFairQueue::default(),
             _lb: ZmqLoadBalancer::default(),
         };
@@ -27,55 +27,57 @@ impl ZmqClient {
         out
     }
 
-    pub fn xattach_pipe(&mut self, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool)
-    {
-        self._fq.attach(pipe_);
-        self._lb.attach(pipe_);
+
+}
+
+pub fn client_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool)
+{
+    socket._fq.attach(pipe_);
+    socket._lb.attach(pipe_);
+}
+
+pub unsafe fn client_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32
+{
+    if msg_.flags() & MSG_MORE != 0 {
+        return -1;
     }
+    socket._lb.sendpipe(msg_, &mut None)
+}
 
-    pub unsafe fn xsend(&mut self, msg_: &mut ZmqMsg) -> i32
-    {
-        if msg_.flags() & MSG_MORE != 0 {
-            return -1;
-        }
-        self._lb.sendpipe(msg_, &mut None)
-    }
+pub unsafe fn client_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+    let mut rc = socket._fq.recvpipe(msg_, &mut None);
 
-    pub unsafe fn xrecv(&mut self, msg_: &mut ZmqMsg) -> i32 {
-        let mut rc = self._fq.recvpipe(msg_, &mut None);
-
+    while rc == 0 && msg_.flags() & MSG_MORE > 0 {
+        rc = socket._fq.recvpipe(msg_, &mut None) ;
         while rc == 0 && msg_.flags() & MSG_MORE > 0 {
-            rc = self._fq.recvpipe(msg_, &mut None) ;
-            while rc == 0 && msg_.flags() & MSG_MORE > 0 {
-                rc = self._fq.recvpipe(msg_, &mut None);
-            }
-
-            if rc == 0 {
-                rc = self._fq.recvpipe(msg_, &mut None)
-            }
+            rc = socket._fq.recvpipe(msg_, &mut None);
         }
 
-        rc
+        if rc == 0 {
+            rc = socket._fq.recvpipe(msg_, &mut None)
+        }
     }
 
-    pub fn xhas_in(&mut self) -> bool {
-        self._fq.has_in()
-    }
+    rc
+}
 
-    pub unsafe fn xhas_out(&mut self) -> bool {
-        self._lb.has_out()
-    }
+pub fn client_xhas_in(socket: &mut ZmqSocket) -> bool {
+    socket._fq.has_in()
+}
 
-    pub fn xread_activated(&mut self, pipe_: &mut ZmqPipe) {
-        self._fq.activated(pipe_)
-    }
+pub unsafe fn client_xhas_out(socket: &mut ZmqSocket) -> bool {
+    socket._lb.has_out()
+}
 
-    pub fn xwrite_activated(&mut self, pipe_: &mut ZmqPipe) {
-        self._lb.activated(pipe_)
-    }
+pub fn client_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+    socket._fq.activated(pipe_)
+}
 
-    pub fn xpipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
-        self._fq.pipe_terminated(pipe_);
-        self._lb.pipe_terminated(pipe_);
-    }
+pub fn client_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+    socket._lb.activated(pipe_)
+}
+
+pub fn client_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+    socket._fq.pipe_terminated(pipe_);
+    socket._lb.pipe_terminated(pipe_);
 }

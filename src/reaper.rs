@@ -10,7 +10,7 @@ use crate::object::{object_ops, ZmqObject};
 use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
 use crate::poller::ZmqPoller;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket_base::ZmqSocket;
 use crate::utils::get_errno;
 use libc::{getpid, EAGAIN, EINTR};
 use std::ffi::c_void;
@@ -178,7 +178,7 @@ impl object_ops for ZmqReaper {
         todo!()
     }
 
-    unsafe fn process_reap(&mut self, socket_: *mut ZmqSocketBase) {
+    unsafe fn process_reap(&mut self, socket_: *mut ZmqSocket) {
         socket_.start_reaping(self._poller);
         self._sockets += 1;
     }

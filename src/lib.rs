@@ -110,6 +110,10 @@ mod zmq_ops;
 mod zmq_utils;
 mod zmtp_engine;
 mod poll;
+mod radio_session;
+mod dish_session;
+mod req_session;
+mod out_pipe;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

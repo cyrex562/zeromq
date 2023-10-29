@@ -10,7 +10,7 @@ use crate::io_thread::ZmqIoThread;
 use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
 use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket_base::ZmqSocket;
 use std::ptr::null_mut;
 
 pub struct ZmqStreamListenerBase<'a> {
@@ -18,14 +18,14 @@ pub struct ZmqStreamListenerBase<'a> {
     pub io_object: IoObject,
     pub _s: ZmqFd,
     pub _handle: ZmqHandle,
-    pub _socket: &'a mut ZmqSocketBase<'a>,
+    pub _socket: &'a mut ZmqSocket<'a>,
     pub _endpoint: String,
 }
 
 impl ZmqStreamListenerBase {
     pub fn new(
         io_thread_: &mut ZmqIoThread,
-        socket_: &mut ZmqSocketBase,
+        socket_: &mut ZmqSocket,
         options_: &ZmqOptions,
     ) -> Self {
         Self {

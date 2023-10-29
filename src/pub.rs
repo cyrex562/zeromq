@@ -17,19 +17,22 @@ impl ZmqPub {
         }
     }
     
-    pub unsafe fn xattach_pipe(&mut self, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
-        //  Don't delay pipe termination as there is no one
-        //  to receive the delimiter.
-        pipe_.set_nodelay ();
-    
-        self.xpub.xattach_pipe (pipe_, subscribe_to_all_, locally_initiated_);
-    }
-    
-    pub fn xrecv(&mut self, msg: &mut ZmqMsg) -> i32 {
-        -1
-    }
-    
-    pub fn xhas_in(&mut self) -> bool {
-        false
-    }
+
+}
+
+
+ pub unsafe fn pub_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
+    //  Don't delay pipe termination as there is no one
+    //  to receive the delimiter.
+    pipe_.set_nodelay ();
+
+    xpub_xattach_pipe (pipe_, subscribe_to_all_, locally_initiated_);
+}
+
+pub fn pub_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> i32 {
+    -1
+}
+
+pub fn pub_xhas_in(socket: &mut ZmqSocket) -> bool {
+    false
 }

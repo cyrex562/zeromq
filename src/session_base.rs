@@ -12,7 +12,7 @@ use crate::object::ZmqObject;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
 use crate::own::ZmqOwn;
 use crate::pipe::{pipepair, IPipeEvents, ZmqPipe};
-use crate::socket_base::ZmqSocketBase;
+use crate::socket_base::ZmqSocket;
 use std::collections::HashSet;
 use std::ptr::null_mut;
 
@@ -25,7 +25,7 @@ pub struct ZmqSessionBase<'a> {
     pub _terminating_pipes: HashSet<&'a mut ZmqPipe<'a>>,
     pub _incomplete_in: bool,
     pub _pending: bool,
-    pub _socket: &'a mut ZmqSocketBase<'a>,
+    pub _socket: &'a mut ZmqSocket<'a>,
     pub _io_thread: &'a mut ZmqIoThread,
     pub _has_linger_timer: bool,
     pub _addr: ZmqAddress,
@@ -84,7 +84,7 @@ impl ZmqSessionBase {
     pub unsafe fn create(
         io_thread_: &mut ZmqIoThread,
         active_: bool,
-        socket_: &mut ZmqSocketBase,
+        socket_: &mut ZmqSocket,
         options_: &ZmqOptions,
         addr_: ZmqAddress,
     ) -> ZmqSessionBase {
@@ -114,7 +114,7 @@ impl ZmqSessionBase {
     pub unsafe fn new(
         io_thread_: &mut ZmqIoThread,
         active_: bool,
-        socket_: &mut ZmqSocketBase,
+        socket_: &mut ZmqSocket,
         options_: &ZmqOptions,
         addr_: ZmqAddress,
     ) -> Self {
@@ -277,7 +277,7 @@ impl ZmqSessionBase {
         unimplemented!()
     }
 
-    pub fn get_socket(&mut self) -> &mut ZmqSocketBase {
+    pub fn get_socket(&mut self) -> &mut ZmqSocket {
         return self._socket;
     }
 
@@ -751,7 +751,7 @@ impl hello_msg_session_t {
     pub unsafe fn new(
         io_thread_: &mut ZmqIoThread,
         connect_: bool,
-        socket_: &mut ZmqSocketBase,
+        socket_: &mut ZmqSocket,
         options: &ZmqOptions,
         addr_: ZmqAddress,
     ) -> Self {

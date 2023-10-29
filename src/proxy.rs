@@ -3,7 +3,7 @@ use std::ptr::null_mut;
 use crate::defines::PROXY_BURST_SIZE;
 use crate::defines::{ZMQ_DONTWAIT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_RCVMORE, ZMQ_SNDMORE};
 use crate::msg::ZmqMsg;
-use crate::socket_base::ZmqSocketBase;
+use crate::socket_base::ZmqSocket;
 use crate::socket_poller::{ZmqEvent, ZmqSocketPoller};
 
 pub enum ProxyState {
@@ -12,9 +12,9 @@ pub enum ProxyState {
     Terminated
 }
 
-pub unsafe fn proxy(frontend_: &mut ZmqSocketBase,
-                    backend_: &mut ZmqSocketBase,
-                    capture_: Option<&mut ZmqSocketBase>) -> i32 {
+pub unsafe fn proxy(frontend_: &mut ZmqSocket,
+                    backend_: &mut ZmqSocket,
+                    capture_: Option<&mut ZmqSocket>) -> i32 {
     
      // msg_t msg;
     let mut msg = ZmqMsg::new();
@@ -273,7 +273,7 @@ pub unsafe fn proxy(frontend_: &mut ZmqSocketBase,
     return 0;
 }
 
-pub unsafe fn capture (capture_: *mut ZmqSocketBase, msg_: *mut ZmqMsg, more_: i32) -> i32 {
+pub unsafe fn capture (capture_: *mut ZmqSocket, msg_: *mut ZmqMsg, more_: i32) -> i32 {
     //  Copy message to capture socket if any
     if (capture_) {
         // zmq::msg_t ctrl;
@@ -294,7 +294,7 @@ pub unsafe fn capture (capture_: *mut ZmqSocketBase, msg_: *mut ZmqMsg, more_: i
     return 0;
 }
 
-pub unsafe fn forward(from_: *mut ZmqSocketBase, to_: *mut ZmqSocketBase, capture_: *mut ZmqSocketBase, msg_: &mut ZmqMsg) -> i32
+pub unsafe fn forward(from_: *mut ZmqSocket, to_: *mut ZmqSocket, capture_: *mut ZmqSocket, msg_: &mut ZmqMsg) -> i32
 {
     // Forward a burst of messages
     // for (unsigned int i = 0; i < zmq::PROXY_BURST_SIZE; i++)
