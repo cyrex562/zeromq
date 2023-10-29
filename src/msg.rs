@@ -186,15 +186,15 @@ pub struct ZmqMsg {
 }
 
 impl ZmqMsg {
-    pub unsafe fn is_subscribe(&self) -> bool {
+    pub fn is_subscribe(&self) -> bool {
         self.flags & CMD_TYPE_MASK == MSG_SUBSCRIBE
     }
 
-    pub unsafe fn is_cancel(&self) -> bool {
+    pub fn is_cancel(&self) -> bool {
         self.flags & CMD_TYPE_MASK == MSG_CANCEL
     }
 
-    pub unsafe fn check(&self) -> bool {
+    pub fn check(&self) -> bool {
         self.type_ >= TYPE_MIN && self.type_ <= TYPE_MAX
     }
 
@@ -236,7 +236,7 @@ impl ZmqMsg {
 
     }
 
-    pub unsafe fn init2(&mut self) -> Result<(), ZmqError> {
+    pub fn init2(&mut self) -> Result<(), ZmqError> {
         self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_VSM;
         self.flags = 0;
@@ -247,7 +247,7 @@ impl ZmqMsg {
         return Ok(());
     }
 
-    pub unsafe fn init_size(&mut self, size_: size_t) -> Result<(), ZmqError> {
+    pub fn init_size(&mut self, size_: size_t) -> Result<(), ZmqError> {
         if size_ <= MAX_VSM_SIZE {
             self.metadata = ZmqMetadata::default();
             self.type_ = TYPE_VSM;
@@ -389,7 +389,7 @@ impl ZmqMsg {
         Ok(())
     }
 
-    pub unsafe fn init_delimiter(&mut self) -> i32 {
+    pub fn init_delimiter(&mut self) -> i32 {
         self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_DELIMITER;
         self.flags = 0;
@@ -399,7 +399,7 @@ impl ZmqMsg {
         return 0;
     }
 
-    pub unsafe fn init_join(&mut self) -> i32 {
+    pub fn init_join(&mut self) -> i32 {
         self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_JOIN;
         self.flags = 0;
@@ -409,7 +409,7 @@ impl ZmqMsg {
         return 0;
     }
 
-    pub unsafe fn init_leave(&mut self) -> i32 {
+    pub fn init_leave(&mut self) -> i32 {
         self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_LEAVE;
         self.flags = 0;
@@ -453,7 +453,7 @@ impl ZmqMsg {
         return rc;
     }
 
-    pub unsafe fn close(&mut self) -> Result<(), ZmqError> {
+    pub fn close(&mut self) -> Result<(), ZmqError> {
         if !self.check() {
             return Err(MessageError("msg check failed"));
         }
@@ -503,7 +503,7 @@ impl ZmqMsg {
         Ok(())
     }
 
-    pub unsafe fn move_(&mut self, src_: &mut ZmqMsg) -> Result<(), ZmqError> {
+    pub fn move_(&mut self, src_: &mut ZmqMsg) -> Result<(), ZmqError> {
         if !src_.check() {
             return Err(MessageError("msg check failed"));
         }
@@ -516,7 +516,7 @@ impl ZmqMsg {
         Ok(())
     }
 
-    pub unsafe fn copy(&mut self, src_msg: &mut ZmqMsg) -> Result<(), ZmqError> {
+    pub fn copy(&mut self, src_msg: &mut ZmqMsg) -> Result<(), ZmqError> {
         if !src_msg.check() {
             return Err(MessageError("msg check failed"));
         }
@@ -552,7 +552,7 @@ impl ZmqMsg {
         Ok(())
     }
 
-    pub unsafe fn data_mut(&mut self) -> &mut [u8] {
+    pub fn data_mut(&mut self) -> &mut [u8] {
         return match self.type_ {
             TYPE_VSM => &mut self.data,
             TYPE_LMSG => (*self.content).data.as_mut_slice(),
@@ -565,7 +565,7 @@ impl ZmqMsg {
         };
     }
 
-    pub unsafe fn size(&mut self) -> size_t {
+    pub fn size(&mut self) -> size_t {
         return match self.type_ {
             TYPE_VSM => self.size as size_t,
             TYPE_LMSG => (*self.content).size,
@@ -578,7 +578,7 @@ impl ZmqMsg {
         };
     }
 
-    pub unsafe fn shrink(&mut self, new_size_: size_t) {
+    pub fn shrink(&mut self, new_size_: size_t) {
         match self.type_ {
             TYPE_VSM => {
                 self.size = new_size_ as u8;
@@ -598,7 +598,7 @@ impl ZmqMsg {
         }
     }
 
-    pub unsafe fn flags(&self) -> u8 {
+    pub fn flags(&self) -> u8 {
         return self.flags;
     }
 
@@ -606,15 +606,15 @@ impl ZmqMsg {
         return self.flags & flag_ != 0;
     }
 
-    pub unsafe fn flag_clear(&self, flag_: u8) -> bool {
+    pub fn flag_clear(&self, flag_: u8) -> bool {
         return self.flags & flag_ == 0;
     }
 
-    pub unsafe fn set_flags(&mut self, flags_: u8) {
+    pub fn set_flags(&mut self, flags_: u8) {
         self.flags |= flags_;
     }
 
-    pub unsafe fn reset_flags(&mut self, flags_: u8) {
+    pub fn reset_flags(&mut self, flags_: u8) {
         self.flags &= !flags_;
     }
 
@@ -626,16 +626,16 @@ impl ZmqMsg {
     //     self.flags &= !flags_;
     // }
 
-    pub unsafe fn metadata(&mut self) -> &mut ZmqMetadata {
+    pub fn metadata(&mut self) -> &mut ZmqMetadata {
         return &mut self.metadata;
     }
 
-    pub unsafe fn set_metadata(&mut self, metadata_: &mut ZmqMetadata) {
+    pub fn set_metadata(&mut self, metadata_: &mut ZmqMetadata) {
         metadata_.add_ref();
         self.metadata = metadata_.clone();
     }
 
-    pub unsafe fn reset_metadata(&mut self) {
+    pub fn reset_metadata(&mut self) {
         if self.metadata != ZmqMetadata::default() {
             self.metadata.drop_ref();
             self.metadata = ZmqMetadata::default();
@@ -646,23 +646,23 @@ impl ZmqMsg {
         return self.flags & MSG_ROUTING_ID == MSG_ROUTING_ID;
     }
 
-    pub unsafe fn is_credential(&self) -> bool {
+    pub fn is_credential(&self) -> bool {
         return self.flags & MSG_CREDENTIAL == MSG_CREDENTIAL;
     }
 
-    pub unsafe fn is_delimiter(&self) -> bool {
+    pub fn is_delimiter(&self) -> bool {
         return self.flags & TYPE_DELIMITER == TYPE_DELIMITER;
     }
 
-    pub unsafe fn is_vsm(&self) -> bool {
+    pub fn is_vsm(&self) -> bool {
         return self.type_ == TYPE_VSM;
     }
 
-    pub unsafe fn is_cmsg(&self) -> bool {
+    pub fn is_cmsg(&self) -> bool {
         return self.type_ == TYPE_CMSG;
     }
 
-    pub unsafe fn is_lmsg(&self) -> bool {
+    pub fn is_lmsg(&self) -> bool {
         return self.type_ == TYPE_LMSG;
     }
 
@@ -670,27 +670,27 @@ impl ZmqMsg {
         return self.type_ == TYPE_ZCLMSG;
     }
 
-    pub unsafe fn is_join(&self) -> bool {
+    pub fn is_join(&self) -> bool {
         return self.type_ == TYPE_JOIN;
     }
 
-    pub unsafe fn is_leave(&self) -> bool {
+    pub fn is_leave(&self) -> bool {
         return self.type_ == TYPE_LEAVE;
     }
 
-    pub unsafe fn is_ping(&self) -> bool {
+    pub fn is_ping(&self) -> bool {
         return self.flags & CMD_TYPE_MASK == MSG_PING;
     }
 
-    pub unsafe fn is_poing(&self) -> bool {
+    pub  fn is_pong(&self) -> bool {
         return self.flags & CMD_TYPE_MASK == MSG_PONG;
     }
 
-    pub unsafe fn is_close_cmd(&self) -> bool {
+    pub fn is_close_cmd(&self) -> bool {
         return self.flags & CMD_TYPE_MASK == MSG_CLOSE_CMD;
     }
 
-    pub unsafe fn command_body_size(&mut self) -> size_t {
+    pub fn command_body_size(&mut self) -> size_t {
         if self.is_ping() || self.is_poing() {
             return self.size() - PING_CMD_NAME_SIZE as usize;
         } else if !((self.flags() & MSG_COMMAND) != 0) && (self.is_subscribe() || self.is_cancel())
@@ -704,7 +704,7 @@ impl ZmqMsg {
         return 0;
     }
 
-    pub unsafe fn command_body(&mut self) -> &mut [u8] {
+    pub fn command_body(&mut self) -> &mut [u8] {
         let mut data: &mut [u8];
         if self.is_ping() || self.is_poing() {
             data = self.data_mut().add(PING_CMD_NAME_SIZE as usize);
@@ -719,7 +719,7 @@ impl ZmqMsg {
         return data;
     }
 
-    pub unsafe fn add_refs(&mut self, refs_: i32) {
+    pub fn add_refs(&mut self, refs_: i32) {
         if refs_ == 0 {
             return;
         }
@@ -734,7 +734,7 @@ impl ZmqMsg {
         }
     }
 
-    pub unsafe fn rm_refs(&mut self, refs_: i32) -> Result<(), ZmqError> {
+    pub fn rm_refs(&mut self, refs_: i32) -> Result<(), ZmqError> {
         if refs_ == 0 {
             return Ok(());
         }
@@ -769,20 +769,20 @@ impl ZmqMsg {
         Ok(())
     }
 
-    pub unsafe fn get_routing_id(&self) -> i32 {
+    pub fn get_routing_id(&self) -> i32 {
         return self.routing_id as i32;
     }
 
-    pub unsafe fn set_routing_id(&mut self, routing_id_: i32) {
+    pub fn set_routing_id(&mut self, routing_id_: i32) {
         self.routing_id = routing_id_ as u32;
     }
 
-    pub unsafe fn reset_routing_id(&mut self) -> i32 {
+    pub fn reset_routing_id(&mut self) -> i32 {
         self.routing_id = 0;
         return 0;
     }
 
-    pub unsafe fn group(&self) -> String {
+    pub fn group(&self) -> String {
         if self.group_type == GroupTypeLong as u8 {
             // TODO
             // return String::from_utf8_lossy(
@@ -795,14 +795,14 @@ impl ZmqMsg {
         }
     }
 
-    pub unsafe fn set_group(&mut self, group_: &str) -> i32 {
+    pub fn set_group(&mut self, group_: &str) -> i32 {
         if group_.len() > ZMQ_GROUP_MAX_LENGTH {
             return -1;
         }
         return self.set_group2(group_, group_.len());
     }
 
-    pub unsafe fn set_group2(&mut self, group_: &str, length_: size_t) -> i32 {
+    pub fn set_group2(&mut self, group_: &str, length_: size_t) -> i32 {
         if length_ > ZMQ_GROUP_MAX_LENGTH {
             return -1;
         }
@@ -831,19 +831,19 @@ impl ZmqMsg {
         return 0;
     }
 
-    pub unsafe fn refcnt(&mut self) -> *mut ZmqAtomicCounter {
+    pub fn refcnt(&mut self) -> *mut ZmqAtomicCounter {
         return &mut (*self.metadata).ref_cnt;
     }
 }
 
-pub unsafe fn close_and_return(mut msg_: *mut ZmqMsg, echo: i32) -> Result<i32, ZmqError> {
+pub fn close_and_return(mut msg_: *mut ZmqMsg, echo: i32) -> Result<i32, ZmqError> {
     // let err: i32 = errno();
     (*msg_).close()?;
     // errno = err;
     return Ok(echo);
 }
 
-pub unsafe fn close_and_return2(msg_: &mut [ZmqMsg], count_: i32, echo_: i32) -> Result<i32,ZmqError> {
+pub fn close_and_return2(msg_: &mut [ZmqMsg], count_: i32, echo_: i32) -> Result<i32,ZmqError> {
     for i in 0..count_ {
         close_and_return(&mut msg_[i as usize], 0)?;
     }

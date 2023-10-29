@@ -1,7 +1,7 @@
 use std::ptr::null_mut;
 
 use libc::{EAGAIN, ECONNRESET};
-use crate::decoder::ZmqDecoderBase;
+use crate::decoder::ZmqDecoder;
 
 use crate::defines::{MSG_COMMAND, ZMQ_RECONNECT_STOP_HANDSHAKE_FAILED, ZmqFd, ZmqHandle};
 use crate::endpoint::ZmqEndpointUriPair;
@@ -38,7 +38,7 @@ pub struct ZmqStreamEngineBase<'a> {
     pub _options: ZmqOptions,
     pub _inpos: *mut u8,
     pub _insize: usize,
-    pub _decoder: Option<&'a mut ZmqDecoderBase>,
+    pub _decoder: Option<&'a mut ZmqDecoder>,
     pub _mechanism: Option<&'a mut ZmqMechanism>,
     pub _metadata: Option<&'a mut ZmqMetadata>,
     pub _input_stopped: bool,

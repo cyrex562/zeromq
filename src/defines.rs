@@ -683,3 +683,7 @@ pub type ZmqConditionVariable = Mutex<()>;
 pub type ZmqPid = i32;
 #[cfg(not(target_os = "windows"))]
 pub type ZmqPid = pid_t;
+
+pub const MORE_FLAG: u8 = 1;
+pub const LARGE_FLAG: u8 = 2;
+pub const COMMAND_FLAG: u8 = 4;

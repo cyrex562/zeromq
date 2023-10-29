@@ -2,15 +2,18 @@ use libc::size_t;
 use crate::err::ZmqError;
 use crate::msg::ZmqMsg;
 use crate::raw_decoder::raw_decode;
+use crate::v1_decoder::v1d_one_byte_size_ready;
+use crate::v2_decoder::v2d_one_byte_size_ready;
 
 
-pub type StepFn = fn(&mut [u8]) -> i32;
+pub type StepFn = fn(decoder: &mut ZmqDecoder, &[u8]) -> i32;
 
 pub enum DecoderType {
-    ZmqRawDecoder,
+    V1Decoder,
+    V2Decoder,
 }
 
-pub struct ZmqDecoderBase {
+pub struct ZmqDecoder {
     pub next: Option<StepFn>,
     pub read_pos: usize,
     pub to_read: usize,
@@ -18,9 +21,13 @@ pub struct ZmqDecoderBase {
     pub buf: Vec<u8>,
     pub _in_progress: ZmqMsg,
     pub decoder_type: DecoderType,
+    pub _tmpbuf: [u8; 8],
+    pub _max_msg_size: i64,
+    pub _zero_copy: bool,
+    pub _msg_flags: u8,
 }
 
-impl ZmqDecoderBase {
+impl ZmqDecoder {
     pub fn new(buf_size_: usize, decoder_type: DecoderType) -> Self {
         let mut out = Self {
             next: None,
@@ -30,8 +37,21 @@ impl ZmqDecoderBase {
             buf: Vec::with_capacity(buf_size_),
             _in_progress: ZmqMsg::default(),
             decoder_type: decoder_type,
+            _tmpbuf: [0;8],
+            _max_msg_size: 0,
+            _zero_copy: false,
+            _msg_flags: 0,
         };
         // out.buf = out.allocator.allocate();
+        // TODO: set next step based on decoder type
+        match out.decoder_type {
+            DecoderType::V1Decoder => {
+                out.next_step(out._tmpbuf, v1d_one_byte_size_ready);
+            },
+            DecoderType::V2Decoder => {
+                out.next_step(out._tmpbuf, v2d_one_byte_size_ready);
+            },
+        }
         out
     }
 
@@ -92,17 +112,6 @@ impl ZmqDecoderBase {
                 let rc = self.next.unwrap()(data_.add(*bytes_used));
                 if rc != 0 { return rc; }
             }
-        }
-
-        // TODO: call decoder-specific decoder functions here based on set decoder type
-        match self.decoder_type {
-            DecoderType::ZmqRawDecoder => {
-                return match raw_decode(self, data_, bytes_used) {
-                    Ok(_) => { Ok(()) }
-                    Err(e) => { Err(e) }
-                };
-            }
-            _ => {}
         }
 
         Ok(())

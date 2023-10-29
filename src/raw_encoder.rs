@@ -1,14 +1,14 @@
-use crate::encoder::ZmqEncoderBase;
+use crate::encoder::ZmqEncoder;
 
 pub struct ZmqRawEncoder {
-    pub encoder_base: ZmqEncoderBase,
+    pub encoder_base: ZmqEncoder,
 
 }
 
 impl ZmqRawEncoder {
     pub fn new(&mut self, bufsize_: usize) -> Self {
         let mut out = Self {
-            encoder_base: ZmqEncoderBase::new(bufsize_),
+            encoder_base: ZmqEncoder::new(bufsize_),
         };
         self.encoder_base.next_step(None, 0, true, self.raw_message_ready);
         out
