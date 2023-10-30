@@ -2,8 +2,9 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use crate::ctx::ZmqContext;
 use crate::defines::ZMQ_CONNECT_ROUTING_ID;
+use crate::out_pipe::out_pipe_t;
 use crate::pipe::ZmqPipe;
-use crate::socket_base::{out_pipe_t, ZmqRoutingSocketBase, ZmqSocket};
+use crate::socket_base::ZmqSocket;
 
 impl ZmqRoutingSocketBase {
     pub unsafe fn new(parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
@@ -82,4 +83,11 @@ impl ZmqRoutingSocketBase {
         // return outpipe;
         return self._out_pipes.remove(routing_id_).unwrap();
     }
+}
+
+#[derive(Default,Debug,Clone)]
+pub struct ZmqRoutingSocketBase<'a> {
+    pub base: ZmqSocket<'a>,
+    pub _out_pipes: HashMap<Vec<u8>, out_pipe_t<'a>>,
+    pub _connect_routing_id: String,
 }

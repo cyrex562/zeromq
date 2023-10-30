@@ -21,7 +21,7 @@ use crate::xsub::ZmqXSub;
 // }
 
 
-pub unsafe fn sub_xsetsockopt(option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub unsafe fn sub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
     if (option_ != ZMQ_SUBSCRIBE && option_ != ZMQ_UNSUBSCRIBE) {
         // errno = EINVAL;
         return -1;
@@ -53,7 +53,42 @@ pub unsafe fn sub_xsend(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> i32 {
 }
 
 // bool zmq::sub_t::xhas_out ()
-pub unsafe fn sub_xhas_out(socket: &mut ZmqSocket) -> bool {
+pub  fn sub_xhas_out(socket: &mut ZmqSocket) -> bool {
     //  Override the XSUB's send.
     return false;
 }
+
+pub fn sub_xattach_pipe(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe,
+    subscribe_to_all_: bool,
+    locally_initiated_: bool,
+) {
+    unimplemented!()
+}
+
+pub fn sub_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+    unimplemented!();
+}
+
+pub fn sub_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+    unimplemented!();
+}
+
+pub fn sub_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> i32 {
+    unimplemented!()
+}
+
+pub fn sub_xhas_in(socket: &mut ZmqSocket) -> i32 {
+    unimplemented!()
+}
+
+pub fn sub_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    unimplemented!()
+}
+
+pub fn sub_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    unimplemented!()
+}
+
+pub fn sub_xpipe_terminated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe)

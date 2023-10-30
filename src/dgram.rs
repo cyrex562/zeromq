@@ -25,16 +25,16 @@ impl ZmqDgram {
 }
 
 pub unsafe fn dgram_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all: bool, locally_initiated: bool) {
-    if socket._pipe.is_none() {
-        socket._pipe = Some(pipe_);
+    if socket.pipe.is_none() {
+        socket.pipe = Some(pipe_);
     } else {
         pipe_.terminate(false);
     }
 }
 
 pub unsafe fn dgram_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
-    if socket._pipe.is_some() && socket._pipe.unwrap() == pipe_ {
-        socket._pipe = None;
+    if socket.pipe.is_some() && socket.pipe.unwrap() == pipe_ {
+        socket.pipe = None;
     }
 }
 
@@ -48,7 +48,7 @@ pub unsafe fn dgram_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe
 
 pub unsafe fn xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     // If there's no out pipe, just drop it.
-    if (!socket._pipe) {
+    if (!socket.pipe) {
         let mut rc = msg_.close();
         // errno_assert (rc == 0);
         return -1;
@@ -56,7 +56,7 @@ pub unsafe fn xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
 
     //  If this is the first part of the message it's the ID of the
     //  peer to send the message to.
-    if (!socket._more_out) {
+    if (!socket.more_out) {
         if (!(msg_.flags() & MSG_MORE != 0)) {
             // errno = EINVAL;
             return -1;
@@ -70,16 +70,16 @@ pub unsafe fn xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     }
 
     // Push the message into the pipe.
-    if (!socket._pipe.write(msg_)) {
+    if (!socket.pipe.write(msg_)) {
         // errno = EAGAIN;
         return -1;
     }
 
     if (!(msg_.flags() & MSG_MORE))
-    socket._pipe.flush();
+    socket.pipe.flush();
 
     // flip the more flag
-    socket._more_out = !socket._more_out;
+    socket.more_out = !socket.more_out;
 
     //  Detach the message from the data buffer.
     let rc = msg_.init();
@@ -93,7 +93,7 @@ pub unsafe fn dgram_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     let mut rc = msg_.close();
     // errno_assert (rc == 0);
 
-    if (!socket._pipe || !socket._pipe.read(msg_)) {
+    if (!socket.pipe || !socket.pipe.read(msg_)) {
         //  Initialise the output parameter to be a 0-byte message.
         rc = msg_.init2();
         // errno_assert (rc == 0);
@@ -105,18 +105,37 @@ pub unsafe fn dgram_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     return 0;
 }
 
-pub unsafe fn dgram_xhas_in(socket: &mut ZmqSocket) -> bool {
-    if (socket._pipe.is_none()) {
+pub  fn dgram_xhas_in(socket: &mut ZmqSocket) -> bool {
+    if (socket.pipe.is_none()) {
         return false;
     }
 
-    return socket._pipe.check_read();
+    return socket.pipe.check_read();
 }
 
-pub unsafe fn dgram_xhas_out(socket: &mut ZmqSocket) -> bool {
-    if (socket._pipe.is_none()) {
+pub  fn dgram_xhas_out(socket: &mut ZmqSocket) -> bool {
+    if (socket.pipe.is_none()) {
         return false;
     }
 
-    return socket._pipe.check_write();
+    return socket.pipe.check_write();
+}
+
+pub fn dgram_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+    unimplemented!()
+}
+pub fn dgram_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+    unimplemented!();
+}
+
+pub fn dgram_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+    unimplemented!();
+}
+
+pub fn dgram_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+    unimplemented!()
+}
+
+pub fn dgram_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+    unimplemented!()
 }

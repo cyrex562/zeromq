@@ -33,28 +33,30 @@ impl ZmqDish {
 
         out
     }
+}
 
-
+pub fn dish_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+    unimplemented!()
 }
 
 
-pub fn dish_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool)  {
-    socket._fq.attach(pipe_);
-    socket._dist.attach(pipe_);
+pub fn dish_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
+    socket.fq.attach(pipe_);
+    socket.dist.attach(pipe_);
     socket.send_subscriptions(pipe_);
 }
 
 pub fn dish_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
-    socket._fq.activated(pipe_);
+    socket.fq.activated(pipe_);
 }
 
 pub fn dish_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
-    socket._dist.activated(pipe_);
+    socket.dist.activated(pipe_);
 }
 
 pub fn dish_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
-    socket._fq.terminated(pipe_);
-    socket._dist.terminated(pipe_);
+    socket.fq.terminated(pipe_);
+    socket.dist.terminated(pipe_);
 }
 
 pub fn dish_xhiccuped(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
@@ -66,14 +68,15 @@ pub fn dish_xjoin(socket: &mut ZmqSocket, group_: &str) -> i32 {
         return -1;
     }
 
-    socket._subscriptions.insert(group_.to_string());
+    socket.subscriptions.insert(group_.to_string());
 
     let mut msg = ZmqMsg::new();
     let mut rc = msg.init_join();
 
-    rc = msg.set_group(group_);;
+    rc = msg.set_group(group_);
+    ;
 
-    rc = socket._dist.send_to_all(&mut msg);
+    rc = socket.dist.send_to_all(&mut msg);
 
     let mut rc2 = msg.close();
 
@@ -85,14 +88,15 @@ pub fn dish_xleave(socket: &mut ZmqSocket, group_: &str) -> i32 {
         return -1;
     }
 
-    socket._subscriptions.remove(group_);
+    socket.subscriptions.remove(group_);
 
     let mut msg = ZmqMsg::new();
     let mut rc = msg.init_leave();
 
-    rc = msg.set_group(group_);;
+    rc = msg.set_group(group_);
+    ;
 
-    rc = socket._dist.send_to_all(&mut msg);
+    rc = socket.dist.send_to_all(&mut msg);
 
     let mut rc2 = msg.close();
 
@@ -108,9 +112,9 @@ pub fn dish_xhas_out(socket: &mut ZmqSocket) -> bool {
 }
 
 pub unsafe fn xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
-    if socket._has_message {
-        let mut rc = msg_.move_(socket._message);
-        socket._has_message = false;
+    if socket.has_message {
+        let mut rc = msg_.move_(socket.message);
+        socket.has_message = false;
         return 0;
     }
 
@@ -119,13 +123,13 @@ pub unsafe fn xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
 
 pub unsafe fn dish_xxrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     loop {
-        let mut rc = socket._fq.recv(msg_);
+        let mut rc = socket.fq.recv(msg_);
         if rc < 0 {
             return -1;
         }
 
         let mut count = 0;
-        for x in socket._subscriptions.iter() {
+        for x in socket.subscriptions.iter() {
             if x == msg_.group() {
                 count += 1;
             }
@@ -138,23 +142,22 @@ pub unsafe fn dish_xxrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     0
 }
 
-pub unsafe fn dish_xhas_in(socket: &mut ZmqSocket) -> bool {
-    if socket._has_message {
+pub fn dish_xhas_in(socket: &mut ZmqSocket) -> bool {
+    if socket.has_message {
         return true;
     }
 
-    let mut rc = socket.xxrecv(&mut socket._message);
+    let mut rc = socket.xxrecv(&mut socket.message);
     if rc < 0 {
         return false;
     }
 
-    socket._has_message = true;
+    socket.has_message = true;
     true
 }
 
-pub unsafe fn dish_send_subscriptions(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe)
-{
-    for it in socket._subscriptions.iter_mut() {
+pub unsafe fn dish_send_subscriptions(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+    for it in socket.subscriptions.iter_mut() {
         let mut msg = ZmqMsg::new();
         let mut rc = msg.init_join();
 
@@ -166,4 +169,12 @@ pub unsafe fn dish_send_subscriptions(socket: &mut ZmqSocket, pipe_: &mut ZmqPip
     }
 
     pipe_.flush();
+}
+
+pub fn dish_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+    unimplemented!();
+}
+
+pub fn dish_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> i32 {
+    unimplemented!()
 }

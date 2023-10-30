@@ -23,23 +23,51 @@ impl ZmqPull {
 
 }
 
+pub fn pull_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+    unimplemented!()
+}
 
 pub unsafe fn pull_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
-    socket._fq.attach(pipe_)
+    socket.fq.attach(pipe_)
 }
 
 pub fn oull_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
-    socket._fq.activated(pipe)
+    socket.fq.activated(pipe)
 }
 
 pub fn pull_xpipe_terminated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
-    socket._fq.pipe_terminated(pipe)
+    socket.fq.pipe_terminated(pipe)
 }
 
 pub unsafe fn pull_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
-    socket._fq.recv(msg_)
+    socket.fq.recv(msg_)
 }
 
-pub unsafe fn pull_xhas_in(socket: &mut ZmqSocket) -> bool {
-    socket._fq.has_in()
+pub  fn pull_xhas_in(socket: &mut ZmqSocket) -> bool {
+    socket.fq.has_in()
+}
+
+
+pub fn pull_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+    unimplemented!();
+}
+
+pub fn pull_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+    unimplemented!();
+}
+
+pub fn pull_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+    unimplemented!()
+}
+
+pub fn pull_xhas_out(socket: &mut ZmqSocket) -> bool {
+    unimplemented!()
+}
+
+pub fn pull_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    unimplemented!()
+}
+
+pub fn pull_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    unimplemented!()
 }

@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 use crate::address::ZmqAddress;
-use crate::defines::{dish_session_state_t, MSG_COMMAND, MSG_MORE, ZMQ_GROUP_MAX_LENGTH};
+use crate::defines::{MSG_COMMAND, MSG_MORE, ZMQ_GROUP_MAX_LENGTH};
 use crate::io_thread::ZmqIoThread;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
@@ -103,4 +103,9 @@ impl dish_session_t {
         self.session_base.reset();
         self._state = dish_session_state_t::group;
     }
+}
+
+pub enum dish_session_state_t {
+    group,
+    body
 }

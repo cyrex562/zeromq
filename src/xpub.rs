@@ -391,3 +391,11 @@ pub unsafe fn xpub_send_unsubscription(socket: &mut ZmqSocket, data_: Prefix, si
         }
     }
 }
+
+pub fn xpub_xgetsockopt(socket: &mut ZmqSocket, option: i32) -> Result<[u8], ZmqError> {
+    unimplemented!();
+}
+
+pub fn xpub_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+    unimplemented!();
+}

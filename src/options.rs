@@ -628,10 +628,8 @@ impl ZmqOptions {
 
     pub unsafe fn getsockopt(
         &mut self,
-        option_: i32,
-        optval_: *mut c_void,
-        optvallen_: *mut size_t,
-    ) -> i32 {
+        option_: u32,
+    ) -> Result<[u8], ZmqError> {
         let is_int = *optvallen_ == std::mem::size_of::<i32>();
         let value: *mut i32 = optval_ as *mut i32;
         match option_ as u32 {

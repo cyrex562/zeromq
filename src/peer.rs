@@ -44,3 +44,43 @@ pub fn peer_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_
     socket.server.xattach_pipe(pipe_, subscribe_to_all_, locally_initiated_);
     socket.server._peer_last_routing_id = pipe_.get_server_socket_routing_id();
 }
+
+pub fn peer_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+    unimplemented!()
+}
+
+pub fn peer_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+    unimplemented!();
+}
+
+pub fn peer_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+    unimplemented!();
+}
+
+pub fn peer_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+    unimplemented!()
+}
+
+pub fn peer_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> i32 {
+    unimplemented!()
+}
+
+pub fn peer_xhas_in(socket: &mut ZmqSocket) -> bool {
+    unimplemented!()
+}
+
+pub fn peer_xhas_out(socket: &mut ZmqSocket) -> i32 {
+    unimplemented!()
+}
+
+pub fn peer_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+    unimplemented!()
+}
+
+pub fn peer_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+    unimplemented!()
+}
+
+pub fn peer_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+    unimplemented!()
+}

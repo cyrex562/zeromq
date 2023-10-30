@@ -9,20 +9,31 @@ use crate::pipe::ZmqPipe;
 //     pub _request_id: u32,
 //     pub _strict: bool,
 // }
-// 
+//
 // impl ZmqReq {
 //     pub fn new(options: &mut ZmqOptions, parent_: &mut ctx_t, tid_: u32, sid_: i32) -> Self {
 //         options.type_ = ZMQ_REQ;
-// 
+//
 //         Self {
 //             dealer: ZmqDealer::new(options, parent_, tid_, sid_),
 //             _request_id: 0,
 //             _strict: false,
 //         }
 //     }
-// 
-//     
+//
+//
 // }
+
+
+
+pub fn req_xattach_pipe(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe,
+    subscribe_to_all_: bool,
+    locally_initiated_: bool,
+) {
+    unimplemented!()
+}
 
 pub unsafe fn req_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     //  If we've sent a request and we still haven't got the reply,
@@ -169,7 +180,7 @@ pub unsafe fn req_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
 }
 
 // bool zmq::req_t::xhas_in ()
-pub unsafe fn req_xhas_in(&mut self) -> bool {
+pub  fn req_xhas_in(socket: &mut ZmqSocket) -> bool {
     //  TODO: Duplicates should be removed here.
 
     if (!socket._receiving_reply) {
@@ -180,7 +191,7 @@ pub unsafe fn req_xhas_in(&mut self) -> bool {
 }
 
 // bool zmq::req_t::xhas_out ()
-pub unsafe fn req_xhas_out(&mut self) -> bool {
+pub  fn req_xhas_out(&mut self) -> bool {
     if (socket._receiving_reply && socket._strict) {
         return false;
     }
@@ -236,4 +247,21 @@ pub unsafe fn req_recv_reply_pipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> 
             return 0;
         }
     }
+}
+
+pub fn req_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+    unimplemented!();
+}
+
+pub fn req_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+    unimplemented!();
+}
+
+pub fn req_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    unimplemented!()
+}
+
+pub fn req_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe)
+{
+    unimplemented!()
 }

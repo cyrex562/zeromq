@@ -114,6 +114,8 @@ mod radio_session;
 mod dish_session;
 mod req_session;
 mod out_pipe;
+mod routing_socket_base;
+mod zmq_pipe;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

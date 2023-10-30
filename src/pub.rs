@@ -36,3 +36,35 @@ pub fn pub_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> i32 {
 pub fn pub_xhas_in(socket: &mut ZmqSocket) -> bool {
     false
 }
+
+pub fn pub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+    unimplemented!()
+}
+
+pub fn pub_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+    unimplemented!();
+}
+
+pub fn pub_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+    unimplemented!();
+}
+
+pub fn pub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+    unimplemented!()
+}
+
+pub fn pub_xhas_out(socket: &mut ZmqSocket) -> bool {
+    unimplemented!()
+}
+
+pub fn pub_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    unimplemented!()
+}
+
+pub fn pub_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    unimplemented!()
+}
+
+pub fn pub_xpipe_terminated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    unimplemented!()
+}

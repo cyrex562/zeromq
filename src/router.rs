@@ -9,7 +9,7 @@ use crate::fair_queue::ZmqFairQueue;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqRoutingSocketBase;
+use crate::routing_socket_base::ZmqRoutingSocketBase;
 use crate::utils::put_u32;
 
 // pub struct ZmqRouter<'a> {
@@ -380,7 +380,7 @@ pub unsafe fn router_rollback(socket: &mut ZmqSocket) -> i32 {
 }
 
 // bool zmq::router_t::xhas_in ()
-pub unsafe fn router_xhas_in(socket: &mut ZmqSocket) -> bool {
+pub  fn router_xhas_in(socket: &mut ZmqSocket) -> bool {
     //  If we are in the middle of reading the messages, there are
     //  definitely more parts available.
     if (socket._more_in) {
@@ -432,7 +432,7 @@ pub unsafe fn router_check_pipe_hwm(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe)
 }
 
 // bool zmq::router_t::xhas_out ()
-pub unsafe fn router_xhas_out(socket: &mut ZmqSocket) -> bool {
+pub  fn router_xhas_out(socket: &mut ZmqSocket) -> bool {
     //  In theory, ROUTER socket is always Ready for writing (except when
     //  MANDATORY is set). Whether actual attempt to write succeeds depends
     //  on which pipe the message is going to be routed to.
@@ -548,4 +548,17 @@ pub unsafe fn router_identify_peer(socket: &mut ZmqSocket, options: &mut ZmqOpti
     socket.add_out_pipe((routing_id), pipe_);
 
     return true;
+}
+
+
+pub fn router_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+    unimplemented!();
+}
+
+pub fn router_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+    unimplemented!();
+}
+
+pub fn router_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+    unimplemented!()
 }

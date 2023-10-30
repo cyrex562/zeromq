@@ -35,9 +35,9 @@ use crate::socket_base::ZmqSocket;
 
 
 pub unsafe fn server_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
-    let mut routing_id = socket._next_routing_id += 1;
+    let mut routing_id = socket.next_routing_id += 1;
     if (!routing_id) {
-        routing_id = socket._next_routing_id += 1;
+        routing_id = socket.next_routing_id += 1;
     } //  Never use Routing ID zero
 
     pipe_.set_server_socket_routing_id(routing_id);
@@ -47,33 +47,33 @@ pub unsafe fn server_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, s
         pipe: pipe_,
         active: true,
     };
-    let ok = socket._out_pipes.ZMQ_MAP_INSERT_OR_EMPLACE(routing_id, outpipe).second;
+    let ok = socket.out_pipes.ZMQ_MAP_INSERT_OR_EMPLACE(routing_id, outpipe).second;
     // zmq_assert (ok);
 
-    socket._fq.attach(pipe_);
+    socket.fq.attach(pipe_);
 }
 
 pub unsafe fn server_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     // const out_pipes_t::iterator it = _out_pipes.find (pipe_->get_server_socket_routing_id ());
-    let it = socket._out_pipes.find(pipe_.get_server_socket_routing_id());
+    let it = socket.out_pipes.find(pipe_.get_server_socket_routing_id());
     // zmq_assert (it != _out_pipes.end ());
 
     // _out_pipes.erase (it);
-    socket._out_pipes.remove(it);
+    socket.out_pipes.remove(it);
 
-    socket._fq.pipe_terminated(pipe_);
+    socket.fq.pipe_terminated(pipe_);
 }
 
 pub unsafe fn server_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
-    socket._fq.read_activated(pipe_);
+    socket.fq.read_activated(pipe_);
 }
 
 pub unsafe fn server_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
-    let end = socket._out_pipes.iter_mut().last().unwrap();
+    let end = socket.out_pipes.iter_mut().last().unwrap();
 
     let mut it: (&u32, &mut ZmqOutpipe);
-    for i in 0..socket._out_pipes.len() {
-        it = socket._out_pipes.iter_mut().nth(i).unwrap();
+    for i in 0..socket.out_pipes.len() {
+        it = socket.out_pipes.iter_mut().nth(i).unwrap();
         if it.1.pipe == pipe {
             it.1.active = true;
             break;
@@ -89,9 +89,9 @@ pub unsafe fn server_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     }
     //  Find the pipe associated with the routing stored in the message.
     let mut routing_id = msg_.get_routing_id();
-    let it = socket._out_pipes.iter_mut().find(routing_id).unwrap();
+    let it = socket.out_pipes.iter_mut().find(routing_id).unwrap();
 
-    if (it != socket._out_pipes.iter_mut().end()) {
+    if (it != socket.out_pipes.iter_mut().end()) {
         if (!it.1.pipe.check_write()) {
             it.1.active = false;
             // errno = EAGAIN;
@@ -123,24 +123,24 @@ pub unsafe fn server_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
 pub unsafe fn server_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     // pipe_t *pipe = NULL;
     let mut pipe= ZmqPipe::default();
-    let mut rc = socket._fq.recvpipe (msg_, &mut Some(&mut pipe));
+    let mut rc = socket.fq.recvpipe (msg_, &mut Some(&mut pipe));
 
     // Drop any messages with more flag
     // while (rc == 0 && msg_->flags () & msg_t::more)
     while rc == 0 && msg_.flag_set(MSG_MORE)
     {
         // drop all frames of the current multi-frame message
-        rc = socket._fq.recvpipe (msg_, &mut None);
+        rc = socket.fq.recvpipe (msg_, &mut None);
 
         // while (rc == 0 && msg_->flags () & msg_t::more)
         while rc == 0 && msg_.flag_set(MSG_MORE)
         {
-            rc = socket._fq.recvpipe(msg_, &mut None);
+            rc = socket.fq.recvpipe(msg_, &mut None);
         }
 
         // get the new message
         if (rc == 0) {
-            rc = socket._fq.recvpipe(msg_, &mut Some(&mut pipe));
+            rc = socket.fq.recvpipe(msg_, &mut Some(&mut pipe));
         }
     }
 
@@ -158,9 +158,22 @@ pub unsafe fn server_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
 
 pub fn server_xhas_in (socket: &mut ZmqSocket) -> bool
 {
-    return socket._fq.has_in ();
+    return socket.fq.has_in ();
 }
 
 pub fn server_xhas_out(socket: &mut ZmqSocket) -> bool {
     true
+}
+
+
+pub fn server_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+    unimplemented!()
+}
+
+pub fn server_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+    unimplemented!();
+}
+
+pub fn server_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+    unimplemented!();
 }

@@ -1,9 +1,10 @@
 use std::ptr::null_mut;
-use crate::defines::ZmqPipes;
+use crate::zmq_pipe::ZmqPipes;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 
 
+#[derive(Default,Debug,Clone)]
 pub struct ZmqLoadBalancer
 {
     pub _pipes: ZmqPipes,

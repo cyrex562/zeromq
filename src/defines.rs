@@ -1,4 +1,3 @@
-use crate::pipe::ZmqPipe;
 use libc::pid_t;
 #[cfg(not(target_os = "windows"))]
 use libc::pollfd;
@@ -325,9 +324,11 @@ pub const _NSIG: u32 = 64;
 pub const _NSIG_BPW: u32 = 32;
 //    11 #define _NSIG_WORDS (_NSIG / _NSIG_BPW)
 pub const _NSIG_WORDS: u32 = _NSIG / _NSIG_BPW;
+
 //    12
 //    13 typedef unsigned long old_sigset_t;     /* at least 32 bits */
 pub type OldSigset = u32;
+
 //    14
 //    15 typedef struct {
 //    16     unsigned long sig[_NSIG_WORDS];
@@ -666,8 +667,6 @@ pub struct ZmqSockaddrStorage {
     // sin6_scope_id: u32,
 }
 
-pub type ZmqPipes<'a> = [ZmqPipe<'a>; 2];
-
 pub const COMMAND_PIPE_GRANULARITY: usize = 16;
 pub const MESSAGE_PIPE_GRANULARITY: usize = 256;
 pub const INBOUND_POLL_RATE: u32 = 100;
@@ -690,8 +689,3 @@ pub const LARGE_FLAG: u8 = 2;
 pub const COMMAND_FLAG: u8 = 4;
 
 pub type ZmqSubscriptions = HashSet<String>;
-
-pub enum dish_session_state_t {
-    group,
-    body
-}

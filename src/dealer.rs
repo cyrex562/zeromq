@@ -36,7 +36,7 @@ impl ZmqDealer {
 
 pub fn dealer_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool)
 {
-    if socket._probe_router {
+    if socket.probe_router {
         // msg_t probe_msg;
         let probe_msg = ZmqMsg::new ();
         let rc = probe_msg.init ();
@@ -52,8 +52,8 @@ pub fn dealer_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscrib
         // errno_assert (rc == 0);
     }
 
-    socket._fq.attach (pipe_);
-    socket._lb.attach (pipe_);
+    socket.fq.attach (pipe_);
+    socket.lb.attach (pipe_);
 }
 
 pub fn dealer_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32
@@ -62,7 +62,7 @@ pub fn dealer_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], 
     let mut value: u32 = u32::from_le_bytes(optval_[0..4].try_into().unwrap());
 
     if option_ == ZMQ_PROBE_ROUTER {
-        socket._probe_router = value != 0;
+        socket.probe_router = value != 0;
         return 0;
     }
     else {
@@ -81,25 +81,36 @@ pub fn dealer_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
 }
 
 pub fn dealer_xhas_in(socket: &mut ZmqSocket) -> bool {
-    socket._fq.has_in()
+    socket.fq.has_in()
 }
 
 pub fn dealer_xhas_out(socket: &mut ZmqSocket) -> bool {
-    socket._lb.has_out()
+    socket.lb.has_out()
 }
 
 pub fn dealer_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
-    socket._fq.activated(pipe_)
+    socket.fq.activated(pipe_)
 }
 
 pub fn dealer_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
-    socket._lb.activated(pipe_)
+    socket.lb.activated(pipe_)
 }
 
 pub unsafe fn dealer_sendpipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg, pipe_: &mut Option<&mut ZmqPipe>) -> i32 {
-    socket._lb.sendpipe(msg_, pipe_)
+    socket.lb.sendpipe(msg_, pipe_)
 }
 
 pub unsafe fn dealer_recvpipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg, pipe_: &mut Option<&mut ZmqPipe>) -> i32 {
-    socket._fq.recvpipe(msg_, pipe_)
+    socket.fq.recvpipe(msg_, pipe_)
+}
+
+pub fn dealer_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+    unimplemented!();
+}
+pub fn dealer_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+    unimplemented!();
+}
+
+pub fn dealer_xpipe_terminated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+    unimplemented!()
 }

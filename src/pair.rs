@@ -23,17 +23,21 @@ impl ZmqPair {
 
 }
 
+pub fn pair_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+    unimplemented!()
+}
+
  pub unsafe fn pair_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
-    if socket._pipe.is_none() {
-        socket._pipe = Some(pipe_);
+    if socket.pipe.is_none() {
+        socket.pipe = Some(pipe_);
     } else {
-        socket._pipe.as_mut().unwrap().terminate(false);
+        socket.pipe.as_mut().unwrap().terminate(false);
     }
 }
 
 pub unsafe fn pair_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
-    if pipe_ == socket._pipe {
-        socket._pipe = None;
+    if pipe_ == socket.pipe {
+        socket.pipe = None;
     }
 }
 
@@ -46,7 +50,7 @@ pub unsafe fn pair_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe)
 }
 
 pub unsafe fn pair_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
-    if (!socket._pipe || !socket._pipe.write (msg_)) {
+    if (!socket.pipe || !socket.pipe.write (msg_)) {
         // errno = EAGAIN;
         return -1;
     }
@@ -66,7 +70,7 @@ pub unsafe fn pair_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     let rc = msg_.close ();
     // errno_assert (rc == 0);
 
-    if (!socket._pipe.is_none() || !socket._pipe.read (msg_)) {
+    if (!socket.pipe.is_none() || !socket.pipe.read (msg_)) {
         //  Initialise the output parameter to be a 0-byte message.
         rc = msg_.init2();
         // errno_assert (rc == 0);
@@ -77,20 +81,28 @@ pub unsafe fn pair_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     return 0;
 }
 
-pub unsafe fn pair_xhas_in (socket: &mut ZmqSocket) -> bool
+pub  fn pair_xhas_in (socket: &mut ZmqSocket) -> bool
 {
-    if (socket._pipe.is_none()) {
+    if (socket.pipe.is_none()) {
         return false;
     }
 
-    return socket._pipe.check_read ();
+    return socket.pipe.check_read ();
 }
 
-pub unsafe fn pair_xhas_out (socket: &mut ZmqSocket) -> bool
+pub  fn pair_xhas_out (socket: &mut ZmqSocket) -> bool
 {
-    if (socket._pipe.is_none()) {
+    if (socket.pipe.is_none()) {
         return false;
     }
 
-    return socket._pipe.check_write ();
+    return socket.pipe.check_write ();
+}
+
+pub fn pair_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+    unimplemented!();
+}
+
+pub fn pair_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+    unimplemented!();
 }

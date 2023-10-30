@@ -5,7 +5,7 @@ use crate::fair_queue::ZmqFairQueue;
 use crate::msg::ZmqMsg;
 use crate::options::{do_setsockopt_int_as_bool_strict, ZmqOptions};
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqRoutingSocketBase;
+use crate::routing_socket_base::ZmqRoutingSocketBase;
 use crate::utils::put_u32;
 
 pub struct ZmqStream<'a> {

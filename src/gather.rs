@@ -25,38 +25,61 @@ impl ZmqGather {
 
 
 pub fn gather_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
-        socket._fq.attach(pipe_);
+        socket.fq.attach(pipe_);
 }
 
 pub fn gather_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
-    socket._fq.activated(pipe_);
+    socket.fq.activated(pipe_);
 }
 
 pub fn gather_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
-    socket._fq.pipe_terminated(pipe_);
+    socket.fq.pipe_terminated(pipe_);
 }
 
 pub fn gather_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
-    let mut rc = socket._fq.recvpipe (msg_, &mut None);
+    let mut rc = socket.fq.recvpipe (msg_, &mut None);
 
     // Drop any messages with more flag
     while rc == 0 && msg_.flag_set(MSG_MORE) {
         // drop all frames of the current multi-frame message
-        rc = socket._fq.recvpipe (msg_, &mut None);
+        rc = socket.fq.recvpipe (msg_, &mut None);
 
         while rc == 0 && msg_.flag_set(MSG_MORE) {
-            rc = socket._fq.recvpipe(msg_, &mut None);
+            rc = socket.fq.recvpipe(msg_, &mut None);
         }
 
         // get the new message
         if rc == 0 {
-            rc = socket._fq.recvpipe(msg_, &mut None);
+            rc = socket.fq.recvpipe(msg_, &mut None);
         }
     }
 
     return rc;
 }
 
-pub unsafe fn gather_xhas_in(socket: &mut ZmqSocket) -> bool {
-    socket._fq.has_in()
+pub  fn gather_xhas_in(socket: &mut ZmqSocket) -> bool {
+    socket.fq.has_in()
+}
+
+pub fn gather_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+    unimplemented!()
+}
+
+pub fn gather_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+    unimplemented!();
+}
+pub fn gather_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+    unimplemented!();
+}
+
+pub fn gather_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+    unimplemented!()
+}
+
+pub fn gather_xhas_out(socket: &mut ZmqSocket) -> i32 {
+    unimplemented!()
+}
+
+pub fn gather_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+    unimplemented!()
 }
