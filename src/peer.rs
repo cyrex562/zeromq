@@ -3,7 +3,7 @@ use crate::defines::ZMQ_PEER;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::server::ZmqServer;
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 
 pub struct ZmqPeer<'a> {
     pub server: ZmqServer<'a>,

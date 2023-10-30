@@ -24,7 +24,7 @@ use crate::polling_util::{compute_timeout, valid_pollset_bytes, OptimizedFdSet};
 use crate::pollitem::ZmqPollitem;
 use crate::proxy::proxy;
 use crate::select::{FD_SET, FD_ZERO};
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 use crate::socket_poller::ZmqSocketPoller;
 use crate::timers::{Timers, TimersTimerFn};
 use crate::utils::{get_errno, FD_ISSET};

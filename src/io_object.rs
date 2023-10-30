@@ -1,6 +1,5 @@
 use std::ptr::null_mut;
-use crate::defines::ZmqHandle;
-use crate::fd::fd_t;
+use crate::defines::{ZmqFd, ZmqHandle};
 use crate::i_poll_events::IPollEvents;
 use crate::io_thread::ZmqIoThread;
 use crate::poller::ZmqPoller;
@@ -28,7 +27,7 @@ impl IoObject {
         self._poller = null_mut();
     }
 
-    pub fn add_fd(&mut self, fd_: fd_t) -> ZmqHandle {
+    pub fn add_fd(&mut self, fd_: ZmqFd) -> ZmqHandle {
         self._poller.add_fd(fd_, self)
     }
 
@@ -61,16 +60,16 @@ impl IoObject {
     }
 }
 
-impl IPollEvents for IoObject {
-    fn in_event(&mut self) {
-        todo!()
-    }
-
-    fn out_event(&mut self) {
-        todo!()
-    }
-
-    fn timer_event(&mut self, id_: i32) {
-        todo!()
-    }
-}
+// impl IPollEvents for IoObject {
+//     fn in_event(&mut self) {
+//         todo!()
+//     }
+//
+//     fn out_event(&mut self) {
+//         todo!()
+//     }
+//
+//     fn timer_event(&mut self, id_: i32) {
+//         todo!()
+//     }
+// }

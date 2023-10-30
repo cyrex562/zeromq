@@ -3,7 +3,7 @@ use std::ptr::null_mut;
 use crate::defines::PROXY_BURST_SIZE;
 use crate::defines::{ZMQ_DONTWAIT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_RCVMORE, ZMQ_SNDMORE};
 use crate::msg::ZmqMsg;
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 use crate::socket_poller::{ZmqEvent, ZmqSocketPoller};
 
 pub enum ProxyState {

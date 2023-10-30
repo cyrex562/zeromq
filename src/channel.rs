@@ -4,7 +4,7 @@ use crate::err::ZmqError::PipeError;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 use std::ptr::null_mut;
 
 pub struct ZmqChannel<'a> {

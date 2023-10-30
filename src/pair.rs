@@ -3,7 +3,7 @@ use crate::defines::{MSG_MORE, ZMQ_PAIR};
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 
 pub struct ZmqPair<'a> {
     pub socket_base: ZmqSocket<'a>,

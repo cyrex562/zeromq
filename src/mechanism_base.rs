@@ -3,17 +3,17 @@ use crate::defines::ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED;
 use crate::mechanism::{mechanism_ops, ZmqMechanism, MechanismStatus};
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use crate::session_base::ZmqSessionBase;
+use crate::session_base::ZmqSession;
 
 pub struct ZmqMechanismBase
 {
-    pub session: *const ZmqSessionBase,
+    pub session: *const ZmqSession,
     pub mechanism: ZmqMechanism,
 }
 
 impl ZmqMechanismBase
 {
-    pub fn new(session_: &mut ZmqSessionBase, options: &ZmqOptions) -> Self
+    pub fn new(session_: &mut ZmqSession, options: &ZmqOptions) -> Self
     {
         Self {
             session: session_,

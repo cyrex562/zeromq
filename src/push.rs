@@ -4,7 +4,7 @@ use crate::load_balancer::ZmqLoadBalancer;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 use libc::option;
 
 pub struct ZmqPush<'a> {

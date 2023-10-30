@@ -11,7 +11,7 @@ use crate::msg::ZmqMsg;
 use crate::mtrie::ZmqMtrie;
 use crate::options::{do_getsockopt, ZmqOptions};
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 
 // pub struct ZmqXPub<'a> {
 //     pub socket_base: ZmqSocket<'a>,

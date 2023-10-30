@@ -9,7 +9,7 @@ use crate::poller_event::ZmqPollerEvent;
 use crate::polling_util::ResizableOptimizedFdSetT;
 use crate::select::{fd_set, FD_SET, FD_ZERO, FD_CLR};
 use crate::signaler::ZmqSignaler;
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 use crate::utils::FD_ISSET;
 
 pub type ZmqEvent = ZmqPollerEvent;

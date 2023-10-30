@@ -66,7 +66,7 @@ impl ZmqEncoder
         &mut self.in_progress
     }
 
-    unsafe fn encode(&mut self, data_: *mut *mut u8, size_: usize) -> usize {
+    pub fn encode(&mut self, data_: &mut [u8], size_: usize) -> usize {
         let buffer = if *data_ != null_mut() { *data_ } else { self.buf };
         let buffersize = if *data_ != null_mut() { size_ } else { self._buf_size };
         if self.in_progress == ZmqMsg::default() {

@@ -8,7 +8,7 @@ use crate::fd::fd_t;
 use crate::io_thread::ZmqIoThread;
 use crate::ip::{make_socket_noninheritable, set_ip_type_of_service, set_nosigpipe, set_socket_priority};
 use crate::options::ZmqOptions;
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 use crate::stream_listener_base::ZmqStreamListenerBase;
 use crate::tcp::{tcp_open_socket, tune_tcp_keepalives, tune_tcp_maxrt, tune_tcp_socket};
 use crate::tcp_address::ZmqTcpAddress;

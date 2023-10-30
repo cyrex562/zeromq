@@ -9,7 +9,7 @@ use crate::defines::RETIRED_FD;
 use crate::io_thread::ZmqIoThread;
 use crate::ip::{tune_socket, unblock_socket};
 use crate::options::ZmqOptions;
-use crate::session_base::ZmqSessionBase;
+use crate::session_base::ZmqSession;
 use crate::stream_connecter_base::ZmqStreamConnecterBase;
 use crate::tcp::{tcp_open_socket, tune_tcp_keepalives, tune_tcp_maxrt, tune_tcp_socket};
 use crate::tcp_address::ZmqTcpAddress;
@@ -24,7 +24,7 @@ pub struct ZmqTcpConnecter
 
 impl ZmqTcpConnecter
 {
-    pub fn new(io_thread_: &mut ZmqIoThread, session_: &mut ZmqSessionBase, options_: &ZmqOptions, addr_: ZmqAddress, delayed_start_: bool) -> Self
+    pub fn new(io_thread_: &mut ZmqIoThread, session_: &mut ZmqSession, options_: &ZmqOptions, addr_: ZmqAddress, delayed_start_: bool) -> Self
     {
         Self {
             stream_connecter_base: ZmqStreamConnecterBase::new(io_thread_, session_, options_, addr_, delayed_start_),

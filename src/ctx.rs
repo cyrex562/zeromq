@@ -18,7 +18,7 @@ use crate::pipe::{send_routing_id, ZmqPipe};
 use crate::poller::max_fds;
 use crate::reaper::ZmqReaper;
 use crate::thread::{ZmqThread, ZmqThreadFn};
-use crate::{command::ZmqCommand, socket_base::ZmqSocket};
+use crate::{command::ZmqCommand, socket::ZmqSocket};
 
 pub type io_threads_t<'a> = Vec<&'a mut ZmqIoThread<'a>>;
 

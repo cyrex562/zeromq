@@ -6,11 +6,11 @@ pub struct ZmqRawEncoder {
 }
 
 impl ZmqRawEncoder {
-    pub fn new(&mut self, bufsize_: usize) -> Self {
+    pub fn new(bufsize_: usize) -> Self {
         let mut out = Self {
             encoder_base: ZmqEncoder::new(bufsize_),
         };
-        self.encoder_base.next_step(None, 0, true, self.raw_message_ready);
+        out.encoder_base.next_step(None, 0, true, out.raw_message_ready);
         out
     }
     

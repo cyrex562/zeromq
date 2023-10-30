@@ -3,7 +3,7 @@ use std::mem::size_of;
 use std::ptr::null_mut;
 use libc::{EAFNOSUPPORT, setsockopt, SOCKET};
 use windows::Win32::Networking::WinSock::{AF_INET, AF_INET6, closesocket, IPPROTO_TCP, recv, send, SIO_KEEPALIVE_VALS, SIO_LOOPBACK_FAST_PATH, SO_RCVBUF, SO_SNDBUF, SOCK_STREAM, SOCKET_ERROR, SOL_SOCKET, tcp_keepalive, TCP_NODELAY, WSAECONNABORTED, WSAECONNRESET, WSAEHOSTUNREACH, WSAENETDOWN, WSAENETRESET, WSAENOBUFS, WSAEOPNOTSUPP, WSAETIMEDOUT, WSAEWOULDBLOCK, WSAGetLastError};
-use crate::defines::RETIRED_FD;
+use crate::defines::{RETIRED_FD, ZmqFd};
 use crate::fd::fd_t;
 use crate::ip::{bind_to_device, enable_ipv4_mapping, open_socket, set_ip_type_of_service, set_socket_priority};
 
@@ -196,7 +196,7 @@ pub unsafe fn tune_tcp_maxrt(sockfd_: fd_t, timeout_: i32) -> i32 {
 // #endif
 }
 
-pub unsafe fn tcp_write(s_: fd_t, data_: *const c_void, size_: usize) -> i32 {
+pub fn tcp_write(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
 // #ifdef ZMQ_HAVE_WINDOWS
     #[cfg(target_os = "windows")]
     {
@@ -257,7 +257,7 @@ pub unsafe fn tcp_write(s_: fd_t, data_: *const c_void, size_: usize) -> i32 {
 // #endif
 }
 
-pub unsafe fn tcp_read(s_: fd_t, data_: *mut c_void, size_: usize) -> i32 {
+pub fn tcp_read(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
 // #ifdef ZMQ_HAVE_WINDOWS
     #[cfg(target_os = "windows")]
     {

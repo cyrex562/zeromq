@@ -170,7 +170,7 @@ impl ZmqIpAddress {
         }
     }
 
-    pub unsafe fn any(family_: i32) -> anyhow::Result<ZmqIpAddress> {
+    pub fn any(family_: i32) -> anyhow::Result<ZmqIpAddress> {
         let mut addr = ZmqIpAddress::default();
         if family_ == AF_INET {
             addr.ipv4.sin_family = AF_INET as sa_family_t;

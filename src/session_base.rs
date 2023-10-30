@@ -3,20 +3,17 @@ use crate::defines::{
     MSG_COMMAND, MSG_MORE, ZMQ_DGRAM, ZMQ_DISH, ZMQ_NULL, ZMQ_RADIO, ZMQ_SUB, ZMQ_XSUB,
 };
 use crate::endpoint::ZmqEndpointUriPair;
-use crate::i_engine::ErrorReason::TimeoutError;
-use crate::i_engine::{ErrorReason, IEngine};
 use crate::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
 use crate::msg::ZmqMsg;
-use crate::object::ZmqObject;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
 use crate::own::ZmqOwn;
 use crate::pipe::{pipepair, IPipeEvents, ZmqPipe};
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 use std::collections::HashSet;
 use std::ptr::null_mut;
 
-pub struct ZmqSessionBase<'a> {
+pub struct ZmqSession<'a> {
     pub own: ZmqOwn<'a>,
     pub io_object: IoObject,
     pub _active: bool,
@@ -26,15 +23,15 @@ pub struct ZmqSessionBase<'a> {
     pub _incomplete_in: bool,
     pub _pending: bool,
     pub _socket: &'a mut ZmqSocket<'a>,
-    pub _io_thread: &'a mut ZmqIoThread,
+    pub _io_thread: &'a mut ZmqIoThread<'a>,
     pub _has_linger_timer: bool,
-    pub _addr: ZmqAddress,
-    pub _engine: Option<&'a mut dyn IEngine>,
+    pub _addr: ZmqAddress<'a>,
+    pub _engine: Option<&'a mut ZmqEngine>,
 }
 
 pub const _linger_timer_id: i32 = 0x20;
 
-impl IPipeEvents for ZmqSessionBase {
+impl IPipeEvents for ZmqSession {
     fn read_activated(&self, pipe: &ZmqPipe) {
         unimplemented!()
     }
@@ -80,16 +77,16 @@ impl IPipeEvents for ZmqSessionBase {
 //     }
 // }
 
-impl ZmqSessionBase {
+impl ZmqSession {
     pub unsafe fn create(
         io_thread_: &mut ZmqIoThread,
         active_: bool,
         socket_: &mut ZmqSocket,
         options_: &ZmqOptions,
         addr_: ZmqAddress,
-    ) -> ZmqSessionBase {
+    ) -> ZmqSession {
         // let mut s: *mut session_base_t = null_mut();
-        let mut s = ZmqSessionBase::default();
+        let mut s = ZmqSession::default();
         match options_.type_ {
             ZMQ_REQ => {
                 // s = &mut req_session_t::new(io_thread_, active_, socket_, options_, addr_);
@@ -104,7 +101,7 @@ impl ZmqSessionBase {
                 if options_.can_send_hello_msg && options_.hello_msg.len() > 0 {
                     // s = &mut hello_session_t::new(io_thread_, active_, socket_, options_, addr_);
                 } else {
-                    s = ZmqSessionBase::new(io_thread_, active_, socket_, options_, addr_);
+                    s = ZmqSession::new(io_thread_, active_, socket_, options_, addr_);
                 }
             }
         }
@@ -741,7 +738,7 @@ impl ZmqSessionBase {
 }
 
 pub struct hello_msg_session_t<'a> {
-    pub session_base_t: ZmqSessionBase<'a>,
+    pub session_base_t: ZmqSession<'a>,
     pub _hello_sent: bool,
     pub _hello_received: bool,
     pub _new_pipe: bool,
@@ -756,7 +753,7 @@ impl hello_msg_session_t {
         addr_: ZmqAddress,
     ) -> Self {
         Self {
-            session_base_t: ZmqSessionBase::new(io_thread_, connect_, socket_, options, addr_),
+            session_base_t: ZmqSession::new(io_thread_, connect_, socket_, options, addr_),
             _hello_sent: false,
             _hello_received: false,
             _new_pipe: true,

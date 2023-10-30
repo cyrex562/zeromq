@@ -1,12 +1,11 @@
 use crate::endpoint::ZmqEndpointUriPair;
-use crate::i_engine::IEngine;
-use crate::object::ZmqObject;
 use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
 use crate::reaper::ZmqReaper;
-use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocket;
+use crate::session_base::ZmqSession;
+use crate::socket::ZmqSocket;
 
+#[derive(Clone)]
 pub enum ZmqCommandType {
     Stop,
     Plug,
@@ -97,7 +96,7 @@ pub enum ZmqCommandType {
 //     pub outbound_queue_count: u64,
 //     pub inbound_queue_count: u64,
 //     pub endpoint_pair: &'a mut ZmqEndpointUriPair,
-}
+// }
 
 // pub struct DoneArgs {}
 
@@ -124,12 +123,13 @@ pub enum ZmqCommandType {
 //     pub done: DoneArgs,
 // }
 
+#[derive(Default,Debug,Clone,PartialOrd, PartialEq)]
 pub struct ZmqCommand<'a> {
     // pub destination: Option<&'a mut ZmqPipe<'a>>,
     pub dest_pipe: Option<&'a mut ZmqPipe<'a>>,
     pub dest_own: Option<&'a mut ZmqOwn<'a>>,
     pub dest_sock: Option<&'a mut ZmqSocket<'a>>,
-    pub dest_session: Option<&'a mut ZmqSessionBase<'a>>,
+    pub dest_session: Option<&'a mut ZmqSession<'a>>,
     pub dest_reaper: Option<&'a mut ZmqReaper<'a>>,
     // pub args: ZmqArgs<'a>,
     // pub stop: StopArgs,
@@ -172,7 +172,12 @@ pub struct ZmqCommand<'a> {
 impl ZmqCommand {
     pub fn new() -> Self {
         Self {
-            destination: None,
+            // destination: None,
+            dest_pipe: None,
+            dest_own: None,
+            dest_sock: None,
+            dest_session: None,
+            dest_reaper: None,
             object: None,
             engine: None,
             pipe: None,
@@ -191,8 +196,8 @@ impl ZmqCommand {
     }
 }
 
-impl PartialEq for ZmqCommand {
-    fn eq(&self, other: &Self) -> bool {
-        self.destination == other.destination
-    }
-}
+// impl PartialEq for ZmqCommand {
+//     fn eq(&self, other: &Self) -> bool {
+//         self.destination == other.destination
+//     }
+// }

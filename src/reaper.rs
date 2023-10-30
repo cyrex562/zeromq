@@ -10,7 +10,7 @@ use crate::object::{obj_process_command, obj_send_stop};
 // use crate::object::{object_ops, ZmqObject}; use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
 use crate::poller::ZmqPoller;
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 use crate::utils::get_errno;
 
 #[derive(Default, Debug, Clone)]

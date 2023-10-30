@@ -103,7 +103,7 @@ impl UdpAddress {
         self._is_multicast.clone()
     }
 
-    pub fn bind_addr(&mut self) -> *mut ZmqIpAddress {
+    pub fn bind_addr(&mut self) -> &mut ZmqIpAddress {
         &mut self._bind_address
     }
 
@@ -111,7 +111,7 @@ impl UdpAddress {
         self._bind_interface.clone()
     }
 
-    pub fn target_addr(&mut self) -> *mut ZmqIpAddress {
+    pub fn target_addr(&mut self) -> &mut ZmqIpAddress {
         &mut self._target_address
     }
 

@@ -6,7 +6,7 @@ use crate::msg::ZmqMsg;
 use crate::options::{do_getsockopt, ZmqOptions};
 use crate::pipe::ZmqPipe;
 use crate::radix_tree::ZmqRadixTree;
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 
 // pub struct ZmqXSub<'a> {
 //     pub socket_base: ZmqSocket<'a>,

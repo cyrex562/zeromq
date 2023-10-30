@@ -7,7 +7,7 @@ use crate::options::ZmqOptions;
 use crate::own::{own_process_seqnum, own_process_term_ack, ZmqOwn};
 use crate::pipe::ZmqPipe;
 use crate::reaper::{reaper_process_reap, reaper_process_reaped};
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 
 // pub struct ZmqObject<'a> {
 //     pub context: &'a mut ZmqContext<'a>,
@@ -40,8 +40,8 @@ use crate::socket_base::ZmqSocket;
 //     self.thread_id = id;
 // }
 
-pub fn obj_process_command(options: &ZmqOptions, cmd: ZmqCommand, pipe: &mut ZmqPipe) {
-    match cmd.type_ {
+pub fn obj_process_command(options: &ZmqOptions, cmd: &mut ZmqCommand, pipe: &mut ZmqPipe) {
+    match cmd.type_.clone() {
         ActivateRead => {
             pipe.process_activate_read();
         }

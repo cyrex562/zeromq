@@ -29,7 +29,7 @@ use crate::metadata::ZmqMetadata;
 use crate::msg::ZmqMsg;
 use crate::mtrie::ZmqMtrie;
 use crate::mutex::ZmqMutex;
-use crate::object::ZmqObject;
+use crate::object::obj_process_command;
 use crate::options::{do_getsockopt, get_effective_conflate_option, ZmqOptions};
 use crate::out_pipe::ZmqOutPipes;
 use crate::own::{own_process_term, ZmqOwn};
@@ -47,7 +47,7 @@ use crate::router::{router_xattach_pipe, router_xgetsockopt, router_xhas_in, rou
 use crate::routing_socket_base::ZmqRoutingSocketBase;
 use crate::scatter::{scatter_xattach_pipe, scatter_xgetsockopt, scatter_xhas_in, scatter_xhas_out, scatter_xjoin, scatter_xpipe_terminated, scatter_xread_activated, scatter_xrecv, scatter_xsend, scatter_xsetsockopt, scatter_xwrite_activated};
 use crate::server::{server_xattach_pipe, server_xgetsockopt, server_xhas_in, server_xhas_out, server_xjoin, server_xpipe_terminated, server_xread_activated, server_xrecv, server_xsend, server_xsetsockopt, server_xwrite_activated};
-use crate::session_base::ZmqSessionBase;
+use crate::session_base::ZmqSession;
 use crate::signaler::ZmqSignaler;
 use crate::sub::{sub_xattach_pipe, sub_xgetsockopt, sub_xhas_in, sub_xhas_out, sub_xjoin, sub_xpipe_terminated, sub_xread_activated, sub_xrecv, sub_xsend, sub_xsetsockopt, sub_xwrite_activated};
 use crate::tcp_address::ZmqTcpAddress;
@@ -58,7 +58,7 @@ use crate::xsub::{xsub_has_out, xsub_xattach_pipe, xsub_xgetsockopt, xsub_xhas_i
 use crate::zmq_ops::{zmq_bind, zmq_close, zmq_msg_data, zmq_msg_init_size, zmq_msg_send, zmq_setsockopt, zmq_socket};
 use crate::zmq_pipe::ZmqPipes;
 
-pub type ZmqEndpointPipe<'a> = (&'a mut ZmqSessionBase<'a>, &'a mut ZmqPipe<'a>);
+pub type ZmqEndpointPipe<'a> = (&'a mut ZmqSession<'a>, &'a mut ZmqPipe<'a>);
 pub type ZmqEndpoints<'a> = HashMap<String, ZmqEndpointPipe<'a>>;
 
 pub type ZmqMap<'a> = HashMap<String, &'a mut ZmqPipe<'a>>;
@@ -156,14 +156,14 @@ pub struct ZmqSocket<'a> {
     pub next_routing_id: u32,
     pub only_first_subscribe: bool,
     pub out_pipes: ZmqOutPipes,
-    // pub own: ZmqOwn<'a>,
-    pub object: ZmqObject<'a>,
-    pub terminating: bool,
-    pub sent_seqnum: ZmqAtomicCounter,
-    pub processed_seqnum: u64,
-    pub owner: Option<&'a mut ZmqOwn<'a>>,
-    pub owned: HashSet<&'a mut ZmqOwn<'a>>,
-    pub term_acks: i32,
+    pub own: ZmqOwn<'a>,
+    // pub object: ZmqObject<'a>,
+    // pub terminating: bool,
+    // pub sent_seqnum: ZmqAtomicCounter,
+    // pub processed_seqnum: u64,
+    // pub owner: Option<&'a mut ZmqOwn<'a>>,
+    // pub owned: HashSet<&'a mut ZmqOwn<'a>>,
+    // pub term_acks: i32,
     pub pending_data: VecDeque<Vec<u8>>,
     pub pending_flags: VecDeque<u8>,
     pub pending_metadata: VecDeque<&'a mut ZmqMetadata>,
@@ -362,18 +362,19 @@ impl ZmqSocket {
             lossy: false,
             message: Default::default(),
             out_pipes: Default::default(),
-            object: ZmqObject::default(),
-            terminating: false,
-            sent_seqnum: ZmqAtomicCounter::default(),
-            processed_seqnum: 0,
-            owner: None,
-            owned: Default::default(),
+            // object: ZmqObject::default(),
+            // terminating: false,
+            // sent_seqnum: ZmqAtomicCounter::default(),
+            // processed_seqnum: 0,
+            // owner: None,
+            // owned: Default::default(),
             pipe: None,
             raw_socket: false,
             subscriptions: ZmqSubscriptions::default(),
             terminate_current_in: false,
             welcome_msg: Default::default(),
-            term_acks: 0,
+            // term_acks: 0,
+            own: Default::default(),
         };
         // TODO
         // options.socket_id = sid_;
@@ -665,7 +666,7 @@ impl ZmqSocket {
         }
 
         if option_ == ZMQ_EVENTS {
-            self.process_commands(0, false)?;
+            self.process_commands(options,0, false)?;
             return do_getsockopt((if self.has_out() { ZMQ_POLLOUT } else { 0 }) | (if self.has_in() { ZMQ_POLLIN } else { 0 }));
         }
 
@@ -757,7 +758,7 @@ impl ZmqSocket {
             return Err(SocketError("Context was terminated"));
         }
 
-        self.process_commands(0, false)?;
+        self.process_commands(options,0, false)?;
 
         let mut protocol = String::new();
         let mut address = String::new();
@@ -793,7 +794,7 @@ impl ZmqSocket {
         }
 
         //  Process pending commands, if any.
-        self.process_commands(0, false)?;
+        self.process_commands(options,0, false)?;
 
         //  Parse endpoint_uri_ string.
         let mut protocol = String::new();
@@ -1067,7 +1068,7 @@ impl ZmqSocket {
         // #endif
 
         //  Create session.
-        let mut session = ZmqSessionBase::create(io_thread, true, self, &options, paddr);
+        let mut session = ZmqSession::create(io_thread, true, self, &options, paddr);
         // errno_assert (session);
 
         //  PGM does not support subscription forwarding; ask for all data to be
@@ -1122,7 +1123,7 @@ impl ZmqSocket {
         Ok(())
     }
 
-    pub unsafe fn resolve_tcp_addr(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &mut String, tcp_address_: &mut String) -> Result<String, ZmqError> {
+    pub fn resolve_tcp_addr(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &mut String, tcp_address_: &mut String) -> Result<String, ZmqError> {
         // The resolved last_endpoint is used as a key in the endpoints map.
         // The address passed by the user might not match in the TCP case due to
         // IPv4-in-IPv6 mapping (EG: tcp://[::ffff:127.0.0.1]:9999), so try to
@@ -1144,7 +1145,7 @@ impl ZmqSocket {
         return Ok(endpoint_uri_pair_.clone());
     }
 
-    pub unsafe fn add_endpoint(&mut self, endpoint_pair: ZmqEndpointUriPair, endpoint: &mut ZmqSessionBase, pipe: &mut ZmqPipe) {
+    pub unsafe fn add_endpoint(&mut self, endpoint_pair: ZmqEndpointUriPair, endpoint: &mut ZmqSession, pipe: &mut ZmqPipe) {
         //  Activate the session. Make it a child of this socket.
         self.launch_child(endpoint);
         self.endpoints.insert(endpoint_pair.identifier().clone(),
@@ -1164,7 +1165,7 @@ impl ZmqSocket {
 
         //  Process pending commands, if any, since there could be pending unprocessed process_own()'s
         //  (from launch_child() for example) we're asked to terminate now.
-        let rc = self.process_commands(0, false)?;
+        let rc = self.process_commands(options,0, false)?;
 
         //  Parse endpoint_uri_ string.
         // std::string uri_protocol;
@@ -1230,7 +1231,7 @@ impl ZmqSocket {
         }
 
         //  Process pending commands, if any.
-        self.process_commands(0, true)?;
+        self.process_commands(options,0, true)?;
 
         //  Clear any user-visible flags that are set on the message.
         msg.reset_flags(MSG_MORE);
@@ -1279,7 +1280,7 @@ impl ZmqSocket {
         //  command, process it and try to send the message again.
         //  If timeout is reached in the meantime, return EAGAIN.
         loop {
-            self.process_commands(timeout, false)?;
+            self.process_commands(options,timeout, false)?;
             rc = self.xsend(options, msg);
             if rc == 0 {
                 break;
@@ -1347,7 +1348,7 @@ impl ZmqSocket {
         //  ticks is more efficient than doing RDTSC all the time.
         self.ticks += 1;
         if self.ticks == INBOUND_POLL_RATE {
-            self.process_commands(0, false)?;
+            self.process_commands(options,0, false)?;
             self.ticks = 0;
         }
 
@@ -1369,7 +1370,7 @@ impl ZmqSocket {
         //  activate_reader command already waiting in a command pipe.
         //  If it's not, return EAGAIN.
         if (flags & ZMQ_DONTWAIT != 0) || options.rcvtimeo == 0 {
-            self.process_commands(0, false)?;
+            self.process_commands(options,0, false)?;
             self.ticks = 0;
 
             // rc = self.xrecv(msg_);
@@ -1391,7 +1392,7 @@ impl ZmqSocket {
         //  we are able to fetch a message.
         let mut block = (self.ticks != 0);
         loop {
-            self.process_commands(if block { timeout } else { 0 }, false)?;
+            self.process_commands(options,if block { timeout } else { 0 }, false)?;
             rc = self.xrecv(msg);
             if rc == 0 {
                 self.ticks = 0;
@@ -1542,7 +1543,7 @@ impl ZmqSocket {
         self.check_destroy();
     }
 
-    pub fn process_commands(&mut self, timeout_: i32, throttle_: bool) -> Result<(), ZmqError> {
+    pub fn process_commands(&mut self, options: &ZmqOptions, timeout_: i32, throttle_: bool) -> Result<(), ZmqError> {
         if timeout_ == 0 {
             //  If we are asked not to wait, check whether we haven't processed
             //  commands recently, so that we can throttle the new commands.
@@ -1577,7 +1578,7 @@ impl ZmqSocket {
         //  Process all available commands.
         while rc == 0 || get_errno() == EINTR {
             if rc == 0 {
-                cmd.destination.process_command(&mut cmd);
+                obj_process_command(options, &mut cmd, self.pipe.unwrap());
             }
             rc = self.mailbox.recv(&mut cmd, 0);
         }
@@ -1617,7 +1618,7 @@ impl ZmqSocket {
         self.register_term_acks((self.pipes.size()));
 
         //  Continue the termination process immediately.
-        own_process_term(&mut self.owned, &mut self.terminating, &mut self.term_acks, linger_, );
+        own_process_term(&mut self.own.owned, &mut self.own.terminating, &mut self.own.term_acks, linger_, );
     }
 
     pub fn process_term_endpoint(&mut self, options: &ZmqOptions, endpoint_: &String) -> Result<(),ZmqError> {
@@ -1710,16 +1711,16 @@ impl ZmqSocket {
     //     unimplemented!()
     // }
 
-    pub unsafe fn in_event(&mut self) {
+    pub unsafe fn in_event(&mut self, options: &ZmqOptions) {
         {
             // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
             //  If the socket is thread safe we need to unsignal the reaper signaler
-            if (self.thread_safe) {
+            if self.thread_safe {
                 self.reaper_signaler.recv();
             }
 
-            self.process_commands(0, false);
+            self.process_commands(options, 0, false);
         }
         self.check_destroy();
     }

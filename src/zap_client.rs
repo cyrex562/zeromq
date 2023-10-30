@@ -4,7 +4,7 @@ use crate::mechanism;
 use crate::mechanism_base::ZmqMechanismBase;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use crate::session_base::ZmqSessionBase;
+use crate::session_base::ZmqSession;
 use crate::zap_client::zap_client_state::{error_sent, ready, sending_error};
 
 pub struct ZapClient {
@@ -22,7 +22,7 @@ pub const id: &'static str = "1";
 pub const id_len: usize = 1;
 
 impl ZapClient {
-    pub fn new(session_: &mut ZmqSessionBase, peer_address_: &str, options: &ZmqOptions) -> Self {
+    pub fn new(session_: &mut ZmqSession, peer_address_: &str, options: &ZmqOptions) -> Self {
         Self {
             mechanism_base: ZmqMechanismBase::new(session_, options),
             status_code: String::new(),
@@ -262,7 +262,7 @@ pub struct zap_client_common_handshake_t {
 }
 
 impl zap_client_common_handshake_t {
-    pub fn new(session_: &mut ZmqSessionBase, peer_address_: &str, options_: &ZmqOptions, zap_reply_ok_state_: zap_client_state) -> Self {
+    pub fn new(session_: &mut ZmqSession, peer_address_: &str, options_: &ZmqOptions, zap_reply_ok_state_: zap_client_state) -> Self {
         Self {
             zap_client: ZapClient::new(session_, peer_address_, options_),
             state: zap_client_state::waiting_for_hello,

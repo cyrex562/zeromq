@@ -75,11 +75,11 @@ mod select;
 mod server;
 mod session_base;
 mod signaler;
-mod socket_base;
+mod socket;
 mod socket_poller;
 mod stream;
 mod stream_connecter_base;
-mod stream_engine_base;
+mod stream_engine;
 mod stream_listener_base;
 mod sub;
 mod tcp;
@@ -116,6 +116,7 @@ mod req_session;
 mod out_pipe;
 mod routing_socket_base;
 mod zmq_pipe;
+mod engine;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

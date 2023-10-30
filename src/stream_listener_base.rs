@@ -9,8 +9,8 @@ use crate::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
 use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
-use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocket;
+use crate::session_base::ZmqSession;
+use crate::socket::ZmqSocket;
 use std::ptr::null_mut;
 
 pub struct ZmqStreamListenerBase<'a> {
@@ -95,7 +95,7 @@ impl ZmqStreamListenerBase {
 
         //  Create and launch a session object.
         let mut session =
-            ZmqSessionBase::create(io_thread, false, self._socket, self.options, None);
+            ZmqSession::create(io_thread, false, self._socket, self.options, None);
         // errno_assert (session);
         session.inc_seqnum();
         self.launch_child(session);

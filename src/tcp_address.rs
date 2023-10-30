@@ -45,7 +45,7 @@ impl ZmqTcpAddress {
         out
     }
 
-    pub unsafe fn resolve(
+    pub fn resolve(
         &mut self,
         name_: &mut String,
         local_: bool,
@@ -98,7 +98,7 @@ impl ZmqTcpAddress {
         return buf;
     }
 
-    pub unsafe fn to_string(&mut self, addr_: &mut String) -> anyhow::Result<()> {
+    pub fn to_string(&mut self, addr_: &mut String) -> anyhow::Result<()> {
         if self.address.family() != AF_INET && self.address.family() != AF_INET6 {
             *addr_.clear();
             bail!("invalid address family")

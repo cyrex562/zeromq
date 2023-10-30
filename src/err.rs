@@ -22,4 +22,6 @@ pub enum ZmqError {
     PipeError(&'static str),
     #[error("message error")]
     MessageError(&'static str),
+    #[error("engine error")]
+    EngineError(&'static str),
 }

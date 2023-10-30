@@ -4,7 +4,7 @@ use crate::dist::ZmqDist;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 use std::collections::HashMap;
 
 pub type ZmqSubscriptions<'a> = HashMap<String, &'a mut ZmqPipe<'a>>;

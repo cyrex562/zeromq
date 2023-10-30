@@ -10,8 +10,8 @@ use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipeState::{
     Active, DelimiterReceived, TermAckSent, TermReqSent1, TermReqSent2, WaitingForDelimiter,
 };
-use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocket;
+use crate::session_base::ZmqSession;
+use crate::socket::ZmqSocket;
 use crate::ypipe::ZmqYPipe;
 use crate::ypipe_base::ZmqYPipeBase;
 use crate::ypipe_conflate::YPipeConflate;
@@ -457,7 +457,7 @@ type upipe_normal_t = ZmqYPipe<ZmqMsg, MESSAGE_PIPE_GRANULARITY>;
 type upipe_conflate_t = YPipeConflate<ZmqMsg>;
 
 pub unsafe fn pipepair(
-    parents_: (&mut ZmqSocket, ZmqSessionBase),
+    parents_: (&mut ZmqSocket, ZmqSession),
     pipes_: &mut [Option<&mut ZmqPipe>; 2],
     hwms_: [i32; 2],
     conflate_: [bool; 2],

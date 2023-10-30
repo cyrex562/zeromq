@@ -82,7 +82,7 @@ pub struct ZmqOptions {
     pub loopback_fastpath: bool,
     pub multicast_loop: bool,
     pub in_batch_size: i32,
-    pub out_batch_size: i32,
+    pub out_batch_size: usize,
     pub zero_copy: bool,
     pub router_notify: i32,
     pub app_metadata: HashMap<String, String>,

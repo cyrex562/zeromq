@@ -4,7 +4,7 @@ use crate::ctx::ZmqContext;
 use crate::defines::ZMQ_CONNECT_ROUTING_ID;
 use crate::out_pipe::out_pipe_t;
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 
 impl ZmqRoutingSocketBase {
     pub unsafe fn new(parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {

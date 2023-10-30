@@ -4,11 +4,11 @@ use crate::defines::{MSG_COMMAND, MSG_MORE, ZMQ_GROUP_MAX_LENGTH};
 use crate::io_thread::ZmqIoThread;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocket;
+use crate::session_base::ZmqSession;
+use crate::socket::ZmqSocket;
 
 pub struct dish_session_t<'a> {
-    pub session_base: ZmqSessionBase<'a>,
+    pub session_base: ZmqSession<'a>,
     pub _state: dish_session_state_t,
     pub _group_msg: ZmqMsg,
 }
@@ -16,7 +16,7 @@ pub struct dish_session_t<'a> {
 impl dish_session_t {
     pub unsafe fn new(io_thread_: &mut ZmqIoThread, connect_: bool, socket_: &mut ZmqSocket, options_: &mut ZmqOptions, addr_: ZmqAddress) -> Self {
         let mut out = Self {
-            session_base: ZmqSessionBase::new(io_thread_, connect_, socket_, options_, addr_),
+            session_base: ZmqSession::new(io_thread_, connect_, socket_, options_, addr_),
             _state: dish_session_state_t::group,
             _group_msg: ZmqMsg::new(),
         };

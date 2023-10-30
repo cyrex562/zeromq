@@ -1,6 +1,6 @@
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use crate::session_base::ZmqSessionBase;
+use crate::session_base::ZmqSession;
 
 pub enum req_session_state {
     bottom,
@@ -9,7 +9,7 @@ pub enum req_session_state {
 }
 
 pub struct req_session_t<'a> {
-    pub session_base: ZmqSessionBase<'a>,
+    pub session_base: ZmqSession<'a>,
     pub _state: req_session_state,
 }
 
@@ -22,7 +22,7 @@ impl req_session_t {
         addr_: address_t,
     ) -> Self {
         Self {
-            session_base: ZmqSessionBase::new(io_thread_, connect_, socket_, options_, addr_),
+            session_base: ZmqSession::new(io_thread_, connect_, socket_, options_, addr_),
             _state: req_session_state::bottom,
         }
     }
@@ -43,11 +43,11 @@ impl req_session_t {
                     //  whether the option is actually on or not).
                     if (msg_.size() == 4) {
                         self._state = req_session_state::request_id;
-                        return ZmqSessionBase::push_msg(msg_);
+                        return ZmqSession::push_msg(msg_);
                     }
                     if (msg_.size() == 0) {
                         self._state = req_session_state::body;
-                        return ZmqSessionBase::push_msg(msg_);
+                        return ZmqSession::push_msg(msg_);
                     }
                 }
             }
@@ -55,17 +55,17 @@ impl req_session_t {
             req_session_state::request_id => {
                 if (msg_.flags() == ZmqMsg::more && msg_.size() == 0) {
                     self._state = req_session_state::body;
-                    return ZmqSessionBase::push_msg(msg_);
+                    return ZmqSession::push_msg(msg_);
                 }
             }
 
             req_session_state::body => {
                 if (msg_.flags() == ZmqMsg::more) {
-                    return ZmqSessionBase::push_msg(msg_);
+                    return ZmqSession::push_msg(msg_);
                 }
                 if (msg_.flags() == 0) {
                     self._state = req_session_state::bottom;
-                    return ZmqSessionBase::push_msg(msg_);
+                    return ZmqSession::push_msg(msg_);
                 }
             }
         }

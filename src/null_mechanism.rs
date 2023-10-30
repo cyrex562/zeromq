@@ -5,7 +5,7 @@ use crate::mechanism;
 use crate::mechanism::MechanismStatus::{Error, Handshaking, Ready};
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use crate::session_base::ZmqSessionBase;
+use crate::session_base::ZmqSession;
 use crate::zap_client::ZapClient;
 
 pub const error_command_name: &'static str = "\x05ERROR";
@@ -26,7 +26,7 @@ pub struct ZmqNullMechanism {
 }
 
 impl ZmqNullMechanism {
-    pub fn new(session_: &mut ZmqSessionBase, peer_address_: &str, options_: &mut ZmqOptions) -> ZmqNullMechanism {
+    pub fn new(session_: &mut ZmqSession, peer_address_: &str, options_: &mut ZmqOptions) -> ZmqNullMechanism {
         let mut out = ZmqNullMechanism {
             zap_client: ZapClient::new(session_, peer_address_, options_),
             _ready_command_sent: false,

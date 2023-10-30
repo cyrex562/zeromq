@@ -72,7 +72,7 @@ pub unsafe fn enable_ipv4_mapping(s_: fd_t) {
     );
 }
 
-pub unsafe fn get_peer_ip_address(sockfd_: fd_t, ip_addr: &str) -> i32 {
+pub fn get_peer_ip_address(sockfd_: fd_t, ip_addr: &str) -> i32 {
     // XXX: This probably needs re-writing
     let mut ss = SOCKADDR::default();
     let addrlen = get_socket_address(sockfd_, SocketEndRemote, &mut ss);

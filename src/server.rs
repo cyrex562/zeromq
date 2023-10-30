@@ -5,7 +5,7 @@ use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::out_pipe::{ZmqOutpipe, ZmqOutPipes};
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 
 // pub struct ZmqServer<'a> {
 //     pub socket_base: ZmqSocket<'a>,

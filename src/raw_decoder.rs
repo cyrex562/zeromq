@@ -10,7 +10,7 @@ pub struct ZmqRawDecoder {
 }
 
 impl ZmqRawDecoder {
-    pub unsafe fn new(bufsize_: usize) -> Self {
+    pub fn new(bufsize_: usize) -> Self {
         let mut out = Self {
             _in_progress: ZmqMsg::new(),
             // _allocator: ZmqSharedMessageMemoryAllocator::new(bufsize_, 1),

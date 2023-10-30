@@ -1,7 +1,7 @@
 use crate::defines::MSG_MORE;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
-use crate::socket_base::ZmqSocket;
+use crate::socket::ZmqSocket;
 
 pub struct ZmqDgram<'a> {
     pub socket_base: ZmqSocket<'a>,

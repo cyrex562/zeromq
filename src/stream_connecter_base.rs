@@ -9,8 +9,8 @@ use crate::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
 use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
-use crate::session_base::ZmqSessionBase;
-use crate::socket_base::ZmqSocket;
+use crate::session_base::ZmqSession;
+use crate::socket::ZmqSocket;
 
 pub const RECONNECT_TIMER_ID: i32 = 1;
 
@@ -22,14 +22,14 @@ pub struct ZmqStreamConnecterBase<'a> {
     pub _handle: ZmqHandle,
     pub _endpoint: String,
     pub _socket: &'a ZmqSocket<'a>,
-    pub _session: &'a ZmqSessionBase<'a>,
+    pub _session: &'a ZmqSession<'a>,
     pub _delayed_start: bool,
     pub _reconnect_timer_started: bool,
     pub _current_reconnect_ivl: i32,
 }
 
 impl ZmqStreamConnecterBase {
-    pub unsafe fn new(io_thread_: &mut ZmqIoThread, session_: &mut ZmqSessionBase, options_: &ZmqOptions, addr_: ZmqAddress, delayed_start_: bool) -> Self {
+    pub unsafe fn new(io_thread_: &mut ZmqIoThread, session_: &mut ZmqSession, options_: &ZmqOptions, addr_: ZmqAddress, delayed_start_: bool) -> Self {
         let mut out = Self {
             own: ZmqOwn::from_io_thread(io_thread_, options_),
             io_object: IoObject::new(io_thread_),
