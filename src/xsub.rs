@@ -123,7 +123,7 @@ pub unsafe fn xsub_xgetsockopt(
     return -1;
 }
 
-pub unsafe fn xsub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn xsub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     let mut size = msg_.size();
     let mut data = (msg_.data_mut());
 
@@ -288,3 +288,6 @@ pub unsafe fn xsub_send_subscription(socket: &mut ZmqSocket, data_: &mut [u8], s
 pub fn xsub_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
     unimplemented!();
 }
+
+
+pub fn xsub_has_out(socket: &mut ZmqSocket) -> i32 { unimplemented!()}

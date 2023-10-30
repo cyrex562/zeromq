@@ -46,7 +46,7 @@ pub unsafe fn sub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u
 }
 
 // int zmq::sub_t::xsend (msg_t *)
-pub unsafe fn sub_xsend(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> i32 {
+pub fn sub_xsend(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> i32 {
     //  Override the XSUB's send.
     // errno = ENOTSUP;
     return -1;

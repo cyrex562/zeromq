@@ -19,15 +19,25 @@ use crate::socket_base::ZmqSocket;
 //             _lb: ZmqLoadBalancer::new(),
 //         }
 //     }
-// 
-//    
+//
+//
 // }
 
-pub fn scatter_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub fn scatter_xsetsockopt(
+    socket: &mut ZmqSocket,
+    option_: i32,
+    optval_: &[u8],
+    optvallen_: usize,
+) -> i32 {
     unimplemented!()
 }
 
- pub unsafe fn scatter_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all: bool, locally_initiated_: bool) {
+pub unsafe fn scatter_xattach_pipe(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe,
+    subscribe_to_all: bool,
+    locally_initiated_: bool,
+) {
     pipe_.set_nodelay();
     socket.lb.attach(pipe_);
 }
@@ -40,20 +50,19 @@ pub unsafe fn scatter_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPi
     socket.lb.terminated(pipe_);
 }
 
-pub unsafe fn scatter_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn scatter_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     //  SCATTER sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg_.flags () & MSG_MORE) {
+    if (msg_.flags() & MSG_MORE) {
         // errno = EINVAL;
         return -1;
     }
 
-    return socket.lb.send (msg_);
+    return socket.lb.send(msg_);
 }
 
 // bool zmq::scatter_t::xhas_out ()
-pub  fn scatter_xhas_out(socket: &mut ZmqSocket) -> bool
-{
-    return socket.lb.has_out ();
+pub fn scatter_xhas_out(socket: &mut ZmqSocket) -> bool {
+    return socket.lb.has_out();
 }
 
 pub fn scatter_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {

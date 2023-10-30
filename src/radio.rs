@@ -18,7 +18,12 @@ pub struct ZmqRadio<'a> {
 }
 
 impl ZmqRadio {
-    pub unsafe fn new(options: &mut ZmqOptions, parent: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
+    pub unsafe fn new(
+        options: &mut ZmqOptions,
+        parent: &mut ZmqContext,
+        tid_: u32,
+        sid_: i32,
+    ) -> Self {
         options.type_ = ZMQ_RADIO;
         Self {
             socket_base: ZmqSocket::new(parent, tid_, sid_, false),
@@ -28,11 +33,14 @@ impl ZmqRadio {
             _lossy: false,
         }
     }
-
-
 }
 
-pub fn radio_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub fn radio_xsetsockopt(
+    socket: &mut ZmqSocket,
+    option_: i32,
+    optval_: &[u8],
+    optvallen_: usize,
+) -> i32 {
     unimplemented!()
 }
 
@@ -60,7 +68,8 @@ pub unsafe fn radio_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe)
             let group = (msg.group());
 
             if (msg.is_join()) {
-                socket.subscriptions
+                socket
+                    .subscriptions
                     .ZMQ_MAP_INSERT_OR_EMPLACE((group), pipe_);
             } else {
                 // std::pair<subscriptions_t::iterator, subscriptions_t::iterator>
@@ -83,7 +92,12 @@ pub unsafe fn radio_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe
     socket.dist.activated(pipe_)
 }
 
-pub unsafe fn xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub unsafe fn xsetsockopt(
+    socket: &mut ZmqSocket,
+    option_: i32,
+    optval_: &[u8],
+    optvallen_: usize,
+) -> i32 {
     let optval_i32 = i32::from_le_bytes(optval_[0..4].try_into().unwrap());
     if (optvallen_ != 4 || optval_i32 < 0) {
         // errno = EINVAL;
@@ -125,16 +139,15 @@ pub unsafe fn radio_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe
     socket.dist.pipe_terminated(pipe_);
 }
 
-pub unsafe fn radio_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn radio_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     //  Radio sockets do not allow multipart data (ZMQ_SNDMORE)
     // if (msg_->flags () & msg_t::more)
-    if msg_.flag_set(MSG_MORE)
-    {
+    if msg_.flag_set(MSG_MORE) {
         // errno = EINVAL;
         return -1;
     }
 
-    socket.dist.unmatch ();
+    socket.dist.unmatch();
 
     // const std::pair<subscriptions_t::iterator, subscriptions_t::iterator>
     //   range = _subscriptions.equal_range (std::string (msg_->group ()));
@@ -155,8 +168,8 @@ pub unsafe fn radio_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     }
 
     let mut rc = -1;
-    if (socket.lossy || self._dist.check_hwm ()) {
-        if (socket.dist.send_to_matching (msg_) == 0) {
+    if (socket.lossy || self._dist.check_hwm()) {
+        if (socket.dist.send_to_matching(msg_) == 0) {
             rc = 0; //  Yay, sent successfully
         }
     } else {
@@ -166,7 +179,7 @@ pub unsafe fn radio_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     return rc;
 }
 
-pub  fn radio_xhas_out(socket: &mut ZmqSocket) -> bool {
+pub fn radio_xhas_out(socket: &mut ZmqSocket) -> bool {
     socket.dist.has_out()
 }
 
@@ -174,9 +187,9 @@ pub unsafe fn radio_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     -1
 }
 
-pub  fn radio_xhas_in(socket: &mut ZmqSocket) -> bool {
+pub fn radio_xhas_in(socket: &mut ZmqSocket) -> bool {
     false
-    }
+}
 
 pub fn radio_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
     unimplemented!();

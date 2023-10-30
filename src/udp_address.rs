@@ -1,6 +1,7 @@
 use std::ffi::c_char;
 use anyhow::bail;
 use libc::if_nametoindex;
+use crate::err::ZmqError;
 use crate::ip_resolver::{ZmqIpAddress, ip_resolver_options_t, ip_resolver_t};
 
 #[derive(Default,Debug,Clone)]
@@ -19,7 +20,7 @@ impl UdpAddress {
         }
     }
 
-    pub unsafe fn resolve(&mut self, name_: &mut String, bind_: bool, ipv6_: bool) -> anyhow::Result<()>
+    pub unsafe fn resolve(&mut self, name_: &mut String, bind_: bool, ipv6_: bool) -> Result<(), ZmqError>
     {
         let mut has_interface = false;
         self._address = name_.to_string();

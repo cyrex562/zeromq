@@ -3,11 +3,12 @@
 #[derive(PartialEq)]
 pub enum ZmqEndpointType
 {
-    endpoint_type_none,
-    endpoint_type_bind,
-    endpoint_type_connect,
+    EndpointTypeNone,
+    EndpointTypeBind,
+    EndpointTypeConnect,
 }
 
+#[derive(Default,Debug,Clone)]
 pub struct ZmqEndpointUriPair
 {
     pub local: String,
@@ -17,25 +18,16 @@ pub struct ZmqEndpointUriPair
 
 impl ZmqEndpointUriPair
 {
-    pub fn new() -> Self
+    pub fn new(local: &str, remote: &str, local_type: ZmqEndpointType) -> Self
     {
         Self {
-            local: String::new(),
-            remote: String::new(),
-            local_type: ZmqEndpointType::endpoint_type_none,
+            local: local.to_string(),
+            remote: remote.to_string(),
+            local_type,
         }
     }
-
-    pub fn new2(local_: &str, remote_: &str, local_type_: ZmqEndpointType) -> Self
-    {
-        Self {
-            local: local_.to_string(),
-            remote: remote_.to_string(),
-            local_type: local_type_,
-        }
-    }
-
-    pub fn new3(pair: &mut ZmqEndpointUriPair) -> Self
+    
+    pub fn from_endpoint_uri_pair(pair: &mut ZmqEndpointUriPair) -> Self
     {
         Self {
             local: pair.local.clone(),
@@ -45,7 +37,7 @@ impl ZmqEndpointUriPair
     }
 
     pub fn identifier(&self) -> &String {
-        if self.local_type == ZmqEndpointType::endpoint_type_bind {
+        if self.local_type == ZmqEndpointType::EndpointTypeBind {
             &self.local
         } else {
             &self.remote
@@ -55,10 +47,10 @@ impl ZmqEndpointUriPair
 
 pub fn make_unconnected_connect_endpoint_pair(endpoint_: &str) -> ZmqEndpointUriPair
 {
-    ZmqEndpointUriPair::new2("", endpoint_, ZmqEndpointType::endpoint_type_connect)
+    ZmqEndpointUriPair::new2("", endpoint_, ZmqEndpointType::EndpointTypeConnect)
 }
 
 pub fn make_unconnected_bind_endpoint_pair(endpoint_: &str) -> ZmqEndpointUriPair
 {
-    ZmqEndpointUriPair::new2(endpoint_, "", ZmqEndpointType::endpoint_type_bind)
+    ZmqEndpointUriPair::new2(endpoint_, "", ZmqEndpointType::EndpointTypeBind)
 }

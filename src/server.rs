@@ -81,7 +81,7 @@ pub unsafe fn server_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe
     }
 }
 
-pub unsafe fn server_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn server_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     //  SERVER sockets do not allow multipart data (ZMQ_SNDMORE)
     if msg_.flag_set(MSG_MORE) {
         // errno = EINVAL;

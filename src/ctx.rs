@@ -356,7 +356,7 @@ impl ZmqContext {
         self.slots[tid_ as usize].send(command_);
     }
 
-    pub fn choose_io_thread(&mut self, affinity_: u64) -> *mut ZmqIoThread {
+    pub fn choose_io_thread(&mut self, affinity_: u64) -> &mut ZmqIoThread {
         let mut min_load = 0x7fffffff;
         let mut result = null_mut();
         for i in 0..self._io_threads.len() {

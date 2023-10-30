@@ -5,6 +5,7 @@ use std::char::decode_utf16;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::ptr;
+use crate::err::ZmqError;
 
 use crate::utils::{copy_bytes, copy_void, zmq_z85_decode};
 

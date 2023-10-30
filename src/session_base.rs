@@ -119,7 +119,7 @@ impl ZmqSessionBase {
         addr_: ZmqAddress,
     ) -> Self {
         Self {
-            own: ZmqOwn::new2(io_thread_, options_),
+            own: ZmqOwn::from_io_thread(io_thread_, options_),
             io_object: IoObject::new(io_thread_),
             _active: active_,
             _pipe: None,

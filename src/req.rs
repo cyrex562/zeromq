@@ -3,6 +3,7 @@ use crate::defines::{MSG_MORE, ZMQ_REQ, ZMQ_REQ_CORRELATE, ZMQ_REQ_RELAXED};
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
+use crate::socket_base::ZmqSocket;
 
 // pub struct ZmqReq {
 //     // pub dealer: ZmqDealer,
@@ -24,8 +25,6 @@ use crate::pipe::ZmqPipe;
 //
 // }
 
-
-
 pub fn req_xattach_pipe(
     socket: &mut ZmqSocket,
     pipe_: &mut ZmqPipe,
@@ -35,7 +34,7 @@ pub fn req_xattach_pipe(
     unimplemented!()
 }
 
-pub unsafe fn req_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn req_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     //  If we've sent a request and we still haven't got the reply,
     //  we can't send another request unless the strict option is disabled.
     if (socket._receiving_reply) {
@@ -180,7 +179,7 @@ pub unsafe fn req_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
 }
 
 // bool zmq::req_t::xhas_in ()
-pub  fn req_xhas_in(socket: &mut ZmqSocket) -> bool {
+pub fn req_xhas_in(socket: &mut ZmqSocket) -> bool {
     //  TODO: Duplicates should be removed here.
 
     if (!socket._receiving_reply) {
@@ -191,7 +190,7 @@ pub  fn req_xhas_in(socket: &mut ZmqSocket) -> bool {
 }
 
 // bool zmq::req_t::xhas_out ()
-pub  fn req_xhas_out(&mut self) -> bool {
+pub fn req_xhas_out(&mut self) -> bool {
     if (socket._receiving_reply && socket._strict) {
         return false;
     }
@@ -202,7 +201,12 @@ pub  fn req_xhas_out(&mut self) -> bool {
 // int zmq::req_t::xsetsockopt (int option_,
 //                          const void *optval_,
 //                          size_t optvallen_)
-pub unsafe fn req_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub unsafe fn req_xsetsockopt(
+    socket: &mut ZmqSocket,
+    option_: i32,
+    optval_: &[u8],
+    optvallen_: usize,
+) -> i32 {
     let is_int = (optvallen_ == 4);
     let mut value = 0;
     if (is_int) {
@@ -261,7 +265,6 @@ pub fn req_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
     unimplemented!()
 }
 
-pub fn req_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe)
-{
+pub fn req_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
     unimplemented!()
 }

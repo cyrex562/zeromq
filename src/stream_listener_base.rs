@@ -2,7 +2,7 @@ use crate::address::get_socket_name;
 use crate::address::SocketEnd::{SocketEndLocal, SocketEndRemote};
 use crate::defines::RETIRED_FD;
 use crate::defines::{ZmqFd, ZmqHandle};
-use crate::endpoint::ZmqEndpointType::endpoint_type_bind;
+use crate::endpoint::ZmqEndpointType::EndpointTypeBind;
 use crate::endpoint::{make_unconnected_connect_endpoint_pair, ZmqEndpointUriPair};
 use crate::i_engine::IEngine;
 use crate::io_object::IoObject;
@@ -29,7 +29,7 @@ impl ZmqStreamListenerBase {
         options_: &ZmqOptions,
     ) -> Self {
         Self {
-            own: ZmqOwn::new2(io_thread_, options_),
+            own: ZmqOwn::from_io_thread(io_thread_, options_),
             io_object: IoObject::new(io_thread_),
             _s: RETIRED_FD,
             _handle: null_mut(),
@@ -76,7 +76,7 @@ impl ZmqStreamListenerBase {
         let endpoint_pair = ZmqEndpointUriPair::new(
             get_socket_name(fd_, SocketEndLocal),
             get_socket_name(fd_, SocketEndRemote),
-            endpoint_type_bind,
+            EndpointTypeBind,
         );
 
         // i_engine *engine;

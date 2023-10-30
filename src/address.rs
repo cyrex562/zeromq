@@ -3,6 +3,8 @@ use libc::sockaddr;
 use crate::ctx::ZmqContext;
 use crate::defines::{ZmqFd, ZmqSockaddrStorage};
 use crate::ip_resolver::ZmqIpAddress;
+use crate::tcp_address::ZmqTcpAddress;
+use crate::udp_address::UdpAddress;
 
 pub enum SocketEnd {
     SocketEndLocal,
@@ -44,6 +46,8 @@ pub struct ZmqAddress<'a> {
     pub _target_address: ZmqIpAddress,
     pub _is_multicast: bool,
     pub _address: String,
+    pub tcp_addr: ZmqTcpAddress,
+    pub udp_addr: UdpAddress,
 }
 
 // impl Clone for ZmqAddress {
@@ -80,6 +84,8 @@ impl ZmqAddress {
             _target_address: Default::default(),
             _is_multicast: false,
             _address: "".to_string(),
+            tcp_addr: Default::default(),
+            udp_addr: Default::default(),
         }
     }
 

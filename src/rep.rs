@@ -20,7 +20,12 @@ impl ZmqRep {
     }
 }
 
-pub fn rep_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub fn rep_xsetsockopt(
+    socket: &mut ZmqSocket,
+    option_: i32,
+    optval_: &[u8],
+    optvallen_: usize,
+) -> i32 {
     unimplemented!()
 }
 
@@ -33,7 +38,7 @@ pub fn rep_xattach_pipe(
     unimplemented!()
 }
 
-pub unsafe fn rep_xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
+pub fn rep_xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
     //  If we are in the middle of receiving a request, we cannot send reply.
     if (!self._sending_reply) {
         // errno = EFSM;
@@ -73,7 +78,7 @@ pub unsafe fn rep_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
                 return rc;
             }
 
-            if ((msg_.flags() & MSG_MORE)) {
+            if (msg_.flags() & MSG_MORE) {
                 //  Empty message part delimits the traceback stack.
                 let bottom = (msg_.size() == 0);
 
@@ -110,7 +115,7 @@ pub unsafe fn rep_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
 }
 
 // bool zmq::rep_t::xhas_in ()
-pub  fn rep_xhas_in(socket: &mut ZmqSocket) -> bool {
+pub fn rep_xhas_in(socket: &mut ZmqSocket) -> bool {
     if (socket._sending_reply) {
         return false;
     }
@@ -119,7 +124,7 @@ pub  fn rep_xhas_in(socket: &mut ZmqSocket) -> bool {
 }
 
 // bool zmq::rep_t::xhas_out ()
-pub  fn rep_xhas_out(socket: &mut ZmqSocket) -> bool {
+pub fn rep_xhas_out(socket: &mut ZmqSocket) -> bool {
     if (!socket._sending_reply) {
         return false;
     }
@@ -143,7 +148,6 @@ pub fn rep_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     unimplemented!()
 }
 
-pub fn rep_xpipe_terminated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe)
-{
+pub fn rep_xpipe_terminated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
     unimplemented!()
 }

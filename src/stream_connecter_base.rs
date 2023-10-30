@@ -2,7 +2,7 @@ use std::ptr::null_mut;
 use crate::address::ZmqAddress;
 use crate::defines::{ZmqFd, ZmqHandle};
 use crate::endpoint::{ZmqEndpointUriPair, make_unconnected_connect_endpoint_pair};
-use crate::endpoint::ZmqEndpointType::endpoint_type_connect;
+use crate::endpoint::ZmqEndpointType::EndpointTypeConnect;
 use crate::defines::RETIRED_FD;
 use crate::i_engine::IEngine;
 use crate::io_object::IoObject;
@@ -31,7 +31,7 @@ pub struct ZmqStreamConnecterBase<'a> {
 impl ZmqStreamConnecterBase {
     pub unsafe fn new(io_thread_: &mut ZmqIoThread, session_: &mut ZmqSessionBase, options_: &ZmqOptions, addr_: ZmqAddress, delayed_start_: bool) -> Self {
         let mut out = Self {
-            own: ZmqOwn::new2(io_thread_, options_),
+            own: ZmqOwn::from_io_thread(io_thread_, options_),
             io_object: IoObject::new(io_thread_),
             _addr: addr_,
             _s: RETIRED_FD,
@@ -141,11 +141,11 @@ impl ZmqStreamConnecterBase {
     
     pub unsafe fn create_engine(&mut self, fd_: ZmqFd, local_address_: &str) {
         // const endpoint_uri_pair_t endpoint_pair (local_address_, _endpoint,
-        //                                      endpoint_type_connect);
+        //                                      EndpointTypeConnect);
         let mut endpoint_pair = ZmqEndpointUriPair::new();
         endpoint_pair.local = local_address_.to_string();
         endpoint_pair.remote = self._endpoint.clone();
-        endpoint_pair.local_type = endpoint_type_connect;
+        endpoint_pair.local_type = EndpointTypeConnect;
     
         //  Create the engine object for this connection.
         // i_engine *engine;

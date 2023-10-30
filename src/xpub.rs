@@ -280,7 +280,7 @@ pub fn xpub_mark_last_pipe_as_matching(socket: &mut ZmqSocket, pipe_: &mut ZmqPi
     }
 }
 
-pub unsafe fn xpub_xsend(socket: &mut ZmqSocket, options: &mut ZmqOptions, msg_: &mut ZmqMsg) -> i32 {
+pub fn xpub_xsend(socket: &mut ZmqSocket, options: &mut ZmqOptions, msg_: &mut ZmqMsg) -> i32 {
     let mut msg_more = msg_.flag_set(MSG_MORE) != 0;
 
     //  For the first part of multi-part message, find the matching pipes.

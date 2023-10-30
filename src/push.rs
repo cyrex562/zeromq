@@ -1,4 +1,3 @@
-use libc::option;
 use crate::ctx::ZmqContext;
 use crate::defines::ZMQ_PUSH;
 use crate::load_balancer::ZmqLoadBalancer;
@@ -6,6 +5,7 @@ use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket_base::ZmqSocket;
+use libc::option;
 
 pub struct ZmqPush<'a> {
     pub socket_base: ZmqSocket<'a>,
@@ -13,7 +13,12 @@ pub struct ZmqPush<'a> {
 }
 
 impl ZmqPush {
-    pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid: i32) -> Self {
+    pub unsafe fn new(
+        options: &mut ZmqOptions,
+        parent_: &mut ZmqContext,
+        tid_: u32,
+        sid: i32,
+    ) -> Self {
         options.type_ = ZMQ_PUSH;
         Self {
             socket_base: ZmqSocket::new(parent_, tid_, sid, false),
@@ -22,8 +27,12 @@ impl ZmqPush {
     }
 }
 
-
-pub unsafe fn push_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
+pub unsafe fn push_xattach_pipe(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe,
+    subscribe_to_all_: bool,
+    locally_initiated_: bool,
+) {
     pipe_.set_nodelay();
     socket.lb.attach(pipe_);
 }
@@ -36,16 +45,20 @@ pub unsafe fn push_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe)
     socket.lb.pipe_terminated(pipe_);
 }
 
-pub unsafe fn push_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn push_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     socket.lb.send(msg_)
 }
 
-pub  fn push_xhas_out(socket: &mut ZmqSocket) -> bool {
+pub fn push_xhas_out(socket: &mut ZmqSocket) -> bool {
     socket.lb.has_out()
 }
 
-
-pub fn push_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub fn push_xsetsockopt(
+    socket: &mut ZmqSocket,
+    option_: i32,
+    optval_: &[u8],
+    optvallen_: usize,
+) -> i32 {
     unimplemented!()
 }
 

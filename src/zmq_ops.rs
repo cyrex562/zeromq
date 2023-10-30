@@ -707,7 +707,7 @@ pub unsafe fn zmq_msg_init_data(
 pub unsafe fn zmq_msg_send(
     msg: &mut ZmqMsg,
     s_: &mut ZmqSocket,
-    flags_: i32,
+    flags_: u32,
 ) -> Result<usize, ZmqError> {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
@@ -2168,11 +2168,7 @@ pub unsafe fn zmq_proxy_steerable(
 // }
 
 // int zmq_device (int /* type */, void *frontend_, void *backend_)
-pub unsafe fn zmq_device(
-    type_: i32,
-    frontend_: &mut ZmqSocket,
-    backend_: &mut ZmqSocket,
-) -> i32 {
+pub unsafe fn zmq_device(type_: i32, frontend_: &mut ZmqSocket, backend_: &mut ZmqSocket) -> i32 {
     return proxy((frontend_), (backend_), None);
 }
 

@@ -191,7 +191,7 @@ pub unsafe fn router_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe
 }
 
 // int zmq::router_t::xsend (msg_t *msg_)
-pub unsafe fn router_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn router_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     //  If this is the first part of the message it's the ID of the
     //  peer to send the message to.
     if (!socket._more_out) {

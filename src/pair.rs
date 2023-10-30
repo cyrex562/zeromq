@@ -11,7 +11,12 @@ pub struct ZmqPair<'a> {
 }
 
 impl ZmqPair {
-    pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> ZmqPair {
+    pub unsafe fn new(
+        options: &mut ZmqOptions,
+        parent_: &mut ZmqContext,
+        tid_: u32,
+        sid_: i32,
+    ) -> ZmqPair {
         let mut out = Self {
             socket_base: ZmqSocket::new(parent_, tid_, sid_),
             _pipe: ZmqPipe::default(),
@@ -19,15 +24,23 @@ impl ZmqPair {
         options.type_ = ZMQ_PAIR;
         out
     }
-
-
 }
 
-pub fn pair_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub fn pair_xsetsockopt(
+    socket: &mut ZmqSocket,
+    option_: i32,
+    optval_: &[u8],
+    optvallen_: usize,
+) -> i32 {
     unimplemented!()
 }
 
- pub unsafe fn pair_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
+pub unsafe fn pair_xattach_pipe(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe,
+    subscribe_to_all_: bool,
+    locally_initiated_: bool,
+) {
     if socket.pipe.is_none() {
         socket.pipe = Some(pipe_);
     } else {
@@ -49,17 +62,18 @@ pub unsafe fn pair_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe)
     unimplemented!()
 }
 
-pub unsafe fn pair_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
-    if (!socket.pipe || !socket.pipe.write (msg_)) {
+pub fn pair_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+    if (!socket.pipe || !socket.pipe.write(msg_)) {
         // errno = EAGAIN;
         return -1;
     }
 
-    if msg_.flag_clear(MSG_MORE) == true{
-    socket._pipeflush ();}
+    if msg_.flag_clear(MSG_MORE) == true {
+        socket._pipeflush();
+    }
 
     //  Detach the original message from the data buffer.
-    let rc = msg_.init2 ();
+    let rc = msg_.init2();
     // errno_assert (rc == 0);
 
     return 0;
@@ -67,10 +81,10 @@ pub unsafe fn pair_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
 
 pub unsafe fn pair_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     //  Deallocate old content of the message.
-    let rc = msg_.close ();
+    let rc = msg_.close();
     // errno_assert (rc == 0);
 
-    if (!socket.pipe.is_none() || !socket.pipe.read (msg_)) {
+    if (!socket.pipe.is_none() || !socket.pipe.read(msg_)) {
         //  Initialise the output parameter to be a 0-byte message.
         rc = msg_.init2();
         // errno_assert (rc == 0);
@@ -81,22 +95,20 @@ pub unsafe fn pair_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     return 0;
 }
 
-pub  fn pair_xhas_in (socket: &mut ZmqSocket) -> bool
-{
+pub fn pair_xhas_in(socket: &mut ZmqSocket) -> bool {
     if (socket.pipe.is_none()) {
         return false;
     }
 
-    return socket.pipe.check_read ();
+    return socket.pipe.check_read();
 }
 
-pub  fn pair_xhas_out (socket: &mut ZmqSocket) -> bool
-{
+pub fn pair_xhas_out(socket: &mut ZmqSocket) -> bool {
     if (socket.pipe.is_none()) {
         return false;
     }
 
-    return socket.pipe.check_write ();
+    return socket.pipe.check_write();
 }
 
 pub fn pair_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
