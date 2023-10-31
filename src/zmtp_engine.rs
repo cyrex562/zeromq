@@ -111,7 +111,7 @@ pub unsafe fn zmtp_handshake(engine: &mut ZmqEngine) -> bool {
 pub unsafe fn zmtp_receive_greeting(engine: &mut ZmqEngine) -> i32 {
     let mut unversioned = false;
     while engine.greeting_bytes_read < engine.greeting_size as u32 {
-        let mut n = stream_read (engine.greeting_recv + engine.greeting_bytes_read,
+        let mut n = stream_read (engine,engine.greeting_recv[engine.greeting_bytes_read..],
                             engine.greeting_size - engine.greeting_bytes_read);
         if n == -1 {
             if get_errno() != EAGAIN {
@@ -125,12 +125,12 @@ pub unsafe fn zmtp_receive_greeting(engine: &mut ZmqEngine) -> i32 {
         //  We have received at least one byte from the peer.
         //  If the first byte is not 0xff, we know that the
         //  peer is using unversioned protocol.
-        if (engine.greeting_recv[0] != 0xff) {
+        if engine.greeting_recv[0] != 0xff {
             unversioned = true;
             break;
         }
 
-        if (engine.greeting_bytes_read < SIGNATURE_SIZE) {
+        if engine.greeting_bytes_read < SIGNATURE_SIZE as u32 {
             continue;
         }
 
@@ -138,7 +138,7 @@ pub unsafe fn zmtp_receive_greeting(engine: &mut ZmqEngine) -> i32 {
         //  with the 'flags' field if a regular message was sent).
         //  Zero indicates this is a header of a routing id message
         //  (i.e. the peer is using the unversioned protocol).
-        if (!(engine._greeting_recv[9] & 0x01)) {
+        if !(engine.greeting_recv[9] & 0x01) {
             unversioned = true;
             break;
         }
@@ -151,51 +151,58 @@ pub unsafe fn zmtp_receive_greeting(engine: &mut ZmqEngine) -> i32 {
 
 pub unsafe fn zmtp_receive_greeting_versioned(engine: &mut ZmqEngine) {
     //  Send the major version number.
-    if (engine._outpos + engine._outsize == engine._greeting_send + SIGNATURE_SIZE) {
-        if (engine._outsize == 0) {
+    if engine.out_pos + engine.out_size == engine.greeting_send + SIGNATURE_SIZE {
+        if engine.out_size == 0 {
             engine.set_pollout();
         }
-        engine._outpos[engine._outsize += 1] = 3; //  Major version number
+        engine.out_pos[engine.out_size += 1] = 3; //  Major version number
     }
 
-    if (engine._greeting_bytes_read > SIGNATURE_SIZE) {
-        if (engine._outpos + engine._outsize == engine._greeting_send + SIGNATURE_SIZE + 1) {
-            if (engine._outsize == 0) {
+    if engine.greeting_bytes_read > SIGNATURE_SIZE as u32 {
+        if engine.out_pos + engine.out_size == engine.greeting_send + SIGNATURE_SIZE + 1 {
+            if engine.out_size == 0 {
                 engine.set_pollout();
             }
 
             //  Use ZMTP/2.0 to talk to older peers.
-            if (engine._greeting_recv[REVISION_POS] == ZMTP_1_0
-                || engine._greeting_recv[REVISION_POS] == ZMTP_2_0) {
-                engine._outpos[engine._outsize] = engine._options.type_ ;
-                engine._outsize += 1;
+            if engine.greeting_recv[REVISION_POS] == ZMTP_1_0 as u8
+                || engine.greeting_recv[REVISION_POS] == ZMTP_2_0 as u8 {
+                engine.out_pos[engine.out_size] = options.type_ ;
+                engine.out_size += 1;
             }
             else {
-                engine._outpos[engine._outsize] = 1; //  Minor version number
-                engine._outsize += 1;
-                libc::memset (engine._outpos + engine._outsize, 0, 20);
+                engine.out_pos[engine.out_size] = 1; //  Minor version number
+                engine.out_size += 1;
+                libc::memset (engine.out_pos + engine.out_size, 0, 20);
 
                 // zmq_assert (_options.mechanism == ZMQ_NULL
                 //             || _options.mechanism == ZMQ_PLAIN
                 //             || _options.mechanism == ZMQ_CURVE
                 //             || _options.mechanism == ZMQ_GSSAPI);
 
-                if (engine._options.mechanism == ZMQ_NULL) {
-                    libc::memcpy(engine._outpos + engine._outsize, "NULL", 4);
+                if options.mechanism == ZMQ_NULL {
+                    // libc::memcpy(engine.out_pos + engine.out_size, "NULL", 4);
+                    engine.out_pos[engine.out_size] = 'N' as u8;
+                    engine.out_pos[engine.out_size + 1] = 'U' as u8;
+                    engine.out_pos[engine.out_size + 2] = 'L' as u8;
+                    engine.out_pos[engine.out_size + 3] = 'L' as u8;
                 }
-                else if (engine._options.mechanism == ZMQ_PLAIN) {
-                    libc::memcpy(engine._outpos + engine._outsize, "PLAIN", 5);
+                else if options.mechanism == ZMQ_PLAIN {
+                    // libc::memcpy(engine.out_pos + engine.out_size, "PLAIN", 5);
+                    engine.out_pos[engin.out_size..].copy_from_slice(b"PLAIN");
                 }
-                else if (engine._options.mechanism == ZMQ_GSSAPI) {
-                    libc::memcpy(engine._outpos + engine._outsize, "GSSAPI", 6);
+                else if options.mechanism == ZMQ_GSSAPI {
+                    // libc::memcpy(engine.out_pos + engine.out_size, "GSSAPI", 6);
+                    engine.out_pos[engine.out_size..].copy_from_slice(b"GSSAPI");
                 }
-                else if (engine._options.mechanism == ZMQ_CURVE) {
-                    libc::memcpy(engine._outpos + engine._outsize, "CURVE", 5);
+                else if options.mechanism == ZMQ_CURVE {
+                    // libc::memcpy(engine.out_pos + engine.out_size, "CURVE", 5);
+                    engine.out_pos[engine.out_size..].copy_from_slice(b"CURVE");
                 }
-                engine._outsize += 20;
-                libc::memset (engine._outpos + engine._outsize, 0, 32);
-                engine._outsize += 32;
-                engine._greeting_size = V3_GREETING_SIZE;
+                engine.out_size += 20;
+                libc::memset (engine.out_pos + engine.out_size, 0, 32);
+                engine.out_size += 32;
+                engine.greeting_size = V3_GREETING_SIZE;
             }
         }
     }
@@ -249,7 +256,7 @@ pub unsafe fn zmtp_handshake_v1_0_unversioned(engine: &mut ZmqEngine) -> bool
     //  Since there is no way to tell the encoder to
     //  skip the message header, we simply throw that
     //  header data away.
-    let header_size = if engine._options.routing_id_size + 1 >= u8::MAX { 10 } else { 2 };
+    let header_size = if options.routing_id_size + 1 >= u8::MAX { 10 } else { 2 };
     // unsigned char tmp[10], *bufferp = tmp;
     let mut tmp: [u8;10] = [0;10];
     let mut bufferp = &mut tmp[0];
@@ -259,10 +266,10 @@ pub unsafe fn zmtp_handshake_v1_0_unversioned(engine: &mut ZmqEngine) -> bool
     //  Then consume bytes we have already sent to the peer.
     let mut rc = engine._routing_id_msg.close ();
     // zmq_assert (rc == 0);
-    rc = engine._routing_id_msg.init_size (engine._options.routing_id_size);
+    rc = engine._routing_id_msg.init_size (options.routing_id_size);
     // zmq_assert (rc == 0);
-    libc::memcpy (engine._routing_id_msg.data_mut(), engine._options.routing_id,
-                  engine._options.routing_id_size);
+    libc::memcpy (engine._routing_id_msg.data_mut(), options.routing_id,
+                  options.routing_id_size);
     engine._encoder.load_msg (&engine._routing_id_msg);
     let buffer_size = engine._encoder.encode (&bufferp, header_size);
     // zmq_assert (buffer_size == header_size);
@@ -274,7 +281,7 @@ pub unsafe fn zmtp_handshake_v1_0_unversioned(engine: &mut ZmqEngine) -> bool
     //  To allow for interoperability with peers that do not forward
     //  their subscriptions, we inject a phantom subscription message
     //  message into the incoming message stream.
-    if (engine._options.type_ == ZMQ_PUB || engine._options.type_ == ZMQ_XPUB) {
+    if (options.type_ == ZMQ_PUB || options.type_ == ZMQ_XPUB) {
         engine._subscription_required = true;
     }
 
@@ -301,12 +308,12 @@ pub unsafe fn zmtp_handshake_v1_0(engine: &mut ZmqEngine) -> bool
 
     // _encoder = new (std::nothrow) v1_encoder_t (_options.out_batch_size);
     // alloc_assert (_encoder);
-    engine._encoder = v1_encoder_t::new(engine._options.out_batch_size);
+    engine._encoder = v1_encoder_t::new(options.out_batch_size);
 
     // _decoder = new (std::nothrow)
     //   v1_decoder_t (_options.in_batch_size, _options.maxmsgsize);
     // alloc_assert (_decoder);
-    engine._decoder = v1_decoder_t::new(engine._options.in_batch_size, engine._options.maxmsgsize);
+    engine._decoder = v1_decoder_t::new(options.in_batch_size, options.maxmsgsize);
 
     return true;
 }
@@ -322,12 +329,12 @@ pub unsafe fn zmtp_handshake_v2_0(engine: &mut ZmqEngine) -> bool
 
     // _encoder = new (std::nothrow) v2_encoder_t (_options.out_batch_size);
     // alloc_assert (_encoder);
-    engine._encoder = v2_encoder_t::new(engine._options.out_batch_size);
+    engine._encoder = v2_encoder_t::new(options.out_batch_size);
 
     // _decoder = new (std::nothrow) v2_decoder_t (
     //   _options.in_batch_size, _options.maxmsgsize, _options.zero_copy);
     // alloc_assert (_decoder);
-    engine._decoder = v2_decoder_t::new(engine._options.in_batch_size, engine._options.maxmsgsize, engine._options.zero_copy);
+    engine._decoder = v2_decoder_t::new(options.in_batch_size, options.maxmsgsize, options.zero_copy);
 
     return true;
 }
@@ -335,14 +342,14 @@ pub unsafe fn zmtp_handshake_v2_0(engine: &mut ZmqEngine) -> bool
 // bool zmq::zmtp_engine_t::handshake_v3_x (const bool downgrade_sub_)
 pub unsafe fn zmtp_handshake_v3_x(engine: &mut ZmqEngine, downgrade_sub_: bool) -> bool
 {
-    if (engine._options.mechanism == ZMQ_NULL
+    if (options.mechanism == ZMQ_NULL
         && libc::memcmp (engine._greeting_recv + 12, "NULL\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
                    20)
              == 0) {
         // _mechanism = new (std::nothrow)
         //   null_mechanism_t (session (), _peer_address, _options);
         // alloc_assert (_mechanism);
-        engine._mechanism = ZmqNullMechanism::new(engine.session(), engine._peer_address, engine._options);
+        engine._mechanism = ZmqNullMechanism::new(engine.session(), engine._peer_address, options);
     }
 //     else if (_options.mechanism == ZMQ_PLAIN
 //                && memcmp (_greeting_recv + 12,
@@ -402,12 +409,12 @@ pub unsafe fn zmtp_handshake_v3_0(engine: &mut ZmqEngine) -> bool
 {
     // _encoder = new (std::nothrow) v2_encoder_t (_options.out_batch_size);
     // alloc_assert (_encoder);
-    engine._encoder = v2_encoder_t::new(engine._options.out_batch_size);
+    engine._encoder = v2_encoder_t::new(options.out_batch_size);
 
     // _decoder = new (std::nothrow) v2_decoder_t (
     //   _options.in_batch_size, _options.maxmsgsize, _options.zero_copy);
     // alloc_assert (_decoder);
-    engine._decoder = v2_decoder_t::new(engine._options.in_batch_size, engine._options.maxmsgsize, engine._options.zero_copy);
+    engine._decoder = v2_decoder_t::new(options.in_batch_size, options.maxmsgsize, options.zero_copy);
 
     return engine.handshake_v3_x (true);
 }
@@ -415,12 +422,12 @@ pub unsafe fn zmtp_handshake_v3_0(engine: &mut ZmqEngine) -> bool
 pub unsafe fn zmtp_handshake_v3_1(engine: &mut ZmqEngine) -> bool {
     // _encoder = new (std::nothrow) v3_1_encoder_t (_options.out_batch_size);
     // alloc_assert (_encoder);
-    engine._encoder = v3_1_encoder_t::new(engine._options.out_batch_size);
+    engine._encoder = v3_1_encoder_t::new(options.out_batch_size);
 
     // _decoder = new (std::nothrow) v2_decoder_t (
     //   _options.in_batch_size, _options.maxmsgsize, _options.zero_copy);
     // alloc_assert (_decoder);
-    engine._decoder = v2_decoder_t::new(engine._options.in_batch_size, engine._options.maxmsgsize, engine._options.zero_copy);
+    engine._decoder = v2_decoder_t::new(options.in_batch_size, options.maxmsgsize, options.zero_copy);
 
     return engine.handshake_v3_x (false);
 }
@@ -428,10 +435,10 @@ pub unsafe fn zmtp_handshake_v3_1(engine: &mut ZmqEngine) -> bool {
 // int zmq::zmtp_engine_t::routing_id_msg (msg_t *msg_)
 pub unsafe fn zmtp_routing_id_msg(engine: &mut ZmqEngine, msg_: &ZmqMsg) -> i32
 {
-    let rc = msg_.init_size (engine._options.routing_id_size);
+    let rc = msg_.init_size (options.routing_id_size);
     // errno_assert (rc == 0);
-    if (engine._options.routing_id_size > 0) {
-        libc::memcpy(msg_.data_mut(), engine._options.routing_id, engine._options.routing_id_size);
+    if (options.routing_id_size > 0) {
+        libc::memcpy(msg_.data_mut(), options.routing_id, options.routing_id_size);
     }
     engine._next_msg = &ZmtpEngine::pull_msg_from_session;
     return 0;
@@ -483,7 +490,7 @@ pub fn zmtp_produce_ping_message(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> i
     // Copy in the command message
     libc::memcpy (msg_.data_mut(), "\4PING", ZmqMsg::ping_cmd_name_size);
 
-    let ttl_val = (engine._options.heartbeat_ttl.to_be () as u16);
+    let ttl_val = (options.heartbeat_ttl.to_be () as u16);
     libc::memcpy ((msg_.data_mut()) + ZmqMsg::ping_cmd_name_size,
                   &ttl_val, size_of::<ttl_val>());
 
