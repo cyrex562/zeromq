@@ -7,6 +7,7 @@ use crate::options::ZmqOptions;
 use crate::session_base::ZmqSession;
 use crate::zap_client::zap_client_state::{error_sent, ready, sending_error};
 
+#[derive(Default,Debug,Clone)]
 pub struct ZapClient {
     pub mechanism_base: ZmqMechanismBase,
     pub status_code: String,

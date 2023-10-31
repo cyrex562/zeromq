@@ -26,7 +26,7 @@ pub struct ZmqNullMechanism {
 }
 
 impl ZmqNullMechanism {
-    pub fn new(session_: &mut ZmqSession, peer_address_: &str, options_: &mut ZmqOptions) -> ZmqNullMechanism {
+    pub fn new(session_: &mut ZmqSession, peer_address_: &str, options_: &ZmqOptions) -> ZmqNullMechanism {
         let mut out = ZmqNullMechanism {
             zap_client: ZapClient::new(session_, peer_address_, options_),
             _ready_command_sent: false,

@@ -30,7 +30,7 @@ pub struct ZmqEncoder {
 
 impl ZmqEncoder
 {
-    pub fn new(buf_size_: usize) -> Self {
+    pub fn new(buf_size_: usize, encoder_type: EncoderType) -> Self {
         let mut out = Self {
             _write_pos: 0,
             _to_write: 0,
@@ -38,7 +38,8 @@ impl ZmqEncoder
             _new_msg_flag: false,
             _buf_size: buf_size_,
             buf: Vec::with_capacity(buf_size_),
-            in_progress: ZmqMsg::default()
+            in_progress: ZmqMsg::default(),
+            encoder_type: encoder_type
         };
         // out._buf = unsafe { libc::malloc(buf_size_) as *mut u8 };
         match encoder_type {

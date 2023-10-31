@@ -689,3 +689,25 @@ pub const LARGE_FLAG: u8 = 2;
 pub const COMMAND_FLAG: u8 = 4;
 
 pub type ZmqSubscriptions = HashSet<String>;
+
+pub const SOCKET_TYPE_PAIR: &'static str = "PAIR";
+pub const SOCKET_TYPE_PUB: &'static str = "PUB";
+pub const SOCKET_TYPE_SUB: &'static str = "SUB";
+pub const SOCKET_TYPE_REQ: &'static str = "REQ";
+pub const SOCKET_TYPE_REP: &'static str = "REP";
+pub const SOCKET_TYPE_DEALER: &'static str = "DEALER";
+pub const SOCKET_TYPE_ROUTER: &'static str = "ROUTER";
+pub const SOCKET_TYPE_PULL: &'static str = "PULL";
+pub const SOCKET_TYPE_PUSH: &'static str = "PUSH";
+pub const SOCKET_TYPE_XPUB: &'static str = "XPUB";
+pub const SOCKET_TYPE_XSUB: &'static str = "XSUB";
+pub const SOCKET_TYPE_STREAM: &'static str = "STREAM";
+pub const SOCKET_TYPE_SERVER: &'static str = "SERVER";
+pub const SOCKET_TYPE_CLIENT: &'static str = "CLIENT";
+pub const SOCKET_TYPE_RADIO: &'static str = "RADIO";
+pub const SOCKET_TYPE_DISH: &'static str = "DISH";
+pub const SOCKET_TYPE_GATHER: &'static str = "GATHER";
+pub const SOCKET_TYPE_SCATTER: &'static str = "SCATTER";
+pub const SOCKET_TYPE_DGRAM: &'static str = "DGRAM";
+pub const SOCKET_TYPE_PEER: &'static str = "PEER";
+pub const SOCKET_TYPE_CHANNEL: &'static str = "CHANNEL";

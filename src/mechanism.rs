@@ -1,79 +1,60 @@
 use std::ffi::{c_char, c_void};
-use crate::blob::ZmqBlob;
-use crate::defines::{MSG_ROUTING_ID, ZMQ_DEALER, ZMQ_REQ, ZMQ_ROUTER};
+use crate::defines::{MSG_ROUTING_ID, SOCKET_TYPE_CHANNEL, SOCKET_TYPE_CLIENT, SOCKET_TYPE_DEALER, SOCKET_TYPE_DGRAM, SOCKET_TYPE_DISH, SOCKET_TYPE_GATHER, SOCKET_TYPE_PAIR, SOCKET_TYPE_PEER, SOCKET_TYPE_PUB, SOCKET_TYPE_PULL, SOCKET_TYPE_PUSH, SOCKET_TYPE_RADIO, SOCKET_TYPE_REP, SOCKET_TYPE_REQ, SOCKET_TYPE_ROUTER, SOCKET_TYPE_SCATTER, SOCKET_TYPE_SERVER, SOCKET_TYPE_STREAM, SOCKET_TYPE_SUB, SOCKET_TYPE_XPUB, SOCKET_TYPE_XSUB, ZMQ_DEALER, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED, ZMQ_REQ, ZMQ_ROUTER};
 use crate::metadata::ZmqDict;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
+use crate::session_base::ZmqSession;
 use crate::utils::{get_u32, put_u32};
+use crate::zap_client::ZapClient;
 
 pub enum MechanismStatus {
     Handshaking,
     Ready,
-    Error
+    Error,
 }
-pub struct ZmqMechanism {
-    pub options: ZmqOptions,
+
+pub struct ZmqMechanism<'a> {
+    // pub options: ZmqOptions,
     pub _zmtp_properties: ZmqDict,
     pub _zap_properties: ZmqDict,
     pub _routing_id: Vec<u8>,
     pub _user_id: Vec<u8>,
+    pub session: &'a mut ZmqSession<'a>,
+    pub zap_client: ZapClient,
+    pub _ready_command_sent: bool,
+    pub _error_command_sent: bool,
+    pub _ready_command_received: bool,
+    pub _error_command_received: bool,
+    pub _zap_request_sent: bool,
+    pub _zap_reply_received: bool,
 }
 
-pub const socket_type_pair: &'static str = "PAIR";
-pub const socket_type_pub: &'static str = "PUB";
-pub const socket_type_sub: &'static str = "SUB";
-pub const socket_type_req: &'static str = "REQ";
-pub const socket_type_rep: &'static str = "REP";
-pub const socket_type_dealer: &'static str = "DEALER";
-pub const socket_type_router: &'static str = "ROUTER";
-pub const socket_type_pull: &'static str = "PULL";
-pub const socket_type_push: &'static str = "PUSH";
-pub const socket_type_xpub: &'static str = "XPUB";
-pub const socket_type_xsub: &'static str = "XSUB";
-pub const socket_type_stream: &'static str = "STREAM";
-pub const socket_type_server: &'static str = "SERVER";
-pub const socket_type_client: &'static str = "CLIENT";
-pub const socket_type_radio: &'static str = "RADIO";
-pub const socket_type_dish: &'static str = "DISH";
-pub const socket_type_gather: &'static str = "GATHER";
-pub const socket_type_scatter: &'static str = "SCATTER";
-pub const socket_type_dgram: &'static str = "DGRAM";
-pub const socket_type_peer: &'static str = "PEER";
-pub const socket_type_channel: &'static str = "CHANNEL";
-
-pub const name_len_size: u32 = 1;
-pub const value_len_size: u32 = 4;
+pub const NAME_LEN_SIZE: u32 = 1;
+pub const VALUE_LEN_SIZE: u32 = 4;
 
 pub const ZMTP_PROPERTY_SOCKET_TYPE: &'static str = "Socket-Type";
 pub const ZMTP_PROPERTY_IDENTITY: &'static str = "Identity";
 
-pub trait mechanism_ops {
-    fn next_handshake_command(&mut self, msg_: *mut ZmqMsg) -> i32;
-    fn process_handshake_command(&mut self, msg_: *mut ZmqMsg) -> i32;
-    fn encode(&mut self, msg_: *mut ZmqMsg) -> i32 { return 0; }
-    fn decode(&mut self, msg_: *mut ZmqMsg) -> i32 { return 0; }
-
-    fn zap_msg_available(&mut self) -> i32 { return 0; }
-
-    fn status(&mut self) -> MechanismStatus;
-
-    fn property(&mut self, name_: &str, value_: *mut c_void, length: usize);
-}
-
 impl ZmqMechanism {
-
-    pub fn new(options: &ZmqOptions) -> Self {
+    pub fn new(session: &mut ZmqSession) -> Self {
         Self {
-            options: options.clone(),
             _zmtp_properties: ZmqDict::new(),
             _zap_properties: ZmqDict::new(),
             _user_id: vec![],
-            _routing_id: vec![]
+            session,
+            zap_client: Default::default(),
+            _ready_command_sent: false,
+            _error_command_sent: false,
+            _ready_command_received: false,
+            _error_command_received: false,
+            _zap_request_sent: false,
+            _routing_id: vec![],
+
+            _zap_reply_received: false,
         }
     }
 
-    pub fn set_peer_routing_id(&mut self, id_ptr: *mut c_void, id_size_: usize)
-    {
+    pub fn set_peer_routing_id(&mut self, id_ptr: *mut c_void, id_size_: usize) {
         self._routing_id.set(id_ptr as *mut u8, id_size_);
     }
 
@@ -100,9 +81,8 @@ impl ZmqMechanism {
         return &mut self._zap_properties;
     }
 
-    pub fn socket_type_string(&mut self, socket_type_: i32) -> &'static str
-    {
-        let names = [socket_type_pair, socket_type_pub, socket_type_sub, socket_type_req, socket_type_rep, socket_type_dealer, socket_type_router, socket_type_pull, socket_type_push, socket_type_xpub, socket_type_xsub, socket_type_stream, socket_type_server, socket_type_client, socket_type_radio, socket_type_dish, socket_type_gather, socket_type_scatter, socket_type_dgram, socket_type_peer, socket_type_channel];
+    pub fn socket_type_string(&mut self, socket_type_: i32) -> &'static str {
+        let names = [SOCKET_TYPE_PAIR, SOCKET_TYPE_PUB, SOCKET_TYPE_SUB, SOCKET_TYPE_REQ, SOCKET_TYPE_REP, SOCKET_TYPE_DEALER, SOCKET_TYPE_ROUTER, SOCKET_TYPE_PULL, SOCKET_TYPE_PUSH, SOCKET_TYPE_XPUB, SOCKET_TYPE_XSUB, SOCKET_TYPE_STREAM, SOCKET_TYPE_SERVER, SOCKET_TYPE_CLIENT, SOCKET_TYPE_RADIO, SOCKET_TYPE_DISH, SOCKET_TYPE_GATHER, SOCKET_TYPE_SCATTER, SOCKET_TYPE_DGRAM, SOCKET_TYPE_PEER, SOCKET_TYPE_CHANNEL];
         names[socket_type_ as usize]
     }
 
@@ -110,10 +90,10 @@ impl ZmqMechanism {
         let name_len = name_len(name_ as *mut c_char);
         let total_len = property_len(name_len, value_len);
         *ptr_ = name_len as u8;
-        ptr_ = ptr_.add(name_len_size as usize);
+        ptr_ = ptr_.add(NAME_LEN_SIZE as usize);
         libc::memcpy(ptr_ as *mut c_void, name_ as *mut c_void, name_len);
         put_u32(ptr_, value_len as u32);
-        ptr_ = ptr_.add(value_len_size as usize);
+        ptr_ = ptr_.add(VALUE_LEN_SIZE as usize);
         libc::memcpy(ptr_ as *mut c_void, value, value_len);
         total_len
     }
@@ -153,18 +133,18 @@ impl ZmqMechanism {
         return self.property_len(ZMTP_PROPERTY_SOCKET_TYPE.as_ptr() as *mut c_char, socket_type.len()) + meta_len + if self.options.type_ == ZMQ_REQ as i8 || self.options.type_ == ZMQ_DEALER as i8 || self.options.type_ == ZMQ_ROUTER as i8 { self.property_len(ZMTP_PROPERTY_IDENTITY.as_ptr() as *mut c_char, self._routing_id.size()) } else { 0 };
     }
 
-    pub unsafe fn make_command_with_basic_properties(&mut self, msg_: *mut ZmqMsg, prefix_: *mut c_char, prefix_len_: usize){
-        let command_size = prefix_len_ + self.basic_properties_len ();
-        let rc = (*msg_).init_size (command_size);
+    pub unsafe fn make_command_with_basic_properties(&mut self, msg_: *mut ZmqMsg, prefix_: *mut c_char, prefix_len_: usize) {
+        let command_size = prefix_len_ + self.basic_properties_len();
+        let rc = (*msg_).init_size(command_size);
         // errno_assert (rc == 0);
 
         let mut ptr = ((*msg_).data_mut());
 
         //  Add prefix
-        libc::memcpy (ptr, prefix_ as *const c_void, prefix_len_);
+        libc::memcpy(ptr, prefix_ as *const c_void, prefix_len_);
         ptr = ptr.add(prefix_len_);
 
-        self.add_basic_properties (
+        self.add_basic_properties(
             ptr as *mut u8, command_size - (ptr.offset_from((*msg_).data_mut())));
     }
 
@@ -173,23 +153,23 @@ impl ZmqMechanism {
 
         while (bytes_left > 1) {
             let name_length = (*ptr_);
-            ptr_ = ptr_.add(name_len_size as usize);
-            bytes_left -= name_len_size;
+            ptr_ = ptr_.add(NAME_LEN_SIZE as usize);
+            bytes_left -= NAME_LEN_SIZE;
             if (bytes_left < name_length as usize) {
                 break;
             }
 
             let name = String::from(ptr_);
-                // std::string (reinterpret_cast<const char *> (ptr_), name_length);
+            // std::string (reinterpret_cast<const char *> (ptr_), name_length);
             ptr_ = ptr_.add(name_length as usize);
             bytes_left -= name_length;
-            if (bytes_left < value_len_size as usize) {
+            if (bytes_left < VALUE_LEN_SIZE as usize) {
                 break;
             }
 
-            let value_length = get_u32 (ptr_);
-            ptr_ = ptr_.add(value_len_size as usize);
-            bytes_left -= value_len_size;
+            let value_length = get_u32(ptr_);
+            ptr_ = ptr_.add(VALUE_LEN_SIZE as usize);
+            bytes_left -= VALUE_LEN_SIZE;
             if (bytes_left < value_length as usize) {
                 break;
             }
@@ -200,15 +180,14 @@ impl ZmqMechanism {
 
             if name == ZMTP_PROPERTY_IDENTITY && self.options.recv_routing_id {
                 self.set_peer_routing_id(value as *mut c_void, value_length as usize);
-            }
-            else if name == ZMTP_PROPERTY_SOCKET_TYPE {
-                if !self.check_socket_type (&String::from(value as *mut c_char),
-                                            value_length as usize) {
+            } else if name == ZMTP_PROPERTY_SOCKET_TYPE {
+                if !self.check_socket_type(&String::from(value as *mut c_char),
+                                           value_length as usize) {
                     // errno = EINVAL;
                     return -1;
                 }
             } else {
-                let rc = self.property (&name, value as *const c_void, value_length as usize);
+                let rc = self.property(&name, value as *const c_void, value_length as usize);
                 if rc == -1 {
                     return -1;
                 }
@@ -237,74 +216,66 @@ impl ZmqMechanism {
     pub fn check_socket_type(&mut self, type_: &str, len_: usize) -> bool {
         match (self.options.type_) {
             ZMQ_REQ => {
-                return strequals(type_, len_, socket_type_rep)
-                    || strequals(type_, len_, socket_type_router);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_REP) || strequals(type_, len_, SOCKET_TYPE_ROUTER);
+            }
             ZMQ_REP => {
-                return strequals(type_, len_, socket_type_req)
-                    || strequals(type_, len_, socket_type_dealer);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_REQ) || strequals(type_, len_, SOCKET_TYPE_DEALER);
+            }
             ZMQ_DEALER => {
-                return strequals(type_, len_, socket_type_rep)
-                    || strequals(type_, len_, socket_type_dealer)
-                    || strequals(type_, len_, socket_type_router);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_REP) || strequals(type_, len_, SOCKET_TYPE_DEALER) || strequals(type_, len_, SOCKET_TYPE_ROUTER);
+            }
             ZMQ_ROUTER => {
-                return strequals(type_, len_, socket_type_req)
-                    || strequals(type_, len_, socket_type_dealer)
-                    || strequals(type_, len_, socket_type_router); },
+                return strequals(type_, len_, SOCKET_TYPE_REQ) || strequals(type_, len_, SOCKET_TYPE_DEALER) || strequals(type_, len_, SOCKET_TYPE_ROUTER);
+            }
             ZMQ_PUSH => {
-                return strequals(type_, len_, socket_type_pull); },
+                return strequals(type_, len_, SOCKET_TYPE_PULL);
+            }
             ZMQ_PULL => {
-                return strequals(type_, len_, socket_type_push);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_PUSH);
+            }
             ZMQ_PUB => {
-                return strequals(type_, len_, socket_type_sub)
-                    || strequals(type_, len_, socket_type_xsub);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_SUB) || strequals(type_, len_, SOCKET_TYPE_XSUB);
+            }
             ZMQ_SUB => {
-                return strequals(type_, len_, socket_type_pub)
-                    || strequals(type_, len_, socket_type_xpub);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_PUB) || strequals(type_, len_, SOCKET_TYPE_XPUB);
+            }
             ZMQ_XPUB => {
-                return strequals(type_, len_, socket_type_sub)
-                    || strequals(type_, len_, socket_type_xsub);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_SUB) || strequals(type_, len_, SOCKET_TYPE_XSUB);
+            }
             ZMQ_XSUB => {
-                return strequals(type_, len_, socket_type_pub)
-                    || strequals(type_, len_, socket_type_xpub);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_PUB) || strequals(type_, len_, SOCKET_TYPE_XPUB);
+            }
             ZMQ_PAIR => {
-                return strequals(type_, len_, socket_type_pair);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_PAIR);
+            }
             // #ifdef ZMQ_BUILD_DRAFT_API
             ZMQ_SERVER => {
-                return strequals(type_, len_, socket_type_client);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_CLIENT);
+            }
             ZMQ_CLIENT => {
-                return strequals(type_, len_, socket_type_server);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_SERVER);
+            }
             ZMQ_RADIO => {
-                return strequals(type_, len_, socket_type_dish);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_DISH);
+            }
             ZMQ_DISH => {
-                return strequals(type_, len_, socket_type_radio);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_RADIO);
+            }
             ZMQ_GATHER => {
-                return strequals(type_, len_, socket_type_scatter);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_SCATTER);
+            }
             ZMQ_SCATTER => {
-                return strequals(type_, len_, socket_type_gather);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_GATHER);
+            }
             ZMQ_DGRAM => {
-                return strequals(type_, len_, socket_type_dgram);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_DGRAM);
+            }
             ZMQ_PEER => {
-                return strequals(type_, len_, socket_type_peer);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_PEER);
+            }
             ZMQ_CHANNEL => {
-                return strequals(type_, len_, socket_type_channel);
-            },
+                return strequals(type_, len_, SOCKET_TYPE_CHANNEL);
+            }
             // #endif
             // default:
             // break;
@@ -312,18 +283,52 @@ impl ZmqMechanism {
         return false;
     }
 
+    pub fn check_basic_command_structure(&mut self, options: &ZmqOptions, msg: &mut ZmqMsg) -> i32 {
+        if (msg).size() <= 1 || (msg).size() <= ((msg).data_mut())[0] as usize {
+            self.session.get_socket().event_handshake_failed_protocol(
+                options,
+                self.session.get_endpoint(),
+                ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED as i32);
+            // errno = EPROTO;
+            return -1;
+        }
+        return 0;
+    }
 
+    pub fn handle_error_reason(&mut self, options: &ZmqOptions, error_reason_: &str, error_reason_len_: usize) {
+        let status_code_len = 3;
+        let zero_digit = '0';
+        let significant_digit_index = 0;
+        let first_zero_digit_index = 1;
+
+        let second_zero_digit_index = 2;
+        let factor = 100;
+        if error_reason_len_ == status_code_len && error_reason_.chars().nth(first_zero_digit_index).unwrap() == zero_digit && error_reason_.chars().nth(second_zero_digit_index).unwrap() == zero_digit && error_reason_.chars().nth(significant_digit_index).unwrap() >= '3' && error_reason_.chars().nth(significant_digit_index).unwrap() <= '5' {
+            // it is a ZAP Error status code (300, 400 or 500), so emit an authentication failure event
+            self.session.get_socket().event_handshake_failed_auth(
+                options,
+                self.session.get_endpoint(),
+                (error_reason_.chars().nth(significant_digit_index).unwrap() as u8 - zero_digit as u8) * factor);
+        } else {
+            // this is a violation of the ZAP protocol
+            // TODO zmq_assert in this case?
+        }
+    }
+
+    pub fn zap_required(&mut self, options: &ZmqOptions ) -> bool {
+        return !options.zap_domain.empty();
+    }
 }
 
-pub fn strequals(a: &str, c: usize, b: &str,) -> bool {
+pub fn strequals(a: &str, c: usize, b: &str) -> bool {
     a == b
 }
 
 pub fn property_len(name_len_: usize, value_len_: usize) -> usize {
-    (name_len_size + name_len_ + value_len_size + value_len_) as usize
+    (NAME_LEN_SIZE + name_len_ + VALUE_LEN_SIZE + value_len_) as usize
 }
 
 pub unsafe fn name_len(name_: *mut c_char) -> usize {
-        let name_len_ = libc::strlen(name_);
+    let name_len_ = libc::strlen(name_);
     name_len_ as usize
-    }
+}

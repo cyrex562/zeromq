@@ -118,7 +118,7 @@ pub fn stream_plug(options: &ZmqOptions, engine: &mut ZmqEngine, io_thread_: &mu
             raw_plug_internal(options, engine);
         }
         ZmqEngineType::Zmtp => {
-            zmtp_plug_internal(engine);
+            zmtp_plug_internal(options, engine);
         }
     }
 
@@ -336,8 +336,8 @@ pub fn stream_restart_output(options: &ZmqOptions, engine: &mut ZmqEngine) {
 }
 
 pub unsafe fn stream_restart_input(engine: &mut ZmqEngine) -> bool {
-    let mut rc = (engine.process_msg)(engine, engine.decoder.msg());
-    if rc == -1 {
+    let mut rc = 0;
+    if (engine.process_msg)(engine, engine.decoder.msg()).is_err() {
         if get_errno() == EAGAIN {
             engine.session.flush();
         } else {
@@ -356,10 +356,7 @@ pub unsafe fn stream_restart_input(engine: &mut ZmqEngine) -> bool {
         if rc == 0 || rc == -1 {
             break;
         }
-        rc = (engine.process_msg)(engine, engine.decoder.msg());
-        if rc == -1 {
-            break;
-        }
+        (engine.process_msg)(engine, engine.decoder.msg())?;
     }
 
     if rc == -1 && get_errno() == EAGAIN {
@@ -385,11 +382,11 @@ pub unsafe fn stream_restart_input(engine: &mut ZmqEngine) -> bool {
 }
 
 pub unsafe fn stream_next_handshake_command(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> i32 {
-    if (engine.mechanism.status() == ZmqMechanism::ready) {
+    if engine.mechanism.status() == ZmqMechanism::ready {
         engine.mechanism_ready();
         return engine.pull_and_encode(msg_);
     }
-    if (engine.mechanism.status() == ZmqMechanism::error) {
+    if engine.mechanism.status() == ZmqMechanism::error {
         // errno = EPROTO;
         return -1;
     }
@@ -487,7 +484,7 @@ pub unsafe fn stream_mechanism_ready(options: &ZmqOptions, engine: &mut ZmqEngin
     engine.process_msg = stream_write_credential;
 
     //  Compile metadata.
-    let mut properties: HashMap<String,String> = HashMap::new();
+    let mut properties: HashMap<String, String> = HashMap::new();
     engine.init_properties(properties);
 
     //  Add ZAP properties.
@@ -541,7 +538,7 @@ pub fn stream_pull_and_encode(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> i32 
     return 0;
 }
 
-pub fn stream_decode_and_push(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn stream_decode_and_push(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     if engine.mechanism.decode(msg_) == -1 {
         return Err(EngineError("failed to decode message"));
     }
@@ -572,7 +569,7 @@ pub fn stream_decode_and_push(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Resu
     return Ok(());
 }
 
-pub fn stream_push_one_then_decode_and_push(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn stream_push_one_then_decode_and_push(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     if (engine.session.push_msg(msg_) == -1) {
         return Err(EngineError("failed to push msg"));
     }
@@ -584,7 +581,7 @@ pub fn stream_pull_msg_from_session(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -
     engine.session.pull_msg(msg_)
 }
 
-pub unsafe fn stream_push_msg_to_session(engine: &mut ZmqEngine, msg_: &ZmqMsg) -> i32 {
+pub unsafe fn stream_push_msg_to_session(engine: &mut ZmqEngine, msg_: &ZmqMsg) -> Result<(), ZmqError> {
     engine.session.push_msg(msg_)
 }
 

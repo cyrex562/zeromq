@@ -27,8 +27,8 @@ pub enum ZmqEngineType {
 pub struct ZmqEngine<'a>
 {
     pub address: Option<ZmqAddress<'a>>,
-    pub decoder: Option<&'a mut ZmqDecoder>,
-    pub encoder: Option<&'a mut ZmqEncoder>,
+    pub decoder: Option<ZmqDecoder>,
+    pub encoder: Option<ZmqEncoder>,
     pub endpoint_uri_pair: Option<ZmqEndpointUriPair>,
     pub engine_type: ZmqEngineType,
     pub fd: ZmqFd,
@@ -50,7 +50,7 @@ pub struct ZmqEngine<'a>
     pub input_stopped: bool,
     pub io_error: bool,
     pub io_object: IoObject,
-    pub mechanism: Option<&'a mut ZmqMechanism>,
+    pub mechanism: Option<ZmqMechanism>,
     pub metadata: Option<ZmqMetadata>,
     pub out_address: ZmqSockAddr,
     pub out_address_len: usize,
@@ -70,7 +70,7 @@ pub struct ZmqEngine<'a>
     pub subscription_required: bool,
     pub socket: Option<&'a mut ZmqSocket<'a>>,
     pub tx_msg: Option<ZmqMsg>,
-    pub process_msg: fn(engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(),ZmqError>,
+    pub process_msg: fn(options: &ZmqOptions, engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(),ZmqError>,
     pub next_msg: fn(engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> i32,
 
 }
