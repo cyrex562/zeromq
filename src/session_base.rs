@@ -3,9 +3,12 @@ use crate::defines::{
     MSG_COMMAND, MSG_MORE, ZMQ_DGRAM, ZMQ_DISH, ZMQ_NULL, ZMQ_RADIO, ZMQ_SUB, ZMQ_XSUB,
 };
 use crate::endpoint::ZmqEndpointUriPair;
+use crate::engine::ZmqEngine;
+use crate::err::ZmqError;
 use crate::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
 use crate::msg::ZmqMsg;
+use crate::object::obj_send_bind;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
 use crate::own::ZmqOwn;
 use crate::pipe::{pipepair, IPipeEvents, ZmqPipe};
@@ -26,7 +29,7 @@ pub struct ZmqSession<'a> {
     pub _io_thread: &'a mut ZmqIoThread<'a>,
     pub _has_linger_timer: bool,
     pub _addr: ZmqAddress<'a>,
-    pub _engine: Option<&'a mut ZmqEngine>,
+    pub _engine: Option<&'a mut ZmqEngine<'a>>,
 }
 
 pub const _linger_timer_id: i32 = 0x20;
@@ -45,37 +48,6 @@ impl IPipeEvents for ZmqSession {
         unimplemented!()
     }
 }
-
-// impl i_engine for session_base_t
-// {
-//     fn has_handshake_stage(&mut self) -> bool {
-//         todo!()
-//     }
-//
-//     fn Plug(&mut self, io_thread_: *mut io_thread_t, session_: *mut session_base_t) {
-//         todo!()
-//     }
-//
-//     fn terminate(&mut self) {
-//         todo!()
-//     }
-//
-//     fn restart_input(&mut self) {
-//         todo!()
-//     }
-//
-//     fn restart_output(&mut self) {
-//         todo!()
-//     }
-//
-//     fn zap_msg_available(&mut self) {
-//         todo!()
-//     }
-//
-//     fn get_endpoint(&mut self) -> &mut endpoint_uri_pair_t {
-//         todo!()
-//     }
-// }
 
 impl ZmqSession {
     pub unsafe fn create(
@@ -101,7 +73,7 @@ impl ZmqSession {
                 if options_.can_send_hello_msg && options_.hello_msg.len() > 0 {
                     // s = &mut hello_session_t::new(io_thread_, active_, socket_, options_, addr_);
                 } else {
-                    s = ZmqSession::new(io_thread_, active_, socket_, options_, addr_);
+                    s = ZmqSession::new(io_thread_, active_, socket_, addr_);
                 }
             }
         }
@@ -112,11 +84,10 @@ impl ZmqSession {
         io_thread_: &mut ZmqIoThread,
         active_: bool,
         socket_: &mut ZmqSocket,
-        options_: &ZmqOptions,
         addr_: ZmqAddress,
     ) -> Self {
         Self {
-            own: ZmqOwn::from_io_thread(io_thread_, options_),
+            own: ZmqOwn::from_io_thread(io_thread_),
             io_object: IoObject::new(io_thread_),
             _active: active_,
             _pipe: None,
@@ -142,7 +113,7 @@ impl ZmqSession {
     }
 
     pub unsafe fn pull_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
-        if self._pipe == null_mut() || !(self._pipe).read(msg_) {
+        if self._pipe.is_none() || !(self._pipe).read(msg_) {
             return -1;
         }
 
@@ -154,7 +125,7 @@ impl ZmqSession {
         if (msg_).flags() & MSG_COMMAND != 0 && !msg_.is_subscribe() && !msg_.is_cancel() {
             return 0;
         }
-        if self._pipe != null_mut() && (self._pipe).write(msg_) {
+        if self._pipe.is_some() && (self._pipe).write(msg_) {
             let mut rc = (msg_).init2();
             return 0;
         }
@@ -162,11 +133,11 @@ impl ZmqSession {
         return -1;
     }
 
-    pub unsafe fn read_zap_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
-        if self._zap_pipe == null_mut() || !(self._zap_pipe).read(msg_) {
-            return -1;
+    pub fn read_zap_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
+        if self._zap_pipe.is_none() || (self._zap_pipe.unwrap()).read(msg_).is_err() {
+            return Err(ZapError("failed to read zap msg"));
         }
-        return 0;
+        Ok(())
     }
 
     pub unsafe fn write_zap_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
@@ -284,15 +255,15 @@ impl ZmqSession {
         }
     }
 
-    pub unsafe fn zap_connect(&mut self) -> i32 {
-        if self._zap_pipe != null_mut() {
-            return 0;
+    pub fn zap_connect(&mut self, ZmqContext: &mut ZmqContext) -> Result<(), ZmqError> {
+        if self._zap_pipe.is_some() {
+            Ok(())
         }
 
         let mut peer = self.find_endpoint("inproc://zeromq.zap.01");
-        if (peer.socket == null_mut()) {
+        if peer.socket == null_mut() {
             // errno = ECONNREFUSED;
-            return -1;
+            return Err(SessionError("ECONNREFUSED"));
         }
         // zmq_assert (peer.options.type == ZMQ_REP || peer.options.type == ZMQ_ROUTER
         //             || peer.options.type == ZMQ_SERVER);
@@ -307,16 +278,16 @@ impl ZmqSession {
         // errno_assert (rc == 0);
 
         //  Attach local end of the pipe to this socket object.
-        self._zap_pipe = new_pipes[0];
-        self._zap_pipe.set_nodelay();
-        self._zap_pipe.set_event_sink(self);
+        self._zap_pipe = Some(new_pipes[0].unwrap());
+        self._zap_pipe.unwrap().set_nodelay();
+        self._zap_pipe.unwrap().set_event_sink(self);
 
-        self.send_bind(peer.socket, new_pipes[1], false);
+        obj_send_bind(ctx, peer.socket, new_pipes[1].unwrap(), false);
 
         //  Send empty routing id if required by the peer.
-        if (peer.options.recv_routing_id) {
+        if peer.options.recv_routing_id {
             let mut id = ZmqMsg::default();
-            let rc = id.init();
+            id.init2()?;
             // errno_assert (rc == 0);
             id.set_flags(ZmqMsg::routing_id);
             let ok = (*self._zap_pipe).write(id);
@@ -324,11 +295,11 @@ impl ZmqSession {
             self._zap_pipe.flush();
         }
 
-        return 0;
+        Ok(())
     }
 
-    pub fn zap_enabled(&mut self) -> bool {
-        return self.own.options.mechanism != ZMQ_NULL || !self.own.options.zap_domain.is_empty();
+    pub fn zap_enabled(&mut self, options: &ZmqOptions) -> bool {
+        return options.mechanism != ZMQ_NULL || !options.zap_domain.is_empty();
     }
 
     pub unsafe fn process_attach(&mut self, engine_: &mut dyn IEngine) {
@@ -343,7 +314,7 @@ impl ZmqSession {
 
     pub unsafe fn engine_ready(&mut self) {
         //  Create the pipe if it does not exist yet.
-        if (self._pipe.is_none() && !self.is_terminating()) {
+        if self._pipe.is_none() && !self.is_terminating() {
             // object_t *parents[2] = {this, _socket};
             let parents: [&mut ZmqObject; 2] =
                 [self as &mut ZmqObject, self._socket as &mut ZmqObject];
@@ -355,16 +326,8 @@ impl ZmqSession {
             // int hwms[2] = {conflate ? -1 : options.rcvhwm,
             //                conflate ? -1 : options.sndhwm};
             let hwms: [i32; 2] = [
-                if conflate {
-                    -1
-                } else {
-                    self.own.options.rcvhwm
-                },
-                if conflate {
-                    -1
-                } else {
-                    self.own.options.sndhwm
-                },
+                if conflate { -1 } else { options.rcvhwm },
+                if conflate { -1 } else { options.sndhwm },
             ];
 
             // bool conflates[2] = {conflate, conflate};
@@ -394,25 +357,24 @@ impl ZmqSession {
         self._engine = None;
 
         //  Remove any half-Done messages from the pipes.
-        if (self._pipe != null_mut()) {
+        if self._pipe != null_mut() {
             self.clean_pipes();
 
             //  Only send disconnect message if socket was accepted and handshake was completed
-            if (!self._active
+            if !self._active
                 && handshaked_
-                && self.own.options.can_recv_disconnect_msg
-                && !self.own.options.disconnect_msg.empty())
+                && options.can_recv_disconnect_msg
+                && !options.disconnect_msg.empty()
             {
-                self._pipe
-                    .set_disconnect_msg(&mut self.own.options.disconnect_msg);
+                self._pipe.set_disconnect_msg(&mut options.disconnect_msg);
                 self._pipe.send_disconnect_msg();
             }
 
             //  Only send Hiccup message if socket was connected and handshake was completed
-            if (self._active
+            if self._active
                 && handshaked_
-                && self.own.options.can_recv_hiccup_msg
-                && !self.own.options.hiccup_msg.empty())
+                && options.can_recv_hiccup_msg
+                && !options.hiccup_msg.empty()
             {
                 self._pipe.send_hiccup_msg(&mut self.own.options.hiccup_msg);
             }
@@ -450,7 +412,7 @@ impl ZmqSession {
             self._pipe.check_read();
         }
 
-        if (self._zap_pipe) {
+        if self._zap_pipe {
             self._zap_pipe.check_read();
         }
     }
@@ -459,7 +421,7 @@ impl ZmqSession {
         //  If the termination of the pipe happens before the Term command is
         //  delivered there's nothing much to do. We can proceed with the
         //  standard termination immediately.
-        if (!self._pipe && !self._zap_pipe && self._terminating_pipes.empty()) {
+        if !self._pipe && !self._zap_pipe && self._terminating_pipes.empty() {
             // own_t::process_term (0);
             self.own.process_term(0);
             return;

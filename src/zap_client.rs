@@ -1,15 +1,16 @@
 use std::ffi::c_void;
 use crate::defines::{MSG_MORE, ZMQ_PROTOCOL_ERROR_ZAP_BAD_REQUEST_ID, ZMQ_PROTOCOL_ERROR_ZAP_BAD_VERSION, ZMQ_PROTOCOL_ERROR_ZAP_INVALID_METADATA, ZMQ_PROTOCOL_ERROR_ZAP_INVALID_STATUS_CODE, ZMQ_PROTOCOL_ERROR_ZAP_MALFORMED_REPLY, ZMQ_PROTOCOL_ERROR_ZAP_UNSPECIFIED};
+use crate::err::ZmqError;
 use crate::mechanism;
-use crate::mechanism_base::ZmqMechanismBase;
+use crate::mechanism::ZmqMechanism;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSession;
 use crate::zap_client::zap_client_state::{error_sent, ready, sending_error};
 
 #[derive(Default,Debug,Clone)]
-pub struct ZapClient {
-    pub mechanism_base: ZmqMechanismBase,
+pub struct ZapClient<'a> {
+    pub mechanism: ZmqMechanism<'a>,
     pub status_code: String,
     pub peer_address: String,
 }
@@ -25,7 +26,7 @@ pub const id_len: usize = 1;
 impl ZapClient {
     pub fn new(session_: &mut ZmqSession, peer_address_: &str, options: &ZmqOptions) -> Self {
         Self {
-            mechanism_base: ZmqMechanismBase::new(session_, options),
+            mechanism: ZmqMechanismBase::new(session_, options),
             status_code: String::new(),
         }
     }
@@ -48,7 +49,7 @@ impl ZapClient {
         rc = msg.init2 ();
         // errno_assert (rc == 0);
         msg.set_flags (ZmqMsg::more);
-        rc = self.mechanism_base.session.write_zap_msg (&msg);
+        rc = self.mechanism.session.write_zap_msg (&msg);
         // errno_assert (rc == 0);
 
         //  Version frame
@@ -56,7 +57,7 @@ impl ZapClient {
         // errno_assert (rc == 0);
         libc::memcpy (msg.data (), zap_version.as_ptr() as *const c_void, zap_version_len);
         msg.set_flags (ZmqMsg::more);
-        rc = self.mechanism_base.session.write_zap_msg (&msg);
+        rc = self.mechanism.session.write_zap_msg (&msg);
         // errno_assert (rc == 0);
 
         //  Request ID frame
@@ -64,7 +65,7 @@ impl ZapClient {
         // errno_assert (rc == 0);
         libc::memcpy (msg.data (), id.as_ptr() as *const c_void, id_len);
         msg.set_flags (ZmqMsg::more);
-        rc = self.mechanism_base.session.write_zap_msg (&msg);
+        rc = self.mechanism.session.write_zap_msg (&msg);
         // errno_assert (rc == 0);
 
         //  Domain frame
@@ -73,7 +74,7 @@ impl ZapClient {
         libc::memcpy (msg.data (), options.zap_domain.as_ptr() as *const c_void, options.zap_domain.length ());
 
         msg.set_flags (ZmqMsg::more);
-        rc = self.mechanism_base.session.write_zap_msg (&msg);
+        rc = self.mechanism.session.write_zap_msg (&msg);
         // errno_assert (rc == 0);
 
         //  Address frame
@@ -81,7 +82,7 @@ impl ZapClient {
         // errno_assert (rc == 0);
        libc::memcpy (msg.data (), self.peer_address.as_ptr() as *const c_void, self.peer_address.length ());
         msg.set_flags (ZmqMsg::more);
-        rc = self.mechanism_base.session.write_zap_msg (&msg);
+        rc = self.mechanism.session.write_zap_msg (&msg);
         // errno_assert (rc == 0);
 
         //  Routing id frame
@@ -89,7 +90,7 @@ impl ZapClient {
         // errno_assert (rc == 0);
         libc::memcpy (msg.data (), options.routing_id as *const c_void, options.routing_id_size as usize);
         msg.set_flags (ZmqMsg::more);
-        rc = self.mechanism_base.session.write_zap_msg (&msg);
+        rc = self.mechanism.session.write_zap_msg (&msg);
         // errno_assert (rc == 0);
 
         //  Mechanism frame
@@ -98,7 +99,7 @@ impl ZapClient {
         libc::memcpy (msg.data (), mechanism_, mechanism_.len());
         if (credentials_.len())
             msg.set_flags (ZmqMsg::more);
-        rc = self.mechanism_base.session.write_zap_msg (&msg);
+        rc = self.mechanism.session.write_zap_msg (&msg);
         // errno_assert (rc == 0);
 
         //  Credentials frames
@@ -111,12 +112,12 @@ impl ZapClient {
                 msg.set_flags(ZmqMsg::more);
             }
             libc::memcpy (msg.data (), credentials_[i].as_ptr() as *const c_void, credentials_[i].len());
-            rc = self.mechanism_base.session.write_zap_msg (&msg);
+            rc = self.mechanism.session.write_zap_msg (&msg);
             // errno_assert (rc == 0);
         }
     }
 
-    pub unsafe fn receive_and_process_zap_reply(&mut self) -> i32 {
+    pub fn receive_and_process_zap_reply(&mut self, options: &ZmqOptions) -> Result<(),ZmqError> {
         let mut rc = 0i32;
         let zap_reply_frame_count = 7;
         let mut msg: Vec<ZmqMsg> = Vec::with_capacity(zap_reply_frame_count);
@@ -125,36 +126,37 @@ impl ZapClient {
         // for (size_t i = 0; i < zap_reply_frame_count; i++)
         for i in 0 .. zap_reply_frame_count
         {
-            rc = msg[i].init2();
+            msg[i].init2()?;
             // errno_assert (rc == 0);
         }
 
         // for (size_t i = 0; i < zap_reply_frame_count; i++)
         for i in 0 .. zap_reply_frame_count
         {
-            rc = self.mechanism_base.session.read_zap_msg (&mut msg[i]);
-            if (rc == -1) {
+            rc = self.mechanism.session.read_zap_msg (&mut msg[i]);
+            if rc == -1 {
                 // if (errno == EAGAIN) {
                 //     return 1;
                 // }
                 // return close_and_return (msg, -1);
-                return -1;
+                return Err(ZapError("EAGAIN"));
             }
             if msg[i].flags_set(MSG_MORE) == (if i < zap_reply_frame_count - 1 { 0 } else { MSG_MORE })
             {
-                self.mechanism_base.session.get_socket().event_handshake_failed_protocol (
-                  self.mechanism_base.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_MALFORMED_REPLY);
+                self.mechanism.session.get_socket().event_handshake_failed_protocol (
+                    options,
+                    self.mechanism.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_MALFORMED_REPLY as i32);
                 // errno = EPROTO;
                 // return close_and_return (msg, -1);
-                return -1;
+                return Err(ZapError("EPROTO"));
             }
         }
 
         //  Address delimiter frame
-        if (msg[0].size () > 0) {
+        if msg[0].size () > 0 {
             //  TODO can a ZAP handler produce such a message at all?
-            self.mechanism_base.session.get_socket ().event_handshake_failed_protocol (
-              self.mechanism_base.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_UNSPECIFIED);
+            self.mechanism.session.get_socket ().event_handshake_failed_protocol (
+                self.mechanism.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_UNSPECIFIED);
             // errno = EPROTO;
             // return close_and_return (msg, -1);
             return -1;
@@ -164,8 +166,8 @@ impl ZapClient {
         if msg[1].size () != zap_version_len
             || libc::memcmp (msg[1].data_mut(), zap_version.as_ptr() as *const c_void, zap_version_len) != 0
         {
-            self.mechanism_base.session.get_socket ().event_handshake_failed_protocol (
-              self.mechanism_base.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_BAD_VERSION);
+            self.mechanism.session.get_socket ().event_handshake_failed_protocol (
+                self.mechanism.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_BAD_VERSION);
             // errno = EPROTO;
             // return close_and_return (msg, -1);
             return -1;
@@ -173,8 +175,8 @@ impl ZapClient {
 
         //  Request id frame
         if (msg[2].size () != id_len || libc::memcmp(msg[2].data_mut(), id.as_ptr() as *const c_void, id_len) != 0) {
-            self.mechanism_base.session.get_socket ().event_handshake_failed_protocol (
-              self.mechanism_base.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_BAD_REQUEST_ID);
+            self.mechanism.session.get_socket ().event_handshake_failed_protocol (
+                self.mechanism.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_BAD_REQUEST_ID);
             // errno = EPROTO;
             // return close_and_return (msg, -1);
             return -1;
@@ -185,8 +187,8 @@ impl ZapClient {
         if (msg[3].size () != 3 || status_code_data[0] < '2'
             || status_code_data[0] > '5' || status_code_data[1] != '0'
             || status_code_data[2] != '0') {
-            self.mechanism_base.session.get_socket ().event_handshake_failed_protocol (
-              self.mechanism_base.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_INVALID_STATUS_CODE);
+            self.mechanism.session.get_socket ().event_handshake_failed_protocol (
+                self.mechanism.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_INVALID_STATUS_CODE);
             // errno = EPROTO;
             // return close_and_return (msg, -1);
             return -1;
@@ -196,15 +198,15 @@ impl ZapClient {
         self.status_code.assign (msg[3].data_mut()), 3);
 
         //  Save user id
-        self.mechanism_base.set_user_id (msg[5].data_mut(), msg[5].size ());
+        self.mechanism.set_user_id (msg[5].data_mut(), msg[5].size ());
 
         //  Process metadata frame
-        rc = self.mechanism_base.parse_metadata ((msg[6].data_mut()),
-                                                 msg[6].size (), true);
+        rc = self.mechanism.parse_metadata ((msg[6].data_mut()),
+                                            msg[6].size (), true);
 
         if (rc != 0) {
-            self.mechanism_base.session.get_socket ().event_handshake_failed_protocol (
-              self.mechanism_base.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_INVALID_METADATA);
+            self.mechanism.session.get_socket ().event_handshake_failed_protocol (
+                self.mechanism.session.get_endpoint (), ZMQ_PROTOCOL_ERROR_ZAP_INVALID_METADATA);
             // errno = EPROTO;
             // return close_and_return (msg, -1);
             return -1;
@@ -240,8 +242,8 @@ impl ZapClient {
             status_code_numeric = 500;
         }
 
-        self.mechanism_base.session.get_socket ().event_handshake_failed_auth (
-          self.mechanism_base.session.get_endpoint (), status_code_numeric, "");
+        self.mechanism.session.get_socket ().event_handshake_failed_auth (
+            self.mechanism.session.get_endpoint (), status_code_numeric, "");
     }
 }
 

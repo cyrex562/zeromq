@@ -24,4 +24,10 @@ pub enum ZmqError {
     MessageError(&'static str),
     #[error("engine error")]
     EngineError(&'static str),
+    #[error("mechanism error")]
+    MechanismError(&'static str),
+    #[error("session error")]
+    SessionError(&'static str),
+    #[error("zap error")]
+    ZapError(&'static str),
 }

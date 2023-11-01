@@ -138,18 +138,18 @@ impl ZmqPipe {
         return true;
     }
 
-    pub unsafe fn read(&mut self, msg_: &mut ZmqMsg) -> bool {
+    pub fn read(&mut self, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
         if self._in_active == false {
-            return false;
+            return Err(PipeError("Pipe is not readable"));
         }
         if self._state != Active && self._state != WaitingForDelimiter {
-            return false;
+            return Err(PipeError("Pipe is not readable"));
         }
 
         loop {
             if (self._in_pipe).read(msg_) == false {
                 self._in_active = false;
-                return false;
+                return Err(PipeError("Pipe is not readable"));
             }
 
             if msg_.is_credential() {
@@ -161,7 +161,7 @@ impl ZmqPipe {
 
         if msg_.is_delimiter() {
             self.process_delimiter();
-            return false;
+            return Err(PipeError("Pipe is not readable"));
         }
 
         if !(msg_.flags() & MSG_MORE > 0) && !msg_.is_routing_id() {
@@ -173,7 +173,7 @@ impl ZmqPipe {
                 .send_activate_write(self.peer.unwrap(), self._msgs_read);
         }
 
-        return true;
+        Ok(())
     }
 
     pub fn check_write(&mut self) -> bool {
@@ -205,7 +205,7 @@ impl ZmqPipe {
         Ok(())
     }
 
-    pub unsafe fn rollback(&mut self) {
+    pub fn rollback(&mut self) {
         let mut msg: ZmqMsg;
         if self.out_pipe {
             while self.out_pipe.unwrite(&msg) {
@@ -298,7 +298,7 @@ impl ZmqPipe {
         self.set_hwms(inhwm_, outhwm_);
     }
 
-    pub unsafe fn set_nodelay(&mut self) {
+    pub fn set_nodelay(&mut self) {
         self._delay = false;
     }
 
@@ -345,12 +345,12 @@ impl ZmqPipe {
         (hwm_ + 1) / 2
     }
 
-    pub unsafe fn process_delimiter(&mut self) {
+    pub fn process_delimiter(&mut self) {
         if self._state == Active {
             self._state = DelimiterReceived;
         } else {
             self.rollback();
-            self.out_pipe = None;
+            self.out_pipe = &mut ZmqPipe::default();
             self.base.send_pipe_term_ack(self.peer.unwrap());
             self._state = TermAckSent;
         }

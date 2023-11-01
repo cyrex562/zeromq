@@ -244,13 +244,13 @@ pub unsafe fn obj_send_conn_failed(ctx: &mut ZmqContext, destination: &mut ZmqPi
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_bind(
+pub fn obj_send_bind(
     ctx: &mut ZmqContext,
     destination: &mut ZmqPipe,
     pipe: &mut ZmqPipe,
     inc_seqnum: bool,
 ) {
-    if (inc_seqnum) {
+    if inc_seqnum {
         destination.inc_seqnum();
     }
 

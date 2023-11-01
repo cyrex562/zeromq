@@ -7,7 +7,6 @@ use libc::{clock_t, EAGAIN, EINTR};
 
 use crate::address::ZmqAddress;
 use crate::array::ArrayItem;
-use crate::atomic_counter::ZmqAtomicCounter;
 use crate::client::{client_xattach_pipe, client_xgetsockopt, client_xhas_in, client_xhas_out, client_xjoin, client_xpipe_terminated, client_xread_activated, client_xrecv, client_xsend, client_xsetsockopt, client_xwrite_activated};
 use crate::command::ZmqCommand;
 use crate::ctx::ZmqContext;
@@ -666,7 +665,7 @@ impl ZmqSocket {
         }
 
         if option_ == ZMQ_EVENTS {
-            self.process_commands(options,0, false)?;
+            self.process_commands(options, 0, false)?;
             return do_getsockopt((if self.has_out() { ZMQ_POLLOUT } else { 0 }) | (if self.has_in() { ZMQ_POLLIN } else { 0 }));
         }
 
@@ -758,7 +757,7 @@ impl ZmqSocket {
             return Err(SocketError("Context was terminated"));
         }
 
-        self.process_commands(options,0, false)?;
+        self.process_commands(options, 0, false)?;
 
         let mut protocol = String::new();
         let mut address = String::new();
@@ -794,7 +793,7 @@ impl ZmqSocket {
         }
 
         //  Process pending commands, if any.
-        self.process_commands(options,0, false)?;
+        self.process_commands(options, 0, false)?;
 
         //  Parse endpoint_uri_ string.
         let mut protocol = String::new();
@@ -1165,7 +1164,7 @@ impl ZmqSocket {
 
         //  Process pending commands, if any, since there could be pending unprocessed process_own()'s
         //  (from launch_child() for example) we're asked to terminate now.
-        let rc = self.process_commands(options,0, false)?;
+        let rc = self.process_commands(options, 0, false)?;
 
         //  Parse endpoint_uri_ string.
         // std::string uri_protocol;
@@ -1231,7 +1230,7 @@ impl ZmqSocket {
         }
 
         //  Process pending commands, if any.
-        self.process_commands(options,0, true)?;
+        self.process_commands(options, 0, true)?;
 
         //  Clear any user-visible flags that are set on the message.
         msg.reset_flags(MSG_MORE);
@@ -1280,7 +1279,7 @@ impl ZmqSocket {
         //  command, process it and try to send the message again.
         //  If timeout is reached in the meantime, return EAGAIN.
         loop {
-            self.process_commands(options,timeout, false)?;
+            self.process_commands(options, timeout, false)?;
             rc = self.xsend(options, msg);
             if rc == 0 {
                 break;
@@ -1348,7 +1347,7 @@ impl ZmqSocket {
         //  ticks is more efficient than doing RDTSC all the time.
         self.ticks += 1;
         if self.ticks == INBOUND_POLL_RATE {
-            self.process_commands(options,0, false)?;
+            self.process_commands(options, 0, false)?;
             self.ticks = 0;
         }
 
@@ -1370,7 +1369,7 @@ impl ZmqSocket {
         //  activate_reader command already waiting in a command pipe.
         //  If it's not, return EAGAIN.
         if (flags & ZMQ_DONTWAIT != 0) || options.rcvtimeo == 0 {
-            self.process_commands(options,0, false)?;
+            self.process_commands(options, 0, false)?;
             self.ticks = 0;
 
             // rc = self.xrecv(msg_);
@@ -1392,7 +1391,7 @@ impl ZmqSocket {
         //  we are able to fetch a message.
         let mut block = (self.ticks != 0);
         loop {
-            self.process_commands(options,if block { timeout } else { 0 }, false)?;
+            self.process_commands(options, if block { timeout } else { 0 }, false)?;
             rc = self.xrecv(msg);
             if rc == 0 {
                 self.ticks = 0;
@@ -1618,10 +1617,10 @@ impl ZmqSocket {
         self.register_term_acks((self.pipes.size()));
 
         //  Continue the termination process immediately.
-        own_process_term(&mut self.own.owned, &mut self.own.terminating, &mut self.own.term_acks, linger_, );
+        own_process_term(&mut self.own.owned, &mut self.own.terminating, &mut self.own.term_acks, linger_);
     }
 
-    pub fn process_term_endpoint(&mut self, options: &ZmqOptions, endpoint_: &String) -> Result<(),ZmqError> {
+    pub fn process_term_endpoint(&mut self, options: &ZmqOptions, endpoint_: &String) -> Result<(), ZmqError> {
         self.term_endpoint(options, endpoint_)
     }
 
@@ -1993,7 +1992,7 @@ impl ZmqSocket {
         self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_DISCONNECTED);
     }
 
-    pub unsafe fn event_handshake_failed_no_detail(&mut self, options: &ZmqOptions, endpoint_pair_: &ZmqEndpointUriPair, err_: i32) {
+    pub fn event_handshake_failed_no_detail(&mut self, options: &ZmqOptions, endpoint_pair_: &ZmqEndpointUriPair, err_: i32) {
         let mut values: [u64; 1] = [err_ as u64];
         self.event(options, endpoint_pair_, &values, 1, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL);
     }
@@ -2013,13 +2012,13 @@ impl ZmqSocket {
         self.event(options, endpoint_pair_, &values, 1, ZMQ_EVENT_HANDSHAKE_SUCCEEDED);
     }
 
-    pub unsafe fn event(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, values_: &[u64], values_count_: u64, event_type: u32) {
+    pub fn event(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, values_: &[u64], values_count_: u64, event_type: u32) {
         if self.monitor_events & event_type {
             self.monitor_event(options, event_type, values_, values_count_, endpoint_uri_pair_);
         }
     }
 
-    pub unsafe fn monitor_event(&mut self, options: &ZmqOptions, event_: u32, values_: &[u64], values_count_: u64, endpoint_uri_pair_: &ZmqEndpointUriPair) {
+    pub fn monitor_event(&mut self, options: &ZmqOptions, event_: u32, values_: &[u64], values_count_: u64, endpoint_uri_pair_: &ZmqEndpointUriPair) {
         // this is a private method which is only called from
         // contexts where the _monitor_sync mutex has been locked before
 

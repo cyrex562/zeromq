@@ -1,9 +1,9 @@
 use libc::pid_t;
 #[cfg(not(target_os = "windows"))]
 use libc::pollfd;
+use std::collections::HashSet;
 use std::ffi::c_void;
 use std::sync::Mutex;
-use std::collections::HashSet;
 // #[cfg(target_os="windows")]
 // use windows::Win32::Networking::WinSock::sa_family_t;
 
@@ -711,3 +711,38 @@ pub const SOCKET_TYPE_SCATTER: &'static str = "SCATTER";
 pub const SOCKET_TYPE_DGRAM: &'static str = "DGRAM";
 pub const SOCKET_TYPE_PEER: &'static str = "PEER";
 pub const SOCKET_TYPE_CHANNEL: &'static str = "CHANNEL";
+
+pub struct ZmqSockAddrIn {
+    pub sin_family: u16,
+    pub sin_port: u16,
+    pub sin_addr: u32,
+    pub sin_zero: [u8; 8],
+}
+
+pub struct ZmqInAddr {
+    pub s_addr: u32,
+}
+
+pub struct ZmqSockAddr {
+    pub sa_family: u16,
+    pub sa_data: [u8; 14],
+}
+
+pub struct ZmqSockAddrIn6 {
+    pub sin6_family: u16,
+    pub sin6_port: u16,
+    pub sin6_flowinfo: u32,
+    pub sin6_addr: [u8; 16],
+    pub sin6_scope_id: u32,
+}
+
+pub struct ZmqIn6Addr {
+    pub s6_addr: [u8; 16],
+}
+
+pub const ERROR_COMMAND_NAME: &'static str = "\x05ERROR";
+pub const ERROR_COMMAND_NAME_LEN: usize = 6;
+pub const ERROR_REASON_LEN_SIZE: usize = 1;
+
+pub const READY_COMMAND_NAME: &'static str = "\x05READY";
+pub const READY_COMMAND_NAME_LEN: usize = 6;
