@@ -72,7 +72,7 @@ pub struct ZmqEngine<'a> {
     pub tx_msg: Option<ZmqMsg>,
     pub process_msg:
         fn(options: &ZmqOptions, engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(), ZmqError>,
-    pub next_msg: fn(engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> i32,
+    pub next_msg: fn(engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(), ZmqError>,
 }
 
 impl ZmqEngine {

@@ -12,7 +12,6 @@ use crate::mechanism::ZmqMechanism;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use libc::EFAULT;
-use std::ffi::c_void;
 
 // pub struct ZmqNullMechanism {
 //     pub zap_client: ZapClient<'a>,
@@ -141,7 +140,7 @@ pub fn null_next_handshake_command(
     return 0;
 }
 
-pub unsafe fn process_handshake_command(mechanism: &mut ZmqMechanism, msg_: &mut ZmqMsg) -> i32 {
+pub unsafe fn null_process_handshake_command(mechanism: &mut ZmqMechanism, msg_: &mut ZmqMsg) -> i32 {
     if (mechanism._ready_command_received || mechanism._error_command_received) {
         mechanism
             .zap_client
@@ -193,7 +192,7 @@ pub unsafe fn process_handshake_command(mechanism: &mut ZmqMechanism, msg_: &mut
     return rc;
 }
 
-pub unsafe fn process_ready_command(
+pub unsafe fn null_process_ready_command(
     mechanism: &mut ZmqMechanism,
     cmd_data: &[u8],
     data_size_: usize,
@@ -205,7 +204,7 @@ pub unsafe fn process_ready_command(
     );
 }
 
-pub unsafe fn process_error_command(
+pub unsafe fn null_process_error_command(
     mechanism: &mut ZmqMechanism,
     cmd_data: &[u8],
     data_size_: usize,
@@ -248,7 +247,7 @@ pub unsafe fn process_error_command(
     return 0;
 }
 
-pub unsafe fn zap_msg_available() -> i32 {
+pub unsafe fn null_zap_msg_available() -> i32 {
     if (mechanism._zap_reply_received) {
         // errno = EFSM;
         return -1;
@@ -260,7 +259,7 @@ pub unsafe fn zap_msg_available() -> i32 {
     return if rc == -1 { -1 } else { 0 };
 }
 
-pub unsafe fn status(mechanism: &mut ZmqMechanism) -> mechanism::MechanismStatus {
+pub unsafe fn null_status(mechanism: &mut ZmqMechanism) -> mechanism::MechanismStatus {
     if (mechanism._ready_command_sent && mechanism._ready_command_received) {
         return Ready;
     }
@@ -274,6 +273,6 @@ pub unsafe fn status(mechanism: &mut ZmqMechanism) -> mechanism::MechanismStatus
     };
 }
 
-pub unsafe fn send_zap_request(mechanism: &mut ZmqMechanism, options: &mut ZmqOptions) {
+pub unsafe fn null_send_zap_request(mechanism: &mut ZmqMechanism, options: &mut ZmqOptions) {
     mechanism.zap_client.send_zap_request(options, "NULL", &[]);
 }

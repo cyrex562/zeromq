@@ -85,7 +85,7 @@ impl ZmqDecoder {
         self.buf.resize(size_, 0);
     }
 
-    pub unsafe fn decode(&mut self, data_: &mut [u8], size_: usize, bytes_used: &mut size_t) -> Result<(), ZmqError> {
+    pub fn decode(&mut self, data_: &mut [u8], size_: usize, bytes_used: &mut size_t) -> Result<(), ZmqError> {
         *bytes_used = 0;
         if data_ == self.read_pos {
             self.read_pos = self.read_pos + size_;

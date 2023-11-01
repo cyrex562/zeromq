@@ -117,6 +117,8 @@ mod out_pipe;
 mod routing_socket_base;
 mod zmq_pipe;
 mod engine;
+mod ip_resolver_options;
+mod ip_address;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

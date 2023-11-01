@@ -2,16 +2,15 @@ use std::cmp::min;
 use std::mem::size_of;
 use libc::EAGAIN;
 use crate::decoder::{DecoderType, ZmqDecoder};
-use crate::defines::{MSG_CANCEL, MSG_PING, MSG_PONG, MSG_ROUTING_ID, MSG_SUBSCRIBE, ZMQ_CURVE, ZMQ_GSSAPI, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH, ZMQ_PUB, ZMQ_XPUB, ZmqFd};
+use crate::defines::{MSG_CANCEL, MSG_PING, MSG_PONG, MSG_ROUTING_ID, MSG_SUBSCRIBE, ZMQ_CURVE, ZMQ_GSSAPI, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH, ZMQ_PUB, ZMQ_XPUB};
 use crate::encoder::{EncoderType, ZmqEncoder};
-use crate::endpoint::ZmqEndpointUriPair;
 use crate::engine::ZmqEngine;
 use crate::err::ZmqError;
 use crate::mechanism::ZmqMechanism;
 use crate::msg::{PING_CMD_NAME_SIZE, ZmqMsg};
-use crate::null_mechanism::ZmqNullMechanism;
+use crate::null_mechanism::{null_next_handshake_command, null_process_handshake_command};
 use crate::options::ZmqOptions;
-use crate::stream_engine::{HEARTBEAT_TIMEOUT_TIMER_ID, HEARTBEAT_TTL_TIMER_ID, stream_pull_msg_from_session, stream_push_msg_to_session, stream_read};
+use crate::stream_engine::{HEARTBEAT_TIMEOUT_TIMER_ID, HEARTBEAT_TTL_TIMER_ID, stream_next_handshake_command, stream_process_handshake_command, stream_pull_and_encode, stream_pull_msg_from_session, stream_push_msg_to_session, stream_read};
 use crate::utils::{get_errno, put_u64};
 
 pub const ZMTP_1_0: i32 = 0;
@@ -87,7 +86,7 @@ pub fn zmtp_plug_internal(options: &ZmqOptions, engine: &mut ZmqEngine)
     engine.set_pollin ();
     engine.set_pollout ();
     //  Flush all the data that may have been already received downstream.
-    engine.in_event ();
+    engine.in_event (options);
 }
 
 pub unsafe fn zmtp_handshake(engine: &mut ZmqEngine) -> bool {
@@ -351,7 +350,7 @@ pub fn zmtp_handshake_v3_x(options: &ZmqOptions, engine: &mut ZmqEngine, downgra
         // _mechanism = new (std::nothrow)
         //   null_mechanism_t (session (), _peer_address, _options);
         // alloc_assert (_mechanism);
-        engine.mechanism = Some(ZmqMechanism::new(options, engine.session(), &engine.peer_address, options));
+        engine.mechanism = Some(ZmqMechanism::new( engine.session()));
     }
 //     else if (_options.mechanism == ZMQ_PLAIN
 //                && memcmp (_greeting_recv + 12,
@@ -400,43 +399,50 @@ pub fn zmtp_handshake_v3_x(options: &ZmqOptions, engine: &mut ZmqEngine, downgra
         // Error (ProtocolError);
         return false;
     }
-    engine.next_msg = engine.next_handshake_command;
-    engine.process_msg = engine.process_handshake_command;
+    engine.next_msg = stream_next_handshake_command;
+    engine.process_msg = stream_process_handshake_command;
 
     return true;
 }
 
 // bool zmq::zmtp_engine_t::handshake_v3_0 ()
-pub fn zmtp_handshake_v3_0(engine: &mut ZmqEngine) -> bool
+pub fn zmtp_handshake_v3_0(options: &ZmqOptions, engine: &mut ZmqEngine) -> bool
 {
     // _encoder = new (std::nothrow) v2_encoder_t (_options.out_batch_size);
     // alloc_assert (_encoder);
-    engine.encoder = v2_encoder_t::new(options.out_batch_size);
+    engine.encoder = Some(ZmqEncoder::new(options.out_batch_size, EncoderType::V2Encoder));
 
     // _decoder = new (std::nothrow) v2_decoder_t (
     //   _options.in_batch_size, _options.maxmsgsize, _options.zero_copy);
     // alloc_assert (_decoder);
-    engine.decoder = v2_decoder_t::new(options.in_batch_size, options.maxmsgsize, options.zero_copy);
+    engine.decoder = Some(ZmqDecoder::new(
+        options.in_batch_size as usize,
+        DecoderType::V2Decoder
+    ));
 
     return engine.handshake_v3_x (true);
 }
 
-pub fn zmtp_handshake_v3_1(engine: &mut ZmqEngine) -> bool {
+pub fn zmtp_handshake_v3_1(options: &ZmqOptions, engine: &mut ZmqEngine) -> bool {
     // _encoder = new (std::nothrow) v3_1_encoder_t (_options.out_batch_size);
     // alloc_assert (_encoder);
-    engine.encoder = v3_1_encoder_t::new(options.out_batch_size);
+    engine.encoder = Some(ZmqEncoder::new(options.out_batch_size, EncoderType::V31Encoder));
 
     // _decoder = new (std::nothrow) v2_decoder_t (
     //   _options.in_batch_size, _options.maxmsgsize, _options.zero_copy);
     // alloc_assert (_decoder);
-    engine.decoder = v2_decoder_t::new(options.in_batch_size, options.maxmsgsize, options.zero_copy);
+    engine.decoder = Some(ZmqDecoder::new(options.in_batch_size as usize, DecoderType::V2Decoder));
 
     return engine.handshake_v3_x (false);
 }
 
 // int zmq::zmtp_engine_t::routing_id_msg (msg_t *msg_)
-pub unsafe fn zmtp_routing_id_msg(options: &ZmqOptions, engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> i32 {
-    msg.init_size(options.routing_id_size as size_t)?;
+pub unsafe fn zmtp_routing_id_msg(
+    options: &ZmqOptions,
+    engine: &mut ZmqEngine,
+    msg: &mut ZmqMsg
+) -> i32 {
+    msg.init_size(options.routing_id_size as usize)?;
     // errno_assert (rc == 0);
     if options.routing_id_size > 0 {
         // libc::memcpy(msg.data_mut(), options.routing_id, options.routing_id_size);
@@ -447,7 +453,11 @@ pub unsafe fn zmtp_routing_id_msg(options: &ZmqOptions, engine: &mut ZmqEngine, 
 }
 
 // int zmq::zmtp_engine_t::process_routing_id_msg (msg_t *msg_)
-pub fn zmtp_process_routing_id_msg(options: &ZmqOptions, engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(),ZmqError>
+pub fn zmtp_process_routing_id_msg(
+    options: &ZmqOptions,
+    engine: &mut ZmqEngine,
+    msg: &mut ZmqMsg
+) -> Result<(),ZmqError>
 {
     if options.recv_routing_id {
         msg.set_flags (MSG_ROUTING_ID);
@@ -476,29 +486,31 @@ pub fn zmtp_process_routing_id_msg(options: &ZmqOptions, engine: &mut ZmqEngine,
 
     engine.process_msg = stream_push_msg_to_session;
 
-    return 0;
+    Ok(())
 }
 
 // int zmq::zmtp_engine_t::produce_ping_message (msg_t *msg_)
-pub fn zmtp_produce_ping_message(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> i32
+pub fn zmtp_produce_ping_message(engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(),ZmqError>
 {
     // 16-bit TTL + \4PING == 7
     let ping_ttl_len = PING_CMD_NAME_SIZE + 2;
     // zmq_assert (_mechanism != NULL);
 
-    let rc = msg_.init_size (ping_ttl_len);
+    msg.init_size (ping_ttl_len as usize)?
     // errno_assert (rc == 0);
-    msg_.set_flags (ZmqMsg::command);
+    msg.set_flags (ZmqMsg::command);
     // Copy in the command message
-    libc::memcpy (msg_.data_mut(), "\4PING", ZmqMsg::ping_cmd_name_size);
+    // libc::memcpy (msg_.data_mut(), "\4PING", ZmqMsg::ping_cmd_name_size);
+    msg.data_mut().copy_from_slice(b"\x04PING");
 
     let ttl_val = (options.heartbeat_ttl.to_be () as u16);
-    libc::memcpy ((msg_.data_mut()) + ZmqMsg::ping_cmd_name_size,
-                  &ttl_val, size_of::<ttl_val>());
+    // libc::memcpy ((msg_.data_mut()) + ZmqMsg::ping_cmd_name_size,
+    //               &ttl_val, size_of::<ttl_val>());
+    msg.data_mut()[PING_CMD_NAME_SIZE..].copy_from_slice(&ttl_val.to_be_bytes());
 
-    rc = engine.mechanism.encode (msg_);
-    engine.next_msg = &ZmtpEngine::pull_and_encode;
-    if (!engine.has_timeout_timer && engine.heartbeat_timeout > 0) {
+    rc = engine.mechanism.unwrap().encode (msg);
+    engine.next_msg = stream_pull_and_encode;
+    if !engine.has_timeout_timer && engine.heartbeat_timeout > 0 {
         engine.add_timer (engine.heartbeat_timeout, HEARTBEAT_TIMEOUT_TIMER_ID);
         engine.has_timeout_timer = true;
     }
@@ -507,15 +519,15 @@ pub fn zmtp_produce_ping_message(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> i
 
 
 // int zmq::zmtp_engine_t::produce_pong_message (msg_t *msg_)
-pub unsafe fn zmtp_produce_pong_msg(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> i32
+pub unsafe fn zmtp_produce_pong_msg(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(),ZmqError>
 {
     // zmq_assert (_mechanism != NULL);
 
-    let mut rc = msg_.move_(engine.pong_msg);
+    msg_.move_(engine.pong_msg)?;
     // errno_assert (rc == 0);
 
     rc = engine.mechanism.encode (msg_);
-    engine.next_msg = engine.pull_and_encode;
+    engine.next_msg = stream_pull_and_encode;
     return rc;
 }
 

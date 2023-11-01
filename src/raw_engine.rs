@@ -19,7 +19,7 @@ use crate::stream_engine::stream_pull_msg_from_session;
 //         }
 //     }
 
-pub fn raw_plug_internal(options: &ZmqOptions, engine: &mut ZmqEngine) {
+pub fn raw_plug_internal(options: &ZmqOptions, engine: &mut ZmqEngine) -> Result<(),ZmqError> {
     // no Handshaking for raw sock, instantiate raw encoder and decoders
     // _encoder = new (std::nothrow) raw_encoder_t (_options.out_batch_size);
     let mut _encoder = ZmqRawEncoder::new(options.out_batch_size);
@@ -34,35 +34,36 @@ pub fn raw_plug_internal(options: &ZmqOptions, engine: &mut ZmqEngine) {
 
     // properties_t properties;
     let mut properties: HashMap<String, String> = HashMap::new();
-    if (engine.init_properties(properties)) {
+    if engine.init_properties(properties) {
         //  Compile metadata.
         // zmq_assert (_metadata == NULL);
         engine.metadata = Some(ZmqMetadata::new(&mut properties));
         // alloc_assert (_metadata);
     }
 
-    if (options.raw_notify) {
+    if options.raw_notify {
         //  For raw sockets, send an initial 0-length message to the
         // application so that it knows a peer has connected.
         // msg_t connector;
         let mut connector: ZmqMsg = ZmqMsg::default();
-        connector.init2();
-        raw_push_raw_msg_to_session(engine, &mut connector);
-        connector.close();
+        connector.init2()?;
+        raw_push_raw_msg_to_session(options, engine, &mut connector)?;
+        connector.close()?;
         engine.session().flush();
     }
 
     engine.set_pollin();
     engine.set_pollout();
     //  Flush all the data that may have been already received downstream.
-    engine.in_event();
+    engine.in_event(options);
+    Ok(())
 }
 
 pub fn raw_handshake(engine: &mut ZmqEngine) -> bool {
     true
 }
 
-pub fn raw_error(options: &ZmqOptions, engine: &mut ZmqEngine, reason_: ErrorReason) {
+pub fn raw_error(options: &ZmqOptions, engine: &mut ZmqEngine, reason: &str) {
     if options.raw_socket && options.raw_notify {
         //  For raw sockets, send a final 0-length message to the application
         //  so that it knows the peer has been disconnected.
@@ -72,10 +73,11 @@ pub fn raw_error(options: &ZmqOptions, engine: &mut ZmqEngine, reason_: ErrorRea
         engine.push_raw_msg_to_session(&terminator);
         terminator.close();
     }
-    engine.error(reason_);
+    // TODO
+    // engine.error(options, reason);
 }
 
-pub fn raw_push_raw_msg_to_session(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
+pub fn raw_push_raw_msg_to_session(options: &ZmqOptions, engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     if engine.metadata.is_some() && engine.metadata.unwrap() != *msg_.metadata() {
         msg_.set_metadata(&mut engine.metadata.unwrap());
     }

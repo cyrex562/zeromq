@@ -1,8 +1,8 @@
 use std::ffi::c_void;
 use std::intrinsics::size_of;
 use std::mem::size_of_val;
-use libc::{bind, recvfrom, sendto, size_t, sockaddr, SOCKET};
-use windows::Win32::Networking::WinSock::{AF_INET, AF_INET6, INADDR_NONE, IP_ADD_MEMBERSHIP, IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_UDP, IPV6_ADD_MEMBERSHIP, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, setsockopt, SO_REUSEADDR, SOCK_DGRAM, SOCKADDR_IN, SOCKADDR_STORAGE, SOL_SOCKET, WSAEWOULDBLOCK, WSAGetLastError};
+use libc::{bind, recvfrom, sendto, size_t, sockaddr, SOCKET, c_int};
+use windows::Win32::Networking::WinSock::{AF_INET, AF_INET6, INADDR_NONE, IP_ADD_MEMBERSHIP, IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IPV6_ADD_MEMBERSHIP, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, setsockopt, SO_REUSEADDR,  SOCKADDR_IN, SOCKADDR_STORAGE, SOL_SOCKET, WSAEWOULDBLOCK, WSAGetLastError};
 use crate::address::ZmqAddress;
 use crate::defines::{MSG_MORE, RETIRED_FD, ZmqFd, ZmqHandle};
 use crate::endpoint::ZmqEndpointUriPair;
@@ -10,11 +10,12 @@ use crate::engine::ZmqEngine;
 use crate::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
 use crate::ip::{open_socket, unblock_socket};
-use crate::ip_resolver::ZmqIpAddress;
+use crate::ip_address::ZmqIpAddress;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSession;
 use crate::udp_address::UdpAddress;
+use crate::defines::{SOCK_STREAM, SOCK_DGRAM, IPPROTO_UDP, IPPROTO_IPV6, IPPROTO_IP, INADDR_ANY};
 
 // pub struct ZmqUdpEngine<'a> {
 //     pub io_object: IoObject,
@@ -89,7 +90,7 @@ pub fn udp_plug(options: &ZmqOptions, engine: &mut ZmqEngine, io_thread_: &mut Z
     let mut rc = 0;
 
     // Bind the socket to a device if applicable
-    if (!options.bound_device.empty ()) {
+    if !options.bound_device.empty () {
         rc = rc | engine.bind_to_device (engine.fd, &options.bound_device);
         if (rc != 0) {
             // assert_success_or_recoverable (_fd, rc);
@@ -98,8 +99,8 @@ pub fn udp_plug(options: &ZmqOptions, engine: &mut ZmqEngine, io_thread_: &mut Z
         }
     }
 
-    if (engine.send_enabled) {
-        if (!options.raw_socket) {
+    if engine.send_enabled {
+        if !options.raw_socket {
             let mut out = udp_addr.target_addr ();
             engine.out_address = out.as_sockaddr ();
             engine.out_address_len = out.sockaddr_len ();
@@ -238,10 +239,10 @@ pub unsafe fn udp_set_udp_multicast_iface(engine: &mut ZmqEngine, s_: ZmqFd, is_
 {
     let mut rc = 0;
 
-    if (is_ipv6_) {
+    if is_ipv6_ {
         let mut bind_if = addr_.bind_if ();
 
-        if (bind_if > 0) {
+        if bind_if > 0 {
             //  If a Bind interface is provided we tell the
             //  kernel to use it to send multicast packets
             rc = setsockopt (s_, IPPROTO_IPV6, IPV6_MULTICAST_IF,
@@ -564,10 +565,10 @@ pub fn udp_in_event(options: &ZmqOptions, engine: &mut ZmqEngine,)
     let nbytes = unsafe {
         recvfrom(
             engine.fd as SOCKET,
-            engine.in_buffer.as_ptr() as *const c_char,
+            engine.in_buffer.as_ptr() as *mut c_char,
             MAX_UDP_MSG,
             0,
-            (&mut in_address),
+            (&mut in_address) ,
             &in_addrlen
         )
     };
@@ -577,7 +578,7 @@ pub fn udp_in_event(options: &ZmqOptions, engine: &mut ZmqEngine,)
         #[cfg(target_os="windows")]
         {
             unsafe {
-                if (WSAGetLastError() != WSAEWOULDBLOCK) {
+                if WSAGetLastError() != WSAEWOULDBLOCK {
                     // assert_success_or_recoverable(_fd, nbytes);
                     // error(connection_error);
                 }

@@ -381,7 +381,7 @@ pub unsafe fn stream_restart_input(engine: &mut ZmqEngine) -> bool {
     return true;
 }
 
-pub unsafe fn stream_next_handshake_command(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> i32 {
+pub fn stream_next_handshake_command(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     if engine.mechanism.status() == ZmqMechanism::ready {
         engine.mechanism_ready();
         return engine.pull_and_encode(msg_);
@@ -399,7 +399,7 @@ pub unsafe fn stream_next_handshake_command(engine: &mut ZmqEngine, msg_: &mut Z
     return rc;
 }
 
-pub unsafe fn stream_process_handshake_command(options: &ZmqOptions, engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> i32 {
+pub fn stream_process_handshake_command(options: &ZmqOptions, engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     let rc = engine.mechanism.process_handshake_command(msg_);
     if (rc == 0) {
         if (engine.mechanism.status() == ZmqMechanism::ready) {
@@ -528,17 +528,20 @@ pub fn stream_write_credential(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Res
     return engine.decode_and_push(msg_);
 }
 
-pub fn stream_pull_and_encode(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> i32 {
+pub fn stream_pull_and_encode(
+    engine: &mut ZmqEngine,
+    msg_: &mut ZmqMsg
+) -> Result<(), ZmqError> {
     if engine.session.pull_msg(msg_) == -1 {
-        return -1;
+        return Err(EngineError("failed to pull message"));
     }
     if engine.mechanism.unwrap().encode(msg_) == -1 {
-        return -1;
+        return Err(EngineError("failed to encode message");
     }
-    return 0;
+    Ok(())
 }
 
-pub fn stream_decode_and_push(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
+pub fn stream_decode_and_push(_options: &ZmqOptions, engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     if engine.mechanism.decode(msg_) == -1 {
         return Err(EngineError("failed to decode message"));
     }
@@ -569,20 +572,20 @@ pub fn stream_decode_and_push(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Resu
     return Ok(());
 }
 
-pub fn stream_push_one_then_decode_and_push(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
-    if (engine.session.push_msg(msg_) == -1) {
+pub fn stream_push_one_then_decode_and_push(options: &ZmqOptions, engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
+    if engine.session.push_msg(msg_) == -1 {
         return Err(EngineError("failed to push msg"));
     }
     engine.process_msg = stream_decode_and_push;
-    return engine.decode_and_push(msg_);
+    return stream_decode_and_push(options, engine, msg_);
 }
 
-pub fn stream_pull_msg_from_session(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> i32 {
+pub fn stream_pull_msg_from_session(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     engine.session.pull_msg(msg_)
 }
 
-pub unsafe fn stream_push_msg_to_session(engine: &mut ZmqEngine, msg_: &ZmqMsg) -> Result<(), ZmqError> {
-    engine.session.push_msg(msg_)
+pub fn stream_push_msg_to_session(_options: &ZmqOptions, engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
+    engine.session.push_msg(msg)
 }
 
 pub fn stream_error(engine: &mut ZmqEngine, reason_: ErrorReason) {

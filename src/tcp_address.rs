@@ -1,15 +1,16 @@
 use crate::err::ZmqError;
-use crate::ip_resolver::{ip_resolver_options_t, ip_resolver_t, ZmqIpAddress};
+use crate::ip_resolver::IpResolver;
 use anyhow::bail;
 use libc::{
-    c_char, getnameinfo, in6_addr, in_addr, size_t, sockaddr, sockaddr_in, sockaddr_in6, socklen_t,
-    AF_INET, AF_INET6, NI_MAXHOST, NI_NUMERICHOST,
+    AF_INET, AF_INET6, c_char, getnameinfo, in6_addr, in_addr, NI_MAXHOST, NI_NUMERICHOST, size_t,
+    sockaddr, sockaddr_in, sockaddr_in6, socklen_t,
 };
 use std::ffi::c_void;
 use std::mem;
 use std::ops::Index;
 use std::ptr::null_mut;
-use windows::Win32::Networking::WinSock::sa_family_t;
+use crate::ip_address::ZmqIpAddress;
+use crate::ip_resolver_options::IpResolverOptions;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqTcpAddress {
@@ -53,27 +54,27 @@ impl ZmqTcpAddress {
     ) -> Result<(), ZmqError> {
         let src_delimiter = name_.index(";");
         if src_delimiter.is_some() {
-            let mut src_resolver_opts = ip_resolver_options_t::new();
+            let mut src_resolver_opts = IpResolverOptions::new();
             src_resolver_opts.bindable(true);
             src_resolver_opts.allow_dns(true);
             src_resolver_opts.ipv6(ipv6_);
             src_resolver_opts.expect_port(true);
 
-            let mut src_resolver = ip_resolver_t::new(&mut src_resolver_opts);
+            let mut src_resolver = IpResolver::new(&mut src_resolver_opts);
 
             src_resolver.resolve(&mut self.address, name_)?;
             *name_ = name_[src_delimiter.unwrap() + 1..];
             self.has_src_addr = true;
         }
 
-        let mut resolver_opts = ip_resolver_options_t::new();
+        let mut resolver_opts = IpResolverOptions::new();
         resolver_opts.bindable(local_);
         resolver_opts.allow_dns(true);
         resolver_opts.ipv6(ipv6_);
         resolver_opts.allow_nic_name(local_);
         resolver_opts.expect_port(true);
 
-        let mut resolver: ip_resolver_t = ip_resolver_t::new(&mut resolver_opts);
+        let mut resolver: IpResolver = IpResolver::new(&mut resolver_opts);
 
         resolver.resolve(&mut self.address, name_)?;
 
@@ -186,14 +187,14 @@ impl tcp_address_mask_t {
             mask_str = "0".to_string();
         }
 
-        let mut resolver_opts: ip_resolver_options_t = ip_resolver_options_t::new();
+        let mut resolver_opts: IpResolverOptions = IpResolverOptions::new();
         resolver_opts.bindable(false);
         resolver_opts.allow_nic_name(false);
         resolver_opts.allow_dns(false);
         resolver_opts.ipv6(ipv6_);
         resolver_opts.expect_port(false);
 
-        let mut resolver = ip_resolver_t::new(&mut resolver_opts);
+        let mut resolver = IpResolver::new(&mut resolver_opts);
         resolver.resolve(&mut self._network_address, addr_str.as_str())?;
 
         let full_mask_ipv4 = 32;

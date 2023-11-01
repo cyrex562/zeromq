@@ -1,8 +1,12 @@
 use std::ffi::c_char;
 use anyhow::bail;
-use libc::if_nametoindex;
+#[cfg(target_os= "windows")]
+use windows::Win32::NetworkManagement::IpHelper::if_nametoindex;
 use crate::err::ZmqError;
-use crate::ip_resolver::{ZmqIpAddress, ip_resolver_options_t, ip_resolver_t};
+use crate::ip_address::ZmqIpAddress;
+use crate::ip_resolver::IpResolver;
+use crate::ip_resolver_options::IpResolverOptions;
+use crate::options::ZmqOptions;
 
 #[derive(Default,Debug,Clone)]
 pub struct UdpAddress {
@@ -20,7 +24,7 @@ impl UdpAddress {
         }
     }
 
-    pub unsafe fn resolve(&mut self, name_: &mut String, bind_: bool, ipv6_: bool) -> Result<(), ZmqError>
+    pub unsafe fn resolve(&mut self, options: &ZmqOptions, name_: &mut String, bind_: bool, ipv6_: bool) -> Result<(), ZmqError>
     {
         let mut has_interface = false;
         self._address = name_.to_string();
@@ -29,15 +33,15 @@ impl UdpAddress {
         if src_delimiter.is_some() {
             let src_name = name_[..src_delimiter.unwrap()].to_string();
 
-            let mut src_resolver_opts: ip_resolver_options_t = ip_resolver_options_t::new();
+            let mut src_resolver_opts: IpResolverOptions = IpResolverOptions::new();
             src_resolver_opts.bindable(true);
             src_resolver_opts.allow_dns(false);
             src_resolver_opts.allow_nic_name(true);
             src_resolver_opts.ipv6(ipv6_);
             src_resolver_opts.expect_port(false);
 
-            let mut src_resolver = ip_resolver_t::new(&mut src_resolver_opts);
-            src_resolver.resolve(&mut self._bind_address, src_name.as_str())?;
+            let mut src_resolver = IpResolver::new(&mut src_resolver_opts);
+            src_resolver.resolve(options, &mut self._bind_address, src_name.as_str())?;
 
             if self._bind_address.is_multicast() {
                 bail!("multicast address not allowed as source address");
@@ -56,16 +60,16 @@ impl UdpAddress {
             *name_ = name_[src_delimiter.unwrap() + 1..].to_string();
         }
 
-        let mut resolver_opts: ip_resolver_options_t = ip_resolver_options_t::new();
+        let mut resolver_opts: IpResolverOptions = IpResolverOptions::new();
         resolver_opts.bindable(bind_);
         resolver_opts.allow_dns(true);
         resolver_opts.allow_nic_name(bind_.clone());
         resolver_opts.expect_port(true);
         resolver_opts.ipv6(ipv6_.clone());
 
-        let mut resolver = ip_resolver_t::new(&mut resolver_opts);
+        let mut resolver = IpResolver::new(&mut resolver_opts);
 
-        resolver.resolve(&mut self._target_address, name_.as_str())?;
+        resolver.resolve(options, &mut self._target_address, name_.as_str())?;
 
         self._is_multicast = self._target_address.is_multicast();
         let port = self._target_address.port();

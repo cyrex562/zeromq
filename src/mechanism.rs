@@ -29,7 +29,7 @@ pub struct ZmqMechanism<'a> {
     pub _routing_id: Vec<u8>,
     pub _user_id: Vec<u8>,
     pub session: &'a mut ZmqSession<'a>,
-    pub zap_client: ZapClient,
+    pub zap_client: ZapClient<'a>,
     pub _ready_command_sent: bool,
     pub _error_command_sent: bool,
     pub _ready_command_received: bool,
@@ -61,6 +61,16 @@ impl ZmqMechanism {
 
             _zap_reply_received: false,
         }
+    }
+
+    pub fn encode(&mut self, msg: &ZmqMsg) -> Result<(),ZmqError>
+    {
+        self.session._engine.unwrap().encoder.unwrap().encode(msg)
+    }
+
+    pub fn decode(&mut self, msg: &ZmqMsg) -> Result<(),ZmqError>
+    {
+        self.session._engine.unwrap().decoder.unwrap().decode(msg)
     }
 
     pub fn set_peer_routing_id(&mut self, id_ptr: *mut c_void, id_size_: usize) {

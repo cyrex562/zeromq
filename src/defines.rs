@@ -712,6 +712,7 @@ pub const SOCKET_TYPE_DGRAM: &'static str = "DGRAM";
 pub const SOCKET_TYPE_PEER: &'static str = "PEER";
 pub const SOCKET_TYPE_CHANNEL: &'static str = "CHANNEL";
 
+#[derive(Default,Debug,Clone)]
 pub struct ZmqSockAddrIn {
     pub sin_family: u16,
     pub sin_port: u16,
@@ -719,15 +720,18 @@ pub struct ZmqSockAddrIn {
     pub sin_zero: [u8; 8],
 }
 
+#[derive(Default,Debug,Clone)]
 pub struct ZmqInAddr {
     pub s_addr: u32,
 }
 
+#[derive(Default,Debug,Clone)]
 pub struct ZmqSockAddr {
     pub sa_family: u16,
     pub sa_data: [u8; 14],
 }
 
+#[derive(Default,Debug,Clone)]
 pub struct ZmqSockAddrIn6 {
     pub sin6_family: u16,
     pub sin6_port: u16,
@@ -736,6 +740,7 @@ pub struct ZmqSockAddrIn6 {
     pub sin6_scope_id: u32,
 }
 
+#[derive(Default,Debug,Clone)]
 pub struct ZmqIn6Addr {
     pub s6_addr: [u8; 16],
 }
@@ -746,3 +751,385 @@ pub const ERROR_REASON_LEN_SIZE: usize = 1;
 
 pub const READY_COMMAND_NAME: &'static str = "\x05READY";
 pub const READY_COMMAND_NAME_LEN: usize = 6;
+
+///////////////
+// SOCKET Types
+///////////////
+pub const SOCK_STREAM: i32 = 1;
+pub const SOCK_DGRAM: i32 = 2;
+pub const SOCK_RAW: i32 = 3;
+pub const SOCK_RDM: i32 = 4;
+pub const SOCK_SEQPACKET: i32 = 5;
+pub const SOCK_DCCP: i32 = 6;
+pub const SOCK_PACKET: i32 = 10;
+
+pub const SOCK_CLOEXEC: i32 = 02000000;
+
+pub const SOCK_NONBLOCK: i32 = 04000;
+
+
+/////////////////
+// IP PROTO TYPES
+/////////////////
+// enum {
+//   IPPROTO_IP = 0,		/* Dummy protocol for TCP		*/
+// #define IPPROTO_IP		IPPROTO_IP
+pub const IPPROTO_IP: i32 = 0;
+//   IPPROTO_ICMP = 1,		/* Internet Control Message Protocol	*/
+// #define IPPROTO_ICMP		IPPROTO_ICMP
+pub const IPPROTO_ICMP: i32 = 1;
+//   IPPROTO_IGMP = 2,		/* Internet Group Management Protocol	*/
+// #define IPPROTO_IGMP		IPPROTO_IGMP
+pub const IPPROTO_IGMP: i32 = 2;
+//   IPPROTO_IPIP = 4,		/* IPIP tunnels (older KA9Q tunnels use 94) */
+// #define IPPROTO_IPIP		IPPROTO_IPIP
+pub const IPPROTO_IPIP: i32 = 4;
+//   IPPROTO_TCP = 6,		/* Transmission Control Protocol	*/
+// #define IPPROTO_TCP		IPPROTO_TCP
+pub const IPPROTO_TCP: i32 = 6;
+//   IPPROTO_EGP = 8,		/* Exterior Gateway Protocol		*/
+// #define IPPROTO_EGP		IPPROTO_EGP
+pub const IPPROTO_EGP: i32 = 8;
+//   IPPROTO_PUP = 12,		/* PUP protocol				*/
+// #define IPPROTO_PUP		IPPROTO_PUP
+pub const IPPROTO_PUP: i32 = 12;
+//   IPPROTO_UDP = 17,		/* User Datagram Protocol		*/
+// #define IPPROTO_UDP		IPPROTO_UDP
+pub const IPPROTO_UDP: i32 = 17;
+//   IPPROTO_IDP = 22,		/* XNS IDP protocol			*/
+// #define IPPROTO_IDP		IPPROTO_IDP
+pub const IPPROTO_IDP: i32 = 22;
+//   IPPROTO_TP = 29,		/* SO Transport Protocol Class 4	*/
+// #define IPPROTO_TP		IPPROTO_TP
+pub const IPPROTO_TP: i32 = 29;
+//   IPPROTO_DCCP = 33,		/* Datagram Congestion Control Protocol */
+// #define IPPROTO_DCCP		IPPROTO_DCCP
+pub const IPPROTO_DCCP: i32 = 33;
+//   IPPROTO_IPV6 = 41,		/* IPv6-in-IPv4 tunnelling		*/
+// #define IPPROTO_IPV6		IPPROTO_IPV6
+pub const IPPROTO_IPV6: i32 = 41;
+//   IPPROTO_RSVP = 46,		/* RSVP Protocol			*/
+// #define IPPROTO_RSVP		IPPROTO_RSVP
+pub const IPPROTO_RSVP: i32 = 46;
+//   IPPROTO_GRE = 47,		/* Cisco GRE tunnels (rfc 1701,1702)	*/
+// #define IPPROTO_GRE		IPPROTO_GRE
+pub const IPPROTO_GRE: i32 = 47;
+//   IPPROTO_ESP = 50,		/* Encapsulation Security Payload protocol */
+// #define IPPROTO_ESP		IPPROTO_ESP
+pub const IPPROTO_ESP: i32 = 50;
+//   IPPROTO_AH = 51,		/* Authentication Header protocol	*/
+// #define IPPROTO_AH		IPPROTO_AH
+pub const IPPROTO_AH: i32 = 51;
+//   IPPROTO_MTP = 92,		/* Multicast Transport Protocol		*/
+// #define IPPROTO_MTP		IPPROTO_MTP
+pub const IPPROTO_MTP: i32 = 92;
+//   IPPROTO_BEETPH = 94,		/* IP option pseudo header for BEET	*/
+// #define IPPROTO_BEETPH		IPPROTO_BEETPH
+pub const IPPROTO_BEETPH: i32 = 94;
+//   IPPROTO_ENCAP = 98,		/* Encapsulation Header			*/
+// #define IPPROTO_ENCAP		IPPROTO_ENCAP
+pub const IPPROTO_ENCAP: i32 = 98;
+//   IPPROTO_PIM = 103,		/* Protocol Independent Multicast	*/
+// #define IPPROTO_PIM		IPPROTO_PIM
+pub const IPPROTO_PIM: i32 = 103;
+//   IPPROTO_COMP = 108,		/* Compression Header Protocol		*/
+// #define IPPROTO_COMP		IPPROTO_COMP
+pub const IPPROTO_COMP: i32 = 108;
+//   IPPROTO_L2TP = 115,		/* Layer 2 Tunnelling Protocol		*/
+// #define IPPROTO_L2TP		IPPROTO_L2TP
+pub const IPPROTO_L2TP: i32 = 115;
+//   IPPROTO_SCTP = 132,		/* Stream Control Transport Protocol	*/
+// #define IPPROTO_SCTP		IPPROTO_SCTP
+pub const IPPROTO_SCTP: i32 = 132;
+//   IPPROTO_UDPLITE = 136,	/* UDP-Lite (RFC 3828)			*/
+// #define IPPROTO_UDPLITE		IPPROTO_UDPLITE
+pub const IPPROTO_UDPLITE: i32 = 136;
+//   IPPROTO_MPLS = 137,		/* MPLS in IP (RFC 4023)		*/
+// #define IPPROTO_MPLS		IPPROTO_MPLS
+pub const IPPROTO_MPLS: i32 = 137;
+//   IPPROTO_ETHERNET = 143,	/* Ethernet-within-IPv6 Encapsulation	*/
+// #define IPPROTO_ETHERNET	IPPROTO_ETHERNET
+pub const IPPROTO_ETHERNET: i32 = 143;
+//   IPPROTO_RAW = 255,		/* Raw IP packets			*/
+// #define IPPROTO_RAW		IPPROTO_RAW
+pub const IPPROTO_RAW: i32 = 255;
+//   IPPROTO_MPTCP = 262,		/* Multipath TCP connection		*/
+// #define IPPROTO_MPTCP		IPPROTO_MPTCP
+pub const IPPROTO_MPTCP: i32 = 262;
+//   IPPROTO_MAX
+// };
+
+pub const INADDR_ANY: u32 = 0;
+
+pub const IN6ADDR_ANY: in6_addr = in6_addr { s6_addr: [0; 16] };
+
+//
+// ADDRESS FAMILIES
+//
+
+///* Protocol families.  */
+// #define PF_UNSPEC	0	/* Unspecified.  */
+pub const PF_UNSPEC: i32 = 0;
+// #define PF_LOCAL	1	/* Local to host (pipes and file-domain).  */
+pub const PF_LOCAL: i32 = 1;
+// #define PF_UNIX		PF_LOCAL /* POSIX name for PF_LOCAL.  */
+pub const PF_UNIX: i32 = PF_LOCAL;
+// #define PF_FILE		PF_LOCAL /* Another non-standard name for PF_LOCAL.  */
+pub const PF_FILE: i32 = PF_LOCAL;
+// #define PF_INET		2	/* IP protocol family.  */
+pub const PF_INET: i32 = 2;
+// #define PF_AX25		3	/* Amateur Radio AX.25.  */
+pub const PF_AX25: i32 = 3;
+// #define PF_IPX		4	/* Novell Internet Protocol.  */
+pub const PF_IPX: i32 = 4;
+// #define PF_APPLETALK	5	/* Appletalk DDP.  */
+pub const PF_APPLETALK: i32 = 5;
+// #define PF_NETROM	6	/* Amateur radio NetROM.  */
+pub const PF_NETROM: i32 = 6;
+// #define PF_BRIDGE	7	/* Multiprotocol bridge.  */
+pub const PF_BRIDGE: i32 = 7;
+// #define PF_ATMPVC	8	/* ATM PVCs.  */
+pub const PF_ATMPVC: i32 = 8;
+// #define PF_X25		9	/* Reserved for X.25 project.  */
+pub const PF_X25: i32 = 9;
+// #define PF_INET6	10	/* IP version 6.  */
+pub const PF_INET6: i32 = 10;
+// #define PF_ROSE		11	/* Amateur Radio X.25 PLP.  */
+pub const PF_ROSE: i32 = 11;
+// #define PF_DECnet	12	/* Reserved for DECnet project.  */
+pub const PF_DECnet: i32 = 12;
+// #define PF_NETBEUI	13	/* Reserved for 802.2LLC project.  */
+pub const PF_NETBEUI: i32 = 13;
+// #define PF_SECURITY	14	/* Security callback pseudo AF.  */
+pub const PF_SECURITY: i32 = 14;
+// #define PF_KEY		15	/* PF_KEY key management API.  */
+pub const PF_KEY: i32 = 15;
+// #define PF_NETLINK	16
+pub const PF_NETLINK: i32 = 16;
+// #define PF_ROUTE	PF_NETLINK /* Alias to emulate 4.4BSD.  */
+pub const PF_ROUTE: i32 = PF_NETLINK;
+// #define PF_PACKET	17	/* Packet family.  */
+pub const PF_PACKET: i32 = 17;
+// #define PF_ASH		18	/* Ash.  */
+pub const PF_ASH: i32 = 18;
+// #define PF_ECONET	19	/* Acorn Econet.  */
+pub const PF_ECONET: i32 = 19;
+// #define PF_ATMSVC	20	/* ATM SVCs.  */
+pub const PF_ATMSVC: i32 = 20;
+// #define PF_RDS		21	/* RDS sockets.  */
+pub const PF_RDS: i32 = 21;
+// #define PF_SNA		22	/* Linux SNA Project */
+pub const PF_SNA: i32 = 22;
+// #define PF_IRDA		23	/* IRDA sockets.  */
+pub const PF_IRDA: i32 = 23;
+// #define PF_PPPOX	24	/* PPPoX sockets.  */
+pub const PF_PPPOX: i32 = 24;
+// #define PF_WANPIPE	25	/* Wanpipe API sockets.  */
+pub const PF_WANPIPE: i32 = 25;
+// #define PF_LLC		26	/* Linux LLC.  */
+pub const PF_LLC: i32 = 26;
+// #define PF_IB		27	/* Native InfiniBand address.  */
+pub const PF_IB: i32 = 27;
+// #define PF_MPLS		28	/* MPLS.  */
+pub const PF_MPLS: i32 = 28;
+// #define PF_CAN		29	/* Controller Area Network.  */
+pub const PF_CAN: i32 = 29;
+// #define PF_TIPC		30	/* TIPC sockets.  */
+pub const PF_TIPC: i32 = 30;
+// #define PF_BLUETOOTH	31	/* Bluetooth sockets.  */
+pub const PF_BLUETOOTH: i32 = 31;
+// #define PF_IUCV		32	/* IUCV sockets.  */
+pub const PF_IUCV: i32 = 32;
+// #define PF_RXRPC	33	/* RxRPC sockets.  */
+pub const PF_RXRPC: i32 = 33;
+// #define PF_ISDN		34	/* mISDN sockets.  */
+pub const PF_ISDN: i32 = 34;
+// #define PF_PHONET	35	/* Phonet sockets.  */
+pub const PF_PHONET: i32 = 35;
+// #define PF_IEEE802154	36	/* IEEE 802.15.4 sockets.  */
+pub const PF_IEEE802154: i32 = 36;
+// #define PF_CAIF		37	/* CAIF sockets.  */
+pub const PF_CAIF: i32 = 37;
+// #define PF_ALG		38	/* Algorithm sockets.  */
+pub const PF_ALG: i32 = 38;
+// #define PF_NFC		39	/* NFC sockets.  */
+pub const PF_NFC: i32 = 39;
+// #define PF_VSOCK	40	/* vSockets.  */
+pub const PF_VSOCK: i32 = 40;
+// #define PF_KCM		41	/* Kernel Connection Multiplexor.  */
+pub const PF_KCM: i32 = 41;
+// #define PF_QIPCRTR	42	/* Qualcomm IPC Router.  */
+pub const PF_QIPCRTR: i32 = 42;
+// #define PF_SMC		43	/* SMC sockets.  */
+pub const PF_SMC: i32 = 43;
+// #define PF_XDP		44	/* XDP sockets.  */
+pub const PF_XDP: i32 = 44;
+// #define PF_MCTP		45	/* Management component transport protocol.  */
+pub const PF_MCTP: i32 = 45;
+// #define PF_MAX		46	/* For now..  */
+pub const PF_MAX: i32 = 46;
+
+
+
+// /* Address families.  */
+// #define AF_UNSPEC	PF_UNSPEC
+pub const AF_UNSPEC: i32 = PF_UNSPEC;
+// #define AF_LOCAL	PF_LOCAL
+pub const AF_LOCAL: i32 = PF_LOCAL;
+// #define AF_UNIX		PF_UNIX
+pub const AF_UNIX: i32 = PF_UNIX;
+// #define AF_FILE		PF_FILE
+pub const AF_FILE: i32 = PF_FILE;
+// #define AF_INET		PF_INET
+pub const AF_INET: i32 = PF_INET;
+// #define AF_AX25		PF_AX25
+pub const AF_AX25: i32 = PF_AX25;
+// #define AF_IPX		PF_IPX
+pub const AF_IPX: i32 = PF_IPX;
+// #define AF_APPLETALK	PF_APPLETALK
+pub const AF_APPLETALK: i32 = PF_APPLETALK;
+// #define AF_NETROM	PF_NETROM
+pub const AF_NETROM: i32 = PF_NETROM;
+// #define AF_BRIDGE	PF_BRIDGE
+pub const AF_BRIDGE: i32 = PF_BRIDGE;
+// #define AF_ATMPVC	PF_ATMPVC
+pub const AF_ATMPVC: i32 = PF_ATMPVC;
+// #define AF_X25		PF_X25
+pub const AF_X25: i32 = PF_X25;
+// #define AF_INET6	PF_INET6
+pub const AF_INET6: i32 = PF_INET6;
+// #define AF_ROSE		PF_ROSE
+pub const AF_ROSE: i32 = PF_ROSE;
+// #define AF_DECnet	PF_DECnet
+pub const AF_DECnet: i32 = PF_DECnet;
+// #define AF_NETBEUI	PF_NETBEUI
+pub const AF_NETBEUI: i32 = PF_NETBEUI;
+// #define AF_SECURITY	PF_SECURITY
+pub const AF_SECURITY: i32 = PF_SECURITY;
+// #define AF_KEY		PF_KEY
+pub const AF_KEY: i32 = PF_KEY;
+// #define AF_NETLINK	PF_NETLINK
+pub const AF_NETLINK: i32 = PF_NETLINK;
+// #define AF_ROUTE	PF_ROUTE
+pub const AF_ROUTE: i32 = PF_ROUTE;
+// #define AF_PACKET	PF_PACKET
+pub const AF_PACKET: i32 = PF_PACKET;
+// #define AF_ASH		PF_ASH
+pub const AF_ASH: i32 = PF_ASH;
+// #define AF_ECONET	PF_ECONET
+pub const AF_ECONET: i32 = PF_ECONET;
+// #define AF_ATMSVC	PF_ATMSVC
+pub const AF_ATMSVC: i32 = PF_ATMSVC;
+// #define AF_RDS		PF_RDS
+pub const AF_RDS: i32 = PF_RDS;
+// #define AF_SNA		PF_SNA
+pub const AF_SNA: i32 = PF_SNA;
+// #define AF_IRDA		PF_IRDA
+pub const AF_IRDA: i32 = PF_IRDA;
+// #define AF_PPPOX	PF_PPPOX
+pub const AF_PPPOX: i32 = PF_PPPOX;
+// #define AF_WANPIPE	PF_WANPIPE
+pub const AF_WANPIPE: i32 = PF_WANPIPE;
+// #define AF_LLC		PF_LLC
+pub const AF_LLC: i32 = PF_LLC;
+// #define AF_IB		PF_IB
+pub const AF_IB: i32 = PF_IB;
+// #define AF_MPLS		PF_MPLS
+pub const AF_MPLS: i32 = PF_MPLS;
+// #define AF_CAN		PF_CAN
+pub const AF_CAN: i32 = PF_CAN;
+// #define AF_TIPC		PF_TIPC
+pub const AF_TIPC: i32 = PF_TIPC;
+// #define AF_BLUETOOTH	PF_BLUETOOTH
+pub const AF_BLUETOOTH: i32 = PF_BLUETOOTH;
+// #define AF_IUCV		PF_IUCV
+pub const AF_IUCV: i32 = PF_IUCV;
+// #define AF_RXRPC	PF_RXRPC
+pub const AF_RXRPC: i32 = PF_RXRPC;
+// #define AF_ISDN		PF_ISDN
+pub const AF_ISDN: i32 = PF_ISDN;
+// #define AF_PHONET	PF_PHONET
+pub const AF_PHONET: i32 = PF_PHONET;
+// #define AF_IEEE802154	PF_IEEE802154
+pub const AF_IEEE802154: i32 = PF_IEEE802154;
+// #define AF_CAIF		PF_CAIF
+pub const AF_CAIF: i32 = PF_CAIF;
+// #define AF_ALG		PF_ALG
+pub const AF_ALG: i32 = PF_ALG;
+// #define AF_NFC		PF_NFC
+pub const AF_NFC: i32 = PF_NFC;
+// #define AF_VSOCK	PF_VSOCK
+pub const AF_VSOCK: i32 = PF_VSOCK;
+// #define AF_KCM		PF_KCM
+pub const AF_KCM: i32 = PF_KCM;
+// #define AF_QIPCRTR	PF_QIPCRTR
+pub const AF_QIPCRTR: i32 = PF_QIPCRTR;
+// #define AF_SMC		PF_SMC
+pub const AF_SMC: i32 = PF_SMC;
+// #define AF_XDP		PF_XDP
+pub const AF_XDP: i32 = PF_XDP;
+// #define AF_MCTP		PF_MCTP
+pub const AF_MCTP: i32 = PF_MCTP;
+// #define AF_MAX		PF_MAX
+pub const AF_MAX: i32 = PF_MAX;
+
+//
+// Struct AddrInfo
+//
+#[derive(Default,Debug,Clone)]
+pub struct ZmqAddrInfo
+{
+    pub ai_flags: i32,
+    pub ai_family: i32,
+    pub ai_socktype: i32,
+    pub ai_protocol: i32,
+    pub ai_addrlen: usize,
+    pub ai_addr: *mut ZmqSockAddr,
+    pub ai_canonname: *mut i8,
+    pub ai_next: *mut ZmqAddrInfo,
+}
+
+//
+// getaddrinfo flag values
+//
+pub const AI_PASSIVE: i32 = 1;
+pub const AI_CANONNAME: i32 = 1;
+pub const AI_NUMERICHOST: i32 = 4;
+pub const AI_MASK: i32 = AI_PASSIVE | AI_CANONNAME | AI_NUMERICHOST;
+pub const AI_ALL: i32 = 0x100;
+pub const AI_V4MAPPED_CFG: i32 = 0x200;
+pub const AI_ADDRCONFIG: i32 = 0x400;
+pub const AI_V4MAPPED: i32 = 0x800;
+pub const AI_DEFAULT: i32 = AI_V4MAPPED_CFG | AI_ADDRCONFIG;
+
+//
+// addrinfo error values
+//
+// #define EAI_ADDRFAMILY   1      /* address family for hostname not supported */
+pub const EAI_ADDRFAMILY: i32 = 1;
+// #define EAI_AGAIN        2      /* temporary failure in name resolution */
+pub const EAI_AGAIN: i32 = 2;
+// #define EAI_BADFLAGS     3      /* invalid value for ai_flags */
+pub const EAI_BADFLAGS: i32 = 3;
+// #define EAI_FAIL         4      /* non-recoverable failure in name resolution */
+pub const EAI_FAIL: i32 = 4;
+// #define EAI_FAMILY       5      /* ai_family not supported */
+pub const EAI_FAMILY: i32 = 5;
+// #define EAI_MEMORY       6      /* memory allocation failure */
+pub const EAI_MEMORY: i32 = 6;
+// #define EAI_NODATA       7      /* no address associated with hostname */
+pub const EAI_NODATA: i32 = 7;
+// #define EAI_NONAME       8      /* hostname nor servname provided, or not known */
+pub const EAI_NONAME: i32 = 8;
+// #define EAI_SERVICE      9      /* servname not supported for ai_socktype */
+pub const EAI_SERVICE: i32 = 9;
+// #define EAI_SOCKTYPE    10      /* ai_socktype not supported */
+pub const EAI_SOCKTYPE: i32 = 10;
+// #define EAI_SYSTEM      11      /* system error returned in errno */
+pub const EAI_SYSTEM: i32 = 11;
+// #define EAI_BADHINTS    12
+pub const EAI_BADHINTS: i32 = 12;
+// #define EAI_PROTOCOL    13
+pub const EAI_PROTOCOL: i32 = 13;
+// #define EAI_MAX         14
+pub const EAI_MAX: i32 = 14;

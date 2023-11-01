@@ -2,7 +2,7 @@ use libc::sockaddr;
 
 use crate::ctx::ZmqContext;
 use crate::defines::{ZmqFd, ZmqSockaddrStorage};
-use crate::ip_resolver::ZmqIpAddress;
+use crate::ip_address::ZmqIpAddress;
 use crate::tcp_address::ZmqTcpAddress;
 use crate::udp_address::UdpAddress;
 
