@@ -51,16 +51,16 @@ pub fn client_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
 }
 
 pub unsafe fn client_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
-    let mut rc = socket.fq.recvpipe(msg_, &mut None);
+    let mut rc = socket.fq.recvpipe(msg_, None);
 
     while rc == 0 && msg_.flags() & MSG_MORE > 0 {
-        rc = socket.fq.recvpipe(msg_, &mut None);
+        rc = socket.fq.recvpipe(msg_, None);
         while rc == 0 && msg_.flags() & MSG_MORE > 0 {
-            rc = socket.fq.recvpipe(msg_, &mut None);
+            rc = socket.fq.recvpipe(msg_, None);
         }
 
         if rc == 0 {
-            rc = socket.fq.recvpipe(msg_, &mut None)
+            rc = socket.fq.recvpipe(msg_, None)
         }
     }
 

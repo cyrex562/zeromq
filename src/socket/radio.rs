@@ -73,7 +73,7 @@ pub unsafe fn radio_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe)
                     .ZMQ_MAP_INSERT_OR_EMPLACE((group), pipe_);
             } else {
                 // std::pair<subscriptions_t::iterator, subscriptions_t::iterator>
-                //   range = _subscriptions.equal_range (group);
+                //   range = _subscriptions.equal_range (Group);
                 //
                 // for (subscriptions_t::iterator it = range.first;
                 //      it != range.second; ++it) {
@@ -150,7 +150,7 @@ pub fn radio_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     socket.dist.unmatch();
 
     // const std::pair<subscriptions_t::iterator, subscriptions_t::iterator>
-    //   range = _subscriptions.equal_range (std::string (msg_->group ()));
+    //   range = _subscriptions.equal_range (std::string (msg_->Group ()));
     let range = socket.subscriptions.iter().find(|&&x| x == msg_.group());
 
     // for (subscriptions_t::iterator it = range.first; it != range.second; ++it)

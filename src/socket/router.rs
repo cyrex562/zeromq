@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use libc::MSG_MORE;
 
-use crate::blob::{ZmqReferenceTag};
+use crate::defines::blob::{ZmqReferenceTag};
 use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_POLLOUT, ZMQ_PROBE_ROUTER, ZMQ_ROUTER, ZMQ_ROUTER_HANDOVER, ZMQ_ROUTER_MANDATORY, ZMQ_ROUTER_NOTIFY, ZMQ_ROUTER_RAW};
 use crate::fair_queue::ZmqFairQueue;

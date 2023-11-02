@@ -4,7 +4,7 @@ use crate::err::ZmqError;
 use crate::metadata::ZmqMetadata;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use crate::raw_decoder::ZmqRawDecoder;
+use crate::decoder::raw_decoder::ZmqRawDecoder;
 use crate::raw_encoder::ZmqRawEncoder;
 use crate::stream_engine::stream_pull_msg_from_session;
 

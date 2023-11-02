@@ -1,7 +1,5 @@
 use crate::address::ZmqAddress;
-use crate::defines::{
-    MSG_COMMAND, MSG_MORE, ZMQ_DGRAM, ZMQ_DISH, ZMQ_NULL, ZMQ_RADIO, ZMQ_SUB, ZMQ_XSUB,
-};
+use crate::defines::{MSG_COMMAND, MSG_MORE, ZMQ_DGRAM, ZMQ_DISH, ZMQ_NULL, ZMQ_RADIO, ZMQ_REQ, ZMQ_SUB, ZMQ_XSUB};
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::engine::ZmqEngine;
 use crate::err::ZmqError;
@@ -15,6 +13,12 @@ use crate::pipe::{pipepair, IPipeEvents, ZmqPipe};
 use crate::socket::ZmqSocket;
 use std::collections::HashSet;
 use std::ptr::null_mut;
+use crate::err::ZmqError::PipeError;
+
+pub enum ZmqSessionState {
+    Group,
+    Body,
+}
 
 pub struct ZmqSession<'a> {
     pub own: ZmqOwn<'a>,
@@ -30,6 +34,9 @@ pub struct ZmqSession<'a> {
     pub _has_linger_timer: bool,
     pub _addr: ZmqAddress<'a>,
     pub _engine: Option<&'a mut ZmqEngine<'a>>,
+    pub _state: ZmqSessionState,
+    pub _group_msg: ZmqMsg,
+    pub _pending_msg: ZmqMsg
 }
 
 pub const _linger_timer_id: i32 = 0x20;
@@ -98,8 +105,10 @@ impl ZmqSession {
             _socket: socket_,
             _io_thread: io_thread_,
             _engine: None,
+            _state: ZmqSessionState::Group,
             _addr: addr_,
             _has_linger_timer: false,
+            _group_msg: Default::default(),
         }
     }
 
@@ -112,7 +121,7 @@ impl ZmqSession {
         self._pipe.set_event_risk(self)
     }
 
-    pub unsafe fn pull_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
+    pub fn pull_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
         if self._pipe.is_none() || !(self._pipe).read(msg_) {
             return -1;
         }
@@ -121,16 +130,16 @@ impl ZmqSession {
         return 0;
     }
 
-    pub unsafe fn push_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
+    pub fn push_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
         if (msg_).flags() & MSG_COMMAND != 0 && !msg_.is_subscribe() && !msg_.is_cancel() {
-            return 0;
+            return Ok(());
         }
         if self._pipe.is_some() && (self._pipe).write(msg_) {
-            let mut rc = (msg_).init2();
-            return 0;
+            (msg_).init2()?;
+            return Ok(());
         }
 
-        return -1;
+        return Err(PipeError("failed to push msg"))
     }
 
     pub fn read_zap_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {

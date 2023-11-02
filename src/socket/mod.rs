@@ -46,7 +46,7 @@ use crate::router::{router_xattach_pipe, router_xgetsockopt, router_xhas_in, rou
 use crate::routing_socket_base::ZmqRoutingSocketBase;
 use crate::scatter::{scatter_xattach_pipe, scatter_xgetsockopt, scatter_xhas_in, scatter_xhas_out, scatter_xjoin, scatter_xpipe_terminated, scatter_xread_activated, scatter_xrecv, scatter_xsend, scatter_xsetsockopt, scatter_xwrite_activated};
 use crate::server::{server_xattach_pipe, server_xgetsockopt, server_xhas_in, server_xhas_out, server_xjoin, server_xpipe_terminated, server_xread_activated, server_xrecv, server_xsend, server_xsetsockopt, server_xwrite_activated};
-use crate::session_base::ZmqSession;
+use crate::session::ZmqSession;
 use crate::signaler::ZmqSignaler;
 use crate::sub::{sub_xattach_pipe, sub_xgetsockopt, sub_xhas_in, sub_xhas_out, sub_xjoin, sub_xpipe_terminated, sub_xread_activated, sub_xrecv, sub_xsend, sub_xsetsockopt, sub_xwrite_activated};
 use crate::tcp_address::ZmqTcpAddress;
@@ -1686,7 +1686,7 @@ impl ZmqSocket {
     //     return false;
     // }
 
-    // pub fn xjoin(&mut self, group: &str) -> i32 {
+    // pub fn xjoin(&mut self, Group: &str) -> i32 {
     //     return -1;
     // }
 

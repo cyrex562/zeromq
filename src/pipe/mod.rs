@@ -1,4 +1,4 @@
-use crate::array::ArrayItem;
+use crate::defines::array::ArrayItem;
 use crate::defines::{MESSAGE_PIPE_GRANULARITY, MSG_MORE, MSG_ROUTING_ID};
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::err::ZmqError;
@@ -10,7 +10,7 @@ use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipeState::{
     Active, DelimiterReceived, TermAckSent, TermReqSent1, TermReqSent2, WaitingForDelimiter,
 };
-use crate::session_base::ZmqSession;
+use crate::session::ZmqSession;
 use crate::socket::ZmqSocket;
 use crate::ypipe::ZmqYPipe;
 use crate::ypipe_base::ZmqYPipeBase;

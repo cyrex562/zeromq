@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 use std::mem::size_of;
-use crate::atomic_counter::ZmqAtomicCounter;
+use crate::defines::atomic_counter::ZmqAtomicCounter;
 
 pub struct ZmqNode
 {

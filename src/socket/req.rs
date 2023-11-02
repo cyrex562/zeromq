@@ -1,4 +1,4 @@
-use crate::dealer::ZmqDealer;
+use crate::socket::dealer::ZmqDealer;
 use crate::defines::{MSG_MORE, ZMQ_REQ, ZMQ_REQ_CORRELATE, ZMQ_REQ_RELAXED};
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;

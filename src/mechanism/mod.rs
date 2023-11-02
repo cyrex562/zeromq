@@ -12,7 +12,7 @@ use crate::err::ZmqError;
 use crate::metadata::ZmqDict;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use crate::session_base::ZmqSession;
+use crate::session::ZmqSession;
 use crate::utils::{get_u32, put_u32};
 use crate::zap_client::ZapClient;
 

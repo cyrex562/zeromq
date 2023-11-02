@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::ffi::{c_char, c_void};
 use chrono::{Duration, Utc};
 use libc::clock_t;
-use crate::atomic_counter::ZmqAtomicCounter;
+use crate::defines::atomic_counter::ZmqAtomicCounter;
 use crate::ctx::ZmqThreadCtx;
 use crate::i_poll_events::IPollEvents;
 use crate::thread::ZmqThread;

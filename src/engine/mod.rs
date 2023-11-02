@@ -10,7 +10,7 @@ use crate::mechanism::ZmqMechanism;
 use crate::metadata::ZmqMetadata;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use crate::session_base::ZmqSession;
+use crate::session::ZmqSession;
 use crate::socket::ZmqSocket;
 use crate::stream_engine::{
     stream_in_event, stream_out_event, stream_plug, stream_terminate, stream_unplug,
@@ -76,6 +76,12 @@ pub struct ZmqEngine<'a> {
 }
 
 impl ZmqEngine {
+    pub fn new() -> Self {
+        Self {
+           ..Default::default()
+        }
+    }
+
     pub fn plug(
         &mut self,
         options: &ZmqOptions,
