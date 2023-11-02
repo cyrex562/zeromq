@@ -4,12 +4,11 @@ use crate::command::ZmqCommand;
 use crate::ctx::ZmqContext;
 use crate::defines::ZmqHandle;
 use crate::defines::RETIRED_FD;
-// use crate::i_engine::IEngine; use crate::i_poll_events::IPollEvents;
-use crate::mailbox::ZmqMailbox;
+use crate::io::mailbox::ZmqMailbox;
 use crate::object::{obj_process_command, obj_send_stop};
-// use crate::object::{object_ops, ZmqObject}; use crate::own::ZmqOwn;
+use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::poller::ZmqPoller;
+use crate::poll::poller_base::ZmqPollerBase;
 use crate::socket::ZmqSocket;
 use crate::utils::get_errno;
 
@@ -19,7 +18,7 @@ pub struct ZmqReaper<'a> {
     pub thread_id: u32,
     pub mailbox: ZmqMailbox<'a>,
     pub mailbox_handle: ZmqHandle,
-    pub poller: &'a mut ZmqPoller,
+    pub poller: &'a mut ZmqPollerBase,
     pub sockets: i32,
     pub terminating: bool,
     #[cfg(feature = "have_fork")]
@@ -32,7 +31,7 @@ impl ZmqReaper {
             thread_id: 0,
             mailbox: ZmqMailbox::new(),
             mailbox_handle: 0 as ZmqHandle,
-            poller: &mut ZmqPoller::new(ctx_),
+            poller: &mut ZmqPollerBase::new(ctx_),
             sockets: 0,
             terminating: false,
             #[cfg(feature = "have_fork")]
@@ -49,7 +48,7 @@ impl ZmqReaper {
     }
 }
 
-pub fn reaper_in_event(reaper: &mut ZmqReaper, pipe: &mut ZmqPipe) {
+pub fn reaper_in_event(options: &ZmqOptions, reaper: &mut ZmqReaper, pipe: &mut ZmqPipe) {
     loop {
         #[cfg(feature = "have_fork")]
         {
@@ -69,7 +68,7 @@ pub fn reaper_in_event(reaper: &mut ZmqReaper, pipe: &mut ZmqPipe) {
 
         // TODO
         // cmd.destination.process_command(cmd);
-        obj_process_command(cmd, pipe: &mut ZmqPipe)
+        obj_process_command(options, &mut cmd, pipe: &mut ZmqPipe)
     }
 }
 

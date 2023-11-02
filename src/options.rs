@@ -5,6 +5,7 @@ use std::char::decode_utf16;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::ptr;
+use crate::address::tcp_address::TcpAddressMask;
 use crate::err::ZmqError;
 
 use crate::utils::{copy_bytes, copy_void, zmq_z85_decode};
@@ -55,7 +56,7 @@ pub struct ZmqOptions {
     pub tcp_keepalive_idle: i32,
     pub tcp_keepalive_cnt: i32,
     pub tcp_keepalive_intvl: i32,
-    pub tcp_accept_filters: Vec<tcp_address_mask_t>,
+    pub tcp_accept_filters: Vec<TcpAddressMask>,
     pub mechanism: i32,
     pub as_server: i32,
     pub zap_domain: String,

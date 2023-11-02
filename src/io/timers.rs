@@ -1,6 +1,6 @@
 use std::cmp;
 use std::collections::{HashMap, HashSet};
-use crate::clock::ZmqClock;
+use crate::defines::clock::ZmqClock;
 use crate::err::ZmqError;
 
 pub type TimersTimerFn = fn(i32, &mut [u8]);
@@ -21,7 +21,7 @@ pub struct MatchById {
 }
 
 pub struct Timers<'a> {
-    pub _tag: u32;
+    pub _tag: u32,
     pub _next_timer_id: i32,
     pub _clock: ZmqClock,
     pub _timers: TimersMap<'a>,
@@ -45,7 +45,7 @@ impl Timers {
         self._tag == 0xCAFEDADA
     }
 
-    pub unsafe fn add(&mut self, interval_: i32, handler_: TimersTimerFn, arg_: &mut [u8]) -> Result<i32,ZmqError> {
+    pub unsafe fn add(&mut self, interval_: i32, handler_: TimersTimerFn, arg_: &mut [u8]) -> Result<i32, ZmqError> {
         // if (handler_ == NULL) {
         //     errno = EFAULT;
         //     return -1;
@@ -92,7 +92,7 @@ impl Timers {
         // const timersmap_t::iterator it =
         //   std::find_if (_timers.begin (), end, match_by_id (timer_id_));
         let y = self._timers.iter_mut().find(|x| x.1.timer_id == timer_id);
-        if (y.is_some()) {
+        if y.is_some() {
             let mut timer = y.unwrap().1;
             timer.interval = interval_;
             let when = self._clock.now_ms() + interval_;
@@ -108,18 +108,17 @@ impl Timers {
     }
 
     // int zmq::timers_t::reset (int timer_id_)
-    pub unsafe fn reset(&mut self, timer_id: i32) -> i32
-    {
+    pub unsafe fn reset(&mut self, timer_id: i32) -> i32 {
         // const timersmap_t::iterator end = _timers.end ();
         // const timersmap_t::iterator it = std::find_if (_timers.begin (), end, match_by_id (timer_id_));
         let y = self._timers.iter_mut().find(|x| x.1.timer_id == timer_id);
 
-        if (y.is_some()) {
+        if y.is_some() {
             let timer = y.unwrap().1;
-            let when = self._clock.now_ms () + timer.interval;
+            let when = self._clock.now_ms() + timer.interval;
             // self._timers.erase (it);
             self._timers.remove(&y.unwrap().0);
-            self._timers.insert (when, timer.clone());
+            self._timers.insert(when, timer.clone());
 
             return 0;
         }
@@ -129,19 +128,16 @@ impl Timers {
     }
 
     // long zmq::timers_t::timeout ()
-    pub unsafe fn timeout(&mut self) -> i32
-    {
-        let now = self._clock.now_ms () as i32;
+    pub unsafe fn timeout(&mut self) -> i32 {
+        let now = self._clock.now_ms() as i32;
         let mut res: i32 = -1;
 
         // const timersmap_t::iterator begin = _timers.begin ();
         // const timersmap_t::iterator end = _timers.end ();
         // timersmap_t::iterator it = begin;
         // for (; it != end; ++it)
-        for it in self._timers.iter_mut()
-        {
-            if 0 == self._cancelled_timers.remove (&it.1.timer_id)
-            {
+        for it in self._timers.iter_mut() {
+            if 0 == self._cancelled_timers.remove(&it.1.timer_id) {
                 //  Live timer, lets return the timeout
                 res = cmp::max(it.0 - now, 0i32);
                 break;
@@ -150,36 +146,34 @@ impl Timers {
 
         //  Remove timed-out timers
         // _timers.erase (begin, it);
-        self._timers.retain(|x, _| x > &now);
+        self._timers.retain(|x, _| x > &(now as u64));
 
         return res;
     }
 
     // int zmq::timers_t::execute ()
-    pub unsafe fn execute(&mut self) -> i32
-    {
-        let now = self._clock.now_ms ();
+    pub unsafe fn execute(&mut self) -> i32 {
+        let now = self._clock.now_ms();
 
         // const timersmap_t::iterator begin = _timers.begin ();
         // const timersmap_t::iterator end = _timers.end ();
         // timersmap_t::iterator it = _timers.begin ();
         // for (; it != end; ++it)
-        for it in self._timers.iter_mut()
-        {
-            if 0 == self._cancelled_timers.remove (&it.1.timer_id) {
+        for it in self._timers.iter_mut() {
+            if 0 == self._cancelled_timers.remove(&it.1.timer_id) {
                 //  Timer is not cancelled
 
                 //  Map is ordered, if we have to wait for current timer we can Stop.
-                if (it.0 > now) {
+                if it.0 > &now {
                     break;
                 }
 
                 let timer = it.1;
 
-                timer.handler (timer.timer_id, timer.arg);
+                timer.handler(timer.timer_id, timer.arg);
 
-                self._timers.insert (
-                  now + timer.interval, timer.clone());
+                self._timers.insert(
+                    now + timer.interval, timer.clone());
             }
         }
         // self._timers.erase (begin, it);

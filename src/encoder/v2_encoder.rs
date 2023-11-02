@@ -1,40 +1,37 @@
-use crate::defines::{MSG_COMMAND, MSG_MORE};
+use crate::defines::{COMMAND_FLAG, LARGE_FLAG, MORE_FLAG, MSG_COMMAND, MSG_MORE};
 use crate::encoder::ZmqEncoder;
 use crate::utils::put_u64;
 
-pub struct V2Encoder {
-    // pub encoder_base: ZmqEncoder<V2Encoder>,
-    pub _tmpbuf: [u8; 10],
-}
-
-impl V2Encoder {
-    pub fn new(bufsize_: usize) -> Self {
-        let mut out = Self {
-            encoder_base: ZmqEncoder::new(bufsize_),
-            _tmpbuf: [0; 10],
-        };
-        out.next_step(None, 0, v2e_message_ready, true);
-        out
-    }
-
-    // void zmq::v2_encoder_t::message_ready ()
-
-}
+// pub struct V2Encoder {
+//     // pub encoder_base: ZmqEncoder<V2Encoder>,
+//     pub _tmpbuf: [u8; 10],
+// }
+//
+// impl V2Encoder {
+//     pub fn new(bufsize_: usize) -> Self {
+//         let mut out = Self {
+//             encoder_base: ZmqEncoder::new(bufsize_),
+//             _tmpbuf: [0; 10],
+//         };
+//         out.next_step(None, 0, v2e_message_ready, true);
+//         out
+//     }
+// }
 
 pub fn v2e_message_ready(encoder: &mut ZmqEncoder) {
     //  Encode flags.
     let mut size = encoder.in_progress().size();
     let mut header_size = 2; // flags byte + size byte
-    let mut protocol_flags = &mut _tmp_buf[0];
-    protocol_flags = 0;
+    let mut protocol_flags = &mut encoder.tmp_buf[0];
+    *protocol_flags = 0;
     if encoder.in_progress().flags() & MSG_MORE {
-        protocol_flags |= more_flag;
+        *protocol_flags |= MORE_FLAG;
     }
     if encoder.in_progress().size() > u8::MAX as usize {
-        protocol_flags |= large_flag;
+        *protocol_flags |= LARGE_FLAG;
     }
     if encoder.in_progress().flags() & MSG_COMMAND {
-        protocol_flags |= command_flag;
+        *protocol_flags |= COMMAND_FLAG;
     }
     if encoder.in_progress().is_subscribe() || encoder.in_progress().is_cancel() {
         size += 1;
@@ -43,11 +40,11 @@ pub fn v2e_message_ready(encoder: &mut ZmqEncoder) {
     //  Encode the message length. For messages less then 256 bytes,
     //  the length is encoded as 8-bit unsigned integer. For larger
     //  messages, 64-bit unsigned integer in network byte order is used.
-    if (size > u8::MAX) {
-        put_u64(encoder._tmp_buf + 1, size);
+    if size > u8::MAX as usize {
+        put_u64(&mut encoder.tmp_buf[1..], size as u64);
         header_size = 9; // flags byte + size 8 bytes
     } else {
-        encoder._tmp_buf[1] = (size as u8);
+        encoder.tmp_buf[1] = (size as u8);
     }
 
     //  Encode the subscribe/cancel byte. This is Done in the encoder as
@@ -58,14 +55,14 @@ pub fn v2e_message_ready(encoder: &mut ZmqEncoder) {
     //  be avoided. This processing can be moved to xsub once support for
     //  ZMTP < 3.1 is dropped.
     if encoder.in_progress().is_subscribe() {
-        encoder._tmp_buf[header_size] = 1;
+        encoder.tmp_buf[header_size] = 1;
         header_size += 1;
-    } else if (encoder.in_progress().is_cancel()) {
-        encoder._tmp_buf[header_size] = 0;
+    } else if encoder.in_progress().is_cancel() {
+        encoder.tmp_buf[header_size] = 0;
         header_size += 1;
     }
 
-    encoder.next_step(encoder.encoder._tmp_buf, header_size, false, v2e_size_ready);
+    encoder.next_step(&mut encoder.tmp_buf, header_size, false, v2e_size_ready);
 }
 
 // void zmq::v2_encoder_t::size_ready ()

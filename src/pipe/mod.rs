@@ -21,6 +21,8 @@ use std::ptr::null_mut;
 pub mod pipes;
 pub mod zmq_pipe;
 
+pub mod out_pipe;
+
 pub trait IPipeEvents {
     fn read_activated(&self, pipe_: &mut ZmqPipe);
     fn write_activated(&self, pipe_: &mut ZmqPipe);

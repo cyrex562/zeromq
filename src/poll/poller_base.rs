@@ -3,11 +3,11 @@
 use std::collections::HashMap;
 use std::ffi::{c_char, c_void};
 use chrono::{Duration, Utc};
-use libc::clock_t;
-use crate::defines::atomic_counter::ZmqAtomicCounter;
 use crate::ctx::ZmqThreadCtx;
-use crate::i_poll_events::IPollEvents;
-use crate::thread::ZmqThread;
+use crate::defines::atomic_counter::ZmqAtomicCounter;
+use crate::io::thread::ZmqThread;
+use crate::poll::i_poll_events::IPollEvents;
+
 
 pub struct TimerInfo
 {
@@ -27,7 +27,7 @@ pub struct ZmqWorkerPollerBase<'a>
 {
     pub _poller_base: ZmqPollerBase,
     pub _active: bool,pub _ctx: &'a mut ZmqThreadCtx,
-    pub _worker: ZmqThread,
+    pub _worker: ZmqThread<'a>,
 }
 
 impl ZmqPollerBase {

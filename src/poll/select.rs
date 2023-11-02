@@ -18,7 +18,7 @@ use windows::Win32::Networking::WinSock::{
 };
 use windows::Win32::System::Threading::INFINITE;
 
-pub const fd_family_cache_size: usize = 8;
+pub const FD_FAMILY_CACHE_SIZE: usize = 8;
 
 // typedef struct fd_set {
 //   u_int  fd_count;
@@ -98,7 +98,7 @@ pub struct ZmqSelect<'a> {
     #[cfg(target_os = "windows")]
     pub _family_entries: ZmqFamilyEntries,
     #[cfg(target_os = "windows")]
-    pub _fd_family_cache: [(ZmqFd, u16); fd_family_cache_size],
+    pub _fd_family_cache: [(ZmqFd, u16); FD_FAMILY_CACHE_SIZE],
     #[cfg(not(target_os = "windows"))]
     pub _family_entry: family_entry_t,
     #[cfg(not(target_os = "windows"))]
@@ -113,7 +113,7 @@ impl<'a> ZmqSelect<'a> {
             #[cfg(target_os = "windows")]
             _family_entries: HashMap::new(),
             #[cfg(target_os = "windows")]
-            _fd_family_cache: [(-1 as ZmqFd, 0); fd_family_cache_size],
+            _fd_family_cache: [(-1 as ZmqFd, 0); FD_FAMILY_CACHE_SIZE],
             #[cfg(not(target_os = "windows"))]
             _family_entry: family_entry_t {
                 fd_entries: Vec::new(),
@@ -143,7 +143,7 @@ impl<'a> ZmqSelect<'a> {
         #[cfg(target_os = "windows")]
         {
             out._current_family_entry_it = out._family_entries.iter().first().unwrap().1;
-            for i in 0..fd_family_cache_size {
+            for i in 0..FD_FAMILY_CACHE_SIZE {
                 out._fd_family_cache[i].0 = -1 as ZmqFd;
             }
         }
@@ -602,9 +602,9 @@ impl<'a> ZmqSelect<'a> {
         // cache the results of determine_fd_family, as this is frequently called
         // for the same sockets, and determine_fd_family is expensive
         // size_t i;
-        // for (i = 0; i < fd_family_cache_size; ++i) {
+        // for (i = 0; i < FD_FAMILY_CACHE_SIZE; ++i) {
         let mut i = 0;
-        for i in 0..fd_family_cache_size {
+        for i in 0..FD_FAMILY_CACHE_SIZE {
             let entry = self._fd_family_cache[i];
             if (entry.0 == fd_) {
                 return entry.1;
@@ -617,12 +617,12 @@ impl<'a> ZmqSelect<'a> {
         // std::pair<fd_t, u_short> res =
         //   std::make_pair (fd_, determine_fd_family (fd_));
         let res = (fd_, self.determine_fd_family(fd_));
-        if (i < fd_family_cache_size) {
+        if (i < FD_FAMILY_CACHE_SIZE) {
             self._fd_family_cache[i] = res;
         } else {
             // just overwrite a random entry
             // could be optimized by some LRU strategy
-            self._fd_family_cache[rand() % fd_family_cache_size] = res;
+            self._fd_family_cache[rand() % FD_FAMILY_CACHE_SIZE] = res;
         }
 
         return res.1;

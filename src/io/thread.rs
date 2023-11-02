@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::ffi::{c_char, c_void};
 use std::thread;
 use std::thread::ThreadId;
+use crate::defines::ZmqHandle;
 
 pub const DEFAULT_PRIORITY: u32 = 100;
 pub const DEFAULT_OPTIONS: u32 = 0;
@@ -15,7 +16,7 @@ pub struct ZmqThread<'a> {
     pub _name: String,
     pub _started: bool,
     #[cfg(target_os = "windows")]
-    pub _descriptor: HANDLE,
+    pub _descriptor: ZmqHandle,
     pub _thread_id: ThreadId,
     pub _thread_priority: i32,
     pub _thread_sched_policy: i32,
@@ -25,7 +26,7 @@ pub struct ZmqThread<'a> {
 }
 
 #[cfg(target_os = "windows")]
-pub struct thread_info_t {
+pub struct ThreadInfoT {
     pub _type: u16,
     pub _name: *mut c_char,
     pub _thread_id: u32,
@@ -39,7 +40,7 @@ impl ZmqThread {
 
     pub fn thread_routine(arg_: &mut [u8]) {
         // TODO deserialize ZmqThread object from arg_
-        let self_ = unsafe { &mut *(arg_ as &mut ZmqThread) };
+        // let self_ = unsafe { &mut *(arg_ as &mut ZmqThread) };
         self_.apply_scheduling_parameters();
         self_.apply_thread_name();
         self_._tfn(self_._arg);

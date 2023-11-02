@@ -6,19 +6,17 @@ use std::{
     sync::Mutex,
 };
 
-use crate::atomic_counter::ZmqAtomicCounter;
 use crate::defines::{ZmqPid, ZMQ_CTX_TAG_VALUE_GOOD, ZMQ_PAIR};
 use crate::err::ZmqError;
-use crate::io_thread::ZmqIoThread;
-use crate::mailbox::ZmqMailbox;
 use crate::msg::ZmqMsg;
-use crate::mutex::{scoped_lock_t, ZmqMutex};
 use crate::options::{get_effective_conflate_option, ZmqOptions};
 use crate::pipe::{send_routing_id, ZmqPipe};
-use crate::poller::max_fds;
-use crate::reaper::ZmqReaper;
-use crate::thread::{ZmqThread, ZmqThreadFn};
 use crate::{command::ZmqCommand, socket::ZmqSocket};
+use crate::defines::atomic_counter::ZmqAtomicCounter;
+use crate::defines::mutex::ZmqMutex;
+use crate::io::io_thread::ZmqIoThread;
+use crate::io::mailbox::ZmqMailbox;
+use crate::io::reaper::ZmqReaper;
 
 pub type io_threads_t<'a> = Vec<&'a mut ZmqIoThread<'a>>;
 

@@ -1,12 +1,12 @@
 use std::collections::{HashMap};
+use crate::decoder::{DecoderType, ZmqDecoder};
+use crate::encoder::{EncoderType, ZmqEncoder};
+use crate::engine::stream_engine::stream_pull_msg_from_session;
 use crate::engine::ZmqEngine;
 use crate::err::ZmqError;
 use crate::metadata::ZmqMetadata;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use crate::decoder::raw_decoder::ZmqRawDecoder;
-use crate::raw_encoder::ZmqRawEncoder;
-use crate::stream_engine::stream_pull_msg_from_session;
 
 // pub struct ZmqRawEngine {
 //     pub stream_engine_base: ZmqRawEngine,
@@ -22,11 +22,11 @@ use crate::stream_engine::stream_pull_msg_from_session;
 pub fn raw_plug_internal(options: &ZmqOptions, engine: &mut ZmqEngine) -> Result<(),ZmqError> {
     // no Handshaking for raw sock, instantiate raw encoder and decoders
     // _encoder = new (std::nothrow) raw_encoder_t (_options.out_batch_size);
-    let mut _encoder = ZmqRawEncoder::new(options.out_batch_size);
+    engine.encoder = Some(ZmqEncoder::new(options.out_batch_size, EncoderType::RawEncoder));
     // alloc_assert (_encoder);
 
     // _decoder = new (std::nothrow) raw_decoder_t (_options.in_batch_size);
-    let mut _decoder = ZmqRawDecoder::new(options.in_batch_size as usize);
+    engine.decoder = Some(ZmqDecoder::new(options.in_batch_size as usize, DecoderType::RawDecoder));
     // alloc_assert (_decoder);
 
     engine.next_msg = stream_pull_msg_from_session;

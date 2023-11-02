@@ -7,7 +7,7 @@ use libc::sa_family_t;
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::sa_family_t;
 
-use crate::defines::{ZmqFd, ZmqSockAddr, ZmqSockAddrIn, ZmqSockAddrIn6, ZmqSockaddrStorage};
+use crate::defines::{ZmqFd, ZmqIpMreq, ZmqSockAddr, ZmqSockAddrIn, ZmqSockAddrIn6, ZmqSockaddrStorage};
 use crate::select::fd_set;
 
 mod decoder_allocators;
@@ -118,7 +118,7 @@ pub unsafe fn zmq_z85_decode(dest_: *mut u8, string_: *const c_char) -> *mut u8 
     return dest_;
 }
 
-pub fn put_u32(ptr: *mut u8, value: u32) {
+pub fn put_u32(ptr: &mut [u8], value: u32) {
     unsafe {
         *ptr = (value >> 24) as u8;
         *ptr.add(1) = (value >> 16) as u8;
@@ -127,12 +127,12 @@ pub fn put_u32(ptr: *mut u8, value: u32) {
     }
 }
 
-pub unsafe fn get_u32(ptr: *mut u8) -> u32 {
+pub unsafe fn get_u32(ptr: &[u8]) -> u32 {
     let u32_bytes: [u8; 4] = [*ptr, *ptr.add(1), *ptr.add(2), *ptr.add(3)];
     u32::from_le_bytes(u32_bytes)
 }
 
-pub fn put_u64(ptr: *mut u8, value: u64) {
+pub fn put_u64(ptr: &mut [u8], value: u64) {
     unsafe {
         *ptr = (value >> 56) as u8;
         *ptr.add(1) = (value >> 48) as u8;
@@ -205,5 +205,49 @@ pub fn zmq_sockaddr_storage_to_sockaddr(sockaddr_storage: ZmqSockaddrStorage) ->
         sa_data: [0; 14],
     };
     out.sa_data[0..14].copy_from_slice(&sockaddr_storage.sa_data[0..14]);
+    out
+}
+
+pub fn zmq_sockaddr_to_sockaddrin(sockaddr: &ZmqSockAddr) -> ZmqSockAddrIn {
+    let mut out = ZmqSockAddrIn {
+        sin_family: sockaddr.sa_family,
+        sin_port: 0,
+        sin_addr: 0,
+        sin_zero: [0; 8],
+    };
+    out.sin_addr = u32::from_le_bytes(sockaddr.sa_data[2..6].try_into().unwrap());
+    out
+}
+
+pub fn zmq_sockaddrin_to_sockaddr(sockaddrin: &ZmqSockAddrIn) -> ZmqSockAddr {
+    let mut out = ZmqSockAddr {
+        sa_family: sockaddrin.sin_family,
+        sa_data: [0; 14],
+    };
+    out.sa_data[0..2].copy_from_slice(&sockaddrin.sin_family.to_le_bytes());
+    out.sa_data[2..6].copy_from_slice(&sockaddrin.sin_addr.to_le_bytes());
+    out
+}
+
+pub fn zmq_ip_mreq_to_bytes(ipmreq: &ZmqIpMreq) -> [u8;8] {
+    let mut out = [0; 8];
+    out[0..4].copy_from_slice(&ipmreq.imr_multiaddr.to_le_bytes());
+    out[4..8].copy_from_slice(&ipmreq.imr_interface.to_le_bytes());
+    out
+}
+
+pub fn zmq_ipv6_mreq_to_bytes(ipv6mreq: &ZmqIpv6Mreq) -> [u8; 20] {
+    let mut out = [0; 20];
+    out[0..16].copy_from_slice(&ipv6mreq.ipv6mr_multiaddr.s6_addr);
+    out[16..20].copy_from_slice(&ipv6mreq.ipv6mr_interface.to_le_bytes());
+    out
+}
+
+pub fn sockaddr_to_zmq_sockaddr(sockaddr: &libc::sockaddr) -> ZmqSockAddr {
+    let mut out = ZmqSockAddr {
+        sa_family: sockaddr.sa_family,
+        sa_data: [0; 14],
+    };
+    out.sa_data[0..14].copy_from_slice(&sockaddr.sa_data[0..14]);
     out
 }

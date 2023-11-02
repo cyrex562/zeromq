@@ -77,6 +77,7 @@ mod v2_protocol;
 mod ypipe;
 mod zap_client;
 mod zmq_ops;
+mod session;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

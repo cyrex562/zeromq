@@ -3,10 +3,10 @@ use crate::defines::ZMQ_PUB;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::xpub::ZmqXPub;
+
 
 pub struct ZmqPub<'a> {
-    pub xpub: ZmqXPub<'a>,
+    pub xpub: XPub<'a>,
 }
 
 impl ZmqPub {

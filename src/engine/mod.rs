@@ -3,24 +3,25 @@ use crate::decoder::ZmqDecoder;
 use crate::defines::{ZmqFd, ZmqHandle, ZmqSockAddr, ZmqSockAddrIn};
 use crate::encoder::ZmqEncoder;
 use crate::endpoint::ZmqEndpointUriPair;
+use crate::engine::stream_engine::{stream_in_event, stream_out_event, stream_plug, stream_terminate, stream_unplug};
+use crate::engine::udp_engine::{udp_in_event, udp_out_event, udp_plug, udp_terminate};
+use crate::engine::zmtp_engine::V3_GREETING_SIZE;
 use crate::err::ZmqError;
 use crate::io::io_object::IoObject;
-use crate::io_thread::ZmqIoThread;
+use crate::io::io_thread::ZmqIoThread;
 use crate::mechanism::ZmqMechanism;
 use crate::metadata::ZmqMetadata;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::session::ZmqSession;
 use crate::socket::ZmqSocket;
-use crate::stream_engine::{
-    stream_in_event, stream_out_event, stream_plug, stream_terminate, stream_unplug,
-};
-use crate::udp_engine::{udp_in_event, udp_out_event, udp_plug, udp_terminate};
-use crate::zmtp_engine::V3_GREETING_SIZE;
+
 
 pub mod stream_engine;
-mod udp_engine;
-mod zmtp_engine;
+pub mod udp_engine;
+pub mod zmtp_engine;
+
+pub mod raw_engine;
 
 pub enum ZmqEngineType {
     Stream,
@@ -32,8 +33,8 @@ pub enum ZmqEngineType {
 #[derive(Default, Debug, Clone)]
 pub struct ZmqEngine<'a> {
     pub address: Option<ZmqAddress<'a>>,
-    pub decoder: Option<ZmqDecoder>,
-    pub encoder: Option<ZmqEncoder>,
+    pub decoder: Option<ZmqDecoder<'a>>,
+    pub encoder: Option<ZmqEncoder<'a>>,
     pub endpoint_uri_pair: Option<ZmqEndpointUriPair>,
     pub engine_type: ZmqEngineType,
     pub fd: ZmqFd,
@@ -65,7 +66,7 @@ pub struct ZmqEngine<'a> {
     pub out_size: usize,
     pub peer_address: String,
     pub plugged: bool,
-    pub png_msg: ZmqMsg,
+    pub pong_msg: ZmqMsg,
     pub raw_address: ZmqSockAddrIn,
     pub recv_enabled: bool,
     pub routing_id_msg: ZmqMsg,
@@ -92,23 +93,24 @@ impl ZmqEngine {
         options: &ZmqOptions,
         io_thread_: &mut ZmqIoThread,
         session: &mut ZmqSession,
-    ) {
+    ) -> Result<(),ZmqError> {
         match self.engine_type {
             ZmqEngineType::Stream => {
-                stream_plug(options, self, io_thread_, session);
+                stream_plug(options, self, io_thread_, session)?;
             }
             ZmqEngineType::Udp => {
-                udp_plug(options, self, io_thread_, session);
+                udp_plug(options, self, io_thread_, session)?;
             }
             ZmqEngineType::Raw => {
                 // raw_plug(engine, io_thread_, session);
-                stream_plug(options, self, io_thread_, session);
+                stream_plug(options, self, io_thread_, session)?;
             }
             ZmqEngineType::Zmtp => {
                 // zmtp_plug(engine, io_thread_, session);
-                stream_plug(options, self, io_thread_, session);
+                stream_plug(options, self, io_thread_, session)?;
             }
         }
+        Ok(())
     }
 
     pub fn unplug(&mut self) {

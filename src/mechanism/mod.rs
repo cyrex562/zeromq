@@ -1,3 +1,5 @@
+mod null_mechanism;
+
 use std::ffi::{c_char, c_void};
 
 use crate::defines::{

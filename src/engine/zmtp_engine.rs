@@ -4,13 +4,12 @@ use libc::EAGAIN;
 use crate::decoder::{DecoderType, ZmqDecoder};
 use crate::defines::{MSG_CANCEL, MSG_PING, MSG_PONG, MSG_ROUTING_ID, MSG_SUBSCRIBE, ZMQ_CURVE, ZMQ_GSSAPI, ZMQ_NULL, ZMQ_PLAIN, ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH, ZMQ_PUB, ZMQ_XPUB};
 use crate::encoder::{EncoderType, ZmqEncoder};
+use crate::engine::stream_engine::{HEARTBEAT_TIMEOUT_TIMER_ID, HEARTBEAT_TTL_TIMER_ID, stream_next_handshake_command, stream_process_handshake_command, stream_pull_and_encode, stream_pull_msg_from_session, stream_push_msg_to_session, stream_read};
 use crate::engine::ZmqEngine;
 use crate::err::ZmqError;
 use crate::mechanism::ZmqMechanism;
-use crate::msg::{PING_CMD_NAME_SIZE, ZmqMsg};
-use crate::null_mechanism::{null_next_handshake_command, null_process_handshake_command};
+use crate::msg::{CANCEL_CMD_NAME_SIZE, PING_CMD_NAME_SIZE, SUB_CMD_NAME_SIZE, ZmqMsg};
 use crate::options::ZmqOptions;
-use crate::stream_engine::{HEARTBEAT_TIMEOUT_TIMER_ID, HEARTBEAT_TTL_TIMER_ID, stream_next_handshake_command, stream_process_handshake_command, stream_pull_and_encode, stream_pull_msg_from_session, stream_push_msg_to_session, stream_read};
 use crate::utils::{get_errno, put_u64};
 
 pub const ZMTP_1_0: i32 = 0;
@@ -79,7 +78,7 @@ pub fn zmtp_plug_internal(options: &ZmqOptions, engine: &mut ZmqEngine)
     engine.out_pos = &mut engine.greeting_send;
     engine.out_pos[engine.out_size] = u8::MAX;
     engine.out_size += 1;
-    put_u64 (&mut engine.out_pos[engine.out_size], (options.routing_id_size + 1) as u64);
+    put_u64 (&mut engine.out_pos[engine.out_size..], (options.routing_id_size + 1) as u64);
     engine.out_size += 8;
     engine.out_pos[engine.out_size +=1] = 0x7f;
 
@@ -490,67 +489,69 @@ pub fn zmtp_process_routing_id_msg(
 }
 
 // int zmq::zmtp_engine_t::produce_ping_message (msg_t *msg_)
-pub fn zmtp_produce_ping_message(engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(),ZmqError>
+pub fn zmtp_produce_ping_message(options: &ZmqOptions, engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(),ZmqError>
 {
     // 16-bit TTL + \4PING == 7
     let ping_ttl_len = PING_CMD_NAME_SIZE + 2;
     // zmq_assert (_mechanism != NULL);
 
-    msg.init_size (ping_ttl_len as usize)?
+    msg.init_size (ping_ttl_len as usize)?;
     // errno_assert (rc == 0);
     msg.set_flags (ZmqMsg::command);
     // Copy in the command message
     // libc::memcpy (msg_.data_mut(), "\4PING", ZmqMsg::ping_cmd_name_size);
     msg.data_mut().copy_from_slice(b"\x04PING");
 
-    let ttl_val = (options.heartbeat_ttl.to_be () as u16);
+    let ttl_val = (options.heartbeat_ttl.to_be ());
     // libc::memcpy ((msg_.data_mut()) + ZmqMsg::ping_cmd_name_size,
     //               &ttl_val, size_of::<ttl_val>());
     msg.data_mut()[PING_CMD_NAME_SIZE..].copy_from_slice(&ttl_val.to_be_bytes());
 
-    rc = engine.mechanism.unwrap().encode (msg);
+    engine.mechanism.unwrap().encode (msg)?;
     engine.next_msg = stream_pull_and_encode;
     if !engine.has_timeout_timer && engine.heartbeat_timeout > 0 {
         engine.add_timer (engine.heartbeat_timeout, HEARTBEAT_TIMEOUT_TIMER_ID);
         engine.has_timeout_timer = true;
     }
-    return rc;
+    Ok(())
 }
 
 
 // int zmq::zmtp_engine_t::produce_pong_message (msg_t *msg_)
-pub unsafe fn zmtp_produce_pong_msg(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(),ZmqError>
+pub fn zmtp_produce_pong_msg(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(),ZmqError>
 {
     // zmq_assert (_mechanism != NULL);
 
-    msg_.move_(engine.pong_msg)?;
+    msg_.move_(&mut engine.pong_msg)?;
     // errno_assert (rc == 0);
 
-    rc = engine.mechanism.encode (msg_);
+    engine.mechanism.unwrap().encode (msg_)?;
     engine.next_msg = stream_pull_and_encode;
-    return rc;
+    Ok(())
 }
 
 // int zmq::zmtp_engine_t::process_heartbeat_message (msg_t *msg_)
-pub unsafe fn zmtp_process_heartbeat_message(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> i32
+pub unsafe fn zmtp_process_heartbeat_message(options: &ZmqOptions, engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> i32
 {
-    if (msg_.is_ping ()) {
+    if msg_.is_ping () {
         // 16-bit TTL + \4PING == 7
         let ping_ttl_len = PING_CMD_NAME_SIZE + 2;
         let ping_max_ctx_len = 16;
         let mut remote_heartbeat_ttl = 0;
 
         // Get the remote heartbeat TTL to setup the timer
-        libc::memcpy (&remote_heartbeat_ttl,
-                      (msg_.data_mut())
-                  + PING_CMD_NAME_SIZE,
-                      ping_ttl_len - PING_CMD_NAME_SIZE);
+        // libc::memcpy (&remote_heartbeat_ttl,
+        //               (msg_.data_mut())
+        //           + PING_CMD_NAME_SIZE,
+        //               ping_ttl_len - PING_CMD_NAME_SIZE);
+        msg_.data_mut()[PING_CMD_NAME_SIZE..].copy_from_slice(&remote_heartbeat_ttl.to_be_bytes());
+
         remote_heartbeat_ttl = (remote_heartbeat_ttl.to_be());
         // The remote heartbeat is in 10ths of a second
         // so we multiply it by 100 to get the timer interval in ms.
         remote_heartbeat_ttl *= 100;
 
-        if (!engine.has_ttl_timer && remote_heartbeat_ttl > 0) {
+        if !engine.has_ttl_timer && remote_heartbeat_ttl > 0 {
             engine.add_timer (remote_heartbeat_ttl, HEARTBEAT_TTL_TIMER_ID);
             engine.has_ttl_timer = true;
         }
@@ -566,15 +567,20 @@ pub unsafe fn zmtp_process_heartbeat_message(engine: &mut ZmqEngine, msg_: &mut 
           engine.pong_msg.init_size (ZmqMsg::ping_cmd_name_size + context_len);
         // errno_assert (rc == 0);
         engine.pong_msg.set_flags (ZmqMsg::command);
-        libc::memcpy (engine.pong_msg.data_mut(), "\4PONG", ZmqMsg::ping_cmd_name_size);
-        if (context_len > 0)
-            libc::memcpy (engine.pong_msg.data_mut())
-                      + PING_CMD_NAME_SIZE,
-                    (msg_.data_mut()) + ping_ttl_len,
-                    context_len);
+        libc::memcpy (
+            engine.pong_msg.data_mut().as_mut_ptr() as *mut libc::c_void,
+            "\x04PONG".as_bytes().as_ptr() as *const libc::c_void,
+            ZmqMsg::ping_cmd_name_size
+        );
+        if context_len > 0 {
+            // libc::memcpy(engine.pong_msg.data_mut()) + PING_CMD_NAME_SIZE,
+            // (msg_.data_mut()) + ping_ttl_len,
+            // context_len);
+            engine.pong_msg.data_mut()[PING_CMD_NAME_SIZE..].copy_from_slice(&msg_.data_mut()[ping_ttl_len..]);
+        }
 
-        engine.next_msg = engine.produce_pong_message;
-        engine.out_event ();
+        engine.next_msg = zmtp_produce_pong_msg;
+        engine.out_event (options);
     }
 
     return 0;
@@ -583,35 +589,50 @@ pub unsafe fn zmtp_process_heartbeat_message(engine: &mut ZmqEngine, msg_: &mut 
 // int zmq::zmtp_engine_t::process_command_message (msg_t *msg_)
 pub unsafe fn zmtp_process_command_message(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> i32
 {
-    let cmd_name_size = (msg_.data_mut()));
+    let cmd_name_size = (msg_.data_mut())[0];
     let ping_name_size = PING_CMD_NAME_SIZE - 1;
-    let sub_name_size = sub_cmd_name_size - 1;
-    let cancel_name_size = cancel_cmd_name_size - 1;
+    let sub_name_size = SUB_CMD_NAME_SIZE - 1;
+    let cancel_name_size = CANCEL_CMD_NAME_SIZE - 1;
     //  Malformed command
-    if ((msg_.size () < cmd_name_size + size_of::<cmd_name_size>())) {
+    if msg_.size () < (cmd_name_size + size_of::<cmd_name_size>()) as usize {
         return -1;
     }
 
-    let const cmd_name =
-      (msg_.data()) + 1;
-    if (cmd_name_size == ping_name_size
-        && libc::memcmp (cmd_name, "PING", cmd_name_size) == 0) {
+    let cmd_name = (msg_.data()[1..]);
+    if cmd_name_size == ping_name_size as u8
+        && libc::memcmp (
+        cmd_name,
+        "PING".as_ptr() as *const libc::c_void,
+        cmd_name_size as libc::size_t
+    ) == 0 {
         msg_.set_flags(MSG_PING);
     }
-    if (cmd_name_size == ping_name_size
-        && libc::memcmp (cmd_name, "PONG", cmd_name_size) == 0) {
+    if cmd_name_size == cmd_name_size as u8
+        && libc::memcmp (
+        cmd_name,
+        "PONG".as_ptr() as *const libc::c_void,
+        cmd_name_size as libc::size_t
+    ) == 0 {
         msg_ .set_flags(MSG_PONG);
     }
-    if (cmd_name_size == sub_name_size
-        && libc::memcmp (cmd_name, "SUBSCRIBE", cmd_name_size) == 0) {
+    if cmd_name_size == sub_name_size as u8
+        && libc::memcmp (
+        cmd_name,
+        "SUBSCRIBE".as_ptr() as *const libc::c_void,
+        cmd_name_size as libc::size_t
+    ) == 0 {
         msg_.set_flags(MSG_SUBSCRIBE);
     }
-    if (cmd_name_size == cancel_name_size
-        && libc::memcmp (cmd_name, "CANCEL", cmd_name_size) == 0) {
+    if cmd_name_size == cancel_name_size as u8
+        && libc::memcmp (
+        cmd_name,
+        "CANCEL".as_ptr() as *const libc::c_void,
+        cmd_name_size as libc::size_t
+    ) == 0 {
         msg_.set_flags(MSG_CANCEL);
     }
 
-    if (msg_.is_ping () || msg_.is_pong ()){
+    if msg_.is_ping () || msg_.is_pong () {
     return engine.process_heartbeat_message(msg_);
 }
 

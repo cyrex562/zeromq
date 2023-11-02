@@ -9,8 +9,6 @@ use crate::endpoint::ZmqEndpointUriPair;
 use crate::engine::ZmqEngine;
 use crate::err::ZmqError;
 use crate::err::ZmqError::PipeError;
-use crate::io_object::IoObject;
-use crate::io_thread::ZmqIoThread;
 use crate::msg::ZmqMsg;
 use crate::object::obj_send_bind;
 use crate::options::{get_effective_conflate_option, ZmqOptions};

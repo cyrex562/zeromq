@@ -1,9 +1,16 @@
+#[cfg(target_os="windows")]
+use windows::Win32::Networking::WinSock::WSAPoll;
 use crate::defines::ZmqPollFd;
 use crate::err::ZmqError;
 
 pub mod i_poll_events;
 pub mod select;
 pub mod socket_poller;
+
+pub mod poller_base;
+pub mod poller_event;
+pub mod polling_util;
+pub mod pollitem;
 
 pub fn zmq_poll_int(poll_fd: ZmqPollFd, nitems_: u32, timeout: u32) -> Result<(), ZmqError> {
     let mut result = 0i32;

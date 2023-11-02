@@ -6,19 +6,19 @@ use libc::pid_t;
 #[cfg(not(target_os = "windows"))]
 use libc::pollfd;
 
-mod array;
-mod atomic_counter;
-mod atomic_ptr;
-mod blob;
-mod clock;
-mod dbuffer;
+pub mod array;
+pub mod atomic_counter;
+pub mod atomic_ptr;
+pub mod blob;
+pub mod clock;
+pub mod dbuffer;
 pub mod fair_queue;
-mod generic_mtrie;
+pub mod generic_mtrie;
 pub mod load_balancer;
-mod mtrie;
-mod mutex;
-mod radix_tree;
-mod trie;
+pub mod mtrie;
+pub mod mutex;
+pub mod radix_tree;
+pub mod trie;
 pub mod yqueue;
 pub mod zmq_draft;
 // #[cfg(target_os="windows")]
@@ -1174,3 +1174,181 @@ pub const NI_DGRAM: i32 = 16;
 // #define NI_MAXHOST 64
 pub const NI_MAXHOST: i32 = 64;
 // #endif
+
+//
+// ip mreq
+//
+#[derive(Default, Debug, Clone)]
+pub struct ZmqIpMreq {
+    pub imr_multiaddr: ZmqInAddr,
+    pub imr_interface: ZmqInAddr,
+}
+
+#[derive(Default,Debug,Clone)]
+pub struct ZmqIpv6Mreq {
+    pub ipv6mr_multiaddr: ZmqIn6Addr,
+    pub ipv6mr_interface: u32,
+}
+
+pub const INADDR_NONE: u32 = 0xffffffff;
+
+//
+//
+//
+
+// 96 #define IP_MULTICAST_IF         32
+pub const IP_MULTICAST_IF: i32 = 32;
+//    97 #define IP_MULTICAST_TTL        33
+pub const IP_MULTICAST_TTL: i32 = 33;
+//    98 #define IP_MULTICAST_LOOP       34
+pub const IP_MULTICAST_LOOP: i32 = 34;
+//    99 #define IP_ADD_MEMBERSHIP       35
+pub const IP_ADD_MEMBERSHIP: i32 = 35;
+//   100 #define IP_DROP_MEMBERSHIP      36
+pub const IP_DROP_MEMBERSHIP: i32 = 36;
+//   101 #define IP_UNBLOCK_SOURCE       37
+pub const IP_UNBLOCK_SOURCE: i32 = 37;
+//   102 #define IP_BLOCK_SOURCE         38
+pub const IP_BLOCK_SOURCE: i32 = 38;
+//   103 #define IP_ADD_SOURCE_MEMBERSHIP    39
+pub const IP_ADD_SOURCE_MEMBERSHIP: i32 = 39;
+//   104 #define IP_DROP_SOURCE_MEMBERSHIP   40
+pub const IP_DROP_SOURCE_MEMBERSHIP: i32 = 40;
+
+//
+//
+//
+
+//   143 #define IPV6_ADDRFORM       1
+pub const IPV6_ADDRFORM: i32 = 1;
+//   144 #define IPV6_2292PKTINFO    2
+pub const IPV6_2292PKTINFO: i32 = 2;
+//   145 #define IPV6_2292HOPOPTS    3
+pub const IPV6_2292HOPOPTS: i32 = 3;
+//   146 #define IPV6_2292DSTOPTS    4
+pub const IPV6_2292DSTOPTS: i32 = 4;
+//   147 #define IPV6_2292RTHDR      5
+pub const IPV6_2292RTHDR: i32 = 5;
+//   148 #define IPV6_2292PKTOPTIONS 6
+pub const IPV6_2292PKTOPTIONS: i32 = 6;
+//   149 #define IPV6_CHECKSUM       7
+pub const IPV6_CHECKSUM: i32 = 7;
+//   150 #define IPV6_2292HOPLIMIT   8
+pub const IPV6_2292HOPLIMIT: i32 = 8;
+//   151 #define IPV6_NEXTHOP        9
+pub const IPV6_NEXTHOP: i32 = 9;
+//   152 #define IPV6_AUTHHDR        10  /* obsolete */
+pub const IPV6_AUTHHDR: i32 = 10;
+//   153 #define IPV6_FLOWINFO       11
+pub const IPV6_FLOWINFO: i32 = 11;
+//   154
+//   155 #define IPV6_UNICAST_HOPS   16
+pub const IPV6_UNICAST_HOPS: i32 = 16;
+//   156 #define IPV6_MULTICAST_IF   17
+pub const IPV6_MULTICAST_IF: i32 = 17;
+//   157 #define IPV6_MULTICAST_HOPS 18
+pub const IPV6_MULTICAST_HOPS: i32 = 18;
+//   158 #define IPV6_MULTICAST_LOOP 19
+pub const IPV6_MULTICAST_LOOP: i32 = 19;
+//   159 #define IPV6_ADD_MEMBERSHIP 20
+pub const IPV6_ADD_MEMBERSHIP: i32 = 20;
+//   160 #define IPV6_DROP_MEMBERSHIP    21
+pub const IPV6_DROP_MEMBERSHIP: i32 = 21;
+//   161 #define IPV6_ROUTER_ALERT   22
+pub const IPV6_ROUTER_ALERT: i32 = 22;
+//   162 #define IPV6_MTU_DISCOVER   23
+pub const IPV6_MTU_DISCOVER: i32 = 23;
+//   163 #define IPV6_MTU        24
+pub const IPV6_MTU: i32 = 24;
+//   164 #define IPV6_RECVERR        25
+pub const IPV6_RECVERR: i32 = 25;
+//   165 #define IPV6_V6ONLY     26
+pub const IPV6_V6ONLY: i32 = 26;
+//   166 #define IPV6_JOIN_ANYCAST   27
+pub const IPV6_JOIN_ANYCAST: i32 = 27;
+//   167 #define IPV6_LEAVE_ANYCAST  28
+pub const IPV6_LEAVE_ANYCAST: i32 = 28;
+
+
+//    15 #define SO_DEBUG    0x0001
+pub const SO_DEBUG: i32 = 0x0001;
+//    16 #define SO_REUSEADDR    0x0004
+pub const SO_REUSEADDR: i32 = 0x0004;
+//    17 #define SO_KEEPALIVE    0x0008
+pub const SO_KEEPALIVE: i32 = 0x0008;
+//    18 #define SO_DONTROUTE    0x0010
+pub const SO_DONTROUTE: i32 = 0x0010;
+//    19 #define SO_BROADCAST    0x0020
+pub const SO_BROADCAST: i32 = 0x0020;
+//    20 #define SO_LINGER   0x0080
+pub const SO_LINGER: i32 = 0x0080;
+//    21 #define SO_OOBINLINE    0x0100
+pub const SO_OOBINLINE: i32 = 0x0100;
+//    22 /* To add :#define SO_REUSEPORT 0x0200 */
+//    23
+//    24 #define SO_TYPE     0x1008
+pub const SO_TYPE: i32 = 0x1008;
+//    25 #define SO_ERROR    0x1007
+pub const SO_ERROR: i32 = 0x1007;
+//    26 #define SO_SNDBUF   0x1001
+pub const SO_SNDBUF: i32 = 0x1001;
+//    27 #define SO_RCVBUF   0x1002
+pub const SO_RCVBUF: i32 = 0x1002;
+//    28 #define SO_SNDBUFFORCE  0x100a
+pub const SO_SNDBUFFORCE: i32 = 0x100a;
+//    29 #define SO_RCVBUFFORCE  0x100b
+pub const SO_RCVBUFFORCE: i32 = 0x100b;
+//    30 #define SO_RCVLOWAT 0x1010
+pub const SO_RCVLOWAT: i32 = 0x1010;
+//    31 #define SO_SNDLOWAT 0x1011
+pub const SO_SNDLOWAT: i32 = 0x1011;
+//    32 #define SO_RCVTIMEO 0x1012
+pub const SO_RCVTIMEO: i32 = 0x1012;
+//    33 #define SO_SNDTIMEO 0x1013
+pub const SO_SNDTIMEO: i32 = 0x1013;
+//    34 #define SO_ACCEPTCONN   0x1014
+pub const SO_ACCEPTCONN: i32 = 0x1014;
+//    35 #define SO_PROTOCOL 0x1028
+pub const SO_PROTOCOL: i32 = 0x1028;
+//    36 #define SO_DOMAIN   0x1029
+pub const SO_DOMAIN: i32 = 0x1029;
+//    37
+//    38 /* linux-specific, might as well be the same as on i386 */
+//    39 #define SO_NO_CHECK 11
+pub const SO_NO_CHECK: i32 = 11;
+//    40 #define SO_PRIORITY 12
+pub const SO_PRIORITY: i32 = 12;
+//    41 #define SO_BSDCOMPAT    14
+pub const SO_BSDCOMPAT: i32 = 14;
+//    42
+//    43 #define SO_PASSCRED 17
+pub const SO_PASSCRED: i32 = 17;
+//    44 #define SO_PEERCRED 18
+pub const SO_PEERCRED: i32 = 18;
+//    45 #define SO_BINDTODEVICE 25
+pub const SO_BINDTODEVICE: i32 = 25;
+//    46
+//    47 /* Socket filtering */
+//    48 #define SO_ATTACH_FILTER        26
+pub const SO_ATTACH_FILTER: i32 = 26;
+//    49 #define SO_DETACH_FILTER        27
+pub const SO_DETACH_FILTER: i32 = 27;
+//    50
+//    51 #define SO_PEERNAME     28
+pub const SO_PEERNAME: i32 = 28;
+//    52 #define SO_TIMESTAMP        29
+pub const SO_TIMESTAMP: i32 = 29;
+//    53 #define SCM_TIMESTAMP       SO_TIMESTAMP
+pub const SCM_TIMESTAMP: i32 = SO_TIMESTAMP;
+//    54
+//    55 #define SO_PEERSEC      30
+pub const SO_PEERSEC: i32 = 30;
+//    56 #define SO_PASSSEC      34
+pub const SO_PASSSEC: i32 = 34;
+//    57 #define SO_TIMESTAMPNS      35
+pub const SO_TIMESTAMPNS: i32 = 35;
+
+pub const SOL_SOCKET: u16 = 0xffff;
+
+// #define MAX_UDP_MSG 8192
+pub const MAX_UDP_MSG: usize = 8192;

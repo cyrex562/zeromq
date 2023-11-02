@@ -1,26 +1,28 @@
 use crate::command::ZmqCommand;
-use crate::ctx::reaper_tid;
+use crate::ctx::{reaper_tid, ZmqContext};
 use crate::defines::ZmqHandle;
-use crate::mailbox::ZmqMailbox;
-use crate::object::ZmqObject;
-use crate::poll::i_poll_events::IPollEvents;
-use crate::poller::ZmqPoller;
+use crate::io::mailbox::ZmqMailbox;
+use crate::object::{obj_process_command, obj_send_stop};
+use crate::options::ZmqOptions;
+use crate::pipe::ZmqPipe;
+use crate::poll::poller_base::ZmqPollerBase;
 
 pub struct ZmqIoThread<'a> {
-    pub object: ZmqObject<'a>,
-    pub _mailbox: ZmqMailbox,
+    // pub object: ZmqObject<'a>,
+    pub thread_id: u32,
+    pub _mailbox: ZmqMailbox<'a>,
     pub _mailbox_handle: ZmqHandle,
-    pub _poller: *mut ZmqPoller,
+    pub _poller: &'a mut ZmqPollerBase,
 }
 
 impl ZmqIoThread {
     pub fn start(&mut self) {
-        let name = format!("IO/{}", self.object.get_tid() - reaper_tid - 1);
+        let name = format!("IO/{}", self.thread_id - reaper_tid - 1);
         self._poller.start(name);
     }
 
-    pub fn stop(&mut self) {
-        self.object.send_stop();
+    pub fn stop(&mut self, ctx: &mut ZmqContext, pipe: &mut ZmqPipe) {
+        obj_send_stop(ctx, pipe, self.thread_id);
     }
 
     pub fn get_mailbox(&mut self) -> *mut ZmqMailbox {
@@ -31,7 +33,7 @@ impl ZmqIoThread {
         return self._poller.get_load();
     }
 
-    pub fn get_poller(&mut self) -> *mut ZmqPoller {
+    pub fn get_poller(&mut self) -> &mut ZmqPollerBase {
         return self._poller;
     }
 
@@ -39,17 +41,16 @@ impl ZmqIoThread {
         self._poller.rm_fd(self._mailbox_handle);
         self._poller.stop();
     }
-}
 
-impl IPollEvents for ZmqIoThread {
-    unsafe fn in_event(&mut self) {
+    pub fn in_event(&mut self, options: &ZmqOptions) {
         let mut cmd = ZmqCommand::new();
         let rc = self._mailbox.recv(&mut cmd, 0);
         while rc == 0 {
             if rc == 0 {
-                cmd.destination.process_command(&mut cmd);
+                // cmd.destination.process_command(&mut cmd);
+                obj_process_command(options, &mut cmd, cmd.dest_pipe.unwrap());
             }
-            rc = self._mailbox.recv(&mut cmd, 0);
+            self._mailbox.recv(&mut cmd, 0);
         }
     }
 
