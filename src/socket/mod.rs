@@ -5,6 +5,8 @@ use std::ptr::null_mut;
 
 use libc::{clock_t, EAGAIN, EINTR};
 
+use routing_socket_base::ZmqRoutingSocketBase;
+
 use crate::address::ZmqAddress;
 use crate::array::ArrayItem;
 use crate::client::{client_xattach_pipe, client_xgetsockopt, client_xhas_in, client_xhas_out, client_xjoin, client_xpipe_terminated, client_xread_activated, client_xrecv, client_xsend, client_xsetsockopt, client_xwrite_activated};
@@ -18,11 +20,11 @@ use crate::dist::ZmqDist;
 use crate::endpoint::{make_unconnected_connect_endpoint_pair, ZmqEndpointUriPair};
 use crate::err::ZmqError;
 use crate::err::ZmqError::{InvalidContext, SocketError};
-use crate::fair_queue::ZmqFairQueue;
+use crate::defines::fair_queue::ZmqFairQueue;
 use crate::gather::{gather_xattach_pipe, gather_xgetsockopt, gather_xhas_in, gather_xhas_out, gather_xjoin, gather_xpipe_terminated, gather_xread_activated, gather_xrecv, gather_xsend, gather_xsetsockopt, gather_xwrite_activated};
 use crate::generic_mtrie::GenericMtrie;
-use crate::i_poll_events::IPollEvents;
-use crate::load_balancer::ZmqLoadBalancer;
+use crate::poll::i_poll_events::IPollEvents;
+use crate::defines::load_balancer::ZmqLoadBalancer;
 use crate::mailbox::ZmqMailbox;
 use crate::metadata::ZmqMetadata;
 use crate::msg::ZmqMsg;
@@ -43,19 +45,22 @@ use crate::radio::{radio_xattach_pipe, radio_xgetsockopt, radio_xhas_in, radio_x
 use crate::rep::{rep_xattach_pipe, rep_xgetsockopt, rep_xhas_in, rep_xhas_out, rep_xjoin, rep_xpipe_terminated, rep_xread_activated, rep_xrecv, rep_xsend, rep_xsetsockopt, rep_xwrite_activated};
 use crate::req::{req_xattach_pipe, req_xgetsockopt, req_xhas_in, req_xhas_out, req_xjoin, req_xpipe_terminated, req_xread_activated, req_xrecv, req_xsend, req_xsetsockopt, req_xwrite_activated};
 use crate::router::{router_xattach_pipe, router_xgetsockopt, router_xhas_in, router_xhas_out, router_xjoin, router_xpipe_terminated, router_xread_activated, router_xrecv, router_xsend, router_xsetsockopt, router_xwrite_activated};
-use crate::routing_socket_base::ZmqRoutingSocketBase;
-use crate::scatter::{scatter_xattach_pipe, scatter_xgetsockopt, scatter_xhas_in, scatter_xhas_out, scatter_xjoin, scatter_xpipe_terminated, scatter_xread_activated, scatter_xrecv, scatter_xsend, scatter_xsetsockopt, scatter_xwrite_activated};
-use crate::server::{server_xattach_pipe, server_xgetsockopt, server_xhas_in, server_xhas_out, server_xjoin, server_xpipe_terminated, server_xread_activated, server_xrecv, server_xsend, server_xsetsockopt, server_xwrite_activated};
 use crate::session::ZmqSession;
 use crate::signaler::ZmqSignaler;
-use crate::sub::{sub_xattach_pipe, sub_xgetsockopt, sub_xhas_in, sub_xhas_out, sub_xjoin, sub_xpipe_terminated, sub_xread_activated, sub_xrecv, sub_xsend, sub_xsetsockopt, sub_xwrite_activated};
 use crate::tcp_address::ZmqTcpAddress;
 use crate::udp_address::UdpAddress;
 use crate::utils::get_errno;
 use crate::xpub::{xpub_xattach_pipe, xpub_xgetsockopt, xpub_xhas_in, xpub_xhas_out, xpub_xjoin, xpub_xpipe_terminated, xpub_xread_activated, xpub_xrecv, xpub_xsend, xpub_xsetsockopt, xpub_xwrite_activated};
 use crate::xsub::{xsub_has_out, xsub_xattach_pipe, xsub_xgetsockopt, xsub_xhas_in, xsub_xjoin, xsub_xpipe_terminated, xsub_xread_activated, xsub_xrecv, xsub_xsend, xsub_xsetsockopt, xsub_xwrite_activated};
 use crate::zmq_ops::{zmq_bind, zmq_close, zmq_msg_data, zmq_msg_init_size, zmq_msg_send, zmq_setsockopt, zmq_socket};
-use crate::zmq_pipe::ZmqPipes;
+use crate::pipe::zmq_pipe::ZmqPipes;
+
+mod server;
+pub mod routing_socket_base;
+mod scatter;
+mod sub;
+mod xpub;
+mod xsub;
 
 pub type ZmqEndpointPipe<'a> = (&'a mut ZmqSession<'a>, &'a mut ZmqPipe<'a>);
 pub type ZmqEndpoints<'a> = HashMap<String, ZmqEndpointPipe<'a>>;

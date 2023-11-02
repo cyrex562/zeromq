@@ -6,18 +6,20 @@ use crate::err::ZmqError::PipeError;
 use crate::msg::ZmqMsg;
 use crate::object::ZmqObject;
 use crate::options::ZmqOptions;
-use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipeState::{
     Active, DelimiterReceived, TermAckSent, TermReqSent1, TermReqSent2, WaitingForDelimiter,
 };
 use crate::session::ZmqSession;
 use crate::socket::ZmqSocket;
+use crate::ypipe::ypipe_base::ZmqYPipeBase;
+use crate::ypipe::ypipe_conflate::YPipeConflate;
 use crate::ypipe::ZmqYPipe;
-use crate::ypipe_base::ZmqYPipeBase;
-use crate::ypipe_conflate::YPipeConflate;
 use libc::size_t;
 use std::ffi::c_void;
 use std::ptr::null_mut;
+
+pub mod pipes;
+pub mod zmq_pipe;
 
 pub trait IPipeEvents {
     fn read_activated(&self, pipe_: &mut ZmqPipe);

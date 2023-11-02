@@ -13,6 +13,8 @@ use crate::err::ZmqError::MessageError;
 use crate::metadata::ZmqMetadata;
 use crate::msg::ZmqGroupType::{GroupTypeLong, GroupTypeShort};
 
+mod raw_msg;
+
 pub type MsgFreeFn = fn(&mut [u8], &mut [u8]);
 
 #[derive(Default, Debug, Clone)]
@@ -198,11 +200,11 @@ impl ZmqMsg {
         self.type_ >= TYPE_MIN && self.type_ <= TYPE_MAX
     }
 
-    pub unsafe fn init(
+    pub fn init(
         &mut self,
         data: &mut [u8],
         size: size_t,
-        free_fn: MsgFreeFn,
+        free_fn: Option<MsgFreeFn>,
         hint: &mut [u8],
         content: &mut ZmqContent,
     ) -> Result<(), ZmqError> {
@@ -219,13 +221,16 @@ impl ZmqMsg {
         if content != ZmqContent::default() {
             return self.init_external_storage(content, data, size, free_fn, hint);
         }
-        return self.init_data(data, size, Some(free_fn), hint);
+        return self.init_data(data, size, free_fn, hint);
     }
 
-    pub fn init3(&mut self, data: &mut[u8], hint: &mut [u8], content: &mut ZmqContent) -> Result<(), ZmqError>
-    {
-        if data.len() < MAX_VSM_SIZE
-        {
+    pub fn init3(
+        &mut self,
+        data: &mut [u8],
+        hint: &mut [u8],
+        content: &mut ZmqContent,
+    ) -> Result<(), ZmqError> {
+        if data.len() < MAX_VSM_SIZE {
             self.init_size(data.len())?;
             self.data.copy_from_slice(data);
         }
@@ -233,7 +238,6 @@ impl ZmqMsg {
             return self.init_external_storage2(content, data, hint);
         }
         return self.init_data2(data, hint);
-
     }
 
     pub fn init2(&mut self) -> Result<(), ZmqError> {
@@ -288,12 +292,12 @@ impl ZmqMsg {
         return Ok(());
     }
 
-    pub unsafe fn init_external_storage(
+    pub fn init_external_storage(
         &mut self,
         content_: &mut ZmqContent,
         data: &mut [u8],
         size_: size_t,
-        ffn_: MsgFreeFn,
+        ffn_: Option<MsgFreeFn>,
         hint: &mut [u8],
     ) -> Result<(), ZmqError> {
         self.metadata = ZmqMetadata::default();
@@ -306,7 +310,7 @@ impl ZmqMsg {
         self.content = content_.clone();
         (*self.content).data.clone_from_slice(data);
         (*self.content).size = size_;
-        (*self.content).ffn = Some(ffn_);
+        (*self.content).ffn = ffn_;
         (*self.content).hint.clone_from_slice(hint);
         // new (&_u.zclmsg.content->refcnt) zmq::atomic_counter_t ();
         (*self.content).refcnt = ZmqAtomicCounter::new(0);
@@ -315,7 +319,10 @@ impl ZmqMsg {
     }
 
     pub unsafe fn init_external_storage2(
-        &mut self, content_: &mut ZmqContent, data: &mut [u8], hint: &mut [u8]
+        &mut self,
+        content_: &mut ZmqContent,
+        data: &mut [u8],
+        hint: &mut [u8],
     ) -> Result<(), ZmqError> {
         self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_ZCLMSG;
@@ -335,7 +342,7 @@ impl ZmqMsg {
         Ok(())
     }
 
-    pub unsafe fn init_data(
+    pub fn init_data(
         &mut self,
         data_: &[u8],
         size_: size_t,
@@ -376,16 +383,15 @@ impl ZmqMsg {
         Ok(())
     }
 
-    pub fn init_data2(&mut self, data: &[u8], hint_: &[u8]) -> Result<(), ZmqError>
-    {
+    pub fn init_data2(&mut self, data: &[u8], hint_: &[u8]) -> Result<(), ZmqError> {
         self.metadata = ZmqMetadata::default();
-            self.type_ = TYPE_CMSG;
-            self.flags = 0;
-            self.data.clone_from_slice(data);
-            self.size = data.len() as u8;
-            self.group[0] = 0;
-            self.group_type = GroupTypeShort as u8;
-            self.routing_id = 0;
+        self.type_ = TYPE_CMSG;
+        self.flags = 0;
+        self.data.clone_from_slice(data);
+        self.size = data.len() as u8;
+        self.group[0] = 0;
+        self.group_type = GroupTypeShort as u8;
+        self.routing_id = 0;
         Ok(())
     }
 
@@ -682,7 +688,7 @@ impl ZmqMsg {
         return self.flags & CMD_TYPE_MASK == MSG_PING;
     }
 
-    pub  fn is_pong(&self) -> bool {
+    pub fn is_pong(&self) -> bool {
         return self.flags & CMD_TYPE_MASK == MSG_PONG;
     }
 
@@ -763,7 +769,7 @@ impl ZmqMsg {
                 );
             }
 
-            return Err(MessageError("unknown error"))
+            return Err(MessageError("unknown error"));
         }
 
         Ok(())
@@ -843,7 +849,7 @@ pub fn close_and_return(mut msg_: *mut ZmqMsg, echo: i32) -> Result<i32, ZmqErro
     return Ok(echo);
 }
 
-pub fn close_and_return2(msg_: &mut [ZmqMsg], count_: i32, echo_: i32) -> Result<i32,ZmqError> {
+pub fn close_and_return2(msg_: &mut [ZmqMsg], count_: i32, echo_: i32) -> Result<i32, ZmqError> {
     for i in 0..count_ {
         close_and_return(&mut msg_[i as usize], 0)?;
     }

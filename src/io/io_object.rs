@@ -1,8 +1,8 @@
-use std::ptr::null_mut;
 use crate::defines::{ZmqFd, ZmqHandle};
-use crate::i_poll_events::IPollEvents;
 use crate::io_thread::ZmqIoThread;
+use crate::poll::i_poll_events::IPollEvents;
 use crate::poller::ZmqPoller;
+use std::ptr::null_mut;
 
 pub struct IoObject {
     pub _poller: *mut ZmqPoller,

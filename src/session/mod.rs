@@ -1,19 +1,26 @@
+use std::collections::HashSet;
+use std::ptr::null_mut;
+
 use crate::address::ZmqAddress;
-use crate::defines::{MSG_COMMAND, MSG_MORE, ZMQ_DGRAM, ZMQ_DISH, ZMQ_NULL, ZMQ_RADIO, ZMQ_REQ, ZMQ_SUB, ZMQ_XSUB};
+use crate::defines::{
+    MSG_COMMAND, MSG_MORE, ZMQ_DGRAM, ZMQ_DISH, ZMQ_NULL, ZMQ_RADIO, ZMQ_REQ, ZMQ_SUB, ZMQ_XSUB,
+};
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::engine::ZmqEngine;
 use crate::err::ZmqError;
+use crate::err::ZmqError::PipeError;
 use crate::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
 use crate::msg::ZmqMsg;
 use crate::object::obj_send_bind;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
 use crate::own::ZmqOwn;
-use crate::pipe::{pipepair, IPipeEvents, ZmqPipe};
+use crate::pipe::{IPipeEvents, pipepair, ZmqPipe};
 use crate::socket::ZmqSocket;
-use std::collections::HashSet;
-use std::ptr::null_mut;
-use crate::err::ZmqError::PipeError;
+
+mod radio_session;
+mod req_session;
+mod dish_session;
 
 pub enum ZmqSessionState {
     Group,
@@ -36,7 +43,7 @@ pub struct ZmqSession<'a> {
     pub _engine: Option<&'a mut ZmqEngine<'a>>,
     pub _state: ZmqSessionState,
     pub _group_msg: ZmqMsg,
-    pub _pending_msg: ZmqMsg
+    pub _pending_msg: ZmqMsg,
 }
 
 pub const _linger_timer_id: i32 = 0x20;
@@ -130,7 +137,7 @@ impl ZmqSession {
         return 0;
     }
 
-    pub fn push_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+    pub fn push_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
         if (msg_).flags() & MSG_COMMAND != 0 && !msg_.is_subscribe() && !msg_.is_cancel() {
             return Ok(());
         }
@@ -139,7 +146,7 @@ impl ZmqSession {
             return Ok(());
         }
 
-        return Err(PipeError("failed to push msg"))
+        return Err(PipeError("failed to push msg"));
     }
 
     pub fn read_zap_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
@@ -211,11 +218,7 @@ impl ZmqSession {
             self.terminate();
         }
 
-        if self._pending
-            && self._pipe == null_mut()
-            && self._zap_pipe == null_mut()
-            && self._terminating_pipes.len() == 0
-        {
+        if self._pending && self._pipe == null_mut() && self._zap_pipe == null_mut() && self._terminating_pipes.len() == 0 {
             self._pending = false;
             self.io_object.signal();
         }
@@ -325,8 +328,7 @@ impl ZmqSession {
         //  Create the pipe if it does not exist yet.
         if self._pipe.is_none() && !self.is_terminating() {
             // object_t *parents[2] = {this, _socket};
-            let parents: [&mut ZmqObject; 2] =
-                [self as &mut ZmqObject, self._socket as &mut ZmqObject];
+            let parents: [&mut ZmqObject; 2] = [self as &mut ZmqObject, self._socket as &mut ZmqObject];
             // pipe_t *pipes[2] = {NULL, NULL};
             let mut pipes: [Option<&mut ZmqPipe>; 2] = [None, None];
 
@@ -370,21 +372,13 @@ impl ZmqSession {
             self.clean_pipes();
 
             //  Only send disconnect message if socket was accepted and handshake was completed
-            if !self._active
-                && handshaked_
-                && options.can_recv_disconnect_msg
-                && !options.disconnect_msg.empty()
-            {
+            if !self._active && handshaked_ && options.can_recv_disconnect_msg && !options.disconnect_msg.empty() {
                 self._pipe.set_disconnect_msg(&mut options.disconnect_msg);
                 self._pipe.send_disconnect_msg();
             }
 
             //  Only send Hiccup message if socket was connected and handshake was completed
-            if self._active
-                && handshaked_
-                && options.can_recv_hiccup_msg
-                && !options.hiccup_msg.empty()
-            {
+            if self._active && handshaked_ && options.can_recv_hiccup_msg && !options.hiccup_msg.empty() {
                 self._pipe.send_hiccup_msg(&mut self.own.options.hiccup_msg);
             }
         }
@@ -493,9 +487,7 @@ impl ZmqSession {
             // #endif
             // #ifdef ZMQ_HAVE_NORM
             //         && _addr->protocol != protocol_name::norm
-            // #endif
-        && (*self._addr).protocol != "udp")
-        {
+            // #endif && (*self._addr).protocol != "udp") {
             self._pipe.hiccup();
             self._pipe.terminate(false);
             self._terminating_pipes.insert(self._pipe.unwrap());
@@ -521,11 +513,7 @@ impl ZmqSession {
 
         //  For subscriber sockets we Hiccup the inbound pipe, which will cause
         //  the socket object to resend all the subscriptions.
-        if (self._pipe.is_some()
-            && (self.own.options.type_ == ZMQ_SUB
-                || self.own.options.type_ == ZMQ_XSUB
-                || self.own.options.type_ == ZMQ_DISH))
-        {
+        if (self._pipe.is_some() && (self.own.options.type_ == ZMQ_SUB || self.own.options.type_ == ZMQ_XSUB || self.own.options.type_ == ZMQ_DISH)) {
             self._pipe.hiccup();
         }
     }
@@ -562,8 +550,7 @@ impl ZmqSession {
             } else {
                 // connecter = new (std::nothrow)
                 //   tcp_connecter_t (io_thread, this, options, _addr, wait_);
-                connecter =
-                    tcp_connecter_t::new2(io_thread, self, &self.own.options, self._addr, wait_);
+                connecter = tcp_connecter_t::new2(io_thread, self, &self.own.options, self._addr, wait_);
             }
         }
         // #if defined ZMQ_HAVE_IPC

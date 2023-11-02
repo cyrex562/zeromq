@@ -1,9 +1,26 @@
-use libc::pid_t;
-#[cfg(not(target_os = "windows"))]
-use libc::pollfd;
 use std::collections::HashSet;
 use std::ffi::c_void;
 use std::sync::Mutex;
+
+use libc::pid_t;
+#[cfg(not(target_os = "windows"))]
+use libc::pollfd;
+
+mod array;
+mod atomic_counter;
+mod atomic_ptr;
+mod blob;
+mod clock;
+mod dbuffer;
+pub mod fair_queue;
+mod generic_mtrie;
+pub mod load_balancer;
+mod mtrie;
+mod mutex;
+mod radix_tree;
+mod trie;
+pub mod yqueue;
+pub mod zmq_draft;
 // #[cfg(target_os="windows")]
 // use windows::Win32::Networking::WinSock::sa_family_t;
 
@@ -665,6 +682,7 @@ pub struct ZmqSockaddrStorage {
     // sin6_flowinfo: u32,
     // sin6_addr: [u8; 16],
     // sin6_scope_id: u32,
+    sa_data: [u8; std::mem::size_of::<ZmqSockAddrIn6>()],
 }
 
 pub const COMMAND_PIPE_GRANULARITY: usize = 16;
@@ -712,7 +730,7 @@ pub const SOCKET_TYPE_DGRAM: &'static str = "DGRAM";
 pub const SOCKET_TYPE_PEER: &'static str = "PEER";
 pub const SOCKET_TYPE_CHANNEL: &'static str = "CHANNEL";
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ZmqSockAddrIn {
     pub sin_family: u16,
     pub sin_port: u16,
@@ -720,18 +738,18 @@ pub struct ZmqSockAddrIn {
     pub sin_zero: [u8; 8],
 }
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ZmqInAddr {
     pub s_addr: u32,
 }
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ZmqSockAddr {
     pub sa_family: u16,
     pub sa_data: [u8; 14],
 }
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ZmqSockAddrIn6 {
     pub sin6_family: u16,
     pub sin6_port: u16,
@@ -740,7 +758,7 @@ pub struct ZmqSockAddrIn6 {
     pub sin6_scope_id: u32,
 }
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ZmqIn6Addr {
     pub s6_addr: [u8; 16],
 }
@@ -766,7 +784,6 @@ pub const SOCK_PACKET: i32 = 10;
 pub const SOCK_CLOEXEC: i32 = 02000000;
 
 pub const SOCK_NONBLOCK: i32 = 04000;
-
 
 /////////////////
 // IP PROTO TYPES
@@ -861,7 +878,12 @@ pub const IPPROTO_MPTCP: i32 = 262;
 
 pub const INADDR_ANY: u32 = 0;
 
-pub const IN6ADDR_ANY: in6_addr = in6_addr { s6_addr: [0; 16] };
+// #[derive(Default,Debug,Clone)]
+// pub struct ZmqIn6Addr {
+//     pub s6_addr:[u8;16]
+// }
+
+pub const IN6ADDR_ANY: ZmqIn6Addr = ZmqIn6Addr { s6_addr: [0; 16] };
 
 //
 // ADDRESS FAMILIES
@@ -969,8 +991,6 @@ pub const PF_MCTP: i32 = 45;
 // #define PF_MAX		46	/* For now..  */
 pub const PF_MAX: i32 = 46;
 
-
-
 // /* Address families.  */
 // #define AF_UNSPEC	PF_UNSPEC
 pub const AF_UNSPEC: i32 = PF_UNSPEC;
@@ -1076,9 +1096,8 @@ pub const AF_MAX: i32 = PF_MAX;
 //
 // Struct AddrInfo
 //
-#[derive(Default,Debug,Clone)]
-pub struct ZmqAddrInfo
-{
+#[derive(Default, Debug, Clone)]
+pub struct ZmqAddrInfo {
     pub ai_flags: i32,
     pub ai_family: i32,
     pub ai_socktype: i32,
@@ -1133,3 +1152,25 @@ pub const EAI_BADHINTS: i32 = 12;
 pub const EAI_PROTOCOL: i32 = 13;
 // #define EAI_MAX         14
 pub const EAI_MAX: i32 = 14;
+
+//
+// Nameinfo constants
+//
+
+//#define NI_NUMERICHOST 1
+pub const NI_NUMERICHOST: i32 = 1;
+// #define NI_NUMERICSERV 2
+pub const NI_NUMERICSERV: i32 = 2;
+// #define NI_NOFQDN 4
+pub const NI_NOFQDN: i32 = 4;
+// #define NI_NAMEREQD 8
+pub const NI_NAMEREQD: i32 = 8;
+// #define NI_DGRAM 16
+pub const NI_DGRAM: i32 = 16;
+//
+// /* POSIX extensions */
+//
+// #ifndef NI_MAXHOST
+// #define NI_MAXHOST 64
+pub const NI_MAXHOST: i32 = 64;
+// #endif

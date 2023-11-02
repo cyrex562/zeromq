@@ -1,12 +1,10 @@
-use std::ptr::null_mut;
-use crate::zmq_pipe::ZmqPipes;
 use crate::msg::ZmqMsg;
+use crate::pipe::pipes::ZmqPipes;
 use crate::pipe::ZmqPipe;
+use std::ptr::null_mut;
 
-
-#[derive(Default,Debug,Clone)]
-pub struct ZmqLoadBalancer
-{
+#[derive(Default, Debug, Clone)]
+pub struct ZmqLoadBalancer {
     pub _pipes: ZmqPipes,
     pub _active: usize,
     pub _current: usize,
@@ -25,15 +23,15 @@ impl ZmqLoadBalancer {
         }
     }
 
-    pub fn attach(&mut self, pipe_: *mut ZmqPipe) {
+    pub fn attach(&mut self, pipe_: &mut ZmqPipe) {
         self._pipes.push_back(pipe_);
         self.activated(pipe_);
     }
 
-    pub fn pipe_terminated(&mut self, pipe_: *mut ZmqPipe) {
+    pub fn pipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
         let index = self._pipes.index(pipe_).unwrap();
 
-        if index == self._current && self._more == true{
+        if index == self._current && self._more == true {
             self._dropping = true;
         }
 
@@ -47,13 +45,14 @@ impl ZmqLoadBalancer {
         self._pipes.erase(pipe_);
     }
 
-    pub fn activated(&mut self, pipe_: *mut ZmqPipe) {
-        self._pipes.swap(self._pipes.index(pipe_).unwrap(), self._active);
+    pub fn activated(&mut self, pipe_: &mut ZmqPipe) {
+        self._pipes
+            .swap(self._pipes.index(pipe_).unwrap(), self._active);
         self._active += 1;
     }
 
-    pub unsafe fn send(&mut self, msg_: *mut ZmqMsg) -> i32 {
-        self.sendpipe(msg_, null_mut())
+    pub unsafe fn send(&mut self, msg_: &mut ZmqMsg) -> i32 {
+        self.sendpipe(msg_, &mut None)
     }
 
     pub unsafe fn sendpipe(&mut self, msg_: &mut ZmqMsg, pipe_: &mut Option<&mut ZmqPipe>) -> i32 {
@@ -64,7 +63,6 @@ impl ZmqLoadBalancer {
             (*msg_).close();
 
             (*msg_).init2();
-
         }
 
         while self._active > 0 {
@@ -113,7 +111,9 @@ impl ZmqLoadBalancer {
         }
 
         while self._active > 0 {
-            if (*self._pipes[self._current]).chech_write() { return true;}
+            if (*self._pipes[self._current]).chech_write() {
+                return true;
+            }
 
             self._active -= 1;
             self._pipes.swap(self._current, self._active);

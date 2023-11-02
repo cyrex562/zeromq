@@ -26,7 +26,7 @@ use crate::proxy::proxy;
 use crate::select::{FD_SET, FD_ZERO};
 use crate::socket::ZmqSocket;
 use crate::socket_poller::ZmqSocketPoller;
-use crate::timers::{Timers, TimersTimerFn};
+use crate::io::timers::{Timers, TimersTimerFn};
 use crate::utils::{get_errno, FD_ISSET};
 use crate::zmq_draft::zmq_fd_t;
 

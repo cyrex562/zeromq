@@ -1,8 +1,18 @@
 use std::ffi::c_char;
+
 use anyhow::bail;
 use libc::c_void;
-use crate::defines::ZmqFd;
-use crate::select::{fd_set, fds_set_t};
+#[cfg(not(target_os = "windows"))]
+use libc::sa_family_t;
+#[cfg(target_os = "windows")]
+use windows::Win32::Networking::WinSock::sa_family_t;
+
+use crate::defines::{ZmqFd, ZmqSockAddr, ZmqSockAddrIn, ZmqSockAddrIn6, ZmqSockaddrStorage};
+use crate::select::fd_set;
+
+mod decoder_allocators;
+mod random;
+mod zmq_utils;
 
 pub fn copy_bytes(
     src: &[u8],
@@ -35,7 +45,7 @@ pub unsafe fn copy_void(
     }
 
     for i in 0..src_count {
-        *dst.add(dst_offset+i) = *src.add(src_offset + i);
+        *dst.add(dst_offset + i) = *src.add(src_offset + i);
     }
 
     Ok(())
@@ -45,15 +55,14 @@ pub fn get_errno() -> i32 {
     std::io::Error::last_os_error().raw_os_error().unwrap()
 }
 
-pub const decoder: [u8;96] = [
-0xFF, 0x44, 0xFF, 0x54, 0x53, 0x52, 0x48, 0xFF, 0x4B, 0x4C, 0x46, 0x41,
-0xFF, 0x3F, 0x3E, 0x45, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-0x08, 0x09, 0x40, 0xFF, 0x49, 0x42, 0x4A, 0x47, 0x51, 0x24, 0x25, 0x26,
-0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32,
-0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x4D,
-0xFF, 0x4E, 0x43, 0xFF, 0xFF, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
-0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C,
-0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x4F, 0xFF, 0x50, 0xFF, 0xFF];
+pub const decoder: [u8; 96] = [
+    0xFF, 0x44, 0xFF, 0x54, 0x53, 0x52, 0x48, 0xFF, 0x4B, 0x4C, 0x46, 0x41, 0xFF, 0x3F, 0x3E, 0x45,
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x40, 0xFF, 0x49, 0x42, 0x4A, 0x47,
+    0x51, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32,
+    0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x4D, 0xFF, 0x4E, 0x43, 0xFF,
+    0xFF, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
+    0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x4F, 0xFF, 0x50, 0xFF, 0xFF,
+];
 
 pub const encoder: &'static str = "0123456789 \
 abcdefghij \
@@ -64,7 +73,6 @@ OPQRSTUVWX \
 YZ.-:+=^!/ \
 *?&<>()[]{ \
 }@%$#";
-
 
 pub unsafe fn zmq_z85_decode(dest_: *mut u8, string_: *const c_char) -> *mut u8 {
     let mut byte_nbr = 0u8;
@@ -96,14 +104,14 @@ pub unsafe fn zmq_z85_decode(dest_: *mut u8, string_: *const c_char) -> *mut u8 
         if char_nbr % 5 == 0 {
             let mut divisor = 256 * 256 * 256;
             while (divisor) {
-                dest_[byte_nbr] = value /divisor % 256;
+                dest_[byte_nbr] = value / divisor % 256;
                 byte_nbr += 1;
                 divisor /= 256;
             }
             value = 0;
         }
     }
-    
+
     if char_nbr % 5 != 0 {
         return std::ptr::null_mut();
     }
@@ -120,8 +128,7 @@ pub fn put_u32(ptr: *mut u8, value: u32) {
 }
 
 pub unsafe fn get_u32(ptr: *mut u8) -> u32 {
-
-    let u32_bytes:[u8;4] = [*ptr,*ptr.add(1), *ptr.add(2), *ptr.add(3)];
+    let u32_bytes: [u8; 4] = [*ptr, *ptr.add(1), *ptr.add(2), *ptr.add(3)];
     u32::from_le_bytes(u32_bytes)
 }
 
@@ -139,7 +146,9 @@ pub fn put_u64(ptr: *mut u8, value: u64) {
 }
 
 pub fn get_u64(ptr: &[u8]) -> u64 {
-    let u64_bytes:[u8;8] = [ptr[0],ptr[1],ptr[2],ptr[3],ptr[4],ptr[5],ptr[6],ptr[7]];
+    let u64_bytes: [u8; 8] = [
+        ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5], ptr[6], ptr[7],
+    ];
     u64::from_le_bytes(u64_bytes)
 }
 
@@ -156,4 +165,45 @@ pub fn FD_ISSET(fd: ZmqFd, fds: &fd_set) -> bool {
         i += 1;
     }
     false
+}
+
+pub fn sockaddr_to_sockaddrin(sockaddr: &ZmqSockAddr) -> ZmqSockAddrIn {
+    let mut out = ZmqSockAddrIn {
+        sin_family: sockaddr.sa_family,
+        sin_port: 0,
+        sin_addr: 0,
+        sin_zero: [0; 8],
+    };
+    out.sin_addr = u32::from_le_bytes(sockaddr.sa_data[2..6].try_into().unwrap());
+    out
+}
+
+pub fn sockaddr_to_sockaddrin6(sockaddr: &ZmqSockAddr) -> ZmqSockAddrIn6 {
+    let mut out = ZmqSockAddrIn6 {
+        sin6_family: sockaddr.sa_family,
+        sin6_port: 0,
+        sin6_flowinfo: 0,
+        sin6_addr: in6_addr { s6_addr: [0; 16] },
+        sin6_scope_id: 0,
+    };
+    out.sin6_addr.s6_addr = sockaddr.sa_data[2..18].try_into().unwrap();
+    out
+}
+
+pub fn zmq_sockaddr_to_sockaddr(sockaddr: &ZmqSockAddr) -> libc::sockaddr {
+    let mut out = libc::sockaddr {
+        sa_family: sockaddr.sa_family,
+        sa_data: [0; 14],
+    };
+    out.sa_data[0..14].copy_from_slice(&sockaddr.sa_data[0..14]);
+    out
+}
+
+pub fn zmq_sockaddr_storage_to_sockaddr(sockaddr_storage: ZmqSockaddrStorage) -> libc::sockaddr {
+    let mut out = libc::sockaddr {
+        sa_family: sockaddr_storage.ss_family as sa_family_t,
+        sa_data: [0; 14],
+    };
+    out.sa_data[0..14].copy_from_slice(&sockaddr_storage.sa_data[0..14]);
+    out
 }

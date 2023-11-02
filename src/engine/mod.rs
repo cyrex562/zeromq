@@ -4,7 +4,7 @@ use crate::defines::{ZmqFd, ZmqHandle, ZmqSockAddr, ZmqSockAddrIn};
 use crate::encoder::ZmqEncoder;
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::err::ZmqError;
-use crate::io_object::IoObject;
+use crate::io::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
 use crate::mechanism::ZmqMechanism;
 use crate::metadata::ZmqMetadata;
@@ -18,12 +18,17 @@ use crate::stream_engine::{
 use crate::udp_engine::{udp_in_event, udp_out_event, udp_plug, udp_terminate};
 use crate::zmtp_engine::V3_GREETING_SIZE;
 
+pub mod stream_engine;
+mod udp_engine;
+mod zmtp_engine;
+
 pub enum ZmqEngineType {
     Stream,
     Udp,
     Raw,
     Zmtp,
 }
+
 #[derive(Default, Debug, Clone)]
 pub struct ZmqEngine<'a> {
     pub address: Option<ZmqAddress<'a>>,
@@ -78,7 +83,7 @@ pub struct ZmqEngine<'a> {
 impl ZmqEngine {
     pub fn new() -> Self {
         Self {
-           ..Default::default()
+            ..Default::default()
         }
     }
 

@@ -1,11 +1,9 @@
-
-
 use crate::command::ZmqCommand;
 use crate::ctx::reaper_tid;
 use crate::defines::ZmqHandle;
-use crate::i_poll_events::IPollEvents;
 use crate::mailbox::ZmqMailbox;
 use crate::object::ZmqObject;
+use crate::poll::i_poll_events::IPollEvents;
 use crate::poller::ZmqPoller;
 
 pub struct ZmqIoThread<'a> {
@@ -42,7 +40,6 @@ impl ZmqIoThread {
         self._poller.stop();
     }
 }
-
 
 impl IPollEvents for ZmqIoThread {
     unsafe fn in_event(&mut self) {

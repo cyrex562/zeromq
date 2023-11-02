@@ -1,6 +1,5 @@
 use crate::command::ZmqCommand;
 use crate::defines::ZmqConditionVariable;
-use crate::mutex::ZmqMutex;
 use crate::signaler::ZmqSignaler;
 use crate::ypipe::ZmqYPipe;
 

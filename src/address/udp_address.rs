@@ -1,14 +1,16 @@
-use std::ffi::c_char;
-use anyhow::bail;
-#[cfg(target_os= "windows")]
-use windows::Win32::NetworkManagement::IpHelper::if_nametoindex;
+use crate::address::ip_address::ZmqIpAddress;
 use crate::err::ZmqError;
-use crate::ip_address::ZmqIpAddress;
-use crate::ip_resolver::IpResolver;
-use crate::ip_resolver_options::IpResolverOptions;
+use crate::ip::ip_resolver::IpResolver;
+use crate::ip::ip_resolver_options::IpResolverOptions;
 use crate::options::ZmqOptions;
+use anyhow::bail;
+#[cfg(not(target_os = "windows"))]
+use libc::if_nametoindex;
+use std::ffi::c_char;
+#[cfg(target_os = "windows")]
+use windows::Win32::NetworkManagement::IpHelper::if_nametoindex;
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct UdpAddress {
     pub _bind_address: ZmqIpAddress,
     pub _bind_interface: i32,
@@ -24,8 +26,13 @@ impl UdpAddress {
         }
     }
 
-    pub unsafe fn resolve(&mut self, options: &ZmqOptions, name_: &mut String, bind_: bool, ipv6_: bool) -> Result<(), ZmqError>
-    {
+    pub unsafe fn resolve(
+        &mut self,
+        options: &ZmqOptions,
+        name_: &mut String,
+        bind_: bool,
+        ipv6_: bool,
+    ) -> Result<(), ZmqError> {
         let mut has_interface = false;
         self._address = name_.to_string();
         let mut src_delimiter = name_.find(";");
@@ -130,6 +137,4 @@ impl UdpAddress {
 
         return 0;
     }
-
-
 }

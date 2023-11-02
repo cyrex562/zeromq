@@ -1,34 +1,17 @@
 use crate::address::SocketEnd::SocketEndRemote;
-use crate::defines::{RETIRED_FD, SIGNALER_PORT};
-use crate::fd::fd_t;
-use libc::{bind, listen, setsockopt, SOCKET};
-use std::ffi::{c_char, c_int, c_ulong, c_void};
+use crate::defines::{ZmqFd, RETIRED_FD};
+use libc::setsockopt;
+use std::ffi::{c_char, c_int};
 use std::mem;
-use std::mem::size_of_val;
-use std::ptr::null_mut;
-use windows::Win32::Foundation::{
-    GetLastError, SetHandleInformation, BOOL, ERROR_ACCESS_DENIED, FALSE, HANDLE, HANDLE_FLAGS,
-    HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE, TRUE,
-};
 use windows::Win32::Networking::WinSock::{
-    accept, connect, getnameinfo, getsockname, ioctlsocket, send, WSACleanup, WSAStartup, AF_INET,
-    INADDR_LOOPBACK, INVALID_SOCKET, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_TCP, IPV6_V6ONLY, IP_TOS,
-    NI_MAXHOST, NI_NUMERICHOST, SOCKADDR, SOCKADDR_IN, SOCKET_ERROR, SOCK_STREAM, SOL_SOCKET,
-    SO_REUSEADDR, TCP_NODELAY, WSADATA,
+    getnameinfo, IPPROTO_IP, IPPROTO_IPV6, IPV6_V6ONLY, IP_TOS, NI_MAXHOST, NI_NUMERICHOST,
+    SOCKADDR, SOCK_STREAM, SOL_SOCKET,
 };
-use windows::Win32::Security::{
-    InitializeSecurityDescriptor, SetSecurityDescriptorDacl, SECURITY_ATTRIBUTES,
-    SECURITY_DESCRIPTOR,
-};
-use windows::Win32::Storage::FileSystem::SYNCHRONIZE;
-use windows::Win32::System::SystemServices::SECURITY_DESCRIPTOR_REVISION;
-use windows::Win32::System::Threading::{
-    CreateEventA, CreateMutexA, OpenEventA, ReleaseMutex, SetEvent, WaitForSingleObject,
-    EVENT_MODIFY_STATE, INFINITE, SYNCHRONIZATION_ACCESS_RIGHTS,
-};
-use windows::Win32::System::WindowsProgramming::OpenMutexA;
 
-pub fn open_socket(domain_: i32, type_: i32, protocol_: i32) -> fd_t {
+pub mod ip_resolver;
+pub mod ip_resolver_options;
+
+pub fn open_socket(domain_: i32, type_: i32, protocol_: i32) -> ZmqFd {
     let mut rc = 0;
 
     #[cfg(target_os = "windows")]

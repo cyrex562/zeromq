@@ -7,7 +7,7 @@ use crate::address::ZmqAddress;
 use crate::defines::{MSG_MORE, RETIRED_FD, ZmqFd, ZmqHandle};
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::engine::ZmqEngine;
-use crate::io_object::IoObject;
+use crate::io::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
 use crate::ip::{open_socket, unblock_socket};
 use crate::ip_address::ZmqIpAddress;

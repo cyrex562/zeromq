@@ -1,36 +1,41 @@
+use crate::address::ip_address::ZmqIpAddress;
+use crate::address::tcp_address::ZmqTcpAddress;
+use crate::address::udp_address::UdpAddress;
 use libc::sockaddr;
 
 use crate::ctx::ZmqContext;
 use crate::defines::{ZmqFd, ZmqSockaddrStorage};
-use crate::ip_address::ZmqIpAddress;
-use crate::tcp_address::ZmqTcpAddress;
-use crate::udp_address::UdpAddress;
+
+pub mod tcp_address;
+pub mod udp_address;
+
+pub mod ip_address;
 
 pub enum SocketEnd {
     SocketEndLocal,
     SocketEndRemote,
 }
 
-pub union AddressUnion {
-    //pub dummy: *mut c_void,
-    // pub tcp_addr: ZmqTcpAddress,
-    // TCP Address
+// pub union AddressUnion {
+//     //pub dummy: *mut c_void,
+//     // pub tcp_addr: ZmqTcpAddress,
+//     // TCP Address
+//
+//     // pub udp_addr: UdpAddress,
+//     // UDP Address
+//
+//     // pub ws_addr: *mut ws_address_t,
+//     // pub wss_addr: *mut wss_address_t,
+//     // pub ipc_addr: *mut ipc_address_t,
+//     // pub tipc_addr: *mut tipc_address_t,
+//     // pub vmci_addr: *mut vmci_address_t,
+// }
 
-    // pub udp_addr: UdpAddress,
-    // UDP Address
-
-    // pub ws_addr: *mut ws_address_t,
-    // pub wss_addr: *mut wss_address_t,
-    // pub ipc_addr: *mut ipc_address_t,
-    // pub tipc_addr: *mut tipc_address_t,
-    // pub vmci_addr: *mut vmci_address_t,
-}
-
-impl std::fmt::Debug for AddressUnion {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
-    }
-}
+// impl std::fmt::Debug for AddressUnion {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         todo!()
+//     }
+// }
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqAddress<'a> {

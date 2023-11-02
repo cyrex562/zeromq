@@ -21,11 +21,11 @@ impl<const I: i32> ArrayItem<I> {
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct ZmqArray<T, const I: i32> {
+pub struct ZmqArray<T: PartialEq, const I: i32> {
     pub items: Vec<T>,
 }
 
-impl<T, const I: i32> ZmqArray<T, I> {
+impl<T: PartialEq, const I: i32> ZmqArray<T, I> {
     pub fn size(&self) -> usize {
         self.items.len()
     }

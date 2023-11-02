@@ -1,9 +1,7 @@
-use std::cmp::Ordering;
 use libc::size_t;
+use std::cmp::Ordering;
 
-pub struct ZmqReferenceTag {
-
-}
+pub struct ZmqReferenceTag {}
 
 pub struct ZmqBlob {
     pub data: Vec<u8>,
@@ -44,24 +42,25 @@ impl ZmqBlob {
         self.size
     }
 
-    pub fn data_mut(&mut self) ->&mut [u8] { self.data.as_mut_slice()
+    pub fn data_mut(&mut self) -> &mut [u8] {
+        self.data.as_mut_slice()
     }
 
-    pub fn data(&self) -> & [u8] {
+    pub fn data(&self) -> &[u8] {
         self.data.as_slice()
     }
 
-    pub fn set_deep_copy(&mut self, other_: &Self)
-    {
+    pub fn set_deep_copy(&mut self, other_: &Self) {
         self.clear();
         // self.data = unsafe { libc::malloc(other_.size) as *mut u8 };
         self.data = Vec::with_capacity(other_.size);
         self.size = other_.size;
         self.owned = true;
         if self.size != 0 && self.data != std::ptr::null_mut() {
-            unsafe {
-                std::ptr::copy_nonoverlapping(other_.data, self.data, self.size);
-            }
+            // TODO
+            // unsafe {
+            //     std::ptr::copy_nonoverlapping(other_.data, self.data, self.size);
+            // }
         }
     }
 
@@ -73,9 +72,10 @@ impl ZmqBlob {
         self.size = size_;
         self.owned = false;
         if self.size != 0 && self.data != std::ptr::null_mut() {
-            unsafe {
-                std::ptr::copy_nonoverlapping(data_, self.data, self.size);
-            }
+            // TODO
+            // unsafe {
+            //     std::ptr::copy_nonoverlapping(data_, self.data, self.size);
+            // }
         }
     }
 
@@ -102,9 +102,7 @@ impl PartialEq<Self> for ZmqBlob {
     }
 }
 
-impl Eq for ZmqBlob {
-
-}
+impl Eq for ZmqBlob {}
 
 impl PartialOrd<Self> for ZmqBlob {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -133,15 +131,24 @@ impl Ord for ZmqBlob {
         todo!()
     }
 
-    fn max(self, other: Self) -> Self where Self: Sized {
+    fn max(self, other: Self) -> Self
+    where
+        Self: Sized,
+    {
         todo!()
     }
 
-    fn min(self, other: Self) -> Self where Self: Sized {
+    fn min(self, other: Self) -> Self
+    where
+        Self: Sized,
+    {
         todo!()
     }
 
-    fn clamp(self, min: Self, max: Self) -> Self where Self: Sized {
+    fn clamp(self, min: Self, max: Self) -> Self
+    where
+        Self: Sized,
+    {
         todo!()
     }
 }

@@ -1,3 +1,5 @@
+use std::ptr::null_mut;
+
 use crate::address::get_socket_name;
 use crate::address::SocketEnd::{SocketEndLocal, SocketEndRemote};
 use crate::defines::RETIRED_FD;
@@ -5,13 +7,14 @@ use crate::defines::{ZmqFd, ZmqHandle};
 use crate::endpoint::ZmqEndpointType::EndpointTypeBind;
 use crate::endpoint::{make_unconnected_connect_endpoint_pair, ZmqEndpointUriPair};
 use crate::i_engine::IEngine;
-use crate::io_object::IoObject;
+use crate::io::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
 use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
 use crate::session_base::ZmqSession;
 use crate::socket::ZmqSocket;
-use std::ptr::null_mut;
+
+mod tcp_listener;
 
 pub struct ZmqStreamListenerBase<'a> {
     pub own: ZmqOwn<'a>,
@@ -94,8 +97,7 @@ impl ZmqStreamListenerBase {
         // zmq_assert (io_thread);
 
         //  Create and launch a session object.
-        let mut session =
-            ZmqSession::create(io_thread, false, self._socket, self.options, None);
+        let mut session = ZmqSession::create(io_thread, false, self._socket, self.options, None);
         // errno_assert (session);
         session.inc_seqnum();
         self.launch_child(session);

@@ -1,5 +1,8 @@
-use crate::ypipe_base::ZmqYPipeBase;
-use crate::yqueue::YQueue;
+use crate::defines::yqueue::YQueue;
+use ypipe_base::ZmqYPipeBase;
+
+pub mod ypipe_base;
+pub mod ypipe_conflate;
 
 pub struct ZmqYPipe<'a, T: Clone + PartialEq + Default> {
     pub base: ZmqYPipeBase<T>,

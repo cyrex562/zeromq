@@ -1,11 +1,11 @@
 use std::ffi::c_void;
 use std::mem::size_of_val;
 use crate::ctx::ZmqContext;
-use crate::fair_queue::ZmqFairQueue;
+use crate::defines::fair_queue::ZmqFairQueue;
 use crate::msg::ZmqMsg;
 use crate::options::{do_setsockopt_int_as_bool_strict, ZmqOptions};
 use crate::pipe::ZmqPipe;
-use crate::routing_socket_base::ZmqRoutingSocketBase;
+use crate::socket::routing_socket_base::ZmqRoutingSocketBase;
 use crate::utils::put_u32;
 
 pub struct ZmqStream<'a> {

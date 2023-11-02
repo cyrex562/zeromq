@@ -30,4 +30,6 @@ pub enum ZmqError {
     SessionError(&'static str),
     #[error("zap error")]
     ZapError(&'static str),
+    #[error("decoder error")]
+    DecoderError(&'static str),
 }

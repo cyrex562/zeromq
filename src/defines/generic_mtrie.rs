@@ -1,4 +1,4 @@
-use crate::atomic_counter::ZmqAtomicCounter;
+use crate::defines::atomic_counter::ZmqAtomicCounter;
 use libc::size_t;
 use std::cmp;
 use std::collections::HashSet;
@@ -54,7 +54,7 @@ impl<T> GenericMtrie<T> {
 
     pub unsafe fn add(
         &mut self,
-        mut prefix_: Option<Prefix>,
+        mut prefix_: Option<&mut [u8]>,
         mut size_: usize,
         pipe: *mut T,
     ) -> bool {

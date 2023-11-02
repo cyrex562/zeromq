@@ -1,16 +1,20 @@
-use crate::err::ZmqError;
-use crate::ip_resolver::IpResolver;
-use anyhow::bail;
-use libc::{
-    AF_INET, AF_INET6, c_char, getnameinfo, in6_addr, in_addr, NI_MAXHOST, NI_NUMERICHOST, size_t,
-    sockaddr, sockaddr_in, sockaddr_in6, socklen_t,
-};
 use std::ffi::c_void;
 use std::mem;
 use std::ops::Index;
 use std::ptr::null_mut;
-use crate::ip_address::ZmqIpAddress;
-use crate::ip_resolver_options::IpResolverOptions;
+
+use anyhow::bail;
+use libc::{c_char, getnameinfo, in6_addr, in_addr, sa_family_t, size_t, sockaddr, socklen_t};
+#[cfg(target_os = "windows")]
+use windows::Win32::Networking::WinSock::sa_family_t;
+
+use crate::address::ip_address::ZmqIpAddress;
+use crate::defines::{ZmqSockAddr, AF_INET, AF_INET6, NI_MAXHOST, NI_NUMERICHOST};
+use crate::err::ZmqError;
+use crate::ip::ip_resolver::IpResolver;
+use crate::ip::ip_resolver_options::IpResolverOptions;
+use crate::options::ZmqOptions;
+use crate::utils::{sockaddr_to_sockaddrin, sockaddr_to_sockaddrin6, zmq_sockaddr_to_sockaddr};
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqTcpAddress {
@@ -28,19 +32,21 @@ impl ZmqTcpAddress {
         }
     }
 
-    pub fn new2(sa_: &sockaddr, sa_len_: socklen_t) -> Self {
+    pub fn new2(sock_addr: &ZmqSockAddr, sa_len_: usize) -> Self {
         let mut out = Self {
             ..Default::default()
         };
-        if sa_.sa_family == AF_INET && sa_len_ >= 4 {
-            let sa_in = sa_ as *const sockaddr_in;
-            out.address = ZmqIpAddress::new2(&sa_in.sin_addr, 4);
-            out.source_address = ZmqIpAddress::new2(&sa_in.sin_addr, 4);
+        // TODO: convert from sockaddr to sockaddr_in without using pointer ops.
+        if sock_addr.sa_family == AF_INET as u16 && sa_len_ >= 4 {
+            let sa_in = sockaddr_to_sockaddrin(sock_addr);
+            out.address = ZmqIpAddress::new2(sa_in.sin_addr, 4);
+            out.source_address = ZmqIpAddress::new2(sa_in.sin_addr, 4);
             out.has_src_addr = true;
-        } else if sa_.sa_family == AF_INET6 && sa_len_ >= 16 {
-            let sa_in6 = sa_ as *const sockaddr_in6;
-            out.address = ZmqIpAddress::new2(&sa_in6.sin6_addr, 16);
-            out.source_address = ZmqIpAddress::new2(&sa_in6.sin6_addr, 16);
+        } else if sock_addr.sa_family == AF_INET6 as u16 && sa_len_ >= 16 {
+            // let sa_in6 = sock_addr as *const sockaddr_in6;
+            let sa_in6 = sockaddr_to_sockaddrin6(sock_addr);
+            out.address = ZmqIpAddress::new2(sa_in6.sin6_addr, 16);
+            out.source_address = ZmqIpAddress::new2(sa_in6.sin6_addr, 16);
             out.has_src_addr = true;
         }
         out
@@ -48,6 +54,7 @@ impl ZmqTcpAddress {
 
     pub fn resolve(
         &mut self,
+        options: &ZmqOptions,
         name_: &mut String,
         local_: bool,
         ipv6_: bool,
@@ -62,7 +69,7 @@ impl ZmqTcpAddress {
 
             let mut src_resolver = IpResolver::new(&mut src_resolver_opts);
 
-            src_resolver.resolve(&mut self.address, name_)?;
+            src_resolver.resolve(options, &mut self.address, name_)?;
             *name_ = name_[src_delimiter.unwrap() + 1..];
             self.has_src_addr = true;
         }
@@ -76,7 +83,7 @@ impl ZmqTcpAddress {
 
         let mut resolver: IpResolver = IpResolver::new(&mut resolver_opts);
 
-        resolver.resolve(&mut self.address, name_)?;
+        resolver.resolve(options, &mut self.address, name_)?;
 
         Ok(())
     }
@@ -106,15 +113,17 @@ impl ZmqTcpAddress {
         }
 
         let mut hbuf = String::with_capacity(NI_MAXHOST as usize);
-        let mut rc = getnameinfo(
-            self.addr(),
-            self.addrlen(),
-            hbuf.as_mut_ptr() as *mut c_char,
-            NI_MAXHOST,
-            std::ptr::null_mut(),
-            0,
-            NI_NUMERICHOST,
-        );
+        let mut rc = unsafe {
+            getnameinfo(
+                &zmq_sockaddr_to_sockaddr(self.address.as_sockaddr()),
+                self.addrlen() as socklen_t,
+                hbuf.as_mut_ptr() as *mut c_char,
+                NI_MAXHOST as libc::socklen_t,
+                std::ptr::null_mut(),
+                0,
+                NI_NUMERICHOST,
+            )
+        };
         if rc != 0 {
             *addr_.clear();
             bail!("getnameinfo failed")
@@ -132,15 +141,15 @@ impl ZmqTcpAddress {
         Ok(())
     }
 
-    pub fn addr(&mut self) -> *mut sockaddr {
+    pub fn addr(&mut self) -> &mut ZmqSockAddr {
         self.address.as_sockaddr()
     }
 
-    pub fn addrlen(&mut self) -> socklen_t {
+    pub fn addrlen(&mut self) -> usize {
         self.address.len()
     }
 
-    pub fn src_addr(&mut self) -> *mut sockaddr {
+    pub fn src_addr(&mut self) -> &mut ZmqSockAddr {
         self.source_address.as_sockaddr()
     }
 
@@ -163,19 +172,24 @@ impl ZmqTcpAddress {
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct tcp_address_mask_t {
+pub struct TcpAddressMask {
     pub _network_address: ZmqIpAddress,
     pub _address_mask: i32,
 }
 
-impl tcp_address_mask_t {
+impl TcpAddressMask {
     pub fn new() -> Self {
         Self {
             ..Default::default()
         }
     }
 
-    pub unsafe fn resolve(&mut self, name_: &str, ipv6_: bool) -> anyhow::Result<()> {
+    pub unsafe fn resolve(
+        &mut self,
+        options: &ZmqOptions,
+        name_: &str,
+        ipv6_: bool,
+    ) -> anyhow::Result<()> {
         let mut addr_str = String::new();
         let mut mask_str = String::new();
         let delimiter = name_.index("/");
@@ -195,7 +209,7 @@ impl tcp_address_mask_t {
         resolver_opts.expect_port(false);
 
         let mut resolver = IpResolver::new(&mut resolver_opts);
-        resolver.resolve(&mut self._network_address, addr_str.as_str())?;
+        resolver.resolve(options, &mut self._network_address, addr_str.as_str())?;
 
         let full_mask_ipv4 = 32;
         let full_mask_ipv6 = 128;
@@ -252,8 +266,8 @@ impl tcp_address_mask_t {
 
             let last_byte_bits = 0xff << (8 - (mask.clone() % 8));
             if last_byte_bits > 0
-                && (*(their_bytes + full_bytes.clone()) & last_byte_bits)
-                    != (*(our_bytes + full_bytes.clone()) & last_byte_bits.clone())
+                && (*(their_bytes.add(full_bytes as usize)) & last_byte_bits)
+                    != (*(our_bytes.add(full_bytes as usize)) & last_byte_bits.clone())
             {
                 return false;
             }

@@ -1,9 +1,9 @@
 use crate::defines::MSG_MORE;
 use crate::msg::ZmqMsg;
+use crate::pipe::zmq_pipe::ZmqPipes;
 use crate::pipe::ZmqPipe;
-use crate::zmq_pipe::ZmqPipes;
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ZmqDist<'a> {
     pub _pipes: ZmqPipes<'a>,
     pub _matching: usize,

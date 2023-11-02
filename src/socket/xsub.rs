@@ -1,7 +1,7 @@
 use crate::ctx::ZmqContext;
 use crate::defines::{MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_XSUB, ZMQ_XSUB_VERBOSE_UNSUBSCRIBE};
 use crate::dist::ZmqDist;
-use crate::fair_queue::ZmqFairQueue;
+use crate::defines::fair_queue::ZmqFairQueue;
 use crate::msg::ZmqMsg;
 use crate::options::{do_getsockopt, ZmqOptions};
 use crate::pipe::ZmqPipe;

@@ -5,12 +5,14 @@ use crate::endpoint::{ZmqEndpointUriPair, make_unconnected_connect_endpoint_pair
 use crate::endpoint::ZmqEndpointType::EndpointTypeConnect;
 use crate::defines::RETIRED_FD;
 use crate::i_engine::IEngine;
-use crate::io_object::IoObject;
+use crate::io::io_object::IoObject;
 use crate::io_thread::ZmqIoThread;
 use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
 use crate::session_base::ZmqSession;
 use crate::socket::ZmqSocket;
+
+mod tcp_connecter;
 
 pub const RECONNECT_TIMER_ID: i32 = 1;
 
