@@ -1,6 +1,6 @@
 use crate::ctx::ZmqContext;
 use crate::defines::load_balancer::ZmqLoadBalancer;
-use crate::defines::{MSG_MORE, ZMQ_SCATTER};
+use crate::defines::{ZMQ_MSG_MORE, ZMQ_SCATTER};
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
@@ -52,7 +52,7 @@ pub unsafe fn scatter_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPi
 
 pub fn scatter_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     //  SCATTER sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg_.flags() & MSG_MORE) {
+    if (msg_.flags() & ZMQ_MSG_MORE) {
         // errno = EINVAL;
         return -1;
     }

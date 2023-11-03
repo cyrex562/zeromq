@@ -1,12 +1,13 @@
 use std::mem::size_of_val;
-use windows::Win32::Networking::WinSock::{setsockopt, SOCKET_ERROR, SOL_SOCKET};
+use windows::Win32::Networking::WinSock::{setsockopt, SOL_SOCKET};
 use crate::address::{get_socket_name, SocketEnd};
 use crate::address::SocketEnd::SocketEndLocal;
 use crate::defines::{RETIRED_FD, SockaddrStorage};
 use crate::endpoint::make_unconnected_bind_endpoint_pair;
 use crate::fd::fd_t;
 use crate::io_thread::ZmqIoThread;
-use crate::ip::{make_socket_noninheritable, set_ip_type_of_service, set_nosigpipe, set_socket_priority};
+use crate::ip::{set_ip_type_of_service, set_nosigpipe, set_socket_priority};
+use crate::net::platform_socket::platform_make_socket_noninheritable;
 use crate::options::ZmqOptions;
 use crate::socket::ZmqSocket;
 use crate::stream_listener_base::ZmqStreamListenerBase;
@@ -72,7 +73,7 @@ impl ZmqTcpListener {
         }
 
         //  TODO why is this only Done for the listener?
-        make_socket_noninheritable (self._s);
+        platform_make_socket_noninheritable(self._s);
 
         //  Allow reusing of the address.
         let mut flag = 1;
@@ -210,7 +211,7 @@ impl ZmqTcpListener {
             return RETIRED_FD;
         }
 
-        make_socket_noninheritable (sock);
+        platform_make_socket_noninheritable(sock);
 
         if (!self.options.tcp_accept_filters.empty ()) {
             let mut matched = false;

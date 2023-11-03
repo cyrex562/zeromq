@@ -278,12 +278,12 @@ impl ZmqTrie {
             //  If there's no corresponding slot for the first character
             //  of the prefix, the message does not match.
             let c = data_[0];
-            if (c < current._min || c >= current._min + current._count) {
+            if c < current._min || c >= current._min + current._count {
                 return false;
             }
 
             //  Move to the next character.
-            if (current._count == 1) {
+            if current._count == 1 {
                 // TODO
                 // current = current._next.node;
             } else {

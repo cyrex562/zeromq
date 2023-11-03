@@ -3,11 +3,11 @@ mod null_mechanism;
 use std::ffi::{c_char, c_void};
 
 use crate::defines::{
-    MSG_ROUTING_ID, SOCKET_TYPE_CHANNEL, SOCKET_TYPE_CLIENT, SOCKET_TYPE_DEALER, SOCKET_TYPE_DGRAM,
+    SOCKET_TYPE_CHANNEL, SOCKET_TYPE_CLIENT, SOCKET_TYPE_DEALER, SOCKET_TYPE_DGRAM,
     SOCKET_TYPE_DISH, SOCKET_TYPE_GATHER, SOCKET_TYPE_PAIR, SOCKET_TYPE_PEER, SOCKET_TYPE_PUB,
     SOCKET_TYPE_PULL, SOCKET_TYPE_PUSH, SOCKET_TYPE_RADIO, SOCKET_TYPE_REP, SOCKET_TYPE_REQ,
     SOCKET_TYPE_ROUTER, SOCKET_TYPE_SCATTER, SOCKET_TYPE_SERVER, SOCKET_TYPE_STREAM,
-    SOCKET_TYPE_SUB, SOCKET_TYPE_XPUB, SOCKET_TYPE_XSUB, ZMQ_DEALER,
+    SOCKET_TYPE_SUB, SOCKET_TYPE_XPUB, SOCKET_TYPE_XSUB, ZMQ_DEALER, ZMQ_MSG_ROUTING_ID,
     ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED, ZMQ_REQ, ZMQ_ROUTER,
 };
 use crate::err::ZmqError;
@@ -65,13 +65,11 @@ impl ZmqMechanism {
         }
     }
 
-    pub fn encode(&mut self, msg: &ZmqMsg) -> Result<(),ZmqError>
-    {
+    pub fn encode(&mut self, msg: &ZmqMsg) -> Result<(), ZmqError> {
         self.session._engine.unwrap().encoder.unwrap().encode(msg)
     }
 
-    pub fn decode(&mut self, msg: &ZmqMsg) -> Result<(),ZmqError>
-    {
+    pub fn decode(&mut self, msg: &ZmqMsg) -> Result<(), ZmqError> {
         self.session._engine.unwrap().decoder.unwrap().decode(msg)
     }
 
@@ -87,7 +85,7 @@ impl ZmqMechanism {
         //     self._routing_id.size(),
         // );
         msg.data_mut().clone_from_slice(self._routing_id.data());
-        (msg).set_flags(MSG_ROUTING_ID);
+        (msg).set_flags(ZMQ_MSG_ROUTING_ID);
     }
 
     pub fn set_user_id(&mut self, user_id_: *mut c_void, size_: usize) {

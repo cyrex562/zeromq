@@ -5,8 +5,9 @@ use libc::size_t;
 
 use crate::atomic_counter::ZmqAtomicCounter;
 use crate::defines::{
-    CMD_TYPE_MASK, MSG_CANCEL, MSG_CLOSE_CMD, MSG_COMMAND, MSG_CREDENTIAL, MSG_PING, MSG_PONG,
-    MSG_ROUTING_ID, MSG_SHARED, MSG_SUBSCRIBE, ZMQ_GROUP_MAX_LENGTH,
+    CMD_TYPE_MASK, ZMQ_GROUP_MAX_LENGTH, ZMQ_MSG_CANCEL, ZMQ_MSG_CLOSE_CMD, ZMQ_MSG_COMMAND,
+    ZMQ_MSG_CREDENTIAL, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZMQ_MSG_ROUTING_ID, ZMQ_MSG_SHARED,
+    ZMQ_MSG_SUBSCRIBE,
 };
 use crate::err::ZmqError;
 use crate::err::ZmqError::MessageError;
@@ -189,11 +190,11 @@ pub struct ZmqMsg {
 
 impl ZmqMsg {
     pub fn is_subscribe(&self) -> bool {
-        self.flags & CMD_TYPE_MASK == MSG_SUBSCRIBE
+        self.flags & CMD_TYPE_MASK == ZMQ_MSG_SUBSCRIBE
     }
 
     pub fn is_cancel(&self) -> bool {
-        self.flags & CMD_TYPE_MASK == MSG_CANCEL
+        self.flags & CMD_TYPE_MASK == ZMQ_MSG_CANCEL
     }
 
     pub fn check(&self) -> bool {
@@ -432,7 +433,7 @@ impl ZmqMsg {
     ) -> Result<(), ZmqError> {
         let res = self.init_size(size_);
         if res.is_ok() {
-            self.set_flags(MSG_SUBSCRIBE);
+            self.set_flags(ZMQ_MSG_SUBSCRIBE);
 
             //  We explicitly allow a NULL subscription with size zero
             if size_ != 0 {
@@ -447,7 +448,7 @@ impl ZmqMsg {
     pub unsafe fn init_cancel(&mut self, size_: size_t, topic_: &mut [u8]) -> Result<(), ZmqError> {
         let rc = self.init_size(size_);
         if rc.is_ok() {
-            self.set_flags(MSG_CANCEL);
+            self.set_flags(ZMQ_MSG_CANCEL);
 
             //  We explicitly allow a NULL subscription with size zero
             if size_ != 0 {
@@ -464,7 +465,7 @@ impl ZmqMsg {
             return Err(MessageError("msg check failed"));
         }
 
-        if self.type_ == TYPE_LMSG && (!self.flags & MSG_SHARED == 0)
+        if self.type_ == TYPE_LMSG && (!self.flags & ZMQ_MSG_SHARED == 0)
             || ((*self.content).refcnt.sub(1) != 0)
         {
             // _u.lmsg.content->refcnt.~atomic_counter_t ();
@@ -478,7 +479,7 @@ impl ZmqMsg {
         }
 
         if self.is_zcmsg()
-            && (!(self.flags & MSG_SHARED != 0) || !(*self.content).refcnt.sub(1) != 0)
+            && (!(self.flags & ZMQ_MSG_SHARED != 0) || !(*self.content).refcnt.sub(1) != 0)
         {
             //  We used "placement new" operator to initialize the reference
             //  counter so we call the destructor explicitly now.
@@ -535,10 +536,10 @@ impl ZmqMsg {
         let mut initial_shared_refcnt = ZmqAtomicCounter::new(2);
 
         if src_msg.is_lmsg() || src_msg.is_zcmsg() {
-            if src_msg.flags() & MSG_SHARED != 0 {
+            if src_msg.flags() & ZMQ_MSG_SHARED != 0 {
                 src_msg.refcnt.add(1);
             } else {
-                src_msg.set_flags(MSG_SHARED);
+                src_msg.set_flags(ZMQ_MSG_SHARED);
                 (*src_msg.refcnt).set(initial_shared_refcnt.get())
             }
         }
@@ -649,11 +650,11 @@ impl ZmqMsg {
     }
 
     pub fn is_routing_id(&self) -> bool {
-        return self.flags & MSG_ROUTING_ID == MSG_ROUTING_ID;
+        return self.flags & ZMQ_MSG_ROUTING_ID == ZMQ_MSG_ROUTING_ID;
     }
 
     pub fn is_credential(&self) -> bool {
-        return self.flags & MSG_CREDENTIAL == MSG_CREDENTIAL;
+        return self.flags & ZMQ_MSG_CREDENTIAL == ZMQ_MSG_CREDENTIAL;
     }
 
     pub fn is_delimiter(&self) -> bool {
@@ -685,21 +686,22 @@ impl ZmqMsg {
     }
 
     pub fn is_ping(&self) -> bool {
-        return self.flags & CMD_TYPE_MASK == MSG_PING;
+        return self.flags & CMD_TYPE_MASK == ZMQ_MSG_PING;
     }
 
     pub fn is_pong(&self) -> bool {
-        return self.flags & CMD_TYPE_MASK == MSG_PONG;
+        return self.flags & CMD_TYPE_MASK == ZMQ_MSG_PONG;
     }
 
     pub fn is_close_cmd(&self) -> bool {
-        return self.flags & CMD_TYPE_MASK == MSG_CLOSE_CMD;
+        return self.flags & CMD_TYPE_MASK == ZMQ_MSG_CLOSE_CMD;
     }
 
     pub fn command_body_size(&mut self) -> size_t {
         if self.is_ping() || self.is_poing() {
             return self.size() - PING_CMD_NAME_SIZE as usize;
-        } else if !((self.flags() & MSG_COMMAND) != 0) && (self.is_subscribe() || self.is_cancel())
+        } else if !((self.flags() & ZMQ_MSG_COMMAND) != 0)
+            && (self.is_subscribe() || self.is_cancel())
         {
             return self.size();
         } else if self.is_subscribe() {
@@ -714,7 +716,9 @@ impl ZmqMsg {
         let mut data: &mut [u8];
         if self.is_ping() || self.is_poing() {
             data = self.data_mut().add(PING_CMD_NAME_SIZE as usize);
-        } else if !(self.flags() & MSG_COMMAND != 0) && (self.is_subscribe() || self.is_cancel()) {
+        } else if !(self.flags() & ZMQ_MSG_COMMAND != 0)
+            && (self.is_subscribe() || self.is_cancel())
+        {
             data = self.data_mut();
         } else if self.is_subscribe() {
             data = self.data_mut().add(SUB_CMD_NAME_SIZE as usize);
@@ -731,11 +735,11 @@ impl ZmqMsg {
         }
 
         if self.type_ == TYPE_LMSG || self.is_zcmsg() {
-            if self.flags & MSG_SHARED != 0 {
+            if self.flags & ZMQ_MSG_SHARED != 0 {
                 (*self.refcnt()).add(refs_);
             } else {
                 (*self.refcnt()).set(refs_ + 1);
-                self.flags |= MSG_SHARED
+                self.flags |= ZMQ_MSG_SHARED
             }
         }
     }
@@ -745,7 +749,9 @@ impl ZmqMsg {
             return Ok(());
         }
 
-        if self.type_ != TYPE_ZCLMSG && self.type_ != TYPE_LMSG || !(self.flags & MSG_SHARED != 0) {
+        if self.type_ != TYPE_ZCLMSG && self.type_ != TYPE_LMSG
+            || !(self.flags & ZMQ_MSG_SHARED != 0)
+        {
             self.close()?;
             return Err(MessageError("invalid message type"));
         }

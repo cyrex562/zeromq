@@ -14,7 +14,9 @@ use crate::err::ZmqError;
 use crate::ip::ip_resolver::IpResolver;
 use crate::ip::ip_resolver_options::IpResolverOptions;
 use crate::options::ZmqOptions;
-use crate::utils::{sockaddr_to_sockaddrin, sockaddr_to_sockaddrin6, zmq_sockaddr_to_sockaddr};
+use crate::utils::sock_utils::{
+    sockaddr_to_sockaddrin, sockaddr_to_sockaddrin6, zmq_sockaddr_to_sockaddr,
+};
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqTcpAddress {

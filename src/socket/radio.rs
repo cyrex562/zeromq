@@ -1,5 +1,5 @@
 use crate::ctx::ZmqContext;
-use crate::defines::{MSG_MORE, ZMQ_RADIO, ZMQ_XPUB_NODROP};
+use crate::defines::{ZMQ_MSG_MORE, ZMQ_RADIO, ZMQ_XPUB_NODROP};
 use crate::dist::ZmqDist;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
@@ -142,7 +142,7 @@ pub unsafe fn radio_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe
 pub fn radio_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     //  Radio sockets do not allow multipart data (ZMQ_SNDMORE)
     // if (msg_->flags () & msg_t::more)
-    if msg_.flag_set(MSG_MORE) {
+    if msg_.flag_set(ZMQ_MSG_MORE) {
         // errno = EINVAL;
         return -1;
     }

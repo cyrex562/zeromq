@@ -1,5 +1,5 @@
 use crate::defines::array::ArrayItem;
-use crate::defines::{MESSAGE_PIPE_GRANULARITY, MSG_MORE, MSG_ROUTING_ID};
+use crate::defines::{MESSAGE_PIPE_GRANULARITY, ZMQ_MSG_MORE, ZMQ_MSG_ROUTING_ID};
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::err::ZmqError;
 use crate::err::ZmqError::PipeError;
@@ -168,7 +168,7 @@ impl ZmqPipe {
             return Err(PipeError("Pipe is not readable"));
         }
 
-        if !(msg_.flags() & MSG_MORE > 0) && !msg_.is_routing_id() {
+        if !(msg_.flags() & ZMQ_MSG_MORE > 0) && !msg_.is_routing_id() {
             self._msgs_read += 1;
         }
 
@@ -199,10 +199,10 @@ impl ZmqPipe {
             return Err(PipeError("Pipe is not writable"));
         }
 
-        let more = msg.flag_set(MSG_MORE);
+        let more = msg.flag_set(ZMQ_MSG_MORE);
         let is_routing_id = msg.is_routing_id();
 
-        self.out_pipe.write(msg, MSG_MORE);
+        self.out_pipe.write(msg, ZMQ_MSG_MORE);
         if more && !is_routing_id {
             self._msgs_written += 1;
         }
@@ -248,7 +248,7 @@ impl ZmqPipe {
         self.out_pipe.flush();
         let mut msg: ZmqMsg = ZmqMsg::new();
         while (self.out_pipe).read(&mut msg) {
-            if msg.flags & MSG_MORE == 0 {
+            if msg.flags & ZMQ_MSG_MORE == 0 {
                 self._msgs_written -= 1
             }
             msg.close();
@@ -511,7 +511,7 @@ pub unsafe fn send_routing_id(pipe_: *mut ZmqPipe, options_: &ZmqOptions) {
         &options_.routing_id as *const c_void,
         options_.routing_id_size as size_t,
     );
-    id.set_flags(MSG_ROUTING_ID);
+    id.set_flags(ZMQ_MSG_ROUTING_ID);
     let mut written = (*pipe_).write(&mut id);
     (*pipe_).flush();
 }

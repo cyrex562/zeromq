@@ -1,5 +1,5 @@
 use crate::ctx::ZmqContext;
-use crate::defines::{MSG_MORE, ZMQ_PAIR};
+use crate::defines::{ZMQ_MSG_MORE, ZMQ_PAIR};
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
@@ -68,7 +68,7 @@ pub fn pair_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
         return -1;
     }
 
-    if msg_.flag_clear(MSG_MORE) == true {
+    if msg_.flag_clear(ZMQ_MSG_MORE) == true {
         socket._pipeflush();
     }
 

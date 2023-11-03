@@ -3,7 +3,7 @@ use std::ptr::null_mut;
 
 use crate::address::ZmqAddress;
 use crate::defines::{
-    MSG_COMMAND, MSG_MORE, ZMQ_DGRAM, ZMQ_DISH, ZMQ_NULL, ZMQ_RADIO, ZMQ_REQ, ZMQ_SUB, ZMQ_XSUB,
+    ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZMQ_DGRAM, ZMQ_DISH, ZMQ_NULL, ZMQ_RADIO, ZMQ_REQ, ZMQ_SUB, ZMQ_XSUB,
 };
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::engine::ZmqEngine;
@@ -131,12 +131,12 @@ impl ZmqSession {
             return -1;
         }
 
-        self._incomplete_in = msg_.flags() & MSG_MORE != 0;
+        self._incomplete_in = msg_.flags() & ZMQ_MSG_MORE != 0;
         return 0;
     }
 
     pub fn push_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
-        if (msg_).flags() & MSG_COMMAND != 0 && !msg_.is_subscribe() && !msg_.is_cancel() {
+        if (msg_).flags() & ZMQ_MSG_COMMAND != 0 && !msg_.is_subscribe() && !msg_.is_cancel() {
             return Ok(());
         }
         if self._pipe.is_some() && (self._pipe).write(msg_) {
@@ -159,7 +159,7 @@ impl ZmqSession {
             return -1;
         }
 
-        if msg_.flags() & MSG_MORE == 0 {
+        if msg_.flags() & ZMQ_MSG_MORE == 0 {
             self._zap_pipe.flush()
         }
 

@@ -1,8 +1,8 @@
-use crate::socket::dealer::ZmqDealer;
-use crate::defines::{MSG_MORE, ZMQ_REQ, ZMQ_REQ_CORRELATE, ZMQ_REQ_RELAXED};
+use crate::defines::{ZMQ_MSG_MORE, ZMQ_REQ, ZMQ_REQ_CORRELATE, ZMQ_REQ_RELAXED};
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
+use crate::socket::dealer::ZmqDealer;
 use crate::socket::ZmqSocket;
 
 // pub struct ZmqReq {
@@ -132,12 +132,12 @@ pub unsafe fn req_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
                 return rc;
             }
 
-            if !(msg_.flags() & MSG_MORE)
+            if !(msg_.flags() & ZMQ_MSG_MORE)
                 || msg_.size() != size_of_val(&socket._request_id)
                 || msg_.data_mut() != socket._request_id
             {
                 //  Skip the remaining frames and try the next message
-                while (msg_.flags() & MSG_MORE) {
+                while (msg_.flags() & ZMQ_MSG_MORE) {
                     rc = socket.recv_reply_pipe(msg_);
                     // errno_assert (rc == 0);
                 }
@@ -152,7 +152,7 @@ pub unsafe fn req_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
             return rc;
         }
 
-        if (!(msg_.flags() & MSG_MORE) || msg_.size() != 0) {
+        if (!(msg_.flags() & ZMQ_MSG_MORE) || msg_.size() != 0) {
             //  Skip the remaining frames and try the next message
             while (msg_.flags() & ZmqMsg::more) {
                 rc = socket.recv_reply_pipe(msg_);
@@ -170,7 +170,7 @@ pub unsafe fn req_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     }
 
     //  If the reply is fully received, flip the FSM into request-sending state.
-    if (!(msg_.flags() & MSG_MORE)) {
+    if (!(msg_.flags() & ZMQ_MSG_MORE)) {
         socket._receiving_reply = false;
         socket._message_begins = true;
     }

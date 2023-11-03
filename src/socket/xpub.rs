@@ -3,7 +3,7 @@ use std::ffi::c_void;
 use std::ptr::null_mut;
 
 use crate::ctx::ZmqContext;
-use crate::defines::{MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_PUB, ZMQ_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_UNSUBSCRIBE, ZMQ_XPUB, ZMQ_XPUB_MANUAL, ZMQ_XPUB_MANUAL_LAST_VALUE, ZMQ_XPUB_NODROP, ZMQ_XPUB_VERBOSE, ZMQ_XPUB_VERBOSER, ZMQ_XPUB_WELCOME_MSG};
+use crate::defines::{ZMQ_MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_PUB, ZMQ_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_UNSUBSCRIBE, ZMQ_XPUB, ZMQ_XPUB_MANUAL, ZMQ_XPUB_MANUAL_LAST_VALUE, ZMQ_XPUB_NODROP, ZMQ_XPUB_VERBOSE, ZMQ_XPUB_VERBOSER, ZMQ_XPUB_WELCOME_MSG};
 use crate::dist::ZmqDist;
 use crate::generic_mtrie::{GenericMtrie, Prefix};
 use crate::metadata::ZmqMetadata;
@@ -95,7 +95,7 @@ pub unsafe fn xpub_xread_activated(socket: &mut ZmqSocket, options: &mut ZmqOpti
         let mut notify = false;
 
         let mut first_part = !socket.more_recv;
-        socket.more_recv = msg.flag_set(MSG_MORE);
+        socket.more_recv = msg.flag_set(ZMQ_MSG_MORE);
 
         if first_part || socket.process_subscribe {
             //  Apply the subscription to the trie
@@ -281,7 +281,7 @@ pub fn xpub_mark_last_pipe_as_matching(socket: &mut ZmqSocket, pipe_: &mut ZmqPi
 }
 
 pub fn xpub_xsend(socket: &mut ZmqSocket, options: &mut ZmqOptions, msg_: &mut ZmqMsg) -> i32 {
-    let mut msg_more = msg_.flag_set(MSG_MORE) != 0;
+    let mut msg_more = msg_.flag_set(ZMQ_MSG_MORE) != 0;
 
     //  For the first part of multi-part message, find the matching pipes.
     if !socket.more_send {

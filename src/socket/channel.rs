@@ -1,12 +1,12 @@
 use crate::ctx::ZmqContext;
-use crate::defines::{MSG_MORE, ZMQ_CHANNEL};
+use crate::defines::{ZMQ_CHANNEL, ZMQ_MSG_MORE};
+use crate::err::ZmqError;
 use crate::err::ZmqError::PipeError;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 use std::ptr::null_mut;
-use crate::err::ZmqError;
 
 // pub struct ZmqChannel<'a> {
 //     pub base: ZmqSocket<'a>,
@@ -54,7 +54,7 @@ pub fn channel_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
 }
 
 pub unsafe fn channel_xsend(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> i32 {
-    if msg.flag_set(MSG_MORE) {
+    if msg.flag_set(ZMQ_MSG_MORE) {
         return -1;
     }
 

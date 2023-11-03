@@ -1,4 +1,4 @@
-use crate::defines::{COMMAND_FLAG, LARGE_FLAG, MORE_FLAG, MSG_COMMAND, MSG_MORE};
+use crate::defines::{COMMAND_FLAG, LARGE_FLAG, MORE_FLAG, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
 use crate::encoder::ZmqEncoder;
 use crate::utils::put_u64;
 
@@ -24,13 +24,13 @@ pub fn v2e_message_ready(encoder: &mut ZmqEncoder) {
     let mut header_size = 2; // flags byte + size byte
     let mut protocol_flags = &mut encoder.tmp_buf[0];
     *protocol_flags = 0;
-    if encoder.in_progress().flags() & MSG_MORE {
+    if encoder.in_progress().flags() & ZMQ_MSG_MORE {
         *protocol_flags |= MORE_FLAG;
     }
     if encoder.in_progress().size() > u8::MAX as usize {
         *protocol_flags |= LARGE_FLAG;
     }
-    if encoder.in_progress().flags() & MSG_COMMAND {
+    if encoder.in_progress().flags() & ZMQ_MSG_COMMAND {
         *protocol_flags |= COMMAND_FLAG;
     }
     if encoder.in_progress().is_subscribe() || encoder.in_progress().is_cancel() {

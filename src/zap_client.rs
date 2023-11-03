@@ -1,5 +1,5 @@
 use std::ffi::c_void;
-use crate::defines::{MSG_MORE, ZMQ_PROTOCOL_ERROR_ZAP_BAD_REQUEST_ID, ZMQ_PROTOCOL_ERROR_ZAP_BAD_VERSION, ZMQ_PROTOCOL_ERROR_ZAP_INVALID_METADATA, ZMQ_PROTOCOL_ERROR_ZAP_INVALID_STATUS_CODE, ZMQ_PROTOCOL_ERROR_ZAP_MALFORMED_REPLY, ZMQ_PROTOCOL_ERROR_ZAP_UNSPECIFIED};
+use crate::defines::{ZMQ_MSG_MORE, ZMQ_PROTOCOL_ERROR_ZAP_BAD_REQUEST_ID, ZMQ_PROTOCOL_ERROR_ZAP_BAD_VERSION, ZMQ_PROTOCOL_ERROR_ZAP_INVALID_METADATA, ZMQ_PROTOCOL_ERROR_ZAP_INVALID_STATUS_CODE, ZMQ_PROTOCOL_ERROR_ZAP_MALFORMED_REPLY, ZMQ_PROTOCOL_ERROR_ZAP_UNSPECIFIED};
 use crate::err::ZmqError;
 use crate::mechanism;
 use crate::mechanism::ZmqMechanism;
@@ -141,7 +141,7 @@ impl ZapClient {
                 // return close_and_return (msg, -1);
                 return Err(ZapError("EAGAIN"));
             }
-            if msg[i].flags_set(MSG_MORE) == (if i < zap_reply_frame_count - 1 { 0 } else { MSG_MORE })
+            if msg[i].flags_set(ZMQ_MSG_MORE) == (if i < zap_reply_frame_count - 1 { 0 } else { ZMQ_MSG_MORE })
             {
                 self.mechanism.session.get_socket().event_handshake_failed_protocol (
                     options,

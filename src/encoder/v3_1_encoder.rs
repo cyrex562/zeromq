@@ -1,4 +1,7 @@
-use crate::defines::{cancel_cmd_name, COMMAND_FLAG, LARGE_FLAG, MORE_FLAG, MSG_COMMAND, MSG_MORE, sub_cmd_name};
+use crate::defines::{
+    cancel_cmd_name, sub_cmd_name, COMMAND_FLAG, LARGE_FLAG, MORE_FLAG, ZMQ_MSG_COMMAND,
+    ZMQ_MSG_MORE,
+};
 use crate::encoder::ZmqEncoder;
 use crate::msg::{CANCEL_CMD_NAME_SIZE, SUB_CMD_NAME_SIZE};
 use crate::utils::put_u64;
@@ -26,10 +29,13 @@ pub fn v3_1e_message_ready(encoder: &mut ZmqEncoder) {
     let mut header_size = 2; // flags byte + size byte
     let mut protocol_flags = &mut encoder.tmp_buf[0];
     *protocol_flags = 0;
-    if encoder.in_progress().flags() & MSG_MORE {
+    if encoder.in_progress().flags() & ZMQ_MSG_MORE {
         *protocol_flags |= MORE_FLAG;
     }
-    if encoder.in_progress().flags() & MSG_COMMAND != 0 || encoder.in_progress().is_subscribe() || encoder.in_progress().is_cancel() {
+    if encoder.in_progress().flags() & ZMQ_MSG_COMMAND != 0
+        || encoder.in_progress().is_subscribe()
+        || encoder.in_progress().is_cancel()
+    {
         *protocol_flags |= COMMAND_FLAG;
         if encoder.in_progress().is_subscribe() {
             size += SUB_CMD_NAME_SIZE;

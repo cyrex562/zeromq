@@ -1,7 +1,7 @@
 use libc::size_t;
 
 use crate::decoder::ZmqDecoder;
-use crate::defines::{COMMAND_FLAG, LARGE_FLAG, MORE_FLAG, MSG_COMMAND};
+use crate::defines::{COMMAND_FLAG, LARGE_FLAG, MORE_FLAG, ZMQ_MSG_COMMAND};
 use crate::err::ZmqError;
 use crate::err::ZmqError::DecoderError;
 use crate::msg::ZmqMsg;
@@ -61,7 +61,7 @@ pub fn v2d_flags_ready(decoder: &mut ZmqDecoder, buf: &mut [u8]) -> Result<(), Z
         decoder._msg_flags |= ZmqMsg::more;
     }
     if decoder._tmpbuf[0] & COMMAND_FLAG {
-        decoder._msg_flags |= MSG_COMMAND;
+        decoder._msg_flags |= ZMQ_MSG_COMMAND;
     }
 
     //  The payload length is either one or eight bytes,

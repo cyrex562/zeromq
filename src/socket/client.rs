@@ -1,5 +1,5 @@
 use crate::ctx::ZmqContext;
-use crate::defines::{MSG_MORE, ZMQ_CLIENT};
+use crate::defines::{ZMQ_CLIENT, ZMQ_MSG_MORE};
 use crate::err::ZmqError;
 use crate::fair_queue::ZmqFairQueue;
 use crate::load_balancer::ZmqLoadBalancer;
@@ -44,7 +44,7 @@ pub fn client_xattach_pipe(
 }
 
 pub fn client_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
-    if msg_.flags() & MSG_MORE != 0 {
+    if msg_.flags() & ZMQ_MSG_MORE != 0 {
         return -1;
     }
     socket.lb.sendpipe(msg_, &mut None)
@@ -53,9 +53,9 @@ pub fn client_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
 pub unsafe fn client_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     let mut rc = socket.fq.recvpipe(msg_, None);
 
-    while rc == 0 && msg_.flags() & MSG_MORE > 0 {
+    while rc == 0 && msg_.flags() & ZMQ_MSG_MORE > 0 {
         rc = socket.fq.recvpipe(msg_, None);
-        while rc == 0 && msg_.flags() & MSG_MORE > 0 {
+        while rc == 0 && msg_.flags() & ZMQ_MSG_MORE > 0 {
             rc = socket.fq.recvpipe(msg_, None);
         }
 

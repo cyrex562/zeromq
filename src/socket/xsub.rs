@@ -1,5 +1,5 @@
 use crate::ctx::ZmqContext;
-use crate::defines::{MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_XSUB, ZMQ_XSUB_VERBOSE_UNSUBSCRIBE};
+use crate::defines::{ZMQ_MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_XSUB, ZMQ_XSUB_VERBOSE_UNSUBSCRIBE};
 use crate::dist::ZmqDist;
 use crate::defines::fair_queue::ZmqFairQueue;
 use crate::msg::ZmqMsg;
@@ -128,7 +128,7 @@ pub fn xsub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     let mut data = (msg_.data_mut());
 
     let first_part = !socket.more_send;
-    socket.more_send = msg_.flag_set(MSG_MORE);
+    socket.more_send = msg_.flag_set(ZMQ_MSG_MORE);
 
     if (first_part) {
         socket.process_subscribe = !socket.only_first_subscribe;
@@ -186,7 +186,7 @@ pub unsafe fn xsub_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
         let rc = msg_. move (socket.message);
         // errno_assert (rc == 0);
         socket.has_message = false;
-        socket.more_recv = msg_.flag_set(MSG_MORE);
+        socket.more_recv = msg_.flag_set(ZMQ_MSG_MORE);
         return 0;
     }
 
@@ -206,13 +206,13 @@ pub unsafe fn xsub_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
         //  Check whether the message matches at least one subscription.
         //  Non-initial parts of the message are passed
         if (socket.more_recv || !socket.options.filter || socket.match_(msg_)) {
-            socket.more_recv = msg_.flag_set(MSG_MORE);
+            socket.more_recv = msg_.flag_set(ZMQ_MSG_MORE);
             return 0;
         }
 
         //  Message doesn't match. Pop any remaining parts of the message
         //  from the pipe.
-        while msg_.flag_set(MSG_MORE) {
+        while msg_.flag_set(ZMQ_MSG_MORE) {
             rc = socket.fq.recv(msg_);
             // errno_assert (rc == 0);
         }

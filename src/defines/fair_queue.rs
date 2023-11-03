@@ -1,21 +1,20 @@
-use crate::defines::MSG_MORE;
+use crate::defines::ZMQ_MSG_MORE;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 
 // pub type ZmqPipes = ZmqArray<ZmqPipe, 1>;
 
 pub struct ZmqFairQueue<'a> {
-    pub pipes: [&'a mut ZmqPipe<'a>;1],
+    pub pipes: [&'a mut ZmqPipe<'a>; 1],
     pub active: usize,
     pub current: usize,
     pub more: bool,
-
 }
 
 impl ZmqFairQueue {
     pub fn new() -> Self {
         Self {
-            pipes: [&mut ZmqPipe::default();1],
+            pipes: [&mut ZmqPipe::default(); 1],
             active: 0,
             current: 0,
             more: false,
@@ -57,10 +56,10 @@ impl ZmqFairQueue {
             let fetched = (*self.pipes[self.current]).read(msg_);
 
             if fetched {
-                if pipe_.is_some(){
+                if pipe_.is_some() {
                     *pipe_ = self.pipes[self.current];
                 }
-                self.more = msg_.flags() & MSG_MORE != 0;
+                self.more = msg_.flags() & ZMQ_MSG_MORE != 0;
                 if !self.more {
                     self.current = self.current + 1 % self.active;
                 }
@@ -94,7 +93,7 @@ impl ZmqFairQueue {
                 self.current = 0;
             }
         }
-        
+
         return false;
     }
 }

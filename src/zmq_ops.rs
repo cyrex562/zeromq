@@ -9,12 +9,13 @@ use windows::Win32::Networking::WinSock::{POLLIN, POLLOUT, POLLPRI};
 use crate::clock::ZmqClock;
 use crate::ctx::ZmqContext;
 use crate::defines::{
-    ZmqFd, ZmqPollFd, MSG_MORE, MSG_SHARED, RETIRED_FD, ZMQ_EVENTS, ZMQ_FD, ZMQ_IO_THREADS,
-    ZMQ_MORE, ZMQ_PAIR, ZMQ_PEER, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI, ZMQ_SNDMORE,
-    ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH,
+    ZmqFd, ZmqPollFd, RETIRED_FD, ZMQ_EVENTS, ZMQ_FD, ZMQ_IO_THREADS, ZMQ_MORE, ZMQ_MSG_MORE,
+    ZMQ_MSG_SHARED, ZMQ_PAIR, ZMQ_PEER, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI,
+    ZMQ_SNDMORE, ZMQ_TYPE, ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH,
 };
 use crate::err::ZmqError;
 use crate::err::ZmqError::{InvalidContext, PollerError, SocketError, TimerError};
+use crate::io::timers::{Timers, TimersTimerFn};
 use crate::ip::{initialize_network, shutdown_network};
 use crate::msg::{MsgFreeFn, ZmqMsg};
 use crate::options::ZmqOptions;
@@ -26,7 +27,6 @@ use crate::proxy::proxy;
 use crate::select::{FD_SET, FD_ZERO};
 use crate::socket::ZmqSocket;
 use crate::socket_poller::ZmqSocketPoller;
-use crate::io::timers::{Timers, TimersTimerFn};
 use crate::utils::{get_errno, FD_ISSET};
 use crate::zmq_draft::zmq_fd_t;
 
@@ -663,7 +663,7 @@ pub unsafe fn zmq_recviov(
         //              out_iovecs[i].iov_len);
         // Assume zmq_socket ZMQ_RVCMORE is properly set.
         let p_msg = (&msg);
-        recvmore = p_msg.flag_set(MSG_MORE);
+        recvmore = p_msg.flag_set(ZMQ_MSG_MORE);
         zmq_msg_close(&mut msg)?;
         // errno_assert (rc == 0);
         // ++*count_;
@@ -765,7 +765,7 @@ pub unsafe fn zmq_msg_get(msg: &mut ZmqMsg, property_: u32) -> Result<i32, ZmqEr
         ZMQ_MORE => {
             // return (((zmq::msg_t *)
             // msg) -> flags() & zmq::msg_t::more) ? 1: 0;
-            return if msg.flags() & MSG_MORE != 0 {
+            return if msg.flags() & ZMQ_MSG_MORE != 0 {
                 Ok(1)
             } else {
                 Ok(0)
@@ -786,7 +786,7 @@ pub unsafe fn zmq_msg_get(msg: &mut ZmqMsg, property_: u32) -> Result<i32, ZmqEr
             // msg) -> is_cmsg())
             // || (((zmq::msg_t *)
             // msg) -> flags() & zmq::msg_t::shared) ? 1: 0;
-            return if msg.is_cmsg() || msg.flags() & MSG_SHARED != 0 {
+            return if msg.is_cmsg() || msg.flags() & ZMQ_MSG_SHARED != 0 {
                 Ok(1)
             } else {
                 Ok(0)

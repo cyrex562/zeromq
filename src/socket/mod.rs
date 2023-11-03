@@ -13,7 +13,7 @@ use crate::client::{client_xattach_pipe, client_xgetsockopt, client_xhas_in, cli
 use crate::command::ZmqCommand;
 use crate::ctx::ZmqContext;
 use crate::dealer::{dealer_xattach_pipe, dealer_xgetsockopt, dealer_xhas_in, dealer_xhas_out, dealer_xjoin, dealer_xpipe_terminated, dealer_xread_activated, dealer_xrecv, dealer_xsend, dealer_xsetsockopt, dealer_xwrite_activated};
-use crate::defines::{INBOUND_POLL_RATE, MAX_COMMAND_DELAY, MSG_MORE, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZmqFd, ZmqHandle, ZmqSubscriptions};
+use crate::defines::{INBOUND_POLL_RATE, MAX_COMMAND_DELAY, ZMQ_MSG_MORE, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZmqFd, ZmqHandle, ZmqSubscriptions};
 use crate::dgram::{dgram_xattach_pipe, dgram_xgetsockopt, dgram_xhas_in, dgram_xhas_out, dgram_xjoin, dgram_xpipe_terminated, dgram_xread_activated, dgram_xrecv, dgram_xsend, dgram_xsetsockopt, dgram_xwrite_activated};
 use crate::dish::{dish_xattach_pipe, dish_xgetsockopt, dish_xhas_in, dish_xhas_out, dish_xjoin, dish_xpipe_terminated, dish_xread_activated, dish_xrecv, dish_xsend, dish_xsetsockopt, dish_xwrite_activated};
 use crate::dist::ZmqDist;
@@ -1250,11 +1250,11 @@ impl ZmqSocket {
         self.process_commands(options, 0, true)?;
 
         //  Clear any user-visible flags that are set on the message.
-        msg.reset_flags(MSG_MORE);
+        msg.reset_flags(ZMQ_MSG_MORE);
 
         //  At this point we impose the flags on the message.
         if flags_ & ZMQ_SNDMORE {
-            msg.set_flags(MSG_MORE);
+            msg.set_flags(ZMQ_MSG_MORE);
         }
 
         msg.reset_metadata();
@@ -1886,7 +1886,7 @@ impl ZmqSocket {
         };
 
         //  Remove MORE flag.
-        self.rcvmore = (msg_.flags() & MSG_MORE) != 0;
+        self.rcvmore = (msg_.flags() & ZMQ_MSG_MORE) != 0;
     }
 
     pub unsafe fn monitor(&mut self, options: &mut ZmqOptions, endpoint: &str, events: u64, event_version: i32, type_: i32) -> Result<(), ZmqError> {

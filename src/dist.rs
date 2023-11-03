@@ -1,4 +1,4 @@
-use crate::defines::MSG_MORE;
+use crate::defines::ZMQ_MSG_MORE;
 use crate::msg::ZmqMsg;
 use crate::pipe::zmq_pipe::ZmqPipes;
 use crate::pipe::ZmqPipe;
@@ -113,7 +113,7 @@ impl ZmqDist {
 
     pub unsafe fn send_to_matching(&mut self, msg_: &mut ZmqMsg) -> i32 {
         //  Is this end of a multipart message?
-        let msg_more = msg_.flag_set(MSG_MORE);
+        let msg_more = msg_.flag_set(ZMQ_MSG_MORE);
 
         //  Push the message to matching pipes.
         self.distribute(msg_);
@@ -195,7 +195,7 @@ impl ZmqDist {
             self._eligible -= 1;
             return false;
         }
-        if msg_.flag_clear(MSG_MORE) {
+        if msg_.flag_clear(ZMQ_MSG_MORE) {
             for i in 0..self._matching {
                 if self._pipes[i].check_hwm() {
                     return false;

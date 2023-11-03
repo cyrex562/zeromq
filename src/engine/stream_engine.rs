@@ -1,9 +1,7 @@
-use std::collections::HashMap;
-use libc::{EAGAIN, ECONNRESET};
-use crate::defines::{MSG_COMMAND, ZmqFd, ZMQ_NOTIFY_CONNECT, ZMQ_MSG_PROPERTY_PEER_ADDRESS};
-use crate::engine::{ZmqEngine, ZmqEngineType};
+use crate::defines::{ZmqFd, ZMQ_MSG_COMMAND, ZMQ_MSG_PROPERTY_PEER_ADDRESS, ZMQ_NOTIFY_CONNECT};
 use crate::engine::raw_engine::raw_plug_internal;
 use crate::engine::zmtp_engine::{zmtp_plug_internal, zmtp_produce_ping_message};
+use crate::engine::{ZmqEngine, ZmqEngineType};
 use crate::err::ZmqError;
 use crate::err::ZmqError::EngineError;
 use crate::io::io_thread::ZmqIoThread;
@@ -15,6 +13,8 @@ use crate::options::ZmqOptions;
 use crate::session::ZmqSession;
 use crate::tcp::{tcp_read, tcp_write};
 use crate::utils::get_errno;
+use libc::{EAGAIN, ECONNRESET};
+use std::collections::HashMap;
 
 pub const HANDSHAKE_TIMER_ID: i32 = 0x40;
 pub const HEARTBEAT_IVL_TIMER_ID: i32 = 0x80;
@@ -99,7 +99,12 @@ pub fn get_peer_address(s_: ZmqFd) -> String {
 //     }
 // }
 
-pub fn stream_plug(options: &ZmqOptions, engine: &mut ZmqEngine, io_thread_: &mut ZmqIoThread, session_: &mut ZmqSession) -> Result<(), ZmqError> {
+pub fn stream_plug(
+    options: &ZmqOptions,
+    engine: &mut ZmqEngine,
+    io_thread_: &mut ZmqIoThread,
+    session_: &mut ZmqSession,
+) -> Result<(), ZmqError> {
     engine.plugged = true;
     engine.session = Some(session_);
     engine.socket = Some(session_.socket());
@@ -187,7 +192,6 @@ pub fn stream_in_event_internal(options: &ZmqOptions, engine: &mut ZmqEngine) ->
         }
     }
 
-
     // zmq_assert (_decoder);
 
     //  If there has been an I/O Error, Stop polling.
@@ -204,7 +208,9 @@ pub fn stream_in_event_internal(options: &ZmqOptions, engine: &mut ZmqEngine) ->
         //  the underlying TCP layer has fixed buffer size and thus the
         //  number of bytes read will be always limited.
         let mut bufsize = 0usize;
-        engine.decoder.get_buffer(engine: &mut ZmqEngine, engine.in_pos, &mut bufsize);
+        engine
+            .decoder
+            .get_buffer(engine: &mut ZmqEngine, engine.in_pos, &mut bufsize);
 
         let mut rc = stream_read(engine, engine.in_pos, bufsize);
 
@@ -226,7 +232,9 @@ pub fn stream_in_event_internal(options: &ZmqOptions, engine: &mut ZmqEngine) ->
     let mut processed = 0usize;
 
     while engine.in_size > 0 {
-        rc = engine.decoder.decode(engine.in_pos, engine.in_size, processed);
+        rc = engine
+            .decoder
+            .decode(engine.in_pos, engine.in_size, processed);
         // zmq_assert (processed <= _insize);
         engine.in_pos = engine.in_pos.add(processed);
         engine.in_size -= processed;
@@ -259,7 +267,7 @@ pub fn stream_out_event(options: &ZmqOptions, engine: &mut ZmqEngine) {
         //  Even when we Stop polling as soon as there is no
         //  data to send, the poller may invoke out_event one
         //  more time due to 'speculative write' optimisation.
-        if ((engine.encoder.is_none())) {
+        if (engine.encoder.is_none()) {
             // zmq_assert (_handshaking);
             return;
         }
@@ -279,7 +287,10 @@ pub fn stream_out_event(options: &ZmqOptions, engine: &mut ZmqEngine) {
             }
             engine.encoder.load_msg(&engine.tx_msg);
             let mut bufptr = engine.out_pos[engine.out_size..];
-            let n = engine.encoder.unwrap().encode(&mut bufptr, options.out_batch_size - engine.out_size);
+            let n = engine
+                .encoder
+                .unwrap()
+                .encode(&mut bufptr, options.out_batch_size - engine.out_size);
             // zmq_assert (n > 0);
             if engine.out_pos == &[0u8] {
                 engine.out_pos = &mut bufptr;
@@ -349,7 +360,10 @@ pub unsafe fn stream_restart_input(options: &ZmqOptions, engine: &mut ZmqEngine)
 
     while engine.in_size > 0 {
         let mut processed = 0usize;
-        engine.decoder.unwrap().decode(engine.in_pos, engine.in_size, &mut processed)?;
+        engine
+            .decoder
+            .unwrap()
+            .decode(engine.in_pos, engine.in_size, &mut processed)?;
         // zmq_assert (processed <= _insize);
         engine.in_pos = engine.in_pos.add(processed);
         engine.in_size -= processed;
@@ -381,7 +395,10 @@ pub unsafe fn stream_restart_input(options: &ZmqOptions, engine: &mut ZmqEngine)
     return true;
 }
 
-pub fn stream_next_handshake_command(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
+pub fn stream_next_handshake_command(
+    engine: &mut ZmqEngine,
+    msg_: &mut ZmqMsg,
+) -> Result<(), ZmqError> {
     if engine.mechanism.status() == ZmqMechanism::ready {
         engine.mechanism_ready();
         return engine.pull_and_encode(msg_);
@@ -393,13 +410,17 @@ pub fn stream_next_handshake_command(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) 
     let rc = engine.mechanism.unwrap().next_handshake_command(msg_);
 
     if rc == 0 {
-        msg_.set_flags(MSG_COMMAND);
+        msg_.set_flags(ZMQ_MSG_COMMAND);
     }
 
     Ok(())
 }
 
-pub fn stream_process_handshake_command(options: &ZmqOptions, engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
+pub fn stream_process_handshake_command(
+    options: &ZmqOptions,
+    engine: &mut ZmqEngine,
+    msg_: &mut ZmqMsg,
+) -> Result<(), ZmqError> {
     let rc = engine.mechanism.process_handshake_command(msg_);
     if (rc == 0) {
         if engine.mechanism.status() == ZmqMechanism::ready {
@@ -506,10 +527,16 @@ pub unsafe fn stream_mechanism_ready(options: &ZmqOptions, engine: &mut ZmqEngin
         engine.has_handshake_timer = false;
     }
 
-    engine.socket.event_handshake_succeeded(&engine.endpoint_uri_pair, 0);
+    engine
+        .socket
+        .event_handshake_succeeded(&engine.endpoint_uri_pair, 0);
 }
 
-pub fn stream_write_credential(options: &ZmqOptions, engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
+pub fn stream_write_credential(
+    options: &ZmqOptions,
+    engine: &mut ZmqEngine,
+    msg_: &mut ZmqMsg,
+) -> Result<(), ZmqError> {
     let mut credential = engine.mechanism.get_user_id();
     if credential.size() > 0 {
         let mut msg = ZmqMsg::default();
@@ -528,10 +555,7 @@ pub fn stream_write_credential(options: &ZmqOptions, engine: &mut ZmqEngine, msg
     return engine.decode_and_push(msg_);
 }
 
-pub fn stream_pull_and_encode(
-    engine: &mut ZmqEngine,
-    msg_: &mut ZmqMsg
-) -> Result<(), ZmqError> {
+pub fn stream_pull_and_encode(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     if engine.session.pull_msg(msg_) == -1 {
         return Err(EngineError("failed to pull message"));
     }
@@ -541,7 +565,11 @@ pub fn stream_pull_and_encode(
     Ok(())
 }
 
-pub fn stream_decode_and_push(_options: &ZmqOptions, engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
+pub fn stream_decode_and_push(
+    _options: &ZmqOptions,
+    engine: &mut ZmqEngine,
+    msg_: &mut ZmqMsg,
+) -> Result<(), ZmqError> {
     if engine.mechanism.decode(msg_) == -1 {
         return Err(EngineError("failed to decode message"));
     }
@@ -556,7 +584,7 @@ pub fn stream_decode_and_push(_options: &ZmqOptions, engine: &mut ZmqEngine, msg
         engine.cancel_timer(HEARTBEAT_TTL_TIMER_ID);
     }
 
-    if msg_.flag_set(MSG_COMMAND) {
+    if msg_.flag_set(ZMQ_MSG_COMMAND) {
         engine.process_command_message(msg_);
     }
 
@@ -572,7 +600,11 @@ pub fn stream_decode_and_push(_options: &ZmqOptions, engine: &mut ZmqEngine, msg
     return Ok(());
 }
 
-pub fn stream_push_one_then_decode_and_push(options: &ZmqOptions, engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
+pub fn stream_push_one_then_decode_and_push(
+    options: &ZmqOptions,
+    engine: &mut ZmqEngine,
+    msg_: &mut ZmqMsg,
+) -> Result<(), ZmqError> {
     if engine.session.push_msg(msg_) == -1 {
         return Err(EngineError("failed to push msg"));
     }
@@ -580,11 +612,18 @@ pub fn stream_push_one_then_decode_and_push(options: &ZmqOptions, engine: &mut Z
     return stream_decode_and_push(options, engine, msg_);
 }
 
-pub fn stream_pull_msg_from_session(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
+pub fn stream_pull_msg_from_session(
+    engine: &mut ZmqEngine,
+    msg_: &mut ZmqMsg,
+) -> Result<(), ZmqError> {
     engine.session.pull_msg(msg_)
 }
 
-pub fn stream_push_msg_to_session(_options: &ZmqOptions, engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
+pub fn stream_push_msg_to_session(
+    _options: &ZmqOptions,
+    engine: &mut ZmqEngine,
+    msg: &mut ZmqMsg,
+) -> Result<(), ZmqError> {
     engine.session.push_msg(msg)
 }
 
@@ -629,12 +668,17 @@ pub unsafe fn stream_set_handshake_timer(options: &ZmqOptions, engine: &mut ZmqE
     }
 }
 
-pub unsafe fn stream_init_properties(engine: &mut ZmqEngine, properties_: &mut HashMap<String, String>) -> bool {
+pub unsafe fn stream_init_properties(
+    engine: &mut ZmqEngine,
+    properties_: &mut HashMap<String, String>,
+) -> bool {
     if engine.peer_address.empty() {
         return false;
     }
     properties_.insert(
-        ZMQ_MSG_PROPERTY_PEER_ADDRESS.to_string(), engine.peer_address.clone());
+        ZMQ_MSG_PROPERTY_PEER_ADDRESS.to_string(),
+        engine.peer_address.clone(),
+    );
 
     //  Private property to support deprecated SRCFD
     // TODO
@@ -661,12 +705,13 @@ pub unsafe fn stream_timer_event(options: &ZmqOptions, engine: &mut ZmqEngine, i
     } else if id_ == HEARTBEAT_TIMEOUT_TIMER_ID {
         engine.has_timeout_timer = false;
         // Error (TimeoutError);
-    } else {}
+    } else {
+    }
     // There are no other valid timer ids!
     // assert (false);
 }
 
-pub fn stream_read(engine: &mut ZmqEngine , data_: &mut [u8], size_: usize) -> i32 {
+pub fn stream_read(engine: &mut ZmqEngine, data_: &mut [u8], size_: usize) -> i32 {
     let rc = tcp_read(engine.s, data_, size_);
     if (rc == 0) {
         // connection closed by peer
@@ -677,6 +722,6 @@ pub fn stream_read(engine: &mut ZmqEngine , data_: &mut [u8], size_: usize) -> i
     return rc;
 }
 
-pub fn stream_write(engine: &mut ZmqEngine , data_: &mut [u8], size_: usize) -> i32 {
+pub fn stream_write(engine: &mut ZmqEngine, data_: &mut [u8], size_: usize) -> i32 {
     tcp_write(engine.s, data_, size_)
 }

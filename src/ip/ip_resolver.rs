@@ -1,14 +1,17 @@
-use std::ffi::c_char;
+use std::ffi::{c_char, CString};
 use std::fmt::{Debug, Display};
 use anyhow::bail;
 use std::ptr::null_mut;
+use libc::{c_int, ECONNREFUSED, EINVAL, EOPNOTSUPP};
 use windows::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
 use windows::Win32::Networking::WinSock::WSAHOST_NOT_FOUND;
 use windows::Win32::NetworkManagement::IpHelper::{GAA_FLAG_SKIP_ANYCAST, GAA_FLAG_SKIP_DNS_SERVER, GAA_FLAG_SKIP_MULTICAST, GetAdaptersAddresses, IP_ADAPTER_ADDRESSES_LH, IP_ADAPTER_UNICAST_ADDRESS_LH};
+use crate::address::ip_address::ZmqIpAddress;
 use crate::defines::{ZmqSockAddr, ZmqSockAddrIn, ZmqSockAddrIn6, AF_INET, AF_INET6, ZmqAddrInfo, SOCK_STREAM, AI_PASSIVE, AI_NUMERICHOST, EAI_MEMORY, AF_UNSPEC};
-use crate::ip_address::ZmqIpAddress;
-use crate::ip_resolver_options::IpResolverOptions;
+use crate::ip::ip_resolver_options::IpResolverOptions;
 use crate::options::ZmqOptions;
+use crate::utils::get_errno;
+use crate::utils::sock_utils::sockaddr_to_zmq_sockaddr;
 
 pub fn sockaddr_to_str(sa: &ZmqSockAddr) -> String {
     let mut out = String::new();
@@ -44,6 +47,7 @@ pub fn sockaddr_in6_to_str(sa: &ZmqSockAddrIn6) -> String {
 }
 
 
+//noinspection RsFunctionNaming
 pub fn IN_MULTICAST(a: u32) -> bool {
     (a & 0xf0000000) == 0xe0000000
 }
@@ -158,7 +162,7 @@ impl IpResolver {
         }
 
         if !resolved && self._options.get_allow_nic_name() {
-            unsafe { self.resolve_nic_name(options, ip_addr_, &mut addr_str)?; }
+            unsafe { self.resolve_nic_name( ip_addr_, &mut addr_str)?; }
             resolved = true;
         }
 
@@ -263,20 +267,20 @@ impl IpResolver {
 
     #[cfg(target_os = "linux")]
     pub unsafe fn resolve_nic_name(&mut self, ip_addr_: &mut ZmqIpAddress, nic_: &str) -> anyhow::Result<()> {
-        let mut ifa: *mut ifaddrs = null_mut();
+        let mut ifa: *mut libc::ifaddrs = null_mut();
         let mut rc = 0i32;
         let max_attempts = 10;
         let backoff_msec = 1;
         for i in 0..max_attempts {
-            rc = getifaddrs(&mut ifa);
-            let errno = io::Error::last_os_error().raw_os_error().unwrap();
+            rc = libc::getifaddrs(&mut ifa);
+            let errno = get_errno();
             if rc == 0 || rc < 0 && errno == ECONNREFUSED {
                 break;
             }
-            sleep(std::time::Duration::from_millis(backoff_msec.clone()));
+            libc::sleep(std::time::Duration::from_millis(backoff_msec.clone()).as_secs() as libc::c_uint);
         }
 
-        let errno = io::Error::last_os_error().raw_os_error().unwrap();
+        let errno = get_errno();
         if rc != 0 && errno == EINVAL || errno == EOPNOTSUPP {
             bail!("enodev");
         }
@@ -292,7 +296,7 @@ impl IpResolver {
             let if_nic_name = CString::from_raw((*ifp).ifa_name).into_string().unwrap();
             if family == (if self._options.get_ipv6() { AF_INET6 } else { AF_INET }) && nic_ == if_nic_name {
                 let match_sockaddr = (*ifp).ifa_addr.as_mut().unwrap();
-                (*ip_addr_).generic = *match_sockaddr;
+                (*ip_addr_).generic = sockaddr_to_zmq_sockaddr(match_sockaddr);
 
                 found = true;
                 break;
@@ -300,7 +304,7 @@ impl IpResolver {
             ifp = (*ifp).ifa_next;
         }
 
-        freeifaddrs(ifa);
+        libc::freeifaddrs(ifa);
 
         if found == false {
             bail!("enodev");

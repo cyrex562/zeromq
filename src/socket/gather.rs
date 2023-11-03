@@ -1,5 +1,5 @@
 use crate::ctx::ZmqContext;
-use crate::defines::{MSG_MORE, ZMQ_GATHER};
+use crate::defines::{ZMQ_GATHER, ZMQ_MSG_MORE};
 use crate::fair_queue::ZmqFairQueue;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
@@ -12,20 +12,27 @@ pub struct ZmqGather<'a> {
 }
 
 impl ZmqGather {
-    pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
+    pub unsafe fn new(
+        options: &mut ZmqOptions,
+        parent_: &mut ZmqContext,
+        tid_: u32,
+        sid_: i32,
+    ) -> Self {
         options.type_ = ZMQ_GATHER;
         Self {
             socket_base: ZmqSocket::new(parent_, tid_, sid_, true),
             _fq: ZmqFairQueue::new(),
         }
     }
-
-
 }
 
-
-pub fn gather_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
-        socket.fq.attach(pipe_);
+pub fn gather_xattach_pipe(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe,
+    subscribe_to_all_: bool,
+    locally_initiated_: bool,
+) {
+    socket.fq.attach(pipe_);
 }
 
 pub fn gather_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
@@ -37,14 +44,14 @@ pub fn gather_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
 }
 
 pub fn gather_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
-    let mut rc = socket.fq.recvpipe (msg_, &mut None);
+    let mut rc = socket.fq.recvpipe(msg_, &mut None);
 
     // Drop any messages with more flag
-    while rc == 0 && msg_.flag_set(MSG_MORE) {
+    while rc == 0 && msg_.flag_set(ZMQ_MSG_MORE) {
         // drop all frames of the current multi-frame message
-        rc = socket.fq.recvpipe (msg_, &mut None);
+        rc = socket.fq.recvpipe(msg_, &mut None);
 
-        while rc == 0 && msg_.flag_set(MSG_MORE) {
+        while rc == 0 && msg_.flag_set(ZMQ_MSG_MORE) {
             rc = socket.fq.recvpipe(msg_, &mut None);
         }
 
@@ -57,11 +64,16 @@ pub fn gather_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     return rc;
 }
 
-pub  fn gather_xhas_in(socket: &mut ZmqSocket) -> bool {
+pub fn gather_xhas_in(socket: &mut ZmqSocket) -> bool {
     socket.fq.has_in()
 }
 
-pub fn gather_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub fn gather_xsetsockopt(
+    socket: &mut ZmqSocket,
+    option_: i32,
+    optval_: &[u8],
+    optvallen_: usize,
+) -> i32 {
     unimplemented!()
 }
 

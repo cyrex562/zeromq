@@ -652,16 +652,16 @@ pub const sub_cmd_name: &'static str = "\x09SUBSCRIBE";
 
 pub const CMD_TYPE_MASK: u8 = 0x1c;
 
-pub const MSG_MORE: u8 = 1;
-pub const MSG_COMMAND: u8 = 2;
-pub const MSG_PING: u8 = 4;
-pub const MSG_PONG: u8 = 8;
-pub const MSG_SUBSCRIBE: u8 = 12;
-pub const MSG_CANCEL: u8 = 16;
-pub const MSG_CLOSE_CMD: u8 = 20;
-pub const MSG_CREDENTIAL: u8 = 32;
-pub const MSG_ROUTING_ID: u8 = 64;
-pub const MSG_SHARED: u8 = 128;
+pub const ZMQ_MSG_MORE: u8 = 1;
+pub const ZMQ_MSG_COMMAND: u8 = 2;
+pub const ZMQ_MSG_PING: u8 = 4;
+pub const ZMQ_MSG_PONG: u8 = 8;
+pub const ZMQ_MSG_SUBSCRIBE: u8 = 12;
+pub const ZMQ_MSG_CANCEL: u8 = 16;
+pub const ZMQ_MSG_CLOSE_CMD: u8 = 20;
+pub const ZMQ_MSG_CREDENTIAL: u8 = 32;
+pub const ZMQ_MSG_ROUTING_ID: u8 = 64;
+pub const ZMQ_MSG_SHARED: u8 = 128;
 
 #[allow(non_camel_case_types)]
 pub type socklen_t = u32;
@@ -675,14 +675,14 @@ pub type ZmqSaFamily = u32;
 //        };
 #[derive(Default, Debug, Clone)]
 pub struct ZmqSockaddrStorage {
-    ss_family: ZmqSaFamily,
+    pub ss_family: ZmqSaFamily,
     // sa_data: [u8; 14],
     // sin_port: u16,
     // sin_addr: u32,
     // sin6_flowinfo: u32,
     // sin6_addr: [u8; 16],
     // sin6_scope_id: u32,
-    sa_data: [u8; std::mem::size_of::<ZmqSockAddrIn6>()],
+    pub sa_data: [u8; std::mem::size_of::<ZmqSockAddrIn6>()],
 }
 
 pub const COMMAND_PIPE_GRANULARITY: usize = 16;
@@ -1184,7 +1184,7 @@ pub struct ZmqIpMreq {
     pub imr_interface: ZmqInAddr,
 }
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ZmqIpv6Mreq {
     pub ipv6mr_multiaddr: ZmqIn6Addr,
     pub ipv6mr_interface: u32,
@@ -1269,7 +1269,6 @@ pub const IPV6_JOIN_ANYCAST: i32 = 27;
 //   167 #define IPV6_LEAVE_ANYCAST  28
 pub const IPV6_LEAVE_ANYCAST: i32 = 28;
 
-
 //    15 #define SO_DEBUG    0x0001
 pub const SO_DEBUG: i32 = 0x0001;
 //    16 #define SO_REUSEADDR    0x0004
@@ -1352,3 +1351,200 @@ pub const SOL_SOCKET: u16 = 0xffff;
 
 // #define MAX_UDP_MSG 8192
 pub const MAX_UDP_MSG: usize = 8192;
+
+// #define MSG_OOB		1
+pub const MSG_OOB: i32 = 1;
+// #define MSG_PEEK	2
+pub const MSG_PEEK: i32 = 2;
+// #define MSG_DONTROUTE	4
+pub const MSG_DONTROUTE: i32 = 4;
+// #define MSG_TRYHARD     4       /* Synonym for MSG_DONTROUTE for DECnet */
+pub const MSG_TRYHARD: i32 = 4;
+// #define MSG_CTRUNC	8
+pub const MSG_CTRUNC: i32 = 8;
+// #define MSG_PROBE	0x10	/* Do not send. Only probe path f.e. for MTU */
+pub const MSG_PROBE: i32 = 0x10;
+// #define MSG_TRUNC	0x20
+pub const MSG_TRUNC: i32 = 0x20;
+// #define MSG_DONTWAIT	0x40	/* Nonblocking io		 */
+pub const MSG_DONTWAIT: i32 = 0x40;
+// #define MSG_EOR         0x80	/* End of record */
+pub const MSG_EOR: i32 = 0x80;
+// #define MSG_WAITALL	0x100	/* Wait for a full request */
+pub const MSG_WAITALL: i32 = 0x100;
+// #define MSG_FIN         0x200
+pub const MSG_FIN: i32 = 0x200;
+// #define MSG_SYN		0x400
+pub const MSG_SYN: i32 = 0x400;
+// #define MSG_CONFIRM	0x800	/* Confirm path validity */
+pub const MSG_CONFIRM: i32 = 0x800;
+// #define MSG_RST		0x1000
+pub const MSG_RST: i32 = 0x1000;
+// #define MSG_ERRQUEUE	0x2000	/* Fetch message from error queue */
+pub const MSG_ERRQUEUE: i32 = 0x2000;
+// #define MSG_NOSIGNAL	0x4000	/* Do not generate SIGPIPE */
+pub const MSG_NOSIGNAL: i32 = 0x4000;
+// #define MSG_MORE	0x8000	/* Sender will send more */
+pub const MSG_MORE: i32 = 0x8000;
+
+// #define MSG_WAITFORONE	0x10000	/* recvmmsg(): block until 1+ packets avail */
+pub const MSG_WAITFORONE: i32 = 0x10000;
+// #define MSG_SENDPAGE_NOPOLICY 0x10000 /* sendpage() internal : do no apply policy */
+pub const MSG_SENDPAGE_NOPOLICY: i32 = 0x10000;
+// #define MSG_BATCH	0x40000 /* sendmmsg(): more messages coming */
+pub const MSG_BATCH: i32 = 0x40000;
+// #define MSG_EOF         MSG_FIN
+pub const MSG_EOF: i32 = MSG_FIN;
+// #define MSG_NO_SHARED_FRAGS 0x80000 /* sendpage() internal : page frags are not shared */
+pub const MSG_NO_SHARED_FRAGS: i32 = 0x80000;
+// #define MSG_SENDPAGE_DECRYPTED	0x100000 /* sendpage() internal : page may carry
+// 					  * plain text and require encryption
+// 					  */
+//
+pub const MSG_SENDPAGE_DECRYPTED: i32 = 0x100000;
+// #define MSG_ZEROCOPY	0x4000000	/* Use user data in kernel path */
+pub const MSG_ZEROCOPY: i32 = 0x4000000;
+// #define MSG_SPLICE_PAGES 0x8000000	/* Splice the pages from the iterator in sendmsg() */
+pub const MSG_SPLICE_PAGES: i32 = 0x8000000;
+// #define MSG_FASTOPEN	0x20000000	/* Send data in TCP SYN */
+pub const MSG_FASTOPEN: i32 = 0x20000000;
+// #define MSG_CMSG_CLOEXEC 0x40000000	/* Set close_on_exec for file
+// 					   descriptor received through
+// 					   SCM_RIGHTS */
+pub const MSG_CMSG_CLOEXEC: i32 = 0x40000000;
+// #if defined(CONFIG_COMPAT)
+// #define MSG_CMSG_COMPAT	0x80000000	/* This message needs 32 bit fixups */
+pub const MSG_CMSG_COMPAT: i32 = 0x80000000;
+// #else
+// #define MSG_CMSG_COMPAT	0		/* We never have 32 bit fixups */
+// #endif
+//
+// /* Flags to be cleared on entry by sendmsg and sendmmsg syscalls */
+// #define MSG_INTERNAL_SENDMSG_FLAGS \
+// 	(MSG_SPLICE_PAGES | MSG_SENDPAGE_NOPOLICY | MSG_SENDPAGE_DECRYPTED)
+pub const MSG_INTERNAL_SENDMSG_FLAGS: i32 = MSG_SPLICE_PAGES | MSG_SENDPAGE_NOPOLICY | MSG_SENDPAGE_DECRYPTED;
+
+//
+// IP_XXX
+//
+
+// #define IP_TOS		1
+pub const IP_TOS: i32 = 1;
+// #define IP_TTL		2
+pub const IP_TTL: i32 = 2;
+// #define IP_HDRINCL	3
+pub const IP_HDRINCL: i32 = 3;
+// #define IP_OPTIONS	4
+pub const IP_OPTIONS: i32 = 4;
+// #define IP_ROUTER_ALERT	5
+pub const IP_ROUTER_ALERT: i32 = 5;
+// #define IP_RECVOPTS	6
+pub const IP_RECVOPTS: i32 = 6;
+// #define IP_RETOPTS	7
+pub const IP_RETOPTS: i32 = 7;
+// #define IP_PKTINFO	8
+pub const IP_PKTINFO: i32 = 8;
+// #define IP_PKTOPTIONS	9
+pub const IP_PKTOPTIONS: i32 = 9;
+// #define IP_MTU_DISCOVER	10
+pub const IP_MTU_DISCOVER: i32 = 10;
+// #define IP_RECVERR	11
+pub const IP_RECVERR: i32 = 11;
+// #define IP_RECVTTL	12
+pub const IP_RECVTTL: i32 = 12;
+// #define	IP_RECVTOS	13
+pub const IP_RECVTOS: i32 = 13;
+// #define IP_MTU		14
+pub const IP_MTU: i32 = 14;
+// #define IP_FREEBIND	15
+pub const IP_FREEBIND: i32 = 15;
+// #define IP_IPSEC_POLICY	16
+pub const IP_IPSEC_POLICY: i32 = 16;
+// #define IP_XFRM_POLICY	17
+pub const IP_XFRM_POLICY: i32 = 17;
+// #define IP_PASSSEC	18
+pub const IP_PASSSEC: i32 = 18;
+// #define IP_TRANSPARENT	19
+pub const IP_TRANSPARENT: i32 = 19;
+//
+// /* BSD compatibility */
+// #define IP_RECVRETOPTS	IP_RETOPTS
+pub const IP_RECVRETOPTS: i32 = IP_RETOPTS;
+//
+// /* TProxy original addresses */
+// #define IP_ORIGDSTADDR       20
+pub const IP_ORIGDSTADDR: i32 = 20;
+// #define IP_RECVORIGDSTADDR   IP_ORIGDSTADDR
+pub const IP_RECVORIGDSTADDR: i32 = IP_ORIGDSTADDR;
+//
+// #define IP_MINTTL       21
+pub const IP_MINTTL: i32 = 21;
+// #define IP_NODEFRAG     22
+pub const IP_NODEFRAG: i32 = 22;
+// #define IP_CHECKSUM	23
+pub const IP_CHECKSUM: i32 = 23;
+// #define IP_BIND_ADDRESS_NO_PORT	24
+pub const IP_BIND_ADDRESS_NO_PORT: i32 = 24;
+// #define IP_RECVFRAGSIZE	25
+pub const IP_RECVFRAGSIZE: i32 = 25;
+// #define IP_RECVERR_RFC4884	26
+pub const IP_RECVERR_RFC4884: i32 = 26;
+//
+// /* IP_MTU_DISCOVER values */
+// #define IP_PMTUDISC_DONT		0	/* Never send DF frames */
+pub const IP_PMTUDISC_CONT: i32 = 0;
+// #define IP_PMTUDISC_WANT		1	/* Use per route hints	*/
+pub const IP_PMTUDISC_WANT: i32 = 1;
+// #define IP_PMTUDISC_DO			2	/* Always DF		*/
+pub const IP_PMTUDISC_DO: i32 = 2;
+// #define IP_PMTUDISC_PROBE		3       /* Ignore dst pmtu      */
+pub const IP_PMTUDISC_PROBE: i32 = 3;
+// /* Always use interface mtu (ignores dst pmtu) but don't set DF flag.
+//  * Also incoming ICMP frag_needed notifications will be ignored on
+//  * this socket to prevent accepting spoofed ones.
+//  */
+// #define IP_PMTUDISC_INTERFACE		4
+pub const IP_PMTUDISC_INTERFACE: i32 = 4;
+// /* weaker version of IP_PMTUDISC_INTERFACE, which allows packets to get
+//  * fragmented if they exeed the interface mtu
+//  */
+// #define IP_PMTUDISC_OMIT		5
+pub const IP_PMTUDISC_OMIT: i32 = 5;
+//
+// #define IP_MULTICAST_IF			32
+// pub const IP_MULTICAST_IF: i32 = 32;
+// #define IP_MULTICAST_TTL 		33
+// pub const IP_MULTICAST_TTL: i32 = 33;
+// #define IP_MULTICAST_LOOP 		34
+// pub const IP_MULTICAST_LOOP : i32 = 34;
+// #define IP_ADD_MEMBERSHIP		35
+// pub const IP_ADD_MEMBERSHIP: i32 = 35;
+// #define IP_DROP_MEMBERSHIP		36
+// #define IP_UNBLOCK_SOURCE		37
+// #define IP_BLOCK_SOURCE			38
+// #define IP_ADD_SOURCE_MEMBERSHIP	39
+// #define IP_DROP_SOURCE_MEMBERSHIP	40
+// #define IP_MSFILTER			41
+pub const IP_MSFILTER: i32 = 41;
+// #define MCAST_JOIN_GROUP		42
+pub const MCAST_JOIN_GROUP: i32 = 42;
+// #define MCAST_BLOCK_SOURCE		43
+pub const MCAST_BLOCK_SOURCE: i32 = 43;
+// #define MCAST_UNBLOCK_SOURCE		44
+pub const MCAST_UNBLOCK_SOURCE: i32 = 44;
+// #define MCAST_LEAVE_GROUP		45
+pub const MCAST_LEAVE_GROUP: i32 = 45;
+// #define MCAST_JOIN_SOURCE_GROUP		46
+pub const MCAST_JOIN_SOURCE_GROUP: i32 = 46;
+// #define MCAST_LEAVE_SOURCE_GROUP	47
+pub const MCAST_LEAVE_SOURCE_GROUP: i32 = 47;
+// #define MCAST_MSFILTER			48
+pub const MCAST_MSFILTER: i32 = 48;
+// #define IP_MULTICAST_ALL		49
+pub const IP_MULTICAST_ALL: i32 = 49;
+// #define IP_UNICAST_IF			50
+pub const IP_UNICAST_IF: i32 = 50;
+// #define IP_LOCAL_PORT_RANGE		51
+pub const IP_LOCAL_PORT_RANGE: i32 = 51;
+// #define IP_PROTOCOL			52
+pub const IP_PROTOCOL: i32 = 52;

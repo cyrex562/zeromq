@@ -1,13 +1,14 @@
 use std::ptr::null_mut;
 use libc::{ECONNREFUSED, EINPROGRESS};
 use windows::Win32::Networking::WinSock::{SO_REUSEADDR, SOL_SOCKET};
-use crate::address::{ZmqAddress, get_socket_name};
+use crate::address::{get_socket_name, ZmqAddress};
 use crate::address::SocketEnd::SocketEndLocal;
 use crate::defines::ZMQ_RECONNECT_STOP_CONN_REFUSED;
 use crate::endpoint::make_unconnected_connect_endpoint_pair;
 use crate::defines::RETIRED_FD;
 use crate::io_thread::ZmqIoThread;
-use crate::ip::{tune_socket, unblock_socket};
+use crate::ip::unblock_socket;
+use crate::net::platform_socket::platform_tune_socket;
 use crate::options::ZmqOptions;
 use crate::session_base::ZmqSession;
 use crate::stream_connecter_base::ZmqStreamConnecterBase;

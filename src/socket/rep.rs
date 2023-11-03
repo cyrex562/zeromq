@@ -1,4 +1,4 @@
-use crate::defines::{MSG_MORE, ZMQ_REP};
+use crate::defines::{ZMQ_MSG_MORE, ZMQ_REP};
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 
@@ -45,7 +45,7 @@ pub fn rep_xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
         return -1;
     }
 
-    let more = flag_set(msg_.flags(), MSG_MORE);
+    let more = flag_set(msg_.flags(), ZMQ_MSG_MORE);
 
     //  Push message to the reply pipe.
     let rc = self.router.xsend(msg_);
@@ -78,7 +78,7 @@ pub unsafe fn rep_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
                 return rc;
             }
 
-            if (msg_.flags() & MSG_MORE) {
+            if (msg_.flags() & ZMQ_MSG_MORE) {
                 //  Empty message part delimits the traceback stack.
                 let bottom = (msg_.size() == 0);
 
@@ -106,7 +106,7 @@ pub unsafe fn rep_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     }
 
     //  If whole request is read, flip the FSM to reply-sending state.
-    if (!(msg_.flags() & MSG_MORE)) {
+    if (!(msg_.flags() & ZMQ_MSG_MORE)) {
         socket._sending_reply = true;
         socket._request_begins = true;
     }

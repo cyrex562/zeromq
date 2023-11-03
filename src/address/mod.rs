@@ -1,10 +1,16 @@
+use libc::sockaddr;
+
 use crate::address::ip_address::ZmqIpAddress;
 use crate::address::tcp_address::ZmqTcpAddress;
 use crate::address::udp_address::UdpAddress;
-use libc::sockaddr;
-
 use crate::ctx::ZmqContext;
-use crate::defines::{ZmqFd, ZmqSockaddrStorage};
+use crate::defines::{ZmqFd, ZmqSockAddr, ZmqSockaddrStorage};
+use crate::err::ZmqError;
+use crate::net::platform_socket::{platform_getpeername, platform_getsockname};
+use crate::utils::sock_utils::{
+    zmq_sockaddr_to_sockaddr, zmq_sockaddr_to_string, zmq_sockaddr_to_zmq_sockaddrstorage,
+    zmq_sockaddrstorage_to_zmq_sockaddr,
+};
 
 pub mod tcp_address;
 pub mod udp_address;
@@ -115,9 +121,21 @@ impl ZmqAddress {
 pub fn get_socket_address(
     fd: ZmqFd,
     socket_end: SocketEnd,
-    ss: &mut ZmqSockaddrStorage,
-) -> ZmqSocklen {
-    todo!()
+) -> Result<ZmqSockaddrStorage, ZmqError> {
+    let mut zsa = ZmqSockAddr::default();
+
+    match socket_end {
+        SocketEnd::SocketEndLocal => {
+            zsa = platform_getsockname(fd)?;
+        }
+        SocketEnd::SocketEndRemote => {
+            zsa = platform_getpeername(fd)?;
+        }
+    }
+
+    let zss = zmq_sockaddr_to_zmq_sockaddrstorage(&zsa);
+
+    return Ok(zss);
 }
 
 // template <typename T>
@@ -135,14 +153,9 @@ pub fn get_socket_address(
 //     return address_string;
 // }
 // }
-pub fn get_socket_name<T>(fd_: ZmqFd, socket_end_: SocketEnd) -> String {
-    let mut ss = ZmqSockaddrStorage::default();
-    let mut sl = get_socket_address(fd_, socket_end_, &mut ss);
-    //  const T addr (reinterpret_cast<struct sockaddr *> (&ss), sl);
-    // TODO figure out how to create instance of T from sl and ss
-
-    let mut address_string = String::new();
-    let addr = &ss as *mut sockaddr;
-    addr.to_string(&mut address_string);
-    address_string
+pub fn get_socket_name<T>(fd_: ZmqFd, socket_end_: SocketEnd) -> Result<String, ZmqError> {
+    let ss = get_socket_address(fd_, socket_end_)?;
+    let sa = zmq_sockaddrstorage_to_zmq_sockaddr(&ss);
+    let addr_string = zmq_sockaddr_to_string(&sa);
+    return Ok(addr_string);
 }

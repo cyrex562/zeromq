@@ -1,4 +1,4 @@
-use crate::defines::MSG_MORE;
+use crate::defines::ZMQ_MSG_MORE;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
@@ -57,13 +57,13 @@ pub unsafe fn xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     //  If this is the first part of the message it's the ID of the
     //  peer to send the message to.
     if (!socket.more_out) {
-        if (!(msg_.flags() & MSG_MORE != 0)) {
+        if (!(msg_.flags() & ZMQ_MSG_MORE != 0)) {
             // errno = EINVAL;
             return -1;
         }
     } else {
         //  dgram messages are two part only, reject part if more is set
-        if (msg_.flags() & MSG_MORE) {
+        if (msg_.flags() & ZMQ_MSG_MORE) {
             // errno = EINVAL;
             return -1;
         }
@@ -75,7 +75,7 @@ pub unsafe fn xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
         return -1;
     }
 
-    if (!(msg_.flags() & MSG_MORE))
+    if (!(msg_.flags() & ZMQ_MSG_MORE))
     socket.pipe.flush();
 
     // flip the more flag
