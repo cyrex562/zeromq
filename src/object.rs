@@ -3,11 +3,13 @@ use crate::command::{ZmqCommand, ZmqCommandType};
 use crate::ctx::{Endpoint, ZmqContext};
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::io_thread::ZmqIoThread;
+use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::own::{own_process_seqnum, own_process_term_ack, ZmqOwn};
 use crate::pipe::ZmqPipe;
 use crate::reaper::{reaper_process_reap, reaper_process_reaped};
 use crate::socket::ZmqSocket;
+use crate::ypipe::ypipe_conflate::YPipeConflate;
 
 // pub struct ZmqObject<'a> {
 //     pub context: &'a mut ZmqContext<'a>,
@@ -264,11 +266,11 @@ pub fn obj_send_bind(
 pub unsafe fn obj_send_activate_read(ctx: &mut ZmqContext, destination: &mut ZmqPipe) {
     let mut cmd = ZmqCommand::new();
     cmd.dest_pipe = Some(destination);
-    cmd.type_ = ZmqCommandType::ActivateRead;
+    cmd.type_ = ActivateRead;
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_activate_write(
+pub fn obj_send_activate_write(
     ctx: &mut ZmqContext,
     destination: &mut ZmqPipe,
     msgs_read: u64,
@@ -280,7 +282,7 @@ pub unsafe fn obj_send_activate_write(
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_hiccup(ctx: &mut ZmqContext, destination: &mut ZmqPipe, pipe: &mut ZmqPipe) {
+pub unsafe fn obj_send_hiccup(ctx: &mut ZmqContext, destination: &mut ZmqPipe, pipe: &mut YPipeConflate<ZmqMsg>) {
     let mut cmd = ZmqCommand::new();
     cmd.dest_pipe = Some(destination);
     cmd.type_ = ZmqCommandType::Hiccup;
@@ -346,9 +348,9 @@ pub fn send_term_req(ctx: &mut ZmqContext, destination: &mut ZmqOwn, object: &mu
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_pipe_stats_publish(
+pub fn obj_send_pipe_stats_publish(
     ctx: &mut ZmqContext,
-    destination: &mut ZmqOwn,
+    destination: &mut ZmqSocket,
     outbound_queue_count: u64,
     inbound_queue_count: u64,
     endpoint_pair: &mut ZmqEndpointUriPair,
@@ -370,7 +372,7 @@ pub unsafe fn obj_send_pipe_term(ctx: &mut ZmqContext, destination: &mut ZmqPipe
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_pipe_term_ack(ctx: &mut ZmqContext, destination: &mut ZmqPipe) {
+pub fn obj_send_pipe_term_ack(ctx: &mut ZmqContext, destination: &mut ZmqPipe) {
     let mut cmd = ZmqCommand::new();
     cmd.dest_pipe = Some(destination);
     cmd.type_ = ZmqCommandType::PipeTermAck;

@@ -26,11 +26,11 @@ impl <T: Copy + Default> ZmqDbuffer<T>{
         out
     }
 
-    pub unsafe fn write(&mut self, value_: &mut T) {
+    pub fn write(&mut self, value_: &mut T) {
         *self._back = value_.clone();
     }
 
-    pub unsafe fn read(&mut self, value_: &mut T) -> bool {
+    pub fn read(&mut self, value_: &mut T) -> bool {
         if value_ == null_mut() {
             return false;
         }

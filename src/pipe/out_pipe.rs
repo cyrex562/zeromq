@@ -6,9 +6,9 @@ pub struct ZmqOutpipe<'a> {
     pub active: bool,
 }
 
-pub type ZmqOutPipes = HashMap<u32, ZmqOutpipe>;
+pub type ZmqOutPipes<'a> = HashMap<u32, ZmqOutpipe<'a>>;
 
-pub struct out_pipe_t<'a> {
-    pub pipe: ZmqPipe<'a>,
-    pub active: bool,
-}
+// pub struct out_pipe_t<'a> {
+//     pub pipe: ZmqPipe<'a>,
+//     pub active: bool,
+// }

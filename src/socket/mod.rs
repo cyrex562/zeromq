@@ -8,50 +8,33 @@ use libc::{clock_t, EAGAIN, EINTR};
 use routing_socket_base::ZmqRoutingSocketBase;
 
 use crate::address::ZmqAddress;
-use crate::array::ArrayItem;
-use crate::client::{client_xattach_pipe, client_xgetsockopt, client_xhas_in, client_xhas_out, client_xjoin, client_xpipe_terminated, client_xread_activated, client_xrecv, client_xsend, client_xsetsockopt, client_xwrite_activated};
 use crate::command::ZmqCommand;
 use crate::ctx::ZmqContext;
-use crate::dealer::{dealer_xattach_pipe, dealer_xgetsockopt, dealer_xhas_in, dealer_xhas_out, dealer_xjoin, dealer_xpipe_terminated, dealer_xread_activated, dealer_xrecv, dealer_xsend, dealer_xsetsockopt, dealer_xwrite_activated};
 use crate::defines::{INBOUND_POLL_RATE, MAX_COMMAND_DELAY, ZMQ_MSG_MORE, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZmqFd, ZmqHandle, ZmqSubscriptions};
-use crate::dgram::{dgram_xattach_pipe, dgram_xgetsockopt, dgram_xhas_in, dgram_xhas_out, dgram_xjoin, dgram_xpipe_terminated, dgram_xread_activated, dgram_xrecv, dgram_xsend, dgram_xsetsockopt, dgram_xwrite_activated};
-use crate::dish::{dish_xattach_pipe, dish_xgetsockopt, dish_xhas_in, dish_xhas_out, dish_xjoin, dish_xpipe_terminated, dish_xread_activated, dish_xrecv, dish_xsend, dish_xsetsockopt, dish_xwrite_activated};
+use crate::defines::array::ArrayItem;
 use crate::dist::ZmqDist;
 use crate::endpoint::{make_unconnected_connect_endpoint_pair, ZmqEndpointUriPair};
 use crate::err::ZmqError;
 use crate::err::ZmqError::{InvalidContext, SocketError};
 use crate::defines::fair_queue::ZmqFairQueue;
-use crate::gather::{gather_xattach_pipe, gather_xgetsockopt, gather_xhas_in, gather_xhas_out, gather_xjoin, gather_xpipe_terminated, gather_xread_activated, gather_xrecv, gather_xsend, gather_xsetsockopt, gather_xwrite_activated};
-use crate::generic_mtrie::GenericMtrie;
 use crate::poll::i_poll_events::IPollEvents;
 use crate::defines::load_balancer::ZmqLoadBalancer;
-use crate::mailbox::ZmqMailbox;
+use crate::defines::mtrie::ZmqMtrie;
+use crate::defines::mutex::ZmqMutex;
+use crate::io::mailbox::ZmqMailbox;
+use crate::io::signaler::ZmqSignaler;
 use crate::metadata::ZmqMetadata;
 use crate::msg::ZmqMsg;
-use crate::mtrie::ZmqMtrie;
-use crate::mutex::ZmqMutex;
 use crate::object::obj_process_command;
 use crate::options::{do_getsockopt, get_effective_conflate_option, ZmqOptions};
-use crate::out_pipe::ZmqOutPipes;
 use crate::own::{own_process_term, ZmqOwn};
-use crate::pair::{pair_xattach_pipe, pair_xgetsockopt, pair_xhas_in, pair_xhas_out, pair_xjoin, pair_xpipe_terminated, pair_xread_activated, pair_xrecv, pair_xsend, pair_xsetsockopt, pair_xwrite_activated};
-use crate::peer::{peer_xattach_pipe, peer_xgetsockopt, peer_xhas_in, peer_xhas_out, peer_xjoin, peer_xpipe_terminated, peer_xread_activated, peer_xrecv, peer_xsend, peer_xsetsockopt, peer_xwrite_activated};
 use crate::pipe::{IPipeEvents, pipepair, ZmqPipe};
-use crate::poller::ZmqPoller;
-use crate::pull::{pull_xattach_pipe, pull_xgetsockopt, pull_xhas_in, pull_xhas_out, pull_xjoin, pull_xpipe_terminated, pull_xread_activated, pull_xrecv, pull_xsend, pull_xsetsockopt, pull_xwrite_activated};
-use crate::push::{push_xattach_pipe, push_xgetsockopt, push_xhas_in, push_xhas_out, push_xjoin, push_xpipe_terminated, push_xread_activated, push_xrecv, push_xsend, push_xsetsockopt, push_xwrite_activated};
-use crate::r#pub::{pub_xattach_pipe, pub_xgetsockopt, pub_xhas_in, pub_xhas_out, pub_xjoin, pub_xpipe_terminated, pub_xread_activated, pub_xrecv, pub_xsend, pub_xsetsockopt, pub_xwrite_activated};
-use crate::radio::{radio_xattach_pipe, radio_xgetsockopt, radio_xhas_in, radio_xhas_out, radio_xjoin, radio_xpipe_terminated, radio_xread_activated, radio_xrecv, radio_xsend, radio_xsetsockopt, radio_xwrite_activated, UdpPipes};
-use crate::rep::{rep_xattach_pipe, rep_xgetsockopt, rep_xhas_in, rep_xhas_out, rep_xjoin, rep_xpipe_terminated, rep_xread_activated, rep_xrecv, rep_xsend, rep_xsetsockopt, rep_xwrite_activated};
-use crate::req::{req_xattach_pipe, req_xgetsockopt, req_xhas_in, req_xhas_out, req_xjoin, req_xpipe_terminated, req_xread_activated, req_xrecv, req_xsend, req_xsetsockopt, req_xwrite_activated};
-use crate::router::{router_xattach_pipe, router_xgetsockopt, router_xhas_in, router_xhas_out, router_xjoin, router_xpipe_terminated, router_xread_activated, router_xrecv, router_xsend, router_xsetsockopt, router_xwrite_activated};
+use crate::pipe::out_pipe::ZmqOutPipes;
+use crate::pipe::pipes::ZmqPipes;
+use crate::poll::poller_base::ZmqPollerBase;
 use crate::session::ZmqSession;
-use crate::signaler::ZmqSignaler;
-use crate::tcp_address::ZmqTcpAddress;
-use crate::udp_address::UdpAddress;
+use crate::socket::radio::UdpPipes;
 use crate::utils::get_errno;
-use crate::xpub::{xpub_xattach_pipe, xpub_xgetsockopt, xpub_xhas_in, xpub_xhas_out, xpub_xjoin, xpub_xpipe_terminated, xpub_xread_activated, xpub_xrecv, xpub_xsend, xpub_xsetsockopt, xpub_xwrite_activated};
-use crate::xsub::{xsub_has_out, xsub_xattach_pipe, xsub_xgetsockopt, xsub_xhas_in, xsub_xjoin, xsub_xpipe_terminated, xsub_xread_activated, xsub_xrecv, xsub_xsend, xsub_xsetsockopt, xsub_xwrite_activated};
 use crate::zmq_ops::{zmq_bind, zmq_close, zmq_msg_data, zmq_msg_init_size, zmq_msg_send, zmq_setsockopt, zmq_socket};
 mod channel;
 mod client;
@@ -186,9 +169,9 @@ pub struct ZmqSocket<'a> {
     pub pending_pipes: VecDeque<&'a mut ZmqPipe<'a>>,
     pub pipe: Option<&'a mut ZmqPipe<'a>>,
     pub pipe_events: dyn IPipeEvents,
-    pub pipes: ZmqPipes<'a>,
+    pub pipes: ZmqPipes,
     pub poll_events: dyn IPollEvents,
-    pub poller: Option<&'a mut ZmqPoller>,
+    pub poller: Option<&'a mut ZmqPollerBase>,
     pub prefetched: bool,
     pub prefetched_id: ZmqMsg,
     pub prefetched_msg: ZmqMsg,
@@ -592,7 +575,7 @@ impl ZmqSocket {
         Ok(())
     }
 
-    pub unsafe fn getsockopt(&mut self, options: &mut ZmqOptions, option_: u32) -> Result<[u8], ZmqError> {
+    pub unsafe fn getsockopt(&mut self, options: &ZmqOptions, option_: u32) -> Result<[u8], ZmqError> {
         if self.ctx_terminated {
             // errno = ETERM;
             return Err(InvalidContext("Context was terminated"));
@@ -1233,9 +1216,9 @@ impl ZmqSocket {
         Ok(())
     }
 
-    pub unsafe fn send(&mut self, options: &mut ZmqOptions, msg: &mut ZmqMsg, flags_: i32) -> Result<(), ZmqError> {
+    pub unsafe fn send(&mut self, options: &ZmqOptions, msg: &mut ZmqMsg, flags_: i32) -> Result<(), ZmqError> {
         //  Check whether the context hasn't been shut down yet.
-        if (self.ctx_terminated) {
+        if self.ctx_terminated {
             // errno = ETERM;
             return Err(SocketError("context was terminated"));
         }
@@ -1316,7 +1299,7 @@ impl ZmqSocket {
         Ok(())
     }
 
-    pub fn xsend(&mut self, options: &mut ZmqOptions, msg: &mut ZmqMsg) -> i32 {
+    pub fn xsend(&mut self, options: &ZmqOptions, msg: &mut ZmqMsg) -> i32 {
         let mut rc = match self.socket_type {
             ZmqSocketType::Client => client_xsend(self, msg),
             ZmqSocketType::Dealer => dealer_xsend(self, msg),

@@ -1,14 +1,16 @@
-use std::ffi::{c_char, c_void};
+use std::ffi::c_char;
 use std::ptr::null_mut;
 
 use libc::size_t;
+use content::ZmqContent;
+use defines::{CANCEL_CMD_NAME_SIZE, CONTENT_T_PTR_SIZE, GROUP_T_SIZE, MAX_VSM_SIZE, METADATA_T_PTR_SIZE, MSG_T_SIZE, PING_CMD_NAME_SIZE, SUB_CMD_NAME_SIZE, TYPE_CMSG, TYPE_DELIMITER, TYPE_JOIN, TYPE_LEAVE, TYPE_LMSG, TYPE_MAX, TYPE_MIN, TYPE_VSM, TYPE_ZCLMSG, VOID_PTR_SIZE};
 
-use crate::atomic_counter::ZmqAtomicCounter;
 use crate::defines::{
     CMD_TYPE_MASK, ZMQ_GROUP_MAX_LENGTH, ZMQ_MSG_CANCEL, ZMQ_MSG_CLOSE_CMD, ZMQ_MSG_COMMAND,
     ZMQ_MSG_CREDENTIAL, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZMQ_MSG_ROUTING_ID, ZMQ_MSG_SHARED,
     ZMQ_MSG_SUBSCRIBE,
 };
+use crate::defines::atomic_counter::ZmqAtomicCounter;
 use crate::err::ZmqError;
 use crate::err::ZmqError::MessageError;
 use crate::metadata::ZmqMetadata;
@@ -16,40 +18,10 @@ use crate::msg::ZmqGroupType::{GroupTypeLong, GroupTypeShort};
 
 mod raw_msg;
 
+pub mod defines;
+mod content;
+
 pub type MsgFreeFn = fn(&mut [u8], &mut [u8]);
-
-#[derive(Default, Debug, Clone)]
-pub struct ZmqContent {
-    pub data: Vec<u8>,
-    pub size: size_t,
-    pub hint: Vec<u8>,
-    pub refcnt: ZmqAtomicCounter,
-    pub ffn: Option<MsgFreeFn>,
-}
-
-pub const MSG_T_SIZE: usize = 64;
-
-pub const PING_CMD_NAME_SIZE: i32 = 5;
-pub const CANCEL_CMD_NAME_SIZE: i32 = 7;
-pub const SUB_CMD_NAME_SIZE: i32 = 10;
-
-pub const MAX_VSM_SIZE: usize = MSG_T_SIZE - 3 + 16 + 4 + std::mem::size_of::<*mut ZmqMetadata>();
-
-pub const TYPE_MIN: u8 = 101;
-pub const TYPE_VSM: u8 = 101;
-pub const TYPE_LMSG: u8 = 102;
-pub const TYPE_DELIMITER: u8 = 103;
-pub const TYPE_CMSG: u8 = 104;
-pub const TYPE_ZCLMSG: u8 = 105;
-pub const TYPE_JOIN: u8 = 106;
-pub const TYPE_LEAVE: u8 = 107;
-pub const TYPE_MAX: u8 = 107;
-
-pub const METADATA_T_PTR_SIZE: usize = std::mem::size_of::<*mut ZmqMetadata>();
-pub const CONTENT_T_PTR_SIZE: usize = std::mem::size_of::<*mut ZmqContent>();
-pub const GROUP_T_SIZE: usize = std::mem::size_of::<ZmqGroup>();
-pub const VOID_PTR_SIZE: usize = std::mem::size_of::<*mut c_void>();
-pub const SIZE_T_SIZE: usize = std::mem::size_of::<size_t>();
 
 #[repr(u8)]
 pub enum ZmqGroupType {
@@ -319,7 +291,7 @@ impl ZmqMsg {
         Ok(())
     }
 
-    pub unsafe fn init_external_storage2(
+    pub fn init_external_storage2(
         &mut self,
         content_: &mut ZmqContent,
         data: &mut [u8],
@@ -465,9 +437,7 @@ impl ZmqMsg {
             return Err(MessageError("msg check failed"));
         }
 
-        if self.type_ == TYPE_LMSG && (!self.flags & ZMQ_MSG_SHARED == 0)
-            || ((*self.content).refcnt.sub(1) != 0)
-        {
+        if self.type_ == TYPE_LMSG && (!self.flags & ZMQ_MSG_SHARED == 0) || ((*self.content).refcnt.sub(1) != 0) {
             // _u.lmsg.content->refcnt.~atomic_counter_t ();
             if (*self.content).ffn.is_some() {
                 (*self.content).ffn.unwrap()(
@@ -478,9 +448,7 @@ impl ZmqMsg {
             // libc::free(self.content as *mut c_void);
         }
 
-        if self.is_zcmsg()
-            && (!(self.flags & ZMQ_MSG_SHARED != 0) || !(*self.content).refcnt.sub(1) != 0)
-        {
+        if self.is_zcmsg() && (!(self.flags & ZMQ_MSG_SHARED != 0) || !(*self.content).refcnt.sub(1) != 0) {
             //  We used "placement new" operator to initialize the reference
             //  counter so we call the destructor explicitly now.
             // _u.zclmsg.content->refcnt.~atomic_counter_t ();
@@ -700,9 +668,7 @@ impl ZmqMsg {
     pub fn command_body_size(&mut self) -> size_t {
         if self.is_ping() || self.is_poing() {
             return self.size() - PING_CMD_NAME_SIZE as usize;
-        } else if !((self.flags() & ZMQ_MSG_COMMAND) != 0)
-            && (self.is_subscribe() || self.is_cancel())
-        {
+        } else if !((self.flags() & ZMQ_MSG_COMMAND) != 0) && (self.is_subscribe() || self.is_cancel()) {
             return self.size();
         } else if self.is_subscribe() {
             return self.size() - SUB_CMD_NAME_SIZE as usize;
@@ -716,9 +682,7 @@ impl ZmqMsg {
         let mut data: &mut [u8];
         if self.is_ping() || self.is_poing() {
             data = self.data_mut().add(PING_CMD_NAME_SIZE as usize);
-        } else if !(self.flags() & ZMQ_MSG_COMMAND != 0)
-            && (self.is_subscribe() || self.is_cancel())
-        {
+        } else if !(self.flags() & ZMQ_MSG_COMMAND != 0) && (self.is_subscribe() || self.is_cancel()) {
             data = self.data_mut();
         } else if self.is_subscribe() {
             data = self.data_mut().add(SUB_CMD_NAME_SIZE as usize);
@@ -736,9 +700,9 @@ impl ZmqMsg {
 
         if self.type_ == TYPE_LMSG || self.is_zcmsg() {
             if self.flags & ZMQ_MSG_SHARED != 0 {
-                (*self.refcnt()).add(refs_);
+                (self.refcnt()).add(refs_);
             } else {
-                (*self.refcnt()).set(refs_ + 1);
+                (self.refcnt()).set(refs_ + 1);
                 self.flags |= ZMQ_MSG_SHARED
             }
         }
@@ -749,9 +713,7 @@ impl ZmqMsg {
             return Ok(());
         }
 
-        if self.type_ != TYPE_ZCLMSG && self.type_ != TYPE_LMSG
-            || !(self.flags & ZMQ_MSG_SHARED != 0)
-        {
+        if self.type_ != TYPE_ZCLMSG && self.type_ != TYPE_LMSG || !(self.flags & ZMQ_MSG_SHARED != 0) {
             self.close()?;
             return Err(MessageError("invalid message type"));
         }
@@ -832,30 +794,35 @@ impl ZmqMsg {
             // );
             (*self.group).group[length_] = 0;
         } else {
-            libc::strncpy(
-                &mut self.group as *mut u8 as *mut c_char,
-                group_.as_ptr() as *const c_char,
-                length_,
-            );
+            // libc::strncpy(
+            //     &mut self.group as *mut u8 as *mut c_char,
+            //     group_.as_ptr() as *const c_char,
+            //     length_,
+            // );
+            self.group.clone_from_slice(group_.as_bytes());
             self.group[length_] = 0;
         }
 
         return 0;
     }
 
-    pub fn refcnt(&mut self) -> *mut ZmqAtomicCounter {
-        return &mut (*self.metadata).ref_cnt;
+    pub fn refcnt(&mut self) -> &mut ZmqAtomicCounter {
+        return &mut (self.metadata).ref_cnt;
     }
 }
 
-pub fn close_and_return(mut msg_: *mut ZmqMsg, echo: i32) -> Result<i32, ZmqError> {
+pub fn close_and_return(mut msg: &mut ZmqMsg, echo: i32) -> Result<i32, ZmqError> {
     // let err: i32 = errno();
-    (*msg_).close()?;
+    (msg).close()?;
     // errno = err;
     return Ok(echo);
 }
 
-pub fn close_and_return2(msg_: &mut [ZmqMsg], count_: i32, echo_: i32) -> Result<i32, ZmqError> {
+pub fn close_and_return2(
+    msg_: &mut [ZmqMsg],
+    count_: i32,
+    echo_: i32
+) -> Result<i32, ZmqError> {
     for i in 0..count_ {
         close_and_return(&mut msg_[i as usize], 0)?;
     }

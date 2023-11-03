@@ -60,7 +60,6 @@ impl ZmqMechanism {
             _error_command_received: false,
             _zap_request_sent: false,
             _routing_id: vec![],
-
             _zap_reply_received: false,
         }
     }
@@ -73,8 +72,8 @@ impl ZmqMechanism {
         self.session._engine.unwrap().decoder.unwrap().decode(msg)
     }
 
-    pub fn set_peer_routing_id(&mut self, id_ptr: *mut c_void, id_size_: usize) {
-        self._routing_id.set(id_ptr as *mut u8, id_size_);
+    pub fn set_peer_routing_id(&mut self, id_ptr: &[u8]) {
+        self._routing_id.clone_from_slice(id_ptr);
     }
 
     pub unsafe fn peer_routing_id(&mut self, msg: &mut ZmqMsg) {
@@ -143,7 +142,7 @@ impl ZmqMechanism {
         // libc::memcpy(base_ptr as *mut c_void, name_ as *mut c_void, name_len);
         ptr.clone_from_slice(name.as_bytes());
         ptr = &mut ptr[name_len..];
-        put_u32(ptr.as_mut_ptr(), value.len() as u32);
+        put_u32(ptr, value.len() as u32);
         // base_ptr = base_ptr.add(VALUE_LEN_SIZE as usize);
         ptr = &mut ptr[VALUE_LEN_SIZE..];
         // libc::memcpy(base_ptr as *mut c_void, value, value_len);
@@ -195,7 +194,7 @@ impl ZmqMechanism {
             };
     }
 
-    pub unsafe fn make_command_with_basic_properties(
+    pub  fn make_command_with_basic_properties(
         &mut self,
         options: &ZmqOptions,
         msg_: &mut ZmqMsg,
@@ -221,32 +220,32 @@ impl ZmqMechanism {
     pub unsafe fn parse_metadata(
         &mut self,
         options: &ZmqOptions,
-        mut ptr_: *mut u8,
+        mut ptr_: &mut [u8],
         length_: usize,
         zap_flag_: bool,
     ) -> i32 {
         let mut bytes_left = length_;
 
-        while (bytes_left > 1) {
-            let name_length = (*ptr_);
+        while bytes_left > 1 {
+            let name_length = (ptr_[0]) as usize;
             ptr_ = ptr_.add(NAME_LEN_SIZE as usize);
             bytes_left -= NAME_LEN_SIZE;
-            if (bytes_left < name_length as usize) {
+            if bytes_left < name_length as usize {
                 break;
             }
 
             let name = String::from(ptr_);
             // std::string (reinterpret_cast<const char *> (ptr_), name_length);
-            ptr_ = ptr_.add(name_length as usize);
+            ptr_ = &mut ptr_[name_length..];
             bytes_left -= name_length;
-            if (bytes_left < VALUE_LEN_SIZE as usize) {
+            if bytes_left < VALUE_LEN_SIZE as usize {
                 break;
             }
 
             let value_length = get_u32(ptr_);
-            ptr_ = ptr_.add(VALUE_LEN_SIZE as usize);
+            ptr_ = &mut ptr_[VALUE_LEN_SIZE..];
             bytes_left -= VALUE_LEN_SIZE;
-            if (bytes_left < value_length as usize) {
+            if bytes_left < value_length as usize {
                 break;
             }
 
@@ -255,18 +254,19 @@ impl ZmqMechanism {
             bytes_left -= value_length;
 
             if name == ZMTP_PROPERTY_IDENTITY && options.recv_routing_id {
-                self.set_peer_routing_id(value as *mut c_void, value_length as usize);
+                self.set_peer_routing_id(value);
             } else if name == ZMTP_PROPERTY_SOCKET_TYPE {
+                let val_str = String::from_raw_parts(value.as_mut_ptr(), value.len(), value.len());
                 if !self.check_socket_type(
                     options,
-                    &String::from(value as *mut c_char),
+                    val_str.as_str(),
                     value_length as usize,
                 ) {
                     // errno = EINVAL;
                     return -1;
                 }
             } else {
-                let rc = self.property(&name, value as *const c_void, value_length as usize);
+                let rc = self.property(&name, value, value_length as usize);
                 if rc == -1 {
                     return -1;
                 }
@@ -290,8 +290,8 @@ impl ZmqMechanism {
         return 0;
     }
 
-    pub fn property(&mut self, name: &str, value_: *const c_void, length_: usize) -> i32 {
-        0
+    pub fn property(&mut self, name: &str, value_: &[u8], length_: usize) -> i32 {
+        todo!()
     }
 
     pub fn check_socket_type(&mut self, options: &ZmqOptions, type_: &str, len_: usize) -> bool {

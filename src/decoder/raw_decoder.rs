@@ -1,6 +1,6 @@
 use crate::decoder::ZmqDecoder;
 use crate::err::ZmqError;
-use crate::msg::{ZmqContent, ZmqMsg};
+use crate::msg::content::ZmqContent;
 
 // pub struct ZmqRawDecoder {
 //     // pub decoder: dyn i_decoder

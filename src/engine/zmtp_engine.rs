@@ -6,19 +6,20 @@ use crate::defines::{
 };
 use crate::encoder::{EncoderType, ZmqEncoder};
 use crate::engine::stream_engine::{
-    stream_next_handshake_command, stream_process_handshake_command, stream_pull_and_encode,
-    stream_pull_msg_from_session, stream_push_msg_to_session, stream_read,
-    HEARTBEAT_TIMEOUT_TIMER_ID, HEARTBEAT_TTL_TIMER_ID,
+    HEARTBEAT_TIMEOUT_TIMER_ID, HEARTBEAT_TTL_TIMER_ID, stream_next_handshake_command,
+    stream_process_handshake_command, stream_pull_and_encode, stream_pull_msg_from_session,
+    stream_push_msg_to_session, stream_read,
 };
 use crate::engine::ZmqEngine;
 use crate::err::ZmqError;
 use crate::mechanism::ZmqMechanism;
-use crate::msg::{ZmqMsg, CANCEL_CMD_NAME_SIZE, PING_CMD_NAME_SIZE, SUB_CMD_NAME_SIZE};
+use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::utils::{get_errno, put_u64};
 use libc::EAGAIN;
 use std::cmp::min;
 use std::mem::size_of;
+use crate::msg::defines::{CANCEL_CMD_NAME_SIZE, PING_CMD_NAME_SIZE, SUB_CMD_NAME_SIZE};
 
 pub const ZMTP_1_0: i32 = 0;
 pub const ZMTP_2_0: i32 = 1;
@@ -182,9 +183,7 @@ pub unsafe fn zmtp_receive_greeting_versioned(options: &ZmqOptions, engine: &mut
             }
 
             //  Use ZMTP/2.0 to talk to older peers.
-            if engine.greeting_recv[REVISION_POS] == ZMTP_1_0 as u8
-                || engine.greeting_recv[REVISION_POS] == ZMTP_2_0 as u8
-            {
+            if engine.greeting_recv[REVISION_POS] == ZMTP_1_0 as u8 || engine.greeting_recv[REVISION_POS] == ZMTP_2_0 as u8 {
                 engine.out_pos[engine.out_size] = options.type_ as u8;
                 engine.out_size += 1;
             } else {
@@ -287,16 +286,11 @@ pub fn zmtp_handshake_v1_0_unversioned(options: &ZmqOptions, engine: &mut ZmqEng
     //  Then consume bytes we have already sent to the peer.
     let mut rc = engine.routing_id_msg.close();
     // zmq_assert (rc == 0);
-    rc = engine
-        .routing_id_msg
-        .init_size(options.routing_id_size as usize);
+    rc = engine.routing_id_msg.init_size(options.routing_id_size as usize);
     // zmq_assert (rc == 0);
     // libc::memcpy (engine.routing_id_msg.data_mut(), options.routing_id,
     //               options.routing_id_size);
-    engine
-        .routing_id_msg
-        .data_mut()
-        .copy_from_slice(&options.routing_id);
+    engine.routing_id_msg.data_mut().copy_from_slice(&options.routing_id);
     engine.encoder.load_msg(&engine.routing_id_msg);
     let buffer_size = engine.encoder.unwrap().encode(bufferp, header_size);
     // zmq_assert (buffer_size == header_size);
@@ -382,8 +376,7 @@ pub fn zmtp_handshake_v3_x(
     engine: &mut ZmqEngine,
     downgrade_sub_: bool,
 ) -> bool {
-    let cmp_result =
-        engine.greeting_recv[REVISION_POS..].eq(b"NULL\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0");
+    let cmp_result = engine.greeting_recv[REVISION_POS..].eq(b"NULL\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0");
     if options.mechanism == ZMQ_NULL && cmp_result {
         // _mechanism = new (std::nothrow)
         //   null_mechanism_t (session (), _peer_address, _options);
@@ -613,9 +606,7 @@ pub unsafe fn zmtp_process_heartbeat_message(
         //  Given the engine goes straight to out_event, sequential PINGs will
         //  not be a problem.
         let context_len = min(msg_.size() - ping_ttl_len, ping_max_ctx_len);
-        let rc = engine
-            .pong_msg
-            .init_size(ZmqMsg::ping_cmd_name_size + context_len);
+        let rc = engine.pong_msg.init_size(ZmqMsg::ping_cmd_name_size + context_len);
         // errno_assert (rc == 0);
         engine.pong_msg.set_flags(ZmqMsg::command);
         libc::memcpy(
@@ -627,8 +618,7 @@ pub unsafe fn zmtp_process_heartbeat_message(
             // libc::memcpy(engine.pong_msg.data_mut()) + PING_CMD_NAME_SIZE,
             // (msg_.data_mut()) + ping_ttl_len,
             // context_len);
-            engine.pong_msg.data_mut()[PING_CMD_NAME_SIZE..]
-                .copy_from_slice(&msg_.data_mut()[ping_ttl_len..]);
+            engine.pong_msg.data_mut()[PING_CMD_NAME_SIZE..].copy_from_slice(&msg_.data_mut()[ping_ttl_len..]);
         }
 
         engine.next_msg = zmtp_produce_pong_msg;
@@ -650,40 +640,32 @@ pub unsafe fn zmtp_process_command_message(engine: &mut ZmqEngine, msg_: &mut Zm
     }
 
     let cmd_name = (msg_.data()[1..]);
-    if cmd_name_size == ping_name_size as u8
-        && libc::memcmp(
-            cmd_name,
-            "PING".as_ptr() as *const libc::c_void,
-            cmd_name_size as libc::size_t,
-        ) == 0
-    {
+    if cmd_name_size == ping_name_size as u8 && libc::memcmp(
+        cmd_name,
+        "PING".as_ptr() as *const libc::c_void,
+        cmd_name_size as libc::size_t,
+    ) == 0 {
         msg_.set_flags(ZMQ_MSG_PING);
     }
-    if cmd_name_size == cmd_name_size as u8
-        && libc::memcmp(
-            cmd_name,
-            "PONG".as_ptr() as *const libc::c_void,
-            cmd_name_size as libc::size_t,
-        ) == 0
-    {
+    if cmd_name_size == cmd_name_size as u8 && libc::memcmp(
+        cmd_name,
+        "PONG".as_ptr() as *const libc::c_void,
+        cmd_name_size as libc::size_t,
+    ) == 0 {
         msg_.set_flags(ZMQ_MSG_PONG);
     }
-    if cmd_name_size == sub_name_size as u8
-        && libc::memcmp(
-            cmd_name,
-            "SUBSCRIBE".as_ptr() as *const libc::c_void,
-            cmd_name_size as libc::size_t,
-        ) == 0
-    {
+    if cmd_name_size == sub_name_size as u8 && libc::memcmp(
+        cmd_name,
+        "SUBSCRIBE".as_ptr() as *const libc::c_void,
+        cmd_name_size as libc::size_t,
+    ) == 0 {
         msg_.set_flags(ZMQ_MSG_SUBSCRIBE);
     }
-    if cmd_name_size == cancel_name_size as u8
-        && libc::memcmp(
-            cmd_name,
-            "CANCEL".as_ptr() as *const libc::c_void,
-            cmd_name_size as libc::size_t,
-        ) == 0
-    {
+    if cmd_name_size == cancel_name_size as u8 && libc::memcmp(
+        cmd_name,
+        "CANCEL".as_ptr() as *const libc::c_void,
+        cmd_name_size as libc::size_t,
+    ) == 0 {
         msg_.set_flags(ZMQ_MSG_CANCEL);
     }
 

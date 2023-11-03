@@ -1,12 +1,14 @@
-pub struct ZmqPipes {
-    pub pipes: [ZmqPipe; 2]
+use crate::pipe::ZmqPipe;
+
+pub struct ZmqPipes<'a> {
+    pub pipes: [ZmqPipe<'a>; 2]
 }
 
 impl ZmqPipes
 {
     pub fn new() -> Self {
         Self {
-            pipes: [ZmqPipe::new(), ZmqPipe::new()]
+            pipes: [ZmqPipe::default(), ZmqPipe::default()]
         }
     }
 
