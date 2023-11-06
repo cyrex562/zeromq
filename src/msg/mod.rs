@@ -459,7 +459,7 @@ impl ZmqMsg {
             );
         }
 
-        if self.metadata != null_mut() {
+        if self.metadata != ZmqMetadata::default() {
             if (*self.metadata).drop_ref() {
                 // TODO
                 // LIBZMQ_DELETE (_u.base.metadata);
@@ -512,7 +512,7 @@ impl ZmqMsg {
             }
         }
 
-        if src_msg.metadata != null_mut() {
+        if src_msg.metadata != ZmqMetadata::default() {
             (*src_msg.metadata).add_ref();
         }
 

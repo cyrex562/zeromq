@@ -401,13 +401,14 @@ pub unsafe fn zmq_disconnect(s_: &mut ZmqSocket, addr_: &str) -> i32 {
 
 // static inline int
 // s_sendmsg (zmq::socket_base_t *s_, zmq_msg_t *msg, int flags_)
-pub unsafe fn s_sendmsg(
+pub fn s_sendmsg(
+    options: &mut ZmqOptions,
     s_: &mut ZmqSocket,
     msg: &mut ZmqMsg,
     flags_: i32,
 ) -> Result<usize, ZmqError> {
     let sz = zmq_msg_size(msg);
-    s_.send((msg), flags_)?;
+    unsafe { s_.send(options, (msg), flags_)?; }
     // if ((rc < 0)) {
     //     return -1;
     // }
@@ -680,7 +681,7 @@ pub unsafe fn zmq_msg_init(msg: &mut ZmqMsg) -> Result<(), ZmqError> {
 }
 
 // int zmq_msg_init_size (zmq_msg_t *msg, size_t size_)
-pub unsafe fn zmq_msg_init_size(msg: &mut ZmqMsg, size_: usize) -> i32 {
+pub fn zmq_msg_init_size(msg: &mut ZmqMsg, size_: usize) -> Result<(),ZmqError> {
     return msg.init_size(size_);
 }
 
@@ -704,7 +705,7 @@ pub unsafe fn zmq_msg_init_data(
 }
 
 // int zmq_msg_send (zmq_msg_t *msg, void *s_, int flags_)
-pub unsafe fn zmq_msg_send(
+pub fn zmq_msg_send(
     msg: &mut ZmqMsg,
     s_: &mut ZmqSocket,
     flags_: u32,
@@ -743,7 +744,7 @@ pub unsafe fn zmq_msg_copy(dest_: &mut ZmqMsg, src_: &mut ZmqMsg) -> i32 {
     return (dest_).copy(src_);
 }
 
-pub unsafe fn zmq_msg_data<'a>(msg: &mut ZmqMsg) -> &'a mut [u8] {
+pub fn zmq_msg_data<'a>(msg: &mut ZmqMsg) -> &'a mut [u8] {
     return (msg).data();
 }
 
@@ -751,7 +752,7 @@ pub unsafe fn zmq_msg_data_mut<'a>(msg: &mut ZmqMsg) -> &'a mut [u8] {
     return msg.data_mut();
 }
 
-pub unsafe fn zmq_msg_size(msg: &mut ZmqMsg) -> usize {
+pub fn zmq_msg_size(msg: &mut ZmqMsg) -> usize {
     return (msg).size();
 }
 

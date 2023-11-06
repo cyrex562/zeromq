@@ -1,5 +1,6 @@
 use crate::pipe::ZmqPipe;
 
+#[derive(Default,Debug,Clone)]
 pub struct ZmqPipes<'a> {
     pub pipes: [ZmqPipe<'a>; 2]
 }

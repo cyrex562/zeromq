@@ -1,9 +1,5 @@
-use crate::ctx::ZmqContext;
-use crate::defines::{MSG_MORE, ZMQ_SERVER};
-use crate::defines::fair_queue::ZmqFairQueue;
+use crate::defines::MSG_MORE;
 use crate::msg::ZmqMsg;
-use crate::options::ZmqOptions;
-use crate::out_pipe::{ZmqOutpipe, ZmqOutPipes};
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 

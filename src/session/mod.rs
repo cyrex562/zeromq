@@ -26,8 +26,17 @@ mod dish_session;
 pub enum ZmqSessionState {
     Group,
     Body,
+    Bottom,
+    RequestId
 }
 
+pub enum ZmqSessionType {
+    Dish,
+    Radio,
+    Req
+}
+
+#[derive(Default,Debug,Clone)]
 pub struct ZmqSession<'a> {
     pub own: ZmqOwn<'a>,
     pub io_object: IoObject<'a>,
@@ -45,6 +54,7 @@ pub struct ZmqSession<'a> {
     pub _state: ZmqSessionState,
     pub _group_msg: ZmqMsg,
     pub _pending_msg: ZmqMsg,
+    pub session_type: ZmqSessionType,
 }
 
 pub const _LINGER_TIMER_ID: i32 = 0x20;
@@ -60,21 +70,29 @@ impl ZmqSession {
     ) -> ZmqSession {
         // let mut s: *mut session_base_t = null_mut();
         let mut s = ZmqSession::default();
+        s._io_thread = io_thread_;;
+        s._active = active_;
+        s._socket = socket_;
+        s._addr = addr_;
+
         match options_.type_ {
             ZMQ_REQ => {
                 // s = &mut ReqSessionT::new(io_thread_, active_, socket_, options_, addr_);
+                s.session_type = ZmqSessionType::Req;
             }
             ZMQ_RADIO => {
                 // s = &mut radio_session_t::new(io_thread_, active_, socket_, options_, addr_);
+                s.session_type = ZmqSessionType::Radio;
             }
             ZMQ_DISH => {
                 // s = &mut dish_session_t::new(io_thread_, active_, socket_, options_, addr_);
+                s.session_type = ZmqSessionType::Dish
             }
             _ => {
                 if options_.can_send_hello_msg && options_.hello_msg.len() > 0 {
                     // s = &mut hello_session_t::new(io_thread_, active_, socket_, options_, addr_);
                 } else {
-                    s = ZmqSession::new(io_thread_, active_, socket_, addr_);
+                    s = ZmqSession::new(io_thread_, active_, socket_, &addr_);
                 }
             }
         }
@@ -85,7 +103,7 @@ impl ZmqSession {
         io_thread_: &mut ZmqIoThread,
         active_: bool,
         socket_: &mut ZmqSocket,
-        addr_: ZmqAddress,
+        addr_: &ZmqAddress,
     ) -> Self {
         Self {
             own: ZmqOwn::from_io_thread(io_thread_),
@@ -100,10 +118,11 @@ impl ZmqSession {
             _io_thread: io_thread_,
             _engine: None,
             _state: ZmqSessionState::Group,
-            _addr: addr_,
+            _addr: addr_.clone(),
             _has_linger_timer: false,
             _group_msg: Default::default(),
             _pending_msg: Default::default(),
+            session_type: ZmqSessionType::Dish,
         }
     }
 
@@ -699,7 +718,7 @@ impl hello_msg_session_t {
         addr_: ZmqAddress,
     ) -> Self {
         Self {
-            session_base_t: ZmqSession::new(io_thread_, connect_, socket_, addr_),
+            session_base_t: ZmqSession::new(io_thread_, connect_, socket_, &addr_),
             _hello_sent: false,
             _hello_received: false,
             _new_pipe: true,
