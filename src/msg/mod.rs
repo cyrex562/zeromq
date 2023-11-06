@@ -769,16 +769,16 @@ impl ZmqMsg {
         }
     }
 
-    pub fn set_group(&mut self, group_: &str) -> i32 {
+    pub fn set_group(&mut self, group_: &str) -> Result<(),ZmqError> {
         if group_.len() > ZMQ_GROUP_MAX_LENGTH {
-            return -1;
+            return Err(MessageError("invalid group length"));
         }
-        return self.set_group2(group_, group_.len());
+        self.set_group2(group_, group_.len())
     }
 
-    pub fn set_group2(&mut self, group_: &str, length_: size_t) -> i32 {
+    pub fn set_group2(&mut self, group_: &str, length_: size_t) -> Result<(),ZmqError> {
         if length_ > ZMQ_GROUP_MAX_LENGTH {
-            return -1;
+            return Err(MessageError("invalid group length"));
         }
 
         if length_ > 14 {
@@ -803,7 +803,7 @@ impl ZmqMsg {
             self.group[length_] = 0;
         }
 
-        return 0;
+        return Ok(());
     }
 
     pub fn refcnt(&mut self) -> &mut ZmqAtomicCounter {

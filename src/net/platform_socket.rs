@@ -1,12 +1,15 @@
-use crate::defines::{socklen_t, ZmqSockAddr, NI_MAXHOST, ZmqFd};
+use std::ptr::null_mut;
+use crate::defines::{socklen_t, ZmqSockAddr, NI_MAXHOST, ZmqFd, ZmqPollFd, RETIRED_FD, AF_UNIX, SOCK_STREAM};
 use crate::err::ZmqError;
 use crate::err::ZmqError::PlatformError;
 use crate::ip::set_nosigpipe;
 use crate::utils::sock_utils::{sockaddr_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr};
 #[cfg(not(target_os = "windows"))]
 use libc::{getnameinfo, setsockopt};
+use libc::{F_GETFL, F_SETFL, O_NONBLOCK, timeval};
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::setsockopt;
+use crate::poll::select::fd_set;
 
 pub fn platform_setsockopt(
     fd: ZmqFd,
@@ -194,13 +197,15 @@ pub fn platform_unblock_socket(fd: ZmqFd) -> Result<(), ZmqError> {
         let mut nonblock: c_ulong = 1;
         rc = ioctlsocket(fd, FIONBIO, &nonblock);
     }
-    #[cfg(not(target_os = "windows"))]
-    {
-        let mut flags: i32 = fcntl(fd, F_GETFL, 0);
-        if flags == -1 {
-            flags = 0;
+    unsafe {
+        #[cfg(not(target_os = "windows"))]
+        {
+            let mut flags: i32 = libc::fcntl(fd, F_GETFL, 0);
+            if flags == -1 {
+                flags = 0;
+            }
+            rc = libc::fcntl(fd, F_SETFL, flags | O_NONBLOCK);
         }
-        rc = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
     }
 
     return if rc == 0 {
@@ -214,7 +219,7 @@ pub fn platform_open_socket(domain: i32, type_: i32, protocol: i32) -> Result<Zm
     #[cfg(target_os = "windows")]
     let s: ZmqFd = unsafe { WSASocket(domain, type_, protocol, null_mut(), 0, 0) };
     #[cfg(not(target_os = "windows"))]
-    let s: ZmqFd = unsafe { socket(domain, type_, protocol) };
+    let s: ZmqFd = unsafe { libc::socket(domain, type_, protocol) };
 
     if s == RETIRED_FD {
         return Err(PlatformError("socket failed"));
@@ -398,17 +403,17 @@ pub unsafe fn platform_tune_socket(socket_: SOCKET) {
     tcp_tune_loopback_fast_path(socket_);
 }
 
-pub fn platform_make_fdpair(r: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(), ZmqError> {
+pub fn platform_make_fdpair(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(), ZmqError> {
     let mut rc = 0;
-    let mut pipefd: [fd_t; 2] = [0; 2];
+    let mut pipefd: [ZmqFd; 2] = [0; 2];
     #[cfg(target_os = "windows")]
     {
         rc = make_fdpair_tcpip(r_, w_);
     }
     #[cfg(not(target_os = "windows"))]
     {
-        let sv: [i32; 2] = [0; 2];
-        rc = socketpair(AF_UNIX, SOCK_STREAM, 0, sv);
+        let mut sv: [i32; 2] = [0; 2];
+        unsafe { rc = libc::socketpair(AF_UNIX, SOCK_STREAM, 0, sv.as_mut_ptr()); }
         if rc != 0 {
             *w_ = -1;
             *r_ = -1;
@@ -426,7 +431,7 @@ pub fn platform_make_fdpair(r: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(), ZmqErro
     };
 }
 
-pub fn platform_make_socket_noninheritable(sock_: fd_t) {
+pub fn platform_make_socket_noninheritable(sock_: ZmqFd) {
     #[cfg(target_os = "windows")]
     {
         let brc = SetHandleInformation(
@@ -439,4 +444,69 @@ pub fn platform_make_socket_noninheritable(sock_: fd_t) {
     {
         // FD_CLOEXEC code ommitted
     }
+}
+
+pub fn platform_poll(poll_fd: &mut [ZmqPollFd], nitems: u32, timeout: u32) -> Result<(), ZmqError>
+{
+    let mut result = 0i32;
+    #[cfg(target_os = "windows")]
+    {
+        // pub unsafe fn WSAPoll(fdarray: *mut WSAPOLLFD, fds: u32, timeout: i32) -> i32
+        let fdarray = [poll_fd];
+        unsafe {
+            result = WSAPoll(fdarray.as_mut_ptr(), nitems, timeout as i32);
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        unsafe {
+            result = libc::poll(
+                poll_fd.as_mut_ptr(),
+                nitems as libc::nfds_t,
+                timeout as i32
+            );
+        }
+    }
+
+    Ok(())
+}
+
+pub fn platform_select(
+    nfds: i32,
+    readfds: Option<&mut fd_set>,
+    writefds: Option<&mut fd_set>,
+    exceptfds: Option<&mut fd_set>,
+    timeout: Option<&mut timeval>,
+) -> Result<i32, ZmqError> {
+    let mut result = 0i32;
+    #[cfg(target_os = "windows")]
+    {
+        unsafe {
+            result = select(
+                nfds,
+                readfds as *mut fd_set,
+                writefds as *mut fd_set,
+                exceptfds as *mut fd_set,
+                timeout as *mut timeval,
+            );
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        unsafe {
+            result = libc::select(
+                nfds,
+                readfds.unwrap() as *mut fd_set,
+                writefds.unwrap() as *mut fd_set,
+                exceptfds.unwrap() as *mut fd_set,
+                timeout.unwrap() as *mut timeval,
+            );
+        }
+    }
+
+    return if result >= 0 {
+        Ok(result)
+    } else {
+        Err(PlatformError(&format!("select failed {}", result)))
+    };
 }

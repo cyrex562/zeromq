@@ -460,7 +460,7 @@ impl ZmqPipe {
 // type upipe_conflate_t = YPipeConflate<ZmqMsg>;
 
 pub unsafe fn pipepair(
-    parents_: (&mut ZmqSocket, ZmqSession),
+    parents_: (&mut ZmqSession, &mut ZmqSocket),
     pipes_: &mut [Option<&mut ZmqPipe>; 2],
     hwms_: [i32; 2],
     conflate_: [bool; 2],

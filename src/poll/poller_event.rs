@@ -1,9 +1,9 @@
-use crate::zmq_draft::zmq_fd_t;
-use std::os::raw::c_void;
+use std::ffi::c_void;
+use crate::defines::ZmqFd;
 
 pub struct ZmqPollerEvent {
     pub socket: *mut c_void,
-    pub fd: zmq_fd_t,
+    pub fd: ZmqFd,
     pub user_data: *mut c_void,
     pub events: i16,
 }

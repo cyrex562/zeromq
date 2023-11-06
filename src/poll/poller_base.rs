@@ -6,26 +6,25 @@ use chrono::{Duration, Utc};
 use crate::ctx::ZmqThreadCtx;
 use crate::defines::atomic_counter::ZmqAtomicCounter;
 use crate::io::thread::ZmqThread;
-use crate::poll::i_poll_events::IPollEvents;
+use crate::poll::poller_event::ZmqPollerEvent;
 
-
-pub struct TimerInfo
+pub struct TimerInfo<'a>
 {
-    pub sink: *mut dyn IPollEvents,
+    pub sink: &'a mut ZmqPollerEvent,
     pub id: i32,
 }
 
-pub type ZmqTimers = HashMap<u64, TimerInfo>;
-pub struct ZmqPollerBase
+pub type ZmqTimers<'a> = HashMap<u64, TimerInfo<'a>>;
+pub struct ZmqPollerBase<'a>
 {
     pub _clock: Duration,
-    pub _timers: ZmqTimers,
+    pub _timers: ZmqTimers<'a>,
     pub _load: ZmqAtomicCounter,
 }
 
 pub struct ZmqWorkerPollerBase<'a>
 {
-    pub _poller_base: ZmqPollerBase,
+    pub _poller_base: ZmqPollerBase<'a>,
     pub _active: bool,pub _ctx: &'a mut ZmqThreadCtx,
     pub _worker: ZmqThread<'a>,
 }
@@ -44,7 +43,7 @@ impl ZmqPollerBase {
         }
     }
 
-    pub fn add_timer(&mut self, timeout_: i32, sink_: *mut dyn IPollEvents, id_: i32) {
+    pub fn add_timer(&mut self, timeout_: i32, sink_: &mut ZmqPollerEvent, id_: i32) {
         let expiration = Utc::now() + Duration::milliseconds(timeout_ as i64);
         let info: TimerInfo = TimerInfo {
             sink: sink_,
@@ -53,7 +52,7 @@ impl ZmqPollerBase {
         self._timers.insert(expiration.timestamp_millis() as u64, info);
     }
 
-    pub fn cancel_timer(&mut self, sink_: *mut dyn IPollEvents, id_: i32) {
+    pub fn cancel_timer(&mut self, sink_: &mut ZmqPollerEvent, id_: i32) {
         let mut to_remove: Vec<u64> = Vec::new();
         for (key, value) in &self._timers {
             if value.sink == sink_ && value.id == id_ {

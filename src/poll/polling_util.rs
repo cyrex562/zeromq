@@ -1,6 +1,6 @@
 use std::cmp;
 use std::mem::size_of_val;
-use crate::select::fd_set;
+use crate::poll::select::fd_set;
 
 pub type ZmqFastVector<T> = Vec<T>;
 

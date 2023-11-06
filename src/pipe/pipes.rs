@@ -26,7 +26,7 @@ impl ZmqPipes
     }
 
     pub fn push_back(&mut self, pipe_: &mut ZmqPipe) {
-        self.pipes.push(*pipe_);
+        self.pipes.push(pipe_);
     }
 
     pub fn swap(&mut self, index1: usize, index2: usize) {

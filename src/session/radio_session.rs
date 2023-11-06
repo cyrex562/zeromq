@@ -1,11 +1,12 @@
 use crate::address::ZmqAddress;
 use crate::defines::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
-use crate::io_thread::ZmqIoThread;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use crate::session_base::ZmqSession;
 use crate::socket::ZmqSocket;
 use std::ffi::c_void;
+use crate::err::ZmqError;
+use crate::io::io_thread::ZmqIoThread;
+use crate::session::ZmqSession;
 
 pub enum radio_session_state {
     group,
@@ -27,13 +28,13 @@ impl radio_session_t {
         addr_: ZmqAddress,
     ) -> Self {
         Self {
-            session_base: ZmqSession::new(io_thread_, connect_, socket_, options_, addr_),
+            session_base: ZmqSession::new(io_thread_, connect_, socket_, addr_),
             _state: radio_session_state::group,
             _pending_msg: ZmqMsg::default(),
         }
     }
 
-    pub unsafe fn push_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
+    pub unsafe fn push_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
         if msg_.flag_set(ZMQ_MSG_COMMAND) {
             let mut command_data = msg_.data_mut();
             let data_size = msg_.size();
@@ -47,16 +48,16 @@ impl radio_session_t {
             //  Set the msg type to either JOIN or LEAVE
             if data_size >= 5 && command_data.to_string() == "\x04JOIN" {
                 group_length = (data_size) - 5;
-                group = command_data[5..];
+                group = command_data[5..].to_string();
                 rc = join_leave_msg.init_join();
             } else if data_size >= 6 && command_data.to_string() == "\x05LEAVE" {
                 group_length = (data_size) - 6;
-                group = command_data[6..];
+                group = command_data[6..].to_string();
                 rc = join_leave_msg.init_leave();
             }
             //  If it is not a JOIN or LEAVE just push the message
             else {
-                self.session_base.push_msg(msg_);
+                self.session_base.push_msg(msg_)?;
                 // return session_base_t::push_msg(msg_);
             }
 
@@ -67,7 +68,7 @@ impl radio_session_t {
             // errno_assert (rc == 0);
 
             //  Close the current command
-            rc = msg_.close();
+            msg_.close()?;
             // errno_assert (rc == 0);
 
             //  Push the join or leave command
@@ -77,33 +78,31 @@ impl radio_session_t {
         return self.session_base.push_msg(msg_);
     }
 
-    pub unsafe fn pull_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
-        if (self._state == radio_session_state::group) {
-            let mut rc = self.session_base.pull_msg(&mut self._pending_msg);
-            if (rc != 0) {
-                return rc;
-            }
+    pub unsafe fn pull_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+        if self._state == radio_session_state::group {
+            self.session_base.pull_msg(&mut self._pending_msg)?;
 
             let group = self._pending_msg.group();
             let length = group.len();
 
             //  First frame is the group
-            rc = msg_.init_size(length);
+            msg_.init_size(length)?;
             // errno_assert (rc == 0);
             msg_.set_flags(ZMQ_MSG_MORE);
-            libc::memcpy(
-                msg_.data_mut() as *mut c_void,
-                group.as_ptr() as *const c_void,
-                length,
-            );
+            // libc::memcpy(
+            //     msg_.data_mut() as *mut c_void,
+            //     group.as_ptr() as *const c_void,
+            //     length,
+            // );
+            msg_.data_mut().clone_from_slice(group.as_bytes());
 
             //  Next status is the body
             self._state = radio_session_state::body;
-            return 0;
+            return Ok(());
         }
         *msg_ = self._pending_msg;
         self._state = radio_session_state::group;
-        return 0;
+        return Ok(());
     }
 
     pub unsafe fn reset(&mut self) {

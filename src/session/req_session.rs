@@ -1,80 +1,85 @@
+use crate::address::ZmqAddress;
+use crate::err::ZmqError;
+use crate::err::ZmqError::SessionError;
+use crate::io::io_thread::ZmqIoThread;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use crate::session_base::ZmqSession;
+use crate::session::ZmqSession;
+use crate::socket::ZmqSocket;
 
-pub enum req_session_state {
+pub enum ReqSessionState {
     bottom,
     request_id,
     body,
 }
 
-pub struct req_session_t<'a> {
+pub struct ReqSessionT<'a> {
     pub session_base: ZmqSession<'a>,
-    pub _state: req_session_state,
+    pub _state: ReqSessionState,
 }
 
-impl req_session_t {
+impl ReqSessionT {
     pub fn new(
-        io_thread_: &mut io_thread_t,
+        io_thread_: &mut ZmqIoThread,
         connect_: bool,
-        socket_: &mut socket_base_t,
+        socket_: &mut ZmqSocket,
         options_: &ZmqOptions,
-        addr_: address_t,
+        addr_: ZmqAddress,
     ) -> Self {
         Self {
-            session_base: ZmqSession::new(io_thread_, connect_, socket_, options_, addr_),
-            _state: req_session_state::bottom,
+            session_base: ZmqSession::new(io_thread_, connect_, socket_, addr_),
+            _state: ReqSessionState::bottom,
         }
     }
 
-    // int zmq::req_session_t::push_msg (msg_t *msg_)
-    pub unsafe fn push_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
+    // int zmq::ReqSessionT::push_msg (msg_t *msg_)
+    pub unsafe fn push_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
         //  Ignore commands, they are processed by the engine and should not
         //  affect the state machine.
-        if (msg_.flags() & ZmqMsg::command) {
-            return 0;
+        if msg_.flags() & ZmqMsg::command {
+            return Ok(());
         }
 
-        match (self._state) {
-            req_session_state::bottom => {
-                if (msg_.flags() == ZmqMsg::more) {
+        match self._state {
+            ReqSessionState::bottom => {
+                if msg_.flags() == ZmqMsg::more {
                     //  In case option ZMQ_CORRELATE is on, allow request_id to be
                     //  transferred as first frame (would be too cumbersome to check
                     //  whether the option is actually on or not).
-                    if (msg_.size() == 4) {
-                        self._state = req_session_state::request_id;
-                        return ZmqSession::push_msg(msg_);
+                    if msg_.size() == 4 {
+                        self._state = ReqSessionState::request_id;
+                        return self.session_base.push_msg(msg_);
                     }
-                    if (msg_.size() == 0) {
-                        self._state = req_session_state::body;
-                        return ZmqSession::push_msg(msg_);
+                    if msg_.size() == 0 {
+                        self._state = ReqSessionState::body;
+                        return self.session_base.push_msg(msg_);
                     }
                 }
             }
 
-            req_session_state::request_id => {
-                if (msg_.flags() == ZmqMsg::more && msg_.size() == 0) {
-                    self._state = req_session_state::body;
-                    return ZmqSession::push_msg(msg_);
+            ReqSessionState::request_id => {
+                if msg_.flags() == ZmqMsg::more && msg_.size() == 0 {
+                    self._state = ReqSessionState::body;
+                    return self.session_base.push_msg(msg_);
                 }
             }
 
-            req_session_state::body => {
-                if (msg_.flags() == ZmqMsg::more) {
-                    return ZmqSession::push_msg(msg_);
+            ReqSessionState::body => {
+                if msg_.flags() == ZmqMsg::more {
+                    return self.session_base.push_msg(msg_);
                 }
-                if (msg_.flags() == 0) {
-                    self._state = req_session_state::bottom;
-                    return ZmqSession::push_msg(msg_);
+                if msg_.flags() == 0 {
+                    self._state = ReqSessionState::bottom;
+                    return self.session_base.push_msg(msg_);
                 }
             }
         }
         // errno = EFAULT;
-        return -1;
+        return Err(SessionError("invalid message"));
     }
 
     pub unsafe fn reset(&mut self) {
         self.session_base.reset();
-        self._state = req_session_state::bottom;
+        self._state = ReqSessionState::bottom;
     }
 }

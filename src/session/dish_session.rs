@@ -1,11 +1,13 @@
 use crate::address::ZmqAddress;
-use crate::defines::{ZMQ_GROUP_MAX_LENGTH, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
-use crate::io_thread::ZmqIoThread;
+use crate::defines::{ZMQ_GROUP_MAX_LENGTH, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZMQ_PROTOCOL_ERROR_WS_UNSPECIFIED};
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use crate::session_base::ZmqSession;
 use crate::socket::ZmqSocket;
 use std::ffi::c_void;
+use crate::err::ZmqError;
+use crate::err::ZmqError::SessionError;
+use crate::io::io_thread::ZmqIoThread;
+use crate::session::ZmqSession;
 
 pub struct dish_session_t<'a> {
     pub session_base: ZmqSession<'a>,
@@ -22,7 +24,7 @@ impl dish_session_t {
         addr_: ZmqAddress,
     ) -> Self {
         let mut out = Self {
-            session_base: ZmqSession::new(io_thread_, connect_, socket_, options_, addr_),
+            session_base: ZmqSession::new(io_thread_, connect_, socket_, addr_),
             _state: dish_session_state_t::group,
             _group_msg: ZmqMsg::new(),
         };
@@ -30,52 +32,47 @@ impl dish_session_t {
         out
     }
 
-    pub unsafe fn push_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
+    pub unsafe fn push_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
         if self._state == dish_session_state_t::group {
             if msg_.flags() & ZMQ_MSG_MORE != ZMQ_MSG_MORE {
-                return -1;
+                return Err(SessionError("no more messages"));
             }
 
             if msg_.size() > ZMQ_GROUP_MAX_LENGTH {
-                return -1;
+                return Err(SessionError("group message too long"));
             }
 
             self._group_msg = msg_.clone();
             self._state = dish_session_state_t::body;
 
-            let mut rc = msg_.init2();
-            return 0;
+            msg_.init2()?;
+            return Ok(());
         }
 
         let group_setting = msg_.group();
         if group_setting.is_empty() {
             // goto has_group
         } else {
-            let mut rc = msg_.set_group(&self._group_msg.group());
+            msg_.set_group(&self._group_msg.group())?;
         }
 
-        let mut rc = self._group_msg.close();
+        self._group_msg.close()?;
 
         if msg_.flags() & ZMQ_MSG_MORE != ZMQ_MSG_MORE {
-            return -1;
+            return Err(SessionError("no more messages"));
         }
 
-        rc = self.session_base.push_msg(msg_);
-        if rc == 0 {
+        if self.session_base.push_msg(msg_).is_ok() {
             self._state = dish_session_state_t::group;
         }
 
-        rc
+        Ok(())
     }
 
-    pub unsafe fn pull_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
-        let mut rc = self.session_base.pull_msg(msg_);
-        if rc != 0 {
-            return rc;
-        }
-
+    pub unsafe fn pull_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+        self.session_base.pull_msg(msg_)?;
         if msg_.is_join() == false && msg_.is_leave() == false {
-            return rc;
+            return Err(SessionError("invalid message"));
         }
 
         let group_length = msg_.group().len();
@@ -84,11 +81,11 @@ impl dish_session_t {
         let mut offset = 0i32;
 
         if msg_.is_join() {
-            rc = command_.init_size(group_length + 5);
+            command_.init_size(group_length + 5)?;
             offset = 5;
             libc::memcpy(command_.data(), "\x04JOIN".as_ptr() as *const c_void, 5);
         } else {
-            rc = command_.init_size(group_length + 6);
+            command_.init_size(group_length + 6)?;
             offset = 6;
             libc::memcpy(command_.data(), "\x05LEAVE".as_ptr() as *const c_void, 6);
         }
@@ -101,11 +98,11 @@ impl dish_session_t {
             group_length,
         );
 
-        rc = msg_.close();
+        msg_.close()?;
 
         *msg_ = command_;
 
-        return 0;
+        return Ok(());
     }
 
     pub unsafe fn reset(&mut self) {

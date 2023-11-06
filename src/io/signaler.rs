@@ -8,6 +8,7 @@ use crate::ip::{make_fdpair, unblock_socket};
 use crate::poll::select::{fd_set, FD_ZERO, FD_SET};
 use crate::utils::get_errno;
 
+#[derive(Default,Debug,Clone)]
 pub struct ZmqSignaler {
     pub _w: ZmqFd,
     pub _r: ZmqFd,
