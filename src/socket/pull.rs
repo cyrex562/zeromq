@@ -1,37 +1,35 @@
 use crate::ctx::ZmqContext;
-use crate::defines::ZMQ_PULL;
-use crate::fair_queue::ZmqFairQueue;
+use crate::err::ZmqError;
 use crate::msg::ZmqMsg;
-use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 
-pub struct ZmqPull<'a> {
-    pub socket_base: ZmqSocket<'a>,
-    pub _fq: ZmqFairQueue,
-}
-
-impl ZmqPull {
-    pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
-        options.type_ = ZMQ_PULL;
-        Self {
-            socket_base: ZmqSocket::new(parent_, tid_, sid_, false),
-            _fq: ZmqFairQueue::new(),
-        }
-    }
-    
-
-}
+// pub struct ZmqPull<'a> {
+//     pub socket_base: ZmqSocket<'a>,
+//     pub _fq: ZmqFairQueue,
+// }
+//
+// impl ZmqPull {
+//     pub unsafe fn new(options: &mut ZmqOptions, parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
+//         options.type_ = ZMQ_PULL;
+//         Self {
+//             socket_base: ZmqSocket::new(parent_, tid_, sid_, false),
+//             _fq: ZmqFairQueue::new(),
+//         }
+//     }
+//
+//
+// }
 
 pub fn pull_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
     unimplemented!()
 }
 
-pub unsafe fn pull_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
+pub fn pull_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
     socket.fq.attach(pipe_)
 }
 
-pub fn oull_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+pub fn oull_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) -> Result<(),ZmqError> {
     socket.fq.activated(pipe)
 }
 
@@ -39,8 +37,8 @@ pub fn pull_xpipe_terminated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
     socket.fq.pipe_terminated(pipe)
 }
 
-pub unsafe fn pull_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
-    socket.fq.recv(msg_)
+pub fn pull_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+    socket.fq.recv(ctx, msg_)
 }
 
 pub  fn pull_xhas_in(socket: &mut ZmqSocket) -> bool {
@@ -64,7 +62,7 @@ pub fn pull_xhas_out(socket: &mut ZmqSocket) -> bool {
     unimplemented!()
 }
 
-pub fn pull_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+pub fn pull_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) -> Result<(),ZmqError> {
     unimplemented!()
 }
 

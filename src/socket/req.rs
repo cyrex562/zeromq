@@ -1,8 +1,12 @@
-use crate::defines::{ZMQ_MSG_MORE, ZMQ_REQ, ZMQ_REQ_CORRELATE, ZMQ_REQ_RELAXED};
+use std::mem::size_of_val;
+use crate::ctx::ZmqContext;
+use crate::defines::{ZMQ_MSG_MORE, ZMQ_REQ_CORRELATE, ZMQ_REQ_RELAXED};
+use crate::err::ZmqError;
+use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::socket::dealer::ZmqDealer;
+use crate::socket::dealer::{dealer_xpipe_terminated, dealer_xsetsockopt};
 use crate::socket::ZmqSocket;
 
 // pub struct ZmqReq {
@@ -34,52 +38,53 @@ pub fn req_xattach_pipe(
     unimplemented!()
 }
 
-pub fn req_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn req_xsend(ctx: &mut ZmqContext, options: &mut ZmqOptions, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     //  If we've sent a request and we still haven't got the reply,
     //  we can't send another request unless the strict option is disabled.
-    if (socket._receiving_reply) {
-        if (socket._strict) {
+    if socket.receiving_reply {
+        if socket.strict {
             // errno = EFSM;
-            return -1;
+            return Err(SocketError("EFSM"));
         }
 
-        socket._receiving_reply = false;
-        socket._message_begins = true;
+        socket.receiving_reply = false;
+        socket.message_begins = true;
     }
 
     //  First part of the request is the request routing id.
-    if (socket._message_begins) {
-        socket._reply_pipe = None;
+    if socket.message_begins {
+        socket.reply_pipe = None;
 
-        if (socket._request_id_frames_enabled) {
-            socket._request_id += 1;
+        if socket.request_id_frames_enabled {
+            socket.request_id += 1;
 
             // msg_t id;
             let mut id = ZmqMsg::default();
-            let mut rc = id.init_size(4);
-            libc::memcpy(id.data_mut(), &socket._request_id, 4);
+            id.init_size(4)?;
+            // libc::memcpy(id.data_mut(), &socket._request_id, 4);
+            id.data_mut().clone_from_slice(&socket.request_id.to_be_bytes());
             // errno_assert (rc == 0);
             id.set_flags(ZmqMsg::more);
 
-            rc = socket.dealer.sendpipe(&id, &_reply_pipe);
-            if (rc != 0) {
-                return -1;
-            }
+            socket.sendpipe(&id, &socket.reply_pipe)?;
+            // if rc != 0 {
+            //     return -1;
+            // }
         }
 
         // msg_t bottom;
         let mut bottom = ZmqMsg::default();
-        let mut rc = bottom.init2();
+        bottom.init2()?;
         // errno_assert (rc == 0);
         bottom.set_flags(ZmqMsg::more);
 
-        rc = socket.dealer.sendpipe(&mut bottom, &socket._reply_pipe);
-        if (rc != 0) {
-            return -1;
-        }
+        socket.sendpipe(&mut bottom, &socket.reply_pipe)?;
+        // if rc != 0 {
+        //     return -1;
+        // }
         // zmq_assert (_reply_pipe);
 
-        socket._message_begins = false;
+        socket.message_begins = false;
 
         // Eat all currently available messages before the request is fully
         // sent. This is Done to avoid:
@@ -89,55 +94,49 @@ pub fn req_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
         // msg_t drop;
         let mut drop = ZmqMsg::default();
         loop {
-            rc = drop.init2();
+            drop.init2()?;
             // errno_assert (rc == 0);
-            rc = socket.dealer.xrecv(&mut drop);
-            if (rc != 0) {
-                break;
-            }
-            drop.close();
+            socket.xrecv(ctx, options, &mut drop)?;
+            drop.close()?;
         }
     }
 
     let more = (msg_.flags() & ZmqMsg::more) != 0;
 
-    let rc = socket.dealer.xsend(msg_);
-    if (rc != 0) {
-        return rc;
-    }
+    socket.xsend(ctx, options, msg_)?;
 
     //  If the request was fully sent, flip the FSM into reply-receiving state.
-    if (!more) {
-        socket._receiving_reply = true;
-        socket._message_begins = true;
+    if !more {
+        socket.receiving_reply = true;
+        socket.message_begins = true;
     }
 
-    return 0;
+    Ok(())
 }
 
 // int zmq::req_t::xrecv (msg_t *msg_)
-pub unsafe fn req_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn req_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     //  If request wasn't send, we can't wait for reply.
-    if (!socket._receiving_reply) {
+    if !socket.receiving_reply {
         // errno = EFSM;
-        return -1;
+        return Err(SocketError("EFSM"));
     }
 
     //  Skip messages until one with the right first frames is found.
-    while (socket._message_begins) {
+    while socket.message_begins {
         //  If enabled, the first frame must have the correct request_id.
-        if (socket._request_id_frames_enabled) {
+        if socket.request_id_frames_enabled {
             let rc = socket.recv_reply_pipe(msg_);
-            if (rc != 0) {
+            if rc != 0 {
                 return rc;
             }
 
-            if !(msg_.flags() & ZMQ_MSG_MORE)
-                || msg_.size() != size_of_val(&socket._request_id)
-                || msg_.data_mut() != socket._request_id
+            if (msg_.flags() & ZMQ_MSG_MORE) == 0
+                || msg_.size() != size_of_val(&socket.request_id)
+                || msg_.data_mut() != socket.request_id
             {
                 //  Skip the remaining frames and try the next message
-                while (msg_.flags() & ZMQ_MSG_MORE) {
+                while msg_.flags() & ZMQ_MSG_MORE {
                     rc = socket.recv_reply_pipe(msg_);
                     // errno_assert (rc == 0);
                 }
@@ -148,54 +147,54 @@ pub unsafe fn req_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
         //  The next frame must be 0.
         // TODO: Failing this check should also close the connection with the peer!
         let mut rc = socket.recv_reply_pipe(msg_);
-        if (rc != 0) {
+        if rc != 0 {
             return rc;
         }
 
-        if (!(msg_.flags() & ZMQ_MSG_MORE) || msg_.size() != 0) {
+        if (msg_.flags() & ZMQ_MSG_MORE) == 0 || msg_.size() != 0 {
             //  Skip the remaining frames and try the next message
-            while (msg_.flags() & ZmqMsg::more) {
+            while msg_.flags() & ZmqMsg::more {
                 rc = socket.recv_reply_pipe(msg_);
                 // errno_assert (rc == 0);
             }
             continue;
         }
 
-        socket._message_begins = false;
+        socket.message_begins = false;
     }
 
     let rc = socket.recv_reply_pipe(msg_);
-    if (rc != 0) {
+    if rc != 0 {
         return rc;
     }
 
     //  If the reply is fully received, flip the FSM into request-sending state.
-    if (!(msg_.flags() & ZMQ_MSG_MORE)) {
-        socket._receiving_reply = false;
-        socket._message_begins = true;
+    if !(msg_.flags() & ZMQ_MSG_MORE) {
+        socket.receiving_reply = false;
+        socket.message_begins = true;
     }
 
-    return 0;
+    return Ok(());
 }
 
 // bool zmq::req_t::xhas_in ()
 pub fn req_xhas_in(socket: &mut ZmqSocket) -> bool {
     //  TODO: Duplicates should be removed here.
 
-    if (!socket._receiving_reply) {
+    if !socket.receiving_reply {
         return false;
     }
 
-    return socket.dealer.xhas_in();
+    return socket.xhas_in();
 }
 
 // bool zmq::req_t::xhas_out ()
 pub fn req_xhas_out(socket: &mut ZmqSocket) -> bool {
-    if socket._receiving_reply && socket._strict {
+    if socket.receiving_reply && socket.strict {
         return false;
     }
 
-    return socket.dealer.xhas_out();
+    return socket.xhas_out();
 }
 
 // int zmq::req_t::xsetsockopt (int option_,
@@ -209,45 +208,46 @@ pub unsafe fn req_xsetsockopt(
 ) -> i32 {
     let is_int = (optvallen_ == 4);
     let mut value = 0;
-    if (is_int) {
-        libc::memcpy(&value, optval_, 4);
+    if is_int {
+        // libc::memcpy(&value, optval_, 4);
+        value = i32::from_le_bytes(optval_[0..4].try_into().unwrap());
     }
 
     match option_ {
         ZMQ_REQ_CORRELATE => {
-            if (is_int && value >= 0) {
-                socket._request_id_frames_enabled = (value != 0);
+            if is_int && value >= 0 {
+                socket.request_id_frames_enabled = (value != 0);
                 return 0;
             }
         }
         ZMQ_REQ_RELAXED => {
-            if (is_int && value >= 0) {
-                socket._strict = (value == 0);
+            if is_int && value >= 0 {
+                socket.strict = (value == 0);
                 return 0;
             }
         }
         _ => {}
     }
 
-    return ZmqDealer::xsetsockopt(option_, optval_, optvallen_);
+    return dealer_xsetsockopt(socket, option_, optval_, optvallen_);
 }
 
 // void zmq::req_t::xpipe_terminated (pipe_t *pipe_)
 pub unsafe fn req_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
-    if (socket._reply_pipe == pipe_) {
-        socket._reply_pipe = None;
+    if socket.reply_pipe.unwrap() == pipe_ {
+        socket.reply_pipe = None;
     }
-    ZmqDealer::xpipe_terminated(pipe_);
+    dealer_xpipe_terminated(socket, pipe_);
 }
 
 pub unsafe fn req_recv_reply_pipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     loop {
         let mut pipe: ZmqPipe = ZmqPipe::default();
-        let rc = scoekt.dealer.recvpipe(msg_, &mut Some(&mut pipe));
-        if (rc != 0) {
+        let rc = socket.recvpipe(msg_, &mut Some(&mut pipe));
+        if rc != 0 {
             return rc;
         }
-        if (!socket._reply_pipe || pipe == socket._reply_pipe) {
+        if socket.reply_pipe.is_none() || pipe == *socket.reply_pipe.unwrap() {
             return 0;
         }
     }
@@ -261,7 +261,7 @@ pub fn req_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
     unimplemented!();
 }
 
-pub fn req_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+pub fn req_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) -> Result<(),ZmqError> {
     unimplemented!()
 }
 

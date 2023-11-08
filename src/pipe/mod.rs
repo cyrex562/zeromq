@@ -41,12 +41,12 @@ pub enum ZmqPipeState {
 
 // pub type ZmqUpipe<'a> = ZmqYPipeBase<ZmqMsg>;
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct ZmqPipe<'a> {
     // pub base: &'a mut ZmqObject<'a>,
-    pub _array_item_1: ArrayItem<1>,
-    pub _array_item_2: ArrayItem<2>,
-    pub _array_item_3: ArrayItem<3>,
+    // pub _array_item_1: ArrayItem<1>,
+    // pub _array_item_2: ArrayItem<2>,
+    // pub _array_item_3: ArrayItem<3>,
     pub _in_pipe: Option<&'a mut YPipeConflate<'a, ZmqMsg>>,
     pub out_pipe: Option<&'a mut YPipeConflate<'a, ZmqMsg>>,
     pub _in_active: bool,
@@ -80,9 +80,9 @@ impl ZmqPipe {
     ) -> Self {
         Self {
             // base: parent_,
-            _array_item_1: ArrayItem::new(),
-            _array_item_2: ArrayItem::new(),
-            _array_item_3: ArrayItem::new(),
+            // _array_item_1: ArrayItem::new(),
+            // _array_item_2: ArrayItem::new(),
+            // _array_item_3: ArrayItem::new(),
             _in_pipe: Some(inpipe_),
             out_pipe: Some(outpipe_),
             _in_active: false,
@@ -122,8 +122,8 @@ impl ZmqPipe {
         return self._server_socket_routing_id as u32;
     }
 
-    pub fn set_router_socket_routing_id(&mut self, router_socket_routing_id_: Vec<u8>) {
-        self._router_socket_routing_id = router_socket_routing_id_;
+    pub fn set_router_socket_routing_id(&mut self, router_socket_routing_id_: &mut Vec<u8>) {
+        self._router_socket_routing_id = router_socket_routing_id_.clone();
     }
 
     pub fn get_routing_id(&mut self) -> &mut Vec<u8> {
@@ -217,7 +217,7 @@ impl ZmqPipe {
         }
     }
 
-    pub unsafe fn flush(&mut self, ctx: &mut ZmqContext) {
+    pub fn flush(&mut self, ctx: &mut ZmqContext) {
         if self._state == TermAckSent {
             return;
         }
@@ -305,7 +305,7 @@ impl ZmqPipe {
         self._delay = false;
     }
 
-    pub unsafe fn terminate(&mut self, ctx: &mut ZmqContext, delay_: bool) {
+    pub fn terminate(&mut self, ctx: &mut ZmqContext, delay_: bool) {
         self._delay = delay_;
 
         if self._state == TermReqSent1 || self._state == TermReqSent2 {
@@ -459,7 +459,7 @@ impl ZmqPipe {
 // type upipe_normal_t = ZmqYPipe<ZmqMsg, MESSAGE_PIPE_GRANULARITY>;
 // type upipe_conflate_t = YPipeConflate<ZmqMsg>;
 
-pub unsafe fn pipepair(
+pub fn pipepair(
     parents_: (&mut ZmqSession, &mut ZmqSocket),
     pipes_: &mut [Option<&mut ZmqPipe>; 2],
     hwms_: [i32; 2],

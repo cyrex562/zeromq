@@ -1,5 +1,9 @@
+use crate::ctx::ZmqContext;
 use crate::defines::MSG_MORE;
+use crate::err::ZmqError;
+use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
+use crate::pipe::out_pipe::ZmqOutpipe;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 
@@ -30,7 +34,7 @@ use crate::socket::ZmqSocket;
 
 
 
-pub unsafe fn server_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
+pub fn server_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
     let mut routing_id = socket.next_routing_id += 1;
     if (!routing_id) {
         routing_id = socket.next_routing_id += 1;
@@ -60,8 +64,9 @@ pub unsafe fn server_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPip
     socket.fq.pipe_terminated(pipe_);
 }
 
-pub unsafe fn server_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn server_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
     socket.fq.read_activated(pipe_);
+    Ok(())
 }
 
 pub unsafe fn server_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
@@ -77,79 +82,80 @@ pub unsafe fn server_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe
     }
 }
 
-pub fn server_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn server_xsend(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     //  SERVER sockets do not allow multipart data (ZMQ_SNDMORE)
-    if msg_.flag_set(MSG_MORE) {
+    if msg_.flag_set(MSG_MORE as u8) {
         // errno = EINVAL;
-        return -1;
+        return Err(SocketError("EINVAL"));
     }
     //  Find the pipe associated with the routing stored in the message.
     let mut routing_id = msg_.get_routing_id();
     let it = socket.out_pipes.iter_mut().find(routing_id).unwrap();
 
-    if (it != socket.out_pipes.iter_mut().end()) {
-        if (!it.1.pipe.check_write()) {
+    if it != socket.out_pipes.iter_mut().end() {
+        if !it.1.pipe.check_write() {
             it.1.active = false;
             // errno = EAGAIN;
-            return -1;
+            return Err(SocketError("EAGAIN"));
         }
     } else {
         // errno = EHOSTUNREACH;
-        return -1;
+        return Err(SocketError("EHOSTUNREACH"));
     }
 
     //  Message might be delivered over inproc, so we reset routing id
-    let mut rc = msg_.reset_routing_id();
+    msg_.reset_routing_id()?;
     // errno_assert (rc == 0);
 
-    let ok = it.1.pipe.write(msg_);
-    if ((!ok)) {
+    let ok = it.1.pipe.write(msg_)?;
+    if !ok {
         // Message failed to send - we must close it ourselves.
-        rc = msg_.close();
+        msg_.close()?;
         // errno_assert (rc == 0);
-    } else it.1.pipe.flush();
+    } else { it.1.pipe.flush(ctx); }
 
     //  Detach the message from the data buffer.
-    rc = msg_.init2();
+    msg_.init2()?;
     // errno_assert (rc == 0);
 
-    return 0;
+    return Ok(());
 }
 
-pub unsafe fn server_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn server_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     // pipe_t *pipe = NULL;
     let mut pipe= ZmqPipe::default();
-    let mut rc = socket.fq.recvpipe (msg_, &mut Some(&mut pipe));
+    socket.fq.recvpipe (ctx, msg_, &mut Some(&mut pipe))?;
 
     // Drop any messages with more flag
     // while (rc == 0 && msg_->flags () & msg_t::more)
-    while rc == 0 && msg_.flag_set(MSG_MORE)
+    while msg_.flag_set(MSG_MORE as u8)
     {
         // drop all frames of the current multi-frame message
-        rc = socket.fq.recvpipe (msg_, &mut None);
+        socket.fq.recvpipe (ctx, msg_, &mut None)?;
 
         // while (rc == 0 && msg_->flags () & msg_t::more)
-        while rc == 0 && msg_.flag_set(MSG_MORE)
+        while msg_.flag_set(MSG_MORE as u8)?
         {
-            rc = socket.fq.recvpipe(msg_, &mut None);
+            socket.fq.recvpipe(ctx, msg_, &mut None)?;
         }
 
         // get the new message
-        if (rc == 0) {
-            rc = socket.fq.recvpipe(msg_, &mut Some(&mut pipe));
-        }
+        // if rc == 0 {
+        //     rc = socket.fq.recvpipe(ctx, msg_, &mut Some(&mut pipe));
+        // }
+        socket.fq.recvpipe(ctx, msg_, &mut Some(&mut pipe))?;
     }
 
-    if (rc != 0) {
-        return rc;
-    }
+    // if rc != 0 {
+    //     return rc;
+    // }
 
     // zmq_assert (pipe != NULL);
 
     let routing_id = pipe.get_server_socket_routing_id ();
     msg_.set_routing_id (routing_id as i32);
 
-    return 0;
+    return Ok(());
 }
 
 pub fn server_xhas_in (socket: &mut ZmqSocket) -> bool

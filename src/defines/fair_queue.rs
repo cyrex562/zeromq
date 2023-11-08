@@ -1,4 +1,7 @@
+use crate::ctx::ZmqContext;
 use crate::defines::ZMQ_MSG_MORE;
+use crate::err::ZmqError;
+use crate::err::ZmqError::PipeError;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 
@@ -40,30 +43,30 @@ impl ZmqFairQueue {
         self.pipes[0].default();
     }
 
-    pub fn activated(&mut self, pipe_: &mut ZmqPipe) {
+    pub fn activated(&mut self, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
         // self.pipes.swap(self.pipes.index(pipe_).unwrap(), self.active);
         todo!()
     }
 
-    pub unsafe fn recv(&mut self, msg_: &mut ZmqMsg) -> i32 {
-        self.recvpipe(msg_, None)
+    pub fn recv(&mut self, ctx: &mut ZmqContext, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+        self.recvpipe(ctx, msg_, &mut None)
     }
 
-    pub unsafe fn recvpipe(&mut self, msg_: &mut ZmqMsg, pipe_: Option<&mut ZmqPipe>) -> i32 {
-        let mut rc = (*msg_).close();
+    pub fn recvpipe(&mut self, ctx: &mut ZmqContext, msg: &mut ZmqMsg, pipe: &mut Option<&mut ZmqPipe>) -> Result<(),ZmqError> {
+        (msg).close()?;
 
         while self.active > 0 {
-            let fetched = (*self.pipes[self.current]).read(msg_);
+            let fetched = (*self.pipes[self.current]).read(ctx, msg)?;
 
             if fetched {
-                if pipe_.is_some() {
-                    *pipe_ = self.pipes[self.current];
+                if pipe.is_some() {
+                    *pipe = Some(self.pipes[self.current]);
                 }
-                self.more = msg_.flags() & ZMQ_MSG_MORE != 0;
+                self.more = msg.flags() & ZMQ_MSG_MORE != 0;
                 if !self.more {
                     self.current = self.current + 1 % self.active;
                 }
-                return 0;
+                return Ok(());
             }
 
             self.active -= 1;
@@ -73,8 +76,8 @@ impl ZmqFairQueue {
             }
         }
 
-        rc = (*msg_).init2();
-        return -1;
+        (msg).init2()?;
+        return Err(PipeError("recvpipe failed"));
     }
 
     pub fn has_in(&mut self) -> bool {

@@ -1,30 +1,29 @@
 use crate::ctx::ZmqContext;
-use crate::defines::{ZMQ_GATHER, ZMQ_MSG_MORE};
-use crate::fair_queue::ZmqFairQueue;
+use crate::defines::ZMQ_MSG_MORE;
+use crate::err::ZmqError;
 use crate::msg::ZmqMsg;
-use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 
-pub struct ZmqGather<'a> {
-    pub socket_base: ZmqSocket<'a>,
-    pub _fq: ZmqFairQueue,
-}
-
-impl ZmqGather {
-    pub unsafe fn new(
-        options: &mut ZmqOptions,
-        parent_: &mut ZmqContext,
-        tid_: u32,
-        sid_: i32,
-    ) -> Self {
-        options.type_ = ZMQ_GATHER;
-        Self {
-            socket_base: ZmqSocket::new(parent_, tid_, sid_, true),
-            _fq: ZmqFairQueue::new(),
-        }
-    }
-}
+// pub struct ZmqGather<'a> {
+//     pub socket_base: ZmqSocket<'a>,
+//     pub _fq: ZmqFairQueue,
+// }
+//
+// impl ZmqGather {
+//     pub unsafe fn new(
+//         options: &mut ZmqOptions,
+//         parent_: &mut ZmqContext,
+//         tid_: u32,
+//         sid_: i32,
+//     ) -> Self {
+//         options.type_ = ZMQ_GATHER;
+//         Self {
+//             socket_base: ZmqSocket::new(parent_, tid_, sid_, true),
+//             _fq: ZmqFairQueue::new(),
+//         }
+//     }
+// }
 
 pub fn gather_xattach_pipe(
     socket: &mut ZmqSocket,
@@ -35,33 +34,34 @@ pub fn gather_xattach_pipe(
     socket.fq.attach(pipe_);
 }
 
-pub fn gather_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn gather_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
     socket.fq.activated(pipe_);
+    Ok(())
 }
 
 pub fn gather_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     socket.fq.pipe_terminated(pipe_);
 }
 
-pub fn gather_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
-    let mut rc = socket.fq.recvpipe(msg_, &mut None);
+pub fn gather_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+    socket.fq.recvpipe(ctx, msg_, None)?;
 
     // Drop any messages with more flag
-    while rc == 0 && msg_.flag_set(ZMQ_MSG_MORE) {
+    while msg_.flag_set(ZMQ_MSG_MORE) {
         // drop all frames of the current multi-frame message
-        rc = socket.fq.recvpipe(msg_, &mut None);
+        socket.fq.recvpipe(ctx, msg_, None)?;
 
-        while rc == 0 && msg_.flag_set(ZMQ_MSG_MORE) {
-            rc = socket.fq.recvpipe(msg_, &mut None);
+        while msg_.flag_set(ZMQ_MSG_MORE) {
+            socket.fq.recvpipe(ctx, msg_, None)?;
         }
 
         // get the new message
-        if rc == 0 {
-            rc = socket.fq.recvpipe(msg_, &mut None);
-        }
+        // if rc == 0 {
+        //     socket.fq.recvpipe(ctx, msg_, None)?;
+        // }
     }
 
-    return rc;
+    return Ok(())
 }
 
 pub fn gather_xhas_in(socket: &mut ZmqSocket) -> bool {

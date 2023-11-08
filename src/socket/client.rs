@@ -1,37 +1,35 @@
 use crate::ctx::ZmqContext;
-use crate::defines::{ZMQ_CLIENT, ZMQ_MSG_MORE};
+use crate::defines::ZMQ_MSG_MORE;
 use crate::err::ZmqError;
-use crate::fair_queue::ZmqFairQueue;
-use crate::load_balancer::ZmqLoadBalancer;
+use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
-use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 
-pub struct ZmqClient<'a> {
-    pub socket_base: ZmqSocket<'a>,
-    pub _fq: ZmqFairQueue<'a>,
-    pub _lb: ZmqLoadBalancer,
-}
+// pub struct ZmqClient<'a> {
+//     pub socket_base: ZmqSocket<'a>,
+//     pub _fq: ZmqFairQueue<'a>,
+//     pub _lb: ZmqLoadBalancer,
+// }
 
-impl ZmqClient {
-    pub unsafe fn new(
-        options: &mut ZmqOptions,
-        parent_: &mut ZmqContext,
-        tid_: u32,
-        sid_: i32,
-    ) -> Self {
-        let mut out = Self {
-            socket_base: ZmqSocket::new(parent_, tid_, sid_, true),
-            _fq: ZmqFairQueue::default(),
-            _lb: ZmqLoadBalancer::default(),
-        };
-        options.type_ = ZMQ_CLIENT;
-        options.can_send_hello_msg = true;
-        options.can_recv_hiccup_msg = true;
-        out
-    }
-}
+// impl ZmqClient {
+//     pub unsafe fn new(
+//         options: &mut ZmqOptions,
+//         parent_: &mut ZmqContext,
+//         tid_: u32,
+//         sid_: i32,
+//     ) -> Self {
+//         let mut out = Self {
+//             socket_base: ZmqSocket::new(parent_, tid_, sid_, true),
+//             _fq: ZmqFairQueue::default(),
+//             _lb: ZmqLoadBalancer::default(),
+//         };
+//         options.type_ = ZMQ_CLIENT;
+//         options.can_send_hello_msg = true;
+//         options.can_recv_hiccup_msg = true;
+//         out
+//     }
+// }
 
 pub fn client_xattach_pipe(
     socket: &mut ZmqSocket,
@@ -43,28 +41,29 @@ pub fn client_xattach_pipe(
     socket.lb.attach(pipe_);
 }
 
-pub fn client_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn client_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     if msg_.flags() & ZMQ_MSG_MORE != 0 {
-        return -1;
+        return Err(SocketError("msg more flag is set"));
     }
     socket.lb.sendpipe(msg_, &mut None)
 }
 
-pub unsafe fn client_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
-    let mut rc = socket.fq.recvpipe(msg_, None);
+pub fn client_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+    socket.fq.recvpipe(ctx, msg_, &mut None)?;
 
-    while rc == 0 && msg_.flags() & ZMQ_MSG_MORE > 0 {
-        rc = socket.fq.recvpipe(msg_, None);
-        while rc == 0 && msg_.flags() & ZMQ_MSG_MORE > 0 {
-            rc = socket.fq.recvpipe(msg_, None);
+    while msg_.flags() & ZMQ_MSG_MORE > 0 {
+        socket.fq.recvpipe(ctx, msg_, &mut None)?;
+        while msg_.flags() & ZMQ_MSG_MORE > 0 {
+            socket.fq.recvpipe(ctx, msg_, &mut None)?;
         }
 
-        if rc == 0 {
-            rc = socket.fq.recvpipe(msg_, None)
-        }
+        // TODO
+        // if rc == 0 {
+        //     socket.fq.recvpipe(ctx, msg_, &mut None)?
+        // }
     }
 
-    rc
+    Ok(())
 }
 
 pub fn client_xhas_in(socket: &mut ZmqSocket) -> bool {
@@ -75,7 +74,7 @@ pub fn client_xhas_out(socket: &mut ZmqSocket) -> bool {
     socket.lb.has_out()
 }
 
-pub fn client_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn client_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(), ZmqError>{
     socket.fq.activated(pipe_)
 }
 

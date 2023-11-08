@@ -2,12 +2,10 @@ use crate::command::ZmqCommandType::{ActivateRead, Stop};
 use crate::command::{ZmqCommand, ZmqCommandType};
 use crate::ctx::{Endpoint, ZmqContext};
 use crate::endpoint::ZmqEndpointUriPair;
-use crate::io_thread::ZmqIoThread;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::own::{own_process_seqnum, own_process_term_ack, ZmqOwn};
 use crate::pipe::ZmqPipe;
-use crate::reaper::{reaper_process_reap, reaper_process_reaped};
 use crate::socket::ZmqSocket;
 use crate::ypipe::ypipe_conflate::YPipeConflate;
 
@@ -263,7 +261,7 @@ pub fn obj_send_bind(
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_activate_read(ctx: &mut ZmqContext, destination: &mut ZmqPipe) {
+pub fn obj_send_activate_read(ctx: &mut ZmqContext, destination: &mut ZmqPipe) {
     let mut cmd = ZmqCommand::new();
     cmd.dest_pipe = Some(destination);
     cmd.type_ = ActivateRead;
@@ -365,7 +363,7 @@ pub fn obj_send_pipe_stats_publish(
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_pipe_term(ctx: &mut ZmqContext, destination: &mut ZmqPipe) {
+pub fn obj_send_pipe_term(ctx: &mut ZmqContext, destination: &mut ZmqPipe) {
     let mut cmd = ZmqCommand::new();
     cmd.dest_pipe = Some(destination);
     cmd.type_ = ZmqCommandType::PipeTerm;

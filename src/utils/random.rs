@@ -4,9 +4,9 @@ pub unsafe fn seed_random() {
     libc::srand(libc::time(0 as *mut libc::time_t) as c_uint);
 }
 
-pub unsafe fn generate_random() -> u32 {
-    let mut low = libc::rand() as u32;
-    let mut high = libc::rand() as u32;
+pub fn generate_random() -> u32 {
+    let mut low = unsafe { libc::rand() } as u32;
+    let mut high = unsafe { libc::rand() } as u32;
     high <<= 31; // 4 * 8 - 1
     high |= low;
     high

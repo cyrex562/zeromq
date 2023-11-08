@@ -106,12 +106,12 @@ impl ZmqDist {
         }
     }
 
-    pub unsafe fn send_to_all(&mut self, msg_: &mut ZmqMsg) -> i32 {
+    pub fn send_to_all(&mut self, msg_: &mut ZmqMsg) -> i32 {
         self._matching = self._active;
         self.send_to_matching(msg_)
     }
 
-    pub unsafe fn send_to_matching(&mut self, msg_: &mut ZmqMsg) -> i32 {
+    pub fn send_to_matching(&mut self, msg_: &mut ZmqMsg) -> i32 {
         //  Is this end of a multipart message?
         let msg_more = msg_.flag_set(ZMQ_MSG_MORE);
 
@@ -128,7 +128,7 @@ impl ZmqDist {
         return 0;
     }
 
-    pub unsafe fn distribute(&mut self, msg_: &mut ZmqMsg) {
+    pub fn distribute(&mut self, msg_: &mut ZmqMsg) {
         //  If there are no matching pipes available, simply drop the message.
         if (self._matching == 0) {
             let mut rc = msg_.close();
@@ -182,7 +182,7 @@ impl ZmqDist {
         true
     }
 
-    pub unsafe fn write(&mut self, pipe_: &mut ZmqPipe, msg_: &mut ZmqMsg) -> bool {
+    pub fn write(&mut self, pipe_: &mut ZmqPipe, msg_: &mut ZmqMsg) -> bool {
         let mut rc = pipe_.write(msg_);
         if rc == -1 {
             self._pipes

@@ -1,14 +1,9 @@
-use std::collections::VecDeque;
-use std::ffi::c_void;
-use std::ptr::null_mut;
-
 use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_PUB, ZMQ_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_UNSUBSCRIBE, ZMQ_XPUB, ZMQ_XPUB_MANUAL, ZMQ_XPUB_MANUAL_LAST_VALUE, ZMQ_XPUB_NODROP, ZMQ_XPUB_VERBOSE, ZMQ_XPUB_VERBOSER, ZMQ_XPUB_WELCOME_MSG};
-use crate::dist::ZmqDist;
-use crate::generic_mtrie::{GenericMtrie, Prefix};
-use crate::metadata::ZmqMetadata;
+use crate::defines::mtrie::ZmqMtrie;
+use crate::err::ZmqError;
+use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
-use crate::mtrie::ZmqMtrie;
 use crate::options::{do_getsockopt, ZmqOptions};
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
@@ -63,7 +58,7 @@ use crate::socket::ZmqSocket;
 // }
 
 
-pub unsafe fn xpub_xattach_pipe(socket: &mut ZmqSocket, options: &mut ZmqOptions, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) -> Self {
+pub fn xpub_xattach_pipe(ctx: &mut ZmqContext, socket: &mut ZmqSocket, options: &mut ZmqOptions, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) -> Result<(),ZmqError> {
     socket.dist.attatch(pipe_);
     if subscribe_to_all_ {
         socket.subscriptions.add(None, 0, pipe_);
@@ -71,20 +66,20 @@ pub unsafe fn xpub_xattach_pipe(socket: &mut ZmqSocket, options: &mut ZmqOptions
 
     if socket.welcome_msg.size() > 0 {
         let mut copy: ZmqMsg = ZmqMsg::new();
-        copy.init2();
-        copy.copy(&mut socket.welcome_msg);
-        let ok = pipe_.write(&mut copy);
-        pipe_.flush();
+        copy.init2()?;
+        copy.copy(&mut socket.welcome_msg)?;
+        pipe_.write(&mut copy)?;
+        pipe_.flush(ctx);
     }
 
-    socket.xread_activated(options, pipe_)
+    socket.xread_activated(ctx, options, pipe_)
 }
 
-pub unsafe fn xpub_xread_activated(socket: &mut ZmqSocket, options: &mut ZmqOptions, pipe_: &mut ZmqPipe) {
+pub fn xpub_xread_activated(ctx: &mut ZmqContext, socket: &mut ZmqSocket, options: &mut ZmqOptions, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
     //  There are some subscriptions waiting. Let's process them.
     // msg_t msg;
     let mut msg: ZmqMsg::new();
-    while pipe_.read(&msg) {
+    while pipe_.read(ctx, &msg) {
         let mut metadata = msg.metadata();
         let mut msg_data = msg.data();
         let mut data: &mut [u8] = &mut [0u8; 1];
@@ -133,7 +128,7 @@ pub unsafe fn xpub_xread_activated(socket: &mut ZmqSocket, options: &mut ZmqOpti
                     notify = rm_result != ZmqMtrie::values_remain || socket.verbose_unsubs;
                 } else {
                     let first_added = socket.subscriptions.add(data, size, pipe_);
-                    notify = first_added || socket._verbose_subs;
+                    notify = first_added || socket.verbose_subs;
                 }
             }
 
@@ -153,15 +148,16 @@ pub unsafe fn xpub_xread_activated(socket: &mut ZmqSocket, options: &mut ZmqOpti
                 //  number of buffer copies does not change.
                 // blob_t notification (size + 1);
                 let mut notification: Vec<u8> = Vec::with_capacity(size + 1);
-                if (subscribe) {
+                if subscribe {
                     notification.data()[0] = 1;
                 } else {
                     notification.data()[0] = 0;
                 }
-                libc::memcpy(notification.data_mut().add(1) as *mut c_void, data as *const c_void, size);
+                // libc::memcpy(notification.data_mut().add(1) as *mut c_void, data as *const c_void, size);
+                notification.data_mut()[1..].copy_from_slice(data);
 
                 socket.pending_data.push_back(notification);
-                if (metadata) {
+                if metadata {
                     metadata.add_ref();
                 }
                 socket.pending_metadata.push_back(metadata);
@@ -171,8 +167,8 @@ pub unsafe fn xpub_xread_activated(socket: &mut ZmqSocket, options: &mut ZmqOpti
             //  Process user message coming upstream from xsub socket,
             //  but not if the type is PUB, which never processes user
             //  messages
-            socket.pending_data.push_back(ZmqBlob::new3(msg_data, msg.size()));
-            if (metadata) {
+            socket.pending_data.push_back(msg_data);
+            if metadata {
                 metadata.add_ref();
             }
             socket.pending_metadata.push_back(metadata);
@@ -181,75 +177,90 @@ pub unsafe fn xpub_xread_activated(socket: &mut ZmqSocket, options: &mut ZmqOpti
 
         msg.close();
     }
+
+    Ok(())
 }
 
 pub unsafe fn xpub_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     socket.dist.activated(pipe_)
 }
 
-pub unsafe fn xpub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
-    if (option_ == ZMQ_XPUB_VERBOSE || option_ == ZMQ_XPUB_VERBOSER || option_ == ZMQ_XPUB_MANUAL_LAST_VALUE || option_ == ZMQ_XPUB_NODROP || option_ == ZMQ_XPUB_MANUAL || option_ == ZMQ_ONLY_FIRST_SUBSCRIBE) {
-        if (optvallen_ != 4 || (optval_[0]) < 0) {
+pub unsafe fn xpub_xsetsockopt(
+    socket: &mut ZmqSocket,
+    option_: i32,
+    optval_: &[u8],
+    optvallen_: usize
+) -> Result<(),ZmqError> {
+    if option_ == ZMQ_XPUB_VERBOSE || option_ == ZMQ_XPUB_VERBOSER || option_ == ZMQ_XPUB_MANUAL_LAST_VALUE || option_ == ZMQ_XPUB_NODROP || option_ == ZMQ_XPUB_MANUAL || option_ == ZMQ_ONLY_FIRST_SUBSCRIBE {
+        if optvallen_ != 4 || (optval_[0]) < 0 {
             // errno = EINVAL;
-            return -1;
+            return Err(SocketError("EINVAL"));
         }
-        if (option_ == ZMQ_XPUB_VERBOSE) {
-            socket._verbose_subs = ((optval_[0]) != 0);
+        if option_ == ZMQ_XPUB_VERBOSE {
+            socket.verbose_subs = ((optval_[0]) != 0);
             socket.verbose_unsubs = false;
-        } else if (option_ == ZMQ_XPUB_VERBOSER) {
-            socket._verbose_subs = ((optval_[0]) != 0);
-            socket.verbose_unsubs = socket._verbose_subs;
-        } else if (option_ == ZMQ_XPUB_MANUAL_LAST_VALUE) {
+        } else if option_ == ZMQ_XPUB_VERBOSER {
+            socket.verbose_subs = ((optval_[0]) != 0);
+            socket.verbose_unsubs = socket.verbose_subs;
+        } else if option_ == ZMQ_XPUB_MANUAL_LAST_VALUE {
             socket.manual = ((optval_[0]) != 0);
             socket.send_last_pipe = socket.manual;
-        } else if (option_ == ZMQ_XPUB_NODROP) {
+        } else if option_ == ZMQ_XPUB_NODROP {
             socket.lossy = ((optval_[0]) == 0);
-        } else if (option_ == ZMQ_XPUB_MANUAL) {
+        } else if option_ == ZMQ_XPUB_MANUAL {
             socket.manual = ((optval_[0]) != 0);
-        } else if (option_ == ZMQ_ONLY_FIRST_SUBSCRIBE) {
+        } else if option_ == ZMQ_ONLY_FIRST_SUBSCRIBE {
             socket.only_first_subscribe = ((optval_[0]) != 0);
         }
-    } else if (option_ == ZMQ_SUBSCRIBE && socket.manual) {
-        if (socket.last_pipe.is_some()) {
-            socket.subscriptions.add(optval_, optvallen_, socket.last_pipe);
+    } else if option_ == ZMQ_SUBSCRIBE && socket.manual {
+        if socket.last_pipe.is_some() {
+            socket.subscriptions.add(optval_, optvallen_, &mut socket.last_pipe);
         }
-    } else if (option_ == ZMQ_UNSUBSCRIBE && socket.manual) {
-        if (socket.last_pipe.is_some())
-        socket.subscriptions.rm(optval_, optvallen_, socket.last_pipe);
-    } else if (option_ == ZMQ_XPUB_WELCOME_MSG) {
-        socket.welcome_msg.close();
+    } else if option_ == ZMQ_UNSUBSCRIBE && socket.manual {
+        if socket.last_pipe.is_some() {
+            socket.subscriptions.rm(optval_, optvallen_, &mut socket.last_pipe);
+        }
+    } else if option_ == ZMQ_XPUB_WELCOME_MSG {
+        socket.welcome_msg.close()?;
 
-        if (optvallen_ > 0) {
-            let rc = socket.welcome_msg.init_size(optvallen_);
+        if optvallen_ > 0 {
+            socket.welcome_msg.init_size(optvallen_)?;
             // errno_assert (rc == 0);
 
             let data = (socket.welcome_msg.data_mut());
-            libc::memcpy(data, optval_.as_ptr() as *const c_void, optvallen_);
-        } else { socket.welcome_msg.init(); }
+            // libc::memcpy(data, optval_.as_ptr() as *const c_void, optvallen_);
+            data.clone_from_slice(optval_);
+        } else { socket.welcome_msg.init2()?; }
     } else {
         // errno = EINVAL;
-        return -1;
+        return Err(SocketError("EINVAL"));
     }
-    return 0;
+    return Ok(())
 }
 
 
-pub unsafe fn xpub_xgetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &mut [u8], optvallen_: &mut usize) -> i32 {
+pub unsafe fn xpub_xgetsockopt(socket: &mut ZmqSocket, option_: i32) -> Result<[u8],ZmqError> {
     if option_ == ZMQ_TOPICS_COUNT {
-        return do_getsockopt(optval_.as_ptr() as *mut c_void, optvallen_, socket.subscriptions._num_prefixes);
+        return  do_getsockopt(option_);
+        // return if rc == 0 {
+        //     *optvallen_ = socket.subscriptions.count();
+        //     Ok(rc)
+        // } else {
+        //     Err(SocketError("EINVAL"))
+        // }
     }
-    return -1;
+    return Err(SocketError("EINVAL"));
 }
 
-pub fn xpub_stub(socket: &mut ZmqSocket, data_: &mut Prefix, size_: usize, arg_: &mut [u8]) {
+pub fn xpub_stub(socket: &mut ZmqSocket, data_: &mut [u8], size_: usize, arg_: &mut [u8]) {
     unimplemented!()
 }
 
-pub fn xpub_xpipe_terminated(socket: &mut ZmqSocket pipe_: &mut ZmqPipe) {
-    if (socket.manual) {
+pub fn xpub_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+    if socket.manual {
         //  Remove the pipe from the trie and send corresponding manual
         //  unsubscriptions upstream.
-        socket.manual_subscriptions.rm(pipe_, socket.send_unsubscription, self, false);
+        socket.manual_subscriptions.rm(pipe_, socket.send_unsubscription, socket, false);
         //  Remove pipe without actually sending the message as it was taken
         //  care of by the manual call above. subscriptions is the real mtrie,
         //  so the pipe must be removed from there or it will be left over.
@@ -257,24 +268,24 @@ pub fn xpub_xpipe_terminated(socket: &mut ZmqSocket pipe_: &mut ZmqPipe) {
 
         // In case the pipe is currently set as last we must clear it to prevent
         // subscriptions from being re-added.
-        if (pipe_ == socket.last_pipe) {
+        if pipe_ == socket.last_pipe {
             socket.last_pipe = None;
         }
     } else {
         //  Remove the pipe from the trie. If there are topics that nobody
         //  is interested in anymore, send corresponding unsubscriptions
         //  upstream.
-        socket.subscriptions.rm(pipe_, socket.send_unsubscription, self, !socket.verbose_unsubs);
+        socket.subscriptions.rm(pipe_, socket.send_unsubscription, socket, !socket.verbose_unsubs);
     }
 
     socket.dist.pipe_terminated(pipe_);
 }
 
-pub fn xpub_mark_as_matching(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, other: socket: &mut ZmqSocket) {
+pub fn xpub_mark_as_matching(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, other: &mut ZmqSocket) {
     other.dist.match_(pipe_);
 }
 
-pub fn xpub_mark_last_pipe_as_matching(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, other_: socket: &mut ZmqSocket) {
+pub fn xpub_mark_last_pipe_as_matching(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, other_: &mut ZmqSocket) {
     if other_.last_pipe.unwrap() == pipe_ {
         other_.dist.match_(pipe_);
     }
@@ -291,11 +302,11 @@ pub fn xpub_xsend(socket: &mut ZmqSocket, options: &mut ZmqOptions, msg_: &mut Z
         if socket.manual && socket.last_pipe.is_some() && socket.send_last_pipe {
             socket.subscriptions.match_((msg_.data_mut()),
                                         msg_.size(), socket.mark_last_pipe_as_matching,
-                                        self);
+                                        socket);
             socket.last_pipe = None;
         } else {
             socket.subscriptions.match_((msg_.data_mut()),
-                                        msg_.size(), socket.mark_as_matching, self);
+                                        msg_.size(), socket.mark_as_matching, socket);
         }
         // If inverted matching is used, reverse the selection now
         if options.invert_matching {
@@ -304,11 +315,11 @@ pub fn xpub_xsend(socket: &mut ZmqSocket, options: &mut ZmqOptions, msg_: &mut Z
     }
 
     let mut rc = -1; //  Assume we fail
-    if (socket.lossy || socket.dist.check_hwm()) {
-        if (socket.dist.send_to_matching(msg_) == 0) {
+    if socket.lossy || socket.dist.check_hwm() {
+        if socket.dist.send_to_matching(msg_) == 0 {
             //  If we are at the end of multi-part message we can mark
             //  all the pipes as non-matching.
-            if (!msg_more) {
+            if !msg_more {
                 socket.dist.unmatch();
             }
             socket.more_send = msg_more;
@@ -324,7 +335,7 @@ pub fn xpub_xhas_out(socket: &mut ZmqSocket) -> bool {
     socket.dist.has_out()
 }
 
-pub unsafe fn xpub_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn xpub_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     //  If there is at least one
     if (socket.pending_data.empty()) {
         // errno = EAGAIN;
@@ -332,13 +343,13 @@ pub unsafe fn xpub_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     }
 
     // User is reading a message, set last_pipe and remove it from the deque
-    if (socket.manual && !socket.pending_pipes.empty()) {
-        socket.last_pipe = socket.pending_pipes.front();
+    if socket.manual && !socket.pending_pipes.empty() {
+        socket.last_pipe = Some(*socket.pending_pipes.front().unwrap());
         socket.pending_pipes.pop_front();
 
         // If the distributor doesn't know about this pipe it must have already
         // been Terminated and thus we can't allow manual subscriptions.
-        if socket.last_pipe != None && !socket.dist.has_pipe(socket.last_pipe) {
+        if socket.last_pipe != None && !socket.dist.has_pipe(socket.last_pipe.unwrap()) {
             socket.last_pipe = None;
         }
     }
@@ -347,18 +358,19 @@ pub unsafe fn xpub_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     // errno_assert (rc == 0);
     rc = msg_.init_size(socket.pending_data.front().size());
     // errno_assert (rc == 0);
-    libc::memcpy(msg_.data_mut(), socket.pending_data.front().data(),
-                 socket.pending_data.front().size());
+    // libc::memcpy(msg_.data_mut(), socket.pending_data.front().data(),
+    //              socket.pending_data.front().size());
+    msg_.data_mut().clone_from_slice(socket.pending_data.front().unwrap());
 
     // set metadata only if there is some
     let metadata = socket.pending_metadata.front();
     if metadata.is_some() {
-        msg_.set_metadata(metadata);
+        msg_.set_metadata(*metadata.unwrap());
         // Remove ref corresponding to vector placement
         metadata.drop_ref();
     }
 
-    msg_.set_flags(socket.pending_flags.front());
+    msg_.set_flags(*socket.pending_flags.front().unwrap());
     socket.pending_data.pop_front();
     socket.pending_metadata.pop_front();
     socket.pending_flags.pop_front();
@@ -369,8 +381,8 @@ pub fn xpub_xhas_in(socket: &mut ZmqSocket) -> bool {
     !socket.pending_data.empty()
 }
 
-pub unsafe fn xpub_send_unsubscription(socket: &mut ZmqSocket, data_: Prefix, size_: usize, other_: socket: &mut ZmqSocket) {
-    if (other_.options.type_ != ZMQ_PUB) {
+pub unsafe fn xpub_send_unsubscription(options: &ZmqOptions, socket: &mut ZmqSocket, data_: &[u8], size_: usize, other_: &mut ZmqSocket) {
+    if options.type_ != ZMQ_PUB {
         //  Place the unsubscription to the queue of pending (un)subscriptions
         //  to be retrieved by the user later on.
         // blob_t unsub (size_ + 1);
@@ -382,18 +394,14 @@ pub unsafe fn xpub_send_unsubscription(socket: &mut ZmqSocket, data_: Prefix, si
         //     libc::memcpy(unsub.data().add(1), data_, size_);
         // }
         other_.pending_data.ZMQ_PUSH_OR_EMPLACE_BACK((unsub));
-        other_.pending_metadata.push_back(None);
-        other_.pending_flags.push_back(0);
+        // other_.pending_metadata.push_back(None);
+        // other_.pending_flags.push_back(0);
 
-        if (other_.manual) {
+        if other_.manual {
             other_.last_pipe = None;
-            other_.pending_pipes.push_back(None);
+            // other_.pending_pipes.push_back(None);
         }
     }
-}
-
-pub fn xpub_xgetsockopt(socket: &mut ZmqSocket, option: i32) -> Result<[u8], ZmqError> {
-    unimplemented!();
 }
 
 pub fn xpub_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {

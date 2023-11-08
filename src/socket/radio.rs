@@ -1,39 +1,39 @@
 use crate::ctx::ZmqContext;
-use crate::defines::{ZMQ_MSG_MORE, ZMQ_RADIO, ZMQ_XPUB_NODROP};
-use crate::dist::ZmqDist;
+use crate::defines::{ZMQ_MSG_MORE, ZMQ_XPUB_NODROP};
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 use std::collections::HashMap;
+use crate::err::ZmqError;
 
 pub type ZmqSubscriptions<'a> = HashMap<String, &'a mut ZmqPipe<'a>>;
 pub type UdpPipes<'a> = Vec<&'a mut ZmqPipe<'a>>;
-pub struct ZmqRadio<'a> {
-    pub socket_base: ZmqSocket<'a>,
-    pub _subscriptions: ZmqSubscriptions<'a>,
-    pub _udp_pipes: UdpPipes<'a>,
-    pub _dist: ZmqDist,
-    pub _lossy: bool,
-}
-
-impl ZmqRadio {
-    pub unsafe fn new(
-        options: &mut ZmqOptions,
-        parent: &mut ZmqContext,
-        tid_: u32,
-        sid_: i32,
-    ) -> Self {
-        options.type_ = ZMQ_RADIO;
-        Self {
-            socket_base: ZmqSocket::new(parent, tid_, sid_, false),
-            _subscriptions: Default::default(),
-            _udp_pipes: vec![],
-            _dist: ZmqDist::new(),
-            _lossy: false,
-        }
-    }
-}
+// pub struct ZmqRadio<'a> {
+//     pub socket_base: ZmqSocket<'a>,
+//     pub _subscriptions: ZmqSubscriptions<'a>,
+//     pub _udp_pipes: UdpPipes<'a>,
+//     pub _dist: ZmqDist,
+//     pub _lossy: bool,
+// }
+//
+// impl ZmqRadio {
+//     pub unsafe fn new(
+//         options: &mut ZmqOptions,
+//         parent: &mut ZmqContext,
+//         tid_: u32,
+//         sid_: i32,
+//     ) -> Self {
+//         options.type_ = ZMQ_RADIO;
+//         Self {
+//             socket_base: ZmqSocket::new(parent, tid_, sid_, false),
+//             _subscriptions: Default::default(),
+//             _udp_pipes: vec![],
+//             _dist: ZmqDist::new(),
+//             _lossy: false,
+//         }
+//     }
+// }
 
 pub fn radio_xsetsockopt(
     socket: &mut ZmqSocket,
@@ -44,30 +44,34 @@ pub fn radio_xsetsockopt(
     unimplemented!()
 }
 
-pub unsafe fn radio_xattach_pipe(
+pub fn radio_xattach_pipe(
+    ctx: &mut ZmqContext,
+    options: &mut ZmqOptions,
     socket: &mut ZmqSocket,
     pipe_: &mut ZmqPipe,
     subscribe_to_all_: bool,
     locally_initiated_: bool,
-) {
+) -> Result<(),ZmqError> {
     pipe_.set_nodelay();
     socket.dist.attach(pipe_);
     if subscribe_to_all_ {
         socket.udp_pipes.push(pipe_);
     } else {
-        socket.xread_activated(pipe_);
+        socket.xread_activated(ctx, options, pipe_)?;
     }
+
+    Ok(())
 }
 
-pub unsafe fn radio_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn radio_xread_activated(ctx: &mut ZmqContext, socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
     //  There are some subscriptions waiting. Let's process them.
     let mut msg = ZmqMsg::new();
-    while pipe_.read(&msg) {
+    while pipe_.read(ctx, &msg) {
         //  Apply the subscription to the trie
-        if (msg.is_join() || msg.is_leave()) {
+        if msg.is_join() || msg.is_leave() {
             let group = (msg.group());
 
-            if (msg.is_join()) {
+            if msg.is_join() {
                 socket
                     .subscriptions
                     .ZMQ_MAP_INSERT_OR_EMPLACE((group), pipe_);
@@ -86,6 +90,8 @@ pub unsafe fn radio_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe)
         }
         msg.close();
     }
+    
+    Ok(())
 }
 
 pub unsafe fn radio_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
@@ -99,11 +105,11 @@ pub unsafe fn xsetsockopt(
     optvallen_: usize,
 ) -> i32 {
     let optval_i32 = i32::from_le_bytes(optval_[0..4].try_into().unwrap());
-    if (optvallen_ != 4 || optval_i32 < 0) {
+    if optvallen_ != 4 || optval_i32 < 0 {
         // errno = EINVAL;
         return -1;
     }
-    if (option_ == ZMQ_XPUB_NODROP) {
+    if option_ == ZMQ_XPUB_NODROP {
         socket.lossy = optval_i32 == 0;
     } else {
         // errno = EINVAL;
@@ -115,7 +121,7 @@ pub unsafe fn xsetsockopt(
 pub unsafe fn radio_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     // for (subscriptions_t::iterator it = _subscriptions.begin (), end = _subscriptions.end (); it != end;)
     for it in socket.subscriptions.iter_mut() {
-        if (it.1 == pipe_) {
+        if it.1 == pipe_ {
             // #if __cplusplus >= 201103L || (defined _MSC_VER && _MSC_VER >= 1700)
             it = socket.subscriptions.erase(it);
         // #else
@@ -131,7 +137,7 @@ pub unsafe fn radio_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe
         // const udp_pipes_t::iterator it =
         //   std::find (_udp_pipes.begin (), end, pipe_);
         let it = socket.udp_pipes.iter().find(|&&x| x == pipe_);
-        if (it != end) {
+        if it != end {
             socket.udp_pipes.erase(it);
         }
     }
@@ -155,9 +161,10 @@ pub fn radio_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
 
     // for (subscriptions_t::iterator it = range.first; it != range.second; ++it)
     //     _dist.match (it->second);
-    for it in range {
-        socket.dist.match_(it.1);
-    }
+    // TODO
+    // for it in range {
+    //     socket.dist.match_(it);
+    // }
 
     // for (udp_pipes_t::iterator it = _udp_pipes.begin (),
     //                            end = _udp_pipes.end ();
@@ -168,8 +175,8 @@ pub fn radio_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     }
 
     let mut rc = -1;
-    if (socket.lossy || self._dist.check_hwm()) {
-        if (socket.dist.send_to_matching(msg_) == 0) {
+    if socket.lossy || socket.dist.check_hwm() {
+        if socket.dist.send_to_matching(msg_) == 0 {
             rc = 0; //  Yay, sent successfully
         }
     } else {
@@ -183,8 +190,8 @@ pub fn radio_xhas_out(socket: &mut ZmqSocket) -> bool {
     socket.dist.has_out()
 }
 
-pub unsafe fn radio_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
-    -1
+pub fn radio_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+    unimplemented!()
 }
 
 pub fn radio_xhas_in(socket: &mut ZmqSocket) -> bool {

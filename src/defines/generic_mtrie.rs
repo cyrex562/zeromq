@@ -52,7 +52,7 @@ impl<T> GenericMtrie<T> {
         }
     }
 
-    pub unsafe fn add(
+    pub fn add(
         &mut self,
         mut prefix_: Option<&mut [u8]>,
         mut size_: usize,

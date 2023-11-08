@@ -26,7 +26,7 @@ impl UdpAddress {
         }
     }
 
-    pub unsafe fn resolve(
+    pub fn resolve(
         &mut self,
         options: &ZmqOptions,
         name_: &mut String,
@@ -57,7 +57,7 @@ impl UdpAddress {
             if src_name == "*" {
                 self._bind_interface = 0;
             } else {
-                self._bind_interface = if_nametoindex(src_name.as_ptr() as *const c_char) as i32;
+                unsafe { self._bind_interface = if_nametoindex(src_name.as_ptr() as *const c_char) as i32; }
                 if self._bind_interface == 0 {
                     self._bind_interface = -1;
                 }

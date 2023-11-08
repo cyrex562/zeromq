@@ -751,9 +751,9 @@ impl ZmqMsg {
         self.routing_id = routing_id_ as u32;
     }
 
-    pub fn reset_routing_id(&mut self) -> i32 {
+    pub fn reset_routing_id(&mut self) -> Result<(),ZmqError> {
         self.routing_id = 0;
-        return 0;
+        Ok(())
     }
 
     pub fn group(&self) -> String {

@@ -1,8 +1,7 @@
-use crate::ctx::ZmqContext;
-use crate::defines::load_balancer::ZmqLoadBalancer;
 use crate::defines::{ZMQ_MSG_MORE, ZMQ_SCATTER};
+use crate::err::ZmqError;
+use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
-use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 
@@ -32,7 +31,7 @@ pub fn scatter_xsetsockopt(
     unimplemented!()
 }
 
-pub unsafe fn scatter_xattach_pipe(
+pub fn scatter_xattach_pipe(
     socket: &mut ZmqSocket,
     pipe_: &mut ZmqPipe,
     subscribe_to_all: bool,
@@ -50,11 +49,11 @@ pub unsafe fn scatter_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPi
     socket.lb.terminated(pipe_);
 }
 
-pub fn scatter_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn scatter_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     //  SCATTER sockets do not allow multipart data (ZMQ_SNDMORE)
-    if (msg_.flags() & ZMQ_MSG_MORE) {
+    if msg_.flags() & ZMQ_MSG_MORE {
         // errno = EINVAL;
-        return -1;
+        return Err(SocketError("EINVAL"));
     }
 
     return socket.lb.send(msg_);
@@ -73,7 +72,7 @@ pub fn scatter_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
     unimplemented!();
 }
 
-pub fn scatter_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> i32 {
+pub fn scatter_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
@@ -81,6 +80,6 @@ pub fn scatter_xhas_in(socket: &mut ZmqSocket) -> i32 {
     unimplemented!()
 }
 
-pub fn scatter_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+pub fn scatter_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) -> Result<(),ZmqError> {
     unimplemented!()
 }

@@ -1,11 +1,10 @@
 use crate::ctx::ZmqContext;
-use crate::defines::{ZMQ_MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_XSUB, ZMQ_XSUB_VERBOSE_UNSUBSCRIBE};
-use crate::dist::ZmqDist;
-use crate::defines::fair_queue::ZmqFairQueue;
+use crate::defines::{ZMQ_MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_XSUB_VERBOSE_UNSUBSCRIBE};
+use crate::err::ZmqError;
+use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
 use crate::options::{do_getsockopt, ZmqOptions};
 use crate::pipe::ZmqPipe;
-use crate::radix_tree::ZmqRadixTree;
 use crate::socket::ZmqSocket;
 
 // pub struct ZmqXSub<'a> {
@@ -47,7 +46,8 @@ use crate::socket::ZmqSocket;
 // }
 
 
-pub unsafe fn xsub_xattach_pipe(
+pub fn xsub_xattach_pipe(
+    ctx: &mut ZmqContext,
     socket: &mut ZmqSocket,
     pipe_: &mut ZmqPipe,
     subscribe_to_all_: bool,
@@ -58,12 +58,13 @@ pub unsafe fn xsub_xattach_pipe(
 
     //  Send all the cached subscriptions to the new upstream peer.
     socket.subscriptions.apply(socket.send_subscription, pipe_);
-    pipe_.flush();
+    pipe_.flush(ctx);
 }
 
 
-pub unsafe fn xsub_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn xsub_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
     socket.fq.activated(pipe_);
+    Ok(())
 }
 
 pub unsafe fn xsub_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
@@ -75,16 +76,16 @@ pub unsafe fn xsub_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe)
     socket.dist.terminated(pipe_);
 }
 
-pub unsafe fn xsub_xhiccuped(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub unsafe fn xsub_xhiccuped(ctx: &mut ZmqContext, socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     //  Send all the cached subscriptions to the hiccuped pipe.
     socket.subscriptions.apply(socket.send_subscription, pipe_);
-    pipe_.flush();
+    pipe_.flush(ctx);
 }
 
 pub unsafe fn xsub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
     let opt_val_i32: i32 = i32::from_le_bytes([optval_[0], optval_[1], optval_[2], optval_[3]]);
-    if (option_ == ZMQ_ONLY_FIRST_SUBSCRIBE) {
-        if (optvallen_ != 4 || (opt_val_i32) < 0) {
+    if option_ == ZMQ_ONLY_FIRST_SUBSCRIBE {
+        if optvallen_ != 4 || (opt_val_i32) < 0 {
             // errno = EINVAL;
             return -1;
         }
@@ -92,7 +93,7 @@ pub unsafe fn xsub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[
         return 0;
     }
     // #ifdef ZMQ_BUILD_DRAFT_API
-    else if (option_ == ZMQ_XSUB_VERBOSE_UNSUBSCRIBE) {
+    else if option_ == ZMQ_XSUB_VERBOSE_UNSUBSCRIBE {
         socket.verbose_unsubs = (opt_val_i32 != 0);
         return 0;
     }
@@ -103,9 +104,9 @@ pub unsafe fn xsub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[
 
 pub unsafe fn xsub_xgetsockopt(
     socket: &mut ZmqSocket,
-    option_: u32,
+    option: u32,
 ) -> Result<[u8], ZmqError> {
-    if option_ == ZMQ_TOPICS_COUNT {
+    if option == ZMQ_TOPICS_COUNT {
         // make sure to use a multi-thread safe function to avoid race conditions with I/O threads
         // where subscriptions are processed:
         // #ifdef ZMQ_USE_RADIX_TREE
@@ -114,13 +115,13 @@ pub unsafe fn xsub_xgetsockopt(
         //         uint64_t num_subscriptions = _subscriptions.num_prefixes ();
         // #endif
 
-        return do_getsockopt(optval_, optvallen_, num_subscriptions);
+        return do_getsockopt(option);
     }
 
     // room for future options here
 
     // errno = EINVAL;
-    return -1;
+    return Err(SocketError("EINVAL"));
 }
 
 pub fn xsub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
@@ -130,20 +131,20 @@ pub fn xsub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     let first_part = !socket.more_send;
     socket.more_send = msg_.flag_set(ZMQ_MSG_MORE);
 
-    if (first_part) {
+    if first_part {
         socket.process_subscribe = !socket.only_first_subscribe;
-    } else if (!socket.process_subscribe) {
+    } else if !socket.process_subscribe {
         //  User message sent upstream to XPUB socket
         return socket.dist.send_to_all(msg_);
     }
 
-    if (msg_.is_subscribe() || (size > 0 && *data == 1)) {
+    if msg_.is_subscribe() || (size > 0 && *data == 1) {
         //  Process subscribe message
         //  This used to filter out duplicate subscriptions,
         //  however this is already Done on the XPUB side and
         //  doing it here as well breaks ZMQ_XPUB_VERBOSE
         //  when there are forwarding devices involved.
-        if (!msg_.is_subscribe()) {
+        if !msg_.is_subscribe() {
             data = data.add(1);
             size = size - 1;
         }
@@ -151,15 +152,15 @@ pub fn xsub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
         socket.process_subscribe = true;
         return socket.dist.send_to_all(msg_);
     }
-    if (msg_.is_cancel() || (size > 0 && *data == 0)) {
+    if msg_.is_cancel() || (size > 0 && *data == 0) {
         //  Process unsubscribe message
-        if (!msg_.is_cancel()) {
+        if !msg_.is_cancel() {
             data = data.add(1);
             size = size - 1;
         }
         socket.process_subscribe = true;
         let rm_result = socket.subscriptions.rm(data, size);
-        if (rm_result || socket.verbose_unsubs) {
+        if rm_result || socket.verbose_unsubs {
             return socket.dist.send_to_all(msg_);
         }
     } else {
@@ -167,9 +168,9 @@ pub fn xsub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
         return socket.dist.send_to_all(msg_);
     }
 
-    let rc = msg_.close();
+    msg_.close()?;
     // errno_assert (rc == 0);
-    rc = msg_.init2();
+    msg_.init2()?;
     // errno_assert (rc == 0);
 
     return 0;
@@ -179,15 +180,16 @@ pub fn xsub_xhas_out(socket: &mut ZmqSocket) -> bool {
     true
 }
 
-pub unsafe fn xsub_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn xsub_xrecv(ctx: &mut ZmqContext, options: &ZmqOptions, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     //  If there's already a message prepared by a previous call to zmq_poll,
     //  return it straight ahead.
-    if (socket.has_message) {
-        let rc = msg_. move (socket.message);
+    if socket.has_message {
+        // TODO
+        // let rc = msg_. move (socket.message);
         // errno_assert (rc == 0);
         socket.has_message = false;
         socket.more_recv = msg_.flag_set(ZMQ_MSG_MORE);
-        return 0;
+        return Ok(());
     }
 
     //  TODO: This can result in infinite loop in the case of continuous
@@ -195,39 +197,39 @@ pub unsafe fn xsub_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     //  semantics.
     loop {
         //  Get a message using fair queueing algorithm.
-        let mut rc = socket.fq.recv(msg_);
+        socket.fq.recv(ctx, msg_)?;
 
         //  If there's no message available, return immediately.
         //  The same when Error occurs.
-        if (rc != 0) {
-            return -1;
-        }
+        // if rc != 0 {
+        //     return -1;
+        // }
 
         //  Check whether the message matches at least one subscription.
         //  Non-initial parts of the message are passed
-        if (socket.more_recv || !socket.options.filter || socket.match_(msg_)) {
+        if socket.more_recv || !options.filter || socket.match_(msg_) {
             socket.more_recv = msg_.flag_set(ZMQ_MSG_MORE);
-            return 0;
+            return Ok(());
         }
 
         //  Message doesn't match. Pop any remaining parts of the message
         //  from the pipe.
         while msg_.flag_set(ZMQ_MSG_MORE) {
-            rc = socket.fq.recv(msg_);
+            socket.fq.recv(ctx, msg_)?;
             // errno_assert (rc == 0);
         }
     }
 }
 
-pub  fn xsub_xhas_in(socket: &mut ZmqSocket) -> bool {
+pub fn xsub_xhas_in(ctx: &mut ZmqContext, options: &ZmqOptions, socket: &mut ZmqSocket) -> bool {
     //  There are subsequent parts of the partly-read message available.
-    if (socket.more_recv) {
+    if socket.more_recv {
         return true;
     }
 
     //  If there's already a message prepared by a previous call to zmq_poll,
     //  return straight ahead.
-    if (socket.has_message) {
+    if socket.has_message {
         return true;
     }
 
@@ -235,54 +237,62 @@ pub  fn xsub_xhas_in(socket: &mut ZmqSocket) -> bool {
     //  stream of non-matching messages.
     loop {
         //  Get a message using fair queueing algorithm.
-        let mut rc = socket.fq.recv(socket: &mut ZmqSocket.message);
+        socket.fq.recv(ctx, &mut socket.message)?;
 
         //  If there's no message available, return immediately.
         //  The same when Error occurs.
-        if (rc != 0) {
-            // errno_assert (errno == EAGAIN);
-            return false;
-        }
+        // if (rc != 0) {
+        //     // errno_assert (errno == EAGAIN);
+        //     return false;
+        // }
 
         //  Check whether the message matches at least one subscription.
-        if (!socket.options.filter || socket.match_(&socket.message)) {
+        if !options.filter || socket.match_(&socket.message) {
             socket.has_message = true;
             return true;
         }
 
         //  Message doesn't match. Pop any remaining parts of the message
         //  from the pipe.
-        while (socket.message.flags() & ZmqMsg::more) {
-            rc = socket.fq.recv(socket: &mut ZmqSocket.message);
+        while socket.message.flags() & ZmqMsg::more {
+            socket.fq.recv(ctx, &mut socket.message)?;
             // errno_assert (rc == 0);
         }
     }
 }
 
-pub unsafe fn xsub_match_(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> bool {
+pub unsafe fn xsub_match_(options: &ZmqOptions, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> bool {
     let matching = socket.subscriptions.check(
         (msg_.data_mut()), msg_.size());
 
-    return matching ^ socket.options.invert_matching;
+    return matching ^ options.invert_matching;
 }
 
-pub unsafe fn xsub_send_subscription(socket: &mut ZmqSocket, data_: &mut [u8], size_: usize, arg_: &mut [u8]) {
+pub unsafe fn xsub_send_subscription(
+    socket: &mut ZmqSocket,
+    data_: &mut [u8],
+    size_: usize,
+    arg_: &mut [u8],
+) -> Result<(), ZmqError> {
+    let mut sent = true;
     let mut pipe = arg_.as_mut_ptr() as *mut ZmqPipe;
 
     //  Create the subscription message.
     let mut msg = ZmqMsg::default();
-    let rc = msg.init_subscribe(size_, data_);
+    msg.init_subscribe(size_, data_)?;
     // errno_assert (rc == 0);
 
     //  Send it to the pipe.
-    let sent = (*pipe).write(&mut msg);
+    (*pipe).write(&mut msg)?;
     //  If we reached the SNDHWM, and thus cannot send the subscription, drop
     //  the subscription message instead. This matches the behaviour of
     //  zmq_setsockopt(ZMQ_SUBSCRIBE, ...), which also drops subscriptions
     //  when the SNDHWM is reached.
-    if (!sent) {
-        msg.close();
+    if !sent {
+        msg.close()?;
     }
+
+    Ok(())
 }
 
 pub fn xsub_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
@@ -290,4 +300,4 @@ pub fn xsub_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
 }
 
 
-pub fn xsub_has_out(socket: &mut ZmqSocket) -> i32 { unimplemented!()}
+pub fn xsub_has_out(socket: &mut ZmqSocket) -> i32 { unimplemented!() }

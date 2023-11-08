@@ -1,30 +1,31 @@
 use crate::ctx::ZmqContext;
-use crate::defines::{ZMQ_MSG_MORE, ZMQ_PAIR};
+use crate::defines::ZMQ_MSG_MORE;
+use crate::err::ZmqError;
+use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
-use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 
-pub struct ZmqPair<'a> {
-    pub socket_base: ZmqSocket<'a>,
-    pub _pipe: Option<&'a mut ZmqPipe<'a>>,
-}
-
-impl ZmqPair {
-    pub unsafe fn new(
-        options: &mut ZmqOptions,
-        parent_: &mut ZmqContext,
-        tid_: u32,
-        sid_: i32,
-    ) -> ZmqPair {
-        let mut out = Self {
-            socket_base: ZmqSocket::new(parent_, tid_, sid_),
-            _pipe: ZmqPipe::default(),
-        };
-        options.type_ = ZMQ_PAIR;
-        out
-    }
-}
+// pub struct ZmqPair<'a> {
+//     pub socket_base: ZmqSocket<'a>,
+//     pub _pipe: Option<&'a mut ZmqPipe<'a>>,
+// }
+//
+// impl ZmqPair {
+//     pub unsafe fn new(
+//         options: &mut ZmqOptions,
+//         parent_: &mut ZmqContext,
+//         tid_: u32,
+//         sid_: i32,
+//     ) -> ZmqPair {
+//         let mut out = Self {
+//             socket_base: ZmqSocket::new(parent_, tid_, sid_),
+//             _pipe: ZmqPipe::default(),
+//         };
+//         options.type_ = ZMQ_PAIR;
+//         out
+//     }
+// }
 
 pub fn pair_xsetsockopt(
     socket: &mut ZmqSocket,
@@ -35,7 +36,8 @@ pub fn pair_xsetsockopt(
     unimplemented!()
 }
 
-pub unsafe fn pair_xattach_pipe(
+pub fn pair_xattach_pipe(
+    ctx: &mut ZmqContext,
     socket: &mut ZmqSocket,
     pipe_: &mut ZmqPipe,
     subscribe_to_all_: bool,
@@ -44,7 +46,7 @@ pub unsafe fn pair_xattach_pipe(
     if socket.pipe.is_none() {
         socket.pipe = Some(pipe_);
     } else {
-        socket.pipe.as_mut().unwrap().terminate(false);
+        socket.pipe.as_mut().unwrap().terminate(ctx, false);
     }
 }
 
@@ -54,7 +56,7 @@ pub unsafe fn pair_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe)
     }
 }
 
-pub unsafe fn pair_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn pair_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
@@ -62,10 +64,10 @@ pub unsafe fn pair_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe)
     unimplemented!()
 }
 
-pub fn pair_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
-    if (!socket.pipe || !socket.pipe.write(msg_)) {
+pub fn pair_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+    if socket.pipe.is_none() || socket.pipe.unwrap().write(msg_).is_err() {
         // errno = EAGAIN;
-        return -1;
+        return Err(SocketError("EAGAIN"));
     }
 
     if msg_.flag_clear(ZMQ_MSG_MORE) == true {
@@ -73,30 +75,30 @@ pub fn pair_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     }
 
     //  Detach the original message from the data buffer.
-    let rc = msg_.init2();
+    msg_.init2()?;
     // errno_assert (rc == 0);
 
-    return 0;
+    Ok(())
 }
 
-pub unsafe fn pair_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn pair_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     //  Deallocate old content of the message.
-    let rc = msg_.close();
+    msg_.close()?;
     // errno_assert (rc == 0);
 
-    if (!socket.pipe.is_none() || !socket.pipe.read(msg_)) {
+    if !socket.pipe.is_none() || !socket.pipe.read(msg_) {
         //  Initialise the output parameter to be a 0-byte message.
-        rc = msg_.init2();
+        msg_.init2()?;
         // errno_assert (rc == 0);
 
         // errno = EAGAIN;
-        return -1;
+        return Err(SocketError("EAGAIN"));
     }
-    return 0;
+    return Ok(());
 }
 
 pub fn pair_xhas_in(socket: &mut ZmqSocket) -> bool {
-    if (socket.pipe.is_none()) {
+    if socket.pipe.is_none() {
         return false;
     }
 
@@ -104,7 +106,7 @@ pub fn pair_xhas_in(socket: &mut ZmqSocket) -> bool {
 }
 
 pub fn pair_xhas_out(socket: &mut ZmqSocket) -> bool {
-    if (socket.pipe.is_none()) {
+    if socket.pipe.is_none() {
         return false;
     }
 

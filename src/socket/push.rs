@@ -1,33 +1,29 @@
-use crate::ctx::ZmqContext;
-use crate::defines::ZMQ_PUSH;
-use crate::load_balancer::ZmqLoadBalancer;
 use crate::msg::ZmqMsg;
-use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
-use libc::option;
+use crate::err::ZmqError;
 
-pub struct ZmqPush<'a> {
-    pub socket_base: ZmqSocket<'a>,
-    pub _lb: ZmqLoadBalancer,
-}
+// pub struct ZmqPush<'a> {
+//     pub socket_base: ZmqSocket<'a>,
+//     pub _lb: ZmqLoadBalancer,
+// }
+//
+// impl ZmqPush {
+//     pub unsafe fn new(
+//         options: &mut ZmqOptions,
+//         parent_: &mut ZmqContext,
+//         tid_: u32,
+//         sid: i32,
+//     ) -> Self {
+//         options.type_ = ZMQ_PUSH;
+//         Self {
+//             socket_base: ZmqSocket::new(parent_, tid_, sid, false),
+//             _lb: ZmqLoadBalancer::new(),
+//         }
+//     }
+// }
 
-impl ZmqPush {
-    pub unsafe fn new(
-        options: &mut ZmqOptions,
-        parent_: &mut ZmqContext,
-        tid_: u32,
-        sid: i32,
-    ) -> Self {
-        options.type_ = ZMQ_PUSH;
-        Self {
-            socket_base: ZmqSocket::new(parent_, tid_, sid, false),
-            _lb: ZmqLoadBalancer::new(),
-        }
-    }
-}
-
-pub unsafe fn push_xattach_pipe(
+pub fn push_xattach_pipe(
     socket: &mut ZmqSocket,
     pipe_: &mut ZmqPipe,
     subscribe_to_all_: bool,
@@ -45,7 +41,7 @@ pub unsafe fn push_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe)
     socket.lb.pipe_terminated(pipe_);
 }
 
-pub fn push_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn push_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     socket.lb.send(msg_)
 }
 
@@ -69,7 +65,7 @@ pub fn push_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
     unimplemented!();
 }
 
-pub fn push_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> i32 {
+pub fn push_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
@@ -77,6 +73,6 @@ pub fn push_xhas_in(socket: &mut ZmqSocket) -> bool {
     unimplemented!()
 }
 
-pub fn push_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+pub fn push_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) -> Result<(),ZmqError> {
     unimplemented!()
 }

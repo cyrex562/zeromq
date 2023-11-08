@@ -61,7 +61,7 @@ pub const _LINGER_TIMER_ID: i32 = 0x20;
 
 
 impl ZmqSession {
-    pub unsafe fn create(
+    pub fn create(
         io_thread_: &mut ZmqIoThread,
         active_: bool,
         socket_: &mut ZmqSocket,

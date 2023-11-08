@@ -6,19 +6,17 @@ use crate::defines::RETIRED_FD;
 use crate::defines::{ZmqFd, ZmqHandle};
 use crate::endpoint::ZmqEndpointType::EndpointTypeBind;
 use crate::endpoint::{make_unconnected_connect_endpoint_pair, ZmqEndpointUriPair};
-use crate::i_engine::IEngine;
 use crate::io::io_object::IoObject;
-use crate::io_thread::ZmqIoThread;
+use crate::io::io_thread::ZmqIoThread;
 use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
-use crate::session_base::ZmqSession;
 use crate::socket::ZmqSocket;
 
 mod tcp_listener;
 
 pub struct ZmqStreamListenerBase<'a> {
     pub own: ZmqOwn<'a>,
-    pub io_object: IoObject,
+    pub io_object: IoObject<'a>,
     pub _s: ZmqFd,
     pub _handle: ZmqHandle,
     pub _socket: &'a mut ZmqSocket<'a>,

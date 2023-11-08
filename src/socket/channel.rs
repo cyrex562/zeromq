@@ -1,12 +1,10 @@
-use crate::ctx::ZmqContext;
-use crate::defines::{ZMQ_CHANNEL, ZMQ_MSG_MORE};
+use crate::defines::ZMQ_MSG_MORE;
 use crate::err::ZmqError;
-use crate::err::ZmqError::PipeError;
+use crate::err::ZmqError::{PipeError, SocketError};
 use crate::msg::ZmqMsg;
-use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
-use std::ptr::null_mut;
+
 
 // pub struct ZmqChannel<'a> {
 //     pub base: ZmqSocket<'a>,
@@ -34,39 +32,39 @@ pub fn channel_xattach_pipe(
     _subscribe_to_all: bool,
     _local_initiated: bool,
 ) {
-    if socket.pipe == null_mut() {
-        socket.pipe == in_pipe;
+    if socket.pipe == None {
+        socket.pipe == Some(in_pipe);
     }
 }
 
 pub fn channel_xpipe_terminated(socket: &mut ZmqSocket, in_pipe: &mut ZmqPipe) {
-    if socket.pipe == in_pipe {
-        socket.pipe = Some(&mut ZmqPipe::default());
+    if socket.pipe.unwrap() == in_pipe {
+        socket.pipe = None;
     }
 }
 
-pub fn channel_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+pub fn channel_xread_activated(_socket: &mut ZmqSocket, _pipe: &mut ZmqPipe) {
     unimplemented!()
 }
 
-pub fn channel_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+pub fn channel_xwrite_activated(_socket: &mut ZmqSocket, _pipe: &mut ZmqPipe) {
     unimplemented!()
 }
 
-pub unsafe fn channel_xsend(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> i32 {
+pub unsafe fn channel_xsend(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(),ZmqError> {
     if msg.flag_set(ZMQ_MSG_MORE) {
-        return -1;
+        return Err(SocketError("msg more flag is set"));
     }
 
-    if socket.pipe == &mut ZmqPipe::default() || socket.pipe.write(msg).is_err() {
-        return -1;
+    if socket.pipe.is_none() || socket.pipe.unwrap().write(msg).is_err() {
+        return Err(SocketError("pipe is null"));
     }
 
     socket.pipe.flush();
 
-    let rc = (*msg).init2();
+    (msg).init2()?;
 
-    return 0;
+    Ok(())
 }
 
 pub unsafe fn channel_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(), ZmqError> {

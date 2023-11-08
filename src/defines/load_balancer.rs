@@ -2,10 +2,12 @@ use crate::msg::ZmqMsg;
 use crate::pipe::pipes::ZmqPipes;
 use crate::pipe::ZmqPipe;
 use std::ptr::null_mut;
+use crate::err::ZmqError;
+use crate::err::ZmqError::PipeError;
 
 #[derive(Default, Debug, Clone)]
-pub struct ZmqLoadBalancer {
-    pub _pipes: ZmqPipes,
+pub struct ZmqLoadBalancer<'a> {
+    pub _pipes: ZmqPipes<'a>,
     pub _active: usize,
     pub _current: usize,
     pub _more: bool,
@@ -51,18 +53,18 @@ impl ZmqLoadBalancer {
         self._active += 1;
     }
 
-    pub unsafe fn send(&mut self, msg_: &mut ZmqMsg) -> i32 {
+    pub fn send(&mut self, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
         self.sendpipe(msg_, &mut None)
     }
 
-    pub unsafe fn sendpipe(&mut self, msg_: &mut ZmqMsg, pipe_: &mut Option<&mut ZmqPipe>) -> i32 {
+    pub fn sendpipe(&mut self, msg_: &mut ZmqMsg, pipe_: &mut Option<&mut ZmqPipe>) -> Result<(),ZmqError> {
         if self._dropping {
             self._more = msg_.flags() & ZmqMsg::MORE != 0;
             self._dropping = self._more;
 
-            (*msg_).close();
+            (msg_).close()?;
 
-            (*msg_).init2();
+            (msg_).init2()?;
         }
 
         while self._active > 0 {
@@ -77,7 +79,7 @@ impl ZmqLoadBalancer {
                 self._pipes[self._current].rollback();
                 self._dropping = msg_.flags() & ZmqMsg::MORE != 0;
                 self._more = false;
-                return -2;
+                return Err(PipeError("pipe is null"));
             }
 
             self._active -= 1;
@@ -89,7 +91,7 @@ impl ZmqLoadBalancer {
         }
 
         if self._active == 0 {
-            return -1;
+            return Err(PipeError("pipe is null"));
         }
 
         self._more = msg_.flags() & ZmqMsg::MORE != 0;
@@ -101,11 +103,11 @@ impl ZmqLoadBalancer {
             }
         }
 
-        (*msg_).init2();
-        return 0;
+        (msg_).init2()?;
+        Ok(())
     }
 
-    pub unsafe fn has_out(&mut self) -> bool {
+    pub fn has_out(&mut self) -> bool {
         if self._more {
             return true;
         }

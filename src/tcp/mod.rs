@@ -7,7 +7,7 @@ use crate::defines::{RETIRED_FD, ZmqFd};
 use crate::fd::fd_t;
 use crate::ip::{bind_to_device, enable_ipv4_mapping, open_socket, set_ip_type_of_service, set_socket_priority};
 
-pub unsafe fn tune_tcp_socket(s_: fd_t) -> i32 {
+pub fn tune_tcp_socket(s_: fd_t) -> i32 {
     //  Disable Nagle's algorithm. We are doing data batching on 0MQ level,
     //  so using Nagle wouldn't improve throughput in anyway, but it would
     //  hurt latency.
@@ -47,7 +47,7 @@ pub unsafe fn set_tcp_receive_buffer (sockfd_: fd_t , bufsize_: i32) -> i32
     return rc;
 }
 
-pub unsafe fn tune_tcp_keepalives (s_: fd_t,
+pub fn tune_tcp_keepalives (s_: fd_t,
                               keepalive_: i32,
                               keepalive_cnt_: i32,
                               keepalive_idle_: i32,
@@ -162,7 +162,7 @@ pub unsafe fn tune_tcp_keepalives (s_: fd_t,
     return 0;
 }
 
-pub unsafe fn tune_tcp_maxrt(sockfd_: fd_t, timeout_: i32) -> i32 {
+pub fn tune_tcp_maxrt(sockfd_: fd_t, timeout_: i32) -> i32 {
     if (timeout_ <= 0) {
         return 0;
     }
