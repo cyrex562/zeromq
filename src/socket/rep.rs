@@ -1,6 +1,7 @@
 use crate::defines::{ZMQ_MSG_MORE, ZMQ_REP};
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
+use crate::socket::ZmqSocket;
 
 pub struct ZmqRep {
     pub router: router_t,
@@ -38,9 +39,9 @@ pub fn rep_xattach_pipe(
     unimplemented!()
 }
 
-pub fn rep_xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
+pub fn rep_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     //  If we are in the middle of receiving a request, we cannot send reply.
-    if (!self._sending_reply) {
+    if !socket._sending_reply {
         // errno = EFSM;
         return -1;
     }
@@ -48,14 +49,14 @@ pub fn rep_xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
     let more = flag_set(msg_.flags(), ZMQ_MSG_MORE);
 
     //  Push message to the reply pipe.
-    let rc = self.router.xsend(msg_);
-    if (rc != 0) {
+    let rc = socket.router.xsend(msg_);
+    if rc != 0 {
         return rc;
     }
 
     //  If the reply is complete flip the FSM back to request receiving state.
-    if (!more) {
-        self._sending_reply = false;
+    if !more {
+        socket._sending_reply = false;
     }
 
     return 0;
@@ -64,7 +65,7 @@ pub fn rep_xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
 // int zmq::rep_t::xrecv (msg_t *msg_)
 pub unsafe fn rep_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     //  If we are in middle of sending a reply, we cannot receive next request.
-    if (socket._sending_reply) {
+    if socket._sending_reply {
         // errno = EFSM;
         return -1;
     }
@@ -74,11 +75,11 @@ pub unsafe fn rep_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
     if (socket._request_begins) {
         loop {
             let rc = socket.router.xrecv(msg_);
-            if (rc != 0) {
+            if rc != 0 {
                 return rc;
             }
 
-            if (msg_.flags() & ZMQ_MSG_MORE) {
+            if msg_.flags() & ZMQ_MSG_MORE {
                 //  Empty message part delimits the traceback stack.
                 let bottom = (msg_.size() == 0);
 
@@ -86,7 +87,7 @@ pub unsafe fn rep_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
                 rc = socket.router.xsend(msg_);
                 // errno_assert (rc == 0);
 
-                if (bottom) {
+                if bottom {
                     break;
                 }
             } else {
@@ -101,12 +102,12 @@ pub unsafe fn rep_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
 
     //  Get next message part to return to the user.
     let rc = socket.router.xrecv(msg_);
-    if (rc != 0) {
+    if rc != 0 {
         return rc;
     }
 
     //  If whole request is read, flip the FSM to reply-sending state.
-    if (!(msg_.flags() & ZMQ_MSG_MORE)) {
+    if !(msg_.flags() & ZMQ_MSG_MORE) {
         socket._sending_reply = true;
         socket._request_begins = true;
     }
@@ -116,7 +117,7 @@ pub unsafe fn rep_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
 
 // bool zmq::rep_t::xhas_in ()
 pub fn rep_xhas_in(socket: &mut ZmqSocket) -> bool {
-    if (socket._sending_reply) {
+    if socket._sending_reply {
         return false;
     }
 
@@ -125,11 +126,11 @@ pub fn rep_xhas_in(socket: &mut ZmqSocket) -> bool {
 
 // bool zmq::rep_t::xhas_out ()
 pub fn rep_xhas_out(socket: &mut ZmqSocket) -> bool {
-    if (!socket._sending_reply) {
+    if !socket._sending_reply {
         return false;
     }
 
-    return socket.router.xhas_out();
+    return socket.xhas_out();
 }
 
 pub fn rep_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {

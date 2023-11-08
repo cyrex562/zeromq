@@ -1884,7 +1884,7 @@ impl ZmqSocket {
         }
     }
 
-    pub unsafe fn extract_flags(&mut self, msg_: * ZmqMsg) {
+    pub unsafe fn extract_flags(&mut self, msg_: &ZmqMsg) {
         //  Test whether routing_id flag is valid for this socket type.
         if ((msg_.flags() & ZmqMsg::routing_id)) {
             // zmq_assert(options.recv_routing_id)

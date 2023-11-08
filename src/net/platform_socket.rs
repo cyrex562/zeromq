@@ -1,15 +1,19 @@
 use std::ptr::null_mut;
-use crate::defines::{socklen_t, ZmqSockAddr, NI_MAXHOST, ZmqFd, ZmqPollFd, RETIRED_FD, AF_UNIX, SOCK_STREAM};
+use crate::defines::{ZmqSockAddr, NI_MAXHOST, ZmqFd, ZmqPollFd, RETIRED_FD, SOCK_STREAM};
 use crate::err::ZmqError;
 use crate::err::ZmqError::PlatformError;
 use crate::ip::set_nosigpipe;
-use crate::utils::sock_utils::{sockaddr_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr};
 #[cfg(not(target_os = "windows"))]
-use libc::{getnameinfo, setsockopt};
-use libc::{F_GETFL, F_SETFL, O_NONBLOCK, timeval};
+use libc::{getnameinfo, setsockopt, F_GETFL, F_SETFL, O_NONBLOCK};
+
+use libc::{timeval};
 #[cfg(target_os = "windows")]
-use windows::Win32::Networking::WinSock::setsockopt;
+use windows::Win32::Networking::WinSock::{setsockopt, getsockname, SOCKADDR, getpeername, SOCKET, ioctlsocket, FIONBIO, WSASocketA, WSADATA, WSAStartup};
+#[cfg(target_os = "windows")]
+use windows::Win32::System::Threading::OpenEventA;
+
 use crate::poll::select::fd_set;
+use crate::utils::sock_utils::wsa_sockaddr_to_zmq_sockaddr;
 
 pub fn platform_setsockopt(
     fd: ZmqFd,
@@ -22,7 +26,7 @@ pub fn platform_setsockopt(
     #[cfg(target_os = "windows")]
     {
         unsafe {
-            rc = setsockopt(fd, level, optname, optval, optlen);
+            rc = setsockopt(fd, level, optname, Some(optval));
         }
     }
     #[cfg(not(target_os = "windows"))]
@@ -78,8 +82,9 @@ pub fn platform_getnameinfo(
 
     #[cfg(target_os = "windows")]
     {}
+
+    #[cfg(not(target_os = "windows"))]
     unsafe {
-        #[cfg(not(target_os = "windows"))]
         rc = getnameinfo(
             &zmq_sockaddr_to_sockaddr(sockaddr),
             sockaddr_len as socklen_t,
@@ -90,6 +95,7 @@ pub fn platform_getnameinfo(
             flags,
         );
     }
+
 
     return if rc == 0 {
         let mut result = GetNameInfoResult {
@@ -131,7 +137,7 @@ pub fn platform_getsockname(fd: ZmqFd) -> Result<ZmqSockAddr, ZmqError> {
     #[cfg(target_os = "windows")]
     {
         let mut sa = SOCKADDR::default();
-        let mut sl = std::mem::size_of::<SOCKADDR>() as u32;
+        let mut sl = std::mem::size_of::<SOCKADDR>() as i32;
         rc = unsafe { getsockname(fd, &mut sa as *mut SOCKADDR, &mut sl) };
         if rc == 0 {
             zsa = wsa_sockaddr_to_zmq_sockaddr(&sa);
@@ -164,8 +170,8 @@ pub fn platform_getpeername(fd: ZmqFd) -> Result<ZmqSockAddr, ZmqError> {
     #[cfg(target_os = "windows")]
     {
         let mut sa = SOCKADDR::default();
-        let mut sl = std::mem::size_of::<SOCKADDR>() as u32;
-        rc = unsafe { getpeername(fd, &mut sa as *mut SOCKADDR, &mut sl) };
+        let mut sl = std::mem::size_of::<SOCKADDR>() as i32;
+        rc = unsafe { getpeername(SOCKET::try_from(fd), &mut sa as *mut SOCKADDR, &mut sl) };
         if rc == 0 {
             zsa = wsa_sockaddr_to_zmq_sockaddr(&sa);
         }
@@ -194,8 +200,8 @@ pub fn platform_unblock_socket(fd: ZmqFd) -> Result<(), ZmqError> {
     let mut rc = 0;
     #[cfg(target_os = "windows")]
     {
-        let mut nonblock: c_ulong = 1;
-        rc = ioctlsocket(fd, FIONBIO, &nonblock);
+        let mut nonblock: libc::c_ulong = 1;
+        unsafe { rc = ioctlsocket(fd, FIONBIO, &mut nonblock); }
     }
     unsafe {
         #[cfg(not(target_os = "windows"))]
@@ -216,10 +222,8 @@ pub fn platform_unblock_socket(fd: ZmqFd) -> Result<(), ZmqError> {
 }
 
 pub fn platform_open_socket(domain: i32, type_: i32, protocol: i32) -> Result<ZmqFd, ZmqError> {
-    #[cfg(target_os = "windows")]
-    let s: ZmqFd = unsafe { WSASocket(domain, type_, protocol, null_mut(), 0, 0) };
-    #[cfg(not(target_os = "windows"))]
-    let s: ZmqFd = unsafe { libc::socket(domain, type_, protocol) };
+    #[cfg(target_os = "windows")] let s: ZmqFd = unsafe { WSASocketA(domain, type_, protocol, None, 0, 0).0 as ZmqFd};
+    #[cfg(not(target_os = "windows"))] let s: ZmqFd = unsafe { libc::socket(domain, type_, protocol) };
 
     if s == RETIRED_FD {
         return Err(PlatformError("socket failed"));
@@ -274,12 +278,10 @@ pub unsafe fn make_fdpair_tcpip(r_: *mut fd_t, w_: *mut fd_t) -> i32 {
     let sync: HANDLE = 0;
     let event_signaler_port = 5905;
     if SIGNALER_PORT == event_signaler_port {
-        let mut sync =
-            CreateEventA(Some(&sa), FALSE, TRUE, "Global\\zmq-signaler-port-sync").unwrap();
+        let mut sync = CreateEventA(Some(&sa), FALSE, TRUE, "Global\\zmq-signaler-port-sync").unwrap();
 
         if sync == INVALID_HANDLE_VALUE && GetLastError() == ERROR_ACCESS_DENIED {
-            let desired_access =
-                (SYNCHRONIZE as SYNCHRONIZATION_ACCESS_RIGHTS | EVENT_MODIFY_STATE);
+            let desired_access = (SYNCHRONIZE as SYNCHRONIZATION_ACCESS_RIGHTS | EVENT_MODIFY_STATE);
             sync = OpenEventA(desired_access, FALSE, "Global\\zmq-signaler-port-sync").unwrap();
         }
     } else if SIGNALER_PORT != 0 {
@@ -289,8 +291,7 @@ pub unsafe fn make_fdpair_tcpip(r_: *mut fd_t, w_: *mut fd_t) -> i32 {
         let mutex_name = mux_name.as_ptr() as *const c_char;
         let mut sync = CreateMutexA(Some(&sa), FALSE, mutex_name).unwrap();
         if sync == INVALID_HANDLE_VALUE && GetLastError() == ERROR_ACCESS_DENIED {
-            let desired_access =
-                (SYNCHRONIZE as SYNCHRONIZATION_ACCESS_RIGHTS | EVENT_MODIFY_STATE);
+            let desired_access = (SYNCHRONIZE as SYNCHRONIZATION_ACCESS_RIGHTS | EVENT_MODIFY_STATE);
             sync = OpenMutexA(desired_access as u32, FALSE, mutex_name).unwrap();
         }
         *w_ = INVALID_SOCKET as fd_t;
@@ -446,8 +447,7 @@ pub fn platform_make_socket_noninheritable(sock_: ZmqFd) {
     }
 }
 
-pub fn platform_poll(poll_fd: &mut [ZmqPollFd], nitems: u32, timeout: u32) -> Result<(), ZmqError>
-{
+pub fn platform_poll(poll_fd: &mut [ZmqPollFd], nitems: u32, timeout: u32) -> Result<(), ZmqError> {
     let mut result = 0i32;
     #[cfg(target_os = "windows")]
     {
@@ -463,7 +463,7 @@ pub fn platform_poll(poll_fd: &mut [ZmqPollFd], nitems: u32, timeout: u32) -> Re
             result = libc::poll(
                 poll_fd.as_mut_ptr(),
                 nitems as libc::nfds_t,
-                timeout as i32
+                timeout as i32,
             );
         }
     }

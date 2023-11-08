@@ -190,8 +190,8 @@ pub fn req_xhas_in(socket: &mut ZmqSocket) -> bool {
 }
 
 // bool zmq::req_t::xhas_out ()
-pub fn req_xhas_out(&mut self) -> bool {
-    if (socket._receiving_reply && socket._strict) {
+pub fn req_xhas_out(socket: &mut ZmqSocket) -> bool {
+    if socket._receiving_reply && socket._strict {
         return false;
     }
 

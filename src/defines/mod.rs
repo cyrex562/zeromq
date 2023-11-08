@@ -26,7 +26,7 @@ pub mod zmq_draft;
 
 #[cfg(target_os = "windows")]
 #[cfg(target_arch = "x86_64")]
-pub type ZmqFd = u64;
+pub type ZmqFd = usize;
 #[cfg(target_os = "windows")]
 #[cfg(target_arch = "x86")]
 pub type ZmqFd = u32;
@@ -640,7 +640,10 @@ pub const ZMQ_CURRENT_EVENT_VERSION_DRAFT: u32 = 2;
 pub const ZMQ_EVENT_ALL_V1: u32 = ZMQ_EVENT_ALL;
 pub const ZMQ_EVENT_ALL_V2: u32 = ZMQ_EVENT_ALL_V1 | ZMQ_EVENT_PIPES_STATS;
 
+#[cfg(not(target_os= "windows"))]
 pub const RETIRED_FD: i32 = -1;
+#[cfg(target_os="windows")]
+pub const RETIRED_FD: usize= usize::MAX;
 
 #[cfg(target_os = "windows")]
 pub type ZmqPollFd = WSAPOLLFD;
