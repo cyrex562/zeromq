@@ -66,7 +66,7 @@ impl ZmqSession {
         active_: bool,
         socket_: &mut ZmqSocket,
         options_: &ZmqOptions,
-        addr_: ZmqAddress,
+        addr_: Option<ZmqAddress>,
     ) -> ZmqSession {
         // let mut s: *mut session_base_t = null_mut();
         let mut s = ZmqSession::default();

@@ -2,14 +2,16 @@ use std::ptr::null_mut;
 
 use crate::address::get_socket_name;
 use crate::address::SocketEnd::{SocketEndLocal, SocketEndRemote};
-use crate::defines::RETIRED_FD;
 use crate::defines::{ZmqFd, ZmqHandle};
-use crate::endpoint::ZmqEndpointType::EndpointTypeBind;
+use crate::defines::RETIRED_FD;
 use crate::endpoint::{make_unconnected_connect_endpoint_pair, ZmqEndpointUriPair};
+use crate::endpoint::ZmqEndpointType::EndpointTypeBind;
+use crate::engine::ZmqEngine;
 use crate::io::io_object::IoObject;
 use crate::io::io_thread::ZmqIoThread;
 use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
+use crate::session::ZmqSession;
 use crate::socket::ZmqSocket;
 
 mod tcp_listener;
@@ -27,10 +29,9 @@ impl ZmqStreamListenerBase {
     pub fn new(
         io_thread_: &mut ZmqIoThread,
         socket_: &mut ZmqSocket,
-        options_: &ZmqOptions,
     ) -> Self {
         Self {
-            own: ZmqOwn::from_io_thread(io_thread_, options_),
+            own: ZmqOwn::from_io_thread(io_thread_),
             io_object: IoObject::new(io_thread_),
             _s: RETIRED_FD,
             _handle: null_mut(),
@@ -40,7 +41,7 @@ impl ZmqStreamListenerBase {
     }
 
     pub unsafe fn get_local_address(&mut self, addr_: &mut String) -> i32 {
-        *addr_ = get_socket_name(self._s, SocketEndLocal);
+        *addr_ = get_socket_name(self._s, SocketEndLocal)?;
         if addr_.is_empty() {
             return -1;
         }
@@ -52,14 +53,14 @@ impl ZmqStreamListenerBase {
         self.set_pollin();
     }
 
-    pub unsafe fn process_term(&mut self, linger_: i32) {
+    pub unsafe fn process_term(&mut self, options: &ZmqOptions, linger_: i32) {
         self.rm_fd(self._handle);
-        self.close();
+        self.close(options);
         self._handle = null_mut();
         self.own.process_term(linger_);
     }
 
-    pub unsafe fn close(&mut self) {
+    pub unsafe fn close(&mut self, options: &ZmqOptions) {
         #[cfg(target_os = "windows")]
         {
             closeseocket(self._s);
@@ -68,39 +69,41 @@ impl ZmqStreamListenerBase {
         {
             libc::close(self._s);
         }
-        self._socket
-            .event_closed(make_unconnected_connect_endpoint_pair(self._endpoint));
+        self._socket.event_closed(options, &make_unconnected_connect_endpoint_pair(&self._endpoint), self._s);
         self._s = RETIRED_FD
     }
 
-    pub unsafe fn create_engine(&mut self, fd_: ZmqFd) {
+    pub unsafe fn create_engine(&mut self, options: &ZmqOptions, fd_: ZmqFd) {
         let endpoint_pair = ZmqEndpointUriPair::new(
-            get_socket_name(fd_, SocketEndLocal),
-            get_socket_name(fd_, SocketEndRemote),
+            &get_socket_name(fd_, SocketEndLocal)?,
+            &get_socket_name(fd_, SocketEndRemote)?,
             EndpointTypeBind,
         );
 
         // i_engine *engine;
-        let mut engine: dyn IEngine;
-        if (self.options.raw_socket) {
-            engine = raw_engine_t::new(fd_, self.options, endpoint_pair);
-        } else {
-            engine = zmtp_engine_t::new(fd_, self.options, endpoint_pair);
-        }
+        // let mut engine: dyn IEngine;
+        // if options.raw_socket {
+        //     engine = raw_engine_t::new(fd_, options, endpoint_pair);
+        // } else {
+        //     engine = zmtp_engine_t::new(fd_, options, endpoint_pair);
+        // }
+        let mut engine = ZmqEngine::new();
+        engine.endpoint_uri_pair = Some(endpoint_pair);
+        engine.fd = fd_;
         // alloc_assert (engine);
 
         //  Choose I/O thread to run connecter in. Given that we are already
         //  running in an I/O thread, there must be at least one available.
-        let io_thread = self.choose_io_thread(self.options.affinity);
+        let io_thread = self.choose_io_thread(options.affinity);
         // zmq_assert (io_thread);
 
         //  Create and launch a session object.
-        let mut session = ZmqSession::create(io_thread, false, self._socket, self.options, None);
+        let mut session = ZmqSession::create(io_thread, false, self._socket, options, None);
         // errno_assert (session);
         session.inc_seqnum();
-        self.launch_child(session);
-        self.send_attach(session, engine, false);
+        self.launch_child(&session);
+        self.send_attach(&session, engine, false);
 
-        self._socket.event_accepted(endpoint_pair, fd_);
+        self._socket.event_accepted(options, &endpoint_pair, fd_);
     }
 }

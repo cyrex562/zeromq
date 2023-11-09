@@ -21,6 +21,7 @@ pub mod radix_tree;
 pub mod trie;
 pub mod yqueue;
 pub mod zmq_draft;
+pub mod tcp;
 // #[cfg(target_os="windows")]
 // use windows::Win32::Networking::WinSock::sa_family_t;
 
@@ -640,10 +641,10 @@ pub const ZMQ_CURRENT_EVENT_VERSION_DRAFT: u32 = 2;
 pub const ZMQ_EVENT_ALL_V1: u32 = ZMQ_EVENT_ALL;
 pub const ZMQ_EVENT_ALL_V2: u32 = ZMQ_EVENT_ALL_V1 | ZMQ_EVENT_PIPES_STATS;
 
-#[cfg(not(target_os= "windows"))]
+#[cfg(not(target_os = "windows"))]
 pub const RETIRED_FD: i32 = -1;
-#[cfg(target_os="windows")]
-pub const RETIRED_FD: usize= usize::MAX;
+#[cfg(target_os = "windows")]
+pub const RETIRED_FD: usize = usize::MAX;
 
 #[cfg(target_os = "windows")]
 pub type ZmqPollFd = WSAPOLLFD;

@@ -36,12 +36,15 @@ pub fn zmq_sockaddr_to_sockaddr(sockaddr: &ZmqSockAddr) -> libc::sockaddr {
     out
 }
 
-pub fn zmq_sockaddr_storage_to_sockaddr(sockaddr_storage: ZmqSockaddrStorage) -> libc::sockaddr {
+pub fn zmq_sockaddr_storage_to_sockaddr(sockaddr_storage: &ZmqSockaddrStorage) -> libc::sockaddr {
     let mut out = libc::sockaddr {
         sa_family: sockaddr_storage.ss_family as sa_family_t,
         sa_data: [0; 14],
     };
-    out.sa_data[0..14].copy_from_slice(&sockaddr_storage.sa_data[0..14]);
+    // out.sa_data[0..14].copy_from_slice(&sockaddr_storage.sa_data[0..14] as &[u8]);
+    for i in 0..14 {
+        out.sa_data[i] = sockaddr_storage.sa_data[i] as libc::c_char;
+    }
     out
 }
 

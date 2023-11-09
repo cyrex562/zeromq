@@ -1,21 +1,29 @@
 use std::ffi::{c_char, c_void};
 use std::mem::size_of;
 use std::ptr::null_mut;
-use libc::{EAFNOSUPPORT, setsockopt, SOCKET};
-use windows::Win32::Networking::WinSock::{AF_INET, AF_INET6, closesocket, IPPROTO_TCP, recv, send, SIO_KEEPALIVE_VALS, SIO_LOOPBACK_FAST_PATH, SO_RCVBUF, SO_SNDBUF, SOCK_STREAM, SOCKET_ERROR, SOL_SOCKET, tcp_keepalive, TCP_NODELAY, WSAECONNABORTED, WSAECONNRESET, WSAEHOSTUNREACH, WSAENETDOWN, WSAENETRESET, WSAENOBUFS, WSAEOPNOTSUPP, WSAETIMEDOUT, WSAEWOULDBLOCK, WSAGetLastError};
-use crate::defines::{RETIRED_FD, ZmqFd};
-use crate::fd::fd_t;
+use libc::{EAFNOSUPPORT, EAGAIN, EINTR, EWOULDBLOCK, setsockopt, SO_BUSY_POLL};
+#[cfg(target_os= "windows")]
+use windows::Win32::Networking::WinSock::{closesocket, recv, send, SIO_KEEPALIVE_VALS, SIO_LOOPBACK_FAST_PATH,   SOCKET_ERROR, tcp_keepalive, WSAECONNABORTED, WSAECONNRESET, WSAEHOSTUNREACH, WSAENETDOWN, WSAENETRESET, WSAENOBUFS, WSAEOPNOTSUPP, WSAETIMEDOUT, WSAEWOULDBLOCK, WSAGetLastError};
+#[cfg(not(target_os= "windows"))]
+use libc::{};
+use crate::address::tcp_address::ZmqTcpAddress;
+use crate::defines::{RETIRED_FD, ZmqFd, IPPROTO_TCP, SOL_SOCKET, SO_SNDBUF, SO_RCVBUF, AF_INET, AF_INET6, SOCK_STREAM};
+use crate::defines::tcp::{TCP_NODELAY, TCP_USER_TIMEOUT};
 use crate::ip::{bind_to_device, enable_ipv4_mapping, open_socket, set_ip_type_of_service, set_socket_priority};
+use crate::options::ZmqOptions;
+use crate::utils::get_errno;
 
-pub fn tune_tcp_socket(s_: fd_t) -> i32 {
+pub fn tune_tcp_socket(s_: ZmqFd) -> i32 {
     //  Disable Nagle's algorithm. We are doing data batching on 0MQ level,
     //  so using Nagle wouldn't improve throughput in anyway, but it would
     //  hurt latency.
     let mut nodelay = 1;
-    let rc = setsockopt(s_, IPPROTO_TCP, TCP_NODELAY,
-                        (&nodelay), 4);
+    let rc = unsafe {
+        setsockopt(s_, IPPROTO_TCP, TCP_NODELAY,
+                   nodelay.to_le_bytes().as_ptr() as *const c_void, 4)
+    };
     // assert_success_or_recoverable (s_, rc);
-    if (rc != 0) {
+    if rc != 0 {
         return rc;
     }
 
@@ -29,25 +37,25 @@ pub fn tune_tcp_socket(s_: fd_t) -> i32 {
     return rc;
 }
 
-pub unsafe fn set_tcp_send_buffer (sockfd_: fd_t, bufsize_: i32) -> i32
+pub unsafe fn set_tcp_send_buffer (sockfd_: ZmqFd, bufsize_: i32) -> i32
 {
     let rc =
-      setsockopt (sockfd_ as SOCKET, SOL_SOCKET, SO_SNDBUF,
-                  (&bufsize_) as *const c_char, 4);
+      setsockopt (sockfd_, SOL_SOCKET as libc::c_int, SO_SNDBUF,
+                  bufsize_.to_le_bytes().as_ptr() as *const c_void, 4);
     // assert_success_or_recoverable (sockfd_, rc);
     return rc;
 }
 
-pub unsafe fn set_tcp_receive_buffer (sockfd_: fd_t , bufsize_: i32) -> i32
+pub unsafe fn set_tcp_receive_buffer (sockfd_: ZmqFd , bufsize_: i32) -> i32
 {
     let rc =
-      setsockopt (sockfd_, SOL_SOCKET, SO_RCVBUF,
-                  (&bufsize_) as *const c_char, 4);
+      setsockopt (sockfd_, SOL_SOCKET as libc::c_int, SO_RCVBUF,
+                  bufsize_.to_le_bytes().as_ptr() as *const c_void, 4);
     // assert_success_or_recoverable (sockfd_, rc);
     return rc;
 }
 
-pub fn tune_tcp_keepalives (s_: fd_t,
+pub fn tune_tcp_keepalives (s_: ZmqFd,
                               keepalive_: i32,
                               keepalive_cnt_: i32,
                               keepalive_idle_: i32,
@@ -79,8 +87,9 @@ pub fn tune_tcp_keepalives (s_: fd_t,
                           size_of::<keepalive_opts>(), None, 0,
                           &num_bytes_returned, None, None);
             // assert_success_or_recoverable(s_, rc);
-            if (rc == SOCKET_ERROR)
-            return rc;
+            if (rc == SOCKET_ERROR) {
+                return rc;
+            }
         }
     }
 // #else
@@ -162,8 +171,8 @@ pub fn tune_tcp_keepalives (s_: fd_t,
     return 0;
 }
 
-pub fn tune_tcp_maxrt(sockfd_: fd_t, timeout_: i32) -> i32 {
-    if (timeout_ <= 0) {
+pub fn tune_tcp_maxrt(sockfd_: ZmqFd, timeout_: i32) -> i32 {
+    if timeout_ <= 0 {
         return 0;
     }
 
@@ -184,12 +193,14 @@ pub fn tune_tcp_maxrt(sockfd_: fd_t, timeout_: i32) -> i32 {
     }
 // FIXME: should be ZMQ_HAVE_TCP_USER_TIMEOUT
 // #elif defined(TCP_USER_TIMEOUT)
-    #[cfg(not(target_os = "windows"))]
-    {
-        let rc = setsockopt(sockfd_, IPPROTO_TCP, TCP_USER_TIMEOUT, &timeout_,
-                            4);
-        // assert_success_or_recoverable (sockfd_, rc);
-        return rc;
+    unsafe {
+        #[cfg(not(target_os = "windows"))]
+        {
+            let rc = setsockopt(sockfd_, IPPROTO_TCP, TCP_USER_TIMEOUT, timeout_.to_le_bytes().as_ptr() as *const c_void,
+                                4);
+            // assert_success_or_recoverable (sockfd_, rc);
+            return rc;
+        }
     }
     // #else
     return 0;
@@ -225,19 +236,20 @@ pub fn tcp_write(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
         return nbytes;
     }
 // #else
-    #[cfg(not(target_os = "windows"))]
-    {
-        let nbytes = send(s_, (data_), size_, 0);
+    unsafe {
+        #[cfg(not(target_os = "windows"))]
+        {
+            let nbytes = libc::send(s_, data_.as_ptr() as *const c_void, size_, 0);
 
-        //  Several errors are OK. When speculative write is being Done we may not
-        //  be able to write a single byte from the socket. Also, SIGSTOP issued
-        //  by a debugging tool can result in EINTR Error.
-        if (nbytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
-            return 0;
-        }
+            //  Several errors are OK. When speculative write is being Done we may not
+            //  be able to write a single byte from the socket. Also, SIGSTOP issued
+            //  by a debugging tool can result in EINTR Error.
+            if nbytes == -1 && (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK || get_errno() == EINTR) {
+                return 0;
+            }
 
-        //  Signalise peer failure.
-        if (nbytes == -1) {
+            //  Signalise peer failure.
+            if nbytes == -1 {
 // #if !defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
 //         errno_assert (errno != EACCES && errno != EBADF && errno != EDESTADDRREQ
 //                       && errno != EFAULT && errno != EISCONN
@@ -249,15 +261,16 @@ pub fn tcp_write(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
 //                       && errno != EMSGSIZE && errno != ENOMEM
 //                       && errno != ENOTSOCK && errno != EOPNOTSUPP);
 // #endif
-            return -1;
-        }
+                return -1;
+            }
 
-        return (nbytes);
+            return nbytes as i32;
+        }
     }
 // #endif
 }
 
-pub fn tcp_read(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
+pub fn tcp_read(s_: ZmqFd, data_: &mut [u8], size_: usize) -> i32 {
 // #ifdef ZMQ_HAVE_WINDOWS
     #[cfg(target_os = "windows")]
     {
@@ -282,14 +295,15 @@ pub fn tcp_read(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
         return rc = if SOCKET_ERROR { -1 } else { rc };
     }
 // #else
-    #[cfg(not(target_os = "windows"))]
-    {
-        let rc = recv(s_, (data_), size_, 0);
+    unsafe {
+        #[cfg(not(target_os = "windows"))]
+        {
+            let rc = libc::recv(s_, data_.as_mut_ptr() as *mut c_void, size_, 0);
 
-        //  Several errors are OK. When speculative read is being Done we may not
-        //  be able to read a single byte from the socket. Also, SIGSTOP issued
-        //  by a debugging tool can result in EINTR Error.
-        if (rc == -1) {
+            //  Several errors are OK. When speculative read is being Done we may not
+            //  be able to read a single byte from the socket. Also, SIGSTOP issued
+            //  by a debugging tool can result in EINTR Error.
+            if rc == -1 {
 // #if !defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE
 //         errno_assert (errno != EBADF && errno != EFAULT && errno != ENOMEM
 //                       && errno != ENOTSOCK);
@@ -299,29 +313,33 @@ pub fn tcp_read(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
 //         if (errno == EWOULDBLOCK || errno == EINTR) {
 //             errno = EAGAIN;
 //         }
-        }
+            }
 
-        return static_cast < int > (rc);
+            return rc as i32;
+        }
     }
 // #endif
 }
 
-pub unsafe fn tcp_tune_loopback_fast_path(socket_: fd_t) {
+pub unsafe fn tcp_tune_loopback_fast_path(socket_: ZmqFd) {
 // #if defined ZMQ_HAVE_WINDOWS && defined SIO_LOOPBACK_FAST_PATH
-    let mut sio_loopback_fastpath = 1;
-    let mut number_of_bytes_returned = 0;
+    #[cfg(target_os = "windows")]
+    {
+        let mut sio_loopback_fastpath = 1;
+        let mut number_of_bytes_returned = 0;
 
-    let mut rc = WSAIoctl(
-        socket_, SIO_LOOPBACK_FAST_PATH, &sio_loopback_fastpath,
-        size_of::<sio_loopback_fastpath>, null_mut(), 0, &number_of_bytes_returned, 0, 0);
+        let mut rc = WSAIoctl(
+            socket_, SIO_LOOPBACK_FAST_PATH, &sio_loopback_fastpath,
+            size_of::<sio_loopback_fastpath>, null_mut(), 0, &number_of_bytes_returned, 0, 0);
 
-    if (SOCKET_ERROR == rc) {
-        let last_error = WSAGetLastError();
+        if SOCKET_ERROR == rc {
+            let last_error = WSAGetLastError();
 
-        if (WSAEOPNOTSUPP == last_error) {
-            // This system is not Windows 8 or Server 2012, and the call is not supported.
-        } else {
-            // wsa_assert (false);
+            if WSAEOPNOTSUPP == last_error {
+                // This system is not Windows 8 or Server 2012, and the call is not supported.
+            } else {
+                // wsa_assert (false);
+            }
         }
     }
 // #else
@@ -329,11 +347,11 @@ pub unsafe fn tcp_tune_loopback_fast_path(socket_: fd_t) {
 // #endif
 }
 
-pub unsafe fn tune_tcp_busy_poll(socket_: fd_t, busy_poll_: i32) {
+pub unsafe fn tune_tcp_busy_poll(socket_: ZmqFd, busy_poll_: i32) {
 // #if defined(ZMQ_HAVE_BUSY_POLL)
-    if (busy_poll_ > 0) {
-        let rc = setsockopt(socket_, SOL_SOCKET, SO_BUSY_POLL,
-                            (&busy_poll_), 4);
+    if busy_poll_ > 0 {
+        let rc = setsockopt(socket_, SOL_SOCKET as libc::c_int, SO_BUSY_POLL,
+                            busy_poll_.to_le_bytes().as_ptr() as *const c_void, 4);
         // assert_success_or_recoverable (socket_, rc);
     }
 // #else
@@ -342,89 +360,90 @@ pub unsafe fn tune_tcp_busy_poll(socket_: fd_t, busy_poll_: i32) {
 // #endif
 }
 
-pub unsafe fn tcp_open_socket (address_: &str,
-                                options_: &options_t,
-                                local_: bool,
-                                fallback_to_ipv4_: bool,
-                                out_tcp_addr_: *mut tcp_address_t) -> fd_t
+pub unsafe fn tcp_open_socket (addr_str: &mut String,
+                               options: &ZmqOptions,
+                               local_: bool,
+                               fallback_to_ipv4_: bool,
+                               out_tcp_addr_: &mut ZmqTcpAddress) -> ZmqFd
 {
     //  Convert the textual address into address structure.
-    let rc = out_tcp_addr_.resolve (address_, local_, options_.ipv6);
-    if (rc != 0) {
-        return RETIRED_FD;
-    }
+    out_tcp_addr_.resolve (options, addr_str, local_, options.ipv6)?;
+    // if rc != 0 {
+    //     return RETIRED_FD;
+    // }
 
     //  Create the socket.
-    let s = open_socket (out_tcp_addr_.family (), SOCK_STREAM, IPPROTO_TCP);
+    let mut s = open_socket (out_tcp_addr_.family() as i32, SOCK_STREAM, IPPROTO_TCP)?;
 
     //  IPv6 address family not supported, try automatic downgrade to IPv4.
-    if (s == RETIRED_FD && fallback_to_ipv4_
-        && out_tcp_addr_.family () == AF_INET6 && get_errno == EAFNOSUPPORT
-        && options_.ipv6) {
-        rc = out_tcp_addr_.resolve (address_, local_, false);
-        if (rc != 0) {
-            return RETIRED_FD;
-        }
-        s = open_socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if s == RETIRED_FD && fallback_to_ipv4_
+        && out_tcp_addr_.family () == AF_INET6 as u16 && get_errno() == EAFNOSUPPORT
+        && options.ipv6 {
+        out_tcp_addr_.resolve (options, addr_str, local_, false)?;
+        // if rc != 0 {
+        //     return RETIRED_FD;
+        // }
+        s = open_socket (AF_INET, SOCK_STREAM, IPPROTO_TCP)?;
     }
 
-    if (s == RETIRED_FD) {
+    if s == RETIRED_FD {
         return RETIRED_FD;
     }
 
     //  On some systems, IPv4 mapping in IPv6 sockets is disabled by default.
     //  Switch it on in such cases.
-    if (out_tcp_addr_.family () == AF_INET6) {
-        enable_ipv4_mapping(s);
+    if out_tcp_addr_.family () == AF_INET6 as u16 {
+        enable_ipv4_mapping(s)?;
     }
 
     // Set the IP Type-Of-Service priority for this socket
-    if (options_.tos != 0) {
-        set_ip_type_of_service(s, options_.tos);
+    if options.tos != 0 {
+        set_ip_type_of_service(s, options.tos)?;
     }
 
     // Set the protocol-defined priority for this socket
-    if (options_.priority != 0) {
-        set_socket_priority(s, options_.priority);
+    if options.priority != 0 {
+        set_socket_priority(s, options.priority)?;
     }
 
     // Set the socket to loopback fastpath if configured.
-    if (options_.loopback_fastpath) {
-        tcp_tune_loopback_fast_path(s);
+    if options.loopback_fastpath {
+        tcp_tune_loopback_fast_path(s)?;
     }
 
     // Bind the socket to a device if applicable
-    if (!options_.bound_device.empty ()) {
-        if (bind_to_device(s, options_.bound_device) == -1) {
+    if !options.bound_device.empty () {
+        if bind_to_device(s, &options.bound_device)? {
             // goto setsockopt_error;
         }
     }
 
     //  Set the socket buffer limits for the underlying socket.
-    if (options_.sndbuf >= 0) {
-        set_tcp_send_buffer(s, options_.sndbuf);
+    if options.sndbuf >= 0 {
+        set_tcp_send_buffer(s, options.sndbuf);
     }
-    if (options_.rcvbuf >= 0) {
-        set_tcp_receive_buffer(s, options_.rcvbuf);
+    if options.rcvbuf >= 0 {
+        set_tcp_receive_buffer(s, options.rcvbuf);
     }
 
     //  This option removes several delays caused by scheduling, interrupts and context switching.
-    if (options_.busy_poll) {
-        tune_tcp_busy_poll(s, options_.busy_poll);
+    if options.busy_poll {
+        tune_tcp_busy_poll(s, options.busy_poll);
     }
     return s;
 
-// setsockopt_error:
-// #ifdef ZMQ_HAVE_WINDOWS
-#[cfg(target_os="windows")]{
-    rc = closesocket(s);
-    // wsa_assert(rc != SOCKET_ERROR);
-}
-// #else
-    #[cfg(not(target_os="windows"))]{
-        rc = ::close(s);
-        errno_assert(rc == 0);
-    }
-// #endif
-    return RETIRED_FD;
+    // TODO
+// // setsockopt_error:
+// // #ifdef ZMQ_HAVE_WINDOWS
+// #[cfg(target_os="windows")]{
+//     rc = closesocket(s);
+//     // wsa_assert(rc != SOCKET_ERROR);
+// }
+// // #else
+//     #[cfg(not(target_os="windows"))]{
+//         rc = ::close(s);
+//         errno_assert(rc == 0);
+//     }
+// // #endif
+//     return RETIRED_FD;
 }
