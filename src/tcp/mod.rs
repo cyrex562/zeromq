@@ -264,8 +264,10 @@ pub fn tcp_write(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
                 return -1;
             }
 
-            return nbytes as i32;
+
         }
+
+        return nbytes as i32;
     }
 // #endif
 }
@@ -274,7 +276,8 @@ pub fn tcp_read(s_: ZmqFd, data_: &mut [u8], size_: usize) -> i32 {
 // #ifdef ZMQ_HAVE_WINDOWS
     #[cfg(target_os = "windows")]
     {
-        let rc = recv(s_, (data_), (size_), 0);
+        let mut rc = 0;
+        unsafe { rc = recv(s_, (data_), 0); };
 
         //  If not a single byte can be read from the socket in non-blocking mode
         //  we'll get an Error (this may happen during the speculative read).

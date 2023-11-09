@@ -34,7 +34,12 @@ use crate::socket::ZmqSocket;
 
 
 
-pub fn server_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
+pub fn server_xattach_pipe(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe,
+    subscribe_to_all_: bool,
+    locally_initiated_: bool
+) {
     let mut routing_id = socket.next_routing_id += 1;
     if (!routing_id) {
         routing_id = socket.next_routing_id += 1;
@@ -64,7 +69,10 @@ pub unsafe fn server_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPip
     socket.fq.pipe_terminated(pipe_);
 }
 
-pub fn server_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
+pub fn server_xread_activated(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe
+) -> Result<(),ZmqError> {
     socket.fq.read_activated(pipe_);
     Ok(())
 }
@@ -82,7 +90,11 @@ pub unsafe fn server_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe
     }
 }
 
-pub fn server_xsend(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn server_xsend(
+    ctx: &mut ZmqContext,
+    socket: &mut ZmqSocket,
+    msg_: &mut ZmqMsg
+) -> Result<(),ZmqError> {
     //  SERVER sockets do not allow multipart data (ZMQ_SNDMORE)
     if msg_.flag_set(MSG_MORE as u8) {
         // errno = EINVAL;
@@ -121,7 +133,11 @@ pub fn server_xsend(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut Zmq
     return Ok(());
 }
 
-pub fn server_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn server_xrecv(
+    ctx: &mut ZmqContext,
+    socket: &mut ZmqSocket,
+    msg_: &mut ZmqMsg
+) -> Result<(),ZmqError> {
     // pipe_t *pipe = NULL;
     let mut pipe= ZmqPipe::default();
     socket.fq.recvpipe (ctx, msg_, &mut Some(&mut pipe))?;
@@ -168,7 +184,12 @@ pub fn server_xhas_out(socket: &mut ZmqSocket) -> bool {
 }
 
 
-pub fn server_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub fn server_xsetsockopt(
+    socket: &mut ZmqSocket,
+    option_: i32,
+    optval_: &[u8],
+    optvallen_: usize
+) -> i32 {
     unimplemented!()
 }
 
