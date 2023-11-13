@@ -1,31 +1,32 @@
 use std::ffi::c_void;
 
-use libc::{EAFNOSUPPORT, EAGAIN, EINTR, EWOULDBLOCK, setsockopt, SO_BUSY_POLL};
+use libc::{EAFNOSUPPORT, setsockopt};
 #[cfg(target_os = "windows")]
-use windows::Win32::Networking::WinSock::{closesocket, recv, send, SIO_KEEPALIVE_VALS, SIO_LOOPBACK_FAST_PATH, SOCKET_ERROR, tcp_keepalive, WSAECONNABORTED, WSAECONNRESET, WSAEHOSTUNREACH, WSAENETDOWN, WSAENETRESET, WSAENOBUFS, WSAEOPNOTSUPP, WSAETIMEDOUT, WSAEWOULDBLOCK, WSAGetLastError};
+use windows::Win32::Networking::WinSock::{recv, send, SIO_KEEPALIVE_VALS, SIO_LOOPBACK_FAST_PATH, SOCKET_ERROR, tcp_keepalive, WSAECONNABORTED, WSAECONNRESET, WSAEHOSTUNREACH, WSAENETDOWN, WSAENETRESET, WSAENOBUFS, WSAEOPNOTSUPP, WSAETIMEDOUT, WSAEWOULDBLOCK, WSAGetLastError, WSAIoctl};
 
 use crate::address::tcp_address::ZmqTcpAddress;
 use crate::defines::{AF_INET, AF_INET6, IPPROTO_TCP, RETIRED_FD, SO_RCVBUF, SO_SNDBUF, SOCK_STREAM, SOL_SOCKET, ZmqFd};
 use crate::defines::err::ZmqError;
-use crate::defines::tcp::{TCP_NODELAY, TCP_USER_TIMEOUT};
+use crate::defines::tcp::TCP_NODELAY;
 use crate::ip::{bind_to_device, enable_ipv4_mapping, open_socket, set_ip_type_of_service, set_socket_priority};
 use crate::net::platform_socket::platform_setsockopt;
 use crate::options::ZmqOptions;
 use crate::utils::get_errno;
 
-pub fn tune_tcp_socket(s_: ZmqFd) -> i32 {
+pub fn tune_tcp_socket(s_: ZmqFd) -> Result<(),ZmqError> {
     //  Disable Nagle's algorithm. We are doing data batching on 0MQ level,
     //  so using Nagle wouldn't improve throughput in anyway, but it would
     //  hurt latency.
     let mut nodelay = 1;
-    let rc = unsafe {
-        setsockopt(s_, IPPROTO_TCP, TCP_NODELAY,
-                   nodelay.to_le_bytes().as_ptr() as *const c_void, 4)
-    };
-    // assert_success_or_recoverable (s_, rc);
-    if rc != 0 {
-        return rc;
-    }
+    // let rc = unsafe {
+    //     setsockopt(s_, IPPROTO_TCP, TCP_NODELAY,
+    //                nodelay.to_le_bytes().as_ptr() as *const c_void, 4)
+    // };
+    // // assert_success_or_recoverable (s_, rc);
+    // if rc != 0 {
+    //     return rc;
+    // }
+    platform_setsockopt(s_, IPPROTO_TCP, TCP_NODELAY, &nodelay.to_le_bytes(), 4)?;
 
 // #ifdef ZMQ_HAVE_OPENVMS
 //     //  Disable delayed acknowledgements as they hurt latency significantly.
@@ -34,7 +35,7 @@ pub fn tune_tcp_socket(s_: ZmqFd) -> i32 {
 //                      sizeof (int));
 //     assert_success_or_recoverable (s_, rc);
 // #endif
-    return rc;
+    return Ok(());
 }
 
 pub fn set_tcp_send_buffer(sockfd_: ZmqFd, bufsize_: i32) -> Result<(), ZmqError> {
@@ -76,21 +77,20 @@ pub fn tune_tcp_keepalives(s_: ZmqFd,
 // #ifdef ZMQ_HAVE_WINDOWS
     #[cfg(target_os = "windows")]
     {
-        if (keepalive_ != -1) {
+        if keepalive_ != -1 {
             let mut keepalive_opts: tcp_keepalive = tcp_keepalive::default();
-            keepalive_opts.onoff = keepalive_;
+            keepalive_opts.onoff = keepalive_ as u32;
             keepalive_opts.keepalivetime = if keepalive_idle_ != -1 {
                 keepalive_idle_ * 1000
-            } else { 7200000 };
+            } else { 7200000 } as u32;
             keepalive_opts.keepaliveinterval = if keepalive_intvl_ != -1 {
                 keepalive_intvl_ * 1000
-            } else { 1000 };
+            } else { 1000 } as u32;
             let mut num_bytes_returned = 0u32;
-            let rc = WSAIoctl(s_, SIO_KEEPALIVE_VALS, &keepalive_opts,
-                              size_of::<keepalive_opts>(), None, 0,
-                              &num_bytes_returned, None, None);
+            let mut rc = 0i32;
+            unsafe { rc = WSAIoctl(s_, SIO_KEEPALIVE_VALS as i32, &keepalive_opts, None, 0, &mut num_bytes_returned, None, 0) };
             // assert_success_or_recoverable(s_, rc);
-            if (rc == SOCKET_ERROR) {
+            if rc == SOCKET_ERROR {
                 return rc;
             }
         }
@@ -214,7 +214,8 @@ pub fn tcp_write(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
 // #ifdef ZMQ_HAVE_WINDOWS
     #[cfg(target_os = "windows")]
     {
-        let nbytes = send(s_, data_, (size_), 0);
+        // let nbytes = send(s_, data_, (size_), 0);
+        let nbytes = platform_send(s_, data_, 0)?;
 
         //  If not a single byte can be written to the socket in non-blocking mode
         //  we'll get an Error (this may happen during the speculative write).

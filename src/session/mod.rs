@@ -6,10 +6,10 @@ use crate::ctx::ZmqContext;
 use crate::defines::{
     ZMQ_DGRAM, ZMQ_DISH, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE, ZMQ_NULL, ZMQ_RADIO, ZMQ_REQ, ZMQ_SUB, ZMQ_XSUB,
 };
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::{PipeError, SessionError, ZapError};
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::engine::ZmqEngine;
-use crate::err::ZmqError;
-use crate::err::ZmqError::{PipeError, SessionError, ZapError};
 use crate::io::io_object::IoObject;
 use crate::io::io_thread::ZmqIoThread;
 use crate::msg::ZmqMsg;
@@ -21,6 +21,7 @@ use crate::session::dish_session::{dish_sess_pull_msg, dish_sess_push_msg, dish_
 use crate::session::radio_session::{radio_sess_pull_msg, radio_sess_push_msg, radio_sess_reset};
 use crate::session::req_session::{req_sess_push_msg, req_sess_reset};
 use crate::socket::ZmqSocket;
+use crate::stream_connecter::ZmqStreamConnecterBase;
 
 mod radio_session;
 mod req_session;
@@ -579,7 +580,7 @@ impl ZmqSession {
 
         //  Create the connecter object.
         // own_t *connecter = NULL;
-        let mut connecter: *mut ZmqOwn = null_mut();
+        let mut connecter: ZmqStreamConnecterBase = ZmqStreamConnecterBase::default();
         if (self._addr).protocol == "tcp" {
             if !options.socks_proxy_address.empty() {
                 // address_t *proxy_address = new (std::nothrow)
@@ -603,7 +604,8 @@ impl ZmqSession {
             } else {
                 // connecter = new (std::nothrow)
                 //   tcp_connecter_t (io_thread, this, options, _addr, wait_);
-                connecter = tcp_connecter_t::new2(io_thread, self, &options, &self._addr, wait_);
+                // connecter = tcp_connecter_t::new2(io_thread, self, &options, &self._addr, wait_);
+                connecter = ZmqStreamConnecterBase::new(io_thread, self,  &self._addr, wait_);
             }
         }
         // #if defined ZMQ_HAVE_IPC
@@ -636,7 +638,7 @@ impl ZmqSession {
         //           io_thread, this, options, _addr, wait_, true, _wss_hostname);
         //     }
         // #endif
-        if connecter != null_mut() {
+        if connecter !=ZmqStreamConnecterBase::default() {
             // alloc_assert (connecter);
             self.launch_child(connecter);
             return;

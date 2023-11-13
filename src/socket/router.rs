@@ -1,9 +1,8 @@
-use libc::MSG_MORE;
 use crate::ctx::ZmqContext;
 
 use crate::defines::blob::ZmqBlob;
-use crate::defines::{ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT, ZMQ_POLLOUT, ZMQ_PROBE_ROUTER, ZMQ_ROUTER_HANDOVER, ZMQ_ROUTER_MANDATORY, ZMQ_ROUTER_NOTIFY, ZMQ_ROUTER_RAW};
-use crate::err::ZmqError;
+use crate::defines::{MSG_MORE, ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT, ZMQ_POLLOUT, ZMQ_PROBE_ROUTER, ZMQ_ROUTER_HANDOVER, ZMQ_ROUTER_MANDATORY, ZMQ_ROUTER_NOTIFY, ZMQ_ROUTER_RAW};
+use crate::defines::err::ZmqError;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
@@ -179,7 +178,7 @@ pub fn router_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Re
     // const std::set<pipe_t *>::iterator it = _anonymous_pipes.find (pipe_);
     let it = socket.anonymous_pipes.iter_mut().find(|&x| *x == pipe_);
     if it.is_none() {
-        socket.fq.activated(pipe_);
+        socket.fq.activated(pipe_)?;
     } else {
         let routing_id_ok = socket.identify_peer(pipe_, false);
         if routing_id_ok {

@@ -1,20 +1,27 @@
+use std::intrinsics::size_of_val;
 use std::ptr::null_mut;
 
 #[cfg(not(target_os = "windows"))]
 use libc::{F_GETFL, F_SETFL, getnameinfo, O_NONBLOCK, setsockopt};
 use libc::timeval;
+use windows::imp::GetLastError;
+use windows::Win32::Foundation::{ERROR_ACCESS_DENIED, FALSE, INVALID_HANDLE_VALUE};
 #[cfg(target_os = "windows")]
-use windows::Win32::Networking::WinSock::{FIONBIO, getpeername, getsockname, ioctlsocket, setsockopt, SOCKADDR, SOCKET, WSADATA, WSASocketA, WSAStartup};
+use windows::Win32::Networking::WinSock::{FIONBIO, getpeername, getsockname, ioctlsocket, setsockopt, SOCKADDR, SOCKET, WSADATA, WSASocketA, WSAStartup, send};
+use windows::Win32::Networking::WinSock::{SEND_RECV_FLAGS, WSACleanup};
+use windows::Win32::Security::{InitializeSecurityDescriptor, SECURITY_ATTRIBUTES, SECURITY_DESCRIPTOR, SetSecurityDescriptorDacl};
+use windows::Win32::Storage::FileSystem::SYNCHRONIZE;
+use windows::Win32::System::SystemServices::SECURITY_DESCRIPTOR_REVISION;
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::OpenEventA;
-use crate::address::ZmqAddress;
-
-use crate::defines::{AF_UNIX, NI_MAXHOST, RETIRED_FD, SOCK_STREAM, ZmqFd, ZmqPollFd, ZmqSockAddr, ZmqSocklen};
+use windows::Win32::System::Threading::{CreateEventA, CreateMutexA, EVENT_MODIFY_STATE, SYNCHRONIZATION_ACCESS_RIGHTS};
+use windows::Win32::System::WindowsProgramming::OpenMutexA;
+use crate::defines::{NI_MAXHOST, RETIRED_FD, SIGNALER_PORT, SO_REUSEADDR, SOCK_STREAM, SOL_SOCKET, ZmqFd, ZmqPollFd, ZmqSockAddr};
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::PlatformError;
 use crate::ip::set_nosigpipe;
 use crate::poll::select::fd_set;
-use crate::utils::sock_utils::{sockaddr_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr};
+use crate::utils::sock_utils::wsa_sockaddr_to_zmq_sockaddr;
 
 pub fn platform_setsockopt(
     fd: ZmqFd,
@@ -243,8 +250,9 @@ pub fn platform_open_socket(domain: i32, type_: i32, protocol: i32) -> Result<Zm
 pub fn platform_init_network() -> Result<(), ZmqError> {
     #[cfg(target_os = "windows")]
     {
-        let mut wsaData: WSADATA = WSADATA::default();
-        let rc = WSAStartup(0x0202u16, &mut wsaData);
+        let mut wsa_data: WSADATA = WSADATA::default();
+        let mut rc = 0;
+        unsafe { rc = WSAStartup(0x0202u16, &mut wsa_data) };
         if rc != 0 {
             return Err(PlatformError(&format!("WSAStartup failed {}", rc)));
         }
@@ -257,7 +265,7 @@ pub fn platform_shutdown_network() -> Result<(), ZmqError> {
     let mut rc = 0;
     #[cfg(target_os = "windows")]
     {
-        rc = WSACleanup();
+        unsafe { rc = WSACleanup() };
     }
     return if rc == 0 {
         Ok(())
@@ -659,4 +667,27 @@ pub fn platform_getsockopt(fd: ZmqFd, level: i32, opt: i32) -> Result<Vec<u8>, Z
     } else {
         Err(PlatformError(&format!("getsockopt failed {}", rc)))
     };
+}
+
+pub fn platform_send(fd: ZmqFd, data: &[u8], flags: i32) -> Result<(),ZmqError> {
+    #[cfg(target_os="windows")]
+    {
+        let mut sr_flags: SEND_RECV_FLAGS = SEND_RECV_FLAGS::default();
+        sr_flags.0 = flags;
+        let mut rc = unsafe { send(fd, data, sr_flags) };
+        return if rc == data.len() as i32 {
+            Ok(())
+        } else {
+            Err(PlatformError(&format!("send failed {}", rc)))
+        };
+    }
+    #[cfg(not(target_os="windows"))]
+    {
+        let mut rc = unsafe { libc::send(fd, data.as_ptr() as *const libc::c_void, data.len() as libc::size_t, flags) };
+        return if rc == data.len() as isize {
+            Ok(())
+        } else {
+            Err(PlatformError(&format!("send failed {}", rc)))
+        };
+    }
 }

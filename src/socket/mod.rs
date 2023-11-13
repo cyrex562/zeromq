@@ -4,20 +4,18 @@ use std::mem::size_of_val;
 use std::ptr::null_mut;
 
 use libc::{clock_t, EAGAIN, EINTR};
-
-use routing_socket_base::ZmqRoutingSocketBase;
 use crate::address::tcp_address::ZmqTcpAddress;
 use crate::address::udp_address::UdpAddress;
 
 use crate::address::ZmqAddress;
 use crate::command::ZmqCommand;
 use crate::ctx::ZmqContext;
-use crate::defines::{INBOUND_POLL_RATE, MAX_COMMAND_DELAY, ZMQ_MSG_MORE, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZmqFd, ZmqHandle, ZmqSubscriptions};
+use crate::defines::{INBOUND_POLL_RATE, MAX_COMMAND_DELAY, ZMQ_MSG_MORE, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZmqFd, ZmqHandle, ZmqSubscriptions, ZMQ_CONNECT_ROUTING_ID};
 use crate::defines::array::ArrayItem;
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::{InvalidContext, SocketError};
 use crate::dist::ZmqDist;
 use crate::endpoint::{make_unconnected_connect_endpoint_pair, ZmqEndpointUriPair};
-use crate::err::ZmqError;
-use crate::err::ZmqError::{InvalidContext, SocketError};
 use crate::defines::fair_queue::ZmqFairQueue;
 use crate::defines::generic_mtrie::GenericMtrie;
 use crate::defines::load_balancer::ZmqLoadBalancer;
@@ -31,7 +29,7 @@ use crate::object::obj_process_command;
 use crate::options::{do_getsockopt, get_effective_conflate_option, ZmqOptions};
 use crate::own::{own_process_term, ZmqOwn};
 use crate::pipe::{IPipeEvents, pipepair, ZmqPipe};
-use crate::pipe::out_pipe::ZmqOutPipes;
+use crate::pipe::out_pipe::{ZmqOutpipe, ZmqOutPipes};
 use crate::pipe::pipes::ZmqPipes;
 use crate::poll::poller_base::ZmqPollerBase;
 use crate::poll::poller_event::ZmqPollerEvent;
@@ -72,7 +70,6 @@ mod radio;
 mod rep;
 mod req;
 mod router;
-mod routing_socket_base;
 mod scatter;
 mod sub;
 mod xpub;
@@ -136,6 +133,7 @@ pub struct ZmqSocket<'a> {
     pub anonymous_pipes: HashSet<&'a mut ZmqPipe<'a>>,
     pub array_item: ArrayItem<1>,
     pub clock: clock_t,
+    pub connect_routing_id: String,
     pub ctx_terminated: bool,
     pub current_in: Option<&'a mut ZmqPipe<'a>>,
     pub current_out: Option<&'a mut ZmqPipe<'a>>,
@@ -195,7 +193,9 @@ pub struct ZmqSocket<'a> {
     pub request_begins: bool,
     pub request_id_frames_enabled: bool,
     pub request_id: u32,
-    pub routing_socket_base: ZmqRoutingSocketBase<'a>,
+    // pub routing_socket_base: ZmqRoutingSocketBase<'a>,
+
+
     pub routing_id_sent: bool,
     pub send_last_pipe: bool,
     pub sending_reply: bool,
@@ -354,7 +354,6 @@ impl ZmqSocket {
             request_begins: false,
             request_id_frames_enabled: false,
             request_id: 0,
-            routing_socket_base: ZmqRoutingSocketBase::default(),
             routing_id_sent: false,
             send_last_pipe: false,
             sending_reply: false,
@@ -408,6 +407,7 @@ impl ZmqSocket {
             peer_last_routing_id: 0,
             reply_pipe: None,
             send_subscription: false,
+            connect_routing_id: "".to_string(),
         };
         // TODO
         // options.socket_id = sid_;
@@ -529,12 +529,28 @@ impl ZmqSocket {
         Ok(())
     }
 
-    pub unsafe fn setsockopt(&mut self, options: &mut ZmqOptions, option_: i32, optval_: &mut [u8], optvallen_: usize) -> Result<(), ZmqError> {
+    pub unsafe fn setsockopt(&mut self, options: &mut ZmqOptions, option: i32, optval: &mut [u8], optvallen: usize) -> Result<(), ZmqError> {
         if self.ctx_terminated {
             return Err(InvalidContext("Context was terminated"));
         }
-        // self.xsetsockopt(option_, optval_, optvallen_)?;
 
+        if option == ZMQ_CONNECT_ROUTING_ID {
+            if optvallen > 255 {
+                // errno = EINVAL;
+                return Err(SocketError("EINVAL"));
+            }
+            self.connect_routing_id = String::from_raw_parts(optval.as_mut_ptr() , optvallen, optvallen);
+            return Ok(());
+        }
+
+        self.xsetsockopt(options, option, optval, optvallen)?;
+
+        options.setsockopt(option, optval, optvallen)?;
+        self.update_pipe_options(options, option)?;
+        Ok(())
+    }
+
+    pub unsafe fn xsetsockopt(&mut self, options: &mut ZmqOptions, option_: i32, optval_: &mut [u8], optvallen_: usize) -> Result<(), ZmqError> {
         match self.socket_type {
             ZmqSocketType::Client => {
                 client_xsetsockopt(self, option_, optval_, optvallen_);
@@ -605,9 +621,6 @@ impl ZmqSocket {
                 xsub_xsetsockopt(self, option_, optval_, optvallen_);
             }
         }
-
-        options.setsockopt(option_, optval_, optvallen_)?;
-        self.update_pipe_options(options, option_)?;
         Ok(())
     }
 
@@ -1103,7 +1116,7 @@ impl ZmqSocket {
         // #endif
 
         //  Create session.
-        let mut session = ZmqSession::create(io_thread, true, self, &options, paddr);
+        let mut session = ZmqSession::create(io_thread, true, self, &options, Some(&paddr));
         // errno_assert (session);
 
         //  PGM does not support subscription forwarding; ask for all data to be
@@ -1186,28 +1199,28 @@ impl ZmqSocket {
         self.endpoints.insert(endpoint_pair.identifier().clone(),
                               (endpoint, pipe));
 
-        if (pipe != null_mut()) {
+        if pipe != null_mut() {
             (pipe).set_endpoint_pair(endpoint_pair);
         }
     }
 
     pub fn term_endpoint(&mut self, options: &ZmqOptions, endpoint_uri_: &str) -> Result<(), ZmqError> {
         //  Check whether the context hasn't been shut down yet.
-        if ((self.ctx_terminated)) {
+        if self.ctx_terminated {
             // errno = ETERM;
             return Err(SocketError("context was terminated"));
         }
 
         //  Process pending commands, if any, since there could be pending unprocessed process_own()'s
         //  (from launch_child() for example) we're asked to terminate now.
-        let rc = self.process_commands(options, 0, false)?;
+        self.process_commands(options, 0, false)?;
 
         //  Parse endpoint_uri_ string.
         // std::string uri_protocol;
         let mut uri_protocol = String::new();
         // std::string uri_path;
         let mut uri_path = String::new();
-        if (self.parse_uri(endpoint_uri_, &mut uri_protocol, &mut uri_path).is_err() || self.check_protocol(&uri_protocol)) {
+        if self.parse_uri(endpoint_uri_, &mut uri_protocol, &mut uri_path).is_err() || self.check_protocol(&uri_protocol) {
             return Err(SocketError("failed to parse URI"));
         }
 
@@ -1810,6 +1823,14 @@ impl ZmqSocket {
     }
 
     pub unsafe fn xwrite_activated(&mut self, pipe: &mut ZmqPipe) {
+
+        for it in self.out_pipes.iter_mut() {
+            if it.1.pipe == *pipe {
+                it.1.active = true;
+                break;
+            }
+        }
+
         match self.socket_type {
             ZmqSocketType::Client => client_xwrite_activated(self, pipe),
             ZmqSocketType::Dealer => dealer_xwrite_activated(self, pipe),
@@ -2179,5 +2200,56 @@ impl ZmqSocket {
 
     pub unsafe fn is_disconnected(&mut self) -> bool {
         self.disconnected
+    }
+
+    pub unsafe fn extract_connect_routing_id(&mut self) -> String {
+        // std::string res = ZMQ_MOVE (_connect_routing_id);
+        let res = self.connect_routing_id.clone();
+        self.connect_routing_id.clear();
+        return res;
+    }
+
+    pub unsafe fn connect_routing_id_is_set(&mut self) -> bool {
+        return !self.connect_routing_id.empty();
+    }
+
+    pub unsafe fn add_out_pipe(&mut self, routing_id_: Vec<u8>, pipe_: &mut ZmqPipe) {
+        //  Add the record into output pipes lookup table
+        // const out_pipe_t outpipe = {pipe_, true};
+        let outpipe = ZmqOutpipe {
+            pipe: &mut pipe_.clone(),
+            active: true,
+        };
+        let routing_id_u32 = u32::from_le_bytes([routing_id_[0], routing_id_[1], routing_id_[2], routing_id_[3]]);
+        let ok = self.out_pipes.insert(routing_id_u32, outpipe);
+    }
+
+    pub unsafe fn has_out_pipe(&mut self, routing_id_: Vec<u8>) -> bool {
+        let routing_id_u32 = u32::from_le_bytes([routing_id_[0], routing_id_[1], routing_id_[2], routing_id_[3]]);
+        return self.out_pipes.contains_key(&routing_id_u32);
+    }
+
+    pub unsafe fn lookup_out_pipe(&mut self, routing_id_: Vec<u8>) -> *mut ZmqOutpipe {
+        // out_pipes_t::iterator it = _out_pipes.find (routing_id_);
+        // if (it == _out_pipes.end ())
+        //     return NULL;
+        // return &it.1;
+        let routing_id_u32 = u32::from_le_bytes([routing_id_[0], routing_id_[1], routing_id_[2], routing_id_[3]]);
+        return self.out_pipes.get_mut(&routing_id_u32).unwrap();
+    }
+
+    pub unsafe fn erase_out_pipe(&mut self, pipe_: &mut ZmqPipe) {
+        let erased = self.out_pipes.erase(pipe_.get_routing_id());
+    }
+
+    pub unsafe fn try_erase_out_pipe(&mut self, routing_id_: &Vec<u8>) -> ZmqOutpipe {
+        // out_pipes_t::iterator it = _out_pipes.find (routing_id_);
+        // if (it == _out_pipes.end ())
+        //     return out_pipe_t ();
+        // out_pipe_t outpipe = it.1;
+        // _out_pipes.erase (it);
+        // return outpipe;
+        let routing_id_u32 = u32::from_le_bytes([routing_id_[0], routing_id_[1], routing_id_[2], routing_id_[3]]);
+        return self.out_pipes.remove(&routing_id_u32).unwrap();
     }
 }

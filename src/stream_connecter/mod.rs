@@ -24,6 +24,7 @@ use crate::utils::sock_utils::zmq_sockaddr_to_sockaddr;
 pub const RECONNECT_TIMER_ID: i32 = 1;
 pub const CONNECT_TIMER_ID: i32 = 2;
 
+#[derive(Default,Debug,Clone)]
 pub struct ZmqStreamConnecterBase<'a> {
     pub own: ZmqOwn<'a>,
     pub io_object: IoObject<'a>,
@@ -43,13 +44,13 @@ impl ZmqStreamConnecterBase {
     pub fn new(
         io_thread_: &mut ZmqIoThread,
         session_: &mut ZmqSession,
-        addr_: ZmqAddress,
+        addr_: &ZmqAddress,
         delayed_start_: bool,
     ) -> Self {
         let mut out = Self {
             own: ZmqOwn::from_io_thread(io_thread_),
             io_object: IoObject::new(io_thread_),
-            _addr: addr_,
+            _addr: addr_.clone(),
             _s: RETIRED_FD,
             _handle: null_mut(),
             _endpoint: "".to_string(),
