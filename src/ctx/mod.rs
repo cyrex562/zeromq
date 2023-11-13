@@ -17,21 +17,22 @@ use crate::defines::mutex::ZmqMutex;
 use crate::io::io_thread::ZmqIoThread;
 use crate::io::mailbox::ZmqMailbox;
 use crate::io::reaper::ZmqReaper;
+use crate::io::thread::{ZmqThread, ZmqThreadFn};
 
-pub type io_threads_t<'a> = Vec<&'a mut ZmqIoThread<'a>>;
+pub type ZmqIoThreads<'a> = Vec<&'a mut ZmqIoThread<'a>>;
 
 pub struct Endpoint<'a> {
     pub socket: &'a mut ZmqSocket<'a>,
     pub options: ZmqOptions,
 }
 
-pub struct ZmqThreadCtx {
-    pub _opt_sync: ZmqMutex,
-    pub _thread_priority: i32,
-    pub _thread_sched_policy: i32,
-    pub _thread_affinity_cpus: HashSet<i32>,
-    pub _thread_name_prefix: String,
-}
+// pub struct ZmqThreadCtx {
+//     pub _opt_sync: ZmqMutex,
+//     pub _thread_priority: i32,
+//     pub _thread_sched_policy: i32,
+//     pub _thread_affinity_cpus: HashSet<i32>,
+//     pub _thread_name_prefix: String,
+// }
 
 pub const term_tid: i32 = 0;
 pub const reaper_tid: i32 = 1;
@@ -47,6 +48,10 @@ pub enum Side {
     BindSide,
 }
 
+pub fn max_fds() -> i32 {
+    -1
+}
+
 pub fn clipped_maxsocket(mut max_requested_: i32) -> i32 {
     if max_requested_ > max_fds() && max_fds() != -1 {
         max_requested_ = max_fds() - 1;
@@ -55,7 +60,12 @@ pub fn clipped_maxsocket(mut max_requested_: i32) -> i32 {
 }
 
 pub struct ZmqContext<'a> {
-    pub _thread_ctx: ZmqThreadCtx,
+    // pub _thread_ctx: ZmqThreadCtx,
+    pub _opt_sync: ZmqMutex,
+    pub _thread_priority: i32,
+    pub _thread_sched_policy: i32,
+    pub _thread_affinity_cpus: HashSet<i32>,
+    pub _thread_name_prefix: String,
     pub _tag: u32,
     pub sockets: Vec<ZmqSocket<'a>>,
     pub _empty_slots: Vec<u32>,
@@ -63,7 +73,7 @@ pub struct ZmqContext<'a> {
     pub _terminating: bool,
     pub _slot_sync: ZmqMutex,
     pub _reaper: &'a mut ZmqReaper<'a>,
-    pub _io_threads: io_threads_t<'a>,
+    pub _io_threads: ZmqIoThreads<'a>,
     pub slots: Vec<&'a mut ZmqMailbox<'a>>,
     pub term_mailbox: ZmqMailbox<'a>,
     pub _endpoints: HashMap<String, Endpoint<'a>>,
@@ -84,13 +94,11 @@ pub struct ZmqContext<'a> {
     pub _vmci_family: i32,
     #[cfg(feature = "vmci")]
     pub _vmci_sync: Mutex<()>,
-    pub _opt_sync: ZmqMutex,
 }
 
 impl ZmqContext {
     pub fn new() -> Self {
         Self {
-            _thread_ctx: ZmqThreadCtx::new(),
             _tag: 0,
             sockets: Vec::new(),
             _empty_slots: Vec::new(),
@@ -98,7 +106,7 @@ impl ZmqContext {
             _terminating: false,
             _slot_sync: ZmqMutex::new(),
             _reaper: &mut ZmqReaper::default(),
-            _io_threads: io_threads_t::new(),
+            _io_threads: ZmqIoThreads::new(),
             slots: Vec::new(),
             term_mailbox: ZmqMailbox::new(),
             _endpoints: HashMap::new(),
@@ -117,6 +125,10 @@ impl ZmqContext {
             _vmci_family: 0,
             _vmci_sync: Mutex::new(()),
             _opt_sync: ZmqMutex::new(),
+            _thread_priority: 0,
+            _thread_sched_policy: 0,
+            _thread_affinity_cpus: Default::default(),
+            _thread_name_prefix: "".to_string(),
         }
     }
 
@@ -128,14 +140,14 @@ impl ZmqContext {
         self.term_mailbox.valid()
     }
 
-    pub fn terminate(&mut self) -> Result<(), ZmqError> {
+    pub fn terminate(&mut self, options: &ZmqOptions) -> Result<(), ZmqError> {
         // self._slot_sync.lock();
 
         let save_terminating = self._terminating;
         self._terminating = false;
         for p in self._pending_connections {
             let mut s = self.create_socket(ZMQ_PAIR as i32)?;
-            s.bind(&p.0)?;
+            s.bind(options, &p.0)?;
             s.close()?;
         }
         self._terminating = save_terminating;
@@ -167,7 +179,7 @@ impl ZmqContext {
     }
 
     pub fn shutdown(&mut self) -> Result<(), ZmqError> {
-        let mut locker = scoped_lock_t::new(&mut self._slot_sync);
+        // let mut locker = scoped_lock_t::new(&mut self._slot_sync);
         if !self._terminating {
             self._terminating = true;
             if !self._starting {
@@ -302,7 +314,7 @@ impl ZmqContext {
     }
 
     pub unsafe fn destroy_socket(&mut self, socket_: &mut ZmqSocket) {
-        let mut locker = scoped_lock_t::new(&mut self._slot_sync);
+        // let mut locker = scoped_lock_t::new(&mut self._slot_sync);
         let slot = (*socket_).get_slot();
         self.slots[slot] = null_mut();
         self._empty_slots.push(slot);
@@ -332,12 +344,12 @@ impl ZmqContext {
     ) -> bool {
         let thread_name = format!(
             "{}{}ZMQbg{}{}",
-            if self._thread_ctx._thread_name_prefix.is_empty() {
+            if self._thread_name_prefix.is_empty() {
                 ""
             } else {
-                &self._thread_ctx._thread_name_prefix
+                &self._thread_name_prefix
             },
-            if self._thread_ctx._thread_name_prefix.is_empty() {
+            if self._thread_name_prefix.is_empty() {
                 ""
             } else {
                 "/"
@@ -354,17 +366,18 @@ impl ZmqContext {
         self.slots[tid_ as usize].send(command_);
     }
 
-    pub fn choose_io_thread(&mut self, affinity_: u64) -> &mut ZmqIoThread {
+    pub fn choose_io_thread(&mut self, affinity_: u64) -> Option<&mut ZmqIoThread> {
         let mut min_load = 0x7fffffff;
-        let mut result = null_mut();
+        // let mut result = null_mut();
+
         for i in 0..self._io_threads.len() {
             let load = self._io_threads[i].get_load();
             if load < min_load {
                 min_load = load;
-                result = self._io_threads[i];
+                return Some(self._io_threads[i]);
             }
         }
-        return result;
+        return None;
     }
 
     pub fn register_endpoint(
@@ -373,7 +386,7 @@ impl ZmqContext {
         socket_: &mut ZmqSocket,
         options_: &mut ZmqOptions,
     ) -> i32 {
-        let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
+        // let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         let mut endpoint = Endpoint::new();
         endpoint.socket = socket_;
         endpoint.options = options_.clone();
@@ -382,13 +395,13 @@ impl ZmqContext {
     }
 
     pub fn unregister_endpoint(&mut self, addr_: &str) -> i32 {
-        let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
+        // let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         self._endpoints.remove(addr_);
         return 0;
     }
 
     pub fn unregister_endpoints(&mut self, socket_: &mut ZmqSocket) {
-        let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
+        // let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         let mut to_remove = Vec::new();
         for i in self._endpoints {
             if i.1.socket == socket_ {
@@ -401,7 +414,7 @@ impl ZmqContext {
     }
 
     pub fn find_endpoint(&mut self, addr_: &str) -> Option<&mut ZmqSocket> {
-        let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
+        // let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         let mut endpoint = self._endpoints.get(addr_);
         if endpoint.is_none() {
             return None;
@@ -415,7 +428,7 @@ impl ZmqContext {
         endpoint_: &Endpoint,
         pipes_: &mut [&mut ZmqPipe],
     ) -> i32 {
-        let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
+        // let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         let mut pending_connection = PendingConnection::new();
         pending_connection.endpoint = endpoint_.clone();
         pending_connection.connect_pipe = pipes_;
@@ -444,7 +457,7 @@ impl ZmqContext {
     }
 
     pub unsafe fn connect_pending(&mut self, addr_: &str, bind_socket_: &mut ZmqSocket) {
-        let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
+        // let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         for k in self._pending_connections.keys() {
             if k == addr_ {
                 let ep = self._endpoints.get(addr_).unwrap();
@@ -461,7 +474,7 @@ impl ZmqContext {
         bind_options_: &ZmqOptions,
         pending_connection_: &mut PendingConnection,
         side_: Side,
-    ) {
+    ) -> Result<(), ZmqError> {
         bind_socket_.inc_seqnum();
         pending_connection_
             .bind_pipe
@@ -495,7 +508,7 @@ impl ZmqContext {
         if side_ == Side::BindSide {
             let mut cmd = ZmqCommand::new();
             cmd.type_ = ZmqCommand::bind;
-            cmd.args.bind.pipe = pending_connection_.bind_pipe;
+            cmd.pipe = Some(pending_connection_.bind_pipe);
             bind_socket_.process_command(cmd);
             bind_socket_.send_inproc_connected(pending_connection_.endpoint.socket);
         } else {
@@ -509,7 +522,11 @@ impl ZmqContext {
         if pending_connection_.endpoint.options.recv_routing_id
             && pending_connection_.endpoint.socket.check_tag()
         {
-            send_routing_id(pending_connection_.bind_pipe, bind_options_);
+            send_routing_id(self, pending_connection_.bind_pipe, bind_options_)?;
         }
+
+        Ok(())
     }
+
+
 }

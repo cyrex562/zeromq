@@ -161,10 +161,10 @@ impl ZmqMechanism {
         base_ptr: &mut [u8],
     ) -> usize {
         let mut ptr = base_ptr;
-        let socket_type = self.socket_type_string(options.type_ as i32);
+        let socket_type = self.socket_type_string(options.socket_type as i32);
         ptr = ptr.add(self.add_property(ptr, ZMTP_PROPERTY_SOCKET_TYPE, socket_type.as_bytes()));
 
-        if options.type_ == ZMQ_REQ || options.type_ == ZMQ_DEALER || options.type_ == ZMQ_ROUTER {
+        if options.socket_type == ZMQ_REQ || options.socket_type == ZMQ_DEALER || options.socket_type == ZMQ_ROUTER {
             ptr = ptr.add(self.add_property(ptr, ZMTP_PROPERTY_IDENTITY, self._routing_id.data()));
         }
 
@@ -177,16 +177,16 @@ impl ZmqMechanism {
     }
 
     pub fn basic_properties_len(&mut self, options: &ZmqOptions) -> usize {
-        let socket_type = self.socket_type_string(options.type_ as i32);
+        let socket_type = self.socket_type_string(options.socket_type as i32);
         let mut meta_len = 0usize;
         for it in options.app_metadata.iter() {
             meta_len += property_len(it.0.len(), it.1.len());
         }
         return self.property_len(ZMTP_PROPERTY_SOCKET_TYPE, socket_type.len())
             + meta_len
-            + if options.type_ == ZMQ_REQ
-                || options.type_ == ZMQ_DEALER
-                || options.type_ == ZMQ_ROUTER
+            + if options.socket_type == ZMQ_REQ
+                || options.socket_type == ZMQ_DEALER
+                || options.socket_type == ZMQ_ROUTER
             {
                 self.property_len(ZMTP_PROPERTY_IDENTITY, self._routing_id.size())
             } else {
@@ -295,7 +295,7 @@ impl ZmqMechanism {
     }
 
     pub fn check_socket_type(&mut self, options: &ZmqOptions, type_: &str, len_: usize) -> bool {
-        match (options.type_) {
+        match (options.socket_type) {
             ZMQ_REQ => {
                 return strequals(type_, len_, SOCKET_TYPE_REP)
                     || strequals(type_, len_, SOCKET_TYPE_ROUTER);

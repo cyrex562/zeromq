@@ -22,6 +22,7 @@ pub mod trie;
 pub mod yqueue;
 pub mod zmq_draft;
 pub mod tcp;
+pub mod err;
 // #[cfg(target_os="windows")]
 // use windows::Win32::Networking::WinSock::sa_family_t;
 

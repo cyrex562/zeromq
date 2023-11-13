@@ -17,6 +17,9 @@ use crate::object::obj_send_bind;
 use crate::options::{get_effective_conflate_option, ZmqOptions};
 use crate::own::ZmqOwn;
 use crate::pipe::{IPipeEvents, pipepair, ZmqPipe};
+use crate::session::dish_session::{dish_sess_pull_msg, dish_sess_push_msg, dish_sess_reset};
+use crate::session::radio_session::{radio_sess_pull_msg, radio_sess_push_msg, radio_sess_reset};
+use crate::session::req_session::{req_sess_push_msg, req_sess_reset};
 use crate::socket::ZmqSocket;
 
 mod radio_session;
@@ -27,16 +30,16 @@ pub enum ZmqSessionState {
     Group,
     Body,
     Bottom,
-    RequestId
+    RequestId,
 }
 
 pub enum ZmqSessionType {
     Dish,
     Radio,
-    Req
+    Req,
 }
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ZmqSession<'a> {
     pub own: ZmqOwn<'a>,
     pub io_object: IoObject<'a>,
@@ -62,20 +65,25 @@ pub const _LINGER_TIMER_ID: i32 = 0x20;
 
 impl ZmqSession {
     pub fn create(
-        io_thread_: &mut ZmqIoThread,
-        active_: bool,
-        socket_: &mut ZmqSocket,
-        options_: &ZmqOptions,
-        addr_: Option<ZmqAddress>,
+        io_thread: &mut ZmqIoThread,
+        active: bool,
+        socket: &mut ZmqSocket,
+        options: &ZmqOptions,
+        addr: Option<&ZmqAddress>,
     ) -> ZmqSession {
         // let mut s: *mut session_base_t = null_mut();
         let mut s = ZmqSession::default();
-        s._io_thread = io_thread_;;
-        s._active = active_;
-        s._socket = socket_;
-        s._addr = addr_;
+        s._io_thread = io_thread;
+        s._active = active;
+        s._socket = socket;
+        if addr.is_some() {
+            s._addr = addr.unwrap().clone();
+        } else {
+            s._addr = ZmqAddress::default();
+        }
 
-        match options_.type_ {
+
+        match options.socket_type {
             ZMQ_REQ => {
                 // s = &mut ReqSessionT::new(io_thread_, active_, socket_, options_, addr_);
                 s.session_type = ZmqSessionType::Req;
@@ -89,10 +97,10 @@ impl ZmqSession {
                 s.session_type = ZmqSessionType::Dish
             }
             _ => {
-                if options_.can_send_hello_msg && options_.hello_msg.len() > 0 {
+                if options.can_send_hello_msg && options.hello_msg.len() > 0 {
                     // s = &mut hello_session_t::new(io_thread_, active_, socket_, options_, addr_);
                 } else {
-                    s = ZmqSession::new(io_thread_, active_, socket_, &addr_);
+                    s = ZmqSession::new(io_thread, active, socket, addr);
                 }
             }
         }
@@ -100,30 +108,35 @@ impl ZmqSession {
     }
 
     pub fn new(
-        io_thread_: &mut ZmqIoThread,
-        active_: bool,
-        socket_: &mut ZmqSocket,
-        addr_: &ZmqAddress,
+        io_thread: &mut ZmqIoThread,
+        active: bool,
+        socket: &mut ZmqSocket,
+        addr: Option<&ZmqAddress>,
     ) -> Self {
-        Self {
-            own: ZmqOwn::from_io_thread(io_thread_),
-            io_object: IoObject::new(io_thread_),
-            _active: active_,
+        let mut out = Self {
+            own: ZmqOwn::from_io_thread(io_thread),
+            io_object: IoObject::new(io_thread),
+            _active: active,
             _pipe: None,
             _zap_pipe: None,
             _terminating_pipes: HashSet::new(),
             _incomplete_in: false,
             _pending: false,
-            _socket: socket_,
-            _io_thread: io_thread_,
+            _socket: socket,
+            _io_thread: io_thread,
             _engine: None,
             _state: ZmqSessionState::Group,
-            _addr: addr_.clone(),
+            _addr: ZmqAddress::default(),
             _has_linger_timer: false,
             _group_msg: Default::default(),
             _pending_msg: Default::default(),
             session_type: ZmqSessionType::Dish,
+        };
+        if addr.is_some() {
+            out._addr = addr.unwrap().clone();
         }
+
+        out
     }
 
     pub fn get_endpoint(&mut self) -> &mut ZmqEndpointUriPair {
@@ -135,21 +148,43 @@ impl ZmqSession {
         self._pipe.set_event_risk(self)
     }
 
-    pub fn pull_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
-        if self._pipe.is_none() || !(self._pipe).read(msg_) {
+    pub fn pull_msg(&mut self, msg: &mut ZmqMsg) -> i32 {
+        if self.session_type == ZmqSessionType::Dish {
+            dish_sess_pull_msg(self, msg)?;
+        } else if self.session_type == ZmqSessionType::Radio {
+            radio_sess_pull_msg(self, msg)?;
+        } else if self.session_type == ZmqSessionType::Req {
+            // no op
+        } else {
+            todo!()
+        }
+
+        if self._pipe.is_none() || !(self._pipe).read(msg) {
             return -1;
         }
 
-        self._incomplete_in = msg_.flags() & ZMQ_MSG_MORE != 0;
+        self._incomplete_in = msg.flags() & ZMQ_MSG_MORE != 0;
         return 0;
     }
 
-    pub fn push_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
-        if (msg_).flags() & ZMQ_MSG_COMMAND != 0 && !msg_.is_subscribe() && !msg_.is_cancel() {
+    pub fn push_msg(&mut self, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
+        if self.session_type == ZmqSessionType::Dish {
+             dish_sess_push_msg(self, msg)?;
+            self._state = ZmqSessionState::Group;
+        } else if self.session_type == ZmqSessionType::Radio {
+            radio_sess_push_msg(self, msg)?;
+        } else if self.session_type == ZmqSessionType::Req {
+            req_sess_push_msg(self, msg)?;
+        } else {
+            todo!()
+        }
+
+
+        if (msg).flags() & ZMQ_MSG_COMMAND != 0 && !msg.is_subscribe() && !msg.is_cancel() {
             return Ok(());
         }
-        if self._pipe.is_some() && (self._pipe).write(msg_) {
-            (msg_).init2()?;
+        if self._pipe.is_some() && (self._pipe).write(msg) {
+            (msg).init2()?;
             return Ok(());
         }
 
@@ -177,8 +212,20 @@ impl ZmqSession {
         return Ok(());
     }
 
-    pub fn reset(&mut self) {
-        unimplemented!()
+    pub fn reset(&mut self) -> Result<(), ZmqError> {
+        match self.session_type {
+            ZmqSessionType::Dish => {
+                dish_sess_reset(self)?;
+            }
+            ZmqSessionType::Radio => {
+                radio_sess_reset(self)?;
+            }
+            ZmqSessionType::Req => {
+                req_sess_reset(self)?;
+            }
+        }
+
+        Ok(())
     }
 
     pub unsafe fn flush(&mut self) {
@@ -394,17 +441,15 @@ impl ZmqSession {
         //             || reason_ == i_engine::TimeoutError
         //             || reason_ == i_engine::ProtocolError);
 
-        match reason_ {
-            TimeoutError => {}
-            /* FALLTHROUGH */
-            connection_error => {
-                if self._active {
+        if reason_ == "timeout error" {
+            // no op
+        } else if reason_ == "connection error" {
+            if self._active {
                     self.reconnect(options);
                     // break;
                 }
-            }
-            protocol_error => {
-                if self._pending {
+        } else if reason_ == "protocol error" {
+            if self._pending {
                     if self._pipe {
                         self._pipe.terminate(false);
                     }
@@ -414,7 +459,8 @@ impl ZmqSession {
                 } else {
                     self.terminate();
                 }
-            } // break;
+        } else {
+            todo!()
         }
 
         //  Just in case there's only a delimiter in the pipe.
@@ -506,7 +552,7 @@ impl ZmqSession {
             }
         }
 
-        self.reset();
+        self.reset()?;
 
         //  Reconnect.
         if options.reconnect_ivl > 0 {
@@ -520,7 +566,7 @@ impl ZmqSession {
 
         //  For subscriber sockets we Hiccup the inbound pipe, which will cause
         //  the socket object to resend all the subscriptions.
-        if self._pipe.is_some() && (options.type_ == ZMQ_SUB || options.type_ == ZMQ_XSUB || options.type_ == ZMQ_DISH) {
+        if self._pipe.is_some() && (options.socket_type == ZMQ_SUB || options.socket_type == ZMQ_XSUB || options.socket_type == ZMQ_DISH) {
             self._pipe.hiccup();
         }
     }
@@ -607,13 +653,13 @@ impl ZmqSession {
             let mut recv = false;
             let mut send = false;
 
-            if options.type_ == ZMQ_RADIO {
+            if options.socket_type == ZMQ_RADIO {
                 send = true;
                 recv = false;
-            } else if options.type_ == ZMQ_DISH {
+            } else if options.socket_type == ZMQ_DISH {
                 send = false;
                 recv = true;
-            } else if options.type_ == ZMQ_DGRAM {
+            } else if options.socket_type == ZMQ_DGRAM {
                 send = true;
                 recv = true;
             }
@@ -700,16 +746,17 @@ impl ZmqSession {
 
         // zmq_assert (false);
     }
+
 }
 
-pub struct hello_msg_session_t<'a> {
+pub struct HelloMsgSession<'a> {
     pub session_base_t: ZmqSession<'a>,
     pub _hello_sent: bool,
     pub _hello_received: bool,
     pub _new_pipe: bool,
 }
 
-impl hello_msg_session_t {
+impl HelloMsgSession {
     pub unsafe fn new(
         io_thread_: &mut ZmqIoThread,
         connect_: bool,
@@ -718,7 +765,7 @@ impl hello_msg_session_t {
         addr_: ZmqAddress,
     ) -> Self {
         Self {
-            session_base_t: ZmqSession::new(io_thread_, connect_, socket_, &addr_),
+            session_base_t: ZmqSession::new(io_thread_, connect_, socket_, Some(&addr_)),
             _hello_sent: false,
             _hello_received: false,
             _new_pipe: true,

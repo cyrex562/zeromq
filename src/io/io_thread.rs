@@ -12,7 +12,7 @@ pub struct ZmqIoThread<'a> {
     pub thread_id: u32,
     pub _mailbox: ZmqMailbox<'a>,
     pub _mailbox_handle: ZmqHandle,
-    pub _poller: &'a mut ZmqPollerBase,
+    pub _poller: &'a mut ZmqPollerBase<'a>,
 }
 
 impl ZmqIoThread {

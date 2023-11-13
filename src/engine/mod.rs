@@ -55,7 +55,7 @@ pub struct ZmqEngine<'a> {
     pub in_size: usize,
     pub input_stopped: bool,
     pub io_error: bool,
-    pub io_object: IoObject,
+    pub io_object: IoObject<'a>,
     pub mechanism: Option<ZmqMechanism<'a>>,
     pub metadata: Option<ZmqMetadata>,
     pub out_address: ZmqSockAddr,
@@ -133,10 +133,10 @@ impl ZmqEngine {
 
     pub fn in_event(&mut self, options: &ZmqOptions) {
         match self.engine_type {
-            ZmqEngineType::Stream => stream_in_event(self),
+            ZmqEngineType::Stream => stream_in_event(options, self),
             ZmqEngineType::Udp => udp_in_event(options, self),
-            ZmqEngineType::Raw => stream_in_event(self),
-            ZmqEngineType::Zmtp => stream_in_event(self),
+            ZmqEngineType::Raw => stream_in_event(options, self),
+            ZmqEngineType::Zmtp => stream_in_event(options, self),
         }
     }
 

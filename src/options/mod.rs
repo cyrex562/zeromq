@@ -31,7 +31,7 @@ pub struct ZmqOptions {
     pub rcvbuf: i32,
     pub tos: i32,
     pub priority: i32,
-    pub type_: u32,
+    pub socket_type: u32,
     pub linger: u64,
     pub connect_timeout: i32,
     pub tcp_maxrt: i32,
@@ -121,7 +121,7 @@ impl ZmqOptions {
             multicast_maxtpdu: 1500,
             sndbuf: -1,
             rcvbuf: -1,
-            type_: -1,
+            socket_type: -1,
             linger: 0,
             reconnect_ivl: 100,
             backlog: 100,
@@ -689,7 +689,7 @@ impl ZmqOptions {
             }
             ZMQ_TYPE => {
                 if is_int {
-                    *value = self.type_ as i32;
+                    *value = self.socket_type as i32;
                     return 0;
                 }
             }
@@ -941,11 +941,11 @@ impl ZmqOptions {
 
 pub fn get_effective_conflate_option(options: &ZmqOptions) -> bool {
     return options.conflate
-        && (options.type_ == ZMQ_DEALER as i8
-            || options.type_ == ZMQ_PULL as i8
-            || options.type_ == ZMQ_PUSH as i8
-            || options.type_ == ZMQ_PUB as i8
-            || options.type_ == ZMQ_SUB as i8);
+        && (options.socket_type == ZMQ_DEALER as i8
+            || options.socket_type == ZMQ_PULL as i8
+            || options.socket_type == ZMQ_PUSH as i8
+            || options.socket_type == ZMQ_PUB as i8
+            || options.socket_type == ZMQ_SUB as i8);
 }
 
 pub unsafe fn do_getsockopt<T>(value_: T) -> Result<[u8], ZmqError> {

@@ -8,7 +8,7 @@ use crate::defines::{
     IP_TOS, IPPROTO_IP, IPPROTO_IPV6, IPV6_V6ONLY, MSG_NOSIGNAL, NI_NUMERICHOST, SO_BINDTODEVICE,
     SO_PRIORITY, SOL_SOCKET, ZmqFd, ZmqSockAddr,
 };
-use crate::err::ZmqError;
+use crate::defines::err::ZmqError;
 use crate::net::platform_socket::{
     platform_getnameinfo, platform_init_network, platform_make_fdpair, platform_open_socket,
     platform_setsockopt, platform_shutdown_network, platform_unblock_socket,
@@ -22,7 +22,7 @@ pub fn open_socket(domain_: i32, type_: i32, protocol_: i32) -> Result<ZmqFd, Zm
     platform_open_socket(domain_, type_, protocol_)
 }
 
-pub unsafe fn unblock_socket(fd: ZmqFd) -> Result<(), ZmqError> {
+pub fn unblock_socket(fd: ZmqFd) -> Result<(), ZmqError> {
     platform_unblock_socket(fd)
 }
 

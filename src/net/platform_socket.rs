@@ -1,19 +1,20 @@
 use std::ptr::null_mut;
-use crate::defines::{ZmqSockAddr, NI_MAXHOST, ZmqFd, ZmqPollFd, RETIRED_FD, SOCK_STREAM};
-use crate::err::ZmqError;
-use crate::err::ZmqError::PlatformError;
-use crate::ip::set_nosigpipe;
-#[cfg(not(target_os = "windows"))]
-use libc::{getnameinfo, setsockopt, F_GETFL, F_SETFL, O_NONBLOCK};
 
-use libc::{timeval};
+#[cfg(not(target_os = "windows"))]
+use libc::{F_GETFL, F_SETFL, getnameinfo, O_NONBLOCK, setsockopt};
+use libc::timeval;
 #[cfg(target_os = "windows")]
-use windows::Win32::Networking::WinSock::{setsockopt, getsockname, SOCKADDR, getpeername, SOCKET, ioctlsocket, FIONBIO, WSASocketA, WSADATA, WSAStartup};
+use windows::Win32::Networking::WinSock::{FIONBIO, getpeername, getsockname, ioctlsocket, setsockopt, SOCKADDR, SOCKET, WSADATA, WSASocketA, WSAStartup};
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::OpenEventA;
+use crate::address::ZmqAddress;
 
+use crate::defines::{AF_UNIX, NI_MAXHOST, RETIRED_FD, SOCK_STREAM, ZmqFd, ZmqPollFd, ZmqSockAddr, ZmqSocklen};
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::PlatformError;
+use crate::ip::set_nosigpipe;
 use crate::poll::select::fd_set;
-use crate::utils::sock_utils::wsa_sockaddr_to_zmq_sockaddr;
+use crate::utils::sock_utils::{sockaddr_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr};
 
 pub fn platform_setsockopt(
     fd: ZmqFd,
@@ -37,7 +38,7 @@ pub fn platform_setsockopt(
                 level,
                 optname,
                 optval.as_ptr() as *const libc::c_void,
-                optlen as socklen_t,
+                optlen as ZmqSocklen,
             );
         }
     }
@@ -87,11 +88,11 @@ pub fn platform_getnameinfo(
     unsafe {
         rc = getnameinfo(
             &zmq_sockaddr_to_sockaddr(sockaddr),
-            sockaddr_len as socklen_t,
+            sockaddr_len as ZmqSocklen,
             nodebuffer_cc,
-            nodebuffer_cc_len as socklen_t,
+            nodebuffer_cc_len as ZmqSocklen,
             servicebuffer_cc,
-            servicebuffer_cc_len as socklen_t,
+            servicebuffer_cc_len as ZmqSocklen,
             flags,
         );
     }
@@ -222,7 +223,7 @@ pub fn platform_unblock_socket(fd: ZmqFd) -> Result<(), ZmqError> {
 }
 
 pub fn platform_open_socket(domain: i32, type_: i32, protocol: i32) -> Result<ZmqFd, ZmqError> {
-    #[cfg(target_os = "windows")] let s: ZmqFd = unsafe { WSASocketA(domain, type_, protocol, None, 0, 0).0 as ZmqFd};
+    #[cfg(target_os = "windows")] let s: ZmqFd = unsafe { WSASocketA(domain, type_, protocol, None, 0, 0).0 as ZmqFd };
     #[cfg(not(target_os = "windows"))] let s: ZmqFd = unsafe { libc::socket(domain, type_, protocol) };
 
     if s == RETIRED_FD {
@@ -508,5 +509,154 @@ pub fn platform_select(
         Ok(result)
     } else {
         Err(PlatformError(&format!("select failed {}", result)))
+    };
+}
+
+pub fn platform_bind(fd: ZmqFd, addr: &ZmqSockAddr) -> Result<(), ZmqError> {
+    let mut rc = 0;
+    #[cfg(target_os = "windows")]
+    {
+        let mut sa = SOCKADDR::default();
+        let mut sl = std::mem::size_of::<SOCKADDR>() as i32;
+        let mut addr = zmq_sockaddr_to_wsa_sockaddr(addr);
+        rc = unsafe { bind(fd, &mut addr as *mut SOCKADDR, sl) };
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let mut sa = libc::sockaddr {
+            sa_family: 0,
+            sa_data: [0; 14],
+        };
+        let mut sl = std::mem::size_of_val(&sa) as u32;
+        let mut addr = zmq_sockaddr_to_sockaddr(addr);
+        rc = unsafe { libc::bind(fd, &mut addr as *mut libc::sockaddr, sl) };
+    }
+
+    return if rc == 0 {
+        Ok(())
+    } else {
+        Err(PlatformError(&format!("bind failed {}", rc)))
+    };
+}
+
+pub fn platform_sendto(fd: ZmqFd, buf: &mut [u8], len: usize, flags: i32, zsa: &ZmqSockAddr) -> Result<(), ZmqError> {
+    #[cfg(target_os = "windows")]
+    {
+        let mut sa = SOCKADDR::default();
+        let mut sl = std::mem::size_of::<SOCKADDR>() as i32;
+        let mut addr = zmq_sockaddr_to_wsa_sockaddr(sa);
+        let mut rc = unsafe { sendto(fd, buf.as_mut_ptr() as *mut c_char, len as i32, flags, &mut addr as *mut SOCKADDR, sl) };
+        return if rc == len as i32 {
+            Ok(())
+        } else {
+            Err(PlatformError(&format!("sendto failed {}", rc)))
+        };
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let mut sa = libc::sockaddr {
+            sa_family: 0,
+            sa_data: [0; 14],
+        };
+        let mut sl = std::mem::size_of_val(&sa) as u32;
+        let mut addr = zmq_sockaddr_to_sockaddr(zsa);
+        let mut rc = unsafe { libc::sendto(
+            fd,
+            buf.as_mut_ptr() as *const libc::c_void,
+            len as libc::size_t,
+            flags,
+            &mut addr as *mut libc::sockaddr,
+            sl
+        ) };
+        return if rc == len as isize {
+            Ok(())
+        } else {
+            Err(PlatformError(&format!("sendto failed {}", rc)))
+        };
+    }
+}
+
+pub fn platform_recvfrom(fd: ZmqFd, buf: &mut [u8], sa: &mut ZmqSockAddr) -> Result<i32, ZmqError> {
+    let mut rc = 0;
+    #[cfg(target_os = "windows")]
+    {
+        let mut sa = SOCKADDR::default();
+        let mut sl = std::mem::size_of::<SOCKADDR>() as i32;
+        rc = unsafe { recvfrom(fd, buf.as_mut_ptr() as *mut c_char, buf.len() as i32, 0, &mut sa as *mut SOCKADDR, &mut sl) };
+        return if rc >= 0 {
+            Ok(rc)
+        } else {
+            Err(PlatformError(&format!("recvfrom failed {}", rc)))
+        };
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let mut sa = libc::sockaddr {
+            sa_family: 0,
+            sa_data: [0; 14],
+        };
+        let mut sl = std::mem::size_of_val(&sa) as u32;
+        rc = unsafe { libc::recvfrom(
+            fd,
+            buf.as_mut_ptr() as *mut libc::c_void,
+            buf.len() as libc::size_t,
+            0,
+            &mut sa as *mut libc::sockaddr,
+            &mut sl
+        ) };
+        return if rc >= 0 {
+            Ok(rc as i32)
+        } else {
+            Err(PlatformError(&format!("recvfrom failed {}", rc)))
+        };
+    }
+}
+
+pub fn platform_connect(fd: ZmqFd, addr: &ZmqSockAddr) -> Result<(),ZmqError>
+{
+let mut rc = 0;
+    #[cfg(target_os = "windows")]
+    {
+        let mut sa = SOCKADDR::default();
+        let mut sl = std::mem::size_of::<SOCKADDR>() as i32;
+        let mut addr = zmq_sockaddr_to_wsa_sockaddr(&addr);
+        rc = unsafe { connect(fd, &mut addr as *mut SOCKADDR, sl) };
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let mut sa = libc::sockaddr {
+            sa_family: 0,
+            sa_data: [0; 14],
+        };
+        let mut sl = std::mem::size_of_val(&sa) as u32;
+        let mut addr = zmq_sockaddr_to_sockaddr(&addr);
+        rc = unsafe { libc::connect(fd, &mut addr as *mut libc::sockaddr, sl) };
+    }
+
+    return if rc == 0 {
+        Ok(())
+    } else {
+        Err(PlatformError(&format!("connect failed {}", rc)))
+    };
+}
+
+pub fn platform_getsockopt(fd: ZmqFd, level: i32, opt: i32) -> Result<Vec<u8>, ZmqError>
+{
+    let mut rc = 0;
+    let mut optval: [u8; 256] = [0; 256];
+    let mut optlen = 256;
+    #[cfg(target_os = "windows")]
+    {
+        rc = unsafe { getsockopt(fd, level, opt, optval.as_mut_ptr() as *mut c_char, &mut optlen) };
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        rc = unsafe { libc::getsockopt(fd, level, opt, optval.as_mut_ptr() as *mut libc::c_void, &mut optlen) };
+    }
+
+    return if rc == 0 {
+        Ok(optval.to_vec())
+    } else {
+        Err(PlatformError(&format!("getsockopt failed {}", rc)))
     };
 }

@@ -802,7 +802,7 @@ impl ZmqSocket {
         }
 
         if protocol == "udp" {
-            if !options.type_ == ZMQ_DGRAM || !options.type_ == ZMQ_DISH {
+            if !options.socket_type == ZMQ_DGRAM || !options.socket_type == ZMQ_DISH {
                 return Err(ZmqError::SocketError("Protocol not supported by socket type"));
             }
 
@@ -937,7 +937,7 @@ impl ZmqSocket {
         //         options.connected = true;
         //         return 0;
         //     }
-        let is_single_connect = (options.type_ == ZMQ_DEALER || options.type_ == ZMQ_SUB || options.type_ == ZMQ_PUB || options.type_ == ZMQ_REQ);
+        let is_single_connect = (options.socket_type == ZMQ_DEALER || options.socket_type == ZMQ_SUB || options.socket_type == ZMQ_PUB || options.socket_type == ZMQ_REQ);
         if is_single_connect {
             if 0 != self.endpoints.count() {
                 // There is no valid use for multiple connects for SUB-PUB nor
@@ -1041,7 +1041,7 @@ impl ZmqSocket {
         // #endif
 
         if protocol == "udp" {
-            if options.type_ != ZMQ_RADIO {
+            if options.socket_type != ZMQ_RADIO {
                 // errno = ENOCOMPATPROTO;
                 // LIBZMQ_DELETE (paddr);
                 return Err(SocketError("Protocol not supported by socket type"));
@@ -1970,12 +1970,12 @@ impl ZmqSocket {
         Ok(())
     }
 
-    pub unsafe fn event_connected(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, err_: i32) {
+    pub fn event_connected(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, err_: i32) {
         let mut values: [u64; 1] = [err_ as u64];
         self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_CONNECTED);
     }
 
-    pub unsafe fn event_connect_delayed(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, err_: i32) {
+    pub fn event_connect_delayed(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, err_: i32) {
         let mut values: [u64; 1] = [err_ as u64];
         self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_CONNECT_DELAYED);
     }

@@ -135,7 +135,7 @@ pub fn xpub_xread_activated(ctx: &mut ZmqContext, socket: &mut ZmqSocket, option
             //  If the request was a new subscription, or the subscription
             //  was removed, or verbose mode or manual mode are enabled, store it
             //  so that it can be passed to the user on next recv call.
-            if socket.manual || (options.type_ == ZMQ_XPUB && notify) {
+            if socket.manual || (options.socket_type == ZMQ_XPUB && notify) {
                 //  ZMTP 3.1 hack: we need to support sub/cancel commands, but
                 //  we can't give them back to userspace as it would be an API
                 //  breakage since the payload of the message is completely
@@ -163,7 +163,7 @@ pub fn xpub_xread_activated(ctx: &mut ZmqContext, socket: &mut ZmqSocket, option
                 socket.pending_metadata.push_back(metadata);
                 socket.pending_flags.push_back(0);
             }
-        } else if options.type_ != ZMQ_PUB {
+        } else if options.socket_type != ZMQ_PUB {
             //  Process user message coming upstream from xsub socket,
             //  but not if the type is PUB, which never processes user
             //  messages
@@ -382,7 +382,7 @@ pub fn xpub_xhas_in(socket: &mut ZmqSocket) -> bool {
 }
 
 pub unsafe fn xpub_send_unsubscription(options: &ZmqOptions, socket: &mut ZmqSocket, data_: &[u8], size_: usize, other_: &mut ZmqSocket) {
-    if options.type_ != ZMQ_PUB {
+    if options.socket_type != ZMQ_PUB {
         //  Place the unsubscription to the queue of pending (un)subscriptions
         //  to be retrieved by the user later on.
         // blob_t unsub (size_ + 1);

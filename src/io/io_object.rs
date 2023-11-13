@@ -2,9 +2,10 @@ use crate::defines::{ZMQ_IO_THREADS, ZmqFd, ZmqHandle};
 use std::ptr::null_mut;
 use crate::io::io_thread::ZmqIoThread;
 use crate::poll::poller_base::ZmqPollerBase;
+use crate::poll::poller_event::ZmqPollerEvent;
 
 pub struct IoObject<'a> {
-    pub _poller: &'a mut ZmqPollerBase,
+    pub _poller: &'a mut ZmqPollerBase<'a>,
 }
 
 impl IoObject {
@@ -50,25 +51,11 @@ impl IoObject {
         self._poller.reset_pollout(handle_)
     }
 
-    pub fn add_timer(&mut self, timeout_: i32, id_: i32) {
-        self._poller.add_timer(timeout_, self, id_)
+    pub fn add_timer(&mut self, timeout: i32, id_: i32, event: &ZmqPollerEvent) {
+        self._poller.add_timer(timeout, Some(event), id_)
     }
 
     pub fn cancel_timer(&mut self, id_: i32) {
-        self._poller.cancel_timer(self, id_)
+        self._poller.cancel_timer(None, id_)
     }
 }
-
-// impl IPollEvents for IoObject {
-//     fn in_event(&mut self) {
-//         todo!()
-//     }
-//
-//     fn out_event(&mut self) {
-//         todo!()
-//     }
-//
-//     fn timer_event(&mut self, id_: i32) {
-//         todo!()
-//     }
-// }

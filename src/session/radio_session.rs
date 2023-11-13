@@ -33,7 +33,7 @@ use crate::session::{ZmqSession, ZmqSessionState};
 // }
 
 
-pub unsafe fn radio_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn radio_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     if msg_.flag_set(ZMQ_MSG_COMMAND) {
         let mut command_data = msg_.data_mut();
         let data_size = msg_.size();
@@ -72,12 +72,13 @@ pub unsafe fn radio_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -
 
         //  Push the join or leave command
         *msg_ = join_leave_msg;
-        return session.push_msg(msg_);
+        // return session.push_msg(msg_);
     }
-    return session.push_msg(msg_);
+    // return session.push_msg(msg_);
+    Ok(())
 }
 
-pub unsafe fn radio_sess_pull_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn radio_sess_pull_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     if session._state == ZmqSessionState::Group {
         session.pull_msg(&mut session._pending_msg)?;
 
@@ -104,7 +105,8 @@ pub unsafe fn radio_sess_pull_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -
     return Ok(());
 }
 
-pub unsafe fn radio_sess_reset(session: &mut ZmqSession) {
-    session.reset();
+pub fn radio_sess_reset(session: &mut ZmqSession) -> Result<(),ZmqError> {
+    // session.reset()?;
     session._state = ZmqSessionState::Group;
+    Ok(())
 }

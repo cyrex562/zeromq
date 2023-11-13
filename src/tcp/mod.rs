@@ -1,15 +1,15 @@
-use std::ffi::{c_char, c_void};
-use std::mem::size_of;
-use std::ptr::null_mut;
+use std::ffi::c_void;
+
 use libc::{EAFNOSUPPORT, EAGAIN, EINTR, EWOULDBLOCK, setsockopt, SO_BUSY_POLL};
-#[cfg(target_os= "windows")]
-use windows::Win32::Networking::WinSock::{closesocket, recv, send, SIO_KEEPALIVE_VALS, SIO_LOOPBACK_FAST_PATH,   SOCKET_ERROR, tcp_keepalive, WSAECONNABORTED, WSAECONNRESET, WSAEHOSTUNREACH, WSAENETDOWN, WSAENETRESET, WSAENOBUFS, WSAEOPNOTSUPP, WSAETIMEDOUT, WSAEWOULDBLOCK, WSAGetLastError};
-#[cfg(not(target_os= "windows"))]
-use libc::{};
+#[cfg(target_os = "windows")]
+use windows::Win32::Networking::WinSock::{closesocket, recv, send, SIO_KEEPALIVE_VALS, SIO_LOOPBACK_FAST_PATH, SOCKET_ERROR, tcp_keepalive, WSAECONNABORTED, WSAECONNRESET, WSAEHOSTUNREACH, WSAENETDOWN, WSAENETRESET, WSAENOBUFS, WSAEOPNOTSUPP, WSAETIMEDOUT, WSAEWOULDBLOCK, WSAGetLastError};
+
 use crate::address::tcp_address::ZmqTcpAddress;
-use crate::defines::{RETIRED_FD, ZmqFd, IPPROTO_TCP, SOL_SOCKET, SO_SNDBUF, SO_RCVBUF, AF_INET, AF_INET6, SOCK_STREAM};
+use crate::defines::{AF_INET, AF_INET6, IPPROTO_TCP, RETIRED_FD, SO_RCVBUF, SO_SNDBUF, SOCK_STREAM, SOL_SOCKET, ZmqFd};
+use crate::defines::err::ZmqError;
 use crate::defines::tcp::{TCP_NODELAY, TCP_USER_TIMEOUT};
 use crate::ip::{bind_to_device, enable_ipv4_mapping, open_socket, set_ip_type_of_service, set_socket_priority};
+use crate::net::platform_socket::platform_setsockopt;
 use crate::options::ZmqOptions;
 use crate::utils::get_errno;
 
@@ -37,30 +37,31 @@ pub fn tune_tcp_socket(s_: ZmqFd) -> i32 {
     return rc;
 }
 
-pub unsafe fn set_tcp_send_buffer (sockfd_: ZmqFd, bufsize_: i32) -> i32
-{
-    let rc =
-      setsockopt (sockfd_, SOL_SOCKET as libc::c_int, SO_SNDBUF,
-                  bufsize_.to_le_bytes().as_ptr() as *const c_void, 4);
+pub fn set_tcp_send_buffer(sockfd_: ZmqFd, bufsize_: i32) -> Result<(), ZmqError> {
+    // let rc =
+    //   setsockopt (sockfd_, SOL_SOCKET as libc::c_int, SO_SNDBUF,
+    //               bufsize_.to_le_bytes().as_ptr() as *const c_void, 4);
+
+    platform_setsockopt(sockfd_, SOL_SOCKET as libc::c_int, SO_SNDBUF,
+                        &bufsize_.to_le_bytes(), 4)?;
+
     // assert_success_or_recoverable (sockfd_, rc);
-    return rc;
+    // return rc;
+    Ok(())
 }
 
-pub unsafe fn set_tcp_receive_buffer (sockfd_: ZmqFd , bufsize_: i32) -> i32
-{
-    let rc =
-      setsockopt (sockfd_, SOL_SOCKET as libc::c_int, SO_RCVBUF,
-                  bufsize_.to_le_bytes().as_ptr() as *const c_void, 4);
+pub fn set_tcp_receive_buffer(sockfd_: ZmqFd, bufsize_: i32) -> Result<(),ZmqError> {
+    platform_setsockopt(sockfd_, SOL_SOCKET as libc::c_int, SO_RCVBUF,
+                        &bufsize_.to_le_bytes(), 4)?;
     // assert_success_or_recoverable (sockfd_, rc);
-    return rc;
+    Ok(())
 }
 
-pub fn tune_tcp_keepalives (s_: ZmqFd,
-                              keepalive_: i32,
-                              keepalive_cnt_: i32,
-                              keepalive_idle_: i32,
-                              keepalive_intvl_: i32) -> i32
-{
+pub fn tune_tcp_keepalives(s_: ZmqFd,
+                           keepalive_: i32,
+                           keepalive_cnt_: i32,
+                           keepalive_idle_: i32,
+                           keepalive_intvl_: i32) -> i32 {
     // These options are used only under certain #ifdefs below.
     // LIBZMQ_UNUSED (keepalive_);
     // LIBZMQ_UNUSED (keepalive_cnt_);
@@ -73,19 +74,21 @@ pub fn tune_tcp_keepalives (s_: ZmqFd,
     //  Tuning TCP keep-alives if platform allows it
     //  All values = -1 means skip and leave it for OS
 // #ifdef ZMQ_HAVE_WINDOWS
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     {
         if (keepalive_ != -1) {
             let mut keepalive_opts: tcp_keepalive = tcp_keepalive::default();
             keepalive_opts.onoff = keepalive_;
-            keepalive_opts.keepalivetime = keepalive_idle_ != -1?
-            keepalive_idle_ * 1000: 7200000;
-            keepalive_opts.keepaliveinterval = keepalive_intvl_ != -1?
-            keepalive_intvl_ * 1000: 1000;
+            keepalive_opts.keepalivetime = if keepalive_idle_ != -1 {
+                keepalive_idle_ * 1000
+            } else { 7200000 };
+            keepalive_opts.keepaliveinterval = if keepalive_intvl_ != -1 {
+                keepalive_intvl_ * 1000
+            } else { 1000 };
             let mut num_bytes_returned = 0u32;
             let rc = WSAIoctl(s_, SIO_KEEPALIVE_VALS, &keepalive_opts,
-                          size_of::<keepalive_opts>(), None, 0,
-                          &num_bytes_returned, None, None);
+                              size_of::<keepalive_opts>(), None, 0,
+                              &num_bytes_returned, None, None);
             // assert_success_or_recoverable(s_, rc);
             if (rc == SOCKET_ERROR) {
                 return rc;
@@ -93,81 +96,81 @@ pub fn tune_tcp_keepalives (s_: ZmqFd,
         }
     }
 // #else
-    #[cfg(not(target_os="windows"))]
+    #[cfg(not(target_os = "windows"))]
     {
 // #ifdef ZMQ_HAVE_SO_KEEPALIVE
-#[cfg(feature="so_keepalive")]
-{
-    if (keepalive_ != -1) {
-        let setsockopt (s_, SOL_SOCKET, SO_KEEPALIVE,
-                      (&keepalive_), 4);
-        // assert_success_or_recoverable (s_, rc);
-        if (rc != 0) {
-            return rc;
-        }
-
-// #ifdef ZMQ_HAVE_TCP_KEEPCNT
-    #[cfg(feature="tcp_keepcnt")]
-    {
-        if (keepalive_cnt_ != -1) {
-            let rc = setsockopt (s_, IPPROTO_TCP, TCP_KEEPCNT, &keepalive_cnt_,
-                                 4);
-            // assert_success_or_recoverable (s_, rc);
-            if (rc != 0) {
-                return rc;
-            }
-        }
-    }
-// #endif // ZMQ_HAVE_TCP_KEEPCNT
-
-// #ifdef ZMQ_HAVE_TCP_KEEPIDLE
-    #[cfg(feature="tcp_keepidle")]
-    {
-        if (keepalive_idle_ != -1) {
-            let rc = setsockopt (s_, IPPROTO_TCP, TCP_KEEPIDLE,
-                                 &keepalive_idle_, 4);
-            // assert_success_or_recoverable (s_, rc);
-            if (rc != 0) {
-                return rc;
-            }
-        }
-    }
-// #else // ZMQ_HAVE_TCP_KEEPIDLE
-    #[cfg(not(feature="tcp_keepidle"))]
-    {
-// #ifdef ZMQ_HAVE_TCP_KEEPALIVE
-        #[cfg(feature = "tcp_keepalive")]
+        #[cfg(feature = "so_keepalive")]
         {
-            if (keepalive_idle_ != -1) {
-                let rc = setsockopt(s_, IPPROTO_TCP, TCP_KEEPALIVE,
-                                    &keepalive_idle_, 4);
+            if (keepalive_ != -1) {
+                let setsockopt(s_, SOL_SOCKET, SO_KEEPALIVE,
+                               (&keepalive_), 4);
                 // assert_success_or_recoverable (s_, rc);
                 if (rc != 0) {
                     return rc;
                 }
-            }
-        }
+
+// #ifdef ZMQ_HAVE_TCP_KEEPCNT
+                #[cfg(feature = "tcp_keepcnt")]
+                {
+                    if (keepalive_cnt_ != -1) {
+                        let rc = setsockopt(s_, IPPROTO_TCP, TCP_KEEPCNT, &keepalive_cnt_,
+                                            4);
+                        // assert_success_or_recoverable (s_, rc);
+                        if (rc != 0) {
+                            return rc;
+                        }
+                    }
+                }
+// #endif // ZMQ_HAVE_TCP_KEEPCNT
+
+// #ifdef ZMQ_HAVE_TCP_KEEPIDLE
+                #[cfg(feature = "tcp_keepidle")]
+                {
+                    if (keepalive_idle_ != -1) {
+                        let rc = setsockopt(s_, IPPROTO_TCP, TCP_KEEPIDLE,
+                                            &keepalive_idle_, 4);
+                        // assert_success_or_recoverable (s_, rc);
+                        if (rc != 0) {
+                            return rc;
+                        }
+                    }
+                }
+// #else // ZMQ_HAVE_TCP_KEEPIDLE
+                #[cfg(not(feature = "tcp_keepidle"))]
+                {
+// #ifdef ZMQ_HAVE_TCP_KEEPALIVE
+                    #[cfg(feature = "tcp_keepalive")]
+                    {
+                        if (keepalive_idle_ != -1) {
+                            let rc = setsockopt(s_, IPPROTO_TCP, TCP_KEEPALIVE,
+                                                &keepalive_idle_, 4);
+                            // assert_success_or_recoverable (s_, rc);
+                            if (rc != 0) {
+                                return rc;
+                            }
+                        }
+                    }
 // #endif // ZMQ_HAVE_TCP_KEEPALIVE
 // #endif // ZMQ_HAVE_TCP_KEEPIDLE
-    }
+                }
 // #ifdef ZMQ_HAVE_TCP_KEEPINTVL
-        #[cfg(feature="tcp_keepintvl")]
-        {
-        if (keepalive_intvl_ != -1) {
-            let rc = setsockopt (s_, IPPROTO_TCP, TCP_KEEPINTVL,
-                                 &keepalive_intvl_, 4);
-            // assert_success_or_recoverable (s_, rc);
-            if (rc != 0) {
-                return rc;
-            }
-        }
-            }
+                #[cfg(feature = "tcp_keepintvl")]
+                {
+                    if (keepalive_intvl_ != -1) {
+                        let rc = setsockopt(s_, IPPROTO_TCP, TCP_KEEPINTVL,
+                                            &keepalive_intvl_, 4);
+                        // assert_success_or_recoverable (s_, rc);
+                        if (rc != 0) {
+                            return rc;
+                        }
+                    }
+                }
 // #endif // ZMQ_HAVE_TCP_KEEPINTVL
-    }
+            }
 // #endif // ZMQ_HAVE_SO_KEEPALIVE
-    }
+        }
 // #endif // ZMQ_HAVE_WINDOWS
-}
+    }
     return 0;
 }
 
@@ -237,9 +240,10 @@ pub fn tcp_write(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
     }
 // #else
     unsafe {
+        let mut nbytes = 0isize;
         #[cfg(not(target_os = "windows"))]
         {
-            let nbytes = libc::send(s_, data_.as_ptr() as *const c_void, size_, 0);
+            nbytes = libc::send(s_, data_.as_ptr() as *const c_void, size_, 0);
 
             //  Several errors are OK. When speculative write is being Done we may not
             //  be able to write a single byte from the socket. Also, SIGSTOP issued
@@ -263,8 +267,6 @@ pub fn tcp_write(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
 // #endif
                 return -1;
             }
-
-
         }
 
         return nbytes as i32;
@@ -324,7 +326,7 @@ pub fn tcp_read(s_: ZmqFd, data_: &mut [u8], size_: usize) -> i32 {
 // #endif
 }
 
-pub unsafe fn tcp_tune_loopback_fast_path(socket_: ZmqFd) {
+pub fn tcp_tune_loopback_fast_path(socket_: ZmqFd) {
 // #if defined ZMQ_HAVE_WINDOWS && defined SIO_LOOPBACK_FAST_PATH
     #[cfg(target_os = "windows")]
     {
@@ -350,43 +352,42 @@ pub unsafe fn tcp_tune_loopback_fast_path(socket_: ZmqFd) {
 // #endif
 }
 
-pub unsafe fn tune_tcp_busy_poll(socket_: ZmqFd, busy_poll_: i32) {
+pub fn tune_tcp_busy_poll(socket: ZmqFd, busy_poll: i32) -> Result<(),ZmqError> {
 // #if defined(ZMQ_HAVE_BUSY_POLL)
-    if busy_poll_ > 0 {
-        let rc = setsockopt(socket_, SOL_SOCKET as libc::c_int, SO_BUSY_POLL,
-                            busy_poll_.to_le_bytes().as_ptr() as *const c_void, 4);
+    if busy_poll > 0 {
+        // let rc = setsockopt(socket_, SOL_SOCKET as libc::c_int, SO_BUSY_POLL,
+        //                     busy_poll_.to_le_bytes().as_ptr() as *const c_void, 4);
+        platform_setsockopt(socket, SOL_SOCKET as i32, SO_BUSY_POLL, &busy_poll.to_le_bytes(), 4)?;
         // assert_success_or_recoverable (socket_, rc);
     }
 // #else
 //     LIBZMQ_UNUSED (socket_);
 //     LIBZMQ_UNUSED (busy_poll_);
 // #endif
+    Ok(())
 }
 
-pub unsafe fn tcp_open_socket (addr_str: &mut String,
-                               options: &ZmqOptions,
-                               local_: bool,
-                               fallback_to_ipv4_: bool,
-                               out_tcp_addr_: &mut ZmqTcpAddress) -> ZmqFd
-{
+pub fn tcp_open_socket(addr_str: &mut String,
+                       options: &ZmqOptions,
+                       local_: bool,
+                       fallback_to_ipv4_: bool,
+                       out_tcp_addr_: &mut ZmqTcpAddress) -> ZmqFd {
     //  Convert the textual address into address structure.
-    out_tcp_addr_.resolve (options, addr_str, local_, options.ipv6)?;
+    out_tcp_addr_.resolve(options, addr_str, local_, options.ipv6)?;
     // if rc != 0 {
     //     return RETIRED_FD;
     // }
 
     //  Create the socket.
-    let mut s = open_socket (out_tcp_addr_.family() as i32, SOCK_STREAM, IPPROTO_TCP)?;
+    let mut s = open_socket(out_tcp_addr_.family() as i32, SOCK_STREAM, IPPROTO_TCP)?;
 
     //  IPv6 address family not supported, try automatic downgrade to IPv4.
-    if s == RETIRED_FD && fallback_to_ipv4_
-        && out_tcp_addr_.family () == AF_INET6 as u16 && get_errno() == EAFNOSUPPORT
-        && options.ipv6 {
-        out_tcp_addr_.resolve (options, addr_str, local_, false)?;
+    if s == RETIRED_FD && fallback_to_ipv4_ && out_tcp_addr_.family() == AF_INET6 as u16 && get_errno() == EAFNOSUPPORT && options.ipv6 {
+        out_tcp_addr_.resolve(options, addr_str, local_, false)?;
         // if rc != 0 {
         //     return RETIRED_FD;
         // }
-        s = open_socket (AF_INET, SOCK_STREAM, IPPROTO_TCP)?;
+        s = open_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)?;
     }
 
     if s == RETIRED_FD {
@@ -395,7 +396,7 @@ pub unsafe fn tcp_open_socket (addr_str: &mut String,
 
     //  On some systems, IPv4 mapping in IPv6 sockets is disabled by default.
     //  Switch it on in such cases.
-    if out_tcp_addr_.family () == AF_INET6 as u16 {
+    if out_tcp_addr_.family() == AF_INET6 as u16 {
         enable_ipv4_mapping(s)?;
     }
 
@@ -415,7 +416,7 @@ pub unsafe fn tcp_open_socket (addr_str: &mut String,
     }
 
     // Bind the socket to a device if applicable
-    if !options.bound_device.empty () {
+    if !options.bound_device.empty() {
         if bind_to_device(s, &options.bound_device)? {
             // goto setsockopt_error;
         }

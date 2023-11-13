@@ -1,8 +1,7 @@
 use std::collections::HashSet;
-use std::ffi::{c_char, c_void};
+use std::ffi::c_void;
 use std::thread;
 use std::thread::ThreadId;
-use crate::defines::ZmqHandle;
 
 pub const DEFAULT_PRIORITY: u32 = 100;
 pub const DEFAULT_OPTIONS: u32 = 0;
@@ -10,6 +9,7 @@ pub const DEFAULT_STACK_SIZE: u32 = 4000;
 
 pub type ZmqThreadFn = fn(*mut c_void);
 
+// TODO: make serializable
 pub struct ZmqThread<'a> {
     pub _arg: &'a mut [u8],
     pub _tfn: ZmqThreadFn,
@@ -33,17 +33,19 @@ pub struct ThreadInfoT {
     pub _flags: u32,
 }
 
+
+pub fn thread_routine(arg: &mut [u8]) {
+    // TODO deserialize ZmqThread object from arg_
+    // let self_ = unsafe { &mut *(arg_ as &mut ZmqThread) };
+    let thread = ZmqThread::default();
+    thread.apply_scheduling_parameters();
+    thread.apply_thread_name();
+    thread._tfn(thread.arg);
+}
+
 impl ZmqThread {
     pub fn get_started(&self) -> bool {
         self._started
-    }
-
-    pub fn thread_routine(arg_: &mut [u8]) {
-        // TODO deserialize ZmqThread object from arg_
-        // let self_ = unsafe { &mut *(arg_ as &mut ZmqThread) };
-        self_.apply_scheduling_parameters();
-        self_.apply_thread_name();
-        self_._tfn(self_._arg);
     }
 
     pub unsafe fn start(&mut self, tfn_: ZmqThreadFn, arg: &mut [u8], name: &str) {
@@ -67,13 +69,10 @@ impl ZmqThread {
 
         self._builder = thread::Builder::new().stack_size(stack);
 
-        let handle = self
-            ._builder
-            .spawn(move || {
-                // TODO serialize self into [u8]
-                ZmqThread::thread_routine(self);
-            })
-            .unwrap();
+        let handle = self._builder.spawn(move || {
+            // TODO serialize self into [u8]
+            ZmqThread::thread_routine(self);
+        }).unwrap();
         self._started = true;
         self._join_handle = handle;
     }

@@ -184,7 +184,7 @@ pub unsafe fn zmtp_receive_greeting_versioned(options: &ZmqOptions, engine: &mut
 
             //  Use ZMTP/2.0 to talk to older peers.
             if engine.greeting_recv[REVISION_POS] == ZMTP_1_0 as u8 || engine.greeting_recv[REVISION_POS] == ZMTP_2_0 as u8 {
-                engine.out_pos[engine.out_size] = options.type_ as u8;
+                engine.out_pos[engine.out_size] = options.socket_type as u8;
                 engine.out_size += 1;
             } else {
                 engine.out_pos[engine.out_size] = 1; //  Minor version number
@@ -302,7 +302,7 @@ pub fn zmtp_handshake_v1_0_unversioned(options: &ZmqOptions, engine: &mut ZmqEng
     //  To allow for interoperability with peers that do not forward
     //  their subscriptions, we inject a phantom subscription message
     //  message into the incoming message stream.
-    if options.type_ == ZMQ_PUB || options.type_ == ZMQ_XPUB {
+    if options.socket_type == ZMQ_PUB || options.socket_type == ZMQ_XPUB {
         engine.subscription_required = true;
     }
 

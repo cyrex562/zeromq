@@ -37,7 +37,7 @@ use crate::session::{ZmqSession, ZmqSessionState};
 // }
 
 
-pub unsafe fn dish_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
+pub fn dish_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     if session._state == ZmqSessionState::Group {
         if msg_.flags() & ZMQ_MSG_MORE != ZMQ_MSG_MORE {
             return Err(SessionError("no more messages"));
@@ -67,14 +67,14 @@ pub unsafe fn dish_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) ->
         return Err(SessionError("no more messages"));
     }
 
-    if session.push_msg(msg_).is_ok() {
-        session._state = ZmqSessionState::Group;
-    }
+    // if session.push_msg(msg_).is_ok() {
+    //     session._state = ZmqSessionState::Group;
+    // }
 
     Ok(())
 }
 
-pub unsafe fn dish_sess_pull_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
+pub fn dish_sess_pull_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     session.pull_msg(msg_)?;
     if msg_.is_join() == false && msg_.is_leave() == false {
         return Err(SessionError("invalid message"));
@@ -110,7 +110,7 @@ pub unsafe fn dish_sess_pull_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) ->
     return Ok(());
 }
 
-pub unsafe fn dish_sess_reset(session: &mut ZmqSession) {
-    session.reset();
+pub fn dish_sess_reset(session: &mut ZmqSession) {
+    // session.reset();
     session._state = ZmqSessionState::Group;
 }

@@ -34,7 +34,7 @@ use crate::session::{ZmqSession, ZmqSessionState};
 // }
 
 
-pub unsafe fn push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn req_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     //  Ignore commands, they are processed by the engine and should not
     //  affect the state machine.
     if msg_.flags() & ZmqMsg::command {
@@ -49,11 +49,13 @@ pub unsafe fn push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<()
                 //  whether the option is actually on or not).
                 if msg_.size() == 4 {
                     session._state = ZmqSessionState::RequestId;
-                    return session.push_msg(msg_);
+                    // return session.push_msg(msg_);
+                    return Ok(());
                 }
                 if msg_.size() == 0 {
                     session._state = ZmqSessionState::Body;
-                    return session.push_msg(msg_);
+                    // return session.push_msg(msg_);
+                    return Ok(());
                 }
             }
         }
@@ -61,17 +63,20 @@ pub unsafe fn push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<()
         ZmqSessionState::RequestId => {
             if msg_.flags() == ZmqMsg::more && msg_.size() == 0 {
                 session._state = ZmqSessionState::Body;
-                return session.push_msg(msg_);
+                // return session.push_msg(msg_);
+                return Ok(());
             }
         }
 
         ZmqSessionState::Body => {
             if msg_.flags() == ZmqMsg::more {
-                return session.push_msg(msg_);
+                // return session.push_msg(msg_);
+                return Ok(());
             }
             if msg_.flags() == 0 {
                 session._state = ZmqSessionState::Bottom;
-                return session.push_msg(msg_);
+                // return session.push_msg(msg_);
+                return Ok(());
             }
         }
 
@@ -81,7 +86,7 @@ pub unsafe fn push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<()
     return Err(SessionError("invalid message"));
 }
 
-pub unsafe fn reset(session: &mut ZmqSession) {
-    session.reset();
+pub fn req_sess_reset(session: &mut ZmqSession) {
+    // session.reset();
     session._state = ZmqSessionState::Bottom;
 }
