@@ -47,7 +47,7 @@ impl ZmqDecoder {
             _msg_flags: 0,
         };
         // out.buf = out.allocator.allocate();
-        // TODO: set next step based on decoder type
+        // TODO: set next step based on DECODER type
         match out.decoder_type {
             DecoderType::V1Decoder => {
                 out.next_step(&mut out._tmpbuf, 0, v1d_one_byte_size_ready);

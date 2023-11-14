@@ -1,5 +1,3 @@
-use std::error::Error;
-
 #[derive(thiserror::Error)]
 pub enum ZmqError {
     #[error("Invalid context")]
@@ -30,7 +28,7 @@ pub enum ZmqError {
     SessionError(&'static str),
     #[error("zap error")]
     ZapError(&'static str),
-    #[error("decoder error")]
+    #[error("DECODER error")]
     DecoderError(&'static str),
     #[error("platform error")]
     PlatformError(&'static str),

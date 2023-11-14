@@ -1,8 +1,8 @@
+#[cfg(not(target_os = "windows"))]
 use libc::sa_family_t;
+use windows::Win32::Networking::WinSock::{sa_family_t, SOCKADDR, ADDRESS_FAMILY};
 
-use crate::defines::{
-    ZmqIpMreq, ZmqSaFamily, ZmqSockAddr, ZmqSockAddrIn, ZmqSockAddrIn6, ZmqSockaddrStorage,
-};
+use crate::defines::{AF_INET, ZmqIpMreq, ZmqIpv6Mreq, ZmqSaFamily, ZmqSockAddr, ZmqSockAddrIn, ZmqSockAddrIn6, ZmqSockaddrStorage};
 
 pub fn sockaddr_to_sockaddrin(sockaddr: &ZmqSockAddr) -> ZmqSockAddrIn {
     let mut out = ZmqSockAddrIn {
@@ -20,10 +20,11 @@ pub fn sockaddr_to_sockaddrin6(sockaddr: &ZmqSockAddr) -> ZmqSockAddrIn6 {
         sin6_family: sockaddr.sa_family,
         sin6_port: 0,
         sin6_flowinfo: 0,
-        sin6_addr: in6_addr { s6_addr: [0; 16] },
+        sin6_addr: [0; 16],
         sin6_scope_id: 0,
     };
-    out.sin6_addr.s6_addr = sockaddr.sa_data[2..18].try_into().unwrap();
+    // out.sin6_addr.s6_addr = sockaddr.sa_data[2..18].try_into().unwrap();
+    out.sin6_addr.clone_from_slice(&sockaddr.sa_data[2..18]);
     out
 }
 
@@ -32,13 +33,15 @@ pub fn zmq_sockaddr_to_sockaddr(sockaddr: &ZmqSockAddr) -> libc::sockaddr {
         sa_family: sockaddr.sa_family,
         sa_data: [0; 14],
     };
-    out.sa_data[0..14].copy_from_slice(&sockaddr.sa_data[0..14]);
+    for i in 0..out.sa_data.len() {
+        out.sa_data[i] = sockaddr.sa_data[i] as libc::c_char;
+    }
     out
 }
 
 pub fn zmq_sockaddr_storage_to_sockaddr(sockaddr_storage: &ZmqSockaddrStorage) -> libc::sockaddr {
     let mut out = libc::sockaddr {
-        sa_family: sockaddr_storage.ss_family as sa_family_t,
+        sa_family: sockaddr_storage.ss_family as libc::c_ushort,
         sa_data: [0; 14],
     };
     // out.sa_data[0..14].copy_from_slice(&sockaddr_storage.sa_data[0..14] as &[u8]);
@@ -88,13 +91,16 @@ pub fn sockaddr_to_zmq_sockaddr(sockaddr: &libc::sockaddr) -> ZmqSockAddr {
         sa_family: sockaddr.sa_family,
         sa_data: [0; 14],
     };
-    out.sa_data[0..14].copy_from_slice(&sockaddr.sa_data[0..14]);
+    // out.sa_data[0..14].copy_from_slice(&sockaddr.sa_data[0..14]);
+    for i in 0 .. out.sa_data.len() {
+        out.sa_data[i] = sockaddr.sa_data[i] as u8;
+    }
     out
 }
 
 pub fn wsa_sockaddr_to_zmq_sockaddr(sockaddr: &SOCKADDR) -> ZmqSockAddr {
     let mut out = ZmqSockAddr {
-        sa_family: sockaddr.sa_family,
+        sa_family: sockaddr.sa_family.0,
         sa_data: [0; 14],
     };
     out.sa_data[0..14].copy_from_slice(&sockaddr.sa_data[0..14]);
@@ -121,7 +127,7 @@ pub fn zmq_sockaddrstorage_to_zmq_sockaddr(sockaddr_storage: &ZmqSockaddrStorage
 
 pub fn zmq_sockaddr_to_string(sockaddr: &ZmqSockAddr) -> String {
     let mut out = String::new();
-    if sockaddr.sa_family == AF_INET {
+    if sockaddr.sa_family == AF_INET as u16 {
         out = format!(
             "{}.{}.{}.{}",
             sockaddr.sa_data[2], sockaddr.sa_data[3], sockaddr.sa_data[4], sockaddr.sa_data[5]
@@ -148,5 +154,14 @@ pub fn zmq_sockaddr_to_string(sockaddr: &ZmqSockAddr) -> String {
         );
     }
 
+    out
+}
+
+pub fn zmq_sockaddr_to_wsa_sockaddr(sockaddr: &ZmqSockAddr) -> SOCKADDR {
+    let mut out = SOCKADDR {
+        sa_family: ADDRESS_FAMILY{0:sockaddr.sa_family},
+        sa_data: [0; 14],
+    };
+    out.sa_data[0..14].copy_from_slice(&sockaddr.sa_data[0..14]);
     out
 }

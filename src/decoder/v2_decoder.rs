@@ -220,7 +220,7 @@ pub fn v2d_size_ready(
     // TODO
     // if (rc) {
     //     // errno_assert (errno == ENOMEM);
-    //     rc = decoder._in_progress.init2();
+    //     rc = DECODER._in_progress.init2();
     //     // errno_assert (rc == 0);
     //     // errno = ENOMEM;
     //     return -1;

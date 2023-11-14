@@ -1,5 +1,5 @@
 use crate::defines::{
-    cancel_cmd_name, COMMAND_FLAG, LARGE_FLAG, MORE_FLAG, sub_cmd_name, ZMQ_MSG_COMMAND,
+    CANCEL_CMD_NAME, COMMAND_FLAG, LARGE_FLAG, MORE_FLAG, SUB_CMD_NAME, ZMQ_MSG_COMMAND,
     ZMQ_MSG_MORE,
 };
 use crate::encoder::ZmqEncoder;
@@ -56,7 +56,7 @@ pub fn v3_1e_message_ready(encoder: &mut ZmqEncoder) {
         encoder.tmp_buf[1] = (size) as u8;
     }
 
-    //  Encode the sub/cancel command string. This is Done in the encoder as
+    //  Encode the sub/cancel command string. This is Done in the ENCODER as
     //  opposed to when the subscribe message is created to allow different
     //  protocol behaviour on the wire in the v3.1 and legacy encoders.
     //  It results in the work being Done multiple times in case the sub
@@ -64,16 +64,16 @@ pub fn v3_1e_message_ready(encoder: &mut ZmqEncoder) {
     //  be avoided. This processing can be moved to xsub once support for
     //  ZMTP < 3.1 is dropped.
     if encoder.in_progress().is_subscribe() {
-        // libc::memcpy(encoder._tmp_buf + header_size, sub_cmd_name, SUB_CMD_NAME_SIZE);
-        encoder.tmp_buf[header_size..].copy_from_slice(sub_cmd_name.as_bytes());
+        // libc::memcpy(ENCODER._tmp_buf + header_size, SUB_CMD_NAME, SUB_CMD_NAME_SIZE);
+        encoder.tmp_buf[header_size..].copy_from_slice(SUB_CMD_NAME.as_bytes());
         header_size += SUB_CMD_NAME_SIZE;
     } else if encoder.in_progress().is_cancel() {
         // libc::memcpy(
-        //     encoder._tmp_buf + header_size,
-        //     cancel_cmd_name,
+        //     ENCODER._tmp_buf + header_size,
+        //     CANCEL_CMD_NAME,
         //     CANCEL_CMD_NAME_SIZE,
         // );
-        encoder.tmp_buf[header_size..].copy_from_slice(cancel_cmd_name.as_bytes());
+        encoder.tmp_buf[header_size..].copy_from_slice(CANCEL_CMD_NAME.as_bytes());
         header_size += CANCEL_CMD_NAME_SIZE;
     }
 

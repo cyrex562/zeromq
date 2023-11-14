@@ -1,6 +1,6 @@
 mod null_mechanism;
 
-use std::ffi::{c_char, c_void};
+use std::ffi::c_void;
 
 use crate::defines::{
     SOCKET_TYPE_CHANNEL, SOCKET_TYPE_CLIENT, SOCKET_TYPE_DEALER, SOCKET_TYPE_DGRAM,
@@ -10,7 +10,7 @@ use crate::defines::{
     SOCKET_TYPE_SUB, SOCKET_TYPE_XPUB, SOCKET_TYPE_XSUB, ZMQ_DEALER, ZMQ_MSG_ROUTING_ID,
     ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED, ZMQ_REQ, ZMQ_ROUTER,
 };
-use crate::err::ZmqError;
+use crate::defines::err::ZmqError;
 use crate::metadata::ZmqDict;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
@@ -46,7 +46,7 @@ pub const VALUE_LEN_SIZE: u32 = 4;
 pub const ZMTP_PROPERTY_SOCKET_TYPE: &'static str = "Socket-Type";
 pub const ZMTP_PROPERTY_IDENTITY: &'static str = "Identity";
 
-impl ZmqMechanism {
+impl<'a> ZmqMechanism<'a> {
     pub fn new(session: &mut ZmqSession) -> Self {
         Self {
             _zmtp_properties: ZmqDict::new(),
@@ -65,11 +65,14 @@ impl ZmqMechanism {
     }
 
     pub fn encode(&mut self, msg: &ZmqMsg) -> Result<(), ZmqError> {
-        self.session._engine.unwrap().encoder.unwrap().encode(msg)
+        self.session._engine.unwrap().encoder.unwrap().encode(msg.data(), msg.data().size());
+        Ok(())
     }
 
-    pub fn decode(&mut self, msg: &ZmqMsg) -> Result<(), ZmqError> {
-        self.session._engine.unwrap().decoder.unwrap().decode(msg)
+    pub fn decode(&mut self, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
+        let mut bytes_used = msg.size();
+        self.session._engine.unwrap().decoder.unwrap().decode(msg.data(), msg.size(), &mut bytes_used)?;
+        Ok(())
     }
 
     pub fn set_peer_routing_id(&mut self, id_ptr: &[u8]) {
@@ -155,7 +158,7 @@ impl ZmqMechanism {
         todo!()
     }
 
-    pub unsafe fn add_basic_properties(
+    pub fn add_basic_properties(
         &mut self,
         options: &ZmqOptions,
         base_ptr: &mut [u8],
@@ -173,7 +176,7 @@ impl ZmqMechanism {
         }
 
         // ptr.sub(base_ptr as usize) as usize
-        ptr.as_ptr().offset_from(base_ptr.as_ptr()) as usize
+        unsafe { ptr.as_ptr().offset_from(base_ptr.as_ptr()) as usize }
     }
 
     pub fn basic_properties_len(&mut self, options: &ZmqOptions) -> usize {
@@ -217,7 +220,7 @@ impl ZmqMechanism {
         Ok(())
     }
 
-    pub unsafe fn parse_metadata(
+    pub fn parse_metadata(
         &mut self,
         options: &ZmqOptions,
         mut ptr_: &mut [u8],
@@ -253,22 +256,32 @@ impl ZmqMechanism {
             ptr_ = ptr_.add(value_length as usize);
             bytes_left -= value_length;
 
-            if name == ZMTP_PROPERTY_IDENTITY && options.recv_routing_id {
-                self.set_peer_routing_id(value);
-            } else if name == ZMTP_PROPERTY_SOCKET_TYPE {
-                let val_str = String::from_raw_parts(value.as_mut_ptr(), value.len(), value.len());
-                if !self.check_socket_type(
-                    options,
-                    val_str.as_str(),
-                    value_length as usize,
-                ) {
-                    // errno = EINVAL;
-                    return -1;
-                }
-            } else {
-                let rc = self.property(&name, value, value_length as usize);
-                if rc == -1 {
-                    return -1;
+            unsafe {
+                if name == ZMTP_PROPERTY_IDENTITY && options.recv_routing_id {
+                    self.set_peer_routing_id(value);
+                } else if name == ZMTP_PROPERTY_SOCKET_TYPE {
+                    let val_str = String::from_raw_parts(
+                        value.as_mut_ptr(),
+                        value.len(),
+                        value.len()
+                    );
+                    if !self.check_socket_type(
+                        options,
+                        val_str.as_str(),
+                        value_length as usize,
+                    ) {
+                        // errno = EINVAL;
+                        return -1;
+                    }
+                } else {
+                    let rc = self.property(
+                        &name,
+                        value,
+                        value_length as usize
+                    );
+                    if rc == -1 {
+                        return -1;
+                    }
                 }
             }
             // if (zap_flag_  _zap_properties : _zmtp_properties)

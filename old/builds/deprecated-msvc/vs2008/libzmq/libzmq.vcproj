@@ -222,12 +222,12 @@
       <File RelativePath="..\..\..\..\src\dbuffer.hpp" />
       <File RelativePath="..\..\..\..\src\dealer.hpp" />
       <File RelativePath="..\..\..\..\src\decoder_allocators.hpp" />
-      <File RelativePath="..\..\..\..\src\decoder.hpp" />
+      <File RelativePath="..\..\..\..\src\DECODER.hpp" />
       <File RelativePath="..\..\..\..\src\devpoll.hpp" />
       <File RelativePath="..\..\..\..\src\dgram.hpp" />
       <File RelativePath="..\..\..\..\src\dish.hpp" />
       <File RelativePath="..\..\..\..\src\dist.hpp" />
-      <File RelativePath="..\..\..\..\src\encoder.hpp" />
+      <File RelativePath="..\..\..\..\src\ENCODER.hpp" />
       <File RelativePath="..\..\..\..\src\epoll.hpp" />
       <File RelativePath="..\..\..\..\src\err.hpp" />
       <File RelativePath="..\..\..\..\src\fd.hpp" />

@@ -270,7 +270,7 @@ pub fn zmtp_handshake_v1_0_unversioned(options: &ZmqOptions, engine: &mut ZmqEng
     ));
 
     //  We have already sent the message header.
-    //  Since there is no way to tell the encoder to
+    //  Since there is no way to tell the ENCODER to
     //  skip the message header, we simply throw that
     //  header data away.
     let header_size = if options.routing_id_size + 1 >= u8::MAX {
@@ -282,7 +282,7 @@ pub fn zmtp_handshake_v1_0_unversioned(options: &ZmqOptions, engine: &mut ZmqEng
     let mut tmp: [u8; 10] = [0; 10];
     let mut bufferp = &mut tmp;
 
-    //  Prepare the routing id message and load it into encoder.
+    //  Prepare the routing id message and load it into ENCODER.
     //  Then consume bytes we have already sent to the peer.
     let mut rc = engine.routing_id_msg.close();
     // zmq_assert (rc == 0);
@@ -295,7 +295,7 @@ pub fn zmtp_handshake_v1_0_unversioned(options: &ZmqOptions, engine: &mut ZmqEng
     let buffer_size = engine.encoder.unwrap().encode(bufferp, header_size);
     // zmq_assert (buffer_size == header_size);
 
-    //  Make sure the decoder sees the data we have already received.
+    //  Make sure the DECODER sees the data we have already received.
     engine.in_pos = &mut engine.greeting_recv;
     engine.in_size = engine.greeting_bytes_read as usize;
 

@@ -55,7 +55,7 @@ pub fn v1e_message_ready(encoder: &mut ZmqEncoder) {
         header_size = 10;
     }
 
-    //  Encode the subscribe/cancel byte. This is Done in the encoder as
+    //  Encode the subscribe/cancel byte. This is Done in the ENCODER as
     //  opposed to when the subscribe message is created to allow different
     //  protocol behaviour on the wire in the v3.1 and legacy encoders.
     //  It results in the work being Done multiple times in case the sub

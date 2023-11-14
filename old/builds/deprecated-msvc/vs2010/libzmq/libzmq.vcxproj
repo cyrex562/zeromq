@@ -87,13 +87,13 @@
     <ClInclude Include="..\..\..\..\src\ctx.hpp" />
     <ClInclude Include="..\..\..\..\src\curve_client.hpp" />
     <ClInclude Include="..\..\..\..\src\curve_server.hpp" />
-    <ClInclude Include="..\..\..\..\src\decoder.hpp" />
+    <ClInclude Include="..\..\..\..\src\DECODER.hpp" />
     <ClInclude Include="..\..\..\..\src\decoder_allocators.hpp" />
     <ClInclude Include="..\..\..\..\src\devpoll.hpp" />
     <ClInclude Include="..\..\..\..\src\dgram.hpp" />
     <ClInclude Include="..\..\..\..\src\dish.hpp" />
     <ClInclude Include="..\..\..\..\src\dist.hpp" />
-    <ClInclude Include="..\..\..\..\src\encoder.hpp" />
+    <ClInclude Include="..\..\..\..\src\ENCODER.hpp" />
     <ClInclude Include="..\..\..\..\src\epoll.hpp" />
     <ClInclude Include="..\..\..\..\src\err.hpp" />
     <ClInclude Include="..\..\..\..\src\fd.hpp" />

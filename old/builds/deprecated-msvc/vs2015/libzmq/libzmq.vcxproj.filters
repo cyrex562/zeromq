@@ -309,7 +309,7 @@
     <ClInclude Include="..\..\..\..\src\dist.hpp">
       <Filter>src\include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\src\encoder.hpp">
+    <ClInclude Include="..\..\..\..\src\ENCODER.hpp">
       <Filter>src\include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\epoll.hpp">
@@ -354,7 +354,7 @@
     <ClInclude Include="..\..\..\..\src\lb.hpp">
       <Filter>src\include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\src\decoder.hpp">
+    <ClInclude Include="..\..\..\..\src\DECODER.hpp">
       <Filter>src\include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\likely.hpp">

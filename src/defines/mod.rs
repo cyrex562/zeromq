@@ -2,9 +2,10 @@ use std::collections::HashSet;
 use std::ffi::c_void;
 use std::sync::Mutex;
 
-use libc::pid_t;
 #[cfg(not(target_os = "windows"))]
-use libc::pollfd;
+use libc::{pollfd, pid_t};
+use windows::Win32::Foundation::HANDLE;
+use windows::Win32::Networking::WinSock::WSAPOLLFD;
 
 pub mod array;
 pub mod atomic_counter;
@@ -652,8 +653,8 @@ pub type ZmqPollFd = WSAPOLLFD;
 #[cfg(not(target_os = "windows"))]
 pub type ZmqPollFd = pollfd;
 
-pub const cancel_cmd_name: &'static str = "\x06CANCEL";
-pub const sub_cmd_name: &'static str = "\x09SUBSCRIBE";
+pub const CANCEL_CMD_NAME: &'static str = "\x06CANCEL";
+pub const SUB_CMD_NAME: &'static str = "\x09SUBSCRIBE";
 
 pub const CMD_TYPE_MASK: u8 = 0x1c;
 
@@ -923,7 +924,7 @@ pub const PF_X25: i32 = 9;
 pub const PF_INET6: i32 = 10;
 // #define PF_ROSE		11	/* Amateur Radio X.25 PLP.  */
 pub const PF_ROSE: i32 = 11;
-// #define PF_DECnet	12	/* Reserved for DECnet project.  */
+#[allow(non_upper_case_globals)]// #define PF_DECnet	12	/* Reserved for DECnet project.  */
 pub const PF_DECnet: i32 = 12;
 // #define PF_NETBEUI	13	/* Reserved for 802.2LLC project.  */
 pub const PF_NETBEUI: i32 = 13;
@@ -1351,6 +1352,34 @@ pub const SO_PEERSEC: i32 = 30;
 pub const SO_PASSSEC: i32 = 34;
 //    57 #define SO_TIMESTAMPNS      35
 pub const SO_TIMESTAMPNS: i32 = 35;
+
+pub const SCM_TIMESTAMPNS: i32 = SO_TIMESTAMPNS;
+
+pub const SO_MARK: i32 = 36;
+
+pub const SO_TIMESTAMPING: i32 = 37;
+
+pub const SCM_TIMESTAMPING: i32 = SO_TIMESTAMPING;
+
+// pub const SO_PROTOCOL: i32 = 38;
+
+// pub const SO_DOMAIN: i32 = 39;
+
+pub const SO_RXQ_OVFL: i32 = 40;
+
+pub const SO_WIFI_STATUS: i32 = 41;
+
+pub const SCM_WIFI_STATUS: i32 = SO_WIFI_STATUS;
+
+pub const SO_PEEK_OFF: i32 = 42;
+
+pub const SO_NOFCS: i32 = 43;
+
+pub const SO_LOCK_FILTER: i32 = 44;
+
+pub const SO_SELECT_ERR_QUEUE: i32 = 45;
+
+pub const SO_BUSY_POLL: i32 = 46;
 
 pub const SOL_SOCKET: u16 = 0xffff;
 

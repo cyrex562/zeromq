@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::atomic_counter::ZmqAtomicCounter;
+use crate::defines::atomic_counter::ZmqAtomicCounter;
 
 pub type ZmqDict = HashMap<String, String>;
 

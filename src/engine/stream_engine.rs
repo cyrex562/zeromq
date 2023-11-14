@@ -262,7 +262,7 @@ pub fn stream_in_event_internal(options: &ZmqOptions, engine: &mut ZmqEngine) ->
 }
 
 pub fn stream_out_event(options: &ZmqOptions, engine: &mut ZmqEngine) {
-    //  If write buffer is empty, try to read new data from the encoder.
+    //  If write buffer is empty, try to read new data from the ENCODER.
     if (!engine.out_size) {
         //  Even when we Stop polling as soon as there is no
         //  data to send, the poller may invoke out_event one

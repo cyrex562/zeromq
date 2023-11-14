@@ -1,12 +1,9 @@
 use std::ffi::c_char;
 
 use anyhow::bail;
-use libc::c_void;
-#[cfg(target_os = "windows")]
-use windows::Win32::Networking::WinSock::sa_family_t;
 
 use crate::defines::ZmqFd;
-use crate::select::fd_set;
+use crate::poll::select::fd_set;
 
 pub mod decoder_allocators;
 pub mod random;
@@ -31,30 +28,30 @@ pub fn copy_bytes(
     Ok(())
 }
 
-pub unsafe fn copy_void(
-    src: *const c_void,
-    src_offset: usize,
-    src_count: usize,
-    dst: *mut c_void,
-    dst_offset: usize,
-    dst_len: usize,
-) -> anyhow::Result<()> {
-    if dst_len - dst_offset < src_count {
-        bail!("insufficient length in source to copy destination")
-    }
-
-    for i in 0..src_count {
-        *dst.add(dst_offset + i) = *src.add(src_offset + i);
-    }
-
-    Ok(())
-}
+// pub unsafe fn copy_void(
+//     src: *const c_void,
+//     src_offset: usize,
+//     src_count: usize,
+//     dst: *mut c_void,
+//     dst_offset: usize,
+//     dst_len: usize,
+// ) -> anyhow::Result<()> {
+//     if dst_len - dst_offset < src_count {
+//         bail!("insufficient length in source to copy destination")
+//     }
+//
+//     for i in 0..src_count {
+//         *dst.add(dst_offset + i) = *src.add(src_offset + i);
+//     }
+//
+//     Ok(())
+// }
 
 pub fn get_errno() -> i32 {
     std::io::Error::last_os_error().raw_os_error().unwrap()
 }
 
-pub const decoder: [u8; 96] = [
+pub const DECODER: [u8; 96] = [
     0xFF, 0x44, 0xFF, 0x54, 0x53, 0x52, 0x48, 0xFF, 0x4B, 0x4C, 0x46, 0x41, 0xFF, 0x3F, 0x3E, 0x45,
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x40, 0xFF, 0x49, 0x42, 0x4A, 0x47,
     0x51, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32,
@@ -63,7 +60,7 @@ pub const decoder: [u8; 96] = [
     0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x4F, 0xFF, 0x50, 0xFF, 0xFF,
 ];
 
-pub const encoder: &'static str = "0123456789 \
+pub const ENCODER: &'static str = "0123456789 \
 abcdefghij \
 klmnopqrst \
 uvwxyzABCD \
@@ -92,10 +89,10 @@ pub unsafe fn zmq_z85_decode(dest_: *mut u8, string_: *const c_char) -> *mut u8 
 
         let index = string_[char_nbr] - 32;
         char_nbr += 1;
-        if index >= decoder.len() {
+        if index >= DECODER.len() {
             return std::ptr::null_mut();
         }
-        let summand = decoder[index];
+        let summand = DECODER[index];
         if summand == 0xff || summand > u32::MAX - value {
             return std::ptr::null_mut();
         }
@@ -119,28 +116,28 @@ pub unsafe fn zmq_z85_decode(dest_: *mut u8, string_: *const c_char) -> *mut u8 
 
 pub fn put_u32(ptr: &mut [u8], value: u32) {
     unsafe {
-        *ptr = (value >> 24) as u8;
-        *ptr.add(1) = (value >> 16) as u8;
-        *ptr.add(2) = (value >> 8) as u8;
-        *ptr.add(3) = value as u8;
+        ptr[0] = (value >> 24) as u8;
+        ptr[1] = (value >> 16) as u8;
+        ptr[2] = (value >> 8) as u8;
+        ptr[3] = value as u8;
     }
 }
 
-pub unsafe fn get_u32(ptr: &[u8]) -> u32 {
-    let u32_bytes: [u8; 4] = [*ptr, *ptr.add(1), *ptr.add(2), *ptr.add(3)];
+pub fn get_u32(ptr: &[u8]) -> u32 {
+    let u32_bytes: [u8; 4] = [ptr[0], ptr[1], ptr[2], ptr[3]];
     u32::from_le_bytes(u32_bytes)
 }
 
 pub fn put_u64(ptr: &mut [u8], value: u64) {
     unsafe {
-        *ptr = (value >> 56) as u8;
-        *ptr.add(1) = (value >> 48) as u8;
-        *ptr.add(2) = (value >> 40) as u8;
-        *ptr.add(3) = (value >> 32) as u8;
-        *ptr.add(4) = (value >> 24) as u8;
-        *ptr.add(5) = (value >> 16) as u8;
-        *ptr.add(6) = (value >> 8) as u8;
-        *ptr.add(7) = value as u8;
+        ptr[0] = (value >> 56) as u8;
+        ptr[1] = (value >> 48) as u8;
+        ptr[2] = (value >> 40) as u8;
+        ptr[3] = (value >> 32) as u8;
+        ptr[4] = (value >> 24) as u8;
+        ptr[5] = (value >> 16) as u8;
+        ptr[6] = (value >> 8) as u8;
+        ptr[7] = value as u8;
     }
 }
 
@@ -155,6 +152,7 @@ pub fn is_retired_fd(x: ZmqFd) -> bool {
     x == -1
 }
 
+#[allow(non_snake_case)]
 pub fn FD_ISSET(fd: ZmqFd, fds: &fd_set) -> bool {
     let mut i = 0;
     while i < fds.len() {

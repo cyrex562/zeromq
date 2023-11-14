@@ -20,7 +20,7 @@ use crate::options::ZmqOptions;
 //     }
 
 pub fn raw_plug_internal(options: &ZmqOptions, engine: &mut ZmqEngine) -> Result<(),ZmqError> {
-    // no Handshaking for raw sock, instantiate raw encoder and decoders
+    // no Handshaking for raw sock, instantiate raw ENCODER and decoders
     // _encoder = new (std::nothrow) raw_encoder_t (_options.out_batch_size);
     engine.encoder = Some(ZmqEncoder::new(options.out_batch_size, EncoderType::RawEncoder));
     // alloc_assert (_encoder);

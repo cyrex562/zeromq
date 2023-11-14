@@ -1,8 +1,9 @@
 use crate::endpoint::ZmqEndpointUriPair;
+use crate::engine::ZmqEngine;
+use crate::io::reaper::ZmqReaper;
 use crate::own::ZmqOwn;
 use crate::pipe::ZmqPipe;
-use crate::reaper::ZmqReaper;
-use crate::session_base::ZmqSession;
+use crate::session::ZmqSession;
 use crate::socket::ZmqSocket;
 
 #[derive(Clone)]
@@ -137,7 +138,7 @@ pub struct ZmqCommand<'a> {
     // pub own: OwnArgs<'a>,
     pub object: Option<&'a mut ZmqOwn<'a>>,
     // pub attach: AttachArgs<'a>,
-    pub engine: Option<&'a mut ZmqEngine>,
+    pub engine: Option<&'a mut ZmqEngine<'a>>,
     // pub bind: BindArgs<'a>,
     pub pipe: Option<&'a mut ZmqPipe<'a>>,
     // pub activate_read: ActivateReadArgs,

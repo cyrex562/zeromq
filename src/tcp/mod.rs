@@ -1,19 +1,22 @@
 use std::ffi::c_void;
+use std::mem::size_of;
 
 use libc::{EAFNOSUPPORT, setsockopt};
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{recv, send, SIO_KEEPALIVE_VALS, SIO_LOOPBACK_FAST_PATH, SOCKET_ERROR, tcp_keepalive, WSAECONNABORTED, WSAECONNRESET, WSAEHOSTUNREACH, WSAENETDOWN, WSAENETRESET, WSAENOBUFS, WSAEOPNOTSUPP, WSAETIMEDOUT, WSAEWOULDBLOCK, WSAGetLastError, WSAIoctl};
+use windows::Win32::Networking::WinSock::{LPWSAOVERLAPPED_COMPLETION_ROUTINE, SEND_RECV_FLAGS};
 
 use crate::address::tcp_address::ZmqTcpAddress;
-use crate::defines::{AF_INET, AF_INET6, IPPROTO_TCP, RETIRED_FD, SO_RCVBUF, SO_SNDBUF, SOCK_STREAM, SOL_SOCKET, ZmqFd};
+use crate::defines::{AF_INET, AF_INET6, IPPROTO_TCP, RETIRED_FD, SO_BUSY_POLL, SO_RCVBUF, SO_SNDBUF, SOCK_STREAM, SOL_SOCKET, ZmqFd};
 use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::SocketError;
 use crate::defines::tcp::TCP_NODELAY;
 use crate::ip::{bind_to_device, enable_ipv4_mapping, open_socket, set_ip_type_of_service, set_socket_priority};
-use crate::net::platform_socket::platform_setsockopt;
+use crate::net::platform_socket::{platform_send, platform_setsockopt};
 use crate::options::ZmqOptions;
 use crate::utils::get_errno;
 
-pub fn tune_tcp_socket(s_: ZmqFd) -> Result<(),ZmqError> {
+pub fn tune_tcp_socket(s_: ZmqFd) -> Result<(), ZmqError> {
     //  Disable Nagle's algorithm. We are doing data batching on 0MQ level,
     //  so using Nagle wouldn't improve throughput in anyway, but it would
     //  hurt latency.
@@ -51,7 +54,7 @@ pub fn set_tcp_send_buffer(sockfd_: ZmqFd, bufsize_: i32) -> Result<(), ZmqError
     Ok(())
 }
 
-pub fn set_tcp_receive_buffer(sockfd_: ZmqFd, bufsize_: i32) -> Result<(),ZmqError> {
+pub fn set_tcp_receive_buffer(sockfd_: ZmqFd, bufsize_: i32) -> Result<(), ZmqError> {
     platform_setsockopt(sockfd_, SOL_SOCKET as libc::c_int, SO_RCVBUF,
                         &bufsize_.to_le_bytes(), 4)?;
     // assert_success_or_recoverable (sockfd_, rc);
@@ -88,7 +91,22 @@ pub fn tune_tcp_keepalives(s_: ZmqFd,
             } else { 1000 } as u32;
             let mut num_bytes_returned = 0u32;
             let mut rc = 0i32;
-            unsafe { rc = WSAIoctl(s_, SIO_KEEPALIVE_VALS as i32, &keepalive_opts, None, 0, &mut num_bytes_returned, None, 0) };
+            let keepalive_opts_len = size_of::<tcp_keepalive>();
+            let completion_routine = LPWSAOVERLAPPED_COMPLETION_ROUTINE::default();
+
+            unsafe {
+                rc = WSAIoctl(
+                    s_,
+                    SIO_KEEPALIVE_VALS,
+                    Some(&keepalive_opts as *const tcp_keepalive as *const libc::c_void),
+                    keepalive_opts_len as u32,
+                    None,
+                    0,
+                    &mut num_bytes_returned,
+                    None,
+                    completion_routine,
+                )
+            };
             // assert_success_or_recoverable(s_, rc);
             if rc == SOCKET_ERROR {
                 return rc;
@@ -219,7 +237,7 @@ pub fn tcp_write(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
 
         //  If not a single byte can be written to the socket in non-blocking mode
         //  we'll get an Error (this may happen during the speculative write).
-        let last_error = WSAGetLastError();
+        let last_error = unsafe{WSAGetLastError()};
         if nbytes == SOCKET_ERROR && last_error == WSAEWOULDBLOCK {
             return 0;
         }
@@ -275,18 +293,19 @@ pub fn tcp_write(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
 // #endif
 }
 
-pub fn tcp_read(s_: ZmqFd, data_: &mut [u8], size_: usize) -> i32 {
+pub fn tcp_read(s_: ZmqFd, data_: &mut [u8], size_: usize) -> Result<i32,ZmqError> {
 // #ifdef ZMQ_HAVE_WINDOWS
     #[cfg(target_os = "windows")]
     {
         let mut rc = 0;
-        unsafe { rc = recv(s_, (data_), 0); };
+        unsafe { rc = recv(s_, (data_), SEND_RECV_FLAGS::default()
+        ); };
 
         //  If not a single byte can be read from the socket in non-blocking mode
         //  we'll get an Error (this may happen during the speculative read).
-        if (rc == SOCKET_ERROR) {
-            let last_error = WSAGetLastError();
-            if (last_error == WSAEWOULDBLOCK) {
+        if rc == SOCKET_ERROR {
+            let last_error = unsafe { WSAGetLastError() };
+            if last_error == WSAEWOULDBLOCK {
                 // errno = EAGAIN;
             } else {
                 // wsa_assert (
@@ -298,13 +317,17 @@ pub fn tcp_read(s_: ZmqFd, data_: &mut [u8], size_: usize) -> i32 {
             }
         }
 
-        return rc = if SOCKET_ERROR { -1 } else { rc };
+        // return rc = if SOCKET_ERROR { -1 } else { rc };
+        return if rc == SOCKET_ERROR {
+            Err(SocketError("recv failed"))
+        } else {
+            Ok(rc)
+        }
     }
 // #else
-    unsafe {
         #[cfg(not(target_os = "windows"))]
         {
-            let rc = libc::recv(s_, data_.as_mut_ptr() as *mut c_void, size_, 0);
+            let rc = unsafe {libc::recv(s_, data_.as_mut_ptr() as *mut c_void, size_, 0)};
 
             //  Several errors are OK. When speculative read is being Done we may not
             //  be able to read a single byte from the socket. Also, SIGSTOP issued
@@ -323,37 +346,48 @@ pub fn tcp_read(s_: ZmqFd, data_: &mut [u8], size_: usize) -> i32 {
 
             return rc as i32;
         }
-    }
 // #endif
 }
 
-pub fn tcp_tune_loopback_fast_path(socket_: ZmqFd) -> Result<(),ZmqError> {
+pub fn tcp_tune_loopback_fast_path(socket_: ZmqFd) -> Result<(), ZmqError> {
 // #if defined ZMQ_HAVE_WINDOWS && defined SIO_LOOPBACK_FAST_PATH
     #[cfg(target_os = "windows")]
     {
         let mut sio_loopback_fastpath = 1;
         let mut number_of_bytes_returned = 0;
 
-        let mut rc = WSAIoctl(
-            socket_, SIO_LOOPBACK_FAST_PATH, &sio_loopback_fastpath,
-            size_of::<sio_loopback_fastpath>, null_mut(), 0, &number_of_bytes_returned, 0, 0);
+        let mut rc = unsafe {WSAIoctl(
+            socket_,
+            SIO_LOOPBACK_FAST_PATH,
+            Some(sio_loopback_fastpath.to_le_bytes().as_ptr() as *const c_void),
+            size_of::<sio_loopback_fastpath>() as u32,
+            None,
+            0,
+            &mut number_of_bytes_returned,
+            None,
+            LPWSAOVERLAPPED_COMPLETION_ROUTINE::default()
+        )};
 
         if SOCKET_ERROR == rc {
-            let last_error = WSAGetLastError();
+            let last_error = unsafe{WSAGetLastError()};
 
             if WSAEOPNOTSUPP == last_error {
                 // This system is not Windows 8 or Server 2012, and the call is not supported.
             } else {
                 // wsa_assert (false);
             }
+
+            return Err(SocketError("WSAIoctl failed"));
         }
+
+        return Ok(());
     }
 // #else
     // LIBZMQ_UNUSED (socket_);
 // #endif
 }
 
-pub fn tune_tcp_busy_poll(socket: ZmqFd, busy_poll: i32) -> Result<(),ZmqError> {
+pub fn tune_tcp_busy_poll(socket: ZmqFd, busy_poll: i32) -> Result<(), ZmqError> {
 // #if defined(ZMQ_HAVE_BUSY_POLL)
     if busy_poll > 0 {
         // let rc = setsockopt(socket_, SOL_SOCKET as libc::c_int, SO_BUSY_POLL,

@@ -1,6 +1,5 @@
-use crate::atomic_counter::ZmqAtomicCounter;
-use std::thread::sleep;
 use windows::Win32::System::Threading::Sleep;
+use crate::defines::atomic_counter::ZmqAtomicCounter;
 
 pub unsafe fn zmq_sleep(seconds_: i32) {
     #[cfg(target_os = "windows")]

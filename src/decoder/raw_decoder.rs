@@ -3,7 +3,7 @@ use crate::err::ZmqError;
 use crate::msg::content::ZmqContent;
 
 // pub struct ZmqRawDecoder {
-//     // pub decoder: dyn i_decoder
+//     // pub DECODER: dyn i_decoder
 //     pub _in_progress: ZmqMsg,
 //     // pub _allocator: ZmqSharedMessageMemoryAllocator,
 // }
@@ -67,8 +67,8 @@ pub fn raw_decode(
     };
     if decoder._in_progress.is_zcmsg() {
         // TODO
-        // decoder._allocator.advance_content();
-        // decoder._allocator.release();
+        // DECODER._allocator.advance_content();
+        // DECODER._allocator.release();
     }
     Ok(data.len())
 }
