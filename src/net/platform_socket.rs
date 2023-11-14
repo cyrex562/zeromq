@@ -5,21 +5,21 @@ use std::ptr::null_mut;
 use libc::{F_GETFL, F_SETFL, getnameinfo, O_NONBLOCK, setsockopt};
 use libc::timeval;
 use windows::imp::GetLastError;
-use windows::Win32::Foundation::{ERROR_ACCESS_DENIED, FALSE, INVALID_HANDLE_VALUE};
+use windows::Win32::Foundation::{BOOL, ERROR_ACCESS_DENIED, FALSE, HANDLE, INVALID_HANDLE_VALUE, TRUE};
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{FIONBIO, getpeername, getsockname, ioctlsocket, setsockopt, SOCKADDR, SOCKET, WSADATA, WSASocketA, WSAStartup, send};
-use windows::Win32::Networking::WinSock::{SEND_RECV_FLAGS, WSACleanup};
-use windows::Win32::Security::{InitializeSecurityDescriptor, SECURITY_ATTRIBUTES, SECURITY_DESCRIPTOR, SetSecurityDescriptorDacl};
+use windows::Win32::Networking::WinSock::{INADDR_LOOPBACK, INVALID_SOCKET, SEND_RECV_FLAGS, SOCKADDR_IN, WSACleanup, ADDRESS_FAMILY, bind, SOCKET_ERROR, listen, connect, accept, recv, closesocket};
+use windows::Win32::Security::{InitializeSecurityDescriptor, PSECURITY_DESCRIPTOR, SECURITY_ATTRIBUTES, SECURITY_DESCRIPTOR, SetSecurityDescriptorDacl};
 use windows::Win32::Storage::FileSystem::SYNCHRONIZE;
 use windows::Win32::System::SystemServices::SECURITY_DESCRIPTOR_REVISION;
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::OpenEventA;
-use windows::Win32::System::Threading::{CreateEventA, CreateMutexA, EVENT_MODIFY_STATE, SYNCHRONIZATION_ACCESS_RIGHTS};
+use windows::Win32::System::Threading::{CreateEventA, CreateMutexA, EVENT_MODIFY_STATE, INFINITE, ReleaseMutex, SetEvent, SYNCHRONIZATION_ACCESS_RIGHTS, WaitForSingleObject};
 use windows::Win32::System::WindowsProgramming::OpenMutexA;
-use crate::defines::{NI_MAXHOST, RETIRED_FD, SIGNALER_PORT, SO_REUSEADDR, SOCK_STREAM, SOL_SOCKET, ZmqFd, ZmqPollFd, ZmqSockAddr};
+use crate::defines::{AF_INET, NI_MAXHOST, RETIRED_FD, SIGNALER_PORT, SO_REUSEADDR, SOCK_STREAM, SOL_SOCKET, ZmqFd, ZmqPollFd, ZmqSockAddr};
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::PlatformError;
-use crate::ip::set_nosigpipe;
+use crate::ip::{open_socket, set_nosigpipe, tune_socket};
 use crate::poll::select::fd_set;
 use crate::utils::sock_utils::wsa_sockaddr_to_zmq_sockaddr;
 
@@ -275,63 +275,78 @@ pub fn platform_shutdown_network() -> Result<(), ZmqError> {
 }
 
 #[cfg(target_os = "windows")]
-pub unsafe fn make_fdpair_tcpip(r_: *mut fd_t, w_: *mut fd_t) -> i32 {
-    let mut sd = SECURITY_DESCRIPTOR::default();
+pub unsafe fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(),ZmqError> {
+    // let mut sd = SECURITY_DESCRIPTOR::default();
+    // let mut psd = PSECURITY_DESCRIPTOR::default();
+    // psd.0
+    let mut psd = PSECURITY_DESCRIPTOR::default();
+
     let mut sa = SECURITY_ATTRIBUTES::default();
-    InitializeSecurityDescriptor(&mut sd, SECURITY_DESCRIPTOR_REVISION);
-    SetSecurityDescriptorDacl(&mut sd, TRUE, None, FALSE);
+
+    InitializeSecurityDescriptor(psd, SECURITY_DESCRIPTOR_REVISION);
+    SetSecurityDescriptorDacl(psd, TRUE, None, FALSE);
 
     sa.nLength = size_of_val(&sa) as u32;
-    sa.lpSecurityDescriptor = (&mut sd) as *mut c_void;
+    sa.lpSecurityDescriptor = psd.0;
 
-    let sync: HANDLE = 0;
+    let mut sync: HANDLE = HANDLE::default();
     let event_signaler_port = 5905;
     if SIGNALER_PORT == event_signaler_port {
-        let mut sync = CreateEventA(Some(&sa), FALSE, TRUE, "Global\\zmq-signaler-port-sync").unwrap();
+        sync = CreateEventA(
+            Some(&sa),
+            FALSE,
+            TRUE,
+            "Global\\zmq-signaler-port-sync"
+        )?;
 
-        if sync == INVALID_HANDLE_VALUE && GetLastError() == ERROR_ACCESS_DENIED {
-            let desired_access = (SYNCHRONIZE as SYNCHRONIZATION_ACCESS_RIGHTS | EVENT_MODIFY_STATE);
-            sync = OpenEventA(desired_access, FALSE, "Global\\zmq-signaler-port-sync").unwrap();
+        if sync == INVALID_HANDLE_VALUE && GetLastError() == ERROR_ACCESS_DENIED.0 {
+            let mut sar_sync = SYNCHRONIZATION_ACCESS_RIGHTS::default();
+            sar_sync.0 = SYNCHRONIZE.0;
+            let desired_access = (sar_sync | EVENT_MODIFY_STATE);
+            sync = OpenEventA(desired_access, FALSE, "Global\\zmq-signaler-port-sync")?;
         }
     } else if SIGNALER_PORT != 0 {
         // let mutex_name: [u8; MAX_PATH] = [0; MAX_PATH];
         // let rc = snprintf(mutex_name, MAX_PATH, "Global\\zmq-signaler-port-sync-%u", SIGNALER_PORT);
         let mux_name = format!("Global\\zmq-signaler-port-sync-{}", SIGNALER_PORT);
-        let mutex_name = mux_name.as_ptr() as *const c_char;
+        let mutex_name = mux_name.as_ptr() as *const libc::c_char;
         let mut sync = CreateMutexA(Some(&sa), FALSE, mutex_name).unwrap();
-        if sync == INVALID_HANDLE_VALUE && GetLastError() == ERROR_ACCESS_DENIED {
-            let desired_access = (SYNCHRONIZE as SYNCHRONIZATION_ACCESS_RIGHTS | EVENT_MODIFY_STATE);
-            sync = OpenMutexA(desired_access as u32, FALSE, mutex_name).unwrap();
+        if sync == INVALID_HANDLE_VALUE && GetLastError() == ERROR_ACCESS_DENIED.0 {
+            let mut desired_access = SYNCHRONIZATION_ACCESS_RIGHTS::default();
+            desired_access |= EVENT_MODIFY_STATE;
+            desired_access.0 |= SYNCHRONIZE.0;
+            // let desired_access = (SYNCHRONIZE as SYNCHRONIZATION_ACCESS_RIGHTS | EVENT_MODIFY_STATE);
+            sync = OpenMutexA(desired_access.0, FALSE, mutex_name)?;
         }
-        *w_ = INVALID_SOCKET as fd_t;
-        *r_ = INVALID_SOCKET as fd_t;
+        *w_ = INVALID_SOCKET.0 as ZmqFd;
+        *r_ = INVALID_SOCKET.0 as ZmqFd;
         let mut listener = SOCKET::default();
-        listener = ip::open_socket(AF_INET as i32, SOCK_STREAM as i32, 0) as SOCKET;
-        let mut so_reuseaddr: BOOL = 1;
+        let zmq_sk = open_socket(AF_INET, SOCK_STREAM, 0)?;
+        listener.0 = zmq_sk;
+        let so_reuseaddr: BOOL = BOOL{0: 1};
         let mut rc = setsockopt(
             listener,
-            SOL_SOCKET,
+            SOL_SOCKET as i32,
             SO_REUSEADDR,
-            &so_reuseaddr as *const c_char,
-            mem::size_of_val(&so_reuseaddr) as c_int,
-        );
-        ip::tune_socket(listener);
+            Some(&so_reuseaddr.0.to_le_bytes()));
+        tune_socket(listener)?;
 
         let mut addr = SOCKADDR_IN::default();
-        addr.sin_family = AF_INET as u16;
-        addr.sin_addr.s_addr = INADDR_LOOPBACK;
+        addr.sin_family = ADDRESS_FAMILY{0: AF_INET as u16 };
+        addr.sin_addr.S_un.S_addr = INADDR_LOOPBACK;
         addr.sin_port = SIGNALER_PORT as u16;
 
-        *w_ = ip::open_socket(AF_INET as i32, SOCK_STREAM as i32, 0);
+        *w_ = open_socket(AF_INET, SOCK_STREAM, 0)?;
 
         if sync != INVALID_HANDLE_VALUE {
             let dwrc = WaitForSingleObject(sync, INFINITE);
         }
 
-        rc = bind(listener, &addr, mem::size_of_val(&addr) as i32);
+        let mut sk_addr = win_SOCKADDR_IN_to_SOCKADDR(&addr);
+        rc = bind(listener, &sk_addr, size_of_val(&addr) as i32);
 
         if rc != SOCKET_ERROR && SIGNALER_PORT == 0 {
-            let addrlen = mem::size_of_val(&addr) as i32;
+            let mut addrlen = size_of_val(&addr) as i32;
             rc = getsockname(
                 listener,
                 &mut addr as *mut SOCKADDR_IN as *mut SOCKADDR,
@@ -347,16 +362,16 @@ pub unsafe fn make_fdpair_tcpip(r_: *mut fd_t, w_: *mut fd_t) -> i32 {
             rc = connect(
                 *w_,
                 &addr as *const SOCKADDR_IN as *const SOCKADDR,
-                mem::size_of_val(&addr) as i32,
+                size_of_val(&addr) as i32,
             );
         }
 
         if rc != SOCKET_ERROR {
-            ip::tune_socket(*w_);
-            *r_ = accept(listener, null_mut(), null_mut()) as fd_t;
+            tune_socket(SOCKET{0:*w_})?;
+            *r_ = accept(listener, None, None) as fd_t;
         }
 
-        if *r_ != INVALID_SOCKET {
+        if *r_ != INVALID_SOCKET.0 {
             let dummy_size = 1024 * 1024;
             let mut dummy = vec![0u8; dummy_size];
             let mut still_to_send = dummy_size;
@@ -364,12 +379,20 @@ pub unsafe fn make_fdpair_tcpip(r_: *mut fd_t, w_: *mut fd_t) -> i32 {
             while still_to_send || still_to_recv {
                 let mut nbytes = 0i32;
                 if still_to_send > 0 {
-                    nbytes = send(*w_, &dummy[dummy_size - still_to_send..], 0);
+                    nbytes = send(
+                        *w_,
+                        &dummy[dummy_size - still_to_send..],
+                        SEND_RECV_FLAGS{0:0}
+                    );
                     if nbytes > 0 {
                         still_to_send -= nbytes;
                     }
                 }
-                nbytes = recv(*r_, &dummy[dummy_size - still_to_recv], 0);
+                nbytes = recv(
+                    *r_,
+                    &mut dummy[dummy_size - still_to_recv..],
+                    SEND_RECV_FLAGS{0:0}
+                );
                 still_to_recv -= nbytes;
             }
         }
@@ -378,9 +401,9 @@ pub unsafe fn make_fdpair_tcpip(r_: *mut fd_t, w_: *mut fd_t) -> i32 {
 
         if sync != INVALID_HANDLE_VALUE {
             if SIGNALER_PORT == event_signaler_port {
-                let result = SetEvent(sync);
+                SetEvent(sync);
             } else {
-                let result = ReleaseMutex(sync);
+                ReleaseMutex(sync);
             }
 
             let result = CloseHandle(sync);
@@ -398,6 +421,8 @@ pub unsafe fn make_fdpair_tcpip(r_: *mut fd_t, w_: *mut fd_t) -> i32 {
 
         return -1;
     }
+
+    Ok(())
 }
 
 #[cfg(target_os = "windows")]
@@ -690,4 +715,34 @@ pub fn platform_send(fd: ZmqFd, data: &[u8], flags: i32) -> Result<(),ZmqError> 
             Err(PlatformError(&format!("send failed {}", rc)))
         };
     }
+}
+
+#[allow(non_snake_case)]
+#[cfg(target_os="windows")]
+pub fn win_SOCKADDR_IN_to_SOCKADDR(sk_in: &SOCKADDR_IN) -> SOCKADDR
+{
+    // pub struct SOCKADDR_IN {
+    //     pub sin_family: ADDRESS_FAMILY,
+    //     pub sin_port: u16,
+    //     pub sin_addr: IN_ADDR,
+    //     pub sin_zero: [u8; 8],
+    // }
+
+    // pub struct SOCKADDR {
+    //     pub sa_family: ADDRESS_FAMILY,
+    //     pub sa_data: [u8; 14],
+    // }
+    let mut out = SOCKADDR::default();
+    out.sa_family = sk_in.sin_family;
+    let port_bytes = sk_in.sin_port.to_le_bytes();
+    out.sa_data[0] = port_bytes[0];
+    out.sa_data[1] = port_bytes[1];
+
+    let addr_bytes = unsafe { sk_in.sin_addr.S_un.S_addr.to_le_bytes() };
+    out.sa_data[2] = addr_bytes[0];
+    out.sa_data[3] = addr_bytes[1];
+    out.sa_data[4] = addr_bytes[2];
+    out.sa_data[5] = addr_bytes[3];
+
+    out
 }

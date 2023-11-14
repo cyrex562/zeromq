@@ -1,6 +1,8 @@
 use std::mem;
 
 use libc::c_int;
+use windows::Win32::Foundation::BOOL;
+use windows::Win32::Networking::WinSock::SOCKET;
 
 use crate::address::get_socket_address;
 use crate::address::SocketEnd::SocketEndRemote;
@@ -9,10 +11,12 @@ use crate::defines::{
     SO_PRIORITY, SOL_SOCKET, ZmqFd, ZmqSockAddr,
 };
 use crate::defines::err::ZmqError;
+use crate::defines::tcp::TCP_NODELAY;
 use crate::net::platform_socket::{
     platform_getnameinfo, platform_init_network, platform_make_fdpair, platform_open_socket,
     platform_setsockopt, platform_shutdown_network, platform_unblock_socket,
 };
+use crate::tcp::tcp_tune_loopback_fast_path;
 use crate::utils::sock_utils::zmq_sockaddrstorage_to_zmq_sockaddr;
 
 pub mod ip_resolver;
@@ -111,4 +115,24 @@ pub fn shutdown_network() -> Result<(), ZmqError> {
 
 pub unsafe fn make_fdpair(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(), ZmqError> {
     platform_make_fdpair(r_, w_)
+}
+
+// static void tune_socket (const SOCKET socket_)
+// {
+//     BOOL tcp_nodelay = 1;
+//     const int rc =
+//       setsockopt (socket_, IPPROTO_TCP, TCP_NODELAY,
+//                   reinterpret_cast<char *> (&tcp_nodelay), sizeof tcp_nodelay);
+//     wsa_assert (rc != SOCKET_ERROR);
+//
+//     zmq::tcp_tune_loopback_fast_path (socket_);
+// }
+#[cfg(target_os="windows")]
+pub fn tune_socket(socket: SOCKET) -> Result<(),ZmqError>{
+    let tcp_nodelay = BOOL{0: 1};
+    platform_setsockopt(socket.0, IPPROTO_TCP, TCP_NODELAY, &tcp_nodelay.0.to_le_bytes())?;
+
+    tcp_tune_loopback_fast_path(socket.0)?;
+
+    Ok(())
 }

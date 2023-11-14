@@ -327,7 +327,7 @@ pub fn tcp_read(s_: ZmqFd, data_: &mut [u8], size_: usize) -> i32 {
 // #endif
 }
 
-pub fn tcp_tune_loopback_fast_path(socket_: ZmqFd) {
+pub fn tcp_tune_loopback_fast_path(socket_: ZmqFd) -> Result<(),ZmqError> {
 // #if defined ZMQ_HAVE_WINDOWS && defined SIO_LOOPBACK_FAST_PATH
     #[cfg(target_os = "windows")]
     {
