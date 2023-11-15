@@ -148,9 +148,13 @@ pub fn udp_plug(
         } else {
             engine.out_address = zmq_sockaddrin_to_sockaddr(&engine.raw_address);
             #[cfg(target_os="windows")]
-            engine.out_address_len = size_of::<SOCKADDR_IN>();
+            {
+                engine.out_address_len = size_of::<SOCKADDR_IN>();
+            }
             #[cfg(not(target_os="windows"))]
-            engine.out_address_len = size_of::<sockaddr_in>();
+            {
+                engine.out_address_len = size_of::<sockaddr_in>();
+            }
         }
     }
 

@@ -2,8 +2,6 @@ use crate::defines::{ZmqFd, ZMQ_MSG_COMMAND, ZMQ_MSG_PROPERTY_PEER_ADDRESS, ZMQ_
 use crate::engine::raw_engine::raw_plug_internal;
 use crate::engine::zmtp_engine::{zmtp_plug_internal, zmtp_produce_ping_message};
 use crate::engine::{ZmqEngine, ZmqEngineType};
-use crate::err::ZmqError;
-use crate::err::ZmqError::EngineError;
 use crate::io::io_thread::ZmqIoThread;
 use crate::ip::get_peer_ip_address;
 use crate::mechanism::ZmqMechanism;
@@ -15,6 +13,7 @@ use crate::tcp::{tcp_read, tcp_write};
 use crate::utils::get_errno;
 use libc::{EAGAIN, ECONNRESET};
 use std::collections::HashMap;
+use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::EngineError;
 
 pub const HANDSHAKE_TIMER_ID: i32 = 0x40;
@@ -22,14 +21,15 @@ pub const HEARTBEAT_IVL_TIMER_ID: i32 = 0x80;
 pub const HEARTBEAT_TIMEOUT_TIMER_ID: i32 = 0x81;
 pub const HEARTBEAT_TTL_TIMER_ID: i32 = 0x82;
 
-pub fn get_peer_address(s_: ZmqFd) -> String {
-    let mut peer_address: String = String::new();
-    let family = get_peer_ip_address(s_, &mut peer_address);
-    if family == 0 {
-        peer_address.clear();
-    }
-
-    peer_address
+pub fn get_peer_address(s_: ZmqFd) -> Result<String, ZmqError> {
+    // let mut peer_address: String = String::new();
+    // let family = get_peer_ip_address(s_, &mut peer_address);
+    // if family == 0 {
+    //     peer_address.clear();
+    // }
+    //
+    // peer_address
+    get_peer_ip_address(s_)
 }
 
 // pub struct ZmqStreamEngineBase<'a> {
@@ -211,20 +211,19 @@ pub fn stream_in_event_internal(options: &ZmqOptions, engine: &mut ZmqEngine) ->
         let mut bufsize = 0usize;
         engine
             .decoder
-            .get_buffer(engine: &mut ZmqEngine, engine.in_pos, &mut bufsize);
+            .get_buffer(engine, engine.in_pos, &mut bufsize);
 
-        let mut rc = stream_read(engine, engine.in_pos, bufsize);
-
-        if rc == -1 {
-            if get_errno() != EAGAIN {
-                // Error (ConnectionError);
-                return false;
-            }
-            return true;
-        }
+        let nread = stream_read(engine, engine.in_pos, bufsize)?;
+        // if rc == -1 {
+        //     if get_errno() != EAGAIN {
+        //         // Error (ConnectionError);
+        //         return false;
+        //     }
+        //     return true;
+        // }
 
         //  Adjust input size
-        engine.in_size = (rc) as usize;
+        engine.in_size = (nread) as usize;
         // Adjust buffer size to received bytes
         engine.decoder.resize_buffer(engine.in_size);
     }
@@ -249,8 +248,8 @@ pub fn stream_in_event_internal(options: &ZmqOptions, engine: &mut ZmqEngine) ->
 
     //  Tear down the connection if we have failed to decode input data
     //  or the session has rejected the message.
-    if (rc == -1) {
-        if (get_errno() != EAGAIN) {
+    if rc == -1 {
+        if get_errno() != EAGAIN {
             // Error (ProtocolError);
             return false;
         }
@@ -277,7 +276,7 @@ pub fn stream_out_event(options: &ZmqOptions, engine: &mut ZmqEngine) {
         engine.out_size = engine.encoder.unwrap().encode(engine.out_pos, 0);
 
         while engine.out_size < (options.out_batch_size) {
-            if (engine.next_msg)(engine, &mut engine.tx_msg.unwrap()) == -1 {
+            if (engine.next_msg)(options, engine, &mut engine.tx_msg.unwrap()) == -1 {
                 //  ws_engine can cause an engine Error and delete it, so
                 //  bail out immediately to avoid use-after-free
                 if get_errno() == ECONNRESET {
@@ -556,7 +555,7 @@ pub fn stream_write_credential(
     return engine.decode_and_push(msg_);
 }
 
-pub fn stream_pull_and_encode(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
+pub fn stream_pull_and_encode(options: &ZmqOptions, engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     if engine.session.pull_msg(msg_) == -1 {
         return Err(EngineError("failed to pull message"));
     }
@@ -723,6 +722,6 @@ pub fn stream_read(engine: &mut ZmqEngine, data_: &mut [u8], size_: usize) -> Re
     return Ok(rc);
 }
 
-pub fn stream_write(engine: &mut ZmqEngine, data_: &mut [u8], size_: usize) -> i32 {
+pub fn stream_write(engine: &mut ZmqEngine, data_: &mut [u8], size_: usize) -> Result<i32,ZmqError> {
     tcp_write(engine.s, data_, size_)
 }

@@ -2,11 +2,13 @@ use std::ffi::c_void;
 use std::mem::size_of_val;
 
 use libc::{c_int, close, EAGAIN, getpid, read, write};
-use windows::Win32::Networking::WinSock::{recv, select, send, TIMEVAL};
+use windows::Win32::Networking::WinSock::{recv, select, send, SEND_RECV_FLAGS, TIMEVAL};
 
 use crate::defines::{ZmqFd, ZmqPid};
+use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::PollerError;
 use crate::ip::{make_fdpair, unblock_socket};
+use crate::net::platform_socket::{platform_select, platform_send};
 use crate::poll::select::{fd_set, FD_SET, FD_ZERO};
 use crate::utils::get_errno;
 
@@ -40,7 +42,7 @@ impl ZmqSignaler {
 
     pub fn send(&mut self) {
         #[cfg(feature = "fork")]
-        {
+        unsafe{
             if self.pid != getpid() {
                 return;
             }
@@ -65,10 +67,12 @@ impl ZmqSignaler {
             let mut flags = SEND_RECV_FLAGS::default();
             flags.0 = 0;
             loop {
-                nbytes = send(self._w, &[dummy], flags);
-                if nbytes != SOCKET_ERROR {
-                    break;
-                }
+                // nbytes = send(self._w, &[dummy], flags);
+                // if nbytes != SOCKET_ERROR {
+                //     break;
+                // }
+                platform_send(self._w, &[dummy], flags.0)?;
+
             }
         }
 
@@ -100,7 +104,7 @@ impl ZmqSignaler {
     pub fn wait(&mut self, timeout_: i32) -> Result<(), ZmqError> {
         // #ifdef HAVE_FORK
         #[cfg(feature = "fork")]
-        {
+        unsafe{
             if self.pid != getpid() {
                 // we have forked and the file descriptor is closed. Emulate an interrupt
                 // response.
@@ -152,7 +156,7 @@ impl ZmqSignaler {
         // #elif defined ZMQ_POLL_BASED_ON_SELECT
         #[cfg(feature = "select")] {
             // optimized_fd_set_t fds (1);
-            let fds = fd_set { fd_count: 0, fd_array: [0 as ZmqFd; 64] };
+            let mut fds = fd_set { fd_count: 0, fd_array: [0 as ZmqFd; 64] };
             FD_ZERO(fds.get());
             FD_SET(self._r, fds.get());
             // struct timeval timeout;
@@ -163,26 +167,29 @@ impl ZmqSignaler {
             }
             // #ifdef ZMQ_HAVE_WINDOWS
             let mut rc = 0;
-            #[cfg(target_os = "windows")]
-            {
-                rc = select(0, fds.get(), None, None, if timeout_ >= 0 { Some(&timeout as *const TIMEVAL) } else { None });
-                // wsa_assert (rc != SOCKET_ERROR);
-            }
-            // #else
-            #[cfg(not(target_os = "windows"))]
-            {
-                unsafe { rc = select(_r + 1, fds.get(), NULL, NULL, timeout_ >= 0? & timeout: NULL); }
-                if unlikely(rc < 0) {
-                    errno_assert(errno == EINTR);
-                    return Err(PollerError("select failed"));
-                }
-            }
-            // #endif
-            if rc == 0 {
-                // errno = EAGAIN;
-                return Err(PollerError("EAGAIN"));
-            }
-            // zmq_assert (rc == 1);
+
+            platform_select(0, Some(&mut fds), None, None, if timeout_ >= 0 { Some(&mut timeout) } else { None })?;
+
+            // #[cfg(target_os = "windows")]
+            // {
+            //     rc = select(0, fds.get(), None, None, if timeout_ >= 0 { Some(&timeout as *const TIMEVAL) } else { None });
+            //     // wsa_assert (rc != SOCKET_ERROR);
+            // }
+            // // #else
+            // #[cfg(not(target_os = "windows"))]
+            // {
+            //     unsafe { rc = select(_r + 1, fds.get(), NULL, NULL, timeout_ >= 0? & timeout: NULL); }
+            //     if unlikely(rc < 0) {
+            //         errno_assert(errno == EINTR);
+            //         return Err(PollerError("select failed"));
+            //     }
+            // }
+            // // #endif
+            // if rc == 0 {
+            //     // errno = EAGAIN;
+            //     return Err(PollerError("EAGAIN"));
+            // }
+            // // zmq_assert (rc == 1);
             return Ok(());
         }
         // #else
@@ -339,11 +346,13 @@ pub fn sleep_ms(millis: u32) -> Result<(), ZmqError> {
     }
 
     #[cfg(target_os = "windows")]
-    Sleep(millis as u32);
-
+    {
+        Sleep(millis as u32);
+    }
     #[cfg(not(target_os = "windows"))]
-    rc = unsafe { libc::usleep(millis * 1000) };
-
+    {
+        rc = unsafe { libc::usleep(millis * 1000) };
+    }
     return Ok(());
 }
 

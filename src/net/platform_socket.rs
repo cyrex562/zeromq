@@ -1,21 +1,33 @@
+use std::mem::size_of_val;
 use std::ptr::null_mut;
 
 #[cfg(not(target_os = "windows"))]
 use libc::{F_GETFL, F_SETFL, getnameinfo, O_NONBLOCK, setsockopt};
 use libc::timeval;
+use windows::core::PSTR;
+use windows::Win32::Foundation::{BOOL, CloseHandle, ERROR_ACCESS_DENIED, FALSE, GetLastError, HANDLE, HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE, TRUE, HANDLE_FLAGS, SetHandleInformation};
 #[cfg(target_os = "windows")]
-use windows::Win32::Networking::WinSock::{FIONBIO, getpeername, getsockname, ioctlsocket, send, setsockopt, SOCKADDR, SOCKET, WSADATA, WSASocketA, WSAStartup};
+use windows::Win32::Networking::WinSock::{FIONBIO, getpeername, getsockname, ioctlsocket, send, setsockopt, SOCKADDR, SOCKET, WSADATA, WSASocketA, WSAStartup, ADDRESS_FAMILY, SEND_RECV_FLAGS};
+use windows::Win32::Networking::WinSock::{accept, bind, closesocket, connect, FD_SET, getsockopt, INADDR_LOOPBACK, INVALID_SOCKET, listen, recv, recvfrom, select, sendto, SOCKADDR_IN, SOCKET_ERROR, TIMEVAL, WSACleanup, WSAPoll, WSAPOLLFD};
+use windows::Win32::Security::{InitializeSecurityDescriptor, PSECURITY_DESCRIPTOR, SECURITY_ATTRIBUTES, SetSecurityDescriptorDacl};
+use windows::Win32::Storage::FileSystem::SYNCHRONIZE;
+use windows::Win32::System::SystemServices::SECURITY_DESCRIPTOR_REVISION;
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::OpenEventA;
+use windows::Win32::System::Threading::{CreateEventA, CreateMutexA, EVENT_MODIFY_STATE, INFINITE, ReleaseMutex, SetEvent, SYNCHRONIZATION_ACCESS_RIGHTS, WaitForSingleObject};
+use windows::Win32::System::WindowsProgramming::OpenMutexA;
 #[cfg(target_os = "windows")]
 use crate::ip::tune_socket;
 
-use crate::defines::{AF_UNIX, NI_MAXHOST, RETIRED_FD, SOCK_STREAM, ZmqFd, ZmqPollFd, ZmqSockAddr, ZmqSocklen};
+use crate::defines::{AF_INET, AF_UNIX, IPPROTO_TCP, NI_MAXHOST, RETIRED_FD, SIGNALER_PORT, SO_REUSEADDR, SOCK_STREAM, SOL_SOCKET, ZmqFd, ZmqPollFd, ZmqSockAddr, ZmqSocklen};
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::PlatformError;
-use crate::ip::{set_nosigpipe};
+use crate::defines::tcp::TCP_NODELAY;
+use crate::defines::time::{zmq_timeval_to_ms_timeval, ZmqTimeval};
+use crate::ip::{open_socket, set_nosigpipe};
 use crate::poll::select::fd_set;
-use crate::utils::sock_utils::{sockaddr_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr};
+use crate::tcp::tcp_tune_loopback_fast_path;
+use crate::utils::sock_utils::{sockaddr_to_zmq_sockaddr, wsa_sockaddr_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr, zmq_sockaddr_to_wsa_sockaddr};
 
 pub fn platform_setsockopt(
     fd: ZmqFd,
@@ -90,7 +102,6 @@ pub fn platform_getnameinfo(
                 flags,
             );
         }
-
     }
     if get_servicename {
         // unsafe {
@@ -297,8 +308,10 @@ pub fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(), ZmqError>
 
     let mut sa = SECURITY_ATTRIBUTES::default();
 
-    InitializeSecurityDescriptor(psd, SECURITY_DESCRIPTOR_REVISION);
-    SetSecurityDescriptorDacl(psd, TRUE, None, FALSE);
+    unsafe {
+        InitializeSecurityDescriptor(psd, SECURITY_DESCRIPTOR_REVISION);
+        SetSecurityDescriptorDacl(psd, TRUE, None, FALSE);
+    }
 
     sa.nLength = size_of_val(&sa) as u32;
     sa.lpSecurityDescriptor = psd.0;
@@ -306,31 +319,33 @@ pub fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(), ZmqError>
     let mut sync: HANDLE = HANDLE::default();
     let event_signaler_port = 5905;
     if SIGNALER_PORT == event_signaler_port {
-        sync = CreateEventA(
-            Some(&sa),
-            FALSE,
-            TRUE,
-            "Global\\zmq-signaler-port-sync",
-        )?;
+        sync = unsafe {
+            CreateEventA(
+                Some(&sa),
+                FALSE,
+                TRUE,
+                "Global\\zmq-signaler-port-sync",
+            )?
+        };
 
-        if sync == INVALID_HANDLE_VALUE && GetLastError() == ERROR_ACCESS_DENIED.0 {
+        if sync == INVALID_HANDLE_VALUE && unsafe { GetLastError() == ERROR_ACCESS_DENIED } {
             let mut sar_sync = SYNCHRONIZATION_ACCESS_RIGHTS::default();
             sar_sync.0 = SYNCHRONIZE.0;
             let desired_access = (sar_sync | EVENT_MODIFY_STATE);
-            sync = OpenEventA(desired_access, FALSE, "Global\\zmq-signaler-port-sync")?;
+            sync = unsafe { OpenEventA(desired_access, FALSE, "Global\\zmq-signaler-port-sync")? };
         }
     } else if SIGNALER_PORT != 0 {
         // let mutex_name: [u8; MAX_PATH] = [0; MAX_PATH];
         // let rc = snprintf(mutex_name, MAX_PATH, "Global\\zmq-signaler-port-sync-%u", SIGNALER_PORT);
         let mux_name = format!("Global\\zmq-signaler-port-sync-{}", SIGNALER_PORT);
         let mutex_name = mux_name.as_ptr() as *const libc::c_char;
-        let mut sync = CreateMutexA(Some(&sa), FALSE, mutex_name).unwrap();
-        if sync == INVALID_HANDLE_VALUE && GetLastError() == ERROR_ACCESS_DENIED.0 {
+        let mut sync = unsafe { CreateMutexA(Some(&sa), FALSE, mutex_name).unwrap() };
+        if sync == INVALID_HANDLE_VALUE && unsafe { GetLastError() == ERROR_ACCESS_DENIED } {
             let mut desired_access = SYNCHRONIZATION_ACCESS_RIGHTS::default();
             desired_access |= EVENT_MODIFY_STATE;
             desired_access.0 |= SYNCHRONIZE.0;
             // let desired_access = (SYNCHRONIZE as SYNCHRONIZATION_ACCESS_RIGHTS | EVENT_MODIFY_STATE);
-            sync = OpenMutexA(desired_access.0, FALSE, mutex_name)?;
+            sync = unsafe { OpenMutexA(desired_access.0, FALSE, mutex_name)? };
         }
         *w_ = INVALID_SOCKET.0 as ZmqFd;
         *r_ = INVALID_SOCKET.0 as ZmqFd;
@@ -338,11 +353,13 @@ pub fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(), ZmqError>
         let zmq_sk = open_socket(AF_INET, SOCK_STREAM, 0)?;
         listener.0 = zmq_sk;
         let so_reuseaddr: BOOL = BOOL { 0: 1 };
-        let mut rc = setsockopt(
-            listener,
-            SOL_SOCKET as i32,
-            SO_REUSEADDR,
-            Some(&so_reuseaddr.0.to_le_bytes()));
+        let mut rc = unsafe {
+            setsockopt(
+                listener,
+                SOL_SOCKET as i32,
+                SO_REUSEADDR,
+                Some(&so_reuseaddr.0.to_le_bytes()))
+        };
         tune_socket(listener)?;
 
         let mut addr = SOCKADDR_IN::default();
@@ -353,36 +370,40 @@ pub fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(), ZmqError>
         *w_ = open_socket(AF_INET, SOCK_STREAM, 0)?;
 
         if sync != INVALID_HANDLE_VALUE {
-            let dwrc = WaitForSingleObject(sync, INFINITE);
+            let dwrc = unsafe { WaitForSingleObject(sync, INFINITE) };
         }
 
         let mut sk_addr = win_SOCKADDR_IN_to_SOCKADDR(&addr);
-        rc = bind(listener, &sk_addr, size_of_val(&addr) as i32);
+        rc = unsafe { bind(listener, &sk_addr, size_of_val(&addr) as i32) };
 
         if rc != SOCKET_ERROR && SIGNALER_PORT == 0 {
             let mut addrlen = size_of_val(&addr) as i32;
-            rc = getsockname(
-                listener,
-                &mut addr as *mut SOCKADDR_IN as *mut SOCKADDR,
-                &mut addrlen,
-            );
+            rc = unsafe {
+                getsockname(
+                    listener,
+                    &mut addr as *mut SOCKADDR_IN as *mut SOCKADDR,
+                    &mut addrlen,
+                )
+            };
         }
 
         if rc != SOCKET_ERROR {
-            rc = listen(listener, 1);
+            rc = unsafe { listen(listener, 1) };
         }
 
         if rc != SOCKET_ERROR {
-            rc = connect(
-                *w_,
-                &addr as *const SOCKADDR_IN as *const SOCKADDR,
-                size_of_val(&addr) as i32,
-            );
+            rc = unsafe {
+                connect(
+                    *w_,
+                    &addr as *const SOCKADDR_IN as *const SOCKADDR,
+                    size_of_val(&addr) as i32,
+                )
+            };
         }
 
         if rc != SOCKET_ERROR {
             tune_socket(SOCKET { 0: *w_ })?;
-            *r_ = accept(listener, None, None).0 as ZmqFd;
+            *r_ = unsafe { accept(listener, None, None) }.0 as ZmqFd;
         }
 
         if *r_ != INVALID_SOCKET.0 {
@@ -393,34 +414,38 @@ pub fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(), ZmqError>
             while still_to_send || still_to_recv {
                 let mut nbytes = 0i32;
                 if still_to_send > 0 {
-                    nbytes = send(
-                        *w_,
-                        &dummy[dummy_size - still_to_send..],
-                        SEND_RECV_FLAGS { 0: 0 },
-                    );
+                    nbytes = unsafe {
+                        send(
+                            *w_,
+                            &dummy[dummy_size - still_to_send..],
+                            SEND_RECV_FLAGS { 0: 0 },
+                        )
+                    };
                     if nbytes > 0 {
                         still_to_send -= nbytes;
                     }
                 }
-                nbytes = recv(
-                    *r_,
-                    &mut dummy[dummy_size - still_to_recv..],
-                    SEND_RECV_FLAGS { 0: 0 },
-                );
+                nbytes = unsafe {
+                    recv(
+                        *r_,
+                        &mut dummy[dummy_size - still_to_recv..],
+                        SEND_RECV_FLAGS { 0: 0 },
+                    )
+                };
                 still_to_recv -= nbytes;
             }
         }
 
-        rc = closesocket(listener);
+        rc = unsafe { closesocket(listener) };
 
         if sync != INVALID_HANDLE_VALUE {
             if SIGNALER_PORT == event_signaler_port {
-                SetEvent(sync);
+                unsafe { SetEvent(sync) };
             } else {
-                ReleaseMutex(sync);
+                unsafe { ReleaseMutex(sync) };
             }
 
-            let result = CloseHandle(sync);
+            let result = unsafe { CloseHandle(sync) };
         }
 
         if *r_ != INVALID_SOCKET.0 {
@@ -429,7 +454,7 @@ pub fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(), ZmqError>
         }
 
         if *w_ != INVALID_SOCKET.0 {
-            let result = closesocket(*w_);
+            let result = unsafe { closesocket(*w_) };
             *w_ = INVALID_SOCKET.0;
         }
 
@@ -442,12 +467,14 @@ pub fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(), ZmqError>
 #[cfg(target_os = "windows")]
 pub fn platform_tune_socket(socket: SOCKET) -> Result<(), ZmqError> {
     let tcp_nodelay = 1;
-    let rc = setsockopt(
-        socket,
-        IPPROTO_TCP,
-        TCP_NODELAY,
-        Some(&tcp_nodelay.to_le_bytes()),
-    );
+    let rc = unsafe {
+        setsockopt(
+            socket,
+            IPPROTO_TCP,
+            TCP_NODELAY,
+            Some(&tcp_nodelay.to_le_bytes()),
+        )
+    };
     tcp_tune_loopback_fast_path(socket.0)?;
     Ok(())
 }
@@ -485,11 +512,13 @@ pub fn platform_make_socket_noninheritable(sock_: ZmqFd) -> Result<(), ZmqError>
     {
         let sk_hand: HANDLE = HANDLE { 0: sock_ as isize };
         let brc = unsafe {
-            SetHandleInformation(
-                sk_hand,
-                HANDLE_FLAG_INHERIT.0,
-                HANDLE_FLAGS { 0: 0 },
-            )
+            unsafe {
+                SetHandleInformation(
+                    sk_hand,
+                    HANDLE_FLAG_INHERIT.0,
+                    HANDLE_FLAGS { 0: 0 },
+                )
+            }
         };
     }
     #[cfg(not(target_os = "windows"))]
@@ -529,18 +558,23 @@ pub fn platform_select(
     readfds: Option<&mut fd_set>,
     writefds: Option<&mut fd_set>,
     exceptfds: Option<&mut fd_set>,
-    timeout: Option<&mut timeval>,
+    timeout: Option<&mut ZmqTimeval>,
 ) -> Result<i32, ZmqError> {
     let mut result = 0i32;
     #[cfg(target_os = "windows")]
     {
+        let mut tv: TIMEVAL = TIMEVAL::default();
+        if timeout.is_some() {
+            tv = zmq_timeval_to_ms_timeval(timeout.unwrap());
+        }
+
         unsafe {
             result = select(
                 nfds,
                 if readfds.is_some() { Some(readfds.unwrap() as *mut fd_set as *mut FD_SET) } else { None },
                 if writefds.is_some() { Some(writefds.unwrap() as *mut fd_set as *mut FD_SET) } else { None },
                 if exceptfds.is_some() { Some(exceptfds.unwrap() as *mut fd_set as *mut FD_SET) } else { None },
-                if timeout.is_some() { Some(timeout.unwrap() as *mut timeval as *mut TIMEVAL) } else { None },
+                if timeout.is_some() { Some(&mut tv) } else { None },
             );
         }
     }

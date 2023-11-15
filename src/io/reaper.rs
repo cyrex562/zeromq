@@ -68,7 +68,7 @@ pub fn reaper_in_event(options: &ZmqOptions, reaper: &mut ZmqReaper, pipe: &mut 
 
         // TODO
         // cmd.destination.process_command(cmd);
-        obj_process_command(options, &mut cmd, pipe: &mut ZmqPipe)
+        obj_process_command(options, &mut cmd, pipe)
     }
 }
 
@@ -83,7 +83,7 @@ pub fn reaper_start(reaper: &mut ZmqReaper) {
 pub fn reaper_stop(ctx: &mut ZmqContext, reaper: &mut ZmqReaper, pipe: &mut ZmqPipe) {
     if reaper.mailbox.valid() {
         // reaper._object.send_stop();
-        obj_send_stop(ctx: &mut ZmqContext, pipe, reaper.thread_id)
+        obj_send_stop(ctx, pipe, reaper.thread_id)
     }
 }
 

@@ -1,12 +1,12 @@
 use crate::address::ZmqAddress;
 use crate::decoder::ZmqDecoder;
 use crate::defines::{ZmqFd, ZmqHandle, ZmqSockAddr, ZmqSockAddrIn};
+use crate::defines::err::ZmqError;
 use crate::encoder::ZmqEncoder;
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::engine::stream_engine::{stream_in_event, stream_out_event, stream_plug, stream_terminate, stream_unplug};
 use crate::engine::udp_engine::{udp_in_event, udp_out_event, udp_plug, udp_terminate};
 use crate::engine::zmtp_engine::V3_GREETING_SIZE;
-use crate::err::ZmqError;
 use crate::io::io_object::IoObject;
 use crate::io::io_thread::ZmqIoThread;
 use crate::mechanism::ZmqMechanism;
@@ -78,7 +78,7 @@ pub struct ZmqEngine<'a> {
     pub tx_msg: Option<ZmqMsg>,
     pub process_msg:
         fn(options: &ZmqOptions, engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(), ZmqError>,
-    pub next_msg: fn(engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(), ZmqError>,
+    pub next_msg: fn(options: &ZmqOptions, engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(), ZmqError>,
 }
 
 impl ZmqEngine {
