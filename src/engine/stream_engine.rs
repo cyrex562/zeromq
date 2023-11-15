@@ -15,6 +15,7 @@ use crate::tcp::{tcp_read, tcp_write};
 use crate::utils::get_errno;
 use libc::{EAGAIN, ECONNRESET};
 use std::collections::HashMap;
+use crate::defines::err::ZmqError::EngineError;
 
 pub const HANDSHAKE_TIMER_ID: i32 = 0x40;
 pub const HEARTBEAT_IVL_TIMER_ID: i32 = 0x80;
@@ -346,7 +347,7 @@ pub fn stream_restart_output(options: &ZmqOptions, engine: &mut ZmqEngine) {
     stream_out_event(options, engine);
 }
 
-pub unsafe fn stream_restart_input(options: &ZmqOptions, engine: &mut ZmqEngine) -> bool {
+pub fn stream_restart_input(options: &ZmqOptions, engine: &mut ZmqEngine) -> bool {
     let mut rc = 0;
     if (engine.process_msg)(options, engine, engine.decoder.msg()).is_err() {
         if get_errno() == EAGAIN {
@@ -437,7 +438,7 @@ pub fn stream_process_handshake_command(
     return rc;
 }
 
-pub unsafe fn stream_zap_msg_available(options: &ZmqOptions, engine: &mut ZmqEngine) {
+pub fn stream_zap_msg_available(options: &ZmqOptions, engine: &mut ZmqEngine) {
     let rc = engine.mechanism.zap_msg_available();
     if rc == -1 {
         // Error (ProtocolError);
@@ -457,7 +458,7 @@ pub unsafe fn stream_zap_msg_available(options: &ZmqOptions, engine: &mut ZmqEng
 //     &engine.endpoint_uri_pair
 // }
 
-pub unsafe fn stream_mechanism_ready(options: &ZmqOptions, engine: &mut ZmqEngine) {
+pub fn stream_mechanism_ready(options: &ZmqOptions, engine: &mut ZmqEngine) {
     if options.heartbeat_interval > 0 && !engine.has_heartbeat_timer {
         engine.add_timer(options.heartbeat_interval, HEARTBEAT_IVL_TIMER_ID);
         engine.has_heartbeat_timer = true;
@@ -661,14 +662,14 @@ pub fn stream_error(engine: &mut ZmqEngine, reason_: &str) {
     todo!()
 }
 
-pub unsafe fn stream_set_handshake_timer(options: &ZmqOptions, engine: &mut ZmqEngine) {
+pub fn stream_set_handshake_timer(options: &ZmqOptions, engine: &mut ZmqEngine) {
     if (options.handshake_ivl > 0) {
         engine.add_timer(options.handshake_ivl, HANDSHAKE_TIMER_ID);
         engine.has_handshake_timer = true;
     }
 }
 
-pub unsafe fn stream_init_properties(
+pub fn stream_init_properties(
     engine: &mut ZmqEngine,
     properties_: &mut HashMap<String, String>,
 ) -> bool {
@@ -690,7 +691,7 @@ pub unsafe fn stream_init_properties(
     return true;
 }
 
-pub unsafe fn stream_timer_event(options: &ZmqOptions, engine: &mut ZmqEngine, id_: i32) {
+pub fn stream_timer_event(options: &ZmqOptions, engine: &mut ZmqEngine, id_: i32) {
     if id_ == HANDSHAKE_TIMER_ID {
         engine.has_handshake_timer = false;
         //  handshake timer expired before handshake completed, so engine fail
@@ -711,15 +712,15 @@ pub unsafe fn stream_timer_event(options: &ZmqOptions, engine: &mut ZmqEngine, i
     // assert (false);
 }
 
-pub fn stream_read(engine: &mut ZmqEngine, data_: &mut [u8], size_: usize) -> i32 {
-    let rc = tcp_read(engine.s, data_, size_);
-    if (rc == 0) {
+pub fn stream_read(engine: &mut ZmqEngine, data_: &mut [u8], size_: usize) -> Result<i32, ZmqError> {
+    let rc = tcp_read(engine.s, data_, size_)?;
+    if rc == 0 {
         // connection closed by peer
         // errno = EPIPE;
-        return -1;
+        return Err(EngineError("connection closed by peer"));
     }
 
-    return rc;
+    return Ok(rc);
 }
 
 pub fn stream_write(engine: &mut ZmqEngine, data_: &mut [u8], size_: usize) -> i32 {

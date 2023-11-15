@@ -1,8 +1,7 @@
 use crate::defines::{ZMQ_GROUP_MAX_LENGTH, ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::SessionError;
 use crate::msg::ZmqMsg;
-use std::ffi::c_void;
-use crate::err::ZmqError;
-use crate::err::ZmqError::SessionError;
 use crate::session::{ZmqSession, ZmqSessionState};
 
 // pub struct dish_session_t<'a> {
@@ -82,30 +81,33 @@ pub fn dish_sess_pull_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result
 
     let group_length = msg_.group().len();
 
-    let mut command_ = ZmqMsg::new();
+    let mut command = ZmqMsg::new();
     let mut offset = 0i32;
 
     if msg_.is_join() {
-        command_.init_size(group_length + 5)?;
+        command.init_size(group_length + 5)?;
         offset = 5;
-        libc::memcpy(command_.data(), "\x04JOIN".as_ptr() as *const c_void, 5);
+        // libc::memcpy(command_.data(), "\x04JOIN".as_ptr() as *const c_void, 5);
+        command.data().copy_from_slice("\x04JOIN".as_bytes());
     } else {
-        command_.init_size(group_length + 6)?;
+        command.init_size(group_length + 6)?;
         offset = 6;
-        libc::memcpy(command_.data(), "\x05LEAVE".as_ptr() as *const c_void, 6);
+        // libc::memcpy(command_.data(), "\x05LEAVE".as_ptr() as *const c_void, 6);
+        command.data().copy_from_slice("\x05LEAVE".as_bytes());
     }
 
-    command_.set_flags(ZMQ_MSG_COMMAND);
-    let mut command_data = command_.data();
-    libc::memcpy(
-        command_data.add(offset),
-        msg_.group().as_ptr() as *const c_void,
-        group_length,
-    );
+    command.set_flags(ZMQ_MSG_COMMAND);
+    let mut command_data = command.data();
+    // libc::memcpy(
+    //     command_data.add(offset),
+    //     msg_.group().as_ptr() as *const c_void,
+    //     group_length,
+    // );
+    command_data[offset..].copy_from_slice(msg_.group().as_bytes());
 
     msg_.close()?;
 
-    *msg_ = command_;
+    *msg_ = command;
 
     return Ok(());
 }

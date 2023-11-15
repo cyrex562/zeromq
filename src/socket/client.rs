@@ -1,4 +1,5 @@
 use crate::ctx::ZmqContext;
+use crate::defines::err::ZmqError;
 use crate::defines::ZMQ_MSG_MORE;
 use crate::err::ZmqError;
 use crate::err::ZmqError::SocketError;
@@ -92,7 +93,7 @@ pub fn client_xsetsockopt(
     option_: i32,
     optval_: &[u8],
     optvallen_: usize,
-) -> i32 {
+) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
@@ -100,6 +101,6 @@ pub fn client_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], Z
     unimplemented!();
 }
 
-pub fn client_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn client_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }

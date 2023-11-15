@@ -149,7 +149,7 @@ impl ZmqSession {
         self._pipe.set_event_risk(self)
     }
 
-    pub fn pull_msg(&mut self, msg: &mut ZmqMsg) -> i32 {
+    pub fn pull_msg(&mut self, msg: &mut ZmqMsg) -> Result<(),ZmqError> {
         if self.session_type == ZmqSessionType::Dish {
             dish_sess_pull_msg(self, msg)?;
         } else if self.session_type == ZmqSessionType::Radio {
@@ -161,11 +161,11 @@ impl ZmqSession {
         }
 
         if self._pipe.is_none() || !(self._pipe).read(msg) {
-            return -1;
+            return Err(PipeError("failed to pull msg"));
         }
 
         self._incomplete_in = msg.flags() & ZMQ_MSG_MORE != 0;
-        return 0;
+        return Ok(());
     }
 
     pub fn push_msg(&mut self, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
@@ -199,7 +199,7 @@ impl ZmqSession {
         Ok(())
     }
 
-    pub unsafe fn write_zap_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
+    pub fn write_zap_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
         if self._zap_pipe.is_none() && !(self._zap_pipe).write(msg_) {
             return Err(SessionError("failed to write zap msg"));
         }
@@ -229,19 +229,19 @@ impl ZmqSession {
         Ok(())
     }
 
-    pub unsafe fn flush(&mut self) {
+    pub fn flush(&mut self) {
         if self._pipe.is_some() {
             self._pipe.flush();
         }
     }
 
-    pub unsafe fn rollback(&mut self) {
+    pub fn rollback(&mut self) {
         if self._pipe.is_some() {
             self._pipe.unwrap().rollback();
         }
     }
 
-    pub unsafe fn clean_pipes(&mut self) {
+    pub fn clean_pipes(&mut self) {
         self._pipe.rollback();
         self._pipe.flush();
 
@@ -252,7 +252,7 @@ impl ZmqSession {
         }
     }
 
-    pub unsafe fn pipe_terminated(&mut self, options: &ZmqOptions, pipe_: &mut ZmqPipe) {
+    pub fn pipe_terminated(&mut self, options: &ZmqOptions, pipe_: &mut ZmqPipe) {
         if pipe_ == self._pipe {
             self._pipe = None;
             if self._has_linger_timer {
@@ -316,7 +316,7 @@ impl ZmqSession {
         return self._socket;
     }
 
-    pub unsafe fn process_plug(&mut self, options: &ZmqOptions) {
+    pub fn process_plug(&mut self, options: &ZmqOptions) {
         if self._active {
             self.start_connecting(options, false)
         }
@@ -369,7 +369,7 @@ impl ZmqSession {
         return options.mechanism != ZMQ_NULL || !options.zap_domain.is_empty();
     }
 
-    pub unsafe fn process_attach(&mut self, options: &ZmqOptions, engine_: &mut ZmqEngine) {
+    pub fn process_attach(&mut self, options: &ZmqOptions, engine_: &mut ZmqEngine) {
         self._engine = Some(engine_);
 
         if !((*engine_).has_handshake_stage()) {
@@ -379,7 +379,7 @@ impl ZmqSession {
         self._engine.plug(self._io_thread, self);
     }
 
-    pub unsafe fn engine_ready(&mut self, options: &ZmqOptions) {
+    pub fn engine_ready(&mut self, options: &ZmqOptions) {
         //  Create the pipe if it does not exist yet.
         if self._pipe.is_none() && !self.is_terminating() {
             // object_t *parents[2] = {this, _socket};
@@ -418,7 +418,7 @@ impl ZmqSession {
         }
     }
 
-    pub unsafe fn engine_error(&mut self, options: &ZmqOptions, handshaked_: bool, reason_: &str) {
+    pub fn engine_error(&mut self, options: &ZmqOptions, handshaked_: bool, reason_: &str) {
         //  Engine is dead. Let's forget about it.
         self._engine = None;
 
@@ -474,7 +474,7 @@ impl ZmqSession {
         }
     }
 
-    pub unsafe fn process_term(&mut self, linger_: i32) {
+    pub fn process_term(&mut self, linger_: i32) {
         //  If the termination of the pipe happens before the Term command is
         //  delivered there's nothing much to do. We can proceed with the
         //  standard termination immediately.
@@ -513,7 +513,7 @@ impl ZmqSession {
         }
     }
 
-    pub unsafe fn timer_event(&mut self, id_: i32) {
+    pub fn timer_event(&mut self, id_: i32) {
         //  Linger period expired. We can proceed with termination even though
         //  there are still pending messages to be sent.
         // zmq_assert (id_ == linger_timer_id);
@@ -524,14 +524,14 @@ impl ZmqSession {
         self._pipe.terminate(false);
     }
 
-    pub unsafe fn process_conn_failed(&mut self) {
+    pub fn process_conn_failed(&mut self) {
         // std::string *ep = new (std::string);
         let mut ep = String::new();
         ep = self._addr.to_string();
         self.send_term_endpoint(self._socket, ep);
     }
 
-    pub unsafe fn reconnect(&mut self, options: &ZmqOptions) {
+    pub fn reconnect(&mut self, options: &ZmqOptions) {
         //  For delayed connect situations, terminate the pipe
         //  and reestablish later on
         if self._pipe.is_some() && options.immediate == 1 {
@@ -572,7 +572,7 @@ impl ZmqSession {
         }
     }
 
-    pub unsafe fn start_connecting(&mut self, options: &ZmqOptions, wait_: bool) {
+    pub fn start_connecting(&mut self, options: &ZmqOptions, wait_: bool) {
         //  Choose I/O thread to run connecter in. Given that we are already
         //  running in an I/O thread, there must be at least one available.
         let io_thread = self.choose_io_thread(options.affinity);
@@ -759,7 +759,7 @@ pub struct HelloMsgSession<'a> {
 }
 
 impl HelloMsgSession {
-    pub unsafe fn new(
+    pub fn new(
         io_thread_: &mut ZmqIoThread,
         connect_: bool,
         socket_: &mut ZmqSocket,
@@ -774,17 +774,17 @@ impl HelloMsgSession {
         }
     }
 
-    pub unsafe fn pull_msg(&mut self, msg_: &mut ZmqMsg) -> i32 {
+    pub fn pull_msg(&mut self, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
         if self._new_pipe != null_mut() {
             self._new_pipe = false;
             // let rc = init_buffer(&self.options.hello_msg[0], self.options.hello_msg.len();
-            return 0;
+            return Ok(());
         }
         self.session_base_t.pull_msg(msg_)
     }
 
-    pub unsafe fn reset(&mut self) {
-        self.session_base_t.reset();
+    pub fn reset(&mut self) -> Result<(),ZmqError>{
+        self.session_base_t.reset()?;
         self._new_pipe = true;
     }
 }

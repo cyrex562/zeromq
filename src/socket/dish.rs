@@ -1,4 +1,6 @@
 use crate::ctx::ZmqContext;
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::SocketError;
 use crate::defines::ZMQ_GROUP_MAX_LENGTH;
 use crate::err::ZmqError;
 use crate::err::ZmqError::SocketError;
@@ -34,7 +36,7 @@ use crate::socket::ZmqSocket;
 //     }
 // }
 
-pub fn dish_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub fn dish_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
@@ -46,20 +48,20 @@ pub fn dish_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_
 }
 
 pub fn dish_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
-    socket.fq.activated(pipe_);
+    socket.fq.activated(pipe_)?;
     Ok(())
 }
 
-pub fn dish_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
-    socket.dist.activated(pipe_);
+pub fn dish_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
+    socket.dist.activated(pipe_)
 }
 
-pub fn dish_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
-    socket.fq.terminated(pipe_);
-    socket.dist.terminated(pipe_);
+pub fn dish_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError>{
+    socket.fq.terminated(pipe_)?;
+    socket.dist.terminated(pipe_)
 }
 
-pub fn dish_xhiccuped(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn dish_xhiccuped(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
     socket.send_subscriptions(pipe_)
 }
 
@@ -101,7 +103,7 @@ pub fn dish_xleave(socket: &mut ZmqSocket, group_: &str) -> Result<(),ZmqError> 
     rc
 }
 
-pub fn dish_xsend(_socket: &mut ZmqSocket, _msg_: &mut ZmqMsg) -> i32 {
+pub fn dish_xsend(_socket: &mut ZmqSocket, _msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
@@ -109,7 +111,7 @@ pub fn dish_xhas_out(_socket: &mut ZmqSocket) -> bool {
     true
 }
 
-pub unsafe fn xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     if socket.has_message {
         msg_.move_(&mut socket.message)?;
         socket.has_message = false;
@@ -119,12 +121,9 @@ pub unsafe fn xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqE
     socket.xxrecv(msg_)
 }
 
-pub unsafe fn dish_xxrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn dish_xxrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     loop {
-        let mut rc = socket.fq.recv(msg_);
-        if rc < 0 {
-            return -1;
-        }
+        socket.fq.recv(ctx, msg_)?;
 
         let mut count = 0;
         for x in socket.subscriptions.iter() {
@@ -137,7 +136,7 @@ pub unsafe fn dish_xxrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
         }
     }
 
-    0
+    Ok(())
 }
 
 pub fn dish_xhas_in(socket: &mut ZmqSocket) -> bool {
@@ -154,7 +153,7 @@ pub fn dish_xhas_in(socket: &mut ZmqSocket) -> bool {
     true
 }
 
-pub unsafe fn dish_send_subscriptions(
+pub fn dish_send_subscriptions(
     ctx: &mut ZmqContext,
     socket: &mut ZmqSocket,
     pipe_: &mut ZmqPipe

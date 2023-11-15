@@ -1,6 +1,7 @@
 use std::mem::size_of_val;
 use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_MSG_MORE, ZMQ_REQ_CORRELATE, ZMQ_REQ_RELAXED};
+use crate::defines::err::ZmqError;
 use crate::err::ZmqError;
 use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
@@ -200,12 +201,12 @@ pub fn req_xhas_out(socket: &mut ZmqSocket) -> bool {
 // int zmq::req_t::xsetsockopt (int option_,
 //                          const void *optval_,
 //                          size_t optvallen_)
-pub unsafe fn req_xsetsockopt(
+pub fn req_xsetsockopt(
     socket: &mut ZmqSocket,
     option_: i32,
     optval_: &[u8],
     optvallen_: usize,
-) -> i32 {
+) -> Result<(),ZmqError> {
     let is_int = (optvallen_ == 4);
     let mut value = 0;
     if is_int {
@@ -217,13 +218,13 @@ pub unsafe fn req_xsetsockopt(
         ZMQ_REQ_CORRELATE => {
             if is_int && value >= 0 {
                 socket.request_id_frames_enabled = (value != 0);
-                return 0;
+                return Ok(());
             }
         }
         ZMQ_REQ_RELAXED => {
             if is_int && value >= 0 {
                 socket.strict = (value == 0);
-                return 0;
+                return Ok(());
             }
         }
         _ => {}
@@ -233,22 +234,22 @@ pub unsafe fn req_xsetsockopt(
 }
 
 // void zmq::req_t::xpipe_terminated (pipe_t *pipe_)
-pub unsafe fn req_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn req_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     if socket.reply_pipe.unwrap() == pipe_ {
         socket.reply_pipe = None;
     }
     dealer_xpipe_terminated(socket, pipe_);
 }
 
-pub unsafe fn req_recv_reply_pipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn req_recv_reply_pipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     loop {
         let mut pipe: ZmqPipe = ZmqPipe::default();
-        let rc = socket.recvpipe(msg_, &mut Some(&mut pipe));
-        if rc != 0 {
-            return rc;
-        }
+        socket.recvpipe(msg_, &mut Some(&mut pipe))?;
+        // if rc != 0 {
+        //     return rc;
+        // }
         if socket.reply_pipe.is_none() || pipe == *socket.reply_pipe.unwrap() {
-            return 0;
+            return Ok(());
         }
     }
 }
@@ -257,7 +258,7 @@ pub fn req_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqE
     unimplemented!();
 }
 
-pub fn req_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn req_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }
 

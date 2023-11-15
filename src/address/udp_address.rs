@@ -126,7 +126,7 @@ impl UdpAddress {
         &mut self._target_address
     }
 
-    pub fn to_string(&mut self, addr_: &mut String) -> i32 {
+    pub fn to_string(&mut self, addr_: &mut String) -> Result<(),ZmqError> {
         if self._is_multicast {
             addr_.push_str(self._target_address.to_string().as_str());
             addr_.push_str(";");
@@ -135,6 +135,6 @@ impl UdpAddress {
             addr_.push_str(self._target_address.to_string().as_str());
         }
 
-        return 0;
+        Ok(())
     }
 }

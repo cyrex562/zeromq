@@ -4,6 +4,8 @@ use crate::address::{get_socket_name, ZmqAddress};
 use crate::address::SocketEnd::SocketEndLocal;
 use crate::address::tcp_address::ZmqTcpAddress;
 use crate::defines::{ECONNREFUSED, EINPROGRESS, SO_ERROR, SO_REUSEADDR, SOL_SOCKET, ZMQ_RECONNECT_STOP_CONN_REFUSED, ZmqFd, ZmqHandle};
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::SocketError;
 use crate::defines::RETIRED_FD;
 use crate::endpoint::{make_unconnected_connect_endpoint_pair, ZmqEndpointUriPair};
 use crate::endpoint::ZmqEndpointType::EndpointTypeConnect;
@@ -105,7 +107,7 @@ impl ZmqStreamConnecterBase {
         }
     }
 
-    pub fn get_new_reconnect_ivl(&mut self, options: &ZmqOptions) -> i32 {
+    pub fn get_new_reconnect_ivl(&mut self, options: &ZmqOptions) -> Result<(),ZmqError> {
         if options.reconnect_ivl_max > 0 {
             let mut candidate_interval = 0;
             if self._current_reconnect_ivl == -1 {
@@ -156,7 +158,7 @@ impl ZmqStreamConnecterBase {
         self._s = RETIRED_FD
     }
 
-    pub unsafe fn in_event(&mut self, options: &ZmqOptions) {
+    pub fn in_event(&mut self, options: &ZmqOptions) {
         self.out_event(options);
     }
 
@@ -277,7 +279,7 @@ impl ZmqStreamConnecterBase {
         }
     }
 
-    pub fn open(&mut self, options: &ZmqOptions) -> i32 {
+    pub fn open(&mut self, options: &ZmqOptions) -> Result<(),ZmqError> {
         // zmq_assert (_s == retired_fd);
 
         //  Resolve the address
@@ -342,7 +344,7 @@ impl ZmqStreamConnecterBase {
 
             // #endif
             if rc == -1 {
-                return -1;
+                return Err(SocketError("bind"));
             }
         }
 
@@ -356,7 +358,7 @@ impl ZmqStreamConnecterBase {
         // #endif
         //  Connect was successful immediately.
         if rc == 0 {
-            return 0;
+            return Ok(());
         }
 
         //  Translate Error codes indicating asynchronous connect has been
@@ -371,7 +373,7 @@ impl ZmqStreamConnecterBase {
         //     if (errno == EINTR)
         //         errno = EINPROGRESS;
         // #endif
-        return -1;
+        return Err(SocketError("EINPROGRESS"));
     }
 
     pub fn connect(&mut self) -> ZmqFd {

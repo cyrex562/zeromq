@@ -86,7 +86,7 @@ impl<T: Clone + PartialEq + Default> ZmqYPipe<T> {
         return true;
     }
 
-    pub unsafe fn probe(&mut self, func: fn(t: &T) -> bool) -> bool {
+    pub fn probe(&mut self, func: fn(t: &T) -> bool) -> bool {
         if !self.check_read() {
             return false;
         }

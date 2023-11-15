@@ -3,7 +3,7 @@ pub enum ZmqError {
     #[error("Invalid context")]
     InvalidContext(&'static str),
     #[error("Mailbox Error")]
-    MailboxError(),
+    MailboxError(&'static str),
     #[error("SocketError")]
     SocketError(&'static str),
     #[error("Parsing Error")]
@@ -32,4 +32,10 @@ pub enum ZmqError {
     DecoderError(&'static str),
     #[error("platform error")]
     PlatformError(&'static str),
+    #[error("proxy error")]
+    ProxyError(&'static str),
+    #[error("options error")]
+    OptionsError(&'static str),
+    #[error("context error")]
+    ContextError(&'static str),
 }

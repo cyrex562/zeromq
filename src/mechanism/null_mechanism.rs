@@ -1,17 +1,18 @@
+use libc::{c_void, EFAULT};
+
 use crate::ctx::ZmqContext;
 use crate::defines::{
     ERROR_COMMAND_NAME, ERROR_COMMAND_NAME_LEN, ERROR_REASON_LEN_SIZE, READY_COMMAND_NAME,
     READY_COMMAND_NAME_LEN, ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_ERROR,
     ZMQ_PROTOCOL_ERROR_ZMTP_UNEXPECTED_COMMAND,
 };
-use crate::err::ZmqError;
-use crate::err::ZmqError::MechanismError;
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::MechanismError;
 use crate::mechanism;
 use crate::mechanism::MechanismStatus::{Error, Handshaking, Ready};
 use crate::mechanism::ZmqMechanism;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use libc::{EFAULT, c_void};
 
 // pub struct ZmqNullMechanism {
 //     pub zap_client: ZapClient<'a>,
@@ -76,7 +77,7 @@ pub fn null_next_handshake_command(
             //  reply already, but removing this has some strange side-effect
             //  (probably because the pipe's in_active flag is true until a read
             //  is attempted)
-            mechanism.zap_client.receive_and_process_zap_reply(options)?;
+            mechanism.zap_client.receive_and_process_zap_reply(options, ctx)?;
 
             mechanism._zap_reply_received = true;
         }
@@ -122,7 +123,7 @@ pub fn null_next_handshake_command(
     return Ok(());
 }
 
-pub unsafe fn null_process_handshake_command(
+pub fn null_process_handshake_command(
     options: &ZmqOptions,
     mechanism: &mut ZmqMechanism,
     msg_: &mut ZmqMsg,
@@ -170,12 +171,12 @@ pub unsafe fn null_process_handshake_command(
     };
 }
 
-pub unsafe fn null_process_ready_command(
+pub fn null_process_ready_command(
     options: &ZmqOptions,
     mechanism: &mut ZmqMechanism,
     cmd_data: &[u8],
     data_size_: usize,
-) -> i32 {
+) -> Result<(), ZmqError> {
     mechanism._ready_command_received = true;
     return mechanism.zap_client.mechanism.parse_metadata(
         options,
@@ -185,12 +186,12 @@ pub unsafe fn null_process_ready_command(
     );
 }
 
-pub unsafe fn null_process_error_command(
+pub fn null_process_error_command(
     options: &ZmqOptions,
     mechanism: &mut ZmqMechanism,
     cmd_data: &[u8],
     data_size_: usize,
-) -> i32 {
+) -> Result<(), ZmqError> {
     let fixed_prefix_size = ERROR_COMMAND_NAME_LEN + ERROR_REASON_LEN_SIZE;
     if data_size_ < fixed_prefix_size {
         mechanism.zap_client.mechanism.session.get_socket().event_handshake_failed_protocol(
@@ -200,7 +201,7 @@ pub unsafe fn null_process_error_command(
         );
 
         // errno = EPROTO;
-        return -1;
+        return Err(MechanismError("EPROTO"));
     }
     let error_reason_len = cmd_data[ERROR_COMMAND_NAME_LEN];
     if error_reason_len > (data_size_ - fixed_prefix_size) as u8 {
@@ -211,28 +212,28 @@ pub unsafe fn null_process_error_command(
         );
 
         // errno = EPROTO;
-        return -1;
+        return Err(MechanismError("EPROTO"));
     }
     let error_reason = cmd_data[fixed_prefix_size..];
     mechanism.zap_client.handle_error_reason(error_reason, error_reason_len);
     mechanism._error_command_received = true;
-    return 0;
+    return Ok(());
 }
 
-pub unsafe fn null_zap_msg_available(options: &ZmqOptions, mechanism: &mut ZmqMechanism) -> Result<(), ZmqError> {
+pub fn null_zap_msg_available(ctx: &mut ZmqContext, options: &ZmqOptions, mechanism: &mut ZmqMechanism) -> Result<(), ZmqError> {
     if mechanism._zap_reply_received {
         // errno = EFSM;
         return Err(MechanismError("EFSM"));
     }
-    return if mechanism.zap_client.receive_and_process_zap_reply(options).is_ok() {
+    return if mechanism.zap_client.receive_and_process_zap_reply(options, ctx).is_ok() {
         mechanism._zap_reply_received = true;
         Ok(())
     } else {
         Err(MechanismError("EAGAIN"))
-    }
+    };
 }
 
-pub unsafe fn null_status(mechanism: &mut ZmqMechanism) -> mechanism::MechanismStatus {
+pub fn null_status(mechanism: &mut ZmqMechanism) -> mechanism::MechanismStatus {
     if mechanism._ready_command_sent && mechanism._ready_command_received {
         return Ready;
     }
@@ -246,6 +247,6 @@ pub unsafe fn null_status(mechanism: &mut ZmqMechanism) -> mechanism::MechanismS
     };
 }
 
-pub unsafe fn null_send_zap_request(mechanism: &mut ZmqMechanism, options: &mut ZmqOptions) {
+pub fn null_send_zap_request(mechanism: &mut ZmqMechanism, options: &mut ZmqOptions) {
     mechanism.zap_client.send_zap_request(options, "NULL", &[]);
 }

@@ -1,4 +1,5 @@
 use crate::defines::{ZMQ_SUBSCRIBE, ZMQ_UNSUBSCRIBE};
+use crate::defines::err::ZmqError;
 use crate::err::ZmqError;
 use crate::err::ZmqError::SocketError;
 use crate::msg::{close_and_return, ZmqMsg};
@@ -23,7 +24,7 @@ use crate::socket::ZmqSocket;
 // }
 
 
-pub unsafe fn sub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &mut [u8], optvallen_: usize) -> Result<(),ZmqError> {
+pub fn sub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &mut [u8], optvallen_: usize) -> Result<(),ZmqError> {
     if option_ != ZMQ_SUBSCRIBE && option_ != ZMQ_UNSUBSCRIBE {
         // errno = EINVAL;
         return Err(SocketError("EINVAL"));
@@ -49,10 +50,10 @@ pub unsafe fn sub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &mu
 }
 
 // int zmq::sub_t::xsend (msg_t *)
-pub fn sub_xsend(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> i32 {
+pub fn sub_xsend(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(),ZmqError> {
     //  Override the XSUB's send.
     // errno = ENOTSUP;
-    return -1;
+    return Err(SocketError("ENOTSUP"));
 }
 
 // bool zmq::sub_t::xhas_out ()
@@ -74,7 +75,7 @@ pub fn sub_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqE
     unimplemented!();
 }
 
-pub fn sub_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn sub_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }
 
@@ -82,7 +83,7 @@ pub fn sub_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(),ZmqError
     unimplemented!()
 }
 
-pub fn sub_xhas_in(socket: &mut ZmqSocket) -> i32 {
+pub fn sub_xhas_in(socket: &mut ZmqSocket) -> Result<(),ZmqError> {
     unimplemented!()
 }
 

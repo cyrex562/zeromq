@@ -266,7 +266,7 @@ impl IpResolver {
     }
 
     #[cfg(target_os = "linux")]
-    pub unsafe fn resolve_nic_name(&mut self, ip_addr_: &mut ZmqIpAddress, nic_: &str) -> anyhow::Result<()> {
+    pub fn resolve_nic_name(&mut self, ip_addr_: &mut ZmqIpAddress, nic_: &str) -> anyhow::Result<()> {
         let mut ifa: *mut libc::ifaddrs = null_mut();
         let mut rc = 0i32;
         let max_attempts = 10;
@@ -319,7 +319,7 @@ impl IpResolver {
     }
 
     #[cfg(target_os = "windows")]
-    pub unsafe fn resolve_nic_name(&mut self, options: &ZmqOptions, ip_addr_: &mut ZmqIpAddress, nic_: &mut String) -> anyhow::Result<()> {
+    pub fn resolve_nic_name(&mut self, options: &ZmqOptions, ip_addr_: &mut ZmqIpAddress, nic_: &mut String) -> anyhow::Result<()> {
         let mut rc = 0i32;
         let mut found = false;
         let max_attempts = 10;

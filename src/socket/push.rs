@@ -1,3 +1,4 @@
+use crate::defines::err::ZmqError;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
@@ -33,11 +34,11 @@ pub fn push_xattach_pipe(
     socket.lb.attach(pipe_);
 }
 
-pub unsafe fn push_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn push_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     socket.lb.activated(pipe_)
 }
 
-pub unsafe fn push_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn push_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     socket.lb.pipe_terminated(pipe_);
 }
 
@@ -54,14 +55,14 @@ pub fn push_xsetsockopt(
     option_: i32,
     optval_: &[u8],
     optvallen_: usize,
-) -> i32 {
+) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
 pub fn push_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
     unimplemented!();
 }
-pub fn push_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn push_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }
 

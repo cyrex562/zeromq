@@ -101,12 +101,12 @@ impl ZmqDist {
         }
     }
 
-    pub fn send_to_all(&mut self, msg_: &mut ZmqMsg) -> i32 {
+    pub fn send_to_all(&mut self, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
         self._matching = self._active;
         self.send_to_matching(msg_)
     }
 
-    pub fn send_to_matching(&mut self, msg_: &mut ZmqMsg) -> i32 {
+    pub fn send_to_matching(&mut self, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
         //  Is this end of a multipart message?
         let msg_more = msg_.flag_set(ZMQ_MSG_MORE);
 
@@ -120,7 +120,7 @@ impl ZmqDist {
 
         self._more = msg_more;
 
-        return 0;
+        Ok(())
     }
 
     pub fn distribute(&mut self, msg_: &mut ZmqMsg) {

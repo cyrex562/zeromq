@@ -1,5 +1,6 @@
 use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_XSUB_VERBOSE_UNSUBSCRIBE};
+use crate::defines::err::ZmqError;
 use crate::err::ZmqError;
 use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
@@ -67,22 +68,22 @@ pub fn xsub_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Resu
     Ok(())
 }
 
-pub unsafe fn xsub_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn xsub_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     socket.dist.activated(pipe_);
 }
 
-pub unsafe fn xsub_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn xsub_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     socket.fq.terminated(pipe_);
     socket.dist.terminated(pipe_);
 }
 
-pub unsafe fn xsub_xhiccuped(ctx: &mut ZmqContext, socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn xsub_xhiccuped(ctx: &mut ZmqContext, socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     //  Send all the cached subscriptions to the hiccuped pipe.
     socket.subscriptions.apply(socket.send_subscription, pipe_);
     pipe_.flush(ctx);
 }
 
-pub unsafe fn xsub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub fn xsub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> Result<(),ZmqError> {
     let opt_val_i32: i32 = i32::from_le_bytes([optval_[0], optval_[1], optval_[2], optval_[3]]);
     if option_ == ZMQ_ONLY_FIRST_SUBSCRIBE {
         if optvallen_ != 4 || (opt_val_i32) < 0 {
@@ -102,7 +103,7 @@ pub unsafe fn xsub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[
     return -1;
 }
 
-pub unsafe fn xsub_xgetsockopt(
+pub fn xsub_xgetsockopt(
     socket: &mut ZmqSocket,
     option: u32,
 ) -> Result<[u8], ZmqError> {
@@ -124,7 +125,7 @@ pub unsafe fn xsub_xgetsockopt(
     return Err(SocketError("EINVAL"));
 }
 
-pub fn xsub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn xsub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     let mut size = msg_.size();
     let mut data = (msg_.data_mut());
 
@@ -261,14 +262,14 @@ pub fn xsub_xhas_in(ctx: &mut ZmqContext, options: &ZmqOptions, socket: &mut Zmq
     }
 }
 
-pub unsafe fn xsub_match_(options: &ZmqOptions, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> bool {
+pub fn xsub_match_(options: &ZmqOptions, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> bool {
     let matching = socket.subscriptions.check(
         (msg_.data_mut()), msg_.size());
 
     return matching ^ options.invert_matching;
 }
 
-pub unsafe fn xsub_send_subscription(
+pub fn xsub_send_subscription(
     socket: &mut ZmqSocket,
     data_: &mut [u8],
     size_: usize,
@@ -295,9 +296,9 @@ pub unsafe fn xsub_send_subscription(
     Ok(())
 }
 
-pub fn xsub_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn xsub_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }
 
 
-pub fn xsub_has_out(socket: &mut ZmqSocket) -> i32 { unimplemented!() }
+pub fn xsub_has_out(socket: &mut ZmqSocket) -> Result<(),ZmqError> { unimplemented!() }

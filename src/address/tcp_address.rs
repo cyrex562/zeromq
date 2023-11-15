@@ -10,6 +10,7 @@ use windows::Win32::Networking::WinSock::sa_family_t;
 
 use crate::address::ip_address::ZmqIpAddress;
 use crate::defines::{ZmqSockAddr, AF_INET, AF_INET6, NI_MAXHOST, NI_NUMERICHOST};
+use crate::defines::err::ZmqError;
 use crate::err::ZmqError;
 use crate::ip::ip_resolver::IpResolver;
 use crate::ip::ip_resolver_options::IpResolverOptions;
@@ -186,12 +187,12 @@ impl TcpAddressMask {
         }
     }
 
-    pub unsafe fn resolve(
+    pub fn resolve(
         &mut self,
         options: &ZmqOptions,
         name_: &str,
         ipv6_: bool,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(),ZmqError> {
         let mut addr_str = String::new();
         let mut mask_str = String::new();
         let delimiter = name_.index("/");
@@ -232,7 +233,7 @@ impl TcpAddressMask {
         Ok(())
     }
 
-    pub unsafe fn match_address(&mut self, ss_: &sockaddr, ss_len_: socklen_t) -> bool {
+    pub fn match_address(&mut self, ss_: &sockaddr, ss_len_: socklen_t) -> bool {
         if ss_.sa_family != self._network_address.family() as u16 {
             return false;
         }
@@ -257,20 +258,28 @@ impl TcpAddressMask {
             }
 
             let full_bytes = mask / 8;
-            if libc::memcmp(
-                our_bytes as *const c_void,
-                their_bytes as *const c_void,
-                full_bytes as size_t,
-            ) != 0
-            {
+            // if libc::memcmp(
+            //     our_bytes as *const c_void,
+            //     their_bytes as *const c_void,
+            //     full_bytes as size_t,
+            // ) != 0
+            // {
+            //     return false;
+            // }
+            if our_bytes != their_bytes {
                 return false;
             }
 
             let last_byte_bits = 0xff << (8 - (mask.clone() % 8));
-            if last_byte_bits > 0
-                && (*(their_bytes.add(full_bytes as usize)) & last_byte_bits)
-                    != (*(our_bytes.add(full_bytes as usize)) & last_byte_bits.clone())
-            {
+            // if last_byte_bits > 0
+            //     && (*(their_bytes.add(full_bytes as usize)) & last_byte_bits)
+            //         != (*(our_bytes.add(full_bytes as usize)) & last_byte_bits.clone())
+            // {
+            //     return false;
+            // }
+            if last_byte_bits > 0 &&
+                their_bytes[full_bytes as usize] & last_byte_bits !=
+                our_bytes[full_bytes as usize] & last_byte_bits {
                 return false;
             }
         }

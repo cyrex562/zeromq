@@ -1,4 +1,6 @@
 use crate::ctx::ZmqContext;
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::SocketError;
 use crate::defines::ZMQ_MSG_MORE;
 use crate::err::ZmqError;
 use crate::err::ZmqError::SocketError;
@@ -30,7 +32,7 @@ pub fn rep_xsetsockopt(
     option_: i32,
     optval_: &[u8],
     optvallen_: usize,
-) -> i32 {
+) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
@@ -43,11 +45,11 @@ pub fn rep_xattach_pipe(
     unimplemented!()
 }
 
-pub fn rep_xsend(ctx: &mut ZmqContext, options: &mut ZmqOptions, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn rep_xsend(ctx: &mut ZmqContext, options: &mut ZmqOptions, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     //  If we are in the middle of receiving a request, we cannot send reply.
     if !socket.sending_reply {
         // errno = EFSM;
-        return -1;
+        return Err(SocketError("EFSM"));
     }
 
     let more = msg_.flag_set(ZMQ_MSG_MORE);
@@ -63,11 +65,16 @@ pub fn rep_xsend(ctx: &mut ZmqContext, options: &mut ZmqOptions, socket: &mut Zm
         socket.sending_reply = false;
     }
 
-    return 0;
+    return Ok(());
 }
 
 // int zmq::rep_t::xrecv (msg_t *msg_)
-pub fn rep_xrecv(ctx: &mut ZmqContext, options: &mut ZmqOptions, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn rep_xrecv(
+    ctx: &mut ZmqContext,
+    options: &mut ZmqOptions,
+    socket: &mut ZmqSocket,
+    msg_: &mut ZmqMsg
+) -> Result<(),ZmqError> {
     //  If we are in middle of sending a reply, we cannot receive next request.
     if socket.sending_reply {
         // errno = EFSM;
@@ -141,7 +148,7 @@ pub fn rep_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqE
     unimplemented!();
 }
 
-pub fn rep_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn rep_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }
 

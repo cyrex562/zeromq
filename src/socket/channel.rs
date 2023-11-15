@@ -51,7 +51,7 @@ pub fn channel_xwrite_activated(_socket: &mut ZmqSocket, _pipe: &mut ZmqPipe) {
     unimplemented!()
 }
 
-pub unsafe fn channel_xsend(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn channel_xsend(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(),ZmqError> {
     if msg.flag_set(ZMQ_MSG_MORE) {
         return Err(SocketError("msg more flag is set"));
     }
@@ -67,7 +67,7 @@ pub unsafe fn channel_xsend(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<
     Ok(())
 }
 
-pub unsafe fn channel_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
+pub fn channel_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
     msg.close()?;
 
     if socket.pipe = Some(&mut ZmqPipe::default()) {

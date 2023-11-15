@@ -2,6 +2,8 @@ use std::mem::size_of_val;
 use std::ptr::null_mut;
 use crate::defines::PROXY_BURST_SIZE;
 use crate::defines::{ZMQ_DONTWAIT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_RCVMORE, ZMQ_SNDMORE};
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::ProxyError;
 use crate::err::ZmqError;
 use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
@@ -15,15 +17,15 @@ pub enum ProxyState {
     Terminated,
 }
 
-pub unsafe fn proxy(frontend_: &mut ZmqSocket,
+pub fn proxy(frontend_: &mut ZmqSocket,
                     backend_: &mut ZmqSocket,
-                    capture_: Option<&mut ZmqSocket>) -> i32 {
+                    capture_: Option<&mut ZmqSocket>) -> Result<(),ZmqError> {
 
     // msg_t msg;
     let mut msg = ZmqMsg::new();
     let rc = msg.init();
     if (rc != 0) {
-        return -1;
+        return Err(ProxyError("msg.init failed"));
     }
 
     //  The algorithm below assumes ratio of requests and replies processed
@@ -87,7 +89,7 @@ pub unsafe fn proxy(frontend_: &mut ZmqSocket,
     if poller_all == null_mut() || poller_in == null_mut() || poller_receive_blocked == null_mut() || ((poller_send_blocked == null_mut() || poller_both_blocked == null_mut()) && !frontend_equal_to_backend) {
         // PROXY_CLEANUP ();
         // return close_and_return (&msg, -1);
-        return -1;
+        return Err(ProxyError("PROXY_CLEANUP failed")));
     }
 
     // zmq::socket_poller_t *poller_wait =      poller_in; //  Poller for blocking wait, initially all 'ZMQ_POLLIN'.
@@ -143,7 +145,7 @@ pub unsafe fn proxy(frontend_: &mut ZmqSocket,
     let mut reply_processed = false;
     ;
 
-    while (state != ProxyState::Terminated) {
+    while state != ProxyState::Terminated {
         //  Blocking wait initially only for 'ZMQ_POLLIN' - 'poller_wait' points to 'poller_in'.
         //  If one of receiving end's queue is full ('ZMQ_POLLOUT' not available),
         //  'poller_wait' is pointed to 'poller_receive_blocked', 'poller_send_blocked' or 'poller_both_blocked'.
@@ -260,22 +262,22 @@ pub unsafe fn proxy(frontend_: &mut ZmqSocket,
     }
     // PROXY_CLEANUP ();
     // return close_and_return (&msg, 0);
-    return 0;
+    return Ok(());
 }
 
-pub unsafe fn capture(
+pub fn capture(
     options: &ZmqOptions,
     capture_: &mut ZmqSocket,
     msg_: &mut ZmqMsg,
     more_: i32,
-) -> i32 {
+) -> Result<(),ZmqError> {
     //  Copy message to capture socket if any
     if capture_ {
         // zmq::msg_t ctrl;
         let mut ctrl = ZmqMsg::new();
         let rc = ctrl.init();
         if rc < 0 {
-            return -1;
+            return Err(ProxyError("ctrl.init failed"));
         }
         rc = ctrl.copy(*msg_);
         if rc < 0 {
@@ -283,13 +285,13 @@ pub unsafe fn capture(
         }
         rc = capture_.send(options, &ctrl, if more_ != 0 { ZMQ_SNDMORE } else { 0 } as i32);
         if rc < 0 {
-            return -1;
+            return Err(ProxyError("capture_.send failed"));
         }
     }
-    return 0;
+    return Ok(());
 }
 
-pub unsafe fn forward(
+pub fn forward(
     options: &ZmqOptions,
     from: &mut ZmqSocket,
     to: &mut ZmqSocket,

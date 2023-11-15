@@ -1,23 +1,23 @@
 #![allow(non_upper_case_globals)]
 
-use std::ptr::null_mut;
 use std::{
     collections::{HashMap, HashSet},
     sync::Mutex,
 };
+use std::ptr::null_mut;
 
-use crate::defines::{ZmqPid, ZMQ_CTX_TAG_VALUE_GOOD, ZMQ_PAIR};
-use crate::err::ZmqError;
-use crate::msg::ZmqMsg;
-use crate::options::{get_effective_conflate_option, ZmqOptions};
-use crate::pipe::{send_routing_id, ZmqPipe};
 use crate::{command::ZmqCommand, socket::ZmqSocket};
+use crate::defines::{ZMQ_CTX_TAG_VALUE_GOOD, ZMQ_PAIR, ZmqPid};
 use crate::defines::atomic_counter::ZmqAtomicCounter;
+use crate::defines::err::ZmqError;
 use crate::defines::mutex::ZmqMutex;
 use crate::io::io_thread::ZmqIoThread;
 use crate::io::mailbox::ZmqMailbox;
 use crate::io::reaper::ZmqReaper;
 use crate::io::thread::{ZmqThread, ZmqThreadFn};
+use crate::msg::ZmqMsg;
+use crate::options::{get_effective_conflate_option, ZmqOptions};
+use crate::pipe::{send_routing_id, ZmqPipe};
 
 pub type ZmqIoThreads<'a> = Vec<&'a mut ZmqIoThread<'a>>;
 
@@ -258,8 +258,7 @@ impl ZmqContext {
         let ios = self._io_thread_count;
         self._opt_sync.unlock();
         let slot_count = mazmq + ios + term_and_reaper_threads_count;
-        self.slots
-            .reserve((slot_count - term_and_reaper_threads_count) as usize);
+        self.slots.reserve((slot_count - term_and_reaper_threads_count) as usize);
         self.slots[term_tid] = &self.term_mailbox;
         self._reaper = &mut ZmqReaper::new(self, reaper_tid as u32);
         self.slots[reaper_tid] = &self._reaper.get_mailbox();
@@ -313,7 +312,7 @@ impl ZmqContext {
         return Ok(&mut s);
     }
 
-    pub unsafe fn destroy_socket(&mut self, socket_: &mut ZmqSocket) {
+    pub fn destroy_socket(&mut self, socket_: &mut ZmqSocket) {
         // let mut locker = scoped_lock_t::new(&mut self._slot_sync);
         let slot = (*socket_).get_slot();
         self.slots[slot] = null_mut();
@@ -335,7 +334,7 @@ impl ZmqContext {
         self._reaper
     }
 
-    pub unsafe fn start_thread(
+    pub fn start_thread(
         &mut self,
         thread_: &mut ZmqThread,
         tfn_: ZmqThreadFn,
@@ -385,19 +384,19 @@ impl ZmqContext {
         addr_: &str,
         socket_: &mut ZmqSocket,
         options_: &mut ZmqOptions,
-    ) -> i32 {
+    ) -> Result<(),ZmqError> {
         // let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         let mut endpoint = Endpoint::new();
         endpoint.socket = socket_;
         endpoint.options = options_.clone();
         self._endpoints.insert(addr_.to_string(), endpoint);
-        return 0;
+        Ok(())
     }
 
-    pub fn unregister_endpoint(&mut self, addr_: &str) -> i32 {
+    pub fn unregister_endpoint(&mut self, addr_: &str) -> Result<(),ZmqError> {
         // let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         self._endpoints.remove(addr_);
-        return 0;
+        Ok(())
     }
 
     pub fn unregister_endpoints(&mut self, socket_: &mut ZmqSocket) {
@@ -422,12 +421,12 @@ impl ZmqContext {
         return Some(endpoint.unwrap().socket);
     }
 
-    pub unsafe fn pend_connection(
+    pub fn pend_connection(
         &mut self,
         addr_: &str,
         endpoint_: &Endpoint,
         pipes_: &mut [&mut ZmqPipe],
-    ) -> i32 {
+    ) -> Result<(),ZmqError> {
         // let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         let mut pending_connection = PendingConnection::new();
         pending_connection.endpoint = endpoint_.clone();
@@ -442,33 +441,36 @@ impl ZmqContext {
                     &endpoint.1.options,
                     pending_connection,
                     Side::ConnectSide,
-                );
+                )?;
                 found = true;
                 break;
             }
         }
         if found == false {
             endpoint_.socket.inc_seqnum();
-            self._pending_connections
-                .insert(addr_.to_string(), pending_connection);
+            self._pending_connections.insert(addr_.to_string(), pending_connection);
         }
 
-        return 0;
+        Ok(())
     }
 
-    pub unsafe fn connect_pending(&mut self, addr_: &str, bind_socket_: &mut ZmqSocket) {
+    pub fn connect_pending(&mut self,
+                           addr_: &str,
+                           bind_socket_: &mut ZmqSocket
+    ) -> Result<(),ZmqError> {
         // let mut locker = scoped_lock_t::new(&mut self._endpoints_sync);
         for k in self._pending_connections.keys() {
             if k == addr_ {
                 let ep = self._endpoints.get(addr_).unwrap();
                 let pc = self._pending_connections.get_mut(addr_).unwrap();
-                self.connect_inproc_sockets(bind_socket_, &ep.options.clone(), pc, Side::BindSide);
+                self.connect_inproc_sockets(bind_socket_, &ep.options.clone(), pc, Side::BindSide)?;
                 self._pending_connections.remove(k);
             }
         }
+        Ok(())
     }
 
-    pub unsafe fn connect_inproc_sockets(
+    pub fn connect_inproc_sockets(
         &mut self,
         bind_socket_: &mut ZmqSocket,
         bind_options_: &ZmqOptions,
@@ -476,9 +478,7 @@ impl ZmqContext {
         side_: Side,
     ) -> Result<(), ZmqError> {
         bind_socket_.inc_seqnum();
-        pending_connection_
-            .bind_pipe
-            .set_tid(bind_socket_.get_tid());
+        pending_connection_.bind_pipe.set_tid(bind_socket_.get_tid());
         if !bind_options_.recv_routing_id {
             let mut msg = ZmqMsg::new();
             let ok = pending_connection_.bind_pipe.read2(&msg);
@@ -486,9 +486,7 @@ impl ZmqContext {
         }
 
         if !get_effective_conflate_option(&pending_connection_.endpoint.options) {
-            pending_connection_
-                .connect_pipe
-                .set_hwms_boost(bind_options_.sndhwm, bind_options_.rcvhwm);
+            pending_connection_.connect_pipe.set_hwms_boost(bind_options_.sndhwm, bind_options_.rcvhwm);
             pending_connection_.bind_pipe.set_hwms_boost(
                 pending_connection_.endpoint.options.sndhwm,
                 pending_connection_.endpoint.options.rcvhwm,
@@ -497,9 +495,7 @@ impl ZmqContext {
                 pending_connection_.endpoint.options.rcvhwm,
                 pending_connection_.endpoint.options.sndhwm,
             );
-            pending_connection_
-                .bind_pipe
-                .set_hwms(bind_options_.sndhwm, bind_options_.rcvhwm);
+            pending_connection_.bind_pipe.set_hwms(bind_options_.sndhwm, bind_options_.rcvhwm);
         } else {
             pending_connection_.connect_pipe.set_hwms(0, 0);
             pending_connection_.bind_pipe.set_hwms(0, 0);
@@ -519,14 +515,10 @@ impl ZmqContext {
             );
         }
 
-        if pending_connection_.endpoint.options.recv_routing_id
-            && pending_connection_.endpoint.socket.check_tag()
-        {
+        if pending_connection_.endpoint.options.recv_routing_id && pending_connection_.endpoint.socket.check_tag() {
             send_routing_id(self, pending_connection_.bind_pipe, bind_options_)?;
         }
 
         Ok(())
     }
-
-
 }

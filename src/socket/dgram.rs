@@ -1,7 +1,7 @@
 use crate::ctx::ZmqContext;
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::SocketError;
 use crate::defines::ZMQ_MSG_MORE;
-use crate::err::ZmqError;
-use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
@@ -35,7 +35,7 @@ pub fn dgram_xattach_pipe(ctx: &mut ZmqContext, socket: &mut ZmqSocket, pipe_: &
     }
 }
 
-pub unsafe fn dgram_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn dgram_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     if socket.pipe.is_some() && socket.pipe.unwrap() == pipe_ {
         socket.pipe = None;
     }
@@ -45,11 +45,11 @@ pub fn dgram_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Res
     unimplemented!()
 }
 
-pub unsafe fn dgram_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn dgram_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     unimplemented!()
 }
 
-pub unsafe fn xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     // If there's no out pipe, just drop it.
     if socket.pipe.is_none() {
         msg_.close()?;
@@ -122,17 +122,17 @@ pub  fn dgram_xhas_out(socket: &mut ZmqSocket) -> bool {
     return socket.pipe.check_write();
 }
 
-pub fn dgram_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub fn dgram_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> Result<(),ZmqError> {
     unimplemented!()
 }
 pub fn dgram_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
     unimplemented!();
 }
 
-pub fn dgram_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn dgram_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }
 
-pub fn dgram_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn dgram_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     unimplemented!()
 }

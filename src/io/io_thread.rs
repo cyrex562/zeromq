@@ -1,5 +1,6 @@
 use crate::command::ZmqCommand;
 use crate::ctx::{reaper_tid, ZmqContext};
+use crate::defines::err::ZmqError;
 use crate::defines::ZmqHandle;
 use crate::io::mailbox::ZmqMailbox;
 use crate::object::{obj_process_command, obj_send_stop};
@@ -29,7 +30,7 @@ impl ZmqIoThread {
         return &mut self._mailbox;
     }
 
-    pub fn get_load(&mut self) -> i32 {
+    pub fn get_load(&mut self) -> Result<(),ZmqError> {
         return self._poller.get_load();
     }
 

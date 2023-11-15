@@ -1,4 +1,5 @@
 use crate::ctx::ZmqContext;
+use crate::defines::err::ZmqError;
 use crate::defines::ZMQ_MSG_MORE;
 use crate::err::ZmqError;
 use crate::msg::ZmqMsg;
@@ -73,22 +74,22 @@ pub fn gather_xsetsockopt(
     option_: i32,
     optval_: &[u8],
     optvallen_: usize,
-) -> i32 {
+) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
 pub fn gather_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
     unimplemented!();
 }
-pub fn gather_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn gather_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }
 
-pub fn gather_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn gather_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
-pub fn gather_xhas_out(socket: &mut ZmqSocket) -> i32 {
+pub fn gather_xhas_out(socket: &mut ZmqSocket) -> Result<(),ZmqError> {
     unimplemented!()
 }
 

@@ -3,6 +3,7 @@ use crate::ctx::ZmqContext;
 use crate::defines::blob::ZmqBlob;
 use crate::defines::{MSG_MORE, ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT, ZMQ_POLLOUT, ZMQ_PROBE_ROUTER, ZMQ_ROUTER_HANDOVER, ZMQ_ROUTER_MANDATORY, ZMQ_ROUTER_NOTIFY, ZMQ_ROUTER_RAW};
 use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
@@ -99,7 +100,7 @@ pub fn router_xattach_pipe(ctx: &mut ZmqContext, socket: &mut ZmqSocket, pipe_: 
 // int zmq::router_t::xsetsockopt (int option_,
 //                             const void *optval_,
 //                             size_t optvallen_)
-pub unsafe fn router_xsetsockopt(socket: &mut ZmqSocket, options: &mut ZmqOptions, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub fn router_xsetsockopt(socket: &mut ZmqSocket, options: &mut ZmqOptions, option_: i32, optval_: &[u8], optvallen_: usize) -> Result<(),ZmqError> {
     // const bool is_int = (optvallen_ == sizeof (int));
     let is_int = optvallen_ == 4;
     let mut value = 0;
@@ -116,28 +117,28 @@ pub unsafe fn router_xsetsockopt(socket: &mut ZmqSocket, options: &mut ZmqOption
                     options.recv_routing_id = false;
                     options.raw_socket = true;
                 }
-                return 0;
+                return Ok(());
             }
         }
 
         ZMQ_ROUTER_MANDATORY => {
             if is_int && value >= 0 {
                 socket.mandatory = (value != 0);
-                return 0;
+                return Ok(());
             }
         }
 
         ZMQ_PROBE_ROUTER => {
             if is_int && value >= 0 {
                 socket.probe_router = (value != 0);
-                return 0;
+                return Ok(());
             }
         }
 
         ZMQ_ROUTER_HANDOVER => {
             if is_int && value >= 0 {
                 socket.handover = (value != 0);
-                return 0;
+                return Ok(());
             }
         }
 
@@ -146,7 +147,7 @@ pub unsafe fn router_xsetsockopt(socket: &mut ZmqSocket, options: &mut ZmqOption
         ZMQ_ROUTER_NOTIFY => {
             if is_int && value >= 0 && value <= (ZMQ_NOTIFY_CONNECT | ZMQ_NOTIFY_DISCONNECT) as i32 {
                 options.router_notify = value;
-                return 0;
+                return Ok(());
             }
         }
 
@@ -158,11 +159,11 @@ pub unsafe fn router_xsetsockopt(socket: &mut ZmqSocket, options: &mut ZmqOption
         }
     }
     // errno = EINVAL;
-    return -1;
+    return Err(SocketError("EINVAL"));
 }
 
 // void zmq::router_t::xpipe_terminated (pipe_t *pipe_)
-pub unsafe fn router_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn router_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     if 0 == socket.anonymous_pipes.erase(pipe_) {
         socket.erase_out_pipe(pipe_);
         socket.fq.pipe_terminated(pipe_);
@@ -191,7 +192,7 @@ pub fn router_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Re
 }
 
 // int zmq::router_t::xsend (msg_t *msg_)
-pub fn router_xsend(options: &ZmqOptions, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn router_xsend(options: &ZmqOptions, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     //  If this is the first part of the message it's the ID of the
     //  peer to send the message to.
     if !socket.more_out {
@@ -226,21 +227,21 @@ pub fn router_xsend(options: &ZmqOptions, socket: &mut ZmqSocket, msg_: &mut Zmq
                         } else {
                             // errno = EHOSTUNREACH;
                         }
-                        return -1;
+                        return Err(SocketError("EAGAIN"));
                     }
                 }
             } else if socket.mandatory {
                 socket.more_out = false;
                 // errno = EHOSTUNREACH;
-                return -1;
+                return Err(SocketError("EHOSTUNREACH"));
             }
         }
 
-        let mut rc = msg_.close();
+        msg_.close()?;
         // errno_assert (rc == 0);
-        rc = msg_.init2();
+        msg_.init2()?;
         // errno_assert (rc == 0);
-        return 0;
+        return Ok(());
     }
 
     //  Ignore the MORE flag for raw-sock or assert?
@@ -373,13 +374,13 @@ pub fn router_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut Zmq
 }
 
 // int zmq::router_t::rollback ()
-pub unsafe fn router_rollback(socket: &mut ZmqSocket) -> i32 {
+pub fn router_rollback(socket: &mut ZmqSocket) -> Result<(),ZmqError> {
     if socket.current_out {
         socket.current_out.rollback();
         socket.current_out = None;
         socket.more_out = false;
     }
-    return 0;
+    return Ok(());
 }
 
 // bool zmq::router_t::xhas_in ()
@@ -431,7 +432,7 @@ pub  fn router_xhas_in(ctx: &mut ZmqContext, socket: &mut ZmqSocket) -> bool {
     return true;
 }
 
-pub unsafe fn router_check_pipe_hwm(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> bool {
+pub fn router_check_pipe_hwm(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> bool {
     return pipe_.check_hwm();
 }
 
@@ -450,8 +451,8 @@ pub  fn router_xhas_out(socket: &mut ZmqSocket) -> bool {
 
 // int zmq::router_t::get_peer_state (const void *routing_id_,
 //                                size_t routing_id_size_) const
-pub unsafe fn router_get_peer_state(socket: &mut ZmqSocket, routing_id_: &[u8], routing_id_size_: usize) -> i32 {
-    let mut res = 0;
+pub fn router_get_peer_state(socket: &mut ZmqSocket, routing_id_: &[u8], routing_id_size_: usize) -> Result<i32,ZmqError> {
+    let mut res: i32 = 0;
 
     // TODO remove the const_cast, see comment in lookup_out_pipe
     let routing_id_blob = ZmqBlob::new3(
@@ -460,7 +461,7 @@ pub unsafe fn router_get_peer_state(socket: &mut ZmqSocket, routing_id_: &[u8], 
     let out_pipe = socket.lookup_out_pipe(routing_id_blob);
     if !out_pipe {
         // errno = EHOSTUNREACH;
-        return -1;
+        return Err(SocketError("EHOSTUNREACH"));
     }
 
     if out_pipe.pipe.check_hwm() {
@@ -469,11 +470,11 @@ pub unsafe fn router_get_peer_state(socket: &mut ZmqSocket, routing_id_: &[u8], 
 
     /** \todo does it make any sense to check the inpipe as well? */
 
-    return res as i32;
+    return Ok(res);
 }
 
 // bool zmq::router_t::identify_peer (pipe_t *pipe_, bool locally_initiated_)
-pub unsafe fn router_identify_peer(ctx: &mut ZmqContext, socket: &mut ZmqSocket, options: &mut ZmqOptions, pipe_: &mut ZmqPipe, locally_initiated_: bool) -> bool {
+pub fn router_identify_peer(ctx: &mut ZmqContext, socket: &mut ZmqSocket, options: &mut ZmqOptions, pipe_: &mut ZmqPipe, locally_initiated_: bool) -> bool {
     // msg_t msg;
     let mut msg = ZmqMsg::default();
     // blob_t routing_id;
@@ -558,7 +559,7 @@ pub fn router_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], Z
     unimplemented!();
 }
 
-pub fn router_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn router_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }
 

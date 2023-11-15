@@ -5,6 +5,8 @@ use crate::address::{get_socket_name, SocketEnd};
 use crate::address::SocketEnd::{SocketEndLocal, SocketEndRemote};
 use crate::address::tcp_address::ZmqTcpAddress;
 use crate::defines::{SO_REUSEADDR, SOL_SOCKET, ZmqFd, ZmqHandle, ZmqSockaddrStorage};
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::SocketError;
 use crate::defines::RETIRED_FD;
 use crate::endpoint::{make_unconnected_bind_endpoint_pair, make_unconnected_connect_endpoint_pair, ZmqEndpointUriPair};
 use crate::endpoint::ZmqEndpointType::EndpointTypeBind;
@@ -47,27 +49,27 @@ impl ZmqStreamListener {
         }
     }
 
-    pub unsafe fn get_local_address(&mut self, addr_: &mut String) -> i32 {
+    pub fn get_local_address(&mut self, addr_: &mut String) -> Result<(),ZmqError> {
         *addr_ = get_socket_name(self._s, SocketEndLocal)?;
         if addr_.is_empty() {
-            return -1;
+            return Err(SocketError("failed to get local address"));
         }
-        return 0;
+        return Ok(());
     }
 
-    pub unsafe fn process_plug(&mut self) {
+    pub fn process_plug(&mut self) {
         self._handle = self.add_fd(self._s);
         self.set_pollin();
     }
 
-    pub unsafe fn process_term(&mut self, options: &ZmqOptions, linger_: i32) {
+    pub fn process_term(&mut self, options: &ZmqOptions, linger_: i32) {
         self.rm_fd(self._handle);
         self.close(options);
         self._handle = null_mut();
         self.own.process_term(linger_);
     }
 
-    pub unsafe fn close(&mut self, options: &ZmqOptions) {
+    pub fn close(&mut self, options: &ZmqOptions) {
         #[cfg(target_os = "windows")]
         {
             closeseocket(self._s);
@@ -80,7 +82,7 @@ impl ZmqStreamListener {
         self._s = RETIRED_FD
     }
 
-    pub unsafe fn create_engine(&mut self, options: &ZmqOptions, fd_: ZmqFd) {
+    pub fn create_engine(&mut self, options: &ZmqOptions, fd_: ZmqFd) {
         let endpoint_pair = ZmqEndpointUriPair::new(
             &get_socket_name(fd_, SocketEndLocal)?,
             &get_socket_name(fd_, SocketEndRemote)?,
@@ -114,7 +116,7 @@ impl ZmqStreamListener {
         self._socket.event_accepted(options, &endpoint_pair, fd_);
     }
 
-    pub unsafe fn in_event(&mut self, options: &ZmqOptions) {
+    pub fn in_event(&mut self, options: &ZmqOptions) {
         let fd = self.accept(options);
 
         //  If connection was reset by the peer in the meantime, just ignore it.
@@ -144,14 +146,14 @@ impl ZmqStreamListener {
         return get_socket_name::<ZmqTcpAddress>(fd_, socket_end_)?;
     }
 
-    pub unsafe fn create_socket(&mut self, options: &ZmqOptions, addr_: &str) -> i32 {
+    pub fn create_socket(&mut self, options: &ZmqOptions, addr_: &str) -> Result<(),ZmqError> {
         self._s = tcp_open_socket(&mut addr_.to_string(), options, true, true, &mut self._address.unwrap());
         if self._s == RETIRED_FD {
-            return -1;
+            return Err(SocketError("failed to open socket"));
         }
 
         //  TODO why is this only Done for the listener?
-        platform_make_socket_noninheritable(self._s);
+        platform_make_socket_noninheritable(self._s)?;
 
         //  Allow reusing of the address.
         let mut flag = 1;
@@ -175,7 +177,7 @@ impl ZmqStreamListener {
         // #else
         #[cfg(not(target_os = "windows"))]
         {
-            platform_setsockopt(self._s, SOL_SOCKET as i32, SO_REUSEADDR, &flag.to_le_bytes(), 4);
+            platform_setsockopt(self._s, SOL_SOCKET as i32, SO_REUSEADDR, &flag.to_le_bytes(), 4)?;
             // errno_assert(rc == 0);
         }
         // #endif
@@ -219,7 +221,7 @@ impl ZmqStreamListener {
         }
         // #endif
 
-        return 0;
+        return Ok(());
 
         // Error:
         //     const int err = errno;
@@ -228,14 +230,14 @@ impl ZmqStreamListener {
         return -1;
     }
 
-    pub unsafe fn set_local_address(&mut self, options: &ZmqOptions, addr_: &str) -> i32 {
+    pub fn set_local_address(&mut self, options: &ZmqOptions, addr_: &str) -> Result<(),ZmqError> {
         if options.use_fd != -1 {
             //  in this case, the addr_ passed is not used and ignored, since the
             //  socket was already created by the application
             self._s = options.use_fd;
         } else {
             if self.create_socket(options, addr_) == -1 {
-                return -1;
+                return Err(SocketError("failed to create socket"));
             }
         }
 
@@ -249,10 +251,10 @@ impl ZmqStreamListener {
             &make_unconnected_bind_endpoint_pair(&self._endpoint),
             self._s,
         );
-        return 0;
+        return Ok(());
     }
 
-    pub unsafe fn accept(&mut self, options: &ZmqOptions) -> ZmqFd {
+    pub fn accept(&mut self, options: &ZmqOptions) -> ZmqFd {
         //  The situation where connection cannot be accepted due to insufficient
         //  resources is considered valid and treated by ignoring the connection.
         //  Accept one connection and deal with different failure modes.

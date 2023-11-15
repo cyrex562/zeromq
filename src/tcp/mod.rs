@@ -65,7 +65,7 @@ pub fn tune_tcp_keepalives(s_: ZmqFd,
                            keepalive_: i32,
                            keepalive_cnt_: i32,
                            keepalive_idle_: i32,
-                           keepalive_intvl_: i32) -> i32 {
+                           keepalive_intvl_: i32) -> Result<(),ZmqError> {
     // These options are used only under certain #ifdefs below.
     // LIBZMQ_UNUSED (keepalive_);
     // LIBZMQ_UNUSED (keepalive_cnt_);
@@ -189,12 +189,12 @@ pub fn tune_tcp_keepalives(s_: ZmqFd,
         }
 // #endif // ZMQ_HAVE_WINDOWS
     }
-    return 0;
+    return Ok(());
 }
 
-pub fn tune_tcp_maxrt(sockfd_: ZmqFd, timeout_: i32) -> i32 {
+pub fn tune_tcp_maxrt(sockfd_: ZmqFd, timeout_: i32) -> Result<(),ZmqError> {
     if timeout_ <= 0 {
-        return 0;
+        return Ok(());
     }
 
     // LIBZMQ_UNUSED (sockfd_);
@@ -220,15 +220,19 @@ pub fn tune_tcp_maxrt(sockfd_: ZmqFd, timeout_: i32) -> i32 {
             let rc = setsockopt(sockfd_, IPPROTO_TCP, TCP_USER_TIMEOUT, timeout_.to_le_bytes().as_ptr() as *const c_void,
                                 4);
             // assert_success_or_recoverable (sockfd_, rc);
-            return rc;
+            return if rc != 0 {
+                Err(SocketError("setsockopt failed"))
+            } else {
+                Ok(())
+            };
         }
     }
     // #else
-    return 0;
+    return Ok(());
 // #endif
 }
 
-pub fn tcp_write(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
+pub fn tcp_write(s_: ZmqFd, data_: &[u8], size_: usize) -> Result<i32,ZmqError> {
 // #ifdef ZMQ_HAVE_WINDOWS
     #[cfg(target_os = "windows")]
     {
@@ -268,7 +272,7 @@ pub fn tcp_write(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
             //  be able to write a single byte from the socket. Also, SIGSTOP issued
             //  by a debugging tool can result in EINTR Error.
             if nbytes == -1 && (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK || get_errno() == EINTR) {
-                return 0;
+                return Ok(0);
             }
 
             //  Signalise peer failure.
@@ -284,11 +288,11 @@ pub fn tcp_write(s_: ZmqFd, data_: &[u8], size_: usize) -> i32 {
 //                       && errno != EMSGSIZE && errno != ENOMEM
 //                       && errno != ENOTSOCK && errno != EOPNOTSUPP);
 // #endif
-                return -1;
+                return Err(SocketError("send failed"));
             }
         }
 
-        return nbytes as i32;
+        return Ok(nbytes as i32);
     }
 // #endif
 }

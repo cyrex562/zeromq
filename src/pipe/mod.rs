@@ -17,6 +17,7 @@ use libc::size_t;
 use std::ffi::c_void;
 use std::ptr::null_mut;
 use crate::ctx::ZmqContext;
+use crate::defines::err::ZmqError;
 use crate::object::{obj_send_activate_read, obj_send_activate_write, obj_send_hiccup, obj_send_pipe_hwm, obj_send_pipe_peer_stats, obj_send_pipe_stats_publish, obj_send_pipe_term, obj_send_pipe_term_ack};
 
 pub mod pipes;
@@ -338,7 +339,7 @@ impl ZmqPipe {
         }
     }
 
-    pub unsafe fn is_delimiter(&mut self, msg_: &mut ZmqMsg) -> bool {
+    pub fn is_delimiter(&mut self, msg_: &mut ZmqMsg) -> bool {
         msg_.is_delimiter()
     }
 
@@ -357,7 +358,7 @@ impl ZmqPipe {
         }
     }
 
-    pub unsafe fn hiccup(&mut self, ctx: &mut ZmqContext) {
+    pub fn hiccup(&mut self, ctx: &mut ZmqContext) {
         if self._state != Active {
             return;
         }
@@ -403,7 +404,7 @@ impl ZmqPipe {
         self.endpoint_pair = endpoint_pair_;
     }
 
-    pub unsafe fn send_stats_to_peer(&mut self, ctx: &mut ZmqContext, socket: &mut ZmqSocket) {
+    pub fn send_stats_to_peer(&mut self, ctx: &mut ZmqContext, socket: &mut ZmqSocket) {
         let mut ep = ZmqEndpointUriPair::from_endpoint_uri_pair(&mut self.endpoint_pair);
         obj_send_pipe_peer_stats(
             ctx,
@@ -430,7 +431,7 @@ impl ZmqPipe {
         );
     }
 
-    pub unsafe fn send_disconnect_msg(&mut self, ctx: &mut ZmqContext) {
+    pub fn send_disconnect_msg(&mut self, ctx: &mut ZmqContext) {
         if self._disconnect_msg.size() > 0 && self.out_pipe.is_some() {
             self.rollback();
             (*self.out_pipe).write(self._disconnect_msg, false);
@@ -439,12 +440,12 @@ impl ZmqPipe {
         }
     }
 
-    pub unsafe fn set_disconnect_msg2(&mut self, disconnect: &mut Vec<u8>) -> Result<(), ZmqError> {
+    pub fn set_disconnect_msg2(&mut self, disconnect: &mut Vec<u8>) -> Result<(), ZmqError> {
         self._disconnect_msg.close()?;
         self._disconnect_msg.init_buffer(disconnect, disconnect.len())
     }
 
-    pub unsafe fn send_hiccup_msg(&mut self, ctx: &mut ZmqContext, hiccup: &mut Vec<u8>) -> Result<(), ZmqError> {
+    pub fn send_hiccup_msg(&mut self, ctx: &mut ZmqContext, hiccup: &mut Vec<u8>) -> Result<(), ZmqError> {
         if hiccup.is_empty() == false && self.out_pipe.is_some() {
             let mut msg: ZmqMsg = ZmqMsg::new();
             msg.init_buffer(hiccup, hiccup.len())?;
@@ -464,7 +465,7 @@ pub fn pipepair(
     pipes_: &mut [Option<&mut ZmqPipe>; 2],
     hwms_: [i32; 2],
     conflate_: [bool; 2],
-) -> i32 {
+) -> Result<(),ZmqError> {
     let mut upipe1: YPipeConflate<ZmqMsg>;
     if conflate_[0] == true {
         upipe1 = YPipeConflate::new();
@@ -497,10 +498,10 @@ pub fn pipepair(
     pipes_[0].unwrap().set_peer(pipes_[1].unwrap());
     pipes_[1].unwrap().set_peer(pipes_[0].unwrap());
 
-    return 0;
+    return Ok(());
 }
 
-pub unsafe fn send_routing_id(ctx: &mut ZmqContext, pipe_: &mut ZmqPipe, options_: &ZmqOptions) -> Result<(), ZmqError> {
+pub fn send_routing_id(ctx: &mut ZmqContext, pipe_: &mut ZmqPipe, options_: &ZmqOptions) -> Result<(), ZmqError> {
     let mut id = ZmqMsg::new();
     id.init_size(options_.routing_id_size)?;
     // libc::memcpy(
@@ -515,7 +516,7 @@ pub unsafe fn send_routing_id(ctx: &mut ZmqContext, pipe_: &mut ZmqPipe, options
     Ok(())
 }
 
-pub unsafe fn send_hello_msg(pipe_: &mut ZmqPipe, options_: &ZmqOptions) -> Result<(), ZmqError> {
+pub fn send_hello_msg(pipe_: &mut ZmqPipe, options_: &ZmqOptions) -> Result<(), ZmqError> {
     let mut hello_msg = ZmqMsg::new();
     hello_msg.init_buffer(&options_.hello_msg[0], options_.hello_msg.size())?;
     (pipe_).write(&mut hello_msg)?;

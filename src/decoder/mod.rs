@@ -71,7 +71,7 @@ impl ZmqDecoder {
     //     &mut self.allocator
     // }
 
-    pub unsafe fn get_buffer(&mut self) -> &Vec<u8> {
+    pub fn get_buffer(&mut self) -> &Vec<u8> {
         // // self._buf = self._allocator.allocate();
         // self.buf = vec![];
         // // if self.to_read >= self.allocator.size()
@@ -86,7 +86,7 @@ impl ZmqDecoder {
         self.buf.as_ref()
     }
 
-    pub unsafe fn resize_buffer(&mut self, size_: usize) {
+    pub fn resize_buffer(&mut self, size_: usize) {
         // self.allocator.resize(size_);
         self.buf.resize(size_, 0);
     }

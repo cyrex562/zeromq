@@ -1,5 +1,7 @@
 use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_DEALER, ZMQ_PROBE_ROUTER};
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::SocketError;
 use crate::defines::fair_queue::ZmqFairQueue;
 use crate::defines::load_balancer::ZmqLoadBalancer;
 use crate::err::ZmqError;
@@ -53,23 +55,23 @@ pub fn dealer_xattach_pipe(ctx: &mut ZmqContext, socket: &mut ZmqSocket, pipe_: 
     Ok(())
 }
 
-pub fn dealer_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32
+pub fn dealer_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> Result<(),ZmqError>
 {
     let is_int = optvallen_ == 4;
     let mut value: u32 = u32::from_le_bytes(optval_[0..4].try_into().unwrap());
 
     if option_ == ZMQ_PROBE_ROUTER {
         socket.probe_router = value != 0;
-        return 0;
+        return Ok(());
     }
     else {
-        return -1;
+        return Err(SocketError("invalid option"));
     }
 
-    socket.xsetsockopt (option_, optval_, optvallen_)
+    // socket.xsetsockopt (option_, optval_, optvallen_)
 }
 
-pub fn dealer_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn dealer_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     socket.sendpipe(msg_, &mut None)
 }
 
@@ -86,26 +88,26 @@ pub fn dealer_xhas_out(socket: &mut ZmqSocket) -> bool {
 }
 
 pub fn dealer_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
-    socket.fq.activated(pipe_);
-    Ok(())
+    socket.fq.activated(pipe_)
+
 }
 
-pub fn dealer_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn dealer_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
     socket.lb.activated(pipe_)
 }
 
-pub unsafe fn dealer_sendpipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg, pipe_: &mut Option<&mut ZmqPipe>) -> Result<(),ZmqError> {
+pub fn dealer_sendpipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg, pipe_: &mut Option<&mut ZmqPipe>) -> Result<(),ZmqError> {
     socket.lb.sendpipe(msg_, pipe_)
 }
 
-pub unsafe fn dealer_recvpipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg, pipe_: Option<&mut ZmqPipe>) -> i32 {
-    socket.fq.recvpipe(msg_, pipe_)
+pub fn dealer_recvpipe(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg, pipe_: Option<&mut ZmqPipe>) -> Result<(),ZmqError> {
+    socket.fq.recvpipe(ctx, msg_, &mut pipe_)
 }
 
 pub fn dealer_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
     unimplemented!();
 }
-pub fn dealer_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn dealer_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }
 

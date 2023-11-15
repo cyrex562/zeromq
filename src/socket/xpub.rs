@@ -1,5 +1,6 @@
 use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_PUB, ZMQ_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_UNSUBSCRIBE, ZMQ_XPUB, ZMQ_XPUB_MANUAL, ZMQ_XPUB_MANUAL_LAST_VALUE, ZMQ_XPUB_NODROP, ZMQ_XPUB_VERBOSE, ZMQ_XPUB_VERBOSER, ZMQ_XPUB_WELCOME_MSG};
+use crate::defines::err::ZmqError;
 use crate::defines::mtrie::ZmqMtrie;
 use crate::err::ZmqError;
 use crate::err::ZmqError::SocketError;
@@ -181,11 +182,11 @@ pub fn xpub_xread_activated(ctx: &mut ZmqContext, socket: &mut ZmqSocket, option
     Ok(())
 }
 
-pub unsafe fn xpub_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn xpub_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     socket.dist.activated(pipe_)
 }
 
-pub unsafe fn xpub_xsetsockopt(
+pub fn xpub_xsetsockopt(
     socket: &mut ZmqSocket,
     option_: i32,
     optval_: &[u8],
@@ -239,7 +240,7 @@ pub unsafe fn xpub_xsetsockopt(
 }
 
 
-pub unsafe fn xpub_xgetsockopt(socket: &mut ZmqSocket, option_: i32) -> Result<[u8],ZmqError> {
+pub fn xpub_xgetsockopt(socket: &mut ZmqSocket, option_: i32) -> Result<[u8],ZmqError> {
     if option_ == ZMQ_TOPICS_COUNT {
         return  do_getsockopt(option_);
         // return if rc == 0 {
@@ -291,7 +292,7 @@ pub fn xpub_mark_last_pipe_as_matching(socket: &mut ZmqSocket, pipe_: &mut ZmqPi
     }
 }
 
-pub fn xpub_xsend(socket: &mut ZmqSocket, options: &mut ZmqOptions, msg_: &mut ZmqMsg) -> i32 {
+pub fn xpub_xsend(socket: &mut ZmqSocket, options: &mut ZmqOptions, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     let mut msg_more = msg_.flag_set(ZMQ_MSG_MORE) != 0;
 
     //  For the first part of multi-part message, find the matching pipes.
@@ -335,9 +336,9 @@ pub fn xpub_xhas_out(socket: &mut ZmqSocket) -> bool {
     socket.dist.has_out()
 }
 
-pub fn xpub_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn xpub_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     //  If there is at least one
-    if (socket.pending_data.empty()) {
+    if socket.pending_data.empty() {
         // errno = EAGAIN;
         return -1;
     }
@@ -381,7 +382,7 @@ pub fn xpub_xhas_in(socket: &mut ZmqSocket) -> bool {
     !socket.pending_data.empty()
 }
 
-pub unsafe fn xpub_send_unsubscription(options: &ZmqOptions, socket: &mut ZmqSocket, data_: &[u8], size_: usize, other_: &mut ZmqSocket) {
+pub fn xpub_send_unsubscription(options: &ZmqOptions, socket: &mut ZmqSocket, data_: &[u8], size_: usize, other_: &mut ZmqSocket) {
     if options.socket_type != ZMQ_PUB {
         //  Place the unsubscription to the queue of pending (un)subscriptions
         //  to be retrieved by the user later on.
@@ -404,6 +405,6 @@ pub unsafe fn xpub_send_unsubscription(options: &ZmqOptions, socket: &mut ZmqSoc
     }
 }
 
-pub fn xpub_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn xpub_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }

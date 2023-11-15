@@ -1,7 +1,9 @@
 use std::ffi::c_uint;
 
-pub unsafe fn seed_random() {
-    libc::srand(libc::time(0 as *mut libc::time_t) as c_uint);
+pub fn seed_random() {
+    unsafe {
+        libc::srand(libc::time(0 as *mut libc::time_t) as c_uint)
+    };
 }
 
 pub fn generate_random() -> u32 {
@@ -12,7 +14,7 @@ pub fn generate_random() -> u32 {
     high
 }
 
-pub unsafe fn manage_random(init_: bool) {
+pub fn manage_random(init_: bool) {
     #[cfg(feature = "sodium")]
     {
         if init_ {
@@ -27,10 +29,10 @@ pub unsafe fn manage_random(init_: bool) {
     }
 }
 
-pub unsafe fn random_open() {
+pub fn random_open() {
     manage_random(true)
 }
 
-pub unsafe fn random_close() {
+pub fn random_close() {
     manage_random(false)
 }

@@ -1,4 +1,5 @@
 use crate::defines::{ZMQ_MSG_MORE, ZMQ_SCATTER};
+use crate::defines::err::ZmqError;
 use crate::err::ZmqError;
 use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
@@ -27,7 +28,7 @@ pub fn scatter_xsetsockopt(
     option_: i32,
     optval_: &[u8],
     optvallen_: usize,
-) -> i32 {
+) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
@@ -41,11 +42,11 @@ pub fn scatter_xattach_pipe(
     socket.lb.attach(pipe_);
 }
 
-pub unsafe fn scatter_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn scatter_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     socket.lb.activated(pipe_);
 }
 
-pub unsafe fn scatter_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn scatter_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     socket.lb.terminated(pipe_);
 }
 
@@ -68,7 +69,7 @@ pub fn scatter_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], 
     unimplemented!();
 }
 
-pub fn scatter_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn scatter_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }
 
@@ -76,7 +77,7 @@ pub fn scatter_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(),ZmqE
     unimplemented!()
 }
 
-pub fn scatter_xhas_in(socket: &mut ZmqSocket) -> i32 {
+pub fn scatter_xhas_in(socket: &mut ZmqSocket) -> Result<(),ZmqError> {
     unimplemented!()
 }
 

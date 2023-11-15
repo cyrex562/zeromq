@@ -1,4 +1,5 @@
 use crate::ctx::ZmqContext;
+use crate::defines::err::ZmqError;
 use crate::defines::MSG_MORE;
 use crate::err::ZmqError;
 use crate::err::ZmqError::SocketError;
@@ -58,7 +59,7 @@ pub fn server_xattach_pipe(
     socket.fq.attach(pipe_);
 }
 
-pub unsafe fn server_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn server_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     // const out_pipes_t::iterator it = _out_pipes.find (pipe_->get_server_socket_routing_id ());
     let it = socket.out_pipes.find(pipe_.get_server_socket_routing_id());
     // zmq_assert (it != _out_pipes.end ());
@@ -77,7 +78,7 @@ pub fn server_xread_activated(
     Ok(())
 }
 
-pub unsafe fn server_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
+pub fn server_xwrite_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) {
     let end = socket.out_pipes.iter_mut().last().unwrap();
 
     let mut it: (&u32, &mut ZmqOutpipe);
@@ -189,7 +190,7 @@ pub fn server_xsetsockopt(
     option_: i32,
     optval_: &[u8],
     optvallen_: usize
-) -> i32 {
+) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
@@ -197,6 +198,6 @@ pub fn server_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], Z
     unimplemented!();
 }
 
-pub fn server_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn server_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }

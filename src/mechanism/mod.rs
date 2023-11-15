@@ -11,6 +11,7 @@ use crate::defines::{
     ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED, ZMQ_REQ, ZMQ_ROUTER,
 };
 use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::MechanismError;
 use crate::metadata::ZmqDict;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
@@ -79,7 +80,7 @@ impl<'a> ZmqMechanism<'a> {
         self._routing_id.clone_from_slice(id_ptr);
     }
 
-    pub unsafe fn peer_routing_id(&mut self, msg: &mut ZmqMsg) {
+    pub fn peer_routing_id(&mut self, msg: &mut ZmqMsg) {
         let rc = (*msg).init_size(self._routing_id.size());
         // libc::memcpy(
         //     (*msg_).data_mut(),
@@ -226,7 +227,7 @@ impl<'a> ZmqMechanism<'a> {
         mut ptr_: &mut [u8],
         length_: usize,
         zap_flag_: bool,
-    ) -> i32 {
+    ) -> Result<(),ZmqError> {
         let mut bytes_left = length_;
 
         while bytes_left > 1 {
@@ -271,7 +272,7 @@ impl<'a> ZmqMechanism<'a> {
                         value_length as usize,
                     ) {
                         // errno = EINVAL;
-                        return -1;
+                        return Err(MechanismError("EINVAL"));
                     }
                 } else {
                     let rc = self.property(
@@ -280,7 +281,7 @@ impl<'a> ZmqMechanism<'a> {
                         value_length as usize
                     );
                     if rc == -1 {
-                        return -1;
+                        return Err(MechanismError("property error"));
                     }
                 }
             }
@@ -298,12 +299,12 @@ impl<'a> ZmqMechanism<'a> {
         }
         if bytes_left > 0 {
             // errno = EPROTO;
-            return -1;
+            return Err(MechanismError("EPROTO"));
         }
-        return 0;
+        return Ok(());
     }
 
-    pub fn property(&mut self, name: &str, value_: &[u8], length_: usize) -> i32 {
+    pub fn property(&mut self, name: &str, value_: &[u8], length_: usize) -> Result<(),ZmqError> {
         todo!()
     }
 
@@ -386,7 +387,7 @@ impl<'a> ZmqMechanism<'a> {
         return false;
     }
 
-    pub fn check_basic_command_structure(&mut self, options: &ZmqOptions, msg: &mut ZmqMsg) -> i32 {
+    pub fn check_basic_command_structure(&mut self, options: &ZmqOptions, msg: &mut ZmqMsg) -> Result<(),ZmqError> {
         if (msg).size() <= 1 || (msg).size() <= ((msg).data_mut())[0] as usize {
             self.session.get_socket().event_handshake_failed_protocol(
                 options,
@@ -394,9 +395,9 @@ impl<'a> ZmqMechanism<'a> {
                 ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_UNSPECIFIED as i32,
             );
             // errno = EPROTO;
-            return -1;
+            return Err(MechanismError("EPROTO"));
         }
-        return 0;
+        return Ok(());
     }
 
     pub fn handle_error_reason(

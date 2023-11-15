@@ -1,6 +1,7 @@
 use std::ffi::c_void;
 use std::mem::size_of_val;
 use crate::ctx::ZmqContext;
+use crate::defines::err::ZmqError;
 use crate::defines::fair_queue::ZmqFairQueue;
 use crate::defines::ZMQ_STREAM_NOTIFY;
 use crate::msg::ZmqMsg;
@@ -22,7 +23,7 @@ pub struct ZmqStream<'a> {
 }
 
 impl ZmqStream {
-    pub unsafe fn new(parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
+    pub fn new(parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
         let mut out = Self {
             base: ZmqSocket::new(parent_, tid_, sid_, false),
             _fq: ZmqFairQueue::new(),
@@ -44,23 +45,23 @@ impl ZmqStream {
         out
     }
 
-    pub unsafe fn xattach_pipe(&mut self, options: &mut ZmqOptions, pipe_: &mut ZmqPipe, subscribe_to_all: bool, locally_initiated_: bool) {
+    pub fn xattach_pipe(&mut self, options: &mut ZmqOptions, pipe_: &mut ZmqPipe, subscribe_to_all: bool, locally_initiated_: bool) {
         self.identify_peer(options, pipe_, locally_initiated_);
         self._fq.attach(pipe_);
     }
 
-    pub unsafe fn xpipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
+    pub fn xpipe_terminated(&mut self, pipe_: &mut ZmqPipe) {
         self._fq.terminated(pipe_);
         if pipe_ == self._current_out {
             self._current_out = None;
         }
     }
 
-    pub unsafe fn xread_activated(&mut self, pipe_: &mut ZmqPipe) {
-        self._fq.activated(pipe_);
+    pub fn xread_activated(&mut self, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
+        self._fq.activated(pipe_)
     }
 
-    pub unsafe fn xsend(&mut self, msg_: &mut ZmqMsg) -> i32 {
+    pub fn xsend(&mut self, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
         //  If this is the first part of the message it's the ID of the
         //  peer to send the message to.
         if !self._more_out {
@@ -100,7 +101,7 @@ impl ZmqStream {
             // errno_assert (rc == 0);
             msg_.init2()?;
             // errno_assert (rc == 0);
-            return 0;
+            return Ok(());
         }
 
         //  Ignore the MORE flag
@@ -121,7 +122,7 @@ impl ZmqStream {
                 msg_.init2()?;
                 // errno_assert (rc == 0);
                 self._current_out = None;
-                return 0;
+                return Ok(());
             }
             let ok = self._current_out.write(msg_);
             if ok {
@@ -137,10 +138,10 @@ impl ZmqStream {
         msg_.init2()?;
         // errno_assert (rc == 0);
 
-        return 0;
+        return Ok(());
     }
 
-    pub unsafe fn xsetsockopt(&mut self, options: &mut ZmqOptions, option_: i32, optval_: *const c_void, optvallen_: usize) -> i32 {
+    pub fn xsetsockopt(&mut self, options: &mut ZmqOptions, option_: i32, optval_: *const c_void, optvallen_: usize) -> Result<(),ZmqError> {
         return match option_ {
             ZMQ_STREAM_NOTIFY => {
                 // if (optvallen_ != size_of::<i32>()) {
@@ -151,12 +152,12 @@ impl ZmqStream {
                 do_setsockopt_int_as_bool_strict(optval_, optvallen_, &mut options.raw_notify)
             }
             _ => {
-                self.base.xsetsockopt(option_, optval_, optvallen_)
+                self.base.xsetsockopt(options, option_, optval_, optvallen_)
             }
         }
     }
 
-    pub unsafe fn xrecv(&mut self, ctx: &mut ZmqContext, msg_: &mut ZmqMsg) -> i32 {
+    pub fn xrecv(&mut self, ctx: &mut ZmqContext, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
         if self._prefetched {
             if !self._routing_id_sent {
                 // TODO
@@ -207,7 +208,7 @@ impl ZmqStream {
         return 0;
     }
 
-    pub unsafe fn xhas_in(&mut self, ctx: &mut ZmqContext) -> bool {
+    pub fn xhas_in(&mut self, ctx: &mut ZmqContext) -> bool {
         //  We may already have a message pre-fetched.
         if self._prefetched {
             return true;
@@ -250,7 +251,7 @@ impl ZmqStream {
         true
     }
 
-    pub unsafe fn identify_peer(&mut self, options: &mut ZmqOptions, pipe_: &mut ZmqPipe, locally_initiated_: bool) {
+    pub fn identify_peer(&mut self, options: &mut ZmqOptions, pipe_: &mut ZmqPipe, locally_initiated_: bool) {
         // unsigned char buffer[5];
         let mut buffer: [u8; 5] = [0; 5];
         buffer[0] = 0;

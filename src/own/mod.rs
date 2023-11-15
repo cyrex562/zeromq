@@ -61,7 +61,7 @@ pub fn own_process_seqnum(own: &mut ZmqOwn) {
     own.check_term_acks();
 }
 
-pub unsafe fn own_launch_child(own: &mut ZmqOwn, object_: *mut ZmqOwn) {
+pub fn own_launch_child(own: &mut ZmqOwn, object_: *mut ZmqOwn) {
     //  Specify the owner of the object.
     (*object_).set_owner(own);
 

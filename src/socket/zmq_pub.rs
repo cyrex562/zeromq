@@ -1,3 +1,4 @@
+use crate::defines::err::ZmqError;
 use crate::err::ZmqError;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
@@ -36,7 +37,7 @@ pub fn pub_xhas_in(socket: &mut ZmqSocket) -> bool {
     false
 }
 
-pub fn pub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> i32 {
+pub fn pub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
@@ -44,11 +45,11 @@ pub fn pub_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqE
     unimplemented!();
 }
 
-pub fn pub_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn pub_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }
 
-pub fn pub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> i32 {
+pub fn pub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     unimplemented!()
 }
 

@@ -1,30 +1,21 @@
-use std::intrinsics::size_of_val;
 use std::ptr::null_mut;
 
 #[cfg(not(target_os = "windows"))]
 use libc::{F_GETFL, F_SETFL, getnameinfo, O_NONBLOCK, setsockopt};
 use libc::timeval;
-use windows::core::PSTR;
-use windows::imp::GetLastError;
-use windows::Win32::Foundation::{BOOL, ERROR_ACCESS_DENIED, FALSE, HANDLE, HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE, SetHandleInformation, TRUE, HANDLE_FLAGS, CloseHandle};
 #[cfg(target_os = "windows")]
-use windows::Win32::Networking::WinSock::{FIONBIO, getpeername, getsockname, ioctlsocket, setsockopt, SOCKADDR, SOCKET, WSADATA, WSASocketA, WSAStartup, send};
-use windows::Win32::Networking::WinSock::{INADDR_LOOPBACK, INVALID_SOCKET, SEND_RECV_FLAGS, SOCKADDR_IN, WSACleanup, ADDRESS_FAMILY, bind, SOCKET_ERROR, listen, connect, accept, recv, closesocket, WSAPoll, WSAPOLLFD, select, sendto, FD_SET, TIMEVAL, recvfrom, getsockopt};
-use windows::Win32::Security::{InitializeSecurityDescriptor, PSECURITY_DESCRIPTOR, SECURITY_ATTRIBUTES, SetSecurityDescriptorDacl};
-use windows::Win32::Storage::FileSystem::SYNCHRONIZE;
-use windows::Win32::System::SystemServices::SECURITY_DESCRIPTOR_REVISION;
+use windows::Win32::Networking::WinSock::{FIONBIO, getpeername, getsockname, ioctlsocket, send, setsockopt, SOCKADDR, SOCKET, WSADATA, WSASocketA, WSAStartup};
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::OpenEventA;
-use windows::Win32::System::Threading::{CreateEventA, CreateMutexA, EVENT_MODIFY_STATE, INFINITE, ReleaseMutex, SetEvent, SYNCHRONIZATION_ACCESS_RIGHTS, WaitForSingleObject};
-use windows::Win32::System::WindowsProgramming::OpenMutexA;
-use crate::defines::{AF_INET, IPPROTO_TCP, NI_MAXHOST, RETIRED_FD, SIGNALER_PORT, SO_REUSEADDR, SOCK_STREAM, SOL_SOCKET, ZmqFd, ZmqPollFd, ZmqSockAddr};
+#[cfg(target_os = "windows")]
+use crate::ip::tune_socket;
+
+use crate::defines::{AF_UNIX, NI_MAXHOST, RETIRED_FD, SOCK_STREAM, ZmqFd, ZmqPollFd, ZmqSockAddr, ZmqSocklen};
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::PlatformError;
-use crate::defines::tcp::TCP_NODELAY;
-use crate::ip::{open_socket, set_nosigpipe, tune_socket};
+use crate::ip::{set_nosigpipe};
 use crate::poll::select::fd_set;
-use crate::tcp::tcp_tune_loopback_fast_path;
-use crate::utils::sock_utils::{wsa_sockaddr_to_zmq_sockaddr, zmq_sockaddr_to_wsa_sockaddr};
+use crate::utils::sock_utils::{sockaddr_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr};
 
 pub fn platform_setsockopt(
     fd: ZmqFd,
@@ -78,35 +69,51 @@ pub fn platform_getnameinfo(
     let mut servicebuffer_cc_len = 0;
     let mut rc = 0;
 
+    let mut nodebuffer: [u8; NI_MAXHOST as usize] = [0; NI_MAXHOST];
+    let mut servicebuffer: [u8; NI_MAXHOST as usize] = [0; NI_MAXHOST];
+
     if get_nodename {
+        // unsafe {
+        //     nodebuffer_cc = libc::malloc(NI_MAXHOST as libc::size_t) as *mut libc::c_char;
+        //     nodebuffer_cc_len = NI_MAXHOST;
+        // }
+
+        #[cfg(not(target_os = "windows"))]
         unsafe {
-            nodebuffer_cc = libc::malloc(NI_MAXHOST as libc::size_t) as *mut libc::c_char;
-            nodebuffer_cc_len = NI_MAXHOST;
+            rc = getnameinfo(
+                &zmq_sockaddr_to_sockaddr(sockaddr),
+                sockaddr_len as ZmqSocklen,
+                nodebuffer.as_mut_ptr() as *mut libc::c_char,
+                nodebuffer_cc_len as ZmqSocklen,
+                null_mut(),
+                servicebuffer_cc_len as ZmqSocklen,
+                flags,
+            );
         }
+
     }
     if get_servicename {
+        // unsafe {
+        //     servicebuffer_cc = libc::malloc(NI_MAXHOST as libc::size_t) as *mut libc::c_char;
+        //     servicebuffer_cc_len = NI_MAXHOST;
+        // }
+
+        #[cfg(not(target_os = "windows"))]
         unsafe {
-            servicebuffer_cc = libc::malloc(NI_MAXHOST as libc::size_t) as *mut libc::c_char;
-            servicebuffer_cc_len = NI_MAXHOST;
+            rc = getnameinfo(
+                &zmq_sockaddr_to_sockaddr(sockaddr),
+                sockaddr_len as ZmqSocklen,
+                null_mut(),
+                nodebuffer_cc_len as ZmqSocklen,
+                servicebuffer.as_mut_ptr() as *mut libc::c_char,
+                servicebuffer_cc_len as ZmqSocklen,
+                flags,
+            );
         }
     }
 
     #[cfg(target_os = "windows")]
     {}
-
-    #[cfg(not(target_os = "windows"))]
-    unsafe {
-        rc = getnameinfo(
-            &zmq_sockaddr_to_sockaddr(sockaddr),
-            sockaddr_len as ZmqSocklen,
-            nodebuffer_cc,
-            nodebuffer_cc_len as ZmqSocklen,
-            servicebuffer_cc,
-            servicebuffer_cc_len as ZmqSocklen,
-            flags,
-        );
-    }
-
 
     return if rc == 0 {
         let mut result = GetNameInfoResult {
@@ -115,24 +122,28 @@ pub fn platform_getnameinfo(
         };
 
         if get_nodename {
-            unsafe {
-                let nodebuffer_result = String::from_raw_parts(
-                    nodebuffer_cc as *mut u8,
-                    nodebuffer_cc_len as usize,
-                    nodebuffer_cc_len as usize,
-                );
-                result.nodebuffer = Some(nodebuffer_result);
-            }
+            // unsafe {
+            //     let nodebuffer_result = String::from_raw_parts(
+            //         nodebuffer_cc as *mut u8,
+            //         nodebuffer_cc_len as usize,
+            //         nodebuffer_cc_len as usize,
+            //     );
+            //     result.nodebuffer = Some(nodebuffer_result);
+            // }
+            let nodebuffer_result = String::from_utf8(nodebuffer.to_vec()).unwrap();
+            result.nodebuffer = Some(nodebuffer_result);
         }
         if get_servicename {
-            unsafe {
-                let servicebuffer_result = String::from_raw_parts(
-                    servicebuffer_cc as *mut u8,
-                    servicebuffer_cc_len as usize,
-                    servicebuffer_cc_len as usize,
-                );
-                result.servicebuffer = Some(servicebuffer_result);
-            }
+            // unsafe {
+            //     let servicebuffer_result = String::from_raw_parts(
+            //         servicebuffer_cc as *mut u8,
+            //         servicebuffer_cc_len as usize,
+            //         servicebuffer_cc_len as usize,
+            //     );
+            //     result.servicebuffer = Some(servicebuffer_result);
+            // }
+            let servicebuffer_result = String::from_utf8(servicebuffer.to_vec()).unwrap();
+            result.servicebuffer = Some(servicebuffer_result);
         }
 
         Ok(result)
@@ -278,7 +289,7 @@ pub fn platform_shutdown_network() -> Result<(), ZmqError> {
 }
 
 #[cfg(target_os = "windows")]
-pub unsafe fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(),ZmqError> {
+pub fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(), ZmqError> {
     // let mut sd = SECURITY_DESCRIPTOR::default();
     // let mut psd = PSECURITY_DESCRIPTOR::default();
     // psd.0
@@ -299,7 +310,7 @@ pub unsafe fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(),Zmq
             Some(&sa),
             FALSE,
             TRUE,
-            "Global\\zmq-signaler-port-sync"
+            "Global\\zmq-signaler-port-sync",
         )?;
 
         if sync == INVALID_HANDLE_VALUE && GetLastError() == ERROR_ACCESS_DENIED.0 {
@@ -326,7 +337,7 @@ pub unsafe fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(),Zmq
         let mut listener = SOCKET::default();
         let zmq_sk = open_socket(AF_INET, SOCK_STREAM, 0)?;
         listener.0 = zmq_sk;
-        let so_reuseaddr: BOOL = BOOL{0: 1};
+        let so_reuseaddr: BOOL = BOOL { 0: 1 };
         let mut rc = setsockopt(
             listener,
             SOL_SOCKET as i32,
@@ -335,7 +346,7 @@ pub unsafe fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(),Zmq
         tune_socket(listener)?;
 
         let mut addr = SOCKADDR_IN::default();
-        addr.sin_family = ADDRESS_FAMILY{0: AF_INET as u16 };
+        addr.sin_family = ADDRESS_FAMILY { 0: AF_INET as u16 };
         addr.sin_addr.S_un.S_addr = INADDR_LOOPBACK;
         addr.sin_port = SIGNALER_PORT as u16;
 
@@ -370,7 +381,7 @@ pub unsafe fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(),Zmq
         }
 
         if rc != SOCKET_ERROR {
-            tune_socket(SOCKET{0:*w_})?;
+            tune_socket(SOCKET { 0: *w_ })?;
             *r_ = accept(listener, None, None).0 as ZmqFd;
         }
 
@@ -385,7 +396,7 @@ pub unsafe fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(),Zmq
                     nbytes = send(
                         *w_,
                         &dummy[dummy_size - still_to_send..],
-                        SEND_RECV_FLAGS{0:0}
+                        SEND_RECV_FLAGS { 0: 0 },
                     );
                     if nbytes > 0 {
                         still_to_send -= nbytes;
@@ -394,7 +405,7 @@ pub unsafe fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(),Zmq
                 nbytes = recv(
                     *r_,
                     &mut dummy[dummy_size - still_to_recv..],
-                    SEND_RECV_FLAGS{0:0}
+                    SEND_RECV_FLAGS { 0: 0 },
                 );
                 still_to_recv -= nbytes;
             }
@@ -429,7 +440,7 @@ pub unsafe fn make_fdpair_tcpip(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(),Zmq
 }
 
 #[cfg(target_os = "windows")]
-pub unsafe fn platform_tune_socket(socket: SOCKET) -> Result<(),ZmqError> {
+pub fn platform_tune_socket(socket: SOCKET) -> Result<(), ZmqError> {
     let tcp_nodelay = 1;
     let rc = setsockopt(
         socket,
@@ -446,7 +457,7 @@ pub fn platform_make_fdpair(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(), ZmqErr
     let mut pipefd: [ZmqFd; 2] = [0; 2];
     #[cfg(target_os = "windows")]
     {
-        unsafe{make_fdpair_tcpip(r_, w_)}?;
+        unsafe { make_fdpair_tcpip(r_, w_) }?;
     }
     #[cfg(not(target_os = "windows"))]
     {
@@ -469,15 +480,17 @@ pub fn platform_make_fdpair(r_: &mut ZmqFd, w_: &mut ZmqFd) -> Result<(), ZmqErr
     };
 }
 
-pub fn platform_make_socket_noninheritable(sock_: ZmqFd) -> Result<(),ZmqError> {
+pub fn platform_make_socket_noninheritable(sock_: ZmqFd) -> Result<(), ZmqError> {
     #[cfg(target_os = "windows")]
     {
-        let sk_hand: HANDLE = HANDLE{0: sock_ as isize };
-        let brc = unsafe{ SetHandleInformation(
-            sk_hand,
-            HANDLE_FLAG_INHERIT.0,
-            HANDLE_FLAGS{0:0},
-        )};
+        let sk_hand: HANDLE = HANDLE { 0: sock_ as isize };
+        let brc = unsafe {
+            SetHandleInformation(
+                sk_hand,
+                HANDLE_FLAG_INHERIT.0,
+                HANDLE_FLAGS { 0: 0 },
+            )
+        };
     }
     #[cfg(not(target_os = "windows"))]
     {
@@ -524,10 +537,10 @@ pub fn platform_select(
         unsafe {
             result = select(
                 nfds,
-                if readfds.is_some() {Some(readfds.unwrap() as *mut fd_set as *mut FD_SET)} else {None},
-                if writefds.is_some() {Some(writefds.unwrap() as *mut fd_set as *mut FD_SET)} else {None},
-                if exceptfds.is_some() {Some(exceptfds.unwrap() as *mut fd_set as *mut FD_SET)} else {None},
-                if timeout.is_some() {Some(timeout.unwrap() as *mut timeval as *mut TIMEVAL)} else {None},
+                if readfds.is_some() { Some(readfds.unwrap() as *mut fd_set as *mut FD_SET) } else { None },
+                if writefds.is_some() { Some(writefds.unwrap() as *mut fd_set as *mut FD_SET) } else { None },
+                if exceptfds.is_some() { Some(exceptfds.unwrap() as *mut fd_set as *mut FD_SET) } else { None },
+                if timeout.is_some() { Some(timeout.unwrap() as *mut timeval as *mut TIMEVAL) } else { None },
             );
         }
     }
@@ -536,9 +549,9 @@ pub fn platform_select(
         unsafe {
             result = libc::select(
                 nfds,
-                readfds.unwrap() as *mut fd_set,
-                writefds.unwrap() as *mut fd_set,
-                exceptfds.unwrap() as *mut fd_set,
+                readfds.unwrap() as *mut fd_set as *mut libc::fd_set,
+                writefds.unwrap() as *mut fd_set as *mut libc::fd_set,
+                exceptfds.unwrap() as *mut fd_set as *mut libc::fd_set,
                 timeout.unwrap() as *mut timeval,
             );
         }
@@ -584,13 +597,15 @@ pub fn platform_sendto(fd: ZmqFd, buf: &mut [u8], len: usize, flags: i32, zsa: &
         // let mut sa = SOCKADDR::default();
         let mut sl = std::mem::size_of::<SOCKADDR>() as i32;
         let mut addr = zmq_sockaddr_to_wsa_sockaddr(zsa);
-        let mut rc = unsafe { sendto(
-            fd,
-            buf,
-            flags,
-            &mut addr as *mut SOCKADDR,
-            sl
-        ) };
+        let mut rc = unsafe {
+            sendto(
+                fd,
+                buf,
+                flags,
+                &mut addr as *mut SOCKADDR,
+                sl,
+            )
+        };
         return if rc == len as i32 {
             Ok(())
         } else {
@@ -605,14 +620,16 @@ pub fn platform_sendto(fd: ZmqFd, buf: &mut [u8], len: usize, flags: i32, zsa: &
         };
         let mut sl = std::mem::size_of_val(&sa) as u32;
         let mut addr = zmq_sockaddr_to_sockaddr(zsa);
-        let mut rc = unsafe { libc::sendto(
-            fd,
-            buf.as_mut_ptr() as *const libc::c_void,
-            len as libc::size_t,
-            flags,
-            &mut addr as *mut libc::sockaddr,
-            sl
-        ) };
+        let mut rc = unsafe {
+            libc::sendto(
+                fd,
+                buf.as_mut_ptr() as *const libc::c_void,
+                len as libc::size_t,
+                flags,
+                &mut addr as *mut libc::sockaddr,
+                sl,
+            )
+        };
         return if rc == len as isize {
             Ok(())
         } else {
@@ -627,7 +644,7 @@ pub fn platform_recvfrom(fd: ZmqFd, buf: &mut [u8], sa: &mut ZmqSockAddr) -> Res
     {
         let mut sa = SOCKADDR::default();
         let mut sl = std::mem::size_of::<SOCKADDR>() as i32;
-        rc = unsafe { recvfrom(fd, buf,  0, Some(&mut sa as *mut SOCKADDR), Some(&mut sl)) };
+        rc = unsafe { recvfrom(fd, buf, 0, Some(&mut sa as *mut SOCKADDR), Some(&mut sl)) };
         return if rc >= 0 {
             Ok(rc)
         } else {
@@ -641,14 +658,16 @@ pub fn platform_recvfrom(fd: ZmqFd, buf: &mut [u8], sa: &mut ZmqSockAddr) -> Res
             sa_data: [0; 14],
         };
         let mut sl = std::mem::size_of_val(&sa) as u32;
-        rc = unsafe { libc::recvfrom(
-            fd,
-            buf.as_mut_ptr() as *mut libc::c_void,
-            buf.len() as libc::size_t,
-            0,
-            &mut sa as *mut libc::sockaddr,
-            &mut sl
-        ) };
+        rc = unsafe {
+            libc::recvfrom(
+                fd,
+                buf.as_mut_ptr() as *mut libc::c_void,
+                buf.len() as libc::size_t,
+                0,
+                &mut sa as *mut libc::sockaddr,
+                &mut sl,
+            )
+        };
         return if rc >= 0 {
             Ok(rc as i32)
         } else {
@@ -657,9 +676,8 @@ pub fn platform_recvfrom(fd: ZmqFd, buf: &mut [u8], sa: &mut ZmqSockAddr) -> Res
     }
 }
 
-pub fn platform_connect(fd: ZmqFd, addr: &ZmqSockAddr) -> Result<(),ZmqError>
-{
-let mut rc = 0;
+pub fn platform_connect(fd: ZmqFd, addr: &ZmqSockAddr) -> Result<(), ZmqError> {
+    let mut rc = 0;
     #[cfg(target_os = "windows")]
     {
         let mut sa = SOCKADDR::default();
@@ -685,14 +703,13 @@ let mut rc = 0;
     };
 }
 
-pub fn platform_getsockopt(fd: ZmqFd, level: i32, opt: i32) -> Result<Vec<u8>, ZmqError>
-{
+pub fn platform_getsockopt(fd: ZmqFd, level: i32, opt: i32) -> Result<Vec<u8>, ZmqError> {
     let mut rc = 0;
     let mut optval: [u8; 256] = [0; 256];
     let mut optlen = 256;
     #[cfg(target_os = "windows")]
     {
-        let ps_optval: PSTR = PSTR{0: optval.as_mut_ptr()};
+        let ps_optval: PSTR = PSTR { 0: optval.as_mut_ptr() };
         rc = unsafe { getsockopt(fd, level, opt, ps_optval, &mut optlen) };
     }
     #[cfg(not(target_os = "windows"))]
@@ -707,8 +724,8 @@ pub fn platform_getsockopt(fd: ZmqFd, level: i32, opt: i32) -> Result<Vec<u8>, Z
     };
 }
 
-pub fn platform_send(fd: ZmqFd, data: &[u8], flags: i32) -> Result<i32,ZmqError> {
-    #[cfg(target_os="windows")]
+pub fn platform_send(fd: ZmqFd, data: &[u8], flags: i32) -> Result<i32, ZmqError> {
+    #[cfg(target_os = "windows")]
     {
         let mut sr_flags: SEND_RECV_FLAGS = SEND_RECV_FLAGS::default();
         sr_flags.0 = flags;
@@ -719,11 +736,11 @@ pub fn platform_send(fd: ZmqFd, data: &[u8], flags: i32) -> Result<i32,ZmqError>
             Err(PlatformError(&format!("send failed {}", rc)))
         };
     }
-    #[cfg(not(target_os="windows"))]
+    #[cfg(not(target_os = "windows"))]
     {
         let mut rc = unsafe { libc::send(fd, data.as_ptr() as *const libc::c_void, data.len() as libc::size_t, flags) };
         return if rc == data.len() as isize {
-            Ok(rc)
+            Ok(rc as i32)
         } else {
             Err(PlatformError(&format!("send failed {}", rc)))
         };
@@ -731,9 +748,8 @@ pub fn platform_send(fd: ZmqFd, data: &[u8], flags: i32) -> Result<i32,ZmqError>
 }
 
 #[allow(non_snake_case)]
-#[cfg(target_os="windows")]
-pub fn win_SOCKADDR_IN_to_SOCKADDR(sk_in: &SOCKADDR_IN) -> SOCKADDR
-{
+#[cfg(target_os = "windows")]
+pub fn win_SOCKADDR_IN_to_SOCKADDR(sk_in: &SOCKADDR_IN) -> SOCKADDR {
     // pub struct SOCKADDR_IN {
     //     pub sin_family: ADDRESS_FAMILY,
     //     pub sin_port: u16,

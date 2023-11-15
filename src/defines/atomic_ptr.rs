@@ -1,7 +1,6 @@
 use std::ffi::c_void;
 use std::sync::atomic::{AtomicPtr, Ordering};
 
-
 pub unsafe fn atomic_xchg_ptr(ptr: *mut *mut c_void, newval: *mut c_void) -> *mut c_void {
     let some_ptr = AtomicPtr::new(*ptr);
     let x = some_ptr.load(Ordering::SeqCst);
@@ -15,13 +14,11 @@ pub unsafe fn atomic_cas_ptr(ptr: *mut *mut c_void, oldval: *mut c_void, newval:
     x.is_ok()
 }
 
-pub struct ZmqAtomicPtr<T>
-{
-    pub ptr: AtomicPtr<T>
+pub struct ZmqAtomicPtr<T> {
+    pub ptr: AtomicPtr<T>,
 }
 
-impl <T> ZmqAtomicPtr<T>
-{
+impl<T> ZmqAtomicPtr<T> {
     pub fn new() -> Self {
         ZmqAtomicPtr {
             ptr: AtomicPtr::new(std::ptr::null_mut())

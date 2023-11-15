@@ -27,6 +27,7 @@ pub const FD_FAMILY_CACHE_SIZE: usize = 8;
 //   u_int  fd_count;
 //   SOCKET fd_array[FD_SETSIZE];
 // } fd_set, FD_SET, *PFD_SET, *LPFD_SET;
+#[derive(Default,Debug,Clone)]
 pub struct fd_set {
     pub fd_count: u32,
     pub fd_array: [ZmqFd; 64],
@@ -44,7 +45,7 @@ pub struct fd_entry_t<'a> {
     pub events: &'a mut ZmqPollerEvent,
 }
 
-pub unsafe fn remove_fd_entry(fd_entries_: &mut ZmqFdEntries, entry: &fd_entry_t) {
+pub fn remove_fd_entry(fd_entries_: &mut ZmqFdEntries, entry: &fd_entry_t) {
     for i in 0..fd_entries_.len() {
         if fd_entries_[i].fd == entry.fd {
             fd_entries_.remove(i);
@@ -245,16 +246,16 @@ impl<'a> ZmqSelect<'a> {
     }
 
     #[cfg(target_os = "windows")]
-    pub unsafe fn try_retire_fd_entry(
+    pub fn try_retire_fd_entry(
         &mut self,
         family_entry_it_: &mut family_entry_t,
         handle_: &ZmqFd,
-    ) -> i32 {
+    ) -> Result<(),ZmqError> {
         // let family_entry: &mut family_entry_t = family_entry_it_.;
         let mut fd_entry_it =
             self.find_fd_entry_by_handle(&mut family_entry_it_.fd_entries, handle_ as ZmqHandle);
         if fd_entry_it == family_entry_it_.fd_entries.end() {
-            return 0;
+            return Ok(());
         }
 
         if family_entry_it_ != self._current_family_entry_it {
@@ -379,7 +380,7 @@ impl<'a> ZmqSelect<'a> {
         unimplemented!()
     }
 
-    pub unsafe fn loop_op(&mut self) {
+    pub fn loop_op(&mut self) {
         loop {
             //  Execute any due timers.
             // int timeout = static_cast<int> (execute_timers ());
@@ -536,7 +537,7 @@ impl<'a> ZmqSelect<'a> {
         }
     }
 
-    pub unsafe fn select_family_entry(
+    pub fn select_family_entry(
         &mut self,
         family_entry_: &mut family_entry_t,
         max_fd_: i32,
@@ -616,7 +617,7 @@ impl<'a> ZmqSelect<'a> {
     }
 
     #[cfg(target_os = "windows")]
-    pub unsafe fn get_fd_family(&mut self, fd_: ZmqFd) -> u16 {
+    pub fn get_fd_family(&mut self, fd_: ZmqFd) -> u16 {
         // cache the results of determine_fd_family, as this is frequently called
         // for the same sockets, and determine_fd_family is expensive
         // size_t i;
@@ -647,7 +648,7 @@ impl<'a> ZmqSelect<'a> {
     }
 
     #[cfg(target_os = "windows")]
-    pub unsafe fn determine_fd_family(&mut self, fd_: ZmqFd) -> u16 {
+    pub fn determine_fd_family(&mut self, fd_: ZmqFd) -> u16 {
         //  Use sockaddr_storage instead of sockaddr to accommodate different structure sizes
         // sockaddr_storage addr = {0};
         let mut addr = SOCKADDR_STORAGE::default();

@@ -32,7 +32,7 @@ pub fn pair_xsetsockopt(
     option_: i32,
     optval_: &[u8],
     optvallen_: usize,
-) -> i32 {
+) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
@@ -50,7 +50,7 @@ pub fn pair_xattach_pipe(
     }
 }
 
-pub unsafe fn pair_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn pair_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     if pipe_ == socket.pipe {
         socket.pipe = None;
     }
@@ -60,7 +60,7 @@ pub fn pair_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Resu
     unimplemented!()
 }
 
-pub unsafe fn pair_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn pair_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     unimplemented!()
 }
 
@@ -117,6 +117,6 @@ pub fn pair_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], Zmq
     unimplemented!();
 }
 
-pub fn pair_xjoin(socket: &mut ZmqSocket, group: &str) -> i32 {
+pub fn pair_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
     unimplemented!();
 }

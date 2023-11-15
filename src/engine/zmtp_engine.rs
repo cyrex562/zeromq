@@ -19,6 +19,8 @@ use crate::utils::{get_errno, put_u64};
 use libc::EAGAIN;
 use std::cmp::min;
 use std::mem::size_of;
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::EngineError;
 use crate::msg::defines::{CANCEL_CMD_NAME_SIZE, PING_CMD_NAME_SIZE, SUB_CMD_NAME_SIZE};
 
 pub const ZMTP_1_0: i32 = 0;
@@ -98,7 +100,7 @@ pub fn zmtp_plug_internal(options: &ZmqOptions, engine: &mut ZmqEngine) {
     engine.in_event(options);
 }
 
-pub unsafe fn zmtp_handshake(engine: &mut ZmqEngine) -> bool {
+pub fn zmtp_handshake(engine: &mut ZmqEngine) -> bool {
     // zmq_assert (_greeting_bytes_read < _greeting_size);
     //  Receive the greeting.
     let rc = engine.receive_greeting();
@@ -123,7 +125,7 @@ pub unsafe fn zmtp_handshake(engine: &mut ZmqEngine) -> bool {
     return true;
 }
 
-pub unsafe fn zmtp_receive_greeting(engine: &mut ZmqEngine) -> i32 {
+pub fn zmtp_receive_greeting(engine: &mut ZmqEngine) -> Result<(),ZmqError> {
     let mut unversioned = false;
     while engine.greeting_bytes_read < engine.greeting_size as u32 {
         let mut n = stream_read(
@@ -135,7 +137,7 @@ pub unsafe fn zmtp_receive_greeting(engine: &mut ZmqEngine) -> i32 {
             if get_errno() != EAGAIN {
                 // Error(ConnectionError);
             }
-            return -1;
+            return Err(EngineError("stream read failed"));
         }
 
         engine.greeting_bytes_read += n;
@@ -167,7 +169,7 @@ pub unsafe fn zmtp_receive_greeting(engine: &mut ZmqEngine) -> i32 {
     return if unversioned { 1 } else { 0 };
 }
 
-pub unsafe fn zmtp_receive_greeting_versioned(options: &ZmqOptions, engine: &mut ZmqEngine) {
+pub fn zmtp_receive_greeting_versioned(options: &ZmqOptions, engine: &mut ZmqEngine) {
     //  Send the major version number.
     if engine.out_pos[engine.out_size..] == engine.greeting_send[SIGNATURE_SIZE..] {
         if engine.out_size == 0 {
@@ -477,11 +479,11 @@ pub fn zmtp_handshake_v3_1(options: &ZmqOptions, engine: &mut ZmqEngine) -> bool
 }
 
 // int zmq::zmtp_engine_t::routing_id_msg (msg_t *msg_)
-pub unsafe fn zmtp_routing_id_msg(
+pub fn zmtp_routing_id_msg(
     options: &ZmqOptions,
     engine: &mut ZmqEngine,
     msg: &mut ZmqMsg,
-) -> i32 {
+) -> Result<(),ZmqError> {
     msg.init_size(options.routing_id_size as usize)?;
     // errno_assert (rc == 0);
     if options.routing_id_size > 0 {
@@ -489,7 +491,7 @@ pub unsafe fn zmtp_routing_id_msg(
         msg.data_mut().copy_from_slice(&options.routing_id);
     }
     engine.next_msg = stream_pull_msg_from_session;
-    return 0;
+    Ok(())
 }
 
 // int zmq::zmtp_engine_t::process_routing_id_msg (msg_t *msg_)
@@ -572,11 +574,11 @@ pub fn zmtp_produce_pong_msg(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Resul
 }
 
 // int zmq::zmtp_engine_t::process_heartbeat_message (msg_t *msg_)
-pub unsafe fn zmtp_process_heartbeat_message(
+pub fn zmtp_process_heartbeat_message(
     options: &ZmqOptions,
     engine: &mut ZmqEngine,
     msg_: &mut ZmqMsg,
-) -> i32 {
+) -> Result<(),ZmqError> {
     if msg_.is_ping() {
         // 16-bit TTL + \4PING == 7
         let ping_ttl_len = PING_CMD_NAME_SIZE + 2;
@@ -609,11 +611,12 @@ pub unsafe fn zmtp_process_heartbeat_message(
         let rc = engine.pong_msg.init_size(ZmqMsg::ping_cmd_name_size + context_len);
         // errno_assert (rc == 0);
         engine.pong_msg.set_flags(ZmqMsg::command);
-        libc::memcpy(
-            engine.pong_msg.data_mut().as_mut_ptr() as *mut libc::c_void,
-            "\x04PONG".as_bytes().as_ptr() as *const libc::c_void,
-            ZmqMsg::ping_cmd_name_size,
-        );
+        // libc::memcpy(
+        //     engine.pong_msg.data_mut().as_mut_ptr() as *mut libc::c_void,
+        //     "\x04PONG".as_bytes().as_ptr() as *const libc::c_void,
+        //     ZmqMsg::ping_cmd_name_size,
+        // );
+        engine.pong_msg.data_mut()[..PING_CMD_NAME_SIZE].copy_from_slice(b"\x04PONG");
         if context_len > 0 {
             // libc::memcpy(engine.pong_msg.data_mut()) + PING_CMD_NAME_SIZE,
             // (msg_.data_mut()) + ping_ttl_len,
@@ -625,18 +628,18 @@ pub unsafe fn zmtp_process_heartbeat_message(
         engine.out_event(options);
     }
 
-    return 0;
+    Ok(())
 }
 
 // int zmq::zmtp_engine_t::process_command_message (msg_t *msg_)
-pub unsafe fn zmtp_process_command_message(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> i32 {
+pub fn zmtp_process_command_message(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     let cmd_name_size = (msg_.data_mut())[0];
     let ping_name_size = PING_CMD_NAME_SIZE - 1;
     let sub_name_size = SUB_CMD_NAME_SIZE - 1;
     let cancel_name_size = CANCEL_CMD_NAME_SIZE - 1;
     //  Malformed command
     if msg_.size() < (cmd_name_size + size_of::<cmd_name_size>()) as usize {
-        return -1;
+        return Err(EngineError("Malformed command"));
     }
 
     let cmd_name = (msg_.data()[1..]);
@@ -673,5 +676,5 @@ pub unsafe fn zmtp_process_command_message(engine: &mut ZmqEngine, msg_: &mut Zm
         return engine.process_heartbeat_message(msg_);
     }
 
-    return 0;
+    return Ok(());
 }

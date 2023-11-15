@@ -48,7 +48,7 @@ impl ZmqThread {
         self._started
     }
 
-    pub unsafe fn start(&mut self, tfn_: ZmqThreadFn, arg: &mut [u8], name: &str) {
+    pub fn start(&mut self, tfn_: ZmqThreadFn, arg: &mut [u8], name: &str) {
         self._tfn = tfn_;
         self._arg = arg;
         // if name != null_mut() {
@@ -77,7 +77,7 @@ impl ZmqThread {
         self._join_handle = handle;
     }
 
-    pub unsafe fn is_current_thread(&self) -> bool {
+    pub fn is_current_thread(&self) -> bool {
         let curr_thread = thread::current();
         self._thread_id == curr_thread.id()
     }

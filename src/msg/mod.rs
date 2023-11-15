@@ -11,6 +11,8 @@ use crate::defines::{
     ZMQ_MSG_SUBSCRIBE,
 };
 use crate::defines::atomic_counter::ZmqAtomicCounter;
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::MessageError;
 use crate::err::ZmqError;
 use crate::err::ZmqError::MessageError;
 use crate::metadata::ZmqMetadata;
@@ -253,7 +255,7 @@ impl ZmqMsg {
         Ok(())
     }
 
-    pub unsafe fn init_buffer(&mut self, buf_: &[u8], size_: size_t) -> Result<(), ZmqError> {
+    pub fn init_buffer(&mut self, buf_: &[u8], size_: size_t) -> Result<(), ZmqError> {
         self.init_size(size_)?;
         // if rc < 0 {
         //     return -1;
@@ -368,37 +370,37 @@ impl ZmqMsg {
         Ok(())
     }
 
-    pub fn init_delimiter(&mut self) -> i32 {
+    pub fn init_delimiter(&mut self) -> Result<(),ZmqError> {
         self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_DELIMITER;
         self.flags = 0;
         self.group[0] = 0;
         self.group_type = GroupTypeShort as u8;
         self.routing_id = 0;
-        return 0;
+        return Ok(())
     }
 
-    pub fn init_join(&mut self) -> i32 {
+    pub fn init_join(&mut self) -> Result<(),ZmqError> {
         self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_JOIN;
         self.flags = 0;
         self.group[0] = 0;
         self.group_type = GroupTypeShort as u8;
         self.routing_id = 0;
-        return 0;
+        return Ok(());
     }
 
-    pub fn init_leave(&mut self) -> i32 {
+    pub fn init_leave(&mut self) -> Result<(),ZmqError> {
         self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_LEAVE;
         self.flags = 0;
         self.group[0] = 0;
         self.group_type = GroupTypeShort as u8;
         self.routing_id = 0;
-        return 0;
+        return Ok(());
     }
 
-    pub unsafe fn init_subscribe(
+    pub fn init_subscribe(
         &mut self,
         size_: size_t,
         topic: &mut [u8],
@@ -417,7 +419,7 @@ impl ZmqMsg {
         return res;
     }
 
-    pub unsafe fn init_cancel(&mut self, size_: size_t, topic_: &mut [u8]) -> Result<(), ZmqError> {
+    pub fn init_cancel(&mut self, size_: size_t, topic_: &mut [u8]) -> Result<(), ZmqError> {
         let rc = self.init_size(size_);
         if rc.is_ok() {
             self.set_flags(ZMQ_MSG_CANCEL);

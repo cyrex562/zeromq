@@ -1,7 +1,9 @@
 use crate::command::ZmqCommandType::{ActivateRead, Stop};
 use crate::command::{ZmqCommand, ZmqCommandType};
 use crate::ctx::{Endpoint, ZmqContext};
+use crate::defines::err::ZmqError;
 use crate::endpoint::ZmqEndpointUriPair;
+use crate::io::io_thread::ZmqIoThread;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::own::{own_process_seqnum, own_process_term_ack, ZmqOwn};
@@ -156,12 +158,12 @@ pub fn obj_register_endpoint(
     addr: &str,
     sock: &mut ZmqSocket,
     options: &mut ZmqOptions,
-) -> i32 {
+) -> Result<(),ZmqError> {
     ctx.register_endpoint(addr, sock, options)
 }
 
-pub fn obj_unregister_endpoint(ctx: &mut ZmqContext, addr: &str, socket: &mut ZmqSocket) {
-    ctx.unregister_endpoint(addr);
+pub fn obj_unregister_endpoint(ctx: &mut ZmqContext, addr: &str, socket: &mut ZmqSocket) -> Result<(),ZmqError>{
+    ctx.unregister_endpoint(addr)
 }
 
 pub fn obj_unregister_endpoints(ctx: &mut ZmqContext, socket: &mut ZmqSocket) {
@@ -172,36 +174,39 @@ pub fn obj_find_endpoint<'a>(ctx: &mut ZmqContext, addr: &str) -> Option<&'a mut
     ctx.find_endpoint(addr)
 }
 
-pub unsafe fn obj_pend_connection(
+pub fn obj_pend_connection(
     ctx: &mut ZmqContext,
     addr: &str,
     endpoint: &Endpoint,
     pipes: &mut [&mut ZmqPipe],
-) {
-    ctx.pend_connection(addr, endpoint, pipes);
+) -> Result<(),ZmqError> {
+    ctx.pend_connection(addr, endpoint, pipes)
 }
 
-pub unsafe fn obj_connect_pending(ctx: &mut ZmqContext, addr: &str, bind_socket: &mut ZmqSocket) {
-    ctx.connect_pending(addr, bind_socket);
+pub fn obj_connect_pending(ctx: &mut ZmqContext, addr: &str, bind_socket: &mut ZmqSocket) -> Result<(),ZmqError> {
+    ctx.connect_pending(addr, bind_socket)
 }
 
-pub unsafe fn obj_destroy_socket(ctx: &mut ZmqContext, socket: &mut ZmqSocket) {
+pub fn obj_destroy_socket(ctx: &mut ZmqContext, socket: &mut ZmqSocket) {
     ctx.destroy_socket(socket);
 }
 
-pub unsafe fn obj_choose_io_thread<'a>(ctx: &mut ZmqContext, affinity: u64) -> &'a mut ZmqIoThread {
+pub fn obj_choose_io_thread<'a>(
+    ctx: &mut ZmqContext,
+    affinity: u64
+) -> Option<&'a mut ZmqIoThread> {
     ctx.choose_io_thread(affinity)
 }
 
 pub fn obj_send_stop(ctx: &mut ZmqContext, pipe: &mut ZmqPipe, thread_id: u32) {
     let mut cmd = ZmqCommand::new();
     cmd.dest_pipe = Some(pipe);
-    cmd.type_ = ZmqCommandType::Stop;
+    cmd.type_ = Stop;
     ctx.send_command(thread_id, &mut cmd);
 }
 
-pub unsafe fn obj_send_plug(ctx: &mut ZmqContext, destination: &mut ZmqPipe, inc_seqnum: bool) {
-    if (inc_seqnum) {
+pub fn obj_send_plug(ctx: &mut ZmqContext, destination: &mut ZmqPipe, inc_seqnum: bool) {
+    if inc_seqnum {
         destination.inc_seqnum();
     }
 
@@ -211,7 +216,7 @@ pub unsafe fn obj_send_plug(ctx: &mut ZmqContext, destination: &mut ZmqPipe, inc
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_own(ctx: &mut ZmqContext, destination: &mut ZmqPipe, object: &mut ZmqOwn) {
+pub fn obj_send_own(ctx: &mut ZmqContext, destination: &mut ZmqPipe, object: &mut ZmqOwn) {
     destination.inc_seqnum();
     let mut cmd = ZmqCommand::new();
     cmd.dest_pipe = Some(destination);
@@ -220,7 +225,7 @@ pub unsafe fn obj_send_own(ctx: &mut ZmqContext, destination: &mut ZmqPipe, obje
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_attach(
+pub  fn obj_send_attach(
     ctx: &mut ZmqContext,
     destination: &mut ZmqPipe,
     engine: &mut ZmqEngine,
@@ -237,7 +242,7 @@ pub unsafe fn obj_send_attach(
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_conn_failed(ctx: &mut ZmqContext, destination: &mut ZmqPipe) {
+pub fn obj_send_conn_failed(ctx: &mut ZmqContext, destination: &mut ZmqPipe) {
     let mut cmd = ZmqCommand::new();
     cmd.dest_pipe = Some(destination);
     cmd.type_ = ZmqCommandType::ConnFailed;
@@ -280,7 +285,7 @@ pub fn obj_send_activate_write(
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_hiccup(ctx: &mut ZmqContext, destination: &mut ZmqPipe, pipe: &mut YPipeConflate<ZmqMsg>) {
+pub fn obj_send_hiccup(ctx: &mut ZmqContext, destination: &mut ZmqPipe, pipe: &mut YPipeConflate<ZmqMsg>) {
     let mut cmd = ZmqCommand::new();
     cmd.dest_pipe = Some(destination);
     cmd.type_ = ZmqCommandType::Hiccup;
@@ -288,7 +293,7 @@ pub unsafe fn obj_send_hiccup(ctx: &mut ZmqContext, destination: &mut ZmqPipe, p
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_pipe_peer_stats(
+pub fn obj_send_pipe_peer_stats(
     ctx: &mut ZmqContext,
     destination: &mut ZmqPipe,
     queue_count: u64,
@@ -377,7 +382,7 @@ pub fn obj_send_pipe_term_ack(ctx: &mut ZmqContext, destination: &mut ZmqPipe) {
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_term_endpoint(
+pub fn obj_send_term_endpoint(
     ctx: &mut ZmqContext,
     destination: &mut ZmqPipe,
     endpoint: &str,
@@ -419,7 +424,7 @@ pub fn obj_send_term(ctx: &mut ZmqContext, destination: &mut ZmqOwn, linger: i32
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_reap(ctx: &mut ZmqContext, socket: &mut ZmqSocket) {
+pub fn obj_send_reap(ctx: &mut ZmqContext, socket: &mut ZmqSocket) {
     let mut cmd = ZmqCommand::new();
     cmd.dest_reaper = Some(ctx.get_reaper());
     cmd.type_ = ZmqCommandType::Reap;
@@ -427,21 +432,21 @@ pub unsafe fn obj_send_reap(ctx: &mut ZmqContext, socket: &mut ZmqSocket) {
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_reaped(ctx: &mut ZmqContext) {
+pub fn obj_send_reaped(ctx: &mut ZmqContext) {
     let mut cmd = ZmqCommand::new();
     cmd.dest_reaper = Some(ctx.get_reaper());
     cmd.type_ = ZmqCommandType::Reaped;
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_inproc_connected(ctx: &mut ZmqContext, socket: &mut ZmqSocket) {
+pub fn obj_send_inproc_connected(ctx: &mut ZmqContext, socket: &mut ZmqSocket) {
     let mut cmd = ZmqCommand::new();
     cmd.dest_sock = Some(socket);
     cmd.type_ = ZmqCommandType::InprocConnected;
     obj_send_command(ctx, &mut cmd);
 }
 
-pub unsafe fn obj_send_done(ctx: &mut ZmqContext) {
+pub fn obj_send_done(ctx: &mut ZmqContext) {
     let mut cmd = ZmqCommand::new();
     // cmd.destination = None;
     cmd.type_ = ZmqCommandType::Done;
