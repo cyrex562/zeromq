@@ -1,22 +1,18 @@
 use crate::defines::*;
-use crate::tcp_address::tcp_address_mask_t;
 use libc::{c_void, size_t};
-use std::char::decode_utf16;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::ptr;
 use crate::address::tcp_address::TcpAddressMask;
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::OptionsError;
-use crate::err::ZmqError;
-
-use crate::utils::{copy_bytes, copy_void, zmq_z85_decode};
+use crate::utils::{copy_bytes, zmq_z85_decode};
 
 pub const CURVE_KEYSIZE: usize = 32;
 pub const CURVE_KEYSIZE_Z85: usize = 40;
-pub const default_hwm: i32 = 1000;
+pub const DEFAULT_HWM: i32 = 1000;
 pub const CURVE_KEYSIZE_Z85_1: usize = CURVE_KEYSIZE_Z85 + 1;
-pub const deciseconds_per_millisecond: u32 = 100;
+pub const DECISECONDS_PER_MILLISECOND: u32 = 100;
 
 #[derive(Debug, Clone)]
 pub struct ZmqOptions {
@@ -115,15 +111,15 @@ pub struct ZmqOptions {
 impl ZmqOptions {
     pub fn new() -> Self {
         let mut out = Self {
-            sndhwm: default_hwm,
-            rcvhwm: default_hwm,
+            sndhwm: DEFAULT_HWM,
+            rcvhwm: DEFAULT_HWM,
             rate: 100,
             recovery_ivl: 10000,
             multicast_hops: 1,
             multicast_maxtpdu: 1500,
             sndbuf: -1,
             rcvbuf: -1,
-            socket_type: -1,
+            socket_type: 0,
             linger: 0,
             reconnect_ivl: 100,
             backlog: 100,
@@ -140,9 +136,9 @@ impl ZmqOptions {
             tcp_keepalive_cnt: -1,
             tcp_keepalive_idle: -1,
             tcp_keepalive_intvl: -1,
-            mechanism: ZMQ_NULL,
-            gss_principal_nt: ZMQ_GSSAPI_NT_HOSTBASED,
-            gss_service_principal_nt: ZMQ_GSSAPI_NT_HOSTBASED,
+            mechanism: ZMQ_NULL as i32,
+            gss_principal_nt: ZMQ_GSSAPI_NT_HOSTBASED as i32,
+            gss_service_principal_nt: ZMQ_GSSAPI_NT_HOSTBASED as i32,
             gss_plaintext: false,
             conflate: false,
             handshake_ivl: 30000,
@@ -183,14 +179,14 @@ impl ZmqOptions {
                 // libc::memcpy(destination.as_mut_ptr() as *mut c_void, optval_, optvallen_);
                 destination.copy_from_slice(optval_);
                 self.mechanism = ZMQ_CURVE as i32;
-                return 0;
+                return Ok(());
             }
             CURVE_KEYSIZE_Z85_1 => {
                 // let s = std::str::from_utf8_unchecked(std::slice::from_raw_parts(
                 //     optval_ as *const u8,
                 //     optvallen_ as usize,
                 // ));
-                let s = std::str::from_utf8_unchecked(optval_);
+                let s = unsafe{std::str::from_utf8_unchecked(optval_)};
                 if zmq_z85_decode(destination.as_mut_ptr(), s.as_ptr() as *const i8) {
                     self.mechanism = ZMQ_CURVE as i32;
                     return Ok(());
@@ -522,7 +518,7 @@ impl ZmqOptions {
                 }
             }
             ZMQ_HEARTBEAT_TTL => {
-                value = value / deciseconds_per_millisecond;
+                value = value / DECISECONDS_PER_MILLISECOND;
                 if is_int && value >= 0 && value <= u16::MAX as i32 {
                     self.heartbeat_ttl = value as u16;
                     return Ok(());
@@ -1054,15 +1050,15 @@ pub fn sockopt_invalid() -> Result<(),ZmqError> {
 }
 
 pub fn do_setsockopt_int_as_bool_strict(
-    optval_: *const c_void,
+    optval_: &[u8],
     optvallen_: size_t,
-    out_value_: *mut bool,
+    out_value_: &mut bool,
 ) -> Result<(),ZmqError> {
     let value = -1;
-    do_setsockopt(optval_, optvallen_, &value)?
+    do_setsockopt(optval_, optvallen_, &value)?;
     if value == 0 || value == 1 {
-        *out_value_ = (value != 0);
-        return 0;
+        *out_value_ = value != 0;
+        return Ok(());
     }
     return sockopt_invalid();
 }

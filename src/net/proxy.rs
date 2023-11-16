@@ -89,7 +89,7 @@ pub fn proxy(frontend_: &mut ZmqSocket,
     if poller_all == null_mut() || poller_in == null_mut() || poller_receive_blocked == null_mut() || ((poller_send_blocked == null_mut() || poller_both_blocked == null_mut()) && !frontend_equal_to_backend) {
         // PROXY_CLEANUP ();
         // return close_and_return (&msg, -1);
-        return Err(ProxyError("PROXY_CLEANUP failed")));
+        return Err(ProxyError("PROXY_CLEANUP failed"));
     }
 
     // zmq::socket_poller_t *poller_wait =      poller_in; //  Poller for blocking wait, initially all 'ZMQ_POLLIN'.
