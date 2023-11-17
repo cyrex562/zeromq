@@ -1,3 +1,4 @@
+use crate::defines::err::ZmqError;
 use crate::defines::ZMQ_MSG_MORE;
 use crate::msg::ZmqMsg;
 use crate::pipe::pipes::ZmqPipes;
@@ -12,7 +13,7 @@ pub struct ZmqDist<'a> {
     pub _more: bool,
 }
 
-impl ZmqDist {
+impl<'a> ZmqDist<'a> {
     pub fn new() -> Self {
         Self {
             _pipes: ZmqPipes::new(),

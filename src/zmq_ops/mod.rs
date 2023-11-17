@@ -1,4 +1,4 @@
-use std::intrinsics::size_of;
+use std::mem::size_of;
 use std::os::raw::{c_long, c_uint, c_void};
 
 use libc::{EINTR, pselect, sigset_t, suseconds_t, time_t, timespec, timeval, usleep};
@@ -16,6 +16,7 @@ use crate::defines::{
 use crate::defines::clock::ZmqClock;
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::{ContextError, InvalidContext, PollerError, ProxyError, SocketError, TimerError};
+use crate::defines::time::timeval_to_zmq_timeval;
 use crate::io::timers::{Timers, TimersTimerFn};
 use crate::ip::{initialize_network, shutdown_network};
 use crate::msg::{MsgFreeFn, ZmqMsg};
@@ -47,7 +48,7 @@ pub fn zmq_errno() -> i32 {
 }
 
 // void *zmq_ctx_new (void)
-pub fn zmq_ctx_new() -> Result<ZmqContext, ZmqError> {
+pub fn zmq_ctx_new<'a>() -> Result<ZmqContext<'a>, ZmqError> {
     //  We do this before the ctx constructor since its embedded mailbox_t
     //  object needs the network to be up and running (at least on Windows).
     initialize_network()?;
@@ -152,7 +153,7 @@ pub fn zmq_ctx_get_ext(
 }
 
 // void *zmq_init (int io_threads_)
-pub fn zmq_init(io_threads_: i32) -> Result<ZmqContext, ZmqError> {
+pub fn zmq_init<'a>(io_threads_: i32) -> Result<ZmqContext<'a>, ZmqError> {
     if io_threads_ >= 0 {
         // void *ctx = zmq_ctx_new ();
         let mut ctx = zmq_ctx_new().unwrap();
@@ -174,7 +175,7 @@ pub fn zmq_ctx_destroy(ctx_: &mut ZmqContext, options: &ZmqOptions) -> Result<()
 }
 
 // static zmq::socket_base_t *as_socket_base_t (void *s_)
-pub fn as_socket_base_t<'a>(sock: &mut ZmqSocket) -> Option<&'a mut ZmqSocket> {
+pub fn as_socket_base_t<'a>(sock: &mut ZmqSocket) -> Option<&'a mut ZmqSocket<'a>> {
     // zmq::socket_base_t *s = static_cast<zmq::socket_base_t *> (s_);
     // if (!s_ || !s->check_tag ()) {
     //     errno = ENOTSOCK;
@@ -188,7 +189,7 @@ pub fn as_socket_base_t<'a>(sock: &mut ZmqSocket) -> Option<&'a mut ZmqSocket> {
     return Some(sock);
 }
 
-pub fn zmq_socket<'a>(ctx_: &mut ZmqContext, type_: i32) -> Result<&'a mut ZmqSocket, ZmqError> {
+pub fn zmq_socket<'a>(ctx_: &mut ZmqContext, type_: i32) -> Result<&'a mut ZmqSocket<'a>, ZmqError> {
     // if (!ctx_ || !(static_cast<zmq::ctx_t *> (ctx_))->check_tag ())
     if ctx_.check_tag() == false {
         // errno = EFAULT;
@@ -229,7 +230,7 @@ pub fn zmq_getsockopt(
     options: &mut ZmqOptions,
     sock: &mut ZmqSocket,
     option_: u32,
-) -> Result<[u8], ZmqError> {
+) -> Result<Vec<u8>, ZmqError> {
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
     //     return -1;
@@ -240,6 +241,7 @@ pub fn zmq_getsockopt(
 // int zmq_socket_monitor_versioned (
 //   void *s_, const char *addr_, uint64_t events_, int event_version_, int type_)
 pub fn zmq_socket_monitor_versioned(
+    ctx: &mut ZmqContext,
     options: &mut ZmqOptions,
     sock: &mut ZmqSocket,
     addr: &str,
@@ -251,17 +253,26 @@ pub fn zmq_socket_monitor_versioned(
     // if (!s)
     //     return -1;
     // return s->monitor (addr_, events_, event_version_, type_);
-    sock.monitor(options, addr, events, event_version, type_)
+    sock.monitor(ctx, options, addr, events, event_version, type_)
 }
 
 // int zmq_socket_monitor (void *s_, const char *addr_, int events_)
 pub fn zmq_socket_monitor(
+    ctx: &mut ZmqContext,
     options: &mut ZmqOptions,
     sock: &mut ZmqSocket,
     addr_: &str,
     events_: i32,
 ) -> Result<(), ZmqError> {
-    return zmq_socket_monitor_versioned(options, sock, addr_, events_ as u64, 1, ZMQ_PAIR as i32);
+    return zmq_socket_monitor_versioned(
+        ctx,
+        options,
+        sock,
+        addr_,
+        events_ as u64,
+        1,
+        ZMQ_PAIR as i32
+    );
 }
 
 // int zmq_join (void *s_, const char *group_)
@@ -284,6 +295,7 @@ pub fn zmq_leave(sock: &mut ZmqSocket, group_: &str) -> Result<(), ZmqError> {
 
 // int zmq_bind (void *s_, const char *addr_)
 pub fn zmq_bind(
+    ctx: &mut ZmqContext,
     options: &ZmqOptions,
     sock: &mut ZmqSocket,
     addr_: &str,
@@ -292,7 +304,7 @@ pub fn zmq_bind(
     // if (!s)
     //     return -1;
     // return s->Bind (addr_);
-    sock.bind(options, addr_)
+    sock.bind(ctx, options, addr_)
 }
 
 // int zmq_connect (void *s_, const char *addr_)
@@ -345,6 +357,7 @@ pub fn zmq_connect_peer(
 
 // int zmq_unbind (void *s_, const char *addr_)
 pub fn unbind(
+    ctx: &mut ZmqContext,
     options: &ZmqOptions,
     sock: &mut ZmqSocket,
     addr_: &str,
@@ -353,11 +366,12 @@ pub fn unbind(
 
     // if (!s)
     //     return -1;
-    return sock.term_endpoint(options, addr_);
+    return sock.term_endpoint(ctx, options, addr_);
 }
 
 // int zmq_disconnect (void *s_, const char *addr_)
 pub fn zmq_disconnect(
+    ctx: &mut ZmqContext,
     options: &ZmqOptions,
     s_: &mut ZmqSocket,
     addr_: &str,
@@ -365,7 +379,7 @@ pub fn zmq_disconnect(
     // zmq::socket_base_t *s = as_socket_base_t (s_);
     // if (!s)
     //     return -1;
-    return s_.term_endpoint(options, addr_);
+    return s_.term_endpoint(ctx, options, addr_);
 }
 
 // static inline int
@@ -1245,12 +1259,14 @@ pub fn zmq_poll(
                 // #else
                 #[cfg(not(target_os = "windows"))]
                 {
+                    let mut tv = timeval_to_zmq_timeval(&timeout);
+
                     let rc = platform_select(
                         maxfd + 1,
                         inset,
                         outset,
                         errset,
-                        if timeout_ < 0 { None } else { Some(&mut timeout) },
+                        if timeout_ < 0 { None } else { Some(&mut tv) },
                     )?;
                     if rc == -1 {
                         // errno_assert(errno == EINTR || errno == EBADF);
@@ -1808,7 +1824,7 @@ pub fn zmq_ppoll(
 }
 
 // void *zmq_poller_new (void)
-pub fn zmq_poller_new() -> ZmqSocketPoller {
+pub fn zmq_poller_new<'a>() -> ZmqSocketPoller<'a> {
     // zmq::socket_poller_t *poller = new (std::nothrow) zmq::socket_poller_t;
     // if (!poller) {
     //     errno = ENOMEM;
@@ -2076,7 +2092,7 @@ pub fn zmq_socket_get_peer_state(
 }
 
 // void *zmq_timers_new (void)
-pub fn zmq_timers_new() -> Timers {
+pub fn zmq_timers_new<'a>() -> Timers<'a> {
     // zmq::timers_t *timers = new (std::nothrow) zmq::timers_t;
     // alloc_assert (timers);
     // return timers;

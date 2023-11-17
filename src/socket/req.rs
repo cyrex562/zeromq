@@ -2,8 +2,7 @@ use std::mem::size_of_val;
 use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_MSG_MORE, ZMQ_REQ_CORRELATE, ZMQ_REQ_RELAXED};
 use crate::defines::err::ZmqError;
-use crate::err::ZmqError;
-use crate::err::ZmqError::SocketError;
+use crate::defines::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
@@ -254,7 +253,7 @@ pub fn req_recv_reply_pipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<
     }
 }
 
-pub fn req_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+pub fn req_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 

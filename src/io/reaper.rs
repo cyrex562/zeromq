@@ -18,14 +18,14 @@ pub struct ZmqReaper<'a> {
     pub thread_id: u32,
     pub mailbox: ZmqMailbox<'a>,
     pub mailbox_handle: ZmqHandle,
-    pub poller: &'a mut ZmqPollerBase,
+    pub poller: &'a mut ZmqPollerBase<'a>,
     pub sockets: i32,
     pub terminating: bool,
     #[cfg(feature = "have_fork")]
     pub _pid: pid_t,
 }
 
-impl ZmqReaper {
+impl<'a> ZmqReaper<'a> {
     pub fn new(ctx_: &mut ZmqContext, tid_: u32) -> Self {
         let mut out = Self {
             thread_id: 0,
@@ -58,17 +58,16 @@ pub fn reaper_in_event(options: &ZmqOptions, reaper: &mut ZmqReaper, pipe: &mut 
         }
 
         let mut cmd: ZmqCommand = ZmqCommand::new();
-        let rc = reaper.mailbox.recv(&mut cmd, 0);
-        if rc != 0 && get_errno() == EINTR {
-            continue;
-        }
-        if rc != 0 && get_errno() == EAGAIN {
-            break;
-        }
+        let rc = reaper.mailbox.recv(&mut cmd, 0)?;
+        // TODO check error state
+        // if rc != 0 && get_errno() == EINTR {
+        //     continue;
+        // }
+        // if rc != 0 && get_errno() == EAGAIN {
+        //     break;
+        // }
 
-        // TODO
-        // cmd.destination.process_command(cmd);
-        obj_process_command(options, &mut cmd, pipe)
+        obj_process_command(options, &mut cmd, pipe, )
     }
 }
 

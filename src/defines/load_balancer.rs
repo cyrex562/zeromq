@@ -2,8 +2,8 @@ use crate::msg::ZmqMsg;
 use crate::pipe::pipes::ZmqPipes;
 use crate::pipe::ZmqPipe;
 use std::ptr::null_mut;
-use crate::err::ZmqError;
-use crate::err::ZmqError::PipeError;
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::PipeError;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqLoadBalancer<'a> {
@@ -14,8 +14,8 @@ pub struct ZmqLoadBalancer<'a> {
     pub _dropping: bool,
 }
 
-impl ZmqLoadBalancer {
-    pub fn new() -> ZmqLoadBalancer {
+impl<'a> ZmqLoadBalancer<'a> {
+    pub fn new() -> ZmqLoadBalancer<'a> {
         ZmqLoadBalancer {
             _pipes: ZmqPipes::new(),
             _active: 0,

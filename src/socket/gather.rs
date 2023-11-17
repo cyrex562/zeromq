@@ -1,7 +1,6 @@
 use crate::ctx::ZmqContext;
 use crate::defines::err::ZmqError;
 use crate::defines::ZMQ_MSG_MORE;
-use crate::err::ZmqError;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
@@ -36,7 +35,7 @@ pub fn gather_xattach_pipe(
 }
 
 pub fn gather_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
-    socket.fq.activated(pipe_);
+    socket.fq.activated(pipe_)?;
     Ok(())
 }
 
@@ -78,7 +77,7 @@ pub fn gather_xsetsockopt(
     unimplemented!()
 }
 
-pub fn gather_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+pub fn gather_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 pub fn gather_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {

@@ -1,5 +1,5 @@
-use crate::err::ZmqError;
-use crate::err::ZmqError::SessionError;
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::SessionError;
 use crate::msg::ZmqMsg;
 use crate::session::{ZmqSession, ZmqSessionState};
 

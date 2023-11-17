@@ -1,7 +1,8 @@
 use std::ffi::c_void;
+use std::mem;
 use std::mem::size_of_val;
 
-use libc::{c_int, close, EAGAIN, getpid, read, write};
+use libc::{c_int, close, EAGAIN, EINTR, getpid, read, write};
 use windows::Win32::Networking::WinSock::{recv, select, send, SEND_RECV_FLAGS, TIMEVAL};
 
 use crate::defines::{ZmqFd, ZmqPid};
@@ -82,14 +83,14 @@ impl ZmqSignaler {
             let mut dummy = 0u8;
             loop {
                 let mut nbytes = send(self._w, &dummy, 0);
-                if ((nbytes == -1 && errno == EINTR)) {
+                if nbytes == -1 && get_errno() == EINTR {
                     continue;
                 }
 // #if defined(HAVE_FORK)
                 #[cfg(feature = "fork")]{
-                    if ((self.pid != getpid())) {
+                    if self.pid != unsafe{getpid()} {
                         //printf("Child process %d signaler_t::send returning without sending #2\n", getpid());
-                        errno = EINTR;
+                        get_errno() = EINTR;
                         break;
                     }
                 }
@@ -236,7 +237,7 @@ impl ZmqSignaler {
         // #else
         #[cfg(not(target_os = "windows"))]
         {
-            let nbytes = recv(_r, &dummy, 8, 0);
+            let nbytes = recv(self._r, &dummy, 8, 0);
             // errno_assert (nbytes >= 0);
         }
         // #endif
@@ -307,7 +308,12 @@ impl ZmqSignaler {
         // #else
         #[cfg(not(target_os = "windows"))]
         {
-            let nbytes = recv(self._r, &dummy, sizeof(dummy), 0);
+            let nbytes = recv(
+                self._r,
+                &dummy,
+                mem::size_of_val(dummy),
+                0
+            );
             if (nbytes == -1) {
                 // if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
                 //     errno = EAGAIN;

@@ -11,7 +11,6 @@ use windows::Win32::Networking::WinSock::sa_family_t;
 use crate::address::ip_address::ZmqIpAddress;
 use crate::defines::{ZmqSockAddr, AF_INET, AF_INET6, NI_MAXHOST, NI_NUMERICHOST};
 use crate::defines::err::ZmqError;
-use crate::err::ZmqError;
 use crate::ip::ip_resolver::IpResolver;
 use crate::ip::ip_resolver_options::IpResolverOptions;
 use crate::options::ZmqOptions;
@@ -29,8 +28,8 @@ pub struct ZmqTcpAddress {
 impl ZmqTcpAddress {
     pub fn new() -> Self {
         Self {
-            address: ZmqIpAddress::new(),
-            source_address: ZmqIpAddress::new(),
+            address: ZmqIpAddress::default(),
+            source_address: ZmqIpAddress::default(),
             has_src_addr: false,
         }
     }
@@ -42,14 +41,22 @@ impl ZmqTcpAddress {
         // TODO: convert from sockaddr to sockaddr_in without using pointer ops.
         if sock_addr.sa_family == AF_INET as u16 && sa_len_ >= 4 {
             let sa_in = sockaddr_to_sockaddrin(sock_addr);
-            out.address = ZmqIpAddress::new2(sa_in.sin_addr, 4);
-            out.source_address = ZmqIpAddress::new2(sa_in.sin_addr, 4);
+            // out.address = ZmqIpAddress::new2(sa_in.sin_addr, 4);
+            out.address = ZmqIpAddress::default();
+            out.address.ipv4.sin_addr = sa_in.sin_addr;
+            // out.source_address = ZmqIpAddress::new2(sa_in.sin_addr, 4);
+            out.source_address = ZmqIpAddress::default();
+            out.source_address.ipv4.sin_addr = sa_in.sin_addr;
             out.has_src_addr = true;
         } else if sock_addr.sa_family == AF_INET6 as u16 && sa_len_ >= 16 {
             // let sa_in6 = sock_addr as *const sockaddr_in6;
             let sa_in6 = sockaddr_to_sockaddrin6(sock_addr);
-            out.address = ZmqIpAddress::new2(sa_in6.sin6_addr, 16);
-            out.source_address = ZmqIpAddress::new2(sa_in6.sin6_addr, 16);
+            // out.address = ZmqIpAddress::new2(sa_in6.sin6_addr, 16);
+            out.address = ZmqIpAddress::default();
+            out.address.ipv6.sin6_addr.clone_from_slice(&sa_in6.sin6_addr);
+            // out.source_address = ZmqIpAddress::new2(sa_in6.sin6_addr, 16);
+            out.source_address = ZmqIpAddress::default();
+            out.source_address.ipv6.sin6_addr.clone_from_slice(&sa_in6.sin6_addr);
             out.has_src_addr = true;
         }
         out

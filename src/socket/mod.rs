@@ -4,23 +4,23 @@ use std::mem::size_of_val;
 use std::ptr::null_mut;
 
 use libc::{clock_t, EAGAIN, EINTR};
+
 use crate::address::tcp_address::ZmqTcpAddress;
 use crate::address::udp_address::UdpAddress;
-
 use crate::address::ZmqAddress;
 use crate::command::ZmqCommand;
 use crate::ctx::ZmqContext;
-use crate::defines::{INBOUND_POLL_RATE, MAX_COMMAND_DELAY, ZMQ_MSG_MORE, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZmqFd, ZmqHandle, ZmqSubscriptions, ZMQ_CONNECT_ROUTING_ID};
+use crate::defines::{INBOUND_POLL_RATE, MAX_COMMAND_DELAY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_MSG_MORE, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZmqFd, ZmqHandle, ZmqSubscriptions};
 use crate::defines::array::ArrayItem;
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::{InvalidContext, SocketError};
-use crate::dist::ZmqDist;
-use crate::endpoint::{make_unconnected_connect_endpoint_pair, ZmqEndpointUriPair};
 use crate::defines::fair_queue::ZmqFairQueue;
 use crate::defines::generic_mtrie::GenericMtrie;
 use crate::defines::load_balancer::ZmqLoadBalancer;
 use crate::defines::mtrie::ZmqMtrie;
 use crate::defines::mutex::ZmqMutex;
+use crate::dist::ZmqDist;
+use crate::endpoint::{make_unconnected_connect_endpoint_pair, ZmqEndpointUriPair};
 use crate::io::mailbox::ZmqMailbox;
 use crate::io::signaler::ZmqSignaler;
 use crate::metadata::ZmqMetadata;
@@ -30,6 +30,7 @@ use crate::options::{do_getsockopt, get_effective_conflate_option, ZmqOptions};
 use crate::own::{own_process_term, ZmqOwn};
 use crate::pipe::{IPipeEvents, pipepair, ZmqPipe};
 use crate::pipe::out_pipe::{ZmqOutpipe, ZmqOutPipes};
+use crate::pipe::pipe_event::PipeEvent;
 use crate::pipe::pipes::ZmqPipes;
 use crate::poll::poller_base::ZmqPollerBase;
 use crate::poll::poller_event::ZmqPollerEvent;
@@ -55,6 +56,7 @@ use crate::socket::xsub::{xsub_has_out, xsub_xattach_pipe, xsub_xgetsockopt, xsu
 use crate::socket::zmq_pub::{pub_xattach_pipe, pub_xgetsockopt, pub_xhas_in, pub_xhas_out, pub_xjoin, pub_xpipe_terminated, pub_xread_activated, pub_xrecv, pub_xsend, pub_xsetsockopt, pub_xwrite_activated};
 use crate::utils::get_errno;
 use crate::zmq_ops::{zmq_bind, zmq_close, zmq_msg_data, zmq_msg_init_size, zmq_msg_send, zmq_setsockopt, zmq_socket};
+
 mod channel;
 mod client;
 mod dealer;
@@ -108,12 +110,12 @@ pub struct ZmqInprocs<'a> {
     pub _inprocs: ZmqMap<'a>,
 }
 
-impl ZmqInprocs {
+impl<'a> ZmqInprocs<'a> {
     pub fn emplace(&mut self, endpoint_uri_: &str, pipe_: &mut ZmqPipe) {
         self._inprocs.insert(endpoint_uri_.to_string(), pipe_);
     }
 
-    pub fn erase_pipes(&mut self, ctx: &mut ZmqContext, endpoint_uri_str: &str) -> Result<(),ZmqError> {
+    pub fn erase_pipes(&mut self, ctx: &mut ZmqContext, endpoint_uri_str: &str) -> Result<(), ZmqError> {
         for (k, v) in self._inprocs.iter_mut() {
             if k == endpoint_uri_str {
                 v.send_disconnect_msg(ctx);
@@ -159,7 +161,7 @@ pub struct ZmqSocket<'a> {
     pub matching: usize,
     pub message: ZmqMsg,
     pub monitor_events: i64,
-    pub monitor_socket: Option<ZmqSocket<'a>>,
+    pub monitor_socket: Option<&'a mut ZmqSocket<'a>>,
     pub monitor_sync: ZmqMutex,
     pub more_in: bool,
     pub more_out: bool,
@@ -176,9 +178,9 @@ pub struct ZmqSocket<'a> {
     pub pending_metadata: VecDeque<&'a mut ZmqMetadata>,
     pub pending_pipes: VecDeque<&'a mut ZmqPipe<'a>>,
     pub pipe: Option<&'a mut ZmqPipe<'a>>,
-    pub pipe_events: dyn IPipeEvents,
+    pub pipe_events: Vec<PipeEvent>,
     pub pipes: ZmqPipes<'a>,
-    pub poll_events: Option<&'a mut [ZmqPollerEvent]>,
+    pub poll_events: Option<&'a mut [ZmqPollerEvent<'a>]>,
     pub poller: Option<&'a mut ZmqPollerBase<'a>>,
     pub prefetched: bool,
     pub prefetched_id: ZmqMsg,
@@ -219,7 +221,7 @@ pub struct ZmqSocket<'a> {
     pub send_subscription: bool,
 }
 
-impl ZmqSocket {
+impl<'a> ZmqSocket<'a> {
     pub fn check_tag(&self) -> bool {
         return self.tag == 0xbaddecaf;
     }
@@ -323,13 +325,13 @@ impl ZmqSocket {
             pending_pipes: Default::default(),
             array_item: ArrayItem::new(),
             poll_events: None,
-            pipe_events: None,
+            pipe_events: vec![],
             mailbox: ZmqMailbox::default(),
             mandatory: false,
             manual: false,
             manual_subscriptions: GenericMtrie::default(),
             matching: 0,
-            pipes:ZmqPipes::default(),
+            pipes: ZmqPipes::default(),
             poller: None,
             prefetched: false,
             prefetched_id: Default::default(),
@@ -424,7 +426,7 @@ impl ZmqSocket {
         out
     }
 
-    pub fn get_peer_state(&mut self, routing_id: *const c_void, routing_id_size_: usize) -> Result<(),ZmqError> {
+    pub fn get_peer_state(&mut self, routing_id: *const c_void, routing_id_size_: usize) -> Result<(), ZmqError> {
         unimplemented!()
     }
 
@@ -457,7 +459,13 @@ impl ZmqSocket {
         return false;
     }
 
-    pub fn attach_pipe(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, mut pipe: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool)  -> Result<(), ZmqError>{
+    pub fn attach_pipe(&mut self,
+                       ctx: &mut ZmqContext,
+                       options: &mut ZmqOptions,
+                       mut pipe: &mut ZmqPipe,
+                       subscribe_to_all_: bool,
+                       locally_initiated_: bool,
+    ) -> Result<(), ZmqError> {
         pipe.set_event_sink(self);
         self.pipes.push_back(pipe);
         // self.xattach_pipe(&pipe, subscribe_to_all_, locally_initiated_);
@@ -539,7 +547,7 @@ impl ZmqSocket {
                 // errno = EINVAL;
                 return Err(SocketError("EINVAL"));
             }
-            self.connect_routing_id = String::from_raw_parts(optval.as_mut_ptr() , optvallen, optvallen);
+            self.connect_routing_id = unsafe { String::from_raw_parts(optval.as_mut_ptr(), optvallen, optvallen) };
             return Ok(());
         }
 
@@ -624,7 +632,7 @@ impl ZmqSocket {
         Ok(())
     }
 
-    pub fn getsockopt(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, option_: u32) -> Result<[u8], ZmqError> {
+    pub fn getsockopt(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, option_: u32) -> Result<Vec<u8>, ZmqError> {
         if self.ctx_terminated {
             // errno = ETERM;
             return Err(InvalidContext("Context was terminated"));
@@ -636,7 +644,7 @@ impl ZmqSocket {
         //     Err(e) => {}
         // };
 
-        let mut result: Result<[u8], ZmqError>;
+        let mut result: Result<Vec<u8>, ZmqError>;
         match self.socket_type {
             ZmqSocketType::Client => {
                 result = client_xgetsockopt(self, option_);
@@ -714,7 +722,7 @@ impl ZmqSocket {
         }
 
         if option_ == ZMQ_EVENTS {
-            self.process_commands(options, 0, false)?;
+            self.process_commands(options, 0, false, ctx)?;
             return do_getsockopt((if self.has_out() { ZMQ_POLLOUT } else { 0 }) | (if self.has_in(ctx, options) { ZMQ_POLLIN } else { 0 }));
         }
 
@@ -729,7 +737,7 @@ impl ZmqSocket {
         return options.getsockopt(option_);
     }
 
-    pub fn join(&mut self, group_: &str) -> Result<(),ZmqError> {
+    pub fn join(&mut self, group_: &str) -> Result<(), ZmqError> {
 
         // self.xjoin(group_)
         return match self.socket_type {
@@ -793,7 +801,7 @@ impl ZmqSocket {
         };
     }
 
-    pub fn leave(&mut self, group_: &str) -> Result<(),ZmqError> {
+    pub fn leave(&mut self, group_: &str) -> Result<(), ZmqError> {
         self.xleave(group_)
     }
 
@@ -801,12 +809,12 @@ impl ZmqSocket {
         self.mailbox.add_signaler(signaler);
     }
 
-    pub fn bind(&mut self, options: &ZmqOptions, endpoint_uri_: &str) -> Result<(), ZmqError> {
+    pub fn bind(&mut self, ctx: &mut ZmqContext, options: &ZmqOptions, endpoint_uri_: &str) -> Result<(), ZmqError> {
         if self.ctx_terminated {
             return Err(SocketError("Context was terminated"));
         }
 
-        self.process_commands(options, 0, false)?;
+        self.process_commands(options, 0, false, ctx)?;
 
         let mut protocol = String::new();
         let mut address = String::new();
@@ -816,7 +824,7 @@ impl ZmqSocket {
 
         if protocol == "udp" {
             if !options.socket_type == ZMQ_DGRAM || !options.socket_type == ZMQ_DISH {
-                return Err(ZmqError::SocketError("Protocol not supported by socket type"));
+                return Err(SocketError("Protocol not supported by socket type"));
             }
 
             let _io_thread = self.choose_io_thread(options.affinity)?;
@@ -824,7 +832,7 @@ impl ZmqSocket {
             let mut paddr = ZmqAddress::default();
             paddr.address = address;
             paddr.protocol = protocol;
-            paddr.parent == self.get_ctx();
+            // paddr.parent == self.get_ctx();
         }
 
         Ok(())
@@ -842,7 +850,7 @@ impl ZmqSocket {
         }
 
         //  Process pending commands, if any.
-        self.process_commands(options, 0, false)?;
+        self.process_commands(options, 0, false, ctx)?;
 
         //  Parse endpoint_uri_ string.
         let mut protocol = String::new();
@@ -1152,7 +1160,7 @@ impl ZmqSocket {
                 if conflate { -1 } else { options.rcvhwm }
             ];
             let mut conflates: [bool; 2] = [conflate, conflate];
-            rc = pipepair(parents, &mut new_pipes, hwms, conflates);
+            pipepair(parents, &mut new_pipes, hwms, conflates)?;
             // errno_assert (rc == 0);
 
             //  Attach local end of the pipe to the socket object.
@@ -1204,7 +1212,7 @@ impl ZmqSocket {
         }
     }
 
-    pub fn term_endpoint(&mut self, options: &ZmqOptions, endpoint_uri_: &str) -> Result<(), ZmqError> {
+    pub fn term_endpoint(&mut self, ctx: &mut ZmqContext, options: &ZmqOptions, endpoint_uri_: &str) -> Result<(), ZmqError> {
         //  Check whether the context hasn't been shut down yet.
         if self.ctx_terminated {
             // errno = ETERM;
@@ -1213,7 +1221,7 @@ impl ZmqSocket {
 
         //  Process pending commands, if any, since there could be pending unprocessed process_own()'s
         //  (from launch_child() for example) we're asked to terminate now.
-        self.process_commands(options, 0, false)?;
+        self.process_commands(options, 0, false, ctx)?;
 
         //  Parse endpoint_uri_ string.
         // std::string uri_protocol;
@@ -1279,7 +1287,7 @@ impl ZmqSocket {
         }
 
         //  Process pending commands, if any.
-        self.process_commands(options, 0, true)?;
+        self.process_commands(options, 0, true, ctx)?;
 
         //  Clear any user-visible flags that are set on the message.
         msg.reset_flags(ZMQ_MSG_MORE);
@@ -1326,7 +1334,7 @@ impl ZmqSocket {
         //  command, process it and try to send the message again.
         //  If timeout is reached in the meantime, return EAGAIN.
         loop {
-            self.process_commands(options, timeout, false)?;
+            self.process_commands(options, timeout, false, ctx)?;
             self.xsend(ctx, options, msg)?;
             if timeout > 0 {
                 timeout = (end - self.clock.now_ms());
@@ -1340,7 +1348,7 @@ impl ZmqSocket {
         Ok(())
     }
 
-    pub fn xsend(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, msg: &mut ZmqMsg) -> Result<(),ZmqError> {
+    pub fn xsend(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
         match self.socket_type {
             ZmqSocketType::Client => client_xsend(self, msg),
             ZmqSocketType::Dealer => dealer_xsend(self, msg),
@@ -1387,7 +1395,7 @@ impl ZmqSocket {
         //  ticks is more efficient than doing RDTSC all the time.
         self.ticks += 1;
         if self.ticks == INBOUND_POLL_RATE {
-            self.process_commands(options, 0, false)?;
+            self.process_commands(options, 0, false, ctx)?;
             self.ticks = 0;
         }
 
@@ -1410,7 +1418,7 @@ impl ZmqSocket {
         //  activate_reader command already waiting in a command pipe.
         //  If it's not, return EAGAIN.
         if (flags & ZMQ_DONTWAIT != 0) || options.rcvtimeo == 0 {
-            self.process_commands(options, 0, false)?;
+            self.process_commands(options, 0, false, ctx)?;
             self.ticks = 0;
 
             // rc = self.xrecv(msg_);
@@ -1432,7 +1440,7 @@ impl ZmqSocket {
         //  we are able to fetch a message.
         let mut block = (self.ticks != 0);
         loop {
-            self.process_commands(options, if block { timeout } else { 0 }, false)?;
+            self.process_commands(options, if block { timeout } else { 0 }, false, ctx)?;
             self.xrecv(ctx, options, msg)?;
             // TODO
             // if rc == 0 {
@@ -1456,7 +1464,7 @@ impl ZmqSocket {
         Ok(())
     }
 
-    pub fn xrecv(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, msg: &mut ZmqMsg) -> Result<(),ZmqError> {
+    pub fn xrecv(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
         match self.socket_type {
             ZmqSocketType::Client => client_xrecv(ctx, self, msg),
             ZmqSocketType::Dealer => dealer_xrecv(self, msg),
@@ -1583,7 +1591,12 @@ impl ZmqSocket {
         self.check_destroy();
     }
 
-    pub fn process_commands(&mut self, options: &ZmqOptions, timeout_: i32, throttle_: bool) -> Result<(), ZmqError> {
+    pub fn process_commands(&mut self,
+                            options: &ZmqOptions,
+                            timeout_: i32,
+                            throttle_: bool,
+                            ctx: &mut ZmqContext,
+    ) -> Result<(), ZmqError> {
         if timeout_ == 0 {
             //  If we are asked not to wait, check whether we haven't processed
             //  commands recently, so that we can throttle the new commands.
@@ -1610,7 +1623,9 @@ impl ZmqSocket {
 
         //  Check whether there are any commands pending for this thread.
         let mut cmd = ZmqCommand::new();
-        let mut rc = self.mailbox.recv(&mut cmd, timeout_);
+        self.mailbox.recv(&mut cmd, timeout_)?;
+        let mut rc = 0;
+        // TODO: process error for EINTR and continue
 
         // if (rc != 0 && errno == EINTR)
         //     return -1;
@@ -1618,9 +1633,9 @@ impl ZmqSocket {
         //  Process all available commands.
         while rc == 0 || get_errno() == EINTR {
             if rc == 0 {
-                obj_process_command(options, &mut cmd, self.pipe.unwrap());
+                obj_process_command(options, &mut cmd, self.pipe.unwrap(), ctx)?;
             }
-            rc = self.mailbox.recv(&mut cmd, 0);
+            self.mailbox.recv(&mut cmd, 0)?;
         }
 
         // zmq_assert (errno == EAGAIN);
@@ -1633,16 +1648,21 @@ impl ZmqSocket {
         Ok(())
     }
 
-    pub fn process_stop(&mut self, options: &ZmqOptions) {
-        self.stop_monitor(options, false);
+    pub fn process_stop(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions) -> Result<(), ZmqError> {
+        self.stop_monitor(ctx, options, false)?;
         self.ctx_terminated = true;
+        Ok(())
     }
 
-    pub fn process_bind(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, pipe: &mut ZmqPipe) {
-        self.attach_pipe(ctx, options, pipe, false, false);
+    pub fn process_bind(&mut self,
+                        ctx: &mut ZmqContext,
+                        options: &mut ZmqOptions,
+                        pipe: &mut ZmqPipe,
+    ) -> Result<(), ZmqError> {
+        self.attach_pipe(ctx, options, pipe, false, false)
     }
 
-    pub fn process_term(&mut self, linger_: i32) {
+    pub fn process_term(&mut self, ctx: &mut ZmqContext, linger_: i32) {
         //  Unregister all inproc endpoints associated with this socket.
         //  Doing this we make sure that no new pipes from other sockets (inproc)
         //  will be initiated.
@@ -1658,19 +1678,42 @@ impl ZmqSocket {
         self.register_term_acks((self.pipes.size()));
 
         //  Continue the termination process immediately.
-        own_process_term(&mut self.own.owned, &mut self.own.terminating, &mut self.own.term_acks, linger_);
+        own_process_term(
+            ctx,
+            &mut self.own.owned,
+            &mut self.own.terminating,
+            &mut self.own.term_acks,
+            linger_,
+        );
     }
 
-    pub fn process_term_endpoint(&mut self, options: &ZmqOptions, endpoint_: &String) -> Result<(), ZmqError> {
-        self.term_endpoint(options, endpoint_)
+    pub fn process_term_endpoint(&mut self,
+                                 ctx: &mut ZmqContext,
+                                 options: &mut ZmqOptions,
+                                 endpoint_: &String,
+    ) -> Result<(), ZmqError> {
+        self.term_endpoint(ctx, options, endpoint_)
     }
 
-    pub fn process_pipe_stats_publish(&mut self, options: &ZmqOptions, outbound_queue_count_: u64, inbound_queue_count_: u64, endpoint_pair_: &mut ZmqEndpointUriPair) {
+    pub fn process_pipe_stats_publish(&mut self,
+                                      ctx: &mut ZmqContext,
+                                      options: &mut ZmqOptions,
+                                      outbound_queue_count_: u64,
+                                      inbound_queue_count_: u64,
+                                      endpoint_pair_: &mut ZmqEndpointUriPair,
+    ) {
         let mut values: [u64; 2] = [outbound_queue_count_, inbound_queue_count_];
-        self.event(options, endpoint_pair_, &values, 2, ZMQ_EVENT_PIPES_STATS);
+        self.event(
+            ctx,
+            options,
+            endpoint_pair_,
+            &values,
+            2,
+            ZMQ_EVENT_PIPES_STATS,
+        );
     }
 
-    pub fn query_pipes_stats(&mut self) -> Result<(),ZmqError> {
+    pub fn query_pipes_stats(&mut self) -> Result<(), ZmqError> {
         {
             // scoped_lock_t lock (_monitor_sync);
             if !(self.monitor_events & ZMQ_EVENT_PIPES_STATS) {
@@ -1678,7 +1721,7 @@ impl ZmqSocket {
                 return Err(SocketError("EINVAL"));
             }
         }
-        if (self.pipes.size() == 0) {
+        if self.pipes.size() == 0 {
             // errno = EAGAIN;
             return Err(SocketError("EAGAIN"));
         }
@@ -1751,7 +1794,7 @@ impl ZmqSocket {
     //     unimplemented!()
     // }
 
-    pub fn in_event(&mut self, options: &ZmqOptions) {
+    pub fn in_event(&mut self, ctx: &mut ZmqContext, options: &ZmqOptions) -> Result<(), ZmqError> {
         {
             // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
@@ -1760,9 +1803,10 @@ impl ZmqSocket {
                 self.reaper_signaler.recv();
             }
 
-            self.process_commands(options, 0, false);
+            self.process_commands(options, 0, false, ctx)?;
         }
         self.check_destroy();
+        Ok(())
     }
 
     pub fn out_event(&mut self) {
@@ -1775,7 +1819,7 @@ impl ZmqSocket {
 
     pub fn check_destroy(&mut self) {
         //  If the object was already marked as destroyed, finish the deallocation.
-        if (self.destroyed) {
+        if self.destroyed {
             //  Remove the socket from the reaper's poller.
             self.poller.rm_fd(&self.handle);
 
@@ -1790,11 +1834,11 @@ impl ZmqSocket {
         }
     }
 
-    pub fn read_activated(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, pipe: &mut ZmqPipe) -> Result<(),ZmqError> {
+    pub fn read_activated(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, pipe: &mut ZmqPipe) -> Result<(), ZmqError> {
         self.xread_activated(ctx, options, pipe)
     }
 
-    pub fn xread_activated(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, pipe: &mut ZmqPipe) ->Result<(),ZmqError> {
+    pub fn xread_activated(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, pipe: &mut ZmqPipe) -> Result<(), ZmqError> {
         match self.socket_type {
             ZmqSocketType::Client => client_xread_activated(self, pipe),
             ZmqSocketType::Dealer => dealer_xread_activated(self, pipe),
@@ -1823,7 +1867,6 @@ impl ZmqSocket {
     }
 
     pub fn xwrite_activated(&mut self, pipe: &mut ZmqPipe) {
-
         for it in self.out_pipes.iter_mut() {
             if it.1.pipe == *pipe {
                 it.1.active = true;
@@ -1921,7 +1964,14 @@ impl ZmqSocket {
         self.rcvmore = (msg_.flags() & ZMQ_MSG_MORE) != 0;
     }
 
-    pub fn monitor(&mut self, options: &mut ZmqOptions, endpoint: &str, events: u64, event_version: i32, type_: i32) -> Result<(), ZmqError> {
+    pub fn monitor(&mut self,
+                   ctx: &mut ZmqContext,
+                   options: &mut ZmqOptions,
+                   endpoint: &str,
+                   events: u64,
+                   event_version: i32,
+                   type_: i32,
+    ) -> Result<(), ZmqError> {
         if self.ctx_terminated {
             // errno = ETERM;
             return Err(SocketError("context was terminated"));
@@ -1935,7 +1985,7 @@ impl ZmqSocket {
 
         //  Support deregistering monitoring endpoints as well
         if endpoint == null_mut() {
-            self.stop_monitor(options, false);
+            self.stop_monitor(ctx, options, false)?;
             return Ok(());
         }
         //  Parse endpoint_uri_ string.
@@ -1955,7 +2005,7 @@ impl ZmqSocket {
 
         // already monitoring. Stop previous monitor before starting new one.
         if self.monitor_socket.is_some() {
-            self.stop_monitor(options, true);
+            self.stop_monitor(ctx, options, true)?;
         }
 
         // Check if the specified socket type is supported. It must be a
@@ -1981,93 +2031,268 @@ impl ZmqSocket {
         //  Never block context termination on pending event messages
         let mut linger = 0;
 
-        zmq_setsockopt(options, &mut self.monitor_socket.unwrap(), ZMQ_LINGER as i32, &linger.to_le_bytes(), 4)?;
+        zmq_setsockopt(options, &mut self.monitor_socket.unwrap(), ZMQ_LINGER as i32, &mut linger.to_le_bytes(), 4)?;
 
         //  Spawn the monitor socket endpoint
-        if zmq_bind(&mut self.monitor_socket.unwrap(), endpoint).is_err() {
-            self.stop_monitor(options, false);
+        if zmq_bind(ctx, options, &mut self.monitor_socket.unwrap(), endpoint).is_err() {
+            self.stop_monitor(ctx, options, false)?;
             return Err(SocketError("failed to bind"));
         }
         Ok(())
     }
 
-    pub fn event_connected(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, err_: i32) {
+    pub fn event_connected(&mut self,
+                           ctx: &mut ZmqContext,
+                           options: &mut ZmqOptions,
+                           endpoint_uri_pair_: &ZmqEndpointUriPair,
+                           err_: i32,
+    ) {
         let mut values: [u64; 1] = [err_ as u64];
-        self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_CONNECTED);
+        self.event(
+            ctx,
+            options,
+            endpoint_uri_pair_,
+            &values,
+            1,
+            ZMQ_EVENT_CONNECTED,
+        );
     }
 
-    pub fn event_connect_delayed(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, err_: i32) {
+    pub fn event_connect_delayed(&mut self,
+                                 ctx: &mut ZmqContext,
+                                 options: &mut ZmqOptions,
+                                 endpoint_uri_pair_: &ZmqEndpointUriPair,
+                                 err_: i32,
+    ) {
         let mut values: [u64; 1] = [err_ as u64];
-        self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_CONNECT_DELAYED);
+        self.event(
+            ctx,
+            options,
+            endpoint_uri_pair_,
+            &values,
+            1,
+            ZMQ_EVENT_CONNECT_DELAYED,
+        );
     }
 
-    pub fn event_connect_retried(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, err_: i32) {
+    pub fn event_connect_retried(&mut self,
+                                 ctx: &mut ZmqContext,
+                                 options: &mut ZmqOptions,
+                                 endpoint_uri_pair_: &ZmqEndpointUriPair,
+                                 err_: i32,
+    ) {
         let mut values: [u64; 1] = [err_ as u64];
-        self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_CONNECT_RETRIED);
+        self.event(
+            ctx,
+            options,
+            endpoint_uri_pair_,
+            &values,
+            1,
+            ZMQ_EVENT_CONNECT_RETRIED,
+        );
     }
 
-    pub fn event_listening(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, fd_: ZmqFd) {
+    pub fn event_listening(&mut self,
+                           ctx: &mut ZmqContext,
+                           options: &mut ZmqOptions,
+                           endpoint_uri_pair_: &ZmqEndpointUriPair,
+                           fd_: ZmqFd,
+    ) {
         let mut values: [u64; 1] = [fd_ as u64];
-        self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_LISTENING);
+        self.event(
+            ctx,
+            options,
+            endpoint_uri_pair_,
+            &values,
+            1,
+            ZMQ_EVENT_LISTENING,
+        );
     }
 
-    pub fn event_bind_failed(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, err_: i32) {
+    pub fn event_bind_failed(&mut self,
+                             ctx: &mut ZmqContext,
+                             options: &mut ZmqOptions,
+                             endpoint_uri_pair_: &ZmqEndpointUriPair,
+                             err_: i32,
+    ) {
         let mut values: [u64; 1] = [err_ as u64];
-        self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_BIND_FAILED);
+        self.event(
+            ctx,
+            options,
+            endpoint_uri_pair_,
+            &values,
+            1,
+            ZMQ_EVENT_BIND_FAILED,
+        );
     }
 
-    pub fn event_accepted(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, fd_: ZmqFd) {
+    pub fn event_accepted(&mut self,
+                          ctx: &mut ZmqContext,
+                          options: &mut ZmqOptions,
+                          endpoint_uri_pair_: &ZmqEndpointUriPair,
+                          fd_: ZmqFd,
+    ) {
         let mut values: [u64; 1] = [fd_ as u64];
-        self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_ACCEPTED);
+        self.event(
+            ctx,
+            options,
+            endpoint_uri_pair_,
+            &values,
+            1,
+            ZMQ_EVENT_ACCEPTED,
+        );
     }
 
-    pub fn event_accept_failed(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, err_: i32) {
+    pub fn event_accept_failed(&mut self,
+                               ctx: &mut ZmqContext,
+                               options: &mut ZmqOptions,
+                               endpoint_uri_pair_: &ZmqEndpointUriPair,
+                               err_: i32,
+    ) {
         let mut values: [u64; 1] = [err_ as u64];
-        self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_ACCEPT_FAILED);
+        self.event(
+            ctx,
+            options,
+            endpoint_uri_pair_,
+            &values,
+            1,
+            ZMQ_EVENT_ACCEPT_FAILED,
+        );
     }
 
-    pub fn event_closed(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, fd_: ZmqFd) {
+    pub fn event_closed(&mut self,
+                        ctx: &mut ZmqContext,
+                        options: &mut ZmqOptions,
+                        endpoint_uri_pair_: &ZmqEndpointUriPair,
+                        fd_: ZmqFd,
+    ) {
         let mut values: [u64; 1] = [fd_ as u64];
-        self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_CLOSED);
+        self.event(
+            ctx,
+            options,
+            endpoint_uri_pair_,
+            &values,
+            1,
+            ZMQ_EVENT_CLOSED,
+        );
     }
 
-    pub fn event_close_failed(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, err_: i32) {
+    pub fn event_close_failed(&mut self,
+                              ctx: &mut ZmqContext,
+                              options: &mut ZmqOptions,
+                              endpoint_uri_pair_: &ZmqEndpointUriPair,
+                              err_: i32,
+    ) {
         let mut values: [u64; 1] = [err_ as u64];
-        self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_CLOSE_FAILED);
+        self.event(
+            ctx,
+            options,
+            endpoint_uri_pair_,
+            &values,
+            1,
+            ZMQ_EVENT_CLOSE_FAILED,
+        );
     }
 
-    pub fn event_disconnected(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, fd_: ZmqFd) {
+    pub fn event_disconnected(&mut self,
+                              ctx: &mut ZmqContext,
+                              options: &mut ZmqOptions,
+                              endpoint_uri_pair_: &ZmqEndpointUriPair,
+                              fd_: ZmqFd,
+    ) {
         let mut values: [u64; 1] = [fd_ as u64];
-        self.event(options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_DISCONNECTED);
+        self.event(ctx, options, endpoint_uri_pair_, &values, 1, ZMQ_EVENT_DISCONNECTED);
     }
 
-    pub fn event_handshake_failed_no_detail(&mut self, options: &ZmqOptions, endpoint_pair_: &ZmqEndpointUriPair, err_: i32) {
+    pub fn event_handshake_failed_no_detail(&mut self,
+                                            ctx: &mut ZmqContext,
+                                            options: &mut ZmqOptions,
+                                            endpoint_pair_: &ZmqEndpointUriPair,
+                                            err_: i32,
+    ) {
         let mut values: [u64; 1] = [err_ as u64];
-        self.event(options, endpoint_pair_, &values, 1, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL);
+        self.event(
+            ctx,
+            options,
+            endpoint_pair_,
+            &values,
+            1,
+            ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL,
+        );
     }
 
-    pub fn event_handshake_failed_protocol(&mut self, options: &ZmqOptions, endpoint_pair_: &ZmqEndpointUriPair, err_: i32) {
+    pub fn event_handshake_failed_protocol(&mut self,
+                                           ctx: &mut ZmqContext,
+                                           options: &mut ZmqOptions,
+                                           endpoint_pair_: &ZmqEndpointUriPair,
+                                           err_: i32,
+    ) {
         let mut values: [u64; 1] = [err_ as u64];
-        self.event(options, endpoint_pair_, &values, 1, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL);
+        self.event(
+            ctx,
+            options,
+            endpoint_pair_,
+            &values,
+            1,
+            ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL,
+        );
     }
 
-    pub fn event_handshake_failed_auth(&mut self, options: &ZmqOptions, endpoint_pair_: &ZmqEndpointUriPair, err_: i32) {
+    pub fn event_handshake_failed_auth(&mut self,
+                                       ctx: &mut ZmqContext,
+                                       options: &mut ZmqOptions,
+                                       endpoint_pair_: &ZmqEndpointUriPair,
+                                       err_: i32,
+    ) {
         let mut values: [u64; 1] = [err_ as u64];
-        self.event(options, endpoint_pair_, &values, 1, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH);
+        self.event(
+            ctx,
+            options,
+            endpoint_pair_,
+            &values,
+            1,
+            ZMQ_EVENT_HANDSHAKE_FAILED_AUTH,
+        );
     }
 
-    pub fn event_handshake_succeeded(&mut self, options: &ZmqOptions, endpoint_pair_: &ZmqEndpointUriPair, err_: i32) {
+    pub fn event_handshake_succeeded(&mut self,
+                                     ctx: &mut ZmqContext,
+                                     options: &mut ZmqOptions,
+                                     endpoint_pair_: &ZmqEndpointUriPair,
+                                     err_: i32,
+    ) {
         let mut values: [u64; 1] = [err_ as u64];
-        self.event(options, endpoint_pair_, &values, 1, ZMQ_EVENT_HANDSHAKE_SUCCEEDED);
+        self.event(
+            ctx,
+            options,
+            endpoint_pair_,
+            &values,
+            1,
+            ZMQ_EVENT_HANDSHAKE_SUCCEEDED,
+        );
     }
 
-    pub fn event(&mut self, options: &ZmqOptions, endpoint_uri_pair_: &ZmqEndpointUriPair, values_: &[u64], values_count_: u64, event_type: u32) {
+    pub fn event(&mut self,
+                 ctx: &mut ZmqContext,
+                 options: &mut ZmqOptions,
+                 endpoint_uri_pair_: &ZmqEndpointUriPair,
+                 values_: &[u64],
+                 values_count_: u64,
+                 event_type: u32,
+    ) {
         if self.monitor_events & event_type {
-            self.monitor_event(options, event_type, values_, values_count_, endpoint_uri_pair_);
+            self.monitor_event(ctx, options, event_type, values_, values_count_, endpoint_uri_pair_)?;
         }
     }
 
-    pub fn monitor_event(&mut self, options: &ZmqOptions, event_: u32, values_: &[u64], values_count_: u64, endpoint_uri_pair_: &ZmqEndpointUriPair) {
+    pub fn monitor_event(&mut self,
+                         ctx: &mut ZmqContext,
+                         options: &mut ZmqOptions,
+                         event_: u32,
+                         values_: &[u64],
+                         values_count_: u64,
+                         endpoint_uri_pair_: &ZmqEndpointUriPair,
+    ) -> Result<(), ZmqError> {
         // this is a private method which is only called from
         // contexts where the _monitor_sync mutex has been locked before
 
@@ -2087,7 +2312,7 @@ impl ZmqSocket {
                     //  Send event and value in first frame
                     let event = (event_) as u16;
                     let value = (values_[0]) as u32;
-                    zmq_msg_init_size(&mut msg, 2 + 4);
+                    zmq_msg_init_size(&mut msg, 2 + 4)?;
                     let mut data = (zmq_msg_data(&mut msg));
                     //  Avoid dereferencing uint32_t on unaligned address
                     // libc::memcpy(data + 0, &event as *const c_void, 2);
@@ -2102,12 +2327,12 @@ impl ZmqSocket {
                     data[4] = value_bytes[2];
                     data[5] = value_bytes[3];
 
-                    zmq_msg_send(&mut msg, &mut self.monitor_socket.unwrap(), ZMQ_SNDMORE)?;
+                    zmq_msg_send(ctx, options, &mut msg, &mut self.monitor_socket.unwrap(), ZMQ_SNDMORE)?;
 
                     let endpoint_uri = endpoint_uri_pair_.identifier();
 
                     //  Send address in second frame
-                    zmq_msg_init_size(&mut msg, endpoint_uri.size());
+                    zmq_msg_init_size(&mut msg, endpoint_uri.size())?;
                     // libc::memcpy(zmq_msg_data(&msg), endpoint_uri.as_ptr() as *const c_void,
                     //              endpoint_uri.size());
                     let data = zmq_msg_data(&mut msg);
@@ -2116,21 +2341,21 @@ impl ZmqSocket {
                         data[i] = endpoint_uri_bytes[i];
                     }
 
-                    zmq_msg_send(&mut msg, &mut self.monitor_socket.unwrap(), 0);
+                    zmq_msg_send(ctx, options, &mut msg, &mut self.monitor_socket.unwrap(), 0)?;
                 }
                 2 => {
                     //  Send event in first frame (64bit unsigned)
-                    zmq_msg_init_size(&mut msg, size_of_val(&event_));
+                    zmq_msg_init_size(&mut msg, size_of_val(&event_))?;
                     // libc::memcpy(zmq_msg_data(&mut msg), &event_ as *const c_void, 2);
                     let data = zmq_msg_data(&mut msg);
                     let event_bytes = event_.to_le_bytes();
                     for i in 0..size_of_val(&event_) {
                         data[i] = event_bytes[i];
                     }
-                    zmq_msg_send(&mut msg, &mut self.monitor_socket.unwrap(), ZMQ_SNDMORE);
+                    zmq_msg_send(ctx, options, &mut msg, &mut self.monitor_socket.unwrap(), ZMQ_SNDMORE)?;
 
                     //  Send number of values that will follow in second frame
-                    zmq_msg_init_size(&mut msg, size_of_val(&values_count_));
+                    zmq_msg_init_size(&mut msg, size_of_val(&values_count_))?;
                     // libc::memcpy(zmq_msg_data(&mut msg), &values_count_ as *const c_void,
                     //              size_of_val(&values_count_));
                     let data = zmq_msg_data(&mut msg);
@@ -2138,12 +2363,12 @@ impl ZmqSocket {
                     for i in 0..size_of_val(&values_count_) {
                         data[i] = values_count_bytes[i];
                     }
-                    zmq_msg_send(&mut msg, &mut self.monitor_socket.unwrap(), ZMQ_SNDMORE);
+                    zmq_msg_send(ctx, options, &mut msg, &mut self.monitor_socket.unwrap(), ZMQ_SNDMORE)?;
 
                     //  Send values in third-Nth frames (64bit unsigned)
                     // for (uint64_t i = 0; i < values_count_; ++i)
                     for i in 0..values_count_ {
-                        zmq_msg_init_size(&mut msg, size_of_val(&values_[i]));
+                        zmq_msg_init_size(&mut msg, size_of_val(&values_[i]))?;
                         // libc::memcpy(zmq_msg_data(&mut msg), &values_[i],
                         //              size_of_val(&values_[i]));
                         let data = zmq_msg_data(&mut msg);
@@ -2151,11 +2376,11 @@ impl ZmqSocket {
                         for j in 0..size_of_val(&values_[i]) {
                             data[j] = values_bytes[j];
                         }
-                        zmq_msg_send(&mut msg, &mut self.monitor_socket.unwrap(), ZMQ_SNDMORE);
+                        zmq_msg_send(ctx, options, &mut msg, &mut self.monitor_socket.unwrap(), ZMQ_SNDMORE)?;
                     }
 
                     //  Send local endpoint URI in second-to-last frame (string)
-                    zmq_msg_init_size(&mut msg, endpoint_uri_pair_.local.size());
+                    zmq_msg_init_size(&mut msg, endpoint_uri_pair_.local.size())?;
                     // libc::memcpy(zmq_msg_data(&mut msg), endpoint_uri_pair_.local.c_str(),
                     //              endpoint_uri_pair_.local.size());
                     let data = zmq_msg_data(&mut msg);
@@ -2163,10 +2388,10 @@ impl ZmqSocket {
                     for i in 0..endpoint_uri_pair_.local.size() {
                         data[i] = local_bytes[i];
                     }
-                    zmq_msg_send(&mut msg, &mut self.monitor_socket.unwrap(), ZMQ_SNDMORE);
+                    zmq_msg_send(ctx, options, &mut msg, &mut self.monitor_socket.unwrap(), ZMQ_SNDMORE)?;
 
                     //  Send remote endpoint URI in last frame (string)
-                    zmq_msg_init_size(&mut msg, endpoint_uri_pair_.remote.size());
+                    zmq_msg_init_size(&mut msg, endpoint_uri_pair_.remote.size())?;
                     // libc::memcpy(zmq_msg_data(&mut msg), endpoint_uri_pair_.remote.c_str(),
                     //              endpoint_uri_pair_.remote.size());
                     let data = zmq_msg_data(&mut msg);
@@ -2174,14 +2399,19 @@ impl ZmqSocket {
                     for i in 0..endpoint_uri_pair_.remote.size() {
                         data[i] = remote_bytes[i];
                     }
-                    zmq_msg_send(&mut msg, &mut self.monitor_socket.unwrap(), 0);
+                    zmq_msg_send(ctx, options, &mut msg, &mut self.monitor_socket.unwrap(), 0)?;
                 }
                 _ => {}
             }
         }
+        Ok(())
     }
 
-    pub fn stop_monitor(&mut self, options: &ZmqOptions, send_monitor_stopped_event_: bool) {
+    pub fn stop_monitor(&mut self,
+                        ctx: &mut ZmqContext,
+                        options: &mut ZmqOptions,
+                        send_monitor_stopped_event_: bool,
+    ) -> Result<(), ZmqError> {
         // this is a private method which is only called from
         // contexts where the _monitor_sync mutex has been locked before
 
@@ -2189,13 +2419,21 @@ impl ZmqSocket {
             if (self.monitor_events & ZMQ_EVENT_MONITOR_STOPPED) != 0 && send_monitor_stopped_event_ {
                 // uint64_t values[1] = {0};
                 let mut values: [u64; 1] = [0];
-                self.monitor_event(options, ZMQ_EVENT_MONITOR_STOPPED, &values, 1,
-                                   &ZmqEndpointUriPair::default());
+                self.monitor_event(
+                    ctx,
+                    options,
+                    ZMQ_EVENT_MONITOR_STOPPED,
+                    &values,
+                    1,
+                    &ZmqEndpointUriPair::default(),
+                )?;
             }
-            zmq_close(&mut self.monitor_socket.unwrap());
+            zmq_close(&mut self.monitor_socket.unwrap())?;
             self.monitor_socket = None;
             self.monitor_events = 0;
         }
+
+        Ok(())
     }
 
     pub fn is_disconnected(&mut self) -> bool {
@@ -2213,7 +2451,7 @@ impl ZmqSocket {
         return !self.connect_routing_id.empty();
     }
 
-    pub fn add_out_pipe(&mut self, routing_id_: Vec<u8>, pipe_: &mut ZmqPipe) {
+    pub fn add_out_pipe(&mut self, routing_id_: &Vec<u8>, pipe_: &mut ZmqPipe) {
         //  Add the record into output pipes lookup table
         // const out_pipe_t outpipe = {pipe_, true};
         let outpipe = ZmqOutpipe {
@@ -2229,7 +2467,7 @@ impl ZmqSocket {
         return self.out_pipes.contains_key(&routing_id_u32);
     }
 
-    pub fn lookup_out_pipe(&mut self, routing_id_: Vec<u8>) -> *mut ZmqOutpipe {
+    pub fn lookup_out_pipe(&mut self, routing_id_: Vec<u8>) -> &'a mut ZmqOutpipe<'a> {
         // out_pipes_t::iterator it = _out_pipes.find (routing_id_);
         // if (it == _out_pipes.end ())
         //     return NULL;

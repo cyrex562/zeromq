@@ -1,5 +1,5 @@
-#[cfg(not(target_os = "windows"))]
-use libc::sa_family_t;
+
+#[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{sa_family_t, SOCKADDR, ADDRESS_FAMILY};
 
 use crate::defines::{AF_INET, ZmqIpMreq, ZmqIpv6Mreq, ZmqSaFamily, ZmqSockAddr, ZmqSockAddrIn, ZmqSockAddrIn6, ZmqSockaddrStorage};
@@ -98,6 +98,7 @@ pub fn sockaddr_to_zmq_sockaddr(sockaddr: &libc::sockaddr) -> ZmqSockAddr {
     out
 }
 
+#[cfg(target_os = "windows")]
 pub fn wsa_sockaddr_to_zmq_sockaddr(sockaddr: &SOCKADDR) -> ZmqSockAddr {
     let mut out = ZmqSockAddr {
         sa_family: sockaddr.sa_family.0,
@@ -157,6 +158,7 @@ pub fn zmq_sockaddr_to_string(sockaddr: &ZmqSockAddr) -> String {
     out
 }
 
+#[cfg(target_os="windows")]
 pub fn zmq_sockaddr_to_wsa_sockaddr(sockaddr: &ZmqSockAddr) -> SOCKADDR {
     let mut out = SOCKADDR {
         sa_family: ADDRESS_FAMILY{0:sockaddr.sa_family},

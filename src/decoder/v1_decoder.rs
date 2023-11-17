@@ -1,9 +1,9 @@
 use crate::decoder::ZmqDecoder;
-use crate::err::ZmqError;
-use crate::err::ZmqError::DecoderError;
 use crate::msg::ZmqMsg;
 use crate::utils::get_u64;
 use libc::size_t;
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::DecoderError;
 
 // #[derive(Default, Debug, Clone)]
 // pub struct V1Decoder {

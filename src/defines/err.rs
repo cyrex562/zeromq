@@ -1,4 +1,4 @@
-#[derive(thiserror::Error)]
+#[derive(thiserror::Error, Debug)]
 pub enum ZmqError {
     #[error("Invalid context")]
     InvalidContext(&'static str),

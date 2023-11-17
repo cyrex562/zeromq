@@ -1,5 +1,4 @@
 /*  DRAFT Socket types.                                                       */
-use libc::SOCKET;
 
 pub const ZMQ_SERVER: u32 = 12;
 pub const ZMQ_CLIENT: u32 = 13;
@@ -75,14 +74,13 @@ pub const ZMQ_NOTIFY_DISCONNECT: u32 = 2;
 // #else
 // typedef int zmq_fd_t;
 // #endif
-#[cfg(target_os="windows")]
+#[cfg(target_os = "windows")]
 pub type zmq_fd_t = SOCKET;
-#[cfg(not(target_os="windows"))]
+#[cfg(not(target_os = "windows"))]
 pub type zmq_fd_t = i32;
 
 
-pub struct zmq_poller_event_tj<'a>
-{
+pub struct zmq_poller_event_tj<'a> {
     // void *socket;
     pub socket: &'a [u8],
     // zmq_fd_t fd;

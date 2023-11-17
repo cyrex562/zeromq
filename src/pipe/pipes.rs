@@ -5,7 +5,7 @@ pub struct ZmqPipes<'a> {
     pub pipes: [ZmqPipe<'a>; 2]
 }
 
-impl ZmqPipes
+impl<'a> ZmqPipes<'a>
 {
     pub fn new() -> Self {
         Self {

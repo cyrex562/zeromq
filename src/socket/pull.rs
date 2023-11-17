@@ -1,6 +1,5 @@
 use crate::ctx::ZmqContext;
 use crate::defines::err::ZmqError;
-use crate::err::ZmqError;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
@@ -47,7 +46,7 @@ pub  fn pull_xhas_in(socket: &mut ZmqSocket) -> bool {
 }
 
 
-pub fn pull_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+pub fn pull_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 

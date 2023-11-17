@@ -8,7 +8,7 @@ pub struct IoObject<'a> {
     pub _poller: &'a mut ZmqPollerBase<'a>,
 }
 
-impl IoObject {
+impl<'a> IoObject<'a> {
     pub fn new(io_thread_: &mut ZmqIoThread) -> Self {
         let mut out = Self {
             _poller: &mut ZmqPollerBase::default(),

@@ -32,7 +32,7 @@ pub enum ZmqEngineType {
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqEngine<'a> {
-    pub address: Option<ZmqAddress<'a>>,
+    pub address: Option<ZmqAddress>,
     pub decoder: Option<ZmqDecoder<'a>>,
     pub encoder: Option<ZmqEncoder<'a>>,
     pub endpoint_uri_pair: Option<ZmqEndpointUriPair>,
@@ -81,7 +81,7 @@ pub struct ZmqEngine<'a> {
     pub next_msg: fn(options: &ZmqOptions, engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(), ZmqError>,
 }
 
-impl ZmqEngine {
+impl<'a> ZmqEngine<'a> {
     pub fn new() -> Self {
         Self {
             ..Default::default()

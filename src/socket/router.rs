@@ -83,7 +83,7 @@ pub fn router_xattach_pipe(ctx: &mut ZmqContext, socket: &mut ZmqSocket, pipe_: 
         // zmq_assert (rc) is not applicable here, since it is not a bug.
         // LIBZMQ_UNUSED (rc);
 
-        pipe_.flush(ctx: &mut ZmqContext);
+        pipe_.flush(ctx);
 
         rc = probe_msg.close();
         // errno_assert (rc == 0);
@@ -100,7 +100,7 @@ pub fn router_xattach_pipe(ctx: &mut ZmqContext, socket: &mut ZmqSocket, pipe_: 
 // int zmq::router_t::xsetsockopt (int option_,
 //                             const void *optval_,
 //                             size_t optvallen_)
-pub fn router_xsetsockopt(socket: &mut ZmqSocket, options: &mut ZmqOptions, option_: i32, optval_: &[u8], optvallen_: usize) -> Result<(),ZmqError> {
+pub fn router_xsetsockopt(socket: &mut ZmqSocket, options: &mut ZmqOptions, option_: i32, optval_: &mut [u8], optvallen_: usize) -> Result<(),ZmqError> {
     // const bool is_int = (optvallen_ == sizeof (int));
     let is_int = optvallen_ == 4;
     let mut value = 0;
@@ -154,7 +154,7 @@ pub fn router_xsetsockopt(socket: &mut ZmqSocket, options: &mut ZmqOptions, opti
         // #endif
 
         _ => {
-            return socket.xsetsockopt(option_, optval_,
+            return socket.xsetsockopt(options, option_, optval_,
                                                      optvallen_);
         }
     }
@@ -207,11 +207,12 @@ pub fn router_xsend(options: &ZmqOptions, socket: &mut ZmqSocket, msg_: &mut Zmq
             //  Find the pipe associated with the routing id stored in the prefix.
             //  If there's no such pipe just silently ignore the message, unless
             //  router_mandatory is set.
-            let mut out_pipe = socket.lookup_out_pipe(
-                ZmqBlob::new3((msg_.data_mut()), msg_.size()));
+            // let mut out_pipe = socket.lookup_out_pipe(
+            //     ZmqBlob::new3((msg_.data_mut()), msg_.size()));
+            let mut out_pipe = socket.lookup_out_pipe(vec![]);
 
             if out_pipe {
-                socket.current_out = out_pipe.pipe;
+                socket.current_out = Some(out_pipe.pipe);
 
                 // Check whether pipe is closed or not
                 if !socket.current_out.check_write() {
@@ -264,7 +265,7 @@ pub fn router_xsend(options: &ZmqOptions, socket: &mut ZmqSocket, msg_: &mut Zmq
             rc = msg_.init2();
             // errno_assert (rc == 0);
             socket.current_out = None;
-            return 0;
+            return Ok(());
         }
 
         let ok = socket.current_out.write(msg_);
@@ -291,7 +292,7 @@ pub fn router_xsend(options: &ZmqOptions, socket: &mut ZmqSocket, msg_: &mut Zmq
     let rc = msg_.init2();
     // errno_assert (rc == 0);
 
-    return 0;
+    return Ok(());
 }
 
 // int zmq::router_t::xrecv (msg_t *msg_)
@@ -321,7 +322,8 @@ pub fn router_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut Zmq
     }
 
     // pipe_t *pipe = NULL;
-    let mut pipe: Option<&mut ZmqPipe> = None;
+    // let mut pipe: Option<&mut ZmqPipe> = None;
+    let mut pipe: Option<&mut ZmqPipe> = Some(&mut ZmqPipe::default());
     socket.fq.recvpipe(ctx, msg_, &mut pipe)?;
 
     //  It's possible that we receive peer's routing id. That happens
@@ -455,10 +457,10 @@ pub fn router_get_peer_state(socket: &mut ZmqSocket, routing_id_: &[u8], routing
     let mut res: i32 = 0;
 
     // TODO remove the const_cast, see comment in lookup_out_pipe
-    let routing_id_blob = ZmqBlob::new3(
-        routing_id_,
-        routing_id_size_);
-    let out_pipe = socket.lookup_out_pipe(routing_id_blob);
+    // let routing_id_blob = ZmqBlob::new3(
+    //     routing_id_,
+    //     routing_id_size_);
+    let out_pipe = socket.lookup_out_pipe(vec![]);
     if !out_pipe {
         // errno = EHOSTUNREACH;
         return Err(SocketError("EHOSTUNREACH"));
@@ -531,18 +533,19 @@ pub fn router_identify_peer(ctx: &mut ZmqContext, socket: &mut ZmqSocket, option
                 buf[0] = 0;
                 put_u32(&mut buf[1..], socket.next_integral_routing_id);
                 socket.next_integral_routing_id += 1;
-                let mut new_routing_id = ZmqBlob::new3(&buf, 5);
+                // let mut new_routing_id = ZmqBlob::new3(&buf, 5);
+                let mut new_routing_id: Vec<u8> = vec![];
 
                 let old_pipe = existing_outpipe.pipe;
 
                 socket.erase_out_pipe(old_pipe);
-                old_pipe.set_router_socket_routing_id(new_routing_id);
-                socket.add_out_pipe(&new_routing_id, old_pipe);
+                old_pipe.set_router_socket_routing_id(&mut new_routing_id);
+                socket.add_out_pipe(&mut new_routing_id, old_pipe);
 
                 if old_pipe == socket.current_in {
                     socket.terminate_current_in = true;
                 } else {
-                    old_pipe.terminate(true);
+                    old_pipe.terminate(ctx, true);
                 }
             }
         }
@@ -555,7 +558,7 @@ pub fn router_identify_peer(ctx: &mut ZmqContext, socket: &mut ZmqSocket, option
 }
 
 
-pub fn router_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+pub fn router_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 

@@ -2,8 +2,6 @@ use crate::ctx::ZmqContext;
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::SocketError;
 use crate::defines::ZMQ_GROUP_MAX_LENGTH;
-use crate::err::ZmqError;
-use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
@@ -53,7 +51,8 @@ pub fn dish_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Resu
 }
 
 pub fn dish_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
-    socket.dist.activated(pipe_)
+    socket.dist.activated(pipe_);
+    Ok(())
 }
 
 pub fn dish_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError>{
@@ -173,7 +172,7 @@ pub fn dish_send_subscriptions(
     Ok(())
 }
 
-pub fn dish_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+pub fn dish_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 

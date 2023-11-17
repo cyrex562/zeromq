@@ -1,5 +1,3 @@
-use std::ffi::c_void;
-use std::mem::size_of_val;
 use crate::ctx::ZmqContext;
 use crate::defines::err::ZmqError;
 use crate::defines::fair_queue::ZmqFairQueue;
@@ -22,7 +20,7 @@ pub struct ZmqStream<'a> {
     pub _next_integral_routing_id: u32,
 }
 
-impl ZmqStream {
+impl<'a> ZmqStream<'a> {
     pub fn new(parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
         let mut out = Self {
             base: ZmqSocket::new(parent_, tid_, sid_, false),
@@ -141,7 +139,7 @@ impl ZmqStream {
         return Ok(());
     }
 
-    pub fn xsetsockopt(&mut self, options: &mut ZmqOptions, option_: i32, optval_: *const c_void, optvallen_: usize) -> Result<(),ZmqError> {
+    pub fn xsetsockopt(&mut self, options: &mut ZmqOptions, option_: i32, optval_: &mut [u8], optvallen_: usize) -> Result<(),ZmqError> {
         return match option_ {
             ZMQ_STREAM_NOTIFY => {
                 // if (optvallen_ != size_of::<i32>()) {
@@ -170,7 +168,7 @@ impl ZmqStream {
                 // errno_assert (rc == 0);
                 self._prefetched = false;
             }
-            return 0;
+            return Ok(());
         }
 
         // pipe_t *pipe = NULL;
@@ -205,7 +203,7 @@ impl ZmqStream {
         self._prefetched = true;
         self._routing_id_sent = true;
 
-        return 0;
+        return Ok(());
     }
 
     pub fn xhas_in(&mut self, ctx: &mut ZmqContext) -> bool {

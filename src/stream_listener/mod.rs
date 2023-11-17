@@ -33,7 +33,7 @@ pub struct ZmqStreamListener<'a> {
     pub _address: Option<ZmqTcpAddress>,
 }
 
-impl ZmqStreamListener {
+impl<'a> ZmqStreamListener<'a> {
     pub fn new(
         io_thread_: &mut ZmqIoThread,
         socket_: &mut ZmqSocket,

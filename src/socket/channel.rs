@@ -1,6 +1,6 @@
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::{PipeError, SocketError};
 use crate::defines::ZMQ_MSG_MORE;
-use crate::err::ZmqError;
-use crate::err::ZmqError::{PipeError, SocketError};
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;

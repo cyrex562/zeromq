@@ -1,9 +1,8 @@
 use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_PUB, ZMQ_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_UNSUBSCRIBE, ZMQ_XPUB, ZMQ_XPUB_MANUAL, ZMQ_XPUB_MANUAL_LAST_VALUE, ZMQ_XPUB_NODROP, ZMQ_XPUB_VERBOSE, ZMQ_XPUB_VERBOSER, ZMQ_XPUB_WELCOME_MSG};
 use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::SocketError;
 use crate::defines::mtrie::ZmqMtrie;
-use crate::err::ZmqError;
-use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
 use crate::options::{do_getsockopt, ZmqOptions};
 use crate::pipe::ZmqPipe;
@@ -79,8 +78,8 @@ pub fn xpub_xattach_pipe(ctx: &mut ZmqContext, socket: &mut ZmqSocket, options: 
 pub fn xpub_xread_activated(ctx: &mut ZmqContext, socket: &mut ZmqSocket, options: &mut ZmqOptions, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
     //  There are some subscriptions waiting. Let's process them.
     // msg_t msg;
-    let mut msg: ZmqMsg::new();
-    while pipe_.read(ctx, &msg) {
+    let mut msg = ZmqMsg::default();
+    while pipe_.read(ctx, &mut msg) {
         let mut metadata = msg.metadata();
         let mut msg_data = msg.data();
         let mut data: &mut [u8] = &mut [0u8; 1];
@@ -240,7 +239,7 @@ pub fn xpub_xsetsockopt(
 }
 
 
-pub fn xpub_xgetsockopt(socket: &mut ZmqSocket, option_: i32) -> Result<[u8],ZmqError> {
+pub fn xpub_xgetsockopt(socket: &mut ZmqSocket, option_: i32) -> Result<Vec<u8>,ZmqError> {
     if option_ == ZMQ_TOPICS_COUNT {
         return  do_getsockopt(option_);
         // return if rc == 0 {
@@ -317,7 +316,7 @@ pub fn xpub_xsend(socket: &mut ZmqSocket, options: &mut ZmqOptions, msg_: &mut Z
 
     let mut rc = -1; //  Assume we fail
     if socket.lossy || socket.dist.check_hwm() {
-        if socket.dist.send_to_matching(msg_) == 0 {
+        if socket.dist.send_to_matching(msg_).is_ok() {
             //  If we are at the end of multi-part message we can mark
             //  all the pipes as non-matching.
             if !msg_more {
@@ -329,7 +328,8 @@ pub fn xpub_xsend(socket: &mut ZmqSocket, options: &mut ZmqOptions, msg_: &mut Z
     } else {
         // errno = EAGAIN;
     }
-    return rc;
+    // return rc;
+    Ok(())
 }
 
 pub fn xpub_xhas_out(socket: &mut ZmqSocket) -> bool {
@@ -340,7 +340,7 @@ pub fn xpub_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqErr
     //  If there is at least one
     if socket.pending_data.empty() {
         // errno = EAGAIN;
-        return -1;
+        return Err(SocketError("EAGAIN"));
     }
 
     // User is reading a message, set last_pipe and remove it from the deque
@@ -375,7 +375,7 @@ pub fn xpub_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqErr
     socket.pending_data.pop_front();
     socket.pending_metadata.pop_front();
     socket.pending_flags.pop_front();
-    return 0;
+    return Ok(());
 }
 
 pub fn xpub_xhas_in(socket: &mut ZmqSocket) -> bool {

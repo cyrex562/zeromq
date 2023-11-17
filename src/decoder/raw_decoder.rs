@@ -1,5 +1,5 @@
 use crate::decoder::ZmqDecoder;
-use crate::err::ZmqError;
+use crate::defines::err::ZmqError;
 use crate::msg::content::ZmqContent;
 
 // pub struct ZmqRawDecoder {

@@ -1,6 +1,5 @@
 use crate::ctx::ZmqContext;
 use crate::defines::err::ZmqError;
-use crate::err::ZmqError;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
@@ -60,7 +59,7 @@ pub fn peer_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], op
     unimplemented!()
 }
 
-pub fn peer_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+pub fn peer_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 

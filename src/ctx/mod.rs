@@ -59,6 +59,7 @@ pub fn clipped_maxsocket(mut max_requested_: i32) -> i32 {
     max_requested_
 }
 
+#[derive(Default,Debug,Clone)]
 pub struct ZmqContext<'a> {
     // pub _thread_ctx: ZmqThreadCtx,
     pub _opt_sync: ZmqMutex,
@@ -96,7 +97,7 @@ pub struct ZmqContext<'a> {
     pub _vmci_sync: Mutex<()>,
 }
 
-impl ZmqContext {
+impl<'a> ZmqContext<'a> {
     pub fn new() -> Self {
         Self {
             _tag: 0,

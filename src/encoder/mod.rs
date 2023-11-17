@@ -33,7 +33,7 @@ pub struct ZmqEncoder<'a> {
     pub encoder_type: EncoderType,
 }
 
-impl ZmqEncoder {
+impl<'a> ZmqEncoder<'a> {
     pub fn new(buf_size_: usize, encoder_type: EncoderType) -> Self {
         let mut out = Self {
             _write_pos: &mut[0u8],

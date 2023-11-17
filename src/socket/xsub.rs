@@ -1,8 +1,7 @@
 use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_XSUB_VERBOSE_UNSUBSCRIBE};
 use crate::defines::err::ZmqError;
-use crate::err::ZmqError;
-use crate::err::ZmqError::SocketError;
+use crate::defines::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
 use crate::options::{do_getsockopt, ZmqOptions};
 use crate::pipe::ZmqPipe;
@@ -88,25 +87,25 @@ pub fn xsub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], op
     if option_ == ZMQ_ONLY_FIRST_SUBSCRIBE {
         if optvallen_ != 4 || (opt_val_i32) < 0 {
             // errno = EINVAL;
-            return -1;
+            return Err(SocketError("EINVAL"));
         }
         socket.only_first_subscribe = (opt_val_i32 != 0);
-        return 0;
+        return Ok(());
     }
     // #ifdef ZMQ_BUILD_DRAFT_API
     else if option_ == ZMQ_XSUB_VERBOSE_UNSUBSCRIBE {
         socket.verbose_unsubs = (opt_val_i32 != 0);
-        return 0;
+        return Ok(());
     }
     // #endif
     //     errno = EINVAL;
-    return -1;
+    return Err(SocketError("EINVAL"));
 }
 
 pub fn xsub_xgetsockopt(
     socket: &mut ZmqSocket,
     option: u32,
-) -> Result<[u8], ZmqError> {
+) -> Result<Vec<u8>, ZmqError> {
     if option == ZMQ_TOPICS_COUNT {
         // make sure to use a multi-thread safe function to avoid race conditions with I/O threads
         // where subscriptions are processed:
@@ -174,7 +173,7 @@ pub fn xsub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqErr
     msg_.init2()?;
     // errno_assert (rc == 0);
 
-    return 0;
+    return Ok(());
 }
 
 pub fn xsub_xhas_out(socket: &mut ZmqSocket) -> bool {
@@ -284,7 +283,8 @@ pub fn xsub_send_subscription(
     // errno_assert (rc == 0);
 
     //  Send it to the pipe.
-    (*pipe).write(&mut msg)?;
+    // TODO: figure out how to replace arg with ZmqPipe 
+    unsafe{(*pipe).write(&mut msg)?};
     //  If we reached the SNDHWM, and thus cannot send the subscription, drop
     //  the subscription message instead. This matches the behaviour of
     //  zmq_setsockopt(ZMQ_SUBSCRIBE, ...), which also drops subscriptions

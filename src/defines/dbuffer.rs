@@ -1,7 +1,7 @@
 use std::ptr::null_mut;
-use crate::mutex::ZmqMutex;
+use crate::defines::mutex::ZmqMutex;
 
-pub struct ZmqDbuffer<'a, T: Copy + Default>
+pub struct ZmqDbuffer<'a, T: Default>
 {
     pub _storage: [T;2],
     pub _back: &'a mut T,
@@ -10,7 +10,7 @@ pub struct ZmqDbuffer<'a, T: Copy + Default>
     pub _has_msg: bool,
 }
 
-impl <T: Copy + Default> ZmqDbuffer<T>{
+impl <'a, T: Default> ZmqDbuffer<'a, T>{
     pub fn new() -> Self
     {
         let mut out = Self {

@@ -31,7 +31,7 @@ pub struct Timers<'a> {
     pub match_by_id: MatchById,
 }
 
-impl Timers {
+impl<'a> Timers<'a> {
     pub fn new() -> Timers<'static> {
         Timers {
             _tag: 0,

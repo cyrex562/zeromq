@@ -1,7 +1,7 @@
 use crate::ctx::ZmqContext;
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::SocketError;
 use crate::defines::ZMQ_MSG_MORE;
-use crate::err::ZmqError;
-use crate::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
@@ -113,7 +113,7 @@ pub fn pair_xhas_out(socket: &mut ZmqSocket) -> bool {
     return socket.pipe.check_write();
 }
 
-pub fn pair_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+pub fn pair_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 

@@ -1,5 +1,4 @@
-use std::intrinsics::size_of;
-use std::mem::size_of_val;
+use std::mem::{size_of, size_of_val};
 
 use libc::{c_int, size_t, sockaddr_in};
 #[cfg(target_os = "windows")]
@@ -23,8 +22,6 @@ use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::EngineError;
 use crate::endpoint::ZmqEndpointUriPair;
 use crate::engine::ZmqEngine;
-use crate::err::ZmqError;
-use crate::err::ZmqError::EngineError;
 use crate::io::io_thread::ZmqIoThread;
 use crate::ip::{open_socket, unblock_socket};
 use crate::msg::ZmqMsg;

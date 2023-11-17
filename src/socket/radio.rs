@@ -6,7 +6,7 @@ use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 use std::collections::HashMap;
 use crate::defines::err::ZmqError;
-use crate::err::ZmqError;
+use crate::defines::err::ZmqError::SocketError;
 
 pub type ZmqSubscriptions<'a> = HashMap<String, &'a mut ZmqPipe<'a>>;
 pub type UdpPipes<'a> = Vec<&'a mut ZmqPipe<'a>>;
@@ -200,7 +200,7 @@ pub fn radio_xhas_in(socket: &mut ZmqSocket) -> bool {
     false
 }
 
-pub fn radio_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+pub fn radio_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 

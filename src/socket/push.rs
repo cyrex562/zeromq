@@ -2,7 +2,6 @@ use crate::defines::err::ZmqError;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
-use crate::err::ZmqError;
 
 // pub struct ZmqPush<'a> {
 //     pub socket_base: ZmqSocket<'a>,
@@ -59,7 +58,7 @@ pub fn push_xsetsockopt(
     unimplemented!()
 }
 
-pub fn push_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+pub fn push_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 pub fn push_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {

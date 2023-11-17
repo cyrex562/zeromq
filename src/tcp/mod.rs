@@ -1,7 +1,7 @@
 use std::ffi::c_void;
 use std::mem::size_of;
 
-use libc::{EAFNOSUPPORT, setsockopt};
+use libc::{EAFNOSUPPORT, EAGAIN, EINTR, EWOULDBLOCK, setsockopt};
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{recv, send, SIO_KEEPALIVE_VALS, SIO_LOOPBACK_FAST_PATH, SOCKET_ERROR, tcp_keepalive, WSAECONNABORTED, WSAECONNRESET, WSAEHOSTUNREACH, WSAENETDOWN, WSAENETRESET, WSAENOBUFS, WSAEOPNOTSUPP, WSAETIMEDOUT, WSAEWOULDBLOCK, WSAGetLastError, WSAIoctl};
 use windows::Win32::Networking::WinSock::{LPWSAOVERLAPPED_COMPLETION_ROUTINE, SEND_RECV_FLAGS};
@@ -10,7 +10,7 @@ use crate::address::tcp_address::ZmqTcpAddress;
 use crate::defines::{AF_INET, AF_INET6, IPPROTO_TCP, RETIRED_FD, SO_BUSY_POLL, SO_RCVBUF, SO_SNDBUF, SOCK_STREAM, SOL_SOCKET, ZmqFd};
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::SocketError;
-use crate::defines::tcp::TCP_NODELAY;
+use crate::defines::tcp::{TCP_NODELAY, TCP_USER_TIMEOUT};
 use crate::ip::{bind_to_device, enable_ipv4_mapping, open_socket, set_ip_type_of_service, set_socket_priority};
 use crate::net::platform_socket::{platform_send, platform_setsockopt};
 use crate::options::ZmqOptions;
@@ -348,7 +348,7 @@ pub fn tcp_read(s_: ZmqFd, data_: &mut [u8], size_: usize) -> Result<i32,ZmqErro
 //         }
             }
 
-            return rc as i32;
+            return Ok(rc as i32);
         }
 // #endif
 }
@@ -389,6 +389,7 @@ pub fn tcp_tune_loopback_fast_path(socket_: ZmqFd) -> Result<(), ZmqError> {
 // #else
     // LIBZMQ_UNUSED (socket_);
 // #endif
+    Ok(())
 }
 
 pub fn tune_tcp_busy_poll(socket: ZmqFd, busy_poll: i32) -> Result<(), ZmqError> {

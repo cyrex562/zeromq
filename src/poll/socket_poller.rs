@@ -17,7 +17,7 @@ use crate::poll::select::{fd_set, FD_SET, FD_ZERO};
 use crate::socket::ZmqSocket;
 use crate::utils::{FD_ISSET, get_errno};
 
-pub type ZmqEvent = ZmqPollerEvent;
+pub type ZmqEvent<'a> = ZmqPollerEvent<'a>;
 
 #[derive(Default,Debug,Clone)]
 pub struct ZmqItem<'a> {
@@ -51,7 +51,7 @@ pub struct ZmqSocketPoller<'a> {
 }
 
 
-impl ZmqSocketPoller {
+impl<'a> ZmqSocketPoller<'a> {
     pub fn new() -> Self {
         let mut out = ZmqSocketPoller {
             _tag: 0xdeadbeef,
@@ -83,7 +83,7 @@ impl ZmqSocketPoller {
         self._tag == 0xCAFEBABE
     }
 
-    pub fn signaler_fd(&mut self, fd_: *mut ZmqFd) -> Result<(),ZmqError> {
+    pub fn signaler_fd(&mut self, fd_: &mut ZmqFd) -> Result<(),ZmqError> {
         if self._signaler {
             *fd_ = self._signaler.get_fd();
             return Ok(());
@@ -178,7 +178,7 @@ impl ZmqSocketPoller {
         self._items.push_back(item);
         self._need_rebuild = true;
 
-        return 0;
+        return Ok(());
     }
 
     pub fn modify(&mut self, socket_: &mut ZmqSocket, events_: i16) -> Result<(),ZmqError> {
@@ -534,10 +534,10 @@ impl ZmqSocketPoller {
         return return Err(PollerError("EAGAIN"));
     }
 
-    pub fn wait(&mut self, options: &ZmqOptions, events_: &mut [ZmqEvent], n_events_: i32, timeout_: i32) -> Result<(),ZmqError> {
+    pub fn wait(&mut self, options: &ZmqOptions, events_: &mut [ZmqEvent], n_events_: i32, timeout_: i32) -> Result<i32,ZmqError> {
         if self._items.empty() && timeout_ < 0 {
             // errno = EFAULT;
-            return -1;
+            return Err(PollerError("EFAULT"));
         }
 
         if self._need_rebuild {
@@ -578,7 +578,7 @@ impl ZmqSocketPoller {
             //         return -1;
             // #else
             #[cfg(not(target_os = "windows"))]{
-                libc::usleep((timeout_ * 1000) as c_uint);
+                unsafe{libc::usleep((timeout_ * 1000) as c_uint)};
                 return Err(PollerError("EAGAIN"));
             }
             // #endif
@@ -728,7 +728,7 @@ impl ZmqSocketPoller {
                     *inset.get(),
                     *outset.get(),
                     *errset.get()
-                );
+                )?;
                 if found {
                     if found > 0 {
                         self.zero_trail_events(events_, n_events_, found);
@@ -743,7 +743,7 @@ impl ZmqSocketPoller {
                     &mut now,
                     &mut end,
                     &mut first_pass
-                ) == 0 {
+                ).is_ok() {
                     break;
                 }
             }

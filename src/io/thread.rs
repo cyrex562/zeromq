@@ -43,7 +43,7 @@ pub fn thread_routine(arg: &mut [u8]) {
     thread._tfn(thread.arg);
 }
 
-impl ZmqThread {
+impl<'a> ZmqThread<'a> {
     pub fn get_started(&self) -> bool {
         self._started
     }

@@ -1,5 +1,4 @@
 use crate::defines::err::ZmqError;
-use crate::err::ZmqError;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
@@ -41,7 +40,7 @@ pub fn pub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], opt
     unimplemented!()
 }
 
-pub fn pub_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+pub fn pub_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 

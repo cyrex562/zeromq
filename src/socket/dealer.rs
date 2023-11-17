@@ -4,7 +4,6 @@ use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::SocketError;
 use crate::defines::fair_queue::ZmqFairQueue;
 use crate::defines::load_balancer::ZmqLoadBalancer;
-use crate::err::ZmqError;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
@@ -93,18 +92,24 @@ pub fn dealer_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Re
 }
 
 pub fn dealer_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
-    socket.lb.activated(pipe_)
+    socket.lb.activated(pipe_);
+    Ok(())
 }
 
 pub fn dealer_sendpipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg, pipe_: &mut Option<&mut ZmqPipe>) -> Result<(),ZmqError> {
     socket.lb.sendpipe(msg_, pipe_)
 }
 
-pub fn dealer_recvpipe(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg, pipe_: Option<&mut ZmqPipe>) -> Result<(),ZmqError> {
-    socket.fq.recvpipe(ctx, msg_, &mut pipe_)
+pub fn dealer_recvpipe(
+    ctx: &mut ZmqContext,
+    socket: &mut ZmqSocket,
+    msg_: &mut ZmqMsg,
+    pipe_: &mut Option<&mut ZmqPipe>
+) -> Result<(),ZmqError> {
+    socket.fq.recvpipe(ctx, msg_, pipe_)
 }
 
-pub fn dealer_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+pub fn dealer_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 pub fn dealer_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {

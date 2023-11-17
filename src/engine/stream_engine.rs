@@ -613,6 +613,7 @@ pub fn stream_push_one_then_decode_and_push(
 }
 
 pub fn stream_pull_msg_from_session(
+    options: &ZmqOptions,
     engine: &mut ZmqEngine,
     msg_: &mut ZmqMsg,
 ) -> Result<(), ZmqError> {

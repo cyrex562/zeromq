@@ -2,7 +2,7 @@ use libc::size_t;
 
 use crate::decoder::v1_decoder::v1d_one_byte_size_ready;
 use crate::decoder::v2_decoder::v2d_one_byte_size_ready;
-use crate::err::ZmqError;
+use crate::defines::err::ZmqError;
 use crate::msg::ZmqMsg;
 
 pub mod raw_decoder;
@@ -31,7 +31,7 @@ pub struct ZmqDecoder<'a> {
     pub _msg_flags: u8,
 }
 
-impl ZmqDecoder {
+impl<'a> ZmqDecoder<'a> {
     pub fn new(buf_size_: usize, decoder_type: DecoderType) -> Self {
         let mut out = Self {
             next: None,

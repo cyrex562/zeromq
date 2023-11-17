@@ -1,6 +1,6 @@
 use crate::defines::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
+use crate::defines::err::ZmqError;
 use crate::msg::ZmqMsg;
-use crate::err::ZmqError;
 use crate::session::{ZmqSession, ZmqSessionState};
 
 // pub enum radio_session_state {

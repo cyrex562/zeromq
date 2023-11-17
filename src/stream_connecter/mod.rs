@@ -30,7 +30,7 @@ pub const CONNECT_TIMER_ID: i32 = 2;
 pub struct ZmqStreamConnecterBase<'a> {
     pub own: ZmqOwn<'a>,
     pub io_object: IoObject<'a>,
-    pub _addr: ZmqAddress<'a>,
+    pub _addr: ZmqAddress,
     pub _s: ZmqFd,
     pub _handle: ZmqHandle,
     pub _endpoint: String,
@@ -42,7 +42,7 @@ pub struct ZmqStreamConnecterBase<'a> {
     pub _connect_timer_started: bool,
 }
 
-impl ZmqStreamConnecterBase {
+impl<'a> ZmqStreamConnecterBase<'a> {
     pub fn new(
         io_thread_: &mut ZmqIoThread,
         session_: &mut ZmqSession,

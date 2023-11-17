@@ -1,4 +1,3 @@
-use windows::Win32::System::Threading::Sleep;
 use crate::defines::atomic_counter::ZmqAtomicCounter;
 use crate::defines::err::ZmqError;
 
@@ -6,10 +5,10 @@ pub fn zmq_sleep(seconds_: i32) {
     #[cfg(target_os = "windows")]
     Sleep((seconds_ * 1000) as u32);
     #[cfg(not(target_os = "windows"))]
-    sleep(seconds_ as u64)
+    unsafe{libc::sleep(seconds_ as libc::c_uint);}
 }
 
-pub fn zmq_stopwatch_start() -> &[u8] {
+pub fn zmq_stopwatch_start() -> Vec<u8> {
     // let watch = now_us()
     // &watch
     todo!()
@@ -43,7 +42,7 @@ pub fn zmq_threadclose(thread_: &[u8]) {
     todo!()
 }
 
-pub const encoder: [&'static str; 85] = [
+pub const ENCODER: [&'static str; 85] = [
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "g", "h", "i",
     "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B",
     "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
@@ -51,7 +50,7 @@ pub const encoder: [&'static str; 85] = [
     ")", "[", "]", "{", "}", "@", "%", "$", "#",
 ];
 
-pub const decoder: [u8; 96] = [
+pub const DECODER: [u8; 96] = [
     0xFF, 0x44, 0xFF, 0x54, 0x53, 0x52, 0x48, 0xFF, 0x4B, 0x4C, 0x46, 0x41, 0xFF, 0x3F, 0x3E, 0x45,
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x40, 0xFF, 0x49, 0x42, 0x4A, 0x47,
     0x51, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32,
@@ -77,7 +76,7 @@ pub unsafe fn zmq_z85_encode<'a>(dest_: &mut [u8], data_: &[u8], size_: usize) -
             //  Output value in base 85
             let mut divisor = 85 * 85 * 85 * 85;
             while (divisor) {
-                dest_[char_nbr] = encoder[value / divisor % 85];
+                dest_[char_nbr] = ENCODER[value / divisor % 85];
                 char_nbr += 1;
                 divisor /= 85;
             }
@@ -111,12 +110,12 @@ pub unsafe fn zmq_z85_decode<'a>(dest_: &mut [u8], string_: &str) -> Option<&'a 
         value *= 85;
         let index = string_.get(char_nbr).unwrap() - 32;
         char_nbr += 1;
-        if (index >= (decoder.len())) {
+        if (index >= (DECODER.len())) {
             //  Invalid z85 encoding, character outside range
             // goto error_inval;
             return None;
         }
-        let summand = decoder[index];
+        let summand = DECODER[index];
         if (summand == 0xFF || summand > (u32::MAX - value)) {
             //  Invalid z85 encoding, invalid character or represented value exceeds 0xffffffff
             // goto error_inval;

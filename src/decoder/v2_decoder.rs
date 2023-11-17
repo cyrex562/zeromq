@@ -2,8 +2,8 @@ use libc::size_t;
 
 use crate::decoder::ZmqDecoder;
 use crate::defines::{COMMAND_FLAG, LARGE_FLAG, MORE_FLAG, ZMQ_MSG_COMMAND};
-use crate::err::ZmqError;
-use crate::err::ZmqError::DecoderError;
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::DecoderError;
 use crate::msg::ZmqMsg;
 use crate::utils::get_u64;
 

@@ -144,7 +144,7 @@ impl<'a> ZapClient<'a> {
         }
     }
 
-    pub fn receive_and_process_zap_reply(&mut self, options: &ZmqOptions, ctx: &mut ZmqContext) -> Result<(), ZmqError> {
+    pub fn receive_and_process_zap_reply(&mut self, options: &mut ZmqOptions, ctx: &mut ZmqContext) -> Result<(), ZmqError> {
         let mut rc = 0i32;
         let zap_reply_frame_count = 7;
         let mut msg: Vec<ZmqMsg> = Vec::with_capacity(zap_reply_frame_count);
@@ -167,6 +167,7 @@ impl<'a> ZapClient<'a> {
             }
             if msg[i].flags_set(ZMQ_MSG_MORE) == (if i < zap_reply_frame_count - 1 { 0 } else { ZMQ_MSG_MORE }) {
                 self.mechanism.session.get_socket().event_handshake_failed_protocol(
+                    ctx,
                     options,
                     self.mechanism.session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZAP_MALFORMED_REPLY as i32);
                 // errno = EPROTO;
@@ -179,6 +180,7 @@ impl<'a> ZapClient<'a> {
         if msg[0].size() > 0 {
             //  TODO can a ZAP handler produce such a message at all?
             self.mechanism.session.get_socket().event_handshake_failed_protocol(
+                ctx,
                 options,
                 self.mechanism.session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZAP_UNSPECIFIED as i32);
             // errno = EPROTO;
@@ -190,7 +192,7 @@ impl<'a> ZapClient<'a> {
         // if msg[1].size () != ZAP_VERSION_LEN
         //     || libc::memcmp (msg[1].data_mut(), ZAP_VERSION.as_ptr() as *const c_void, ZAP_VERSION_LEN) != 0
         if msg[1].size() != ZAP_VERSION_LEN || (msg[1].data_mut()).iter().zip(ZAP_VERSION.as_bytes()).any(|(a, b)| a != b) {
-            self.mechanism.session.get_socket().event_handshake_failed_protocol(
+            self.mechanism.session.get_socket().event_handshake_failed_protocol(ctx,
                 options,
                 self.mechanism.session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZAP_BAD_VERSION as i32);
             // errno = EPROTO;
@@ -201,7 +203,7 @@ impl<'a> ZapClient<'a> {
         //  Request id frame
         // if (msg[2].size () != ID_LEN || libc::memcmp(msg[2].data_mut(), id.as_ptr() as *const c_void, ID_LEN) != 0)
         if msg[2].size() != ID_LEN || (msg[2].data_mut()).iter().zip(id.as_bytes()).any(|(a, b)| a != b) {
-            self.mechanism.session.get_socket().event_handshake_failed_protocol(
+            self.mechanism.session.get_socket().event_handshake_failed_protocol(ctx,
                 options,
                 self.mechanism.session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZAP_BAD_REQUEST_ID as i32);
             // errno = EPROTO;
@@ -212,7 +214,7 @@ impl<'a> ZapClient<'a> {
         //  Status code frame, only 200, 300, 400 and 500 are valid status codes
         let status_code_data = (msg[3].data_mut());
         if msg[3].size() != 3 || status_code_data[0] < '2' as u8 || status_code_data[0] > '5' as u8 || status_code_data[1] != '0' as u8 || status_code_data[2] != '0' as u8 {
-            self.mechanism.session.get_socket().event_handshake_failed_protocol(
+            self.mechanism.session.get_socket().event_handshake_failed_protocol(ctx,
                 options,
                 self.mechanism.session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZAP_INVALID_STATUS_CODE as i32);
             // errno = EPROTO;
@@ -230,15 +232,14 @@ impl<'a> ZapClient<'a> {
         );
 
         //  Process metadata frame
-        rc = self.mechanism.parse_metadata(
+        if self.mechanism.parse_metadata(
             options,
             (msg[6].data_mut()),
             msg[6].size(),
             true,
-        );
-
-        if rc != 0 {
+        ).is_err() {
             self.mechanism.session.get_socket().event_handshake_failed_protocol(
+                ctx,
                 options,
                 self.mechanism.session.get_endpoint(), ZMQ_PROTOCOL_ERROR_ZAP_INVALID_METADATA as i32);
             // errno = EPROTO;
@@ -253,12 +254,12 @@ impl<'a> ZapClient<'a> {
             // errno_assert (rc2 == 0);
         }
 
-        self.handle_zap_status_code(options);
+        self.handle_zap_status_code(ctx, options);
 
         return Ok(());
     }
 
-    pub fn handle_zap_status_code(&mut self, options: &ZmqOptions) {
+    pub fn handle_zap_status_code(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions) {
         //  we can assume here that status_code is a valid ZAP status code,
         //  i.e. 200, 300, 400 or 500
         let mut status_code_numeric = 0;
@@ -275,6 +276,7 @@ impl<'a> ZapClient<'a> {
         }
 
         self.mechanism.session.get_socket().event_handshake_failed_auth(
+            ctx,
             options,
             self.mechanism.session.get_endpoint(),
             status_code_numeric,
@@ -318,12 +320,12 @@ impl<'a> ZapClientCommonHandshake<'a> {
         return mechanism::MechanismStatus::Handshaking;
     }
 
-    pub fn zap_msg_available(&mut self, options: &ZmqOptions, ctx: &mut ZmqContext) -> Result<(), ZmqError> {
+    pub fn zap_msg_available(&mut self, options: &mut ZmqOptions, ctx: &mut ZmqContext) -> Result<(), ZmqError> {
         self.receive_and_process_zap_reply(options, ctx)
     }
 
-    pub fn handle_zap_status_code(&mut self, options: &ZmqOptions) {
-        self.zap_client.handle_zap_status_code(options);
+    pub fn handle_zap_status_code(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions) {
+        self.zap_client.handle_zap_status_code(ctx, options);
         if self.zap_client.status_code[0] == '2' {
             self.state = self._zap_reply_ok_state.clone();
         } else if self.zap_client.status_code[0] == '3' {
@@ -333,7 +335,7 @@ impl<'a> ZapClientCommonHandshake<'a> {
         }
     }
 
-    pub fn receive_and_process_zap_reply(&mut self, options: &ZmqOptions, ctx: &mut ZmqContext) -> Result<(), ZmqError> {
+    pub fn receive_and_process_zap_reply(&mut self, options: &mut ZmqOptions, ctx: &mut ZmqContext) -> Result<(), ZmqError> {
         self.zap_client.receive_and_process_zap_reply(options, ctx)
     }
 }

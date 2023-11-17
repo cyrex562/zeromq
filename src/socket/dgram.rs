@@ -125,7 +125,7 @@ pub  fn dgram_xhas_out(socket: &mut ZmqSocket) -> bool {
 pub fn dgram_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> Result<(),ZmqError> {
     unimplemented!()
 }
-pub fn dgram_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+pub fn dgram_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 

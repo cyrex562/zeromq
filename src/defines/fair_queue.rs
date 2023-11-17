@@ -1,7 +1,7 @@
 use crate::ctx::ZmqContext;
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::PipeError;
 use crate::defines::ZMQ_MSG_MORE;
-use crate::err::ZmqError;
-use crate::err::ZmqError::PipeError;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 
@@ -14,7 +14,7 @@ pub struct ZmqFairQueue<'a> {
     pub more: bool,
 }
 
-impl ZmqFairQueue {
+impl<'a> ZmqFairQueue<'a> {
     pub fn new() -> Self {
         Self {
             pipes: [&mut ZmqPipe::default(); 1],
@@ -49,7 +49,7 @@ impl ZmqFairQueue {
     }
 
     pub fn recv(&mut self, ctx: &mut ZmqContext, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
-        self.recvpipe(ctx, msg_, &mut None)
+        self.recvpipe(ctx, msg_, None)
     }
 
     pub fn recvpipe(&mut self, ctx: &mut ZmqContext, msg: &mut ZmqMsg, pipe: &mut Option<&mut ZmqPipe>) -> Result<(),ZmqError> {
@@ -60,7 +60,8 @@ impl ZmqFairQueue {
 
             if fetched {
                 if pipe.is_some() {
-                    *pipe = Some(self.pipes[self.current]);
+                    // *pipe = Some(self.pipes[self.current]);
+                    pipe.replace(self.pipes[self.current])
                 }
                 self.more = msg.flags() & ZMQ_MSG_MORE != 0;
                 if !self.more {

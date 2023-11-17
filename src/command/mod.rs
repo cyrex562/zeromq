@@ -170,7 +170,7 @@ pub struct ZmqCommand<'a> {
     pub type_: ZmqCommandType,
 }
 
-impl ZmqCommand {
+impl<'a> ZmqCommand<'a> {
     pub fn new() -> Self {
         Self {
             // destination: None,

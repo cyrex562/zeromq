@@ -1,7 +1,6 @@
 use crate::defines::{ZMQ_SUBSCRIBE, ZMQ_UNSUBSCRIBE};
 use crate::defines::err::ZmqError;
-use crate::err::ZmqError;
-use crate::err::ZmqError::SocketError;
+use crate::defines::err::ZmqError::SocketError;
 use crate::msg::{close_and_return, ZmqMsg};
 use crate::pipe::ZmqPipe;
 use crate::socket::xsub::xsub_xsend;
@@ -44,8 +43,8 @@ pub fn sub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &mut [u8],
     // errno_assert (rc == 0);
 
     //  Pass it further on in the stack.
-    rc = xsub_xsend(socket, &mut msg);
-    rc = close_and_return(&mut msg, rc)?;
+    xsub_xsend(socket, &mut msg)?;
+    close_and_return(&mut msg, rc)?;
     return Ok(());
 }
 
@@ -71,7 +70,7 @@ pub fn sub_xattach_pipe(
     unimplemented!()
 }
 
-pub fn sub_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+pub fn sub_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 

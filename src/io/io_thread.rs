@@ -16,7 +16,7 @@ pub struct ZmqIoThread<'a> {
     pub _poller: &'a mut ZmqPollerBase<'a>,
 }
 
-impl ZmqIoThread {
+impl<'a> ZmqIoThread<'a> {
     pub fn start(&mut self) {
         let name = format!("IO/{}", self.thread_id - reaper_tid - 1);
         self._poller.start(name);
@@ -30,7 +30,7 @@ impl ZmqIoThread {
         return &mut self._mailbox;
     }
 
-    pub fn get_load(&mut self) -> Result<(),ZmqError> {
+    pub fn get_load(&mut self) -> i32 {
         return self._poller.get_load();
     }
 
@@ -43,16 +43,18 @@ impl ZmqIoThread {
         self._poller.stop();
     }
 
-    pub fn in_event(&mut self, options: &ZmqOptions) {
+    pub fn in_event(&mut self, options: &ZmqOptions) ->Result<(),ZmqError> {
         let mut cmd = ZmqCommand::new();
-        let rc = self._mailbox.recv(&mut cmd, 0);
-        while rc == 0 {
-            if rc == 0 {
-                // cmd.destination.process_command(&mut cmd);
-                obj_process_command(options, &mut cmd, cmd.dest_pipe.unwrap());
-            }
-            self._mailbox.recv(&mut cmd, 0);
-        }
+        let rc = self._mailbox.recv(&mut cmd, 0)?;
+        // TODO: check error state and run while loop, etc
+        // while rc == 0 {
+        //     if rc == 0 {
+        //         // cmd.destination.process_command(&mut cmd);
+        //         obj_process_command(options, &mut cmd, cmd.dest_pipe.unwrap());
+        //     }
+        //     self._mailbox.recv(&mut cmd, 0)?;
+        // }
+        Ok(())
     }
 
     fn out_event(&mut self) {

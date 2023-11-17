@@ -1,5 +1,4 @@
 use crate::address::ip_address::ZmqIpAddress;
-use crate::err::ZmqError;
 use crate::ip::ip_resolver::IpResolver;
 use crate::ip::ip_resolver_options::IpResolverOptions;
 use crate::options::ZmqOptions;
@@ -9,6 +8,7 @@ use libc::if_nametoindex;
 use std::ffi::c_char;
 #[cfg(target_os = "windows")]
 use windows::Win32::NetworkManagement::IpHelper::if_nametoindex;
+use crate::defines::err::ZmqError;
 
 #[derive(Default, Debug, Clone)]
 pub struct UdpAddress {

@@ -53,7 +53,7 @@ pub struct ZmqSession<'a> {
     pub _socket: &'a mut ZmqSocket<'a>,
     pub _io_thread: &'a mut ZmqIoThread<'a>,
     pub _has_linger_timer: bool,
-    pub _addr: ZmqAddress<'a>,
+    pub _addr: ZmqAddress,
     pub _engine: Option<&'a mut ZmqEngine<'a>>,
     pub _state: ZmqSessionState,
     pub _group_msg: ZmqMsg,
@@ -64,14 +64,14 @@ pub struct ZmqSession<'a> {
 pub const _LINGER_TIMER_ID: i32 = 0x20;
 
 
-impl ZmqSession {
+impl<'a> ZmqSession<'a> {
     pub fn create(
         io_thread: &mut ZmqIoThread,
         active: bool,
         socket: &mut ZmqSocket,
         options: &ZmqOptions,
         addr: Option<&ZmqAddress>,
-    ) -> ZmqSession {
+    ) -> ZmqSession<'a> {
         // let mut s: *mut session_base_t = null_mut();
         let mut s = ZmqSession::default();
         s._io_thread = io_thread;
@@ -758,7 +758,7 @@ pub struct HelloMsgSession<'a> {
     pub _new_pipe: bool,
 }
 
-impl HelloMsgSession {
+impl<'a> HelloMsgSession<'a> {
     pub fn new(
         io_thread_: &mut ZmqIoThread,
         connect_: bool,
@@ -786,5 +786,6 @@ impl HelloMsgSession {
     pub fn reset(&mut self) -> Result<(),ZmqError>{
         self.session_base_t.reset()?;
         self._new_pipe = true;
+        Ok(())
     }
 }

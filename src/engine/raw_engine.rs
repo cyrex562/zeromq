@@ -1,9 +1,9 @@
 use std::collections::{HashMap};
 use crate::decoder::{DecoderType, ZmqDecoder};
+use crate::defines::err::ZmqError;
 use crate::encoder::{EncoderType, ZmqEncoder};
 use crate::engine::stream_engine::stream_pull_msg_from_session;
 use crate::engine::ZmqEngine;
-use crate::err::ZmqError;
 use crate::metadata::ZmqMetadata;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;

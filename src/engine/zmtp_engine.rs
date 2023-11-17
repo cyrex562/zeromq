@@ -11,14 +11,13 @@ use crate::engine::stream_engine::{
     stream_push_msg_to_session, stream_read,
 };
 use crate::engine::ZmqEngine;
-use crate::err::ZmqError;
 use crate::mechanism::ZmqMechanism;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::utils::{get_errno, put_u64};
 use libc::EAGAIN;
 use std::cmp::min;
-use std::mem::size_of;
+use std::mem::{size_of, size_of_val};
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::EngineError;
 use crate::msg::defines::{CANCEL_CMD_NAME_SIZE, PING_CMD_NAME_SIZE, SUB_CMD_NAME_SIZE};
@@ -132,7 +131,7 @@ pub fn zmtp_receive_greeting(engine: &mut ZmqEngine) -> Result<(),ZmqError> {
             engine,
             engine.greeting_recv[engine.greeting_bytes_read..],
             engine.greeting_size - engine.greeting_bytes_read,
-        );
+        )?;
         if n == -1 {
             if get_errno() != EAGAIN {
                 // Error(ConnectionError);
@@ -166,7 +165,7 @@ pub fn zmtp_receive_greeting(engine: &mut ZmqEngine) -> Result<(),ZmqError> {
         //  The peer is using versioned protocol.
         engine.receive_greeting_versioned();
     }
-    return if unversioned { 1 } else { 0 };
+    return if unversioned { Ok(()) } else { Err(EngineError("zmtp_receive_greeting failed")) };
 }
 
 pub fn zmtp_receive_greeting_versioned(options: &ZmqOptions, engine: &mut ZmqEngine) {
@@ -638,7 +637,7 @@ pub fn zmtp_process_command_message(engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -
     let sub_name_size = SUB_CMD_NAME_SIZE - 1;
     let cancel_name_size = CANCEL_CMD_NAME_SIZE - 1;
     //  Malformed command
-    if msg_.size() < (cmd_name_size + size_of::<cmd_name_size>()) as usize {
+    if msg_.size() < (cmd_name_size + size_of_val(cmd_name_size)) as usize {
         return Err(EngineError("Malformed command"));
     }
 

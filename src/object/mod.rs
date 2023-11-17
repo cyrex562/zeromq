@@ -1,12 +1,15 @@
-use crate::command::ZmqCommandType::{ActivateRead, Stop};
+
 use crate::command::{ZmqCommand, ZmqCommandType};
 use crate::ctx::{Endpoint, ZmqContext};
 use crate::defines::err::ZmqError;
 use crate::endpoint::ZmqEndpointUriPair;
+use crate::engine::ZmqEngine;
 use crate::io::io_thread::ZmqIoThread;
+use crate::io::reaper::{reaper_process_reap, reaper_process_reaped};
+use crate::msg::content::ZmqContent;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use crate::own::{own_process_seqnum, own_process_term_ack, ZmqOwn};
+use crate::own::{own_process_own, own_process_seqnum, own_process_term_ack, ZmqOwn};
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 use crate::ypipe::ypipe_conflate::YPipeConflate;
@@ -42,115 +45,126 @@ use crate::ypipe::ypipe_conflate::YPipeConflate;
 //     self.thread_id = id;
 // }
 
-pub fn obj_process_command(options: &ZmqOptions, cmd: &mut ZmqCommand, pipe: &mut ZmqPipe) {
+pub fn obj_process_command(
+    options: &ZmqOptions,
+    cmd: &mut ZmqCommand,
+    pipe: &mut ZmqPipe,
+    ctx: &mut ZmqContext
+) -> Result<(),ZmqError> {
     match cmd.type_.clone() {
-        ActivateRead => {
+        ZmqCommandType::ActivateRead => {
             pipe.process_activate_read();
         }
         // break;
-        activate_write => {
+        ZmqCommandType::ActivateWrite => {
             pipe.process_activate_write(cmd.msgs_read);
         }
         // break;
-        Stop => {
-            pipe.process_stop();
+        ZmqCommandType::Stop => {
+            pipe.process_stop(options, cmd.engine.unwrap().socket.unwrap());
         }
         // break;
-        plug => {
-            pipe.process_plug();
-            pipe.process_seqnum();
+        ZmqCommandType::Plug => {
+            pipe.process_plug(options, cmd.engine.unwrap().session.unwrap());
+            pipe.process_seqnum(cmd.object.unwrap());
         }
         // break;
-        own => {
-            pipe.process_own(cmd.object);
-            pipe.process_seqnum();
+        ZmqCommandType::Own => {
+            pipe.process_own(cmd.object.unwrap());
+            pipe.process_seqnum(cmd.object.unwrap());
         }
         // break;
-        attach => {
-            pipe.process_attach(cmd.engine);
-            pipe.process_seqnum();
+        ZmqCommandType::Attach => {
+            pipe.process_attach(options, cmd.engine.unwrap());
+            pipe.process_seqnum(cmd.object.unwrap());
         }
         // break;
-        bind => {
-            pipe.process_bind(cmd.pipe);
-            pipe.process_seqnum();
+        ZmqCommandType::Bind => {
+            pipe.process_bind(cmd.pipe.unwrap().out_pipe.unwrap());
+            pipe.process_seqnum(cmd.object.unwrap());
         }
         // break;
-        hiccup => {
-            pipe.process_hiccup(cmd.pipe.unwrap());
+        ZmqCommandType::Hiccup => {
+            pipe.process_hiccup(cmd.pipe.unwrap().out_pipe.unwrap())?;
         }
         // break;
-        pipe_peer_stats => {
+        ZmqCommandType::PipePeerStats => {
             pipe.process_pipe_peer_stats(
+                ctx,
                 cmd.queue_count,
                 cmd.socket.unwrap(),
                 cmd.endpoint_pair.unwrap(),
             );
         }
         // break;
-        pipe_stats_publish => {
+        ZmqCommandType::PipeStatsPublish => {
             pipe.process_pipe_stats_publish(
+                options,
+                cmd.engine.unwrap().socket.unwrap(),
                 cmd.outbound_queue_count,
                 cmd.inbound_queue_count,
-                cmd.endpoint_pair,
+                cmd.endpoint_pair.unwrap(),
             );
         }
         // break;
-        pipe_term => {
-            pipe.process_pipe_term();
+        ZmqCommandType::PipeTerm => {
+            pipe.process_pipe_term(ctx);
         }
         // break;
-        pipe_term_ack => {
-            pipe.process_pipe_term_ack();
+        ZmqCommandType::PipeTermAck => {
+            pipe.process_pipe_term_ack(ctx);
         }
         // break;
-        pipe_hwm => {
+        ZmqCommandType::PipeHwm => {
             pipe.process_pipe_hwm(cmd.inhwm, cmd.outhwm);
         }
         // break;
-        term_req => {
-            pipe.process_term_req(cmd.object);
+        ZmqCommandType::TermReq => {
+            pipe.process_term_req(cmd.object.unwrap());
         }
         // break;
-        term => {
-            pipe.process_term(cmd.linger);
+        ZmqCommandType::Term => {
+            pipe.process_term(cmd.object.unwrap(), cmd.linger);
         }
         // break;
-        term_ack => {
+        ZmqCommandType::TermAck => {
             own_process_term_ack(
-                &mut cmd.socket.unwrap().terminating,
-                &mut cmd.socket.unwrap().processed_seqnum,
-                &mut cmd.socket.unwrap().sent_seqnum,
-                &mut cmd.socket.unwrap().term_acks,
-                &mut cmd.socket.unwrap().owner,
+                &mut cmd.object.unwrap().terminating,
+                &mut cmd.object.unwrap().processed_seqnum,
+                &mut cmd.object.unwrap().sent_seqnum,
+                &mut cmd.object.unwrap().term_acks,
+                &mut cmd.object.unwrap().owner,
             );
         }
         // break;
-        term_endpoint => {
+        ZmqCommandType::TermEndpoint => {
             cmd.socket
                 .unwrap()
-                .process_term_endpoint(options, &cmd.endpoint);
+                .process_term_endpoint(options, &cmd.endpoint)?;
         }
         // break;
-        reap => {
+        ZmqCommandType::Reap => {
             reaper_process_reap(cmd.dest_reaper.unwrap(), cmd.socket.unwrap());
         }
         // break;
-        reaped => {
+        ZmqCommandType::Reaped => {
             reaper_process_reaped(cmd.dest_reaper.unwrap());
         }
         // break;
-        inproc_connected => {
+        ZmqCommandType::InprocConnected => {
             own_process_seqnum(cmd.dest_own.unwrap());
         }
         // break;
-        conn_failed => {
-            session_process_conn_failed();
+        ZmqCommandType::ConnFailed => {
+            // session_process_conn_failed();
+            cmd.engine.unwrap().session.unwrap().process_conn_failed();
         }
 
-        done => {} // default:
+        ZmqCommandType::Done => {} // default:
                    //     zmq_assert (false);
     }
+
+    Ok(())
 }
 
 pub fn obj_register_endpoint(
@@ -170,7 +184,7 @@ pub fn obj_unregister_endpoints(ctx: &mut ZmqContext, socket: &mut ZmqSocket) {
     ctx.unregister_endpoints(socket);
 }
 
-pub fn obj_find_endpoint<'a>(ctx: &mut ZmqContext, addr: &str) -> Option<&'a mut ZmqSocket> {
+pub fn obj_find_endpoint<'a>(ctx: &mut ZmqContext, addr: &str) -> Option<&'a mut ZmqSocket<'a>> {
     ctx.find_endpoint(addr)
 }
 
@@ -194,14 +208,14 @@ pub fn obj_destroy_socket(ctx: &mut ZmqContext, socket: &mut ZmqSocket) {
 pub fn obj_choose_io_thread<'a>(
     ctx: &mut ZmqContext,
     affinity: u64
-) -> Option<&'a mut ZmqIoThread> {
+) -> Option<&'a mut ZmqIoThread<'a>> {
     ctx.choose_io_thread(affinity)
 }
 
 pub fn obj_send_stop(ctx: &mut ZmqContext, pipe: &mut ZmqPipe, thread_id: u32) {
     let mut cmd = ZmqCommand::new();
     cmd.dest_pipe = Some(pipe);
-    cmd.type_ = Stop;
+    cmd.type_ = ZmqCommandType::Stop;
     ctx.send_command(thread_id, &mut cmd);
 }
 
@@ -269,7 +283,7 @@ pub fn obj_send_bind(
 pub fn obj_send_activate_read(ctx: &mut ZmqContext, destination: &mut ZmqPipe) {
     let mut cmd = ZmqCommand::new();
     cmd.dest_pipe = Some(destination);
-    cmd.type_ = ActivateRead;
+    cmd.type_ = ZmqCommandType::ActivateRead;
     obj_send_command(ctx, &mut cmd);
 }
 
@@ -289,7 +303,7 @@ pub fn obj_send_hiccup(ctx: &mut ZmqContext, destination: &mut ZmqPipe, pipe: &m
     let mut cmd = ZmqCommand::new();
     cmd.dest_pipe = Some(destination);
     cmd.type_ = ZmqCommandType::Hiccup;
-    cmd.pipe = Some(pipe);
+    cmd.pipe = Some(pipe.out_pipe());
     obj_send_command(ctx, &mut cmd);
 }
 
@@ -360,7 +374,7 @@ pub fn obj_send_pipe_stats_publish(
 ) {
     let mut cmd = ZmqCommand::new();
     // cmd.destination = Some(destination);
-    cmd.dest_own = Some(destination);
+    cmd.dest_own = Some(&mut destination.own);
     cmd.type_ = ZmqCommandType::PipeStatsPublish;
     cmd.outbound_queue_count = outbound_queue_count;
     cmd.inbound_queue_count = inbound_queue_count;

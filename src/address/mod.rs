@@ -1,14 +1,12 @@
-use libc::sockaddr;
-
 use crate::address::ip_address::ZmqIpAddress;
 use crate::address::tcp_address::ZmqTcpAddress;
 use crate::address::udp_address::UdpAddress;
 use crate::ctx::ZmqContext;
 use crate::defines::{ZmqFd, ZmqSockAddr, ZmqSockaddrStorage};
-use crate::err::ZmqError;
+use crate::defines::err::ZmqError;
 use crate::net::platform_socket::{platform_getpeername, platform_getsockname};
 use crate::utils::sock_utils::{
-    zmq_sockaddr_to_sockaddr, zmq_sockaddr_to_string, zmq_sockaddr_to_zmq_sockaddrstorage,
+    zmq_sockaddr_to_string, zmq_sockaddr_to_zmq_sockaddrstorage,
     zmq_sockaddrstorage_to_zmq_sockaddr,
 };
 
@@ -44,10 +42,10 @@ pub enum SocketEnd {
 // }
 
 #[derive(Default, Debug, Clone)]
-pub struct ZmqAddress<'a> {
+pub struct ZmqAddress {
     pub protocol: String,
     pub address: String,
-    pub parent: &'a mut ZmqContext<'a>,
+    // pub parent: &'a mut ZmqContext<'a>,
     // pub resolved: AddressUnion,
     // pub address: ZmqIpAddress,
     pub source_address: ZmqIpAddress,
@@ -82,11 +80,15 @@ pub struct ZmqAddress<'a> {
 // }
 
 impl ZmqAddress {
-    pub fn new(protocol_: &mut String, address_: &mut String, parent_: &mut ZmqContext) -> Self {
+    pub fn new(
+        protocol_: &mut String,
+        address_: &mut String,
+        // parent_: &mut ZmqContext
+    ) -> Self {
         Self {
             protocol: (*protocol_).clone(),
             address: (*address_).clone(),
-            parent: parent_,
+            // parent: parent_,
             // resolved: AddressUnion{dummy: null_mut()},
             source_address: Default::default(),
             has_src_addr: false,

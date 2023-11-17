@@ -91,16 +91,16 @@ impl<T: PartialEq, const I: i32> ZmqArray<T, I> {
     }
 }
 
-impl<T, const I: i32> Index<usize> for ZmqArray<T, I> {
-    type Output = *mut T;
+// impl<T, const I: i32> Index<usize> for ZmqArray<T, I> {
+//     type Output = *mut T;
+// 
+//     fn index(&self, index: usize) -> &Self::Output {
+//         &self.items[index]
+//     }
+// }
 
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.items[index]
-    }
-}
-
-impl<T, const I: i32> IndexMut<usize> for ZmqArray<T, I> {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.items[index]
-    }
-}
+// impl<T, const I: i32> IndexMut<usize> for ZmqArray<T, I> {
+//     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+//         &mut self.items[index]
+//     }
+// }

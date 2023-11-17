@@ -23,11 +23,11 @@ use crate::defines::{AF_INET, AF_UNIX, IPPROTO_TCP, NI_MAXHOST, RETIRED_FD, SIGN
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::PlatformError;
 use crate::defines::tcp::TCP_NODELAY;
-use crate::defines::time::{zmq_timeval_to_ms_timeval, ZmqTimeval};
+use crate::defines::time::{zmq_timeval_to_ms_timeval, zmq_timeval_to_timeval, ZmqTimeval};
 use crate::ip::{open_socket, set_nosigpipe};
 use crate::poll::select::fd_set;
 use crate::tcp::tcp_tune_loopback_fast_path;
-use crate::utils::sock_utils::{sockaddr_to_zmq_sockaddr, wsa_sockaddr_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr, zmq_sockaddr_to_wsa_sockaddr};
+use crate::utils::sock_utils::{sockaddr_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr, };
 
 pub fn platform_setsockopt(
     fd: ZmqFd,
@@ -580,13 +580,14 @@ pub fn platform_select(
     }
     #[cfg(not(target_os = "windows"))]
     {
+        let mut tv: libc::timeval = zmq_timeval_to_timeval(timeout.unwrap());
         unsafe {
             result = libc::select(
                 nfds,
                 readfds.unwrap() as *mut fd_set as *mut libc::fd_set,
                 writefds.unwrap() as *mut fd_set as *mut libc::fd_set,
                 exceptfds.unwrap() as *mut fd_set as *mut libc::fd_set,
-                timeout.unwrap() as *mut timeval,
+                &mut tv as *mut timeval,
             );
         }
     }

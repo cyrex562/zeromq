@@ -1,14 +1,13 @@
-use crate::dbuffer::ZmqDbuffer;
 use crate::defines::dbuffer::ZmqDbuffer;
 use crate::ypipe::ypipe_base::ZmqYPipeBase;
 
-pub struct YPipeConflate<'a, T: Default + Copy> {
+pub struct YPipeConflate<'a, T: Default> {
     pub base: ZmqYPipeBase<T>,
     pub dbuffer: ZmqDbuffer<'a,T>,
     pub reader_awake: bool,
 }
 
-impl<T: Default + Copy> YPipeConflate<T> {
+impl<'a, T: Default> YPipeConflate<'a, T> {
     pub fn new() -> Self {
         Self {
             base: ZmqYPipeBase::new(),

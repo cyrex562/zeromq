@@ -1,9 +1,9 @@
-use crate::atomic_counter::ZmqAtomicCounter;
 use crate::ctx::ZmqContext;
-use crate::io_thread::ZmqIoThread;
-use crate::object::ZmqObject;
 use crate::options::ZmqOptions;
 use std::collections::HashSet;
+use crate::defines::atomic_counter::ZmqAtomicCounter;
+use crate::io::io_thread::ZmqIoThread;
+use crate::object::{obj_send_term, obj_send_term_ack};
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqOwn<'a> {
@@ -17,8 +17,8 @@ pub struct ZmqOwn<'a> {
     pub term_acks: i32,
 }
 
-impl ZmqOwn {
-    pub fn new(parent_: &mut ZmqContext, tid_: u32) -> ZmqOwn {
+impl<'a> ZmqOwn<'a> {
+    pub fn new(parent_: &mut ZmqContext, tid_: u32) -> ZmqOwn<'a> {
         ZmqOwn {
             // object: ZmqObject::new(parent_, tid_),
             // options: ZmqOptions::new(),
@@ -61,9 +61,9 @@ pub fn own_process_seqnum(own: &mut ZmqOwn) {
     own.check_term_acks();
 }
 
-pub fn own_launch_child(own: &mut ZmqOwn, object_: *mut ZmqOwn) {
+pub fn own_launch_child(own: &mut ZmqOwn, object_: &mut ZmqOwn) {
     //  Specify the owner of the object.
-    (*object_).set_owner(own);
+    (object_).set_owner(own);
 
     //  Plug the object into the I/O thread.
     own.send_plug(object_);
@@ -72,11 +72,11 @@ pub fn own_launch_child(own: &mut ZmqOwn, object_: *mut ZmqOwn) {
     own.send_own(own, object_);
 }
 
-pub fn own_term_child(own: &mut ZmqOwn, options: &ZmqOptions, object_: *mut ZmqOwn) {
+pub fn own_term_child(own: &mut ZmqOwn, options: &ZmqOptions, object_: &mut ZmqOwn) {
     own.process_term_req(options, object_);
 }
 
-pub fn own_process_term_req(own: &mut ZmqOwn, options: &ZmqOptions, object_: *mut ZmqOwn) {
+pub fn own_process_term_req(own: &mut ZmqOwn, options: &ZmqOptions, object_: &mut ZmqOwn) {
     //  When shutting down we can ignore termination requests from owned
     //  objects. The termination request was already sent to the object.
     if own.terminating {
@@ -133,6 +133,7 @@ pub fn own_is_terminating(own: &mut ZmqOwn) -> bool {
 }
 
 pub fn own_process_term(
+    ctx: &mut ZmqContext,
     owned: &mut HashSet<&mut ZmqOwn>,
     terminating: &mut bool,
     term_acks: &mut i32,
@@ -145,7 +146,7 @@ pub fn own_process_term(
     // for (owned_t::iterator it = _owned.begin (), end = _owned.end (); it != end;
     //      ++it)
     for it in owned.iter() {
-        obj_send_term(*it, linger_);
+        obj_send_term(ctx, *it, linger_);
     }
     own_register_term_acks(term_acks, owned.len());
     owned.clear();
@@ -153,7 +154,15 @@ pub fn own_process_term(
     //  Start termination process and check whether by chance we cannot
     //  terminate immediately.
     *terminating = true;
-    own_check_term_acks();
+    // TODO: fix up correct args
+    own_check_term_acks(
+        ctx,
+        terminating,
+        &mut 0,
+        &mut ZmqAtomicCounter::new(0),
+        term_acks,
+        &mut None,
+    );
 }
 
 pub fn own_register_term_acks(term_acks: &mut i32, count_: usize) {
@@ -161,6 +170,7 @@ pub fn own_register_term_acks(term_acks: &mut i32, count_: usize) {
 }
 
 pub fn own_unregister_term_ack(
+    ctx: &mut ZmqContext,
     terminating: &mut bool,
     processed_seqnum: &mut u64,
     sent_seqnum: &mut ZmqAtomicCounter,
@@ -171,20 +181,22 @@ pub fn own_unregister_term_ack(
     *term_acks -= 1;
 
     //  This may be a last ack we are waiting for before termination...
-    own_check_term_acks(terminating, processed_seqnum, sent_seqnum, term_acks, owner);
+    own_check_term_acks(ctx, terminating, processed_seqnum, sent_seqnum, term_acks, owner);
 }
 
 pub fn own_process_term_ack(
+    ctx: &mut ZmqContext,
     terminating: &mut bool,
     processed_seqnum: &mut u64,
     sent_seqnum: &mut ZmqAtomicCounter,
     term_acks: &mut i32,
     owner: &mut Option<&mut ZmqOwn>,
 ) {
-    own_unregister_term_ack(terminating, processed_seqnum, sent_seqnum, term_acks, owner);
+    own_unregister_term_ack(ctx, terminating, processed_seqnum, sent_seqnum, term_acks, owner);
 }
 
 pub fn own_check_term_acks(
+    ctx: &mut ZmqContext,
     terminating: &mut bool,
     processed_seqnum: &mut u64,
     sent_seqnum: &mut ZmqAtomicCounter,
@@ -198,7 +210,7 @@ pub fn own_check_term_acks(
         //  The root object has nobody to confirm the termination to.
         //  Other nodes will confirm the termination to the owner.
         if owner.is_some() {
-            send_term_ack(owner);
+            obj_send_term_ack(ctx, owner.unwrap());
         }
 
         //  Deallocate the resources.

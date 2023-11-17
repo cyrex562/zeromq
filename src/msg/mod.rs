@@ -13,15 +13,13 @@ use crate::defines::{
 use crate::defines::atomic_counter::ZmqAtomicCounter;
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::MessageError;
-use crate::err::ZmqError;
-use crate::err::ZmqError::MessageError;
 use crate::metadata::ZmqMetadata;
 use crate::msg::ZmqGroupType::{GroupTypeLong, GroupTypeShort};
 
 mod raw_msg;
 
 pub mod defines;
-mod content;
+pub mod content;
 
 pub type MsgFreeFn = fn(&mut [u8], &mut [u8]);
 
@@ -140,7 +138,7 @@ pub union ZmqMsgU {
     pub delimiter: ZmqDelimiter,
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone)]
 pub struct ZmqMsg {
     pub refcnt: ZmqAtomicCounter,
     // pub _u: ZmqMsgU,

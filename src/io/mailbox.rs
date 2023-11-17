@@ -16,7 +16,7 @@ pub struct ZmqMailbox<'a> {
     pub _signalers: Vec<&'a mut ZmqSignaler>,
 }
 
-impl ZmqMailbox {
+impl<'a> ZmqMailbox<'a> {
     pub fn new() -> Self {
         Self {
             ..Default::default()

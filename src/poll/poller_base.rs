@@ -2,14 +2,14 @@ use std::collections::HashMap;
 use std::ffi::{c_char, c_void};
 
 use chrono::{Duration, Utc};
+use crate::ctx::ZmqContext;
 
-use crate::ctx::ZmqThreadCtx;
 use crate::defines::atomic_counter::ZmqAtomicCounter;
 use crate::io::thread::ZmqThread;
 use crate::poll::poller_event::ZmqPollerEvent;
 
 pub struct TimerInfo<'a> {
-    pub sink: &'a mut ZmqPollerEvent,
+    pub sink: &'a mut ZmqPollerEvent<'a>,
     pub id: i32,
 }
 
@@ -24,11 +24,11 @@ pub struct ZmqPollerBase<'a> {
 pub struct ZmqWorkerPollerBase<'a> {
     pub _poller_base: ZmqPollerBase<'a>,
     pub _active: bool,
-    pub _ctx: &'a mut ZmqThreadCtx,
+    pub _ctx: &'a mut ZmqContext<'a>,
     pub _worker: ZmqThread<'a>,
 }
 
-impl ZmqPollerBase {
+impl<'a> ZmqPollerBase<'a> {
     pub fn get_load(&mut self) -> i32 {
         return self._load.get();
     }
@@ -41,23 +41,18 @@ impl ZmqPollerBase {
         }
     }
 
-    pub fn add_timer(&mut self, timeout_: i32, sink_: Option<&ZmqPollerEvent>, id_: i32) {
+    pub fn add_timer(&mut self, timeout_: i32, sink_: Option<&mut ZmqPollerEvent>, id_: i32) {
         let expiration = Utc::now() + Duration::milliseconds(timeout_ as i64);
 
         let l_sink = if sink_.is_some() {
-            sink_.unwrap().clone()
+            sink_.unwrap()
         } else {
-            ZmqPollerEvent {
-                socket: (),
-                fd: 0,
-                user_data: (),
-                events: 0,
-            }
+            &mut ZmqPollerEvent::default();
         };
 
 
         let info: TimerInfo = TimerInfo {
-            sink: sink_,
+            sink: l_sink,
             id: id_,
         };
         self._timers.insert(expiration.timestamp_millis() as u64, info);
@@ -105,7 +100,7 @@ impl ZmqPollerBase {
 }
 
 impl<'a> ZmqWorkerPollerBase<'a> {
-    pub fn new(ctx_: &mut ZmqThreadCtx) -> Self {
+    pub fn new(ctx_: &mut ZmqContext) -> Self {
         Self {
             _poller_base: ZmqPollerBase {
                 _clock: Duration::milliseconds(0),
@@ -122,14 +117,16 @@ impl<'a> ZmqWorkerPollerBase<'a> {
         self._worker.stop();
     }
 
-    pub fn start(&mut self, name_: *const c_char) {
-        self._ctx.start_thread(&mut self._worker, Self::worker_routine, self, name_);
+    pub fn start(&mut self, name_: &str) {
+        // TODO: figure out how to pass ZmqWorkerPoller to thread as arg
+        self._ctx.start_thread(&mut self._worker, Self::worker_routine, &mut [0u8], name_);
     }
 
     pub fn check_thread(&mut self) {
         unimplemented!("check_thread")
     }
 
+    // TODO: fix up to get worker instance from arg
     pub fn worker_routine(arg_: *mut c_void) {
         let worker: &mut ZmqWorkerPollerBase = unsafe { &mut *(arg_ as *mut ZmqWorkerPollerBase) };
         worker.loop_();

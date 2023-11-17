@@ -13,7 +13,7 @@ pub struct ZmqYPipe<'a, T: Clone + PartialEq + Default> {
     pub c: &'a mut T,
 }
 
-impl<T: Clone + PartialEq + Default> ZmqYPipe<T> {
+impl<'a, T: Clone + PartialEq + Default> ZmqYPipe<'a, T> {
     pub fn new() -> Self {
         let mut out = Self {
             base: ZmqYPipeBase::new(),

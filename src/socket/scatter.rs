@@ -1,7 +1,6 @@
 use crate::defines::{ZMQ_MSG_MORE, ZMQ_SCATTER};
 use crate::defines::err::ZmqError;
-use crate::err::ZmqError;
-use crate::err::ZmqError::SocketError;
+use crate::defines::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
@@ -65,7 +64,7 @@ pub fn scatter_xhas_out(socket: &mut ZmqSocket) -> bool {
     return socket.lb.has_out();
 }
 
-pub fn scatter_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<[u8], ZmqError> {
+pub fn scatter_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 

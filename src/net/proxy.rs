@@ -1,11 +1,11 @@
 use std::mem::size_of_val;
 use std::ptr::null_mut;
-use crate::defines::PROXY_BURST_SIZE;
+use crate::ctx::ZmqContext;
+
 use crate::defines::{ZMQ_DONTWAIT, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_RCVMORE, ZMQ_SNDMORE};
 use crate::defines::err::ZmqError;
-use crate::defines::err::ZmqError::ProxyError;
-use crate::err::ZmqError;
-use crate::err::ZmqError::SocketError;
+use crate::defines::err::ZmqError::{ProxyError, SocketError};
+use crate::defines::PROXY_BURST_SIZE;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::poll::socket_poller::{ZmqEvent, ZmqSocketPoller};
@@ -18,8 +18,8 @@ pub enum ProxyState {
 }
 
 pub fn proxy(frontend_: &mut ZmqSocket,
-                    backend_: &mut ZmqSocket,
-                    capture_: Option<&mut ZmqSocket>) -> Result<(),ZmqError> {
+             backend_: &mut ZmqSocket,
+             capture_: Option<&mut ZmqSocket>) -> Result<(), ZmqError> {
 
     // msg_t msg;
     let mut msg = ZmqMsg::new();
@@ -52,35 +52,35 @@ pub fn proxy(frontend_: &mut ZmqSocket,
     //  On Windows this blows up default stack of 1 MB and aborts the program.
     //  I wanted to use std::shared_ptr here as the best solution but that requires C++11...
     // zmq::socket_poller_t *poller_all = new (std::nothrow) zmq::socket_poller_t; //  Poll for everything.
-    let mut poller_all: *mut ZmqSocketPoller = &mut ZmqSocketPoller::new();
+    let mut poller_all = ZmqSocketPoller::new();
     // zmq::socket_poller_t *poller_in = new (std::nothrow) zmq::
     //   socket_poller_t; //  Poll only 'ZMQ_POLLIN' on all sockets. Initial blocking poll in loop.
-    let mut poller_in: *mut ZmqSocketPoller = &mut ZmqSocketPoller::new();
+    let mut poller_in = ZmqSocketPoller::new();
     // zmq::socket_poller_t *poller_receive_blocked = new (std::nothrow)zmq::socket_poller_t; //  All except 'ZMQ_POLLIN' on 'frontend_'.
-    let mut poller_receive_blocked: *mut ZmqSocketPoller = &mut ZmqSocketPoller::new();
+    let mut poller_receive_blocked = ZmqSocketPoller::new();
 
     //  If frontend_==backend_ 'poller_send_blocked' and 'poller_receive_blocked' are the same, 'ZMQ_POLLIN' is ignored.
     //  In that case 'poller_send_blocked' is not used. We need only 'poller_receive_blocked'.
     //  We also don't need 'poller_both_blocked', 'poller_backend_only' nor 'poller_frontend_only' no need to initialize it.
     //  We save some RAM and time for initialization.
     // zmq::socket_poller_t *poller_send_blocked =      NULL; //  All except 'ZMQ_POLLIN' on 'backend_'.
-    let mut poller_send_blocked: *mut ZmqSocketPoller = null_mut();
+    let mut poller_send_blocked: ZmqSocketPoller = ZmqSocketPoller::default();
     // zmq::socket_poller_t *poller_both_blocked =      NULL; //  All except 'ZMQ_POLLIN' on both 'frontend_' and 'backend_'.
-    let mut poller_both_blocked: *mut ZmqSocketPoller = null_mut();
+    let mut poller_both_blocked: ZmqSocketPoller = ZmqSocketPoller::default();
     // zmq::socket_poller_t *poller_frontend_only =      NULL; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'frontend_'.
-    let mut poller_frontend_only: *mut ZmqSocketPoller = null_mut();
+    let mut poller_frontend_only: ZmqSocketPoller = ZmqSocketPoller::default();
     // zmq::socket_poller_t *poller_backend_only =      NULL; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'backend_'.
-    let mut poller_backend_only: *mut ZmqSocketPoller = null_mut();
+    let mut poller_backend_only: ZmqSocketPoller = ZmqSocketPoller::default();
 
     if frontend_ != backend_ {
         // poller_send_blocked = new (std::nothrow)          zmq::socket_poller_t; //  All except 'ZMQ_POLLIN' on 'backend_'.
-        poller_send_blocked = &mut ZmqSocketPoller::new();
+        poller_send_blocked = ZmqSocketPoller::new();
         // poller_both_blocked = new (std::nothrow) zmq::          socket_poller_t; //  All except 'ZMQ_POLLIN' on both 'frontend_' and 'backend_'.
-        poller_both_blocked = &mut ZmqSocketPoller::new();
+        poller_both_blocked = ZmqSocketPoller::new();
         // poller_frontend_only = new (std::nothrow) zmq::          socket_poller_t; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'frontend_'.
-        poller_frontend_only = &mut ZmqSocketPoller::new();
+        poller_frontend_only = ZmqSocketPoller::new();
         // poller_backend_only = new (std::nothrow) zmq::          socket_poller_t; //  Only 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' on 'backend_'.
-        poller_backend_only = &mut ZmqSocketPoller::new();
+        poller_backend_only = ZmqSocketPoller::new();
         frontend_equal_to_backend = false;
     } else {
         frontend_equal_to_backend = true;
@@ -93,51 +93,51 @@ pub fn proxy(frontend_: &mut ZmqSocket,
     }
 
     // zmq::socket_poller_t *poller_wait =      poller_in; //  Poller for blocking wait, initially all 'ZMQ_POLLIN'.
-    let mut poller_wait: *mut ZmqSocketPoller = poller_in;
+    let mut poller_wait = poller_in;
 
     //  Register 'frontend_' and 'backend_' with pollers.
-    rc = (*poller_all).add(frontend_, &[0u8], (ZMQ_POLLIN | ZMQ_POLLOUT) as i16); //  Everything.
+    rc = (poller_all).add(frontend_, &mut [0u8], (ZMQ_POLLIN | ZMQ_POLLOUT) as i16); //  Everything.
     // CHECK_RC_EXIT_ON_FAILURE ();
-    rc = (*poller_in).add(frontend_, &[0u8], ZMQ_POLLIN as i16); //  All 'ZMQ_POLLIN's.
+    rc = (poller_in).add(frontend_, &mut [0u8], ZMQ_POLLIN as i16); //  All 'ZMQ_POLLIN's.
     // CHECK_RC_EXIT_ON_FAILURE ();
 
     if frontend_equal_to_backend {
         //  If frontend_==backend_ 'poller_send_blocked' and 'poller_receive_blocked' are the same,
         //  so we don't need 'poller_send_blocked'. We need only 'poller_receive_blocked'.
         //  We also don't need 'poller_both_blocked', no need to initialize it.
-        rc = (*poller_receive_blocked).add(frontend_, &[0u8], ZMQ_POLLOUT as i16);
+        rc = (poller_receive_blocked).add(frontend_, &mut [0u8], ZMQ_POLLOUT as i16);
         // CHECK_RC_EXIT_ON_FAILURE ();
     } else {
-        rc = (*poller_all).add(backend_, &[0u8],
+        rc = (poller_all).add(backend_, &mut [0u8],
                                (ZMQ_POLLIN | ZMQ_POLLOUT) as i16); //  Everything.
         // CHECK_RC_EXIT_ON_FAILURE ();
-        rc = (*poller_in).add(backend_, &[0u8], ZMQ_POLLIN as i16); //  All 'ZMQ_POLLIN's.
+        rc = (poller_in).add(backend_, &mut [0u8], ZMQ_POLLIN as i16); //  All 'ZMQ_POLLIN's.
         // CHECK_RC_EXIT_ON_FAILURE ();
-        rc = (*poller_both_blocked).add(
-            frontend_, &[0u8], ZMQ_POLLOUT as i16); //  Waiting only for 'ZMQ_POLLOUT'.
+        rc = (poller_both_blocked).add(
+            frontend_, &mut [0u8], ZMQ_POLLOUT as i16); //  Waiting only for 'ZMQ_POLLOUT'.
         // CHECK_RC_EXIT_ON_FAILURE ();
-        rc = (*poller_both_blocked).add(
-            backend_, &[0u8], ZMQ_POLLOUT as i16); //  Waiting only for 'ZMQ_POLLOUT'.
+        rc = (poller_both_blocked).add(
+            backend_, &mut [0u8], ZMQ_POLLOUT as i16); //  Waiting only for 'ZMQ_POLLOUT'.
         // CHECK_RC_EXIT_ON_FAILURE ();
-        rc = (*poller_send_blocked).add(
-            backend_, &[0u8],
+        rc = (poller_send_blocked).add(
+            backend_, &mut [0u8],
             ZMQ_POLLOUT as i16); //  All except 'ZMQ_POLLIN' on 'backend_'.
         // CHECK_RC_EXIT_ON_FAILURE ();
-        rc = (*poller_send_blocked).add(
-            frontend_, &[0u8],
+        rc = (poller_send_blocked).add(
+            frontend_, &mut [0u8],
             (ZMQ_POLLIN | ZMQ_POLLOUT) as i16); //  All except 'ZMQ_POLLIN' on 'backend_'.
         // CHECK_RC_EXIT_ON_FAILURE ();
-        rc = (*poller_receive_blocked).add(
-            frontend_, &[0u8],
+        rc = (poller_receive_blocked).add(
+            frontend_, &mut [0u8],
             ZMQ_POLLOUT as i16); //  All except 'ZMQ_POLLIN' on 'frontend_'.
         // CHECK_RC_EXIT_ON_FAILURE ();
-        rc = (*poller_receive_blocked).add(
-            backend_, &[0u8],
+        rc = (poller_receive_blocked).add(
+            backend_, &mut [0u8],
             (ZMQ_POLLIN | ZMQ_POLLOUT) as i16); //  All except 'ZMQ_POLLIN' on 'frontend_'.
         // CHECK_RC_EXIT_ON_FAILURE ();
-        rc = (*poller_frontend_only).add(frontend_, &[0u8], (ZMQ_POLLIN | ZMQ_POLLOUT) as i16);
+        rc = (poller_frontend_only).add(frontend_, &mut [0u8], (ZMQ_POLLIN | ZMQ_POLLOUT) as i16);
         // CHECK_RC_EXIT_ON_FAILURE ();
-        rc = (*poller_backend_only).add(backend_, &[0u8], (ZMQ_POLLIN | ZMQ_POLLOUT) as i16);
+        rc = (poller_backend_only).add(backend_, &mut [0u8], (ZMQ_POLLIN | ZMQ_POLLOUT) as i16);
         // CHECK_RC_EXIT_ON_FAILURE ();
     }
 
@@ -210,16 +210,16 @@ pub fn proxy(frontend_: &mut ZmqSocket,
                 if poller_wait != poller_in {
                     if request_processed { //  'frontend_' -> 'backend_'
                         if poller_wait == poller_both_blocked {
-                            poller_wait = poller_send_blocked;
+                            poller_wait = poller_send_blocked.clone();
                         } else if poller_wait == poller_receive_blocked || poller_wait == poller_frontend_only {
-                            poller_wait = poller_in;
+                            poller_wait = poller_in.clone();
                         }
                     }
                     if reply_processed { //  'backend_' -> 'frontend_'
                         if poller_wait == poller_both_blocked {
-                            poller_wait = poller_receive_blocked;
+                            poller_wait = poller_receive_blocked.clone();
                         } else if poller_wait == poller_send_blocked || poller_wait == poller_backend_only {
-                            poller_wait = poller_in;
+                            poller_wait = poller_in.clone();
                         }
                     }
                 }
@@ -233,12 +233,12 @@ pub fn proxy(frontend_: &mut ZmqSocket,
                         // If frontend_in and frontend_out are true, obviously backend_in and backend_out are both false.
                         // In that case we need to wait for both 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' only on 'backend_'.
                         // We'll never get here in case of frontend_==backend_ because then frontend_out will always be false.
-                        poller_wait = poller_backend_only;
+                        poller_wait = poller_backend_only.clone();
                     } else {
                         if poller_wait == poller_send_blocked {
-                            poller_wait = poller_both_blocked;
+                            poller_wait = poller_both_blocked.clone();
                         } else if poller_wait == poller_in {
-                            poller_wait = poller_receive_blocked;
+                            poller_wait = poller_receive_blocked.clone();
                         }
                     }
                 }
@@ -248,12 +248,12 @@ pub fn proxy(frontend_: &mut ZmqSocket,
                     if backend_out {
                         // If backend_in and backend_out are true, obviously frontend_in and frontend_out are both false.
                         // In that case we need to wait for both 'ZMQ_POLLIN' and 'ZMQ_POLLOUT' only on 'frontend_'.
-                        poller_wait = poller_frontend_only;
+                        poller_wait = poller_frontend_only.clone();
                     } else {
                         if poller_wait == poller_receive_blocked {
-                            poller_wait = poller_both_blocked;
+                            poller_wait = poller_both_blocked.clone();
                         } else if poller_wait == poller_in {
-                            poller_wait = poller_send_blocked;
+                            poller_wait = poller_send_blocked.clone();
                         }
                     }
                 }
@@ -266,11 +266,12 @@ pub fn proxy(frontend_: &mut ZmqSocket,
 }
 
 pub fn capture(
-    options: &ZmqOptions,
+    ctx: &mut ZmqContext,
+    options: &mut ZmqOptions,
     capture_: &mut ZmqSocket,
     msg_: &mut ZmqMsg,
     more_: i32,
-) -> Result<(),ZmqError> {
+) -> Result<(), ZmqError> {
     //  Copy message to capture socket if any
     if capture_ {
         // zmq::msg_t ctrl;
@@ -281,9 +282,9 @@ pub fn capture(
         }
         rc = ctrl.copy(*msg_);
         if rc < 0 {
-            return -1;
+            return Err(ProxyError("ctrl.copy failed"));
         }
-        rc = capture_.send(options, &ctrl, if more_ != 0 { ZMQ_SNDMORE } else { 0 } as i32);
+        rc = capture_.send(ctx, options, &ctrl, if more_ != 0 { ZMQ_SNDMORE } else { 0 } as i32);
         if rc < 0 {
             return Err(ProxyError("capture_.send failed"));
         }
@@ -292,7 +293,8 @@ pub fn capture(
 }
 
 pub fn forward(
-    options: &ZmqOptions,
+    ctx: &mut ZmqContext,
+    options: &mut ZmqOptions,
     from: &mut ZmqSocket,
     to: &mut ZmqSocket,
     capture: &mut ZmqSocket,
@@ -306,7 +308,7 @@ pub fn forward(
 
         // Forward all the parts of one message
         loop {
-            if from.recv(options, msg, ZMQ_DONTWAIT as i32).is_err() {
+            if from.recv(ctx, options, msg, ZMQ_DONTWAIT as i32).is_err() {
                 if i > 0 {
                     return Ok(()); // End of burst}
                 }
@@ -314,13 +316,13 @@ pub fn forward(
             }
 
             moresz = size_of_val(&more);
-            let result: [u8] = from.getsockopt(options, ZMQ_RCVMORE)?;
+            let result = from.getsockopt(ctx, options, ZMQ_RCVMORE)?;
             more = i32::from_le_bytes([result[0], result[1], result[2], result[3]]);
 
             //  Copy message to capture socket if any
             capture(capture, msg, more)?;
 
-            to.send(options, msg, if more != 0 { ZMQ_SNDMORE } else { 0 } as i32)?;
+            to.send(ctx, options, msg, if more != 0 { ZMQ_SNDMORE } else { 0 } as i32)?;
 
             if more == 0 {
                 break;
