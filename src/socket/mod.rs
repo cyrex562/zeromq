@@ -11,7 +11,6 @@ use crate::address::ZmqAddress;
 use crate::command::ZmqCommand;
 use crate::ctx::ZmqContext;
 use crate::defines::{INBOUND_POLL_RATE, MAX_COMMAND_DELAY, ZMQ_CONNECT_ROUTING_ID, ZMQ_DEALER, ZMQ_DGRAM, ZMQ_DISH, ZMQ_DONTWAIT, ZMQ_EVENT_ACCEPT_FAILED, ZMQ_EVENT_ACCEPTED, ZMQ_EVENT_BIND_FAILED, ZMQ_EVENT_CLOSE_FAILED, ZMQ_EVENT_CLOSED, ZMQ_EVENT_CONNECT_DELAYED, ZMQ_EVENT_CONNECT_RETRIED, ZMQ_EVENT_CONNECTED, ZMQ_EVENT_DISCONNECTED, ZMQ_EVENT_HANDSHAKE_FAILED_AUTH, ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL, ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL, ZMQ_EVENT_HANDSHAKE_SUCCEEDED, ZMQ_EVENT_LISTENING, ZMQ_EVENT_MONITOR_STOPPED, ZMQ_EVENT_PIPES_STATS, ZMQ_EVENTS, ZMQ_FD, ZMQ_LAST_ENDPOINT, ZMQ_LINGER, ZMQ_MSG_MORE, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_PUB, ZMQ_RADIO, ZMQ_RCVHWM, ZMQ_RCVMORE, ZMQ_RECONNECT_STOP_AFTER_DISCONNECT, ZMQ_REQ, ZMQ_SNDHWM, ZMQ_SNDMORE, ZMQ_SUB, ZMQ_THREAD_SAFE, ZmqFd, ZmqHandle, ZmqSubscriptions};
-use crate::defines::array::ArrayItem;
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::{InvalidContext, SocketError};
 use crate::defines::fair_queue::ZmqFairQueue;
@@ -133,7 +132,7 @@ pub struct ZmqSocket<'a> {
     pub more: bool,
     pub active: usize,
     pub anonymous_pipes: HashSet<&'a mut ZmqPipe<'a>>,
-    pub array_item: ArrayItem<1>,
+    // pub array_item: ArrayItem<1>,
     pub clock: clock_t,
     pub connect_routing_id: String,
     pub ctx_terminated: bool,
@@ -323,7 +322,7 @@ impl<'a> ZmqSocket<'a> {
             pending_flags: Default::default(),
             pending_metadata: Default::default(),
             pending_pipes: Default::default(),
-            array_item: ArrayItem::new(),
+            // array_item: ArrayItem::new(),
             poll_events: None,
             pipe_events: vec![],
             mailbox: ZmqMailbox::default(),

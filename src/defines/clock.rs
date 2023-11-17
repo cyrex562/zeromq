@@ -38,24 +38,24 @@ impl ZmqClock {
     }
 
     pub fn now_ms(&mut self) -> u64 {
-        let tsc = self.rdtsc();
-
-        if !tsc {
-            self.now_us() / USECS_PER_MSEC;
-        }
-
-        if tsc - self.last_tsc < (CLOCK_PRECISION / 2) && tsc >= self.last_tsc {
-            return self.last_time;
-        }
-
-        self.last_tsc = tsc;
+        // TODO
+        // let tsc = self.rdtsc();
+        // if !tsc {
+        //     self.now_us() / USECS_PER_MSEC;
+        // }
+        //
+        // if tsc - self.last_tsc < (CLOCK_PRECISION / 2) && tsc >= self.last_tsc {
+        //     return self.last_time;
+        // }
+        //
+        // self.last_tsc = tsc;
         #[cfg(target_os = "windows")]
         {
-            self.last_time = self.now_us() / USECS_PER_MSEC;
+            self.last_time = Self::now_us() / USECS_PER_MSEC;
         }
         #[cfg(not(target_os = "windows"))]
         {
-            self.last_time = self.now_us() / USECS_PER_MSEC;
+            self.last_time = Self::now_us() / USECS_PER_MSEC;
         }
 
         return self.last_time;

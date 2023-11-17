@@ -56,26 +56,25 @@ pub fn dealer_xattach_pipe(ctx: &mut ZmqContext, socket: &mut ZmqSocket, pipe_: 
 
 pub fn dealer_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> Result<(),ZmqError>
 {
-    let is_int = optvallen_ == 4;
+    // let is_int = optvallen_ == 4;
     let mut value: u32 = u32::from_le_bytes(optval_[0..4].try_into().unwrap());
 
-    if option_ == ZMQ_PROBE_ROUTER {
+    return if option_ == ZMQ_PROBE_ROUTER as i32 {
         socket.probe_router = value != 0;
-        return Ok(());
-    }
-    else {
-        return Err(SocketError("invalid option"));
+        Ok(())
+    } else {
+        Err(SocketError("invalid option"))
     }
 
     // socket.xsetsockopt (option_, optval_, optvallen_)
 }
 
 pub fn dealer_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
-    socket.sendpipe(msg_, &mut None)
+    socket.lb.sendpipe(msg_, &mut None)
 }
 
 pub fn dealer_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
-    socket.recvpipe(msg_, &mut None)
+    socket.lb.recvpipe(msg_, &mut None)
 }
 
 pub fn dealer_xhas_in(socket: &mut ZmqSocket) -> bool {

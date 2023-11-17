@@ -1,3 +1,4 @@
+use crate::ctx::ZmqContext;
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::{PipeError, SocketError};
 use crate::defines::ZMQ_MSG_MORE;
@@ -51,7 +52,7 @@ pub fn channel_xwrite_activated(_socket: &mut ZmqSocket, _pipe: &mut ZmqPipe) {
     unimplemented!()
 }
 
-pub fn channel_xsend(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn channel_xsend(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(),ZmqError> {
     if msg.flag_set(ZMQ_MSG_MORE) {
         return Err(SocketError("msg more flag is set"));
     }
@@ -60,35 +61,35 @@ pub fn channel_xsend(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(),ZmqE
         return Err(SocketError("pipe is null"));
     }
 
-    socket.pipe.flush();
+    socket.pipe.unwrap().flush(ctx);
 
     (msg).init2()?;
 
     Ok(())
 }
 
-pub fn channel_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
+pub fn channel_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
     msg.close()?;
 
-    if socket.pipe = Some(&mut ZmqPipe::default()) {
+    if socket.pipe == Some(&mut ZmqPipe::default()) {
         (msg).init2()?;
         return Err(PipeError("pipe is null"));
     }
 
-    let mut read = (socket.pipe).read(msg);
+    let mut read = (socket.pipe).unwrap().read(ctx, msg);
 
-    while read && msg.flags() & ZmqMsg::more > 0 {
-        read = (*socket.pipe).read(msg);
-        while read && msg.flags() & ZmqMsg::more > 0 {
-            read = (*socket.pipe).read(msg);
+    while read.is_ok() && msg.flags() & ZMQ_MSG_MORE > 0 {
+        read = (socket.pipe.unwrap()).read(ctx, msg);
+        while read.is_ok() && msg.flags() & ZMQ_MSG_MORE > 0 {
+            read = (socket.pipe.unwrap()).read(ctx, msg);
         }
 
-        if read {
-            read = (*socket.pipe).read(msg);
+        if read.is_ok() {
+            read = (socket.pipe.unwrap()).read(ctx, msg);
         }
     }
 
-    if !read {
+    if read.is_err() {
         (*msg).init2()?;
     }
 
@@ -99,12 +100,12 @@ pub fn channel_xhas_in(socket: &mut ZmqSocket) -> bool {
     if socket.pipe.is_none() {
         return false;
     }
-    return socket.pipe.check_read();
+    return socket.pipe.unwrap().check_read();
 }
 
 pub fn channel_xhas_out(socket: &mut ZmqSocket) -> bool {
     if socket.pipe.is_none() {
         return false;
     }
-    return socket.pipe.check_write();
+    return socket.pipe.unwrap().check_write();
 }

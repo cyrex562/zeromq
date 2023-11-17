@@ -7,7 +7,6 @@ use libc::{pollfd, pid_t};
 use windows::Win32::Foundation::HANDLE;
 use windows::Win32::Networking::WinSock::WSAPOLLFD;
 
-pub mod array;
 pub mod atomic_counter;
 pub mod atomic_ptr;
 pub mod blob;
@@ -1103,7 +1102,7 @@ pub const AF_MAX: i32 = PF_MAX;
 //
 // Struct AddrInfo
 //
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct ZmqAddrInfo {
     pub ai_flags: i32,
     pub ai_family: i32,

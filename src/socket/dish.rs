@@ -34,37 +34,62 @@ use crate::socket::ZmqSocket;
 //     }
 // }
 
-pub fn dish_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> Result<(),ZmqError> {
+pub fn dish_xsetsockopt(
+    socket: &mut ZmqSocket,
+    option_: i32,
+    optval_: &[u8],
+    optvallen_: usize
+) -> Result<(),ZmqError> {
     unimplemented!()
 }
 
 
-pub fn dish_xattach_pipe(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe, subscribe_to_all_: bool, locally_initiated_: bool) {
+pub fn dish_xattach_pipe(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe,
+    subscribe_to_all_: bool,
+    locally_initiated_: bool
+) {
     socket.fq.attach(pipe_);
     socket.dist.attach(pipe_);
     socket.send_subscriptions(pipe_);
 }
 
-pub fn dish_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
+pub fn dish_xread_activated(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe
+) -> Result<(),ZmqError> {
     socket.fq.activated(pipe_)?;
     Ok(())
 }
 
-pub fn dish_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
+pub fn dish_xwrite_activated(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe
+) -> Result<(),ZmqError> {
     socket.dist.activated(pipe_);
     Ok(())
 }
 
-pub fn dish_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError>{
+pub fn dish_xpipe_terminated(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe
+) -> Result<(),ZmqError>{
     socket.fq.terminated(pipe_)?;
     socket.dist.terminated(pipe_)
 }
 
-pub fn dish_xhiccuped(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
+pub fn dish_xhiccuped(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe
+) -> Result<(),ZmqError> {
     socket.send_subscriptions(pipe_)
 }
 
-pub fn dish_xjoin(socket: &mut ZmqSocket, group_: &str) -> Result<(), ZmqError> {
+pub fn dish_xjoin(
+    socket: &mut ZmqSocket,
+    group_: &str
+) -> Result<(), ZmqError> {
     if group_.len() > ZMQ_GROUP_MAX_LENGTH {
         return Err(SocketError("Group name too long"));
     }
@@ -120,7 +145,11 @@ pub fn xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     socket.xxrecv(msg_)
 }
 
-pub fn dish_xxrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn dish_xxrecv(
+    ctx: &mut ZmqContext,
+    socket: &mut ZmqSocket,
+    msg_: &mut ZmqMsg
+) -> Result<(),ZmqError> {
     loop {
         socket.fq.recv(ctx, msg_)?;
 
@@ -172,10 +201,16 @@ pub fn dish_send_subscriptions(
     Ok(())
 }
 
-pub fn dish_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
+pub fn dish_xgetsockopt(
+    socket: &mut ZmqSocket,
+    option: u32
+) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 
-pub fn dish_xrecv(socket: &mut ZmqSocket, msg: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn dish_xrecv(
+    socket: &mut ZmqSocket,
+    msg: &mut ZmqMsg
+) -> Result<(),ZmqError> {
     unimplemented!()
 }

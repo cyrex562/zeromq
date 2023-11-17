@@ -5,7 +5,7 @@ use anyhow::bail;
 use crate::defines::ZmqFd;
 use crate::poll::select::fd_set;
 
-pub mod decoder_allocators;
+// pub mod decoder_allocators;
 pub mod random;
 pub mod sock_utils;
 pub mod zmq_utils;
@@ -99,7 +99,7 @@ pub unsafe fn zmq_z85_decode(dest_: *mut u8, string_: *const c_char) -> *mut u8 
         value += summand;
         if char_nbr % 5 == 0 {
             let mut divisor = 256 * 256 * 256;
-            while (divisor) {
+            while divisor {
                 dest_[byte_nbr] = value / divisor % 256;
                 byte_nbr += 1;
                 divisor /= 256;
@@ -149,7 +149,7 @@ pub fn get_u64(ptr: &[u8]) -> u64 {
 }
 
 pub fn is_retired_fd(x: ZmqFd) -> bool {
-    x == -1
+    x == 0xFFFF_FFFF
 }
 
 #[allow(non_snake_case)]

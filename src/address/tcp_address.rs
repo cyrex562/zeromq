@@ -4,15 +4,18 @@ use std::ops::Index;
 use std::ptr::null_mut;
 
 use anyhow::bail;
-use libc::{c_char, getnameinfo, in6_addr, in_addr, sa_family_t, size_t, sockaddr, socklen_t};
+use libc::{c_char, sockaddr};
 #[cfg(target_os = "windows")]
-use windows::Win32::Networking::WinSock::sa_family_t;
+use windows::Win32::Networking::WinSock::{sa_family_t, socklen_t, getnameinfo};
+#[cfg(not(target_os="windows"))]
+use libc::{getnameinfo, in6_addr, in_addr, sa_family_t, socklen_t};
 
 use crate::address::ip_address::ZmqIpAddress;
-use crate::defines::{ZmqSockAddr, AF_INET, AF_INET6, NI_MAXHOST, NI_NUMERICHOST};
+use crate::defines::{ZmqSockAddr, AF_INET, AF_INET6, NI_MAXHOST, NI_NUMERICHOST, ZmqIn6Addr, ZmqInAddr};
 use crate::defines::err::ZmqError;
 use crate::ip::ip_resolver::IpResolver;
 use crate::ip::ip_resolver_options::IpResolverOptions;
+use crate::net::platform_socket::platform_getnameinfo;
 use crate::options::ZmqOptions;
 use crate::utils::sock_utils::{
     sockaddr_to_sockaddrin, sockaddr_to_sockaddrin6, zmq_sockaddr_to_sockaddr,
@@ -116,28 +119,30 @@ impl ZmqTcpAddress {
         return buf;
     }
 
-    pub fn to_string(&mut self, addr_: &mut String) -> anyhow::Result<()> {
+    pub fn to_string(&mut self, addr_: &mut String) ->Result<(),ZmqError> {
         if self.address.family() != AF_INET && self.address.family() != AF_INET6 {
             *addr_.clear();
             bail!("invalid address family")
         }
 
         let mut hbuf = String::with_capacity(NI_MAXHOST as usize);
-        let mut rc = unsafe {
-            getnameinfo(
-                &zmq_sockaddr_to_sockaddr(self.address.as_sockaddr()),
-                self.addrlen() as socklen_t,
-                hbuf.as_mut_ptr() as *mut c_char,
-                NI_MAXHOST as libc::socklen_t,
-                std::ptr::null_mut(),
-                0,
-                NI_NUMERICHOST,
-            )
-        };
-        if rc != 0 {
-            *addr_.clear();
-            bail!("getnameinfo failed")
-        }
+        // let mut rc = unsafe {
+        //     getnameinfo(
+        //         &zmq_sockaddr_to_sockaddr(self.address.as_sockaddr()),
+        //         self.addrlen() as socklen_t,
+        //         hbuf.as_mut_ptr() as *mut c_char,
+        //         NI_MAXHOST as socklen_t,
+        //         null_mut(),
+        //         0,
+        //         NI_NUMERICHOST,
+        //     )
+        // };
+        // if rc != 0 {
+        //     *addr_.clear();
+        //     bail!("getnameinfo failed")
+        // }
+        let gnir = platform_getnameinfo(self.addr(), self.addrlen(), true, false, NI_NUMERICHOST)?;
+        hbuf = gnir.nodebuffer.unwrap();
 
         let ipv4_prefix: &'static str = "tcp://";
         let ipv4_suffix: &'static str = ":";
@@ -173,7 +178,7 @@ impl ZmqTcpAddress {
 
     #[cfg(target_os = "windows")]
     pub fn family(&mut self) -> u16 {
-        self.address.family()
+        self.address.family() as u16
     }
     #[cfg(target_os = "linux")]
     pub fn family(&mut self) -> sa_family_t {
@@ -252,13 +257,13 @@ impl TcpAddressMask {
             if ss_.sa_family == AF_INET6 as u16 {
                 their_bytes = ss_.sa_data[0..16].as_mut_ptr() as *mut u8;
                 our_bytes =
-                    (*self._network_address.as_sockaddr()).sa_data[0..16].as_mut_ptr() as *mut u8;
-                mask = (mem::size_of::<in6_addr>() * 8) as i32;
+                    (*self._network_address.as_sockaddr()).sa_data[0..16].as_mut_ptr();
+                mask = (mem::size_of::<ZmqIn6Addr>() * 8) as i32;
             } else {
                 their_bytes = ss_.sa_data[0..4].as_mut_ptr() as *mut u8;
                 our_bytes =
-                    (*self._network_address.as_sockaddr()).sa_data[0..4].as_mut_ptr() as *mut u8;
-                mask = (mem::size_of::<in_addr>() * 8) as i32;
+                    (*self._network_address.as_sockaddr()).sa_data[0..4].as_mut_ptr();
+                mask = (mem::size_of::<ZmqInAddr>() * 8) as i32;
             }
             if self._address_mask < mask {
                 mask = self._address_mask;

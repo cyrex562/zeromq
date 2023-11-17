@@ -50,17 +50,20 @@ impl ZmqBlob {
         self.data.as_slice()
     }
 
-    pub fn set_deep_copy(&mut self, other_: &Self) {
+    pub fn set_deep_copy(&mut self, other_: &mut Self) {
         self.clear();
         // self.data = unsafe { libc::malloc(other_.size) as *mut u8 };
         self.data = Vec::with_capacity(other_.size);
         self.size = other_.size;
         self.owned = true;
-        if self.size != 0 && self.data != std::ptr::null_mut() {
+        // if self.size != 0 && self.data != std::ptr::null_mut()
+        if self.data.is_empty() == false
+        {
             // TODO
             // unsafe {
             //     std::ptr::copy_nonoverlapping(other_.data, self.data, self.size);
             // }
+            other_.data.clone_from_slice(self.data.as_slice());
         }
     }
 
@@ -76,6 +79,7 @@ impl ZmqBlob {
             // unsafe {
             //     std::ptr::copy_nonoverlapping(data_, self.data, self.size);
             // }
+            self.data.clone_from_slice(data_);
         }
     }
 

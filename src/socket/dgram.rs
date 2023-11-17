@@ -49,7 +49,7 @@ pub fn dgram_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     unimplemented!()
 }
 
-pub fn xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn xsend(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     // If there's no out pipe, just drop it.
     if socket.pipe.is_none() {
         msg_.close()?;
@@ -76,7 +76,7 @@ pub fn xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
     socket.pipe.unwrap().write(msg_)?;
 
     if !(msg_.flags() & ZMQ_MSG_MORE) {
-        socket.pipe.flush();
+        socket.pipe.unwrap().flush(ctx);
     }
 
     // flip the more flag
@@ -111,7 +111,7 @@ pub  fn dgram_xhas_in(socket: &mut ZmqSocket) -> bool {
         return false;
     }
 
-    return socket.pipe.check_read();
+    return socket.pipe.unwrap().check_read();
 }
 
 pub  fn dgram_xhas_out(socket: &mut ZmqSocket) -> bool {
@@ -119,7 +119,7 @@ pub  fn dgram_xhas_out(socket: &mut ZmqSocket) -> bool {
         return false;
     }
 
-    return socket.pipe.check_write();
+    return socket.pipe.unwrap().check_write();
 }
 
 pub fn dgram_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> Result<(),ZmqError> {
