@@ -4,6 +4,8 @@ use crate::defines::{
 use crate::ip::ip_resolver;
 use crate::utils::copy_bytes;
 use std::fmt::{Display, Formatter};
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::PlatformError;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqIpAddress {
@@ -62,7 +64,7 @@ impl ZmqIpAddress {
         }
     }
 
-    pub fn any(family_: i32) -> anyhow::Result<ZmqIpAddress> {
+    pub fn any(family_: i32) -> Result<ZmqIpAddress, ZmqError> {
         let mut addr = ZmqIpAddress::default();
         if family_ == AF_INET {
             addr.ipv4.sin_family = AF_INET as u16;
@@ -71,7 +73,7 @@ impl ZmqIpAddress {
             addr.ipv6.sin6_family = AF_INET6 as u16;
             copy_bytes(&IN6ADDR_ANY.s6_addr, 0, 16, &mut addr.ipv6.sin6_addr, 0)?;
         } else {
-            return Err(anyhow::anyhow!("invalid address family"));
+            return Err(PlatformError("invalid address family"));
         }
         Ok(addr)
     }
