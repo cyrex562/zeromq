@@ -759,6 +759,7 @@ pub fn udp_in_event(options: &ZmqOptions, engine: &mut ZmqEngine) -> Result<(),Z
     msg.close()?;
     // errno_assert (rc == 0);
     engine.session.flush();
+    Ok(())
 }
 
 // bool zmq::udp_engine_t::restart_input ()
