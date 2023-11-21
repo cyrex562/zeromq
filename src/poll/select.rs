@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 #[cfg(target_os = "windows")]
 use libc::SOCKET;
 #[cfg(target_os = "windows")]
@@ -28,10 +29,25 @@ pub const FD_FAMILY_CACHE_SIZE: usize = 8;
 //   u_int  fd_count;
 //   SOCKET fd_array[FD_SETSIZE];
 // } fd_set, FD_SET, *PFD_SET, *LPFD_SET;
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct fd_set {
     pub fd_count: u32,
     pub fd_array: [ZmqFd; 64],
+}
+
+impl PartialEq for fd_set {
+    fn eq(&self, other: &Self) -> bool {
+        self.fd_count == other.fd_count && self.fd_array == other.fd_array
+    }
+}
+
+impl fd_set {
+    pub fn new() -> Self {
+        Self {
+            fd_count: 0,
+            fd_array: [0 as ZmqFd; 64],
+        }
+    }
 }
 
 #[derive(PartialEq)]
@@ -64,21 +80,22 @@ pub struct family_entry_t<'a> {
 }
 
 #[cfg(target_os = "windows")]
-pub type ZmqFamilyEntries = HashMap<u16, family_entry_t>;
+pub type ZmqFamilyEntries<'a> = HashMap<u16, family_entry_t<'a>>;
 
 #[cfg(target_os = "windows")]
 pub struct ZmqWsaEvents {
     pub events: [WSAEVENT; 4],
 }
 
+#[allow(non_snake_case)]
 pub fn FD_SET(fd: ZmqFd, fds: &mut fd_set) {
     let mut i = 0;
-    while i < fds.len() {
-        if fds[i] == fd {
+    while i < fds.fd_array.len() {
+        if fds.fd_array[i] == fd {
             return;
         }
-        if fds[i] == RETIRED_FD {
-            fds[i] = fd;
+        if fds.fd_array[i] == RETIRED_FD {
+            fds.fd_array[i] = fd;
             fds.fd_count += 1;
             return;
         }
@@ -86,11 +103,12 @@ pub fn FD_SET(fd: ZmqFd, fds: &mut fd_set) {
     }
 }
 
+#[allow(non_snake_case)]
 pub fn FD_CLR(fd: ZmqFd, fds: &mut fd_set) {
     let mut i = 0;
-    while i < fds.len() {
-        if fds[i] == fd {
-            fds[i] = RETIRED_FD;
+    while i < fds.fd_array.len() {
+        if fds.fd_array[i] == fd {
+            fds.fd_array[i] = RETIRED_FD;
             fds.fd_count -= 1;
             return;
         }

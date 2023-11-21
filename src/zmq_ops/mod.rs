@@ -6,6 +6,7 @@ use libc::{EINTR, pselect, sigset_t, suseconds_t, time_t, timespec, timeval, usl
 use libc::iovec;
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{POLLIN, POLLOUT, POLLPRI};
+use windows::Win32::System::Threading::Sleep;
 
 use crate::ctx::ZmqContext;
 use crate::defines::{
@@ -1005,7 +1006,7 @@ pub fn zmq_poll(
         // #if defined ZMQ_HAVE_WINDOWS
         #[cfg(target_os = "windows")]
         {
-            Sleep(if timeout_ > 0 { timeout_ } else { INFINITE } as u32);
+            unsafe{Sleep(if timeout_ > 0 { timeout_ } else { INFINITE } as u32)};
             return Ok(0);
         }
         // #elif defined ZMQ_HAVE_VXWORKS

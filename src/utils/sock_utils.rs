@@ -51,6 +51,15 @@ pub fn zmq_sockaddr_storage_to_sockaddr(sockaddr_storage: &ZmqSockaddrStorage) -
     out
 }
 
+pub fn zmq_sockaddr_storage_to_zmq_sockaddr(ss: &ZmqSockaddrStorage) -> ZmqSockAddr {
+    let mut out = ZmqSockAddr {
+        sa_family: ss.ss_family as u16,
+        sa_data: [0; 14],
+    };
+    out.sa_data[0..14].copy_from_slice(&ss.sa_data[0..14]);
+    out
+}
+
 pub fn zmq_sockaddr_to_sockaddrin(sockaddr: &ZmqSockAddr) -> ZmqSockAddrIn {
     let mut out = ZmqSockAddrIn {
         sin_family: sockaddr.sa_family,

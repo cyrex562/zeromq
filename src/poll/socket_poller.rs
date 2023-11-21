@@ -1,9 +1,16 @@
 use std::ffi::{c_uint, c_void};
 use std::mem;
 use std::ptr::null_mut;
-use libc::{EINTR, suseconds_t, time_t, timeval};
-#[cfg(target_os="windows")]
+use libc::{EINTR, time_t, timeval};
+
+#[cfg(not(target_os = "windows"))]
+use libc::{suseconds_t};
+
+#[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{FD_SET, POLLIN, POLLOUT, POLLPRI};
+#[cfg(target_os = "windows")]
+use windows::Win32::System::Threading::{INFINITE, Sleep};
+
 use crate::defines::{RETIRED_FD, ZMQ_EVENTS, ZMQ_FD, ZMQ_POLLERR, ZMQ_POLLIN, ZMQ_POLLOUT, ZMQ_POLLPRI, ZmqFd, ZmqPollFd};
 use crate::defines::clock::ZmqClock;
 use crate::defines::err::ZmqError;
@@ -19,18 +26,18 @@ use crate::utils::{FD_ISSET, get_errno};
 
 pub type ZmqEvent<'a> = ZmqPollerEvent<'a>;
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug)]
 pub struct ZmqItem<'a> {
     pub socket: Option<&'a mut ZmqSocket<'a>>,
     pub fd: ZmqFd,
-    pub user_data: &'a mut [u8],
+    pub user_data: Vec<u8>,
     pub events: i16,
     pub pollfd_index: i32,
 }
 
 pub type ZmqItems<'a> = Vec<ZmqItem<'a>>;
 
-#[derive(Default,Debug,Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ZmqSocketPoller<'a> {
     pub _tag: u32,
     pub _signaler: &'a mut ZmqSignaler,
@@ -64,16 +71,16 @@ impl<'a> ZmqSocketPoller<'a> {
             ..Default::default()
         };
 
-        #[cfg(feature="poll")]
+        #[cfg(feature = "poll")]
         {
             out._pollfds = vec![];
         }
 
-        #[cfg(feature="select")]
+        #[cfg(feature = "select")]
         {
-            out._pollset_in = fd_set { fd_count: 0, fd_array: [0;64] };
-            out._pollset_out = fd_set { fd_count: 0, fd_array: [0;64] };
-            out._pollset_err = fd_set { fd_count: 0, fd_array: [0;64] };
+            out._pollset_in = fd_set { fd_count: 0, fd_array: [0; 64] };
+            out._pollset_out = fd_set { fd_count: 0, fd_array: [0; 64] };
+            out._pollset_err = fd_set { fd_count: 0, fd_array: [0; 64] };
             out._max_fd = 0;
         }
         out
@@ -83,7 +90,7 @@ impl<'a> ZmqSocketPoller<'a> {
         self._tag == 0xCAFEBABE
     }
 
-    pub fn signaler_fd(&mut self, fd_: &mut ZmqFd) -> Result<(),ZmqError> {
+    pub fn signaler_fd(&mut self, fd_: &mut ZmqFd) -> Result<(), ZmqError> {
         if self._signaler {
             *fd_ = self._signaler.get_fd();
             return Ok(());
@@ -95,7 +102,7 @@ impl<'a> ZmqSocketPoller<'a> {
 
     pub fn add(&mut self, socket_: &mut ZmqSocket,
                user_data_: &mut [u8],
-               events_: i16) -> Result<(),ZmqError> {
+               events_: i16) -> Result<(), ZmqError> {
         // if (find_if2 (self._items.begin (), _items.end (), socket_, &is_socket)
         //     != _items.end ()) {
         //     errno = EINVAL;
@@ -123,7 +130,7 @@ impl<'a> ZmqSocketPoller<'a> {
         let item: ZmqItem = ZmqItem {
             socket: Some(socket_),
             fd: 0,
-            user_data: user_data_,
+            user_data: user_data_.into_vec(),
             events: events_,
             // socket_,
             // 0,
@@ -147,7 +154,7 @@ impl<'a> ZmqSocketPoller<'a> {
         return Ok(());
     }
 
-    pub fn add_fd(&mut self, fd_: ZmqFd, user_data_: &mut [u8], events_: i16) -> Result<(),ZmqError> {
+    pub fn add_fd(&mut self, fd_: ZmqFd, user_data_: &mut [u8], events_: i16) -> Result<(), ZmqError> {
         //      if (find_if2 (_items.begin (), _items.end (), fd_, &is_fd)
         //     != _items.end ()) {
         //     errno = EINVAL;
@@ -157,7 +164,7 @@ impl<'a> ZmqSocketPoller<'a> {
         let mut item: ZmqItem = ZmqItem {
             socket: None,
             fd: fd_,
-            user_data: user_data_,
+            user_data: user_data_.into_vec(),
             events: events_,
 //             null_mut(),
 //             fd_,
@@ -181,7 +188,7 @@ impl<'a> ZmqSocketPoller<'a> {
         return Ok(());
     }
 
-    pub fn modify(&mut self, socket_: &mut ZmqSocket, events_: i16) -> Result<(),ZmqError> {
+    pub fn modify(&mut self, socket_: &mut ZmqSocket, events_: i16) -> Result<(), ZmqError> {
         // let it = items_t. const items_t::iterator it =
         // find_if2 (_items.begin (), _items.end (), socket_, &is_socket);
         for it in self._items.iter_mut() {
@@ -204,7 +211,7 @@ impl<'a> ZmqSocketPoller<'a> {
         // return 0;
     }
 
-    pub fn modify_fd(&mut self, fd_: ZmqFd, events_: i16) -> Result<(),ZmqError> {
+    pub fn modify_fd(&mut self, fd_: ZmqFd, events_: i16) -> Result<(), ZmqError> {
         // let it = items_t. const items_t::iterator it =
         // find_if2 (_items.begin (), _items.end (), fd_, &is_fd);
 
@@ -228,7 +235,7 @@ impl<'a> ZmqSocketPoller<'a> {
         // return 0;
     }
 
-    pub fn remove_fd(&mut self, fd_: ZmqFd) -> Result<(),ZmqError> {
+    pub fn remove_fd(&mut self, fd_: ZmqFd) -> Result<(), ZmqError> {
         // const items_t
         // ::iterator
         // it = find_if2(_items.begin(), _items.end(), fd_, &is_fd);
@@ -253,7 +260,7 @@ impl<'a> ZmqSocketPoller<'a> {
         // return 0;
     }
 
-    pub fn rebuild(&mut self, options: &ZmqOptions) -> Result<(),ZmqError> {
+    pub fn rebuild(&mut self, options: &ZmqOptions) -> Result<(), ZmqError> {
         self._use_signaler = false;
         self._pollset_size = 0;
         self._need_rebuild = false;
@@ -312,7 +319,7 @@ impl<'a> ZmqSocketPoller<'a> {
                         if !is_thread_safe(&mut *it.socket) {
                             let mut fd_size = mem::size_of::<ZmqFd>();
                             let res = it.socket.getsockopt(options, ZMQ_FD)?;
-                            let res_fd: ZmqFd = u32::from_le_bytes([res[0],res[1],res[2],res[3]]) as ZmqFd;
+                            let res_fd: ZmqFd = u32::from_le_bytes([res[0], res[1], res[2], res[3]]) as ZmqFd;
                             self._pollfds[item_nbr].fd = res_fd;
 
                             // zmq_assert(rc == 0);
@@ -423,8 +430,8 @@ impl<'a> ZmqSocketPoller<'a> {
     // #[cfg(feature = "poll")]
     // pub unsafe fn check_events(&mut self, events_: *mut ZmqEvent, n_events_: i32) -> i32
     #[cfg(feature = "select")]
-    pub fn check_events(&mut self, events_: &mut [ZmqEvent], n_events_: i32, inset_: Option<&mut fd_set>, outset_: Option<&mut fd_set>, errset_: Option<&mut fd_set>) -> Result<i32,ZmqError> {
-        let mut found = 0;
+    pub fn check_events(&mut self, events_: &mut [ZmqEvent], n_events_: i32, inset_: Option<&mut fd_set>, outset_: Option<&mut fd_set>, errset_: Option<&mut fd_set>) -> Result<i32, ZmqError> {
+        let mut found = 0usize;
         // for (items_t::iterator it = _items.begin (), end = _items.end ();
         //      it != end && found < n_events_; ++it)
         for it in self._items.iter_mut() {
@@ -466,7 +473,7 @@ impl<'a> ZmqSocketPoller<'a> {
                     if revents & POLLPRI {
                         events |= ZMQ_POLLPRI;
                     }
-                    if revents & !(POLLIN | POLLOUT | POLLPRI){
+                    if revents & !(POLLIN | POLLOUT | POLLPRI) {
                         events |= ZMQ_POLLERR;
                     }
                 }
@@ -499,7 +506,7 @@ impl<'a> ZmqSocketPoller<'a> {
         return Ok(found);
     }
 
-    pub fn adjust_timeout(&mut self, clock_: &mut ZmqClock, timeout_: i32, now_: &mut u64, end_: &mut u64, first_pass_: &mut bool) -> Result<(),ZmqError> {
+    pub fn adjust_timeout(&mut self, clock_: &mut ZmqClock, timeout_: i32, now_: &mut u64, end_: &mut u64, first_pass_: &mut bool) -> Result<(), ZmqError> {
         //  If socket_poller_t::timeout is zero, exit immediately whether there
         //  are events or not.
         if timeout_ == 0 {
@@ -531,10 +538,10 @@ impl<'a> ZmqSocketPoller<'a> {
             return Ok(());
         }
 
-        return return Err(PollerError("EAGAIN"));
+        return return Err(PollerError("EAGAIN"));;
     }
 
-    pub fn wait(&mut self, options: &ZmqOptions, events_: &mut [ZmqEvent], n_events_: i32, timeout_: i32) -> Result<i32,ZmqError> {
+    pub fn wait(&mut self, options: &ZmqOptions, events_: &mut [ZmqEvent], n_events_: i32, timeout_: i32) -> Result<i32, ZmqError> {
         if self._items.empty() && timeout_ < 0 {
             // errno = EFAULT;
             return Err(PollerError("EFAULT"));
@@ -560,7 +567,7 @@ impl<'a> ZmqSocketPoller<'a> {
             }
             // #if defined ZMQ_HAVE_WINDOWS
             #[cfg(target_os = "windows")]{
-                Sleep(if timeout_ > 0 { timeout_ } else { INFINITE } as u32);
+                unsafe { Sleep(if timeout_ > 0 { timeout_ } else { INFINITE } as u32) };
                 return Err(PollerError("EAGAIN"));
             }
             // #elif defined ZMQ_HAVE_ANDROID
@@ -578,7 +585,7 @@ impl<'a> ZmqSocketPoller<'a> {
             //         return -1;
             // #else
             #[cfg(not(target_os = "windows"))]{
-                unsafe{libc::usleep((timeout_ * 1000) as c_uint)};
+                unsafe { libc::usleep((timeout_ * 1000) as c_uint) };
                 return Err(PollerError("EAGAIN"));
             }
             // #endif
@@ -644,11 +651,11 @@ impl<'a> ZmqSocketPoller<'a> {
             let mut first_pass = true;
 
             // optimized_fd_set_t inset (_pollset_size);
-            let mut inset = fd_set { fd_count: 0, fd_array: [0;64] };
+            let mut inset = fd_set { fd_count: 0, fd_array: [0; 64] };
             // optimized_fd_set_t outset (_pollset_size);
-            let mut outset = fd_set { fd_count: 0, fd_array: [0;64] };
+            let mut outset = fd_set { fd_count: 0, fd_array: [0; 64] };
             // optimized_fd_set_t errset (_pollset_size);
-            let mut errset = fd_set { fd_count: 0, fd_array: [0;64] };
+            let mut errset = fd_set { fd_count: 0, fd_array: [0; 64] };
 
             loop {
                 //  Compute the timeout for the subsequent poll.
@@ -662,8 +669,7 @@ impl<'a> ZmqSocketPoller<'a> {
                     // ptimeout = &mut timeout;
                 } else if timeout_ < 0 {
                     // ptimeout = null_mut();
-                }
-                else {
+                } else {
                     timeout.tv_sec = ((end - now) / 1000) as time_t;
                     timeout.tv_usec = ((end - now) % 1000 * 1000) as suseconds_t;
                     // ptimeout = &mut timeout;
@@ -696,7 +702,7 @@ impl<'a> ZmqSocketPoller<'a> {
                 // let rc = select((_max_fd + 1), inset.get(),
                 //                 outset.get(), errset.get(), ptimeout);
                 platform_select(self._max_fd + 1, Some(&mut inset),
-                                Some(&mut outset), Some(&mut errset), if timeout_ < 0 {None} else {&mut timeout})?;
+                                Some(&mut outset), Some(&mut errset), if timeout_ < 0 { None } else { &mut timeout })?;
                 // #if defined ZMQ_HAVE_WINDOWS
                 #[cfg(target_os = "windows")]{
                     if ((rc == SOCKET_ERROR)) {
@@ -716,7 +722,7 @@ impl<'a> ZmqSocketPoller<'a> {
 
                 if self._use_signaler && FD_ISSET(
                     self._signaler.get_fd(),
-                    inset.get()
+                    inset.get(),
                 ) {
                     self._signaler.recv();
                 }
@@ -727,7 +733,7 @@ impl<'a> ZmqSocketPoller<'a> {
                     n_events_,
                     *inset.get(),
                     *outset.get(),
-                    *errset.get()
+                    *errset.get(),
                 )?;
                 if found {
                     if found > 0 {
@@ -742,7 +748,7 @@ impl<'a> ZmqSocketPoller<'a> {
                     timeout_,
                     &mut now,
                     &mut end,
-                    &mut first_pass
+                    &mut first_pass,
                 ).is_ok() {
                     break;
                 }

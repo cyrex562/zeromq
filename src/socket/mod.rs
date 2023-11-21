@@ -126,7 +126,7 @@ impl<'a> ZmqInprocs<'a> {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub struct ZmqSocket<'a> {
     pub eligible: usize,
     pub more: bool,

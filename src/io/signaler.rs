@@ -22,30 +22,30 @@ pub struct ZmqSignaler {
 }
 
 impl ZmqSignaler {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self,ZmqError> {
         let mut out = Self {
             _r: 0,
             _w: 0,
             pid: 0,
         };
         let mut rc = unsafe { make_fdpair(&mut out._r, &mut out._w) };
-        if rc == 0 {
-            unsafe { unblock_socket(out._r); }
-            unsafe { unblock_socket(out._w); }
+        if rc.is_ok() {
+            unsafe { unblock_socket(out._r)?; }
+            unsafe { unblock_socket(out._w)?; }
         }
 
-        out
+        Ok(out)
     }
 
     pub fn get_fd(&mut self) -> ZmqFd {
         self._r
     }
 
-    pub fn send(&mut self) {
+    pub fn send(&mut self) -> Result<(),ZmqError> {
         #[cfg(feature = "fork")]
         unsafe{
             if self.pid != getpid() {
-                return;
+                return Ok(());
             }
         }
 
@@ -100,6 +100,7 @@ impl ZmqSignaler {
             }
         }
 // #endif
+        Ok(())
     }
 
     pub fn wait(&mut self, timeout_: i32) -> Result<(), ZmqError> {
