@@ -22,7 +22,7 @@ use crate::utils::put_u64;
 
 pub fn v1e_size_ready(encoder: &mut ZmqEncoder) {
     encoder.next_step(
-        encoder.in_progress().data(),
+        encoder.in_progress().data_mut(),
         encoder.in_progress().size(),
         true,
         v1e_message_ready,

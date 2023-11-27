@@ -1,7 +1,13 @@
-use crate::defines::{ZmqFd, ZMQ_MSG_COMMAND, ZMQ_MSG_PROPERTY_PEER_ADDRESS, ZMQ_NOTIFY_CONNECT};
+use std::collections::HashMap;
+
+use libc::{EAGAIN, ECONNRESET};
+
+use crate::defines::{ZMQ_MSG_COMMAND, ZMQ_MSG_PROPERTY_PEER_ADDRESS, ZMQ_NOTIFY_CONNECT, ZmqFd};
+use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::EngineError;
+use crate::engine::{ZmqEngine, ZmqEngineType};
 use crate::engine::raw_engine::raw_plug_internal;
 use crate::engine::zmtp_engine::{zmtp_plug_internal, zmtp_produce_ping_message};
-use crate::engine::{ZmqEngine, ZmqEngineType};
 use crate::io::io_thread::ZmqIoThread;
 use crate::ip::get_peer_ip_address;
 use crate::mechanism::ZmqMechanism;
@@ -11,10 +17,6 @@ use crate::options::ZmqOptions;
 use crate::session::ZmqSession;
 use crate::tcp::{tcp_read, tcp_write};
 use crate::utils::get_errno;
-use libc::{EAGAIN, ECONNRESET};
-use std::collections::HashMap;
-use crate::defines::err::ZmqError;
-use crate::defines::err::ZmqError::EngineError;
 
 pub const HANDSHAKE_TIMER_ID: i32 = 0x40;
 pub const HEARTBEAT_IVL_TIMER_ID: i32 = 0x80;
@@ -103,59 +105,60 @@ pub fn get_peer_address(s_: ZmqFd) -> Result<String, ZmqError> {
 pub fn stream_plug(
     options: &ZmqOptions,
     engine: &mut ZmqEngine,
-    io_thread_: &mut ZmqIoThread,
-    session_: &mut ZmqSession,
+    io_thread: &mut ZmqIoThread,
+    session: &mut ZmqSession,
 ) -> Result<(), ZmqError> {
     engine.plugged = true;
-    engine.session = Some(session_);
-    engine.socket = Some(session_.socket());
-    engine.io_object.plug(io_thread_);
-    engine.handle = engine.add_fd(engine.s);
+    engine.session = Some(session);
+    engine.socket = Some(session._socket);
+    engine.io_object.plug(io_thread);
+    engine.handle = engine.add_fd(engine.fd);
     engine.io_error = false;
 
-    match engine.engine_type {
+    return match engine.engine_type {
         ZmqEngineType::Stream => {
             // stream_plug_internal(engine);
+            Ok(())
         }
         ZmqEngineType::Udp => {
             // udp_plug(engine);
+            Ok(())
         }
         ZmqEngineType::Raw => {
-            raw_plug_internal(options, engine)?;
+            raw_plug_internal(options, engine)
         }
         ZmqEngineType::Zmtp => {
-            zmtp_plug_internal(options, engine);
+            zmtp_plug_internal(options, engine)
         }
     }
-
-    engine.plug_internal()
+    // engine.plug_internal()
 }
 
 pub fn stream_unplug(engine: &mut ZmqEngine) {
     engine.plugged = false;
     //  Cancel all timers.
     if engine.has_handshake_timer {
-        engine.cancel_timer(HANDSHAKE_TIMER_ID);
+        engine.io_object.cancel_timer(HANDSHAKE_TIMER_ID);
         engine.has_handshake_timer = false;
     }
 
     if engine.has_ttl_timer {
-        engine.cancel_timer(HEARTBEAT_TTL_TIMER_ID);
+        engine.io_object.cancel_timer(HEARTBEAT_TTL_TIMER_ID);
         engine.has_ttl_timer = false;
     }
 
     if engine.has_timeout_timer {
-        engine.cancel_timer(HEARTBEAT_TIMEOUT_TIMER_ID);
+        engine.io_object.cancel_timer(HEARTBEAT_TIMEOUT_TIMER_ID);
         engine.has_timeout_timer = false;
     }
 
     if engine.has_heartbeat_timer {
-        engine.cancel_timer(HEARTBEAT_IVL_TIMER_ID);
+        engine.io_object.cancel_timer(HEARTBEAT_IVL_TIMER_ID);
         engine.has_heartbeat_timer = false;
     }
     //  Cancel all fd subscriptions.
     if !engine.io_error {
-        engine.rm_fd(engine.handle);
+        engine.io_object.rm_fd(engine.handle);
     }
 
     //  Disconnect from I/O threads poller object.
@@ -175,7 +178,7 @@ pub fn stream_in_event(options: &ZmqOptions, engine: &mut ZmqEngine) {
 pub fn stream_in_event_internal(options: &ZmqOptions, engine: &mut ZmqEngine) -> bool {
     //  If still Handshaking, receive and process the greeting message.
     if engine.handshaking {
-        if engine.handshake() {
+        if engine.handshake().is_ok() {
             //  Handshaking was successful.
             //  Switch into the normal message flow.
             engine.handshaking = false;
@@ -197,7 +200,7 @@ pub fn stream_in_event_internal(options: &ZmqOptions, engine: &mut ZmqEngine) ->
 
     //  If there has been an I/O Error, Stop polling.
     if engine.input_stopped {
-        engine.rm_fd(engine.handle);
+        engine.io_object.rm_fd(engine.handle);
         engine.io_error = true;
         return true; // TODO or return false in this case too?
     }
@@ -209,9 +212,8 @@ pub fn stream_in_event_internal(options: &ZmqOptions, engine: &mut ZmqEngine) ->
         //  the underlying TCP layer has fixed buffer size and thus the
         //  number of bytes read will be always limited.
         let mut bufsize = 0usize;
-        engine
-            .decoder
-            .get_buffer(engine, engine.in_pos, &mut bufsize);
+        // engine.decoder.unwrap().get_buffer(engine, engine.in_pos, &mut bufsize);
+        engine.decoder.unwrap().get_buffer();
 
         let nread = stream_read(engine, engine.in_pos, bufsize)?;
         // if rc == -1 {
@@ -225,16 +227,18 @@ pub fn stream_in_event_internal(options: &ZmqOptions, engine: &mut ZmqEngine) ->
         //  Adjust input size
         engine.in_size = (nread) as usize;
         // Adjust buffer size to received bytes
-        engine.decoder.resize_buffer(engine.in_size);
+        engine.decoder.unwrap().resize_buffer(engine.in_size);
     }
 
     let mut rc = 0i32;
     let mut processed = 0usize;
 
     while engine.in_size > 0 {
-        rc = engine
-            .decoder
-            .decode(engine.in_pos, engine.in_size, processed);
+        let rc2 = engine.decoder.unwrap().decode(
+            engine.in_pos,
+            engine.in_size,
+            &mut processed
+        );
         // zmq_assert (processed <= _insize);
         engine.in_pos = engine.in_pos.add(processed);
         engine.in_size -= processed;
@@ -276,7 +280,7 @@ pub fn stream_out_event(options: &ZmqOptions, engine: &mut ZmqEngine) {
         engine.out_size = engine.encoder.unwrap().encode(engine.out_pos, 0);
 
         while engine.out_size < (options.out_batch_size) {
-            if (engine.next_msg)(options, engine, &mut engine.tx_msg.unwrap()) == -1 {
+            if (engine.next_msg)(options, engine, &mut engine.tx_msg.unwrap()).is_err() {
                 //  ws_engine can cause an engine Error and delete it, so
                 //  bail out immediately to avoid use-after-free
                 if get_errno() == ECONNRESET {
@@ -287,10 +291,7 @@ pub fn stream_out_event(options: &ZmqOptions, engine: &mut ZmqEngine) {
             }
             engine.encoder.load_msg(&engine.tx_msg);
             let mut bufptr = engine.out_pos[engine.out_size..];
-            let n = engine
-                .encoder
-                .unwrap()
-                .encode(&mut bufptr, options.out_batch_size - engine.out_size);
+            let n = engine.encoder.unwrap().encode(&mut bufptr, options.out_batch_size - engine.out_size);
             // zmq_assert (n > 0);
             if engine.out_pos == &[0u8] {
                 engine.out_pos = &mut bufptr;
@@ -316,13 +317,13 @@ pub fn stream_out_event(options: &ZmqOptions, engine: &mut ZmqEngine) {
     //  IO Error has occurred. We Stop waiting for output events.
     //  The engine is not Terminated until we detect input Error;
     //  this is necessary to prevent losing incoming messages.
-    if nbytes == -1 {
+    if nbytes.is_err() {
         engine.reset_pollout();
         return;
     }
 
     engine.out_pos = engine.out_pos[nbytes..];
-    engine.out_size -= nbytes;
+    engine.out_size -= nbytes.unwrap();
 
     //  If we are still Handshaking and there are no data
     //  to send, Stop polling for output.
@@ -360,10 +361,7 @@ pub fn stream_restart_input(options: &ZmqOptions, engine: &mut ZmqEngine) -> boo
 
     while engine.in_size > 0 {
         let mut processed = 0usize;
-        engine
-            .decoder
-            .unwrap()
-            .decode(engine.in_pos, engine.in_size, &mut processed)?;
+        engine.decoder.unwrap().decode(engine.in_pos, engine.in_size, &mut processed)?;
         // zmq_assert (processed <= _insize);
         engine.in_pos = engine.in_pos.add(processed);
         engine.in_size -= processed;
@@ -527,9 +525,7 @@ pub fn stream_mechanism_ready(options: &ZmqOptions, engine: &mut ZmqEngine) {
         engine.has_handshake_timer = false;
     }
 
-    engine
-        .socket
-        .event_handshake_succeeded(&engine.endpoint_uri_pair, 0);
+    engine.socket.event_handshake_succeeded(&engine.endpoint_uri_pair, 0);
 }
 
 pub fn stream_write_credential(
@@ -555,11 +551,12 @@ pub fn stream_write_credential(
     return engine.decode_and_push(msg_);
 }
 
-pub fn stream_pull_and_encode(options: &ZmqOptions, engine: &mut ZmqEngine, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
-    if engine.session.pull_msg(msg_) == -1 {
+pub fn stream_pull_and_encode(options: &ZmqOptions, engine: &mut ZmqEngine, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
+    // if engine.session.pull_msg(msg_) == -1 {
+    if stream_pull_msg_from_session(options, engine, msg).is_err() {
         return Err(EngineError("failed to pull message"));
     }
-    if engine.mechanism.unwrap().encode(msg_) == -1 {
+    if engine.mechanism.unwrap().encode(msg).is_err() {
         return Err(EngineError("failed to encode message"));
     }
     Ok(())
@@ -706,14 +703,13 @@ pub fn stream_timer_event(options: &ZmqOptions, engine: &mut ZmqEngine, id_: i32
     } else if id_ == HEARTBEAT_TIMEOUT_TIMER_ID {
         engine.has_timeout_timer = false;
         // Error (TimeoutError);
-    } else {
-    }
+    } else {}
     // There are no other valid timer ids!
     // assert (false);
 }
 
 pub fn stream_read(engine: &mut ZmqEngine, data_: &mut [u8], size_: usize) -> Result<i32, ZmqError> {
-    let rc = tcp_read(engine.s, data_, size_)?;
+    let rc = tcp_read(engine.fd, data_, size_)?;
     if rc == 0 {
         // connection closed by peer
         // errno = EPIPE;
@@ -723,6 +719,6 @@ pub fn stream_read(engine: &mut ZmqEngine, data_: &mut [u8], size_: usize) -> Re
     return Ok(rc);
 }
 
-pub fn stream_write(engine: &mut ZmqEngine, data_: &mut [u8], size_: usize) -> Result<i32,ZmqError> {
-    tcp_write(engine.s, data_, size_)
+pub fn stream_write(engine: &mut ZmqEngine, data_: &mut [u8], size_: usize) -> Result<i32, ZmqError> {
+    tcp_write(engine.fd, data_, size_)
 }

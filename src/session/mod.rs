@@ -27,6 +27,7 @@ mod radio_session;
 mod req_session;
 mod dish_session;
 
+#[derive(Debug,PartialEq)]
 pub enum ZmqSessionState {
     Group,
     Body,

@@ -69,7 +69,7 @@ pub fn v2e_message_ready(encoder: &mut ZmqEncoder) {
 pub fn v2e_size_ready(encoder: &mut ZmqEncoder) {
     //  Write message body into the buffer.
     encoder.next_step(
-        encoder.in_progress().data(),
+        encoder.in_progress().data_mut(),
         encoder.in_progress().size(),
         true,
         v2e_message_ready,

@@ -57,7 +57,7 @@ pub fn raw_decode(
     bytes_used: &mut usize,
 ) -> Result<usize, ZmqError> {
     match decoder
-        ._in_progress
+        .in_progress
         .init3(data, decoder.buf.as_mut_slice(), &mut ZmqContent::default())
     {
         Ok(_) => {}
@@ -65,7 +65,7 @@ pub fn raw_decode(
             return Err(e);
         }
     };
-    if decoder._in_progress.is_zcmsg() {
+    if decoder.in_progress.is_zcmsg() {
         // TODO
         // DECODER._allocator.advance_content();
         // DECODER._allocator.release();

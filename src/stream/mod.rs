@@ -1,7 +1,7 @@
 use crate::ctx::ZmqContext;
+use crate::defines::{ZMQ_MSG_MORE, ZMQ_STREAM_NOTIFY};
 use crate::defines::err::ZmqError;
 use crate::defines::fair_queue::ZmqFairQueue;
-use crate::defines::ZMQ_STREAM_NOTIFY;
 use crate::msg::ZmqMsg;
 use crate::options::{do_setsockopt_int_as_bool_strict, ZmqOptions};
 use crate::pipe::ZmqPipe;
@@ -21,14 +21,18 @@ pub struct ZmqStream<'a> {
 }
 
 impl<'a> ZmqStream<'a> {
-    pub fn new(parent_: &mut ZmqContext, tid_: u32, sid_: i32) -> Self {
+    pub fn new(
+        parent_: &mut ZmqContext,
+        tid_: u32,
+        sid_: i32,
+    ) -> Result<Self, ZmqError> {
         let mut out = Self {
             base: ZmqSocket::new(parent_, tid_, sid_, false),
             _fq: ZmqFairQueue::new(),
             _prefetched: false,
             _routing_id_sent: false,
-            _prefetched_routing_id: ZmqMsg::new(),
-            _prefetched_msg: ZmqMsg::new(),
+            _prefetched_routing_id: ZmqMsg::default(),
+            _prefetched_msg: ZmqMsg::default(),
             _current_out: None,
             _more_out: false,
             _next_integral_routing_id: 0,
@@ -37,13 +41,18 @@ impl<'a> ZmqStream<'a> {
         // options.type = ZMQ_STREAM;
         // options.raw_socket = true;
 
-        out._prefetched_routing_id.init2();
-        out._prefetched_msg.init2();
+        out._prefetched_routing_id.init2()?;
+        out._prefetched_msg.init2()?;
 
-        out
+        Ok(out)
     }
 
-    pub fn xattach_pipe(&mut self, options: &mut ZmqOptions, pipe_: &mut ZmqPipe, subscribe_to_all: bool, locally_initiated_: bool) {
+    pub fn xattach_pipe(&mut self,
+                        options: &mut ZmqOptions,
+                        pipe_: &mut ZmqPipe,
+                        subscribe_to_all: bool,
+                        locally_initiated_: bool,
+    ) {
         self.identify_peer(options, pipe_, locally_initiated_);
         self._fq.attach(pipe_);
     }
@@ -55,11 +64,11 @@ impl<'a> ZmqStream<'a> {
         }
     }
 
-    pub fn xread_activated(&mut self, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
+    pub fn xread_activated(&mut self, pipe_: &mut ZmqPipe) -> Result<(), ZmqError> {
         self._fq.activated(pipe_)
     }
 
-    pub fn xsend(&mut self, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+    pub fn xsend(&mut self, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
         //  If this is the first part of the message it's the ID of the
         //  peer to send the message to.
         if !self._more_out {
@@ -68,7 +77,7 @@ impl<'a> ZmqStream<'a> {
             //  If we have malformed message (prefix with no subsequent message)
             //  then just silently ignore it.
             //  TODO: The connections should be killed instead.
-            if msg_.flags() & ZmqMsg::more {
+            if msg_.flags() & ZMQ_MSG_MORE {
                 //  Find the pipe associated with the routing id stored in the prefix.
                 //  If there's no such pipe return an Error
 
@@ -103,7 +112,7 @@ impl<'a> ZmqStream<'a> {
         }
 
         //  Ignore the MORE flag
-        (msg_).reset_flags(ZmqMsg::more);
+        (msg_).reset_flags(ZMQ_MSG_MORE);
 
         //  This is the last part of the message.
         self._more_out = false;
@@ -139,7 +148,12 @@ impl<'a> ZmqStream<'a> {
         return Ok(());
     }
 
-    pub fn xsetsockopt(&mut self, options: &mut ZmqOptions, option_: i32, optval_: &mut [u8], optvallen_: usize) -> Result<(),ZmqError> {
+    pub fn xsetsockopt(&mut self,
+                       options: &mut ZmqOptions,
+                       option_: i32,
+                       optval_: &mut [u8],
+                       optvallen_: usize,
+    ) -> Result<(), ZmqError> {
         return match option_ {
             ZMQ_STREAM_NOTIFY => {
                 // if (optvallen_ != size_of::<i32>()) {
@@ -152,10 +166,13 @@ impl<'a> ZmqStream<'a> {
             _ => {
                 self.base.xsetsockopt(options, option_, optval_, optvallen_)
             }
-        }
+        };
     }
 
-    pub fn xrecv(&mut self, ctx: &mut ZmqContext, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+    pub fn xrecv(&mut self,
+                 ctx: &mut ZmqContext,
+                 msg_: &mut ZmqMsg,
+    ) -> Result<(), ZmqError> {
         if self._prefetched {
             if !self._routing_id_sent {
                 // TODO
@@ -198,7 +215,7 @@ impl<'a> ZmqStream<'a> {
 
         // libc::memcpy(msg_.data_mut(), routing_id.data() as *const c_void, routing_id.size());
         msg_.data_mut().clone_from_slice(routing_id.data());
-        msg_.set_flags(ZmqMsg::more);
+        msg_.set_flags(ZMQ_MSG_MORE);
 
         self._prefetched = true;
         self._routing_id_sent = true;
@@ -237,7 +254,7 @@ impl<'a> ZmqStream<'a> {
         // libc::memcpy(self._prefetched_routing_id.data_mut(), routing_id.data() as *const c_void,
         //              routing_id.size());
         self._prefetched_routing_id.data_mut().clone_from_slice(routing_id.data());
-        self._prefetched_routing_id.set_flags(ZmqMsg::more);
+        self._prefetched_routing_id.set_flags(ZMQ_MSG_MORE);
 
         self._prefetched = true;
         self._routing_id_sent = false;
@@ -249,7 +266,11 @@ impl<'a> ZmqStream<'a> {
         true
     }
 
-    pub fn identify_peer(&mut self, options: &mut ZmqOptions, pipe_: &mut ZmqPipe, locally_initiated_: bool) {
+    pub fn identify_peer(&mut self,
+                         options: &mut ZmqOptions,
+                         pipe_: &mut ZmqPipe,
+                         locally_initiated_: bool,
+    ) {
         // unsigned char buffer[5];
         let mut buffer: [u8; 5] = [0; 5];
         buffer[0] = 0;

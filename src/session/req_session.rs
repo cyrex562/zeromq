@@ -1,8 +1,8 @@
+use crate::defines::{ZMQ_MSG_COMMAND, ZMQ_MSG_MORE};
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::SessionError;
 use crate::msg::ZmqMsg;
 use crate::session::{ZmqSession, ZmqSessionState};
-
 
 // pub enum ReqSessionState {
 //     bottom,
@@ -34,16 +34,16 @@ use crate::session::{ZmqSession, ZmqSessionState};
 // }
 
 
-pub fn req_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn req_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     //  Ignore commands, they are processed by the engine and should not
     //  affect the state machine.
-    if msg_.flags() & ZmqMsg::command {
+    if msg_.flags() & ZMQ_MSG_COMMAND {
         return Ok(());
     }
 
     match session._state {
         ZmqSessionState::Bottom => {
-            if msg_.flags() == ZmqMsg::more {
+            if msg_.flags() == ZMQ_MSG_MORE {
                 //  In case option ZMQ_CORRELATE is on, allow request_id to be
                 //  transferred as first frame (would be too cumbersome to check
                 //  whether the option is actually on or not).
@@ -61,7 +61,7 @@ pub fn req_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<
         }
 
         ZmqSessionState::RequestId => {
-            if msg_.flags() == ZmqMsg::more && msg_.size() == 0 {
+            if msg_.flags() == ZMQ_MSG_MORE && msg_.size() == 0 {
                 session._state = ZmqSessionState::Body;
                 // return session.push_msg(msg_);
                 return Ok(());
@@ -69,7 +69,7 @@ pub fn req_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<
         }
 
         ZmqSessionState::Body => {
-            if msg_.flags() == ZmqMsg::more {
+            if msg_.flags() == ZMQ_MSG_MORE {
                 // return session.push_msg(msg_);
                 return Ok(());
             }

@@ -1,9 +1,10 @@
+use crate::ctx::ZmqContext;
 use crate::msg::ZmqMsg;
 use crate::pipe::pipes::ZmqPipes;
 use crate::pipe::ZmqPipe;
-use std::ptr::null_mut;
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::PipeError;
+use crate::defines::ZMQ_MSG_MORE;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqLoadBalancer<'a> {
@@ -40,7 +41,7 @@ impl<'a> ZmqLoadBalancer<'a> {
         if index < self._active {
             self._active -= 1;
             self._pipes.swap(index, self._active);
-            if (self._current == self._active) {
+            if self._current == self._active {
                 self._current = 0;
             }
         }
@@ -53,13 +54,20 @@ impl<'a> ZmqLoadBalancer<'a> {
         self._active += 1;
     }
 
-    pub fn send(&mut self, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
-        self.sendpipe(msg_, &mut None)
+    pub fn send(&mut self,
+                ctx: &mut ZmqContext,
+                msg_: &mut ZmqMsg
+    ) -> Result<(),ZmqError> {
+        self.sendpipe(ctx, msg_, &mut None)
     }
 
-    pub fn sendpipe(&mut self, msg_: &mut ZmqMsg, pipe_: &mut Option<&mut ZmqPipe>) -> Result<(),ZmqError> {
+    pub fn sendpipe(&mut self,
+                    ctx: &mut ZmqContext,
+                    msg_: &mut ZmqMsg,
+                    pipe_: &mut Option<&mut ZmqPipe>
+    ) -> Result<(),ZmqError> {
         if self._dropping {
-            self._more = msg_.flags() & ZmqMsg::MORE != 0;
+            self._more = msg_.flags() & ZMQ_MSG_MORE != 0;
             self._dropping = self._more;
 
             (msg_).close()?;
@@ -68,16 +76,16 @@ impl<'a> ZmqLoadBalancer<'a> {
         }
 
         while self._active > 0 {
-            if (*self._pipes[self._current]).write(msg_) {
-                if pipe_ != null_mut() {
-                    *pipe_ = self._pipes[self._current];
+            if (self._pipes.pipes[self._current]).write(msg_) {
+                if pipe_.is_some() {
+                    *pipe_ = Some(&mut self._pipes.pipes[self._current]);
                     break;
                 }
             }
 
             if self._more {
-                self._pipes[self._current].rollback();
-                self._dropping = msg_.flags() & ZmqMsg::MORE != 0;
+                self._pipes.pipes[self._current].rollback();
+                self._dropping = msg_.flags() & ZMQ_MSG_MORE != 0;
                 self._more = false;
                 return Err(PipeError("pipe is null"));
             }
@@ -94,9 +102,9 @@ impl<'a> ZmqLoadBalancer<'a> {
             return Err(PipeError("pipe is null"));
         }
 
-        self._more = msg_.flags() & ZmqMsg::MORE != 0;
+        self._more = msg_.flags() & ZMQ_MSG_MORE != 0;
         if self._more {
-            self._pipes[self._current].flush();
+            self._pipes.pipes[self._current].flush(ctx);
             self._current += 1;
             if self._current >= self._active {
                 self._current = 0;
@@ -113,7 +121,7 @@ impl<'a> ZmqLoadBalancer<'a> {
         }
 
         while self._active > 0 {
-            if (*self._pipes[self._current]).chech_write() {
+            if (*self._pipes.pipes[self._current]).chech_write() {
                 return true;
             }
 

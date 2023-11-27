@@ -62,7 +62,7 @@ pub fn xsub_xattach_pipe(
 }
 
 
-pub fn xsub_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
+pub fn xsub_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(), ZmqError> {
     socket.fq.activated(pipe_);
     Ok(())
 }
@@ -82,7 +82,7 @@ pub fn xsub_xhiccuped(ctx: &mut ZmqContext, socket: &mut ZmqSocket, pipe_: &mut 
     pipe_.flush(ctx);
 }
 
-pub fn xsub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> Result<(),ZmqError> {
+pub fn xsub_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], optvallen_: usize) -> Result<(), ZmqError> {
     let opt_val_i32: i32 = i32::from_le_bytes([optval_[0], optval_[1], optval_[2], optval_[3]]);
     if option_ == ZMQ_ONLY_FIRST_SUBSCRIBE {
         if optvallen_ != 4 || (opt_val_i32) < 0 {
@@ -124,7 +124,7 @@ pub fn xsub_xgetsockopt(
     return Err(SocketError("EINVAL"));
 }
 
-pub fn xsub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn xsub_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     let mut size = msg_.size();
     let mut data = (msg_.data_mut());
 
@@ -254,7 +254,7 @@ pub fn xsub_xhas_in(ctx: &mut ZmqContext, options: &ZmqOptions, socket: &mut Zmq
 
         //  Message doesn't match. Pop any remaining parts of the message
         //  from the pipe.
-        while socket.message.flags() & ZmqMsg::more {
+        while socket.message.flags() & ZMQ_MSG_MORE {
             socket.fq.recv(ctx, &mut socket.message)?;
             // errno_assert (rc == 0);
         }
@@ -284,7 +284,7 @@ pub fn xsub_send_subscription(
 
     //  Send it to the pipe.
     // TODO: figure out how to replace arg with ZmqPipe 
-    unsafe{(*pipe).write(&mut msg)?};
+    unsafe { (*pipe).write(&mut msg)? };
     //  If we reached the SNDHWM, and thus cannot send the subscription, drop
     //  the subscription message instead. This matches the behaviour of
     //  zmq_setsockopt(ZMQ_SUBSCRIBE, ...), which also drops subscriptions
@@ -296,9 +296,9 @@ pub fn xsub_send_subscription(
     Ok(())
 }
 
-pub fn xsub_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
+pub fn xsub_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(), ZmqError> {
     unimplemented!();
 }
 
 
-pub fn xsub_has_out(socket: &mut ZmqSocket) -> Result<(),ZmqError> { unimplemented!() }
+pub fn xsub_has_out(socket: &mut ZmqSocket) -> Result<(), ZmqError> { unimplemented!() }

@@ -1,9 +1,11 @@
-use crate::decoder::ZmqDecoder;
-use crate::msg::ZmqMsg;
-use crate::utils::get_u64;
 use libc::size_t;
+
+use crate::decoder::ZmqDecoder;
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::DecoderError;
+use crate::defines::ZMQ_MSG_MORE;
+use crate::msg::ZmqMsg;
+use crate::utils::get_u64;
 
 // #[derive(Default, Debug, Clone)]
 // pub struct V1Decoder {
@@ -69,35 +71,31 @@ pub fn v1d_one_byte_size_ready(decoder: &mut ZmqDecoder, buf: &mut [u8]) -> Resu
     //  First byte of size is read. If it is UCHAR_MAX (0xff) read 8-byte size.
     //  Otherwise allocate the buffer for message data and read the
     //  message data into it.
-    if *decoder._tmpbuf == u8::MAX {
-        decoder.next_step(&mut decoder._tmpbuf, 8, v1d_eight_byte_size_ready);
+    if decoder.tmpbuf[0] == u8::MAX {
+        decoder.next_step(&mut decoder.tmpbuf, 0,8, v1d_eight_byte_size_ready);
     } else {
         //  There has to be at least one byte (the flags) in the message).
-        if !*decoder._tmpbuf {
-            // errno = EPROTO;
-            return Err(DecoderError("EPROTO"));
-        }
+        // if !decoder._tmpbuf {
+        //     // errno = EPROTO;
+        //     return Err(DecoderError("EPROTO"));
+        // }
 
-        if decoder._max_msg_size >= 0 && (decoder._tmpbuf[0] - 1) > decoder._max_msg_size as u8 {
+        if decoder.max_msg_size >= 0 && (decoder.tmpbuf[0] - 1) > decoder.max_msg_size as u8 {
             // errno = EMSGSIZE;
             return Err(DecoderError("EMSGSIZE"));
         }
 
-        let mut rc = decoder._in_progress.close();
+        let mut rc = decoder.in_progress.close();
         // assert (rc == 0);
-        if decoder
-            ._in_progress
-            .init_size(*decoder._tmpbuf - 1)
-            .is_err()
-        {
+        if decoder.in_progress.init_size((decoder.tmpbuf[0] - 1) as usize).is_err() {
             // errno_assert (errno == ENOMEM);
-            decoder._in_progress.init2()?;
+            decoder.in_progress.init2()?;
             // errno_assert (rc == 0);
             // errno = ENOMEM;
             return Err(DecoderError("ENOMEM"));
         }
 
-        decoder.next_step(&mut decoder._tmpbuf, 1, v1d_flags_ready);
+        decoder.next_step(&mut decoder.tmpbuf, 0,1, v1d_flags_ready);
     }
     return Ok(());
 }
@@ -106,7 +104,7 @@ pub fn v1d_one_byte_size_ready(decoder: &mut ZmqDecoder, buf: &mut [u8]) -> Resu
 //         self._in_progress.refm()
 //     }
 pub fn msg<'a>(decoder: &mut ZmqDecoder) -> &'a mut ZmqMsg {
-    &mut decoder._in_progress
+    &mut decoder.in_progress
 }
 
 // int zmq::v1_decoder_t::eight_byte_size_ready (unsigned char const *)
@@ -156,7 +154,7 @@ pub fn msg<'a>(decoder: &mut ZmqDecoder) -> &'a mut ZmqMsg {
 pub fn v1d_eight_byte_size_ready(decoder: &mut ZmqDecoder, buf: &mut [u8]) -> Result<(), ZmqError> {
     //  8-byte payload length is read. Allocate the buffer
     //  for message body and read the message data into it.
-    let payload_length = get_u64(&decoder._tmpbuf);
+    let payload_length = get_u64(&decoder.tmpbuf);
 
     //  There has to be at least one byte (the flags) in the message).
     if payload_length == 0 {
@@ -165,7 +163,7 @@ pub fn v1d_eight_byte_size_ready(decoder: &mut ZmqDecoder, buf: &mut [u8]) -> Re
     }
 
     //  Message size must not exceed the maximum allowed size.
-    if decoder._max_msg_size >= 0 && payload_length - 1 > (decoder._max_msg_size) as u64 {
+    if decoder.max_msg_size >= 0 && payload_length - 1 > (decoder.max_msg_size) as u64 {
         // errno = EMSGSIZE;
         return Err(DecoderError("EMSGSIZE"));
     }
@@ -180,17 +178,17 @@ pub fn v1d_eight_byte_size_ready(decoder: &mut ZmqDecoder, buf: &mut [u8]) -> Re
 
     let msg_size = (payload_length - 1);
 
-    decoder._in_progress.close()?;
+    decoder.in_progress.close()?;
     // assert (rc == 0);
-    if decoder._in_progress.init_size(msg_size as size_t).is_err() {
+    if decoder.in_progress.init_size(msg_size as size_t).is_err() {
         // errno_assert (errno == ENOMEM);
-        decoder._in_progress.init2()?;
+        decoder.in_progress.init2()?;
         // errno_assert (rc == 0);
         // errno = ENOMEM;
         return Err(DecoderError("ENOMEM"));
     }
 
-    decoder.next_step(&mut decoder._tmpbuf, 1, v1d_flags_ready);
+    decoder.next_step(&mut decoder.tmpbuf, 0,1, v1d_flags_ready);
     Ok(())
 }
 
@@ -198,7 +196,7 @@ pub fn v1d_eight_byte_size_ready(decoder: &mut ZmqDecoder, buf: &mut [u8]) -> Re
 // pub unsafe fn flags_ready(&mut self, buf: &[u8]) -> i32
 // {
 //     //  Store the flags from the wire into the message structure.
-//     self._in_progress.set_flags (self._tmpbuf[0] & ZmqMsg::more);
+//     self._in_progress.set_flags (self._tmpbuf[0] & ZMQ_MSG_MORE);
 //
 //     self.next_step (self._in_progress.data_mut(), self._in_progress.size (),
 //                     &V1Decoder::message_ready);
@@ -207,13 +205,12 @@ pub fn v1d_eight_byte_size_ready(decoder: &mut ZmqDecoder, buf: &mut [u8]) -> Re
 // }
 pub fn v1d_flags_ready(decoder: &mut ZmqDecoder, buf: &mut [u8]) -> Result<(), ZmqError> {
     //  Store the flags from the wire into the message structure.
-    decoder
-        ._in_progress
-        .set_flags(decoder._tmpbuf[0] & ZmqMsg::more);
+    decoder.in_progress.set_flags(decoder.tmpbuf[0] & ZMQ_MSG_MORE);
 
     decoder.next_step(
-        decoder._in_progress.data_mut(),
-        decoder._in_progress.size(),
+        decoder.in_progress.data_mut(),
+        0,
+        decoder.in_progress.size(),
         v1d_message_ready,
     );
 
@@ -231,6 +228,6 @@ pub fn v1d_flags_ready(decoder: &mut ZmqDecoder, buf: &mut [u8]) -> Result<(), Z
 pub fn v1d_message_ready(decoder: &mut ZmqDecoder, buf: &mut [u8]) -> Result<(), ZmqError> {
     //  Message is completely read. Push it further and start reading
     //  new message. (in_progress is a 0-byte message after this point.)
-    decoder.next_step(&mut decoder._tmpbuf, 1, v1d_one_byte_size_ready);
+    decoder.next_step(&mut decoder.tmpbuf, 0,1, v1d_one_byte_size_ready);
     return Ok(());
 }

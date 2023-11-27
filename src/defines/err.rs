@@ -38,4 +38,6 @@ pub enum ZmqError {
     OptionsError(&'static str),
     #[error("context error")]
     ContextError(&'static str),
+    #[error("address error")]
+    AddressError(&'static str),
 }

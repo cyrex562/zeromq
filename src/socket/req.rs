@@ -1,4 +1,5 @@
 use std::mem::size_of_val;
+
 use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_MSG_MORE, ZMQ_REQ_CORRELATE, ZMQ_REQ_RELAXED};
 use crate::defines::err::ZmqError;
@@ -38,7 +39,7 @@ pub fn req_xattach_pipe(
     unimplemented!()
 }
 
-pub fn req_xsend(ctx: &mut ZmqContext, options: &mut ZmqOptions, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn req_xsend(ctx: &mut ZmqContext, options: &mut ZmqOptions, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     //  If we've sent a request and we still haven't got the reply,
     //  we can't send another request unless the strict option is disabled.
     if socket.receiving_reply {
@@ -64,7 +65,7 @@ pub fn req_xsend(ctx: &mut ZmqContext, options: &mut ZmqOptions, socket: &mut Zm
             // libc::memcpy(id.data_mut(), &socket._request_id, 4);
             id.data_mut().clone_from_slice(&socket.request_id.to_be_bytes());
             // errno_assert (rc == 0);
-            id.set_flags(ZmqMsg::more);
+            id.set_flags(ZMQ_MSG_MORE);
 
             socket.sendpipe(&id, &socket.reply_pipe)?;
             // if rc != 0 {
@@ -76,7 +77,7 @@ pub fn req_xsend(ctx: &mut ZmqContext, options: &mut ZmqOptions, socket: &mut Zm
         let mut bottom = ZmqMsg::default();
         bottom.init2()?;
         // errno_assert (rc == 0);
-        bottom.set_flags(ZmqMsg::more);
+        bottom.set_flags(ZMQ_MSG_MORE);
 
         socket.sendpipe(&mut bottom, &socket.reply_pipe)?;
         // if rc != 0 {
@@ -101,7 +102,7 @@ pub fn req_xsend(ctx: &mut ZmqContext, options: &mut ZmqOptions, socket: &mut Zm
         }
     }
 
-    let more = (msg_.flags() & ZmqMsg::more) != 0;
+    let more = (msg_.flags() & ZMQ_MSG_MORE) != 0;
 
     socket.xsend(ctx, options, msg_)?;
 
@@ -115,7 +116,7 @@ pub fn req_xsend(ctx: &mut ZmqContext, options: &mut ZmqOptions, socket: &mut Zm
 }
 
 // int zmq::req_t::xrecv (msg_t *msg_)
-pub fn req_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn req_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     //  If request wasn't send, we can't wait for reply.
     if !socket.receiving_reply {
         // errno = EFSM;
@@ -131,10 +132,7 @@ pub fn req_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqErro
                 return rc;
             }
 
-            if (msg_.flags() & ZMQ_MSG_MORE) == 0
-                || msg_.size() != size_of_val(&socket.request_id)
-                || msg_.data_mut() != socket.request_id
-            {
+            if (msg_.flags() & ZMQ_MSG_MORE) == 0 || msg_.size() != size_of_val(&socket.request_id) || msg_.data_mut() != socket.request_id {
                 //  Skip the remaining frames and try the next message
                 while msg_.flags() & ZMQ_MSG_MORE {
                     rc = socket.recv_reply_pipe(msg_);
@@ -153,7 +151,7 @@ pub fn req_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqErro
 
         if (msg_.flags() & ZMQ_MSG_MORE) == 0 || msg_.size() != 0 {
             //  Skip the remaining frames and try the next message
-            while msg_.flags() & ZmqMsg::more {
+            while msg_.flags() & ZMQ_MSG_MORE {
                 rc = socket.recv_reply_pipe(msg_);
                 // errno_assert (rc == 0);
             }
@@ -205,7 +203,7 @@ pub fn req_xsetsockopt(
     option_: i32,
     optval_: &[u8],
     optvallen_: usize,
-) -> Result<(),ZmqError> {
+) -> Result<(), ZmqError> {
     let is_int = (optvallen_ == 4);
     let mut value = 0;
     if is_int {
@@ -240,7 +238,7 @@ pub fn req_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
     dealer_xpipe_terminated(socket, pipe_);
 }
 
-pub fn req_recv_reply_pipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn req_recv_reply_pipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     loop {
         let mut pipe: ZmqPipe = ZmqPipe::default();
         socket.recvpipe(msg_, &mut Some(&mut pipe))?;
@@ -257,11 +255,11 @@ pub fn req_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, Z
     unimplemented!();
 }
 
-pub fn req_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
+pub fn req_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(), ZmqError> {
     unimplemented!();
 }
 
-pub fn req_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) -> Result<(),ZmqError> {
+pub fn req_xread_activated(socket: &mut ZmqSocket, pipe: &mut ZmqPipe) -> Result<(), ZmqError> {
     unimplemented!()
 }
 

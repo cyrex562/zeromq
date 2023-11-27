@@ -1,7 +1,5 @@
 use crate::ctx::ZmqContext;
-
-use crate::defines::blob::ZmqBlob;
-use crate::defines::{MSG_MORE, ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT, ZMQ_POLLOUT, ZMQ_PROBE_ROUTER, ZMQ_ROUTER_HANDOVER, ZMQ_ROUTER_MANDATORY, ZMQ_ROUTER_NOTIFY, ZMQ_ROUTER_RAW};
+use crate::defines::{MSG_MORE, ZMQ_MSG_MORE, ZMQ_NOTIFY_CONNECT, ZMQ_NOTIFY_DISCONNECT, ZMQ_POLLOUT, ZMQ_PROBE_ROUTER, ZMQ_ROUTER_HANDOVER, ZMQ_ROUTER_MANDATORY, ZMQ_ROUTER_NOTIFY, ZMQ_ROUTER_RAW};
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::SocketError;
 use crate::msg::ZmqMsg;
@@ -100,7 +98,7 @@ pub fn router_xattach_pipe(ctx: &mut ZmqContext, socket: &mut ZmqSocket, pipe_: 
 // int zmq::router_t::xsetsockopt (int option_,
 //                             const void *optval_,
 //                             size_t optvallen_)
-pub fn router_xsetsockopt(socket: &mut ZmqSocket, options: &mut ZmqOptions, option_: i32, optval_: &mut [u8], optvallen_: usize) -> Result<(),ZmqError> {
+pub fn router_xsetsockopt(socket: &mut ZmqSocket, options: &mut ZmqOptions, option_: i32, optval_: &mut [u8], optvallen_: usize) -> Result<(), ZmqError> {
     // const bool is_int = (optvallen_ == sizeof (int));
     let is_int = optvallen_ == 4;
     let mut value = 0;
@@ -154,8 +152,12 @@ pub fn router_xsetsockopt(socket: &mut ZmqSocket, options: &mut ZmqOptions, opti
         // #endif
 
         _ => {
-            return socket.xsetsockopt(options, option_, optval_,
-                                                     optvallen_);
+            return socket.xsetsockopt(
+                options,
+                option_,
+                optval_,
+                optvallen_,
+            );
         }
     }
     // errno = EINVAL;
@@ -175,7 +177,7 @@ pub fn router_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
 }
 
 // void zmq::router_t::xread_activated (pipe_t *pipe_)
-pub fn router_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
+pub fn router_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(), ZmqError> {
     // const std::set<pipe_t *>::iterator it = _anonymous_pipes.find (pipe_);
     let it = socket.anonymous_pipes.iter_mut().find(|&x| *x == pipe_);
     if it.is_none() {
@@ -192,7 +194,7 @@ pub fn router_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Re
 }
 
 // int zmq::router_t::xsend (msg_t *msg_)
-pub fn router_xsend(options: &ZmqOptions, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn router_xsend(options: &ZmqOptions, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     //  If this is the first part of the message it's the ID of the
     //  peer to send the message to.
     if !socket.more_out {
@@ -296,7 +298,7 @@ pub fn router_xsend(options: &ZmqOptions, socket: &mut ZmqSocket, msg_: &mut Zmq
 }
 
 // int zmq::router_t::xrecv (msg_t *msg_)
-pub fn router_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn router_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     if socket.prefetched {
         if !socket.routing_id_sent {
             // TODO
@@ -309,7 +311,7 @@ pub fn router_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut Zmq
             // errno_assert (rc == 0);
             socket.prefetched = false;
         }
-        socket.more_in = (msg_.flags() & ZmqMsg::more) != 0;
+        socket.more_in = (msg_.flags() & ZMQ_MSG_MORE) != 0;
 
         if !socket.more_in {
             if socket.terminate_current_in {
@@ -341,7 +343,7 @@ pub fn router_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut Zmq
 
     //  If we are in the middle of reading a message, just return the next part.
     if socket.more_in {
-        socket.more_in = (msg_.flags() & ZmqMsg::more) != 0;
+        socket.more_in = (msg_.flags() & ZMQ_MSG_MORE) != 0;
 
         if !socket.more_in {
             if socket.terminate_current_in {
@@ -365,7 +367,7 @@ pub fn router_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut Zmq
         // errno_assert (rc == 0);
         // libc::memcpy(msg_.data_mut(), routing_id.data(), routing_id.size());
         msg_.data_mut().clone_from_slice(routing_id.data());
-        msg_.set_flags(ZmqMsg::more);
+        msg_.set_flags(ZMQ_MSG_MORE);
         if socket.prefetched_msg.metadata() {
             msg_.set_metadata(socket.prefetched_msg.metadata());
         }
@@ -376,7 +378,7 @@ pub fn router_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut Zmq
 }
 
 // int zmq::router_t::rollback ()
-pub fn router_rollback(socket: &mut ZmqSocket) -> Result<(),ZmqError> {
+pub fn router_rollback(socket: &mut ZmqSocket) -> Result<(), ZmqError> {
     if socket.current_out {
         socket.current_out.rollback();
         socket.current_out = None;
@@ -386,7 +388,7 @@ pub fn router_rollback(socket: &mut ZmqSocket) -> Result<(),ZmqError> {
 }
 
 // bool zmq::router_t::xhas_in ()
-pub  fn router_xhas_in(ctx: &mut ZmqContext, socket: &mut ZmqSocket) -> bool {
+pub fn router_xhas_in(ctx: &mut ZmqContext, socket: &mut ZmqSocket) -> bool {
     //  If we are in the middle of reading the messages, there are
     //  definitely more parts available.
     if socket.more_in {
@@ -439,7 +441,7 @@ pub fn router_check_pipe_hwm(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> boo
 }
 
 // bool zmq::router_t::xhas_out ()
-pub  fn router_xhas_out(socket: &mut ZmqSocket) -> bool {
+pub fn router_xhas_out(socket: &mut ZmqSocket) -> bool {
     //  In theory, ROUTER socket is always Ready for writing (except when
     //  MANDATORY is set). Whether actual attempt to write succeeds depends
     //  on which pipe the message is going to be routed to.
@@ -453,7 +455,11 @@ pub  fn router_xhas_out(socket: &mut ZmqSocket) -> bool {
 
 // int zmq::router_t::get_peer_state (const void *routing_id_,
 //                                size_t routing_id_size_) const
-pub fn router_get_peer_state(socket: &mut ZmqSocket, routing_id_: &[u8], routing_id_size_: usize) -> Result<i32,ZmqError> {
+pub fn router_get_peer_state(
+    socket: &mut ZmqSocket,
+    routing_id_: &[u8],
+    routing_id_size_: usize,
+) -> Result<i32, ZmqError> {
     let mut res: i32 = 0;
 
     // TODO remove the const_cast, see comment in lookup_out_pipe
@@ -508,7 +514,8 @@ pub fn router_identify_peer(ctx: &mut ZmqContext, socket: &mut ZmqSocket, option
             // unsigned char buf[5];
             let mut buf = [0u8; 5];
             buf[0] = 0;
-            put_u32(&mut buf[1..], socket.next_integral_routing_id);           socket.next_integral_routing_id += 1;
+            put_u32(&mut buf[1..], socket.next_integral_routing_id);
+            socket.next_integral_routing_id += 1;
             routing_id.set(buf, 5);
             msg.close()?;
         } else {
@@ -558,14 +565,23 @@ pub fn router_identify_peer(ctx: &mut ZmqContext, socket: &mut ZmqSocket, option
 }
 
 
-pub fn router_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
+pub fn router_xgetsockopt(
+    socket: &mut ZmqSocket,
+    option: u32,
+) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 
-pub fn router_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {
+pub fn router_xjoin(
+    socket: &mut ZmqSocket,
+    group: &str,
+) -> Result<(), ZmqError> {
     unimplemented!();
 }
 
-pub fn router_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
+pub fn router_xwrite_activated(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe,
+) {
     unimplemented!()
 }

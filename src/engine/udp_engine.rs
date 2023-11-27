@@ -27,7 +27,9 @@ use crate::msg::ZmqMsg;
 use crate::net::platform_socket::{platform_bind, platform_recvfrom, platform_sendto, platform_setsockopt};
 use crate::options::ZmqOptions;
 use crate::session::ZmqSession;
-use crate::utils::sock_utils::{zmq_ip_mreq_to_bytes, zmq_ipv6_mreq_to_bytes, zmq_sockaddr_storage_to_sockaddr, zmq_sockaddr_storage_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr, zmq_sockaddr_to_sockaddrin, zmq_sockaddr_to_wsa_sockaddr, zmq_sockaddrin_to_sockaddr};
+use crate::utils::sock_utils::{zmq_ip_mreq_to_bytes, zmq_ipv6_mreq_to_bytes, zmq_sockaddr_storage_to_sockaddr, zmq_sockaddr_storage_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr, zmq_sockaddr_to_sockaddrin, zmq_sockaddrin_to_sockaddr};
+#[cfg(target_os="windows")]
+use crate::utils::sock_utils::{zmq_sockaddr_to_wsa_sockaddr};
 
 // pub struct ZmqUdpEngine<'a> {
 //     pub io_object: IoObject,

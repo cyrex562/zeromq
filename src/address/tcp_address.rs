@@ -1,25 +1,17 @@
-use std::ffi::c_void;
-use std::mem;
-use std::ops::Index;
-use std::ptr::null_mut;
-
-use anyhow::bail;
-use libc::{c_char, sockaddr};
+use libc::sockaddr;
+#[cfg(not(target_os = "windows"))]
+use libc::{sa_family_t, socklen_t};
 #[cfg(target_os = "windows")]
-use windows::Win32::Networking::WinSock::{sa_family_t, socklen_t, getnameinfo};
-#[cfg(not(target_os="windows"))]
-use libc::{getnameinfo, in6_addr, in_addr, sa_family_t, socklen_t};
+use windows::Win32::Networking::WinSock::{getnameinfo, sa_family_t, socklen_t};
 
 use crate::address::ip_address::ZmqIpAddress;
-use crate::defines::{ZmqSockAddr, AF_INET, AF_INET6, NI_MAXHOST, NI_NUMERICHOST, ZmqIn6Addr, ZmqInAddr};
+use crate::defines::{AF_INET, AF_INET6, NI_MAXHOST, NI_NUMERICHOST, ZmqSockAddr};
 use crate::defines::err::ZmqError;
 use crate::ip::ip_resolver::IpResolver;
 use crate::ip::ip_resolver_options::IpResolverOptions;
 use crate::net::platform_socket::platform_getnameinfo;
 use crate::options::ZmqOptions;
-use crate::utils::sock_utils::{
-    sockaddr_to_sockaddrin, sockaddr_to_sockaddrin6, zmq_sockaddr_to_sockaddr,
-};
+use crate::utils::sock_utils::{sockaddr_data_to_bytes, sockaddr_to_sockaddrin, sockaddr_to_sockaddrin6, sockaddr_to_zmq_sockaddr};
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqTcpAddress {
@@ -46,20 +38,20 @@ impl ZmqTcpAddress {
             let sa_in = sockaddr_to_sockaddrin(sock_addr);
             // out.address = ZmqIpAddress::new2(sa_in.sin_addr, 4);
             out.address = ZmqIpAddress::default();
-            out.address.ipv4.sin_addr = sa_in.sin_addr;
+            out.address.addr_bytes.clone_from_slice(&sa_in.sin_addr.to_le_bytes());
             // out.source_address = ZmqIpAddress::new2(sa_in.sin_addr, 4);
             out.source_address = ZmqIpAddress::default();
-            out.source_address.ipv4.sin_addr = sa_in.sin_addr;
+            out.source_address.addr_bytes.clone_from_slice(&sa_in.sin_addr.to_le_bytes());
             out.has_src_addr = true;
         } else if sock_addr.sa_family == AF_INET6 as u16 && sa_len_ >= 16 {
             // let sa_in6 = sock_addr as *const sockaddr_in6;
             let sa_in6 = sockaddr_to_sockaddrin6(sock_addr);
             // out.address = ZmqIpAddress::new2(sa_in6.sin6_addr, 16);
             out.address = ZmqIpAddress::default();
-            out.address.ipv6.sin6_addr.clone_from_slice(&sa_in6.sin6_addr);
+            out.address.addr_bytes.clone_from_slice(&sa_in6.sin6_addr);
             // out.source_address = ZmqIpAddress::new2(sa_in6.sin6_addr, 16);
             out.source_address = ZmqIpAddress::default();
-            out.source_address.ipv6.sin6_addr.clone_from_slice(&sa_in6.sin6_addr);
+            out.source_address.addr_bytes.clone_from_slice(&sa_in6.sin6_addr);
             out.has_src_addr = true;
         }
         out
@@ -72,7 +64,8 @@ impl ZmqTcpAddress {
         local_: bool,
         ipv6_: bool,
     ) -> Result<(), ZmqError> {
-        let src_delimiter = name_.index(";");
+        // let src_delimiter = name_.index(";");
+        let src_delimiter = name_.find(";");
         if src_delimiter.is_some() {
             let mut src_resolver_opts = IpResolverOptions::new();
             src_resolver_opts.bindable(true);
@@ -83,7 +76,7 @@ impl ZmqTcpAddress {
             let mut src_resolver = IpResolver::new(&mut src_resolver_opts);
 
             src_resolver.resolve(options, &mut self.address, name_)?;
-            *name_ = name_[src_delimiter.unwrap() + 1..];
+            *name_ = name_[src_delimiter.unwrap() + 1..].to_string();
             self.has_src_addr = true;
         }
 
@@ -110,7 +103,7 @@ impl ZmqTcpAddress {
         let max_port_string_length = 5;
 
         let mut buf = String::with_capacity(
-            (NI_MAXHOST + ipv6_prefix_.len() + ipv6_suffix.len() + max_port_string_length) as usize,
+            (NI_MAXHOST as usize + ipv6_prefix_.len() + ipv6_suffix.len() + max_port_string_length as usize),
         );
         buf += ipv6_prefix_;
         buf += hbuf_;
@@ -119,10 +112,11 @@ impl ZmqTcpAddress {
         return buf;
     }
 
-    pub fn to_string(&mut self, addr_: &mut String) ->Result<(),ZmqError> {
+    pub fn to_string(&mut self, addr_: &mut String) -> Result<(), ZmqError> {
         if self.address.family() != AF_INET && self.address.family() != AF_INET6 {
-            *addr_.clear();
-            bail!("invalid address family")
+            addr_.clear();
+            // bail!("invalid address family")
+            return Err(ZmqError::AddressError("invalid address family"));
         }
 
         let mut hbuf = String::with_capacity(NI_MAXHOST as usize);
@@ -149,27 +143,27 @@ impl ZmqTcpAddress {
         let ipv6_prefix: &'static str = "tcp://[";
         let ipv6_suffix: &'static str = "]:";
         if self.address.family() == AF_INET6 {
-            *addr_ = self.make_address_string(hbuf, self.address.port(), ipv6_prefix, ipv6_suffix);
+            *addr_ = Self::make_address_string(&hbuf, self.address.port(), ipv6_prefix, ipv6_suffix);
         } else {
-            *addr_ = self.make_address_string(hbuf, self.address.port(), ipv4_prefix, ipv4_suffix);
+            *addr_ = Self::make_address_string(&hbuf, self.address.port(), ipv4_prefix, ipv4_suffix);
         }
         Ok(())
     }
 
     pub fn addr(&mut self) -> &mut ZmqSockAddr {
-        self.address.as_sockaddr()
+        &mut self.address.as_sockaddr()
     }
 
     pub fn addrlen(&mut self) -> usize {
-        self.address.len()
+        self.address.sockaddr_len()
     }
 
     pub fn src_addr(&mut self) -> &mut ZmqSockAddr {
-        self.source_address.as_sockaddr()
+        &mut self.source_address.as_sockaddr()
     }
 
     pub fn src_addrlen(&mut self) -> socklen_t {
-        self.source_address.len()
+        self.source_address.sockaddr_len() as socklen_t
     }
 
     pub fn has_src_addr(&mut self) -> bool {
@@ -188,8 +182,8 @@ impl ZmqTcpAddress {
 
 #[derive(Default, Debug, Clone)]
 pub struct TcpAddressMask {
-    pub _network_address: ZmqIpAddress,
-    pub _address_mask: i32,
+    pub network_address: ZmqIpAddress,
+    pub address_mask: i32,
 }
 
 impl TcpAddressMask {
@@ -204,10 +198,10 @@ impl TcpAddressMask {
         options: &ZmqOptions,
         name_: &str,
         ipv6_: bool,
-    ) -> Result<(),ZmqError> {
+    ) -> Result<(), ZmqError> {
         let mut addr_str = String::new();
         let mut mask_str = String::new();
-        let delimiter = name_.index("/");
+        let delimiter = name_.find("/");
         if delimiter.is_some() {
             addr_str = name_[..delimiter.unwrap()].to_string();
             mask_str = name_[delimiter.unwrap() + 1..].to_string();
@@ -224,49 +218,52 @@ impl TcpAddressMask {
         resolver_opts.expect_port(false);
 
         let mut resolver = IpResolver::new(&mut resolver_opts);
-        resolver.resolve(options, &mut self._network_address, addr_str.as_str())?;
+        resolver.resolve(options, &mut self.network_address, addr_str.as_str())?;
 
         let full_mask_ipv4 = 32;
         let full_mask_ipv6 = 128;
 
         if mask_str.len() == 0 {
-            self._address_mask = 0;
+            self.address_mask = 0;
         } else {
             let mask = mask_str.parse::<i32>().unwrap();
-            if mask < 1
-                || (self._network_address.family() == AF_INET6 && mask > full_mask_ipv6)
-                || (self._network_address.family() != AF_INET6 && mask > full_mask_ipv4)
-            {
-                bail!("invalid address mask")
+            if mask < 1 || (self.network_address.family() == AF_INET6 && mask > full_mask_ipv6) || (self.network_address.family() != AF_INET6 && mask > full_mask_ipv4) {
+                // bail!("invalid address mask")
+                return Err(ZmqError::AddressError("invalid address mask"));
             }
-            self._address_mask = mask;
+            self.address_mask = mask;
         }
 
         Ok(())
     }
 
     pub fn match_address(&mut self, ss_: &sockaddr, ss_len_: socklen_t) -> bool {
-        if ss_.sa_family != self._network_address.family() as u16 {
+        if ss_.sa_family != self.network_address.family() as u16 {
             return false;
         }
 
-        if self._address_mask > 0 {
+        if self.address_mask > 0 {
             let mut mask = 0i32;
-            let mut our_bytes: *mut u8 = null_mut();
-            let mut their_bytes: *mut u8 = null_mut();
-            if ss_.sa_family == AF_INET6 as u16 {
-                their_bytes = ss_.sa_data[0..16].as_mut_ptr() as *mut u8;
-                our_bytes =
-                    (*self._network_address.as_sockaddr()).sa_data[0..16].as_mut_ptr();
-                mask = (mem::size_of::<ZmqIn6Addr>() * 8) as i32;
-            } else {
-                their_bytes = ss_.sa_data[0..4].as_mut_ptr() as *mut u8;
-                our_bytes =
-                    (*self._network_address.as_sockaddr()).sa_data[0..4].as_mut_ptr();
-                mask = (mem::size_of::<ZmqInAddr>() * 8) as i32;
-            }
-            if self._address_mask < mask {
-                mask = self._address_mask;
+            let mut our_bytes: Vec<u8> = vec![];
+            let mut their_bytes: Vec<u8> = vec![];
+            // if ss_.sa_family == AF_INET6 as u16 {
+            //     // their_bytes = &mut ss_.sa_data[0..16];
+            //     their_bytes = sockaddr_data_to_bytes(&ss);
+            //     our_bytes = self.network_address.addr_bytes.to_vec();
+            //         // (self._network_address.as_sockaddr()).sa_data[0..16].as_mut_ptr();
+            //     mask = (mem::size_of::<ZmqIn6Addr>() * 8) as i32;
+            // } else {
+            //     // their_bytes = ss_.sa_data[0..4].as_mut_ptr() as *mut u8;
+            //     their_bytes = sockaddr_data_to_bytes(&ss);
+            //     our_bytes =
+            //         (self.network_address.as_sockaddr()).sa_data[0..4].as_mut_ptr();
+            //     mask = (mem::size_of::<ZmqInAddr>() * 8) as i32;
+            // }
+            let zss = sockaddr_to_zmq_sockaddr(ss_);
+            their_bytes = sockaddr_data_to_bytes(&zss);
+            our_bytes = self.network_address.addr_bytes.to_vec();
+            if self.address_mask < mask {
+                mask = (self.network_address.sockaddr_len() * 8) as i32;
             }
 
             let full_bytes = mask / 8;
@@ -289,9 +286,7 @@ impl TcpAddressMask {
             // {
             //     return false;
             // }
-            if last_byte_bits > 0 &&
-                their_bytes[full_bytes as usize] & last_byte_bits !=
-                our_bytes[full_bytes as usize] & last_byte_bits {
+            if last_byte_bits > 0 && their_bytes[full_bytes as usize] & last_byte_bits != our_bytes[full_bytes as usize] & last_byte_bits {
                 return false;
             }
         }

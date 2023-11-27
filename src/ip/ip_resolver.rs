@@ -1,13 +1,13 @@
-use std::ffi::{c_char, CString};
+use std::ffi::CString;
 use std::fmt::{Debug, Display};
-use anyhow::bail;
 use std::ptr::null_mut;
-use libc::{c_int, ECONNREFUSED, EINVAL, EOPNOTSUPP};
-use windows::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
-use windows::Win32::Networking::WinSock::WSAHOST_NOT_FOUND;
-use windows::Win32::NetworkManagement::IpHelper::{GAA_FLAG_SKIP_ANYCAST, GAA_FLAG_SKIP_DNS_SERVER, GAA_FLAG_SKIP_MULTICAST, GetAdaptersAddresses, IP_ADAPTER_ADDRESSES_LH, IP_ADAPTER_UNICAST_ADDRESS_LH};
+
+use anyhow::bail;
+use libc::{ECONNREFUSED, EINVAL, EOPNOTSUPP};
+
 use crate::address::ip_address::ZmqIpAddress;
-use crate::defines::{ZmqSockAddr, ZmqSockAddrIn, ZmqSockAddrIn6, AF_INET, AF_INET6, ZmqAddrInfo, SOCK_STREAM, AI_PASSIVE, AI_NUMERICHOST, EAI_MEMORY, AF_UNSPEC};
+use crate::defines::{AF_INET, AF_INET6, AI_NUMERICHOST, AI_PASSIVE, SOCK_STREAM, ZmqAddrInfo, ZmqSockAddr, ZmqSockAddrIn, ZmqSockAddrIn6};
+use crate::defines::err::ZmqError;
 use crate::ip::ip_resolver_options::IpResolverOptions;
 use crate::options::ZmqOptions;
 use crate::utils::get_errno;
@@ -52,8 +52,8 @@ pub fn IN_MULTICAST(a: u32) -> bool {
     (a & 0xf0000000) == 0xe0000000
 }
 
-pub fn IN6_IS_ADDR_MULTICAST(a: *const u8) -> bool {
-    unsafe { *a == 0xff }
+pub fn IN6_IS_ADDR_MULTICAST(a: &[u8]) -> bool {
+    a[0] == 0xff
 }
 
 #[derive(Default, Debug, Clone)]
@@ -68,28 +68,28 @@ impl IpResolver {
         }
     }
 
-    pub fn do_getaddrinfo(&mut self, node: &str, service: &str, hints: &ZmqAddrInfo, res: &mut Vec<ZmqAddrInfo>) -> anyhow::Result<()> {
+    pub fn do_getaddrinfo(&mut self, node: &str, service: &str, hints: &ZmqAddrInfo, res: &mut Vec<ZmqAddrInfo>) -> Result<(), ZmqError> {
         // TODO: call platform-specific getaddrinfo
         // getaddrinfo(node.as_mut_ptr() as *mut c_char, service.as_mut_ptr() as *mut c_char, hints, res);\
         todo!();
         Ok(())
     }
 
-    pub fn do_freeaddrinfo(&mut self, res: &mut ZmqAddrInfo) -> anyhow::Result<()> {
+    pub fn do_freeaddrinfo(&mut self, res: &mut ZmqAddrInfo) -> Result<(), ZmqError> {
         // TODO call platform specific freeaddrinfo
         // freeaddrinfo(res);
         todo!();
         Ok(())
     }
 
-    pub fn do_if_nametoindex(ifname_: &mut String) -> anyhow::Result<()> {
+    pub fn do_if_nametoindex(ifname_: &mut String) -> Result<(), ZmqError> {
         // TODO: call platform-specific if_nametoindex
         // if_nametoindex(ifname_.as_mut_ptr() as *mut c_char);
         todo!();
         Ok(())
     }
 
-    pub fn resolve(&mut self, options: &ZmqOptions, ip_addr_: &mut ZmqIpAddress, name: &str) -> anyhow::Result<()> {
+    pub fn resolve(&mut self, options: &ZmqOptions, ip_addr_: &mut ZmqIpAddress, name: &str) -> Result<(), ZmqError> {
         let mut addr: String = String::new();
         let mut port = 0u16;
 
@@ -162,7 +162,7 @@ impl IpResolver {
         }
 
         if !resolved && self._options.get_allow_nic_name() {
-            unsafe { self.resolve_nic_name( ip_addr_, &mut addr_str)?; }
+            unsafe { self.resolve_nic_name(ip_addr_, &mut addr_str)?; }
             resolved = true;
         }
 
@@ -183,7 +183,7 @@ impl IpResolver {
         &mut self,
         ip_addr_: &mut ZmqIpAddress,
         addr_: &str,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), ZmqError> {
         // let mut res: ZmqAddrInfo = ZmqAddrInfo {
         //     ai_flags: 0,
         //     ai_family: 0,
@@ -266,7 +266,7 @@ impl IpResolver {
     }
 
     #[cfg(target_os = "linux")]
-    pub fn resolve_nic_name(&mut self, ip_addr_: &mut ZmqIpAddress, nic_: &str) -> anyhow::Result<()> {
+    pub fn resolve_nic_name(&mut self, ip_addr_: &mut ZmqIpAddress, nic_: &str) -> Result<(), ZmqError> {
         let mut ifa: *mut libc::ifaddrs = null_mut();
         let mut rc = 0i32;
         let max_attempts = 10;
@@ -314,12 +314,12 @@ impl IpResolver {
     }
 
     #[cfg(target_os = "windows")]
-    pub fn get_interface_name(&mut self, index_: u32, dest: &mut String) -> anyhow::Result<()> {
+    pub fn get_interface_name(&mut self, index_: u32, dest: &mut String) -> Result<(), ZmqError> {
         let result = self.if_indextoname(index_, dest.as_mut_ptr());
     }
 
     #[cfg(target_os = "windows")]
-    pub fn resolve_nic_name(&mut self, options: &ZmqOptions, ip_addr_: &mut ZmqIpAddress, nic_: &mut String) -> anyhow::Result<()> {
+    pub fn resolve_nic_name(&mut self, options: &ZmqOptions, ip_addr_: &mut ZmqIpAddress, nic_: &mut String) -> Result<(), ZmqError> {
         let mut rc = 0i32;
         let mut found = false;
         let max_attempts = 10;

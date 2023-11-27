@@ -69,12 +69,12 @@ pub fn dealer_xsetsockopt(socket: &mut ZmqSocket, option_: i32, optval_: &[u8], 
     // socket.xsetsockopt (option_, optval_, optvallen_)
 }
 
-pub fn dealer_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
-    socket.lb.sendpipe(msg_, &mut None)
+pub fn dealer_xsend(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+    socket.lb.sendpipe(ctx, msg_, &mut None)
 }
 
 pub fn dealer_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
-    socket.lb.recvpipe(msg_, &mut None)
+    socket.fq.recvpipe(msg_, &mut None)
 }
 
 pub fn dealer_xhas_in(socket: &mut ZmqSocket) -> bool {
@@ -90,13 +90,21 @@ pub fn dealer_xread_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Re
 
 }
 
-pub fn dealer_xwrite_activated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
+pub fn dealer_xwrite_activated(
+    socket: &mut ZmqSocket,
+    pipe_: &mut ZmqPipe
+) -> Result<(),ZmqError> {
     socket.lb.activated(pipe_);
     Ok(())
 }
 
-pub fn dealer_sendpipe(socket: &mut ZmqSocket, msg_: &mut ZmqMsg, pipe_: &mut Option<&mut ZmqPipe>) -> Result<(),ZmqError> {
-    socket.lb.sendpipe(msg_, pipe_)
+pub fn dealer_sendpipe(
+    ctx: &mut ZmqContext,
+    socket: &mut ZmqSocket,
+    msg_: &mut ZmqMsg,
+    pipe_: &mut Option<&mut ZmqPipe>
+) -> Result<(),ZmqError> {
+    socket.lb.sendpipe(ctx, msg_, pipe_)
 }
 
 pub fn dealer_recvpipe(
@@ -108,7 +116,10 @@ pub fn dealer_recvpipe(
     socket.fq.recvpipe(ctx, msg_, pipe_)
 }
 
-pub fn dealer_xgetsockopt(socket: &mut ZmqSocket, option: u32) -> Result<Vec<u8>, ZmqError> {
+pub fn dealer_xgetsockopt(
+    socket: &mut ZmqSocket,
+    option: u32
+) -> Result<Vec<u8>, ZmqError> {
     unimplemented!();
 }
 pub fn dealer_xjoin(socket: &mut ZmqSocket, group: &str) -> Result<(),ZmqError> {

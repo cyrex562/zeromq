@@ -74,7 +74,9 @@ impl ZmqBlob {
         self.data = Vec::with_capacity(size_ as usize);
         self.size = size_;
         self.owned = false;
-        if self.size != 0 && self.data != std::ptr::null_mut() {
+        // if self.size != 0 && self.data != std::ptr::null_mut() 
+        if self.data.is_empty() == false
+        {
             // TODO
             // unsafe {
             //     std::ptr::copy_nonoverlapping(data_, self.data, self.size);

@@ -41,11 +41,15 @@ pub fn client_xattach_pipe(
     socket.lb.attach(pipe_);
 }
 
-pub fn client_xsend(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn client_xsend(
+    ctx: &mut ZmqContext,
+    socket: &mut ZmqSocket,
+    msg_: &mut ZmqMsg
+) -> Result<(),ZmqError> {
     if msg_.flags() & ZMQ_MSG_MORE != 0 {
         return Err(SocketError("msg more flag is set"));
     }
-    socket.lb.sendpipe(msg_, &mut None)
+    socket.lb.sendpipe(ctx, msg_, &mut None)
 }
 
 pub fn client_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {

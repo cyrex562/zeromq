@@ -60,7 +60,7 @@ pub fn xsend(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) ->
     //  If this is the first part of the message it's the ID of the
     //  peer to send the message to.
     if !socket.more_out {
-        if !(msg_.flags() & ZMQ_MSG_MORE != 0) {
+        if !(msg_.flags() & ZMQ_MSG_MORE != 0u8) {
             // errno = EINVAL;
             return Err(SocketError("dgram xsend failed"));
         }

@@ -81,23 +81,23 @@ pub fn dish_sess_pull_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result
 
     let group_length = msg_.group().len();
 
-    let mut command = ZmqMsg::new();
+    let mut command = ZmqMsg::default();
     let mut offset = 0i32;
 
     if msg_.is_join() {
         command.init_size(group_length + 5)?;
         offset = 5;
         // libc::memcpy(command_.data(), "\x04JOIN".as_ptr() as *const c_void, 5);
-        command.data().copy_from_slice("\x04JOIN".as_bytes());
+        command.data_mut().copy_from_slice("\x04JOIN".as_bytes());
     } else {
         command.init_size(group_length + 6)?;
         offset = 6;
         // libc::memcpy(command_.data(), "\x05LEAVE".as_ptr() as *const c_void, 6);
-        command.data().copy_from_slice("\x05LEAVE".as_bytes());
+        command.data_mut().copy_from_slice("\x05LEAVE".as_bytes());
     }
 
     command.set_flags(ZMQ_MSG_COMMAND);
-    let mut command_data = command.data();
+    let mut command_data = command.data_mut();
     // libc::memcpy(
     //     command_data.add(offset),
     //     msg_.group().as_ptr() as *const c_void,

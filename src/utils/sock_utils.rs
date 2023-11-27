@@ -1,6 +1,5 @@
-
 #[cfg(target_os = "windows")]
-use windows::Win32::Networking::WinSock::{sa_family_t, SOCKADDR, ADDRESS_FAMILY};
+use windows::Win32::Networking::WinSock::{ADDRESS_FAMILY, sa_family_t, SOCKADDR};
 
 use crate::defines::{AF_INET, ZmqIpMreq, ZmqIpv6Mreq, ZmqSaFamily, ZmqSockAddr, ZmqSockAddrIn, ZmqSockAddrIn6, ZmqSockaddrStorage};
 
@@ -83,8 +82,8 @@ pub fn zmq_sockaddrin_to_sockaddr(sockaddrin: &ZmqSockAddrIn) -> ZmqSockAddr {
 
 pub fn zmq_ip_mreq_to_bytes(ipmreq: &ZmqIpMreq) -> [u8; 8] {
     let mut out = [0; 8];
-    out[0..4].copy_from_slice(&ipmreq.imr_multiaddr.to_le_bytes());
-    out[4..8].copy_from_slice(&ipmreq.imr_interface.to_le_bytes());
+    out[0..4].copy_from_slice(&ipmreq.imr_multiaddr.s_addr.to_le_bytes());
+    out[4..8].copy_from_slice(&ipmreq.imr_interface.s_addr.to_le_bytes());
     out
 }
 
@@ -101,7 +100,7 @@ pub fn sockaddr_to_zmq_sockaddr(sockaddr: &libc::sockaddr) -> ZmqSockAddr {
         sa_data: [0; 14],
     };
     // out.sa_data[0..14].copy_from_slice(&sockaddr.sa_data[0..14]);
-    for i in 0 .. out.sa_data.len() {
+    for i in 0..out.sa_data.len() {
         out.sa_data[i] = sockaddr.sa_data[i] as u8;
     }
     out
@@ -118,10 +117,12 @@ pub fn wsa_sockaddr_to_zmq_sockaddr(sockaddr: &SOCKADDR) -> ZmqSockAddr {
 }
 
 pub fn zmq_sockaddr_to_zmq_sockaddrstorage(sockaddr: &ZmqSockAddr) -> ZmqSockaddrStorage {
-    let mut out = ZmqSockaddrStorage {
-        ss_family: sockaddr.sa_family as ZmqSaFamily,
-        sa_data: [0; 14],
-    };
+    // let mut out = ZmqSockaddrStorage {
+    //     ss_family: sockaddr.sa_family as ZmqSaFamily,
+    //     sa_data: [0; 14],
+    // };
+    let mut out = ZmqSockaddrStorage::default();
+    out.ss_family = sockaddr.sa_family as ZmqSaFamily;
     out.sa_data[0..14].copy_from_slice(&sockaddr.sa_data[0..14]);
     out
 }
@@ -167,12 +168,20 @@ pub fn zmq_sockaddr_to_string(sockaddr: &ZmqSockAddr) -> String {
     out
 }
 
-#[cfg(target_os="windows")]
+#[cfg(target_os = "windows")]
 pub fn zmq_sockaddr_to_wsa_sockaddr(sockaddr: &ZmqSockAddr) -> SOCKADDR {
     let mut out = SOCKADDR {
-        sa_family: ADDRESS_FAMILY{0:sockaddr.sa_family},
+        sa_family: ADDRESS_FAMILY { 0: sockaddr.sa_family },
         sa_data: [0; 14],
     };
     out.sa_data[0..14].copy_from_slice(&sockaddr.sa_data[0..14]);
+    out
+}
+
+pub fn sockaddr_data_to_bytes(sa: &ZmqSockAddr) -> Vec<u8> {
+    let mut out = Vec::new();
+    for i in 0..sa.sa_data.len() {
+        out.push(sa.sa_data[i]);
+    }
     out
 }

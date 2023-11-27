@@ -77,7 +77,7 @@ pub const MINOR_POS: usize = 11;
 //     }
 // }
 
-pub fn zmtp_plug_internal(options: &ZmqOptions, engine: &mut ZmqEngine) {
+pub fn zmtp_plug_internal(options: &ZmqOptions, engine: &mut ZmqEngine) -> Result<(),ZmqError> {
     // start optional timer, to prevent handshake hanging on no input
     engine.set_handshake_timer();
 
@@ -97,6 +97,8 @@ pub fn zmtp_plug_internal(options: &ZmqOptions, engine: &mut ZmqEngine) {
     engine.set_pollout();
     //  Flush all the data that may have been already received downstream.
     engine.in_event(options);
+
+    Ok(())
 }
 
 pub fn zmtp_handshake(engine: &mut ZmqEngine) -> bool {

@@ -37,7 +37,7 @@ pub struct ZmqEngine<'a> {
     pub encoder: Option<ZmqEncoder<'a>>,
     pub endpoint_uri_pair: Option<ZmqEndpointUriPair>,
     pub engine_type: ZmqEngineType,
-    pub fd: ZmqFd,
+    // pub fd: ZmqFd,
     pub greeting_size: usize,
     pub greeting_recv: [u8; V3_GREETING_SIZE],
     pub greeting_send: [u8; V3_GREETING_SIZE],
@@ -70,7 +70,7 @@ pub struct ZmqEngine<'a> {
     pub raw_address: ZmqSockAddrIn,
     pub recv_enabled: bool,
     pub routing_id_msg: ZmqMsg,
-    pub s: ZmqFd,
+    pub fd: ZmqFd,
     pub send_enabled: bool,
     pub session: Option<&'a mut ZmqSession<'a>>,
     pub subscription_required: bool,
@@ -90,7 +90,7 @@ impl<'a> ZmqEngine<'a> {
 
     pub fn plug(
         &mut self,
-        options: &ZmqOptions,
+        options: &mut ZmqOptions,
         io_thread_: &mut ZmqIoThread,
         session: &mut ZmqSession,
     ) -> Result<(),ZmqError> {
@@ -146,6 +146,27 @@ impl<'a> ZmqEngine<'a> {
             ZmqEngineType::Udp => udp_out_event(options, self),
             ZmqEngineType::Raw => stream_out_event(options, self),
             ZmqEngineType::Zmtp => stream_out_event(options, self),
+        }
+    }
+
+    pub fn handshake(&mut self) -> Result<(),ZmqError> {
+        match self.engine_type {
+            ZmqEngineType::Stream => {
+                // stream_handshake(engine);
+                Ok(())
+            }
+            ZmqEngineType::Udp => {
+                // udp_handshake(engine);
+                Ok(())
+            }
+            ZmqEngineType::Raw => {
+                // raw_handshake(engine);
+                Ok(())
+            }
+            ZmqEngineType::Zmtp => {
+                // zmtp_handshake(engine);
+                Ok(())
+            }
         }
     }
 }
