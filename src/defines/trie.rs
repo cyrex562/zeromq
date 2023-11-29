@@ -5,7 +5,7 @@ use std::ptr::null_mut;
 
 use libc::size_t;
 
-use crate::defines::atomic_counter::ZmqAtomicCounter;
+// use crate::defines::atomic_counter::ZmqAtomicCounter;
 
 // pub union TrieNext {
 //     pub node: *mut ZmqTrie,

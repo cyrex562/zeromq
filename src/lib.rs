@@ -42,6 +42,7 @@ mod zap_client;
 mod zmq_ops;
 mod session;
 mod ctx;
+pub mod platform;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

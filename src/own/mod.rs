@@ -1,7 +1,7 @@
 use crate::ctx::ZmqContext;
 use crate::options::ZmqOptions;
 use std::collections::HashSet;
-use crate::defines::atomic_counter::ZmqAtomicCounter;
+use std::sync::atomic::AtomicU32;
 use crate::io::io_thread::ZmqIoThread;
 use crate::object::{obj_send_term, obj_send_term_ack};
 
@@ -10,7 +10,7 @@ pub struct ZmqOwn<'a> {
     // pub object: ZmqObject<'a>,
     // pub options: ZmqOptions,
     pub terminating: bool,
-    pub sent_seqnum: ZmqAtomicCounter,
+    pub sent_seqnum: AtomicU32,
     pub processed_seqnum: u64,
     pub owner: Option<&'a mut ZmqOwn<'a>>,
     pub owned: HashSet<&'a mut ZmqOwn<'a>>,
@@ -23,7 +23,7 @@ impl<'a> ZmqOwn<'a> {
             // object: ZmqObject::new(parent_, tid_),
             // options: ZmqOptions::new(),
             terminating: false,
-            sent_seqnum: ZmqAtomicCounter::new(0),
+            sent_seqnum: AtomicU32::new(0),
             processed_seqnum: 0,
             owner: None,
             owned: HashSet::new(),
@@ -36,7 +36,7 @@ impl<'a> ZmqOwn<'a> {
             // object: ZmqObject::new2(&mut (*io_thread_).object),
             // options: ZmqOptions::new(),
             terminating: false,
-            sent_seqnum: ZmqAtomicCounter::new(0),
+            sent_seqnum: AtomicU32::new(0),
             processed_seqnum: 0,
             owner: None,
             owned: HashSet::new(),

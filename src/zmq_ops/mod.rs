@@ -1,11 +1,14 @@
 use std::mem::size_of;
-use std::os::raw::{c_long, c_uint, c_void};
+use std::os::raw::{c_long, c_void};
 
-use libc::{EINTR, pselect, sigset_t, suseconds_t, time_t, timespec, timeval, usleep};
+use libc::{EINTR,time_t, timespec, timeval};
 #[cfg(not(target_os = "windows"))]
-use libc::iovec;
+use libc::{pselect,sigset_t,suseconds_t,usleep,iovec};
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{POLLIN, POLLOUT, POLLPRI};
+use windows::Win32::Networking::WinSock::{select, SOCKET_ERROR, WSAGetLastError};
+use windows::Win32::System::Threading::INFINITE;
+#[cfg(target_os="windows")]
 use windows::Win32::System::Threading::Sleep;
 
 use crate::ctx::ZmqContext;
@@ -1250,10 +1253,10 @@ pub fn zmq_poll(
                 // #if defined ZMQ_HAVE_WINDOWS
                 #[cfg(target_os = "windows")]
                 {
-                    let rc = select(0, inset.get(), outset.get(), errset.get(), ptimeout);
-                    if (unlikely(rc == SOCKET_ERROR)) {
-                        errno = zmq::wsa_error_to_errno(WSAGetLastError());
-                        wsa_assert(errno == ENOTSOCK);
+                    let rc = unsafe{select(0, inset.get(), outset.get(), errset.get(), ptimeout)};
+                    if rc == SOCKET_ERROR {
+                        // errno = zmq::wsa_error_to_errno(WSAGetLastError());
+                        // wsa_assert(errno == ENOTSOCK);
                         return -1;
                     }
                 }

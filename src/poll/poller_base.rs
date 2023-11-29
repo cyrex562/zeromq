@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::ffi::{c_char, c_void};
+use std::sync::atomic::AtomicU32;
 
 use chrono::{Duration, Utc};
 use crate::ctx::ZmqContext;
 
-use crate::defines::atomic_counter::ZmqAtomicCounter;
 use crate::io::thread::ZmqThread;
 use crate::poll::poller_event::ZmqPollerEvent;
 
@@ -18,7 +18,7 @@ pub type ZmqTimers<'a> = HashMap<u64, TimerInfo<'a>>;
 pub struct ZmqPollerBase<'a> {
     pub _clock: Duration,
     pub _timers: ZmqTimers<'a>,
-    pub _load: ZmqAtomicCounter,
+    pub _load: AtomicU32,
 }
 
 pub struct ZmqWorkerPollerBase<'a> {

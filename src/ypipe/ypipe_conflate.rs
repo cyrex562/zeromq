@@ -1,17 +1,17 @@
-use crate::defines::dbuffer::ZmqDbuffer;
+// use crate::defines::dbuffer::ZmqDbuffer;
 use crate::ypipe::ypipe_base::ZmqYPipeBase;
 
-pub struct YPipeConflate<'a, T: Default> {
+pub struct YPipeConflate<T: Default> {
     pub base: ZmqYPipeBase<T>,
-    pub dbuffer: ZmqDbuffer<'a,T>,
+    pub dbuffer: Vec<T>,
     pub reader_awake: bool,
 }
 
-impl<'a, T: Default> YPipeConflate<'a, T> {
+impl<T: Default> YPipeConflate<T> {
     pub fn new() -> Self {
         Self {
             base: ZmqYPipeBase::new(),
-            dbuffer: ZmqDbuffer::new(),
+            dbuffer: vec![],
             reader_awake: false,
         }
     }

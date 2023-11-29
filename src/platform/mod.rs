@@ -810,3 +810,7 @@ pub fn win_SOCKADDR_IN_to_SOCKADDR(sk_in: &SOCKADDR_IN) -> SOCKADDR {
 
     out
 }
+
+pub fn platform_random() -> i32 {
+    let out = unsafe{libc::rand()};
+}

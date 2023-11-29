@@ -2,7 +2,6 @@ use crate::ctx::ZmqContext;
 use crate::defines::{ZMQ_MSG_MORE, ZMQ_ONLY_FIRST_SUBSCRIBE, ZMQ_PUB, ZMQ_SUBSCRIBE, ZMQ_TOPICS_COUNT, ZMQ_UNSUBSCRIBE, ZMQ_XPUB, ZMQ_XPUB_MANUAL, ZMQ_XPUB_MANUAL_LAST_VALUE, ZMQ_XPUB_NODROP, ZMQ_XPUB_VERBOSE, ZMQ_XPUB_VERBOSER, ZMQ_XPUB_WELCOME_MSG};
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::SocketError;
-use crate::defines::mtrie::ZmqMtrie;
 use crate::msg::ZmqMsg;
 use crate::options::{do_getsockopt, ZmqOptions};
 use crate::pipe::ZmqPipe;

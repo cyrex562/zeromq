@@ -1,9 +1,10 @@
-use crate::defines::atomic_counter::ZmqAtomicCounter;
+#[cfg(target_os="windows")]
+use windows::Win32::System::Threading::Sleep;
 use crate::defines::err::ZmqError;
 
 pub fn zmq_sleep(seconds_: i32) {
     #[cfg(target_os = "windows")]
-    Sleep((seconds_ * 1000) as u32);
+    unsafe{Sleep((seconds_ * 1000) as u32)};
     #[cfg(not(target_os = "windows"))]
     unsafe{libc::sleep(seconds_ as libc::c_uint);}
 }

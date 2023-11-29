@@ -14,9 +14,7 @@ use crate::defines::{INBOUND_POLL_RATE, MAX_COMMAND_DELAY, ZMQ_CONNECT_ROUTING_I
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::{InvalidContext, SocketError};
 use crate::defines::fair_queue::ZmqFairQueue;
-use crate::defines::generic_mtrie::GenericMtrie;
 use crate::defines::load_balancer::ZmqLoadBalancer;
-use crate::defines::mtrie::ZmqMtrie;
 use crate::defines::mutex::ZmqMutex;
 use crate::dist::ZmqDist;
 use crate::endpoint::{make_unconnected_connect_endpoint_pair, ZmqEndpointUriPair};

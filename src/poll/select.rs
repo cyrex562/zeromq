@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::mem::size_of_val;
 #[cfg(target_os = "windows")]
 use libc::SOCKET;
 #[cfg(target_os = "windows")]
@@ -9,6 +10,7 @@ use windows::Win32::Networking::WinSock::{
     FD_SET, FD_WRITE, select, SO_TYPE, SOCK_DGRAM, SOCKADDR_STORAGE, SOCKET_ERROR, SOL_SOCKET,
     TIMEVAL, WSA_WAIT_TIMEOUT, WSAEventSelect, WSAWaitForMultipleEvents,
 };
+use windows::Win32::Networking::WinSock::{getsockname, getsockopt, SOCKADDR};
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::INFINITE;
 
@@ -16,9 +18,11 @@ use crate::ctx::ZmqContext;
 #[cfg(target_os = "windows")]
 use crate::defines::WSAEVENT;
 use crate::defines::{ZmqFd, ZmqHandle};
+use crate::defines::err::ZmqError;
 use crate::defines::RETIRED_FD;
-use crate::defines::time::ZmqTimeval;
+use crate::defines::time::{timeval_to_zmq_timeval, ZmqTimeval};
 use crate::net::platform_socket::platform_select;
+use crate::platform::platform_random;
 use crate::poll::poller_base::ZmqWorkerPollerBase;
 use crate::poll::poller_event::ZmqPollerEvent;
 use crate::utils::{FD_ISSET, is_retired_fd};
@@ -119,7 +123,7 @@ pub fn FD_CLR(fd: ZmqFd, fds: &mut fd_set) {
 pub struct ZmqSelect<'a> {
     pub _worker_poller_base: ZmqWorkerPollerBase<'a>,
     #[cfg(target_os = "windows")]
-    pub _family_entries: ZmqFamilyEntries,
+    pub _family_entries: ZmqFamilyEntries<'a>,
     #[cfg(target_os = "windows")]
     pub _fd_family_cache: [(ZmqFd, u16); FD_FAMILY_CACHE_SIZE],
     #[cfg(not(target_os = "windows"))]
@@ -127,7 +131,7 @@ pub struct ZmqSelect<'a> {
     #[cfg(not(target_os = "windows"))]
     pub _max_fd: ZmqFd,
     #[cfg(target_os = "windows")]
-    pub _current_family_entry_it: &'a mut family_entry_t,
+    pub _current_family_entry_it: &'a mut family_entry_t<'a>,
 }
 
 impl<'a> ZmqSelect<'a> {
@@ -530,12 +534,12 @@ impl<'a> ZmqSelect<'a> {
                     if (use_wsa_events) {
                         //  There is no reason to wait again after WSAWaitForMultipleEvents.
                         //  Simply collect what is Ready. struct timeval
-                        let mut tv_nodelay = TIMEVAL::default();
+                        let mut tv_nodelay = ZmqTimeval::default();
                         self.select_family_entry(
                             family_entry,
                             0,
                             true,
-                            &tv_nodelay as &mut timeval,
+                            &mut tv_nodelay,
                         );
                     } else {
                         // self.select_family_entry(family_entry, 0, timeout > 0, tv);
@@ -655,7 +659,7 @@ impl<'a> ZmqSelect<'a> {
         } else {
             // just overwrite a random entry
             // could be optimized by some LRU strategy
-            self._fd_family_cache[rand() % FD_FAMILY_CACHE_SIZE] = res;
+            self._fd_family_cache[platform_random() % FD_FAMILY_CACHE_SIZE] = res;
         }
 
         return res.1;
@@ -687,7 +691,7 @@ impl<'a> ZmqSelect<'a> {
 
             rc = getsockname(
                 fd_ as SOCKET,
-                &mut addr as *mut sockaddr,
+                &mut addr as *mut SOCKADDR,
                 &mut addr_size as *mut c_int,
             );
 
@@ -702,7 +706,7 @@ impl<'a> ZmqSelect<'a> {
             }
         }
 
-        return AF_UNSPEC as u16;
+        return AF_UNSPEC.0;
     }
 }
 

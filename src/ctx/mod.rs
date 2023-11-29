@@ -5,10 +5,10 @@ use std::{
     sync::Mutex,
 };
 use std::ptr::null_mut;
+use std::sync::atomic::AtomicU32;
 
 use crate::{command::ZmqCommand, socket::ZmqSocket};
 use crate::defines::{ZMQ_CTX_TAG_VALUE_GOOD, ZMQ_PAIR, ZmqPid};
-use crate::defines::atomic_counter::ZmqAtomicCounter;
 use crate::defines::err::ZmqError;
 use crate::defines::mutex::ZmqMutex;
 use crate::io::io_thread::ZmqIoThread;
@@ -80,7 +80,7 @@ pub struct ZmqContext<'a> {
     pub _endpoints: HashMap<String, Endpoint<'a>>,
     pub _pending_connections: HashMap<String, PendingConnection<'a>>,
     pub _endpoints_sync: ZmqMutex,
-    pub max_socket_id: ZmqAtomicCounter,
+    pub max_socket_id: AtomicU32,
     pub _max_sockets: i32,
     pub _max_msgsz: i32,
     pub _io_thread_count: i32,
@@ -113,7 +113,7 @@ impl<'a> ZmqContext<'a> {
             _endpoints: HashMap::new(),
             _pending_connections: HashMap::new(),
             _endpoints_sync: ZmqMutex::new(),
-            max_socket_id: ZmqAtomicCounter::new(0),
+            max_socket_id: AtomicU32::new(0),
             _max_sockets: 0,
             _max_msgsz: 0,
             _io_thread_count: 0,

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use crate::defines::atomic_counter::ZmqAtomicCounter;
+use std::sync::atomic::AtomicU32;
+// use crate::defines::atomic_counter::ZmqAtomicCounter;
 
 pub type ZmqDict = HashMap<String, String>;
 
@@ -12,7 +13,7 @@ pub struct ZmqMetadata {
 impl ZmqMetadata {
     pub fn new(dict_: &HashMap<String, String>) -> Self {
         Self {
-            ref_cnt: ZmqAtomicCounter::new(1),
+            ref_cnt: AtomicU32::new(0),
             dict: dict_.clone(),
         }
     }

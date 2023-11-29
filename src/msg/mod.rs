@@ -1,5 +1,6 @@
 use std::ffi::c_char;
 use std::ptr::null_mut;
+use std::sync::atomic::AtomicU32;
 
 use libc::size_t;
 use content::ZmqContent;
@@ -10,7 +11,7 @@ use crate::defines::{
     ZMQ_MSG_CREDENTIAL, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZMQ_MSG_ROUTING_ID, ZMQ_MSG_SHARED,
     ZMQ_MSG_SUBSCRIBE,
 };
-use crate::defines::atomic_counter::ZmqAtomicCounter;
+
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::MessageError;
 use crate::metadata::ZmqMetadata;
@@ -140,10 +141,10 @@ pub union ZmqMsgU {
 
 #[derive(Default, Clone)]
 pub struct ZmqMsg {
-    pub refcnt: ZmqAtomicCounter,
+    pub refcnt: AtomicU32,
     // pub _u: ZmqMsgU,
     pub metadata: ZmqMetadata,
-    pub content: ZmqContent,
+    pub content: Option<ZmqContent>,
     // pub unused: [u8; METADATA_T_PTR_SIZE + 2 + 4 + GROUP_T_SIZE],
     pub type_: u8,
     pub flags: u8,
@@ -158,6 +159,25 @@ pub struct ZmqMsg {
     // pub content: &'a mut ZmqLongGroup,
     pub data: [u8; MAX_VSM_SIZE],
     pub size: u8,
+}
+
+impl Default for ZmqMsg {
+    fn default() -> Self {
+        Self {
+            refcnt: AtomicU32::new(0),
+            metadata: ZmqMetadata::default(),
+            content: None,
+            type_: 0,
+            flags: 0,
+            routing_id: 0,
+            group_type: 0,
+            sgroup_type: 0,
+            group: [0u8; 15],
+            lgroup_type: 0,
+            data: [0u8; MAX_VSM_SIZE],
+            size: 0,
+        }
+    }
 }
 
 impl ZmqMsg {
@@ -191,7 +211,7 @@ impl ZmqMsg {
 
             // return Err();
         }
-        if content != ZmqContent::default() {
+        if content.is_some() {
             return self.init_external_storage(content, data, size, free_fn, hint);
         }
         return self.init_data(data, size, free_fn, hint);
