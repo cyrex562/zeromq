@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::ffi::c_void;
 use std::thread;
 use std::thread::ThreadId;
+use crate::defines::ZmqHandle;
 
 pub const DEFAULT_PRIORITY: u32 = 100;
 pub const DEFAULT_OPTIONS: u32 = 0;
@@ -28,7 +29,7 @@ pub struct ZmqThread<'a> {
 #[cfg(target_os = "windows")]
 pub struct ThreadInfoT {
     pub _type: u16,
-    pub _name: *mut c_char,
+    pub _name: *mut libc::c_char,
     pub _thread_id: u32,
     pub _flags: u32,
 }

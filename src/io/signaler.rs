@@ -3,13 +3,16 @@ use std::mem;
 use std::mem::size_of_val;
 
 use libc::{c_int, close, EAGAIN, EINTR, getpid, read, write};
-use windows::Win32::Networking::WinSock::{recv, select, send, SEND_RECV_FLAGS, TIMEVAL};
+#[cfg(target_os = "windows")]
+use windows::Win32::Networking::WinSock::{recv, select, send, SEND_RECV_FLAGS, SOCKET_ERROR, TIMEVAL};
+use windows::Win32::Networking::WinSock::{WSAEWOULDBLOCK, WSAGetLastError};
+use windows::Win32::System::Threading::Sleep;
 
 use crate::defines::{ZmqFd, ZmqPid};
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::PollerError;
 use crate::ip::{make_fdpair, unblock_socket};
-use crate::net::platform_socket::{platform_select, platform_send};
+use crate::platform::{platform_select, platform_send};
 use crate::poll::select::{fd_set, FD_SET, FD_ZERO};
 use crate::utils::get_errno;
 
@@ -288,7 +291,7 @@ impl ZmqSignaler {
         {
             let nbytes = recv(self._r, dummy.to_le_bytes().as_mut_slice(), SEND_RECV_FLAGS::default());
             if nbytes == SOCKET_ERROR {
-                let last_error = WSAGetLastError();
+                let last_error = unsafe{WSAGetLastError()};
                 if last_error == WSAEWOULDBLOCK {
                     // errno = EAGAIN;
                     return -1;
@@ -354,7 +357,7 @@ pub fn sleep_ms(millis: u32) -> Result<(), ZmqError> {
 
     #[cfg(target_os = "windows")]
     {
-        Sleep(millis as u32);
+        unsafe{Sleep(millis as u32)};
     }
     #[cfg(not(target_os = "windows"))]
     {

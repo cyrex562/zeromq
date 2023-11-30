@@ -12,7 +12,7 @@ use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::SocketError;
 use crate::defines::tcp::{TCP_NODELAY, TCP_USER_TIMEOUT};
 use crate::ip::{bind_to_device, enable_ipv4_mapping, open_socket, set_ip_type_of_service, set_socket_priority};
-use crate::net::platform_socket::{platform_send, platform_setsockopt};
+use crate::platform::{platform_send, platform_setsockopt};
 use crate::options::ZmqOptions;
 use crate::utils::get_errno;
 
@@ -364,7 +364,7 @@ pub fn tcp_tune_loopback_fast_path(socket_: ZmqFd) -> Result<(), ZmqError> {
             socket_,
             SIO_LOOPBACK_FAST_PATH,
             Some(sio_loopback_fastpath.to_le_bytes().as_ptr() as *const c_void),
-            size_of::<sio_loopback_fastpath>() as u32,
+            size_of_val(&sio_loopback_fastpath) as u32,
             None,
             0,
             &mut number_of_bytes_returned,

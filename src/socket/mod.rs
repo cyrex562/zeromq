@@ -154,7 +154,7 @@ pub struct ZmqSocket<'a> {
     pub mailbox: ZmqMailbox<'a>,
     pub mandatory: bool,
     pub manual: bool,
-    pub manual_subscriptions: ZmqMtrie<'a>,
+    pub manual_subscriptions: Vec<ZmqPipe<'a>>,
     pub matching: usize,
     pub message: ZmqMsg,
     pub monitor_events: i64,
@@ -326,7 +326,7 @@ impl<'a> ZmqSocket<'a> {
             mailbox: ZmqMailbox::default(),
             mandatory: false,
             manual: false,
-            manual_subscriptions: GenericMtrie::default(),
+            manual_subscriptions:vec!{},
             matching: 0,
             pipes: ZmqPipes::default(),
             poller: None,
@@ -477,7 +477,7 @@ impl<'a> ZmqSocket<'a> {
                 dgram_xattach_pipe(ctx, self, &mut pipe, subscribe_to_all_, locally_initiated_);
             }
             ZmqSocketType::Dish => {
-                dish_xattach_pipe(self, &mut pipe, subscribe_to_all_, locally_initiated_);
+                dish_xattach_pipe(self, &mut pipe, subscribe_to_all_, locally_initiated_)?;
             }
             ZmqSocketType::Gather => {
                 gather_xattach_pipe(self, &mut pipe, subscribe_to_all_, locally_initiated_);

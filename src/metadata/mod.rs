@@ -6,7 +6,7 @@ pub type ZmqDict = HashMap<String, String>;
 
 #[derive(Default,Debug,Clone)]
 pub struct ZmqMetadata {
-    pub ref_cnt: ZmqAtomicCounter,
+    pub ref_cnt: AtomicU32,
     pub dict: HashMap<String, String>,
 }
 

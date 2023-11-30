@@ -9,7 +9,7 @@ use crate::defines::{AF_INET, AF_INET6, NI_MAXHOST, NI_NUMERICHOST, ZmqSockAddr}
 use crate::defines::err::ZmqError;
 use crate::ip::ip_resolver::IpResolver;
 use crate::ip::ip_resolver_options::IpResolverOptions;
-use crate::net::platform_socket::platform_getnameinfo;
+use crate::platform::platform_getnameinfo;
 use crate::options::ZmqOptions;
 use crate::utils::sock_utils::{sockaddr_data_to_bytes, sockaddr_to_sockaddrin, sockaddr_to_sockaddrin6, sockaddr_to_zmq_sockaddr};
 

@@ -8,6 +8,7 @@ use libc::{suseconds_t};
 
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{FD_SET, POLLIN, POLLOUT, POLLPRI};
+use windows::Win32::Networking::WinSock::SOCKET_ERROR;
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::{INFINITE, Sleep};
 
@@ -15,8 +16,9 @@ use crate::defines::{RETIRED_FD, ZMQ_EVENTS, ZMQ_FD, ZMQ_POLLERR, ZMQ_POLLIN, ZM
 use crate::defines::clock::ZmqClock;
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::PollerError;
+use crate::defines::time::ZmqTimeval;
 use crate::io::signaler::ZmqSignaler;
-use crate::net::platform_socket::platform_select;
+use crate::platform::platform_select;
 use crate::options::ZmqOptions;
 use crate::poll::poller_event::ZmqPollerEvent;
 use crate::poll::polling_util::{ResizableOptimizedFdSetT, valid_pollset_bytes};
@@ -660,19 +662,29 @@ impl<'a> ZmqSocketPoller<'a> {
             loop {
                 //  Compute the timeout for the subsequent poll.
                 // timeval timeout;
-                let mut timeout = timeval { tv_sec: 0, tv_usec: 0 };
-                // timeval *ptimeout;
-                // let mut ptimeout: *mut timeval = null_mut();
+                // let mut timeout = timeval { tv_sec: 0, tv_usec: 0 };
+                // // timeval *ptimeout;
+                // // let mut ptimeout: *mut timeval = null_mut();
+                // if first_pass {
+                //     timeout.tv_sec = 0;
+                //     timeout.tv_usec = 0;
+                //     // ptimeout = &mut timeout;
+                // } else if timeout_ < 0 {
+                //     // ptimeout = null_mut();
+                // } else {
+                //     timeout.tv_sec = ((end - now) / 1000) as time_t;
+                //     timeout.tv_usec = ((end - now) % 1000 * 1000) as suseconds_t;
+                //     // ptimeout = &mut timeout;
+                // }
+                let mut timeout = ZmqTimeval::default();
                 if first_pass {
                     timeout.tv_sec = 0;
                     timeout.tv_usec = 0;
-                    // ptimeout = &mut timeout;
                 } else if timeout_ < 0 {
-                    // ptimeout = null_mut();
+                    timeout = ZmqTimeval::default();
                 } else {
-                    timeout.tv_sec = ((end - now) / 1000) as time_t;
-                    timeout.tv_usec = ((end - now) % 1000 * 1000) as suseconds_t;
-                    // ptimeout = &mut timeout;
+                    timeout.tv_sec = ((end - now) / 1000) as i32;
+                    timeout.tv_usec = ((end - now) % 1000 * 1000) as i32;
                 }
 
                 //  Wait for events. Ignore interrupts if there's infinite timeout.
@@ -704,13 +716,13 @@ impl<'a> ZmqSocketPoller<'a> {
                 platform_select(self._max_fd + 1, Some(&mut inset),
                                 Some(&mut outset), Some(&mut errset), if timeout_ < 0 { None } else { &mut timeout })?;
                 // #if defined ZMQ_HAVE_WINDOWS
-                #[cfg(target_os = "windows")]{
-                    if ((rc == SOCKET_ERROR)) {
-                        errno = wsa_error_to_errno(WSAGetLastError());
-                        wsa_assert(errno == ENOTSOCK);
-                        return -1;
-                    }
-                }
+                // #[cfg(target_os = "windows")]{
+                //     if ((rc == SOCKET_ERROR)) {
+                //         // errno = wsa_error_to_errno(WSAGetLastError());
+                //         // wsa_assert(errno == ENOTSOCK);
+                //         return -1;
+                //     }
+                // }
                 // #else
                 // #[cfg(not(target_os = "windows"))]{
                 //     if rc == -1 {

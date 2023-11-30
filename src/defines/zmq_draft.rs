@@ -1,5 +1,8 @@
 /*  DRAFT Socket types.                                                       */
 
+#[cfg(target_os="windows")]
+use windows::Win32::Networking::WinSock::SOCKET;
+
 pub const ZMQ_SERVER: u32 = 12;
 pub const ZMQ_CLIENT: u32 = 13;
 pub const ZMQ_RADIO: u32 = 14;

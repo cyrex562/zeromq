@@ -2,7 +2,7 @@
 use windows::Win32::Networking::WinSock::WSAPoll;
 use crate::defines::err::ZmqError;
 use crate::defines::ZmqPollFd;
-use crate::net::platform_socket::platform_poll;
+use crate::platform::platform_poll;
 
 pub mod select;
 pub mod socket_poller;

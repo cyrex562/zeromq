@@ -20,11 +20,13 @@ use crate::defines::{
 use crate::defines::clock::ZmqClock;
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::{ContextError, InvalidContext, PollerError, ProxyError, SocketError, TimerError};
+#[cfg(not(target_os="windows"))]
 use crate::defines::time::timeval_to_zmq_timeval;
+use crate::defines::time::{zmq_timeval_to_ms_timeval, ZmqTimeval};
 use crate::io::timers::{Timers, TimersTimerFn};
 use crate::ip::{initialize_network, shutdown_network};
 use crate::msg::{MsgFreeFn, ZmqMsg};
-use crate::net::platform_socket::platform_select;
+use crate::platform::platform_select;
 use crate::net::proxy::proxy;
 use crate::options::ZmqOptions;
 use crate::poll::poller_event::ZmqPollerEvent;
@@ -1213,21 +1215,34 @@ pub fn zmq_poll(
         #[cfg(not(feature = "poll"))]
         {
             //  Compute the timeout for the subsequent poll.
-            let mut timeout = timeval {
-                tv_sec: 0,
-                tv_usec: 0,
-            };
-            // let mut ptimeout: &mut timeval = &timeout;
+            // let mut timeout = timeval {
+            //     tv_sec: 0,
+            //     tv_usec: 0,
+            // };
+            // // let mut ptimeout: &mut timeval = &timeout;
+            // if first_pass {
+            //     timeout.tv_sec = 0;
+            //     timeout.tv_usec = 0;
+            //     // ptimeout = &timeout;
+            // } else if timeout_ < 0 {
+            //     // ptimeout = null_mut();
+            // } else {
+            //     timeout.tv_sec = ((end - now) / 1000) as time_t;
+            //     timeout.tv_usec = ((end - now) % 1000 * 1000) as suseconds_t;
+            //     // ptimeout = &timeout;
+            // }
+
+            let mut timeout = ZmqTimeval::default();
             if first_pass {
                 timeout.tv_sec = 0;
                 timeout.tv_usec = 0;
-                // ptimeout = &timeout;
-            } else if timeout_ < 0 {
-                // ptimeout = null_mut();
-            } else {
-                timeout.tv_sec = ((end - now) / 1000) as time_t;
-                timeout.tv_usec = ((end - now) % 1000 * 1000) as suseconds_t;
-                // ptimeout = &timeout;
+            }
+            else if timeout_ < 0 {
+                timeout = ZmqTimeval::default();
+            }
+            else {
+                timeout.tv_sec = ((end - now) / 1000) as i32;
+                timeout.tv_usec = ((end - now) % 1000 * 1000) as i32;
             }
 
             //  Wait for events. Ignore interrupts if there's infinite timeout.
@@ -1253,7 +1268,8 @@ pub fn zmq_poll(
                 // #if defined ZMQ_HAVE_WINDOWS
                 #[cfg(target_os = "windows")]
                 {
-                    let rc = unsafe{select(0, inset.get(), outset.get(), errset.get(), ptimeout)};
+                    let ms_timeout = zmq_timeval_to_ms_timeval(&timeout);
+                    let rc = unsafe{select(0, inset.get(), outset.get(), errset.get(), Some(&ms_timeout))};
                     if rc == SOCKET_ERROR {
                         // errno = zmq::wsa_error_to_errno(WSAGetLastError());
                         // wsa_assert(errno == ENOTSOCK);

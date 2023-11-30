@@ -13,7 +13,7 @@ use crate::engine::ZmqEngine;
 use crate::io::io_object::IoObject;
 use crate::io::io_thread::ZmqIoThread;
 use crate::ip::unblock_socket;
-use crate::net::platform_socket::{platform_bind, platform_connect, platform_getsockopt};
+use crate::platform::{platform_bind, platform_connect, platform_getsockopt};
 use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
 use crate::session::ZmqSession;

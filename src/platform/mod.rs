@@ -23,11 +23,16 @@ use crate::defines::{AF_INET, AF_UNIX, IPPROTO_TCP, NI_MAXHOST, RETIRED_FD, SIGN
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::PlatformError;
 use crate::defines::tcp::TCP_NODELAY;
-use crate::defines::time::{zmq_timeval_to_ms_timeval, zmq_timeval_to_timeval, ZmqTimeval};
+use crate::defines::time::{zmq_timeval_to_ms_timeval, ZmqTimeval};
+#[cfg(not(target_os="windows"))]
+use crate::defines::time::{zmq_timeval_to_timeval};
 use crate::ip::{open_socket, set_nosigpipe};
 use crate::poll::select::fd_set;
 use crate::tcp::tcp_tune_loopback_fast_path;
-use crate::utils::sock_utils::{sockaddr_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr, };
+#[cfg(not(target_os="windows"))]
+use crate::utils::sock_utils::{sockaddr_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr};
+#[cfg(target_os = "windows")]
+use crate::utils::sock_utils::{wsa_sockaddr_to_zmq_sockaddr};
 
 pub fn platform_setsockopt(
     fd: ZmqFd,

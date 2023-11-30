@@ -20,8 +20,10 @@ use crate::defines::WSAEVENT;
 use crate::defines::{ZmqFd, ZmqHandle};
 use crate::defines::err::ZmqError;
 use crate::defines::RETIRED_FD;
-use crate::defines::time::{timeval_to_zmq_timeval, ZmqTimeval};
-use crate::net::platform_socket::platform_select;
+#[cfg(not(target_os="windows"))]
+use crate::defines::time::timeval_to_zmq_timeval;
+use crate::defines::time::{ZmqTimeval};
+use crate::platform::platform_select;
 use crate::platform::platform_random;
 use crate::poll::poller_base::ZmqWorkerPollerBase;
 use crate::poll::poller_event::ZmqPollerEvent;
@@ -680,7 +682,7 @@ impl<'a> ZmqSelect<'a> {
             fd_ as SOCKET,
             SOL_SOCKET,
             SO_TYPE,
-            &mut type_ as *mut c_char,
+            &mut type_ as *mut libc::c_char,
             &mut type_length,
         );
 
@@ -692,7 +694,7 @@ impl<'a> ZmqSelect<'a> {
             rc = getsockname(
                 fd_ as SOCKET,
                 &mut addr as *mut SOCKADDR,
-                &mut addr_size as *mut c_int,
+                &mut addr_size as *mut libc::c_int,
             );
 
             //  AF_INET and AF_INET6 can be mixed in select

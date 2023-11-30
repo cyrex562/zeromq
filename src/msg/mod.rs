@@ -1,5 +1,3 @@
-use std::ffi::c_char;
-use std::ptr::null_mut;
 use std::sync::atomic::AtomicU32;
 
 use libc::size_t;
@@ -42,7 +40,7 @@ impl From<u8> for ZmqGroupType {
 
 pub struct ZmqLongGroup {
     pub group: [u8; ZMQ_GROUP_MAX_LENGTH + 1],
-    pub refcnt: ZmqAtomicCounter,
+    pub refcnt: AtomicU32,
 }
 
 #[derive(Copy, Clone)]
@@ -268,7 +266,7 @@ impl ZmqMsg {
             (self.content).size = size_;
             (self.content).ffn = None;
             (self.content).hint = vec![];
-            (self.content).refcnt = ZmqAtomicCounter::new(0);
+            (self.content).refcnt = AtomicU32::new(0);
         }
         Ok(())
     }
@@ -306,7 +304,7 @@ impl ZmqMsg {
         (*self.content).ffn = ffn_;
         (*self.content).hint.clone_from_slice(hint);
         // new (&_u.zclmsg.content->refcnt) zmq::atomic_counter_t ();
-        (*self.content).refcnt = ZmqAtomicCounter::new(0);
+        (*self.content).refcnt = AtomicU32::new(0);
 
         Ok(())
     }
@@ -330,7 +328,7 @@ impl ZmqMsg {
         // (*self.content).ffn = Some(ZmqSharedMessageMemoryAllocator::call_dec_ref);
         (*self.content).hint.clone_from_slice(hint);
         // new (&_u.zclmsg.content->refcnt) zmq::atomic_counter_t ();
-        (*self.content).refcnt = ZmqAtomicCounter::new(0);
+        (*self.content).refcnt = AtomicU32::new(0);
 
         Ok(())
     }
@@ -371,7 +369,7 @@ impl ZmqMsg {
             (*self.content).ffn = ffn_;
             (*self.content).hint.clone_from_slice(hint_);
             // new (&_u.lmsg.content.refcnt) zmq::atomic_counter_t ();
-            (*self.content).refcnt = ZmqAtomicCounter::new(0);
+            (*self.content).refcnt = AtomicU32::new(0);
         }
         Ok(())
     }
@@ -521,7 +519,7 @@ impl ZmqMsg {
         //     return rc;
         // }
 
-        let mut initial_shared_refcnt = ZmqAtomicCounter::new(2);
+        let mut initial_shared_refcnt = AtomicU32::new(2);
 
         if src_msg.is_lmsg() || src_msg.is_zcmsg() {
             if src_msg.flags() & ZMQ_MSG_SHARED != 0 {
@@ -826,7 +824,7 @@ impl ZmqMsg {
         return Ok(());
     }
 
-    pub fn refcnt(&mut self) -> &mut ZmqAtomicCounter {
+    pub fn refcnt(&mut self) -> &mut AtomicU32 {
         return &mut (self.metadata).ref_cnt;
     }
 }

@@ -13,10 +13,12 @@ use crate::address::get_socket_address;
 use crate::address::SocketEnd::SocketEndRemote;
 use crate::defines::{IP_TOS, IPPROTO_IP, IPPROTO_IPV6, IPV6_V6ONLY, MSG_NOSIGNAL, NI_NUMERICHOST, SO_BINDTODEVICE, SO_PRIORITY, SOL_SOCKET, ZmqFd, ZmqSockAddr};
 use crate::defines::err::ZmqError;
-use crate::net::platform_socket::{
+use crate::defines::tcp::TCP_NODELAY;
+use crate::platform::{
     platform_getnameinfo, platform_init_network, platform_make_fdpair, platform_open_socket,
     platform_setsockopt, platform_shutdown_network, platform_unblock_socket,
 };
+use crate::tcp::tcp_tune_loopback_fast_path;
 use crate::utils::sock_utils::zmq_sockaddrstorage_to_zmq_sockaddr;
 
 pub mod ip_resolver;

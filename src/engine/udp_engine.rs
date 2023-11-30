@@ -24,7 +24,7 @@ use crate::engine::ZmqEngine;
 use crate::io::io_thread::ZmqIoThread;
 use crate::ip::{bind_to_device, open_socket, unblock_socket};
 use crate::msg::ZmqMsg;
-use crate::net::platform_socket::{platform_bind, platform_recvfrom, platform_sendto, platform_setsockopt};
+use crate::platform::{platform_bind, platform_recvfrom, platform_sendto, platform_setsockopt};
 use crate::options::ZmqOptions;
 use crate::session::ZmqSession;
 use crate::utils::sock_utils::{zmq_ip_mreq_to_bytes, zmq_ipv6_mreq_to_bytes, zmq_sockaddr_storage_to_sockaddr, zmq_sockaddr_storage_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr, zmq_sockaddr_to_sockaddrin, zmq_sockaddrin_to_sockaddr};

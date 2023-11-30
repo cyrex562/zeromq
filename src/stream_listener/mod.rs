@@ -1,5 +1,7 @@
 use std::mem::size_of_val;
 use std::ptr::null_mut;
+use libc::c_int;
+use windows::Win32::Networking::WinSock::{setsockopt, SOCKET_ERROR};
 
 use crate::address::{get_socket_name, SocketEnd};
 use crate::address::SocketEnd::{SocketEndLocal, SocketEndRemote};
@@ -14,7 +16,7 @@ use crate::engine::ZmqEngine;
 use crate::io::io_object::IoObject;
 use crate::io::io_thread::ZmqIoThread;
 use crate::ip::{set_ip_type_of_service, set_nosigpipe, set_socket_priority};
-use crate::net::platform_socket::{platform_make_socket_noninheritable, platform_setsockopt};
+use crate::platform::{platform_make_socket_noninheritable, platform_setsockopt};
 use crate::options::ZmqOptions;
 use crate::own::ZmqOwn;
 use crate::session::ZmqSession;
@@ -160,14 +162,18 @@ impl<'a> ZmqStreamListener<'a> {
         let mut rc = 0;
         // #ifdef ZMQ_HAVE_WINDOWS
         #[cfg(target_os = "windows")]
-        {
+        unsafe {
             //  TODO this was changed for Windows from SO_REUSEADDRE to
             //  SE_EXCLUSIVEADDRUSE by 0ab65324195ad70205514d465b03d851a6de051c,
             //  so the comment above is no longer correct; also, now the settings are
             //  different between listener and connecter with a src address.
             //  is this intentional?
-            rc = setsockopt(self._s, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
-                            Some(&flag.to_le_bytes()));
+            rc = setsockopt(
+                self._s,
+                SOL_SOCKET as i32,
+                SO_REUSEADDR,
+                Some(&flag.to_le_bytes())
+            );
             // wsa_assert(rc != SOCKET_ERROR);
         }
         // #elif defined ZMQ_HAVE_VXWORKS
@@ -266,17 +272,19 @@ impl<'a> ZmqStreamListener<'a> {
         // #if defined ZMQ_HAVE_HPUX || defined ZMQ_HAVE_VXWORKS
         //     int ss_len = sizeof (ss);
         // #else
-        let mut ss_len = size_of_val(&ss) as libc::socklen_t;
+        let mut ss_len = size_of_val(&ss) as c_int;
         // #endif
         // #if defined ZMQ_HAVE_SOCK_CLOEXEC && defined HAVE_ACCEPT4
         //     fd_t sock = ::accept4 (_s, reinterpret_cast<struct sockaddr *> (&ss),
         //                            &ss_len, SOCK_CLOEXEC);
         // #else
-        let sock = libc::accept(
-            self._s,
-            &mut zmq_sockaddr_storage_to_sockaddr(&ss),
-            &mut ss_len,
-        );
+        let sock = unsafe {
+            libc::accept(
+                self._s,
+                &mut zmq_sockaddr_storage_to_sockaddr(&ss),
+                &mut ss_len,
+            )
+        };
         // #endif
 
         if sock == RETIRED_FD {

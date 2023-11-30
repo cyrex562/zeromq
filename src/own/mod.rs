@@ -159,7 +159,7 @@ pub fn own_process_term(
         ctx,
         terminating,
         &mut 0,
-        &mut ZmqAtomicCounter::new(0),
+        &mut AtomicU32::new(0),
         term_acks,
         &mut None,
     );
@@ -173,7 +173,7 @@ pub fn own_unregister_term_ack(
     ctx: &mut ZmqContext,
     terminating: &mut bool,
     processed_seqnum: &mut u64,
-    sent_seqnum: &mut ZmqAtomicCounter,
+    sent_seqnum: &mut AtomicU32,
     term_acks: &mut i32,
     owner: &mut Option<&mut ZmqOwn>,
 ) {
@@ -188,7 +188,7 @@ pub fn own_process_term_ack(
     ctx: &mut ZmqContext,
     terminating: &mut bool,
     processed_seqnum: &mut u64,
-    sent_seqnum: &mut ZmqAtomicCounter,
+    sent_seqnum: &mut AtomicU32,
     term_acks: &mut i32,
     owner: &mut Option<&mut ZmqOwn>,
 ) {
@@ -199,7 +199,7 @@ pub fn own_check_term_acks(
     ctx: &mut ZmqContext,
     terminating: &mut bool,
     processed_seqnum: &mut u64,
-    sent_seqnum: &mut ZmqAtomicCounter,
+    sent_seqnum: &mut AtomicU32,
     term_acks: &mut i32,
     owner: &mut Option<&mut ZmqOwn>,
 ) {

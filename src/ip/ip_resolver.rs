@@ -4,9 +4,11 @@ use std::ptr::null_mut;
 
 use anyhow::bail;
 use libc::{ECONNREFUSED, EINVAL, EOPNOTSUPP};
+use windows::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
+use windows::Win32::NetworkManagement::IpHelper::{GAA_FLAG_SKIP_ANYCAST, GAA_FLAG_SKIP_DNS_SERVER, GAA_FLAG_SKIP_MULTICAST, GetAdaptersAddresses, IP_ADAPTER_ADDRESSES_LH, IP_ADAPTER_UNICAST_ADDRESS_LH};
 
 use crate::address::ip_address::ZmqIpAddress;
-use crate::defines::{AF_INET, AF_INET6, AI_NUMERICHOST, AI_PASSIVE, SOCK_STREAM, ZmqAddrInfo, ZmqSockAddr, ZmqSockAddrIn, ZmqSockAddrIn6};
+use crate::defines::{AF_INET, AF_INET6, AF_UNSPEC, AI_NUMERICHOST, AI_PASSIVE, SOCK_STREAM, ZmqAddrInfo, ZmqSockAddr, ZmqSockAddrIn, ZmqSockAddrIn6};
 use crate::defines::err::ZmqError;
 use crate::ip::ip_resolver_options::IpResolverOptions;
 use crate::options::ZmqOptions;
@@ -327,13 +329,13 @@ impl IpResolver {
         let addresses: *mut IP_ADAPTER_ADDRESSES_LH = null_mut();
         let mut out_buf_len = 0u32;
         while rc == ERROR_BUFFER_OVERFLOW && iterations < max_attempts {
-            rc = GetAdaptersAddresses(
+            rc = unsafe {GetAdaptersAddresses(
                 AF_UNSPEC as u32,
                 GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER,
                 None,
                 Some(addresses),
                 &mut out_buf_len,
-            ) as i32;
+            ) as i32};
             iterations += 1;
         }
 
