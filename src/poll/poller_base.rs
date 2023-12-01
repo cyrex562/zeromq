@@ -15,6 +15,7 @@ pub struct TimerInfo<'a> {
 
 pub type ZmqTimers<'a> = HashMap<u64, TimerInfo<'a>>;
 
+#[derive(Default, Debug, Clone)]
 pub struct ZmqPollerBase<'a> {
     pub _clock: Duration,
     pub _timers: ZmqTimers<'a>,
@@ -105,7 +106,7 @@ impl<'a> ZmqWorkerPollerBase<'a> {
             _poller_base: ZmqPollerBase {
                 _clock: Duration::milliseconds(0),
                 _timers: ZmqTimers::new(),
-                _load: ZmqAtomicCounter::new(0),
+                _load: AtomicU32::new(0),
             },
             _active: false,
             _ctx: ctx_,

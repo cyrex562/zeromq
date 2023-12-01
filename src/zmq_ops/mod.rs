@@ -22,7 +22,9 @@ use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::{ContextError, InvalidContext, PollerError, ProxyError, SocketError, TimerError};
 #[cfg(not(target_os="windows"))]
 use crate::defines::time::timeval_to_zmq_timeval;
-use crate::defines::time::{zmq_timeval_to_ms_timeval, ZmqTimeval};
+use crate::defines::time::{ZmqTimeval};
+#[cfg(target_os="windows")]
+use crate::defines::time::zmq_timeval_to_ms_timeval;
 use crate::io::timers::{Timers, TimersTimerFn};
 use crate::ip::{initialize_network, shutdown_network};
 use crate::msg::{MsgFreeFn, ZmqMsg};
@@ -1022,7 +1024,7 @@ pub fn zmq_poll(
         // #else
         #[cfg(not(target_os = "windows"))]
         {
-            unsafe { return Ok(usleep((timeout_ * 1000) as c_uint) as usize); }
+            unsafe { return Ok(usleep((timeout_ * 1000) as libc::c_uint) as usize); }
         }
         // #endif
     }
@@ -1425,7 +1427,7 @@ pub fn zmq_poll_check_items_(
         // #else
         #[cfg(not(target_os = "windows"))]
         unsafe {
-            let result = usleep((timeout_ * 1000) as c_uint);
+            let result = usleep((timeout_ * 1000) as libc::c_uint);
             return if result != 0 {
                 Err(PollerError("usleep failed"))
             } else {
@@ -2245,7 +2247,7 @@ pub fn zmq_proxy(
         // errno = EFAULT;
         return Err(PollerError("EFAULT"));
     }
-    return proxy((frontend_), (backend_), Some(capture_));
+    return proxy((frontend_), (backend_), Some(capture_), );
 }
 
 // int zmq_proxy_steerable (void *frontend_,
@@ -2283,7 +2285,7 @@ pub fn zmq_proxy_steerable(
 
 // int zmq_device (int /* type */, void *frontend_, void *backend_)
 pub fn zmq_device(type_: i32, frontend_: &mut ZmqSocket, backend_: &mut ZmqSocket) -> Result<(),ZmqError> {
-    return proxy((frontend_), (backend_), None);
+    return proxy((frontend_), (backend_), None, );
 }
 
 // int zmq_has (const char *capability_)

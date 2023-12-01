@@ -46,7 +46,7 @@ use crate::options::ZmqOptions;
 
 pub fn null_next_handshake_command(
     mechanism: &mut ZmqMechanism,
-    options: &ZmqOptions,
+    options: &mut ZmqOptions,
     ctx: &mut ZmqContext,
     msg_: &mut ZmqMsg,
 ) -> Result<(), ZmqError> {
@@ -62,15 +62,16 @@ pub fn null_next_handshake_command(
         }
         //  Given this is a backward-incompatible change, it's behind a socket
         //  option disabled by default.
-        if mechanism.zap_client.mechanism.session.zap_connect(ctx).is_err() {
-            mechanism.zap_client.mechanism.session.get_socket().event_handshake_failed_no_detail(
+        if mechanism.session.zap_connect(ctx).is_err() {
+            mechanism.session.get_socket().event_handshake_failed_no_detail(
+                ctx,
                 options,
-                mechanism.zap_client.mechanism.session.get_endpoint(),
+                mechanism.session.get_endpoint(),
                 EFAULT,
             );
             return Err(MechanismError("EFAULT"));
         } else {
-            mechanism.send_zap_request();
+            mechanism.zap_client.send_zap_request(options, "NULL", &[]);
             mechanism._zap_request_sent = true;
 
             //  TODO actually, it is quite unlikely that we can read the ZAP
@@ -89,7 +90,7 @@ pub fn null_next_handshake_command(
             let status_code_len = 3;
             let rc = msg_.init_size(ERROR_COMMAND_NAME_LEN + ERROR_REASON_LEN_SIZE + status_code_len);
             // zmq_assert (rc == 0);
-            let mut msg_data = (msg_.data_mut());
+            let mut msg_data = msg_.data_mut();
             // libc::memcpy(
             //     msg_data,
             //     ERROR_COMMAND_NAME.as_ptr() as *const c_void,

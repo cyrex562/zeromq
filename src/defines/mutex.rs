@@ -1,10 +1,7 @@
-
-pub struct ZmqMutex
-{
+pub struct ZmqMutex {
     pub _mutex: std::sync::Mutex<bool>,
     // pthread_mutex_t _mutex;
     // pthread_mutexattr_t _attr;
-
 }
 
 impl ZmqMutex {
@@ -29,23 +26,22 @@ impl ZmqMutex {
         match guard {
             Ok(g) => {
                 *g = true;
-            return true;
-            },
+                return true;
+            }
             Err(_) => return false,
         }
     }
 
-    pub fn get_mutex(&mut self)-> &mut std::sync::Mutex<bool> {
+    pub fn get_mutex(&mut self) -> &mut std::sync::Mutex<bool> {
         &mut self._mutex
     }
-
 }
 
-pub struct scoped_lock_t<'a> {
+pub struct ZmqScopedLock<'a> {
     pub _mutex: &'a mut ZmqMutex,
 }
 
-impl <'a>scoped_lock_t<'a> {
+impl<'a> ZmqScopedLock<'a> {
     pub fn new(mutex: &mut ZmqMutex) -> Self {
         Self {
             _mutex: mutex,
@@ -53,11 +49,11 @@ impl <'a>scoped_lock_t<'a> {
     }
 }
 
-pub struct scoped_optional_lock_t {
+pub struct ZmqScopedOptionalLock {
     pub _mutex: *mut ZmqMutex,
 }
 
-impl scoped_optional_lock_t {
+impl ZmqScopedOptionalLock {
     pub fn new(mutex: *mut ZmqMutex) -> Self {
         Self {
             _mutex: mutex,

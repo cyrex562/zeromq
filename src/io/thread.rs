@@ -2,6 +2,8 @@ use std::collections::HashSet;
 use std::ffi::c_void;
 use std::thread;
 use std::thread::ThreadId;
+
+#[cfg(target_os = "windows")]
 use crate::defines::ZmqHandle;
 
 pub const DEFAULT_PRIORITY: u32 = 100;
@@ -13,17 +15,36 @@ pub type ZmqThreadFn = fn(*mut c_void);
 // TODO: make serializable
 pub struct ZmqThread<'a> {
     pub _arg: &'a mut [u8],
-    pub _tfn: ZmqThreadFn,
+    pub _tfn: Option<ZmqThreadFn>,
     pub _name: String,
     pub _started: bool,
     #[cfg(target_os = "windows")]
-    pub _descriptor: ZmqHandle,
+    pub _descriptor: Option<ZmqHandle>,
     pub _thread_id: ThreadId,
     pub _thread_priority: i32,
     pub _thread_sched_policy: i32,
     pub _thread_affinity_cpus: HashSet<i32>,
     pub _join_handle: thread::JoinHandle<()>,
     pub _builder: thread::Builder,
+}
+
+impl<'a> Default for ZmqThread<'a> {
+    fn default() -> Self {
+        Self {
+            _arg: &mut [0u8],
+            _tfn: None,
+            _name: "".to_string(),
+            _started: false,
+            #[cfg(target_os = "windows")]
+            _descriptor: None,
+            _thread_id: thread::current().id(),
+            _thread_priority: -1,
+            _thread_sched_policy: -1,
+            _thread_affinity_cpus: HashSet::new(),
+            _join_handle: thread::Builder::new().spawn(|| {}).unwrap(),
+            _builder: thread::Builder::new(),
+        }
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -38,10 +59,10 @@ pub struct ThreadInfoT {
 pub fn thread_routine(arg: &mut [u8]) {
     // TODO deserialize ZmqThread object from arg_
     // let self_ = unsafe { &mut *(arg_ as &mut ZmqThread) };
-    let thread = ZmqThread::default();
+    let mut thread = ZmqThread::default();
     thread.apply_scheduling_parameters();
     thread.apply_thread_name();
-    thread._tfn(thread.arg);
+    thread._tfn(thread._arg);
 }
 
 impl<'a> ZmqThread<'a> {
@@ -50,7 +71,7 @@ impl<'a> ZmqThread<'a> {
     }
 
     pub fn start(&mut self, tfn_: ZmqThreadFn, arg: &mut [u8], name: &str) {
-        self._tfn = tfn_;
+        self._tfn = Some(tfn_);
         self._arg = arg;
         // if name != null_mut() {
         //     unsafe {

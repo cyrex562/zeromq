@@ -24,13 +24,13 @@ pub fn v2e_message_ready(encoder: &mut ZmqEncoder) {
     let mut header_size = 2; // flags byte + size byte
     let mut protocol_flags = &mut encoder.tmp_buf[0];
     *protocol_flags = 0;
-    if encoder.in_progress().flags() & ZMQ_MSG_MORE {
+    if encoder.in_progress().flags() & ZMQ_MSG_MORE !=0 {
         *protocol_flags |= MORE_FLAG;
     }
     if encoder.in_progress().size() > u8::MAX as usize {
         *protocol_flags |= LARGE_FLAG;
     }
-    if encoder.in_progress().flags() & ZMQ_MSG_COMMAND {
+    if encoder.in_progress().flags() & ZMQ_MSG_COMMAND != 0{
         *protocol_flags |= COMMAND_FLAG;
     }
     if encoder.in_progress().is_subscribe() || encoder.in_progress().is_cancel() {
@@ -44,7 +44,7 @@ pub fn v2e_message_ready(encoder: &mut ZmqEncoder) {
         put_u64(&mut encoder.tmp_buf[1..], size as u64);
         header_size = 9; // flags byte + size 8 bytes
     } else {
-        encoder.tmp_buf[1] = (size as u8);
+        encoder.tmp_buf[1] = size as u8;
     }
 
     //  Encode the subscribe/cancel byte. This is Done in the ENCODER as

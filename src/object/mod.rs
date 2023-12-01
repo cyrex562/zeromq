@@ -1,4 +1,3 @@
-
 use crate::command::{ZmqCommand, ZmqCommandType};
 use crate::ctx::{Endpoint, ZmqContext};
 use crate::defines::err::ZmqError;
@@ -6,10 +5,9 @@ use crate::endpoint::ZmqEndpointUriPair;
 use crate::engine::ZmqEngine;
 use crate::io::io_thread::ZmqIoThread;
 use crate::io::reaper::{reaper_process_reap, reaper_process_reaped};
-use crate::msg::content::ZmqContent;
 use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
-use crate::own::{own_process_own, own_process_seqnum, own_process_term_ack, ZmqOwn};
+use crate::own::{own_process_seqnum, own_process_term_ack, ZmqOwn};
 use crate::pipe::ZmqPipe;
 use crate::socket::ZmqSocket;
 use crate::ypipe::ypipe_conflate::YPipeConflate;
@@ -46,11 +44,11 @@ use crate::ypipe::ypipe_conflate::YPipeConflate;
 // }
 
 pub fn obj_process_command(
-    options: &ZmqOptions,
+    options: &mut ZmqOptions,
     cmd: &mut ZmqCommand,
     pipe: &mut ZmqPipe,
-    ctx: &mut ZmqContext
-) -> Result<(),ZmqError> {
+    ctx: &mut ZmqContext,
+) -> Result<(), ZmqError> {
     match cmd.type_.clone() {
         ZmqCommandType::ActivateRead => {
             pipe.process_activate_read();
@@ -61,7 +59,7 @@ pub fn obj_process_command(
         }
         // break;
         ZmqCommandType::Stop => {
-            pipe.process_stop(options, cmd.engine.unwrap().socket.unwrap());
+            pipe.process_stop(ctx, options, cmd.engine.unwrap().socket.unwrap())?;
         }
         // break;
         ZmqCommandType::Plug => {
@@ -80,7 +78,8 @@ pub fn obj_process_command(
         }
         // break;
         ZmqCommandType::Bind => {
-            pipe.process_bind(cmd.pipe.unwrap().out_pipe.unwrap());
+            // TODO
+            // pipe.process_bind(cmd.pipe.unwrap().out_pipe.unwrap());
             pipe.process_seqnum(cmd.object.unwrap());
         }
         // break;
@@ -99,6 +98,7 @@ pub fn obj_process_command(
         // break;
         ZmqCommandType::PipeStatsPublish => {
             pipe.process_pipe_stats_publish(
+                ctx,
                 options,
                 cmd.engine.unwrap().socket.unwrap(),
                 cmd.outbound_queue_count,
@@ -124,11 +124,12 @@ pub fn obj_process_command(
         }
         // break;
         ZmqCommandType::Term => {
-            pipe.process_term(cmd.object.unwrap(), cmd.linger);
+            pipe.process_term(ctx, cmd.object.unwrap(), cmd.linger);
         }
         // break;
         ZmqCommandType::TermAck => {
             own_process_term_ack(
+                ctx,
                 &mut cmd.object.unwrap().terminating,
                 &mut cmd.object.unwrap().processed_seqnum,
                 &mut cmd.object.unwrap().sent_seqnum,
@@ -138,9 +139,7 @@ pub fn obj_process_command(
         }
         // break;
         ZmqCommandType::TermEndpoint => {
-            cmd.socket
-                .unwrap()
-                .process_term_endpoint(options, &cmd.endpoint)?;
+            cmd.socket.unwrap().process_term_endpoint(ctx, options, &cmd.endpoint)?;
         }
         // break;
         ZmqCommandType::Reap => {
@@ -161,7 +160,7 @@ pub fn obj_process_command(
         }
 
         ZmqCommandType::Done => {} // default:
-                   //     zmq_assert (false);
+        //     zmq_assert (false);
     }
 
     Ok(())
@@ -172,11 +171,11 @@ pub fn obj_register_endpoint(
     addr: &str,
     sock: &mut ZmqSocket,
     options: &mut ZmqOptions,
-) -> Result<(),ZmqError> {
+) -> Result<(), ZmqError> {
     ctx.register_endpoint(addr, sock, options)
 }
 
-pub fn obj_unregister_endpoint(ctx: &mut ZmqContext, addr: &str, socket: &mut ZmqSocket) -> Result<(),ZmqError>{
+pub fn obj_unregister_endpoint(ctx: &mut ZmqContext, addr: &str, socket: &mut ZmqSocket) -> Result<(), ZmqError> {
     ctx.unregister_endpoint(addr)
 }
 
@@ -193,11 +192,11 @@ pub fn obj_pend_connection(
     addr: &str,
     endpoint: &Endpoint,
     pipes: &mut [&mut ZmqPipe],
-) -> Result<(),ZmqError> {
+) -> Result<(), ZmqError> {
     ctx.pend_connection(addr, endpoint, pipes)
 }
 
-pub fn obj_connect_pending(ctx: &mut ZmqContext, addr: &str, bind_socket: &mut ZmqSocket) -> Result<(),ZmqError> {
+pub fn obj_connect_pending(ctx: &mut ZmqContext, addr: &str, bind_socket: &mut ZmqSocket) -> Result<(), ZmqError> {
     ctx.connect_pending(addr, bind_socket)
 }
 
@@ -207,12 +206,12 @@ pub fn obj_destroy_socket(ctx: &mut ZmqContext, socket: &mut ZmqSocket) {
 
 pub fn obj_choose_io_thread<'a>(
     ctx: &mut ZmqContext,
-    affinity: u64
+    affinity: u64,
 ) -> Option<&'a mut ZmqIoThread<'a>> {
     ctx.choose_io_thread(affinity)
 }
 
-pub fn obj_send_stop(ctx: &mut ZmqContext, pipe: &mut ZmqPipe, thread_id: u32) {
+pub fn obj_send_stop(ctx: &mut ZmqContext, pipe: &mut ZmqPipe, thread_id: i32) {
     let mut cmd = ZmqCommand::new();
     cmd.dest_pipe = Some(pipe);
     cmd.type_ = ZmqCommandType::Stop;
@@ -239,13 +238,13 @@ pub fn obj_send_own(ctx: &mut ZmqContext, destination: &mut ZmqPipe, object: &mu
     obj_send_command(ctx, &mut cmd);
 }
 
-pub  fn obj_send_attach(
+pub fn obj_send_attach(
     ctx: &mut ZmqContext,
     destination: &mut ZmqPipe,
     engine: &mut ZmqEngine,
     inc_seqnum: bool,
 ) {
-    if (inc_seqnum) {
+    if inc_seqnum {
         destination.inc_seqnum();
     }
 
@@ -469,6 +468,6 @@ pub fn obj_send_done(ctx: &mut ZmqContext) {
 
 pub fn obj_send_command(ctx: &mut ZmqContext, cmd: &mut ZmqCommand) {
     // todo
-    let tid = 0u32;
+    let tid = 0i32;
     ctx.send_command(tid, cmd);
 }

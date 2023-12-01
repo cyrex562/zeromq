@@ -82,7 +82,7 @@ pub fn dish_sess_pull_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result
     let group_length = msg_.group().len();
 
     let mut command = ZmqMsg::default();
-    let mut offset = 0i32;
+    let mut offset = 0usize;
 
     if msg_.is_join() {
         command.init_size(group_length + 5)?;

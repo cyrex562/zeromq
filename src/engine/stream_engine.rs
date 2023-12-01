@@ -267,11 +267,11 @@ pub fn stream_in_event_internal(options: &ZmqOptions, engine: &mut ZmqEngine) ->
 
 pub fn stream_out_event(options: &ZmqOptions, engine: &mut ZmqEngine) {
     //  If write buffer is empty, try to read new data from the ENCODER.
-    if (!engine.out_size) {
+    if !engine.out_size {
         //  Even when we Stop polling as soon as there is no
         //  data to send, the poller may invoke out_event one
         //  more time due to 'speculative write' optimisation.
-        if (engine.encoder.is_none()) {
+        if engine.encoder.is_none() {
             // zmq_assert (_handshaking);
             return;
         }
@@ -394,6 +394,7 @@ pub fn stream_restart_input(options: &ZmqOptions, engine: &mut ZmqEngine) -> boo
 }
 
 pub fn stream_next_handshake_command(
+    options: &ZmqOptions,
     engine: &mut ZmqEngine,
     msg_: &mut ZmqMsg,
 ) -> Result<(), ZmqError> {
@@ -420,7 +421,7 @@ pub fn stream_process_handshake_command(
     msg_: &mut ZmqMsg,
 ) -> Result<(), ZmqError> {
     let rc = engine.mechanism.process_handshake_command(msg_);
-    if (rc == 0) {
+    if rc == 0 {
         if engine.mechanism.status() == ZmqMechanism::ready {
             engine.mechanism_ready();
         } else if engine.mechanism.status() == ZmqMechanism::error {
@@ -495,7 +496,7 @@ pub fn stream_mechanism_ready(options: &ZmqOptions, engine: &mut ZmqEngine) {
         flush_session = true;
     }
 
-    if (flush_session) {
+    if flush_session {
         engine.session.flush();
     }
 
@@ -515,12 +516,12 @@ pub fn stream_mechanism_ready(options: &ZmqOptions, engine: &mut ZmqEngine) {
     properties.insert(zmtp_properties.begin(), zmtp_properties.end());
 
     // zmq_assert (_metadata == NULL);
-    if (!properties.empty()) {
+    if !properties.empty() {
         engine.metadata = Some(ZmqMetadata::new(&properties));
         // alloc_assert (_metadata);
     }
 
-    if (engine.has_handshake_timer) {
+    if engine.has_handshake_timer {
         engine.cancel_timer(HANDSHAKE_TIMER_ID);
         engine.has_handshake_timer = false;
     }
@@ -660,7 +661,7 @@ pub fn stream_error(engine: &mut ZmqEngine, reason_: &str) {
 }
 
 pub fn stream_set_handshake_timer(options: &ZmqOptions, engine: &mut ZmqEngine) {
-    if (options.handshake_ivl > 0) {
+    if options.handshake_ivl > 0 {
         engine.add_timer(options.handshake_ivl, HANDSHAKE_TIMER_ID);
         engine.has_handshake_timer = true;
     }

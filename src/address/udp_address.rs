@@ -2,13 +2,13 @@ use crate::address::ip_address::ZmqIpAddress;
 use crate::ip::ip_resolver::IpResolver;
 use crate::ip::ip_resolver_options::IpResolverOptions;
 use crate::options::ZmqOptions;
-use anyhow::bail;
 #[cfg(not(target_os = "windows"))]
 use libc::if_nametoindex;
 use std::ffi::c_char;
 #[cfg(target_os = "windows")]
 use windows::Win32::NetworkManagement::IpHelper::if_nametoindex;
 use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::AddressError;
 
 #[derive(Default, Debug, Clone)]
 pub struct UdpAddress {
@@ -51,7 +51,7 @@ impl UdpAddress {
             src_resolver.resolve(options, &mut self._bind_address, src_name.as_str())?;
 
             if self._bind_address.is_multicast() {
-                bail!("multicast address not allowed as source address");
+                return Err(AddressError("multicast address not allowed as source address"));
             }
 
             if src_name == "*" {
@@ -83,12 +83,12 @@ impl UdpAddress {
 
         if has_interface {
             if self._is_multicast == false {
-                bail!("source address is set but target address is not multicast");
+                return Err(AddressError("source address is set but target address is not multicast"));
             }
 
             self._bind_address.set_port(port);
         } else if self._is_multicast.clone() || !bind_.clone() {
-            self._bind_address = ZmqIpAddress::any(self._target_address.family())?;
+            self._bind_address = ZmqIpAddress::any(self._target_address.family());
             self._bind_address.set_port(port);
             self._bind_interface = 0;
         } else {
@@ -96,11 +96,12 @@ impl UdpAddress {
         }
 
         if self._bind_address.family() != self._target_address.family() {
-            bail!("source and target address families do not match");
+            return Err(AddressError("source and target address families do not match"));
         }
 
         if ipv6_.clone() && self._is_multicast.clone() && self._bind_interface < 0 {
-            bail!("multicast requires a source interface");
+            // bail!("multicast requires a source interface");
+            return Err(AddressError("multicast requires a source interface"));
         }
 
         Ok(())

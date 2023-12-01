@@ -103,7 +103,7 @@ impl ZmqTcpAddress {
         let max_port_string_length = 5;
 
         let mut buf = String::with_capacity(
-            (NI_MAXHOST as usize + ipv6_prefix_.len() + ipv6_suffix.len() + max_port_string_length as usize),
+            NI_MAXHOST as usize + ipv6_prefix_.len() + ipv6_suffix.len() + max_port_string_length as usize,
         );
         buf += ipv6_prefix_;
         buf += hbuf_;

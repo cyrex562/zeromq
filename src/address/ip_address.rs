@@ -7,9 +7,6 @@ use crate::ip::ip_resolver;
 
 #[derive(Default, Debug, Clone)]
 pub struct ZmqIpAddress {
-    // pub generic: ZmqSockAddr,
-    // pub ipv4: ZmqSockAddrIn,
-    // pub ipv6: ZmqSockAddrIn6,
     pub addr_bytes: [u8; 16],
     pub address_family: i32,
     pub port: u16,
@@ -28,6 +25,26 @@ pub struct ZmqIpAddress {
 //         )
 //     }
 // }
+impl Display for ZmqIpAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut out = String::new();
+        // if self.family() == AF_INET {
+        //     out.push_str(&format!(
+        //         "{}:{}",
+        //         ip_resolver::sockaddr_to_str(&self.as_sockaddr()),
+        //         self.port()
+        //     ));
+        // } else {
+        //     out.push_str(&format!(
+        //         "[{}]:{}",
+        //         ip_resolver::sockaddr_to_str(&self.as_sockaddr()),
+        //         self.port()
+        //     ));
+        // }
+        // write!(f, "{}", out)
+        write!(f, "family: {}, port: {}, flow_info: {}, scope_id: {}, address bytes: {}",self.address_family, self.port, self.flow_info, self.scope_id, self.addr_bytes.to_vec().iter().map(|x| format!("{:02x}", x)).collect::<String>())
+    }
+}
 
 impl ZmqIpAddress {
     pub fn new(
@@ -68,11 +85,19 @@ impl ZmqIpAddress {
         u32::from_be_bytes(self.addr_bytes[0..4].try_into().unwrap())
     }
 
+    pub fn get_ipv6_addr_bytes(&self) -> [u8; 16] {
+        self.addr_bytes
+    }
+
+    pub fn get_ipv4_addr_bytes(&self) -> [u8;4] {
+        self.addr_bytes[0..4].try_into().unwrap()
+    }
+
     pub fn is_multicast(&mut self) -> bool {
         if self.family() == AF_INET {
             return ip_resolver::IN_MULTICAST(self.get_ip_addr_u32());
         }
-        return ip_resolver::IN6_IS_ADDR_MULTICAST(&self.addr_bytes);
+        return ip_resolver::in6_is_addr_multicast(&self.addr_bytes);
     }
 
     pub fn port(&mut self) -> u16 {

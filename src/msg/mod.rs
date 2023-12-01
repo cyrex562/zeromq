@@ -1,6 +1,7 @@
 use std::sync::atomic::AtomicU32;
 
 use libc::size_t;
+
 use content::ZmqContent;
 use defines::{CANCEL_CMD_NAME_SIZE, CONTENT_T_PTR_SIZE, GROUP_T_SIZE, MAX_VSM_SIZE, METADATA_T_PTR_SIZE, MSG_T_SIZE, PING_CMD_NAME_SIZE, SUB_CMD_NAME_SIZE, TYPE_CMSG, TYPE_DELIMITER, TYPE_JOIN, TYPE_LEAVE, TYPE_LMSG, TYPE_MAX, TYPE_MIN, TYPE_VSM, TYPE_ZCLMSG, VOID_PTR_SIZE};
 
@@ -9,7 +10,6 @@ use crate::defines::{
     ZMQ_MSG_CREDENTIAL, ZMQ_MSG_PING, ZMQ_MSG_PONG, ZMQ_MSG_ROUTING_ID, ZMQ_MSG_SHARED,
     ZMQ_MSG_SUBSCRIBE,
 };
-
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::MessageError;
 use crate::metadata::ZmqMetadata;
@@ -137,7 +137,7 @@ pub union ZmqMsgU {
     pub delimiter: ZmqDelimiter,
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct ZmqMsg {
     pub refcnt: AtomicU32,
     // pub _u: ZmqMsgU,
@@ -386,17 +386,17 @@ impl ZmqMsg {
         Ok(())
     }
 
-    pub fn init_delimiter(&mut self) -> Result<(),ZmqError> {
+    pub fn init_delimiter(&mut self) -> Result<(), ZmqError> {
         self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_DELIMITER;
         self.flags = 0;
         self.group[0] = 0;
         self.group_type = GroupTypeShort as u8;
         self.routing_id = 0;
-        return Ok(())
+        return Ok(());
     }
 
-    pub fn init_join(&mut self) -> Result<(),ZmqError> {
+    pub fn init_join(&mut self) -> Result<(), ZmqError> {
         self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_JOIN;
         self.flags = 0;
@@ -406,7 +406,7 @@ impl ZmqMsg {
         return Ok(());
     }
 
-    pub fn init_leave(&mut self) -> Result<(),ZmqError> {
+    pub fn init_leave(&mut self) -> Result<(), ZmqError> {
         self.metadata = ZmqMetadata::default();
         self.type_ = TYPE_LEAVE;
         self.flags = 0;
@@ -769,7 +769,7 @@ impl ZmqMsg {
         self.routing_id = routing_id_ as u32;
     }
 
-    pub fn reset_routing_id(&mut self) -> Result<(),ZmqError> {
+    pub fn reset_routing_id(&mut self) -> Result<(), ZmqError> {
         self.routing_id = 0;
         Ok(())
     }
@@ -787,14 +787,14 @@ impl ZmqMsg {
         }
     }
 
-    pub fn set_group(&mut self, group_: &str) -> Result<(),ZmqError> {
+    pub fn set_group(&mut self, group_: &str) -> Result<(), ZmqError> {
         if group_.len() > ZMQ_GROUP_MAX_LENGTH {
             return Err(MessageError("invalid group length"));
         }
         self.set_group2(group_, group_.len())
     }
 
-    pub fn set_group2(&mut self, group_: &str, length_: size_t) -> Result<(),ZmqError> {
+    pub fn set_group2(&mut self, group_: &str, length_: size_t) -> Result<(), ZmqError> {
         if length_ > ZMQ_GROUP_MAX_LENGTH {
             return Err(MessageError("invalid group length"));
         }
@@ -839,7 +839,7 @@ pub fn close_and_return(mut msg: &mut ZmqMsg, echo: i32) -> Result<i32, ZmqError
 pub fn close_and_return2(
     msg_: &mut [ZmqMsg],
     count_: i32,
-    echo_: i32
+    echo_: i32,
 ) -> Result<i32, ZmqError> {
     for i in 0..count_ {
         close_and_return(&mut msg_[i as usize], 0)?;

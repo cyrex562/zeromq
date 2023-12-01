@@ -3,14 +3,14 @@ use crate::ctx::{reaper_tid, ZmqContext};
 use crate::defines::err::ZmqError;
 use crate::defines::ZmqHandle;
 use crate::io::mailbox::ZmqMailbox;
-use crate::object::{obj_process_command, obj_send_stop};
+use crate::object::obj_send_stop;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::poll::poller_base::ZmqPollerBase;
 
 pub struct ZmqIoThread<'a> {
     // pub object: ZmqObject<'a>,
-    pub thread_id: u32,
+    pub thread_id: i32,
     pub _mailbox: ZmqMailbox<'a>,
     pub _mailbox_handle: ZmqHandle,
     pub _poller: &'a mut ZmqPollerBase<'a>,

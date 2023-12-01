@@ -1,5 +1,3 @@
-use std::ffi::c_void;
-
 use crate::ctx::ZmqContext;
 use crate::defines::{
     SOCKET_TYPE_CHANNEL, SOCKET_TYPE_CLIENT, SOCKET_TYPE_DEALER, SOCKET_TYPE_DGRAM,
@@ -16,6 +14,7 @@ use crate::msg::ZmqMsg;
 use crate::options::ZmqOptions;
 use crate::session::ZmqSession;
 use crate::utils::{get_u32, put_u32};
+use crate::zap_client::ZapClient;
 
 mod null_mechanism;
 
@@ -32,7 +31,7 @@ pub struct ZmqMechanism<'a> {
     pub _routing_id: Vec<u8>,
     pub _user_id: Vec<u8>,
     pub session: &'a mut ZmqSession<'a>,
-    // pub zap_client: ZapClient<'a>,
+    pub zap_client: ZapClient<'a>,
     pub _ready_command_sent: bool,
     pub _error_command_sent: bool,
     pub _ready_command_received: bool,
@@ -41,8 +40,8 @@ pub struct ZmqMechanism<'a> {
     pub _zap_reply_received: bool,
 }
 
-pub const NAME_LEN_SIZE: u32 = 1;
-pub const VALUE_LEN_SIZE: u32 = 4;
+pub const NAME_LEN_SIZE: usize = 1;
+pub const VALUE_LEN_SIZE: usize = 4;
 
 pub const ZMTP_PROPERTY_SOCKET_TYPE: &'static str = "Socket-Type";
 pub const ZMTP_PROPERTY_IDENTITY: &'static str = "Identity";
@@ -55,6 +54,7 @@ impl<'a> ZmqMechanism<'a> {
             _user_id: vec![],
             session,
             // zap_client: Default::default(),
+            zap_client: Default::default(),
             _ready_command_sent: false,
             _error_command_sent: false,
             _ready_command_received: false,
@@ -65,14 +65,14 @@ impl<'a> ZmqMechanism<'a> {
         }
     }
 
-    pub fn encode(&mut self, msg: &ZmqMsg) -> Result<(), ZmqError> {
-        self.session._engine.unwrap().encoder.unwrap().encode(msg.data(), msg.data().size());
+    pub fn encode(&mut self, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
+        self.session._engine.unwrap().encoder.unwrap().encode(msg.data_mut(), msg.data_mut().len());
         Ok(())
     }
 
     pub fn decode(&mut self, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
         let mut bytes_used = msg.size();
-        self.session._engine.unwrap().decoder.unwrap().decode(msg.data(), msg.size(), &mut bytes_used)?;
+        self.session._engine.unwrap().decoder.unwrap().decode(msg.data_mut(), msg.size(), &mut bytes_used)?;
         Ok(())
     }
 
@@ -81,19 +81,25 @@ impl<'a> ZmqMechanism<'a> {
     }
 
     pub fn peer_routing_id(&mut self, msg: &mut ZmqMsg) {
-        let rc = (*msg).init_size(self._routing_id.size());
+        let rc = (*msg).init_size(self._routing_id.len());
         // libc::memcpy(
         //     (*msg_).data_mut(),
         //     self._routing_id.data() as *const c_void,
         //     self._routing_id.size(),
         // );
-        msg.data_mut().clone_from_slice(self._routing_id.data());
-        (msg).set_flags(ZMQ_MSG_ROUTING_ID);
+        msg.data_mut().clone_from_slice(self._routing_id.as_mut_slice());
+        msg.set_flags(ZMQ_MSG_ROUTING_ID);
     }
 
-    pub fn set_user_id(&mut self, user_id_: *mut c_void, size_: usize) {
-        self._user_id.set(user_id_ as *mut u8, size_);
-        self._zap_properties.insert("user_id".to_string(), self._user_id._data());
+    pub fn set_user_id(&mut self, user_id_: &[u8], size_: usize) {
+        // self._user_id.set(user_id_ as *mut u8, size_);
+        self._user_id.clone_from_slice(user_id_);
+        unsafe {
+            self._zap_properties.insert(
+                "user_id".to_string(),
+                String::from_utf8_unchecked(self._user_id.clone()),
+            )
+        };
     }
 
     pub fn get_user_id(&mut self) -> Vec<u8> {
@@ -141,13 +147,13 @@ impl<'a> ZmqMechanism<'a> {
         let total_len = property_len(name_len, value.len());
         base_ptr[0] = name_len as u8;
         let mut ptr = base_ptr;
-        ptr = base_ptr[NAME_LEN_SIZE..];
+        ptr = &mut base_ptr[NAME_LEN_SIZE as usize..];
         // libc::memcpy(base_ptr as *mut c_void, name_ as *mut c_void, name_len);
         ptr.clone_from_slice(name.as_bytes());
         ptr = &mut ptr[name_len..];
         put_u32(ptr, value.len() as u32);
         // base_ptr = base_ptr.add(VALUE_LEN_SIZE as usize);
-        ptr = &mut ptr[VALUE_LEN_SIZE..];
+        ptr = &mut ptr[VALUE_LEN_SIZE as usize..];
         // libc::memcpy(base_ptr as *mut c_void, value, value_len);
         ptr.clone_from_slice(value);
         total_len
@@ -165,14 +171,20 @@ impl<'a> ZmqMechanism<'a> {
     ) -> usize {
         let mut ptr = base_ptr;
         let socket_type = self.socket_type_string(options.socket_type as i32);
-        ptr = ptr.add(self.add_property(ptr, ZMTP_PROPERTY_SOCKET_TYPE, socket_type.as_bytes()));
+        // ptr = ptr.add(self.add_property(ptr, ZMTP_PROPERTY_SOCKET_TYPE, socket_type.as_bytes()));
+        let mut offset = self.add_property(ptr, ZMTP_PROPERTY_SOCKET_TYPE, socket_type.as_bytes());
+        ptr = &mut ptr[offset..];
 
         if options.socket_type == ZMQ_REQ || options.socket_type == ZMQ_DEALER || options.socket_type == ZMQ_ROUTER {
-            ptr = ptr.add(self.add_property(ptr, ZMTP_PROPERTY_IDENTITY, self._routing_id.data()));
+            // ptr = ptr.add(self.add_property(ptr, ZMTP_PROPERTY_IDENTITY, self._routing_id.data()));
+            offset = self.add_property(ptr, ZMTP_PROPERTY_IDENTITY, self._routing_id.as_slice());
+            ptr = &mut ptr[offset..];
         }
 
         for it in options.app_metadata.iter() {
-            ptr = ptr.add(self.add_property(ptr, it.0, it.1.as_bytes()));
+            // ptr = ptr.add(self.add_property(ptr, it.0, it.1.as_bytes()));
+            offset = self.add_property(ptr, it.0, it.1.as_bytes());
+            ptr = &mut ptr[offset..];
         }
 
         // ptr.sub(base_ptr as usize) as usize
@@ -186,7 +198,7 @@ impl<'a> ZmqMechanism<'a> {
             meta_len += property_len(it.0.len(), it.1.len());
         }
         return self.property_len(ZMTP_PROPERTY_SOCKET_TYPE, socket_type.len()) + meta_len + if options.socket_type == ZMQ_REQ || options.socket_type == ZMQ_DEALER || options.socket_type == ZMQ_ROUTER {
-            self.property_len(ZMTP_PROPERTY_IDENTITY, self._routing_id.size())
+            self.property_len(ZMTP_PROPERTY_IDENTITY, self._routing_id.len())
         } else {
             0
         };
@@ -203,12 +215,13 @@ impl<'a> ZmqMechanism<'a> {
         (msg_).init_size(command_size)?;
         // errno_assert (rc == 0);
 
-        let mut ptr = ((msg_).data_mut());
+        let mut ptr = msg_.data_mut();
 
         //  Add prefix
         // libc::memcpy(ptr, prefix_ as *const c_void, prefix_len_);
         ptr.clone_from_slice(prefix_.as_bytes());
-        ptr = ptr.add(prefix_len_);
+        // ptr = ptr.add(prefix_len_);
+        ptr = &mut ptr[prefix_len_..];
 
         self.add_basic_properties(options, ptr);
 
@@ -225,14 +238,15 @@ impl<'a> ZmqMechanism<'a> {
         let mut bytes_left = length_;
 
         while bytes_left > 1 {
-            let name_length = (ptr_[0]) as usize;
-            ptr_ = ptr_.add(NAME_LEN_SIZE as usize);
-            bytes_left -= NAME_LEN_SIZE;
-            if bytes_left < name_length as usize {
+            let name_length = ptr_[0] as usize;
+            // ptr_ = ptr_.add(NAME_LEN_SIZE as usize);
+            ptr_ = &mut ptr_[NAME_LEN_SIZE as usize..];
+            bytes_left -= NAME_LEN_SIZE as usize;
+            if bytes_left < name_length {
                 break;
             }
 
-            let name = String::from(ptr_);
+            let name = String::from_utf8_lossy(ptr_).to_string();
             // std::string (reinterpret_cast<const char *> (ptr_), name_length);
             ptr_ = &mut ptr_[name_length..];
             bytes_left -= name_length;
@@ -241,15 +255,16 @@ impl<'a> ZmqMechanism<'a> {
             }
 
             let value_length = get_u32(ptr_);
-            ptr_ = &mut ptr_[VALUE_LEN_SIZE..];
-            bytes_left -= VALUE_LEN_SIZE;
+            ptr_ = &mut ptr_[VALUE_LEN_SIZE as usize..];
+            bytes_left -= VALUE_LEN_SIZE as usize;
             if bytes_left < value_length as usize {
                 break;
             }
 
             let value = ptr_;
-            ptr_ = ptr_.add(value_length as usize);
-            bytes_left -= value_length;
+            // ptr_ = ptr_.add(value_length as usize);
+            ptr_ = &mut ptr_[value_length as usize..];
+            bytes_left -= value_length as usize;
 
             unsafe {
                 if name == ZMTP_PROPERTY_IDENTITY && options.recv_routing_id {
@@ -283,10 +298,15 @@ impl<'a> ZmqMechanism<'a> {
             // .ZMQ_MAP_INSERT_OR_EMPLACE (
             //     name,
             //     std::string (reinterpret_cast<const char *> (value), value_length));
+            let val_str = unsafe{String::from_raw_parts(
+                value.as_mut_ptr(),
+                value.len(),
+                value.len(),
+            )};
             if zap_flag_ {
-                self._zap_properties.insert(name.clone(), String::from(value));
+                self._zap_properties.insert(name.clone(), val_str);
             } else {
-                self._zmtp_properties.insert(name.clone(), String::from(value));
+                self._zmtp_properties.insert(name.clone(), val_str);
             }
         }
         if bytes_left > 0 {
@@ -301,7 +321,7 @@ impl<'a> ZmqMechanism<'a> {
     }
 
     pub fn check_socket_type(&mut self, options: &ZmqOptions, type_: &str, len_: usize) -> bool {
-        match (options.socket_type) {
+        match options.socket_type {
             ZMQ_REQ => {
                 return strequals(type_, len_, SOCKET_TYPE_REP) || strequals(type_, len_, SOCKET_TYPE_ROUTER);
             }
@@ -417,7 +437,7 @@ impl<'a> ZmqMechanism<'a> {
     }
 
     pub fn zap_required(&mut self, options: &ZmqOptions) -> bool {
-        return !options.zap_domain.empty();
+        return !options.zap_domain.is_empty();
     }
 }
 
@@ -426,7 +446,7 @@ pub fn strequals(a: &str, c: usize, b: &str) -> bool {
 }
 
 pub fn property_len(name_len_: usize, value_len_: usize) -> usize {
-    (NAME_LEN_SIZE + name_len_ + VALUE_LEN_SIZE + value_len_) as usize
+    NAME_LEN_SIZE + name_len_ + VALUE_LEN_SIZE + value_len_
 }
 
 pub fn name_len(name_: &str) -> usize {

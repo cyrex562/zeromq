@@ -124,7 +124,7 @@ impl<'a> ZmqEncoder<'a> {
         return pos;
     }
 
-    fn load_msg(&mut self, msg_: &mut ZmqMsg) {
+    pub fn load_msg(&mut self, msg_: &mut ZmqMsg) {
         self.in_progress = msg_.clone();
         self._next.unwrap()(self);
     }

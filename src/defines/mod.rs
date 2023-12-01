@@ -4,7 +4,9 @@ use std::sync::Mutex;
 
 #[cfg(not(target_os = "windows"))]
 use libc::{pollfd, pid_t};
+#[cfg(target_os = "windows")]
 use windows::Win32::Foundation::HANDLE;
+#[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::WSAPOLLFD;
 
 pub mod atomic_counter;
@@ -374,28 +376,28 @@ pub const ZMQ_VERSION: u32 = 0x040305;
 
 pub const ZMQ_HAUSNUMERO: u32 = 156384712;
 
-pub const ENOTSUP: u32 = (ZMQ_HAUSNUMERO + 1);
-pub const EPROTONOSUPPORT: u32 = (ZMQ_HAUSNUMERO + 2);
-pub const ENOBUFS: u32 = (ZMQ_HAUSNUMERO + 3);
-pub const ENETDOWN: u32 = (ZMQ_HAUSNUMERO + 4);
-pub const EADDRINUSE: u32 = (ZMQ_HAUSNUMERO + 5);
-pub const EADDRNOTAVAILABLE: u32 = (ZMQ_HAUSNUMERO + 6);
-pub const ECONNREFUSED: u32 = (ZMQ_HAUSNUMERO + 7);
-pub const EINPROGRESS: u32 = (ZMQ_HAUSNUMERO + 8);
-pub const ENOTSOCK: u32 = (ZMQ_HAUSNUMERO + 9);
-pub const EMSGSIZE: u32 = (ZMQ_HAUSNUMERO + 10);
-pub const EAFNOSUPPORT: u32 = (ZMQ_HAUSNUMERO + 11);
-pub const ENETUNREACH: u32 = (ZMQ_HAUSNUMERO + 12);
-pub const ECONNABORTED: u32 = (ZMQ_HAUSNUMERO + 13);
-pub const ECONNRESET: u32 = (ZMQ_HAUSNUMERO + 14);
-pub const ENOTCONN: u32 = (ZMQ_HAUSNUMERO + 15);
-pub const ETIMEDOUT: u32 = (ZMQ_HAUSNUMERO + 16);
-pub const EHOSTUNREACH: u32 = (ZMQ_HAUSNUMERO + 17);
-pub const ENETRESET: u32 = (ZMQ_HAUSNUMERO + 18);
-pub const EFSM: u32 = (ZMQ_HAUSNUMERO + 51);
-pub const ENOCOMPATPROTO: u32 = (ZMQ_HAUSNUMERO + 52);
-pub const ETERM: u32 = (ZMQ_HAUSNUMERO + 53);
-pub const EMTHREAD: u32 = (ZMQ_HAUSNUMERO + 54);
+pub const ENOTSUP: u32 = ZMQ_HAUSNUMERO + 1;
+pub const EPROTONOSUPPORT: u32 = ZMQ_HAUSNUMERO + 2;
+pub const ENOBUFS: u32 = ZMQ_HAUSNUMERO + 3;
+pub const ENETDOWN: u32 = ZMQ_HAUSNUMERO + 4;
+pub const EADDRINUSE: u32 = ZMQ_HAUSNUMERO + 5;
+pub const EADDRNOTAVAILABLE: u32 = ZMQ_HAUSNUMERO + 6;
+pub const ECONNREFUSED: u32 = ZMQ_HAUSNUMERO + 7;
+pub const EINPROGRESS: u32 = ZMQ_HAUSNUMERO + 8;
+pub const ENOTSOCK: u32 = ZMQ_HAUSNUMERO + 9;
+pub const EMSGSIZE: u32 = ZMQ_HAUSNUMERO + 10;
+pub const EAFNOSUPPORT: u32 = ZMQ_HAUSNUMERO + 11;
+pub const ENETUNREACH: u32 = ZMQ_HAUSNUMERO + 12;
+pub const ECONNABORTED: u32 = ZMQ_HAUSNUMERO + 13;
+pub const ECONNRESET: u32 = ZMQ_HAUSNUMERO + 14;
+pub const ENOTCONN: u32 = ZMQ_HAUSNUMERO + 15;
+pub const ETIMEDOUT: u32 = ZMQ_HAUSNUMERO + 16;
+pub const EHOSTUNREACH: u32 = ZMQ_HAUSNUMERO + 17;
+pub const ENETRESET: u32 = ZMQ_HAUSNUMERO + 18;
+pub const EFSM: u32 = ZMQ_HAUSNUMERO + 51;
+pub const ENOCOMPATPROTO: u32 = ZMQ_HAUSNUMERO + 52;
+pub const ETERM: u32 = ZMQ_HAUSNUMERO + 53;
+pub const EMTHREAD: u32 = ZMQ_HAUSNUMERO + 54;
 
 // /*  Context options                                                           */
 pub const ZMQ_IO_THREADS: u32 = 1;
@@ -559,7 +561,7 @@ pub const ZMQ_PROTOCOL_ERROR_ZMTP_MALFORMED_COMMAND_WELCOME: u32 = 0x10000017;
 pub const ZMQ_PROTOCOL_ERROR_ZMTP_INVALID_METADATA: u32 = 0x10000018;
 // the following two may be due to erroneous configuration of a peer
 pub const ZMQ_PROTOCOL_ERROR_ZMTP_CRYPTOGRAPHIC: u32 = 0x11000001;
-pub const ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH: u32 = 0x11000002;
+pub const ZMQ_PROTOCOL_ERROR_ZMTP_MECHANISM_MISMATCH: i32 = 0x11000002;
 pub const ZMQ_PROTOCOL_ERROR_ZAP_UNSPECIFIED: u32 = 0x20000000;
 pub const ZMQ_PROTOCOL_ERROR_ZAP_MALFORMED_REPLY: u32 = 0x20000001;
 pub const ZMQ_PROTOCOL_ERROR_ZAP_BAD_REQUEST_ID: u32 = 0x20000002;

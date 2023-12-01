@@ -1,5 +1,6 @@
-use crate::defines::yqueue::YQueue;
 use ypipe_base::ZmqYPipeBase;
+
+use crate::defines::yqueue::YQueue;
 
 pub mod ypipe_base;
 pub mod ypipe_conflate;
@@ -23,7 +24,9 @@ impl<'a, T: Clone + PartialEq + Default> ZmqYPipe<'a, T> {
             f: &mut T::default(),
             c: &mut T::default(),
         };
-        out.queue.push();
+        // TODO
+        // out.queue.push();
+        // out.queue.push_back();
         out.r = out.queue.back_mut().unwrap();
         out.w = out.r;
         out.f = out.r;
@@ -32,18 +35,20 @@ impl<'a, T: Clone + PartialEq + Default> ZmqYPipe<'a, T> {
     }
 
     pub fn write(&mut self, value_: &mut T, incomplete_: bool) {
-        self.queue.set_back(value_);
-        self.queue.push();
+        // TODO
+        // self.queue.set_back(value_);
+        // self.queue.push();
         if !incomplete_ {
-            self.f = &mut *self.queue.back_mut();
+            self.f = &mut self.queue.back_mut().unwrap();
         }
     }
 
     pub unsafe fn unwrite(&mut self, value_: *mut T) -> bool {
-        if self.f == self.queue.back_mut() {
+        if self.f == self.queue.back_mut().unwrap() {
             return false;
         }
-        self.queue.unpush();
+        // TODO
+        // self.queue.unpush();
         *value_ = self.queue.back().clone();
         return true;
     }
@@ -81,7 +86,7 @@ impl<'a, T: Clone + PartialEq + Default> ZmqYPipe<'a, T> {
             return false;
         }
 
-        *value_ = self.queue.front().clone();
+        *value_ = self.queue.front().unwrap().clone();
         self.queue.pop();
         return true;
     }

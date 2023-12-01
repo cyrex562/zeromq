@@ -362,7 +362,7 @@ impl<'a> ZmqContext<'a> {
         return true;
     }
 
-    pub fn send_command(&mut self, tid_: u32, command_: &mut ZmqCommand) {
+    pub fn send_command(&mut self, tid_: i32, command_: &mut ZmqCommand) {
         self.slots[tid_ as usize].send(command_);
     }
 

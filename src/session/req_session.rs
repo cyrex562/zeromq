@@ -37,7 +37,7 @@ use crate::session::{ZmqSession, ZmqSessionState};
 pub fn req_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     //  Ignore commands, they are processed by the engine and should not
     //  affect the state machine.
-    if msg_.flags() & ZMQ_MSG_COMMAND {
+    if msg_.flags() & ZMQ_MSG_COMMAND != 0 {
         return Ok(());
     }
 

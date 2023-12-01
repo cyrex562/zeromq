@@ -124,7 +124,8 @@ pub fn xpub_xread_activated(ctx: &mut ZmqContext, socket: &mut ZmqSocket, option
                 if !subscribe {
                     let mut rm_result = socket.subscriptions.rm(data, size, pipe_);
                     //  TODO reconsider what to do if rm_result == mtrie_t::not_found
-                    notify = rm_result != ZmqMtrie::values_remain || socket.verbose_unsubs;
+                    // TODO
+                    // notify = rm_result != ZmqMtrie::values_remain || socket.verbose_unsubs;
                 } else {
                     let first_added = socket.subscriptions.add(data, size, pipe_);
                     notify = first_added || socket.verbose_subs;

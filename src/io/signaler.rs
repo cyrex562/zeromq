@@ -1,18 +1,20 @@
 use std::ffi::c_void;
-use std::mem;
 use std::mem::size_of_val;
 
 use libc::{c_int, close, EAGAIN, EINTR, getpid, read, write};
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{recv, select, send, SEND_RECV_FLAGS, SOCKET_ERROR, TIMEVAL};
+#[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{WSAEWOULDBLOCK, WSAGetLastError};
+#[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::Sleep;
 
 use crate::defines::{ZmqFd, ZmqPid};
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::PollerError;
+use crate::defines::time::ZmqTimeval;
 use crate::ip::{make_fdpair, unblock_socket};
-use crate::platform::{platform_select, platform_send};
+use crate::platform::platform_select;
 use crate::poll::select::{fd_set, FD_SET, FD_ZERO};
 use crate::utils::get_errno;
 
@@ -25,7 +27,7 @@ pub struct ZmqSignaler {
 }
 
 impl ZmqSignaler {
-    pub fn new() -> Result<Self,ZmqError> {
+    pub fn new() -> Result<Self, ZmqError> {
         let mut out = Self {
             _r: 0,
             _w: 0,
@@ -44,9 +46,9 @@ impl ZmqSignaler {
         self._r
     }
 
-    pub fn send(&mut self) -> Result<(),ZmqError> {
+    pub fn send(&mut self) -> Result<(), ZmqError> {
         #[cfg(feature = "fork")]
-        unsafe{
+        unsafe {
             if self.pid != getpid() {
                 return Ok(());
             }
@@ -60,7 +62,7 @@ impl ZmqSignaler {
                 write(
                     self._w as c_int,
                     inc_bytes.as_ptr() as *const c_void,
-                    size_of_val(&inc) as libc::c_uint,
+                    size_of_val(&inc),
                 )
             };
         }
@@ -76,7 +78,6 @@ impl ZmqSignaler {
                 //     break;
                 // }
                 platform_send(self._w, &[dummy], flags.0)?;
-
             }
         }
 
@@ -84,16 +85,24 @@ impl ZmqSignaler {
         // unsigned char dummy = 0;
         #[cfg(not(target_os = "windows"))]{
             let mut dummy = 0u8;
+            let dummy_bytes = dummy.to_le_bytes();
             loop {
-                let mut nbytes = send(self._w, &dummy, 0);
+                let mut nbytes = unsafe {
+                    libc::send(
+                        self._w,
+                        dummy_bytes.as_mut_ptr() as *const c_void,
+                        0,
+                        0,
+                    )
+                };
                 if nbytes == -1 && get_errno() == EINTR {
                     continue;
                 }
 // #if defined(HAVE_FORK)
                 #[cfg(feature = "fork")]{
-                    if self.pid != unsafe{getpid()} {
+                    if self.pid != unsafe { getpid() } {
                         //printf("Child process %d signaler_t::send returning without sending #2\n", getpid());
-                        get_errno() = EINTR;
+                        // get_errno() = EINTR;
                         break;
                     }
                 }
@@ -109,7 +118,7 @@ impl ZmqSignaler {
     pub fn wait(&mut self, timeout_: i32) -> Result<(), ZmqError> {
         // #ifdef HAVE_FORK
         #[cfg(feature = "fork")]
-        unsafe{
+        unsafe {
             if self.pid != getpid() {
                 // we have forked and the file descriptor is closed. Emulate an interrupt
                 // response.
@@ -162,10 +171,10 @@ impl ZmqSignaler {
         #[cfg(feature = "select")] {
             // optimized_fd_set_t fds (1);
             let mut fds = fd_set { fd_count: 0, fd_array: [0 as ZmqFd; 64] };
-            FD_ZERO(fds.get());
-            FD_SET(self._r, fds.get());
+            FD_ZERO(&mut fds);
+            FD_SET(self._r, &mut fds);
             // struct timeval timeout;
-            let mut timeout = TIMEVAL::default();
+            let mut timeout = ZmqTimeval::default();
             if timeout_ >= 0 {
                 timeout.tv_sec = timeout_ / 1000;
                 timeout.tv_usec = timeout_ % 1000 * 1000;
@@ -210,14 +219,14 @@ impl ZmqSignaler {
         {
             // uint64_t dummy;
 
-            let sz = read(self._r as c_int, dummy.to_le_bytes().as_mut_ptr() as *mut c_void, 8);
+            let sz = unsafe { read(self._r as c_int, dummy.to_le_bytes().as_mut_ptr() as *mut c_void, 8) };
             // errno_assert (sz == sizeof (dummy));
 
             //  If we accidentally grabbed the next signal(s) along with the current
             //  one, return it back to the eventfd object.
             if (dummy > 1) {
                 let mut inc = dummy - 1;
-                let sz2 = write(self._w as c_int, inc.to_le_bytes().as_ptr() as *const c_void, 8);
+                let sz2 = unsafe { write(self._w as c_int, inc.to_le_bytes().as_ptr() as *const c_void, 8) };
                 // errno_assert (sz2 == sizeof (inc));
                 return;
             }
@@ -241,7 +250,8 @@ impl ZmqSignaler {
         // #else
         #[cfg(not(target_os = "windows"))]
         {
-            let nbytes = recv(self._r, &dummy, 8, 0);
+            let mut dummy_ptr = dummy.to_le_bytes().as_mut_ptr();
+            let nbytes = unsafe { libc::recv(self._r, dummy_ptr as *mut c_void, 8, 0) };
             // errno_assert (nbytes >= 0);
         }
         // #endif
@@ -291,7 +301,7 @@ impl ZmqSignaler {
         {
             let nbytes = recv(self._r, dummy.to_le_bytes().as_mut_slice(), SEND_RECV_FLAGS::default());
             if nbytes == SOCKET_ERROR {
-                let last_error = unsafe{WSAGetLastError()};
+                let last_error = unsafe { WSAGetLastError() };
                 if last_error == WSAEWOULDBLOCK {
                     // errno = EAGAIN;
                     return -1;
@@ -312,13 +322,16 @@ impl ZmqSignaler {
         // #else
         #[cfg(not(target_os = "windows"))]
         {
-            let nbytes = recv(
-                self._r,
-                &dummy,
-                mem::size_of_val(dummy),
-                0
-            );
-            if (nbytes == -1) {
+            let mut dummy_ptr = dummy.to_le_bytes().as_mut_ptr();
+            let nbytes = unsafe {
+                libc::recv(
+                    self._r,
+                    dummy_ptr as *mut c_void,
+                    size_of_val(&dummy),
+                    0,
+                )
+            };
+            if nbytes == -1 {
                 // if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
                 //     errno = EAGAIN;
                 //     return -1;
@@ -331,7 +344,7 @@ impl ZmqSignaler {
         // zmq_assert (nbytes == sizeof (dummy));
         // zmq_assert (dummy == 0);
         // #endif
-        return 0;
+        return Ok(());
     }
 
     pub fn valid(&mut self) -> bool {
@@ -342,8 +355,8 @@ impl ZmqSignaler {
         #[cfg(feature = "fork")]
         {
             // self.pid = getpid();
-            close(self._r as c_int);
-            close(self._w as c_int);
+            unsafe { close(self._r as c_int) };
+            unsafe { close(self._w as c_int) };
             make_fdpair(&mut self._r, &mut self._w);
         }
     }
@@ -357,7 +370,7 @@ pub fn sleep_ms(millis: u32) -> Result<(), ZmqError> {
 
     #[cfg(target_os = "windows")]
     {
-        unsafe{Sleep(millis as u32)};
+        unsafe { Sleep(millis as u32) };
     }
     #[cfg(not(target_os = "windows"))]
     {

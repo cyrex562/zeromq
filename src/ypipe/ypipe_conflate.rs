@@ -17,7 +17,7 @@ impl<T: Default> YPipeConflate<T> {
     }
 
     pub fn write(&mut self, value_: &mut T, incomplete: bool) {
-        self.dbuffer.write(value_);
+        self.dbuffer.push(value_);
     }
 
     pub fn unwrite(&mut self, x: &mut T) -> bool {
@@ -29,12 +29,13 @@ impl<T: Default> YPipeConflate<T> {
     }
 
     pub fn check_read(&mut self) -> bool {
-        let res = self.dbuffer.check_read();
-        if !res {
-            self.reader_awake = false;
-        }
-
-        res
+        // TODO
+        // let res = self.dbuffer.check_read();
+        // if !res {
+        //     self.reader_awake = false;
+        // }
+        //
+        // res
     }
 
     pub fn read(&mut self, value_: &mut T) -> bool {

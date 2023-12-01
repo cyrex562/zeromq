@@ -47,11 +47,11 @@ pub fn v1e_message_ready(encoder: &mut ZmqEncoder) {
     //  message size. In both cases 'flags' field follows.
     if size < u8::MAX as usize {
         encoder.tmp_buf[0] = size as u8;
-        encoder.tmp_buf[1] = (encoder.in_progress().flags() & ZMQ_MSG_MORE);
+        encoder.tmp_buf[1] = encoder.in_progress().flags() & ZMQ_MSG_MORE;
     } else {
         encoder.tmp_buf[0] = u8::MAX;
         put_u64(&mut encoder.tmp_buf[1..], size as u64);
-        encoder.tmp_buf[9] = (encoder.in_progress().flags() & ZMQ_MSG_MORE);
+        encoder.tmp_buf[9] = encoder.in_progress().flags() & ZMQ_MSG_MORE;
         header_size = 10;
     }
 

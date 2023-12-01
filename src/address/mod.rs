@@ -1,7 +1,6 @@
 use crate::address::ip_address::ZmqIpAddress;
 use crate::address::tcp_address::ZmqTcpAddress;
 use crate::address::udp_address::UdpAddress;
-use crate::ctx::ZmqContext;
 use crate::defines::{ZmqFd, ZmqSockAddr, ZmqSockaddrStorage};
 use crate::defines::err::ZmqError;
 use crate::platform::{platform_getpeername, platform_getsockname};

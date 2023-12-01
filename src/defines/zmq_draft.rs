@@ -1,7 +1,9 @@
 /*  DRAFT Socket types.                                                       */
 
-#[cfg(target_os="windows")]
+#[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::SOCKET;
+
+use crate::defines::ZmqFd;
 
 pub const ZMQ_SERVER: u32 = 12;
 pub const ZMQ_CLIENT: u32 = 13;
@@ -77,17 +79,17 @@ pub const ZMQ_NOTIFY_DISCONNECT: u32 = 2;
 // #else
 // typedef int zmq_fd_t;
 // #endif
-#[cfg(target_os = "windows")]
-pub type zmq_fd_t = SOCKET;
-#[cfg(not(target_os = "windows"))]
-pub type zmq_fd_t = i32;
+// #[cfg(target_os = "windows")]
+// pub type zmq_fd_t = SOCKET;
+// #[cfg(not(target_os = "windows"))]
+// pub type zmq_fd_t = i32;
 
 
-pub struct zmq_poller_event_tj<'a> {
+pub struct ZmqPollerEvent<'a> {
     // void *socket;
     pub socket: &'a [u8],
     // zmq_fd_t fd;
-    pub fd: zmq_fd_t,
+    pub fd: ZmqFd,
     // void *user_data;
     pub user_data: &'a [u8],
     // short events;

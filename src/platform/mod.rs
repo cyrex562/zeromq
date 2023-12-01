@@ -23,7 +23,9 @@ use crate::defines::{AF_INET, AF_UNIX, IPPROTO_TCP, NI_MAXHOST, RETIRED_FD, SIGN
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::PlatformError;
 use crate::defines::tcp::TCP_NODELAY;
-use crate::defines::time::{zmq_timeval_to_ms_timeval, ZmqTimeval};
+use crate::defines::time::{ ZmqTimeval};
+#[cfg(target_os="windows")]
+use crate::defines::time::zmq_timeval_to_ms_timeval;
 #[cfg(not(target_os="windows"))]
 use crate::defines::time::{zmq_timeval_to_timeval};
 use crate::ip::{open_socket, set_nosigpipe};

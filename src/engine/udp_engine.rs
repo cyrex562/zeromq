@@ -10,7 +10,7 @@ use windows::Win32::Networking::WinSock::{setsockopt, SOCKADDR_IN, SOCKET,sendto
 use crate::address::ip_address::ZmqIpAddress;
 use crate::address::udp_address::UdpAddress;
 use crate::address::ZmqAddress;
-use crate::defines::{ZmqFd, ZmqIpMreq, ZmqIpv6Mreq, ZmqSockAddr, ZmqSockAddrIn, RETIRED_FD, ZMQ_MSG_MORE, ZmqSockaddrStorage};
+use crate::defines::{ZmqFd, ZmqIpMreq, ZmqIpv6Mreq, ZmqSockAddrIn, RETIRED_FD, ZMQ_MSG_MORE, ZmqSockaddrStorage};
 use crate::defines::{
     AF_INET, AF_INET6, INADDR_NONE, IPV6_ADD_MEMBERSHIP, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP,
     IP_ADD_MEMBERSHIP, IP_MULTICAST_IF, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, SOL_SOCKET,
@@ -27,7 +27,7 @@ use crate::msg::ZmqMsg;
 use crate::platform::{platform_bind, platform_recvfrom, platform_sendto, platform_setsockopt};
 use crate::options::ZmqOptions;
 use crate::session::ZmqSession;
-use crate::utils::sock_utils::{zmq_ip_mreq_to_bytes, zmq_ipv6_mreq_to_bytes, zmq_sockaddr_storage_to_sockaddr, zmq_sockaddr_storage_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr, zmq_sockaddr_to_sockaddrin, zmq_sockaddrin_to_sockaddr};
+use crate::utils::sock_utils::{zmq_ip_mreq_to_bytes, zmq_ipv6_mreq_to_bytes, zmq_sockaddr_storage_to_zmq_sockaddr, zmq_sockaddr_to_sockaddrin, zmq_sockaddrin_to_sockaddr};
 #[cfg(target_os="windows")]
 use crate::utils::sock_utils::{zmq_sockaddr_to_wsa_sockaddr};
 
@@ -131,7 +131,7 @@ pub fn udp_plug(
             engine.out_address_len = out.sockaddr_len();
 
             if out.is_multicast() {
-                let is_ipv6 = (out.family() == AF_INET6);
+                let is_ipv6 = out.family() == AF_INET6;
                 udp_set_udp_multicast_loop(options, engine,engine.fd, is_ipv6, options.multicast_loop)?;
 
                 if options.multicast_hops > 0 {
@@ -157,7 +157,7 @@ pub fn udp_plug(
         udp_set_udp_reuse_address(engine, engine.fd, true)?;
 
         let mut bind_addr = udp_addr.bind_addr();
-        let mut any = ZmqIpAddress::any(bind_addr.family())?;
+        let mut any = ZmqIpAddress::any(bind_addr.family());
         let mut real_bind_addr: &ZmqIpAddress;
 
         let multicast = udp_addr.is_mcast();
@@ -197,7 +197,7 @@ pub fn udp_plug(
         //
         // };
 
-        platform_bind(engine.fd, real_bind_addr.as_sockaddr())?;
+        platform_bind(engine.fd, &real_bind_addr.as_sockaddr())?;
 
         // #endif
         // if rc != 0 {
@@ -310,9 +310,9 @@ pub fn udp_set_udp_multicast_iface(
             platform_setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_IF, &bind_if.to_le_bytes(), 4)?;
         }
     } else {
-        let bind_addr = addr.bind_addr().ipv4.sin_addr;
+        let bind_addr = addr.bind_addr();
 
-        if bind_addr != INADDR_ANY {
+        if bind_addr.get_ip_addr_u32() != INADDR_ANY {
             // rc = setsockopt(
             //     fd,
             //     IPPROTO_IP,
@@ -357,8 +357,8 @@ pub fn udp_add_membership(engine: &mut ZmqEngine, s_: ZmqFd, addr_: &mut UdpAddr
     if mcast_addr.family() == AF_INET {
         // struct ip_mreq mreq;
         let mut mreq = ZmqIpMreq::default();
-        mreq.imr_multiaddr.s_addr = mcast_addr.ipv4.sin_addr;
-        mreq.imr_interface.s_addr = addr_.bind_addr().ipv4.sin_addr;
+        mreq.imr_multiaddr.s_addr = mcast_addr.get_ip_addr_u32();
+        mreq.imr_interface.s_addr = addr_.bind_addr().get_ip_addr_u32();
 
         // rc = setsockopt(
         //     s_,
@@ -376,7 +376,7 @@ pub fn udp_add_membership(engine: &mut ZmqEngine, s_: ZmqFd, addr_: &mut UdpAddr
 
         mreq.ipv6mr_multiaddr
             .s6_addr
-            .clone_from_slice(&mcast_addr.ipv6.sin6_addr);
+            .clone_from_slice(&mcast_addr.get_ipv6_addr_bytes());
         mreq.ipv6mr_interface = iface as u32;
 
         // rc = setsockopt(
@@ -419,7 +419,7 @@ pub fn udp_sockaddr_to_msg(
     msg_: &mut ZmqMsg,
     addr_: &ZmqSockAddrIn,
 ) {
-    let name = (addr_.sin_addr.to_string());
+    let name = addr_.sin_addr.to_string();
 
     // char port[6];
     let mut port: String = String::new();
@@ -438,7 +438,7 @@ pub fn udp_sockaddr_to_msg(
 
     //  use memcpy instead of strcpy/strcat, since this is more efficient when
     //  we already know the lengths, which we calculated above
-    let mut address = (msg_.data_mut());
+    let mut address = msg_.data_mut();
     // libc::memcpy (address, name.as_ptr() as *const c_void, name_len);
     address.copy_from_slice(name.as_bytes());
     address = &mut address[name_len..];
@@ -465,7 +465,7 @@ pub fn udp_resolve_raw_address(engine: &mut ZmqEngine, name_: &str, length_: usi
 
     // Find delimiter, cannot use memrchr as it is not supported on windows
     if length_ != 0 {
-        let mut chars_left = (length_);
+        let mut chars_left = length_;
         let current_char = &name_[length_..];
         loop {
             // if (*(--current_char) == ':') {
@@ -503,7 +503,7 @@ pub fn udp_resolve_raw_address(engine: &mut ZmqEngine, name_: &str, length_: usi
     }
 
     engine.raw_address.sin_family = AF_INET as u16;
-    engine.raw_address.sin_port = (port.to_be());
+    engine.raw_address.sin_port = port.to_be();
     // TODO convert IPv4 CIDR string to u32
     // engine.raw_address.sin_addr.s_addr = inet_addr (addr_str.c_str ());
 

@@ -1,4 +1,5 @@
 use libc;
+#[cfg(target_os="windows")]
 use windows::Win32::Networking::WinSock::TIMEVAL;
 
 #[derive(Default, Debug, Clone)]

@@ -33,7 +33,7 @@ use crate::session::{ZmqSession, ZmqSessionState};
 // }
 
 
-pub fn radio_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn radio_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     if msg_.flag_set(ZMQ_MSG_COMMAND) {
         let mut command_data = msg_.data_mut();
         let data_size = msg_.size();
@@ -41,18 +41,18 @@ pub fn radio_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Resul
         let mut group_length = 0usize;
         let mut group = String::new();
 
-        let mut join_leave_msg = ZmqMsg::new();
+        let mut join_leave_msg = ZmqMsg::default();
         let mut rc = 0i32;
 
         //  Set the msg type to either JOIN or LEAVE
-        if data_size >= 5 && command_data.to_string() == "\x04JOIN" {
+        if (data_size >= 5) && (command_data == b"\x04JOIN") {
             group_length = (data_size) - 5;
-            group = command_data[5..].to_string();
-            rc = join_leave_msg.init_join();
-        } else if data_size >= 6 && command_data.to_string() == "\x05LEAVE" {
+            group = String::from_utf8_lossy(&command_data[5..]).to_string();
+            join_leave_msg.init_join()?;
+        } else if data_size >= 6 && command_data == b"\x05LEAVE" {
             group_length = (data_size) - 6;
-            group = command_data[6..].to_string();
-            rc = join_leave_msg.init_leave();
+            group = String::from_utf8_lossy(&command_data[6..]).to_string();
+            join_leave_msg.init_leave()?;
         }
         //  If it is not a JOIN or LEAVE just push the message
         else {
@@ -63,7 +63,7 @@ pub fn radio_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Resul
         // errno_assert (rc == 0);
 
         //  Set the group
-        rc = join_leave_msg.set_group(group, group_length);
+        join_leave_msg.set_group(&group)?;
         // errno_assert (rc == 0);
 
         //  Close the current command
@@ -78,7 +78,7 @@ pub fn radio_sess_push_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Resul
     Ok(())
 }
 
-pub fn radio_sess_pull_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+pub fn radio_sess_pull_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
     if session._state == ZmqSessionState::Group {
         session.pull_msg(&mut session._pending_msg)?;
 
@@ -105,7 +105,7 @@ pub fn radio_sess_pull_msg(session: &mut ZmqSession, msg_: &mut ZmqMsg) -> Resul
     return Ok(());
 }
 
-pub fn radio_sess_reset(session: &mut ZmqSession) -> Result<(),ZmqError> {
+pub fn radio_sess_reset(session: &mut ZmqSession) -> Result<(), ZmqError> {
     // session.reset()?;
     session._state = ZmqSessionState::Group;
     Ok(())

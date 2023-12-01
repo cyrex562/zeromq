@@ -2,17 +2,22 @@ use std::ffi::CString;
 use std::fmt::{Debug, Display};
 use std::ptr::null_mut;
 
-use anyhow::bail;
 use libc::{ECONNREFUSED, EINVAL, EOPNOTSUPP};
+#[cfg(target_os = "windows")]
 use windows::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
+#[cfg(target_os = "windows")]
 use windows::Win32::NetworkManagement::IpHelper::{GAA_FLAG_SKIP_ANYCAST, GAA_FLAG_SKIP_DNS_SERVER, GAA_FLAG_SKIP_MULTICAST, GetAdaptersAddresses, IP_ADAPTER_ADDRESSES_LH, IP_ADAPTER_UNICAST_ADDRESS_LH};
 
 use crate::address::ip_address::ZmqIpAddress;
-use crate::defines::{AF_INET, AF_INET6, AF_UNSPEC, AI_NUMERICHOST, AI_PASSIVE, SOCK_STREAM, ZmqAddrInfo, ZmqSockAddr, ZmqSockAddrIn, ZmqSockAddrIn6};
+use crate::defines::{AF_INET, AF_INET6, AI_NUMERICHOST, AI_PASSIVE, SOCK_STREAM, ZmqAddrInfo, ZmqSockAddr, ZmqSockAddrIn, ZmqSockAddrIn6};
+#[cfg(target_os = "windows")]
+use crate::defines::AF_UNSPEC;
 use crate::defines::err::ZmqError;
+use crate::defines::err::ZmqError::AddressError;
 use crate::ip::ip_resolver_options::IpResolverOptions;
 use crate::options::ZmqOptions;
 use crate::utils::get_errno;
+#[cfg(target_os = "windows")]
 use crate::utils::sock_utils::sockaddr_to_zmq_sockaddr;
 
 pub fn sockaddr_to_str(sa: &ZmqSockAddr) -> String {
@@ -54,7 +59,7 @@ pub fn IN_MULTICAST(a: u32) -> bool {
     (a & 0xf0000000) == 0xe0000000
 }
 
-pub fn IN6_IS_ADDR_MULTICAST(a: &[u8]) -> bool {
+pub fn in6_is_addr_multicast(a: &[u8]) -> bool {
     a[0] == 0xff
 }
 
@@ -74,21 +79,24 @@ impl IpResolver {
         // TODO: call platform-specific getaddrinfo
         // getaddrinfo(node.as_mut_ptr() as *mut c_char, service.as_mut_ptr() as *mut c_char, hints, res);\
         todo!();
-        Ok(())
     }
 
     pub fn do_freeaddrinfo(&mut self, res: &mut ZmqAddrInfo) -> Result<(), ZmqError> {
         // TODO call platform specific freeaddrinfo
         // freeaddrinfo(res);
         todo!();
-        Ok(())
     }
 
-    pub fn do_if_nametoindex(ifname_: &mut String) -> Result<(), ZmqError> {
+    pub fn do_if_nametoindex(ifname_: &str) -> Result<u32, ZmqError> {
         // TODO: call platform-specific if_nametoindex
-        // if_nametoindex(ifname_.as_mut_ptr() as *mut c_char);
-        todo!();
-        Ok(())
+
+        let mut idx = 0;
+        #[cfg(not(target_os = "windows"))]
+        {
+            idx = unsafe { libc::if_nametoindex(ifname_.as_ptr() as *const libc::c_char) };
+        }
+
+        return Ok(idx);
     }
 
     pub fn resolve(&mut self, options: &ZmqOptions, ip_addr_: &mut ZmqIpAddress, name: &str) -> Result<(), ZmqError> {
@@ -97,7 +105,8 @@ impl IpResolver {
 
         if self._options.get_expect_port() {
             if name.contains(":") == false {
-                bail!("invalid address: {}", name);
+                // bail!("invalid address: {}", name);
+                return Err(AddressError("invalid address"));
             }
 
             let x = name.split(":").collect::<Vec<&str>>();
@@ -107,7 +116,8 @@ impl IpResolver {
                 if self._options.get_bindable() == true {
                     port = 0;
                 } else {
-                    bail!("not bindable");
+                    // bail!("not bindable");
+                    return Err(AddressError("invalid address"));
                 }
             } else if port_str == "0" {
                 port = 0;
@@ -142,13 +152,14 @@ impl IpResolver {
             let chars = if_str.chars().collect::<Vec<char>>();
             let x = &chars[0];
             if x.is_alphanumeric() {
-                zone_id = self.do_if_nametoindex(&if_str)?;
+                zone_id = Self::do_if_nametoindex(&if_str)?;
             } else {
                 zone_id = if_str.parse::<u32>()?;
             }
 
             if zone_id == 0 {
-                bail!("invalid zone id");
+                // bail!("invalid zone id");
+                return Err(AddressError("invalid zone id"));
             }
         }
 
@@ -159,7 +170,7 @@ impl IpResolver {
                 AF_INET6
             } else {
                 AF_INET
-            })?;
+            });
             resolved = true;
         }
 
@@ -175,7 +186,7 @@ impl IpResolver {
 
         ip_addr_.set_port(port);
         if ip_addr_.family() == AF_INET6 {
-            ip_addr_.ipv6.sin6_scope_id = zone_id;
+            ip_addr_.scope_id = zone_id;
         }
 
         Ok(())
@@ -255,12 +266,13 @@ impl IpResolver {
 
         // copy_bytes(res.ai_addr, 0, res.ai_addrlen, ip_addr_, 0, ip_addr_.sockaddr_len())?;
         unsafe {
-            ip_addr_.generic = ZmqSockAddr {
-                sa_family: (*res[0].ai_addr).sa_family,
-                sa_data: [0; 14],
-            };
+            // ip_addr_.generic = ZmqSockAddr {
+            //     sa_family: (*res[0].ai_addr).sa_family,
+            //     sa_data: [0; 14],
+            // };
+            ip_addr_.address_family = (*res[0].ai_addr).sa_family as i32;
         }
-        unsafe { ip_addr_.generic.sa_data.clone_from_slice(&(*res[0].ai_addr).sa_data[0..14]); }
+        unsafe { ip_addr_.addr_bytes.clone_from_slice(&(*res[0].ai_addr).sa_data[0..14]); }
 
         self.do_freeaddrinfo(&mut res[0])?;
 
@@ -274,42 +286,53 @@ impl IpResolver {
         let max_attempts = 10;
         let backoff_msec = 1;
         for i in 0..max_attempts {
-            rc = libc::getifaddrs(&mut ifa);
+            rc = unsafe { libc::getifaddrs(&mut ifa) };
             let errno = get_errno();
             if rc == 0 || rc < 0 && errno == ECONNREFUSED {
                 break;
             }
-            libc::sleep(std::time::Duration::from_millis(backoff_msec.clone()).as_secs() as libc::c_uint);
+            unsafe { libc::sleep(std::time::Duration::from_millis(backoff_msec.clone()).as_secs() as libc::c_uint) };
         }
 
         let errno = get_errno();
         if rc != 0 && errno == EINVAL || errno == EOPNOTSUPP {
-            bail!("enodev");
+            // bail!("enodev");
+            return Err(AddressError("enodev"));
         }
 
         let mut found = false;
         let mut ifp = ifa;
-        while ifp != null_mut() {
-            if (*ifp).ifa_addr == null_mut() {
-                continue;
-            }
+        unsafe {
+            while ifp != null_mut() {
+                if (*ifp).ifa_addr == null_mut() {
+                    continue;
+                }
 
-            let family = (*ifp).ifa_addr.as_mut().unwrap().sa_family.clone() as i32;
-            let if_nic_name = CString::from_raw((*ifp).ifa_name).into_string().unwrap();
-            if family == (if self._options.get_ipv6() { AF_INET6 } else { AF_INET }) && nic_ == if_nic_name {
-                let match_sockaddr = (*ifp).ifa_addr.as_mut().unwrap();
-                (*ip_addr_).generic = sockaddr_to_zmq_sockaddr(match_sockaddr);
+                let family = (*ifp).ifa_addr.as_mut().unwrap().sa_family.clone() as i32;
+                let if_nic_name = CString::from_raw((*ifp).ifa_name).into_string().unwrap();
+                if family == (if self._options.get_ipv6() { AF_INET6 } else { AF_INET }) && nic_ == if_nic_name {
+                    let match_sockaddr = (*ifp).ifa_addr.as_mut().unwrap();
+                    // (*ip_addr_).generic = sockaddr_to_zmq_sockaddr(match_sockaddr);
+                    (*ip_addr_).address_family = (*match_sockaddr).sa_family.clone() as i32;
 
-                found = true;
-                break;
+                    let mut sa_data_bytes = [0u8; 14];
+                    for i in 0..14 {
+                        sa_data_bytes[i] = (*match_sockaddr).sa_data[i] as u8;
+                    }
+                    (*ip_addr_).addr_bytes.clone_from_slice(&sa_data_bytes);
+
+                    found = true;
+                    break;
+                }
+                ifp = (*ifp).ifa_next;
             }
-            ifp = (*ifp).ifa_next;
         }
 
-        libc::freeifaddrs(ifa);
+        unsafe { libc::freeifaddrs(ifa) };
 
         if found == false {
-            bail!("enodev");
+            // bail!("enodev");
+            return Err(AddressError("enodev"));
         }
 
         Ok(())
@@ -329,13 +352,15 @@ impl IpResolver {
         let addresses: *mut IP_ADAPTER_ADDRESSES_LH = null_mut();
         let mut out_buf_len = 0u32;
         while rc == ERROR_BUFFER_OVERFLOW && iterations < max_attempts {
-            rc = unsafe {GetAdaptersAddresses(
-                AF_UNSPEC as u32,
-                GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER,
-                None,
-                Some(addresses),
-                &mut out_buf_len,
-            ) as i32};
+            rc = unsafe {
+                GetAdaptersAddresses(
+                    AF_UNSPEC as u32,
+                    GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER,
+                    None,
+                    Some(addresses),
+                    &mut out_buf_len,
+                ) as i32
+            };
             iterations += 1;
         }
 

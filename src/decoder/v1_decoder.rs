@@ -176,7 +176,7 @@ pub fn v1d_eight_byte_size_ready(decoder: &mut ZmqDecoder, buf: &mut [u8]) -> Re
     //     }
     // #endif
 
-    let msg_size = (payload_length - 1);
+    let msg_size = payload_length - 1;
 
     decoder.in_progress.close()?;
     // assert (rc == 0);

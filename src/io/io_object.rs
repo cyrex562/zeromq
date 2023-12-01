@@ -1,5 +1,4 @@
-use crate::defines::{ZMQ_IO_THREADS, ZmqFd, ZmqHandle};
-use std::ptr::null_mut;
+use crate::defines::{ZmqFd, ZmqHandle};
 use crate::io::io_thread::ZmqIoThread;
 use crate::poll::poller_base::ZmqPollerBase;
 use crate::poll::poller_event::ZmqPollerEvent;
@@ -9,12 +8,12 @@ pub struct IoObject<'a> {
 }
 
 impl<'a> IoObject<'a> {
-    pub fn new(io_thread_: &mut ZmqIoThread) -> Self {
+    pub fn new(io_thread_: Option<&mut ZmqIoThread>) -> Self {
         let mut out = Self {
             _poller: &mut ZmqPollerBase::default(),
         };
-        if io_thread_ != null_mut() {
-            out.plug(io_thread_);
+        if io_thread_.is_some() {
+            out.plug(io_thread_.unwrap());
         }
         out
     }

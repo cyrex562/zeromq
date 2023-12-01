@@ -41,7 +41,7 @@ pub struct ZmqEngine<'a> {
     pub greeting_size: usize,
     pub greeting_recv: [u8; V3_GREETING_SIZE],
     pub greeting_send: [u8; V3_GREETING_SIZE],
-    pub greeting_bytes_read: u32,
+    pub greeting_bytes_read: usize,
     pub handle: ZmqHandle,
     pub handshaking: bool,
     pub has_handshake_stage: bool,
