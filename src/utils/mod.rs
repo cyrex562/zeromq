@@ -3,7 +3,7 @@ use std::ffi::c_char;
 use anyhow::bail;
 
 use crate::defines::ZmqFd;
-use crate::poll::select::fd_set;
+use crate::poll::select::ZmqFdSet;
 
 // pub mod decoder_allocators;
 pub mod random;
@@ -153,7 +153,7 @@ pub fn is_retired_fd(x: ZmqFd) -> bool {
 }
 
 #[allow(non_snake_case)]
-pub fn FD_ISSET(fd: ZmqFd, fds: &fd_set) -> bool {
+pub fn FD_ISSET(fd: ZmqFd, fds: &ZmqFdSet) -> bool {
     let mut i = 0;
     while i < fds.len() {
         if fds[i] == fd {

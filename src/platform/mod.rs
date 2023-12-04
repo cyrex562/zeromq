@@ -29,7 +29,7 @@ use crate::defines::time::zmq_timeval_to_ms_timeval;
 #[cfg(not(target_os="windows"))]
 use crate::defines::time::{zmq_timeval_to_timeval};
 use crate::ip::{open_socket, set_nosigpipe};
-use crate::poll::select::fd_set;
+use crate::poll::select::ZmqFdSet;
 use crate::tcp::tcp_tune_loopback_fast_path;
 #[cfg(not(target_os="windows"))]
 use crate::utils::sock_utils::{sockaddr_to_zmq_sockaddr, zmq_sockaddr_to_sockaddr};
@@ -562,9 +562,9 @@ pub fn platform_poll(poll_fd: &mut [ZmqPollFd], nitems: u32, timeout: u32) -> Re
 
 pub fn platform_select(
     nfds: i32,
-    readfds: Option<&mut fd_set>,
-    writefds: Option<&mut fd_set>,
-    exceptfds: Option<&mut fd_set>,
+    readfds: Option<&mut ZmqFdSet>,
+    writefds: Option<&mut ZmqFdSet>,
+    exceptfds: Option<&mut ZmqFdSet>,
     timeout: Option<&mut ZmqTimeval>,
 ) -> Result<i32, ZmqError> {
     let mut result = 0i32;
@@ -578,9 +578,9 @@ pub fn platform_select(
         unsafe {
             result = select(
                 nfds,
-                if readfds.is_some() { Some(readfds.unwrap() as *mut fd_set as *mut FD_SET) } else { None },
-                if writefds.is_some() { Some(writefds.unwrap() as *mut fd_set as *mut FD_SET) } else { None },
-                if exceptfds.is_some() { Some(exceptfds.unwrap() as *mut fd_set as *mut FD_SET) } else { None },
+                if readfds.is_some() { Some(readfds.unwrap() as *mut ZmqFdSet as *mut FD_SET) } else { None },
+                if writefds.is_some() { Some(writefds.unwrap() as *mut ZmqFdSet as *mut FD_SET) } else { None },
+                if exceptfds.is_some() { Some(exceptfds.unwrap() as *mut ZmqFdSet as *mut FD_SET) } else { None },
                 if timeout.is_some() { Some(&mut tv) } else { None },
             );
         }
@@ -591,9 +591,9 @@ pub fn platform_select(
         unsafe {
             result = libc::select(
                 nfds,
-                readfds.unwrap() as *mut fd_set as *mut libc::fd_set,
-                writefds.unwrap() as *mut fd_set as *mut libc::fd_set,
-                exceptfds.unwrap() as *mut fd_set as *mut libc::fd_set,
+                readfds.unwrap() as *mut ZmqFdSet as *mut libc::fd_set,
+                writefds.unwrap() as *mut ZmqFdSet as *mut libc::fd_set,
+                exceptfds.unwrap() as *mut ZmqFdSet as *mut libc::fd_set,
                 &mut tv as *mut timeval,
             );
         }

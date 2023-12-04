@@ -73,8 +73,8 @@ pub fn dealer_xsend(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut Zmq
     socket.lb.sendpipe(ctx, msg_, &mut None)
 }
 
-pub fn dealer_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
-    socket.fq.recvpipe(msg_, &mut None)
+pub fn dealer_xrecv(socket: &mut ZmqSocket, msg_: &mut ZmqMsg, ctx: &mut ZmqContext) -> Result<(),ZmqError> {
+    socket.fq.recvpipe(ctx, msg_, &mut None)
 }
 
 pub fn dealer_xhas_in(socket: &mut ZmqSocket) -> bool {

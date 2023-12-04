@@ -77,7 +77,7 @@ pub fn dish_xpipe_terminated(
     socket: &mut ZmqSocket,
     pipe_: &mut ZmqPipe,
 ) -> Result<(), ZmqError> {
-    socket.fq.pipe_terminated(pipe_)?;
+    socket.fq.pipe_terminated(pipe_);
     socket.dist.pipe_terminated(pipe_);
     Ok(())
 }
@@ -190,7 +190,7 @@ pub fn dish_send_subscriptions(
     socket: &mut ZmqSocket,
     pipe_: &mut ZmqPipe,
 ) -> Result<(), ZmqError> {
-    for it in socket.subscriptions.iter_mut() {
+    for it in socket.subscriptions.iter() {
         let mut msg = ZmqMsg::default();
         let mut rc = msg.init_join();
 

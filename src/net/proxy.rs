@@ -176,14 +176,14 @@ pub fn proxy(frontend_: &mut ZmqSocket,
         //  Blocking wait initially only for 'ZMQ_POLLIN' - 'poller_wait' points to 'poller_in'.
         //  If one of receiving end's queue is full ('ZMQ_POLLOUT' not available),
         //  'poller_wait' is pointed to 'poller_receive_blocked', 'poller_send_blocked' or 'poller_both_blocked'.
-        (poller_wait).wait(options, &mut events, 3, -1)?;
+        (poller_wait).wait(options, &mut events, 3, -1, )?;
         // if (rc < 0 && errno == EAGAIN) {
         //     rc = 0;
         // }
         // CHECK_RC_EXIT_ON_FAILURE ();
 
         //  Some of events waited for by 'poller_wait' have arrived, now poll for everything without blocking.
-        (poller_all).wait(options, &mut events, 3, 0)?;
+        (poller_all).wait(options, &mut events, 3, 0, )?;
         // if (rc < 0 && errno == EAGAIN)
         //     rc = 0;
         // CHECK_RC_EXIT_ON_FAILURE ();

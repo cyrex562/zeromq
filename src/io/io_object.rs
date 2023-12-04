@@ -1,16 +1,16 @@
 use crate::defines::{ZmqFd, ZmqHandle};
 use crate::io::io_thread::ZmqIoThread;
-use crate::poll::poller_base::ZmqPollerBase;
 use crate::poll::poller_event::ZmqPollerEvent;
+use crate::poll::ZmqPoller;
 
 pub struct IoObject<'a> {
-    pub _poller: &'a mut ZmqPollerBase<'a>,
+    pub _poller: Option<&'a mut ZmqPoller<'a>>,
 }
 
 impl<'a> IoObject<'a> {
     pub fn new(io_thread_: Option<&mut ZmqIoThread>) -> Self {
         let mut out = Self {
-            _poller: &mut ZmqPollerBase::default(),
+            _poller: None,
         };
         if io_thread_.is_some() {
             out.plug(io_thread_.unwrap());
@@ -19,15 +19,15 @@ impl<'a> IoObject<'a> {
     }
 
     pub fn plug(&mut self, io_thread_: &mut ZmqIoThread) {
-        self._poller = io_thread_._poller;
+        self._poller = Some(io_thread_._poller);
     }
 
     pub fn unplug(&mut self) {
-        self._poller = &mut ZmqIoThread::default();
+        self._poller = None;
     }
 
     pub fn add_fd(&mut self, fd_: ZmqFd) -> ZmqHandle {
-        self._poller.add_fd(fd_, self)
+        self._poller.unwrap().add_fd(fd_, self)
     }
 
     pub fn rm_fd(&mut self, handle_: ZmqHandle) {

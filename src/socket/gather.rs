@@ -44,15 +44,15 @@ pub fn gather_xpipe_terminated(socket: &mut ZmqSocket, pipe_: &mut ZmqPipe) {
 }
 
 pub fn gather_xrecv(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
-    socket.fq.recvpipe(ctx, msg_, None)?;
+    socket.fq.recvpipe(ctx, msg_, &mut None)?;
 
     // Drop any messages with more flag
     while msg_.flag_set(ZMQ_MSG_MORE) {
         // drop all frames of the current multi-frame message
-        socket.fq.recvpipe(ctx, msg_, None)?;
+        socket.fq.recvpipe(ctx, msg_, &mut None)?;
 
         while msg_.flag_set(ZMQ_MSG_MORE) {
-            socket.fq.recvpipe(ctx, msg_, None)?;
+            socket.fq.recvpipe(ctx, msg_, &mut None)?;
         }
 
         // get the new message

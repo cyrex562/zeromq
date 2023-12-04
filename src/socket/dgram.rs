@@ -66,7 +66,7 @@ pub fn xsend(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) ->
         }
     } else {
         //  dgram messages are two part only, reject part if more is set
-        if msg_.flags() & ZMQ_MSG_MORE {
+        if msg_.flags() & ZMQ_MSG_MORE !=0 {
             // errno = EINVAL;
             return Err(SocketError("dgram xsend failed"));
         }
@@ -75,7 +75,7 @@ pub fn xsend(ctx: &mut ZmqContext, socket: &mut ZmqSocket, msg_: &mut ZmqMsg) ->
     // Push the message into the pipe.
     socket.pipe.unwrap().write(msg_)?;
 
-    if !(msg_.flags() & ZMQ_MSG_MORE) {
+    if !(msg_.flags() & ZMQ_MSG_MORE) != 0 {
         socket.pipe.unwrap().flush(ctx);
     }
 

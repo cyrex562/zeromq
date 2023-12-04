@@ -2079,7 +2079,7 @@ pub fn zmq_poller_wait_all(
         return Err(PollerError("EINVAL"));
     }
 
-    poller_.wait(options, events_, n_events_, timeout_)?;
+    poller_.wait(options, events_, n_events_, timeout_, )?;
 
     return Ok(0);
 }

@@ -15,7 +15,7 @@ use crate::defines::err::ZmqError::PollerError;
 use crate::defines::time::ZmqTimeval;
 use crate::ip::{make_fdpair, unblock_socket};
 use crate::platform::platform_select;
-use crate::poll::select::{fd_set, FD_SET, FD_ZERO};
+use crate::poll::select::{ZmqFdSet, FD_SET, FD_ZERO};
 use crate::utils::get_errno;
 
 #[derive(Default, Debug, Clone)]
@@ -170,7 +170,7 @@ impl ZmqSignaler {
         // #elif defined ZMQ_POLL_BASED_ON_SELECT
         #[cfg(feature = "select")] {
             // optimized_fd_set_t fds (1);
-            let mut fds = fd_set { fd_count: 0, fd_array: [0 as ZmqFd; 64] };
+            let mut fds = ZmqFdSet { fd_count: 0, fd_array: [0 as ZmqFd; 64] };
             FD_ZERO(&mut fds);
             FD_SET(self._r, &mut fds);
             // struct timeval timeout;

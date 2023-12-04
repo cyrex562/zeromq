@@ -148,13 +148,13 @@ impl<'a> ZmqPipe<'a> {
         }
 
         loop {
-            if (self.in_pipe).read(msg) == false {
+            if self.in_pipe.read(msg) == false {
                 self.in_active = false;
                 return Err(PipeError("Pipe is not readable"));
             }
 
             if msg.is_credential() {
-                (msg).close()
+                msg.close()
             } else {
                 break;
             }

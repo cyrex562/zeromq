@@ -10,7 +10,7 @@ pub const DEFAULT_PRIORITY: u32 = 100;
 pub const DEFAULT_OPTIONS: u32 = 0;
 pub const DEFAULT_STACK_SIZE: u32 = 4000;
 
-pub type ZmqThreadFn = fn(*mut c_void);
+pub type ZmqThreadFn = fn(&[u8]);
 
 // TODO: make serializable
 pub struct ZmqThread<'a> {

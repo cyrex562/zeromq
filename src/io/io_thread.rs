@@ -6,14 +6,14 @@ use crate::io::mailbox::ZmqMailbox;
 use crate::object::obj_send_stop;
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::poll::poller_base::ZmqPollerBase;
+use crate::poll::ZmqPoller;
 
 pub struct ZmqIoThread<'a> {
     // pub object: ZmqObject<'a>,
     pub thread_id: i32,
     pub _mailbox: ZmqMailbox<'a>,
     pub _mailbox_handle: ZmqHandle,
-    pub _poller: &'a mut ZmqPollerBase<'a>,
+    pub _poller: &'a mut ZmqPoller<'a>,
 }
 
 impl<'a> ZmqIoThread<'a> {

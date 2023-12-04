@@ -339,7 +339,7 @@ impl<'a> ZmqContext<'a> {
         &mut self,
         thread_: &mut ZmqThread,
         tfn_: ZmqThreadFn,
-        arg_: &mut [u8],
+        arg_: &[u8],
         name_: &str,
     ) -> bool {
         let thread_name = format!(

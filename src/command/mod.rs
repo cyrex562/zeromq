@@ -30,6 +30,7 @@ pub enum ZmqCommandType {
     PipePeerStats,
     PipeStatsPublish,
     Done,
+    Invalid,
 }
 
 // pub struct StopArgs {}
@@ -124,7 +125,7 @@ pub enum ZmqCommandType {
 //     pub done: DoneArgs,
 // }
 
-#[derive(Default,Debug,Clone,PartialOrd, PartialEq)]
+#[derive(Clone, PartialOrd, PartialEq)]
 pub struct ZmqCommand<'a> {
     // pub destination: Option<&'a mut ZmqPipe<'a>>,
     pub dest_pipe: Option<&'a mut ZmqPipe<'a>>,
@@ -170,10 +171,9 @@ pub struct ZmqCommand<'a> {
     pub type_: ZmqCommandType,
 }
 
-impl<'a> ZmqCommand<'a> {
-    pub fn new() -> Self {
+impl<'a> Default for ZmqCommand<'a> {
+    fn default() -> Self {
         Self {
-            // destination: None,
             dest_pipe: None,
             dest_own: None,
             dest_sock: None,
@@ -192,13 +192,9 @@ impl<'a> ZmqCommand<'a> {
             endpoint_pair: None,
             outbound_queue_count: 0,
             inbound_queue_count: 0,
-            type_: ZmqCommandType::Stop,
+            type_: ZmqCommandType::Invalid,
         }
     }
 }
 
-// impl PartialEq for ZmqCommand {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.destination == other.destination
-//     }
-// }
+impl<'a> ZmqCommand<'a> {}

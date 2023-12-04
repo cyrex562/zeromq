@@ -193,8 +193,6 @@ pub struct ZmqSocket<'a> {
     pub request_id_frames_enabled: bool,
     pub request_id: u32,
     // pub routing_socket_base: ZmqRoutingSocketBase<'a>,
-
-
     pub routing_id_sent: bool,
     pub send_last_pipe: bool,
     pub sending_reply: bool,
@@ -1464,7 +1462,7 @@ impl<'a> ZmqSocket<'a> {
     pub fn xrecv(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
         match self.socket_type {
             ZmqSocketType::Client => client_xrecv(ctx, self, msg),
-            ZmqSocketType::Dealer => dealer_xrecv(self, msg),
+            ZmqSocketType::Dealer => dealer_xrecv(self, msg, ),
             ZmqSocketType::Dgram => dgram_xrecv(ctx, self, msg),
             ZmqSocketType::Dish => dish_xrecv(self, msg),
             ZmqSocketType::Gather => gather_xrecv(ctx, self, msg),

@@ -25,8 +25,8 @@ impl<'a> ZmqFairQueue<'a> {
     }
 
     pub fn attach(&mut self, pipe_: &mut ZmqPipe) {
-        self.pipes.push_back(pipe_);
-        self.pipes.swap(self.active, self.pipes.size() - 1);
+        self.pipes.push(pipe_);
+        self.pipes.swap(self.active, self.pipes.len() - 1);
         self.active += 1;
     }
 
@@ -40,7 +40,9 @@ impl<'a> ZmqFairQueue<'a> {
                 self.current = 0;
             }
         }
-        self.pipes[0].default();
+        // TODO
+        // self.pipes[0].default();
+
     }
 
     pub fn activated(&mut self, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
@@ -49,16 +51,16 @@ impl<'a> ZmqFairQueue<'a> {
     }
 
     pub fn recv(&mut self, ctx: &mut ZmqContext, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
-        self.recvpipe(ctx, msg_, None)
+        self.recvpipe(ctx, msg_, &mut None)
     }
 
     pub fn recvpipe(&mut self, ctx: &mut ZmqContext, msg: &mut ZmqMsg, pipe: &mut Option<&mut ZmqPipe>) -> Result<(),ZmqError> {
-        (msg).close()?;
+        msg.close()?;
 
         while self.active > 0 {
-            let fetched = (*self.pipes[self.current]).read(ctx, msg)?;
+            let fetched = (*self.pipes[self.current]).read(ctx, msg);
 
-            if fetched {
+            if fetched.is_ok() {
                 if pipe.is_some() {
                     // *pipe = Some(self.pipes[self.current]);
                     pipe.replace(self.pipes[self.current])
