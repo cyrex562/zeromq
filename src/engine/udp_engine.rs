@@ -107,7 +107,7 @@ pub fn udp_plug(
 
     //  Connect to I/O threads poller object.
     engine.io_object.plug(io_thread_);
-    engine.handle = engine.io_object.add_fd(engine.fd);
+    engine.handle = engine.io_object.add_fd(engine.fd, engine.socket.unwrap().poll_events.unwrap());
 
     let mut udp_addr = engine.address.unwrap().udp_addr;
 

@@ -26,8 +26,8 @@ impl<'a> IoObject<'a> {
         self._poller = None;
     }
 
-    pub fn add_fd(&mut self, fd_: ZmqFd) -> ZmqHandle {
-        self._poller.unwrap().add_fd(fd_, self)
+    pub fn add_fd(&mut self, fd_: ZmqFd, events: &mut ZmqPollerEvent) -> ZmqHandle {
+        self._poller.unwrap().add_fd(fd_, events)
     }
 
     pub fn rm_fd(&mut self, handle_: ZmqHandle) {

@@ -8,7 +8,7 @@ use crate::pipe::ZmqPipe;
 // pub type ZmqPipes = ZmqArray<ZmqPipe, 1>;
 
 pub struct ZmqFairQueue<'a> {
-    pub pipes: [&'a mut ZmqPipe<'a>; 1],
+    pub pipes: Vec<&'a mut ZmqPipe<'a>>,
     pub active: usize,
     pub current: usize,
     pub more: bool,
@@ -17,7 +17,7 @@ pub struct ZmqFairQueue<'a> {
 impl<'a> ZmqFairQueue<'a> {
     pub fn new() -> Self {
         Self {
-            pipes: [&mut ZmqPipe::default(); 1],
+            pipes: vec![],
             active: 0,
             current: 0,
             more: false,
@@ -42,19 +42,18 @@ impl<'a> ZmqFairQueue<'a> {
         }
         // TODO
         // self.pipes[0].default();
-
     }
 
-    pub fn activated(&mut self, pipe_: &mut ZmqPipe) -> Result<(),ZmqError> {
+    pub fn activated(&mut self, pipe_: &mut ZmqPipe) -> Result<(), ZmqError> {
         // self.pipes.swap(self.pipes.index(pipe_).unwrap(), self.active);
         todo!()
     }
 
-    pub fn recv(&mut self, ctx: &mut ZmqContext, msg_: &mut ZmqMsg) -> Result<(),ZmqError> {
+    pub fn recv(&mut self, ctx: &mut ZmqContext, msg_: &mut ZmqMsg) -> Result<(), ZmqError> {
         self.recvpipe(ctx, msg_, &mut None)
     }
 
-    pub fn recvpipe(&mut self, ctx: &mut ZmqContext, msg: &mut ZmqMsg, pipe: &mut Option<&mut ZmqPipe>) -> Result<(),ZmqError> {
+    pub fn recvpipe(&mut self, ctx: &mut ZmqContext, msg: &mut ZmqMsg, pipe: &mut Option<&mut ZmqPipe>) -> Result<(), ZmqError> {
         msg.close()?;
 
         while self.active > 0 {

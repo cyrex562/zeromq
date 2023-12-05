@@ -29,8 +29,8 @@ use crate::pipe::{IPipeEvents, pipepair, ZmqPipe};
 use crate::pipe::out_pipe::{ZmqOutpipe, ZmqOutPipes};
 use crate::pipe::pipe_event::PipeEvent;
 use crate::pipe::pipes::ZmqPipes;
-use crate::poll::poller_base::ZmqPollerBase;
 use crate::poll::poller_event::ZmqPollerEvent;
+use crate::poll::ZmqPoller;
 use crate::session::ZmqSession;
 use crate::socket::client::{client_xattach_pipe, client_xgetsockopt, client_xhas_in, client_xhas_out, client_xjoin, client_xpipe_terminated, client_xread_activated, client_xrecv, client_xsend, client_xsetsockopt, client_xwrite_activated};
 use crate::socket::dealer::{dealer_xattach_pipe, dealer_xgetsockopt, dealer_xhas_in, dealer_xhas_out, dealer_xjoin, dealer_xpipe_terminated, dealer_xread_activated, dealer_xrecv, dealer_xsend, dealer_xsetsockopt, dealer_xwrite_activated};
@@ -177,8 +177,9 @@ pub struct ZmqSocket<'a> {
     pub pipe: Option<&'a mut ZmqPipe<'a>>,
     pub pipe_events: Vec<PipeEvent>,
     pub pipes: ZmqPipes<'a>,
-    pub poll_events: Option<&'a mut [ZmqPollerEvent<'a>]>,
-    pub poller: Option<&'a mut ZmqPollerBase<'a>>,
+    // pub poll_events: Option<&'a mut [ZmqPollerEvent<'a>]>,
+    pub poll_events: Vec<ZmqPollerEvent<'a>>,
+    pub poller: ZmqPoller<'a>,
     pub prefetched: bool,
     pub prefetched_id: ZmqMsg,
     pub prefetched_msg: ZmqMsg,
@@ -310,53 +311,42 @@ impl<'a> ZmqSocket<'a> {
 
     pub fn new(parent_: &mut ZmqContext, tid_: u32, sid_: i32, thread_safe_: bool) -> Self {
         let mut out = Self {
-            eligible: 0,
-            more: false,
             active: 0,
-            // own: ZmqOwn::new(parent_, tid_),
-            pending_data: Default::default(),
-            pending_flags: Default::default(),
-            pending_metadata: Default::default(),
-            pending_pipes: Default::default(),
-            // array_item: ArrayItem::new(),
-            poll_events: None,
-            pipe_events: vec![],
+            anonymous_pipes: Default::default(),
+            check_pipe_hwm: false,
+            clock: 0,
+            connect_routing_id: "".to_string(),
+            ctx_terminated: false,
+            current_in: None,
+            current_out: None,
+            destroyed: false,
+            disconnected: false,
+            dist: ZmqDist::default(),
+            eligible: 0,
+            endpoints: Default::default(),
+            fq: ZmqFairQueue::default(),
+            handle: None,
+            handover: false,
+            has_message: false,
+            inprocs: ZmqInprocs::default(),
+            last_endpoint: "".to_string(),
+            last_pipe: None,
+            last_tsc: 0,
+            lb: ZmqLoadBalancer::default(),
+            lossy: false,
             mailbox: ZmqMailbox::default(),
             mandatory: false,
             manual: false,
-            manual_subscriptions:vec!{},
+            manual_subscriptions: vec! {},
+            mark_as_matching: false,
+            mark_last_pipe_as_matching: false,
             matching: 0,
-            pipes: ZmqPipes::default(),
-            poller: None,
-            prefetched: false,
-            prefetched_id: Default::default(),
-            prefetched_msg: Default::default(),
-            probe_router: false,
-            process_subscribe: false,
-            handle: None,
-            handover: false,
-            last_tsc: 0,
-            lb: ZmqLoadBalancer::default(),
-            ticks: 0,
-            udp_pipes: vec![],
-            verbose_unsubs: false,
-            rcvmore: false,
-            receiving_reply: false,
-            clock: 0,
-            monitor_socket: None,
+            message: Default::default(),
+            message_begins: false,
             monitor_events: 0,
-            last_endpoint: "".to_string(),
-            thread_safe: false,
-            reaper_signaler: None,
-            request_begins: false,
-            request_id_frames_enabled: false,
-            request_id: 0,
-            routing_id_sent: false,
-            send_last_pipe: false,
-            sending_reply: false,
-            socket_type: ZmqSocketType::Client,
-            strict: false,
+            monitor_socket: None,
             monitor_sync: ZmqMutex::new(),
+            more: false,
             more_in: false,
             more_out: false,
             more_recv: false,
@@ -364,47 +354,49 @@ impl<'a> ZmqSocket<'a> {
             next_integral_routing_id: 0,
             next_routing_id: 0,
             only_first_subscribe: false,
-            disconnected: false,
-            sync: ZmqMutex::new(),
-            endpoints: Default::default(),
-            inprocs: ZmqInprocs::default(),
-            tag: 0,
-            ctx_terminated: false,
-            current_in: None,
-            current_out: None,
-            destroyed: false,
-            anonymous_pipes: Default::default(),
-            dist: ZmqDist::default(),
-            fq: ZmqFairQueue::default(),
-            has_message: false,
-            last_pipe: None,
-            lossy: false,
-            message: Default::default(),
             out_pipes: Default::default(),
-            // object: ZmqObject::default(),
-            // terminating: false,
-            // sent_seqnum: ZmqAtomicCounter::default(),
-            // processed_seqnum: 0,
-            // owner: None,
-            // owned: Default::default(),
-            pipe: None,
-            raw_socket: false,
-            subscriptions: ZmqSubscriptions::default(),
-            terminate_current_in: false,
-            welcome_msg: Default::default(),
-            // term_acks: 0,
-            check_pipe_hwm: false,
-            verbose_subs: false,
-            send_unsubscription: false,
-            stub: false,
-            mark_last_pipe_as_matching: false,
-            mark_as_matching: false,
             own: Default::default(),
-            message_begins: false,
             peer_last_routing_id: 0,
+            pending_data: Default::default(),
+            pending_flags: Default::default(),
+            pending_metadata: Default::default(),
+            pending_pipes: Default::default(),
+            pipe: None,
+            pipe_events: vec![],
+            pipes: ZmqPipes::default(),
+            poll_events: vec![],
+            poller: ZmqPoller::default(),
+            prefetched: false,
+            prefetched_id: Default::default(),
+            prefetched_msg: Default::default(),
+            probe_router: false,
+            process_subscribe: false,
+            raw_socket: false,
+            rcvmore: false,
+            reaper_signaler: None,
+            receiving_reply: false,
             reply_pipe: None,
+            request_begins: false,
+            request_id: 0,
+            request_id_frames_enabled: false,
+            routing_id_sent: false,
+            send_last_pipe: false,
             send_subscription: false,
-            connect_routing_id: "".to_string(),
+            send_unsubscription: false,
+            sending_reply: false,
+            socket_type: ZmqSocketType::Client,
+            strict: false,
+            stub: false,
+            subscriptions: ZmqSubscriptions::default(),
+            sync: ZmqMutex::new(),
+            tag: 0,
+            terminate_current_in: false,
+            thread_safe: false,
+            ticks: 0,
+            udp_pipes: vec![],
+            verbose_subs: false,
+            verbose_unsubs: false,
+            welcome_msg: Default::default(),
         };
         // TODO
         // options.socket_id = sid_;
@@ -475,7 +467,7 @@ impl<'a> ZmqSocket<'a> {
                 dgram_xattach_pipe(ctx, self, &mut pipe, subscribe_to_all_, locally_initiated_);
             }
             ZmqSocketType::Dish => {
-                dish_xattach_pipe(self, &mut pipe, subscribe_to_all_, locally_initiated_)?;
+                dish_xattach_pipe(ctx, self, &mut pipe, subscribe_to_all_, locally_initiated_)?;
             }
             ZmqSocketType::Gather => {
                 gather_xattach_pipe(self, &mut pipe, subscribe_to_all_, locally_initiated_);
@@ -972,7 +964,7 @@ impl<'a> ZmqSocket<'a> {
 
         // address_t *paddr = new (std::nothrow) address_t (protocol, address, this->get_ctx ());
         // alloc_assert (paddr);
-        let mut paddr = ZmqAddress::new(&mut protocol, &mut address, self.get_ctx());
+        let mut paddr = ZmqAddress::new(&mut protocol, &mut address);
 
         //  Resolve address (if needed by the protocol)
         if protocol == "tcp" {
@@ -1345,8 +1337,8 @@ impl<'a> ZmqSocket<'a> {
 
     pub fn xsend(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
         match self.socket_type {
-            ZmqSocketType::Client => client_xsend(self, msg),
-            ZmqSocketType::Dealer => dealer_xsend(self, msg),
+            ZmqSocketType::Client => client_xsend(ctx, self, msg),
+            ZmqSocketType::Dealer => dealer_xsend(ctx, self, msg),
             ZmqSocketType::Dgram => dgram_xsend(self, msg),
             ZmqSocketType::Dish => dish_xsend(self, msg),
             ZmqSocketType::Gather => gather_xsend(self, msg),
@@ -1462,7 +1454,7 @@ impl<'a> ZmqSocket<'a> {
     pub fn xrecv(&mut self, ctx: &mut ZmqContext, options: &mut ZmqOptions, msg: &mut ZmqMsg) -> Result<(), ZmqError> {
         match self.socket_type {
             ZmqSocketType::Client => client_xrecv(ctx, self, msg),
-            ZmqSocketType::Dealer => dealer_xrecv(self, msg, ),
+            ZmqSocketType::Dealer => dealer_xrecv(self, msg, ctx),
             ZmqSocketType::Dgram => dgram_xrecv(ctx, self, msg),
             ZmqSocketType::Dish => dish_xrecv(self, msg),
             ZmqSocketType::Gather => gather_xrecv(ctx, self, msg),
@@ -1508,7 +1500,7 @@ impl<'a> ZmqSocket<'a> {
             ZmqSocketType::Client => client_xhas_in(self),
             ZmqSocketType::Dealer => dealer_xhas_in(self),
             ZmqSocketType::Dgram => dgram_xhas_in(self),
-            ZmqSocketType::Dish => dish_xhas_in(self),
+            ZmqSocketType::Dish => dish_xhas_in(ctx, self),
             ZmqSocketType::Gather => gather_xhas_in(self),
             ZmqSocketType::Pair => pair_xhas_in(self),
             ZmqSocketType::Peer => peer_xhas_in(self),
@@ -1553,7 +1545,7 @@ impl<'a> ZmqSocket<'a> {
         }
     }
 
-    pub fn start_reaping(&mut self, poller_: &mut ZmqPollerBase) {
+    pub fn start_reaping(&mut self, poller_: &mut ZmqPoller) {
         //  Plug the socket to the reaper thread.
         self.poller = Some(poller_);
 
@@ -1561,7 +1553,7 @@ impl<'a> ZmqSocket<'a> {
         let mut fd: ZmqFd = 0;
 
         if !self.thread_safe {
-            fd = (self.mailbox).get_fd();
+            fd = self.mailbox.get_fd();
         } else {
             // scoped_optional_lock_t sync_lock (_thread_safe ? &_sync : NULL);
 
@@ -1571,7 +1563,7 @@ impl<'a> ZmqSocket<'a> {
 
             //  Add signaler to the safe mailbox
             fd = self.reaper_signaler.get_fd();
-            (self.mailbox).add_signaler(&mut self.reaper_signaler.unwrap());
+            self.mailbox.add_signaler(&mut self.reaper_signaler.unwrap());
 
             //  Send a signal to make sure reaper handle existing commands
             self.reaper_signaler.send();

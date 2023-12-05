@@ -1,0 +1,743 @@
+@startuml
+'https://plantuml.com/class-diagram
+class ZmqReaper {
+    thread_id: i32
+    mailbox: ZmqMailbox
+    mailbox_handle: Option<ZmqHandle>
+    poller: ZmqPoller
+    sockets: i32
+    terminating: bool
+    pid: pid_t
+}
+
+entity ZmqHandle
+
+class ZmqMailbox {
+    cpipe: ZmqYPipe<ZmqCommand>
+    signaler: ZmqSignaler
+    sync: ZmqMutex
+    active: bool
+    _cond_var: ZmqConditionVariable
+    _signalers: Vec<&mut ZmqSignaler>
+}
+
+class ZmqPoller {
+    _clock: Duration
+    _timers: Hasmap<u64, TimerInfo>
+    _load: AtomicU32
+    _active: bool
+    _worker: ZmqThread
+    _family_entries: Hashmap<u16, ZmqFamilyEntry>
+    _fd_family_cache: [(ZmqFd, u16); FD_FAMILY_CACHE_SIZE]
+    _family_entry: ZmqFamilyEntry
+    _max_fd: ZmqFd
+    _current_family_entry_it: &'mut ZmqFamilyEntry
+}
+
+class ZmqYPipe<T> {
+    base: ZmqYPipeBase<T>
+    queue: YQueue<T>
+    w: &mut T
+    r: &mut T
+    f: &mut T
+    c: &mut T
+}
+
+class ZmqSignaler {
+    _w: ZmqFd
+    _r: ZmqFd
+    pid: ZmqPid
+}
+
+class ZmqMutex {
+    _mutex: std::sync::Mutex<bool>
+}
+
+class TimerInfo {
+    sink: &mut ZmqPollerEvent
+    id: i32
+}
+
+class ZmqThread {
+    _arg: &mut [u8]
+    _tfn: Option< ZmqThreadFn>
+    _name: String
+    _descriptor: Option<ZmqHandle>
+    _thread_id: ThreadId
+    _thread_priority: i32
+    _thread_sched_policy: i32
+    _thread_affinity_cpus: HashSet<i32>
+    _join_handle: thread::JoinHandle<()>
+    _builder: thread::Builder
+}
+
+class ZmqFamilyEntry {
+    fd_entries: Vec<ZmqFdEntry>
+    fds_set: ZmqFdsSet
+    has_retrired: bool
+}
+
+class ZmqFdEntry {
+    pd: ZmqFd
+    events: &mut ZmqPollerEvent
+}
+
+class ZmqFdsSet {
+    read: ZmqFdSet
+    write: ZmqFdSet
+    error: ZmqFdSet
+}
+
+class ZmqFdSet {
+    fd_count: u32
+    fd_array: [ZmqFd; 64]
+}
+
+class ZmqPollerEvent {
+    socket: Option<&mut ZmqSocket>
+    fd: ZmqFd
+    user_data: Vec<u8>
+    events: u32
+}
+
+class ZmqSocket {
+    eligible: usize
+    more: bool
+    active: usize
+    anonymous_pipes: HashSet<&mut ZmqPipe>
+    clock: clock_t
+    cnnect_routing_id: String
+    ctx_terminated: bool
+    current_in: Option<&mut ZmqPipe>
+    current_out: Option<&mut ZmqPipe>
+    destroyed: bool
+    disconnected: bool
+    dist: ZmqDist
+    endpoints: ZmqEndpoints
+    fq: ZmqFairQueue
+    handle: Option<&mut ZmqHandle>
+    handover: bool
+    has_message: bool
+    inprocs: ZmqInprocs
+    last_endpoint: String
+    last_pipe: Option<&mut ZmqPipe>
+    last_tsc: u64
+    lb: ZmqLoadBalancer
+    lossy: bool
+    message_begins: bool
+    mailbox: ZmqMailbox
+    mandatory: bool
+    manual: bool
+    manual_subscriptions: bool
+    matching: usize
+    message: ZmqMsg
+    monitor_events: i64
+    monitor_socket: Option<&mut ZmqSocket>
+    monitor_sync: ZmqMutex
+    more_in: bool
+    more_out: bool
+    more_recv: bool
+    more_send: bool
+    next_integral_routing_id: u32
+    next_routing_id: u32
+    only_first_subscribe: bool
+    out_pipes: ZmqOutPipes
+    own: ZmqOwn
+    peer_last_routing_id: u32
+    pending_data: VecDeque<vec<u8>>
+    pending_flags: VecDeque<u8>
+    pending_metadata: VecDeque<&mut ZmqMetadata>
+    pending_pipes: VecDeque<&mut ZmqPipe>
+    pipe: Option<&mut ZmqPipe>
+    pipe_events: Vec<PipeEvent>
+    pipes: ZmqPipes
+    poll_events: Vec<ZmqPollerEvent>
+    poller: ZmqPoller
+    prefetched: bool
+    prefetched_id: ZmqMsg
+    prefetched_msg: ZmqMsg
+    probe_router: bool
+    process_subscribe: bool
+    raw_socket: bool
+    rcvmore: bool
+    receiving_reply: bool
+    reply_pipe: Option<&mut ZmqPipe>
+    reaper_signaler: Option<ZmqSignaler>
+    request_begins: bool
+    request_id_frames_enabled: bool
+    request_id: u32
+    routing_id_sent: bool
+    send_last_pipe: bool
+    sending_reply: bool
+    socket_type: ZmqSocketType
+    strict: bool
+    subscriptions: ZmqSubscriptions
+    sync: ZmqMutex
+    tag: u32
+    terminate_current_in: bool
+    thread_safe: bool
+    ticks: i32
+    udp_pipes: UdpPipes
+    verbos_unsubs: bool
+    welcome_msg: ZmqMsg
+    check_pipe_hwm: bool
+    verbos_subs: bool
+    send_unsubcription: bool
+    stub: bool
+    mark_last_pipe_as_matching: bool
+    mark_as_matching: bool
+    send_subscription: bool
+}
+
+class ZmqPipe {
+    in_pipe: Option<&mut YPipeConflate<ZmqMsg>>
+    out_pipe: Option<&mut YPipeConflate<ZmqMsg>>
+    in_active: bool
+    out_pipe: bool
+    hwm: i32
+    lwm: i32
+    in_hwm_boost: i32
+    out_hwm_boost: i32
+    msgs_read: u64
+    msgs_written: u64
+    peer_msgs_read: u64
+    peer: Option<&mut ZmqPipe>
+    sink: Option<&mut IPipeEvents>
+    _state: ZmqPipeState
+    delay: bool
+    router_socket_routing_id: Vec<u8>
+    server_socket_routing_id: i32
+    conflate: bool
+    enpoint_pair: ZmqEndpointUriPair
+    disconnect_msg: ZmqMsg
+}
+
+class ZmqDist {
+    _pipes: ZmqPipes
+    _matching: usize
+    _active: usize
+    _eligible: usize
+    _more: bool
+}
+
+class ZmqPipes {
+    _pipes: Vec<&mut ZmqPipe>
+}
+
+class ZmqFairQueue {
+    pipes: Vec<&mut ZmqPipe>
+    active: usize
+    current: usize
+    more: bool
+}
+
+class ZmqInprocs {
+    _inprocs: ZmqMap
+}
+
+class ZmqLoadBalancer {
+_pipes: ZmqPipes
+_active: usize
+_current: usize
+_more: bool
+_dropping: bool
+}
+
+class ZmqMsg {
+    refcnt: AtomicU32
+    metadata: ZmqMetadata
+    content: Option<ZmqContent>
+    type_: u8
+    flags: u8
+    routing_id: u32
+    group_type: u8
+    sgroup_type: u8
+    group_: [u8;15]
+    lgroup_type: u8
+    data: [u8; MAX_VSM_SIZE]
+    size: u8
+}
+
+class ZmqMetadata {
+    ref_cnt: AtomicU32
+    dict: HashMap<String,String>
+}
+
+class ZmqContent {
+    data: Vec<u8>
+    size: size_t
+    hint: Vec<u8>
+    refcnt: AtomicU32
+    ffn: Option<MsgFreeFn>
+}
+
+class ZmqMutex {
+    _mutex: std::sync::Mutex<bool>
+}
+
+class ZmqOutpipe {
+    pipe: &mut ZmqPipe
+    active: bool
+}
+
+enum ZmqSessionState {
+    Group
+    Body
+    Bottom
+    RequestId
+}
+
+enum ZmqSessionType {
+    Dish
+    Radio
+    Req
+}
+
+class ZmqSession {
+    own: ZmqOwn
+    io_object: IoObject
+    _active: bool
+    _pipe: Option<&mut ZmqPipe>
+    _zap_pipe: Option<&mut ZmqPipe>
+    _terminating_pipes: HashSet<&mut ZmqPipe>
+    _incomplete_in: bool
+    _pending: bool
+    _socket: &mut ZmqSocket
+    _io_thread: &mut ZmqIoThread
+    _has_linger_timer: bool
+    _addr: ZmqAddress
+    _engine: Option<&mut ZmqEngine>
+    _state: ZmqSessionState
+    _group_msg: ZmqMsg
+    _pending_msg: ZmqMsg
+    session_type: ZmqSessionType
+}
+
+class YPipeConflate<T> {
+    base: ZmqYPipeBase
+    dbuffer: Vec<T>
+    reader_awake: bool
+}
+
+class ZmqYPipeBase {
+    write: fn()
+    unwrite: fn()
+    flush: fn()
+    check_read: fn()
+    read: fn()
+    probe: fn()
+}
+
+enum ZmqEndpointType {
+    EndpointTypeNone
+    EndpointTypeBind
+    EndpointTypeConnect
+}
+
+class ZmqEndpointUriPair {
+    local: String
+    remote: String
+    local_type: ZmqEndpointType
+}
+
+entity ZmqConditionVariable
+
+entity ZmqFd
+
+entity clock_t
+
+entity ZmqEndpointPipe {
+    (&mut ZmqSession, &mut ZmqPipe)
+}
+
+entity ZmqEndpoints {
+    HashMap<String,ZmqEndpointPipe>>
+}
+
+entity ZmqMap {
+    HashMap<String< &mut ZmqPipe>>
+}
+
+entity ZmqOutpipes {
+    HashMap<u32,ZmqOutpipe>
+}
+
+interface PipeEvent {
+    read_activated()
+    write_activated()
+    hiccuped()
+    pipe_terminated()
+}
+
+enum ZmqSocketType {
+Client
+Dealer
+Dgram
+Dish
+Gather
+Pair
+Peer
+Pub
+Pull
+Push
+Radio
+Rep
+Req
+Router
+Scatter
+Server
+Sub
+Xpub
+Xsub
+}
+
+entity ZmqSubscriptions {
+    HashSet<String>
+}
+
+entity UdpPipes {
+    Vec<&mut ZmqPipe>
+}
+
+interface IPipeEvents {
+    read_activated()
+    write_activated()
+    hiccuped()
+    pipe_terminated()
+}
+
+enum ZmqPipeState {
+    Active
+    DelimiterReceived
+    WaitingForDelimiter
+    TermAckSent
+    TermReqSent1
+    TermReqSent2
+}
+
+class ZmqOwn {
+    terminating: bool
+    sent_seqnum: AtomicU32
+    processed_seqnum: u64
+    owner: Option<&mut ZmqOwn>
+    owned: Option<&mut ZmqOwn>
+    term_acks: i32
+}
+
+class ZmqIoThread {
+    thread_id: i32
+    _mailbox: ZmqMailbox
+    _mailbox_handle: Option<&mut ZmqHandle>
+    _poller: ZmqPoller
+}
+
+class IoObject {
+    _poller: Option<&mut ZmqPoller>
+}
+
+class ZmqAddress {
+    protocol: String
+    address: String
+    source_address: ZmqIpAddress
+    has_src_addr: bool
+    _bind_address: ZmqIpAddress
+    _bind_interface: i32
+    _target_address: ZmqIpAddress
+    _is_multicast: bool
+    _address: String
+    tcp_addr: ZmqTcpAddress
+    udp_addr: ZmqUdpAddress
+}
+
+class ZmqIpAddress {
+    addr_bytes: [u8;16]
+    address_family: i32
+    port: u16
+    flow_info: u32
+    scope_id: u32
+}
+
+class ZmqTcpAddress {
+    address: ZmqIpAddress
+    source_address: ZmqIpAddress
+    has_src_addr: bool
+}
+
+class ZmqUdpAddress {
+    _bind_address: ZmqIpAddress
+    _bind_interface: i32
+    _target_address: ZmqIpAddress
+    _is_multicast: bool
+    _address: String
+}
+
+class ZmqEngine {
+    address: Option<ZmqAddress>
+    decoder: Option<ZmqDecoder>
+    encoder: Option<ZmqEncoder>
+    endpoint_uri_pair: Option<ZmqEndpointUriPair>
+    engine_type: ZmqEngineType
+    greeting_size: usize
+    greeting_recv: [u8; V3_GREETING_SIZE]
+    greeting_send: [u8; V3_GREETING_SIZE]
+    greeting_bytes_read: usize
+    handle: ZmqHandle
+    handshaking: bool
+    has_handshake_stage: bool
+    has_handshake_timer: bool
+    has_heartbeat_timer: bool
+    has_timeout_timer: bool
+    has_ttl_timer: bool
+    heartbeat_timeout: i32
+    in_buffer: Vec<u8>
+    in_pos: &mut [u8]
+    in_size: usize
+    input_stopped: bool
+    io_error: bool
+    io_object: IoObject
+    mechanism: Option<ZmqMechanism>
+    metadata: Option<ZmqMetadata>
+    out_address: ZmqSockAddr
+    out_address_len: usize
+    out_buffer: Vec<u8>
+    output_stopped: bool
+    out_pos: &mut [u8]
+    out_size: usize
+    peer_address: String
+    plugged: bool
+    pong_msg: ZmqMsg
+    raw_address: ZmqSockAddrIn
+    recv_enabled: bool
+    routing_id_msg: ZmqMsg
+    fd: ZmqFd
+    send_enabled: bool
+    session: Option<&mut ZmqSession>
+    subscription_required: bool
+    socket: Option<&mut ZmqSocket>
+    tx_msg: Option<ZmqMsg>
+    process_msg: fn()
+    next_msg: fn()
+}
+
+enum DecoderType {
+    V1Decoder
+    V2Decoder
+    RawDecoder
+}
+
+class ZmqDecoder {
+    next: Option<StepFn>
+    read_buf: Option<&mut [u8]>
+    read_pos: usize
+    to_read: usize
+    buf: Vec<u8>
+    in_progress: ZmqMsg
+    decoder_type: DecoderType
+    tmpbuf: [u8;8]
+    max_msg_size: i64
+    zero_copy: bool
+    msg_flags: u8
+}
+
+enum EncoderType {
+    V1Encoder
+    V2Encoder
+    V31 Encoder
+    RawEncoder
+}
+
+class ZmqEncoder {
+    _write_pos: &mut [u8]
+    _to_write: usize
+    _next: Option<StepFn>
+    _new_msg_flag: bool
+    _buf_size: usize
+    buf: Vec<u8>
+    in_progress: ZmqMsg
+    tmp_buff: [u8;11]
+    encoder_type: EncoderType
+}
+
+entity ZmqDict {
+    HashMap<String,String>
+}
+
+class ZmqMechanism {
+    _zmtp_properties: ZmqDict
+    _zap_properties: ZmqDict
+    _routing_id: Vec<u8>
+    _user_id: Vec<u8>
+    session: &mut ZmqSession
+    zap_client: ZapClient
+    _ready_command_sent: bool
+    _error_command_sent: bool
+    _ready_command_received: bool
+    _error_command_received: bool
+    _zap_request_sent: bool
+    _zap_reply_received: bool
+}
+
+class ZapClient {
+    mechanism: Option<&mut ZmqMechanism>
+    status_code: String
+    peer_address: String
+}
+
+class ZmqSockAddr {
+    sa_family: u16
+    sa_data: [u8;14]
+}
+
+class ZmqSockAddrIn {
+    sin_family: u16
+    sin_port: u16
+    sin_addr: u32
+    sin_zero: [u8;8]
+}
+
+ZapClient *-- ZmqMechanism
+
+ZmqMechanism *-- ZmqDict
+ZmqMechanism *-- ZmqSession
+ZmqMechanism *-- ZapClient
+
+ZmqEncoder *-- ZmqMsg
+ZmqEncoder *-- EncoderType
+
+ZmqDecoder *-- ZmqMsg
+ZmqDecoder *-- DecoderType
+
+ZmqIoThread *-- ZmqMailbox
+ZmqIoThread *-- ZmqPoller
+ZmqIoThread *-- ZmqHandle
+
+ZmqAddress *-- ZmqIpAddress
+ZmqAddress *-- ZmqTcpAddress
+ZmqAddress *-- ZmqUdpAddress
+
+ZmqTcpAddress *-- ZmqIpAddress
+
+ZmqUdpAddress *-- ZmqIpAddress
+
+IoObject *-- ZmqPoller
+
+ZmqOwn *-- ZmqOwn
+
+ZmqSession *-- ZmqPipe
+ZmqSession *-- ZmqSocket
+ZmqSession *-- ZmqOwn
+ZmqSession *-- IoObject
+ZmqSession *-- ZmqIoThread
+ZmqSession *-- ZmqMsg
+ZmqSession *-- ZmqAddress
+ZmqSession *-- ZmqEngine
+ZmqSession *-- ZmqSessionType
+ZmqSession *-- ZmqSessionState
+
+ZmqEndpoints *-- ZmqEndpointPipe
+
+ZmqEndpointPipe *-- ZmqPipe
+
+ZmqReaper *-- ZmqHandle
+ZmqReaper *-- ZmqMailbox
+ZmqReaper *-- ZmqPoller
+
+ZmqMailbox *-- ZmqYPipe
+ZmqMailbox *-- ZmqSignaler
+ZmqMailbox *-- ZmqMutex
+ZmqMailbox *-- ZmqConditionVariable
+
+ZmqPoller *-- TimerInfo
+ZmqPoller *-- ZmqThread
+ZmqPoller *-- ZmqFamilyEntry
+ZmqPoller *-- ZmqFd
+
+ZmqFamilyEntry *-- ZmqFdEntry
+ZmqFamilyEntry *-- ZmqFdsSet
+
+ZmqFdsSet *-- ZmqFdSet
+
+ZmqFdSet *-- ZmqFd
+
+ZmqFdEntry *-- ZmqFd
+ZmqFdEntry *-- ZmqPollerEvent
+
+ZmqPollerEvent *-- ZmqFd
+ZmqPollerEvent *-- ZmqSocket
+
+TimerInfo *-- ZmqPollerEvent
+
+ZmqSocket *-- ZmqPipe
+ZmqSocket *-- clock_t
+ZmqSocket *-- ZmqDist
+ZmqSocket *-- ZmqEndpoints
+ZmqSocket *-- ZmqFairQueue
+ZmqSocket *-- ZmqHandle
+ZmqSocket *-- ZmqInprocs
+ZmqSocket *-- ZmqLoadBalancer
+ZmqSocket *-- ZmqMailbox
+ZmqSocket *-- ZmqMsg
+ZmqSocket *-- ZmqSocket
+ZmqSocket *-- ZmqMutex
+ZmqSocket *-- ZmqOutpipes
+ZmqSocket *-- ZmqMetadata
+ZmqSocket *-- PipeEvent
+ZmqSocket *-- ZmqPollerEvent
+ZmqSocket *-- ZmqSignaler
+ZmqSocket *-- ZmqSocketType
+ZmqSocket *-- ZmqSubscriptions
+ZmqSocket *-- UdpPipes
+
+ZmqPipe *-- YPipeConflate
+ZmqPipe *-- ZmqPipe
+ZmqPipe *-- IPipeEvents
+ZmqPipe *-- ZmqPipeState
+ZmqPipe *-- ZmqEndpointUriPair
+ZmqPipe *-- ZmqMsg
+
+ZmqInprocs *-- ZmqMap
+
+ZmqDist *-- ZmqPipes
+
+ZmqPipes *-- ZmqPipe
+
+ZmqFairQueue *-- ZmqPipe
+
+ZmqMap *-- ZmqPipe
+
+ZmqLoadBalancer *-- ZmqPipes
+
+ZmqMsg *-- ZmqMetadata
+ZmqMsg *-- ZmqContent
+
+ZmqOutpipes *-- ZmqOutpipe
+
+ZmqOutpipe *-- ZmqPipe
+
+UdpPipes *-- ZmqPipe
+
+ZmqEndpointPipe *-- ZmqSession
+
+YPipeConflate *-- ZmqYPipeBase
+
+ZmqYPipe *-- ZmqYPipeBase
+
+ZmqEndpointUriPair *-- ZmqEndpointType
+
+ZmqEngine *-- ZmqAddress
+ZmqEngine *-- ZmqEndpointUriPair
+ZmqEngine *-- ZmqHandle
+ZmqEngine *-- IoObject
+ZmqEngine *-- ZmqMsg
+ZmqEngine *-- ZmqFd
+ZmqEngine *-- ZmqSession
+ZmqEngine *-- ZmqSocket
+ZmqEngine *-- ZmqDecoder
+ZmqEngine *-- ZmqEncoder
+ZmqEngine *-- ZmqMetadata
+ZmqEngine *-- ZmqMechanism
+ZmqEngine *-- ZmqSockAddr
+ZmqEngine *-- ZmqSockAddrIn
+
+
+@enduml

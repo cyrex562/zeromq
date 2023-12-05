@@ -1,12 +1,12 @@
 use crate::command::ZmqCommand;
 use crate::ctx::ZmqContext;
-use crate::defines::ZmqHandle;
 use crate::defines::RETIRED_FD;
+use crate::defines::ZmqHandle;
 use crate::io::mailbox::ZmqMailbox;
 use crate::object::{obj_process_command, obj_send_stop};
 use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
-use crate::poll::poller_base::ZmqPollerBase;
+use crate::poll::ZmqPoller;
 use crate::socket::ZmqSocket;
 
 #[derive(Default, Debug, Clone)]
@@ -15,7 +15,7 @@ pub struct ZmqReaper<'a> {
     pub thread_id: i32,
     pub mailbox: ZmqMailbox<'a>,
     pub mailbox_handle: Option<ZmqHandle>,
-    pub poller: &'a mut ZmqPollerBase<'a>,
+    pub poller: ZmqPoller<'a>,
     pub sockets: i32,
     pub terminating: bool,
     #[cfg(feature = "have_fork")]
@@ -28,7 +28,7 @@ impl<'a> ZmqReaper<'a> {
             thread_id: 0,
             mailbox: ZmqMailbox::new(),
             mailbox_handle: None,
-            poller: &mut ZmqPollerBase::default(),
+            poller: ZmqPoller::default(),
             sockets: 0,
             terminating: false,
             #[cfg(feature = "have_fork")]

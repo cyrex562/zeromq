@@ -8,12 +8,12 @@ use crate::options::ZmqOptions;
 use crate::pipe::ZmqPipe;
 use crate::poll::ZmqPoller;
 
+#[derive(Default, Debug, Clone)]
 pub struct ZmqIoThread<'a> {
-    // pub object: ZmqObject<'a>,
     pub thread_id: i32,
     pub _mailbox: ZmqMailbox<'a>,
     pub _mailbox_handle: ZmqHandle,
-    pub _poller: &'a mut ZmqPoller<'a>,
+    pub _poller: ZmqPoller<'a>,
 }
 
 impl<'a> ZmqIoThread<'a> {
@@ -43,7 +43,7 @@ impl<'a> ZmqIoThread<'a> {
         self._poller.stop();
     }
 
-    pub fn in_event(&mut self, options: &ZmqOptions) ->Result<(),ZmqError> {
+    pub fn in_event(&mut self, options: &ZmqOptions) -> Result<(), ZmqError> {
         let mut cmd = ZmqCommand::new();
         let rc = self._mailbox.recv(&mut cmd, 0)?;
         // TODO: check error state and run while loop, etc
