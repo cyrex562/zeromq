@@ -237,7 +237,7 @@ impl TcpAddressMask {
         Ok(())
     }
 
-    pub fn match_address(&mut self, ss_: &sockaddr, ss_len_: socklen_t) -> bool {
+    pub fn match_address(&mut self, ss_: &sockaddr, ss_len_: i32) -> bool {
         if ss_.sa_family != self.network_address.family() as u16 {
             return false;
         }

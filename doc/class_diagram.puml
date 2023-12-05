@@ -595,6 +595,71 @@ class ZmqSockAddrIn {
     sin_zero: [u8;8]
 }
 
+entity ZmqIoThreads {
+    Vec<&mut ZmqIoThread>
+}
+
+class ZmqOptions {
+
+}
+
+class Endpoint {
+    socket: &mut ZmqSocket
+    options: ZmqOptions
+}
+
+class PendingConnection {
+    endpoint: Endpoint
+    connect_pipe: &mut ZmqPipe
+    bind_pipe: &mut ZmqPipe
+}
+
+class ZmqContext {
+    _opt_sync: ZmqMutex
+    _thread_priority: i32
+    _thread_sched_policy: i32
+    _thread_affinity_cpus: HashSet<i32>
+    _thread_name_prefix: String
+    _tag: u32
+    sockets: Vec<ZmqSocket>
+    _empty_slots: Vec<u32>
+    _starting: bool
+    _terminating: bool
+    _slot_sync: ZmqMutex
+    _reaper: &mut ZmqReaper
+    _io_threads: ZmqIoThreads
+    slots: vec<&mut ZmqMailbox>
+    term_mailbox: ZmqMailbox
+    _endpoints: HashMap<String, PendingConnection>
+    _endpoints_sync: ZmqMutex
+    max_socket_id: AtomicU32
+    _max_sockets: i32
+    _max_msgsz: i32
+    _io_thread_count: i32
+    _blocky: bool
+    _ipv6: bool
+    _zero_copy: bool
+    _pid: ZmqPid
+    _vmci_fd: i32
+    _vmci_family: i32
+    _vmci_sync: ZmqMutex
+}
+
+ZmqIoThreads *-- ZmqIoThread
+
+ZmqContext *-- ZmqMutex
+ZmqContext *-- ZmqSocket
+ZmqContext *-- ZmqReaper
+ZmqContext *-- ZmqIoThreads
+ZmqContext *-- ZmqMailbox
+ZmqContext *-- PendingConnection
+
+Endpoint *-- ZmqSocket
+Endpoint *-- ZmqOptions
+
+PendingConnection *-- Endpoint
+PendingConnection *-- ZmqPipe
+
 ZapClient *-- ZmqMechanism
 
 ZmqMechanism *-- ZmqDict

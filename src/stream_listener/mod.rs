@@ -1,7 +1,7 @@
 use std::mem::size_of_val;
 use std::ptr::null_mut;
 use libc::c_int;
-use windows::Win32::Networking::WinSock::{setsockopt, SOCKET_ERROR};
+use windows::Win32::Networking::WinSock::{closesocket, setsockopt, SOCKET_ERROR};
 
 use crate::address::{get_socket_name, SocketEnd};
 use crate::address::SocketEnd::{SocketEndLocal, SocketEndRemote};
@@ -74,7 +74,7 @@ impl<'a> ZmqStreamListener<'a> {
     pub fn close(&mut self, options: &ZmqOptions) {
         #[cfg(target_os = "windows")]
         {
-            closeseocket(self._s);
+            closesocket(self._s);
         }
         #[cfg(not(target_os = "windows"))]
         {
@@ -236,7 +236,11 @@ impl<'a> ZmqStreamListener<'a> {
         return -1;
     }
 
-    pub fn set_local_address(&mut self, options: &ZmqOptions, addr_: &str) -> Result<(),ZmqError> {
+    pub fn set_local_address(&mut self,
+                             options: &ZmqOptions,
+                             addr_: &str,
+                             ctx: &mut ZmqContext
+    ) -> Result<(),ZmqError> {
         if options.use_fd != -1 {
             //  in this case, the addr_ passed is not used and ignored, since the
             //  socket was already created by the application
@@ -253,6 +257,7 @@ impl<'a> ZmqStreamListener<'a> {
         )?;
 
         self._socket.event_listening(
+            ctx,
             options,
             &make_unconnected_bind_endpoint_pair(&self._endpoint),
             self._s,
@@ -260,7 +265,7 @@ impl<'a> ZmqStreamListener<'a> {
         return Ok(());
     }
 
-    pub fn accept(&mut self, options: &ZmqOptions) -> ZmqFd {
+    pub fn accept(&mut self, options: &ZmqOptions) -> Result<ZmqFd, ZmqError> {
         //  The situation where connection cannot be accepted due to insufficient
         //  resources is considered valid and treated by ignoring the connection.
         //  Accept one connection and deal with different failure modes.
@@ -303,10 +308,10 @@ impl<'a> ZmqStreamListener<'a> {
             //         //               || errno == ENOBUFS || errno == ENOMEM || errno == EMFILE
             //         //               || errno == ENFILE);
             // #endif
-            return RETIRED_FD;
+            return Ok(RETIRED_FD);
         }
 
-        platform_make_socket_noninheritable(sock);
+        platform_make_socket_noninheritable(sock)?;
 
         if !options.tcp_accept_filters.empty() {
             let mut matched = false;
@@ -317,7 +322,7 @@ impl<'a> ZmqStreamListener<'a> {
             for i in 0..options.tcp_accept_filters.len() {
                 if options.tcp_accept_filters[i].match_address(
                     &zmq_sockaddr_storage_to_sockaddr(&ss),
-                    ss_len as libc::socklen_t,
+                    ss_len
                 ) {
                     matched = true;
                     break;
@@ -327,7 +332,7 @@ impl<'a> ZmqStreamListener<'a> {
                 // #ifdef ZMQ_HAVE_WINDOWS
                 let mut rc = 0i32;
                 #[cfg(target_os = "windows")]{
-                    rc = self.closesocket(sock);
+                    rc = unsafe{closesocket(sock)};
                 }
                 // wsa_assert (rc != SOCKET_ERROR);
                 // #else
@@ -336,11 +341,11 @@ impl<'a> ZmqStreamListener<'a> {
                 }
                 // errno_assert (rc == 0);
                 // #endif
-                return RETIRED_FD;
+                return Ok(RETIRED_FD);
             }
         }
 
-        if set_nosigpipe(sock) {
+        if set_nosigpipe(sock).is_ok() {
             // #ifdef ZMQ_HAVE_WINDOWS
             #[cfg(target_os = "windows")]
             {
@@ -354,7 +359,7 @@ impl<'a> ZmqStreamListener<'a> {
             }
             // errno_assert (rc == 0);
             // #endif
-            return RETIRED_FD;
+            return Ok(RETIRED_FD);
         }
 
         // Set the IP Type-Of-Service priority for this client socket
@@ -367,6 +372,6 @@ impl<'a> ZmqStreamListener<'a> {
             set_socket_priority(sock, options.priority)?;
         }
 
-        return sock;
+        return Ok(sock);
     }
 }
