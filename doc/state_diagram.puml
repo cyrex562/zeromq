@@ -1,0 +1,37 @@
+@startuml
+'https://plantuml.com/state-diagram
+
+state zmq_version
+zmq_version : output: (u32,u32,u32)
+
+state zmq_strerror
+zmq_strerror: input: i32
+zmq_strerror: output: string
+
+state zmq_errno
+zmq_errno: output: i32
+
+state zmq_ctx_new
+zmq_ctx_new: output: Result<ZmqContext,ZmqError>
+
+zmq_ctx_new -> initialize_network : zmq_ctx_new
+initialize_network -> ZmqContext_new : zmq_ctx_new
+
+state initialize_network
+
+state ZmqContext_new
+
+state zmq_ctx_term
+zmq_ctx_term: input: ZmqContext
+zmq_ctx_term: input: ZmqOptions
+zmq_ctx_term: output: Result<(),ZmqError>
+
+zmq_ctx_term -> ZmqContext_check_tag : zmq_ctx_term
+ZmqContext_check_tag -> ZmqContext_terminate : zmq_ctx_term
+
+state ZmqContext_check_tag
+
+state ZmqContext_terminate
+ZmqContext_terminate: input: ZmqOptions
+
+@enduml

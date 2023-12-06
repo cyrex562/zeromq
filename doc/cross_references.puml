@@ -1,0 +1,261 @@
+@startuml
+'https://plantuml.com/object-diagram
+
+object zmq_version
+
+object zmq_sterror
+
+object zmq_errno
+
+object zmq_ctx_new
+
+object initalize_network
+
+object ZmqContext__new
+
+object ZmqContext__valid
+
+object zmq_ctx_term
+
+object ZmqContext__check_tag
+
+object ZmqContext__terminate
+
+object get_errno
+
+object shutdown_network
+
+object zmq_ctx_shutdown
+
+object ZmqContext__shutdown
+
+object zmq_ctx_set
+
+object zmq_ctx_set_ext
+
+object ZmqContext__set
+
+object zmq_ctx_get
+
+object ZmqContext__get
+
+object zmq_ctx_get_ext
+
+object zmq_init
+
+object zmq_term
+
+object zmq_ctx_destroy
+
+object as_socket_base_t
+
+object ZmqSocket__check_tag
+
+object zmq_socket
+
+object ZmqSocket__create_socket
+
+object zmq_close
+
+object ZmqSocket__close
+
+object zmq_setsockopt
+
+object ZmqSocket_setsockopt
+
+object zmq_getsockopt
+
+object ZmqSocket__getsockopt
+
+object zmq_socket_monitor_versioned
+
+object ZmqSocket__monitor
+
+object zmq_join
+
+object ZmqSocket__join
+
+object zmq_leave
+
+object ZmqSocket__leave
+
+object zmq_bind
+
+object ZmqSocket__bind
+
+object zmq_connect_peer
+
+object ZmqSocket__connect_peer
+
+object unbind
+
+object ZmqSocket__term_endpoint
+
+object zmq_disconnect
+
+object s_sendmsg
+
+object zmq_msg_size
+
+object ZmqSocket__send
+
+object zmq_sendmsg
+
+object zmq_msg_send
+
+object zmq_send
+
+object ZmqMsg__default
+
+object zmq_msg_init_buffer
+
+object zmq_send_const
+
+object zmq_msg_init_data
+
+object zmq_sendiov
+
+object zmq_msg_init_size
+
+object zmq_msg_data
+
+object s_recvmsg
+
+object zmq_recvmsg
+
+object zmq_msg_recv
+
+object zmq_recv
+
+object zmq_msg_init
+
+object zmq_msg_close
+
+object zmq_recviov
+
+object ZmqMsg__init2
+
+object ZmqMsg__init_size
+
+object ZmqMsg__init_buffer
+
+object ZmqMsg__init_data
+
+object ZmqMsg__close
+
+object zmq_msg_move
+
+object zmq_msg_copy
+
+object ZmqMsg__copy
+
+zmq_msg_copy --> ZmqMsg__copy
+
+zmq_msg_close --> ZmqMsg__close
+
+zmq_msg_recv --> s_recvmsg
+
+zmq_msg_send --> s_sendmsg
+
+zmq_msg_init_data --> ZmqMsg__init_data
+
+zmq_msg_init_buffer --> ZmqMsg__default
+zmq_msg_init_buffer --> ZmqMsg__init_buffer
+
+zmq_msg_init_size --> ZmqMsg__init_size
+
+zmq_msg_init --> ZmqMsg__init2
+
+zmq_recviov --> ZmqMsg__default
+zmq_recviov --> zmq_msg_init
+zmq_recviov --> s_recvmsg
+zmq_recviov --> zmq_msg_close
+zmq_recviov --> zmq_msg_size
+
+
+zmq_recv --> ZmqMsg__default
+zmq_recv --> zmq_msg_init
+zmq_recv --> s_recvmsg
+zmq_recv --> zmq_msg_close
+
+zmq_recvmsg --> zmq_msg_recv
+
+s_recvmsg --> zmq_msg_size
+
+zmq_sendiov --> ZmqMsg__default
+zmq_sendiov --> zmq_msg_init_size
+zmq_sendiov --> zmq_msg_data
+zmq_sendiov --> s_sendmsg
+
+zmq_send_const --> ZmqMsg__default
+zmq_send_const --> zmq_msg_init_data
+zmq_send_const --> s_sendmsg
+
+zmq_send --> ZmqMsg__default
+zmq_send --> zmq_msg_init_buffer
+zmq_send --> s_sendmsg
+
+zmq_sendmsg --> zmq_msg_send
+
+s_sendmsg --> zmq_msg_size
+s_sendmsg --> ZmqSocket__send
+
+zmq_disconnect --> ZmqSocket__term_endpoint
+
+unbind --> ZmqSocket__term_endpoint
+
+
+
+zmq_connect_peer --> ZmqSocket__check_tag
+zmq_connect_peer --> ZmqSocket__getsockopt
+zmq_connect_peer --> ZmqSocket__connect_peer
+
+zmq_bind --> ZmqSocket__bind
+
+zmq_leave --> ZmqSocket__leave
+
+zmq_join --> ZmqSocket__join
+
+zmq_socket_monitor_versioned --> ZmqSocket__monitor
+
+zmq_getsockopt --> ZmqSocket__getsockopt
+
+zmq_setsockopt --> ZmqSocket_setsockopt
+
+zmq_close --> ZmqSocket__close
+
+zmq_socket --> ZmqSocket__check_tag
+zmq_socket --> ZmqSocket__create_socket
+
+as_socket_base_t --> ZmqSocket__check_tag
+
+zmq_ctx_destroy --> zmq_ctx_term
+
+zmq_term --> zmq_ctx_term
+
+zmq_init --> zmq_ctx_new
+zmq_init --> zmq_ctx_set
+
+zmq_ctx_get_ext --> ZmqContext__check_tag
+zmq_ctx_get_ext --> ZmqContext__get
+
+zmq_ctx_get --> ZmqContext__check_tag
+zmq_ctx_get --> ZmqContext__get
+
+zmq_ctx_set_ext --> ZmqContext__check_tag
+zmq_ctx_set_ext --> ZmqContext__set
+
+zmq_ctx_set --> zmq_ctx_set_ext
+
+zmq_ctx_shutdown --> ZmqContext__check_tag
+zmq_ctx_shutdown --> ZmqContext__shutdown
+
+zmq_ctx_term --> ZmqContext__check_tag
+zmq_ctx_term --> ZmqContext__terminate
+zmq_ctx_term --> get_errno
+zmq_ctx_term --> shutdown_network
+
+zmq_ctx_new --> initalize_network
+zmq_ctx_new --> ZmqContext__new
+zmq_ctx_new --> ZmqContext__valid
+@enduml

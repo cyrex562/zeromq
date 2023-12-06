@@ -1,0 +1,46 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+:zmq_version();
+:(u32,u32,u32); <<output>>
+stop
+
+start
+:errnum i32; <<input>>
+:zmq_strerror();
+:str; <<output>>
+stop
+
+start
+:zmq_ctx_new();
+:initialize_network();
+:ZmqContext::new();
+if (ctx.valid?) then (yes)
+    :Ok(ctx);
+    :ZmqContext; <<output>>
+else (no)
+    :Err(InvalidContext);
+    :ZmqError; <<output>>
+endif
+stop
+
+start
+fork
+:ZmqContext; <<input>>
+fork again
+:ZmqOptions; <<input>>
+end merge
+:zmq_ctx_term();
+if (ctx.check_tag() == false) then
+    :Err(InvalidContext);
+    :ZmqError; <<output>>
+    stop
+endif
+:ctx.terminate(options);
+if (get_errno() != EINTR) then
+    :shutdown_network();
+endif
+:Ok(()); <<output>>
+stop
+@enduml
