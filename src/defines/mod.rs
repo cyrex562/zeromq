@@ -706,7 +706,7 @@ pub const SIGNALER_PORT: u32 = 0;
 pub type ZmqConditionVariable = Mutex<()>;
 
 #[cfg(target_os = "windows")]
-pub type ZmqPid = i32;
+pub type ZmqPid = u32;
 #[cfg(not(target_os = "windows"))]
 pub type ZmqPid = pid_t;
 

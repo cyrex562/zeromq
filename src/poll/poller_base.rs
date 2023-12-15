@@ -100,36 +100,36 @@ use crate::poll::poller_event::ZmqPollerEvent;
 //     }
 // }
 
-impl<'a> ZmqWorkerPollerBase<'a> {
-    pub fn new(ctx_: &mut ZmqContext) -> Self {
-        Self {
-            _poller_base: ZmqPollerBase {
-                _clock: Duration::milliseconds(0),
-                _timers: ZmqTimers::new(),
-                _load: AtomicU32::new(0),
-            },
-            _active: false,
-            _ctx: ctx_,
-            _worker: ZmqThread::new(),
-        }
-    }
-
-    pub fn stop_worker(&mut self) {
-        self._worker.stop();
-    }
-
-    pub fn start(&mut self, name_: &str) {
-        // TODO: figure out how to pass ZmqWorkerPoller to thread as arg
-        self._ctx.start_thread(&mut self._worker, Self::worker_routine, &mut [0u8], name_);
-    }
-
-    pub fn check_thread(&mut self) {
-        unimplemented!("check_thread")
-    }
-
-    // TODO: fix up to get worker instance from arg
-    pub fn worker_routine(arg_: *mut c_void) {
-        let worker: &mut ZmqWorkerPollerBase = unsafe { &mut *(arg_ as *mut ZmqWorkerPollerBase) };
-        worker.loop_();
-    }
-}
+// impl<'a> ZmqWorkerPollerBase<'a> {
+//     pub fn new(ctx_: &mut ZmqContext) -> Self {
+//         Self {
+//             _poller_base: ZmqPollerBase {
+//                 _clock: Duration::milliseconds(0),
+//                 _timers: HashMap::new(),
+//                 _load: AtomicU32::new(0),
+//             },
+//             _active: false,
+//             _ctx: ctx_,
+//             _worker: ZmqThread::default(),
+//         }
+//     }
+//
+//     pub fn stop_worker(&mut self) {
+//         self._worker.stop();
+//     }
+//
+//     pub fn start(&mut self, name_: &str) {
+//         // TODO: figure out how to pass ZmqWorkerPoller to thread as arg
+//         self._ctx.start_thread(&mut self._worker, Self::worker_routine, &mut [0u8], name_);
+//     }
+//
+//     pub fn check_thread(&mut self) {
+//         unimplemented!("check_thread")
+//     }
+//
+//     // TODO: fix up to get worker instance from arg
+//     pub fn worker_routine(arg_: *mut c_void) {
+//         let worker: &mut ZmqWorkerPollerBase = unsafe { &mut *(arg_ as *mut ZmqWorkerPollerBase) };
+//         worker.loop_();
+//     }
+// }

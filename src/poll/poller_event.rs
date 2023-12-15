@@ -1,6 +1,7 @@
 use crate::defines::ZmqFd;
 use crate::socket::ZmqSocket;
 
+#[derive(Debug,Clone)]
 pub struct ZmqPollerEvent<'a> {
     pub socket: Option<&'a mut ZmqSocket<'a>>,
     pub fd: ZmqFd,

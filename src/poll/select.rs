@@ -14,6 +14,7 @@ use windows::Win32::Networking::WinSock::{
 };
 #[cfg(target_os="windows")]
 use windows::Win32::Networking::WinSock::{getsockname, getsockopt, SOCKADDR};
+use windows::Win32::System::Threading::GetCurrentProcessId;
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::INFINITE;
 
@@ -27,6 +28,7 @@ use crate::defines::time::{ZmqTimeval};
 use crate::platform::platform_select;
 use crate::platform::platform_random;
 use crate::poll::poller_event::ZmqPollerEvent;
+use crate::poll::ZmqFamilyEntry;
 use crate::utils::{FD_ISSET, };
 
 pub const FD_FAMILY_CACHE_SIZE: usize = 8;
@@ -791,7 +793,7 @@ pub struct ZmqWsaEvents {
 impl ZmqWsaEvents {
     pub fn new() -> Self {
         Self {
-            events: [0 as WSAEVENT; 4],
+            events: [WSAEVENT{0:-1}; 4],
         }
     }
 }

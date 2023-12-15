@@ -1,21 +1,22 @@
 use std::ffi::c_void;
 use std::mem::size_of_val;
 
-use libc::{c_int, close, EAGAIN, EINTR, getpid, read, write};
+use libc::{c_int, close, EAGAIN, read, write};
 #[cfg(target_os = "windows")]
-use windows::Win32::Networking::WinSock::{recv, select, send, SEND_RECV_FLAGS, SOCKET_ERROR, TIMEVAL};
+use windows::Win32::Networking::WinSock::{recv, select, send, SEND_RECV_FLAGS, SOCKET_ERROR};
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::{WSAEWOULDBLOCK, WSAGetLastError};
+use windows::Win32::Networking::WinSock::{POLLIN, SOCKET, WSAPOLL_EVENT_FLAGS};
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::Sleep;
 
-use crate::defines::{ZmqFd, ZmqPid};
+use crate::defines::{ZmqFd, ZmqPid, ZmqPollFd};
 use crate::defines::err::ZmqError;
 use crate::defines::err::ZmqError::PollerError;
 use crate::defines::time::ZmqTimeval;
 use crate::ip::{make_fdpair, unblock_socket};
-use crate::platform::platform_select;
-use crate::poll::select::{ZmqFdSet, FD_SET, FD_ZERO};
+use crate::platform::{platform_fd_set, platform_get_pid, platform_select, platform_send};
+use crate::poll::select::{ZmqFdSet, FD_ZERO};
 use crate::utils::get_errno;
 
 #[derive(Default, Debug, Clone)]
@@ -49,7 +50,7 @@ impl ZmqSignaler {
     pub fn send(&mut self) -> Result<(), ZmqError> {
         #[cfg(feature = "fork")]
         unsafe {
-            if self.pid != getpid() {
+            if self.pid != platform_get_pid() {
                 return Ok(());
             }
         }
@@ -62,7 +63,7 @@ impl ZmqSignaler {
                 write(
                     self._w as c_int,
                     inc_bytes.as_ptr() as *const c_void,
-                    size_of_val(&inc),
+                    size_of_val(&inc) as u32,
                 )
             };
         }
@@ -119,7 +120,7 @@ impl ZmqSignaler {
         // #ifdef HAVE_FORK
         #[cfg(feature = "fork")]
         unsafe {
-            if self.pid != getpid() {
+            if self.pid != platform_get_pid() {
                 // we have forked and the file descriptor is closed. Emulate an interrupt
                 // response.
                 //printf("Child process %d signaler_t::wait returning simulating interrupt #1\n", getpid());
@@ -134,45 +135,46 @@ impl ZmqSignaler {
         {
             // struct pollfd pfd;
             let mut pfd = ZmqPollFd {
-                fd: 0,
-                events: 0,
-                revents: 0,
+                fd: SOCKET{0:0},
+                events: WSAPOLL_EVENT_FLAGS{0: 0},
+                revents: WSAPOLL_EVENT_FLAGS{0:0},
             };
-            pfd.fd = self._r;
+            pfd.fd = SOCKET{0: self._r};
             pfd.events = POLLIN;
             let mut rc = 0;
             // TODO
             //let rc = poll(&pfd, 1, timeout_);
             if rc < 0 {
                 // errno_assert (errno == EINTR);
-                return -1;
+                return Err(ZmqError::SocketError("EINTR"));
             }
             if rc == 0 {
                 // errno = EAGAIN;
-                return -1;
+                // return -1;
+                return Err(ZmqError::SocketError("EAGAIN"));
             }
             // #ifdef HAVE_FORK
             #[cfg(feature = "fork")]
             {
-                if self.pid != getpid() {
+                if self.pid != platform_get_pid() {
                     // we have forked and the file descriptor is closed. Emulate an interrupt
                     // response.
                     //printf("Child process %d signaler_t::wait returning simulating interrupt #2\n", getpid());
                     // errno = EINTR;
-                    return -1;
+                    return Err(ZmqError::SocketError("EINTR"));
                 }
             }
             // #endif
             //     zmq_assert (rc == 1);
             //     zmq_assert (pfd.revents & POLLIN);
-            return 0;
+            return Ok(());
         }
         // #elif defined ZMQ_POLL_BASED_ON_SELECT
         #[cfg(feature = "select")] {
             // optimized_fd_set_t fds (1);
             let mut fds = ZmqFdSet { fd_count: 0, fd_array: [0 as ZmqFd; 64] };
             FD_ZERO(&mut fds);
-            FD_SET(self._r, &mut fds);
+            platform_fd_set(self._r, &mut fds);
             // struct timeval timeout;
             let mut timeout = ZmqTimeval::default();
             if timeout_ >= 0 {
@@ -241,7 +243,8 @@ impl ZmqSignaler {
         // #if defined ZMQ_HAVE_WINDOWS
         #[cfg(target_os = "windows")]
         {
-            let nbytes = recv(self._r, dummy.to_le_bytes().as_mut_slice(), SEND_RECV_FLAGS::default());
+            let recv_sock = SOCKET{0: self._r};
+            let nbytes = unsafe{recv(recv_sock, dummy.to_le_bytes().as_mut_slice(), SEND_RECV_FLAGS::default())};
             // wsa_assert (nbytes != SOCKET_ERROR);
         }
         // #elif defined ZMQ_HAVE_VXWORKS
@@ -299,12 +302,13 @@ impl ZmqSignaler {
         // #if defined ZMQ_HAVE_WINDOWS
         #[cfg(target_os = "windows")]
         {
-            let nbytes = recv(self._r, dummy.to_le_bytes().as_mut_slice(), SEND_RECV_FLAGS::default());
+            let recv_sock = SOCKET{0: self._r};
+            let nbytes = unsafe{recv(recv_sock, dummy.to_le_bytes().as_mut_slice(), SEND_RECV_FLAGS::default())};
             if nbytes == SOCKET_ERROR {
                 let last_error = unsafe { WSAGetLastError() };
                 if last_error == WSAEWOULDBLOCK {
                     // errno = EAGAIN;
-                    return -1;
+                    return Err(ZmqError::SocketError("EAGAIN"));
                 }
                 // wsa_assert (last_error == WSAEWOULDBLOCK);
             }
@@ -348,7 +352,7 @@ impl ZmqSignaler {
     }
 
     pub fn valid(&mut self) -> bool {
-        self._w != -1
+        self._w != usize::MAX
     }
 
     pub fn forked(&mut self) {

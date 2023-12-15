@@ -14,7 +14,7 @@ use windows::Win32::Storage::FileSystem::SYNCHRONIZE;
 use windows::Win32::System::SystemServices::SECURITY_DESCRIPTOR_REVISION;
 #[cfg(target_os = "windows")]
 use windows::Win32::System::Threading::OpenEventA;
-use windows::Win32::System::Threading::{CreateEventA, CreateMutexA, EVENT_MODIFY_STATE, INFINITE, ReleaseMutex, SetEvent, SYNCHRONIZATION_ACCESS_RIGHTS, WaitForSingleObject};
+use windows::Win32::System::Threading::{CreateEventA, CreateMutexA, EVENT_MODIFY_STATE, GetCurrentProcessId, INFINITE, ReleaseMutex, SetEvent, SYNCHRONIZATION_ACCESS_RIGHTS, WaitForSingleObject};
 use windows::Win32::System::WindowsProgramming::OpenMutexA;
 #[cfg(target_os = "windows")]
 use crate::ip::tune_socket;
@@ -820,4 +820,24 @@ pub fn win_SOCKADDR_IN_to_SOCKADDR(sk_in: &SOCKADDR_IN) -> SOCKADDR {
 
 pub fn platform_random() -> i32 {
     let out = unsafe{libc::rand()};
+}
+
+pub fn platform_get_pid() -> u32 {
+    #[cfg(target_os="windows")]
+    {
+        return unsafe{GetCurrentProcessId()}
+    }
+    #[cfg(not(target_os="windows"))]
+    {
+        return unsafe{libc::getpid()}
+    }
+}
+
+pub fn platform_fd_set(fd: ZmqFd, fd_set: &mut ZmqFdSet) {
+    for i in 0 .. fd_set.fd_array.len() {
+        if fd_set.fd_array[i] == 0 {
+            fd_set.fd_array[i] = fd;
+            break;
+        }
+    }
 }

@@ -3,17 +3,18 @@ use std::sync::atomic::AtomicU32;
 use std::time::Duration;
 
 use chrono::Utc;
+use windows::Win32::Networking::WinSock::{FD_ACCEPT, FD_CLOSE, FD_CONNECT, FD_READ, FD_WRITE, WSAEventSelect, WSAWaitForMultipleEvents};
 #[cfg(target_os = "windows")]
 use windows::Win32::Networking::WinSock::WSAPoll;
 
 use crate::ctx::ZmqContext;
-use crate::defines::{RETIRED_FD, ZmqFd, ZmqHandle, ZmqPollFd};
+use crate::defines::{AF_UNSPEC, RETIRED_FD, ZmqFd, ZmqHandle, ZmqPollFd};
 use crate::defines::err::ZmqError;
 use crate::defines::time::ZmqTimeval;
 use crate::io::thread::ZmqThread;
 use crate::platform::{platform_poll, platform_select};
 use crate::poll::poller_event::ZmqPollerEvent;
-use crate::poll::select::ZmqFdSet;
+use crate::poll::select::{FD_FAMILY_CACHE_SIZE, ZmqFdSet};
 use crate::utils::{FD_ISSET, is_retired_fd};
 
 pub mod select;
@@ -66,9 +67,11 @@ pub fn zmq_poll_int(poll_fds: &mut [ZmqPollFd], nitems: u32, timeout: u32) -> Re
     platform_poll(poll_fds, nitems, timeout)
 }
 
+#[derive(Default,Debug,Clone, PartialEq)]
 pub struct ZmqFdEntry<'a> {
     pub fd: ZmqFd,
-    pub events: &'a mut ZmqPollerEvent<'a>,
+    // pub events: &'a mut ZmqPollerEvent<'a>,
+    pub events: Vec<ZmqPollerEvent<'a>>
 }
 
 pub fn remove_fd_entry(fd_entries_: &mut Vec<ZmqFdEntry>, entry: &ZmqFdEntry) {
@@ -80,6 +83,7 @@ pub fn remove_fd_entry(fd_entries_: &mut Vec<ZmqFdEntry>, entry: &ZmqFdEntry) {
     }
 }
 
+#[derive(Default,Clone)]
 pub struct ZmqFamilyEntry<'a> {
     pub fd_entries: Vec<ZmqFdEntry<'a>>,
     pub fds_set: ZmqFdsSet,
@@ -91,7 +95,7 @@ pub struct TimerInfo<'a> {
     pub id: i32,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Default, Debug, Clone)]
 pub struct ZmqFdsSet {
     pub read: ZmqFdSet,
     pub write: ZmqFdSet,
@@ -148,7 +152,7 @@ pub struct ZmqPoller<'a> {
     pub _active: bool,
     pub _worker: ZmqThread<'a>,
     #[cfg(target_os = "windows")]
-    pub _family_entries: Hashmap<u16, ZmqFamilyEntry<'a>>,
+    pub _family_entries: HashMap<u16, ZmqFamilyEntry<'a>>,
     #[cfg(target_os = "windows")]
     pub _fd_family_cache: [(ZmqFd, u16); FD_FAMILY_CACHE_SIZE],
     #[cfg(not(target_os = "windows"))]
@@ -159,7 +163,7 @@ pub struct ZmqPoller<'a> {
     pub _current_family_entry_it: &'a mut ZmqFamilyEntry<'a>,
 }
 
-impl ZmqPoller {
+impl<'a> ZmqPoller<'a> {
     pub fn adjust_load(&mut self, amount: i32) {
         if amount > 0 {
             self._load.add(amount);
@@ -346,8 +350,8 @@ impl ZmqPoller {
         handle_: &ZmqFd,
     ) -> Result<(), ZmqError> {
         // let family_entry: &mut family_entry_t = family_entry_it_.;
-        let mut fd_entry_it = self.find_fd_entry_by_handle(&mut family_entry_it_.fd_entries, handle_ as ZmqHandle);
-        if fd_entry_it == family_entry_it_.fd_entries.end() {
+        let mut fd_entry_it = self.find_fd_entry_by_handle(&mut family_entry_it_.fd_entries, handle_ as ZmqHandle).unwrap();
+        if fd_entry_it == family_entry_it_.fd_entries.last() {
             return Ok(());
         }
 
@@ -560,23 +564,23 @@ impl ZmqPoller {
 
                             //  http://stackoverflow.com/q/35043420/188530
                             if (FD_ISSET(fd, &family_entry.fds_set.read) && FD_ISSET(fd, &family_entry.fds_set.write)) {
-                                rc = WSAEventSelect(
+                                rc = unsafe{WSAEventSelect(
                                     fd,
                                     wsa_events.events[3],
                                     (FD_READ | FD_ACCEPT | FD_CLOSE | FD_WRITE | FD_CONNECT) as i32,
-                                );
+                                )};
                             } else if (FD_ISSET(fd, &family_entry.fds_set.read)) {
-                                rc = WSAEventSelect(
+                                rc = unsafe{WSAEventSelect(
                                     fd,
                                     wsa_events.events[0],
                                     (FD_READ | FD_ACCEPT | FD_CLOSE) as i32,
-                                );
+                                )};
                             } else if (FD_ISSET(fd, &family_entry.fds_set.write)) {
-                                rc = WSAEventSelect(
+                                rc = unsafe{WSAEventSelect(
                                     fd,
                                     wsa_events.events[1],
                                     (FD_WRITE | FD_CONNECT) as i32,
-                                );
+                                )};
                             } else {
                                 rc = 0;
                             }
@@ -585,12 +589,12 @@ impl ZmqPoller {
                         }
                     }
 
-                    rc = WSAWaitForMultipleEvents(
+                    rc = unsafe{WSAWaitForMultipleEvents(
                         &wsa_events.events as &[HANDLE],
                         FALSE,
                         if timeout { timeout } else { INFINITE },
                         FALSE,
-                    ) as i32;
+                    ) as i32};
                     // wsa_assert(rc != (int) WSA_WAIT_FAILED);
                     // zmq_assert(rc != WSA_WAIT_IO_COMPLETION);
 
